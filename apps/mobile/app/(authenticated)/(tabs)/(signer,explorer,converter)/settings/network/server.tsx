@@ -1,108 +1,108 @@
-import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
-import { ScrollView, TouchableOpacity } from "react-native";
-import { toast } from "sonner-native";
-import { useShallow } from "zustand/react/shallow";
+import { Stack, useFocusEffect, useRouter } from 'expo-router'
+import { useCallback, useState } from 'react'
+import { ScrollView, TouchableOpacity } from 'react-native'
+import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconCloseThin } from "@/components/icons";
-import SSBitcoinNetworkExplanationLink from "@/components/SSBitcoinNetworkExplanationLink";
-import SSButton from "@/components/SSButton";
-import SSCheckbox from "@/components/SSCheckbox";
-import SSIconButton from "@/components/SSIconButton";
-import SSText from "@/components/SSText";
-import { servers } from "@/constants/servers";
+import { SSIconCloseThin } from '@/components/icons'
+import SSBitcoinNetworkExplanationLink from '@/components/SSBitcoinNetworkExplanationLink'
+import SSButton from '@/components/SSButton'
+import SSCheckbox from '@/components/SSCheckbox'
+import SSIconButton from '@/components/SSIconButton'
+import SSText from '@/components/SSText'
+import { servers } from '@/constants/servers'
 import {
   type ConnectionTestResult,
-  useConnectionTest,
-} from "@/hooks/useConnectionTest";
-import useVerifyConnection from "@/hooks/useVerifyConnection";
-import SSHStack from "@/layouts/SSHStack";
-import SSMainLayout from "@/layouts/SSMainLayout";
-import SSVStack from "@/layouts/SSVStack";
-import { t, tn as _tn } from "@/locales";
-import { useBlockchainStore } from "@/store/blockchain";
-import { Colors } from "@/styles";
-import { type Network, type Server } from "@/types/settings/blockchain";
-import { formatDate } from "@/utils/date";
-import { trimOnionAddress } from "@/utils/format";
+  useConnectionTest
+} from '@/hooks/useConnectionTest'
+import useVerifyConnection from '@/hooks/useVerifyConnection'
+import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
+import { t, tn as _tn } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
+import { type Network, type Server } from '@/types/settings/blockchain'
+import { formatDate } from '@/utils/date'
+import { trimOnionAddress } from '@/utils/format'
 
-const tn = _tn("settings.network.server");
+const tn = _tn('settings.network.server')
 
 export default function NetworkSettings() {
-  const router = useRouter();
+  const router = useRouter()
   const [
     selectedNetwork,
     configs,
     customServers,
     updateServer,
-    removeCustomServer,
+    removeCustomServer
   ] = useBlockchainStore(
     useShallow((state) => [
       state.selectedNetwork,
       state.configs,
       state.customServers,
       state.updateServer,
-      state.removeCustomServer,
+      state.removeCustomServer
     ])
-  );
+  )
 
-  const [connectionState] = useVerifyConnection();
-  const { testing, testConnection, resetTest } = useConnectionTest();
+  const [connectionState] = useVerifyConnection()
+  const { testing, testConnection, resetTest } = useConnectionTest()
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>
   >({
     bitcoin: configs.bitcoin.server,
     signet: configs.signet.server,
-    testnet: configs.testnet.server,
-  });
+    testnet: configs.testnet.server
+  })
 
   useFocusEffect(
     useCallback(() => {
-      const { configs: nextConfigs } = useBlockchainStore.getState();
+      const { configs: nextConfigs } = useBlockchainStore.getState()
       setSelectedServers({
         bitcoin: nextConfigs.bitcoin.server,
         signet: nextConfigs.signet.server,
-        testnet: nextConfigs.testnet.server,
-      });
+        testnet: nextConfigs.testnet.server
+      })
     }, [])
-  );
+  )
 
-  const [testingServer, setTestingServer] = useState<string | null>(null);
+  const [testingServer, setTestingServer] = useState<string | null>(null)
   /** Persists latest successful probe (tip height and time) for all backends. */
-  const [lastProbeBanner, setLastProbeBanner] = useState<string | null>(null);
+  const [lastProbeBanner, setLastProbeBanner] = useState<string | null>(null)
 
-  const networks: Network[] = ["bitcoin", "testnet", "signet"];
+  const networks: Network[] = ['bitcoin', 'testnet', 'signet']
 
   function successToastDescription(
     result: Extract<ConnectionTestResult, { success: true }>
   ): string {
-    const dateSec = result.tipTimestampSec ?? Math.floor(Date.now() / 1000);
-    const dateStr = formatDate(dateSec);
+    const dateSec = result.tipTimestampSec ?? Math.floor(Date.now() / 1000)
+    const dateStr = formatDate(dateSec)
     if (result.blockHeight != null && result.blockHeight > 0) {
-      return tn("tester.successDetail", {
+      return tn('tester.successDetail', {
         date: dateStr,
-        height: result.blockHeight.toLocaleString(),
-      });
+        height: result.blockHeight.toLocaleString()
+      })
     }
-    return tn("tester.successNoHeight", { date: dateStr });
+    return tn('tester.successNoHeight', { date: dateStr })
   }
 
   function handleSelectServer(network: Network, server: Server) {
     setSelectedServers((prev) => ({
       ...prev,
-      [network]: server,
-    }));
+      [network]: server
+    }))
   }
 
   function handleRemove(server: Server) {
-    removeCustomServer(server);
+    removeCustomServer(server)
   }
 
   async function handleTestConnection(server: Server) {
-    setTestingServer(server.url);
-    setLastProbeBanner(null);
-    await resetTest();
+    setTestingServer(server.url)
+    setLastProbeBanner(null)
+    await resetTest()
 
     try {
       const result = await testConnection(
@@ -110,51 +110,51 @@ export default function NetworkSettings() {
         server.backend,
         server.network,
         server.proxy
-      );
+      )
 
       if (!result.success) {
-        const errorMessage = result.error || tn("tester.failed");
+        const errorMessage = result.error || tn('tester.failed')
         toast.error(`${server.name} (${server.url})`, {
-          description: errorMessage,
-        });
-        setTestingServer(null);
-        return;
+          description: errorMessage
+        })
+        setTestingServer(null)
+        return
       }
 
-      const probeLine = successToastDescription(result);
+      const probeLine = successToastDescription(result)
       setLastProbeBanner(
         `${server.name} (${trimOnionAddress(server.url)}): ${tn(
-          "tester.success"
+          'tester.success'
         )} — ${probeLine}`
-      );
+      )
 
       try {
         toast.success(`${server.name} (${server.url})`, {
-          description: `${tn("tester.success")} — ${probeLine}`,
-        });
+          description: `${tn('tester.success')} — ${probeLine}`
+        })
       } catch {
         // Avoid crashing if sonner handler was ever invalid; banner still shows tip.
       }
-      setTestingServer(null);
+      setTestingServer(null)
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : tn("tester.error");
+        error instanceof Error ? error.message : tn('tester.error')
       toast.error(`${server.name} (${server.url})`, {
-        description: errorMessage,
-      });
-      setTestingServer(null);
+        description: errorMessage
+      })
+      setTestingServer(null)
     }
   }
 
   function handleOnSave() {
-    updateServer("bitcoin", selectedServers["bitcoin"]);
-    updateServer("testnet", selectedServers["testnet"]);
-    updateServer("signet", selectedServers["signet"]);
-    router.back();
+    updateServer('bitcoin', selectedServers['bitcoin'])
+    updateServer('testnet', selectedServers['testnet'])
+    updateServer('signet', selectedServers['signet'])
+    router.back()
   }
 
   function handleEditCustomServer(network: Network, server: Server) {
-    router.push(`./${network}?editUrl=${encodeURIComponent(server.url)}`);
+    router.push(`./${network}?editUrl=${encodeURIComponent(server.url)}`)
   }
 
   return (
@@ -162,7 +162,7 @@ export default function NetworkSettings() {
       <Stack.Screen
         options={{
           headerRight: undefined,
-          headerTitle: () => <SSText uppercase>{tn("title")}</SSText>,
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
       <SSVStack style={{ flex: 1, minHeight: 0 }}>
@@ -196,18 +196,18 @@ export default function NetworkSettings() {
                           key={index}
                           justifyBetween
                           style={{
-                            alignItems: "center",
-                            alignSelf: "stretch",
+                            alignItems: 'center',
+                            alignSelf: 'stretch',
                             minHeight: 48,
-                            overflow: "hidden",
+                            overflow: 'hidden'
                           }}
                         >
                           <SSHStack
                             gap="sm"
                             style={{
-                              alignItems: "flex-start",
+                              alignItems: 'flex-start',
                               flex: 1,
-                              minWidth: 0,
+                              minWidth: 0
                             }}
                           >
                             <SSCheckbox
@@ -232,12 +232,12 @@ export default function NetworkSettings() {
                               <SSVStack gap="none" style={{ flex: 1 }}>
                                 <SSHStack
                                   gap="xs"
-                                  style={{ alignItems: "center" }}
+                                  style={{ alignItems: 'center' }}
                                 >
                                   <SSText
                                     style={{
                                       lineHeight: 16,
-                                      textTransform: "capitalize",
+                                      textTransform: 'capitalize'
                                     }}
                                     size="md"
                                   >
@@ -246,7 +246,7 @@ export default function NetworkSettings() {
                                   <SSText
                                     style={{
                                       lineHeight: 16,
-                                      textTransform: "capitalize",
+                                      textTransform: 'capitalize'
                                     }}
                                     size="md"
                                     color="muted"
@@ -262,9 +262,9 @@ export default function NetworkSettings() {
                                       selectedServers[network].name ===
                                         server.name &&
                                       selectedServers[network].backend ===
-                                        server.backend;
+                                        server.backend
                                     const isCurrentNetwork =
-                                      network === selectedNetwork;
+                                      network === selectedNetwork
                                     // Only show "Connected" if this is the currently selected server
                                     // in the currently active network AND the connection is successful
                                     const isCurrentlyActiveServer =
@@ -275,11 +275,10 @@ export default function NetworkSettings() {
                                       selectedServers[network].name ===
                                         configs[selectedNetwork].server.name &&
                                       selectedServers[network].backend ===
-                                        configs[selectedNetwork].server.backend;
+                                        configs[selectedNetwork].server.backend
 
                                     const shouldShowConnected =
-                                      isCurrentlyActiveServer &&
-                                      connectionState;
+                                      isCurrentlyActiveServer && connectionState
 
                                     return (
                                       shouldShowConnected && (
@@ -287,13 +286,13 @@ export default function NetworkSettings() {
                                           style={{
                                             color: Colors.mainGreen,
                                             lineHeight: 14,
-                                            opacity: 0.6,
+                                            opacity: 0.6
                                           }}
                                         >
-                                          {t("common.connected")}
+                                          {t('common.connected')}
                                         </SSText>
                                       )
-                                    );
+                                    )
                                   })()}
                                   <SSText
                                     style={{ lineHeight: 14 }}
@@ -314,7 +313,7 @@ export default function NetworkSettings() {
                                 borderRadius: 400,
                                 borderWidth: 1,
                                 marginLeft: 8,
-                                padding: 6,
+                                padding: 6
                               }}
                               onPress={() => handleRemove(server)}
                             >
@@ -330,14 +329,14 @@ export default function NetworkSettings() {
                   </SSVStack>
                   <SSHStack gap="sm" style={{ marginBottom: 8, marginTop: 12 }}>
                     <SSButton
-                      label={tn("custom.add").toUpperCase()}
+                      label={tn('custom.add').toUpperCase()}
                       onPress={() => router.push(`./${network}`)}
                       style={{ flex: 1 }}
                       variant="subtle"
                     />
                     <SSButton
                       variant="subtle"
-                      label={t("settings.network.server.test").toUpperCase()}
+                      label={t('settings.network.server.test').toUpperCase()}
                       onPress={() =>
                         handleTestConnection(selectedServers[network])
                       }
@@ -370,16 +369,16 @@ export default function NetworkSettings() {
           ) : null}
           <SSButton
             variant="secondary"
-            label={t("common.save")}
+            label={t('common.save')}
             onPress={() => handleOnSave()}
           />
           <SSButton
             variant="ghost"
-            label={t("common.cancel")}
+            label={t('common.cancel')}
             onPress={() => router.back()}
           />
         </SSVStack>
       </SSVStack>
     </SSMainLayout>
-  );
+  )
 }

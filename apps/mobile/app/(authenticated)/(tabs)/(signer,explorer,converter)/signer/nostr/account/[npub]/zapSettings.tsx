@@ -75,7 +75,9 @@ export default function ZapSettingsPage() {
 
   function handleAddPreset() {
     const val = parseInt(newPreset, 10)
-    if (!val || val <= 0) {return}
+    if (!val || val <= 0) {
+      return
+    }
     if (presets.includes(val)) {
       setNewPreset('')
       return
@@ -89,7 +91,9 @@ export default function ZapSettingsPage() {
   }
 
   function handleSave() {
-    if (!npub) {return}
+    if (!npub) {
+      return
+    }
     const parsedOneTap = parseInt(oneTapAmount, 10) || DEFAULT_ONE_TAP_AMOUNT
     updateIdentity(npub, {
       zapPreferences: {

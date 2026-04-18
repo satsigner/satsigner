@@ -324,8 +324,8 @@ const styles = StyleSheet.create({
   },
   containerActive: {
     borderColor: 'rgba(255, 255, 255, 0.14)',
-    borderWidth: 1,
     borderTopWidth: 1,
+    borderWidth: 1,
     shadowColor: '#FFFFFF',
     shadowOffset: { height: 0, width: 0 },
     shadowOpacity: 0.05,

@@ -52,13 +52,17 @@ export default function NostrIdentityKeys() {
 
   function handleCopyNpub() {
     const value = Array.isArray(npub) ? npub[0] : npub
-    if (!value) {return}
+    if (!value) {
+      return
+    }
     Clipboard.setStringAsync(value)
     toast.success(t('common.copiedToClipboard'))
   }
 
   function handleCopyNsec() {
-    if (!identity?.nsec) {return}
+    if (!identity?.nsec) {
+      return
+    }
     Clipboard.setStringAsync(identity.nsec)
     toast.success(t('common.copiedToClipboard'))
   }
@@ -84,7 +88,7 @@ export default function NostrIdentityKeys() {
     )
   }
 
-  const {isWatchOnly} = identity
+  const { isWatchOnly } = identity
 
   return (
     <SSMainLayout style={styles.mainLayout}>

@@ -360,15 +360,8 @@ function SSCurrentTransactionChart({
   }
 
   const graphEmpty = !nodes?.length || !transformedLinks?.length
-  const hasInvalidNodes = nodes.some(
-    (node) =>
-      Number.isNaN(node.x0) ||
-      Number.isNaN(node.y0) ||
-      Number.isNaN(node.x1) ||
-      Number.isNaN(node.y1)
-  )
 
-  if (graphEmpty || hasInvalidNodes) {
+  if (graphEmpty) {
     return (
       <View
         style={{

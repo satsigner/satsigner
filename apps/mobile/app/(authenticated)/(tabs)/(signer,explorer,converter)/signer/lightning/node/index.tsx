@@ -1,19 +1,25 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Animated,
   Easing,
+  Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
   View
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { useShallow } from 'zustand/react/shallow'
 
 import {
+  SSIconBubbles,
+  SSIconChevronRight,
   SSIconCollapse,
   SSIconExpand,
-  SSIconLNSettings,
+  SSIconLightning,
+  SSIconList,
   SSIconRefresh
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
@@ -21,162 +27,58 @@ import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSIconButton from '@/components/SSIconButton'
+import SSLightningChannelLiquidityBar from '@/components/SSLightningChannelLiquidityBar'
+import SSLightningChannelsBubbleChart from '@/components/SSLightningChannelsBubbleChart'
+import SSLoader from '@/components/SSLoader'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSPaste from '@/components/SSPaste'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import {
+  LIGHTNING_BUBBLE_CHART_BLEED_MARGIN_FRAC,
+  LIGHTNING_BUBBLE_CHART_LAYOUT_MAX_SIZE_PX,
+  LIGHTNING_BUBBLE_CHART_LAYOUT_MIN_SIZE_PX
+} from '@/constants/lightningChannelsBubbleChart'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useLightningContentHandler } from '@/hooks/useLightningContentHandler'
 import { useLND } from '@/hooks/useLND'
+import { useLndNodeDashboard } from '@/hooks/useLndNodeDashboard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { Colors } from '@/styles'
-import { formatNumber } from '@/utils/format'
+import { useSettingsStore } from '@/store/settings'
+import { Colors, Sizes } from '@/styles'
+import { type LndCombinedTransaction } from '@/types/lndNodeDashboard'
+import { formatNumber, formatShortPubkey } from '@/utils/format'
+import { type LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
+import { lightningChannelHref } from '@/utils/lightningNavigation'
+import {
+  getLndChannelPeerAlias,
+  getLndChannelRemotePubkey,
+  liquidityBarSegmentFlexParts,
+  readLndChannelSatsField,
+  readLndChannelStringField
+} from '@/utils/lndChannelDetail'
+import {
+  getTxDisplayInfo,
+  getTxStatusText
+} from '@/utils/lndTransactionDisplay'
 
-interface LNDBalanceResponse {
-  total_balance: string
-  confirmed_balance: string
-  unconfirmed_balance: string
-  locked_balance: string
-  reserved_balance_anchor_chan: string
-  account_balance?: {
-    [key: string]: {
-      confirmed_balance: string
-      unconfirmed_balance: string
-    }
-  }
-}
+const PRIVACY_MASK = '••••'
 
-interface LNDChannelBalanceResponse {
-  balance: string
-  pending_open_balance: string
-  local_balance: {
-    msat: string
-    sat: string
-  }
-  remote_balance: {
-    msat: string
-    sat: string
-  }
-  unsettled_local_balance: {
-    msat: string
-    sat: string
-  }
-  unsettled_remote_balance: {
-    msat: string
-    sat: string
-  }
-  pending_open_local_balance: {
-    msat: string
-    sat: string
-  }
-  pending_open_remote_balance: {
-    msat: string
-    sat: string
-  }
-  custom_channel_data?: string
-}
+const DASHBOARD_OVERLAY_LOADER_SIZE = 48
 
-interface ProcessedBalance {
-  total_balance: number
-  channel_balance: number
-  onchain_balance: number
-}
-
-interface LNDTransaction {
-  tx_hash: string
-  amount: string
-  num_confirmations: number
-  block_hash: string
-  block_height: number
-  time_stamp: string
-  total_fees: string
-  dest_addresses: string[]
-  raw_tx_hex: string
-  label: string
-}
-
-interface LNDPayment {
-  payment_hash: string
-  value: string
-  creation_date: string
-  fee: string
-  payment_preimage: string
-  value_sat: string
-  value_msat: string
-  payment_request: string
-  status: string
-  fee_sat: string
-  fee_msat: string
-  creation_time_ns: string
-  htlcs: {
-    status: string
-    route: {
-      hops: {
-        chan_id: string
-        chan_capacity: string
-        amt_to_forward: string
-        fee: string
-        expiry: number
-        amt_to_forward_msat: string
-        fee_msat: string
-        pub_key: string
-      }[]
-      total_time_lock: number
-      total_amt: string
-      total_amt_msat: string
-      total_fees: string
-      total_fees_msat: string
-    }
-  }[]
-}
-
-interface LNDInvoice {
-  r_hash: string
-  payment_request: string
-  add_index: string
-  payment_addr: string
-  payment_sat: string
-  payment_msat: string
-  settled: boolean
-  settle_date: string
-  state: string
-  value: string
-  value_msat: string
-  creation_date: string
-  description: string
-  memo?: string
-  expiry: string
-  cltv_expiry: string
-  amt_paid_sat: string
-  amt_paid_msat: string
-}
-
-interface CombinedTransaction {
-  id: string
-  type: 'onchain' | 'lightning_send' | 'lightning_receive'
-  amount: number
-  timestamp: number
-  status: string
-  hash: string
-  description?: string
-  num_confirmations?: number
-  fee?: number
-  originalAmount?: number
-}
-
-// Add type for makeRequest
-type MakeRequest = <T>(path: string) => Promise<T>
+type ChannelsViewMode = 'bubbles' | 'list'
+const TRANSACTIONS_PER_PAGE = 30
 
 export default function NodeDetailPage() {
   const router = useRouter()
   const { width } = useWindowDimensions()
   const params = useLocalSearchParams<{ alias: string; pubkey: string }>()
-  const { getBalance, channels, isConnecting, isConnected, makeRequest } =
-    useLND()
+  const { channels, isConnecting, isConnected } = useLND()
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const lightningContentHandler = useLightningContentHandler()
 
@@ -187,81 +89,120 @@ export default function NodeDetailPage() {
     onSend: lightningContentHandler.handleSend
   })
 
-  const [balance, setBalance] = useState<ProcessedBalance | null>(null)
-  const [transactions, setTransactions] = useState<CombinedTransaction[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(0)
+  const [onchainListPage, setOnchainListPage] = useState(0)
   const [includeOpenInvoices, setIncludeOpenInvoices] = useState(false)
   const [tabIndex, setTabIndex] = useState(0)
   const [expand, setExpand] = useState(false)
+  const [channelsViewMode, setChannelsViewMode] =
+    useState<ChannelsViewMode>('list')
 
-  // Refs
+  const {
+    data: dashboard,
+    error: dashboardError,
+    isError: isDashboardError,
+    isFetching: isDashboardFetching,
+    isPending: isDashboardPending,
+    refetch: refetchDashboard
+  } = useLndNodeDashboard(includeOpenInvoices)
+
   const animationValue = useRef(new Animated.Value(0)).current
 
-  // Constants
-  const tabs = [{ key: 'transactions' }, { key: 'channels' }]
-  const TRANSACTIONS_PER_PAGE = 10
+  const tabs = [
+    { key: 'transactions' },
+    { key: 'channels' },
+    { key: 'onchain' }
+  ]
 
-  // Store hooks
-  const satsToFiat = usePriceStore((state) => state.satsToFiat)
-  const btcPrice = usePriceStore((state) => state.btcPrice)
-  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
-
-  // Memoized callbacks
-  const animateTransition = useCallback(
-    (expandState: boolean) => {
-      Animated.timing(animationValue, {
-        duration: 300,
-        easing: Easing.inOut(Easing.ease),
-        toValue: expandState ? 1 : 0,
-        useNativeDriver: false
-      }).start()
-    },
-    [animationValue]
+  const [satsToFiat, btcPrice, fiatCurrency] = usePriceStore(
+    useShallow((state) => [
+      state.satsToFiat,
+      state.btcPrice,
+      state.fiatCurrency
+    ])
   )
 
-  const handleOnExpand = useCallback(
-    (state: boolean) => {
-      setExpand(state)
-      animateTransition(state)
-    },
-    [animateTransition]
-  )
+  const balance = dashboard?.balance ?? null
+  const transactions = dashboard?.transactions ?? []
 
-  const handleTabChange = useCallback((index: number) => {
+  const animateTransition = (expandState: boolean) => {
+    Animated.timing(animationValue, {
+      duration: 300,
+      easing: Easing.inOut(Easing.ease),
+      toValue: expandState ? 1 : 0,
+      useNativeDriver: false
+    }).start()
+  }
+
+  const handleOnExpand = (state: boolean) => {
+    setExpand(state)
+    animateTransition(state)
+  }
+
+  const handleTabChange = (index: number) => {
     setTabIndex(index)
-  }, [])
+  }
 
-  const handleRefresh = useCallback(() => {
-    if (isConnected) {
-      setIsLoading(true)
-      setBalance(null)
-      setTransactions([])
-      setCurrentPage(0)
-      // Trigger the load effect again
-      setIsLoading(false)
-    }
-  }, [isConnected])
+  const runRefresh = () => {
+    setCurrentPage(0)
+    setOnchainListPage(0)
+    void refetchDashboard()
+  }
 
-  const handleLoadMore = useCallback(() => {
+  const handleLoadMore = () => {
     setCurrentPage((prev) => prev + 1)
-  }, [])
+  }
 
-  // const handleDisconnect = useCallback(() => {
-  //   clearConfig()
-  //   router.back()
-  // }, [clearConfig, router])
+  const handleLoadMoreOnchain = () => {
+    setOnchainListPage((prev) => prev + 1)
+  }
 
-  // Memoized render functions
-  const renderBalances = useCallback(() => {
-    if (isLoading || !balance) {
+  const showBalanceSkeleton =
+    isConnected && isDashboardPending && balance === null
+  const showBalanceError =
+    isConnected && isDashboardError && balance === null && !isDashboardFetching
+  const showHeroBalances = Boolean(balance)
+  const reserveHeroMinHeight =
+    isConnected && (showBalanceSkeleton || showBalanceError || showHeroBalances)
+
+  function renderBalances() {
+    if (!isConnected) {
       return (
         <SSVStack itemsCenter gap="none" style={{ paddingBottom: 8 }}>
           <SSText color="muted" size="sm">
-            {isLoading ? 'Loading balances...' : 'Failed to load balances'}
+            {t('lightning.node.notConnected')}
           </SSText>
         </SSVStack>
       )
+    }
+
+    if (showBalanceSkeleton) {
+      return (
+        <SSVStack itemsCenter gap="none" style={{ paddingBottom: 8 }}>
+          <SSText color="muted" size="sm">
+            {t('lightning.node.balancesLoading')}
+          </SSText>
+        </SSVStack>
+      )
+    }
+
+    if (showBalanceError) {
+      return (
+        <SSVStack itemsCenter gap="xs" style={{ paddingBottom: 8 }}>
+          <SSText color="muted" size="sm" center>
+            {t('lightning.node.balancesFailed')}
+          </SSText>
+          {dashboardError instanceof Error && dashboardError.message ? (
+            <SSText color="muted" size="xs" center>
+              {dashboardError.message}
+            </SSText>
+          ) : null}
+        </SSVStack>
+      )
+    }
+
+    if (!balance) {
+      return null
     }
 
     const onchainBalance = Number(balance.onchain_balance) || 0
@@ -272,64 +213,297 @@ export default function NodeDetailPage() {
     const onchainFiat = satsToFiat(onchainBalance, btcPrice)
     const channelFiat = satsToFiat(channelBalance, btcPrice)
 
-    const renderFiatValue = (value: number) => (
-      <SSText color="muted" size="xs">
-        {formatNumber(value, 2)} {fiatCurrency}
-      </SSText>
-    )
+    const channelList = channels ?? []
+    const nodeTotalCapacity = channelList.reduce((sum, channel) => {
+      if (!channel || typeof channel !== 'object') {
+        return sum
+      }
+      return sum + readLndChannelSatsField(channel, ['capacity'])
+    }, 0)
+    const totalLocalSats = channelList.reduce((sum, channel) => {
+      if (!channel || typeof channel !== 'object') {
+        return sum
+      }
+      return (
+        sum +
+        readLndChannelSatsField(channel, ['local_balance', 'localBalance'])
+      )
+    }, 0)
+    const totalRemoteSats = channelList.reduce((sum, channel) => {
+      if (!channel || typeof channel !== 'object') {
+        return sum
+      }
+      return (
+        sum +
+        readLndChannelSatsField(channel, ['remote_balance', 'remoteBalance'])
+      )
+    }, 0)
+    const nodeTotalCap = Math.max(0, nodeTotalCapacity)
+    const loc =
+      nodeTotalCap > 0 ? Math.max(0, Math.min(totalLocalSats, nodeTotalCap)) : 0
+    const rem =
+      nodeTotalCap > 0
+        ? Math.max(0, Math.min(totalRemoteSats, nodeTotalCap - loc))
+        : 0
+    const {
+      black: heroBarFlexBlack,
+      local: heroBarFlexLocal,
+      remote: heroBarFlexRemote
+    } = liquidityBarSegmentFlexParts(nodeTotalCap, loc, rem)
+    const fmtNodeLiquidity = (n: number) =>
+      privacyMode ? PRIVACY_MASK : formatNumber(n)
+
+    function renderFiatValue(value: number) {
+      if (privacyMode) {
+        return (
+          <SSText color="muted" size="xs">
+            {PRIVACY_MASK}
+          </SSText>
+        )
+      }
+      return (
+        <SSText color="muted" size="xs">
+          {formatNumber(value, 2)} {fiatCurrency}
+        </SSText>
+      )
+    }
 
     return (
-      <SSVStack itemsCenter gap="none" style={{ paddingBottom: 8 }}>
-        <SSHStack gap="md" style={{ marginTop: 5 }}>
-          <SSVStack itemsCenter gap="none" style={{ flex: 0.2 }}>
-            <SSText color="muted" size="xs">
-              Total
+      <SSVStack gap="none" widthFull style={{ paddingBottom: 8 }}>
+        <SSHStack gap="md" style={styles.heroBalanceColumns}>
+          <SSVStack itemsCenter gap="none" style={styles.heroSideColumn}>
+            <SSText color="muted" center size="xs">
+              {t('lightning.node.totalColumn')}
             </SSText>
-            <SSStyledSatText
-              amount={totalBalance}
-              decimals={0}
-              textSize="md"
-              weight="light"
-            />
+            {privacyMode ? (
+              <SSText color="white" size="md" weight="light">
+                {PRIVACY_MASK}
+              </SSText>
+            ) : (
+              <SSStyledSatText
+                amount={totalBalance}
+                decimals={0}
+                textSize="md"
+                weight="light"
+              />
+            )}
             {btcPrice > 0 && renderFiatValue(totalFiat)}
           </SSVStack>
 
           <SSVStack itemsCenter gap="none" style={{ flex: 0.6 }}>
-            <SSText color="muted" size="xs">
-              Lightning
+            <SSText color="muted" center size="xs">
+              {t('lightning.node.spendableLightning')}
             </SSText>
-            <SSStyledSatText
-              amount={channelBalance}
-              decimals={0}
-              textSize="5xl"
-              weight="light"
-            />
+            {privacyMode ? (
+              <SSText
+                color="white"
+                size="5xl"
+                weight="light"
+                style={{
+                  letterSpacing: -1,
+                  lineHeight: Sizes.text.fontSize['5xl']
+                }}
+              >
+                {PRIVACY_MASK}
+              </SSText>
+            ) : (
+              <SSStyledSatText
+                amount={channelBalance}
+                decimals={0}
+                textSize="5xl"
+                weight="light"
+              />
+            )}
             {btcPrice > 0 && renderFiatValue(channelFiat)}
           </SSVStack>
 
-          <SSVStack itemsCenter gap="none" style={{ flex: 0.2 }}>
-            <SSText color="muted" size="xs">
-              Onchain
+          <SSVStack itemsCenter gap="none" style={styles.heroSideColumn}>
+            <SSText color="muted" center size="xs">
+              {t('lightning.node.onchainColumn')}
             </SSText>
-            <SSStyledSatText
-              amount={onchainBalance}
-              decimals={0}
-              textSize="md"
-              weight="light"
-            />
+            {privacyMode ? (
+              <SSText color="white" size="md" weight="light">
+                {PRIVACY_MASK}
+              </SSText>
+            ) : (
+              <SSStyledSatText
+                amount={onchainBalance}
+                decimals={0}
+                textSize="md"
+                weight="light"
+              />
+            )}
             {btcPrice > 0 && renderFiatValue(onchainFiat)}
           </SSVStack>
         </SSHStack>
+
+        <SSVStack gap="xs" style={styles.heroLiquidityBlock}>
+          <SSHStack gap="md" justifyBetween style={styles.channelCapacityRow}>
+            <SSText color="muted" size="xs" weight="medium">
+              {t('lightning.landing.totalCapacity')}
+            </SSText>
+            <SSText color="white" size="sm" weight="medium">
+              {privacyMode ? PRIVACY_MASK : formatNumber(nodeTotalCapacity)}
+            </SSText>
+          </SSHStack>
+          <View style={styles.channelBalanceBarTrack}>
+            {privacyMode ? (
+              <View style={styles.channelBalanceBarPrivacyFill} />
+            ) : nodeTotalCap > 0 ? (
+              <View style={styles.channelBalanceBarSegments}>
+                {heroBarFlexLocal > 0 ? (
+                  <View
+                    style={[
+                      styles.channelBalanceSegment,
+                      styles.channelBalanceSegmentMin,
+                      {
+                        backgroundColor: Colors.white,
+                        flex: heroBarFlexLocal
+                      }
+                    ]}
+                  />
+                ) : null}
+                {heroBarFlexRemote > 0 ? (
+                  <View
+                    style={[
+                      styles.channelBalanceSegment,
+                      styles.channelBalanceSegmentMin,
+                      {
+                        backgroundColor: Colors.gray[200],
+                        flex: heroBarFlexRemote
+                      }
+                    ]}
+                  />
+                ) : null}
+                {heroBarFlexBlack > 0 ? (
+                  <View
+                    style={[
+                      styles.channelBalanceSegment,
+                      {
+                        backgroundColor: Colors.black,
+                        flex: heroBarFlexBlack
+                      }
+                    ]}
+                  />
+                ) : null}
+              </View>
+            ) : (
+              <View style={styles.channelBalanceBarEmpty} />
+            )}
+          </View>
+          <SSHStack gap="md" justifyBetween style={styles.channelLegendRow}>
+            <SSHStack gap="xs" style={styles.channelLegendCluster}>
+              <SSText size="sm" weight="medium">
+                {fmtNodeLiquidity(totalLocalSats)}
+              </SSText>
+              <SSText color="muted" size="xxs" weight="medium">
+                {t('lightning.node.channelLiquidityLocal')}
+              </SSText>
+            </SSHStack>
+            <SSHStack gap="xs" style={styles.channelLegendClusterEnd}>
+              <SSText color="muted" size="xxs" weight="medium">
+                {t('lightning.node.channelLiquidityRemote')}
+              </SSText>
+              <SSText size="sm" weight="medium">
+                {fmtNodeLiquidity(totalRemoteSats)}
+              </SSText>
+            </SSHStack>
+          </SSHStack>
+        </SSVStack>
       </SSVStack>
     )
-  }, [balance, isLoading, satsToFiat, btcPrice, fiatCurrency])
+  }
 
-  const renderTransactions = useCallback(() => {
-    if (isLoading && transactions.length === 0) {
+  function renderTxRow(tx: LndCombinedTransaction) {
+    const timestamp = new Date(tx.timestamp * 1000)
+    const fiatAmount = satsToFiat(Math.abs(tx.amount), btcPrice)
+    const isReceive = tx.amount > 0
+
+    const { typeLabel, typeColor, transactionType } = getTxDisplayInfo(
+      tx,
+      isReceive
+    )
+    const statusText = getTxStatusText(tx, privacyMode)
+
+    return (
+      <View key={tx.id} style={styles.transactionItem}>
+        <SSHStack gap="xs" justifyBetween style={styles.transactionHeader}>
+          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+            {privacyMode ? (
+              <SSText color="white" size="md" weight="light">
+                {PRIVACY_MASK}
+              </SSText>
+            ) : (
+              <SSStyledSatText
+                amount={Math.abs(tx.amount)}
+                decimals={0}
+                textSize="md"
+                weight="light"
+                type={transactionType}
+                noColor={false}
+              />
+            )}
+            <SSText size="xs" color="muted">
+              {t('bitcoin.sats').toLowerCase()}
+            </SSText>
+          </SSHStack>
+          <SSText color="muted" size="xs">
+            {timestamp.toLocaleString('en-US', {
+              day: 'numeric',
+              hour: 'numeric',
+              hour12: true,
+              minute: 'numeric',
+              month: 'long',
+              second: 'numeric',
+              year: 'numeric'
+            })}
+          </SSText>
+        </SSHStack>
+        <SSHStack gap="sm" justifyBetween style={styles.transactionDetails}>
+          <SSText
+            numberOfLines={2}
+            size="xs"
+            style={[styles.transactionTypeLine, { color: typeColor }]}
+          >
+            {typeLabel} {statusText}
+          </SSText>
+          <SSText color="muted" size="xs" style={styles.transactionFiatLine}>
+            {privacyMode
+              ? PRIVACY_MASK
+              : `${formatNumber(fiatAmount, 2)} ${fiatCurrency}`}
+          </SSText>
+        </SSHStack>
+        {tx.description ? (
+          <SSText
+            color="muted"
+            numberOfLines={2}
+            size="xs"
+            style={styles.transactionDescription}
+          >
+            {tx.description}
+            {tx.type === 'lightning_receive' &&
+            (tx.status === 'canceled' || tx.status === 'open') &&
+            tx.originalAmount &&
+            !privacyMode
+              ? ` (${t('lightning.node.originalSats', {
+                  amount: String(tx.originalAmount)
+                })})`
+              : ''}
+          </SSText>
+        ) : null}
+      </View>
+    )
+  }
+
+  function renderTransactions() {
+    const listLoading =
+      isConnected && isDashboardPending && transactions.length === 0
+
+    if (listLoading) {
       return (
         <SSVStack itemsCenter gap="none" style={{ paddingVertical: 16 }}>
           <SSText color="muted" size="sm">
-            Loading transactions...
+            {t('lightning.node.transactionsLoading')}
           </SSText>
         </SSVStack>
       )
@@ -339,7 +513,7 @@ export default function NodeDetailPage() {
       return (
         <SSVStack itemsCenter gap="none" style={{ paddingVertical: 16 }}>
           <SSText color="muted" size="sm">
-            No recent transactions
+            {t('lightning.node.noTransactions')}
           </SSText>
         </SSVStack>
       )
@@ -356,148 +530,153 @@ export default function NodeDetailPage() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {displayedTxs.map((tx) => {
-            const timestamp = new Date(tx.timestamp * 1000)
-            const fiatAmount = satsToFiat(Math.abs(tx.amount), btcPrice)
-            const isReceive = tx.amount > 0
+          {displayedTxs.map((tx) => renderTxRow(tx))}
 
-            let typeLabel = ''
-            let typeColor = Colors.white
-            let transactionType: 'send' | 'receive' = 'send'
-
-            if (tx.type === 'onchain') {
-              typeLabel = 'On-chain'
-              typeColor = Colors.white
-              transactionType = isReceive ? 'receive' : 'send'
-            } else if (tx.type === 'lightning_send') {
-              typeLabel = 'Lightning Payment'
-              typeColor = Colors.mainRed
-              transactionType = 'send'
-            } else if (tx.type === 'lightning_receive') {
-              typeLabel = 'Lightning Invoice'
-              if (tx.status === 'settled') {
-                typeColor = Colors.mainGreen
-                transactionType = 'receive'
-              } else if (tx.status === 'open') {
-                typeColor = Colors.warning
-                transactionType = 'receive'
-              } else {
-                typeColor = Colors.white
-                transactionType = 'receive'
-              }
-            }
-
-            let statusText = ''
-            if (tx.type === 'lightning_receive') {
-              switch (tx.status) {
-                case 'settled':
-                  statusText = '• Settled'
-                  break
-                case 'canceled':
-                  statusText = '• Canceled'
-                  break
-                case 'open':
-                  statusText = '• Open'
-                  break
-                default:
-                  statusText = `• ${tx.status}`
-              }
-            } else if (tx.type === 'onchain') {
-              statusText =
-                tx.status === 'confirmed' ? '• Confirmed' : '• Pending'
-              if (tx.num_confirmations) {
-                statusText += ` • ${tx.num_confirmations} confirmations`
-              }
-            } else if (tx.type === 'lightning_send') {
-              statusText = tx.status === 'SUCCEEDED' ? '• Sent' : '• Failed'
-              if (tx.fee) {
-                statusText += ` • Fee: ${tx.fee} sats`
-              }
-            }
-
-            return (
-              <View key={tx.id} style={styles.transactionItem}>
-                <SSHStack
-                  gap="xs"
-                  justifyBetween
-                  style={styles.transactionHeader}
-                >
-                  <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                    <SSStyledSatText
-                      amount={Math.abs(tx.amount)}
-                      decimals={0}
-                      textSize="md"
-                      weight="light"
-                      type={transactionType}
-                      noColor={false}
-                    />
-                    <SSText size="xs" color="muted">
-                      {t('bitcoin.sats').toLowerCase()}
-                    </SSText>
-                  </SSHStack>
-                  <SSText color="muted" size="xs">
-                    {timestamp.toLocaleString('en-US', {
-                      day: 'numeric',
-                      hour: 'numeric',
-                      hour12: true,
-                      minute: 'numeric',
-                      month: 'long',
-                      second: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </SSText>
-                </SSHStack>
-                <SSHStack justifyBetween style={styles.transactionDetails}>
-                  <SSVStack gap="xs">
-                    <SSVStack gap="xs">
-                      <SSText style={{ color: typeColor }} size="xs">
-                        {typeLabel} {statusText}
-                      </SSText>
-                      {tx.description && (
-                        <SSText color="muted" size="xs" numberOfLines={2}>
-                          {tx.description}
-                          {tx.type === 'lightning_receive' &&
-                            (tx.status === 'canceled' ||
-                              tx.status === 'open') &&
-                            tx.originalAmount &&
-                            ` (Original: ${tx.originalAmount} sats)`}
-                        </SSText>
-                      )}
-                    </SSVStack>
-                  </SSVStack>
-                  <SSText color="muted" size="xs">
-                    {formatNumber(fiatAmount, 2)} {fiatCurrency}
-                  </SSText>
-                </SSHStack>
-              </View>
-            )
-          })}
-
-          {transactions.length > end && (
+          {transactions.length > end ? (
             <SSButton
-              label="Load More"
+              label={t('lightning.node.loadMore')}
               onPress={handleLoadMore}
               variant="outline"
               style={styles.loadMoreButton}
             />
-          )}
+          ) : null}
         </ScrollView>
       </SSVStack>
     )
-  }, [
-    transactions,
-    currentPage,
-    isLoading,
-    handleLoadMore,
-    satsToFiat,
-    btcPrice,
-    fiatCurrency
-  ])
+  }
 
-  const renderChannels = useCallback(() => {
-    if (!channels?.length) {
-      return null
+  function renderOnchain() {
+    const onchainTxs = transactions.filter((tx) => tx.type === 'onchain')
+    const listLoading =
+      isConnected && isDashboardPending && transactions.length === 0
+
+    if (listLoading) {
+      return (
+        <SSVStack itemsCenter gap="none" style={{ paddingVertical: 16 }}>
+          <SSText color="muted" size="sm">
+            {t('lightning.node.onchainLoading')}
+          </SSText>
+        </SSVStack>
+      )
     }
+
+    if (onchainTxs.length === 0) {
+      return (
+        <SSVStack itemsCenter gap="none" style={{ paddingVertical: 16 }}>
+          <SSText color="muted" size="sm">
+            {t('lightning.node.noOnchainTransactions')}
+          </SSText>
+        </SSVStack>
+      )
+    }
+
+    const maxOnchainPage = Math.max(
+      0,
+      Math.ceil(onchainTxs.length / TRANSACTIONS_PER_PAGE) - 1
+    )
+    const onchainPage = Math.min(onchainListPage, maxOnchainPage)
+    const start = onchainPage * TRANSACTIONS_PER_PAGE
+    const end = start + TRANSACTIONS_PER_PAGE
+    const displayedOnchain = onchainTxs.slice(start, end)
+
+    return (
+      <SSVStack style={styles.section}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {displayedOnchain.map((tx) => renderTxRow(tx))}
+
+          {onchainTxs.length > end ? (
+            <SSButton
+              label={t('lightning.node.loadMore')}
+              onPress={handleLoadMoreOnchain}
+              variant="outline"
+              style={styles.loadMoreButton}
+            />
+          ) : null}
+        </ScrollView>
+      </SSVStack>
+    )
+  }
+
+  function renderChannels() {
+    if (!channels?.length) {
+      return (
+        <SSVStack itemsCenter gap="none" style={{ paddingVertical: 16 }}>
+          <SSText color="muted" size="sm">
+            {t('lightning.node.channelsEmpty')}
+          </SSText>
+        </SSVStack>
+      )
+    }
+
+    if (channelsViewMode === 'bubbles') {
+      const rows: LightningBubbleChannelRow[] = []
+      for (const channel of channels) {
+        if (!channel || typeof channel !== 'object') {
+          continue
+        }
+        const chan_id =
+          readLndChannelStringField(channel, ['chan_id', 'chanId']) || ''
+        if (!chan_id) {
+          continue
+        }
+        const peerAlias = getLndChannelPeerAlias(channel)
+        const remote_pubkey = getLndChannelRemotePubkey(channel) || ''
+        const peerLabel =
+          peerAlias ||
+          (privacyMode
+            ? PRIVACY_MASK
+            : formatShortPubkey(
+                typeof remote_pubkey === 'string' ? remote_pubkey : ''
+              ))
+        rows.push({
+          chanId: chan_id,
+          localSats: readLndChannelSatsField(channel, [
+            'local_balance',
+            'localBalance'
+          ]),
+          peerLabel,
+          remoteSats: readLndChannelSatsField(channel, [
+            'remote_balance',
+            'remoteBalance'
+          ])
+        })
+      }
+
+      const padFrac = LIGHTNING_BUBBLE_CHART_BLEED_MARGIN_FRAC
+      const chartMaxSide = Math.max(0, width * (1 - 2 * padFrac))
+      const bubbleSize = Math.min(
+        LIGHTNING_BUBBLE_CHART_LAYOUT_MAX_SIZE_PX,
+        Math.max(
+          chartMaxSide,
+          Math.min(LIGHTNING_BUBBLE_CHART_LAYOUT_MIN_SIZE_PX, chartMaxSide)
+        )
+      )
+
+      return (
+        <SSVStack gap="none" itemsCenter style={styles.section} widthFull>
+          <SSLightningChannelsBubbleChart
+            height={bubbleSize}
+            onChannelPress={(chanId) =>
+              router.push(lightningChannelHref(chanId))
+            }
+            privacyMode={privacyMode}
+            rows={rows}
+            width={bubbleSize}
+          />
+        </SSVStack>
+      )
+    }
+
+    const nodeTotalCapacity = channels.reduce((sum, channel) => {
+      if (!channel || typeof channel !== 'object') {
+        return sum
+      }
+      return sum + readLndChannelSatsField(channel, ['capacity'])
+    }, 0)
 
     return (
       <SSVStack style={styles.section}>
@@ -507,111 +686,125 @@ export default function NodeDetailPage() {
               return null
             }
 
-            const {
-              capacity = 0,
-              local_balance = 0,
-              remote_balance = 0,
-              remote_pubkey = 'Unknown',
-              chan_id = 'Unknown',
-              chan_status_flags = 'Unknown',
-              uptime = 0,
-              total_satoshis_sent = 0,
-              total_satoshis_received = 0,
-              active = false
-            } = channel
+            const { active = false } = channel
+
+            const chan_id =
+              readLndChannelStringField(channel, ['chan_id', 'chanId']) ||
+              'Unknown'
+            const peerAlias = getLndChannelPeerAlias(channel)
+            const remote_pubkey =
+              getLndChannelRemotePubkey(channel) || 'Unknown'
+            const channelCapacity = readLndChannelSatsField(channel, [
+              'capacity'
+            ])
+            const localSats = readLndChannelSatsField(channel, [
+              'local_balance',
+              'localBalance'
+            ])
+            const remoteSats = readLndChannelSatsField(channel, [
+              'remote_balance',
+              'remoteBalance'
+            ])
 
             return (
-              <View key={chan_id} style={styles.channelItem}>
-                <View style={styles.channelHeader}>
-                  <SSText
-                    weight="bold"
-                    numberOfLines={1}
-                    style={styles.channelAlias}
+              <Pressable
+                key={chan_id}
+                accessibilityRole="button"
+                onPress={() => router.push(lightningChannelHref(chan_id))}
+                style={({ pressed }) => [
+                  styles.channelCard,
+                  pressed && styles.channelCardPressed,
+                  !active && styles.channelCardInactive
+                ]}
+              >
+                <SSVStack style={styles.channelCardContent}>
+                  <SSHStack
+                    gap="md"
+                    justifyBetween
+                    style={styles.channelCardHeader}
                   >
-                    {remote_pubkey.slice(0, 16)}...
-                  </SSText>
-                  <SSText color={active ? 'white' : 'muted'} size="sm">
-                    {active ? 'Active' : 'Inactive'}
-                  </SSText>
-                </View>
+                    <SSVStack gap="xs" style={styles.channelCardTitleCol}>
+                      {peerAlias ? (
+                        <SSText numberOfLines={2} size="lg" weight="light">
+                          {peerAlias}
+                        </SSText>
+                      ) : (
+                        <SSText
+                          numberOfLines={1}
+                          size="lg"
+                          type="mono"
+                          weight="light"
+                        >
+                          {privacyMode
+                            ? PRIVACY_MASK
+                            : formatShortPubkey(
+                                typeof remote_pubkey === 'string'
+                                  ? remote_pubkey
+                                  : ''
+                              )}
+                        </SSText>
+                      )}
+                    </SSVStack>
+                    <SSHStack gap="sm" style={styles.channelCardHeaderRight}>
+                      <View
+                        style={[
+                          styles.channelStatusPill,
+                          active
+                            ? styles.channelStatusPillOn
+                            : styles.channelStatusPillOff
+                        ]}
+                      >
+                        <SSText
+                          color={active ? 'white' : 'muted'}
+                          size="xs"
+                          weight="medium"
+                        >
+                          {active
+                            ? t('lightning.node.active')
+                            : t('lightning.node.inactive')}
+                        </SSText>
+                      </View>
+                      <SSIconChevronRight
+                        height={14}
+                        stroke={Colors.gray[100]}
+                        strokeWidth={1}
+                        width={10}
+                      />
+                    </SSHStack>
+                  </SSHStack>
 
-                <View style={styles.channelDetails}>
-                  <View style={styles.channelDetailRow}>
-                    <SSText color="muted">Capacity:</SSText>
-                    <SSText>{formatNumber(capacity)} sats</SSText>
-                  </View>
-
-                  <View style={styles.channelDetailRow}>
-                    <SSText color="muted">Local Balance:</SSText>
-                    <SSText>{formatNumber(local_balance)} sats</SSText>
-                  </View>
-
-                  <View style={styles.channelDetailRow}>
-                    <SSText color="muted">Remote Balance:</SSText>
-                    <SSText>{formatNumber(remote_balance)} sats</SSText>
-                  </View>
-
-                  <View style={styles.channelDetailRow}>
-                    <SSText color="muted">Remote Pubkey:</SSText>
-                    <SSText
-                      numberOfLines={1}
-                      ellipsizeMode="middle"
-                      style={styles.pubkey}
-                    >
-                      {remote_pubkey}
-                    </SSText>
-                  </View>
-
-                  <View style={styles.channelDetailRow}>
-                    <SSText color="muted">Channel ID:</SSText>
-                    <SSText
-                      numberOfLines={1}
-                      ellipsizeMode="middle"
-                      style={styles.channelId}
-                    >
-                      {chan_id}
-                    </SSText>
-                  </View>
-
-                  <View style={styles.channelDetailRow}>
-                    <SSText color="muted">Status:</SSText>
-                    <SSText>{chan_status_flags}</SSText>
-                  </View>
-
-                  <View style={styles.channelDetailRow}>
-                    <SSText color="muted">Uptime:</SSText>
-                    <SSText>{Math.floor(uptime / 3600)} hours</SSText>
-                  </View>
-
-                  <View style={styles.channelDetailRow}>
-                    <SSText color="muted">Total Sent:</SSText>
-                    <SSText>{formatNumber(total_satoshis_sent)} sats</SSText>
-                  </View>
-
-                  <View style={styles.channelDetailRow}>
-                    <SSText color="muted">Total Received:</SSText>
-                    <SSText>
-                      {formatNumber(total_satoshis_received)} sats
-                    </SSText>
-                  </View>
-                </View>
-              </View>
+                  <SSLightningChannelLiquidityBar
+                    channelCapacity={channelCapacity}
+                    localSats={localSats}
+                    nodeTotalCapacity={nodeTotalCapacity}
+                    privacyMode={privacyMode}
+                    remoteSats={remoteSats}
+                  />
+                </SSVStack>
+              </Pressable>
             )
           })}
         </SSVStack>
       </SSVStack>
     )
-  }, [channels])
+  }
 
-  const renderTab = useCallback(() => {
+  function renderRefreshControl() {
+    return <RefreshControl refreshing={false} onRefresh={runRefresh} />
+  }
+
+  function renderTab() {
     if (expand) {
       return null
     }
 
-    const tabWidth = '50%'
+    const tabWidth = '33.333%'
     const activeChannels =
       channels?.filter((channel) => channel.active).length || 0
     const totalChannels = channels?.length || 0
+    const onchainTxCount = transactions.filter(
+      (tx) => tx.type === 'onchain'
+    ).length
 
     return (
       <SSHStack
@@ -624,12 +817,12 @@ export default function NodeDetailPage() {
         >
           <SSVStack gap="none">
             <SSText center size="lg">
-              {transactions.length}
+              {privacyMode ? PRIVACY_MASK : transactions.length}
             </SSText>
             <SSText center color="muted" style={{ lineHeight: 12 }}>
-              Transactions
+              {t('lightning.node.transactionsTab')}
             </SSText>
-            {tabIndex === 0 && (
+            {tabIndex === 0 ? (
               <View
                 style={{
                   alignSelf: 'center',
@@ -640,7 +833,7 @@ export default function NodeDetailPage() {
                   width: '100%'
                 }}
               />
-            )}
+            ) : null}
           </SSVStack>
         </SSActionButton>
         <SSActionButton
@@ -649,12 +842,14 @@ export default function NodeDetailPage() {
         >
           <SSVStack gap="none">
             <SSText center size="lg">
-              {activeChannels}/{totalChannels}
+              {privacyMode
+                ? PRIVACY_MASK
+                : `${activeChannels}/${totalChannels}`}
             </SSText>
             <SSText center color="muted" style={{ lineHeight: 12 }}>
-              Channels
+              {t('lightning.node.channelsTab')}
             </SSText>
-            {tabIndex === 1 && (
+            {tabIndex === 1 ? (
               <View
                 style={{
                   alignSelf: 'center',
@@ -665,226 +860,162 @@ export default function NodeDetailPage() {
                   width: '100%'
                 }}
               />
-            )}
+            ) : null}
+          </SSVStack>
+        </SSActionButton>
+        <SSActionButton
+          style={{ width: tabWidth }}
+          onPress={() => handleTabChange(2)}
+        >
+          <SSVStack gap="none">
+            <SSText center size="lg">
+              {privacyMode ? PRIVACY_MASK : onchainTxCount}
+            </SSText>
+            <SSText center color="muted" style={{ lineHeight: 12 }}>
+              {t('lightning.node.onchainTab')}
+            </SSText>
+            {tabIndex === 2 ? (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  backgroundColor: Colors.white,
+                  bottom: -8,
+                  height: 2,
+                  position: 'absolute',
+                  width: '100%'
+                }}
+              />
+            ) : null}
           </SSVStack>
         </SSActionButton>
       </SSHStack>
     )
-  }, [expand, channels, tabIndex, handleTabChange, transactions.length])
+  }
 
-  const renderScene = useCallback(
-    ({ route }: SceneRendererProps & { route: { key: string } }) => {
-      switch (route.key) {
-        case 'transactions':
-          return (
-            <SSMainLayout style={[styles.section, styles.tabContent]}>
-              <SSHStack justifyBetween style={{ paddingVertical: 8 }}>
-                <SSHStack>
-                  <SSIconButton onPress={handleRefresh}>
-                    <SSIconRefresh height={18} width={22} />
-                  </SSIconButton>
-                  <SSIconButton onPress={() => handleOnExpand(!expand)}>
-                    {expand ? (
-                      <SSIconCollapse height={15} width={15} />
-                    ) : (
-                      <SSIconExpand height={15} width={16} />
-                    )}
-                  </SSIconButton>
-                </SSHStack>
-                <SSHStack gap="sm">
-                  <SSText
-                    onPress={() => setIncludeOpenInvoices(!includeOpenInvoices)}
-                    style={{ textDecorationLine: 'underline' }}
-                    color="muted"
-                  >
-                    {includeOpenInvoices
-                      ? 'Hide open invoices'
-                      : 'Show open invoices'}
-                  </SSText>
-                </SSHStack>
+  function renderScene({
+    route
+  }: SceneRendererProps & { route: { key: string } }) {
+    switch (route.key) {
+      case 'transactions':
+        return (
+          <View style={[styles.section, styles.tabContent]}>
+            <SSHStack justifyBetween style={{ paddingVertical: 8 }}>
+              <SSHStack>
+                <SSIconButton onPress={runRefresh}>
+                  <SSIconRefresh height={18} width={22} />
+                </SSIconButton>
+                <SSIconButton onPress={() => handleOnExpand(!expand)}>
+                  {expand ? (
+                    <SSIconCollapse height={15} width={15} />
+                  ) : (
+                    <SSIconExpand height={15} width={16} />
+                  )}
+                </SSIconButton>
               </SSHStack>
-              <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-              >
-                {renderTransactions()}
-              </ScrollView>
-            </SSMainLayout>
-          )
-        case 'channels':
-          return (
-            <SSMainLayout style={[styles.section, styles.tabContent]}>
-              <SSHStack justifyBetween style={{ paddingVertical: 8 }}>
-                <SSHStack>
-                  <SSIconButton onPress={handleRefresh}>
-                    <SSIconRefresh height={18} width={22} />
-                  </SSIconButton>
-                  <SSIconButton onPress={() => handleOnExpand(!expand)}>
-                    {expand ? (
-                      <SSIconCollapse height={15} width={15} />
-                    ) : (
-                      <SSIconExpand height={15} width={16} />
-                    )}
-                  </SSIconButton>
-                </SSHStack>
-                <SSText color="muted">Channels</SSText>
+              <SSHStack gap="sm">
+                <SSText
+                  onPress={() => setIncludeOpenInvoices(!includeOpenInvoices)}
+                  style={{ textDecorationLine: 'underline' }}
+                  color="muted"
+                >
+                  {includeOpenInvoices
+                    ? t('lightning.node.hideOpenInvoices')
+                    : t('lightning.node.showOpenInvoices')}
+                </SSText>
               </SSHStack>
-              <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-              >
-                {renderChannels()}
-              </ScrollView>
-            </SSMainLayout>
-          )
-        default:
-          return null
-      }
-    },
-    [
-      expand,
-      handleRefresh,
-      handleOnExpand,
-      renderChannels,
-      renderTransactions,
-      includeOpenInvoices
-    ]
-  )
-
-  // Effects
-  useEffect(() => {
-    const loadData = async () => {
-      if (!isConnected) {
-        return
-      }
-
-      setIsLoading(true)
-
-      try {
-        // Load balance
-        const [blockchainBalance, channelBalance] = await Promise.all([
-          getBalance() as Promise<LNDBalanceResponse>,
-          (makeRequest as MakeRequest)<LNDChannelBalanceResponse>(
-            '/v1/balance/channels'
-          )
-        ])
-
-        const totalBalance = Number(blockchainBalance?.total_balance || 0)
-        const onchainBalance = Number(blockchainBalance?.confirmed_balance || 0)
-        const channelBalanceValue = Number(
-          channelBalance?.local_balance?.sat || 0
+            </SSHStack>
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              refreshControl={renderRefreshControl()}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderTransactions()}
+            </ScrollView>
+          </View>
         )
-
-        setBalance({
-          channel_balance: isNaN(channelBalanceValue) ? 0 : channelBalanceValue,
-          onchain_balance: isNaN(onchainBalance) ? 0 : onchainBalance,
-          total_balance: isNaN(totalBalance) ? 0 : totalBalance
-        })
-
-        // Load transactions
-        const [onchainTxs, paymentTxs, invoiceTxs] = await Promise.all([
-          (makeRequest as MakeRequest)<{ transactions: LNDTransaction[] }>(
-            '/v1/transactions?start_height=0&end_height=-1&num_max_transactions=100'
-          ).then((res) =>
-            res.transactions.map((tx) => ({
-              amount: Number(tx.amount),
-              hash: tx.tx_hash,
-              id: tx.tx_hash,
-              num_confirmations: tx.num_confirmations,
-              status: tx.num_confirmations > 0 ? 'confirmed' : 'pending',
-              timestamp: Number(tx.time_stamp),
-              type: 'onchain' as const
-            }))
-          ),
-          (makeRequest as MakeRequest)<{ payments: LNDPayment[] }>(
-            '/v1/payments?include_incomplete=true&num_max_payments=100'
-          ).then((res) =>
-            res.payments.map((payment) => {
-              let description = 'Lightning Payment'
-              if (payment.payment_request) {
-                const match = payment.payment_request.match(/[?&]d=([^&]+)/)
-                if (match && match[1]) {
-                  try {
-                    description = decodeURIComponent(match[1])
-                  } catch {
-                    // Silently fail if decoding fails
-                  }
+      case 'onchain':
+        return (
+          <View style={[styles.section, styles.tabContent]}>
+            <SSHStack justifyBetween style={{ paddingVertical: 8 }}>
+              <SSHStack>
+                <SSIconButton onPress={runRefresh}>
+                  <SSIconRefresh height={18} width={22} />
+                </SSIconButton>
+                <SSIconButton onPress={() => handleOnExpand(!expand)}>
+                  {expand ? (
+                    <SSIconCollapse height={15} width={15} />
+                  ) : (
+                    <SSIconExpand height={15} width={16} />
+                  )}
+                </SSIconButton>
+              </SSHStack>
+              <View style={{ width: 40 }} />
+            </SSHStack>
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              refreshControl={renderRefreshControl()}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderOnchain()}
+            </ScrollView>
+          </View>
+        )
+      case 'channels':
+        return (
+          <View style={[styles.section, styles.tabContent]}>
+            <SSHStack justifyBetween style={{ paddingVertical: 8 }}>
+              <SSHStack>
+                <SSIconButton onPress={runRefresh}>
+                  <SSIconRefresh height={18} width={22} />
+                </SSIconButton>
+                <SSIconButton onPress={() => handleOnExpand(!expand)}>
+                  {expand ? (
+                    <SSIconCollapse height={15} width={15} />
+                  ) : (
+                    <SSIconExpand height={15} width={16} />
+                  )}
+                </SSIconButton>
+              </SSHStack>
+              <SSIconButton
+                accessibilityLabel={
+                  channelsViewMode === 'list'
+                    ? t('lightning.node.channelsToggleBubbleA11y')
+                    : t('lightning.node.channelsToggleListA11y')
                 }
-              }
-              return {
-                amount: -Number(payment.value_sat),
-                description,
-                fee: Number(payment.fee_sat),
-                hash: payment.payment_hash,
-                id: payment.payment_hash,
-                status: payment.status,
-                timestamp: Number(payment.creation_date),
-                type: 'lightning_send' as const
-              }
-            })
-          ),
-          (makeRequest as MakeRequest)<{ invoices: LNDInvoice[] }>(
-            '/v1/invoices?num_max_invoices=100&reversed=true'
-          ).then((res) =>
-            res.invoices
-              .map((invoice) => ({
-                amount: Number(
-                  invoice.state === 'SETTLED'
-                    ? invoice.amt_paid_sat ||
-                        invoice.payment_sat ||
-                        invoice.value ||
-                        0
-                    : invoice.value || 0
-                ),
-                description:
-                  invoice.description || invoice.memo || 'Lightning Invoice',
-                hash: invoice.r_hash,
-                id: invoice.r_hash,
-                originalAmount: invoice.value ? Number(invoice.value) : 0,
-                status: invoice.state.toLowerCase(),
-                timestamp: Number(
-                  invoice.state === 'SETTLED' && invoice.settle_date !== '0'
-                    ? invoice.settle_date
-                    : invoice.creation_date
-                ),
-                type: 'lightning_receive' as const
-              }))
-              .filter(
-                (invoice) => includeOpenInvoices || invoice.status !== 'open'
-              )
-          )
-        ])
-
-        // Combine and deduplicate transactions
-        const allTxs = [...onchainTxs, ...paymentTxs, ...invoiceTxs]
-        const uniqueTxs = Array.from(
-          new Map(allTxs.map((tx) => [tx.id, tx])).values()
-        ).toSorted((a, b) => b.timestamp - a.timestamp)
-
-        setTransactions(uniqueTxs)
-      } catch {
-        setBalance(null)
-        setTransactions([])
-      } finally {
-        setIsLoading(false)
-      }
+                accessibilityRole="switch"
+                accessibilityState={{ checked: channelsViewMode === 'bubbles' }}
+                onPress={() =>
+                  setChannelsViewMode((m) =>
+                    m === 'list' ? 'bubbles' : 'list'
+                  )
+                }
+              >
+                {channelsViewMode === 'list' ? (
+                  <SSIconBubbles height={18} width={20} />
+                ) : (
+                  <SSIconList height={18} width={20} />
+                )}
+              </SSIconButton>
+            </SSHStack>
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              refreshControl={renderRefreshControl()}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderChannels()}
+            </ScrollView>
+          </View>
+        )
+      default:
+        return null
     }
+  }
 
-    loadData()
-  }, [isConnected, getBalance, makeRequest, includeOpenInvoices])
-
-  // Effect to refresh data when includeOpenInvoices changes
-  useEffect(() => {
-    if (isConnected) {
-      setIsLoading(true)
-      setTransactions([])
-      setCurrentPage(0)
-      // Trigger the load effect again
-      setIsLoading(false)
-    }
-  }, [isConnected, includeOpenInvoices])
+  const showSoftErrorBanner =
+    isDashboardError && Boolean(balance) && !isDashboardFetching
 
   return (
     <>
@@ -897,10 +1028,15 @@ export default function NodeDetailPage() {
                 router.push({
                   params: { alias: params.alias },
                   pathname: '/signer/lightning/node/settings'
-                } as never)
+                })
               }
             >
-              <SSIconLNSettings height={16} width={16} />
+              <SSIconLightning
+                height={17}
+                stroke="#828282"
+                strokeWidth={1}
+                width={12}
+              />
             </SSIconButton>
           ),
           headerTitle: () => (
@@ -910,47 +1046,80 @@ export default function NodeDetailPage() {
           )
         }}
       />
-      <SSMainLayout style={styles.mainLayout}>
-        {!expand && (
-          <Animated.View>
-            <SSVStack itemsCenter gap="md">
-              {renderBalances()}
-              {!balance && (
-                <SSHStack style={styles.actions}>
-                  <SSButton
-                    label="Refresh"
-                    onPress={handleRefresh}
-                    variant="outline"
-                    loading={isConnecting}
-                    style={styles.button}
-                  />
-                </SSHStack>
-              )}
-              {balance && (
-                <SSVStack gap="none">
-                  <SSButtonActionsGroup
-                    context="lightning"
-                    nfcAvailable={contentHandler.nfcAvailable}
-                    onSend={contentHandler.handleSend}
-                    onPaste={contentHandler.handlePaste}
-                    onCamera={contentHandler.handleCamera}
-                    onNFC={contentHandler.handleNFC}
-                    onReceive={contentHandler.handleReceive}
-                  />
-                </SSVStack>
-              )}
-            </SSVStack>
-          </Animated.View>
-        )}
-        <TabView
-          swipeEnabled={false}
-          navigationState={{ index: tabIndex, routes: tabs }}
-          renderScene={renderScene}
-          renderTabBar={renderTab}
-          onIndexChange={handleTabChange}
-          initialLayout={{ width }}
-        />
-      </SSMainLayout>
+      <View style={styles.screenRoot}>
+        <SSMainLayout style={styles.mainLayout}>
+          {!expand ? (
+            <Animated.View>
+              <SSVStack gap="md" widthFull>
+                {showSoftErrorBanner ? (
+                  <SSVStack gap="xs" style={{ alignSelf: 'stretch' }}>
+                    <SSText color="muted" size="xs" center>
+                      {t('lightning.node.balancesFailed')}
+                    </SSText>
+                    <SSButton
+                      label={t('lightning.node.retry')}
+                      onPress={() => {
+                        void refetchDashboard()
+                      }}
+                      variant="outline"
+                      style={styles.button}
+                    />
+                  </SSVStack>
+                ) : null}
+                {reserveHeroMinHeight ? (
+                  <View style={styles.heroShell}>{renderBalances()}</View>
+                ) : (
+                  renderBalances()
+                )}
+                {showBalanceError ? (
+                  <SSHStack style={styles.actions}>
+                    <SSButton
+                      label={t('lightning.node.retry')}
+                      onPress={() => {
+                        void refetchDashboard()
+                      }}
+                      variant="outline"
+                      loading={isConnecting}
+                      style={styles.button}
+                    />
+                  </SSHStack>
+                ) : null}
+                {showHeroBalances ? (
+                  <SSVStack gap="none">
+                    <SSButtonActionsGroup
+                      context="lightning"
+                      nfcAvailable={contentHandler.nfcAvailable}
+                      onSend={contentHandler.handleSend}
+                      onPaste={contentHandler.handlePaste}
+                      onCamera={contentHandler.handleCamera}
+                      onNFC={contentHandler.handleNFC}
+                      onReceive={contentHandler.handleReceive}
+                    />
+                  </SSVStack>
+                ) : null}
+              </SSVStack>
+            </Animated.View>
+          ) : null}
+          <TabView
+            swipeEnabled={false}
+            navigationState={{ index: tabIndex, routes: tabs }}
+            renderScene={renderScene}
+            renderTabBar={renderTab}
+            onIndexChange={handleTabChange}
+            initialLayout={{ width }}
+          />
+        </SSMainLayout>
+        {isDashboardFetching && showHeroBalances ? (
+          <View
+            accessibilityLabel={t('lightning.node.refreshing')}
+            accessibilityRole="progressbar"
+            pointerEvents="none"
+            style={styles.dashboardRefreshingOverlay}
+          >
+            <SSLoader size={DASHBOARD_OVERLAY_LOADER_SIZE} />
+          </View>
+        ) : null}
+      </View>
       <SSCameraModal
         visible={contentHandler.cameraModalVisible}
         onClose={contentHandler.closeCameraModal}
@@ -982,44 +1151,141 @@ const styles = StyleSheet.create({
   button: {
     minHeight: 40
   },
-  channelAlias: {
+  channelBalanceBarEmpty: {
+    alignSelf: 'stretch',
+    backgroundColor: Colors.gray[800],
     flex: 1,
-    marginRight: 8
+    minHeight: 12
   },
-  channelDetailRow: {
-    alignItems: 'center',
+  channelBalanceBarPrivacyFill: {
+    alignSelf: 'stretch',
+    backgroundColor: Colors.gray[600],
+    flex: 1,
+    minHeight: 12
+  },
+  channelBalanceBarSegments: {
+    alignSelf: 'stretch',
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between'
+    minHeight: 12
   },
-  channelDetails: {
-    gap: 8
+  channelBalanceBarTrack: {
+    alignSelf: 'stretch',
+    backgroundColor: Colors.gray[900],
+    borderColor: Colors.gray[800],
+    borderRadius: 3,
+    borderWidth: 1,
+    height: 12,
+    overflow: 'hidden',
+    width: '100%'
   },
-  channelHeader: {
+  channelBalanceSegment: {
+    minWidth: 0
+  },
+  channelBalanceSegmentMin: {
+    minWidth: 4
+  },
+  channelCapacityRow: {
+    alignItems: 'baseline'
+  },
+  channelCard: {
+    backgroundColor: Colors.gray[875],
+    borderColor: Colors.gray[700],
+    borderRadius: 3,
+    borderWidth: 1,
+    elevation: 6,
+    overflow: 'visible',
+    shadowColor: '#000000',
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    width: '100%'
+  },
+  channelCardContent: {
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 14
+  },
+  channelCardHeader: {
+    alignItems: 'flex-start'
+  },
+  channelCardHeaderRight: {
     alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between'
+    flexShrink: 0,
+    marginTop: 2
   },
-  channelId: {
-    fontFamily: 'monospace',
-    fontSize: 12,
-    maxWidth: '70%'
+  channelCardInactive: {
+    borderColor: Colors.gray[600]
   },
-  channelItem: {
-    backgroundColor: '#242424',
-    borderRadius: 2,
-    gap: 12,
-    padding: 12
+  channelCardPressed: {
+    borderColor: Colors.gray[500],
+    opacity: 0.92,
+    transform: [{ scale: 0.992 }]
+  },
+  channelCardTitleCol: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 8
+  },
+  channelLegendCluster: {
+    alignItems: 'baseline',
+    flexShrink: 1,
+    minWidth: 0
+  },
+  channelLegendClusterEnd: {
+    alignItems: 'baseline',
+    flexShrink: 1,
+    minWidth: 0
+  },
+  channelLegendRow: {
+    alignItems: 'baseline'
+  },
+  channelStatusPill: {
+    borderRadius: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 5
+  },
+  channelStatusPillOff: {
+    backgroundColor: Colors.gray[800]
+  },
+  channelStatusPillOn: {
+    backgroundColor: Colors.gray[700]
   },
   channelsList: {
-    gap: 16
+    gap: 12
+  },
+  dashboardRefreshingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10
   },
   error: {
     marginTop: 16,
     textAlign: 'center'
   },
-  hash: {
-    fontFamily: 'monospace',
-    maxWidth: '70%'
+  heroBalanceColumns: {
+    alignSelf: 'stretch',
+    width: '100%'
+  },
+  heroLiquidityBlock: {
+    alignSelf: 'stretch',
+    marginTop: 12,
+    width: '100%'
+  },
+  heroShell: {
+    alignSelf: 'stretch',
+    justifyContent: 'flex-start',
+    minHeight:
+      Sizes.text.fontSize.xs * 4 +
+      Sizes.text.fontSize.sm * 2 +
+      Sizes.text.fontSize['5xl'] +
+      Sizes.text.fontSize.md * 2 +
+      12
+  },
+  heroSideColumn: {
+    flex: 0.2,
+    minWidth: 0
   },
   infoGrid: {
     gap: 12
@@ -1041,9 +1307,9 @@ const styles = StyleSheet.create({
     padding: 24,
     textAlign: 'center'
   },
-  pubkey: {
-    fontFamily: 'monospace',
-    maxWidth: '70%'
+  screenRoot: {
+    flex: 1,
+    position: 'relative'
   },
   scrollContent: {
     flexGrow: 1,
@@ -1065,8 +1331,17 @@ const styles = StyleSheet.create({
     marginTop: -4,
     paddingHorizontal: 0
   },
+  transactionDescription: {
+    marginTop: 6
+  },
   transactionDetails: {
-    gap: 8
+    alignItems: 'baseline',
+    marginTop: 6
+  },
+  transactionFiatLine: {
+    flexShrink: 0,
+    marginLeft: 8,
+    textAlign: 'right'
   },
   transactionHeader: {
     marginBottom: 8
@@ -1076,5 +1351,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingHorizontal: 0,
     paddingVertical: 12
+  },
+  transactionTypeLine: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0
   }
 })

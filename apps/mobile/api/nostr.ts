@@ -398,7 +398,9 @@ export class NostrAPI {
     }[]
   > {
     const hexPubkey = getPubKeyHexFromNpub(npub)
-    if (!hexPubkey) {return []}
+    if (!hexPubkey) {
+      return []
+    }
 
     const isKind1Only =
       kinds.length === 0 || (kinds.length === 1 && kinds[0] === 1)
@@ -422,7 +424,9 @@ export class NostrAPI {
     }
 
     await this.connectForPublish()
-    if (!this.ndk) {return cached}
+    if (!this.ndk) {
+      return cached
+    }
 
     const kindList = kinds.length > 0 ? kinds : [1]
     const filter: Record<string, unknown> = {
@@ -457,7 +461,9 @@ export class NostrAPI {
       cacheEvents(fresh, this.ownPubkeys)
     }
 
-    if (!isKind1Only) {return fresh}
+    if (!isKind1Only) {
+      return fresh
+    }
 
     const idSet = new Set(fresh.map((n) => n.id))
     const merged = [
@@ -560,7 +566,9 @@ export class NostrAPI {
       const sub = ndk.subscribe(filter as never, { closeOnEose: false })
 
       const finish = (result: NDKEvent | null) => {
-        if (settled) {return}
+        if (settled) {
+          return
+        }
         settled = true
         sub.stop()
         resolve(result)
@@ -591,7 +599,9 @@ export class NostrAPI {
       const sub = ndk.subscribe(filter as never, { closeOnEose: false })
 
       const finish = () => {
-        if (settled) {return}
+        if (settled) {
+          return
+        }
         settled = true
         sub.stop()
         resolve(collected)
@@ -637,11 +647,15 @@ export class NostrAPI {
     }
 
     await this.connectForPublish()
-    if (!this.ndk) {return null}
+    if (!this.ndk) {
+      return null
+    }
 
     const filter = { ids: [eventIdHex], limit: 1 }
     const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
-    if (!poolEvent) {return null}
+    if (!poolEvent) {
+      return null
+    }
 
     const formatted = NostrAPI.formatNdkEvent(poolEvent)
     cacheEvents([{ id: poolEvent.id, ...formatted }], this.ownPubkeys)
@@ -659,7 +673,9 @@ export class NostrAPI {
     tags: string[][]
     created_at: number
   } | null> {
-    if (relayUrls.length === 0) {return null}
+    if (relayUrls.length === 0) {
+      return null
+    }
 
     const tempNdk = createMobileNdk(relayUrls)
     try {
@@ -667,7 +683,9 @@ export class NostrAPI {
 
       const filter = { ids: [eventIdHex], limit: 1 }
       const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
-      if (!event) {return null}
+      if (!event) {
+        return null
+      }
 
       const formatted = NostrAPI.formatNdkEvent(event)
       cacheEvents([{ id: event.id, ...formatted }], ownPubkeys)
@@ -703,7 +721,9 @@ export class NostrAPI {
     eventIdHex: string,
     relayUrls: string[]
   ): Promise<string | null> {
-    if (relayUrls.length === 0) {return null}
+    if (relayUrls.length === 0) {
+      return null
+    }
 
     const tempNdk = createMobileNdk(relayUrls)
     try {
@@ -711,7 +731,9 @@ export class NostrAPI {
 
       const filter = { ids: [eventIdHex], limit: 1 }
       const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
-      if (!event) {return null}
+      if (!event) {
+        return null
+      }
       return JSON.stringify(NostrAPI.ndkEventToStorableRecord(event), null, 2)
     } finally {
       try {

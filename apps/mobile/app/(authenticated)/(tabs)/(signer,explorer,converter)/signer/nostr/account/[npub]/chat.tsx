@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Dimensions, StyleSheet, View } from 'react-native'
 import { TabView } from 'react-native-tab-view'
 
@@ -33,23 +33,20 @@ export default function NostrIdentityChat() {
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
-  const routes = useMemo<ChatRoute[]>(
-    () => [
-      { key: 'nip4', title: t('nostrIdentity.chat.tabNip4') },
-      { key: 'nip17', title: t('nostrIdentity.chat.tabNip17') },
-      { key: 'marmot', title: t('nostrIdentity.chat.tabMarmot') },
-      { key: 'mesh', title: t('nostrIdentity.chat.tabMesh') }
-    ],
-    []
+  const routes: ChatRoute[] = [
+    { key: 'nip4', title: t('nostrIdentity.chat.tabNip4') },
+    { key: 'nip17', title: t('nostrIdentity.chat.tabNip17') },
+    { key: 'marmot', title: t('nostrIdentity.chat.tabMarmot') },
+    { key: 'mesh', title: t('nostrIdentity.chat.tabMesh') }
+  ]
+
+  const renderScene = () => (
+    <SSVStack gap="md" itemsCenter style={styles.scene}>
+      <SSText color="muted">{t('nostrIdentity.chat.comingSoon')}</SSText>
+    </SSVStack>
   )
 
-  const renderScene = useCallback(() => (
-      <SSVStack gap="md" itemsCenter style={styles.scene}>
-        <SSText color="muted">{t('nostrIdentity.chat.comingSoon')}</SSText>
-      </SSVStack>
-    ), [])
-
-  const renderTabBar = useCallback(() => {
+  const renderTabBar = () => {
     const tabWidth = `${100 / routes.length}%` as const
 
     return (
@@ -78,7 +75,7 @@ export default function NostrIdentityChat() {
         ))}
       </SSHStack>
     )
-  }, [routes, tabIndex])
+  }
 
   if (!identity) {
     return (

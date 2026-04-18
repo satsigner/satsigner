@@ -2,9 +2,15 @@ const IMAGE_FILE_EXT_RE = /\.(?:jpg|jpeg|png|gif|webp|avif|bmp)(?:\?[^\s]*)?$/i
 
 export function isPlausibleImageHttpUrl(url: string): boolean {
   const u = url.trim()
-  if (!/^https?:\/\//i.test(u)) {return false}
-  if (IMAGE_FILE_EXT_RE.test(u)) {return true}
-  if (/nostr\.build|blossom|\/nip95|\/image\//i.test(u)) {return true}
+  if (!/^https?:\/\//i.test(u)) {
+    return false
+  }
+  if (IMAGE_FILE_EXT_RE.test(u)) {
+    return true
+  }
+  if (/nostr\.build|blossom|\/nip95|\/image\//i.test(u)) {
+    return true
+  }
   return false
 }
 
@@ -21,17 +27,25 @@ export function extractImageUrlsFromNote(
 
   function push(raw: string) {
     const u = raw.trim().replace(/\)+$/, '')
-    if (!u || seen.has(u)) {return}
-    if (!isPlausibleImageHttpUrl(u)) {return}
+    if (!u || seen.has(u)) {
+      return
+    }
+    if (!isPlausibleImageHttpUrl(u)) {
+      return
+    }
     seen.add(u)
     urls.push(u)
   }
 
   for (const tag of tags) {
-    if (tag[0] !== 'imeta') {continue}
+    if (tag[0] !== 'imeta') {
+      continue
+    }
     for (let i = 1; i < tag.length; i++) {
       const part = tag[i]
-      if (typeof part !== 'string') {continue}
+      if (typeof part !== 'string') {
+        continue
+      }
       if (part.startsWith('url ')) {
         push(part.slice(4))
       }

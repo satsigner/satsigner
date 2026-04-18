@@ -1,69 +1,68 @@
-import { useCallback } from "react";
+import { useCallback } from 'react'
 import {
   type AnimatableValue,
   type AnimationCallback,
   runOnJS,
-  useSharedValue,
-} from "react-native-reanimated";
+  useSharedValue
+} from 'react-native-reanimated'
 
 import {
   ANIMATION_VALUE,
-  type OnResetAnimationEndCallback,
-} from "@/types/ui/gestures";
+  type OnResetAnimationEndCallback
+} from '@/types/ui/gestures'
 
 type OnAnimationEndCallback = AnimationCallback extends (
   ...a: infer I
 ) => infer O
   ? (interactionId: string, value: ANIMATION_VALUE, ...a: I) => O
-  : never;
+  : never
 
 type EndValues = Record<
   ANIMATION_VALUE,
   {
-    finished?: boolean;
-    current?: AnimatableValue;
+    finished?: boolean
+    current?: AnimatableValue
   }
->;
-type PartialEndValues = Partial<EndValues>;
-type InteractionEndValues = Record<string, PartialEndValues>;
+>
+type PartialEndValues = Partial<EndValues>
+type InteractionEndValues = Record<string, PartialEndValues>
 
 const ANIMATION_VALUES = [
   ANIMATION_VALUE.SCALE,
   ANIMATION_VALUE.FOCAL_X,
   ANIMATION_VALUE.FOCAL_Y,
   ANIMATION_VALUE.TRANSLATE_X,
-  ANIMATION_VALUE.TRANSLATE_Y,
-];
+  ANIMATION_VALUE.TRANSLATE_Y
+]
 
 const isAnimationComplete = (
   endValues: PartialEndValues
-): endValues is EndValues =>
-  ANIMATION_VALUES.every((item) => !!endValues[item]);
+): endValues is EndValues => ANIMATION_VALUES.every((item) => !!endValues[item])
 
 export const useAnimationEnd = (
   onResetAnimationEnd?: OnResetAnimationEndCallback
 ) => {
-  const endValues = useSharedValue<InteractionEndValues>({});
+  const endValues = useSharedValue<InteractionEndValues>({})
 
   const onAnimationEnd: OnAnimationEndCallback = useCallback(
     (interactionId, value, finished, current) => {
-      "worklet";
+      'worklet'
       if (onResetAnimationEnd) {
-        const currentEndValues = endValues.value[interactionId] || {};
-        currentEndValues[value] = { current, finished };
+        const currentEndValues = endValues.value[interactionId] || {}
+        currentEndValues[value] = { current, finished }
         if (isAnimationComplete(currentEndValues)) {
           const completed = !Object.values(currentEndValues).some(
             (item) => !item.finished
-          );
-          runOnJS(onResetAnimationEnd)(completed, currentEndValues);
-          delete endValues.value[interactionId];
+          )
+          runOnJS(onResetAnimationEnd)(completed, currentEndValues)
+          delete endValues.value[interactionId]
         } else {
-          endValues.value[interactionId] = currentEndValues;
+          endValues.value[interactionId] = currentEndValues
         }
       }
     },
     [onResetAnimationEnd]
-  );
+  )
 
-  return { onAnimationEnd };
-};
+  return { onAnimationEnd }
+}

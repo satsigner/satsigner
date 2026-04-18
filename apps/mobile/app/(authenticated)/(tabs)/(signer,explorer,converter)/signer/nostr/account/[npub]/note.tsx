@@ -137,7 +137,9 @@ export default function NostrNotePage() {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const decoded = useMemo(() => {
-    if (!nostrUri) {return null}
+    if (!nostrUri) {
+      return null
+    }
     return decodeNostrContent(nostrUri)
   }, [nostrUri])
 
@@ -186,7 +188,9 @@ export default function NostrNotePage() {
   )
 
   const relayHints = useMemo(() => {
-    if (!decoded) {return undefined}
+    if (!decoded) {
+      return undefined
+    }
     if (
       decoded.kind === 'nevent' &&
       Array.isArray(decoded.metadata?.relays) &&
@@ -229,7 +233,9 @@ export default function NostrNotePage() {
             return
           }
           setFetched((prev) => {
-            if (!prev) {return prev}
+            if (!prev) {
+              return prev
+            }
             return {
               ...prev,
               authorLud16: profile.lud16,
@@ -248,13 +254,16 @@ export default function NostrNotePage() {
   )
 
   useEffect(() => {
-    if (!decoded || fetchedRef.current) {return}
+    if (!decoded || fetchedRef.current) {
+      return
+    }
     if (
       decoded.kind !== 'note' &&
       decoded.kind !== 'nevent' &&
       decoded.kind !== 'json_note'
-    )
-      {return}
+    ) {
+      return
+    }
 
     fetchedRef.current = true
 
@@ -297,7 +306,9 @@ export default function NostrNotePage() {
   }, [decoded, effectiveRelays, handleEventFound, ownPubkeys])
 
   async function handleTryHintedRelays() {
-    if (!decoded?.data || !relayHints?.length) {return}
+    if (!decoded?.data || !relayHints?.length) {
+      return
+    }
     setIsLoading(true)
     setNotFound(false)
     setTriedHints(true)
@@ -320,12 +331,16 @@ export default function NostrNotePage() {
   }
 
   async function handleBroadSearch() {
-    if (!decoded?.data) {return}
+    if (!decoded?.data) {
+      return
+    }
     const alreadyTried = new Set([...effectiveRelays, ...(relayHints ?? [])])
     const searchRelays = NostrAPI.INDEXING_RELAYS.filter(
       (url) => !alreadyTried.has(url)
     )
-    if (searchRelays.length === 0) {return}
+    if (searchRelays.length === 0) {
+      return
+    }
 
     setIsLoading(true)
     setNotFound(false)
@@ -399,12 +414,16 @@ export default function NostrNotePage() {
   )
 
   const noteImageUrls = useMemo(() => {
-    if (!fetched || privacyMode) {return []}
+    if (!fetched || privacyMode) {
+      return []
+    }
     return extractImageUrlsFromNote(fetched.content, fetched.tags)
   }, [fetched, privacyMode])
 
   const noteVideoEmbeds = useMemo(() => {
-    if (!fetched || privacyMode) {return []}
+    if (!fetched || privacyMode) {
+      return []
+    }
     return extractVideoEmbedsFromNote(fetched.content, fetched.tags)
   }, [fetched, privacyMode])
 
@@ -414,7 +433,9 @@ export default function NostrNotePage() {
   )
 
   const replyParentRelayHint = useMemo(() => {
-    if (!fetched?.tags || !replyParentId) {return undefined}
+    if (!fetched?.tags || !replyParentId) {
+      return undefined
+    }
     return getRelayHintForEventId(fetched.tags, replyParentId)
   }, [fetched?.tags, replyParentId])
 
@@ -507,9 +528,15 @@ export default function NostrNotePage() {
   }, [effectiveRelays, ownPubkeys, replyParentId, replyParentRelayHint])
 
   const noteItemForFeed = useMemo((): NostrFeedNoteLike | null => {
-    if (!fetched || !decoded) {return null}
-    if (decoded.kind !== 'note' && decoded.kind !== 'nevent') {return null}
-    if (typeof decoded.data !== 'string' || !decoded.data) {return null}
+    if (!fetched || !decoded) {
+      return null
+    }
+    if (decoded.kind !== 'note' && decoded.kind !== 'nevent') {
+      return null
+    }
+    if (typeof decoded.data !== 'string' || !decoded.data) {
+      return null
+    }
     return {
       content: fetched.content,
       created_at: fetched.created_at,
@@ -521,7 +548,9 @@ export default function NostrNotePage() {
   }, [fetched, decoded])
 
   const noteAuthorFeedProps = useMemo(() => {
-    if (!fetched?.pubkey || privacyMode) {return null}
+    if (!fetched?.pubkey || privacyMode) {
+      return null
+    }
     const authorNpubBech = nip19.npubEncode(fetched.pubkey)
     const isSelf = authorNpubBech === npub
     const hasIdentityFallback = Boolean(
@@ -607,8 +636,12 @@ export default function NostrNotePage() {
     (usesRemaining !== undefined && usesRemaining <= 0)
 
   async function handleZap(amountSats: number) {
-    if (!amountSats || amountSats <= 0) {return}
-    if (availablePaymentMethods.length === 0) {return}
+    if (!amountSats || amountSats <= 0) {
+      return
+    }
+    if (availablePaymentMethods.length === 0) {
+      return
+    }
 
     if (!effectiveLud16) {
       toast.error(t('nostrIdentity.note.zapEndpointNotFound'))
@@ -620,7 +653,9 @@ export default function NostrNotePage() {
       return
     }
 
-    if (!fetched) {return}
+    if (!fetched) {
+      return
+    }
 
     setZapLoading(true)
     try {
@@ -663,7 +698,9 @@ export default function NostrNotePage() {
     } catch (error) {
       setZapLoading(false)
       const message =
-        error instanceof Error ? error.message : t('nostrIdentity.note.zapFailed')
+        error instanceof Error
+          ? error.message
+          : t('nostrIdentity.note.zapFailed')
       toast.error(message)
     }
   }
@@ -715,7 +752,9 @@ export default function NostrNotePage() {
 
   function handleCustomAmountSubmit() {
     const sats = parseInt(customAmount, 10)
-    if (!sats || sats <= 0) {return}
+    if (!sats || sats <= 0) {
+      return
+    }
     handleZap(sats)
   }
 
@@ -735,7 +774,9 @@ export default function NostrNotePage() {
 
   function handleSheetCustomSubmit() {
     const sats = parseInt(sheetCustomAmount, 10)
-    if (!sats || sats <= 0) {return}
+    if (!sats || sats <= 0) {
+      return
+    }
     zapSheetRef.current?.close()
     handleZap(sats)
   }

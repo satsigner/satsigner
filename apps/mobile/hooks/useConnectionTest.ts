@@ -1,56 +1,56 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react'
 
-import ElectrumClient from "@/api/electrum";
-import Esplora from "@/api/esplora";
+import ElectrumClient from '@/api/electrum'
+import Esplora from '@/api/esplora'
 import {
   type Backend,
   type Network,
-  type ProxyConfig,
-} from "@/types/settings/blockchain";
+  type ProxyConfig
+} from '@/types/settings/blockchain'
 
 type NodeInfo = {
-  version?: string;
-  blockHeight?: number;
-  responseTime?: number;
-  network?: string;
-  software?: string;
-  mempoolSize?: number;
-  chainWork?: string;
-  medianFee?: number;
-  hashRate?: string;
-};
+  version?: string
+  blockHeight?: number
+  responseTime?: number
+  network?: string
+  software?: string
+  mempoolSize?: number
+  chainWork?: string
+  medianFee?: number
+  hashRate?: string
+}
 
 export type ConnectionTestResult =
   | {
-      success: true;
-      blockHeight?: number;
-      tipTimestampSec?: number;
+      success: true
+      blockHeight?: number
+      tipTimestampSec?: number
     }
   | {
-      success: false;
-      error?: string;
-    };
+      success: false
+      error?: string
+    }
 
 export function useConnectionTest() {
-  const [testing, setTesting] = useState(false);
-  const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null);
+  const [testing, setTesting] = useState(false)
+  const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null)
   const [currentClient, setCurrentClient] = useState<
     ElectrumClient | Esplora | null
-  >(null);
-  const [lastTestTime, setLastTestTime] = useState<number>(0);
+  >(null)
+  const [lastTestTime, setLastTestTime] = useState<number>(0)
 
   const cleanupPreviousConnection = useCallback(() => {
     if (!currentClient) {
-      return;
+      return
     }
 
     // close TLS connection. Apply only to Electrum Client
-    if ("close" in currentClient && typeof currentClient.close === "function") {
-      currentClient.close();
+    if ('close' in currentClient && typeof currentClient.close === 'function') {
+      currentClient.close()
     }
 
-    setCurrentClient(null);
-  }, [currentClient]);
+    setCurrentClient(null)
+  }, [currentClient])
 
   async function testConnection(
     url: string,
@@ -59,76 +59,76 @@ export function useConnectionTest() {
     proxy?: ProxyConfig
   ): Promise<ConnectionTestResult> {
     // Debounce rapid connection attempts to prevent memory issues
-    const now = Date.now();
+    const now = Date.now()
     if (now - lastTestTime < 2000) {
       return {
-        error: "Please wait before testing another connection",
-        success: false,
-      };
+        error: 'Please wait before testing another connection',
+        success: false
+      }
     }
 
-    setLastTestTime(now);
-    cleanupPreviousConnection();
-    setTesting(true);
-    setNodeInfo(null);
+    setLastTestTime(now)
+    cleanupPreviousConnection()
+    setTesting(true)
+    setNodeInfo(null)
 
-    const startTime = Date.now();
-    const connectionTimeout = 10_000;
+    const startTime = Date.now()
+    const connectionTimeout = 10_000
 
     async function testPromise(): Promise<ConnectionTestResult> {
-      if (backend === "electrum") {
-        const client = ElectrumClient.fromUrl(url, network);
+      if (backend === 'electrum') {
+        const client = ElectrumClient.fromUrl(url, network)
 
         // Store current client for cleanup
-        setCurrentClient(client);
+        setCurrentClient(client)
 
         const serverInfo = await client.client.initElectrum(
-          { client: "satsigner", version: "1.4" },
+          { client: 'satsigner', version: '1.4' },
           { callback: null, maxRetry: 0 }
-        );
+        )
 
-        const responseTime = Date.now() - startTime;
+        const responseTime = Date.now() - startTime
 
         // Try block height via headers subscribe
-        let blockHeight = 0;
+        let blockHeight = 0
         try {
           const tip = await (
             client.client as unknown as {
               blockchainHeaders_subscribe: () => Promise<{
-                height: number;
-              } | null>;
+                height: number
+              } | null>
             }
-          ).blockchainHeaders_subscribe();
+          ).blockchainHeaders_subscribe()
           if (tip?.height) {
-            blockHeight = tip.height as number;
+            blockHeight = tip.height as number
           }
         } catch {
           // optional — not all servers support headers subscribe
         }
 
-        let tipTimestampSec: number | undefined;
+        let tipTimestampSec: number | undefined
         if (blockHeight > 0) {
           try {
-            tipTimestampSec = await client.getBlockTimestamp(blockHeight);
+            tipTimestampSec = await client.getBlockTimestamp(blockHeight)
           } catch {
             // optional — not all servers expose block headers reliably
           }
         }
 
         // Try mempool fee histogram for mempool size
-        let mempoolSize;
+        let mempoolSize
         try {
           const mempoolInfo = await (
             client.client as unknown as {
-              mempool_get_fee_histogram?: () => Promise<[number, number][]>;
+              mempool_get_fee_histogram?: () => Promise<[number, number][]>
             }
-          ).mempool_get_fee_histogram?.();
+          ).mempool_get_fee_histogram?.()
           if (mempoolInfo && Array.isArray(mempoolInfo)) {
             mempoolSize = mempoolInfo.reduce(
               (sum: number, item: [number, number]) =>
                 sum + (Array.isArray(item) && item[1] ? item[1] : 0),
               0
-            );
+            )
           }
         } catch {
           // optional
@@ -139,12 +139,12 @@ export function useConnectionTest() {
           mempoolSize,
           network: network as string,
           responseTime,
-          software: (serverInfo as unknown as string[])?.[0] || "Electrum",
-          version: (serverInfo as unknown as string[])?.[1] || "Unknown",
-        });
+          software: (serverInfo as unknown as string[])?.[0] || 'Electrum',
+          version: (serverInfo as unknown as string[])?.[1] || 'Unknown'
+        })
 
         try {
-          client.close();
+          client.close()
         } catch {
           /* silently ignored */
         }
@@ -152,37 +152,37 @@ export function useConnectionTest() {
         return {
           blockHeight: blockHeight > 0 ? blockHeight : undefined,
           success: true,
-          tipTimestampSec,
-        };
-      } else if (backend === "esplora") {
+          tipTimestampSec
+        }
+      } else if (backend === 'esplora') {
         // Test Esplora connection and get server info
-        const client = new Esplora(url);
+        const client = new Esplora(url)
 
         // Store current client for cleanup
-        setCurrentClient(client);
+        setCurrentClient(client)
 
-        const rawHeight = await client.getLatestBlockHeight();
+        const rawHeight = await client.getLatestBlockHeight()
         const blockHeight =
-          typeof rawHeight === "number" ? rawHeight : Number(rawHeight);
-        const responseTime = Date.now() - startTime;
+          typeof rawHeight === 'number' ? rawHeight : Number(rawHeight)
+        const responseTime = Date.now() - startTime
 
-        const mempoolInfo = await client._call("/mempool");
-        const mempoolSize = mempoolInfo?.count || undefined;
+        const mempoolInfo = await client._call('/mempool')
+        const mempoolSize = mempoolInfo?.count || undefined
 
-        const feeEstimates = await client.getFeeEstimates();
-        const medianFee = feeEstimates["6"] || feeEstimates["3"] || undefined;
+        const feeEstimates = await client.getFeeEstimates()
+        const medianFee = feeEstimates['6'] || feeEstimates['3'] || undefined
 
-        let tipTimestampSec: number | undefined;
+        let tipTimestampSec: number | undefined
         if (Number.isFinite(blockHeight) && blockHeight > 0) {
           try {
             const tipHash = (await client.getBlockAtHeight(
               blockHeight
-            )) as string;
+            )) as string
             const blockJson = (await client.getBlockInfo(tipHash)) as {
-              timestamp?: number;
-            };
-            if (typeof blockJson?.timestamp === "number") {
-              tipTimestampSec = blockJson.timestamp;
+              timestamp?: number
+            }
+            if (typeof blockJson?.timestamp === 'number') {
+              tipTimestampSec = blockJson.timestamp
             }
           } catch {
             // optional
@@ -195,82 +195,82 @@ export function useConnectionTest() {
           mempoolSize,
           network: network as string,
           responseTime,
-          software: "Esplora",
-        });
+          software: 'Esplora'
+        })
 
         return {
           blockHeight: Number.isFinite(blockHeight) ? blockHeight : undefined,
           success: true,
-          tipTimestampSec,
-        };
+          tipTimestampSec
+        }
       }
-      throw new Error("Unknown backend");
+      throw new Error('Unknown backend')
     }
 
     function timeoutPromise(): Promise<never> {
       return new Promise((_resolve, reject) => {
         setTimeout(
-          () => reject(new Error("Connection test timeout")),
+          () => reject(new Error('Connection test timeout')),
           connectionTimeout
-        );
-      });
+        )
+      })
     }
 
     try {
-      const result = await Promise.race([testPromise(), timeoutPromise()]);
+      const result = await Promise.race([testPromise(), timeoutPromise()])
 
       if (result && result.success) {
-        return result;
+        return result
       }
 
       const errorMessage = proxy?.enabled
-        ? "Proxy connection failed. Ensure Tor/Orbot is running."
-        : "Connection test failed";
+        ? 'Proxy connection failed. Ensure Tor/Orbot is running.'
+        : 'Connection test failed'
 
       return {
         error: errorMessage,
-        success: false,
-      };
+        success: false
+      }
     } catch (error) {
       // Failed to get node info
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown connection error";
+        error instanceof Error ? error.message : 'Unknown connection error'
 
       // Still set basic info even if enhanced info fails
-      const responseTime = Date.now() - startTime;
+      const responseTime = Date.now() - startTime
       setNodeInfo({
         network: network as string,
         responseTime,
-        software: backend === "electrum" ? "Electrum" : "Esplora",
-      });
+        software: backend === 'electrum' ? 'Electrum' : 'Esplora'
+      })
 
       return {
         error: errorMessage,
-        success: false,
-      };
+        success: false
+      }
     } finally {
-      setTesting(false);
+      setTesting(false)
     }
   }
 
   function resetTest() {
-    cleanupPreviousConnection();
-    setTesting(false);
-    setNodeInfo(null);
+    cleanupPreviousConnection()
+    setTesting(false)
+    setNodeInfo(null)
   }
 
   // Cleanup on unmount
   useEffect(
     () => () => {
-      cleanupPreviousConnection();
+      cleanupPreviousConnection()
     },
     [cleanupPreviousConnection]
-  );
+  )
 
   return {
     nodeInfo,
     resetTest,
     testConnection,
-    testing,
-  };
+    testing
+  }
 }

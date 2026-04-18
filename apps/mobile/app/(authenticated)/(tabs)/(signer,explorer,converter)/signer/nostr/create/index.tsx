@@ -53,8 +53,8 @@ export default function CreateNostrIdentity() {
     router.navigate({
       params: {
         mnemonic,
-        nsec: keys.nsec,
-        npub: keys.npub
+        npub: keys.npub,
+        nsec: keys.nsec
       },
       pathname: '/signer/nostr/create/profile'
     })

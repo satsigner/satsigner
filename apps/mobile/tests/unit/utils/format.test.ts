@@ -3,6 +3,7 @@ import {
   formatDate,
   formatNostrCardDate,
   formatNumber,
+  formatShortPubkey,
   formatTime,
   formatTxId
 } from '@/utils/format'
@@ -28,6 +29,20 @@ describe('format utils', () => {
 
     it('should return the correct localized number with decimals', () => {
       expect(formatNumber(0.795, 2)).toBe('0.80')
+    })
+  })
+
+  describe('formatShortPubkey', () => {
+    it('should return first five and last six characters for long hex', () => {
+      expect(
+        formatShortPubkey(
+          '0248d0b103234567890abcdef0123456789abcdef0123456789abcdef23bf82'
+        )
+      ).toBe('0248d...23bf82')
+    })
+
+    it('should return the full string when it is short enough', () => {
+      expect(formatShortPubkey('0248d')).toBe('0248d')
     })
   })
 

@@ -21,6 +21,7 @@ import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
+import SSDustWarningBanner from '@/components/SSDustWarningBanner'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
@@ -66,7 +67,9 @@ import { selectEfficientUtxos } from '@/utils/utxo'
 
 export default function IOPreview() {
   const router = useRouter()
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { id, dustWarning } = useLocalSearchParams<
+    AccountSearchParams & { dustWarning?: string }
+  >()
   const isFocused = useIsFocused()
 
   const account = useAccountsStore(
@@ -217,6 +220,11 @@ export default function IOPreview() {
   const [outputAmount, setOutputAmount] = useState(DUST_LIMIT)
   const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
+  const [dustErrorOverride, setDustErrorOverride] = useState(
+    dustWarning ? t('transaction.error.dustOutputBelowLimit') : ''
+  )
+
+  const dustErrorMessage = dustErrorOverride
 
   const remainingSats = useMemo(
     () =>
@@ -229,7 +237,13 @@ export default function IOPreview() {
     setOutputTo(parsed.address)
     if (parsed.amount !== undefined && parsed.amount > 0) {
       const amountInSats = Math.round(parsed.amount * SATS_PER_BITCOIN)
-      setOutputAmount(amountInSats)
+      if (amountInSats > 0 && amountInSats < DUST_LIMIT) {
+        setDustErrorOverride(t('transaction.error.dustOutputBelowLimit'))
+        setOutputAmount(amountInSats)
+      } else {
+        setDustErrorOverride('')
+        setOutputAmount(amountInSats)
+      }
     }
     if (parsed.label !== undefined) {
       setOutputLabel(parsed.label)
@@ -428,8 +442,13 @@ export default function IOPreview() {
     }
 
     const success = processContentForOutput(content, {
-      onError: () => {
-        toast.error(t('transaction.error.address.invalid'))
+      onError: (message) => {
+        if (message === t('transaction.error.dustOutputBelowLimit')) {
+          setDustErrorOverride(message)
+          setCameraModalVisible(false)
+        } else {
+          toast.error(t('transaction.error.address.invalid'))
+        }
       },
       onWarning: () => {
         toast.warning(t('transaction.error.bip21.insufficientSats'))
@@ -601,6 +620,7 @@ export default function IOPreview() {
   }
 
   function handleGoToPreview() {
+    setDustErrorOverride('')
     setFeeRate(localFeeRate)
     const totalOutputAmount = outputs.reduce(
       (acc, output) => acc + output.amount,
@@ -616,13 +636,13 @@ export default function IOPreview() {
 
     for (const output of outputs) {
       if (output.amount > 0 && output.amount < DUST_LIMIT) {
-        toast.error(t('transaction.error.dustOutputBelowLimit'))
+        setDustErrorOverride(t('transaction.error.dustOutputBelowLimit'))
         return
       }
     }
 
     if (remainingBalance > 0 && remainingBalance < DUST_LIMIT) {
-      toast.error(t('transaction.error.dustChangeBelowLimit'))
+      setDustErrorOverride(t('transaction.error.dustChangeBelowLimit'))
       return
     }
 
@@ -911,6 +931,9 @@ export default function IOPreview() {
               />
             </SSHStack>
           </SSVStack>
+          {dustErrorMessage !== '' && (
+            <SSDustWarningBanner message={dustErrorMessage} />
+          )}
           <SSButton
             variant="secondary"
             label={

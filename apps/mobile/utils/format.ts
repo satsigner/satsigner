@@ -169,6 +169,17 @@ function formatTxId(txid: string, character = 6) {
   return `${beginning}...${end}`
 }
 
+function formatShortPubkey(pubkey: string, headChars = 5, tailChars = 6) {
+  const s = pubkey.trim()
+  if (!s) {
+    return ''
+  }
+  if (s.length <= headChars + tailChars + 3) {
+    return s
+  }
+  return `${s.slice(0, headChars)}...${s.slice(-tailChars)}`
+}
+
 function formatTxOutputToUtxo(
   tx: Transaction | undefined,
   vout: number,
@@ -228,6 +239,7 @@ export {
   formatNumber,
   formatPageUrl,
   formatPercentualChange,
+  formatShortPubkey,
   formatTime,
   formatTimeFromNow,
   formatTimestamp,

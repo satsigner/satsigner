@@ -52,7 +52,9 @@ export default function NostrRelays() {
   }
 
   function handleAddCustomRelay() {
-    if (!customRelayUrl) {return}
+    if (!customRelayUrl) {
+      return
+    }
     const relayUrl = RELAY_PROTOCOL_PREFIX + customRelayUrl
     if (!selectedRelays.includes(relayUrl)) {
       setSelectedRelays((prev) => [...prev, relayUrl])

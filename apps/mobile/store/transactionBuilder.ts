@@ -1,70 +1,70 @@
-import { current, enableMapSet, produce } from "immer";
-import { type PsbtLike } from "react-native-bdk-sdk";
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { current, enableMapSet, produce } from 'immer'
+import { type PsbtLike } from 'react-native-bdk-sdk'
+import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
-import mmkvStorage from "@/storage/mmkv";
-import { type Output } from "@/types/models/Output";
-import { type Utxo } from "@/types/models/Utxo";
-import { randomUuid } from "@/utils/crypto";
-import { getUtxoOutpoint } from "@/utils/utxo";
+import mmkvStorage from '@/storage/mmkv'
+import { type Output } from '@/types/models/Output'
+import { type Utxo } from '@/types/models/Utxo'
+import { randomUuid } from '@/utils/crypto'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
-enableMapSet();
+enableMapSet()
 
 type SavedDraft = {
-  inputs: Record<string, Utxo>;
-  outputs: Output[];
-  feeRate: number;
-  fee: number;
-  timeLock: number;
-  rbf: boolean;
-  cpfp: boolean;
-};
+  inputs: Record<string, Utxo>
+  outputs: Output[]
+  feeRate: number
+  fee: number
+  timeLock: number
+  rbf: boolean
+  cpfp: boolean
+}
 
 type TransactionBuilderState = {
-  accountId?: string;
-  inputs: Map<ReturnType<typeof getUtxoOutpoint>, Utxo>;
-  outputs: Output[];
-  feeRate: number;
-  fee: number;
-  timeLock: number;
-  rbf: boolean;
-  cpfp: boolean;
-  psbt?: PsbtLike;
-  signedTx?: string;
-  signedPsbts: Map<number, string>;
-  broadcasted: boolean;
-  drafts: Record<string, SavedDraft>;
-};
+  accountId?: string
+  inputs: Map<ReturnType<typeof getUtxoOutpoint>, Utxo>
+  outputs: Output[]
+  feeRate: number
+  fee: number
+  timeLock: number
+  rbf: boolean
+  cpfp: boolean
+  psbt?: PsbtLike
+  signedTx?: string
+  signedPsbts: Map<number, string>
+  broadcasted: boolean
+  drafts: Record<string, SavedDraft>
+}
 
 type TransactionBuilderAction = {
-  clearPsbt: () => void;
-  clearTransaction: () => void;
-  setAccountId: (accountId: string) => void;
-  getInputs: () => Utxo[];
-  hasInput: (utxo: Utxo) => boolean;
-  addInput: (utxo: Utxo) => void;
-  removeInput: (utxo: Utxo) => void;
-  addOutput: (output: Omit<Output, "localId">) => void;
+  clearPsbt: () => void
+  clearTransaction: () => void
+  setAccountId: (accountId: string) => void
+  getInputs: () => Utxo[]
+  hasInput: (utxo: Utxo) => boolean
+  addInput: (utxo: Utxo) => void
+  removeInput: (utxo: Utxo) => void
+  addOutput: (output: Omit<Output, 'localId'>) => void
   updateOutput: (
-    localId: Output["localId"],
-    output: Omit<Output, "localId">
-  ) => void;
-  removeOutput: (localId: Output["localId"]) => void;
-  setFeeRate: (feeRate: TransactionBuilderState["feeRate"]) => void;
-  setFee: (fee: TransactionBuilderState["fee"]) => void;
-  setRbf: (rbf: TransactionBuilderState["rbf"]) => void;
-  setPsbt: (psbt: NonNullable<TransactionBuilderState["psbt"]>) => void;
+    localId: Output['localId'],
+    output: Omit<Output, 'localId'>
+  ) => void
+  removeOutput: (localId: Output['localId']) => void
+  setFeeRate: (feeRate: TransactionBuilderState['feeRate']) => void
+  setFee: (fee: TransactionBuilderState['fee']) => void
+  setRbf: (rbf: TransactionBuilderState['rbf']) => void
+  setPsbt: (psbt: NonNullable<TransactionBuilderState['psbt']>) => void
   setSignedTx: (
-    signedTx: NonNullable<TransactionBuilderState["signedTx"]>
-  ) => void;
-  setSignedPsbts: (signedPsbts: TransactionBuilderState["signedPsbts"]) => void;
-  setBroadcasted: (broadcasted: boolean) => void;
-};
+    signedTx: NonNullable<TransactionBuilderState['signedTx']>
+  ) => void
+  setSignedPsbts: (signedPsbts: TransactionBuilderState['signedPsbts']) => void
+  setBroadcasted: (broadcasted: boolean) => void
+}
 
 function syncDraft(state: TransactionBuilderState) {
   if (!state.accountId) {
-    return;
+    return
   }
   state.drafts[state.accountId] = {
     cpfp: state.cpfp,
@@ -73,8 +73,8 @@ function syncDraft(state: TransactionBuilderState) {
     inputs: Object.fromEntries(current(state.inputs)),
     outputs: current(state.outputs),
     rbf: state.rbf,
-    timeLock: state.timeLock,
-  };
+    timeLock: state.timeLock
+  }
 }
 
 const useTransactionBuilderStore = create<
@@ -86,28 +86,28 @@ const useTransactionBuilderStore = create<
       addInput: (utxo) => {
         set(
           produce((state: TransactionBuilderState) => {
-            state.inputs.set(getUtxoOutpoint(utxo), utxo);
-            syncDraft(state);
+            state.inputs.set(getUtxoOutpoint(utxo), utxo)
+            syncDraft(state)
           })
-        );
+        )
       },
       addOutput: (output) => {
         set(
           produce((state: TransactionBuilderState) => {
-            state.outputs.push({ localId: randomUuid(), ...output });
-            syncDraft(state);
+            state.outputs.push({ localId: randomUuid(), ...output })
+            syncDraft(state)
           })
-        );
+        )
       },
       broadcasted: false,
       clearPsbt: () => {
-        set({ psbt: undefined });
+        set({ psbt: undefined })
       },
       clearTransaction: () => {
-        const { accountId, drafts } = get();
-        const updatedDrafts = { ...drafts };
+        const { accountId, drafts } = get()
+        const updatedDrafts = { ...drafts }
         if (accountId) {
-          delete updatedDrafts[accountId];
+          delete updatedDrafts[accountId]
         }
         set({
           accountId: undefined,
@@ -122,8 +122,8 @@ const useTransactionBuilderStore = create<
           rbf: true,
           signedPsbts: new Map<number, string>(),
           signedTx: undefined,
-          timeLock: 0,
-        });
+          timeLock: 0
+        })
       },
       cpfp: true,
       drafts: {},
@@ -137,23 +137,23 @@ const useTransactionBuilderStore = create<
       removeInput: (utxo) => {
         set(
           produce((state: TransactionBuilderState) => {
-            state.inputs.delete(getUtxoOutpoint(utxo));
-            syncDraft(state);
+            state.inputs.delete(getUtxoOutpoint(utxo))
+            syncDraft(state)
           })
-        );
+        )
       },
       removeOutput: (localId) => {
         set(
           produce((state: TransactionBuilderState) => {
             const index = state.outputs.findIndex(
               (output) => output.localId === localId
-            );
+            )
             if (index !== -1) {
-              state.outputs.splice(index, 1);
+              state.outputs.splice(index, 1)
             }
-            syncDraft(state);
+            syncDraft(state)
           })
-        );
+        )
       },
       setAccountId: (accountId) => {
         const {
@@ -165,14 +165,14 @@ const useTransactionBuilderStore = create<
           timeLock,
           rbf,
           cpfp,
-          drafts,
-        } = get();
+          drafts
+        } = get()
 
         if (currentId === accountId) {
-          return;
+          return
         }
 
-        const updatedDrafts = { ...drafts };
+        const updatedDrafts = { ...drafts }
 
         if (currentId && (inputs.size > 0 || outputs.length > 0)) {
           updatedDrafts[currentId] = {
@@ -182,11 +182,11 @@ const useTransactionBuilderStore = create<
             inputs: Object.fromEntries(inputs),
             outputs: [...outputs],
             rbf,
-            timeLock,
-          };
+            timeLock
+          }
         }
 
-        const newDraft = updatedDrafts[accountId];
+        const newDraft = updatedDrafts[accountId]
         set({
           accountId,
           broadcasted: false,
@@ -202,44 +202,44 @@ const useTransactionBuilderStore = create<
           rbf: newDraft?.rbf ?? true,
           signedPsbts: new Map<number, string>(),
           signedTx: undefined,
-          timeLock: newDraft?.timeLock ?? 0,
-        });
+          timeLock: newDraft?.timeLock ?? 0
+        })
       },
       setBroadcasted: (broadcasted) => {
-        set({ broadcasted });
+        set({ broadcasted })
       },
       setFee: (fee) => {
         set(
           produce((state: TransactionBuilderState) => {
-            state.fee = fee;
-            syncDraft(state);
+            state.fee = fee
+            syncDraft(state)
           })
-        );
+        )
       },
       setFeeRate: (feeRate) => {
         set(
           produce((state: TransactionBuilderState) => {
-            state.feeRate = feeRate;
-            syncDraft(state);
+            state.feeRate = feeRate
+            syncDraft(state)
           })
-        );
+        )
       },
       setPsbt: (psbt) => {
-        set({ psbt });
+        set({ psbt })
       },
       setRbf: (rbf) => {
         set(
           produce((state: TransactionBuilderState) => {
-            state.rbf = rbf;
-            syncDraft(state);
+            state.rbf = rbf
+            syncDraft(state)
           })
-        );
+        )
       },
       setSignedPsbts: (signedPsbts) => {
-        set({ signedPsbts });
+        set({ signedPsbts })
       },
       setSignedTx: (signedTx) => {
-        set({ signedTx });
+        set({ signedTx })
       },
       signedPsbts: new Map<number, string>(),
       timeLock: 0,
@@ -248,24 +248,24 @@ const useTransactionBuilderStore = create<
           produce((state: TransactionBuilderState) => {
             const index = state.outputs.findIndex(
               (output) => output.localId === localId
-            );
+            )
             if (index !== -1) {
-              state.outputs[index] = { localId, ...output };
+              state.outputs[index] = { localId, ...output }
             }
-            syncDraft(state);
+            syncDraft(state)
           })
-        );
-      },
+        )
+      }
     }),
     {
-      name: "satsigner-transaction-builder",
+      name: 'satsigner-transaction-builder',
       onRehydrateStorage: () => (state) => {
         if (!state?.accountId) {
-          return;
+          return
         }
-        const draft = state.drafts[state.accountId];
+        const draft = state.drafts[state.accountId]
         if (!draft) {
-          return;
+          return
         }
         useTransactionBuilderStore.setState({
           cpfp: draft.cpfp,
@@ -274,17 +274,17 @@ const useTransactionBuilderStore = create<
           inputs: new Map(Object.entries(draft.inputs)),
           outputs: draft.outputs,
           rbf: draft.rbf,
-          timeLock: draft.timeLock,
-        });
+          timeLock: draft.timeLock
+        })
       },
       partialize: (state) => ({
         accountId: state.accountId,
-        drafts: state.drafts,
+        drafts: state.drafts
       }),
-      storage: createJSONStorage(() => mmkvStorage),
+      storage: createJSONStorage(() => mmkvStorage)
     }
   )
-);
+)
 
-export { useTransactionBuilderStore };
-export type { SavedDraft };
+export { useTransactionBuilderStore }
+export type { SavedDraft }

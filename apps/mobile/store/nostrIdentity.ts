@@ -45,15 +45,17 @@ const useNostrIdentityStore = create<
       },
       addRelay: (url) => {
         set((state) => {
-          if (state.relays.includes(url)) return state
+          if (state.relays.includes(url)) {
+            return state
+          }
           return { relays: [...state.relays, url] }
         })
       },
 
       clearAll: () => {
         set({
-          identities: [],
           activeIdentityNpub: null,
+          identities: [],
           relays: DEFAULT_RELAYS
         })
       },
@@ -69,9 +71,9 @@ const useNostrIdentityStore = create<
 
       removeIdentity: (npub) => {
         set((state) => ({
-          identities: state.identities.filter((i) => i.npub !== npub),
           activeIdentityNpub:
-            state.activeIdentityNpub === npub ? null : state.activeIdentityNpub
+            state.activeIdentityNpub === npub ? null : state.activeIdentityNpub,
+          identities: state.identities.filter((i) => i.npub !== npub)
         }))
       },
 
@@ -109,12 +111,12 @@ const useNostrIdentityStore = create<
     {
       name: 'satsigner-nostr-identity',
       partialize: (state) => ({
+        activeIdentityNpub: state.activeIdentityNpub,
         identities: state.identities.map((i) => ({
           ...i,
-          nsec: i.nsec,
-          mnemonic: i.mnemonic
+          mnemonic: i.mnemonic,
+          nsec: i.nsec
         })),
-        activeIdentityNpub: state.activeIdentityNpub,
         relays: state.relays
       }),
       storage: createJSONStorage(() => mmkvStorage)

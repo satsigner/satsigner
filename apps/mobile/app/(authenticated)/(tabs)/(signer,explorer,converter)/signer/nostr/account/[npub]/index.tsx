@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
@@ -44,12 +44,11 @@ export default function NostrAccountLanding() {
   const [connectionInfo, setConnectionInfo] =
     useState<NostrRelayConnectionInfo>({ status: 'checking' })
 
-  const effectiveRelays = useMemo(() => {
-    if (!identity) {
-      return []
-    }
-    return identity.relays?.length ? identity.relays : relays
-  }, [identity, relays])
+  const effectiveRelays = identity
+    ? identity.relays?.length
+      ? identity.relays
+      : relays
+    : []
 
   useEffect(() => {
     if (!identity) {
@@ -66,7 +65,9 @@ export default function NostrAccountLanding() {
     let cancelled = false
     setConnectionInfo({ status: 'checking' })
     void testNostrRelaysReachable(effectiveRelays).then((info) => {
-      if (cancelled) {return}
+      if (cancelled) {
+        return
+      }
       setConnectionInfo(info)
     })
     return () => {
@@ -88,15 +89,18 @@ export default function NostrAccountLanding() {
       !npub ||
       fetchedRef.current ||
       effectiveRelays.length === 0
-    )
-      {return}
+    ) {
+      return
+    }
     fetchedRef.current = true
 
     const api = new NostrAPI(effectiveRelays)
     api
       .fetchKind0(npub)
       .then((profile) => {
-        if (!profile) {return}
+        if (!profile) {
+          return
+        }
         updateIdentity(npub, {
           displayName: profile.displayName || identity.displayName,
           lud16: profile.lud16 || identity.lud16,

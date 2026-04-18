@@ -1,40 +1,40 @@
-import { useFocusEffect } from "@react-navigation/native";
-import { FlashList } from "@shopify/flash-list";
+import { useFocusEffect } from '@react-navigation/native'
+import { FlashList } from '@shopify/flash-list'
 import {
   Redirect,
   router,
   Stack,
   useLocalSearchParams,
-  useRouter,
-} from "expo-router";
+  useRouter
+} from 'expo-router'
 import {
   type Dispatch,
   useCallback,
   useEffect,
   useMemo,
   useRef,
-  useState,
-} from "react";
+  useState
+} from 'react'
 import {
   RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
-  View,
-} from "react-native";
+  View
+} from 'react-native'
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withTiming,
-} from "react-native-reanimated";
-import { type SceneRendererProps, TabView } from "react-native-tab-view";
-import { toast } from "sonner-native";
-import { useShallow } from "zustand/react/shallow";
+  withTiming
+} from 'react-native-reanimated'
+import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
-import { getLastUnusedAddressFromWallet, getWalletAddresses } from "@/api/bdk";
+import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
 import {
   SSIconBlackIndicator,
   SSIconBubbles,
@@ -51,82 +51,82 @@ import {
   SSIconOutgoing,
   SSIconRefresh,
   SSIconTable,
-  SSIconYellowIndicator,
-} from "@/components/icons";
-import SSActionButton from "@/components/SSActionButton";
-import { AddressCard } from "@/components/SSAddressCard";
-import SSAddressDisplay from "@/components/SSAddressDisplay";
-import SSBalanceChangeBar from "@/components/SSBalanceChangeBar";
-import SSBlockFeePriceRow from "@/components/SSBlockFeePriceRow";
-import SSBubbleChart from "@/components/SSBubbleChart";
-import SSButton from "@/components/SSButton";
-import SSButtonActionsGroup from "@/components/SSButtonActionsGroup";
-import SSCameraModal from "@/components/SSCameraModal";
-import SSHistoryChart from "@/components/SSHistoryChart";
-import SSIconButton from "@/components/SSIconButton";
-import SSLoader from "@/components/SSLoader";
-import SSModal from "@/components/SSModal";
-import SSNFCModal from "@/components/SSNFCModal";
-import SSPaste from "@/components/SSPaste";
-import SSSeparator from "@/components/SSSeparator";
-import SSSortDirectionToggle from "@/components/SSSortDirectionToggle";
-import SSStyledSatText from "@/components/SSStyledSatText";
-import SSText from "@/components/SSText";
-import SSTransactionCard from "@/components/SSTransactionCard";
-import SSUtxoCard from "@/components/SSUtxoCard";
-import { useBitcoinContentHandler } from "@/hooks/useBitcoinContentHandler";
-import { useContentHandler } from "@/hooks/useContentHandler";
-import useGetAccountAddress from "@/hooks/useGetAccountAddress";
-import useGetAccountWallet from "@/hooks/useGetAccountWallet";
-import { useNetworkInfo } from "@/hooks/useNetworkInfo";
-import useNostrSync from "@/hooks/useNostrSync";
-import useSyncAccountWithAddress from "@/hooks/useSyncAccountWithAddress";
-import useSyncAccountWithWallet from "@/hooks/useSyncAccountWithWallet";
-import useVerifyConnection from "@/hooks/useVerifyConnection";
-import SSHStack from "@/layouts/SSHStack";
-import SSMainLayout from "@/layouts/SSMainLayout";
-import SSVStack from "@/layouts/SSVStack";
-import { t } from "@/locales";
-import { useAccountsStore } from "@/store/accounts";
-import { useBlockchainStore } from "@/store/blockchain";
-import { usePriceStore } from "@/store/price";
-import { useSettingsStore } from "@/store/settings";
-import { useTransactionBuilderStore } from "@/store/transactionBuilder";
-import { Colors, Sizes } from "@/styles";
-import { type Direction } from "@/types/logic/sort";
-import { type Account } from "@/types/models/Account";
-import { type Address } from "@/types/models/Address";
-import { type Utxo } from "@/types/models/Utxo";
-import { type AccountSearchParams } from "@/types/navigation/searchParams";
-import { appNetworkToBdkNetwork } from "@/utils/bitcoin";
-import { formatAddress, formatNumber } from "@/utils/format";
-import { parseAccountAddressesDetails } from "@/utils/parse";
-import { compareTimestamp, sortTransactions } from "@/utils/sort";
-import { time } from "@/utils/time";
-import { getUtxoOutpoint } from "@/utils/utxo";
+  SSIconYellowIndicator
+} from '@/components/icons'
+import SSActionButton from '@/components/SSActionButton'
+import { AddressCard } from '@/components/SSAddressCard'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
+import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
+import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
+import SSBubbleChart from '@/components/SSBubbleChart'
+import SSButton from '@/components/SSButton'
+import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
+import SSCameraModal from '@/components/SSCameraModal'
+import SSHistoryChart from '@/components/SSHistoryChart'
+import SSIconButton from '@/components/SSIconButton'
+import SSLoader from '@/components/SSLoader'
+import SSModal from '@/components/SSModal'
+import SSNFCModal from '@/components/SSNFCModal'
+import SSPaste from '@/components/SSPaste'
+import SSSeparator from '@/components/SSSeparator'
+import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
+import SSStyledSatText from '@/components/SSStyledSatText'
+import SSText from '@/components/SSText'
+import SSTransactionCard from '@/components/SSTransactionCard'
+import SSUtxoCard from '@/components/SSUtxoCard'
+import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
+import { useContentHandler } from '@/hooks/useContentHandler'
+import useGetAccountAddress from '@/hooks/useGetAccountAddress'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import { useNetworkInfo } from '@/hooks/useNetworkInfo'
+import useNostrSync from '@/hooks/useNostrSync'
+import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import useVerifyConnection from '@/hooks/useVerifyConnection'
+import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
+import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { Colors, Sizes } from '@/styles'
+import { type Direction } from '@/types/logic/sort'
+import { type Account } from '@/types/models/Account'
+import { type Address } from '@/types/models/Address'
+import { type Utxo } from '@/types/models/Utxo'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { formatAddress, formatNumber } from '@/utils/format'
+import { parseAccountAddressesDetails } from '@/utils/parse'
+import { compareTimestamp, sortTransactions } from '@/utils/sort'
+import { time } from '@/utils/time'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
-const TX_STAGGER_DELAY_MS = 70;
-const TX_STAGGER_DURATION_MS = 320;
+const TX_STAGGER_DELAY_MS = 70
+const TX_STAGGER_DURATION_MS = 320
 
 function DraftTransactionCard({ accountId }: { accountId: string }) {
-  const router = useRouter();
+  const router = useRouter()
   const [drafts, clearTransaction] = useTransactionBuilderStore(
     useShallow((state) => [state.drafts, state.clearTransaction])
-  );
+  )
 
-  const draft = drafts[accountId];
-  const inputCount = Object.keys(draft?.inputs ?? {}).length;
-  const outputs = draft?.outputs ?? [];
-  const fee = draft?.fee ?? 0;
-  const totalOut = outputs.reduce((sum, o) => sum + o.amount, 0);
+  const draft = drafts[accountId]
+  const inputCount = Object.keys(draft?.inputs ?? {}).length
+  const outputs = draft?.outputs ?? []
+  const fee = draft?.fee ?? 0
+  const totalOut = outputs.reduce((sum, o) => sum + o.amount, 0)
   const inputLabel =
     inputCount === 1
-      ? t("transaction.input.singular")
-      : t("transaction.input.plural");
+      ? t('transaction.input.singular')
+      : t('transaction.input.plural')
   const outputLabel =
     outputs.length === 1
-      ? t("transaction.output.singular")
-      : t("transaction.output.plural");
+      ? t('transaction.output.singular')
+      : t('transaction.output.plural')
 
   return (
     <TouchableOpacity
@@ -143,108 +143,108 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
           opacity: 0.85,
           paddingBottom: 12,
           paddingHorizontal: 0,
-          paddingTop: 4,
+          paddingTop: 4
         }}
       >
         <SSHStack justifyBetween>
           <SSText color="muted" size="xs">
-            {t("transaction.draft")}
+            {t('transaction.draft')}
           </SSText>
           <SSText size="xs" style={{ color: Colors.warning }}>
-            {t("transaction.unsent")}
+            {t('transaction.unsent')}
           </SSText>
         </SSHStack>
         <SSHStack
           justifyBetween
-          style={{ alignItems: "flex-end", marginTop: 5 }}
+          style={{ alignItems: 'flex-end', marginTop: 5 }}
         >
-          <SSHStack gap="sm" style={{ alignItems: "center" }}>
+          <SSHStack gap="sm" style={{ alignItems: 'center' }}>
             <SSIconOutgoing height={21} width={21} />
             <SSText
               size="4xl"
               weight="light"
               style={{ color: Colors.gray[400] }}
             >
-              {totalOut > 0 ? totalOut.toLocaleString() : "--"}
+              {totalOut > 0 ? totalOut.toLocaleString() : '--'}
             </SSText>
             <SSText color="muted" size="sm">
-              {t("bitcoin.sats")}
+              {t('bitcoin.sats')}
             </SSText>
           </SSHStack>
         </SSHStack>
         <SSHStack justifyBetween style={{ marginTop: 2 }}>
           <SSText size="xs" color="muted">
             {inputCount} {inputLabel}
-            {outputs.length > 0 ? `, ${outputs.length} ${outputLabel}` : ""}
-            {fee > 0 ? `, ${fee.toLocaleString()} ${t("transaction.fee")}` : ""}
+            {outputs.length > 0 ? `, ${outputs.length} ${outputLabel}` : ''}
+            {fee > 0 ? `, ${fee.toLocaleString()} ${t('transaction.fee')}` : ''}
           </SSText>
           <TouchableOpacity
             onPress={(e) => {
-              e.stopPropagation();
-              clearTransaction();
+              e.stopPropagation()
+              clearTransaction()
             }}
             hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
           >
             <SSText size="xs" style={{ color: Colors.gray[500] }}>
-              {t("transaction.discard")}
+              {t('transaction.discard')}
             </SSText>
           </TouchableOpacity>
         </SSHStack>
       </SSVStack>
     </TouchableOpacity>
-  );
+  )
 }
 
 function TransactionStaggerItem({
   index,
-  children,
+  children
 }: {
-  index: number;
-  children: React.ReactNode;
+  index: number
+  children: React.ReactNode
 }) {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(12);
+  const opacity = useSharedValue(0)
+  const translateY = useSharedValue(12)
 
   useEffect(() => {
-    const delay = index * TX_STAGGER_DELAY_MS;
+    const delay = index * TX_STAGGER_DELAY_MS
     opacity.set(
       withDelay(
         delay,
         withTiming(1, {
           duration: TX_STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease),
+          easing: Easing.out(Easing.ease)
         })
       )
-    );
+    )
     translateY.set(
       withDelay(
         delay,
         withTiming(0, {
           duration: TX_STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease),
+          easing: Easing.out(Easing.ease)
         })
       )
-    );
-  }, [index, opacity, translateY]);
+    )
+  }, [index, opacity, translateY])
 
   const staggerStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
+    transform: [{ translateY: translateY.value }]
+  }))
 
-  return <Animated.View style={staggerStyle}>{children}</Animated.View>;
+  return <Animated.View style={staggerStyle}>{children}</Animated.View>
 }
 
 type TotalTransactionsProps = {
-  account: Account;
-  handleOnRefresh: () => Promise<void>;
-  handleOnExpand: (state: boolean) => void;
-  expand: boolean;
-  setSortDirection: Dispatch<React.SetStateAction<Direction>>;
-  refreshing: boolean;
-  sortDirection: Direction;
-  blockchainHeight: number;
-};
+  account: Account
+  handleOnRefresh: () => Promise<void>
+  handleOnExpand: (state: boolean) => void
+  expand: boolean
+  setSortDirection: Dispatch<React.SetStateAction<Direction>>
+  refreshing: boolean
+  sortDirection: Direction
+  blockchainHeight: number
+}
 
 function TotalTransactions({
   account,
@@ -254,57 +254,56 @@ function TotalTransactions({
   setSortDirection,
   refreshing,
   blockchainHeight,
-  sortDirection,
+  sortDirection
 }: TotalTransactionsProps) {
-  const { width } = useWindowDimensions();
-  const horizontalPaddingPx = width * 0.06;
+  const { width } = useWindowDimensions()
+  const horizontalPaddingPx = width * 0.06
 
-  const drafts = useTransactionBuilderStore((state) => state.drafts);
+  const drafts = useTransactionBuilderStore((state) => state.drafts)
 
-  const savedDraft = drafts[account.id];
+  const savedDraft = drafts[account.id]
   const hasDraft =
     savedDraft !== undefined &&
-    (Object.keys(savedDraft.inputs).length > 0 ||
-      savedDraft.outputs.length > 0);
-  const router = useRouter();
+    (Object.keys(savedDraft.inputs).length > 0 || savedDraft.outputs.length > 0)
+  const router = useRouter()
 
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
-  );
+  )
 
   const sortedTransactions = useMemo(
     () => sortTransactions([...account.transactions], sortDirection),
     [account.transactions, sortDirection]
-  );
+  )
 
   const chartTransactions = useMemo(
-    () => sortTransactions([...account.transactions], "desc"),
+    () => sortTransactions([...account.transactions], 'desc'),
     [account.transactions]
-  );
+  )
 
   const transactionBalances = useMemo(() => {
-    let balance = 0;
+    let balance = 0
     const balances = sortedTransactions.map((tx) => {
-      const received = tx.received || 0;
-      const sent = tx.sent || 0;
-      balance = balance + received - sent;
-      return balance;
-    });
+      const received = tx.received || 0
+      const sent = tx.sent || 0
+      balance = balance + received - sent
+      return balance
+    })
 
-    return balances.toReversed();
-  }, [sortedTransactions]);
+    return balances.toReversed()
+  }, [sortedTransactions])
 
   const maxBalance = useMemo(() => {
     if (transactionBalances.length === 0) {
-      return 0;
+      return 0
     }
-    return Math.max(...transactionBalances);
-  }, [transactionBalances]);
+    return Math.max(...transactionBalances)
+  }, [transactionBalances])
 
-  const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false);
+  const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
 
   return (
-    <View style={{ flex: 1, paddingHorizontal: "6%" }}>
+    <View style={{ flex: 1, paddingHorizontal: '6%' }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSHStack>
           <SSIconButton onPress={() => handleOnRefresh()}>
@@ -325,7 +324,7 @@ function TotalTransactions({
             </SSIconButton>
           )}
         </SSHStack>
-        <SSText color="muted">{t("account.parentAccountActivity")}</SSText>
+        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
         <SSHStack>
           <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
             {showHistoryChart ? (
@@ -344,7 +343,7 @@ function TotalTransactions({
           style={{
             flex: 1,
             marginHorizontal: -horizontalPaddingPx,
-            zIndex: -1,
+            zIndex: -1
           }}
         >
           <SSHistoryChart
@@ -358,9 +357,9 @@ function TotalTransactions({
           style={{
             flex: 1,
             height: 400,
-            minHeight: 200,
+            minHeight: 200
           }}
-          gap={expand ? "sm" : "md"}
+          gap={expand ? 'sm' : 'md'}
         >
           <View style={styles.listWithLoader}>
             <FlashList
@@ -391,7 +390,7 @@ function TotalTransactions({
                 </TransactionStaggerItem>
               )}
               ListEmptyComponent={
-                <SSVStack style={{ alignItems: "center", paddingTop: 50 }}>
+                <SSVStack style={{ alignItems: 'center', paddingTop: 50 }}>
                   <SSText color="muted">No transactions</SSText>
                 </SSVStack>
               }
@@ -416,35 +415,35 @@ function TotalTransactions({
         </SSVStack>
       )}
     </View>
-  );
+  )
 }
 
 type DerivedAddressesProps = {
-  account: Account;
-  setSortDirection: Dispatch<React.SetStateAction<Direction>>;
-  sortDirection: Direction;
-  handleOnExpand: (state: boolean) => void;
-  expand: boolean;
-  setChange: Dispatch<React.SetStateAction<boolean>>;
-  change: boolean;
-  perPage?: number;
-};
+  account: Account
+  setSortDirection: Dispatch<React.SetStateAction<Direction>>
+  sortDirection: Direction
+  handleOnExpand: (state: boolean) => void
+  expand: boolean
+  setChange: Dispatch<React.SetStateAction<boolean>>
+  change: boolean
+  perPage?: number
+}
 
 function SSAddressTable({
   addresses,
   renderItem,
   isMultiAddressWatchOnly,
   isLoadingAddresses,
-  onLoadMore,
+  onLoadMore
 }: {
-  addresses: Address[];
-  renderItem: ({ item }: { item: Address }) => React.ReactElement;
-  isMultiAddressWatchOnly: boolean;
-  isLoadingAddresses: boolean;
-  onLoadMore: () => void;
+  addresses: Address[]
+  renderItem: ({ item }: { item: Address }) => React.ReactElement
+  isMultiAddressWatchOnly: boolean
+  isLoadingAddresses: boolean
+  onLoadMore: () => void
 }) {
-  const { width: SCREEN_WIDTH } = useWindowDimensions();
-  const ADDRESS_TABLE_WIDTH = SCREEN_WIDTH * 1.2;
+  const { width: SCREEN_WIDTH } = useWindowDimensions()
+  const ADDRESS_TABLE_WIDTH = SCREEN_WIDTH * 1.2
   return (
     <ScrollView style={{ marginTop: 10 }} horizontal>
       <SSVStack gap="none" style={{ width: ADDRESS_TABLE_WIDTH }}>
@@ -454,7 +453,7 @@ function SSAddressTable({
           <SSText
             style={[
               addressListStyles.headerText,
-              addressListStyles.columnIndex,
+              addressListStyles.columnIndex
             ]}
           >
             #
@@ -462,43 +461,43 @@ function SSAddressTable({
           <SSText
             style={[
               addressListStyles.headerText,
-              addressListStyles.columnAddress,
+              addressListStyles.columnAddress
             ]}
           >
-            {t("bitcoin.address")}
+            {t('bitcoin.address')}
           </SSText>
           <SSText
             style={[
               addressListStyles.headerText,
-              addressListStyles.columnLabel,
+              addressListStyles.columnLabel
             ]}
           >
-            {t("common.label")}
+            {t('common.label')}
           </SSText>
           <SSText
             style={[addressListStyles.headerText, addressListStyles.columnSats]}
           >
-            {t("address.list.table.balance")}
+            {t('address.list.table.balance')}
           </SSText>
           <SSText
             style={[addressListStyles.headerText, addressListStyles.columnTxs]}
           >
-            {t("address.list.table.tx")}
+            {t('address.list.table.tx')}
           </SSText>
           <SSText
             style={[
               addressListStyles.headerText,
-              addressListStyles.columnUtxos,
+              addressListStyles.columnUtxos
             ]}
           >
-            {t("address.list.table.utxo")}
+            {t('address.list.table.utxo')}
           </SSText>
         </SSHStack>
         <FlashList
           data={addresses}
           renderItem={renderItem}
           keyExtractor={(item) =>
-            `${item.index || ""}:${item.address}:${item.keychain || ""}`
+            `${item.index || ''}:${item.address}:${item.keychain || ''}`
           }
           removeClippedSubviews
           ListFooterComponent={
@@ -508,9 +507,9 @@ function SSAddressTable({
                 uppercase
                 style={{
                   marginTop: 10,
-                  width: SCREEN_WIDTH * 0.88,
+                  width: SCREEN_WIDTH * 0.88
                 }}
-                label={t("common.loadMore")}
+                label={t('common.loadMore')}
                 disabled={isLoadingAddresses}
                 onPress={onLoadMore}
               />
@@ -519,7 +518,7 @@ function SSAddressTable({
         />
       </SSVStack>
     </ScrollView>
-  );
+  )
 }
 
 function SSAddressList({
@@ -527,13 +526,13 @@ function SSAddressList({
   accountId,
   isMultiAddressWatchOnly,
   isLoadingAddresses,
-  onLoadMore,
+  onLoadMore
 }: {
-  addresses: Address[];
-  accountId: string;
-  isMultiAddressWatchOnly: boolean;
-  isLoadingAddresses: boolean;
-  onLoadMore: () => void;
+  addresses: Address[]
+  accountId: string
+  isMultiAddressWatchOnly: boolean
+  isLoadingAddresses: boolean
+  onLoadMore: () => void
 }) {
   return (
     <ScrollView>
@@ -545,7 +544,7 @@ function SSAddressList({
               onPress={() =>
                 router.navigate({
                   params: { addr: address.address, id: accountId },
-                  pathname: "/signer/bitcoin/account/[id]/address/[addr]",
+                  pathname: '/signer/bitcoin/account/[id]/address/[addr]'
                 })
               }
             >
@@ -557,15 +556,15 @@ function SSAddressList({
           <SSButton
             variant="outline"
             uppercase
-            style={{ alignSelf: "stretch", marginTop: 10 }}
-            label={t("common.loadMore")}
+            style={{ alignSelf: 'stretch', marginTop: 10 }}
+            label={t('common.loadMore')}
             disabled={isLoadingAddresses}
             onPress={onLoadMore}
           />
         )}
       </SSVStack>
     </ScrollView>
-  );
+  )
 }
 
 function DerivedAddresses({
@@ -575,101 +574,101 @@ function DerivedAddresses({
   change,
   expand,
   setSortDirection,
-  perPage = 10,
+  perPage = 10
 }: DerivedAddressesProps) {
-  const wallet = useGetAccountWallet(account.id!);
+  const wallet = useGetAccountWallet(account.id!)
   const network = appNetworkToBdkNetwork(
     useBlockchainStore((state) => state.selectedNetwork)
-  );
-  const updateAccount = useAccountsStore((state) => state.updateAccount);
+  )
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
 
-  const _windowDimensions = useWindowDimensions();
+  const _windowDimensions = useWindowDimensions()
 
-  const [addressPath, setAddressPath] = useState("");
+  const [addressPath, setAddressPath] = useState('')
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
-  );
-  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
-  const [addressView, setAddressView] = useState<"table" | "list">("table");
+  )
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false)
+  const [addressView, setAddressView] = useState<'table' | 'list'>('table')
 
-  const isUpdatingAddresses = useRef(false);
+  const isUpdatingAddresses = useRef(false)
   const isMultiAddressWatchOnly = useMemo(
     () =>
       account.keys.length > 1 &&
-      account.keys[0].creationType === "importAddress",
+      account.keys[0].creationType === 'importAddress',
     [account]
-  );
+  )
 
   function updateDerivationPath() {
     if (isMultiAddressWatchOnly) {
-      return;
+      return
     }
     if (account.keys[0].derivationPath) {
-      setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`);
+      setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
     }
   }
 
   function loadExactAccountAddresses() {
-    setAddressCount(account.addresses.length);
+    setAddressCount(account.addresses.length)
   }
 
   function trimLabel(label: string | undefined): string {
     if (!label) {
-      return t("transaction.noLabel");
+      return t('transaction.noLabel')
     }
-    return label.length > 14 ? `${label.substring(0, 14)}...` : label;
+    return label.length > 14 ? `${label.substring(0, 14)}...` : label
   }
 
   async function refreshAddresses() {
     if (isMultiAddressWatchOnly) {
-      loadExactAccountAddresses();
-      return;
+      loadExactAccountAddresses()
+      return
     }
 
-    let addresses = await getWalletAddresses(wallet!, network!, addressCount);
-    addresses = parseAccountAddressesDetails({ ...account, addresses });
-    updateAccount({ ...account, addresses });
+    let addresses = await getWalletAddresses(wallet!, network!, addressCount)
+    addresses = parseAccountAddressesDetails({ ...account, addresses })
+    updateAccount({ ...account, addresses })
   }
 
   async function loadMoreAddresses() {
     if (isMultiAddressWatchOnly) {
-      loadExactAccountAddresses();
-      return;
+      loadExactAccountAddresses()
+      return
     }
 
     const newAddressCount =
       account.addresses.length < addressCount
         ? addressCount
-        : addressCount + perPage;
-    setAddressCount(newAddressCount);
-    setIsLoadingAddresses(true);
+        : addressCount + perPage
+    setAddressCount(newAddressCount)
+    setIsLoadingAddresses(true)
 
-    let addrList = await getWalletAddresses(wallet!, network!, newAddressCount);
+    let addrList = await getWalletAddresses(wallet!, network!, newAddressCount)
     addrList = parseAccountAddressesDetails({
       ...account,
-      addresses: addrList,
-    });
-    setIsLoadingAddresses(false);
-    updateAccount({ ...account, addresses: addrList });
+      addresses: addrList
+    })
+    setIsLoadingAddresses(false)
+    updateAccount({ ...account, addresses: addrList })
   }
 
   async function updateAddresses() {
     if (!wallet || isLoadingAddresses || isUpdatingAddresses.current) {
-      return;
+      return
     }
 
-    isUpdatingAddresses.current = true;
+    isUpdatingAddresses.current = true
 
     try {
-      const result = await getLastUnusedAddressFromWallet(wallet!);
+      const result = await getLastUnusedAddressFromWallet(wallet!)
 
       if (!result) {
-        return;
+        return
       }
-      const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage;
+      const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
 
       if (minItems <= addressCount) {
-        return;
+        return
       }
 
       if (account.addresses.length >= addressCount) {
@@ -677,38 +676,38 @@ function DerivedAddresses({
           wallet!,
           network!,
           addressCount
-        );
+        )
         newAddresses = parseAccountAddressesDetails({
           ...account,
-          addresses: newAddresses,
-        });
-        updateAccount({ ...account, addresses: newAddresses });
-        return;
+          addresses: newAddresses
+        })
+        updateAccount({ ...account, addresses: newAddresses })
+        return
       }
 
-      let newAddresses = await getWalletAddresses(wallet!, network!, minItems);
+      let newAddresses = await getWalletAddresses(wallet!, network!, minItems)
       newAddresses = parseAccountAddressesDetails({
         ...account,
-        addresses: newAddresses,
-      });
-      setAddressCount(minItems);
-      updateAccount({ ...account, addresses: newAddresses });
+        addresses: newAddresses
+      })
+      setAddressCount(minItems)
+      updateAccount({ ...account, addresses: newAddresses })
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update addresses"
-      );
+        error instanceof Error ? error.message : 'Failed to update addresses'
+      )
     } finally {
-      isUpdatingAddresses.current = false;
+      isUpdatingAddresses.current = false
     }
   }
 
   useEffect(() => {
-    updateDerivationPath();
-  }, [change]); // eslint-disable-line react-hooks/exhaustive-deps
+    updateDerivationPath()
+  }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    updateAddresses();
-  }, [account.id, account.keys[0]?.derivationPath]); // eslint-disable-line react-hooks/exhaustive-deps
+    updateAddresses()
+  }, [account.id, account.keys[0]?.derivationPath]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderItem = useCallback(
     ({ item }: { item: Address }) => (
@@ -729,7 +728,7 @@ function DerivedAddresses({
             type="mono"
             style={[
               addressListStyles.addressText,
-              addressListStyles.columnAddress,
+              addressListStyles.columnAddress
             ]}
           >
             {formatAddress(item.address, 6)}
@@ -737,7 +736,7 @@ function DerivedAddresses({
           <SSText
             style={[
               addressListStyles.columnLabel,
-              { color: item.label ? "#fff" : "#333" },
+              { color: item.label ? '#fff' : '#333' }
             ]}
           >
             {trimLabel(item.label)}
@@ -745,7 +744,7 @@ function DerivedAddresses({
           <SSText
             style={[
               addressListStyles.columnSats,
-              { color: item.summary.balance === 0 ? "#333" : "#fff" },
+              { color: item.summary.balance === 0 ? '#333' : '#fff' }
             ]}
           >
             <SSStyledSatText amount={item.summary.balance} textSize="xs" />
@@ -753,7 +752,7 @@ function DerivedAddresses({
           <SSText
             style={[
               addressListStyles.columnTxs,
-              { color: item.summary.transactions === 0 ? "#333" : "#fff" },
+              { color: item.summary.transactions === 0 ? '#333' : '#fff' }
             ]}
           >
             {item.summary.transactions}
@@ -761,7 +760,7 @@ function DerivedAddresses({
           <SSText
             style={[
               addressListStyles.columnUtxos,
-              { color: item.summary.utxos === 0 ? "#333" : "#fff" },
+              { color: item.summary.utxos === 0 ? '#333' : '#fff' }
             ]}
           >
             {item.summary.utxos}
@@ -770,7 +769,7 @@ function DerivedAddresses({
       </TouchableOpacity>
     ),
     [] // eslint-disable-line react-hooks/exhaustive-deps
-  );
+  )
 
   return (
     <View style={addressListStyles.container}>
@@ -788,10 +787,10 @@ function DerivedAddresses({
           </SSIconButton>
           <SSIconButton
             onPress={() =>
-              setAddressView(addressView === "table" ? "list" : "table")
+              setAddressView(addressView === 'table' ? 'list' : 'table')
             }
           >
-            {addressView === "table" ? (
+            {addressView === 'table' ? (
               <SSIconList height={15} width={15} />
             ) : (
               <SSIconTable height={15} width={15} />
@@ -801,12 +800,12 @@ function DerivedAddresses({
         {!isMultiAddressWatchOnly && (
           <SSHStack gap="sm">
             <SSText color="muted" uppercase>
-              {t("receive.path")}
+              {t('receive.path')}
             </SSText>
             <SSText>{addressPath}</SSText>
           </SSHStack>
         )}
-        <SSHStack gap="sm" style={{ justifyContent: "flex-end", width: 40 }}>
+        <SSHStack gap="sm" style={{ justifyContent: 'flex-end', width: 40 }}>
           <SSSortDirectionToggle
             onDirectionChanged={(direction) => setSortDirection(direction)}
           />
@@ -818,11 +817,11 @@ function DerivedAddresses({
           justifyBetween
           style={addressListStyles.receiveChangeContainer}
         >
-          {[t("accounts.receive"), t("accounts.change")].map((type, index) => (
-            <SSHStack key={type} style={{ flex: 1, justifyContent: "center" }}>
+          {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
+            <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
               <SSButton
                 style={{
-                  borderColor: change === (index === 1) ? "#fff" : "#333",
+                  borderColor: change === (index === 1) ? '#fff' : '#333'
                 }}
                 uppercase
                 onPress={() => setChange(index === 1)}
@@ -833,14 +832,14 @@ function DerivedAddresses({
           ))}
         </SSHStack>
       )}
-      {addressView === "table" && (
+      {addressView === 'table' && (
         <SSAddressTable
           addresses={account?.addresses.filter(
             (address) =>
               isMultiAddressWatchOnly ||
               (change
-                ? address.keychain === "internal"
-                : address.keychain === "external")
+                ? address.keychain === 'internal'
+                : address.keychain === 'external')
           )}
           renderItem={renderItem}
           isMultiAddressWatchOnly={isMultiAddressWatchOnly}
@@ -848,14 +847,14 @@ function DerivedAddresses({
           onLoadMore={loadMoreAddresses}
         />
       )}
-      {addressView === "list" && (
+      {addressView === 'list' && (
         <SSAddressList
           addresses={account?.addresses.filter(
             (address) =>
               isMultiAddressWatchOnly ||
               (change
-                ? address.keychain === "internal"
-                : address.keychain === "external")
+                ? address.keychain === 'internal'
+                : address.keychain === 'external')
           )}
           accountId={account.id}
           isMultiAddressWatchOnly={isMultiAddressWatchOnly}
@@ -868,7 +867,7 @@ function DerivedAddresses({
           variant="outline"
           uppercase
           style={{ marginTop: 10 }}
-          label={t("address.list.btn.manage")}
+          label={t('address.list.btn.manage')}
           onPress={() =>
             router.navigate(
               `/signer/bitcoin/account/${account.id}/settings/manageAddresses`
@@ -877,18 +876,18 @@ function DerivedAddresses({
         />
       )}
     </View>
-  );
+  )
 }
 
 type SpendableOutputsProps = {
-  account: Account;
-  handleOnRefresh: () => Promise<void>;
-  handleOnExpand: (state: boolean) => void;
-  expand: boolean;
-  setSortDirection: Dispatch<React.SetStateAction<Direction>>;
-  refreshing: boolean;
-  sortUtxos: (utxos: Utxo[]) => Utxo[];
-};
+  account: Account
+  handleOnRefresh: () => Promise<void>
+  handleOnExpand: (state: boolean) => void
+  expand: boolean
+  setSortDirection: Dispatch<React.SetStateAction<Direction>>
+  refreshing: boolean
+  sortUtxos: (utxos: Utxo[]) => Utxo[]
+}
 
 function SpendableOutputs({
   account,
@@ -897,26 +896,26 @@ function SpendableOutputs({
   handleOnExpand,
   expand,
   refreshing,
-  sortUtxos,
+  sortUtxos
 }: SpendableOutputsProps) {
-  const router = useRouter();
-  const { width, height } = useWindowDimensions();
+  const router = useRouter()
+  const { width, height } = useWindowDimensions()
 
-  const [view, setView] = useState("list");
+  const [view, setView] = useState('list')
 
-  const halfHeight = height / 2;
+  const halfHeight = height / 2
   // Matches styles/layout.ts mainContainer.paddingHorizontal ('6%')
-  const horizontalPaddingPx = width * 0.06;
-  const GRAPH_HEIGHT = halfHeight;
-  const GRAPH_WIDTH = width;
+  const horizontalPaddingPx = width * 0.06
+  const GRAPH_HEIGHT = halfHeight
+  const GRAPH_WIDTH = width
 
   const totalBalance = useMemo(
     () => account.utxos.reduce((sum, u) => sum + u.value, 0),
     [account.utxos]
-  );
+  )
 
   return (
-    <View style={{ flex: 1, paddingHorizontal: "6%", paddingTop: 0 }}>
+    <View style={{ flex: 1, paddingHorizontal: '6%', paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSHStack>
           <SSIconButton
@@ -934,15 +933,15 @@ function SpendableOutputs({
             )}
           </SSIconButton>
         </SSHStack>
-        <SSText color="muted">{t("account.parentAccountActivity")}</SSText>
+        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
         <SSHStack>
-          {view === "list" && (
-            <SSIconButton onPress={() => setView("bubbles")}>
+          {view === 'list' && (
+            <SSIconButton onPress={() => setView('bubbles')}>
               <SSIconBubbles height={16} width={16} />
             </SSIconButton>
           )}
-          {view === "bubbles" && (
-            <SSIconButton onPress={() => setView("list")}>
+          {view === 'bubbles' && (
+            <SSIconButton onPress={() => setView('list')}>
               <SSIconList height={16} width={16} />
             </SSIconButton>
           )}
@@ -951,7 +950,7 @@ function SpendableOutputs({
           />
         </SSHStack>
       </SSHStack>
-      {view === "list" && (
+      {view === 'list' && (
         <ScrollView
           refreshControl={
             <RefreshControl
@@ -966,11 +965,11 @@ function SpendableOutputs({
             {sortUtxos([...account.utxos]).map((utxo) => {
               const idx = account.addresses.findIndex(
                 (a) =>
-                  (a.address || "").trim() === (utxo.addressTo || "").trim()
-              );
-              const addressEntry = idx >= 0 ? account.addresses[idx] : null;
+                  (a.address || '').trim() === (utxo.addressTo || '').trim()
+              )
+              const addressEntry = idx >= 0 ? account.addresses[idx] : null
               const addressIndex =
-                addressEntry !== null ? addressEntry.index ?? idx : undefined;
+                addressEntry !== null ? (addressEntry.index ?? idx) : undefined
               return (
                 <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
                   <SSUtxoCard
@@ -979,13 +978,13 @@ function SpendableOutputs({
                     addressIndex={addressIndex}
                   />
                 </SSVStack>
-              );
+              )
             })}
           </SSVStack>
         </ScrollView>
       )}
       <View style={{ flex: 1, marginHorizontal: -horizontalPaddingPx }}>
-        {view === "bubbles" && (
+        {view === 'bubbles' && (
           <SSBubbleChart
             utxos={[...account.utxos]}
             canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
@@ -999,37 +998,37 @@ function SpendableOutputs({
         )}
       </View>
     </View>
-  );
+  )
 }
 
 function SatsInMempool({
   account,
-  blockchainHeight,
+  blockchainHeight
 }: {
-  account: Account;
-  blockchainHeight: number;
+  account: Account
+  blockchainHeight: number
 }) {
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
-  );
+  )
 
   const mempoolTransactions = useMemo(
     () => account.transactions.filter((tx) => !tx.blockHeight),
     [account.transactions]
-  );
+  )
 
   if (mempoolTransactions.length === 0) {
     return (
-      <View style={{ flex: 1, paddingHorizontal: "6%" }}>
-        <SSVStack style={{ alignItems: "center", flex: 1, paddingTop: 50 }}>
-          <SSText color="muted">{t("accounts.noSatsOnMempool")}</SSText>
+      <View style={{ flex: 1, paddingHorizontal: '6%' }}>
+        <SSVStack style={{ alignItems: 'center', flex: 1, paddingTop: 50 }}>
+          <SSText color="muted">{t('accounts.noSatsOnMempool')}</SSText>
         </SSVStack>
       </View>
-    );
+    )
   }
 
   return (
-    <View style={{ flex: 1, paddingHorizontal: "6%" }}>
+    <View style={{ flex: 1, paddingHorizontal: '6%' }}>
       <FlashList
         data={mempoolTransactions}
         keyExtractor={(item) => item.id}
@@ -1045,16 +1044,16 @@ function SatsInMempool({
             />
             <SSHStack gap="sm">
               <SSButton
-                label={t("bitcoin.rbf")}
+                label={t('bitcoin.rbf')}
                 variant="outline"
                 style={{ flex: 1 }}
-                onPress={() => toast.info(t("common.comingSoon"))}
+                onPress={() => toast.info(t('common.comingSoon'))}
               />
               <SSButton
-                label={t("bitcoin.accelerate")}
+                label={t('bitcoin.accelerate')}
                 variant="outline"
                 style={{ flex: 1 }}
-                onPress={() => toast.info(t("common.comingSoon"))}
+                onPress={() => toast.info(t('common.comingSoon'))}
               />
             </SSHStack>
             <SSSeparator />
@@ -1062,13 +1061,13 @@ function SatsInMempool({
         )}
       />
     </View>
-  );
+  )
 }
 
 export default function AccountView() {
-  const router = useRouter();
-  const { id } = useLocalSearchParams<AccountSearchParams>();
-  const { width } = useWindowDimensions();
+  const router = useRouter()
+  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { width } = useWindowDimensions()
 
   const [updateAccount, account, syncStatus, tasksDone, totalTasks] =
     useAccountsStore(
@@ -1077,158 +1076,158 @@ export default function AccountView() {
         state.accounts.find((a) => a.id === id),
         state.accounts.find((a) => a.id === id)?.syncStatus,
         state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
-        state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks,
+        state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks
       ])
-    );
+    )
 
   const hasUnreadMessages = useMemo(
     () => account?.nostr?.dms?.some((dm) => dm.read === false) ?? false,
     [account?.nostr?.dms]
-  );
+  )
 
-  const wallet = useGetAccountWallet(id!);
-  const watchOnlyWalletAddress = useGetAccountAddress(id!);
+  const wallet = useGetAccountWallet(id!)
+  const watchOnlyWalletAddress = useGetAccountAddress(id!)
 
   const isMultiAddressWatchOnly = useMemo(
     () =>
       account &&
       account.keys.length > 1 &&
-      account.keys[0].creationType === "importAddress",
+      account.keys[0].creationType === 'importAddress',
     [account]
-  );
+  )
 
   const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
     useShallow((state) => [
       state.currencyUnit,
       state.useZeroPadding,
-      state.privacyMode,
+      state.privacyMode
     ])
-  );
+  )
 
   const [fiatCurrency, satsToFiat, fetchPrices, btcPrice] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
       state.satsToFiat,
       state.fetchPrices,
-      state.btcPrice,
+      state.btcPrice
     ])
-  );
+  )
   const [lastKnownBlockHeight, mempoolUrl, connectionMode, autoConnectDelay] =
     useBlockchainStore(
       useShallow((state) => [
         state.lastKnownBlockHeight,
-        state.configsMempool["bitcoin"],
+        state.configsMempool['bitcoin'],
         state.configs[state.selectedNetwork].config.connectionMode,
-        state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
+        state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
-    );
-  const { syncAccountWithWallet } = useSyncAccountWithWallet();
-  const { syncAccountWithAddress } = useSyncAccountWithAddress();
-  const { fetchOnce, startSync, stopSync } = useNostrSync();
+    )
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithAddress } = useSyncAccountWithAddress()
+  const { fetchOnce, startSync, stopSync } = useNostrSync()
 
-  const [refreshing, setRefreshing] = useState(false);
-  const [expand, setExpand] = useState(false);
-  const [change, setChange] = useState(false);
+  const [refreshing, setRefreshing] = useState(false)
+  const [expand, setExpand] = useState(false)
+  const [change, setChange] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
-    useState<Direction>("desc");
+    useState<Direction>('desc')
   const [sortDirectionUtxos, setSortDirectionUtxos] =
-    useState<Direction>("desc");
+    useState<Direction>('desc')
   const [sortDirectionDerivedAddresses, setSortDirectionDerivedAddresses] =
-    useState<Direction>("desc");
-  const blockchainHeight = lastKnownBlockHeight;
+    useState<Direction>('desc')
+  const blockchainHeight = lastKnownBlockHeight
 
   const tabs = [
-    { key: "totalTransactions" },
-    { key: "derivedAddresses" },
-    { key: "spendableOutputs" },
-    { key: "satsInMempool" },
-  ];
-  const [tabIndex, setTabIndex] = useState(0);
-  const animationValue = useSharedValue(0);
+    { key: 'totalTransactions' },
+    { key: 'derivedAddresses' },
+    { key: 'spendableOutputs' },
+    { key: 'satsInMempool' }
+  ]
+  const [tabIndex, setTabIndex] = useState(0)
+  const animationValue = useSharedValue(0)
 
   const [connectionState, , isPrivateConnection, connectionParts] =
-    useVerifyConnection();
+    useVerifyConnection()
   const {
     blockHeight: networkBlockHeight,
     nextBlockFee,
-    blockHeightSource,
-  } = useNetworkInfo();
+    blockHeightSource
+  } = useNetworkInfo()
 
   const closePasteModalRef = useRef<() => void>(() => {
     // set after useContentHandler; avoids circular hook order
-  });
+  })
 
   const bitcoinContentHandler = useBitcoinContentHandler({
     account: account!,
     accountId: id!,
     closePasteModal: () => {
-      closePasteModalRef.current();
-    },
-  });
+      closePasteModalRef.current()
+    }
+  })
 
   const contentHandler = useContentHandler({
-    context: "bitcoin",
+    context: 'bitcoin',
     onContentScanned: bitcoinContentHandler.handleContentScanned,
     onReceive: bitcoinContentHandler.handleReceive,
-    onSend: bitcoinContentHandler.handleSend,
-  });
+    onSend: bitcoinContentHandler.handleSend
+  })
 
-  const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler;
+  const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler
 
-  closePasteModalRef.current = closePasteModal;
+  closePasteModalRef.current = closePasteModal
   useFocusEffect(
     useCallback(
       () => () => {
-        closeCameraModal();
-        closeNFCModal();
-        closePasteModal();
+        closeCameraModal()
+        closeNFCModal()
+        closePasteModal()
       },
       [closeCameraModal, closeNFCModal, closePasteModal]
     )
-  );
+  )
 
   useEffect(() => {
     // do not auto-fetch wallet upon the following conditions:
     // - variables have not been initalized
     // - connection mode is manual
     // - wallet was recently synced already
-    if (!wallet || !account || connectionMode !== "auto") {
-      return;
+    if (!wallet || !account || connectionMode !== 'auto') {
+      return
     }
 
-    const { lastSyncedAt } = account;
-    const now = time.now();
+    const { lastSyncedAt } = account
+    const now = time.now()
     if (
       lastSyncedAt &&
       now > time.minutesAfter(lastSyncedAt, autoConnectDelay)
     ) {
-      return;
+      return
     }
 
-    handleOnRefresh();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    handleOnRefresh()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasNostrReady = Boolean(
     account?.nostr?.autoSync &&
-      account?.nostr?.relays?.length &&
-      account?.nostr?.deviceNsec &&
-      account?.nostr?.deviceNpub
-  );
+    account?.nostr?.relays?.length &&
+    account?.nostr?.deviceNsec &&
+    account?.nostr?.deviceNpub
+  )
 
   // Keep the Nostr subscription open for the entire account session.
   // index.tsx stays mounted (not just focused) while navigating deeper into
   // the account stack, so useEffect cleanup only fires on true account exit.
   useEffect(() => {
     if (hasNostrReady && account) {
-      startSync(account);
+      startSync(account)
     }
 
     return () => {
       if (id) {
-        stopSync(id);
+        stopSync(id)
       }
-    };
-  }, [id, account, hasNostrReady, startSync, stopSync]);
+    }
+  }, [id, account, hasNostrReady, startSync, stopSync])
 
   // Memoize headerRight so React Navigation doesn't receive a new function
   // reference on every DM update, which would interrupt in-progress tap gestures.
@@ -1265,22 +1264,22 @@ export default function AccountView() {
       </SSHStack>
     ),
     [account?.nostr?.autoSync, hasUnreadMessages, id, router] // eslint-disable-line react-hooks/exhaustive-deps
-  );
+  )
 
   if (!account) {
-    return <Redirect href="/" />;
+    return <Redirect href="/" />
   }
 
   const balanceTextSize =
     account.summary.balance > 1_000_000_000
-      ? ("4xl" as const)
-      : ("6xl" as const);
+      ? ('4xl' as const)
+      : ('6xl' as const)
 
   const renderScene = ({
-    route,
+    route
   }: SceneRendererProps & { route: { key: string } }) => {
     switch (route.key) {
-      case "totalTransactions":
+      case 'totalTransactions':
         return (
           <TotalTransactions
             account={account}
@@ -1292,8 +1291,8 @@ export default function AccountView() {
             sortDirection={sortDirectionTransactions}
             blockchainHeight={blockchainHeight}
           />
-        );
-      case "derivedAddresses":
+        )
+      case 'derivedAddresses':
         return (
           <DerivedAddresses
             account={account}
@@ -1304,8 +1303,8 @@ export default function AccountView() {
             setSortDirection={setSortDirectionDerivedAddresses}
             sortDirection={sortDirectionDerivedAddresses}
           />
-        );
-      case "spendableOutputs":
+        )
+      case 'spendableOutputs':
         return (
           <SpendableOutputs
             account={account}
@@ -1316,100 +1315,100 @@ export default function AccountView() {
             refreshing={refreshing}
             sortUtxos={sortUtxos}
           />
-        );
-      case "satsInMempool":
+        )
+      case 'satsInMempool':
         return (
           <SatsInMempool
             account={account}
             blockchainHeight={blockchainHeight}
           />
-        );
+        )
       default:
-        return null;
+        return null
     }
-  };
+  }
 
   function animateTransition(expandState: boolean) {
     animationValue.set(
       withTiming(expandState ? 1 : 0, {
         duration: 300,
-        easing: Easing.inOut(Easing.ease),
+        easing: Easing.inOut(Easing.ease)
       })
-    );
+    )
   }
 
   function sortUtxos(utxos: Utxo[]) {
     return utxos.toSorted((utxo1, utxo2) =>
-      sortDirectionUtxos === "asc"
+      sortDirectionUtxos === 'asc'
         ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
         : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
-    );
+    )
   }
 
   async function refreshAccount() {
     if (!account) {
-      return;
+      return
     }
 
-    const isImportAddress = account.keys[0].creationType === "importAddress";
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
 
     if (isImportAddress && !watchOnlyWalletAddress) {
-      return;
+      return
     }
     if (!isImportAddress && !wallet) {
-      return;
+      return
     }
 
     try {
       const updatedAccount = !isImportAddress
         ? await syncAccountWithWallet(account, wallet!)
-        : await syncAccountWithAddress(account);
-      updateAccount(updatedAccount);
+        : await syncAccountWithAddress(account)
+      updateAccount(updatedAccount)
     } catch (error) {
-      toast.error((error as Error).message);
+      toast.error((error as Error).message)
     }
   }
 
   function refreshAccountLabels() {
     if (!account) {
-      return;
+      return
     }
     // Fire-and-forget - don't block refresh completion for Nostr sync
     if (account.nostr?.autoSync) {
-      fetchOnce(account);
+      fetchOnce(account)
     }
   }
 
   async function handleOnRefresh() {
-    setRefreshing(true);
-    await fetchPrices(mempoolUrl);
-    await refreshAccount();
+    setRefreshing(true)
+    await fetchPrices(mempoolUrl)
+    await refreshAccount()
     // Fire-and-forget - don't block refresh completion for Nostr sync
-    refreshAccountLabels();
-    setRefreshing(false);
+    refreshAccountLabels()
+    setRefreshing(false)
   }
 
   function handleOnExpand(state: boolean) {
-    setExpand(state);
-    animateTransition(state);
+    setExpand(state)
+    animateTransition(state)
   }
 
   if (!account) {
-    return <Redirect href="/" />;
+    return <Redirect href="/" />
   }
 
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {
-    const isImportAddress = account.keys[0].creationType === "importAddress";
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
     const tabWidth =
-      isImportAddress && account.keys.length === 1 ? "33.33%" : "25%";
+      isImportAddress && account.keys.length === 1 ? '33.33%' : '25%'
 
     return (
       <>
         {!expand && (
           <SSHStack
             gap="none"
-            style={{ paddingHorizontal: "6%", paddingVertical: 8 }}
+            style={{ paddingHorizontal: '6%', paddingVertical: 8 }}
           >
             <SSActionButton
               style={{ width: tabWidth }}
@@ -1420,17 +1419,17 @@ export default function AccountView() {
                   {account.summary.numberOfTransactions}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t("accounts.totalTransactions")}
+                  {t('accounts.totalTransactions')}
                 </SSText>
                 {tabIndex === 0 && (
                   <View
                     style={{
-                      alignSelf: "center",
+                      alignSelf: 'center',
                       backgroundColor: Colors.white,
                       bottom: -12,
                       height: 2,
-                      position: "absolute",
-                      width: "100%",
+                      position: 'absolute',
+                      width: '100%'
                     }}
                   />
                 )}
@@ -1447,18 +1446,18 @@ export default function AccountView() {
                   </SSText>
                   <SSText center color="muted" style={{ lineHeight: 12 }}>
                     {isMultiAddressWatchOnly
-                      ? t("accounts.watchedAddresses")
-                      : t("accounts.derivedAddresses")}
+                      ? t('accounts.watchedAddresses')
+                      : t('accounts.derivedAddresses')}
                   </SSText>
                   {tabIndex === 1 && (
                     <View
                       style={{
-                        alignSelf: "center",
+                        alignSelf: 'center',
                         backgroundColor: Colors.white,
                         bottom: -12,
                         height: 2,
-                        position: "absolute",
-                        width: "100%",
+                        position: 'absolute',
+                        width: '100%'
                       }}
                     />
                   )}
@@ -1474,17 +1473,17 @@ export default function AccountView() {
                   {account.summary.numberOfUtxos}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t("accounts.spendableOutputs")}
+                  {t('accounts.spendableOutputs')}
                 </SSText>
                 {tabIndex === 2 && (
                   <View
                     style={{
-                      alignSelf: "center",
+                      alignSelf: 'center',
                       backgroundColor: Colors.white,
                       bottom: -12,
                       height: 2,
-                      position: "absolute",
-                      width: "100%",
+                      position: 'absolute',
+                      width: '100%'
                     }}
                   />
                 )}
@@ -1499,17 +1498,17 @@ export default function AccountView() {
                   {account.summary.satsInMempool}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t("accounts.satsInMempool")}
+                  {t('accounts.satsInMempool')}
                 </SSText>
                 {tabIndex === 3 && (
                   <View
                     style={{
-                      alignSelf: "center",
+                      alignSelf: 'center',
                       backgroundColor: Colors.white,
                       bottom: -12,
                       height: 2,
-                      position: "absolute",
-                      width: "100%",
+                      position: 'absolute',
+                      width: '100%'
                     }}
                   />
                 )}
@@ -1518,8 +1517,8 @@ export default function AccountView() {
           </SSHStack>
         )}
       </>
-    );
-  };
+    )
+  }
 
   return (
     <>
@@ -1528,10 +1527,10 @@ export default function AccountView() {
           headerBackground: () => (
             <View
               style={{
-                alignItems: "center",
+                alignItems: 'center',
                 backgroundColor: Colors.gray[950],
-                height: "100%",
-                justifyContent: "center",
+                height: '100%',
+                justifyContent: 'center'
               }}
             />
           ),
@@ -1539,22 +1538,22 @@ export default function AccountView() {
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
-              {account.policyType === "watchonly" && (
+              {account.policyType === 'watchonly' && (
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
+          )
         }}
       />
       <SSMainLayout style={{ paddingHorizontal: 0, paddingTop: 0 }}>
         <SSVStack
           gap="none"
-          style={{ alignItems: "center", paddingHorizontal: "6%" }}
+          style={{ alignItems: 'center', paddingHorizontal: '6%' }}
         >
           <TouchableOpacity
-            onPress={() => router.navigate("/settings/network/server")}
+            onPress={() => router.navigate('/settings/network/server')}
           >
-            <SSHStack style={{ gap: 0, justifyContent: "center" }}>
+            <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
               {connectionState ? (
                 isPrivateConnection ? (
                   <SSIconYellowIndicator height={24} width={24} />
@@ -1564,14 +1563,14 @@ export default function AccountView() {
               ) : (
                 <SSIconBlackIndicator height={24} width={24} />
               )}
-              <SSHStack gap="xs" style={{ alignItems: "center" }}>
+              <SSHStack gap="xs" style={{ alignItems: 'center' }}>
                 <SSText
                   size="xxs"
                   uppercase
                   style={{
                     color: connectionState
-                      ? Colors.gray["200"]
-                      : Colors.gray["450"],
+                      ? Colors.gray['200']
+                      : Colors.gray['450']
                   }}
                 >
                   {`${connectionParts.network} - ${connectionParts.name}`}
@@ -1580,11 +1579,11 @@ export default function AccountView() {
                   size="xxs"
                   uppercase
                   style={{
-                    color: Colors.gray["500"],
+                    color: Colors.gray['500']
                   }}
                 >
                   {connectionParts.url}
-                  {connectionParts.mode ? ` [${connectionParts.mode}]` : ""}
+                  {connectionParts.mode ? ` [${connectionParts.mode}]` : ''}
                 </SSText>
               </SSHStack>
             </SSHStack>
@@ -1598,20 +1597,20 @@ export default function AccountView() {
           />
         </SSVStack>
         {!expand && (
-          <Animated.View style={{ paddingHorizontal: "6%", paddingTop: 20 }}>
+          <Animated.View style={{ paddingHorizontal: '6%', paddingTop: 20 }}>
             <SSVStack itemsCenter gap="none">
               <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
-                <SSHStack gap="xs" style={{ alignItems: "baseline" }}>
+                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                   <SSText
                     size={balanceTextSize}
                     color="white"
                     weight="ultralight"
                     style={{
-                      lineHeight: Sizes.text.fontSize[balanceTextSize],
+                      lineHeight: Sizes.text.fontSize[balanceTextSize]
                     }}
                   >
                     {privacyMode ? (
-                      "••••"
+                      '••••'
                     ) : (
                       <SSStyledSatText
                         amount={account?.summary.balance || 0}
@@ -1625,21 +1624,21 @@ export default function AccountView() {
                     )}
                   </SSText>
                   <SSText size="xl" color="muted">
-                    {currencyUnit === "btc"
-                      ? t("bitcoin.btc")
-                      : t("bitcoin.sats")}
+                    {currencyUnit === 'btc'
+                      ? t('bitcoin.btc')
+                      : t('bitcoin.sats')}
                   </SSText>
                 </SSHStack>
-                <SSHStack gap="xs" style={{ alignItems: "baseline" }}>
+                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                   <SSText color="muted">
                     {!btcPrice || btcPrice <= 0
-                      ? "--"
+                      ? '--'
                       : privacyMode
-                      ? "••••"
-                      : formatNumber(
-                          satsToFiat(account.summary.balance || 0),
-                          2
-                        )}
+                        ? '••••'
+                        : formatNumber(
+                            satsToFiat(account.summary.balance || 0),
+                            2
+                          )}
                   </SSText>
                   <SSText size="xs" style={{ color: Colors.gray[500] }}>
                     {fiatCurrency}
@@ -1647,7 +1646,7 @@ export default function AccountView() {
                 </SSHStack>
               </SSVStack>
               <SSVStack gap="none">
-                {account.keys[0].creationType !== "importAddress" && (
+                {account.keys[0].creationType !== 'importAddress' && (
                   <SSButtonActionsGroup
                     context="bitcoin"
                     nfcAvailable={contentHandler.nfcAvailable}
@@ -1658,17 +1657,17 @@ export default function AccountView() {
                     onReceive={contentHandler.handleReceive}
                   />
                 )}
-                {account.keys[0].creationType === "importAddress" &&
+                {account.keys[0].creationType === 'importAddress' &&
                   account.keys.length === 1 && (
                     <SSVStack gap="xs">
                       <SSText center color="muted" size="xs">
-                        {t("receive.address").toUpperCase()}
+                        {t('receive.address').toUpperCase()}
                       </SSText>
                       <SSAddressDisplay
                         variant="outline"
                         type="sans-serif"
                         style={{ lineHeight: 14 }}
-                        address={watchOnlyWalletAddress || ""}
+                        address={watchOnlyWalletAddress || ''}
                       />
                     </SSVStack>
                   )}
@@ -1676,16 +1675,16 @@ export default function AccountView() {
             </SSVStack>
           </Animated.View>
         )}
-        {account.keys[0].creationType === "importAddress" &&
-          syncStatus === "syncing" &&
+        {account.keys[0].creationType === 'importAddress' &&
+          syncStatus === 'syncing' &&
           tasksDone !== undefined &&
           totalTasks !== undefined &&
           totalTasks > 0 && (
             <View style={{ marginBottom: -10, marginTop: 10 }}>
-              <SSHStack gap="sm" style={{ justifyContent: "center" }}>
+              <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <SSLoader size={24} />
                 <SSText center>
-                  {t("account.syncProgress", { tasksDone, totalTasks })}
+                  {t('account.syncProgress', { tasksDone, totalTasks })}
                 </SSText>
               </SSHStack>
             </View>
@@ -1725,41 +1724,41 @@ export default function AccountView() {
         visible={bitcoinContentHandler.uriExceedsBalanceModal !== null}
         showLabel={false}
         onClose={() =>
-          bitcoinContentHandler.resolveUriExceedsBalancePrompt("cancel")
+          bitcoinContentHandler.resolveUriExceedsBalancePrompt('cancel')
         }
       >
         <SSVStack gap="md" style={{ maxWidth: 340 }}>
           <SSText size="lg" weight="medium">
-            {t("transaction.bitcoin.uri.exceedsBalance.title")}
+            {t('transaction.bitcoin.uri.exceedsBalance.title')}
           </SSText>
           <SSText color="muted" size="sm">
-            {t("transaction.bitcoin.uri.exceedsBalance.message", {
+            {t('transaction.bitcoin.uri.exceedsBalance.message', {
               available:
                 bitcoinContentHandler.uriExceedsBalanceModal
                   ?.availableBalanceSats ?? 0,
               requested:
                 bitcoinContentHandler.uriExceedsBalanceModal
-                  ?.requestedAmountSats ?? 0,
+                  ?.requestedAmountSats ?? 0
             })}
           </SSText>
           <SSHStack gap="sm" justifyBetween>
             <SSButton
-              label={t("transaction.bitcoin.uri.exceedsBalance.cancel")}
+              label={t('transaction.bitcoin.uri.exceedsBalance.cancel')}
               style={{ flex: 1 }}
               variant="outline"
               onPress={() =>
-                bitcoinContentHandler.resolveUriExceedsBalancePrompt("cancel")
+                bitcoinContentHandler.resolveUriExceedsBalancePrompt('cancel')
               }
             />
             <SSButton
               label={t(
-                "transaction.bitcoin.uri.exceedsBalance.sendWithoutAmount"
+                'transaction.bitcoin.uri.exceedsBalance.sendWithoutAmount'
               )}
               style={{ flex: 1 }}
               variant="secondary"
               onPress={() =>
                 bitcoinContentHandler.resolveUriExceedsBalancePrompt(
-                  "without_amount"
+                  'without_amount'
                 )
               }
             />
@@ -1767,101 +1766,101 @@ export default function AccountView() {
         </SSVStack>
       </SSModal>
     </>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   listWithLoader: {
-    flex: 1,
+    flex: 1
   },
   loaderOverlay: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    backgroundColor: "transparent",
-    boxShadow: "none",
-    justifyContent: "flex-start",
-    paddingTop: 16,
-  },
-});
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    boxShadow: 'none',
+    justifyContent: 'flex-start',
+    paddingTop: 16
+  }
+})
 
 const addressListStyles = StyleSheet.create({
   addressText: {
-    color: "#fff",
-    flexWrap: "nowrap",
+    color: '#fff',
+    flexWrap: 'nowrap'
   },
   columnAddress: {
-    width: "25%",
+    width: '25%'
   },
   columnIndex: {
-    textAlign: "center",
-    width: "5%",
+    textAlign: 'center',
+    width: '5%'
   },
   columnLabel: {
-    width: "15%",
+    width: '15%'
   },
   columnSats: {
-    flexWrap: "nowrap",
-    textAlign: "center",
-    width: "18%",
+    flexWrap: 'nowrap',
+    textAlign: 'center',
+    width: '18%'
   },
   columnTxs: {
-    textAlign: "center",
-    width: "10%",
+    textAlign: 'center',
+    width: '10%'
   },
   columnUtxos: {
-    textAlign: "center",
-    width: "10%",
+    textAlign: 'center',
+    width: '10%'
   },
   container: {
     paddingBottom: 10,
-    paddingHorizontal: "6%",
-    paddingTop: 10,
+    paddingHorizontal: '6%',
+    paddingTop: 10
   },
   header: {
-    paddingVertical: 4,
+    paddingVertical: 4
   },
   headerRow: {
-    alignItems: "center",
-    backgroundColor: "#111",
+    alignItems: 'center',
+    backgroundColor: '#111',
     borderBottomWidth: 1,
-    borderColor: "#333",
-    justifyContent: "space-between",
+    borderColor: '#333',
+    justifyContent: 'space-between',
     paddingBottom: 10,
     paddingHorizontal: 4,
-    paddingTop: 10,
+    paddingTop: 10
   },
   headerText: {
-    color: "#777",
-    textTransform: "uppercase",
+    color: '#777',
+    textTransform: 'uppercase'
   },
   indexText: {
-    color: "#fff",
-    fontWeight: "bold",
-    textAlign: "center",
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center'
   },
   receiveChangeContainer: {
-    display: "flex",
+    display: 'flex',
     marginTop: 10,
-    width: "100%",
+    width: '100%'
   },
   row: {
-    alignItems: "center",
+    alignItems: 'center',
     borderBottomWidth: 1,
-    borderColor: "#333",
-    justifyContent: "space-between",
+    borderColor: '#333',
+    justifyContent: 'space-between',
     paddingHorizontal: 4,
-    paddingVertical: 12,
+    paddingVertical: 12
   },
   unreadBadgeDot: {
     backgroundColor: Colors.error,
     borderRadius: 5,
     height: 9,
-    position: "absolute",
+    position: 'absolute',
     right: -4,
     top: -4,
-    width: 9,
+    width: 9
   },
   unreadBadgeWrapper: {
-    position: "relative",
-  },
-});
+    position: 'relative'
+  }
+})

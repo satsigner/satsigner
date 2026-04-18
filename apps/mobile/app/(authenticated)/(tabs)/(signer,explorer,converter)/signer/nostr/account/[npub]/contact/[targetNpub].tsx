@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
@@ -21,6 +21,8 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
+import { type EcashMint } from '@/types/models/Ecash'
+import { type LNDConfig } from '@/types/models/LND'
 import { type NostrIdentity } from '@/types/models/NostrIdentity'
 import { initiateZap } from '@/utils/zap'
 
@@ -56,30 +58,9 @@ export default function NostrContactProfile() {
     zapRequestJson: string
   } | null>(null)
 
-  const availablePaymentMethods = useMemo(() => {
-    const methods: PaymentMethod[] = []
-    if (lightningConfig) {
-      methods.push({
-        detail: lightningConfig.url,
-        id: 'lightning',
-        label: 'Lightning',
-        type: 'lightning'
-      })
-    }
-    if (mints.length > 0) {
-      for (const mint of mints) {
-        methods.push({
-          detail: mint.name || mint.url,
-          id: `ecash-${mint.url}`,
-          label: 'ECash',
-          type: 'ecash'
-        })
-      }
-    }
-    return methods
-  }, [lightningConfig, mints])
+  const availablePaymentMethods = buildPaymentMethods(lightningConfig, mints)
 
-  const loadProfile = useCallback(async () => {
+  async function loadProfile() {
     if (!targetNpub || effectiveRelays.length === 0) {
       setLoading(false)
       return
@@ -117,16 +98,22 @@ export default function NostrContactProfile() {
     } finally {
       setLoading(false)
     }
-  }, [effectiveRelays, owner?.relayConnected, targetNpub])
+  }
 
   useEffect(() => {
     void loadProfile()
-  }, [loadProfile])
+  }, [effectiveRelays, owner?.relayConnected, targetNpub])
 
   async function handleZap() {
-    if (availablePaymentMethods.length === 0) {return}
-    if (!targetIdentity?.lud16) {return}
-    if (!owner?.nsec) {return}
+    if (availablePaymentMethods.length === 0) {
+      return
+    }
+    if (!targetIdentity?.lud16) {
+      return
+    }
+    if (!owner?.nsec) {
+      return
+    }
 
     const amountSats = 21
     setZapLoading(true)
@@ -209,7 +196,7 @@ export default function NostrContactProfile() {
       kind: payload.kind
     })
     router.navigate({
-      params: { npub, nostrUri: nevent },
+      params: { nostrUri: nevent, npub },
       pathname: '/signer/nostr/account/[npub]/note'
     })
   }
@@ -303,3 +290,29 @@ const styles = StyleSheet.create({
     paddingBottom: 40
   }
 })
+
+function buildPaymentMethods(
+  lightningConfig: LNDConfig | null,
+  mints: EcashMint[]
+): PaymentMethod[] {
+  const methods: PaymentMethod[] = []
+  if (lightningConfig) {
+    methods.push({
+      detail: lightningConfig.url,
+      id: 'lightning',
+      label: 'Lightning',
+      type: 'lightning'
+    })
+  }
+  if (mints.length > 0) {
+    for (const mint of mints) {
+      methods.push({
+        detail: mint.name || mint.url,
+        id: `ecash-${mint.url}`,
+        label: 'ECash',
+        type: 'ecash'
+      })
+    }
+  }
+  return methods
+}

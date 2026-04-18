@@ -121,7 +121,9 @@ export default function ImportNostrIdentity() {
   }
 
   function handleImportSeedWords() {
-    if (!validMnemonic) {return}
+    if (!validMnemonic) {
+      return
+    }
 
     try {
       const keys = deriveNostrKeysFromMnemonic(validMnemonic)

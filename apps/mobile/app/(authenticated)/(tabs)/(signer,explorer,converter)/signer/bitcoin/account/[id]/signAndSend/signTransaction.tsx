@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -14,8 +14,8 @@ import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
-import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
+import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -58,10 +58,7 @@ export default function SignTransaction() {
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
-  const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address)),
-    [account]
-  )
+  const ownAddresses = new Set(account?.addresses?.map((a) => a.address))
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
@@ -76,34 +73,34 @@ export default function SignTransaction() {
   const [broadcasting, setBroadcasting] = useState(false)
   const [rawTx, setRawTx] = useState('')
 
-  const canCopySignedTx = useMemo(() => {
-    if (!signed || !rawTx) {
-      return false
-    }
-    const hex = rawTx.trim()
-    if (hex.length < 20 || !/^[0-9a-fA-F]+$/.test(hex)) {
-      return false
-    }
-    if (hex.toLowerCase().startsWith('70736274')) {
-      return false
-    }
-    return true
-  }, [rawTx, signed])
+  const trimmedRawTx = rawTx.trim()
+  const canCopySignedTx =
+    signed &&
+    !!rawTx &&
+    trimmedRawTx.length >= 20 &&
+    /^[0-9a-fA-F]+$/.test(trimmedRawTx) &&
+    !trimmedRawTx.toLowerCase().startsWith('70736274')
 
-  const handleCopySignedTx = useCallback(async () => {
+  async function handleCopySignedTx() {
     if (!canCopySignedTx) {
       toast.error(tn('copySignedTxUnavailable'))
       return
     }
     try {
-      await Clipboard.setStringAsync(rawTx.trim())
+      await Clipboard.setStringAsync(trimmedRawTx)
       toast.success(t('common.copiedToClipboard'))
     } catch {
       toast.error(tn('copySignedTxUnavailable'))
     }
-  }, [canCopySignedTx, rawTx, t, tn])
+  }
 
-  const transaction = useMemo(() => {
+  const transaction = buildTransaction(psbt ?? null, inputs, outputs)
+
+  function buildTransaction(
+    psbt: Psbt | null,
+    inputs: Map<string, Utxo>,
+    outputs: Output[]
+  ): Transaction | null {
     if (!psbt) {
       return null
     }
@@ -132,7 +129,7 @@ export default function SignTransaction() {
       vout,
       vsize
     } as never as Transaction
-  }, [inputs, outputs, psbt])
+  }
 
   function handleBroadcastSingleSig() {
     if (!psbt || !wallet) {

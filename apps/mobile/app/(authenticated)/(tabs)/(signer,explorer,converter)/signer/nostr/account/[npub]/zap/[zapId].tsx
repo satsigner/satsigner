@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -79,19 +79,25 @@ export default function NostrZapDetail() {
 
     fetchZapReceiptById(zapId, profileHex, effectiveRelays)
       .then(async (r) => {
-        if (!alive.current) {return}
+        if (!alive.current) {
+          return
+        }
         if (!r) {
           setReceipt(null)
           setLoadState('error')
           return
         }
         await enrichZapReceipts([r], effectiveRelays)
-        if (!alive.current) {return}
+        if (!alive.current) {
+          return
+        }
         setReceipt(r)
         setLoadState('ready')
       })
       .catch(() => {
-        if (!alive.current) {return}
+        if (!alive.current) {
+          return
+        }
         setReceipt(null)
         setLoadState('error')
       })
@@ -118,16 +124,22 @@ export default function NostrZapDetail() {
 
     NostrAPI.fetchEventFromRelays(receipt.zappedEventId, effectiveRelays)
       .then((ev) => {
-        if (!alive.current || !ev) {return}
+        if (!alive.current || !ev) {
+          return
+        }
         const content = ev.content ?? ''
         const tags = ev.tags ?? []
         const imageCount = extractImageUrlsFromNote(content, tags).length
         const videoCount = extractVideoEmbedsFromNote(content, tags).length
-        if (!content.trim() && imageCount === 0 && videoCount === 0) {return}
+        if (!content.trim() && imageCount === 0 && videoCount === 0) {
+          return
+        }
         setReferencedNote({ content, tags })
       })
       .catch(() => {
-        if (!alive.current) {return}
+        if (!alive.current) {
+          return
+        }
         setReferencedNote(null)
       })
 
@@ -137,15 +149,21 @@ export default function NostrZapDetail() {
   }, [receipt?.zappedEventId, identity, relays])
 
   async function handleOpenReferencedNote() {
-    if (!receipt?.zappedEventId || !npub || !identity) {return}
+    if (!receipt?.zappedEventId || !npub || !identity) {
+      return
+    }
     const effectiveRelays = identity.relays?.length ? identity.relays : relays
-    if (effectiveRelays.length === 0) {return}
+    if (effectiveRelays.length === 0) {
+      return
+    }
 
     const note = await NostrAPI.fetchEventFromRelays(
       receipt.zappedEventId,
       effectiveRelays
     )
-    if (!note) {return}
+    if (!note) {
+      return
+    }
 
     const nevent = nip19.neventEncode({
       author: note.pubkey,
@@ -162,53 +180,20 @@ export default function NostrZapDetail() {
 
   const previewImageUrls = privacyMode ? [] : allPreviewImageUrls.slice(0, 6)
 
-  const allPreviewVideoEmbeds = useMemo(() => {
-    if (referencedNote == null) {return []}
-    return extractVideoEmbedsFromNote(
-      referencedNote.content,
-      referencedNote.tags
-    )
-  }, [referencedNote])
+  const allPreviewVideoEmbeds =
+    referencedNote == null
+      ? []
+      : extractVideoEmbedsFromNote(referencedNote.content, referencedNote.tags)
 
   const previewVideoEmbeds = privacyMode
     ? []
     : allPreviewVideoEmbeds.slice(0, 4)
 
-  const counterpartyProfile = useMemo(() => {
-    if (!receipt) {
-      return null
-    }
-    if (receipt.direction === 'incoming') {
-      return {
-        lud16: receipt.senderLud16,
-        name: receipt.senderName,
-        nip05: receipt.senderNip05,
-        picture: receipt.senderPicture,
-        pubkeyHex: receipt.senderPubkey
-      }
-    }
-    if (!receipt.recipientPubkey) {
-      return null
-    }
-    return {
-      lud16: receipt.recipientLud16,
-      name: receipt.recipientName,
-      nip05: receipt.recipientNip05,
-      picture: receipt.recipientPicture,
-      pubkeyHex: receipt.recipientPubkey
-    }
-  }, [receipt])
+  const counterpartyProfile = getCounterpartyProfile(receipt)
 
-  const counterpartyNpub = useMemo(() => {
-    if (!counterpartyProfile?.pubkeyHex) {
-      return ''
-    }
-    try {
-      return nip19.npubEncode(counterpartyProfile.pubkeyHex)
-    } catch {
-      return ''
-    }
-  }, [counterpartyProfile?.pubkeyHex])
+  const counterpartyNpub = encodeCounterpartyNpub(
+    counterpartyProfile?.pubkeyHex
+  )
 
   if (!identity) {
     return (
@@ -527,3 +512,39 @@ const styles = StyleSheet.create({
     paddingTop: 16
   }
 })
+
+function getCounterpartyProfile(receipt: ZapReceiptInfo | null) {
+  if (!receipt) {
+    return null
+  }
+  if (receipt.direction === 'incoming') {
+    return {
+      lud16: receipt.senderLud16,
+      name: receipt.senderName,
+      nip05: receipt.senderNip05,
+      picture: receipt.senderPicture,
+      pubkeyHex: receipt.senderPubkey
+    }
+  }
+  if (!receipt.recipientPubkey) {
+    return null
+  }
+  return {
+    lud16: receipt.recipientLud16,
+    name: receipt.recipientName,
+    nip05: receipt.recipientNip05,
+    picture: receipt.recipientPicture,
+    pubkeyHex: receipt.recipientPubkey
+  }
+}
+
+function encodeCounterpartyNpub(pubkeyHex: string | undefined): string {
+  if (!pubkeyHex) {
+    return ''
+  }
+  try {
+    return nip19.npubEncode(pubkeyHex)
+  } catch {
+    return ''
+  }
+}

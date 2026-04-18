@@ -100,8 +100,8 @@ export function decodeNostrContent(raw: string): DecodedNostrContent {
           data: neventData.id,
           kind: 'nevent',
           metadata: {
-            relays: neventData.relays,
-            author: neventData.author
+            author: neventData.author,
+            relays: neventData.relays
           },
           raw: trimmed
         }
@@ -186,7 +186,9 @@ export type EnhancedZapTags = {
 
 function parseMsatsTag(tags: string[][], name: string): number | undefined {
   const tag = tags.find((t) => t[0] === name)
-  if (!tag || !tag[1]) {return undefined}
+  if (!tag || !tag[1]) {
+    return undefined
+  }
   const val = parseInt(tag[1], 10)
   return isNaN(val) || val <= 0 ? undefined : Math.floor(val / 1000)
 }
@@ -204,11 +206,15 @@ export function extractEnhancedZapTags(tags: string[][]): EnhancedZapTags {
 
   if (zapGoalRaw?.[1]) {
     const val = parseInt(zapGoalRaw[1], 10)
-    if (!isNaN(val) && val > 0) {result.zapGoal = Math.floor(val / 1000)}
+    if (!isNaN(val) && val > 0) {
+      result.zapGoal = Math.floor(val / 1000)
+    }
   }
   if (zapUsesRaw?.[1]) {
     const val = parseInt(zapUsesRaw[1], 10)
-    if (!isNaN(val) && val > 0) {result.zapUses = val}
+    if (!isNaN(val) && val > 0) {
+      result.zapUses = val
+    }
   }
   if (zapPayerRaw?.[1] && /^[a-f0-9]{64}$/i.test(zapPayerRaw[1])) {
     result.zapPayer = zapPayerRaw[1]
@@ -248,6 +254,8 @@ export function npubFromNsec(nsec: string): string | null {
 }
 
 export function truncateNpub(npub: string, chars = 8): string {
-  if (npub.length <= chars * 2 + 3) {return npub}
+  if (npub.length <= chars * 2 + 3) {
+    return npub
+  }
   return `${npub.slice(0, chars)}...${npub.slice(-chars)}`
 }

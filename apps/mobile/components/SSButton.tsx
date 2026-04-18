@@ -80,7 +80,9 @@ function getTextVariantStyle(variant: SSButtonProps['variant']) {
   return styles.textDefault
 }
 
-function getLabelColor(variant: SSButtonProps['variant']): SSTextProps['color'] {
+function getLabelColor(
+  variant: SSButtonProps['variant']
+): SSTextProps['color'] {
   if (variant === 'secondary') {
     return 'black'
   }
@@ -275,12 +277,14 @@ function SSButton({
         ) : (
           <View pointerEvents="none" style={styles.labelLayer}>
             <SSText
-              color={getLabelColor(variant)}
-              uppercase={uppercase}
               center
-              style={textStyles}
+              color={getLabelColor(variant)}
+              ellipsizeMode="tail"
+              numberOfLines={1}
+              style={[styles.buttonLabelSingleLine, textStyles]}
+              uppercase={uppercase}
             >
-              {label}
+              {typeof label === 'string' ? label.replace(/\n/g, ' ') : label}
             </SSText>
           </View>
         )
@@ -337,6 +341,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'absolute',
     width: '100%'
+  },
+  buttonLabelSingleLine: {
+    flexShrink: 1,
+    maxWidth: '100%',
+    paddingHorizontal: 12
   },
   buttonOutline: {
     backgroundColor: Colors.transparent,

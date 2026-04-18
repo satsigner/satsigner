@@ -58,7 +58,9 @@ function nowUnix(): number {
 }
 
 function parseTagsJson(raw: unknown): string[][] {
-  if (typeof raw !== 'string') {return []}
+  if (typeof raw !== 'string') {
+    return []
+  }
   try {
     const parsed = JSON.parse(raw) as unknown
     return Array.isArray(parsed) ? (parsed as string[][]) : []
@@ -90,9 +92,13 @@ export function cacheEvents(
   }[],
   ownPubkeys: string[]
 ): void {
-  if (events.length === 0) {return}
+  if (events.length === 0) {
+    return
+  }
   const db = safeGetDb()
-  if (!db) {return}
+  if (!db) {
+    return
+  }
   const ownSet = new Set(ownPubkeys.map((pk) => pk.toLowerCase()))
   const now = nowUnix()
 
@@ -128,7 +134,9 @@ export function getCachedNotes(
   until?: number
 ): CachedEvent[] {
   const db = safeGetDb()
-  if (!db) {return []}
+  if (!db) {
+    return []
+  }
   try {
     const pk = pubkey.toLowerCase()
     const sql = until
@@ -150,13 +158,17 @@ export function getCachedNotes(
 
 export function getCachedEvent(eventId: string): CachedEvent | null {
   const db = safeGetDb()
-  if (!db) {return null}
+  if (!db) {
+    return null
+  }
   try {
     const { results } = db.execute(
       'SELECT * FROM nostr_event_cache WHERE event_id = ? LIMIT 1',
       [eventId]
     )
-    if (!results || results.length === 0) {return null}
+    if (!results || results.length === 0) {
+      return null
+    }
     return rowToCachedEvent(results[0] as Record<string, unknown>)
   } catch {
     return null
@@ -165,7 +177,9 @@ export function getCachedEvent(eventId: string): CachedEvent | null {
 
 export function getCachedZapReceipts(eventIdHex: string): CachedEvent[] {
   const db = safeGetDb()
-  if (!db) {return []}
+  if (!db) {
+    return []
+  }
   try {
     const { results } = db.execute(
       `SELECT * FROM nostr_event_cache
@@ -173,10 +187,14 @@ export function getCachedZapReceipts(eventIdHex: string): CachedEvent[] {
        ORDER BY created_at DESC`,
       []
     )
-    if (!results) {return []}
+    if (!results) {
+      return []
+    }
     return (results as Record<string, unknown>[])
       .map(rowToCachedEvent)
-      .filter((e) => e.tags.some((tag) => tag[0] === 'e' && tag[1] === eventIdHex))
+      .filter((e) =>
+        e.tags.some((tag) => tag[0] === 'e' && tag[1] === eventIdHex)
+      )
   } catch {
     return []
   }
@@ -188,7 +206,9 @@ export function getCachedZapsByPubkey(
   until?: number
 ): CachedEvent[] {
   const db = safeGetDb()
-  if (!db) {return []}
+  if (!db) {
+    return []
+  }
   try {
     const pk = pubkey.toLowerCase()
     const sql = until
@@ -200,12 +220,14 @@ export function getCachedZapsByPubkey(
          ORDER BY created_at DESC`
     const params = until ? [until] : []
     const { results } = db.execute(sql, params)
-    if (!results) {return []}
+    if (!results) {
+      return []
+    }
     return (results as Record<string, unknown>[])
       .map(rowToCachedEvent)
-      .filter((e) => e.tags.some(
-          (tag) => tag[0] === 'p' && tag[1]?.toLowerCase() === pk
-        ))
+      .filter((e) =>
+        e.tags.some((tag) => tag[0] === 'p' && tag[1]?.toLowerCase() === pk)
+      )
       .slice(0, limit)
   } catch {
     return []
@@ -217,7 +239,9 @@ export function getNewestCachedTimestamp(
   pubkey?: string
 ): number | null {
   const db = safeGetDb()
-  if (!db) {return null}
+  if (!db) {
+    return null
+  }
   try {
     const sql = pubkey
       ? `SELECT MAX(created_at) as max_ts FROM nostr_event_cache
@@ -226,7 +250,9 @@ export function getNewestCachedTimestamp(
          WHERE kind = ?`
     const params = pubkey ? [kind, pubkey.toLowerCase()] : [kind]
     const { results } = db.execute(sql, params)
-    if (!results || results.length === 0) {return null}
+    if (!results || results.length === 0) {
+      return null
+    }
     const val = (results[0] as Record<string, unknown>).max_ts
     return typeof val === 'number' ? val : null
   } catch {
@@ -241,7 +267,9 @@ export function cacheProfile(
   createdAt?: number
 ): void {
   const db = safeGetDb()
-  if (!db) {return}
+  if (!db) {
+    return
+  }
   try {
     const now = nowUnix()
     db.execute(
@@ -266,13 +294,17 @@ export function cacheProfile(
 
 export function getCachedProfile(pubkey: string): CachedProfile | null {
   const db = safeGetDb()
-  if (!db) {return null}
+  if (!db) {
+    return null
+  }
   try {
     const { results } = db.execute(
       'SELECT * FROM nostr_profile_cache WHERE pubkey = ? LIMIT 1',
       [pubkey.toLowerCase()]
     )
-    if (!results || results.length === 0) {return null}
+    if (!results || results.length === 0) {
+      return null
+    }
     const r = results[0] as Record<string, unknown>
     return {
       cached_at: r.cached_at as number,
@@ -291,7 +323,9 @@ export function getCachedProfile(pubkey: string): CachedProfile | null {
 
 export function pruneCache(): void {
   const db = safeGetDb()
-  if (!db) {return}
+  if (!db) {
+    return
+  }
   try {
     const now = nowUnix()
 
@@ -335,7 +369,9 @@ export function getCacheCounts(ownPubkeyHex: string): CacheCounts {
     zapReceipts: 0
   }
   const db = safeGetDb()
-  if (!db) {return empty}
+  if (!db) {
+    return empty
+  }
   try {
     const pk = ownPubkeyHex.toLowerCase()
 
@@ -386,7 +422,9 @@ export function clearCacheCategory(
   ownPubkeyHex?: string
 ): void {
   const db = safeGetDb()
-  if (!db) {return}
+  if (!db) {
+    return
+  }
   const pk = ownPubkeyHex?.toLowerCase()
 
   switch (category) {
@@ -424,7 +462,9 @@ export function clearCacheCategory(
 
 export function clearAllCache(): void {
   const db = safeGetDb()
-  if (!db) {return}
+  if (!db) {
+    return
+  }
   db.execute('DELETE FROM nostr_event_cache', [])
   db.execute('DELETE FROM nostr_profile_cache', [])
 }

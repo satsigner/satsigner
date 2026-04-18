@@ -83,22 +83,34 @@ export default function NostrComposePage() {
   function validateAmounts(): string | null {
     if (amountMode === 'fixed') {
       const val = parseInt(fixedAmount, 10)
-      if (!val || val <= 0) {return t('nostrIdentity.compose.invalidAmount')}
+      if (!val || val <= 0) {
+        return t('nostrIdentity.compose.invalidAmount')
+      }
     }
     if (amountMode === 'range') {
       const min = parseInt(minAmount, 10)
       const max = parseInt(maxAmount, 10)
-      if (!min || min <= 0) {return t('nostrIdentity.compose.invalidMin')}
-      if (!max || max <= 0) {return t('nostrIdentity.compose.invalidMax')}
-      if (max < min) {return t('nostrIdentity.compose.maxBelowMin')}
+      if (!min || min <= 0) {
+        return t('nostrIdentity.compose.invalidMin')
+      }
+      if (!max || max <= 0) {
+        return t('nostrIdentity.compose.invalidMax')
+      }
+      if (max < min) {
+        return t('nostrIdentity.compose.maxBelowMin')
+      }
     }
     if (goalAmount) {
       const val = parseInt(goalAmount, 10)
-      if (isNaN(val) || val <= 0) {return t('nostrIdentity.compose.invalidGoal')}
+      if (isNaN(val) || val <= 0) {
+        return t('nostrIdentity.compose.invalidGoal')
+      }
     }
     if (maxUses) {
       const val = parseInt(maxUses, 10)
-      if (isNaN(val) || val <= 0) {return t('nostrIdentity.compose.invalidUses')}
+      if (isNaN(val) || val <= 0) {
+        return t('nostrIdentity.compose.invalidUses')
+      }
     }
     if (customLnurl && !customLnurl.includes('@')) {
       return t('nostrIdentity.compose.invalidLnurl')
@@ -233,7 +245,9 @@ export default function NostrComposePage() {
   )
 
   async function handleCopySigned() {
-    if (!canExportSigned || !identity?.nsec) {return}
+    if (!canExportSigned || !identity?.nsec) {
+      return
+    }
 
     const validationError = validateAmounts()
     if (validationError) {
@@ -262,7 +276,9 @@ export default function NostrComposePage() {
   }
 
   async function handleQrSigned() {
-    if (!canExportSigned || !identity?.nsec) {return}
+    if (!canExportSigned || !identity?.nsec) {
+      return
+    }
 
     const validationError = validateAmounts()
     if (validationError) {
@@ -295,7 +311,9 @@ export default function NostrComposePage() {
   }
 
   async function handlePublish() {
-    if (!canPublish || !identity?.nsec) {return}
+    if (!canPublish || !identity?.nsec) {
+      return
+    }
 
     const validationError = validateAmounts()
     if (validationError) {

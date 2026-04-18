@@ -92,11 +92,15 @@ export type ZapReceiptInfo = {
 
 const MILLISATS_PER_SAT = 1000
 const ZAP_INVOICE_TIMEOUT_MS = 15000
+const ZAP_RECEIPT_FETCH_LIMIT = 50
 
 function getPPubkeysFromTags(tags: string[][]): string[] {
   return tags
-    .filter((tag) => tag[0] === 'p' && typeof tag[1] === 'string')
-    .map((tag) => tag[1] as string)
+    .filter(
+      (tag): tag is [string, string, ...string[]] =>
+        tag[0] === 'p' && typeof tag[1] === 'string'
+    )
+    .map((tag) => tag[1])
 }
 
 function getPPubkeysFromEvent(event: NDKEvent): string[] {
@@ -361,7 +365,9 @@ export async function fetchZapReceipts(
       ce.tags,
       null
     )
-    if (parsed) {cachedReceipts.push(parsed)}
+    if (parsed) {
+      cachedReceipts.push(parsed)
+    }
   }
 
   const ndk = new NDK({
@@ -376,7 +382,7 @@ export async function fetchZapReceipts(
     const filter: Record<string, unknown> = {
       '#e': [eventIdHex],
       kinds: [9735 as never],
-      limit: 50
+      limit: ZAP_RECEIPT_FETCH_LIMIT
     }
     const newestTs =
       cachedEvents.length > 0
@@ -499,7 +505,9 @@ export async function fetchZapsByPubkey(
       ce.tags,
       pubkeyHex
     )
-    if (parsed) {cachedReceipts.push(parsed)}
+    if (parsed) {
+      cachedReceipts.push(parsed)
+    }
   }
 
   const ndk = new NDK({

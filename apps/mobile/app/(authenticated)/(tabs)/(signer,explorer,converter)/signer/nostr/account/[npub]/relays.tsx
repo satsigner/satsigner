@@ -64,7 +64,9 @@ export default function NostrIdentityRelays() {
   }
 
   function handleAddCustomRelay() {
-    if (!customRelayUrl) {return}
+    if (!customRelayUrl) {
+      return
+    }
     const relayUrl = RELAY_PROTOCOL_PREFIX + customRelayUrl
     if (!selectedRelays.includes(relayUrl)) {
       setSelectedRelays((prev) => [...prev, relayUrl])
@@ -73,7 +75,9 @@ export default function NostrIdentityRelays() {
   }
 
   function handleSave() {
-    if (!npub) {return}
+    if (!npub) {
+      return
+    }
 
     updateIdentity(npub, {
       relays: selectedRelays.length > 0 ? selectedRelays : undefined

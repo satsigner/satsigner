@@ -58,8 +58,7 @@ function SSEcashLightningTabs({
             uppercase
             weight="medium"
             style={{
-              color:
-                activeTab === 'lightning' ? Colors.white : Colors.gray[50]
+              color: activeTab === 'lightning' ? Colors.white : Colors.gray[50]
             }}
           >
             {lightningLabel}

@@ -4,9 +4,11 @@ import { HEADER_HEIGHT_TRIM_PX } from '@/constants/headerChrome'
 
 const MAIN_CONTAINER_PADDING_TOP_BASE = 12
 
+const MAIN_CONTAINER_PADDING_HORIZONTAL = '6%' as DimensionValue
+
 export const mainContainer = {
   paddingBottom: 32,
-  paddingHorizontal: '6%' as DimensionValue,
+  paddingHorizontal: MAIN_CONTAINER_PADDING_HORIZONTAL,
   /** Paired with `HEADER_HEIGHT_TRIM_PX` on the stack header. */
   paddingTop: MAIN_CONTAINER_PADDING_TOP_BASE + HEADER_HEIGHT_TRIM_PX
 }

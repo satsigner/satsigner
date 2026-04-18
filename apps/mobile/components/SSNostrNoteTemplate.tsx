@@ -30,7 +30,9 @@ function PubpayRows({
   onPay?: (amountSats: number) => void
 }) {
   const pubpayTags = extractPubpayTags(tags)
-  if (pubpayTags.length === 0) {return null}
+  if (pubpayTags.length === 0) {
+    return null
+  }
 
   return (
     <>
@@ -63,7 +65,9 @@ function AuthorRow({
   picture?: string
   pubkey?: string
 }) {
-  if (!name && !pubkey) {return null}
+  if (!name && !pubkey) {
+    return null
+  }
 
   return (
     <SSHStack gap="sm" style={styles.authorRow}>
