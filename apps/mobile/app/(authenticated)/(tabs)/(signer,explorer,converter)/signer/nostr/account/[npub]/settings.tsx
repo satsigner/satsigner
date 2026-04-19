@@ -1,5 +1,4 @@
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router'
-import { nip19 } from 'nostr-tools'
 import { useState } from 'react'
 import {
   Image,
@@ -26,6 +25,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { nostrAccountHref } from '@/utils/nostrNavigation'
 
 type SettingsParams = {
@@ -67,7 +67,16 @@ export default function NostrIdentitySettings() {
       }
     }
     try {
-      const hex = nip19.decode(npub).data as string
+      const hex = getPubKeyHexFromNpub(npub)
+      if (!hex) {
+        return {
+          feedNotes: 0,
+          ownNotes: 0,
+          ownZaps: 0,
+          profiles: 0,
+          zapReceipts: 0
+        }
+      }
       return getCacheCounts(hex)
     } catch {
       return {
@@ -84,11 +93,7 @@ export default function NostrIdentitySettings() {
     if (!npub) {
       return ''
     }
-    try {
-      return nip19.decode(npub).data as string
-    } catch {
-      return ''
-    }
+    return getPubKeyHexFromNpub(npub) ?? ''
   }
 
   function refreshCacheCounts() {

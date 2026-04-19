@@ -27,6 +27,8 @@ export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
 export const NOSTR_RELAY_REACHABILITY_TEST_MS = 5000
 /** Shown when settings privacy mode hides Nostr amounts and identifiers. */
 export const NOSTR_PRIVACY_MASK = '••••'
+/** Shown in place of hidden secret keys (nsec / seed words). */
+export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
 
 export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Angani', url: 'wss://nostr-1.nbo.angani.co' },
@@ -60,6 +62,9 @@ export const NOSTR_RELAYS: NostrRelay[] = [
 
 export const DEFAULT_ZAP_PRESETS = [21, 100, 500, 1000]
 export const DEFAULT_ONE_TAP_AMOUNT = 21
+
+/** Maximum character length for a kind-1 note composed in-app. */
+export const MAX_NOTE_LENGTH = 5000
 
 /** Compact signed-event JSON longer than this is not shown as QR (QR version limits). */
 export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400

@@ -30,3 +30,7 @@ export const NIP46_DEFAULT_PERMISSIONS: Record<
 export const NIP46_REQUEST_TIMEOUT_MS = 60_000
 
 export const NIP46_NOSTR_CONNECT_PREFIX = 'nostrconnect://'
+
+export const NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
+
+export const NIP46_EVENT_PREVIEW_MAX_LENGTH = 200

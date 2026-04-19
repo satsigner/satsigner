@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { StyleSheet, Switch, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import type { Nip46Request } from '@/types/models/Nip46'
+import { getEventPreview, getMethodLabel } from '@/utils/nip46'
 
 import SSButton from './SSButton'
+import SSCheckbox from './SSCheckbox'
 import SSModal from './SSModal'
 import SSText from './SSText'
 
@@ -18,49 +20,13 @@ type SSNip46ApprovalModalProps = {
   visible: boolean
 }
 
-function getMethodLabel(method: string): string {
-  switch (method) {
-    case 'sign_event':
-      return t('nip46.approval.signEvent')
-    case 'get_public_key':
-      return t('nip46.approval.getPublicKey')
-    case 'nip04_encrypt':
-    case 'nip44_encrypt':
-      return t('nip46.approval.encrypt')
-    case 'nip04_decrypt':
-    case 'nip44_decrypt':
-      return t('nip46.approval.decrypt')
-    default:
-      return method
-  }
-}
-
-function getEventPreview(params: string[]): {
-  content: string
-  kind: number
-} | null {
-  try {
-    const parsed = JSON.parse(params[0]) as {
-      content?: string
-      kind?: number
-    }
-    return {
-      content:
-        typeof parsed.content === 'string' ? parsed.content.slice(0, 200) : '',
-      kind: typeof parsed.kind === 'number' ? parsed.kind : 1
-    }
-  } catch {
-    return null
-  }
-}
-
 export default function SSNip46ApprovalModal({
   onApprove,
   onReject,
   request,
   visible
 }: SSNip46ApprovalModalProps) {
-  const [alwaysAllow, setAlwaysAllow] = useState(false)
+  const [alwaysAllow, setAlwaysAllow] = useState(true)
 
   if (!request) {
     return null
@@ -71,12 +37,12 @@ export default function SSNip46ApprovalModal({
     request.method === 'sign_event' ? getEventPreview(request.params) : null
 
   function handleApprove() {
-    setAlwaysAllow(false)
+    setAlwaysAllow(true)
     onApprove(request!.id, alwaysAllow)
   }
 
   function handleReject() {
-    setAlwaysAllow(false)
+    setAlwaysAllow(true)
     onReject(request!.id, false)
   }
 
@@ -88,41 +54,41 @@ export default function SSNip46ApprovalModal({
             {t('nip46.approval.title')}
           </SSText>
 
-          <SSVStack gap="sm" widthFull>
-            <SSText size="sm" color="muted" uppercase>
-              {methodLabel}
-            </SSText>
+          <SSCheckbox
+            selected={alwaysAllow}
+            label={t('nip46.approval.alwaysAllow')}
+            labelProps={{ size: 'sm' }}
+            onPress={() => setAlwaysAllow(!alwaysAllow)}
+          />
 
-            {eventPreview && (
-              <SSVStack gap="xs" style={styles.previewBox}>
-                <SSHStack gap="sm">
-                  <SSText size="xs" color="muted">
-                    {t('nip46.approval.eventKind')}:
-                  </SSText>
-                  <SSText size="xs">{String(eventPreview.kind)}</SSText>
-                </SSHStack>
-                {eventPreview.content.length > 0 && (
-                  <>
+          {!alwaysAllow && (
+            <SSVStack gap="sm" widthFull>
+              <SSText size="sm" color="muted" uppercase>
+                {methodLabel}
+              </SSText>
+
+              {eventPreview && (
+                <SSVStack gap="xs" style={styles.previewBox}>
+                  <SSHStack gap="sm">
                     <SSText size="xs" color="muted">
-                      {t('nip46.approval.eventContent')}:
+                      {t('nip46.approval.eventKind')}:
                     </SSText>
-                    <SSText size="xs" numberOfLines={4}>
-                      {eventPreview.content}
-                    </SSText>
-                  </>
-                )}
-              </SSVStack>
-            )}
-          </SSVStack>
-
-          <SSHStack gap="sm" style={styles.switchRow}>
-            <Switch
-              value={alwaysAllow}
-              onValueChange={setAlwaysAllow}
-              trackColor={{ false: Colors.gray[700], true: Colors.gray[500] }}
-            />
-            <SSText size="sm">{t('nip46.approval.alwaysAllow')}</SSText>
-          </SSHStack>
+                    <SSText size="xs">{String(eventPreview.kind)}</SSText>
+                  </SSHStack>
+                  {eventPreview.content.length > 0 && (
+                    <>
+                      <SSText size="xs" color="muted">
+                        {t('nip46.approval.eventContent')}:
+                      </SSText>
+                      <SSText size="xs" numberOfLines={4}>
+                        {eventPreview.content}
+                      </SSText>
+                    </>
+                  )}
+                </SSVStack>
+              )}
+            </SSVStack>
+          )}
 
           <SSVStack gap="sm" widthFull>
             <SSButton
@@ -155,8 +121,5 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     padding: 12
-  },
-  switchRow: {
-    alignItems: 'center'
   }
 })

@@ -250,7 +250,6 @@ export default function NostrContactProfile() {
                 {t('nostrIdentity.note.zapEndpointNotFound')}
               </SSText>
             )}
-
             {availablePaymentMethods.length === 0 && (
               <SSText color="muted" center size="sm">
                 {t('nostrIdentity.contact.noWallets')}

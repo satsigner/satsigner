@@ -19,6 +19,7 @@ import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import {
+  MAX_NOTE_LENGTH,
   NOSTR_PRIVACY_MASK,
   NOSTR_SIGNED_EVENT_QR_MAX_CHARS
 } from '@/constants/nostr'
@@ -47,8 +48,6 @@ type ComposeParams = {
 }
 
 type AmountMode = 'none' | 'fixed' | 'range'
-
-const MAX_NOTE_LENGTH = 5000
 
 export default function NostrComposePage() {
   const router = useRouter()
@@ -449,7 +448,6 @@ export default function NostrComposePage() {
               <SSText size="xs" color="muted" uppercase>
                 {t('nostrIdentity.compose.paymentRequest')}
               </SSText>
-
               <SSHStack gap="sm">
                 {(['none', 'fixed', 'range'] as const).map((mode) => (
                   <TouchableOpacity
@@ -650,7 +648,6 @@ export default function NostrComposePage() {
         onClose={() => setImportCameraVisible(false)}
         onContentScanned={handleImportScanResult}
       />
-
       <SSModal
         visible={signedQrPayload !== null}
         fullOpacity

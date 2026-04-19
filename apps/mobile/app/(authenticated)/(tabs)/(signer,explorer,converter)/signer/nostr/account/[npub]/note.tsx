@@ -168,7 +168,7 @@ export default function NostrNotePage() {
       ? (decoded.metadata.relays as string[])
       : undefined
 
-  function handleEventFound(event: {
+  async function handleEventFound(event: {
     content: string
     pubkey: string
     kind: number
@@ -194,30 +194,28 @@ export default function NostrNotePage() {
       effectiveRelaysRef.current,
       ownPubkeysRef.current
     )
-    profileApi
-      .fetchKind0(authorNpub)
-      .then((profile) => {
-        if (!profile) {
-          setProfileLoading(false)
-          return
+    try {
+      const profile = await profileApi.fetchKind0(authorNpub)
+      if (!profile) {
+        setProfileLoading(false)
+        return
+      }
+      setFetched((prev) => {
+        if (!prev) {
+          return prev
         }
-        setFetched((prev) => {
-          if (!prev) {
-            return prev
-          }
-          return {
-            ...prev,
-            authorLud16: profile.lud16,
-            authorName: profile.displayName,
-            authorNip05: profile.nip05,
-            authorPicture: profile.picture
-          }
-        })
-        setProfileLoading(false)
+        return {
+          ...prev,
+          authorLud16: profile.lud16,
+          authorName: profile.displayName,
+          authorNip05: profile.nip05,
+          authorPicture: profile.picture
+        }
       })
-      .catch(() => {
-        setProfileLoading(false)
-      })
+      setProfileLoading(false)
+    } catch {
+      setProfileLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -253,23 +251,28 @@ export default function NostrNotePage() {
       return
     }
 
-    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
-    api
-      .fetchEvent(decoded.data)
-      .then((event) => {
+    async function fetchNote() {
+      const api = new NostrAPI(
+        effectiveRelaysRef.current,
+        ownPubkeysRef.current
+      )
+      try {
+        const event = await api.fetchEvent(decoded.data)
         if (!event) {
           setIsLoading(false)
           setProfileLoading(false)
           setNotFound(true)
           return
         }
-        handleEventFound(event)
-      })
-      .catch(() => {
+        await handleEventFound(event)
+      } catch {
         setIsLoading(false)
         setProfileLoading(false)
         setNotFound(true)
-      })
+      }
+    }
+
+    void fetchNote()
   }, [decoded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleTryHintedRelays() {
@@ -411,7 +414,7 @@ export default function NostrNotePage() {
 
     const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
 
-    ;(async () => {
+    async function fetchReplyParent() {
       try {
         let event = await api.fetchEvent(replyParentId)
         if (!event && replyParentRelayHint) {
@@ -446,12 +449,9 @@ export default function NostrNotePage() {
           ownPubkeysRef.current
         )
         setReplyParentKind0Pending(true)
-        profileApi
-          .fetchKind0(authorNpub)
-          .then((profile) => {
-            if (cancelled || !profile) {
-              return
-            }
+        try {
+          const profile = await profileApi.fetchKind0(authorNpub)
+          if (!cancelled && profile) {
             setReplyParent((prev) => {
               if (!prev || prev.pubkey !== event.pubkey) {
                 return prev
@@ -464,20 +464,23 @@ export default function NostrNotePage() {
                 authorPicture: profile.picture
               }
             })
-          })
-          .catch(() => {})
-          .finally(() => {
-            if (!cancelled) {
-              setReplyParentKind0Pending(false)
-            }
-          })
+          }
+        } catch {
+          // non-critical
+        } finally {
+          if (!cancelled) {
+            setReplyParentKind0Pending(false)
+          }
+        }
       } catch {
         if (!cancelled) {
           setReplyParentMissing(true)
           setReplyParentLoading(false)
         }
       }
-    })()
+    }
+
+    void fetchReplyParent()
 
     return () => {
       cancelled = true
@@ -707,7 +710,6 @@ export default function NostrNotePage() {
           )
         }}
       />
-
       {isLoading ? (
         <SSVStack itemsCenter gap="md" style={styles.centered}>
           <ActivityIndicator color={Colors.white} size="large" />

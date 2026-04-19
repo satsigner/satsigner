@@ -334,7 +334,6 @@ export default function NostrZapDetail() {
                 </SSHStack>
               </SSVStack>
             ) : null}
-
             <SSVStack gap="xs">
               <SSText size="xxs" color="muted" uppercase>
                 {t('nostrIdentity.zapDetail.amount')}
@@ -449,7 +448,6 @@ export default function NostrZapDetail() {
                 />
               </SSVStack>
             ) : null}
-
             {receipt.rawEventJson ? (
               <SSVStack gap="xs">
                 <SSText size="xxs" color="muted" uppercase>

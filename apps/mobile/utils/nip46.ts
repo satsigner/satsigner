@@ -1,4 +1,8 @@
-import { NIP46_NOSTR_CONNECT_PREFIX } from '@/constants/nip46'
+import {
+  NIP46_EVENT_PREVIEW_MAX_LENGTH,
+  NIP46_NOSTR_CONNECT_PREFIX
+} from '@/constants/nip46'
+import { t } from '@/locales'
 import type { Nip46ParsedUri } from '@/types/models/Nip46'
 
 const HEX_PUBKEY_REGEX = /^[0-9a-f]{64}$/
@@ -59,4 +63,44 @@ export function buildNip46ResponsePayload(
     payload.error = error
   }
   return JSON.stringify(payload)
+}
+
+export function getMethodLabel(method: string): string {
+  switch (method) {
+    case 'sign_event':
+      return t('nip46.approval.signEvent')
+    case 'get_public_key':
+      return t('nip46.approval.getPublicKey')
+    case 'nip04_encrypt':
+    case 'nip44_encrypt':
+      return t('nip46.approval.encrypt')
+    case 'nip04_decrypt':
+    case 'nip44_decrypt':
+      return t('nip46.approval.decrypt')
+    default:
+      return method
+  }
+}
+
+type Nip46EventPreview = {
+  content: string
+  kind: number
+}
+
+export function getEventPreview(params: string[]): Nip46EventPreview | null {
+  try {
+    const parsed = JSON.parse(params[0]) as {
+      content?: string
+      kind?: number
+    }
+    return {
+      content:
+        typeof parsed.content === 'string'
+          ? parsed.content.slice(0, NIP46_EVENT_PREVIEW_MAX_LENGTH)
+          : '',
+      kind: typeof parsed.kind === 'number' ? parsed.kind : 1
+    }
+  } catch {
+    return null
+  }
 }

@@ -5,7 +5,10 @@ import {
   getConversationKey
 } from 'nostr-tools/nip44'
 
-import { NIP46_EVENT_KIND } from '@/constants/nip46'
+import {
+  NIP46_EVENT_KIND,
+  NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
+} from '@/constants/nip46'
 
 const WS_CONNECT_TIMEOUT_MS = 15_000
 const PUBLISH_TIMEOUT_MS = 10_000
@@ -18,7 +21,6 @@ type Nip46IncomingRequest = {
 
 type OnRequestCallback = (request: Nip46IncomingRequest) => void
 
-// Module-level dedup to rule out any `this` binding issues
 const globalSeenEvents = new Set<string>()
 
 function subscribeOnSocket(
@@ -39,9 +41,6 @@ function subscribeOnSocket(
         data[2]
       ) {
         onEvent(data[2] as NostrEvent)
-      }
-      if (Array.isArray(data) && data[0] === 'EOSE' && data[1] === subId) {
-        // EOSE received, subscription is caught up
       }
     } catch {
       // ignore parse errors
@@ -123,7 +122,7 @@ export class Nip46BunkerService {
               clearTimeout(timer)
               resolve(ws)
             })
-            ws.addEventListener('error', (ev) => {
+            ws.addEventListener('error', () => {
               if (settled) {
                 return
               }
@@ -135,9 +134,6 @@ export class Nip46BunkerService {
                 /* ignore */
               }
               reject(new Error(`error: ${url}`))
-            })
-            ws.addEventListener('close', () => {
-              // socket closed
             })
           })
       )
@@ -167,11 +163,10 @@ export class Nip46BunkerService {
     const filter = {
       '#p': [signerPubkeyHex],
       kinds: [NIP46_EVENT_KIND],
-      since: Math.floor(Date.now() / 1000) - 10
+      since: Math.floor(Date.now() / 1000) - NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
     }
     for (const ws of this.sockets) {
       subscribeOnSocket(ws, this.subId, filter, (event) => {
-        // Dedup by event ID using module-level Set
         if (globalSeenEvents.has(event.id)) {
           return
         }

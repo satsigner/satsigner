@@ -8,6 +8,7 @@ import { SSIconECash } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -77,7 +78,7 @@ function EcashAccountCard({
                 weight="ultralight"
                 style={{ lineHeight: Sizes.text.fontSize.lg }}
               >
-                ••••
+                {NOSTR_PRIVACY_MASK}
               </SSText>
             ) : (
               <SSStyledSatText

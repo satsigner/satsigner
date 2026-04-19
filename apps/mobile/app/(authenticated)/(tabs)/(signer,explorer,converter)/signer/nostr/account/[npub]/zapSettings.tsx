@@ -166,7 +166,6 @@ export default function ZapSettingsPage() {
           </SSVStack>
 
           <SSSeparator color="gradient" />
-
           <View style={styles.autoApproveBox}>
             <SSVStack gap="md">
               <SSCheckbox
@@ -176,7 +175,6 @@ export default function ZapSettingsPage() {
                 onPress={() => setAutoApprove(!autoApprove)}
                 labelProps={{ color: 'white', size: 'md' }}
               />
-
               {autoApprove && (
                 <SSVStack gap="sm">
                   <SSText size="xs" color="muted" uppercase>

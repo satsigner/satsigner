@@ -64,12 +64,15 @@ export default function NostrAccountLanding() {
     }
     let cancelled = false
     setConnectionInfo({ status: 'checking' })
-    void testNostrRelaysReachable(effectiveRelays).then((info) => {
-      if (cancelled) {
-        return
+
+    async function checkRelays() {
+      const info = await testNostrRelaysReachable(effectiveRelays)
+      if (!cancelled) {
+        setConnectionInfo(info)
       }
-      setConnectionInfo(info)
-    })
+    }
+
+    void checkRelays()
     return () => {
       cancelled = true
     }
@@ -94,10 +97,10 @@ export default function NostrAccountLanding() {
     }
     fetchedRef.current = true
 
-    const api = new NostrAPI(effectiveRelays)
-    api
-      .fetchKind0(npub)
-      .then((profile) => {
+    async function fetchProfile() {
+      const api = new NostrAPI(effectiveRelays)
+      try {
+        const profile = await api.fetchKind0(npub)
         if (!profile) {
           return
         }
@@ -107,10 +110,12 @@ export default function NostrAccountLanding() {
           nip05: profile.nip05 || identity.nip05,
           picture: profile.picture || identity.picture
         })
-      })
-      .catch(() => {
+      } catch {
         fetchedRef.current = false
-      })
+      }
+    }
+
+    void fetchProfile()
   }, [npub, identity, relays, updateIdentity])
 
   function handleContentScanned(detected: {
@@ -203,7 +208,6 @@ export default function NostrAccountLanding() {
             connectionInfo={connectionInfo}
             style={styles.heroProfile}
           />
-
           <SSButtonActionsGroup
             context="nostr"
             nfcAvailable={contentHandler.nfcAvailable}

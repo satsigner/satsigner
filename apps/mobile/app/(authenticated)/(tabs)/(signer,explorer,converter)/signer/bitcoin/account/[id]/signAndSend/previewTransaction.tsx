@@ -2828,7 +2828,6 @@ function PreviewTransaction() {
                     Enter your {selectedWordCount}-word mnemonic seed phrase
                   </SSText>
                 </SSVStack>
-
                 <SSSeedWordsInput
                   wordCount={selectedWordCount}
                   wordListName="english"

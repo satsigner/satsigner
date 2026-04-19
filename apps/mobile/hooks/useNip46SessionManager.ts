@@ -32,7 +32,13 @@ async function fireAndForget(promise: Promise<unknown>): Promise<void> {
 }
 
 function isValidMethod(method: string): method is Nip46Method {
-  return (NIP46_SUPPORTED_METHODS as string[]).includes(method)
+  return NIP46_SUPPORTED_METHODS.includes(method as Nip46Method)
+}
+
+function getPendingRequestById(requestId: string): Nip46Request | undefined {
+  return useNip46Store
+    .getState()
+    .pendingRequests.find((r) => r.id === requestId)
 }
 
 function executeHandler(
@@ -204,9 +210,7 @@ export function useNip46SessionManager() {
     requestId: string,
     alwaysAllow: boolean
   ): Promise<void> {
-    const request = useNip46Store
-      .getState()
-      .pendingRequests.find((r) => r.id === requestId)
+    const request = getPendingRequestById(requestId)
     if (!request) {
       return
     }
@@ -227,9 +231,7 @@ export function useNip46SessionManager() {
     requestId: string,
     alwaysReject: boolean
   ): Promise<void> {
-    const request = useNip46Store
-      .getState()
-      .pendingRequests.find((r) => r.id === requestId)
+    const request = getPendingRequestById(requestId)
     if (!request) {
       return
     }
