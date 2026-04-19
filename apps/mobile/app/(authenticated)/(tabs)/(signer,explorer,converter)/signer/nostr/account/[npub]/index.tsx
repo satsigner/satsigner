@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { type Href, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
@@ -118,6 +118,13 @@ export default function NostrAccountLanding() {
     raw: string
     cleaned: string
   }) {
+    if (detected.type === 'nostr_connect') {
+      const connectUri = detected.cleaned || detected.raw
+      router.navigate(
+        `${nostrAccountHref(npub, 'bunker')}?connectUri=${encodeURIComponent(connectUri)}` as Href
+      )
+      return
+    }
     const nostrUri = detected.cleaned || detected.raw
     router.navigate(nostrNoteHref(npub, nostrUri))
   }

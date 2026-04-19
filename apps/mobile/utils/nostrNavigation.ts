@@ -26,6 +26,7 @@ export function nostrNoteHref(npub: string, nostrUri: string): Href {
 export function nostrAccountHref(
   npub: string,
   segment:
+    | 'bunker'
     | 'chat'
     | 'compose'
     | 'keys'

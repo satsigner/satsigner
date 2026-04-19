@@ -45,6 +45,7 @@ export type ContentType =
   | 'nostr_note'
   | 'nostr_nevent'
   | 'nostr_nprofile'
+  | 'nostr_connect'
   | 'nostr_json'
   | 'incompatible'
   | 'unknown'
@@ -285,6 +286,15 @@ function detectNostrContent(data: string): DetectedContent | null {
   const trimmed = stripNostrPrefix(data.trim())
   const lower = trimmed.toLowerCase()
 
+  if (lower.startsWith('nostrconnect://')) {
+    return {
+      cleaned: trimmed,
+      isValid: true,
+      raw: data,
+      type: 'nostr_connect'
+    }
+  }
+
   if (lower.startsWith('npub1') && trimmed.length >= 60) {
     return {
       cleaned: trimmed,
@@ -487,6 +497,7 @@ export function isContentTypeSupportedInContext(
       return ['ecash_token', 'lightning_invoice', 'lnurl'].includes(contentType)
     case 'nostr':
       return [
+        'nostr_connect',
         'nostr_npub',
         'nostr_nsec',
         'nostr_note',
@@ -535,6 +546,8 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Nostr Event'
     case 'nostr_nprofile':
       return 'Nostr Profile'
+    case 'nostr_connect':
+      return 'Nostr Connect Request'
     case 'nostr_json':
       return 'Nostr JSON Note'
     case 'unknown':

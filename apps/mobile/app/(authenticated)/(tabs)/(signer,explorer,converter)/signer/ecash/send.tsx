@@ -90,7 +90,8 @@ export default function EcashSendPage() {
         handleInvoiceChange(invoiceValue)
       }
     }
-  }, [invoiceParam, handleInvoiceChange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceParam])
 
   const chunks = getTokenChunks()
   const totalChunks = chunks.length

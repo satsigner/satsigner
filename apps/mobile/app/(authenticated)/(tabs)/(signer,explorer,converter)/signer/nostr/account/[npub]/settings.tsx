@@ -253,6 +253,14 @@ export default function NostrIdentitySettings() {
             }
           />
 
+          {!identity.isWatchOnly && (
+            <SSButton
+              label={t('nip46.title')}
+              variant="outline"
+              onPress={() => router.navigate(nostrAccountHref(npub, 'bunker'))}
+            />
+          )}
+
           <SSVStack gap="sm" style={styles.cacheSection}>
             <SSText size="sm" color="muted" uppercase>
               {t('nostrIdentity.settings.cache.title')}
