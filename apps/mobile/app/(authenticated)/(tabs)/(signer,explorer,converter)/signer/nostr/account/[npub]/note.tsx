@@ -24,7 +24,9 @@ import {
 } from '@/components/SSNostrFeedNoteRow'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
-import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
+import SSPaymentMethodPicker, {
+  type PaymentMethod
+} from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
 import {
   DEFAULT_ONE_TAP_AMOUNT,
@@ -114,8 +116,6 @@ export default function NostrNotePage() {
   const [replyParentKind0Pending, setReplyParentKind0Pending] = useState(false)
   const effectiveRelaysRef = useRef(effectiveRelays)
   effectiveRelaysRef.current = effectiveRelays
-  const ownPubkeysRef = useRef(ownPubkeys)
-  ownPubkeysRef.current = ownPubkeys
   const fetchedRef = useRef(false)
   const pendingInvoiceRef = useRef<{
     invoice: string
@@ -145,6 +145,8 @@ export default function NostrNotePage() {
   const [ownPubkeys] = useState(() =>
     ownPubkeyHex ? [ownPubkeyHex] : ([] as string[])
   )
+  const ownPubkeysRef = useRef(ownPubkeys)
+  ownPubkeysRef.current = ownPubkeys
 
   async function loadZapReceipts(eventIdHex: string) {
     try {
@@ -252,6 +254,9 @@ export default function NostrNotePage() {
     }
 
     async function fetchNote() {
+      if (!decoded) {
+        return
+      }
       const api = new NostrAPI(
         effectiveRelaysRef.current,
         ownPubkeysRef.current
@@ -415,6 +420,9 @@ export default function NostrNotePage() {
     const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
 
     async function fetchReplyParent() {
+      if (!replyParentId) {
+        return
+      }
       try {
         let event = await api.fetchEvent(replyParentId)
         if (!event && replyParentRelayHint) {

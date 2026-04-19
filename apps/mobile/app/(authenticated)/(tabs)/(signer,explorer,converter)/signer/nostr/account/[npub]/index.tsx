@@ -98,6 +98,9 @@ export default function NostrAccountLanding() {
     fetchedRef.current = true
 
     async function fetchProfile() {
+      if (!identity) {
+        return
+      }
       const api = new NostrAPI(effectiveRelays)
       try {
         const profile = await api.fetchKind0(npub)
