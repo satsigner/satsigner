@@ -4,63 +4,62 @@ import { hStack, type HStackGap } from "@/styles/layout";
 import { DimensionValue, StyleSheet, View } from "react-native";
 import { range, shuffle } from "@/utils/array";
 
-type SSNumericKeyboardProps = {
+type SSKeyboardProps = {
+  onPress?: (item: string) => void;
   random?: boolean;
-  onPress?: (digit: string) => void;
-  digits?: string[];
+  items?: string[];
   nCols?: number;
   gap?: HStackGap;
 };
 
-const NUMERIC_PAD = [
-  ...range(10, 1).map((x) => x.toString()), '0'
-]
+const NUMERIC_PAD = [...range(10, 1).map((x) => x.toString()), "0"];
 
 export default function SSKeyboard({
-  gap = "xs",
   onPress,
-  digits = NUMERIC_PAD,
+  gap = "xs",
+  items = NUMERIC_PAD,
   nCols = 3,
   random = false,
-}: SSNumericKeyboardProps) {
-  const pad = random ? shuffle(digits) : digits;
+}: SSKeyboardProps) {
+  const pad = random ? shuffle(items) : items;
   const nRows = Math.ceil(pad.length / nCols);
   const cellWidth: DimensionValue = `${Math.floor(100 / nCols)}%`;
 
-  function handleOnPress(digit: string) {
+  function handleOnPress(item: string) {
     if (onPress) {
-      onPress(digit);
+      onPress(item);
     }
+  }
+
+  function SSKeyboardItem({ index }: { index: number }) {
+    if (index >= pad.length) return null;
+
+    const item = pad[index];
+
+    return (
+      <View
+        key={index}
+        style={{
+          width: cellWidth,
+          padding: hStack["gap"][gap],
+        }}
+      >
+        <SSButton
+          key={index}
+          label={item}
+          onPress={() => handleOnPress(item)}
+        />
+      </View>
+    );
   }
 
   return (
     <View>
       {range(nRows).map((i) => (
         <SSHStack key={i} style={styles.row}>
-          {range(nCols).map((j) => {
-            const index = i * nCols + j;
-
-            if (index >= pad.length) {
-              return null;
-            }
-
-            const digit = pad[index];
-            return (
-              <View
-                key={index}
-                style={{
-                  width: cellWidth,
-                  padding: hStack["gap"][gap],
-                }}
-              >
-                <SSButton
-                  key={index}
-                  label={digit}
-                  onPress={() => handleOnPress(digit)}
-                />
-              </View>
-            );
-          })}
+          {range(nCols).map((j) => (
+            <SSKeyboardItem index={i * nCols + j} />
+          ))}
         </SSHStack>
       ))}
     </View>
@@ -72,6 +71,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     gap: 0,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
 });
