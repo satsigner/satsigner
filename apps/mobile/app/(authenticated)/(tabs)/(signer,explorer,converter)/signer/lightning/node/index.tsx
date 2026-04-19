@@ -1116,20 +1116,6 @@ export default function NodeDetailPage() {
 }
 
 const styles = StyleSheet.create({
-  tabIndicator: {
-    backgroundColor: Colors.white,
-    bottom: 0,
-    height: 2,
-    left: 0,
-    position: 'absolute',
-    right: 0
-  },
-  tabItem: {
-    alignItems: 'center',
-    height: '100%',
-    justifyContent: 'center',
-    paddingBottom: 8
-  },
   actions: {
     gap: 8,
     marginTop: 16
@@ -1316,6 +1302,20 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: -4,
     paddingHorizontal: 0
+  },
+  tabIndicator: {
+    backgroundColor: Colors.white,
+    bottom: 0,
+    height: 2,
+    left: 0,
+    position: 'absolute',
+    right: 0
+  },
+  tabItem: {
+    alignItems: 'center',
+    height: '100%',
+    justifyContent: 'center',
+    paddingBottom: 8
   },
   transactionDescription: {
     marginTop: 6

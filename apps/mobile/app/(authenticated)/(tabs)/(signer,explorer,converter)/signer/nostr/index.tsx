@@ -1,5 +1,5 @@
 import { Stack, useFocusEffect, useRouter } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -44,11 +44,9 @@ export default function NostrLanding() {
     updateIdentity
   })
 
-  useFocusEffect(
-    useCallback(() => {
-      setListRenderEpoch((n) => n + 1)
-    }, [])
-  )
+  useFocusEffect(() => {
+    setListRenderEpoch((n) => n + 1)
+  })
 
   function handleAddIdentity() {
     router.navigate(nostrAddIdentityHref())

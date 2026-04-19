@@ -1,12 +1,5 @@
 import { nip19 } from 'nostr-tools'
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -260,7 +253,9 @@ function SSNostrFeedTabs({
 
   const hexPubkey = getPubKeyHexFromNpub(npub) ?? ''
   const ownPubkeyLower = hexPubkey.toLowerCase()
-  const ownPubkeys = hexPubkey ? [hexPubkey] : []
+  const [ownPubkeys] = useState(() =>
+    hexPubkey ? [hexPubkey] : ([] as string[])
+  )
   const authorNavNpub = profileLinkContextNpub ?? npub
 
   const apiRef = useRef<NostrAPI | null>(null)
@@ -275,146 +270,136 @@ function SSNostrFeedTabs({
     }
   }, [relaysKey, ownPubkeys]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadNotes = useCallback(
-    async (loadMore = false) => {
-      if (notesLoading || !apiRef.current) {
-        return
+  async function loadNotes(loadMore = false) {
+    if (notesLoading || !apiRef.current) {
+      return
+    }
+
+    setNotesLoading(true)
+    try {
+      const lastNote = notes.at(-1)
+      const until = loadMore && lastNote ? lastNote.created_at : undefined
+
+      const fetched = await apiRef.current.fetchNotes(
+        npub,
+        PAGE_SIZE,
+        until,
+        kindsForNoteKindFilterId(notesKindFilterId)
+      )
+
+      if (fetched.length < PAGE_SIZE) {
+        setNotesHasMore(false)
       }
 
-      setNotesLoading(true)
-      try {
-        const lastNote = notes.at(-1)
-        const until = loadMore && lastNote ? lastNote.created_at : undefined
-
-        const fetched = await apiRef.current.fetchNotes(
-          npub,
-          PAGE_SIZE,
-          until,
-          kindsForNoteKindFilterId(notesKindFilterId)
-        )
-
-        if (fetched.length < PAGE_SIZE) {
-          setNotesHasMore(false)
-        }
-
-        if (loadMore) {
-          setNotes((prev) => {
-            const existingIds = new Set(prev.map((n) => n.id))
-            const newNotes = fetched.filter((n) => !existingIds.has(n.id))
-            return [...prev, ...newNotes]
-          })
-        } else {
-          setNotes(fetched)
-        }
-      } catch {
-        // fetch failed — UI already shows empty state
-      } finally {
-        setNotesLoading(false)
+      if (loadMore) {
+        setNotes((prev) => {
+          const existingIds = new Set(prev.map((n) => n.id))
+          const newNotes = fetched.filter((n) => !existingIds.has(n.id))
+          return [...prev, ...newNotes]
+        })
+      } else {
+        setNotes(fetched)
       }
-    },
-    [npub, notes, notesKindFilterId, notesLoading]
-  )
+    } catch {
+      // fetch failed — UI already shows empty state
+    } finally {
+      setNotesLoading(false)
+    }
+  }
 
-  const loadFeed = useCallback(
-    async (loadMore = false) => {
-      if (feedLoading || !apiRef.current) {
-        return
-      }
+  async function loadFeed(loadMore = false) {
+    if (feedLoading || !apiRef.current) {
+      return
+    }
 
-      setFeedLoading(true)
-      try {
-        if (!loadMore) {
-          const following =
-            await apiRef.current.fetchKind3FollowingPubkeys(npub)
-          const empty = following.length === 0
-          setFeedFollowingEmpty(empty)
-          if (empty) {
-            setFeedNotes([])
-            setFeedHasMore(false)
-            return
-          }
-        }
-
-        const lastFeed = feedNotes.at(-1)
-        const until = loadMore && lastFeed ? lastFeed.created_at : undefined
-
-        const fetched = await apiRef.current.fetchFollowingTimelineNotes(
-          npub,
-          PAGE_SIZE,
-          until,
-          kindsForNoteKindFilterId(feedKindFilterId)
-        )
-
-        if (fetched.length < PAGE_SIZE) {
+    setFeedLoading(true)
+    try {
+      if (!loadMore) {
+        const following = await apiRef.current.fetchKind3FollowingPubkeys(npub)
+        const empty = following.length === 0
+        setFeedFollowingEmpty(empty)
+        if (empty) {
+          setFeedNotes([])
           setFeedHasMore(false)
+          return
         }
-
-        if (loadMore) {
-          setFeedNotes((prev) => {
-            const existingIds = new Set(prev.map((n) => n.id))
-            const newNotes = fetched.filter((n) => !existingIds.has(n.id))
-            return [...prev, ...newNotes]
-          })
-        } else {
-          setFeedNotes(fetched)
-        }
-      } catch {
-        // fetch failed — UI already shows empty state
-      } finally {
-        setFeedLoading(false)
-      }
-    },
-    [npub, feedNotes, feedKindFilterId, feedLoading]
-  )
-
-  const loadZaps = useCallback(
-    async (loadMore = false) => {
-      if (zapsLoading || !relays.length) {
-        return
       }
 
-      setZapsLoading(true)
-      try {
-        const lastZap = zaps.at(-1)
-        const until =
-          loadMore && lastZap && lastZap.createdAt > 0
-            ? lastZap.createdAt - 1
-            : undefined
+      const lastFeed = feedNotes.at(-1)
+      const until = loadMore && lastFeed ? lastFeed.created_at : undefined
 
-        const [incomingBatch, sentBatch] = await Promise.all([
-          fetchZapsByPubkey(hexPubkey, relays, PAGE_SIZE, until, ownPubkeys),
-          fetchZapsSentByPubkey(hexPubkey, relays, PAGE_SIZE, until)
-        ])
+      const fetched = await apiRef.current.fetchFollowingTimelineNotes(
+        npub,
+        PAGE_SIZE,
+        until,
+        kindsForNoteKindFilterId(feedKindFilterId)
+      )
 
-        const fetched = mergeZapReceiptsById([...incomingBatch, ...sentBatch])
-        const incomingHasMore = incomingBatch.length >= PAGE_SIZE
-        const sentHasMore = sentBatch.length >= PAGE_SIZE
+      if (fetched.length < PAGE_SIZE) {
+        setFeedHasMore(false)
+      }
 
-        if (loadMore) {
-          const prevLen = zaps.length
-          const allZaps = mergeZapReceiptsById([...zaps, ...fetched])
-          if (allZaps.length === prevLen) {
-            setZapsHasMore(false)
-          } else {
-            setZapsHasMore(incomingHasMore || sentHasMore)
-          }
-          setZaps(allZaps)
-          await enrichZapReceipts(allZaps, relays)
-          setZaps([...allZaps])
+      if (loadMore) {
+        setFeedNotes((prev) => {
+          const existingIds = new Set(prev.map((n) => n.id))
+          const newNotes = fetched.filter((n) => !existingIds.has(n.id))
+          return [...prev, ...newNotes]
+        })
+      } else {
+        setFeedNotes(fetched)
+      }
+    } catch {
+      // fetch failed — UI already shows empty state
+    } finally {
+      setFeedLoading(false)
+    }
+  }
+
+  async function loadZaps(loadMore = false) {
+    if (zapsLoading || !relays.length) {
+      return
+    }
+
+    setZapsLoading(true)
+    try {
+      const lastZap = zaps.at(-1)
+      const until =
+        loadMore && lastZap && lastZap.createdAt > 0
+          ? lastZap.createdAt - 1
+          : undefined
+
+      const [incomingBatch, sentBatch] = await Promise.all([
+        fetchZapsByPubkey(hexPubkey, relays, PAGE_SIZE, until, ownPubkeys),
+        fetchZapsSentByPubkey(hexPubkey, relays, PAGE_SIZE, until)
+      ])
+
+      const fetched = mergeZapReceiptsById([...incomingBatch, ...sentBatch])
+      const incomingHasMore = incomingBatch.length >= PAGE_SIZE
+      const sentHasMore = sentBatch.length >= PAGE_SIZE
+
+      if (loadMore) {
+        const prevLen = zaps.length
+        const allZaps = mergeZapReceiptsById([...zaps, ...fetched])
+        if (allZaps.length === prevLen) {
+          setZapsHasMore(false)
         } else {
           setZapsHasMore(incomingHasMore || sentHasMore)
-          setZaps(fetched)
-          await enrichZapReceipts(fetched, relays)
-          setZaps([...fetched])
         }
-      } catch {
-        // fetch failed — UI already shows empty state
-      } finally {
-        setZapsLoading(false)
+        setZaps(allZaps)
+        await enrichZapReceipts(allZaps, relays)
+        setZaps([...allZaps])
+      } else {
+        setZapsHasMore(incomingHasMore || sentHasMore)
+        setZaps(fetched)
+        await enrichZapReceipts(fetched, relays)
+        setZaps([...fetched])
       }
-    },
-    [hexPubkey, ownPubkeys, relays, zaps, zapsLoading]
-  )
+    } catch {
+      // fetch failed — UI already shows empty state
+    } finally {
+      setZapsLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!relayConnected) {
@@ -465,15 +450,15 @@ function SSNostrFeedTabs({
     feedKind0FetchedRef.current.clear()
   }, [feedKindFilterId])
 
-  const notesKindLabel = useMemo(() => {
-    const opt = NOTE_KIND_FILTER_OPTIONS.find((o) => o.id === notesKindFilterId)
-    return opt ? t(opt.labelKey) : ''
-  }, [notesKindFilterId])
+  const notesKindOpt = NOTE_KIND_FILTER_OPTIONS.find(
+    (o) => o.id === notesKindFilterId
+  )
+  const notesKindLabel = notesKindOpt ? t(notesKindOpt.labelKey) : ''
 
-  const feedKindLabel = useMemo(() => {
-    const opt = NOTE_KIND_FILTER_OPTIONS.find((o) => o.id === feedKindFilterId)
-    return opt ? t(opt.labelKey) : ''
-  }, [feedKindFilterId])
+  const feedKindOpt = NOTE_KIND_FILTER_OPTIONS.find(
+    (o) => o.id === feedKindFilterId
+  )
+  const feedKindLabel = feedKindOpt ? t(feedKindOpt.labelKey) : ''
 
   useEffect(() => {
     if (!relayConnected || activeTab !== 'notes' || notesFetchedRef.current) {
@@ -481,7 +466,7 @@ function SSNostrFeedTabs({
     }
     notesFetchedRef.current = true
     void loadNotes()
-  }, [activeTab, relayConnected, loadNotes, notesKindFilterId])
+  }, [activeTab, relayConnected, notesKindFilterId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!relayConnected || activeTab !== 'feed' || feedFetchedRef.current) {
@@ -489,7 +474,7 @@ function SSNostrFeedTabs({
     }
     feedFetchedRef.current = true
     void loadFeed()
-  }, [activeTab, relayConnected, loadFeed, feedKindFilterId])
+  }, [activeTab, relayConnected, feedKindFilterId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!relayConnected || activeTab !== 'zaps' || zapsFetchedRef.current) {
@@ -497,7 +482,7 @@ function SSNostrFeedTabs({
     }
     zapsFetchedRef.current = true
     void loadZaps()
-  }, [activeTab, relayConnected, loadZaps])
+  }, [activeTab, relayConnected]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!relayConnected || privacyMode || !apiRef.current) {

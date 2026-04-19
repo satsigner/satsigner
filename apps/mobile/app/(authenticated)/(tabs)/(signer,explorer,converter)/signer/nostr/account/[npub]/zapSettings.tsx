@@ -5,7 +5,6 @@ import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
-import { type PaymentMethod } from '@/components/SSPaymentMethodPicker'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -18,33 +17,10 @@ import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
+import { buildPaymentMethods } from '@/utils/paymentMethods'
 
 type ZapSettingsParams = {
   npub: string
-}
-
-function buildPaymentMethods(
-  lightningConfig: { url: string } | null,
-  mints: { url: string; name?: string }[]
-): PaymentMethod[] {
-  const methods: PaymentMethod[] = []
-  if (lightningConfig) {
-    methods.push({
-      detail: lightningConfig.url,
-      id: 'lightning',
-      label: 'Lightning',
-      type: 'lightning'
-    })
-  }
-  for (const mint of mints) {
-    methods.push({
-      detail: mint.name || mint.url,
-      id: `ecash-${mint.url}`,
-      label: 'ECash',
-      type: 'ecash'
-    })
-  }
-  return methods
 }
 
 export default function ZapSettingsPage() {

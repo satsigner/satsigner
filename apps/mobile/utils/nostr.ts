@@ -37,20 +37,18 @@ export function generateColorFromNpub(npub: string): string {
   const x = c * (1 - Math.abs((h % 2) - 1))
   const m = l - c / 2
 
-  let r, g, b
-  if (h < 1) {
-    ;[r, g, b] = [c, x, 0]
-  } else if (h < 2) {
-    ;[r, g, b] = [x, c, 0]
-  } else if (h < 3) {
-    ;[r, g, b] = [0, c, x]
-  } else if (h < 4) {
-    ;[r, g, b] = [0, x, c]
-  } else if (h < 5) {
-    ;[r, g, b] = [x, 0, c]
-  } else {
-    ;[r, g, b] = [c, 0, x]
-  }
+  const [r, g, b] =
+    h < 1
+      ? [c, x, 0]
+      : h < 2
+        ? [x, c, 0]
+        : h < 3
+          ? [0, c, x]
+          : h < 4
+            ? [0, x, c]
+            : h < 5
+              ? [x, 0, c]
+              : [c, 0, x]
 
   const toHex = (n: number) => {
     const hex = Math.round((n + m) * 255).toString(16)

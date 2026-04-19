@@ -1,5 +1,4 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { useMemo } from 'react'
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSText from '@/components/SSText'
@@ -55,10 +54,8 @@ function SSNostrAccountCard({
 }: SSNostrAccountCardProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const storeRelays = useNostrIdentityStore((state) => state.relays)
-  const relayCount = useMemo(() => {
-    const urls = identity.relays?.length ? identity.relays : storeRelays
-    return urls.length
-  }, [identity.relays, storeRelays])
+  const urls = identity.relays?.length ? identity.relays : storeRelays
+  const relayCount = urls.length
 
   const nip05Value = identity.nip05?.trim()
   const lud16Value = identity.lud16?.trim()

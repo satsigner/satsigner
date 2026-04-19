@@ -18,16 +18,9 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors, Sizes } from '@/styles'
+import { chunkArray } from '@/utils/chunkArray'
 import { generateColorFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
-
-function chunkSeedWords(words: string[], size: number): string[][] {
-  const rows: string[][] = []
-  for (let i = 0; i < words.length; i += size) {
-    rows.push(words.slice(i, i + size))
-  }
-  return rows
-}
 
 type KeysParams = {
   npub: string
@@ -208,7 +201,7 @@ export default function NostrIdentityKeys() {
                   {seedWordsRevealed ? (
                     <>
                       <View style={styles.wordsGrid}>
-                        {chunkSeedWords(identity.mnemonic.split(' '), 3).map(
+                        {chunkArray(identity.mnemonic.split(' '), 3).map(
                           (row, rowIndex) => (
                             <SSHStack
                               key={rowIndex}

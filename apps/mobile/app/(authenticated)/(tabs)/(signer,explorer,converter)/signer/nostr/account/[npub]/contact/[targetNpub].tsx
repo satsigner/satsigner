@@ -21,9 +21,8 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
-import { type EcashMint } from '@/types/models/Ecash'
-import { type LNDConfig } from '@/types/models/LND'
 import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import { buildPaymentMethods } from '@/utils/paymentMethods'
 import { initiateZap } from '@/utils/zap'
 
 type ContactParams = {
@@ -290,29 +289,3 @@ const styles = StyleSheet.create({
     paddingBottom: 40
   }
 })
-
-function buildPaymentMethods(
-  lightningConfig: LNDConfig | null,
-  mints: EcashMint[]
-): PaymentMethod[] {
-  const methods: PaymentMethod[] = []
-  if (lightningConfig) {
-    methods.push({
-      detail: lightningConfig.url,
-      id: 'lightning',
-      label: 'Lightning',
-      type: 'lightning'
-    })
-  }
-  if (mints.length > 0) {
-    for (const mint of mints) {
-      methods.push({
-        detail: mint.name || mint.url,
-        id: `ecash-${mint.url}`,
-        label: 'ECash',
-        type: 'ecash'
-      })
-    }
-  }
-  return methods
-}

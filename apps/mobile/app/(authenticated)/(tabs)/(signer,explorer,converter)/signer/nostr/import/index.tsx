@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
 import { type Network } from 'react-native-bdk-sdk'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
@@ -88,13 +88,13 @@ export default function ImportNostrIdentity() {
     toast.success(t('common.success.qrScanned'))
   }
 
-  const handleMnemonicValid = useCallback((mnemonic: string) => {
+  function handleMnemonicValid(mnemonic: string) {
     setValidMnemonic(mnemonic)
-  }, [])
+  }
 
-  const handleMnemonicInvalid = useCallback(() => {
+  function handleMnemonicInvalid() {
     setValidMnemonic(null)
-  }, [])
+  }
 
   function handleImportNsec() {
     const trimmed = nsec.trim()
@@ -159,136 +159,135 @@ export default function ImportNostrIdentity() {
     router.navigate('/signer/nostr')
   }
 
-  const renderScene = useCallback(
-    ({ route }: SceneRendererProps & { route: { key: string } }) => {
-      switch (route.key) {
-        case 'nsec':
-          return (
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <SSVStack gap="lg" style={styles.tabContent}>
-                <SSVStack gap="xs">
-                  <SSText size="sm" color="muted" uppercase>
-                    {t('nostrIdentity.import.nsecLabel')}
-                  </SSText>
-                  <SSTextInput
-                    placeholder="nsec1..."
-                    value={nsec}
-                    onChangeText={setNsec}
-                    align="left"
-                    autoCapitalize="none"
-                    secureTextEntry
-                  />
-                </SSVStack>
-                <SSHStack gap="sm" style={{ width: '100%' }}>
-                  <SSButton
-                    label={t('common.paste')}
-                    variant="outline"
-                    onPress={handlePasteNsec}
-                    style={{ flex: 1 }}
-                  />
-                  <SSButton
-                    label={t('common.scanQR')}
-                    variant="outline"
-                    onPress={() => {
-                      setScanTarget('nsec')
-                      setCameraVisible(true)
-                    }}
-                    style={{ flex: 1 }}
-                  />
-                </SSHStack>
-                <SSButton
-                  label={t('nostrIdentity.import.importButton')}
-                  variant="secondary"
-                  onPress={handleImportNsec}
-                  disabled={!nsec.trim().startsWith('nsec1')}
+  function renderScene({
+    route
+  }: SceneRendererProps & { route: { key: string } }) {
+    switch (route.key) {
+      case 'nsec':
+        return (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <SSVStack gap="lg" style={styles.tabContent}>
+              <SSVStack gap="xs">
+                <SSText size="sm" color="muted" uppercase>
+                  {t('nostrIdentity.import.nsecLabel')}
+                </SSText>
+                <SSTextInput
+                  placeholder="nsec1..."
+                  value={nsec}
+                  onChangeText={setNsec}
+                  align="left"
+                  autoCapitalize="none"
+                  secureTextEntry
                 />
               </SSVStack>
-            </ScrollView>
-          )
-        case 'seedWords':
-          return (
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              style={styles.tabContent}
-            >
-              <SSSeedWordsInput
-                wordCount={12}
-                wordListName="english"
-                network={'testnet' as unknown as Network}
-                onMnemonicValid={handleMnemonicValid}
-                onMnemonicInvalid={handleMnemonicInvalid}
-                showPasteButton
-                showScanSeedQRButton={false}
-                showActionButton
-                actionButtonLabel={t('nostrIdentity.import.importButton')}
-                actionButtonVariant="secondary"
-                onActionButtonPress={handleImportSeedWords}
-                actionButtonDisabled={!validMnemonic}
-                showCancelButton={false}
-                autoCheckClipboard={false}
+              <SSHStack gap="sm" style={{ width: '100%' }}>
+                <SSButton
+                  label={t('common.paste')}
+                  variant="outline"
+                  onPress={handlePasteNsec}
+                  style={{ flex: 1 }}
+                />
+                <SSButton
+                  label={t('common.scanQR')}
+                  variant="outline"
+                  onPress={() => {
+                    setScanTarget('nsec')
+                    setCameraVisible(true)
+                  }}
+                  style={{ flex: 1 }}
+                />
+              </SSHStack>
+              <SSButton
+                label={t('nostrIdentity.import.importButton')}
+                variant="secondary"
+                onPress={handleImportNsec}
+                disabled={!nsec.trim().startsWith('nsec1')}
               />
-            </ScrollView>
-          )
-        case 'npub':
-          return (
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <SSVStack gap="lg" style={styles.tabContent}>
-                <SSVStack gap="xs">
-                  <SSText size="sm" color="muted" uppercase>
-                    {t('nostrIdentity.import.npubLabel')}
-                  </SSText>
-                  <SSTextInput
-                    placeholder="npub1..."
-                    value={npub}
-                    onChangeText={setNpub}
-                    align="left"
-                    autoCapitalize="none"
-                  />
-                  <SSText size="xs" color="muted">
-                    {t('nostrIdentity.import.npubHint')}
-                  </SSText>
-                </SSVStack>
-                <SSHStack gap="sm" style={{ width: '100%' }}>
-                  <SSButton
-                    label={t('common.paste')}
-                    variant="outline"
-                    onPress={handlePasteNpub}
-                    style={{ flex: 1 }}
-                  />
-                  <SSButton
-                    label={t('common.scanQR')}
-                    variant="outline"
-                    onPress={() => {
-                      setScanTarget('npub')
-                      setCameraVisible(true)
-                    }}
-                    style={{ flex: 1 }}
-                  />
-                </SSHStack>
-                <SSButton
-                  label={t('nostrIdentity.import.importButton')}
-                  variant="secondary"
-                  onPress={handleImportNpub}
-                  disabled={!npub.trim().startsWith('npub1')}
+            </SSVStack>
+          </ScrollView>
+        )
+      case 'seedWords':
+        return (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            style={styles.tabContent}
+          >
+            <SSSeedWordsInput
+              wordCount={12}
+              wordListName="english"
+              network={'testnet' as unknown as Network}
+              onMnemonicValid={handleMnemonicValid}
+              onMnemonicInvalid={handleMnemonicInvalid}
+              showPasteButton
+              showScanSeedQRButton={false}
+              showActionButton
+              actionButtonLabel={t('nostrIdentity.import.importButton')}
+              actionButtonVariant="secondary"
+              onActionButtonPress={handleImportSeedWords}
+              actionButtonDisabled={!validMnemonic}
+              showCancelButton={false}
+              autoCheckClipboard={false}
+            />
+          </ScrollView>
+        )
+      case 'npub':
+        return (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <SSVStack gap="lg" style={styles.tabContent}>
+              <SSVStack gap="xs">
+                <SSText size="sm" color="muted" uppercase>
+                  {t('nostrIdentity.import.npubLabel')}
+                </SSText>
+                <SSTextInput
+                  placeholder="npub1..."
+                  value={npub}
+                  onChangeText={setNpub}
+                  align="left"
+                  autoCapitalize="none"
                 />
+                <SSText size="xs" color="muted">
+                  {t('nostrIdentity.import.npubHint')}
+                </SSText>
               </SSVStack>
-            </ScrollView>
-          )
-        default:
-          return null
-      }
-    },
-    [nsec, npub, validMnemonic, handleMnemonicValid, handleMnemonicInvalid]
-  )
+              <SSHStack gap="sm" style={{ width: '100%' }}>
+                <SSButton
+                  label={t('common.paste')}
+                  variant="outline"
+                  onPress={handlePasteNpub}
+                  style={{ flex: 1 }}
+                />
+                <SSButton
+                  label={t('common.scanQR')}
+                  variant="outline"
+                  onPress={() => {
+                    setScanTarget('npub')
+                    setCameraVisible(true)
+                  }}
+                  style={{ flex: 1 }}
+                />
+              </SSHStack>
+              <SSButton
+                label={t('nostrIdentity.import.importButton')}
+                variant="secondary"
+                onPress={handleImportNpub}
+                disabled={!npub.trim().startsWith('npub1')}
+              />
+            </SSVStack>
+          </ScrollView>
+        )
+      default:
+        return null
+    }
+  }
 
-  const renderTabBar = useCallback(() => {
+  function renderTabBar() {
     const tabWidth = `${100 / ROUTES.length}%` as const
 
     return (
@@ -316,7 +315,7 @@ export default function ImportNostrIdentity() {
         ))}
       </SSHStack>
     )
-  }, [tabIndex])
+  }
 
   return (
     <SSMainLayout>

@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
@@ -54,7 +54,7 @@ export default function NostrFollowingSend() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const loadFollowing = useCallback(async () => {
+  async function loadFollowing() {
     if (!npub || effectiveRelays.length === 0) {
       setLoading(false)
       return
@@ -90,11 +90,11 @@ export default function NostrFollowingSend() {
     } finally {
       setLoading(false)
     }
-  }, [effectiveRelays, npub])
+  }
 
   useEffect(() => {
     void loadFollowing()
-  }, [loadFollowing])
+  }, [effectiveRelays, npub]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePressRow(target: NostrIdentity) {
     router.navigate({

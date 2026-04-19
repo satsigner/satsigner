@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Modal, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -14,15 +14,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
 import { generateMnemonic } from '@/utils/bip39'
+import { chunkArray } from '@/utils/chunkArray'
 import { deriveNostrKeysFromMnemonic } from '@/utils/nostrIdentity'
-
-function chunkSeedWords(words: string[], size: number): string[][] {
-  const rows: string[][] = []
-  for (let i = 0; i < words.length; i += size) {
-    rows.push(words.slice(i, i + size))
-  }
-  return rows
-}
 
 export default function CreateNostrIdentity() {
   const router = useRouter()
@@ -30,9 +23,9 @@ export default function CreateNostrIdentity() {
   const [qrModalValue, setQrModalValue] = useState<string | null>(null)
   const [seedQrVisible, setSeedQrVisible] = useState(false)
 
-  const mnemonic = useMemo(() => generateMnemonic(12), [])
-  const words = useMemo(() => mnemonic.split(' '), [mnemonic])
-  const keys = useMemo(() => deriveNostrKeysFromMnemonic(mnemonic), [mnemonic])
+  const [mnemonic] = useState(() => generateMnemonic(12))
+  const words = mnemonic.split(' ')
+  const keys = deriveNostrKeysFromMnemonic(mnemonic)
 
   function handleCopyMnemonic() {
     Clipboard.setStringAsync(mnemonic)
@@ -78,7 +71,7 @@ export default function CreateNostrIdentity() {
             </SSText>
             <View style={styles.keyGroup}>
               <View style={styles.wordsGrid}>
-                {chunkSeedWords(words, 3).map((row, rowIndex) => (
+                {chunkArray(words, 3).map((row, rowIndex) => (
                   <SSHStack key={rowIndex} gap="sm" style={styles.wordRow}>
                     {row.map((word, colIndex) => {
                       const index = rowIndex * 3 + colIndex

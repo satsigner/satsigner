@@ -30,7 +30,7 @@ function collectHttpUrlsFromNote(content: string, tags: string[][]): string[] {
     if (tag[0] !== 'imeta') {
       continue
     }
-    for (let i = 1; i < tag.length; i++) {
+    for (let i = 1; i < tag.length; i += 1) {
       const part = tag[i]
       if (typeof part !== 'string') {
         continue
