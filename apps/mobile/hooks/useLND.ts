@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
 import { LND_REST } from '@/constants/lightningLnd'
 import { useLightningStore } from '@/store/lightning'
@@ -18,15 +19,23 @@ import type {
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
 
 export const useLND = () => {
-  const {
-    config,
-    status,
-    setConnecting,
-    setConnected,
-    setNodeInfo,
-    setChannels,
-    updateLastSync
-  } = useLightningStore()
+  const { channels, isConnected, isConnecting, lastSync, nodeInfo } =
+    useLightningStore(
+      useShallow((state) => ({
+        channels: state.status.channels,
+        isConnected: state.status.isConnected,
+        isConnecting: state.status.isConnecting,
+        lastSync: state.status.lastSync,
+        nodeInfo: state.status.nodeInfo
+      }))
+    )
+
+  const config = useLightningStore((state) => state.config)
+  const setConnecting = useLightningStore((state) => state.setConnecting)
+  const setConnected = useLightningStore((state) => state.setConnected)
+  const setNodeInfo = useLightningStore((state) => state.setNodeInfo)
+  const setChannels = useLightningStore((state) => state.setChannels)
+  const updateLastSync = useLightningStore((state) => state.updateLastSync)
 
   const getInfo = async (): Promise<LNDNodeInfo> => {
     if (!config) {
@@ -264,7 +273,7 @@ export const useLND = () => {
   }, [config]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
-    channels: status.channels,
+    channels,
     closeChannel,
     config,
     createInvoice,
@@ -275,11 +284,11 @@ export const useLND = () => {
     getInfo,
     getPeers,
     getPendingChannels,
-    isConnected: status.isConnected,
-    isConnecting: status.isConnecting,
-    lastSync: status.lastSync,
+    isConnected,
+    isConnecting,
+    lastSync,
     makeRequest,
-    nodeInfo: status.nodeInfo,
+    nodeInfo,
     payInvoice,
     verifyConnection
   }

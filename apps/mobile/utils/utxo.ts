@@ -20,6 +20,7 @@ type UtxoOptions = {
   dustThreshold: number
   inputSize: number
   changeOutputSize: number
+  feeFn?: (inputCount: number, hasChange: boolean) => number
 }
 
 function selectEfficientUtxos(
@@ -62,21 +63,31 @@ function selectEfficientUtxos(
 
   // First pass: Try exact match or closest match algorithm
   const exactMatch = sortedUtxos.find((utxo) => {
-    // Account for the fee of using this single input
-    const txFee = (opts.inputSize + opts.changeOutputSize) * feeRate
+    const txFee = opts.feeFn
+      ? opts.feeFn(1, true)
+      : (opts.inputSize + opts.changeOutputSize) * feeRate
     const netValue = utxo.value - txFee
 
-    // Allow a small margin of error (dust threshold)
     return Math.abs(netValue - targetAmount) < opts.dustThreshold
   })
 
   if (exactMatch) {
+    const feeWithChange = opts.feeFn
+      ? opts.feeFn(1, true)
+      : (opts.inputSize + opts.changeOutputSize) * feeRate
+    const potentialChange = exactMatch.value - targetAmount - feeWithChange
+
+    if (potentialChange >= opts.dustThreshold) {
+      return {
+        change: potentialChange,
+        fee: feeWithChange,
+        inputs: [exactMatch]
+      }
+    }
+    // Change would be dust — absorb into fee
     return {
-      change:
-        exactMatch.value -
-        targetAmount -
-        (opts.inputSize + opts.changeOutputSize) * feeRate,
-      fee: (opts.inputSize + opts.changeOutputSize) * feeRate,
+      change: 0,
+      fee: exactMatch.value - targetAmount,
       inputs: [exactMatch]
     }
   }
@@ -100,18 +111,26 @@ function selectEfficientUtxos(
     selectedUtxos.push(utxo)
     selectedAmount += utxo.value
 
-    // Calculate fee based on number of inputs and one output
-    estimatedFee =
-      (selectedUtxos.length * opts.inputSize + opts.changeOutputSize) * feeRate
+    // Calculate fee with change, then check if we can drop the change output
+    const feeWithChange = opts.feeFn
+      ? opts.feeFn(selectedUtxos.length, true)
+      : (selectedUtxos.length * opts.inputSize + opts.changeOutputSize) *
+        feeRate
+    const feeWithoutChange = opts.feeFn
+      ? opts.feeFn(selectedUtxos.length, false)
+      : selectedUtxos.length * opts.inputSize * feeRate
 
     // If we have enough funds (including fees)
-    if (selectedAmount >= targetAmount + estimatedFee) {
-      change = selectedAmount - targetAmount - estimatedFee
+    if (selectedAmount >= targetAmount + feeWithoutChange) {
+      const potentialChange = selectedAmount - targetAmount - feeWithChange
 
-      // If change is less than dust threshold, add it to the fee
-      if (change < opts.dustThreshold) {
+      if (potentialChange >= opts.dustThreshold) {
+        estimatedFee = feeWithChange
+        change = potentialChange
+      } else {
+        // Change would be dust — absorb it into the fee (no change output)
+        estimatedFee = selectedAmount - targetAmount
         change = 0
-        estimatedFee += change
       }
 
       break
@@ -234,24 +253,27 @@ function branchAndBoundUtxoSelection(
 
   // If we found a selection
   if (bestSelection) {
-    const fee = bestSelection.length * inputCost
-    const change =
-      bestSelection.reduce((sum: number, utxo: Utxo) => sum + utxo.value, 0) -
-      targetAmount -
-      fee
+    const totalInputValue = bestSelection.reduce(
+      (sum: number, utxo: Utxo) => sum + utxo.value,
+      0
+    )
+    const feeWithChange = opts.feeFn
+      ? opts.feeFn(bestSelection.length, true)
+      : bestSelection.length * inputCost
+    const potentialChange = totalInputValue - targetAmount - feeWithChange
 
-    // If change is less than dust, add it to fee
-    if (change > 0 && change < opts.dustThreshold) {
+    // If change is less than dust, absorb it into fee (no change output)
+    if (potentialChange > 0 && potentialChange < opts.dustThreshold) {
       return {
         change: 0,
-        fee: fee + change,
+        fee: totalInputValue - targetAmount,
         inputs: bestSelection
       }
     }
 
     return {
-      change: Math.max(change, 0),
-      fee,
+      change: Math.max(potentialChange, 0),
+      fee: feeWithChange,
       inputs: bestSelection
     }
   }

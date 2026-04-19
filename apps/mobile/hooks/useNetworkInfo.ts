@@ -17,8 +17,10 @@ export function useNetworkInfo() {
     ])
   )
 
+  const nextBlockFee = useBlockchainStore((state) => state.nextBlockFee)
+  const setNextBlockFee = useBlockchainStore((state) => state.setNextBlockFee)
+
   const [blockHeight, setBlockHeight] = useState<number | null>(null)
-  const [nextBlockFee, setNextBlockFee] = useState<number | null>(null)
   const [blockHeightSource, setBlockHeightSource] =
     useState<BlockHeightSource>('mempool')
 
@@ -96,7 +98,7 @@ export function useNetworkInfo() {
       setNextBlockFee(Math.round(fee))
     }
     setBlockHeightSource(source)
-  }, [selectedNetwork, configsMempool, configs])
+  }, [selectedNetwork, configsMempool, configs, setNextBlockFee])
 
   useEffect(() => {
     fetchNetworkInfo()

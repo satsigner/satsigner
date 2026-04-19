@@ -80,15 +80,21 @@ export default function TransactionConfirmation() {
     router.navigate(`/signer/bitcoin/account/${id}`)
   }
 
+  const defaultChangeAddressLabel = t('sign.changeAddressLabelDefault')
+
+  const txLabelText = outputs
+    .filter((o) => o.label !== defaultChangeAddressLabel)
+    .map((o) => o.label)
+    .filter(Boolean)
+    .join(',')
+
   // we store the labels in account.labels, then later on the labels will be
   // restored when the wallet data is fetched.
   useEffect(() => {
     if (psbt) {
       const txid = psbt.txid()
       const labels: Label[] = []
-      const defaultChangeAddressLabel = t('sign.changeAddressLabelDefault')
 
-      let txLabelText = ''
       for (let i = 0; i < outputs.length; i += 1) {
         const output = outputs[i]
 
@@ -113,14 +119,9 @@ export default function TransactionConfirmation() {
           ref: output.to,
           type: 'addr'
         })
-
-        // the tx label will inherit the output's label separated by comma.
-        // this is what sparrow does.
-        txLabelText += `${output.label},`
       }
 
-      // trim the last comma before adding the tx label.
-      txLabelText = txLabelText.replace(/,$/, '')
+      // the tx label inherits the output labels separated by comma.
       labels.push({
         label: txLabelText,
         ref: txid,
@@ -150,7 +151,7 @@ export default function TransactionConfirmation() {
 
       importLabels(id!, labels)
     }
-  }, [id, psbt, outputs, importLabels])
+  }, [id, psbt, outputs, importLabels, defaultChangeAddressLabel, txLabelText])
 
   // Optimistically update the account with the just-broadcast transaction so
   // the user sees it immediately without waiting for a full sync.
@@ -178,6 +179,7 @@ export default function TransactionConfirmation() {
       blockHeight: undefined,
       fee,
       id: txid,
+      label: txLabelText || undefined,
       lockTimeEnabled: false,
       prices: {},
       received: receivedChange,

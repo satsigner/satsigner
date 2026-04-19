@@ -279,7 +279,8 @@ export default function PayPage() {
     }
 
     handlePaymentRequestChange(cleanText)
-  }, [paymentRequestParam, invoiceParam, handlePaymentRequestChange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentRequestParam, invoiceParam])
 
   if (!fontsLoaded) {
     return null
