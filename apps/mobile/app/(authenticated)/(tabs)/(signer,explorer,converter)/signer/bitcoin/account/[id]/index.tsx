@@ -432,18 +432,23 @@ type DerivedAddressesProps = {
 function SSAddressTable({
   addresses,
   renderItem,
+  expand,
   isMultiAddressWatchOnly,
   isLoadingAddresses,
   onLoadMore
 }: {
   addresses: Address[]
   renderItem: ({ item }: { item: Address }) => React.ReactElement
+  expand: boolean
   isMultiAddressWatchOnly: boolean
   isLoadingAddresses: boolean
   onLoadMore: () => void
 }) {
-  const { width: SCREEN_WIDTH } = useWindowDimensions()
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions()
   const ADDRESS_TABLE_WIDTH = SCREEN_WIDTH * 1.2
+  const TABLE_BODY_MAX_HEIGHT = expand
+    ? SCREEN_HEIGHT * 0.62
+    : SCREEN_HEIGHT * 0.32
   return (
     <ScrollView style={{ marginTop: 10 }} horizontal>
       <SSVStack gap="none" style={{ width: ADDRESS_TABLE_WIDTH }}>
@@ -493,15 +498,20 @@ function SSAddressTable({
             {t('address.list.table.utxo')}
           </SSText>
         </SSHStack>
-        <FlashList
-          data={addresses}
-          renderItem={renderItem}
-          keyExtractor={(item) =>
-            `${item.index || ''}:${item.address}:${item.keychain || ''}`
-          }
-          removeClippedSubviews
-          ListFooterComponent={
-            !isMultiAddressWatchOnly ? (
+        <ScrollView
+          nestedScrollEnabled
+          style={{ maxHeight: TABLE_BODY_MAX_HEIGHT }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
+          <SSVStack gap="none">
+            {addresses.map((address) => (
+              <View
+                key={`${address.index || ''}:${address.address}:${address.keychain || ''}`}
+              >
+                {renderItem({ item: address })}
+              </View>
+            ))}
+            {!isMultiAddressWatchOnly ? (
               <SSButton
                 variant="outline"
                 uppercase
@@ -513,9 +523,9 @@ function SSAddressTable({
                 disabled={isLoadingAddresses}
                 onPress={onLoadMore}
               />
-            ) : null
-          }
-        />
+            ) : null}
+          </SSVStack>
+        </ScrollView>
       </SSVStack>
     </ScrollView>
   )
@@ -667,7 +677,10 @@ function DerivedAddresses({
       }
       const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
 
-      if (minItems <= addressCount) {
+      // When `addressCount` defaults to `perPage` but `account.addresses` is still
+      // empty, `minItems <= addressCount` is true and we must not bail out or the
+      // Used Addresses tab never loads its first page.
+      if (minItems <= addressCount && account.addresses.length > 0) {
         return
       }
 
@@ -842,6 +855,7 @@ function DerivedAddresses({
                 : address.keychain === 'external')
           )}
           renderItem={renderItem}
+          expand={expand}
           isMultiAddressWatchOnly={isMultiAddressWatchOnly}
           isLoadingAddresses={isLoadingAddresses}
           onLoadMore={loadMoreAddresses}
@@ -1143,6 +1157,9 @@ export default function AccountView() {
     { key: 'satsInMempool' }
   ]
   const [tabIndex, setTabIndex] = useState(0)
+  const handleTabIndexChange = useCallback((index: number) => {
+    setTabIndex(index)
+  }, [])
   const animationValue = useSharedValue(0)
 
   const [connectionState, , isPrivateConnection, connectionParts] =
@@ -1412,7 +1429,7 @@ export default function AccountView() {
           >
             <SSActionButton
               style={{ width: tabWidth }}
-              onPress={() => setTabIndex(0)}
+              onPress={() => handleTabIndexChange(0)}
             >
               <SSVStack gap="none">
                 <SSText center size="lg">
@@ -1438,7 +1455,7 @@ export default function AccountView() {
             {(!isImportAddress || account.keys.length > 1) && (
               <SSActionButton
                 style={{ width: tabWidth }}
-                onPress={() => setTabIndex(1)}
+                onPress={() => handleTabIndexChange(1)}
               >
                 <SSVStack gap="none">
                   <SSText center size="lg">
@@ -1466,7 +1483,7 @@ export default function AccountView() {
             )}
             <SSActionButton
               style={{ width: tabWidth }}
-              onPress={() => setTabIndex(2)}
+              onPress={() => handleTabIndexChange(2)}
             >
               <SSVStack gap="none">
                 <SSText center size="lg">
@@ -1491,7 +1508,7 @@ export default function AccountView() {
             </SSActionButton>
             <SSActionButton
               style={{ width: tabWidth }}
-              onPress={() => setTabIndex(3)}
+              onPress={() => handleTabIndexChange(3)}
             >
               <SSVStack gap="none">
                 <SSText center size="lg">
@@ -1695,7 +1712,7 @@ export default function AccountView() {
             navigationState={{ index: tabIndex, routes: tabs }}
             renderScene={renderScene}
             renderTabBar={renderTab}
-            onIndexChange={setTabIndex}
+            onIndexChange={handleTabIndexChange}
             initialLayout={{ width }}
             style={{ flex: 1 }}
           />
