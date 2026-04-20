@@ -77,8 +77,9 @@ export default function NostrZapDetail() {
     const alive = { current: true }
     setLoadState('loading')
 
-    fetchZapReceiptById(zapId, profileHex, effectiveRelays)
-      .then(async (r) => {
+    async function fetchReceipt() {
+      try {
+        const r = await fetchZapReceiptById(zapId, profileHex, effectiveRelays)
         if (!alive.current) {
           return
         }
@@ -93,14 +94,16 @@ export default function NostrZapDetail() {
         }
         setReceipt(r)
         setLoadState('ready')
-      })
-      .catch(() => {
+      } catch {
         if (!alive.current) {
           return
         }
         setReceipt(null)
         setLoadState('error')
-      })
+      }
+    }
+
+    void fetchReceipt()
 
     return () => {
       alive.current = false
@@ -122,8 +125,16 @@ export default function NostrZapDetail() {
     const alive = { current: true }
     setReferencedNote(null)
 
-    NostrAPI.fetchEventFromRelays(receipt.zappedEventId, effectiveRelays)
-      .then((ev) => {
+    async function fetchNote() {
+      try {
+        const eventId = receipt?.zappedEventId
+        if (!eventId) {
+          return
+        }
+        const ev = await NostrAPI.fetchEventFromRelays(
+          eventId,
+          effectiveRelays
+        )
         if (!alive.current || !ev) {
           return
         }
@@ -135,13 +146,15 @@ export default function NostrZapDetail() {
           return
         }
         setReferencedNote({ content, tags })
-      })
-      .catch(() => {
+      } catch {
         if (!alive.current) {
           return
         }
         setReferencedNote(null)
-      })
+      }
+    }
+
+    void fetchNote()
 
     return () => {
       alive.current = false
