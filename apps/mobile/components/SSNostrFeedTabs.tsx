@@ -655,7 +655,6 @@ function SSNostrFeedTabs({
                 </SSText>
               </SSHStack>
             </TouchableOpacity>
-
             {notes.map((note) => (
               <SSNostrFeedNoteRow
                 key={note.id}
@@ -672,7 +671,6 @@ function SSNostrFeedTabs({
                 }
               />
             ))}
-
             {notesLoading && (
               <ActivityIndicator
                 color={Colors.white}
