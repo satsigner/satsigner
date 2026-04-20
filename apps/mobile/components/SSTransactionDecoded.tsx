@@ -1,9 +1,10 @@
 import { Fragment, useMemo, useState } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
+import { Colors, Typography } from '@/styles'
 import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
@@ -22,6 +23,23 @@ function byteChunks(hex: string) {
   return chunk
 }
 
+function hexToAsciiFromHex(hex: string) {
+  const normalized = hex.replace(/^0x/i, '').replace(/\s/g, '')
+  let out = ''
+  for (let i = 0; i + 1 < normalized.length; i += 2) {
+    const n = parseInt(normalized.slice(i, i + 2), 16)
+    if (Number.isNaN(n)) {
+      out += '?'
+      continue
+    }
+    out += n >= 32 && n <= 126 ? String.fromCharCode(n) : '.'
+  }
+  if (normalized.length % 2 === 1) {
+    out += '?'
+  }
+  return out
+}
+
 type SSTransactionDecodedProps = {
   txHex: string
   defaultDisplay?: 'list' | 'bytes'
@@ -32,64 +50,39 @@ type SSTransactionHexProps = {
 }
 
 function SSTransactionHex({ txHex }: SSTransactionHexProps) {
-  const [textSize, setTextSize] = useState<TextSize>('xs')
-
-  const handleZoomIn = () => {
-    const currentIndex = TEXT_SIZES.indexOf(textSize)
-    if (currentIndex < TEXT_SIZES.length - 1) {
-      setTextSize(TEXT_SIZES[currentIndex + 1])
-    }
-  }
-
-  const handleZoomOut = () => {
-    const currentIndex = TEXT_SIZES.indexOf(textSize)
-    if (currentIndex > 0) {
-      setTextSize(TEXT_SIZES[currentIndex - 1])
-    }
-  }
+  const [ascii, setAscii] = useState(false)
+  const displayValue = useMemo(
+    () => (ascii ? hexToAsciiFromHex(txHex) : txHex),
+    [ascii, txHex]
+  )
 
   return (
     <SSVStack gap="none">
-      <SSHStack gap="none" style={styles.zoomContainer}>
-        <TouchableOpacity
-          onPress={handleZoomOut}
-          disabled={textSize === TEXT_SIZES[0]}
-          style={[
-            styles.zoomButton,
-            { opacity: textSize === TEXT_SIZES[0] ? 0.5 : 1 }
-          ]}
+      <TouchableOpacity onPress={() => setAscii((v) => !v)}>
+        <SSHStack
+          gap="sm"
+          style={{
+            justifyContent: 'flex-end'
+          }}
         >
-          <SSText size="xl" style={styles.zoomText}>
-            -
+          <SSText color="muted">
+            {ascii ? tn('btnViewHex') : tn('btnViewAscii')}
           </SSText>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handleZoomIn}
-          disabled={textSize === TEXT_SIZES.at(-1)}
-          style={[
-            styles.zoomButton,
-            {
-              opacity: textSize === TEXT_SIZES.at(-1) ? 0.5 : 1
-            }
-          ]}
-        >
-          <SSText size="xl" style={styles.zoomText}>
-            +
-          </SSText>
-        </TouchableOpacity>
-      </SSHStack>
-      <SSHStack style={styles.bytesContainer} gap="none">
-        {byteChunks(txHex).map((byte, index) => (
-          <SSText
-            key={`${byte}_${index}`}
-            type="mono"
-            size={textSize}
-            style={{ marginBottom: -1, padding: 2.6 }}
-          >
-            {byte}
-          </SSText>
-        ))}
-      </SSHStack>
+          {ascii ? (
+            <SSIconChevronUp height={5} width={12} />
+          ) : (
+            <SSIconChevronDown height={5} width={12} />
+          )}
+        </SSHStack>
+      </TouchableOpacity>
+      <TextInput
+        editable={false}
+        multiline
+        scrollEnabled
+        showSoftInputOnFocus={false}
+        value={displayValue}
+        style={styles.hexField}
+      />
     </SSVStack>
   )
 }
@@ -294,6 +287,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     marginLeft: 'auto',
     width: 'auto'
+  },
+  hexField: {
+    color: Colors.white,
+    fontFamily: Typography.sfProMono,
+    fontSize: 12,
+    minHeight: 120,
+    padding: 0,
+    textAlignVertical: 'top'
   },
   selectedItemContainer: {
     marginTop: 10
