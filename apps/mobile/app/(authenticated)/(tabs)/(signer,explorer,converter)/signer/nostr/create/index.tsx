@@ -65,7 +65,6 @@ export default function CreateNostrIdentity() {
       />
       <ScrollView showsVerticalScrollIndicator={false}>
         <SSVStack gap="lg" style={styles.content}>
-          {/* Seed Words */}
           <SSVStack gap="sm">
             <SSText center size="sm" color="muted" uppercase>
               {t('nostrIdentity.create.seedWords')}
@@ -111,7 +110,6 @@ export default function CreateNostrIdentity() {
             </View>
           </SSVStack>
 
-          {/* nsec */}
           <SSVStack gap="sm">
             <SSText center size="sm" color="muted" uppercase>
               {t('nostrIdentity.create.nsec')}
@@ -149,7 +147,6 @@ export default function CreateNostrIdentity() {
             </View>
           </SSVStack>
 
-          {/* npub */}
           <SSVStack gap="sm">
             <SSText center size="sm" color="muted" uppercase>
               {t('nostrIdentity.create.npub')}
@@ -195,7 +192,6 @@ export default function CreateNostrIdentity() {
         onClose={() => setSeedQrVisible(false)}
       />
 
-      {/* QR Code Modal */}
       <Modal
         visible={qrModalValue !== null}
         transparent
