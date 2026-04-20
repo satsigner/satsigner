@@ -1,6 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -56,107 +56,61 @@ export default function NostrZapDetail() {
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
-  const [loadState, setLoadState] = useState<LoadState>('idle')
-  const [receipt, setReceipt] = useState<ZapReceiptInfo | null>(null)
-  const [referencedNote, setReferencedNote] =
-    useState<ReferencedNotePreview | null>(null)
+  const effectiveRelays = identity?.relays?.length ? identity.relays : relays
+  const profileHex = npub ? getPubKeyHexFromNpub(npub) : null
 
-  useEffect(() => {
-    if (!npub || !zapId || !identity) {
-      setLoadState('error')
-      return
-    }
-
-    const effectiveRelays = identity.relays?.length ? identity.relays : relays
-    const profileHex = getPubKeyHexFromNpub(npub)
-    if (!profileHex || effectiveRelays.length === 0) {
-      setLoadState('error')
-      return
-    }
-
-    const alive = { current: true }
-    setLoadState('loading')
-
-    async function fetchReceipt() {
-      try {
-        const r = await fetchZapReceiptById(zapId, profileHex, effectiveRelays)
-        if (!alive.current) {
-          return
-        }
-        if (!r) {
-          setReceipt(null)
-          setLoadState('error')
-          return
-        }
-        await enrichZapReceipts([r], effectiveRelays)
-        if (!alive.current) {
-          return
-        }
-        setReceipt(r)
-        setLoadState('ready')
-      } catch {
-        if (!alive.current) {
-          return
-        }
-        setReceipt(null)
-        setLoadState('error')
+  const receiptQuery = useQuery({
+    enabled:
+      !!npub &&
+      !!zapId &&
+      !!identity &&
+      !!profileHex &&
+      effectiveRelays.length > 0,
+    queryFn: async () => {
+      const r = await fetchZapReceiptById(zapId, profileHex!, effectiveRelays)
+      if (!r) {
+        throw new Error('Zap receipt not found')
       }
-    }
+      await enrichZapReceipts([r], effectiveRelays)
+      return r
+    },
+    queryKey: ['nostr', 'zap-receipt', npub, zapId]
+  })
 
-    void fetchReceipt()
+  const receipt = receiptQuery.data ?? null
 
-    return () => {
-      alive.current = false
-    }
-  }, [npub, zapId, identity, relays])
-
-  useEffect(() => {
-    if (!receipt?.zappedEventId || !identity) {
-      setReferencedNote(null)
-      return
-    }
-
-    const effectiveRelays = identity.relays?.length ? identity.relays : relays
-    if (effectiveRelays.length === 0) {
-      setReferencedNote(null)
-      return
-    }
-
-    const alive = { current: true }
-    setReferencedNote(null)
-
-    async function fetchNote() {
-      try {
-        const eventId = receipt?.zappedEventId
-        if (!eventId) {
-          return
-        }
-        const ev = await NostrAPI.fetchEventFromRelays(eventId, effectiveRelays)
-        if (!alive.current || !ev) {
-          return
-        }
-        const content = ev.content ?? ''
-        const tags = ev.tags ?? []
-        const imageCount = extractImageUrlsFromNote(content, tags).length
-        const videoCount = extractVideoEmbedsFromNote(content, tags).length
-        if (!content.trim() && imageCount === 0 && videoCount === 0) {
-          return
-        }
-        setReferencedNote({ content, tags })
-      } catch {
-        if (!alive.current) {
-          return
-        }
-        setReferencedNote(null)
+  const referencedNoteQuery = useQuery({
+    enabled:
+      !!receipt?.zappedEventId && !!identity && effectiveRelays.length > 0,
+    queryFn: async () => {
+      const ev = await NostrAPI.fetchEventFromRelays(
+        receipt!.zappedEventId!,
+        effectiveRelays
+      )
+      if (!ev) {
+        return null
       }
-    }
+      const content = ev.content ?? ''
+      const tags = ev.tags ?? []
+      const imageCount = extractImageUrlsFromNote(content, tags).length
+      const videoCount = extractVideoEmbedsFromNote(content, tags).length
+      if (!content.trim() && imageCount === 0 && videoCount === 0) {
+        return null
+      }
+      return { content, tags } as ReferencedNotePreview
+    },
+    queryKey: ['nostr', 'zap-referenced-note', receipt?.zappedEventId]
+  })
 
-    void fetchNote()
+  const referencedNote = referencedNoteQuery.data ?? null
 
-    return () => {
-      alive.current = false
-    }
-  }, [receipt?.zappedEventId, identity, relays])
+  const loadState: LoadState = receiptQuery.isPending
+    ? 'loading'
+    : receiptQuery.isError
+      ? 'error'
+      : receiptQuery.isSuccess
+        ? 'ready'
+        : 'idle'
 
   async function handleOpenReferencedNote() {
     if (!receipt?.zappedEventId || !npub || !identity) {
