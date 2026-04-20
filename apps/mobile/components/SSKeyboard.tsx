@@ -32,13 +32,14 @@ export default function SSKeyboard({
   }
 
   function SSKeyboardItem({ index }: { index: number }) {
-    if (index >= pad.length) return null;
+    if (index >= pad.length) {
+      return null;
+    }
 
     const item = pad[index];
 
     return (
       <View
-        key={index}
         style={{
           width: cellWidth,
           padding: hStack["gap"][gap],
@@ -58,7 +59,10 @@ export default function SSKeyboard({
       {range(nRows).map((i) => (
         <SSHStack key={i} style={styles.row}>
           {range(nCols).map((j) => (
-            <SSKeyboardItem index={i * nCols + j} />
+            <SSKeyboardItem
+              index={i * nCols + j}
+              key={i * nCols + j}
+            />
           ))}
         </SSHStack>
       ))}
