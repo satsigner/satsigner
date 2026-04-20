@@ -401,27 +401,7 @@ function SSNostrFeedTabs({
     }
   }
 
-  useEffect(() => {
-    if (!relayConnected) {
-      notesFetchedRef.current = false
-      feedFetchedRef.current = false
-      zapsFetchedRef.current = false
-      setNotes([])
-      setFeedNotes([])
-      setZaps([])
-      setNotesHasMore(true)
-      setFeedHasMore(true)
-      setZapsHasMore(true)
-      setFeedFollowingEmpty(false)
-      setNotesLoading(false)
-      setFeedLoading(false)
-      setZapsLoading(false)
-      setFeedAuthorKind0({})
-      feedKind0FetchedRef.current.clear()
-    }
-  }, [relayConnected])
-
-  useEffect(() => {
+  function resetAllFeedState() {
     notesFetchedRef.current = false
     feedFetchedRef.current = false
     zapsFetchedRef.current = false
@@ -434,7 +414,20 @@ function SSNostrFeedTabs({
     setFeedFollowingEmpty(false)
     setFeedAuthorKind0({})
     feedKind0FetchedRef.current.clear()
-  }, [npub])
+  }
+
+  useEffect(() => {
+    if (!relayConnected) {
+      resetAllFeedState()
+      setNotesLoading(false)
+      setFeedLoading(false)
+      setZapsLoading(false)
+    }
+  }, [relayConnected]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    resetAllFeedState()
+  }, [npub]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     notesFetchedRef.current = false
@@ -461,28 +454,20 @@ function SSNostrFeedTabs({
   const feedKindLabel = feedKindOpt ? t(feedKindOpt.labelKey) : ''
 
   useEffect(() => {
-    if (!relayConnected || activeTab !== 'notes' || notesFetchedRef.current) {
+    if (!relayConnected) {
       return
     }
-    notesFetchedRef.current = true
-    void loadNotes()
-  }, [activeTab, relayConnected, notesKindFilterId]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!relayConnected || activeTab !== 'feed' || feedFetchedRef.current) {
-      return
+    if (activeTab === 'notes' && !notesFetchedRef.current) {
+      notesFetchedRef.current = true
+      void loadNotes()
+    } else if (activeTab === 'feed' && !feedFetchedRef.current) {
+      feedFetchedRef.current = true
+      void loadFeed()
+    } else if (activeTab === 'zaps' && !zapsFetchedRef.current) {
+      zapsFetchedRef.current = true
+      void loadZaps()
     }
-    feedFetchedRef.current = true
-    void loadFeed()
-  }, [activeTab, relayConnected, feedKindFilterId]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!relayConnected || activeTab !== 'zaps' || zapsFetchedRef.current) {
-      return
-    }
-    zapsFetchedRef.current = true
-    void loadZaps()
-  }, [activeTab, relayConnected]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeTab, relayConnected, notesKindFilterId, feedKindFilterId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!relayConnected || privacyMode || !apiRef.current) {
