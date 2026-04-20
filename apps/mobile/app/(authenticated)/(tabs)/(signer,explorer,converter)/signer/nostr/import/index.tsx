@@ -36,16 +36,9 @@ export default function ImportNostrIdentity() {
   const layout = Dimensions.get('window')
   const [tabIndex, setTabIndex] = useState(0)
 
-  // nsec tab state
   const [nsec, setNsec] = useState('')
-
-  // seed words tab state
   const [validMnemonic, setValidMnemonic] = useState<string | null>(null)
-
-  // npub tab state
   const [npub, setNpub] = useState('')
-
-  // camera modal state
   const [cameraVisible, setCameraVisible] = useState(false)
   const [scanTarget, setScanTarget] = useState<'nsec' | 'npub'>('nsec')
 

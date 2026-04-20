@@ -8,6 +8,7 @@ import SSButton from '@/components/SSButton'
 import SSQRCode from '@/components/SSQRCode'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
+import { NOSTR_HIDDEN_KEY_MASK_LONG } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -123,7 +124,7 @@ export default function CreateNostrIdentity() {
                 style={styles.keyText}
                 numberOfLines={showNsec ? 4 : 2}
               >
-                {showNsec ? keys.nsec : '••••••••••••••••••••••••••••••••'}
+                {showNsec ? keys.nsec : NOSTR_HIDDEN_KEY_MASK_LONG}
               </SSText>
               <SSHStack gap="sm" style={styles.keyActionsRow}>
                 <SSButton

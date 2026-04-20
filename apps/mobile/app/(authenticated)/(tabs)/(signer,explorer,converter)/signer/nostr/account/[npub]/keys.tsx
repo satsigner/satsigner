@@ -11,7 +11,10 @@ import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
-import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
+import {
+  NOSTR_FALLBACK_NPUB_COLOR,
+  NOSTR_HIDDEN_KEY_MASK
+} from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -185,7 +188,7 @@ export default function NostrIdentityKeys() {
                         type="mono"
                         style={styles.keyText}
                       >
-                        ••••••••••••••••
+                        {NOSTR_HIDDEN_KEY_MASK}
                       </SSText>
                       <SSIconEyeOff height={18} width={18} />
                     </Pressable>
@@ -257,7 +260,7 @@ export default function NostrIdentityKeys() {
                         type="mono"
                         style={styles.keyText}
                       >
-                        ••••••••••••••••
+                        {NOSTR_HIDDEN_KEY_MASK}
                       </SSText>
                       <SSIconEyeOff height={18} width={18} />
                     </Pressable>
