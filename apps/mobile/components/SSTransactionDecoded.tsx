@@ -7,7 +7,7 @@ import { tn as _tn } from '@/locales'
 import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
-import { withPerformanceWarning } from './SSPerformanceWarning'
+import SSPerformanceWarning from './SSPerformanceWarning'
 import SSText from './SSText'
 
 const tn = _tn('transaction.decoded')
@@ -25,6 +25,73 @@ function byteChunks(hex: string) {
 type SSTransactionDecodedProps = {
   txHex: string
   defaultDisplay?: 'list' | 'bytes'
+}
+
+type SSTransactionHexProps = {
+  txHex: string
+}
+
+function SSTransactionHex({ txHex }: SSTransactionHexProps) {
+  const [textSize, setTextSize] = useState<TextSize>('xs')
+
+  const handleZoomIn = () => {
+    const currentIndex = TEXT_SIZES.indexOf(textSize)
+    if (currentIndex < TEXT_SIZES.length - 1) {
+      setTextSize(TEXT_SIZES[currentIndex + 1])
+    }
+  }
+
+  const handleZoomOut = () => {
+    const currentIndex = TEXT_SIZES.indexOf(textSize)
+    if (currentIndex > 0) {
+      setTextSize(TEXT_SIZES[currentIndex - 1])
+    }
+  }
+
+  return (
+    <SSVStack gap="none">
+      <SSHStack gap="none" style={styles.zoomContainer}>
+        <TouchableOpacity
+          onPress={handleZoomOut}
+          disabled={textSize === TEXT_SIZES[0]}
+          style={[
+            styles.zoomButton,
+            { opacity: textSize === TEXT_SIZES[0] ? 0.5 : 1 }
+          ]}
+        >
+          <SSText size="xl" style={styles.zoomText}>
+            -
+          </SSText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleZoomIn}
+          disabled={textSize === TEXT_SIZES.at(-1)}
+          style={[
+            styles.zoomButton,
+            {
+              opacity: textSize === TEXT_SIZES.at(-1) ? 0.5 : 1
+            }
+          ]}
+        >
+          <SSText size="xl" style={styles.zoomText}>
+            +
+          </SSText>
+        </TouchableOpacity>
+      </SSHStack>
+      <SSHStack style={styles.bytesContainer} gap="none">
+        {byteChunks(txHex).map((byte, index) => (
+          <SSText
+            key={`${byte}_${index}`}
+            type="mono"
+            size={textSize}
+            style={{ marginBottom: -1, padding: 2.6 }}
+          >
+            {byte}
+          </SSText>
+        ))}
+      </SSHStack>
+    </SSVStack>
+  )
 }
 
 function SSTransactionDecoded({
@@ -245,8 +312,37 @@ const styles = StyleSheet.create({
 const thresholdCheck = ({ txHex }: SSTransactionDecodedProps) =>
   txHex.length > 2048
 
-export default withPerformanceWarning<SSTransactionDecodedProps>(
-  SSTransactionDecoded,
-  thresholdCheck,
-  'Transaction too large. Trying to decode it may freeze the app.'
-)
+function SSTransactionDecodedWithWarning(props: SSTransactionDecodedProps) {
+  const [dismissed, setDismissed] = useState(false)
+  const [showRawHex, setShowRawHex] = useState(false)
+  const [loadingRawHex, setLoadingRawHex] = useState(false)
+
+  function handleLoadRawHex() {
+    if (loadingRawHex) {
+      return
+    }
+
+    setLoadingRawHex(true)
+    requestAnimationFrame(() => setShowRawHex(true))
+  }
+
+  if (!dismissed && !showRawHex && thresholdCheck(props)) {
+    return (
+      <SSPerformanceWarning
+        onDismiss={() => setDismissed(true)}
+        onSecondaryAction={handleLoadRawHex}
+        secondaryActionLoading={loadingRawHex}
+        secondaryActionLabel={tn('btnLoadHex')}
+        text={tn('warning')}
+      />
+    )
+  }
+
+  if (showRawHex) {
+    return <SSTransactionHex txHex={props.txHex} />
+  }
+
+  return <SSTransactionDecoded {...props} />
+}
+
+export default SSTransactionDecodedWithWarning
