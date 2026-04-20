@@ -31,7 +31,7 @@ export default function SSKeyboard({
   withControls = true,
   random = false
 }: SSKeyboardProps) {
-  const pad = random ? shuffle(items) : items
+  const pad = random ? shuffle(items) : [...items]
   const nRows = Math.ceil(pad.length / nCols)
   const cellWidth: DimensionValue = `${Math.floor(100 / nCols)}%`
 
