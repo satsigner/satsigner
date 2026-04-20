@@ -131,10 +131,7 @@ export default function NostrZapDetail() {
         if (!eventId) {
           return
         }
-        const ev = await NostrAPI.fetchEventFromRelays(
-          eventId,
-          effectiveRelays
-        )
+        const ev = await NostrAPI.fetchEventFromRelays(eventId, effectiveRelays)
         if (!alive.current || !ev) {
           return
         }
