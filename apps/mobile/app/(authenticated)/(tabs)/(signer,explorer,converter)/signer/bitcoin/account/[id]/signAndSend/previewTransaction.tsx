@@ -167,7 +167,9 @@ function createMockPsbt(
 ): MockPsbt {
   return {
     extractTxHex: () => '',
-    feeAmount: () => txFee,
+    feeAmount: () => BigInt(txFee),
+    feeRate: () => undefined,
+    getUtxoFor: () => undefined,
     toBase64: () => psbtBase64,
     txid: () => txid
   }
@@ -384,7 +386,7 @@ function PreviewTransaction() {
     const txid = generateTransactionId(psbtBase64)
     setTransactionId(txid)
     const mockResult = createMockPsbt(psbtBase64, txid, 0)
-    setPsbt(mockResult as never)
+    setPsbt(mockResult)
     setIsLoadingPSBT(false)
   }
 
@@ -409,7 +411,7 @@ function PreviewTransaction() {
       const txid = generateTransactionId(psbtBase64)
       setTransactionId(txid)
       const mockResult = createMockPsbt(psbtBase64, txid, extractedData.fee)
-      setPsbt(mockResult as never)
+      setPsbt(mockResult)
       setIsLoadingPSBT(false)
     } catch (error) {
       handlePsbtExtractionError(error)
