@@ -123,17 +123,20 @@ function SSTransactionCard({
           <SSHStack gap="none">
             {(confirmations >= 0 || !hasConfirmation) && (
               <SSText size="xs" style={confirmationColor}>
-                {`${formatConfirmations(confirmations)} - `}
+                {formatConfirmations(confirmations)}
+                {hasConfirmation ? ' - ' : ''}
               </SSText>
             )}
-            <SSText
-              size="xs"
-              style={
-                confirmations >= 0 ? confirmationColor : styles.confirmedEnough
-              }
-            >
-              {`${t('bitcoin.block')} ${transaction.blockHeight}`}
-            </SSText>
+            {hasConfirmation && (
+              <SSText
+                size="xs"
+                style={
+                  confirmations >= 0 ? confirmationColor : styles.confirmedEnough
+                }
+              >
+                {`${t('bitcoin.block')} ${transaction.blockHeight}`}
+              </SSText>
+            )}
           </SSHStack>
         </SSHStack>
         <SSVStack gap="none" style={{ marginTop: 5 }}>
