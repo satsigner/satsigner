@@ -139,7 +139,7 @@ export class Nip46BunkerService {
       )
     )
 
-    for (const [i, result] of results.entries()) {
+    for (const [, result] of results.entries()) {
       if (result.status === 'fulfilled') {
         this.sockets.push(result.value)
       }
