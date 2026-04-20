@@ -40,7 +40,11 @@ function forwardingEventTimestampSec(ev: LndForwardingEvent): number {
   if (fromNs > 0) {
     return fromNs
   }
-  if (ev.timestamp != null && String(ev.timestamp).trim() !== '') {
+  if (
+    ev.timestamp !== null &&
+    ev.timestamp !== undefined &&
+    String(ev.timestamp).trim() !== ''
+  ) {
     const n = Number(ev.timestamp)
     return Number.isFinite(n) ? n : 0
   }

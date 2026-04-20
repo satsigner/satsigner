@@ -101,7 +101,7 @@ export default function NostrContactProfile() {
 
   useEffect(() => {
     void loadProfile()
-  }, [effectiveRelays, owner?.relayConnected, targetNpub])
+  }, [effectiveRelays, owner?.relayConnected, targetNpub]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleZap() {
     if (availablePaymentMethods.length === 0) {

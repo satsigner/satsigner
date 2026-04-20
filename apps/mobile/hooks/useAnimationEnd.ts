@@ -61,7 +61,7 @@ export const useAnimationEnd = (
         }
       }
     },
-    [onResetAnimationEnd]
+    [onResetAnimationEnd, endValues.value]
   )
 
   return { onAnimationEnd }

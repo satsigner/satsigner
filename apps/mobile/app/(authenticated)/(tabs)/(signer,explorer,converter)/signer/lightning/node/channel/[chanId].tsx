@@ -321,7 +321,9 @@ export default function LightningChannelDetailPage() {
   const historyRows: ChannelHistoryRow[] = historyQuery.data ?? []
   const historyLoading = historyQuery.fetchStatus === 'fetching'
   const historyError =
-    historyQuery.error != null ? getLndErrorMessage(historyQuery.error) : null
+    historyQuery.error !== null && historyQuery.error !== undefined
+      ? getLndErrorMessage(historyQuery.error)
+      : null
 
   function handleBack() {
     router.back()

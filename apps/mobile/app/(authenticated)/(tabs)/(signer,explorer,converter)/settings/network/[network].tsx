@@ -127,7 +127,11 @@ export default function CustomNetwork() {
   ): string {
     const dateSec = result.tipTimestampSec ?? Math.floor(Date.now() / 1000)
     const dateStr = formatDate(dateSec)
-    if (result.blockHeight != null && result.blockHeight > 0) {
+    if (
+      result.blockHeight !== null &&
+      result.blockHeight !== undefined &&
+      result.blockHeight > 0
+    ) {
       return tnServer('tester.successDetail', {
         date: dateStr,
         height: result.blockHeight.toLocaleString()

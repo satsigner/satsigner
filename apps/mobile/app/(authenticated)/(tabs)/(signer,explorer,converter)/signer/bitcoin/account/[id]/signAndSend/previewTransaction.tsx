@@ -1044,7 +1044,7 @@ function PreviewTransaction() {
     return () => {
       cancelled = true
     }
-  }, [wallet, inputs, outputs, fee, rbf, network, setPsbt, clearPsbt, psbt])
+  }, [wallet, inputs, outputs, fee, rbf, network, setPsbt, clearPsbt, psbt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Separate effect to validate addresses and show errors
   // Only validate when we have a complete transaction (not during editing)

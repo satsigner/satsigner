@@ -457,6 +457,8 @@ export function clearCacheCategory(
     case 'profiles':
       db.execute('DELETE FROM nostr_profile_cache', [])
       break
+    default:
+      break
   }
 }
 

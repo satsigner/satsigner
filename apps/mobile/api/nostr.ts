@@ -59,29 +59,37 @@ function testSingleRelay(
   timeoutMs: number
 ): Promise<RelayConnectionDetail> {
   return new Promise((resolve) => {
+    let settled = false
+    function settle(result: RelayConnectionDetail) {
+      if (settled) {
+        return
+      }
+      settled = true
+      clearTimeout(timer)
+      resolve(result) // eslint-disable-line promise/no-multiple-resolved
+    }
+
     const timer = setTimeout(() => {
       try {
         ws.close()
       } catch {
         // already closed
       }
-      resolve({ connected: false, error: 'timeout', url })
+      settle({ connected: false, error: 'timeout', url })
     }, timeoutMs)
 
     const ws = new WebSocket(url)
 
     ws.onopen = () => {
-      clearTimeout(timer)
       try {
         ws.close()
       } catch {
         // already closed
       }
-      resolve({ connected: true, url })
+      settle({ connected: true, url })
     }
 
     ws.onerror = (ev) => {
-      clearTimeout(timer)
       const message =
         (ev as unknown as { message?: string }).message || 'connection error'
       try {
@@ -89,14 +97,13 @@ function testSingleRelay(
       } catch {
         // already closed
       }
-      resolve({ connected: false, error: message, url })
+      settle({ connected: false, error: message, url })
     }
 
     ws.onclose = (event: CloseEvent) => {
-      clearTimeout(timer)
       if (event.code !== 1000 && event.code !== 1005) {
         const reason = event.reason || `closed with code ${event.code}`
-        resolve({ connected: false, error: reason, url })
+        settle({ connected: false, error: reason, url })
       }
     }
   })
@@ -315,10 +322,10 @@ export class NostrAPI {
    * Returns display name (name) and picture URL if available.
    * npub must decode to a 64-char hex pubkey (not a Bitcoin address or other format).
    */
-  async fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
+  fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
     const hexPubkey = getPubKeyHexFromNpub(npub)
     if (!hexPubkey) {
-      return null
+      return Promise.resolve(null)
     }
     return this.fetchKind0ByPubkeyHex(hexPubkey)
   }

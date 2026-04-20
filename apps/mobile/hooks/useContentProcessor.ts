@@ -281,11 +281,11 @@ async function processBitcoinContent(
       break
 
     case 'bitcoin_uri': {
-      async function commitOrPromptBitcoinUri(
+      const commitOrPromptBitcoinUri = async (
         address: string,
         label: string,
         amountSats: number
-      ): Promise<'cancel' | 'dust' | 'ok'> {
+      ): Promise<'cancel' | 'dust' | 'ok'> => {
         if (amountSats > 1 && amountSats < DUST_LIMIT) {
           actions.addOutput?.({
             amount: amountSats,

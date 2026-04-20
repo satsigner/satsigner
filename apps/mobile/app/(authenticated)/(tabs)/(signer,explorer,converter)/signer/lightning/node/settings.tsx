@@ -88,7 +88,7 @@ export default function NodeSettingsPage() {
 
   useEffect(() => {
     void loadPeersAndPending()
-  }, [isConnected])
+  }, [isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleDisconnect() {
     setIsLoading(true)
@@ -148,7 +148,8 @@ export default function NodeSettingsPage() {
                   await exportAllChannelBackups()
                 const multi = snap?.multi_chan_backup?.multi_chan_backup
                 const hasSingle =
-                  snap?.single_chan_backups != null &&
+                  snap?.single_chan_backups !== null &&
+                  snap?.single_chan_backups !== undefined &&
                   typeof snap.single_chan_backups === 'object'
                 if (!multi && !hasSingle) {
                   toast.error(t('lightning.nodeSettings.exportBackupNoData'))

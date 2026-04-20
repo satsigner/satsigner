@@ -494,20 +494,20 @@ function SSNostrFeedTabs({
         ...prev,
         [pk]: { status: 'loading' }
       }))
-      void api
-        .fetchKind0ByPubkeyHex(pk)
-        .then((profile) => {
+      void (async () => {
+        try {
+          const profile = await api.fetchKind0ByPubkeyHex(pk)
           setFeedAuthorKind0((prev) => ({
             ...prev,
             [pk]: { profile, status: 'ready' }
           }))
-        })
-        .catch(() => {
+        } catch {
           setFeedAuthorKind0((prev) => ({
             ...prev,
             [pk]: { profile: null, status: 'ready' }
           }))
-        })
+        }
+      })()
     }
   }, [feedNotes, notes, ownPubkeyLower, relayConnected, privacyMode])
 

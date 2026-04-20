@@ -138,14 +138,14 @@ export default function NostrZapDetail() {
   }
 
   const allPreviewImageUrls =
-    referencedNote == null
+    referencedNote === null
       ? []
       : extractImageUrlsFromNote(referencedNote.content, referencedNote.tags)
 
   const previewImageUrls = privacyMode ? [] : allPreviewImageUrls.slice(0, 6)
 
   const allPreviewVideoEmbeds =
-    referencedNote == null
+    referencedNote === null
       ? []
       : extractVideoEmbedsFromNote(referencedNote.content, referencedNote.tags)
 

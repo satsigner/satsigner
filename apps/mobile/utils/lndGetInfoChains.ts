@@ -32,7 +32,7 @@ export function lndChainsExplorerNetworkHint(
   if (!chains?.length) {
     return ''
   }
-  const first = chains[0]
+  const [first] = chains
   if (typeof first === 'string') {
     return first.toLowerCase()
   }

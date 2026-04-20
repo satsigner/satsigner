@@ -17,8 +17,8 @@ import { truncateNpub } from '@/utils/nostrIdentity'
 
 import { SSIconChevronRight } from './icons'
 
-const ACTIVE_CARD_GRADIENT_BOTTOM = Colors.gray[925]
-const ACTIVE_CARD_GRADIENT_TOP = Colors.gray[875]
+const ACTIVE_CARD_GRADIENT_BOTTOM = Colors.gray[925] // eslint-disable-line prefer-destructuring
+const ACTIVE_CARD_GRADIENT_TOP = Colors.gray[875] // eslint-disable-line prefer-destructuring
 /** Horizontal span (0–1) for unit vertical run so gradient is ~5° from vertical. */
 const ACTIVE_GRADIENT_TAN_5_DEG = Math.tan((5 * Math.PI) / 180)
 

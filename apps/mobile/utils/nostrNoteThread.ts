@@ -20,7 +20,7 @@ export function noteLooksLikeReply(tags: string[][]): boolean {
   if (eTags.length >= 2) {
     return true
   }
-  const marker = eTags[0][3]
+  const marker = eTags[0][3] // eslint-disable-line prefer-destructuring
   if (marker === 'root') {
     return false
   }
