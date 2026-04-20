@@ -1,5 +1,7 @@
 import Svg, { G, Path, type SvgProps } from 'react-native-svg'
 
+import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
+
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'> & {
   strokeWidth?: number
 }
@@ -8,9 +10,8 @@ export default function SSIconECash({
   width = 16,
   height = 18,
   color = 'white',
-  strokeWidth = 1,
-  focused: _focused
-}: IconProps & { focused?: boolean }) {
+  strokeWidth = 1
+}: IconProps & NavMenuItemIconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 16 18" fill="none">
       <G id="ecash">

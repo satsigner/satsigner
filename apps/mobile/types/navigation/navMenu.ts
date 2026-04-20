@@ -6,6 +6,10 @@ export enum PLATFORM {
   HYBRID = 'hybrid'
 }
 
+/**
+ * SSNavMenuItem renders `<item.icon focused={...} />`. Most icons ignore
+ * `focused` because the row wrapper already applies focus chrome.
+ */
 export type NavMenuItemIconProps = {
   focused?: boolean
 }

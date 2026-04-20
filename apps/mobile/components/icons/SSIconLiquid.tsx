@@ -1,13 +1,14 @@
 import Svg, { Mask, Path, type SvgProps } from 'react-native-svg'
 
+import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
+
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 
 export default function SSIconLiquid({
   width = 10,
   height = 18,
-  color = '#fff',
-  focused: _focused
-}: IconProps & { focused?: boolean }) {
+  color = '#fff'
+}: IconProps & NavMenuItemIconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 10 18" fill="none">
       <Mask id="a" fill={color}>

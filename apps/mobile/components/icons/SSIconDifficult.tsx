@@ -1,13 +1,14 @@
 import Svg, { Circle, G, type SvgProps } from 'react-native-svg'
 
+import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
+
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 
 export default function SSIconDifficult({
   width = 17,
   height = 17,
-  color = '#DCDCDC',
-  focused: _focused
-}: IconProps & { focused?: boolean }) {
+  color = '#DCDCDC'
+}: IconProps & NavMenuItemIconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 17 17" fill="none">
       <G filter="url(#filter0_i_1_108)">

@@ -7,6 +7,8 @@ import Svg, {
   type SvgProps
 } from 'react-native-svg'
 
+import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
+
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 
 const DEFAULT_SIZE = 22
@@ -14,9 +16,8 @@ const DEFAULT_SIZE = 22
 export default function SSIconNostr({
   width = DEFAULT_SIZE,
   height = DEFAULT_SIZE,
-  color = 'white',
-  focused: _focused
-}: IconProps & { focused?: boolean }) {
+  color = 'white'
+}: IconProps & NavMenuItemIconProps) {
   const renderMin =
     typeof width === 'number' &&
     typeof height === 'number' &&
