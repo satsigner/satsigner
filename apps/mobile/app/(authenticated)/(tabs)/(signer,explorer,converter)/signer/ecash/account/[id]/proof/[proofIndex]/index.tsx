@@ -539,7 +539,7 @@ export default function EcashProofDetailPage() {
       <SSNFCModal
         visible={nfcModalVisible}
         onClose={handleCloseNFCModal}
-        onContentRead={() => {}}
+        onContentRead={() => undefined}
         mode="write"
         dataToWrite={token ?? ''}
       />
