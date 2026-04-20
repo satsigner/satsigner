@@ -111,6 +111,7 @@ export default function AccountSettings() {
     const salt = await getItem(SALT_KEY)
     const storedEncryptedPin = await getItem(PIN_KEY)
     if (!salt || !storedEncryptedPin) {
+      toast.error('Unable to decrypt PIN')
       return
     }
 
