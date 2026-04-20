@@ -1,1 +1,3 @@
-export function closeDatabaseQueue(_name: string): void {}
+export function closeDatabaseQueue(_name: string): void {
+  void _name
+}
