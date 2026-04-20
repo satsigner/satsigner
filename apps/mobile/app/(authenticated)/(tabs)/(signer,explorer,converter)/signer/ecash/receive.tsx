@@ -79,6 +79,7 @@ export default function EcashReceivePage() {
     isLNURLWithdrawMode,
     isPolling,
     isRedeeming,
+    isTokenMintConnected,
     lnurlWithdrawDetails,
     memo,
     mintQuote,
@@ -87,8 +88,16 @@ export default function EcashReceivePage() {
     setAmount,
     setMemo,
     stopPolling,
-    token
+    token,
+    tokenMintUrl,
+    tokenSpentStatus
   } = useEcashReceive()
+
+  const showMintNotConnectedWarning = !!decodedToken && !isTokenMintConnected
+  const showTokenAlreadyClaimedWarning =
+    !!decodedToken && isTokenMintConnected && tokenSpentStatus === 'spent'
+  const showTokenStatusCheckingNote =
+    !!decodedToken && isTokenMintConnected && tokenSpentStatus === 'checking'
 
   const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
     useShallow((state) => [
@@ -126,7 +135,14 @@ export default function EcashReceivePage() {
         handleLNURLWithdrawInput(lnurlValue)
       }
     }
-  }, [tokenParam, lnurlParam, handleTokenChange, handleLNURLWithdrawInput])
+    // `handleTokenChange` and `handleLNURLWithdrawInput` are not memoized in
+    // `useEcashReceive`, so including them in deps re-runs this effect on
+    // every render. When `tokenParam` is set, the effect body calls
+    // `handleTokenChange` which toggles `decodedToken` state, causing a
+    // re-render and re-firing the effect — a classic "Maximum update depth
+    // exceeded" loop. The effect only needs to react to URL param changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokenParam, lnurlParam])
 
   function handleFiatAmountChange(text: string) {
     const cleaned = text.replace(/[^0-9.]/g, '')
@@ -253,10 +269,36 @@ export default function EcashReceivePage() {
                   showProofs
                 />
               )}
+              {showMintNotConnectedWarning && (
+                <View style={styles.mintWarning}>
+                  <SSText style={styles.mintWarningText}>
+                    {t('ecash.warning.mintNotConnected', {
+                      mint: tokenMintUrl
+                    })}
+                  </SSText>
+                </View>
+              )}
+              {showTokenAlreadyClaimedWarning && (
+                <View style={styles.mintWarning}>
+                  <SSText style={styles.mintWarningText}>
+                    {t('ecash.warning.tokenAlreadyClaimed')}
+                  </SSText>
+                </View>
+              )}
+              {showTokenStatusCheckingNote && (
+                <SSText color="muted" size="xs">
+                  {t('ecash.warning.tokenStatusChecking')}
+                </SSText>
+              )}
               <SSButton
                 label={t('ecash.receive.redeemToken')}
                 onPress={redeemToken}
                 loading={isRedeeming}
+                disabled={
+                  showMintNotConnectedWarning ||
+                  showTokenAlreadyClaimedWarning ||
+                  showTokenStatusCheckingNote
+                }
                 variant="secondary"
                 gradientType="special"
               />
@@ -484,6 +526,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[900],
     borderRadius: 4,
     padding: 12
+  },
+  mintWarning: {
+    borderColor: Colors.warning,
+    borderRadius: 5,
+    borderWidth: 1,
+    padding: 10
+  },
+  mintWarningText: {
+    color: Colors.warning
   },
   qrContainer: {
     alignItems: 'center',

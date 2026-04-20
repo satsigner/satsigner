@@ -19,8 +19,9 @@ import {
   getLNURLType,
   handleLNURLPay
 } from '@/utils/lnurl'
+import { getURBytesFragments } from '@/utils/ur'
 
-const ANIMATED_QR_CHUNK_SIZE = 200
+const ANIMATED_QR_FRAGMENT_SIZE = 200
 const ANIMATED_QR_INTERVAL_MS = 500
 const NFC_MAX_SIZE = 8192
 const LNURL_PAY_DELAY_MS = 1000
@@ -316,15 +317,19 @@ export function useEcashSend() {
     }
   }
 
-  function getTokenChunks(): string[] {
+  function getTokenURFragments(
+    fragmentSize = ANIMATED_QR_FRAGMENT_SIZE
+  ): string[] {
     if (!generatedToken) {
       return []
     }
-    const chunks: string[] = []
-    for (let i = 0; i < generatedToken.length; i += ANIMATED_QR_CHUNK_SIZE) {
-      chunks.push(generatedToken.slice(i, i + ANIMATED_QR_CHUNK_SIZE))
+    try {
+      return getURBytesFragments(generatedToken, fragmentSize)
+    } catch {
+      // Fall back to the raw token as a single static QR if UR encoding
+      // fails for any reason. This preserves the copy/NFC path.
+      return [generatedToken]
     }
-    return chunks
   }
 
   function getQRValue(chunks: string[]): string {
@@ -332,7 +337,7 @@ export function useEcashSend() {
       return ''
     }
     if (animatedQR && chunks.length > 1) {
-      return chunks[currentChunkIndex] ?? generatedToken
+      return chunks[currentChunkIndex % chunks.length] ?? generatedToken
     }
     return generatedToken
   }
@@ -349,7 +354,7 @@ export function useEcashSend() {
     generateToken,
     generatedToken,
     getQRValue,
-    getTokenChunks,
+    getTokenURFragments,
     handleInvoiceChange,
     invoice,
     isEmitting,

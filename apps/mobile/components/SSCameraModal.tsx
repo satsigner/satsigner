@@ -1,5 +1,10 @@
-import { CameraView, useCameraPermissions } from 'expo-camera'
-import { useCallback, useEffect, useState } from 'react'
+import { getDecodedToken } from '@cashu/cashu-ts'
+import {
+  type BarcodeScanningResult,
+  CameraView,
+  useCameraPermissions
+} from 'expo-camera'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -16,10 +21,10 @@ import {
 } from '@/utils/contentDetector'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
-  decodeMultiPartURGeneric,
-  decodeMultiPartURToPSBT,
+  createURStreamDecoder,
   decodeURGeneric,
-  decodeURToPSBT
+  decodeURToPSBT,
+  type URStreamDecoder
 } from '@/utils/ur'
 
 type SSCameraModalProps = {
@@ -30,23 +35,44 @@ type SSCameraModalProps = {
   title?: string
 }
 
-type ScanProgress = {
-  type: 'raw' | 'ur' | 'bbqr' | null
+type MultiPartType = 'raw' | 'bbqr' | 'ur'
+
+type ProgressUI = {
+  type: MultiPartType | null
   total: number
-  scanned: Set<number>
-  chunks: Map<number, string>
+  received: number
+  scannedIndices: number[]
+  urExpected: number
 }
 
-function detectQRType(data: string) {
-  if (/^p\d+of\d+\s/.test(data)) {
-    const match = data.match(/^p(\d+)of(\d+)\s/)
-    if (match) {
-      return {
-        content: data.substring(match[0].length),
-        current: parseInt(match[1], 10) - 1,
-        total: parseInt(match[2], 10),
-        type: 'raw' as const
-      }
+type RawState = {
+  type: 'raw' | 'bbqr'
+  total: number
+  chunks: Map<number, string>
+  scanned: Set<number>
+}
+
+type QRInfo =
+  | { type: 'raw' | 'bbqr'; content: string; current: number; total: number }
+  | { type: 'ur'; content: string }
+  | { type: 'single'; content: string }
+
+const INITIAL_PROGRESS: ProgressUI = {
+  received: 0,
+  scannedIndices: [],
+  total: 0,
+  type: null,
+  urExpected: 0
+}
+
+function detectQRType(data: string): QRInfo {
+  const rawMatch = data.match(/^p(\d+)of(\d+)\s/i)
+  if (rawMatch) {
+    return {
+      content: data.substring(rawMatch[0].length),
+      current: parseInt(rawMatch[1], 10) - 1,
+      total: parseInt(rawMatch[2], 10),
+      type: 'raw'
     }
   }
 
@@ -57,121 +83,61 @@ function detectQRType(data: string) {
       content: data,
       current,
       total,
-      type: 'bbqr' as const
+      type: 'bbqr'
     }
   }
 
   if (data.toLowerCase().startsWith('ur:')) {
-    const urMatch = data.match(/^ur:([^/]+)\/(?:(\d+)-(\d+)\/)?(.+)$/i)
-    if (urMatch) {
-      const [currentStr, totalStr] = urMatch.slice(2)
-
-      if (currentStr && totalStr) {
-        const current = parseInt(currentStr, 10) - 1
-        const total = parseInt(totalStr, 10)
-        return {
-          content: data,
-          current,
-          total,
-          type: 'ur' as const
-        }
-      }
-      return {
-        content: data,
-        current: 0,
-        total: 1,
-        type: 'ur' as const
-      }
-    }
+    return { content: data, type: 'ur' }
   }
 
-  return {
-    content: data,
-    current: 0,
-    total: 1,
-    type: 'single' as const
-  }
+  return { content: data, type: 'single' }
 }
 
-async function assembleMultiPartQR(
-  type: 'raw' | 'ur' | 'bbqr',
+function assembleRawMultiPart(
+  type: 'raw' | 'bbqr',
   chunks: Map<number, string>,
   context: SSCameraModalProps['context']
-): Promise<string | null> {
-  try {
-    switch (type) {
-      case 'raw': {
-        const sortedChunks = Array.from(chunks.entries())
-          .toSorted(([a], [b]) => a - b)
-          .map(([, content]) => content)
-        const assembled = sortedChunks.join('')
+): string | null {
+  const sortedChunks = Array.from(chunks.entries())
+    .toSorted(([a], [b]) => a - b)
+    .map(([, content]) => content)
 
-        // p1ofN-style payloads for ecash/lightning/nostr are plain text joins
-        // (e.g. Cashu token, BOLT11). Base64→hex is for bitcoin PSBT splits only.
-        if (context !== 'bitcoin') {
-          return assembled
-        }
-
-        try {
-          const hexResult = Buffer.from(assembled, 'base64').toString('hex')
-          return hexResult
-        } catch {
-          return assembled
-        }
-      }
-
-      case 'bbqr': {
-        const sortedChunks = Array.from(chunks.entries())
-          .toSorted(([a], [b]) => a - b)
-          .map(([, content]) => content)
-
-        const decoded = decodeBBQRChunks(sortedChunks)
-
-        if (decoded) {
-          const hexResult = Buffer.from(decoded).toString('hex')
-          return hexResult
-        }
-
-        return null
-      }
-
-      case 'ur': {
-        const sortedChunks = Array.from(chunks.entries())
-          .toSorted(([a], [b]) => a - b)
-          .map(([, content]) => content)
-
-        let result: string
-        if (sortedChunks.length === 1) {
-          try {
-            result = decodeURGeneric(sortedChunks[0])
-          } catch {
-            try {
-              result = decodeURToPSBT(sortedChunks[0])
-            } catch {
-              return null
-            }
-          }
-        } else {
-          try {
-            result = decodeMultiPartURGeneric(sortedChunks)
-          } catch {
-            try {
-              result = await decodeMultiPartURToPSBT(sortedChunks)
-            } catch {
-              return null
-            }
-          }
-        }
-
-        return result
-      }
-
-      default:
-        return null
+  if (type === 'raw') {
+    const assembled = sortedChunks.join('')
+    // p1ofN-style payloads for ecash/lightning/nostr are plain text joins
+    // (e.g. Cashu token, BOLT11). Base64→hex is for bitcoin PSBT splits only.
+    if (context !== 'bitcoin') {
+      return assembled
     }
-  } catch (error) {
-    toast.error(String(error))
-    return null
+    try {
+      return Buffer.from(assembled, 'base64').toString('hex')
+    } catch {
+      return assembled
+    }
+  }
+
+  // bbqr
+  try {
+    const decoded = decodeBBQRChunks(sortedChunks)
+    if (decoded) {
+      return Buffer.from(decoded).toString('hex')
+    }
+  } catch {
+    /* fallthrough */
+  }
+  return null
+}
+
+function decodeSingleUR(content: string): string | null {
+  try {
+    return decodeURGeneric(content)
+  } catch {
+    try {
+      return decodeURToPSBT(content)
+    } catch {
+      return null
+    }
   }
 }
 
@@ -183,312 +149,396 @@ function SSCameraModal({
   title
 }: SSCameraModalProps) {
   const [permission, requestPermission] = useCameraPermissions()
-  const [scanProgress, setScanProgress] = useState<ScanProgress>({
-    chunks: new Map(),
-    scanned: new Set(),
-    total: 0,
-    type: null
-  })
+  const [progress, setProgress] = useState<ProgressUI>(INITIAL_PROGRESS)
 
-  const resetScanProgress = useCallback(() => {
-    setScanProgress({
-      chunks: new Map(),
-      scanned: new Set(),
-      total: 0,
-      type: null
-    })
+  // Refs hold the hot-path scanner state so the async barcode handler can
+  // read current values without being re-created on every setState. This is
+  // the core fix for "Maximum update depth exceeded" under rapid frame
+  // callbacks from CameraView.
+  const rawStateRef = useRef<RawState | null>(null)
+  const urDecoderRef = useRef<URStreamDecoder | null>(null)
+  const processingRef = useRef(false)
+  const lastDataRef = useRef<string | null>(null)
+  const warnedPartialCashuRef = useRef(false)
+  const finishedRef = useRef(false)
+
+  // Mirror parent-provided callbacks into refs so the scan handlers never
+  // depend on the callback identities. Parents typically pass inline arrows
+  // (e.g. `onClose={() => setVisible(false)}`), which change on every render.
+  // Without this indirection, every parent render would cascade into a brand
+  // new `onBarcodeScanned` closure, re-register the native camera listener,
+  // and — combined with the rapid frame rate — can push React into the
+  // "Maximum update depth exceeded" guard. Keeping the refs stable lets us
+  // build the scan pipeline once with an empty dep array.
+  const contextRef = useRef(context)
+  const onCloseRef = useRef(onClose)
+  const onContentScannedRef = useRef(onContentScanned)
+
+  useEffect(() => {
+    contextRef.current = context
+    onCloseRef.current = onClose
+    onContentScannedRef.current = onContentScanned
+  }, [context, onClose, onContentScanned])
+
+  const resetScanState = useCallback(() => {
+    rawStateRef.current = null
+    if (urDecoderRef.current) {
+      urDecoderRef.current.reset()
+      urDecoderRef.current = null
+    }
+    processingRef.current = false
+    lastDataRef.current = null
+    warnedPartialCashuRef.current = false
+    finishedRef.current = false
+    setProgress(INITIAL_PROGRESS)
   }, [])
+
+  const finalizeWithContent = useCallback(async (assembled: string) => {
+    finishedRef.current = true
+    const detected = await detectContentByContext(assembled, contextRef.current)
+    onCloseRef.current()
+    rawStateRef.current = null
+    if (urDecoderRef.current) {
+      urDecoderRef.current.reset()
+      urDecoderRef.current = null
+    }
+    processingRef.current = false
+    lastDataRef.current = null
+    warnedPartialCashuRef.current = false
+    setProgress(INITIAL_PROGRESS)
+    if (!detected.isValid) {
+      setTimeout(() => {
+        toast.error(t('camera.error.invalidContent'))
+      }, 100)
+      return
+    }
+    onContentScannedRef.current(detected)
+  }, [])
+
+  const handleSinglePayload = useCallback(
+    async (data: string) => {
+      let finalContent = data
+
+      try {
+        if (isBBQRFragment(data)) {
+          const decoded = decodeBBQRChunks([data])
+          if (decoded) {
+            finalContent = Buffer.from(decoded).toString('hex')
+          } else {
+            toast.error(t('camera.error.bbqrDecodeFailed'))
+            return
+          }
+        } else if (data.startsWith('cHNidP')) {
+          finalContent = Buffer.from(data, 'base64').toString('hex')
+        } else if (data.toLowerCase().startsWith('ur:')) {
+          const decoded = decodeSingleUR(data)
+          if (decoded) {
+            finalContent = decoded
+          } else {
+            toast.error(t('camera.error.urDecodeFailed'))
+            return
+          }
+        } else {
+          const decodedMnemonic = detectAndDecodeSeedQR(data)
+          if (decodedMnemonic) {
+            finishedRef.current = true
+            onContentScannedRef.current({
+              cleaned: data,
+              isValid: true,
+              metadata: { mnemonic: decodedMnemonic },
+              raw: data,
+              type: 'seed_qr'
+            })
+            onCloseRef.current()
+            resetScanState()
+            return
+          }
+        }
+      } catch {
+        toast.error(t('camera.error.processFailed'))
+        return
+      }
+
+      await finalizeWithContent(finalContent)
+    },
+    [finalizeWithContent, resetScanState]
+  )
+
+  const warnPartialCashu = useCallback(() => {
+    if (warnedPartialCashuRef.current) {
+      return
+    }
+    warnedPartialCashuRef.current = true
+    setTimeout(() => {
+      toast.error(t('camera.error.partialCashuChunk'))
+    }, 100)
+  }, [])
+
+  const isPartialCashuChunk = useCallback((data: string) => {
+    const trimmed = data.trim()
+    if (!/^cashu[AB]/i.test(trimmed)) {
+      return false
+    }
+    // Length alone is ambiguous: small Cashu V4 (`cashuB...`) tokens with
+    // few proofs can be under 300 chars, so a static QR of a valid token
+    // would be wrongly rejected. Instead, ask the library to decode it —
+    // if it parses into a complete token it's a real single QR; if decoding
+    // throws, it's a raw slice from the legacy animated sender.
+    try {
+      const decoded = getDecodedToken(trimmed)
+      if (decoded?.proofs && decoded.proofs.length > 0) {
+        return false
+      }
+    } catch {
+      return true
+    }
+    return true
+  }, [])
+
+  const handleURPart = useCallback(
+    async (fragment: string) => {
+      if (!urDecoderRef.current) {
+        urDecoderRef.current = createURStreamDecoder()
+        rawStateRef.current = null
+      }
+      const decoder = urDecoderRef.current
+      decoder.receivePart(fragment)
+
+      if (decoder.isComplete()) {
+        const result = decoder.result()
+        if (result) {
+          await finalizeWithContent(result)
+          return
+        }
+      }
+
+      // Update UI progress; coerce into discrete integer counts to avoid
+      // spurious re-renders on identical values.
+      const received = decoder.receivedPartCount()
+      const expected = decoder.expectedPartCount()
+      setProgress((prev) => {
+        if (
+          prev.type === 'ur' &&
+          prev.received === received &&
+          prev.urExpected === expected
+        ) {
+          return prev
+        }
+        return {
+          received,
+          scannedIndices: [],
+          total: expected,
+          type: 'ur',
+          urExpected: expected
+        }
+      })
+    },
+    [finalizeWithContent]
+  )
+
+  const handleRawOrBBQRPart = useCallback(
+    async (
+      type: 'raw' | 'bbqr',
+      content: string,
+      current: number,
+      total: number
+    ) => {
+      // If a different multi-part type was previously in progress, reset.
+      if (urDecoderRef.current) {
+        urDecoderRef.current.reset()
+        urDecoderRef.current = null
+      }
+
+      const state = rawStateRef.current
+      if (!state || state.type !== type || state.total !== total) {
+        rawStateRef.current = {
+          chunks: new Map([[current, content]]),
+          scanned: new Set([current]),
+          total,
+          type
+        }
+        setProgress((prev) => {
+          if (
+            prev.type === type &&
+            prev.total === total &&
+            prev.received === 1 &&
+            prev.scannedIndices.length === 1 &&
+            prev.scannedIndices[0] === current
+          ) {
+            return prev
+          }
+          return {
+            received: 1,
+            scannedIndices: [current],
+            total,
+            type,
+            urExpected: 0
+          }
+        })
+        return
+      }
+
+      if (state.scanned.has(current)) {
+        return
+      }
+
+      state.scanned.add(current)
+      state.chunks.set(current, content)
+      const scannedIndices = Array.from(state.scanned)
+      const receivedCount = state.scanned.size
+      setProgress((prev) => {
+        if (
+          prev.type === type &&
+          prev.total === total &&
+          prev.received === receivedCount
+        ) {
+          return prev
+        }
+        return {
+          received: receivedCount,
+          scannedIndices,
+          total,
+          type,
+          urExpected: 0
+        }
+      })
+
+      if (state.scanned.size !== total) {
+        return
+      }
+
+      const assembled = assembleRawMultiPart(
+        type,
+        state.chunks,
+        contextRef.current
+      )
+      if (!assembled) {
+        toast.error(t('camera.error.assembleFailed'))
+        resetScanState()
+        return
+      }
+      await finalizeWithContent(assembled)
+    },
+    [finalizeWithContent, resetScanState]
+  )
 
   const handleQRCodeScanned = useCallback(
     async (data: string) => {
       if (!data) {
-        toast.error(t('camera.error.scanFailed'))
         return
       }
+      if (finishedRef.current) {
+        return
+      }
+      // Dedupe identical consecutive frames (animated senders emit the same
+      // frame for ~500 ms, which is 15+ camera frames).
+      if (data === lastDataRef.current) {
+        return
+      }
+      if (processingRef.current) {
+        return
+      }
+      processingRef.current = true
+      lastDataRef.current = data
 
-      const qrInfo = detectQRType(data)
+      try {
+        const qrInfo = detectQRType(data)
 
-      if (qrInfo.type === 'single' || qrInfo.total === 1) {
-        let finalContent = qrInfo.content
-
-        try {
-          if (isBBQRFragment(qrInfo.content)) {
-            const decoded = decodeBBQRChunks([qrInfo.content])
-            if (decoded) {
-              const hexResult = Buffer.from(decoded).toString('hex')
-              finalContent = hexResult
-            } else {
-              toast.error(t('camera.error.bbqrDecodeFailed'))
-              return
-            }
-          } else if (qrInfo.content.startsWith('cHNidP')) {
-            const hexResult = Buffer.from(qrInfo.content, 'base64').toString(
-              'hex'
-            )
-            finalContent = hexResult
-          } else if (qrInfo.content.toLowerCase().startsWith('ur:')) {
-            let decoded: string | null = null
-            try {
-              decoded = decodeURGeneric(qrInfo.content)
-            } catch {
-              try {
-                decoded = decodeURToPSBT(qrInfo.content)
-              } catch {
-                decoded = null
-              }
-            }
-
-            if (decoded) {
-              finalContent = decoded
-            } else {
-              toast.error(t('camera.error.urDecodeFailed'))
-              return
-            }
-          } else {
-            const decodedMnemonic = detectAndDecodeSeedQR(qrInfo.content)
-            if (decodedMnemonic) {
-              onContentScanned({
-                cleaned: qrInfo.content,
-                isValid: true,
-                metadata: { mnemonic: decodedMnemonic },
-                raw: data,
-                type: 'seed_qr'
-              })
-              onClose()
-              resetScanProgress()
-              return
-            }
-          }
-        } catch {
-          toast.error(t('camera.error.processFailed'))
-        }
-
-        const detectedContent = await detectContentByContext(
-          finalContent,
-          context
-        )
-
-        onClose()
-        resetScanProgress()
-
-        if (!detectedContent.isValid) {
-          setTimeout(() => {
-            toast.error(t('camera.error.invalidContent'))
-          }, 100)
+        if (qrInfo.type === 'ur') {
+          await handleURPart(qrInfo.content)
           return
         }
 
-        onContentScanned(detectedContent)
-
-        return
-      }
-
-      const { type, current, total, content } = qrInfo
-
-      if (
-        scanProgress.type === null ||
-        scanProgress.type !== type ||
-        scanProgress.total !== total
-      ) {
-        const newScanned = new Set([current])
-        const newChunks = new Map([[current, content]])
-
-        setScanProgress({
-          chunks: newChunks,
-          scanned: newScanned,
-          total,
-          type
-        })
-
-        return
-      }
-
-      if (scanProgress.scanned.has(current)) {
-        return
-      }
-
-      const newScanned = new Set(scanProgress.scanned).add(current)
-      const newChunks = new Map(scanProgress.chunks).set(current, content)
-
-      setScanProgress({
-        chunks: newChunks,
-        scanned: newScanned,
-        total,
-        type
-      })
-
-      if (type === 'ur') {
-        const maxFragmentNumber = Math.max(...Array.from(newScanned))
-        const actualTotal = maxFragmentNumber + 1
-
-        const conservativeTarget = Math.ceil(actualTotal * 1.1)
-        const theoreticalTarget = Math.ceil(total * 1.5)
-        const assemblyTarget = Math.min(conservativeTarget, theoreticalTarget)
-
-        const fallbackTarget = Math.ceil(actualTotal * 0.8)
-        const shouldTryAssembly =
-          newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
-
-        if (shouldTryAssembly) {
-          const assembledData = await assembleMultiPartQR(
-            type,
-            newChunks,
-            context
-          )
-
-          if (assembledData) {
-            const detectedContent = await detectContentByContext(
-              assembledData,
-              context
-            )
-
-            onClose()
-            resetScanProgress()
-
-            if (!detectedContent.isValid) {
-              setTimeout(() => {
-                toast.error(t('camera.error.invalidContent'))
-              }, 100)
-              return
-            }
-
-            onContentScanned(detectedContent)
-
-            if (
-              assembledData.toLowerCase().startsWith('70736274ff') ||
-              assembledData.startsWith('cHNidP')
-            ) {
-              toast.success(
-                `PSBT assembled successfully (${newScanned.size} fragments). Note: PSBT may need additional signatures to finalize.`
-              )
-            } else {
-              toast.success(
-                `Successfully assembled final transaction from ${newScanned.size} fragments`
-              )
-            }
-          }
-        }
-      } else if (newScanned.size === total) {
-        const assembledData = await assembleMultiPartQR(
-          type,
-          newChunks,
-          context
-        )
-
-        if (assembledData) {
-          const detectedContent = await detectContentByContext(
-            assembledData,
-            context
-          )
-
-          onClose()
-          resetScanProgress()
-
-          if (!detectedContent.isValid) {
-            setTimeout(() => {
-              toast.error(t('camera.error.invalidContent'))
-            }, 100)
+        if (qrInfo.type === 'raw' || qrInfo.type === 'bbqr') {
+          if (qrInfo.total <= 1) {
+            await handleSinglePayload(qrInfo.content)
             return
           }
-
-          onContentScanned(detectedContent)
-
-          if (
-            assembledData.toLowerCase().startsWith('70736274ff') ||
-            assembledData.startsWith('cHNidP')
-          ) {
-            toast.success(
-              `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
-            )
-          } else {
-            toast.success(
-              `Successfully assembled final transaction from ${total} parts`
-            )
-          }
-        } else {
-          toast.error(t('camera.error.assembleFailed'))
-          resetScanProgress()
+          await handleRawOrBBQRPart(
+            qrInfo.type,
+            qrInfo.content,
+            qrInfo.current,
+            qrInfo.total
+          )
+          return
         }
+
+        // Single, unenveloped QR. Detect legacy animated-ecash raw slices
+        // and show a one-shot warning instead of spamming toasts on every
+        // animation frame (which also contributed to the update-depth bug).
+        if (isPartialCashuChunk(qrInfo.content)) {
+          warnPartialCashu()
+          return
+        }
+
+        await handleSinglePayload(qrInfo.content)
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : String(error))
+      } finally {
+        processingRef.current = false
       }
     },
-    [context, onContentScanned, onClose, resetScanProgress, scanProgress]
+    [
+      handleRawOrBBQRPart,
+      handleSinglePayload,
+      handleURPart,
+      isPartialCashuChunk,
+      warnPartialCashu
+    ]
   )
+
+  // The scan entry point reads from a ref so `CameraView` sees the same
+  // function reference across every render. Even if `handleQRCodeScanned`
+  // changes identity, native listener registration is stable.
+  const handleQRCodeScannedRef = useRef(handleQRCodeScanned)
+  useEffect(() => {
+    handleQRCodeScannedRef.current = handleQRCodeScanned
+  }, [handleQRCodeScanned])
+
+  const onBarcodeScanned = useCallback((res: BarcodeScanningResult) => {
+    // expo-camera's `raw` field is only populated for certain barcode formats
+    // and is frequently undefined for plain QR codes; `data` is the reliable
+    // field for the decoded payload. Fall back to `raw` only as a last resort.
+    const payload = res?.data ?? res?.raw
+    if (!payload) {
+      return
+    }
+    void handleQRCodeScannedRef.current(payload)
+  }, [])
 
   useEffect(() => {
     if (!visible) {
-      resetScanProgress()
+      resetScanState()
     }
-  }, [visible, resetScanProgress])
+  }, [visible, resetScanState])
+
+  const progressType = progress.type
+  const progressReceived = progress.received
+  const progressTotal = progress.total
 
   return (
     <SSModal visible={visible} fullOpacity onClose={onClose}>
       <SSVStack itemsCenter gap="md">
         <SSText color="muted" uppercase>
           {title ||
-            (scanProgress.type
-              ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
+            (progressType
+              ? `Scanning ${progressType.toUpperCase()} QR Code`
               : t('transaction.build.options.importOutputs.qrcode'))}
         </SSText>
 
         <CameraView
-          onBarcodeScanned={(res) => {
-            if (res.raw) {
-              handleQRCodeScanned(res.raw)
-            }
-          }}
+          onBarcodeScanned={onBarcodeScanned}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           style={{ height: 400, width: 400 }}
         />
-        {scanProgress.type && scanProgress.total > 1 && (
+        {progressType && (
           <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
-            {scanProgress.type === 'ur' ? (
-              <>
-                {(() => {
-                  const maxFragment = Math.max(
-                    ...Array.from(scanProgress.scanned)
-                  )
-                  const actualTotal = maxFragment + 1
-                  const conservativeTarget = Math.ceil(actualTotal * 1.1)
-                  const theoreticalTarget = Math.ceil(scanProgress.total * 1.5)
-                  const displayTarget = Math.min(
-                    conservativeTarget,
-                    theoreticalTarget
-                  )
-
-                  return (
-                    <>
-                      <SSText color="white" center>
-                        {`UR fountain encoding: ${scanProgress.scanned.size}/${displayTarget} fragments`}
-                      </SSText>
-                      <View
-                        style={{
-                          backgroundColor: Colors.gray[700],
-                          borderRadius: 2,
-                          height: 4,
-                          width: 300
-                        }}
-                      >
-                        <View
-                          style={{
-                            backgroundColor: Colors.white,
-                            borderRadius: 2,
-                            height: 4,
-                            maxWidth: 300,
-                            width:
-                              (scanProgress.scanned.size / displayTarget) * 300
-                          }}
-                        />
-                      </View>
-                    </>
-                  )
-                })()}
-              </>
-            ) : (
+            {progressType === 'ur' ? (
               <>
                 <SSText color="white" center>
-                  {`${t('common.progress')}: ${scanProgress.scanned.size}/${
-                    scanProgress.total
-                  } chunks`}
+                  {progress.urExpected > 0
+                    ? `UR fountain encoding: ${progressReceived}/${progress.urExpected} fragments`
+                    : `UR fountain encoding: ${progressReceived} fragments`}
                 </SSText>
                 <View
                   style={{
@@ -503,14 +553,49 @@ function SSCameraModal({
                       backgroundColor: Colors.white,
                       borderRadius: 2,
                       height: 4,
-                      maxWidth: scanProgress.total * 300,
+                      maxWidth: 300,
                       width:
-                        (scanProgress.scanned.size / scanProgress.total) * 300
+                        progress.urExpected > 0
+                          ? Math.min(
+                              300,
+                              (progressReceived / progress.urExpected) * 300
+                            )
+                          : 0
+                    }}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <SSText color="white" center>
+                  {`${t('common.progress')}: ${progressReceived}/${progressTotal} chunks`}
+                </SSText>
+                <View
+                  style={{
+                    backgroundColor: Colors.gray[700],
+                    borderRadius: 2,
+                    height: 4,
+                    width: 300
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: Colors.white,
+                      borderRadius: 2,
+                      height: 4,
+                      maxWidth: 300,
+                      width:
+                        progressTotal > 0
+                          ? Math.min(
+                              300,
+                              (progressReceived / progressTotal) * 300
+                            )
+                          : 0
                     }}
                   />
                 </View>
                 <SSText color="muted" size="sm" center>
-                  {`Scanned parts: ${Array.from(scanProgress.scanned)
+                  {`Scanned parts: ${progress.scannedIndices
                     .toSorted((a, b) => a - b)
                     .map((n) => n + 1)
                     .join(', ')}`}
@@ -527,11 +612,11 @@ function SSCameraModal({
             />
           )}
         </SSVStack>
-        {scanProgress.type && (
+        {progressType && (
           <SSButton
             label={t('qrcode.scan.reset')}
             variant="outline"
-            onPress={resetScanProgress}
+            onPress={resetScanState}
             style={{ marginTop: 10, width: 200 }}
           />
         )}

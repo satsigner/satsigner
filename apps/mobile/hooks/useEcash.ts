@@ -540,8 +540,22 @@ export function useEcash() {
       toast.success(t('ecash.success.tokenRedeemed'))
       return result
     } catch (error) {
-      const errorMessage =
+      const rawMessage =
         error instanceof Error ? error.message : t('ecash.error.networkError')
+      // Mints report already-claimed tokens through varied error strings
+      // ("Token already spent", "outputs already signed before", "already used",
+      // etc.). Surface a single localized message so the user knows the token
+      // is unrecoverable instead of seeing cryptic mint internals.
+      const lower = rawMessage.toLowerCase()
+      const isAlreadyClaimed =
+        lower.includes('already spent') ||
+        lower.includes('already signed') ||
+        lower.includes('already used') ||
+        lower.includes('already_spent') ||
+        lower.includes('token spent')
+      const errorMessage = isAlreadyClaimed
+        ? t('ecash.error.tokenAlreadyClaimed')
+        : rawMessage
 
       addTransactionAction(activeAccountId, {
         amount: 0,
@@ -630,6 +644,24 @@ export function useEcash() {
       return result.isValid
     } catch {
       return false
+    }
+  }
+
+  async function checkTokenStatus(
+    token: string,
+    mintUrl: string
+  ): Promise<{ isValid: boolean; isSpent?: boolean; details?: string }> {
+    if (!activeAccountId) {
+      return { details: 'No active account', isValid: false }
+    }
+    try {
+      const options = await getWalletOptions()
+      return await validateEcashToken(token, activeAccountId, mintUrl, options)
+    } catch (error) {
+      return {
+        details: error instanceof Error ? error.message : 'Check failed',
+        isValid: false
+      }
     }
   }
 
@@ -772,6 +804,7 @@ export function useEcash() {
     addAccount,
     checkMintQuote: checkMintQuoteHandler,
     checkPendingTransactionStatus,
+    checkTokenStatus,
     checkingTransactionIds,
     clearAccountData: clearAccountDataHandler,
     clearAllData: clearAllDataHandler,

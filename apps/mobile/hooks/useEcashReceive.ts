@@ -1,6 +1,6 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { useEcash, useQuotePolling } from '@/hooks/useEcash'
@@ -15,6 +15,12 @@ import {
 } from '@/utils/lnurl'
 
 const POLL_START_DELAY_MS = 2000
+
+function normalizeMintUrl(url: string): string {
+  return url.trim().replace(/\/+$/, '').toLowerCase()
+}
+
+type TokenSpentStatus = 'unknown' | 'checking' | 'unspent' | 'spent' | 'error'
 
 export function useEcashReceive() {
   const router = useRouter()
@@ -37,11 +43,78 @@ export function useEcashReceive() {
     useState<LNURLWithdrawDetails | null>(null)
   const [isLNURLWithdrawMode, setIsLNURLWithdrawMode] = useState(false)
   const [isFetchingLNURL, setIsFetchingLNURL] = useState(false)
+  const [tokenSpentStatus, setTokenSpentStatus] =
+    useState<TokenSpentStatus>('unknown')
 
-  const { mints, receiveEcash, createMintQuote, checkMintQuote, mintProofs } =
-    useEcash()
+  const {
+    activeAccountId,
+    mints,
+    receiveEcash,
+    createMintQuote,
+    checkMintQuote,
+    mintProofs,
+    checkTokenStatus
+  } = useEcash()
   const activeMint = mints[0] ?? null
   const { isPolling, startPolling, stopPolling } = useQuotePolling()
+
+  // checkTokenStatus is recreated on every useEcash render, so mirror it into
+  // a ref to avoid re-running the spent-state effect on identity changes.
+  const checkTokenStatusRef = useRef(checkTokenStatus)
+  useEffect(() => {
+    checkTokenStatusRef.current = checkTokenStatus
+  }, [checkTokenStatus])
+
+  // Compute whether the decoded token's mint matches one of the user's
+  // connected mints. We normalize to absorb trailing-slash / casing variance
+  // between mint metadata and the stored mint list.
+  const connectedMintUrls = mints.map((m) => normalizeMintUrl(m.url))
+  const tokenMintUrl = decodedToken?.mint ?? ''
+  const isTokenMintConnected =
+    !!tokenMintUrl && connectedMintUrls.includes(normalizeMintUrl(tokenMintUrl))
+
+  // Proactively check if the decoded token has already been claimed so we can
+  // warn the user *before* they press redeem (instead of failing silently at
+  // the mint). Only runs when we have a matching connected mint — otherwise
+  // we cannot ask the mint for proof state.
+  useEffect(() => {
+    if (!token || !decodedToken || !isTokenMintConnected) {
+      setTokenSpentStatus('unknown')
+      return
+    }
+
+    let cancelled = false
+    setTokenSpentStatus('checking')
+
+    async function runCheck() {
+      try {
+        const result = await checkTokenStatusRef.current(
+          token,
+          decodedToken!.mint
+        )
+        if (cancelled) {
+          return
+        }
+        if (result.isSpent) {
+          setTokenSpentStatus('spent')
+        } else if (result.isValid) {
+          setTokenSpentStatus('unspent')
+        } else {
+          setTokenSpentStatus('error')
+        }
+      } catch {
+        if (!cancelled) {
+          setTokenSpentStatus('error')
+        }
+      }
+    }
+
+    runCheck()
+
+    return () => {
+      cancelled = true
+    }
+  }, [token, decodedToken, isTokenMintConnected])
 
   function handleTokenChange(text: string) {
     setToken(text)
@@ -107,13 +180,40 @@ export function useEcashReceive() {
       return
     }
 
+    if (tokenSpentStatus === 'spent') {
+      toast.error(t('ecash.error.tokenAlreadyClaimed'))
+      return
+    }
+
     setIsRedeeming(true)
     try {
       await receiveEcash(activeMint.url, token)
       setToken('')
-      router.navigate('/signer/ecash')
+      setTokenSpentStatus('unknown')
+      if (activeAccountId) {
+        router.navigate(`/signer/ecash/account/${activeAccountId}`)
+      } else {
+        router.navigate('/signer/ecash')
+      }
     } catch {
-      // Error handling is done in the hook
+      // useEcash.receiveEcashHandler already toasts a localized message.
+      // Re-probe the mint so the UI surfaces an 'already claimed' banner when
+      // the failure really was a double-spend (and not a transient network
+      // issue), covering the race where the token gets claimed elsewhere
+      // between our initial check and the redeem attempt.
+      if (decodedToken) {
+        try {
+          const status = await checkTokenStatusRef.current(
+            token,
+            decodedToken.mint
+          )
+          if (status.isSpent) {
+            setTokenSpentStatus('spent')
+          }
+        } catch {
+          // Ignore; we already surfaced an error to the user.
+        }
+      }
     } finally {
       setIsRedeeming(false)
     }
@@ -199,7 +299,11 @@ export function useEcashReceive() {
               setIsLNURLWithdrawMode(false)
               stopPolling()
               toast.success(t('ecash.success.paymentReceived'))
-              router.navigate('/signer/ecash')
+              if (activeAccountId) {
+                router.navigate(`/signer/ecash/account/${activeAccountId}`)
+              } else {
+                router.navigate('/signer/ecash')
+              }
               return true
             } else if (status === 'EXPIRED' || status === 'CANCELLED') {
               stopPolling()
@@ -242,15 +346,19 @@ export function useEcashReceive() {
     isLNURLWithdrawMode,
     isPolling,
     isRedeeming,
+    isTokenMintConnected,
     lnurlWithdrawDetails,
     memo,
     mintQuote,
+    mints,
     quoteStatus,
     redeemToken,
     resetLNURLState,
     setAmount,
     setMemo,
     stopPolling,
-    token
+    token,
+    tokenMintUrl,
+    tokenSpentStatus
   }
 }

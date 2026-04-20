@@ -45,7 +45,7 @@ export default function EcashSendPage() {
     generatedToken,
     generateToken,
     getQRValue,
-    getTokenChunks,
+    getTokenURFragments,
     handleInvoiceChange,
     invoice,
     isEmitting,
@@ -93,7 +93,7 @@ export default function EcashSendPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceParam])
 
-  const chunks = getTokenChunks()
+  const chunks = getTokenURFragments()
   const totalChunks = chunks.length
   const isMultiPart = totalChunks > 1
 
@@ -271,7 +271,7 @@ export default function EcashSendPage() {
                     <SSQRCode
                       value={getQRValue(chunks)}
                       size={qrSize}
-                      ecl={animatedQR && isMultiPart ? 'L' : 'H'}
+                      ecl={animatedQR && isMultiPart ? 'M' : 'H'}
                     />
                     <SSText color="muted" size="xs" style={styles.chunkCounter}>
                       {animatedQR && isMultiPart

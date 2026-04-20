@@ -464,6 +464,7 @@
     "error.assembleFailed": "Failed to assemble multi-part QR code",
     "error.bbqrDecodeFailed": "Failed to decode BBQR QR code",
     "error.invalidContent": "Invalid content detected",
+    "error.partialCashuChunk": "This looks like a chunk of an animated token from an older sender. Ask the sender to upgrade or use a static QR.",
     "error.processFailed": "Failed to process scanned data",
     "error.scanFailed": "Failed to scan QR code",
     "error.urDecodeFailed": "Failed to decode UR QR code",
@@ -802,6 +803,7 @@
     "error.pleaseEnterAmount": "Please enter an amount",
     "error.pleaseEnterValidAmount": "Please enter a valid amount",
     "error.processFailed": "Failed to process scanned data",
+    "error.tokenAlreadyClaimed": "Token has already been claimed. You cannot redeem it again.",
     "error.unknownError": "Unknown error occurred",
     "error.unknownMeltError": "Unknown melt error",
     "info.mintAlreadyConnected": "This mint is already connected",
@@ -972,7 +974,10 @@
     "transactionDetail.token": "Ecash Token",
     "transactionHistory.empty": "No transactions yet",
     "transactionHistory.title": "Transaction History",
+    "warning.mintNotConnected": "This token is from a mint you are not connected to: %{mint}. Connect to this mint before redeeming.",
     "warning.noKeysetsFound": "No keysets found for mint: %{mint}",
+    "warning.tokenAlreadyClaimed": "This token has already been claimed and cannot be redeemed again.",
+    "warning.tokenStatusChecking": "Checking token status...",
     "warning.tokenTruncated": "Token was truncated due to NFC size limits"
   },
   "error": {
