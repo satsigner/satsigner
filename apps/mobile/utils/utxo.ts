@@ -27,7 +27,7 @@ function selectEfficientUtxos(
   utxos: _Utxo[],
   targetAmount: number,
   feeRate: number,
-  options?: UtxoOptions
+  options?: Partial<UtxoOptions>
 ): {
   inputs: Utxo[]
   fee: number
