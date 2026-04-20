@@ -33,21 +33,7 @@ function SSPinInput({
     }
   }, [pin])
 
-<<<<<<< feat-custom-keyboard-pad
   function handleDelete() {
-=======
-  useEffect(() => {
-    if (autoFocus && currentIndex === 0) {
-      inputRefs.current[0]?.focus()
-    }
-  }, [autoFocus, currentIndex])
-
-  function handleOnChangeText(text: string, index: number) {
-    if (text !== '' && !ALLOWED_KEYS.includes(text)) {
-      return
-    }
-
->>>>>>> master
     const newPin = [...pin]
     const previousIndex = currentIndex - 1
     if (previousIndex > -1) {
