@@ -61,7 +61,6 @@ import {
   type MockPsbt,
   type PsbtInputWithSignatures
 } from '@/types/models/Psbt'
-import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
 import { getKeyFingerprint } from '@/utils/account'
