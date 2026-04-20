@@ -40,6 +40,12 @@ function SSPinInput({
     resetFocusOnClear()
   }, [pin])
 
+  useEffect(() => {
+    if (autoFocus && currentIndex === 0) {
+      inputRefs.current[0]?.focus()
+    }
+  }, [autoFocus, currentIndex])
+
   function handleOnChangeText(text: string, index: number) {
     if (text !== '' && !ALLOWED_KEYS.includes(text)) {
       return
