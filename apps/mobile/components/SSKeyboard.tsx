@@ -86,6 +86,7 @@ export default function SSKeyboard({
       >
         <SSButton
           style={{ backgroundColor: 'transparent' }}
+          textStyle={{ fontSize: 16, fontWeight: '700' }}
           key={index}
           label={item}
           onPress={() => handleOnPress(item)}
