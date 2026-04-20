@@ -20,6 +20,23 @@ import { trimOnionAddress } from '@/utils/format'
 const DEFAULT_PROXY_HOST = 'localhost'
 const DEFAULT_PROXY_PORT = 9050
 
+/** ssl://host:port, tcp://..., optional :s or :t mode suffix */
+const ELECTRUM_FULL_URL_WITH_MODE_REGEX =
+  /^(ssl|tls|tcp|electrum):\/\/([^:/\s]+):(\d+)(?::([st]))?$/i
+
+/** host:port with optional :s / :t (Electrum shorthand, no scheme) */
+const ELECTRUM_HOST_PORT_WITH_MODE_REGEX =
+  /^([^:/\s]+):(\d+)(?::([st]))?$/i
+
+/** v2 or v3 onion service hostname only */
+const ELECTRUM_ONION_HOST_ONLY_REGEX = /^[a-z2-7]{16,56}\.onion$/i
+
+/** Persisted electrum server URL from settings (scheme, host, port) */
+const STORED_ELECTRUM_SERVER_URL_REGEX =
+  /^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/
+
+const TRIM_SURROUNDING_QUOTES_REGEX = /^['"]+|['"]+$/g
+
 type CustomNetworkFormData = {
   backend: Backend
   name: string
@@ -36,9 +53,7 @@ type ParsedElectrumUrl = {
 }
 
 function parseElectrumUrl(normalized: string): ParsedElectrumUrl | null {
-  const protocolUrlMatch = normalized.match(
-    /^(ssl|tls|tcp|electrum):\/\/([^:/\s]+):(\d+)(?::([st]))?$/i
-  )
+  const protocolUrlMatch = normalized.match(ELECTRUM_FULL_URL_WITH_MODE_REGEX)
 
   if (protocolUrlMatch) {
     const [, scheme, host, port, mode] = protocolUrlMatch
@@ -52,7 +67,9 @@ function parseElectrumUrl(normalized: string): ParsedElectrumUrl | null {
     }
   }
 
-  const hostPortModeMatch = normalized.match(/^([^:/\s]+):(\d+)(?::([st]))?$/i)
+  const hostPortModeMatch = normalized.match(
+    ELECTRUM_HOST_PORT_WITH_MODE_REGEX
+  )
 
   if (hostPortModeMatch) {
     const [, host, port, mode] = hostPortModeMatch
@@ -64,7 +81,7 @@ function parseElectrumUrl(normalized: string): ParsedElectrumUrl | null {
     }
   }
 
-  const onionHostOnlyMatch = normalized.match(/^[a-z2-7]{16,56}\.onion$/i)
+  const onionHostOnlyMatch = normalized.match(ELECTRUM_ONION_HOST_ONLY_REGEX)
   if (onionHostOnlyMatch) {
     return {
       host: onionHostOnlyMatch[0],
@@ -138,7 +155,7 @@ export function useCustomNetworkForm() {
 
   const loadServer = useCallback((server: Server) => {
     if (server.backend === 'electrum') {
-      const match = server.url.match(/^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/)
+      const match = server.url.match(STORED_ELECTRUM_SERVER_URL_REGEX)
       const protocol =
         match && (match[1] === 'ssl' || match[1] === 'tls') ? 'ssl' : 'tcp'
       const host = match ? match[2] : ''
@@ -184,7 +201,7 @@ export function useCustomNetworkForm() {
     if (!raw) {
       return false
     }
-    const candidate = raw.replace(/^['"]+|['"]+$/g, '').trim()
+    const candidate = raw.replace(TRIM_SURROUNDING_QUOTES_REGEX, '').trim()
     if (!candidate) {
       return false
     }
