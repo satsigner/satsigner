@@ -7,15 +7,24 @@ import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
 
 import SSKeyboard from './SSKeyboard'
+import SSText from './SSText'
 
 type SSPinInputProps = {
+  autoFocus?: boolean
+  feedBackColor?: string
+  feedbackText?: string
+  onFillEnded?: (pin: string) => void
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
-  autoFocus?: boolean
-  onFillEnded?: (pin: string) => void
 }
 
-function SSPinInput({ pin, setPin, onFillEnded }: SSPinInputProps) {
+function SSPinInput({
+  pin,
+  setPin,
+  onFillEnded,
+  feedbackText,
+  feedBackColor = Colors.gray[200]
+}: SSPinInputProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
@@ -57,23 +66,32 @@ function SSPinInput({ pin, setPin, onFillEnded }: SSPinInputProps) {
   }
 
   return (
-    <SSVStack itemsCenter>
-      <SSHStack gap="sm">
-        {Array.from({ length: PIN_SIZE }).map((_, index) => (
-          <TextInput
-            key={index}
-            style={[
-              styles.pinInputBase,
-              {
-                borderColor: index === currentIndex ? 'green' : 'black',
-                borderWidth: 1
+    <SSVStack itemsCenter gap="2xl">
+      <SSVStack>
+        <SSHStack gap="sm">
+          {Array.from({ length: PIN_SIZE }).map((_, index) => (
+            <TextInput
+              key={index}
+              style={[
+                styles.pinInputBase,
+                {
+                  borderColor: index === currentIndex ? 'green' : 'black',
+                  borderWidth: 1
+                }
+              ]}
+              value={
+                pin[index] !== '' ? '•' : index === currentIndex ? '|' : ''
               }
-            ]}
-            value={pin[index] !== '' ? '*' : index === currentIndex ? '|' : ''}
-            readOnly
-          />
-        ))}
-      </SSHStack>
+              readOnly
+            />
+          ))}
+        </SSHStack>
+        {feedbackText && (
+          <SSText uppercase center size="sm" style={{ color: feedBackColor }}>
+            {feedbackText}
+          </SSText>
+        )}
+      </SSVStack>
       <SSKeyboard
         onPress={handlePress}
         onClear={handleClear}
