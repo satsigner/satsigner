@@ -146,12 +146,6 @@ export default function AuthenticatedLayout() {
 
   useEffect(() => {
     async function run() {
-      try {
-        pruneCache()
-      } catch {
-        // non-critical — cache prune failure should not block startup
-      }
-
       const { justUnlocked: ju, pendingRecoverData: pending } =
         useAuthStore.getState()
       if (ju && pending) {
@@ -165,6 +159,12 @@ export default function AuthenticatedLayout() {
       }
       if (connectionMode === 'auto') {
         await loadWallets()
+      }
+
+      try {
+        pruneCache()
+      } catch {
+        // non-critical — cache prune failure should not block startup
       }
     }
     run()
