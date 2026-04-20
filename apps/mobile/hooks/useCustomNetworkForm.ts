@@ -25,15 +25,13 @@ const ELECTRUM_FULL_URL_WITH_MODE_REGEX =
   /^(ssl|tls|tcp|electrum):\/\/([^:/\s]+):(\d+)(?::([st]))?$/i
 
 /** host:port with optional :s / :t (Electrum shorthand, no scheme) */
-const ELECTRUM_HOST_PORT_WITH_MODE_REGEX =
-  /^([^:/\s]+):(\d+)(?::([st]))?$/i
+const ELECTRUM_HOST_PORT_WITH_MODE_REGEX = /^([^:/\s]+):(\d+)(?::([st]))?$/i
 
 /** v2 or v3 onion service hostname only */
 const ELECTRUM_ONION_HOST_ONLY_REGEX = /^[a-z2-7]{16,56}\.onion$/i
 
 /** Persisted electrum server URL from settings (scheme, host, port) */
-const STORED_ELECTRUM_SERVER_URL_REGEX =
-  /^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/
+const STORED_ELECTRUM_SERVER_URL_REGEX = /^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/
 
 const TRIM_SURROUNDING_QUOTES_REGEX = /^['"]+|['"]+$/g
 
@@ -67,9 +65,7 @@ function parseElectrumUrl(normalized: string): ParsedElectrumUrl | null {
     }
   }
 
-  const hostPortModeMatch = normalized.match(
-    ELECTRUM_HOST_PORT_WITH_MODE_REGEX
-  )
+  const hostPortModeMatch = normalized.match(ELECTRUM_HOST_PORT_WITH_MODE_REGEX)
 
   if (hostPortModeMatch) {
     const [, host, port, mode] = hostPortModeMatch
