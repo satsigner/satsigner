@@ -918,22 +918,31 @@ function PreviewTransaction() {
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       label: input.label || '',
       previousOutput: { txid: input.txid, vout: input.vout },
-      value: input.value
+      scriptSig: '' as string | number[],
+      sequence: 0,
+      value: input.value,
+      witness: [] as number[][]
     }))
 
     const vout = outputs.map((output: Output) => ({
       address: output.to,
       label: output.label || '',
+      script: '' as string | number[],
       value: output.amount
     }))
 
     return {
       id: transactionId,
+      lockTimeEnabled: false,
+      prices: {},
+      received: 0,
+      sent: 0,
       size,
+      type: 'send' as const,
       vin,
       vout,
       vsize
-    } as never as Transaction
+    }
   }, [inputs, outputs, transactionId])
 
   useEffect(() => {

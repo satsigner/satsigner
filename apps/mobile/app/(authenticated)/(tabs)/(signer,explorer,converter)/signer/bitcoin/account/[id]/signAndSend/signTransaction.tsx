@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
-import { Psbt } from 'react-native-bdk-sdk'
+import { Psbt, type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -97,7 +97,7 @@ export default function SignTransaction() {
   const transaction = buildTransaction(psbt ?? null, inputs, outputs)
 
   function buildTransaction(
-    psbt: Psbt | null,
+    psbt: PsbtLike | null,
     inputs: Map<string, Utxo>,
     outputs: Output[]
   ): Transaction | null {
@@ -113,22 +113,31 @@ export default function SignTransaction() {
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       label: input.label || '',
       previousOutput: { txid: input.txid, vout: input.vout },
-      value: input.value
+      scriptSig: '' as string | number[],
+      sequence: 0,
+      value: input.value,
+      witness: [] as number[][]
     }))
 
     const vout = outputs.map((output: Output) => ({
       address: output.to,
       label: output.label || '',
+      script: '' as string | number[],
       value: output.amount
     }))
 
     return {
       id: psbt.txid(),
+      lockTimeEnabled: false,
+      prices: {},
+      received: 0,
+      sent: 0,
       size,
+      type: 'send' as const,
       vin,
       vout,
       vsize
-    } as never as Transaction
+    }
   }
 
   function handleBroadcastSingleSig() {
