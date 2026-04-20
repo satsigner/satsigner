@@ -31,7 +31,7 @@ function SSPinEntry({
   const { shakeStyle } = useAnimatedShake()
   const triesLeft = pinMaxTries - pinTries
 
-  function getTextColor() {
+  function getWarningColor() {
     if (triesLeft > 2) {
       return gray[200]
     }
@@ -42,6 +42,20 @@ function SSPinEntry({
       return warning
     }
     return undefined
+  }
+
+  function getWarningText() {
+    let text = ''
+    if (triesLeft < pinMaxTries) {
+      text += triesLeft
+      text += ' '
+      text += triesLeft > 1 ? t('auth.triesLeft') : t('auth.tryLeft')
+      if (triesLeft <= 2) {
+        text += '\n'
+        text += t('auth.warningKeysErase')
+      }
+    }
+    return text
   }
 
   return (
@@ -56,31 +70,10 @@ function SSPinEntry({
             setPin={setPin}
             autoFocus={autoFocus}
             onFillEnded={onFillEnded}
+            feedbackText={getWarningText()}
+            feedBackColor={getWarningColor()}
           />
         </Animated.View>
-        {triesLeft !== pinMaxTries && (
-          <SSVStack gap="xxs" itemsCenter>
-            <SSText
-              uppercase
-              center
-              color={triesLeft > 2 ? 'muted' : undefined}
-              style={{ color: getTextColor() }}
-            >
-              {triesLeft}{' '}
-              {triesLeft > 1 ? t('auth.triesLeft') : t('auth.tryLeft')}
-            </SSText>
-            {triesLeft <= 2 && (
-              <SSText
-                uppercase
-                center
-                size="sm"
-                style={{ color: getTextColor() }}
-              >
-                {t('auth.warningKeysErase')}
-              </SSText>
-            )}
-          </SSVStack>
-        )}
       </SSVStack>
     </SSVStack>
   )

@@ -1,153 +1,107 @@
-import {
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useRef,
-  useState
-} from 'react'
-import { Keyboard, StyleSheet, TextInput } from 'react-native'
+import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
+import { StyleSheet, TextInput, useWindowDimensions, View } from 'react-native'
 
 import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
+import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
 
+import SSKeyboard from './SSKeyboard'
+import SSText from './SSText'
+
 type SSPinInputProps = {
+  autoFocus?: boolean
+  feedBackColor?: string
+  feedbackText?: string
+  onFillEnded?: (pin: string) => void
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
-  autoFocus?: boolean
-  onFillEnded?: (pin: string) => void
 }
-
-const ALLOWED_KEYS: string[] = '0123456789'.split('')
 
 function SSPinInput({
   pin,
   setPin,
-  autoFocus = true,
-  onFillEnded
+  onFillEnded,
+  feedbackText,
+  feedBackColor = Colors.gray[200]
 }: SSPinInputProps) {
-  const inputRefs = useRef<TextInput[]>([])
-  const [isBackspace, setIsBackspace] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
-    function resetFocusOnClear() {
-      if (pin.join('') === '') {
-        inputRefs.current[0]?.focus()
-      }
+    if (pin.join('') === '') {
+      setCurrentIndex(0)
     }
-
-    resetFocusOnClear()
   }, [pin])
 
-  useEffect(() => {
-    if (autoFocus && currentIndex === 0) {
-      inputRefs.current[0]?.focus()
+  function handleDelete() {
+    const newPin = [...pin]
+    const previousIndex = currentIndex - 1
+    if (previousIndex > -1) {
+      newPin[previousIndex] = ''
     }
-  }, [autoFocus, currentIndex])
+    setCurrentIndex((currentIndex) => currentIndex - 1)
+    setPin(newPin)
+  }
 
-  function handleOnChangeText(text: string, index: number) {
-    if (text !== '' && !ALLOWED_KEYS.includes(text)) {
+  function handleClear() {
+    setCurrentIndex(0)
+    setPin(Array.from({ length: PIN_SIZE }).map((_) => ''))
+  }
+
+  function handlePress(digit: string) {
+    const newPin = [...pin]
+    const lastIndex = PIN_SIZE - 1
+    if (currentIndex > lastIndex) {
       return
     }
 
-    const newPin = [...pin]
-    newPin[index] = text
+    newPin[currentIndex] = digit
     setPin(newPin)
 
-    if (text !== '') {
-      setCurrentIndex(() => index + 1)
+    if (currentIndex === lastIndex && onFillEnded) {
+      onFillEnded(newPin.join(''))
     }
 
-    if (text === '') {
-      return
-    }
-
-    if (index + 1 < PIN_SIZE) {
-      inputRefs.current[index + 1]?.focus()
-    }
-
-    if (index === PIN_SIZE - 1) {
-      handleLastPin(newPin)
-    }
+    setCurrentIndex((currentValue) => currentValue + 1)
   }
 
-  function handleBackspace(index: number) {
-    const newPin = [...pin]
-    setIsBackspace(true)
-    const previousPinIndex = index - 1
-    const currentPinNotEmpty = pin[index] !== ''
-
-    if (currentPinNotEmpty) {
-      newPin[index] = ''
-      setPin(newPin)
-    } else if (previousPinIndex >= 0) {
-      newPin[previousPinIndex] = ''
-      setPin(newPin)
-      inputRefs.current[previousPinIndex]?.focus()
-      setCurrentIndex((prev) => prev - 1)
-    }
-  }
-
-  function handleLastPin(pin: string[]) {
-    const finalPin = pin.join('')
-    if (finalPin.length !== PIN_SIZE) {
-      return
-    }
-    setIsBackspace(false)
-    onFillEnded?.(finalPin)
-    Keyboard.dismiss()
-  }
-
-  function handleKeyPress(key: string) {
-    if (key === 'Backspace') {
-      handleBackspace(currentIndex)
-    }
-  }
-
-  function handleOnFocus() {
-    const lastFilledIndex = pin.indexOf('')
-
-    if (lastFilledIndex === 0) {
-      inputRefs.current[0]?.focus()
-      return
-    }
-
-    if (isBackspace) {
-      setIsBackspace(false)
-      return
-    }
-
-    const finalIndex =
-      lastFilledIndex === -1 || currentIndex === PIN_SIZE
-        ? PIN_SIZE - 1
-        : lastFilledIndex
-
-    inputRefs.current[finalIndex]?.focus()
-  }
+  const { height } = useWindowDimensions()
 
   return (
-    <SSHStack gap="sm">
-      {Array.from({ length: PIN_SIZE }).map((_, index) => (
-        <TextInput
-          key={index}
-          ref={(input) => {
-            if (input) {
-              inputRefs.current.push(input)
-            }
-          }}
-          style={styles.pinInputBase}
-          autoFocus={autoFocus && index === 0}
-          value={pin[index]}
-          keyboardType="numeric"
-          maxLength={1}
-          secureTextEntry
-          onChangeText={(text) => handleOnChangeText(text, index)}
-          onKeyPress={(event) => handleKeyPress(event.nativeEvent.key)}
-          onFocus={() => handleOnFocus()}
+    <SSVStack itemsCenter gap="none">
+      <SSVStack>
+        <SSHStack gap="sm">
+          {Array.from({ length: PIN_SIZE }).map((_, index) => (
+            <TextInput
+              key={index}
+              style={[
+                styles.pinInputBase,
+                {
+                  borderColor: index === currentIndex ? 'green' : 'black',
+                  borderWidth: 1
+                }
+              ]}
+              value={
+                pin[index] !== '' ? '•' : index === currentIndex ? '|' : ''
+              }
+              readOnly
+            />
+          ))}
+        </SSHStack>
+        {feedbackText && (
+          <SSText uppercase center size="sm" style={{ color: feedBackColor }}>
+            {feedbackText}
+          </SSText>
+        )}
+      </SSVStack>
+      <View style={{ marginTop: height / 4 }}>
+        <SSKeyboard
+          onPress={handlePress}
+          onClear={handleClear}
+          onDelete={handleDelete}
         />
-      ))}
-    </SSHStack>
+      </View>
+    </SSVStack>
   )
 }
 
