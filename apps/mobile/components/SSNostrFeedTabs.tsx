@@ -711,7 +711,6 @@ function SSNostrFeedTabs({
                 </SSText>
               </SSHStack>
             </TouchableOpacity>
-
             {feedNotes.map((note) => (
               <SSNostrFeedNoteRow
                 key={note.id}
