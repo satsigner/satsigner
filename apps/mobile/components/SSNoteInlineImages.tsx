@@ -27,7 +27,9 @@ function SSNoteInlineImage({ uri }: SSNoteInlineImageProps) {
       }}
       style={[
         styles.image,
-        aspectRatio != null ? { aspectRatio } : styles.imagePlaceholder
+        aspectRatio !== null && aspectRatio !== undefined
+          ? { aspectRatio }
+          : styles.imagePlaceholder
       ]}
       resizeMode="contain"
     />

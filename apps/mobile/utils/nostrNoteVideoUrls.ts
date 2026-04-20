@@ -60,7 +60,7 @@ function parseYouTubeEmbed(url: string): NostrVideoEmbed | null {
   if (!m) {
     return null
   }
-  const id = m[1]
+  const [, id] = m
   const watchUrl = `https://www.youtube.com/watch?v=${id}`
   return {
     provider: 'youtube',
@@ -75,7 +75,7 @@ function parseVimeoEmbed(url: string): NostrVideoEmbed | null {
   if (!m) {
     return null
   }
-  const id = m[1]
+  const [, id] = m
   return {
     provider: 'vimeo',
     watchUrl: `https://vimeo.com/${id}`

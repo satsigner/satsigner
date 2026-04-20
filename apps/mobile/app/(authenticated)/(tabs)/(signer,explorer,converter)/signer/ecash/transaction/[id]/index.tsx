@@ -151,7 +151,8 @@ export default function EcashTransactionDetailPage() {
     transaction?.token,
     transaction?.mintUrl,
     transaction?.id,
-    updateTransaction
+    updateTransaction,
+    validateToken
   ])
 
   const handleRedeemToken = useCallback(async () => {

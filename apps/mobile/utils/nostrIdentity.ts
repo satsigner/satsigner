@@ -216,11 +216,13 @@ export function extractEnhancedZapTags(tags: string[][]): EnhancedZapTags {
       result.zapUses = val
     }
   }
-  if (zapPayerRaw?.[1] && /^[a-f0-9]{64}$/i.test(zapPayerRaw[1])) {
-    result.zapPayer = zapPayerRaw[1]
+  const [, zapPayerVal] = zapPayerRaw ?? []
+  if (zapPayerVal && /^[a-f0-9]{64}$/i.test(zapPayerVal)) {
+    result.zapPayer = zapPayerVal
   }
-  if (zapLnurlRaw?.[1] && zapLnurlRaw[1].includes('@')) {
-    result.zapLnurl = zapLnurlRaw[1]
+  const [, zapLnurlVal] = zapLnurlRaw ?? []
+  if (zapLnurlVal && zapLnurlVal.includes('@')) {
+    result.zapLnurl = zapLnurlVal
   }
 
   return result

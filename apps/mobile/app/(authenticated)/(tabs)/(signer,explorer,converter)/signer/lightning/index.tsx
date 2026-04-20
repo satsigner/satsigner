@@ -49,7 +49,13 @@ export default function LightningPage() {
     if (!config || !isConnected) {
       return
     }
-    getChannels().catch(() => {})
+    void (async () => {
+      try {
+        await getChannels()
+      } catch {
+        // ignore
+      }
+    })()
   }, [config, isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRCPPress = () => {

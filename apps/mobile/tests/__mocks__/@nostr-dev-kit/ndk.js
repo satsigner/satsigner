@@ -33,8 +33,9 @@ class NDKEvent {
     }
   }
 
-  async sign() {
+  sign() {
     this.sig = 'a'.repeat(128)
+    return Promise.resolve()
   }
 }
 

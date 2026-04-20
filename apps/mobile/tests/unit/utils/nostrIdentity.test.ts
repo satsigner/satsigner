@@ -93,7 +93,7 @@ describe('nIP-06 derivation from mnemonic', () => {
 
     const root = HDKey.fromMasterSeed(seed)
     const child = root.derive(NIP06_PATH)
-    const privateKey = new Uint8Array(child.privateKey!)
+    const _privateKey = new Uint8Array(child.privateKey!)
 
     // Compute public key using secp256k1
     // @scure/bip32 exposes the public key on the derived key

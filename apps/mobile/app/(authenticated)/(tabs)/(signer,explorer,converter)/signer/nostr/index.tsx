@@ -59,7 +59,7 @@ export default function NostrLanding() {
   }
 
   const identitiesForList =
-    activeIdentityNpub == null
+    activeIdentityNpub === null || activeIdentityNpub === undefined
       ? identities
       : [
           ...identities.filter((i) => i.npub === activeIdentityNpub),

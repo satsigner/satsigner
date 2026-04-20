@@ -103,13 +103,6 @@ function getPPubkeysFromTags(tags: string[][]): string[] {
     .map((tag) => tag[1])
 }
 
-function getPPubkeysFromEvent(event: NDKEvent): string[] {
-  const rows = event.tags.map((tag) =>
-    tag.filter((v): v is string => typeof v === 'string')
-  )
-  return getPPubkeysFromTags(rows)
-}
-
 export function zapReceiptEventToRawJson(event: NDKEvent): string {
   const tags = event.tags.map((tag) =>
     tag.filter((v): v is string => typeof v === 'string')
@@ -245,9 +238,7 @@ export function mergeZapReceiptsById(
  * Resolves a Lightning Address (lud16) to an LNURL-pay callback URL.
  * Returns the full LNURLPayResponse with callback, min/max, and nostr support.
  */
-export async function resolveZapEndpoint(
-  lud16: string
-): Promise<LNURLPayResponse> {
+export function resolveZapEndpoint(lud16: string): Promise<LNURLPayResponse> {
   const [name, domain] = lud16.split('@')
   if (!name || !domain) {
     throw new Error('Invalid Lightning Address format')
