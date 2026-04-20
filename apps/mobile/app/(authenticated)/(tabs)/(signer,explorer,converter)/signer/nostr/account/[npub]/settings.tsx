@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   Image,
@@ -26,7 +26,7 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
-import { nostrAccountHref } from '@/utils/nostrNavigation'
+import { nostrAccountHref, nostrIndexHref } from '@/utils/nostrNavigation'
 
 type SettingsParams = {
   npub: string
@@ -140,7 +140,7 @@ export default function NostrIdentitySettings() {
   function handleConfirmDelete() {
     setDeleteModalVisible(false)
     removeIdentity(npub)
-    router.navigate('/signer/nostr' as Href)
+    router.navigate(nostrIndexHref())
   }
 
   if (!identity) {

@@ -12,6 +12,10 @@ export function nostrContactProfileHref(
   return `/signer/nostr/account/${ownerNpub}/contact/${targetNpub}` as Href
 }
 
+export function nostrIndexHref(): Href {
+  return '/signer/nostr' as Href
+}
+
 export function nostrAddIdentityHref(): Href {
   return '/signer/nostr/add' as Href
 }
