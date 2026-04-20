@@ -1,5 +1,5 @@
 import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
-import { StyleSheet, TextInput } from 'react-native'
+import { StyleSheet, TextInput, useWindowDimensions, View } from 'react-native'
 
 import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
@@ -65,8 +65,10 @@ function SSPinInput({
     setCurrentIndex((currentValue) => currentValue + 1)
   }
 
+  const { height } = useWindowDimensions()
+
   return (
-    <SSVStack itemsCenter gap="2xl">
+    <SSVStack itemsCenter gap="none">
       <SSVStack>
         <SSHStack gap="sm">
           {Array.from({ length: PIN_SIZE }).map((_, index) => (
@@ -92,11 +94,13 @@ function SSPinInput({
           </SSText>
         )}
       </SSVStack>
-      <SSKeyboard
-        onPress={handlePress}
-        onClear={handleClear}
-        onDelete={handleDelete}
-      />
+      <View style={{ marginTop: height / 4 }}>
+        <SSKeyboard
+          onPress={handlePress}
+          onClear={handleClear}
+          onDelete={handleDelete}
+        />
+      </View>
     </SSVStack>
   )
 }
