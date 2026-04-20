@@ -50,7 +50,12 @@ function SSTransactionCard({
   expand,
   style = DEFAULT_STYLE
 }: SSTransactionCardProps) {
-  const hasConfirmation = transaction.blockHeight && transaction.blockHeight > 0
+  const confirmedAtBlockHeight =
+    transaction.blockHeight != null && transaction.blockHeight > 0
+      ? transaction.blockHeight
+      : null
+
+  const hasConfirmation = confirmedAtBlockHeight !== null
 
   const confirmations = transaction.blockHeight
     ? blockHeight - transaction.blockHeight + 1
@@ -134,7 +139,7 @@ function SSTransactionCard({
                   confirmations >= 0 ? confirmationColor : styles.confirmedEnough
                 }
               >
-                {`${t('bitcoin.block')} ${transaction.blockHeight}`}
+                {`${t('bitcoin.block')} ${confirmedAtBlockHeight.toLocaleString('en-US')}`}
               </SSText>
             )}
           </SSHStack>
