@@ -1,6 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import { type Href, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
@@ -40,9 +40,6 @@ export default function NostrAccountLanding() {
   )
   const relays = useNostrIdentityStore((state) => state.relays)
   const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
-  const fetchedRef = useRef(false)
-  const [connectionInfo, setConnectionInfo] =
-    useState<NostrRelayConnectionInfo>({ status: 'checking' })
 
   const effectiveRelays = identity
     ? identity.relays?.length
@@ -50,76 +47,41 @@ export default function NostrAccountLanding() {
       : relays
     : []
 
-  useEffect(() => {
-    if (!identity) {
-      return
-    }
-    if (!identity.relayConnected) {
-      setConnectionInfo({ reason: 'user_disabled', status: 'disconnected' })
-      return
-    }
-    if (effectiveRelays.length === 0) {
-      setConnectionInfo({ reason: 'no_relays', status: 'disconnected' })
-      return
-    }
-    let cancelled = false
-    setConnectionInfo({ status: 'checking' })
+  const relayConnected = identity?.relayConnected === true
+  const relaysAvailable = effectiveRelays.length > 0
 
-    async function checkRelays() {
-      const info = await testNostrRelaysReachable(effectiveRelays)
-      if (!cancelled) {
-        setConnectionInfo(info)
-      }
-    }
+  const connectionQuery = useQuery({
+    enabled: !!identity && relayConnected && relaysAvailable,
+    queryFn: () => testNostrRelaysReachable(effectiveRelays),
+    queryKey: ['nostr', 'relay-connection', npub, effectiveRelays]
+  })
 
-    void checkRelays()
-    return () => {
-      cancelled = true
-    }
-  }, [identity, effectiveRelays])
+  const connectionInfo: NostrRelayConnectionInfo = !identity
+    ? { status: 'checking' }
+    : !relayConnected
+      ? { reason: 'user_disabled', status: 'disconnected' }
+      : !relaysAvailable
+        ? { reason: 'no_relays', status: 'disconnected' }
+        : (connectionQuery.data ?? { status: 'checking' })
 
-  useEffect(() => {
-    if (!identity?.relayConnected) {
-      fetchedRef.current = false
-    }
-  }, [identity?.relayConnected, identity?.npub])
-
-  useEffect(() => {
-    const effectiveRelays = identity?.relays ?? relays
-    if (
-      !identity ||
-      identity.relayConnected !== true ||
-      !npub ||
-      fetchedRef.current ||
-      effectiveRelays.length === 0
-    ) {
-      return
-    }
-    fetchedRef.current = true
-
-    async function fetchProfile() {
-      if (!identity) {
-        return
-      }
+  useQuery({
+    enabled: !!identity && relayConnected && !!npub && relaysAvailable,
+    queryFn: async () => {
       const api = new NostrAPI(effectiveRelays)
-      try {
-        const profile = await api.fetchKind0(npub)
-        if (!profile) {
-          return
-        }
+      const profile = await api.fetchKind0(npub)
+      if (profile && identity) {
         updateIdentity(npub, {
           displayName: profile.displayName || identity.displayName,
           lud16: profile.lud16 || identity.lud16,
           nip05: profile.nip05 || identity.nip05,
           picture: profile.picture || identity.picture
         })
-      } catch {
-        fetchedRef.current = false
       }
-    }
-
-    void fetchProfile()
-  }, [npub, identity, relays, updateIdentity])
+      return profile
+    },
+    queryKey: ['nostr', 'profile', npub],
+    staleTime: 60_000
+  })
 
   function handleContentScanned(detected: {
     type: string
