@@ -226,15 +226,8 @@ export default function EcashTransactionDetailPage() {
     return () => {
       stopPolling()
     }
-  }, [
-    transaction,
-    mint,
-    startPolling,
-    stopPolling,
-    checkMintQuote,
-    mintProofs,
-    updateTransaction
-  ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transaction?.id, transaction?.status, transaction?.quoteId, mint?.url])
 
   if (!transaction) {
     return (

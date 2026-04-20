@@ -19,8 +19,6 @@ import { Colors, Sizes } from '@/styles'
 import type { EcashAccount } from '@/types/models/Ecash'
 import { formatFiatPrice } from '@/utils/format'
 
-const ACCOUNT_CARD_HEIGHT = 100
-
 function EcashAccountCard({
   account,
   balance,
@@ -182,7 +180,6 @@ export default function EcashAccountListPage() {
         <SSVStack gap="md" style={styles.listContainer}>
           <FlashList
             data={accounts}
-            estimatedItemSize={ACCOUNT_CARD_HEIGHT}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <EcashAccountCard
