@@ -67,8 +67,11 @@ describe('nostrAPI', () => {
   })
 
   describe('testNostrRelaysReachable', () => {
-    it('returns false when relay list is empty', async () => {
-      await expect(testNostrRelaysReachable([])).resolves.toBe(false)
+    it('returns disconnected with no_relays when relay list is empty', async () => {
+      await expect(testNostrRelaysReachable([])).resolves.toStrictEqual({
+        reason: 'no_relays',
+        status: 'disconnected'
+      })
     })
   })
 })
