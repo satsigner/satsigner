@@ -94,7 +94,7 @@
     "import.labelsEmptyClipboard": "Clipboard is empty",
     "import.labelsInvalidFormat": "Invalid format. Please check the data format and try again.",
     "import.multi.title": "Import Keys",
-    "import.scanSeedQR": "Scan Seed QR",
+    "import.scanSeedQR": "Scan SeedQR",
     "import.seedQRWordCountMismatch": "Seed QR word count doesn't match (expected %{count} words)",
     "import.success": "Key imported successfully",
     "import.title": "Import existing seed",

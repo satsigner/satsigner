@@ -94,7 +94,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: 'satsigner',
   slug: 'satsigner',
   splash: {
-    backgroundColor: '#121212',
+    backgroundColor: '#000000',
     image: './assets/splash.png',
     resizeMode: 'contain'
   },

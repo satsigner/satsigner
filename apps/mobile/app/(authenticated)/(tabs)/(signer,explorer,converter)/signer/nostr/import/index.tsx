@@ -216,7 +216,7 @@ export default function ImportNostrIdentity() {
               onMnemonicValid={handleMnemonicValid}
               onMnemonicInvalid={handleMnemonicInvalid}
               showPasteButton
-              showScanSeedQRButton={false}
+              showScanSeedQRButton
               showActionButton
               actionButtonLabel={t('nostrIdentity.import.importButton')}
               actionButtonVariant="secondary"
