@@ -1,7 +1,7 @@
 import { setStringAsync } from 'expo-clipboard'
 import { useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ScrollView, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
@@ -443,7 +443,7 @@ function SSSignatureDropdown({
 }
 export default SSSignatureDropdown
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     borderColor: Colors.gray[700],
     borderTopWidth: 1,
@@ -479,4 +479,4 @@ const styles = {
     height: 24,
     width: 24
   }
-}
+})
