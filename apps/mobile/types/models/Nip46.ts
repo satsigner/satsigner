@@ -1,3 +1,10 @@
+export type Nip46ConnectionStatus =
+  | 'connecting'
+  | 'connected'
+  | 'relays_unreachable'
+  | 'error'
+  | 'disconnected'
+
 export type Nip46Method =
   | 'connect'
   | 'get_public_key'
@@ -13,6 +20,8 @@ export type Nip46PermissionPolicy = 'always_allow' | 'always_reject' | 'ask'
 export type Nip46Session = {
   clientName?: string
   clientPubkey: string
+  connectionError?: string
+  connectionStatus?: Nip46ConnectionStatus
   createdAt: number
   id: string
   lastActiveAt: number

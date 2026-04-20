@@ -145,65 +145,91 @@ export function useNip46SessionManager() {
       throw new Error('Invalid signer npub')
     }
 
-    const service = new Nip46BunkerService()
-    await service.connect(session.relays)
+    updateSession(session.id, { connectionStatus: 'connecting' })
 
-    servicesMap.set(session.id, service)
-    secretKeysMap.set(session.id, secretKey)
+    try {
+      const service = new Nip46BunkerService()
+      await service.connect(session.relays)
 
-    service.subscribe(
-      signerPubkeyHex,
-      secretKey,
-      session.clientPubkey,
-      (request) => {
-        if (!isValidMethod(request.method)) {
-          return
+      servicesMap.set(session.id, service)
+      secretKeysMap.set(session.id, secretKey)
+
+      service.subscribe(
+        signerPubkeyHex,
+        secretKey,
+        session.clientPubkey,
+        (request) => {
+          if (!isValidMethod(request.method)) {
+            return
+          }
+
+          const currentSession = getSessionById(session.id)
+          if (!currentSession) {
+            return
+          }
+
+          const permission = currentSession.permissions[request.method]
+          updateSession(session.id, { lastActiveAt: Date.now() })
+
+          if (permission === 'always_allow') {
+            fireAndForget(
+              respondToRequest(session.id, {
+                id: request.id,
+                method: request.method,
+                params: request.params,
+                receivedAt: Date.now(),
+                sessionId: session.id,
+                status: 'approved'
+              })
+            )
+            return
+          }
+
+          if (permission === 'always_reject') {
+            fireAndForget(sendError(session.id, request.id, 'Rejected by user'))
+            return
+          }
+
+          addPendingRequest({
+            id: request.id,
+            method: request.method,
+            params: request.params,
+            receivedAt: Date.now(),
+            sessionId: session.id,
+            status: 'pending'
+          })
         }
+      )
 
-        const currentSession = getSessionById(session.id)
-        if (!currentSession) {
-          return
-        }
+      const connectPayload = buildNip46ResponsePayload(
+        'connect',
+        session.secret ?? '',
+        null
+      )
+      await service.sendResponse(
+        session.clientPubkey,
+        secretKey,
+        connectPayload
+      )
+      updateSession(session.id, { connectionStatus: 'connected' })
+    } catch (error) {
+      const errMsg =
+        error instanceof Error ? error.message : 'Connection failed'
+      const isRelayError = errMsg.includes('Failed to connect to any relay')
+      updateSession(session.id, {
+        connectionError: isRelayError ? undefined : errMsg,
+        connectionStatus: isRelayError ? 'relays_unreachable' : 'error'
+      })
 
-        const permission = currentSession.permissions[request.method]
-        updateSession(session.id, { lastActiveAt: Date.now() })
-
-        if (permission === 'always_allow') {
-          fireAndForget(
-            respondToRequest(session.id, {
-              id: request.id,
-              method: request.method,
-              params: request.params,
-              receivedAt: Date.now(),
-              sessionId: session.id,
-              status: 'approved'
-            })
-          )
-          return
-        }
-
-        if (permission === 'always_reject') {
-          fireAndForget(sendError(session.id, request.id, 'Rejected by user'))
-          return
-        }
-
-        addPendingRequest({
-          id: request.id,
-          method: request.method,
-          params: request.params,
-          receivedAt: Date.now(),
-          sessionId: session.id,
-          status: 'pending'
-        })
+      const service = servicesMap.get(session.id)
+      if (service) {
+        service.disconnect()
+        servicesMap.delete(session.id)
       }
-    )
+      secretKeysMap.delete(session.id)
 
-    const connectPayload = buildNip46ResponsePayload(
-      'connect',
-      session.secret ?? '',
-      null
-    )
-    await service.sendResponse(session.clientPubkey, secretKey, connectPayload)
+      throw error
+    }
   }
 
   async function approveRequest(

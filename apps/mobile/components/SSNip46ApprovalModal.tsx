@@ -49,10 +49,35 @@ export default function SSNip46ApprovalModal({
   return (
     <SSModal visible={visible} fullOpacity onClose={handleReject}>
       <View style={styles.container}>
-        <SSVStack gap="md" itemsCenter widthFull>
-          <SSText size="lg" weight="bold" center>
+        <SSVStack gap="md" widthFull>
+          <SSText size="sm" color="muted" uppercase>
             {t('nip46.approval.title')}
           </SSText>
+
+          <SSText size="lg" weight="bold">
+            {methodLabel}
+          </SSText>
+
+          {eventPreview && (
+            <SSVStack gap="xs" style={styles.previewBox}>
+              <SSHStack gap="sm">
+                <SSText size="xs" color="muted">
+                  {t('nip46.approval.eventKind')}:
+                </SSText>
+                <SSText size="xs">{String(eventPreview.kind)}</SSText>
+              </SSHStack>
+              {eventPreview.content.length > 0 && (
+                <>
+                  <SSText size="xs" color="muted">
+                    {t('nip46.approval.eventContent')}:
+                  </SSText>
+                  <SSText size="xs" numberOfLines={4}>
+                    {eventPreview.content}
+                  </SSText>
+                </>
+              )}
+            </SSVStack>
+          )}
 
           <SSCheckbox
             selected={alwaysAllow}
@@ -60,35 +85,6 @@ export default function SSNip46ApprovalModal({
             labelProps={{ size: 'sm' }}
             onPress={() => setAlwaysAllow(!alwaysAllow)}
           />
-
-          {!alwaysAllow && (
-            <SSVStack gap="sm" widthFull>
-              <SSText size="sm" color="muted" uppercase>
-                {methodLabel}
-              </SSText>
-
-              {eventPreview && (
-                <SSVStack gap="xs" style={styles.previewBox}>
-                  <SSHStack gap="sm">
-                    <SSText size="xs" color="muted">
-                      {t('nip46.approval.eventKind')}:
-                    </SSText>
-                    <SSText size="xs">{String(eventPreview.kind)}</SSText>
-                  </SSHStack>
-                  {eventPreview.content.length > 0 && (
-                    <>
-                      <SSText size="xs" color="muted">
-                        {t('nip46.approval.eventContent')}:
-                      </SSText>
-                      <SSText size="xs" numberOfLines={4}>
-                        {eventPreview.content}
-                      </SSText>
-                    </>
-                  )}
-                </SSVStack>
-              )}
-            </SSVStack>
-          )}
 
           <SSVStack gap="sm" widthFull>
             <SSButton

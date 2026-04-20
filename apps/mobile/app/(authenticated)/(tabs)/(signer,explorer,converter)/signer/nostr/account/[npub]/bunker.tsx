@@ -1,12 +1,13 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
 import SSNip46ApprovalModal from '@/components/SSNip46ApprovalModal'
+import SSNip46ConnectionModal from '@/components/SSNip46ConnectionModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useNip46Connect } from '@/hooks/useNip46Connect'
@@ -18,7 +19,9 @@ import { t } from '@/locales'
 import { useNip46Store } from '@/store/nip46'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
+import type { Nip46ParsedUri } from '@/types/models/Nip46'
 import type { DetectedContent } from '@/utils/contentDetector'
+import { parseNostrConnectUri } from '@/utils/nip46'
 
 type BunkerParams = {
   connectUri?: string
@@ -40,16 +43,7 @@ export default function NostrBunker() {
 
   const { approveRequest, isSessionActive, rejectRequest, stopSession } =
     useNip46SessionManager()
-  const { error, initiateConnection, isConnecting } = useNip46Connect(
-    npub,
-    identity?.nsec ?? ''
-  )
-
-  const autoConnectRef = useRef(false)
-  if (connectUri && !autoConnectRef.current && !isConnecting) {
-    autoConnectRef.current = true
-    void handleConnect(connectUri)
-  }
+  const { initiateConnection } = useNip46Connect(npub, identity?.nsec ?? '')
 
   const [cameraVisible, setCameraVisible] = useState(false)
   const [pasteModalVisible, setPasteModalVisible] = useState(false)
@@ -57,24 +51,56 @@ export default function NostrBunker() {
   const [disconnectSessionId, setDisconnectSessionId] = useState<string | null>(
     null
   )
+  const [previewUri, setPreviewUri] = useState<string | null>(null)
+  const [previewData, setPreviewData] = useState<Nip46ParsedUri | null>(null)
+
+  const deepLinkHandled = useRef(false)
+  if (connectUri && !deepLinkHandled.current) {
+    deepLinkHandled.current = true
+    handlePreviewUri(connectUri)
+  }
 
   const currentRequest =
     pendingRequests.find((r) => sessions.some((s) => s.id === r.sessionId)) ??
     null
 
-  async function handleConnect(uri: string) {
+  function handlePreviewUri(uri: string) {
+    const parsed = parseNostrConnectUri(uri)
+    if (!parsed) {
+      toast.error(t('nip46.invalidUri'))
+      return
+    }
+    setPreviewUri(uri)
+    setPreviewData(parsed)
+  }
+
+  function handleCancelPreview() {
+    setPreviewUri(null)
+    setPreviewData(null)
+  }
+
+  async function handleConfirmConnect() {
+    if (!previewUri) {
+      return
+    }
+    const uri = previewUri
+    setPreviewUri(null)
+    setPreviewData(null)
+
     const session = await initiateConnection(uri)
     if (session) {
       toast.success(
         t('nip46.connectionSuccess', { name: session.clientName ?? 'App' })
       )
+    } else {
+      toast.error(t('nip46.connectionFailed'))
     }
   }
 
   function handleContentScanned(content: DetectedContent) {
     setCameraVisible(false)
     if (content.type === 'nostr_connect') {
-      void handleConnect(content.cleaned)
+      handlePreviewUri(content.cleaned)
     }
   }
 
@@ -83,7 +109,7 @@ export default function NostrBunker() {
     const uri = pasteInput.trim()
     setPasteInput('')
     if (uri) {
-      void handleConnect(uri)
+      handlePreviewUri(uri)
     }
   }
 
@@ -131,7 +157,6 @@ export default function NostrBunker() {
               label={t('nip46.scanConnection')}
               variant="secondary"
               onPress={() => setCameraVisible(true)}
-              loading={isConnecting}
             />
             <SSButton
               label={t('nip46.pasteConnection')}
@@ -140,60 +165,104 @@ export default function NostrBunker() {
             />
           </SSVStack>
 
-          {error && (
-            <SSText color="muted" size="sm">
-              {error}
-            </SSText>
-          )}
-
           <SSVStack gap="sm">
             <SSText size="sm" color="muted" uppercase>
               {t('nip46.sessions')}
             </SSText>
 
             {sessions.length === 0 ? (
-              <SSVStack itemsCenter gap="sm" style={styles.emptyContainer}>
-                <SSText color="muted">{t('nip46.noSessions')}</SSText>
+              <SSVStack itemsCenter gap="xs" style={styles.emptyContainer}>
+                <SSText color="muted" size="sm">
+                  {t('nip46.noSessions')}
+                </SSText>
                 <SSText color="muted" size="xs" center>
-                  {t('nip46.noSessionsDescription')}
+                  {t('nip46.noSessionsHint')}
                 </SSText>
               </SSVStack>
             ) : (
-              sessions.map((session) => (
-                <View key={session.id} style={styles.sessionCard}>
-                  <SSVStack gap="xs">
-                    <SSHStack justifyBetween>
-                      <SSText weight="bold">
-                        {session.clientName ?? 'Unknown App'}
+              sessions.map((session) => {
+                const status = session.connectionStatus
+                const isActive = isSessionActive(session.id)
+                const isConnecting = status === 'connecting' && !isActive
+
+                return (
+                  <View key={session.id} style={styles.sessionCard}>
+                    <SSVStack gap="xs">
+                      <SSHStack justifyBetween>
+                        <SSText weight="bold">
+                          {session.clientName ?? 'Unknown App'}
+                        </SSText>
+
+                        {isConnecting && (
+                          <SSHStack gap="xs">
+                            <ActivityIndicator
+                              size="small"
+                              color={Colors.gray[400]}
+                            />
+                            <SSText size="xs" color="muted">
+                              {t('nip46.connecting')}
+                            </SSText>
+                          </SSHStack>
+                        )}
+
+                        {!isConnecting && isActive && (
+                          <SSText size="xs" color="white">
+                            {t('nip46.connected')}
+                          </SSText>
+                        )}
+
+                        {!isConnecting &&
+                          !isActive &&
+                          status === 'relays_unreachable' && (
+                            <SSText size="xs" style={styles.errorText}>
+                              {t('nip46.relaysUnreachable')}
+                            </SSText>
+                          )}
+
+                        {!isConnecting && !isActive && status === 'error' && (
+                          <SSText size="xs" style={styles.errorText}>
+                            {t('nip46.connectionError')}
+                          </SSText>
+                        )}
+
+                        {!isConnecting &&
+                          !isActive &&
+                          status !== 'relays_unreachable' &&
+                          status !== 'error' && (
+                            <SSText size="xs" color="muted">
+                              {t('nip46.disconnected')}
+                            </SSText>
+                          )}
+                      </SSHStack>
+
+                      {!isConnecting &&
+                        !isActive &&
+                        status === 'error' &&
+                        session.connectionError && (
+                          <SSText size="xs" color="muted">
+                            {session.connectionError}
+                          </SSText>
+                        )}
+
+                      <SSText size="xs" color="muted">
+                        {session.relays.length}{' '}
+                        {session.relays.length === 1 ? 'relay' : 'relays'}
                       </SSText>
-                      <SSText
-                        size="xs"
-                        color={isSessionActive(session.id) ? 'white' : 'muted'}
-                      >
-                        {isSessionActive(session.id)
-                          ? t('nip46.connected')
-                          : t('nip46.disconnected')}
+
+                      <SSText size="xs" color="muted">
+                        {t('nip46.lastActive')}:{' '}
+                        {new Date(session.lastActiveAt).toLocaleString()}
                       </SSText>
-                    </SSHStack>
 
-                    <SSText size="xs" color="muted">
-                      {session.relays.length}{' '}
-                      {session.relays.length === 1 ? 'relay' : 'relays'}
-                    </SSText>
-
-                    <SSText size="xs" color="muted">
-                      {t('nip46.lastActive')}:{' '}
-                      {new Date(session.lastActiveAt).toLocaleString()}
-                    </SSText>
-
-                    <SSButton
-                      label={t('nip46.disconnect')}
-                      variant="danger"
-                      onPress={() => setDisconnectSessionId(session.id)}
-                    />
-                  </SSVStack>
-                </View>
-              ))
+                      <SSButton
+                        label={t('nip46.disconnect')}
+                        variant="danger"
+                        onPress={() => setDisconnectSessionId(session.id)}
+                      />
+                    </SSVStack>
+                  </View>
+                )
+              })
             )}
           </SSVStack>
         </SSVStack>
@@ -262,6 +331,13 @@ export default function NostrBunker() {
         </View>
       </SSModal>
 
+      <SSNip46ConnectionModal
+        visible={previewData !== null}
+        parsedUri={previewData}
+        onConnect={() => void handleConfirmConnect()}
+        onReject={handleCancelPreview}
+      />
+
       <SSNip46ApprovalModal
         visible={currentRequest !== null}
         request={currentRequest}
@@ -284,6 +360,9 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     paddingVertical: 40
+  },
+  errorText: {
+    color: Colors.error
   },
   pasteContainer: {
     flex: 1,
