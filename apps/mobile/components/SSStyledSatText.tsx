@@ -39,7 +39,11 @@ function SSStyledSatText({
   return (
     <SSText size={textSize}>
       {type === 'send' && !noColor && (
-        <SSText size={textSize} style={{ color: Colors.softRed }}>
+        <SSText
+          size={textSize}
+          weight="medium"
+          style={{ color: Colors.mainRed, marginRight: 2, opacity: 0.78 }}
+        >
           -
         </SSText>
       )}

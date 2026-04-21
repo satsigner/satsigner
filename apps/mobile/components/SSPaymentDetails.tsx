@@ -139,7 +139,7 @@ function SSPaymentDetails({
             widthFull
             style={styles.amountDescriptionBlock}
           >
-            <SSVStack gap="xs" itemsCenter widthFull>
+            <SSHStack gap="xs" style={styles.amountFiatRow}>
               <SSText center weight="medium" size="2xl">
                 {privacyMode
                   ? '•••• sats'
@@ -153,7 +153,7 @@ function SSPaymentDetails({
                       minimumFractionDigits: 2
                     })} ${fiatCurrency}`}
               </SSText>
-            </SSVStack>
+            </SSHStack>
             {decodedInvoice.description ? (
               <SSText center size="lg" style={styles.description}>
                 {decodedInvoice.description}
@@ -234,6 +234,13 @@ function SSPaymentDetails({
 const styles = StyleSheet.create({
   amountDescriptionBlock: {
     marginBottom: 4
+  },
+  amountFiatRow: {
+    alignItems: 'baseline',
+    alignSelf: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    maxWidth: '100%'
   },
   datetimeColumn: {
     alignItems: 'flex-end'

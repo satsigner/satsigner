@@ -62,8 +62,9 @@ import {
   readLndChannelStringField
 } from '@/utils/lndChannelDetail'
 import {
+  formatLightningTxTimeAgo,
   getTxDisplayInfo,
-  getTxStatusText
+  getTxLightningSendFeeSatString
 } from '@/utils/lndTransactionDisplay'
 
 const PRIVACY_MASK = '••••'
@@ -253,16 +254,17 @@ export default function NodeDetailPage() {
     const fmtNodeLiquidity = (n: number) =>
       privacyMode ? PRIVACY_MASK : formatNumber(n)
 
-    function renderFiatValue(value: number) {
+    function renderFiatValue(value: number, darkerFiat?: boolean) {
+      const fiatStyle = darkerFiat ? styles.heroFiatDeeper : undefined
       if (privacyMode) {
         return (
-          <SSText color="muted" size="xs">
+          <SSText color="muted" size="xs" style={fiatStyle}>
             {PRIVACY_MASK}
           </SSText>
         )
       }
       return (
-        <SSText color="muted" size="xs">
+        <SSText color="muted" size="xs" style={fiatStyle}>
           {formatNumber(value, 2)} {fiatCurrency}
         </SSText>
       )
@@ -287,7 +289,7 @@ export default function NodeDetailPage() {
                 weight="light"
               />
             )}
-            {btcPrice > 0 && renderFiatValue(totalFiat)}
+            {btcPrice > 0 && renderFiatValue(totalFiat, true)}
           </SSVStack>
 
           <SSVStack itemsCenter gap="none" style={{ flex: 0.6 }}>
@@ -333,7 +335,7 @@ export default function NodeDetailPage() {
                 weight="light"
               />
             )}
-            {btcPrice > 0 && renderFiatValue(onchainFiat)}
+            {btcPrice > 0 && renderFiatValue(onchainFiat, true)}
           </SSVStack>
         </SSHStack>
 
@@ -415,20 +417,28 @@ export default function NodeDetailPage() {
   }
 
   function renderTxRow(tx: LndCombinedTransaction) {
+    const nowMs = Date.now()
     const timestamp = new Date(tx.timestamp * 1000)
     const fiatAmount = satsToFiat(Math.abs(tx.amount), btcPrice)
     const isReceive = tx.amount > 0
 
-    const { typeLabel, typeColor, transactionType } = getTxDisplayInfo(
-      tx,
-      isReceive
-    )
-    const statusText = getTxStatusText(tx, privacyMode)
+    const { transactionType } = getTxDisplayInfo(tx, isReceive)
+    const feeSatString = getTxLightningSendFeeSatString(tx, privacyMode)
+    const hasDescription = Boolean(tx.description?.trim())
 
     return (
       <View key={tx.id} style={styles.transactionItem}>
         <SSHStack gap="xs" justifyBetween style={styles.transactionHeader}>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+          <SSHStack
+            gap="xs"
+            style={{
+              alignItems: 'baseline',
+              flex: 1,
+              flexShrink: 1,
+              flexWrap: 'wrap',
+              minWidth: 0
+            }}
+          >
             {privacyMode ? (
               <SSText color="white" size="md" weight="light">
                 {PRIVACY_MASK}
@@ -443,54 +453,78 @@ export default function NodeDetailPage() {
                 noColor={false}
               />
             )}
-            <SSText size="xs" color="muted">
+            <SSText
+              color="muted"
+              size="xs"
+              style={styles.transactionSatsSuffix}
+            >
               {t('bitcoin.sats').toLowerCase()}
             </SSText>
+            <SSText
+              color="muted"
+              size="xs"
+              style={styles.transactionFiatInline}
+            >
+              {privacyMode
+                ? PRIVACY_MASK
+                : `≈ ${formatNumber(fiatAmount, 2)} ${fiatCurrency}`}
+            </SSText>
           </SSHStack>
-          <SSText color="muted" size="xs">
-            {timestamp.toLocaleString('en-US', {
-              day: 'numeric',
-              hour: 'numeric',
-              hour12: true,
-              minute: 'numeric',
-              month: 'long',
-              second: 'numeric',
-              year: 'numeric'
-            })}
-          </SSText>
+          <SSHStack gap="xs" style={styles.transactionTimestampRow}>
+            <SSText color="muted" size="xs" style={styles.transactionTimestamp}>
+              {timestamp.toLocaleString('en-US', {
+                day: 'numeric',
+                hour: 'numeric',
+                hour12: true,
+                minute: 'numeric',
+                month: 'long',
+                second: 'numeric',
+                year: 'numeric'
+              })}
+            </SSText>
+            <SSText color="muted" size="xs" style={styles.transactionTimeAgo}>
+              {formatLightningTxTimeAgo(tx.timestamp, nowMs)}
+            </SSText>
+          </SSHStack>
         </SSHStack>
-        <SSHStack gap="sm" justifyBetween style={styles.transactionDetails}>
+        <SSHStack gap="md" style={styles.transactionDetails}>
           <SSText
-            numberOfLines={2}
-            size="xs"
-            style={[styles.transactionTypeLine, { color: typeColor }]}
-          >
-            {typeLabel} {statusText}
-          </SSText>
-          <SSText color="muted" size="xs" style={styles.transactionFiatLine}>
-            {privacyMode
-              ? PRIVACY_MASK
-              : `${formatNumber(fiatAmount, 2)} ${fiatCurrency}`}
-          </SSText>
-        </SSHStack>
-        {tx.description ? (
-          <SSText
-            color="muted"
+            color={hasDescription ? 'white' : 'muted'}
             numberOfLines={2}
             size="xs"
             style={styles.transactionDescription}
           >
-            {tx.description}
-            {tx.type === 'lightning_receive' &&
-            (tx.status === 'canceled' || tx.status === 'open') &&
-            tx.originalAmount &&
-            !privacyMode
-              ? ` (${t('lightning.node.originalSats', {
-                  amount: String(tx.originalAmount)
-                })})`
-              : ''}
+            {privacyMode
+              ? PRIVACY_MASK
+              : hasDescription
+                ? `${tx.description}${
+                    tx.type === 'lightning_receive' &&
+                    (tx.status === 'canceled' || tx.status === 'open') &&
+                    tx.originalAmount
+                      ? ` (${t('lightning.node.originalSats', {
+                          amount: String(tx.originalAmount)
+                        })})`
+                      : ''
+                  }`
+                : t('lightning.node.txNoDescription')}
           </SSText>
-        ) : null}
+          {feeSatString ? (
+            <SSText
+              color="muted"
+              numberOfLines={2}
+              size="xs"
+              style={[
+                styles.transactionTypeLine,
+                styles.transactionTypeLineEnd
+              ]}
+            >
+              <SSText size="xs" style={styles.transactionFeeWord}>
+                {t('lightning.node.txFeeLabel')}{' '}
+              </SSText>
+              {t('lightning.node.txFeeAmount', { fee: feeSatString })}
+            </SSText>
+          ) : null}
+        </SSHStack>
       </View>
     )
   }
@@ -871,7 +905,7 @@ export default function NodeDetailPage() {
       case 'transactions':
         return (
           <View style={[styles.section, styles.tabContent]}>
-            <SSHStack justifyBetween style={{ paddingVertical: 8 }}>
+            <SSHStack justifyBetween style={styles.tabSceneToolbar}>
               <SSHStack>
                 <SSIconButton onPress={runRefresh}>
                   <SSIconRefresh height={18} width={22} />
@@ -909,7 +943,7 @@ export default function NodeDetailPage() {
       case 'onchain':
         return (
           <View style={[styles.section, styles.tabContent]}>
-            <SSHStack justifyBetween style={{ paddingVertical: 8 }}>
+            <SSHStack justifyBetween style={styles.tabSceneToolbar}>
               <SSHStack>
                 <SSIconButton onPress={runRefresh}>
                   <SSIconRefresh height={18} width={22} />
@@ -937,7 +971,7 @@ export default function NodeDetailPage() {
       case 'channels':
         return (
           <View style={[styles.section, styles.tabContent]}>
-            <SSHStack justifyBetween style={{ paddingVertical: 8 }}>
+            <SSHStack justifyBetween style={styles.tabSceneToolbar}>
               <SSHStack>
                 <SSIconButton onPress={runRefresh}>
                   <SSIconRefresh height={18} width={22} />
@@ -995,7 +1029,7 @@ export default function NodeDetailPage() {
         options={{
           headerRight: () => (
             <SSIconButton
-              style={{ marginRight: 8 }}
+              style={{ marginRight: 16 }}
               onPress={() =>
                 router.push({
                   params: { alias: params.alias },
@@ -1240,6 +1274,9 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     width: '100%'
   },
+  heroFiatDeeper: {
+    color: Colors.gray[400]
+  },
   heroLiquidityBlock: {
     alignSelf: 'stretch',
     marginTop: 12,
@@ -1317,17 +1354,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingBottom: 8
   },
+  tabSceneToolbar: {
+    paddingBottom: 0,
+    paddingTop: 16
+  },
   transactionDescription: {
-    marginTop: 6
+    flexBasis: 0,
+    flexGrow: 3,
+    flexShrink: 1,
+    minWidth: 0,
+    textAlign: 'left'
   },
   transactionDetails: {
-    alignItems: 'baseline',
-    marginTop: 6
+    alignItems: 'flex-start',
+    alignSelf: 'stretch',
+    marginTop: 6,
+    width: '100%'
   },
-  transactionFiatLine: {
-    flexShrink: 0,
-    marginLeft: 8,
-    textAlign: 'right'
+  transactionFeeWord: {
+    color: Colors.gray[300]
+  },
+  transactionFiatInline: {
+    flexShrink: 1,
+    opacity: 0.68
   },
   transactionHeader: {
     marginBottom: 8
@@ -1338,9 +1387,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 12
   },
+  transactionSatsSuffix: {
+    opacity: 0.68
+  },
+  transactionTimeAgo: {
+    flexShrink: 0
+  },
+  transactionTimestamp: {
+    flexShrink: 1,
+    opacity: 0.52,
+    textAlign: 'right'
+  },
+  transactionTimestampRow: {
+    alignItems: 'baseline',
+    flexShrink: 0,
+    justifyContent: 'flex-end',
+    marginLeft: 8,
+    maxWidth: '52%'
+  },
   transactionTypeLine: {
-    flex: 1,
+    flexBasis: 0,
+    flexGrow: 1,
     flexShrink: 1,
     minWidth: 0
+  },
+  transactionTypeLineEnd: {
+    textAlign: 'right'
   }
 })

@@ -15,8 +15,7 @@ function useLndNodeDashboard(includeOpenInvoices: boolean) {
         { getBalance, getChannels, makeRequest },
         includeOpenInvoices,
         {
-          defaultInvoiceDescription: t('lightning.node.defaultInvoiceMemo'),
-          defaultPaymentDescription: t('lightning.node.defaultPaymentMemo')
+          defaultInvoiceDescription: t('lightning.node.defaultInvoiceMemo')
         }
       ),
     queryKey: ['lnd', 'node-dashboard', includeOpenInvoices]

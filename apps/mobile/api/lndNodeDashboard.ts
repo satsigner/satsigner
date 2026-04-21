@@ -10,11 +10,14 @@ import {
   type LndProcessedBalance
 } from '@/types/lndNodeDashboard'
 import { type LNDChannel, type LNDRequest } from '@/types/models/LND'
+import {
+  decodeLightningInvoice,
+  isLightningInvoice
+} from '@/utils/lightningInvoiceDecoder'
 import { mergeCombinedTransactions } from '@/utils/lndNodeDashboard'
 
 export type LndNodeDashboardCopy = {
   defaultInvoiceDescription: string
-  defaultPaymentDescription: string
 }
 
 export type LndNodeDashboardFetchers = {
@@ -54,33 +57,52 @@ function mapOnchainTransactions(
   }))
 }
 
-function mapPayments(
-  payments: LndPayment[],
-  defaultDescription: string
-): LndCombinedTransaction[] {
-  return payments.map((payment) => {
-    let description = defaultDescription
-    if (payment.payment_request) {
-      const match = payment.payment_request.match(/[?&]d=([^&]+)/)
-      if (match?.[1]) {
-        try {
-          description = decodeURIComponent(match[1])
-        } catch {
-          // keep default
-        }
+function descriptionFromLndPayment(payment: LndPayment): string | undefined {
+  const memo = typeof payment.memo === 'string' ? payment.memo.trim() : ''
+  if (memo) {
+    return memo
+  }
+  const prRaw = payment.payment_request?.trim() ?? ''
+  const pr = prRaw.replace(/^lightning:/i, '')
+  if (!pr) {
+    return undefined
+  }
+  const urlDesc = pr.match(/[?&]d=([^&]+)/)
+  if (urlDesc?.[1]) {
+    try {
+      const decodedUrl = decodeURIComponent(urlDesc[1]).trim()
+      if (decodedUrl) {
+        return decodedUrl
       }
+    } catch {
+      /* ignore */
     }
-    return {
-      amount: -Number(payment.value_sat),
-      description,
-      fee: Number(payment.fee_sat),
-      hash: payment.payment_hash,
-      id: payment.payment_hash,
-      status: payment.status,
-      timestamp: Number(payment.creation_date),
-      type: 'lightning_send' as const
+  }
+  if (isLightningInvoice(pr)) {
+    try {
+      const decoded = decodeLightningInvoice(pr)
+      const fromBolt = (decoded.description || '').trim()
+      if (fromBolt) {
+        return fromBolt
+      }
+    } catch {
+      /* ignore */
     }
-  })
+  }
+  return undefined
+}
+
+function mapPayments(payments: LndPayment[]): LndCombinedTransaction[] {
+  return payments.map((payment) => ({
+    amount: -Number(payment.value_sat),
+    description: descriptionFromLndPayment(payment),
+    fee: Number(payment.fee_sat),
+    hash: payment.payment_hash,
+    id: payment.payment_hash,
+    status: payment.status,
+    timestamp: Number(payment.creation_date),
+    type: 'lightning_send' as const
+  }))
 }
 
 function mapInvoices(
@@ -138,10 +160,7 @@ export async function fetchLndNodeDashboard(
   const balance = parseProcessedBalance(blockchainBalance, channelBalance)
 
   const onchainTxs = mapOnchainTransactions(onchainRes.transactions ?? [])
-  const paymentTxs = mapPayments(
-    paymentsRes.payments ?? [],
-    copy.defaultPaymentDescription
-  )
+  const paymentTxs = mapPayments(paymentsRes.payments ?? [])
   const invoiceTxs = mapInvoices(
     invoicesRes.invoices ?? [],
     includeOpenInvoices,

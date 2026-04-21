@@ -60,6 +60,8 @@ export type LndPayment = {
   value: string
   creation_date: string
   fee: string
+  /** Human-readable memo when returned by the node (optional). */
+  memo?: string
   payment_preimage: string
   value_sat: string
   value_msat: string
