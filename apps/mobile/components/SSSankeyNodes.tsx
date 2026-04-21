@@ -15,11 +15,12 @@ import {
 } from '@shopify/react-native-skia'
 import { memo, useMemo } from 'react'
 
+import { DUST_LIMIT } from '@/constants/btc'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { gray, mainGreen, mainRed, white } from '@/styles/colors'
+import { gray, mainGreen, mainRed, warning, white } from '@/styles/colors'
 import { BLOCK_WIDTH, type Node } from '@/types/ui/sankey'
 import { logAttenuation } from '@/utils/math'
 
@@ -278,7 +279,7 @@ function NodeText({
     isBlock
   ])
 
-  const isPastMinerFee = localId === 'past-minerFee'
+  const isPastMinerFee = localId.startsWith('past-minerFee')
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) {
@@ -396,7 +397,7 @@ function NodeText({
         .addText(ioData?.text ?? '') // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color('white'),
+          color: Skia.Color(isChange || isSelfSend ? 'white' : mainRed),
           fontSize: BASE_FONT_SIZE
         })
         .addText(`\n${ioData?.value?.toLocaleString()} `) // Add nullish coalescing
@@ -421,7 +422,7 @@ function NodeText({
         .addText(ioData?.address ? `${ioData?.address}\n` : '')
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color(isChange || isSelfSend ? mainGreen : gray[300]),
+          color: Skia.Color(isChange || isSelfSend ? mainGreen : mainRed),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
@@ -556,6 +557,14 @@ function NodeText({
     return []
   }, [mainParagraph, isUnspent])
 
+  const dustBorderPaint = useMemo(() => {
+    const paint = Skia.Paint()
+    paint.setColor(Skia.Color(warning))
+    paint.setStyle(PaintStyle.Stroke)
+    paint.setStrokeWidth(1.5)
+    return paint
+  }, [])
+
   if (!customFontManager || !mainParagraph) {
     return null
   }
@@ -563,8 +572,26 @@ function NodeText({
   const paragraphActualWidth = isBlock ? width * 0.6 : width - PADDING_LEFT
   const paragraphActualHeight = mainParagraph.getHeight()
 
+  const isDustOutput =
+    isUnspent &&
+    !isChange &&
+    !isMiningFee &&
+    typeof ioData?.value === 'number' &&
+    ioData.value > 0 &&
+    ioData.value < DUST_LIMIT
+
   return (
     <Group>
+      {isDustOutput && dustBorderPaint && (
+        <RoundedRect
+          x={groupBaseX - RECT_PADDING}
+          y={paragraphY - RECT_PADDING}
+          width={paragraphActualWidth + 2 * RECT_PADDING}
+          height={paragraphActualHeight + 2 * RECT_PADDING}
+          r={3}
+          paint={dustBorderPaint}
+        />
+      )}
       {isBlock && !isTransactionChart ? (
         <Paragraph
           paragraph={blockNodeParagraph}

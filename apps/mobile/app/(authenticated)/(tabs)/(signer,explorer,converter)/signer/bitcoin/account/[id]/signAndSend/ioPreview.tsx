@@ -21,6 +21,7 @@ import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
+import SSDustWarningBanner from '@/components/SSDustWarningBanner'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
@@ -40,6 +41,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -66,7 +68,9 @@ import { selectEfficientUtxos } from '@/utils/utxo'
 
 export default function IOPreview() {
   const router = useRouter()
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { id, dustWarning } = useLocalSearchParams<
+    AccountSearchParams & { dustWarning?: string }
+  >()
   const isFocused = useIsFocused()
 
   const account = useAccountsStore(
@@ -217,6 +221,13 @@ export default function IOPreview() {
   const [outputAmount, setOutputAmount] = useState(DUST_LIMIT)
   const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
+  const [dustErrorOverride, setDustErrorOverride] = useState(
+    dustWarning ? t('transaction.error.dustOutputBelowLimit') : ''
+  )
+  const [dustChangeModalVisible, setDustChangeModalVisible] = useState(false)
+  const [pendingDustAmount, setPendingDustAmount] = useState(0)
+
+  const dustErrorMessage = dustErrorOverride
 
   const remainingSats = useMemo(
     () =>
@@ -229,7 +240,13 @@ export default function IOPreview() {
     setOutputTo(parsed.address)
     if (parsed.amount !== undefined && parsed.amount > 0) {
       const amountInSats = Math.round(parsed.amount * SATS_PER_BITCOIN)
-      setOutputAmount(amountInSats)
+      if (amountInSats > 0 && amountInSats < DUST_LIMIT) {
+        setDustErrorOverride(t('transaction.error.dustOutputBelowLimit'))
+        setOutputAmount(amountInSats)
+      } else {
+        setDustErrorOverride('')
+        setOutputAmount(amountInSats)
+      }
     }
     if (parsed.label !== undefined) {
       setOutputLabel(parsed.label)
@@ -392,6 +409,27 @@ export default function IOPreview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Once: if builder fee is still the default (<=1), match useNetworkInfo nextBlockFee.
+  const hasHydratedRecommendedFeeRate = useRef(false)
+  useEffect(() => {
+    hasHydratedRecommendedFeeRate.current = false
+  }, [id])
+
+  useEffect(() => {
+    if (hasHydratedRecommendedFeeRate.current) {
+      return
+    }
+    if (nextBlockFee === null || nextBlockFee < 1) {
+      return
+    }
+    if (feeRate > 1) {
+      hasHydratedRecommendedFeeRate.current = true
+      return
+    }
+    setFeeRate(nextBlockFee)
+    hasHydratedRecommendedFeeRate.current = true
+  }, [feeRate, nextBlockFee, setFeeRate])
+
   useEffect(() => {
     setFee(Math.round(localFeeRate * transactionSize.vsize))
   }, [localFeeRate, transactionSize, setFee])
@@ -407,8 +445,13 @@ export default function IOPreview() {
     }
 
     const success = processContentForOutput(content, {
-      onError: () => {
-        toast.error(t('transaction.error.address.invalid'))
+      onError: (message) => {
+        if (message === t('transaction.error.dustOutputBelowLimit')) {
+          setDustErrorOverride(message)
+          setCameraModalVisible(false)
+        } else {
+          toast.error(t('transaction.error.address.invalid'))
+        }
       },
       onWarning: () => {
         toast.warning(t('transaction.error.bip21.insufficientSats'))
@@ -440,6 +483,11 @@ export default function IOPreview() {
   }
 
   function handleAddOutput() {
+    if (outputAmount > 0 && outputAmount < DUST_LIMIT) {
+      toast.error(t('transaction.error.dustOutputBelowLimit'))
+      return
+    }
+
     const outputIndex = outputs.findIndex(
       (output) => output.localId === currentOutputLocalId
     )
@@ -548,13 +596,30 @@ export default function IOPreview() {
 
         setPreviousUserSelectedUtxos(getInputs())
 
+        // Use stored next-block fee when local fee rate hasn't been hydrated yet
+        const effectiveFeeRate =
+          localFeeRate > 1
+            ? localFeeRate
+            : (useBlockchainStore.getState().nextBlockFee ?? 1)
+
+        const feeFn = (inputCount: number, hasChange: boolean) => {
+          const mockInputs = account.utxos.slice(0, inputCount)
+          const { vsize } = estimateTransactionSize(
+            mockInputs,
+            outputs,
+            hasChange
+          )
+          return Math.round(effectiveFeeRate * vsize)
+        }
+
         const optimizationResult = selectEfficientUtxos(
           account.utxos.map((utxo) => ({
             ...utxo,
             effectiveValue: utxo.value
           })),
           totalOutputValue,
-          localFeeRate
+          effectiveFeeRate,
+          { feeFn }
         )
 
         if (optimizationResult.error) {
@@ -563,6 +628,11 @@ export default function IOPreview() {
         }
 
         setAccountUtxos(optimizationResult.inputs)
+
+        if (effectiveFeeRate !== localFeeRate) {
+          setLocalFeeRate(effectiveFeeRate)
+          setFeeRate(effectiveFeeRate)
+        }
 
         break
       }
@@ -575,6 +645,7 @@ export default function IOPreview() {
   }
 
   function handleGoToPreview() {
+    setDustErrorOverride('')
     setFeeRate(localFeeRate)
     const totalOutputAmount = outputs.reduce(
       (acc, output) => acc + output.amount,
@@ -588,8 +659,21 @@ export default function IOPreview() {
       return
     }
 
-    // Add change output if there's any remaining amount
-    if (remainingBalance > 0) {
+    for (const output of outputs) {
+      if (output.amount > 0 && output.amount < DUST_LIMIT) {
+        setDustErrorOverride(t('transaction.error.dustOutputBelowLimit'))
+        return
+      }
+    }
+
+    if (remainingBalance > 0 && remainingBalance < DUST_LIMIT) {
+      setPendingDustAmount(remainingBalance)
+      setDustChangeModalVisible(true)
+      return
+    }
+
+    // Add change output if there's enough remaining (above dust limit)
+    if (remainingBalance >= DUST_LIMIT) {
       // Validate that changeAddress is available before adding change output
       if (!changeAddress) {
         toast.error(t('transaction.error.ChangeAddressNotAvailable'))
@@ -604,20 +688,42 @@ export default function IOPreview() {
       })
     }
 
-    // Check if wallet needs syncing based on time since last sync
-    const needsSync = checkWalletNeedsSync(account)
+    proceedToPreview()
+  }
 
+  function proceedToPreview() {
+    const needsSync = checkWalletNeedsSync(account)
     if (needsSync) {
       router.navigate(
         `/signer/bitcoin/account/${id}/signAndSend/walletSyncedConfirmation`
       )
       return
     }
-
-    // Ok, go to the preview page.
     router.navigate(
       `/signer/bitcoin/account/${id}/signAndSend/previewTransaction`
     )
+  }
+
+  function handleDustToFee() {
+    setDustChangeModalVisible(false)
+    // Dust absorbed into miner fee — proceed without change output
+    proceedToPreview()
+  }
+
+  function handleDustToOutputs() {
+    setDustChangeModalVisible(false)
+    // Distribute dust evenly across existing outputs
+    const perOutput = Math.floor(pendingDustAmount / outputs.length)
+    const remainder = pendingDustAmount - perOutput * outputs.length
+
+    for (let i = 0; i < outputs.length; i += 1) {
+      const extra = perOutput + (i === 0 ? remainder : 0)
+      updateOutput(outputs[i].localId, {
+        amount: outputs[i].amount + extra,
+        label: outputs[i].label,
+        to: outputs[i].to
+      })
+    }
   }
 
   const handleTopLayout = (event: LayoutChangeEvent) => {
@@ -873,6 +979,9 @@ export default function IOPreview() {
               />
             </SSHStack>
           </SSVStack>
+          {dustErrorMessage !== '' && (
+            <SSDustWarningBanner message={dustErrorMessage} />
+          )}
           <SSButton
             variant="secondary"
             label={
@@ -1127,6 +1236,44 @@ export default function IOPreview() {
         onContentScanned={handleContentScanned}
         context="bitcoin"
       />
+      <SSModal
+        fullOpacity
+        visible={dustChangeModalVisible}
+        label=""
+        onClose={() => setDustChangeModalVisible(false)}
+      >
+        <SSVStack justifyBetween style={{ flex: 1, width: '100%' }}>
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <SSVStack gap="lg" style={{ alignItems: 'center' }}>
+              <SSText uppercase weight="bold">
+                {t('transaction.dustChange.title')}
+              </SSText>
+              <SSText color="muted" center>
+                {t('transaction.dustChange.description', {
+                  amount: pendingDustAmount
+                })}
+              </SSText>
+            </SSVStack>
+          </View>
+          <SSVStack gap="md">
+            <SSButton
+              variant="secondary"
+              label={t('transaction.dustChange.addToFee')}
+              onPress={handleDustToFee}
+            />
+            <SSButton
+              variant="outline"
+              label={t('transaction.dustChange.addToOutputs')}
+              onPress={handleDustToOutputs}
+            />
+            <SSButton
+              variant="ghost"
+              label={t('common.cancel')}
+              onPress={() => setDustChangeModalVisible(false)}
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
     </View>
   )
 }

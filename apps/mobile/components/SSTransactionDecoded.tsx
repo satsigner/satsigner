@@ -1,13 +1,13 @@
 import { Fragment, useMemo, useState } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
+import { Colors, Typography } from '@/styles'
 import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
-import { SSIconChevronDown, SSIconChevronUp } from './icons'
-import { withPerformanceWarning } from './SSPerformanceWarning'
+import SSPerformanceWarning from './SSPerformanceWarning'
 import SSText from './SSText'
 
 const tn = _tn('transaction.decoded')
@@ -22,6 +22,187 @@ function byteChunks(hex: string) {
   return chunk
 }
 
+function hexToAsciiFromHex(hex: string) {
+  const normalized = hex.replace(/^0x/i, '').replace(/\s/g, '')
+  let out = ''
+  for (let i = 0; i + 1 < normalized.length; i += 2) {
+    const n = parseInt(normalized.slice(i, i + 2), 16)
+    if (Number.isNaN(n)) {
+      out += '?'
+      continue
+    }
+    out += n >= 32 && n <= 126 ? String.fromCharCode(n) : '.'
+  }
+  if (normalized.length % 2 === 1) {
+    out += '?'
+  }
+  return out
+}
+
+type FormatChipProps = {
+  label: string
+  active: boolean
+  disabled?: boolean
+  onPress: () => void
+}
+
+function FormatChip({ label, active, disabled, onPress }: FormatChipProps) {
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled, selected: active }}
+      disabled={disabled}
+      onPress={onPress}
+      style={[
+        styles.formatChip,
+        active && styles.formatChipActive,
+        disabled && styles.formatChipDisabled
+      ]}
+    >
+      <SSText
+        color={active ? 'white' : 'muted'}
+        size="xxs"
+        weight={active ? 'medium' : 'regular'}
+      >
+        {label}
+      </SSText>
+    </TouchableOpacity>
+  )
+}
+
+type TransactionFormatToolbarProps =
+  | {
+      ascii: boolean
+      onAscii: (ascii: boolean) => void
+      scope: 'encodingOnly'
+    }
+  | {
+      ascii: boolean
+      decodedLayout: 'list' | 'bytes'
+      onAscii: (ascii: boolean) => void
+      onDecodedLayout: (layout: 'list' | 'bytes') => void
+      onRawOpen: (open: boolean) => void
+      rawOpen: boolean
+      scope: 'full'
+    }
+
+function TransactionFormatToolbar(props: TransactionFormatToolbarProps) {
+  if (props.scope === 'encodingOnly') {
+    return (
+      <SSHStack gap="md" style={styles.formatToolbar}>
+        <SSHStack gap="xs" style={styles.formatChipGroup}>
+          <FormatChip
+            active={!props.ascii}
+            label={tn('toolbar.hex')}
+            onPress={() => props.onAscii(false)}
+          />
+          <FormatChip
+            active={props.ascii}
+            label={tn('toolbar.ascii')}
+            onPress={() => props.onAscii(true)}
+          />
+        </SSHStack>
+      </SSHStack>
+    )
+  }
+
+  const encodingDisabled = !props.rawOpen
+
+  return (
+    <SSHStack gap="md" style={styles.formatToolbar}>
+      <SSHStack gap="xs" style={styles.formatChipGroup}>
+        <FormatChip
+          active={!props.rawOpen && props.decodedLayout === 'list'}
+          disabled={props.rawOpen}
+          label={tn('toolbar.list')}
+          onPress={() => {
+            props.onRawOpen(false)
+            props.onDecodedLayout('list')
+          }}
+        />
+        <FormatChip
+          active={!props.rawOpen && props.decodedLayout === 'bytes'}
+          disabled={props.rawOpen}
+          label={tn('toolbar.bytes')}
+          onPress={() => {
+            props.onRawOpen(false)
+            props.onDecodedLayout('bytes')
+          }}
+        />
+      </SSHStack>
+      <View style={styles.toolbarSep} />
+      <SSHStack gap="xs" style={styles.formatChipGroup}>
+        <FormatChip
+          active={!props.rawOpen}
+          label={tn('toolbar.decoded')}
+          onPress={() => props.onRawOpen(false)}
+        />
+        <FormatChip
+          active={props.rawOpen}
+          label={tn('toolbar.raw')}
+          onPress={() => props.onRawOpen(true)}
+        />
+      </SSHStack>
+      <View style={styles.toolbarSep} />
+      <SSHStack gap="xs" style={styles.formatChipGroup}>
+        <FormatChip
+          active={!props.ascii}
+          disabled={encodingDisabled}
+          label={tn('toolbar.hex')}
+          onPress={() => props.onAscii(false)}
+        />
+        <FormatChip
+          active={props.ascii}
+          disabled={encodingDisabled}
+          label={tn('toolbar.ascii')}
+          onPress={() => props.onAscii(true)}
+        />
+      </SSHStack>
+    </SSHStack>
+  )
+}
+
+type SSTransactionRawPayloadProps = {
+  ascii: boolean
+  txHex: string
+}
+
+function SSTransactionRawPayload({
+  ascii,
+  txHex
+}: SSTransactionRawPayloadProps) {
+  const displayValue = useMemo(
+    () => (ascii ? hexToAsciiFromHex(txHex) : txHex),
+    [ascii, txHex]
+  )
+
+  return (
+    <TextInput
+      editable={false}
+      multiline
+      scrollEnabled
+      showSoftInputOnFocus={false}
+      style={styles.hexField}
+      value={displayValue}
+    />
+  )
+}
+
+function SSTransactionHexOnly({ txHex }: { txHex: string }) {
+  const [ascii, setAscii] = useState(false)
+
+  return (
+    <SSVStack gap="sm">
+      <TransactionFormatToolbar
+        ascii={ascii}
+        onAscii={setAscii}
+        scope="encodingOnly"
+      />
+      <SSTransactionRawPayload ascii={ascii} txHex={txHex} />
+    </SSVStack>
+  )
+}
+
 type SSTransactionDecodedProps = {
   txHex: string
   defaultDisplay?: 'list' | 'bytes'
@@ -33,36 +214,35 @@ function SSTransactionDecoded({
 }: SSTransactionDecodedProps) {
   const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
   const [display, setDisplay] = useState<'list' | 'bytes'>(defaultDisplay)
+  const [rawFieldOpen, setRawFieldOpen] = useState(false)
+  const [rawAscii, setRawAscii] = useState(false)
 
-  function toggleDisplay() {
-    setDisplay(display === 'list' ? 'bytes' : 'list')
+  function setRawOpen(open: boolean) {
+    setRawFieldOpen(open)
+    if (open) {
+      setRawAscii(false)
+    }
   }
 
   return (
-    <>
-      <TouchableOpacity onPress={toggleDisplay}>
-        <SSHStack
-          gap="sm"
-          style={{
-            justifyContent: 'flex-end'
-          }}
-        >
-          <SSText color="muted">
-            {display === 'list' ? tn('btnCollapse') : tn('btnExpand')}
-          </SSText>
-          {display === 'list' ? (
-            <SSIconChevronUp height={5} width={12} />
-          ) : (
-            <SSIconChevronDown height={5} width={12} />
-          )}
-        </SSHStack>
-      </TouchableOpacity>
-      {display === 'bytes' ? (
+    <SSVStack gap="sm">
+      <TransactionFormatToolbar
+        ascii={rawAscii}
+        decodedLayout={display}
+        onAscii={setRawAscii}
+        onDecodedLayout={setDisplay}
+        onRawOpen={setRawOpen}
+        rawOpen={rawFieldOpen}
+        scope="full"
+      />
+      {rawFieldOpen ? (
+        <SSTransactionRawPayload ascii={rawAscii} txHex={txHex} />
+      ) : display === 'bytes' ? (
         <SSTransactionDecodedBytes decoded={decoded} />
       ) : (
         <SSTransactionDecodedList decoded={decoded} />
       )}
-    </>
+    </SSVStack>
   )
 }
 
@@ -228,8 +408,41 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
     width: 'auto'
   },
+  formatChip: {
+    borderRadius: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  formatChipActive: {
+    backgroundColor: Colors.gray[600]
+  },
+  formatChipDisabled: {
+    opacity: 0.35
+  },
+  formatChipGroup: {
+    alignItems: 'center',
+    flexDirection: 'row'
+  },
+  formatToolbar: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap'
+  },
+  hexField: {
+    color: Colors.white,
+    fontFamily: Typography.sfProMono,
+    fontSize: 12,
+    minHeight: 120,
+    padding: 0,
+    textAlignVertical: 'top'
+  },
   selectedItemContainer: {
     marginTop: 10
+  },
+  toolbarSep: {
+    backgroundColor: Colors.gray[700],
+    height: 16,
+    width: 1
   },
   zoomButton: {
     padding: 5
@@ -245,8 +458,37 @@ const styles = StyleSheet.create({
 const thresholdCheck = ({ txHex }: SSTransactionDecodedProps) =>
   txHex.length > 2048
 
-export default withPerformanceWarning<SSTransactionDecodedProps>(
-  SSTransactionDecoded,
-  thresholdCheck,
-  'Transaction too large. Trying to decode it may freeze the app.'
-)
+function SSTransactionDecodedWithWarning(props: SSTransactionDecodedProps) {
+  const [dismissed, setDismissed] = useState(false)
+  const [showRawHex, setShowRawHex] = useState(false)
+  const [loadingRawHex, setLoadingRawHex] = useState(false)
+
+  function handleLoadRawHex() {
+    if (loadingRawHex) {
+      return
+    }
+
+    setLoadingRawHex(true)
+    requestAnimationFrame(() => setShowRawHex(true))
+  }
+
+  if (!dismissed && !showRawHex && thresholdCheck(props)) {
+    return (
+      <SSPerformanceWarning
+        onDismiss={() => setDismissed(true)}
+        onSecondaryAction={handleLoadRawHex}
+        secondaryActionLoading={loadingRawHex}
+        secondaryActionLabel={tn('btnLoadHex')}
+        text={tn('warning')}
+      />
+    )
+  }
+
+  if (showRawHex) {
+    return <SSTransactionHexOnly txHex={props.txHex} />
+  }
+
+  return <SSTransactionDecoded {...props} />
+}
+
+export default SSTransactionDecodedWithWarning

@@ -1,10 +1,9 @@
 import { Modal, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Toaster } from 'sonner-native'
 
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors, Layout } from '@/styles'
+import { Layout } from '@/styles'
 
 import SSButton, { type SSButtonProps } from './SSButton'
 
@@ -49,18 +48,6 @@ function SSModal({
               />
             )}
           </SSVStack>
-          <Toaster
-            theme="dark"
-            position="top-center"
-            style={{
-              backgroundColor: Colors.gray[950],
-              borderColor: Colors.gray[800],
-              borderRadius: 8,
-              borderWidth: 1,
-              width: '105%',
-              zIndex: 10001
-            }}
-          />
         </View>
       </View>
     </Modal>

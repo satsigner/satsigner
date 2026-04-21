@@ -27,6 +27,7 @@ type SSLNURLDetailsProps = {
   onCommentChange?: (comment: string) => void
   inputStyles?: Record<string, unknown>
   fiatCurrency: string
+  privacyMode?: boolean
   satsToFiat: (amount: number) => number
 }
 
@@ -55,6 +56,7 @@ function SSLNURLDetails({
   onCommentChange,
   inputStyles,
   fiatCurrency,
+  privacyMode = false,
   satsToFiat
 }: SSLNURLDetailsProps) {
   if (!lnurlDetails && !isFetching) {
@@ -85,8 +87,11 @@ function SSLNURLDetails({
               {t('lightning.lnurlDetails.amountRange')}
             </SSText>
             <SSText style={styles.detailValue}>
-              {Math.ceil(lnurlDetails.minSendable / 1000)} -{' '}
-              {Math.floor(lnurlDetails.maxSendable / 1000)} sats
+              {privacyMode
+                ? '•••• - •••• sats'
+                : `${Math.ceil(lnurlDetails.minSendable / 1000)} - ${Math.floor(
+                    lnurlDetails.maxSendable / 1000
+                  )} sats`}
             </SSText>
           </SSHStack>
           {showCommentInfo && lnurlDetails.commentAllowed && (
@@ -113,7 +118,12 @@ function SSLNURLDetails({
             {amount && !isNaN(Number(amount)) && (
               <SSHStack gap="xs" style={styles.fiatAmount}>
                 <SSText color="muted" size="sm">
-                  ≈ {formatNumber(satsToFiat(Number(amount)), 2)} {fiatCurrency}
+                  {privacyMode
+                    ? `≈ •••• ${fiatCurrency}`
+                    : `≈ ${formatNumber(
+                        satsToFiat(Number(amount)),
+                        2
+                      )} ${fiatCurrency}`}
                 </SSText>
               </SSHStack>
             )}

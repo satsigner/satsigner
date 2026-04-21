@@ -5,11 +5,9 @@ import { getPublicKey, nip19 } from 'nostr-tools'
 import pako from 'pako'
 
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
-import { t } from '@/locales'
 import { base85Decode, base85Encode } from '@/utils/base58'
-import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { sha256 } from '@/utils/crypto'
-import { normalizeDescriptorForParsing, parseDescriptor } from '@/utils/parse'
+import { parseDescriptor } from '@/utils/parse'
 import { type TransactionData } from '@/utils/psbt'
 
 // Initialize ECC library
@@ -39,20 +37,18 @@ export function generateColorFromNpub(npub: string): string {
   const x = c * (1 - Math.abs((h % 2) - 1))
   const m = l - c / 2
 
-  let b, g, r
-  if (h < 1) {
-    ;[r, g, b] = [c, x, 0]
-  } else if (h < 2) {
-    ;[r, g, b] = [x, c, 0]
-  } else if (h < 3) {
-    ;[r, g, b] = [0, c, x]
-  } else if (h < 4) {
-    ;[r, g, b] = [0, x, c]
-  } else if (h < 5) {
-    ;[r, g, b] = [x, 0, c]
-  } else {
-    ;[r, g, b] = [c, 0, x]
-  }
+  const [r, g, b] =
+    h < 1
+      ? [c, x, 0]
+      : h < 2
+        ? [x, c, 0]
+        : h < 3
+          ? [0, c, x]
+          : h < 4
+            ? [0, x, c]
+            : h < 5
+              ? [x, 0, c]
+              : [c, 0, x]
 
   const toHex = (n: number) => {
     const hex = Math.round((n + m) * 255).toString(16)
@@ -100,7 +96,7 @@ export function getPubKeyHexFromNpub(npub: string): string | null {
 
 export function getSecretFromNsec(nsec: string): Uint8Array | null {
   try {
-    const decoded = nip19.decode(nsec.trim())
+    const decoded = nip19.decode(nsec)
     if (!decoded || decoded.type !== 'nsec' || !decoded.data) {
       return null
     }
@@ -151,18 +147,7 @@ export async function deriveNostrKeysFromDescriptor(
   commonNpub: string
   privateKeyBytes: Uint8Array
 }> {
-  const normalized = normalizeDescriptorForParsing(externalDescriptor)
-  const { hardenedPath, xpubs: parsedXpubs } = parseDescriptor(normalized)
-  let xpubs = parsedXpubs
-  if (xpubs.length === 0) {
-    const single = getExtendedKeyFromDescriptor(normalized)
-    if (single) {
-      xpubs = [single]
-    }
-  }
-  if (xpubs.length === 0) {
-    throw new Error(t('account.nostrSync.commonKeysDescriptorParseError'))
-  }
+  const { hardenedPath, xpubs } = parseDescriptor(externalDescriptor)
   const totalString = `${hardenedPath}${xpubs.join('')}`
   const firstHash = await sha256(totalString)
   const doubleHash = await sha256(firstHash)

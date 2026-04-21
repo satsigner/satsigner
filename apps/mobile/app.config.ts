@@ -88,12 +88,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     'expo-image',
     'expo-sharing',
-    'expo-web-browser'
+    'expo-web-browser',
+    '@secondts/bark-react-native'
   ],
   scheme: 'satsigner',
   slug: 'satsigner',
   splash: {
-    backgroundColor: '#121212',
+    backgroundColor: '#000000',
     image: './assets/splash.png',
     resizeMode: 'contain'
   },

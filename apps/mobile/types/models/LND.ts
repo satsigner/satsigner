@@ -15,9 +15,11 @@ export type LNDecodedInvoice = {
 }
 
 export type LNDRequestOptions = {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   body?: unknown
+  /** When false, HTTP errors do not clear `isConnected` (for optional reads). */
+  disconnectOnError?: boolean
   headers?: Record<string, string>
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
 }
 
 export type LNDPaymentResponse = {
@@ -37,6 +39,12 @@ export type LNDConfig = {
   url: string
 }
 
+/** One entry from LND `GET /v1/getinfo` `chains` (REST mirrors gRPC `Chain`). */
+export type LNDGetInfoChain = {
+  chain: string
+  network: string
+}
+
 export type LNDNodeInfo = {
   version: string
   commit_hash: string
@@ -48,7 +56,7 @@ export type LNDNodeInfo = {
   block_hash: string
   best_header_timestamp: string
   synced_to_chain: boolean
-  chains: string[]
+  chains: LNDGetInfoChain[]
   uris: string[]
 }
 
@@ -63,6 +71,8 @@ export type LNDChannelConstraints = {
 
 export type LNDChannel = {
   active: boolean
+  /** Gossip alias for the remote peer when known (newer LND REST). */
+  peer_alias?: string
   remote_pubkey: string
   channel_point: string
   chan_id: string

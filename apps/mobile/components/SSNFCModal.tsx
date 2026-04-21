@@ -36,11 +36,19 @@ function SSNFCModal({
   mode,
   dataToWrite
 }: SSNFCModalProps) {
-  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
+  const {
+    isEnabled: readerNfcEnabled,
+    isHardwareSupported: readerHardware,
+    isReading,
+    readNFCTag,
+    cancelNFCScan
+  } = useNFCReader()
   const {
     isEmitting,
     emitNFCTag,
-    cancelNFCScan: cancelNFCEmitterScan
+    cancelNFCScan: cancelNFCEmitterScan,
+    isEnabled: emitterNfcEnabled,
+    isHardwareSupported: emitterHardware
   } = useNFCEmitter()
 
   const nfcPulseAnim = useSharedValue(0)
@@ -178,16 +186,31 @@ function SSNFCModal({
               : getModeTitle()}
           </SSText>
         </Animated.View>
-        {!isAvailable && (
+        {mode === 'read' && !readerHardware && (
           <SSText center color="muted" size="sm">
-            {t('read.nfcNotAvailable')}
+            {t('watchonly.read.nfcNotAvailable')}
+          </SSText>
+        )}
+        {mode === 'write' && !emitterHardware && (
+          <SSText center color="muted" size="sm">
+            {t('watchonly.read.nfcNotAvailable')}
+          </SSText>
+        )}
+        {mode === 'read' && readerHardware && !readerNfcEnabled && (
+          <SSText center color="muted" size="sm">
+            {t('watchonly.read.nfcTurnOnInSettings')}
+          </SSText>
+        )}
+        {mode === 'write' && emitterHardware && !emitterNfcEnabled && (
+          <SSText center color="muted" size="sm">
+            {t('watchonly.read.nfcTurnOnInSettings')}
           </SSText>
         )}
         <SSHStack>
           <SSButton
             label={getButtonLabel()}
             variant={isActive ? 'secondary' : 'default'}
-            disabled={!isAvailable}
+            disabled={mode === 'read' ? !readerHardware : !emitterHardware}
             onPress={handleButtonPress}
           />
         </SSHStack>

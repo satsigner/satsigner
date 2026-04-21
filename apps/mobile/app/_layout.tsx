@@ -1,7 +1,7 @@
 import '@/utils/polyfills'
+import { DarkTheme, ThemeProvider } from '@react-navigation/native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
-import { setStatusBarStyle } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -29,6 +29,14 @@ if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
 }
 
+const appTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: Colors.gray[950]
+  }
+}
+
 export default function RootLayout() {
   const [firstTime, setLockTriggered, requiresAuth, lockDeltaTime] =
     useAuthStore(
@@ -42,12 +50,6 @@ export default function RootLayout() {
 
   const appState = useRef(AppState.currentState)
   const [privacyScreenVisible, setPrivacyScreenVisible] = useState(false)
-
-  useEffect(() => {
-    setTimeout(() => {
-      setStatusBarStyle('light')
-    }, 1)
-  }, []) // Workaround for now to set the statusBarStyle
 
   useEffect(() => {
     if (!firstTime) {
@@ -124,9 +126,11 @@ export default function RootLayout() {
               zIndex: 999999
             }}
           />
-          <View style={styles.container}>
-            <Slot />
-          </View>
+          <ThemeProvider value={appTheme}>
+            <View style={styles.container}>
+              <Slot />
+            </View>
+          </ThemeProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </SafeAreaProvider>
@@ -139,8 +143,9 @@ const styles = StyleSheet.create({
     flex: 1
   },
   privacyScreen: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: Colors.gray[950],
+    inset: 0,
+    position: 'absolute',
     zIndex: 999
   }
 })

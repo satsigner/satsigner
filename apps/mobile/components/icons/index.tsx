@@ -86,6 +86,7 @@ import SSIconSuccess from './SSIconSuccess'
 import SSIconTable from './SSIconTable'
 import SSIconTime from './SSIconTime'
 import SSIconTrash from './SSIconTrash'
+import SSIconTriangle from './SSIconTriangle'
 import SSIconWalletEye from './SSIconWalletEye'
 import SSIconWarning from './SSIconWarning'
 import SSIconX from './SSIconX'
@@ -180,6 +181,7 @@ export {
   SSIconSuccess,
   SSIconTable,
   SSIconTime,
+  SSIconTriangle,
   SSIconTrash,
   SSIconWalletEye,
   SSIconWarning,

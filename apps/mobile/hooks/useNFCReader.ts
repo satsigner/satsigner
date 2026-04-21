@@ -1,36 +1,58 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { AppState, type AppStateStatus } from 'react-native'
 import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager'
 
-interface NFCReadResult {
+import { t } from '@/locales'
+import { getNfcAdapterStatus } from '@/utils/nfcAdapterStatus'
+
+type NFCReadResult = {
   txId?: string
   txData?: Uint8Array
   text?: string
 }
 
 export function useNFCReader() {
-  const [isAvailable, setIsAvailable] = useState(false)
+  const [isSupported, setIsSupported] = useState(false)
+  const [isEnabled, setIsEnabled] = useState(false)
   const [isReading, setIsReading] = useState(false)
+
+  const isHardwareSupported = isSupported
+  const isAvailable = isSupported && isEnabled
+
+  const checkNFCAvailability = useCallback(async () => {
+    const status = await getNfcAdapterStatus()
+    setIsSupported(status.isSupported)
+    setIsEnabled(status.isEnabled)
+  }, [])
 
   useEffect(() => {
     checkNFCAvailability()
+
+    const retryTimer = setTimeout(() => {
+      checkNFCAvailability()
+    }, 400)
+
+    const onAppState = (next: AppStateStatus) => {
+      if (next === 'active') {
+        checkNFCAvailability()
+      }
+    }
+    const appSub = AppState.addEventListener('change', onAppState)
+
     return () => {
+      clearTimeout(retryTimer)
+      appSub.remove()
       NfcManager.cancelTechnologyRequest()
     }
-  }, [])
-
-  async function checkNFCAvailability() {
-    const supported = await NfcManager.isSupported()
-    if (!supported) {
-      setIsAvailable(false)
-      return
-    }
-    const isNFCAvailable = await NfcManager.isEnabled()
-    setIsAvailable(isNFCAvailable)
-  }
+  }, [checkNFCAvailability])
 
   async function readNFCTag(): Promise<NFCReadResult | null> {
-    if (!isAvailable) {
+    const status = await getNfcAdapterStatus()
+    if (!status.isSupported) {
       throw new Error('NFC is not available on this device')
+    }
+    if (!status.isEnabled) {
+      throw new Error(t('watchonly.read.nfcTurnOnInSettings'))
     }
 
     setIsReading(true)
@@ -45,29 +67,23 @@ export function useNFCReader() {
 
     const result: NFCReadResult = {}
 
-    // Process each record
     for (const record of tag.ndefMessage) {
-      // Convert type to string if it's an array of numbers
       const type =
         typeof record.type === 'string'
           ? record.type
           : String.fromCharCode.apply(null, record.type as number[])
 
-      // Handle different record types
       if (record.tnf === Ndef.TNF_WELL_KNOWN && type === Ndef.RTD_TEXT) {
         const text = Ndef.text.decodePayload(new Uint8Array(record.payload))
 
-        // Extract transaction ID from text record
         const match = text.match(/Signed Transaction: ([a-f0-9]+)/i)
         if (match && match[1]) {
           ;[, result.txId] = match
           result.text = text
         } else if (!result.text) {
-          // For watch-only use cases, store any text content
           result.text = text
         }
       } else if (type === 'bitcoin.org:txn') {
-        // Store the raw transaction data
         result.txData = new Uint8Array(record.payload)
       }
     }
@@ -78,6 +94,8 @@ export function useNFCReader() {
       return result
     }
 
+    setIsReading(false)
+    NfcManager.cancelTechnologyRequest()
     return null
   }
 
@@ -91,6 +109,8 @@ export function useNFCReader() {
   return {
     cancelNFCScan,
     isAvailable,
+    isEnabled,
+    isHardwareSupported,
     isReading,
     readNFCTag
   }

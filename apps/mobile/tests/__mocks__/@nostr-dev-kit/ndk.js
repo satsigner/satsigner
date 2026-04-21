@@ -34,7 +34,8 @@ class NDKEvent {
   }
 
   sign() {
-    this.sig = 'mock-signature'
+    this.sig = 'a'.repeat(128)
+    return Promise.resolve()
   }
 }
 

@@ -396,11 +396,15 @@ function SSMultisigKeyControl({
         }}
         style={{
           paddingBottom: 8,
-          paddingTop: 8
+          paddingTop: 8,
+          width: '100%'
         }}
       >
-        <SSHStack justifyBetween>
-          <SSHStack style={{ alignItems: 'center' }} gap="sm">
+        <SSHStack justifyBetween style={{ width: '100%' }}>
+          <SSHStack
+            gap="sm"
+            style={{ alignItems: 'center', flex: 1, minWidth: 0 }}
+          >
             {keyDetails ? (
               hasNoSecret ? (
                 <SSIconGreenNoSecret width={24} height={24} />
@@ -413,15 +417,37 @@ function SSMultisigKeyControl({
             <SSText color="muted" size="lg" style={{ paddingHorizontal: 10 }}>
               {t('common.key')} {index + 1}
             </SSText>
-            <SSVStack gap="none">
-              <SSText color="muted">{sourceLabel}</SSText>
-              <SSText color={keyDetails?.name ? 'white' : 'muted'}>
+            <SSVStack gap="none" style={{ flex: 1, minWidth: 0 }}>
+              <SSText color="muted" ellipsizeMode="tail" numberOfLines={1}>
+                {sourceLabel}
+              </SSText>
+              <SSText
+                color={keyDetails?.name ? 'white' : 'muted'}
+                ellipsizeMode="tail"
+                numberOfLines={1}
+              >
                 {keyDetails?.name ?? t('account.seed.noLabel')}
               </SSText>
             </SSVStack>
           </SSHStack>
-          <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
-            <SSText type="mono" color={fingerprint ? 'white' : 'muted'}>
+          <SSVStack
+            gap="none"
+            style={{
+              alignItems: 'flex-end',
+              flexGrow: 0,
+              flexShrink: 1,
+              marginLeft: 8,
+              maxWidth: '52%',
+              minWidth: 0
+            }}
+          >
+            <SSText
+              type="mono"
+              color={fingerprint ? 'white' : 'muted'}
+              ellipsizeMode="tail"
+              numberOfLines={1}
+              style={{ textAlign: 'right', width: '100%' }}
+            >
               {fingerprint || t('account.fingerprint')}
             </SSText>
             <SSText
@@ -430,6 +456,7 @@ function SSMultisigKeyControl({
               selectable
               numberOfLines={1}
               ellipsizeMode="middle"
+              style={{ textAlign: 'right', width: '100%' }}
             >
               {formattedPubKey || t('account.seed.publicKey')}
             </SSText>

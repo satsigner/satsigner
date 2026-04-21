@@ -1,12 +1,10 @@
 import { FlashList, FlashListRef } from '@shopify/flash-list'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import {
-  Keyboard,
   type StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
   type ViewStyle
 } from 'react-native'
@@ -16,6 +14,7 @@ import Animated, {
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
@@ -74,8 +73,7 @@ function SSKeyboardWordSelector({
   style
 }: SSKeyboardWordSelectorProps) {
   const wordList = getWordList(wordListName)
-  const { width, height } = useWindowDimensions()
-  const [keyboardOpen, setKeyboardOpen] = useState(false)
+  const insets = useSafeAreaInsets()
   const flashList = useRef<FlashListRef<WordInfo> | null>(null)
 
   const previousWordStart = usePrevious(wordStart)
@@ -84,14 +82,15 @@ function SSKeyboardWordSelector({
   const opacityAnimated = useSharedValue(0)
 
   const data = getMatchingWords(wordStart, wordList)
+  const keyboardVisible = keyboardHeight > 0
 
   if (data.length > 0 && previousWordStart !== wordStart) {
     flashList.current?.scrollToOffset({ animated: false, offset: 0 })
   }
 
-  if (keyboardOpen && visible && data.length > 0) {
+  if (keyboardVisible && visible && data.length > 0) {
     opacityAnimated.set(withTiming(1, { duration: 200 }))
-  } else if (!keyboardOpen || !visible) {
+  } else if (!keyboardVisible || !visible) {
     opacityAnimated.set(withTiming(0, { duration: 200 }))
   }
 
@@ -100,43 +99,17 @@ function SSKeyboardWordSelector({
     zIndex: interpolate(opacityAnimated.value, [0, 0.0001], [0, 1000])
   }))
 
-  const handleKeyboardShown = useCallback(() => {
-    setKeyboardOpen(true)
-  }, [])
-
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener(
-      'keyboardDidShow',
-      handleKeyboardShown
-    )
-    return () => showSubscription?.remove()
-  }, [handleKeyboardShown])
-
-  const handleKeyboardHidden = useCallback(() => {
-    setKeyboardOpen(false)
-  }, [])
-
-  useEffect(() => {
-    const hideSubscription = Keyboard.addListener(
-      'keyboardDidHide',
-      handleKeyboardHidden
-    )
-    return () => hideSubscription?.remove()
-  }, [handleKeyboardHidden])
-
-  let topValue = height
-  if (keyboardHeight > 0) {
-    topValue = height - keyboardHeight - 50
-  }
+  // Position from the parent bottom edge. `top` using window height was wrong
+  // because absolute layout is relative to the parent (e.g. below the header).
+  const bottomOffset = keyboardVisible
+    ? Math.max(0, keyboardHeight - insets.bottom) + 10
+    : 0
 
   return (
     <Animated.View
       style={[
         styles.containerBase,
-        {
-          top: topValue - 55,
-          width
-        },
+        { bottom: bottomOffset },
         animatedContainerStyle,
         style
       ]}
@@ -181,7 +154,6 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0,
-    top: undefined,
     zIndex: 1000
   },
   noMatchingWordsContainerBase: {

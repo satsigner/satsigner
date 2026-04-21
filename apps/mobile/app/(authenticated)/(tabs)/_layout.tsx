@@ -7,6 +7,7 @@ import {
   StyleSheet,
   View
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
   SSIconConverter,
@@ -20,11 +21,16 @@ import { Colors } from '@/styles'
 import { text } from '@/styles/sizes'
 import { showNavigation } from '@/utils/navigation'
 
+const TAB_BAR_PADDING_Y = 8
+const TAB_BAR_ITEM_HEIGHT = 54
+const TAB_BAR_HEIGHT = TAB_BAR_PADDING_Y + TAB_BAR_ITEM_HEIGHT
+
 export default function TabLayout() {
   const currentPath = usePathname()
   const router = useRouter()
   const segments = useSegments() as string[]
   const [isShowTab, setShowTab] = useState(false)
+  const { bottom } = useSafeAreaInsets()
 
   type TabSegment = '(signer)' | '(explorer)' | '(converter)'
 
@@ -67,24 +73,23 @@ export default function TabLayout() {
   return (
     <View style={styles.container}>
       <Tabs
+        initialRouteName="(signer)"
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: 'white',
           tabBarBackground: () => <View style={styles.tabBarBackground} />,
           tabBarLabelStyle: styles.tabBarLabel,
-          tabBarStyle: [styles.tabBar, { display: isShowTab ? 'flex' : 'none' }]
+          tabBarStyle: [
+            styles.tabBar,
+            {
+              display: isShowTab ? 'flex' : 'none',
+              height: TAB_BAR_HEIGHT + TAB_BAR_PADDING_Y + bottom,
+              paddingBottom: TAB_BAR_PADDING_Y + bottom
+            }
+          ]
         }}
         backBehavior="initialRoute"
       >
-        <Tabs.Screen
-          name="(signer)"
-          options={{
-            tabBarButton: (props) => renderTabButton(props, '(signer)'),
-            tabBarIcon: ({ focused }) =>
-              renderTabIcon(focused, SSIconSignerActive, SSIconSigner),
-            title: 'Signer'
-          }}
-        />
         <Tabs.Screen
           name="(explorer)"
           options={{
@@ -92,6 +97,15 @@ export default function TabLayout() {
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconExplorerActive, SSIconExplorer),
             title: 'Explorer'
+          }}
+        />
+        <Tabs.Screen
+          name="(signer)"
+          options={{
+            tabBarButton: (props) => renderTabButton(props, '(signer)'),
+            tabBarIcon: ({ focused }) =>
+              renderTabIcon(focused, SSIconSignerActive, SSIconSigner),
+            title: 'Signer'
           }}
         />
         <Tabs.Screen
@@ -134,9 +148,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderTopWidth: 0,
     boxShadow: 'none',
-    height: 82,
-    paddingBottom: 20,
-    paddingTop: 18
+    paddingTop: TAB_BAR_PADDING_Y
   },
   tabBarBackground: {
     backgroundColor: Colors.gray[925],
@@ -155,7 +167,7 @@ const styles = StyleSheet.create({
   tabBarItem: {
     alignItems: 'center',
     borderRadius: 4,
-    height: 54,
+    height: TAB_BAR_ITEM_HEIGHT,
     justifyContent: 'center',
     paddingBottom: 2,
     width: 104

@@ -1,11 +1,14 @@
 import Svg, { Path, type SvgProps } from 'react-native-svg'
 
-type IconProps = Pick<SvgProps, 'width' | 'height' | 'stroke'>
+type IconProps = Pick<SvgProps, 'width' | 'height' | 'stroke'> & {
+  strokeWidth?: number
+}
 
 export default function SSIconChevronRight({
   width,
   height,
-  stroke = '#828282'
+  stroke = '#828282',
+  strokeWidth = 1.5
 }: IconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 4.79 11.08">
@@ -15,7 +18,7 @@ export default function SSIconChevronRight({
         transform="translate(-0.668 0.265)"
         fill="none"
         stroke={stroke}
-        strokeWidth="1.5"
+        strokeWidth={strokeWidth}
       />
     </Svg>
   )

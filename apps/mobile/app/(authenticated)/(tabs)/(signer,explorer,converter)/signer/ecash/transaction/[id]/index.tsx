@@ -5,7 +5,6 @@ import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { validateEcashToken } from '@/api/ecash'
 import {
   SSIconIncoming,
   SSIconIncomingLightning,
@@ -42,10 +41,15 @@ export default function EcashTransactionDetailPage() {
     receiveEcash,
     mintQuotes,
     checkMintQuote,
-    mintProofs
+    mintProofs,
+    validateToken
   } = useEcash()
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.privacyMode,
+      state.useZeroPadding
+    ])
   )
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [
@@ -128,19 +132,14 @@ export default function EcashTransactionDetailPage() {
     setIsCheckingStatus(true)
 
     try {
-      const result = await validateEcashToken(
+      const isValid = await validateToken(
         transaction.token,
         transaction.mintUrl
       )
-      let tokenStatus: EcashTransaction['tokenStatus']
+      const tokenStatus: EcashTransaction['tokenStatus'] = isValid
+        ? 'unspent'
+        : 'invalid'
 
-      if (result.isValid) {
-        tokenStatus = result.isSpent ? 'spent' : 'unspent'
-      } else {
-        tokenStatus = 'invalid'
-      }
-
-      // Save token status to store
       updateTransaction(transaction.id, { tokenStatus })
     } catch {
       updateTransaction(transaction.id, { tokenStatus: 'invalid' })
@@ -152,7 +151,8 @@ export default function EcashTransactionDetailPage() {
     transaction?.token,
     transaction?.mintUrl,
     transaction?.id,
-    updateTransaction
+    updateTransaction,
+    validateToken
   ])
 
   const handleRedeemToken = useCallback(async () => {
@@ -227,15 +227,8 @@ export default function EcashTransactionDetailPage() {
     return () => {
       stopPolling()
     }
-  }, [
-    transaction,
-    mint,
-    startPolling,
-    stopPolling,
-    checkMintQuote,
-    mintProofs,
-    updateTransaction
-  ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transaction?.id, transaction?.status, transaction?.quoteId, mint?.url])
 
   if (!transaction) {
     return (
@@ -323,23 +316,33 @@ export default function EcashTransactionDetailPage() {
                   {getTransactionLabel(transaction.type)}
                 </SSText>
                 <SSHStack gap="sm" style={{ alignItems: 'baseline' }}>
-                  <SSStyledSatText
-                    amount={transaction.amount}
-                    decimals={0}
-                    useZeroPadding={useZeroPadding}
-                    currency={currencyUnit}
-                    type={
-                      transaction.type === 'mint'
-                        ? 'receive'
-                        : transaction.type === 'melt'
-                          ? 'send'
-                          : transaction.type
-                    }
-                    textSize="xl"
-                    noColor={false}
-                    weight="light"
-                    letterSpacing={-0.5}
-                  />
+                  {privacyMode ? (
+                    <SSText
+                      size="xl"
+                      weight="light"
+                      style={{ letterSpacing: -0.5 }}
+                    >
+                      ••••
+                    </SSText>
+                  ) : (
+                    <SSStyledSatText
+                      amount={transaction.amount}
+                      decimals={0}
+                      useZeroPadding={useZeroPadding}
+                      currency={currencyUnit}
+                      type={
+                        transaction.type === 'mint'
+                          ? 'receive'
+                          : transaction.type === 'melt'
+                            ? 'send'
+                            : transaction.type
+                      }
+                      textSize="xl"
+                      noColor={false}
+                      weight="light"
+                      letterSpacing={-0.5}
+                    />
+                  )}
                   <SSText color="muted">
                     {currencyUnit === 'btc'
                       ? t('bitcoin.btc')
@@ -349,7 +352,9 @@ export default function EcashTransactionDetailPage() {
                 {btcPrice > 0 && (
                   <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                     <SSText color="muted">
-                      {formatFiatPrice(transaction.amount, btcPrice)}
+                      {privacyMode
+                        ? '••••'
+                        : formatFiatPrice(transaction.amount, btcPrice)}
                     </SSText>
                     <SSText size="xs" style={{ color: Colors.gray[500] }}>
                       {fiatCurrency}
@@ -479,9 +484,7 @@ export default function EcashTransactionDetailPage() {
             <SSText uppercase>{t('ecash.transactionDetail.details')}</SSText>
             <SSVStack gap="sm">
               <SSHStack justifyBetween>
-                <SSText color="muted">
-                  {t('ecash.transactionDetail.id')}:
-                </SSText>
+                <SSText color="muted">{t('ecash.transactionDetail.id')}</SSText>
                 <SSText
                   size="sm"
                   numberOfLines={1}
@@ -492,7 +495,7 @@ export default function EcashTransactionDetailPage() {
               </SSHStack>
               <SSHStack justifyBetween>
                 <SSText color="muted">
-                  {t('ecash.transactionDetail.mint')}:
+                  {t('ecash.transactionDetail.mint')}
                 </SSText>
                 <SSText
                   size="sm"

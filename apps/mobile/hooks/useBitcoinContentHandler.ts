@@ -1,9 +1,12 @@
 import { useRouter } from 'expo-router'
-import { useCallback } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { processContentByContext } from '@/hooks/useContentProcessor'
+import {
+  type BitcoinUriExceedsBalancePromptInfo,
+  processContentByContext
+} from '@/hooks/useContentProcessor'
 import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
@@ -14,11 +17,13 @@ type NavigatePath = Parameters<ReturnType<typeof useRouter>['navigate']>[0]
 type UseBitcoinContentHandlerProps = {
   accountId: string
   account: Account
+  closePasteModal?: () => void
 }
 
 export function useBitcoinContentHandler({
   accountId,
-  account
+  account,
+  closePasteModal
 }: UseBitcoinContentHandlerProps) {
   const router = useRouter()
 
@@ -29,7 +34,8 @@ export function useBitcoinContentHandler({
     setFeeRate,
     setRbf,
     setSignedPsbts,
-    setPsbt
+    setPsbt,
+    setAccountId
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.clearTransaction,
@@ -38,12 +44,39 @@ export function useBitcoinContentHandler({
       state.setFeeRate,
       state.setRbf,
       state.setSignedPsbts,
-      state.setPsbt
+      state.setPsbt,
+      state.setAccountId
     ])
   )
 
+  const [uriExceedsBalanceModal, setUriExceedsBalanceModal] =
+    useState<BitcoinUriExceedsBalancePromptInfo | null>(null)
+  const uriBalanceResolverRef = useRef<
+    ((choice: 'cancel' | 'without_amount') => void) | null
+  >(null)
+
+  const promptBitcoinUriExceedsBalance = useCallback(
+    (info: BitcoinUriExceedsBalancePromptInfo) => {
+      closePasteModal?.()
+      return new Promise<'cancel' | 'without_amount'>((resolve) => {
+        uriBalanceResolverRef.current = resolve
+        setUriExceedsBalanceModal(info)
+      })
+    },
+    [closePasteModal]
+  )
+
+  const resolveUriExceedsBalancePrompt = useCallback(
+    (choice: 'cancel' | 'without_amount') => {
+      setUriExceedsBalanceModal(null)
+      uriBalanceResolverRef.current?.(choice)
+      uriBalanceResolverRef.current = null
+    },
+    []
+  )
+
   const handleContentScanned = useCallback(
-    (content: DetectedContent) => {
+    async (content: DetectedContent) => {
       if (!content.isValid) {
         toast.error('Invalid Bitcoin content detected')
         return
@@ -54,9 +87,9 @@ export function useBitcoinContentHandler({
         return
       }
 
-      const processContent = () => {
+      const runProcess = async () => {
         try {
-          processContentByContext(
+          await processContentByContext(
             content,
             'bitcoin',
             {
@@ -66,6 +99,8 @@ export function useBitcoinContentHandler({
               navigate: (path: NavigatePath) => {
                 router.navigate(path)
               },
+              promptBitcoinUriExceedsBalance,
+              setAccountId,
               setFeeRate,
               setPsbt,
               setRbf,
@@ -74,8 +109,12 @@ export function useBitcoinContentHandler({
             accountId,
             account
           )
-        } catch {
-          toast.error(t('bitcoin.error.processFailed'))
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : t('bitcoin.error.processFailed')
+          toast.error(message)
         }
       }
 
@@ -83,24 +122,26 @@ export function useBitcoinContentHandler({
         content.type !== 'bitcoin_descriptor' &&
         content.type !== 'extended_public_key'
       ) {
-        processContent()
+        await runProcess()
         return
       }
 
       toast.info(t('watchonly.info.creatingWatchOnlyAccount'))
-      processContent()
+      await runProcess()
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      accountId,
       account,
-      clearTransaction,
-      addOutput,
+      accountId,
       addInput,
+      addOutput,
+      clearTransaction,
+      promptBitcoinUriExceedsBalance,
+      router,
+      setAccountId,
       setFeeRate,
+      setPsbt,
       setRbf,
-      setSignedPsbts,
-      setPsbt
+      setSignedPsbts
     ]
   )
 
@@ -119,6 +160,8 @@ export function useBitcoinContentHandler({
   return {
     handleContentScanned,
     handleReceive,
-    handleSend
+    handleSend,
+    resolveUriExceedsBalancePrompt,
+    uriExceedsBalanceModal
   }
 }

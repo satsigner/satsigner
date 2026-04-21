@@ -1,7 +1,9 @@
 import {
   formatAddress,
   formatDate,
+  formatNostrCardDate,
   formatNumber,
+  formatShortPubkey,
   formatTime,
   formatTxId
 } from '@/utils/format'
@@ -30,9 +32,35 @@ describe('format utils', () => {
     })
   })
 
+  describe('formatShortPubkey', () => {
+    it('should return first five and last six characters for long hex', () => {
+      expect(
+        formatShortPubkey(
+          '0248d0b103234567890abcdef0123456789abcdef0123456789abcdef23bf82'
+        )
+      ).toBe('0248d...23bf82')
+    })
+
+    it('should return the full string when it is short enough', () => {
+      expect(formatShortPubkey('0248d')).toBe('0248d')
+    })
+  })
+
   describe('formatTime', () => {
     it('should return the correct formatted time', () => {
       expect(formatTime(new Date(1231006505000))).toBe('6:15pm')
+    })
+  })
+
+  describe('formatNostrCardDate', () => {
+    it('should return DD MMM,YY for a Nostr unix timestamp', () => {
+      const localNoon = new Date(2026, 3, 15, 12, 0, 0)
+      const unix = Math.floor(localNoon.getTime() / 1000)
+      expect(formatNostrCardDate(unix)).toBe('Apr 15, 26')
+    })
+
+    it('should return empty string for zero', () => {
+      expect(formatNostrCardDate(0)).toBe('')
     })
   })
 

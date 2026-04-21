@@ -35,6 +35,7 @@ function deleteItem(key: string): Promise<void> {
 
 const KEY_SECRET_PREFIX = 'key_secret'
 const KEY_IV_PREFIX = 'key_iv'
+const ECASH_MNEMONIC_PREFIX = 'ecash_mnemonic'
 
 function keySecretKey(accountId: string, keyIndex: number) {
   return `${KEY_SECRET_PREFIX}.${accountId}.${keyIndex}`
@@ -77,12 +78,30 @@ async function deleteAllKeySecrets(accountId: string, keyCount: number) {
   }
 }
 
+async function storeEcashMnemonic(
+  accountId: string,
+  mnemonic: string
+): Promise<void> {
+  await setItem(`${ECASH_MNEMONIC_PREFIX}.${accountId}`, mnemonic)
+}
+
+function getEcashMnemonic(accountId: string): Promise<string | null> {
+  return getItem(`${ECASH_MNEMONIC_PREFIX}.${accountId}`)
+}
+
+async function deleteEcashMnemonic(accountId: string): Promise<void> {
+  await deleteItem(`${ECASH_MNEMONIC_PREFIX}.${accountId}`)
+}
+
 export {
   deleteAllKeySecrets,
+  deleteEcashMnemonic,
   deleteItem,
   deleteKeySecret,
+  getEcashMnemonic,
   getItem,
   getKeySecret,
   setItem,
+  storeEcashMnemonic,
   storeKeySecret
 }

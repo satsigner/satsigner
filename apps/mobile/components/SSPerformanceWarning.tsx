@@ -10,9 +10,18 @@ import { t } from '@/locales'
 type SSPerformanceWarningProps = {
   text: string
   onDismiss: () => void
+  secondaryActionLabel?: string
+  onSecondaryAction?: () => void
+  secondaryActionLoading?: boolean
 }
 
-function SSPerformanceWarning({ text, onDismiss }: SSPerformanceWarningProps) {
+function SSPerformanceWarning({
+  text,
+  onDismiss,
+  secondaryActionLabel,
+  onSecondaryAction,
+  secondaryActionLoading = false
+}: SSPerformanceWarningProps) {
   return (
     <View
       style={{
@@ -31,6 +40,14 @@ function SSPerformanceWarning({ text, onDismiss }: SSPerformanceWarningProps) {
           label={t('common.dismiss')}
           onPress={onDismiss}
         />
+        {secondaryActionLabel && onSecondaryAction && (
+          <SSButton
+            variant="subtle"
+            label={secondaryActionLabel}
+            loading={secondaryActionLoading}
+            onPress={onSecondaryAction}
+          />
+        )}
       </SSVStack>
     </View>
   )

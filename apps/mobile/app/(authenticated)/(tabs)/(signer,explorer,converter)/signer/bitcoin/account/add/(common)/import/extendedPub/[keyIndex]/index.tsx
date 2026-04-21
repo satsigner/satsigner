@@ -69,7 +69,8 @@ export default function ImportExtendedPub() {
     ])
   )
 
-  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
+  const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
+    useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
   const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
@@ -743,7 +744,7 @@ export default function ImportExtendedPub() {
                       }
                       variant="subtle"
                       onPress={handleNFCRead}
-                      disabled={!isAvailable}
+                      disabled={!isHardwareSupported}
                     />
                   </Animated.View>
                 </SSVStack>

@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { AppState, type AppStateStatus } from 'react-native'
 import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager'
+
+import { t } from '@/locales'
+import { getNfcAdapterStatus } from '@/utils/nfcAdapterStatus'
 
 function getVerboseError(error: unknown, defaultMessage: string) {
   if (!(error instanceof Error)) {
@@ -22,7 +26,7 @@ function getVerboseError(error: unknown, defaultMessage: string) {
       errorType: 'readonly'
     },
     {
-      errorMessage: 'NFC tag has insufficient memory for this PSBT.',
+      errorMessage: 'This NFC tag has insufficient memory for this PSBT.',
       errorType: 'insufficient'
     }
   ]
@@ -36,28 +40,47 @@ function getVerboseError(error: unknown, defaultMessage: string) {
 }
 
 export function useNFCEmitter() {
-  const [isAvailable, setIsAvailable] = useState(false)
+  const [isSupported, setIsSupported] = useState(false)
+  const [isEnabled, setIsEnabled] = useState(false)
   const [isEmitting, setIsEmitting] = useState(false)
+
+  const isHardwareSupported = isSupported
+  const isAvailable = isSupported && isEnabled
+
+  const checkNFCAvailability = useCallback(async () => {
+    const status = await getNfcAdapterStatus()
+    setIsSupported(status.isSupported)
+    setIsEnabled(status.isEnabled)
+  }, [])
 
   useEffect(() => {
     checkNFCAvailability()
+
+    const retryTimer = setTimeout(() => {
+      checkNFCAvailability()
+    }, 400)
+
+    const onAppState = (next: AppStateStatus) => {
+      if (next === 'active') {
+        checkNFCAvailability()
+      }
+    }
+    const appSub = AppState.addEventListener('change', onAppState)
+
     return () => {
+      clearTimeout(retryTimer)
+      appSub.remove()
       NfcManager.cancelTechnologyRequest()
     }
-  }, [])
-
-  async function checkNFCAvailability() {
-    try {
-      const isNFCAvailable = await NfcManager.isEnabled()
-      setIsAvailable(isNFCAvailable)
-    } catch {
-      setIsAvailable(false)
-    }
-  }
+  }, [checkNFCAvailability])
 
   async function emitNFCTag(data: string): Promise<void> {
-    if (!isAvailable) {
+    const status = await getNfcAdapterStatus()
+    if (!status.isSupported) {
       throw new Error('NFC is not available on this device')
+    }
+    if (!status.isEnabled) {
+      throw new Error(t('watchonly.read.nfcTurnOnInSettings'))
     }
 
     setIsEmitting(true)
@@ -81,6 +104,9 @@ export function useNFCEmitter() {
         cause: writeError
       })
     }
+
+    setIsEmitting(false)
+    await NfcManager.cancelTechnologyRequest()
   }
 
   async function cancelNFCScan() {
@@ -94,6 +120,8 @@ export function useNFCEmitter() {
     cancelNFCScan,
     emitNFCTag,
     isAvailable,
-    isEmitting
+    isEmitting,
+    isEnabled,
+    isHardwareSupported
   }
 }

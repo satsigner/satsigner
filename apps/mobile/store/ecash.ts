@@ -2,67 +2,149 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
-import {
-  type EcashConnectionStatus,
-  type EcashMint,
-  type EcashProof,
-  type EcashTransaction,
-  type MeltQuote,
-  type MintQuote
+import type {
+  EcashAccount,
+  EcashKeysetCounter,
+  EcashMint,
+  EcashProof,
+  EcashTransaction,
+  MeltQuote,
+  MintQuote
 } from '@/types/models/Ecash'
 
+const LEGACY_ACCOUNT_ID = 'legacy'
+
+type AccountMap<T> = Record<string, T>
+
 type EcashState = {
-  mints: EcashMint[]
-  activeMint: EcashMint | null
-  proofs: EcashProof[]
-  transactions: EcashTransaction[]
-  quotes: {
-    mint: MintQuote[]
-    melt: MeltQuote[]
-  }
-  status: EcashConnectionStatus
+  accounts: EcashAccount[]
+  activeAccountId: string | null
+  mints: AccountMap<EcashMint[]>
+  proofs: AccountMap<EcashProof[]>
+  transactions: AccountMap<EcashTransaction[]>
+  quotes: AccountMap<{ mint: MintQuote[]; melt: MeltQuote[] }>
+  counters: AccountMap<EcashKeysetCounter[]>
   checkingTransactionIds: string[]
 }
 
 type EcashAction = {
-  setMints: (mints: EcashState['mints']) => void
-  addMint: (mint: EcashMint) => void
-  removeMint: (mintUrl: string) => void
-  setActiveMint: (mint: EcashState['activeMint']) => void
-  setProofs: (proofs: EcashState['proofs']) => void
-  addProofs: (proofs: EcashProof[]) => void
-  removeProofs: (proofIds: string[]) => void
-  setConnecting: (isConnecting: EcashState['status']['isConnecting']) => void
-  setConnected: (isConnected: EcashState['status']['isConnected']) => void
-  updateLastSync: () => void
-  addMintQuote: (quote: MintQuote) => void
-  removeMintQuote: (quoteId: string) => void
-  addMeltQuote: (quote: MeltQuote) => void
-  removeMeltQuote: (quoteId: string) => void
-  updateMintBalance: (mintUrl: string, balance: number) => void
-  updateMintConnection: (mintUrl: string, isConnected: boolean) => void
-  addTransaction: (transaction: EcashTransaction) => void
+  addAccount: (account: EcashAccount) => void
+  removeAccount: (accountId: string) => void
+  setActiveAccountId: (accountId: string | null) => void
+  addMint: (accountId: string, mint: EcashMint) => void
+  removeMint: (accountId: string, mintUrl: string) => void
+  addProofs: (accountId: string, proofs: EcashProof[]) => void
+  removeProofs: (accountId: string, proofIds: string[]) => void
+  setProofs: (accountId: string, proofs: EcashProof[]) => void
+  updateMintBalance: (
+    accountId: string,
+    mintUrl: string,
+    balance: number
+  ) => void
+  updateMintConnection: (
+    accountId: string,
+    mintUrl: string,
+    isConnected: boolean
+  ) => void
+  addMintQuote: (accountId: string, quote: MintQuote) => void
+  removeMintQuote: (accountId: string, quoteId: string) => void
+  addMeltQuote: (accountId: string, quote: MeltQuote) => void
+  removeMeltQuote: (accountId: string, quoteId: string) => void
+  addTransaction: (accountId: string, transaction: EcashTransaction) => void
   updateTransaction: (
+    accountId: string,
     transactionId: string,
     updates: Partial<EcashTransaction>
   ) => void
-  clearTransactions: () => void
-  restoreFromBackup: (backupData: unknown) => void
+  clearTransactions: (accountId: string) => void
+  updateCounters: (accountId: string, counters: EcashKeysetCounter[]) => void
+  restoreFromBackup: (accountId: string, backupData: unknown) => void
   clearAllData: () => void
+  clearAccountData: (accountId: string) => void
   addCheckingTransaction: (transactionId: string) => void
   removeCheckingTransaction: (transactionId: string) => void
   clearCheckingTransactions: () => void
 }
 
-const initialStatus: EcashConnectionStatus = {
-  isConnected: false,
-  isConnecting: false
+function getAccountArray<T>(map: AccountMap<T[]>, accountId: string): T[] {
+  return map[accountId] ?? []
+}
+
+function getAccountQuotes(
+  map: AccountMap<{ mint: MintQuote[]; melt: MeltQuote[] }>,
+  accountId: string
+) {
+  return map[accountId] ?? { melt: [], mint: [] }
+}
+
+type LegacyState = {
+  mints?: EcashMint[]
+  activeMint?: EcashMint | null
+  proofs?: EcashProof[]
+  transactions?: EcashTransaction[]
+  quotes?: { mint: MintQuote[]; melt: MeltQuote[] }
+}
+
+function migrateLegacyState(persisted: unknown): EcashState & EcashAction {
+  const legacy = persisted as LegacyState & EcashState & EcashAction
+
+  if (legacy.accounts) {
+    return legacy
+  }
+
+  const hasLegacyData =
+    (Array.isArray(legacy.mints) && legacy.mints.length > 0) ||
+    (Array.isArray(legacy.proofs) && legacy.proofs.length > 0) ||
+    (Array.isArray(legacy.transactions) && legacy.transactions.length > 0)
+
+  if (!hasLegacyData) {
+    return legacy
+  }
+
+  const legacyAccount: EcashAccount = {
+    createdAt: new Date().toISOString(),
+    hasSeed: false,
+    id: LEGACY_ACCOUNT_ID,
+    name: 'Legacy Ecash'
+  }
+
+  const legacyMints = legacy.mints ?? []
+  const legacyProofs = (legacy.proofs ?? []).map((proof) => ({
+    ...proof,
+    mintUrl: proof.mintUrl ?? legacy.activeMint?.url ?? ''
+  }))
+  const legacyTransactions = legacy.transactions ?? []
+  const legacyQuotes = legacy.quotes ?? { melt: [], mint: [] }
+
+  return {
+    ...legacy,
+    accounts: [legacyAccount],
+    activeAccountId: LEGACY_ACCOUNT_ID,
+    counters: {},
+    mints: { [LEGACY_ACCOUNT_ID]: legacyMints },
+    proofs: { [LEGACY_ACCOUNT_ID]: legacyProofs },
+    quotes: { [LEGACY_ACCOUNT_ID]: legacyQuotes },
+    transactions: { [LEGACY_ACCOUNT_ID]: legacyTransactions }
+  }
 }
 
 export const useEcashStore = create<EcashState & EcashAction>()(
   persist(
     (set) => ({
-      activeMint: null,
+      accounts: [],
+      activeAccountId: null,
+      addAccount: (account) =>
+        set((state) => ({
+          accounts: [...state.accounts, account],
+          counters: { ...state.counters, [account.id]: [] },
+          mints: { ...state.mints, [account.id]: [] },
+          proofs: { ...state.proofs, [account.id]: [] },
+          quotes: {
+            ...state.quotes,
+            [account.id]: { melt: [], mint: [] }
+          },
+          transactions: { ...state.transactions, [account.id]: [] }
+        })),
       addCheckingTransaction: (transactionId) =>
         set((state) => ({
           checkingTransactionIds: state.checkingTransactionIds.includes(
@@ -71,86 +153,163 @@ export const useEcashStore = create<EcashState & EcashAction>()(
             ? state.checkingTransactionIds
             : [...state.checkingTransactionIds, transactionId]
         })),
-      addMeltQuote: (quote) =>
+      addMeltQuote: (accountId, quote) =>
+        set((state) => {
+          const current = getAccountQuotes(state.quotes, accountId)
+          return {
+            quotes: {
+              ...state.quotes,
+              [accountId]: {
+                ...current,
+                melt: [...current.melt, quote]
+              }
+            }
+          }
+        }),
+      addMint: (accountId, mint) =>
         set((state) => ({
-          quotes: {
-            ...state.quotes,
-            melt: [...state.quotes.melt, quote]
+          mints: {
+            ...state.mints,
+            [accountId]: [...getAccountArray(state.mints, accountId), mint]
           }
         })),
-      addMint: (mint) =>
+      addMintQuote: (accountId, quote) =>
+        set((state) => {
+          const current = getAccountQuotes(state.quotes, accountId)
+          return {
+            quotes: {
+              ...state.quotes,
+              [accountId]: {
+                ...current,
+                mint: [...current.mint, quote]
+              }
+            }
+          }
+        }),
+      addProofs: (accountId, proofs) =>
         set((state) => ({
-          mints: [...state.mints, mint]
-        })),
-      addMintQuote: (quote) =>
-        set((state) => ({
-          quotes: {
-            ...state.quotes,
-            mint: [...state.quotes.mint, quote]
+          proofs: {
+            ...state.proofs,
+            [accountId]: [
+              ...getAccountArray(state.proofs, accountId),
+              ...proofs
+            ]
           }
         })),
-      addProofs: (proofs) =>
+      addTransaction: (accountId, transaction) =>
         set((state) => ({
-          proofs: [...state.proofs, ...proofs]
-        })),
-      addTransaction: (transaction) =>
-        set((state) => ({
-          transactions: [transaction, ...state.transactions]
+          transactions: {
+            ...state.transactions,
+            [accountId]: [
+              transaction,
+              ...getAccountArray(state.transactions, accountId)
+            ]
+          }
         })),
       checkingTransactionIds: [],
+      clearAccountData: (accountId) =>
+        set((state) => ({
+          counters: { ...state.counters, [accountId]: [] },
+          mints: { ...state.mints, [accountId]: [] },
+          proofs: { ...state.proofs, [accountId]: [] },
+          quotes: {
+            ...state.quotes,
+            [accountId]: { melt: [], mint: [] }
+          },
+          transactions: { ...state.transactions, [accountId]: [] }
+        })),
       clearAllData: () =>
         set({
-          activeMint: null,
+          accounts: [],
+          activeAccountId: null,
           checkingTransactionIds: [],
-          mints: [],
-          proofs: [],
-          quotes: {
-            melt: [],
-            mint: []
-          },
-          status: initialStatus,
-          transactions: []
+          counters: {},
+          mints: {},
+          proofs: {},
+          quotes: {},
+          transactions: {}
         }),
       clearCheckingTransactions: () => set({ checkingTransactionIds: [] }),
-      clearTransactions: () => set({ transactions: [] }),
-      mints: [],
-      proofs: [],
-      quotes: {
-        melt: [],
-        mint: []
-      },
+      clearTransactions: (accountId) =>
+        set((state) => ({
+          transactions: { ...state.transactions, [accountId]: [] }
+        })),
+      counters: {},
+      mints: {},
+      proofs: {},
+      quotes: {},
+      removeAccount: (accountId) =>
+        set((state) => {
+          const { [accountId]: _m, ...remainingMints } = state.mints
+          const { [accountId]: _p, ...remainingProofs } = state.proofs
+          const { [accountId]: _t, ...remainingTxns } = state.transactions
+          const { [accountId]: _q, ...remainingQuotes } = state.quotes
+          const { [accountId]: _c, ...remainingCounters } = state.counters
+          return {
+            accounts: state.accounts.filter((a) => a.id !== accountId),
+            activeAccountId:
+              state.activeAccountId === accountId
+                ? null
+                : state.activeAccountId,
+            counters: remainingCounters,
+            mints: remainingMints,
+            proofs: remainingProofs,
+            quotes: remainingQuotes,
+            transactions: remainingTxns
+          }
+        }),
       removeCheckingTransaction: (transactionId) =>
         set((state) => ({
           checkingTransactionIds: state.checkingTransactionIds.filter(
             (id) => id !== transactionId
           )
         })),
-      removeMeltQuote: (quoteId) =>
+      removeMeltQuote: (accountId, quoteId) =>
+        set((state) => {
+          const current = getAccountQuotes(state.quotes, accountId)
+          return {
+            quotes: {
+              ...state.quotes,
+              [accountId]: {
+                ...current,
+                melt: current.melt.filter((q) => q.quote !== quoteId)
+              }
+            }
+          }
+        }),
+      removeMint: (accountId, mintUrl) =>
         set((state) => ({
-          quotes: {
-            ...state.quotes,
-            melt: state.quotes.melt.filter((quote) => quote.quote !== quoteId)
+          mints: {
+            ...state.mints,
+            [accountId]: getAccountArray(state.mints, accountId).filter(
+              (m) => m.url !== mintUrl
+            )
           }
         })),
-      removeMint: (mintUrl) =>
+      removeMintQuote: (accountId, quoteId) =>
+        set((state) => {
+          const current = getAccountQuotes(state.quotes, accountId)
+          return {
+            quotes: {
+              ...state.quotes,
+              [accountId]: {
+                ...current,
+                mint: current.mint.filter((q) => q.quote !== quoteId)
+              }
+            }
+          }
+        }),
+      removeProofs: (accountId, proofIds) =>
         set((state) => ({
-          activeMint:
-            state.activeMint?.url === mintUrl ? null : state.activeMint,
-          mints: state.mints.filter((mint) => mint.url !== mintUrl)
-        })),
-      removeMintQuote: (quoteId) =>
-        set((state) => ({
-          quotes: {
-            ...state.quotes,
-            mint: state.quotes.mint.filter((quote) => quote.quote !== quoteId)
+          proofs: {
+            ...state.proofs,
+            [accountId]: getAccountArray(state.proofs, accountId).filter(
+              (p) => !proofIds.includes(p.id)
+            )
           }
         })),
-      removeProofs: (proofIds) =>
-        set((state) => ({
-          proofs: state.proofs.filter((proof) => !proofIds.includes(proof.id))
-        })),
-      restoreFromBackup: (backupData) =>
-        set(() => {
+      restoreFromBackup: (accountId, backupData) =>
+        set((state) => {
           if (!backupData || typeof backupData !== 'object') {
             throw new Error('Invalid backup data format')
           }
@@ -159,98 +318,83 @@ export const useEcashStore = create<EcashState & EcashAction>()(
             mints?: EcashMint[]
             proofs?: EcashProof[]
             transactions?: EcashTransaction[]
-            activeMint?: EcashMint | null
           }
-
-          const restoredMints = data.mints || []
-          const restoredProofs = data.proofs || []
-          const restoredTransactions = data.transactions || []
-          const restoredActiveMint = data.activeMint || null
 
           return {
-            activeMint: restoredActiveMint,
-            mints: restoredMints,
-            proofs: restoredProofs,
+            mints: {
+              ...state.mints,
+              [accountId]: data.mints ?? []
+            },
+            proofs: {
+              ...state.proofs,
+              [accountId]: data.proofs ?? []
+            },
             quotes: {
-              melt: [],
-              mint: []
+              ...state.quotes,
+              [accountId]: { melt: [], mint: [] }
             },
-            status: {
-              isConnected: false,
-              isConnecting: false,
-              lastSync: new Date().toISOString()
-            },
-            transactions: restoredTransactions
+            transactions: {
+              ...state.transactions,
+              [accountId]: data.transactions ?? []
+            }
           }
         }),
-      setActiveMint: (mint) =>
-        set((state) => {
-          if (mint) {
-            const mintFromArray = state.mints.find((m) => m.url === mint.url)
-            return { activeMint: mintFromArray || mint }
+      setActiveAccountId: (accountId) => set({ activeAccountId: accountId }),
+      setProofs: (accountId, proofs) =>
+        set((state) => ({
+          proofs: { ...state.proofs, [accountId]: proofs }
+        })),
+      transactions: {},
+      updateCounters: (accountId, counters) =>
+        set((state) => ({
+          counters: { ...state.counters, [accountId]: counters }
+        })),
+      updateMintBalance: (accountId, mintUrl, balance) =>
+        set((state) => ({
+          mints: {
+            ...state.mints,
+            [accountId]: getAccountArray(state.mints, accountId).map((m) =>
+              m.url === mintUrl ? { ...m, balance } : m
+            )
           }
-          return { activeMint: null }
-        }),
-      setConnected: (isConnected) =>
-        set((state) => ({
-          status: { ...state.status, isConnected, isConnecting: false }
         })),
-      setConnecting: (isConnecting) =>
+      updateMintConnection: (accountId, mintUrl, isConnected) =>
         set((state) => ({
-          status: { ...state.status, isConnecting }
+          mints: {
+            ...state.mints,
+            [accountId]: getAccountArray(state.mints, accountId).map((m) =>
+              m.url === mintUrl ? { ...m, isConnected } : m
+            )
+          }
         })),
-      setMints: (mints) => set({ mints }),
-      setProofs: (proofs) => set({ proofs }),
-      status: initialStatus,
-      transactions: [],
-      updateLastSync: () =>
+      updateTransaction: (accountId, transactionId, updates) =>
         set((state) => ({
-          status: { ...state.status, lastSync: new Date().toISOString() }
-        })),
-      updateMintBalance: (mintUrl, balance) =>
-        set((state) => ({
-          activeMint:
-            state.activeMint?.url === mintUrl
-              ? { ...state.activeMint, balance }
-              : state.activeMint,
-          mints: state.mints.map((mint) =>
-            mint.url === mintUrl ? { ...mint, balance } : mint
-          )
-        })),
-      updateMintConnection: (mintUrl, isConnected) =>
-        set((state) => ({
-          activeMint:
-            state.activeMint?.url === mintUrl
-              ? { ...state.activeMint, isConnected }
-              : state.activeMint,
-          mints: state.mints.map((mint) =>
-            mint.url === mintUrl ? { ...mint, isConnected } : mint
-          )
-        })),
-      updateTransaction: (transactionId, updates) =>
-        set((state) => ({
-          transactions: state.transactions.map((transaction) =>
-            transaction.id === transactionId
-              ? { ...transaction, ...updates }
-              : transaction
-          )
+          transactions: {
+            ...state.transactions,
+            [accountId]: getAccountArray(state.transactions, accountId).map(
+              (tx) => (tx.id === transactionId ? { ...tx, ...updates } : tx)
+            )
+          }
         }))
     }),
     {
+      merge: (persisted, current) => {
+        const migrated = migrateLegacyState(persisted)
+        return { ...current, ...migrated }
+      },
       name: 'satsigner-ecash',
       partialize: (state) => ({
-        activeMint: state.activeMint,
+        accounts: state.accounts,
+        activeAccountId: state.activeAccountId,
         checkingTransactionIds: [],
+        counters: state.counters,
         mints: state.mints,
         proofs: state.proofs,
         quotes: state.quotes,
-        status: {
-          isConnected: state.status.isConnected,
-          lastSync: state.status.lastSync
-        },
-        transactions: state.transactions // Don't persist checking state
+        transactions: state.transactions
       }),
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 2
     }
   )
 )

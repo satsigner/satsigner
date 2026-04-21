@@ -53,7 +53,7 @@ export default function ImportDescriptor() {
       state.setExtendedPublicKey
     ])
   )
-  const { isAvailable, readNFCTag } = useNFCReader()
+  const { isHardwareSupported, readNFCTag } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
 
@@ -138,7 +138,7 @@ export default function ImportDescriptor() {
   }
 
   async function handleScanNFC() {
-    if (!isAvailable) {
+    if (!isHardwareSupported) {
       toast.error(t('watchonly.read.nfcNotAvailable'))
       return
     }
@@ -336,7 +336,7 @@ export default function ImportDescriptor() {
                 variant="subtle"
                 onPress={handleScanNFC}
                 style={{ flex: 1 }}
-                disabled={!isAvailable}
+                disabled={!isHardwareSupported}
               />
             </SSHStack>
           </SSVStack>

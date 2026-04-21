@@ -1,12 +1,14 @@
 import Svg, { Circle, G, Path, type SvgProps } from 'react-native-svg'
 
+import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
+
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 
 export default function SSIconTime({
   width = 16,
   height = 16,
   color = '#909090'
-}: IconProps) {
+}: IconProps & NavMenuItemIconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 16 16" fill="none">
       <G filter="url(#filter0_i_8288_24237)">

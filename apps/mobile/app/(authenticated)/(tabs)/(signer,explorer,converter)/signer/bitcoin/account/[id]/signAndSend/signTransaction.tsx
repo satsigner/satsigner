@@ -1,7 +1,8 @@
+import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
-import { Psbt } from 'react-native-bdk-sdk'
+import { Psbt, type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -14,6 +15,7 @@ import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
+import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -56,10 +58,7 @@ export default function SignTransaction() {
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
-  const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address)),
-    [account]
-  )
+  const ownAddresses = new Set(account?.addresses?.map((a) => a.address))
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
@@ -74,7 +73,34 @@ export default function SignTransaction() {
   const [broadcasting, setBroadcasting] = useState(false)
   const [rawTx, setRawTx] = useState('')
 
-  const transaction = useMemo(() => {
+  const trimmedRawTx = rawTx.trim()
+  const canCopySignedTx =
+    signed &&
+    !!rawTx &&
+    trimmedRawTx.length >= 20 &&
+    /^[0-9a-fA-F]+$/.test(trimmedRawTx) &&
+    !trimmedRawTx.toLowerCase().startsWith('70736274')
+
+  async function handleCopySignedTx() {
+    if (!canCopySignedTx) {
+      toast.error(tn('copySignedTxUnavailable'))
+      return
+    }
+    try {
+      await Clipboard.setStringAsync(trimmedRawTx)
+      toast.success(t('common.copiedToClipboard'))
+    } catch {
+      toast.error(tn('copySignedTxUnavailable'))
+    }
+  }
+
+  const transaction = buildTransaction(psbt ?? null, inputs, outputs)
+
+  function buildTransaction(
+    psbt: PsbtLike | null,
+    inputs: Map<string, Utxo>,
+    outputs: Output[]
+  ): Transaction | null {
     if (!psbt) {
       return null
     }
@@ -87,23 +113,32 @@ export default function SignTransaction() {
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       label: input.label || '',
       previousOutput: { txid: input.txid, vout: input.vout },
-      value: input.value
+      scriptSig: '' as string | number[],
+      sequence: 0,
+      value: input.value,
+      witness: [] as number[][]
     }))
 
     const vout = outputs.map((output: Output) => ({
       address: output.to,
       label: output.label || '',
+      script: '' as string | number[],
       value: output.amount
     }))
 
     return {
       id: psbt.txid(),
+      lockTimeEnabled: false,
+      prices: {},
+      received: 0,
+      sent: 0,
       size,
+      type: 'send' as const,
       vin,
       vout,
       vsize
-    } as never as Transaction
-  }, [inputs, outputs, psbt])
+    }
+  }
 
   function handleBroadcastSingleSig() {
     if (!psbt || !wallet) {
@@ -172,8 +207,8 @@ export default function SignTransaction() {
       if (signedTx) {
         await handleBroadcastMultiSig()
       } else if (psbt) {
-        const success = await handleBroadcastSingleSig()
-        if (!success) {
+        const broadcastResult = await handleBroadcastSingleSig()
+        if (!broadcastResult) {
           throw new Error('Broadcast failed')
         }
       } else {
@@ -252,7 +287,7 @@ export default function SignTransaction() {
         <ScrollView>
           <SSVStack justifyBetween style={{ minHeight: '100%' }}>
             <SSVStack itemsCenter>
-              <SSText size="lg" weight="bold">
+              <SSText size="md" uppercase weight="light">
                 {broadcasted
                   ? t('sent.broadcasted')
                   : account?.policyType === 'multisig' && signedTx
@@ -274,7 +309,7 @@ export default function SignTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {t('transaction.id')}
                 </SSText>
-                <SSText size="lg">{psbt.txid()}</SSText>
+                <SSTransactionIdFormatted size="lg" value={psbt.txid()} />
               </SSVStack>
 
               <SSVStack gap="xxs">
@@ -357,6 +392,14 @@ export default function SignTransaction() {
                 handleBroadcastTransaction()
               }}
             />
+            {signed && (
+              <SSButton
+                variant="ghost"
+                disabled={!canCopySignedTx || broadcasting}
+                label={tn('copySignedTx')}
+                onPress={handleCopySignedTx}
+              />
+            )}
             {signed &&
               account?.nostr?.autoSync &&
               (psbt?.toBase64() ?? signedTx) && (

@@ -11,7 +11,8 @@ import {
   SSIconLiquid,
   SSIconMempool,
   SSIconNostr,
-  SSIconTime
+  SSIconTime,
+  SSIconTriangle
 } from '@/components/icons'
 import { t } from '@/locales'
 import { type NavMenuGroup, PLATFORM } from '@/types/navigation/navMenu'
@@ -34,6 +35,13 @@ export const navMenuGroups: NavMenuGroup[] = [
         url: '/signer/lightning'
       },
       {
+        icon: SSIconTriangle,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.ark'),
+        url: '/signer/ark'
+      },
+      {
         icon: SSIconLiquid,
         isSoon: true,
         platform: PLATFORM.HYBRID,
@@ -49,10 +57,10 @@ export const navMenuGroups: NavMenuGroup[] = [
       },
       {
         icon: SSIconNostr,
-        isSoon: true,
+        isSoon: false,
         platform: PLATFORM.HYBRID,
         title: t('navigation.item.nostr'),
-        url: ''
+        url: '/signer/nostr'
       }
     ],
     title: t('navigation.label.signer')

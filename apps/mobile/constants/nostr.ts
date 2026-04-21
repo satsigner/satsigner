@@ -23,9 +23,18 @@ export const PROCESSING_INTERVAL_MS = 350
 export const RELAY_PROTOCOL_PREFIX = 'wss://'
 /** Fallback color when npub is missing, invalid, or member has no color (e.g. device/member list UI). */
 export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
+/** Short NDK connect when probing whether at least one relay is reachable. */
+export const NOSTR_RELAY_REACHABILITY_TEST_MS = 5000
+/** Shown when settings privacy mode hides Nostr amounts and identifiers. */
+export const NOSTR_PRIVACY_MASK = '••••'
+/** Shown in place of hidden secret keys (nsec / seed words) — short form. */
+export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
+/** Shown in place of hidden secret keys — long form for full-width displays. */
+export const NOSTR_HIDDEN_KEY_MASK_LONG = '••••••••••••••••••••••••••••••••'
 
 export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Angani', url: 'wss://nostr-1.nbo.angani.co' },
+  { name: 'Bitcoiner Social', url: 'wss://nostr.bitcoiner.social' },
   { name: 'Btc Library', url: 'wss://nostr.btc-library.com' },
   { name: 'Coracle', url: 'wss://bucket.coracle.social' },
   { name: 'Damus', url: 'wss://relay.damus.io' },
@@ -34,6 +43,8 @@ export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Einundzwanzig Space', url: 'wss://nostr.einundzwanzig.space' },
   { name: 'Mostro', url: 'wss://relay.mostro.network' },
   { name: 'Nos lol (POW 28 bits required)', url: 'wss://nos.lol' },
+  { name: 'Nostr Band', url: 'wss://relay.nostr.band' },
+  { name: 'Nostr BG', url: 'wss://relay.nostr.bg' },
   { name: 'Nostr Mom', url: 'wss://nostr.mom' },
   { name: 'Nostr Wine', url: 'wss://nostr.wine' },
   { name: 'Nostromo', url: 'wss://relay.nostromo.social' },
@@ -50,3 +61,21 @@ export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Vulpem', url: 'wss://nostr.vulpem.com' },
   { name: 'YakiHonne', url: 'wss://nostr-01.yakihonne.com' }
 ]
+
+export const DEFAULT_ZAP_PRESETS = [21, 100, 500, 1000]
+export const DEFAULT_ONE_TAP_AMOUNT = 21
+
+/** Maximum character length for a kind-1 note composed in-app. */
+export const MAX_NOTE_LENGTH = 5000
+
+/** Compact signed-event JSON longer than this is not shown as QR (QR version limits). */
+export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
+
+/** Profile cache: re-fetch from relays if cached profile is older than this. */
+export const PROFILE_CACHE_TTL_SECS = 3600
+/** Profile cache: delete stale profiles older than this on prune. */
+export const PROFILE_CACHE_MAX_AGE_SECS = 604800
+/** Event cache: auto-prune non-own events older than this (3 days). */
+export const OTHER_EVENT_CACHE_MAX_AGE_SECS = 259200
+/** Event cache: hard cap on non-own rows; oldest by cached_at are removed first. */
+export const EVENT_CACHE_MAX_ROWS = 5000

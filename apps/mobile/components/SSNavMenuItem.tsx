@@ -38,7 +38,7 @@ function SSNavMenuItem({ item, focused = false }: SSNavMenuItemProps) {
       >
         <SSHStack style={styles.container}>
           <SSHStack style={styles.iconWrapper}>
-            <item.icon />
+            <item.icon focused={focused} />
           </SSHStack>
           <SSText uppercase size="md" style={styles.text}>
             {item.title}
@@ -46,7 +46,7 @@ function SSNavMenuItem({ item, focused = false }: SSNavMenuItemProps) {
         </SSHStack>
       </TouchableOpacity>
     ),
-    [handlePress, opacity, item]
+    [focused, handlePress, item, opacity]
   )
 
   const focusedContent = useMemo(
@@ -65,7 +65,9 @@ function SSNavMenuItem({ item, focused = false }: SSNavMenuItemProps) {
     [content]
   )
 
-  return focused ? focusedContent : content
+  return (
+    <View style={styles.itemRoot}>{focused ? focusedContent : content}</View>
+  )
 }
 
 const styles = StyleSheet.create({
@@ -86,6 +88,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: 30
+  },
+  itemRoot: {
+    marginLeft: -8
   },
   shadow: {
     boxShadow: '0 0 25px #FFFFFF15',

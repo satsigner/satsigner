@@ -5,9 +5,10 @@ import {
   SSIconPasteClipboard,
   SSIconScanNFC
 } from '@/components/icons'
-import SSButton from '@/components/SSButton'
+import SSActionButton from '@/components/SSActionButton'
+import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
-import { Sizes } from '@/styles'
+import { Colors } from '@/styles'
 
 type SSButtonActionsGroupProps = {
   onSend: () => void
@@ -15,11 +16,9 @@ type SSButtonActionsGroupProps = {
   onCamera: () => void
   onNFC: () => void
   onReceive: () => void
-  context: 'bitcoin' | 'lightning' | 'ecash'
+  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
   nfcAvailable?: boolean
 }
-
-const TOTAL_BUTTONS = 5
 
 function SSButtonActionsGroup({
   onSend,
@@ -30,55 +29,51 @@ function SSButtonActionsGroup({
   nfcAvailable = true
 }: SSButtonActionsGroupProps) {
   return (
-    <SSHStack gap="xxs">
-      <SSButton
-        variant="elevated"
-        horizontalIndex={0}
-        totalButtons={TOTAL_BUTTONS}
-        label="Send"
+    <SSHStack gap="none">
+      <SSActionButton
         onPress={onSend}
-        style={[styles.actionButtonWide, styles.actionButtonHeight]}
-      />
-      <SSButton
-        variant="elevated"
-        horizontalIndex={1}
-        totalButtons={TOTAL_BUTTONS}
-        icon={<SSIconPasteClipboard height={16} width={18} />}
+        style={[styles.actionButton, styles.actionButtonWide]}
+      >
+        <SSText uppercase>Send</SSText>
+      </SSActionButton>
+      <SSActionButton
         onPress={onPaste}
-        style={[styles.actionButtonNarrow, styles.actionButtonHeight]}
-      />
-      <SSButton
-        variant="elevated"
-        horizontalIndex={2}
-        totalButtons={TOTAL_BUTTONS}
-        icon={<SSIconCamera height={13} width={18} />}
+        style={[styles.actionButton, styles.actionButtonNarrow]}
+      >
+        <SSIconPasteClipboard height={16} width={18} />
+      </SSActionButton>
+      <SSActionButton
         onPress={onCamera}
-        style={[styles.actionButtonNarrow, styles.actionButtonHeight]}
-      />
-      <SSButton
-        variant="elevated"
-        horizontalIndex={3}
-        totalButtons={TOTAL_BUTTONS}
-        icon={<SSIconScanNFC height={21} width={18} />}
+        style={[styles.actionButton, styles.actionButtonNarrow]}
+      >
+        <SSIconCamera height={13} width={18} />
+      </SSActionButton>
+      <SSActionButton
         onPress={onNFC}
+        style={[styles.actionButton, styles.actionButtonNarrow]}
         disabled={!nfcAvailable}
-        style={[styles.actionButtonNarrow, styles.actionButtonHeight]}
-      />
-      <SSButton
-        variant="elevated"
-        horizontalIndex={4}
-        totalButtons={TOTAL_BUTTONS}
-        label="Receive"
+      >
+        <SSIconScanNFC height={21} width={18} />
+      </SSActionButton>
+      <SSActionButton
         onPress={onReceive}
-        style={[styles.actionButtonWide, styles.actionButtonHeight]}
-      />
+        style={[styles.actionButton, styles.actionButtonWide]}
+      >
+        <SSText uppercase>Receive</SSText>
+      </SSActionButton>
     </SSHStack>
   )
 }
 
 const styles = StyleSheet.create({
-  actionButtonHeight: {
-    height: Sizes.actionButton.height
+  actionButton: {
+    backgroundColor: Colors.gray[925],
+    borderBottomColor: Colors.gray[950],
+    borderLeftColor: Colors.gray[950],
+    borderRadius: 4,
+    borderRightColor: Colors.gray[950],
+    borderTopColor: Colors.gray[800],
+    borderWidth: 1
   },
   actionButtonNarrow: {
     width: '16.5%'

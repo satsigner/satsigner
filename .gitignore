@@ -3,6 +3,8 @@ node_modules
 .DS_Store
 
 .turbo
+.gradle-home
+.wrangler
 tags
 tags-tmp
 tags-lock
@@ -11,3 +13,5 @@ tags-lock
 *.log
 
 .claude/settings.local.json
+
+dist
