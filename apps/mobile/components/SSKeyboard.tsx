@@ -1,6 +1,14 @@
+import { LinearGradient } from 'expo-linear-gradient'
 import { DimensionValue, StyleSheet, View } from 'react-native'
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from 'react-native-reanimated'
 
 import SSHStack from '@/layouts/SSHStack'
+import { Colors, Sizes } from '@/styles'
 import { hStack, type HStackGap } from '@/styles/layout'
 import { range, shuffle } from '@/utils/array'
 
@@ -20,6 +28,165 @@ type SSKeyboardProps = {
 const BTN_DELETE = 'DEL'
 const BTN_CLEAR = 'CLEAR'
 const NUMERIC_PAD = [...range(10, 1).map((x) => x.toString()), '0']
+
+const KEY_BORDER = Math.max(StyleSheet.hairlineWidth, 1)
+const KEY_OUTER_RADIUS = Sizes.button.borderRadius + KEY_BORDER
+/** Width ÷ height; > 1 is wider than tall (less square than 1:1). */
+const KEY_ASPECT_RATIO = 1.32
+
+/**
+ * Extends gradient past the key bounds so the transition is stretched on the
+ * thin border ring.
+ */
+const KEY_LIGHT_GRADIENT_SPREAD = 0.34
+/** Half-width of gradient in x (narrow = reads as overhead, not side-lit). */
+const KEY_LIGHT_CENTER_X_HALF = 0.075
+/** Tiny horizontal wobble per key so they are not identical (stays near center). */
+const KEY_LIGHT_CENTER_WOBBLE = 0.028
+/** Each full row of keys dims the border slightly (distance from “source”). */
+const KEY_LIGHT_INTENSITY_DROP_PER_ROW = 0.16
+const KEY_LIGHT_MIN_INTENSITY = 0.5
+
+const KEY_LIGHT_ALPHAS = [0.11, 0.03, 0.08] as const
+
+function getKeyBorderLight(
+  index: number,
+  nCols: number
+): {
+  colors: [string, string, string]
+  end: { x: number; y: number }
+  locations: [number, number, number]
+  start: { x: number; y: number }
+} {
+  const s = KEY_LIGHT_GRADIENT_SPREAD
+  const rowBlock = Math.floor(index / nCols)
+  const intensity = Math.max(
+    KEY_LIGHT_MIN_INTENSITY,
+    1 - rowBlock * KEY_LIGHT_INTENSITY_DROP_PER_ROW
+  )
+  const colors = KEY_LIGHT_ALPHAS.map(
+    (a) => `rgba(255,255,255,${Math.min(0.24, a * intensity).toFixed(3)})`
+  ) as [string, string, string]
+
+  // Overhead-ish light: almost vertical band through horizontal center of the key.
+  const cx = 0.5 + Math.sin(index * 0.65) * KEY_LIGHT_CENTER_WOBBLE * 0.45
+
+  return {
+    colors,
+    end: { x: cx + KEY_LIGHT_CENTER_X_HALF, y: 1 + s * 0.42 },
+    locations: [0, 0.46, 1],
+    start: { x: cx - KEY_LIGHT_CENTER_X_HALF, y: -s * 0.42 }
+  }
+}
+
+const KEY_PRESS_IN_MS = 140
+const KEY_PRESS_OUT_MS = 560
+/** Peak opacity of the press highlight (subtle gradient wash). */
+const KEY_PRESS_OVERLAY_OPACITY = 0.22
+
+type SSKeyboardCellProps = {
+  cellWidth: DimensionValue
+  gap: HStackGap
+  index: number
+  item: string
+  nCols: number
+  onKeyPress: (item: string) => void
+}
+
+function SSKeyboardCell({
+  cellWidth,
+  gap,
+  index,
+  item,
+  nCols,
+  onKeyPress
+}: SSKeyboardCellProps) {
+  const press = useSharedValue(0)
+
+  const pressOverlayStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(press.value, [0, 1], [0, KEY_PRESS_OVERLAY_OPACITY])
+  }))
+
+  function handlePressIn() {
+    press.set(withTiming(1, { duration: KEY_PRESS_IN_MS }))
+  }
+
+  function handlePressOut() {
+    press.set(withTiming(0, { duration: KEY_PRESS_OUT_MS }))
+  }
+
+  const borderLight = getKeyBorderLight(index, nCols)
+  const isControlKey = item === BTN_CLEAR || item === BTN_DELETE
+
+  return (
+    <View
+      style={{
+        padding: hStack['gap'][gap],
+        width: cellWidth
+      }}
+    >
+      <LinearGradient
+        colors={borderLight.colors}
+        end={borderLight.end}
+        locations={borderLight.locations}
+        start={borderLight.start}
+        style={{
+          aspectRatio: KEY_ASPECT_RATIO,
+          borderRadius: KEY_OUTER_RADIUS,
+          overflow: 'hidden',
+          padding: KEY_BORDER,
+          width: '100%'
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: Colors.gray[900],
+            borderRadius: Sizes.button.borderRadius,
+            flex: 1,
+            overflow: 'hidden'
+          }}
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.keyPressOverlay, pressOverlayStyle]}
+          >
+            <LinearGradient
+              colors={[
+                'rgba(255,255,255,0.11)',
+                'rgba(255,255,255,0.035)',
+                'rgba(255,255,255,0)'
+              ]}
+              end={{ x: 0.92, y: 1 }}
+              locations={[0, 0.42, 1]}
+              start={{ x: 0.08, y: 0 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </Animated.View>
+          <SSButton
+            label={item}
+            onPress={() => onKeyPress(item)}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            style={{
+              alignSelf: 'stretch',
+              backgroundColor: 'transparent',
+              flex: 1,
+              height: '100%'
+            }}
+            textStyle={{
+              fontSize: isControlKey
+                ? Sizes.text.fontSize.xs
+                : Sizes.text.fontSize['2xl'],
+              fontWeight: isControlKey
+                ? Sizes.text.fontWeight.regular
+                : Sizes.text.fontWeight.ultralight
+            }}
+          />
+        </View>
+      </LinearGradient>
+    </View>
+  )
+}
 
 export default function SSKeyboard({
   onClear,
@@ -70,38 +237,28 @@ export default function SSKeyboard({
     }
   }
 
-  function SSKeyboardItem({ index }: { index: number }) {
-    if (index >= pad.length) {
-      return null
-    }
-
-    const item = pad[index]
-
-    return (
-      <View
-        style={{
-          padding: hStack['gap'][gap],
-          width: cellWidth
-        }}
-      >
-        <SSButton
-          style={{ backgroundColor: 'transparent' }}
-          textStyle={{ fontSize: 16, fontWeight: '700' }}
-          key={index}
-          label={item}
-          onPress={() => handleOnPress(item)}
-        />
-      </View>
-    )
-  }
-
   return (
     <View>
       {range(nRows).map((i) => (
         <SSHStack key={i} style={styles.row}>
-          {range(nCols).map((j) => (
-            <SSKeyboardItem index={i * nCols + j} key={i * nCols + j} />
-          ))}
+          {range(nCols).map((j) => {
+            const idx = i * nCols + j
+            if (idx >= pad.length) {
+              return null
+            }
+
+            return (
+              <SSKeyboardCell
+                key={idx}
+                cellWidth={cellWidth}
+                gap={gap}
+                index={idx}
+                item={pad[idx]}
+                nCols={nCols}
+                onKeyPress={handleOnPress}
+              />
+            )
+          })}
         </SSHStack>
       ))}
     </View>
@@ -109,6 +266,9 @@ export default function SSKeyboard({
 }
 
 const styles = StyleSheet.create({
+  keyPressOverlay: {
+    ...StyleSheet.absoluteFillObject
+  },
   row: {
     alignSelf: 'center',
     flexWrap: 'wrap',

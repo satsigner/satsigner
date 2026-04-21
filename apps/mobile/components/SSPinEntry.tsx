@@ -23,7 +23,7 @@ function SSPinEntry({
   setPin,
   onFillEnded,
   autoFocus = true,
-  title = t('auth.unlock')
+  title
 }: SSPinEntryProps) {
   const [pinTries, pinMaxTries] = useAuthStore(
     useShallow((state) => [state.pinTries, state.pinMaxTries])
@@ -60,10 +60,16 @@ function SSPinEntry({
 
   return (
     <SSVStack itemsCenter justifyBetween style={{ height: '100%' }}>
-      <SSVStack gap="lg" itemsCenter style={{ marginTop: '25%' }}>
-        <SSText uppercase size="lg" color="muted" center>
-          {title}
-        </SSText>
+      <SSVStack
+        gap={title ? 'lg' : 'none'}
+        itemsCenter
+        style={{ marginTop: '25%' }}
+      >
+        {title ? (
+          <SSText uppercase size="lg" color="muted" center>
+            {title}
+          </SSText>
+        ) : null}
         <Animated.View style={shakeStyle}>
           <SSPinInput
             pin={pin}

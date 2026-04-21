@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient'
 import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
 import { StyleSheet, TextInput, useWindowDimensions, View } from 'react-native'
 
@@ -8,6 +9,81 @@ import { Colors, Sizes } from '@/styles'
 
 import SSKeyboard from './SSKeyboard'
 import SSText from './SSText'
+
+const PIN_CELL_BORDER = Math.max(StyleSheet.hairlineWidth, 1)
+const PIN_OUTER_RADIUS = Sizes.pinInput.borderRadius + PIN_CELL_BORDER
+/** Keeps keyboard position stable when tries-left / warning copy appears (2 lines). */
+const PIN_FEEDBACK_SLOT_MIN_HEIGHT = 64
+const PIN_LIGHT_SPREAD = 0.28
+const PIN_LIGHT_X_HALF = 0.072
+
+function PinDigitGlassOverlay({ isActive }: { isActive: boolean }) {
+  const m = isActive ? 1.38 : 1
+  const edge = Math.max(StyleSheet.hairlineWidth, 1)
+  const w = (a: number) =>
+    `rgba(255,255,255,${Math.min(0.28, a * m).toFixed(3)})`
+  const k = (a: number) => `rgba(0,0,0,${Math.min(0.35, a * m).toFixed(3)})`
+
+  return (
+    <View pointerEvents="none" style={styles.pinGlassHost}>
+      <LinearGradient
+        colors={[k(0.1), k(0.05), k(0)]}
+        end={{ x: 1, y: 0 }}
+        locations={[0, 0.45, 1]}
+        start={{ x: 0, y: 0 }}
+        style={[styles.pinGlassEdge, styles.pinGlassTop, { height: edge }]}
+      />
+      <LinearGradient
+        colors={[w(0.05), w(0.2), w(0.09)]}
+        end={{ x: 1, y: 0 }}
+        locations={[0, 0.48, 1]}
+        start={{ x: 0, y: 0 }}
+        style={[styles.pinGlassEdge, styles.pinGlassBottom, { height: edge }]}
+      />
+      <LinearGradient
+        colors={[k(0.08), w(0.05)]}
+        end={{ x: 0, y: 1 }}
+        start={{ x: 0, y: 0 }}
+        style={[styles.pinGlassEdge, styles.pinGlassLeft, { width: edge }]}
+      />
+      <LinearGradient
+        colors={[k(0.06), w(0.04)]}
+        end={{ x: 0, y: 1 }}
+        start={{ x: 0, y: 0 }}
+        style={[styles.pinGlassEdge, styles.pinGlassRight, { width: edge }]}
+      />
+    </View>
+  )
+}
+
+function getPinFieldLight(
+  index: number,
+  isActive: boolean
+): {
+  colors: [string, string, string]
+  end: { x: number; y: number }
+  locations: [number, number, number]
+  start: { x: number; y: number }
+} {
+  const s = PIN_LIGHT_SPREAD
+  const cx = 0.5 + Math.sin(index * 0.72) * 0.024
+  const xHalf = isActive ? PIN_LIGHT_X_HALF + 0.022 : PIN_LIGHT_X_HALF
+  // Top → bottom: subtle top rim, strongest glow on bottom (inset under overhead light).
+  const [topA, midA, bottomA] = isActive
+    ? ([0.09, 0.14, 0.32] as const)
+    : ([0.021, 0.034, 0.088] as const)
+
+  return {
+    colors: [
+      `rgba(255,255,255,${topA.toFixed(3)})`,
+      `rgba(255,255,255,${midA.toFixed(3)})`,
+      `rgba(255,255,255,${bottomA.toFixed(3)})`
+    ],
+    end: { x: cx + xHalf, y: 1 + s * 0.4 },
+    locations: [0, 0.48, 1],
+    start: { x: cx - xHalf, y: -s * 0.4 }
+  }
+}
 
 type SSPinInputProps = {
   autoFocus?: boolean
@@ -23,7 +99,7 @@ function SSPinInput({
   setPin,
   onFillEnded,
   feedbackText,
-  feedBackColor = Colors.gray[200]
+  feedBackColor = Colors.gray[300]
 }: SSPinInputProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -69,32 +145,64 @@ function SSPinInput({
 
   return (
     <SSVStack itemsCenter gap="none">
-      <SSVStack>
+      <SSVStack gap="none" itemsCenter widthFull>
         <SSHStack gap="sm">
-          {Array.from({ length: PIN_SIZE }).map((_, index) => (
-            <TextInput
-              key={index}
-              style={[
-                styles.pinInputBase,
-                {
-                  borderColor: index === currentIndex ? 'green' : 'black',
-                  borderWidth: 1
-                }
-              ]}
-              value={
-                pin[index] !== '' ? '•' : index === currentIndex ? '|' : ''
-              }
-              readOnly
-            />
-          ))}
+          {Array.from({ length: PIN_SIZE }).map((_, index) => {
+            const isActive = index === currentIndex
+            const rim = getPinFieldLight(index, isActive)
+
+            return (
+              <LinearGradient
+                key={index}
+                colors={rim.colors}
+                end={rim.end}
+                locations={rim.locations}
+                start={rim.start}
+                style={{
+                  borderRadius: PIN_OUTER_RADIUS,
+                  height: Sizes.pinInput.height,
+                  overflow: 'hidden',
+                  padding: PIN_CELL_BORDER,
+                  width: Sizes.pinInput.width
+                }}
+              >
+                <View
+                  style={{
+                    borderRadius: Sizes.pinInput.borderRadius,
+                    flex: 1,
+                    overflow: 'hidden'
+                  }}
+                >
+                  <TextInput
+                    style={[
+                      styles.pinInputBase,
+                      isActive && styles.pinInputActive
+                    ]}
+                    value={pin[index] !== '' ? '•' : isActive ? '|' : ''}
+                    readOnly
+                  />
+                  <PinDigitGlassOverlay isActive={isActive} />
+                </View>
+              </LinearGradient>
+            )
+          })}
         </SSHStack>
-        {feedbackText && (
-          <SSText uppercase center size="sm" style={{ color: feedBackColor }}>
-            {feedbackText}
-          </SSText>
-        )}
+        {feedbackText !== undefined ? (
+          <View style={styles.feedbackSlot}>
+            {feedbackText ? (
+              <SSText
+                uppercase
+                center
+                size="sm"
+                style={[styles.feedbackText, { color: feedBackColor }]}
+              >
+                {feedbackText}
+              </SSText>
+            ) : null}
+          </View>
+        ) : null}
       </SSVStack>
-      <View style={{ marginTop: height / 4 }}>
+      <View style={{ marginTop: height * 0.18 + 8 }}>
         <SSKeyboard
           onPress={handlePress}
           onClear={handleClear}
@@ -106,14 +214,58 @@ function SSPinInput({
 }
 
 const styles = StyleSheet.create({
+  feedbackSlot: {
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    justifyContent: 'flex-start',
+    minHeight: PIN_FEEDBACK_SLOT_MIN_HEIGHT,
+    paddingTop: 4,
+    width: '100%'
+  },
+  feedbackText: {
+    alignSelf: 'stretch',
+    textAlign: 'center',
+    width: '100%'
+  },
+  pinGlassBottom: {
+    bottom: 0,
+    left: 0,
+    right: 0
+  },
+  pinGlassEdge: {
+    position: 'absolute'
+  },
+  pinGlassHost: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1
+  },
+  pinGlassLeft: {
+    bottom: 0,
+    left: 0,
+    top: 0
+  },
+  pinGlassRight: {
+    bottom: 0,
+    right: 0,
+    top: 0
+  },
+  pinGlassTop: {
+    left: 0,
+    right: 0,
+    top: 0
+  },
+  pinInputActive: {
+    backgroundColor: Colors.gray[800]
+  },
   pinInputBase: {
     backgroundColor: Colors.gray[850],
     borderRadius: Sizes.pinInput.borderRadius,
     color: Colors.white,
+    flex: 1,
     fontSize: Sizes.textInput.fontSize.default,
-    height: Sizes.pinInput.height,
+    height: '100%',
     textAlign: 'center',
-    width: Sizes.pinInput.width
+    width: '100%'
   }
 })
 

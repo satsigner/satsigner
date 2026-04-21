@@ -10,7 +10,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
-import { Layout } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import { pbkdf2Encrypt } from '@/utils/crypto'
 import { emptyPin } from '@/utils/pin'
 
@@ -117,6 +117,7 @@ export default function Unlock() {
 
   return (
     <SSMainLayout
+      backgroundColor={Colors.gray[915]}
       style={{
         paddingBottom: Layout.mainContainer.paddingBottom,
         paddingTop: '25%'
