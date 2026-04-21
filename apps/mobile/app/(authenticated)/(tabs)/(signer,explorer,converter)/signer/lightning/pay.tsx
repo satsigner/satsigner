@@ -11,10 +11,12 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSText from '@/components/SSText'
+import { MEMPOOL_MAINNET_URL } from '@/config/servers'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
@@ -54,9 +56,22 @@ export default function PayPage() {
   const [comment, setComment] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFetchingDetails, setIsFetchingDetails] = useState(false)
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  const [fiatCurrency, satsToFiat, fetchPrices, _btcPrice] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.satsToFiat,
+      state.fetchPrices,
+      state.btcPrice
+    ])
   )
+  const mempoolUrl = useBlockchainStore(
+    (state) => state.configsMempool['bitcoin']
+  )
+
+  useEffect(() => {
+    const url = mempoolUrl?.trim() ? mempoolUrl : MEMPOOL_MAINNET_URL
+    fetchPrices(url)
+  }, [fetchPrices, fiatCurrency, mempoolUrl])
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
@@ -302,18 +317,11 @@ export default function PayPage() {
           <SSVStack>
             <View>
               <SSVStack>
-                <SSHStack style={styles.inputHeader}>
-                  <SSText uppercase>
-                    {isLNURLMode ? 'LNURL' : 'Payment Request'}
+                {isFetchingDetails ? (
+                  <SSText color="muted" size="sm" style={styles.fetchingBanner}>
+                    Fetching details...
                   </SSText>
-                  {isFetchingDetails && (
-                    <SSHStack gap="xs" style={styles.fetchingDetails}>
-                      <SSText color="muted" size="sm">
-                        Fetching details...
-                      </SSText>
-                    </SSHStack>
-                  )}
-                </SSHStack>
+                ) : null}
                 <SSVStack gap="sm">
                   <TextInput
                     style={[
@@ -437,8 +445,8 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'center'
   },
-  fetchingDetails: {
-    alignItems: 'center'
+  fetchingBanner: {
+    marginBottom: 8
   },
   fiatAmount: {
     marginLeft: 4,
@@ -450,10 +458,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     padding: 12
-  },
-  inputHeader: {
-    alignItems: 'center',
-    justifyContent: 'space-between'
   },
   monospaceInput: {
     fontFamily: Typography.sfProMono,
