@@ -9,15 +9,18 @@ import SSModal from '@/components/SSModal'
 import SSPinEntry from '@/components/SSPinEntry'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
+import { PIN_KEY, SALT_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/account'
+import { pbkdf2Encrypt } from '@/utils/crypto'
 import { emptyPin } from '@/utils/pin'
 
 export default function SeedWordsPage() {
@@ -56,8 +59,22 @@ export default function SeedWordsPage() {
     }
   }, [account, key])
 
-  async function handlePinEntry() {
-    await decryptMnemonic()
+  async function handlePinEntry(pinString: string) {
+    const salt = await getItem(SALT_KEY)
+    const storedEncryptedPin = await getItem(PIN_KEY)
+    if (!salt || !storedEncryptedPin) {
+      toast.error('Unable to decrypt PIN')
+      return
+    }
+
+    const encryptedPin = await pbkdf2Encrypt(pinString, salt)
+    const isPinValid = encryptedPin === storedEncryptedPin
+
+    if (isPinValid) {
+      await decryptMnemonic()
+      setShowPinEntry(false)
+    }
+    setPin(emptyPin())
   }
 
   useEffect(() => {
