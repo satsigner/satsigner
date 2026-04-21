@@ -191,15 +191,40 @@ a{
   color: rgba(255, 255, 255, 0.5);
   margin-bottom: 0.75rem;
 }
+.as-seen-in-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 1.75rem;
+}
 .as-seen-in-link {
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
   font-size: 0.9rem;
-  margin: 0 1rem;
   transition: color 0.2s;
 }
 .as-seen-in-link:hover {
   color: #fff;
+}
+.as-seen-in-logo-link {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.88;
+  transition: opacity 0.2s;
+}
+.as-seen-in-logo-link:hover {
+  opacity: 1;
+}
+.as-seen-in-logo {
+  display: block;
+  height: 2rem;
+  width: auto;
+  max-width: min(200px, 42vw);
+}
+.as-seen-in-logo--btc-conf {
+  height: 2.25rem;
+  max-width: min(220px, 50vw);
 }
 
 /* ----- Section spacing ----- */
@@ -442,7 +467,8 @@ a{
   }
   /* Small phone image so it doesn’t overlap text */
   .feature-pair-visual .perspective-layer {
-    max-height: min(200px, 38vh);
+    /* Floor height: embedded / iframe UAs sometimes report vh≈0 */
+    max-height: clamp(130px, 38vh, 220px);
   }
   .feature-pair-visual .perspective-layer-0,
   .feature-pair-visual .perspective-layer-1,
@@ -452,7 +478,7 @@ a{
   .feature-pair-visual .perspective-layer-5 {
     top: 18%;
     transform: translate(-50%, -50%);
-    max-height: min(200px, 38vh);
+    max-height: clamp(130px, 38vh, 220px);
   }
   .feature-pair-visual .perspective-type-title-layer {
     left: 50%;
@@ -524,7 +550,7 @@ a{
   .feature-pair-visual .perspective-layer-3,
   .feature-pair-visual .perspective-layer-4,
   .feature-pair-visual .perspective-layer-5 {
-    max-height: min(165px, 32vh);
+    max-height: clamp(115px, 32vh, 200px);
   }
   .feature-pair-visual .perspective-layer-0,
   .feature-pair-visual .perspective-layer-1,
@@ -775,7 +801,7 @@ video {
 .perspective-layer {
   width: min(92%, 82vw);
   height: auto;
-  max-height: min(680px, 78vh);
+  max-height: min(680px, max(78vh, 260px));
   display: block;
   border-radius: 1rem;
   object-fit: contain;

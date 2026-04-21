@@ -1,26 +1,32 @@
-const swiper = new Swiper('.events', {
-  effect: 'coverflow',
-  centeredSlides: true,
-  slidesPerView: 1,
-  loop: true,
-  pagination: true,
-  coverflowEffect: {
-      rotate: 50,
-      stretch: 50,
-      depth: 300,
-      modifier: 1,
-      slideShadows: true,
-  },
-  breakpoints: {
-    10: {
-      slidesPerView: 2,
-    }
-  },
-  navigation: {
-    nextEl: '.swiper-button-next',
-    prevEl: '.swiper-button-prev',
+if (typeof Swiper !== 'undefined') {
+  try {
+    new Swiper('.events', {
+      effect: 'coverflow',
+      centeredSlides: true,
+      slidesPerView: 1,
+      loop: true,
+      pagination: true,
+      coverflowEffect: {
+        rotate: 50,
+        stretch: 50,
+        depth: 300,
+        modifier: 1,
+        slideShadows: true,
+      },
+      breakpoints: {
+        10: {
+          slidesPerView: 2,
+        },
+      },
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+    });
+  } catch (e) {
+    /* Swiper optional — do not block GSAP / perspective below */
   }
-});
+}
 
 // Feature pairs: init each perspective block + scroll-in text animation
 (function initFeaturePairs() {
@@ -33,21 +39,24 @@ const swiper = new Swiper('.events', {
     const perspectiveEl = pair.querySelector('.perspective-section');
     if (!content || !perspectiveEl) return;
 
-    // --- Text animation: animate content when pair enters viewport
+    // --- Text animation: animate content when pair enters viewport (skip if column empty)
     const contentKids = content.querySelectorAll('.feature-pair-headline, .feature-pair-intro, .section-title, .section-intro, .features-list li, .feature-card');
-    gsap.set(contentKids, { opacity: 0, y: 28 });
-    gsap.to(contentKids, {
-      opacity: 1,
-      y: 0,
-      duration: 0.9,
-      stagger: 0.06,
-      ease: 'power2.out',
-      scrollTrigger: {
-        trigger: pair,
-        start: 'top 75%',
-        toggleActions: 'play none none none',
-      },
-    });
+    if (contentKids.length) {
+      gsap.set(contentKids, { opacity: 0, y: 28 });
+      gsap.to(contentKids, {
+        opacity: 1,
+        y: 0,
+        duration: 0.9,
+        stagger: 0.06,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: pair,
+          start: 'top 75%',
+          toggleActions: 'play none none none',
+          invalidateOnRefresh: true,
+        },
+      });
+    }
 
     // --- Perspective block: tilt on pointer + scroll-in for layers
     gsap.set(perspectiveEl, { perspective: 650 });
@@ -56,7 +65,7 @@ const swiper = new Swiper('.events', {
     const bgWrap = perspectiveEl.querySelector('.perspective-bg-wrap');
     const bg = perspectiveEl.querySelector('.perspective-bg');
     const layers = perspectiveEl.querySelectorAll('.perspective-layer');
-    if (!inner) return;
+    if (!inner || !layers.length) return;
 
     const typeEl = perspectiveEl.querySelector('.perspective-type');
     const titleLayer = perspectiveEl.querySelector('.perspective-type-title-layer');
@@ -72,6 +81,7 @@ const swiper = new Swiper('.events', {
         trigger: perspectiveEl,
         start: 'top 55%',
         toggleActions: 'play none none none',
+        invalidateOnRefresh: true,
       },
     });
     tl.to(inner, { y: 0, duration: 1.8, ease: 'power2.out' }, 0);
@@ -138,8 +148,56 @@ const swiper = new Swiper('.events', {
           start: 'top bottom',
           end: 'bottom top',
           scrub: 1.2,
+          invalidateOnRefresh: true,
         },
       });
     }
+  });
+
+  function refreshFeatureScrollTriggers() {
+    if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
+  }
+
+  refreshFeatureScrollTriggers();
+  requestAnimationFrame(function() {
+    requestAnimationFrame(refreshFeatureScrollTriggers);
+  });
+
+  var resizeScrollT;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeScrollT);
+    resizeScrollT = setTimeout(refreshFeatureScrollTriggers, 120);
+  });
+
+  function revealPerspectiveIfInViewButHidden() {
+    if (typeof gsap === 'undefined') return;
+    var vh = window.innerHeight || document.documentElement.clientHeight || 600;
+    document.querySelectorAll('.perspective-section').forEach(function(section) {
+      var firstLayer = section.querySelector('.perspective-layer');
+      if (!firstLayer) return;
+      var op = parseFloat(window.getComputedStyle(firstLayer).opacity);
+      if (op >= 0.05) return;
+      var rect = section.getBoundingClientRect();
+      var inView = rect.top < vh * 0.92 && rect.bottom > vh * 0.08;
+      if (!inView) return;
+      var inner = section.querySelector('.perspective-inner');
+      var layers = section.querySelectorAll('.perspective-layer');
+      var typeEl = section.querySelector('.perspective-type');
+      var titleLayer = section.querySelector('.perspective-type-title-layer');
+      var details = section.querySelectorAll('.perspective-type-detail');
+      if (inner) gsap.set(inner, { y: 0 });
+      if (layers.length) gsap.set(layers, { opacity: 1 });
+      if (typeEl) gsap.set(typeEl, { opacity: 1 });
+      if (titleLayer) gsap.set(titleLayer, { opacity: 1 });
+      if (details.length) gsap.set(details, { opacity: 1 });
+    });
+  }
+
+  window.addEventListener('load', function() {
+    refreshFeatureScrollTriggers();
+    requestAnimationFrame(function() {
+      setTimeout(revealPerspectiveIfInViewButHidden, 80);
+      setTimeout(revealPerspectiveIfInViewButHidden, 500);
+    });
   });
 })();
