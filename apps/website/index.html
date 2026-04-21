@@ -1,8 +1,9 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8">
     <title>satsigner</title>
-    <meta name="description" content="A bitcoin first mobile application concept">
+    <meta name="description" content="See every sat, own your keys. Mobile self-custody that’s clear, private, and yours.">
     <meta name="keywords" content="sats, bitcoin, mobile">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -10,7 +11,7 @@
     <link rel="stylesheet" type="text/css" href="styles.css" media="screen" />
 
 
-    <meta property="og:title" content="SatSigner - A bitcoin first mobile application concept" />
+    <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
     <meta property="og:type" content="website" />
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="og:image" content="https://satsigner.com/imgs/satSigner-og.jpg"/>
@@ -27,16 +28,24 @@
   </head>
   <body>
 
+  <nav class="site-nav">
+    <div class="site-nav-inner">
+      <a href="#beta" class="nav-logo"><img src="imgs/satSigner_symbol.png" alt="satsigner"></a>
+      <div class="nav-links">
+        <a href="#beta">Beta</a>
+        <a href="#features">Features</a>
+        <a href="#decoder">Decoder</a>
+        <a href="#support">Support</a>
+        <a href="https://github.com/satsigner/" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://nostrapp.link/#npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank" rel="noopener">Nostr</a>
+      </div>
+    </div>
+  </nav>
 
-  <div id="header">
-    <img id="logo" src="imgs/satSigner_symbol.png">
-    <h1>
-      Take control of your UTXOs
-    </h1>
-
-
-
-
+  <section class="hero" id="beta">
+    <img class="hero-logo" src="imgs/satSigner_symbol.png" alt="satsigner">
+    <h1 class="hero-title">See every sat. Control every key.</h1>
+    <p class="hero-subline">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
     <script>
           function submitForm(event) {
               event.preventDefault(); // Prevent the default form submission
@@ -77,38 +86,196 @@
 
 
 
-      <form onsubmit="submitForm(event)" id="nostr-form">
-          <label for="inputField"><h3>Enter your npub for beta access</h3></label>
-          <input type="text" id="inputField" name="inputField" placeholder="npub..." required><br><br>
-          <input class="button" type="submit" value="Submit">
-          <div id="message" style="margin-top: 10px;"></div> <!-- Message display area -->
+    <form onsubmit="submitForm(event)" id="nostr-form" class="hero-form">
+      <label for="inputField"><span class="hero-form-label">Get early access—see every sat, your way</span></label>
+      <input type="text" id="inputField" name="inputField" placeholder="npub..." required>
+      <button type="submit" class="button button-primary">Get beta access</button>
+      <div id="message" class="hero-form-message"></div>
       </form>
+  </section>
 
+  <section class="as-seen-in">
+    <span class="as-seen-in-label">Supported by</span>
+    <a href="https://geyser.fund/project/satsigner/" target="_blank" rel="noopener" class="as-seen-in-link">Geyser</a>
+    <a href="https://opensats.org" target="_blank" rel="noopener" class="as-seen-in-link">OpenSats</a>
+  </section>
 
-
-    <div id="social-links">
-      <br><br><h3>Follow and contribute</h3><br>
-      <a href="https://nostrapp.link/#npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank">nostr</a> <a href="https://www.figma.com/file/bGTIqefDHHt1uruCqFWwPQ/SatsSigner?node-id=26%3A2" target="_blank">figma</a>   <a href="https://github.com/satsigner/" target="_blank">github</a>
-    </div>
-
-  </div>
-
-  <!--
-  <img width="100%" src="imgs/satsigner_screens.png">
-  -->
-
-
-  <video width="320" height="240" autoplay  muted loop>
+  <section class="product-section">
+    <video class="product-video" width="320" height="240" autoplay muted loop playsinline>
     <source src="imgs/satSigner_UX_intro_SOUND2.mp4" type="video/mp4">
     <source src="movie.ogg" type="video/ogg">
     Your browser does not support the video tag.
   </video>
+  </section>
 
+  <!-- Feature pair 1: Core features + perspective -->
+  <section class="feature-pair feature-pair--type-right" id="features">
+    <div class="feature-pair-content" aria-hidden="true"></div>
+    <div class="feature-pair-visual">
+      <div class="perspective-section">
+        <div class="perspective-outer">
+          <div class="perspective-inner">
+            <div class="perspective-bg-wrap"><div class="perspective-bg" role="img" aria-hidden="true"></div></div>
+            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/utxos_layer_0.png" alt="">
+            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/utxos_layer_1.png" alt="">
+            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/utxos_layer_2.png" alt="">
+            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/utxos_layer_3.png" alt="">
+            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/utxos_layer_4.png" alt="">
+            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/utxos_layer_5.png" alt="">
+            <div class="perspective-type-title-layer">
+              <span class="perspective-type-title">Know exactly what you have</span>
+            </div>
+            <div class="perspective-type">
+              <span class="perspective-type-line">One place for every output</span>
+              <span class="perspective-type-detail">See balances, labels, and flows at a glance. Choose what to spend and how—singlesig, multisig, or watch-only. No guessing.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- Feature pair 2: Security + perspective -->
+  <section class="feature-pair feature-pair--type-right" id="security">
+    <div class="feature-pair-content" aria-hidden="true"></div>
+    <div class="feature-pair-visual">
+      <div class="perspective-section">
+        <div class="perspective-outer">
+          <div class="perspective-inner">
+            <div class="perspective-bg-wrap"><div class="perspective-bg" role="img" aria-hidden="true"></div></div>
+            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/utxos_layer_0.png" alt="">
+            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/utxos_layer_1.png" alt="">
+            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/utxos_layer_2.png" alt="">
+            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/utxos_layer_3.png" alt="">
+            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/utxos_layer_4.png" alt="">
+            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/utxos_layer_5.png" alt="">
+            <div class="perspective-type-title-layer">
+              <span class="perspective-type-title">Sleep better at night</span>
+            </div>
+            <div class="perspective-type">
+              <span class="perspective-type-line">Keys protected, not locked away</span>
+              <span class="perspective-type-detail">PIN and encryption where it matters. Drop the seed when you’re done. Open, auditable code—you can verify what’s protecting you.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- Feature pair 3: Multi-sig + perspective (multisig layers) -->
+  <section class="feature-pair feature-pair--type-right" id="multisig">
+    <div class="feature-pair-content" aria-hidden="true"></div>
+    <div class="feature-pair-visual">
+      <div class="perspective-section perspective-section--multisig">
+        <div class="perspective-outer">
+          <div class="perspective-inner">
+            <div class="perspective-bg-wrap"><div class="perspective-bg" role="img" aria-hidden="true"></div></div>
+            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/multisig_layer_0.png" alt="">
+            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/multisig_layer_1.png" alt="">
+            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/multisig_layer_2.png" alt="">
+            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/multisig_layer_3.png" alt="">
+            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/multisig_layer_4.png" alt="">
+            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/multisig_layer_5.png" alt="">
+            <div class="perspective-type-title-layer">
+              <span class="perspective-type-title">Shared custody, no trust required</span>
+            </div>
+            <div class="perspective-type">
+              <span class="perspective-type-line">Family funds, treasuries, shared wallets</span>
+              <span class="perspective-type-detail">M-of-N that actually works on mobile. PSBTs, air-gapped cosigners, QR and USB. You decide who signs—no one moves sats alone.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- Feature pair 4: Privacy & labeling + perspective -->
+  <section class="feature-pair feature-pair--type-right" id="privacy">
+    <div class="feature-pair-content" aria-hidden="true"></div>
+    <div class="feature-pair-visual">
+      <div class="perspective-section">
+        <div class="perspective-outer">
+          <div class="perspective-inner">
+            <div class="perspective-bg-wrap"><div class="perspective-bg" role="img" aria-hidden="true"></div></div>
+            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/utxos_layer_0.png" alt="">
+            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/utxos_layer_1.png" alt="">
+            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/utxos_layer_2.png" alt="">
+            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/utxos_layer_3.png" alt="">
+            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/utxos_layer_4.png" alt="">
+            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/utxos_layer_5.png" alt="">
+            <div class="perspective-type-title-layer">
+              <span class="perspective-type-title">Your story, not your chain</span>
+            </div>
+            <div class="perspective-type">
+              <span class="perspective-type-line">Label what matters, sync how you want</span>
+              <span class="perspective-type-detail">Tag addresses and UTXOs so you remember why they exist. BIP329, Nostr, export when you need—your labels, your device.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- Feature pair 5: Activity & charts (chart layers) -->
+  <section class="feature-pair feature-pair--type-right" id="chart">
+    <div class="feature-pair-content" aria-hidden="true"></div>
+    <div class="feature-pair-visual">
+      <div class="perspective-section perspective-section--chart">
+        <div class="perspective-outer">
+          <div class="perspective-inner">
+            <div class="perspective-bg-wrap"><div class="perspective-bg" role="img" aria-hidden="true"></div></div>
+            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/chart_layer_0.png" alt="">
+            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/chart_layer_1.png" alt="">
+            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/chart_layer_2.png" alt="">
+            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/chart_layer_3.png" alt="">
+            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/chart_layer_4.png" alt="">
+            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/chart_layer_5.png" alt="">
+            <div class="perspective-type-title-layer">
+              <span class="perspective-type-title">Where it went and where it’s going</span>
+            </div>
+            <div class="perspective-type">
+              <span class="perspective-type-line">See flows, not just numbers</span>
+              <span class="perspective-type-detail">Sankey and activity views so you understand movement at a glance. Transactions, derived addresses, spendable outputs—all in one place.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- Feature pair 6: Raw transaction data visualization (decoder layers) -->
+  <section class="feature-pair feature-pair--type-right" id="decoder">
+    <div class="feature-pair-content" aria-hidden="true"></div>
+    <div class="feature-pair-visual">
+      <div class="perspective-section perspective-section--decoder">
+        <div class="perspective-outer">
+          <div class="perspective-inner">
+            <div class="perspective-bg-wrap"><div class="perspective-bg perspective-bg--decoder" role="img" aria-hidden="true"></div></div>
+            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/decoder_layer_0.png" alt="">
+            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/decoder_layer_1.png" alt="">
+            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/decoder_layer_2.png" alt="">
+            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/decoder_layer_3.png" alt="">
+            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/decoder_layer_4.png" alt="">
+            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/decoder_layer_5.png" alt="">
+            <div class="perspective-type-title-layer">
+              <span class="perspective-type-title">No black boxes</span>
+            </div>
+            <div class="perspective-type">
+              <span class="perspective-type-line">Inspect every byte when it matters</span>
+              <span class="perspective-type-detail">Decode hex, scripts, inputs and outputs. See size, fees, locktime—the full picture so you never have to “just trust” a tx.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="testimonial-section">
+    <blockquote class="testimonial-quote">“Finally, a mobile wallet where I can actually see what I have and where it goes—without the spreadsheet.”</blockquote>
+    <p class="testimonial-source">— Beta tester (replace with real quote and <a href="#" class="testimonial-link">link to source</a>)</p>
+  </section>
+
+  <section class="support-section" id="support">
   <div class="dontion-outter">
               <div class="dontion-inner">
 
@@ -269,20 +436,23 @@
 
         						</div>
         					</div>
-
-
-
     </div>
+  </section>
 
+  <section class="section section-releases" id="releases">
+    <h3 class="section-title">Test APK releases</h3>
+    <p class="releases-disclaimer">
+      <strong>Disclaimer:</strong> State management and stores have changed in newer versions. Using these older builds may corrupt or invalidate your app data. Use <strong>test-only</strong> devices or profiles. Do not use with real funds or important data.
+    </p>
+    <ul class="releases-list">
+      <li><a href="https://github.com/satsigner/satsigner/releases" target="_blank" rel="noopener">Test build 1</a></li>
+      <li><a href="https://github.com/satsigner/satsigner/releases" target="_blank" rel="noopener">Test build 2</a></li>
+      <li><a href="https://github.com/satsigner/satsigner/releases" target="_blank" rel="noopener">Test build 3</a></li>
+    </ul>
+  </section>
 
-
-
-
-
-
-
-
-    <h3>Progess updates</h3>
+  <section class="section section-updates">
+    <h3 class="section-title">Progress updates</h3>
     <div class="swiper events">
 
       <div class="swiper-wrapper">
@@ -318,13 +488,10 @@
 
 
 
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-  <script src="script.js"></script>
+  </section>
 
-
-
-
-  <h3>Original Design</h3>
+  <section class="section section-design">
+    <h3 class="section-title">Original Design</h3>
   <div id="flex-container">
 
     <img class="flex-cell" src="imgs/ui/satSigner1.png">
@@ -336,8 +503,26 @@
     <img class="flex-cell" src="imgs/ui/satSigner6.png">
     <img class="flex-cell" src="imgs/ui/satSigner7.png">
     <img class="flex-cell" src="imgs/ui/satSigner8.png">
+    </div>
+  </section>
 
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="#beta">Beta</a>
+      <a href="#features">Features</a>
+      <a href="#decoder">Decoder</a>
+      <a href="#support">Support</a>
+      <a href="https://github.com/satsigner/" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.figma.com/file/bGTIqefDHHt1uruCqFWwPQ/SatsSigner?node-id=26%3A2" target="_blank" rel="noopener">Figma</a>
+      <a href="https://nostrapp.link/#npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank" rel="noopener">Nostr</a>
   </div>
+    <p class="footer-legal">© 2025 satsigner. Bitcoin-first mobile. Your keys, your coins.</p>
+  </footer>
+
+  <script src="https://unpkg.com/gsap@3/dist/gsap.min.js"></script>
+  <script src="https://unpkg.com/gsap@3/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script src="script.js"></script>
 
   </body>
 </html>
