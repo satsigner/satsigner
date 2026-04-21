@@ -48,6 +48,8 @@ export type NostrAccount = {
 export type NostrKind0Profile = {
   displayName?: string
   picture?: string
+  nip05?: string
+  lud16?: string
 }
 
 export type NostrKeys = {

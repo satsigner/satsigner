@@ -1,4 +1,4 @@
-import { NostrAPI } from '@/api/nostr'
+import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
 
 import { relays } from '../utils/nostr_samples'
 
@@ -41,9 +41,9 @@ describe('nostrAPI', () => {
   })
 
   describe('constructor and getRelays', () => {
-    it('uses default relays when empty array provided', () => {
+    it('uses empty relays when empty array provided', () => {
       const api = new NostrAPI([])
-      expect(api.getRelays()).toStrictEqual(relays.default)
+      expect(api.getRelays()).toStrictEqual([])
     })
 
     it('uses provided custom relays', () => {
@@ -63,6 +63,15 @@ describe('nostrAPI', () => {
       const api = new NostrAPI(relays.custom)
       const callback = jest.fn()
       expect(() => api.setLoadingCallback(callback)).not.toThrow()
+    })
+  })
+
+  describe('testNostrRelaysReachable', () => {
+    it('returns disconnected with no_relays when relay list is empty', async () => {
+      await expect(testNostrRelaysReachable([])).resolves.toStrictEqual({
+        reason: 'no_relays',
+        status: 'disconnected'
+      })
     })
   })
 })

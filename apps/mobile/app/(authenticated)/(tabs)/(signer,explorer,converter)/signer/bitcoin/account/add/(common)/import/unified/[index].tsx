@@ -70,7 +70,8 @@ export default function UnifiedImport() {
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
-  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
+  const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
+    useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
   const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
@@ -380,7 +381,7 @@ export default function UnifiedImport() {
   }
 
   async function handleNFCRead() {
-    if (!isAvailable) {
+    if (!isHardwareSupported) {
       toast.error(t('watchonly.read.nfcNotAvailable'))
       return
     }
@@ -740,7 +741,7 @@ export default function UnifiedImport() {
                 setCameraModalVisible(true)
               }}
             />
-            {isAvailable && (
+            {isHardwareSupported && (
               <SSButton
                 label={t('watchonly.read.nfc')}
                 variant="ghost"

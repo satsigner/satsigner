@@ -1,6 +1,14 @@
-import { useCallback, useEffect } from 'react'
+import { useEffect } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
+import { LND_REST } from '@/constants/lightningLnd'
 import { useLightningStore } from '@/store/lightning'
+import { type LndBlockchainBalanceResponse } from '@/types/lndNodeDashboard'
+import type {
+  LndChanBackupSnapshot,
+  LndListPeersResponse,
+  LndPendingChannelsResponse
+} from '@/types/lndNodeSettings'
 import type {
   LNDChannel,
   LNDNodeInfo,
@@ -8,19 +16,28 @@ import type {
   LNDRequest,
   LNDRequestOptions
 } from '@/types/models/LND'
+import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
 
 export const useLND = () => {
-  const {
-    config,
-    status,
-    setConnecting,
-    setConnected,
-    setNodeInfo,
-    setChannels,
-    updateLastSync
-  } = useLightningStore()
+  const { channels, isConnected, isConnecting, lastSync, nodeInfo } =
+    useLightningStore(
+      useShallow((state) => ({
+        channels: state.status.channels,
+        isConnected: state.status.isConnected,
+        isConnecting: state.status.isConnecting,
+        lastSync: state.status.lastSync,
+        nodeInfo: state.status.nodeInfo
+      }))
+    )
 
-  const getInfo = useCallback(async (): Promise<LNDNodeInfo> => {
+  const config = useLightningStore((state) => state.config)
+  const setConnecting = useLightningStore((state) => state.setConnecting)
+  const setConnected = useLightningStore((state) => state.setConnected)
+  const setNodeInfo = useLightningStore((state) => state.setNodeInfo)
+  const setChannels = useLightningStore((state) => state.setChannels)
+  const updateLastSync = useLightningStore((state) => state.updateLastSync)
+
+  const getInfo = async (): Promise<LNDNodeInfo> => {
     if (!config) {
       throw new Error('No LND configuration available')
     }
@@ -46,17 +63,25 @@ export const useLND = () => {
       setConnected(false)
       throw error
     }
-  }, [config, setNodeInfo, setConnected, updateLastSync])
+  }
 
-  const makeRequest: LNDRequest = useCallback(
-    async <T>(endpoint: string, options: LNDRequestOptions = {}) => {
-      if (!config) {
-        throw new Error('No LND configuration available')
-      }
+  const makeRequest: LNDRequest = async <T>(
+    endpoint: string,
+    options: LNDRequestOptions = {}
+  ) => {
+    if (!config) {
+      throw new Error('No LND configuration available')
+    }
 
-      const { method = 'GET', body, headers = {} } = options
-      setConnecting(true)
+    const {
+      body,
+      disconnectOnError = true,
+      headers = {},
+      method = 'GET'
+    } = options
+    setConnecting(true)
 
+    try {
       const response = await fetch(`${config.url}${endpoint}`, {
         body: body ? JSON.stringify(body) : undefined,
         headers: {
@@ -68,7 +93,9 @@ export const useLND = () => {
       })
 
       if (!response.ok) {
-        setConnected(false)
+        if (disconnectOnError) {
+          setConnected(false)
+        }
         const errorText = await response.text()
         const error = new Error(
           `LND API error: ${response.status} ${errorText}`
@@ -77,21 +104,19 @@ export const useLND = () => {
       }
 
       const data = await response.json()
-      setConnecting(false)
       return data as T
-    },
-    [config, setConnecting, setConnected]
-  )
+    } finally {
+      setConnecting(false)
+    }
+  }
 
-  const getBalance = useCallback(
-    () => makeRequest('/v1/balance/blockchain'),
-    [makeRequest]
-  )
+  const getBalance = (): Promise<LndBlockchainBalanceResponse> =>
+    makeRequest<LndBlockchainBalanceResponse>('/v1/balance/blockchain')
 
-  const getChannels = useCallback(async (): Promise<LNDChannel[]> => {
+  const getChannels = async (): Promise<LNDChannel[]> => {
     try {
       const response = await makeRequest<{ channels: LNDChannel[] }>(
-        '/v1/channels'
+        LND_REST.CHANNELS
       )
       setChannels(response.channels)
       return response.channels
@@ -99,68 +124,130 @@ export const useLND = () => {
       setChannels([])
       throw error
     }
-  }, [makeRequest, setChannels])
+  }
 
-  const createInvoice = useCallback(
-    (amount: number, description: string) =>
-      makeRequest('/v1/invoices', {
+  const createInvoice = (amount: number, description: string) =>
+    makeRequest('/v1/invoices', {
+      body: {
+        memo: description,
+        value: amount
+      },
+      method: 'POST'
+    })
+
+  const payInvoice = async (paymentRequest: string) => {
+    const response = await makeRequest<LNDPaymentResponse>(
+      '/v1/channels/transactions',
+      {
         body: {
-          memo: description,
-          value: amount
+          payment_request: paymentRequest
         },
         method: 'POST'
-      }),
-    [makeRequest]
-  )
+      }
+    )
 
-  const payInvoice = useCallback(
-    async (paymentRequest: string) => {
-      const response = await makeRequest<LNDPaymentResponse>(
-        '/v1/channels/transactions',
-        {
-          body: {
-            payment_request: paymentRequest
-          },
-          method: 'POST'
-        }
-      )
+    const paymentHash = response.payment_hash
+    if (paymentHash) {
+      let attempts = 0
+      const maxAttempts = 30 // Poll for up to 30 seconds
+      const pollInterval = 1000 // Check every second
 
-      const paymentHash = response.payment_hash
-      if (paymentHash) {
-        let attempts = 0
-        const maxAttempts = 30 // Poll for up to 30 seconds
-        const pollInterval = 1000 // Check every second
+      while (attempts < maxAttempts) {
+        attempts += 1
+        await new Promise((resolve) => {
+          setTimeout(resolve, pollInterval)
+        })
 
-        while (attempts < maxAttempts) {
-          attempts += 1
-          await new Promise((resolve) => {
-            setTimeout(resolve, pollInterval)
-          })
+        try {
+          const statusResponse = await makeRequest<{ status: string }>(
+            `/v1/payments/${paymentHash}`
+          )
 
-          try {
-            const statusResponse = await makeRequest<{ status: string }>(
-              `/v1/payments/${paymentHash}`
-            )
-
-            if (statusResponse.status === 'SUCCEEDED') {
-              return response
-            } else if (statusResponse.status === 'FAILED') {
-              throw new Error('Payment failed')
-            }
-          } catch (error) {
-            if (error instanceof Error && error.message.includes('404')) {
-              return response
-            }
+          if (statusResponse.status === 'SUCCEEDED') {
+            return response
+          } else if (statusResponse.status === 'FAILED') {
+            throw new Error('Payment failed')
+          }
+        } catch (error) {
+          if (error instanceof Error && error.message.includes('404')) {
+            return response
           }
         }
       }
+    }
 
-      return response
-    },
-    [makeRequest]
-  )
+    return response
+  }
 
-  const verifyConnection = useCallback(async () => {
+  const exportAllChannelBackups = () =>
+    makeRequest<LndChanBackupSnapshot>(LND_REST.CHANNEL_BACKUP_ALL, {
+      disconnectOnError: false
+    })
+
+  const exportChannelBackupSingle = (channelPoint: string) => {
+    const parsed = parseLndChannelPoint(channelPoint)
+    if (!parsed) {
+      return Promise.reject(new Error('Invalid channel point'))
+    }
+    return makeRequest<Record<string, unknown>>(
+      `/v1/channels/backup/${encodeURIComponent(parsed.txid)}/${encodeURIComponent(parsed.vout)}`,
+      { disconnectOnError: false }
+    )
+  }
+
+  const closeChannel = async (
+    channelPoint: string,
+    opts: { force: boolean }
+  ) => {
+    if (!config) {
+      throw new Error('No LND configuration available')
+    }
+    const parsed = parseLndChannelPoint(channelPoint)
+    if (!parsed) {
+      throw new Error('Invalid channel point')
+    }
+    const qs = new URLSearchParams({
+      force: String(opts.force),
+      no_wait: 'true'
+    })
+    const url = `${config.url}/v1/channels/${encodeURIComponent(parsed.txid)}/${encodeURIComponent(parsed.vout)}?${qs}`
+    setConnecting(true)
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Grpc-Metadata-macaroon': config.macaroon
+        },
+        method: 'DELETE'
+      })
+      const body = await response.text()
+      if (!response.ok) {
+        throw new Error(`LND API error: ${response.status} ${body}`)
+      }
+      if (!body) {
+        return {}
+      }
+      try {
+        return JSON.parse(body) as Record<string, unknown>
+      } catch {
+        return {}
+      }
+    } finally {
+      setConnecting(false)
+    }
+  }
+
+  const getPendingChannels = () =>
+    makeRequest<LndPendingChannelsResponse>(LND_REST.CHANNELS_PENDING, {
+      disconnectOnError: false
+    })
+
+  const getPeers = () =>
+    makeRequest<LndListPeersResponse>(LND_REST.PEERS, {
+      disconnectOnError: false
+    })
+
+  const verifyConnection = async () => {
     if (!config) {
       return false
     }
@@ -171,7 +258,7 @@ export const useLND = () => {
     } catch {
       return false
     }
-  }, [config, getInfo])
+  }
 
   useEffect(() => {
     if (!config) {
@@ -183,19 +270,25 @@ export const useLND = () => {
     }, 30000) // Check every 30 seconds
 
     return () => clearInterval(checkInterval)
-  }, [config, verifyConnection])
+  }, [config]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
-    channels: status.channels,
+    channels,
+    closeChannel,
+    config,
     createInvoice,
+    exportAllChannelBackups,
+    exportChannelBackupSingle,
     getBalance,
     getChannels,
     getInfo,
-    isConnected: status.isConnected,
-    isConnecting: status.isConnecting,
-    lastSync: status.lastSync,
+    getPeers,
+    getPendingChannels,
+    isConnected,
+    isConnecting,
+    lastSync,
     makeRequest,
-    nodeInfo: status.nodeInfo,
+    nodeInfo,
     payInvoice,
     verifyConnection
   }

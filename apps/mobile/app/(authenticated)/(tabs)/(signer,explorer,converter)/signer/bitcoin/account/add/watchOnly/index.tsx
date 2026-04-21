@@ -118,7 +118,8 @@ export default function WatchOnly() {
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
-  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
+  const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
+    useNFCReader()
 
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
@@ -1053,7 +1054,7 @@ export default function WatchOnly() {
                           : t('watchonly.read.nfc')
                       }
                       onPress={handleNFCRead}
-                      disabled={!isAvailable}
+                      disabled={!isHardwareSupported}
                     />
                   </Animated.View>
                 </SSVStack>

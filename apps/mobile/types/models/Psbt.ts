@@ -1,9 +1,6 @@
-export type MockPsbt = {
-  toBase64: () => string
-  txid: () => string
-  feeAmount: () => number | undefined
-  extractTxHex: () => string
-}
+import { type PsbtLike } from 'react-native-bdk-sdk'
+
+export type MockPsbt = PsbtLike
 
 export type PsbtInputWithSignatures = {
   witnessScript?: Buffer

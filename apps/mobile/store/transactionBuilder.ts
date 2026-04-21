@@ -38,6 +38,7 @@ type TransactionBuilderState = {
 }
 
 type TransactionBuilderAction = {
+  clearPsbt: () => void
   clearTransaction: () => void
   setAccountId: (accountId: string) => void
   getInputs: () => Utxo[]
@@ -99,6 +100,9 @@ const useTransactionBuilderStore = create<
         )
       },
       broadcasted: false,
+      clearPsbt: () => {
+        set({ psbt: undefined })
+      },
       clearTransaction: () => {
         const { accountId, drafts } = get()
         const updatedDrafts = { ...drafts }

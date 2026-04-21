@@ -434,7 +434,7 @@ export const useNodesAndLinks = ({
                 text: t('transaction.build.minerFee'),
                 value: minerFee
               },
-              localId: 'past-minerFee',
+              localId: `past-minerFee-${tx.id}`,
               txId: tx.id,
               type: 'text',
               value: minerFee,

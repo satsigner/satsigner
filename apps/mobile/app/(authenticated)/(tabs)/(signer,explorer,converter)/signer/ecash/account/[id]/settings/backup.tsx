@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -19,7 +19,8 @@ import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
 
 export default function EcashBackupPage() {
-  const { mints, proofs, activeMint, transactions } = useEcash()
+  const { mints, proofs, transactions } = useEcash()
+  const activeMint = mints[0] ?? null
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
@@ -32,7 +33,7 @@ export default function EcashBackupPage() {
     useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const generateBackupData = useCallback(() => {
+  function generateBackupData() {
     setIsGenerating(true)
     try {
       const data: Record<string, unknown> = {
@@ -90,26 +91,18 @@ export default function EcashBackupPage() {
     } finally {
       setIsGenerating(false)
     }
-  }, [
-    includeTokenProofs,
-    includeMintInformation,
-    includeTransactionHistory,
-    proofs,
-    mints,
-    activeMint,
-    transactions
-  ])
+  }
 
-  const handleCopyBackup = useCallback(async () => {
+  async function handleCopyBackup() {
     try {
       await Clipboard.setStringAsync(backupData)
       toast.success(t('common.copiedToClipboard'))
     } catch {
       toast.error('Failed to copy to clipboard')
     }
-  }, [backupData])
+  }
 
-  const handleClose = () => {
+  function handleClose() {
     setShowBackupData(false)
     setBackupData('')
   }
@@ -232,7 +225,7 @@ export default function EcashBackupPage() {
                 <SSButton
                   label={t('common.close')}
                   onPress={handleClose}
-                  variant="subtle"
+                  variant="ghost"
                   style={{ flex: 1 }}
                 />
               </SSHStack>

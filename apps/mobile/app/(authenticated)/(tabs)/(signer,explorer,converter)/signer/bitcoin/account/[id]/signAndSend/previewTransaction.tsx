@@ -3,7 +3,13 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import Animated, {
   cancelAnimation,
   interpolateColor,
@@ -18,6 +24,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
+import SSDustWarningBanner from '@/components/SSDustWarningBanner'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
@@ -27,6 +34,7 @@ import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
+import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import { PIN_KEY } from '@/config/auth'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -42,7 +50,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors, Typography } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import {
   type Key,
   type MnemonicWordCount,
@@ -53,7 +61,6 @@ import {
   type MockPsbt,
   type PsbtInputWithSignatures
 } from '@/types/models/Psbt'
-import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
 import { getKeyFingerprint } from '@/utils/account'
@@ -95,6 +102,35 @@ enum QRDisplayMode {
   BBQR = 'BBQR'
 }
 
+type QrFormatModeTabProps = {
+  label: string
+  onPress: () => void
+  selected: boolean
+}
+
+function QrFormatModeTab({ label, onPress, selected }: QrFormatModeTabProps) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        alignItems: 'center',
+        backgroundColor: selected ? Colors.white : 'transparent',
+        borderRadius: Sizes.button.borderRadius,
+        flex: 1,
+        height: Sizes.button.height - 6,
+        justifyContent: 'center',
+        opacity: pressed ? 0.88 : 1
+      })}
+    >
+      <SSText center color={selected ? 'black' : 'white'} size="sm" uppercase>
+        {label}
+      </SSText>
+    </Pressable>
+  )
+}
+
 function hasEnoughSignatures(input: PsbtInputWithSignatures) {
   if (!input.witnessScript) {
     return true
@@ -130,7 +166,9 @@ function createMockPsbt(
 ): MockPsbt {
   return {
     extractTxHex: () => '',
-    feeAmount: () => txFee,
+    feeAmount: () => BigInt(txFee),
+    feeRate: () => undefined,
+    getUtxoFor: () => undefined,
     toBase64: () => psbtBase64,
     txid: () => txid
   }
@@ -139,6 +177,21 @@ function createMockPsbt(
 function generateTransactionId(psbtBase64: string): string {
   const extractedTxid = extractTransactionIdFromPSBT(psbtBase64)
   return extractedTxid || `PSBT-${Date.now().toString(36)}`
+}
+
+function mapBuildTransactionError(error: unknown): {
+  message: string
+  isDust: boolean
+} {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  const lower = errorMessage.toLowerCase()
+  if (lower.includes('dust')) {
+    return {
+      isDust: true,
+      message: t('transaction.error.previewBuildFailedDust')
+    }
+  }
+  return { isDust: false, message: errorMessage }
 }
 
 function handlePsbtExtractionError(error: unknown) {
@@ -181,7 +234,8 @@ function PreviewTransaction() {
     setFee,
     setRbf,
     signedPsbtsFromStore,
-    clearTransaction
+    clearTransaction,
+    clearPsbt
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -196,7 +250,8 @@ function PreviewTransaction() {
       state.setFee,
       state.setRbf,
       state.signedPsbts,
-      state.clearTransaction
+      state.clearTransaction,
+      state.clearPsbt
     ])
   )
 
@@ -215,6 +270,11 @@ function PreviewTransaction() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const [transactionId, setTransactionId] = useState('')
   const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
+  const [psbtBuildStatus, setPsbtBuildStatus] = useState<
+    'building' | 'error' | 'idle'
+  >('idle')
+  const [psbtBuildErrorMessage, setPsbtBuildErrorMessage] = useState('')
+  const [isDustError, setIsDustError] = useState(false)
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
   const [currentChunk, setCurrentChunk] = useState(0)
@@ -243,7 +303,12 @@ function PreviewTransaction() {
 
   const [permission, requestPermission] = useCameraPermissions()
 
-  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
+  const {
+    isHardwareSupported: nfcHardwareSupported,
+    isReading,
+    readNFCTag,
+    cancelNFCScan
+  } = useNFCReader()
   const {
     isEmitting,
     emitNFCTag,
@@ -320,7 +385,7 @@ function PreviewTransaction() {
     const txid = generateTransactionId(psbtBase64)
     setTransactionId(txid)
     const mockResult = createMockPsbt(psbtBase64, txid, 0)
-    setPsbt(mockResult as never)
+    setPsbt(mockResult)
     setIsLoadingPSBT(false)
   }
 
@@ -345,7 +410,7 @@ function PreviewTransaction() {
       const txid = generateTransactionId(psbtBase64)
       setTransactionId(txid)
       const mockResult = createMockPsbt(psbtBase64, txid, extractedData.fee)
-      setPsbt(mockResult as never)
+      setPsbt(mockResult)
       setIsLoadingPSBT(false)
     } catch (error) {
       handlePsbtExtractionError(error)
@@ -854,16 +919,31 @@ function PreviewTransaction() {
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       label: input.label || '',
       previousOutput: { txid: input.txid, vout: input.vout },
-      value: input.value
+      scriptSig: '' as string | number[],
+      sequence: 0,
+      value: input.value,
+      witness: [] as number[][]
     }))
 
     const vout = outputs.map((output: Output) => ({
       address: output.to,
       label: output.label || '',
+      script: '' as string | number[],
       value: output.amount
     }))
 
-    return { id: transactionId, size, vin, vout, vsize } as never as Transaction
+    return {
+      id: transactionId,
+      lockTimeEnabled: false,
+      prices: {},
+      received: 0,
+      sent: 0,
+      size,
+      type: 'send' as const,
+      vin,
+      vout,
+      vsize
+    }
   }, [inputs, outputs, transactionId])
 
   useEffect(() => {
@@ -873,25 +953,45 @@ function PreviewTransaction() {
   }, [signedPsbtsFromStore, setSignedPsbts])
 
   useEffect(() => {
-    if (psbt && txBuilderResult?.txid()) {
-      setTransactionId(txBuilderResult.txid())
-    }
     if (psbt) {
+      setPsbtBuildStatus('idle')
+      setPsbtBuildErrorMessage('')
+      if (txBuilderResult?.txid()) {
+        setTransactionId(txBuilderResult.txid())
+      }
       return
     }
 
-    if (txBuilderResult?.txid()) {
-      setTransactionId(txBuilderResult.txid())
-      return
-    }
+    let cancelled = false
 
     async function getTransaction() {
+      clearPsbt()
+      setTransactionId('')
+      setPsbtBuildStatus('building')
+      setPsbtBuildErrorMessage('')
+
       if (!wallet) {
-        toast.error(t('error.notFound.wallet'))
+        if (!cancelled) {
+          setPsbtBuildStatus('error')
+          setPsbtBuildErrorMessage(t('transaction.error.previewMissingWallet'))
+          toast.error(t('error.notFound.wallet'))
+        }
         return
       }
 
-      if (inputs.size === 0 || outputs.length === 0) {
+      if (inputs.size === 0) {
+        if (!cancelled) {
+          setPsbtBuildStatus('error')
+          setPsbtBuildErrorMessage(t('transaction.error.previewMissingInputs'))
+        }
+        return
+      }
+
+      if (outputs.length === 0) {
+        if (!cancelled) {
+          setPsbtBuildStatus('error')
+          setPsbtBuildErrorMessage(t('transaction.error.previewMissingOutputs'))
+        }
         return
       }
 
@@ -906,32 +1006,45 @@ function PreviewTransaction() {
           outputs: outputArray
         })
 
+        if (cancelled) {
+          return
+        }
+
         setTransactionId(transaction.txid())
         setPsbt(transaction)
+        setPsbtBuildStatus('idle')
+        setPsbtBuildErrorMessage('')
+        setIsDustError(false)
       } catch (error) {
-        const errorMessage = String(error)
-        if (errorMessage.includes('UTXO not found') && !psbt) {
+        if (cancelled) {
+          return
+        }
+
+        const { message, isDust } = mapBuildTransactionError(error)
+        setPsbtBuildStatus('error')
+        setPsbtBuildErrorMessage(message)
+        setIsDustError(isDust)
+
+        if (isDust) {
+          return
+        }
+
+        if (String(error).includes('UTXO not found')) {
           toast.error(
             'UTXO not found in wallet database. Please sync your wallet or check your inputs.'
           )
-        } else if (!psbt) {
-          toast.error(errorMessage)
+        } else {
+          toast.error(message)
         }
       }
     }
 
-    getTransaction()
-  }, [
-    wallet,
-    inputs,
-    outputs,
-    fee,
-    rbf,
-    network,
-    setPsbt,
-    txBuilderResult,
-    psbt
-  ])
+    void getTransaction()
+
+    return () => {
+      cancelled = true
+    }
+  }, [wallet, inputs, outputs, fee, rbf, network, setPsbt, clearPsbt, psbt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Separate effect to validate addresses and show errors
   // Only validate when we have a complete transaction (not during editing)
@@ -1944,16 +2057,37 @@ function PreviewTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {t('transaction.id')}
                 </SSText>
-                <SSText size="lg" type="mono">
-                  {isLoadingPSBT
-                    ? t('common.loading')
-                    : transactionId || `${t('common.loading')}...`}
-                </SSText>
+                <SSTransactionIdFormatted
+                  size="lg"
+                  value={
+                    isLoadingPSBT
+                      ? t('common.loading')
+                      : psbtBuildStatus === 'building'
+                        ? t('transaction.preview.buildingTransaction')
+                        : psbtBuildStatus === 'error'
+                          ? '—'
+                          : transactionId || '—'
+                  }
+                />
                 {isLoadingPSBT && (
                   <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
                     {t('transaction.preview.processingPsbt')}
                   </SSText>
                 )}
+                {psbtBuildStatus === 'building' && !isLoadingPSBT && (
+                  <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
+                    {t('transaction.preview.buildingTransaction')}
+                  </SSText>
+                )}
+                {psbtBuildStatus === 'error' &&
+                  psbtBuildErrorMessage !== '' &&
+                  (isDustError ? (
+                    <SSDustWarningBanner message={psbtBuildErrorMessage} />
+                  ) : (
+                    <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
+                      {psbtBuildErrorMessage}
+                    </SSText>
+                  ))}
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
@@ -1984,7 +2118,8 @@ function PreviewTransaction() {
               {/* Multisig Signature Required Display */}
               {account.policyType === 'multisig' &&
                 account.keys &&
-                account.keys.length > 0 && (
+                account.keys.length > 0 &&
+                txBuilderResult && (
                   <SSVStack gap="md" style={{ marginTop: 16 }}>
                     <SSText center color="muted" size="sm" uppercase>
                       {t('transaction.preview.multisigSignatureRequired')}
@@ -2026,7 +2161,7 @@ function PreviewTransaction() {
                           setSignedPsbt={(psbt: string) =>
                             updateSignedPsbt(index, psbt)
                           }
-                          isAvailable={isAvailable}
+                          isAvailable={nfcHardwareSupported}
                           isEmitting={isEmitting}
                           isReading={isReading}
                           decryptedKey={decryptedKeys[index]}
@@ -2078,6 +2213,8 @@ function PreviewTransaction() {
                     variant="secondary"
                     disabled={
                       !transactionId ||
+                      psbtBuildStatus === 'building' ||
+                      psbtBuildStatus === 'error' ||
                       (account.policyType === 'multisig' &&
                         !hasAllRequiredSignatures())
                     }
@@ -2167,7 +2304,7 @@ function PreviewTransaction() {
                         }
                         style={{ width: '48%' }}
                         variant="outline"
-                        disabled={!isAvailable || !serializedPsbt}
+                        disabled={!nfcHardwareSupported || !serializedPsbt}
                         onPress={handleNFCExport}
                       />
                     </SSHStack>
@@ -2243,7 +2380,7 @@ function PreviewTransaction() {
                         }
                         style={{ width: '48%' }}
                         variant="outline"
-                        disabled={!isAvailable}
+                        disabled={!nfcHardwareSupported}
                         onPress={handleWatchOnlyNFCScan}
                       />
                     </SSHStack>
@@ -2306,51 +2443,37 @@ function PreviewTransaction() {
                     size={qrSize}
                   />
                 </View>
-                <SSHStack
-                  gap="xs"
-                  style={{ marginBottom: 10, width: screenWidth * 0.92 }}
+                <View
+                  style={[
+                    styles.qrFormatSegmentTrack,
+                    { width: screenWidth * 0.92 }
+                  ]}
                 >
-                  <SSButton
-                    variant={
-                      displayMode === QRDisplayMode.RAW
-                        ? 'secondary'
-                        : 'outline'
-                    }
+                  <QrFormatModeTab
                     label="RAW"
                     onPress={() => {
                       setDisplayMode(QRDisplayMode.RAW)
-                      // Reset chunk index when switching modes
                       setCurrentRawChunk(0)
                     }}
-                    style={{ flex: 1 }}
+                    selected={displayMode === QRDisplayMode.RAW}
                   />
-                  <SSButton
-                    variant={
-                      displayMode === QRDisplayMode.UR ? 'secondary' : 'outline'
-                    }
+                  <QrFormatModeTab
                     label="UR"
                     onPress={() => {
                       setDisplayMode(QRDisplayMode.UR)
-                      // Reset chunk index when switching modes
                       setCurrentUrChunk(0)
                     }}
-                    style={{ flex: 1 }}
+                    selected={displayMode === QRDisplayMode.UR}
                   />
-                  <SSButton
-                    variant={
-                      displayMode === QRDisplayMode.BBQR
-                        ? 'secondary'
-                        : 'outline'
-                    }
+                  <QrFormatModeTab
                     label="BBQR"
                     onPress={() => {
                       setDisplayMode(QRDisplayMode.BBQR)
-                      // Reset chunk index when switching modes
                       setCurrentChunk(0)
                     }}
-                    style={{ flex: 1 }}
+                    selected={displayMode === QRDisplayMode.BBQR}
                   />
-                </SSHStack>
+                </View>
                 <SSText
                   center
                   color="white"
@@ -2702,47 +2825,50 @@ function PreviewTransaction() {
             setCurrentCosignerIndex(null)
           }}
         >
-          <ScrollView style={{ maxHeight: 600, maxWidth: 400, width: '100%' }}>
-            <View style={{ paddingHorizontal: 16 }}>
-              <SSVStack gap="lg">
-                <SSText center uppercase>
-                  Enter Seed Words
-                </SSText>
-                <SSText center color="muted" size="sm">
-                  Enter your {selectedWordCount}-word mnemonic seed phrase
-                </SSText>
-              </SSVStack>
-
-              <SSSeedWordsInput
-                wordCount={selectedWordCount}
-                wordListName="english"
-                network={appNetworkToBdkNetwork(network)}
-                onMnemonicValid={handleMnemonicValid}
-                onMnemonicInvalid={handleMnemonicInvalid}
-                showPassphrase
-                showChecksum
-                showFingerprint
-                showPasteButton
-                showScanSeedQRButton
-                showActionButton
-                actionButtonLabel="Sign with Seed Words"
-                actionButtonVariant="secondary"
-                onActionButtonPress={handleSeedWordsSubmit}
-                actionButtonDisabled={false}
-                showCancelButton={false}
-                autoCheckClipboard
-                onWordSelectorStateChange={setWordSelectorState}
-              />
-            </View>
-          </ScrollView>
+          <View style={styles.seedWordsModalBody}>
+            <ScrollView
+              style={{ maxHeight: 600, maxWidth: 400, width: '100%' }}
+            >
+              <View style={{ paddingHorizontal: 16 }}>
+                <SSVStack gap="lg">
+                  <SSText center uppercase>
+                    Enter Seed Words
+                  </SSText>
+                  <SSText center color="muted" size="sm">
+                    Enter your {selectedWordCount}-word mnemonic seed phrase
+                  </SSText>
+                </SSVStack>
+                <SSSeedWordsInput
+                  wordCount={selectedWordCount}
+                  wordListName="english"
+                  network={appNetworkToBdkNetwork(network)}
+                  onMnemonicValid={handleMnemonicValid}
+                  onMnemonicInvalid={handleMnemonicInvalid}
+                  showPassphrase
+                  showChecksum
+                  showFingerprint
+                  showPasteButton
+                  showScanSeedQRButton
+                  showActionButton
+                  actionButtonLabel="Sign with Seed Words"
+                  actionButtonVariant="secondary"
+                  onActionButtonPress={handleSeedWordsSubmit}
+                  actionButtonDisabled={false}
+                  showCancelButton={false}
+                  autoCheckClipboard
+                  onWordSelectorStateChange={setWordSelectorState}
+                />
+              </View>
+            </ScrollView>
+            <SSKeyboardWordSelector
+              visible={wordSelectorState.visible}
+              wordStart={wordSelectorState.wordStart}
+              wordListName="english"
+              onWordSelected={wordSelectorState.onWordSelected}
+              style={{ height: 60 }}
+            />
+          </View>
         </SSModal>
-        <SSKeyboardWordSelector
-          visible={wordSelectorState.visible}
-          wordStart={wordSelectorState.wordStart}
-          wordListName="english"
-          onWordSelected={wordSelectorState.onWordSelected}
-          style={{ height: 60 }}
-        />
       </SSMainLayout>
     </>
   )
@@ -2750,7 +2876,22 @@ function PreviewTransaction() {
 
 const styles = StyleSheet.create({
   mainLayout: { paddingBottom: 20, paddingTop: 0 },
-  modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' }
+  modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' },
+  qrFormatSegmentTrack: {
+    alignSelf: 'center',
+    backgroundColor: Colors.gray[850],
+    borderRadius: Sizes.button.borderRadius,
+    flexDirection: 'row',
+    gap: 3,
+    marginBottom: 10,
+    padding: 3
+  },
+  seedWordsModalBody: {
+    flex: 1,
+    maxWidth: 400,
+    position: 'relative',
+    width: '100%'
+  }
 })
 
 export default PreviewTransaction

@@ -61,7 +61,7 @@ export default function Receive() {
   const [isManualAddress, setIsManualAddress] = useState(false)
 
   const {
-    isAvailable: nfcAvailable,
+    isHardwareSupported: nfcHardwareSupported,
     isEmitting,
     emitNFCTag,
     cancelNFCScan
@@ -400,7 +400,7 @@ export default function Receive() {
                 <SSVStack itemsCenter gap="md">
                   <SSQRCode value={localFinalAddressQR} />
                   <SSHStack>
-                    {nfcAvailable && (
+                    {nfcHardwareSupported && (
                       <SSButton
                         label={
                           isEmitting
@@ -460,7 +460,9 @@ export default function Receive() {
           <SSFormLayout>
             <SSFormLayout.Item>
               <SSFormLayout.Label
-                label={`${t('receive.customAmount')} (${amountMode === 'sats' ? t('bitcoin.sats') : fiatCurrency})`}
+                label={`${t('receive.customAmount')} (${
+                  amountMode === 'sats' ? t('bitcoin.sats') : fiatCurrency
+                })`}
               />
               {amountMode === 'sats' ? (
                 <>

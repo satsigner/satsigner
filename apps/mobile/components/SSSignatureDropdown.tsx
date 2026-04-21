@@ -1,7 +1,7 @@
 import { setStringAsync } from 'expo-clipboard'
 import { useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ScrollView, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
@@ -15,7 +15,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
-import { Colors, Typography } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { extractPublicKeyFromKey, isSeedDropped } from '@/utils/key'
 import {
@@ -203,8 +203,11 @@ function SSSignatureDropdown({
         disabled={!transactionId}
         style={[styles.header, !transactionId && styles.headerDisabled]}
       >
-        <SSHStack justifyBetween>
-          <SSHStack style={{ alignItems: 'center' }} gap="sm">
+        <SSHStack justifyBetween style={{ width: '100%' }}>
+          <SSHStack
+            gap="sm"
+            style={{ alignItems: 'center', flex: 1, minWidth: 0 }}
+          >
             {isSignatureCompleted ? (
               validationResult === true ? (
                 <SSIconGreen width={24} height={24} />
@@ -219,17 +222,36 @@ function SSSignatureDropdown({
             <SSText color="muted" size="lg" style={{ paddingHorizontal: 10 }}>
               {t('common.key')} {index + 1}
             </SSText>
-            <SSVStack gap="none">
-              <SSText color="muted">{sourceLabel}</SSText>
-              <SSText color={keyDetails?.name ? 'white' : 'muted'}>
+            <SSVStack gap="none" style={{ flex: 1, minWidth: 0 }}>
+              <SSText color="muted" ellipsizeMode="tail" numberOfLines={1}>
+                {sourceLabel}
+              </SSText>
+              <SSText
+                color={keyDetails?.name ? 'white' : 'muted'}
+                ellipsizeMode="tail"
+                numberOfLines={1}
+              >
                 {keyDetails?.name ?? t('account.seed.noLabel')}
               </SSText>
             </SSVStack>
           </SSHStack>
-          <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
+          <SSVStack
+            gap="none"
+            style={{
+              alignItems: 'flex-end',
+              flexGrow: 0,
+              flexShrink: 1,
+              marginLeft: 8,
+              maxWidth: '52%',
+              minWidth: 0
+            }}
+          >
             <SSText
               type="mono"
               color={getInnerFingerprint() ? 'white' : 'muted'}
+              ellipsizeMode="tail"
+              numberOfLines={1}
+              style={{ textAlign: 'right', width: '100%' }}
             >
               {getInnerFingerprint() || t('account.fingerprint')}
             </SSText>
@@ -239,6 +261,7 @@ function SSSignatureDropdown({
               selectable
               numberOfLines={1}
               ellipsizeMode="middle"
+              style={{ textAlign: 'right', width: '100%' }}
             >
               {formattedPubKey || t('account.seed.publicKey')}
             </SSText>
@@ -247,7 +270,7 @@ function SSSignatureDropdown({
       </TouchableOpacity>
 
       {isExpanded && (
-        <SSVStack style={{ paddingBottom: 8, paddingHorizontal: 8 }} gap="sm">
+        <SSVStack style={{ paddingBottom: 28, paddingHorizontal: 0 }} gap="sm">
           {hasLocalSeed ? (
             <SSButton
               label={t('transaction.preview.signWithLocalKey')}
@@ -420,14 +443,15 @@ function SSSignatureDropdown({
 }
 export default SSSignatureDropdown
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     borderColor: Colors.gray[700],
     borderTopWidth: 1,
     paddingVertical: 16
   },
   header: {
-    paddingVertical: 8
+    paddingVertical: 8,
+    width: '100%'
   },
   headerDisabled: {
     opacity: 0.5
@@ -437,7 +461,7 @@ const styles = {
   },
   psbtDisplay: {
     backgroundColor: Colors.gray[900],
-    borderRadius: 8,
+    borderRadius: Sizes.textInput.borderRadius,
     borderWidth: 1,
     maxHeight: 600,
     minHeight: 200,
@@ -455,4 +479,4 @@ const styles = {
     height: 24,
     width: 24
   }
-}
+})

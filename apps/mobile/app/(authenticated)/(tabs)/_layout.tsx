@@ -73,6 +73,7 @@ export default function TabLayout() {
   return (
     <View style={styles.container}>
       <Tabs
+        initialRouteName="(signer)"
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: 'white',
@@ -90,21 +91,21 @@ export default function TabLayout() {
         backBehavior="initialRoute"
       >
         <Tabs.Screen
-          name="(signer)"
-          options={{
-            tabBarButton: (props) => renderTabButton(props, '(signer)'),
-            tabBarIcon: ({ focused }) =>
-              renderTabIcon(focused, SSIconSignerActive, SSIconSigner),
-            title: 'Signer'
-          }}
-        />
-        <Tabs.Screen
           name="(explorer)"
           options={{
             tabBarButton: (props) => renderTabButton(props, '(explorer)'),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconExplorerActive, SSIconExplorer),
             title: 'Explorer'
+          }}
+        />
+        <Tabs.Screen
+          name="(signer)"
+          options={{
+            tabBarButton: (props) => renderTabButton(props, '(signer)'),
+            tabBarIcon: ({ focused }) =>
+              renderTabIcon(focused, SSIconSignerActive, SSIconSigner),
+            title: 'Signer'
           }}
         />
         <Tabs.Screen

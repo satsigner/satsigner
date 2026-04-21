@@ -28,6 +28,7 @@ type NetworkConfig = {
 
 type BlockchainState = {
   lastKnownBlockHeight: number
+  nextBlockFee: number | null
   selectedNetwork: Network
   configs: Record<Network, NetworkConfig>
   configsMempool: Record<Network, Server['url']>
@@ -44,6 +45,7 @@ type BlockchainAction = {
   updateCustomServer: (oldServer: Server, newServer: Server) => void
   getBlockchain: (network?: Network) => BlockchainConfig
   setLastKnownBlockHeight: (height: number) => void
+  setNextBlockFee: (fee: number | null) => void
 }
 
 const createDefaultNetworkConfig = (
@@ -106,6 +108,7 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         })
       },
       lastKnownBlockHeight: 0,
+      nextBlockFee: null,
       removeCustomServer: (server) => {
         const { customServers } = get()
         set({
@@ -115,6 +118,9 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       selectedNetwork: 'signet',
       setLastKnownBlockHeight: (height: number) => {
         set({ lastKnownBlockHeight: height })
+      },
+      setNextBlockFee: (fee: number | null) => {
+        set({ nextBlockFee: fee })
       },
       setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
       updateConfig: (network, config) => {

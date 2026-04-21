@@ -12,7 +12,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -28,12 +28,16 @@ import SSModal from '@/components/SSModal'
 import SSProxyFormFields from '@/components/SSProxyFormFields'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import {
+  type ConnectionTestResult,
+  useConnectionTest
+} from '@/hooks/useConnectionTest'
 import { useCustomNetworkForm } from '@/hooks/useCustomNetworkForm'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import {
@@ -41,6 +45,10 @@ import {
   type Network,
   type Server
 } from '@/types/settings/blockchain'
+import { formatDate } from '@/utils/date'
+import { trimOnionAddress } from '@/utils/format'
+
+const tnServer = _tn('settings.network.server')
 
 export default function CustomNetwork() {
   const { network, editUrl } = useLocalSearchParams<{
@@ -58,6 +66,7 @@ export default function CustomNetwork() {
     constructTrimmedUrl
   } = useCustomNetworkForm()
   const [scanModalVisible, setScanModalVisible] = useState(false)
+  const scanHandledRef = useRef(false)
   const [, requestCameraPermission] = useCameraPermissions()
 
   const networkType = network as Network
@@ -85,10 +94,17 @@ export default function CustomNetwork() {
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
 
-  const [testing, setTesting] = useState(false)
+  const {
+    testing: connectionTesting,
+    testConnection,
+    resetTest
+  } = useConnectionTest()
+
   const [editingServer, setEditingServer] = useState<Server | null>(null)
   const [oldNetwork] = useState<Network>(selectedNetwork)
   const [oldServer] = useState<Server>(configs[networkType].server)
+  /** Shown under connection status so tip height/time stay visible without relying on toast alone. */
+  const [lastProbeLine, setLastProbeLine] = useState<string | null>(null)
 
   useEffect(() => {
     if (editUrl && customServers.length > 0) {
@@ -106,11 +122,23 @@ export default function CustomNetwork() {
 
   const urlPreview = useMemo(() => constructTrimmedUrl(), [constructTrimmedUrl])
 
-  useEffect(() => {
-    if (testing && !connectionState) {
-      toast.error(t('error.invalid.backend'))
+  function successToastDescription(
+    result: Extract<ConnectionTestResult, { success: true }>
+  ): string {
+    const dateSec = result.tipTimestampSec ?? Math.floor(Date.now() / 1000)
+    const dateStr = formatDate(dateSec)
+    if (
+      result.blockHeight !== null &&
+      result.blockHeight !== undefined &&
+      result.blockHeight > 0
+    ) {
+      return tnServer('tester.successDetail', {
+        date: dateStr,
+        height: result.blockHeight.toLocaleString()
+      })
     }
-  }, [testing, connectionState])
+    return tnServer('tester.successNoHeight', { date: dateStr })
+  }
 
   async function handlePaste() {
     try {
@@ -130,15 +158,26 @@ export default function CustomNetwork() {
     if (!granted) {
       return
     }
+    scanHandledRef.current = false
     setScanModalVisible(true)
   }
 
   function handleScanResult(data: string) {
+    if (scanHandledRef.current) {
+      return
+    }
+
+    scanHandledRef.current = true
+
     if (applyPastedUrl(data)) {
+      scanHandledRef.current = false
       setScanModalVisible(false)
       toast.success(t('watchonly.success.qrScanned'))
     } else {
       toast.error(t('error.invalid.url'))
+      setTimeout(() => {
+        scanHandledRef.current = false
+      }, 1500)
     }
   }
 
@@ -171,12 +210,12 @@ export default function CustomNetwork() {
     return true
   }
 
-  function handleTest() {
-    setTesting(false)
-
+  async function handleTest() {
     if (!isValid()) {
       return
     }
+
+    setLastProbeLine(null)
 
     const url = constructUrl()
     const server: Server = {
@@ -187,19 +226,47 @@ export default function CustomNetwork() {
       url
     }
 
-    setSelectedNetwork(networkType)
-    updateServer(networkType, server)
+    await resetTest()
 
-    setTesting(true)
+    try {
+      const result = await testConnection(
+        server.url,
+        server.backend,
+        server.network,
+        server.proxy
+      )
+
+      if (!result.success) {
+        toast.error(`${server.name} (${trimOnionAddress(server.url)})`, {
+          description: result.error ?? tnServer('tester.failed')
+        })
+        return
+      }
+
+      setSelectedNetwork(networkType)
+      updateServer(networkType, server)
+
+      const probeLine = successToastDescription(result)
+      setLastProbeLine(probeLine)
+
+      try {
+        toast.success(`${server.name} (${trimOnionAddress(server.url)})`, {
+          description: `${tnServer('tester.success')} — ${probeLine}`
+        })
+      } catch {
+        // sonner handler can break if a nested modal mounted its own Toaster; root Toaster should recover
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : tnServer('tester.error')
+      toast.error(`${server.name} (${trimOnionAddress(server.url)})`, {
+        description: message
+      })
+    }
   }
 
   function handleSave() {
     if (isValid()) {
-      if (!connectionState) {
-        setSelectedNetwork(oldNetwork)
-        updateServer(oldNetwork, oldServer)
-      }
-
       const url = constructUrl()
       const server: Server = {
         backend: formData.backend,
@@ -214,6 +281,9 @@ export default function CustomNetwork() {
       } else {
         addCustomServer(server)
       }
+
+      setSelectedNetwork(networkType)
+      updateServer(networkType, server)
       router.back()
     }
   }
@@ -368,9 +438,9 @@ export default function CustomNetwork() {
                 proxy={formData.proxy}
                 onProxyChange={updateProxyField}
               />
-              {testing && (
+              <SSVStack gap="none" style={{ marginBottom: 16 }}>
                 <SSHStack
-                  style={{ gap: 0, justifyContent: 'center', marginBottom: 24 }}
+                  style={{ gap: 0, justifyContent: 'center', marginBottom: 8 }}
                 >
                   {connectionState ? (
                     isPrivateConnection ? (
@@ -393,13 +463,22 @@ export default function CustomNetwork() {
                     {connectionString}
                   </SSText>
                 </SSHStack>
-              )}
+                {lastProbeLine ? (
+                  <SSText center color="muted" size="xs">
+                    {`${tnServer('tester.success')} — ${lastProbeLine}`}
+                  </SSText>
+                ) : null}
+              </SSVStack>
             </SSVStack>
 
             <SSVStack>
               <SSButton
                 label={t('settings.network.server.test')}
-                onPress={() => handleTest()}
+                loading={connectionTesting}
+                disabled={connectionTesting}
+                onPress={() => {
+                  void handleTest()
+                }}
               />
               <SSButton
                 variant="secondary"
@@ -419,7 +498,10 @@ export default function CustomNetwork() {
       <SSModal
         visible={scanModalVisible}
         fullOpacity
-        onClose={() => setScanModalVisible(false)}
+        onClose={() => {
+          scanHandledRef.current = false
+          setScanModalVisible(false)
+        }}
       >
         <SSVStack itemsCenter gap="md">
           <SSText color="muted" uppercase>

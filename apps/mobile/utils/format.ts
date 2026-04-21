@@ -49,6 +49,20 @@ function formatTime(date: Date) {
     .toLowerCase()
 }
 
+/**
+ * Nostr note and zap cards: `Apr 15, 26` (MMM DD, YY). `unixSeconds` is event `created_at`.
+ */
+function formatNostrCardDate(unixSeconds: number): string {
+  if (!unixSeconds) {
+    return ''
+  }
+  const d = new Date(unixSeconds * 1000)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mmm = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)
+  const yy = String(d.getFullYear()).slice(-2)
+  return `${mmm} ${dd}, ${yy}`
+}
+
 function formatDate(date: Date | string | number) {
   const dateObj =
     typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
@@ -155,6 +169,17 @@ function formatTxId(txid: string, character = 6) {
   return `${beginning}...${end}`
 }
 
+function formatShortPubkey(pubkey: string, headChars = 5, tailChars = 6) {
+  const s = pubkey.trim()
+  if (!s) {
+    return ''
+  }
+  if (s.length <= headChars + tailChars + 3) {
+    return s
+  }
+  return `${s.slice(0, headChars)}...${s.slice(-tailChars)}`
+}
+
 function formatTxOutputToUtxo(
   tx: Transaction | undefined,
   vout: number,
@@ -210,9 +235,11 @@ export {
   formatConfirmations,
   formatDate,
   formatFiatPrice,
+  formatNostrCardDate,
   formatNumber,
   formatPageUrl,
   formatPercentualChange,
+  formatShortPubkey,
   formatTime,
   formatTimeFromNow,
   formatTimestamp,

@@ -1,47 +1,49 @@
 import { useRouter } from 'expo-router'
-import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 
 import { processContentByContext } from '@/hooks/useContentProcessor'
 import { t } from '@/locales'
+import { useEcashStore } from '@/store/ecash'
 import { type DetectedContent } from '@/utils/contentDetector'
 
 type NavigatePath = Parameters<ReturnType<typeof useRouter>['navigate']>[0]
 
 export function useEcashContentHandler() {
   const router = useRouter()
+  const activeAccountId = useEcashStore((state) => state.activeAccountId)
 
-  const handleContentScanned = useCallback(
-    (content: DetectedContent) => {
-      if (!content.isValid) {
-        toast.error('Invalid Ecash content detected')
-        return
+  function getAccountPath(subpath: string): string {
+    if (!activeAccountId) {
+      return `/signer/ecash`
+    }
+    return `/signer/ecash/account/${activeAccountId}/${subpath}`
+  }
+
+  function handleContentScanned(content: DetectedContent) {
+    if (!content.isValid) {
+      toast.error('Invalid Ecash content detected')
+      return
+    }
+
+    try {
+      const navigate = (path: NavigatePath) => {
+        router.navigate(path)
       }
+      processContentByContext(content, 'ecash', {
+        navigate
+      })
+    } catch {
+      toast.error(t('ecash.error.processFailed'))
+    }
+  }
 
-      try {
-        const navigate = (path: NavigatePath) => {
-          router.navigate(path)
-        }
-        processContentByContext(content, 'ecash', {
-          navigate
-        })
-      } catch {
-        toast.error(t('ecash.error.processFailed'))
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  )
+  function handleSend() {
+    router.push(getAccountPath('send') as NavigatePath)
+  }
 
-  const handleSend = useCallback(() => {
-    router.push('/signer/ecash/send')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const handleReceive = useCallback(() => {
-    router.push('/signer/ecash/receive')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  function handleReceive() {
+    router.push(getAccountPath('receive') as NavigatePath)
+  }
 
   return {
     handleContentScanned,

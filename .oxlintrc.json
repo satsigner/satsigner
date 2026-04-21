@@ -18,6 +18,7 @@
     "no-use-before-define": "allow",
     "oxc/approx-constant": "allow",
     "unicorn/prefer-node-protocol": "allow",
+    "no-void": ["error", { "allowAsStatement": true }],
     "func-style": ["error", "declaration", { "allowArrowFunctions": true }],
     "prefer-destructuring": [
       "error",

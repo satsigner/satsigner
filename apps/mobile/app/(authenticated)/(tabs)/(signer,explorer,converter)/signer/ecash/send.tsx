@@ -1,87 +1,74 @@
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { Stack, useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
+import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { useEcash } from '@/hooks/useEcash'
-import { useLND } from '@/hooks/useLND'
-import { useNFCEmitter } from '@/hooks/useNFCEmitter'
+import { ANIMATED_QR_INTERVAL_MS, useEcashSend } from '@/hooks/useEcashSend'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { type LNDecodedInvoice } from '@/types/models/LND'
+import { useSettingsStore } from '@/store/settings'
+import { Colors, Sizes } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
-import {
-  decodeLightningInvoice,
-  isLightningInvoice
-} from '@/utils/lightningInvoiceDecoder'
-import {
-  decodeLNURL,
-  fetchLNURLPayDetails,
-  getLNURLType,
-  handleLNURLPay
-} from '@/utils/lnurl'
-
-type MakeRequest = <T>(
-  path: string,
-  options?: {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-    body?: unknown
-    headers?: Record<string, string>
-  }
-) => Promise<T>
-
-type LNURLPayResponse = {
-  callback: string
-  maxSendable: number
-  minSendable: number
-  metadata: string
-  tag: 'payRequest'
-  commentAllowed?: number
-  nostrPubkey?: string
-  allowsNostr?: boolean
-}
 
 export default function EcashSendPage() {
-  const router = useRouter()
   const { invoice: invoiceParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
-  const [amount, setAmount] = useState('')
-  const [memo, setMemo] = useState('')
-  const [comment, setComment] = useState('')
-  const [invoice, setInvoice] = useState('')
-  const [generatedToken, setGeneratedToken] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [isMelting, setIsMelting] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [decodedInvoice, setDecodedInvoice] = useState<LNDecodedInvoice | null>(
-    null
-  )
-  const [isLNURLMode, setIsLNURLMode] = useState(false)
-  const [lnurlDetails, setLNURLDetails] = useState<LNURLPayResponse | null>(
-    null
-  )
-  const [isFetchingLNURL, setIsFetchingLNURL] = useState(false)
-  const [statusMessage, setStatusMessage] = useState('')
-  const [showQRCode, setShowQRCode] = useState(false)
 
-  const { activeMint, sendEcash, createMeltQuote, meltProofs, proofs } =
-    useEcash()
-  const { makeRequest, isConnected } = useLND()
-  const { isAvailable: nfcAvailable, isEmitting, emitNFCTag } = useNFCEmitter()
-  const typedMakeRequest = makeRequest as MakeRequest
+  const {
+    amount,
+    animatedQR,
+    animationRef,
+    comment,
+    currentChunkIndex,
+    decodedInvoice,
+    emitNFC,
+    generatedToken,
+    generateToken,
+    getQRValue,
+    getTokenURFragments,
+    handleInvoiceChange,
+    invoice,
+    isEmitting,
+    isFetchingLNURL,
+    isGenerating,
+    isLNURLMode,
+    isMelting,
+    lastUpdateRef,
+    lnurlDetails,
+    meltTokens,
+    memo,
+    nfcHardwareSupported,
+    proofs,
+    setAmount,
+    setAnimatedQR,
+    setComment,
+    setCurrentChunkIndex,
+    setMemo,
+    setTokenVersion,
+    statusMessage,
+    tokenVersion
+  } = useEcashSend()
+
   const [fiatCurrency, btcPrice, satsToFiat] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -89,259 +76,9 @@ export default function EcashSendPage() {
       state.satsToFiat
     ])
   )
-
-  const handleGenerateToken = useCallback(async () => {
-    if (!amount || amount.trim() === '') {
-      toast.error(t('ecash.error.invalidAmount'))
-      return
-    }
-
-    const amountNum = parseInt(amount, 10)
-    if (isNaN(amountNum) || amountNum <= 0) {
-      toast.error(t('ecash.error.invalidAmount'))
-      return
-    }
-
-    if (!activeMint) {
-      toast.error(t('ecash.error.noMintConnected'))
-      return
-    }
-
-    if (proofs.length === 0) {
-      toast.error(t('ecash.error.noTokensToSend'))
-      return
-    }
-
-    setIsGenerating(true)
-    setGeneratedToken('')
-    try {
-      const result = await sendEcash(activeMint.url, amountNum, memo)
-      setGeneratedToken(result.token)
-    } catch {
-      // Error handling is done in the hook
-    } finally {
-      setIsGenerating(false)
-    }
-  }, [amount, memo, activeMint, sendEcash, proofs])
-
-  const handleMeltTokens = useCallback(async () => {
-    if (!invoice) {
-      toast.error(t('ecash.error.invalidInvoice'))
-      setStatusMessage(`Error: ${t('ecash.error.noInvoiceProvided')}`)
-      return
-    }
-
-    if (!activeMint) {
-      toast.error(t('ecash.error.noMintConnected'))
-      setStatusMessage(`Error: ${t('ecash.error.noMintConnected')}`)
-      return
-    }
-
-    if (proofs.length === 0) {
-      toast.error(t('ecash.error.noTokensToMelt'))
-      setStatusMessage(`Error: ${t('ecash.error.noTokensAvailable')}`)
-      return
-    }
-
-    setIsMelting(true)
-    setStatusMessage(t('ecash.status.startingMeltProcess'))
-    try {
-      let bolt11Invoice: string
-
-      if (isLNURLMode && lnurlDetails) {
-        // For LNURL-pay, create bolt11 invoice first
-        if (!amount) {
-          toast.error(t('ecash.error.pleaseEnterAmount'))
-          setStatusMessage(`Error: ${t('ecash.error.noAmountEntered')}`)
-          return
-        }
-
-        const amountSats = parseInt(amount, 10)
-        if (isNaN(amountSats) || amountSats <= 0) {
-          toast.error(t('ecash.error.pleaseEnterValidAmount'))
-          setStatusMessage(`Error: ${t('ecash.error.pleaseEnterValidAmount')}`)
-          return
-        }
-
-        // Use existing LNURL-pay flow to get bolt11 invoice
-        setStatusMessage(t('ecash.status.requestingLnurlInvoice'))
-        bolt11Invoice = await handleLNURLPay(
-          invoice,
-          amountSats,
-          comment || undefined
-        )
-        setStatusMessage(t('ecash.status.lnurlInvoiceReceived'))
-
-        // Small delay to ensure invoice is properly registered
-        await new Promise((resolve) => {
-          setTimeout(resolve, 1000)
-        })
-      } else {
-        // For bolt11, use invoice directly
-        setStatusMessage(t('ecash.status.usingBolt11Invoice'))
-        bolt11Invoice = invoice
-      }
-
-      // Use existing melt logic with the bolt11 invoice
-      setStatusMessage(t('ecash.status.creatingMeltQuote'))
-      const quote = await createMeltQuote(activeMint.url, bolt11Invoice)
-      setStatusMessage(t('ecash.status.meltQuoteCreated'))
-
-      await meltProofs(
-        activeMint.url,
-        quote,
-        proofs,
-        decodedInvoice?.description,
-        bolt11Invoice // Pass the original bolt11 invoice
-      )
-      setStatusMessage(t('ecash.status.tokensMeltedSuccessfully'))
-
-      setInvoice('')
-      setAmount('')
-      toast.success(t('ecash.success.tokensMelted'))
-      router.navigate('/signer/ecash')
-    } catch (error) {
-      if (error instanceof Error) {
-        if (
-          error.message.includes('404') ||
-          error.message.includes('Not Found')
-        ) {
-          setStatusMessage(`Error: ${t('ecash.error.paymentRequestExpired')}`)
-          toast.error(t('ecash.error.paymentRequestExpiredMessage'))
-        } else if (error.message.includes('amount')) {
-          setStatusMessage(`Error: ${error.message}`)
-          toast.error(error.message)
-        } else if (error.message.includes('no_route')) {
-          setStatusMessage(`Error: ${t('ecash.error.noPaymentRoute')}`)
-          toast.error(t('ecash.error.noPaymentRouteMessage'))
-        } else if (error.message.includes('insufficient_balance')) {
-          setStatusMessage(`Error: ${t('ecash.error.insufficientBalance')}`)
-          toast.error(t('ecash.error.insufficientBalance'))
-        } else if (error.message.includes('payment_failed')) {
-          setStatusMessage(
-            `Error: ${t('ecash.error.lightningPaymentFailedStatus')}`
-          )
-          toast.error(t('ecash.error.lightningPaymentFailed'))
-        } else if (error.message.includes('melt proofs')) {
-          // Extract the specific error from the melt proofs error
-          const specificError =
-            error.message.split(': ').pop() || t('ecash.error.unknownMeltError')
-          setStatusMessage(`Error: ${specificError}`)
-          toast.error(`${t('ecash.error.meltFailed')}: ${specificError}`)
-        } else {
-          setStatusMessage(`Error: ${error.message}`)
-          toast.error(error.message)
-        }
-      } else {
-        setStatusMessage(`Error: ${t('ecash.error.unknownError')}`)
-        toast.error(t('ecash.error.lnurlPaymentFailed'))
-      }
-    } finally {
-      setIsMelting(false)
-    }
-  }, [
-    invoice,
-    activeMint,
-    createMeltQuote,
-    meltProofs,
-    proofs,
-    isLNURLMode,
-    lnurlDetails,
-    amount,
-    comment,
-    decodedInvoice?.description,
-    router
-  ])
-
-  const decodeInvoice = useCallback(
-    async (invoice: string) => {
-      try {
-        const response = await typedMakeRequest<LNDecodedInvoice>(
-          `/v1/payreq/${invoice}`
-        )
-        setDecodedInvoice(response)
-        return response
-      } catch {
-        setDecodedInvoice(null)
-        throw new Error('Failed to decode invoice')
-      }
-    },
-    [typedMakeRequest]
-  )
-
-  const handleInvoiceChange = useCallback(
-    async (text: string) => {
-      setInvoice(text)
-      setDecodedInvoice(null) // Clear previous decode
-      setLNURLDetails(null) // Clear previous LNURL details
-
-      // Clean the text and check if it's a valid invoice
-      const cleanText = text.trim()
-      if (!cleanText) {
-        return
-      }
-
-      // Check if it's LNURL-pay (not withdraw)
-      const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanText)
-      if (isLNURLInput && lnurlType === 'pay') {
-        setIsLNURLMode(true)
-        setIsFetchingLNURL(true)
-        try {
-          const url = decodeLNURL(cleanText)
-          const details = await fetchLNURLPayDetails(url)
-          setLNURLDetails(details)
-          // Auto-set minimum amount
-          if (details.minSendable) {
-            setAmount(Math.ceil(details.minSendable / 1000).toString())
-          }
-        } catch {
-          setLNURLDetails(null)
-        } finally {
-          setIsFetchingLNURL(false)
-        }
-        return
-      } else if (isLNURLInput && lnurlType === 'withdraw') {
-        // LNURL-w should be handled in receive tab
-        toast.error(t('ecash.error.lnurlWithdrawInSendTab'))
-        return
-      }
-
-      // Check if it's bolt11 invoice
-      if (!isLightningInvoice(cleanText)) {
-        setIsLNURLMode(false)
-        return
-      }
-
-      setIsLNURLMode(false)
-
-      try {
-        const decoded = decodeLightningInvoice(cleanText)
-        setDecodedInvoice(decoded)
-
-        if (decoded.num_satoshis) {
-          setAmount(decoded.num_satoshis)
-        }
-      } catch {
-        if (!isConnected) {
-          setDecodedInvoice(null)
-          toast.warning(t('ecash.error.invoiceDecodeFailed'))
-          return
-        }
-        try {
-          const lndDecoded = await decodeInvoice(cleanText)
-          setDecodedInvoice(lndDecoded)
-          if (!lndDecoded.num_satoshis) {
-            return
-          }
-          setAmount(lndDecoded.num_satoshis)
-        } catch {
-          setDecodedInvoice(null)
-          toast.warning(t('ecash.error.invoiceDecodeFailed'))
-        }
-      }
-    },
-    [isConnected, decodeInvoice]
-  )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const { width } = useWindowDimensions()
+  const qrSize = Math.floor(width * 0.88)
 
   useEffect(() => {
     if (invoiceParam) {
@@ -349,15 +86,53 @@ export default function EcashSendPage() {
         ? invoiceParam[0]
         : invoiceParam
       if (invoiceValue) {
-        setInvoice(invoiceValue)
         setActiveTab('lightning')
-        // Process the invoice to detect if it's LNURL or bolt11
         handleInvoiceChange(invoiceValue)
       }
     }
-  }, [invoiceParam, handleInvoiceChange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceParam])
 
-  const handlePasteInvoice = useCallback(async () => {
+  const chunks = getTokenURFragments()
+  const totalChunks = chunks.length
+  const isMultiPart = totalChunks > 1
+
+  useEffect(() => {
+    if (!animatedQR || !isMultiPart) {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+        animationRef.current = null
+      }
+      setCurrentChunkIndex(0)
+      return
+    }
+
+    const animate = (timestamp: number) => {
+      if (timestamp - lastUpdateRef.current >= ANIMATED_QR_INTERVAL_MS) {
+        setCurrentChunkIndex((prev) => (prev + 1) % totalChunks)
+        lastUpdateRef.current = timestamp
+      }
+      animationRef.current = requestAnimationFrame(animate)
+    }
+
+    animationRef.current = requestAnimationFrame(animate)
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+        animationRef.current = null
+      }
+    }
+  }, [
+    animatedQR,
+    isMultiPart,
+    totalChunks,
+    animationRef,
+    lastUpdateRef,
+    setCurrentChunkIndex
+  ])
+
+  async function handlePasteInvoice() {
     try {
       const clipboardText = await Clipboard.getStringAsync()
       if (clipboardText) {
@@ -369,54 +144,23 @@ export default function EcashSendPage() {
     } catch {
       toast.error(t('ecash.error.failedToPaste'))
     }
-  }, [handleInvoiceChange])
+  }
 
-  const handleScanInvoice = useCallback(() => {
-    setCameraModalVisible(true)
-  }, [])
+  function handleContentScanned(content: DetectedContent) {
+    setCameraModalVisible(false)
+    const cleanData = content.cleaned.replace(/^lightning:/i, '')
+    handleInvoiceChange(cleanData)
+    toast.success(t('ecash.success.invoiceScanned'))
+  }
 
-  const handleContentScanned = useCallback(
-    (content: DetectedContent) => {
-      setCameraModalVisible(false)
-      // Clean the data (remove any whitespace and lightning: prefix)
-      const cleanData = content.cleaned.replace(/^lightning:/i, '')
-      handleInvoiceChange(cleanData)
-      toast.success(t('ecash.success.invoiceScanned'))
-    },
-    [handleInvoiceChange]
-  )
-
-  const handleCopyToken = useCallback(async () => {
+  async function handleCopyToken() {
     try {
       await Clipboard.setStringAsync(generatedToken)
       toast.success(t('common.copiedToClipboard'))
     } catch {
       toast.error(t('ecash.error.failedToCopy'))
     }
-  }, [generatedToken])
-
-  const handleEmitNFC = useCallback(async () => {
-    if (!generatedToken) {
-      toast.error(t('ecash.error.noTokenToEmit'))
-      return
-    }
-
-    if (!nfcAvailable) {
-      toast.error(t('ecash.error.nfcNotAvailable'))
-      return
-    }
-
-    try {
-      await emitNFCTag(generatedToken)
-      if (generatedToken.length > 8192) {
-        toast.warning(t('ecash.warning.tokenTruncated'))
-      } else {
-        toast.success(t('ecash.success.tokenEmitted'))
-      }
-    } catch {
-      toast.error(t('ecash.error.nfcEmissionFailed'))
-    }
-  }, [generatedToken, nfcAvailable, emitNFCTag])
+  }
 
   return (
     <SSMainLayout>
@@ -427,20 +171,12 @@ export default function EcashSendPage() {
       />
       <ScrollView>
         <SSVStack gap="lg" style={{ paddingBottom: 60 }}>
-          <SSHStack>
-            <SSButton
-              label={t('ecash.send.ecashTab')}
-              variant={activeTab === 'ecash' ? 'outline' : 'subtle'}
-              style={{ flex: 1 }}
-              onPress={() => setActiveTab('ecash')}
-            />
-            <SSButton
-              label={t('ecash.send.lightningTab')}
-              variant={activeTab === 'lightning' ? 'outline' : 'subtle'}
-              style={{ flex: 1 }}
-              onPress={() => setActiveTab('lightning')}
-            />
-          </SSHStack>
+          <SSEcashLightningTabs
+            activeTab={activeTab}
+            ecashLabel={t('ecash.send.ecashTab')}
+            lightningLabel={t('ecash.send.lightningTab')}
+            onChange={setActiveTab}
+          />
           {activeTab === 'ecash' && (
             <SSVStack gap="md">
               <SSVStack gap="xs">
@@ -458,6 +194,7 @@ export default function EcashSendPage() {
                   )}
                   fiatCurrency={fiatCurrency}
                   btcPrice={btcPrice}
+                  privacyMode={privacyMode}
                   satsToFiat={satsToFiat}
                 />
               </SSVStack>
@@ -474,15 +211,118 @@ export default function EcashSendPage() {
               </SSVStack>
               <SSButton
                 label={t('ecash.send.generateToken')}
-                onPress={handleGenerateToken}
+                onPress={generateToken}
                 loading={isGenerating}
                 variant="gradient"
                 gradientType="special"
               />
 
-              {/* Generated Token Display */}
               {generatedToken && (
-                <SSVStack gap="xs">
+                <SSVStack gap="sm">
+                  <SSHStack gap="sm">
+                    <Pressable
+                      onPress={() => setTokenVersion('v4')}
+                      style={[
+                        styles.qrToggleTab,
+                        tokenVersion === 'v4'
+                          ? styles.qrToggleTabActive
+                          : styles.qrToggleTabInactive
+                      ]}
+                    >
+                      <SSText
+                        center
+                        uppercase
+                        weight="medium"
+                        style={{
+                          color:
+                            tokenVersion === 'v4'
+                              ? Colors.white
+                              : Colors.gray[50]
+                        }}
+                      >
+                        {t('ecash.send.tokenV4')}
+                      </SSText>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setTokenVersion('v3')}
+                      style={[
+                        styles.qrToggleTab,
+                        tokenVersion === 'v3'
+                          ? styles.qrToggleTabActive
+                          : styles.qrToggleTabInactive
+                      ]}
+                    >
+                      <SSText
+                        center
+                        uppercase
+                        weight="medium"
+                        style={{
+                          color:
+                            tokenVersion === 'v3'
+                              ? Colors.white
+                              : Colors.gray[50]
+                        }}
+                      >
+                        {t('ecash.send.tokenV3')}
+                      </SSText>
+                    </Pressable>
+                  </SSHStack>
+                  <SSVStack gap="xs" itemsCenter>
+                    <SSQRCode
+                      value={getQRValue(chunks)}
+                      size={qrSize}
+                      ecl={animatedQR && isMultiPart ? 'M' : 'H'}
+                    />
+                    <SSText color="muted" size="xs" style={styles.chunkCounter}>
+                      {animatedQR && isMultiPart
+                        ? `${currentChunkIndex + 1} / ${totalChunks}`
+                        : ''}
+                    </SSText>
+                    {isMultiPart && (
+                      <SSHStack gap="sm">
+                        <Pressable
+                          onPress={() => setAnimatedQR(false)}
+                          style={[
+                            styles.qrToggleTab,
+                            animatedQR
+                              ? styles.qrToggleTabInactive
+                              : styles.qrToggleTabActive
+                          ]}
+                        >
+                          <SSText
+                            center
+                            uppercase
+                            weight="medium"
+                            style={{
+                              color: animatedQR ? Colors.gray[50] : Colors.white
+                            }}
+                          >
+                            {t('ecash.send.staticQR')}
+                          </SSText>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => setAnimatedQR(true)}
+                          style={[
+                            styles.qrToggleTab,
+                            animatedQR
+                              ? styles.qrToggleTabActive
+                              : styles.qrToggleTabInactive
+                          ]}
+                        >
+                          <SSText
+                            center
+                            uppercase
+                            weight="medium"
+                            style={{
+                              color: animatedQR ? Colors.white : Colors.gray[50]
+                            }}
+                          >
+                            {t('ecash.send.animatedQR')}
+                          </SSText>
+                        </Pressable>
+                      </SSHStack>
+                    )}
+                  </SSVStack>
                   <SSText color="muted" size="xs" uppercase>
                     {t('ecash.send.generatedToken')}
                   </SSText>
@@ -492,39 +332,22 @@ export default function EcashSendPage() {
                     editable={false}
                     style={styles.tokenInput}
                   />
-                  <SSVStack gap="sm">
-                    <SSHStack gap="sm">
-                      <SSButton
-                        label={t('common.copy')}
-                        onPress={handleCopyToken}
-                        variant="subtle"
-                        style={{ flex: 1 }}
-                      />
-                      <SSButton
-                        label={
-                          showQRCode ? t('common.hide') : t('common.showQR')
-                        }
-                        onPress={() => setShowQRCode(!showQRCode)}
-                        variant="subtle"
-                        style={{ flex: 1 }}
-                      />
-                    </SSHStack>
+                  <SSHStack gap="sm">
+                    <SSButton
+                      label={t('common.copy')}
+                      onPress={handleCopyToken}
+                      variant="subtle"
+                      style={{ flex: 1 }}
+                    />
                     <SSButton
                       label={t('common.emitNFC')}
-                      onPress={handleEmitNFC}
+                      onPress={emitNFC}
                       variant="subtle"
                       loading={isEmitting}
-                      disabled={!nfcAvailable || !generatedToken}
+                      disabled={!nfcHardwareSupported || !generatedToken}
+                      style={{ flex: 1 }}
                     />
-                  </SSVStack>
-                  {showQRCode && (
-                    <SSVStack gap="xs" itemsCenter>
-                      <SSText color="muted" size="xs" uppercase>
-                        {t('ecash.send.qrCode')}
-                      </SSText>
-                      <SSQRCode value={generatedToken} size={300} ecl="H" />
-                    </SSVStack>
-                  )}
+                  </SSHStack>
                 </SSVStack>
               )}
             </SSVStack>
@@ -550,7 +373,7 @@ export default function EcashSendPage() {
                   />
                   <SSButton
                     label={t('common.scan')}
-                    onPress={handleScanInvoice}
+                    onPress={() => setCameraModalVisible(true)}
                     variant="subtle"
                     style={{ flex: 1 }}
                   />
@@ -560,6 +383,7 @@ export default function EcashSendPage() {
                   <SSPaymentDetails
                     decodedInvoice={decodedInvoice}
                     fiatCurrency={fiatCurrency}
+                    privacyMode={privacyMode}
                     satsToFiat={satsToFiat}
                   />
                 )}
@@ -575,19 +399,19 @@ export default function EcashSendPage() {
                     onCommentChange={setComment}
                     inputStyles={styles.input}
                     fiatCurrency={fiatCurrency}
+                    privacyMode={privacyMode}
                     satsToFiat={satsToFiat}
                   />
                 )}
               </SSVStack>
               <SSButton
                 label={t('ecash.send.meltTokens')}
-                onPress={handleMeltTokens}
+                onPress={meltTokens}
                 loading={isMelting || isFetchingLNURL}
                 variant="gradient"
                 gradientType="special"
               />
 
-              {/* Status Message */}
               {statusMessage && (
                 <SSText color="muted" size="sm">
                   {statusMessage}
@@ -602,19 +426,18 @@ export default function EcashSendPage() {
         onClose={() => setCameraModalVisible(false)}
         onContentScanned={handleContentScanned}
         context="ecash"
-        title="Scan Lightning Invoice"
+        title={t('ecash.send.scanLightningInvoice')}
       />
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  fiatAmount: {
-    marginLeft: 4,
-    marginTop: 4
+  chunkCounter: {
+    height: 16
   },
   input: {
-    backgroundColor: '#242424',
+    backgroundColor: Colors.gray[850],
     borderRadius: 3,
     color: 'white',
     fontSize: 16,
@@ -625,6 +448,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     height: 'auto',
     padding: 10
+  },
+  qrToggleTab: {
+    alignItems: 'center',
+    borderRadius: Sizes.button.borderRadius,
+    flex: 1,
+    height: Sizes.button.height,
+    justifyContent: 'center'
+  },
+  qrToggleTabActive: {
+    borderColor: Colors.gray[75],
+    borderWidth: 1
+  },
+  qrToggleTabInactive: {
+    backgroundColor: Colors.gray[800]
   },
   tokenInput: {
     fontFamily: 'monospace',

@@ -50,7 +50,8 @@ export default function ImportDescriptor() {
   const router = useRouter()
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
-  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
+  const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
+    useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
 
@@ -791,7 +792,7 @@ export default function ImportDescriptor() {
                       : t('watchonly.read.nfc')
                   }
                   onPress={handleNFCRead}
-                  disabled={!isAvailable}
+                  disabled={!isHardwareSupported}
                 />
               </Animated.View>
             </SSVStack>

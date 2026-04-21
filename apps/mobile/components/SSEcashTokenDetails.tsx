@@ -10,18 +10,20 @@ import { formatNumber } from '@/utils/format'
 
 type SSEcashTokenDetailsProps = {
   decodedToken: EcashToken
+  fiatCurrency: string
+  privacyMode?: boolean
+  satsToFiat: (amount: number) => number
   showMint?: boolean
   showProofs?: boolean
-  fiatCurrency: string
-  satsToFiat: (amount: number) => number
 }
 
 function SSEcashTokenDetails({
   decodedToken,
-  showMint = true,
-  showProofs = true,
   fiatCurrency,
-  satsToFiat
+  privacyMode = false,
+  satsToFiat,
+  showMint = true,
+  showProofs = true
 }: SSEcashTokenDetailsProps) {
   const totalAmount = decodedToken.proofs.reduce(
     (sum, proof) => sum + proof.amount,
@@ -38,9 +40,13 @@ function SSEcashTokenDetails({
               {t('ecash.tokenDetails.amount')}
             </SSText>
             <SSHStack gap="xs" style={styles.amountContainer}>
-              <SSText weight="medium">{totalAmount} sats</SSText>
+              <SSText weight="medium">
+                {privacyMode ? '•••• sats' : `${totalAmount} sats`}
+              </SSText>
               <SSText color="muted" size="sm">
-                {`≈ ${formatNumber(satsToFiat(totalAmount), 2)} ${fiatCurrency}`}
+                {privacyMode
+                  ? `≈ •••• ${fiatCurrency}`
+                  : `≈ ${formatNumber(satsToFiat(totalAmount), 2)} ${fiatCurrency}`}
               </SSText>
             </SSHStack>
           </SSHStack>
@@ -91,7 +97,7 @@ function SSEcashTokenDetails({
                 </SSText>
                 <SSHStack gap="xs" style={styles.proofContainer}>
                   <SSText weight="medium" size="sm">
-                    {proof.amount} sats
+                    {privacyMode ? '•••• sats' : `${proof.amount} sats`}
                   </SSText>
                   <SSText
                     size="xs"

@@ -22,7 +22,7 @@ type SSPasteProps = {
   visible: boolean
   onClose: () => void
   onContentPasted: (content: DetectedContent) => void
-  context: 'bitcoin' | 'lightning' | 'ecash'
+  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
 }
 
 function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
@@ -134,7 +134,17 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         return
       }
 
-      if (detectedContent.type === 'psbt') {
+      const autoCloseTypes = [
+        'psbt',
+        'nostr_npub',
+        'nostr_nsec',
+        'nostr_note',
+        'nostr_nevent',
+        'nostr_nprofile',
+        'nostr_json'
+      ]
+
+      if (autoCloseTypes.includes(detectedContent.type)) {
         setTimeout(() => {
           onClose()
           setIsProcessing(false)
@@ -158,6 +168,8 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         return t('paste.title.lightning')
       case 'ecash':
         return t('paste.title.ecash')
+      case 'nostr':
+        return t('paste.title.nostr')
       default:
         return t('paste.title.default')
     }
@@ -171,6 +183,8 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         return t('paste.description.lightning')
       case 'ecash':
         return t('paste.description.ecash')
+      case 'nostr':
+        return t('paste.description.nostr')
       default:
         return t('paste.description.default')
     }
@@ -218,6 +232,15 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
           return t('paste.button.processSeed')
         case 'ur':
           return t('paste.button.processUR')
+        case 'nostr_note':
+        case 'nostr_nevent':
+          return t('paste.button.loadNote')
+        case 'nostr_npub':
+        case 'nostr_nprofile':
+          return t('paste.button.loadProfile')
+        case 'nostr_nsec':
+        case 'nostr_json':
+          return t('paste.button.processNostr')
         default:
           return t('paste.button.processContent')
       }

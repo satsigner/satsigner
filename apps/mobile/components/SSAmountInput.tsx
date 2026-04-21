@@ -18,6 +18,7 @@ type SSAmountInputProps = {
   remainingSats: number
   fiatCurrency: string
   btcPrice: number
+  privacyMode?: boolean
   satsToFiat: (sats: number) => number
   onValueChange: (value: number) => void
 }
@@ -29,6 +30,7 @@ function SSAmountInput({
   remainingSats,
   fiatCurrency,
   btcPrice,
+  privacyMode = false,
   satsToFiat,
   onValueChange
 }: SSAmountInputProps) {
@@ -97,35 +99,44 @@ function SSAmountInput({
           <SSText
             color="muted"
             size="lg"
-            onPress={canSwitchMode ? handleSwitchToFiat : undefined}
-            style={canSwitchMode ? styles.switchable : undefined}
+            onPress={
+              canSwitchMode && !privacyMode ? handleSwitchToFiat : undefined
+            }
+            style={
+              canSwitchMode && !privacyMode ? styles.switchable : undefined
+            }
           >
-            {formatNumber(satsToFiat(localValue), 2)} {fiatCurrency}
+            {privacyMode
+              ? `•••• ${fiatCurrency}`
+              : `${formatNumber(satsToFiat(localValue), 2)} ${fiatCurrency}`}
           </SSText>
         ) : (
           <SSText
             color="muted"
             size="lg"
-            onPress={handleSwitchToSats}
-            style={styles.switchable}
+            onPress={privacyMode ? undefined : handleSwitchToSats}
+            style={privacyMode ? undefined : styles.switchable}
           >
-            {formatNumber(localValue, 0)} {t('bitcoin.sats')}
+            {privacyMode
+              ? `•••• ${t('bitcoin.sats')}`
+              : `${formatNumber(localValue, 0)} ${t('bitcoin.sats')}`}
           </SSText>
         )}
       </SSHStack>
       <SSHStack justifyBetween>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-          <SSText>{min}</SSText>
+          <SSText>{privacyMode && min > 0 ? '••••' : min}</SSText>
           <SSText color="muted">{t('bitcoin.sats')}</SSText>
         </SSHStack>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
           <SSText color="muted">
-            {t('common.remaining')} {formatNumber(remainingValue, 0)}{' '}
+            {t('common.remaining')}{' '}
+            {privacyMode ? '••••' : formatNumber(remainingValue, 0)}{' '}
             {t('bitcoin.sats')}
           </SSText>
         </SSHStack>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-          <SSText>{max}</SSText>
+          <SSText>{privacyMode ? '••••' : max}</SSText>
           <SSText color="muted">{t('bitcoin.sats')}</SSText>
         </SSHStack>
       </SSHStack>

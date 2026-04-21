@@ -6,14 +6,15 @@ import {
   type TextStyle,
   type ViewStyle,
   TouchableOpacity,
-  View
+  View,
+  type ViewProps
 } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
 import { SSIconChevronDown } from './icons'
 import SSBackgroundGradient from './SSBackgroundGradient'
-import SSText from './SSText'
+import SSText, { type SSTextProps } from './SSText'
 
 export type SSButtonProps = {
   label?: string
@@ -58,7 +59,7 @@ function getButtonVariantStyle(
     return styles.buttonDanger
   }
   if (variant === 'elevated') {
-    return [styles.buttonDefault, styles.buttonElevated]
+    return styles.buttonDefault
   }
   if (variant === 'default' && withSelect) {
     return styles.buttonWithSelect
@@ -77,6 +78,18 @@ function getTextVariantStyle(variant: SSButtonProps['variant']) {
     return styles.textSubtle
   }
   return styles.textDefault
+}
+
+function getLabelColor(
+  variant: SSButtonProps['variant']
+): SSTextProps['color'] {
+  if (variant === 'secondary') {
+    return 'black'
+  }
+  if (variant === 'ghost') {
+    return 'muted'
+  }
+  return 'white'
 }
 
 function SSButton({
@@ -116,6 +129,8 @@ function SSButton({
   const showDefaultGradient =
     variant === 'gradient' && gradientType === 'default'
 
+  const decorationPointerEvents: ViewProps['pointerEvents'] = 'none'
+
   return (
     <TouchableOpacity
       style={buttonStyle}
@@ -125,6 +140,7 @@ function SSButton({
     >
       {showLinearGradient && (
         <LinearGradient
+          pointerEvents={decorationPointerEvents}
           style={styles.buttonGradient}
           colors={['#212121', '#1C1C1C']}
           end={{ x: 0, y: 1 }}
@@ -134,6 +150,7 @@ function SSButton({
       {variant === 'elevated' && (
         <>
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderTop]}
             colors={[
               'rgba(255,255,255,0.08)',
@@ -157,12 +174,14 @@ function SSButton({
             }}
           />
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderBottom]}
             colors={['rgba(0,0,0,0.0)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.0)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           />
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderLeft]}
             colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.04)']}
             start={{
@@ -183,6 +202,7 @@ function SSButton({
             }}
           />
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderRight]}
             colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.02)']}
             start={{
@@ -204,28 +224,82 @@ function SSButton({
           />
         </>
       )}
+      {variant === 'outline' && (
+        <>
+          <LinearGradient
+            pointerEvents={decorationPointerEvents}
+            style={[styles.glassBorder, styles.glassBorderTop]}
+            colors={[
+              'rgba(255,255,255,0.16)',
+              'rgba(255,255,255,0.30)',
+              'rgba(255,255,255,0.18)'
+            ]}
+            locations={[0, 0.45, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+          <LinearGradient
+            pointerEvents={decorationPointerEvents}
+            style={[styles.glassBorder, styles.glassBorderBottom]}
+            colors={[
+              'rgba(255,255,255,0.06)',
+              'rgba(255,255,255,0.20)',
+              'rgba(255,255,255,0.06)'
+            ]}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+          <LinearGradient
+            pointerEvents={decorationPointerEvents}
+            style={[styles.glassBorder, styles.glassBorderLeft]}
+            colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.14)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
+          <LinearGradient
+            pointerEvents={decorationPointerEvents}
+            style={[styles.glassBorder, styles.glassBorderRight]}
+            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.13)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
+        </>
+      )}
       {showDefaultGradient && (
         <SSBackgroundGradient style={styles.buttonGradient} />
       )}
       {!loading ? (
-        icon || (
-          <SSText
-            uppercase={uppercase}
-            center
-            style={[textStyles, { width: '100%' }]}
-          >
-            {label}
-          </SSText>
+        icon ? (
+          <View pointerEvents="none" style={styles.labelLayer}>
+            {icon}
+          </View>
+        ) : (
+          <View pointerEvents="none" style={styles.labelLayer}>
+            <SSText
+              center
+              color={getLabelColor(variant)}
+              ellipsizeMode="tail"
+              numberOfLines={1}
+              style={[styles.buttonLabelSingleLine, textStyles]}
+              uppercase={uppercase}
+            >
+              {typeof label === 'string' ? label.replace(/\n/g, ' ') : label}
+            </SSText>
+          </View>
         )
       ) : (
-        <ActivityIndicator color={activityIndicatorColor} />
+        <View pointerEvents="none" style={styles.labelLayer}>
+          <ActivityIndicator color={activityIndicatorColor} />
+        </View>
       )}
       {withSelect && (
         <View
           style={{
             position: 'absolute',
             right: 15,
-            top: 28
+            top: 28,
+            zIndex: 3
           }}
         >
           <SSIconChevronDown height={5} width={11.6} />
@@ -248,6 +322,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: Sizes.button.height,
     justifyContent: 'center',
+    overflow: 'hidden',
     width: '100%'
   },
   buttonDanger: {
@@ -256,24 +331,25 @@ const styles = StyleSheet.create({
   buttonDefault: {
     backgroundColor: Colors.gray[600]
   },
-  buttonElevated: {
-    borderRadius: Sizes.button.borderRadius,
-    overflow: 'hidden'
-  },
   buttonGhost: {
     backgroundColor: Colors.transparent
   },
   buttonGradient: {
     alignItems: 'center',
+    borderRadius: Sizes.button.borderRadius,
     height: '100%',
     justifyContent: 'center',
     position: 'absolute',
     width: '100%'
   },
+  buttonLabelSingleLine: {
+    flexShrink: 1,
+    maxWidth: '100%',
+    paddingHorizontal: 12
+  },
   buttonOutline: {
     backgroundColor: Colors.transparent,
-    borderColor: Colors.white,
-    borderWidth: 1
+    borderWidth: 0
   },
   buttonSecondary: {
     backgroundColor: Colors.white
@@ -314,6 +390,12 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0
   },
+  labelLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2
+  },
   textDefault: {
     color: Colors.white,
     letterSpacing: 1
@@ -327,7 +409,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1
   },
   textSubtle: {
-    color: Colors.gray[100],
+    color: Colors.gray[75],
     letterSpacing: 1
   }
 })

@@ -89,6 +89,55 @@ export function getURFragmentsFromPSBT(
   return fragments
 }
 
+/**
+ * Encode a plain UTF-8 string (e.g. a Cashu token, BOLT11 invoice, descriptor)
+ * as UR:bytes fountain fragments. Fragment size is the maximum payload bytes
+ * per fragment before base32 expansion; tune to fit your QR density.
+ *
+ * Returns a factory that produces consecutive fragments when called repeatedly.
+ * For static rendering, call `nextPart()` for each animation tick. Fountain
+ * encoding automatically wraps past the last linear index and starts emitting
+ * XOR'd parity parts, so the receiver can finalize without seeing every index.
+ */
+export function createURBytesEncoder(payload: string, fragmentSize = 200) {
+  if (!payload) {
+    throw new Error('Empty payload for UR bytes encoder')
+  }
+
+  const payloadBytes = Buffer.from(payload, 'utf8')
+  // CBOR-encode the UTF-8 bytes as a CBOR byte string. This matches what
+  // `decodeURGeneric`/`processURGenericBytes` expects for `ur:bytes`.
+  const cborData = createCryptoPsbtCBOR(payloadBytes)
+  const ur = new UR(Buffer.from(Array.from(cborData)), 'bytes')
+  const encoder = new UREncoder(ur, Math.max(20, fragmentSize))
+
+  return {
+    nextPart(): string {
+      return encoder.nextPart().toUpperCase()
+    },
+    totalPartCount: encoder.fragments.length
+  }
+}
+
+/**
+ * Generate a static list of UR:bytes fragments (single pass, no fountain
+ * parity). Useful when you want to render a fixed-length animation cycle.
+ */
+export function getURBytesFragments(
+  payload: string,
+  fragmentSize = 200
+): string[] {
+  const encoder = createURBytesEncoder(payload, fragmentSize)
+  const fragments: string[] = []
+  for (let i = 0; i < encoder.totalPartCount; i += 1) {
+    fragments.push(encoder.nextPart())
+  }
+  if (fragments.length === 0) {
+    throw new Error('No UR fragments produced')
+  }
+  return fragments
+}
+
 export function decodeURToPSBT(ur: string): string {
   // Try using URDecoder for proper UR parsing
   const decoder = new URDecoder()
@@ -183,26 +232,128 @@ export function decodeURGeneric(ur: string) {
     throw new Error('UR decoder not complete after receiving part')
   }
 
-  const result = decoder.resultUR()
-  const cborData = result.cbor
-  const cborBytes = new Uint8Array(cborData)
+  return processURGenericResult(decoder.resultUR())
+}
 
-  if (result.type === 'bytes') {
-    const decodedString = isCBORByteStringLike(cborBytes)
-      ? Buffer.from(parseCBORByteString(cborBytes)).toString('utf8')
-      : Buffer.from(cborBytes).toString('utf8')
+/**
+ * Streaming UR decoder that keeps a single URDecoder instance alive across
+ * multiple QR frames. Use this in scanners so fountain-encoded sequences can
+ * accumulate parity across scans instead of restarting on every frame.
+ */
+export type URStreamDecoder = {
+  /** Feed a raw UR fragment. Returns true if the fragment was accepted. */
+  receivePart: (fragment: string) => boolean
+  /** Estimated completion in [0, 1]. */
+  progress: () => number
+  /** True once the decoder has enough fragments to reconstruct the payload. */
+  isComplete: () => boolean
+  /**
+   * Returns the decoded payload when complete, or null otherwise. For
+   * `bytes` UR types the result is a UTF-8 string (typical for cashu tokens,
+   * BOLT11 invoices, descriptors, etc.). For binary payloads (e.g.
+   * `crypto-psbt`) the result is a hex-encoded string.
+   */
+  result: () => string | null
+  /** Detected UR type (e.g. "bytes", "crypto-psbt"), or null before any part. */
+  type: () => string | null
+  /** Expected sequence length from the first fragment, or 0 if unknown. */
+  expectedPartCount: () => number
+  /** Number of unique indices successfully received. */
+  receivedPartCount: () => number
+  /** Drop all accumulated state. */
+  reset: () => void
+}
 
-    return normalizeCashuTokenString(decodedString)
+export function createURStreamDecoder(): URStreamDecoder {
+  let decoder = new URDecoder()
+  let urType: string | null = null
+  let expectedParts = 0
+  const receivedIndices = new Set<number>()
+
+  function parseHeader(fragment: string) {
+    const match = fragment.match(/^ur:([^/]+)\/(?:(\d+)-(\d+)\/)?/i)
+    if (!match) {
+      return
+    }
+    const [, typeStr, seqStr, totalStr] = match
+    if (!urType) {
+      urType = typeStr.toLowerCase()
+    }
+    if (seqStr && totalStr) {
+      const seq = parseInt(seqStr, 10)
+      const total = parseInt(totalStr, 10)
+      if (!Number.isNaN(seq)) {
+        receivedIndices.add(seq)
+      }
+      if (!Number.isNaN(total) && total > expectedParts) {
+        expectedParts = total
+      }
+    } else {
+      expectedParts = Math.max(expectedParts, 1)
+      receivedIndices.add(1)
+    }
   }
 
-  if (isCBORByteStringLike(cborBytes)) {
-    const parsedBytes = parseCBORByteString(cborBytes)
-    const hexResult = Buffer.from(Array.from(parsedBytes)).toString('hex')
-    return hexResult
+  return {
+    expectedPartCount() {
+      return expectedParts
+    },
+    isComplete() {
+      try {
+        return decoder.isComplete() === true
+      } catch {
+        return false
+      }
+    },
+    progress() {
+      try {
+        const p = decoder.estimatedPercentComplete()
+        if (typeof p === 'number' && !Number.isNaN(p)) {
+          return p
+        }
+      } catch {
+        /* ignore */
+      }
+      if (expectedParts > 0) {
+        return Math.min(1, receivedIndices.size / expectedParts)
+      }
+      return 0
+    },
+    receivePart(fragment: string) {
+      parseHeader(fragment)
+      try {
+        return decoder.receivePart(fragment) ?? false
+      } catch {
+        return false
+      }
+    },
+    receivedPartCount() {
+      return receivedIndices.size
+    },
+    reset() {
+      decoder = new URDecoder()
+      urType = null
+      expectedParts = 0
+      receivedIndices.clear()
+    },
+    result() {
+      try {
+        if (!decoder.isComplete()) {
+          return null
+        }
+        const ur = decoder.resultUR()
+        if (!ur || !ur.cbor) {
+          return null
+        }
+        return processURGenericResult(ur)
+      } catch {
+        return null
+      }
+    },
+    type() {
+      return urType
+    }
   }
-
-  const hexResult = Buffer.from(Array.from(cborData)).toString('hex')
-  return hexResult
 }
 
 export async function decodeMultiPartURToPSBT(
@@ -298,14 +449,11 @@ export async function decodeMultiPartURToPSBT(
 }
 
 function processURGenericBytes(cborData: Uint8Array) {
-  const parsedBytes = parseCBORByteString(cborData)
-  const decodedString = Buffer.from(parsedBytes).toString('utf8')
+  const decodedString = isCBORByteStringLike(cborData)
+    ? Buffer.from(parseCBORByteString(cborData)).toString('utf8')
+    : Buffer.from(cborData).toString('utf8')
 
-  if (decodedString.includes('cashuA') || decodedString.includes('cashuB')) {
-    return decodedString.replace(/[^\x20-\x7E]/g, '').trim()
-  }
-
-  return decodedString
+  return normalizeCashuTokenString(decodedString)
 }
 
 function processURGenericResult(result: UR) {
@@ -319,8 +467,12 @@ function processURGenericResult(result: UR) {
     return processURGenericBytes(cborData)
   }
 
-  const parsedBytes = parseCBORByteString(cborData)
-  return Buffer.from(Array.from(parsedBytes)).toString('hex')
+  if (isCBORByteStringLike(cborData)) {
+    const parsedBytes = parseCBORByteString(cborData)
+    return Buffer.from(Array.from(parsedBytes)).toString('hex')
+  }
+
+  return Buffer.from(Array.from(cborData)).toString('hex')
 }
 
 export function decodeMultiPartURGeneric(urFragments: string[]): string {

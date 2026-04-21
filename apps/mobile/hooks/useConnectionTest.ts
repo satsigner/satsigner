@@ -20,10 +20,16 @@ type NodeInfo = {
   hashRate?: string
 }
 
-type testResponse = {
-  success: boolean
-  error?: string
-}
+export type ConnectionTestResult =
+  | {
+      success: true
+      blockHeight?: number
+      tipTimestampSec?: number
+    }
+  | {
+      success: false
+      error?: string
+    }
 
 export function useConnectionTest() {
   const [testing, setTesting] = useState(false)
@@ -51,7 +57,7 @@ export function useConnectionTest() {
     backend: Backend,
     network: Network,
     proxy?: ProxyConfig
-  ): Promise<testResponse> {
+  ): Promise<ConnectionTestResult> {
     // Debounce rapid connection attempts to prevent memory issues
     const now = Date.now()
     if (now - lastTestTime < 2000) {
@@ -69,7 +75,7 @@ export function useConnectionTest() {
     const startTime = Date.now()
     const connectionTimeout = 10_000
 
-    async function testPromise(): Promise<testResponse> {
+    async function testPromise(): Promise<ConnectionTestResult> {
       if (backend === 'electrum') {
         const client = ElectrumClient.fromUrl(url, network)
 
@@ -98,6 +104,15 @@ export function useConnectionTest() {
           }
         } catch {
           // optional — not all servers support headers subscribe
+        }
+
+        let tipTimestampSec: number | undefined
+        if (blockHeight > 0) {
+          try {
+            tipTimestampSec = await client.getBlockTimestamp(blockHeight)
+          } catch {
+            // optional — not all servers expose block headers reliably
+          }
         }
 
         // Try mempool fee histogram for mempool size
@@ -135,7 +150,9 @@ export function useConnectionTest() {
         }
 
         return {
-          success: true
+          blockHeight: blockHeight > 0 ? blockHeight : undefined,
+          success: true,
+          tipTimestampSec
         }
       } else if (backend === 'esplora') {
         // Test Esplora connection and get server info
@@ -144,7 +161,9 @@ export function useConnectionTest() {
         // Store current client for cleanup
         setCurrentClient(client)
 
-        const blockHeight = await client.getLatestBlockHeight()
+        const rawHeight = await client.getLatestBlockHeight()
+        const blockHeight =
+          typeof rawHeight === 'number' ? rawHeight : Number(rawHeight)
         const responseTime = Date.now() - startTime
 
         const mempoolInfo = await client._call('/mempool')
@@ -152,6 +171,23 @@ export function useConnectionTest() {
 
         const feeEstimates = await client.getFeeEstimates()
         const medianFee = feeEstimates['6'] || feeEstimates['3'] || undefined
+
+        let tipTimestampSec: number | undefined
+        if (Number.isFinite(blockHeight) && blockHeight > 0) {
+          try {
+            const tipHash = (await client.getBlockAtHeight(
+              blockHeight
+            )) as string
+            const blockJson = (await client.getBlockInfo(tipHash)) as {
+              timestamp?: number
+            }
+            if (typeof blockJson?.timestamp === 'number') {
+              tipTimestampSec = blockJson.timestamp
+            }
+          } catch {
+            // optional
+          }
+        }
 
         setNodeInfo({
           blockHeight,
@@ -163,7 +199,9 @@ export function useConnectionTest() {
         })
 
         return {
-          success: true
+          blockHeight: Number.isFinite(blockHeight) ? blockHeight : undefined,
+          success: true,
+          tipTimestampSec
         }
       }
       throw new Error('Unknown backend')
@@ -210,6 +248,8 @@ export function useConnectionTest() {
         error: errorMessage,
         success: false
       }
+    } finally {
+      setTesting(false)
     }
   }
 

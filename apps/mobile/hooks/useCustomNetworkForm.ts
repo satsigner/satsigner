@@ -20,6 +20,21 @@ import { trimOnionAddress } from '@/utils/format'
 const DEFAULT_PROXY_HOST = 'localhost'
 const DEFAULT_PROXY_PORT = 9050
 
+/** ssl://host:port, tcp://..., optional :s or :t mode suffix */
+const ELECTRUM_FULL_URL_WITH_MODE_REGEX =
+  /^(ssl|tls|tcp|electrum):\/\/([^:/\s]+):(\d+)(?::([st]))?$/i
+
+/** host:port with optional :s / :t (Electrum shorthand, no scheme) */
+const ELECTRUM_HOST_PORT_WITH_MODE_REGEX = /^([^:/\s]+):(\d+)(?::([st]))?$/i
+
+/** v2 or v3 onion service hostname only */
+const ELECTRUM_ONION_HOST_ONLY_REGEX = /^[a-z2-7]{16,56}\.onion$/i
+
+/** Persisted electrum server URL from settings (scheme, host, port) */
+const STORED_ELECTRUM_SERVER_URL_REGEX = /^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/
+
+const TRIM_SURROUNDING_QUOTES_REGEX = /^['"]+|['"]+$/g
+
 type CustomNetworkFormData = {
   backend: Backend
   name: string
@@ -27,6 +42,51 @@ type CustomNetworkFormData = {
   host: string
   port: string
   proxy: ProxyConfig
+}
+
+type ParsedElectrumUrl = {
+  host: string
+  port: string
+  protocol: 'ssl' | 'tcp'
+}
+
+function parseElectrumUrl(normalized: string): ParsedElectrumUrl | null {
+  const protocolUrlMatch = normalized.match(ELECTRUM_FULL_URL_WITH_MODE_REGEX)
+
+  if (protocolUrlMatch) {
+    const [, scheme, host, port, mode] = protocolUrlMatch
+    const protocol =
+      mode === 't' || scheme.toLowerCase() === 'tcp' ? 'tcp' : 'ssl'
+
+    return {
+      host,
+      port,
+      protocol
+    }
+  }
+
+  const hostPortModeMatch = normalized.match(ELECTRUM_HOST_PORT_WITH_MODE_REGEX)
+
+  if (hostPortModeMatch) {
+    const [, host, port, mode] = hostPortModeMatch
+
+    return {
+      host,
+      port,
+      protocol: mode === 't' ? 'tcp' : 'ssl'
+    }
+  }
+
+  const onionHostOnlyMatch = normalized.match(ELECTRUM_ONION_HOST_ONLY_REGEX)
+  if (onionHostOnlyMatch) {
+    return {
+      host: onionHostOnlyMatch[0],
+      port: '50002',
+      protocol: 'ssl'
+    }
+  }
+
+  return null
 }
 
 export function useCustomNetworkForm() {
@@ -91,7 +151,7 @@ export function useCustomNetworkForm() {
 
   const loadServer = useCallback((server: Server) => {
     if (server.backend === 'electrum') {
-      const match = server.url.match(/^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/)
+      const match = server.url.match(STORED_ELECTRUM_SERVER_URL_REGEX)
       const protocol =
         match && (match[1] === 'ssl' || match[1] === 'tls') ? 'ssl' : 'tcp'
       const host = match ? match[2] : ''
@@ -137,21 +197,25 @@ export function useCustomNetworkForm() {
     if (!raw) {
       return false
     }
-    const electrumMatch = raw.match(/^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/)
-    if (electrumMatch) {
-      const protocol =
-        electrumMatch[1] === 'ssl' || electrumMatch[1] === 'tls' ? 'ssl' : 'tcp'
+    const candidate = raw.replace(TRIM_SURROUNDING_QUOTES_REGEX, '').trim()
+    if (!candidate) {
+      return false
+    }
+
+    const electrumUrl = parseElectrumUrl(candidate)
+
+    if (electrumUrl) {
       setFormData((prev) => ({
         ...prev,
         backend: 'electrum',
-        host: electrumMatch[2],
-        port: electrumMatch[3],
-        protocol
+        host: electrumUrl.host,
+        port: electrumUrl.port,
+        protocol: electrumUrl.protocol
       }))
       return true
     }
     try {
-      const u = new URL(raw)
+      const u = new URL(candidate)
       if (u.protocol !== 'https:') {
         return false
       }

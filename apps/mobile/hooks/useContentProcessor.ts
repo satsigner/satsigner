@@ -4,7 +4,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { type Href } from 'expo-router'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
@@ -22,15 +22,26 @@ import {
 } from '@/utils/psbt'
 import { selectEfficientUtxos } from '@/utils/utxo'
 
+export type BitcoinUriExceedsBalancePromptInfo = {
+  address: string
+  availableBalanceSats: number
+  label: string
+  requestedAmountSats: number
+}
+
 type ProcessorActions = {
   navigate: (path: Href) => void
   clearTransaction?: () => void
+  setAccountId?: (accountId: string) => void
   addOutput?: (output: { amount: number; label: string; to: string }) => void
   addInput?: (input: Utxo) => void
   setFeeRate?: (rate: number) => void
   setRbf?: (enabled: boolean) => void
   setSignedPsbts?: (psbts: Map<number, string>) => void
   setPsbt?: (psbt: PsbtLike) => void
+  promptBitcoinUriExceedsBalance?: (
+    info: BitcoinUriExceedsBalancePromptInfo
+  ) => Promise<'cancel' | 'without_amount'>
 }
 
 function autoSelectUtxos(
@@ -74,6 +85,24 @@ function autoSelectUtxos(
   }
 }
 
+function commitBitcoinUriToIoPreview(
+  actions: ProcessorActions,
+  accountId: string,
+  account: Account | undefined,
+  address: string,
+  label: string,
+  amountSats: number
+) {
+  actions.addOutput?.({ amount: amountSats, label, to: address })
+  if (account) {
+    autoSelectUtxos(account, amountSats, actions)
+  }
+  actions.navigate({
+    params: { id: accountId },
+    pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
+  })
+}
+
 async function processBitcoinContent(
   content: DetectedContent,
   actions: ProcessorActions,
@@ -85,6 +114,8 @@ async function processBitcoinContent(
   if (clearTransaction) {
     clearTransaction()
   }
+
+  actions.setAccountId?.(accountId)
 
   switch (content.type) {
     case 'psbt': {
@@ -250,6 +281,62 @@ async function processBitcoinContent(
       break
 
     case 'bitcoin_uri': {
+      const commitOrPromptBitcoinUri = async (
+        address: string,
+        label: string,
+        amountSats: number
+      ): Promise<'cancel' | 'dust' | 'ok'> => {
+        if (amountSats > 1 && amountSats < DUST_LIMIT) {
+          actions.addOutput?.({
+            amount: amountSats,
+            label,
+            to: address
+          })
+          if (account) {
+            autoSelectUtxos(account, amountSats, actions)
+          }
+          actions.navigate({
+            params: { dustWarning: '1', id: accountId },
+            pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
+          })
+          return 'dust'
+        }
+
+        if (account?.summary && amountSats > account.summary.balance) {
+          if (actions.promptBitcoinUriExceedsBalance) {
+            const choice = await actions.promptBitcoinUriExceedsBalance({
+              address,
+              availableBalanceSats: account.summary.balance,
+              label,
+              requestedAmountSats: amountSats
+            })
+            if (choice === 'cancel') {
+              return 'cancel'
+            }
+            commitBitcoinUriToIoPreview(
+              actions,
+              accountId,
+              account,
+              address,
+              label,
+              1
+            )
+            return 'ok'
+          }
+          return 'cancel'
+        }
+
+        commitBitcoinUriToIoPreview(
+          actions,
+          accountId,
+          account,
+          address,
+          label,
+          amountSats
+        )
+        return 'ok'
+      }
+
       try {
         let uriToDecode = content.cleaned
         if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
@@ -258,28 +345,13 @@ async function processBitcoinContent(
 
         const parsed = parseBitcoinUri(uriToDecode)
         if (parsed.isValid && parsed.address) {
-          const amount = (parsed.amount || 0) * SATS_PER_BITCOIN || 1
-
-          if (account && account.summary && amount > account.summary.balance) {
-            return
-          }
-
-          if (addOutput) {
-            addOutput({
-              amount,
-              label: parsed.label || '',
-              to: parsed.address
-            })
-          }
-
-          if (account && addOutput) {
-            autoSelectUtxos(account, amount, actions)
-          }
-
-          navigate({
-            params: { id: accountId },
-            pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
-          })
+          const amountSats =
+            Math.round((parsed.amount || 0) * SATS_PER_BITCOIN) || 1
+          await commitOrPromptBitcoinUri(
+            parsed.address,
+            parsed.label || '',
+            amountSats
+          )
         } else {
           const addressMatch = content.cleaned.match(
             /^([a-zA-Z0-9]{26,62})(\?.*)?$/
@@ -288,7 +360,7 @@ async function processBitcoinContent(
             const [, address, matchedQuery] = addressMatch
             const queryString = matchedQuery || ''
 
-            let amount = 1
+            let amountSats = 1
             let label = ''
 
             if (queryString) {
@@ -297,7 +369,7 @@ async function processBitcoinContent(
               const labelParam = params.get('label')
 
               if (amountParam) {
-                amount =
+                amountSats =
                   Math.round(parseFloat(amountParam) * SATS_PER_BITCOIN) || 1
               }
               if (labelParam) {
@@ -305,30 +377,7 @@ async function processBitcoinContent(
               }
             }
 
-            if (
-              account &&
-              account.summary &&
-              amount > account.summary.balance
-            ) {
-              return
-            }
-
-            if (addOutput) {
-              addOutput({
-                amount,
-                label,
-                to: address
-              })
-            }
-
-            if (account) {
-              autoSelectUtxos(account, amount, actions)
-            }
-
-            navigate({
-              params: { id: accountId },
-              pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
-            })
+            await commitOrPromptBitcoinUri(address, label, amountSats)
           }
         }
       } catch {
@@ -501,6 +550,10 @@ export function processContentForOutput(
           const amountInBTC = Number(parsed.amount)
           if (!isNaN(amountInBTC) && amountInBTC > 0) {
             const amountInSats = Math.round(amountInBTC * SATS_PER_BITCOIN)
+            if (amountInSats > 0 && amountInSats < DUST_LIMIT) {
+              actions.onError(t('transaction.error.dustOutputBelowLimit'))
+              return false
+            }
             if (actions.remainingSats && amountInSats > actions.remainingSats) {
               actions.onWarning(t('error.insufficientFundsForAmount'))
             } else {

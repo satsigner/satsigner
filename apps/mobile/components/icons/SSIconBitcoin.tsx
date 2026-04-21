@@ -1,8 +1,13 @@
 import Svg, { Circle, Defs, G, type SvgProps } from 'react-native-svg'
 
+import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
+
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconBitcoin({ width = 22, height = 22 }: IconProps) {
+export default function SSIconBitcoin({
+  width = 22,
+  height = 22
+}: IconProps & NavMenuItemIconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 22 22" fill="none">
       <G filter="url(#filter0_i_8288_24201)">

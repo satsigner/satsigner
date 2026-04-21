@@ -65,6 +65,7 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSLoader from '@/components/SSLoader'
+import SSModal from '@/components/SSModal'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSPaste from '@/components/SSPaste'
 import SSSeparator from '@/components/SSSeparator'
@@ -118,6 +119,14 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
   const outputs = draft?.outputs ?? []
   const fee = draft?.fee ?? 0
   const totalOut = outputs.reduce((sum, o) => sum + o.amount, 0)
+  const inputLabel =
+    inputCount === 1
+      ? t('transaction.input.singular')
+      : t('transaction.input.plural')
+  const outputLabel =
+    outputs.length === 1
+      ? t('transaction.output.singular')
+      : t('transaction.output.plural')
 
   return (
     <TouchableOpacity
@@ -165,10 +174,8 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
         </SSHStack>
         <SSHStack justifyBetween style={{ marginTop: 2 }}>
           <SSText size="xs" color="muted">
-            {inputCount} {t('transaction.inputs')}
-            {outputs.length > 0
-              ? `, ${outputs.length} ${t('transaction.outputs')}`
-              : ''}
+            {inputCount} {inputLabel}
+            {outputs.length > 0 ? `, ${outputs.length} ${outputLabel}` : ''}
             {fee > 0 ? `, ${fee.toLocaleString()} ${t('transaction.fee')}` : ''}
           </SSText>
           <TouchableOpacity
@@ -425,18 +432,23 @@ type DerivedAddressesProps = {
 function SSAddressTable({
   addresses,
   renderItem,
+  expand,
   isMultiAddressWatchOnly,
   isLoadingAddresses,
   onLoadMore
 }: {
   addresses: Address[]
   renderItem: ({ item }: { item: Address }) => React.ReactElement
+  expand: boolean
   isMultiAddressWatchOnly: boolean
   isLoadingAddresses: boolean
   onLoadMore: () => void
 }) {
-  const { width: SCREEN_WIDTH } = useWindowDimensions()
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions()
   const ADDRESS_TABLE_WIDTH = SCREEN_WIDTH * 1.2
+  const TABLE_BODY_MAX_HEIGHT = expand
+    ? SCREEN_HEIGHT * 0.62
+    : SCREEN_HEIGHT * 0.32
   return (
     <ScrollView style={{ marginTop: 10 }} horizontal>
       <SSVStack gap="none" style={{ width: ADDRESS_TABLE_WIDTH }}>
@@ -486,15 +498,20 @@ function SSAddressTable({
             {t('address.list.table.utxo')}
           </SSText>
         </SSHStack>
-        <FlashList
-          data={addresses}
-          renderItem={renderItem}
-          keyExtractor={(item) =>
-            `${item.index || ''}:${item.address}:${item.keychain || ''}`
-          }
-          removeClippedSubviews
-          ListFooterComponent={
-            !isMultiAddressWatchOnly ? (
+        <ScrollView
+          nestedScrollEnabled
+          style={{ maxHeight: TABLE_BODY_MAX_HEIGHT }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
+          <SSVStack gap="none">
+            {addresses.map((address) => (
+              <View
+                key={`${address.index || ''}:${address.address}:${address.keychain || ''}`}
+              >
+                {renderItem({ item: address })}
+              </View>
+            ))}
+            {!isMultiAddressWatchOnly ? (
               <SSButton
                 variant="outline"
                 uppercase
@@ -506,9 +523,9 @@ function SSAddressTable({
                 disabled={isLoadingAddresses}
                 onPress={onLoadMore}
               />
-            ) : null
-          }
-        />
+            ) : null}
+          </SSVStack>
+        </ScrollView>
       </SSVStack>
     </ScrollView>
   )
@@ -660,7 +677,10 @@ function DerivedAddresses({
       }
       const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
 
-      if (minItems <= addressCount) {
+      // When `addressCount` defaults to `perPage` but `account.addresses` is still
+      // empty, `minItems <= addressCount` is true and we must not bail out or the
+      // Used Addresses tab never loads its first page.
+      if (minItems <= addressCount && account.addresses.length > 0) {
         return
       }
 
@@ -835,6 +855,7 @@ function DerivedAddresses({
                 : address.keychain === 'external')
           )}
           renderItem={renderItem}
+          expand={expand}
           isMultiAddressWatchOnly={isMultiAddressWatchOnly}
           isLoadingAddresses={isLoadingAddresses}
           onLoadMore={loadMoreAddresses}
@@ -1136,6 +1157,9 @@ export default function AccountView() {
     { key: 'satsInMempool' }
   ]
   const [tabIndex, setTabIndex] = useState(0)
+  const handleTabIndexChange = useCallback((index: number) => {
+    setTabIndex(index)
+  }, [])
   const animationValue = useSharedValue(0)
 
   const [connectionState, , isPrivateConnection, connectionParts] =
@@ -1146,9 +1170,16 @@ export default function AccountView() {
     blockHeightSource
   } = useNetworkInfo()
 
+  const closePasteModalRef = useRef<() => void>(() => {
+    // set after useContentHandler; avoids circular hook order
+  })
+
   const bitcoinContentHandler = useBitcoinContentHandler({
     account: account!,
-    accountId: id!
+    accountId: id!,
+    closePasteModal: () => {
+      closePasteModalRef.current()
+    }
   })
 
   const contentHandler = useContentHandler({
@@ -1159,6 +1190,8 @@ export default function AccountView() {
   })
 
   const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler
+
+  closePasteModalRef.current = closePasteModal
   useFocusEffect(
     useCallback(
       () => () => {
@@ -1396,7 +1429,7 @@ export default function AccountView() {
           >
             <SSActionButton
               style={{ width: tabWidth }}
-              onPress={() => setTabIndex(0)}
+              onPress={() => handleTabIndexChange(0)}
             >
               <SSVStack gap="none">
                 <SSText center size="lg">
@@ -1422,7 +1455,7 @@ export default function AccountView() {
             {(!isImportAddress || account.keys.length > 1) && (
               <SSActionButton
                 style={{ width: tabWidth }}
-                onPress={() => setTabIndex(1)}
+                onPress={() => handleTabIndexChange(1)}
               >
                 <SSVStack gap="none">
                   <SSText center size="lg">
@@ -1450,7 +1483,7 @@ export default function AccountView() {
             )}
             <SSActionButton
               style={{ width: tabWidth }}
-              onPress={() => setTabIndex(2)}
+              onPress={() => handleTabIndexChange(2)}
             >
               <SSVStack gap="none">
                 <SSText center size="lg">
@@ -1475,7 +1508,7 @@ export default function AccountView() {
             </SSActionButton>
             <SSActionButton
               style={{ width: tabWidth }}
-              onPress={() => setTabIndex(3)}
+              onPress={() => handleTabIndexChange(3)}
             >
               <SSVStack gap="none">
                 <SSText center size="lg">
@@ -1679,7 +1712,7 @@ export default function AccountView() {
             navigationState={{ index: tabIndex, routes: tabs }}
             renderScene={renderScene}
             renderTabBar={renderTab}
-            onIndexChange={setTabIndex}
+            onIndexChange={handleTabIndexChange}
             initialLayout={{ width }}
             style={{ flex: 1 }}
           />
@@ -1704,6 +1737,51 @@ export default function AccountView() {
         onContentPasted={contentHandler.handleContentPasted}
         context="bitcoin"
       />
+      <SSModal
+        visible={bitcoinContentHandler.uriExceedsBalanceModal !== null}
+        showLabel={false}
+        onClose={() =>
+          bitcoinContentHandler.resolveUriExceedsBalancePrompt('cancel')
+        }
+      >
+        <SSVStack gap="md" style={{ maxWidth: 340 }}>
+          <SSText size="lg" weight="medium">
+            {t('transaction.bitcoin.uri.exceedsBalance.title')}
+          </SSText>
+          <SSText color="muted" size="sm">
+            {t('transaction.bitcoin.uri.exceedsBalance.message', {
+              available:
+                bitcoinContentHandler.uriExceedsBalanceModal
+                  ?.availableBalanceSats ?? 0,
+              requested:
+                bitcoinContentHandler.uriExceedsBalanceModal
+                  ?.requestedAmountSats ?? 0
+            })}
+          </SSText>
+          <SSHStack gap="sm" justifyBetween>
+            <SSButton
+              label={t('transaction.bitcoin.uri.exceedsBalance.cancel')}
+              style={{ flex: 1 }}
+              variant="outline"
+              onPress={() =>
+                bitcoinContentHandler.resolveUriExceedsBalancePrompt('cancel')
+              }
+            />
+            <SSButton
+              label={t(
+                'transaction.bitcoin.uri.exceedsBalance.sendWithoutAmount'
+              )}
+              style={{ flex: 1 }}
+              variant="secondary"
+              onPress={() =>
+                bitcoinContentHandler.resolveUriExceedsBalancePrompt(
+                  'without_amount'
+                )
+              }
+            />
+          </SSHStack>
+        </SSVStack>
+      </SSModal>
     </>
   )
 }

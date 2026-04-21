@@ -118,7 +118,8 @@ export default function InvoicePage() {
     const interval = setInterval(checkInvoiceStatus, 3000)
 
     return () => clearInterval(interval)
-  }, [qrModalVisible, rHash, checkInvoiceStatus])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrModalVisible, rHash])
 
   const handleAmountChange = (text: string) => {
     const numericValue = text.replace(/[^0-9]/g, '')

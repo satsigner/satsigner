@@ -11,6 +11,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
 import SSNavMenu from '@/components/SSNavMenu'
+import { pruneCache } from '@/db/nostrCache'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
@@ -158,6 +159,12 @@ export default function AuthenticatedLayout() {
       }
       if (connectionMode === 'auto') {
         await loadWallets()
+      }
+
+      try {
+        pruneCache()
+      } catch {
+        // non-critical — cache prune failure should not block startup
       }
     }
     run()
