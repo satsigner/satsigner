@@ -117,7 +117,7 @@ export default function Unlock() {
 
   return (
     <SSMainLayout
-      backgroundColor={Colors.gray[915]}
+      backgroundColor={Colors.gray[950]}
       style={{
         paddingBottom: Layout.mainContainer.paddingBottom,
         paddingTop: '25%'

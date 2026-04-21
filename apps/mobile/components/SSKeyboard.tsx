@@ -81,8 +81,8 @@ function getKeyBorderLight(
 
 const KEY_PRESS_IN_MS = 140
 const KEY_PRESS_OUT_MS = 560
-/** Peak opacity of the press highlight (subtle gradient wash). */
-const KEY_PRESS_OVERLAY_OPACITY = 0.22
+/** Peak opacity of the press highlight gradient wash. */
+const KEY_PRESS_OVERLAY_OPACITY = 0.42
 
 type SSKeyboardCellProps = {
   cellWidth: DimensionValue
@@ -152,12 +152,12 @@ function SSKeyboardCell({
           >
             <LinearGradient
               colors={[
-                'rgba(255,255,255,0.11)',
-                'rgba(255,255,255,0.035)',
-                'rgba(255,255,255,0)'
+                'rgba(255,255,255,0.26)',
+                'rgba(255,255,255,0.1)',
+                'rgba(255,255,255,0.04)'
               ]}
               end={{ x: 0.92, y: 1 }}
-              locations={[0, 0.42, 1]}
+              locations={[0, 0.45, 1]}
               start={{ x: 0.08, y: 0 }}
               style={StyleSheet.absoluteFillObject}
             />
