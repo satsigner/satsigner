@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics'
 import { LinearGradient } from 'expo-linear-gradient'
 import { DimensionValue, StyleSheet, View } from 'react-native'
 import Animated, {
@@ -108,7 +109,14 @@ function SSKeyboardCell({
     opacity: interpolate(press.value, [0, 1], [0, KEY_PRESS_OVERLAY_OPACITY])
   }))
 
+  const isControlKey = item === BTN_CLEAR || item === BTN_DELETE
+
   function handlePressIn() {
+    Haptics.impactAsync(
+      isControlKey
+        ? Haptics.ImpactFeedbackStyle.Medium
+        : Haptics.ImpactFeedbackStyle.Light
+    )
     press.set(withTiming(1, { duration: KEY_PRESS_IN_MS }))
   }
 
@@ -117,13 +125,10 @@ function SSKeyboardCell({
   }
 
   if (!item) {
-    return (
-      <View style={{ padding: hStack['gap'][gap], width: cellWidth }} />
-    )
+    return <View style={{ padding: hStack['gap'][gap], width: cellWidth }} />
   }
 
   const borderLight = getKeyBorderLight(index, nCols)
-  const isControlKey = item === BTN_CLEAR || item === BTN_DELETE
 
   return (
     <View
