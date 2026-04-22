@@ -1,6 +1,7 @@
 import { FlashList, FlashListRef } from '@shopify/flash-list'
 import { useRef } from 'react'
 import {
+  Platform,
   type StyleProp,
   StyleSheet,
   Text,
@@ -62,7 +63,7 @@ type SSKeyboardWordSelectorProps = {
   wordStart: string
   wordListName: WordListName
   onWordSelected(word: string): void
-  style: StyleProp<ViewStyle>
+  style?: StyleProp<ViewStyle>
 }
 
 function SSKeyboardWordSelector({
@@ -101,8 +102,10 @@ function SSKeyboardWordSelector({
 
   // Position from the parent bottom edge. `top` using window height was wrong
   // because absolute layout is relative to the parent (e.g. below the header).
+  // On Android edge-to-edge the parent extends under the nav bar, so no inset subtraction.
+  const safeAreaCorrection = Platform.OS === 'ios' ? insets.bottom : 0
   const bottomOffset = keyboardVisible
-    ? Math.max(0, keyboardHeight - insets.bottom) + 10
+    ? Math.max(0, keyboardHeight - safeAreaCorrection)
     : 0
 
   return (
@@ -150,16 +153,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     boxShadow: '0 -20px 3.84px rgba(0, 0, 0, 0.25)',
     color: Colors.black,
-    height: 50,
     left: 0,
     position: 'absolute',
     right: 0,
-    zIndex: 1000
+    zIndex: 1000,
   },
   noMatchingWordsContainerBase: {
     alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    paddingVertical: 16
   },
   separator: {
     backgroundColor: Colors.gray[50],
@@ -173,7 +175,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 80,
     paddingHorizontal: 16,
-    paddingVertical: 12
+    paddingVertical: 12,
   },
   wordText: {
     color: Colors.black,
