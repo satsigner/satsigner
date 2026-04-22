@@ -92,11 +92,10 @@ export default function SetPin() {
     setFirstTime(false)
     setSkipPin(true)
     await setPin(DEFAULT_PIN)
-    router.dismissAll()
     if (showWarning) {
-      router.navigate('./warning')
+      router.replace('./warning')
     } else {
-      router.navigate('/')
+      router.replace('/')
     }
   }
 
