@@ -154,13 +154,18 @@ export default function SetPin() {
             </SSText>
           </SSVStack>
           {stage === 'set' && (
-            <SSPinInput pin={pinArray} setPin={setPinArray} />
+            <SSPinInput
+              pin={pinArray}
+              setPin={setPinArray}
+              withClear={false}
+            />
           )}
           {stage === 're-enter' && (
             <SSPinInput
               pin={confirmationPinArray}
               setPin={setConfirmationPinArray}
               feedback={getFeedback()}
+              withClear={false}
             />
           )}
         </SSVStack>

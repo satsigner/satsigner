@@ -130,6 +130,7 @@ type SSPinInputProps = {
   onFillEnded?: (pin: string) => void
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
+  withClear?: boolean
 }
 
 function SSPinInput({
@@ -138,7 +139,8 @@ function SSPinInput({
   onFillEnded,
   feedback,
   feedbackText,
-  feedBackColor = Colors.gray[300]
+  feedBackColor = Colors.gray[300],
+  withClear = true
 }: SSPinInputProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -251,6 +253,7 @@ function SSPinInput({
           onPress={handlePress}
           onClear={handleClear}
           onDelete={handleDelete}
+          withClear={withClear}
         />
       </SSVStack>
     </SSVStack>

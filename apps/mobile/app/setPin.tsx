@@ -219,16 +219,22 @@ export default function SetPin() {
               pin={currentPinArray}
               setPin={handleCurrentPinChange}
               feedback={getFeedback()}
+              withClear={false}
             />
           )}
           {stage === 'set' && (
-            <SSPinInput pin={pinArray} setPin={setPinArray} />
+            <SSPinInput
+              pin={pinArray}
+              setPin={setPinArray}
+              withClear={false}
+            />
           )}
           {stage === 're-enter' && (
             <SSPinInput
               pin={confirmationPinArray}
               setPin={setConfirmationPinArray}
               feedback={getFeedback()}
+              withClear={false}
             />
           )}
         </SSVStack>
