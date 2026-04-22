@@ -15,11 +15,13 @@ import { t } from '@/locales'
 import { getItem, setItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
-import { Layout } from '@/styles'
+import { Layout, Sizes } from '@/styles'
 import { pbkdf2Encrypt } from '@/utils/crypto'
 import { emptyPin } from '@/utils/pin'
 
 type Stage = 'set' | 're-enter'
+
+const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 
 export default function SetPin() {
   const router = useRouter()
@@ -140,15 +142,12 @@ export default function SetPin() {
   return (
     <SSMainLayout
       style={{
-        paddingBottom: Math.max(
-          Layout.mainContainer.paddingBottom,
-          insets.bottom + 16
-        ),
+        paddingBottom: Layout.mainContainer.paddingBottom,
         paddingTop: Math.max(Layout.mainContainer.paddingTop, insets.top + 32)
       }}
     >
       <SSVStack style={{ flex: 1 }} itemsCenter justifyBetween>
-        <SSVStack gap="lg" style={{ flex: 1, width: '100%' }}>
+        <SSVStack gap="md" style={{ flex: 1, width: '100%' }}>
           <SSVStack>
             <SSText uppercase size="lg" color="muted" center>
               {getTitle()}
@@ -165,7 +164,13 @@ export default function SetPin() {
             />
           )}
         </SSVStack>
-        <SSVStack widthFull>
+        <SSVStack
+          widthFull
+          style={{
+            justifyContent: 'flex-end',
+            minHeight: BOTTOM_ACTIONS_MIN_HEIGHT
+          }}
+        >
           {stage === 'set' && pinFilled && (
             <SSButton
               label={t('auth.confirmDuressPin')}
