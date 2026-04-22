@@ -124,7 +124,7 @@ function SSKeyboardWordSelector({
           data={data}
           horizontal
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingHorizontal: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 0 }}
           renderItem={({ item }) => (
             <TouchableOpacity
               key={item.index}
@@ -172,8 +172,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderColor: Colors.gray[100],
     borderRightWidth: 1,
+    flexDirection: 'row',
+    flexShrink: 0,
     justifyContent: 'center',
-    minWidth: 80,
+    minWidth: 100,
     paddingHorizontal: 16,
     paddingVertical: 12
   },
