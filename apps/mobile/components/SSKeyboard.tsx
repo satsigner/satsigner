@@ -209,19 +209,16 @@ function SSKeyboardCell({
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
             style={{
-              alignSelf: 'stretch',
-              justifyContent: 'center',
-              backgroundColor: 'transparent',
               alignItems: 'center',
+              alignSelf: 'stretch',
+              backgroundColor: 'transparent',
               flex: 1,
-              height: '100%'
+              height: '100%',
+              justifyContent: 'center'
             }}
           >
             {!isControlKey && (
-              <SSText
-                size="2xl"
-                weight="ultralight"
-              >
+              <SSText size="2xl" weight="ultralight">
                 {item}
               </SSText>
             )}
