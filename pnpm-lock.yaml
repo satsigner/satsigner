@@ -135,8 +135,8 @@ importers:
         specifier: ^1.2.6
         version: 1.2.6
       '@secondts/bark-react-native':
-        specifier: ^0.4.0
-        version: 0.4.0(react-native@0.83.4(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.84.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.5))(react@19.2.5)
+        specifier: ^0.4.1
+        version: 0.4.1(react-native@0.83.4(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.84.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.5))(react@19.2.5)
       '@shopify/flash-list':
         specifier: 2.0.2
         version: 2.0.2(@babel/runtime@7.29.2)(react-native@0.83.4(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.84.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.5))(react@19.2.5)
@@ -3310,8 +3310,8 @@ packages:
   '@scure/bip39@2.0.1':
     resolution: {integrity: sha512-PsxdFj/d2AcJcZDX1FXN3dDgitDDTmwf78rKZq1a6c1P1Nan1X/Sxc7667zU3U+AN60g7SxxP0YCVw2H/hBycg==}
 
-  '@secondts/bark-react-native@0.4.0':
-    resolution: {integrity: sha512-H7l/hEsXLtfPN2Z3/d98c4S3WhhZ18jqoW0Sv37WxqO+sca2OkTQPjnXmQbVYtKw10UgB99FmNsiHdmjWWz0SQ==}
+  '@secondts/bark-react-native@0.4.1':
+    resolution: {integrity: sha512-jo1N4bIyo9xSgpC0dTwVRo8/zHrcrSkDNnqQnHSBgoJxNOpYO2iPTyY0h+13HlhMqfqw6bby7k74UB6Vf9Ze1g==}
     peerDependencies:
       react: ^19.2.0
       react-native: '*'
@@ -12077,7 +12077,7 @@ snapshots:
       '@noble/hashes': 2.0.1
       '@scure/base': 2.0.0
 
-  '@secondts/bark-react-native@0.4.0(react-native@0.83.4(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.84.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.5))(react@19.2.5)':
+  '@secondts/bark-react-native@0.4.1(react-native@0.83.4(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.84.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.5))(react@19.2.5)':
     dependencies:
       react: 19.2.5
       react-native: 0.83.4(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.84.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.5)
