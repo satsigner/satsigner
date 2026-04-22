@@ -17,7 +17,7 @@ import { Colors, Sizes } from '@/styles'
 import { hStack, type HStackGap } from '@/styles/layout'
 import { range, shuffle } from '@/utils/array'
 
-import { SSIconCircleX, SSIconDelete } from './icons'
+import { SSIconDelete, SSIconTrash } from './icons'
 import SSText from './SSText'
 
 type SSKeyboardProps = {
@@ -223,13 +223,14 @@ function SSKeyboardCell({
               </SSText>
             )}
             {item === KEY_CLEAR && (
-              <SSIconCircleX
+              <SSIconTrash
                 width={Sizes.text.fontSize['xl']}
                 height={Sizes.text.fontSize['xl']}
               />
             )}
             {item === KEY_DELETE && (
               <SSIconDelete
+                stroke="gray"
                 width={Sizes.text.fontSize['2xl']}
                 height={Sizes.text.fontSize['2xl']}
               />
