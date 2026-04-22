@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0,
-    zIndex: 1000,
+    zIndex: 1000
   },
   noMatchingWordsContainerBase: {
     alignItems: 'center',
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 80,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 12
   },
   wordText: {
     color: Colors.black,
