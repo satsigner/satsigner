@@ -59,7 +59,13 @@ if (typeof Swiper !== 'undefined') {
     }
 
     // --- Perspective block: tilt on pointer + scroll-in for layers
-    gsap.set(perspectiveEl, { perspective: 650 });
+    const mq = window.matchMedia('(max-width: 1200px)');
+    const isMobile = mq.matches;
+    if (!isMobile) {
+      gsap.set(perspectiveEl, { perspective: 650 });
+    } else {
+      gsap.set(perspectiveEl, { clearProps: 'perspective' });
+    }
 
     const inner = perspectiveEl.querySelector('.perspective-inner');
     const bgWrap = perspectiveEl.querySelector('.perspective-bg-wrap');
@@ -93,10 +99,17 @@ if (typeof Swiper !== 'undefined') {
     const outer = perspectiveEl.querySelector('.perspective-outer');
     if (!outer) return;
 
-    const isMobile = window.innerWidth <= 1200;
-    const layerDepths = isMobile ? [0, 0, 0, 0, 0, 0] : [-20, 0, 25, 50, 120, 160];
+    const desktopDepths = [-20, 0, 25, 50, 120, 160];
+    const layerDepths = isMobile ? [0, 0, 0, 0, 0, 0] : desktopDepths;
     layers.forEach(function(el, i) {
-      gsap.set(el, { xPercent: -50, yPercent: -50, z: layerDepths[i] });
+      if (isMobile) {
+        // Clear all GSAP inline transforms so CSS takes over:
+        // layers 0–4 get transform: translateX(-50%) from CSS (stacked),
+        // layer-5 gets transform: none from CSS (in-flow reference)
+        gsap.set(el, { clearProps: 'xPercent,yPercent,z,transform' });
+      } else {
+        gsap.set(el, { xPercent: -50, yPercent: -50, z: layerDepths[i] });
+      }
     });
 
     if (!isMobile) {
@@ -137,11 +150,32 @@ if (typeof Swiper !== 'undefined') {
       });
     }
 
+    // Re-apply correct 3D/flat states when crossing the 1200px breakpoint
+    mq.addEventListener('change', function(e) {
+      if (e.matches) {
+        // Switched to mobile: clear all inline 3D transforms, restore flow layout
+        gsap.set(perspectiveEl, { clearProps: 'perspective' });
+        gsap.set(outer, { clearProps: 'rotationX,rotationY' });
+        gsap.set(inner, { clearProps: 'x,y' });
+        layers.forEach(function(el) { gsap.set(el, { clearProps: 'xPercent,yPercent,z,transform' }); });
+        if (bgWrap) gsap.set(bgWrap, { clearProps: 'z' });
+      } else {
+        // Switched to desktop: restore 3D absolute positioning
+        gsap.set(perspectiveEl, { perspective: 650 });
+        layers.forEach(function(el, i) { gsap.set(el, { xPercent: -50, yPercent: -50, z: desktopDepths[i] }); });
+        if (bgWrap) gsap.set(bgWrap, { z: -420 });
+      }
+      ScrollTrigger.refresh();
+    });
+
     if (bgWrap) {
-      gsap.set(bgWrap, { z: -420, y: 0 });
-      gsap.to(bgWrap, {
+      if (!isMobile) {
+        gsap.set(bgWrap, { z: -420, y: 0 });
+      } else {
+        gsap.set(bgWrap, { clearProps: 'z', y: 0 });
+      }
+      var bgTweenVars = {
         y: -220,
-        z: -420,
         ease: 'none',
         scrollTrigger: {
           trigger: perspectiveEl,
@@ -150,7 +184,9 @@ if (typeof Swiper !== 'undefined') {
           scrub: 1.2,
           invalidateOnRefresh: true,
         },
-      });
+      };
+      if (!isMobile) bgTweenVars.z = -420;
+      gsap.to(bgWrap, bgTweenVars);
     }
   });
 

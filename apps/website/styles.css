@@ -1,6 +1,17 @@
 html {
   overflow-x: hidden;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* In-page anchors: clear sticky nav */
+section[id] {
+  scroll-margin-top: 4.75rem;
+}
 body {
   font-family: 'Inter', sans-serif;
   color: #fff;
@@ -430,12 +441,12 @@ a{
   }
 }
 
-/* ----- Feature pair & perspective: mobile — compact, phone on top, text below, no overlap ----- */
+/* ----- Feature pair & perspective: mobile — all layers stacked flat, text below ----- */
 @media (max-width: 1200px) {
   .feature-pair {
     padding: 2rem 1rem;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
   }
   .feature-pair-visual {
     min-height: 0;
@@ -448,70 +459,74 @@ a{
     cursor: default;
   }
   .feature-pair-visual .perspective-outer {
-    max-width: 98vw;
+    max-width: min(480px, 96vw);
     max-height: none;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0 auto;
     transform-style: flat;
     will-change: auto;
     pointer-events: none;
   }
-  /* Compact inner so section isn’t oversized */
+  /* Flex column: image block → title → detail, no fixed height */
   .feature-pair-visual .perspective-inner {
-    height: 440px;
-    min-height: 440px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: auto;
+    min-height: 0;
     transform-style: flat;
+    gap: 1rem;
+    padding: 0;
   }
+  /* Hide only the background — keep all UI layers */
   .feature-pair-visual .perspective-bg-wrap {
-    transform: none;
+    display: none;
   }
-  /* Small phone image so it doesn’t overlap text */
-  .feature-pair-visual .perspective-layer {
-    /* Floor height: embedded / iframe UAs sometimes report vh≈0 */
-    max-height: clamp(130px, 38vh, 220px);
-  }
+  /* Layers 0–4: absolute, stacked exactly over layer-5 */
   .feature-pair-visual .perspective-layer-0,
   .feature-pair-visual .perspective-layer-1,
   .feature-pair-visual .perspective-layer-2,
   .feature-pair-visual .perspective-layer-3,
-  .feature-pair-visual .perspective-layer-4,
+  .feature-pair-visual .perspective-layer-4 {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(92vw, 420px);
+    max-height: none;
+    height: auto;
+  }
+  /* Layer-5: in-flow reference — drives the container height, sits on top (z-index: 6) */
   .feature-pair-visual .perspective-layer-5 {
-    top: 18%;
-    transform: translate(-50%, -50%);
-    max-height: clamp(130px, 38vh, 220px);
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    width: min(92vw, 420px);
+    max-height: none;
+    height: auto;
+    z-index: 6;
   }
-  .feature-pair-visual .perspective-type-title-layer {
-    left: 50%;
-    right: auto;
-    top: 48%;
-    width: min(92%, 280px);
-    max-width: min(92%, 280px);
-    padding: 0.35rem 0.5rem;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    margin-left: auto;
-    margin-right: auto;
-  }
+  /* Text: in-flow below the image stack */
+  .feature-pair-visual .perspective-type-title-layer,
   .feature-pair-visual .perspective-type {
-    left: 50%;
+    position: relative;
+    left: auto;
     right: auto;
-    top: 72%;
-    width: min(92%, 280px);
-    max-width: min(92%, 280px);
-    padding: 0.35rem 0.5rem;
-    transform: translate(-50%, -50%);
+    top: auto;
+    transform: none;
+    width: 100%;
+    max-width: min(92vw, 420px);
+    padding: 0 0.5rem;
     text-align: center;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0 auto;
+    z-index: auto;
   }
   .feature-pair--type-right .perspective-type,
   .feature-pair--type-left .perspective-type {
-    left: 50%;
+    left: auto;
     right: auto;
-    transform: translate(-50%, -50%);
-  }
-  .feature-pair--type-left .perspective-type {
-    left: 50%;
+    transform: none;
   }
   .perspective-type-title,
   .perspective-type-line,
@@ -527,7 +542,7 @@ a{
   }
   .perspective-type-detail {
     font-size: 0.75rem;
-    line-height: 1.45;
+    line-height: 1.5;
   }
 }
 @media (max-width: 480px) {
@@ -536,21 +551,8 @@ a{
   }
   .feature-pair {
     padding: 1.5rem 0.75rem;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-  .feature-pair-visual .perspective-inner {
-    height: 380px;
-    min-height: 380px;
-  }
-  .feature-pair-visual .perspective-layer,
-  .feature-pair-visual .perspective-layer-0,
-  .feature-pair-visual .perspective-layer-1,
-  .feature-pair-visual .perspective-layer-2,
-  .feature-pair-visual .perspective-layer-3,
-  .feature-pair-visual .perspective-layer-4,
-  .feature-pair-visual .perspective-layer-5 {
-    max-height: clamp(115px, 32vh, 200px);
+    gap: 1rem;
+    margin-bottom: 0.75rem;
   }
   .feature-pair-visual .perspective-layer-0,
   .feature-pair-visual .perspective-layer-1,
@@ -558,25 +560,73 @@ a{
   .feature-pair-visual .perspective-layer-3,
   .feature-pair-visual .perspective-layer-4,
   .feature-pair-visual .perspective-layer-5 {
-    top: 16%;
+    width: min(94vw, 380px);
   }
-  .feature-pair-visual .perspective-type-title-layer {
-    top: 46%;
-    width: min(92%, 260px);
-    max-width: min(92%, 260px);
-    padding: 0.25rem 0.5rem;
-  }
+  .feature-pair-visual .perspective-type-title-layer,
   .feature-pair-visual .perspective-type {
-    top: 72%;
-    width: min(92%, 260px);
-    max-width: min(92%, 260px);
-    padding: 0.25rem 0.5rem;
-  }
-  .perspective-type-title {
-    font-size: clamp(0.8rem, 4.5vw, 0.95rem);
+    max-width: min(94vw, 380px);
   }
   .perspective-type-detail {
     font-size: 0.7rem;
+  }
+}
+
+/* ----- Perspective: fallback for browsers without CSS 3D support ----- */
+@supports not (transform-style: preserve-3d) {
+  .feature-pair-visual .perspective-section {
+    perspective: none !important;
+    pointer-events: none;
+  }
+  .feature-pair-visual .perspective-outer {
+    transform-style: flat;
+    will-change: auto;
+    max-width: min(480px, 96vw);
+    margin: 0 auto;
+  }
+  .feature-pair-visual .perspective-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: auto;
+    min-height: 0;
+    transform-style: flat;
+    gap: 1rem;
+    padding: 0;
+  }
+  .feature-pair-visual .perspective-bg-wrap { display: none; }
+  .feature-pair-visual .perspective-layer-0,
+  .feature-pair-visual .perspective-layer-1,
+  .feature-pair-visual .perspective-layer-2,
+  .feature-pair-visual .perspective-layer-3,
+  .feature-pair-visual .perspective-layer-4 {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(92vw, 420px);
+    max-height: none;
+    height: auto;
+  }
+  .feature-pair-visual .perspective-layer-5 {
+    position: relative;
+    left: auto; top: auto;
+    transform: none;
+    width: min(92vw, 420px);
+    max-height: none;
+    height: auto;
+    z-index: 6;
+  }
+  .feature-pair-visual .perspective-type-title-layer,
+  .feature-pair-visual .perspective-type {
+    position: relative;
+    left: auto; right: auto; top: auto;
+    transform: none;
+    width: 100%;
+    max-width: min(92vw, 420px);
+    text-align: center;
+    margin: 0 auto;
+    z-index: auto;
   }
 }
 
