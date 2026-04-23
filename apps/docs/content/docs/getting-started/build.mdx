@@ -11,7 +11,13 @@ description: Build SatSigner for distribution using EAS.
 
 2. Log in into your Expo account and create a new project
 
-3. Copy project ID into `apps/mobile/app.config.ts`:
+3. Set `EXPO_PROJECT_ID` to the project id created:
+
+```shell
+export EXPO_PROJECT_ID='rpr6osn4-r915-4np9-ns31-q3724o78r59s'
+```
+
+Alternatively, hardcode it (do not commit) the file `apps/mobile/app.config.ts`:
 
 ```typescript
 export default ({ config }: ConfigContext): ExpoConfig => ({
