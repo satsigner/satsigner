@@ -2,7 +2,10 @@ import {
   Config,
   Network as BarkNetwork,
   Wallet,
-  type WalletLike
+  WalletNotification_Tags,
+  WalletNotifications,
+  type WalletLike,
+  type WalletNotification
 } from '@secondts/bark-react-native'
 
 import type { ArkBalance, ArkServer } from '@/types/models/Ark'
@@ -10,12 +13,17 @@ import type { Network } from '@/types/settings/blockchain'
 
 import type {
   ArkBolt11Invoice,
+  ArkMovementEvent,
+  ArkNotificationListener,
+  ArkNotificationUnsubscribe,
   ArkWalletArgs,
   ArkWalletProvider
 } from '../provider'
 import { registerArkProvider } from '../registry'
 
 const walletCache = new Map<string, WalletLike>()
+const notificationsCache = new Map<string, WalletNotifications>()
+const activeUnsubscribes = new Map<string, Set<ArkNotificationUnsubscribe>>()
 
 function appNetworkToBarkNetwork(network: Network): BarkNetwork {
   switch (network) {
@@ -81,7 +89,83 @@ async function openWallet({
   walletCache.set(accountId, wallet)
 }
 
+function mapWalletNotification(
+  accountId: string,
+  event: WalletNotification
+): ArkMovementEvent | null {
+  if (event.tag === WalletNotification_Tags.MovementCreated) {
+    return {
+      accountId,
+      effectiveBalanceSats: Number(event.inner.movement.effectiveBalanceSats),
+      movementId: event.inner.movement.id,
+      status: event.inner.movement.status,
+      type: 'created'
+    }
+  }
+  if (event.tag === WalletNotification_Tags.MovementUpdated) {
+    return {
+      accountId,
+      effectiveBalanceSats: Number(event.inner.movement.effectiveBalanceSats),
+      movementId: event.inner.movement.id,
+      status: event.inner.movement.status,
+      type: 'updated'
+    }
+  }
+  return null
+}
+
+function getOrCreateNotifications(accountId: string): WalletNotifications {
+  const existing = notificationsCache.get(accountId)
+  if (existing) {
+    return existing
+  }
+  const wallet = getCachedWallet(accountId)
+  const notifications = new WalletNotifications(wallet)
+  notificationsCache.set(accountId, notifications)
+  return notifications
+}
+
+function getOrCreateUnsubscribes(
+  accountId: string
+): Set<ArkNotificationUnsubscribe> {
+  const existing = activeUnsubscribes.get(accountId)
+  if (existing) {
+    return existing
+  }
+  const set = new Set<ArkNotificationUnsubscribe>()
+  activeUnsubscribes.set(accountId, set)
+  return set
+}
+
+function subscribeNotifications(
+  accountId: string,
+  listener: ArkNotificationListener
+): ArkNotificationUnsubscribe {
+  const notifications = getOrCreateNotifications(accountId)
+  const innerUnsubscribe = notifications.subscribe((event) => {
+    const mapped = mapWalletNotification(accountId, event)
+    if (mapped) {
+      listener(mapped)
+    }
+  })
+  const unsubscribes = getOrCreateUnsubscribes(accountId)
+  const unsubscribe: ArkNotificationUnsubscribe = () => {
+    innerUnsubscribe()
+    unsubscribes.delete(unsubscribe)
+  }
+  unsubscribes.add(unsubscribe)
+  return unsubscribe
+}
+
 function releaseWallet(accountId: string): void {
+  const unsubscribes = activeUnsubscribes.get(accountId)
+  if (unsubscribes) {
+    for (const unsubscribe of unsubscribes) {
+      unsubscribe()
+    }
+    activeUnsubscribes.delete(accountId)
+  }
+  notificationsCache.delete(accountId)
   const wallet = walletCache.get(accountId)
   if (wallet && Wallet.instanceOf(wallet)) {
     wallet.uniffiDestroy()
@@ -128,7 +212,8 @@ const barkProvider: ArkWalletProvider = {
   newAddress,
   openWallet,
   releaseWallet,
-  serverId: 'second'
+  serverId: 'second',
+  subscribeNotifications
 }
 
 registerArkProvider(barkProvider)

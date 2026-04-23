@@ -1,10 +1,22 @@
 import type { ArkBalance, ArkServerId } from '@/types/models/Ark'
 
-import type { ArkBolt11Invoice, ArkWalletArgs } from './provider'
+import type {
+  ArkBolt11Invoice,
+  ArkNotificationListener,
+  ArkNotificationUnsubscribe,
+  ArkWalletArgs
+} from './provider'
 import { getArkProvider } from './registry'
 import './providers/bark'
 
-export type { ArkBolt11Invoice, ArkWalletArgs } from './provider'
+export type {
+  ArkBolt11Invoice,
+  ArkMovementEvent,
+  ArkMovementEventType,
+  ArkNotificationListener,
+  ArkNotificationUnsubscribe,
+  ArkWalletArgs
+} from './provider'
 
 export async function createArkWallet(args: ArkWalletArgs): Promise<void> {
   await getArkProvider(args.server.id).createWallet(args)
@@ -41,4 +53,12 @@ export function createArkBolt11Invoice(
   amountSats: number
 ): Promise<ArkBolt11Invoice> {
   return getArkProvider(serverId).createBolt11Invoice(accountId, amountSats)
+}
+
+export function subscribeArkNotifications(
+  serverId: ArkServerId,
+  accountId: string,
+  listener: ArkNotificationListener
+): ArkNotificationUnsubscribe {
+  return getArkProvider(serverId).subscribeNotifications(accountId, listener)
 }

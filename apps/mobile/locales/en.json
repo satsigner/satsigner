@@ -731,6 +731,7 @@
     "error.invalidAmount": "Enter an amount greater than zero",
     "error.walletLoad": "Failed to load Ark wallet",
     "comingSoon": "Coming soon",
+    "notifications.received": "Received %{amount} sats on %{wallet}",
     "receive.amount": "Amount",
     "receive.arkTab": "Ark",
     "receive.createInvoice": "Create Invoice",

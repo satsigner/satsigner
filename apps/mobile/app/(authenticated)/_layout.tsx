@@ -12,6 +12,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { getWalletData } from '@/api/bdk'
 import SSNavMenu from '@/components/SSNavMenu'
 import { pruneCache } from '@/db/nostrCache'
+import { useArkNotifications } from '@/hooks/useArkNotifications'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
@@ -68,6 +69,8 @@ export default function AuthenticatedLayout() {
   )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
+
+  useArkNotifications()
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
 

@@ -14,6 +14,19 @@ export type ArkBolt11Invoice = {
   amountSats: number
 }
 
+export type ArkMovementEventType = 'created' | 'updated'
+
+export type ArkMovementEvent = {
+  type: ArkMovementEventType
+  accountId: string
+  movementId: number
+  status: string
+  effectiveBalanceSats: number
+}
+
+export type ArkNotificationListener = (event: ArkMovementEvent) => void
+export type ArkNotificationUnsubscribe = () => void
+
 export interface ArkWalletProvider {
   readonly serverId: ArkServerId
   createWallet: (args: ArkWalletArgs) => Promise<void>
@@ -25,4 +38,8 @@ export interface ArkWalletProvider {
     accountId: string,
     amountSats: number
   ) => Promise<ArkBolt11Invoice>
+  subscribeNotifications: (
+    accountId: string,
+    listener: ArkNotificationListener
+  ) => ArkNotificationUnsubscribe
 }
