@@ -18,6 +18,7 @@ import { hStack, type HStackGap } from '@/styles/layout'
 import { range, shuffle } from '@/utils/array'
 
 import { SSIconDelete, SSIconTrash } from './icons'
+
 import SSText from './SSText'
 
 type SSKeyboardProps = {
