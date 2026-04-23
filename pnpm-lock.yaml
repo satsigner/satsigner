@@ -249,8 +249,8 @@ importers:
         specifier: ^4.4.3
         version: 4.5.3
       immer:
-        specifier: ^10.1.1
-        version: 10.2.0
+        specifier: ^11.1.4
+        version: 11.1.4
       nostr-tools:
         specifier: ^2.11.0
         version: 2.23.3(typescript@5.9.3)
@@ -345,8 +345,8 @@ importers:
         specifier: ^41.16.0
         version: 41.20.2(7226718c847d4934e73efbab6213fa78)
       zustand:
-        specifier: ^4.5.2
-        version: 4.5.7(@types/react@19.2.14)(immer@10.2.0)(react@19.2.5)
+        specifier: ^5.0.12
+        version: 5.0.12(@types/react@19.2.14)(immer@11.1.4)(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
     devDependencies:
       '@react-native-async-storage/async-storage':
         specifier: 2.2.0
@@ -6146,8 +6146,8 @@ packages:
     engines: {node: '>=16.x'}
     hasBin: true
 
-  immer@10.2.0:
-    resolution: {integrity: sha512-d/+XTN3zfODyjr89gM3mPq1WNX2B8pYsu7eORitdwyA2sBubnTl3laYlBk4sXY5FUa5qTZGBDPJICVbvqzjlbw==}
+  immer@11.1.4:
+    resolution: {integrity: sha512-XREFCPo6ksxVzP4E0ekD5aMdf8WMwmdNaz6vuvxgI40UaEiu6q3p8X52aU6GdyvLY3XXX/8R7JOTXStz/nBbRw==}
 
   import-fresh@3.3.1:
     resolution: {integrity: sha512-TR3KfrTZTYLPB6jUjfx6MF9WcWrHL9su5TObK4ZkYgBdWKPOFoSoQIdEuTuR82pmtxH2spWG9h6etwfr1pLBqQ==}
@@ -9087,19 +9087,22 @@ packages:
   zod@4.3.6:
     resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
-  zustand@4.5.7:
-    resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}
-    engines: {node: '>=12.7.0'}
+  zustand@5.0.12:
+    resolution: {integrity: sha512-i77ae3aZq4dhMlRhJVCYgMLKuSiZAaUPAct2AksxQ+gOtimhGMdXljRT21P5BNpeT4kXlLIckvkPM029OljD7g==}
+    engines: {node: '>=12.20.0'}
     peerDependencies:
-      '@types/react': '>=16.8'
+      '@types/react': '>=18.0.0'
       immer: '>=9.0.6'
       react: ^19.2.0
+      use-sync-external-store: '>=1.2.0'
     peerDependenciesMeta:
       '@types/react':
         optional: true
       immer:
         optional: true
       react:
+        optional: true
+      use-sync-external-store:
         optional: true
 
   zwitch@2.0.4:
@@ -15419,7 +15422,7 @@ snapshots:
 
   image-size@2.0.2: {}
 
-  immer@10.2.0: {}
+  immer@11.1.4: {}
 
   import-fresh@3.3.1:
     dependencies:
@@ -19111,13 +19114,12 @@ snapshots:
 
   zod@4.3.6: {}
 
-  zustand@4.5.7(@types/react@19.2.14)(immer@10.2.0)(react@19.2.5):
-    dependencies:
-      use-sync-external-store: 1.6.0(react@19.2.5)
+  zustand@5.0.12(@types/react@19.2.14)(immer@11.1.4)(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)):
     optionalDependencies:
       '@types/react': 19.2.14
-      immer: 10.2.0
+      immer: 11.1.4
       react: 19.2.5
+      use-sync-external-store: 1.6.0(react@19.2.5)
 
   zwitch@2.0.4: {}
 

@@ -1,6 +1,6 @@
-import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { immer } from 'zustand/middleware/immer'
 
 import {
   type BlockchainConfig,
@@ -72,7 +72,7 @@ const createDefaultNetworkConfig = (
 
 const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
   persist(
-    (set, get) => ({
+    immer((set, get) => ({
       addCustomServer: (server) => {
         const { customServers } = get()
         set({ customServers: [...customServers, server] })
@@ -124,18 +124,14 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       },
       setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
       updateConfig: (network, config) => {
-        set(
-          produce((state: BlockchainState) => {
-            state.configs[network].config = config as Config
-          })
-        )
+        set((state) => {
+          state.configs[network].config = config as Config
+        })
       },
       updateConfigMempool: (network, config) => {
-        set(
-          produce((state: BlockchainState) => {
-            state.configsMempool[network] = config
-          })
-        )
+        set((state) => {
+          state.configsMempool[network] = config
+        })
       },
       updateCustomServer: (oldServer, newServer) => {
         const { customServers } = get()
@@ -150,13 +146,11 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         })
       },
       updateServer: (network, server) => {
-        set(
-          produce((state: BlockchainState) => {
-            state.configs[network].server = server as Server
-          })
-        )
+        set((state) => {
+          state.configs[network].server = server as Server
+        })
       }
-    }),
+    })),
     {
       name: 'satsigner-blockchain',
       partialize: (state) => ({

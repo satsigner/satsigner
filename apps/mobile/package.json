@@ -72,7 +72,7 @@
     "expo-system-ui": "~55.0.13",
     "expo-web-browser": "~55.0.12",
     "i18n-js": "^4.4.3",
-    "immer": "^10.1.1",
+    "immer": "^11.1.4",
     "nostr-tools": "^2.11.0",
     "pako": "^2.1.0",
     "process": "^0.11.0",
@@ -104,7 +104,7 @@
     "sonner-native": "^0.17.0",
     "varuint-bitcoin": "1.1.2",
     "victory-native": "^41.16.0",
-    "zustand": "^4.5.2"
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
