@@ -1,6 +1,7 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -38,6 +39,7 @@ import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
+  const insets = useSafeAreaInsets()
 
   const [account, updateAccountName, deleteAccount] = useAccountsStore(
     useShallow((state) => [
@@ -218,7 +220,7 @@ export default function AccountSettings() {
   }
 
   return (
-    <ScrollView>
+    <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
       <Stack.Screen
         options={{
           headerRight: () => null,
