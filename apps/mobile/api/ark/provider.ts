@@ -1,4 +1,9 @@
-import type { ArkBalance, ArkServer, ArkServerId } from '@/types/models/Ark'
+import type {
+  ArkBalance,
+  ArkMovement,
+  ArkServer,
+  ArkServerId
+} from '@/types/models/Ark'
 
 export type ArkWalletArgs = {
   accountId: string
@@ -38,6 +43,7 @@ export interface ArkWalletProvider {
     accountId: string,
     amountSats: number
   ) => Promise<ArkBolt11Invoice>
+  fetchMovements: (accountId: string) => Promise<ArkMovement[]>
   subscribeNotifications: (
     accountId: string,
     listener: ArkNotificationListener

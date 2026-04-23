@@ -27,3 +27,26 @@ export type ArkBalance = {
   claimableLightningReceiveSats: number
   pendingBoardSats: number
 }
+
+export type ArkMovementStatus = 'pending' | 'successful' | 'failed' | 'canceled'
+
+export type ArkMovementKind = 'receive' | 'send' | 'refresh'
+
+export type ArkMovement = {
+  id: number
+  status: ArkMovementStatus | string
+  subsystemName: string
+  subsystemKind: string
+  metadataJson: string
+  intendedBalanceSats: number
+  effectiveBalanceSats: number
+  offchainFeeSats: number
+  sentToAddresses: string[]
+  receivedOnAddresses: string[]
+  inputVtxoIds: string[]
+  outputVtxoIds: string[]
+  exitedVtxoIds: string[]
+  createdAt: string
+  updatedAt: string
+  completedAt: string | null
+}

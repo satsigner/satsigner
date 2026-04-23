@@ -1,5 +1,6 @@
 import {
   Config,
+  type Movement,
   Network as BarkNetwork,
   Wallet,
   WalletNotification_Tags,
@@ -8,7 +9,7 @@ import {
   type WalletNotification
 } from '@secondts/bark-react-native'
 
-import type { ArkBalance, ArkServer } from '@/types/models/Ark'
+import type { ArkBalance, ArkMovement, ArkServer } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 
 import type {
@@ -190,6 +191,33 @@ async function createBolt11Invoice(
   }
 }
 
+function mapMovement(movement: Movement): ArkMovement {
+  return {
+    completedAt: movement.completedAt ?? null,
+    createdAt: movement.createdAt,
+    effectiveBalanceSats: Number(movement.effectiveBalanceSats),
+    exitedVtxoIds: movement.exitedVtxoIds,
+    id: movement.id,
+    inputVtxoIds: movement.inputVtxoIds,
+    intendedBalanceSats: Number(movement.intendedBalanceSats),
+    metadataJson: movement.metadataJson,
+    offchainFeeSats: Number(movement.offchainFeeSats),
+    outputVtxoIds: movement.outputVtxoIds,
+    receivedOnAddresses: movement.receivedOnAddresses,
+    sentToAddresses: movement.sentToAddresses,
+    status: movement.status,
+    subsystemKind: movement.subsystemKind,
+    subsystemName: movement.subsystemName,
+    updatedAt: movement.updatedAt
+  }
+}
+
+async function fetchMovements(accountId: string): Promise<ArkMovement[]> {
+  const wallet = getCachedWallet(accountId)
+  const movements = await wallet.history()
+  return movements.map(mapMovement)
+}
+
 async function fetchBalance(accountId: string): Promise<ArkBalance> {
   const wallet = getCachedWallet(accountId)
   const balance = await wallet.balance()
@@ -209,6 +237,7 @@ const barkProvider: ArkWalletProvider = {
   createBolt11Invoice,
   createWallet,
   fetchBalance,
+  fetchMovements,
   newAddress,
   openWallet,
   releaseWallet,

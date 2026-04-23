@@ -1,12 +1,14 @@
+import { FlashList } from '@shopify/flash-list'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Platform, ScrollView, StyleSheet } from 'react-native'
+import { Platform, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconSettings, SSIconTrash } from '@/components/icons'
 import SSIconWarning from '@/components/icons/SSIconWarning'
 import SSActionButton from '@/components/SSActionButton'
+import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
@@ -19,6 +21,7 @@ import {
 } from '@/constants/headerChrome'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkDeleteAccount } from '@/hooks/useArkDeleteAccount'
+import { useArkMovements } from '@/hooks/useArkMovements'
 import { useArkWallet } from '@/hooks/useArkWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -43,6 +46,7 @@ export default function ArkAccountDetailPage() {
 
   const walletQuery = useArkWallet(id)
   const balanceQuery = useArkBalance(id)
+  const movementsQuery = useArkMovements(id)
   const { deleteAccount } = useArkDeleteAccount()
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -137,76 +141,119 @@ export default function ArkAccountDetailPage() {
           )
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SSVStack itemsCenter gap="none">
-          <SSVStack style={styles.balanceContainer} gap="xs">
-            <SSText color="muted" size="xs" uppercase>
-              {t('ark.balance.title')}
-            </SSText>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              {privacyMode ? (
-                <SSText
-                  color="white"
-                  size={totalSize}
-                  weight="ultralight"
-                  style={{
-                    letterSpacing: -1,
-                    lineHeight: Sizes.text.fontSize[totalSize]
-                  }}
+      <View style={styles.listContainer}>
+        <FlashList
+          data={movementsQuery.data ?? []}
+          keyExtractor={(item) => String(item.id)}
+          showsVerticalScrollIndicator={false}
+          refreshing={movementsQuery.isRefetching}
+          onRefresh={() => {
+            balanceQuery.refetch()
+            movementsQuery.refetch()
+          }}
+          ListHeaderComponent={
+            <SSVStack itemsCenter gap="none">
+              <SSVStack style={styles.balanceContainer} gap="xs">
+                <SSText color="muted" size="xs" uppercase>
+                  {t('ark.balance.title')}
+                </SSText>
+                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                  {privacyMode ? (
+                    <SSText
+                      color="white"
+                      size={totalSize}
+                      weight="ultralight"
+                      style={{
+                        letterSpacing: -1,
+                        lineHeight: Sizes.text.fontSize[totalSize]
+                      }}
+                    >
+                      {PRIVACY_MASK}
+                    </SSText>
+                  ) : (
+                    <SSStyledSatText
+                      amount={spendable}
+                      decimals={0}
+                      useZeroPadding={useZeroPadding}
+                      currency={currencyUnit}
+                      textSize={totalSize}
+                      weight="ultralight"
+                      letterSpacing={-1}
+                    />
+                  )}
+                  <SSText size="xl" color="muted">
+                    {currencyUnit === 'btc'
+                      ? t('bitcoin.btc')
+                      : t('bitcoin.sats')}
+                  </SSText>
+                </SSHStack>
+                {btcPrice > 0 && (
+                  <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                    <SSText color="muted">
+                      {privacyMode
+                        ? PRIVACY_MASK
+                        : formatFiatPrice(spendable, btcPrice)}
+                    </SSText>
+                    <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                      {fiatCurrency}
+                    </SSText>
+                  </SSHStack>
+                )}
+                {isLoading && (
+                  <SSText color="muted" size="xs">
+                    {t('common.loading')}
+                  </SSText>
+                )}
+                {!!loadError && !isLoading && (
+                  <SSText style={{ color: Colors.warning }} size="xs" center>
+                    {t('ark.error.walletLoad')}
+                  </SSText>
+                )}
+              </SSVStack>
+              <SSHStack gap="none" style={styles.actionRow}>
+                <SSActionButton
+                  style={styles.actionButton}
+                  onPress={handleComingSoon}
                 >
-                  {PRIVACY_MASK}
-                </SSText>
-              ) : (
-                <SSStyledSatText
-                  amount={spendable}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  textSize={totalSize}
-                  weight="ultralight"
-                  letterSpacing={-1}
-                />
-              )}
-              <SSText size="xl" color="muted">
-                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-              </SSText>
-            </SSHStack>
-            {btcPrice > 0 && (
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText color="muted">
-                  {privacyMode
-                    ? PRIVACY_MASK
-                    : formatFiatPrice(spendable, btcPrice)}
-                </SSText>
-                <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                  {fiatCurrency}
-                </SSText>
+                  <SSText uppercase>{t('account.send')}</SSText>
+                </SSActionButton>
+                <SSActionButton
+                  style={styles.actionButton}
+                  onPress={handleReceive}
+                >
+                  <SSText uppercase>{t('account.receive')}</SSText>
+                </SSActionButton>
               </SSHStack>
-            )}
-            {isLoading && (
-              <SSText color="muted" size="xs">
-                {t('common.loading')}
+            </SSVStack>
+          }
+          renderItem={({ item }) => (
+            <View style={styles.movementItem}>
+              <SSArkMovementCard
+                movement={item}
+                link={`/signer/ark/account/${id}/movement/${item.id}`}
+              />
+            </View>
+          )}
+          ListEmptyComponent={
+            movementsQuery.isLoading ? null : (
+              <SSVStack style={styles.emptyContainer}>
+                <SSText color="muted">{t('ark.movement.empty')}</SSText>
+              </SSVStack>
+            )
+          }
+          ListFooterComponent={
+            movementsQuery.error ? (
+              <SSText
+                style={[styles.errorFooter, { color: Colors.warning }]}
+                size="xs"
+                center
+              >
+                {t('ark.movement.error.load')}
               </SSText>
-            )}
-            {!!loadError && !isLoading && (
-              <SSText style={{ color: Colors.warning }} size="xs" center>
-                {t('ark.error.walletLoad')}
-              </SSText>
-            )}
-          </SSVStack>
-          <SSHStack gap="none" style={styles.actionRow}>
-            <SSActionButton
-              style={styles.actionButton}
-              onPress={handleComingSoon}
-            >
-              <SSText uppercase>{t('account.send')}</SSText>
-            </SSActionButton>
-            <SSActionButton style={styles.actionButton} onPress={handleReceive}>
-              <SSText uppercase>{t('account.receive')}</SSText>
-            </SSActionButton>
-          </SSHStack>
-        </SSVStack>
-      </ScrollView>
+            ) : null
+          }
+        />
+      </View>
       <SSModal
         visible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}
@@ -260,11 +307,25 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     paddingTop: 24
   },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 32
+  },
+  errorFooter: {
+    paddingTop: 12
+  },
   headerRight: {
     alignItems: 'center'
+  },
+  listContainer: {
+    flex: 1
   },
   modalContent: {
     paddingVertical: 8,
     width: '100%'
+  },
+  movementItem: {
+    paddingHorizontal: 20
   }
 })

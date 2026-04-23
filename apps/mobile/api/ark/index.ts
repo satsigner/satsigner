@@ -1,4 +1,4 @@
-import type { ArkBalance, ArkServerId } from '@/types/models/Ark'
+import type { ArkBalance, ArkMovement, ArkServerId } from '@/types/models/Ark'
 
 import type {
   ArkBolt11Invoice,
@@ -53,6 +53,13 @@ export function createArkBolt11Invoice(
   amountSats: number
 ): Promise<ArkBolt11Invoice> {
   return getArkProvider(serverId).createBolt11Invoice(accountId, amountSats)
+}
+
+export function fetchArkMovements(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkMovement[]> {
+  return getArkProvider(serverId).fetchMovements(accountId)
 }
 
 export function subscribeArkNotifications(
