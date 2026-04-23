@@ -50,6 +50,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
@@ -170,6 +171,7 @@ export default function AccountList() {
       state.fiatCurrency
     ])
   )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [wallets, addresses] = useWalletsStore(
     useShallow((state) => [state.wallets, state.addresses])
   )
@@ -820,9 +822,11 @@ export default function AccountList() {
                 {t('accounts.totalBalance')}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
-                {totalBalance.toLocaleString(undefined, {
-                  maximumFractionDigits: 0
-                })}
+                {privacyMode
+                  ? '••••'
+                  : totalBalance.toLocaleString(undefined, {
+                      maximumFractionDigits: 0
+                    })}
               </SSText>
             </SSHStack>
             <View style={{ width: 12 }} />
@@ -831,9 +835,11 @@ export default function AccountList() {
                 {t('accounts.satsInMempool').replace('\n', ' ')}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
-                {totalSatsInMempoll.toLocaleString(undefined, {
-                  maximumFractionDigits: 0
-                })}
+                {privacyMode
+                  ? '••••'
+                  : totalSatsInMempoll.toLocaleString(undefined, {
+                      maximumFractionDigits: 0
+                    })}
               </SSText>
             </SSHStack>
           </SSHStack>
