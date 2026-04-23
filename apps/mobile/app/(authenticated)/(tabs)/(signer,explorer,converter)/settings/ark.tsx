@@ -1,7 +1,14 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView
+} from 'react-native'
 
+import SSIconEyeOff from '@/components/icons/SSIconEyeOff'
+import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
@@ -27,9 +34,16 @@ export default function ArkSettings() {
     bitcoin: persistedTokens.bitcoin ?? '',
     signet: persistedTokens.signet ?? ''
   })
+  const [visibleTokens, setVisibleTokens] = useState<
+    Partial<Record<Network, boolean>>
+  >({})
 
   function handleChangeToken(network: Network, value: string) {
     setTokens((prev) => ({ ...prev, [network]: value }))
+  }
+
+  function handleToggleTokenVisibility(network: Network) {
+    setVisibleTokens((prev) => ({ ...prev, [network]: !prev[network] }))
   }
 
   function handleSave() {
@@ -129,7 +143,19 @@ export default function ArkSettings() {
                       placeholder={tn('serverAccessTokenPlaceholder')}
                       autoCapitalize="none"
                       autoCorrect={false}
-                      secureTextEntry
+                      secureTextEntry={!visibleTokens[network]}
+                      actionRight={
+                        <Pressable
+                          onPress={() => handleToggleTokenVisibility(network)}
+                          hitSlop={8}
+                        >
+                          {visibleTokens[network] ? (
+                            <SSIconEyeOn height={20} width={20} />
+                          ) : (
+                            <SSIconEyeOff height={20} width={20} />
+                          )}
+                        </Pressable>
+                      }
                     />
                   </SSVStack>
                 </SSVStack>
