@@ -33,12 +33,14 @@ function AddressDetails() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
   const [script, setScript] = useState('')
 
-  const [account, address] = useAccountsStore((state) => [
-    state.accounts.find((account) => account.id === accountId),
-    state.accounts
-      .find((account) => account.id === accountId)
-      ?.addresses.find((address) => address.address === addr)
-  ])
+  const [account, address] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((account) => account.id === accountId),
+      state.accounts
+        .find((account) => account.id === accountId)
+        ?.addresses.find((address) => address.address === addr)
+    ])
+  )
 
   const transactions = useAccountsStore((state) =>
     state.accounts

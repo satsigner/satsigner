@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -19,10 +20,9 @@ function SSLabelInput({
   label: originalLabel,
   onUpdateLabel
 }: SSLabelInputProps) {
-  const [getTags, setTags] = useAccountsStore((state) => [
-    state.getTags,
-    state.setTags
-  ])
+  const [getTags, setTags] = useAccountsStore(
+    useShallow((state) => [state.getTags, state.setTags])
+  )
 
   const [selectedTags, setSelectedTags] = useState([] as string[])
   const [tags, setLocalTags] = useState(() => getTags())
