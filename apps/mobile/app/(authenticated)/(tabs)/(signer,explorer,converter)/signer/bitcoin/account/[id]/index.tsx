@@ -36,22 +36,19 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
 import {
-  SSIconBlackIndicator,
   SSIconBubbles,
   SSIconChartSettings,
   SSIconChatBubble,
   SSIconCollapse,
   SSIconExpand,
   SSIconEyeOn,
-  SSIconGreenIndicator,
   SSIconHistoryChart,
   SSIconKeys,
   SSIconList,
   SSIconMenu,
   SSIconOutgoing,
   SSIconRefresh,
-  SSIconTable,
-  SSIconYellowIndicator
+  SSIconTable
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import { AddressCard } from '@/components/SSAddressCard'
@@ -62,6 +59,7 @@ import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
+import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSLoader from '@/components/SSLoader'
@@ -1162,7 +1160,7 @@ export default function AccountView() {
   }, [])
   const animationValue = useSharedValue(0)
 
-  const [connectionState, , isPrivateConnection, connectionParts] =
+  const [connectionStatus, , isPrivateConnection, connectionParts] =
     useVerifyConnection()
   const {
     blockHeight: networkBlockHeight,
@@ -1571,23 +1569,19 @@ export default function AccountView() {
             onPress={() => router.navigate('/settings/network/server')}
           >
             <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
-              {connectionState ? (
-                isPrivateConnection ? (
-                  <SSIconYellowIndicator height={24} width={24} />
-                ) : (
-                  <SSIconGreenIndicator height={24} width={24} />
-                )
-              ) : (
-                <SSIconBlackIndicator height={24} width={24} />
-              )}
+              <SSConnectionStatusIndicator
+                isPrivateConnection={isPrivateConnection}
+                status={connectionStatus}
+              />
               <SSHStack gap="xs" style={{ alignItems: 'center' }}>
                 <SSText
                   size="xxs"
                   uppercase
                   style={{
-                    color: connectionState
-                      ? Colors.gray['200']
-                      : Colors.gray['450']
+                    color:
+                      connectionStatus === 'connected'
+                        ? Colors.gray['200']
+                        : Colors.gray['450']
                   }}
                 >
                   {`${connectionParts.network} - ${connectionParts.name}`}

@@ -32,6 +32,33 @@ import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 const tn = _tn('transaction.build.sign')
 
+function getBdkInnerMessage(error: unknown): string | undefined {
+  if (!(error instanceof Error) || !('inner' in error)) {
+    return undefined
+  }
+  const record = error as { inner?: unknown }
+  const { inner } = record
+  if (!inner || typeof inner !== 'object' || !('message' in inner)) {
+    return undefined
+  }
+  const msg = (inner as { message: unknown }).message
+  if (typeof msg !== 'string' || msg.length === 0) {
+    return undefined
+  }
+  return msg
+}
+
+function broadcastFailureUserMessage(error: unknown): string {
+  const inner = getBdkInnerMessage(error)
+  if (inner) {
+    return inner
+  }
+  if (error instanceof Error) {
+    return error.message
+  }
+  return 'Failed to broadcast transaction'
+}
+
 export default function SignTransaction() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -142,17 +169,37 @@ export default function SignTransaction() {
 
   function handleBroadcastSingleSig() {
     if (!psbt || !wallet) {
+      console.log('[SignTransaction] handleBroadcastSingleSig abort', {
+        hasPsbt: !!psbt,
+        hasWallet: !!wallet
+      })
       throw new Error('Empty PSBT or wallet')
     }
+    console.log('[SignTransaction] handleBroadcastSingleSig start', {
+      backend: currentConfig.server.backend,
+      url: currentConfig.server.url
+    })
     return broadcastTransaction(
       wallet,
       psbt,
       currentConfig.server.backend,
       currentConfig.server.url
-    )
+    ).then((txid) => {
+      console.log('[SignTransaction] handleBroadcastSingleSig result', {
+        falsy: !txid,
+        txid
+      })
+      return txid
+    })
   }
 
   async function handleBroadcastMultiSig() {
+    console.log('[SignTransaction] handleBroadcastMultiSig start', {
+      backend: currentConfig.server.backend,
+      signedTxLength: signedTx?.length ?? 0,
+      url: currentConfig.server.url
+    })
+
     if (!signedTx) {
       throw new Error('Empty signed transaction')
     }
@@ -174,14 +221,18 @@ export default function SignTransaction() {
         currentConfig.server.url,
         selectedNetwork
       )
+      console.log('[SignTransaction] multisig electrum broadcasting…')
       await electrumClient.broadcastTransactionHex(signedTx)
       electrumClient.close()
+      console.log('[SignTransaction] multisig electrum broadcast ok')
       return true
     }
 
     if (currentConfig.server.backend === 'esplora') {
       const esploraClient = new Esplora(currentConfig.server.url)
-      await esploraClient.broadcastTransaction(signedTx)
+      console.log('[SignTransaction] multisig esplora broadcasting…')
+      const txid = await esploraClient.broadcastTransaction(signedTx)
+      console.log('[SignTransaction] multisig esplora broadcast ok', { txid })
       return true
     }
 
@@ -189,12 +240,23 @@ export default function SignTransaction() {
   }
 
   async function handleBroadcastTransaction() {
+    console.log('[SignTransaction] handleBroadcastTransaction invoked', {
+      broadcasted,
+      broadcasting,
+      hasPsbt: !!psbt,
+      hasSignedTx: !!signedTx,
+      hasWallet: !!wallet,
+      signed
+    })
+
     if (broadcasting) {
+      console.log('[SignTransaction] skip: already broadcasting')
       toast.info('Please wait while the transaction is being broadcast.')
       return
     }
 
     if (broadcasted) {
+      console.log('[SignTransaction] skip: already broadcasted')
       toast.error(
         'This transaction has already been broadcasted to the network'
       )
@@ -205,28 +267,35 @@ export default function SignTransaction() {
 
     try {
       if (signedTx) {
+        console.log('[SignTransaction] branch: multisig (signedTx)')
         await handleBroadcastMultiSig()
       } else if (psbt) {
+        console.log('[SignTransaction] branch: singlesig (psbt)')
         const broadcastResult = await handleBroadcastSingleSig()
         if (!broadcastResult) {
+          console.log('[SignTransaction] singlesig broadcast empty result')
           throw new Error('Broadcast failed')
         }
       } else {
+        console.log('[SignTransaction] branch: none — no psbt or signedTx')
         throw new Error('No transaction to broadcast')
       }
 
+      console.log('[SignTransaction] broadcast success, navigating…')
       setBroadcasted(true)
       router.navigate(
         `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
       )
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to broadcast transaction'
-      toast.error(errorMessage)
+      console.log('[SignTransaction] broadcast error', {
+        error,
+        innerMessage: getBdkInnerMessage(error),
+        message: error instanceof Error ? error.message : String(error)
+      })
+      toast.error(broadcastFailureUserMessage(error))
     } finally {
       setBroadcasting(false)
+      console.log('[SignTransaction] handleBroadcastTransaction finished')
     }
   }
 
@@ -252,30 +321,65 @@ export default function SignTransaction() {
 
   useEffect(() => {
     function signTransactionData() {
+      console.log('[SignTransaction] signTransactionData (mount)', {
+        hasPsbt: !!psbt,
+        hasSignedTx: !!signedTx,
+        hasWallet: !!wallet
+      })
       // For multisig wallets, if we already have a finalized transaction, use it directly
       if (signedTx) {
         setSigned(true)
         setRawTx(signedTx)
+        console.log('[SignTransaction] multisig path: using signedTx as raw')
         return
       }
 
       // For singlesig wallets, sign the transaction
       if (!wallet || !psbt) {
+        console.log('[SignTransaction] singlesig path: missing wallet or psbt')
         return
       }
 
-      signTransaction(psbt, wallet)
+      const signOk = signTransaction(psbt, wallet)
+      console.log('[SignTransaction] wallet.sign returned', { signOk })
 
-      // Create fresh reference so Zustand detects the change
-      const signedPsbt = new Psbt(psbt.toBase64())
-      setSigned(true)
-      setPsbt(signedPsbt)
-      const hex = psbt.extractTxHex()
-      setRawTx(hex)
+      try {
+        // Create fresh reference so Zustand detects the change
+        const signedPsbt = new Psbt(psbt.toBase64())
+        setSigned(true)
+        setPsbt(signedPsbt)
+        const hex = psbt.extractTxHex()
+        console.log('[SignTransaction] extractTxHex ok', {
+          hexLength: hex.length
+        })
+        setRawTx(hex)
+      } catch (error) {
+        console.log('[SignTransaction] singlesig finalize failed', {
+          error: error,
+          message: error instanceof Error ? error.message : String(error)
+        })
+        throw error
+      }
     }
 
     signTransactionData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!signed) {
+      return
+    }
+    const broadcastDisabled = !signed || (!psbt && !signedTx) || broadcasted
+    console.log('[SignTransaction] signed state', {
+      broadcastDisabled,
+      broadcasted,
+      canCopySignedTx,
+      hasPsbt: !!psbt,
+      hasSignedTx: !!signedTx,
+      hasWallet: !!wallet,
+      rawTxLength: rawTx.length
+    })
+  }, [signed, psbt, signedTx, broadcasted, wallet, rawTx, canCopySignedTx])
 
   if (!account || !psbt) {
     return <Redirect href="/" />
@@ -389,6 +493,14 @@ export default function SignTransaction() {
               disabled={!signed || (!psbt && !signedTx) || broadcasted}
               loading={broadcasting}
               onPress={() => {
+                console.log('[SignTransaction] Broadcast button onPress', {
+                  broadcasted,
+                  broadcasting,
+                  disabled: !signed || (!psbt && !signedTx) || broadcasted,
+                  hasPsbt: !!psbt,
+                  hasSignedTx: !!signedTx,
+                  signed
+                })
                 handleBroadcastTransaction()
               }}
             />

@@ -46,7 +46,7 @@ export default function NetworkSettings() {
     ])
   )
 
-  const [connectionState] = useVerifyConnection()
+  const [connectionStatus] = useVerifyConnection()
   const { testing, testConnection, resetTest } = useConnectionTest()
 
   const [selectedServers, setSelectedServers] = useState<
@@ -282,7 +282,8 @@ export default function NetworkSettings() {
                                         configs[selectedNetwork].server.backend
 
                                     const shouldShowConnected =
-                                      isCurrentlyActiveServer && connectionState
+                                      isCurrentlyActiveServer &&
+                                      connectionStatus === 'connected'
 
                                     return (
                                       shouldShowConnected && (

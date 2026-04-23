@@ -13,16 +13,12 @@ import Animated, {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  SSIconBlackIndicator,
-  SSIconGreenIndicator,
-  SSIconYellowIndicator
-} from '@/components/icons'
 import SSAccountCard from '@/components/SSAccountCard'
 import SSAccountCardSkeleton from '@/components/SSAccountCardSkeleton'
 import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSButton from '@/components/SSButton'
+import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
@@ -251,7 +247,7 @@ export default function AccountList() {
     listItemCount * ACCOUNT_CARD_HEIGHT +
     (listItemCount - 1) * SEPARATOR_VERTICAL
 
-  const [connectionState, , isPrivateConnection, connectionParts] =
+  const [connectionStatus, , isPrivateConnection, connectionParts] =
     useVerifyConnection()
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
@@ -779,22 +775,18 @@ export default function AccountList() {
             onPress={() => router.navigate('/settings/network/server')}
           >
             <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
-              {connectionState ? (
-                isPrivateConnection ? (
-                  <SSIconYellowIndicator height={24} width={24} />
-                ) : (
-                  <SSIconGreenIndicator height={24} width={24} />
-                )
-              ) : (
-                <SSIconBlackIndicator height={24} width={24} />
-              )}
+              <SSConnectionStatusIndicator
+                isPrivateConnection={isPrivateConnection}
+                status={connectionStatus}
+              />
               <SSText
                 size="xxs"
                 uppercase
                 style={{
-                  color: connectionState
-                    ? Colors.gray['200']
-                    : Colors.gray['450']
+                  color:
+                    connectionStatus === 'connected'
+                      ? Colors.gray['200']
+                      : Colors.gray['450']
                 }}
               >
                 {`${connectionParts.network} - ${connectionParts.name}`}
