@@ -223,11 +223,7 @@ export default function SetPin() {
             />
           )}
           {stage === 'set' && (
-            <SSPinInput
-              pin={pinArray}
-              setPin={setPinArray}
-              withClear={false}
-            />
+            <SSPinInput pin={pinArray} setPin={setPinArray} withClear={false} />
           )}
           {stage === 're-enter' && (
             <SSPinInput
