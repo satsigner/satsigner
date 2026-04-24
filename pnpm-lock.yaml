@@ -161,6 +161,9 @@ importers:
       bip39:
         specifier: ^3.1.0
         version: 3.1.0
+      bitcoin-decoder:
+        specifier: ^0.3.0
+        version: 0.3.0(typescript@5.9.3)
       bitcoinjs-lib:
         specifier: ^6.1.7
         version: 6.1.7
@@ -4460,6 +4463,9 @@ packages:
 
   bip39@3.1.0:
     resolution: {integrity: sha512-c9kiwdk45Do5GL0vJMe7tS95VjCii65mYAH7DfWl3uW8AVzXKQVUm64i3hzVybBDMp9r7j9iNxR85+ul8MdN/A==}
+
+  bitcoin-decoder@0.3.0:
+    resolution: {integrity: sha512-2AlqMNFCosrsNXJ1KArJnAtIwrPffOMeG0Mpf4gyHDVC1LwLq+F9jsG2LC3zKJSuQ+XUKv+M2fIyMpVtanxhAw==}
 
   bitcoinjs-lib@6.1.7:
     resolution: {integrity: sha512-tlf/r2DGMbF7ky1MgUqXHzypYHakkEnm0SZP23CJKIqNY/5uNAnMbFhMJdhjrL/7anfb/U8+AlpdjPWjPnAalg==}
@@ -13483,6 +13489,15 @@ snapshots:
   bip39@3.1.0:
     dependencies:
       '@noble/hashes': 1.8.0
+
+  bitcoin-decoder@0.3.0(typescript@5.9.3):
+    dependencies:
+      '@noble/hashes': 2.0.1
+      '@scure/base': 2.0.0
+      bip-321: 0.0.10(typescript@5.9.3)
+      light-bolt11-decoder: 3.2.0
+    transitivePeerDependencies:
+      - typescript
 
   bitcoinjs-lib@6.1.7:
     dependencies:
