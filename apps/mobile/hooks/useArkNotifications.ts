@@ -79,6 +79,9 @@ async function subscribeAccount(
         queryClient.invalidateQueries({
           queryKey: ['ark', 'balance', account.id]
         })
+        queryClient.invalidateQueries({
+          queryKey: ['ark', 'movements', account.id]
+        })
         notifyReceive(account, event)
       }
     )

@@ -23,6 +23,7 @@ import type {
 import { registerArkProvider } from '../registry'
 
 const walletCache = new Map<string, WalletLike>()
+const inflightOpens = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()
 const activeUnsubscribes = new Map<string, Set<ArkNotificationUnsubscribe>>()
 
@@ -72,22 +73,30 @@ async function createWallet({
   walletCache.set(accountId, wallet)
 }
 
-async function openWallet({
-  accountId,
-  mnemonic,
-  server,
-  datadir,
-  serverAccessToken
-}: ArkWalletArgs): Promise<void> {
-  if (walletCache.has(accountId)) {
+async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
+  const wallet = await Wallet.open(
+    args.mnemonic,
+    buildConfig(args.server, args.serverAccessToken),
+    args.datadir
+  )
+  walletCache.set(args.accountId, wallet)
+}
+
+async function openWallet(args: ArkWalletArgs): Promise<void> {
+  if (walletCache.has(args.accountId)) {
     return
   }
-  const wallet = await Wallet.open(
-    mnemonic,
-    buildConfig(server, serverAccessToken),
-    datadir
-  )
-  walletCache.set(accountId, wallet)
+  const inflight = inflightOpens.get(args.accountId)
+  if (inflight) {
+    return inflight
+  }
+  const promise = openAndCacheWallet(args)
+  inflightOpens.set(args.accountId, promise)
+  try {
+    await promise
+  } finally {
+    inflightOpens.delete(args.accountId)
+  }
 }
 
 function mapWalletNotification(

@@ -142,7 +142,6 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
             </SSText>
           )}
         </SSHStack>
-
         <SSHStack style={styles.amountRow} gap="sm">
           {renderDirectionIcon(kind, isLightning)}
           <SSHStack gap="xs" style={styles.amountCluster}>
@@ -172,13 +171,11 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
             </SSText>
           </SSHStack>
         </SSHStack>
-
         {priceDisplay !== '' && (
           <SSText size="xs" style={styles.fiat}>
             {priceDisplay}
           </SSText>
         )}
-
         <SSHStack justifyBetween style={styles.bottomRow}>
           <SSText uppercase size="xxs" style={styles.kindTag}>
             {getKindLabel(kind)}
