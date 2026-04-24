@@ -1,5 +1,6 @@
 import {
   Config,
+  type FeeEstimate,
   type LightningSend,
   type Movement,
   Network as BarkNetwork,
@@ -12,6 +13,7 @@ import {
 
 import type {
   ArkBalance,
+  ArkFeeEstimate,
   ArkLightningSendResult,
   ArkMovement,
   ArkServer
@@ -277,6 +279,33 @@ async function payLightningAddress(
   return mapLightningSend(result)
 }
 
+function mapFeeEstimate(estimate: FeeEstimate): ArkFeeEstimate {
+  return {
+    feeSats: Number(estimate.feeSats),
+    grossAmountSats: Number(estimate.grossAmountSats),
+    netAmountSats: Number(estimate.netAmountSats),
+    vtxoIdsSpent: estimate.vtxosSpent
+  }
+}
+
+async function estimateArkoorFee(
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  const wallet = getCachedWallet(accountId)
+  const estimate = await wallet.estimateArkoorPaymentFee(BigInt(amountSats))
+  return mapFeeEstimate(estimate)
+}
+
+async function estimateLightningSendFee(
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  const wallet = getCachedWallet(accountId)
+  const estimate = await wallet.estimateLightningSendFee(BigInt(amountSats))
+  return mapFeeEstimate(estimate)
+}
+
 async function fetchBalance(accountId: string): Promise<ArkBalance> {
   const wallet = getCachedWallet(accountId)
   const balance = await wallet.balance()
@@ -295,6 +324,8 @@ async function fetchBalance(accountId: string): Promise<ArkBalance> {
 const barkProvider: ArkWalletProvider = {
   createBolt11Invoice,
   createWallet,
+  estimateArkoorFee,
+  estimateLightningSendFee,
   fetchBalance,
   fetchMovements,
   newAddress,

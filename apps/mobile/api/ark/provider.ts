@@ -1,5 +1,6 @@
 import type {
   ArkBalance,
+  ArkFeeEstimate,
   ArkLightningSendResult,
   ArkMovement,
   ArkServer,
@@ -65,4 +66,12 @@ export interface ArkWalletProvider {
     amountSats: number,
     comment?: string
   ) => Promise<ArkLightningSendResult>
+  estimateArkoorFee: (
+    accountId: string,
+    amountSats: number
+  ) => Promise<ArkFeeEstimate>
+  estimateLightningSendFee: (
+    accountId: string,
+    amountSats: number
+  ) => Promise<ArkFeeEstimate>
 }

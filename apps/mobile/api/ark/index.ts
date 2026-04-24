@@ -1,5 +1,6 @@
 import type {
   ArkBalance,
+  ArkFeeEstimate,
   ArkLightningSendResult,
   ArkMovement,
   ArkServerId
@@ -105,5 +106,24 @@ export function payArkLightningAddress(
     address,
     amountSats,
     comment
+  )
+}
+
+export function estimateArkArkoorFee(
+  serverId: ArkServerId,
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateArkoorFee(accountId, amountSats)
+}
+
+export function estimateArkLightningSendFee(
+  serverId: ArkServerId,
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateLightningSendFee(
+    accountId,
+    amountSats
   )
 }

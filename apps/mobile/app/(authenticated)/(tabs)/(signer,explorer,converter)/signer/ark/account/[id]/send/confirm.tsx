@@ -11,6 +11,11 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkSend } from '@/hooks/useArkSend'
+import {
+  type ArkSendFeeKind,
+  useArkSendFeeEstimate
+} from '@/hooks/useArkSendFeeEstimate'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -140,7 +145,30 @@ export default function ArkSendConfirmPage() {
   const amountIsEditable = amountFromInvoice === undefined
   const showCommentField =
     draft?.kind === 'lnaddress' || draft?.kind === 'lnurl'
-  const exceedsBalance = amountSats > spendableSats
+
+  const feeKind: ArkSendFeeKind | null = draft
+    ? draft.kind === 'arkoor'
+      ? 'arkoor'
+      : 'lightning'
+    : null
+  // Fire fee estimation on the debounced amount so the estimator doesn't
+  // run per-keystroke. Fixed-amount invoices don't animate, so the debounce
+  // is effectively a no-op for them.
+  const debouncedAmountSats = useDebouncedValue(amountSats)
+  const feeEstimateQuery = useArkSendFeeEstimate({
+    accountId: id,
+    amountSats: debouncedAmountSats,
+    kind: feeKind
+  })
+  const feeSats = feeEstimateQuery.data
+    ? feeEstimateQuery.data.feeSats
+    : undefined
+  const totalSats = feeSats !== undefined ? amountSats + feeSats : undefined
+
+  const exceedsBalance =
+    totalSats !== undefined
+      ? totalSats > spendableSats
+      : amountSats > spendableSats
   const canConfirm =
     !!draft && amountSats > 0 && !exceedsBalance && !sendMutation.isPending
 
@@ -208,7 +236,6 @@ export default function ArkSendConfirmPage() {
                   </SSClipboardCopy>
                 </View>
               </SSVStack>
-
               {draft.kind === 'bolt11' && draft.description && (
                 <SSVStack gap="xs">
                   <SSText color="muted" size="xs" uppercase>
@@ -217,7 +244,6 @@ export default function ArkSendConfirmPage() {
                   <SSText>{draft.description}</SSText>
                 </SSVStack>
               )}
-
               <SSVStack gap="xs">
                 <SSText color="muted" size="xs" uppercase>
                   {t('ark.send.amount')} ({t('bitcoin.sats')})
@@ -249,11 +275,54 @@ export default function ArkSendConfirmPage() {
                 </SSText>
                 {exceedsBalance && (
                   <SSText size="xs" style={{ color: Colors.warning }}>
-                    {t('ark.send.error.insufficientBalance')}
+                    {t(
+                      feeSats === undefined
+                        ? 'ark.send.error.insufficientBalance'
+                        : 'ark.send.error.insufficientBalanceWithFee'
+                    )}
                   </SSText>
                 )}
               </SSVStack>
-
+              {amountSats > 0 && (
+                <SSVStack gap="xs">
+                  <SSHStack justifyBetween>
+                    <SSText color="muted" size="xs" uppercase>
+                      {t('ark.send.fee')}
+                    </SSText>
+                    {feeSats !== undefined ? (
+                      <SSText size="xs">
+                        {formatNumber(feeSats)} {t('bitcoin.sats')}
+                      </SSText>
+                    ) : feeEstimateQuery.isPending ? (
+                      <SSText color="muted" size="xs">
+                        {t('ark.send.feeEstimating')}
+                      </SSText>
+                    ) : feeEstimateQuery.error ? (
+                      <SSText size="xs" style={{ color: Colors.warning }}>
+                        {t('ark.send.feeUnavailable')}
+                      </SSText>
+                    ) : null}
+                  </SSHStack>
+                  {totalSats !== undefined && (
+                    <SSHStack justifyBetween>
+                      <SSText color="muted" size="xs" uppercase>
+                        {t('ark.send.total')}
+                      </SSText>
+                      <SSVStack gap="none" style={styles.totalRightColumn}>
+                        <SSText size="xs">
+                          {formatNumber(totalSats)} {t('bitcoin.sats')}
+                        </SSText>
+                        {btcPrice > 0 && (
+                          <SSText color="muted" size="xs">
+                            {formatFiatPrice(totalSats, btcPrice)}{' '}
+                            {fiatCurrency}
+                          </SSText>
+                        )}
+                      </SSVStack>
+                    </SSHStack>
+                  )}
+                </SSVStack>
+              )}
               {showCommentField && (
                 <SSVStack gap="xs">
                   <SSText color="muted" size="xs" uppercase>
@@ -267,7 +336,6 @@ export default function ArkSendConfirmPage() {
                   />
                 </SSVStack>
               )}
-
               <SSHStack gap="sm" style={styles.actions}>
                 <SSButton
                   label={t('common.cancel')}
@@ -326,5 +394,8 @@ const styles = StyleSheet.create({
   },
   monospace: {
     fontFamily: 'monospace'
+  },
+  totalRightColumn: {
+    alignItems: 'flex-end'
   }
 })

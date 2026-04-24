@@ -39,6 +39,13 @@ export type ArkLightningSendResult = {
   preimage?: string
 }
 
+export type ArkFeeEstimate = {
+  grossAmountSats: number
+  feeSats: number
+  netAmountSats: number
+  vtxoIdsSpent: string[]
+}
+
 export type ArkSendKind = 'arkoor' | 'bolt11' | 'lnaddress' | 'lnurl'
 
 export type ArkSendInput =
