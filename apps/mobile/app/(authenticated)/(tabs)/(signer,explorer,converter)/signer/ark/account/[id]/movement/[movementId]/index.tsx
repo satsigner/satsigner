@@ -27,9 +27,15 @@ import type {
 import {
   getArkMovementAmountSats,
   getArkMovementKind,
-  isLightningMovement
+  isLightningMovement,
+  parseArkCounterparty
 } from '@/utils/arkMovement'
-import { formatDate, formatFiatPrice, formatNumber } from '@/utils/format'
+import {
+  formatDate,
+  formatFiatPrice,
+  formatNumber,
+  formatTime
+} from '@/utils/format'
 
 const ICON_SIZE = 28
 
@@ -107,7 +113,8 @@ function formatTimestamp(value: string | null | undefined) {
   if (!value) {
     return null
   }
-  return formatDate(value)
+  const date = new Date(value)
+  return `${formatDate(date)} ${formatTime(date)}`
 }
 
 function parseMetadata(raw: string) {
@@ -158,7 +165,7 @@ function AddressList({ label, values }: AddressListProps) {
       {values.map((value, index) => (
         <View key={`${label}-${index}`} style={styles.codeBox}>
           <SSText size="xs" style={styles.monospace}>
-            {value}
+            {parseArkCounterparty(value)}
           </SSText>
         </View>
       ))}

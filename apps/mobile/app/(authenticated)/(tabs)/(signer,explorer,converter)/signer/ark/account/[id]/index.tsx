@@ -234,6 +234,7 @@ export default function ArkAccountDetailPage() {
               />
             </View>
           )}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             movementsQuery.isLoading ? null : (
               <SSVStack style={styles.emptyContainer}>
@@ -327,5 +328,10 @@ const styles = StyleSheet.create({
   },
   movementItem: {
     paddingHorizontal: 20
+  },
+  separator: {
+    backgroundColor: Colors.gray[800],
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 20
   }
 })

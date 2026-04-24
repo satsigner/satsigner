@@ -752,6 +752,8 @@
     "movement.empty": "No movements yet",
     "movement.error.load": "Failed to load movements",
     "movement.feeLabel": "fee %{amount} %{unit}",
+    "movement.fromLabel": "from %{value}",
+    "movement.toLabel": "to %{value}",
     "movement.kind.receive": "Receive",
     "movement.kind.refresh": "Refresh",
     "movement.kind.send": "Send",
