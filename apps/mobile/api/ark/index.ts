@@ -1,4 +1,9 @@
-import type { ArkBalance, ArkMovement, ArkServerId } from '@/types/models/Ark'
+import type {
+  ArkBalance,
+  ArkLightningSendResult,
+  ArkMovement,
+  ArkServerId
+} from '@/types/models/Ark'
 
 import type {
   ArkBolt11Invoice,
@@ -68,4 +73,37 @@ export function subscribeArkNotifications(
   listener: ArkNotificationListener
 ): ArkNotificationUnsubscribe {
   return getArkProvider(serverId).subscribeNotifications(accountId, listener)
+}
+
+export function sendArkArkoor(
+  serverId: ArkServerId,
+  accountId: string,
+  arkAddress: string,
+  amountSats: number
+): Promise<string> {
+  return getArkProvider(serverId).sendArkoor(accountId, arkAddress, amountSats)
+}
+
+export function payArkBolt11(
+  serverId: ArkServerId,
+  accountId: string,
+  invoice: string,
+  amountSats?: number
+): Promise<ArkLightningSendResult> {
+  return getArkProvider(serverId).payBolt11(accountId, invoice, amountSats)
+}
+
+export function payArkLightningAddress(
+  serverId: ArkServerId,
+  accountId: string,
+  address: string,
+  amountSats: number,
+  comment?: string
+): Promise<ArkLightningSendResult> {
+  return getArkProvider(serverId).payLightningAddress(
+    accountId,
+    address,
+    amountSats,
+    comment
+  )
 }

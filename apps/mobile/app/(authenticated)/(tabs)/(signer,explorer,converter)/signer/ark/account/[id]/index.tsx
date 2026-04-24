@@ -69,8 +69,11 @@ export default function ArkAccountDetailPage() {
     (walletQuery.isLoading || balanceQuery.isLoading) && !balance
   const loadError = walletQuery.error ?? balanceQuery.error
 
-  function handleComingSoon() {
-    toast.info(t('ark.comingSoon'))
+  function handleSend() {
+    router.navigate({
+      params: { id },
+      pathname: '/signer/ark/account/[id]/send'
+    })
   }
 
   function handleReceive() {
@@ -213,7 +216,7 @@ export default function ArkAccountDetailPage() {
               <SSHStack gap="none" style={styles.actionRow}>
                 <SSActionButton
                   style={styles.actionButton}
-                  onPress={handleComingSoon}
+                  onPress={handleSend}
                 >
                   <SSText uppercase>{t('account.send')}</SSText>
                 </SSActionButton>

@@ -1,5 +1,6 @@
 import {
   Config,
+  type LightningSend,
   type Movement,
   Network as BarkNetwork,
   Wallet,
@@ -9,7 +10,12 @@ import {
   type WalletNotification
 } from '@secondts/bark-react-native'
 
-import type { ArkBalance, ArkMovement, ArkServer } from '@/types/models/Ark'
+import type {
+  ArkBalance,
+  ArkLightningSendResult,
+  ArkMovement,
+  ArkServer
+} from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 
 import type {
@@ -227,6 +233,50 @@ async function fetchMovements(accountId: string): Promise<ArkMovement[]> {
   return movements.map(mapMovement)
 }
 
+function mapLightningSend(send: LightningSend): ArkLightningSendResult {
+  return {
+    amountSats: Number(send.amountSats),
+    htlcVtxoCount: send.htlcVtxoCount,
+    invoice: send.invoice,
+    preimage: send.preimage
+  }
+}
+
+function sendArkoor(
+  accountId: string,
+  arkAddress: string,
+  amountSats: number
+): Promise<string> {
+  const wallet = getCachedWallet(accountId)
+  return wallet.sendArkoorPayment(arkAddress, BigInt(amountSats))
+}
+
+async function payBolt11(
+  accountId: string,
+  invoice: string,
+  amountSats?: number
+): Promise<ArkLightningSendResult> {
+  const wallet = getCachedWallet(accountId)
+  const amount = amountSats === undefined ? undefined : BigInt(amountSats)
+  const result = await wallet.payLightningInvoice(invoice, amount)
+  return mapLightningSend(result)
+}
+
+async function payLightningAddress(
+  accountId: string,
+  address: string,
+  amountSats: number,
+  comment?: string
+): Promise<ArkLightningSendResult> {
+  const wallet = getCachedWallet(accountId)
+  const result = await wallet.payLightningAddress(
+    address,
+    BigInt(amountSats),
+    comment
+  )
+  return mapLightningSend(result)
+}
+
 async function fetchBalance(accountId: string): Promise<ArkBalance> {
   const wallet = getCachedWallet(accountId)
   const balance = await wallet.balance()
@@ -249,7 +299,10 @@ const barkProvider: ArkWalletProvider = {
   fetchMovements,
   newAddress,
   openWallet,
+  payBolt11,
+  payLightningAddress,
   releaseWallet,
+  sendArkoor,
   serverId: 'second',
   subscribeNotifications
 }

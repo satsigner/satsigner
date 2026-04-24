@@ -32,6 +32,34 @@ export type ArkMovementStatus = 'pending' | 'successful' | 'failed' | 'canceled'
 
 export type ArkMovementKind = 'receive' | 'send' | 'refresh'
 
+export type ArkLightningSendResult = {
+  invoice: string
+  amountSats: number
+  htlcVtxoCount: number
+  preimage?: string
+}
+
+export type ArkSendKind = 'arkoor' | 'bolt11' | 'lnaddress' | 'lnurl'
+
+export type ArkSendInput =
+  | { kind: 'arkoor'; address: string; amountSats: number }
+  | { kind: 'bolt11'; invoice: string; amountSats?: number }
+  | {
+      kind: 'lnaddress'
+      address: string
+      amountSats: number
+      comment?: string
+    }
+  | { kind: 'lnurl'; lnurl: string; amountSats: number; comment?: string }
+
+export type ArkSendOutcome = {
+  kind: ArkSendKind
+  amountSats: number
+  txid?: string
+  invoice?: string
+  preimage?: string
+}
+
 export type ArkMovement = {
   id: number
   status: ArkMovementStatus | string

@@ -1,5 +1,6 @@
 import type {
   ArkBalance,
+  ArkLightningSendResult,
   ArkMovement,
   ArkServer,
   ArkServerId
@@ -48,4 +49,20 @@ export interface ArkWalletProvider {
     accountId: string,
     listener: ArkNotificationListener
   ) => ArkNotificationUnsubscribe
+  sendArkoor: (
+    accountId: string,
+    arkAddress: string,
+    amountSats: number
+  ) => Promise<string>
+  payBolt11: (
+    accountId: string,
+    invoice: string,
+    amountSats?: number
+  ) => Promise<ArkLightningSendResult>
+  payLightningAddress: (
+    accountId: string,
+    address: string,
+    amountSats: number,
+    comment?: string
+  ) => Promise<ArkLightningSendResult>
 }
