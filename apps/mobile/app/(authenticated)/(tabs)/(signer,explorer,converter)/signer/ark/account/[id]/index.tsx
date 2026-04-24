@@ -302,6 +302,7 @@ const styles = StyleSheet.create({
     height: 56
   },
   actionRow: {
+    marginBottom: 16,
     paddingHorizontal: 20,
     paddingVertical: 12,
     width: '100%'
