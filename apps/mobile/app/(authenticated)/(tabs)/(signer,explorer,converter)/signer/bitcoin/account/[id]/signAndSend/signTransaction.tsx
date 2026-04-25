@@ -431,12 +431,7 @@ export default function SignTransaction() {
                 )}
               </SSVStack>
               <SSVStack gap="xxs">
-                <SSText
-                  color="muted"
-                  size="sm"
-                  uppercase
-                  style={{ marginBottom: -22 }}
-                >
+                <SSText color="muted" size="sm" uppercase>
                   {tn('transaction')}
                 </SSText>
                 {rawTx !== '' && (

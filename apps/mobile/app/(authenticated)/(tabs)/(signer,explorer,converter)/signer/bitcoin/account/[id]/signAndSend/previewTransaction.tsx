@@ -2102,12 +2102,7 @@ function PreviewTransaction() {
                 </View>
               </SSVStack>
               <SSVStack gap="xxs">
-                <SSText
-                  uppercase
-                  size="sm"
-                  color="muted"
-                  style={{ marginBottom: -22 }}
-                >
+                <SSText uppercase size="sm" color="muted">
                   {tn('decoded')}
                 </SSText>
                 {transactionHex !== '' && (
