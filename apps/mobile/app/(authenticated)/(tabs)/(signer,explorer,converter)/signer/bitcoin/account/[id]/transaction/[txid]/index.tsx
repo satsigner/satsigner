@@ -240,10 +240,9 @@ type SSTxDetailsHeaderProps = {
 }
 
 export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
-  const [fiatCurrency, btcPrice] = usePriceStore((state) => [
-    state.fiatCurrency,
-    state.btcPrice
-  ])
+  const [fiatCurrency, btcPrice] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.btcPrice])
+  )
 
   const lastKnownBlockHeight = useBlockchainStore(
     (state) => state.lastKnownBlockHeight

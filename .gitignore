@@ -9,6 +9,7 @@ tags
 tags-tmp
 tags-lock
 .idea
+.fallow
 
 *.log
 

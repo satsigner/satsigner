@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -15,14 +15,17 @@ import { t } from '@/locales'
 import { getItem, setItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
-import { Layout } from '@/styles'
+import { Layout, Sizes } from '@/styles'
 import { pbkdf2Encrypt } from '@/utils/crypto'
 import { emptyPin } from '@/utils/pin'
 
 type Stage = 'set' | 're-enter'
 
+const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
+
 export default function SetPin() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const [setFirstTime, setRequiresAuth] = useAuthStore(
     useShallow((state) => [state.setFirstTime, state.setRequiresAuth])
   )
@@ -105,49 +108,70 @@ export default function SetPin() {
     setStage('set')
   }
 
+  function getTitle() {
+    if (stage === 'set') {
+      return t('auth.setDuressPinTitle')
+    }
+    return t('auth.reenterDuressPinTitle')
+  }
+
+  function getFeedback() {
+    if (!confirmationPinFilled) {
+      return null
+    }
+    if (pinsMatch) {
+      return (
+        <SSVStack itemsCenter gap="xs">
+          <SSIconCheckCircleThin height={32} width={32} />
+          <SSText uppercase size="lg" color="muted" center>
+            {t('auth.pinsMatch')}
+          </SSText>
+        </SSVStack>
+      )
+    }
+    return (
+      <SSVStack itemsCenter gap="xs">
+        <SSIconCircleXThin height={32} width={32} />
+        <SSText uppercase size="lg" color="muted" center>
+          {t('auth.pinsDontMatch')}
+        </SSText>
+      </SSVStack>
+    )
+  }
+
   return (
     <SSMainLayout
       style={{
         paddingBottom: Layout.mainContainer.paddingBottom,
-        paddingTop: '20%'
+        paddingTop: Math.max(Layout.mainContainer.paddingTop, insets.top + 32)
       }}
     >
-      <SSVStack style={{ height: '100%' }} itemsCenter justifyBetween>
-        <SSVStack gap="lg" style={{ marginTop: '10%' }}>
-          <SSVStack style={{ gap: Platform.OS === 'android' ? -8 : 0 }}>
+      <SSVStack style={{ flex: 1 }} itemsCenter justifyBetween>
+        <SSVStack gap="md" style={{ flex: 1, width: '100%' }}>
+          <SSVStack>
             <SSText uppercase size="lg" color="muted" center>
-              {stage === 'set'
-                ? t('auth.setDuressPinTitle')
-                : t('auth.reenterDuressPinTitle')}
+              {getTitle()}
             </SSText>
           </SSVStack>
           {stage === 'set' && (
-            <SSPinInput pin={pinArray} setPin={setPinArray} />
+            <SSPinInput pin={pinArray} setPin={setPinArray} withClear={false} />
           )}
           {stage === 're-enter' && (
             <SSPinInput
               pin={confirmationPinArray}
               setPin={setConfirmationPinArray}
+              feedback={getFeedback()}
+              withClear={false}
             />
           )}
-          {confirmationPinFilled && pinsMatch && (
-            <SSVStack itemsCenter gap="sm">
-              <SSIconCheckCircleThin height={40} width={40} />
-              <SSText uppercase size="lg" color="muted" center>
-                {t('auth.pinsMatch')}
-              </SSText>
-            </SSVStack>
-          )}
-          {confirmationPinFilled && !pinsMatch && (
-            <SSVStack itemsCenter gap="sm">
-              <SSIconCircleXThin height={40} width={40} />
-              <SSText uppercase size="lg" color="muted" center>
-                {t('auth.pinsDontMatch')}
-              </SSText>
-            </SSVStack>
-          )}
         </SSVStack>
-        <SSVStack widthFull>
+        <SSVStack
+          widthFull
+          style={{
+            justifyContent: 'flex-end',
+            minHeight: BOTTOM_ACTIONS_MIN_HEIGHT
+          }}
+        >
           {stage === 'set' && pinFilled && (
             <SSButton
               label={t('auth.confirmDuressPin')}

@@ -1,5 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
   SSIconAbout,
@@ -7,7 +8,8 @@ import {
   SSIconFeature,
   SSIconFiat,
   SSIconLock,
-  SSIconNetwork
+  SSIconNetwork,
+  SSIconTriangle
 } from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
@@ -16,6 +18,7 @@ import { t } from '@/locales'
 
 export default function Settings() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
 
   return (
     <>
@@ -25,13 +28,19 @@ export default function Settings() {
           headerTitle: () => <SSText uppercase>{t('settings.title')}</SSText>
         }}
       />
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
         <SSVStack gap="none">
           <SSSettingsCards
             title={t('settings.network.title')}
             description={t('settings.network.description')}
             icon={<SSIconNetwork height={24} width={24} />}
             onPress={() => router.navigate('/settings/network')}
+          />
+          <SSSettingsCards
+            title={t('settings.ark.title')}
+            description={t('settings.ark.description')}
+            icon={<SSIconTriangle height={24} width={24} />}
+            onPress={() => router.navigate('/settings/ark')}
           />
           <SSSettingsCards
             title={t('settings.features.title')}

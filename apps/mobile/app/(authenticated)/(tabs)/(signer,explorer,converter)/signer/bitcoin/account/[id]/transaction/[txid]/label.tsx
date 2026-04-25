@@ -1,5 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
@@ -19,12 +20,14 @@ function TransactionLabel() {
 
   const { sendLabelsToNostr } = useNostrSync()
 
-  const [tx, setTxLabel] = useAccountsStore((state) => [
-    state.accounts
-      .find((account: Account) => account.id === accountId)
-      ?.transactions.find((tx: Transaction) => tx.id === txid),
-    state.setTxLabel
-  ])
+  const [tx, setTxLabel] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts
+        .find((account: Account) => account.id === accountId)
+        ?.transactions.find((tx: Transaction) => tx.id === txid),
+      state.setTxLabel
+    ])
+  )
 
   function updateLabel(label: string) {
     const updatedAccount = setTxLabel(accountId!, txid!, label)

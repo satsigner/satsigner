@@ -65,6 +65,7 @@ import SSIconMenu from './SSIconMenu'
 import SSIconMultiSignature from './SSIconMultiSignature'
 import SSIconNetwork from './SSIconNetwork'
 import SSIconNostr from './SSIconNostr'
+import SSIconOffboardCircle from './SSIconOffboardCircle'
 import SSIconOutgoing from './SSIconOutgoing'
 import SSIconOutgoingLightning from './SSIconOutgoingLightning'
 import SSIconPasteClipboard from './SSIconPasteClipboard'
@@ -161,6 +162,7 @@ export {
   SSIconMultiSignature,
   SSIconNetwork,
   SSIconNostr,
+  SSIconOffboardCircle,
   SSIconOutgoing,
   SSIconOutgoingLightning,
   SSIconPasteClipboard,

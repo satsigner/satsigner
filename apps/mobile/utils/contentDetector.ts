@@ -3,7 +3,13 @@ import { getDecodedToken } from '@cashu/cashu-ts'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { isBBQRFragment } from '@/utils/bbqr'
-import { isBitcoinUri, validateBolt12, validateLightning } from '@/utils/bip321'
+import {
+  isBitcoinUri,
+  isLightningAddress,
+  validateArkAddressWithNetwork,
+  validateBolt12,
+  validateLightning
+} from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
 import { isLNURL } from '@/utils/lnurl'
@@ -33,7 +39,9 @@ export type ContentType =
   | 'psbt'
   | 'bitcoin_transaction'
   | 'lightning_invoice'
+  | 'lightning_address'
   | 'lnurl'
+  | 'ark_address'
   | 'ecash_token'
   | 'bbqr_fragment'
   | 'seed_qr'
@@ -49,6 +57,8 @@ export type ContentType =
   | 'nostr_json'
   | 'incompatible'
   | 'unknown'
+
+export type ContentContext = 'bitcoin' | 'lightning' | 'ark' | 'ecash' | 'nostr'
 
 export type DetectedContent = {
   type: ContentType
@@ -178,6 +188,23 @@ function stripSchemePrefix(data: string): string {
   return data
 }
 
+function detectArkContent(data: string): DetectedContent | null {
+  const trimmed = data.trim()
+  const validation = validateArkAddressWithNetwork(trimmed)
+  if (!validation.isValid) {
+    return null
+  }
+  return {
+    cleaned: trimmed,
+    isValid: true,
+    metadata: {
+      network: validation.network
+    },
+    raw: data,
+    type: 'ark_address'
+  }
+}
+
 function detectLightningContent(data: string): DetectedContent | null {
   const trimmed = stripSchemePrefix(data.trim())
   const lowerTrimmed = trimmed.toLowerCase()
@@ -233,6 +260,15 @@ function detectLightningContent(data: string): DetectedContent | null {
       isValid: true,
       raw: data,
       type: 'lnurl'
+    }
+  }
+
+  if (isLightningAddress(trimmed)) {
+    return {
+      cleaned: trimmed,
+      isValid: true,
+      raw: data,
+      type: 'lightning_address'
     }
   }
 
@@ -410,7 +446,7 @@ function detectImportContent(data: string): DetectedContent | null {
 
 export async function detectContentByContext(
   data: string,
-  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
+  context: ContentContext
 ): Promise<DetectedContent> {
   if (!data || data.trim().length === 0) {
     return {
@@ -440,6 +476,25 @@ export async function detectContentByContext(
           (await detectBitcoinContent(data)) || detectEcashContent(data)
         if (detected) {
           detected.type = 'incompatible'
+        }
+      }
+      break
+    case 'ark':
+      detected = detectArkContent(data) || detectLightningContent(data)
+      if (!detected) {
+        const bitcoinDetected = await detectBitcoinContent(data)
+        if (bitcoinDetected?.type === 'bitcoin_uri') {
+          // BIP-321 URI may embed a lightning or ark payment method
+          // that the ark send flow can pay — keep it as a valid type.
+          detected = bitcoinDetected
+        } else if (bitcoinDetected) {
+          bitcoinDetected.type = 'incompatible'
+          detected = bitcoinDetected
+        } else {
+          detected = detectEcashContent(data)
+          if (detected) {
+            detected.type = 'incompatible'
+          }
         }
       }
       break
@@ -480,7 +535,7 @@ export async function detectContentByContext(
 
 export function isContentTypeSupportedInContext(
   contentType: ContentType,
-  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
+  context: ContentContext
 ): boolean {
   switch (context) {
     case 'bitcoin':
@@ -492,7 +547,17 @@ export function isContentTypeSupportedInContext(
         'extended_public_key'
       ].includes(contentType)
     case 'lightning':
-      return ['lightning_invoice', 'lnurl'].includes(contentType)
+      return ['lightning_invoice', 'lnurl', 'lightning_address'].includes(
+        contentType
+      )
+    case 'ark':
+      return [
+        'ark_address',
+        'lightning_invoice',
+        'lnurl',
+        'lightning_address',
+        'bitcoin_uri'
+      ].includes(contentType)
     case 'ecash':
       return ['ecash_token', 'lightning_invoice', 'lnurl'].includes(contentType)
     case 'nostr':
@@ -526,8 +591,12 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Incompatible Content'
     case 'lightning_invoice':
       return 'Lightning Network Invoice'
+    case 'lightning_address':
+      return 'Lightning Address'
     case 'lnurl':
       return 'LNURL Payment Request'
+    case 'ark_address':
+      return 'Ark Address'
     case 'ecash_token':
       return 'Ecash Token'
     case 'bbqr_fragment':

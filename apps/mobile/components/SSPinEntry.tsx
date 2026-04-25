@@ -59,28 +59,26 @@ function SSPinEntry({
   }
 
   return (
-    <SSVStack itemsCenter justifyBetween style={{ height: '100%' }}>
-      <SSVStack
-        gap={title ? 'lg' : 'none'}
-        itemsCenter
-        style={{ marginTop: '25%' }}
-      >
-        {title ? (
-          <SSText uppercase size="lg" color="muted" center>
-            {title}
-          </SSText>
-        ) : null}
-        <Animated.View style={shakeStyle}>
-          <SSPinInput
-            pin={pin}
-            setPin={setPin}
-            autoFocus={autoFocus}
-            onFillEnded={onFillEnded}
-            feedbackText={getWarningText()}
-            feedBackColor={getWarningColor()}
-          />
-        </Animated.View>
-      </SSVStack>
+    <SSVStack
+      itemsCenter
+      gap={title ? 'lg' : 'none'}
+      style={{ flex: 1, width: '100%' }}
+    >
+      {title ? (
+        <SSText uppercase size="lg" color="muted" center>
+          {title}
+        </SSText>
+      ) : null}
+      <Animated.View style={[{ flex: 1, width: '100%' }, shakeStyle]}>
+        <SSPinInput
+          pin={pin}
+          setPin={setPin}
+          autoFocus={autoFocus}
+          onFillEnded={onFillEnded}
+          feedbackText={getWarningText()}
+          feedBackColor={getWarningColor()}
+        />
+      </Animated.View>
     </SSVStack>
   )
 }
