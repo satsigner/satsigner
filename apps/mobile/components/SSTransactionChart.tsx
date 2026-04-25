@@ -88,8 +88,8 @@ function SSTransactionChart({
     feeRate = minerFee / txVsize
   }
 
-  const { width: layoutW, onCanvasLayout } = useLayout()
-  const { width: windowWidth } = useWindowDimensions()
+  const { width: w, height: h, onCanvasLayout } = useLayout()
+  const { width } = useWindowDimensions()
 
   // output.length + 1 because of mining fee
   const maxInputOutputLength = Math.max(inputs.length, outputs.length + 1)
@@ -103,47 +103,21 @@ function SSTransactionChart({
         (1 + (maxInputOutputLength - SCALING_THRESHOLD) * 0.5)
       : FIXED_BASE_HEIGHT
   const GRAPH_HEIGHT = BASE_GRAPH_HEIGHT * scale
-  const canvasHeight = GRAPH_HEIGHT / 2
+  const GRAPH_WIDTH = width * scale
 
-  const chartWidth = Math.max(
-    1,
-    layoutW > 0 ? layoutW : Math.round(windowWidth * scale * 0.88)
-  )
+  const sankeyGenerator = sankey()
+    .nodeWidth(NODE_WIDTH * scale)
+    .nodePadding(GRAPH_HEIGHT / 2)
+    .extent([
+      [0, 20 * scale],
+      [GRAPH_WIDTH * 0.9, (GRAPH_HEIGHT * 0.65) / 2]
+    ])
+    .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
-  const marginTop = 18 * scale
-  const marginBottom = 8
-  const innerHeight = Math.max(56, canvasHeight - marginTop - marginBottom)
-
-  const maxNodesInColumn = Math.max(
-    inputs.length,
-    outputs.length + (minerFee !== undefined ? 1 : 0),
-    1
-  )
-
-  const nodePadding = Math.min(
-    48,
-    Math.max(
-      12,
-      Math.floor(innerHeight / Math.max(maxNodesInColumn + 1.5, 3.5))
-    )
-  )
-
-  const sankeyGenerator = useMemo(() => {
-    const gen = sankey()
-      .nodeWidth(NODE_WIDTH * scale)
-      .nodePadding(nodePadding)
-      .extent([
-        [0, marginTop],
-        [chartWidth * 0.92, canvasHeight - marginBottom]
-      ])
-      .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
-
-    gen.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
-      const { depthH } = node as Node
-      return depthH ?? 0
-    })
-    return gen
-  }, [canvasHeight, chartWidth, marginBottom, marginTop, nodePadding, scale])
+  sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
+    const { depthH } = node as Node
+    return depthH ?? 0
+  })
 
   const sankeyNodes = useMemo(() => {
     if (inputs.length === 0 || outputs.length === 0) {
@@ -305,17 +279,10 @@ function SSTransactionChart({
   }
 
   return (
-    <View
-      style={{
-        flex: 1,
-        height: canvasHeight,
-        overflow: 'hidden',
-        width: '100%'
-      }}
-    >
-      <View onLayout={onCanvasLayout} style={{ width: '100%' }}>
-        <Canvas style={{ height: canvasHeight, width: chartWidth }}>
-          <Group>
+    <View style={{ flex: 1, height: GRAPH_HEIGHT / 2, overflow: 'hidden' }}>
+      <View onLayout={onCanvasLayout}>
+        <Canvas style={{ height: GRAPH_HEIGHT / 2, width: GRAPH_WIDTH }}>
+          <Group origin={{ x: w / 2, y: h / 2 }}>
             <SSSankeyLinks
               links={transformedLinks}
               nodes={nodes as Node[]}
