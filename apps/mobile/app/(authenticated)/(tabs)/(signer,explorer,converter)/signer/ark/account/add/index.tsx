@@ -91,7 +91,7 @@ export default function ArkAccountAddPage() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t('ark.account.addAccount')}</SSText>
+            <SSText uppercase>{t('ark.account.create')}</SSText>
           )
         }}
       />
@@ -169,9 +169,7 @@ export default function ArkAccountAddPage() {
           <SSVStack gap="sm" style={styles.actions}>
             <SSButton
               label={
-                isCreating
-                  ? t('ark.account.creating')
-                  : t('ark.account.createAccount')
+                isCreating ? t('ark.account.creating') : t('ark.account.create')
               }
               onPress={handleCreate}
               variant="gradient"

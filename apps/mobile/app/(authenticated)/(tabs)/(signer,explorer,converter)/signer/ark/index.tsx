@@ -186,7 +186,7 @@ export default function ArkAccountListPage() {
             </SSText>
           </SSVStack>
           <SSButton
-            label={t('ark.account.addAccount')}
+            label={t('ark.account.create')}
             onPress={handleAddAccount}
             variant="gradient"
             gradientType="special"
@@ -208,7 +208,7 @@ export default function ArkAccountListPage() {
             ItemSeparatorComponent={() => <View style={styles.separator} />}
           />
           <SSButton
-            label={t('ark.account.addAccount')}
+            label={t('ark.account.create')}
             onPress={handleAddAccount}
             variant="outline"
           />

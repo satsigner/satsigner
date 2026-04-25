@@ -705,11 +705,10 @@
     "years": "years"
   },
   "ark": {
-    "account.addAccount": "Add Ark Wallet",
     "account.bitcoinSource": "On-chain Wallet",
     "account.bitcoinSourceDescription": "Ark wallets are derived from a Bitcoin on-chain wallet. Select an existing wallet or we'll create one for you.",
     "account.createBitcoinToggle": "Create a new on-chain wallet",
-    "account.createAccount": "Create Ark Wallet",
+    "account.create": "Create Ark Wallet",
     "account.createSuccess": "Ark wallet created",
     "account.creating": "Creating Ark wallet…",
     "account.deleteSuccess": "Ark wallet deleted",
