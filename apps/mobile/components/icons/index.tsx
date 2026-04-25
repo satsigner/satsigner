@@ -24,6 +24,7 @@ import SSIconCollapse from './SSIconCollapse'
 import SSIconConverter from './SSIconConverter'
 import SSIconConverterActive from './SSIconConverterActive'
 import SSIconCurrency from './SSIconCurrency'
+import SSIconDelete from './SSIconDelete'
 import SSIconDev from './SSIconDev'
 import SSIconDiceFive from './SSIconDiceFive'
 import SSIconDiceFour from './SSIconDiceFour'
@@ -121,6 +122,7 @@ export {
   SSIconConverter,
   SSIconConverterActive,
   SSIconCurrency,
+  SSIconDelete,
   SSIconDev,
   SSIconDiceFive,
   SSIconDiceFour,
