@@ -16,7 +16,8 @@ import type {
   ArkFeeEstimate,
   ArkLightningSendResult,
   ArkMovement,
-  ArkServer
+  ArkServer,
+  ArkVtxo
 } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 
@@ -306,6 +307,37 @@ async function estimateLightningSendFee(
   return mapFeeEstimate(estimate)
 }
 
+async function listSpendableVtxos(accountId: string): Promise<ArkVtxo[]> {
+  const wallet = getCachedWallet(accountId)
+  const vtxos = await wallet.spendableVtxos()
+  return vtxos.map((vtxo) => ({
+    amountSats: Number(vtxo.amountSats),
+    expiryHeight: vtxo.expiryHeight,
+    id: vtxo.id,
+    kind: vtxo.kind,
+    state: vtxo.state
+  }))
+}
+
+function offboardVtxos(
+  accountId: string,
+  vtxoIds: string[],
+  bitcoinAddress: string
+): Promise<string> {
+  const wallet = getCachedWallet(accountId)
+  return wallet.offboardVtxos(vtxoIds, bitcoinAddress)
+}
+
+async function estimateOffboardFee(
+  accountId: string,
+  bitcoinAddress: string,
+  vtxoIds: string[]
+): Promise<ArkFeeEstimate> {
+  const wallet = getCachedWallet(accountId)
+  const estimate = await wallet.estimateOffboardFee(bitcoinAddress, vtxoIds)
+  return mapFeeEstimate(estimate)
+}
+
 async function fetchBalance(accountId: string): Promise<ArkBalance> {
   const wallet = getCachedWallet(accountId)
   const balance = await wallet.balance()
@@ -326,9 +358,12 @@ const barkProvider: ArkWalletProvider = {
   createWallet,
   estimateArkoorFee,
   estimateLightningSendFee,
+  estimateOffboardFee,
   fetchBalance,
   fetchMovements,
+  listSpendableVtxos,
   newAddress,
+  offboardVtxos,
   openWallet,
   payBolt11,
   payLightningAddress,

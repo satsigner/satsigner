@@ -4,7 +4,8 @@ import type {
   ArkLightningSendResult,
   ArkMovement,
   ArkServer,
-  ArkServerId
+  ArkServerId,
+  ArkVtxo
 } from '@/types/models/Ark'
 
 export type ArkWalletArgs = {
@@ -73,5 +74,16 @@ export interface ArkWalletProvider {
   estimateLightningSendFee: (
     accountId: string,
     amountSats: number
+  ) => Promise<ArkFeeEstimate>
+  listSpendableVtxos: (accountId: string) => Promise<ArkVtxo[]>
+  offboardVtxos: (
+    accountId: string,
+    vtxoIds: string[],
+    bitcoinAddress: string
+  ) => Promise<string>
+  estimateOffboardFee: (
+    accountId: string,
+    bitcoinAddress: string,
+    vtxoIds: string[]
   ) => Promise<ArkFeeEstimate>
 }

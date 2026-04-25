@@ -11,6 +11,7 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { ARK_SERVERS, ARK_SUPPORTED_NETWORKS } from '@/constants/arkServers'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
+import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -110,6 +111,7 @@ export default function ArkAccountListPage() {
   const [accounts, balances] = useArkStore(
     useShallow((state) => [state.accounts, state.balances])
   )
+  useFetchBitcoinPrice()
 
   const [tabIndex, setTabIndex] = useState(0)
   const currentNetwork = ARK_SUPPORTED_NETWORKS[tabIndex]

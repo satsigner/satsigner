@@ -46,6 +46,14 @@ export type ArkFeeEstimate = {
   vtxoIdsSpent: string[]
 }
 
+export type ArkVtxo = {
+  id: string
+  amountSats: number
+  expiryHeight: number
+  kind: string
+  state: string
+}
+
 export type ArkSendKind = 'arkoor' | 'bolt11' | 'lnaddress' | 'lnurl'
 
 export type ArkSendInput =

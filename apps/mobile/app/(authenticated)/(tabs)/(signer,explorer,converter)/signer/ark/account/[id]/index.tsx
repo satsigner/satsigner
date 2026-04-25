@@ -23,6 +23,7 @@ import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkDeleteAccount } from '@/hooks/useArkDeleteAccount'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import { useArkWallet } from '@/hooks/useArkWallet'
+import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -48,6 +49,7 @@ export default function ArkAccountDetailPage() {
   const balanceQuery = useArkBalance(id)
   const movementsQuery = useArkMovements(id)
   const { deleteAccount } = useArkDeleteAccount()
+  useFetchBitcoinPrice()
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 

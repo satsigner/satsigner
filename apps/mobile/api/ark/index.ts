@@ -3,7 +3,8 @@ import type {
   ArkFeeEstimate,
   ArkLightningSendResult,
   ArkMovement,
-  ArkServerId
+  ArkServerId,
+  ArkVtxo
 } from '@/types/models/Ark'
 
 import type {
@@ -125,5 +126,38 @@ export function estimateArkLightningSendFee(
   return getArkProvider(serverId).estimateLightningSendFee(
     accountId,
     amountSats
+  )
+}
+
+export function listArkSpendableVtxos(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkVtxo[]> {
+  return getArkProvider(serverId).listSpendableVtxos(accountId)
+}
+
+export function offboardArkVtxos(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds: string[],
+  bitcoinAddress: string
+): Promise<string> {
+  return getArkProvider(serverId).offboardVtxos(
+    accountId,
+    vtxoIds,
+    bitcoinAddress
+  )
+}
+
+export function estimateArkOffboardFee(
+  serverId: ArkServerId,
+  accountId: string,
+  bitcoinAddress: string,
+  vtxoIds: string[]
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateOffboardFee(
+    accountId,
+    bitcoinAddress,
+    vtxoIds
   )
 }
