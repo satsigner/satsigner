@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import { Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
@@ -15,13 +15,16 @@ import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
-import { Layout } from '@/styles'
+import { Layout, Sizes } from '@/styles'
 import { emptyPin } from '@/utils/pin'
 
 type Stage = 'verify' | 'set' | 're-enter'
 
+const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
+
 export default function SetPin() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { source } = useLocalSearchParams<{ source?: string }>()
   const fromSettings = source === 'settings'
 
@@ -92,11 +95,10 @@ export default function SetPin() {
     setFirstTime(false)
     setSkipPin(true)
     await setPin(DEFAULT_PIN)
-    router.dismissAll()
     if (showWarning) {
-      router.navigate('./warning')
+      router.replace('./warning')
     } else {
-      router.navigate('/')
+      router.replace('/')
     }
   }
 
@@ -164,58 +166,81 @@ export default function SetPin() {
     return t('auth.reenterPinTitle')
   }
 
+  function getFeedback() {
+    if (stage === 'verify' && currentPinWrong && !currentPinFilled) {
+      return (
+        <SSVStack itemsCenter gap="xs">
+          <SSIconCircleXThin height={32} width={32} />
+          <SSText uppercase size="lg" color="muted" center>
+            {t('auth.wrongPin')}
+          </SSText>
+        </SSVStack>
+      )
+    }
+    if (stage === 're-enter' && confirmationPinFilled && pinsMatch) {
+      return (
+        <SSVStack itemsCenter gap="xs">
+          <SSIconCheckCircleThin height={32} width={32} />
+          <SSText uppercase size="lg" color="muted" center>
+            {t('auth.pinsMatch')}
+          </SSText>
+        </SSVStack>
+      )
+    }
+    if (stage === 're-enter' && confirmationPinFilled && !pinsMatch) {
+      return (
+        <SSVStack itemsCenter gap="xs">
+          <SSIconCircleXThin height={32} width={32} />
+          <SSText uppercase size="lg" color="muted" center>
+            {t('auth.pinsDontMatch')}
+          </SSText>
+        </SSVStack>
+      )
+    }
+    return null
+  }
+
   return (
     <SSMainLayout
       style={{
         paddingBottom: Layout.mainContainer.paddingBottom,
-        paddingTop: '20%'
+        paddingTop: Math.max(Layout.mainContainer.paddingTop, insets.top + 32)
       }}
     >
-      <SSVStack style={{ height: '100%' }} itemsCenter justifyBetween>
-        <SSVStack gap="lg" style={{ marginTop: '10%' }}>
-          <SSVStack style={{ gap: Platform.OS === 'android' ? -8 : 0 }}>
+      <SSVStack style={{ flex: 1, height: '100%' }}>
+        <SSVStack gap="md" style={{ flex: 1, width: '100%' }}>
+          <SSVStack>
             <SSText uppercase size="lg" color="muted" center>
               {getTitle()}
             </SSText>
           </SSVStack>
           {stage === 'verify' && (
-            <SSPinInput pin={currentPinArray} setPin={handleCurrentPinChange} />
+            <SSPinInput
+              pin={currentPinArray}
+              setPin={handleCurrentPinChange}
+              feedback={getFeedback()}
+              withClear={false}
+            />
           )}
           {stage === 'set' && (
-            <SSPinInput pin={pinArray} setPin={setPinArray} />
+            <SSPinInput pin={pinArray} setPin={setPinArray} withClear={false} />
           )}
           {stage === 're-enter' && (
             <SSPinInput
               pin={confirmationPinArray}
               setPin={setConfirmationPinArray}
+              feedback={getFeedback()}
+              withClear={false}
             />
           )}
-          {stage === 'verify' && currentPinWrong && !currentPinFilled && (
-            <SSVStack itemsCenter gap="sm">
-              <SSIconCircleXThin height={40} width={40} />
-              <SSText uppercase size="lg" color="muted" center>
-                {t('auth.wrongPin')}
-              </SSText>
-            </SSVStack>
-          )}
-          {confirmationPinFilled && pinsMatch && (
-            <SSVStack itemsCenter gap="sm">
-              <SSIconCheckCircleThin height={40} width={40} />
-              <SSText uppercase size="lg" color="muted" center>
-                {t('auth.pinsMatch')}
-              </SSText>
-            </SSVStack>
-          )}
-          {confirmationPinFilled && !pinsMatch && (
-            <SSVStack itemsCenter gap="sm">
-              <SSIconCircleXThin height={40} width={40} />
-              <SSText uppercase size="lg" color="muted" center>
-                {t('auth.pinsDontMatch')}
-              </SSText>
-            </SSVStack>
-          )}
         </SSVStack>
-        <SSVStack widthFull>
+        <SSVStack
+          widthFull
+          style={{
+            justifyContent: 'flex-end',
+            minHeight: BOTTOM_ACTIONS_MIN_HEIGHT
+          }}
+        >
           {stage === 'verify' && currentPinFilled && (
             <SSButton
               label={t('auth.confirmPin')}

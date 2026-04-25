@@ -2865,7 +2865,6 @@ function PreviewTransaction() {
               wordStart={wordSelectorState.wordStart}
               wordListName="english"
               onWordSelected={wordSelectorState.onWordSelected}
-              style={{ height: 60 }}
             />
           </View>
         </SSModal>

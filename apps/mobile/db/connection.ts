@@ -4,34 +4,30 @@ import { runMigrations } from './schema'
 
 const DB_NAME = 'satsigner.db'
 
-let db: NitroSQLiteConnection | null = null
+declare global {
+  // Persisted across Fast Refresh so nitro-sqlite's internal "already open"
+  // Map (which also survives reload) stays in sync with our JS handle.
+  // eslint-disable-next-line no-var
+  var __satsignerDb: NitroSQLiteConnection | undefined
+}
 
 function getDb(): NitroSQLiteConnection {
-  if (!db) {
-    try {
-      db = open({ name: DB_NAME })
-    } catch {
-      // Hot reload: nitro-sqlite tracks open DBs in a JS-side Map.
-      // On reload our `db` resets but the Map persists, so open() throws.
-      // closeDatabaseQueue is not publicly exported — require is intentional.
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const {
-        closeDatabaseQueue
-      } = require('react-native-nitro-sqlite/src/DatabaseQueue')
-      closeDatabaseQueue(DB_NAME)
-      db = open({ name: DB_NAME })
-    }
-    db.execute('PRAGMA journal_mode = WAL')
-    db.execute('PRAGMA foreign_keys = ON')
-    runMigrations(db)
+  if (globalThis.__satsignerDb) {
+    return globalThis.__satsignerDb
   }
+
+  const db = open({ name: DB_NAME })
+  db.execute('PRAGMA journal_mode = WAL')
+  db.execute('PRAGMA foreign_keys = ON')
+  runMigrations(db)
+  globalThis.__satsignerDb = db
   return db
 }
 
 function closeDb() {
-  if (db) {
-    db.close()
-    db = null
+  if (globalThis.__satsignerDb) {
+    globalThis.__satsignerDb.close()
+    globalThis.__satsignerDb = undefined
   }
 }
 

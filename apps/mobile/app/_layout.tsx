@@ -17,6 +17,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { useBarkAccessTokenDeepLink } from '@/hooks/useBarkAccessTokenDeepLink'
 import { queryClient } from '@/lib/queryClient'
 import {
   getLastBackgroundTimestamp,
@@ -35,6 +36,11 @@ const appTheme = {
     ...DarkTheme.colors,
     background: Colors.gray[950]
   }
+}
+
+function BarkAccessTokenDeepLinkBridge() {
+  useBarkAccessTokenDeepLink()
+  return null
 }
 
 export default function RootLayout() {
@@ -113,6 +119,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
+        <BarkAccessTokenDeepLinkBridge />
         <GestureHandlerRootView>
           {privacyScreenVisible && <View style={styles.privacyScreen} />}
           <Toaster

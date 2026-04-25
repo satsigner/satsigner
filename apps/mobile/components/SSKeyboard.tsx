@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics'
 import { LinearGradient } from 'expo-linear-gradient'
 import {
   DimensionValue,
@@ -18,7 +19,6 @@ import { hStack, type HStackGap } from '@/styles/layout'
 import { range, shuffle } from '@/utils/array'
 
 import { SSIconDelete, SSIconTrash } from './icons'
-
 import SSText from './SSText'
 
 type SSKeyboardProps = {
@@ -29,7 +29,8 @@ type SSKeyboardProps = {
   onDelete?: () => void
   onPress?: (item: string) => void
   random?: boolean
-  withControls?: boolean
+  withClear?: boolean
+  withDelete?: boolean
 }
 
 type SSKeyboardCellProps = {
@@ -66,25 +67,25 @@ export default function SSKeyboard({
   gap = 'xs',
   items = NUMERIC_PAD,
   nCols = 3,
-  withControls = true,
+  withClear = true,
+  withDelete = true,
   random = false
 }: SSKeyboardProps) {
   const pad = random ? shuffle(items) : [...items]
   const nRows = Math.ceil(pad.length / nCols)
   const cellWidth: DimensionValue = `${Math.floor(100 / nCols)}%`
 
-  // control buttons are DELETE and CLEAR
-  if (withControls) {
-    // for 3 columns, place controls at bottom left and bottom right
-    if (nCols === 3) {
-      const lastItem = pad.pop()
+  // 3-col pad pins CLEAR to bottom-left and DELETE to bottom-right, centering the last digit.
+  if (nCols === 3) {
+    const lastItem = pad.pop()
+    pad.push(withClear ? KEY_CLEAR : '')
+    pad.push(lastItem || '')
+    pad.push(withDelete ? KEY_DELETE : '')
+  } else {
+    if (withClear) {
       pad.push(KEY_CLEAR)
-      pad.push(lastItem || '')
-      pad.push(KEY_DELETE)
     }
-    // else, just place them at bottom right
-    else {
-      pad.push(KEY_CLEAR)
+    if (withDelete) {
       pad.push(KEY_DELETE)
     }
   }
@@ -151,11 +152,20 @@ function SSKeyboardCell({
   }))
 
   function handlePressIn() {
+    Haptics.impactAsync(
+      isControlKey
+        ? Haptics.ImpactFeedbackStyle.Medium
+        : Haptics.ImpactFeedbackStyle.Light
+    )
     press.set(withTiming(1, { duration: KEY_PRESS_IN_MS }))
   }
 
   function handlePressOut() {
     press.set(withTiming(0, { duration: KEY_PRESS_OUT_MS }))
+  }
+
+  if (!item) {
+    return <View style={{ padding: hStack['gap'][gap], width: cellWidth }} />
   }
 
   const borderLight = getKeyBorderLight(index, nCols)

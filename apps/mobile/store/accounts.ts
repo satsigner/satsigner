@@ -1,5 +1,6 @@
-import { produce } from 'immer'
+import { type Draft } from 'immer'
 import { create } from 'zustand'
+import { immer } from 'zustand/middleware/immer'
 
 import {
   accountKeys,
@@ -139,40 +140,35 @@ function invalidateTags() {
   queryClient.invalidateQueries({ queryKey: tagKeys.all })
 }
 
+type ImmerSet = (fn: (state: Draft<AccountsState>) => void) => void
+
 /**
  * Reload a single account from SQLite and update Zustand state.
  * Used after SQL mutations that change account data.
  */
-function reloadAccount(
-  set: (fn: (state: AccountsState) => Partial<AccountsState>) => void,
-  accountId: string
-): Account | undefined {
+function reloadAccount(set: ImmerSet, accountId: string): Account | undefined {
   const account = getAccountById(accountId)
   if (!account) {
     return undefined
   }
 
-  set(
-    produce((state: AccountsState) => {
-      const idx = state.accounts.findIndex((a) => a.id === accountId)
-      if (idx !== -1) {
-        state.accounts[idx] = account
-      }
-    })
-  )
+  set((state) => {
+    const idx = state.accounts.findIndex((a) => a.id === accountId)
+    if (idx !== -1) {
+      state.accounts[idx] = account
+    }
+  })
   return account
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
-  (set, get) => ({
+  immer((set, get) => ({
     accounts: getAccounts(),
     addAccount: (account) => {
       insertAccountDb(account)
-      set(
-        produce((state: AccountsState) => {
-          state.accounts.push(account)
-        })
-      )
+      set((state) => {
+        state.accounts.push(account)
+      })
       invalidateAllAccounts()
     },
     deleteAccount: (id) => {
@@ -181,14 +177,12 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         deleteAllKeySecrets(account.id, account.keys.length)
       }
       deleteAccountDb(id)
-      set(
-        produce((state: AccountsState) => {
-          const index = state.accounts.findIndex((a) => a.id === id)
-          if (index !== -1) {
-            state.accounts.splice(index, 1)
-          }
-        })
-      )
+      set((state) => {
+        const index = state.accounts.findIndex((a) => a.id === id)
+        if (index !== -1) {
+          state.accounts.splice(index, 1)
+        }
+      })
       invalidateAllAccounts()
     },
     deleteAccounts: () => {
@@ -197,7 +191,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         deleteAllKeySecrets(account.id, account.keys.length)
       }
       deleteAllAccountsDb()
-      set(() => ({ accounts: [] }))
+      set((state) => {
+        state.accounts = []
+      })
       invalidateAllAccounts()
     },
     deleteTags: () => {
@@ -226,17 +222,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         updatedKeys[keyIndex] = newKey
         updateAccountKeysDb(accountId, updatedKeys)
 
-        set(
-          produce((state) => {
-            const accountIndex = state.accounts.findIndex(
-              (acc: Account) => acc.id === accountId
-            )
-            if (accountIndex === -1) {
-              throw new Error('Account not found')
-            }
-            state.accounts[accountIndex].keys[keyIndex] = newKey
-          })
-        )
+        set((state) => {
+          const accountIndex = state.accounts.findIndex(
+            (acc) => acc.id === accountId
+          )
+          if (accountIndex === -1) {
+            throw new Error('Account not found')
+          }
+          state.accounts[accountIndex].keys[keyIndex] = newKey
+        })
         invalidateAccount(accountId)
         return {
           message: 'Seed dropped successfully',
@@ -275,26 +269,22 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       }
 
       upsertSingleTransaction(accountId, tx)
-      set(
-        produce((state) => {
-          state.accounts[accountIndex].transactions[txIndex] = tx
-        })
-      )
+      set((state) => {
+        state.accounts[accountIndex].transactions[txIndex] = tx
+      })
       invalidateAccount(accountId)
     },
     markDmsAsRead: (id) => {
       markDmsAsReadDb(id)
-      set(
-        produce((state: AccountsState) => {
-          const index = state.accounts.findIndex((account) => account.id === id)
-          if (index === -1 || !state.accounts[index].nostr) {
-            return
-          }
-          state.accounts[index].nostr.dms = state.accounts[index].nostr.dms.map(
-            (dm) => (dm.read === false ? { ...dm, read: true } : dm)
-          )
-        })
-      )
+      set((state) => {
+        const index = state.accounts.findIndex((account) => account.id === id)
+        if (index === -1 || !state.accounts[index].nostr) {
+          return
+        }
+        state.accounts[index].nostr.dms = state.accounts[index].nostr.dms.map(
+          (dm) => (dm.read === false ? { ...dm, read: true } : dm)
+        )
+      })
       invalidateAccount(id)
     },
     resetKey: (accountId, keyIndex) => {
@@ -319,17 +309,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       updatedKeys[keyIndex] = resetKeyData
       updateAccountKeysDb(accountId, updatedKeys)
 
-      set(
-        produce((state) => {
-          const accountIndex = state.accounts.findIndex(
-            (acc: Account) => acc.id === accountId
-          )
-          if (accountIndex === -1) {
-            return
-          }
-          state.accounts[accountIndex].keys[keyIndex] = resetKeyData
-        })
-      )
+      set((state) => {
+        const accountIndex = state.accounts.findIndex(
+          (acc) => acc.id === accountId
+        )
+        if (accountIndex === -1) {
+          return
+        }
+        state.accounts[accountIndex].keys[keyIndex] = resetKeyData
+      })
       invalidateAccount(accountId)
     },
     setAddrLabel: (accountId, addr, label) => {
@@ -344,40 +332,34 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
     },
     setLastSyncedAt: (id, date) => {
       updateLastSyncedAtDb(id, date)
-      set(
-        produce((state: AccountsState) => {
-          const index = state.accounts.findIndex((account) => account.id === id)
-          if (index !== -1) {
-            state.accounts[index].lastSyncedAt = date
-          }
-        })
-      )
+      set((state) => {
+        const index = state.accounts.findIndex((account) => account.id === id)
+        if (index !== -1) {
+          state.accounts[index].lastSyncedAt = date
+        }
+      })
       invalidateAccount(id)
     },
     setSyncProgress: (id, syncProgress) => {
       updateSyncProgressDb(id, syncProgress)
-      set(
-        produce((state: AccountsState) => {
-          const index = state.accounts.findIndex((account) => account.id === id)
-          if (index !== -1) {
-            state.accounts[index].syncProgress = {
-              ...syncProgress
-            }
+      set((state) => {
+        const index = state.accounts.findIndex((account) => account.id === id)
+        if (index !== -1) {
+          state.accounts[index].syncProgress = {
+            ...syncProgress
           }
-        })
-      )
+        }
+      })
       invalidateAccount(id)
     },
     setSyncStatus: (id, syncStatus) => {
       updateSyncStatusDb(id, syncStatus)
-      set(
-        produce((state: AccountsState) => {
-          const index = state.accounts.findIndex((account) => account.id === id)
-          if (index !== -1) {
-            state.accounts[index].syncStatus = syncStatus
-          }
-        })
-      )
+      set((state) => {
+        const index = state.accounts.findIndex((account) => account.id === id)
+        if (index !== -1) {
+          state.accounts[index].syncStatus = syncStatus
+        }
+      })
       invalidateAccount(id)
     },
     setTags: (tags: string[]) => {
@@ -429,50 +411,44 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         nostr: mergedNostr
       }
 
-      // Write to SQLite
       updateFullAccountDb(mergedAccount)
 
-      // Reload from SQLite to get consistent state with labels applied
       reloadAccount(set, account.id)
       invalidateAccount(account.id)
     },
     updateAccountName: (id, newName) => {
       updateAccountNameDb(id, newName)
-      set(
-        produce((state: AccountsState) => {
-          const index = state.accounts.findIndex((account) => account.id === id)
-          if (index !== -1) {
-            state.accounts[index].name = newName
-          }
-        })
-      )
+      set((state) => {
+        const index = state.accounts.findIndex((account) => account.id === id)
+        if (index !== -1) {
+          state.accounts[index].name = newName
+        }
+      })
       invalidateAccount(id)
     },
     updateAccountNostr: (id, nostr) => {
       updateAccountNostrDb(id, nostr)
-      set(
-        produce((state: AccountsState) => {
-          const index = state.accounts.findIndex((account) => account.id === id)
-          if (index === -1) {
-            return
-          }
-          const prev = state.accounts[index].nostr
-          const base: NostrAccount = prev ?? {
-            autoSync: false,
-            commonNpub: '',
-            commonNsec: '',
-            dms: [],
-            lastUpdated: new Date(),
-            relays: [],
-            syncStart: new Date(),
-            trustedMemberDevices: []
-          }
-          state.accounts[index].nostr = {
-            ...base,
-            ...nostr
-          }
-        })
-      )
+      set((state) => {
+        const index = state.accounts.findIndex((account) => account.id === id)
+        if (index === -1) {
+          return
+        }
+        const prev = state.accounts[index].nostr
+        const base: NostrAccount = prev ?? {
+          autoSync: false,
+          commonNpub: '',
+          commonNsec: '',
+          dms: [],
+          lastUpdated: new Date(),
+          relays: [],
+          syncStart: new Date(),
+          trustedMemberDevices: []
+        }
+        state.accounts[index].nostr = {
+          ...base,
+          ...nostr
+        }
+      })
       invalidateAccount(id)
     },
     updateKeyName: (id, keyIndex, newName) => {
@@ -487,18 +463,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         updateAccountKeysDb(id, updatedKeys)
       }
 
-      set(
-        produce((state: AccountsState) => {
-          const index = state.accounts.findIndex((account) => account.id === id)
-          if (index === -1) {
-            return
-          }
-          state.accounts[index].keys[keyIndex].name = newName
-        })
-      )
+      set((state) => {
+        const index = state.accounts.findIndex((account) => account.id === id)
+        if (index === -1) {
+          return
+        }
+        state.accounts[index].keys[keyIndex].name = newName
+      })
       invalidateAccount(id)
     }
-  })
+  }))
 )
 
 export { useAccountsStore }

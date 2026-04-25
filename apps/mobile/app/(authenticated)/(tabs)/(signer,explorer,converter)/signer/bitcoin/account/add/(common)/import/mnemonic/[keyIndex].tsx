@@ -189,7 +189,6 @@ export default function ImportMnemonic() {
         wordStart={wordSelectorState.wordStart}
         wordListName={mnemonicWordList}
         onWordSelected={wordSelectorState.onWordSelected}
-        style={{ height: 60 }}
       />
       <SSGradientModal
         visible={accountAddedModalVisible}
