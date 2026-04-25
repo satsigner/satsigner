@@ -17,6 +17,7 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import {
+  type ContentContext,
   type ContentType,
   detectContentByContext,
   type DetectedContent
@@ -27,7 +28,7 @@ type SSPasteProps = {
   visible: boolean
   onClose: () => void
   onContentPasted: (content: DetectedContent) => void
-  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
+  context: ContentContext
 }
 
 function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
@@ -176,6 +177,8 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         return t('paste.title.ecash')
       case 'nostr':
         return t('paste.title.nostr')
+      case 'ark':
+        return t('paste.title.ark')
       default:
         return t('paste.title.default')
     }
@@ -191,6 +194,8 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         return t('paste.description.ecash')
       case 'nostr':
         return t('paste.description.nostr')
+      case 'ark':
+        return t('paste.description.ark')
       default:
         return t('paste.description.default')
     }
@@ -223,6 +228,10 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
           return t('paste.button.sendToAddress')
         case 'bitcoin_transaction':
           return t('paste.button.processTransaction')
+        case 'ark_address':
+          return t('paste.button.sendToArk')
+        case 'lightning_address':
+          return t('paste.button.payLightningAddress')
         case 'lightning_invoice':
           if (context === 'ecash') {
             return t('paste.button.payLightningInvoice')

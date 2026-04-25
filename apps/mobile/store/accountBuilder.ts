@@ -1,5 +1,5 @@
-import { produce } from 'immer'
 import { create } from 'zustand'
+import { immer } from 'zustand/middleware/immer'
 
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -121,145 +121,149 @@ const initialState: AccountBuilderState = {
 // Account builder store using Zustand with Immer for immutable updates
 const useAccountBuilderStore = create<
   AccountBuilderState & AccountBuilderAction
->()((set, get) => ({
-  ...initialState,
-  clearAccount: () => {
-    set({ ...initialState })
-  },
-  clearAllKeys: () => {
-    const { name, network, policyType, scriptVersion, keyCount, keysRequired } =
-      get()
-    set({
-      creationType: 'importMnemonic',
-      entropy: 'none',
-      extendedPublicKey: undefined,
-      externalDescriptor: undefined,
-      fingerprint: undefined,
-      internalDescriptor: undefined,
-      keyCount,
-      keyName: '',
-      keys: [],
-      keysRequired,
-      mnemonic: '',
-      mnemonicWordCount: 24,
-      name,
-      network,
-      passphrase: undefined,
-      policyType,
-      scriptVersion
-    })
-  },
-  clearKeyState: () => {
-    const { policyType, creationType, keys, scriptVersion } = get()
-    const extendedPublicKey =
-      keys[0]?.secret && typeof keys[0].secret === 'object'
-        ? keys[0].secret.extendedPublicKey
-        : undefined
+>()(
+  immer((set, get) => ({
+    ...initialState,
+    clearAccount: () => {
+      set({ ...initialState })
+    },
+    clearAllKeys: () => {
+      const {
+        name,
+        network,
+        policyType,
+        scriptVersion,
+        keyCount,
+        keysRequired
+      } = get()
+      set({
+        creationType: 'importMnemonic',
+        entropy: 'none',
+        extendedPublicKey: undefined,
+        externalDescriptor: undefined,
+        fingerprint: undefined,
+        internalDescriptor: undefined,
+        keyCount,
+        keyName: '',
+        keys: [],
+        keysRequired,
+        mnemonic: '',
+        mnemonicWordCount: 24,
+        name,
+        network,
+        passphrase: undefined,
+        policyType,
+        scriptVersion
+      })
+    },
+    clearKeyState: () => {
+      const { policyType, creationType, keys, scriptVersion } = get()
+      const extendedPublicKey =
+        keys[0]?.secret && typeof keys[0].secret === 'object'
+          ? keys[0].secret.extendedPublicKey
+          : undefined
 
-    const externalDescriptor =
-      keys[0]?.secret && typeof keys[0].secret === 'object'
-        ? keys[0].secret.externalDescriptor
-        : undefined
+      const externalDescriptor =
+        keys[0]?.secret && typeof keys[0].secret === 'object'
+          ? keys[0].secret.externalDescriptor
+          : undefined
 
-    const internalDescriptor =
-      keys[0]?.secret && typeof keys[0].secret === 'object'
-        ? keys[0].secret.internalDescriptor
-        : undefined
+      const internalDescriptor =
+        keys[0]?.secret && typeof keys[0].secret === 'object'
+          ? keys[0].secret.internalDescriptor
+          : undefined
 
-    set({
-      creationType,
-      entropy: 'none',
-      extendedPublicKey,
-      externalDescriptor,
-      fingerprint: undefined,
-      internalDescriptor,
-      keyName: '',
-      mnemonic: '',
-      mnemonicWordCount: 24,
-      passphrase: undefined,
-      policyType,
-      scriptVersion
-    })
-  },
-  dropSeedFromKey: (index) => {
-    // TODO: store should not be the one responsible for validation & error
-    // handling, it should only care about updating current state. Also, ideally
-    // this should be synchronous code and not async.
-    const state = get()
-    if (!state.keys[index] || !state.keys[index].secret) {
-      return {
-        message: 'Key not found or invalid',
-        success: false
+      set({
+        creationType,
+        entropy: 'none',
+        extendedPublicKey,
+        externalDescriptor,
+        fingerprint: undefined,
+        internalDescriptor,
+        keyName: '',
+        mnemonic: '',
+        mnemonicWordCount: 24,
+        passphrase: undefined,
+        policyType,
+        scriptVersion
+      })
+    },
+    dropSeedFromKey: (index) => {
+      // TODO: store should not be the one responsible for validation & error
+      // handling, it should only care about updating current state. Also, ideally
+      // this should be synchronous code and not async.
+      const state = get()
+      if (!state.keys[index] || !state.keys[index].secret) {
+        return {
+          message: 'Key not found or invalid',
+          success: false
+        }
       }
-    }
 
-    try {
-      const newKey = dropSeedFromKeyInMemory(state.keys[index])
-      set(
-        produce((state: AccountBuilderState) => {
+      try {
+        const newKey = dropSeedFromKeyInMemory(state.keys[index])
+        set((state) => {
           state.keys[index] = newKey
         })
-      )
-      return {
-        message: 'Seed dropped successfully',
-        success: true
+        return {
+          message: 'Seed dropped successfully',
+          success: true
+        }
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown reason'
+        return {
+          message: `Failed to drop seed: ${reason}`,
+          success: false
+        }
       }
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown reason'
-      return {
-        message: `Failed to drop seed: ${reason}`,
-        success: false
+    },
+    getAccountData: () => {
+      const { name, network, policyType, keys, keyCount, keysRequired } = get()
+
+      const account: Account = {
+        addresses: [],
+        createdAt: new Date(),
+        id: randomUuid(),
+        keyCount,
+        keys,
+        keysRequired,
+        labels: {},
+        lastSyncedAt: new Date(),
+        name,
+        network,
+        nostr: {
+          autoSync: false,
+          commonNpub: '',
+          commonNsec: '',
+          deviceNpub: '',
+          deviceNsec: '',
+          dms: [] as NostrDM[],
+          lastUpdated: new Date(),
+          relays: [],
+          syncStart: new Date(),
+          trustedMemberDevices: []
+        },
+        policyType,
+        summary: {
+          balance: 0,
+          numberOfAddresses: 0,
+          numberOfTransactions: 0,
+          numberOfUtxos: 0,
+          satsInMempool: 0
+        },
+        syncProgress: {
+          tasksDone: 0,
+          totalTasks: 0
+        },
+        syncStatus: 'unsynced',
+        transactions: [],
+        utxos: []
       }
-    }
-  },
-  getAccountData: () => {
-    const { name, network, policyType, keys, keyCount, keysRequired } = get()
 
-    const account: Account = {
-      addresses: [],
-      createdAt: new Date(),
-      id: randomUuid(),
-      keyCount,
-      keys,
-      keysRequired,
-      labels: {},
-      lastSyncedAt: new Date(),
-      name,
-      network,
-      nostr: {
-        autoSync: false,
-        commonNpub: '',
-        commonNsec: '',
-        deviceNpub: '',
-        deviceNsec: '',
-        dms: [] as NostrDM[],
-        lastUpdated: new Date(),
-        relays: [],
-        syncStart: new Date(),
-        trustedMemberDevices: []
-      },
-      policyType,
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      },
-      syncProgress: {
-        tasksDone: 0,
-        totalTasks: 0
-      },
-      syncStatus: 'unsynced',
-      transactions: [],
-      utxos: []
-    }
-
-    return account
-  },
-  resetKey: (index) => {
-    set(
-      produce((state: AccountBuilderState) => {
+      return account
+    },
+    resetKey: (index) => {
+      set((state) => {
         state.keys[index] = {
           creationType: undefined,
           fingerprint: undefined,
@@ -271,131 +275,125 @@ const useAccountBuilderStore = create<
           secret: undefined
         } as unknown as Key
       })
-    )
-  },
-  setCreationType: (creationType) => {
-    set({ creationType })
-  },
-  setEntropy: (entropy) => {
-    set({ entropy })
-  },
-  setExtendedPublicKey: (extendedPublicKey) => {
-    set({ extendedPublicKey })
-  },
-  setExternalDescriptor: (externalDescriptor) => {
-    set({ externalDescriptor })
-  },
-  setFingerprint: (fingerprint) => {
-    set({ fingerprint })
-  },
-  setInternalDescriptor: (internalDescriptor) => {
-    set({ internalDescriptor })
-  },
-  setKey: (index) => {
-    const {
-      keyName,
-      creationType,
-      mnemonicWordCount,
-      mnemonicWordList,
-      mnemonic,
-      passphrase,
-      fingerprint,
-      scriptVersion,
-      externalDescriptor,
-      internalDescriptor,
-      extendedPublicKey
-    } = get()
+    },
+    setCreationType: (creationType) => {
+      set({ creationType })
+    },
+    setEntropy: (entropy) => {
+      set({ entropy })
+    },
+    setExtendedPublicKey: (extendedPublicKey) => {
+      set({ extendedPublicKey })
+    },
+    setExternalDescriptor: (externalDescriptor) => {
+      set({ externalDescriptor })
+    },
+    setFingerprint: (fingerprint) => {
+      set({ fingerprint })
+    },
+    setInternalDescriptor: (internalDescriptor) => {
+      set({ internalDescriptor })
+    },
+    setKey: (index) => {
+      const {
+        keyName,
+        creationType,
+        mnemonicWordCount,
+        mnemonicWordList,
+        mnemonic,
+        passphrase,
+        fingerprint,
+        scriptVersion,
+        externalDescriptor,
+        internalDescriptor,
+        extendedPublicKey
+      } = get()
 
-    // For watch-only accounts with addresses, skip fingerprint requirement
-    const isWatchOnlyAddress =
-      creationType === 'importAddress' && externalDescriptor
+      // For watch-only accounts with addresses, skip fingerprint requirement
+      const isWatchOnlyAddress =
+        creationType === 'importAddress' && externalDescriptor
 
-    // Validate that the key has either a fingerprint or is a watch-only address
-    if (!fingerprint && !isWatchOnlyAddress) {
-      throw new Error(
-        'Fingerprint is required for all keys except watch-only addresses'
-      )
-    }
-
-    // Check if we have either a public key or descriptor
-    const hasPublicKey = extendedPublicKey || externalDescriptor || mnemonic
-    if (!hasPublicKey) {
-      throw new Error(
-        'Each key must have either a public key, descriptor, or mnemonic'
-      )
-    }
-
-    const key: Key = {
-      creationType,
-      index,
-      iv: randomIv(),
-      mnemonicWordCount,
-      mnemonicWordList,
-      name: keyName,
-      scriptVersion,
-      secret: {
-        ...(mnemonic && { mnemonic }),
-        ...(passphrase && { passphrase }),
-        ...(externalDescriptor && { externalDescriptor }),
-        ...(internalDescriptor && { internalDescriptor }),
-        ...(extendedPublicKey && { extendedPublicKey }),
-        ...(fingerprint && { fingerprint })
+      // Validate that the key has either a fingerprint or is a watch-only address
+      if (!fingerprint && !isWatchOnlyAddress) {
+        throw new Error(
+          'Fingerprint is required for all keys except watch-only addresses'
+        )
       }
-    }
 
-    set(
-      produce((state: AccountBuilderState) => {
+      // Check if we have either a public key or descriptor
+      const hasPublicKey = extendedPublicKey || externalDescriptor || mnemonic
+      if (!hasPublicKey) {
+        throw new Error(
+          'Each key must have either a public key, descriptor, or mnemonic'
+        )
+      }
+
+      const key: Key = {
+        creationType,
+        index,
+        iv: randomIv(),
+        mnemonicWordCount,
+        mnemonicWordList,
+        name: keyName,
+        scriptVersion,
+        secret: {
+          ...(mnemonic && { mnemonic }),
+          ...(passphrase && { passphrase }),
+          ...(externalDescriptor && { externalDescriptor }),
+          ...(internalDescriptor && { internalDescriptor }),
+          ...(extendedPublicKey && { extendedPublicKey }),
+          ...(fingerprint && { fingerprint })
+        }
+      }
+
+      set((state) => {
         state.keys[index] = key
       })
-    )
 
-    return key
-  },
-  setKeyCount: (keyCount) => {
-    set({ keyCount })
-  },
-  setKeyDerivationPath: (index, derivationPath) => {
-    set(
-      produce((state: AccountBuilderState) => {
+      return key
+    },
+    setKeyCount: (keyCount) => {
+      set({ keyCount })
+    },
+    setKeyDerivationPath: (index, derivationPath) => {
+      set((state) => {
         if (state.keys[index]) {
           state.keys[index].derivationPath = derivationPath
         }
       })
-    )
-  },
-  setKeyName: (keyName) => {
-    set({ keyName })
-  },
-  setKeysRequired: (keysRequired) => {
-    set({ keysRequired })
-  },
-  setMnemonic: (mnemonic) => {
-    set({ mnemonic })
-  },
-  setMnemonicWordCount: (mnemonicWordCount) => {
-    set({ mnemonicWordCount })
-  },
-  setMnemonicWordList: (mnemonicWordList) => {
-    set({ mnemonicWordList })
-  },
-  setName: (name) => {
-    set({ name })
-  },
-  setNetwork: (network) => {
-    set({ network })
-  },
-  setPassphrase: (passphrase) => {
-    set({ passphrase })
-  },
-  setPolicyType: (policyType) => {
-    set({ policyType })
-  },
-  setScriptVersion: (scriptVersion) => {
-    set({ scriptVersion })
-  },
-  updateKeyFingerprint: (index, fingerprint) => {
-    set(
-      produce((state: AccountBuilderState) => {
+    },
+    setKeyName: (keyName) => {
+      set({ keyName })
+    },
+    setKeysRequired: (keysRequired) => {
+      set({ keysRequired })
+    },
+    setMnemonic: (mnemonic) => {
+      set({ mnemonic })
+    },
+    setMnemonicWordCount: (mnemonicWordCount) => {
+      set({ mnemonicWordCount })
+    },
+    setMnemonicWordList: (mnemonicWordList) => {
+      set({ mnemonicWordList })
+    },
+    setName: (name) => {
+      set({ name })
+    },
+    setNetwork: (network) => {
+      set({ network })
+    },
+    setPassphrase: (passphrase) => {
+      set({ passphrase })
+    },
+    setPolicyType: (policyType) => {
+      set({ policyType })
+    },
+    setScriptVersion: (scriptVersion) => {
+      set({ scriptVersion })
+    },
+    updateKeyFingerprint: (index, fingerprint) => {
+      set((state) => {
         if (state.keys[index]) {
           state.keys[index].fingerprint = fingerprint
           if (
@@ -406,17 +404,15 @@ const useAccountBuilderStore = create<
           }
         }
       })
-    )
-  },
-  updateKeySecret: (index, newSecret) => {
-    set(
-      produce((state: AccountBuilderState) => {
+    },
+    updateKeySecret: (index, newSecret) => {
+      set((state) => {
         if (state.keys[index]) {
           state.keys[index].secret = newSecret
         }
       })
-    )
-  }
-}))
+    }
+  }))
+)
 
 export { useAccountBuilderStore }

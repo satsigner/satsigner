@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics'
 import { LinearGradient } from 'expo-linear-gradient'
 import { DimensionValue, StyleSheet, View } from 'react-native'
 import Animated, {
@@ -22,7 +23,8 @@ type SSKeyboardProps = {
   onDelete?: () => void
   onPress?: (item: string) => void
   random?: boolean
-  withControls?: boolean
+  withClear?: boolean
+  withDelete?: boolean
 }
 
 const BTN_DELETE = 'DEL'
@@ -107,7 +109,14 @@ function SSKeyboardCell({
     opacity: interpolate(press.value, [0, 1], [0, KEY_PRESS_OVERLAY_OPACITY])
   }))
 
+  const isControlKey = item === BTN_CLEAR || item === BTN_DELETE
+
   function handlePressIn() {
+    Haptics.impactAsync(
+      isControlKey
+        ? Haptics.ImpactFeedbackStyle.Medium
+        : Haptics.ImpactFeedbackStyle.Light
+    )
     press.set(withTiming(1, { duration: KEY_PRESS_IN_MS }))
   }
 
@@ -115,8 +124,11 @@ function SSKeyboardCell({
     press.set(withTiming(0, { duration: KEY_PRESS_OUT_MS }))
   }
 
+  if (!item) {
+    return <View style={{ padding: hStack['gap'][gap], width: cellWidth }} />
+  }
+
   const borderLight = getKeyBorderLight(index, nCols)
-  const isControlKey = item === BTN_CLEAR || item === BTN_DELETE
 
   return (
     <View
@@ -195,25 +207,25 @@ export default function SSKeyboard({
   gap = 'xs',
   items = NUMERIC_PAD,
   nCols = 3,
-  withControls = true,
+  withClear = true,
+  withDelete = true,
   random = false
 }: SSKeyboardProps) {
   const pad = random ? shuffle(items) : [...items]
   const nRows = Math.ceil(pad.length / nCols)
   const cellWidth: DimensionValue = `${Math.floor(100 / nCols)}%`
 
-  // control buttons are DELETE and CLEAR
-  if (withControls) {
-    // for 3 columns, place controls at bottom left and bottom right
-    if (nCols === 3) {
-      const lastItem = pad.pop()
+  // 3-col pad pins CLEAR to bottom-left and DELETE to bottom-right, centering the last digit.
+  if (nCols === 3) {
+    const lastItem = pad.pop()
+    pad.push(withClear ? BTN_CLEAR : '')
+    pad.push(lastItem || '')
+    pad.push(withDelete ? BTN_DELETE : '')
+  } else {
+    if (withClear) {
       pad.push(BTN_CLEAR)
-      pad.push(lastItem || '')
-      pad.push(BTN_DELETE)
     }
-    // else, just place them at bottom right
-    else {
-      pad.push(BTN_CLEAR)
+    if (withDelete) {
       pad.push(BTN_DELETE)
     }
   }

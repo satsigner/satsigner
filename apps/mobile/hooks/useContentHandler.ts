@@ -2,12 +2,13 @@ import { useCallback, useState } from 'react'
 
 import { useNFCReader } from '@/hooks/useNFCReader'
 import {
+  type ContentContext,
   detectContentByContext,
   type DetectedContent
 } from '@/utils/contentDetector'
 
 type UseContentHandlerProps = {
-  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
+  context: ContentContext
   onContentScanned: (content: DetectedContent) => void
   onSend: () => void
   onReceive: () => void
