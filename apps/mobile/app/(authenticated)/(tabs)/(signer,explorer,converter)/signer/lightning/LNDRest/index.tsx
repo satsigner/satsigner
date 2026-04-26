@@ -2,6 +2,7 @@ import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -16,7 +17,9 @@ import { type DetectedContent } from '@/utils/contentDetector'
 
 export default function LNDRestPage() {
   const router = useRouter()
-  const { setConfig, setConnected, setNodeInfo } = useLightningStore()
+  const [setConfig, setConnected, setNodeInfo] = useLightningStore(
+    useShallow((s) => [s.setConfig, s.setConnected, s.setNodeInfo])
+  )
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [connectionString, setConnectionString] = useState('')
   const [isButtonEnabled, setIsButtonEnabled] = useState(false)

@@ -2,6 +2,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { useRouter } from 'expo-router'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -22,7 +23,7 @@ import {
 export function useNostrSignFlow() {
   const router = useRouter()
   const accounts = useAccountsStore((state) => state.accounts)
-  const {
+  const [
     clearTransaction,
     addInput,
     addOutput,
@@ -30,7 +31,17 @@ export function useNostrSignFlow() {
     setRbf,
     setPsbt,
     setSignedPsbts
-  } = useTransactionBuilderStore()
+  ] = useTransactionBuilderStore(
+    useShallow((s) => [
+      s.clearTransaction,
+      s.addInput,
+      s.addOutput,
+      s.setFee,
+      s.setRbf,
+      s.setPsbt,
+      s.setSignedPsbts
+    ])
+  )
 
   async function handleGoToSignFlow(transactionData: TransactionData) {
     const originalPsbt = extractOriginalPsbt(transactionData.combinedPsbt)
