@@ -46,7 +46,6 @@
       "workerd"
     ],
     "overrides": {
-      "hermes-compiler": "250829098.0.4",
       "react": "^19.2.0",
       "react-dom": "^19.2.0"
     }
