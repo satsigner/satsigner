@@ -1,17 +1,12 @@
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
 import { Platform, StyleSheet, View } from 'react-native'
-import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconSettings, SSIconTrash } from '@/components/icons'
-import SSIconWarning from '@/components/icons/SSIconWarning'
+import { SSIconTriangle } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
-import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
-import SSModal from '@/components/SSModal'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import {
@@ -20,7 +15,6 @@ import {
   HEADER_CHROME_SETTINGS_ICON_SIZE
 } from '@/constants/headerChrome'
 import { useArkBalance } from '@/hooks/useArkBalance'
-import { useArkDeleteAccount } from '@/hooks/useArkDeleteAccount'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import { useArkWallet } from '@/hooks/useArkWallet'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
@@ -48,10 +42,7 @@ export default function ArkAccountDetailPage() {
   const walletQuery = useArkWallet(id)
   const balanceQuery = useArkBalance(id)
   const movementsQuery = useArkMovements(id)
-  const { deleteAccount } = useArkDeleteAccount()
   useFetchBitcoinPrice()
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
@@ -85,52 +76,29 @@ export default function ArkAccountDetailPage() {
     })
   }
 
-  async function handleConfirmDelete() {
-    if (!id) {
-      return
-    }
-    setIsDeleting(true)
-    try {
-      await deleteAccount(id)
-      setDeleteModalVisible(false)
-      toast.success(t('ark.account.deleteSuccess'))
-      router.replace('/signer/ark')
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t('ark.error.delete')
-      toast.error(message)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
   function renderHeaderRight() {
     return (
-      <SSHStack gap="none" style={styles.headerRight}>
-        <SSIconButton onPress={() => setDeleteModalVisible(true)}>
-          <SSIconTrash
-            height={HEADER_CHROME_SETTINGS_ICON_SIZE}
-            stroke={HEADER_ICON_STROKE}
-            strokeWidth={1}
-            width={HEADER_CHROME_SETTINGS_ICON_SIZE}
-          />
-        </SSIconButton>
-        <SSIconButton
-          style={
-            Platform.OS === 'android' && [
-              HEADER_CHROME_HIT_BOX,
-              { marginRight: -HEADER_CHROME_EDGE_NUDGE }
-            ]
-          }
-          onPress={() => router.navigate('/settings')}
-        >
-          <SSIconSettings
-            height={HEADER_CHROME_SETTINGS_ICON_SIZE}
-            stroke={HEADER_ICON_STROKE}
-            width={HEADER_CHROME_SETTINGS_ICON_SIZE}
-          />
-        </SSIconButton>
-      </SSHStack>
+      <SSIconButton
+        style={
+          Platform.OS === 'android' && [
+            HEADER_CHROME_HIT_BOX,
+            { marginRight: -HEADER_CHROME_EDGE_NUDGE }
+          ]
+        }
+        onPress={() =>
+          router.navigate({
+            params: { id },
+            pathname: '/signer/ark/account/[id]/settings'
+          })
+        }
+      >
+        <SSIconTriangle
+          height={HEADER_CHROME_SETTINGS_ICON_SIZE}
+          width={HEADER_CHROME_SETTINGS_ICON_SIZE}
+          color={HEADER_ICON_STROKE}
+          strokeWidth={0.9}
+        />
+      </SSIconButton>
     )
   }
 
@@ -260,37 +228,6 @@ export default function ArkAccountDetailPage() {
           }
         />
       </View>
-      <SSModal
-        visible={deleteModalVisible}
-        onClose={() => setDeleteModalVisible(false)}
-        label={t('common.cancel')}
-        closeButtonVariant="ghost"
-        fullOpacity
-      >
-        <SSVStack gap="lg" style={styles.modalContent}>
-          <SSVStack gap="sm" itemsCenter>
-            <SSIconWarning
-              height={20}
-              width={20}
-              fill="transparent"
-              stroke={Colors.gray[400]}
-            />
-            <SSText center uppercase size="md" weight="medium">
-              {t('ark.account.deleteWallet')}
-            </SSText>
-            <SSText center color="muted">
-              {t('ark.account.deleteWalletWarning')}
-            </SSText>
-          </SSVStack>
-          <SSButton
-            label={t('common.delete')}
-            onPress={handleConfirmDelete}
-            variant="danger"
-            loading={isDeleting}
-            disabled={isDeleting}
-          />
-        </SSVStack>
-      </SSModal>
     </SSMainLayout>
   )
 }
@@ -327,10 +264,6 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1
-  },
-  modalContent: {
-    paddingVertical: 8,
-    width: '100%'
   },
   movementItem: {
     paddingHorizontal: 20
