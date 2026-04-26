@@ -244,7 +244,7 @@ export default function SignTransaction() {
 
     if (currentConfig.server.backend === 'esplora') {
       const esploraClient = new Esplora(currentConfig.server.url)
-      const txid = await esploraClient.broadcastTransaction(signedTx)
+      await esploraClient.broadcastTransaction(signedTx)
       return true
     }
 
@@ -323,29 +323,17 @@ export default function SignTransaction() {
         return
       }
 
-      const signOk = signTransaction(psbt, wallet)
+      signTransaction(psbt, wallet)
 
-      try {
-        // Create fresh reference so Zustand detects the change
-        const signedPsbt = new Psbt(psbt.toBase64())
-        setSigned(true)
-        setPsbt(signedPsbt)
-        const hex = psbt.extractTxHex()
-        setRawTx(hex)
-      } catch (error) {
-        throw error
-      }
+      const signedPsbt = new Psbt(psbt.toBase64())
+      setSigned(true)
+      setPsbt(signedPsbt)
+      const hex = psbt.extractTxHex()
+      setRawTx(hex)
     }
 
     signTransactionData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!signed) {
-      return
-    }
-    const broadcastDisabled = !signed || (!psbt && !signedTx) || broadcasted
-  }, [signed, psbt, signedTx, broadcasted, wallet, rawTx, canCopySignedTx])
 
   if (!account || !psbt) {
     return <Redirect href="/" />

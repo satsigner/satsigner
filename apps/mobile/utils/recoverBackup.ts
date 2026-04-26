@@ -212,12 +212,11 @@ export async function performRecoverOverwrite(
       })
       if (data.ecash.mnemonics) {
         await Promise.all(
-          Object.entries(data.ecash.mnemonics).map(([accountId, mnemonic]) => {
-            if (!mnemonic) {
-              return Promise.resolve()
-            }
-            return storeEcashMnemonic(accountId, mnemonic)
-          })
+          Object.entries(data.ecash.mnemonics)
+            .filter((entry): entry is [string, string] => Boolean(entry[1]))
+            .map(([accountId, mnemonic]) =>
+              storeEcashMnemonic(accountId, mnemonic)
+            )
         )
       }
     }
