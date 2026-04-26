@@ -34,9 +34,8 @@ export default function EcashAccountRecoveryPage() {
       const restoreResult = await restoreFromSeed(urlToRestore)
       setResult(restoreResult)
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t('ecash.error.networkError')
-      toast.error(message)
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('ecash.error.networkError')}: ${reason}`)
     } finally {
       setIsRestoring(false)
     }

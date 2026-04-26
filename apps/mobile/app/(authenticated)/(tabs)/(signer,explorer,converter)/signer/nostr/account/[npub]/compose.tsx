@@ -264,11 +264,8 @@ export default function NostrComposePage() {
       await Clipboard.setStringAsync(JSON.stringify(signed, null, 2))
       toast.success(t('common.copiedToClipboard'))
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t('nostrIdentity.compose.publishFailed')
-      toast.error(message)
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('nostrIdentity.compose.publishFailed')}: ${reason}`)
     } finally {
       setSigningExport(false)
     }
@@ -299,11 +296,10 @@ export default function NostrComposePage() {
       }
       setSignedQrPayload(compact)
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t('nostrIdentity.compose.publishFailed')
-      toast.error(message)
+      if (error instanceof Error) {
+        toast.error(error.message)
+      }
+      toast.error(t('nostrIdentity.compose.publishFailed'))
     } finally {
       setSigningExport(false)
     }
@@ -346,11 +342,10 @@ export default function NostrComposePage() {
       toast.success(t('nostrIdentity.compose.published'))
       router.back()
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t('nostrIdentity.compose.publishFailed')
-      toast.error(message)
+      if (error instanceof Error) {
+        toast.error(error.message)
+      }
+      toast.error(t('nostrIdentity.compose.publishFailed'))
     } finally {
       setPublishing(false)
     }

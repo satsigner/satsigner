@@ -187,9 +187,8 @@ export default function ArkSendConfirmPage() {
     const input = buildSendInput(draft, amountSats, comment)
     sendMutation.mutate(input, {
       onError: (error) => {
-        const message =
-          error instanceof Error ? error.message : t('ark.send.error.generic')
-        toast.error(message)
+        const reason = error instanceof Error ? error.message : 'unknown'
+        toast.error(`${t('ark.send.error.generic')}: ${reason}`)
       },
       onSuccess: (outcome) => {
         toast.success(t(successToastKey(outcome)))

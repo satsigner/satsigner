@@ -76,9 +76,8 @@ export default function EcashAccountAddPage() {
       const account = await createAccount()
       router.replace(`/signer/ecash/account/${account.id}`)
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t('ecash.error.networkError')
-      toast.error(message)
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('ecash.error.networkError')}: ${reason}`)
     } finally {
       setIsCreating(false)
     }

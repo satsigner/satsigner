@@ -96,9 +96,8 @@ export default function ArkAccountDetailPage() {
       toast.success(t('ark.account.deleteSuccess'))
       router.replace('/signer/ark')
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t('ark.error.delete')
-      toast.error(message)
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('ark.error.delete')}: ${reason}`)
     } finally {
       setIsDeleting(false)
     }
