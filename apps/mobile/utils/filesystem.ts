@@ -32,11 +32,12 @@ export async function saveFile({
     const permissions =
       await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
     if (permissions.granted && permissions.directoryUri) {
-      const destinationUri = await FileSystem.StorageAccessFramework.createFileAsync(
-        permissions.directoryUri,
-        filename,
-        mimeType
-      )
+      const destinationUri =
+        await FileSystem.StorageAccessFramework.createFileAsync(
+          permissions.directoryUri,
+          filename,
+          mimeType
+        )
       await FileSystem.writeAsStringAsync(destinationUri, fileContent, {
         encoding: FileSystem.EncodingType.UTF8
       })

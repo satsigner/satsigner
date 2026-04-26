@@ -109,10 +109,7 @@ function TransactionFormatToolbar(props: TransactionFormatToolbarProps) {
   const encodingDisabled = !props.rawOpen
 
   return (
-    <SSHStack
-      gap="md"
-      style={[styles.formatToolbar, styles.formatToolbarFull]}
-    >
+    <SSHStack gap="md" style={[styles.formatToolbar, styles.formatToolbarFull]}>
       <SSHStack gap="xs" style={styles.formatChipGroup}>
         <FormatChip
           active={!props.rawOpen && props.decodedLayout === 'list'}

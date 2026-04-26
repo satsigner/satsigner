@@ -244,7 +244,10 @@ function SSPinInput({
                     center
                     size="sm"
                     weight={feedbackBold && i === 0 ? 'bold' : 'regular'}
-                    style={[styles.feedbackText, { color: feedBackColor, lineHeight: 16 }]}
+                    style={[
+                      styles.feedbackText,
+                      { color: feedBackColor, lineHeight: 16 }
+                    ]}
                   >
                     {line}
                   </SSText>

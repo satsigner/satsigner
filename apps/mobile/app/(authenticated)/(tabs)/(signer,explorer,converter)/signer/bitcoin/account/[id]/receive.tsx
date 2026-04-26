@@ -439,7 +439,7 @@ export default function Receive() {
                         ? t('receive.bitcoinPrefix')
                         : t('receive.noPrefix')
                     }
-                    variant='outline'
+                    variant="outline"
                     style={styles.toggleButton}
                     onPress={handleToggleBitcoinPrefix}
                   />
@@ -449,7 +449,7 @@ export default function Receive() {
                         ? t('receive.excludeLabel')
                         : t('receive.includeLabel')
                     }
-                    variant='outline'
+                    variant="outline"
                     style={styles.toggleButton}
                     onPress={handleToggleLabel}
                   />

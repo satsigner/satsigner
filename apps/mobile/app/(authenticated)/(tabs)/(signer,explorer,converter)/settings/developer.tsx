@@ -40,9 +40,9 @@ import {
   pbkdf2Encrypt,
   randomIv
 } from '@/utils/crypto'
+import { pickFile, saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
-import { pickFile, saveFile } from '@/utils/filesystem'
 
 export default function Developer() {
   const accounts = useAccountsStore((state) => state.accounts)

@@ -933,7 +933,7 @@ function PreviewTransaction() {
     }))
 
     function resolveId(): string {
-      if (!txBuilderResult) return transactionId
+      if (!txBuilderResult) {return transactionId}
       try {
         return txBuilderResult.txid() || transactionId
       } catch {

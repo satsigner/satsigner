@@ -65,7 +65,13 @@ function SSPinEntry({
       style={{ flex: 1, width: '100%' }}
     >
       {title ? (
-        <SSText uppercase size="lg" color="muted" center style={{ color: gray[300] }}>
+        <SSText
+          uppercase
+          size="lg"
+          color="muted"
+          center
+          style={{ color: gray[300] }}
+        >
           {title}
         </SSText>
       ) : null}

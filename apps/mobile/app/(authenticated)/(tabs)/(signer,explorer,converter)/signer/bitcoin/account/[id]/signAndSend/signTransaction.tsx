@@ -212,13 +212,10 @@ export default function SignTransaction() {
       psbt,
       currentConfig.server.backend,
       currentConfig.server.url
-    ).then((txid) => {
-      return txid
-    })
+    ).then((txid) => txid)
   }
 
   async function handleBroadcastMultiSig() {
-
     if (!signedTx) {
       throw new Error('Empty signed transaction')
     }
@@ -255,7 +252,6 @@ export default function SignTransaction() {
   }
 
   async function handleBroadcastTransaction() {
-
     if (broadcasting) {
       toast.info('Please wait while the transaction is being broadcast.')
       return
