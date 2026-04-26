@@ -47,6 +47,7 @@ import SSIconFiat from './SSIconFiat'
 import SSIconGreen from './SSIconGreen'
 import SSIconGreenIndicator from './SSIconGreenIndicator'
 import SSIconGreenNoSecret from './SSIconGreenNoSecret'
+import SSIconGreyIndicator from './SSIconGreyIndicator'
 import SSIconHalving from './SSIconHalving'
 import SSIconHamburger from './SSIconHamburger'
 import SSIconHideWarning from './SSIconHideWarning'
@@ -64,6 +65,7 @@ import SSIconLock from './SSIconLock'
 import SSIconMempool from './SSIconMempool'
 import SSIconMenu from './SSIconMenu'
 import SSIconMultiSignature from './SSIconMultiSignature'
+import SSIconMutedRedIndicator from './SSIconMutedRedIndicator'
 import SSIconNetwork from './SSIconNetwork'
 import SSIconNostr from './SSIconNostr'
 import SSIconOffboardCircle from './SSIconOffboardCircle'
@@ -145,6 +147,7 @@ export {
   SSIconGreen,
   SSIconGreenIndicator,
   SSIconGreenNoSecret,
+  SSIconGreyIndicator,
   SSIconHalving,
   SSIconHamburger,
   SSIconHideWarning,
@@ -161,6 +164,7 @@ export {
   SSIconLock,
   SSIconMempool,
   SSIconMenu,
+  SSIconMutedRedIndicator,
   SSIconMultiSignature,
   SSIconNetwork,
   SSIconNostr,

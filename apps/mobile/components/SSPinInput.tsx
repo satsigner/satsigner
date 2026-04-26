@@ -126,6 +126,7 @@ type SSPinInputProps = {
   autoFocus?: boolean
   feedback?: ReactNode
   feedBackColor?: string
+  feedbackBold?: boolean
   feedbackText?: string
   onFillEnded?: (pin: string) => void
   pin: string[]
@@ -140,6 +141,7 @@ function SSPinInput({
   feedback,
   feedbackText,
   feedBackColor = Colors.gray[300],
+  feedbackBold = false,
   withClear = true
 }: SSPinInputProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -234,16 +236,23 @@ function SSPinInput({
         </SSHStack>
         {feedbackText !== undefined ? (
           <View style={styles.feedbackSlot}>
-            {feedbackText ? (
-              <SSText
-                uppercase
-                center
-                size="sm"
-                style={[styles.feedbackText, { color: feedBackColor }]}
-              >
-                {feedbackText}
-              </SSText>
-            ) : null}
+            {feedbackText
+              ? feedbackText.split('\n').map((line, i) => (
+                  <SSText
+                    key={i}
+                    uppercase
+                    center
+                    size="sm"
+                    weight={feedbackBold && i === 0 ? 'bold' : 'regular'}
+                    style={[
+                      styles.feedbackText,
+                      { color: feedBackColor, lineHeight: 16 }
+                    ]}
+                  >
+                    {line}
+                  </SSText>
+                ))
+              : null}
           </View>
         ) : null}
       </SSVStack>
@@ -266,7 +275,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     justifyContent: 'flex-start',
     minHeight: PIN_FEEDBACK_SLOT_MIN_HEIGHT,
-    paddingTop: 12,
+    paddingTop: 30,
     width: '100%'
   },
   feedbackText: {

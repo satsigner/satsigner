@@ -144,7 +144,6 @@ export default function ArkAccountAddPage() {
                 {bitcoinAccounts.map((account) => (
                   <SSRadioButton
                     key={account.id}
-                    variant="outline"
                     label={account.name}
                     selected={bitcoinAccountId === account.id}
                     onPress={() => handleSelectBitcoinAccount(account.id)}
@@ -160,7 +159,6 @@ export default function ArkAccountAddPage() {
               </View>
             )}
             <SSRadioButton
-              variant="outline"
               label={t('ark.account.createBitcoinToggle')}
               selected={createBitcoinAccount}
               onPress={handleSelectAutoCreate}

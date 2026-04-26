@@ -167,7 +167,7 @@ export default class Esplora {
 
   static async test(url: string, timeout: number) {
     const esploraClient = new Esplora(url)
-    const fetchPromise = esploraClient.getLatestBlockHeight
+    const fetchPromise = esploraClient.getLatestBlockHeight()
     const timeoutPromise = new Promise((_resolve, reject) => {
       setTimeout(() => {
         reject(new Error('timeout'))
@@ -176,7 +176,7 @@ export default class Esplora {
 
     try {
       const result = await Promise.race([fetchPromise, timeoutPromise])
-      if (result) {
+      if (result !== null && result !== undefined && result !== '') {
         return true
       }
       return false

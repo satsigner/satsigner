@@ -21,10 +21,11 @@ import {
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { deleteItem, getKeySecret } from '@/storage/encrypted'
+import { deleteItem, getEcashMnemonic, getKeySecret } from '@/storage/encrypted'
 import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
+import { useEcashStore } from '@/store/ecash'
 import { useNostrStore } from '@/store/nostr'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
@@ -39,6 +40,7 @@ import {
   pbkdf2Encrypt,
   randomIv
 } from '@/utils/crypto'
+import { pickFile, saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
@@ -134,9 +136,39 @@ export default function Developer() {
       }))
     )
 
+    const nostrState = useNostrStore.getState()
+    const ecashState = useEcashStore.getState()
+    const ecashMnemonics = Object.fromEntries(
+      await Promise.all(
+        ecashState.accounts.map(async (account) => [
+          account.id,
+          await getEcashMnemonic(account.id)
+        ])
+      )
+    )
+
     const backupData = {
       accounts: accountsWithSeeds,
+      ecash: {
+        accounts: ecashState.accounts,
+        activeAccountId: ecashState.activeAccountId,
+        counters: ecashState.counters,
+        mints: ecashState.mints,
+        mnemonics: ecashMnemonics,
+        proofs: ecashState.proofs,
+        quotes: ecashState.quotes,
+        transactions: ecashState.transactions
+      },
       exportedAt: new Date().toISOString(),
+      nostr: {
+        lastDataExchangeEOSE: nostrState.lastDataExchangeEOSE,
+        lastProtocolEOSE: nostrState.lastProtocolEOSE,
+        members: nostrState.members,
+        processedEvents: nostrState.processedEvents,
+        processedMessageIds: nostrState.processedMessageIds,
+        profiles: nostrState.profiles,
+        trustedDevices: nostrState.trustedDevices
+      },
       settings: { currencyUnit, mnemonicWordList, useZeroPadding },
       version: 1
     }
@@ -194,6 +226,44 @@ export default function Developer() {
     }
   }
 
+  async function handleEncryptAndSaveFile() {
+    if (!backupPreviewPayload) {
+      return
+    }
+    if (
+      backupPassphrase.length === 0 ||
+      !PASSPHRASE_ALLOWED_REGEX.test(backupPassphrase)
+    ) {
+      toast.error(t('settings.developer.backupPassphraseInvalid'))
+      return
+    }
+    const filename = `satsigner-backup-${Date.now()}.json`
+    try {
+      const salt = await generateSalt()
+      const key = await pbkdf2Encrypt(backupPassphrase, salt)
+      const iv = randomIv()
+      const cipher = await aesEncrypt(backupPreviewPayload, key, iv)
+      const encryptedPayload = JSON.stringify({
+        cipher,
+        iv,
+        salt,
+        v: 1
+      })
+      await saveFile({
+        dialogTitle: t('settings.developer.backupData'),
+        fileContent: encryptedPayload,
+        filename,
+        mimeType: 'application/json'
+      })
+      toast.success(t('settings.developer.backupSuccess'))
+      setBackupPreviewVisible(false)
+      setBackupPreviewPayload(null)
+      setBackupPassphrase('')
+    } catch {
+      toast.error(t('settings.developer.backupError'))
+    }
+  }
+
   async function handleRecoverPaste() {
     try {
       const text = await Clipboard.getStringAsync()
@@ -205,6 +275,19 @@ export default function Developer() {
       }
     } catch {
       toast.error(t('common.error.pasteFromClipboard'))
+    }
+  }
+
+  async function handleRecoverUploadFile() {
+    try {
+      const text = await pickFile({ type: 'application/json' })
+      if (!text) {
+        return
+      }
+      setRecoverEncryptedInput(text)
+      toast.success(t('common.success.dataPasted'))
+    } catch {
+      toast.error(t('settings.developer.recoverUploadError'))
     }
   }
 
@@ -439,7 +522,7 @@ export default function Developer() {
         closeButtonVariant="ghost"
         fullOpacity
       >
-        <SSVStack gap="lg" style={styles.backupPreviewModal}>
+        <SSVStack gap="lg" widthFull style={styles.backupPreviewModal}>
           <SSText center size="lg" uppercase>
             {t('settings.developer.backupModalTitle')}
           </SSText>
@@ -457,7 +540,7 @@ export default function Developer() {
               value={backupPreviewPayload ?? ''}
             />
           </ScrollView>
-          <SSVStack gap="xs">
+          <SSVStack gap="xs" widthFull>
             <SSText color="muted" size="sm">
               {t('settings.developer.backupPassphraseLabel')}
             </SSText>
@@ -475,11 +558,16 @@ export default function Developer() {
           <SSText color="muted" size="xs">
             {t('settings.developer.backupEncryptionNote')}
           </SSText>
-          <SSVStack gap="sm">
+          <SSVStack gap="sm" widthFull>
             <SSButton
               label={t('settings.developer.backupEncryptShare')}
               onPress={handleEncryptAndShare}
               variant="default"
+            />
+            <SSButton
+              label={t('settings.developer.backupEncryptSaveFile')}
+              onPress={handleEncryptAndSaveFile}
+              variant="secondary"
             />
           </SSVStack>
         </SSVStack>
@@ -497,13 +585,13 @@ export default function Developer() {
         closeButtonVariant="ghost"
         fullOpacity
       >
-        <SSVStack gap="lg" style={styles.recoverModal}>
+        <SSVStack gap="lg" widthFull style={styles.recoverModal}>
           <SSText center size="lg" uppercase>
             {t('settings.developer.recoverTitle')}
           </SSText>
           {recoverDecrypted === null ? (
             <>
-              <SSVStack gap="xs">
+              <SSVStack gap="xs" widthFull>
                 <SSText color="muted" size="sm">
                   {t('settings.developer.recoverEncryptedLabel')}
                 </SSText>
@@ -521,13 +609,20 @@ export default function Developer() {
                     onChangeText={setRecoverEncryptedInput}
                   />
                 </ScrollView>
-                <SSButton
-                  label={t('common.paste')}
-                  onPress={handleRecoverPaste}
-                  variant="secondary"
-                />
+                <SSVStack gap="sm" widthFull>
+                  <SSButton
+                    label={t('common.paste')}
+                    onPress={handleRecoverPaste}
+                    variant="secondary"
+                  />
+                  <SSButton
+                    label={t('settings.developer.recoverUploadFile')}
+                    onPress={handleRecoverUploadFile}
+                    variant="secondary"
+                  />
+                </SSVStack>
               </SSVStack>
-              <SSVStack gap="xs">
+              <SSVStack gap="xs" widthFull>
                 <SSText color="muted" size="sm">
                   {t('settings.developer.backupPassphraseLabel')}
                 </SSText>
@@ -541,15 +636,17 @@ export default function Developer() {
                   onChangeText={setRecoverPassphrase}
                 />
               </SSVStack>
-              <SSButton
-                label={t('settings.developer.recoverDecrypt')}
-                onPress={handleRecoverDecrypt}
-                variant="secondary"
-              />
+              <SSVStack widthFull>
+                <SSButton
+                  label={t('settings.developer.recoverDecrypt')}
+                  onPress={handleRecoverDecrypt}
+                  variant="secondary"
+                />
+              </SSVStack>
             </>
           ) : (
             <>
-              <SSVStack gap="xs">
+              <SSVStack gap="xs" widthFull>
                 <SSText color="muted" size="sm">
                   {t('settings.developer.recoverDecryptedLabel')}
                 </SSText>
@@ -565,17 +662,21 @@ export default function Developer() {
                   />
                 </ScrollView>
               </SSVStack>
-              <SSButton
-                label={t('settings.developer.recoverOverwrite')}
-                onPress={() => setRecoverConfirmOverwrite(true)}
-                variant="secondary"
-              />
-              {recoverConfirmOverwrite && (
+              <SSVStack widthFull>
                 <SSButton
-                  label={t('settings.developer.recoverImSure')}
-                  onPress={handleRecoverImSure}
-                  variant="danger"
+                  label={t('settings.developer.recoverOverwrite')}
+                  onPress={() => setRecoverConfirmOverwrite(true)}
+                  variant="secondary"
                 />
+              </SSVStack>
+              {recoverConfirmOverwrite && (
+                <SSVStack widthFull>
+                  <SSButton
+                    label={t('settings.developer.recoverImSure')}
+                    onPress={handleRecoverImSure}
+                    variant="danger"
+                  />
+                </SSVStack>
               )}
             </>
           )}
@@ -588,7 +689,8 @@ export default function Developer() {
 const styles = StyleSheet.create({
   backupPreviewModal: {
     maxHeight: '80%',
-    paddingVertical: 8
+    paddingVertical: 8,
+    width: '100%'
   },
   backupPreviewText: {
     color: Colors.gray['200'],
@@ -600,7 +702,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[500],
     borderRadius: 4,
     borderWidth: 1,
-    maxHeight: 320
+    maxHeight: 320,
+    width: '100%'
   },
   modalTextAreaScrollContent: {
     paddingBottom: 16
@@ -610,10 +713,12 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     color: Colors.gray['200'],
-    padding: 12
+    padding: 12,
+    width: '100%'
   },
   recoverModal: {
     maxHeight: '85%',
-    paddingVertical: 8
+    paddingVertical: 8,
+    width: '100%'
   }
 })

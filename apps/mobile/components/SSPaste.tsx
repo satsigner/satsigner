@@ -1,5 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
-import { AppState, StyleSheet } from 'react-native'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  AppState,
+  Keyboard,
+  StyleSheet,
+  type TextInput as RNTextInput
+} from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -27,6 +32,7 @@ type SSPasteProps = {
 }
 
 function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
+  const inputRef = useRef<RNTextInput>(null)
   const [content, setContent] = useState('')
   const [isValidContent, setIsValidContent] = useState(false)
   const [detectedContentType, setDetectedContentType] =
@@ -282,10 +288,17 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
             {getValidationMessage()}
           </SSText>
           <SSTextInput
+            ref={inputRef}
             value={content}
             onChangeText={setContent}
             placeholder={getContextDescription()}
             multiline
+            blurOnSubmit
+            returnKeyType="done"
+            onSubmitEditing={() => {
+              Keyboard.dismiss()
+              inputRef.current?.blur()
+            }}
             numberOfLines={20}
             style={[
               styles.textInput,

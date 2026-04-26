@@ -1,3 +1,4 @@
+import * as bitcoinjs from 'bitcoinjs-lib'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -28,9 +29,110 @@ import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { legacyEstimateTransactionSize } from '@/utils/transaction'
+import {
+  estimateTransactionSize,
+  legacyEstimateTransactionSize
+} from '@/utils/transaction'
 
 const tn = _tn('transaction.build.sign')
+
+function buildSignTransactionChartModel(
+  psbt: PsbtLike | null,
+  inputs: Map<string, Utxo>,
+  outputs: Output[],
+  finalizedTxHex: string
+): Transaction | null {
+  if (!psbt) {
+    return null
+  }
+
+  const inputArray = Array.from(inputs.values())
+  let size: number
+  let vsize: number
+
+  const trimmed = finalizedTxHex.trim()
+  if (
+    trimmed.length >= 20 &&
+    /^[0-9a-fA-F]+$/i.test(trimmed) &&
+    !trimmed.toLowerCase().startsWith('70736274')
+  ) {
+    try {
+      const finalized = bitcoinjs.Transaction.fromHex(trimmed)
+      vsize = finalized.virtualSize()
+      size = finalized.byteLength(true)
+    } catch {
+      const est =
+        inputArray.length > 0
+          ? estimateTransactionSize(inputArray, outputs)
+          : legacyEstimateTransactionSize(inputs.size, outputs.length)
+      size = est.size
+      vsize = est.vsize
+    }
+  } else {
+    const est =
+      inputArray.length > 0
+        ? estimateTransactionSize(inputArray, outputs)
+        : legacyEstimateTransactionSize(inputs.size, outputs.length)
+    size = est.size
+    vsize = est.vsize
+  }
+
+  const vin = Array.from(inputs.values()).map((input: Utxo) => ({
+    label: input.label || '',
+    previousOutput: { txid: input.txid, vout: input.vout },
+    scriptSig: '' as string | number[],
+    sequence: 0,
+    value: input.value,
+    witness: [] as number[][]
+  }))
+
+  const vout = outputs.map((output: Output) => ({
+    address: output.to,
+    label: output.label || '',
+    script: '' as string | number[],
+    value: output.amount
+  }))
+
+  return {
+    id: psbt.txid(),
+    lockTimeEnabled: false,
+    prices: {},
+    received: 0,
+    sent: 0,
+    size,
+    type: 'send' as const,
+    vin,
+    vout,
+    vsize
+  }
+}
+
+function getBdkInnerMessage(error: unknown): string | undefined {
+  if (!(error instanceof Error) || !('inner' in error)) {
+    return undefined
+  }
+  const record = error as { inner?: unknown }
+  const { inner } = record
+  if (!inner || typeof inner !== 'object' || !('message' in inner)) {
+    return undefined
+  }
+  const msg = (inner as { message: unknown }).message
+  if (typeof msg !== 'string' || msg.length === 0) {
+    return undefined
+  }
+  return msg
+}
+
+function broadcastFailureUserMessage(error: unknown): string {
+  const inner = getBdkInnerMessage(error)
+  if (inner) {
+    return inner
+  }
+  if (error instanceof Error) {
+    return error.message
+  }
+  return 'Failed to broadcast transaction'
+}
 
 export default function SignTransaction() {
   const router = useRouter()
@@ -94,51 +196,12 @@ export default function SignTransaction() {
     }
   }
 
-  const transaction = buildTransaction(psbt ?? null, inputs, outputs)
-
-  function buildTransaction(
-    psbt: PsbtLike | null,
-    inputs: Map<string, Utxo>,
-    outputs: Output[]
-  ): Transaction | null {
-    if (!psbt) {
-      return null
-    }
-
-    const { size, vsize } = legacyEstimateTransactionSize(
-      inputs.size,
-      outputs.length
-    )
-
-    const vin = Array.from(inputs.values()).map((input: Utxo) => ({
-      label: input.label || '',
-      previousOutput: { txid: input.txid, vout: input.vout },
-      scriptSig: '' as string | number[],
-      sequence: 0,
-      value: input.value,
-      witness: [] as number[][]
-    }))
-
-    const vout = outputs.map((output: Output) => ({
-      address: output.to,
-      label: output.label || '',
-      script: '' as string | number[],
-      value: output.amount
-    }))
-
-    return {
-      id: psbt.txid(),
-      lockTimeEnabled: false,
-      prices: {},
-      received: 0,
-      sent: 0,
-      size,
-      type: 'send' as const,
-      vin,
-      vout,
-      vsize
-    }
-  }
+  const transaction = buildSignTransactionChartModel(
+    psbt ?? null,
+    inputs,
+    outputs,
+    rawTx
+  )
 
   function handleBroadcastSingleSig() {
     if (!psbt || !wallet) {
@@ -149,7 +212,7 @@ export default function SignTransaction() {
       psbt,
       currentConfig.server.backend,
       currentConfig.server.url
-    )
+    ).then((txid) => txid)
   }
 
   async function handleBroadcastMultiSig() {
@@ -220,11 +283,7 @@ export default function SignTransaction() {
         `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
       )
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to broadcast transaction'
-      toast.error(errorMessage)
+      toast.error(broadcastFailureUserMessage(error))
     } finally {
       setBroadcasting(false)
     }
@@ -266,7 +325,6 @@ export default function SignTransaction() {
 
       signTransaction(psbt, wallet)
 
-      // Create fresh reference so Zustand detects the change
       const signedPsbt = new Psbt(psbt.toBase64())
       setSigned(true)
       setPsbt(signedPsbt)
@@ -327,12 +385,7 @@ export default function SignTransaction() {
                 )}
               </SSVStack>
               <SSVStack gap="xxs">
-                <SSText
-                  color="muted"
-                  size="sm"
-                  uppercase
-                  style={{ marginBottom: -22 }}
-                >
+                <SSText color="muted" size="sm" uppercase>
                   {tn('transaction')}
                 </SSText>
                 {rawTx !== '' && (

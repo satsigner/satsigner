@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconTriangle } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
@@ -178,11 +177,8 @@ export default function ArkAccountListPage() {
       {renderTabs()}
       {filteredAccounts.length === 0 ? (
         <SSVStack itemsCenter gap="lg" style={styles.emptyState}>
-          <SSIconTriangle height={48} width={48} />
           <SSVStack itemsCenter gap="sm">
-            <SSText size="lg" weight="medium">
-              {t('ark.account.noAccounts')}
-            </SSText>
+            <SSText uppercase>{t('ark.account.noAccounts')}</SSText>
             <SSText color="muted" center>
               {t('ark.account.noAccountsDescription')}
             </SSText>
@@ -190,9 +186,7 @@ export default function ArkAccountListPage() {
           <SSButton
             label={t('ark.account.create')}
             onPress={handleAddAccount}
-            variant="gradient"
-            gradientType="special"
-            style={styles.addButton}
+            variant="outline"
           />
         </SSVStack>
       ) : (
