@@ -58,6 +58,16 @@ export default function ArkAccountSettingsPage() {
       />
       <SSVStack gap="lg" style={styles.container}>
         <SSButton
+          label={t('ark.offboard.title')}
+          onPress={() =>
+            router.navigate({
+              params: { id },
+              pathname: '/signer/ark/account/[id]/settings/offboard'
+            })
+          }
+          variant="secondary"
+        />
+        <SSButton
           label={t('common.delete')}
           onPress={() => setDeleteModalVisible(true)}
           variant="danger"
