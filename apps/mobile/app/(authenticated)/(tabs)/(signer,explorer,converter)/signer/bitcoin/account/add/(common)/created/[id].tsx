@@ -13,7 +13,7 @@ import { Colors } from '@/styles'
 import { Account } from '@/types/models/Account'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
-export function WalletCreated() {
+export default function WalletCreated() {
   const { id } = useLocalSearchParams<{ id: Account['id'] }>()
   const account = useAccountsStore((state) =>
     state.accounts.find((_account) => _account.id === id)
@@ -37,7 +37,7 @@ export function WalletCreated() {
           <SSVStack style={{ marginVertical: 32, width: '100%' }}>
             <SSVStack itemsCenter gap="xs">
               <SSText color="white" size="2xl">
-                {name}
+                {account.name}
               </SSText>
               <SSText color="muted" size="lg">
                 {t('account.added')}
@@ -79,7 +79,7 @@ export function WalletCreated() {
           </SSVStack>
         )}
         <SSButton
-          label={t('common.ok')}
+          label={t('account.multisig.gotoWallet')}
           onPress={handleDissmisAccountAdded}
           variant="secondary"
         />
