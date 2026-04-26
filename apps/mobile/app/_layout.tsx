@@ -120,7 +120,12 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <BarkAccessTokenDeepLinkBridge />
-        <GestureHandlerRootView>
+        <GestureHandlerRootView style={styles.root}>
+          <ThemeProvider value={appTheme}>
+            <View style={styles.container}>
+              <Slot />
+            </View>
+          </ThemeProvider>
           {privacyScreenVisible && <View style={styles.privacyScreen} />}
           <Toaster
             theme="dark"
@@ -133,11 +138,6 @@ export default function RootLayout() {
               zIndex: 999999
             }}
           />
-          <ThemeProvider value={appTheme}>
-            <View style={styles.container}>
-              <Slot />
-            </View>
-          </ThemeProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </SafeAreaProvider>
@@ -154,5 +154,8 @@ const styles = StyleSheet.create({
     inset: 0,
     position: 'absolute',
     zIndex: 999
+  },
+  root: {
+    flex: 1
   }
 })
