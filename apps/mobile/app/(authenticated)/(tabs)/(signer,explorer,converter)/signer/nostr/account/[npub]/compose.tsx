@@ -296,10 +296,8 @@ export default function NostrComposePage() {
       }
       setSignedQrPayload(compact)
     } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message)
-      }
-      toast.error(t('nostrIdentity.compose.publishFailed'))
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('nostrIdentity.compose.publishFailed')}: ${reason}`)
     } finally {
       setSigningExport(false)
     }
@@ -342,10 +340,8 @@ export default function NostrComposePage() {
       toast.success(t('nostrIdentity.compose.published'))
       router.back()
     } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message)
-      }
-      toast.error(t('nostrIdentity.compose.publishFailed'))
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('nostrIdentity.compose.publishFailed')}: ${reason}`)
     } finally {
       setPublishing(false)
     }
