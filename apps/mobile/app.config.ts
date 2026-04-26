@@ -81,8 +81,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           useHermesV1: false
         },
         ios: {
-          buildReactNativeFromSource: true,
-          useHermesV1: true
+          useHermesV1: false
         }
       }
     ],
