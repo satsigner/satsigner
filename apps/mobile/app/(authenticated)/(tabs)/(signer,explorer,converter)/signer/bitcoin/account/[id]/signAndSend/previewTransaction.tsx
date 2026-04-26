@@ -932,8 +932,18 @@ function PreviewTransaction() {
       value: output.amount
     }))
 
+    function resolveId(): string {
+      if (!txBuilderResult) return transactionId
+      try {
+        return txBuilderResult.txid() || transactionId
+      } catch {
+        return transactionId
+      }
+    }
+    const id = resolveId()
+
     return {
-      id: transactionId,
+      id,
       lockTimeEnabled: false,
       prices: {},
       received: 0,
@@ -944,7 +954,7 @@ function PreviewTransaction() {
       vout,
       vsize
     }
-  }, [inputs, outputs, transactionId])
+  }, [inputs, outputs, transactionId, txBuilderResult])
 
   useEffect(() => {
     if (signedPsbtsFromStore && signedPsbtsFromStore.size > 0) {

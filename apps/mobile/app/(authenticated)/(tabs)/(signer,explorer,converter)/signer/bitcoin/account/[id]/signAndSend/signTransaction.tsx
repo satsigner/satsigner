@@ -1,3 +1,4 @@
+import * as bitcoinjs from 'bitcoinjs-lib'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -28,9 +29,83 @@ import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { legacyEstimateTransactionSize } from '@/utils/transaction'
+import {
+  estimateTransactionSize,
+  legacyEstimateTransactionSize
+} from '@/utils/transaction'
 
 const tn = _tn('transaction.build.sign')
+
+function buildSignTransactionChartModel(
+  psbt: PsbtLike | null,
+  inputs: Map<string, Utxo>,
+  outputs: Output[],
+  finalizedTxHex: string
+): Transaction | null {
+  if (!psbt) {
+    return null
+  }
+
+  const inputArray = Array.from(inputs.values())
+  let size: number
+  let vsize: number
+
+  const trimmed = finalizedTxHex.trim()
+  if (
+    trimmed.length >= 20 &&
+    /^[0-9a-fA-F]+$/i.test(trimmed) &&
+    !trimmed.toLowerCase().startsWith('70736274')
+  ) {
+    try {
+      const finalized = bitcoinjs.Transaction.fromHex(trimmed)
+      vsize = finalized.virtualSize()
+      size = finalized.byteLength(true)
+    } catch {
+      const est =
+        inputArray.length > 0
+          ? estimateTransactionSize(inputArray, outputs)
+          : legacyEstimateTransactionSize(inputs.size, outputs.length)
+      size = est.size
+      vsize = est.vsize
+    }
+  } else {
+    const est =
+      inputArray.length > 0
+        ? estimateTransactionSize(inputArray, outputs)
+        : legacyEstimateTransactionSize(inputs.size, outputs.length)
+    size = est.size
+    vsize = est.vsize
+  }
+
+  const vin = Array.from(inputs.values()).map((input: Utxo) => ({
+    label: input.label || '',
+    previousOutput: { txid: input.txid, vout: input.vout },
+    scriptSig: '' as string | number[],
+    sequence: 0,
+    value: input.value,
+    witness: [] as number[][]
+  }))
+
+  const vout = outputs.map((output: Output) => ({
+    address: output.to,
+    label: output.label || '',
+    script: '' as string | number[],
+    value: output.amount
+  }))
+
+  return {
+    id: psbt.txid(),
+    lockTimeEnabled: false,
+    prices: {},
+    received: 0,
+    sent: 0,
+    size,
+    type: 'send' as const,
+    vin,
+    vout,
+    vsize
+  }
+}
 
 function getBdkInnerMessage(error: unknown): string | undefined {
   if (!(error instanceof Error) || !('inner' in error)) {
@@ -121,84 +196,28 @@ export default function SignTransaction() {
     }
   }
 
-  const transaction = buildTransaction(psbt ?? null, inputs, outputs)
-
-  function buildTransaction(
-    psbt: PsbtLike | null,
-    inputs: Map<string, Utxo>,
-    outputs: Output[]
-  ): Transaction | null {
-    if (!psbt) {
-      return null
-    }
-
-    const { size, vsize } = legacyEstimateTransactionSize(
-      inputs.size,
-      outputs.length
-    )
-
-    const vin = Array.from(inputs.values()).map((input: Utxo) => ({
-      label: input.label || '',
-      previousOutput: { txid: input.txid, vout: input.vout },
-      scriptSig: '' as string | number[],
-      sequence: 0,
-      value: input.value,
-      witness: [] as number[][]
-    }))
-
-    const vout = outputs.map((output: Output) => ({
-      address: output.to,
-      label: output.label || '',
-      script: '' as string | number[],
-      value: output.amount
-    }))
-
-    return {
-      id: psbt.txid(),
-      lockTimeEnabled: false,
-      prices: {},
-      received: 0,
-      sent: 0,
-      size,
-      type: 'send' as const,
-      vin,
-      vout,
-      vsize
-    }
-  }
+  const transaction = buildSignTransactionChartModel(
+    psbt ?? null,
+    inputs,
+    outputs,
+    rawTx
+  )
 
   function handleBroadcastSingleSig() {
     if (!psbt || !wallet) {
-      console.log('[SignTransaction] handleBroadcastSingleSig abort', {
-        hasPsbt: !!psbt,
-        hasWallet: !!wallet
-      })
       throw new Error('Empty PSBT or wallet')
     }
-    console.log('[SignTransaction] handleBroadcastSingleSig start', {
-      backend: currentConfig.server.backend,
-      url: currentConfig.server.url
-    })
     return broadcastTransaction(
       wallet,
       psbt,
       currentConfig.server.backend,
       currentConfig.server.url
     ).then((txid) => {
-      console.log('[SignTransaction] handleBroadcastSingleSig result', {
-        falsy: !txid,
-        txid
-      })
       return txid
     })
   }
 
   async function handleBroadcastMultiSig() {
-    console.log('[SignTransaction] handleBroadcastMultiSig start', {
-      backend: currentConfig.server.backend,
-      signedTxLength: signedTx?.length ?? 0,
-      url: currentConfig.server.url
-    })
 
     if (!signedTx) {
       throw new Error('Empty signed transaction')
@@ -221,18 +240,14 @@ export default function SignTransaction() {
         currentConfig.server.url,
         selectedNetwork
       )
-      console.log('[SignTransaction] multisig electrum broadcasting…')
       await electrumClient.broadcastTransactionHex(signedTx)
       electrumClient.close()
-      console.log('[SignTransaction] multisig electrum broadcast ok')
       return true
     }
 
     if (currentConfig.server.backend === 'esplora') {
       const esploraClient = new Esplora(currentConfig.server.url)
-      console.log('[SignTransaction] multisig esplora broadcasting…')
       const txid = await esploraClient.broadcastTransaction(signedTx)
-      console.log('[SignTransaction] multisig esplora broadcast ok', { txid })
       return true
     }
 
@@ -240,23 +255,13 @@ export default function SignTransaction() {
   }
 
   async function handleBroadcastTransaction() {
-    console.log('[SignTransaction] handleBroadcastTransaction invoked', {
-      broadcasted,
-      broadcasting,
-      hasPsbt: !!psbt,
-      hasSignedTx: !!signedTx,
-      hasWallet: !!wallet,
-      signed
-    })
 
     if (broadcasting) {
-      console.log('[SignTransaction] skip: already broadcasting')
       toast.info('Please wait while the transaction is being broadcast.')
       return
     }
 
     if (broadcasted) {
-      console.log('[SignTransaction] skip: already broadcasted')
       toast.error(
         'This transaction has already been broadcasted to the network'
       )
@@ -267,35 +272,24 @@ export default function SignTransaction() {
 
     try {
       if (signedTx) {
-        console.log('[SignTransaction] branch: multisig (signedTx)')
         await handleBroadcastMultiSig()
       } else if (psbt) {
-        console.log('[SignTransaction] branch: singlesig (psbt)')
         const broadcastResult = await handleBroadcastSingleSig()
         if (!broadcastResult) {
-          console.log('[SignTransaction] singlesig broadcast empty result')
           throw new Error('Broadcast failed')
         }
       } else {
-        console.log('[SignTransaction] branch: none — no psbt or signedTx')
         throw new Error('No transaction to broadcast')
       }
 
-      console.log('[SignTransaction] broadcast success, navigating…')
       setBroadcasted(true)
       router.navigate(
         `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
       )
     } catch (error) {
-      console.log('[SignTransaction] broadcast error', {
-        error,
-        innerMessage: getBdkInnerMessage(error),
-        message: error instanceof Error ? error.message : String(error)
-      })
       toast.error(broadcastFailureUserMessage(error))
     } finally {
       setBroadcasting(false)
-      console.log('[SignTransaction] handleBroadcastTransaction finished')
     }
   }
 
@@ -321,27 +315,19 @@ export default function SignTransaction() {
 
   useEffect(() => {
     function signTransactionData() {
-      console.log('[SignTransaction] signTransactionData (mount)', {
-        hasPsbt: !!psbt,
-        hasSignedTx: !!signedTx,
-        hasWallet: !!wallet
-      })
       // For multisig wallets, if we already have a finalized transaction, use it directly
       if (signedTx) {
         setSigned(true)
         setRawTx(signedTx)
-        console.log('[SignTransaction] multisig path: using signedTx as raw')
         return
       }
 
       // For singlesig wallets, sign the transaction
       if (!wallet || !psbt) {
-        console.log('[SignTransaction] singlesig path: missing wallet or psbt')
         return
       }
 
       const signOk = signTransaction(psbt, wallet)
-      console.log('[SignTransaction] wallet.sign returned', { signOk })
 
       try {
         // Create fresh reference so Zustand detects the change
@@ -349,15 +335,8 @@ export default function SignTransaction() {
         setSigned(true)
         setPsbt(signedPsbt)
         const hex = psbt.extractTxHex()
-        console.log('[SignTransaction] extractTxHex ok', {
-          hexLength: hex.length
-        })
         setRawTx(hex)
       } catch (error) {
-        console.log('[SignTransaction] singlesig finalize failed', {
-          error: error,
-          message: error instanceof Error ? error.message : String(error)
-        })
         throw error
       }
     }
@@ -370,15 +349,6 @@ export default function SignTransaction() {
       return
     }
     const broadcastDisabled = !signed || (!psbt && !signedTx) || broadcasted
-    console.log('[SignTransaction] signed state', {
-      broadcastDisabled,
-      broadcasted,
-      canCopySignedTx,
-      hasPsbt: !!psbt,
-      hasSignedTx: !!signedTx,
-      hasWallet: !!wallet,
-      rawTxLength: rawTx.length
-    })
   }, [signed, psbt, signedTx, broadcasted, wallet, rawTx, canCopySignedTx])
 
   if (!account || !psbt) {
@@ -488,14 +458,6 @@ export default function SignTransaction() {
               disabled={!signed || (!psbt && !signedTx) || broadcasted}
               loading={broadcasting}
               onPress={() => {
-                console.log('[SignTransaction] Broadcast button onPress', {
-                  broadcasted,
-                  broadcasting,
-                  disabled: !signed || (!psbt && !signedTx) || broadcasted,
-                  hasPsbt: !!psbt,
-                  hasSignedTx: !!signedTx,
-                  signed
-                })
                 handleBroadcastTransaction()
               }}
             />

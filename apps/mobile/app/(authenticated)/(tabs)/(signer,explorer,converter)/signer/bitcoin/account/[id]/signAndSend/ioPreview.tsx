@@ -92,6 +92,7 @@ export default function IOPreview() {
     removeOutput,
     setFeeRate,
     setFee,
+    clearPsbt,
     clearTransaction
   ] = useTransactionBuilderStore(
     useShallow((state) => [
@@ -106,6 +107,7 @@ export default function IOPreview() {
       state.removeOutput,
       state.setFeeRate,
       state.setFee,
+      state.clearPsbt,
       state.clearTransaction
     ])
   )
@@ -692,6 +694,7 @@ export default function IOPreview() {
   }
 
   function proceedToPreview() {
+    clearPsbt()
     const needsSync = checkWalletNeedsSync(account)
     if (needsSync) {
       router.navigate(
