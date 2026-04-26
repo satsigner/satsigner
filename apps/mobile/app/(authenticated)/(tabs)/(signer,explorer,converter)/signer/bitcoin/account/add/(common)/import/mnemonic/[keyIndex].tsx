@@ -88,8 +88,10 @@ export default function ImportMnemonic() {
       }
 
       const createdAccountId = data.accountWithEncryptedSecret.id
-      clearAccount()
       router.navigate(`/signer/bitcoin/account/add/created/${createdAccountId}`)
+
+      // we clear the account in the background to avoid an immediate re-render of the current page which resets its state variables
+      setTimeout(clearAccount, 1500)
     } catch (error) {
       toast.error((error as Error).message || t('account.import.error.generic'))
     }
