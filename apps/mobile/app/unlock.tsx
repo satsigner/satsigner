@@ -1,19 +1,15 @@
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSPinEntry from '@/components/SSPinEntry'
-import { DURESS_PIN_KEY, PIN_KEY, SALT_KEY } from '@/config/auth'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { t } from '@/locales'
-import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors, Layout } from '@/styles'
-import { pbkdf2Encrypt } from '@/utils/crypto'
-import { emptyPin } from '@/utils/pin'
+import { error, gray, warning } from '@/styles/colors'
 
 export default function Unlock() {
   const router = useRouter()
@@ -24,8 +20,10 @@ export default function Unlock() {
     setFirstTime,
     setRequiresAuth,
     setJustUnlocked,
-    duressPinEnabled,
-    setDuressPinEnabled
+    triesLeft,
+    pinMaxTries
+    // duressPinEnabled,
+    // setDuressPinEnabled,
   ] = useAuthStore(
     useShallow((state) => [
       state.setLockTriggered,
@@ -34,8 +32,10 @@ export default function Unlock() {
       state.setFirstTime,
       state.setRequiresAuth,
       state.setJustUnlocked,
-      state.duressPinEnabled,
-      state.setDuressPinEnabled
+      state.pinTries,
+      state.pinMaxTries
+      // state.duressPinEnabled,
+      // state.setDuressPinEnabled,
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
@@ -44,77 +44,75 @@ export default function Unlock() {
   )
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
 
-  const [pin, setPin] = useState<string[]>(emptyPin)
-
-  function clearPin() {
-    setPin(emptyPin())
+  function getWarningColor() {
+    if (triesLeft > 2) {
+      return gray[200]
+    }
+    if (triesLeft === 1) {
+      return error
+    }
+    if (triesLeft === 2) {
+      return warning
+    }
+    return undefined
   }
 
-  async function handleOnFillEnded(pin: string) {
-    const salt = await getItem(SALT_KEY)
-    const storedEncryptedPin = await getItem(PIN_KEY)
-    if (!salt || !storedEncryptedPin) {
+  function getWarningText() {
+    let text = ''
+    if (triesLeft < pinMaxTries) {
+      text += triesLeft
+      text += ' '
+      text += triesLeft > 1 ? t('auth.triesLeft') : t('auth.tryLeft')
+      if (triesLeft <= 2) {
+        text += '\n'
+        text += t('auth.warningKeysErase')
+      }
+    }
+    return text
+  }
+
+  function handleSuccess() {
+    setLockTriggered(false)
+    setJustUnlocked(true)
+    resetPinTries()
+    // INFO: Deactivated this for now
+    // Note: Take into account that we don't persist account build
+    // We had a problem with pages = ["/", "/account/add/", "/account/add/(common)/confirm/0/word/11"]
+    // This pushes the previous page history (before screen was unlocked)
+    // const pages = getPagesHistory()
+    // clearPageHistory()
+    // for (const page of pages) {
+    //   router.push(page as any)
+    // }
+    router.push(showWarning ? './warning' : '/')
+  }
+
+  function handleFailure() {
+    const triesLeft = incrementPinTries()
+    if (triesLeft > 0) {
       return
-    } // TODO: handle error
-
-    let storedEncryptedDuressPin: string | null = null
-    try {
-      storedEncryptedDuressPin = await getItem(DURESS_PIN_KEY)
-    } catch {
-      //
     }
-
-    const encryptedPin = await pbkdf2Encrypt(pin, salt)
-    const isPinValid =
-      encryptedPin === storedEncryptedPin ||
-      encryptedPin === storedEncryptedDuressPin
-
-    if (encryptedPin === storedEncryptedDuressPin && duressPinEnabled) {
-      deleteAccounts()
-      deleteWallets()
-      deleteTags()
-
-      // delete evidence there existed a duress pin,
-      // acting as if the duress pin was the true pin
-      setDuressPinEnabled(false)
-      await deleteItem(DURESS_PIN_KEY)
-      await setItem(PIN_KEY, storedEncryptedDuressPin)
-    }
-
-    if (isPinValid) {
-      setLockTriggered(false)
-      setJustUnlocked(true)
-      resetPinTries()
-
-      // TODO: Deactivated this for now
-      // Note: Take into account that we don't persist account build
-      // We had a problem with pages = ["/", "/account/add/", "/account/add/(common)/confirm/0/word/11"]
-      // This pushes the previous page history (before screen was unlocked)
-      // const pages = getPagesHistory()
-      // clearPageHistory()
-      // for (const page of pages) {
-      //   router.push(page as any)
-      // }
-      if (showWarning) {
-        router.push('./warning')
-      } else {
-        router.push('/')
-      }
-    } else {
-      clearPin()
-
-      const triesLeft = incrementPinTries()
-      if (triesLeft === 0) {
-        deleteAccounts()
-        deleteWallets()
-        setFirstTime(true)
-        setRequiresAuth(false)
-        setLockTriggered(false)
-        router.replace('/')
-        resetPinTries()
-      }
-    }
+    deleteAccounts()
+    deleteWallets()
+    deleteTags()
+    setFirstTime(true)
+    setRequiresAuth(false)
+    setLockTriggered(false)
+    router.replace('/')
+    resetPinTries()
   }
+
+  // TODO: reimplement duress
+  // async function handleDuressPin() {
+  //     deleteAccounts()
+  //     deleteWallets()
+  //     deleteTags()
+  //     // delete evidence there existed a duress pin,
+  //     // acting as if the duress pin was the true pin
+  //     setDuressPinEnabled(false)
+  //     await deleteItem(DURESS_PIN_KEY)
+  //     await setItem(PIN_KEY, storedEncryptedDuressPin)
+  // }
 
   return (
     <SSMainLayout
@@ -124,11 +122,13 @@ export default function Unlock() {
         paddingTop: '40%'
       }}
     >
-      <SSPinEntry
-        pin={pin}
-        setPin={setPin}
-        onFillEnded={handleOnFillEnded}
+      <SSPinAuth
+        onSuccess={handleSuccess}
+        onFail={handleFailure}
         title={t('auth.enterPinTitle')}
+        feedbackText={getWarningText()}
+        feedbackColor={getWarningColor()}
+        feedbackBold={triesLeft <= 2 && triesLeft > 0}
       />
     </SSMainLayout>
   )

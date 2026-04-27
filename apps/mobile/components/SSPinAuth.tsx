@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Animated from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 
-import SSPinInput from '@/components/SSPinInput'
+import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import { PIN_KEY, SALT_KEY } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
@@ -16,9 +16,9 @@ type SSPinAuthProps = {
   title?: string
   onFail: () => void
   onSuccess: () => void
-}
+} & Pick<SSPinInputProps, 'feedbackBold' | 'feedbackColor' | 'feedbackText'>
 
-function SSPinAuth({ title, onFail, onSuccess }: SSPinAuthProps) {
+function SSPinAuth({ title, onFail, onSuccess, ...props }: SSPinAuthProps) {
   const { shakeStyle } = useAnimatedShake()
   const [pin, setPin] = useState<string[]>(emptyPin())
 
@@ -56,7 +56,12 @@ function SSPinAuth({ title, onFail, onSuccess }: SSPinAuthProps) {
         </SSText>
       ) : null}
       <Animated.View style={[{ flex: 1, width: '100%' }, shakeStyle]}>
-        <SSPinInput pin={pin} setPin={setPin} onFillEnded={handleFillEnded} />
+        <SSPinInput
+          pin={pin}
+          setPin={setPin}
+          onFillEnded={handleFillEnded}
+          {...props}
+        />
       </Animated.View>
     </SSVStack>
   )

@@ -122,9 +122,9 @@ function getPinFieldLight(
   }
 }
 
-type SSPinInputProps = {
+export type SSPinInputProps = {
   feedback?: ReactNode
-  feedBackColor?: string
+  feedbackColor?: string
   feedbackBold?: boolean
   feedbackText?: string
   onFillEnded?: (pin: string) => void
@@ -139,7 +139,7 @@ function SSPinInput({
   onFillEnded,
   feedback,
   feedbackText,
-  feedBackColor = Colors.gray[300],
+  feedbackColor = Colors.gray[300],
   feedbackBold = false,
   withClear = true
 }: SSPinInputProps) {
@@ -245,7 +245,7 @@ function SSPinInput({
                     weight={feedbackBold && i === 0 ? 'bold' : 'regular'}
                     style={[
                       styles.feedbackText,
-                      { color: feedBackColor, lineHeight: 16 }
+                      { color: feedbackColor, lineHeight: 16 }
                     ]}
                   >
                     {line}
