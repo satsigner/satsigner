@@ -8,18 +8,13 @@ import { navMenuGroups } from '@/constants/navItems'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { useArkStore } from '@/store/ark'
 import { Colors } from '@/styles'
 import { type NavMenuItem } from '@/types/navigation/navMenu'
 
 export default function Home() {
   const { tab } = useLocalSearchParams()
   const router = useRouter()
-  const hasArkAccounts = useArkStore((state) => state.accounts.length > 0)
-  const allPages = navMenuGroups.find((group) => group.title === tab)?.items
-  const pages = allPages?.filter(
-    (page) => page.url !== '/signer/ark' || hasArkAccounts
-  )
+  const pages = navMenuGroups.find((group) => group.title === tab)?.items
 
   const handlePress = useCallback(
     (page: NavMenuItem) => {
