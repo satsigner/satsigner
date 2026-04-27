@@ -31,7 +31,7 @@ export default function Confirm() {
   const [
     name,
     mnemonicWordCount,
-    mnemonic,
+    mnemonicString,
     policyType,
     clearAccount,
     getAccountData,
@@ -41,7 +41,7 @@ export default function Confirm() {
     useShallow((state) => [
       state.name,
       state.mnemonicWordCount,
-      state.mnemonic.split(' '),
+      state.mnemonic,
       state.policyType,
       state.clearAccount,
       state.getAccountData,
@@ -49,6 +49,7 @@ export default function Confirm() {
       state.clearKeyState
     ])
   )
+  const mnemonic = mnemonicString.split(' ')
 
   const skipSeedConfirmation = useSettingsStore(
     (state) => state.skipSeedConfirmation
