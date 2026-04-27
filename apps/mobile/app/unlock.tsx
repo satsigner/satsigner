@@ -22,8 +22,6 @@ export default function Unlock() {
     setJustUnlocked,
     triesLeft,
     pinMaxTries
-    // duressPinEnabled,
-    // setDuressPinEnabled,
   ] = useAuthStore(
     useShallow((state) => [
       state.setLockTriggered,
@@ -34,8 +32,6 @@ export default function Unlock() {
       state.setJustUnlocked,
       state.pinTries,
       state.pinMaxTries
-      // state.duressPinEnabled,
-      // state.setDuressPinEnabled,
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
@@ -101,18 +97,6 @@ export default function Unlock() {
     router.replace('/')
     resetPinTries()
   }
-
-  // TODO: reimplement duress
-  // async function handleDuressPin() {
-  //     deleteAccounts()
-  //     deleteWallets()
-  //     deleteTags()
-  //     // delete evidence there existed a duress pin,
-  //     // acting as if the duress pin was the true pin
-  //     setDuressPinEnabled(false)
-  //     await deleteItem(DURESS_PIN_KEY)
-  //     await setItem(PIN_KEY, storedEncryptedDuressPin)
-  // }
 
   return (
     <SSMainLayout
