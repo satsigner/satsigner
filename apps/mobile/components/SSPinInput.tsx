@@ -123,7 +123,6 @@ function getPinFieldLight(
 }
 
 type SSPinInputProps = {
-  autoFocus?: boolean
   feedback?: ReactNode
   feedBackColor?: string
   feedbackBold?: boolean

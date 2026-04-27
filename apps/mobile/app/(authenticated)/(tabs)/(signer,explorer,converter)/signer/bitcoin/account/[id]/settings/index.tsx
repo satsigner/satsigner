@@ -69,7 +69,6 @@ export default function AccountSettings() {
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [pin, setPin] = useState<string[]>(emptyPin)
   const [showPinEntry, setShowPinEntry] = useState(false)
-  const [pinEntryFocus, setPinEntryFocus] = useState(false)
 
   const labels = account?.labels ? Object.values(account.labels) : []
   const labelCounts = {
@@ -103,18 +102,11 @@ export default function AccountSettings() {
   function handleOnViewMnemonic() {
     setShowPinEntry(true)
     setPin(emptyPin())
-
-    // This will auto-focus the pin input after a little delay.
-    // The delay is needed because the modal has to have become visible first.
-    setTimeout(() => {
-      setPinEntryFocus(true)
-    }, 300)
   }
 
   function handleCloseMnemonicModal() {
     setShowPinEntry(false)
     setPin(emptyPin())
-    setPinEntryFocus(false)
   }
 
   async function handlePinEntry(pinString: string) {
@@ -604,7 +596,6 @@ export default function AccountSettings() {
           pin={pin}
           setPin={setPin}
           onFillEnded={handlePinEntry}
-          autoFocus={pinEntryFocus}
         />
       </SSModal>
     </ScrollView>
