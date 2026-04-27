@@ -36,6 +36,8 @@ import { type TransactionData } from '@/utils/psbt'
 // Display text is NOT cached here — it's recomputed whenever profiles update.
 const colorCache = new Map<string, string>()
 
+const EMPTY_MEMBERS: { npub: string; color: string }[] = []
+
 function getAuthorColor(
   pubkey: string,
   members: { npub: string; color: string }[]
@@ -97,9 +99,10 @@ export default function DevicesGroupChat() {
     }, [accountId, markDmsAsRead])
   )
 
-  const members = useNostrStore(
-    (state) => (accountId && state.members?.[accountId]) || []
+  const accountMembers = useNostrStore((state) =>
+    accountId ? state.members?.[accountId] : undefined
   )
+  const members = accountMembers || EMPTY_MEMBERS
   const [profiles, setProfile] = useNostrStore(
     useShallow((state) => [state.profiles, state.setProfile])
   )
