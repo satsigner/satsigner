@@ -704,9 +704,8 @@ function DerivedAddresses({
       setAddressCount(minItems)
       updateAccount({ ...account, addresses: newAddresses })
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to update addresses'
-      )
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${'Failed to update addresses'}: ${reason}`)
     } finally {
       isUpdatingAddresses.current = false
     }

@@ -601,11 +601,8 @@ export default function NostrNotePage() {
       setPaymentPickerVisible(true)
     } catch (error) {
       setZapLoading(false)
-      const message =
-        error instanceof Error
-          ? error.message
-          : t('nostrIdentity.note.zapFailed')
-      toast.error(message)
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('nostrIdentity.note.zapFailed')}: ${reason}`)
     }
   }
 

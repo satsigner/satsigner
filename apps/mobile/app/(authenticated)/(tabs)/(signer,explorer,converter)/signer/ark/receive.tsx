@@ -61,11 +61,8 @@ export default function ArkReceivePage() {
     }
     invoiceMutation.mutate(amountSats, {
       onError: (error) => {
-        const message =
-          error instanceof Error
-            ? error.message
-            : t('ark.error.invoiceGeneration')
-        toast.error(message)
+        const reason = error instanceof Error ? error.message : 'unknown'
+        toast.error(`${t('ark.error.invoiceGeneration')}: ${reason}`)
       }
     })
   }

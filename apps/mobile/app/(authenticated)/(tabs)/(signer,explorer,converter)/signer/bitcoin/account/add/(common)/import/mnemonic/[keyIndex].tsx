@@ -93,7 +93,8 @@ export default function ImportMnemonic() {
       // we clear the account in the background to avoid an immediate re-render of the current page which resets its state variables
       setTimeout(clearAccount, 1500)
     } catch (error) {
-      toast.error((error as Error).message || t('account.import.error.generic'))
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('account.import.error.generic')}: ${reason}`)
     }
   }
 
