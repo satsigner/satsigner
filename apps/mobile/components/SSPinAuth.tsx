@@ -1,16 +1,21 @@
 import { useState } from 'react'
-import Animated from 'react-native-reanimated'
+import Animated  from 'react-native-reanimated'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { PIN_KEY, SALT_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, PIN_KEY, SALT_KEY } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import SSVStack from '@/layouts/SSVStack'
-import { getItem } from '@/storage/encrypted'
+import { deleteItem, getItem } from '@/storage/encrypted'
+import { useAuthStore } from '@/store/auth'
 import { gray } from '@/styles/colors'
 import { pbkdf2Encrypt } from '@/utils/crypto'
 import { emptyPin } from '@/utils/pin'
+import { router } from 'expo-router'
+import { useAccountsStore } from '@/store/accounts'
+import { useWalletsStore } from '@/store/wallets'
 
 type SSPinAuthProps = {
   title?: string
@@ -19,23 +24,57 @@ type SSPinAuthProps = {
 } & Pick<SSPinInputProps, 'feedbackBold' | 'feedbackColor' | 'feedbackText'>
 
 function SSPinAuth({ title, onFail, onSuccess, ...props }: SSPinAuthProps) {
-  const { shakeStyle } = useAnimatedShake()
+  const [duressPinEnabled, setDuressPinEnabled] = useAuthStore(
+    useShallow((state) => [state.duressPinEnabled, state.setDuressPinEnabled])
+  )
+  const [deleteAccounts, deleteTags] = useAccountsStore(
+    useShallow((state) => [
+      state.deleteAccounts,
+      state.deleteTags,
+    ])
+  )
+  const deleteWallets = useWalletsStore(state => state.deleteWallets)
   const [pin, setPin] = useState<string[]>(emptyPin())
+  const { shakeStyle } = useAnimatedShake()
 
   async function handleFillEnded(inputPin: string) {
     const hashedPin = await getItem(PIN_KEY)
+    const hashedDuressPin = await getItem(DURESS_PIN_KEY)
     const salt = await getItem(SALT_KEY)
     if (!hashedPin || !salt) {
       toast.error('Failed to retrieve PIN for authentication')
       return
     }
     const hashedInput = await pbkdf2Encrypt(inputPin, salt)
-    if (hashedInput === hashedPin) {
-      onSuccess()
-    } else {
+
+    // DURESS PIN
+    if (duressPinEnabled && hashedInput === hashedDuressPin) {
+      // erase data
+      deleteAccounts()
+      deleteWallets()
+      deleteTags()
+
+      // delete evidence there existed a duress pin in the first place,
+      // acting as if the duress pin was the true pin
+      setDuressPinEnabled(false)
+      await deleteItem(DURESS_PIN_KEY)
+
+      // reset route
+      router.dismissAll()
+      router.push('/')
+      return
+    }
+
+    // Upon failure, the pin reset is already done here
+    // The fail callback could be show a warning, dismiss a modal, etc...
+    if (hashedInput !== hashedPin) {
       setPin(emptyPin())
       onFail()
+      return
     }
+    
+    // The success callback could be unlock the app, or view mnemonic, or confirm wallet deletion
+    onSuccess()
   }
 
   return (
@@ -44,7 +83,7 @@ function SSPinAuth({ title, onFail, onSuccess, ...props }: SSPinAuthProps) {
       gap={title ? 'lg' : 'none'}
       style={{ flex: 1, width: '100%' }}
     >
-      {title ? (
+      {title && (
         <SSText
           uppercase
           size="lg"
@@ -54,7 +93,7 @@ function SSPinAuth({ title, onFail, onSuccess, ...props }: SSPinAuthProps) {
         >
           {title}
         </SSText>
-      ) : null}
+      )}
       <Animated.View style={[{ flex: 1, width: '100%' }, shakeStyle]}>
         <SSPinInput
           pin={pin}
