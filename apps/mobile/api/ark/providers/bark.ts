@@ -89,6 +89,7 @@ async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
     args.datadir
   )
   walletCache.set(args.accountId, wallet)
+  await wallet.sync()
 }
 
 async function openWallet(args: ArkWalletArgs): Promise<void> {
