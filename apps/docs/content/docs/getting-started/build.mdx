@@ -14,10 +14,25 @@ description: Build SatSigner for distribution using EAS.
 3. Set `EXPO_PROJECT_ID` to the project id created:
 
 ```shell
-export EXPO_PROJECT_ID='rpr6osn4-r915-4np9-ns31-q3724o78r59s'
+# example value of how it looks like
+export EXPO_PROJECT_ID='rpr7osn3-r916-4np9-ns32-q3723o79r58s'
 ```
 
-Alternatively, hardcode it (do not commit) the file `apps/mobile/app.config.ts`:
+This works only for the current shell session.  To avoid having to set the
+variable every single session, create your own `.envrc` file in `apps/mobile`
+and use [direnv](https://github.com/direnv/direnv):
+
+```shell
+export EXPO_PROJECT_ID='rpr7osn3-r916-4np9-ns32-q3723o79r58s'
+```
+
+**Note**: an `.envrc` file is meant to set env vars to specific directory in
+**your machine**. It is not meant to be tracked by git since is machine-specific
+*configuration.
+
+If you are building from an IDE and not from the cli, the environment variable
+may not work. In that case, temporarily hardcode the project id value in the
+file `apps/mobile/app.config.ts`:
 
 ```typescript
 export default ({ config }: ConfigContext): ExpoConfig => ({
@@ -27,9 +42,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         projectId: '<PROJECT ID>'
       }
   },
-  /* other config */
+  /* other configuration...  */
 }
 ```
+
+Do not commit the temporary changes made do this file.
 
 4. Install `eas` on your machine
 
