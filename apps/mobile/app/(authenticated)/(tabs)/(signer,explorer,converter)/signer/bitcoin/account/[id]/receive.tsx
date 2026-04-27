@@ -438,7 +438,7 @@ export default function Receive() {
                         ? t('receive.bitcoinPrefix')
                         : t('receive.noPrefix')
                     }
-                    variant={includeBitcoinPrefix ? 'default' : 'outline'}
+                    variant="outline"
                     style={styles.toggleButton}
                     onPress={handleToggleBitcoinPrefix}
                   />
@@ -448,7 +448,7 @@ export default function Receive() {
                         ? t('receive.excludeLabel')
                         : t('receive.includeLabel')
                     }
-                    variant={includeLabel ? 'default' : 'outline'}
+                    variant="outline"
                     style={styles.toggleButton}
                     onPress={handleToggleLabel}
                   />

@@ -5,7 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  hermes-compiler: 250829098.0.4
   react: ^19.2.0
   react-dom: ^19.2.0
 
@@ -6059,8 +6058,8 @@ packages:
   hastscript@9.0.1:
     resolution: {integrity: sha512-g7df9rMFX/SPi34tyGCyUBREQoKkapwdY/T04Qn9TDWfHhAYt4/I0gMVirzK5wEzeUqIjEB+LXC/ypb7Aqno5w==}
 
-  hermes-compiler@250829098.0.4:
-    resolution: {integrity: sha512-8PEHLTuGOXUAnv2zByUG7Vud0TbU21fPuVqlMuek8PZgdYwb7KFWjw3+6In9J93Tx/6c/nRf5I30vzbaHBlgAQ==}
+  hermes-compiler@0.14.1:
+    resolution: {integrity: sha512-+RPPQlayoZ9n6/KXKt5SFILWXCGJ/LV5d24L5smXrvTDrPS4L6dSctPczXauuvzFP3QEJbD1YO7Z3Ra4a+4IhA==}
 
   hermes-estree@0.32.0:
     resolution: {integrity: sha512-KWn3BqnlDOl97Xe1Yviur6NbgIZ+IP+UVSpshlZWkq+EtoHg6/cwiDj/osP9PCEgFE15KBm1O55JRwbMEm5ejQ==}
@@ -15333,7 +15332,7 @@ snapshots:
       property-information: 7.1.0
       space-separated-tokens: 2.0.2
 
-  hermes-compiler@250829098.0.4: {}
+  hermes-compiler@0.14.1: {}
 
   hermes-estree@0.32.0: {}
 
@@ -17696,7 +17695,7 @@ snapshots:
       commander: 12.1.0
       flow-enums-runtime: 0.0.6
       glob: 7.2.3
-      hermes-compiler: 250829098.0.4
+      hermes-compiler: 0.14.1
       invariant: 2.2.4
       jest-environment-node: 29.7.0
       memoize-one: 5.2.1

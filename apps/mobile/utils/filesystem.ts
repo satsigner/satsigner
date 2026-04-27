@@ -1,6 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker'
 import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
+import { Platform } from 'react-native'
 
 type ShareFileProps = {
   filename: string
@@ -19,6 +20,32 @@ export async function shareFile({
 
   await FileSystem.writeAsStringAsync(fileUri, fileContent)
   await Sharing.shareAsync(fileUri, { dialogTitle, mimeType })
+}
+
+export async function saveFile({
+  filename,
+  fileContent,
+  dialogTitle,
+  mimeType
+}: ShareFileProps) {
+  if (Platform.OS === 'android') {
+    const permissions =
+      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
+    if (permissions.granted && permissions.directoryUri) {
+      const destinationUri =
+        await FileSystem.StorageAccessFramework.createFileAsync(
+          permissions.directoryUri,
+          filename,
+          mimeType
+        )
+      await FileSystem.writeAsStringAsync(destinationUri, fileContent, {
+        encoding: FileSystem.EncodingType.UTF8
+      })
+      return
+    }
+  }
+
+  await shareFile({ dialogTitle, fileContent, filename, mimeType })
 }
 
 export type PickFileProps = {

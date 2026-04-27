@@ -4,7 +4,7 @@ import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
-import { Colors, Typography } from '@/styles'
+import { Colors, Layout, Typography } from '@/styles'
 import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import SSPerformanceWarning from './SSPerformanceWarning'
@@ -109,7 +109,7 @@ function TransactionFormatToolbar(props: TransactionFormatToolbarProps) {
   const encodingDisabled = !props.rawOpen
 
   return (
-    <SSHStack gap="md" style={styles.formatToolbar}>
+    <SSHStack gap="md" style={[styles.formatToolbar, styles.formatToolbarFull]}>
       <SSHStack gap="xs" style={styles.formatChipGroup}>
         <FormatChip
           active={!props.rawOpen && props.decodedLayout === 'list'}
@@ -427,6 +427,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap'
+  },
+  formatToolbarFull: {
+    marginTop: Layout.vStack.gap.md
   },
   hexField: {
     color: Colors.white,

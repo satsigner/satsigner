@@ -65,7 +65,13 @@ function SSPinEntry({
       style={{ flex: 1, width: '100%' }}
     >
       {title ? (
-        <SSText uppercase size="lg" color="muted" center>
+        <SSText
+          uppercase
+          size="lg"
+          color="muted"
+          center
+          style={{ color: gray[300] }}
+        >
           {title}
         </SSText>
       ) : null}
@@ -77,6 +83,7 @@ function SSPinEntry({
           onFillEnded={onFillEnded}
           feedbackText={getWarningText()}
           feedBackColor={getWarningColor()}
+          feedbackBold={triesLeft <= 2 && triesLeft > 0}
         />
       </Animated.View>
     </SSVStack>

@@ -8,6 +8,8 @@ import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 import { trimOnionAddress } from '@/utils/format'
 
+export type ConnectionVerifyStatus = 'checking' | 'connected' | 'failed'
+
 function useVerifyConnection() {
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
@@ -15,8 +17,14 @@ function useVerifyConnection() {
 
   const { server, config } = configs[selectedNetwork]
 
-  const isConnectionAvailable = useRef<boolean | null>(false)
-  const [connectionState, setConnectionState] = useState<boolean>(false)
+  /** `null` until first NetInfo read — avoids showing failed before we know online state */
+  const isConnectionAvailable = useRef<boolean | null>(null)
+  const [connectionStatus, setConnectionStatus] =
+    useState<ConnectionVerifyStatus>('checking')
+
+  useEffect(() => {
+    setConnectionStatus('checking')
+  }, [selectedNetwork, server.url, server.backend])
   const connectionString = useMemo(() => {
     const trimmedUrl = trimOnionAddress(server.url)
     if (config.connectionMode === 'auto') {
@@ -44,8 +52,30 @@ function useVerifyConnection() {
   }, [server.url])
 
   const verifyConnection = useCallback(async () => {
-    if (!isConnectionAvailable.current) {
-      setConnectionState(false)
+    const networkAtStart = selectedNetwork
+    const urlAtStart = server.url
+    const backendAtStart = server.backend
+
+    function isStale() {
+      const s = useBlockchainStore.getState()
+      return (
+        s.selectedNetwork !== networkAtStart ||
+        s.configs[networkAtStart].server.url !== urlAtStart ||
+        s.configs[networkAtStart].server.backend !== backendAtStart
+      )
+    }
+
+    if (isConnectionAvailable.current === null) {
+      if (!isStale()) {
+        setConnectionStatus('checking')
+      }
+      return
+    }
+
+    if (isConnectionAvailable.current === false) {
+      if (!isStale()) {
+        setConnectionStatus('failed')
+      }
       return
     }
 
@@ -59,15 +89,28 @@ function useVerifyConnection() {
             )
           : await Esplora.test(server.url, config.timeout * 1000)
 
-      setConnectionState(result)
+      if (isStale()) {
+        return
+      }
+      setConnectionStatus(result ? 'connected' : 'failed')
     } catch {
-      setConnectionState(false)
+      if (isStale()) {
+        return
+      }
+      setConnectionStatus('failed')
     }
-  }, [server.backend, server.network, config.timeout, server.url])
+  }, [
+    selectedNetwork,
+    server.backend,
+    server.network,
+    config.timeout,
+    server.url
+  ])
 
   const checkConnection = useCallback(async () => {
     const state = await NetInfo.fetch()
-    isConnectionAvailable.current = state.isConnected
+    isConnectionAvailable.current =
+      state.isConnected === null ? null : state.isConnected
   }, [])
 
   useEffect(() => {
@@ -86,18 +129,15 @@ function useVerifyConnection() {
     }, config.connectionTestInterval * 1000)
 
     const unsubscribe = NetInfo.addEventListener((state) => {
-      if (
-        isConnectionAvailable.current !== state.isConnected &&
-        state.isConnected !== null
-      ) {
-        isConnectionAvailable.current = state.isConnected
-        if (state.isConnected) {
-          setTimeout(verifyConnection, 5000)
-        } else {
-          verifyConnection()
-        }
-      } else {
-        isConnectionAvailable.current = state.isConnected
+      const next = state.isConnected === null ? null : state.isConnected
+      if (isConnectionAvailable.current === next) {
+        return
+      }
+      isConnectionAvailable.current = next
+      if (next === true) {
+        setTimeout(verifyConnection, 5000)
+      } else if (next === false) {
+        verifyConnection()
       }
     })
 
@@ -113,11 +153,21 @@ function useVerifyConnection() {
   ])
 
   useEffect(() => {
-    verifyConnection()
-  }, [server.url, verifyConnection])
+    let cancelled = false
+    ;(async () => {
+      await checkConnection()
+      if (cancelled) {
+        return
+      }
+      verifyConnection()
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [server.url, verifyConnection, checkConnection])
 
   return [
-    connectionState,
+    connectionStatus,
     connectionString,
     isPrivateConnection,
     connectionParts

@@ -229,7 +229,7 @@ function SSKeyboardCell({
             }}
           >
             {!isControlKey && (
-              <SSText size="2xl" weight="ultralight">
+              <SSText size="2xl" weight="light">
                 {item}
               </SSText>
             )}
@@ -237,6 +237,7 @@ function SSKeyboardCell({
               <SSIconTrash
                 width={Sizes.text.fontSize['xl']}
                 height={Sizes.text.fontSize['xl']}
+                strokeWidth={1}
               />
             )}
             {item === KEY_DELETE && (

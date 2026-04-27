@@ -24,8 +24,14 @@ export function useNetworkInfo() {
   const [blockHeightSource, setBlockHeightSource] =
     useState<BlockHeightSource>('mempool')
 
+  useEffect(() => {
+    setBlockHeight(null)
+    setBlockHeightSource('mempool')
+  }, [selectedNetwork])
+
   const fetchNetworkInfo = useCallback(async () => {
-    const { server } = configs[selectedNetwork]
+    const networkAtStart = selectedNetwork
+    const { server } = configs[networkAtStart]
     let height: number | null = null
     let source: BlockHeightSource = 'mempool'
 
@@ -45,7 +51,7 @@ export function useNetworkInfo() {
     else if (server.backend === 'electrum' && server.url) {
       let client: ElectrumClient | null = null
       try {
-        client = ElectrumClient.fromUrl(server.url, selectedNetwork)
+        client = ElectrumClient.fromUrl(server.url, networkAtStart)
         await client.init()
         const tip = await (
           client.client as unknown as {
@@ -72,7 +78,7 @@ export function useNetworkInfo() {
     // Always get fee rates and block height (if missing) from mempool.space
     let fee: number | null = null
     try {
-      const mempoolUrl = configsMempool[selectedNetwork]
+      const mempoolUrl = configsMempool[networkAtStart]
       const oracle = new MempoolOracle(mempoolUrl)
       const [mempoolHeight, fees] = await Promise.all([
         height === null
@@ -88,16 +94,18 @@ export function useNetworkInfo() {
         fee = fees.high
       }
     } catch {
-      // keep previous values
+      // Heights from our backend above are still used; fees stay unset this round.
     }
 
-    if (height !== null) {
-      setBlockHeight(height)
+    if (useBlockchainStore.getState().selectedNetwork !== networkAtStart) {
+      return
     }
+
+    setBlockHeight(height)
     if (fee !== null) {
       setNextBlockFee(Math.round(fee))
     }
-    setBlockHeightSource(source)
+    setBlockHeightSource(height !== null ? source : 'mempool')
   }, [selectedNetwork, configsMempool, configs, setNextBlockFee])
 
   useEffect(() => {
