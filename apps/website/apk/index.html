@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Download SatSigner APK</title>
+    <meta name="description" content="Download the latest SatSigner Android APK">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="../favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../favicon_io/favicon-16x16.png">
+
+    <script>
+      // Bump this to change which APK users download.
+      var SATSIGNER_APK_VERSION = "0.3.0";
+      var apkUrl = "https://github.com/satsigner/satsigner/releases/download/v"
+        + SATSIGNER_APK_VERSION
+        + "/satsigner-" + SATSIGNER_APK_VERSION + ".apk";
+      window.location.replace(apkUrl);
+    </script>
+    <noscript>
+      <meta http-equiv="refresh" content="0; url=https://github.com/satsigner/satsigner/releases/latest">
+    </noscript>
+    <style>
+      body { font-family: system-ui, sans-serif; background:#000; color:#fff; text-align:center; padding:4rem 1rem; }
+      a { color:#f7931a; }
+    </style>
+  </head>
+  <body>
+    <h1>Downloading SatSigner APK…</h1>
+    <p>If the download does not start, <a id="dl" href="https://github.com/satsigner/satsigner/releases/latest">click here</a>.</p>
+    <script>
+      document.getElementById("dl").href = apkUrl;
+    </script>
+  </body>
+</html>
