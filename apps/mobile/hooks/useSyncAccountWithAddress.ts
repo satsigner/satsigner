@@ -523,11 +523,8 @@ function useSyncAccountWithAddress() {
     try {
       electrumClient.close()
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Failed to close Electrum client'
-      )
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${'Failed to close Electrum client'}: ${reason}`)
     }
 
     return {

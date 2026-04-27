@@ -7,7 +7,9 @@ description: Complete list of SatSigner mobile app dependencies.
 
 | Dependency                       | Used for                                                             |
 | -------------------------------- | -------------------------------------------------------------------- |
+| @babel/runtime                   | Babel runtime helpers required at runtime by compiled modules        |
 | @bitcoinerlab/secp256k1          | ECC library (used with bitcoinjs-lib to decode transactions)         |
+| @cashu/cashu-ts                  | Cashu TypeScript library for ecash tokens                            |
 | @gandlaf21/bolt11-decode         | Decode Lightning Network BOLT11 invoices                             |
 | @gorhom/bottom-sheet             | A performant interactive bottom sheet                                |
 | @miblanchard/react-native-slider | Slider                                                               |
@@ -16,11 +18,12 @@ description: Complete list of SatSigner mobile app dependencies.
 | @react-native-community/netinfo  | Network Information                                                  |
 | @react-navigation/drawer         | Drawer                                                               |
 | @scure/base                      | Bech32, base64, base32, base16 & base58 implementations              |
+| @secondts/bark-react-native      | Ark protocol client (bark) for React Native                          |
 | @shopify/flash-list              | Fast & Performant React Native List                                  |
 | @shopify/react-native-skia       | Utxo Bubbles                                                         |
 | @tanstack/react-query            | Powerful asynchronous state management                               |
 | assert                           | Assert nodejs core module (required by varuint and/or bitcoinjs)     |
-| bdk-rn                           | Bitcoin Development Kit for React Native                             |
+| bech32                           | Bech32 and bech32m encoding/decoding                                 |
 | bip-321                          | Bitcoin URI parsing and encoding (BIP-321)                           |
 | bip32                            | BIP32 hierarchical deterministic wallets utils                       |
 | bip39                            | BIP39 Word List & mnemonic utils                                     |
@@ -32,40 +35,46 @@ description: Complete list of SatSigner mobile app dependencies.
 | electrum-client                  | Electrum client (keep untill BDK adds support to addr descriptors)   |
 | events                           | Events nodejs core module (required by electrum-client)              |
 | expo                             | Framework to develop Android and iOS apps easier                     |
+| expo-build-properties            | Configure native build properties at prebuild                        |
 | expo-camera                      | Render preview for the device's front or back camera                 |
 | expo-clipboard                   | Interface for getting and settings Clipboard content                 |
 | expo-constants                   | Required by expo-router                                              |
 | expo-dev-client                  | Useful development tools                                             |
 | expo-document-picker             | Pick files                                                           |
 | expo-font                        | Load SF Pro Text                                                     |
+| expo-haptics                     | Haptic feedback                                                      |
 | expo-image                       | Load images (includes svgs)                                          |
 | expo-linear-gradient             | Use LinearGradient                                                   |
 | expo-linking                     | Required by expo-router                                              |
 | expo-localization                | Localization                                                         |
 | expo-navigation-bar              | Work with navigation bar                                             |
+| expo-print                       | Print and generate PDFs                                              |
 | expo-router                      | Navigation                                                           |
 | expo-secure-store                | Store and read data in SharedPreferences (android) or Keychain (iOS) |
-| expo-share                       | Share files to other applications                                    |
+| expo-sharing                     | Share files to other applications                                    |
 | expo-status-bar                  | Work with status bar                                                 |
 | expo-system-ui                   | To set backgroundColor                                               |
 | expo-web-browser                 | Open web links                                                       |
 | i18n-js                          | Localization strings                                                 |
+| immer                            | Immutable state updates via drafts                                   |
 | nostr-tools                      | Low-level Nost clienttools (i.e, key generation, event handling)     |
 | pako                             | Offers fast zlib compression and decompression                       |
 | process                          | Implementation of process core module                                |
 | react                            | React                                                                |
 | react-native                     | React Native                                                         |
-| react-native-aes-crypto          | AES encryption/decryption for react-native                           |
+| react-native-bdk-sdk             | Bitcoin Development Kit for React Native                             |
 | react-native-bouncy-checkbox     | Checkbox                                                             |
-| react-native-draggable-flatlist  | List with drag-and-drop functionality for reordering items           |
 | react-native-device-info         | Get app version and other versioning information                     |
-| react-native-fs                  | File system operations                                               |
+| react-native-draggable-flatlist  | List with drag-and-drop functionality for reordering items           |
 | react-native-gesture-handler     | Handle gestures (Utxo Bubbles)                                       |
-| react-native-keyevent            | Handle key events from physical keyboards                            |
+| react-native-get-random-values   | Secure random polyfill for React Native                              |
 | react-native-mmkv                | Fast storage solution                                                |
 | react-native-nfc-manager         | Near Field Communitcation NFC                                        |
+| react-native-nitro-modules       | Runtime for Nitro native modules                                     |
+| react-native-nitro-sqlite        | Fast SQLite via Nitro modules                                        |
 | react-native-pager-view          | Tabs                                                                 |
 | react-native-qrcode-svg          | QR Code generator                                                    |
+| react-native-quick-crypto        | Fast native crypto module                                            |
 | react-native-reanimated          | Animations                                                           |
 | react-native-safe-area-context   | Required by expo-router                                              |
 | react-native-screens             | Required by expo-router                                              |
@@ -73,8 +82,9 @@ description: Complete list of SatSigner mobile app dependencies.
 | react-native-tab-view            | Tabs                                                                 |
 | react-native-tcp-socket          | TCP & TLS nodejs core modules (Required by electrum-client)          |
 | react-native-uuid                | Generate uuids                                                       |
+| react-native-view-shot           | Capture a view as an image                                           |
+| react-native-worklets            | Worklets runtime used by Reanimated                                  |
 | react-timeago                    | Help us to display timeago                                           |
-| rn-nodeify (devDependency)       | Allow React Native projects to use nodejs core modules               |
 | sonner-native                    | Toaster for notifications                                            |
 | varuint-bitcoin                  | Deal with variable unsigned integers used in raw transactions        |
 | victory-native                   | Chart                                                                |

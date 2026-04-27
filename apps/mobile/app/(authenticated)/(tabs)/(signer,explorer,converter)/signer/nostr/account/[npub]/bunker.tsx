@@ -35,9 +35,8 @@ export default function NostrBunker() {
     state.identities.find((i) => i.npub === npub)
   )
 
-  const sessions = useNip46Store((s) =>
-    s.sessions.filter((session) => session.signerNpub === npub)
-  )
+  const allSessions = useNip46Store((s) => s.sessions)
+  const sessions = allSessions.filter((session) => session.signerNpub === npub)
   const pendingRequests = useNip46Store((s) => s.pendingRequests)
   const removeSession = useNip46Store((s) => s.removeSession)
 

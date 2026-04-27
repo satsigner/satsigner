@@ -1,7 +1,8 @@
-import { current, enableMapSet, produce } from 'immer'
+import { current, type Draft, enableMapSet } from 'immer'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { immer } from 'zustand/middleware/immer'
 
 import mmkvStorage from '@/storage/mmkv'
 import { type Output } from '@/types/models/Output'
@@ -62,7 +63,7 @@ type TransactionBuilderAction = {
   setBroadcasted: (broadcasted: boolean) => void
 }
 
-function syncDraft(state: TransactionBuilderState) {
+function syncDraft(state: Draft<TransactionBuilderState>) {
   if (!state.accountId) {
     return
   }
@@ -81,23 +82,19 @@ const useTransactionBuilderStore = create<
   TransactionBuilderState & TransactionBuilderAction
 >()(
   persist(
-    (set, get) => ({
+    immer((set, get) => ({
       accountId: undefined,
       addInput: (utxo) => {
-        set(
-          produce((state: TransactionBuilderState) => {
-            state.inputs.set(getUtxoOutpoint(utxo), utxo)
-            syncDraft(state)
-          })
-        )
+        set((state) => {
+          state.inputs.set(getUtxoOutpoint(utxo), utxo)
+          syncDraft(state)
+        })
       },
       addOutput: (output) => {
-        set(
-          produce((state: TransactionBuilderState) => {
-            state.outputs.push({ localId: randomUuid(), ...output })
-            syncDraft(state)
-          })
-        )
+        set((state) => {
+          state.outputs.push({ localId: randomUuid(), ...output })
+          syncDraft(state)
+        })
       },
       broadcasted: false,
       clearPsbt: () => {
@@ -135,25 +132,21 @@ const useTransactionBuilderStore = create<
       outputs: [],
       rbf: true,
       removeInput: (utxo) => {
-        set(
-          produce((state: TransactionBuilderState) => {
-            state.inputs.delete(getUtxoOutpoint(utxo))
-            syncDraft(state)
-          })
-        )
+        set((state) => {
+          state.inputs.delete(getUtxoOutpoint(utxo))
+          syncDraft(state)
+        })
       },
       removeOutput: (localId) => {
-        set(
-          produce((state: TransactionBuilderState) => {
-            const index = state.outputs.findIndex(
-              (output) => output.localId === localId
-            )
-            if (index !== -1) {
-              state.outputs.splice(index, 1)
-            }
-            syncDraft(state)
-          })
-        )
+        set((state) => {
+          const index = state.outputs.findIndex(
+            (output) => output.localId === localId
+          )
+          if (index !== -1) {
+            state.outputs.splice(index, 1)
+          }
+          syncDraft(state)
+        })
       },
       setAccountId: (accountId) => {
         const {
@@ -209,31 +202,25 @@ const useTransactionBuilderStore = create<
         set({ broadcasted })
       },
       setFee: (fee) => {
-        set(
-          produce((state: TransactionBuilderState) => {
-            state.fee = fee
-            syncDraft(state)
-          })
-        )
+        set((state) => {
+          state.fee = fee
+          syncDraft(state)
+        })
       },
       setFeeRate: (feeRate) => {
-        set(
-          produce((state: TransactionBuilderState) => {
-            state.feeRate = feeRate
-            syncDraft(state)
-          })
-        )
+        set((state) => {
+          state.feeRate = feeRate
+          syncDraft(state)
+        })
       },
       setPsbt: (psbt) => {
         set({ psbt })
       },
       setRbf: (rbf) => {
-        set(
-          produce((state: TransactionBuilderState) => {
-            state.rbf = rbf
-            syncDraft(state)
-          })
-        )
+        set((state) => {
+          state.rbf = rbf
+          syncDraft(state)
+        })
       },
       setSignedPsbts: (signedPsbts) => {
         set({ signedPsbts })
@@ -244,19 +231,17 @@ const useTransactionBuilderStore = create<
       signedPsbts: new Map<number, string>(),
       timeLock: 0,
       updateOutput: (localId, output) => {
-        set(
-          produce((state: TransactionBuilderState) => {
-            const index = state.outputs.findIndex(
-              (output) => output.localId === localId
-            )
-            if (index !== -1) {
-              state.outputs[index] = { localId, ...output }
-            }
-            syncDraft(state)
-          })
-        )
+        set((state) => {
+          const index = state.outputs.findIndex(
+            (output) => output.localId === localId
+          )
+          if (index !== -1) {
+            state.outputs[index] = { localId, ...output }
+          }
+          syncDraft(state)
+        })
       }
-    }),
+    })),
     {
       name: 'satsigner-transaction-builder',
       onRehydrateStorage: () => (state) => {

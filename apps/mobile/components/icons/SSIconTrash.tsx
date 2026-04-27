@@ -1,16 +1,21 @@
 import Svg, { Path, type SvgProps } from 'react-native-svg'
 
-type IconProps = Pick<SvgProps, 'width' | 'height'>
+type IconProps = Pick<SvgProps, 'width' | 'height' | 'stroke' | 'strokeWidth'>
 
-export default function SSIconTrash({ width, height }: IconProps) {
+export default function SSIconTrash({
+  width,
+  height,
+  stroke = 'gray',
+  strokeWidth = 2
+}: IconProps) {
   return (
     <Svg
       width={width}
       height={height}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="gray"
-      strokeWidth={2}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
     >
       <Path d="M10 11v6" />
       <Path d="M14 11v6" />

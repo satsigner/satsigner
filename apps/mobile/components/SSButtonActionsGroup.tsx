@@ -9,6 +9,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
+import { type ContentContext } from '@/utils/contentDetector'
 
 type SSButtonActionsGroupProps = {
   onSend: () => void
@@ -16,7 +17,7 @@ type SSButtonActionsGroupProps = {
   onCamera: () => void
   onNFC: () => void
   onReceive: () => void
-  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
+  context: ContentContext
   nfcAvailable?: boolean
 }
 

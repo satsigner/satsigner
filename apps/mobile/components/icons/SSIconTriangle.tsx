@@ -2,14 +2,15 @@ import Svg, { Path, type SvgProps } from 'react-native-svg'
 
 import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
 
-type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'> &
+type IconProps = Pick<SvgProps, 'width' | 'height' | 'color' | 'strokeWidth'> &
   NavMenuItemIconProps
 
 export default function SSIconTriangle({
   width = 18,
   height = 20,
   color = 'white',
-  focused = false
+  focused = false,
+  strokeWidth = 1.35
 }: IconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 18 20" fill="none">
@@ -19,7 +20,7 @@ export default function SSIconTriangle({
         stroke={focused ? 'none' : color}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth={1.35}
+        strokeWidth={strokeWidth}
       />
     </Svg>
   )

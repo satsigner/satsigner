@@ -198,9 +198,8 @@ export default function EcashProofDetailPage() {
       await emitNFCTag(token)
       toast.success(t('ecash.proofDetail.tokenCreated'))
     } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message)
-      }
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`Failed to emit NFC: ${reason}`)
     } finally {
       setNfcModalVisible(false)
     }

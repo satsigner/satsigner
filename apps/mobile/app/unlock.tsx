@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSPinEntry from '@/components/SSPinEntry'
 import { DURESS_PIN_KEY, PIN_KEY, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import { t } from '@/locales'
 import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
@@ -120,10 +121,15 @@ export default function Unlock() {
       backgroundColor={Colors.gray[950]}
       style={{
         paddingBottom: Layout.mainContainer.paddingBottom,
-        paddingTop: '25%'
+        paddingTop: '40%'
       }}
     >
-      <SSPinEntry pin={pin} setPin={setPin} onFillEnded={handleOnFillEnded} />
+      <SSPinEntry
+        pin={pin}
+        setPin={setPin}
+        onFillEnded={handleOnFillEnded}
+        title={t('auth.enterPinTitle')}
+      />
     </SSMainLayout>
   )
 }

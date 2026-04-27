@@ -21,7 +21,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { getAccountFingerprint } from '@/utils/account'
@@ -33,30 +32,24 @@ function AddressDetails() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
   const [script, setScript] = useState('')
 
-  const [account, address] = useAccountsStore((state) => [
-    state.accounts.find((account) => account.id === accountId),
-    state.accounts
-      .find((account) => account.id === accountId)
-      ?.addresses.find((address) => address.address === addr)
-  ])
-
-  const transactions = useAccountsStore((state) =>
-    state.accounts
-      .find((account: Account) => account.id === accountId)
-      ?.transactions.filter((tx) => address?.transactions.includes(tx.id))
+  const [account, address] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((account) => account.id === accountId),
+      state.accounts
+        .find((account) => account.id === accountId)
+        ?.addresses.find((address) => address.address === addr)
+    ])
   )
 
-  const addressUtxos = useAccountsStore((state) =>
-    state.accounts
-      .find((account: Account) => account.id === accountId)
-      ?.utxos.filter((utxo) => address?.utxos.includes(getUtxoOutpoint(utxo)))
+  const transactions = account?.transactions.filter((tx) =>
+    address?.transactions.includes(tx.id)
   )
 
-  const allAccountUtxos = useAccountsStore(
-    (state) =>
-      state.accounts.find((account: Account) => account.id === accountId)
-        ?.utxos || []
+  const addressUtxos = account?.utxos.filter((utxo) =>
+    address?.utxos.includes(getUtxoOutpoint(utxo))
   )
+
+  const allAccountUtxos = account?.utxos || []
 
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 

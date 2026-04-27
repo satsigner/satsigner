@@ -1,6 +1,6 @@
-import { produce } from 'immer'
 import { type BdkWallet } from 'react-native-bdk-sdk'
 import { create } from 'zustand'
+import { immer } from 'zustand/middleware/immer'
 
 import { type Account } from '@/types/models/Account'
 
@@ -17,29 +17,25 @@ type WalletsAction = {
   addAccountAddress: (accountId: Account['id'], address: string) => void
 }
 
-const useWalletsStore = create<WalletsState & WalletsAction>((set) => ({
-  addAccountAddress: (accountId, address) =>
-    set(
-      produce((state) => {
+const useWalletsStore = create<WalletsState & WalletsAction>()(
+  immer((set) => ({
+    addAccountAddress: (accountId, address) =>
+      set((state) => {
         state.addresses[accountId] = address
-      })
-    ),
-  addAccountWallet: (accountId, wallet) =>
-    set(
-      produce((state) => {
+      }),
+    addAccountWallet: (accountId, wallet) =>
+      set((state) => {
         state.wallets[accountId] = wallet
-      })
-    ),
-  addresses: {},
-  deleteWallets: () => set({ addresses: {}, wallets: {} }),
-  removeAccountWallet: (accountId) =>
-    set(
-      produce((state) => {
+      }),
+    addresses: {},
+    deleteWallets: () => set({ addresses: {}, wallets: {} }),
+    removeAccountWallet: (accountId) =>
+      set((state) => {
         delete state.wallets[accountId]
         delete state.addresses[accountId]
-      })
-    ),
-  wallets: {}
-}))
+      }),
+    wallets: {}
+  }))
+)
 
 export { useWalletsStore }

@@ -1,6 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
-import { StyleSheet, TextInput, useWindowDimensions, View } from 'react-native'
+import {
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+  useEffect,
+  useState
+} from 'react'
+import { StyleSheet, TextInput, View } from 'react-native'
 
 import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
@@ -118,19 +124,25 @@ function getPinFieldLight(
 
 type SSPinInputProps = {
   autoFocus?: boolean
+  feedback?: ReactNode
   feedBackColor?: string
+  feedbackBold?: boolean
   feedbackText?: string
   onFillEnded?: (pin: string) => void
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
+  withClear?: boolean
 }
 
 function SSPinInput({
   pin,
   setPin,
   onFillEnded,
+  feedback,
   feedbackText,
-  feedBackColor = Colors.gray[300]
+  feedBackColor = Colors.gray[300],
+  feedbackBold = false,
+  withClear = true
 }: SSPinInputProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -172,10 +184,8 @@ function SSPinInput({
     setCurrentIndex((currentValue) => currentValue + 1)
   }
 
-  const { height } = useWindowDimensions()
-
   return (
-    <SSVStack itemsCenter gap="none">
+    <SSVStack itemsCenter gap="none" justifyBetween>
       <SSVStack gap="none" itemsCenter widthFull>
         <SSHStack gap="sm">
           {Array.from({ length: PIN_SIZE }).map((_, index) => {
@@ -226,26 +236,35 @@ function SSPinInput({
         </SSHStack>
         {feedbackText !== undefined ? (
           <View style={styles.feedbackSlot}>
-            {feedbackText ? (
-              <SSText
-                uppercase
-                center
-                size="sm"
-                style={[styles.feedbackText, { color: feedBackColor }]}
-              >
-                {feedbackText}
-              </SSText>
-            ) : null}
+            {feedbackText
+              ? feedbackText.split('\n').map((line, i) => (
+                  <SSText
+                    key={i}
+                    uppercase
+                    center
+                    size="sm"
+                    weight={feedbackBold && i === 0 ? 'bold' : 'regular'}
+                    style={[
+                      styles.feedbackText,
+                      { color: feedBackColor, lineHeight: 16 }
+                    ]}
+                  >
+                    {line}
+                  </SSText>
+                ))
+              : null}
           </View>
         ) : null}
       </SSVStack>
-      <View style={{ marginTop: height * 0.18 + 8 }}>
+      <SSVStack gap="md" itemsCenter widthFull>
+        {feedback}
         <SSKeyboard
           onPress={handlePress}
           onClear={handleClear}
           onDelete={handleDelete}
+          withClear={withClear}
         />
-      </View>
+      </SSVStack>
     </SSVStack>
   )
 }
@@ -256,7 +275,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     justifyContent: 'flex-start',
     minHeight: PIN_FEEDBACK_SLOT_MIN_HEIGHT,
-    paddingTop: 12,
+    paddingTop: 30,
     width: '100%'
   },
   feedbackText: {

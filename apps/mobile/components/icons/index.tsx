@@ -24,6 +24,7 @@ import SSIconCollapse from './SSIconCollapse'
 import SSIconConverter from './SSIconConverter'
 import SSIconConverterActive from './SSIconConverterActive'
 import SSIconCurrency from './SSIconCurrency'
+import SSIconDelete from './SSIconDelete'
 import SSIconDev from './SSIconDev'
 import SSIconDiceFive from './SSIconDiceFive'
 import SSIconDiceFour from './SSIconDiceFour'
@@ -46,6 +47,7 @@ import SSIconFiat from './SSIconFiat'
 import SSIconGreen from './SSIconGreen'
 import SSIconGreenIndicator from './SSIconGreenIndicator'
 import SSIconGreenNoSecret from './SSIconGreenNoSecret'
+import SSIconGreyIndicator from './SSIconGreyIndicator'
 import SSIconHalving from './SSIconHalving'
 import SSIconHamburger from './SSIconHamburger'
 import SSIconHideWarning from './SSIconHideWarning'
@@ -63,8 +65,10 @@ import SSIconLock from './SSIconLock'
 import SSIconMempool from './SSIconMempool'
 import SSIconMenu from './SSIconMenu'
 import SSIconMultiSignature from './SSIconMultiSignature'
+import SSIconMutedRedIndicator from './SSIconMutedRedIndicator'
 import SSIconNetwork from './SSIconNetwork'
 import SSIconNostr from './SSIconNostr'
+import SSIconOffboardCircle from './SSIconOffboardCircle'
 import SSIconOutgoing from './SSIconOutgoing'
 import SSIconOutgoingLightning from './SSIconOutgoingLightning'
 import SSIconPasteClipboard from './SSIconPasteClipboard'
@@ -120,6 +124,7 @@ export {
   SSIconConverter,
   SSIconConverterActive,
   SSIconCurrency,
+  SSIconDelete,
   SSIconDev,
   SSIconDiceFive,
   SSIconDiceFour,
@@ -142,6 +147,7 @@ export {
   SSIconGreen,
   SSIconGreenIndicator,
   SSIconGreenNoSecret,
+  SSIconGreyIndicator,
   SSIconHalving,
   SSIconHamburger,
   SSIconHideWarning,
@@ -158,9 +164,11 @@ export {
   SSIconLock,
   SSIconMempool,
   SSIconMenu,
+  SSIconMutedRedIndicator,
   SSIconMultiSignature,
   SSIconNetwork,
   SSIconNostr,
+  SSIconOffboardCircle,
   SSIconOutgoing,
   SSIconOutgoingLightning,
   SSIconPasteClipboard,

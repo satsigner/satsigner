@@ -1,5 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSLabelInput from '@/components/SSLabelInput'
@@ -18,12 +19,14 @@ function AddressLabel() {
 
   const { sendLabelsToNostr } = useNostrSync()
 
-  const [address, setAddrLabel] = useAccountsStore((state) => [
-    state.accounts
-      .find((account: Account) => account.id === accountId)
-      ?.addresses.find((address: Address) => address.address === addr),
-    state.setAddrLabel
-  ])
+  const [address, setAddrLabel] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts
+        .find((account: Account) => account.id === accountId)
+        ?.addresses.find((address: Address) => address.address === addr),
+      state.setAddrLabel
+    ])
+  )
 
   function updateLabel(label: string) {
     const updatedAccount = setAddrLabel(accountId!, addr!, label)

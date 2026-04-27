@@ -16,6 +16,7 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
+  type ContentContext,
   detectContentByContext,
   type DetectedContent
 } from '@/utils/contentDetector'
@@ -31,7 +32,7 @@ type SSCameraModalProps = {
   visible: boolean
   onClose: () => void
   onContentScanned: (content: DetectedContent) => void
-  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
+  context: ContentContext
   title?: string
 }
 

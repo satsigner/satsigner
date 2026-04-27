@@ -17,6 +17,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { useBarkAccessTokenDeepLink } from '@/hooks/useBarkAccessTokenDeepLink'
 import { queryClient } from '@/lib/queryClient'
 import {
   getLastBackgroundTimestamp,
@@ -35,6 +36,11 @@ const appTheme = {
     ...DarkTheme.colors,
     background: Colors.gray[950]
   }
+}
+
+function BarkAccessTokenDeepLinkBridge() {
+  useBarkAccessTokenDeepLink()
+  return null
 }
 
 export default function RootLayout() {
@@ -113,7 +119,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView>
+        <BarkAccessTokenDeepLinkBridge />
+        <GestureHandlerRootView style={styles.root}>
+          <ThemeProvider value={appTheme}>
+            <View style={styles.container}>
+              <Slot />
+            </View>
+          </ThemeProvider>
           {privacyScreenVisible && <View style={styles.privacyScreen} />}
           <Toaster
             theme="dark"
@@ -126,11 +138,6 @@ export default function RootLayout() {
               zIndex: 999999
             }}
           />
-          <ThemeProvider value={appTheme}>
-            <View style={styles.container}>
-              <Slot />
-            </View>
-          </ThemeProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </SafeAreaProvider>
@@ -147,5 +154,8 @@ const styles = StyleSheet.create({
     inset: 0,
     position: 'absolute',
     zIndex: 999
+  },
+  root: {
+    flex: 1
   }
 })

@@ -31,7 +31,9 @@ function SSUtxoItem({
   onToggleSelected,
   addressIndex
 }: SSUtxoItemProps) {
-  const priceStore = usePriceStore()
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((s) => [s.fiatCurrency, s.satsToFiat])
+  )
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
@@ -77,9 +79,9 @@ function SSUtxoItem({
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText color="white">
-                  {formatNumber(priceStore.satsToFiat(utxo.value), 2)}
+                  {formatNumber(satsToFiat(utxo.value), 2)}
                 </SSText>
-                <SSText color="muted">{priceStore.fiatCurrency}</SSText>
+                <SSText color="muted">{fiatCurrency}</SSText>
               </SSHStack>
               <SSText>{label}</SSText>
             </SSVStack>

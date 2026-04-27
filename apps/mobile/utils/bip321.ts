@@ -3,6 +3,7 @@ import {
   encodeBIP321,
   type Network as Bip321Network,
   parseBIP321,
+  validateArkAddress,
   validateBitcoinAddress,
   validateBolt12Offer,
   validateLightningInvoice
@@ -52,6 +53,15 @@ type Bolt12ValidationResult = {
   isValid: boolean
   error?: string
 }
+
+type ArkAddressValidationResult = {
+  isValid: boolean
+  network?: AppNetwork
+  error?: string
+}
+
+const LIGHTNING_ADDRESS_REGEX =
+  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
 function bip321NetworkToAppNetwork(
   network: Bip321Network | undefined
@@ -256,4 +266,23 @@ export function validateBolt12(offer: string): Bolt12ValidationResult {
     error: result.error,
     isValid: result.valid
   }
+}
+
+export function validateArkAddressWithNetwork(
+  address: string
+): ArkAddressValidationResult {
+  const result = validateArkAddress(address)
+  return {
+    error: result.error,
+    isValid: result.valid,
+    network: bip321NetworkToAppNetwork(result.network)
+  }
+}
+
+export function isArkAddress(address: string): boolean {
+  return validateArkAddressWithNetwork(address.trim()).isValid
+}
+
+export function isLightningAddress(input: string): boolean {
+  return LIGHTNING_ADDRESS_REGEX.test(input.trim())
 }
