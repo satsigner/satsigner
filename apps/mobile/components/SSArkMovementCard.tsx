@@ -80,6 +80,7 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
   const showFee = fee > 0
   const showFiat = btcPrice > 0 && kind !== 'refresh' && amountSats > 0
   const muteAmountColor = kind === 'refresh' || isStale
+  const showRefreshLabel = kind === 'refresh' && amountSats === 0 && !privacyMode
 
   const priceDisplay =
     showFiat && !privacyMode
@@ -107,7 +108,7 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
                 >
                   ••••
                 </SSText>
-              ) : kind === 'refresh' && amountSats === 0 ? (
+              ) : showRefreshLabel ? (
                 <SSText size="xl" weight="light" color="muted">
                   {t('ark.movement.refreshLabel')}
                 </SSText>
@@ -124,9 +125,13 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
                   letterSpacing={-0.5}
                 />
               )}
-              <SSText color="muted" size="sm" style={styles.unit}>
-                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-              </SSText>
+              {!showRefreshLabel && (
+                <SSText color="muted" size="sm" style={styles.unit}>
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
+                </SSText>
+              )}
             </SSHStack>
           </SSHStack>
           {priceDisplay !== '' && (
