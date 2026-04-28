@@ -18,13 +18,15 @@ import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 
 type SSPinAuthProps = {
-  title?: string
-  onFail: () => void
+  onFail?: () => void
   onSuccess: () => void
+  onTriesOver?: () => void
+  maxTries?: number
   resetPin?: boolean
+  title?: string
 } & Pick<SSPinInputProps, 'feedbackBold' | 'feedbackColor' | 'feedbackText'>
 
-function SSPinAuth({ title, onFail, onSuccess, resetPin, ...props }: SSPinAuthProps) {
+function SSPinAuth({ title, onFail, onSuccess, onTriesOver, maxTries, resetPin, ...props }: SSPinAuthProps) {
   const [duressPinEnabled, setDuressPinEnabled] = useAuthStore(
     useShallow((state) => [state.duressPinEnabled, state.setDuressPinEnabled])
   )
@@ -36,11 +38,13 @@ function SSPinAuth({ title, onFail, onSuccess, resetPin, ...props }: SSPinAuthPr
   )
   const deleteWallets = useWalletsStore(state => state.deleteWallets)
   const [pin, setPin] = useState<string[]>(emptyPin())
+  const [tries, setTries] = useState(0)
   const { shakeStyle } = useAnimatedShake()
 
   useEffect(() => {
     if (resetPin === true) {
       setPin(emptyPin())
+      setTries(0)
     }
   }, [resetPin])
 
@@ -73,10 +77,20 @@ function SSPinAuth({ title, onFail, onSuccess, resetPin, ...props }: SSPinAuthPr
     }
 
     // Upon failure, the pin reset is already done here
-    // The fail callback could be show a warning, dismiss a modal, etc...
     if (hashedInput !== hashedPin) {
       setPin(emptyPin())
-      onFail()
+
+      // max tries logic
+      const newTries = tries + 1
+      setTries(newTries)
+      if (maxTries && newTries >= maxTries && onTriesOver) {
+        onTriesOver()
+      }
+
+      // The fail callback could be show a warning, dismiss a modal, etc...
+      if (onFail) {
+        onFail()
+      }
       return
     }
     

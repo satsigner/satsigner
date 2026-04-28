@@ -111,8 +111,8 @@ export default function AccountSettings() {
     setMnemonicModalVisible(true)
   }
 
-  function handleFailPin() {
-    // setShowPinEntry(false)
+  function handlePinTriesOver() {
+    setShowPinEntry(false)
   }  
 
   function saveChanges() {
@@ -577,7 +577,8 @@ export default function AccountSettings() {
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleSuccessPin}
-          onFail={handleFailPin}
+          onTriesOver={handlePinTriesOver}
+          maxTries={3}
         />
       </SSModal>
     </ScrollView>

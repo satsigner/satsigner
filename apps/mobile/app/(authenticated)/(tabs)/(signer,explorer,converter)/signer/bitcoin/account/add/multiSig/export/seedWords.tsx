@@ -95,8 +95,8 @@ export default function SeedWordsPage() {
     setShowPinEntry(false)
   }
 
-  function handleFailPin() {
-    // setShowPinEntry(false)
+  function handlePinTriesOver() {
+    router.back()
   }  
 
   useEffect(() => {
@@ -267,7 +267,8 @@ export default function SeedWordsPage() {
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleSuccessPin}
-          onFail={handleFailPin}
+          onTriesOver={handlePinTriesOver}
+          maxTries={3}
         />
       </SSModal>
       <SSSeedQR

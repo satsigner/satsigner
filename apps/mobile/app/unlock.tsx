@@ -85,10 +85,10 @@ export default function Unlock() {
   }
 
   function handleFailure() {
-    const triesLeft = incrementPinTries()
-    if (triesLeft > 0) {
-      return
-    }
+    incrementPinTries()
+  }
+
+  function handleTriesOver() {
     deleteAccounts()
     deleteWallets()
     deleteTags()
@@ -110,6 +110,8 @@ export default function Unlock() {
       <SSPinAuth
         onSuccess={handleSuccess}
         onFail={handleFailure}
+        maxTries={pinMaxTries}
+        onTriesOver={handleTriesOver}
         title={t('auth.enterPinTitle')}
         feedbackText={getWarningText()}
         feedbackColor={getWarningColor()}
