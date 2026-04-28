@@ -23,8 +23,7 @@ export default function LNDRestPage() {
   const [isConnecting, setIsConnecting] = useState(false)
 
   const validateConnectionString = (text: string): boolean => {
-    const pattern = /^config=.*\.config$/
-    return pattern.test(text.trim())
+    return /^config=.*\.config$/i.test(text.trim())
   }
 
   const fetchLNDConfig = async (configUrl: string): Promise<LNDConfig> => {
@@ -67,8 +66,10 @@ export default function LNDRestPage() {
 
     setIsConnecting(true)
     try {
-      // Extract config URL from connection string
-      const configUrl = connectionString.replace('config=', '').trim()
+      const configUrl = connectionString
+        .trim()
+        .replace(/^config=/i, '')
+        .trim()
 
       // Fetch and parse LND config
       const config = await fetchLNDConfig(configUrl)

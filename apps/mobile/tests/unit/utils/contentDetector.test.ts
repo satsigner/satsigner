@@ -280,6 +280,25 @@ describe('contentDetector', () => {
       })
     })
 
+    describe('LND REST API config connection string', () => {
+      it('should detect config= URL ending in .config', async () => {
+        const payload =
+          'config=https://node.example/lnd-config/67396729165820868379/lnd.config'
+        const result = await detectContentByContext(payload, 'lightning')
+        expect(result.type).toBe('lnd_rest_config')
+        expect(result.isValid).toBe(true)
+        expect(result.cleaned).toBe(payload)
+      })
+
+      it('should accept CONFIG= prefix case-insensitively', async () => {
+        const payload =
+          'CONFIG=https://node.example/lnd-config/67396729165820868379/lnd.config'
+        const result = await detectContentByContext(payload, 'lightning')
+        expect(result.type).toBe('lnd_rest_config')
+        expect(result.isValid).toBe(true)
+      })
+    })
+
     describe('incompatible content in Lightning context', () => {
       it('should mark Bitcoin address as incompatible', async () => {
         const result = await detectContentByContext(
@@ -463,6 +482,12 @@ describe('contentDetector', () => {
         expect(isContentTypeSupportedInContext('lnurl', 'lightning')).toBe(true)
       })
 
+      it('should support lnd_rest_config', () => {
+        expect(
+          isContentTypeSupportedInContext('lnd_rest_config', 'lightning')
+        ).toBe(true)
+      })
+
       it('should not support bitcoin_address', () => {
         expect(
           isContentTypeSupportedInContext('bitcoin_address', 'lightning')
@@ -520,6 +545,12 @@ describe('contentDetector', () => {
 
     it('should return correct description for lnurl', () => {
       expect(getContentTypeDescription('lnurl')).toBe('LNURL Payment Request')
+    })
+
+    it('should return correct description for lnd_rest_config', () => {
+      expect(getContentTypeDescription('lnd_rest_config')).toBe(
+        'LND REST API Config'
+      )
     })
 
     it('should return correct description for unknown', () => {

@@ -41,6 +41,7 @@ export type ContentType =
   | 'lightning_invoice'
   | 'lightning_address'
   | 'lnurl'
+  | 'lnd_rest_config'
   | 'ark_address'
   | 'ecash_token'
   | 'bbqr_fragment'
@@ -202,6 +203,21 @@ function detectArkContent(data: string): DetectedContent | null {
     },
     raw: data,
     type: 'ark_address'
+  }
+}
+
+function detectLndRestConfigConnectionString(
+  data: string
+): DetectedContent | null {
+  const trimmed = data.trim()
+  if (!/^config=.*\.config$/i.test(trimmed)) {
+    return null
+  }
+  return {
+    cleaned: trimmed,
+    isValid: true,
+    raw: data,
+    type: 'lnd_rest_config'
   }
 }
 
@@ -470,7 +486,8 @@ export async function detectContentByContext(
       }
       break
     case 'lightning':
-      detected = detectLightningContent(data)
+      detected =
+        detectLndRestConfigConnectionString(data) || detectLightningContent(data)
       if (!detected) {
         detected =
           (await detectBitcoinContent(data)) || detectEcashContent(data)
@@ -547,9 +564,12 @@ export function isContentTypeSupportedInContext(
         'extended_public_key'
       ].includes(contentType)
     case 'lightning':
-      return ['lightning_invoice', 'lnurl', 'lightning_address'].includes(
-        contentType
-      )
+      return [
+        'lightning_invoice',
+        'lnurl',
+        'lightning_address',
+        'lnd_rest_config'
+      ].includes(contentType)
     case 'ark':
       return [
         'ark_address',
@@ -595,6 +615,8 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Lightning Address'
     case 'lnurl':
       return 'LNURL Payment Request'
+    case 'lnd_rest_config':
+      return 'LND REST API Config'
     case 'ark_address':
       return 'Ark Address'
     case 'ecash_token':
