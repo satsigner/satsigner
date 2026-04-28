@@ -86,4 +86,14 @@ export interface ArkWalletProvider {
     bitcoinAddress: string,
     vtxoIds: string[]
   ) => Promise<ArkFeeEstimate>
+  sendOnchain: (
+    accountId: string,
+    bitcoinAddress: string,
+    amountSats: number
+  ) => Promise<string>
+  estimateSendOnchainFee: (
+    accountId: string,
+    bitcoinAddress: string,
+    amountSats: number
+  ) => Promise<ArkFeeEstimate>
 }

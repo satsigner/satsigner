@@ -161,3 +161,29 @@ export function estimateArkOffboardFee(
     vtxoIds
   )
 }
+
+export function sendArkOnchain(
+  serverId: ArkServerId,
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<string> {
+  return getArkProvider(serverId).sendOnchain(
+    accountId,
+    bitcoinAddress,
+    amountSats
+  )
+}
+
+export function estimateArkSendOnchainFee(
+  serverId: ArkServerId,
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateSendOnchainFee(
+    accountId,
+    bitcoinAddress,
+    amountSats
+  )
+}

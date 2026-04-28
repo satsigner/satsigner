@@ -340,6 +340,28 @@ async function estimateOffboardFee(
   return mapFeeEstimate(estimate)
 }
 
+function sendOnchain(
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<string> {
+  const wallet = getCachedWallet(accountId)
+  return wallet.sendOnchain(bitcoinAddress, BigInt(amountSats))
+}
+
+async function estimateSendOnchainFee(
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  const wallet = getCachedWallet(accountId)
+  const estimate = await wallet.estimateSendOnchainFee(
+    bitcoinAddress,
+    BigInt(amountSats)
+  )
+  return mapFeeEstimate(estimate)
+}
+
 async function fetchBalance(accountId: string): Promise<ArkBalance> {
   const wallet = getCachedWallet(accountId)
   const balance = await wallet.balance()
@@ -361,6 +383,7 @@ const barkProvider: ArkWalletProvider = {
   estimateArkoorFee,
   estimateLightningSendFee,
   estimateOffboardFee,
+  estimateSendOnchainFee,
   fetchBalance,
   fetchMovements,
   listSpendableVtxos,
@@ -371,6 +394,7 @@ const barkProvider: ArkWalletProvider = {
   payLightningAddress,
   releaseWallet,
   sendArkoor,
+  sendOnchain,
   serverId: 'second',
   subscribeNotifications
 }
