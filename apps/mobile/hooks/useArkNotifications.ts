@@ -23,8 +23,30 @@ type AccessTokenMap = Partial<Record<Network, string>>
 const activeSubscriptions = new Map<string, ArkNotificationUnsubscribe>()
 const inflightSubscriptions = new Set<string>()
 
+const RECEIVE_TOAST_DEDUP_TTL_MS = 60_000
+const recentReceiveToasts = new Map<string, number>()
+
+function shouldSkipDuplicateReceiveToast(key: string): boolean {
+  const now = Date.now()
+  for (const [existingKey, timestamp] of recentReceiveToasts) {
+    if (now - timestamp > RECEIVE_TOAST_DEDUP_TTL_MS) {
+      recentReceiveToasts.delete(existingKey)
+    }
+  }
+  const last = recentReceiveToasts.get(key)
+  if (last !== undefined && now - last < RECEIVE_TOAST_DEDUP_TTL_MS) {
+    return true
+  }
+  recentReceiveToasts.set(key, now)
+  return false
+}
+
 function notifyReceive(account: ArkAccount, event: ArkMovementEvent) {
   if (event.type !== 'created' || event.effectiveBalanceSats <= 0) {
+    return
+  }
+  const key = `${account.id}:${event.movementId}`
+  if (shouldSkipDuplicateReceiveToast(key)) {
     return
   }
   toast.success(
