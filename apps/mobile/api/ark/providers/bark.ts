@@ -83,10 +83,11 @@ async function createWallet({
 }
 
 async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
-  const wallet = await Wallet.open(
+  const wallet = await Wallet.openWithDaemon(
     args.mnemonic,
     buildConfig(args.server, args.serverAccessToken),
-    args.datadir
+    args.datadir,
+    undefined
   )
   walletCache.set(args.accountId, wallet)
   await wallet.sync()
