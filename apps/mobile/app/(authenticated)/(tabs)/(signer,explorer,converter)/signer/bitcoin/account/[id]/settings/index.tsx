@@ -67,6 +67,7 @@ export default function AccountSettings() {
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [showPinEntry, setShowPinEntry] = useState(false)
+  const [pinEntryReason, setPinEntryReason] = useState<'mnemonic' | 'deletion' | null>()
 
   const labels = account?.labels ? Object.values(account.labels) : []
   const labelCounts = {
@@ -98,6 +99,13 @@ export default function AccountSettings() {
   }
 
   function handleOnViewMnemonic() {
+    setPinEntryReason('mnemonic')
+    setShowPinEntry(true)
+  }
+
+  function handleConfirmWalletDeletionWithPin() {
+    setPinEntryReason('deletion')
+    setDeleteModalVisible(false)
     setShowPinEntry(true)
   }
 
@@ -106,9 +114,14 @@ export default function AccountSettings() {
   }
 
   async function handleSuccessPin() {
-    await decryptMnemonic()
     setShowPinEntry(false)
-    setMnemonicModalVisible(true)
+    if (pinEntryReason === 'mnemonic') {
+      await decryptMnemonic()
+      setMnemonicModalVisible(true)
+    }
+    if (pinEntryReason === 'deletion') {
+      setTimeout(deleteThisAccount, 500)
+    }
   }
 
   function handlePinTriesOver() {
@@ -429,12 +442,7 @@ export default function AccountSettings() {
             <SSButton
               label={t('common.yes')}
               style={styles.deleteButton}
-              onPress={() => {
-                setDeleteModalVisible(false)
-                setTimeout(() => {
-                  deleteThisAccount()
-                }, 0)
-              }}
+              onPress={handleConfirmWalletDeletionWithPin}
             />
             <SSButton
               label={t('common.no')}
