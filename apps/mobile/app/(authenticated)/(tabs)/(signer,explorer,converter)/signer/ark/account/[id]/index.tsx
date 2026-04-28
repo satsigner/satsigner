@@ -1,11 +1,13 @@
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useState } from 'react'
 import { Platform, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconTriangle } from '@/components/icons'
-import SSActionButton from '@/components/SSActionButton'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
+import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSIconButton from '@/components/SSIconButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
@@ -16,6 +18,7 @@ import {
 } from '@/constants/headerChrome'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkMovements } from '@/hooks/useArkMovements'
+import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
 import { useArkWallet } from '@/hooks/useArkWallet'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import SSHStack from '@/layouts/SSHStack'
@@ -26,6 +29,7 @@ import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
+import { type DetectedContent } from '@/utils/contentDetector'
 import { formatFiatPrice } from '@/utils/format'
 
 const PRIVACY_MASK = '••••'
@@ -42,7 +46,10 @@ export default function ArkAccountDetailPage() {
   const walletQuery = useArkWallet(id)
   const balanceQuery = useArkBalance(id)
   const movementsQuery = useArkMovements(id)
+  const { handleContentReady } = useArkSendNavigation(id)
   useFetchBitcoinPrice()
+
+  const [cameraVisible, setCameraVisible] = useState(false)
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
@@ -74,6 +81,15 @@ export default function ArkAccountDetailPage() {
       params: { id },
       pathname: '/signer/ark/account/[id]/receive'
     })
+  }
+
+  function handleCamera() {
+    setCameraVisible(true)
+  }
+
+  async function handleScanned(content: DetectedContent) {
+    setCameraVisible(false)
+    await handleContentReady(content)
   }
 
   function renderHeaderRight() {
@@ -183,20 +199,15 @@ export default function ArkAccountDetailPage() {
                   </SSText>
                 )}
               </SSVStack>
-              <SSHStack gap="none" style={styles.actionRow}>
-                <SSActionButton
-                  style={styles.actionButton}
-                  onPress={handleSend}
-                >
-                  <SSText uppercase>{t('account.send')}</SSText>
-                </SSActionButton>
-                <SSActionButton
-                  style={styles.actionButton}
-                  onPress={handleReceive}
-                >
-                  <SSText uppercase>{t('account.receive')}</SSText>
-                </SSActionButton>
-              </SSHStack>
+              <View style={styles.actionRow}>
+                <SSButtonActionsGroup
+                  compact
+                  context="ark"
+                  onSend={handleSend}
+                  onCamera={handleCamera}
+                  onReceive={handleReceive}
+                />
+              </View>
             </SSVStack>
           }
           renderItem={({ item }) => (
@@ -228,18 +239,18 @@ export default function ArkAccountDetailPage() {
           }
         />
       </View>
+      <SSCameraModal
+        visible={cameraVisible}
+        onClose={() => setCameraVisible(false)}
+        onContentScanned={handleScanned}
+        context="ark"
+        title={t('ark.send.scanTitle')}
+      />
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  actionButton: {
-    backgroundColor: Colors.gray[900],
-    borderColor: Colors.gray[800],
-    borderWidth: 1,
-    flex: 1,
-    height: 56
-  },
   actionRow: {
     marginBottom: 16,
     paddingHorizontal: 20,
@@ -258,9 +269,6 @@ const styles = StyleSheet.create({
   },
   errorFooter: {
     paddingTop: 12
-  },
-  headerRight: {
-    alignItems: 'center'
   },
   listContainer: {
     flex: 1
