@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { estimateArkArkoorFee, estimateArkLightningSendFee } from '@/api/ark'
 import { useArkStore } from '@/store/ark'
@@ -41,6 +41,7 @@ export function useArkSendFeeEstimate({
         amountSats
       )
     },
+    placeholderData: keepPreviousData,
     queryKey: ['ark', 'fee-estimate', accountId, kind, amountSats],
     retry: false,
     staleTime: 30_000
