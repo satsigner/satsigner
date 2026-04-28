@@ -1,6 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { payArkBolt11, payArkLightningAddress, sendArkArkoor } from '@/api/ark'
+import {
+  payArkBolt11,
+  payArkLightningAddress,
+  sendArkArkoor,
+  sendArkOnchain
+} from '@/api/ark'
 import { useArkStore } from '@/store/ark'
 import type { ArkSendInput, ArkSendOutcome } from '@/types/models/Ark'
 import { handleLNURLPay } from '@/utils/lnurl'
@@ -59,6 +64,16 @@ async function executeArkSend(
       kind: 'lnaddress',
       preimage: result.preimage
     }
+  }
+
+  if (input.kind === 'onchain') {
+    const txid = await sendArkOnchain(
+      serverId,
+      accountId,
+      input.address,
+      input.amountSats
+    )
+    return { amountSats: input.amountSats, kind: 'onchain', txid }
   }
 
   const invoice = await handleLNURLPay(

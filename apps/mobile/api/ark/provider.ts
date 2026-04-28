@@ -39,6 +39,7 @@ export interface ArkWalletProvider {
   readonly serverId: ArkServerId
   createWallet: (args: ArkWalletArgs) => Promise<void>
   openWallet: (args: ArkWalletArgs) => Promise<void>
+  syncWallet: (accountId: string) => Promise<void>
   releaseWallet: (accountId: string) => void
   fetchBalance: (accountId: string) => Promise<ArkBalance>
   newAddress: (accountId: string) => Promise<string>
@@ -85,5 +86,15 @@ export interface ArkWalletProvider {
     accountId: string,
     bitcoinAddress: string,
     vtxoIds: string[]
+  ) => Promise<ArkFeeEstimate>
+  sendOnchain: (
+    accountId: string,
+    bitcoinAddress: string,
+    amountSats: number
+  ) => Promise<string>
+  estimateSendOnchainFee: (
+    accountId: string,
+    bitcoinAddress: string,
+    amountSats: number
   ) => Promise<ArkFeeEstimate>
 }

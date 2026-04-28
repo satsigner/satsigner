@@ -20,6 +20,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import type {
@@ -32,13 +33,16 @@ import {
   parseArkDestination
 } from '@/utils/arkDestination'
 import { truncateArkCounterparty } from '@/utils/arkMovement'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
+import { validateAddress } from '@/utils/validation'
 
 const KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
   arkoor: 'ark.send.kind.arkoor',
   bolt11: 'ark.send.kind.bolt11',
   lnaddress: 'ark.send.kind.lnaddress',
-  lnurl: 'ark.send.kind.lnurl'
+  lnurl: 'ark.send.kind.lnurl',
+  onchain: 'ark.send.kind.onchain'
 }
 
 const CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
@@ -58,6 +62,12 @@ function destinationDisplay(draft: ArkDestinationDraft): string {
   }
   if (draft.kind === 'lnaddress') {
     return draft.address
+  }
+  if (draft.kind === 'onchain') {
+    return truncateArkCounterparty(
+      draft.address,
+      CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+    )
   }
   return truncateArkCounterparty(
     draft.lnurl,
@@ -89,6 +99,9 @@ function buildSendInput(
       kind: 'lnaddress'
     }
   }
+  if (draft.kind === 'onchain') {
+    return { address: draft.address, amountSats, kind: 'onchain' }
+  }
   return {
     amountSats,
     comment: trimmedComment || undefined,
@@ -101,10 +114,23 @@ function successToastKey(outcome: ArkSendOutcome): string {
   if (outcome.kind === 'arkoor') {
     return 'ark.send.success.arkoor'
   }
+  if (outcome.kind === 'onchain') {
+    return 'ark.send.success.onchain'
+  }
   if (outcome.preimage) {
     return 'ark.send.success.lightning'
   }
   return 'ark.send.success.lightningPending'
+}
+
+function feeKindFromDraft(draft: ArkDestinationDraft): ArkSendFeeKind {
+  if (draft.kind === 'arkoor') {
+    return 'arkoor'
+  }
+  if (draft.kind === 'onchain') {
+    return 'onchain'
+  }
+  return 'lightning'
 }
 
 export default function ArkSendConfirmPage() {
@@ -131,6 +157,9 @@ export default function ArkSendConfirmPage() {
   const [comment, setComment] = useState('')
   const sendMutation = useArkSend(id)
   const balanceQuery = useArkBalance(id)
+  const account = useArkStore((state) =>
+    state.accounts.find((a) => a.id === id)
+  )
 
   const [fiatCurrency, btcPrice] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.btcPrice])
@@ -146,18 +175,18 @@ export default function ArkSendConfirmPage() {
   const showCommentField =
     draft?.kind === 'lnaddress' || draft?.kind === 'lnurl'
 
-  const feeKind: ArkSendFeeKind | null = draft
-    ? draft.kind === 'arkoor'
-      ? 'arkoor'
-      : 'lightning'
-    : null
-  // Fire fee estimation on the debounced amount so the estimator doesn't
-  // run per-keystroke. Fixed-amount invoices don't animate, so the debounce
-  // is effectively a no-op for them.
+  const onchainAddressNetworkValid =
+    draft?.kind === 'onchain' && account
+      ? validateAddress(draft.address, bitcoinjsNetwork(account.network))
+      : true
+
+  const feeKind: ArkSendFeeKind | null = draft ? feeKindFromDraft(draft) : null
+  const onchainAddress = draft?.kind === 'onchain' ? draft.address : undefined
   const debouncedAmountSats = useDebouncedValue(amountSats)
   const feeEstimateQuery = useArkSendFeeEstimate({
     accountId: id,
     amountSats: debouncedAmountSats,
+    bitcoinAddress: onchainAddress,
     kind: feeKind
   })
   const feeSats = feeEstimateQuery.data
@@ -170,13 +199,20 @@ export default function ArkSendConfirmPage() {
       ? totalSats > spendableSats
       : amountSats > spendableSats
   const canConfirm =
-    !!draft && amountSats > 0 && !exceedsBalance && !sendMutation.isPending
+    !!draft &&
+    amountSats > 0 &&
+    !exceedsBalance &&
+    !sendMutation.isPending &&
+    onchainAddressNetworkValid
 
   function handleAmountChange(text: string) {
     setAmountInput(text.replace(/[^0-9]/g, ''))
   }
 
   function handleConfirm() {
+    if (sendMutation.isPending) {
+      return
+    }
     if (!draft) {
       return
     }
@@ -234,6 +270,11 @@ export default function ArkSendConfirmPage() {
                     </SSText>
                   </SSClipboardCopy>
                 </View>
+                {draft.kind === 'onchain' && !onchainAddressNetworkValid && (
+                  <SSText size="xs" style={{ color: Colors.warning }}>
+                    {t('ark.send.error.addressNetworkMismatch')}
+                  </SSText>
+                )}
               </SSVStack>
               {draft.kind === 'bolt11' && draft.description && (
                 <SSVStack gap="xs">
@@ -368,6 +409,9 @@ function destinationSource(draft: ArkDestinationDraft): string {
     return draft.invoice
   }
   if (draft.kind === 'lnaddress') {
+    return draft.address
+  }
+  if (draft.kind === 'onchain') {
     return draft.address
   }
   return draft.lnurl
