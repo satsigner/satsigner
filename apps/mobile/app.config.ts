@@ -98,7 +98,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     resizeMode: 'contain'
   },
   userInterfaceStyle: 'dark',
-  version: '0.3.0',
+  version: '0.3.1',
   web: {
     favicon: './assets/favicon.png'
   }
