@@ -326,13 +326,48 @@ async function listSpendableVtxos(accountId: string): Promise<ArkVtxo[]> {
   }))
 }
 
+const PENDING_RACE_TIMEOUT_MS = 30_000
+const PENDING_TXID = 'pending'
+
+function waitForMovementCreated(
+  label: string,
+  accountId: string,
+  subsystemKinds: string[]
+): Promise<string> {
+  const notifications = getOrCreateNotifications(accountId)
+  return new Promise<string>((resolve) => {
+    const unsubscribe = notifications.subscribe((event) => {
+      if (event.tag !== WalletNotification_Tags.MovementCreated) {
+        return
+      }
+      if (!subsystemKinds.includes(event.inner.movement.subsystemKind)) {
+        return
+      }
+      unsubscribe()
+      resolve(PENDING_TXID)
+    })
+  })
+}
+
+function rejectAfterTimeout(label: string, ms: number): Promise<string> {
+  return new Promise<string>((_resolve, reject) => {
+    setTimeout(() => {
+      reject(new Error(`${label}: no movement created within timeout`))
+    }, ms)
+  })
+}
+
 function offboardVtxos(
   accountId: string,
   vtxoIds: string[],
   bitcoinAddress: string
 ): Promise<string> {
   const wallet = getCachedWallet(accountId)
-  return wallet.offboardVtxos(vtxoIds, bitcoinAddress)
+  return Promise.race([
+    waitForMovementCreated('ark-offboard', accountId, ['offboard']),
+    wallet.offboardVtxos(vtxoIds, bitcoinAddress),
+    rejectAfterTimeout('ark-offboard', PENDING_RACE_TIMEOUT_MS)
+  ])
 }
 
 async function estimateOffboardFee(
@@ -351,7 +386,11 @@ function sendOnchain(
   amountSats: number
 ): Promise<string> {
   const wallet = getCachedWallet(accountId)
-  return wallet.sendOnchain(bitcoinAddress, BigInt(amountSats))
+  return Promise.race([
+    waitForMovementCreated('ark-sendOnchain', accountId, ['send_onchain']),
+    wallet.sendOnchain(bitcoinAddress, BigInt(amountSats)),
+    rejectAfterTimeout('ark-sendOnchain', PENDING_RACE_TIMEOUT_MS)
+  ])
 }
 
 async function estimateSendOnchainFee(
