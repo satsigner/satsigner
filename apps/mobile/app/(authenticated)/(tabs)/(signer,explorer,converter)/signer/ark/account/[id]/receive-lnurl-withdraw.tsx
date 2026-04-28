@@ -15,6 +15,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { millisatsToSats } from '@/utils/bitcoinUnits'
 import { decodeLNURL, isLNURL } from '@/utils/lnurl'
 
 const AWAIT_TIMEOUT_MS = 120_000
@@ -29,12 +30,6 @@ function safeServiceHost(lnurl: string): string | null {
   } catch {
     return null
   }
-}
-
-function millisatsToSats(millisats: number, mode: 'ceil' | 'floor'): number {
-  return mode === 'ceil'
-    ? Math.ceil(millisats / 1000)
-    : Math.floor(millisats / 1000)
 }
 
 export default function ArkReceiveLnurlWithdrawPage() {
