@@ -210,6 +210,9 @@ export default function ArkSendConfirmPage() {
   }
 
   function handleConfirm() {
+    if (sendMutation.isPending) {
+      return
+    }
     if (!draft) {
       return
     }
