@@ -80,7 +80,8 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
   const showFee = fee > 0
   const showFiat = btcPrice > 0 && kind !== 'refresh' && amountSats > 0
   const muteAmountColor = kind === 'refresh' || isStale
-  const showRefreshLabel = kind === 'refresh' && amountSats === 0 && !privacyMode
+  const showRefreshLabel =
+    kind === 'refresh' && amountSats === 0 && !privacyMode
 
   const priceDisplay =
     showFiat && !privacyMode
