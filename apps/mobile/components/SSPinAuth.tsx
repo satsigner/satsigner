@@ -1,5 +1,6 @@
+import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
-import Animated  from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,13 +10,12 @@ import { DURESS_PIN_KEY, PIN_KEY, SALT_KEY } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import SSVStack from '@/layouts/SSVStack'
 import { deleteItem, getItem } from '@/storage/encrypted'
+import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
+import { useWalletsStore } from '@/store/wallets'
 import { gray } from '@/styles/colors'
 import { pbkdf2Encrypt } from '@/utils/crypto'
 import { emptyPin } from '@/utils/pin'
-import { router } from 'expo-router'
-import { useAccountsStore } from '@/store/accounts'
-import { useWalletsStore } from '@/store/wallets'
 
 type SSPinAuthProps = {
   onFail?: () => void
@@ -26,17 +26,22 @@ type SSPinAuthProps = {
   title?: string
 } & Pick<SSPinInputProps, 'feedbackBold' | 'feedbackColor' | 'feedbackText'>
 
-function SSPinAuth({ title, onFail, onSuccess, onTriesOver, maxTries, resetPin, ...props }: SSPinAuthProps) {
+function SSPinAuth({
+  title,
+  onFail,
+  onSuccess,
+  onTriesOver,
+  maxTries,
+  resetPin,
+  ...props
+}: SSPinAuthProps) {
   const [duressPinEnabled, setDuressPinEnabled] = useAuthStore(
     useShallow((state) => [state.duressPinEnabled, state.setDuressPinEnabled])
   )
   const [deleteAccounts, deleteTags] = useAccountsStore(
-    useShallow((state) => [
-      state.deleteAccounts,
-      state.deleteTags,
-    ])
+    useShallow((state) => [state.deleteAccounts, state.deleteTags])
   )
-  const deleteWallets = useWalletsStore(state => state.deleteWallets)
+  const deleteWallets = useWalletsStore((state) => state.deleteWallets)
   const [pin, setPin] = useState<string[]>(emptyPin())
   const [tries, setTries] = useState(0)
   const { shakeStyle } = useAnimatedShake()
@@ -93,7 +98,7 @@ function SSPinAuth({ title, onFail, onSuccess, onTriesOver, maxTries, resetPin, 
       }
       return
     }
-    
+
     // The success callback could be unlock the app, or view mnemonic, or confirm wallet deletion
     onSuccess()
   }

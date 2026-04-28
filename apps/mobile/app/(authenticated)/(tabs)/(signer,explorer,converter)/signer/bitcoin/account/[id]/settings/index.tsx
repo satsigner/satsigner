@@ -10,6 +10,7 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
@@ -34,7 +35,6 @@ import { isElectrumDerivationPath } from '@/utils/bip39'
 import { aesDecrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
-import SSPinAuth from '@/components/SSPinAuth'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -67,7 +67,9 @@ export default function AccountSettings() {
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [showPinEntry, setShowPinEntry] = useState(false)
-  const [pinEntryReason, setPinEntryReason] = useState<'mnemonic' | 'deletion' | null>()
+  const [pinEntryReason, setPinEntryReason] = useState<
+    'mnemonic' | 'deletion' | null
+  >()
 
   const labels = account?.labels ? Object.values(account.labels) : []
   const labelCounts = {
@@ -126,7 +128,7 @@ export default function AccountSettings() {
 
   function handlePinTriesOver() {
     setShowPinEntry(false)
-  }  
+  }
 
   function saveChanges() {
     updateAccountName(currentAccountId!, accountName)
@@ -139,26 +141,22 @@ export default function AccountSettings() {
     router.replace('/signer/bitcoin/accountList')
   }
 
-    async function decryptMnemonic() {
-      const pin = await getItem(PIN_KEY)
-      if (!account || !pin) {
-        return
-      }
-
-      const stored = await getKeySecret(account.id, 0)
-      if (!stored) {
-        return
-      }
-
-      const accountSecretString = await aesDecrypt(
-        stored.secret,
-        pin,
-        stored.iv
-      )
-      const accountSecret = JSON.parse(accountSecretString) as Secret
-
-      setLocalMnemonic(accountSecret.mnemonic || '')
+  async function decryptMnemonic() {
+    const pin = await getItem(PIN_KEY)
+    if (!account || !pin) {
+      return
     }
+
+    const stored = await getKeySecret(account.id, 0)
+    if (!stored) {
+      return
+    }
+
+    const accountSecretString = await aesDecrypt(stored.secret, pin, stored.iv)
+    const accountSecret = JSON.parse(accountSecretString) as Secret
+
+    setLocalMnemonic(accountSecret.mnemonic || '')
+  }
 
   useEffect(() => {
     async function decryptCurrentAccountKeys() {

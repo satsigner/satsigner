@@ -6,6 +6,7 @@ import { toast } from 'sonner-native'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -17,7 +18,6 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/account'
-import SSPinAuth from '@/components/SSPinAuth'
 
 export default function SeedWordsPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -61,7 +61,7 @@ export default function SeedWordsPage() {
 
   function handlePinTriesOver() {
     router.back()
-  }  
+  }
 
   useEffect(() => {
     if (account && key) {

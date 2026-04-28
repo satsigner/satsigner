@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
 import { PIN_KEY } from '@/config/auth'
@@ -19,7 +20,6 @@ import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
 import { aesDecrypt } from '@/utils/crypto'
-import SSPinAuth from '@/components/SSPinAuth'
 
 export default function SeedWordsPage() {
   const { keyIndex } = useLocalSearchParams<{ keyIndex: string }>()
@@ -97,7 +97,7 @@ export default function SeedWordsPage() {
 
   function handlePinTriesOver() {
     router.back()
-  }  
+  }
 
   useEffect(() => {
     if (accountData && key) {
