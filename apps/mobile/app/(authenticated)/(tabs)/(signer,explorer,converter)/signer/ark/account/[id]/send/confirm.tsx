@@ -10,6 +10,7 @@ import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useArkBalance } from '@/hooks/useArkBalance'
+import { useArkLnurlPayDetails } from '@/hooks/useArkLnurlPay'
 import { useArkSend } from '@/hooks/useArkSend'
 import {
   type ArkSendFeeKind,
@@ -34,6 +35,7 @@ import {
 } from '@/utils/arkDestination'
 import { truncateArkCounterparty } from '@/utils/arkMovement'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { millisatsToSats } from '@/utils/bitcoinUnits'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { validateAddress } from '@/utils/validation'
 
@@ -153,7 +155,7 @@ export default function ArkSendConfirmPage() {
     staleTime: Infinity
   })
 
-  const [amountInput, setAmountInput] = useState('')
+  const [amountInput, setAmountInput] = useState<string | null>(null)
   const [comment, setComment] = useState('')
   const sendMutation = useArkSend(id)
   const balanceQuery = useArkBalance(id)
@@ -167,10 +169,23 @@ export default function ArkSendConfirmPage() {
 
   const draft = parsedQuery.data
   const spendableSats = balanceQuery.data?.spendableSats ?? 0
+  const lnurlPayDetailsQuery = useArkLnurlPayDetails(
+    draft?.kind === 'lnurl' ? draft.lnurl : undefined
+  )
+  const lnurlPayDetails = lnurlPayDetailsQuery.data
+  const lnurlMinSats = lnurlPayDetails
+    ? millisatsToSats(lnurlPayDetails.minSendable, 'ceil')
+    : undefined
+  const lnurlMaxSats = lnurlPayDetails
+    ? millisatsToSats(lnurlPayDetails.maxSendable, 'floor')
+    : undefined
+  const lnurlCommentAllowed = lnurlPayDetails?.commentAllowed
   const amountFromInvoice =
     draft?.kind === 'bolt11' ? draft.amountSatsFromInvoice : undefined
+  const effectiveAmountInput =
+    amountInput ?? (lnurlMinSats !== undefined ? String(lnurlMinSats) : '')
   const amountSats =
-    amountFromInvoice ?? (Number.parseInt(amountInput, 10) || 0)
+    amountFromInvoice ?? (Number.parseInt(effectiveAmountInput, 10) || 0)
   const amountIsEditable = amountFromInvoice === undefined
   const showCommentField =
     draft?.kind === 'lnaddress' || draft?.kind === 'lnurl'
@@ -179,6 +194,12 @@ export default function ArkSendConfirmPage() {
     draft?.kind === 'onchain' && account
       ? validateAddress(draft.address, bitcoinjsNetwork(account.network))
       : true
+
+  const lnurlAmountInRange =
+    draft?.kind !== 'lnurl' ||
+    lnurlMinSats === undefined ||
+    lnurlMaxSats === undefined ||
+    (amountSats >= lnurlMinSats && amountSats <= lnurlMaxSats)
 
   const feeKind: ArkSendFeeKind | null = draft ? feeKindFromDraft(draft) : null
   const onchainAddress = draft?.kind === 'onchain' ? draft.address : undefined
@@ -203,11 +224,18 @@ export default function ArkSendConfirmPage() {
     amountSats > 0 &&
     !exceedsBalance &&
     !sendMutation.isPending &&
-    onchainAddressNetworkValid
+    onchainAddressNetworkValid &&
+    lnurlAmountInRange &&
+    (draft.kind !== 'lnurl' || !lnurlPayDetailsQuery.isLoading)
 
   function handleAmountChange(text: string) {
     setAmountInput(text.replace(/[^0-9]/g, ''))
   }
+
+  const lnurlDetailsLoading =
+    draft?.kind === 'lnurl' && lnurlPayDetailsQuery.isLoading
+  const lnurlDetailsError =
+    draft?.kind === 'lnurl' && !!lnurlPayDetailsQuery.error
 
   function handleConfirm() {
     if (sendMutation.isPending) {
@@ -288,12 +316,34 @@ export default function ArkSendConfirmPage() {
                 <SSText color="muted" size="xs" uppercase>
                   {t('ark.send.amount')} ({t('bitcoin.sats')})
                 </SSText>
+                {lnurlDetailsLoading && (
+                  <SSText color="muted" size="xs">
+                    {t('ark.send.lnurlFetching')}
+                  </SSText>
+                )}
+                {lnurlDetailsError && (
+                  <SSText size="xs" style={{ color: Colors.warning }}>
+                    {t('ark.send.error.lnurlFetch')}
+                  </SSText>
+                )}
+                {draft.kind === 'lnurl' &&
+                  lnurlMinSats !== undefined &&
+                  lnurlMaxSats !== undefined && (
+                    <SSText color="muted" size="xs">
+                      {t('ark.send.lnurlRange', {
+                        max: formatNumber(lnurlMaxSats),
+                        min: formatNumber(lnurlMinSats)
+                      })}
+                    </SSText>
+                  )}
                 {amountIsEditable ? (
                   <SSTextInput
                     align="left"
                     value={
-                      amountInput
-                        ? formatNumber(Number.parseInt(amountInput, 10))
+                      effectiveAmountInput
+                        ? formatNumber(
+                            Number.parseInt(effectiveAmountInput, 10)
+                          )
                         : ''
                     }
                     onChangeText={handleAmountChange}
@@ -322,6 +372,16 @@ export default function ArkSendConfirmPage() {
                     )}
                   </SSText>
                 )}
+                {!lnurlAmountInRange &&
+                  lnurlMinSats !== undefined &&
+                  lnurlMaxSats !== undefined && (
+                    <SSText size="xs" style={{ color: Colors.warning }}>
+                      {t('ark.send.error.amountOutOfRange', {
+                        max: formatNumber(lnurlMaxSats),
+                        min: formatNumber(lnurlMinSats)
+                      })}
+                    </SSText>
+                  )}
               </SSVStack>
               {amountSats > 0 && (
                 <SSVStack gap="xs">
@@ -363,19 +423,21 @@ export default function ArkSendConfirmPage() {
                   )}
                 </SSVStack>
               )}
-              {showCommentField && (
-                <SSVStack gap="xs">
-                  <SSText color="muted" size="xs" uppercase>
-                    {t('ark.send.comment')}
-                  </SSText>
-                  <SSTextInput
-                    align="left"
-                    value={comment}
-                    onChangeText={setComment}
-                    placeholder={t('ark.send.commentPlaceholder')}
-                  />
-                </SSVStack>
-              )}
+              {showCommentField &&
+                (draft.kind !== 'lnurl' || lnurlCommentAllowed !== 0) && (
+                  <SSVStack gap="xs">
+                    <SSText color="muted" size="xs" uppercase>
+                      {t('ark.send.comment')}
+                    </SSText>
+                    <SSTextInput
+                      align="left"
+                      value={comment}
+                      onChangeText={setComment}
+                      placeholder={t('ark.send.commentPlaceholder')}
+                      maxLength={lnurlCommentAllowed}
+                    />
+                  </SSVStack>
+                )}
               <SSHStack gap="sm" style={styles.actions}>
                 <SSButton
                   label={t('common.cancel')}
