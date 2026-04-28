@@ -313,7 +313,7 @@ export default function ArkSendConfirmPage() {
                     amount: formatNumber(spendableSats)
                   })}
                 </SSText>
-                {exceedsBalance && (
+                {exceedsBalance && !sendMutation.isPending && (
                   <SSText size="xs" style={{ color: Colors.warning }}>
                     {t(
                       feeSats === undefined
