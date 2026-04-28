@@ -206,10 +206,11 @@ function newAddress(accountId: string): Promise<string> {
 
 async function createBolt11Invoice(
   accountId: string,
-  amountSats: number
+  amountSats: number,
+  description?: string
 ): Promise<ArkBolt11Invoice> {
   const wallet = getCachedWallet(accountId)
-  const invoice = await wallet.bolt11Invoice(BigInt(amountSats))
+  const invoice = await wallet.bolt11Invoice(BigInt(amountSats), description)
   return {
     amountSats: Number(invoice.amountSats),
     invoice: invoice.invoice

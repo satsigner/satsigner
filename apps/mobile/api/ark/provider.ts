@@ -45,7 +45,8 @@ export interface ArkWalletProvider {
   newAddress: (accountId: string) => Promise<string>
   createBolt11Invoice: (
     accountId: string,
-    amountSats: number
+    amountSats: number,
+    description?: string
   ) => Promise<ArkBolt11Invoice>
   fetchMovements: (accountId: string) => Promise<ArkMovement[]>
   subscribeNotifications: (

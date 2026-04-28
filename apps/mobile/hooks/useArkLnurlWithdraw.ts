@@ -77,7 +77,8 @@ export function useArkLnurlWithdraw(accountId: string | null | undefined) {
       const invoice = await createArkBolt11Invoice(
         getAccountServerId(accountId),
         accountId,
-        amountSats
+        amountSats,
+        details.defaultDescription
       )
       await requestLNURLWithdrawInvoice(
         details.callback,

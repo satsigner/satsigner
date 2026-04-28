@@ -64,9 +64,14 @@ export function newArkAddress(
 export function createArkBolt11Invoice(
   serverId: ArkServerId,
   accountId: string,
-  amountSats: number
+  amountSats: number,
+  description?: string
 ): Promise<ArkBolt11Invoice> {
-  return getArkProvider(serverId).createBolt11Invoice(accountId, amountSats)
+  return getArkProvider(serverId).createBolt11Invoice(
+    accountId,
+    amountSats,
+    description
+  )
 }
 
 export function fetchArkMovements(
