@@ -20,7 +20,7 @@ export default function Unlock() {
     setFirstTime,
     setRequiresAuth,
     setJustUnlocked,
-    triesLeft,
+    pinTries,
     pinMaxTries
   ] = useAuthStore(
     useShallow((state) => [
@@ -39,6 +39,7 @@ export default function Unlock() {
     useShallow((state) => [state.deleteAccounts, state.deleteTags])
   )
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
+  const triesLeft = pinMaxTries - pinTries
 
   function getWarningColor() {
     if (triesLeft > 2) {

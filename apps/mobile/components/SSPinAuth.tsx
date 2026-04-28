@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Animated  from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -21,9 +21,10 @@ type SSPinAuthProps = {
   title?: string
   onFail: () => void
   onSuccess: () => void
+  resetPin?: boolean
 } & Pick<SSPinInputProps, 'feedbackBold' | 'feedbackColor' | 'feedbackText'>
 
-function SSPinAuth({ title, onFail, onSuccess, ...props }: SSPinAuthProps) {
+function SSPinAuth({ title, onFail, onSuccess, resetPin, ...props }: SSPinAuthProps) {
   const [duressPinEnabled, setDuressPinEnabled] = useAuthStore(
     useShallow((state) => [state.duressPinEnabled, state.setDuressPinEnabled])
   )
@@ -36,6 +37,12 @@ function SSPinAuth({ title, onFail, onSuccess, ...props }: SSPinAuthProps) {
   const deleteWallets = useWalletsStore(state => state.deleteWallets)
   const [pin, setPin] = useState<string[]>(emptyPin())
   const { shakeStyle } = useAnimatedShake()
+
+  useEffect(() => {
+    if (resetPin === true) {
+      setPin(emptyPin())
+    }
+  }, [resetPin])
 
   async function handleFillEnded(inputPin: string) {
     const hashedPin = await getItem(PIN_KEY)

@@ -7,10 +7,9 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
-import SSPinEntry from '@/components/SSPinEntry'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
-import { PIN_KEY, SALT_KEY } from '@/config/auth'
+import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
@@ -19,8 +18,8 @@ import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
-import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
-import { emptyPin } from '@/utils/pin'
+import { aesDecrypt } from '@/utils/crypto'
+import SSPinAuth from '@/components/SSPinAuth'
 
 export default function SeedWordsPage() {
   const { keyIndex } = useLocalSearchParams<{ keyIndex: string }>()
@@ -31,7 +30,6 @@ export default function SeedWordsPage() {
 
   const [mnemonic, setMnemonic] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [pin, setPin] = useState<string[]>(emptyPin)
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)
@@ -92,23 +90,14 @@ export default function SeedWordsPage() {
     }
   }, [accountData, key])
 
-  async function handlePinEntry(pinString: string) {
-    const salt = await getItem(SALT_KEY)
-    const storedEncryptedPin = await getItem(PIN_KEY)
-    if (!salt || !storedEncryptedPin) {
-      toast.error('Unable to decrypt PIN')
-      return
-    }
-
-    const encryptedPin = await pbkdf2Encrypt(pinString, salt)
-    const isPinValid = encryptedPin === storedEncryptedPin
-
-    if (isPinValid) {
-      await decryptMnemonic()
-      setShowPinEntry(false)
-    }
-    setPin(emptyPin())
+  async function handleSuccessPin() {
+    await decryptMnemonic()
+    setShowPinEntry(false)
   }
+
+  function handleFailPin() {
+    // setShowPinEntry(false)
+  }  
 
   useEffect(() => {
     if (accountData && key) {
@@ -275,11 +264,10 @@ export default function SeedWordsPage() {
         </SSVStack>
       </ScrollView>
       <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
-        <SSPinEntry
+        <SSPinAuth
           title={t('account.enter.pin')}
-          pin={pin}
-          setPin={setPin}
-          onFillEnded={handlePinEntry}
+          onSuccess={handleSuccessPin}
+          onFail={handleFailPin}
         />
       </SSModal>
       <SSSeedQR
