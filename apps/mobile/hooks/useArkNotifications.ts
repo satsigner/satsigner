@@ -1,5 +1,6 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
+import { AppState, type AppStateStatus } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -7,7 +8,8 @@ import {
   type ArkMovementEvent,
   type ArkNotificationUnsubscribe,
   openArkWallet,
-  subscribeArkNotifications
+  subscribeArkNotifications,
+  syncArkWallet
 } from '@/api/ark'
 import { getArkServer } from '@/constants/arkServers'
 import { t } from '@/locales'
@@ -146,6 +148,35 @@ function syncSubscriptions(
   }
 }
 
+function tearDownAllSubscriptions() {
+  for (const [id, unsubscribe] of activeSubscriptions) {
+    unsubscribe()
+    activeSubscriptions.delete(id)
+  }
+}
+
+async function resyncAccount(
+  account: ArkAccount,
+  queryClient: QueryClient
+): Promise<void> {
+  try {
+    await syncArkWallet(account.serverId, account.id)
+  } catch {
+    // best effort — wallet may not be open yet on resume
+  }
+  queryClient.invalidateQueries({ queryKey: ['ark', 'balance', account.id] })
+  queryClient.invalidateQueries({ queryKey: ['ark', 'movements', account.id] })
+}
+
+function handleAppForeground(queryClient: QueryClient) {
+  const { accounts, serverAccessTokens } = useArkStore.getState()
+  tearDownAllSubscriptions()
+  syncSubscriptions(accounts, serverAccessTokens, queryClient)
+  for (const account of accounts) {
+    void resyncAccount(account, queryClient)
+  }
+}
+
 export function useArkNotifications() {
   const queryClient = useQueryClient()
   const [accounts, serverAccessTokens] = useArkStore(
@@ -155,4 +186,15 @@ export function useArkNotifications() {
   useEffect(() => {
     syncSubscriptions(accounts, serverAccessTokens, queryClient)
   }, [accounts, serverAccessTokens, queryClient])
+
+  useEffect(() => {
+    let lastState: AppStateStatus = AppState.currentState
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next === 'active' && lastState.match(/background|inactive/)) {
+        handleAppForeground(queryClient)
+      }
+      lastState = next
+    })
+    return () => subscription.remove()
+  }, [queryClient])
 }

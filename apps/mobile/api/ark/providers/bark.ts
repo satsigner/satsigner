@@ -93,6 +93,11 @@ async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
   await wallet.sync()
 }
 
+async function syncWallet(accountId: string): Promise<void> {
+  const wallet = getCachedWallet(accountId)
+  await wallet.sync()
+}
+
 async function openWallet(args: ArkWalletArgs): Promise<void> {
   if (walletCache.has(args.accountId)) {
     return
@@ -396,7 +401,8 @@ const barkProvider: ArkWalletProvider = {
   sendArkoor,
   sendOnchain,
   serverId: 'second',
-  subscribeNotifications
+  subscribeNotifications,
+  syncWallet
 }
 
 registerArkProvider(barkProvider)

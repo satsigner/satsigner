@@ -33,6 +33,13 @@ export async function openArkWallet(args: ArkWalletArgs): Promise<void> {
   await getArkProvider(args.server.id).openWallet(args)
 }
 
+export async function syncArkWallet(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<void> {
+  await getArkProvider(serverId).syncWallet(accountId)
+}
+
 export function releaseArkWallet(
   serverId: ArkServerId,
   accountId: string
