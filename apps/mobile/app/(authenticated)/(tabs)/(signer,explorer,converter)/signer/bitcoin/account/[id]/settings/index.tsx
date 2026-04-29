@@ -10,12 +10,12 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
-import SSPinEntry from '@/components/SSPinEntry'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { PIN_KEY, SALT_KEY } from '@/config/auth'
+import { PIN_KEY } from '@/config/auth'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
@@ -32,9 +32,8 @@ import {
   getAccountFingerprint
 } from '@/utils/account'
 import { isElectrumDerivationPath } from '@/utils/bip39'
-import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
+import { aesDecrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
-import { emptyPin } from '@/utils/pin'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function AccountSettings() {
@@ -67,9 +66,10 @@ export default function AccountSettings() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [pin, setPin] = useState<string[]>(emptyPin)
   const [showPinEntry, setShowPinEntry] = useState(false)
-  const [pinEntryFocus, setPinEntryFocus] = useState(false)
+  const [pinEntryReason, setPinEntryReason] = useState<
+    'mnemonic' | 'deletion' | null
+  >()
 
   const labels = account?.labels ? Object.values(account.labels) : []
   const labelCounts = {
@@ -101,40 +101,33 @@ export default function AccountSettings() {
   }
 
   function handleOnViewMnemonic() {
+    setPinEntryReason('mnemonic')
     setShowPinEntry(true)
-    setPin(emptyPin())
-
-    // This will auto-focus the pin input after a little delay.
-    // The delay is needed because the modal has to have become visible first.
-    setTimeout(() => {
-      setPinEntryFocus(true)
-    }, 300)
   }
 
-  function handleCloseMnemonicModal() {
+  function handleConfirmWalletDeletionWithPin() {
+    setPinEntryReason('deletion')
+    setDeleteModalVisible(false)
+    setShowPinEntry(true)
+  }
+
+  function handleClosePinEntry() {
     setShowPinEntry(false)
-    setPin(emptyPin())
-    setPinEntryFocus(false)
   }
 
-  async function handlePinEntry(pinString: string) {
-    const salt = await getItem(SALT_KEY)
-    const storedEncryptedPin = await getItem(PIN_KEY)
-    if (!salt || !storedEncryptedPin) {
-      toast.error('Unable to decrypt PIN')
-      return
-    }
-
-    const encryptedPin = await pbkdf2Encrypt(pinString, salt)
-    const isPinValid = encryptedPin === storedEncryptedPin
-
-    if (isPinValid) {
-      setShowPinEntry(false)
+  async function handleSuccessPin() {
+    setShowPinEntry(false)
+    if (pinEntryReason === 'mnemonic') {
+      await decryptMnemonic()
       setMnemonicModalVisible(true)
-      setTimeout(() => setPin(emptyPin()), 500)
-    } else {
-      setPin(emptyPin())
     }
+    if (pinEntryReason === 'deletion') {
+      setTimeout(deleteThisAccount, 500)
+    }
+  }
+
+  function handlePinTriesOver() {
+    setShowPinEntry(false)
   }
 
   function saveChanges() {
@@ -148,29 +141,22 @@ export default function AccountSettings() {
     router.replace('/signer/bitcoin/accountList')
   }
 
-  useEffect(() => {
-    async function getMnemonic() {
-      const pin = await getItem(PIN_KEY)
-      if (!account || !pin) {
-        return
-      }
-
-      const stored = await getKeySecret(account.id, 0)
-      if (!stored) {
-        return
-      }
-
-      const accountSecretString = await aesDecrypt(
-        stored.secret,
-        pin,
-        stored.iv
-      )
-      const accountSecret = JSON.parse(accountSecretString) as Secret
-
-      setLocalMnemonic(accountSecret.mnemonic || '')
+  async function decryptMnemonic() {
+    const pin = await getItem(PIN_KEY)
+    if (!account || !pin) {
+      return
     }
-    getMnemonic()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const stored = await getKeySecret(account.id, 0)
+    if (!stored) {
+      return
+    }
+
+    const accountSecretString = await aesDecrypt(stored.secret, pin, stored.iv)
+    const accountSecret = JSON.parse(accountSecretString) as Secret
+
+    setLocalMnemonic(accountSecret.mnemonic || '')
+  }
 
   useEffect(() => {
     async function decryptCurrentAccountKeys() {
@@ -454,12 +440,7 @@ export default function AccountSettings() {
             <SSButton
               label={t('common.yes')}
               style={styles.deleteButton}
-              onPress={() => {
-                setDeleteModalVisible(false)
-                setTimeout(() => {
-                  deleteThisAccount()
-                }, 0)
-              }}
+              onPress={handleConfirmWalletDeletionWithPin}
             />
             <SSButton
               label={t('common.no')}
@@ -598,13 +579,12 @@ export default function AccountSettings() {
           setMnemonicModalVisible(true)
         }}
       />
-      <SSModal visible={showPinEntry} onClose={handleCloseMnemonicModal}>
-        <SSPinEntry
+      <SSModal visible={showPinEntry} onClose={handleClosePinEntry}>
+        <SSPinAuth
           title={t('account.enter.pin')}
-          pin={pin}
-          setPin={setPin}
-          onFillEnded={handlePinEntry}
-          autoFocus={pinEntryFocus}
+          onSuccess={handleSuccessPin}
+          onTriesOver={handlePinTriesOver}
+          maxTries={3}
         />
       </SSModal>
     </ScrollView>
