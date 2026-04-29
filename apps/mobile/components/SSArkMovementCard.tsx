@@ -24,7 +24,7 @@ import {
   getArkMovementCounterparty,
   getArkMovementKind,
   isLightningMovement,
-  isStaleArkExitMovement,
+  isMutedArkMovement,
   truncateArkCounterparty
 } from '@/utils/arkMovement'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
@@ -71,7 +71,7 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
   const kind = getArkMovementKind(movement)
   const amountSats = getArkMovementAmountSats(movement)
   const isLightning = isLightningMovement(movement)
-  const isStale = isStaleArkExitMovement(movement)
+  const isMuted = isMutedArkMovement(movement)
   const fee = movement.offchainFeeSats
   const timestamp = new Date(movement.createdAt)
   const counterparty = getArkMovementCounterparty(movement)
@@ -79,7 +79,7 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
   const satTextType = kind === 'receive' ? 'receive' : 'send'
   const showFee = fee > 0
   const showFiat = btcPrice > 0 && kind !== 'refresh' && amountSats > 0
-  const muteAmountColor = kind === 'refresh' || isStale
+  const muteAmountColor = kind === 'refresh' || isMuted
   const showRefreshLabel =
     kind === 'refresh' && amountSats === 0 && !privacyMode
 
@@ -94,7 +94,7 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
     <TouchableOpacity
       onPress={() => router.navigate(link)}
       activeOpacity={0.7}
-      style={isStale ? styles.staleContainer : undefined}
+      style={isMuted ? styles.mutedContainer : undefined}
     >
       <SSHStack justifyBetween style={styles.container} gap="sm">
         <SSVStack gap="xxs" style={styles.leftColumn}>
@@ -192,11 +192,11 @@ const styles = StyleSheet.create({
   leftColumn: {
     flexShrink: 1
   },
+  mutedContainer: {
+    opacity: 0.45
+  },
   rightColumn: {
     alignItems: 'flex-end'
-  },
-  staleContainer: {
-    opacity: 0.45
   },
   unit: {
     marginBottom: -2
