@@ -424,7 +424,7 @@ export default function ArkSendConfirmPage() {
                 </SSVStack>
               )}
               {showCommentField &&
-                (draft.kind !== 'lnurl' || lnurlCommentAllowed !== 0) && (
+                (draft.kind !== 'lnurl' || (lnurlCommentAllowed ?? 0) > 0) && (
                   <SSVStack gap="xs">
                     <SSText color="muted" size="xs" uppercase>
                       {t('ark.send.comment')}
