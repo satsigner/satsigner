@@ -3,17 +3,58 @@ title: Build
 description: Build SatSigner for distribution using EAS.
 ---
 
-## Build with EAS
+# Android
+
+## Set up EAS
 
 1. Create an account with Expo [here](https://expo.dev/signup)
 
-2. Install `eas` on your machine
+2. Log in into your Expo account and create a new project
+
+3. Set `EXPO_PROJECT_ID` to the project id created:
+
+```shell
+# example value of how it looks like
+export EXPO_PROJECT_ID='rpr7osn3-r916-4np9-ns32-q3723o79r58s'
+```
+
+This works only for the current shell session. To avoid having to set the
+variable every single session, create your own `.envrc` file in `apps/mobile`
+and use [direnv](https://github.com/direnv/direnv):
+
+```shell
+export EXPO_PROJECT_ID='rpr7osn3-r916-4np9-ns32-q3723o79r58s'
+```
+
+**Note**: an `.envrc` file is meant to set env vars to specific directory in
+**your machine**. It is not meant to be tracked by git since is machine-specific
+\*configuration.
+
+If you are building from an IDE and not from the cli, the environment variable
+may not work. In that case, temporarily hardcode the project id value in the
+file `apps/mobile/app.config.ts`:
+
+```typescript
+export default ({ config }: ConfigContext): ExpoConfig => ({
+  ...config,
+  extra: {
+      eas: {
+        projectId: '<PROJECT ID>'
+      }
+  },
+  /* other configuration...  */
+}
+```
+
+Do not commit the temporary changes made do this file.
+
+4. Install `eas` on your machine
 
 ```bash
 npm install --global eas-cli
 ```
 
-3. Configure `eas`
+5. Configure `eas.json`
 
 The `apps/mobile/eas.json` file must be present.
 
@@ -29,14 +70,33 @@ The `apps/mobile/eas.json` file must be present.
 }
 ```
 
-4. Run `eas`
+6. Log in into `eas`
+
+```shell
+npx eas login
+```
+
+## Cloud build
+
+1. Run `eas` which will compress the project files and upload to the clould for
+   EAS servers to build them.
 
 ```bash
 npx eas-cli build --platform=android --profile=preview
 ```
 
-5. Download the build
+2. Download the build
 
 After the build is finished, you can download the build in the expo dashboard.
 
-## Build locally
+## Local build
+
+1. Run `eas` to build locally:
+
+```bash
+npx eas-cli build --platform=android --profile=preview --local
+```
+
+2. Check the file.
+
+Check for the apk file inside the `apps/mobile/android/app/build/outputs/apk` folder.
