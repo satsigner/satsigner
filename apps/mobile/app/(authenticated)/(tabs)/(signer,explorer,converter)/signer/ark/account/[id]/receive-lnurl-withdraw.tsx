@@ -15,6 +15,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { millisatsToSats } from '@/utils/bitcoinUnits'
 import { decodeLNURL, isLNURL } from '@/utils/lnurl'
 
 const AWAIT_TIMEOUT_MS = 120_000
@@ -31,12 +32,6 @@ function safeServiceHost(lnurl: string): string | null {
   }
 }
 
-function millisatsToSats(millisats: number, mode: 'ceil' | 'floor'): number {
-  return mode === 'ceil'
-    ? Math.ceil(millisats / 1000)
-    : Math.floor(millisats / 1000)
-}
-
 export default function ArkReceiveLnurlWithdrawPage() {
   const router = useRouter()
   const { id, lnurl } = useLocalSearchParams<{ id: string; lnurl: string }>()
@@ -45,7 +40,7 @@ export default function ArkReceiveLnurlWithdrawPage() {
   const withdrawMutation = useArkLnurlWithdraw(id)
   const balanceQuery = useArkBalance(id)
 
-  const [amount, setAmount] = useState('')
+  const [userAmount, setUserAmount] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('ready')
   const baselineRef = useRef<number | null>(null)
   const expectedDeltaRef = useRef<number>(0)
@@ -57,6 +52,8 @@ export default function ArkReceiveLnurlWithdrawPage() {
     ? millisatsToSats(details.maxWithdrawable, 'floor')
     : 0
   const serviceHost = safeServiceHost(lnurl ?? '')
+  const isFixedAmount = minSats > 0 && minSats === maxSats
+  const amount = isFixedAmount ? String(minSats) : (userAmount ?? '')
   const amountSats = Number(amount || 0)
   const amountInRange =
     Number.isFinite(amountSats) &&
@@ -219,10 +216,10 @@ export default function ArkReceiveLnurlWithdrawPage() {
             <SSTextInput
               align="left"
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={setUserAmount}
               placeholder={t('ark.receive.lnurlWithdraw.amountPlaceholder')}
               keyboardType="numeric"
-              editable={phase === 'ready'}
+              editable={phase === 'ready' && !isFixedAmount}
             />
           </SSVStack>
 

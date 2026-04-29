@@ -9,6 +9,7 @@ import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import { useArkDeleteAccount } from '@/hooks/useArkDeleteAccount'
+import { useArkExportDatadir } from '@/hooks/useArkExportDatadir'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -22,9 +23,23 @@ export default function ArkAccountSettingsPage() {
     useShallow((state) => state.accounts.find((a) => a.id === id))
   )
   const { deleteAccount } = useArkDeleteAccount()
+  const { exportDb, isExporting } = useArkExportDatadir()
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  async function handleExportDb() {
+    if (!account) {
+      return
+    }
+    try {
+      await exportDb(account)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t('ark.error.exportDb')
+      toast.error(message)
+    }
+  }
 
   async function handleConfirmDelete() {
     if (!id) {
@@ -66,6 +81,12 @@ export default function ArkAccountSettingsPage() {
             })
           }
           variant="secondary"
+        />
+        <SSButton
+          label={t('ark.account.exportDb')}
+          onPress={handleExportDb}
+          loading={isExporting}
+          disabled={isExporting}
         />
         <SSButton
           label={t('common.delete')}

@@ -31,6 +31,8 @@ import type {
 } from '../provider'
 import { registerArkProvider } from '../registry'
 
+const ROUND_TX_REQUIRED_CONFIRMATIONS = 0 // Later allow users to change this on the Ark settings
+
 const walletCache = new Map<string, WalletLike>()
 const inflightOpens = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()
@@ -53,6 +55,7 @@ function buildConfig(server: ArkServer, serverAccessToken?: string): Config {
   return Config.create({
     esploraAddress: server.esploraUrl,
     network: appNetworkToBarkNetwork(server.network),
+    roundTxRequiredConfirmations: ROUND_TX_REQUIRED_CONFIRMATIONS,
     serverAccessToken: serverAccessToken || undefined,
     serverAddress: server.arkUrl
   })
