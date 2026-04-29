@@ -31,4 +31,24 @@ function getArkDatadirPath(accountId: string): string {
   return uriToPath(getArkDatadirUri(accountId))
 }
 
-export { deleteArkDatadir, ensureArkDatadir, getArkDatadirPath }
+const SQLITE_SIDECAR_SUFFIXES = ['-wal', '-shm', '-journal']
+
+function isMainSqliteFile(name: string): boolean {
+  if (!name.endsWith('.db') && !name.endsWith('.sqlite')) {
+    return false
+  }
+  return !SQLITE_SIDECAR_SUFFIXES.some((suffix) => name.includes(suffix))
+}
+
+async function findArkDbFile(accountId: string): Promise<string | null> {
+  const dirUri = getArkDatadirUri(accountId)
+  const info = await FileSystem.getInfoAsync(dirUri)
+  if (!info.exists) {
+    return null
+  }
+  const entries = await FileSystem.readDirectoryAsync(dirUri)
+  const dbFile = entries.find(isMainSqliteFile)
+  return dbFile ? `${dirUri}${dbFile}` : null
+}
+
+export { deleteArkDatadir, ensureArkDatadir, findArkDbFile, getArkDatadirPath }
