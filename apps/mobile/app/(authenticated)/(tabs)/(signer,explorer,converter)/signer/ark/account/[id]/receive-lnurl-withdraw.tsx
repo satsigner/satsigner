@@ -40,7 +40,7 @@ export default function ArkReceiveLnurlWithdrawPage() {
   const withdrawMutation = useArkLnurlWithdraw(id)
   const balanceQuery = useArkBalance(id)
 
-  const [amount, setAmount] = useState('')
+  const [userAmount, setUserAmount] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('ready')
   const baselineRef = useRef<number | null>(null)
   const expectedDeltaRef = useRef<number>(0)
@@ -52,6 +52,8 @@ export default function ArkReceiveLnurlWithdrawPage() {
     ? millisatsToSats(details.maxWithdrawable, 'floor')
     : 0
   const serviceHost = safeServiceHost(lnurl ?? '')
+  const isFixedAmount = minSats > 0 && minSats === maxSats
+  const amount = isFixedAmount ? String(minSats) : (userAmount ?? '')
   const amountSats = Number(amount || 0)
   const amountInRange =
     Number.isFinite(amountSats) &&
@@ -214,10 +216,10 @@ export default function ArkReceiveLnurlWithdrawPage() {
             <SSTextInput
               align="left"
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={setUserAmount}
               placeholder={t('ark.receive.lnurlWithdraw.amountPlaceholder')}
               keyboardType="numeric"
-              editable={phase === 'ready'}
+              editable={phase === 'ready' && !isFixedAmount}
             />
           </SSVStack>
 
