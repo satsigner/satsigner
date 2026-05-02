@@ -12,6 +12,7 @@ export default function SSIconDelete({
       width={width}
       height={height}
       viewBox="0 0 24 24"
+      fill="none"
       stroke={stroke}
       strokeWidth="1"
     >
