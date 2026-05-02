@@ -2082,6 +2082,8 @@
     "developer.recoverOverwriteError": "Failed to restore backup",
     "developer.recoverPassphrasePlaceholder": "Enter passphrase to decrypt",
     "developer.recoverTitle": "Recover data",
+    "developer.recoverUploadError": "Failed to load backup file",
+    "developer.recoverUploadFile": "Upload file",
     "developer.skipPin": "Skip PIN",
     "developer.storageClearFailed": "Failed to clear storage",
     "developer.storageCleared": "Storage cleared",

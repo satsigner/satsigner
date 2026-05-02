@@ -24,9 +24,13 @@ import { t } from '@/locales'
 import { deleteItem, getEcashMnemonic, getKeySecret } from '@/storage/encrypted'
 import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
+import { useArkStore } from '@/store/ark'
 import { useAuthStore } from '@/store/auth'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
+import { useLightningStore } from '@/store/lightning'
 import { useNostrStore } from '@/store/nostr'
+import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
@@ -146,9 +150,17 @@ export default function Developer() {
         ])
       )
     )
+    const arkState = useArkStore.getState()
+    const lightningConfig = useLightningStore.getState().config
+    const nostrIdentityState = useNostrIdentityStore.getState()
+    const blockchainState = useBlockchainStore.getState()
 
     const backupData = {
       accounts: accountsWithSeeds,
+      ark: {
+        accounts: arkState.accounts,
+        serverAccessTokens: arkState.serverAccessTokens
+      },
       ecash: {
         accounts: ecashState.accounts,
         activeAccountId: ecashState.activeAccountId,
@@ -160,6 +172,7 @@ export default function Developer() {
         transactions: ecashState.transactions
       },
       exportedAt: new Date().toISOString(),
+      lnd: lightningConfig,
       nostr: {
         lastDataExchangeEOSE: nostrState.lastDataExchangeEOSE,
         lastProtocolEOSE: nostrState.lastProtocolEOSE,
@@ -168,6 +181,17 @@ export default function Developer() {
         processedMessageIds: nostrState.processedMessageIds,
         profiles: nostrState.profiles,
         trustedDevices: nostrState.trustedDevices
+      },
+      nostrIdentities: {
+        activeIdentityNpub: nostrIdentityState.activeIdentityNpub,
+        identities: nostrIdentityState.identities,
+        relays: nostrIdentityState.relays
+      },
+      serverSettings: {
+        configs: blockchainState.configs,
+        configsMempool: blockchainState.configsMempool,
+        customServers: blockchainState.customServers,
+        selectedNetwork: blockchainState.selectedNetwork
       },
       settings: { currencyUnit, mnemonicWordList, useZeroPadding },
       version: 1

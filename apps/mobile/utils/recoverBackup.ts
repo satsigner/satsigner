@@ -4,12 +4,17 @@ import {
   storeKeySecret
 } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
+import { useArkStore } from '@/store/ark'
 import { useAuthStore } from '@/store/auth'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
+import { useLightningStore } from '@/store/lightning'
 import { useNostrStore } from '@/store/nostr'
+import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account, type Key } from '@/types/models/Account'
+import { type ArkAccount } from '@/types/models/Ark'
 import {
   type EcashAccount,
   type EcashKeysetCounter,
@@ -19,7 +24,10 @@ import {
   type MeltQuote,
   type MintQuote
 } from '@/types/models/Ecash'
+import { type LNDConfig } from '@/types/models/LND'
 import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
+import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import { type Config, type Network, type Server } from '@/types/settings/blockchain'
 import { aesEncrypt, getPinForDecryption, randomIv } from '@/utils/crypto'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 
@@ -39,6 +47,10 @@ type BackupAccount = {
 }
 type BackupData = {
   accounts: BackupAccount[]
+  ark?: {
+    accounts: ArkAccount[]
+    serverAccessTokens: Partial<Record<Network, string>>
+  }
   ecash?: {
     accounts?: EcashAccount[]
     activeAccountId?: string | null
@@ -49,6 +61,7 @@ type BackupData = {
     quotes?: Record<string, { melt: MeltQuote[]; mint: MintQuote[] }>
     transactions?: Record<string, EcashTransaction[]>
   }
+  lnd?: LNDConfig | null
   nostr?: {
     lastDataExchangeEOSE?: Record<string, number>
     lastProtocolEOSE?: Record<string, number>
@@ -57,6 +70,17 @@ type BackupData = {
     processedMessageIds?: Record<string, Record<string, true>>
     profiles?: Record<string, { displayName?: string; picture?: string }>
     trustedDevices?: Record<string, string[]>
+  }
+  nostrIdentities?: {
+    activeIdentityNpub: string | null
+    identities: NostrIdentity[]
+    relays: string[]
+  }
+  serverSettings?: {
+    configs: Record<Network, { config: Config; server: Server }>
+    configsMempool: Record<Network, string>
+    customServers: Server[]
+    selectedNetwork: Network
   }
   settings: {
     currencyUnit: string
@@ -240,6 +264,53 @@ export async function performRecoverOverwrite(
       }
       if (typeof data.settings.useZeroPadding === 'boolean') {
         cur.setUseZeroPadding(data.settings.useZeroPadding)
+      }
+    }
+    if (data.lnd) {
+      useLightningStore.getState().setConfig(data.lnd)
+    } else if ('lnd' in data && data.lnd === null) {
+      useLightningStore.getState().clearConfig()
+    }
+    useNostrIdentityStore.getState().clearAll()
+    if (data.nostrIdentities) {
+      for (const identity of data.nostrIdentities.identities) {
+        useNostrIdentityStore.getState().addIdentity(identity)
+      }
+      useNostrIdentityStore
+        .getState()
+        .setActiveIdentity(data.nostrIdentities.activeIdentityNpub)
+      useNostrIdentityStore.getState().setRelays(data.nostrIdentities.relays)
+    }
+    useArkStore.getState().clearAllData()
+    if (data.ark) {
+      for (const account of data.ark.accounts) {
+        useArkStore.getState().addAccount(account)
+      }
+      for (const [network, token] of Object.entries(
+        data.ark.serverAccessTokens
+      )) {
+        useArkStore
+          .getState()
+          .setServerAccessToken(network as Network, token as string)
+      }
+    }
+    if (data.serverSettings) {
+      const bs = useBlockchainStore.getState()
+      bs.setSelectedNetwork(data.serverSettings.selectedNetwork)
+      for (const [network, nc] of Object.entries(data.serverSettings.configs)) {
+        bs.updateServer(network as Network, nc.server)
+        bs.updateConfig(network as Network, nc.config)
+      }
+      for (const [network, url] of Object.entries(
+        data.serverSettings.configsMempool
+      )) {
+        bs.updateConfigMempool(network as Network, url)
+      }
+      for (const old of [...bs.customServers]) {
+        bs.removeCustomServer(old)
+      }
+      for (const s of data.serverSettings.customServers) {
+        bs.addCustomServer(s)
       }
     }
     return { success: true }
