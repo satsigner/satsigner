@@ -10,6 +10,9 @@ const LIGHTNING_SUBSYSTEM_KINDS = new Set([
 
 const COUNTERPARTY_TRUNCATE_CHARS = 8
 
+const STALE_EXIT_SUBSYSTEM_NAME = 'bark.exit'
+const STALE_EXIT_SUBSYSTEM_KIND = 'start'
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -41,6 +44,15 @@ export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
 
 export function isLightningMovement(movement: ArkMovement): boolean {
   return LIGHTNING_SUBSYSTEM_KINDS.has(movement.subsystemKind.toLowerCase())
+}
+
+export function isStaleArkExitMovement(movement: ArkMovement): boolean {
+  return (
+    movement.subsystemName === STALE_EXIT_SUBSYSTEM_NAME &&
+    movement.subsystemKind === STALE_EXIT_SUBSYSTEM_KIND &&
+    movement.outputVtxoIds.length === 0 &&
+    movement.exitedVtxoIds.length === 0
+  )
 }
 
 export function getArkMovementAmountSats(movement: ArkMovement): number {

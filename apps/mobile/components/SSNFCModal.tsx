@@ -111,9 +111,8 @@ function SSNFCModal({
       toast.success(t('success.exportNFC'))
       onClose()
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t('nfc.error.writeFailed')
-      )
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('nfc.error.writeFailed')}: ${reason}`)
     }
   }, [isEmitting, cancelNFCEmitterScan, emitNFCTag, dataToWrite, onClose])
 

@@ -17,13 +17,9 @@ import { ScrollView, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  SSIconBlackIndicator,
-  SSIconGreenIndicator,
-  SSIconYellowIndicator
-} from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSModal from '@/components/SSModal'
 import SSProxyFormFields from '@/components/SSProxyFormFields'
 import SSText from '@/components/SSText'
@@ -91,7 +87,7 @@ export default function CustomNetwork() {
     ])
   )
 
-  const [connectionState, connectionString, isPrivateConnection] =
+  const [connectionStatus, connectionString, isPrivateConnection] =
     useVerifyConnection()
 
   const {
@@ -289,7 +285,7 @@ export default function CustomNetwork() {
   }
 
   function handleCancel() {
-    if (!connectionState) {
+    if (connectionStatus !== 'connected') {
       setSelectedNetwork(oldNetwork)
       updateServer(oldNetwork, oldServer)
     }
@@ -442,22 +438,18 @@ export default function CustomNetwork() {
                 <SSHStack
                   style={{ gap: 0, justifyContent: 'center', marginBottom: 8 }}
                 >
-                  {connectionState ? (
-                    isPrivateConnection ? (
-                      <SSIconYellowIndicator height={24} width={24} />
-                    ) : (
-                      <SSIconGreenIndicator height={24} width={24} />
-                    )
-                  ) : (
-                    <SSIconBlackIndicator height={24} width={24} />
-                  )}
+                  <SSConnectionStatusIndicator
+                    isPrivateConnection={isPrivateConnection}
+                    status={connectionStatus}
+                  />
                   <SSText
                     size="xxs"
                     uppercase
                     style={{
-                      color: connectionState
-                        ? Colors.gray['200']
-                        : Colors.gray['450']
+                      color:
+                        connectionStatus === 'connected'
+                          ? Colors.gray['200']
+                          : Colors.gray['450']
                     }}
                   >
                     {connectionString}

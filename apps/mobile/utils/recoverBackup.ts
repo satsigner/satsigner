@@ -1,10 +1,24 @@
-import { storeKeySecret } from '@/storage/encrypted'
+import {
+  deleteEcashMnemonic,
+  storeEcashMnemonic,
+  storeKeySecret
+} from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
+import { useEcashStore } from '@/store/ecash'
 import { useNostrStore } from '@/store/nostr'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account, type Key } from '@/types/models/Account'
+import {
+  type EcashAccount,
+  type EcashKeysetCounter,
+  type EcashMint,
+  type EcashProof,
+  type EcashTransaction,
+  type MeltQuote,
+  type MintQuote
+} from '@/types/models/Ecash'
 import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
 import { aesEncrypt, getPinForDecryption, randomIv } from '@/utils/crypto'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
@@ -25,6 +39,25 @@ type BackupAccount = {
 }
 type BackupData = {
   accounts: BackupAccount[]
+  ecash?: {
+    accounts?: EcashAccount[]
+    activeAccountId?: string | null
+    counters?: Record<string, EcashKeysetCounter[]>
+    mints?: Record<string, EcashMint[]>
+    mnemonics?: Record<string, string | null>
+    proofs?: Record<string, EcashProof[]>
+    quotes?: Record<string, { melt: MeltQuote[]; mint: MintQuote[] }>
+    transactions?: Record<string, EcashTransaction[]>
+  }
+  nostr?: {
+    lastDataExchangeEOSE?: Record<string, number>
+    lastProtocolEOSE?: Record<string, number>
+    members?: Record<string, { color: string; npub: string }[]>
+    processedEvents?: Record<string, Record<string, true>>
+    processedMessageIds?: Record<string, Record<string, true>>
+    profiles?: Record<string, { displayName?: string; picture?: string }>
+    trustedDevices?: Record<string, string[]>
+  }
   settings: {
     currencyUnit: string
     mnemonicWordList: string
@@ -58,6 +91,7 @@ export async function performRecoverOverwrite(
       throw new Error('Invalid backup format')
     }
     const restoredAccounts: Account[] = []
+    const existingEcashAccounts = useEcashStore.getState().accounts
     for (const acc of data.accounts) {
       const keys: Key[] = []
       for (const k of acc.keys) {
@@ -141,10 +175,50 @@ export async function performRecoverOverwrite(
     }
     resetNostrSync()
     useNostrStore.getState().clearAllNostrState()
+    useEcashStore.getState().clearAllData()
+    await Promise.all(
+      existingEcashAccounts.map((account) => deleteEcashMnemonic(account.id))
+    )
     useAccountsStore.getState().deleteAccounts()
     useWalletsStore.getState().deleteWallets()
     for (const account of restoredAccounts) {
       useAccountsStore.getState().addAccount(account)
+    }
+    if (data.nostr) {
+      useNostrStore.setState({
+        activeSubscriptions: new Set(),
+        lastDataExchangeEOSE: data.nostr.lastDataExchangeEOSE ?? {},
+        lastProtocolEOSE: data.nostr.lastProtocolEOSE ?? {},
+        members: data.nostr.members ?? {},
+        processedEvents: data.nostr.processedEvents ?? {},
+        processedMessageIds: data.nostr.processedMessageIds ?? {},
+        profiles: data.nostr.profiles ?? {},
+        syncStatus: {},
+        syncingAccounts: {},
+        transactionToShare: null,
+        trustedDevices: data.nostr.trustedDevices ?? {}
+      })
+    }
+    if (data.ecash) {
+      useEcashStore.setState({
+        accounts: data.ecash.accounts ?? [],
+        activeAccountId: data.ecash.activeAccountId ?? null,
+        checkingTransactionIds: [],
+        counters: data.ecash.counters ?? {},
+        mints: data.ecash.mints ?? {},
+        proofs: data.ecash.proofs ?? {},
+        quotes: data.ecash.quotes ?? {},
+        transactions: data.ecash.transactions ?? {}
+      })
+      if (data.ecash.mnemonics) {
+        await Promise.all(
+          Object.entries(data.ecash.mnemonics)
+            .filter((entry): entry is [string, string] => Boolean(entry[1]))
+            .map(([accountId, mnemonic]) =>
+              storeEcashMnemonic(accountId, mnemonic)
+            )
+        )
+      }
     }
     if (data.settings) {
       const cur = useSettingsStore.getState()

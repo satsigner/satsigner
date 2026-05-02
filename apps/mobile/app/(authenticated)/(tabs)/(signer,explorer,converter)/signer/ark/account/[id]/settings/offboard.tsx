@@ -124,11 +124,8 @@ export default function ArkSendOffboardPage() {
       },
       {
         onError: (error) => {
-          const message =
-            error instanceof Error
-              ? error.message
-              : t('ark.offboard.error.generic')
-          toast.error(message)
+          const reason = error instanceof Error ? error.message : 'unknown'
+          toast.error(`${t('ark.offboard.error.generic')}: ${reason}`)
         },
         onSuccess: () => {
           toast.success(t('ark.offboard.success'))

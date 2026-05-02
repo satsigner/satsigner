@@ -932,8 +932,20 @@ function PreviewTransaction() {
       value: output.amount
     }))
 
+    function resolveId(): string {
+      if (!txBuilderResult) {
+        return transactionId
+      }
+      try {
+        return txBuilderResult.txid() || transactionId
+      } catch {
+        return transactionId
+      }
+    }
+    const id = resolveId()
+
     return {
-      id: transactionId,
+      id,
       lockTimeEnabled: false,
       prices: {},
       received: 0,
@@ -944,7 +956,7 @@ function PreviewTransaction() {
       vout,
       vsize
     }
-  }, [inputs, outputs, transactionId])
+  }, [inputs, outputs, transactionId, txBuilderResult])
 
   useEffect(() => {
     if (signedPsbtsFromStore && signedPsbtsFromStore.size > 0) {
@@ -2102,12 +2114,7 @@ function PreviewTransaction() {
                 </View>
               </SSVStack>
               <SSVStack gap="xxs">
-                <SSText
-                  uppercase
-                  size="sm"
-                  color="muted"
-                  style={{ marginBottom: -22 }}
-                >
+                <SSText uppercase size="sm" color="muted">
                   {tn('decoded')}
                 </SSText>
                 {transactionHex !== '' && (

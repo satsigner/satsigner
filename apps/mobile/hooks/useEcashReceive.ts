@@ -271,10 +271,9 @@ export function useEcashReceive() {
           )
           toast.success(t('ecash.success.lnurlWithdrawRequested'))
         } catch (error) {
+          const reason = error instanceof Error ? error.message : 'unknown'
           toast.error(
-            error instanceof Error
-              ? error.message
-              : t('ecash.error.failedToRequestLnurlWithdraw')
+            `${t('ecash.error.failedToRequestLnurlWithdraw')}: ${reason}`
           )
         }
       }

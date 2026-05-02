@@ -38,7 +38,6 @@ export default function GenerateMnemonic() {
   const [
     name,
     mnemonic,
-    mnemonicList,
     mnemonicWordCount,
     mnemonicWordList,
     fingerprint,
@@ -56,7 +55,6 @@ export default function GenerateMnemonic() {
     useShallow((state) => [
       state.name,
       state.mnemonic,
-      state.mnemonic.split(' '),
       state.mnemonicWordCount,
       state.mnemonicWordList,
       state.fingerprint,
@@ -72,6 +70,7 @@ export default function GenerateMnemonic() {
       state.setInternalDescriptor
     ])
   )
+  const mnemonicList = mnemonic.split(' ')
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [checksumValid, setChecksumValid] = useState(true)

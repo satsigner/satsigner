@@ -77,7 +77,9 @@ const styles = StyleSheet.create({
     borderWidth: Sizes.radioButton.borderWidth
   },
   unselectedDefault: {
-    backgroundColor: Colors.gray[950]
+    backgroundColor: Colors.gray[950],
+    borderColor: Colors.gray[700],
+    borderWidth: Sizes.radioButton.borderWidth
   },
   unselectedOutline: {
     borderColor: Colors.gray[700],

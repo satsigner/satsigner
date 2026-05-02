@@ -253,9 +253,8 @@ export default function Receive() {
       await emitNFCTag(localFinalAddressQR)
       toast.success(t('receive.success.exportNFC'))
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : t('receive.error.exportNFC')
-      toast.error(errorMessage)
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('receive.error.exportNFC')}: ${reason}`)
     }
   }
 
@@ -439,7 +438,7 @@ export default function Receive() {
                         ? t('receive.bitcoinPrefix')
                         : t('receive.noPrefix')
                     }
-                    variant={includeBitcoinPrefix ? 'default' : 'outline'}
+                    variant="outline"
                     style={styles.toggleButton}
                     onPress={handleToggleBitcoinPrefix}
                   />
@@ -449,7 +448,7 @@ export default function Receive() {
                         ? t('receive.excludeLabel')
                         : t('receive.includeLabel')
                     }
-                    variant={includeLabel ? 'default' : 'outline'}
+                    variant="outline"
                     style={styles.toggleButton}
                     onPress={handleToggleLabel}
                   />

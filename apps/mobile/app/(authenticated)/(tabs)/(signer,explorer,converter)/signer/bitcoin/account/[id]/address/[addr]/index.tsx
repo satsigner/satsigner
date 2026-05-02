@@ -21,7 +21,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { getAccountFingerprint } from '@/utils/account'
@@ -42,23 +41,15 @@ function AddressDetails() {
     ])
   )
 
-  const transactions = useAccountsStore((state) =>
-    state.accounts
-      .find((account: Account) => account.id === accountId)
-      ?.transactions.filter((tx) => address?.transactions.includes(tx.id))
+  const transactions = account?.transactions.filter((tx) =>
+    address?.transactions.includes(tx.id)
   )
 
-  const addressUtxos = useAccountsStore((state) =>
-    state.accounts
-      .find((account: Account) => account.id === accountId)
-      ?.utxos.filter((utxo) => address?.utxos.includes(getUtxoOutpoint(utxo)))
+  const addressUtxos = account?.utxos.filter((utxo) =>
+    address?.utxos.includes(getUtxoOutpoint(utxo))
   )
 
-  const allAccountUtxos = useAccountsStore(
-    (state) =>
-      state.accounts.find((account: Account) => account.id === accountId)
-        ?.utxos || []
-  )
+  const allAccountUtxos = account?.utxos || []
 
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 

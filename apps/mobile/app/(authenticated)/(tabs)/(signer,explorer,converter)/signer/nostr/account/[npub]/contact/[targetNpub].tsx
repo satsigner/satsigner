@@ -16,6 +16,7 @@ import { useEcash } from '@/hooks/useEcash'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useArkStore } from '@/store/ark'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
@@ -51,13 +52,18 @@ export default function NostrContactProfile() {
   const lightningConfig = useLightningStore((state) => state.config)
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const { mints } = useEcash()
+  const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingInvoice = useState<{
     invoice: string
     zapRequestJson: string
   } | null>(null)
 
-  const availablePaymentMethods = buildPaymentMethods(lightningConfig, mints)
+  const availablePaymentMethods = buildPaymentMethods(
+    lightningConfig,
+    mints,
+    arkAccounts
+  )
 
   async function loadProfile() {
     if (!targetNpub || effectiveRelays.length === 0) {
@@ -180,6 +186,15 @@ export default function NostrContactProfile() {
       router.navigate({
         params: bolt11 ? { invoice: bolt11 } : undefined,
         pathname: '/signer/ecash/send'
+      })
+    } else if (method.type === 'ark' && method.accountId && bolt11) {
+      router.navigate({
+        params: {
+          amountSats: String(sats),
+          id: method.accountId,
+          invoice: bolt11
+        },
+        pathname: '/signer/ark/account/[id]/pay-invoice'
       })
     }
   }

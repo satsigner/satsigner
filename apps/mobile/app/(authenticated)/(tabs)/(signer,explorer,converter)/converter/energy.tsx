@@ -336,7 +336,7 @@ export default function Energy() {
       }
 
       if (data.error) {
-        let errorMessage = data.error.message || 'RPC error'
+        let errorMessage = `RPC Error: ${data.error.message}`
         if (data.error.code === -32601) {
           errorMessage =
             'getblocktemplate RPC method not found. Make sure your node supports mining.'
@@ -571,7 +571,7 @@ export default function Energy() {
         } else if (data.error.code === -32601) {
           throw new Error('RPC method not found')
         } else {
-          throw new Error(data.error.message || 'RPC error')
+          throw new Error(`RPC error: ${data.error.message}`)
         }
       }
 
@@ -853,7 +853,7 @@ export default function Energy() {
         const networkData = await networkResponse.json()
         if (networkData.error) {
           throw new Error(
-            networkData.error.message || 'Failed to get fresh blockchain info'
+            `Failed to get fresh blockchain info: ${networkData.error.message}`
           )
         }
 
@@ -875,7 +875,7 @@ export default function Energy() {
         const templateData = await templateResponse.json()
         if (templateData.error) {
           throw new Error(
-            templateData.error.message || 'Failed to get fresh template'
+            `Failed to get fresh template: ${templateData.error.message}`
           )
         }
 
@@ -1015,7 +1015,7 @@ export default function Energy() {
       const networkData = await networkResponse.json()
       if (networkData.error) {
         throw new Error(
-          networkData.error.message || 'Failed to get node network information'
+          `Failed to get node network information: ${networkData.error.message}`
         )
       }
 
@@ -1342,7 +1342,7 @@ export default function Energy() {
 
       const data = await response.json()
       if (data.error) {
-        throw new Error(data.error.message || 'RPC error')
+        throw new Error(`RPC Error ${data.error.message}`)
       }
 
       if (!data.result) {

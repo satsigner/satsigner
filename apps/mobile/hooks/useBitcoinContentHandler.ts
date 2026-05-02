@@ -110,11 +110,8 @@ export function useBitcoinContentHandler({
             account
           )
         } catch (error) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : t('bitcoin.error.processFailed')
-          toast.error(message)
+          const reason = error instanceof Error ? error.message : 'unknown'
+          toast.error(`${t('bitcoin.error.processFailed')}: ${reason}`)
         }
       }
 

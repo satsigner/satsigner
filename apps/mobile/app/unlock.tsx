@@ -121,7 +121,7 @@ export default function Unlock() {
       backgroundColor={Colors.gray[950]}
       style={{
         paddingBottom: Layout.mainContainer.paddingBottom,
-        paddingTop: '25%'
+        paddingTop: '40%'
       }}
     >
       <SSPinEntry

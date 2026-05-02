@@ -24,6 +24,7 @@ import {
   getArkMovementCounterparty,
   getArkMovementKind,
   isLightningMovement,
+  isStaleArkExitMovement,
   truncateArkCounterparty
 } from '@/utils/arkMovement'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
@@ -70,6 +71,7 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
   const kind = getArkMovementKind(movement)
   const amountSats = getArkMovementAmountSats(movement)
   const isLightning = isLightningMovement(movement)
+  const isStale = isStaleArkExitMovement(movement)
   const fee = movement.offchainFeeSats
   const timestamp = new Date(movement.createdAt)
   const counterparty = getArkMovementCounterparty(movement)
@@ -77,6 +79,9 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
   const satTextType = kind === 'receive' ? 'receive' : 'send'
   const showFee = fee > 0
   const showFiat = btcPrice > 0 && kind !== 'refresh' && amountSats > 0
+  const muteAmountColor = kind === 'refresh' || isStale
+  const showRefreshLabel =
+    kind === 'refresh' && amountSats === 0 && !privacyMode
 
   const priceDisplay =
     showFiat && !privacyMode
@@ -86,7 +91,11 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
         : ''
 
   return (
-    <TouchableOpacity onPress={() => router.navigate(link)} activeOpacity={0.7}>
+    <TouchableOpacity
+      onPress={() => router.navigate(link)}
+      activeOpacity={0.7}
+      style={isStale ? styles.staleContainer : undefined}
+    >
       <SSHStack justifyBetween style={styles.container} gap="sm">
         <SSVStack gap="xxs" style={styles.leftColumn}>
           <SSHStack gap="sm" style={styles.amountRow}>
@@ -100,7 +109,7 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
                 >
                   ••••
                 </SSText>
-              ) : kind === 'refresh' && amountSats === 0 ? (
+              ) : showRefreshLabel ? (
                 <SSText size="xl" weight="light" color="muted">
                   {t('ark.movement.refreshLabel')}
                 </SSText>
@@ -112,14 +121,18 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
                   currency={currencyUnit}
                   type={satTextType}
                   textSize="xl"
-                  noColor={kind === 'refresh'}
+                  noColor={muteAmountColor}
                   weight="light"
                   letterSpacing={-0.5}
                 />
               )}
-              <SSText color="muted" size="sm" style={styles.unit}>
-                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-              </SSText>
+              {!showRefreshLabel && (
+                <SSText color="muted" size="sm" style={styles.unit}>
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
+                </SSText>
+              )}
             </SSHStack>
           </SSHStack>
           {priceDisplay !== '' && (
@@ -181,6 +194,9 @@ const styles = StyleSheet.create({
   },
   rightColumn: {
     alignItems: 'flex-end'
+  },
+  staleContainer: {
+    opacity: 0.45
   },
   unit: {
     marginBottom: -2

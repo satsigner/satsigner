@@ -73,9 +73,8 @@ export default function ArkAccountAddPage() {
         pathname: '/signer/ark/account/[id]'
       })
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t('ark.error.create')
-      toast.error(message)
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('ark.error.create')}: ${reason}`)
     } finally {
       setIsCreating(false)
     }
@@ -144,7 +143,6 @@ export default function ArkAccountAddPage() {
                 {bitcoinAccounts.map((account) => (
                   <SSRadioButton
                     key={account.id}
-                    variant="outline"
                     label={account.name}
                     selected={bitcoinAccountId === account.id}
                     onPress={() => handleSelectBitcoinAccount(account.id)}
@@ -160,7 +158,6 @@ export default function ArkAccountAddPage() {
               </View>
             )}
             <SSRadioButton
-              variant="outline"
               label={t('ark.account.createBitcoinToggle')}
               selected={createBitcoinAccount}
               onPress={handleSelectAutoCreate}

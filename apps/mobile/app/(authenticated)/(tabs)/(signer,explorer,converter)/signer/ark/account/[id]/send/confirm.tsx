@@ -10,6 +10,7 @@ import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useArkBalance } from '@/hooks/useArkBalance'
+import { useArkLnurlPayDetails } from '@/hooks/useArkLnurlPay'
 import { useArkSend } from '@/hooks/useArkSend'
 import {
   type ArkSendFeeKind,
@@ -20,6 +21,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import type {
@@ -32,13 +34,17 @@ import {
   parseArkDestination
 } from '@/utils/arkDestination'
 import { truncateArkCounterparty } from '@/utils/arkMovement'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { millisatsToSats } from '@/utils/bitcoinUnits'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
+import { validateAddress } from '@/utils/validation'
 
 const KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
   arkoor: 'ark.send.kind.arkoor',
   bolt11: 'ark.send.kind.bolt11',
   lnaddress: 'ark.send.kind.lnaddress',
-  lnurl: 'ark.send.kind.lnurl'
+  lnurl: 'ark.send.kind.lnurl',
+  onchain: 'ark.send.kind.onchain'
 }
 
 const CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
@@ -58,6 +64,12 @@ function destinationDisplay(draft: ArkDestinationDraft): string {
   }
   if (draft.kind === 'lnaddress') {
     return draft.address
+  }
+  if (draft.kind === 'onchain') {
+    return truncateArkCounterparty(
+      draft.address,
+      CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+    )
   }
   return truncateArkCounterparty(
     draft.lnurl,
@@ -89,6 +101,9 @@ function buildSendInput(
       kind: 'lnaddress'
     }
   }
+  if (draft.kind === 'onchain') {
+    return { address: draft.address, amountSats, kind: 'onchain' }
+  }
   return {
     amountSats,
     comment: trimmedComment || undefined,
@@ -101,10 +116,23 @@ function successToastKey(outcome: ArkSendOutcome): string {
   if (outcome.kind === 'arkoor') {
     return 'ark.send.success.arkoor'
   }
+  if (outcome.kind === 'onchain') {
+    return 'ark.send.success.onchain'
+  }
   if (outcome.preimage) {
     return 'ark.send.success.lightning'
   }
   return 'ark.send.success.lightningPending'
+}
+
+function feeKindFromDraft(draft: ArkDestinationDraft): ArkSendFeeKind {
+  if (draft.kind === 'arkoor') {
+    return 'arkoor'
+  }
+  if (draft.kind === 'onchain') {
+    return 'onchain'
+  }
+  return 'lightning'
 }
 
 export default function ArkSendConfirmPage() {
@@ -127,10 +155,13 @@ export default function ArkSendConfirmPage() {
     staleTime: Infinity
   })
 
-  const [amountInput, setAmountInput] = useState('')
+  const [amountInput, setAmountInput] = useState<string | null>(null)
   const [comment, setComment] = useState('')
   const sendMutation = useArkSend(id)
   const balanceQuery = useArkBalance(id)
+  const account = useArkStore((state) =>
+    state.accounts.find((a) => a.id === id)
+  )
 
   const [fiatCurrency, btcPrice] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.btcPrice])
@@ -138,26 +169,45 @@ export default function ArkSendConfirmPage() {
 
   const draft = parsedQuery.data
   const spendableSats = balanceQuery.data?.spendableSats ?? 0
+  const lnurlPayDetailsQuery = useArkLnurlPayDetails(
+    draft?.kind === 'lnurl' ? draft.lnurl : undefined
+  )
+  const lnurlPayDetails = lnurlPayDetailsQuery.data
+  const lnurlMinSats = lnurlPayDetails
+    ? millisatsToSats(lnurlPayDetails.minSendable, 'ceil')
+    : undefined
+  const lnurlMaxSats = lnurlPayDetails
+    ? millisatsToSats(lnurlPayDetails.maxSendable, 'floor')
+    : undefined
+  const lnurlCommentAllowed = lnurlPayDetails?.commentAllowed
   const amountFromInvoice =
     draft?.kind === 'bolt11' ? draft.amountSatsFromInvoice : undefined
+  const effectiveAmountInput =
+    amountInput ?? (lnurlMinSats !== undefined ? String(lnurlMinSats) : '')
   const amountSats =
-    amountFromInvoice ?? (Number.parseInt(amountInput, 10) || 0)
+    amountFromInvoice ?? (Number.parseInt(effectiveAmountInput, 10) || 0)
   const amountIsEditable = amountFromInvoice === undefined
   const showCommentField =
     draft?.kind === 'lnaddress' || draft?.kind === 'lnurl'
 
-  const feeKind: ArkSendFeeKind | null = draft
-    ? draft.kind === 'arkoor'
-      ? 'arkoor'
-      : 'lightning'
-    : null
-  // Fire fee estimation on the debounced amount so the estimator doesn't
-  // run per-keystroke. Fixed-amount invoices don't animate, so the debounce
-  // is effectively a no-op for them.
+  const onchainAddressNetworkValid =
+    draft?.kind === 'onchain' && account
+      ? validateAddress(draft.address, bitcoinjsNetwork(account.network))
+      : true
+
+  const lnurlAmountInRange =
+    draft?.kind !== 'lnurl' ||
+    lnurlMinSats === undefined ||
+    lnurlMaxSats === undefined ||
+    (amountSats >= lnurlMinSats && amountSats <= lnurlMaxSats)
+
+  const feeKind: ArkSendFeeKind | null = draft ? feeKindFromDraft(draft) : null
+  const onchainAddress = draft?.kind === 'onchain' ? draft.address : undefined
   const debouncedAmountSats = useDebouncedValue(amountSats)
   const feeEstimateQuery = useArkSendFeeEstimate({
     accountId: id,
     amountSats: debouncedAmountSats,
+    bitcoinAddress: onchainAddress,
     kind: feeKind
   })
   const feeSats = feeEstimateQuery.data
@@ -170,13 +220,27 @@ export default function ArkSendConfirmPage() {
       ? totalSats > spendableSats
       : amountSats > spendableSats
   const canConfirm =
-    !!draft && amountSats > 0 && !exceedsBalance && !sendMutation.isPending
+    !!draft &&
+    amountSats > 0 &&
+    !exceedsBalance &&
+    !sendMutation.isPending &&
+    onchainAddressNetworkValid &&
+    lnurlAmountInRange &&
+    (draft.kind !== 'lnurl' || !lnurlPayDetailsQuery.isLoading)
 
   function handleAmountChange(text: string) {
     setAmountInput(text.replace(/[^0-9]/g, ''))
   }
 
+  const lnurlDetailsLoading =
+    draft?.kind === 'lnurl' && lnurlPayDetailsQuery.isLoading
+  const lnurlDetailsError =
+    draft?.kind === 'lnurl' && !!lnurlPayDetailsQuery.error
+
   function handleConfirm() {
+    if (sendMutation.isPending) {
+      return
+    }
     if (!draft) {
       return
     }
@@ -187,9 +251,8 @@ export default function ArkSendConfirmPage() {
     const input = buildSendInput(draft, amountSats, comment)
     sendMutation.mutate(input, {
       onError: (error) => {
-        const message =
-          error instanceof Error ? error.message : t('ark.send.error.generic')
-        toast.error(message)
+        const reason = error instanceof Error ? error.message : 'unknown'
+        toast.error(`${t('ark.send.error.generic')}: ${reason}`)
       },
       onSuccess: (outcome) => {
         toast.success(t(successToastKey(outcome)))
@@ -235,6 +298,11 @@ export default function ArkSendConfirmPage() {
                     </SSText>
                   </SSClipboardCopy>
                 </View>
+                {draft.kind === 'onchain' && !onchainAddressNetworkValid && (
+                  <SSText size="xs" style={{ color: Colors.warning }}>
+                    {t('ark.send.error.addressNetworkMismatch')}
+                  </SSText>
+                )}
               </SSVStack>
               {draft.kind === 'bolt11' && draft.description && (
                 <SSVStack gap="xs">
@@ -248,12 +316,34 @@ export default function ArkSendConfirmPage() {
                 <SSText color="muted" size="xs" uppercase>
                   {t('ark.send.amount')} ({t('bitcoin.sats')})
                 </SSText>
+                {lnurlDetailsLoading && (
+                  <SSText color="muted" size="xs">
+                    {t('ark.send.lnurlFetching')}
+                  </SSText>
+                )}
+                {lnurlDetailsError && (
+                  <SSText size="xs" style={{ color: Colors.warning }}>
+                    {t('ark.send.error.lnurlFetch')}
+                  </SSText>
+                )}
+                {draft.kind === 'lnurl' &&
+                  lnurlMinSats !== undefined &&
+                  lnurlMaxSats !== undefined && (
+                    <SSText color="muted" size="xs">
+                      {t('ark.send.lnurlRange', {
+                        max: formatNumber(lnurlMaxSats),
+                        min: formatNumber(lnurlMinSats)
+                      })}
+                    </SSText>
+                  )}
                 {amountIsEditable ? (
                   <SSTextInput
                     align="left"
                     value={
-                      amountInput
-                        ? formatNumber(Number.parseInt(amountInput, 10))
+                      effectiveAmountInput
+                        ? formatNumber(
+                            Number.parseInt(effectiveAmountInput, 10)
+                          )
                         : ''
                     }
                     onChangeText={handleAmountChange}
@@ -273,7 +363,7 @@ export default function ArkSendConfirmPage() {
                     amount: formatNumber(spendableSats)
                   })}
                 </SSText>
-                {exceedsBalance && (
+                {exceedsBalance && !sendMutation.isPending && (
                   <SSText size="xs" style={{ color: Colors.warning }}>
                     {t(
                       feeSats === undefined
@@ -282,6 +372,16 @@ export default function ArkSendConfirmPage() {
                     )}
                   </SSText>
                 )}
+                {!lnurlAmountInRange &&
+                  lnurlMinSats !== undefined &&
+                  lnurlMaxSats !== undefined && (
+                    <SSText size="xs" style={{ color: Colors.warning }}>
+                      {t('ark.send.error.amountOutOfRange', {
+                        max: formatNumber(lnurlMaxSats),
+                        min: formatNumber(lnurlMinSats)
+                      })}
+                    </SSText>
+                  )}
               </SSVStack>
               {amountSats > 0 && (
                 <SSVStack gap="xs">
@@ -323,19 +423,21 @@ export default function ArkSendConfirmPage() {
                   )}
                 </SSVStack>
               )}
-              {showCommentField && (
-                <SSVStack gap="xs">
-                  <SSText color="muted" size="xs" uppercase>
-                    {t('ark.send.comment')}
-                  </SSText>
-                  <SSTextInput
-                    align="left"
-                    value={comment}
-                    onChangeText={setComment}
-                    placeholder={t('ark.send.commentPlaceholder')}
-                  />
-                </SSVStack>
-              )}
+              {showCommentField &&
+                (draft.kind !== 'lnurl' || (lnurlCommentAllowed ?? 0) > 0) && (
+                  <SSVStack gap="xs">
+                    <SSText color="muted" size="xs" uppercase>
+                      {t('ark.send.comment')}
+                    </SSText>
+                    <SSTextInput
+                      align="left"
+                      value={comment}
+                      onChangeText={setComment}
+                      placeholder={t('ark.send.commentPlaceholder')}
+                      maxLength={lnurlCommentAllowed}
+                    />
+                  </SSVStack>
+                )}
               <SSHStack gap="sm" style={styles.actions}>
                 <SSButton
                   label={t('common.cancel')}
@@ -369,6 +471,9 @@ function destinationSource(draft: ArkDestinationDraft): string {
     return draft.invoice
   }
   if (draft.kind === 'lnaddress') {
+    return draft.address
+  }
+  if (draft.kind === 'onchain') {
     return draft.address
   }
   return draft.lnurl

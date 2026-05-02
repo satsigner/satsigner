@@ -39,7 +39,7 @@ export default function LightningPage() {
   const pathname = usePathname()
   const segments = useSegments()
   const showDrawerNav = showNavigation(pathname, segments.length)
-  const { config } = useLightningStore()
+  const config = useLightningStore((s) => s.config)
   const { channels: lndChannels, getChannels, isConnected, nodeInfo } = useLND()
   const [privacyMode, togglePrivacyMode] = useSettingsStore(
     useShallow((state) => [state.privacyMode, state.togglePrivacyMode])

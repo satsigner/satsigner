@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
 import SSIconRefresh from '@/components/icons/SSIconRefresh'
@@ -37,7 +38,9 @@ import {
 export default function NodeSettingsPage() {
   const router = useRouter()
   const params = useLocalSearchParams<{ alias: string }>()
-  const { config, clearConfig } = useLightningStore()
+  const [config, clearConfig] = useLightningStore(
+    useShallow((s) => [s.config, s.clearConfig])
+  )
   const lastSync = useLightningStore((s) => s.status.lastSync)
   const {
     exportAllChannelBackups,

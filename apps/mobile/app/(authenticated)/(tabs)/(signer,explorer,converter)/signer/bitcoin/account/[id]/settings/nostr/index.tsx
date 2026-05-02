@@ -769,10 +769,9 @@ export default function NostrSync() {
           })
         }
       } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown'
         toast.error(
-          error instanceof Error
-            ? error.message
-            : t('account.nostrSync.errorLoadingCommonKeys')
+          `${t('account.nostrSync.errorLoadingCommonKeys')}: ${reason}`
         )
       }
     }
