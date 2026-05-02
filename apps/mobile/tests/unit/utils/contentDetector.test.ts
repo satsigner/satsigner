@@ -297,6 +297,13 @@ describe('contentDetector', () => {
         expect(result.type).toBe('lnd_rest_config')
         expect(result.isValid).toBe(true)
       })
+
+      it('should detect bare https config file URL', async () => {
+        const payload = 'https://node.example/lnd-config/1/lnd.config'
+        const result = await detectContentByContext(payload, 'lightning')
+        expect(result.type).toBe('lnd_rest_config')
+        expect(result.isValid).toBe(true)
+      })
     })
 
     describe('incompatible content in Lightning context', () => {

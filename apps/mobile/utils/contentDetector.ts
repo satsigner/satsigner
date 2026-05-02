@@ -13,6 +13,7 @@ import {
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
 import { isLNURL } from '@/utils/lnurl'
+import { getLndConfigFileUrlFromConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
@@ -209,10 +210,10 @@ function detectArkContent(data: string): DetectedContent | null {
 function detectLndRestConfigConnectionString(
   data: string
 ): DetectedContent | null {
-  const trimmed = data.trim()
-  if (!/^config=.*\.config$/i.test(trimmed)) {
+  if (!getLndConfigFileUrlFromConnectionInput(data)) {
     return null
   }
+  const trimmed = data.trim()
   return {
     cleaned: trimmed,
     isValid: true,
@@ -487,7 +488,8 @@ export async function detectContentByContext(
       break
     case 'lightning':
       detected =
-        detectLndRestConfigConnectionString(data) || detectLightningContent(data)
+        detectLndRestConfigConnectionString(data) ||
+        detectLightningContent(data)
       if (!detected) {
         detected =
           (await detectBitcoinContent(data)) || detectEcashContent(data)

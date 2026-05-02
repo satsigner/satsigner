@@ -41,6 +41,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'satsigner',
   orientation: 'portrait',
   plugins: [
+    'expo-dev-client',
     [
       'expo-router',
       {
