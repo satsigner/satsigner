@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   textArea: {
     backgroundColor: '#1a1a1a',
     borderColor: '#333',
-    borderRadius: 8,
+    borderRadius: 3,
     borderWidth: 1,
     color: '#fff',
     height: 100,
