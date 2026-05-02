@@ -2081,6 +2081,8 @@
     "developer.recoverOverwrite": "Overwrite and recover data",
     "developer.recoverOverwriteError": "Failed to restore backup",
     "developer.recoverPassphrasePlaceholder": "Enter passphrase to decrypt",
+    "developer.recoverScanModalTitle": "Scan encrypted backup",
+    "developer.recoverScanQr": "Scan QR",
     "developer.recoverTitle": "Recover data",
     "developer.recoverUploadError": "Failed to load backup file",
     "developer.recoverUploadFile": "Upload file",

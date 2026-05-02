@@ -45,6 +45,7 @@ export type ContentType =
   | 'lnd_rest_config'
   | 'ark_address'
   | 'ecash_token'
+  | 'encrypted_backup'
   | 'bbqr_fragment'
   | 'seed_qr'
   | 'ur'
@@ -60,7 +61,13 @@ export type ContentType =
   | 'incompatible'
   | 'unknown'
 
-export type ContentContext = 'bitcoin' | 'lightning' | 'ark' | 'ecash' | 'nostr'
+export type ContentContext =
+  | 'bitcoin'
+  | 'lightning'
+  | 'ark'
+  | 'ecash'
+  | 'nostr'
+  | 'developer_recover'
 
 export type DetectedContent = {
   type: ContentType
@@ -190,6 +197,47 @@ function stripSchemePrefix(data: string): string {
   return data
 }
 
+function normalizeCashuTokenPrefix(token: string): string {
+  const m = token.match(/^(cashu)([ab])(.*)$/i)
+  if (!m) {
+    return token
+  }
+  return `cashu${m[2].toUpperCase()}${m[3]}`
+}
+
+/**
+ * Returns a Cashu token substring when the input embeds `cashuA…` / `cashuB…`
+ * (e.g. `https://wallet.example/e/cashuB…`). Returns null if no marker exists.
+ */
+export function extractCashuTokenFromString(data: string): string | null {
+  const stripped = stripSchemePrefix(data.trim())
+  const matchIndex = stripped.search(/cashu[AB]/i)
+  if (matchIndex === -1) {
+    return null
+  }
+
+  let raw = stripped.slice(matchIndex)
+  const run = raw.match(/^(cashu[AB][A-Za-z0-9+/=_%-]*)/i)
+  if (!run) {
+    return null
+  }
+  raw = run[1]
+
+  let decoded = raw
+  try {
+    decoded = decodeURIComponent(raw)
+  } catch {
+    decoded = raw
+  }
+
+  return normalizeCashuTokenPrefix(decoded)
+}
+
+/** Strips wallet URLs / schemes so paste and decode always see a raw token. */
+export function prepareEcashTokenInput(data: string): string {
+  return extractCashuTokenFromString(data) ?? stripSchemePrefix(data.trim())
+}
+
 function detectArkContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
   const validation = validateArkAddressWithNetwork(trimmed)
@@ -293,7 +341,7 @@ function detectLightningContent(data: string): DetectedContent | null {
 }
 
 function detectEcashContent(data: string): DetectedContent | null {
-  const trimmed = stripSchemePrefix(data.trim())
+  const trimmed = prepareEcashTokenInput(data)
 
   if (trimmed.startsWith('cashuA') || trimmed.startsWith('cashuB')) {
     try {
@@ -424,6 +472,31 @@ function detectNostrContent(data: string): DetectedContent | null {
   return null
 }
 
+function detectEncryptedBackupPayload(data: string): DetectedContent | null {
+  const trimmed = data.trim()
+  if (!trimmed) {
+    return null
+  }
+  try {
+    const payload = JSON.parse(trimmed) as Record<string, unknown>
+    if (
+      typeof payload.cipher === 'string' &&
+      typeof payload.iv === 'string' &&
+      typeof payload.salt === 'string'
+    ) {
+      return {
+        cleaned: trimmed,
+        isValid: true,
+        raw: data,
+        type: 'encrypted_backup'
+      }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
 function detectImportContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
@@ -533,11 +606,14 @@ export async function detectContentByContext(
         detected = detectLightningContent(data) || detectEcashContent(data)
       }
       break
+    case 'developer_recover':
+      detected = detectEncryptedBackupPayload(data)
+      break
     default:
       break
   }
 
-  if (!detected) {
+  if (!detected && context !== 'developer_recover') {
     detected = detectImportContent(data)
   }
 
@@ -594,6 +670,8 @@ export function isContentTypeSupportedInContext(
         'nostr_nprofile',
         'nostr_json'
       ].includes(contentType)
+    case 'developer_recover':
+      return contentType === 'encrypted_backup'
     default:
       return false
   }
@@ -625,6 +703,8 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Ark Address'
     case 'ecash_token':
       return 'Ecash Token'
+    case 'encrypted_backup':
+      return 'Encrypted Backup'
     case 'bbqr_fragment':
       return 'BBQR Fragment'
     case 'seed_qr':

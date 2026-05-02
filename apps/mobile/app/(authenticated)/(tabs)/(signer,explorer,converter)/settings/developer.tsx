@@ -1,5 +1,4 @@
-import * as Clipboard from 'expo-clipboard'
-import { Stack } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, Share, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
@@ -44,28 +43,16 @@ import {
   pbkdf2Encrypt,
   randomIv
 } from '@/utils/crypto'
-import { pickFile, saveFile } from '@/utils/filesystem'
+import { saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
-import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
 export default function Developer() {
+  const router = useRouter()
   const accounts = useAccountsStore((state) => state.accounts)
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
-  const [
-    skipPin,
-    setSkipPin,
-    setLockTriggered,
-    setPendingRecoverData,
-    setRequiresAuth
-  ] = useAuthStore(
-    useShallow((state) => [
-      state.skipPin,
-      state.setSkipPin,
-      state.setLockTriggered,
-      state.setPendingRecoverData,
-      state.setRequiresAuth
-    ])
+  const [skipPin, setSkipPin] = useAuthStore(
+    useShallow((state) => [state.skipPin, state.setSkipPin])
   )
   const [currencyUnit, useZeroPadding, mnemonicWordList] = useSettingsStore(
     useShallow((s) => [s.currencyUnit, s.useZeroPadding, s.mnemonicWordList])
@@ -80,12 +67,6 @@ export default function Developer() {
     string | null
   >(null)
   const [backupPassphrase, setBackupPassphrase] = useState('')
-  const [recoverModalVisible, setRecoverModalVisible] = useState(false)
-  const [recoverEncryptedInput, setRecoverEncryptedInput] = useState('')
-  const [recoverPassphrase, setRecoverPassphrase] = useState('')
-  const [recoverDecrypted, setRecoverDecrypted] = useState<string | null>(null)
-  const [recoverConfirmOverwrite, setRecoverConfirmOverwrite] = useState(false)
-
   async function buildBackupWithSeeds(): Promise<string> {
     const pin = await getPinForDecryption(skipPin)
     const keysWithSeeds = async (accountId: string, keys: Key[]) => {
@@ -288,89 +269,6 @@ export default function Developer() {
     }
   }
 
-  async function handleRecoverPaste() {
-    try {
-      const text = await Clipboard.getStringAsync()
-      if (text) {
-        setRecoverEncryptedInput(text)
-        toast.success(t('common.success.dataPasted'))
-      } else {
-        toast.error(t('common.error.noClipboardData'))
-      }
-    } catch {
-      toast.error(t('common.error.pasteFromClipboard'))
-    }
-  }
-
-  async function handleRecoverUploadFile() {
-    try {
-      const text = await pickFile({ type: 'application/json' })
-      if (!text) {
-        return
-      }
-      setRecoverEncryptedInput(text)
-      toast.success(t('common.success.dataPasted'))
-    } catch {
-      toast.error(t('settings.developer.recoverUploadError'))
-    }
-  }
-
-  async function handleRecoverDecrypt() {
-    const raw = recoverEncryptedInput.trim()
-    if (!raw || !recoverPassphrase.trim()) {
-      toast.error(t('settings.developer.backupPassphraseInvalid'))
-      return
-    }
-    try {
-      const payload = JSON.parse(raw) as {
-        cipher: string
-        iv: string
-        salt: string
-        v: number
-      }
-      if (
-        typeof payload.cipher !== 'string' ||
-        typeof payload.iv !== 'string' ||
-        typeof payload.salt !== 'string'
-      ) {
-        throw new TypeError('Invalid payload shape')
-      }
-      const key = await pbkdf2Encrypt(recoverPassphrase, payload.salt)
-      const plain = await aesDecrypt(payload.cipher, key, payload.iv)
-      setRecoverDecrypted(plain)
-    } catch {
-      toast.error(t('settings.developer.recoverDecryptError'))
-    }
-  }
-
-  async function handleRecoverImSure() {
-    if (!recoverDecrypted) {
-      return
-    }
-    if (skipPin) {
-      const { success } = await performRecoverOverwrite(recoverDecrypted)
-      setRecoverModalVisible(false)
-      setRecoverEncryptedInput('')
-      setRecoverPassphrase('')
-      setRecoverDecrypted(null)
-      setRecoverConfirmOverwrite(false)
-      if (success) {
-        toast.success(t('settings.developer.backupSuccess'))
-      } else {
-        toast.error(t('settings.developer.recoverOverwriteError'))
-      }
-      return
-    }
-    setPendingRecoverData(recoverDecrypted)
-    setRecoverModalVisible(false)
-    setRecoverEncryptedInput('')
-    setRecoverPassphrase('')
-    setRecoverDecrypted(null)
-    setRecoverConfirmOverwrite(false)
-    setRequiresAuth(true)
-    setLockTriggered(true)
-  }
-
   function handleDeleteAccounts() {
     resetNostrSync()
     useNostrStore.getState().clearAllNostrState()
@@ -438,13 +336,7 @@ export default function Developer() {
             />
             <SSButton
               label={t('settings.developer.recoverData')}
-              onPress={() => {
-                setRecoverEncryptedInput('')
-                setRecoverPassphrase('')
-                setRecoverDecrypted(null)
-                setRecoverConfirmOverwrite(false)
-                setRecoverModalVisible(true)
-              }}
+              onPress={() => router.navigate('/settings/developerRecover')}
               variant="secondary"
             />
           </SSVStack>
@@ -596,116 +488,6 @@ export default function Developer() {
           </SSVStack>
         </SSVStack>
       </SSModal>
-      <SSModal
-        visible={recoverModalVisible}
-        onClose={() => {
-          setRecoverModalVisible(false)
-          setRecoverEncryptedInput('')
-          setRecoverPassphrase('')
-          setRecoverDecrypted(null)
-          setRecoverConfirmOverwrite(false)
-        }}
-        label={t('common.cancel')}
-        closeButtonVariant="ghost"
-        fullOpacity
-      >
-        <SSVStack gap="lg" widthFull style={styles.recoverModal}>
-          <SSText center size="lg" uppercase>
-            {t('settings.developer.recoverTitle')}
-          </SSText>
-          {recoverDecrypted === null ? (
-            <>
-              <SSVStack gap="xs" widthFull>
-                <SSText color="muted" size="sm">
-                  {t('settings.developer.recoverEncryptedLabel')}
-                </SSText>
-                <ScrollView
-                  style={styles.modalTextAreaScroll}
-                  contentContainerStyle={styles.modalTextAreaScrollContent}
-                >
-                  <TextInput
-                    placeholder={t(
-                      'settings.developer.recoverEncryptedPlaceholder'
-                    )}
-                    style={styles.backupPreviewText}
-                    multiline
-                    value={recoverEncryptedInput}
-                    onChangeText={setRecoverEncryptedInput}
-                  />
-                </ScrollView>
-                <SSVStack gap="sm" widthFull>
-                  <SSButton
-                    label={t('common.paste')}
-                    onPress={handleRecoverPaste}
-                    variant="secondary"
-                  />
-                  <SSButton
-                    label={t('settings.developer.recoverUploadFile')}
-                    onPress={handleRecoverUploadFile}
-                    variant="secondary"
-                  />
-                </SSVStack>
-              </SSVStack>
-              <SSVStack gap="xs" widthFull>
-                <SSText color="muted" size="sm">
-                  {t('settings.developer.backupPassphraseLabel')}
-                </SSText>
-                <TextInput
-                  placeholder={t(
-                    'settings.developer.recoverPassphrasePlaceholder'
-                  )}
-                  secureTextEntry
-                  style={styles.passphraseInput}
-                  value={recoverPassphrase}
-                  onChangeText={setRecoverPassphrase}
-                />
-              </SSVStack>
-              <SSVStack widthFull>
-                <SSButton
-                  label={t('settings.developer.recoverDecrypt')}
-                  onPress={handleRecoverDecrypt}
-                  variant="secondary"
-                />
-              </SSVStack>
-            </>
-          ) : (
-            <>
-              <SSVStack gap="xs" widthFull>
-                <SSText color="muted" size="sm">
-                  {t('settings.developer.recoverDecryptedLabel')}
-                </SSText>
-                <ScrollView
-                  style={styles.modalTextAreaScroll}
-                  contentContainerStyle={styles.modalTextAreaScrollContent}
-                >
-                  <TextInput
-                    editable={false}
-                    multiline
-                    style={styles.backupPreviewText}
-                    value={recoverDecrypted}
-                  />
-                </ScrollView>
-              </SSVStack>
-              <SSVStack widthFull>
-                <SSButton
-                  label={t('settings.developer.recoverOverwrite')}
-                  onPress={() => setRecoverConfirmOverwrite(true)}
-                  variant="secondary"
-                />
-              </SSVStack>
-              {recoverConfirmOverwrite && (
-                <SSVStack widthFull>
-                  <SSButton
-                    label={t('settings.developer.recoverImSure')}
-                    onPress={handleRecoverImSure}
-                    variant="danger"
-                  />
-                </SSVStack>
-              )}
-            </>
-          )}
-        </SSVStack>
-      </SSModal>
     </>
   )
 }
@@ -740,11 +522,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     color: Colors.gray['200'],
     padding: 12,
-    width: '100%'
-  },
-  recoverModal: {
-    maxHeight: '85%',
-    paddingVertical: 8,
     width: '100%'
   }
 })

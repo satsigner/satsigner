@@ -18,7 +18,8 @@ import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
   type ContentContext,
   detectContentByContext,
-  type DetectedContent
+  type DetectedContent,
+  prepareEcashTokenInput
 } from '@/utils/contentDetector'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
@@ -276,7 +277,7 @@ function SSCameraModal({
   }, [])
 
   const isPartialCashuChunk = useCallback((data: string) => {
-    const trimmed = data.trim()
+    const trimmed = prepareEcashTokenInput(data)
     if (!/^cashu[AB]/i.test(trimmed)) {
       return false
     }
