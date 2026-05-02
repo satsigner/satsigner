@@ -497,7 +497,7 @@ export default function Developer() {
         closeButtonVariant="ghost"
         fullOpacity
       >
-        <SSVStack gap="lg" style={styles.recoverModal}>
+        <SSVStack gap="lg" style={styles.recoverModal} widthFull>
           <SSText center size="lg" uppercase>
             {t('settings.developer.recoverTitle')}
           </SSText>
@@ -597,20 +597,24 @@ const styles = StyleSheet.create({
     padding: 8
   },
   modalTextAreaScroll: {
+    alignSelf: 'stretch',
     borderColor: Colors.gray[500],
     borderRadius: 4,
     borderWidth: 1,
-    maxHeight: 320
+    maxHeight: 320,
+    width: '100%'
   },
   modalTextAreaScrollContent: {
     paddingBottom: 16
   },
   passphraseInput: {
+    alignSelf: 'stretch',
     borderColor: Colors.gray[500],
     borderRadius: 4,
     borderWidth: 1,
     color: Colors.gray['200'],
-    padding: 12
+    padding: 12,
+    width: '100%'
   },
   recoverModal: {
     maxHeight: '85%',
