@@ -29,7 +29,7 @@ export function getLndConfigFileUrlFromConnectionInput(
   const firstLine = (trimmed.split(/\r?\n/)[0] ?? trimmed).trim()
   const urlCandidate = firstLine.split(/\s+/)[0] ?? firstLine
   if (/^https?:\/\/.+/i.test(urlCandidate)) {
-    if (/\.config(?:[\/?#]|$)/i.test(urlCandidate)) {
+    if (/\.config(?:[/?#]|$)/i.test(urlCandidate)) {
       return urlCandidate
     }
   }
@@ -123,7 +123,7 @@ function extractLndRestEntry(parsed: unknown): JsonRecord | null {
     return null
   }
   const json = parsed as JsonRecord
-  const configurations = json.configurations
+  const { configurations } = json
   if (Array.isArray(configurations) && configurations.length > 0) {
     const first = configurations[0]
     if (first && typeof first === 'object') {

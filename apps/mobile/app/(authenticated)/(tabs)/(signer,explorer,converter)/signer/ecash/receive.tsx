@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
+import SSEcashMintSelector from '@/components/SSEcashMintSelector'
 import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
@@ -69,11 +70,13 @@ export default function EcashReceivePage() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
   const {
+    addTokenMint,
     amount,
     createInvoice,
     decodedToken,
     handleLNURLWithdrawInput,
     handleTokenChange,
+    isAddingMint,
     isCreatingQuote,
     isFetchingLNURL,
     isLNURLWithdrawMode,
@@ -83,10 +86,14 @@ export default function EcashReceivePage() {
     lnurlWithdrawDetails,
     memo,
     mintQuote,
+    mints,
+    proofs,
     quoteStatus,
     redeemToken,
+    selectedMintForLightning,
     setAmount,
     setMemo,
+    setSelectedMintForLightning,
     stopPolling,
     token,
     tokenMintUrl,
@@ -270,13 +277,21 @@ export default function EcashReceivePage() {
                 />
               )}
               {showMintNotConnectedWarning && (
-                <View style={styles.mintWarning}>
-                  <SSText style={styles.mintWarningText}>
-                    {t('ecash.warning.mintNotConnected', {
-                      mint: tokenMintUrl
-                    })}
-                  </SSText>
-                </View>
+                <SSVStack gap="sm">
+                  <View style={styles.mintWarning}>
+                    <SSText style={styles.mintWarningText}>
+                      {t('ecash.warning.mintNotConnected', {
+                        mint: tokenMintUrl
+                      })}
+                    </SSText>
+                  </View>
+                  <SSButton
+                    label={t('ecash.receive.addMint')}
+                    onPress={addTokenMint}
+                    loading={isAddingMint}
+                    variant="outline"
+                  />
+                </SSVStack>
               )}
               {showTokenAlreadyClaimedWarning && (
                 <View style={styles.mintWarning}>
@@ -306,6 +321,12 @@ export default function EcashReceivePage() {
           )}
           {activeTab === 'lightning' && (
             <SSVStack gap="md">
+              <SSEcashMintSelector
+                mints={mints}
+                selectedMint={selectedMintForLightning}
+                onSelect={setSelectedMintForLightning}
+                proofs={proofs}
+              />
               {isLNURLWithdrawMode && lnurlWithdrawDetails && (
                 <SSVStack gap="xs" style={styles.lnurlDetails}>
                   <SSText color="muted" size="xs" uppercase>

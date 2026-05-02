@@ -20,7 +20,8 @@ import {
   type ContentContext,
   type ContentType,
   detectContentByContext,
-  type DetectedContent
+  type DetectedContent,
+  prepareEcashTokenInput
 } from '@/utils/contentDetector'
 import { stripBitcoinPrefix } from '@/utils/parse'
 
@@ -72,7 +73,11 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     async (text: string) => {
       try {
         const processedText =
-          context === 'bitcoin' ? stripBitcoinPrefix(text) : text
+          context === 'bitcoin'
+            ? stripBitcoinPrefix(text)
+            : context === 'ecash'
+              ? prepareEcashTokenInput(text)
+              : text
         const detectedContent = await detectContentByContext(
           processedText,
           context
@@ -128,7 +133,11 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       })
 
       const processedContent =
-        context === 'bitcoin' ? stripBitcoinPrefix(content) : content
+        context === 'bitcoin'
+          ? stripBitcoinPrefix(content)
+          : context === 'ecash'
+            ? prepareEcashTokenInput(content)
+            : content
 
       const detectedContent = await detectContentByContext(
         processedContent,

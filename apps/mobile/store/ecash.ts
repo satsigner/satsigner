@@ -29,6 +29,7 @@ type EcashState = {
 
 type EcashAction = {
   addAccount: (account: EcashAccount) => void
+  renameAccount: (accountId: string, name: string) => void
   removeAccount: (accountId: string) => void
   setActiveAccountId: (accountId: string | null) => void
   addMint: (accountId: string, mint: EcashMint) => void
@@ -307,6 +308,12 @@ export const useEcashStore = create<EcashState & EcashAction>()(
               (p) => !proofIds.includes(p.id)
             )
           }
+        })),
+      renameAccount: (accountId, name) =>
+        set((state) => ({
+          accounts: state.accounts.map((a) =>
+            a.id === accountId ? { ...a, name } : a
+          )
         })),
       restoreFromBackup: (accountId, backupData) =>
         set((state) => {

@@ -347,7 +347,7 @@ export default function EcashAccountDetailPage() {
                   </SSText>
                 </SSHStack>
               )}
-              <SSVStack style={styles.statusContainer} gap="xs">
+              <SSHStack gap="sm" style={styles.statusContainer}>
                 {mints.map((mint) => (
                   <SSHStack
                     key={mint.url}
@@ -359,12 +359,12 @@ export default function EcashAccountDetailPage() {
                     ) : (
                       <SSIconBlackIndicator height={10} width={10} />
                     )}
-                    <SSText color="muted" size="xs">
+                    <SSText color="muted" size="xs" numberOfLines={1}>
                       {mint.name || mint.url}
                     </SSText>
                   </SSHStack>
                 ))}
-              </SSVStack>
+              </SSHStack>
             </SSVStack>
             <SSButtonActionsGroup
               context="ecash"
@@ -438,9 +438,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   statusContainer: {
-    alignItems: 'center',
-    paddingBottom: 20,
-    paddingTop: 8
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingBottom: 12,
+    paddingTop: 4
   },
   tabIndicator: {
     backgroundColor: Colors.white,

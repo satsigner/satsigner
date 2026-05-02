@@ -12,8 +12,8 @@ import {
 } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
-import { isLNURL } from '@/utils/lnurl'
 import { getLndConfigFileUrlFromConnectionInput } from '@/utils/lndRestRemoteConfig'
+import { isLNURL } from '@/utils/lnurl'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {

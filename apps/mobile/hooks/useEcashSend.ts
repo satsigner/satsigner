@@ -7,6 +7,7 @@ import { useLND } from '@/hooks/useLND'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { t } from '@/locales'
 import { useZapFlowStore } from '@/store/zapFlow'
+import type { EcashMint } from '@/types/models/Ecash'
 import type { LNDecodedInvoice } from '@/types/models/LND'
 import type { LNURLPayResponse } from '@/types/models/LNURL'
 import {
@@ -53,7 +54,14 @@ export function useEcashSend() {
   const lastUpdateRef = useRef<number>(0)
 
   const { mints, sendEcash, createMeltQuote, meltProofs, proofs } = useEcash()
-  const activeMint = mints[0] ?? null
+  const [selectedMintUrl, setSelectedMintUrl] = useState<string | null>(null)
+  const selectedMint =
+    mints.find((m) => m.url === selectedMintUrl) ?? mints[0] ?? null
+  const mintProofs = proofs.filter((p) => p.mintUrl === selectedMint?.url)
+
+  function setSelectedMint(mint: EcashMint) {
+    setSelectedMintUrl(mint.url)
+  }
   const { makeRequest, isConnected } = useLND()
   const {
     isHardwareSupported: nfcHardwareSupported,
@@ -73,12 +81,12 @@ export function useEcashSend() {
       return
     }
 
-    if (!activeMint) {
+    if (!selectedMint) {
       toast.error(t('ecash.error.noMintConnected'))
       return
     }
 
-    if (proofs.length === 0) {
+    if (mintProofs.length === 0) {
       toast.error(t('ecash.error.noTokensToSend'))
       return
     }
@@ -87,7 +95,7 @@ export function useEcashSend() {
     setGeneratedTokenV4('')
     setGeneratedTokenV3('')
     try {
-      const result = await sendEcash(activeMint.url, amountNum, memo)
+      const result = await sendEcash(selectedMint.url, amountNum, memo)
       setGeneratedTokenV4(result.token)
       setGeneratedTokenV3(result.tokenV3)
     } catch {
@@ -107,13 +115,13 @@ export function useEcashSend() {
       return
     }
 
-    if (!activeMint) {
+    if (!selectedMint) {
       toast.error(t('ecash.error.noMintConnected'))
       setStatusMessage(`Error: ${t('ecash.error.noMintConnected')}`)
       return
     }
 
-    if (proofs.length === 0) {
+    if (mintProofs.length === 0) {
       toast.error(t('ecash.error.noTokensToMelt'))
       setStatusMessage(`Error: ${t('ecash.error.noTokensAvailable')}`)
       return
@@ -128,11 +136,11 @@ export function useEcashSend() {
       }
 
       setStatusMessage(t('ecash.status.creatingMeltQuote'))
-      const quote = await createMeltQuote(activeMint.url, bolt11Invoice)
+      const quote = await createMeltQuote(selectedMint.url, bolt11Invoice)
       setStatusMessage(t('ecash.status.meltQuoteCreated'))
 
       await meltProofs(
-        activeMint.url,
+        selectedMint.url,
         quote,
         proofs,
         decodedInvoice?.description,
@@ -343,7 +351,6 @@ export function useEcashSend() {
   }
 
   return {
-    activeMint,
     amount,
     animatedQR,
     animationRef,
@@ -366,13 +373,16 @@ export function useEcashSend() {
     lnurlDetails,
     meltTokens,
     memo,
+    mintProofs,
+    mints,
     nfcHardwareSupported,
-    proofs,
+    selectedMint,
     setAmount,
     setAnimatedQR,
     setComment,
     setCurrentChunkIndex,
     setMemo,
+    setSelectedMint,
     setShowQRCode,
     setTokenVersion,
     showQRCode,

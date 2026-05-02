@@ -36,7 +36,7 @@ describe('lndRestRemoteConfig', () => {
     it('returns null for URL without .config segment', () => {
       expect(
         getLndConfigFileUrlFromConnectionInput('https://h.example/rest/v1/')
-      ).toBe(null)
+      ).toBeNull()
     })
   })
 

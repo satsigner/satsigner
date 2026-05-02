@@ -7,10 +7,10 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSText from '@/components/SSText'
-import { t } from '@/locales'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -72,8 +72,8 @@ export default function LNDRestPage() {
             : `getinfo failed (${response.status})`
         )
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
       const detail =
         message.length > 220 ? `${message.slice(0, 217)}…` : message
       toast.error(t('lightning.lndRest.connectFailed'), {
@@ -149,7 +149,11 @@ export default function LNDRestPage() {
             </SSHStack>
           </SSVStack>
           <SSButton
-            label={isConnecting ? t('lightning.lndRest.connectingButton') : t('lightning.lndRest.connectButton')}
+            label={
+              isConnecting
+                ? t('lightning.lndRest.connectingButton')
+                : t('lightning.lndRest.connectButton')
+            }
             onPress={handleConnect}
             variant="secondary"
             uppercase

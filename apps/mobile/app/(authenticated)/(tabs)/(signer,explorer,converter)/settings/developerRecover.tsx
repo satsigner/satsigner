@@ -14,8 +14,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
-import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { pickFile } from '@/utils/filesystem'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
@@ -23,19 +23,15 @@ const ENCRYPTED_BACKUP_MAX_HEIGHT = 240
 
 export default function DeveloperRecover() {
   const router = useRouter()
-  const [
-    skipPin,
-    setLockTriggered,
-    setPendingRecoverData,
-    setRequiresAuth
-  ] = useAuthStore(
-    useShallow((state) => [
-      state.skipPin,
-      state.setLockTriggered,
-      state.setPendingRecoverData,
-      state.setRequiresAuth
-    ])
-  )
+  const [skipPin, setLockTriggered, setPendingRecoverData, setRequiresAuth] =
+    useAuthStore(
+      useShallow((state) => [
+        state.skipPin,
+        state.setLockTriggered,
+        state.setPendingRecoverData,
+        state.setRequiresAuth
+      ])
+    )
 
   const [recoverEncryptedInput, setRecoverEncryptedInput] = useState('')
   const [recoverPassphrase, setRecoverPassphrase] = useState('')

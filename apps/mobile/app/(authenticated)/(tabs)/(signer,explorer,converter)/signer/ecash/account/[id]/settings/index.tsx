@@ -1,9 +1,11 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useState } from 'react'
 import { Alert, ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -18,10 +20,22 @@ export default function EcashAccountSettingsPage() {
     activeAccount,
     clearAccountData,
     removeAccount,
+    renameAccount,
     mints,
     proofs,
     transactions
   } = useEcash()
+
+  const [accountName, setAccountName] = useState(activeAccount?.name ?? '')
+
+  function handleRename() {
+    const trimmed = accountName.trim()
+    if (!trimmed || !id) {
+      return
+    }
+    renameAccount(id, trimmed)
+    toast.success(t('ecash.account.renameSuccess'))
+  }
 
   function handleClearData() {
     const hasData =
@@ -81,6 +95,24 @@ export default function EcashAccountSettingsPage() {
       />
       <ScrollView showsVerticalScrollIndicator={false}>
         <SSVStack style={styles.container} gap="lg">
+          <SSVStack gap="sm">
+            <SSText uppercase>{t('ecash.account.name')}</SSText>
+            <SSTextInput
+              value={accountName}
+              onChangeText={setAccountName}
+              placeholder={t('ecash.account.namePlaceholder')}
+            />
+            <SSButton
+              label={t('ecash.account.rename')}
+              onPress={handleRename}
+              variant="outline"
+              disabled={
+                !accountName.trim() ||
+                accountName.trim() === activeAccount?.name
+              }
+            />
+          </SSVStack>
+
           <SSVStack gap="sm">
             <SSText uppercase>{t('ecash.settings.mintManagement')}</SSText>
             <SSButton

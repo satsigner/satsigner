@@ -14,6 +14,7 @@ import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
+import SSEcashMintSelector from '@/components/SSEcashMintSelector'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSQRCode from '@/components/SSQRCode'
@@ -57,13 +58,16 @@ export default function EcashSendPage() {
     lnurlDetails,
     meltTokens,
     memo,
+    mintProofs,
+    mints,
     nfcHardwareSupported,
-    proofs,
+    selectedMint,
     setAmount,
     setAnimatedQR,
     setComment,
     setCurrentChunkIndex,
     setMemo,
+    setSelectedMint,
     setTokenVersion,
     statusMessage,
     tokenVersion
@@ -179,6 +183,12 @@ export default function EcashSendPage() {
           />
           {activeTab === 'ecash' && (
             <SSVStack gap="md">
+              <SSEcashMintSelector
+                mints={mints}
+                selectedMint={selectedMint}
+                onSelect={setSelectedMint}
+                proofs={mintProofs}
+              />
               <SSVStack gap="xs">
                 <SSText size="xs" uppercase>
                   {t('ecash.send.amount')}
@@ -187,8 +197,8 @@ export default function EcashSendPage() {
                   value={parseInt(amount, 10) || 0}
                   onValueChange={(value) => setAmount(value.toString())}
                   min={0}
-                  max={proofs.reduce((acc, proof) => acc + proof.amount, 0)}
-                  remainingSats={proofs.reduce(
+                  max={mintProofs.reduce((acc, proof) => acc + proof.amount, 0)}
+                  remainingSats={mintProofs.reduce(
                     (acc, proof) => acc + proof.amount,
                     0
                   )}
@@ -354,6 +364,12 @@ export default function EcashSendPage() {
           )}
           {activeTab === 'lightning' && (
             <SSVStack gap="md">
+              <SSEcashMintSelector
+                mints={mints}
+                selectedMint={selectedMint}
+                onSelect={setSelectedMint}
+                proofs={mintProofs}
+              />
               <SSVStack gap="sm">
                 <SSText uppercase>{t('ecash.send.lightningInvoice')}</SSText>
                 <SSTextInput
