@@ -75,12 +75,19 @@ export default function SSKeyboard({
   const nRows = Math.ceil(pad.length / nCols)
   const cellWidth: DimensionValue = `${Math.floor(100 / nCols)}%`
 
-  // 3-col pad pins CLEAR to bottom-left and DELETE to bottom-right, centering the last digit.
+  // 3-col pad: with clear → [CLEAR][last digit][DELETE] (matches common unlock layouts).
+  // Without clear (e.g. first-launch set PIN) → [DELETE][last digit][empty] so backspace is visible on the left.
   if (nCols === 3) {
     const lastItem = pad.pop()
-    pad.push(withClear ? KEY_CLEAR : '')
-    pad.push(lastItem || '')
-    pad.push(withDelete ? KEY_DELETE : '')
+    if (withClear) {
+      pad.push(KEY_CLEAR)
+      pad.push(lastItem || '')
+      pad.push(withDelete ? KEY_DELETE : '')
+    } else {
+      pad.push(withDelete ? KEY_DELETE : '')
+      pad.push(lastItem || '')
+      pad.push('')
+    }
   } else {
     if (withClear) {
       pad.push(KEY_CLEAR)
@@ -241,7 +248,7 @@ function SSKeyboardCell({
             )}
             {item === KEY_DELETE && (
               <SSIconDelete
-                stroke="gray"
+                stroke={Colors.gray[200]}
                 width={Sizes.text.fontSize['2xl']}
                 height={Sizes.text.fontSize['2xl']}
               />
