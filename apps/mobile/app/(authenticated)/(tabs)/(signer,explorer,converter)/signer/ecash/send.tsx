@@ -36,6 +36,7 @@ export default function EcashSendPage() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
   const {
+    activeAccount,
     amount,
     animatedQR,
     animationRef,
@@ -61,6 +62,7 @@ export default function EcashSendPage() {
     mintProofs,
     mints,
     nfcHardwareSupported,
+    proofs,
     selectedMint,
     setAmount,
     setAnimatedQR,
@@ -170,7 +172,16 @@ export default function EcashSendPage() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{t('ecash.send.title')}</SSText>
+          headerTitle: () => (
+            <SSVStack gap="none" itemsCenter>
+              <SSText uppercase>{t('ecash.send.title')}</SSText>
+              {activeAccount && (
+                <SSText size="xs" color="muted">
+                  {activeAccount.name}
+                </SSText>
+              )}
+            </SSVStack>
+          )
         }}
       />
       <ScrollView>
@@ -187,7 +198,7 @@ export default function EcashSendPage() {
                 mints={mints}
                 selectedMint={selectedMint}
                 onSelect={setSelectedMint}
-                proofs={mintProofs}
+                proofs={proofs}
               />
               <SSVStack gap="xs">
                 <SSText size="xs" uppercase>
@@ -368,7 +379,7 @@ export default function EcashSendPage() {
                 mints={mints}
                 selectedMint={selectedMint}
                 onSelect={setSelectedMint}
-                proofs={mintProofs}
+                proofs={proofs}
               />
               <SSVStack gap="sm">
                 <SSText uppercase>{t('ecash.send.lightningInvoice')}</SSText>

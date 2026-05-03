@@ -35,7 +35,7 @@ type EcashAction = {
   addMint: (accountId: string, mint: EcashMint) => void
   removeMint: (accountId: string, mintUrl: string) => void
   addProofs: (accountId: string, proofs: EcashProof[]) => void
-  removeProofs: (accountId: string, proofIds: string[]) => void
+  removeProofs: (accountId: string, proofSecrets: string[]) => void
   setProofs: (accountId: string, proofs: EcashProof[]) => void
   updateMintBalance: (
     accountId: string,
@@ -188,15 +188,17 @@ export const useEcashStore = create<EcashState & EcashAction>()(
           }
         }),
       addProofs: (accountId, proofs) =>
-        set((state) => ({
-          proofs: {
-            ...state.proofs,
-            [accountId]: [
-              ...getAccountArray(state.proofs, accountId),
-              ...proofs
-            ]
+        set((state) => {
+          const existing = getAccountArray(state.proofs, accountId)
+          const existingSecrets = new Set(existing.map((p) => p.secret))
+          const newProofs = proofs.filter((p) => !existingSecrets.has(p.secret))
+          return {
+            proofs: {
+              ...state.proofs,
+              [accountId]: [...existing, ...newProofs]
+            }
           }
-        })),
+        }),
       addTransaction: (accountId, transaction) =>
         set((state) => ({
           transactions: {
@@ -300,12 +302,12 @@ export const useEcashStore = create<EcashState & EcashAction>()(
             }
           }
         }),
-      removeProofs: (accountId, proofIds) =>
+      removeProofs: (accountId, proofSecrets) =>
         set((state) => ({
           proofs: {
             ...state.proofs,
             [accountId]: getAccountArray(state.proofs, accountId).filter(
-              (p) => !proofIds.includes(p.id)
+              (p) => !proofSecrets.includes(p.secret)
             )
           }
         })),

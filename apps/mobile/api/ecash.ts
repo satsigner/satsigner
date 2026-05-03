@@ -234,20 +234,54 @@ export async function createMeltQuote(
   }
 }
 
+export class EcashSpentProofsError extends Error {
+  readonly spentProofSecrets: string[]
+
+  constructor(spentProofSecrets: string[]) {
+    super(
+      `Token already spent. ${spentProofSecrets.length} proof(s) have been spent.`
+    )
+    this.name = 'EcashSpentProofsError'
+    this.spentProofSecrets = spentProofSecrets
+  }
+}
+
 export async function meltProofs(
   accountId: string,
   mintUrl: string,
   quote: MeltQuote,
   proofs: EcashProof[],
   _description?: string,
-  originalInvoice?: string,
+  _originalInvoice?: string,
   options?: WalletOptions
 ): Promise<EcashMeltResult> {
   const wallet = getWallet(accountId, mintUrl, options)
   await wallet.loadMint()
-  const invoiceToUse = originalInvoice || quote.quote
-  const meltQuote = await wallet.createMeltQuote(invoiceToUse)
-  const result = await wallet.meltProofs(meltQuote, proofs)
+
+  const { validProofs, spentProofs } = await validateProofs(
+    accountId,
+    mintUrl,
+    proofs,
+    options
+  )
+  if (validProofs.length === 0) {
+    throw new Error('No valid proofs available to melt')
+  }
+
+  const cashuQuote = {
+    amount: quote.amount,
+    expiry: quote.expiry,
+    fee_reserve: quote.fee_reserve,
+    payment_preimage: null,
+    quote: quote.quote,
+    request: '',
+    state: 'UNPAID' as const,
+    unit: 'sat'
+  }
+  const result = await wallet.meltProofs(
+    cashuQuote as Parameters<typeof wallet.meltProofs>[0],
+    validProofs
+  )
 
   const meltResult = result as unknown as {
     preimage?: string
@@ -257,7 +291,8 @@ export async function meltProofs(
   return {
     change: result.change?.map((p) => ({ ...p, mintUrl })),
     paid: true,
-    preimage: meltResult.preimage || meltResult.payment_preimage || undefined
+    preimage: meltResult.preimage || meltResult.payment_preimage || undefined,
+    spentProofs: spentProofs.length > 0 ? spentProofs : undefined
   }
 }
 
@@ -381,8 +416,10 @@ export async function receiveEcash(
   }
 }
 
-export function getMintBalance(_mintUrl: string, proofs: EcashProof[]): number {
-  return proofs.reduce((sum, proof) => sum + proof.amount, 0)
+export function getMintBalance(mintUrl: string, proofs: EcashProof[]): number {
+  return proofs
+    .filter((p) => p.mintUrl === mintUrl)
+    .reduce((sum, proof) => sum + proof.amount, 0)
 }
 
 export async function validateEcashToken(

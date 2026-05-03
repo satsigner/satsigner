@@ -148,7 +148,11 @@ export default function NostrNotePage() {
   const lightningNodeAlias = useLightningStore(
     (state) => state.status.nodeInfo?.alias
   )
-  const { accounts: ecashAccounts, allMints: ecashAllMints } = useEcash()
+  const {
+    accounts: ecashAccounts,
+    allMints: ecashAllMints,
+    setActiveAccountId: setEcashActiveAccountId
+  } = useEcash()
   const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingZap = useZapFlowStore((state) => state.pendingZap)
@@ -674,6 +678,9 @@ export default function NostrNotePage() {
         pathname: '/signer/lightning/pay'
       })
     } else if (method.type === 'ecash') {
+      if (method.accountId) {
+        setEcashActiveAccountId(method.accountId)
+      }
       router.navigate({
         params: bolt11 ? { invoice: bolt11 } : undefined,
         pathname: '/signer/ecash/send'

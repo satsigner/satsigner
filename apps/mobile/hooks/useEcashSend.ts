@@ -53,7 +53,14 @@ export function useEcashSend() {
   const animationRef = useRef<number | null>(null)
   const lastUpdateRef = useRef<number>(0)
 
-  const { mints, sendEcash, createMeltQuote, meltProofs, proofs } = useEcash()
+  const {
+    activeAccount,
+    mints,
+    sendEcash,
+    createMeltQuote,
+    meltProofs,
+    proofs
+  } = useEcash()
   const [selectedMintUrl, setSelectedMintUrl] = useState<string | null>(null)
   const selectedMint =
     mints.find((m) => m.url === selectedMintUrl) ?? mints[0] ?? null
@@ -142,7 +149,7 @@ export function useEcashSend() {
       await meltProofs(
         selectedMint.url,
         quote,
-        proofs,
+        mintProofs,
         decodedInvoice?.description,
         bolt11Invoice
       )
@@ -351,6 +358,7 @@ export function useEcashSend() {
   }
 
   return {
+    activeAccount,
     amount,
     animatedQR,
     animationRef,
@@ -375,6 +383,7 @@ export function useEcashSend() {
     memo,
     mintProofs,
     mints,
+    proofs,
     nfcHardwareSupported,
     selectedMint,
     setAmount,

@@ -55,7 +55,11 @@ export default function NostrContactProfile() {
     (state) => state.status?.nodeInfo?.alias
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
-  const { accounts: ecashAccounts, allMints: ecashAllMints } = useEcash()
+  const {
+    accounts: ecashAccounts,
+    allMints: ecashAllMints,
+    setActiveAccountId: setEcashActiveAccountId
+  } = useEcash()
   const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingInvoice = useState<{
@@ -188,6 +192,9 @@ export default function NostrContactProfile() {
         pathname: '/signer/lightning/pay'
       })
     } else if (method.type === 'ecash') {
+      if (method.accountId) {
+        setEcashActiveAccountId(method.accountId)
+      }
       router.navigate({
         params: bolt11 ? { invoice: bolt11 } : undefined,
         pathname: '/signer/ecash/send'
