@@ -149,15 +149,10 @@ export default function NostrNotePage() {
 
   const decoded = nostrUri ? decodeNostrContent(nostrUri) : null
 
-  const ecashAccountsWithMints = ecashAccounts.map((account) => ({
-    id: account.id,
-    mints: ecashAllMints[account.id] ?? [],
-    name: account.name
-  }))
-
   const availablePaymentMethods = buildPaymentMethods(
     lightningConfig,
-    ecashAccountsWithMints,
+    ecashAccounts,
+    ecashAllMints,
     arkAccounts
   )
 

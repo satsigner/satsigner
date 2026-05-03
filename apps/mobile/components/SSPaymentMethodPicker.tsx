@@ -2,8 +2,11 @@ import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
+import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
+import { formatFiatPrice } from '@/utils/format'
 
 export type PaymentMethod = {
   id: string
@@ -11,6 +14,13 @@ export type PaymentMethod = {
   type: 'lightning' | 'ecash' | 'ark'
   detail?: string
   accountId?: string
+  balanceSats?: number
+}
+
+const TYPE_LABEL: Record<PaymentMethod['type'], string> = {
+  ark: 'Ark',
+  ecash: 'ECash',
+  lightning: 'Lightning'
 }
 
 type SSPaymentMethodPickerProps = {
@@ -28,6 +38,9 @@ function SSPaymentMethodPicker({
   methods,
   amountSats
 }: SSPaymentMethodPickerProps) {
+  const btcPrice = usePriceStore((state) => state.btcPrice)
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
+
   return (
     <Modal
       visible={visible}
@@ -39,7 +52,7 @@ function SSPaymentMethodPicker({
         <View style={styles.sheet}>
           <SSVStack gap="md">
             <SSText size="lg" weight="medium" center>
-              Pay {amountSats} sats with:
+              Pay {amountSats.toLocaleString()} sats with:
             </SSText>
             {methods.map((method) => (
               <TouchableOpacity
@@ -49,10 +62,25 @@ function SSPaymentMethodPicker({
                 activeOpacity={0.6}
               >
                 <SSVStack gap="xxs">
-                  <SSText size="md" weight="medium">
-                    {method.label}
-                  </SSText>
-                  {method.detail && (
+                  <SSHStack gap="sm" style={styles.methodRowHeader}>
+                    <SSText size="md" weight="medium" style={styles.methodLabel}>
+                      {method.label}
+                    </SSText>
+                    <View style={styles.typeBadge}>
+                      <SSText size="xxs" color="muted">
+                        {TYPE_LABEL[method.type]}
+                      </SSText>
+                    </View>
+                  </SSHStack>
+                  {method.balanceSats !== undefined && (
+                    <SSText size="xs" color="muted">
+                      {method.balanceSats.toLocaleString()} sats
+                      {btcPrice > 0
+                        ? ` · ${fiatCurrency} ${formatFiatPrice(method.balanceSats, btcPrice)}`
+                        : ''}
+                    </SSText>
+                  )}
+                  {method.detail && method.balanceSats === undefined && (
                     <SSText size="xs" color="muted">
                       {method.detail}
                     </SSText>
@@ -69,6 +97,9 @@ function SSPaymentMethodPicker({
 }
 
 const styles = StyleSheet.create({
+  methodLabel: {
+    flex: 1
+  },
   methodRow: {
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
@@ -76,6 +107,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 14
+  },
+  methodRowHeader: {
+    alignItems: 'center'
+  },
+  typeBadge: {
+    backgroundColor: Colors.gray[800],
+    borderColor: Colors.gray[700],
+    borderRadius: 3,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2
   },
   overlay: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
