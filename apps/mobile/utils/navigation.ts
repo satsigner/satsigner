@@ -34,23 +34,25 @@ const CONTAINER_SEGMENTS = new Set([
 // /signer/nostr/create etc. must NOT appear here — stripping the last segment
 // already produces the correct parent for those.
 const PARENT_PATH_OVERRIDES: Record<string, string> = {
+  '/converter': '/',
+  '/explorer': '/',
   '/signer': '/',
+  '/signer/ark/account': '/signer/ark',
   '/signer/bitcoin': '/',
   '/signer/bitcoin/account': '/signer/bitcoin/accountList',
-  '/signer/ark/account': '/signer/ark',
   '/signer/ecash/account': '/signer/ecash',
-  '/signer/nostr/account': '/signer/nostr',
-  '/explorer': '/',
-  '/converter': '/'
+  '/signer/nostr/account': '/signer/nostr'
 }
 
 export function getBackPath(pathname: string): string {
   const segments = pathname.replace(/^\/+/, '').split('/').filter(Boolean)
-  if (segments.length === 0) return '/'
+  if (segments.length === 0) {
+    return '/'
+  }
 
   let parentSegments = segments.slice(0, -1)
 
-  const lastParentSeg = parentSegments[parentSegments.length - 1]
+  const lastParentSeg = parentSegments.at(-1)
   if (lastParentSeg && CONTAINER_SEGMENTS.has(lastParentSeg)) {
     parentSegments = parentSegments.slice(0, -1)
   }

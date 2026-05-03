@@ -158,12 +158,12 @@ export async function deriveNostrKeysFromDescriptor(
   return { commonNpub, commonNsec, privateKeyBytes }
 }
 
-export async function validateNip05(
+export function validateNip05(
   pubkeyHex: string,
   nip05Address: string
 ): Promise<boolean> {
-  if (\!nostrNip05.isNip05(nip05Address)) {
-    return false
+  if (!nostrNip05.isNip05(nip05Address)) {
+    return Promise.resolve(false)
   }
   return nostrNip05.isValid(pubkeyHex, nip05Address).catch(() => false)
 }

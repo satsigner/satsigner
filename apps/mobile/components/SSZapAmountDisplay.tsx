@@ -1,8 +1,8 @@
 import { StyleSheet } from 'react-native'
 
 import SSText from '@/components/SSText'
-import SSHStack from '@/layouts/SSHStack'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
+import SSHStack from '@/layouts/SSHStack'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'

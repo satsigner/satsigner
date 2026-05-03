@@ -339,12 +339,18 @@ export default function EcashAccountDetailPage() {
               </SSHStack>
               {btcPrice > 0 && (
                 <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                  <SSText size="xl" style={{ color: ECASH_BALANCE_LABEL_COLOR }}>
+                  <SSText
+                    size="xl"
+                    style={{ color: ECASH_BALANCE_LABEL_COLOR }}
+                  >
                     {privacyMode
                       ? PRIVACY_MASK
                       : formatFiatPrice(totalBalance, btcPrice)}
                   </SSText>
-                  <SSText size="xl" style={{ color: ECASH_BALANCE_LABEL_COLOR }}>
+                  <SSText
+                    size="xl"
+                    style={{ color: ECASH_BALANCE_LABEL_COLOR }}
+                  >
                     {fiatCurrency}
                   </SSText>
                 </SSHStack>

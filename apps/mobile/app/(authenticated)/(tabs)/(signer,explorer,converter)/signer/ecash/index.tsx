@@ -238,6 +238,12 @@ export default function EcashAccountListPage() {
 }
 
 const styles = StyleSheet.create({
+  accountCardBody: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 4
+  },
   accountCardContent: {
     padding: 16,
     position: 'relative',
@@ -245,6 +251,16 @@ const styles = StyleSheet.create({
   },
   accountCardFill: {
     borderRadius: Sizes.button.borderRadius
+  },
+  accountCardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  accountCardHeaderLeft: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8
   },
   accountCardInnerStroke: {
     borderColor: 'rgba(255, 255, 255, 0.045)',
@@ -267,22 +283,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     position: 'relative'
-  },
-  accountCardBody: {
-    alignItems: 'baseline',
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 4
-  },
-  accountCardHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  accountCardHeaderLeft: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8
   },
   addButton: {
     maxWidth: 280,

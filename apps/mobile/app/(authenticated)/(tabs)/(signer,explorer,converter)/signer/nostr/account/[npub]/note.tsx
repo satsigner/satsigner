@@ -14,14 +14,13 @@ import {
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
-import SSBottomSheet from '@/components/SSBottomSheet'
-import SSButton from '@/components/SSButton'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconChevronDown from '@/components/icons/SSIconChevronDown'
 import SSIconChevronUp from '@/components/icons/SSIconChevronUp'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
+import SSBottomSheet from '@/components/SSBottomSheet'
+import SSButton from '@/components/SSButton'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow,
@@ -33,6 +32,7 @@ import SSPaymentMethodPicker, {
   type PaymentMethod
 } from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
+import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
   DEFAULT_ONE_TAP_AMOUNT,
   DEFAULT_ZAP_PRESETS,
@@ -243,7 +243,7 @@ export default function NostrNotePage() {
       })
       setProfileLoading(false)
       if (profile.nip05) {
-        validateNip05(event.pubkey, profile.nip05).then(setNip05Valid)
+        setNip05Valid(await validateNip05(event.pubkey, profile.nip05))
       }
     } catch {
       setProfileLoading(false)
@@ -736,7 +736,11 @@ export default function NostrNotePage() {
     }
   }
 
-  const sortedZapReceipts = sortZapReceipts(zapReceipts, zapSortField, zapSortAsc)
+  const sortedZapReceipts = sortZapReceipts(
+    zapReceipts,
+    zapSortField,
+    zapSortAsc
+  )
 
   const noteHexId = decoded?.data ?? ''
   const noteId = noteHexId ? nip19.noteEncode(noteHexId) : ''
@@ -745,12 +749,12 @@ export default function NostrNotePage() {
   const eventJson = fetched
     ? JSON.stringify(
         {
-          id: decoded?.data ?? '',
-          pubkey: fetched.pubkey,
-          kind: fetched.kind,
+          content: fetched.content,
           created_at: fetched.created_at,
-          tags: fetched.tags,
-          content: fetched.content
+          id: decoded?.data ?? '',
+          kind: fetched.kind,
+          pubkey: fetched.pubkey,
+          tags: fetched.tags
         },
         null,
         2
@@ -835,21 +839,38 @@ export default function NostrNotePage() {
                   )}
                   <SSVStack gap="none" style={{ flex: 1 }}>
                     {fetched.authorName && !privacyMode && (
-                      <SSText size="md" weight="medium" style={{ lineHeight: 18 }}>
+                      <SSText
+                        size="md"
+                        weight="medium"
+                        style={{ lineHeight: 18 }}
+                      >
                         {fetched.authorName}
                       </SSText>
                     )}
                     {privacyMode && (
-                      <SSText size="md" weight="medium" style={{ lineHeight: 18 }}>
+                      <SSText
+                        size="md"
+                        weight="medium"
+                        style={{ lineHeight: 18 }}
+                      >
                         {NOSTR_PRIVACY_MASK}
                       </SSText>
                     )}
-                    <SSText size="xs" color="muted" type="mono" style={{ lineHeight: 16 }}>
+                    <SSText
+                      size="xs"
+                      color="muted"
+                      type="mono"
+                      style={{ lineHeight: 16 }}
+                    >
                       {truncateNpub(nip19.npubEncode(fetched.pubkey), 12)}
                     </SSText>
                     {fetched.authorNip05 && !privacyMode && (
                       <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-                        <SSText size="xs" color="muted" style={{ lineHeight: 16 }}>
+                        <SSText
+                          size="xs"
+                          color="muted"
+                          style={{ lineHeight: 16 }}
+                        >
                           {fetched.authorNip05}
                         </SSText>
                         {nip05Valid === true && (
@@ -965,7 +986,12 @@ export default function NostrNotePage() {
                 {showMeta ? (
                   <SSVStack gap="xxs">
                     <SSHStack gap="xs" style={styles.metaRow}>
-                      <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        uppercase
+                        style={styles.metaLabel}
+                      >
                         {t('nostrIdentity.note.metaKind')}
                       </SSText>
                       <View style={styles.kindBadge}>
@@ -973,31 +999,70 @@ export default function NostrNotePage() {
                       </View>
                     </SSHStack>
                     <SSHStack gap="xs" style={styles.metaRow}>
-                      <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        uppercase
+                        style={styles.metaLabel}
+                      >
                         {t('nostrIdentity.note.metaNevent')}
                       </SSText>
-                      <SSClipboardCopy text={noteNeventId} style={styles.metaValue}>
-                        <SSText size="xxs" type="mono" color="muted" numberOfLines={1} ellipsizeMode="middle">
+                      <SSClipboardCopy
+                        text={noteNeventId}
+                        style={styles.metaValue}
+                      >
+                        <SSText
+                          size="xxs"
+                          type="mono"
+                          color="muted"
+                          numberOfLines={1}
+                          ellipsizeMode="middle"
+                        >
                           {noteNeventId}
                         </SSText>
                       </SSClipboardCopy>
                     </SSHStack>
                     <SSHStack gap="xs" style={styles.metaRow}>
-                      <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        uppercase
+                        style={styles.metaLabel}
+                      >
                         {t('nostrIdentity.note.metaNote')}
                       </SSText>
                       <SSClipboardCopy text={noteId} style={styles.metaValue}>
-                        <SSText size="xxs" type="mono" color="muted" numberOfLines={1} ellipsizeMode="middle">
+                        <SSText
+                          size="xxs"
+                          type="mono"
+                          color="muted"
+                          numberOfLines={1}
+                          ellipsizeMode="middle"
+                        >
                           {noteId}
                         </SSText>
                       </SSClipboardCopy>
                     </SSHStack>
                     <SSHStack gap="xs" style={styles.metaRow}>
-                      <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        uppercase
+                        style={styles.metaLabel}
+                      >
                         {t('nostrIdentity.note.metaHex')}
                       </SSText>
-                      <SSClipboardCopy text={noteHexId} style={styles.metaValue}>
-                        <SSText size="xxs" type="mono" color="muted" numberOfLines={1} ellipsizeMode="middle">
+                      <SSClipboardCopy
+                        text={noteHexId}
+                        style={styles.metaValue}
+                      >
+                        <SSText
+                          size="xxs"
+                          type="mono"
+                          color="muted"
+                          numberOfLines={1}
+                          ellipsizeMode="middle"
+                        >
                           {noteHexId}
                         </SSText>
                       </SSClipboardCopy>
@@ -1312,7 +1377,11 @@ export default function NostrNotePage() {
                       color={zapSortField === 'date' ? 'white' : 'muted'}
                     >
                       {t('nostrIdentity.zapSort.date')}
-                      {zapSortField === 'date' ? (zapSortAsc ? ' ↑' : ' ↓') : ''}
+                      {zapSortField === 'date'
+                        ? zapSortAsc
+                          ? ' ↑'
+                          : ' ↓'
+                        : ''}
                     </SSText>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -1324,7 +1393,11 @@ export default function NostrNotePage() {
                       color={zapSortField === 'amount' ? 'white' : 'muted'}
                     >
                       {t('nostrIdentity.zapSort.amount')}
-                      {zapSortField === 'amount' ? (zapSortAsc ? ' ↑' : ' ↓') : ''}
+                      {zapSortField === 'amount'
+                        ? zapSortAsc
+                          ? ' ↑'
+                          : ' ↓'
+                        : ''}
                     </SSText>
                   </TouchableOpacity>
                 </SSHStack>
@@ -1581,7 +1654,6 @@ export default function NostrNotePage() {
           />
         </SSVStack>
       </SSBottomSheet>
-
     </SSMainLayout>
   )
 }
@@ -1714,13 +1786,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0
   },
-  tagTypeBadge: {
-    backgroundColor: Colors.gray[800],
-    borderRadius: 3,
-    flexShrink: 0,
-    paddingHorizontal: 5,
-    paddingVertical: 2
-  },
   notFoundCard: {
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
@@ -1798,15 +1863,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: '100%'
   },
-  zapLoader: {
-    marginVertical: 8
-  },
-  zapSectionSpacer: {
-    height: 8
-  },
-  zapSortHeader: {
-    alignItems: 'center'
-  },
   receiptAmountCol: {
     alignItems: 'flex-end'
   },
@@ -1851,8 +1907,18 @@ const styles = StyleSheet.create({
   sheetContent: {
     paddingBottom: 24
   },
+  tagTypeBadge: {
+    backgroundColor: Colors.gray[800],
+    borderRadius: 3,
+    flexShrink: 0,
+    paddingHorizontal: 5,
+    paddingVertical: 2
+  },
   zapButton: {
     minWidth: 90
+  },
+  zapLoader: {
+    marginVertical: 8
   },
   zapLoadingRow: {
     alignItems: 'center',
@@ -1868,5 +1934,11 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 14,
     paddingTop: 8
+  },
+  zapSectionSpacer: {
+    height: 8
+  },
+  zapSortHeader: {
+    alignItems: 'center'
   }
 })

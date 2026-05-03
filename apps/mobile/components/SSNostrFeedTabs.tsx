@@ -19,6 +19,7 @@ import {
   type NostrFeedNoteLike
 } from '@/components/SSNostrFeedNoteRow'
 import SSText from '@/components/SSText'
+import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -220,8 +221,6 @@ function SSNostrFeedTabs({
   relays
 }: SSNostrFeedTabsProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
-  const btcPrice = usePriceStore((state) => state.btcPrice)
-  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
@@ -253,7 +252,7 @@ function SSNostrFeedTabs({
   const [zaps, setZaps] = useState<ZapReceiptInfo[]>([])
   const [zapsLoading, setZapsLoading] = useState(false)
   const [zapsHasMore, setZapsHasMore] = useState(true)
-  const [zapSortField, setZapSortField] = useState<'date' | 'amount'>('date')
+  const [zapSortField, setZapSortField] = useState<ZapSortField>('date')
   const [zapSortAsc, setZapSortAsc] = useState(false)
   const zapsFetchedRef = useRef(false)
 
@@ -791,20 +790,16 @@ function SSNostrFeedTabs({
                     color={zapSortField === 'amount' ? 'white' : 'muted'}
                   >
                     {t('nostrIdentity.zapSort.amount')}
-                    {zapSortField === 'amount' ? (zapSortAsc ? ' ↑' : ' ↓') : ''}
+                    {zapSortField === 'amount'
+                      ? zapSortAsc
+                        ? ' ↑'
+                        : ' ↓'
+                      : ''}
                   </SSText>
                 </TouchableOpacity>
               </SSHStack>
             )}
-            {[...zaps]
-              .sort((a, b) => {
-                const m = zapSortAsc ? 1 : -1
-                if (zapSortField === 'amount') {
-                  return (a.amountSats - b.amountSats) * m
-                }
-                return (a.createdAt - b.createdAt) * m
-              })
-              .map((receipt) => {
+            {sortZapReceipts(zaps, zapSortField, zapSortAsc).map((receipt) => {
               const isOutgoing = receipt.direction === 'outgoing'
               const avatarUri = isOutgoing
                 ? receipt.recipientPicture
@@ -860,40 +855,10 @@ function SSNostrFeedTabs({
                     <SSText size="xxs" color="muted">
                       {formatNostrCardDate(receipt.createdAt)}
                     </SSText>
-                    {privacyMode ? (
-                      <SSText size="sm" weight="medium">
-                        {NOSTR_PRIVACY_MASK} sats
-                      </SSText>
-                    ) : (
-                      <SSHStack
-                        gap="xs"
-                        style={{ alignItems: 'baseline', flexWrap: 'wrap' }}
-                      >
-                        <SSText
-                          size="sm"
-                          weight="medium"
-                          style={
-                            !isOutgoing ? styles.zapAmountIncoming : undefined
-                          }
-                        >
-                          {receipt.amountSats.toLocaleString()}
-                        </SSText>
-                        <SSText size="xxs" color="muted">
-                          sats
-                        </SSText>
-                        {btcPrice > 0 && (
-                          <>
-                            <SSText size="xxs" color="muted">
-                              ·
-                            </SSText>
-                            <SSText size="xxs" color="muted">
-                              {formatFiatPrice(receipt.amountSats, btcPrice)}{' '}
-                              {fiatCurrency}
-                            </SSText>
-                          </>
-                        )}
-                      </SSHStack>
-                    )}
+                    <SSZapAmountDisplay
+                      amountSats={receipt.amountSats}
+                      incoming={!isOutgoing}
+                    />
                   </SSVStack>
                 </SSHStack>
               )
@@ -1120,10 +1085,6 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1
   },
-  zapSortBar: {
-    alignItems: 'center',
-    justifyContent: 'flex-end'
-  },
   zapAmountCol: {
     alignItems: 'flex-end'
   },
@@ -1149,6 +1110,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingBottom: 16,
     paddingTop: 8
+  },
+  zapSortBar: {
+    alignItems: 'center',
+    justifyContent: 'flex-end'
   }
 })
 

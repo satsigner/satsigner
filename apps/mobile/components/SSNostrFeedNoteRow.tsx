@@ -3,11 +3,11 @@ import { nip19 } from 'nostr-tools'
 import { type ReactNode } from 'react'
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
+import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
+import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSText from '@/components/SSText'
-import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
-import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -317,6 +317,15 @@ function SSNostrFeedNoteRow({
 }
 
 const styles = StyleSheet.create({
+  authorDisplayName: {
+    lineHeight: 16
+  },
+  authorNip05: {
+    lineHeight: 14
+  },
+  authorNpub: {
+    lineHeight: 14
+  },
   feedAuthorAvatar: {
     borderRadius: 16,
     height: 32,
@@ -336,15 +345,6 @@ const styles = StyleSheet.create({
   feedAuthorTextCol: {
     flex: 1,
     minWidth: 0
-  },
-  authorDisplayName: {
-    lineHeight: 16
-  },
-  authorNpub: {
-    lineHeight: 14
-  },
-  authorNip05: {
-    lineHeight: 14
   },
   nip05Row: {
     alignItems: 'center'

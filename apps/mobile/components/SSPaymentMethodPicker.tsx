@@ -41,10 +41,7 @@ function SSPaymentMethodPicker(
   const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   return (
-    <SSBottomSheet
-      ref={ref}
-      title={`Pay ${amountSats.toLocaleString()} sats`}
-    >
+    <SSBottomSheet ref={ref} title={`Pay ${amountSats.toLocaleString()} sats`}>
       <SSVStack gap="md" style={styles.content}>
         {methods.map((method) => (
           <TouchableOpacity

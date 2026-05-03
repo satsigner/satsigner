@@ -812,7 +812,7 @@ export function sortZapReceipts(
   field: ZapSortField,
   asc: boolean
 ): ZapReceiptInfo[] {
-  return [...receipts].sort((a, b) => {
+  return [...receipts].toSorted((a, b) => {
     const m = asc ? 1 : -1
     if (field === 'amount') {
       return (a.amountSats - b.amountSats) * m
@@ -827,10 +827,10 @@ export function countQualifyingZaps(
   max?: number
 ): number {
   return receipts.filter((r) => {
-    if (min \!== undefined && r.amountSats < min) {
+    if (min !== undefined && r.amountSats < min) {
       return false
     }
-    if (max \!== undefined && r.amountSats > max) {
+    if (max !== undefined && r.amountSats > max) {
       return false
     }
     return true

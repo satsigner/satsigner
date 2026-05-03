@@ -11,7 +11,9 @@ describe('navigation utils', () => {
     })
 
     it('returns false when depth exceeds 4', () => {
-      expect(showNavigation('/signer/bitcoin/account/123/settings', 5)).toBe(false)
+      expect(showNavigation('/signer/bitcoin/account/123/settings', 5)).toBe(
+        false
+      )
     })
   })
 
@@ -24,7 +26,9 @@ describe('navigation utils', () => {
     describe('simple segment stripping (valid intermediate routes)', () => {
       it('strips last segment for settings sub-pages', () => {
         expect(getBackPath('/settings/security')).toBe('/settings')
-        expect(getBackPath('/settings/network/server')).toBe('/settings/network')
+        expect(getBackPath('/settings/network/server')).toBe(
+          '/settings/network'
+        )
       })
 
       it('strips last segment for lightning node sub-pages', () => {
@@ -35,8 +39,12 @@ describe('navigation utils', () => {
       })
 
       it('strips last segment for nostr create/import sub-pages', () => {
-        expect(getBackPath('/signer/nostr/create/profile')).toBe('/signer/nostr/create')
-        expect(getBackPath('/signer/nostr/import/index')).toBe('/signer/nostr/import')
+        expect(getBackPath('/signer/nostr/create/profile')).toBe(
+          '/signer/nostr/create'
+        )
+        expect(getBackPath('/signer/nostr/import/index')).toBe(
+          '/signer/nostr/import'
+        )
       })
     })
 
@@ -54,9 +62,9 @@ describe('navigation utils', () => {
       })
 
       it('transaction/[txid]/label -> transaction detail (no container skip needed)', () => {
-        expect(getBackPath('/signer/bitcoin/account/123/transaction/abc/label')).toBe(
-          '/signer/bitcoin/account/123/transaction/abc'
-        )
+        expect(
+          getBackPath('/signer/bitcoin/account/123/transaction/abc/label')
+        ).toBe('/signer/bitcoin/account/123/transaction/abc')
       })
 
       it('transaction/[txid]/utxo/[vout] -> transaction detail', () => {
@@ -117,7 +125,9 @@ describe('navigation utils', () => {
       })
 
       it('nostr account/[npub] -> nostr index', () => {
-        expect(getBackPath('/signer/nostr/account/npub1abc')).toBe('/signer/nostr')
+        expect(getBackPath('/signer/nostr/account/npub1abc')).toBe(
+          '/signer/nostr'
+        )
       })
 
       it('explorer pages -> section landing', () => {
