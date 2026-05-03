@@ -139,7 +139,7 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
   return (
     <TouchableOpacity
       onPress={() =>
-        router.push({
+        router.navigate({
           params: { id: transaction.id },
           pathname: '/signer/ecash/transaction/[id]'
         } as never)
