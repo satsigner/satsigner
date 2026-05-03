@@ -64,7 +64,10 @@ import {
 import {
   formatLightningTxTimeAgo,
   getTxDisplayInfo,
-  getTxLightningSendFeeSatString
+  getTxLightningSendFeeSatString,
+  getTxStatusBadge,
+  txDateOptions,
+  type TxStatusBadge
 } from '@/utils/lndTransactionDisplay'
 
 const PRIVACY_MASK = '••••'
@@ -416,19 +419,95 @@ export default function NodeDetailPage() {
     )
   }
 
+  function getTxRowStyle(badge: TxStatusBadge | null) {
+    switch (badge) {
+      case 'expired':
+        return styles.transactionItemExpired
+      case 'canceled':
+        return styles.transactionItemCanceled
+      case 'failed':
+        return styles.transactionItemFailed
+      case 'pending':
+      case 'in_flight':
+        return styles.transactionItemPending
+      default:
+        return null
+    }
+  }
+
+  function getTxBadgeStyle(badge: TxStatusBadge) {
+    switch (badge) {
+      case 'expired':
+        return styles.badgeExpired
+      case 'canceled':
+        return styles.badgeCanceled
+      case 'failed':
+        return styles.badgeFailed
+      case 'in_flight':
+        return styles.badgeInFlight
+      default:
+        return styles.badgePending
+    }
+  }
+
+  function getTxBadgeTextStyle(badge: TxStatusBadge) {
+    switch (badge) {
+      case 'expired':
+        return styles.badgeExpiredText
+      case 'canceled':
+        return styles.badgeCanceledText
+      case 'failed':
+        return styles.badgeFailedText
+      case 'in_flight':
+        return styles.badgeInFlightText
+      default:
+        return styles.badgePendingText
+    }
+  }
+
+  function getTxBadgeLabel(badge: TxStatusBadge): string {
+    switch (badge) {
+      case 'expired':
+        return t('lightning.node.txBadge.expired').toUpperCase()
+      case 'canceled':
+        return t('lightning.node.txBadge.canceled').toUpperCase()
+      case 'failed':
+        return t('lightning.node.txBadge.failed').toUpperCase()
+      case 'in_flight':
+        return t('lightning.node.txBadge.inFlight').toUpperCase()
+      default:
+        return t('lightning.node.txBadge.pending').toUpperCase()
+    }
+  }
+
   function renderTxRow(tx: LndCombinedTransaction) {
     const nowMs = Date.now()
     const timestamp = new Date(tx.timestamp * 1000)
     const fiatAmount = satsToFiat(Math.abs(tx.amount), btcPrice)
     const isReceive = tx.amount > 0
+    const statusBadge = getTxStatusBadge(tx, nowMs)
+    const isNonNormal = statusBadge !== null
 
     const { transactionType } = getTxDisplayInfo(tx, isReceive)
     const feeSatString = getTxLightningSendFeeSatString(tx, privacyMode)
     const hasDescription = Boolean(tx.description?.trim())
 
     return (
-      <View key={tx.id} style={styles.transactionItem}>
-        <SSHStack gap="xs" justifyBetween style={styles.transactionHeader}>
+      <Pressable
+        key={tx.id}
+        onPress={() =>
+          router.navigate({
+            params: { txId: tx.id, txType: tx.type },
+            pathname: '/signer/lightning/node/transaction/[txId]'
+          })
+        }
+        style={({ pressed }) => [
+          styles.transactionItem,
+          getTxRowStyle(statusBadge),
+          pressed && styles.transactionItemPressed
+        ]}
+      >
+        <SSHStack gap="xs" justifyBetween style={[styles.transactionHeader, { alignItems: 'flex-start' }]}>
           <SSHStack
             gap="xs"
             style={{
@@ -450,7 +529,7 @@ export default function NodeDetailPage() {
                 textSize="md"
                 weight="light"
                 type={transactionType}
-                noColor={false}
+                noColor={isNonNormal}
               />
             )}
             <SSText
@@ -472,22 +551,14 @@ export default function NodeDetailPage() {
           </SSHStack>
           <SSHStack gap="xs" style={styles.transactionTimestampRow}>
             <SSText color="muted" size="xs" style={styles.transactionTimestamp}>
-              {timestamp.toLocaleString('en-US', {
-                day: 'numeric',
-                hour: 'numeric',
-                hour12: true,
-                minute: 'numeric',
-                month: 'long',
-                second: 'numeric',
-                year: 'numeric'
-              })}
+              {timestamp.toLocaleString('en-US', txDateOptions(tx.timestamp, nowMs))}
             </SSText>
             <SSText color="muted" size="xs" style={styles.transactionTimeAgo}>
               {formatLightningTxTimeAgo(tx.timestamp, nowMs)}
             </SSText>
           </SSHStack>
         </SSHStack>
-        <SSHStack gap="md" style={styles.transactionDetails}>
+        <SSHStack gap="sm" style={styles.transactionDetails}>
           <SSText
             color={hasDescription ? 'white' : 'muted'}
             numberOfLines={2}
@@ -508,6 +579,13 @@ export default function NodeDetailPage() {
                   }`
                 : t('lightning.node.txNoDescription')}
           </SSText>
+          {statusBadge && (
+            <View style={[styles.badge, styles.badgeEndAligned, getTxBadgeStyle(statusBadge)]}>
+              <SSText size="xxs" style={getTxBadgeTextStyle(statusBadge)}>
+                {getTxBadgeLabel(statusBadge)}
+              </SSText>
+            </View>
+          )}
           {feeSatString ? (
             <SSText
               color="muted"
@@ -525,7 +603,7 @@ export default function NodeDetailPage() {
             </SSText>
           ) : null}
         </SSHStack>
-      </View>
+      </Pressable>
     )
   }
 
@@ -1380,6 +1458,70 @@ const styles = StyleSheet.create({
   },
   transactionHeader: {
     marginBottom: 8
+  },
+  badge: {
+    borderRadius: 3,
+    borderWidth: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 2
+  },
+  badgeEndAligned: {
+    flexShrink: 0,
+    marginLeft: 'auto'
+  },
+  badgeCanceled: {
+    backgroundColor: Colors.gray[850],
+    borderColor: Colors.gray[600]
+  },
+  badgeCanceledText: {
+    color: Colors.gray[200]
+  },
+  badgeExpired: {
+    backgroundColor: '#1a1608',
+    borderColor: '#4a3a18'
+  },
+  badgeExpiredText: {
+    color: '#b08a38'
+  },
+  badgeFailed: {
+    backgroundColor: '#2a1212',
+    borderColor: '#5a2020'
+  },
+  badgeFailedText: {
+    color: '#c46060'
+  },
+  badgeInFlight: {
+    backgroundColor: '#1e1a0a',
+    borderColor: '#5a4a10'
+  },
+  badgeInFlightText: {
+    color: '#c8a840'
+  },
+  badgePending: {
+    backgroundColor: Colors.gray[850],
+    borderColor: Colors.gray[600]
+  },
+  badgePendingText: {
+    color: Colors.gray[300]
+  },
+  transactionItemCanceled: {
+    borderTopColor: Colors.gray[800],
+    opacity: 0.5
+  },
+  transactionItemExpired: {
+    borderTopColor: Colors.gray[800],
+    opacity: 0.45
+  },
+  transactionItemFailed: {
+    borderTopColor: Colors.gray[800],
+    opacity: 0.55
+  },
+  transactionItemPending: {
+    borderTopColor: Colors.gray[700],
+    opacity: 0.75
+  },
+  transactionItemPressed: {
+    opacity: 0.6
   },
   transactionItem: {
     borderTopColor: Colors.gray[800],

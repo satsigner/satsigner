@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     color: Colors.black
   },
   textColorMuted: {
-    color: Colors.gray[100]
+    color: Colors.gray[300]
   },
   textColorWhite: {
     color: Colors.white
