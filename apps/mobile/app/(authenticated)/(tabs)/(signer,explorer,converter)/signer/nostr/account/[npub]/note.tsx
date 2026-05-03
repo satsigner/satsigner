@@ -45,10 +45,11 @@ import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
-import { formatNostrCardDate } from '@/utils/format'
+import { formatFiatPrice, formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   type DecodedNostrContent,
@@ -110,7 +111,7 @@ export default function NostrNotePage() {
   const [notFound, setNotFound] = useState(false)
   const [triedHints, setTriedHints] = useState(false)
   const [triedBroadSearch, setTriedBroadSearch] = useState(false)
-  const [paymentPickerVisible, setPaymentPickerVisible] = useState(false)
+  const paymentSheetRef = useRef<BottomSheetMethods>(null)
   const [payAmount, setPayAmount] = useState(0)
   const [customAmount, setCustomAmount] = useState('')
   const [zapLoading, setZapLoading] = useState(false)
@@ -132,14 +133,22 @@ export default function NostrNotePage() {
   const [showJson, setShowJson] = useState(false)
   const [showMeta, setShowMeta] = useState(true)
   const [nip05Valid, setNip05Valid] = useState<boolean | null>(null)
+  const [zapSortField, setZapSortField] = useState<'date' | 'amount'>('date')
+  const [zapSortAsc, setZapSortAsc] = useState(false)
+  const [zapReceiptsLoading, setZapReceiptsLoading] = useState(false)
 
   const zapPrefs = identity?.zapPreferences
   const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
   const oneTapAmount = zapPrefs?.oneTapAmount ?? DEFAULT_ONE_TAP_AMOUNT
 
   const lightningConfig = useLightningStore((state) => state.config)
+  const lightningNodeAlias = useLightningStore(
+    (state) => state.status.nodeInfo?.alias
+  )
   const { accounts: ecashAccounts, allMints: ecashAllMints } = useEcash()
   const arkAccounts = useArkStore((state) => state.accounts)
+  const btcPrice = usePriceStore((state) => state.btcPrice)
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   const pendingZap = useZapFlowStore((state) => state.pendingZap)
   const zapResult = useZapFlowStore((state) => state.zapResult)
@@ -150,7 +159,7 @@ export default function NostrNotePage() {
   const decoded = nostrUri ? decodeNostrContent(nostrUri) : null
 
   const availablePaymentMethods = buildPaymentMethods(
-    lightningConfig,
+    lightningConfig ? { ...lightningConfig, alias: lightningNodeAlias } : null,
     ecashAccounts,
     ecashAllMints,
     arkAccounts
@@ -164,6 +173,7 @@ export default function NostrNotePage() {
   ownPubkeysRef.current = ownPubkeys
 
   async function loadZapReceipts(eventIdHex: string) {
+    setZapReceiptsLoading(true)
     try {
       const receipts = await fetchZapReceipts(
         eventIdHex,
@@ -171,10 +181,11 @@ export default function NostrNotePage() {
         ownPubkeysRef.current
       )
       setZapReceipts(receipts)
+      setZapReceiptsLoading(false)
       await enrichZapReceipts(receipts, effectiveRelaysRef.current)
       setZapReceipts([...receipts])
     } catch {
-      // non-critical
+      setZapReceiptsLoading(false)
     }
   }
 
@@ -630,7 +641,7 @@ export default function NostrNotePage() {
       }
 
       setPayAmount(amountSats)
-      setPaymentPickerVisible(true)
+      paymentSheetRef.current?.snapToIndex(0)
     } catch (error) {
       setZapLoading(false)
       const reason = error instanceof Error ? error.message : 'unknown'
@@ -644,7 +655,7 @@ export default function NostrNotePage() {
     zapRequestJson?: string,
     amountSats?: number
   ) {
-    setPaymentPickerVisible(false)
+    paymentSheetRef.current?.close()
 
     const pending = pendingInvoiceRef.current
     const bolt11 = invoice || pending?.invoice
@@ -721,6 +732,23 @@ export default function NostrNotePage() {
     zapSheetRef.current?.close()
     handleZap(sats, sheetZapComment || undefined)
   }
+
+  function handleZapSortPress(field: 'date' | 'amount') {
+    if (zapSortField === field) {
+      setZapSortAsc((v) => !v)
+    } else {
+      setZapSortField(field)
+      setZapSortAsc(false)
+    }
+  }
+
+  const sortedZapReceipts = [...zapReceipts].sort((a, b) => {
+    const multiplier = zapSortAsc ? 1 : -1
+    if (zapSortField === 'amount') {
+      return (a.amountSats - b.amountSats) * multiplier
+    }
+    return (a.createdAt - b.createdAt) * multiplier
+  })
 
   const noteHexId = decoded?.data ?? ''
   const noteId = noteHexId ? nip19.noteEncode(noteHexId) : ''
@@ -1283,10 +1311,36 @@ export default function NostrNotePage() {
 
             {zapReceipts.length > 0 && (
               <SSVStack gap="sm">
-                <SSText size="xs" color="muted" uppercase>
-                  {t('nostrIdentity.note.zapReceipts')} ({zapReceipts.length})
-                </SSText>
-                {zapReceipts.map((receipt) => (
+                <SSHStack gap="sm" style={styles.zapSortHeader}>
+                  <SSText size="xs" color="muted" uppercase style={{ flex: 1 }}>
+                    {t('nostrIdentity.note.zapReceipts')} ({zapReceipts.length})
+                  </SSText>
+                  <TouchableOpacity
+                    onPress={() => handleZapSortPress('date')}
+                    hitSlop={8}
+                  >
+                    <SSText
+                      size="xxs"
+                      color={zapSortField === 'date' ? 'white' : 'muted'}
+                    >
+                      {t('nostrIdentity.zapSort.date')}
+                      {zapSortField === 'date' ? (zapSortAsc ? ' ↑' : ' ↓') : ''}
+                    </SSText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleZapSortPress('amount')}
+                    hitSlop={8}
+                  >
+                    <SSText
+                      size="xxs"
+                      color={zapSortField === 'amount' ? 'white' : 'muted'}
+                    >
+                      {t('nostrIdentity.zapSort.amount')}
+                      {zapSortField === 'amount' ? (zapSortAsc ? ' ↑' : ' ↓') : ''}
+                    </SSText>
+                  </TouchableOpacity>
+                </SSHStack>
+                {sortedZapReceipts.map((receipt) => (
                   <SSHStack key={receipt.id} gap="sm" style={styles.receiptRow}>
                     <TouchableOpacity
                       activeOpacity={0.7}
@@ -1347,18 +1401,49 @@ export default function NostrNotePage() {
                           {formatNostrCardDate(receipt.createdAt)}
                         </SSText>
                       )}
-                      <SSText size="sm" weight="bold" color="white">
-                        {privacyMode
-                          ? `${NOSTR_PRIVACY_MASK} sats`
-                          : `${receipt.amountSats.toLocaleString()} sats`}
-                      </SSText>
+                      {privacyMode ? (
+                        <SSText size="sm" weight="medium" color="white">
+                          {NOSTR_PRIVACY_MASK} sats
+                        </SSText>
+                      ) : (
+                        <SSHStack
+                          gap="xs"
+                          style={{ alignItems: 'baseline', flexWrap: 'wrap' }}
+                        >
+                          <SSText size="sm" weight="medium" color="white">
+                            {receipt.amountSats.toLocaleString()}
+                          </SSText>
+                          <SSText size="xxs" color="muted">
+                            sats
+                          </SSText>
+                          {btcPrice > 0 && (
+                            <>
+                              <SSText size="xxs" color="muted">
+                                ·
+                              </SSText>
+                              <SSText size="xxs" color="muted">
+                                {formatFiatPrice(receipt.amountSats, btcPrice)}{' '}
+                                {fiatCurrency}
+                              </SSText>
+                            </>
+                          )}
+                        </SSHStack>
+                      )}
                     </SSVStack>
                   </SSHStack>
                 ))}
               </SSVStack>
             )}
 
-            {zapReceipts.length === 0 && fetched && (
+            {zapReceiptsLoading && (
+              <ActivityIndicator
+                color={Colors.white}
+                size="small"
+                style={styles.zapLoader}
+              />
+            )}
+
+            {!zapReceiptsLoading && zapReceipts.length === 0 && fetched && (
               <SSText size="xs" color="muted" center>
                 {t('nostrIdentity.note.noZapsYet')}
               </SSText>
@@ -1475,8 +1560,7 @@ export default function NostrNotePage() {
       )}
 
       <SSPaymentMethodPicker
-        visible={paymentPickerVisible}
-        onClose={() => setPaymentPickerVisible(false)}
+        ref={paymentSheetRef}
         onSelect={(method) => navigateToPayment(method)}
         methods={availablePaymentMethods}
         amountSats={payAmount}
@@ -1528,6 +1612,11 @@ export default function NostrNotePage() {
               !sheetCustomAmount || parseInt(sheetCustomAmount, 10) <= 0
             }
             onPress={handleSheetCustomSubmit}
+          />
+          <SSButton
+            label={t('common.cancel')}
+            variant="ghost"
+            onPress={() => zapSheetRef.current?.close()}
           />
         </SSVStack>
       </SSBottomSheet>
@@ -1747,6 +1836,12 @@ const styles = StyleSheet.create({
     height: 4,
     overflow: 'hidden',
     width: '100%'
+  },
+  zapLoader: {
+    marginVertical: 8
+  },
+  zapSortHeader: {
+    alignItems: 'center'
   },
   receiptAmountCol: {
     alignItems: 'flex-end'

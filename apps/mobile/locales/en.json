@@ -1533,6 +1533,8 @@
     "note.zapFailed": "Zap failed",
     "note.zapInvoiceError": "Failed to get invoice",
     "note.zapReceipts": "Zaps",
+    "zapSort.amount": "Amount",
+    "zapSort.date": "Date",
     "note.zapSending": "Preparing zap...",
     "note.zapSuccess": "Zap sent!",
     "compose.copySigned": "Copy signed",

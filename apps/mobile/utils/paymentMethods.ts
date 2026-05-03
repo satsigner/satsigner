@@ -2,7 +2,7 @@ import type { PaymentMethod } from '@/components/SSPaymentMethodPicker'
 import type { ArkAccount } from '@/types/models/Ark'
 
 export function buildPaymentMethods(
-  lightningConfig: { url: string } | null,
+  lightningConfig: { url: string; alias?: string } | null,
   ecashAccounts: { id: string; name: string }[] = [],
   ecashAllMints: Record<string, { balance: number }[]> = {},
   arkAccounts: ArkAccount[] = []
@@ -12,7 +12,7 @@ export function buildPaymentMethods(
     methods.push({
       detail: lightningConfig.url,
       id: 'lightning',
-      label: 'Lightning',
+      label: lightningConfig.alias || 'Lightning',
       type: 'lightning'
     })
   }

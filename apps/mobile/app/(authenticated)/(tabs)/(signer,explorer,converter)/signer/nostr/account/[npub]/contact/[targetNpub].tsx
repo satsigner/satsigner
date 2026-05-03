@@ -1,6 +1,7 @@
+import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
@@ -46,12 +47,15 @@ export default function NostrContactProfile() {
   )
   const [loading, setLoading] = useState(true)
   const [zapLoading, setZapLoading] = useState(false)
-  const [paymentPickerVisible, setPaymentPickerVisible] = useState(false)
+  const paymentSheetRef = useRef<BottomSheetMethods>(null)
   const [payAmount, setPayAmount] = useState(0)
 
   const lightningConfig = useLightningStore((state) => state.config)
+  const lightningNodeAlias = useLightningStore(
+    (state) => state.status?.nodeInfo?.alias
+  )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
-  const { mints } = useEcash()
+  const { accounts: ecashAccounts, allMints: ecashAllMints } = useEcash()
   const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingInvoice = useState<{
@@ -60,8 +64,9 @@ export default function NostrContactProfile() {
   } | null>(null)
 
   const availablePaymentMethods = buildPaymentMethods(
-    lightningConfig,
-    mints,
+    lightningConfig ? { ...lightningConfig, alias: lightningNodeAlias } : null,
+    ecashAccounts,
+    ecashAllMints,
     arkAccounts
   )
 
@@ -147,7 +152,7 @@ export default function NostrContactProfile() {
       }
 
       setPayAmount(amountSats)
-      setPaymentPickerVisible(true)
+      paymentSheetRef.current?.snapToIndex(0)
     } catch {
       setZapLoading(false)
     }
@@ -159,7 +164,7 @@ export default function NostrContactProfile() {
     zapRequestJson?: string,
     amountSats?: number
   ) {
-    setPaymentPickerVisible(false)
+    paymentSheetRef.current?.close()
 
     const bolt11 = invoice || pendingInvoice[0]?.invoice
     const reqJson = zapRequestJson || pendingInvoice[0]?.zapRequestJson || ''
@@ -283,8 +288,7 @@ export default function NostrContactProfile() {
       )}
 
       <SSPaymentMethodPicker
-        visible={paymentPickerVisible}
-        onClose={() => setPaymentPickerVisible(false)}
+        ref={paymentSheetRef}
         onSelect={(method) => navigateToPayment(method)}
         methods={availablePaymentMethods}
         amountSats={payAmount}

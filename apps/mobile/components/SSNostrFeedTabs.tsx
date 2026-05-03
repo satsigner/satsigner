@@ -24,11 +24,12 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
-import { formatNostrCardDate } from '@/utils/format'
+import { formatFiatPrice, formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
 import {
@@ -218,6 +219,8 @@ function SSNostrFeedTabs({
   relays
 }: SSNostrFeedTabsProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const btcPrice = usePriceStore((state) => state.btcPrice)
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
@@ -249,6 +252,8 @@ function SSNostrFeedTabs({
   const [zaps, setZaps] = useState<ZapReceiptInfo[]>([])
   const [zapsLoading, setZapsLoading] = useState(false)
   const [zapsHasMore, setZapsHasMore] = useState(true)
+  const [zapSortField, setZapSortField] = useState<'date' | 'amount'>('date')
+  const [zapSortAsc, setZapSortAsc] = useState(false)
   const zapsFetchedRef = useRef(false)
 
   const hexPubkey = getPubKeyHexFromNpub(npub) ?? ''
@@ -748,7 +753,57 @@ function SSNostrFeedTabs({
 
         {activeTab === 'zaps' && (
           <>
-            {zaps.map((receipt) => {
+            {zaps.length > 0 && (
+              <SSHStack gap="sm" style={styles.zapSortBar}>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (zapSortField === 'date') {
+                      setZapSortAsc((v) => !v)
+                    } else {
+                      setZapSortField('date')
+                      setZapSortAsc(false)
+                    }
+                  }}
+                  hitSlop={8}
+                >
+                  <SSText
+                    size="xxs"
+                    color={zapSortField === 'date' ? 'white' : 'muted'}
+                  >
+                    {t('nostrIdentity.zapSort.date')}
+                    {zapSortField === 'date' ? (zapSortAsc ? ' ↑' : ' ↓') : ''}
+                  </SSText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (zapSortField === 'amount') {
+                      setZapSortAsc((v) => !v)
+                    } else {
+                      setZapSortField('amount')
+                      setZapSortAsc(false)
+                    }
+                  }}
+                  hitSlop={8}
+                >
+                  <SSText
+                    size="xxs"
+                    color={zapSortField === 'amount' ? 'white' : 'muted'}
+                  >
+                    {t('nostrIdentity.zapSort.amount')}
+                    {zapSortField === 'amount' ? (zapSortAsc ? ' ↑' : ' ↓') : ''}
+                  </SSText>
+                </TouchableOpacity>
+              </SSHStack>
+            )}
+            {[...zaps]
+              .sort((a, b) => {
+                const m = zapSortAsc ? 1 : -1
+                if (zapSortField === 'amount') {
+                  return (a.amountSats - b.amountSats) * m
+                }
+                return (a.createdAt - b.createdAt) * m
+              })
+              .map((receipt) => {
               const isOutgoing = receipt.direction === 'outgoing'
               const avatarUri = isOutgoing
                 ? receipt.recipientPicture
@@ -804,19 +859,40 @@ function SSNostrFeedTabs({
                     <SSText size="xxs" color="muted">
                       {formatNostrCardDate(receipt.createdAt)}
                     </SSText>
-                    <SSText
-                      size="sm"
-                      weight="bold"
-                      style={
-                        !isOutgoing && !privacyMode
-                          ? styles.zapAmountIncoming
-                          : undefined
-                      }
-                    >
-                      {privacyMode
-                        ? `${NOSTR_PRIVACY_MASK} sats`
-                        : `${receipt.amountSats} sats`}
-                    </SSText>
+                    {privacyMode ? (
+                      <SSText size="sm" weight="medium">
+                        {NOSTR_PRIVACY_MASK} sats
+                      </SSText>
+                    ) : (
+                      <SSHStack
+                        gap="xs"
+                        style={{ alignItems: 'baseline', flexWrap: 'wrap' }}
+                      >
+                        <SSText
+                          size="sm"
+                          weight="medium"
+                          style={
+                            !isOutgoing ? styles.zapAmountIncoming : undefined
+                          }
+                        >
+                          {receipt.amountSats.toLocaleString()}
+                        </SSText>
+                        <SSText size="xxs" color="muted">
+                          sats
+                        </SSText>
+                        {btcPrice > 0 && (
+                          <>
+                            <SSText size="xxs" color="muted">
+                              ·
+                            </SSText>
+                            <SSText size="xxs" color="muted">
+                              {formatFiatPrice(receipt.amountSats, btcPrice)}{' '}
+                              {fiatCurrency}
+                            </SSText>
+                          </>
+                        )}
+                      </SSHStack>
+                    )}
                   </SSVStack>
                 </SSHStack>
               )
@@ -1042,6 +1118,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     zIndex: 1
+  },
+  zapSortBar: {
+    alignItems: 'center',
+    justifyContent: 'flex-end'
   },
   zapAmountCol: {
     alignItems: 'flex-end'
