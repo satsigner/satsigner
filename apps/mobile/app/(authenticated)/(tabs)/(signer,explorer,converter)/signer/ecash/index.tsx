@@ -1,4 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useRouter } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
@@ -18,6 +19,17 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import type { EcashAccount } from '@/types/models/Ecash'
 import { formatFiatPrice } from '@/utils/format'
+
+const ECASH_CARD_FILL_TOP = Colors.gray[905]
+const ECASH_CARD_FILL_BOTTOM = Colors.gray[925]
+const ECASH_CARD_SHEEN_COLORS = [
+  'rgba(255, 255, 255, 0.04)',
+  'rgba(255, 255, 255, 0)',
+  'rgba(255, 255, 255, 0.012)'
+] as const
+
+/** Darker than `muted` for sats / BTC / fiat balance labels */
+const ECASH_BALANCE_LABEL_COLOR = Colors.gray[500]
 
 function EcashAccountCard({
   account,
@@ -49,66 +61,88 @@ function EcashAccountCard({
       : `${mintCount} ${mintCount === 1 ? t('ecash.mint.singular') : t('ecash.mint.plural')}`
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.accountCard}>
-        <View style={styles.accountCardHeader}>
-          <View style={styles.accountCardHeaderLeft}>
-            <SSText weight="medium" size="md">
-              {account.name}
+    <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
+      <View style={styles.accountCardShell}>
+        <LinearGradient
+          colors={[ECASH_CARD_FILL_TOP, ECASH_CARD_FILL_BOTTOM]}
+          end={{ x: 0.5, y: 1 }}
+          pointerEvents="none"
+          start={{ x: 0.5, y: 0 }}
+          style={[StyleSheet.absoluteFillObject, styles.accountCardFill]}
+        />
+        <LinearGradient
+          colors={[...ECASH_CARD_SHEEN_COLORS]}
+          end={{ x: 0.82, y: 0.95 }}
+          locations={[0, 0.52, 1]}
+          pointerEvents="none"
+          start={{ x: 0.1, y: 0 }}
+          style={[StyleSheet.absoluteFillObject, styles.accountCardSheen]}
+        />
+        <View pointerEvents="none" style={styles.accountCardInnerStroke} />
+        <View style={styles.accountCardContent}>
+          <View style={styles.accountCardHeader}>
+            <View style={styles.accountCardHeaderLeft}>
+              <SSText weight="medium" size="md">
+                {account.name}
+              </SSText>
+              {!account.hasSeed && (
+                <View style={styles.legacyBadge}>
+                  <SSText size="xxs" style={{ color: Colors.warning }}>
+                    {t('ecash.account.noSeed')}
+                  </SSText>
+                </View>
+              )}
+            </View>
+            <SSText color="muted" size="xs">
+              {mintLabel}
             </SSText>
-            {!account.hasSeed && (
-              <View style={styles.legacyBadge}>
-                <SSText size="xxs" style={{ color: Colors.warning }}>
-                  {t('ecash.account.noSeed')}
+          </View>
+          <View style={styles.accountCardBody}>
+            <View style={styles.amountRow}>
+              {privacyMode ? (
+                <SSText
+                  size="lg"
+                  weight="ultralight"
+                  style={{ lineHeight: Sizes.text.fontSize.lg }}
+                >
+                  {NOSTR_PRIVACY_MASK}
                 </SSText>
-              </View>
-            )}
-          </View>
-          <SSText color="muted" size="xs">
-            {mintLabel}
-          </SSText>
-        </View>
-        <View style={styles.accountCardBody}>
-          <View style={styles.amountRow}>
-            {privacyMode ? (
+              ) : (
+                <SSStyledSatText
+                  amount={balance}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
+                  textSize="lg"
+                  weight="ultralight"
+                  letterSpacing={-1}
+                />
+              )}
               <SSText
-                size="lg"
-                weight="ultralight"
-                style={{ lineHeight: Sizes.text.fontSize.lg }}
+                size="xs"
+                style={{
+                  color: ECASH_BALANCE_LABEL_COLOR,
+                  opacity: privacyMode ? 0 : 1
+                }}
               >
-                {NOSTR_PRIVACY_MASK}
+                {currencyUnit === 'btc' ? 'BTC' : 'sats'}
               </SSText>
-            ) : (
-              <SSStyledSatText
-                amount={balance}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                currency={currencyUnit}
-                textSize="lg"
-                weight="ultralight"
-                letterSpacing={-1}
-              />
+            </View>
+            {btcPrice > 0 && (
+              <SSText
+                size="xs"
+                style={{
+                  color: ECASH_BALANCE_LABEL_COLOR,
+                  opacity: privacyMode ? 0 : 1
+                }}
+              >
+                {formatFiatPrice(balance, btcPrice)}{' '}
+                <SSText size="xs" style={{ color: ECASH_BALANCE_LABEL_COLOR }}>
+                  {fiatCurrency}
+                </SSText>
+              </SSText>
             )}
-            <SSText
-              color="muted"
-              size="xs"
-              style={{ opacity: privacyMode ? 0 : 1 }}
-            >
-              {currencyUnit === 'btc' ? 'BTC' : 'sats'}
-            </SSText>
           </View>
-          {btcPrice > 0 && (
-            <SSText
-              color="muted"
-              size="sm"
-              style={{ opacity: privacyMode ? 0 : 1 }}
-            >
-              {formatFiatPrice(balance, btcPrice)}{' '}
-              <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                {fiatCurrency}
-              </SSText>
-            </SSText>
-          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -204,12 +238,35 @@ export default function EcashAccountListPage() {
 }
 
 const styles = StyleSheet.create({
-  accountCard: {
-    backgroundColor: Colors.gray[900],
-    borderColor: Colors.gray[800],
-    borderRadius: 8,
+  accountCardContent: {
+    padding: 16,
+    position: 'relative',
+    zIndex: 2
+  },
+  accountCardFill: {
+    borderRadius: Sizes.button.borderRadius
+  },
+  accountCardInnerStroke: {
+    borderColor: 'rgba(255, 255, 255, 0.045)',
+    borderRadius: Sizes.button.borderRadius - 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    bottom: StyleSheet.hairlineWidth,
+    left: StyleSheet.hairlineWidth,
+    pointerEvents: 'none',
+    position: 'absolute',
+    right: StyleSheet.hairlineWidth,
+    top: StyleSheet.hairlineWidth,
+    zIndex: 1
+  },
+  accountCardSheen: {
+    borderRadius: Sizes.button.borderRadius
+  },
+  accountCardShell: {
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: Sizes.button.borderRadius,
     borderWidth: 1,
-    padding: 16
+    overflow: 'hidden',
+    position: 'relative'
   },
   accountCardBody: {
     alignItems: 'baseline',

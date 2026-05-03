@@ -42,6 +42,8 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import { formatFiatPrice } from '@/utils/format'
 
+const ECASH_BALANCE_LABEL_COLOR = Colors.gray[500]
+
 const MAX_VISIBLE_TRANSACTIONS = 50
 const PRIVACY_MASK = '••••'
 const TAB_WIDTH = '50%'
@@ -329,7 +331,7 @@ export default function EcashAccountDetailPage() {
                     letterSpacing={-1}
                   />
                 )}
-                <SSText size="xl" color="muted">
+                <SSText size="xl" style={{ color: ECASH_BALANCE_LABEL_COLOR }}>
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
                     : t('bitcoin.sats')}
@@ -337,12 +339,12 @@ export default function EcashAccountDetailPage() {
               </SSHStack>
               {btcPrice > 0 && (
                 <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                  <SSText color="muted">
+                  <SSText size="xl" style={{ color: ECASH_BALANCE_LABEL_COLOR }}>
                     {privacyMode
                       ? PRIVACY_MASK
                       : formatFiatPrice(totalBalance, btcPrice)}
                   </SSText>
-                  <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                  <SSText size="xl" style={{ color: ECASH_BALANCE_LABEL_COLOR }}>
                     {fiatCurrency}
                   </SSText>
                 </SSHStack>
