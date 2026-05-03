@@ -47,6 +47,18 @@ function formatUnixTimestamp(unixSeconds: number): string {
   })
 }
 
+function statusBadgeContainerStyle(isPositive: boolean, isNegative: boolean) {
+  if (isPositive) return styles.statusBadgePositive
+  if (isNegative) return styles.statusBadgeNegative
+  return styles.statusBadgeNeutral
+}
+
+function statusBadgeTextStyle(isPositive: boolean, isNegative: boolean) {
+  if (isPositive) return styles.statusTextPositive
+  if (isNegative) return styles.statusTextNegative
+  return styles.statusTextNeutral
+}
+
 function StatusBadge({ status }: { status: string }) {
   const isPositive = ['settled', 'succeeded', 'confirmed'].includes(
     status.toLowerCase()
@@ -54,26 +66,11 @@ function StatusBadge({ status }: { status: string }) {
   const isNegative = ['canceled', 'failed'].includes(status.toLowerCase())
 
   return (
-    <View
-      style={[
-        styles.statusBadge,
-        isPositive
-          ? styles.statusBadgePositive
-          : isNegative
-            ? styles.statusBadgeNegative
-            : styles.statusBadgeNeutral
-      ]}
-    >
+    <View style={[styles.statusBadge, statusBadgeContainerStyle(isPositive, isNegative)]}>
       <SSText
         size="xs"
         weight="medium"
-        style={
-          isPositive
-            ? styles.statusTextPositive
-            : isNegative
-              ? styles.statusTextNegative
-              : styles.statusTextNeutral
-        }
+        style={statusBadgeTextStyle(isPositive, isNegative)}
       >
         {status.toUpperCase()}
       </SSText>
@@ -441,6 +438,20 @@ function OnchainDetail({
   privacyMode: boolean
 }) {
   const destAddresses = onchain.dest_addresses ?? []
+  const hashItems: [string, string][] = [
+    [t('lightning.node.txDetail.txHash'), privacyMode ? PRIVACY_MASK : onchain.tx_hash]
+  ]
+  if (onchain.block_hash) {
+    hashItems.push([t('lightning.node.txDetail.blockHash'), privacyMode ? PRIVACY_MASK : onchain.block_hash])
+  }
+  const metaItems: [string, string][] = [
+    [t('lightning.node.txDetail.confirmations'), String(onchain.num_confirmations)],
+    [t('lightning.node.txDetail.blockHeight'), String(onchain.block_height)],
+    [t('lightning.node.txDetail.totalFees'), privacyMode ? PRIVACY_MASK : onchain.total_fees]
+  ]
+  if (onchain.label) {
+    metaItems.push([t('lightning.node.txDetail.txHash'), onchain.label])
+  }
 
   return (
     <SSVStack gap="md">
@@ -452,41 +463,12 @@ function OnchainDetail({
         gap={16}
         variant="mono"
         copyToClipboard
-        items={[
-          [
-            t('lightning.node.txDetail.txHash'),
-            privacyMode ? PRIVACY_MASK : onchain.tx_hash
-          ],
-          ...(onchain.block_hash
-            ? [
-                [
-                  t('lightning.node.txDetail.blockHash'),
-                  privacyMode ? PRIVACY_MASK : onchain.block_hash
-                ] as [string, string]
-              ]
-            : [])
-        ]}
+        items={hashItems}
       />
       <SSDetailsList
         columns={2}
         gap={16}
-        items={[
-          [
-            t('lightning.node.txDetail.confirmations'),
-            String(onchain.num_confirmations)
-          ],
-          [
-            t('lightning.node.txDetail.blockHeight'),
-            String(onchain.block_height)
-          ],
-          [
-            t('lightning.node.txDetail.totalFees'),
-            privacyMode ? PRIVACY_MASK : onchain.total_fees
-          ],
-          ...(onchain.label
-            ? [[t('lightning.node.txDetail.txHash'), onchain.label] as [string, string]]
-            : [])
-        ]}
+        items={metaItems}
       />
       {destAddresses.length > 0 && (
         <SSVStack gap="xs">

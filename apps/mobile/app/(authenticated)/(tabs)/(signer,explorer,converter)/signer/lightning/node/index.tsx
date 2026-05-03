@@ -77,6 +77,67 @@ const DASHBOARD_OVERLAY_LOADER_SIZE = 48
 type ChannelsViewMode = 'bubbles' | 'list'
 const TRANSACTIONS_PER_PAGE = 30
 
+function getTxRowStyle(badge: TxStatusBadge | null) {
+  switch (badge) {
+    case 'expired':
+      return styles.transactionItemExpired
+    case 'canceled':
+      return styles.transactionItemCanceled
+    case 'failed':
+      return styles.transactionItemFailed
+    case 'pending':
+    case 'in_flight':
+      return styles.transactionItemPending
+    default:
+      return null
+  }
+}
+
+function getTxBadgeStyle(badge: TxStatusBadge) {
+  switch (badge) {
+    case 'expired':
+      return styles.badgeExpired
+    case 'canceled':
+      return styles.badgeCanceled
+    case 'failed':
+      return styles.badgeFailed
+    case 'in_flight':
+      return styles.badgeInFlight
+    default:
+      return styles.badgePending
+  }
+}
+
+function getTxBadgeTextStyle(badge: TxStatusBadge) {
+  switch (badge) {
+    case 'expired':
+      return styles.badgeExpiredText
+    case 'canceled':
+      return styles.badgeCanceledText
+    case 'failed':
+      return styles.badgeFailedText
+    case 'in_flight':
+      return styles.badgeInFlightText
+    default:
+      return styles.badgePendingText
+  }
+}
+
+function getTxBadgeLabel(badge: TxStatusBadge): string {
+  switch (badge) {
+    case 'expired':
+      return t('lightning.node.txBadge.expired').toUpperCase()
+    case 'canceled':
+      return t('lightning.node.txBadge.canceled').toUpperCase()
+    case 'failed':
+      return t('lightning.node.txBadge.failed').toUpperCase()
+    case 'in_flight':
+      return t('lightning.node.txBadge.inFlight').toUpperCase()
+    default:
+      return t('lightning.node.txBadge.pending').toUpperCase()
+  }
+}
+
 export default function NodeDetailPage() {
   const router = useRouter()
   const { width } = useWindowDimensions()
@@ -417,67 +478,6 @@ export default function NodeDetailPage() {
         </SSVStack>
       </SSVStack>
     )
-  }
-
-  function getTxRowStyle(badge: TxStatusBadge | null) {
-    switch (badge) {
-      case 'expired':
-        return styles.transactionItemExpired
-      case 'canceled':
-        return styles.transactionItemCanceled
-      case 'failed':
-        return styles.transactionItemFailed
-      case 'pending':
-      case 'in_flight':
-        return styles.transactionItemPending
-      default:
-        return null
-    }
-  }
-
-  function getTxBadgeStyle(badge: TxStatusBadge) {
-    switch (badge) {
-      case 'expired':
-        return styles.badgeExpired
-      case 'canceled':
-        return styles.badgeCanceled
-      case 'failed':
-        return styles.badgeFailed
-      case 'in_flight':
-        return styles.badgeInFlight
-      default:
-        return styles.badgePending
-    }
-  }
-
-  function getTxBadgeTextStyle(badge: TxStatusBadge) {
-    switch (badge) {
-      case 'expired':
-        return styles.badgeExpiredText
-      case 'canceled':
-        return styles.badgeCanceledText
-      case 'failed':
-        return styles.badgeFailedText
-      case 'in_flight':
-        return styles.badgeInFlightText
-      default:
-        return styles.badgePendingText
-    }
-  }
-
-  function getTxBadgeLabel(badge: TxStatusBadge): string {
-    switch (badge) {
-      case 'expired':
-        return t('lightning.node.txBadge.expired').toUpperCase()
-      case 'canceled':
-        return t('lightning.node.txBadge.canceled').toUpperCase()
-      case 'failed':
-        return t('lightning.node.txBadge.failed').toUpperCase()
-      case 'in_flight':
-        return t('lightning.node.txBadge.inFlight').toUpperCase()
-      default:
-        return t('lightning.node.txBadge.pending').toUpperCase()
-    }
   }
 
   function renderTxRow(tx: LndCombinedTransaction) {
