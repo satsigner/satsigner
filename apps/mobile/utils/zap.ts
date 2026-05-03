@@ -66,6 +66,8 @@ export type ZapFlowResult = {
   zapRequestJson: string
 }
 
+export type ZapSortField = 'date' | 'amount'
+
 export type ZapReceiptDirection = 'incoming' | 'outgoing'
 
 export type ZapReceiptInfo = {
@@ -803,4 +805,34 @@ export async function fetchZapReceiptById(
       }
     }
   }
+}
+
+export function sortZapReceipts(
+  receipts: ZapReceiptInfo[],
+  field: ZapSortField,
+  asc: boolean
+): ZapReceiptInfo[] {
+  return [...receipts].sort((a, b) => {
+    const m = asc ? 1 : -1
+    if (field === 'amount') {
+      return (a.amountSats - b.amountSats) * m
+    }
+    return (a.createdAt - b.createdAt) * m
+  })
+}
+
+export function countQualifyingZaps(
+  receipts: ZapReceiptInfo[],
+  min?: number,
+  max?: number
+): number {
+  return receipts.filter((r) => {
+    if (min \!== undefined && r.amountSats < min) {
+      return false
+    }
+    if (max \!== undefined && r.amountSats > max) {
+      return false
+    }
+    return true
+  }).length
 }

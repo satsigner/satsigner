@@ -1,6 +1,6 @@
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { nip05 as nostrNip05, nip19 } from 'nostr-tools'
+import { nip19 } from 'nostr-tools'
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
@@ -17,6 +17,7 @@ import { NostrAPI } from '@/api/nostr'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconChevronDown from '@/components/icons/SSIconChevronDown'
 import SSIconChevronUp from '@/components/icons/SSIconChevronUp'
@@ -45,12 +46,11 @@ import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
-import { formatFiatPrice, formatNostrCardDate } from '@/utils/format'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { formatNostrCardDate } from '@/utils/format'
+import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
   type DecodedNostrContent,
   type FetchedNoteData,
@@ -74,9 +74,12 @@ import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 import { buildPaymentMethods } from '@/utils/paymentMethods'
 import {
   type ZapReceiptInfo,
+  type ZapSortField,
+  countQualifyingZaps,
   enrichZapReceipts,
   fetchZapReceipts,
-  initiateZap
+  initiateZap,
+  sortZapReceipts
 } from '@/utils/zap'
 
 type NoteParams = {
@@ -133,7 +136,7 @@ export default function NostrNotePage() {
   const [showJson, setShowJson] = useState(false)
   const [showMeta, setShowMeta] = useState(true)
   const [nip05Valid, setNip05Valid] = useState<boolean | null>(null)
-  const [zapSortField, setZapSortField] = useState<'date' | 'amount'>('date')
+  const [zapSortField, setZapSortField] = useState<ZapSortField>('date')
   const [zapSortAsc, setZapSortAsc] = useState(false)
   const [zapReceiptsLoading, setZapReceiptsLoading] = useState(false)
 
@@ -147,8 +150,6 @@ export default function NostrNotePage() {
   )
   const { accounts: ecashAccounts, allMints: ecashAllMints } = useEcash()
   const arkAccounts = useArkStore((state) => state.accounts)
-  const btcPrice = usePriceStore((state) => state.btcPrice)
-  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   const pendingZap = useZapFlowStore((state) => state.pendingZap)
   const zapResult = useZapFlowStore((state) => state.zapResult)
@@ -241,11 +242,8 @@ export default function NostrNotePage() {
         }
       })
       setProfileLoading(false)
-      if (profile.nip05 && nostrNip05.isNip05(profile.nip05)) {
-        nostrNip05
-          .isValid(event.pubkey, profile.nip05)
-          .then(setNip05Valid)
-          .catch(() => setNip05Valid(false))
+      if (profile.nip05) {
+        validateNip05(event.pubkey, profile.nip05).then(setNip05Valid)
       }
     } catch {
       setProfileLoading(false)
@@ -562,15 +560,11 @@ export default function NostrNotePage() {
       ? Math.min(totalZapped / enhancedZap.zapGoal, 1)
       : undefined
 
-  const qualifyingUseCount = zapReceipts.filter((r) => {
-    if (enhancedZap.zapMin !== undefined && r.amountSats < enhancedZap.zapMin) {
-      return false
-    }
-    if (enhancedZap.zapMax !== undefined && r.amountSats > enhancedZap.zapMax) {
-      return false
-    }
-    return true
-  }).length
+  const qualifyingUseCount = countQualifyingZaps(
+    zapReceipts,
+    enhancedZap.zapMin,
+    enhancedZap.zapMax
+  )
 
   const usesRemaining =
     enhancedZap.zapUses !== undefined
@@ -742,13 +736,7 @@ export default function NostrNotePage() {
     }
   }
 
-  const sortedZapReceipts = [...zapReceipts].sort((a, b) => {
-    const multiplier = zapSortAsc ? 1 : -1
-    if (zapSortField === 'amount') {
-      return (a.amountSats - b.amountSats) * multiplier
-    }
-    return (a.createdAt - b.createdAt) * multiplier
-  })
+  const sortedZapReceipts = sortZapReceipts(zapReceipts, zapSortField, zapSortAsc)
 
   const noteHexId = decoded?.data ?? ''
   const noteId = noteHexId ? nip19.noteEncode(noteHexId) : ''
@@ -978,7 +966,7 @@ export default function NostrNotePage() {
                   <SSVStack gap="xxs">
                     <SSHStack gap="xs" style={styles.metaRow}>
                       <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
-                        kind
+                        {t('nostrIdentity.note.metaKind')}
                       </SSText>
                       <View style={styles.kindBadge}>
                         <SSText size="xxs">{fetched.kind}</SSText>
@@ -986,7 +974,7 @@ export default function NostrNotePage() {
                     </SSHStack>
                     <SSHStack gap="xs" style={styles.metaRow}>
                       <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
-                        nevent
+                        {t('nostrIdentity.note.metaNevent')}
                       </SSText>
                       <SSClipboardCopy text={noteNeventId} style={styles.metaValue}>
                         <SSText size="xxs" type="mono" color="muted" numberOfLines={1} ellipsizeMode="middle">
@@ -996,7 +984,7 @@ export default function NostrNotePage() {
                     </SSHStack>
                     <SSHStack gap="xs" style={styles.metaRow}>
                       <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
-                        note
+                        {t('nostrIdentity.note.metaNote')}
                       </SSText>
                       <SSClipboardCopy text={noteId} style={styles.metaValue}>
                         <SSText size="xxs" type="mono" color="muted" numberOfLines={1} ellipsizeMode="middle">
@@ -1006,7 +994,7 @@ export default function NostrNotePage() {
                     </SSHStack>
                     <SSHStack gap="xs" style={styles.metaRow}>
                       <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
-                        hex
+                        {t('nostrIdentity.note.metaHex')}
                       </SSText>
                       <SSClipboardCopy text={noteHexId} style={styles.metaValue}>
                         <SSText size="xxs" type="mono" color="muted" numberOfLines={1} ellipsizeMode="middle">
@@ -1254,7 +1242,7 @@ export default function NostrNotePage() {
                     )}
 
                     {(hasEnhancedZapTags || pubpayTags.length > 0) && (
-                      <View style={{ height: 8 }} />
+                      <View style={styles.zapSectionSpacer} />
                     )}
 
                     {effectiveLud16 && !identity?.isWatchOnly && (
@@ -1401,34 +1389,7 @@ export default function NostrNotePage() {
                           {formatNostrCardDate(receipt.createdAt)}
                         </SSText>
                       )}
-                      {privacyMode ? (
-                        <SSText size="sm" weight="medium" color="white">
-                          {NOSTR_PRIVACY_MASK} sats
-                        </SSText>
-                      ) : (
-                        <SSHStack
-                          gap="xs"
-                          style={{ alignItems: 'baseline', flexWrap: 'wrap' }}
-                        >
-                          <SSText size="sm" weight="medium" color="white">
-                            {receipt.amountSats.toLocaleString()}
-                          </SSText>
-                          <SSText size="xxs" color="muted">
-                            sats
-                          </SSText>
-                          {btcPrice > 0 && (
-                            <>
-                              <SSText size="xxs" color="muted">
-                                ·
-                              </SSText>
-                              <SSText size="xxs" color="muted">
-                                {formatFiatPrice(receipt.amountSats, btcPrice)}{' '}
-                                {fiatCurrency}
-                              </SSText>
-                            </>
-                          )}
-                        </SSHStack>
-                      )}
+                      <SSZapAmountDisplay amountSats={receipt.amountSats} />
                     </SSVStack>
                   </SSHStack>
                 ))}
@@ -1839,6 +1800,9 @@ const styles = StyleSheet.create({
   },
   zapLoader: {
     marginVertical: 8
+  },
+  zapSectionSpacer: {
+    height: 8
   },
   zapSortHeader: {
     alignItems: 'center'

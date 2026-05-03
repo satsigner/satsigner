@@ -24,20 +24,21 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
-import { formatFiatPrice, formatNostrCardDate } from '@/utils/format'
+import { formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
 import {
   type ZapReceiptInfo,
+  type ZapSortField,
   enrichZapReceipts,
   fetchZapsByPubkey,
   fetchZapsSentByPubkey,
-  mergeZapReceiptsById
+  mergeZapReceiptsById,
+  sortZapReceipts
 } from '@/utils/zap'
 
 type SSNostrFeedTabsProps = {

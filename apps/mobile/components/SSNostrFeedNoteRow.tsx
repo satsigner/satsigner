@@ -129,7 +129,7 @@ function SSNostrFeedAuthorRow({
           weight="medium"
           numberOfLines={1}
           ellipsizeMode="tail"
-          style={{ lineHeight: 16 }}
+          style={styles.authorDisplayName}
         >
           {displayName || '—'}
         </SSText>
@@ -139,18 +139,18 @@ function SSNostrFeedAuthorRow({
           type="mono"
           numberOfLines={1}
           ellipsizeMode="middle"
-          style={{ lineHeight: 14 }}
+          style={styles.authorNpub}
         >
           {truncateNpub(npubBech, 14)}
         </SSText>
         {nip05 ? (
-          <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+          <SSHStack gap="xs" style={styles.nip05Row}>
             <SSText
               size="xxs"
               color="muted"
               numberOfLines={1}
               ellipsizeMode="tail"
-              style={{ lineHeight: 14 }}
+              style={styles.authorNip05}
             >
               {nip05}
             </SSText>
@@ -336,6 +336,18 @@ const styles = StyleSheet.create({
   feedAuthorTextCol: {
     flex: 1,
     minWidth: 0
+  },
+  authorDisplayName: {
+    lineHeight: 16
+  },
+  authorNpub: {
+    lineHeight: 14
+  },
+  authorNip05: {
+    lineHeight: 14
+  },
+  nip05Row: {
+    alignItems: 'center'
   },
   noteContent: {
     color: Colors.white,
