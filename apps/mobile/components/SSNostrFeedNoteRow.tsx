@@ -6,6 +6,8 @@ import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSText from '@/components/SSText'
+import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
+import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -68,6 +70,7 @@ type SSNostrFeedAuthorRowProps = {
   npubBech: string
   displayName: string
   nip05: string
+  nip05Valid?: boolean | null
   pictureUri?: string
 }
 
@@ -77,6 +80,7 @@ function SSNostrFeedAuthorRow({
   npubBech,
   displayName,
   nip05,
+  nip05Valid,
   pictureUri
 }: SSNostrFeedAuthorRowProps) {
   const router = useRouter()
@@ -125,6 +129,7 @@ function SSNostrFeedAuthorRow({
           weight="medium"
           numberOfLines={1}
           ellipsizeMode="tail"
+          style={{ lineHeight: 16 }}
         >
           {displayName || '—'}
         </SSText>
@@ -134,12 +139,29 @@ function SSNostrFeedAuthorRow({
           type="mono"
           numberOfLines={1}
           ellipsizeMode="middle"
+          style={{ lineHeight: 14 }}
         >
           {truncateNpub(npubBech, 14)}
         </SSText>
-        <SSText size="xxs" color="muted" numberOfLines={1} ellipsizeMode="tail">
-          {nip05 || '—'}
-        </SSText>
+        {nip05 ? (
+          <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+            <SSText
+              size="xxs"
+              color="muted"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={{ lineHeight: 14 }}
+            >
+              {nip05}
+            </SSText>
+            {nip05Valid === true && (
+              <SSIconCheckCircleThin width={11} height={11} />
+            )}
+            {nip05Valid === false && (
+              <SSIconCircleXThin width={11} height={11} />
+            )}
+          </SSHStack>
+        ) : null}
       </SSVStack>
     </SSHStack>
   )

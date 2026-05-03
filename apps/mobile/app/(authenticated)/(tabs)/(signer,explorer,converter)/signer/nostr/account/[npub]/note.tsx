@@ -1,6 +1,6 @@
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { nip19 } from 'nostr-tools'
+import { nip05 as nostrNip05, nip19 } from 'nostr-tools'
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
@@ -17,8 +17,10 @@ import { NostrAPI } from '@/api/nostr'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconChevronDown from '@/components/icons/SSIconChevronDown'
 import SSIconChevronUp from '@/components/icons/SSIconChevronUp'
+import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
 import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow,
@@ -126,15 +128,17 @@ export default function NostrNotePage() {
   } | null>(null)
   const zapSheetRef = useRef<BottomSheetMethods>(null)
   const [sheetCustomAmount, setSheetCustomAmount] = useState('')
+  const [sheetZapComment, setSheetZapComment] = useState('')
   const [showJson, setShowJson] = useState(false)
   const [showMeta, setShowMeta] = useState(true)
+  const [nip05Valid, setNip05Valid] = useState<boolean | null>(null)
 
   const zapPrefs = identity?.zapPreferences
   const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
   const oneTapAmount = zapPrefs?.oneTapAmount ?? DEFAULT_ONE_TAP_AMOUNT
 
   const lightningConfig = useLightningStore((state) => state.config)
-  const { mints } = useEcash()
+  const { accounts: ecashAccounts, allMints: ecashAllMints } = useEcash()
   const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingZap = useZapFlowStore((state) => state.pendingZap)
@@ -145,9 +149,15 @@ export default function NostrNotePage() {
 
   const decoded = nostrUri ? decodeNostrContent(nostrUri) : null
 
+  const ecashAccountsWithMints = ecashAccounts.map((account) => ({
+    id: account.id,
+    mints: ecashAllMints[account.id] ?? [],
+    name: account.name
+  }))
+
   const availablePaymentMethods = buildPaymentMethods(
     lightningConfig,
-    mints,
+    ecashAccountsWithMints,
     arkAccounts
   )
 
@@ -225,6 +235,12 @@ export default function NostrNotePage() {
         }
       })
       setProfileLoading(false)
+      if (profile.nip05 && nostrNip05.isNip05(profile.nip05)) {
+        nostrNip05
+          .isValid(event.pubkey, profile.nip05)
+          .then(setNip05Valid)
+          .catch(() => setNip05Valid(false))
+      }
     } catch {
       setProfileLoading(false)
     }
@@ -559,7 +575,7 @@ export default function NostrNotePage() {
     (goalProgress !== undefined && goalProgress >= 1) ||
     (usesRemaining !== undefined && usesRemaining <= 0)
 
-  async function handleZap(amountSats: number) {
+  async function handleZap(amountSats: number, comment?: string) {
     if (!amountSats || amountSats <= 0) {
       return
     }
@@ -585,6 +601,7 @@ export default function NostrNotePage() {
     try {
       const { invoice, zapRequestJson } = await initiateZap({
         amountSats,
+        comment,
         eventIdHex: decoded?.data,
         eventKind: fetched.kind,
         eventTags: fetched.tags,
@@ -692,12 +709,13 @@ export default function NostrNotePage() {
 
   function handleOpenZapSheet() {
     setSheetCustomAmount('')
+    setSheetZapComment('')
     zapSheetRef.current?.snapToIndex(0)
   }
 
   function handleSheetAmountSelected(sats: number) {
     zapSheetRef.current?.close()
-    handleZap(sats)
+    handleZap(sats, sheetZapComment || undefined)
   }
 
   function handleSheetCustomSubmit() {
@@ -706,7 +724,7 @@ export default function NostrNotePage() {
       return
     }
     zapSheetRef.current?.close()
-    handleZap(sats)
+    handleZap(sats, sheetZapComment || undefined)
   }
 
   const noteHexId = decoded?.data ?? ''
@@ -806,18 +824,31 @@ export default function NostrNotePage() {
                   )}
                   <SSVStack gap="none" style={{ flex: 1 }}>
                     {fetched.authorName && !privacyMode && (
-                      <SSText size="md" weight="medium">
+                      <SSText size="md" weight="medium" style={{ lineHeight: 18 }}>
                         {fetched.authorName}
                       </SSText>
                     )}
                     {privacyMode && (
-                      <SSText size="md" weight="medium">
+                      <SSText size="md" weight="medium" style={{ lineHeight: 18 }}>
                         {NOSTR_PRIVACY_MASK}
                       </SSText>
                     )}
-                    <SSText size="xs" color="muted" type="mono">
+                    <SSText size="xs" color="muted" type="mono" style={{ lineHeight: 16 }}>
                       {truncateNpub(nip19.npubEncode(fetched.pubkey), 12)}
                     </SSText>
+                    {fetched.authorNip05 && !privacyMode && (
+                      <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                        <SSText size="xs" color="muted" style={{ lineHeight: 16 }}>
+                          {fetched.authorNip05}
+                        </SSText>
+                        {nip05Valid === true && (
+                          <SSIconCheckCircleThin width={12} height={12} />
+                        )}
+                        {nip05Valid === false && (
+                          <SSIconCircleXThin width={12} height={12} />
+                        )}
+                      </SSHStack>
+                    )}
                   </SSVStack>
                 </SSHStack>
               </TouchableOpacity>
@@ -841,6 +872,7 @@ export default function NostrNotePage() {
                       npubBech={noteAuthorFeedProps.authorNpubBech}
                       displayName={noteAuthorFeedProps.displayName}
                       nip05={noteAuthorFeedProps.nip05}
+                      nip05Valid={nip05Valid}
                       pictureUri={noteAuthorFeedProps.pictureUri}
                     />
                   ) : undefined
@@ -1016,11 +1048,11 @@ export default function NostrNotePage() {
                 ) : (
                   <>
                     {isRequestComplete && (
-                      <View style={styles.completeBadge}>
-                        <SSText size="sm" weight="bold" center>
-                          {t('nostrIdentity.note.requestComplete')}
-                        </SSText>
-                      </View>
+                      <SSButton
+                        label={t('nostrIdentity.note.requestComplete')}
+                        variant="default"
+                        style={{ opacity: 0.6 }}
+                      />
                     )}
 
                     {enhancedZap.zapGoal !== undefined && (
@@ -1055,7 +1087,15 @@ export default function NostrNotePage() {
                         <SSText size="xs" color="muted">
                           {t('nostrIdentity.note.uses')}
                         </SSText>
-                        <SSText size="xs" weight="medium">
+                        <SSText
+                          size="xs"
+                          weight="medium"
+                          style={
+                            !privacyMode && usesRemaining === 0
+                              ? { color: Colors.success }
+                              : undefined
+                          }
+                        >
                           {privacyMode
                             ? `${NOSTR_PRIVACY_MASK} / ${NOSTR_PRIVACY_MASK}`
                             : `${qualifyingUseCount} / ${enhancedZap.zapUses}`}
@@ -1470,6 +1510,14 @@ export default function NostrNotePage() {
             keyboardType="number-pad"
             value={sheetCustomAmount}
             onChangeText={setSheetCustomAmount}
+            returnKeyType="next"
+          />
+          <TextInput
+            style={styles.customInput}
+            placeholderTextColor={Colors.gray[500]}
+            placeholder={t('nostrIdentity.note.zapCommentPlaceholder')}
+            value={sheetZapComment}
+            onChangeText={setSheetZapComment}
             returnKeyType="done"
             onSubmitEditing={handleSheetCustomSubmit}
           />

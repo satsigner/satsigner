@@ -1683,6 +1683,7 @@
     "note.more": "More",
     "note.zapOneTap": "Zap %{amount} sats",
     "note.zapChooseAmount": "Choose Amount",
+    "note.zapCommentPlaceholder": "Message (optional)",
     "note.zapCustom": "Custom",
     "title": "Nostr",
     "zapDetail.amount": "Amount (sats)",

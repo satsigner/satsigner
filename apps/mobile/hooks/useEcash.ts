@@ -803,6 +803,7 @@ export function useEcash() {
     accounts,
     activeAccount,
     activeAccountId,
+    allMints,
     addAccount,
     checkMintQuote: checkMintQuoteHandler,
     checkPendingTransactionStatus,
