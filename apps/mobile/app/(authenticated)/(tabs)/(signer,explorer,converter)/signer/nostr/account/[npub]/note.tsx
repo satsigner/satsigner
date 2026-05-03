@@ -17,6 +17,8 @@ import { NostrAPI } from '@/api/nostr'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSIconChevronDown from '@/components/icons/SSIconChevronDown'
+import SSIconChevronUp from '@/components/icons/SSIconChevronUp'
 import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow,
@@ -124,6 +126,8 @@ export default function NostrNotePage() {
   } | null>(null)
   const zapSheetRef = useRef<BottomSheetMethods>(null)
   const [sheetCustomAmount, setSheetCustomAmount] = useState('')
+  const [showJson, setShowJson] = useState(false)
+  const [showMeta, setShowMeta] = useState(true)
 
   const zapPrefs = identity?.zapPreferences
   const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
@@ -536,9 +540,19 @@ export default function NostrNotePage() {
       ? Math.min(totalZapped / enhancedZap.zapGoal, 1)
       : undefined
 
+  const qualifyingUseCount = zapReceipts.filter((r) => {
+    if (enhancedZap.zapMin !== undefined && r.amountSats < enhancedZap.zapMin) {
+      return false
+    }
+    if (enhancedZap.zapMax !== undefined && r.amountSats > enhancedZap.zapMax) {
+      return false
+    }
+    return true
+  }).length
+
   const usesRemaining =
     enhancedZap.zapUses !== undefined
-      ? Math.max(0, enhancedZap.zapUses - zapReceipts.length)
+      ? Math.max(0, enhancedZap.zapUses - qualifyingUseCount)
       : undefined
 
   const isRequestComplete =
@@ -695,6 +709,25 @@ export default function NostrNotePage() {
     handleZap(sats)
   }
 
+  const noteHexId = decoded?.data ?? ''
+  const noteId = noteHexId ? nip19.noteEncode(noteHexId) : ''
+  const noteNeventId = noteHexId ? nip19.neventEncode({ id: noteHexId }) : ''
+
+  const eventJson = fetched
+    ? JSON.stringify(
+        {
+          id: decoded?.data ?? '',
+          pubkey: fetched.pubkey,
+          kind: fetched.kind,
+          created_at: fetched.created_at,
+          tags: fetched.tags,
+          content: fetched.content
+        },
+        null,
+        2
+      )
+    : ''
+
   if (!decoded || decoded.kind === 'unknown') {
     return (
       <SSMainLayout>
@@ -737,7 +770,7 @@ export default function NostrNotePage() {
         </SSVStack>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
-          <SSVStack gap="lg" style={styles.content}>
+          <SSVStack gap="md" style={styles.content}>
             {!noteItemForFeed && fetched?.pubkey ? (
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -788,14 +821,6 @@ export default function NostrNotePage() {
                   </SSVStack>
                 </SSHStack>
               </TouchableOpacity>
-            ) : null}
-
-            {fetched ? (
-              <SSHStack gap="sm">
-                <View style={styles.kindBadge}>
-                  <SSText size="xs">Kind {fetched.kind}</SSText>
-                </View>
-              </SSHStack>
             ) : null}
 
             {noteItemForFeed &&
@@ -878,44 +903,109 @@ export default function NostrNotePage() {
               </View>
             ) : null}
 
-            <SSVStack gap="xs">
-              <SSText size="xs" color="muted" uppercase>
-                {t('nostrIdentity.note.noteId')}
-              </SSText>
-              <SSClipboardCopy text={nostrUri || decoded.raw}>
-                <SSText size="xs" type="mono" color="muted">
-                  {truncateNpub(decoded.raw, 16)}
-                </SSText>
-              </SSClipboardCopy>
-            </SSVStack>
+            {fetched ? (
+              <SSVStack gap="xxs">
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setShowMeta((v) => !v)}
+                  style={styles.metaToggle}
+                >
+                  <SSText size="xs" color="muted" uppercase>
+                    {t('nostrIdentity.note.metadata')}
+                  </SSText>
+                  {showMeta ? (
+                    <SSIconChevronUp width={10} height={10} />
+                  ) : (
+                    <SSIconChevronDown width={10} height={10} />
+                  )}
+                </TouchableOpacity>
+                {showMeta ? (
+                  <SSVStack gap="xxs">
+                    <SSHStack gap="xs" style={styles.metaRow}>
+                      <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
+                        kind
+                      </SSText>
+                      <View style={styles.kindBadge}>
+                        <SSText size="xxs">{fetched.kind}</SSText>
+                      </View>
+                    </SSHStack>
+                    <SSHStack gap="xs" style={styles.metaRow}>
+                      <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
+                        nevent
+                      </SSText>
+                      <SSClipboardCopy text={noteNeventId} style={styles.metaValue}>
+                        <SSText size="xxs" type="mono" color="muted" numberOfLines={1} ellipsizeMode="middle">
+                          {noteNeventId}
+                        </SSText>
+                      </SSClipboardCopy>
+                    </SSHStack>
+                    <SSHStack gap="xs" style={styles.metaRow}>
+                      <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
+                        note
+                      </SSText>
+                      <SSClipboardCopy text={noteId} style={styles.metaValue}>
+                        <SSText size="xxs" type="mono" color="muted" numberOfLines={1} ellipsizeMode="middle">
+                          {noteId}
+                        </SSText>
+                      </SSClipboardCopy>
+                    </SSHStack>
+                    <SSHStack gap="xs" style={styles.metaRow}>
+                      <SSText size="xxs" color="muted" uppercase style={styles.metaLabel}>
+                        hex
+                      </SSText>
+                      <SSClipboardCopy text={noteHexId} style={styles.metaValue}>
+                        <SSText size="xxs" type="mono" color="muted" numberOfLines={1} ellipsizeMode="middle">
+                          {noteHexId}
+                        </SSText>
+                      </SSClipboardCopy>
+                    </SSHStack>
+                    {fetched.tags.map((tag, index) => (
+                      <SSHStack key={index} gap="xs" style={styles.metaRow}>
+                        <View style={styles.tagTypeBadge}>
+                          <SSText size="xxs" type="mono">
+                            {tag[0]}
+                          </SSText>
+                        </View>
+                        <SSText
+                          size="xxs"
+                          type="mono"
+                          color="muted"
+                          numberOfLines={1}
+                          ellipsizeMode="middle"
+                          style={styles.metaValue}
+                        >
+                          {tag.slice(1).join(' ')}
+                        </SSText>
+                      </SSHStack>
+                    ))}
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => setShowJson((v) => !v)}
+                      style={styles.metaToggle}
+                    >
+                      <SSText size="xxs" color="muted" uppercase>
+                        {t('nostrIdentity.note.showJson')}
+                      </SSText>
+                      {showJson ? (
+                        <SSIconChevronUp width={10} height={10} />
+                      ) : (
+                        <SSIconChevronDown width={10} height={10} />
+                      )}
+                    </TouchableOpacity>
+                    {showJson ? (
+                      <SSClipboardCopy text={eventJson}>
+                        <SSText size="xxs" type="mono" style={styles.jsonText}>
+                          {eventJson}
+                        </SSText>
+                      </SSClipboardCopy>
+                    ) : null}
+                  </SSVStack>
+                ) : null}
+              </SSVStack>
+            ) : null}
 
             {fetched && availablePaymentMethods.length > 0 && (
               <SSVStack gap="sm">
-                {!profileLoading &&
-                  effectiveLud16 &&
-                  !isRequestComplete &&
-                  !identity?.isWatchOnly && (
-                    <TouchableOpacity
-                      style={styles.oneTapButton}
-                      activeOpacity={0.7}
-                      disabled={zapLoading}
-                      onPress={handleOneTapZap}
-                      onLongPress={handleOpenZapSheet}
-                      delayLongPress={400}
-                    >
-                      <SSText size="md" weight="bold" center>
-                        {privacyMode
-                          ? `${NOSTR_PRIVACY_MASK} sats`
-                          : t('nostrIdentity.note.zapOneTap', {
-                              amount: oneTapAmount
-                            })}
-                      </SSText>
-                      <SSText size="xxs" color="muted" center>
-                        {t('nostrIdentity.note.zapChooseAmount')}
-                      </SSText>
-                    </TouchableOpacity>
-                  )}
-
                 {profileLoading ? (
                   <SSHStack gap="sm" style={styles.zapLoadingRow}>
                     <ActivityIndicator color={Colors.white} size="small" />
@@ -968,7 +1058,7 @@ export default function NostrNotePage() {
                         <SSText size="xs" weight="medium">
                           {privacyMode
                             ? `${NOSTR_PRIVACY_MASK} / ${NOSTR_PRIVACY_MASK}`
-                            : `${zapReceipts.length} / ${enhancedZap.zapUses}`}
+                            : `${qualifyingUseCount} / ${enhancedZap.zapUses}`}
                         </SSText>
                       </SSHStack>
                     )}
@@ -988,9 +1078,8 @@ export default function NostrNotePage() {
 
                     {isFixedAmount && !isRequestComplete && (
                       <SSButton
-                        label={`${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : enhancedZap.zapMin} sats`}
-                        variant="gradient"
-                        gradientType="special"
+                        label={`${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : enhancedZap.zapMin?.toLocaleString()} sats`}
+                        variant="secondary"
                         disabled={zapLoading || !effectiveLud16}
                         onPress={() =>
                           handleAmountSelected(enhancedZap.zapMin!)
@@ -1052,11 +1141,10 @@ export default function NostrNotePage() {
                         <SSButton
                           label={
                             customAmount && parseInt(customAmount, 10) > 0
-                              ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : customAmount} sats`
+                              ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : parseInt(customAmount, 10).toLocaleString()} sats`
                               : t('nostrIdentity.note.zap')
                           }
-                          variant="gradient"
-                          gradientType="special"
+                          variant="secondary"
                           disabled={
                             zapLoading ||
                             !effectiveLud16 ||
@@ -1092,8 +1180,7 @@ export default function NostrNotePage() {
                             </SSVStack>
                             <SSButton
                               label={t('nostrIdentity.note.zap')}
-                              variant="gradient"
-                              gradientType="special"
+                              variant="secondary"
                               disabled={zapLoading || !effectiveLud16}
                               onPress={() => handleAmountSelected(tag.amount)}
                               style={styles.zapButton}
@@ -1103,72 +1190,41 @@ export default function NostrNotePage() {
                       </SSVStack>
                     )}
 
-                    {!isRequestComplete && (
-                      <SSVStack gap="sm">
-                        <SSText size="xs" color="muted" uppercase>
-                          {hasEnhancedZapTags && !isRangeAmount
-                            ? t('nostrIdentity.note.customZap')
-                            : !hasEnhancedZapTags
-                              ? t('nostrIdentity.note.zapAmount')
-                              : ''}
-                        </SSText>
+                    {(hasEnhancedZapTags || pubpayTags.length > 0) && (
+                      <View style={{ height: 8 }} />
+                    )}
 
-                        {!hasEnhancedZapTags && (
-                          <SSHStack gap="sm" style={styles.presetRow}>
-                            {zapPresets.map((sats) => (
-                              <TouchableOpacity
-                                key={sats}
-                                style={styles.presetButton}
-                                disabled={zapLoading || !effectiveLud16}
-                                onPress={() => handleAmountSelected(sats)}
-                                activeOpacity={0.6}
-                              >
-                                <SSText size="sm" weight="medium" center>
-                                  {privacyMode ? NOSTR_PRIVACY_MASK : sats}
-                                </SSText>
-                              </TouchableOpacity>
-                            ))}
-                          </SSHStack>
-                        )}
+                    {effectiveLud16 && !identity?.isWatchOnly && (
+                      <SSHStack gap="sm">
+                        <SSButton
+                          label={
+                            privacyMode
+                              ? `${NOSTR_PRIVACY_MASK} sats`
+                              : t('nostrIdentity.note.zapOneTap', {
+                                  amount: oneTapAmount
+                                })
+                          }
+                          variant="outline"
+                          disabled={zapLoading}
+                          onPress={handleOneTapZap}
+                          onLongPress={handleOpenZapSheet}
+                          delayLongPress={400}
+                          style={{ flex: 1 }}
+                        />
+                        <SSButton
+                          label={t('nostrIdentity.note.more')}
+                          variant="outline"
+                          disabled={zapLoading}
+                          onPress={handleOpenZapSheet}
+                          style={{ flex: 1 }}
+                        />
+                      </SSHStack>
+                    )}
 
-                        {!isRangeAmount && (
-                          <>
-                            <TextInput
-                              style={styles.customInput}
-                              placeholderTextColor={Colors.gray[500]}
-                              placeholder={t('nostrIdentity.note.customAmount')}
-                              keyboardType="number-pad"
-                              value={customAmount}
-                              onChangeText={setCustomAmount}
-                              returnKeyType="done"
-                              editable={!!effectiveLud16}
-                              onSubmitEditing={handleCustomAmountSubmit}
-                            />
-                            <SSButton
-                              label={
-                                customAmount && parseInt(customAmount, 10) > 0
-                                  ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : customAmount} sats`
-                                  : t('nostrIdentity.note.zap')
-                              }
-                              variant="gradient"
-                              gradientType="special"
-                              disabled={
-                                zapLoading ||
-                                !effectiveLud16 ||
-                                !customAmount ||
-                                parseInt(customAmount, 10) <= 0
-                              }
-                              onPress={handleCustomAmountSubmit}
-                            />
-                          </>
-                        )}
-
-                        {!effectiveLud16 && (
-                          <SSText size="xs" color="muted" center>
-                            {t('nostrIdentity.note.zapEndpointNotFound')}
-                          </SSText>
-                        )}
-                      </SSVStack>
+                    {!effectiveLud16 && (
+                      <SSText size="xs" color="muted" center>
+                        {t('nostrIdentity.note.zapEndpointNotFound')}
+                      </SSText>
                     )}
                   </>
                 )}
@@ -1259,7 +1315,7 @@ export default function NostrNotePage() {
                       <SSText size="sm" weight="bold" color="white">
                         {privacyMode
                           ? `${NOSTR_PRIVACY_MASK} sats`
-                          : `${receipt.amountSats} sats`}
+                          : `${receipt.amountSats.toLocaleString()} sats`}
                       </SSText>
                     </SSVStack>
                   </SSHStack>
@@ -1396,18 +1452,15 @@ export default function NostrNotePage() {
         title={t('nostrIdentity.note.zapChooseAmount')}
       >
         <SSVStack gap="sm" style={styles.sheetContent}>
-          <SSHStack gap="sm" style={styles.presetRow}>
+          <SSHStack gap="sm">
             {zapPresets.map((sats) => (
-              <TouchableOpacity
+              <SSButton
                 key={sats}
-                style={styles.presetButton}
-                activeOpacity={0.6}
+                label={privacyMode ? NOSTR_PRIVACY_MASK : sats.toLocaleString()}
+                variant="outline"
                 onPress={() => handleSheetAmountSelected(sats)}
-              >
-                <SSText size="sm" weight="medium" center>
-                  {privacyMode ? NOSTR_PRIVACY_MASK : sats.toLocaleString()}
-                </SSText>
-              </TouchableOpacity>
+                style={{ flex: 1 }}
+              />
             ))}
           </SSHStack>
           <TextInput
@@ -1423,7 +1476,7 @@ export default function NostrNotePage() {
           <SSButton
             label={
               sheetCustomAmount && parseInt(sheetCustomAmount, 10) > 0
-                ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : sheetCustomAmount} sats`
+                ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : parseInt(sheetCustomAmount, 10).toLocaleString()} sats`
                 : t('nostrIdentity.note.zap')
             }
             variant="gradient"
@@ -1435,6 +1488,7 @@ export default function NostrNotePage() {
           />
         </SSVStack>
       </SSBottomSheet>
+
     </SSMainLayout>
   )
 }
@@ -1539,11 +1593,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between'
   },
+  jsonText: {
+    color: Colors.gray[300],
+    lineHeight: 18
+  },
   kindBadge: {
     backgroundColor: Colors.gray[800],
     borderRadius: 3,
     paddingHorizontal: 8,
     paddingVertical: 3
+  },
+  metaLabel: {
+    flexShrink: 0,
+    width: 44
+  },
+  metaRow: {
+    alignItems: 'center'
+  },
+  metaToggle: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+    width: '100%'
+  },
+  metaValue: {
+    flex: 1,
+    minWidth: 0
+  },
+  tagTypeBadge: {
+    backgroundColor: Colors.gray[800],
+    borderRadius: 3,
+    flexShrink: 0,
+    paddingHorizontal: 5,
+    paddingVertical: 2
   },
   notFoundCard: {
     backgroundColor: Colors.gray[925],
@@ -1555,7 +1638,7 @@ const styles = StyleSheet.create({
   noteCard: {
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
-    borderRadius: 5,
+    borderRadius: 3,
     borderWidth: 1,
     padding: 16,
     position: 'relative'
@@ -1593,7 +1676,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[700],
-    borderRadius: 5,
+    borderRadius: 3,
     borderWidth: 1,
     gap: 2,
     paddingHorizontal: 16,

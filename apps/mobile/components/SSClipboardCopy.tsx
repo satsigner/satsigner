@@ -31,7 +31,7 @@ function SSClipboardCopy({
 
   return (
     <TouchableWithoutFeedback onPress={handleClick}>
-      <View style={[fullWidth && { width: '100%' }, style]}>
+      <View style={[fullWidth && { width: '100%' }, style, { overflow: 'visible' }]}>
         <View style={{ pointerEvents: 'none' }}>{children}</View>
         {withPopup && (
           <SSPopupText
