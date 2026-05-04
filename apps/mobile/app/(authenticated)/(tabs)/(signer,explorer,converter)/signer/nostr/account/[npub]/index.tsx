@@ -4,6 +4,7 @@ import { nip19 } from 'nostr-tools'
 import { ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
+import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import { SSIconChatBubble, SSIconNostr } from '@/components/icons'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -85,6 +86,16 @@ export default function NostrAccountLanding() {
     },
     queryKey: ['nostr', 'profile', npub],
     staleTime: 60_000
+  })
+
+  const pubkeyHex = npub ? getPubKeyHexFromNpub(npub) : null
+  const nip05 = identity?.nip05?.trim()
+
+  const { data: nip05Valid } = useQuery({
+    enabled: !!pubkeyHex && !!nip05,
+    queryFn: () => validateNip05(pubkeyHex!, nip05!),
+    queryKey: ['nostr', 'nip05-valid', npub, nip05],
+    staleTime: 5 * 60_000
   })
 
   function handleContentScanned(detected: {
@@ -180,6 +191,7 @@ export default function NostrAccountLanding() {
           <SSNostrHeroCard
             identity={identity}
             connectionInfo={connectionInfo}
+            nip05Valid={nip05Valid ?? null}
             style={styles.heroProfile}
           />
           <SSButtonActionsGroup

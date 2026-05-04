@@ -1,7 +1,10 @@
+import { useQuery } from '@tanstack/react-query'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSText from '@/components/SSText'
+import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
+import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -13,6 +16,11 @@ import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
 } from '@/types/models/NostrIdentity'
+import {
+  generateColorFromNpub,
+  getPubKeyHexFromNpub,
+  validateNip05
+} from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
 
 import { SSIconChevronRight } from './icons'
@@ -59,6 +67,15 @@ function SSNostrAccountCard({
 
   const nip05Value = identity.nip05?.trim()
   const lud16Value = identity.lud16?.trim()
+  const npubColor = generateColorFromNpub(identity.npub)
+  const pubkeyHex = getPubKeyHexFromNpub(identity.npub)
+
+  const { data: nip05Valid } = useQuery({
+    enabled: !!pubkeyHex && !!nip05Value,
+    queryFn: () => validateNip05(pubkeyHex!, nip05Value!),
+    queryKey: ['nostr', 'nip05-valid', identity.npub, nip05Value],
+    staleTime: 5 * 60_000
+  })
 
   return (
     <TouchableOpacity
@@ -167,9 +184,14 @@ function SSNostrAccountCard({
                 ? NOSTR_PRIVACY_MASK
                 : identity.displayName || 'Unnamed'}
             </SSText>
-            <SSText size="xs" type="mono" color="muted" numberOfLines={1}>
-              {truncateNpub(identity.npub)}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+              <View
+                style={[styles.npubColorDot, { backgroundColor: npubColor }]}
+              />
+              <SSText size="xs" type="mono" color="muted" numberOfLines={1}>
+                {truncateNpub(identity.npub)}
+              </SSText>
+            </SSHStack>
             <View style={styles.reservedMetaRow}>
               <SSText
                 size="xs"
@@ -188,20 +210,28 @@ function SSNostrAccountCard({
             </View>
             <SSHStack justifyBetween gap="sm" style={styles.nip05Row}>
               <View style={styles.nip05TextWrap}>
-                <SSText
-                  size="xs"
-                  color="muted"
-                  numberOfLines={1}
-                  style={
-                    !privacyMode && !nip05Value
-                      ? styles.metaPlaceholder
-                      : undefined
-                  }
-                >
-                  {privacyMode
-                    ? NOSTR_PRIVACY_MASK
-                    : nip05Value || t('nostrIdentity.account.nip05NotSet')}
-                </SSText>
+                <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                  <SSText
+                    size="xs"
+                    color="muted"
+                    numberOfLines={1}
+                    style={
+                      !privacyMode && !nip05Value
+                        ? styles.metaPlaceholder
+                        : undefined
+                    }
+                  >
+                    {privacyMode
+                      ? NOSTR_PRIVACY_MASK
+                      : nip05Value || t('nostrIdentity.account.nip05NotSet')}
+                  </SSText>
+                  {!privacyMode && nip05Value && nip05Valid === true && (
+                    <SSIconCheckCircleThin width={10} height={10} />
+                  )}
+                  {!privacyMode && nip05Value && nip05Valid === false && (
+                    <SSIconCircleXThin width={10} height={10} />
+                  )}
+                </SSHStack>
               </View>
               <View style={styles.relayTotalWrap}>
                 <SSText
@@ -342,6 +372,11 @@ const styles = StyleSheet.create({
   },
   metaPlaceholder: {
     opacity: 0.55
+  },
+  npubColorDot: {
+    borderRadius: 3,
+    height: 6,
+    width: 6
   },
   nip05Row: {
     alignItems: 'center',
