@@ -40,7 +40,9 @@ export function hasMultisigDuplicateXpubs(
   const xpubs = keys
     .filter((key): key is Key => Boolean(key))
     .map((key) => {
-      if (typeof key.secret !== 'object') return ''
+      if (typeof key.secret !== 'object') {
+        return ''
+      }
       if (key.secret.extendedPublicKey) {
         return (
           getExtendedKeyFromDescriptor(key.secret.extendedPublicKey) ||

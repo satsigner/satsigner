@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
-import SSText from '@/components/SSText'
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
+import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -315,13 +315,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end'
   },
   avatar: {
+    borderColor: 'rgba(255, 255, 255, 0.18)',
     borderRadius: 18,
+    borderWidth: 1,
     height: 36,
     width: 36
   },
   avatarActiveRing: {
-    borderColor: 'rgba(255, 255, 255, 0.09)',
-    borderWidth: StyleSheet.hairlineWidth
+    borderColor: 'rgba(255, 255, 255, 0.09)'
   },
   avatarContainer: {
     alignItems: 'center',
@@ -373,11 +374,6 @@ const styles = StyleSheet.create({
   metaPlaceholder: {
     opacity: 0.55
   },
-  npubColorDot: {
-    borderRadius: 3,
-    height: 6,
-    width: 6
-  },
   nip05Row: {
     alignItems: 'center',
     marginEnd: -16,
@@ -386,6 +382,11 @@ const styles = StyleSheet.create({
   nip05TextWrap: {
     flex: 1,
     minWidth: 0
+  },
+  npubColorDot: {
+    borderRadius: 3,
+    height: 6,
+    width: 6
   },
   relayBesideActiveChecking: {
     opacity: 0.72

@@ -4,7 +4,6 @@ import { nip19 } from 'nostr-tools'
 import { ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
-import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import { SSIconChatBubble, SSIconNostr } from '@/components/icons'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -26,6 +25,7 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import { type NostrRelayConnectionInfo } from '@/types/models/NostrIdentity'
+import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
   nostrAccountHref,
   nostrNoteHref,

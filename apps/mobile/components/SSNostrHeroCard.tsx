@@ -6,9 +6,9 @@ import {
   type ViewStyle
 } from 'react-native'
 
-import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
