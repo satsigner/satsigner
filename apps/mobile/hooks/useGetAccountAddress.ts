@@ -73,7 +73,7 @@ const useGetAccountAddress = (id: Account['id']) => {
 
   useEffect(() => {
     if (!address) {
-      addAddress()
+      addAddress().catch(() => {})
     }
   }, [address, id, account]) // eslint-disable-line react-hooks/exhaustive-deps
 

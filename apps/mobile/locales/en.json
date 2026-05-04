@@ -2472,6 +2472,7 @@
     "error.psbtCannotBeUsedForOutputs": "PSBTs cannot be used for individual outputs",
     "error.unsupportedContext": "Unsupported context: %{context}",
     "exportNFC": "Export NFC",
+    "finalizedSuccessfully": "Multisig transaction finalized successfully!",
     "fee": "sat fee",
     "feeBytes": "Fee sat/b",
     "feeVBytes": "Fee sat/vb",
