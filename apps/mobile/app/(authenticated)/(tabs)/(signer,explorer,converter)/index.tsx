@@ -1,6 +1,15 @@
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
+import Animated, {
+  Extrapolation,
+  interpolate,
+  type SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming
+} from 'react-native-reanimated'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -11,10 +20,73 @@ import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 import { type NavMenuItem } from '@/types/navigation/navMenu'
 
+const STAGGER_DELAY = 60
+const ITEM_DURATION = 150
+const STAGGER_SLIDE_UP = 24
+const FADE_OUT_DURATION = 120
+
+type StaggerItemProps = {
+  children: React.ReactNode
+  index: number
+  progress: SharedValue<number>
+  totalItems: number
+}
+
+function StaggerItem({ children, index, progress, totalItems }: StaggerItemProps) {
+  const totalDuration = (totalItems - 1) * STAGGER_DELAY + ITEM_DURATION
+  const itemStart = (index * STAGGER_DELAY) / totalDuration
+  const itemEnd = (index * STAGGER_DELAY + ITEM_DURATION) / totalDuration
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      progress.value,
+      [itemStart, itemEnd],
+      [0, 1],
+      Extrapolation.CLAMP
+    ),
+    transform: [
+      {
+        translateY: interpolate(
+          progress.value,
+          [itemStart, itemEnd],
+          [STAGGER_SLIDE_UP, 0],
+          Extrapolation.CLAMP
+        )
+      }
+    ]
+  }))
+
+  return <Animated.View style={animatedStyle}>{children}</Animated.View>
+}
+
 export default function Home() {
   const { tab } = useLocalSearchParams()
   const router = useRouter()
   const pages = navMenuGroups.find((group) => group.title === tab)?.items
+  const totalItems = 1 + (pages?.length ?? 0)
+  const totalDuration = (totalItems - 1) * STAGGER_DELAY + ITEM_DURATION
+
+  const containerOpacity = useSharedValue(1)
+  const progress = useSharedValue(0)
+
+  useFocusEffect(
+    useCallback(() => {
+      containerOpacity.value = 1
+      progress.value = 0
+      progress.value = withDelay(
+        FADE_OUT_DURATION,
+        withTiming(1, { duration: totalDuration })
+      )
+      return () => {
+        containerOpacity.value = withTiming(0, { duration: FADE_OUT_DURATION })
+      }
+    }, [totalDuration])
+  )
+
+  const containerStyle = useAnimatedStyle(() => ({
+    flex: 1,
+    opacity: containerOpacity.value
+  }))
 
   const handlePress = useCallback(
     (page: NavMenuItem) => {
@@ -32,42 +104,68 @@ export default function Home() {
 
   return (
     <>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SSMainLayout style={styles.mainLayout}>
-          <SSHStack>
-            <View style={styles.headerContainer}>
-              <SSText
-                uppercase
-                size="3xl"
-                weight="light"
-                style={styles.headerText}
-              >
-                {tab}
-              </SSText>
-            </View>
-          </SSHStack>
-          <SSVStack>
-            {pages?.map((page, index) => (
-              <SSHStack key={`${index}-${tab}/${page.title}`}>
-                <View style={styles.buttonContainer}>
-                  <SSButton
-                    label={page.title}
-                    textStyle={[
-                      styles.buttonText,
-                      page.isSoon && styles.buttonTextSoon
-                    ]}
-                    onPress={() => handlePress(page)}
-                    variant="elevated"
+      <Animated.View style={containerStyle}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <SSMainLayout style={styles.mainLayout}>
+            <StaggerItem index={0} progress={progress} totalItems={totalItems}>
+              <SSHStack>
+                <View style={styles.headerContainer}>
+                  <SSText
                     uppercase
-                    verticalIndex={index}
-                    totalButtonsVertical={pages.length}
-                  />
+                    size="2xl"
+                    weight="light"
+                    style={styles.headerText}
+                  >
+                    {tab}
+                  </SSText>
                 </View>
               </SSHStack>
-            ))}
-          </SSVStack>
-        </SSMainLayout>
-      </ScrollView>
+            </StaggerItem>
+            <SSVStack>
+              {pages?.map((page, index) => (
+                <StaggerItem
+                  key={`${index}-${tab}/${page.title}`}
+                  index={index + 1}
+                  progress={progress}
+                  totalItems={totalItems}
+                >
+                  <SSHStack>
+                    <View style={styles.buttonContainer}>
+                      <SSButton
+                        icon={
+                          <View style={styles.buttonContent}>
+                            <View
+                              style={[
+                                styles.buttonIcon,
+                                page.isSoon && styles.buttonIconSoon
+                              ]}
+                            >
+                              <page.icon width={16} height={16} />
+                            </View>
+                            <SSText
+                              uppercase
+                              style={[
+                                styles.buttonText,
+                                page.isSoon && styles.buttonTextSoon
+                              ]}
+                            >
+                              {page.title}
+                            </SSText>
+                          </View>
+                        }
+                        onPress={() => handlePress(page)}
+                        variant="elevated"
+                        verticalIndex={index}
+                        totalButtonsVertical={pages.length}
+                      />
+                    </View>
+                  </SSHStack>
+                </StaggerItem>
+              ))}
+            </SSVStack>
+          </SSMainLayout>
+        </ScrollView>
+      </Animated.View>
     </>
   )
 }
@@ -75,6 +173,18 @@ export default function Home() {
 const styles = StyleSheet.create({
   buttonContainer: {
     flex: 1
+  },
+  buttonContent: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginLeft: -8
+  },
+  buttonIcon: {
+    opacity: 0.4
+  },
+  buttonIconSoon: {
+    opacity: 0.18
   },
   buttonText: {
     color: Colors.white
@@ -87,9 +197,12 @@ const styles = StyleSheet.create({
     flex: 1
   },
   headerText: {
-    color: Colors.gray[200],
+    color: Colors.gray[500],
     letterSpacing: 6,
-    lineHeight: 26
+    lineHeight: 26,
+    textShadowColor: 'rgba(255,255,255,0.12)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10
   },
   mainLayout: {
     flexGrow: 1,
