@@ -266,7 +266,10 @@ export default function EcashAccountDetailPage() {
           headerRight: () => (
             <SSIconButton
               onPress={handleSettingsPress}
-              style={[HEADER_CHROME_HIT_BOX, { marginRight: -HEADER_CHROME_EDGE_NUDGE }]}
+              style={[
+                HEADER_CHROME_HIT_BOX,
+                { marginRight: -HEADER_CHROME_EDGE_NUDGE }
+              ]}
             >
               <SSIconECash
                 height={16}

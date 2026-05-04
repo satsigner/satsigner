@@ -25,6 +25,12 @@ const ITEM_DURATION = 150
 const STAGGER_SLIDE_UP = 24
 const FADE_OUT_DURATION = 120
 
+const BUTTON_ICON_SIZE = 16
+const BUTTON_ICON_OPACITY = 0.4
+const BUTTON_ICON_OPACITY_SOON = 0.18
+const BUTTON_ICON_GAP = 10
+const BUTTON_ICON_MARGIN_OFFSET = -8
+
 type StaggerItemProps = {
   children: React.ReactNode
   index: number
@@ -32,7 +38,12 @@ type StaggerItemProps = {
   totalItems: number
 }
 
-function StaggerItem({ children, index, progress, totalItems }: StaggerItemProps) {
+function StaggerItem({
+  children,
+  index,
+  progress,
+  totalItems
+}: StaggerItemProps) {
   const totalDuration = (totalItems - 1) * STAGGER_DELAY + ITEM_DURATION
   const itemStart = (index * STAGGER_DELAY) / totalDuration
   const itemEnd = (index * STAGGER_DELAY + ITEM_DURATION) / totalDuration
@@ -140,7 +151,10 @@ export default function Home() {
                                 page.isSoon && styles.buttonIconSoon
                               ]}
                             >
-                              <page.icon width={16} height={16} />
+                              <page.icon
+                                width={BUTTON_ICON_SIZE}
+                                height={BUTTON_ICON_SIZE}
+                              />
                             </View>
                             <SSText
                               uppercase
@@ -177,14 +191,14 @@ const styles = StyleSheet.create({
   buttonContent: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 10,
-    marginLeft: -8
+    gap: BUTTON_ICON_GAP,
+    marginLeft: BUTTON_ICON_MARGIN_OFFSET
   },
   buttonIcon: {
-    opacity: 0.4
+    opacity: BUTTON_ICON_OPACITY
   },
   buttonIconSoon: {
-    opacity: 0.18
+    opacity: BUTTON_ICON_OPACITY_SOON
   },
   buttonText: {
     color: Colors.white
@@ -201,7 +215,7 @@ const styles = StyleSheet.create({
     letterSpacing: 6,
     lineHeight: 26,
     textShadowColor: 'rgba(255,255,255,0.12)',
-    textShadowOffset: { width: 0, height: 0 },
+    textShadowOffset: { height: 0, width: 0 },
     textShadowRadius: 10
   },
   mainLayout: {

@@ -146,7 +146,10 @@ export default function NostrAccountLanding() {
       <Stack.Screen
         options={{
           headerRight: () => (
-            <SSHStack gap="none" style={{ marginRight: -HEADER_CHROME_EDGE_NUDGE }}>
+            <SSHStack
+              gap="none"
+              style={{ marginRight: -HEADER_CHROME_EDGE_NUDGE }}
+            >
               <SSIconButton
                 accessibilityLabel={t('nostrIdentity.chat.title')}
                 style={HEADER_CHROME_HIT_BOX}

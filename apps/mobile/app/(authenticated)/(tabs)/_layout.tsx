@@ -43,6 +43,15 @@ const TAB_TOP_BORDER_GRADIENTS: Record<
   TabSegment,
   { colors: string[]; locations: [number, number, number, number] }
 > = {
+  '(converter)': {
+    colors: [
+      'rgba(255,255,255,0.0)',
+      'rgba(255,255,255,0.05)',
+      'rgba(255,255,255,0.20)',
+      'rgba(255,255,255,0.08)'
+    ],
+    locations: [0.3, 0.62, 0.84, 1]
+  },
   '(explorer)': {
     colors: [
       'rgba(255,255,255,0.08)',
@@ -60,15 +69,6 @@ const TAB_TOP_BORDER_GRADIENTS: Record<
       'rgba(255,255,255,0.0)'
     ],
     locations: [0, 0.5, 0.85, 1]
-  },
-  '(converter)': {
-    colors: [
-      'rgba(255,255,255,0.0)',
-      'rgba(255,255,255,0.05)',
-      'rgba(255,255,255,0.20)',
-      'rgba(255,255,255,0.08)'
-    ],
-    locations: [0.3, 0.62, 0.84, 1]
   }
 }
 
@@ -79,19 +79,16 @@ function TabBarBackground({
 }: {
   activeSegment: TabSegment | undefined
 }) {
-  const explorerOpacity = useSharedValue(
-    activeSegment === '(explorer)' ? 1 : 0
-  )
+  const explorerOpacity = useSharedValue(activeSegment === '(explorer)' ? 1 : 0)
   const signerOpacity = useSharedValue(activeSegment === '(signer)' ? 1 : 0)
   const converterOpacity = useSharedValue(
     activeSegment === '(converter)' ? 1 : 0
   )
 
   useEffect(() => {
-    explorerOpacity.value = withTiming(
-      activeSegment === '(explorer)' ? 1 : 0,
-      { duration: OPACITY_DURATION }
-    )
+    explorerOpacity.value = withTiming(activeSegment === '(explorer)' ? 1 : 0, {
+      duration: OPACITY_DURATION
+    })
     signerOpacity.value = withTiming(activeSegment === '(signer)' ? 1 : 0, {
       duration: OPACITY_DURATION
     })
@@ -110,9 +107,9 @@ function TabBarBackground({
   }))
 
   const animatedStyles = {
+    '(converter)': converterStyle,
     '(explorer)': explorerStyle,
-    '(signer)': signerStyle,
-    '(converter)': converterStyle
+    '(signer)': signerStyle
   }
 
   return (
@@ -163,13 +160,12 @@ function TabBarButton({
     if (isSelected) {
       scale.value = withSequence(
         withTiming(SCALE_POP, { duration: 70 }),
-        withSpring(SCALE_DEFAULT, { mass: 0.4, damping: 14, stiffness: 280 })
+        withSpring(SCALE_DEFAULT, { damping: 14, mass: 0.4, stiffness: 280 })
       )
     }
-    opacity.value = withTiming(
-      isSelected ? ACTIVE_OPACITY : INACTIVE_OPACITY,
-      { duration: OPACITY_DURATION }
-    )
+    opacity.value = withTiming(isSelected ? ACTIVE_OPACITY : INACTIVE_OPACITY, {
+      duration: OPACITY_DURATION
+    })
   }, [isSelected])
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -187,7 +183,10 @@ function TabBarButton({
           {isSelected && (
             <View
               pointerEvents="none"
-              style={[StyleSheet.absoluteFillObject, styles.tabBarGlassContainer]}
+              style={[
+                StyleSheet.absoluteFillObject,
+                styles.tabBarGlassContainer
+              ]}
             >
               <LinearGradient
                 pointerEvents="none"
@@ -271,15 +270,14 @@ export default function TabLayout() {
       <Tabs
         initialRouteName="(signer)"
         screenOptions={{
-
           headerShown: false,
           tabBarActiveTintColor: 'white',
           tabBarBackground: () => (
             <TabBarBackground
               activeSegment={
-                segments.find((s) =>
-                  TAB_SEGMENTS.includes(s as TabSegment)
-                ) as TabSegment | undefined
+                segments.find((s) => TAB_SEGMENTS.includes(s as TabSegment)) as
+                  | TabSegment
+                  | undefined
               }
             />
           ),
@@ -363,44 +361,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[950],
     flex: 1
   },
-  iconContainer: {
-    alignItems: 'center',
-    height: 24,
-    justifyContent: 'center',
-    width: 14
-  },
-  tabBar: {
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    borderTopWidth: 0,
-    boxShadow: 'none',
-    paddingTop: TAB_BAR_PADDING_Y
-  },
-  tabBarBackground: {
-    backgroundColor: Colors.gray[925],
-    bottom: 0,
-    left: 0,
-    overflow: 'hidden',
-    position: 'absolute',
-    right: 0,
-    top: 0
-  },
-  tabBarTopBorder: {
-    height: 1,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0
-  },
-  tabBarButtonInner: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center'
-  },
-  tabBarButtonOuter: {
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
   glassBorder: {
     position: 'absolute'
   },
@@ -428,6 +388,37 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0
   },
+  iconContainer: {
+    alignItems: 'center',
+    height: 24,
+    justifyContent: 'center',
+    width: 14
+  },
+  tabBar: {
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    boxShadow: 'none',
+    paddingTop: TAB_BAR_PADDING_Y
+  },
+  tabBarBackground: {
+    backgroundColor: Colors.gray[925],
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: 0
+  },
+  tabBarButtonInner: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center'
+  },
+  tabBarButtonOuter: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   tabBarGlassContainer: {
     borderRadius: 5,
     overflow: 'hidden'
@@ -441,8 +432,8 @@ const styles = StyleSheet.create({
     width: 100
   },
   tabBarItemActive: {
-    borderRadius: 2,
-    backgroundColor: 'transparent'
+    backgroundColor: 'transparent',
+    borderRadius: 2
   },
   tabBarLabel: {
     fontSize: text.fontSize.xxs,
@@ -450,5 +441,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
     paddingBottom: 2,
     textTransform: 'uppercase'
+  },
+  tabBarTopBorder: {
+    height: 1,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
   }
 })

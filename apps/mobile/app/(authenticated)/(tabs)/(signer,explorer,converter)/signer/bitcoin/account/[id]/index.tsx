@@ -62,10 +62,6 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
-import {
-  HEADER_CHROME_EDGE_NUDGE,
-  HEADER_CHROME_HIT_BOX
-} from '@/constants/headerChrome'
 import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
 import SSNFCModal from '@/components/SSNFCModal'
@@ -76,6 +72,10 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_HIT_BOX
+} from '@/constants/headerChrome'
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
@@ -1273,7 +1273,10 @@ export default function AccountView() {
           </SSIconButton>
         )}
         <SSIconButton
-          style={[HEADER_CHROME_HIT_BOX, { marginRight: -HEADER_CHROME_EDGE_NUDGE }]}
+          style={[
+            HEADER_CHROME_HIT_BOX,
+            { marginRight: -HEADER_CHROME_EDGE_NUDGE }
+          ]}
           onPress={() =>
             router.navigate(`/signer/bitcoin/account/${id}/settings`)
           }
