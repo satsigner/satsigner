@@ -473,7 +473,9 @@
     "permissions": "Enable camera access in your phone's settings to scan a QR code.",
     "scanQRCode": "Scan QRCode",
     "scanText": "Scan any Bitcoin or Lightning related QR code.",
-    "scanningContent": "Scanning {context} content..."
+    "scanningContent": "Scanning {context} content...",
+    "zoom.decrease": "Zoom out",
+    "zoom.increase": "Zoom in"
   },
   "common": {
     "QR": "QR",
