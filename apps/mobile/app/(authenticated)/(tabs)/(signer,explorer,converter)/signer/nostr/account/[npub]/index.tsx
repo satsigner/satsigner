@@ -58,7 +58,10 @@ export default function NostrAccountLanding() {
   const connectionQuery = useQuery({
     enabled: !!identity && relayConnected && relaysAvailable,
     queryFn: () => testNostrRelaysReachable(effectiveRelays),
-    queryKey: ['nostr', 'relay-connection', npub, effectiveRelays]
+    queryKey: ['nostr', 'relay-connection', npub, effectiveRelays],
+    refetchOnWindowFocus: false,
+    retry: 0,
+    staleTime: 5 * 60_000
   })
 
   const connectionInfo: NostrRelayConnectionInfo = !identity
@@ -73,16 +76,20 @@ export default function NostrAccountLanding() {
     enabled: !!identity && relayConnected && !!npub && relaysAvailable,
     queryFn: async () => {
       const api = new NostrAPI(effectiveRelays)
-      const profile = await api.fetchKind0(npub)
-      if (profile && identity) {
-        updateIdentity(npub, {
-          displayName: profile.displayName || identity.displayName,
-          lud16: profile.lud16 || identity.lud16,
-          nip05: profile.nip05 || identity.nip05,
-          picture: profile.picture || identity.picture
-        })
+      try {
+        const profile = await api.fetchKind0(npub)
+        if (profile && identity) {
+          updateIdentity(npub, {
+            displayName: profile.displayName || identity.displayName,
+            lud16: profile.lud16 || identity.lud16,
+            nip05: profile.nip05 || identity.nip05,
+            picture: profile.picture || identity.picture
+          })
+        }
+        return profile
+      } finally {
+        api.disconnect()
       }
-      return profile
     },
     queryKey: ['nostr', 'profile', npub],
     staleTime: 60_000

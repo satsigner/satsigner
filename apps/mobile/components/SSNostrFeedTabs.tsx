@@ -39,6 +39,11 @@ import {
 } from '@/utils/nostrBookmarks'
 import { truncateNpub } from '@/utils/nostrIdentity'
 import {
+  collectUnresolvedEventIds,
+  getResolvedEventId
+} from '@/utils/nostrNoteQuotes'
+import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
+import {
   type ZapReceiptInfo,
   type ZapSortField,
   enrichZapReceipts,
@@ -136,6 +141,11 @@ const NOTE_KIND_FILTER_OPTIONS: NoteKindFilterOption[] = [
     labelKey: 'nostrIdentity.feed.kindThread'
   }
 ]
+
+/** Feed tab excludes bookmark filters — those are personal lists, not following-timeline content. */
+const FEED_KIND_FILTER_OPTIONS = NOTE_KIND_FILTER_OPTIONS.filter(
+  (o) => !BOOKMARK_FILTER_IDS.has(o.id)
+)
 
 const DEFAULT_KIND_FILTER_ID = NOTE_KIND_FILTER_OPTIONS[0].id
 
@@ -263,12 +273,14 @@ function SSNostrFeedTabs({
     DEFAULT_KIND_FILTER_ID
   )
   const [notesKindSheetOpen, setNotesKindSheetOpen] = useState(false)
+  const [notesExcludeReplies, setNotesExcludeReplies] = useState(true)
 
   const [feedNotes, setFeedNotes] = useState<NostrFeedNoteLike[]>([])
   const [feedKindFilterId, setFeedKindFilterId] = useState(
     DEFAULT_KIND_FILTER_ID
   )
   const [feedKindSheetOpen, setFeedKindSheetOpen] = useState(false)
+  const [feedExcludeReplies, setFeedExcludeReplies] = useState(true)
   const [feedLoading, setFeedLoading] = useState(false)
   const [feedHasMore, setFeedHasMore] = useState(true)
   const [feedFollowingEmpty, setFeedFollowingEmpty] = useState(false)
@@ -286,7 +298,13 @@ function SSNostrFeedTabs({
   const zapsFetchedRef = useRef(false)
 
   const privateBookmarkIdsRef = useRef(new Set<string>())
-  const feedPrivateBookmarkIdsRef = useRef(new Set<string>())
+
+  const [noteResolvedEvents, setNoteResolvedEvents] = useState<
+    Map<string, NostrFeedNoteLike>
+  >(new Map())
+  const [feedResolvedEvents, setFeedResolvedEvents] = useState<
+    Map<string, NostrFeedNoteLike>
+  >(new Map())
 
   const hexPubkey = getPubKeyHexFromNpub(npub) ?? ''
   const ownPubkeyLower = hexPubkey.toLowerCase()
@@ -306,6 +324,36 @@ function SSNostrFeedTabs({
       apiRef.current = null
     }
   }, [relaysKey, ownPubkeys]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function batchResolveNotes(
+    fetched: NostrFeedNoteLike[],
+    existing: Map<string, NostrFeedNoteLike>,
+    setter: (
+      updater: (
+        prev: Map<string, NostrFeedNoteLike>
+      ) => Map<string, NostrFeedNoteLike>
+    ) => void
+  ) {
+    if (!apiRef.current || privacyMode) {
+      return
+    }
+    const alreadyResolved = new Set(existing.keys())
+    const unresolvedIds = collectUnresolvedEventIds(fetched, alreadyResolved)
+    if (unresolvedIds.length === 0) {
+      return
+    }
+    const resolved = await apiRef.current.fetchEventBatch(unresolvedIds)
+    if (resolved.size === 0) {
+      return
+    }
+    setter((prev) => {
+      const next = new Map(prev)
+      for (const [k, v] of resolved) {
+        next.set(k, v)
+      }
+      return next
+    })
+  }
 
   async function loadBookmarkNotes() {
     if (!apiRef.current) {
@@ -351,8 +399,16 @@ function SSNostrFeedTabs({
           return { ...event, id: bm.eventId }
         })
       )
-      setNotes(fetched.filter((n): n is NonNullable<typeof n> => n !== null))
+      const bookmarkedNotes = fetched.filter(
+        (n): n is NonNullable<typeof n> => n !== null
+      )
+      setNotes(bookmarkedNotes)
       setNotesHasMore(false)
+      await batchResolveNotes(
+        bookmarkedNotes,
+        noteResolvedEvents,
+        setNoteResolvedEvents
+      )
     } catch {
       // fetch failed — UI already shows empty state
     } finally {
@@ -395,6 +451,11 @@ function SSNostrFeedTabs({
       } else {
         setNotes(fetched)
       }
+      await batchResolveNotes(
+        fetched,
+        noteResolvedEvents,
+        setNoteResolvedEvents
+      )
     } catch {
       // fetch failed — UI already shows empty state
     } finally {
@@ -402,68 +463,8 @@ function SSNostrFeedTabs({
     }
   }
 
-  async function loadFeedBookmarkNotes() {
-    if (!apiRef.current) {
-      return
-    }
-    setFeedLoading(true)
-    try {
-      const result = await apiRef.current.fetchBookmarks(npub)
-      if (!result) {
-        setFeedNotes([])
-        return
-      }
-
-      const pubBookmarks = parsePublicBookmarks(result.tags)
-      const nsec = identity?.nsec
-      const privBookmarks = (() => {
-        if (feedKindFilterId === 'bookmarks' || !nsec) {
-          return []
-        }
-        const secretKey = getSecretFromNsec(nsec)
-        if (!secretKey) {
-          return []
-        }
-        return decryptPrivateBookmarks(result.content, secretKey, hexPubkey)
-      })()
-
-      const merged =
-        feedKindFilterId === 'private_bookmarks'
-          ? privBookmarks
-          : mergeBookmarks(pubBookmarks, privBookmarks)
-
-      const trimmed = merged.slice(0, BOOKMARKS_MAX_FETCH)
-      feedPrivateBookmarkIdsRef.current = new Set(
-        trimmed.filter((b) => b.source === 'private').map((b) => b.eventId)
-      )
-
-      const fetched = await Promise.all(
-        trimmed.map(async (bm) => {
-          const event = await apiRef.current!.fetchEvent(bm.eventId)
-          if (!event) {
-            return null
-          }
-          return { ...event, id: bm.eventId }
-        })
-      )
-      setFeedNotes(
-        fetched.filter((n): n is NonNullable<typeof n> => n !== null)
-      )
-      setFeedHasMore(false)
-    } catch {
-      // fetch failed — UI already shows empty state
-    } finally {
-      setFeedLoading(false)
-    }
-  }
-
   async function loadFeed(loadMore = false) {
     if (feedLoading || !apiRef.current) {
-      return
-    }
-
-    if (BOOKMARK_FILTER_IDS.has(feedKindFilterId)) {
-      await loadFeedBookmarkNotes()
       return
     }
 
@@ -503,6 +504,11 @@ function SSNostrFeedTabs({
       } else {
         setFeedNotes(fetched)
       }
+      await batchResolveNotes(
+        fetched,
+        feedResolvedEvents,
+        setFeedResolvedEvents
+      )
     } catch {
       // fetch failed — UI already shows empty state
     } finally {
@@ -570,7 +576,8 @@ function SSNostrFeedTabs({
     setFeedAuthorKind0({})
     feedKind0FetchedRef.current.clear()
     privateBookmarkIdsRef.current.clear()
-    feedPrivateBookmarkIdsRef.current.clear()
+    setNoteResolvedEvents(new Map())
+    setFeedResolvedEvents(new Map())
   }
 
   useEffect(() => {
@@ -590,6 +597,8 @@ function SSNostrFeedTabs({
     notesFetchedRef.current = false
     setNotes([])
     setNotesHasMore(true)
+    setNoteResolvedEvents(new Map())
+    setNotesExcludeReplies(notesKindFilterId === 'short_text')
   }, [notesKindFilterId])
 
   useEffect(() => {
@@ -598,6 +607,8 @@ function SSNostrFeedTabs({
     setFeedHasMore(true)
     setFeedAuthorKind0({})
     feedKind0FetchedRef.current.clear()
+    setFeedResolvedEvents(new Map())
+    setFeedExcludeReplies(feedKindFilterId === 'short_text')
   }, [feedKindFilterId])
 
   const notesKindOpt = NOTE_KIND_FILTER_OPTIONS.find(
@@ -605,7 +616,7 @@ function SSNostrFeedTabs({
   )
   const notesKindLabel = notesKindOpt ? t(notesKindOpt.labelKey) : ''
 
-  const feedKindOpt = NOTE_KIND_FILTER_OPTIONS.find(
+  const feedKindOpt = FEED_KIND_FILTER_OPTIONS.find(
     (o) => o.id === feedKindFilterId
   )
   const feedKindLabel = feedKindOpt ? t(feedKindOpt.labelKey) : ''
@@ -709,6 +720,16 @@ function SSNostrFeedTabs({
     )
   }
 
+  const visibleNotes =
+    notesExcludeReplies && notesKindFilterId === 'short_text'
+      ? notes.filter((n) => !noteLooksLikeReply(n.tags))
+      : notes
+
+  const visibleFeedNotes =
+    feedExcludeReplies && feedKindFilterId === 'short_text'
+      ? feedNotes.filter((n) => !noteLooksLikeReply(n.tags))
+      : feedNotes
+
   if (!relayConnected) {
     return (
       <SSVStack gap="none">
@@ -783,42 +804,67 @@ function SSNostrFeedTabs({
       <SSVStack gap="sm" style={styles.tabContent}>
         {activeTab === 'notes' && (
           <>
-            <TouchableOpacity
-              style={styles.notesKindTrigger}
-              activeOpacity={0.7}
-              onPress={() => setNotesKindSheetOpen(true)}
-            >
-              <SSHStack gap="sm" style={styles.notesKindTriggerInner}>
-                <View style={styles.notesKindTriggerLabel}>
-                  <KindFilterLabelText label={notesKindLabel} size="xs" />
-                </View>
-                <SSText size="xs" color="muted">
-                  ▾
-                </SSText>
-              </SSHStack>
-            </TouchableOpacity>
-            {notes.map((note) => (
-              <SSNostrFeedNoteRow
-                key={note.id}
-                note={note}
-                privacyMode={privacyMode}
-                showAuthor
-                authorPreview={renderFeedAuthorKind0Row(note)}
-                badge={
-                  BOOKMARK_FILTER_IDS.has(notesKindFilterId) &&
-                  privateBookmarkIdsRef.current.has(note.id) ? (
-                    <DecryptedBadge />
-                  ) : undefined
-                }
-                onPress={() =>
-                  onNotePress?.({
-                    id: note.id,
-                    kind: note.kind,
-                    pubkey: note.pubkey
-                  })
-                }
-              />
-            ))}
+            <SSHStack gap="sm" style={styles.filterRow}>
+              <TouchableOpacity
+                style={[styles.notesKindTrigger, styles.filterRowKind]}
+                activeOpacity={0.7}
+                onPress={() => setNotesKindSheetOpen(true)}
+              >
+                <SSHStack gap="sm" style={styles.notesKindTriggerInner}>
+                  <View style={styles.notesKindTriggerLabel}>
+                    <KindFilterLabelText label={notesKindLabel} size="xs" />
+                  </View>
+                  <SSText size="xs" color="muted">
+                    ▾
+                  </SSText>
+                </SSHStack>
+              </TouchableOpacity>
+              {notesKindFilterId === 'short_text' && (
+                <TouchableOpacity
+                  style={[
+                    styles.replyFilterChip,
+                    !notesExcludeReplies && styles.replyFilterChipActive
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => setNotesExcludeReplies((v) => !v)}
+                >
+                  <SSText
+                    size="xxs"
+                    color={!notesExcludeReplies ? 'white' : 'muted'}
+                  >
+                    {t('nostrIdentity.feed.showReplies')}
+                  </SSText>
+                </TouchableOpacity>
+              )}
+            </SSHStack>
+            {visibleNotes.map((note) => {
+              const resolvedId = getResolvedEventId(note)
+              return (
+                <SSNostrFeedNoteRow
+                  key={note.id}
+                  note={note}
+                  privacyMode={privacyMode}
+                  showAuthor
+                  authorPreview={renderFeedAuthorKind0Row(note)}
+                  badge={
+                    BOOKMARK_FILTER_IDS.has(notesKindFilterId) &&
+                    privateBookmarkIdsRef.current.has(note.id) ? (
+                      <DecryptedBadge />
+                    ) : undefined
+                  }
+                  resolvedQuotedNote={
+                    resolvedId ? noteResolvedEvents.get(resolvedId) : undefined
+                  }
+                  onPress={() =>
+                    onNotePress?.({
+                      id: note.id,
+                      kind: note.kind,
+                      pubkey: note.pubkey
+                    })
+                  }
+                />
+              )
+            })}
             {notesLoading && (
               <ActivityIndicator
                 color={Colors.white}
@@ -827,13 +873,13 @@ function SSNostrFeedTabs({
               />
             )}
 
-            {!notesLoading && notes.length === 0 && (
+            {!notesLoading && visibleNotes.length === 0 && (
               <SSText size="xs" color="muted" center style={styles.emptyText}>
                 {t('nostrIdentity.feed.noNotes')}
               </SSText>
             )}
 
-            {!notesLoading && notesHasMore && notes.length > 0 && (
+            {!notesLoading && notesHasMore && visibleNotes.length > 0 && (
               <SSButton
                 label={t('nostrIdentity.feed.loadMore')}
                 variant="ghost"
@@ -845,42 +891,61 @@ function SSNostrFeedTabs({
 
         {activeTab === 'feed' && (
           <>
-            <TouchableOpacity
-              style={styles.notesKindTrigger}
-              activeOpacity={0.7}
-              onPress={() => setFeedKindSheetOpen(true)}
-            >
-              <SSHStack gap="sm" style={styles.notesKindTriggerInner}>
-                <View style={styles.notesKindTriggerLabel}>
-                  <KindFilterLabelText label={feedKindLabel} size="xs" />
-                </View>
-                <SSText size="xs" color="muted">
-                  ▾
-                </SSText>
-              </SSHStack>
-            </TouchableOpacity>
-            {feedNotes.map((note) => (
-              <SSNostrFeedNoteRow
-                key={note.id}
-                note={note}
-                privacyMode={privacyMode}
-                showAuthor
-                authorPreview={renderFeedAuthorKind0Row(note)}
-                badge={
-                  BOOKMARK_FILTER_IDS.has(feedKindFilterId) &&
-                  feedPrivateBookmarkIdsRef.current.has(note.id) ? (
-                    <DecryptedBadge />
-                  ) : undefined
-                }
-                onPress={() =>
-                  onNotePress?.({
-                    id: note.id,
-                    kind: note.kind,
-                    pubkey: note.pubkey
-                  })
-                }
-              />
-            ))}
+            <SSHStack gap="sm" style={styles.filterRow}>
+              <TouchableOpacity
+                style={[styles.notesKindTrigger, styles.filterRowKind]}
+                activeOpacity={0.7}
+                onPress={() => setFeedKindSheetOpen(true)}
+              >
+                <SSHStack gap="sm" style={styles.notesKindTriggerInner}>
+                  <View style={styles.notesKindTriggerLabel}>
+                    <KindFilterLabelText label={feedKindLabel} size="xs" />
+                  </View>
+                  <SSText size="xs" color="muted">
+                    ▾
+                  </SSText>
+                </SSHStack>
+              </TouchableOpacity>
+              {feedKindFilterId === 'short_text' && (
+                <TouchableOpacity
+                  style={[
+                    styles.replyFilterChip,
+                    !feedExcludeReplies && styles.replyFilterChipActive
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => setFeedExcludeReplies((v) => !v)}
+                >
+                  <SSText
+                    size="xxs"
+                    color={!feedExcludeReplies ? 'white' : 'muted'}
+                  >
+                    {t('nostrIdentity.feed.showReplies')}
+                  </SSText>
+                </TouchableOpacity>
+              )}
+            </SSHStack>
+            {visibleFeedNotes.map((note) => {
+              const resolvedId = getResolvedEventId(note)
+              return (
+                <SSNostrFeedNoteRow
+                  key={note.id}
+                  note={note}
+                  privacyMode={privacyMode}
+                  showAuthor
+                  authorPreview={renderFeedAuthorKind0Row(note)}
+                  resolvedQuotedNote={
+                    resolvedId ? feedResolvedEvents.get(resolvedId) : undefined
+                  }
+                  onPress={() =>
+                    onNotePress?.({
+                      id: note.id,
+                      kind: note.kind,
+                      pubkey: note.pubkey
+                    })
+                  }
+                />
+              )
+            })}
 
             {feedLoading && (
               <ActivityIndicator
@@ -896,16 +961,18 @@ function SSNostrFeedTabs({
               </SSText>
             )}
 
-            {!feedLoading && !feedFollowingEmpty && feedNotes.length === 0 && (
-              <SSText size="xs" color="muted" center style={styles.emptyText}>
-                {t('nostrIdentity.feed.noFeed')}
-              </SSText>
-            )}
+            {!feedLoading &&
+              !feedFollowingEmpty &&
+              visibleFeedNotes.length === 0 && (
+                <SSText size="xs" color="muted" center style={styles.emptyText}>
+                  {t('nostrIdentity.feed.noFeed')}
+                </SSText>
+              )}
 
             {!feedLoading &&
               !feedFollowingEmpty &&
               feedHasMore &&
-              feedNotes.length > 0 && (
+              visibleFeedNotes.length > 0 && (
                 <SSButton
                   label={t('nostrIdentity.feed.loadMore')}
                   variant="ghost"
@@ -1138,7 +1205,7 @@ function SSNostrFeedTabs({
                 showsVerticalScrollIndicator={false}
               >
                 <SSVStack gap="md">
-                  {NOTE_KIND_FILTER_OPTIONS.map((opt) => (
+                  {FEED_KIND_FILTER_OPTIONS.map((opt) => (
                     <TouchableOpacity
                       key={opt.id}
                       style={styles.kindOptionRow}
@@ -1173,6 +1240,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     paddingVertical: 24
+  },
+  filterRow: {
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  filterRowKind: {
+    flex: 1,
+    marginBottom: 0
   },
   kindOptionRow: {
     backgroundColor: Colors.gray[925],
@@ -1219,6 +1294,17 @@ const styles = StyleSheet.create({
   notesKindTriggerLabel: {
     flex: 1,
     minWidth: 0
+  },
+  replyFilterChip: {
+    borderColor: Colors.gray[800],
+    borderRadius: 3,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 10
+  },
+  replyFilterChipActive: {
+    borderColor: Colors.gray[600],
+    borderWidth: 1
   },
   tabBar: {
     borderBottomColor: Colors.gray[800],

@@ -4,6 +4,7 @@ import { nip19 } from 'nostr-tools'
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -14,13 +15,19 @@ import {
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
+import SSIconBookmark from '@/components/icons/SSIconBookmark'
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconChevronDown from '@/components/icons/SSIconChevronDown'
 import SSIconChevronUp from '@/components/icons/SSIconChevronUp'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
+import SSIconHeart from '@/components/icons/SSIconHeart'
+import SSIconQR from '@/components/icons/SSIconQR'
+import SSIconRepost from '@/components/icons/SSIconRepost'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSIconButton from '@/components/SSIconButton'
+import SSModal from '@/components/SSModal'
 import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow,
@@ -31,6 +38,7 @@ import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSPaymentMethodPicker, {
   type PaymentMethod
 } from '@/components/SSPaymentMethodPicker'
+import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
@@ -135,10 +143,12 @@ export default function NostrNotePage() {
   const [sheetZapComment, setSheetZapComment] = useState('')
   const [showJson, setShowJson] = useState(false)
   const [showMeta, setShowMeta] = useState(true)
+  const [qrModalVisible, setQrModalVisible] = useState(false)
   const [nip05Valid, setNip05Valid] = useState<boolean | null>(null)
   const [zapSortField, setZapSortField] = useState<ZapSortField>('date')
   const [zapSortAsc, setZapSortAsc] = useState(false)
   const [zapReceiptsLoading, setZapReceiptsLoading] = useState(false)
+  const [bookmarkLoading, setBookmarkLoading] = useState(false)
 
   const zapPrefs = identity?.zapPreferences
   const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
@@ -579,6 +589,53 @@ export default function NostrNotePage() {
     (goalProgress !== undefined && goalProgress >= 1) ||
     (usesRemaining !== undefined && usesRemaining <= 0)
 
+  async function handleBookmarkAction(
+    action: { type: 'add'; source: 'public' | 'private' } | { type: 'remove' }
+  ) {
+    const eventId = decoded?.data
+    if (!eventId || !npub || !identity?.nsec) {
+      return
+    }
+    setBookmarkLoading(true)
+    const api = new NostrAPI(effectiveRelays)
+    try {
+      await api.publishBookmarkUpdate(npub, identity.nsec, {
+        eventId,
+        ...action
+      })
+      toast.success(
+        action.type === 'remove'
+          ? t('nostrIdentity.note.bookmarkRemoved')
+          : t('nostrIdentity.note.bookmarkAdded')
+      )
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('nostrIdentity.note.bookmarkFailed')}: ${reason}`)
+    } finally {
+      api.disconnect()
+      setBookmarkLoading(false)
+    }
+  }
+
+  function handleBookmarkPress() {
+    Alert.alert(t('nostrIdentity.note.bookmarkTitle'), undefined, [
+      {
+        onPress: () => handleBookmarkAction({ source: 'public', type: 'add' }),
+        text: t('nostrIdentity.note.bookmarkPublic')
+      },
+      {
+        onPress: () => handleBookmarkAction({ source: 'private', type: 'add' }),
+        text: t('nostrIdentity.note.bookmarkPrivate')
+      },
+      {
+        onPress: () => handleBookmarkAction({ type: 'remove' }),
+        style: 'destructive',
+        text: t('nostrIdentity.note.bookmarkRemove')
+      },
+      { style: 'cancel', text: t('common.cancel') }
+    ])
+  }
+
   async function handleZap(amountSats: number, comment?: string) {
     if (!amountSats || amountSats <= 0) {
       return
@@ -972,6 +1029,47 @@ export default function NostrNotePage() {
                   />
                 ) : null}
               </View>
+            ) : null}
+
+            {fetched ? (
+              <SSHStack gap="none" style={styles.actionRow}>
+                <SSIconButton
+                  accessibilityLabel={t('nostrIdentity.note.qrTitle')}
+                  style={styles.actionButton}
+                  disabled={!noteNeventId}
+                  onPress={() => setQrModalVisible(true)}
+                >
+                  <SSIconQR width={18} height={18} />
+                </SSIconButton>
+                <SSIconButton
+                  accessibilityLabel={t('nostrIdentity.note.repostTitle')}
+                  style={styles.actionButton}
+                  disabled
+                >
+                  <SSIconRepost width={18} height={16} />
+                </SSIconButton>
+                <SSIconButton
+                  accessibilityLabel={t('nostrIdentity.note.likeTitle')}
+                  style={styles.actionButton}
+                  disabled
+                >
+                  <SSIconHeart width={18} height={16} />
+                </SSIconButton>
+                <SSIconButton
+                  accessibilityLabel={t('nostrIdentity.note.bookmarkTitle')}
+                  style={styles.actionButton}
+                  disabled={
+                    bookmarkLoading || !decoded?.data || !identity?.nsec
+                  }
+                  onPress={handleBookmarkPress}
+                >
+                  <SSIconBookmark
+                    width={14}
+                    height={18}
+                    color={Colors.gray[300]}
+                  />
+                </SSIconButton>
+              </SSHStack>
             ) : null}
 
             {fetched ? (
@@ -1492,9 +1590,22 @@ export default function NostrNotePage() {
 
             {replyParentId && fetched && noteLooksLikeReply(fetched.tags) ? (
               <SSVStack gap="sm" style={styles.replyParentSection}>
-                <SSText size="xs" color="muted" uppercase>
-                  {t('nostrIdentity.note.replyingTo')}
-                </SSText>
+                <TouchableOpacity
+                  activeOpacity={0.6}
+                  disabled={!npub}
+                  onPress={() => {
+                    if (!npub || !replyParentId) {
+                      return
+                    }
+                    router.push(
+                      nostrNoteHref(npub, nip19.noteEncode(replyParentId))
+                    )
+                  }}
+                >
+                  <SSText size="xs" color="muted" uppercase>
+                    {t('nostrIdentity.note.replyingTo')}
+                  </SSText>
+                </TouchableOpacity>
                 {replyParentLoading ? (
                   <SSHStack gap="sm" style={styles.zapLoadingRow}>
                     <ActivityIndicator color={Colors.white} size="small" />
@@ -1506,44 +1617,44 @@ export default function NostrNotePage() {
                   <SSText size="xs" color="muted">
                     {t('nostrIdentity.note.parentNotOnRelays')}
                   </SSText>
-                ) : replyParentNoteLike && replyParentAuthorFeedProps ? (
-                  <SSNostrFeedNoteRow
-                    note={replyParentNoteLike}
-                    privacyMode={privacyMode}
-                    showAuthor
-                    expandContent
-                    authorPreview={
-                      <SSNostrFeedAuthorRow
-                        contextNpub={npub || undefined}
-                        loading={replyParentAuthorFeedProps.loading}
-                        npubBech={replyParentAuthorFeedProps.authorNpubBech}
-                        displayName={replyParentAuthorFeedProps.displayName}
-                        nip05={replyParentAuthorFeedProps.nip05}
-                        pictureUri={replyParentAuthorFeedProps.pictureUri}
-                      />
-                    }
-                    onPress={() => {
-                      if (!npub) {
-                        return
-                      }
-                      const uri = nip19.noteEncode(replyParentId)
-                      router.navigate(nostrNoteHref(npub, uri))
-                    }}
-                  />
                 ) : replyParentNoteLike ? (
-                  <SSNostrFeedNoteRow
-                    note={replyParentNoteLike}
-                    privacyMode={privacyMode}
-                    showAuthor={false}
-                    expandContent
+                  <TouchableOpacity
+                    activeOpacity={0.6}
+                    disabled={!npub}
+                    style={styles.replyParentNoteRow}
                     onPress={() => {
-                      if (!npub) {
+                      if (!npub || !replyParentId) {
                         return
                       }
-                      const uri = nip19.noteEncode(replyParentId)
-                      router.navigate(nostrNoteHref(npub, uri))
+                      router.push(
+                        nostrNoteHref(npub, nip19.noteEncode(replyParentId))
+                      )
                     }}
-                  />
+                  >
+                    <View pointerEvents="none">
+                      <SSNostrFeedNoteRow
+                        note={replyParentNoteLike}
+                        privacyMode={privacyMode}
+                        showAuthor={!!replyParentAuthorFeedProps}
+                        expandContent
+                        authorPreview={
+                          replyParentAuthorFeedProps ? (
+                            <SSNostrFeedAuthorRow
+                              loading={replyParentAuthorFeedProps.loading}
+                              npubBech={
+                                replyParentAuthorFeedProps.authorNpubBech
+                              }
+                              displayName={
+                                replyParentAuthorFeedProps.displayName
+                              }
+                              nip05={replyParentAuthorFeedProps.nip05}
+                              pictureUri={replyParentAuthorFeedProps.pictureUri}
+                            />
+                          ) : undefined
+                        }
+                      />
+                    </View>
+                  </TouchableOpacity>
                 ) : null}
               </SSVStack>
             ) : null}
@@ -1606,6 +1717,39 @@ export default function NostrNotePage() {
         methods={availablePaymentMethods}
         amountSats={payAmount}
       />
+
+      <SSModal
+        visible={qrModalVisible}
+        onClose={() => setQrModalVisible(false)}
+        closeButtonVariant="ghost"
+        label={t('common.close')}
+      >
+        <SSVStack gap="lg" style={styles.qrModalContent}>
+          <SSText center uppercase>
+            {t('nostrIdentity.note.qrTitle')}
+          </SSText>
+          <View style={styles.qrContainer}>
+            <SSQRCode
+              value={noteNeventId}
+              size={260}
+              color={Colors.black}
+              backgroundColor={Colors.white}
+            />
+          </View>
+          <SSClipboardCopy text={noteNeventId}>
+            <SSText
+              center
+              size="xxs"
+              type="mono"
+              color="muted"
+              numberOfLines={2}
+              ellipsizeMode="middle"
+            >
+              {noteNeventId}
+            </SSText>
+          </SSClipboardCopy>
+        </SSVStack>
+      </SSModal>
 
       <SSBottomSheet
         ref={zapSheetRef}
@@ -1727,6 +1871,18 @@ function deriveAuthorFeedProps(
 }
 
 const styles = StyleSheet.create({
+  actionButton: {
+    alignItems: 'center',
+    height: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 16
+  },
+  actionRow: {
+    borderBottomWidth: 1,
+    borderColor: Colors.gray[800],
+    justifyContent: 'flex-end',
+    paddingBottom: 4
+  },
   authorAvatar: {
     borderRadius: 24,
     height: 48,
@@ -1870,6 +2026,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: '100%'
   },
+  qrContainer: {
+    alignSelf: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    padding: 12
+  },
+  qrModalContent: {
+    alignItems: 'center',
+    paddingBottom: 24,
+    paddingHorizontal: 20
+  },
   receiptAmountCol: {
     alignItems: 'flex-end'
   },
@@ -1901,6 +2068,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     minWidth: 0
+  },
+  replyParentNoteRow: {
+    width: '100%'
   },
   replyParentSection: {
     borderColor: Colors.gray[800],
