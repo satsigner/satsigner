@@ -41,7 +41,10 @@ const OPACITY_DURATION = 180
 
 const TAB_TOP_BORDER_GRADIENTS: Record<
   TabSegment,
-  { colors: string[]; locations: [number, number, number, number] }
+  {
+    colors: readonly [string, string, string, string]
+    locations: [number, number, number, number]
+  }
 > = {
   '(converter)': {
     colors: [
@@ -49,7 +52,7 @@ const TAB_TOP_BORDER_GRADIENTS: Record<
       'rgba(255,255,255,0.05)',
       'rgba(255,255,255,0.20)',
       'rgba(255,255,255,0.08)'
-    ],
+    ] as const,
     locations: [0.3, 0.62, 0.84, 1]
   },
   '(explorer)': {
@@ -58,7 +61,7 @@ const TAB_TOP_BORDER_GRADIENTS: Record<
       'rgba(255,255,255,0.20)',
       'rgba(255,255,255,0.05)',
       'rgba(255,255,255,0.0)'
-    ],
+    ] as const,
     locations: [0, 0.16, 0.38, 0.7]
   },
   '(signer)': {
@@ -67,7 +70,7 @@ const TAB_TOP_BORDER_GRADIENTS: Record<
       'rgba(255,255,255,0.22)',
       'rgba(255,255,255,0.02)',
       'rgba(255,255,255,0.0)'
-    ],
+    ] as const,
     locations: [0, 0.5, 0.85, 1]
   }
 }

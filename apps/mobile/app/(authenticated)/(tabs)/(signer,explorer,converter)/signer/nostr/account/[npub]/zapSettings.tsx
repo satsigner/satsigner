@@ -34,9 +34,17 @@ export default function ZapSettingsPage() {
   const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
 
   const lightningConfig = useLightningStore((state) => state.config)
-  const { mints } = useEcash()
+  const lightningNodeAlias = useLightningStore(
+    (state) => state.status.nodeInfo?.alias
+  )
+  const { accounts: ecashAccounts, allMints: ecashAllMints } = useEcash()
   const arkAccounts = useArkStore((state) => state.accounts)
-  const wallets = buildPaymentMethods(lightningConfig, mints, arkAccounts)
+  const wallets = buildPaymentMethods(
+    lightningConfig ? { ...lightningConfig, alias: lightningNodeAlias } : null,
+    ecashAccounts,
+    ecashAllMints,
+    arkAccounts
+  )
 
   const prefs = identity?.zapPreferences
   const [presets, setPresets] = useState<number[]>(
