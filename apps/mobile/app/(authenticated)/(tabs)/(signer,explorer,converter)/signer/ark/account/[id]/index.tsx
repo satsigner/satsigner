@@ -95,12 +95,7 @@ export default function ArkAccountDetailPage() {
   function renderHeaderRight() {
     return (
       <SSIconButton
-        style={
-          Platform.OS === 'android' && [
-            HEADER_CHROME_HIT_BOX,
-            { marginRight: -HEADER_CHROME_EDGE_NUDGE }
-          ]
-        }
+        style={[HEADER_CHROME_HIT_BOX, { marginRight: -HEADER_CHROME_EDGE_NUDGE }]}
         onPress={() =>
           router.navigate({
             params: { id },

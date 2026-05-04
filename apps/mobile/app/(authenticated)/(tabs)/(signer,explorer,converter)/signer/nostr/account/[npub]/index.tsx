@@ -13,6 +13,10 @@ import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
 import SSNostrHeroCard from '@/components/SSNostrHeroCard'
 import SSPaste from '@/components/SSPaste'
 import SSText from '@/components/SSText'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_HIT_BOX
+} from '@/constants/headerChrome'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -142,9 +146,10 @@ export default function NostrAccountLanding() {
       <Stack.Screen
         options={{
           headerRight: () => (
-            <SSHStack gap="md" style={{ marginRight: 8 }}>
+            <SSHStack gap="none" style={{ marginRight: -HEADER_CHROME_EDGE_NUDGE }}>
               <SSIconButton
                 accessibilityLabel={t('nostrIdentity.chat.title')}
+                style={HEADER_CHROME_HIT_BOX}
                 onPress={() => router.navigate(nostrAccountHref(npub, 'chat'))}
               >
                 <SSIconChatBubble
@@ -155,6 +160,7 @@ export default function NostrAccountLanding() {
               </SSIconButton>
               <SSIconButton
                 accessibilityLabel={t('nostrIdentity.settings.title')}
+                style={HEADER_CHROME_HIT_BOX}
                 onPress={() =>
                   router.navigate(nostrAccountHref(npub, 'settings'))
                 }

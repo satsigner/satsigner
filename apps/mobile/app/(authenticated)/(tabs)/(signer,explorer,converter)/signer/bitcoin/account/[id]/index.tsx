@@ -62,6 +62,10 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_HIT_BOX
+} from '@/constants/headerChrome'
 import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
 import SSNFCModal from '@/components/SSNFCModal'
@@ -1247,9 +1251,10 @@ export default function AccountView() {
   // reference on every DM update, which would interrupt in-progress tap gestures.
   const headerRight = useCallback(
     () => (
-      <SSHStack gap="md">
+      <SSHStack gap="none">
         {account?.nostr?.autoSync && (
           <SSIconButton
+            style={HEADER_CHROME_HIT_BOX}
             onPress={() =>
               router.navigate(
                 `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
@@ -1268,7 +1273,7 @@ export default function AccountView() {
           </SSIconButton>
         )}
         <SSIconButton
-          style={{ marginRight: 8 }}
+          style={[HEADER_CHROME_HIT_BOX, { marginRight: -HEADER_CHROME_EDGE_NUDGE }]}
           onPress={() =>
             router.navigate(`/signer/bitcoin/account/${id}/settings`)
           }

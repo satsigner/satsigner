@@ -29,6 +29,10 @@ import SSNFCModal from '@/components/SSNFCModal'
 import SSPaste from '@/components/SSPaste'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_HIT_BOX
+} from '@/constants/headerChrome'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useEcash } from '@/hooks/useEcash'
 import { useEcashContentHandler } from '@/hooks/useEcashContentHandler'
@@ -262,7 +266,7 @@ export default function EcashAccountDetailPage() {
           headerRight: () => (
             <SSIconButton
               onPress={handleSettingsPress}
-              style={{ marginRight: 8 }}
+              style={[HEADER_CHROME_HIT_BOX, { marginRight: -HEADER_CHROME_EDGE_NUDGE }]}
             >
               <SSIconECash
                 height={16}
