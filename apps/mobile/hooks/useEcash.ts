@@ -155,7 +155,8 @@ export function useEcash() {
   const mints = activeAccountId ? (allMints[activeAccountId] ?? []) : []
   const rawProofs = activeAccountId ? (allProofs[activeAccountId] ?? []) : []
   const proofs = rawProofs.filter(
-    (proof, index, arr) => arr.findIndex((p) => p.secret === proof.secret) === index
+    (proof, index, arr) =>
+      arr.findIndex((p) => p.secret === proof.secret) === index
   )
   const transactions = activeAccountId
     ? (allTransactions[activeAccountId] ?? [])

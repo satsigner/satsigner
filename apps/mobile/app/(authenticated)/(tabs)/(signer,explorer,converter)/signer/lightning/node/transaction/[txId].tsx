@@ -35,7 +35,9 @@ import { formatLightningTxTimeAgo } from '@/utils/lndTransactionDisplay'
 const PRIVACY_MASK = '••••'
 
 function formatUnixTimestamp(unixSeconds: number): string {
-  if (!unixSeconds) return '—'
+  if (!unixSeconds) {
+    return '—'
+  }
   return new Date(unixSeconds * 1000).toLocaleString('en-US', {
     day: 'numeric',
     hour: 'numeric',
@@ -48,14 +50,22 @@ function formatUnixTimestamp(unixSeconds: number): string {
 }
 
 function statusBadgeContainerStyle(isPositive: boolean, isNegative: boolean) {
-  if (isPositive) return styles.statusBadgePositive
-  if (isNegative) return styles.statusBadgeNegative
+  if (isPositive) {
+    return styles.statusBadgePositive
+  }
+  if (isNegative) {
+    return styles.statusBadgeNegative
+  }
   return styles.statusBadgeNeutral
 }
 
 function statusBadgeTextStyle(isPositive: boolean, isNegative: boolean) {
-  if (isPositive) return styles.statusTextPositive
-  if (isNegative) return styles.statusTextNegative
+  if (isPositive) {
+    return styles.statusTextPositive
+  }
+  if (isNegative) {
+    return styles.statusTextNegative
+  }
   return styles.statusTextNeutral
 }
 
@@ -66,7 +76,12 @@ function StatusBadge({ status }: { status: string }) {
   const isNegative = ['canceled', 'failed'].includes(status.toLowerCase())
 
   return (
-    <View style={[styles.statusBadge, statusBadgeContainerStyle(isPositive, isNegative)]}>
+    <View
+      style={[
+        styles.statusBadge,
+        statusBadgeContainerStyle(isPositive, isNegative)
+      ]}
+    >
       <SSText
         size="xs"
         weight="medium"
@@ -92,7 +107,9 @@ function SectionHeader({ label }: { label: string }) {
 type Hop = LndPayment['htlcs'][0]['route']['hops'][0]
 
 function shortPubkey(pk: string): string {
-  if (!pk) return '—'
+  if (!pk) {
+    return '—'
+  }
   return `${pk.slice(0, 8)}…${pk.slice(-6)}`
 }
 
@@ -105,7 +122,9 @@ function HopDiagram({
   nodeInfoMap: Record<string, LNDGraphNodeInfo | null>
   privacyMode: boolean
 }) {
-  if (hops.length === 0) return null
+  if (hops.length === 0) {
+    return null
+  }
 
   return (
     <SSVStack gap="md">
@@ -123,17 +142,26 @@ function HopDiagram({
           const info = nodeInfoMap[hop.pub_key] ?? null
           const nodeColor = info?.color
           const alias = info?.alias
-          const pubkeyLabel = privacyMode ? PRIVACY_MASK : shortPubkey(hop.pub_key)
+          const pubkeyLabel = privacyMode
+            ? PRIVACY_MASK
+            : shortPubkey(hop.pub_key)
 
           return (
             <View key={hop.chan_id ?? i}>
               <View style={styles.hopEdgeRow}>
                 <View style={styles.hopEdgeLineCol}>
                   <View style={styles.hopEdgeLine} />
-                  <SSText size="xxs" style={styles.hopArrow}>▼</SSText>
+                  <SSText size="xxs" style={styles.hopArrow}>
+                    ▼
+                  </SSText>
                 </View>
                 <View style={styles.hopEdgeMeta}>
-                  <SSText size="xxs" color="muted" style={styles.hopEdgeChanId} numberOfLines={1}>
+                  <SSText
+                    size="xxs"
+                    color="muted"
+                    style={styles.hopEdgeChanId}
+                    numberOfLines={1}
+                  >
                     {hop.chan_id}
                   </SSText>
                   {!privacyMode && (
@@ -156,7 +184,9 @@ function HopDiagram({
                   style={[
                     styles.hopDot,
                     isLast && styles.hopDotHighlight,
-                    nodeColor ? { backgroundColor: nodeColor, borderColor: nodeColor } : null
+                    nodeColor
+                      ? { backgroundColor: nodeColor, borderColor: nodeColor }
+                      : null
                   ]}
                 />
                 <SSVStack gap="none" style={styles.hopLabel}>
@@ -165,12 +195,21 @@ function HopDiagram({
                       <SSText size="xs" weight="medium" numberOfLines={1}>
                         {alias}
                       </SSText>
-                      <SSText size="xxs" color="muted" style={styles.hopLabelMono} numberOfLines={1}>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        style={styles.hopLabelMono}
+                        numberOfLines={1}
+                      >
                         {pubkeyLabel}
                       </SSText>
                     </>
                   ) : (
-                    <SSText size="xs" style={styles.hopLabelMono} numberOfLines={1}>
+                    <SSText
+                      size="xs"
+                      style={styles.hopLabelMono}
+                      numberOfLines={1}
+                    >
                       {pubkeyLabel}
                     </SSText>
                   )}
@@ -187,7 +226,9 @@ function HopDiagram({
 function hopFeeMsatWithPct(feeMsat: string, amtMsat: string): string {
   const fee = Number(feeMsat)
   const amt = Number(amtMsat)
-  if (!amt) return feeMsat
+  if (!amt) {
+    return feeMsat
+  }
   const pct = ((fee / amt) * 100).toFixed(3)
   return `${feeMsat} (${pct}%)`
 }
@@ -279,10 +320,7 @@ function PaymentDetail({
             const alias = info?.alias
 
             return (
-              <View
-                key={hop.chan_id ?? i}
-                style={styles.hopCard}
-              >
+              <View key={hop.chan_id ?? i} style={styles.hopCard}>
                 <SSHStack gap="sm" style={styles.hopCardHeader}>
                   <SSVStack gap="none" style={{ flex: 1 }}>
                     <SSHStack gap="xs" style={{ alignItems: 'center' }}>
@@ -290,18 +328,25 @@ function PaymentDetail({
                         <View
                           style={[
                             styles.hopCardDot,
-                            { backgroundColor: nodeColor, borderColor: nodeColor }
+                            {
+                              backgroundColor: nodeColor,
+                              borderColor: nodeColor
+                            }
                           ]}
                         />
                       )}
                       <SSText size="xs" weight="medium" numberOfLines={1}>
-                        {alias && !privacyMode ? alias : shortPubkey(hop.pub_key)}
+                        {alias && !privacyMode
+                          ? alias
+                          : shortPubkey(hop.pub_key)}
                       </SSText>
                     </SSHStack>
                   </SSVStack>
                   <View style={styles.hopIndexBadge}>
                     <SSText size="xxs" style={styles.hopIndexBadgeText}>
-                      {t('lightning.node.txDetail.hop', { index: String(i + 1) })}
+                      {t('lightning.node.txDetail.hop', {
+                        index: String(i + 1)
+                      })}
                     </SSText>
                   </View>
                 </SSHStack>
@@ -312,12 +357,12 @@ function PaymentDetail({
                     [
                       t('lightning.node.txDetail.pubKey'),
                       privacyMode ? PRIVACY_MASK : shortPubkey(hop.pub_key),
-                      { variant: 'mono', copyToClipboard: true, width: '100%' }
+                      { copyToClipboard: true, variant: 'mono', width: '100%' }
                     ],
                     [
                       t('lightning.node.txDetail.chanId'),
                       hop.chan_id,
-                      { variant: 'mono', copyToClipboard: true }
+                      { copyToClipboard: true, variant: 'mono' }
                     ],
                     [
                       t('lightning.node.txDetail.chanCapacity'),
@@ -339,7 +384,10 @@ function PaymentDetail({
                       t('lightning.node.txDetail.feeMsat'),
                       privacyMode
                         ? PRIVACY_MASK
-                        : hopFeeMsatWithPct(hop.fee_msat, hop.amt_to_forward_msat)
+                        : hopFeeMsatWithPct(
+                            hop.fee_msat,
+                            hop.amt_to_forward_msat
+                          )
                     ]
                   ]}
                 />
@@ -439,15 +487,27 @@ function OnchainDetail({
 }) {
   const destAddresses = onchain.dest_addresses ?? []
   const hashItems: [string, string][] = [
-    [t('lightning.node.txDetail.txHash'), privacyMode ? PRIVACY_MASK : onchain.tx_hash]
+    [
+      t('lightning.node.txDetail.txHash'),
+      privacyMode ? PRIVACY_MASK : onchain.tx_hash
+    ]
   ]
   if (onchain.block_hash) {
-    hashItems.push([t('lightning.node.txDetail.blockHash'), privacyMode ? PRIVACY_MASK : onchain.block_hash])
+    hashItems.push([
+      t('lightning.node.txDetail.blockHash'),
+      privacyMode ? PRIVACY_MASK : onchain.block_hash
+    ])
   }
   const metaItems: [string, string][] = [
-    [t('lightning.node.txDetail.confirmations'), String(onchain.num_confirmations)],
+    [
+      t('lightning.node.txDetail.confirmations'),
+      String(onchain.num_confirmations)
+    ],
     [t('lightning.node.txDetail.blockHeight'), String(onchain.block_height)],
-    [t('lightning.node.txDetail.totalFees'), privacyMode ? PRIVACY_MASK : onchain.total_fees]
+    [
+      t('lightning.node.txDetail.totalFees'),
+      privacyMode ? PRIVACY_MASK : onchain.total_fees
+    ]
   ]
   if (onchain.label) {
     metaItems.push([t('lightning.node.txDetail.txHash'), onchain.label])
@@ -455,9 +515,7 @@ function OnchainDetail({
 
   return (
     <SSVStack gap="md">
-      <SectionHeader
-        label={t('lightning.node.txDetail.section.transaction')}
-      />
+      <SectionHeader label={t('lightning.node.txDetail.section.transaction')} />
       <SSDetailsList
         columns={1}
         gap={16}
@@ -465,11 +523,7 @@ function OnchainDetail({
         copyToClipboard
         items={hashItems}
       />
-      <SSDetailsList
-        columns={2}
-        gap={16}
-        items={metaItems}
-      />
+      <SSDetailsList columns={2} gap={16} items={metaItems} />
       {destAddresses.length > 0 && (
         <SSVStack gap="xs">
           <SSText size="xs" color="muted" uppercase>
@@ -524,15 +578,18 @@ export default function LndTransactionDetailPage() {
   const { data: dashboardData } = useLndNodeDashboard(true)
 
   const tx = dashboardData?.transactions.find((t) => t.id === txId)
-  const rawInvoice = txType === 'lightning_receive' && txId
-    ? (dashboardData?.rawInvoices[txId] ?? null)
-    : null
-  const rawPayment = txType === 'lightning_send' && txId
-    ? (dashboardData?.rawPayments[txId] ?? null)
-    : null
-  const rawOnchain = txType === 'onchain' && txId
-    ? (dashboardData?.rawOnchainTxs[txId] ?? null)
-    : null
+  const rawInvoice =
+    txType === 'lightning_receive' && txId
+      ? (dashboardData?.rawInvoices[txId] ?? null)
+      : null
+  const rawPayment =
+    txType === 'lightning_send' && txId
+      ? (dashboardData?.rawPayments[txId] ?? null)
+      : null
+  const rawOnchain =
+    txType === 'onchain' && txId
+      ? (dashboardData?.rawOnchainTxs[txId] ?? null)
+      : null
 
   const typeLabel =
     txType === 'lightning_send'
@@ -560,7 +617,13 @@ export default function LndTransactionDetailPage() {
   })
 
   const hopPubkeys = rawPayment
-    ? [...new Set(paymentHops(rawPayment).map((h) => h.pub_key).filter(Boolean))]
+    ? [
+        ...new Set(
+          paymentHops(rawPayment)
+            .map((h) => h.pub_key)
+            .filter(Boolean)
+        )
+      ]
     : []
 
   const { data: nodeInfoMap = {} } = useQuery({
@@ -579,7 +642,10 @@ export default function LndTransactionDetailPage() {
           }
         })
       )
-      return Object.fromEntries(entries) as Record<string, LNDGraphNodeInfo | null>
+      return Object.fromEntries(entries) as Record<
+        string,
+        LNDGraphNodeInfo | null
+      >
     },
     queryKey: ['lnd', 'nodeInfo', ...hopPubkeys],
     staleTime: 5 * 60 * 1000
@@ -599,9 +665,15 @@ export default function LndTransactionDetailPage() {
           headerLeft: () => (
             <SSHStack
               gap="none"
-              style={{ alignItems: 'center', marginLeft: -HEADER_CHROME_EDGE_NUDGE }}
+              style={{
+                alignItems: 'center',
+                marginLeft: -HEADER_CHROME_EDGE_NUDGE
+              }}
             >
-              <SSIconButton style={HEADER_CHROME_HIT_BOX} onPress={() => router.back()}>
+              <SSIconButton
+                style={HEADER_CHROME_HIT_BOX}
+                onPress={() => router.back()}
+              >
                 <SSIconBackArrow
                   height={HEADER_CHROME_ICON_SIZE}
                   stroke="#828282"
@@ -649,7 +721,11 @@ export default function LndTransactionDetailPage() {
                       <SSText
                         size="4xl"
                         weight="ultralight"
-                        style={{ color: heroAmountColor(tx), letterSpacing: -1 , marginLeft: tx.amount < 0 ? -5 : 0 }}
+                        style={{
+                          color: heroAmountColor(tx),
+                          letterSpacing: -1,
+                          marginLeft: tx.amount < 0 ? -5 : 0
+                        }}
                       >
                         {privacyMode
                           ? PRIVACY_MASK
@@ -662,12 +738,18 @@ export default function LndTransactionDetailPage() {
                     {!privacyMode && (currentFiat || historicalFiat) && (
                       <SSHStack gap="xs">
                         {currentFiat && (
-                          <SSText color="muted" size="sm">{currentFiat}</SSText>
+                          <SSText color="muted" size="sm">
+                            {currentFiat}
+                          </SSText>
                         )}
                         {historicalFiat && (
-                          <SSText style={{ color: Colors.gray[500] }} size="sm">({historicalFiat})</SSText>
+                          <SSText style={{ color: Colors.gray[500] }} size="sm">
+                            ({historicalFiat})
+                          </SSText>
                         )}
-                        <SSText style={{ color: Colors.gray[700] }} size="sm">{fiatCurrency}</SSText>
+                        <SSText style={{ color: Colors.gray[700] }} size="sm">
+                          {fiatCurrency}
+                        </SSText>
                       </SSHStack>
                     )}
                   </SSVStack>
@@ -697,17 +779,11 @@ export default function LndTransactionDetailPage() {
               )}
 
               {rawInvoice && (
-                <InvoiceDetail
-                  invoice={rawInvoice}
-                  privacyMode={privacyMode}
-                />
+                <InvoiceDetail invoice={rawInvoice} privacyMode={privacyMode} />
               )}
 
               {rawOnchain && (
-                <OnchainDetail
-                  onchain={rawOnchain}
-                  privacyMode={privacyMode}
-                />
+                <OnchainDetail onchain={rawOnchain} privacyMode={privacyMode} />
               )}
 
               {tx && !rawPayment && !rawInvoice && !rawOnchain && (
@@ -722,7 +798,11 @@ export default function LndTransactionDetailPage() {
                       [
                         t('lightning.node.txDetail.txHash'),
                         privacyMode ? PRIVACY_MASK : tx.hash,
-                        { variant: 'mono', copyToClipboard: true, width: '100%' }
+                        {
+                          copyToClipboard: true,
+                          variant: 'mono',
+                          width: '100%'
+                        }
                       ],
                       [
                         t('lightning.node.txDetail.created'),
@@ -747,6 +827,15 @@ export default function LndTransactionDetailPage() {
 }
 
 const styles = StyleSheet.create({
+  hero: {
+    paddingTop: 8
+  },
+  hopArrow: {
+    color: Colors.gray[600],
+    fontSize: 8,
+    marginTop: 2,
+    textAlign: 'center'
+  },
   hopCard: {
     gap: 10,
     paddingVertical: 10
@@ -760,25 +849,6 @@ const styles = StyleSheet.create({
   },
   hopCardHeader: {
     alignItems: 'flex-start'
-  },
-  hopIndexBadge: {
-    backgroundColor: Colors.gray[850],
-    borderColor: Colors.gray[700],
-    borderRadius: 2,
-    borderWidth: 1,
-    flexShrink: 0,
-    paddingHorizontal: 5,
-    paddingVertical: 2
-  },
-  hopIndexBadgeText: {
-    color: Colors.gray[400],
-    fontSize: 10
-  },
-  hopArrow: {
-    color: Colors.gray[600],
-    fontSize: 8,
-    marginTop: 2,
-    textAlign: 'center'
   },
   hopDiagram: {
     paddingLeft: 4
@@ -819,6 +889,19 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingVertical: 4
   },
+  hopIndexBadge: {
+    backgroundColor: Colors.gray[850],
+    borderColor: Colors.gray[700],
+    borderRadius: 2,
+    borderWidth: 1,
+    flexShrink: 0,
+    paddingHorizontal: 5,
+    paddingVertical: 2
+  },
+  hopIndexBadgeText: {
+    color: Colors.gray[400],
+    fontSize: 10
+  },
   hopLabel: {
     flex: 1,
     paddingLeft: 10
@@ -856,16 +939,16 @@ const styles = StyleSheet.create({
     paddingVertical: 3
   },
   statusBadgeNegative: {
-    borderColor: Colors.gray[600],
-    backgroundColor: Colors.gray[850]
+    backgroundColor: Colors.gray[850],
+    borderColor: Colors.gray[600]
   },
   statusBadgeNeutral: {
-    borderColor: Colors.gray[700],
-    backgroundColor: Colors.gray[850]
+    backgroundColor: Colors.gray[850],
+    borderColor: Colors.gray[700]
   },
   statusBadgePositive: {
-    borderColor: Colors.gray[600],
-    backgroundColor: Colors.gray[850]
+    backgroundColor: Colors.gray[850],
+    borderColor: Colors.gray[600]
   },
   statusTextNegative: {
     color: Colors.gray[400]
@@ -875,8 +958,5 @@ const styles = StyleSheet.create({
   },
   statusTextPositive: {
     color: Colors.gray[200]
-  },
-  hero: {
-    paddingTop: 8
   }
 })

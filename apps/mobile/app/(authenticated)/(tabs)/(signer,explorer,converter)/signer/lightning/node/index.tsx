@@ -507,7 +507,11 @@ export default function NodeDetailPage() {
           pressed && styles.transactionItemPressed
         ]}
       >
-        <SSHStack gap="xs" justifyBetween style={[styles.transactionHeader, { alignItems: 'flex-start' }]}>
+        <SSHStack
+          gap="xs"
+          justifyBetween
+          style={[styles.transactionHeader, { alignItems: 'flex-start' }]}
+        >
           <SSHStack
             gap="xs"
             style={{
@@ -551,7 +555,10 @@ export default function NodeDetailPage() {
           </SSHStack>
           <SSHStack gap="xs" style={styles.transactionTimestampRow}>
             <SSText color="muted" size="xs" style={styles.transactionTimestamp}>
-              {timestamp.toLocaleString('en-US', txDateOptions(tx.timestamp, nowMs))}
+              {timestamp.toLocaleString(
+                'en-US',
+                txDateOptions(tx.timestamp, nowMs)
+              )}
             </SSText>
             <SSText color="muted" size="xs" style={styles.transactionTimeAgo}>
               {formatLightningTxTimeAgo(tx.timestamp, nowMs)}
@@ -580,7 +587,13 @@ export default function NodeDetailPage() {
                 : t('lightning.node.txNoDescription')}
           </SSText>
           {statusBadge && (
-            <View style={[styles.badge, styles.badgeEndAligned, getTxBadgeStyle(statusBadge)]}>
+            <View
+              style={[
+                styles.badge,
+                styles.badgeEndAligned,
+                getTxBadgeStyle(statusBadge)
+              ]}
+            >
               <SSText size="xxs" style={getTxBadgeTextStyle(statusBadge)}>
                 {getTxBadgeLabel(statusBadge)}
               </SSText>
@@ -1232,6 +1245,51 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16
   },
+  badge: {
+    borderRadius: 3,
+    borderWidth: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 2
+  },
+  badgeCanceled: {
+    backgroundColor: Colors.gray[850],
+    borderColor: Colors.gray[600]
+  },
+  badgeCanceledText: {
+    color: Colors.gray[200]
+  },
+  badgeEndAligned: {
+    flexShrink: 0,
+    marginLeft: 'auto'
+  },
+  badgeExpired: {
+    backgroundColor: '#1a1608',
+    borderColor: '#4a3a18'
+  },
+  badgeExpiredText: {
+    color: '#b08a38'
+  },
+  badgeFailed: {
+    backgroundColor: '#2a1212',
+    borderColor: '#5a2020'
+  },
+  badgeFailedText: {
+    color: '#c46060'
+  },
+  badgeInFlight: {
+    backgroundColor: '#1e1a0a',
+    borderColor: '#5a4a10'
+  },
+  badgeInFlightText: {
+    color: '#c8a840'
+  },
+  badgePending: {
+    backgroundColor: Colors.gray[850],
+    borderColor: Colors.gray[600]
+  },
+  badgePendingText: {
+    color: Colors.gray[300]
+  },
   button: {
     minHeight: 40
   },
@@ -1459,50 +1517,11 @@ const styles = StyleSheet.create({
   transactionHeader: {
     marginBottom: 8
   },
-  badge: {
-    borderRadius: 3,
-    borderWidth: 1,
-    paddingHorizontal: 5,
-    paddingVertical: 2
-  },
-  badgeEndAligned: {
-    flexShrink: 0,
-    marginLeft: 'auto'
-  },
-  badgeCanceled: {
-    backgroundColor: Colors.gray[850],
-    borderColor: Colors.gray[600]
-  },
-  badgeCanceledText: {
-    color: Colors.gray[200]
-  },
-  badgeExpired: {
-    backgroundColor: '#1a1608',
-    borderColor: '#4a3a18'
-  },
-  badgeExpiredText: {
-    color: '#b08a38'
-  },
-  badgeFailed: {
-    backgroundColor: '#2a1212',
-    borderColor: '#5a2020'
-  },
-  badgeFailedText: {
-    color: '#c46060'
-  },
-  badgeInFlight: {
-    backgroundColor: '#1e1a0a',
-    borderColor: '#5a4a10'
-  },
-  badgeInFlightText: {
-    color: '#c8a840'
-  },
-  badgePending: {
-    backgroundColor: Colors.gray[850],
-    borderColor: Colors.gray[600]
-  },
-  badgePendingText: {
-    color: Colors.gray[300]
+  transactionItem: {
+    borderTopColor: Colors.gray[800],
+    borderTopWidth: 1,
+    paddingHorizontal: 0,
+    paddingVertical: 12
   },
   transactionItemCanceled: {
     borderTopColor: Colors.gray[800],
@@ -1522,12 +1541,6 @@ const styles = StyleSheet.create({
   },
   transactionItemPressed: {
     opacity: 0.6
-  },
-  transactionItem: {
-    borderTopColor: Colors.gray[800],
-    borderTopWidth: 1,
-    paddingHorizontal: 0,
-    paddingVertical: 12
   },
   transactionSatsSuffix: {
     opacity: 0.68

@@ -181,9 +181,8 @@ export async function fetchLndNodeDashboard(
   const rawPayments: Record<string, LndPayment> = Object.fromEntries(
     rawPaymentList.map((p) => [p.payment_hash, p])
   )
-  const rawOnchainTxs: Record<string, LndOnchainTransaction> = Object.fromEntries(
-    rawOnchainList.map((t) => [t.tx_hash, t])
-  )
+  const rawOnchainTxs: Record<string, LndOnchainTransaction> =
+    Object.fromEntries(rawOnchainList.map((t) => [t.tx_hash, t]))
 
   return { balance, rawInvoices, rawOnchainTxs, rawPayments, transactions }
 }

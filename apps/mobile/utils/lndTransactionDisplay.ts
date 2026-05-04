@@ -41,7 +41,10 @@ export function formatLightningTxTimeAgo(
 
 const MS_30_DAYS = 30 * MS_DAY
 
-export function txDateOptions(txTimestampSeconds: number, nowMs: number): Intl.DateTimeFormatOptions {
+export function txDateOptions(
+  txTimestampSeconds: number,
+  nowMs: number
+): Intl.DateTimeFormatOptions {
   const age = nowMs - txTimestampSeconds * 1000
   return {
     day: 'numeric',
@@ -54,14 +57,21 @@ export function txDateOptions(txTimestampSeconds: number, nowMs: number): Intl.D
   }
 }
 
-export type TxStatusBadge = 'pending' | 'expired' | 'canceled' | 'failed' | 'in_flight'
+export type TxStatusBadge =
+  | 'pending'
+  | 'expired'
+  | 'canceled'
+  | 'failed'
+  | 'in_flight'
 
 export function getTxStatusBadge(
   tx: LndCombinedTransaction,
   nowMs: number
 ): TxStatusBadge | null {
   if (tx.type === 'lightning_receive') {
-    if (tx.status === 'canceled') return 'canceled'
+    if (tx.status === 'canceled') {
+      return 'canceled'
+    }
     if (tx.status === 'open') {
       const isExpired =
         tx.expiry !== undefined && tx.timestamp + tx.expiry < nowMs / 1000
@@ -70,8 +80,12 @@ export function getTxStatusBadge(
   }
   if (tx.type === 'lightning_send') {
     const s = tx.status.toLowerCase()
-    if (s === 'failed') return 'failed'
-    if (s === 'in_flight') return 'in_flight'
+    if (s === 'failed') {
+      return 'failed'
+    }
+    if (s === 'in_flight') {
+      return 'in_flight'
+    }
   }
   if (tx.type === 'onchain' && tx.status === 'pending') {
     return 'pending'
