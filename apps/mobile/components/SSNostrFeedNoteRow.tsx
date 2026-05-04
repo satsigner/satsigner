@@ -196,6 +196,8 @@ type SSNostrFeedNoteRowProps = {
   expandContent?: boolean
   contentNumberOfLines?: number
   authorPreview?: ReactNode
+  /** Optional badge rendered in the note header (e.g. decrypted indicator). */
+  badge?: ReactNode
 }
 
 function SSNostrFeedNoteRow({
@@ -206,7 +208,8 @@ function SSNostrFeedNoteRow({
   onPress,
   expandContent = false,
   contentNumberOfLines = 4,
-  authorPreview
+  authorPreview,
+  badge
 }: SSNostrFeedNoteRowProps) {
   const imageUrls = privacyMode
     ? []
@@ -249,6 +252,7 @@ function SSNostrFeedNoteRow({
           {showAuthor && !privacyMode && authorPreview ? authorPreview : null}
         </SSVStack>
         <SSHStack gap="xs" style={styles.noteHeaderRight}>
+          {badge ?? null}
           {showReplyTag ? (
             <View style={styles.noteReplyTag}>
               <SSText

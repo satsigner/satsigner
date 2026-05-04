@@ -331,6 +331,50 @@ export class NostrAPI {
   }
 
   /**
+   * Latest kind 10003 (NIP-51 bookmark list) for this npub.
+   * Returns raw tags (public bookmarks) and encrypted content (private bookmarks).
+   */
+  async fetchBookmarks(npub: string): Promise<{
+    tags: string[][]
+    content: string
+  } | null> {
+    const hexPubkey = getPubKeyHexFromNpub(npub)
+    if (!hexPubkey) {
+      return null
+    }
+
+    await this.connectForPublish()
+    if (!this.ndk) {
+      return null
+    }
+
+    const filter = {
+      authors: [hexPubkey],
+      kinds: [10003 as NDKKind],
+      limit: 1
+    }
+    const FETCH_BOOKMARKS_TIMEOUT_MS = 15000
+    const events = await NostrAPI.fetchManyWithTimeout(
+      this.ndk,
+      filter as Record<string, unknown>,
+      FETCH_BOOKMARKS_TIMEOUT_MS
+    )
+
+    if (events.size === 0) {
+      return null
+    }
+
+    const [latest] = Array.from(events).toSorted(
+      (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
+    )
+    if (!latest) {
+      return null
+    }
+
+    return { content: latest.content ?? '', tags: latest.tags }
+  }
+
+  /**
    * Latest kind 3 (NIP-02 contact list) for this npub; returns followed
    * pubkeys in tag order (64-char hex, lowercase), excluding duplicates and self.
    */

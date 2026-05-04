@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
+import SSIconLock from '@/components/icons/SSIconLock'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import {
@@ -30,7 +31,12 @@ import { Colors } from '@/styles'
 import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
+import {
+  decryptPrivateBookmarks,
+  mergeBookmarks,
+  parsePublicBookmarks
+} from '@/utils/nostrBookmarks'
 import { truncateNpub } from '@/utils/nostrIdentity'
 import {
   type ZapReceiptInfo,
@@ -53,6 +59,8 @@ type SSNostrFeedTabsProps = {
 }
 
 const PAGE_SIZE = 10
+const BOOKMARKS_MAX_FETCH = 100
+const BOOKMARK_FILTER_IDS = new Set(['bookmarks', 'private_bookmarks'])
 
 /** Labels align with https://nostr.dev/ai-reference/ (kinds & NIPs). */
 type NoteKindFilterOption = {
@@ -76,6 +84,16 @@ const NOTE_KIND_FILTER_OPTIONS: NoteKindFilterOption[] = [
     id: 'draft_long_form',
     kinds: [30024],
     labelKey: 'nostrIdentity.feed.kindDraftLongFormContent'
+  },
+  {
+    id: 'bookmarks',
+    kinds: [],
+    labelKey: 'nostrIdentity.feed.kindBookmarks'
+  },
+  {
+    id: 'private_bookmarks',
+    kinds: [],
+    labelKey: 'nostrIdentity.feed.kindPrivateBookmarks'
   },
   {
     id: 'reposts',
@@ -212,6 +230,17 @@ function KindFilterLabelText({
   )
 }
 
+function DecryptedBadge() {
+  return (
+    <SSHStack gap="xxs" style={styles.decryptedBadge}>
+      <SSIconLock width={10} height={10} />
+      <SSText size="xxs" color="muted" uppercase>
+        {t('nostrIdentity.feed.decrypted')}
+      </SSText>
+    </SSHStack>
+  )
+}
+
 function SSNostrFeedTabs({
   npub,
   onNotePress,
@@ -256,6 +285,9 @@ function SSNostrFeedTabs({
   const [zapSortAsc, setZapSortAsc] = useState(false)
   const zapsFetchedRef = useRef(false)
 
+  const privateBookmarkIdsRef = useRef(new Set<string>())
+  const feedPrivateBookmarkIdsRef = useRef(new Set<string>())
+
   const hexPubkey = getPubKeyHexFromNpub(npub) ?? ''
   const ownPubkeyLower = hexPubkey.toLowerCase()
   const [ownPubkeys] = useState(() =>
@@ -275,8 +307,66 @@ function SSNostrFeedTabs({
     }
   }, [relaysKey, ownPubkeys]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function loadBookmarkNotes() {
+    if (!apiRef.current) {
+      return
+    }
+    setNotesLoading(true)
+    try {
+      const result = await apiRef.current.fetchBookmarks(npub)
+      if (!result) {
+        setNotes([])
+        return
+      }
+
+      const pubBookmarks = parsePublicBookmarks(result.tags)
+      const nsec = identity?.nsec
+      const privBookmarks = (() => {
+        if (notesKindFilterId === 'bookmarks' || !nsec) {
+          return []
+        }
+        const secretKey = getSecretFromNsec(nsec)
+        if (!secretKey) {
+          return []
+        }
+        return decryptPrivateBookmarks(result.content, secretKey, hexPubkey)
+      })()
+
+      const merged =
+        notesKindFilterId === 'private_bookmarks'
+          ? privBookmarks
+          : mergeBookmarks(pubBookmarks, privBookmarks)
+
+      const trimmed = merged.slice(0, BOOKMARKS_MAX_FETCH)
+      privateBookmarkIdsRef.current = new Set(
+        trimmed.filter((b) => b.source === 'private').map((b) => b.eventId)
+      )
+
+      const fetched = await Promise.all(
+        trimmed.map(async (bm) => {
+          const event = await apiRef.current!.fetchEvent(bm.eventId)
+          if (!event) {
+            return null
+          }
+          return { ...event, id: bm.eventId }
+        })
+      )
+      setNotes(fetched.filter((n): n is NonNullable<typeof n> => n !== null))
+      setNotesHasMore(false)
+    } catch {
+      // fetch failed — UI already shows empty state
+    } finally {
+      setNotesLoading(false)
+    }
+  }
+
   async function loadNotes(loadMore = false) {
     if (notesLoading || !apiRef.current) {
+      return
+    }
+
+    if (BOOKMARK_FILTER_IDS.has(notesKindFilterId)) {
+      await loadBookmarkNotes()
       return
     }
 
@@ -312,8 +402,68 @@ function SSNostrFeedTabs({
     }
   }
 
+  async function loadFeedBookmarkNotes() {
+    if (!apiRef.current) {
+      return
+    }
+    setFeedLoading(true)
+    try {
+      const result = await apiRef.current.fetchBookmarks(npub)
+      if (!result) {
+        setFeedNotes([])
+        return
+      }
+
+      const pubBookmarks = parsePublicBookmarks(result.tags)
+      const nsec = identity?.nsec
+      const privBookmarks = (() => {
+        if (feedKindFilterId === 'bookmarks' || !nsec) {
+          return []
+        }
+        const secretKey = getSecretFromNsec(nsec)
+        if (!secretKey) {
+          return []
+        }
+        return decryptPrivateBookmarks(result.content, secretKey, hexPubkey)
+      })()
+
+      const merged =
+        feedKindFilterId === 'private_bookmarks'
+          ? privBookmarks
+          : mergeBookmarks(pubBookmarks, privBookmarks)
+
+      const trimmed = merged.slice(0, BOOKMARKS_MAX_FETCH)
+      feedPrivateBookmarkIdsRef.current = new Set(
+        trimmed.filter((b) => b.source === 'private').map((b) => b.eventId)
+      )
+
+      const fetched = await Promise.all(
+        trimmed.map(async (bm) => {
+          const event = await apiRef.current!.fetchEvent(bm.eventId)
+          if (!event) {
+            return null
+          }
+          return { ...event, id: bm.eventId }
+        })
+      )
+      setFeedNotes(
+        fetched.filter((n): n is NonNullable<typeof n> => n !== null)
+      )
+      setFeedHasMore(false)
+    } catch {
+      // fetch failed — UI already shows empty state
+    } finally {
+      setFeedLoading(false)
+    }
+  }
+
   async function loadFeed(loadMore = false) {
     if (feedLoading || !apiRef.current) {
+      return
+    }
+
+    if (BOOKMARK_FILTER_IDS.has(feedKindFilterId)) {
+      await loadFeedBookmarkNotes()
       return
     }
 
@@ -419,6 +569,8 @@ function SSNostrFeedTabs({
     setFeedFollowingEmpty(false)
     setFeedAuthorKind0({})
     feedKind0FetchedRef.current.clear()
+    privateBookmarkIdsRef.current.clear()
+    feedPrivateBookmarkIdsRef.current.clear()
   }
 
   useEffect(() => {
@@ -652,6 +804,12 @@ function SSNostrFeedTabs({
                 privacyMode={privacyMode}
                 showAuthor
                 authorPreview={renderFeedAuthorKind0Row(note)}
+                badge={
+                  BOOKMARK_FILTER_IDS.has(notesKindFilterId) &&
+                  privateBookmarkIdsRef.current.has(note.id) ? (
+                    <DecryptedBadge />
+                  ) : undefined
+                }
                 onPress={() =>
                   onNotePress?.({
                     id: note.id,
@@ -708,6 +866,12 @@ function SSNostrFeedTabs({
                 privacyMode={privacyMode}
                 showAuthor
                 authorPreview={renderFeedAuthorKind0Row(note)}
+                badge={
+                  BOOKMARK_FILTER_IDS.has(feedKindFilterId) &&
+                  feedPrivateBookmarkIdsRef.current.has(note.id) ? (
+                    <DecryptedBadge />
+                  ) : undefined
+                }
                 onPress={() =>
                   onNotePress?.({
                     id: note.id,
@@ -1003,6 +1167,10 @@ function SSNostrFeedTabs({
 }
 
 const styles = StyleSheet.create({
+  decryptedBadge: {
+    alignItems: 'center',
+    opacity: 0.7
+  },
   emptyText: {
     paddingVertical: 24
   },
