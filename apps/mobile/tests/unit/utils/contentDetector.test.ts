@@ -1,7 +1,9 @@
 import {
   detectContentByContext,
+  extractCashuTokenFromString,
   getContentTypeDescription,
-  isContentTypeSupportedInContext
+  isContentTypeSupportedInContext,
+  prepareEcashTokenInput
 } from '@/utils/contentDetector'
 
 import {
@@ -280,6 +282,32 @@ describe('contentDetector', () => {
       })
     })
 
+    describe('lND REST API config connection string', () => {
+      it('should detect config= URL ending in .config', async () => {
+        const payload =
+          'config=https://node.example/lnd-config/67396729165820868379/lnd.config'
+        const result = await detectContentByContext(payload, 'lightning')
+        expect(result.type).toBe('lnd_rest_config')
+        expect(result.isValid).toBe(true)
+        expect(result.cleaned).toBe(payload)
+      })
+
+      it('should accept CONFIG= prefix case-insensitively', async () => {
+        const payload =
+          'CONFIG=https://node.example/lnd-config/67396729165820868379/lnd.config'
+        const result = await detectContentByContext(payload, 'lightning')
+        expect(result.type).toBe('lnd_rest_config')
+        expect(result.isValid).toBe(true)
+      })
+
+      it('should detect bare https config file URL', async () => {
+        const payload = 'https://node.example/lnd-config/1/lnd.config'
+        const result = await detectContentByContext(payload, 'lightning')
+        expect(result.type).toBe('lnd_rest_config')
+        expect(result.isValid).toBe(true)
+      })
+    })
+
     describe('incompatible content in Lightning context', () => {
       it('should mark Bitcoin address as incompatible', async () => {
         const result = await detectContentByContext(
@@ -369,6 +397,33 @@ describe('contentDetector', () => {
         expect(result.isValid).toBe(true)
       })
 
+      it('should detect v3 token embedded in a wallet URL path', async () => {
+        const wrapped = `https://wallet.example/e/${cashuTokens.valid.v3}`
+        const result = await detectContentByContext(wrapped, 'ecash')
+        expect(result.type).toBe('ecash_token')
+        expect(result.isValid).toBe(true)
+        expect(result.cleaned).toBe(cashuTokens.valid.v3)
+        expect(result.raw).toBe(wrapped)
+      })
+
+      it('should detect v4 token embedded in a wallet URL path', async () => {
+        const wrapped = `https://some-wallet.app/e/${cashuTokens.valid.v4}`
+        const result = await detectContentByContext(wrapped, 'ecash')
+        expect(result.type).toBe('ecash_token')
+        expect(result.isValid).toBe(true)
+        expect(result.cleaned).toBe(cashuTokens.valid.v4)
+      })
+
+      it('should extract token via extractCashuTokenFromString', () => {
+        const wrapped = `https://wallet.example/e/${cashuTokens.valid.v3}`
+        expect(extractCashuTokenFromString(wrapped)).toBe(cashuTokens.valid.v3)
+      })
+
+      it('prepareEcashTokenInput should match extract for URL-wrapped tokens', () => {
+        const wrapped = `https://x.test/e/${cashuTokens.valid.v4}`
+        expect(prepareEcashTokenInput(wrapped)).toBe(cashuTokens.valid.v4)
+      })
+
       it('should detect lightning invoice with lightning: prefix in ecash context', async () => {
         const result = await detectContentByContext(
           `lightning:${lightningInvoices.mainnet.basic}`,
@@ -395,6 +450,39 @@ describe('contentDetector', () => {
         )
         expect(result.type).toBe('incompatible')
       })
+    })
+  })
+
+  describe('detectContentByContext - developer_recover context', () => {
+    it('should detect encrypted backup JSON', async () => {
+      const payload = JSON.stringify({
+        cipher: 'abc',
+        iv: 'def',
+        salt: 'ghi',
+        v: 1
+      })
+      const result = await detectContentByContext(payload, 'developer_recover')
+      expect(result.type).toBe('encrypted_backup')
+      expect(result.isValid).toBe(true)
+      expect(result.cleaned).toBe(payload)
+    })
+
+    it('should return unknown for invalid JSON in developer_recover', async () => {
+      const result = await detectContentByContext(
+        '{"cipher":"only"}',
+        'developer_recover'
+      )
+      expect(result.type).toBe('unknown')
+      expect(result.isValid).toBe(false)
+    })
+
+    it('should not fall back to detectImportContent for developer_recover', async () => {
+      const result = await detectContentByContext(
+        'ur:crypto-psbt/oeadcsdz',
+        'developer_recover'
+      )
+      expect(result.type).toBe('unknown')
+      expect(result.isValid).toBe(false)
     })
   })
 
@@ -463,6 +551,12 @@ describe('contentDetector', () => {
         expect(isContentTypeSupportedInContext('lnurl', 'lightning')).toBe(true)
       })
 
+      it('should support lnd_rest_config', () => {
+        expect(
+          isContentTypeSupportedInContext('lnd_rest_config', 'lightning')
+        ).toBe(true)
+      })
+
       it('should not support bitcoin_address', () => {
         expect(
           isContentTypeSupportedInContext('bitcoin_address', 'lightning')
@@ -493,6 +587,26 @@ describe('contentDetector', () => {
         ).toBe(false)
       })
     })
+
+    describe('developer_recover context', () => {
+      it('should support encrypted_backup', () => {
+        expect(
+          isContentTypeSupportedInContext(
+            'encrypted_backup',
+            'developer_recover'
+          )
+        ).toBe(true)
+      })
+
+      it('should not support lightning_invoice', () => {
+        expect(
+          isContentTypeSupportedInContext(
+            'lightning_invoice',
+            'developer_recover'
+          )
+        ).toBe(false)
+      })
+    })
   })
 
   describe('getContentTypeDescription', () => {
@@ -518,8 +632,20 @@ describe('contentDetector', () => {
       expect(getContentTypeDescription('ecash_token')).toBe('Ecash Token')
     })
 
+    it('should return correct description for encrypted_backup', () => {
+      expect(getContentTypeDescription('encrypted_backup')).toBe(
+        'Encrypted Backup'
+      )
+    })
+
     it('should return correct description for lnurl', () => {
       expect(getContentTypeDescription('lnurl')).toBe('LNURL Payment Request')
+    })
+
+    it('should return correct description for lnd_rest_config', () => {
+      expect(getContentTypeDescription('lnd_rest_config')).toBe(
+        'LND REST API Config'
+      )
     })
 
     it('should return correct description for unknown', () => {

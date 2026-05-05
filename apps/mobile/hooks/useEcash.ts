@@ -97,6 +97,7 @@ export function useEcash() {
     allCounters,
     checkingTransactionIds,
     addAccount,
+    renameAccount,
     removeAccount,
     setActiveAccountId,
     addMintAction,
@@ -127,6 +128,7 @@ export function useEcash() {
       state.counters,
       state.checkingTransactionIds,
       state.addAccount,
+      state.renameAccount,
       state.removeAccount,
       state.setActiveAccountId,
       state.addMint,
@@ -151,7 +153,11 @@ export function useEcash() {
 
   const activeAccount = accounts.find((a) => a.id === activeAccountId) ?? null
   const mints = activeAccountId ? (allMints[activeAccountId] ?? []) : []
-  const proofs = activeAccountId ? (allProofs[activeAccountId] ?? []) : []
+  const rawProofs = activeAccountId ? (allProofs[activeAccountId] ?? []) : []
+  const proofs = rawProofs.filter(
+    (proof, index, arr) =>
+      arr.findIndex((p) => p.secret === proof.secret) === index
+  )
   const transactions = activeAccountId
     ? (allTransactions[activeAccountId] ?? [])
     : []
@@ -401,8 +407,10 @@ export function useEcash() {
       originalInvoice,
       options
     )
-    const proofIds = proofsToMelt.map((proof) => proof.id)
-    removeProofsAction(activeAccountId, proofIds)
+    const proofSecrets = proofsToMelt.map((proof) => proof.secret)
+    const spentSecrets = result.spentProofs?.map((p) => p.secret) ?? []
+    const allRemovedSecrets = [...proofSecrets, ...spentSecrets]
+    removeProofsAction(activeAccountId, allRemovedSecrets)
     removeMeltQuoteAction(activeAccountId, quote.quote)
 
     if (result.change) {
@@ -414,7 +422,7 @@ export function useEcash() {
       mintUrl,
       getMintBalance(
         mintUrl,
-        proofs.filter((p) => !proofIds.includes(p.id))
+        proofs.filter((p) => !allRemovedSecrets.includes(p.secret))
       )
     )
 
@@ -459,8 +467,8 @@ export function useEcash() {
         memo,
         options
       )
-      const proofIds = result.send.map((proof) => proof.id)
-      removeProofsAction(activeAccountId, proofIds)
+      const proofSecrets = result.send.map((proof) => proof.secret)
+      removeProofsAction(activeAccountId, proofSecrets)
       addProofsAction(activeAccountId, result.keep)
       updateMintBalance(
         activeAccountId,
@@ -492,7 +500,7 @@ export function useEcash() {
       ) {
         removeProofsAction(
           activeAccountId,
-          mintProofsList.map((proof) => proof.id)
+          mintProofsList.map((proof) => proof.secret)
         )
         updateMintBalance(activeAccountId, mintUrl, 0)
       }
@@ -802,6 +810,7 @@ export function useEcash() {
     activeAccount,
     activeAccountId,
     addAccount,
+    allMints,
     checkMintQuote: checkMintQuoteHandler,
     checkPendingTransactionStatus,
     checkTokenStatus,
@@ -821,6 +830,7 @@ export function useEcash() {
     proofs,
     receiveEcash: receiveEcashHandler,
     removeAccount,
+    renameAccount,
     restoreFromBackup: restoreFromBackupHandler,
     restoreFromSeed: restoreFromSeedHandler,
     resumePollingForTransaction,

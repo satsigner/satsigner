@@ -1,11 +1,13 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
+import { Slider } from '@miblanchard/react-native-slider'
 import {
+  type AvailableLenses,
   type BarcodeScanningResult,
   CameraView,
   useCameraPermissions
 } from 'expo-camera'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { View } from 'react-native'
+import { TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -18,7 +20,8 @@ import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
   type ContentContext,
   detectContentByContext,
-  type DetectedContent
+  type DetectedContent,
+  prepareEcashTokenInput
 } from '@/utils/contentDetector'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
@@ -57,6 +60,26 @@ type QRInfo =
   | { type: 'raw' | 'bbqr'; content: string; current: number; total: number }
   | { type: 'ur'; content: string }
   | { type: 'single'; content: string }
+
+const MAX_ZOOM = 1
+
+function getLensLabel(lens: string): string {
+  if (lens.includes('UltraWide') || lens.includes('DualWide')) {
+    return '0.5×'
+  }
+  if (
+    lens.includes('WideAngle') ||
+    lens.includes('Dual') ||
+    lens.includes('Triple')
+  ) {
+    return '1×'
+  }
+  if (lens.includes('Telephoto')) {
+    return 'Tele'
+  }
+  const parts = lens.replace(/builtIn/, '').split(/(?=[A-Z])/)
+  return parts.join(' ')
+}
 
 const INITIAL_PROGRESS: ProgressUI = {
   received: 0,
@@ -151,6 +174,11 @@ function SSCameraModal({
 }: SSCameraModalProps) {
   const [permission, requestPermission] = useCameraPermissions()
   const [progress, setProgress] = useState<ProgressUI>(INITIAL_PROGRESS)
+  const [zoom, setZoom] = useState(0)
+  const [availableLenses, setAvailableLenses] = useState<string[]>([])
+  const [selectedLens, setSelectedLens] = useState<string | undefined>(
+    undefined
+  )
 
   // Refs hold the hot-path scanner state so the async barcode handler can
   // read current values without being re-created on every setState. This is
@@ -192,6 +220,7 @@ function SSCameraModal({
     warnedPartialCashuRef.current = false
     finishedRef.current = false
     setProgress(INITIAL_PROGRESS)
+    setZoom(0)
   }, [])
 
   const finalizeWithContent = useCallback(async (assembled: string) => {
@@ -276,7 +305,7 @@ function SSCameraModal({
   }, [])
 
   const isPartialCashuChunk = useCallback((data: string) => {
-    const trimmed = data.trim()
+    const trimmed = prepareEcashTokenInput(data)
     if (!/^cashu[AB]/i.test(trimmed)) {
       return false
     }
@@ -423,6 +452,11 @@ function SSCameraModal({
     [finalizeWithContent, resetScanState]
   )
 
+  function handleLensSelect(lens: string) {
+    setSelectedLens(lens)
+    setZoom(0)
+  }
+
   const handleQRCodeScanned = useCallback(
     async (data: string) => {
       if (!data) {
@@ -529,9 +563,93 @@ function SSCameraModal({
 
         <CameraView
           onBarcodeScanned={onBarcodeScanned}
+          onAvailableLensesChanged={(event: AvailableLenses) => {
+            if (event.lenses.length > 1) {
+              setAvailableLenses(event.lenses)
+              setSelectedLens((prev) => prev ?? event.lenses[0])
+            }
+          }}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          zoom={zoom}
+          selectedLens={selectedLens}
           style={{ height: 400, width: 400 }}
         />
+        <View
+          style={{
+            alignItems: 'center',
+            gap: 4,
+            marginTop: 8
+          }}
+        >
+          {availableLenses.length > 1 && (
+            <View
+              style={{
+                backgroundColor: 'rgba(0,0,0,0.45)',
+                borderRadius: 20,
+                flexDirection: 'row',
+                gap: 2,
+                padding: 4
+              }}
+            >
+              {availableLenses.map((lens) => {
+                const active = lens === selectedLens
+                return (
+                  <TouchableOpacity
+                    key={lens}
+                    onPress={() => handleLensSelect(lens)}
+                    accessibilityLabel={getLensLabel(lens)}
+                    style={{
+                      backgroundColor: active ? Colors.white : 'transparent',
+                      borderRadius: 16,
+                      minWidth: 44,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4
+                    }}
+                  >
+                    <SSText
+                      color={active ? 'black' : 'white'}
+                      size="sm"
+                      style={{ textAlign: 'center' }}
+                    >
+                      {getLensLabel(lens)}
+                    </SSText>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+          )}
+          <SSText
+            color="white"
+            size="xl"
+            weight="light"
+            style={{ opacity: 0.85, textAlign: 'center' }}
+          >
+            {(1 + zoom).toFixed(1)}×
+          </SSText>
+          <View
+            style={{
+              alignItems: 'center',
+              backgroundColor: 'rgba(0,0,0,0.45)',
+              borderRadius: 24,
+              paddingHorizontal: 14,
+              width: 300
+            }}
+          >
+            <Slider
+              minimumValue={0}
+              maximumValue={MAX_ZOOM}
+              value={zoom}
+              step={0.05}
+              containerStyle={{ width: '100%' }}
+              minimumTrackTintColor={Colors.white}
+              maximumTrackTintColor="rgba(255,255,255,0.3)"
+              thumbTintColor={Colors.white}
+              onValueChange={(v) => setZoom(v[0])}
+              trackStyle={{ borderRadius: 4, height: 2 }}
+              thumbStyle={{ borderRadius: 10, height: 20, width: 20 }}
+            />
+          </View>
+        </View>
         {progressType && (
           <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
             {progressType === 'ur' ? (

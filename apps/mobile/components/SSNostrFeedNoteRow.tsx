@@ -3,6 +3,8 @@ import { nip19 } from 'nostr-tools'
 import { type ReactNode } from 'react'
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
+import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
+import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSText from '@/components/SSText'
@@ -17,6 +19,12 @@ import {
   nostrContactProfileHref
 } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
+import {
+  getQuoteTagEventIds,
+  hasEmbeddedEventRef,
+  parseRepostOriginalEvent,
+  stripNostrEventRefs
+} from '@/utils/nostrNoteQuotes'
 import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 
@@ -68,6 +76,7 @@ type SSNostrFeedAuthorRowProps = {
   npubBech: string
   displayName: string
   nip05: string
+  nip05Valid?: boolean | null
   pictureUri?: string
 }
 
@@ -77,6 +86,7 @@ function SSNostrFeedAuthorRow({
   npubBech,
   displayName,
   nip05,
+  nip05Valid,
   pictureUri
 }: SSNostrFeedAuthorRowProps) {
   const router = useRouter()
@@ -125,6 +135,7 @@ function SSNostrFeedAuthorRow({
           weight="medium"
           numberOfLines={1}
           ellipsizeMode="tail"
+          style={styles.authorDisplayName}
         >
           {displayName || '—'}
         </SSText>
@@ -134,12 +145,29 @@ function SSNostrFeedAuthorRow({
           type="mono"
           numberOfLines={1}
           ellipsizeMode="middle"
+          style={styles.authorNpub}
         >
           {truncateNpub(npubBech, 14)}
         </SSText>
-        <SSText size="xxs" color="muted" numberOfLines={1} ellipsizeMode="tail">
-          {nip05 || '—'}
-        </SSText>
+        {nip05 ? (
+          <SSHStack gap="xs" style={styles.nip05Row}>
+            <SSText
+              size="xxs"
+              color="muted"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={styles.authorNip05}
+            >
+              {nip05}
+            </SSText>
+            {nip05Valid === true && (
+              <SSIconCheckCircleThin width={11} height={11} />
+            )}
+            {nip05Valid === false && (
+              <SSIconCircleXThin width={11} height={11} />
+            )}
+          </SSHStack>
+        ) : null}
       </SSVStack>
     </SSHStack>
   )
@@ -164,6 +192,47 @@ function SSNostrFeedAuthorRow({
   )
 }
 
+function NoteQuoteCard({ note }: { note: NostrFeedNoteLike }) {
+  const authorNpub = nip19.npubEncode(note.pubkey)
+  const imageUrls = extractImageUrlsFromNote(note.content, note.tags).slice(
+    0,
+    2
+  )
+  return (
+    <View style={styles.quoteCard}>
+      <SSHStack gap="xs" style={styles.quoteCardMeta}>
+        <SSText
+          size="xxs"
+          color="muted"
+          type="mono"
+          numberOfLines={1}
+          ellipsizeMode="middle"
+          style={styles.quoteCardAuthor}
+        >
+          {truncateNpub(authorNpub, 12)}
+        </SSText>
+        <SSText size="xxs" color="muted">
+          ·
+        </SSText>
+        <SSText size="xxs" color="muted" style={styles.quoteCardDate}>
+          {formatNostrCardDate(note.created_at)}
+        </SSText>
+      </SSHStack>
+      <SSText
+        size="sm"
+        style={styles.quoteCardContent}
+        numberOfLines={3}
+        ellipsizeMode="tail"
+      >
+        {note.content}
+      </SSText>
+      {imageUrls.length > 0 ? (
+        <SSNoteInlineImages uris={imageUrls} style={styles.quoteCardImages} />
+      ) : null}
+    </View>
+  )
+}
+
 type SSNostrFeedNoteRowProps = {
   note: NostrFeedNoteLike
   privacyMode: boolean
@@ -174,6 +243,10 @@ type SSNostrFeedNoteRowProps = {
   expandContent?: boolean
   contentNumberOfLines?: number
   authorPreview?: ReactNode
+  /** Optional badge rendered in the note header (e.g. decrypted indicator). */
+  badge?: ReactNode
+  /** Resolved event for kind 6/16 reposts (fallback) or kind 1 inline quotes. */
+  resolvedQuotedNote?: NostrFeedNoteLike
 }
 
 function SSNostrFeedNoteRow({
@@ -184,19 +257,49 @@ function SSNostrFeedNoteRow({
   onPress,
   expandContent = false,
   contentNumberOfLines = 4,
-  authorPreview
+  authorPreview,
+  badge,
+  resolvedQuotedNote
 }: SSNostrFeedNoteRowProps) {
-  const imageUrls = privacyMode
-    ? []
-    : extractImageUrlsFromNote(note.content, note.tags).slice(0, 6)
+  const isRepost = note.kind === 6 || note.kind === 16
+  const repostOriginal = isRepost
+    ? (parseRepostOriginalEvent(note.content) ?? resolvedQuotedNote ?? null)
+    : null
+  const repostUnavailable = isRepost && repostOriginal === null
 
-  const videoEmbeds = privacyMode
-    ? []
-    : extractVideoEmbedsFromNote(note.content, note.tags).slice(0, 4)
+  const isQuotePost =
+    note.kind === 1 &&
+    (getQuoteTagEventIds(note.tags).length > 0 ||
+      hasEmbeddedEventRef(note.content))
+
+  // For reposts: render the original note's content and media
+  // For quote posts and normal notes: render the note itself
+  const contentNote = isRepost && repostOriginal ? repostOriginal : note
+
+  const displayContent = isQuotePost
+    ? stripNostrEventRefs(note.content)
+    : contentNote.content
+
+  const imageUrls =
+    privacyMode || repostUnavailable
+      ? []
+      : extractImageUrlsFromNote(contentNote.content, contentNote.tags).slice(
+          0,
+          6
+        )
+
+  const videoEmbeds =
+    privacyMode || repostUnavailable
+      ? []
+      : extractVideoEmbedsFromNote(contentNote.content, contentNote.tags).slice(
+          0,
+          4
+        )
 
   const eventNip19 = !privacyMode ? encodeNotePrimaryNip19(note) : ''
   const authorNpub = !privacyMode ? nip19.npubEncode(note.pubkey) : ''
-  const showReplyTag = !privacyMode && noteLooksLikeReply(note.tags)
+  const showReplyTag =
+    !privacyMode && !isRepost && noteLooksLikeReply(note.tags)
 
   const inner = (
     <SSVStack gap="sm" style={styles.noteRowInner}>
@@ -227,6 +330,19 @@ function SSNostrFeedNoteRow({
           {showAuthor && !privacyMode && authorPreview ? authorPreview : null}
         </SSVStack>
         <SSHStack gap="xs" style={styles.noteHeaderRight}>
+          {badge ?? null}
+          {isRepost && !privacyMode ? (
+            <View style={styles.noteReplyTag}>
+              <SSText
+                size="xxs"
+                color="white"
+                uppercase
+                style={styles.noteReplyTagText}
+              >
+                {t('nostrIdentity.feed.repostTag')}
+              </SSText>
+            </View>
+          ) : null}
           {showReplyTag ? (
             <View style={styles.noteReplyTag}>
               <SSText
@@ -250,15 +366,21 @@ function SSNostrFeedNoteRow({
         </SSHStack>
       </SSHStack>
       <SSVStack gap="xs" style={styles.noteRowBody}>
-        <SSText
-          size="sm"
-          style={styles.noteContent}
-          {...(expandContent ? {} : { numberOfLines: contentNumberOfLines })}
-        >
-          {privacyMode
-            ? t('nostrIdentity.feed.hiddenInPrivacyMode')
-            : note.content}
-        </SSText>
+        {repostUnavailable ? (
+          <SSText size="sm" color="muted" style={styles.noteContent}>
+            {t('nostrIdentity.feed.repostUnavailable')}
+          </SSText>
+        ) : (
+          <SSText
+            size="sm"
+            style={styles.noteContent}
+            {...(expandContent ? {} : { numberOfLines: contentNumberOfLines })}
+          >
+            {privacyMode
+              ? t('nostrIdentity.feed.hiddenInPrivacyMode')
+              : displayContent}
+          </SSText>
+        )}
         {imageUrls.length > 0 ? (
           <SSNoteInlineImages
             uris={imageUrls}
@@ -274,6 +396,17 @@ function SSNostrFeedNoteRow({
                 : styles.noteInlineImages
             }
           />
+        ) : null}
+        {isQuotePost && !privacyMode ? (
+          resolvedQuotedNote ? (
+            <NoteQuoteCard note={resolvedQuotedNote} />
+          ) : (
+            <View style={styles.quoteCardPlaceholder}>
+              <SSText size="xxs" color="muted">
+                {t('nostrIdentity.feed.quotedNote')}
+              </SSText>
+            </View>
+          )
         ) : null}
       </SSVStack>
     </SSVStack>
@@ -295,6 +428,15 @@ function SSNostrFeedNoteRow({
 }
 
 const styles = StyleSheet.create({
+  authorDisplayName: {
+    lineHeight: 16
+  },
+  authorNip05: {
+    lineHeight: 14
+  },
+  authorNpub: {
+    lineHeight: 14
+  },
   feedAuthorAvatar: {
     borderRadius: 16,
     height: 32,
@@ -314,6 +456,9 @@ const styles = StyleSheet.create({
   feedAuthorTextCol: {
     flex: 1,
     minWidth: 0
+  },
+  nip05Row: {
+    alignItems: 'center'
   },
   noteContent: {
     color: Colors.white,
@@ -368,6 +513,42 @@ const styles = StyleSheet.create({
   },
   noteVideosBelowImages: {
     marginTop: 8
+  },
+  quoteCard: {
+    backgroundColor: Colors.gray[850],
+    borderColor: Colors.gray[700],
+    borderRadius: 6,
+    borderWidth: 1,
+    gap: 4,
+    marginTop: 8,
+    padding: 10
+  },
+  quoteCardAuthor: {
+    flex: 1,
+    minWidth: 0
+  },
+  quoteCardContent: {
+    color: Colors.white,
+    fontSize: 13,
+    lineHeight: 18
+  },
+  quoteCardDate: {
+    flexShrink: 0
+  },
+  quoteCardImages: {
+    marginTop: 6
+  },
+  quoteCardMeta: {
+    alignItems: 'center',
+    width: '100%'
+  },
+  quoteCardPlaceholder: {
+    borderColor: Colors.gray[700],
+    borderRadius: 6,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    marginTop: 8,
+    padding: 10
   },
   skeletonLineLg: {
     alignSelf: 'flex-start',

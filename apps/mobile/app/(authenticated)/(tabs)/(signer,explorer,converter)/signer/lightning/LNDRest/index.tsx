@@ -10,10 +10,14 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
-import type { LNDConfig } from '@/types/models/LND'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import { type DetectedContent } from '@/utils/contentDetector'
+import {
+  fetchLndConfig,
+  getLndConfigFileUrlFromConnectionInput
+} from '@/utils/lndRestRemoteConfig'
 
 export default function LNDRestPage() {
   const router = useRouter()
@@ -22,63 +26,26 @@ export default function LNDRestPage() {
   )
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [connectionString, setConnectionString] = useState('')
-  const [isButtonEnabled, setIsButtonEnabled] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
 
-  const validateConnectionString = (text: string): boolean => {
-    const pattern = /^config=.*\.config$/
-    return pattern.test(text.trim())
-  }
+  const canPressConnect =
+    getLndConfigFileUrlFromConnectionInput(connectionString) !== null
 
-  const fetchLNDConfig = async (configUrl: string): Promise<LNDConfig> => {
-    const response = await fetch(configUrl)
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch LND config: ${response.status} ${response.statusText}`
-      )
-    }
-    const text = await response.text()
-
-    const jsonConfig = JSON.parse(text)
-
-    if (!jsonConfig.configurations?.[0]) {
-      throw new Error('Invalid config format: missing configurations array')
-    }
-
-    const [config] = jsonConfig.configurations
-
-    const lndConfig: LNDConfig = {
-      cert: config.cert,
-      macaroon: config.macaroon,
-      url: config.uri
-    }
-
-    if (!lndConfig.macaroon || !lndConfig.url) {
-      throw new Error(
-        `Invalid config format: missing required fields. Found: ${Object.keys(
-          lndConfig
-        ).join(', ')}`
-      )
-    }
-
-    return lndConfig
-  }
   const handleConnect = async () => {
-    if (!connectionString.trim()) {
+    const configUrl = getLndConfigFileUrlFromConnectionInput(connectionString)
+    if (!configUrl) {
+      toast.error(t('lightning.lndRest.invalidConnectionString'))
       return
     }
 
     setIsConnecting(true)
     try {
-      // Extract config URL from connection string
-      const configUrl = connectionString.replace('config=', '').trim()
+      const config = await fetchLndConfig(configUrl)
 
-      // Fetch and parse LND config
-      const config = await fetchLNDConfig(configUrl)
-
-      // Test connection and fetch node info
-      const response = await fetch(`${config.url}/v1/getinfo`, {
+      const baseUrl = config.url.replace(/\/+$/, '')
+      const response = await fetch(`${baseUrl}/v1/getinfo`, {
         headers: {
+          'Content-Type': 'application/json',
           'Grpc-Metadata-macaroon': config.macaroon
         }
       })
@@ -86,17 +53,34 @@ export default function LNDRestPage() {
       if (response.ok) {
         const nodeInfo = await response.json()
 
-        setConfig(config)
+        setConfig({ ...config, url: baseUrl })
         setNodeInfo(nodeInfo)
         setConnected(true)
 
-        toast.success('Successfully connected to LND node')
-        setTimeout(router.back, 2000)
+        toast.success(t('lightning.lndRest.connectSuccess'))
+        setTimeout(() => {
+          router.back()
+        }, 2000)
       } else {
-        toast.error('Failed to connect to LND node')
+        const errBody = (await response.text())
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 180)
+        throw new Error(
+          errBody
+            ? `getinfo failed (${response.status}): ${errBody}`
+            : `getinfo failed (${response.status})`
+        )
       }
-    } catch {
-      toast.error('Failed to connect to LND node')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      const detail =
+        message.length > 220 ? `${message.slice(0, 217)}…` : message
+      toast.error(t('lightning.lndRest.connectFailed'), {
+        description: t('lightning.lndRest.connectFailedDetail', {
+          detail
+        })
+      })
     } finally {
       setIsConnecting(false)
     }
@@ -104,26 +88,21 @@ export default function LNDRestPage() {
 
   const handleContentScanned = (content: DetectedContent) => {
     const scannedData = content.cleaned
-    if (validateConnectionString(scannedData)) {
+    if (getLndConfigFileUrlFromConnectionInput(scannedData)) {
       setConnectionString(scannedData)
-      setIsButtonEnabled(true)
       setCameraModalVisible(false)
     } else {
-      toast.error(
-        'Invalid QR Code: the scanned QR code is not a valid LND connection string'
-      )
+      toast.error(t('lightning.lndRest.invalidQrCode'))
     }
   }
 
   const handlePasteFromClipboard = async () => {
     const text = (await getAllClipboardContent()) ?? ''
     setConnectionString(text)
-    setIsButtonEnabled(validateConnectionString(text))
   }
 
   const handleTextChange = (text: string) => {
     setConnectionString(text)
-    setIsButtonEnabled(validateConnectionString(text))
   }
 
   return (
@@ -140,7 +119,7 @@ export default function LNDRestPage() {
       <SSMainLayout style={styles.mainLayout}>
         <SSVStack style={styles.content}>
           <SSText color="muted" style={styles.subtitle}>
-            Connect to your LND node via Rest API
+            {t('lightning.lndRest.subtitle')}
           </SSText>
           <SSVStack style={styles.inputContainer}>
             <TextInput
@@ -149,19 +128,19 @@ export default function LNDRestPage() {
               numberOfLines={4}
               value={connectionString}
               onChangeText={handleTextChange}
-              placeholder="Enter LND connection string..."
+              placeholder={t('lightning.lndRest.inputPlaceholder')}
               placeholderTextColor="#666"
             />
             <SSHStack style={styles.buttonRow}>
               <SSButton
-                label="Paste"
+                label={t('lightning.lndRest.pasteButton')}
                 onPress={handlePasteFromClipboard}
                 variant="subtle"
                 uppercase
                 style={styles.buttonRowItem}
               />
               <SSButton
-                label="Scan QR"
+                label={t('lightning.lndRest.scanQrButton')}
                 onPress={() => setCameraModalVisible(true)}
                 variant="subtle"
                 uppercase
@@ -170,11 +149,15 @@ export default function LNDRestPage() {
             </SSHStack>
           </SSVStack>
           <SSButton
-            label={isConnecting ? 'Connecting...' : 'Connect to Node'}
+            label={
+              isConnecting
+                ? t('lightning.lndRest.connectingButton')
+                : t('lightning.lndRest.connectButton')
+            }
             onPress={handleConnect}
             variant="secondary"
             uppercase
-            disabled={!isButtonEnabled || isConnecting}
+            disabled={!canPressConnect || isConnecting}
           />
         </SSVStack>
       </SSMainLayout>
@@ -184,7 +167,7 @@ export default function LNDRestPage() {
         onClose={() => setCameraModalVisible(false)}
         onContentScanned={handleContentScanned}
         context="lightning"
-        title="Scan LND Connection String"
+        title={t('lightning.lndRest.scanModalTitle')}
       />
     </>
   )
@@ -228,7 +211,7 @@ const styles = StyleSheet.create({
   textArea: {
     backgroundColor: '#1a1a1a',
     borderColor: '#333',
-    borderRadius: 8,
+    borderRadius: 3,
     borderWidth: 1,
     color: '#fff',
     height: 100,

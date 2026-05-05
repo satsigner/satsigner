@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Platform, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconTriangle } from '@/components/icons'
@@ -95,12 +95,10 @@ export default function ArkAccountDetailPage() {
   function renderHeaderRight() {
     return (
       <SSIconButton
-        style={
-          Platform.OS === 'android' && [
-            HEADER_CHROME_HIT_BOX,
-            { marginRight: -HEADER_CHROME_EDGE_NUDGE }
-          ]
-        }
+        style={[
+          HEADER_CHROME_HIT_BOX,
+          { marginRight: -HEADER_CHROME_EDGE_NUDGE }
+        ]}
         onPress={() =>
           router.navigate({
             params: { id },

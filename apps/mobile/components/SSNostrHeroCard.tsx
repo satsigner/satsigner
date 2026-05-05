@@ -6,9 +6,12 @@ import {
   type ViewStyle
 } from 'react-native'
 
+import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
+import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
@@ -17,6 +20,7 @@ import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
 } from '@/types/models/NostrIdentity'
+import { generateColorFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
 
 function disconnectReasonLabel(
@@ -58,17 +62,20 @@ function buildDisconnectLabel(info: NostrRelayConnectionInfo): string {
 type SSNostrHeroCardProps = {
   identity: NostrIdentity
   connectionInfo?: NostrRelayConnectionInfo
+  nip05Valid?: boolean | null
   style?: StyleProp<ViewStyle>
 }
 
 function SSNostrHeroCard({
   identity,
   connectionInfo,
+  nip05Valid,
   style
 }: SSNostrHeroCardProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const nip05Value = identity.nip05?.trim()
   const lud16Value = identity.lud16?.trim()
+  const npubColor = generateColorFromNpub(identity.npub)
 
   return (
     <SSVStack itemsCenter gap="sm" style={[styles.container, style]}>
@@ -91,9 +98,14 @@ function SSNostrHeroCard({
           {privacyMode ? NOSTR_PRIVACY_MASK : identity.displayName || 'Unnamed'}
         </SSText>
         <SSClipboardCopy text={identity.npub}>
-          <SSText size="xs" type="mono" color="muted">
-            {truncateNpub(identity.npub, 12)}
-          </SSText>
+          <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+            <View
+              style={[styles.npubColorDot, { backgroundColor: npubColor }]}
+            />
+            <SSText size="xs" type="mono" color="muted">
+              {truncateNpub(identity.npub, 12)}
+            </SSText>
+          </SSHStack>
         </SSClipboardCopy>
         {privacyMode ? (
           <SSText center color="muted" size="sm">
@@ -101,9 +113,17 @@ function SSNostrHeroCard({
           </SSText>
         ) : nip05Value ? (
           <SSClipboardCopy text={nip05Value}>
-            <SSText size="sm" color="muted">
-              {nip05Value}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+              <SSText size="sm" color="muted">
+                {nip05Value}
+              </SSText>
+              {nip05Valid === true && (
+                <SSIconCheckCircleThin width={12} height={12} />
+              )}
+              {nip05Valid === false && (
+                <SSIconCircleXThin width={12} height={12} />
+              )}
+            </SSHStack>
           </SSClipboardCopy>
         ) : (
           <SSText center color="muted" size="sm" style={styles.metaPlaceholder}>
@@ -157,7 +177,9 @@ function SSNostrHeroCard({
 
 const styles = StyleSheet.create({
   avatar: {
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 40,
+    borderWidth: 1.5,
     height: 80,
     width: 80
   },
@@ -179,6 +201,11 @@ const styles = StyleSheet.create({
   },
   metaPlaceholder: {
     opacity: 0.55
+  },
+  npubColorDot: {
+    borderRadius: 3,
+    height: 6,
+    width: 6
   },
   relayTagChecking: {
     opacity: 0.75

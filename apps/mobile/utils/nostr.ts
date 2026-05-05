@@ -1,7 +1,7 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import CBOR from 'cbor-js'
-import { getPublicKey, nip19 } from 'nostr-tools'
+import { getPublicKey, nip05 as nostrNip05, nip19 } from 'nostr-tools'
 import pako from 'pako'
 
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
@@ -156,4 +156,14 @@ export async function deriveNostrKeysFromDescriptor(
   const commonNsec = nip19.nsecEncode(privateKeyBytes)
   const commonNpub = nip19.npubEncode(publicKey)
   return { commonNpub, commonNsec, privateKeyBytes }
+}
+
+export function validateNip05(
+  pubkeyHex: string,
+  nip05Address: string
+): Promise<boolean> {
+  if (!nostrNip05.isNip05(nip05Address)) {
+    return Promise.resolve(false)
+  }
+  return nostrNip05.isValid(pubkeyHex, nip05Address).catch(() => false)
 }

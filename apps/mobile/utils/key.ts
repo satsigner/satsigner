@@ -34,6 +34,31 @@ function extractPublicKeyFromObjectSecret(secret: {
   return ''
 }
 
+export function hasMultisigDuplicateXpubs(
+  keys: (Key | undefined | null)[]
+): boolean {
+  const xpubs = keys
+    .filter((key): key is Key => Boolean(key))
+    .map((key) => {
+      if (typeof key.secret !== 'object') {
+        return ''
+      }
+      if (key.secret.extendedPublicKey) {
+        return (
+          getExtendedKeyFromDescriptor(key.secret.extendedPublicKey) ||
+          key.secret.extendedPublicKey
+        )
+      }
+      if (key.secret.externalDescriptor) {
+        return getExtendedKeyFromDescriptor(key.secret.externalDescriptor)
+      }
+      return ''
+    })
+    .filter(Boolean)
+
+  return new Set(xpubs).size !== xpubs.length
+}
+
 export function extractPublicKeyFromKey(
   keyDetails: Key | null,
   decryptedKey?: Key

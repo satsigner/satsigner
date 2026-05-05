@@ -13,6 +13,10 @@ import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
 import SSNostrHeroCard from '@/components/SSNostrHeroCard'
 import SSPaste from '@/components/SSPaste'
 import SSText from '@/components/SSText'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_HIT_BOX
+} from '@/constants/headerChrome'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -21,6 +25,7 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import { type NostrRelayConnectionInfo } from '@/types/models/NostrIdentity'
+import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
   nostrAccountHref,
   nostrNoteHref,
@@ -53,7 +58,10 @@ export default function NostrAccountLanding() {
   const connectionQuery = useQuery({
     enabled: !!identity && relayConnected && relaysAvailable,
     queryFn: () => testNostrRelaysReachable(effectiveRelays),
-    queryKey: ['nostr', 'relay-connection', npub, effectiveRelays]
+    queryKey: ['nostr', 'relay-connection', npub, effectiveRelays],
+    refetchOnWindowFocus: false,
+    retry: 0,
+    staleTime: 5 * 60_000
   })
 
   const connectionInfo: NostrRelayConnectionInfo = !identity
@@ -68,19 +76,33 @@ export default function NostrAccountLanding() {
     enabled: !!identity && relayConnected && !!npub && relaysAvailable,
     queryFn: async () => {
       const api = new NostrAPI(effectiveRelays)
-      const profile = await api.fetchKind0(npub)
-      if (profile && identity) {
-        updateIdentity(npub, {
-          displayName: profile.displayName || identity.displayName,
-          lud16: profile.lud16 || identity.lud16,
-          nip05: profile.nip05 || identity.nip05,
-          picture: profile.picture || identity.picture
-        })
+      try {
+        const profile = await api.fetchKind0(npub)
+        if (profile && identity) {
+          updateIdentity(npub, {
+            displayName: profile.displayName || identity.displayName,
+            lud16: profile.lud16 || identity.lud16,
+            nip05: profile.nip05 || identity.nip05,
+            picture: profile.picture || identity.picture
+          })
+        }
+        return profile
+      } finally {
+        api.disconnect()
       }
-      return profile
     },
     queryKey: ['nostr', 'profile', npub],
     staleTime: 60_000
+  })
+
+  const pubkeyHex = npub ? getPubKeyHexFromNpub(npub) : null
+  const nip05 = identity?.nip05?.trim()
+
+  const { data: nip05Valid } = useQuery({
+    enabled: !!pubkeyHex && !!nip05,
+    queryFn: () => validateNip05(pubkeyHex!, nip05!),
+    queryKey: ['nostr', 'nip05-valid', npub, nip05],
+    staleTime: 5 * 60_000
   })
 
   function handleContentScanned(detected: {
@@ -142,9 +164,13 @@ export default function NostrAccountLanding() {
       <Stack.Screen
         options={{
           headerRight: () => (
-            <SSHStack gap="md" style={{ marginRight: 8 }}>
+            <SSHStack
+              gap="none"
+              style={{ marginRight: -HEADER_CHROME_EDGE_NUDGE }}
+            >
               <SSIconButton
                 accessibilityLabel={t('nostrIdentity.chat.title')}
+                style={HEADER_CHROME_HIT_BOX}
                 onPress={() => router.navigate(nostrAccountHref(npub, 'chat'))}
               >
                 <SSIconChatBubble
@@ -155,6 +181,7 @@ export default function NostrAccountLanding() {
               </SSIconButton>
               <SSIconButton
                 accessibilityLabel={t('nostrIdentity.settings.title')}
+                style={HEADER_CHROME_HIT_BOX}
                 onPress={() =>
                   router.navigate(nostrAccountHref(npub, 'settings'))
                 }
@@ -171,6 +198,7 @@ export default function NostrAccountLanding() {
           <SSNostrHeroCard
             identity={identity}
             connectionInfo={connectionInfo}
+            nip05Valid={nip05Valid ?? null}
             style={styles.heroProfile}
           />
           <SSButtonActionsGroup

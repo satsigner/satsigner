@@ -104,6 +104,12 @@ export type LNDChannel = {
   remote_constraints: LNDChannelConstraints
 }
 
+export type LNDGraphNodeInfo = {
+  alias: string
+  color: string
+  pub_key: string
+}
+
 export type LNDConnectionStatus = {
   isConnected: boolean
   isConnecting: boolean

@@ -21,7 +21,7 @@ export const HEADER_CHROME_HIT_BOX: ViewStyle = {
 export const HEADER_CHROME_EDGE_NUDGE = 6
 
 /** Negative margin pulls the privacy eye toward the back / hamburger (tighter pair). */
-export const HEADER_CHROME_EYE_TUCK = 18
+export const HEADER_CHROME_EYE_TUCK = 5
 
 /**
  * Pixels trimmed from the default native stack header height.

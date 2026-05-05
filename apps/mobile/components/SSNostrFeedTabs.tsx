@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
+import SSIconLock from '@/components/icons/SSIconLock'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import {
@@ -19,6 +20,7 @@ import {
   type NostrFeedNoteLike
 } from '@/components/SSNostrFeedNoteRow'
 import SSText from '@/components/SSText'
+import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -29,14 +31,26 @@ import { Colors } from '@/styles'
 import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
+import {
+  decryptPrivateBookmarks,
+  mergeBookmarks,
+  parsePublicBookmarks
+} from '@/utils/nostrBookmarks'
 import { truncateNpub } from '@/utils/nostrIdentity'
 import {
+  collectUnresolvedEventIds,
+  getResolvedEventId
+} from '@/utils/nostrNoteQuotes'
+import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
+import {
   type ZapReceiptInfo,
+  type ZapSortField,
   enrichZapReceipts,
   fetchZapsByPubkey,
   fetchZapsSentByPubkey,
-  mergeZapReceiptsById
+  mergeZapReceiptsById,
+  sortZapReceipts
 } from '@/utils/zap'
 
 type SSNostrFeedTabsProps = {
@@ -50,6 +64,8 @@ type SSNostrFeedTabsProps = {
 }
 
 const PAGE_SIZE = 10
+const BOOKMARKS_MAX_FETCH = 100
+const BOOKMARK_FILTER_IDS = new Set(['bookmarks', 'private_bookmarks'])
 
 /** Labels align with https://nostr.dev/ai-reference/ (kinds & NIPs). */
 type NoteKindFilterOption = {
@@ -73,6 +89,16 @@ const NOTE_KIND_FILTER_OPTIONS: NoteKindFilterOption[] = [
     id: 'draft_long_form',
     kinds: [30024],
     labelKey: 'nostrIdentity.feed.kindDraftLongFormContent'
+  },
+  {
+    id: 'bookmarks',
+    kinds: [],
+    labelKey: 'nostrIdentity.feed.kindBookmarks'
+  },
+  {
+    id: 'private_bookmarks',
+    kinds: [],
+    labelKey: 'nostrIdentity.feed.kindPrivateBookmarks'
   },
   {
     id: 'reposts',
@@ -115,6 +141,11 @@ const NOTE_KIND_FILTER_OPTIONS: NoteKindFilterOption[] = [
     labelKey: 'nostrIdentity.feed.kindThread'
   }
 ]
+
+/** Feed tab excludes bookmark filters — those are personal lists, not following-timeline content. */
+const FEED_KIND_FILTER_OPTIONS = NOTE_KIND_FILTER_OPTIONS.filter(
+  (o) => !BOOKMARK_FILTER_IDS.has(o.id)
+)
 
 const DEFAULT_KIND_FILTER_ID = NOTE_KIND_FILTER_OPTIONS[0].id
 
@@ -209,6 +240,17 @@ function KindFilterLabelText({
   )
 }
 
+function DecryptedBadge() {
+  return (
+    <SSHStack gap="xxs" style={styles.decryptedBadge}>
+      <SSIconLock width={10} height={10} />
+      <SSText size="xxs" color="muted" uppercase>
+        {t('nostrIdentity.feed.decrypted')}
+      </SSText>
+    </SSHStack>
+  )
+}
+
 function SSNostrFeedTabs({
   npub,
   onNotePress,
@@ -231,12 +273,14 @@ function SSNostrFeedTabs({
     DEFAULT_KIND_FILTER_ID
   )
   const [notesKindSheetOpen, setNotesKindSheetOpen] = useState(false)
+  const [notesExcludeReplies, setNotesExcludeReplies] = useState(true)
 
   const [feedNotes, setFeedNotes] = useState<NostrFeedNoteLike[]>([])
   const [feedKindFilterId, setFeedKindFilterId] = useState(
     DEFAULT_KIND_FILTER_ID
   )
   const [feedKindSheetOpen, setFeedKindSheetOpen] = useState(false)
+  const [feedExcludeReplies, setFeedExcludeReplies] = useState(true)
   const [feedLoading, setFeedLoading] = useState(false)
   const [feedHasMore, setFeedHasMore] = useState(true)
   const [feedFollowingEmpty, setFeedFollowingEmpty] = useState(false)
@@ -249,7 +293,18 @@ function SSNostrFeedTabs({
   const [zaps, setZaps] = useState<ZapReceiptInfo[]>([])
   const [zapsLoading, setZapsLoading] = useState(false)
   const [zapsHasMore, setZapsHasMore] = useState(true)
+  const [zapSortField, setZapSortField] = useState<ZapSortField>('date')
+  const [zapSortAsc, setZapSortAsc] = useState(false)
   const zapsFetchedRef = useRef(false)
+
+  const privateBookmarkIdsRef = useRef(new Set<string>())
+
+  const [noteResolvedEvents, setNoteResolvedEvents] = useState<
+    Map<string, NostrFeedNoteLike>
+  >(new Map())
+  const [feedResolvedEvents, setFeedResolvedEvents] = useState<
+    Map<string, NostrFeedNoteLike>
+  >(new Map())
 
   const hexPubkey = getPubKeyHexFromNpub(npub) ?? ''
   const ownPubkeyLower = hexPubkey.toLowerCase()
@@ -270,8 +325,104 @@ function SSNostrFeedTabs({
     }
   }, [relaysKey, ownPubkeys]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function batchResolveNotes(
+    fetched: NostrFeedNoteLike[],
+    existing: Map<string, NostrFeedNoteLike>,
+    setter: (
+      updater: (
+        prev: Map<string, NostrFeedNoteLike>
+      ) => Map<string, NostrFeedNoteLike>
+    ) => void
+  ) {
+    if (!apiRef.current || privacyMode) {
+      return
+    }
+    const alreadyResolved = new Set(existing.keys())
+    const unresolvedIds = collectUnresolvedEventIds(fetched, alreadyResolved)
+    if (unresolvedIds.length === 0) {
+      return
+    }
+    const resolved = await apiRef.current.fetchEventBatch(unresolvedIds)
+    if (resolved.size === 0) {
+      return
+    }
+    setter((prev) => {
+      const next = new Map(prev)
+      for (const [k, v] of resolved) {
+        next.set(k, v)
+      }
+      return next
+    })
+  }
+
+  async function loadBookmarkNotes() {
+    if (!apiRef.current) {
+      return
+    }
+    setNotesLoading(true)
+    try {
+      const result = await apiRef.current.fetchBookmarks(npub)
+      if (!result) {
+        setNotes([])
+        return
+      }
+
+      const pubBookmarks = parsePublicBookmarks(result.tags)
+      const nsec = identity?.nsec
+      const privBookmarks = (() => {
+        if (notesKindFilterId === 'bookmarks' || !nsec) {
+          return []
+        }
+        const secretKey = getSecretFromNsec(nsec)
+        if (!secretKey) {
+          return []
+        }
+        return decryptPrivateBookmarks(result.content, secretKey, hexPubkey)
+      })()
+
+      const merged =
+        notesKindFilterId === 'private_bookmarks'
+          ? privBookmarks
+          : mergeBookmarks(pubBookmarks, privBookmarks)
+
+      const trimmed = merged.slice(0, BOOKMARKS_MAX_FETCH)
+      privateBookmarkIdsRef.current = new Set(
+        trimmed.filter((b) => b.source === 'private').map((b) => b.eventId)
+      )
+
+      const fetched = await Promise.all(
+        trimmed.map(async (bm) => {
+          const event = await apiRef.current!.fetchEvent(bm.eventId)
+          if (!event) {
+            return null
+          }
+          return { ...event, id: bm.eventId }
+        })
+      )
+      const bookmarkedNotes = fetched.filter(
+        (n): n is NonNullable<typeof n> => n !== null
+      )
+      setNotes(bookmarkedNotes)
+      setNotesHasMore(false)
+      await batchResolveNotes(
+        bookmarkedNotes,
+        noteResolvedEvents,
+        setNoteResolvedEvents
+      )
+    } catch {
+      // fetch failed — UI already shows empty state
+    } finally {
+      setNotesLoading(false)
+    }
+  }
+
   async function loadNotes(loadMore = false) {
     if (notesLoading || !apiRef.current) {
+      return
+    }
+
+    if (BOOKMARK_FILTER_IDS.has(notesKindFilterId)) {
+      await loadBookmarkNotes()
       return
     }
 
@@ -300,6 +451,11 @@ function SSNostrFeedTabs({
       } else {
         setNotes(fetched)
       }
+      await batchResolveNotes(
+        fetched,
+        noteResolvedEvents,
+        setNoteResolvedEvents
+      )
     } catch {
       // fetch failed — UI already shows empty state
     } finally {
@@ -348,6 +504,11 @@ function SSNostrFeedTabs({
       } else {
         setFeedNotes(fetched)
       }
+      await batchResolveNotes(
+        fetched,
+        feedResolvedEvents,
+        setFeedResolvedEvents
+      )
     } catch {
       // fetch failed — UI already shows empty state
     } finally {
@@ -414,6 +575,9 @@ function SSNostrFeedTabs({
     setFeedFollowingEmpty(false)
     setFeedAuthorKind0({})
     feedKind0FetchedRef.current.clear()
+    privateBookmarkIdsRef.current.clear()
+    setNoteResolvedEvents(new Map())
+    setFeedResolvedEvents(new Map())
   }
 
   useEffect(() => {
@@ -433,6 +597,8 @@ function SSNostrFeedTabs({
     notesFetchedRef.current = false
     setNotes([])
     setNotesHasMore(true)
+    setNoteResolvedEvents(new Map())
+    setNotesExcludeReplies(notesKindFilterId === 'short_text')
   }, [notesKindFilterId])
 
   useEffect(() => {
@@ -441,6 +607,8 @@ function SSNostrFeedTabs({
     setFeedHasMore(true)
     setFeedAuthorKind0({})
     feedKind0FetchedRef.current.clear()
+    setFeedResolvedEvents(new Map())
+    setFeedExcludeReplies(feedKindFilterId === 'short_text')
   }, [feedKindFilterId])
 
   const notesKindOpt = NOTE_KIND_FILTER_OPTIONS.find(
@@ -448,7 +616,7 @@ function SSNostrFeedTabs({
   )
   const notesKindLabel = notesKindOpt ? t(notesKindOpt.labelKey) : ''
 
-  const feedKindOpt = NOTE_KIND_FILTER_OPTIONS.find(
+  const feedKindOpt = FEED_KIND_FILTER_OPTIONS.find(
     (o) => o.id === feedKindFilterId
   )
   const feedKindLabel = feedKindOpt ? t(feedKindOpt.labelKey) : ''
@@ -552,6 +720,16 @@ function SSNostrFeedTabs({
     )
   }
 
+  const visibleNotes =
+    notesExcludeReplies && notesKindFilterId === 'short_text'
+      ? notes.filter((n) => !noteLooksLikeReply(n.tags))
+      : notes
+
+  const visibleFeedNotes =
+    feedExcludeReplies && feedKindFilterId === 'short_text'
+      ? feedNotes.filter((n) => !noteLooksLikeReply(n.tags))
+      : feedNotes
+
   if (!relayConnected) {
     return (
       <SSVStack gap="none">
@@ -626,36 +804,67 @@ function SSNostrFeedTabs({
       <SSVStack gap="sm" style={styles.tabContent}>
         {activeTab === 'notes' && (
           <>
-            <TouchableOpacity
-              style={styles.notesKindTrigger}
-              activeOpacity={0.7}
-              onPress={() => setNotesKindSheetOpen(true)}
-            >
-              <SSHStack gap="sm" style={styles.notesKindTriggerInner}>
-                <View style={styles.notesKindTriggerLabel}>
-                  <KindFilterLabelText label={notesKindLabel} size="xs" />
-                </View>
-                <SSText size="xs" color="muted">
-                  ▾
-                </SSText>
-              </SSHStack>
-            </TouchableOpacity>
-            {notes.map((note) => (
-              <SSNostrFeedNoteRow
-                key={note.id}
-                note={note}
-                privacyMode={privacyMode}
-                showAuthor
-                authorPreview={renderFeedAuthorKind0Row(note)}
-                onPress={() =>
-                  onNotePress?.({
-                    id: note.id,
-                    kind: note.kind,
-                    pubkey: note.pubkey
-                  })
-                }
-              />
-            ))}
+            <SSHStack gap="sm" style={styles.filterRow}>
+              <TouchableOpacity
+                style={[styles.notesKindTrigger, styles.filterRowKind]}
+                activeOpacity={0.7}
+                onPress={() => setNotesKindSheetOpen(true)}
+              >
+                <SSHStack gap="sm" style={styles.notesKindTriggerInner}>
+                  <View style={styles.notesKindTriggerLabel}>
+                    <KindFilterLabelText label={notesKindLabel} size="xs" />
+                  </View>
+                  <SSText size="xs" color="muted">
+                    ▾
+                  </SSText>
+                </SSHStack>
+              </TouchableOpacity>
+              {notesKindFilterId === 'short_text' && (
+                <TouchableOpacity
+                  style={[
+                    styles.replyFilterChip,
+                    !notesExcludeReplies && styles.replyFilterChipActive
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => setNotesExcludeReplies((v) => !v)}
+                >
+                  <SSText
+                    size="xxs"
+                    color={!notesExcludeReplies ? 'white' : 'muted'}
+                  >
+                    {t('nostrIdentity.feed.showReplies')}
+                  </SSText>
+                </TouchableOpacity>
+              )}
+            </SSHStack>
+            {visibleNotes.map((note) => {
+              const resolvedId = getResolvedEventId(note)
+              return (
+                <SSNostrFeedNoteRow
+                  key={note.id}
+                  note={note}
+                  privacyMode={privacyMode}
+                  showAuthor
+                  authorPreview={renderFeedAuthorKind0Row(note)}
+                  badge={
+                    BOOKMARK_FILTER_IDS.has(notesKindFilterId) &&
+                    privateBookmarkIdsRef.current.has(note.id) ? (
+                      <DecryptedBadge />
+                    ) : undefined
+                  }
+                  resolvedQuotedNote={
+                    resolvedId ? noteResolvedEvents.get(resolvedId) : undefined
+                  }
+                  onPress={() =>
+                    onNotePress?.({
+                      id: note.id,
+                      kind: note.kind,
+                      pubkey: note.pubkey
+                    })
+                  }
+                />
+              )
+            })}
             {notesLoading && (
               <ActivityIndicator
                 color={Colors.white}
@@ -664,13 +873,13 @@ function SSNostrFeedTabs({
               />
             )}
 
-            {!notesLoading && notes.length === 0 && (
+            {!notesLoading && visibleNotes.length === 0 && (
               <SSText size="xs" color="muted" center style={styles.emptyText}>
                 {t('nostrIdentity.feed.noNotes')}
               </SSText>
             )}
 
-            {!notesLoading && notesHasMore && notes.length > 0 && (
+            {!notesLoading && notesHasMore && visibleNotes.length > 0 && (
               <SSButton
                 label={t('nostrIdentity.feed.loadMore')}
                 variant="ghost"
@@ -682,36 +891,61 @@ function SSNostrFeedTabs({
 
         {activeTab === 'feed' && (
           <>
-            <TouchableOpacity
-              style={styles.notesKindTrigger}
-              activeOpacity={0.7}
-              onPress={() => setFeedKindSheetOpen(true)}
-            >
-              <SSHStack gap="sm" style={styles.notesKindTriggerInner}>
-                <View style={styles.notesKindTriggerLabel}>
-                  <KindFilterLabelText label={feedKindLabel} size="xs" />
-                </View>
-                <SSText size="xs" color="muted">
-                  ▾
-                </SSText>
-              </SSHStack>
-            </TouchableOpacity>
-            {feedNotes.map((note) => (
-              <SSNostrFeedNoteRow
-                key={note.id}
-                note={note}
-                privacyMode={privacyMode}
-                showAuthor
-                authorPreview={renderFeedAuthorKind0Row(note)}
-                onPress={() =>
-                  onNotePress?.({
-                    id: note.id,
-                    kind: note.kind,
-                    pubkey: note.pubkey
-                  })
-                }
-              />
-            ))}
+            <SSHStack gap="sm" style={styles.filterRow}>
+              <TouchableOpacity
+                style={[styles.notesKindTrigger, styles.filterRowKind]}
+                activeOpacity={0.7}
+                onPress={() => setFeedKindSheetOpen(true)}
+              >
+                <SSHStack gap="sm" style={styles.notesKindTriggerInner}>
+                  <View style={styles.notesKindTriggerLabel}>
+                    <KindFilterLabelText label={feedKindLabel} size="xs" />
+                  </View>
+                  <SSText size="xs" color="muted">
+                    ▾
+                  </SSText>
+                </SSHStack>
+              </TouchableOpacity>
+              {feedKindFilterId === 'short_text' && (
+                <TouchableOpacity
+                  style={[
+                    styles.replyFilterChip,
+                    !feedExcludeReplies && styles.replyFilterChipActive
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => setFeedExcludeReplies((v) => !v)}
+                >
+                  <SSText
+                    size="xxs"
+                    color={!feedExcludeReplies ? 'white' : 'muted'}
+                  >
+                    {t('nostrIdentity.feed.showReplies')}
+                  </SSText>
+                </TouchableOpacity>
+              )}
+            </SSHStack>
+            {visibleFeedNotes.map((note) => {
+              const resolvedId = getResolvedEventId(note)
+              return (
+                <SSNostrFeedNoteRow
+                  key={note.id}
+                  note={note}
+                  privacyMode={privacyMode}
+                  showAuthor
+                  authorPreview={renderFeedAuthorKind0Row(note)}
+                  resolvedQuotedNote={
+                    resolvedId ? feedResolvedEvents.get(resolvedId) : undefined
+                  }
+                  onPress={() =>
+                    onNotePress?.({
+                      id: note.id,
+                      kind: note.kind,
+                      pubkey: note.pubkey
+                    })
+                  }
+                />
+              )
+            })}
 
             {feedLoading && (
               <ActivityIndicator
@@ -727,16 +961,18 @@ function SSNostrFeedTabs({
               </SSText>
             )}
 
-            {!feedLoading && !feedFollowingEmpty && feedNotes.length === 0 && (
-              <SSText size="xs" color="muted" center style={styles.emptyText}>
-                {t('nostrIdentity.feed.noFeed')}
-              </SSText>
-            )}
+            {!feedLoading &&
+              !feedFollowingEmpty &&
+              visibleFeedNotes.length === 0 && (
+                <SSText size="xs" color="muted" center style={styles.emptyText}>
+                  {t('nostrIdentity.feed.noFeed')}
+                </SSText>
+              )}
 
             {!feedLoading &&
               !feedFollowingEmpty &&
               feedHasMore &&
-              feedNotes.length > 0 && (
+              visibleFeedNotes.length > 0 && (
                 <SSButton
                   label={t('nostrIdentity.feed.loadMore')}
                   variant="ghost"
@@ -748,7 +984,53 @@ function SSNostrFeedTabs({
 
         {activeTab === 'zaps' && (
           <>
-            {zaps.map((receipt) => {
+            {zaps.length > 0 && (
+              <SSHStack gap="sm" style={styles.zapSortBar}>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (zapSortField === 'date') {
+                      setZapSortAsc((v) => !v)
+                    } else {
+                      setZapSortField('date')
+                      setZapSortAsc(false)
+                    }
+                  }}
+                  hitSlop={8}
+                >
+                  <SSText
+                    size="xxs"
+                    color={zapSortField === 'date' ? 'white' : 'muted'}
+                  >
+                    {t('nostrIdentity.zapSort.date')}
+                    {zapSortField === 'date' ? (zapSortAsc ? ' ↑' : ' ↓') : ''}
+                  </SSText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (zapSortField === 'amount') {
+                      setZapSortAsc((v) => !v)
+                    } else {
+                      setZapSortField('amount')
+                      setZapSortAsc(false)
+                    }
+                  }}
+                  hitSlop={8}
+                >
+                  <SSText
+                    size="xxs"
+                    color={zapSortField === 'amount' ? 'white' : 'muted'}
+                  >
+                    {t('nostrIdentity.zapSort.amount')}
+                    {zapSortField === 'amount'
+                      ? zapSortAsc
+                        ? ' ↑'
+                        : ' ↓'
+                      : ''}
+                  </SSText>
+                </TouchableOpacity>
+              </SSHStack>
+            )}
+            {sortZapReceipts(zaps, zapSortField, zapSortAsc).map((receipt) => {
               const isOutgoing = receipt.direction === 'outgoing'
               const avatarUri = isOutgoing
                 ? receipt.recipientPicture
@@ -804,19 +1086,10 @@ function SSNostrFeedTabs({
                     <SSText size="xxs" color="muted">
                       {formatNostrCardDate(receipt.createdAt)}
                     </SSText>
-                    <SSText
-                      size="sm"
-                      weight="bold"
-                      style={
-                        !isOutgoing && !privacyMode
-                          ? styles.zapAmountIncoming
-                          : undefined
-                      }
-                    >
-                      {privacyMode
-                        ? `${NOSTR_PRIVACY_MASK} sats`
-                        : `${receipt.amountSats} sats`}
-                    </SSText>
+                    <SSZapAmountDisplay
+                      amountSats={receipt.amountSats}
+                      incoming={!isOutgoing}
+                    />
                   </SSVStack>
                 </SSHStack>
               )
@@ -932,7 +1205,7 @@ function SSNostrFeedTabs({
                 showsVerticalScrollIndicator={false}
               >
                 <SSVStack gap="md">
-                  {NOTE_KIND_FILTER_OPTIONS.map((opt) => (
+                  {FEED_KIND_FILTER_OPTIONS.map((opt) => (
                     <TouchableOpacity
                       key={opt.id}
                       style={styles.kindOptionRow}
@@ -961,8 +1234,20 @@ function SSNostrFeedTabs({
 }
 
 const styles = StyleSheet.create({
+  decryptedBadge: {
+    alignItems: 'center',
+    opacity: 0.7
+  },
   emptyText: {
     paddingVertical: 24
+  },
+  filterRow: {
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  filterRowKind: {
+    flex: 1,
+    marginBottom: 0
   },
   kindOptionRow: {
     backgroundColor: Colors.gray[925],
@@ -1009,6 +1294,17 @@ const styles = StyleSheet.create({
   notesKindTriggerLabel: {
     flex: 1,
     minWidth: 0
+  },
+  replyFilterChip: {
+    borderColor: Colors.gray[800],
+    borderRadius: 3,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 10
+  },
+  replyFilterChipActive: {
+    borderColor: Colors.gray[600],
+    borderWidth: 1
   },
   tabBar: {
     borderBottomColor: Colors.gray[800],
@@ -1068,6 +1364,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingBottom: 16,
     paddingTop: 8
+  },
+  zapSortBar: {
+    alignItems: 'center',
+    justifyContent: 'flex-end'
   }
 })
 

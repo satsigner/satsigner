@@ -118,6 +118,7 @@ function mapInvoices(
           : invoice.value || 0
       ),
       description: invoice.description || invoice.memo || defaultDescription,
+      expiry: invoice.expiry ? Number(invoice.expiry) : undefined,
       hash: invoice.r_hash,
       id: invoice.r_hash,
       originalAmount: invoice.value ? Number(invoice.value) : 0,
@@ -159,10 +160,14 @@ export async function fetchLndNodeDashboard(
 
   const balance = parseProcessedBalance(blockchainBalance, channelBalance)
 
-  const onchainTxs = mapOnchainTransactions(onchainRes.transactions ?? [])
-  const paymentTxs = mapPayments(paymentsRes.payments ?? [])
+  const rawInvoiceList = invoicesRes.invoices ?? []
+  const rawPaymentList = paymentsRes.payments ?? []
+  const rawOnchainList = onchainRes.transactions ?? []
+
+  const onchainTxs = mapOnchainTransactions(rawOnchainList)
+  const paymentTxs = mapPayments(rawPaymentList)
   const invoiceTxs = mapInvoices(
-    invoicesRes.invoices ?? [],
+    rawInvoiceList,
     includeOpenInvoices,
     copy.defaultInvoiceDescription
   )
@@ -170,5 +175,14 @@ export async function fetchLndNodeDashboard(
   const allTxs = [...onchainTxs, ...paymentTxs, ...invoiceTxs]
   const transactions = mergeCombinedTransactions(allTxs)
 
-  return { balance, transactions }
+  const rawInvoices: Record<string, LndInvoice> = Object.fromEntries(
+    rawInvoiceList.map((i) => [i.r_hash, i])
+  )
+  const rawPayments: Record<string, LndPayment> = Object.fromEntries(
+    rawPaymentList.map((p) => [p.payment_hash, p])
+  )
+  const rawOnchainTxs: Record<string, LndOnchainTransaction> =
+    Object.fromEntries(rawOnchainList.map((t) => [t.tx_hash, t]))
+
+  return { balance, rawInvoices, rawOnchainTxs, rawPayments, transactions }
 }

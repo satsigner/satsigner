@@ -2,8 +2,9 @@ import type { PaymentMethod } from '@/components/SSPaymentMethodPicker'
 import type { ArkAccount } from '@/types/models/Ark'
 
 export function buildPaymentMethods(
-  lightningConfig: { url: string } | null,
-  mints: { url: string; name?: string }[],
+  lightningConfig: { url: string; alias?: string } | null,
+  ecashAccounts: { id: string; name: string }[] = [],
+  ecashAllMints: Record<string, { balance: number }[]> = {},
   arkAccounts: ArkAccount[] = []
 ): PaymentMethod[] {
   const methods: PaymentMethod[] = []
@@ -11,15 +12,18 @@ export function buildPaymentMethods(
     methods.push({
       detail: lightningConfig.url,
       id: 'lightning',
-      label: 'Lightning',
+      label: lightningConfig.alias || 'Lightning',
       type: 'lightning'
     })
   }
-  for (const mint of mints) {
+  for (const account of ecashAccounts) {
+    const mints = ecashAllMints[account.id] ?? []
+    const totalBalance = mints.reduce((sum, m) => sum + m.balance, 0)
     methods.push({
-      detail: mint.name || mint.url,
-      id: `ecash-${mint.url}`,
-      label: 'ECash',
+      accountId: account.id,
+      balanceSats: totalBalance,
+      id: `ecash-${account.id}`,
+      label: account.name,
       type: 'ecash'
     })
   }
