@@ -64,10 +64,6 @@ export default function EcashAccountDetailPage() {
 
   const setActiveAccountId = useEcashStore((state) => state.setActiveAccountId)
 
-  if (id && activeAccount?.id !== id) {
-    setActiveAccountId(id)
-  }
-
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
       state.currencyUnit,
@@ -262,6 +258,13 @@ export default function EcashAccountDetailPage() {
   return (
     <SSMainLayout>
       <Stack.Screen
+        listeners={{
+          focus: () => {
+            if (id && activeAccount?.id !== id) {
+              setActiveAccountId(id)
+            }
+          }
+        }}
         options={{
           headerRight: () => (
             <SSIconButton
