@@ -31,6 +31,8 @@ import type {
 } from '../provider'
 import { registerArkProvider } from '../registry'
 
+const ROUND_TX_REQUIRED_CONFIRMATIONS = 0 // Later allow users to change this on the Ark settings
+
 const walletCache = new Map<string, WalletLike>()
 const inflightOpens = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()
@@ -53,6 +55,7 @@ function buildConfig(server: ArkServer, serverAccessToken?: string): Config {
   return Config.create({
     esploraAddress: server.esploraUrl,
     network: appNetworkToBarkNetwork(server.network),
+    roundTxRequiredConfirmations: ROUND_TX_REQUIRED_CONFIRMATIONS,
     serverAccessToken: serverAccessToken || undefined,
     serverAddress: server.arkUrl
   })
@@ -90,6 +93,11 @@ async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
     undefined
   )
   walletCache.set(args.accountId, wallet)
+  await wallet.sync()
+}
+
+async function syncWallet(accountId: string): Promise<void> {
+  const wallet = getCachedWallet(accountId)
   await wallet.sync()
 }
 
@@ -201,10 +209,11 @@ function newAddress(accountId: string): Promise<string> {
 
 async function createBolt11Invoice(
   accountId: string,
-  amountSats: number
+  amountSats: number,
+  description?: string
 ): Promise<ArkBolt11Invoice> {
   const wallet = getCachedWallet(accountId)
-  const invoice = await wallet.bolt11Invoice(BigInt(amountSats))
+  const invoice = await wallet.bolt11Invoice(BigInt(amountSats), description)
   return {
     amountSats: Number(invoice.amountSats),
     invoice: invoice.invoice
@@ -321,13 +330,48 @@ async function listSpendableVtxos(accountId: string): Promise<ArkVtxo[]> {
   }))
 }
 
+const PENDING_RACE_TIMEOUT_MS = 30_000
+const PENDING_TXID = 'pending'
+
+function waitForMovementCreated(
+  label: string,
+  accountId: string,
+  subsystemKinds: string[]
+): Promise<string> {
+  const notifications = getOrCreateNotifications(accountId)
+  return new Promise<string>((resolve) => {
+    const unsubscribe = notifications.subscribe((event) => {
+      if (event.tag !== WalletNotification_Tags.MovementCreated) {
+        return
+      }
+      if (!subsystemKinds.includes(event.inner.movement.subsystemKind)) {
+        return
+      }
+      unsubscribe()
+      resolve(PENDING_TXID)
+    })
+  })
+}
+
+function rejectAfterTimeout(label: string, ms: number): Promise<string> {
+  return new Promise<string>((_resolve, reject) => {
+    setTimeout(() => {
+      reject(new Error(`${label}: no movement created within timeout`))
+    }, ms)
+  })
+}
+
 function offboardVtxos(
   accountId: string,
   vtxoIds: string[],
   bitcoinAddress: string
 ): Promise<string> {
   const wallet = getCachedWallet(accountId)
-  return wallet.offboardVtxos(vtxoIds, bitcoinAddress)
+  return Promise.race([
+    waitForMovementCreated('ark-offboard', accountId, ['offboard']),
+    wallet.offboardVtxos(vtxoIds, bitcoinAddress),
+    rejectAfterTimeout('ark-offboard', PENDING_RACE_TIMEOUT_MS)
+  ])
 }
 
 async function estimateOffboardFee(
@@ -337,6 +381,32 @@ async function estimateOffboardFee(
 ): Promise<ArkFeeEstimate> {
   const wallet = getCachedWallet(accountId)
   const estimate = await wallet.estimateOffboardFee(bitcoinAddress, vtxoIds)
+  return mapFeeEstimate(estimate)
+}
+
+function sendOnchain(
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<string> {
+  const wallet = getCachedWallet(accountId)
+  return Promise.race([
+    waitForMovementCreated('ark-sendOnchain', accountId, ['send_onchain']),
+    wallet.sendOnchain(bitcoinAddress, BigInt(amountSats)),
+    rejectAfterTimeout('ark-sendOnchain', PENDING_RACE_TIMEOUT_MS)
+  ])
+}
+
+async function estimateSendOnchainFee(
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  const wallet = getCachedWallet(accountId)
+  const estimate = await wallet.estimateSendOnchainFee(
+    bitcoinAddress,
+    BigInt(amountSats)
+  )
   return mapFeeEstimate(estimate)
 }
 
@@ -361,6 +431,7 @@ const barkProvider: ArkWalletProvider = {
   estimateArkoorFee,
   estimateLightningSendFee,
   estimateOffboardFee,
+  estimateSendOnchainFee,
   fetchBalance,
   fetchMovements,
   listSpendableVtxos,
@@ -371,8 +442,10 @@ const barkProvider: ArkWalletProvider = {
   payLightningAddress,
   releaseWallet,
   sendArkoor,
+  sendOnchain,
   serverId: 'second',
-  subscribeNotifications
+  subscribeNotifications,
+  syncWallet
 }
 
 registerArkProvider(barkProvider)
