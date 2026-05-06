@@ -4,7 +4,7 @@ import { StyleSheet, TextInput, View } from 'react-native'
 import { Colors, Sizes } from '@/styles'
 import { descriptorValidityCache } from '@/utils/validation'
 
-type SSTextInputProps = {
+export type SSTextInputProps = {
   variant?: 'default' | 'outline'
   size?: 'default' | 'small'
   align?: 'center' | 'left'

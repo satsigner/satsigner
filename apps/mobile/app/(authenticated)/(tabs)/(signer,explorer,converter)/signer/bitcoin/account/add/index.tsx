@@ -6,12 +6,14 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
+import SSTextInput, { type SSTextInputProps } from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 
 export default function Add() {
@@ -20,9 +22,32 @@ export default function Add() {
     useShallow((state) => [state.setName, state.setPolicyType])
   )
 
+  const accounts = useAccountsStore((state) => state.accounts)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const currentNetworkAccounts = accounts.filter(
+    (account) => account.network === network
+  )
+
   const [localName, setLocalName] = useState('')
   const [localPolicyType, setLocalPolicyType] =
     useState<NonNullable<Account['policyType']>>('singlesig')
+  const [isValidName, setIsValidName] = useState<SSTextInputProps['status']>()
+
+  function validateName(name: string) {
+    if (name === '') {
+      setIsValidName(undefined)
+    } else {
+      const isDuplicatedName = currentNetworkAccounts.some(
+        (account) => account.name === name
+      )
+      setIsValidName(isDuplicatedName ? 'invalid' : 'valid')
+    }
+  }
+
+  function handleSetName(text: string) {
+    setLocalName(text)
+    validateName(text)
+  }
 
   function handleOnPressContinue() {
     setAccountName(localName)
@@ -50,7 +75,8 @@ export default function Add() {
             <SSFormLayout.Label label={t('account.name')} />
             <SSTextInput
               value={localName}
-              onChangeText={(text) => setLocalName(text)}
+              status={isValidName}
+              onChangeText={handleSetName}
             />
           </SSFormLayout.Item>
           <View style={{ marginTop: 24 }}>
@@ -86,7 +112,7 @@ export default function Add() {
           <SSButton
             variant="secondary"
             label={t('common.continue')}
-            disabled={localName === ''}
+            disabled={localName === '' || !isValidName}
             onPress={handleOnPressContinue}
           />
           <SSButton
