@@ -33,6 +33,13 @@ export async function openArkWallet(args: ArkWalletArgs): Promise<void> {
   await getArkProvider(args.server.id).openWallet(args)
 }
 
+export async function syncArkWallet(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<void> {
+  await getArkProvider(serverId).syncWallet(accountId)
+}
+
 export function releaseArkWallet(
   serverId: ArkServerId,
   accountId: string
@@ -57,9 +64,14 @@ export function newArkAddress(
 export function createArkBolt11Invoice(
   serverId: ArkServerId,
   accountId: string,
-  amountSats: number
+  amountSats: number,
+  description?: string
 ): Promise<ArkBolt11Invoice> {
-  return getArkProvider(serverId).createBolt11Invoice(accountId, amountSats)
+  return getArkProvider(serverId).createBolt11Invoice(
+    accountId,
+    amountSats,
+    description
+  )
 }
 
 export function fetchArkMovements(
@@ -159,5 +171,31 @@ export function estimateArkOffboardFee(
     accountId,
     bitcoinAddress,
     vtxoIds
+  )
+}
+
+export function sendArkOnchain(
+  serverId: ArkServerId,
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<string> {
+  return getArkProvider(serverId).sendOnchain(
+    accountId,
+    bitcoinAddress,
+    amountSats
+  )
+}
+
+export function estimateArkSendOnchainFee(
+  serverId: ArkServerId,
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateSendOnchainFee(
+    accountId,
+    bitcoinAddress,
+    amountSats
   )
 }

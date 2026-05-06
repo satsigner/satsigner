@@ -21,6 +21,10 @@ export type ArkDestinationDraft =
       kind: 'lnurl'
       lnurl: string
     }
+  | {
+      kind: 'onchain'
+      address: string
+    }
 
 export type ArkDestinationParseResult =
   | { ok: true; draft: ArkDestinationDraft }
@@ -65,6 +69,11 @@ export async function parseArkDestination(
     case 'lnurl':
       return {
         draft: { kind: 'lnurl', lnurl: destination.destination },
+        ok: true
+      }
+    case 'bitcoin-address':
+      return {
+        draft: { address: destination.destination, kind: 'onchain' },
         ok: true
       }
     default:

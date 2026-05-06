@@ -1,72 +1,41 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
-import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSPaste from '@/components/SSPaste'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import {
-  type ArkDestinationDraft,
-  parseArkDestination
-} from '@/utils/arkDestination'
 import { type DetectedContent } from '@/utils/contentDetector'
 
 const ARK_SEND_CONTEXT = 'ark' as const
 
 export default function ArkSendEntryPage() {
   const router = useRouter()
-  const queryClient = useQueryClient()
   const { id } = useLocalSearchParams<{ id: string }>()
+  const { handleContentReady, processDestination } = useArkSendNavigation(id)
+
   const [destination, setDestination] = useState('')
   const [cameraVisible, setCameraVisible] = useState(false)
   const [pasteVisible, setPasteVisible] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
 
-  function goToConfirm(cleanedDestination: string, draft: ArkDestinationDraft) {
-    queryClient.setQueryData<ArkDestinationDraft>(
-      ['ark', 'send', 'parse', cleanedDestination],
-      draft
-    )
-    router.navigate({
-      params: { destination: cleanedDestination, id },
-      pathname: '/signer/ark/account/[id]/send/confirm'
-    })
-  }
-
-  async function handleContentReady(content: DetectedContent) {
+  async function handleScanned(content: DetectedContent) {
     setCameraVisible(false)
     setPasteVisible(false)
-
-    const raw = content.raw ?? content.cleaned
-    const parsed = await parseArkDestination(raw)
-    if (!parsed.ok) {
-      toast.error(t('ark.send.error.invalidDestination'))
-      return
-    }
-    goToConfirm(raw.trim(), parsed.draft)
+    await handleContentReady(content)
   }
 
   async function handleContinue() {
-    const trimmed = destination.trim()
-    if (!trimmed) {
-      return
-    }
     setIsValidating(true)
     try {
-      const parsed = await parseArkDestination(trimmed)
-      if (!parsed.ok) {
-        toast.error(t('ark.send.error.invalidDestination'))
-        return
-      }
-      goToConfirm(trimmed, parsed.draft)
+      await processDestination(destination)
     } finally {
       setIsValidating(false)
     }
@@ -128,14 +97,14 @@ export default function ArkSendEntryPage() {
       <SSCameraModal
         visible={cameraVisible}
         onClose={() => setCameraVisible(false)}
-        onContentScanned={handleContentReady}
+        onContentScanned={handleScanned}
         context={ARK_SEND_CONTEXT}
         title={t('ark.send.scanTitle')}
       />
       <SSPaste
         visible={pasteVisible}
         onClose={() => setPasteVisible(false)}
-        onContentPasted={handleContentReady}
+        onContentPasted={handleScanned}
         context={ARK_SEND_CONTEXT}
       />
     </SSMainLayout>

@@ -22,6 +22,60 @@ export async function shareFile({
   await Sharing.shareAsync(fileUri, { dialogTitle, mimeType })
 }
 
+type ShareExistingFileProps = {
+  fileUri: string
+  dialogTitle: string
+  mimeType: string
+}
+
+export async function shareExistingFile({
+  fileUri,
+  dialogTitle,
+  mimeType
+}: ShareExistingFileProps) {
+  const available = await Sharing.isAvailableAsync()
+  if (!available) {
+    throw new Error('Sharing is not available on this device')
+  }
+  await Sharing.shareAsync(fileUri, { dialogTitle, mimeType })
+}
+
+type SaveExistingFileProps = {
+  srcUri: string
+  filename: string
+  dialogTitle: string
+  mimeType: string
+}
+
+export async function saveExistingFile({
+  srcUri,
+  filename,
+  dialogTitle,
+  mimeType
+}: SaveExistingFileProps) {
+  if (Platform.OS === 'android') {
+    const permissions =
+      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
+    if (permissions.granted && permissions.directoryUri) {
+      const destinationUri =
+        await FileSystem.StorageAccessFramework.createFileAsync(
+          permissions.directoryUri,
+          filename,
+          mimeType
+        )
+      const data = await FileSystem.readAsStringAsync(srcUri, {
+        encoding: FileSystem.EncodingType.Base64
+      })
+      await FileSystem.writeAsStringAsync(destinationUri, data, {
+        encoding: FileSystem.EncodingType.Base64
+      })
+      return
+    }
+  }
+
+  await shareExistingFile({ dialogTitle, fileUri: srcUri, mimeType })
+}
+
 export async function saveFile({
   filename,
   fileContent,
