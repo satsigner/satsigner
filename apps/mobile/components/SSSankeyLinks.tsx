@@ -112,7 +112,9 @@ function SSSankeyLinks({
 
         const ribbonW = ribbonWidthForLink(ribbonPlan, link.source, link.target)
 
-        const isUnspent = targetNode.ioData?.isUnspent
+        const isUnspent = targetNode.ioData?.isUnspent === true
+        const isSelfSendOutput = targetNode.ioData?.isSelfSend === true
+        const isOwnOrUnspentRibbon = isUnspent || isSelfSendOutput
         const isRemainingBalance = targetNode.localId === 'remainingBalance'
         const isCurrentTxMinerFee = targetNode.localId === 'current-minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
@@ -192,12 +194,12 @@ function SSSankeyLinks({
             <Path
               path={path1}
               style="fill"
-              color={isCurrentTx || isUnspent ? 'white' : gray[700]}
-              opacity={isCurrentTx || isUnspent ? 1 : 0.5}
+              color={isCurrentTx || isOwnOrUnspentRibbon ? 'white' : gray[700]}
+              opacity={isCurrentTx || isOwnOrUnspentRibbon ? 1 : 0.5}
             />
             {(isCurrentTx || isCurrentTxMinerFee) &&
             !isRemainingBalance &&
-            !isUnspent ? (
+            !isOwnOrUnspentRibbon ? (
               <>
                 <Path
                   path={path1}
@@ -217,7 +219,9 @@ function SSSankeyLinks({
                   )}
                 />
               </>
-            ) : isUnspent && !isRemainingBalance ? (
+            ) : isOwnOrUnspentRibbon &&
+              !isRemainingBalance &&
+              !isSelfSendOutput ? (
               <Path
                 path={path1}
                 style="fill"
@@ -230,7 +234,7 @@ function SSSankeyLinks({
                   [0, 0.2]
                 )}
               />
-            ) : !isUnspent && !isRemainingBalance ? (
+            ) : !isOwnOrUnspentRibbon && !isRemainingBalance ? (
               <>
                 <Path
                   path={path1}
