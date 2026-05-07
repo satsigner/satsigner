@@ -36,5 +36,11 @@ export const SANKEY_RIBBON_DUST_MIN_PX = 2
 /** Inner tx-size strip on block node (Skia). */
 export const SANKEY_BLOCK_TX_STRIP_MAX_PX = 80
 
+/** Minimum inner height (extent bottom − top) so the box stays valid when the window is short. */
+export const SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX = 120
+
+/** Top edge Y for d3-sankey extent in SSCurrentTransactionChart (must stay below bottom Y). */
+export const SANKEY_CURRENT_TX_EXTENT_TOP_PX = 200
+
 /** Bezier control-point extent cap in Skia link paths. */
 export const SANKEY_LINK_CURVE_CONTROL_MAX_PX = 60
