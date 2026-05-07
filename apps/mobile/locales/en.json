@@ -39,6 +39,8 @@
     "entropy.drawing.label": "Drawing",
     "entropy.none.label": "None",
     "entropy.title": "Extra Entropy",
+    "error.nameDuplicated": "A wallet with this name already exists.",
+    "error.namePseudoDuplicated": "A wallet of another network has the same name.",
     "export.config": "Export config",
     "export.descriptors": "Descriptors",
     "export.descriptorsPDF": "Export as PDF",

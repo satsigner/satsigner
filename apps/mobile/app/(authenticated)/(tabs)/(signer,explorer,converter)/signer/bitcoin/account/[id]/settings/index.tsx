@@ -62,7 +62,8 @@ export default function AccountSettings() {
   const [accountName, setAccountName] = useState<Account['name']>(
     account?.name || ''
   )
-  const [isValidName, setIsValidName] = useState<SSTextInputProps['status']>('valid')
+  const [isValidName, setIsValidName] = useState<SSTextInputProps['status']>()
+  const [isPseudoDuplicatedName, setIsPseudoDuplicatedName] = useState(false) // pseudo-duplicate name = wallet of other network has same name
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
@@ -100,6 +101,11 @@ export default function AccountSettings() {
         otherAccount.network === account?.network
     )
     setIsValidName(invalid ? 'invalid' : 'valid')
+    const pseudoDuplicate = accounts.some(
+      (otherAccount) =>
+        otherAccount.network !== account?.network && otherAccount.name === name
+    )
+    setIsPseudoDuplicatedName(pseudoDuplicate)
   }
 
   function handleSetAccountName(name: string) {
@@ -255,6 +261,17 @@ export default function AccountSettings() {
             <SSTextInput
               value={accountName}
               onChangeText={handleSetAccountName}
+              status={isValidName}
+              error={
+                isValidName === 'invalid'
+                  ? t('account.error.nameDuplicated')
+                  : ''
+              }
+              warning={
+                isPseudoDuplicatedName
+                  ? t('account.error.namePseudoDuplicated')
+                  : ''
+              }
             />
           </SSFormLayout.Item>
         </SSFormLayout>

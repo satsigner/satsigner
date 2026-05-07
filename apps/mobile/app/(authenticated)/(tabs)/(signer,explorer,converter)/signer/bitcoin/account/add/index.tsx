@@ -32,16 +32,22 @@ export default function Add() {
   const [localPolicyType, setLocalPolicyType] =
     useState<NonNullable<Account['policyType']>>('singlesig')
   const [isValidName, setIsValidName] = useState<SSTextInputProps['status']>()
+  const [isPseudoDuplicatedName, setIsPseudoDuplicatedName] = useState(false) // pseudo-duplicate name = wallet of other network has same name
 
   function validateName(name: string) {
     if (name === '') {
       setIsValidName(undefined)
-    } else {
-      const isDuplicatedName = currentNetworkAccounts.some(
-        (account) => account.name === name
-      )
-      setIsValidName(isDuplicatedName ? 'invalid' : 'valid')
+      return
     }
+    const duplicated = currentNetworkAccounts.some(
+      (account) => account.name === name
+    )
+    setIsValidName(duplicated ? 'invalid' : 'valid')
+    const pseudoDuplicated = accounts.some(
+      (otherAccount) =>
+        otherAccount.network !== network && otherAccount.name === name
+    )
+    setIsPseudoDuplicatedName(pseudoDuplicated)
   }
 
   function handleSetName(text: string) {
@@ -77,6 +83,16 @@ export default function Add() {
               value={localName}
               status={isValidName}
               onChangeText={handleSetName}
+              error={
+                isValidName === 'invalid'
+                  ? t('account.error.nameDuplicated')
+                  : ''
+              }
+              warning={
+                isPseudoDuplicatedName
+                  ? t('account.error.namePseudoDuplicated')
+                  : ''
+              }
             />
           </SSFormLayout.Item>
           <View style={{ marginTop: 24 }}>
