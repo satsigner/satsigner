@@ -210,7 +210,6 @@ function SSCurrentTransactionChart({
         isSelfSend: !!(output.to && ownAddresses.has(output.to)),
         isUnspent: true,
         label: output.label,
-        text: t('transaction.build.unspent'),
         value: output.amount
       },
       localId: output.to ? output.localId : 'remainingBalance',
@@ -412,6 +411,7 @@ function SSCurrentTransactionChart({
               ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               selectedOutputNode={currentOutputLocalId}
+              showUnspentLabel={false}
             />
             {nodes.map((node, index) => {
               const typedNode = node as Node

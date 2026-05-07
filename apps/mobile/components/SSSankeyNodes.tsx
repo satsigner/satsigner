@@ -38,6 +38,8 @@ interface ISSankeyNodes {
   sankeyGenerator: { nodeWidth: () => number }
   selectedOutputNode?: string
   dimUnselected?: boolean
+  /** When false, hides the “unspent” line on output cards (e.g. while composing a new tx). */
+  showUnspentLabel?: boolean
 }
 
 const BASE_FONT_SIZE = 13
@@ -54,7 +56,8 @@ function SSSankeyNodes({
   ribbonPlan,
   sankeyGenerator,
   selectedOutputNode,
-  dimUnselected = false
+  dimUnselected = false,
+  showUnspentLabel = true
 }: ISSankeyNodes) {
   const customFontManager = useSFProFonts()
 
@@ -162,6 +165,7 @@ function SSSankeyNodes({
           isSelfSend={
             node.ioData?.isSelfSend && !(node?.localId === 'remainingBalance')
           }
+          showUnspentLabel={showUnspentLabel}
         />
       </Group>
     )
@@ -185,7 +189,8 @@ function NodeText({
   isTransactionChart,
   selectedOutputNode,
   isHigherCurrentMinerFee,
-  isSelfSend
+  isSelfSend,
+  showUnspentLabel = true
 }: {
   localId: string
   isBlock: boolean
@@ -198,6 +203,7 @@ function NodeText({
   selectedOutputNode?: string
   isHigherCurrentMinerFee?: boolean
   isSelfSend?: boolean
+  showUnspentLabel?: boolean
 }) {
   const isMiningFee = localId.includes('minerFee')
   const isChange = localId === 'remainingBalance'
@@ -401,18 +407,25 @@ function NodeText({
 
     const buildUnspentParagraph = () => {
       const para = createParagraphBuilder()
+      if (showUnspentLabel) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            fontSize: XS_FONT_SIZE
+          })
+          .addText(ioData?.text ?? '')
+      }
       para
-        .pushStyle({
-          ...baseTextStyle,
-          fontSize: XS_FONT_SIZE
-        })
-        .addText(ioData?.text ?? '') // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(isChange || isSelfSend ? 'white' : mainRed),
           fontSize: BASE_FONT_SIZE
         })
-        .addText(`\n${ioData?.value?.toLocaleString()} `) // Add nullish coalescing
+        .addText(
+          showUnspentLabel
+            ? `\n${ioData?.value?.toLocaleString()} `
+            : `${ioData?.value?.toLocaleString()} `
+        )
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(gray[200]),
@@ -541,7 +554,8 @@ function NodeText({
     ioData.label,
     isHigherCurrentMinerFee,
     isChange,
-    isSelfSend
+    isSelfSend,
+    showUnspentLabel
   ])
 
   // Calculate position for the paragraph and potentially the icon

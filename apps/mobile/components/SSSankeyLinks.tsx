@@ -1,8 +1,11 @@
 import { Group, Path, Skia, vec } from '@shopify/react-native-skia'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
-import { gray } from '@/styles/colors'
-import { SANKEY_LINK_CURVE_CONTROL_MAX_PX } from '@/types/ui/sankey'
+import { error, gray } from '@/styles/colors'
+import {
+  SANKEY_LINK_CURVE_CONTROL_MAX_PX,
+  SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP
+} from '@/types/ui/sankey'
 import {
   type SankeyRibbonPlan,
   ribbonWidthForLink,
@@ -230,8 +233,8 @@ function SSSankeyLinks({
                   midY,
                   gradEndX,
                   midY,
-                  ['#2C2C2C', '#FFFFFF'],
-                  [0, 0.2]
+                  [error, error, '#FFFFFF'],
+                  [0, SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP, 1]
                 )}
               />
             ) : !isOwnOrUnspentRibbon && !isRemainingBalance ? (

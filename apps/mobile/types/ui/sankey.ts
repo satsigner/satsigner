@@ -44,3 +44,6 @@ export const SANKEY_CURRENT_TX_EXTENT_TOP_PX = 200
 
 /** Bezier control-point extent cap in Skia link paths. */
 export const SANKEY_LINK_CURVE_CONTROL_MAX_PX = 60
+
+/** Along outgoing-unspent ribbon gradient (0–1): pure red holds until this stop, then fades to white. */
+export const SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP = 0.45
