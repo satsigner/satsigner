@@ -123,12 +123,6 @@ export default function AccountSettings() {
   function handleOnViewMnemonic() {
     setShowPinEntry(true)
     setPin(emptyPin())
-
-    // This will auto-focus the pin input after a little delay.
-    // The delay is needed because the modal has to have become visible first.
-    setTimeout(() => {
-      setPinEntryFocus(true)
-    }, 300)
   }
 
   function handleCloseMnemonicModal() {
