@@ -25,3 +25,16 @@ export const LINK_MAX_WIDTH = 60
 export const BLOCK_WIDTH = 50
 export const NODE_WIDTH = 98
 export const SAFE_LIMIT_OF_INPUTS_OUTPUTS = 12
+
+/** Vertical band height for the block node + ribbon column (clamped). */
+export const SANKEY_BAND_HEIGHT_MIN_PX = 34
+export const SANKEY_BAND_HEIGHT_MAX_PX = 100
+
+/** Minimum drawn ribbon thickness so dust flows stay visible. */
+export const SANKEY_RIBBON_DUST_MIN_PX = 2
+
+/** Inner tx-size strip on block node (Skia). */
+export const SANKEY_BLOCK_TX_STRIP_MAX_PX = 80
+
+/** Bezier control-point extent cap in Skia link paths. */
+export const SANKEY_LINK_CURVE_CONTROL_MAX_PX = 60

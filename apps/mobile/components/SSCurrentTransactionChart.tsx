@@ -26,6 +26,7 @@ import {
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
 import { formatAddress, formatNumber } from '@/utils/format'
+import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { estimateTransactionSize } from '@/utils/transaction'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
@@ -348,6 +349,15 @@ function SSCurrentTransactionChart({
     value: link.value
   }))
 
+  const ribbonPlan = buildSankeyRibbonPlan(
+    nodes.map((node) => ({
+      id: (node as Node).id,
+      type: (node as Node).type,
+      value: (node as Node).value
+    })),
+    transformedLinks
+  )
+
   const maxDepthH = 2
 
   if (inputMap.size === 0 || outputArray.length === 0) {
@@ -392,11 +402,13 @@ function SSCurrentTransactionChart({
             <SSSankeyLinks
               links={transformedLinks}
               nodes={nodes as Node[]}
+              ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               BLOCK_WIDTH={BLOCK_WIDTH}
             />
             <SSSankeyNodes
               nodes={nodes as Node[]}
+              ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               selectedOutputNode={currentOutputLocalId}
             />
