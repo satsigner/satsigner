@@ -1,15 +1,20 @@
 import { type ForwardedRef, forwardRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
+import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
 import { descriptorValidityCache } from '@/utils/validation'
 
-type SSTextInputProps = {
+import SSText from './SSText'
+
+export type SSTextInputProps = {
   variant?: 'default' | 'outline'
   size?: 'default' | 'small'
   align?: 'center' | 'left'
   actionRight?: React.ReactNode
   status?: 'valid' | 'invalid'
+  warning?: string
+  error?: string
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSTextInput(
@@ -21,6 +26,8 @@ function SSTextInput(
     status,
     style,
     value,
+    error,
+    warning,
     ...props
   }: SSTextInputProps,
   ref: ForwardedRef<TextInput>
@@ -63,16 +70,30 @@ function SSTextInput(
 
   return (
     <View style={styles.containerBase}>
-      <TextInput
-        ref={ref}
-        placeholderTextColor={Colors.gray[400]}
-        autoCorrect={false}
-        spellCheck={false}
-        value={value}
-        style={textInputStyle}
-        {...props}
-      />
-      <View style={styles.actionRightBase}>{actionRight}</View>
+      <SSVStack gap="xs">
+        <View>
+          <TextInput
+            ref={ref}
+            placeholderTextColor={Colors.gray[400]}
+            autoCorrect={false}
+            spellCheck={false}
+            value={value}
+            style={textInputStyle}
+            {...props}
+          />
+          <View style={styles.actionRightBase}>{actionRight}</View>
+        </View>
+        {error && (
+          <SSText size="xs" style={{ color: Colors.error, lineHeight: 12 }}>
+            {error}
+          </SSText>
+        )}
+        {warning && (
+          <SSText size="xs" style={{ color: Colors.warning, lineHeight: 12 }}>
+            {warning}
+          </SSText>
+        )}
+      </SSVStack>
     </View>
   )
 }

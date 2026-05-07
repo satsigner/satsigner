@@ -14,7 +14,7 @@ import SSPinEntry from '@/components/SSPinEntry'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
+import SSTextInput, { SSTextInputProps } from '@/components/SSTextInput'
 import { PIN_KEY, SALT_KEY } from '@/config/auth'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
@@ -41,13 +41,14 @@ export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
   const insets = useSafeAreaInsets()
 
-  const [account, updateAccountName, deleteAccount] = useAccountsStore(
+  const [accounts, updateAccountName, deleteAccount] = useAccountsStore(
     useShallow((state) => [
-      state.accounts.find((_account) => _account.id === currentAccountId),
+      state.accounts,
       state.updateAccountName,
       state.deleteAccount
     ])
   )
+  const account = accounts.find((_account) => _account.id === currentAccountId)
   const removeAccountWallet = useWalletsStore(
     (state) => state.removeAccountWallet
   )
@@ -61,9 +62,10 @@ export default function AccountSettings() {
   const [accountName, setAccountName] = useState<Account['name']>(
     account?.name || ''
   )
+  const [isValidName, setIsValidName] = useState<SSTextInputProps['status']>()
+  const [isPseudoDuplicatedName, setIsPseudoDuplicatedName] = useState(false) // pseudo-duplicate name = wallet of other network has same name
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
-
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
@@ -87,6 +89,30 @@ export default function AccountSettings() {
     }
   }
 
+  function validateName(name: string) {
+    if (name === '') {
+      setIsValidName(undefined)
+      return
+    }
+    const invalid = accounts.some(
+      (otherAccount) =>
+        otherAccount.id !== currentAccountId &&
+        otherAccount.name === name &&
+        otherAccount.network === account?.network
+    )
+    setIsValidName(invalid ? 'invalid' : 'valid')
+    const pseudoDuplicate = accounts.some(
+      (otherAccount) =>
+        otherAccount.network !== account?.network && otherAccount.name === name
+    )
+    setIsPseudoDuplicatedName(pseudoDuplicate)
+  }
+
+  function handleSetAccountName(name: string) {
+    validateName(name)
+    setAccountName(name)
+  }
+
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
       case 'singlesig':
@@ -103,12 +129,6 @@ export default function AccountSettings() {
   function handleOnViewMnemonic() {
     setShowPinEntry(true)
     setPin(emptyPin())
-
-    // This will auto-focus the pin input after a little delay.
-    // The delay is needed because the modal has to have become visible first.
-    setTimeout(() => {
-      setPinEntryFocus(true)
-    }, 300)
   }
 
   function handleCloseMnemonicModal() {
@@ -238,7 +258,21 @@ export default function AccountSettings() {
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
-            <SSTextInput value={accountName} onChangeText={setAccountName} />
+            <SSTextInput
+              value={accountName}
+              onChangeText={handleSetAccountName}
+              status={isValidName}
+              error={
+                isValidName === 'invalid'
+                  ? t('account.error.nameDuplicated')
+                  : ''
+              }
+              warning={
+                isPseudoDuplicatedName
+                  ? t('account.error.namePseudoDuplicated')
+                  : ''
+              }
+            />
           </SSFormLayout.Item>
         </SSFormLayout>
         <SSVStack gap="xs" style={styles.infoTable}>
@@ -440,6 +474,7 @@ export default function AccountSettings() {
           <SSButton
             label={t('common.save')}
             variant="secondary"
+            disabled={isValidName !== 'valid'}
             onPress={saveChanges}
           />
         </SSVStack>
