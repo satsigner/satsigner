@@ -12,13 +12,16 @@ import {
   SSIconTriangle
 } from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
+import SSTourBanner from '@/components/SSTourBanner'
 import SSText from '@/components/SSText'
+import { useTourNavigation } from '@/hooks/useTourNavigation'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 
 export default function Settings() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const { handleStartTour } = useTourNavigation()
 
   return (
     <>
@@ -29,6 +32,7 @@ export default function Settings() {
         }}
       />
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
+        <SSTourBanner onStartTour={handleStartTour} />
         <SSVStack gap="none">
           <SSSettingsCards
             title={t('settings.network.title')}

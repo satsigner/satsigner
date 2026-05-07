@@ -1,100 +1,183 @@
 import { useRouter } from 'expo-router'
+import { useState } from 'react'
 import { Image, ScrollView } from 'react-native'
 
 import SSIconWarningSharp from '@/components/icons/SSIconWarningSharp'
 import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
+import { useTourStore } from '@/store/tour'
 import { Layout } from '@/styles'
 
 export default function Warning() {
   const router = useRouter()
   const setShowWarning = useSettingsStore((state) => state.setShowWarning)
+  const neverAskAgain = useTourStore((state) => state.neverAskAgain)
+  const [startTour, setNeverAskAgain, dismissSettingsBanner] = useTourStore(
+    (state) => [
+      state.startTour,
+      state.setNeverAskAgain,
+      state.dismissSettingsBanner
+    ]
+  )
+
+  const [tourOfferVisible, setTourOfferVisible] = useState(false)
+
+  function handleNavigateHome() {
+    if (!neverAskAgain) {
+      setTourOfferVisible(true)
+    } else {
+      router.replace('/')
+    }
+  }
 
   function handleConfirm() {
     setShowWarning(false)
+    handleNavigateHome()
+  }
+
+  function handleDismiss() {
+    handleNavigateHome()
+  }
+
+  function handleTourStart() {
+    setTourOfferVisible(false)
+    startTour()
+    router.replace('/')
+  }
+
+  function handleTourLater() {
+    setTourOfferVisible(false)
+    router.replace('/')
+  }
+
+  function handleTourNeverAskAgain() {
+    setNeverAskAgain()
+    dismissSettingsBanner()
+    setTourOfferVisible(false)
     router.replace('/')
   }
 
   return (
-    <SSMainLayout
-      black
-      style={{
-        paddingBottom: Layout.mainContainer.paddingBottom,
-        paddingTop: '20%'
-      }}
-    >
-      <SSVStack gap="md" justifyBetween>
-        <ScrollView
-          style={{ marginBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
-          <SSVStack itemsCenter>
-            <Image
-              source={require('@/assets/icon.png')}
-              style={{ height: 64, width: 64 }}
-            />
+    <>
+      <SSMainLayout
+        black
+        style={{
+          paddingBottom: Layout.mainContainer.paddingBottom,
+          paddingTop: '20%'
+        }}
+      >
+        <SSVStack gap="md" justifyBetween>
+          <ScrollView
+            style={{ marginBottom: 24 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <SSVStack itemsCenter>
+              <Image
+                source={require('@/assets/icon.png')}
+                style={{ height: 64, width: 64 }}
+              />
 
-            <SSVStack gap="xs" itemsCenter>
+              <SSVStack gap="xs" itemsCenter>
+                <SSText
+                  size="xs"
+                  color="white"
+                  uppercase
+                  style={{ fontWeight: '500', letterSpacing: 1 }}
+                >
+                  {t('warning.subtitle')}
+                </SSText>
+                <SSText
+                  size="5xl"
+                  color="white"
+                  uppercase
+                  style={{ fontWeight: '300', letterSpacing: 2, lineHeight: 35 }}
+                >
+                  {t('common.warning')}
+                </SSText>
+              </SSVStack>
+              <SSIconWarningSharp
+                width={120}
+                height={120}
+                fill="black"
+                stroke="white"
+              />
               <SSText
-                size="xs"
+                size="3xl"
                 color="white"
-                uppercase
-                style={{ fontWeight: '500', letterSpacing: 1 }}
+                style={{
+                  fontWeight: '500',
+                  letterSpacing: 1,
+                  textAlign: 'center'
+                }}
               >
-                {t('warning.subtitle')}
+                {t('warning.title')}
               </SSText>
               <SSText
-                size="5xl"
-                color="white"
-                uppercase
-                style={{ fontWeight: '300', letterSpacing: 2, lineHeight: 35 }}
+                size="sm"
+                color="muted"
+                style={{ fontWeight: '400', letterSpacing: 0.5 }}
               >
-                {t('common.warning')}
+                {t('warning.content')}
               </SSText>
             </SSVStack>
-            <SSIconWarningSharp
-              width={120}
-              height={120}
-              fill="black"
-              stroke="white"
+          </ScrollView>
+          <SSVStack>
+            <SSButton
+              variant="secondary"
+              label={t('common.acknowledge')}
+              onPress={handleConfirm}
             />
-            <SSText
-              size="3xl"
-              color="white"
-              style={{
-                fontWeight: '500',
-                letterSpacing: 1,
-                textAlign: 'center'
-              }}
-            >
-              {t('warning.title')}
+            <SSButton
+              variant="ghost"
+              label={t('common.dismiss')}
+              onPress={handleDismiss}
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSMainLayout>
+      <SSModal
+        fullOpacity
+        visible={tourOfferVisible}
+        label=""
+        showLabel={false}
+        onClose={handleTourLater}
+      >
+        <SSVStack
+          justifyBetween
+          style={{ flex: 1, paddingTop: 40, width: '100%' }}
+        >
+          <SSVStack gap="lg" itemsCenter>
+            <SSText size="3xl" color="white" uppercase weight="bold">
+              {t('tour.offer.title')}
             </SSText>
-            <SSText
-              size="sm"
-              color="muted"
-              style={{ fontWeight: '400', letterSpacing: 0.5 }}
-            >
-              {t('warning.content')}
+            <SSText size="sm" color="muted" center>
+              {t('tour.offer.description')}
             </SSText>
           </SSVStack>
-        </ScrollView>
-        <SSVStack>
-          <SSButton
-            variant="secondary"
-            label={t('common.acknowledge')}
-            onPress={() => handleConfirm()}
-          />
-          <SSButton
-            variant="ghost"
-            label={t('common.dismiss')}
-            onPress={() => router.push('/')}
-          />
+          <SSVStack gap="sm">
+            <SSButton
+              variant="secondary"
+              label={t('tour.offer.start')}
+              onPress={handleTourStart}
+            />
+            <SSButton
+              variant="outline"
+              label={t('tour.offer.later')}
+              onPress={handleTourLater}
+            />
+            <SSButton
+              variant="ghost"
+              label={t('tour.offer.neverAskAgain')}
+              onPress={handleTourNeverAskAgain}
+            />
+          </SSVStack>
         </SSVStack>
-      </SSVStack>
-    </SSMainLayout>
+      </SSModal>
+    </>
   )
 }

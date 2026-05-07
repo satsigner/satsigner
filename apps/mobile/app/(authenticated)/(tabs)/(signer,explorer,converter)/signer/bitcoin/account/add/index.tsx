@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -12,24 +12,40 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useTourStore } from '@/store/tour'
 import { type Account } from '@/types/models/Account'
 
 export default function Add() {
   const router = useRouter()
+  const { tourMode } = useLocalSearchParams<{ tourMode?: string }>()
+
   const [setAccountName, setAccountPolicyType] = useAccountBuilderStore(
     useShallow((state) => [state.setName, state.setPolicyType])
+  )
+  const [prefillAccountName, setPrefillAccountName] = useTourStore(
+    useShallow((state) => [state.prefillAccountName, state.setPrefillAccountName])
   )
 
   const [localName, setLocalName] = useState('')
   const [localPolicyType, setLocalPolicyType] =
     useState<NonNullable<Account['policyType']>>('singlesig')
 
+  const nameValue = prefillAccountName ?? localName
+
+  function handleNameChange(text: string) {
+    if (prefillAccountName !== null) {
+      setPrefillAccountName(null)
+    }
+    setLocalName(text)
+  }
+
   function handleOnPressContinue() {
-    setAccountName(localName)
+    setAccountName(nameValue)
     setAccountPolicyType(localPolicyType)
 
+    const tourParam = tourMode === 'true' ? '?tourMode=true' : ''
     if (localPolicyType === 'singlesig') {
-      router.navigate('/signer/bitcoin/account/add/singleSig')
+      router.navigate(`/signer/bitcoin/account/add/singleSig${tourParam}`)
     } else if (localPolicyType === 'multisig') {
       router.navigate('/signer/bitcoin/account/add/multiSig')
     } else if (localPolicyType === 'watchonly') {
@@ -49,8 +65,8 @@ export default function Add() {
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
             <SSTextInput
-              value={localName}
-              onChangeText={(text) => setLocalName(text)}
+              value={nameValue}
+              onChangeText={handleNameChange}
             />
           </SSFormLayout.Item>
           <View style={{ marginTop: 24 }}>
@@ -86,7 +102,7 @@ export default function Add() {
           <SSButton
             variant="secondary"
             label={t('common.continue')}
-            disabled={localName === ''}
+            disabled={!nameValue}
             onPress={handleOnPressContinue}
           />
           <SSButton

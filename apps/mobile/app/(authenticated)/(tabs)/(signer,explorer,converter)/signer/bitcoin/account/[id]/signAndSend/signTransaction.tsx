@@ -18,6 +18,8 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import { useTourNavigation } from '@/hooks/useTourNavigation'
+import { useTourStep } from '@/hooks/useTourStep'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
@@ -137,6 +139,9 @@ function broadcastFailureUserMessage(error: unknown): string {
 export default function SignTransaction() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+
+  const { isActive: isTourSignTx } = useTourStep('sign_tx')
+  const { advance } = useTourNavigation()
 
   const [
     psbt,
@@ -279,6 +284,9 @@ export default function SignTransaction() {
       }
 
       setBroadcasted(true)
+      if (isTourSignTx) {
+        advance('sign_tx')
+      }
       router.navigate(
         `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
       )

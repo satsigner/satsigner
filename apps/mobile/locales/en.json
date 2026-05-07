@@ -2772,6 +2772,83 @@
     "number.smaller": "The value must be smaller than %{value}",
     "required": "*required*"
   },
+  "tour": {
+    "banner": {
+      "label": "Signet Tour",
+      "message": "Practice Bitcoin on Signet — no real funds needed.",
+      "start": "Start tour"
+    },
+    "about": {
+      "comingSoon": "Coming soon",
+      "sectionTitle": "Tours",
+      "showPrompts": "Show tour prompts",
+      "start": "Start"
+    },
+    "chapters": {
+      "one": { "title": "Bitcoin Basics — Signet" },
+      "two": { "title": "Multisig & PSBT" },
+      "three": { "title": "Nostr Label Sync" },
+      "four": { "title": "Lightning & eCash" },
+      "five": { "title": "Ark" },
+      "six": { "title": "Explorer & Network" },
+      "seven": { "title": "Nostr & Identity" }
+    },
+    "exit": "Exit tour",
+    "exploreOnMyOwn": "Explore on my own",
+    "fillRandom": "Fill random",
+    "letsStart": "Let's start",
+    "next": "Next",
+    "noUtxos": {
+      "fundLater": "I'll fund it later"
+    },
+    "offer": {
+      "description": "Walk through creating a test wallet and making your first Bitcoin transaction on signet.",
+      "neverAskAgain": "Don't ask again",
+      "later": "Maybe later",
+      "start": "Yes, show me!",
+      "title": "Quick tour?"
+    },
+    "continueStep": {
+      "description": "Tap Continue to create your wallet.",
+      "title": "All set!"
+    },
+    "singleSigStep": {
+      "description": "Defaults are pre-set for signet. Tap Generate to create your keys.",
+      "title": "Generate new keys"
+    },
+    "selfSendLabel": "Tour self-send",
+    "step": "Step %{current} of %{total}",
+    "steps": {
+      "accountSetup": {
+        "description": "You're on Signet — Bitcoin's test network. Real mechanics, no real funds at risk.",
+        "title": "Create your test wallet"
+      },
+      "broadcastConfirm": {
+        "description": "Your transaction is live on signet. You now have more UTXOs than you started with.",
+        "title": "Transaction sent!"
+      },
+      "noUtxos": {
+        "description": "Paste this address into a signet faucet to receive test coins, then restart the tour.",
+        "title": "No coins yet"
+      },
+      "previewTx": {
+        "description": "A self-send to multiple outputs — so you'll always have coins available for future runs.",
+        "title": "Review the transaction"
+      },
+      "receive": {
+        "description": "Share this address or paste it into a signet faucet to get test coins. Tap Next when ready.",
+        "title": "Your receive address"
+      },
+      "selectUtxos": {
+        "description": "These are your UTXOs — unspent outputs. Select them all to build the transaction.",
+        "title": "Select your coins"
+      },
+      "signTx": {
+        "description": "Tap Sign to authorize and broadcast this transaction to the signet network.",
+        "title": "Sign & broadcast"
+      }
+    }
+  },
   "wallet": {
     "balance": "wallet balance"
   },

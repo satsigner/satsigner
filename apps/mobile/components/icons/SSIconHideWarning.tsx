@@ -1,10 +1,15 @@
-import Svg, { Circle, G, Line, Path, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, ClipPath, Defs, G, Line, Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
 export default function SSIconHideWarning({ width, height }: IconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 171.1 108.126">
+      <Defs>
+        <ClipPath id="eye-opening">
+          <Path d="M3.1,58.2c.1-.1.3-.2.4-.4,1.1-1,2.7-2.3,4.9-4a165.452,165.452,0,0,1,17.9-12c15.2-8.8,36-17.4,59-17.4s43.8,8.7,59,17.4a155.959,155.959,0,0,1,17.9,12c2.1,1.6,3.8,3,4.9,4,.2.1.3.3.4.4-.1.1-.3.2-.4.4-1.1,1-2.7,2.3-4.9,4a165.451,165.451,0,0,1-17.9,12c-15.2,8.8-36,17.4-59,17.4s-43.8-8.7-59-17.4a155.959,155.959,0,0,1-17.9-12c-2.1-1.6-3.8-3-4.9-4Z" />
+        </ClipPath>
+      </Defs>
       <G id="hide-warning" transform="translate(-0.979 -0.487)">
         <Path
           id="Path_3"
@@ -14,7 +19,7 @@ export default function SSIconHideWarning({ width, height }: IconProps) {
           stroke="#fff"
           strokeWidth="3"
         />
-        <G id="Group_4" data-name="Group 4">
+        <G id="Group_4" data-name="Group 4" clipPath="url(#eye-opening)">
           <Circle
             id="Ellipse_2"
             data-name="Ellipse 2"

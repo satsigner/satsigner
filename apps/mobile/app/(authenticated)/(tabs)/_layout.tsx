@@ -25,6 +25,7 @@ import {
   SSIconSigner,
   SSIconSignerActive
 } from '@/components/icons'
+import SSTourOverlay from '@/components/SSTourOverlay'
 import { Colors } from '@/styles'
 import { text } from '@/styles/sizes'
 import { showNavigation } from '@/utils/navigation'
@@ -345,6 +346,7 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
+      <SSTourOverlay />
     </View>
   )
 }
