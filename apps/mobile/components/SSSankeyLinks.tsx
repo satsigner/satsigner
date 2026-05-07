@@ -1,9 +1,13 @@
 import { Group, Path, Skia, vec } from '@shopify/react-native-skia'
-import { useCallback } from 'react'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { gray } from '@/styles/colors'
-import { logAttenuation } from '@/utils/math'
+import { SANKEY_LINK_CURVE_CONTROL_MAX_PX } from '@/types/ui/sankey'
+import {
+  type SankeyRibbonPlan,
+  ribbonWidthForLink,
+  stackedRibbonOffsetBeforeLink
+} from '@/utils/sankeyFlowWidths'
 
 interface Node {
   id: string
@@ -40,6 +44,7 @@ interface LinkPoints {
 interface SSSankeyLinksProps {
   links: Link[]
   nodes: Node[]
+  ribbonPlan: SankeyRibbonPlan
   sankeyGenerator: { nodeWidth: () => number }
   BLOCK_WIDTH: number
   selectedOutputNode?: string
@@ -79,125 +84,19 @@ function buildLinearGradientPaint(
   return paint
 }
 
+function findNodeById(nodes: Node[], id: string): Node | undefined {
+  return nodes.find((n) => n.id === id)
+}
+
 function SSSankeyLinks({
   links,
   nodes,
+  ribbonPlan,
   sankeyGenerator,
   BLOCK_WIDTH,
   selectedOutputNode,
   dimUnselected = false
 }: SSSankeyLinksProps) {
-  const getLinkWidth = useCallback(
-    (sourceNode: Node, targetNode: Node, type: string): number => {
-      const node = type === 'source' ? sourceNode : targetNode
-
-      // Calculate total width from the block node
-      let totalWidthFromBlock = 0
-      if (node.type === 'block') {
-        const relevantLinks = links.filter((link) => {
-          if (type === 'source') {
-            return link.source === node.id
-          }
-          return link.target === node.id
-        })
-
-        for (const link of relevantLinks) {
-          const currentSourceNode = nodes.find(
-            (n) => n.id === link.source
-          ) as Node
-          const currentTargetNode = nodes.find(
-            (n) => n.id === link.target
-          ) as Node
-
-          const otherNode =
-            type === 'source' ? currentTargetNode : currentSourceNode
-          const value = otherNode.value ?? 0
-          const linkWidth = logAttenuation(value)
-          totalWidthFromBlock += linkWidth
-        }
-      }
-      if (type === 'source') {
-        if (node.type === 'block') {
-          const txWidth = logAttenuation(node.value ?? 0)
-          const targetWidth = logAttenuation(targetNode.value ?? 0)
-
-          const w = (targetWidth / totalWidthFromBlock) * txWidth
-          return w
-        } else if (node.type === 'text') {
-          const width = logAttenuation(node.value ?? 0)
-          return width
-        }
-      } else if (type === 'target') {
-        if (node.type === 'block') {
-          const value = sourceNode.value ?? 0
-          const txWidth = logAttenuation(node.value ?? 0)
-          const width = logAttenuation(value)
-          const w = (width / totalWidthFromBlock) * txWidth
-          return w
-          // return width
-        } else if (node.type === 'text') {
-          const width = logAttenuation(node.value ?? 0)
-          return width
-        }
-      }
-      return 0 // Add default return value to ensure number is always returned
-    },
-    [links, nodes] // Add dependencies
-  )
-
-  // Add new helper functions to track cumulative heights
-  const getStackedYPosition = useCallback(
-    (node: Node, isSource: boolean, currentLink: Link) => {
-      let cumulativeHeight = 0
-
-      // Sort links by their target/source y-position
-      const relevantLinks = links
-        .filter((link) => {
-          if (isSource) {
-            return link.source === node.id
-          }
-          return link.target === node.id
-        })
-        .toSorted((a, b) => {
-          const aNode = isSource
-            ? nodes.find((n) => n.id === a.target)
-            : nodes.find((n) => n.id === a.source)
-          const bNode = isSource
-            ? nodes.find((n) => n.id === b.target)
-            : nodes.find((n) => n.id === b.source)
-
-          // Sort by y0 for incoming links, y1 for outgoing links
-          const aY = isSource ? (aNode?.y0 ?? 0) : (aNode?.y1 ?? 0)
-          const bY = isSource ? (bNode?.y0 ?? 0) : (bNode?.y1 ?? 0)
-
-          return aY - bY // Sort from top to bottom
-        })
-
-      // Find index of current link in sorted links
-      const currentLinkIndex = relevantLinks.findIndex((link) =>
-        isSource
-          ? link.target === currentLink.target
-          : link.source === currentLink.source
-      )
-
-      // Only accumulate heights for links that come before the current link
-      for (let i = 0; i < currentLinkIndex; i += 1) {
-        const link = relevantLinks[i]
-        const sourceNode = nodes.find((n) => n.id === link.source) as Node
-        const targetNode = nodes.find((n) => n.id === link.target) as Node
-        const width = getLinkWidth(
-          sourceNode,
-          targetNode,
-          isSource ? 'source' : 'target'
-        )
-        cumulativeHeight += width
-      }
-
-      const baseY = isSource ? (node.y1 ?? 0) : (node.y0 ?? 0)
-      return baseY + cumulativeHeight
-    },
-    [links, nodes, getLinkWidth]
-  )
   if (links.length === 0) {
     return null
   }
@@ -205,8 +104,14 @@ function SSSankeyLinks({
   return (
     <>
       {links.map((link, index) => {
-        const sourceNode = nodes.find((n) => n.id === link.source) as Node
-        const targetNode = nodes.find((n) => n.id === link.target) as Node
+        const sourceNode = findNodeById(nodes, link.source)
+        const targetNode = findNodeById(nodes, link.target)
+        if (!sourceNode || !targetNode) {
+          return null
+        }
+
+        const ribbonW = ribbonWidthForLink(ribbonPlan, link.source, link.target)
+
         const isUnspent = targetNode.ioData?.isUnspent
         const isRemainingBalance = targetNode.localId === 'remainingBalance'
         const isCurrentTxMinerFee = targetNode.localId === 'current-minerFee'
@@ -229,17 +134,33 @@ function SSSankeyLinks({
 
         const y1 =
           sourceNode.type === 'block'
-            ? getStackedYPosition(sourceNode, true, link)!
+            ? (sourceNode.y1 ?? 0) +
+              stackedRibbonOffsetBeforeLink(
+                sourceNode,
+                true,
+                link,
+                links,
+                nodes,
+                ribbonPlan
+              )
             : (sourceNode.y1 ?? 0)
 
         const y2 =
           targetNode.type === 'block'
-            ? getStackedYPosition(targetNode, false, link)!
+            ? (targetNode.y0 ?? 0) +
+              stackedRibbonOffsetBeforeLink(
+                targetNode,
+                false,
+                link,
+                links,
+                nodes,
+                ribbonPlan
+              )
             : (targetNode.y0 ?? 0)
 
         const points: LinkPoints = {
-          sourceWidth: getLinkWidth(sourceNode, targetNode, 'source'),
-          targetWidth: getLinkWidth(sourceNode, targetNode, 'target'),
+          sourceWidth: ribbonW,
+          targetWidth: ribbonW,
           x1:
             sourceNode.type === 'block'
               ? (sourceNode.x1 ?? 0) -
@@ -338,25 +259,21 @@ function SSSankeyLinks({
   )
 }
 
-const generateCustomLink = (points: LinkPoints) => {
+function generateCustomLink(points: LinkPoints) {
   const { x1, y1, x2, y2, sourceWidth, targetWidth } = points
 
-  // Define the coordinates of the four points
-  const A = [x1, y1] // Top-left (source top)
-  const B = [x1, y1 + sourceWidth] // Bottom-left (source bottom)
-  const C = [x2, y2] // Top-right (target top)
-  const D = [x2, y2 + targetWidth] // Bottom-right (target bottom)
+  const A = [x1, y1]
+  const B = [x1, y1 + sourceWidth]
+  const C = [x2, y2]
+  const D = [x2, y2 + targetWidth]
 
-  // Calculate horizontal distance for adaptive control points
   const horizontalDistance = Math.abs(x2 - x1)
 
-  // Adaptive control point calculation based on distance
-  // Use a fraction of the horizontal distance for smoother curves
-  // Cap at 60px to prevent overly stretched curves on wide layouts
-  const controlPointOffset = Math.min(horizontalDistance * 0.4, 60)
+  const controlPointOffset = Math.min(
+    horizontalDistance * 0.4,
+    SANKEY_LINK_CURVE_CONTROL_MAX_PX
+  )
 
-  // Control points for the curve from B to D (bottom curve)
-  // First control point extends horizontally from B, second from D
   const [bX, bY] = B
   const [dX, dY] = D
   const [cX, cY] = C
@@ -367,23 +284,18 @@ const generateCustomLink = (points: LinkPoints) => {
   const bottomCurveCP2X = dX - controlPointOffset
   const bottomCurveCP2Y = dY
 
-  // Control points for the curve from C to A (top curve)
-  // First control point extends horizontally from C, second from A
   const topCurveCP1X = cX - controlPointOffset
   const topCurveCP1Y = cY
   const topCurveCP2X = aX + controlPointOffset
   const topCurveCP2Y = aY
 
-  // Build the path
   const moveToA = `M ${A[0]} ${A[1]}`
   const lineToB = `L ${B[0]} ${B[1]}`
 
-  // Bottom curve: B -> D
   const curveToD = `C ${bottomCurveCP1X} ${bottomCurveCP1Y}, ${bottomCurveCP2X} ${bottomCurveCP2Y}, ${D[0]} ${D[1]}`
 
   const lineToC = `L ${C[0]} ${C[1]}`
 
-  // Top curve: C -> A
   const curveToA = `C ${topCurveCP1X} ${topCurveCP1Y}, ${topCurveCP2X} ${topCurveCP2Y}, ${A[0]} ${A[1]}`
 
   return [moveToA, lineToB, curveToD, lineToC, curveToA, 'Z'].join(' ')
