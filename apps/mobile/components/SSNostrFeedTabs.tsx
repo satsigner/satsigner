@@ -58,6 +58,7 @@ type NoteKindFilterOption = {
   labelKey: string
 }
 
+// TODO: move this to constants/nostr
 const NOTE_KIND_FILTER_OPTIONS: NoteKindFilterOption[] = [
   {
     id: 'short_text',
