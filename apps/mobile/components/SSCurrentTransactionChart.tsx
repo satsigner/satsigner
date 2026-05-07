@@ -23,6 +23,8 @@ import {
   BLOCK_WIDTH,
   LINK_MAX_WIDTH,
   NODE_WIDTH,
+  SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
+  SANKEY_CURRENT_TX_EXTENT_TOP_PX,
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
 import { formatAddress, formatNumber } from '@/utils/format'
@@ -139,31 +141,30 @@ function SSCurrentTransactionChart({
   const safeWinH = Math.max(1, winH)
   const GRAPH_HEIGHT = safeWinH * 0.7
   const GRAPH_WIDTH = safeWinW
-  const SANKEY_TOP_MARGIN = 200
 
-  const sankeyGenerator = useMemo(
-    () =>
-      sankey()
-        .nodeWidth(NODE_WIDTH)
-        .nodePadding(160)
-        .extent([
-          [0, SANKEY_TOP_MARGIN],
-          [
-            safeWinW,
-            safeWinH *
-              0.7 *
-              // (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
-              (Math.max(inputMap.size, outputArray.length + 1) * 0.23)
-          ]
-        ])
-        .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id),
-    [inputMap, outputArray, safeWinH, safeWinW]
+  const rowCount = Math.max(inputMap.size, outputArray.length + 1)
+  const rawSankeyExtentBottomY = safeWinH * 0.7 * rowCount * 0.23
+  const sankeyExtentBottomY = Math.max(
+    SANKEY_CURRENT_TX_EXTENT_TOP_PX +
+      SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
+    rawSankeyExtentBottomY
   )
 
-  sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
-    const { depthH } = node as Node
-    return depthH ?? 0
-  })
+  const sankeyGenerator = useMemo(() => {
+    const gen = sankey()
+      .nodeWidth(NODE_WIDTH)
+      .nodePadding(160)
+      .extent([
+        [0, SANKEY_CURRENT_TX_EXTENT_TOP_PX],
+        [safeWinW, sankeyExtentBottomY]
+      ])
+      .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
+    gen.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
+      const { depthH } = node as Node
+      return depthH ?? 0
+    })
+    return gen
+  }, [sankeyExtentBottomY, safeWinW])
 
   const sankeyNodes = useMemo(() => {
     if (inputArray.length === 0 || outputArray.length === 0) {
@@ -378,7 +379,7 @@ function SSCurrentTransactionChart({
           flex: 1,
           justifyContent: 'center',
           paddingHorizontal: 24,
-          paddingTop: SANKEY_TOP_MARGIN
+          paddingTop: SANKEY_CURRENT_TX_EXTENT_TOP_PX
         }}
       >
         <SSText center color="muted" size="sm">
