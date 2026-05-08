@@ -201,6 +201,15 @@ export async function performRecoverOverwrite(
         utxos: []
       })
     }
+    if (data.ecash?.mnemonics) {
+      await Promise.all(
+        Object.entries(data.ecash.mnemonics)
+          .filter((entry): entry is [string, string] => Boolean(entry[1]))
+          .map(([accountId, mnemonic]) =>
+            storeEcashMnemonic(accountId, mnemonic)
+          )
+      )
+    }
     resetNostrSync()
     useNostrStore.getState().clearAllNostrState()
     useEcashStore.getState().clearAllData()
@@ -238,15 +247,6 @@ export async function performRecoverOverwrite(
         quotes: data.ecash.quotes ?? {},
         transactions: data.ecash.transactions ?? {}
       })
-      if (data.ecash.mnemonics) {
-        await Promise.all(
-          Object.entries(data.ecash.mnemonics)
-            .filter((entry): entry is [string, string] => Boolean(entry[1]))
-            .map(([accountId, mnemonic]) =>
-              storeEcashMnemonic(accountId, mnemonic)
-            )
-        )
-      }
     }
     if (data.settings) {
       const cur = useSettingsStore.getState()
@@ -290,25 +290,32 @@ export async function performRecoverOverwrite(
       for (const account of data.ark.accounts) {
         useArkStore.getState().addAccount(account)
       }
-      for (const [network, token] of Object.entries(
+      for (const network of Object.keys(
         data.ark.serverAccessTokens
-      )) {
-        useArkStore
-          .getState()
-          .setServerAccessToken(network as Network, token as string)
+      ) as Network[]) {
+        const token = data.ark.serverAccessTokens[network]
+        if (token !== undefined) {
+          useArkStore.getState().setServerAccessToken(network, token)
+        }
       }
     }
     if (data.serverSettings) {
       const bs = useBlockchainStore.getState()
       bs.setSelectedNetwork(data.serverSettings.selectedNetwork)
-      for (const [network, nc] of Object.entries(data.serverSettings.configs)) {
-        bs.updateServer(network as Network, nc.server)
-        bs.updateConfig(network as Network, nc.config)
+      for (const network of Object.keys(
+        data.serverSettings.configs
+      ) as Network[]) {
+        const nc = data.serverSettings.configs[network]
+        bs.updateServer(network, nc.server)
+        bs.updateConfig(network, nc.config)
       }
-      for (const [network, url] of Object.entries(
+      for (const network of Object.keys(
         data.serverSettings.configsMempool
-      )) {
-        bs.updateConfigMempool(network as Network, url)
+      ) as Network[]) {
+        bs.updateConfigMempool(
+          network,
+          data.serverSettings.configsMempool[network]
+        )
       }
       for (const old of [...bs.customServers]) {
         bs.removeCustomServer(old)

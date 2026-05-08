@@ -62,10 +62,8 @@ export default function LNDRestPage() {
           router.back()
         }, 2000)
       } else {
-        const errBody = (await response.text())
-          .replace(/\s+/g, ' ')
-          .trim()
-          .slice(0, 180)
+        const responseText = await response.text()
+        const errBody = responseText.replace(/\s+/g, ' ').trim().slice(0, 180)
         throw new Error(
           errBody
             ? `getinfo failed (${response.status}): ${errBody}`

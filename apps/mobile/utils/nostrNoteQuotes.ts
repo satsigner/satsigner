@@ -11,7 +11,11 @@ export function parseRepostOriginalEvent(
     return null
   }
   try {
-    const raw = JSON.parse(content) as Record<string, unknown>
+    const parsed: unknown = JSON.parse(content)
+    if (typeof parsed !== 'object' || parsed === null) {
+      return null
+    }
+    const raw = parsed as Record<string, unknown>
     if (
       typeof raw.id !== 'string' ||
       typeof raw.content !== 'string' ||
@@ -22,13 +26,17 @@ export function parseRepostOriginalEvent(
     ) {
       return null
     }
+    const tagsRaw = raw.tags
+    const tags = Array.isArray(tagsRaw)
+      ? tagsRaw.filter((t): t is string[] => Array.isArray(t))
+      : []
     return {
-      content: raw.content,
-      created_at: raw.created_at,
-      id: raw.id,
-      kind: raw.kind,
-      pubkey: raw.pubkey,
-      tags: (raw.tags as unknown[]).filter(Array.isArray) as string[][]
+      content: raw.content as string,
+      created_at: raw.created_at as number,
+      id: raw.id as string,
+      kind: raw.kind as number,
+      pubkey: raw.pubkey as string,
+      tags
     }
   } catch {
     return null

@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer'
 
-import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
-import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
+import NDK, { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
+import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NetInfo from '@react-native-community/netinfo'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 
@@ -232,15 +232,15 @@ export class NostrAPI {
         : null
     }
 
-    const filter = {
+    const filter: NDKFilter = {
       authors: [pk],
-      kinds: [0 as NDKKind],
+      kinds: [NDKKind.Metadata],
       limit: 10
     }
     const FETCH_KIND0_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
-      filter as Record<string, unknown>,
+      filter,
       FETCH_KIND0_TIMEOUT_MS
     )
 
@@ -304,14 +304,14 @@ export class NostrAPI {
     }
 
     const FETCH_KIND0_BATCH_TIMEOUT_MS = 15000
-    const filter = {
+    const filter: NDKFilter = {
       authors: validKeys,
-      kinds: [0 as NDKKind],
+      kinds: [NDKKind.Metadata],
       limit: validKeys.length
     }
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
-      filter as Record<string, unknown>,
+      filter,
       FETCH_KIND0_BATCH_TIMEOUT_MS
     )
 
@@ -360,15 +360,15 @@ export class NostrAPI {
       return null
     }
 
-    const filter = {
+    const filter: NDKFilter = {
       authors: [hexPubkey],
-      kinds: [10003 as NDKKind],
+      kinds: [NDKKind.BookmarkList],
       limit: 1
     }
     const FETCH_BOOKMARKS_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
-      filter as Record<string, unknown>,
+      filter,
       FETCH_BOOKMARKS_TIMEOUT_MS
     )
 
@@ -426,7 +426,7 @@ export class NostrAPI {
 
     const event = new NDKEvent(this.ndk, {
       content,
-      kind: 10003 as NDKKind,
+      kind: NDKKind.BookmarkList,
       tags
     })
 
@@ -449,15 +449,15 @@ export class NostrAPI {
       return []
     }
 
-    const filter = {
+    const filter: NDKFilter = {
       authors: [hexPubkey],
-      kinds: [3 as NDKKind],
+      kinds: [NDKKind.Contacts],
       limit: 40
     }
     const FETCH_KIND3_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
-      filter as Record<string, unknown>,
+      filter,
       FETCH_KIND3_TIMEOUT_MS
     )
 
@@ -540,9 +540,9 @@ export class NostrAPI {
     }
 
     const kindList = kinds.length > 0 ? kinds : [1]
-    const filter: Record<string, unknown> = {
+    const filter: NDKFilter = {
       authors: [hexPubkey],
-      kinds: kindList.map((k) => k as NDKKind),
+      kinds: kindList as NDKKind[],
       limit
     }
     if (until) {
@@ -620,9 +620,9 @@ export class NostrAPI {
     const authors = following.slice(0, MAX_AUTHORS)
 
     const kindList = kinds.length > 0 ? kinds : [1]
-    const filter: Record<string, unknown> = {
+    const filter: NDKFilter = {
       authors,
-      kinds: kindList.map((k) => k as NDKKind),
+      kinds: kindList as NDKKind[],
       limit
     }
     if (until) {
@@ -701,13 +701,13 @@ export class NostrAPI {
    */
   private static fetchManyWithTimeout(
     ndk: NDK,
-    filter: Record<string, unknown>,
+    filter: NDKFilter,
     timeoutMs: number
   ): Promise<Set<NDKEvent>> {
     return new Promise((resolve) => {
       let settled = false
       const collected = new Set<NDKEvent>()
-      const sub = ndk.subscribe(filter as never, { closeOnEose: false })
+      const sub = ndk.subscribe(filter, { closeOnEose: false })
 
       const finish = () => {
         if (settled) {
@@ -797,10 +797,10 @@ export class NostrAPI {
     }
 
     const FETCH_EVENT_BATCH_TIMEOUT_MS = 15000
-    const filter = { ids: validIds, limit: validIds.length }
+    const filter: NDKFilter = { ids: validIds, limit: validIds.length }
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
-      filter as Record<string, unknown>,
+      filter,
       FETCH_EVENT_BATCH_TIMEOUT_MS
     )
 
@@ -984,7 +984,7 @@ export class NostrAPI {
 
     const subscriptionQuery = {
       '#p': [recipientPubKeyHex],
-      kinds: [1059 as NDKKind],
+      kinds: [NDKKind.GiftWrap],
       ...(limit && { limit }),
       ...(sinceTimestamp !== undefined && { since: sinceTimestamp })
     }
