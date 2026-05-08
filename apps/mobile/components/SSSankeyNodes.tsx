@@ -229,7 +229,6 @@ function NodeText({
   const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
   const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
   const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
-  const pastTxMinerFeeIconSvg = useSVG(require('@/assets/gray-miner.svg'))
   const blockNodeParagraph = useMemo(() => {
     if (!customFontManager) {
       return null
@@ -296,8 +295,6 @@ function NodeText({
     ioData?.txId,
     isBlock
   ])
-
-  const isPastMinerFee = localId.startsWith('past-minerFee')
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) {
@@ -696,11 +693,10 @@ function NodeText({
         )}
       {isMiningFee &&
         minerFeeIconSvg &&
-        pastTxMinerFeeIconSvg &&
         placeholderRectsMinerIcon.length > 0 &&
         placeholderRectsMinerIcon[0] && (
           <ImageSVG
-            svg={isPastMinerFee ? pastTxMinerFeeIconSvg : minerFeeIconSvg}
+            svg={minerFeeIconSvg}
             x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
             y={paragraphY + placeholderRectsMinerIcon[0].rect.y}
             width={placeholderRectsMinerIcon[0].rect.width}
