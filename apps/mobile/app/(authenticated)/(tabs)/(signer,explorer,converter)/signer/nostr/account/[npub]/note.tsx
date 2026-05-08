@@ -4,7 +4,6 @@ import { nip19 } from 'nostr-tools'
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -54,6 +53,7 @@ import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
@@ -149,6 +149,7 @@ export default function NostrNotePage() {
   const [zapSortAsc, setZapSortAsc] = useState(false)
   const [zapReceiptsLoading, setZapReceiptsLoading] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
+  const [bookmarkModalVisible, setBookmarkModalVisible] = useState(false)
 
   const zapPrefs = identity?.zapPreferences
   const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
@@ -170,6 +171,8 @@ export default function NostrNotePage() {
   const clearPendingZap = useZapFlowStore((state) => state.clearPendingZap)
   const setZapResult = useZapFlowStore((state) => state.setZapResult)
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const btcPrice = usePriceStore((state) => state.btcPrice)
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   const decoded = nostrUri ? decodeNostrContent(nostrUri) : null
 
@@ -476,6 +479,13 @@ export default function NostrNotePage() {
             ownPubkeysRef.current
           )
         }
+        if (!event) {
+          event = await NostrAPI.fetchEventFromRelays(
+            replyParentId,
+            NostrAPI.INDEXING_RELAYS,
+            ownPubkeysRef.current
+          )
+        }
         if (cancelled) {
           return
         }
@@ -618,22 +628,7 @@ export default function NostrNotePage() {
   }
 
   function handleBookmarkPress() {
-    Alert.alert(t('nostrIdentity.note.bookmarkTitle'), undefined, [
-      {
-        onPress: () => handleBookmarkAction({ source: 'public', type: 'add' }),
-        text: t('nostrIdentity.note.bookmarkPublic')
-      },
-      {
-        onPress: () => handleBookmarkAction({ source: 'private', type: 'add' }),
-        text: t('nostrIdentity.note.bookmarkPrivate')
-      },
-      {
-        onPress: () => handleBookmarkAction({ type: 'remove' }),
-        style: 'destructive',
-        text: t('nostrIdentity.note.bookmarkRemove')
-      },
-      { style: 'cancel', text: t('common.cancel') }
-    ])
+    setBookmarkModalVisible(true)
   }
 
   async function handleZap(amountSats: number, comment?: string) {
@@ -1588,6 +1583,55 @@ export default function NostrNotePage() {
               </SSText>
             )}
 
+            {notFound && !fetched && (
+              <SSVStack itemsCenter gap="md" style={styles.notFoundCard}>
+                <SSText color="muted">
+                  {t('nostrIdentity.note.notFoundOnYourRelays')}
+                </SSText>
+                <SSText size="xs" type="mono" color="muted">
+                  {truncateNpub(decoded.raw, 16)}
+                </SSText>
+
+                {relayHints && relayHints.length > 0 && !triedHints && (
+                  <SSVStack gap="xs" style={styles.retrySection}>
+                    <SSText size="xs" color="muted" center>
+                      {t('nostrIdentity.note.hintedRelaysAvailable')}
+                    </SSText>
+                    {relayHints.map((url) => (
+                      <SSText
+                        key={url}
+                        size="xxs"
+                        type="mono"
+                        color="muted"
+                        center
+                      >
+                        {url}
+                      </SSText>
+                    ))}
+                    <SSButton
+                      label={t('nostrIdentity.note.tryHintedRelays')}
+                      variant="outline"
+                      onPress={handleTryHintedRelays}
+                    />
+                  </SSVStack>
+                )}
+
+                {!triedBroadSearch && (
+                  <SSButton
+                    label={t('nostrIdentity.note.searchMoreRelays')}
+                    variant="ghost"
+                    onPress={handleBroadSearch}
+                  />
+                )}
+
+                {triedBroadSearch && (
+                  <SSText size="xs" color="muted" center>
+                    {t('nostrIdentity.note.exhaustedRelays')}
+                  </SSText>
+                )}
+              </SSVStack>
+            )}
+
             {replyParentId && fetched && noteLooksLikeReply(fetched.tags) ? (
               <SSVStack gap="sm" style={styles.replyParentSection}>
                 <TouchableOpacity
@@ -1658,55 +1702,6 @@ export default function NostrNotePage() {
                 ) : null}
               </SSVStack>
             ) : null}
-
-            {notFound && !fetched && (
-              <SSVStack itemsCenter gap="md" style={styles.notFoundCard}>
-                <SSText color="muted">
-                  {t('nostrIdentity.note.notFoundOnYourRelays')}
-                </SSText>
-                <SSText size="xs" type="mono" color="muted">
-                  {truncateNpub(decoded.raw, 16)}
-                </SSText>
-
-                {relayHints && relayHints.length > 0 && !triedHints && (
-                  <SSVStack gap="xs" style={styles.retrySection}>
-                    <SSText size="xs" color="muted" center>
-                      {t('nostrIdentity.note.hintedRelaysAvailable')}
-                    </SSText>
-                    {relayHints.map((url) => (
-                      <SSText
-                        key={url}
-                        size="xxs"
-                        type="mono"
-                        color="muted"
-                        center
-                      >
-                        {url}
-                      </SSText>
-                    ))}
-                    <SSButton
-                      label={t('nostrIdentity.note.tryHintedRelays')}
-                      variant="outline"
-                      onPress={handleTryHintedRelays}
-                    />
-                  </SSVStack>
-                )}
-
-                {!triedBroadSearch && (
-                  <SSButton
-                    label={t('nostrIdentity.note.searchMoreRelays')}
-                    variant="ghost"
-                    onPress={handleBroadSearch}
-                  />
-                )}
-
-                {triedBroadSearch && (
-                  <SSText size="xs" color="muted" center>
-                    {t('nostrIdentity.note.exhaustedRelays')}
-                  </SSText>
-                )}
-              </SSVStack>
-            )}
           </SSVStack>
         </ScrollView>
       )}
@@ -1716,8 +1711,45 @@ export default function NostrNotePage() {
         onSelect={(method) => navigateToPayment(method)}
         methods={availablePaymentMethods}
         amountSats={payAmount}
+        btcPrice={btcPrice}
+        fiatCurrency={fiatCurrency}
       />
 
+      <SSModal
+        visible={bookmarkModalVisible}
+        onClose={() => setBookmarkModalVisible(false)}
+        label={t('common.cancel')}
+      >
+        <SSVStack gap="sm" style={{ width: '100%' }}>
+          <SSText center uppercase>
+            {t('nostrIdentity.note.bookmarkTitle')}
+          </SSText>
+          <SSButton
+            label={t('nostrIdentity.note.bookmarkPublic')}
+            variant="secondary"
+            onPress={() => {
+              setBookmarkModalVisible(false)
+              void handleBookmarkAction({ source: 'public', type: 'add' })
+            }}
+          />
+          <SSButton
+            label={t('nostrIdentity.note.bookmarkPrivate')}
+            variant="secondary"
+            onPress={() => {
+              setBookmarkModalVisible(false)
+              void handleBookmarkAction({ source: 'private', type: 'add' })
+            }}
+          />
+          <SSButton
+            label={t('nostrIdentity.note.bookmarkRemove')}
+            variant="ghost"
+            onPress={() => {
+              setBookmarkModalVisible(false)
+              void handleBookmarkAction({ type: 'remove' })
+            }}
+          />
+        </SSVStack>
+      </SSModal>
       <SSModal
         visible={qrModalVisible}
         onClose={() => setQrModalVisible(false)}
