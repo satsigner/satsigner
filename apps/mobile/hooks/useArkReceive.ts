@@ -34,18 +34,24 @@ export function useArkAddress(accountId: string | null | undefined) {
   })
 }
 
+type CreateBolt11InvoiceInput = {
+  amountSats: number
+  description?: string
+}
+
 export function useArkBolt11InvoiceMutation(
   accountId: string | null | undefined
 ) {
-  return useMutation<ArkBolt11Invoice, Error, number>({
-    mutationFn: (amountSats: number) => {
+  return useMutation<ArkBolt11Invoice, Error, CreateBolt11InvoiceInput>({
+    mutationFn: ({ amountSats, description }) => {
       if (!accountId) {
         throw new Error('Ark account is required')
       }
       return createArkBolt11Invoice(
         getAccountServerId(accountId),
         accountId,
-        amountSats
+        amountSats,
+        description
       )
     }
   })

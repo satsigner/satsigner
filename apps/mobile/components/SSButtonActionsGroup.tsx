@@ -11,24 +11,59 @@ import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
 import { type ContentContext } from '@/utils/contentDetector'
 
-type SSButtonActionsGroupProps = {
+type SSButtonActionsGroupBase = {
   onSend: () => void
-  onPaste: () => void
   onCamera: () => void
-  onNFC: () => void
   onReceive: () => void
   context: ContentContext
-  nfcAvailable?: boolean
 }
 
-function SSButtonActionsGroup({
-  onSend,
-  onPaste,
-  onCamera,
-  onNFC,
-  onReceive,
-  nfcAvailable = true
-}: SSButtonActionsGroupProps) {
+type SSButtonActionsGroupProps =
+  | (SSButtonActionsGroupBase & {
+      compact: true
+    })
+  | (SSButtonActionsGroupBase & {
+      compact?: false
+      onPaste: () => void
+      onNFC: () => void
+      nfcAvailable?: boolean
+    })
+
+function SSButtonActionsGroup(props: SSButtonActionsGroupProps) {
+  if (props.compact) {
+    return (
+      <SSHStack gap="none">
+        <SSActionButton
+          onPress={props.onSend}
+          style={[styles.actionButton, styles.actionButtonCompactWide]}
+        >
+          <SSText uppercase>Send</SSText>
+        </SSActionButton>
+        <SSActionButton
+          onPress={props.onCamera}
+          style={[styles.actionButton, styles.actionButtonCompactNarrow]}
+        >
+          <SSIconCamera height={13} width={18} />
+        </SSActionButton>
+        <SSActionButton
+          onPress={props.onReceive}
+          style={[styles.actionButton, styles.actionButtonCompactWide]}
+        >
+          <SSText uppercase>Receive</SSText>
+        </SSActionButton>
+      </SSHStack>
+    )
+  }
+
+  const {
+    onSend,
+    onPaste,
+    onCamera,
+    onNFC,
+    onReceive,
+    nfcAvailable = true
+  } = props
+
   return (
     <SSHStack gap="none">
       <SSActionButton
@@ -75,6 +110,12 @@ const styles = StyleSheet.create({
     borderRightColor: Colors.gray[950],
     borderTopColor: Colors.gray[800],
     borderWidth: 1
+  },
+  actionButtonCompactNarrow: {
+    width: '20%'
+  },
+  actionButtonCompactWide: {
+    width: '40%'
   },
   actionButtonNarrow: {
     width: '16.5%'

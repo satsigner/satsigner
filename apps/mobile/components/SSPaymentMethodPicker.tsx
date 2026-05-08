@@ -10,6 +10,7 @@ export type PaymentMethod = {
   label: string
   type: 'lightning' | 'ecash' | 'ark'
   detail?: string
+  accountId?: string
 }
 
 type SSPaymentMethodPickerProps = {

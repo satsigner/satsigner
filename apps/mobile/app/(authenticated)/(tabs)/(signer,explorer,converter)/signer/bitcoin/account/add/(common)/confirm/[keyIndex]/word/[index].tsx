@@ -56,9 +56,8 @@ export default function Confirm() {
   )
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  const candidateWords = getConfirmWordCandidates(
-    mnemonic[Number(index)],
-    mnemonic.join(' ')
+  const [candidateWords] = useState(() =>
+    getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' '))
   )
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()

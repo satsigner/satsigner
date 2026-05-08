@@ -54,7 +54,12 @@ export type ArkVtxo = {
   state: string
 }
 
-export type ArkSendKind = 'arkoor' | 'bolt11' | 'lnaddress' | 'lnurl'
+export type ArkSendKind =
+  | 'arkoor'
+  | 'bolt11'
+  | 'lnaddress'
+  | 'lnurl'
+  | 'onchain'
 
 export type ArkSendInput =
   | { kind: 'arkoor'; address: string; amountSats: number }
@@ -66,6 +71,7 @@ export type ArkSendInput =
       comment?: string
     }
   | { kind: 'lnurl'; lnurl: string; amountSats: number; comment?: string }
+  | { kind: 'onchain'; address: string; amountSats: number }
 
 export type ArkSendOutcome = {
   kind: ArkSendKind

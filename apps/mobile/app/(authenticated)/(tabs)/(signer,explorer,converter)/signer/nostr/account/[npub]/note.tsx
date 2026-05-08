@@ -38,6 +38,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useArkStore } from '@/store/ark'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
@@ -130,6 +131,7 @@ export default function NostrNotePage() {
 
   const lightningConfig = useLightningStore((state) => state.config)
   const { mints } = useEcash()
+  const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingZap = useZapFlowStore((state) => state.pendingZap)
   const zapResult = useZapFlowStore((state) => state.zapResult)
@@ -139,7 +141,11 @@ export default function NostrNotePage() {
 
   const decoded = nostrUri ? decodeNostrContent(nostrUri) : null
 
-  const availablePaymentMethods = buildPaymentMethods(lightningConfig, mints)
+  const availablePaymentMethods = buildPaymentMethods(
+    lightningConfig,
+    mints,
+    arkAccounts
+  )
 
   const ownPubkeyHex = getPubKeyHexFromNpub(npub ?? '') ?? ''
   const [ownPubkeys] = useState(() =>
@@ -641,8 +647,15 @@ export default function NostrNotePage() {
         params: bolt11 ? { invoice: bolt11 } : undefined,
         pathname: '/signer/ecash/send'
       })
-    } else if (method.type === 'ark') {
-      toast.info(t('nostrIdentity.note.arkComingSoon'))
+    } else if (method.type === 'ark' && method.accountId && bolt11) {
+      router.navigate({
+        params: {
+          amountSats: String(sats),
+          id: method.accountId,
+          invoice: bolt11
+        },
+        pathname: '/signer/ark/account/[id]/pay-invoice'
+      })
     }
   }
 

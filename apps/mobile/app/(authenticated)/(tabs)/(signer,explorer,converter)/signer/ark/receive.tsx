@@ -34,6 +34,7 @@ export default function ArkReceivePage() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<ReceiveTab>('ark')
   const [amount, setAmount] = useState('')
+  const [description, setDescription] = useState('')
 
   const addressQuery = useArkAddress(id)
   const invoiceMutation = useArkBolt11InvoiceMutation(id)
@@ -59,16 +60,24 @@ export default function ArkReceivePage() {
       toast.error(t('ark.error.invalidAmount'))
       return
     }
-    invoiceMutation.mutate(amountSats, {
-      onError: (error) => {
-        const reason = error instanceof Error ? error.message : 'unknown'
-        toast.error(`${t('ark.error.invoiceGeneration')}: ${reason}`)
+    const trimmedDescription = description.trim()
+    invoiceMutation.mutate(
+      {
+        amountSats,
+        description: trimmedDescription || undefined
+      },
+      {
+        onError: (error) => {
+          const reason = error instanceof Error ? error.message : 'unknown'
+          toast.error(`${t('ark.error.invoiceGeneration')}: ${reason}`)
+        }
       }
-    })
+    )
   }
 
   function handleResetInvoice() {
     invoiceMutation.reset()
+    setDescription('')
   }
 
   return (
@@ -141,6 +150,17 @@ export default function ArkReceivePage() {
                       }
                       placeholder="0"
                       keyboardType="numeric"
+                    />
+                  </SSVStack>
+                  <SSVStack gap="xs">
+                    <SSText color="muted" size="xs" uppercase>
+                      {t('ark.receive.description')}
+                    </SSText>
+                    <SSTextInput
+                      align="left"
+                      value={description}
+                      onChangeText={setDescription}
+                      placeholder={t('ark.receive.descriptionPlaceholder')}
                     />
                   </SSVStack>
                   <SSButton

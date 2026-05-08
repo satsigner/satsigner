@@ -483,9 +483,10 @@ export async function detectContentByContext(
       detected = detectArkContent(data) || detectLightningContent(data)
       if (!detected) {
         const bitcoinDetected = await detectBitcoinContent(data)
-        if (bitcoinDetected?.type === 'bitcoin_uri') {
-          // BIP-321 URI may embed a lightning or ark payment method
-          // that the ark send flow can pay — keep it as a valid type.
+        if (
+          bitcoinDetected?.type === 'bitcoin_uri' ||
+          bitcoinDetected?.type === 'bitcoin_address'
+        ) {
           detected = bitcoinDetected
         } else if (bitcoinDetected) {
           bitcoinDetected.type = 'incompatible'
@@ -556,6 +557,7 @@ export function isContentTypeSupportedInContext(
         'lightning_invoice',
         'lnurl',
         'lightning_address',
+        'bitcoin_address',
         'bitcoin_uri'
       ].includes(contentType)
     case 'ecash':

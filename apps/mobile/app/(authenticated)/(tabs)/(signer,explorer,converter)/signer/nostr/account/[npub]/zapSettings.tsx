@@ -14,6 +14,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useArkStore } from '@/store/ark'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
@@ -34,7 +35,8 @@ export default function ZapSettingsPage() {
 
   const lightningConfig = useLightningStore((state) => state.config)
   const { mints } = useEcash()
-  const wallets = buildPaymentMethods(lightningConfig, mints)
+  const arkAccounts = useArkStore((state) => state.accounts)
+  const wallets = buildPaymentMethods(lightningConfig, mints, arkAccounts)
 
   const prefs = identity?.zapPreferences
   const [presets, setPresets] = useState<number[]>(
