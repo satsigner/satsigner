@@ -15,12 +15,8 @@ import SSSeedQR from '@/components/SSSeedQR'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-<<<<<<< reusable-pin-auth
 import { PIN_KEY } from '@/config/auth'
-=======
-import { PIN_KEY, SALT_KEY } from '@/config/auth'
 import useAccountNameValidation from '@/hooks/useAccountNameValidation'
->>>>>>> master
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
@@ -112,16 +108,12 @@ export default function AccountSettings() {
   function handleOnViewMnemonic() {
     setPinEntryReason('mnemonic')
     setShowPinEntry(true)
-<<<<<<< reusable-pin-auth
   }
 
   function handleConfirmWalletDeletionWithPin() {
     setPinEntryReason('deletion')
     setDeleteModalVisible(false)
     setShowPinEntry(true)
-=======
-    setPin(emptyPin())
->>>>>>> master
   }
 
   function handleClosePinEntry() {
