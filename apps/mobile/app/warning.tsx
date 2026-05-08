@@ -95,7 +95,11 @@ export default function Warning() {
                   size="5xl"
                   color="white"
                   uppercase
-                  style={{ fontWeight: '300', letterSpacing: 2, lineHeight: 35 }}
+                  style={{
+                    fontWeight: '300',
+                    letterSpacing: 2,
+                    lineHeight: 35
+                  }}
                 >
                   {t('common.warning')}
                 </SSText>

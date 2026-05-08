@@ -2809,43 +2809,63 @@
       "title": "Quick tour?"
     },
     "continueStep": {
-      "description": "Tap Continue to create your wallet.",
+      "description": "Tap Continue to move to key generation.",
       "title": "All set!"
     },
+    "mnemonicStep": {
+      "description": "Write these down — they're your wallet backup. Tap Confirm Seed when done.",
+      "title": "Your 12 secret words"
+    },
+    "importMnemonicStep": {
+      "description": "Your test seed is ready — tap Import Seed to continue.",
+      "title": "Seed loaded"
+    },
     "singleSigStep": {
-      "description": "Defaults are pre-set for signet. Tap Generate to create your keys.",
-      "title": "Generate new keys"
+      "description": "Tap Import Seed to load the pre-funded test wallet.",
+      "title": "Import our test seed"
     },
     "selfSendLabel": "Tour self-send",
     "step": "Step %{current} of %{total}",
     "steps": {
+      "goToBitcoin": {
+        "description": "No real funds. Authentic Bitcoin mechanics. Takes about 5 minutes.",
+        "title": "Practice Bitcoin on Signet"
+      },
+      "addAccount": {
+        "description": "Tap Add Account to create a test wallet.",
+        "title": "Add your test wallet"
+      },
       "accountSetup": {
-        "description": "You're on Signet — Bitcoin's test network. Real mechanics, no real funds at risk.",
-        "title": "Create your test wallet"
+        "description": "Give it any name — this is your test wallet.",
+        "title": "Name your wallet"
       },
       "broadcastConfirm": {
-        "description": "Your transaction is live on signet. You now have more UTXOs than you started with.",
+        "description": "It's live on signet. You now have more UTXOs than before.",
         "title": "Transaction sent!"
       },
       "noUtxos": {
-        "description": "Paste this address into a signet faucet to receive test coins, then restart the tour.",
+        "description": "First, sync your wallet using the sync button. If coins still don't appear, paste this address into a signet faucet.",
         "title": "No coins yet"
       },
       "previewTx": {
-        "description": "A self-send to multiple outputs — so you'll always have coins available for future runs.",
+        "description": "Sending to yourself creates more UTXOs — so you'll always have coins for future practice.",
         "title": "Review the transaction"
       },
       "receive": {
-        "description": "Share this address or paste it into a signet faucet to get test coins. Tap Next when ready.",
+        "description": "Fund this with signet coins from a faucet. Tap Next when ready.",
         "title": "Your receive address"
       },
       "selectUtxos": {
-        "description": "These are your UTXOs — unspent outputs. Select them all to build the transaction.",
+        "description": "Tap all your UTXOs, then tap Next to build the transaction.",
         "title": "Select your coins"
       },
       "signTx": {
-        "description": "Tap Sign to authorize and broadcast this transaction to the signet network.",
-        "title": "Sign & broadcast"
+        "description": "Tap Sign to authorize and broadcast to signet.",
+        "title": "Sign it"
+      },
+      "exploreWallet": {
+        "description": "Ready to send a transaction? Explore your wallet.",
+        "title": "Your wallet is ready"
       }
     }
   },

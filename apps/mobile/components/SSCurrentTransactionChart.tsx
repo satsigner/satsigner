@@ -206,8 +206,8 @@ function SSCurrentTransactionChart({
   }, [inputMap.size, minerFee, outputArray.length, safeWinH])
 
   const GRAPH_HEIGHT = chartGeometry.graphHeight
-  const {extentTop} = chartGeometry
-  const {sankeyExtentBottomY} = chartGeometry
+  const { extentTop } = chartGeometry
+  const { sankeyExtentBottomY } = chartGeometry
 
   /** Same space as Skia coords & overlay — not useLayout (often 0×0 before layout). */
   const chartCenter = useMemo(

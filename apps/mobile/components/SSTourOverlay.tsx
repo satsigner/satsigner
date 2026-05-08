@@ -3,13 +3,10 @@ import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSTourSpeechBubble from '@/components/SSTourSpeechBubble'
-import {
-  TOUR_STEP_CONFIGS,
-  TOUR_TOTAL_STEPS
-} from '@/constants/tour'
+import { TOUR_STEP_CONFIGS, TOUR_TOTAL_STEPS } from '@/constants/tour'
 import { useTourNavigation } from '@/hooks/useTourNavigation'
 import { t } from '@/locales'
-import { useTourStore } from '@/store/tour'
+import { type TourStep, useTourStore } from '@/store/tour'
 
 const TOUR_DEMO_NAMES = [
   'Signet Demo',
@@ -28,7 +25,18 @@ function randomDemoName(): string {
 
 const STEPS_WITHOUT_OVERLAY = new Set(['idle', 'broadcast_confirm'])
 
-const STEPS_WITH_NEXT = new Set(['receive', 'select_utxos', 'preview_tx'])
+const STEPS_WITH_NEXT = new Set([
+  'explore_wallet',
+  'receive',
+  'select_utxos',
+  'preview_tx'
+])
+
+const STEPS_WITHOUT_STEP_LABEL = new Set<TourStep>([
+  'go_to_bitcoin',
+  'add_account',
+  'no_utxos'
+])
 
 function SSTourOverlay() {
   const status = useTourStore((state) => state.status)
@@ -45,40 +53,57 @@ function SSTourOverlay() {
   }
 
   const stepConfig =
-    currentStep !== 'idle'
-      ? TOUR_STEP_CONFIGS[currentStep]
-      : null
+    currentStep !== 'idle' ? TOUR_STEP_CONFIGS[currentStep] : null
 
   if (!stepConfig) {
     return null
   }
 
-  // Exact add page vs sub-pages (singleSig, created, etc.)
+  const isOnAccountListAddAccount =
+    currentStep === 'add_account' && pathname.includes('/bitcoin/accountList')
+
+  // Exact add page vs sub-pages (singleSig, mnemonic, created, etc.)
   const isOnExactAddPage = pathname.endsWith('/account/add')
   const isOnSingleSigPage =
-    currentStep === 'account_setup' && pathname.includes('/account/add/singleSig')
+    currentStep === 'account_setup' &&
+    pathname.includes('/account/add/singleSig')
+  const isOnMnemonicPage =
+    currentStep === 'account_setup' &&
+    pathname.includes('/account/add/') &&
+    pathname.includes('/generate/mnemonic')
+  const isOnImportMnemonicPage =
+    currentStep === 'account_setup' &&
+    pathname.includes('/account/add/') &&
+    pathname.includes('/import/mnemonic')
   const isOnAddSubPage =
     currentStep === 'account_setup' &&
     pathname.includes('/account/add/') &&
     !pathname.endsWith('/account/add') &&
-    !isOnSingleSigPage
+    !isOnSingleSigPage &&
+    !isOnMnemonicPage &&
+    !isOnImportMnemonicPage
+
+  // Hide account_setup bubble when not on an account/add page (stale persisted state)
+  const isAccountSetupStep = currentStep === 'account_setup'
+  const isOnAnyAddPage = pathname.includes('/account/add')
+  if (isAccountSetupStep && !isOnAnyAddPage) {
+    return null
+  }
 
   // Hide during account creation sub-flow so user can proceed normally
   if (isOnAddSubPage) {
     return null
   }
 
-  // Heroic intro: first step before user has navigated to the add page
-  const isHeroicIntro =
-    currentStep === 'account_setup' && !isOnExactAddPage && !isOnSingleSigPage
+  // Heroic intro: go_to_bitcoin step (always heroic, any screen)
+  const isHeroicIntro = currentStep === 'go_to_bitcoin'
 
-  const stepLabel =
-    currentStep !== 'no_utxos'
-      ? t('tour.step', {
-          current: stepConfig.stepNumber,
-          total: TOUR_TOTAL_STEPS
-        })
-      : undefined
+  const stepLabel = STEPS_WITHOUT_STEP_LABEL.has(currentStep)
+    ? undefined
+    : t('tour.step', {
+        current: stepConfig.stepNumber,
+        total: TOUR_TOTAL_STEPS
+      })
 
   const bubblePosition = isOnExactAddPage ? 'top' : stepConfig.bubblePosition
 
@@ -87,15 +112,28 @@ function SSTourOverlay() {
     currentStep === 'account_setup' &&
     prefillAccountName !== null
 
+  const showAccountListBubble = isOnAccountListAddAccount
   const showSingleSigBubble = isOnSingleSigPage
+  const showMnemonicBubble = isOnMnemonicPage
+  const showImportMnemonicBubble = isOnImportMnemonicPage
 
   return (
     <View
       pointerEvents="box-none"
       style={[styles.container, isHeroicIntro && styles.heroOverlay]}
     >
-      {showContinueHint ? (
+      {showAccountListBubble ? (
         <SSTourSpeechBubble
+          key="bubble_add_account"
+          position="top"
+          wrapperStyle={{ top: 280 }}
+          title={t('tour.steps.addAccount.title')}
+          description={t('tour.steps.addAccount.description')}
+          onExit={handleExit}
+        />
+      ) : showContinueHint ? (
+        <SSTourSpeechBubble
+          key="bubble_continue_hint"
           position="bottom"
           arrowDirection="down"
           bottomOffset={140}
@@ -106,12 +144,31 @@ function SSTourOverlay() {
         />
       ) : showSingleSigBubble ? (
         <SSTourSpeechBubble
+          key="bubble_single_sig"
           position="bottom"
           arrowDirection="down"
-          bottomOffset={80}
+          bottomOffset={280}
           title={t('tour.singleSigStep.title')}
           description={t('tour.singleSigStep.description')}
+          onExit={handleExit}
+        />
+      ) : showMnemonicBubble ? (
+        <SSTourSpeechBubble
+          key="bubble_mnemonic"
+          position="bottom"
+          title={t('tour.mnemonicStep.title')}
+          description={t('tour.mnemonicStep.description')}
           stepLabel={stepLabel}
+          onExit={handleExit}
+        />
+      ) : showImportMnemonicBubble ? (
+        <SSTourSpeechBubble
+          key="bubble_import_mnemonic"
+          position="bottom"
+          arrowDirection="up"
+          bottomOffset={150}
+          title={t('tour.importMnemonicStep.title')}
+          description={t('tour.importMnemonicStep.description')}
           onExit={handleExit}
         />
       ) : (
@@ -128,13 +185,13 @@ function SSTourOverlay() {
             <SSButton
               label={t('tour.letsStart')}
               variant="secondary"
-              onPress={() => advance('account_setup')}
+              onPress={() => advance('go_to_bitcoin')}
             />
           )}
           {isOnExactAddPage && currentStep === 'account_setup' && (
             <SSButton
               label={t('tour.fillRandom')}
-              variant="outline"
+              variant="ghost"
               onPress={() => setPrefillAccountName(randomDemoName())}
             />
           )}

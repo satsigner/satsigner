@@ -1,5 +1,11 @@
-import { type ReactNode } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { useEffect, type ReactNode } from 'react'
+import { StyleSheet, TouchableOpacity, View, type ViewStyle } from 'react-native'
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming
+} from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { SSIconCloseThin } from '@/components/icons'
@@ -8,6 +14,11 @@ import { type TourBubblePosition } from '@/constants/tour'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 
+const SPRING_CONFIG = { damping: 22, mass: 1.2, stiffness: 100 }
+const FADE_DURATION_MS = 280
+const INITIAL_SCALE = 0.92
+const ENTER_OFFSET_PX = 18
+
 type SSTourSpeechBubbleProps = {
   position: TourBubblePosition
   title: string
@@ -15,9 +26,11 @@ type SSTourSpeechBubbleProps = {
   stepLabel?: string
   onExit?: () => void
   heroic?: boolean
+  inverted?: boolean
   children?: ReactNode
   arrowDirection?: 'up' | 'down'
   bottomOffset?: number
+  wrapperStyle?: ViewStyle
 }
 
 function SSTourSpeechBubble({
@@ -27,19 +40,50 @@ function SSTourSpeechBubble({
   stepLabel,
   onExit,
   heroic = false,
+  inverted,
   children,
   arrowDirection,
-  bottomOffset = 16
+  bottomOffset = 16,
+  wrapperStyle
 }: SSTourSpeechBubbleProps) {
   const insets = useSafeAreaInsets()
   const isBottom = position === 'bottom'
   const isTop = position === 'top'
-  const showArrowUp =
-    (isBottom || isTop) && arrowDirection !== 'down'
+  const showArrowUp = (isBottom || isTop) && arrowDirection !== 'down'
   const showArrowDown = arrowDirection === 'down'
+  const isInverted = inverted !== undefined ? inverted : true
+  const arrowUpStyle = [
+    styles.arrowUp,
+    !isInverted && { borderBottomColor: Colors.gray[800] }
+  ]
+  const arrowDownStyle = [
+    styles.arrowDown,
+    !isInverted && { borderTopColor: Colors.gray[800] }
+  ]
+
+  const initialTranslateY = isBottom
+    ? ENTER_OFFSET_PX
+    : isTop
+      ? -ENTER_OFFSET_PX
+      : ENTER_OFFSET_PX / 2
+
+  const opacity = useSharedValue(0)
+  const scale = useSharedValue(INITIAL_SCALE)
+  const translateY = useSharedValue(initialTranslateY)
+
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: FADE_DURATION_MS })
+    scale.value = withSpring(1, SPRING_CONFIG)
+    translateY.value = withSpring(0, SPRING_CONFIG)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }, { translateY: translateY.value }]
+  }))
 
   return (
-    <View
+    <Animated.View
       pointerEvents="box-none"
       style={[
         styles.wrapper,
@@ -48,10 +92,12 @@ function SSTourSpeechBubble({
         position === 'bottom' && {
           ...styles.wrapperBottom,
           bottom: insets.bottom + bottomOffset
-        }
+        },
+        wrapperStyle,
+        animatedStyle
       ]}
     >
-      {showArrowUp && <View style={styles.arrowUp} />}
+      {showArrowUp && <View style={arrowUpStyle} />}
       <View style={[styles.bubble, heroic && styles.bubbleHeroic]}>
         {onExit && (
           <TouchableOpacity
@@ -59,28 +105,39 @@ function SSTourSpeechBubble({
             onPress={onExit}
             hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
           >
-            <SSIconCloseThin width={12} height={12} />
+            <SSIconCloseThin width={12} height={12} color={Colors.gray[500]} />
           </TouchableOpacity>
         )}
         <SSVStack gap={heroic ? 'md' : 'xs'}>
           <SSVStack gap="xs">
             {stepLabel && (
-              <SSText size="2xxs" color="muted" uppercase>
+              <SSText
+                size="2xxs"
+                color={isInverted ? 'black' : 'muted'}
+                uppercase
+              >
                 {stepLabel}
               </SSText>
             )}
-            <SSText size={heroic ? 'lg' : 'sm'} weight="medium" color="white">
+            <SSText
+              size={heroic ? 'lg' : 'sm'}
+              weight="medium"
+              color={isInverted ? 'black' : 'white'}
+            >
               {title}
             </SSText>
-            <SSText size={heroic ? 'sm' : 'xs'} color="muted">
+            <SSText
+              size={heroic ? 'sm' : 'xs'}
+              color={isInverted ? 'black' : 'muted'}
+            >
               {description}
             </SSText>
           </SSVStack>
           {children && <SSVStack gap="xs">{children}</SSVStack>}
         </SSVStack>
       </View>
-      {showArrowDown && <View style={styles.arrowDown} />}
-    </View>
+      {showArrowDown && <View style={arrowDownStyle} />}
+    </Animated.View>
   )
 }
 
@@ -91,14 +148,14 @@ const styles = StyleSheet.create({
     borderLeftWidth: 10,
     borderRightColor: 'transparent',
     borderRightWidth: 10,
-    borderTopColor: Colors.gray[800],
+    borderTopColor: Colors.white,
     borderTopWidth: 10,
     height: 0,
     width: 0
   },
   arrowUp: {
     alignSelf: 'center',
-    borderBottomColor: Colors.gray[800],
+    borderBottomColor: Colors.white,
     borderBottomWidth: 10,
     borderLeftColor: 'transparent',
     borderLeftWidth: 10,
@@ -108,14 +165,12 @@ const styles = StyleSheet.create({
     width: 0
   },
   bubble: {
-    backgroundColor: Colors.gray[900],
-    borderColor: Colors.gray[700],
+    backgroundColor: Colors.white,
     borderRadius: 8,
-    borderWidth: 1,
     padding: 10
   },
   bubbleHeroic: {
-    borderColor: Colors.gray[600],
+    backgroundColor: Colors.white,
     padding: 20
   },
   exitCorner: {
@@ -126,24 +181,24 @@ const styles = StyleSheet.create({
   },
   wrapper: {
     alignSelf: 'center',
-    width: '60%'
+    width: '55%'
   },
   wrapperBottom: {
-    left: '20%',
+    left: '22.5%',
     position: 'absolute',
-    right: '20%'
+    right: '22.5%'
   },
   wrapperCenter: {
-    left: '20%',
+    left: '22.5%',
     position: 'absolute',
-    right: '20%',
+    right: '22.5%',
     top: '35%'
   },
   wrapperTop: {
-    left: '20%',
+    left: '22.5%',
     position: 'absolute',
-    right: '20%',
-    top: 240
+    right: '22.5%',
+    top: 200
   }
 })
 

@@ -37,6 +37,7 @@ type SSSeedWordsInputProps = {
   wordCount: MnemonicWordCount
   wordListName: WordListName
   network: Network
+  initialMnemonic?: string
   onMnemonicValid?: (mnemonic: string, fingerprint: string) => void
   onMnemonicInvalid?: () => void
   showPassphrase?: boolean
@@ -79,6 +80,7 @@ function isPrefixWord(word: string, wordList: string[]): boolean {
 export default function SSSeedWordsInput({
   wordCount,
   wordListName,
+  initialMnemonic,
   onMnemonicValid,
   onMnemonicInvalid,
   showPassphrase = false,
@@ -308,11 +310,14 @@ export default function SSSeedWordsInput({
   }, [checkClipboardForSeed, fillOutSeedWords])
 
   useEffect(() => {
-    if (autoCheckClipboard && !clipboardCheckedRef.current) {
+    if (initialMnemonic) {
+      const seed = initialMnemonic.trim().split(/\s+/)
+      fillOutSeedWords(seed)
+    } else if (autoCheckClipboard && !clipboardCheckedRef.current) {
       clipboardCheckedRef.current = true
       readSeedFromClipboard()
     }
-  }, [autoCheckClipboard]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSeedQRScanned = useCallback(
     (content: DetectedContent) => {
@@ -467,6 +472,7 @@ export default function SSSeedWordsInput({
                 position={index + 1}
                 index={index}
                 invalid={!wordInfo.valid && wordInfo.dirty}
+                autoFocus={initialMnemonic ? false : undefined}
                 onChangeText={(text) => handleSeedWordChange(index, text)}
                 onSubmitEditing={() => {
                   if (index < wordCount - 1) {

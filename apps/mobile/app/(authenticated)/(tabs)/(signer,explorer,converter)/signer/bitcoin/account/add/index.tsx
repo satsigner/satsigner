@@ -1,4 +1,9 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter
+} from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -22,9 +27,25 @@ export default function Add() {
   const [setAccountName, setAccountPolicyType] = useAccountBuilderStore(
     useShallow((state) => [state.setName, state.setPolicyType])
   )
-  const [prefillAccountName, setPrefillAccountName] = useTourStore(
-    useShallow((state) => [state.prefillAccountName, state.setPrefillAccountName])
+  const [
+    prefillAccountName,
+    setPrefillAccountName,
+    currentTourStep,
+    advanceTourStep
+  ] = useTourStore(
+    useShallow((state) => [
+      state.prefillAccountName,
+      state.setPrefillAccountName,
+      state.currentStep,
+      state.advanceStep
+    ])
   )
+
+  useFocusEffect(() => {
+    if (currentTourStep === 'add_account') {
+      advanceTourStep('account_setup')
+    }
+  })
 
   const [localName, setLocalName] = useState('')
   const [localPolicyType, setLocalPolicyType] =
@@ -64,10 +85,7 @@ export default function Add() {
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
-            <SSTextInput
-              value={nameValue}
-              onChangeText={handleNameChange}
-            />
+            <SSTextInput value={nameValue} onChangeText={handleNameChange} />
           </SSFormLayout.Item>
           <View style={{ marginTop: 24 }}>
             <SSFormLayout.Item>

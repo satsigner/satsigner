@@ -5,7 +5,10 @@ import mmkvStorage from '@/storage/mmkv'
 
 export type TourStep =
   | 'idle'
+  | 'go_to_bitcoin'
+  | 'add_account'
   | 'account_setup'
+  | 'explore_wallet'
   | 'receive'
   | 'no_utxos'
   | 'select_utxos'
@@ -42,25 +45,40 @@ const useTourStore = create<TourState & TourAction>()(
     (set) => ({
       accountId: null,
       advanceStep: (step) => set({ currentStep: step }),
-      completeTour: () => set({ currentStep: 'idle', prefillAccountName: null, status: 'completed' }),
+      completeTour: () =>
+        set({
+          currentStep: 'idle',
+          prefillAccountName: null,
+          status: 'completed'
+        }),
       currentStep: 'idle',
       dismissSettingsBanner: () => set({ settingsBannerDismissed: true }),
-      exitTour: () => set({ currentStep: 'idle', prefillAccountName: null, status: 'paused' }),
+      exitTour: () =>
+        set({
+          currentStep: 'idle',
+          prefillAccountName: null,
+          status: 'paused'
+        }),
       neverAskAgain: false,
       prefillAccountName: null,
       resetTour: () =>
-        set({ accountId: null, currentStep: 'idle', prefillAccountName: null, status: 'idle' }),
+        set({
+          accountId: null,
+          currentStep: 'idle',
+          prefillAccountName: null,
+          status: 'idle'
+        }),
       setAccountId: (id) => set({ accountId: id }),
       setNeverAskAgain: () =>
         set({ neverAskAgain: true, settingsBannerDismissed: true }),
+      setPrefillAccountName: (name) => set({ prefillAccountName: name }),
       setTourPrompts: (enabled) =>
         set({
           neverAskAgain: !enabled,
           settingsBannerDismissed: !enabled
         }),
-      setPrefillAccountName: (name) => set({ prefillAccountName: name }),
       settingsBannerDismissed: false,
-      startTour: () => set({ currentStep: 'account_setup', status: 'active' }),
+      startTour: () => set({ currentStep: 'go_to_bitcoin', status: 'active' }),
       status: 'idle'
     }),
     {

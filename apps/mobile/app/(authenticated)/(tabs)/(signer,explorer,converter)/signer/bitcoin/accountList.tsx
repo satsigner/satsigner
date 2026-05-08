@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import Animated, {
   Easing,
@@ -15,6 +15,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSAccountCard from '@/components/SSAccountCard'
 import SSAccountCardSkeleton from '@/components/SSAccountCardSkeleton'
+import SSTourSpeechBubble from '@/components/SSTourSpeechBubble'
 import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSButton from '@/components/SSButton'
@@ -36,8 +37,10 @@ import {
   sampleSignetXpubFingerprint,
   sampleTestnet4Address
 } from '@/constants/samples'
+import { TOUR_TOTAL_STEPS } from '@/constants/tour'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
+import { useTourNavigation } from '@/hooks/useTourNavigation'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
@@ -49,6 +52,7 @@ import { getItem, setItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useTourStore } from '@/store/tour'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
@@ -241,6 +245,18 @@ export default function AccountList() {
       ),
     [filteredAccounts]
   )
+
+  const tourAccountId = useTourStore((state) => state.accountId)
+  const tourStep = useTourStore((state) => state.currentStep)
+  const { advance, handleExit } = useTourNavigation()
+  const tourCardRef = useRef<View>(null)
+  const [tourCardBubbleY, setTourCardBubbleY] = useState<number | null>(null)
+
+  function handleTourCardLayout() {
+    tourCardRef.current?.measure((_x, _y, _width, height, _pageX, pageY) => {
+      setTourCardBubbleY(pageY + height + 8)
+    })
+  }
 
   const ACCOUNT_CARD_HEIGHT = 160
   const SEPARATOR_VERTICAL = 32
@@ -880,10 +896,23 @@ export default function AccountList() {
                 renderItem={({ item, index }) => (
                   <AccountCardStaggerItem index={index}>
                     <SSVStack>
-                      <SSAccountCard
-                        account={item}
-                        onPress={() => handleGoToAccount(item.id)}
-                      />
+                      {item.id === tourAccountId &&
+                      tourStep === 'explore_wallet' ? (
+                        <View
+                          ref={tourCardRef}
+                          onLayout={handleTourCardLayout}
+                        >
+                          <SSAccountCard
+                            account={item}
+                            onPress={() => handleGoToAccount(item.id)}
+                          />
+                        </View>
+                      ) : (
+                        <SSAccountCard
+                          account={item}
+                          onPress={() => handleGoToAccount(item.id)}
+                        />
+                      )}
                     </SSVStack>
                   </AccountCardStaggerItem>
                 )}
@@ -910,6 +939,31 @@ export default function AccountList() {
           )}
         </ScrollView>
       </SSMainLayout>
+      {tourStep === 'explore_wallet' && tourCardBubbleY !== null && (
+        <View
+          pointerEvents="box-none"
+          style={[StyleSheet.absoluteFillObject, { zIndex: 999 }]}
+        >
+          <SSTourSpeechBubble
+            key="bubble_explore_wallet"
+            position="top"
+            wrapperStyle={{ top: tourCardBubbleY }}
+            title={t('tour.steps.exploreWallet.title')}
+            description={t('tour.steps.exploreWallet.description')}
+            stepLabel={t('tour.step', {
+              current: 2,
+              total: TOUR_TOTAL_STEPS
+            })}
+            onExit={handleExit}
+          >
+            <SSButton
+              label={t('tour.next')}
+              variant="secondary"
+              onPress={() => advance('explore_wallet')}
+            />
+          </SSTourSpeechBubble>
+        </View>
+      )}
     </>
   )
 }

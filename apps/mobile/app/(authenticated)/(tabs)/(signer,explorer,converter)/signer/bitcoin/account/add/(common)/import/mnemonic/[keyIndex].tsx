@@ -7,11 +7,13 @@ import { useShallow } from 'zustand/react/shallow'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
 import SSText from '@/components/SSText'
+import { sampleSignetWalletSeed } from '@/constants/samples'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useTourStore } from '@/store/tour'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
@@ -51,6 +53,10 @@ export default function ImportMnemonic() {
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
+  const tourStatus = useTourStore((state) => state.status)
+  const tourCurrentStep = useTourStore((state) => state.currentStep)
+  const isTourMode =
+    tourStatus === 'active' && tourCurrentStep === 'account_setup'
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const [currentMnemonic, setCurrentMnemonic] = useState('')
   const [currentFingerprint, setCurrentFingerprint] = useState('')
@@ -139,6 +145,7 @@ export default function ImportMnemonic() {
           wordCount={mnemonicWordCount}
           wordListName={mnemonicWordList}
           network={appNetworkToBdkNetwork(network)}
+          initialMnemonic={isTourMode ? sampleSignetWalletSeed : undefined}
           onMnemonicValid={handleMnemonicValid}
           onMnemonicInvalid={handleMnemonicInvalid}
           showPassphrase

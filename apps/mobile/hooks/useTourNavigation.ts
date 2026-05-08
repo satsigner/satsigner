@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { type TourStep, useTourStore } from '@/store/tour'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
@@ -45,6 +46,10 @@ function useTourNavigation() {
     accountId ? state.wallets[accountId] : undefined
   )
 
+  const setSelectedNetwork = useBlockchainStore(
+    (state) => state.setSelectedNetwork
+  )
+
   const [addInput, addOutput, clearTransaction, setAccountId, setFee] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -82,12 +87,17 @@ function useTourNavigation() {
   function handleRestartTour() {
     resetTour()
     startTour()
+    advanceStep('account_setup')
     router.navigate('/signer/bitcoin/account/add?tourMode=true')
   }
 
   function advance(step: TourStep, idOverride?: string) {
-    if (step === 'account_setup') {
+    if (step === 'go_to_bitcoin') {
+      advanceGoToBitcoin()
+    } else if (step === 'account_setup') {
       advanceAccountSetup(idOverride)
+    } else if (step === 'explore_wallet') {
+      advanceExploreWallet()
     } else if (step === 'receive') {
       advanceReceive()
     } else if (step === 'select_utxos') {
@@ -97,6 +107,11 @@ function useTourNavigation() {
     } else if (step === 'sign_tx') {
       advanceSignTx()
     }
+  }
+
+  function advanceGoToBitcoin() {
+    advanceStep('add_account')
+    router.navigate('/signer/bitcoin/accountList')
   }
 
   function advanceSignTx() {
@@ -119,8 +134,17 @@ function useTourNavigation() {
       router.navigate('/signer/bitcoin/account/add?tourMode=true' as never)
       return
     }
+    setSelectedNetwork('signet')
+    advanceStep('explore_wallet')
+    router.navigate('/signer/bitcoin/accountList')
+  }
+
+  function advanceExploreWallet() {
+    if (!accountId) {
+      return
+    }
     advanceStep('receive')
-    router.navigate(`/signer/bitcoin/account/${targetId}/receive`)
+    router.navigate(`/signer/bitcoin/account/${accountId}/receive`)
   }
 
   function advanceReceive() {
@@ -142,7 +166,7 @@ function useTourNavigation() {
       return
     }
 
-    const utxos = account.utxos
+    const { utxos } = account
     if (utxos.length === 0) {
       advanceStep('no_utxos')
       return
@@ -165,7 +189,11 @@ function useTourNavigation() {
     for (let i = 0; i < outputCount; i += 1) {
       try {
         const addrInfo = wallet.peekAddress(KeychainKind.External, i)
-        addOutput({ amount: perOutputAmount, label: selfSendLabel, to: addrInfo.address })
+        addOutput({
+          amount: perOutputAmount,
+          label: selfSendLabel,
+          to: addrInfo.address
+        })
       } catch {
         break
       }

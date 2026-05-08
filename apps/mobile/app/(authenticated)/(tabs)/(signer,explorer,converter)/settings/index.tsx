@@ -12,8 +12,8 @@ import {
   SSIconTriangle
 } from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
-import SSTourBanner from '@/components/SSTourBanner'
 import SSText from '@/components/SSText'
+import SSTourBanner from '@/components/SSTourBanner'
 import { useTourNavigation } from '@/hooks/useTourNavigation'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'

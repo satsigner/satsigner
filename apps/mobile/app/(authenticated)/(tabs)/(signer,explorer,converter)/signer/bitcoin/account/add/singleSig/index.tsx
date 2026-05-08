@@ -9,6 +9,7 @@ import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import { ENTROPY_TYPES } from '@/config/entropy'
+import { sampleSignetWalletSeed } from '@/constants/samples'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -61,10 +62,11 @@ export default function SingleSig() {
   const wordList = useSettingsStore((state) => state.mnemonicWordList)
 
   const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
-  const [localScriptVersion, setLocalScriptVersion] =
-    useState<NonNullable<Key['scriptVersion']>>(isTourMode ? 'P2WPKH' : 'P2WPKH')
+  const [localScriptVersion, setLocalScriptVersion] = useState<
+    NonNullable<Key['scriptVersion']>
+  >(isTourMode ? 'P2WPKH' : 'P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
-    useState<NonNullable<Key['mnemonicWordCount']>>(isTourMode ? 12 : 24)
+    useState<NonNullable<Key['mnemonicWordCount']>>(12)
   const [localMnemonicWordList, setLocalMnemonicWordList] = useState(wordList)
 
   const [entropyModalVisible, setEntropyModalVisible] = useState(false)
@@ -91,10 +93,9 @@ export default function SingleSig() {
       switch (localEntropyType) {
         case 'none': {
           setLoading(true)
-          const mnemonic = generateMnemonic(
-            localMnemonicWordCount,
-            localMnemonicWordList
-          )
+          const mnemonic = isTourMode
+            ? sampleSignetWalletSeed
+            : generateMnemonic(localMnemonicWordCount, localMnemonicWordList)
           setMnemonic(mnemonic)
 
           const fingerprint = getFingerprintFromMnemonic(mnemonic)
