@@ -13,7 +13,7 @@ import {
   useSVG,
   vec
 } from '@shopify/react-native-skia'
-import { memo, useMemo } from 'react'
+import { useMemo } from 'react'
 
 import { DUST_LIMIT } from '@/constants/btc'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
@@ -21,14 +21,25 @@ import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray, mainGreen, mainRed, warning, white } from '@/styles/colors'
-import { BLOCK_WIDTH, type Node } from '@/types/ui/sankey'
-import { logAttenuation } from '@/utils/math'
+import {
+  BLOCK_WIDTH,
+  SANKEY_BAND_HEIGHT_MIN_PX,
+  SANKEY_BLOCK_TX_STRIP_MAX_PX,
+  type Node
+} from '@/types/ui/sankey'
+import {
+  type SankeyRibbonPlan,
+  totalThroughputToBandHeight
+} from '@/utils/sankeyFlowWidths'
 
 interface ISSankeyNodes {
   nodes: Node[]
+  ribbonPlan: SankeyRibbonPlan
   sankeyGenerator: { nodeWidth: () => number }
   selectedOutputNode?: string
   dimUnselected?: boolean
+  /** When false, hides the “unspent” line on output cards (e.g. while composing a new tx). */
+  showUnspentLabel?: boolean
 }
 
 const BASE_FONT_SIZE = 13
@@ -42,17 +53,16 @@ const NODE_MARGIN_LEFT = 1
 
 function SSSankeyNodes({
   nodes,
+  ribbonPlan,
   sankeyGenerator,
   selectedOutputNode,
-  dimUnselected = false
+  dimUnselected = false,
+  showUnspentLabel = true
 }: ISSankeyNodes) {
   const customFontManager = useSFProFonts()
 
-  // Find the maximum depth in nodes
-  const maxDepth = useMemo(
-    () => Math.max(...nodes.map((node) => node.depthH)),
-    [nodes]
-  )
+  const maxDepth =
+    nodes.length === 0 ? 0 : Math.max(...nodes.map((node) => node.depthH))
 
   const renderNode = (node: Node) => {
     const isHigherCurrentMinerFee =
@@ -75,9 +85,14 @@ function SSSankeyNodes({
       return 0
     }
 
-    const txSizeHeight = Math.min(Math.max(getBlockNodeHeight(), 34), 80)
+    const txSizeHeight = Math.min(
+      Math.max(getBlockNodeHeight(), SANKEY_BAND_HEIGHT_MIN_PX),
+      SANKEY_BLOCK_TX_STRIP_MAX_PX
+    )
 
-    const heightBasedOnFlow = logAttenuation(node.value ?? 0)
+    const bandFromPlan = ribbonPlan.bandHeightByBlockId.get(node.id)
+    const heightBasedOnFlow =
+      bandFromPlan ?? totalThroughputToBandHeight(node.value ?? 0)
 
     const isTransactionChart = node.depthH === 1 && maxDepth === 2
     const blockNode = () => {
@@ -150,6 +165,7 @@ function SSSankeyNodes({
           isSelfSend={
             node.ioData?.isSelfSend && !(node?.localId === 'remainingBalance')
           }
+          showUnspentLabel={showUnspentLabel}
         />
       </Group>
     )
@@ -173,7 +189,8 @@ function NodeText({
   isTransactionChart,
   selectedOutputNode,
   isHigherCurrentMinerFee,
-  isSelfSend
+  isSelfSend,
+  showUnspentLabel = true
 }: {
   localId: string
   isBlock: boolean
@@ -186,6 +203,7 @@ function NodeText({
   selectedOutputNode?: string
   isHigherCurrentMinerFee?: boolean
   isSelfSend?: boolean
+  showUnspentLabel?: boolean
 }) {
   const isMiningFee = localId.includes('minerFee')
   const isChange = localId === 'remainingBalance'
@@ -211,7 +229,6 @@ function NodeText({
   const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
   const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
   const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
-  const pastTxMinerFeeIconSvg = useSVG(require('@/assets/gray-miner.svg'))
   const blockNodeParagraph = useMemo(() => {
     if (!customFontManager) {
       return null
@@ -278,8 +295,6 @@ function NodeText({
     ioData?.txId,
     isBlock
   ])
-
-  const isPastMinerFee = localId.startsWith('past-minerFee')
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) {
@@ -389,18 +404,25 @@ function NodeText({
 
     const buildUnspentParagraph = () => {
       const para = createParagraphBuilder()
+      if (showUnspentLabel) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            fontSize: XS_FONT_SIZE
+          })
+          .addText(ioData?.text ?? '')
+      }
       para
-        .pushStyle({
-          ...baseTextStyle,
-          fontSize: XS_FONT_SIZE
-        })
-        .addText(ioData?.text ?? '') // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(isChange || isSelfSend ? 'white' : mainRed),
           fontSize: BASE_FONT_SIZE
         })
-        .addText(`\n${ioData?.value?.toLocaleString()} `) // Add nullish coalescing
+        .addText(
+          showUnspentLabel
+            ? `\n${ioData?.value?.toLocaleString()} `
+            : `${ioData?.value?.toLocaleString()} `
+        )
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(gray[200]),
@@ -529,7 +551,8 @@ function NodeText({
     ioData.label,
     isHigherCurrentMinerFee,
     isChange,
-    isSelfSend
+    isSelfSend,
+    showUnspentLabel
   ])
 
   // Calculate position for the paragraph and potentially the icon
@@ -670,11 +693,10 @@ function NodeText({
         )}
       {isMiningFee &&
         minerFeeIconSvg &&
-        pastTxMinerFeeIconSvg &&
         placeholderRectsMinerIcon.length > 0 &&
         placeholderRectsMinerIcon[0] && (
           <ImageSVG
-            svg={isPastMinerFee ? pastTxMinerFeeIconSvg : minerFeeIconSvg}
+            svg={minerFeeIconSvg}
             x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
             y={paragraphY + placeholderRectsMinerIcon[0].rect.y}
             width={placeholderRectsMinerIcon[0].rect.width}
@@ -685,4 +707,4 @@ function NodeText({
   )
 }
 
-export default memo(SSSankeyNodes)
+export default SSSankeyNodes

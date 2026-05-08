@@ -23,7 +23,13 @@ import { t } from '@/locales'
 import { Colors, Layout } from '@/styles'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
-import { BLOCK_WIDTH, type Link, type Node } from '@/types/ui/sankey'
+import {
+  BLOCK_WIDTH,
+  SANKEY_DIAGRAM_NODE_PADDING_PX,
+  type Link,
+  type Node
+} from '@/types/ui/sankey'
+import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
@@ -87,7 +93,7 @@ function SSMultipleSankeyDiagram({
   const sankeyGenerator = useMemo(() => {
     const gen = sankey()
       .nodeWidth(NODE_WIDTH)
-      .nodePadding(120)
+      .nodePadding(SANKEY_DIAGRAM_NODE_PADDING_PX)
       .extent([
         [0, 200],
         [2000 * (maxDepthH / 10), 1000 * (maxNodeCountInDepthH / 9)]
@@ -125,6 +131,15 @@ function SSMultipleSankeyDiagram({
         value: link.value
       })),
     [links]
+  )
+
+  const ribbonPlan = buildSankeyRibbonPlan(
+    nodes.map((node) => ({
+      id: (node as Node).id,
+      type: (node as Node).type,
+      value: (node as Node).value
+    })),
+    transformedLinks
   )
 
   // Calculate the optimal initial x translation to show the last 3 depthH levels
@@ -336,11 +351,13 @@ function SSMultipleSankeyDiagram({
             <SSSankeyLinks
               links={transformedLinks}
               nodes={nodes as Node[]}
+              ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               BLOCK_WIDTH={BLOCK_WIDTH}
             />
             <SSSankeyNodes
               nodes={nodes}
+              ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               selectedOutputNode={currentOutputLocalId}
             />
