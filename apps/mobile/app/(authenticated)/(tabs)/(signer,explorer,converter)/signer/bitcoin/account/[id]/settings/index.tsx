@@ -14,8 +14,9 @@ import SSPinEntry from '@/components/SSPinEntry'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
-import SSTextInput, { SSTextInputProps } from '@/components/SSTextInput'
+import SSTextInput from '@/components/SSTextInput'
 import { PIN_KEY, SALT_KEY } from '@/config/auth'
+import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
@@ -25,7 +26,7 @@ import { getItem, getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Account, type Key, type Secret } from '@/types/models/Account'
+import { type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   decryptAllAccountKeySecrets,
@@ -56,14 +57,6 @@ export default function AccountSettings() {
   const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
     account?.keys[0]?.scriptVersion || 'P2WPKH'
   )
-  const [network, setNetwork] = useState<NonNullable<string>>(
-    account?.network || 'signet'
-  )
-  const [accountName, setAccountName] = useState<Account['name']>(
-    account?.name || ''
-  )
-  const [isValidName, setIsValidName] = useState<SSTextInputProps['status']>()
-  const [isPseudoDuplicatedName, setIsPseudoDuplicatedName] = useState(false) // pseudo-duplicate name = wallet of other network has same name
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
@@ -89,29 +82,15 @@ export default function AccountSettings() {
     }
   }
 
-  function validateName(name: string) {
-    if (name === '') {
-      setIsValidName(undefined)
-      return
-    }
-    const invalid = accounts.some(
-      (otherAccount) =>
-        otherAccount.id !== currentAccountId &&
-        otherAccount.name === name &&
-        otherAccount.network === account?.network
-    )
-    setIsValidName(invalid ? 'invalid' : 'valid')
-    const pseudoDuplicate = accounts.some(
-      (otherAccount) =>
-        otherAccount.network !== account?.network && otherAccount.name === name
-    )
-    setIsPseudoDuplicatedName(pseudoDuplicate)
-  }
-
-  function handleSetAccountName(name: string) {
-    validateName(name)
-    setAccountName(name)
-  }
+  const {
+    localAccountName,
+    isValidName,
+    isPseudoDuplicatedName,
+    handleSetAccountName
+  } = useAccountNameValidation({
+    name: account?.name,
+    network: account?.network
+  })
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
@@ -158,7 +137,7 @@ export default function AccountSettings() {
   }
 
   function saveChanges() {
-    updateAccountName(currentAccountId!, accountName)
+    updateAccountName(currentAccountId!, localAccountName)
     router.replace(`/signer/bitcoin/account/${currentAccountId}/`)
   }
 
@@ -259,7 +238,7 @@ export default function AccountSettings() {
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
             <SSTextInput
-              value={accountName}
+              value={localAccountName}
               onChangeText={handleSetAccountName}
               status={isValidName}
               error={

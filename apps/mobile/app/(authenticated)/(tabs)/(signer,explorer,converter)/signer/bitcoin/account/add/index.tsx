@@ -6,57 +6,35 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
-import SSTextInput, { type SSTextInputProps } from '@/components/SSTextInput'
+import SSTextInput from '@/components/SSTextInput'
+import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 
 export default function Add() {
   const router = useRouter()
-  const [setAccountName, setAccountPolicyType] = useAccountBuilderStore(
-    useShallow((state) => [state.setName, state.setPolicyType])
-  )
-
-  const accounts = useAccountsStore((state) => state.accounts)
   const network = useBlockchainStore((state) => state.selectedNetwork)
-  const currentNetworkAccounts = accounts.filter(
-    (account) => account.network === network
+  const [name, setAccountName, setAccountPolicyType] = useAccountBuilderStore(
+    useShallow((state) => [state.name, state.setName, state.setPolicyType])
   )
 
-  const [localName, setLocalName] = useState('')
   const [localPolicyType, setLocalPolicyType] =
     useState<NonNullable<Account['policyType']>>('singlesig')
-  const [isValidName, setIsValidName] = useState<SSTextInputProps['status']>()
-  const [isPseudoDuplicatedName, setIsPseudoDuplicatedName] = useState(false) // pseudo-duplicate name = wallet of other network has same name
 
-  function validateName(name: string) {
-    if (name === '') {
-      setIsValidName(undefined)
-      return
-    }
-    const duplicated = currentNetworkAccounts.some(
-      (account) => account.name === name
-    )
-    setIsValidName(duplicated ? 'invalid' : 'valid')
-    const pseudoDuplicated = accounts.some(
-      (otherAccount) =>
-        otherAccount.network !== network && otherAccount.name === name
-    )
-    setIsPseudoDuplicatedName(pseudoDuplicated)
-  }
-
-  function handleSetName(text: string) {
-    setLocalName(text)
-    validateName(text)
-  }
+  const {
+    localAccountName,
+    isValidName,
+    isPseudoDuplicatedName,
+    handleSetAccountName
+  } = useAccountNameValidation({ name, network })
 
   function handleOnPressContinue() {
-    setAccountName(localName)
+    setAccountName(localAccountName)
     setAccountPolicyType(localPolicyType)
 
     if (localPolicyType === 'singlesig') {
@@ -80,9 +58,9 @@ export default function Add() {
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
             <SSTextInput
-              value={localName}
+              value={localAccountName}
               status={isValidName}
-              onChangeText={handleSetName}
+              onChangeText={handleSetAccountName}
               error={
                 isValidName === 'invalid'
                   ? t('account.error.nameDuplicated')
@@ -128,7 +106,7 @@ export default function Add() {
           <SSButton
             variant="secondary"
             label={t('common.continue')}
-            disabled={localName === '' || !isValidName}
+            disabled={localAccountName === '' || !isValidName}
             onPress={handleOnPressContinue}
           />
           <SSButton
