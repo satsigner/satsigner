@@ -7,25 +7,34 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 
 export default function Add() {
   const router = useRouter()
-  const [setAccountName, setAccountPolicyType] = useAccountBuilderStore(
-    useShallow((state) => [state.setName, state.setPolicyType])
+  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const [name, setAccountName, setAccountPolicyType] = useAccountBuilderStore(
+    useShallow((state) => [state.name, state.setName, state.setPolicyType])
   )
 
-  const [localName, setLocalName] = useState('')
   const [localPolicyType, setLocalPolicyType] =
     useState<NonNullable<Account['policyType']>>('singlesig')
 
+  const {
+    localAccountName,
+    isValidName,
+    isPseudoDuplicatedName,
+    handleSetAccountName
+  } = useAccountNameValidation({ name, network })
+
   function handleOnPressContinue() {
-    setAccountName(localName)
+    setAccountName(localAccountName)
     setAccountPolicyType(localPolicyType)
 
     if (localPolicyType === 'singlesig') {
@@ -49,8 +58,19 @@ export default function Add() {
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
             <SSTextInput
-              value={localName}
-              onChangeText={(text) => setLocalName(text)}
+              value={localAccountName}
+              status={isValidName}
+              onChangeText={handleSetAccountName}
+              error={
+                isValidName === 'invalid'
+                  ? t('account.error.nameDuplicated')
+                  : ''
+              }
+              warning={
+                isPseudoDuplicatedName
+                  ? t('account.error.namePseudoDuplicated')
+                  : ''
+              }
             />
           </SSFormLayout.Item>
           <View style={{ marginTop: 24 }}>
@@ -86,7 +106,7 @@ export default function Add() {
           <SSButton
             variant="secondary"
             label={t('common.continue')}
-            disabled={localName === ''}
+            disabled={localAccountName === '' || !isValidName}
             onPress={handleOnPressContinue}
           />
           <SSButton
