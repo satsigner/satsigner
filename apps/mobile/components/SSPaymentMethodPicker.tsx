@@ -1,5 +1,5 @@
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
-import { type ForwardedRef, forwardRef } from 'react'
+import { type RefObject } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSBottomSheet from '@/components/SSBottomSheet'
@@ -8,7 +8,6 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { formatFiatPrice } from '@/utils/format'
 
@@ -28,18 +27,22 @@ const TYPE_LABEL: Record<PaymentMethod['type'], string> = {
 }
 
 type SSPaymentMethodPickerProps = {
+  ref: RefObject<BottomSheetMethods>
   onSelect: (method: PaymentMethod) => void
   methods: PaymentMethod[]
   amountSats: number
+  btcPrice: number
+  fiatCurrency: string
 }
 
-function SSPaymentMethodPicker(
-  { onSelect, methods, amountSats }: SSPaymentMethodPickerProps,
-  ref: ForwardedRef<BottomSheetMethods>
-) {
-  const btcPrice = usePriceStore((state) => state.btcPrice)
-  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
-
+function SSPaymentMethodPicker({
+  ref,
+  onSelect,
+  methods,
+  amountSats,
+  btcPrice,
+  fiatCurrency
+}: SSPaymentMethodPickerProps) {
   return (
     <SSBottomSheet ref={ref} title={`Pay ${amountSats.toLocaleString()} sats`}>
       <SSVStack gap="md" style={styles.content}>
@@ -80,11 +83,7 @@ function SSPaymentMethodPicker(
         <SSButton
           label={t('common.cancel')}
           variant="ghost"
-          onPress={() => {
-            if (typeof ref === 'object' && ref !== null) {
-              ref.current?.close()
-            }
-          }}
+          onPress={() => ref.current?.close()}
         />
       </SSVStack>
     </SSBottomSheet>
@@ -119,4 +118,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default forwardRef(SSPaymentMethodPicker)
+export default SSPaymentMethodPicker

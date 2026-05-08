@@ -20,6 +20,7 @@ import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
@@ -55,6 +56,8 @@ export default function NostrContactProfile() {
     (state) => state.status?.nodeInfo?.alias
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const btcPrice = usePriceStore((state) => state.btcPrice)
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
   const {
     accounts: ecashAccounts,
     allMints: ecashAllMints,
@@ -299,6 +302,8 @@ export default function NostrContactProfile() {
         onSelect={(method) => navigateToPayment(method)}
         methods={availablePaymentMethods}
         amountSats={payAmount}
+        btcPrice={btcPrice}
+        fiatCurrency={fiatCurrency}
       />
     </SSMainLayout>
   )
