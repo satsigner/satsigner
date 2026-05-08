@@ -195,13 +195,6 @@ export default function AccountSettings() {
     }
   }, [account])
 
-  // Update network when account changes
-  useEffect(() => {
-    if (account?.network) {
-      setNetwork(account.network)
-    }
-  }, [account?.network])
-
   // Update script version when account changes
   useEffect(() => {
     const accountKeys = account?.keys
@@ -281,7 +274,7 @@ export default function AccountSettings() {
           </SSHStack>
           <SSHStack justifyBetween>
             <SSText color="muted">{t('account.network.title')}</SSText>
-            <SSText>{network}</SSText>
+            <SSText>{account?.network || '-'}</SSText>
           </SSHStack>
           <SSHStack justifyBetween>
             <SSText color="muted">{t('account.policy.title')}</SSText>
