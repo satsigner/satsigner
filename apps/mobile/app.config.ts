@@ -1,5 +1,7 @@
 import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
+const projectId = process.env.EXPO_PROJECT_ID
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   android: {
@@ -20,9 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     typedRoutes: true
   },
   extra: {
-    eas: {
-      projectId: 'ab95f67d-1c03-4593-940d-fde0b7cdc34a'
-    },
+    eas: { projectId },
     router: {
       origin: false
     }
