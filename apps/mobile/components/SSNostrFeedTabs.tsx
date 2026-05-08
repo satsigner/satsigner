@@ -369,7 +369,7 @@ function SSNostrFeedTabs({
 
       const pubBookmarks = parsePublicBookmarks(result.tags)
       const nsec = identity?.nsec
-      const privBookmarks = (() => {
+      const resolvePrivBookmarks = () => {
         if (notesKindFilterId === 'bookmarks' || !nsec) {
           return []
         }
@@ -378,7 +378,8 @@ function SSNostrFeedTabs({
           return []
         }
         return decryptPrivateBookmarks(result.content, secretKey, hexPubkey)
-      })()
+      }
+      const privBookmarks = resolvePrivBookmarks()
 
       const merged =
         notesKindFilterId === 'private_bookmarks'
