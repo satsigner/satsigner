@@ -112,7 +112,6 @@ export default function EcashAccountSettingsPage() {
               }
             />
           </SSVStack>
-
           <SSVStack gap="sm">
             <SSText uppercase>{t('ecash.settings.mintManagement')}</SSText>
             <SSButton
