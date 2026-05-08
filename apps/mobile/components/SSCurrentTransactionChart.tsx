@@ -13,7 +13,6 @@ import Animated from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useGestures } from '@/hooks/useGestures'
-import { useLayout } from '@/hooks/useLayout'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
@@ -24,9 +23,14 @@ import {
   LINK_MAX_WIDTH,
   NODE_WIDTH,
   SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
+  SANKEY_CURRENT_TX_EXTENT_ROW_SCALE,
   SANKEY_CURRENT_TX_EXTENT_TOP_PX,
+  SANKEY_CURRENT_TX_EXTENT_X_INSET_PX,
+  SANKEY_DIAGRAM_NODE_PADDING_PX,
+  SANKEY_EQUAL_ROW_MIN_SLOT_PX,
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
+import { equalizeSankeyColumnsByDepthH } from '@/utils/equalizeSankeyColumnLayout'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -115,48 +119,65 @@ function SSCurrentTransactionChart({
     return Math.round(feeRateProp * safeTxVsize)
   }, [feeRateProp, safeTxVsize])
 
-  const {
-    width: layoutW,
-    height: layoutH,
-    center,
-    onCanvasLayout
-  } = useLayout()
-  const safeLayoutW = Math.max(1, layoutW)
-  const safeLayoutH = Math.max(1, layoutH)
-
-  const { animatedStyle, gestures, transform } = useGestures({
-    center,
-    height: safeLayoutH,
-    isDoubleTapEnabled: true,
-    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
-    maxScale: 20,
-    minPanPointers: 1,
-    minScale: 0.2,
-    shouldResetOnInteractionEnd: false,
-    width: safeLayoutW
-  })
-
   const { width: winW, height: winH } = useWindowDimensions()
   const safeWinW = Math.max(1, winW)
   const safeWinH = Math.max(1, winH)
   const GRAPH_HEIGHT = safeWinH * 0.7
   const GRAPH_WIDTH = safeWinW
 
+  /** Same space as Skia coords & overlay — not useLayout (often 0×0 before layout). */
+  const chartCenter = useMemo(
+    () => ({ x: GRAPH_WIDTH / 2, y: GRAPH_HEIGHT / 2 }),
+    [GRAPH_HEIGHT, GRAPH_WIDTH]
+  )
+
+  const { animatedStyle, gestures, transform } = useGestures({
+    center: chartCenter,
+    height: GRAPH_HEIGHT,
+    isDoubleTapEnabled: true,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+    maxScale: 20,
+    minPanPointers: 1,
+    minScale: 0.2,
+    shouldResetOnInteractionEnd: false,
+    width: GRAPH_WIDTH
+  })
+
+  /** Keep d3 extent inside the Skia canvas; uncapped bottom was > GRAPH_HEIGHT for many rows. */
+  const SANKEY_EXTENT_BOTTOM_MARGIN_PX = 8
+  const extentTop = Math.min(
+    SANKEY_CURRENT_TX_EXTENT_TOP_PX,
+    Math.max(
+      SANKEY_EXTENT_BOTTOM_MARGIN_PX,
+      GRAPH_HEIGHT -
+        SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX -
+        SANKEY_EXTENT_BOTTOM_MARGIN_PX
+    )
+  )
+
   const rowCount = Math.max(inputMap.size, outputArray.length + 1)
-  const rawSankeyExtentBottomY = safeWinH * 0.7 * rowCount * 0.23
-  const sankeyExtentBottomY = Math.max(
-    SANKEY_CURRENT_TX_EXTENT_TOP_PX +
-      SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
-    rawSankeyExtentBottomY
+  const rawSankeyExtentBottomY =
+    GRAPH_HEIGHT * rowCount * SANKEY_CURRENT_TX_EXTENT_ROW_SCALE
+  const sankeyExtentBottomY = Math.min(
+    GRAPH_HEIGHT - SANKEY_EXTENT_BOTTOM_MARGIN_PX,
+    Math.max(
+      extentTop + SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
+      rawSankeyExtentBottomY
+    )
+  )
+
+  const extentX1 = Math.max(
+    SANKEY_CURRENT_TX_EXTENT_X_INSET_PX + 1,
+    safeWinW - SANKEY_CURRENT_TX_EXTENT_X_INSET_PX
   )
 
   const sankeyGenerator = useMemo(() => {
     const gen = sankey()
       .nodeWidth(NODE_WIDTH)
-      .nodePadding(160)
+      .nodePadding(SANKEY_DIAGRAM_NODE_PADDING_PX)
       .extent([
-        [0, SANKEY_CURRENT_TX_EXTENT_TOP_PX],
-        [safeWinW, sankeyExtentBottomY]
+        [SANKEY_CURRENT_TX_EXTENT_X_INSET_PX, extentTop],
+        [extentX1, sankeyExtentBottomY]
       ])
       .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
     gen.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
@@ -164,7 +185,7 @@ function SSCurrentTransactionChart({
       return depthH ?? 0
     })
     return gen
-  }, [sankeyExtentBottomY, safeWinW])
+  }, [extentTop, extentX1, sankeyExtentBottomY])
 
   const sankeyNodes = useMemo(() => {
     if (inputArray.length === 0 || outputArray.length === 0) {
@@ -193,10 +214,10 @@ function SSCurrentTransactionChart({
         ioData: {
           txSize: safeTxSize,
           vSize: safeTxVsize,
-          value: 0
+          value: totalInputValue
         },
         type: 'block',
-        value: 0
+        value: totalInputValue
       }
     ]
 
@@ -256,6 +277,7 @@ function SSCurrentTransactionChart({
   }, [
     inputArray,
     outputArray,
+    totalInputValue,
     safeTxSize,
     safeTxVsize,
     minerFee,
@@ -313,10 +335,20 @@ function SSCurrentTransactionChart({
       link.target
   )
 
-  const { links, nodes } = sankeyGenerator({
+  const layoutResult = sankeyGenerator({
     links: validSankeyLinks,
     nodes: validSankeyNodes
   })
+
+  equalizeSankeyColumnsByDepthH(
+    layoutResult.nodes as Node[],
+    extentTop,
+    sankeyExtentBottomY,
+    SANKEY_DIAGRAM_NODE_PADDING_PX,
+    SANKEY_EQUAL_ROW_MIN_SLOT_PX
+  )
+
+  const { links, nodes } = layoutResult
 
   // calculating the sankey node styles to match in skia
   const nodeStyles = useMemo(
@@ -378,7 +410,7 @@ function SSCurrentTransactionChart({
           flex: 1,
           justifyContent: 'center',
           paddingHorizontal: 24,
-          paddingTop: SANKEY_CURRENT_TX_EXTENT_TOP_PX
+          paddingTop: extentTop
         }}
       >
         <SSText center color="muted" size="sm">
@@ -390,13 +422,13 @@ function SSCurrentTransactionChart({
 
   return (
     <View style={{ flex: 1, height: GRAPH_HEIGHT }}>
-      <View onLayout={onCanvasLayout}>
+      <View>
         <Canvas
           style={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
           pointerEvents="box-none"
         >
           <Group
-            origin={{ x: safeLayoutW / 2, y: safeLayoutH / 2 }}
+            origin={{ x: GRAPH_WIDTH / 2, y: GRAPH_HEIGHT / 2 }}
             transform={transform}
           >
             <SSSankeyLinks
@@ -445,7 +477,6 @@ function SSCurrentTransactionChart({
               { height: GRAPH_HEIGHT, width: GRAPH_WIDTH },
               animatedStyle
             ]}
-            onLayout={onCanvasLayout}
           >
             {nodeStyles.map((style, index) => (
               <TouchableOpacity

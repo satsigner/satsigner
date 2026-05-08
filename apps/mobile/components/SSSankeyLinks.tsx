@@ -137,9 +137,10 @@ function SSSankeyLinks({
           !isSelectedOutput &&
           targetNode.depthH === 2
 
+        // Sankey nodes: y0 = top, y1 = bottom. Ribbon quadrilateral uses y as *top* edge at each side.
         const y1 =
           sourceNode.type === 'block'
-            ? (sourceNode.y1 ?? 0) +
+            ? (sourceNode.y0 ?? 0) +
               stackedRibbonOffsetBeforeLink(
                 sourceNode,
                 true,
@@ -148,7 +149,7 @@ function SSSankeyLinks({
                 nodes,
                 ribbonPlan
               )
-            : (sourceNode.y1 ?? 0)
+            : (sourceNode.y0 ?? 0)
 
         const y2 =
           targetNode.type === 'block'
