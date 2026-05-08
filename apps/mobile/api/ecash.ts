@@ -252,8 +252,6 @@ export async function meltProofs(
   mintUrl: string,
   quote: MeltQuote,
   proofs: EcashProof[],
-  _description?: string,
-  _originalInvoice?: string,
   options?: WalletOptions
 ): Promise<EcashMeltResult> {
   const wallet = getWallet(accountId, mintUrl, options)
