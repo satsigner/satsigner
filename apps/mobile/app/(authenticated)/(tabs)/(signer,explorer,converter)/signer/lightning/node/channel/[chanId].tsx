@@ -13,6 +13,7 @@ import {
   HEADER_CHROME_HIT_BOX,
   HEADER_CHROME_ICON_SIZE
 } from '@/constants/headerChrome'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { useLND } from '@/hooks/useLND'
 import { useLndChannelDetailActions } from '@/hooks/useLndChannelDetailActions'
 import { useLndChannelHistoryQuery } from '@/hooks/useLndChannelHistoryQuery'
@@ -36,8 +37,6 @@ import {
 import { getLndErrorMessage, isLndPermissionError } from '@/utils/lndHttpError'
 
 import { getLndFundingTxMempoolUrl } from '../../../../../../../../utils/lndGetInfoChains'
-
-const PRIVACY_MASK = '••••'
 
 type DetailRow = {
   labelSuffix: string
