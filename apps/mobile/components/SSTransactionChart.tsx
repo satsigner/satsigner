@@ -12,8 +12,11 @@ import { type Transaction } from '@/types/models/Transaction'
 import {
   BLOCK_WIDTH,
   NODE_WIDTH,
+  SANKEY_DIAGRAM_NODE_PADDING_PX,
+  SANKEY_EQUAL_ROW_MIN_SLOT_PX,
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
+import { equalizeSankeyColumnsByDepthH } from '@/utils/equalizeSankeyColumnLayout'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 
@@ -106,12 +109,15 @@ function SSTransactionChart({
   const GRAPH_HEIGHT = BASE_GRAPH_HEIGHT * scale
   const GRAPH_WIDTH = width * scale
 
+  const sankeyExtentTop = 20 * scale
+  const sankeyExtentBottom = (GRAPH_HEIGHT * 0.65) / 2
+
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH * scale)
-    .nodePadding(GRAPH_HEIGHT / 2)
+    .nodePadding(Math.round(SANKEY_DIAGRAM_NODE_PADDING_PX * scale))
     .extent([
-      [0, 20 * scale],
-      [GRAPH_WIDTH * 0.9, (GRAPH_HEIGHT * 0.65) / 2]
+      [0, sankeyExtentTop],
+      [GRAPH_WIDTH * 0.9, sankeyExtentBottom]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -264,10 +270,20 @@ function SSTransactionChart({
     return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
-  const { links, nodes } = sankeyGenerator({
+  const layoutResult = sankeyGenerator({
     links: sankeyLinks,
     nodes: sankeyNodes
   })
+
+  equalizeSankeyColumnsByDepthH(
+    layoutResult.nodes as Node[],
+    sankeyExtentTop,
+    sankeyExtentBottom,
+    Math.round(SANKEY_DIAGRAM_NODE_PADDING_PX * scale),
+    SANKEY_EQUAL_ROW_MIN_SLOT_PX * scale
+  )
+
+  const { links, nodes } = layoutResult
 
   const transformedLinks = links.map((link) => ({
     source: (link.source as Node).id,
