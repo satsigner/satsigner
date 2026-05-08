@@ -43,16 +43,16 @@ export const SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX = 120
 export const SANKEY_CURRENT_TX_EXTENT_TOP_PX = 200
 
 /** Scales vertical extent vs row count (lower = tighter vertical packing). */
-export const SANKEY_CURRENT_TX_EXTENT_ROW_SCALE = 0.2
+export const SANKEY_CURRENT_TX_EXTENT_ROW_SCALE = 0.12
 
 /** Horizontal inset from screen edges so columns sit closer together. */
-export const SANKEY_CURRENT_TX_EXTENT_X_INSET_PX = 28
+export const SANKEY_CURRENT_TX_EXTENT_X_INSET_PX = 26
 
 /** Vertical gap between stacked nodes (d3-sankey nodePadding). */
-export const SANKEY_DIAGRAM_NODE_PADDING_PX = 88
+export const SANKEY_DIAGRAM_NODE_PADDING_PX = 42
 
 /** Minimum row height when equalizing stacked sankey columns after layout (matches card row height). */
-export const SANKEY_EQUAL_ROW_MIN_SLOT_PX = 80
+export const SANKEY_EQUAL_ROW_MIN_SLOT_PX = 64
 
 /** Bezier control-point extent cap in Skia link paths. */
 export const SANKEY_LINK_CURVE_CONTROL_MAX_PX = 60

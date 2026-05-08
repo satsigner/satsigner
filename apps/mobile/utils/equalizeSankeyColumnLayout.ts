@@ -9,6 +9,16 @@ type DepthHNode = {
   y1?: number
 }
 
+/** Vertical space needed to stack `n` rows with fixed gap (equalizeSankeyColumnsByDepthH). */
+export function minSankeyStackedColumnInnerHeightPx(
+  maxNodesInAnyColumn: number,
+  minSlotPx: number,
+  gapPx: number
+): number {
+  const n = Math.max(1, Math.floor(maxNodesInAnyColumn))
+  return n * minSlotPx + Math.max(0, n - 1) * gapPx
+}
+
 export function equalizeSankeyColumnsByDepthH<T extends DepthHNode>(
   nodes: T[],
   extentTop: number,

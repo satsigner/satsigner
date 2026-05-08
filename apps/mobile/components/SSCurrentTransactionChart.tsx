@@ -30,7 +30,10 @@ import {
   SANKEY_EQUAL_ROW_MIN_SLOT_PX,
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
-import { equalizeSankeyColumnsByDepthH } from '@/utils/equalizeSankeyColumnLayout'
+import {
+  equalizeSankeyColumnsByDepthH,
+  minSankeyStackedColumnInnerHeightPx
+} from '@/utils/equalizeSankeyColumnLayout'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -122,8 +125,89 @@ function SSCurrentTransactionChart({
   const { width: winW, height: winH } = useWindowDimensions()
   const safeWinW = Math.max(1, winW)
   const safeWinH = Math.max(1, winH)
-  const GRAPH_HEIGHT = safeWinH * 0.7
   const GRAPH_WIDTH = safeWinW
+
+  const SANKEY_EXTENT_BOTTOM_MARGIN_PX = 8
+
+  const chartGeometry = useMemo(() => {
+    let graphHeight = safeWinH * 0.7
+    const rowCount = Math.max(inputMap.size, outputArray.length + 1)
+    const feeRows = minerFee > 0 ? 1 : 0
+    const maxColumnNodes = Math.max(
+      inputMap.size,
+      outputArray.length + feeRows,
+      1
+    )
+    const minInnerEqualRows = minSankeyStackedColumnInnerHeightPx(
+      maxColumnNodes,
+      SANKEY_EQUAL_ROW_MIN_SLOT_PX,
+      SANKEY_DIAGRAM_NODE_PADDING_PX
+    )
+
+    for (let pass = 0; pass < 3; pass += 1) {
+      const extentTop = Math.min(
+        SANKEY_CURRENT_TX_EXTENT_TOP_PX,
+        Math.max(
+          SANKEY_EXTENT_BOTTOM_MARGIN_PX,
+          graphHeight -
+            SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX -
+            SANKEY_EXTENT_BOTTOM_MARGIN_PX
+        )
+      )
+
+      const rawSankeyExtentBottomY =
+        graphHeight * rowCount * SANKEY_CURRENT_TX_EXTENT_ROW_SCALE
+
+      const sankeyExtentBottomY = Math.min(
+        graphHeight - SANKEY_EXTENT_BOTTOM_MARGIN_PX,
+        Math.max(
+          extentTop + SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
+          rawSankeyExtentBottomY,
+          extentTop + minInnerEqualRows
+        )
+      )
+
+      const neededHeight = sankeyExtentBottomY + SANKEY_EXTENT_BOTTOM_MARGIN_PX
+      if (neededHeight <= graphHeight + 0.5) {
+        return {
+          extentTop,
+          graphHeight,
+          sankeyExtentBottomY
+        }
+      }
+      graphHeight = neededHeight
+    }
+
+    const extentTop = Math.min(
+      SANKEY_CURRENT_TX_EXTENT_TOP_PX,
+      Math.max(
+        SANKEY_EXTENT_BOTTOM_MARGIN_PX,
+        graphHeight -
+          SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX -
+          SANKEY_EXTENT_BOTTOM_MARGIN_PX
+      )
+    )
+    const rawSankeyExtentBottomY =
+      graphHeight * rowCount * SANKEY_CURRENT_TX_EXTENT_ROW_SCALE
+    const sankeyExtentBottomY = Math.min(
+      graphHeight - SANKEY_EXTENT_BOTTOM_MARGIN_PX,
+      Math.max(
+        extentTop + SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
+        rawSankeyExtentBottomY,
+        extentTop + minInnerEqualRows
+      )
+    )
+
+    return {
+      extentTop,
+      graphHeight,
+      sankeyExtentBottomY
+    }
+  }, [inputMap.size, minerFee, outputArray.length, safeWinH])
+
+  const GRAPH_HEIGHT = chartGeometry.graphHeight
+  const {extentTop} = chartGeometry
+  const {sankeyExtentBottomY} = chartGeometry
 
   /** Same space as Skia coords & overlay — not useLayout (often 0×0 before layout). */
   const chartCenter = useMemo(
@@ -142,29 +226,6 @@ function SSCurrentTransactionChart({
     shouldResetOnInteractionEnd: false,
     width: GRAPH_WIDTH
   })
-
-  /** Keep d3 extent inside the Skia canvas; uncapped bottom was > GRAPH_HEIGHT for many rows. */
-  const SANKEY_EXTENT_BOTTOM_MARGIN_PX = 8
-  const extentTop = Math.min(
-    SANKEY_CURRENT_TX_EXTENT_TOP_PX,
-    Math.max(
-      SANKEY_EXTENT_BOTTOM_MARGIN_PX,
-      GRAPH_HEIGHT -
-        SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX -
-        SANKEY_EXTENT_BOTTOM_MARGIN_PX
-    )
-  )
-
-  const rowCount = Math.max(inputMap.size, outputArray.length + 1)
-  const rawSankeyExtentBottomY =
-    GRAPH_HEIGHT * rowCount * SANKEY_CURRENT_TX_EXTENT_ROW_SCALE
-  const sankeyExtentBottomY = Math.min(
-    GRAPH_HEIGHT - SANKEY_EXTENT_BOTTOM_MARGIN_PX,
-    Math.max(
-      extentTop + SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
-      rawSankeyExtentBottomY
-    )
-  )
 
   const extentX1 = Math.max(
     SANKEY_CURRENT_TX_EXTENT_X_INSET_PX + 1,
@@ -362,10 +423,13 @@ function SSCurrentTransactionChart({
 
         // Safely handle NaN values from sankey generator
         const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
-        const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
+        const safeY1 = Number.isNaN(node.y1) ? 0 : (node.y1 ?? 0)
+        const slotHeight = Math.max(0, safeY1 - safeY0)
 
         return {
-          height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80,
+          height: isBlock
+            ? Math.max(blockNodeHeight, LINK_MAX_WIDTH)
+            : Math.max(slotHeight, 1),
           localId: (node as Node).localId,
           width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
           x: isBlock ? safeX0 + (NODE_WIDTH - BLOCK_WIDTH) / 2 : safeX0,

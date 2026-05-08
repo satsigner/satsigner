@@ -1,4 +1,14 @@
-import { equalizeSankeyColumnsByDepthH } from '@/utils/equalizeSankeyColumnLayout'
+import {
+  equalizeSankeyColumnsByDepthH,
+  minSankeyStackedColumnInnerHeightPx
+} from '@/utils/equalizeSankeyColumnLayout'
+
+describe('minSankeyStackedColumnInnerHeightPx', () => {
+  it('matches n slots and n-1 gaps', () => {
+    expect(minSankeyStackedColumnInnerHeightPx(3, 80, 16)).toBe(272)
+    expect(minSankeyStackedColumnInnerHeightPx(1, 80, 16)).toBe(80)
+  })
+})
 
 describe('equalizeSankeyColumnsByDepthH', () => {
   it('gives equal height rows and equal gaps in a column', () => {
