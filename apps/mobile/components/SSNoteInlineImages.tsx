@@ -2,10 +2,10 @@ import { useState } from 'react'
 import {
   Image,
   Modal,
-  SafeAreaView,
   StyleSheet,
   TouchableOpacity,
   View,
+  useWindowDimensions,
   type StyleProp,
   type ViewStyle
 } from 'react-native'
@@ -15,30 +15,57 @@ import {
   GestureHandlerRootView
 } from 'react-native-gesture-handler'
 import Animated, {
+  Extrapolation,
+  interpolate,
+  runOnJS,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import SSText from '@/components/SSText'
+import { useImageActionsStore } from '@/store/imageActions'
 import { Colors } from '@/styles'
+import { parseImageExif } from '@/utils/imageExif'
+
+const DISMISS_DRAG_THRESHOLD = 100
+const DISMISS_VELOCITY_Y = -500
+
+type ImageDimensions = { width: number; height: number }
 
 type SSNoteInlineImageProps = {
   uri: string
   onPress: () => void
+  onLongPress: (uri: string, dimensions: ImageDimensions) => void
 }
 
-function SSNoteInlineImage({ uri, onPress }: SSNoteInlineImageProps) {
+function SSNoteInlineImage({
+  uri,
+  onPress,
+  onLongPress
+}: SSNoteInlineImageProps) {
   const [aspectRatio, setAspectRatio] = useState<number | null>(null)
+  const [dimensions, setDimensions] = useState<ImageDimensions>({
+    height: 0,
+    width: 0
+  })
 
   return (
-    <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      onLongPress={() => onLongPress(uri, dimensions)}
+      delayLongPress={400}
+    >
       <Image
         source={{ uri }}
         onLoad={(e) => {
           const { width: w, height: h } = e.nativeEvent.source
           if (typeof w === 'number' && typeof h === 'number' && h > 0) {
             setAspectRatio(w / h)
+            setDimensions({ height: h, width: w })
           }
         }}
         style={[
@@ -58,12 +85,19 @@ function FullscreenImageViewer({
   uri: string
   onClose: () => void
 }) {
+  const insets = useSafeAreaInsets()
+  const { height: windowHeight } = useWindowDimensions()
+  const windowHeightSV = useDerivedValue(() => windowHeight)
+
   const scale = useSharedValue(1)
   const savedScale = useSharedValue(1)
   const translateX = useSharedValue(0)
   const translateY = useSharedValue(0)
   const savedTranslateX = useSharedValue(0)
   const savedTranslateY = useSharedValue(0)
+  const dismissY = useSharedValue(0)
+  const dismissPanOrigin = useSharedValue(0)
+  const panStartedZoomed = useSharedValue(false)
 
   const pinch = Gesture.Pinch()
     .onUpdate((e) => {
@@ -74,17 +108,44 @@ function FullscreenImageViewer({
     })
 
   const pan = Gesture.Pan()
-    .onUpdate((e) => {
-      translateX.value = savedTranslateX.value + e.translationX
-      translateY.value = savedTranslateY.value + e.translationY
+    .maxPointers(1)
+    .minDistance(0)
+    .onStart(() => {
+      panStartedZoomed.value = savedScale.value > 1.01
+      dismissPanOrigin.value = dismissY.value
     })
-    .onEnd(() => {
-      savedTranslateX.value = translateX.value
-      savedTranslateY.value = translateY.value
+    .onUpdate((e) => {
+      if (panStartedZoomed.value) {
+        translateX.value = savedTranslateX.value + e.translationX
+        translateY.value = savedTranslateY.value + e.translationY
+      } else {
+        dismissY.value = Math.min(0, dismissPanOrigin.value + e.translationY)
+      }
+    })
+    .onEnd((e) => {
+      if (panStartedZoomed.value) {
+        savedTranslateX.value = translateX.value
+        savedTranslateY.value = translateY.value
+      } else {
+        const shouldDismiss =
+          dismissY.value < -DISMISS_DRAG_THRESHOLD ||
+          e.velocityY < DISMISS_VELOCITY_Y
+        if (shouldDismiss) {
+          const h = windowHeightSV.value
+          dismissY.value = withTiming(-h, { duration: 220 }, (finished) => {
+            if (finished) {
+              runOnJS(onClose)()
+            }
+          })
+        } else {
+          dismissY.value = withTiming(0, { duration: 200 })
+        }
+      }
     })
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
+    .maxDistance(10)
     .onEnd(() => {
       scale.value = withTiming(1)
       savedScale.value = 1
@@ -104,30 +165,68 @@ function FullscreenImageViewer({
     ]
   }))
 
+  const sheetStyle = useAnimatedStyle(() => {
+    const h = windowHeightSV.value
+    return {
+      opacity: interpolate(
+        dismissY.value,
+        [-h * 0.35, 0],
+        [0.35, 1],
+        Extrapolation.CLAMP
+      ),
+      transform: [{ translateY: dismissY.value }]
+    }
+  })
+
   return (
     <GestureHandlerRootView style={styles.fullscreenRoot}>
-      <GestureDetector gesture={gesture}>
-        <Animated.View style={[styles.fullscreenImageWrap, animatedStyle]}>
-          <Image
-            source={{ uri }}
-            style={styles.fullscreenImage}
-            resizeMode="contain"
-          />
-        </Animated.View>
-      </GestureDetector>
-      <SafeAreaView style={styles.fullscreenHeader} pointerEvents="box-none">
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={onClose}
-          hitSlop={12}
+      <Animated.View style={[styles.fullscreenSheet, sheetStyle]}>
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[styles.fullscreenImageWrap, animatedStyle]}>
+            <Image
+              source={{ uri }}
+              style={styles.fullscreenImage}
+              resizeMode="contain"
+            />
+          </Animated.View>
+        </GestureDetector>
+        <View
+          style={[
+            styles.fullscreenHeader,
+            {
+              paddingRight: insets.right + 12,
+              paddingTop: insets.top + 8
+            }
+          ]}
+          pointerEvents="box-none"
         >
-          <SSText size="md" center>
-            ✕
-          </SSText>
-        </TouchableOpacity>
-      </SafeAreaView>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            hitSlop={12}
+          >
+            <SSText size="md" center>
+              ✕
+            </SSText>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
     </GestureHandlerRootView>
   )
+}
+
+async function fetchImageMeta(uri: string) {
+  const filename = uri.split('/').pop()?.split('?')[0] ?? undefined
+  try {
+    const res = await fetch(uri, { method: 'HEAD' })
+    const contentType = res.headers.get('content-type') ?? undefined
+    const contentLength = res.headers.get('content-length')
+    const fileSize =
+      contentLength !== null ? parseInt(contentLength, 10) : undefined
+    return { contentType, fileSize, filename }
+  } catch {
+    return { filename }
+  }
 }
 
 type SSNoteInlineImagesProps = {
@@ -137,9 +236,33 @@ type SSNoteInlineImagesProps = {
 
 function SSNoteInlineImages({ uris, style }: SSNoteInlineImagesProps) {
   const [viewingUri, setViewingUri] = useState<string | null>(null)
+  const setSelectedImage = useImageActionsStore((s) => s.setSelectedImage)
 
   if (uris.length === 0) {
     return null
+  }
+
+  async function handleLongPress(uri: string, dimensions: ImageDimensions) {
+    // Show drawer immediately with what we know
+    setSelectedImage({
+      height: dimensions.height,
+      uri,
+      width: dimensions.width
+    })
+    // Fetch HTTP headers and EXIF in parallel
+    const [meta, exif] = await Promise.all([
+      fetchImageMeta(uri),
+      parseImageExif(uri)
+    ])
+    setSelectedImage({
+      contentType: meta.contentType,
+      exif,
+      fileSize: meta.fileSize,
+      filename: meta.filename,
+      height: dimensions.height,
+      uri,
+      width: dimensions.width
+    })
   }
 
   return (
@@ -150,6 +273,7 @@ function SSNoteInlineImages({ uris, style }: SSNoteInlineImagesProps) {
             key={uri}
             uri={uri}
             onPress={() => setViewingUri(uri)}
+            onLongPress={(u, d) => void handleLongPress(u, d)}
           />
         ))}
       </View>
@@ -178,7 +302,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     height: 40,
     justifyContent: 'center',
-    margin: 16,
     width: 40
   },
   fullscreenHeader: {
@@ -196,6 +319,10 @@ const styles = StyleSheet.create({
     flex: 1
   },
   fullscreenRoot: {
+    backgroundColor: Colors.black,
+    flex: 1
+  },
+  fullscreenSheet: {
     backgroundColor: Colors.black,
     flex: 1
   },
