@@ -4,6 +4,7 @@ import { nip19 } from 'nostr-tools'
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   View
@@ -26,7 +27,10 @@ import { Colors } from '@/styles'
 import { formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
-import { nostrNoteHref } from '@/utils/nostrNavigation'
+import {
+  nostrContactProfileHref,
+  nostrNoteHref
+} from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 import {
@@ -199,41 +203,53 @@ export default function NostrZapDetail() {
                     ? t('nostrIdentity.zapDetail.profileIncoming')
                     : t('nostrIdentity.zapDetail.profileOutgoing')}
                 </SSText>
-                <SSHStack gap="md" style={styles.profileRow}>
-                  {privacyMode ? (
-                    <View
-                      style={[
-                        styles.profileAvatar,
-                        styles.profileAvatarPlaceholder
-                      ]}
-                    />
-                  ) : counterpartyProfile.picture ? (
-                    <Image
-                      source={{ uri: counterpartyProfile.picture }}
-                      style={styles.profileAvatar}
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.profileAvatar,
-                        styles.profileAvatarPlaceholder
-                      ]}
-                    >
-                      <SSText size="lg" weight="bold">
-                        {(
-                          counterpartyProfile.name?.[0] ||
-                          counterpartyNpub[5] ||
-                          '?'
-                        ).toUpperCase()}
-                      </SSText>
-                    </View>
-                  )}
-                  <SSVStack gap="xs" style={styles.profileMeta}>
-                    <SSText size="md" weight="medium">
+                <Pressable
+                  disabled={!npub || !counterpartyNpub || privacyMode}
+                  onPress={() =>
+                    npub &&
+                    counterpartyNpub &&
+                    router.navigate(
+                      nostrContactProfileHref(npub, counterpartyNpub)
+                    )
+                  }
+                >
+                <SSVStack gap="sm">
+                  <SSHStack gap="md" style={styles.profileRow}>
+                    {privacyMode ? (
+                      <View
+                        style={[
+                          styles.profileAvatar,
+                          styles.profileAvatarPlaceholder
+                        ]}
+                      />
+                    ) : counterpartyProfile.picture ? (
+                      <Image
+                        source={{ uri: counterpartyProfile.picture }}
+                        style={styles.profileAvatar}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.profileAvatar,
+                          styles.profileAvatarPlaceholder
+                        ]}
+                      >
+                        <SSText size="lg" weight="bold">
+                          {(
+                            counterpartyProfile.name?.[0] ||
+                            counterpartyNpub[5] ||
+                            '?'
+                          ).toUpperCase()}
+                        </SSText>
+                      </View>
+                    )}
+                    <SSText size="md" weight="medium" style={styles.profileMeta}>
                       {privacyMode
                         ? NOSTR_PRIVACY_MASK
                         : counterpartyProfile.name?.trim() || '—'}
                     </SSText>
+                  </SSHStack>
+                  <SSVStack gap="xs">
                     <SSVStack gap="xxs">
                       <SSText size="xxs" color="muted" uppercase>
                         {t('nostrIdentity.keys.npub')}
@@ -295,7 +311,8 @@ export default function NostrZapDetail() {
                       )}
                     </SSVStack>
                   </SSVStack>
-                </SSHStack>
+                </SSVStack>
+                </Pressable>
               </SSVStack>
             ) : null}
             <SSVStack gap="xs">
@@ -464,10 +481,10 @@ const styles = StyleSheet.create({
   },
   profileMeta: {
     flex: 1,
-    minWidth: 0
+    flexShrink: 1
   },
   profileRow: {
-    alignItems: 'flex-start'
+    alignItems: 'center'
   },
   scrollContent: {
     paddingBottom: 24,
