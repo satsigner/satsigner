@@ -1,109 +1,106 @@
-import { type Address } from '@/types/models/Address'
-import { type NostrAccount } from '@/types/models/Nostr'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Network } from '@/types/settings/blockchain'
-import { type WordListName } from '@/utils/bip39'
-import { type Label } from '@/utils/bip329'
+import { z } from 'zod'
 
-export type PolicyType = 'singlesig' | 'multisig' | 'watchonly'
+import { MnemonicWordCountSchema, WordListNameSchema } from '@/types/bips/39'
+import { LabelSchema } from '@/types/bips/329'
+import { AddressSchema } from '@/types/models/Address'
+import { NostrAccountSchema } from '@/types/models/Nostr'
+import { ScriptVersionTypeSchema } from '@/types/models/Script'
+import { TransactionSchema } from '@/types/models/Transaction'
+import { UtxoSchema } from '@/types/models/Utxo'
+import { NetworkSchema } from '@/types/settings/blockchain'
 
-export type MnemonicWordCount = 12 | 15 | 18 | 21 | 24
+export const PolicyTypeSchema = z.enum(['singlesig', 'multisig', 'watchonly'])
 
-export type MnemonicEntropyBits = 128 | 160 | 192 | 224 | 256
+export const SyncStatusSchema = z.enum([
+  'unsynced',
+  'synced',
+  'syncing',
+  'error',
+  'timeout'
+])
 
-export type ScriptVersionType =
-  | 'P2PKH'
-  | 'P2SH-P2WPKH'
-  | 'P2WPKH'
-  | 'P2TR'
-  | 'P2WSH'
-  | 'P2SH-P2WSH'
-  | 'P2SH'
+export const SyncProgressSchema = z.object({
+  tasksDone: z.number(),
+  totalTasks: z.number()
+})
 
-export type SyncStatus = 'unsynced' | 'synced' | 'syncing' | 'error' | 'timeout'
+export const CreationTypeSchema = z.enum([
+  'generateMnemonic',
+  'importMnemonic',
+  'importDescriptor',
+  'importExtendedPub',
+  'importAddress'
+])
 
-// TODO: merge SyncProgress in SyncStatus ?
-export type SyncProgress = {
-  totalTasks: number
-  tasksDone: number
-}
+export const SecretSchema = z.object({
+  extendedPublicKey: z.string().optional(),
+  externalDescriptor: z.string().optional(),
+  fingerprint: z.string().optional(),
+  internalDescriptor: z.string().optional(),
+  mnemonic: z.string().optional(),
+  passphrase: z.string().optional()
+})
 
-export type CreationType =
-  | 'generateMnemonic'
-  | 'importMnemonic'
-  | 'importDescriptor'
-  | 'importExtendedPub'
-  | 'importAddress'
+export const KeyMetaSchema = z.object({
+  creationType: CreationTypeSchema,
+  derivationPath: z.string().optional(),
+  fingerprint: z.string().optional(),
+  index: z.number(),
+  mnemonicWordCount: MnemonicWordCountSchema.optional(),
+  mnemonicWordList: WordListNameSchema.optional(),
+  name: z.string().optional(),
+  scriptVersion: ScriptVersionTypeSchema.optional()
+})
 
-export type Secret = {
-  /** Mnemonic words separated with a space */
-  mnemonic?: string
-  passphrase?: string
-  /** Only for sigle/multisig import descriptor and watch-only descriptor/extended key */
-  externalDescriptor?: string
-  /** Only for sigle/multisig import descriptor and watch-only descriptor/extended key */
-  internalDescriptor?: string
-  /** Only for watch-only */
-  extendedPublicKey?: string
-  /** Fingerprint of the key */
-  fingerprint?: string
-}
+export const KeySchema = KeyMetaSchema.extend({
+  iv: z.string(),
+  secret: z.union([SecretSchema, z.string()])
+})
 
-/** Key metadata safe for SQLite — no secret material */
-export type KeyMeta = {
-  /** Key position for multisig. Set to 0 if singlesig */
-  index: number
-  name?: string
-  creationType: CreationType
-  mnemonicWordCount?: MnemonicWordCount
-  mnemonicWordList?: WordListName
-  fingerprint?: string
-  scriptVersion?: ScriptVersionType
-  derivationPath?: string
-}
+export const DecryptedKeySchema = KeySchema.omit({ secret: true }).extend({
+  secret: SecretSchema
+})
 
-export type Key = KeyMeta & {
-  /** Sensitive information that can be encrypted with PIN */
-  secret: Secret | string
-  /** Initialization vector for AES encryption */
-  iv: string
-}
+export const AccountSchema = z.object({
+  addresses: z.array(AddressSchema),
+  createdAt: z.date(),
+  id: z.string(),
+  isSyncing: z.boolean().optional(),
+  keyCount: z.number(),
+  keys: z.array(KeySchema),
+  keysRequired: z.number(),
+  labels: z.record(z.string(), LabelSchema),
+  lastSyncedAt: z.date().optional(),
+  name: z.string(),
+  network: NetworkSchema,
+  nostr: NostrAccountSchema,
+  policyType: PolicyTypeSchema,
+  summary: z.object({
+    balance: z.number(),
+    numberOfAddresses: z.number(),
+    numberOfTransactions: z.number(),
+    numberOfUtxos: z.number(),
+    satsInMempool: z.number()
+  }),
+  syncProgress: SyncProgressSchema.optional(),
+  syncStatus: SyncStatusSchema,
+  transactions: z.array(TransactionSchema),
+  utxos: z.array(UtxoSchema)
+})
 
-export type DecryptedKey = Omit<Key, 'secret'> & {
-  secret: Secret
-}
-
-export type Account = {
-  id: string
-  name: string
-  network: Network
-  policyType: PolicyType
-  /** Account keys. Default: [] */
-  keys: Key[]
-  /** Total account keys. Default: 1 */
-  keyCount: number
-  /** Keys required to sign. Default: 1 */
-  keysRequired: number
-  summary: {
-    balance: number
-    numberOfAddresses: number
-    numberOfTransactions: number
-    numberOfUtxos: number
-    satsInMempool: number
+export const DecryptedAccountSchema = AccountSchema.omit({ keys: true }).extend(
+  {
+    keys: z.array(DecryptedKeySchema)
   }
-  transactions: Transaction[]
-  utxos: Utxo[]
-  addresses: Address[]
-  labels: Record<Label['ref'], Label>
-  createdAt: Date
-  isSyncing?: boolean
-  lastSyncedAt?: Date
-  syncStatus: SyncStatus
-  syncProgress?: SyncProgress
-  nostr: NostrAccount
-}
+)
 
-export type DecryptedAccount = Omit<Account, 'keys'> & {
-  keys: DecryptedKey[]
-}
+export type Account = z.infer<typeof AccountSchema>
+export type CreationType = z.infer<typeof CreationTypeSchema>
+export type DecryptedAccount = z.infer<typeof DecryptedAccountSchema>
+export type DecryptedKey = z.infer<typeof DecryptedKeySchema>
+export type Key = z.infer<typeof KeySchema>
+export type KeyMeta = z.infer<typeof KeyMetaSchema>
+export type PolicyType = z.infer<typeof PolicyTypeSchema>
+export type Secret = z.infer<typeof SecretSchema>
+export type SyncProgress = z.infer<typeof SyncProgressSchema>
+export type SyncStatus = z.infer<typeof SyncStatusSchema>

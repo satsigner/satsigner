@@ -1,53 +1,30 @@
+import { Bip329FileType, Label } from '@/types/bips/329'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
-import { type Prices } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 
 import { type PickFileProps } from './filesystem'
 import { getUtxoOutpoint } from './utxo'
 
-type LabelType = 'tx' | 'addr' | 'pubkey' | 'input' | 'output' | 'xpub'
-
-export type Label = {
-  type: LabelType
-  ref: string
-  label: string
-
-  // optional
-  fee?: number
-  fmv?: Prices
-  height?: number
-  heights?: number[]
-  keypath?: string
-  origin?: string
-  rate?: Prices
-  spendable?: boolean
-  time?: Date
-  value?: number
-}
-
-export type Bip329FileType = 'JSONL' | 'JSON' | 'CSV'
-
-export const bip329FileTypes: Bip329FileType[] = ['JSONL', 'JSON', 'CSV']
-
-export const bip329parser = {
+export const bip329parser: Record<Bip329FileType, (text: string) => Label[]> = {
   CSV: CSVtoLabels,
   JSON: JSONtoLabels,
   JSONL: JSONLtoLabels
-} as Record<Bip329FileType, (text: string) => Label[]>
+}
 
-export const bip329export = {
-  CSV: labelsToCSV,
-  JSON: labelsToJSON,
-  JSONL: labelsToJSONL
-} as Record<Bip329FileType, (labels: Label[]) => string>
+export const bip329export: Record<Bip329FileType, (labels: Label[]) => string> =
+  {
+    CSV: labelsToCSV,
+    JSON: labelsToJSON,
+    JSONL: labelsToJSONL
+  }
 
-export const bip329mimes = {
+export const bip329mimes: Record<Bip329FileType, PickFileProps['type']> = {
   CSV: 'text/csv',
   JSON: 'application/json',
   JSONL: 'text/plain'
-} as Record<Bip329FileType, PickFileProps['type']>
+}
 
 // These aliases is to handle importing from wallets which do not respect the
 // standard names defined in BIP329 but define their own nonsense

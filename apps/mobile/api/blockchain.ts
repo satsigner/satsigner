@@ -107,7 +107,11 @@ export class MempoolOracle implements BlockchainOracle {
 
   async getCurrentFeeRate(priority: TxPriority): Promise<number> {
     const feeRates: MemPoolFees = await this.getMemPoolFees()
-    return feeRates[priority]
+    const rate = feeRates[priority]
+    if (rate !== undefined) {
+      return rate
+    }
+    throw new Error('unvailable rate')
   }
 
   async getBlockFeeRates(period: string): Promise<BlockFeeRates> {

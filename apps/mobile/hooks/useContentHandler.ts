@@ -34,8 +34,8 @@ export function useContentHandler({
   )
 
   const handleNFCContentRead = useCallback(
-    async (content: string) => {
-      const detectedContent = await detectContentByContext(content, context)
+    (content: string) => {
+      const detectedContent = detectContentByContext(content, context)
       onContentScanned(detectedContent)
     },
     [context, onContentScanned]

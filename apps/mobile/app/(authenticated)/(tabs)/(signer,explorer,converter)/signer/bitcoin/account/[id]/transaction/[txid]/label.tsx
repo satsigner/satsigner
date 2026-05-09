@@ -8,10 +8,10 @@ import useNostrSync from '@/hooks/useNostrSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { Label } from '@/types/bips/329'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
-import { type Label } from '@/utils/bip329'
 
 import { SSTxDetailsHeader } from '.'
 

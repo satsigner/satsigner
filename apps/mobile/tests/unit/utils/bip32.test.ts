@@ -1,6 +1,6 @@
 import { Network as BDKNetwork } from 'react-native-bdk-sdk'
 
-import { type ScriptVersionType } from '@/types/models/Account'
+import { type ScriptVersionType } from '@/types/models/Script'
 import {
   getDescriptorsFromKey,
   getExtendedKeyFromDescriptor

@@ -1,11 +1,7 @@
 import { KeychainKind } from 'react-native-bdk-sdk'
 
-import type {
-  Account,
-  Key,
-  ScriptVersionType,
-  Secret
-} from '@/types/models/Account'
+import type { Account, Key, Secret } from '@/types/models/Account'
+import type { ScriptVersionType } from '@/types/models/Script'
 import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'

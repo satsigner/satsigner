@@ -12,14 +12,9 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
+import { Bip329FileType, bip329FileTypes, Label } from '@/types/bips/329'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import {
-  bip329export,
-  type Bip329FileType,
-  bip329FileTypes,
-  bip329mimes,
-  type Label
-} from '@/utils/bip329'
+import { bip329export, bip329mimes } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportLabels() {

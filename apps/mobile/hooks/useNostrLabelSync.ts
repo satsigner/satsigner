@@ -4,8 +4,9 @@ import { toast } from 'sonner-native'
 import { NostrAPI } from '@/api/nostr'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
-import { formatAccountLabels, type Label, labelsToJSONL } from '@/utils/bip329'
+import type { Label } from '@/types/bips/329'
+import type { Account } from '@/types/models/Account'
+import { formatAccountLabels, labelsToJSONL } from '@/utils/bip329'
 import { sha256 } from '@/utils/crypto'
 
 function useNostrLabelSync() {

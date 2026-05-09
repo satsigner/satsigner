@@ -1,10 +1,11 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
+import { z } from 'zod'
 
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Network } from '@/types/settings/blockchain'
+import { TransactionSchema, type Transaction } from '@/types/models/Transaction'
+import { UtxoSchema, type Utxo } from '@/types/models/Utxo'
+import { NetworkSchema, type Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { bytesToHex } from '@/utils/scripts'
@@ -12,83 +13,96 @@ import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 import { isValidDomainName, isValidIPAddress } from '@/utils/validation/url'
 
-type IElectrumClient = {
-  props: {
-    host: string
-    port: number
-    protocol?: 'tcp' | 'tls' | 'ssl'
-    network?: Network
-  }
-  addressBalance: {
-    confirmed: number
-    unconfirmed: number
-  }
-  addressTxs: {
-    height: number
-    tx_hash: string
-  }[]
-  addressUtxos: {
-    height: number
-    tx_hash: string
-    tx_pos: number
-    value: number
-  }[]
-  addressUnconfirmed: {
-    height: number
-    tx_hash: string
-    fee: number
-  }[]
-  transactionRaw: {
-    id: string
-    jsonrpc: string
-    param: string
-    result: string
-  }
-  transaction: {
-    blockhash: string
-    blocktime: number
-    confirmations: number
-    hash: string
-    hex: string
-    locktime: number
-    size: number
-    time: number
-    txid: string
-    version: number
-    vin: {
-      scriptSig: {
-        asm: string
-        hex: string
-      }
-      sequence: number
-      txid: string
-      vout: number
-    }[]
-    vout: {
-      n: number
-      scriptPubkey: {
-        addresses: string[]
-        asm: string
-        hex: string
-        reqSigs: number
-        type: string
-      }
-      value: string
-    }[]
-  }
-}
+export const ElectrumClientSchema = z.object({
+  addressBalance: z.object({
+    confirmed: z.number(),
+    unconfirmed: z.number()
+  }),
+  addressTxs: z.array(
+    z.object({
+      height: z.number(),
+      tx_hash: z.string()
+    })
+  ),
+  addressUnconfirmed: z.array(
+    z.object({
+      fee: z.number(),
+      height: z.number(),
+      tx_hash: z.string()
+    })
+  ),
+  addressUtxos: z.array(
+    z.object({
+      height: z.number(),
+      tx_hash: z.string(),
+      tx_pos: z.number(),
+      value: z.number()
+    })
+  ),
+  props: z.object({
+    host: z.string(),
+    network: NetworkSchema.optional(),
+    port: z.number(),
+    protocol: z.enum(['tcp', 'tls', 'ssl']).optional()
+  }),
+  transaction: z.object({
+    blockhash: z.string(),
+    blocktime: z.number(),
+    confirmations: z.number(),
+    hash: z.string(),
+    hex: z.string(),
+    locktime: z.number(),
+    size: z.number(),
+    time: z.number(),
+    txid: z.string(),
+    version: z.number(),
+    vin: z.array(
+      z.object({
+        scriptSig: z.object({
+          asm: z.string(),
+          hex: z.string()
+        }),
+        sequence: z.number(),
+        txid: z.string(),
+        vout: z.number()
+      })
+    ),
+    vout: z.array(
+      z.object({
+        n: z.number(),
+        scriptPubkey: z.object({
+          addresses: z.array(z.string()),
+          asm: z.string(),
+          hex: z.string(),
+          reqSigs: z.number(),
+          type: z.string()
+        }),
+        value: z.string()
+      })
+    )
+  }),
+  transactionRaw: z.object({
+    id: z.string(),
+    jsonrpc: z.string(),
+    param: z.string(),
+    result: z.string()
+  })
+})
 
-type AddressInfo = {
-  transactions: Transaction[]
-  utxos: Utxo[]
-  balance: {
-    confirmed: number
-    unconfirmed: number
-  }
-}
+export type IElectrumClient = z.infer<typeof ElectrumClientSchema>
+
+export const AddressInfoSchema = z.object({
+  balance: z.object({
+    confirmed: z.number(),
+    unconfirmed: z.number()
+  }),
+  transactions: z.array(TransactionSchema),
+  utxos: z.array(UtxoSchema)
+})
+
+export type AddressInfo = z.infer<typeof AddressInfoSchema>
 
 class ModifiedClient extends BlueWalletElectrumClient {
-  // INFO: Override the default timeout for keeping client alive
   keepAlive() {
     if (this.timeout !== null && this.timeout !== undefined) {
       clearTimeout(this.timeout)

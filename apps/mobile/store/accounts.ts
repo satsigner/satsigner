@@ -41,6 +41,7 @@ import { upsertSingleTransaction } from '@/db/mutations/transactions'
 import { getAccountById, getAccounts } from '@/db/queries/accounts'
 import { queryClient } from '@/lib/queryClient'
 import { deleteAllKeySecrets, deleteKeySecret } from '@/storage/encrypted'
+import { type Label } from '@/types/bips/329'
 import {
   type Account,
   type Key,
@@ -50,7 +51,6 @@ import {
 import { type NostrAccount } from '@/types/models/Nostr'
 import { type Transaction } from '@/types/models/Transaction'
 import { dropSeedFromKey } from '@/utils/account'
-import { type Label } from '@/utils/bip329'
 
 /**
  * Wallet sync and address refresh call updateAccount with { ...account, ... } from

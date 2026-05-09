@@ -1,64 +1,80 @@
-export type NostrMessage = {
-  id: string
-  content: string | Record<string, unknown>
-  created_at: number
-  decryptedContent?: string
-  isSender?: boolean
-  pubkey?: string
-}
+import { z } from 'zod'
 
-export type NostrDM = {
-  id: string
-  author: string
-  created_at: number
-  description: string
-  event: string
-  label: number
-  content: {
-    description: string
-    created_at: number
-    pubkey?: string
-  }
-  /** True when message was sent from this device but not yet confirmed from relay */
-  pending?: boolean
-  /** False when this incoming message has not yet been viewed in the chat.
-   *  Undefined means the message predates the unread-tracking feature (treat as read). */
-  read?: boolean
-}
+export const NostrMessageSchema = z.object({
+  content: z.union([z.string(), z.record(z.string(), z.unknown())]),
+  created_at: z.number(),
+  decryptedContent: z.string().optional(),
+  id: z.string(),
+  isSender: z.boolean().optional(),
+  pubkey: z.string().optional()
+})
 
-export type NostrAccount = {
-  autoSync: boolean
-  commonNpub: string
-  commonNsec: string
-  deviceNpub?: string
-  deviceNsec?: string
-  deviceDisplayName?: string
-  devicePicture?: string
-  dms: NostrDM[]
-  lastBackupFingerprint?: string
-  lastUpdated: Date
-  npubAliases?: Record<string, string>
-  npubProfiles?: Record<string, { displayName?: string; picture?: string }>
-  relays: string[]
-  syncStart: Date
-  trustedMemberDevices: string[]
-  relayStatuses?: Record<string, 'connected' | 'connecting' | 'disconnected'>
-}
+export const NostrDMSchema = z.object({
+  author: z.string(),
+  content: z.object({
+    created_at: z.number(),
+    description: z.string(),
+    pubkey: z.string().optional()
+  }),
+  created_at: z.number(),
+  description: z.string(),
+  event: z.string(),
+  id: z.string(),
+  label: z.number(),
+  pending: z.boolean().optional(),
+  read: z.boolean().optional()
+})
 
-export type NostrKind0Profile = {
-  displayName?: string
-  picture?: string
-  nip05?: string
-  lud16?: string
-}
+export const NostrAccountSchema = z.object({
+  autoSync: z.boolean(),
+  commonNpub: z.string(),
+  commonNsec: z.string(),
+  deviceDisplayName: z.string().optional(),
+  deviceNpub: z.string().optional(),
+  deviceNsec: z.string().optional(),
+  devicePicture: z.string().optional(),
+  dms: z.array(NostrDMSchema),
+  lastBackupFingerprint: z.string().optional(),
+  lastUpdated: z.date(),
+  npubAliases: z.record(z.string(), z.string()).optional(),
+  npubProfiles: z
+    .record(
+      z.string(),
+      z.object({
+        displayName: z.string().optional(),
+        picture: z.string().optional()
+      })
+    )
+    .optional(),
+  relayStatuses: z
+    .record(z.string(), z.enum(['connected', 'connecting', 'disconnected']))
+    .optional(),
+  relays: z.array(z.string()),
+  syncStart: z.date(),
+  trustedMemberDevices: z.array(z.string())
+})
 
-export type NostrKeys = {
-  nsec: string
-  npub: string
-  secretNostrKey: Uint8Array
-}
+export const NostrKind0ProfileSchema = z.object({
+  displayName: z.string().optional(),
+  lud16: z.string().optional(),
+  nip05: z.string().optional(),
+  picture: z.string().optional()
+})
 
-export type NostrRelay = {
-  url: string
-  name: string
-}
+export const NostrKeysSchema = z.object({
+  npub: z.string(),
+  nsec: z.string(),
+  secretNostrKey: z.instanceof(Uint8Array)
+})
+
+export const NostrRelaySchema = z.object({
+  name: z.string(),
+  url: z.string()
+})
+
+export type NostrMessage = z.infer<typeof NostrMessageSchema>
+export type NostrDM = z.infer<typeof NostrDMSchema>
+export type NostrAccount = z.infer<typeof NostrAccountSchema>
+export type NostrKind0Profile = z.infer<typeof NostrKind0ProfileSchema>
+export type NostrKeys = z.infer<typeof NostrKeysSchema>
+export type NostrRelay = z.infer<typeof NostrRelaySchema>

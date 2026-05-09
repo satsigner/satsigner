@@ -21,7 +21,8 @@ import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
-import { getWordList, type WordListName } from '@/utils/bip39'
+import type { WordListName } from '@/types/bips/39'
+import { getWordList } from '@/utils/bip39'
 
 type WordInfo = {
   index: number

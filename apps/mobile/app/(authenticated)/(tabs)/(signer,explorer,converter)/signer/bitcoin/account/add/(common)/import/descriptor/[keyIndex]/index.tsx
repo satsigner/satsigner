@@ -29,7 +29,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type ScriptVersionType } from '@/types/models/Account'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
@@ -157,14 +157,14 @@ export default function ImportDescriptor() {
     updateDescriptorValidationState
   ])
 
-  async function updateExternalDescriptor(
+  function updateExternalDescriptor(
     descriptor: string,
     skipChecksumValidation = false
   ) {
     // Basic descriptor validation
     const descriptorValidation = skipChecksumValidation
-      ? await validateDescriptorFormat(descriptor)
-      : await validateDescriptor(descriptor)
+      ? validateDescriptorFormat(descriptor)
+      : validateDescriptor(descriptor)
     const basicValidation =
       descriptorValidation && !descriptor.match(/[txyz]priv/)
 
@@ -213,14 +213,14 @@ export default function ImportDescriptor() {
     }
   }
 
-  async function updateInternalDescriptor(
+  function updateInternalDescriptor(
     descriptor: string,
     skipChecksumValidation = false
   ) {
     // Basic descriptor validation
     const descriptorValidation = skipChecksumValidation
-      ? await validateDescriptorFormat(descriptor)
-      : await validateDescriptor(descriptor)
+      ? validateDescriptorFormat(descriptor)
+      : validateDescriptor(descriptor)
     const basicValidation = descriptorValidation
 
     // Network validation - check if descriptor is compatible with selected network
@@ -431,10 +431,10 @@ export default function ImportDescriptor() {
     return getDefaultDerivationPath()
   }
 
-  async function handleCombinedDescriptorImport(combinedDescriptor: string) {
+  function handleCombinedDescriptorImport(combinedDescriptor: string) {
     try {
       // Validate the combined descriptor and get separated descriptors
-      const combinedValidation = await validateCombinedDescriptor(
+      const combinedValidation = validateCombinedDescriptor(
         combinedDescriptor,
         scriptVersion as ScriptVersionType,
         network as string
@@ -443,14 +443,8 @@ export default function ImportDescriptor() {
       if (combinedValidation.isValid) {
         // For combined descriptors, use format-only validation for the separated descriptors
         // because the checksums are only valid for the full combined descriptor
-        await updateExternalDescriptor(
-          combinedValidation.externalDescriptor,
-          true
-        )
-        await updateInternalDescriptor(
-          combinedValidation.internalDescriptor,
-          true
-        )
+        updateExternalDescriptor(combinedValidation.externalDescriptor, true)
+        updateInternalDescriptor(combinedValidation.internalDescriptor, true)
       } else {
         // Set the separated descriptors but mark them as invalid
         setExternalDescriptor(combinedValidation.externalDescriptor)
@@ -514,16 +508,16 @@ export default function ImportDescriptor() {
 
     // Handle combined descriptors with smart validation
     if (isCombinedDescriptor(text)) {
-      await handleCombinedDescriptorImport(text)
+      handleCombinedDescriptorImport(text)
     } else {
       // Handle non-combined descriptors with existing logic
       if (externalDescriptor) {
         // For JSON descriptors, use the original descriptor for validation
         const descriptorToValidate = originalDescriptor || externalDescriptor
-        await updateExternalDescriptor(descriptorToValidate)
+        updateExternalDescriptor(descriptorToValidate)
       }
       if (internalDescriptor) {
-        await updateInternalDescriptor(internalDescriptor)
+        updateInternalDescriptor(internalDescriptor)
       }
     }
   }
@@ -564,14 +558,14 @@ export default function ImportDescriptor() {
 
       // Handle combined descriptors with smart validation
       if (isCombinedDescriptor(text)) {
-        await handleCombinedDescriptorImport(text)
+        handleCombinedDescriptorImport(text)
       } else {
         // Handle non-combined descriptors with existing logic
         if (externalDescriptor) {
-          await updateExternalDescriptor(externalDescriptor)
+          updateExternalDescriptor(externalDescriptor)
         }
         if (internalDescriptor) {
-          await updateInternalDescriptor(internalDescriptor)
+          updateInternalDescriptor(internalDescriptor)
         }
       }
 
@@ -581,7 +575,7 @@ export default function ImportDescriptor() {
     }
   }
 
-  async function handleQRCodeScanned(scanningResult: unknown) {
+  function handleQRCodeScanned(scanningResult: unknown) {
     const data = (scanningResult as { data?: string })?.data
     if (!data) {
       toast.error(t('watchonly.read.qrError'))
@@ -620,9 +614,11 @@ export default function ImportDescriptor() {
       }
 
       // Handle combined descriptors with smart validation
-      await (isCombinedDescriptor(finalContent)
-        ? handleCombinedDescriptorImport(finalContent)
-        : updateExternalDescriptor(finalContent))
+      if (isCombinedDescriptor(finalContent)) {
+        handleCombinedDescriptorImport(finalContent)
+      } else {
+        updateExternalDescriptor(finalContent)
+      }
 
       setCameraModalVisible(false)
       toast.success(t('watchonly.success.qrScanned'))
@@ -650,9 +646,11 @@ export default function ImportDescriptor() {
         const assembledData = assembleMultiPartQR(qrInfo.type, newChunks)
         if (assembledData) {
           // Handle combined descriptors with smart validation
-          await (isCombinedDescriptor(assembledData)
-            ? handleCombinedDescriptorImport(assembledData)
-            : updateExternalDescriptor(assembledData))
+          if (isCombinedDescriptor(assembledData)) {
+            handleCombinedDescriptorImport(assembledData)
+          } else {
+            updateExternalDescriptor(assembledData)
+          }
 
           setCameraModalVisible(false)
           toast.success(t('watchonly.success.qrScanned'))

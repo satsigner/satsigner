@@ -7,7 +7,7 @@ import {
   Network as BDKNetwork
 } from 'react-native-bdk-sdk'
 
-import type { ScriptVersionType } from '@/types/models/Account'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import {
   getDerivationPathFromScriptVersion,

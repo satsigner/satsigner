@@ -46,10 +46,8 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import {
-  type CreationType,
-  type ScriptVersionType
-} from '@/types/models/Account'
+import { type CreationType } from '@/types/models/Account'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import { isBBQRFragment } from '@/utils/bbqr'
 import {
@@ -370,7 +368,7 @@ export default function WatchOnly() {
   ) {
     // This is a separated descriptor from a combined descriptor
     // Only do format validation, not checksum validation
-    const descriptorValidation = await validateDescriptorFormat(descriptor)
+    const descriptorValidation = validateDescriptorFormat(descriptor)
 
     const basicValidation =
       descriptorValidation && !descriptor.match(/[txyz]priv/)
@@ -381,7 +379,7 @@ export default function WatchOnly() {
 
       if (basicValidation) {
         setExternalDescriptor(descriptor)
-        await extractAndSetFingerprint(descriptor)
+        extractAndSetFingerprint(descriptor)
       }
     } else {
       setIsValidInternalDescriptor(!descriptor || basicValidation)
