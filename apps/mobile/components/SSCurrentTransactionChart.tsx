@@ -206,8 +206,8 @@ function SSCurrentTransactionChart({
   }, [inputMap.size, minerFee, outputArray.length, safeWinH])
 
   const GRAPH_HEIGHT = chartGeometry.graphHeight
-  const {extentTop} = chartGeometry
-  const {sankeyExtentBottomY} = chartGeometry
+  const { extentTop } = chartGeometry
+  const { sankeyExtentBottomY } = chartGeometry
 
   /** Same space as Skia coords & overlay — not useLayout (often 0×0 before layout). */
   const chartCenter = useMemo(
@@ -423,6 +423,7 @@ function SSCurrentTransactionChart({
 
         // Safely handle NaN values from sankey generator
         const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
+        const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
         const safeY1 = Number.isNaN(node.y1) ? 0 : (node.y1 ?? 0)
         const slotHeight = Math.max(0, safeY1 - safeY0)
 

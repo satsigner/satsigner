@@ -17,6 +17,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSImageActionsSheet from '@/components/SSImageActionsSheet'
 import { useBarkAccessTokenDeepLink } from '@/hooks/useBarkAccessTokenDeepLink'
 import { queryClient } from '@/lib/queryClient'
 import {
@@ -127,6 +128,7 @@ export default function RootLayout() {
             </View>
           </ThemeProvider>
           {privacyScreenVisible && <View style={styles.privacyScreen} />}
+          <SSImageActionsSheet />
           <Toaster
             theme="dark"
             position="top-center"

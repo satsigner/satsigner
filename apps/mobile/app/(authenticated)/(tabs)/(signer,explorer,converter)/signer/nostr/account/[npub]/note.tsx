@@ -4,7 +4,6 @@ import { nip19 } from 'nostr-tools'
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -54,9 +53,11 @@ import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
+import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
@@ -73,6 +74,8 @@ import {
   nostrNoteHref
 } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
+import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
+import { getResolvedEventId } from '@/utils/nostrNoteQuotes'
 import {
   getRelayHintForEventId,
   getReplyParentEventIdHex,
@@ -131,6 +134,11 @@ export default function NostrNotePage() {
   const [replyParentLoading, setReplyParentLoading] = useState(false)
   const [replyParentMissing, setReplyParentMissing] = useState(false)
   const [replyParentKind0Pending, setReplyParentKind0Pending] = useState(false)
+  const [quotedNote, setQuotedNote] = useState<NostrFeedNoteLike | null>(null)
+  const [quotedNoteProfile, setQuotedNoteProfile] =
+    useState<
+      Parameters<typeof SSNostrFeedNoteRow>[0]['resolvedQuotedNoteProfile']
+    >(undefined)
   const effectiveRelaysRef = useRef(effectiveRelays)
   effectiveRelaysRef.current = effectiveRelays
   const fetchedRef = useRef(false)
@@ -149,6 +157,10 @@ export default function NostrNotePage() {
   const [zapSortAsc, setZapSortAsc] = useState(false)
   const [zapReceiptsLoading, setZapReceiptsLoading] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
+  const [bookmarkModalVisible, setBookmarkModalVisible] = useState(false)
+  const [mentionProfiles, setMentionProfiles] = useState<
+    Record<string, NostrKind0Profile | null>
+  >({})
 
   const zapPrefs = identity?.zapPreferences
   const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
@@ -170,6 +182,8 @@ export default function NostrNotePage() {
   const clearPendingZap = useZapFlowStore((state) => state.clearPendingZap)
   const setZapResult = useZapFlowStore((state) => state.setZapResult)
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const btcPrice = usePriceStore((state) => state.btcPrice)
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   const decoded = nostrUri ? decodeNostrContent(nostrUri) : null
 
@@ -211,6 +225,57 @@ export default function NostrNotePage() {
       ? (decoded.metadata.relays as string[])
       : undefined
 
+  async function loadQuotedNote(quotedEventId: string) {
+    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
+    try {
+      let quotedEvent = await api.fetchEvent(quotedEventId)
+      if (!quotedEvent) {
+        quotedEvent = await NostrAPI.fetchEventFromRelays(
+          quotedEventId,
+          NostrAPI.INDEXING_RELAYS,
+          ownPubkeysRef.current
+        )
+      }
+      if (!quotedEvent) {
+        return
+      }
+      setQuotedNote({
+        content: quotedEvent.content,
+        created_at: quotedEvent.created_at,
+        id: quotedEventId,
+        kind: quotedEvent.kind,
+        pubkey: quotedEvent.pubkey,
+        tags: quotedEvent.tags
+      })
+      try {
+        const profile = await api.fetchKind0(
+          nip19.npubEncode(quotedEvent.pubkey)
+        )
+        setQuotedNoteProfile(profile)
+      } catch {
+        // non-critical
+      }
+    } catch {
+      // fetch failed — quoted note stays hidden
+    }
+  }
+
+  async function fetchMentionProfiles(pubkeys: string[]) {
+    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
+    const resolved: Record<string, NostrKind0Profile | null> = {}
+    await Promise.allSettled(
+      pubkeys.map(async (pubkey) => {
+        try {
+          resolved[pubkey] =
+            (await api.fetchKind0(nip19.npubEncode(pubkey))) ?? null
+        } catch {
+          resolved[pubkey] = null
+        }
+      })
+    )
+    setMentionProfiles(resolved)
+  }
+
   async function handleEventFound(event: {
     content: string
     pubkey: string
@@ -230,6 +295,23 @@ export default function NostrNotePage() {
 
     if (decoded?.data) {
       loadZapReceipts(decoded.data)
+    }
+
+    const quotedEventId = getResolvedEventId({
+      content: event.content,
+      created_at: event.created_at,
+      id: decoded?.data ?? '',
+      kind: event.kind,
+      pubkey: event.pubkey,
+      tags: event.tags
+    })
+    if (quotedEventId) {
+      void loadQuotedNote(quotedEventId)
+    }
+
+    const mentionPubkeys = extractMentionPubkeys(event.content)
+    if (mentionPubkeys.length > 0) {
+      void fetchMentionProfiles(mentionPubkeys)
     }
 
     const authorNpub = nip19.npubEncode(event.pubkey)
@@ -476,6 +558,13 @@ export default function NostrNotePage() {
             ownPubkeysRef.current
           )
         }
+        if (!event) {
+          event = await NostrAPI.fetchEventFromRelays(
+            replyParentId,
+            NostrAPI.INDEXING_RELAYS,
+            ownPubkeysRef.current
+          )
+        }
         if (cancelled) {
           return
         }
@@ -618,22 +707,7 @@ export default function NostrNotePage() {
   }
 
   function handleBookmarkPress() {
-    Alert.alert(t('nostrIdentity.note.bookmarkTitle'), undefined, [
-      {
-        onPress: () => handleBookmarkAction({ source: 'public', type: 'add' }),
-        text: t('nostrIdentity.note.bookmarkPublic')
-      },
-      {
-        onPress: () => handleBookmarkAction({ source: 'private', type: 'add' }),
-        text: t('nostrIdentity.note.bookmarkPrivate')
-      },
-      {
-        onPress: () => handleBookmarkAction({ type: 'remove' }),
-        style: 'destructive',
-        text: t('nostrIdentity.note.bookmarkRemove')
-      },
-      { style: 'cancel', text: t('common.cancel') }
-    ])
+    setBookmarkModalVisible(true)
   }
 
   async function handleZap(amountSats: number, comment?: string) {
@@ -950,11 +1024,7 @@ export default function NostrNotePage() {
               </TouchableOpacity>
             ) : null}
 
-            {noteItemForFeed &&
-            fetched &&
-            (fetched.content.length > 0 ||
-              noteImageUrls.length > 0 ||
-              noteVideoEmbeds.length > 0) ? (
+            {noteItemForFeed && fetched ? (
               <SSNostrFeedNoteRow
                 note={noteItemForFeed}
                 privacyMode={privacyMode}
@@ -973,6 +1043,16 @@ export default function NostrNotePage() {
                     />
                   ) : undefined
                 }
+                resolvedQuotedNote={quotedNote ?? undefined}
+                resolvedQuotedNoteProfile={quotedNoteProfile}
+                mentionProfiles={mentionProfiles}
+                onQuotePress={(id) => {
+                  if (!npub) {
+                    return
+                  }
+                  const uri = nip19.neventEncode({ id })
+                  router.push(nostrNoteHref(npub, uri))
+                }}
               />
             ) : null}
 
@@ -1588,6 +1668,55 @@ export default function NostrNotePage() {
               </SSText>
             )}
 
+            {notFound && !fetched && (
+              <SSVStack itemsCenter gap="md" style={styles.notFoundCard}>
+                <SSText color="muted">
+                  {t('nostrIdentity.note.notFoundOnYourRelays')}
+                </SSText>
+                <SSText size="xs" type="mono" color="muted">
+                  {truncateNpub(decoded.raw, 16)}
+                </SSText>
+
+                {relayHints && relayHints.length > 0 && !triedHints && (
+                  <SSVStack gap="xs" style={styles.retrySection}>
+                    <SSText size="xs" color="muted" center>
+                      {t('nostrIdentity.note.hintedRelaysAvailable')}
+                    </SSText>
+                    {relayHints.map((url) => (
+                      <SSText
+                        key={url}
+                        size="xxs"
+                        type="mono"
+                        color="muted"
+                        center
+                      >
+                        {url}
+                      </SSText>
+                    ))}
+                    <SSButton
+                      label={t('nostrIdentity.note.tryHintedRelays')}
+                      variant="outline"
+                      onPress={handleTryHintedRelays}
+                    />
+                  </SSVStack>
+                )}
+
+                {!triedBroadSearch && (
+                  <SSButton
+                    label={t('nostrIdentity.note.searchMoreRelays')}
+                    variant="ghost"
+                    onPress={handleBroadSearch}
+                  />
+                )}
+
+                {triedBroadSearch && (
+                  <SSText size="xs" color="muted" center>
+                    {t('nostrIdentity.note.exhaustedRelays')}
+                  </SSText>
+                )}
+              </SSVStack>
+            )}
+
             {replyParentId && fetched && noteLooksLikeReply(fetched.tags) ? (
               <SSVStack gap="sm" style={styles.replyParentSection}>
                 <TouchableOpacity
@@ -1658,55 +1787,6 @@ export default function NostrNotePage() {
                 ) : null}
               </SSVStack>
             ) : null}
-
-            {notFound && !fetched && (
-              <SSVStack itemsCenter gap="md" style={styles.notFoundCard}>
-                <SSText color="muted">
-                  {t('nostrIdentity.note.notFoundOnYourRelays')}
-                </SSText>
-                <SSText size="xs" type="mono" color="muted">
-                  {truncateNpub(decoded.raw, 16)}
-                </SSText>
-
-                {relayHints && relayHints.length > 0 && !triedHints && (
-                  <SSVStack gap="xs" style={styles.retrySection}>
-                    <SSText size="xs" color="muted" center>
-                      {t('nostrIdentity.note.hintedRelaysAvailable')}
-                    </SSText>
-                    {relayHints.map((url) => (
-                      <SSText
-                        key={url}
-                        size="xxs"
-                        type="mono"
-                        color="muted"
-                        center
-                      >
-                        {url}
-                      </SSText>
-                    ))}
-                    <SSButton
-                      label={t('nostrIdentity.note.tryHintedRelays')}
-                      variant="outline"
-                      onPress={handleTryHintedRelays}
-                    />
-                  </SSVStack>
-                )}
-
-                {!triedBroadSearch && (
-                  <SSButton
-                    label={t('nostrIdentity.note.searchMoreRelays')}
-                    variant="ghost"
-                    onPress={handleBroadSearch}
-                  />
-                )}
-
-                {triedBroadSearch && (
-                  <SSText size="xs" color="muted" center>
-                    {t('nostrIdentity.note.exhaustedRelays')}
-                  </SSText>
-                )}
-              </SSVStack>
-            )}
           </SSVStack>
         </ScrollView>
       )}
@@ -1716,8 +1796,45 @@ export default function NostrNotePage() {
         onSelect={(method) => navigateToPayment(method)}
         methods={availablePaymentMethods}
         amountSats={payAmount}
+        btcPrice={btcPrice}
+        fiatCurrency={fiatCurrency}
       />
 
+      <SSModal
+        visible={bookmarkModalVisible}
+        onClose={() => setBookmarkModalVisible(false)}
+        label={t('common.cancel')}
+      >
+        <SSVStack gap="sm" style={{ width: '100%' }}>
+          <SSText center uppercase>
+            {t('nostrIdentity.note.bookmarkTitle')}
+          </SSText>
+          <SSButton
+            label={t('nostrIdentity.note.bookmarkPublic')}
+            variant="secondary"
+            onPress={() => {
+              setBookmarkModalVisible(false)
+              void handleBookmarkAction({ source: 'public', type: 'add' })
+            }}
+          />
+          <SSButton
+            label={t('nostrIdentity.note.bookmarkPrivate')}
+            variant="secondary"
+            onPress={() => {
+              setBookmarkModalVisible(false)
+              void handleBookmarkAction({ source: 'private', type: 'add' })
+            }}
+          />
+          <SSButton
+            label={t('nostrIdentity.note.bookmarkRemove')}
+            variant="ghost"
+            onPress={() => {
+              setBookmarkModalVisible(false)
+              void handleBookmarkAction({ type: 'remove' })
+            }}
+          />
+        </SSVStack>
+      </SSModal>
       <SSModal
         visible={qrModalVisible}
         onClose={() => setQrModalVisible(false)}

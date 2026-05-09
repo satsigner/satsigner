@@ -49,6 +49,7 @@ export function useNostrLandingKind0Sync({
         const cached = getCachedProfile(hexPk)
         if (cached && now - cached.cached_at < PROFILE_CACHE_TTL_SECS) {
           updateIdentity(identity.npub, {
+            banner: cached.banner || identity.banner,
             displayName: cached.displayName || identity.displayName,
             lud16: cached.lud16 || identity.lud16,
             nip05: cached.nip05 || identity.nip05,
@@ -98,6 +99,7 @@ export function useNostrLandingKind0Sync({
             const profile = pk ? profiles.get(pk) : undefined
             if (profile) {
               updateIdentity(identity.npub, {
+                banner: profile.banner || identity.banner,
                 displayName: profile.displayName || identity.displayName,
                 lud16: profile.lud16 || identity.lud16,
                 nip05: profile.nip05 || identity.nip05,

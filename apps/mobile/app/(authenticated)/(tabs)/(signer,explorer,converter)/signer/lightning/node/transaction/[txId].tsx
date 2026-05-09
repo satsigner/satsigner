@@ -13,6 +13,7 @@ import {
   HEADER_CHROME_HIT_BOX,
   HEADER_CHROME_ICON_SIZE
 } from '@/constants/headerChrome'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { useLND } from '@/hooks/useLND'
 import { useLndNodeDashboard } from '@/hooks/useLndNodeDashboard'
 import SSHStack from '@/layouts/SSHStack'
@@ -31,8 +32,6 @@ import type {
 import type { LNDGraphNodeInfo } from '@/types/models/LND'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { formatLightningTxTimeAgo } from '@/utils/lndTransactionDisplay'
-
-const PRIVACY_MASK = '••••'
 
 function formatUnixTimestamp(unixSeconds: number): string {
   if (!unixSeconds) {
@@ -178,7 +177,6 @@ function HopDiagram({
                   )}
                 </View>
               </View>
-
               <View style={styles.hopNodeRow}>
                 <View
                   style={[
@@ -310,7 +308,6 @@ function PaymentDetail({
           />
         ) : null}
       </SSVStack>
-
       {hops.length > 0 && (
         <SSVStack gap="sm">
           <SectionHeader label={t('lightning.node.txDetail.section.route')} />
@@ -761,7 +758,6 @@ export default function LndTransactionDetailPage() {
                   ) : null}
                 </SSVStack>
               )}
-
               {rawPayment && paymentHops(rawPayment).length > 0 && (
                 <HopDiagram
                   hops={paymentHops(rawPayment)}
@@ -769,7 +765,6 @@ export default function LndTransactionDetailPage() {
                   privacyMode={privacyMode}
                 />
               )}
-
               {rawPayment && (
                 <PaymentDetail
                   nodeInfoMap={nodeInfoMap}
@@ -777,15 +772,12 @@ export default function LndTransactionDetailPage() {
                   privacyMode={privacyMode}
                 />
               )}
-
               {rawInvoice && (
                 <InvoiceDetail invoice={rawInvoice} privacyMode={privacyMode} />
               )}
-
               {rawOnchain && (
                 <OnchainDetail onchain={rawOnchain} privacyMode={privacyMode} />
               )}
-
               {tx && !rawPayment && !rawInvoice && !rawOnchain && (
                 <SSVStack gap="md">
                   <SectionHeader

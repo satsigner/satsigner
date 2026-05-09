@@ -390,9 +390,7 @@ export function useEcash() {
   async function meltProofsHandler(
     mintUrl: string,
     quote: MeltQuote,
-    proofsToMelt: EcashProof[],
-    description?: string,
-    originalInvoice?: string
+    proofsToMelt: EcashProof[]
   ): Promise<EcashMeltResult> {
     if (!activeAccountId) {
       throw new Error('No active account')
@@ -403,8 +401,6 @@ export function useEcash() {
       mintUrl,
       quote,
       proofsToMelt,
-      description,
-      originalInvoice,
       options
     )
     const proofSecrets = proofsToMelt.map((proof) => proof.secret)

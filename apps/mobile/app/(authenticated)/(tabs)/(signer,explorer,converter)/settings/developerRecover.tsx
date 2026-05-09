@@ -234,7 +234,6 @@ export default function DeveloperRecover() {
           )}
         </SSVStack>
       </ScrollView>
-
       <SSCameraModal
         visible={cameraModalVisible}
         onClose={() => setCameraModalVisible(false)}

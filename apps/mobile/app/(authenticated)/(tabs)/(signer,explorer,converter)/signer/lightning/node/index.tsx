@@ -39,6 +39,7 @@ import {
   LIGHTNING_BUBBLE_CHART_LAYOUT_MAX_SIZE_PX,
   LIGHTNING_BUBBLE_CHART_LAYOUT_MIN_SIZE_PX
 } from '@/constants/lightningChannelsBubbleChart'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useLightningContentHandler } from '@/hooks/useLightningContentHandler'
 import { useLND } from '@/hooks/useLND'
@@ -69,8 +70,6 @@ import {
   txDateOptions,
   type TxStatusBadge
 } from '@/utils/lndTransactionDisplay'
-
-const PRIVACY_MASK = '••••'
 
 const DASHBOARD_OVERLAY_LOADER_SIZE = 48
 

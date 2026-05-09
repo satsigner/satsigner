@@ -4,6 +4,7 @@ import {
   getEncodedTokenV3,
   getEncodedTokenV4,
   Mint,
+  type MeltQuoteBolt11Response,
   type MintQuoteState,
   type Proof,
   Wallet
@@ -251,8 +252,6 @@ export async function meltProofs(
   mintUrl: string,
   quote: MeltQuote,
   proofs: EcashProof[],
-  _description?: string,
-  _originalInvoice?: string,
   options?: WalletOptions
 ): Promise<EcashMeltResult> {
   const wallet = getWallet(accountId, mintUrl, options)
@@ -268,30 +267,22 @@ export async function meltProofs(
     throw new Error('No valid proofs available to melt')
   }
 
-  const cashuQuote = {
+  const cashuQuote: MeltQuoteBolt11Response = {
     amount: quote.amount,
     expiry: quote.expiry,
     fee_reserve: quote.fee_reserve,
     payment_preimage: null,
     quote: quote.quote,
     request: '',
-    state: 'UNPAID' as const,
+    state: 'UNPAID',
     unit: 'sat'
   }
-  const result = await wallet.meltProofs(
-    cashuQuote as Parameters<typeof wallet.meltProofs>[0],
-    validProofs
-  )
-
-  const meltResult = result as unknown as {
-    preimage?: string
-    payment_preimage?: string
-  }
+  const result = await wallet.meltProofs(cashuQuote, validProofs)
 
   return {
     change: result.change?.map((p) => ({ ...p, mintUrl })),
     paid: true,
-    preimage: meltResult.preimage || meltResult.payment_preimage || undefined,
+    preimage: result.quote.payment_preimage ?? undefined,
     spentProofs: spentProofs.length > 0 ? spentProofs : undefined
   }
 }

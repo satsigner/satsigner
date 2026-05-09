@@ -33,6 +33,7 @@ import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_HIT_BOX
 } from '@/constants/headerChrome'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useEcash } from '@/hooks/useEcash'
 import { useEcashContentHandler } from '@/hooks/useEcashContentHandler'
@@ -46,10 +47,9 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import { formatFiatPrice } from '@/utils/format'
 
-const ECASH_BALANCE_LABEL_COLOR = Colors.gray[500]
+const { '500': ECASH_BALANCE_LABEL_COLOR } = Colors.gray
 
 const MAX_VISIBLE_TRANSACTIONS = 50
-const PRIVACY_MASK = '••••'
 const TAB_WIDTH = '50%'
 
 const tabs = [{ key: 'transactions' }, { key: 'proofs' }]

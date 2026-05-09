@@ -3,13 +3,12 @@ import { Pressable, StyleSheet, View } from 'react-native'
 import Svg, { Circle, Text as SvgText } from 'react-native-svg'
 
 import SSText from '@/components/SSText'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import type { EcashProof } from '@/types/models/Ecash'
 import { formatNumber } from '@/utils/format'
-
-const PRIVACY_MASK = '••••'
 const MIN_BUBBLE_RADIUS = 16
 const { 700: BUBBLE_FILL } = Colors.gray
 const { 600: BUBBLE_STROKE } = Colors.gray
