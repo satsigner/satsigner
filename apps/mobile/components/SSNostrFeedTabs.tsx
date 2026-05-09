@@ -38,6 +38,7 @@ import {
   parsePublicBookmarks
 } from '@/utils/nostrBookmarks'
 import { truncateNpub } from '@/utils/nostrIdentity'
+import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
 import {
   collectUnresolvedEventIds,
   getResolvedEventId
@@ -644,10 +645,16 @@ function SSNostrFeedTabs({
     }
 
     const api = apiRef.current
+    const allNotes = [
+      ...feedNotes,
+      ...notes,
+      ...feedResolvedEvents.values(),
+      ...noteResolvedEvents.values()
+    ]
     const pks = [
       ...new Set([
-        ...feedNotes.map((n) => n.pubkey.toLowerCase()),
-        ...notes.map((n) => n.pubkey.toLowerCase()),
+        ...allNotes.map((n) => n.pubkey.toLowerCase()),
+        ...allNotes.flatMap((n) => extractMentionPubkeys(n.content)),
         ...(ownPubkeyLower && /^[0-9a-f]{64}$/.test(ownPubkeyLower)
           ? [ownPubkeyLower]
           : [])
@@ -678,7 +685,15 @@ function SSNostrFeedTabs({
         }
       })()
     }
-  }, [feedNotes, notes, ownPubkeyLower, relayConnected, privacyMode])
+  }, [
+    feedNotes,
+    notes,
+    feedResolvedEvents,
+    noteResolvedEvents,
+    ownPubkeyLower,
+    relayConnected,
+    privacyMode
+  ]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function renderFeedAuthorKind0Row(note: NostrFeedNoteLike) {
     const pk = note.pubkey.toLowerCase()
@@ -730,6 +745,13 @@ function SSNostrFeedTabs({
     feedExcludeReplies && feedKindFilterId === 'short_text'
       ? feedNotes.filter((n) => !noteLooksLikeReply(n.tags))
       : feedNotes
+
+  const readyProfiles: Record<string, NostrKind0Profile | null> = {}
+  for (const [pk, state] of Object.entries(feedAuthorKind0)) {
+    if (state.status === 'ready') {
+      readyProfiles[pk] = state.profile
+    }
+  }
 
   if (!relayConnected) {
     return (
@@ -840,6 +862,16 @@ function SSNostrFeedTabs({
             </SSHStack>
             {visibleNotes.map((note) => {
               const resolvedId = getResolvedEventId(note)
+              const resolvedNote = resolvedId
+                ? noteResolvedEvents.get(resolvedId)
+                : undefined
+              const resolvedProfileRow = resolvedNote
+                ? feedAuthorKind0[resolvedNote.pubkey.toLowerCase()]
+                : undefined
+              const resolvedProfile =
+                resolvedProfileRow?.status === 'ready'
+                  ? resolvedProfileRow.profile
+                  : undefined
               return (
                 <SSNostrFeedNoteRow
                   key={note.id}
@@ -853,9 +885,9 @@ function SSNostrFeedTabs({
                       <DecryptedBadge />
                     ) : undefined
                   }
-                  resolvedQuotedNote={
-                    resolvedId ? noteResolvedEvents.get(resolvedId) : undefined
-                  }
+                  resolvedQuotedNote={resolvedNote}
+                  resolvedQuotedNoteProfile={resolvedProfile}
+                  mentionProfiles={readyProfiles}
                   onPress={() =>
                     onNotePress?.({
                       id: note.id,
@@ -863,6 +895,14 @@ function SSNostrFeedTabs({
                       pubkey: note.pubkey
                     })
                   }
+                  onQuotePress={(id) => {
+                    const target = resolvedNote?.id === id ? resolvedNote : null
+                    onNotePress?.({
+                      id,
+                      kind: target?.kind ?? 1,
+                      pubkey: target?.pubkey ?? ''
+                    })
+                  }}
                 />
               )
             })}
@@ -927,6 +967,16 @@ function SSNostrFeedTabs({
             </SSHStack>
             {visibleFeedNotes.map((note) => {
               const resolvedId = getResolvedEventId(note)
+              const resolvedNote = resolvedId
+                ? feedResolvedEvents.get(resolvedId)
+                : undefined
+              const resolvedProfileRow = resolvedNote
+                ? feedAuthorKind0[resolvedNote.pubkey.toLowerCase()]
+                : undefined
+              const resolvedProfile =
+                resolvedProfileRow?.status === 'ready'
+                  ? resolvedProfileRow.profile
+                  : undefined
               return (
                 <SSNostrFeedNoteRow
                   key={note.id}
@@ -934,9 +984,9 @@ function SSNostrFeedTabs({
                   privacyMode={privacyMode}
                   showAuthor
                   authorPreview={renderFeedAuthorKind0Row(note)}
-                  resolvedQuotedNote={
-                    resolvedId ? feedResolvedEvents.get(resolvedId) : undefined
-                  }
+                  resolvedQuotedNote={resolvedNote}
+                  resolvedQuotedNoteProfile={resolvedProfile}
+                  mentionProfiles={readyProfiles}
                   onPress={() =>
                     onNotePress?.({
                       id: note.id,
@@ -944,6 +994,14 @@ function SSNostrFeedTabs({
                       pubkey: note.pubkey
                     })
                   }
+                  onQuotePress={(id) => {
+                    const target = resolvedNote?.id === id ? resolvedNote : null
+                    onNotePress?.({
+                      id,
+                      kind: target?.kind ?? 1,
+                      pubkey: target?.pubkey ?? ''
+                    })
+                  }}
                 />
               )
             })}
