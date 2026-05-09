@@ -57,6 +57,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
+import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
@@ -73,6 +74,8 @@ import {
   nostrNoteHref
 } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
+import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
+import { getResolvedEventId } from '@/utils/nostrNoteQuotes'
 import {
   getRelayHintForEventId,
   getReplyParentEventIdHex,
@@ -131,6 +134,11 @@ export default function NostrNotePage() {
   const [replyParentLoading, setReplyParentLoading] = useState(false)
   const [replyParentMissing, setReplyParentMissing] = useState(false)
   const [replyParentKind0Pending, setReplyParentKind0Pending] = useState(false)
+  const [quotedNote, setQuotedNote] = useState<NostrFeedNoteLike | null>(null)
+  const [quotedNoteProfile, setQuotedNoteProfile] =
+    useState<
+      Parameters<typeof SSNostrFeedNoteRow>[0]['resolvedQuotedNoteProfile']
+    >(undefined)
   const effectiveRelaysRef = useRef(effectiveRelays)
   effectiveRelaysRef.current = effectiveRelays
   const fetchedRef = useRef(false)
@@ -150,6 +158,9 @@ export default function NostrNotePage() {
   const [zapReceiptsLoading, setZapReceiptsLoading] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
   const [bookmarkModalVisible, setBookmarkModalVisible] = useState(false)
+  const [mentionProfiles, setMentionProfiles] = useState<
+    Record<string, NostrKind0Profile | null>
+  >({})
 
   const zapPrefs = identity?.zapPreferences
   const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
@@ -214,6 +225,57 @@ export default function NostrNotePage() {
       ? (decoded.metadata.relays as string[])
       : undefined
 
+  async function loadQuotedNote(quotedEventId: string) {
+    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
+    try {
+      let quotedEvent = await api.fetchEvent(quotedEventId)
+      if (!quotedEvent) {
+        quotedEvent = await NostrAPI.fetchEventFromRelays(
+          quotedEventId,
+          NostrAPI.INDEXING_RELAYS,
+          ownPubkeysRef.current
+        )
+      }
+      if (!quotedEvent) {
+        return
+      }
+      setQuotedNote({
+        content: quotedEvent.content,
+        created_at: quotedEvent.created_at,
+        id: quotedEventId,
+        kind: quotedEvent.kind,
+        pubkey: quotedEvent.pubkey,
+        tags: quotedEvent.tags
+      })
+      try {
+        const profile = await api.fetchKind0(
+          nip19.npubEncode(quotedEvent.pubkey)
+        )
+        setQuotedNoteProfile(profile)
+      } catch {
+        // non-critical
+      }
+    } catch {
+      // fetch failed — quoted note stays hidden
+    }
+  }
+
+  async function fetchMentionProfiles(pubkeys: string[]) {
+    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
+    const resolved: Record<string, NostrKind0Profile | null> = {}
+    await Promise.allSettled(
+      pubkeys.map(async (pubkey) => {
+        try {
+          resolved[pubkey] =
+            (await api.fetchKind0(nip19.npubEncode(pubkey))) ?? null
+        } catch {
+          resolved[pubkey] = null
+        }
+      })
+    )
+    setMentionProfiles(resolved)
+  }
+
   async function handleEventFound(event: {
     content: string
     pubkey: string
@@ -233,6 +295,23 @@ export default function NostrNotePage() {
 
     if (decoded?.data) {
       loadZapReceipts(decoded.data)
+    }
+
+    const quotedEventId = getResolvedEventId({
+      content: event.content,
+      created_at: event.created_at,
+      id: decoded?.data ?? '',
+      kind: event.kind,
+      pubkey: event.pubkey,
+      tags: event.tags
+    })
+    if (quotedEventId) {
+      void loadQuotedNote(quotedEventId)
+    }
+
+    const mentionPubkeys = extractMentionPubkeys(event.content)
+    if (mentionPubkeys.length > 0) {
+      void fetchMentionProfiles(mentionPubkeys)
     }
 
     const authorNpub = nip19.npubEncode(event.pubkey)
@@ -945,11 +1024,7 @@ export default function NostrNotePage() {
               </TouchableOpacity>
             ) : null}
 
-            {noteItemForFeed &&
-            fetched &&
-            (fetched.content.length > 0 ||
-              noteImageUrls.length > 0 ||
-              noteVideoEmbeds.length > 0) ? (
+            {noteItemForFeed && fetched ? (
               <SSNostrFeedNoteRow
                 note={noteItemForFeed}
                 privacyMode={privacyMode}
@@ -968,6 +1043,14 @@ export default function NostrNotePage() {
                     />
                   ) : undefined
                 }
+                resolvedQuotedNote={quotedNote ?? undefined}
+                resolvedQuotedNoteProfile={quotedNoteProfile}
+                mentionProfiles={mentionProfiles}
+                onQuotePress={(id) => {
+                  if (!npub) {return}
+                  const uri = nip19.neventEncode({ id })
+                  router.push(nostrNoteHref(npub, uri))
+                }}
               />
             ) : null}
 
