@@ -1,7 +1,6 @@
 import { type BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Tabs, usePathname, useRouter, useSegments } from 'expo-router'
-import { useEffect, useState } from 'react'
 import {
   type GestureResponderEvent,
   Pressable,
@@ -10,7 +9,7 @@ import {
 } from 'react-native'
 import Animated, {
   useAnimatedStyle,
-  useSharedValue,
+  useDerivedValue,
   withSequence,
   withSpring,
   withTiming
@@ -83,24 +82,21 @@ function TabBarBackground({
 }: {
   activeSegment: TabSegment | undefined
 }) {
-  const explorerOpacity = useSharedValue(activeSegment === '(explorer)' ? 1 : 0)
-  const signerOpacity = useSharedValue(activeSegment === '(signer)' ? 1 : 0)
-  const converterOpacity = useSharedValue(
-    activeSegment === '(converter)' ? 1 : 0
+  const explorerOpacity = useDerivedValue(() =>
+    withTiming(activeSegment === '(explorer)' ? 1 : 0, {
+      duration: OPACITY_DURATION
+    })
   )
-
-  useEffect(() => {
-    explorerOpacity.value = withTiming(activeSegment === '(explorer)' ? 1 : 0, {
+  const signerOpacity = useDerivedValue(() =>
+    withTiming(activeSegment === '(signer)' ? 1 : 0, {
       duration: OPACITY_DURATION
     })
-    signerOpacity.value = withTiming(activeSegment === '(signer)' ? 1 : 0, {
+  )
+  const converterOpacity = useDerivedValue(() =>
+    withTiming(activeSegment === '(converter)' ? 1 : 0, {
       duration: OPACITY_DURATION
     })
-    converterOpacity.value = withTiming(
-      activeSegment === '(converter)' ? 1 : 0,
-      { duration: OPACITY_DURATION }
-    )
-  }, [activeSegment])
+  )
 
   const explorerStyle = useAnimatedStyle(() => ({
     opacity: explorerOpacity.value
@@ -157,20 +153,19 @@ function TabBarButton({
   isSelected,
   onPress
 }: TabBarButtonProps) {
-  const scale = useSharedValue(SCALE_DEFAULT)
-  const opacity = useSharedValue(isSelected ? ACTIVE_OPACITY : INACTIVE_OPACITY)
-
-  useEffect(() => {
-    if (isSelected) {
-      scale.value = withSequence(
-        withTiming(SCALE_POP, { duration: 70 }),
-        withSpring(SCALE_DEFAULT, { damping: 14, mass: 0.4, stiffness: 280 })
-      )
-    }
-    opacity.value = withTiming(isSelected ? ACTIVE_OPACITY : INACTIVE_OPACITY, {
+  const scale = useDerivedValue(() =>
+    isSelected
+      ? withSequence(
+          withTiming(SCALE_POP, { duration: 70 }),
+          withSpring(SCALE_DEFAULT, { damping: 14, mass: 0.4, stiffness: 280 })
+        )
+      : SCALE_DEFAULT
+  )
+  const opacity = useDerivedValue(() =>
+    withTiming(isSelected ? ACTIVE_OPACITY : INACTIVE_OPACITY, {
       duration: OPACITY_DURATION
     })
-  }, [isSelected])
+  )
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -247,8 +242,8 @@ export default function TabLayout() {
   const currentPath = usePathname()
   const router = useRouter()
   const segments = useSegments() as string[]
-  const [isShowTab, setShowTab] = useState(false)
   const { bottom } = useSafeAreaInsets()
+  const isShowTab = showNavigation(currentPath, segments.length)
 
   function handleTabItemPress(
     props: BottomTabBarButtonProps,
@@ -264,10 +259,6 @@ export default function TabLayout() {
       props.onPress?.(e)
     }
   }
-
-  useEffect(() => {
-    setShowTab(showNavigation(currentPath, segments.length))
-  }, [currentPath, segments])
 
   return (
     <View style={styles.container}>

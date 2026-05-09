@@ -54,6 +54,11 @@ export default function SelectUtxoList() {
       ])
     )
 
+  const utxoOutpointSet = new Set(account.utxos.map(getUtxoOutpoint))
+  const orphanedInputs = Array.from(inputs.values()).filter(
+    (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
+  )
+
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -261,6 +266,32 @@ export default function SelectUtxoList() {
           />
         </SSHStack>
       </SSHStack>
+      {orphanedInputs.length > 0 && (
+        <View>
+          <SSHStack
+            style={{
+              backgroundColor: Colors.gray[900],
+              paddingHorizontal: '5%',
+              paddingVertical: 8
+            }}
+          >
+            <SSText size="xs" style={{ color: Colors.error }}>
+              {t('transaction.orphanedInputs.sectionTitle')}
+            </SSText>
+          </SSHStack>
+          {orphanedInputs.map((utxo) => (
+            <View key={getUtxoOutpoint(utxo)} style={{ opacity: 0.6 }}>
+              <SSUtxoItem
+                utxo={utxo}
+                selected
+                onToggleSelected={removeInput}
+                largestValue={utxo.value}
+              />
+            </View>
+          ))}
+          <SSSeparator color="grayDark" style={{ width: '100%' }} />
+        </View>
+      )}
       <View style={{ flex: 1 }}>
         <FlashList
           data={sortUtxos([...account.utxos])}

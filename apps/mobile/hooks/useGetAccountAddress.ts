@@ -72,9 +72,19 @@ const useGetAccountAddress = (id: Account['id']) => {
   }
 
   useEffect(() => {
-    if (!address) {
-      addAddress().catch(() => {})
+    if (address) {
+      return
     }
+
+    async function tryAddAddress() {
+      try {
+        await addAddress()
+      } catch {
+        // Address derivation failed — will retry when account state changes
+      }
+    }
+
+    void tryAddAddress()
   }, [address, id, account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return address

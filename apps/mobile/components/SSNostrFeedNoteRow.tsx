@@ -12,15 +12,21 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
 import { truncateNpub } from '@/utils/nostrIdentity'
 import {
   nostrAccountProfileHref,
   nostrContactProfileHref
 } from '@/utils/nostrNavigation'
-import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
+import {
+  extractImageUrlsFromNote,
+  stripImageUrlsFromContent
+} from '@/utils/nostrNoteMedia'
+import { resolveMentionsInContent } from '@/utils/nostrNoteMentions'
 import {
   getQuoteTagEventIds,
+  getResolvedEventId,
   hasEmbeddedEventRef,
   parseRepostOriginalEvent,
   stripNostrEventRefs
@@ -192,45 +198,98 @@ function SSNostrFeedAuthorRow({
   )
 }
 
-function NoteQuoteCard({ note }: { note: NostrFeedNoteLike }) {
+function NoteQuoteCard({
+  note,
+  profile,
+  mentionProfiles,
+  onPress
+}: {
+  note: NostrFeedNoteLike
+  profile?: NostrKind0Profile | null
+  mentionProfiles?: Record<string, NostrKind0Profile | null>
+  onPress?: () => void
+}) {
   const authorNpub = nip19.npubEncode(note.pubkey)
   const imageUrls = extractImageUrlsFromNote(note.content, note.tags).slice(
     0,
     2
   )
-  return (
+  const stripped = stripImageUrlsFromContent(note.content, imageUrls)
+  const quoteDisplayContent = mentionProfiles
+    ? resolveMentionsInContent(stripped, mentionProfiles)
+    : stripped
+  const displayName = profile?.displayName?.trim() || ''
+  const pictureUri = profile?.picture?.trim() || undefined
+  const inner = (
     <View style={styles.quoteCard}>
-      <SSHStack gap="xs" style={styles.quoteCardMeta}>
-        <SSText
-          size="xxs"
-          color="muted"
-          type="mono"
-          numberOfLines={1}
-          ellipsizeMode="middle"
-          style={styles.quoteCardAuthor}
-        >
-          {truncateNpub(authorNpub, 12)}
-        </SSText>
-        <SSText size="xxs" color="muted">
-          ·
-        </SSText>
-        <SSText size="xxs" color="muted" style={styles.quoteCardDate}>
-          {formatNostrCardDate(note.created_at)}
-        </SSText>
+      <SSHStack gap="sm" style={styles.quoteCardMeta}>
+        {pictureUri ? (
+          <Image source={{ uri: pictureUri }} style={styles.quoteCardAvatar} />
+        ) : (
+          <View
+            style={[styles.quoteCardAvatar, styles.quoteCardAvatarPlaceholder]}
+          >
+            <SSText size="xxs" weight="bold">
+              {displayName
+                ? displayName[0]?.toUpperCase()
+                : authorNpub.slice(5, 6)?.toUpperCase() || '?'}
+            </SSText>
+          </View>
+        )}
+        <SSVStack gap="xxs" style={styles.quoteCardAuthorCol}>
+          {displayName ? (
+            <SSText
+              size="xs"
+              weight="medium"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {displayName}
+            </SSText>
+          ) : null}
+          <SSHStack gap="xs" style={styles.quoteCardMetaRow}>
+            <SSText
+              size="xxs"
+              color="muted"
+              type="mono"
+              numberOfLines={1}
+              ellipsizeMode="middle"
+              style={styles.quoteCardAuthorNpub}
+            >
+              {truncateNpub(authorNpub, 12)}
+            </SSText>
+            <SSText size="xxs" color="muted">
+              ·
+            </SSText>
+            <SSText size="xxs" color="muted" style={styles.quoteCardDate}>
+              {formatNostrCardDate(note.created_at)}
+            </SSText>
+          </SSHStack>
+        </SSVStack>
       </SSHStack>
-      <SSText
-        size="sm"
-        style={styles.quoteCardContent}
-        numberOfLines={3}
-        ellipsizeMode="tail"
-      >
-        {note.content}
-      </SSText>
+      {quoteDisplayContent.length > 0 ? (
+        <SSText
+          size="sm"
+          style={styles.quoteCardContent}
+          numberOfLines={3}
+          ellipsizeMode="tail"
+        >
+          {quoteDisplayContent}
+        </SSText>
+      ) : null}
       {imageUrls.length > 0 ? (
         <SSNoteInlineImages uris={imageUrls} style={styles.quoteCardImages} />
       ) : null}
     </View>
   )
+  if (onPress) {
+    return (
+      <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+        {inner}
+      </TouchableOpacity>
+    )
+  }
+  return inner
 }
 
 type SSNostrFeedNoteRowProps = {
@@ -247,6 +306,12 @@ type SSNostrFeedNoteRowProps = {
   badge?: ReactNode
   /** Resolved event for kind 6/16 reposts (fallback) or kind 1 inline quotes. */
   resolvedQuotedNote?: NostrFeedNoteLike
+  /** Kind 0 profile for the author of the resolved quoted/reposted note. */
+  resolvedQuotedNoteProfile?: NostrKind0Profile | null
+  /** Called when the user taps the inline quote card or its loading placeholder. */
+  onQuotePress?: (id: string) => void
+  /** Profiles keyed by hex pubkey for resolving nostr:npub/nprofile mentions in content. */
+  mentionProfiles?: Record<string, NostrKind0Profile | null>
 }
 
 function SSNostrFeedNoteRow({
@@ -259,7 +324,10 @@ function SSNostrFeedNoteRow({
   contentNumberOfLines = 4,
   authorPreview,
   badge,
-  resolvedQuotedNote
+  resolvedQuotedNote,
+  resolvedQuotedNoteProfile,
+  onQuotePress,
+  mentionProfiles
 }: SSNostrFeedNoteRowProps) {
   const isRepost = note.kind === 6 || note.kind === 16
   const repostOriginal = isRepost
@@ -272,13 +340,11 @@ function SSNostrFeedNoteRow({
     (getQuoteTagEventIds(note.tags).length > 0 ||
       hasEmbeddedEventRef(note.content))
 
+  const quotedId = isQuotePost ? getResolvedEventId(note) : null
+
   // For reposts: render the original note's content and media
   // For quote posts and normal notes: render the note itself
   const contentNote = isRepost && repostOriginal ? repostOriginal : note
-
-  const displayContent = isQuotePost
-    ? stripNostrEventRefs(note.content)
-    : contentNote.content
 
   const imageUrls =
     privacyMode || repostUnavailable
@@ -287,6 +353,14 @@ function SSNostrFeedNoteRow({
           0,
           6
         )
+
+  const strippedContent = stripImageUrlsFromContent(
+    isQuotePost ? stripNostrEventRefs(note.content) : contentNote.content,
+    imageUrls
+  )
+  const displayContent = mentionProfiles
+    ? resolveMentionsInContent(strippedContent, mentionProfiles)
+    : strippedContent
 
   const videoEmbeds =
     privacyMode || repostUnavailable
@@ -399,13 +473,31 @@ function SSNostrFeedNoteRow({
         ) : null}
         {isQuotePost && !privacyMode ? (
           resolvedQuotedNote ? (
-            <NoteQuoteCard note={resolvedQuotedNote} />
+            <NoteQuoteCard
+              note={resolvedQuotedNote}
+              profile={resolvedQuotedNoteProfile}
+              mentionProfiles={mentionProfiles}
+              onPress={
+                onQuotePress
+                  ? () => onQuotePress(resolvedQuotedNote.id)
+                  : undefined
+              }
+            />
           ) : (
-            <View style={styles.quoteCardPlaceholder}>
-              <SSText size="xxs" color="muted">
-                {t('nostrIdentity.feed.quotedNote')}
-              </SSText>
-            </View>
+            <TouchableOpacity
+              activeOpacity={quotedId && onQuotePress ? 0.7 : 1}
+              onPress={
+                quotedId && onQuotePress
+                  ? () => onQuotePress(quotedId)
+                  : undefined
+              }
+            >
+              <View style={styles.quoteCardPlaceholder}>
+                <SSText size="xxs" color="muted">
+                  {t('nostrIdentity.feed.quotedNote')}
+                </SSText>
+              </View>
+            </TouchableOpacity>
           )
         ) : null}
       </SSVStack>
@@ -438,7 +530,9 @@ const styles = StyleSheet.create({
     lineHeight: 14
   },
   feedAuthorAvatar: {
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,
+    borderWidth: 1.5,
     height: 32,
     width: 32
   },
@@ -523,9 +617,24 @@ const styles = StyleSheet.create({
     marginTop: 8,
     padding: 10
   },
-  quoteCardAuthor: {
+  quoteCardAuthorCol: {
     flex: 1,
     minWidth: 0
+  },
+  quoteCardAuthorNpub: {
+    flexShrink: 1
+  },
+  quoteCardAvatar: {
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 24,
+    width: 24
+  },
+  quoteCardAvatarPlaceholder: {
+    alignItems: 'center',
+    backgroundColor: Colors.gray[800],
+    justifyContent: 'center'
   },
   quoteCardContent: {
     color: Colors.white,
@@ -539,8 +648,11 @@ const styles = StyleSheet.create({
     marginTop: 6
   },
   quoteCardMeta: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     width: '100%'
+  },
+  quoteCardMetaRow: {
+    alignItems: 'center'
   },
   quoteCardPlaceholder: {
     borderColor: Colors.gray[700],

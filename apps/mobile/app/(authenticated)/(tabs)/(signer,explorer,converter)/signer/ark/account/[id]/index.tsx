@@ -16,6 +16,7 @@ import {
   HEADER_CHROME_HIT_BOX,
   HEADER_CHROME_SETTINGS_ICON_SIZE
 } from '@/constants/headerChrome'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
@@ -31,8 +32,6 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatFiatPrice } from '@/utils/format'
-
-const PRIVACY_MASK = '••••'
 const HEADER_ICON_STROKE = '#828282'
 
 export default function ArkAccountDetailPage() {

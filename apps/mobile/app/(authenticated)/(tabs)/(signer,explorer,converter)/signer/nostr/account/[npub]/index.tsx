@@ -23,7 +23,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { Colors } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import { type NostrRelayConnectionInfo } from '@/types/models/NostrIdentity'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
@@ -160,7 +160,7 @@ export default function NostrAccountLanding() {
   }
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={{ paddingHorizontal: 0 }}>
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -194,13 +194,13 @@ export default function NostrAccountLanding() {
         }}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
-        <SSVStack gap="sm">
           <SSNostrHeroCard
             identity={identity}
             connectionInfo={connectionInfo}
             nip05Valid={nip05Valid ?? null}
             style={styles.heroProfile}
           />
+        <SSVStack gap="sm" style={{ paddingHorizontal: Layout.mainContainer.paddingHorizontal }}>
           <SSButtonActionsGroup
             context="nostr"
             nfcAvailable={contentHandler.nfcAvailable}

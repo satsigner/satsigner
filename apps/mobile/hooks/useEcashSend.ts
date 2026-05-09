@@ -146,13 +146,7 @@ export function useEcashSend() {
       const quote = await createMeltQuote(selectedMint.url, bolt11Invoice)
       setStatusMessage(t('ecash.status.meltQuoteCreated'))
 
-      await meltProofs(
-        selectedMint.url,
-        quote,
-        mintProofs,
-        decodedInvoice?.description,
-        bolt11Invoice
-      )
+      await meltProofs(selectedMint.url, quote, mintProofs)
       setStatusMessage(t('ecash.status.tokensMeltedSuccessfully'))
 
       setInvoice('')

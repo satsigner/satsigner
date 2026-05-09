@@ -20,16 +20,16 @@ import { Colors, Sizes } from '@/styles'
 import type { EcashAccount } from '@/types/models/Ecash'
 import { formatFiatPrice } from '@/utils/format'
 
-const ECASH_CARD_FILL_TOP = Colors.gray[905]
-const ECASH_CARD_FILL_BOTTOM = Colors.gray[925]
+const {
+  '500': ECASH_BALANCE_LABEL_COLOR,
+  '905': ECASH_CARD_FILL_TOP,
+  '925': ECASH_CARD_FILL_BOTTOM
+} = Colors.gray
 const ECASH_CARD_SHEEN_COLORS = [
   'rgba(255, 255, 255, 0.04)',
   'rgba(255, 255, 255, 0)',
   'rgba(255, 255, 255, 0.012)'
 ] as const
-
-/** Darker than `muted` for sats / BTC / fiat balance labels */
-const ECASH_BALANCE_LABEL_COLOR = Colors.gray[500]
 
 function EcashAccountCard({
   account,
