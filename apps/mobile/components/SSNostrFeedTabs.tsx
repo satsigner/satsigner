@@ -41,7 +41,8 @@ import { truncateNpub } from '@/utils/nostrIdentity'
 import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
 import {
   collectUnresolvedEventIds,
-  getResolvedEventId
+  getResolvedEventId,
+  isNoteQuotePost
 } from '@/utils/nostrNoteQuotes'
 import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
 import {
@@ -738,12 +739,14 @@ function SSNostrFeedTabs({
 
   const visibleNotes =
     notesExcludeReplies && notesKindFilterId === 'short_text'
-      ? notes.filter((n) => !noteLooksLikeReply(n.tags))
+      ? notes.filter((n) => !noteLooksLikeReply(n.tags) || isNoteQuotePost(n))
       : notes
 
   const visibleFeedNotes =
     feedExcludeReplies && feedKindFilterId === 'short_text'
-      ? feedNotes.filter((n) => !noteLooksLikeReply(n.tags))
+      ? feedNotes.filter(
+          (n) => !noteLooksLikeReply(n.tags) || isNoteQuotePost(n)
+        )
       : feedNotes
 
   const readyProfiles: Record<string, NostrKind0Profile | null> = {}
@@ -1405,7 +1408,9 @@ const styles = StyleSheet.create({
     color: Colors.success
   },
   zapAvatar: {
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,
+    borderWidth: 1.5,
     height: 32,
     width: 32
   },

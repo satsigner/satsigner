@@ -120,6 +120,14 @@ export function collectUnresolvedEventIds(
   return Array.from(ids)
 }
 
+export function isNoteQuotePost(note: NostrFeedNoteLike): boolean {
+  return (
+    note.kind === 1 &&
+    (getQuoteTagEventIds(note.tags).length > 0 ||
+      hasEmbeddedEventRef(note.content))
+  )
+}
+
 export function getResolvedEventId(note: NostrFeedNoteLike): string | null {
   if (note.kind === 6 || note.kind === 16) {
     const parsed = parseRepostOriginalEvent(note.content)

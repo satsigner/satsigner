@@ -530,7 +530,9 @@ const styles = StyleSheet.create({
     lineHeight: 14
   },
   feedAuthorAvatar: {
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,
+    borderWidth: 1.5,
     height: 32,
     width: 32
   },
@@ -623,7 +625,9 @@ const styles = StyleSheet.create({
     flexShrink: 1
   },
   quoteCardAvatar: {
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 12,
+    borderWidth: 1,
     height: 24,
     width: 24
   },

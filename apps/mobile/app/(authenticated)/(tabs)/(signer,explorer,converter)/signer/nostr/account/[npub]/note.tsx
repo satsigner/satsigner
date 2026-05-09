@@ -1047,7 +1047,9 @@ export default function NostrNotePage() {
                 resolvedQuotedNoteProfile={quotedNoteProfile}
                 mentionProfiles={mentionProfiles}
                 onQuotePress={(id) => {
-                  if (!npub) {return}
+                  if (!npub) {
+                    return
+                  }
                   const uri = nip19.neventEncode({ id })
                   router.push(nostrNoteHref(npub, uri))
                 }}
