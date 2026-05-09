@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient'
 import {
   Image,
   type StyleProp,
@@ -8,6 +9,7 @@ import {
 
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
+import SSIconLightning from '@/components/icons/SSIconLightning'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
@@ -78,7 +80,29 @@ function SSNostrHeroCard({
   const npubColor = generateColorFromNpub(identity.npub)
 
   return (
-    <SSVStack itemsCenter gap="sm" style={[styles.container, style]}>
+    <View style={[styles.container, style]}>
+      <View style={styles.bannerWrap}>
+        {!privacyMode && identity.banner ? (
+          <Image
+            source={{ uri: identity.banner }}
+            style={[styles.banner, styles.bannerImage]}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.bannerPlaceholder} />
+        )}
+        <LinearGradient
+          colors={['#0A0A0A', 'rgba(10,10,10,0.7)', 'rgba(10,10,10,0)']}
+          style={styles.bannerGradientTop}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={['rgba(10,10,10,0)', 'rgba(10,10,10,0.6)', 'rgba(10,10,10,0.9)', '#0A0A0A']}
+          style={styles.bannerGradientBottom}
+          pointerEvents="none"
+        />
+      </View>
+      <View style={styles.bannerSpacer} />
       <View style={styles.avatarContainer}>
         {privacyMode ? (
           <View style={[styles.avatar, styles.avatarPlaceholder]} />
@@ -136,9 +160,17 @@ function SSNostrHeroCard({
           </SSText>
         ) : lud16Value ? (
           <SSClipboardCopy text={lud16Value}>
-            <SSText size="sm" color="white">
-              {lud16Value}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+              <SSText size="sm" color="muted">
+                {lud16Value}
+              </SSText>
+              <SSIconLightning
+                width={8}
+                height={10}
+                stroke={Colors.gray[300]}
+                strokeWidth={1.5}
+              />
+            </SSHStack>
           </SSClipboardCopy>
         ) : (
           <SSText center color="muted" size="sm" style={styles.metaPlaceholder}>
@@ -171,7 +203,7 @@ function SSNostrHeroCard({
           </SSText>
         )}
       </SSVStack>
-    </SSVStack>
+    </View>
   )
 }
 
@@ -185,18 +217,58 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    position: 'absolute',
+    top: 20
   },
   avatarPlaceholder: {
     alignItems: 'center',
     backgroundColor: Colors.gray[800],
     justifyContent: 'center'
   },
+  banner: {
+    height: 160,
+    width: '100%'
+  },
+  bannerImage: {
+    opacity: 0.65
+  },
+  bannerGradientBottom: {
+    bottom: 0,
+    height: 60,
+    left: 0,
+    position: 'absolute',
+    right: 0
+  },
+  bannerGradientTop: {
+    height: 40,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
+  },
+  bannerPlaceholder: {
+    backgroundColor: Colors.gray[850],
+    height: 160,
+    width: '100%'
+  },
+  bannerSpacer: {
+    height: 80
+  },
+  bannerWrap: {
+    left: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: 0
+  },
   container: {
-    paddingBottom: 12,
-    paddingTop: 8
+    alignItems: 'center',
+    paddingBottom: 12
   },
   metaBlock: {
+    paddingHorizontal: '6%',
+    paddingTop: 28,
     width: '100%'
   },
   metaPlaceholder: {
