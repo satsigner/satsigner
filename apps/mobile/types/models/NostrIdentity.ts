@@ -31,6 +31,7 @@ export type NostrIdentity = {
   mnemonic?: string
   displayName?: string
   picture?: string
+  banner?: string
   nip05?: string
   lud16?: string
   /** When true, the app may query relays for this identity. Omitted or false means disconnected. */

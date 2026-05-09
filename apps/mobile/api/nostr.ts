@@ -107,12 +107,14 @@ function getProfileFromKind0Content(
             : undefined
     const picture =
       typeof content.picture === 'string' ? content.picture : undefined
+    const banner =
+      typeof content.banner === 'string' ? content.banner : undefined
     const nip05 = typeof content.nip05 === 'string' ? content.nip05 : undefined
     const lud16 = typeof content.lud16 === 'string' ? content.lud16 : undefined
-    if (!displayName && !picture && !nip05 && !lud16) {
+    if (!displayName && !picture && !banner && !nip05 && !lud16) {
       return null
     }
-    return { displayName, lud16, nip05, picture }
+    return { banner, displayName, lud16, nip05, picture }
   } catch {
     return null
   }
@@ -213,6 +215,7 @@ export class NostrAPI {
     const now = Math.floor(Date.now() / 1000)
     if (cached && now - cached.cached_at < PROFILE_CACHE_TTL_SECS) {
       return {
+        banner: cached.banner,
         displayName: cached.displayName,
         lud16: cached.lud16,
         nip05: cached.nip05,
@@ -224,6 +227,7 @@ export class NostrAPI {
     if (!this.ndk) {
       return cached
         ? {
+            banner: cached.banner,
             displayName: cached.displayName,
             lud16: cached.lud16,
             nip05: cached.nip05,
@@ -254,6 +258,7 @@ export class NostrAPI {
     if (!event?.content) {
       return cached
         ? {
+            banner: cached.banner,
             displayName: cached.displayName,
             lud16: cached.lud16,
             nip05: cached.nip05,
