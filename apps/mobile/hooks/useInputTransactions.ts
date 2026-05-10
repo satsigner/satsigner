@@ -158,7 +158,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
       }
       for (const candidate of candidates) {
         try {
-          const raw = await electrumClient.getTransaction(candidate)
+          const raw = await electrumClient.getTransactionRaw(candidate)
           if (raw && typeof raw === 'string' && raw.length > 0) {
             return raw
           }

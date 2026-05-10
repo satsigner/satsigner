@@ -12,6 +12,10 @@ const parseBlocks = z.array(BlockSchema).parse
 const parseTxs = z.array(EsploraTxSchema).parse
 const parseTxIds = z.array(EsploraTxSchema.shape.txid).parse
 
+// over 50 transactions (default) -> rate limit -> needs multiple requests.
+// TODO: figure out custom server per page
+const ESPLORA_ADDRESS_TXS_PER_REQUEST = 50
+
 export default class Esplora {
   public esploraUrl: string
 
@@ -141,15 +145,12 @@ export default class Esplora {
     const data = await this._call(endpoint)
     const transactions = parseTxs(data)
 
-    // over 50 transactions (default) -> rate limit -> needs multiple requests.
-    // TODO: figure out if the server allows more than 50 txs per request
-    const perPage = 50
-    let lastPageTransactions = transactions
-    while (lastPageTransactions.length >= perPage) {
+    let lastRequestTransactions = transactions
+    while (lastRequestTransactions.length >= ESPLORA_ADDRESS_TXS_PER_REQUEST) {
       // Early stop: if every txid on this page is already known, no need to paginate further
       if (
         stopAtTxids &&
-        lastPageTransactions.every((tx) => stopAtTxids.has(tx.txid))
+        lastRequestTransactions.every((tx) => stopAtTxids.has(tx.txid))
       ) {
         break
       }
@@ -159,7 +160,7 @@ export default class Esplora {
         `/address/${address}/txs?after_txid=${lastTxId}`
       )
       const nextPageTransactions = parseTxs(data)
-      lastPageTransactions = nextPageTransactions
+      lastRequestTransactions = nextPageTransactions
       transactions.push(...nextPageTransactions)
     }
 

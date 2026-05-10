@@ -1,106 +1,22 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
-import { z } from 'zod'
+import z from 'zod'
 
-import { TransactionSchema, type Transaction } from '@/types/models/Transaction'
-import { UtxoSchema, type Utxo } from '@/types/models/Utxo'
-import { NetworkSchema, type Network } from '@/types/settings/blockchain'
+import {
+  ElectrumAddressInfo,
+  ElectrumClientSchema,
+  type ElectrumClientInterface
+} from '@/types/models/Electrum'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { bytesToHex } from '@/utils/scripts'
 import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 import { isValidDomainName, isValidIPAddress } from '@/utils/validation/url'
-
-export const ElectrumClientSchema = z.object({
-  addressBalance: z.object({
-    confirmed: z.number(),
-    unconfirmed: z.number()
-  }),
-  addressTxs: z.array(
-    z.object({
-      height: z.number(),
-      tx_hash: z.string()
-    })
-  ),
-  addressUnconfirmed: z.array(
-    z.object({
-      fee: z.number(),
-      height: z.number(),
-      tx_hash: z.string()
-    })
-  ),
-  addressUtxos: z.array(
-    z.object({
-      height: z.number(),
-      tx_hash: z.string(),
-      tx_pos: z.number(),
-      value: z.number()
-    })
-  ),
-  props: z.object({
-    host: z.string(),
-    network: NetworkSchema.optional(),
-    port: z.number(),
-    protocol: z.enum(['tcp', 'tls', 'ssl']).optional()
-  }),
-  transaction: z.object({
-    blockhash: z.string(),
-    blocktime: z.number(),
-    confirmations: z.number(),
-    hash: z.string(),
-    hex: z.string(),
-    locktime: z.number(),
-    size: z.number(),
-    time: z.number(),
-    txid: z.string(),
-    version: z.number(),
-    vin: z.array(
-      z.object({
-        scriptSig: z.object({
-          asm: z.string(),
-          hex: z.string()
-        }),
-        sequence: z.number(),
-        txid: z.string(),
-        vout: z.number()
-      })
-    ),
-    vout: z.array(
-      z.object({
-        n: z.number(),
-        scriptPubkey: z.object({
-          addresses: z.array(z.string()),
-          asm: z.string(),
-          hex: z.string(),
-          reqSigs: z.number(),
-          type: z.string()
-        }),
-        value: z.string()
-      })
-    )
-  }),
-  transactionRaw: z.object({
-    id: z.string(),
-    jsonrpc: z.string(),
-    param: z.string(),
-    result: z.string()
-  })
-})
-
-export type IElectrumClient = z.infer<typeof ElectrumClientSchema>
-
-export const AddressInfoSchema = z.object({
-  balance: z.object({
-    confirmed: z.number(),
-    unconfirmed: z.number()
-  }),
-  transactions: z.array(TransactionSchema),
-  utxos: z.array(UtxoSchema)
-})
-
-export type AddressInfo = z.infer<typeof AddressInfoSchema>
 
 class ModifiedClient extends BlueWalletElectrumClient {
   keepAlive() {
@@ -133,7 +49,7 @@ class BaseElectrumClient {
     port,
     protocol = 'ssl',
     network = 'signet'
-  }: IElectrumClient['props']) {
+  }: ElectrumClientInterface['props']) {
     const net = TcpSocket
     const tls = TcpSocket
     const options = {}
@@ -266,48 +182,40 @@ class BaseElectrumClient {
     return scriptHash
   }
 
-  async getAddressBalance(
-    address: string
-  ): Promise<IElectrumClient['addressBalance']> {
+  async getAddressBalance(address: string) {
     const scriptHash = this.addressToScriptHash(address)
-    const balance =
-      await this.client.blockchainScripthash_getBalance(scriptHash)
-    return balance
+    const data = await this.client.blockchainScripthash_getBalance(scriptHash)
+    return ElectrumClientSchema.shape.addressBalance.parse(data)
   }
 
-  async getAddressUtxos(
-    address: string
-  ): Promise<IElectrumClient['addressUtxos']> {
+  async getAddressUtxos(address: string) {
     const scriptHash = this.addressToScriptHash(address)
-    const result =
-      await this.client.blockchainScripthash_listunspent(scriptHash)
-    return result
+    const data = await this.client.blockchainScripthash_listunspent(scriptHash)
+    return ElectrumClientSchema.shape.addressUtxos.parse(data)
   }
 
-  async getAddressTransactions(
-    address: string
-  ): Promise<IElectrumClient['addressTxs']> {
+  async getAddressTransactions(address: string) {
     const scriptHash = this.addressToScriptHash(address)
-    const result = await this.client.blockchainScripthash_getHistory(scriptHash)
-    return result
+    const data = await this.client.blockchainScripthash_getHistory(scriptHash)
+    return ElectrumClientSchema.shape.addressTxs.parse(data)
   }
 
-  async getAddressUnconfirmed(
-    address: string
-  ): Promise<IElectrumClient['addressUnconfirmed']> {
+  async getAddressUnconfirmed(address: string) {
     const scriptHash = this.addressToScriptHash(address)
-    const result = await this.client.blockchainScripthash_getMempool(scriptHash)
-    return result
+    const data = await this.client.blockchainScripthash_getMempool(scriptHash)
+    return ElectrumClientSchema.shape.addressUnconfirmed.parse(data)
   }
 
-  async getTransaction(txid: string, verbose = false): Promise<string> {
+  async getTransactionRaw(txid: string, verbose = false) {
     const txRaw = await this.client.blockchainTransaction_get(txid, verbose)
-    return txRaw
+
+    // this does NOT parse the raw transaction! it only validates it is a string
+    return z.string().parse(txRaw)
   }
 
-  async getTransactions(txIds: string[]): Promise<string[]> {
+  async getTransactions(txIds: string[]) {
     const verbose = false // verbose=true is not supported by some clients
-    const rawTxs = []
+    const rawTxs: string[] = []
     for (const txid of txIds) {
       const raw = await this.client.blockchainTransaction_get(txid, verbose)
       rawTxs.push(raw)
@@ -320,7 +228,8 @@ class ElectrumClient extends BaseElectrumClient {
   async getAddressInfo(
     address: string,
     addressKeychain: Utxo['keychain'] = 'external'
-  ): Promise<AddressInfo> {
+  ) {
+    // utxo info
     const addressUtxos = await super.getAddressUtxos(address)
     const utxoHeights = addressUtxos.map((value) => value.height)
     const utxoTimestamps = await this.getBlockTimestamps(utxoHeights)
@@ -331,12 +240,12 @@ class ElectrumClient extends BaseElectrumClient {
       addressKeychain
     )
 
+    // tx info
     const addressTxs = await super.getAddressTransactions(address)
     const txIds = addressTxs.map((value) => value.tx_hash)
     const rawTransactions = await this.getTransactions(txIds)
     const txHeights = addressTxs.map((value) => value.height)
     const txTimestamps = await this.getBlockTimestamps(txHeights)
-    const balance = await this.getAddressBalance(address)
     const transactions = this.parseAddressTransactions(
       address,
       rawTransactions,
@@ -344,32 +253,36 @@ class ElectrumClient extends BaseElectrumClient {
       txTimestamps
     )
 
-    return { balance, transactions, utxos }
+    // balance info
+    const balance = await this.getAddressBalance(address)
+
+    // address info
+    const addressInfo: ElectrumAddressInfo = {
+      balance,
+      transactions,
+      utxos
+    }
+    return addressInfo
   }
 
-  async getBlock(height: number): Promise<bitcoinjs.Block> {
-    const blockHeaderRaw = await this.client.blockchainBlock_header(height)
+  async getBlock(height: number) {
+    const data = await this.client.blockchainBlock_header(height)
+    const blockHeaderRaw = z.string().parse(data)
     const blockHeader = bitcoinjs.Block.fromHex(blockHeaderRaw)
     return blockHeader
   }
 
-  subscribeToBlockHeaders(): Promise<{ height: number } | null> {
-    const rawClient = this.client as unknown as {
-      blockchainHeaders_subscribe: () => Promise<{ height: number } | null>
-    }
-    return rawClient.blockchainHeaders_subscribe()
+  subscribeToBlockHeaders() {
+    return this.client.blockchainHeaders_subscribe()
   }
 
-  async getMempoolFeeHistogram(): Promise<[number, number][]> {
-    const rawClient = this.client as unknown as {
-      mempool_get_fee_histogram?: () => Promise<[number, number][]>
-    }
-    const result = await rawClient.mempool_get_fee_histogram?.()
-    return Array.isArray(result) ? result : []
+  getMempoolFeeHistogram() {
+    return this.client.mempool_getFeeHistogram()
   }
 
-  async getBlockTimestamp(height: number): Promise<number> {
-    const blockHeaderRaw = await this.client.blockchainBlock_header(height)
+  async getBlockTimestamp(height: number) {
+    const data = await this.client.blockchainBlock_header(height)
+    const blockHeaderRaw = z.string().parse(data)
     const blockHeader = bitcoinjs.Block.fromHex(blockHeaderRaw)
     return blockHeader.timestamp
   }
@@ -406,11 +319,11 @@ class ElectrumClient extends BaseElectrumClient {
 
   parseAddressUtxos(
     address: string,
-    utxos: IElectrumClient['addressUtxos'],
+    utxos: ElectrumClientInterface['addressUtxos'],
     timestamps: number[],
     addressKeychain: string
-  ): Utxo[] {
-    return utxos.map((electrumUtxo, index) => ({
+  ) {
+    const parsedUtxos: Utxo[] = utxos.map((electrumUtxo, index) => ({
       addressTo: address,
       keychain: addressKeychain as Utxo['keychain'],
       label: '',
@@ -420,6 +333,8 @@ class ElectrumClient extends BaseElectrumClient {
       value: electrumUtxo.value,
       vout: electrumUtxo.tx_pos
     }))
+
+    return parsedUtxos
   }
 
   parseAddressTransactions(
@@ -615,9 +530,8 @@ class ElectrumClient extends BaseElectrumClient {
     return transactions
   }
 
-  async broadcastTransactionHex(rawTxHex: string): Promise<string> {
-    // This uses the standard Electrum protocol method
-    return await this.client.blockchainTransaction_broadcast(rawTxHex)
+  broadcastTransactionHex(rawTxHex: string) {
+    return this.client.blockchainTransaction_broadcast(rawTxHex)
   }
 }
 

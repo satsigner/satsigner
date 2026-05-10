@@ -389,7 +389,7 @@ function useSyncAccountWithAddress() {
       const { height } = tx
 
       // fetch raw transaction
-      const rawTx = await electrumClient.getTransaction(txid)
+      const rawTx = await electrumClient.getTransactionRaw(txid)
       rawTransactions.push(rawTx)
 
       // update progress
