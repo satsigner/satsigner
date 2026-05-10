@@ -176,7 +176,7 @@
     "nostrSync.devicesGroupChat.newMessages": "New messages",
     "nostrSync.devicesGroupChat.noMessages": "No messages yet",
     "nostrSync.devicesGroupChat.sendButton": "Send",
-    "nostrSync.devicesGroupChat.sending": "Sending\u2026",
+    "nostrSync.devicesGroupChat.sending": "Sending…",
     "nostrSync.devicesGroupChat.syncOff": " (Sync Off)",
     "nostrSync.devicesGroupChat.syncOn": " (Sync On)",
     "nostrSync.devicesGroupChat.title": "Devices Group Chat",
@@ -191,7 +191,7 @@
     "nostrSync.failedToSendTransactionData": "Failed to send transaction data",
     "nostrSync.fetchKind0": "Fetch Kind 0",
     "nostrSync.fetchKind0Error": "Failed to fetch profile from relays",
-    "nostrSync.fetchKind0Loading": "Fetching profile\u2026",
+    "nostrSync.fetchKind0Loading": "Fetching profile…",
     "nostrSync.fetchKind0NoRelay": "Not connected to any relay",
     "nostrSync.fetchKind0NotFound": "No profile found on relays",
     "nostrSync.fetchKind0Success": "Profile loaded",
@@ -243,10 +243,10 @@
     "nostrSync.success": "Labels sent to relays",
     "nostrSync.sync": "Nostr Sync",
     "nostrSync.syncNow": "Sync now",
-    "nostrSync.syncingConnecting": "Connecting to relays\u2026",
-    "nostrSync.syncingDiscovering": "Discovering devices\u2026",
-    "nostrSync.syncingFetching": "Fetching messages\u2026",
-    "nostrSync.syncingWithRelays": "Syncing with Nostr relays\u2026",
+    "nostrSync.syncingConnecting": "Connecting to relays…",
+    "nostrSync.syncingDiscovering": "Discovering devices…",
+    "nostrSync.syncingFetching": "Fetching messages…",
+    "nostrSync.syncingWithRelays": "Syncing with Nostr relays…",
     "nostrSync.tabs.auto": "Automatic",
     "nostrSync.tabs.manual": "Manual",
     "nostrSync.tapToRevealNsec": "Tap to reveal nsec",
@@ -438,7 +438,7 @@
     "confirmations.unconfirmed": "Unconfirmed",
     "cpfp": "Child Pays For Parents",
     "electrumChecksum": "Electrum Checksum",
-    "electrumSeedNote": "Electrum seed \u2014 keys derived using Electrum's algorithm, not BIP39. Only compatible with Electrum and wallets that support Electrum seeds.",
+    "electrumSeedNote": "Electrum seed — keys derived using Electrum's algorithm, not BIP39. Only compatible with Electrum and wallets that support Electrum seeds.",
     "fingerprint": "Fingerprint",
     "network.bitcoin": "Bitcoin",
     "network.mainnet": "Mainnet",
@@ -712,7 +712,7 @@
     "account.createBitcoinToggle": "Create a new on-chain wallet",
     "account.create": "Create Ark Wallet",
     "account.createSuccess": "Ark wallet created",
-    "account.creating": "Creating Ark wallet\u2026",
+    "account.creating": "Creating Ark wallet…",
     "account.deleteSuccess": "Ark wallet deleted",
     "account.deleteWallet": "Delete Ark Wallet",
     "account.deleteWalletWarning": "This will permanently delete this Ark wallet, including its stored mnemonic and local cache. The linked on-chain Bitcoin wallet is not removed. This action cannot be undone.",
@@ -785,7 +785,7 @@
     "send.error.insufficientBalanceWithFee": "Amount plus fee exceeds spendable balance",
     "send.error.invalidDestination": "Invalid destination",
     "send.fee": "Estimated fee",
-    "send.feeEstimating": "Estimating\u2026",
+    "send.feeEstimating": "Estimating…",
     "send.feeUnavailable": "Fee unavailable",
     "send.kind.arkoor": "Ark address",
     "send.kind.bolt11": "Lightning invoice",
@@ -807,9 +807,9 @@
     "offboard.selectAll": "Select all",
     "offboard.clearAll": "Clear",
     "offboard.noVtxos": "No spendable VTXOs",
-    "offboard.selectedSummary": "%{count} selected \u00b7 %{amount} sats",
+    "offboard.selectedSummary": "%{count} selected · %{amount} sats",
     "offboard.fee": "Round fee",
-    "offboard.feeEstimating": "Estimating\u2026",
+    "offboard.feeEstimating": "Estimating…",
     "offboard.feeUnavailable": "Fee unavailable",
     "offboard.confirm": "Offboard",
     "offboard.success": "Offboard submitted",
@@ -1344,7 +1344,7 @@
     "channelDetail.historyError": "Could not load channel history",
     "channelDetail.historyFee": "Fee (sats)",
     "channelDetail.historyForward": "Forwarded HTLC",
-    "channelDetail.historyLoading": "Loading channel history\u2026",
+    "channelDetail.historyLoading": "Loading channel history…",
     "channelDetail.historyPaymentOut": "Outbound payment (route)",
     "channelDetail.historyTitle": "Channel history",
     "channelDetail.initiator": "Initiator",
@@ -1391,7 +1391,7 @@
     "lndRest.connectingButton": "Connecting...",
     "lndRest.connectSuccess": "Successfully connected to LND node",
     "lndRest.inputPlaceholder": "Enter LND connection string...",
-    "lndRest.invalidConnectionString": "Enter config=https://\u2026/file.config or paste the config file URL (https, ending in .config).",
+    "lndRest.invalidConnectionString": "Enter config=https://…/file.config or paste the config file URL (https, ending in .config).",
     "lndRest.invalidQrCode": "Invalid QR Code: the scanned QR code is not a valid LND connection string",
     "lndRest.pasteButton": "Paste",
     "lndRest.scanModalTitle": "Scan LND Connection String",
@@ -1405,7 +1405,7 @@
     "lnurlDetails.title": "LNURL Details",
     "node.active": "Active",
     "node.balancesFailed": "Failed to load balances",
-    "node.balancesLoading": "Loading balances\u2026",
+    "node.balancesLoading": "Loading balances…",
     "node.bubbleChannelA11y": "%{peer}, channel %{chanId}",
     "node.bubbleHubInbound": "Inbound",
     "node.bubbleHubOutbound": "Outbound",
@@ -1427,15 +1427,15 @@
     "node.noTransactions": "No recent transactions",
     "node.notConnected": "Not connected to node",
     "node.onchainColumn": "Onchain",
-    "node.onchainLoading": "Loading on-chain activity\u2026",
+    "node.onchainLoading": "Loading on-chain activity…",
     "node.onchainTab": "On-chain",
     "node.originalSats": "Original: %{amount} sats",
-    "node.refreshing": "Refreshing\u2026",
+    "node.refreshing": "Refreshing…",
     "node.retry": "Retry",
     "node.showOpenInvoices": "Show open invoices",
     "node.spendableLightning": "Spendable lightning",
     "node.totalColumn": "Total",
-    "node.transactionsLoading": "Loading transactions\u2026",
+    "node.transactionsLoading": "Loading transactions…",
     "node.txConfirmations": "%{count} confirmations",
     "node.txFeeAmount": "%{fee} sats",
     "node.txFeeLabel": "Fee",
@@ -1445,13 +1445,13 @@
     "node.txHistorical.monthsAgo": "%{count}mo ago",
     "node.txHistorical.yearsAgo": "%{count}y ago",
     "node.txNoDescription": "No description",
-    "node.txStatusCanceled": "\u2022 Canceled",
-    "node.txStatusConfirmed": "\u2022 Confirmed",
-    "node.txStatusFailed": "\u2022 Failed",
-    "node.txStatusOpen": "\u2022 Open",
-    "node.txStatusPending": "\u2022 Pending",
-    "node.txStatusSent": "\u2022 Sent",
-    "node.txStatusSettled": "\u2022 Settled",
+    "node.txStatusCanceled": "• Canceled",
+    "node.txStatusConfirmed": "• Confirmed",
+    "node.txStatusFailed": "• Failed",
+    "node.txStatusOpen": "• Open",
+    "node.txStatusPending": "• Pending",
+    "node.txStatusSent": "• Sent",
+    "node.txStatusSettled": "• Settled",
     "node.txBadge.canceled": "Canceled",
     "node.txBadge.expired": "Expired",
     "node.txBadge.failed": "Failed",
@@ -1542,7 +1542,7 @@
     "nodeSettings.disconnectNode": "Disconnect Node",
     "nodeSettings.clearConfig": "Clear Config",
     "nodeSettings.clearConfigMessage": "Are you sure you want to clear this node configuration? This action cannot be undone.",
-    "nodeSettings.permissionDenied": "Forbidden or unauthorized \u2014 check macaroon permissions.",
+    "nodeSettings.permissionDenied": "Forbidden or unauthorized — check macaroon permissions.",
     "nodeSettings.uris": "Node URIs",
     "paymentDetails.absoluteDateTime": "%{datePart} at %{timePart}",
     "paymentDetails.amount": "Amount",
@@ -1656,7 +1656,7 @@
     "account.lud16NotSet": "Lightning address not set",
     "account.nip05NotSet": "NIP-05 not set",
     "account.notFound": "Identity not found",
-    "account.relayChecking": "Checking\u2026",
+    "account.relayChecking": "Checking…",
     "account.relayConnected": "Connected",
     "account.relayDisconnected": "Disconnected",
     "account.relayNoInternet": "No internet connection",
@@ -1839,7 +1839,7 @@
     "feed.replyTag": "Reply",
     "feed.repostTag": "Repost",
     "feed.repostUnavailable": "Original post unavailable",
-    "feed.quotedNote": "\u2197 Quoted note",
+    "feed.quotedNote": "↗ Quoted note",
     "feed.videoFile": "Video file",
     "feed.videoTwitch": "Twitch",
     "feed.videoVimeo": "Vimeo",
@@ -2299,7 +2299,7 @@
     "developer.backupEncryptionNote": "Encryption: PBKDF2-SHA256 (10,000 iterations) + AES-256-CBC. Payload is JSON with v, salt, iv, cipher. Derive key from passphrase + salt, then decrypt cipher with key + iv.",
     "developer.backupError": "Failed to backup data",
     "developer.backupModalTitle": "Backup",
-    "developer.backupPassphraseAllowed": "Allowed: letters (A\u2013Z, a\u2013z), digits (0\u20139), space, and symbols: ! \" # $ % & ' ( ) * + , - . / : ; < = > ? @ [ ] ^ _ ` { | } ~",
+    "developer.backupPassphraseAllowed": "Allowed: letters (A–Z, a–z), digits (0–9), space, and symbols: ! \" # $ % & ' ( ) * + , - . / : ; < = > ? @ [ ] ^ _ ` { | } ~",
     "developer.backupPassphraseInvalid": "Passphrase must be non-empty and use only allowed characters",
     "developer.backupPassphraseLabel": "Passphrase",
     "developer.backupPassphrasePlaceholder": "Enter passphrase",
@@ -2309,17 +2309,17 @@
     "developer.backupSuccess": "Data backup created",
     "developer.clearStorage": "Clear storage (full reset)",
     "developer.clearStorageConfirm": "Clear all storage",
-    "developer.clearStorageWarning": "This performs a FULL APP RESET. All data will be erased:\n\n\u2022 All accounts and wallets\n\u2022 App settings and preferences\n\u2022 Cached Bitcoin prices\n\u2022 PIN and authentication state\n\u2022 Nostr data and messages\n\nThe app will return to its initial state as if freshly installed. Make sure you have backed up your seed phrases. This action cannot be undone.",
+    "developer.clearStorageWarning": "This performs a FULL APP RESET. All data will be erased:\n\n• All accounts and wallets\n• App settings and preferences\n• Cached Bitcoin prices\n• PIN and authentication state\n• Nostr data and messages\n\nThe app will return to its initial state as if freshly installed. Make sure you have backed up your seed phrases. This action cannot be undone.",
     "developer.deleteAccounts": "Delete Bitcoin Accounts",
     "developer.deleteAccountsConfirm": "Delete all Bitcoin accounts",
-    "developer.deleteAccountsWarning": "This deletes your Bitcoin accounts, wallet data, and Nostr sync state:\n\n\u2022 All accounts and transaction history\n\u2022 Addresses and UTXOs\n\u2022 Associated wallet keys\n\u2022 Nostr sync data (members, DMs, labels, device state)\n\nYour app settings, PIN, and preferences will be preserved. Make sure you have backed up your seed phrases before proceeding. This action cannot be undone.",
+    "developer.deleteAccountsWarning": "This deletes your Bitcoin accounts, wallet data, and Nostr sync state:\n\n• All accounts and transaction history\n• Addresses and UTXOs\n• Associated wallet keys\n• Nostr sync data (members, DMs, labels, device state)\n\nYour app settings, PIN, and preferences will be preserved. Make sure you have backed up your seed phrases before proceeding. This action cannot be undone.",
     "developer.description": "Development-only tools for faster local testing and debugging.",
     "developer.recoverData": "Recover data",
     "developer.recoverDecrypt": "Decrypt",
     "developer.recoverDecryptError": "Failed to decrypt backup",
     "developer.recoverDecryptedLabel": "Decrypted data",
     "developer.recoverEncryptedLabel": "Encrypted backup data",
-    "developer.recoverEncryptedPlaceholder": "Paste encrypted backup data here\u2026",
+    "developer.recoverEncryptedPlaceholder": "Paste encrypted backup data here…",
     "developer.recoverImSure": "I'm sure",
     "developer.recoverOverwrite": "Overwrite and recover data",
     "developer.recoverOverwriteError": "Failed to restore backup",
@@ -2430,8 +2430,8 @@
     "network.server.tester.error": "Connection test error",
     "network.server.tester.failed": "Connection test failed",
     "network.server.tester.success": "Connection test successful",
-    "network.server.tester.successDetail": "Block %{height} \u00b7 %{date}",
-    "network.server.tester.successNoHeight": "Tip height unavailable \u00b7 %{date}",
+    "network.server.tester.successDetail": "Block %{height} · %{date}",
+    "network.server.tester.successNoHeight": "Tip height unavailable · %{date}",
     "network.server.title": "Backend",
     "network.server.type.bitcoin": "Bitcoin mainnet",
     "network.server.type.signet": "Centralized network used for testing (coins have no value)",
@@ -2658,7 +2658,7 @@
     "historyDiagram.empty": "No history data could be built for these inputs.",
     "historyDiagram.error": "Could not load input history. Check your network connection.",
     "historyDiagram.layoutError": "Could not draw the history diagram.",
-    "historyDiagram.loading": "Loading input history\u2026",
+    "historyDiagram.loading": "Loading input history…",
     "historyDiagram.retry": "Retry",
     "id": "Transaction id",
     "input.count": "Total inputs",
@@ -2684,7 +2684,7 @@
     "outputs": "outputs",
     "preview.PSBT": "PSBT",
     "preview.SignWithSeedQR": "Sign with Seed QR",
-    "preview.buildingTransaction": "Building transaction\u2026",
+    "preview.buildingTransaction": "Building transaction…",
     "preview.checkAllSignatures": "CHECK ALL SIGNATURES",
     "preview.cosignerActions": "Cosigner Actions",
     "preview.exportForExternalSigning": "Export for External Signing",
@@ -2822,13 +2822,27 @@
       "start": "Start"
     },
     "chapters": {
-      "one": { "title": "Bitcoin Basics — Signet" },
-      "two": { "title": "Multisig & PSBT" },
-      "three": { "title": "Nostr Label Sync" },
-      "four": { "title": "Lightning & eCash" },
-      "five": { "title": "Ark" },
-      "six": { "title": "Explorer & Network" },
-      "seven": { "title": "Nostr & Identity" }
+      "one": {
+        "title": "Bitcoin Basics — Signet"
+      },
+      "two": {
+        "title": "Multisig & PSBT"
+      },
+      "three": {
+        "title": "Nostr Label Sync"
+      },
+      "four": {
+        "title": "Lightning & eCash"
+      },
+      "five": {
+        "title": "Ark"
+      },
+      "six": {
+        "title": "Explorer & Network"
+      },
+      "seven": {
+        "title": "Nostr & Identity"
+      }
     },
     "exit": "Exit tour",
     "exploreOnMyOwn": "Explore on my own",
@@ -2904,6 +2918,10 @@
         "description": "Ready to send a transaction? Explore your wallet.",
         "title": "Your wallet is ready"
       }
+    },
+    "intro": {
+      "replay": "Replay intro animation",
+      "sectionTitle": "Intro"
     }
   },
   "wallet": {
@@ -2953,5 +2971,47 @@
     "success.qrScanned": "QR code scanned successfully",
     "titleModal": "Watch-only wallet",
     "warning.syncFailed": "Account created but failed to sync. You can try syncing later."
+  },
+  "intro": {
+    "steps": {
+      "sign": {
+        "description": "Build transactions with full fee control. Air-gapped signing, multisig, and PSBTs — complete sovereignty over every sat.",
+        "title": "Sign & Send, Your Way"
+      },
+      "transactions": {
+        "description": "Hex-level access to raw Bitcoin transactions. Verify inputs, outputs, and scripts yourself — no trust required.",
+        "title": "Inspect Every Transaction"
+      },
+      "utxos": {
+        "description": "Each coin is a bubble. See size, age, and labels at a glance — then choose exactly which ones to spend.",
+        "title": "Visualize Your UTXOs"
+      },
+      "layers": {
+        "description": "From the base chain to Lightning and beyond — interact natively with every Bitcoin protocol layer in one place.",
+        "title": "Every Layer of Bitcoin"
+      },
+      "privacy": {
+        "description": "Full coin control, UTXO labeling, and address management give you the tools to minimize your on-chain footprint.",
+        "title": "Privacy by Design"
+      },
+      "nostr": {
+        "description": "Sync labels, chat, and coordinate multisig — all over Nostr, no server needed.",
+        "title": "Nostr Coordination"
+      },
+      "explorer": {
+        "description": "Inspect any block, transaction, or address without leaving the app or trusting a third-party server.",
+        "title": "Built-In Block Explorer"
+      },
+      "roadmap": {
+        "title": "What's Next",
+        "description": "We're building the most complete Bitcoin self-custody experience — one protocol layer at a time."
+      },
+      "thanks": {
+        "title": "Built Together",
+        "description": "SatSigner is open source, shaped by contributors and backed by organizations supporting Bitcoin development."
+      }
+    },
+    "finish": "Finish",
+    "support": "Support"
   }
 }

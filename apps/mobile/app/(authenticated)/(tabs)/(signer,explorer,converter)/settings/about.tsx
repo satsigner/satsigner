@@ -10,6 +10,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useIntroStore } from '@/store/intro'
 import { useTourStore } from '@/store/tour'
 import { Colors } from '@/styles'
 
@@ -17,6 +18,7 @@ export default function About() {
   const { handleRestartTour } = useTourNavigation()
   const neverAskAgain = useTourStore((state) => state.neverAskAgain)
   const setTourPrompts = useTourStore((state) => state.setTourPrompts)
+  const showIntro = useIntroStore((state) => state.showIntro)
 
   function handleStartChapter1() {
     handleRestartTour()
@@ -78,6 +80,22 @@ export default function About() {
             onPress={() => setTourPrompts(neverAskAgain)}
             labelProps={{ size: 'md' }}
           />
+
+          <View style={styles.separator} />
+
+          <SSText size="xs" color="muted" uppercase style={styles.sectionLabel}>
+            {t('tour.intro.sectionTitle')}
+          </SSText>
+
+          <SSHStack justifyBetween style={styles.chapterRow}>
+            <SSText>{t('tour.intro.replay')}</SSText>
+            <SSButton
+              variant="secondary"
+              label={t('tour.about.start')}
+              onPress={() => showIntro(true)}
+              style={styles.chapterButton}
+            />
+          </SSHStack>
         </SSVStack>
       </SSMainLayout>
     </>
