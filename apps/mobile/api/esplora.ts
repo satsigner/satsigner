@@ -1,5 +1,9 @@
 import z from 'zod'
 
+import {
+  ESPLORA_ADDRESS_TXS_PER_REQUEST,
+  ESPLORA_ERROR_MESSAGES
+} from '@/constants/esplora'
 import { BlockSchema, BlockStatusSchema } from '@/types/models/Blockchain'
 import {
   EsploraTxOutspendsSchema,
@@ -11,10 +15,6 @@ import { parseHexToBytes } from '@/utils/parse'
 const parseBlocks = z.array(BlockSchema).parse
 const parseTxs = z.array(EsploraTxSchema).parse
 const parseTxIds = z.array(EsploraTxSchema.shape.txid).parse
-
-// over 50 transactions (default) -> rate limit -> needs multiple requests.
-// TODO: figure out custom server per page
-const ESPLORA_ADDRESS_TXS_PER_REQUEST = 50
 
 export default class Esplora {
   public esploraUrl: string
@@ -215,38 +215,11 @@ export default class Esplora {
   }
 }
 
-const verboseErrorMessages = [
-  {
-    error: 'timeout',
-    reason: 'Connection timeout - server may be slow or unreachable'
-  },
-  {
-    error: 'Unable to resolve host',
-    reason: 'Unable to resolve host - check server URL and internet connection'
-  },
-  {
-    error: 'ECONNREFUSED',
-    reason: 'Connection refused - server may be down or port is closed'
-  },
-  {
-    error: 'ENOTFOUND',
-    reason: 'Server not found - check the server URL'
-  },
-  {
-    error: 'InvalidCertificate',
-    reason: 'TLS certificate validation failed - check server configuration'
-  },
-  {
-    error: 'NetworkError',
-    reason: 'Network error - check your internet connection'
-  }
-]
-
 function getVerboseErrorMessage(error: unknown) {
   if (!(error instanceof Error)) {
     return 'Unkown error'
   }
-  for (const errorType of verboseErrorMessages) {
+  for (const errorType of ESPLORA_ERROR_MESSAGES) {
     if (error.message.match(errorType.error)) {
       return errorType.reason
     }

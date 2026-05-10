@@ -4,6 +4,10 @@ import TcpSocket from 'react-native-tcp-socket'
 import z from 'zod'
 
 import {
+  ELECTRUM_CONNECTION_CHECK_INTERVAL,
+  ELECTRUM_CONNECTION_TIMEOUT
+} from '@/constants/electrum'
+import {
   ElectrumAddressInfo,
   ElectrumClientSchema,
   type ElectrumClientInterface
@@ -25,10 +29,13 @@ class ModifiedClient extends BlueWalletElectrumClient {
     }
     const now = time.now()
     this.timeout = setTimeout(async () => {
-      if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
+      if (
+        this.timeLastCall !== 0 &&
+        now > this.timeLastCall + ELECTRUM_CONNECTION_CHECK_INTERVAL
+      ) {
         const pingTimer = setTimeout(() => {
           this.onError(new Error('keepalive ping timeout'))
-        }, 900_000)
+        }, ELECTRUM_CONNECTION_TIMEOUT)
 
         try {
           await this.server_ping()
@@ -36,7 +43,7 @@ class ModifiedClient extends BlueWalletElectrumClient {
           clearTimeout(pingTimer)
         }
       }
-    }, 50_000)
+    }, ELECTRUM_CONNECTION_CHECK_INTERVAL)
   }
 }
 
@@ -53,7 +60,6 @@ class BaseElectrumClient {
     const net = TcpSocket
     const tls = TcpSocket
     const options = {}
-
     this.client = new ModifiedClient(net, tls, port, host, protocol, options)
     this.network = bitcoinjsNetwork(network)
   }
@@ -63,25 +69,24 @@ class BaseElectrumClient {
     const protocol = url.replace(/:\/\/.*/, '')
     const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
 
-    // Validate host: allow domain names (including .onion), IP addresses
+    // url validation
     const isValidDomain = isValidDomainName(host)
     const isValidIP = isValidIPAddress(host)
-
-    if (
-      !(isValidDomain || isValidIP) ||
-      !port.match(/^[0-9]+$/) ||
-      (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
-    ) {
+    const isValidPort = port.match(/^[0-9]+$/)
+    const isValidProtocol = ['ssl', 'tls', 'tcp'].includes(protocol)
+    if (!isValidDomain || !isValidIP || !isValidPort || !isValidProtocol) {
       throw new Error('Invalid backend URL')
     }
 
-    const client = new ElectrumClient({
+    // additional type-safe validation with Zod
+    const props = ElectrumClientSchema.shape.props.parse({
       host,
       network,
       port: Number(port),
       protocol
     })
-    return client
+
+    return new ElectrumClient(props)
   }
 
   static async initClientFromUrl(
