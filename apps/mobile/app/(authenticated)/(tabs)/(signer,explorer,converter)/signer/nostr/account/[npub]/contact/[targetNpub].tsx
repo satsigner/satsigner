@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
+import { SSIconEllipsis } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
@@ -15,7 +16,6 @@ import SSPaymentMethodPicker, {
   type PaymentMethod
 } from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
-import { SSIconEllipsis } from '@/components/icons'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
@@ -296,12 +296,11 @@ export default function NostrContactProfile() {
         </SSVStack>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
-            <SSNostrHeroCard
-              identity={targetIdentity}
-              nip05Valid={nip05Valid ?? null}
-            />
+          <SSNostrHeroCard
+            identity={targetIdentity}
+            nip05Valid={nip05Valid ?? null}
+          />
           <SSVStack gap="md" style={styles.content}>
-
             <SSHStack gap="sm">
               {targetIdentity.lud16 &&
                 availablePaymentMethods.length > 0 &&
