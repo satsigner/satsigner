@@ -194,13 +194,16 @@ export default function NostrAccountLanding() {
         }}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
-          <SSNostrHeroCard
-            identity={identity}
-            connectionInfo={connectionInfo}
-            nip05Valid={nip05Valid ?? null}
-            style={styles.heroProfile}
-          />
-        <SSVStack gap="sm" style={{ paddingHorizontal: Layout.mainContainer.paddingHorizontal }}>
+        <SSNostrHeroCard
+          identity={identity}
+          connectionInfo={connectionInfo}
+          nip05Valid={nip05Valid ?? null}
+          style={styles.heroProfile}
+        />
+        <SSVStack
+          gap="sm"
+          style={{ paddingHorizontal: Layout.mainContainer.paddingHorizontal }}
+        >
           <SSButtonActionsGroup
             context="nostr"
             nfcAvailable={contentHandler.nfcAvailable}

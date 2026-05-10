@@ -97,7 +97,12 @@ function SSNostrHeroCard({
           pointerEvents="none"
         />
         <LinearGradient
-          colors={['rgba(10,10,10,0)', 'rgba(10,10,10,0.6)', 'rgba(10,10,10,0.9)', '#0A0A0A']}
+          colors={[
+            'rgba(10,10,10,0)',
+            'rgba(10,10,10,0.6)',
+            'rgba(10,10,10,0.9)',
+            '#0A0A0A'
+          ]}
           style={styles.bannerGradientBottom}
           pointerEvents="none"
         />
@@ -230,9 +235,6 @@ const styles = StyleSheet.create({
     height: 160,
     width: '100%'
   },
-  bannerImage: {
-    opacity: 0.65
-  },
   bannerGradientBottom: {
     bottom: 0,
     height: 60,
@@ -246,6 +248,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: 0
+  },
+  bannerImage: {
+    opacity: 0.65
   },
   bannerPlaceholder: {
     backgroundColor: Colors.gray[850],
