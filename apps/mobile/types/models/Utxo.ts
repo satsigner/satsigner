@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 
 export const UtxoSchema = z.object({
   addressTo: z.string().optional(),

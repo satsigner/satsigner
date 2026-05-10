@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 
 export const ScriptVersionTypeSchema = z.enum([
   'P2PKH',

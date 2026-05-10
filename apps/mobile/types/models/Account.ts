@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 
 import { MnemonicWordCountSchema, WordListNameSchema } from '@/types/bips/39'
 import { LabelSchema } from '@/types/bips/329'

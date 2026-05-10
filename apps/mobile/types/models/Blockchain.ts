@@ -62,6 +62,7 @@ export const BlockStatusSchema = z.object({
 })
 
 export const BlockSchema = z.object({
+  bits: z.number().optional(),
   difficulty: z.number(),
   height: z.number(),
   id: z.string(),

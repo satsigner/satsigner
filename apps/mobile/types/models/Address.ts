@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 
 import { ScriptVersionTypeSchema } from '@/types/models/Script'
 import { NetworkSchema } from '@/types/settings/blockchain'
