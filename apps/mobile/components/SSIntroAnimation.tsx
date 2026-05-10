@@ -1247,6 +1247,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isLogoFinale, setIsLogoFinale] = useState(false)
+  const stepSwitchingRef = useRef(false)
 
   const containerOpacity = useSharedValue(1)
   const circleScale = useSharedValue(0)
@@ -1316,6 +1317,23 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fires after React commits the new step — guarantees the old step is
+  // already unmounted before the fade-in starts, preventing ghost flashes.
+  useEffect(() => {
+    if (!stepSwitchingRef.current) return
+    stepSwitchingRef.current = false
+    stepOffsetX.set(
+      withTiming(0, { duration: TRANSITION_MS, easing: Easing.out(Easing.quad) })
+    )
+    textSlideX.set(
+      withDelay(TEXT_SLIDE_DELAY, withTiming(0, { duration: TRANSITION_MS, easing: Easing.out(Easing.quad) }))
+    )
+    descSlideX.set(
+      withDelay(DESC_SLIDE_DELAY, withTiming(0, { duration: TRANSITION_MS, easing: Easing.out(Easing.quad) }))
+    )
+    stepTransition.set(withTiming(1, { duration: TRANSITION_MS }))
+  }, [currentStep]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function startLogoFinale() {
     setIsLogoFinale(true)
     circleScale.set(
@@ -1345,38 +1363,20 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
       return
     }
 
-    setCurrentStep(next)
     stepOffsetX.value = SLIDE_IN_OFFSET
     textSlideX.value = SLIDE_IN_OFFSET
     descSlideX.value = SLIDE_IN_OFFSET
-    stepOffsetX.set(
-      withTiming(0, { duration: TRANSITION_MS, easing: Easing.out(Easing.quad) })
-    )
-    textSlideX.set(
-      withDelay(TEXT_SLIDE_DELAY, withTiming(0, { duration: TRANSITION_MS, easing: Easing.out(Easing.quad) }))
-    )
-    descSlideX.set(
-      withDelay(DESC_SLIDE_DELAY, withTiming(0, { duration: TRANSITION_MS, easing: Easing.out(Easing.quad) }))
-    )
-    stepTransition.set(withTiming(1, { duration: TRANSITION_MS }))
+    stepSwitchingRef.current = true
+    setCurrentStep(next)
   }
 
   function goBackFromStep(step: number) {
     const prev = step - 1
-    setCurrentStep(prev)
     stepOffsetX.value = SLIDE_OUT_OFFSET
     textSlideX.value = SLIDE_OUT_OFFSET
     descSlideX.value = SLIDE_OUT_OFFSET
-    stepOffsetX.set(
-      withTiming(0, { duration: TRANSITION_MS, easing: Easing.out(Easing.quad) })
-    )
-    textSlideX.set(
-      withDelay(TEXT_SLIDE_DELAY, withTiming(0, { duration: TRANSITION_MS, easing: Easing.out(Easing.quad) }))
-    )
-    descSlideX.set(
-      withDelay(DESC_SLIDE_DELAY, withTiming(0, { duration: TRANSITION_MS, easing: Easing.out(Easing.quad) }))
-    )
-    stepTransition.set(withTiming(1, { duration: TRANSITION_MS }))
+    stepSwitchingRef.current = true
+    setCurrentStep(prev)
   }
 
   function handleNext() {
