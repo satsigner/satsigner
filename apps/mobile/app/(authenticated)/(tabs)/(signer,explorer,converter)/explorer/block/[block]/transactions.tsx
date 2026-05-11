@@ -32,12 +32,13 @@ type Transations = Record<
 export default function BlockTransactions() {
   const { block: blockHash } = useLocalSearchParams<ExplorerBlockSearchParams>()
 
-  const [backend, esploraClient] = useBlockchainStore(
+  const [backend, esploraUrl] = useBlockchainStore(
     useShallow((state) => [
       state.configs['bitcoin'].server.backend,
-      new Esplora(state.configs['bitcoin'].server.url)
+      state.configs['bitcoin'].server.url
     ])
   )
+  const esploraClient = new Esplora(esploraUrl)
 
   const [block, setBlock] = useState<Block | undefined>()
   const [blockTxs, setBlockTxs] = useState<Transations>({})
