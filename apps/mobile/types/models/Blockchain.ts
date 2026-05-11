@@ -54,18 +54,15 @@ export const PriceValueSchema = z.object({
   value: z.number()
 })
 
-export const PricesSchema = z
-  .object({
-    USD: z.number().optional(),
-    EUR: z.number().optional(),
-    GBP: z.number().optional(),
-    CAD: z.number().optional(),
-    CHF: z.number().optional(),
-    AUD: z.number().optional(),
-    JPY: z.number().optional(),
-  })
-
-
+export const PricesSchema = z.object({
+  AUD: z.number().optional(),
+  CAD: z.number().optional(),
+  CHF: z.number().optional(),
+  EUR: z.number().optional(),
+  GBP: z.number().optional(),
+  JPY: z.number().optional(),
+  USD: z.number().optional()
+})
 
 export const BlockStatusSchema = z.object({
   height: z.number(),
@@ -160,10 +157,9 @@ export const MemPoolSchema = z.object({
   vsize: z.number()
 })
 
-export const MemPoolFeesSchema = z.partialRecord(
-  TxPrioritySchema,
-  SatoshiSchema
-)
+export const MemPoolFeesSchema = z
+  .record(TxPrioritySchema, SatoshiSchema)
+  .optional()
 
 export const MemPoolBlockSchema = z.object({
   blockSize: z.number(),

@@ -179,7 +179,7 @@ export class MempoolOracle implements BlockchainOracle {
 
   async getPrices() {
     const data = await this.get('/v1/prices')
-    return PricesSchema.loose().parse(data)
+    return PricesSchema.passthrough().parse(data)
   }
 
   async getPrice(currency: Currency) {
