@@ -54,7 +54,18 @@ export const PriceValueSchema = z.object({
   value: z.number()
 })
 
-export const PricesSchema = z.partialRecord(CurrencySchema, z.number())
+export const PricesSchema = z
+  .object({
+    USD: z.number().optional(),
+    EUR: z.number().optional(),
+    GBP: z.number().optional(),
+    CAD: z.number().optional(),
+    CHF: z.number().optional(),
+    AUD: z.number().optional(),
+    JPY: z.number().optional(),
+  })
+
+
 
 export const BlockStatusSchema = z.object({
   height: z.number(),

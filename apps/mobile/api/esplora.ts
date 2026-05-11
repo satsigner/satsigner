@@ -132,7 +132,7 @@ export default class Esplora {
 
   async getLatestBlockHeight() {
     const data = await this._call('/blocks/tip/height')
-    return BlockSchema.shape.height.parse(data)
+    return Number(data)
   }
 
   async getBlocks(startHeight: number) {
