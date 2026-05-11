@@ -72,10 +72,17 @@ class BaseElectrumClient {
     // url validation
     const isValidDomain = isValidDomainName(host)
     const isValidIP = isValidIPAddress(host)
-    const isValidPort = port.match(/^[0-9]+$/)
+    const isValidPort = port.match(/^[0-9]+$/) !== null
     const isValidProtocol = ['ssl', 'tls', 'tcp'].includes(protocol)
-    if (!isValidDomain || !isValidIP || !isValidPort || !isValidProtocol) {
-      throw new Error('Invalid backend URL')
+    if (!(isValidDomain || isValidIP) || !isValidPort || !isValidProtocol) {
+      console.log({
+        isValidDomain,
+        isValidIP,
+        isValidPort,
+        isValidProtocol,
+        url
+      })
+      throw new Error(`Backend URL ${url} seems invalid.`)
     }
 
     // additional type-safe validation with Zod
