@@ -4,7 +4,7 @@ import {
   useLocalSearchParams,
   useRouter
 } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -12,20 +12,22 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useTourStore } from '@/store/tour'
 import { type Account } from '@/types/models/Account'
 
 export default function Add() {
   const router = useRouter()
   const { tourMode } = useLocalSearchParams<{ tourMode?: string }>()
-
-  const [setAccountName, setAccountPolicyType] = useAccountBuilderStore(
-    useShallow((state) => [state.setName, state.setPolicyType])
+  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const [name, setAccountName, setAccountPolicyType] = useAccountBuilderStore(
+    useShallow((state) => [state.name, state.setName, state.setPolicyType])
   )
   const [
     prefillAccountName,
@@ -47,21 +49,26 @@ export default function Add() {
     }
   })
 
-  const [localName, setLocalName] = useState('')
   const [localPolicyType, setLocalPolicyType] =
     useState<NonNullable<Account['policyType']>>('singlesig')
 
-  const nameValue = prefillAccountName ?? localName
+  const {
+    localAccountName,
+    isValidName,
+    isPseudoDuplicatedName,
+    handleSetAccountName
+  } = useAccountNameValidation({ name, network })
 
-  function handleNameChange(text: string) {
-    if (prefillAccountName !== null) {
-      setPrefillAccountName(null)
+  useEffect(() => {
+    if (prefillAccountName === null || prefillAccountName === '') {
+      return
     }
-    setLocalName(text)
-  }
+    handleSetAccountName(prefillAccountName)
+    setPrefillAccountName(null)
+  }, [prefillAccountName, handleSetAccountName, setPrefillAccountName])
 
   function handleOnPressContinue() {
-    setAccountName(nameValue)
+    setAccountName(localAccountName)
     setAccountPolicyType(localPolicyType)
 
     const tourParam = tourMode === 'true' ? '?tourMode=true' : ''
@@ -85,7 +92,21 @@ export default function Add() {
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
-            <SSTextInput value={nameValue} onChangeText={handleNameChange} />
+            <SSTextInput
+              value={localAccountName}
+              status={isValidName}
+              onChangeText={handleSetAccountName}
+              error={
+                isValidName === 'invalid'
+                  ? t('account.error.nameDuplicated')
+                  : ''
+              }
+              warning={
+                isPseudoDuplicatedName
+                  ? t('account.error.namePseudoDuplicated')
+                  : ''
+              }
+            />
           </SSFormLayout.Item>
           <View style={{ marginTop: 24 }}>
             <SSFormLayout.Item>
@@ -120,7 +141,7 @@ export default function Add() {
           <SSButton
             variant="secondary"
             label={t('common.continue')}
-            disabled={!nameValue}
+            disabled={localAccountName === '' || !isValidName}
             onPress={handleOnPressContinue}
           />
           <SSButton
