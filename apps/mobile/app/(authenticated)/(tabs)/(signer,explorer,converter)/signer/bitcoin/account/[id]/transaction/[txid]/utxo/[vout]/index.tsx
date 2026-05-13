@@ -250,7 +250,7 @@ function UtxoDetailsPage() {
     const idx = account.addresses.findIndex(
       (a) => (a.address || '').trim() === (utxo.addressTo || '').trim()
     )
-    if (idx < 0) {
+    if (idx === -1) {
       return undefined
     }
     const addressEntry = account.addresses[idx]

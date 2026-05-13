@@ -265,7 +265,7 @@ export default function SelectUtxoList() {
             const idx = account.addresses.findIndex(
               (a) => (a.address || '').trim() === (item.addressTo || '').trim()
             )
-            const addressEntry = idx >= 0 ? account.addresses[idx] : null
+            const addressEntry = idx !== -1 ? account.addresses[idx] : null
             const addressIndex =
               addressEntry !== null ? (addressEntry.index ?? idx) : undefined
             return (
