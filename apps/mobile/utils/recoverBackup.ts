@@ -317,7 +317,7 @@ export async function performRecoverOverwrite(
           data.serverSettings.configsMempool[network]
         )
       }
-      for (const old of [...bs.customServers]) {
+      for (const old of bs.customServers) {
         bs.removeCustomServer(old)
       }
       for (const s of data.serverSettings.customServers) {

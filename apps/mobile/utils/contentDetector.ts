@@ -221,7 +221,8 @@ export function extractCashuTokenFromString(data: string): string | null {
   if (!run) {
     return null
   }
-  raw = run[1]
+  const [, captured] = run
+  raw = captured
 
   let decoded = raw
   try {
