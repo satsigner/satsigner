@@ -592,10 +592,12 @@ export default function WatchOnly() {
   }
 
   async function pasteFromClipboard() {
-    const text = await Clipboard.getStringAsync()
-    if (!text) {
+    const rawText = await Clipboard.getStringAsync()
+    if (!rawText) {
       return
     }
+
+    const text = rawText.trim()
 
     if (selectedOption === 'importExtendedPub') {
       updateXpub(text)
