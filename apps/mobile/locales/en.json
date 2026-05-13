@@ -2992,7 +2992,7 @@
         "title": "Privacy by Design"
       },
       "coordination": {
-        "description": "Via Nostr — sync labels, chat, and coordinate multisig with no server needed.",
+        "description": "Pass PSBTs, messages, and labels between your devices and co-signers over Nostr relays — no central server, no middleman.",
         "title": "Seamless Coordination"
       },
       "explorer": {
