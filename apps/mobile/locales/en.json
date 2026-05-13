@@ -2849,7 +2849,6 @@
     "exit": "Exit tour",
     "exploreOnMyOwn": "Explore on my own",
     "fillRandom": "Fill random",
-    "letsStart": "Let's start",
     "next": "Next",
     "noUtxos": {
       "fundLater": "I'll fund it later"
@@ -2880,21 +2879,21 @@
     "selfSendLabel": "Tour self-send",
     "step": "Step %{current} of %{total}",
     "steps": {
-      "goToBitcoin": {
-        "description": "No real funds. Authentic Bitcoin mechanics. Takes about 5 minutes.",
-        "title": "Practice Bitcoin on Signet"
+      "accountSetup": {
+        "description": "Give it any name — this is your test wallet.",
+        "title": "Name your wallet"
       },
       "addAccount": {
         "description": "Tap Add Account to create a test wallet.",
         "title": "Add your test wallet"
       },
-      "accountSetup": {
-        "description": "Give it any name — this is your test wallet.",
-        "title": "Name your wallet"
-      },
       "broadcastConfirm": {
         "description": "It's live on signet. You now have more UTXOs than before.",
         "title": "Transaction sent!"
+      },
+      "exploreWallet": {
+        "description": "Ready to send a transaction? Explore your wallet.",
+        "title": "Your wallet is ready"
       },
       "noUtxos": {
         "description": "First, sync your wallet using the sync button. If coins still don't appear, paste this address into a signet faucet.",
@@ -2915,10 +2914,6 @@
       "signTx": {
         "description": "Tap Sign to authorize and broadcast to signet.",
         "title": "Sign it"
-      },
-      "exploreWallet": {
-        "description": "Ready to send a transaction? Explore your wallet.",
-        "title": "Your wallet is ready"
       }
     },
     "intro": {
@@ -2997,16 +2992,48 @@
         "title": "Privacy by Design"
       },
       "nostr": {
-        "description": "Sync labels, chat, and coordinate multisig — all over Nostr, no server needed.",
-        "title": "Nostr Coordination"
+        "description": "Via Nostr — sync labels, chat, and coordinate multisig with no server needed.",
+        "title": "Seamless Coordination"
       },
       "explorer": {
         "description": "Inspect any block, transaction, or address without leaving the app or trusting a third-party server.",
         "title": "Built-In Block Explorer"
       },
+      "genesisHex": {
+        "coinbaseOutpointIndex": "Coinbase prevout index (0xffffffff)",
+        "coinbasePrevTxid": "Coinbase previous txid (all zeros)",
+        "headerTimeBitsNonce": "Timestamp · bits · nonce",
+        "inputSequence": "Input sequence",
+        "locktime": "Locktime",
+        "merkleRoot": "Merkle root",
+        "outputCountAndValue": "Output count & 50 BTC value",
+        "previousBlockHash": "Previous block hash",
+        "scriptPubKey": "ScriptPubKey (P2PK)",
+        "scriptSig": "Coinbase scriptSig (Times headline)",
+        "txHeader": "Tx count, version & input count",
+        "version": "Block version"
+      },
       "roadmap": {
         "title": "What's Next",
         "description": "We're building the most complete Bitcoin self-custody experience — one protocol layer at a time."
+      },
+      "saveFollowup": {
+        "description": "You can add a Bitcoin wallet now or finish whenever you are ready.",
+        "optionCreateBitcoin": "Create new Bitcoin wallet",
+        "optionLater": "Set up later",
+        "title": "Ready to stack sats?"
+      },
+      "saveSpend": {
+        "description": "Pick what fits you now — you can always change how you use the app later.",
+        "optionSave": "Want to save",
+        "optionSpend": "Want to spend",
+        "title": "What brings you here?"
+      },
+      "spendFollowup": {
+        "description": "You can create an ecash wallet now or finish setup when you prefer.",
+        "optionEcashWallet": "Create ecash wallet",
+        "optionLater": "Set up later",
+        "title": "Ready to spend ecash?"
       },
       "thanks": {
         "title": "Built Together",
