@@ -1,9 +1,18 @@
 import { usePathname } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
 
-import SSButton from '@/components/SSButton'
+import SSGlassButton from '@/components/SSGlassButton'
 import SSTourSpeechBubble from '@/components/SSTourSpeechBubble'
-import { TOUR_STEP_CONFIGS, TOUR_TOTAL_STEPS } from '@/constants/tour'
+import {
+  TOUR_BUBBLE_BOTTOM_OFFSET_CONTINUE_HINT,
+  TOUR_BUBBLE_BOTTOM_OFFSET_IMPORT_MNEMONIC,
+  TOUR_BUBBLE_BOTTOM_OFFSET_SINGLE_SIG,
+  TOUR_BUBBLE_TOP_ACCOUNT_LIST,
+  TOUR_BUBBLE_TOP_NAME_WALLET,
+  TOUR_OVERLAY_Z_INDEX,
+  TOUR_STEP_CONFIGS,
+  TOUR_TOTAL_STEPS
+} from '@/constants/tour'
 import { useTourNavigation } from '@/hooks/useTourNavigation'
 import { t } from '@/locales'
 import { type TourStep, useTourStore } from '@/store/tour'
@@ -32,11 +41,7 @@ const STEPS_WITH_NEXT = new Set([
   'preview_tx'
 ])
 
-const STEPS_WITHOUT_STEP_LABEL = new Set<TourStep>([
-  'go_to_bitcoin',
-  'add_account',
-  'no_utxos'
-])
+const STEPS_WITHOUT_STEP_LABEL = new Set<TourStep>(['add_account', 'no_utxos'])
 
 function SSTourOverlay() {
   const status = useTourStore((state) => state.status)
@@ -95,9 +100,6 @@ function SSTourOverlay() {
     return null
   }
 
-  // Heroic intro: go_to_bitcoin step (always heroic, any screen)
-  const isHeroicIntro = currentStep === 'go_to_bitcoin'
-
   const stepLabel = STEPS_WITHOUT_STEP_LABEL.has(currentStep)
     ? undefined
     : t('tour.step', {
@@ -117,16 +119,18 @@ function SSTourOverlay() {
   const showMnemonicBubble = isOnMnemonicPage
   const showImportMnemonicBubble = isOnImportMnemonicPage
 
+  const nameWalletBubbleWrapperStyle =
+    isOnExactAddPage && currentStep === 'account_setup' && !showContinueHint
+      ? { top: TOUR_BUBBLE_TOP_NAME_WALLET }
+      : undefined
+
   return (
-    <View
-      pointerEvents="box-none"
-      style={[styles.container, isHeroicIntro && styles.heroOverlay]}
-    >
+    <View pointerEvents="box-none" style={styles.container}>
       {showAccountListBubble ? (
         <SSTourSpeechBubble
           key="bubble_add_account"
           position="top"
-          wrapperStyle={{ top: 280 }}
+          wrapperStyle={{ top: TOUR_BUBBLE_TOP_ACCOUNT_LIST }}
           title={t('tour.steps.addAccount.title')}
           description={t('tour.steps.addAccount.description')}
           onExit={handleExit}
@@ -136,7 +140,7 @@ function SSTourOverlay() {
           key="bubble_continue_hint"
           position="bottom"
           arrowDirection="down"
-          bottomOffset={140}
+          bottomOffset={TOUR_BUBBLE_BOTTOM_OFFSET_CONTINUE_HINT}
           title={t('tour.continueStep.title')}
           description={t('tour.continueStep.description')}
           stepLabel={stepLabel}
@@ -147,7 +151,7 @@ function SSTourOverlay() {
           key="bubble_single_sig"
           position="bottom"
           arrowDirection="down"
-          bottomOffset={280}
+          bottomOffset={TOUR_BUBBLE_BOTTOM_OFFSET_SINGLE_SIG}
           title={t('tour.singleSigStep.title')}
           description={t('tour.singleSigStep.description')}
           onExit={handleExit}
@@ -166,7 +170,7 @@ function SSTourOverlay() {
           key="bubble_import_mnemonic"
           position="bottom"
           arrowDirection="up"
-          bottomOffset={150}
+          bottomOffset={TOUR_BUBBLE_BOTTOM_OFFSET_IMPORT_MNEMONIC}
           title={t('tour.importMnemonicStep.title')}
           description={t('tour.importMnemonicStep.description')}
           onExit={handleExit}
@@ -175,37 +179,30 @@ function SSTourOverlay() {
         <SSTourSpeechBubble
           key={currentStep}
           position={bubblePosition}
-          heroic={isHeroicIntro}
           title={t(stepConfig.titleKey)}
           description={t(stepConfig.descriptionKey)}
           stepLabel={stepLabel}
+          wrapperStyle={nameWalletBubbleWrapperStyle}
           onExit={handleExit}
         >
-          {isHeroicIntro && (
-            <SSButton
-              label={t('tour.letsStart')}
-              variant="secondary"
-              onPress={() => advance('go_to_bitcoin')}
-            />
-          )}
           {isOnExactAddPage && currentStep === 'account_setup' && (
-            <SSButton
+            <SSGlassButton
               label={t('tour.fillRandom')}
-              variant="ghost"
+              labelColor="muted"
+              uppercase={false}
               onPress={() => setPrefillAccountName(randomDemoName())}
             />
           )}
           {STEPS_WITH_NEXT.has(currentStep) && (
-            <SSButton
+            <SSGlassButton
               label={t('tour.next')}
-              variant="secondary"
               onPress={() => advance(currentStep)}
             />
           )}
           {currentStep === 'no_utxos' && (
-            <SSButton
+            <SSGlassButton
               label={t('tour.noUtxos.fundLater')}
-              variant="outline"
+              uppercase={false}
               onPress={handleExit}
             />
           )}
@@ -218,10 +215,7 @@ function SSTourOverlay() {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 999
-  },
-  heroOverlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.75)'
+    zIndex: TOUR_OVERLAY_Z_INDEX
   }
 })
 

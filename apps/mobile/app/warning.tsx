@@ -6,6 +6,7 @@ import SSIconWarningSharp from '@/components/icons/SSIconWarningSharp'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
+import { useTourNavigation } from '@/hooks/useTourNavigation'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -17,13 +18,11 @@ export default function Warning() {
   const router = useRouter()
   const setShowWarning = useSettingsStore((state) => state.setShowWarning)
   const neverAskAgain = useTourStore((state) => state.neverAskAgain)
-  const [startTour, setNeverAskAgain, dismissSettingsBanner] = useTourStore(
-    (state) => [
-      state.startTour,
-      state.setNeverAskAgain,
-      state.dismissSettingsBanner
-    ]
-  )
+  const [setNeverAskAgain, dismissSettingsBanner] = useTourStore((state) => [
+    state.setNeverAskAgain,
+    state.dismissSettingsBanner
+  ])
+  const { handleStartTour } = useTourNavigation()
 
   const [tourOfferVisible, setTourOfferVisible] = useState(false)
 
@@ -46,8 +45,7 @@ export default function Warning() {
 
   function handleTourStart() {
     setTourOfferVisible(false)
-    startTour()
-    router.replace('/')
+    handleStartTour()
   }
 
   function handleTourLater() {

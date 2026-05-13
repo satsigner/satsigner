@@ -15,13 +15,14 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSAccountCard from '@/components/SSAccountCard'
 import SSAccountCardSkeleton from '@/components/SSAccountCardSkeleton'
-import SSTourSpeechBubble from '@/components/SSTourSpeechBubble'
 import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSButton from '@/components/SSButton'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
+import SSGlassButton from '@/components/SSGlassButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import SSTourSpeechBubble from '@/components/SSTourSpeechBubble'
 import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
 import {
   sampleMultiAddressTether,
@@ -40,9 +41,9 @@ import {
 import { TOUR_TOTAL_STEPS } from '@/constants/tour'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
-import { useTourNavigation } from '@/hooks/useTourNavigation'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import { useTourNavigation } from '@/hooks/useTourNavigation'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -52,9 +53,9 @@ import { getItem, setItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useTourStore } from '@/store/tour'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
+import { useTourStore } from '@/store/tour'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
@@ -898,10 +899,7 @@ export default function AccountList() {
                     <SSVStack>
                       {item.id === tourAccountId &&
                       tourStep === 'explore_wallet' ? (
-                        <View
-                          ref={tourCardRef}
-                          onLayout={handleTourCardLayout}
-                        >
+                        <View ref={tourCardRef} onLayout={handleTourCardLayout}>
                           <SSAccountCard
                             account={item}
                             onPress={() => handleGoToAccount(item.id)}
@@ -956,9 +954,8 @@ export default function AccountList() {
             })}
             onExit={handleExit}
           >
-            <SSButton
+            <SSGlassButton
               label={t('tour.next')}
-              variant="secondary"
               onPress={() => advance('explore_wallet')}
             />
           </SSTourSpeechBubble>

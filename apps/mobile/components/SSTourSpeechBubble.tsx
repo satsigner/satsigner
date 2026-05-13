@@ -1,5 +1,10 @@
 import { useEffect, type ReactNode } from 'react'
-import { StyleSheet, TouchableOpacity, View, type ViewStyle } from 'react-native'
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  type ViewStyle
+} from 'react-native'
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -12,6 +17,7 @@ import { SSIconCloseThin } from '@/components/icons'
 import SSText from '@/components/SSText'
 import { type TourBubblePosition } from '@/constants/tour'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 const SPRING_CONFIG = { damping: 22, mass: 1.2, stiffness: 100 }
@@ -25,7 +31,6 @@ type SSTourSpeechBubbleProps = {
   description: string
   stepLabel?: string
   onExit?: () => void
-  heroic?: boolean
   inverted?: boolean
   children?: ReactNode
   arrowDirection?: 'up' | 'down'
@@ -39,7 +44,6 @@ function SSTourSpeechBubble({
   description,
   stepLabel,
   onExit,
-  heroic = false,
   inverted,
   children,
   arrowDirection,
@@ -98,9 +102,10 @@ function SSTourSpeechBubble({
       ]}
     >
       {showArrowUp && <View style={arrowUpStyle} />}
-      <View style={[styles.bubble, heroic && styles.bubbleHeroic]}>
+      <View style={styles.bubble}>
         {onExit && (
           <TouchableOpacity
+            accessibilityLabel={t('common.close')}
             style={styles.exitCorner}
             onPress={onExit}
             hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
@@ -108,7 +113,7 @@ function SSTourSpeechBubble({
             <SSIconCloseThin width={12} height={12} color={Colors.gray[500]} />
           </TouchableOpacity>
         )}
-        <SSVStack gap={heroic ? 'md' : 'xs'}>
+        <SSVStack gap="xs">
           <SSVStack gap="xs">
             {stepLabel && (
               <SSText
@@ -120,18 +125,17 @@ function SSTourSpeechBubble({
               </SSText>
             )}
             <SSText
-              size={heroic ? 'lg' : 'sm'}
+              size="sm"
               weight="medium"
               color={isInverted ? 'black' : 'white'}
             >
               {title}
             </SSText>
-            <SSText
-              size={heroic ? 'sm' : 'xs'}
-              color={isInverted ? 'black' : 'muted'}
-            >
-              {description}
-            </SSText>
+            {description.trim().length > 0 && (
+              <SSText size="xs" color={isInverted ? 'black' : 'muted'}>
+                {description}
+              </SSText>
+            )}
           </SSVStack>
           {children && <SSVStack gap="xs">{children}</SSVStack>}
         </SSVStack>
@@ -168,10 +172,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 8,
     padding: 10
-  },
-  bubbleHeroic: {
-    backgroundColor: Colors.white,
-    padding: 20
   },
   exitCorner: {
     position: 'absolute',

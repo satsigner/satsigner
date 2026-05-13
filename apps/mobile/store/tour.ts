@@ -5,7 +5,6 @@ import mmkvStorage from '@/storage/mmkv'
 
 export type TourStep =
   | 'idle'
-  | 'go_to_bitcoin'
   | 'add_account'
   | 'account_setup'
   | 'explore_wallet'
@@ -78,12 +77,28 @@ const useTourStore = create<TourState & TourAction>()(
           settingsBannerDismissed: !enabled
         }),
       settingsBannerDismissed: false,
-      startTour: () => set({ currentStep: 'go_to_bitcoin', status: 'active' }),
+      startTour: () => set({ currentStep: 'add_account', status: 'active' }),
       status: 'idle'
     }),
     {
+      migrate: (persistedState) => {
+        if (
+          persistedState &&
+          typeof persistedState === 'object' &&
+          'currentStep' in persistedState &&
+          (persistedState as { currentStep: string }).currentStep ===
+            'go_to_bitcoin'
+        ) {
+          return {
+            ...(persistedState as Record<string, unknown>),
+            currentStep: 'add_account'
+          }
+        }
+        return persistedState
+      },
       name: 'tour-store',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 1
     }
   )
 )

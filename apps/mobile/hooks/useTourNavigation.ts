@@ -82,6 +82,7 @@ function useTourNavigation() {
 
   function handleStartTour() {
     startTour()
+    router.navigate('/signer/bitcoin/accountList')
   }
 
   function handleRestartTour() {
@@ -92,9 +93,7 @@ function useTourNavigation() {
   }
 
   function advance(step: TourStep, idOverride?: string) {
-    if (step === 'go_to_bitcoin') {
-      advanceGoToBitcoin()
-    } else if (step === 'account_setup') {
+    if (step === 'account_setup') {
       advanceAccountSetup(idOverride)
     } else if (step === 'explore_wallet') {
       advanceExploreWallet()
@@ -107,11 +106,6 @@ function useTourNavigation() {
     } else if (step === 'sign_tx') {
       advanceSignTx()
     }
-  }
-
-  function advanceGoToBitcoin() {
-    advanceStep('add_account')
-    router.navigate('/signer/bitcoin/accountList')
   }
 
   function advanceSignTx() {

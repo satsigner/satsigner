@@ -1,9 +1,8 @@
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import { SSIconCloseThin } from '@/components/icons'
-import SSButton from '@/components/SSButton'
+import SSGlassButton from '@/components/SSGlassButton'
 import SSText from '@/components/SSText'
-import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useTourStore } from '@/store/tour'
@@ -28,24 +27,37 @@ function SSTourBanner({ onStartTour }: SSTourBannerProps) {
 
   return (
     <View style={styles.container}>
-      <SSVStack style={styles.inner} gap="sm">
-        <SSHStack justifyBetween style={styles.headerRow}>
-          <SSText size="xxs" uppercase weight="medium" style={styles.labelText}>
-            {t('tour.banner.label')}
-          </SSText>
+      <SSVStack style={styles.inner} gap="sm" itemsCenter widthFull>
+        <View style={styles.headerBand}>
           <TouchableOpacity
+            accessibilityLabel={t('common.close')}
             onPress={dismissSettingsBanner}
             hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
+            style={styles.closeButton}
           >
             <SSIconCloseThin width={10} height={10} color={Colors.gray[600]} />
           </TouchableOpacity>
-        </SSHStack>
-        <SSText size="sm" weight="medium" color="black">
+          <SSText
+            center
+            size="xxs"
+            uppercase
+            weight="medium"
+            style={styles.labelText}
+          >
+            {t('tour.banner.label')}
+          </SSText>
+        </View>
+        <SSText
+          center
+          size="sm"
+          weight="medium"
+          color="black"
+          style={styles.bodyText}
+        >
           {t('tour.banner.message')}
         </SSText>
-        <SSButton
+        <SSGlassButton
           label={`${t('tour.banner.start')} →`}
-          variant="secondary"
           onPress={onStartTour}
         />
       </SSVStack>
@@ -54,21 +66,36 @@ function SSTourBanner({ onStartTour }: SSTourBannerProps) {
 }
 
 const styles = StyleSheet.create({
+  bodyText: {
+    alignSelf: 'stretch'
+  },
+  closeButton: {
+    padding: 4,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 1
+  },
   container: {
     backgroundColor: Colors.white,
     borderRadius: Sizes.button.borderRadius,
+    marginBottom: 24,
     marginHorizontal: 24,
-    marginVertical: 12,
+    marginTop: 12,
     overflow: 'hidden'
   },
-  headerRow: {
-    alignItems: 'center'
+  headerBand: {
+    alignSelf: 'stretch',
+    paddingTop: 2,
+    position: 'relative'
   },
   inner: {
     padding: 14
   },
   labelText: {
-    color: Colors.gray[500]
+    alignSelf: 'stretch',
+    color: Colors.gray[500],
+    paddingHorizontal: 28
   }
 })
 

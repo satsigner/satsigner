@@ -12,6 +12,17 @@ export type TourStepConfig = {
 
 export const TOUR_TOTAL_STEPS = 7
 
+/** Bottom offset (px) for tour bubbles anchored to safe area bottom */
+export const TOUR_BUBBLE_BOTTOM_OFFSET_CONTINUE_HINT = 140
+export const TOUR_BUBBLE_BOTTOM_OFFSET_IMPORT_MNEMONIC = 150
+export const TOUR_BUBBLE_BOTTOM_OFFSET_SINGLE_SIG = 280
+
+/** Top offset (px) for tour bubbles using `position: "top"` */
+export const TOUR_BUBBLE_TOP_ACCOUNT_LIST = 280
+export const TOUR_BUBBLE_TOP_NAME_WALLET = 248
+
+export const TOUR_OVERLAY_Z_INDEX = 999
+
 export const TOUR_STEP_CONFIGS: Record<
   Exclude<TourStep, 'idle'>,
   TourStepConfig
@@ -43,13 +54,6 @@ export const TOUR_STEP_CONFIGS: Record<
     id: 'explore_wallet',
     stepNumber: 2,
     titleKey: 'tour.steps.exploreWallet.title'
-  },
-  go_to_bitcoin: {
-    bubblePosition: 'center',
-    descriptionKey: 'tour.steps.goToBitcoin.description',
-    id: 'go_to_bitcoin',
-    stepNumber: 0,
-    titleKey: 'tour.steps.goToBitcoin.title'
   },
   no_utxos: {
     bubblePosition: 'center',
