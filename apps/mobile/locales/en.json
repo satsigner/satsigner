@@ -2991,7 +2991,7 @@
         "description": "Full coin control, UTXO labeling, and address management give you the tools to minimize your on-chain footprint.",
         "title": "Privacy by Design"
       },
-      "nostr": {
+      "coordination": {
         "description": "Via Nostr — sync labels, chat, and coordinate multisig with no server needed.",
         "title": "Seamless Coordination"
       },

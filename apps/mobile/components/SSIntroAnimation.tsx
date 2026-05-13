@@ -473,8 +473,8 @@ function privacyRingPaint(
   };
 }
 
-// Nostr network graph — index 0 is the central descriptor node; all devices connect to it
-const NOSTR_NODES = [
+// Coordination network graph — index 0 is the central descriptor node; all devices connect to it
+const COORDINATION_NODES = [
   { cx: 0.5, cy: 0.38, opacity: 0.85, size: 52 }, // descriptor (center)
   { cx: 0.26, cy: 0.22, opacity: 0.64, size: 28 }, // co-signer 1
   { cx: 0.58, cy: 0.16, opacity: 0.6, size: 24 }, // co-signer 2
@@ -486,7 +486,7 @@ const NOSTR_NODES = [
 ] as const;
 
 // All device nodes connect to the descriptor (index 0)
-const NOSTR_EDGES = [
+const COORDINATION_EDGES = [
   [0, 1],
   [0, 2],
   [0, 3],
@@ -496,11 +496,11 @@ const NOSTR_EDGES = [
   [0, 7],
 ] as const;
 
-const NOSTR_NODE_REVEAL_MS = 350;
-const NOSTR_NODE_STAGGER_MS = 120;
-const NOSTR_EDGE_FADE_MS = 600;
-const NOSTR_PULSE_MS = 3400;
-const NOSTR_PULSE_MIN = 0.78;
+const COORDINATION_NODE_REVEAL_MS = 350;
+const COORDINATION_NODE_STAGGER_MS = 120;
+const COORDINATION_EDGE_FADE_MS = 600;
+const COORDINATION_PULSE_MS = 3400;
+const COORDINATION_PULSE_MIN = 0.78;
 
 // Roadmap milestones — filled = shipped, outlined = upcoming
 const ROADMAP_ITEMS = [
@@ -627,8 +627,8 @@ const STEP_CONFIGS = [
     titleKey: "intro.steps.privacy.title" as const,
   },
   {
-    descriptionKey: "intro.steps.nostr.description" as const,
-    titleKey: "intro.steps.nostr.title" as const,
+    descriptionKey: "intro.steps.coordination.description" as const,
+    titleKey: "intro.steps.coordination.title" as const,
   },
   {
     descriptionKey: "intro.steps.explorer.description" as const,
@@ -1090,7 +1090,7 @@ function BubbleStep({ screenWidth, screenHeight }: BubbleStepProps) {
   );
 }
 
-type NostrNodeProps = {
+type CoordinationNodeProps = {
   cx: number;
   cy: number;
   index: number;
@@ -1101,7 +1101,7 @@ type NostrNodeProps = {
   size: number;
 };
 
-function NostrNode({
+function CoordinationNode({
   cx,
   cy,
   size,
@@ -1110,7 +1110,7 @@ function NostrNode({
   revealProgress,
   screenWidth,
   screenHeight,
-}: NostrNodeProps) {
+}: CoordinationNodeProps) {
   const breathe = useSharedValue(1);
 
   const animStyle = useAnimatedStyle(() => {
@@ -1141,7 +1141,7 @@ function NostrNode({
   return (
     <Animated.View
       style={[
-        styles.nostrNode,
+        styles.coordinationNode,
         animStyle,
         {
           borderRadius: size / 2,
@@ -1155,12 +1155,12 @@ function NostrNode({
   );
 }
 
-type NostrStepProps = {
+type CoordinationStepProps = {
   screenHeight: number;
   screenWidth: number;
 };
 
-function NostrStep({ screenWidth, screenHeight }: NostrStepProps) {
+function CoordinationStep({ screenWidth, screenHeight }: CoordinationStepProps) {
   const revealProgress = useSharedValue(0);
   const edgeOpacity = useSharedValue(0);
   const pulseOpacity = useSharedValue(1);
@@ -1171,18 +1171,21 @@ function NostrStep({ screenWidth, screenHeight }: NostrStepProps) {
   useEffect(() => {
     revealProgress.set(
       withTiming(
-        NOSTR_NODES.length,
+        COORDINATION_NODES.length,
         {
           duration:
-            NOSTR_NODES.length * NOSTR_NODE_STAGGER_MS + NOSTR_NODE_REVEAL_MS,
+            COORDINATION_NODES.length * COORDINATION_NODE_STAGGER_MS +
+            COORDINATION_NODE_REVEAL_MS,
           easing: Easing.out(Easing.cubic),
         },
         () => {
-          edgeOpacity.set(withTiming(1, { duration: NOSTR_EDGE_FADE_MS }));
+          edgeOpacity.set(
+            withTiming(1, { duration: COORDINATION_EDGE_FADE_MS })
+          );
           pulseOpacity.set(
             withRepeat(
-              withTiming(NOSTR_PULSE_MIN, {
-                duration: NOSTR_PULSE_MS,
+              withTiming(COORDINATION_PULSE_MIN, {
+                duration: COORDINATION_PULSE_MS,
                 easing: Easing.inOut(Easing.sin),
               }),
               -1,
@@ -1201,9 +1204,9 @@ function NostrStep({ screenWidth, screenHeight }: NostrStepProps) {
         pointerEvents="none"
       >
         <Svg width={screenWidth} height={screenHeight}>
-          {NOSTR_EDGES.map(([from, to], i) => {
-            const a = NOSTR_NODES[from];
-            const b = NOSTR_NODES[to];
+          {COORDINATION_EDGES.map(([from, to], i) => {
+            const a = COORDINATION_NODES[from];
+            const b = COORDINATION_NODES[to];
             return (
               <Path
                 key={i}
@@ -1217,8 +1220,8 @@ function NostrStep({ screenWidth, screenHeight }: NostrStepProps) {
           })}
         </Svg>
       </Animated.View>
-      {NOSTR_NODES.map((node, i) => (
-        <NostrNode
+      {COORDINATION_NODES.map((node, i) => (
+        <CoordinationNode
           key={i}
           index={i}
           cx={node.cx}
@@ -2572,7 +2575,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
               />
             )}
             {currentStep === 5 && (
-              <NostrStep
+              <CoordinationStep
                 screenWidth={screenWidth}
                 screenHeight={screenHeight}
               />
@@ -2835,7 +2838,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  nostrNode: {
+  coordinationNode: {
     backgroundColor: Colors.white,
     position: "absolute",
   },
