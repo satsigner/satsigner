@@ -48,7 +48,8 @@ async function fetchFromElectrum(
 
     const inputs: ExplorerTxInput[] = tx.ins.map((inp) => ({
       isCoinbase: tx.isCoinbase(),
-      prevTxid: Buffer.from(inp.hash).toReversed().toString('hex'),
+      // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+      prevTxid: Buffer.from(inp.hash).reverse().toString('hex'),
       prevVout: inp.index,
       scriptSig: inp.script.toString('hex'),
       sequence: inp.sequence,

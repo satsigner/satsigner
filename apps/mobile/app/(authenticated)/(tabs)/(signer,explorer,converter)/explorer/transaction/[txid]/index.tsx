@@ -276,7 +276,7 @@ export default function ExplorerTransactionDetail() {
                 {inp.witness.length > 0 && (
                   <SSVStack gap="none">
                     <SSText color="muted">
-                      {tn('witness', { count: inp.witness.length.toString() })}
+                      {tn('witness', { count: inp.witness.length })}
                     </SSText>
                     {inp.witness.map((w, wi) => (
                       <SSClipboardCopy key={wi} text={w}>

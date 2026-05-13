@@ -152,10 +152,14 @@ describe('esplora tests', () => {
     expect(resp).toHaveProperty('fee_histogram')
   })
 
-  it('get mempool txids', async () => {
-    const resp = await esplora.getMempoolTxIds()
-    expect(Array.isArray(resp)).toBe(true)
-  })
+  it(
+    'get mempool txids',
+    async () => {
+      const resp = await esplora.getMempoolTxIds()
+      expect(Array.isArray(resp)).toBe(true)
+    },
+    20_000
+  )
 
   it('get last 10 mempool txns', async () => {
     const resp = await esplora.getRecentMempool()
