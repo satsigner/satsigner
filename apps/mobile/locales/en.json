@@ -2992,7 +2992,7 @@
         "title": "Privacy by Design"
       },
       "coordination": {
-        "description": "Pass PSBTs, messages, and labels between your devices and co-signers over Nostr relays — no central server, no middleman.",
+        "description": "Pass PSBTs, messages, and labels between your devices \nand co-signers over Nostr relays — no middleman.",
         "title": "Seamless Coordination"
       },
       "explorer": {
