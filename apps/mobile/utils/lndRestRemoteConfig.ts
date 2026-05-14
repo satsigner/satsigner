@@ -28,10 +28,11 @@ export function getLndConfigFileUrlFromConnectionInput(
   }
   const firstLine = (trimmed.split(/\r?\n/)[0] ?? trimmed).trim()
   const urlCandidate = firstLine.split(/\s+/)[0] ?? firstLine
-  if (/^https?:\/\/.+/i.test(urlCandidate)) {
-    if (/\.config(?:[/?#]|$)/i.test(urlCandidate)) {
-      return urlCandidate
-    }
+  if (
+    /^https?:\/\/.+/i.test(urlCandidate) &&
+    /\.config(?:[/?#]|$)/i.test(urlCandidate)
+  ) {
+    return urlCandidate
   }
   return null
 }
@@ -113,7 +114,7 @@ function pickRestUrl(entry: JsonRecord): string | null {
 
 function extractLndRestEntry(parsed: unknown): JsonRecord | null {
   if (Array.isArray(parsed) && parsed.length > 0) {
-    const first = parsed[0]
+    const [first] = parsed
     if (first && typeof first === 'object') {
       return first as JsonRecord
     }
@@ -125,7 +126,7 @@ function extractLndRestEntry(parsed: unknown): JsonRecord | null {
   const json = parsed as JsonRecord
   const { configurations } = json
   if (Array.isArray(configurations) && configurations.length > 0) {
-    const first = configurations[0]
+    const [first] = configurations
     if (first && typeof first === 'object') {
       return first as JsonRecord
     }

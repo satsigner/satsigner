@@ -216,12 +216,12 @@ export function extractCashuTokenFromString(data: string): string | null {
     return null
   }
 
-  let raw = stripped.slice(matchIndex)
-  const run = raw.match(/^(cashu[AB][A-Za-z0-9+/=_%-]*)/i)
+  const sliced = stripped.slice(matchIndex)
+  const run = sliced.match(/^(cashu[AB][A-Za-z0-9+/=_%-]*)/i)
   if (!run) {
     return null
   }
-  raw = run[1]
+  const [, raw] = run
 
   let decoded = raw
   try {
