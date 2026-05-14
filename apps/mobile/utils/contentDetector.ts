@@ -205,6 +205,14 @@ function normalizeCashuTokenPrefix(token: string): string {
   return `cashu${m[2].toUpperCase()}${m[3]}`
 }
 
+function safeDecodeUriComponent(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
 /**
  * Returns a Cashu token substring when the input embeds `cashuA…` / `cashuB…`
  * (e.g. `https://wallet.example/e/cashuB…`). Returns null if no marker exists.
@@ -223,19 +231,25 @@ export function extractCashuTokenFromString(data: string): string | null {
   }
   const [, raw] = run
 
-  let decoded = raw
-  try {
-    decoded = decodeURIComponent(raw)
-  } catch {
-    decoded = raw
-  }
-
-  return normalizeCashuTokenPrefix(decoded)
+  return normalizeCashuTokenPrefix(safeDecodeUriComponent(raw))
 }
 
 /** Strips wallet URLs / schemes so paste and decode always see a raw token. */
 export function prepareEcashTokenInput(data: string): string {
   return extractCashuTokenFromString(data) ?? stripSchemePrefix(data.trim())
+}
+
+export function preprocessByContext(
+  text: string,
+  context: ContentContext
+): string {
+  if (context === 'bitcoin') {
+    return stripBitcoinPrefix(text)
+  }
+  if (context === 'ecash') {
+    return prepareEcashTokenInput(text)
+  }
+  return text
 }
 
 function detectArkContent(data: string): DetectedContent | null {

@@ -57,22 +57,19 @@ export function linearShareWidths(
     return values.map(() => uniform)
   }
 
-  let widths = values.map((v) => (v / sum) * totalPx)
+  const rawWidths = values.map((v) => (v / sum) * totalPx)
+  const minClamped =
+    minRibbonPx > 0 ? rawWidths.map((w) => Math.max(w, minRibbonPx)) : rawWidths
 
-  if (minRibbonPx > 0) {
-    widths = widths.map((w) => Math.max(w, minRibbonPx))
-  }
-
-  const scaledSum = widths.reduce((acc, w) => acc + w, 0)
+  const scaledSum = minClamped.reduce((acc, w) => acc + w, 0)
   if (scaledSum <= 0) {
-    return widths
+    return minClamped
   }
 
   if (Math.abs(scaledSum - totalPx) > 1e-6) {
-    widths = widths.map((w) => (w / scaledSum) * totalPx)
+    return minClamped.map((w) => (w / scaledSum) * totalPx)
   }
-
-  return widths
+  return minClamped
 }
 
 export function buildSankeyRibbonPlan(
@@ -172,11 +169,13 @@ export function stackedRibbonOffsetBeforeLink(
       : link.source === currentLink.source
   )
 
-  let cumulativeHeight = 0
-  for (let i = 0; i < currentLinkIndex; i += 1) {
-    const link = relevantLinks[i]
-    cumulativeHeight += ribbonWidthForLink(plan, link.source, link.target)
+  if (currentLinkIndex === -1) {
+    return 0
   }
-
-  return cumulativeHeight
+  return relevantLinks
+    .slice(0, currentLinkIndex)
+    .reduce(
+      (acc, link) => acc + ribbonWidthForLink(plan, link.source, link.target),
+      0
+    )
 }

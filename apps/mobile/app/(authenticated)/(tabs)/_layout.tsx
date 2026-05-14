@@ -7,13 +7,7 @@ import {
   StyleSheet,
   View
 } from 'react-native'
-import Animated, {
-  useAnimatedStyle,
-  useDerivedValue,
-  withSequence,
-  withSpring,
-  withTiming
-} from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
@@ -24,19 +18,16 @@ import {
   SSIconSigner,
   SSIconSignerActive
 } from '@/components/icons'
+import { useTabBarBackgroundAnimation } from '@/hooks/useTabBarBackgroundAnimation'
+import { useTabBarButtonAnimation } from '@/hooks/useTabBarButtonAnimation'
 import { Colors } from '@/styles'
 import { text } from '@/styles/sizes'
+import { TAB_SEGMENTS, type TabSegment } from '@/types/navigation/tabs'
 import { showNavigation } from '@/utils/navigation'
 
 const TAB_BAR_PADDING_Y = 8
 const TAB_BAR_ITEM_HEIGHT = 54
 const TAB_BAR_HEIGHT = TAB_BAR_PADDING_Y + TAB_BAR_ITEM_HEIGHT
-
-const SCALE_DEFAULT = 1
-const SCALE_POP = 1.14
-const ACTIVE_OPACITY = 1
-const INACTIVE_OPACITY = 0.55
-const OPACITY_DURATION = 180
 
 const TAB_TOP_BORDER_GRADIENTS: Record<
   TabSegment,
@@ -74,42 +65,12 @@ const TAB_TOP_BORDER_GRADIENTS: Record<
   }
 }
 
-const TAB_SEGMENTS: TabSegment[] = ['(explorer)', '(signer)', '(converter)']
-
 function TabBarBackground({
   activeSegment
 }: {
   activeSegment: TabSegment | undefined
 }) {
-  const explorerOpacity = useDerivedValue(() =>
-    withTiming(activeSegment === '(explorer)' ? 1 : 0, {
-      duration: OPACITY_DURATION
-    })
-  )
-  const signerOpacity = useDerivedValue(() =>
-    withTiming(activeSegment === '(signer)' ? 1 : 0, {
-      duration: OPACITY_DURATION
-    })
-  )
-  const converterOpacity = useDerivedValue(() =>
-    withTiming(activeSegment === '(converter)' ? 1 : 0, {
-      duration: OPACITY_DURATION
-    })
-  )
-
-  const explorerStyle = useAnimatedStyle(() => ({
-    opacity: explorerOpacity.value
-  }))
-  const signerStyle = useAnimatedStyle(() => ({ opacity: signerOpacity.value }))
-  const converterStyle = useAnimatedStyle(() => ({
-    opacity: converterOpacity.value
-  }))
-
-  const animatedStyles = {
-    '(converter)': converterStyle,
-    '(explorer)': explorerStyle,
-    '(signer)': signerStyle
-  }
+  const animatedStyles = useTabBarBackgroundAnimation(activeSegment)
 
   return (
     <View style={styles.tabBarBackground}>
@@ -133,8 +94,6 @@ function TabBarBackground({
   )
 }
 
-type TabSegment = '(signer)' | '(explorer)' | '(converter)'
-
 type TabBarButtonProps = {
   bottomTabProps: BottomTabBarButtonProps
   segment: TabSegment
@@ -152,24 +111,7 @@ function TabBarButton({
   isSelected,
   onPress
 }: TabBarButtonProps) {
-  const scale = useDerivedValue(() =>
-    isSelected
-      ? withSequence(
-          withTiming(SCALE_POP, { duration: 70 }),
-          withSpring(SCALE_DEFAULT, { damping: 14, mass: 0.4, stiffness: 280 })
-        )
-      : SCALE_DEFAULT
-  )
-  const opacity = useDerivedValue(() =>
-    withTiming(isSelected ? ACTIVE_OPACITY : INACTIVE_OPACITY, {
-      duration: OPACITY_DURATION
-    })
-  )
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }]
-  }))
+  const animatedStyle = useTabBarButtonAnimation(isSelected)
 
   return (
     <View style={[bottomTabProps.style, styles.tabBarButtonOuter]}>
