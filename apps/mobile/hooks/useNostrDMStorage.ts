@@ -160,7 +160,7 @@ function useNostrDMStorage() {
             Math.abs(m.created_at - newMessage.created_at) <=
               PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
         )
-        if (pendingIdx >= 0) {
+        if (pendingIdx !== -1) {
           currentDms = currentDms.slice()
           currentDms[pendingIdx] = newMessage
           const updatedDms = currentDms.toSorted(
@@ -234,7 +234,7 @@ function useNostrDMStorage() {
             Math.abs(m.created_at - newMessage.created_at) <=
               PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
         )
-        if (pendingIdx >= 0) {
+        if (pendingIdx !== -1) {
           currentDms = currentDms.slice()
           currentDms[pendingIdx] = newMessage
         } else {
