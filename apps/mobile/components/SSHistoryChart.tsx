@@ -531,7 +531,7 @@ function SSHistoryChart({
           const index = validChartData.findLastIndex(
             (d) => d.date <= selectedDate
           )
-          if (index >= 0) {
+          if (index !== -1) {
             setCursorY(validChartData[index].balance)
           }
         }
