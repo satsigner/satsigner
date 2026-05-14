@@ -15,27 +15,29 @@ export const EsploraTxSchema = z.object({
   vin: z.array(
     z.object({
       is_coinbase: z.boolean(),
-      prevout: z.object({
-        scriptpubkey: z.string(),
-        scriptpubkey_address: z.string(),
-        scriptpubkey_asm: z.string(),
-        scriptpubkey_type: z.string(),
-        value: z.number()
-      }),
+      prevout: z
+        .object({
+          scriptpubkey: z.string().optional(),
+          scriptpubkey_address: z.string().optional(),
+          scriptpubkey_asm: z.string().optional(),
+          scriptpubkey_type: z.string().optional(),
+          value: z.number()
+        })
+        .nullable(),
       scriptsig: z.string(),
       scriptsig_asm: z.string(),
       sequence: z.number(),
       txid: z.string(),
       vout: z.number(),
-      witness: z.array(z.string())
+      witness: z.array(z.string()).optional()
     })
   ),
   vout: z.array(
     z.object({
-      scriptpubkey: z.string(),
-      scriptpubkey_address: z.string(),
-      scriptpubkey_asm: z.string(),
-      scriptpubkey_type: z.string(),
+      scriptpubkey: z.string().optional(),
+      scriptpubkey_address: z.string().optional(),
+      scriptpubkey_asm: z.string().optional(),
+      scriptpubkey_type: z.string().optional(),
       value: z.number()
     })
   ),

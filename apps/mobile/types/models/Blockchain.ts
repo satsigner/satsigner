@@ -66,7 +66,8 @@ export const PricesSchema = z.object({
 
 export const BlockStatusSchema = z.object({
   height: z.number(),
-  in_best_chain: z.boolean()
+  in_best_chain: z.boolean(),
+  next_best: z.string()
 })
 
 export const BlockSchema = z.object({
@@ -157,9 +158,7 @@ export const MemPoolSchema = z.object({
   vsize: z.number()
 })
 
-export const MemPoolFeesSchema = z
-  .record(TxPrioritySchema, SatoshiSchema)
-  .optional()
+export const MemPoolFeesSchema = z.record(TxPrioritySchema, SatoshiSchema)
 
 export const MemPoolBlockSchema = z.object({
   blockSize: z.number(),

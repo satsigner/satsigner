@@ -96,12 +96,12 @@ export class MempoolOracle implements BlockchainOracle {
 
   async getCurrentBlockHeight() {
     const data = await this.getText(`/blocks/tip/height`)
-    return z.number().parse(data)
+    return Number(data)
   }
 
   async getCurrentBlockHash() {
     const data = await this.getText(`/blocks/tip/hash`)
-    return z.string().parse(data)
+    return data
   }
 
   async getCurrentFeeRate(priority: TxPriority) {
