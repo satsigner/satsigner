@@ -27,7 +27,7 @@ const TYPE_LABEL: Record<PaymentMethod['type'], string> = {
 }
 
 type SSPaymentMethodPickerProps = {
-  ref: RefObject<BottomSheetMethods>
+  ref: RefObject<BottomSheetMethods | null>
   onSelect: (method: PaymentMethod) => void
   methods: PaymentMethod[]
   amountSats: number
