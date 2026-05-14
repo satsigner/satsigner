@@ -4,6 +4,30 @@ import type { NostrFeedNoteLike } from '@/components/SSNostrFeedNoteRow'
 
 const NOSTR_EVENT_REF_RE = /nostr:(note1|nevent1)[a-zA-Z0-9]+/g
 
+type RawEvent = {
+  content: string
+  created_at: number
+  id: string
+  kind: number
+  pubkey: string
+  tags: unknown[]
+}
+
+function isRawEvent(value: unknown): value is RawEvent {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+  const record = value as Record<string, unknown>
+  return (
+    typeof record.id === 'string' &&
+    typeof record.content === 'string' &&
+    typeof record.pubkey === 'string' &&
+    typeof record.kind === 'number' &&
+    typeof record.created_at === 'number' &&
+    Array.isArray(record.tags)
+  )
+}
+
 export function parseRepostOriginalEvent(
   content: string
 ): NostrFeedNoteLike | null {
@@ -12,30 +36,16 @@ export function parseRepostOriginalEvent(
   }
   try {
     const parsed: unknown = JSON.parse(content)
-    if (typeof parsed !== 'object' || parsed === null) {
+    if (!isRawEvent(parsed)) {
       return null
     }
-    const raw = parsed as Record<string, unknown>
-    if (
-      typeof raw.id !== 'string' ||
-      typeof raw.content !== 'string' ||
-      typeof raw.pubkey !== 'string' ||
-      typeof raw.kind !== 'number' ||
-      typeof raw.created_at !== 'number' ||
-      !Array.isArray(raw.tags)
-    ) {
-      return null
-    }
-    const tagsRaw = raw.tags
-    const tags = Array.isArray(tagsRaw)
-      ? tagsRaw.filter((t): t is string[] => Array.isArray(t))
-      : []
+    const tags = parsed.tags.filter((t): t is string[] => Array.isArray(t))
     return {
-      content: raw.content as string,
-      created_at: raw.created_at as number,
-      id: raw.id as string,
-      kind: raw.kind as number,
-      pubkey: raw.pubkey as string,
+      content: parsed.content,
+      created_at: parsed.created_at,
+      id: parsed.id,
+      kind: parsed.kind,
+      pubkey: parsed.pubkey,
       tags
     }
   } catch {

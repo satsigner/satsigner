@@ -9,16 +9,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatFiatPrice } from '@/utils/format'
-
-export type PaymentMethod = {
-  id: string
-  label: string
-  type: 'lightning' | 'ecash' | 'ark'
-  detail?: string
-  accountId?: string
-  balanceSats?: number
-}
 
 const TYPE_LABEL: Record<PaymentMethod['type'], string> = {
   ark: 'Ark',

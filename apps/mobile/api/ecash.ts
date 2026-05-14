@@ -30,14 +30,22 @@ type KeysetResponse = {
 }
 
 type WalletInternals = {
+  _keyChain?: {
+    keysets?: Record<string, { active?: boolean; id: string; unit?: string }>
+  }
+  getKeys?: (keysetId: string) => Promise<unknown>
   mint?: {
-    getKeySets?: () => Promise<{ keysets?: KeysetResponse[] }>
     _mintUrl?: string
+    getKeySets?: () => Promise<{ keysets?: KeysetResponse[] }>
     url?: string
   }
-  _keyChain?: {
-    keysets?: Record<string, { id: string; unit?: string; active?: boolean }>
+  on?: {
+    countersReserved?: (cb: (event: CounterReservedEvent) => void) => () => void
   }
+}
+
+function asWalletInternals(wallet: Wallet): WalletInternals {
+  return wallet as unknown as WalletInternals
 }
 
 const walletCache = new Map<string, Wallet>()
@@ -49,7 +57,7 @@ function walletCacheKey(accountId: string, mintUrl: string): string {
 async function getKeysetsFromWallet(
   wallet: Wallet
 ): Promise<{ id: string; unit: string; active: boolean }[]> {
-  const walletInternals = wallet as unknown as WalletInternals
+  const walletInternals = asWalletInternals(wallet)
 
   // Method 1: Use mint.getKeySets() (the actual cashu-ts v3 API)
   if (typeof walletInternals.mint?.getKeySets === 'function') {
@@ -134,14 +142,9 @@ function getWallet(
     const wallet = new Wallet(mint, walletOpts)
 
     if (options?.bip39seed && options.onCounterReserved) {
-      const walletWithEvents = wallet as unknown as {
-        on?: {
-          countersReserved?: (
-            cb: (event: CounterReservedEvent) => void
-          ) => () => void
-        }
-      }
-      walletWithEvents.on?.countersReserved?.(options.onCounterReserved)
+      asWalletInternals(wallet).on?.countersReserved?.(
+        options.onCounterReserved
+      )
     }
 
     walletCache.set(cacheKey, wallet)
@@ -576,9 +579,7 @@ async function loadKeysForKeyset(
   wallet: Wallet,
   keysetId: string
 ): Promise<void> {
-  const walletWithKeys = wallet as unknown as {
-    getKeys?: (keysetId: string) => Promise<unknown>
-  }
+  const walletWithKeys = asWalletInternals(wallet)
   if (typeof walletWithKeys.getKeys === 'function') {
     await walletWithKeys.getKeys(keysetId)
   }

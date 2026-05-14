@@ -1,5 +1,5 @@
-import type { PaymentMethod } from '@/components/SSPaymentMethodPicker'
 import type { ArkAccount } from '@/types/models/Ark'
+import type { PaymentMethod } from '@/types/models/PaymentMethod'
 
 export function buildPaymentMethods(
   lightningConfig: { url: string; alias?: string } | null,

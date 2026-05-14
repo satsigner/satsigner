@@ -34,9 +34,7 @@ import {
 } from '@/components/SSNostrFeedNoteRow'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
-import SSPaymentMethodPicker, {
-  type PaymentMethod
-} from '@/components/SSPaymentMethodPicker'
+import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
@@ -58,6 +56,7 @@ import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
+import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
