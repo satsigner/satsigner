@@ -7,6 +7,7 @@ import Esplora from '@/api/esplora'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
+import { parseHexToBytes } from '@/utils/parse'
 import { recalculateDepthH } from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
 
@@ -247,10 +248,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       : []
                   })),
                   vout: tx.vout.map((output) => ({
-                    address: output.scriptpubkey_address,
+                    address: output?.scriptpubkey_address || '',
                     label: undefined,
                     script: output.scriptpubkey
-                      ? Array.from(Buffer.from(output.scriptpubkey, 'hex'))
+                      ? parseHexToBytes(output.scriptpubkey)
                       : [],
                     value: output.value // TODO: add label
                   })),

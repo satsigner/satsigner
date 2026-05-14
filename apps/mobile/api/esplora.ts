@@ -90,8 +90,8 @@ export default class Esplora {
       },
       scriptSig: parseHexToBytes(input.scriptsig),
       sequence: input.sequence,
-      value: input.prevout.value,
-      witness: input.witness.map(parseHexToBytes)
+      value: input.prevout?.value,
+      witness: input.witness?.map(parseHexToBytes)
     }))
   }
 

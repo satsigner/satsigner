@@ -858,7 +858,14 @@ async function getTransactionInputValues(
 
   if (backend === 'esplora') {
     const esploraClient = new Esplora(url)
-    vin = await esploraClient.getTxInputValues(tx.id)
+    const esploraVin = await esploraClient.getTxInputValues(tx.id)
+    vin = esploraVin.map((input) => ({
+      previousOutput: input.previousOutput,
+      scriptSig: input.scriptSig,
+      sequence: input.sequence,
+      value: input.value,
+      witness: input.witness || []
+    }))
   }
 
   for (const [index, vinItem] of vin.entries()) {
