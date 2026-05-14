@@ -12,12 +12,6 @@ import { Colors } from '@/styles'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatFiatPrice } from '@/utils/format'
 
-const TYPE_LABEL: Record<PaymentMethod['type'], string> = {
-  ark: 'Ark',
-  ecash: 'ECash',
-  lightning: 'Lightning'
-}
-
 type SSPaymentMethodPickerProps = {
   ref: RefObject<BottomSheetMethods | null>
   onSelect: (method: PaymentMethod) => void
@@ -52,7 +46,7 @@ function SSPaymentMethodPicker({
                 </SSText>
                 <View style={styles.typeBadge}>
                   <SSText size="xxs" color="muted">
-                    {TYPE_LABEL[method.type]}
+                    {t(`paymentMethod.type.${method.type}`)}
                   </SSText>
                 </View>
               </SSHStack>

@@ -1,3 +1,4 @@
+import { t } from '@/locales'
 import type { ArkAccount } from '@/types/models/Ark'
 import type { PaymentMethod } from '@/types/models/PaymentMethod'
 
@@ -12,7 +13,7 @@ export function buildPaymentMethods(
     methods.push({
       detail: lightningConfig.url,
       id: 'lightning',
-      label: lightningConfig.alias || 'Lightning',
+      label: lightningConfig.alias || t('paymentMethod.type.lightning'),
       type: 'lightning'
     })
   }
@@ -32,7 +33,7 @@ export function buildPaymentMethods(
       accountId: account.id,
       detail: account.name,
       id: `ark-${account.id}`,
-      label: 'Ark',
+      label: t('paymentMethod.type.ark'),
       type: 'ark'
     })
   }
