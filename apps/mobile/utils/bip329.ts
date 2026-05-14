@@ -1,8 +1,8 @@
-import { Bip329FileType, Label } from '@/types/bips/329'
-import { type Account } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Bip329FileType, Label } from '@/types/bips/329'
+import type { Account } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
 
 import { type PickFileProps } from './filesystem'
 import { getUtxoOutpoint } from './utxo'
