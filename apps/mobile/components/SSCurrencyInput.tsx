@@ -1,4 +1,4 @@
-import { type ForwardedRef, forwardRef, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
@@ -45,22 +45,21 @@ type SSCurrencyInputProps = {
   align?: 'center' | 'left'
   actionRight?: React.ReactNode
   onChangeValue: (value: number) => void
+  ref?: React.Ref<TextInput>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-function SSCurrencyInput(
-  {
-    decimal = 8,
-    variant = 'default',
-    size = 'default',
-    align = 'left',
-    actionRight,
-    value,
-    onChangeValue,
-    style,
-    ...props
-  }: SSCurrencyInputProps,
-  ref: ForwardedRef<TextInput>
-) {
+function SSCurrencyInput({
+  decimal = 8,
+  variant = 'default',
+  size = 'default',
+  align = 'left',
+  actionRight,
+  value,
+  onChangeValue,
+  style,
+  ref,
+  ...props
+}: SSCurrencyInputProps) {
   const [localValue, setLocalValue] = useState(value || '')
 
   function handleTextChange(text: string) {
@@ -175,4 +174,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default forwardRef(SSCurrencyInput)
+export default SSCurrencyInput

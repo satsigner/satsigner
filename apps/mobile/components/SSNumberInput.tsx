@@ -1,4 +1,4 @@
-import { type ForwardedRef, forwardRef, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { t } from '@/locales'
@@ -17,27 +17,26 @@ type SSNumberInputProps = {
   allowDecimal?: boolean
   allowValidEmpty?: boolean
   alwaysTriggerOnChange?: boolean
+  ref?: React.Ref<TextInput>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-function SSNumberInput(
-  {
-    variant = 'default',
-    size = 'default',
-    align = 'left',
-    min,
-    max,
-    value,
-    onChangeText,
-    onValidate,
-    showFeedback,
-    allowDecimal = false,
-    allowValidEmpty = false,
-    alwaysTriggerOnChange = false,
-    style,
-    ...props
-  }: SSNumberInputProps,
-  ref: ForwardedRef<TextInput>
-) {
+function SSNumberInput({
+  variant = 'default',
+  size = 'default',
+  align = 'left',
+  min,
+  max,
+  value,
+  onChangeText,
+  onValidate,
+  showFeedback,
+  allowDecimal = false,
+  allowValidEmpty = false,
+  alwaysTriggerOnChange = false,
+  style,
+  ref,
+  ...props
+}: SSNumberInputProps) {
   const NUMBER_REGEX = allowDecimal ? /^\d*\.?\d{0,8}$/ : /^[0-9]*$/
 
   const [invalid, setInvalid] = useState(false)
@@ -213,4 +212,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default forwardRef(SSNumberInput)
+export default SSNumberInput
