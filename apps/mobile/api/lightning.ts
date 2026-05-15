@@ -1,4 +1,4 @@
-import { LND_REST } from '@/constants/lightningLnd'
+import { LND_REST } from '@/constants/lightning'
 import type {
   LndBlockchainBalanceResponse,
   LndChannelBalanceResponse,

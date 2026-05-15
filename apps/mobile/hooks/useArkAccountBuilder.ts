@@ -2,7 +2,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { createArkWallet } from '@/api/ark'
-import { getArkServer } from '@/constants/arkServers'
+import { getArkServer } from '@/constants/ark'
 import { t } from '@/locales'
 import { deleteArkDatadir, ensureArkDatadir } from '@/storage/arkDatadir'
 import { deleteArkMnemonic, storeArkMnemonic } from '@/storage/encrypted'

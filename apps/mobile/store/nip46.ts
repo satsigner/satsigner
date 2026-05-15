@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { NIP46_DEFAULT_PERMISSIONS } from '@/constants/nip46'
+import { NIP46_DEFAULT_PERMISSIONS } from '@/constants/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import type {
   Nip46Method,

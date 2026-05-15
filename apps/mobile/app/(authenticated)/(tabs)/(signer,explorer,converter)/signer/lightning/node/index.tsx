@@ -38,7 +38,7 @@ import {
   LIGHTNING_BUBBLE_CHART_BLEED_MARGIN_FRAC,
   LIGHTNING_BUBBLE_CHART_LAYOUT_MAX_SIZE_PX,
   LIGHTNING_BUBBLE_CHART_LAYOUT_MIN_SIZE_PX
-} from '@/constants/lightningChannelsBubbleChart'
+} from '@/constants/lightning'
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useLightningContentHandler } from '@/hooks/useLightningContentHandler'

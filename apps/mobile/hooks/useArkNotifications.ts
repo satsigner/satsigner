@@ -11,7 +11,7 @@ import {
   subscribeArkNotifications,
   syncArkWallet
 } from '@/api/ark'
-import { getArkServer } from '@/constants/arkServers'
+import { getArkServer } from '@/constants/ark'
 import { t } from '@/locales'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'

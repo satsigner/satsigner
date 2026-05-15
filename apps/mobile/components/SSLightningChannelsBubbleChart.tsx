@@ -11,7 +11,7 @@ import {
   LIGHTNING_BUBBLE_CHART_PEER_LABEL_FONT_PX,
   LIGHTNING_BUBBLE_CHART_SPOKE_STROKE,
   LIGHTNING_BUBBLE_CHART_SPOKE_STROKE_WIDTH
-} from '@/constants/lightningChannelsBubbleChart'
+} from '@/constants/lightning'
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { t } from '@/locales'
 import { Colors } from '@/styles'

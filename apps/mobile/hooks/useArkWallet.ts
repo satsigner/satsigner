@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { openArkWallet } from '@/api/ark'
-import { getArkServer } from '@/constants/arkServers'
+import { getArkServer } from '@/constants/ark'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
