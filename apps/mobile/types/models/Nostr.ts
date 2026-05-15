@@ -55,8 +55,8 @@ export const NostrAccountSchema = z.object({
 })
 
 export const NostrKind0ProfileSchema = z.object({
-  displayName: z.string().optional(),
   banner: z.string().optional(),
+  displayName: z.string().optional(),
   lud16: z.string().optional(),
   nip05: z.string().optional(),
   picture: z.string().optional()

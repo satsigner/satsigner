@@ -69,7 +69,6 @@ class BaseElectrumClient {
     const protocol = url.replace(/:\/\/.*/, '')
     const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
 
-    // url validation
     const isValidDomain = isValidDomainName(host)
     const isValidIP = isValidIPAddress(host)
     const isValidPort = port.match(/^[0-9]+$/) !== null
@@ -85,7 +84,6 @@ class BaseElectrumClient {
       throw new Error(`Backend URL ${url} seems invalid.`)
     }
 
-    // additional type-safe validation with Zod
     const props = ElectrumClientSchema.shape.props.parse({
       host,
       network,
@@ -241,7 +239,6 @@ class ElectrumClient extends BaseElectrumClient {
     address: string,
     addressKeychain: Utxo['keychain'] = 'external'
   ) {
-    // utxo info
     const addressUtxos = await super.getAddressUtxos(address)
     const utxoHeights = addressUtxos.map((value) => value.height)
     const utxoTimestamps = await this.getBlockTimestamps(utxoHeights)
@@ -252,7 +249,6 @@ class ElectrumClient extends BaseElectrumClient {
       addressKeychain
     )
 
-    // tx info
     const addressTxs = await super.getAddressTransactions(address)
     const txIds = addressTxs.map((value) => value.tx_hash)
     const rawTransactions = await this.getTransactions(txIds)
@@ -265,10 +261,8 @@ class ElectrumClient extends BaseElectrumClient {
       txTimestamps
     )
 
-    // balance info
     const balance = await this.getAddressBalance(address)
 
-    // address info
     const addressInfo: ElectrumAddressInfo = {
       balance,
       transactions,

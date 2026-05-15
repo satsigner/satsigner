@@ -193,7 +193,6 @@ export default class Esplora {
     return await this._call('/fee-estimates')
   }
 
-  // test connection
   static async test(url: string, timeout: number) {
     const esploraClient = new Esplora(url)
     const fetchPromise = esploraClient.getLatestBlockHeight()
