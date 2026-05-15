@@ -3,7 +3,7 @@ import { decode } from '@gandlaf21/bolt11-decode'
 import type {
   Bolt11Decoded,
   Bolt11Section,
-  LNDecodedInvoice
+  LNDDecodedInvoice
 } from '@/types/models/Lightning'
 
 function mapBolt11DecodeToDecodedInvoice(
@@ -53,7 +53,7 @@ function mapBolt11DecodeToDecodedInvoice(
   }
 }
 
-export function decodeLightningInvoice(invoice: string): LNDecodedInvoice {
+export function decodeLightningInvoice(invoice: string): LNDDecodedInvoice {
   const bolt11Decoded = decode(invoice)
   return mapBolt11DecodeToDecodedInvoice(bolt11Decoded, invoice)
 }

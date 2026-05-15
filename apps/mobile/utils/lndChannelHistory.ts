@@ -1,9 +1,9 @@
 import { LND_REST } from '@/constants/lightning'
 import type {
-  ChannelHistoryRow,
-  LndForwardingEvent,
-  LndForwardingHistoryResponse,
-  LndPayment,
+  LightningChannelHistoryRow,
+  LNDForwardingEvent,
+  LNDForwardingHistoryResponse,
+  LNDPayment,
   LNDRequest
 } from '@/types/models/Lightning'
 import { parseLndSats } from '@/utils/lndChannelDetail'
@@ -11,7 +11,7 @@ import { parseLndSats } from '@/utils/lndChannelDetail'
 const FORWARDING_MAX_EVENTS = 200
 const FORWARDING_INDEX_OFFSET = 0
 
-function forwardingEventKey(ev: LndForwardingEvent): string {
+function forwardingEventKey(ev: LNDForwardingEvent): string {
   return [
     ev.timestamp_ns ?? '',
     ev.chan_id_in ?? '',
@@ -35,7 +35,7 @@ function timestampNsToSec(timestampNs: string | undefined): number {
   }
 }
 
-function forwardingEventTimestampSec(ev: LndForwardingEvent): number {
+function forwardingEventTimestampSec(ev: LNDForwardingEvent): number {
   const fromNs = timestampNsToSec(ev.timestamp_ns)
   if (fromNs > 0) {
     return fromNs
@@ -51,7 +51,7 @@ function forwardingEventTimestampSec(ev: LndForwardingEvent): number {
   return 0
 }
 
-function paymentUsesChannel(payment: LndPayment, chanId: string): boolean {
+function paymentUsesChannel(payment: LNDPayment, chanId: string): boolean {
   const target = String(chanId).trim()
   if (!target) {
     return false
@@ -69,9 +69,9 @@ function paymentUsesChannel(payment: LndPayment, chanId: string): boolean {
 
 async function fetchPaymentsSafe(
   makeRequest: LNDRequest
-): Promise<LndPayment[]> {
+): Promise<LNDPayment[]> {
   try {
-    const res = await makeRequest<{ payments?: LndPayment[] }>(
+    const res = await makeRequest<{ payments?: LNDPayment[] }>(
       LND_REST.PAYMENTS,
       { disconnectOnError: false }
     )
@@ -84,7 +84,7 @@ async function fetchPaymentsSafe(
 export async function fetchChannelHistoryRows(
   makeRequest: LNDRequest,
   chanId: string
-): Promise<ChannelHistoryRow[]> {
+): Promise<LightningChannelHistoryRow[]> {
   const idNorm = chanId.trim()
   if (!idNorm) {
     return []
@@ -97,25 +97,25 @@ export async function fetchChannelHistoryRows(
   }
 
   const settled = await Promise.allSettled([
-    makeRequest<LndForwardingHistoryResponse>(LND_REST.SWITCH_FORWARDING, {
+    makeRequest<LNDForwardingHistoryResponse>(LND_REST.SWITCH_FORWARDING, {
       body: { ...requestBase, incoming_chan_ids: [idNorm] },
       disconnectOnError: false,
       method: 'POST'
     }),
-    makeRequest<LndForwardingHistoryResponse>(LND_REST.SWITCH_FORWARDING, {
+    makeRequest<LNDForwardingHistoryResponse>(LND_REST.SWITCH_FORWARDING, {
       body: { ...requestBase, outgoing_chan_ids: [idNorm] },
       disconnectOnError: false,
       method: 'POST'
     })
   ])
 
-  const inRes: LndForwardingHistoryResponse =
+  const inRes: LNDForwardingHistoryResponse =
     settled[0].status === 'fulfilled' ? settled[0].value : {}
-  const outRes: LndForwardingHistoryResponse =
+  const outRes: LNDForwardingHistoryResponse =
     settled[1].status === 'fulfilled' ? settled[1].value : {}
 
   const seen = new Set<string>()
-  const forwardRows: ChannelHistoryRow[] = []
+  const forwardRows: LightningChannelHistoryRow[] = []
 
   for (const ev of [
     ...(inRes.forwarding_events ?? []),
@@ -140,7 +140,7 @@ export async function fetchChannelHistoryRows(
 
   const payments = await fetchPaymentsSafe(makeRequest)
 
-  const paymentRows: ChannelHistoryRow[] = []
+  const paymentRows: LightningChannelHistoryRow[] = []
   for (const p of payments) {
     if (!paymentUsesChannel(p, idNorm)) {
       continue

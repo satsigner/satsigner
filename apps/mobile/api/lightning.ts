@@ -1,13 +1,13 @@
 import { LND_REST } from '@/constants/lightning'
 import type {
-  LndBlockchainBalanceResponse,
-  LndChannelBalanceResponse,
-  LndCombinedTransaction,
-  LndInvoice,
-  LndNodeDashboardData,
-  LndOnchainTransaction,
-  LndPayment,
-  LndProcessedBalance,
+  LNDBlockchainBalanceResponse,
+  LNDChannelBalanceResponse,
+  LNDCombinedTransaction,
+  LNDInvoice,
+  LNDNodeDashboardData,
+  LNDOnchainTransaction,
+  LNDPayment,
+  LNDProcessedBalance,
   LNDChannel,
   LNDRequest
 } from '@/types/models/Lightning'
@@ -22,15 +22,15 @@ export type LndNodeDashboardCopy = {
 }
 
 export type LndNodeDashboardFetchers = {
-  getBalance: () => Promise<LndBlockchainBalanceResponse>
+  getBalance: () => Promise<LNDBlockchainBalanceResponse>
   getChannels: () => Promise<LNDChannel[]>
   makeRequest: LNDRequest
 }
 
 function parseProcessedBalance(
-  blockchainBalance: LndBlockchainBalanceResponse,
-  channelBalance: LndChannelBalanceResponse
-): LndProcessedBalance {
+  blockchainBalance: LNDBlockchainBalanceResponse,
+  channelBalance: LNDChannelBalanceResponse
+): LNDProcessedBalance {
   const totalBalance = Number(blockchainBalance?.total_balance || 0)
   const onchainBalance = Number(blockchainBalance?.confirmed_balance || 0)
   const channelBalanceValue = Number(channelBalance?.local_balance?.sat || 0)
@@ -45,8 +45,8 @@ function parseProcessedBalance(
 }
 
 function mapOnchainTransactions(
-  transactions: LndOnchainTransaction[]
-): LndCombinedTransaction[] {
+  transactions: LNDOnchainTransaction[]
+): LNDCombinedTransaction[] {
   return transactions.map((tx) => ({
     amount: Number(tx.amount),
     hash: tx.tx_hash,
@@ -58,7 +58,7 @@ function mapOnchainTransactions(
   }))
 }
 
-function descriptionFromLndPayment(payment: LndPayment): string | undefined {
+function descriptionFromLndPayment(payment: LNDPayment): string | undefined {
   const memo = typeof payment.memo === 'string' ? payment.memo.trim() : ''
   if (memo) {
     return memo
@@ -93,7 +93,7 @@ function descriptionFromLndPayment(payment: LndPayment): string | undefined {
   return undefined
 }
 
-function mapPayments(payments: LndPayment[]): LndCombinedTransaction[] {
+function mapPayments(payments: LNDPayment[]): LNDCombinedTransaction[] {
   return payments.map((payment) => ({
     amount: -Number(payment.value_sat),
     description: descriptionFromLndPayment(payment),
@@ -107,10 +107,10 @@ function mapPayments(payments: LndPayment[]): LndCombinedTransaction[] {
 }
 
 function mapInvoices(
-  invoices: LndInvoice[],
+  invoices: LNDInvoice[],
   includeOpenInvoices: boolean,
   defaultDescription: string
-): LndCombinedTransaction[] {
+): LNDCombinedTransaction[] {
   return invoices
     .map((invoice) => ({
       amount: Number(
@@ -138,7 +138,7 @@ export async function fetchLndNodeDashboard(
   fetchers: LndNodeDashboardFetchers,
   includeOpenInvoices: boolean,
   copy: LndNodeDashboardCopy
-): Promise<LndNodeDashboardData> {
+): Promise<LNDNodeDashboardData> {
   const { getBalance, getChannels, makeRequest } = fetchers
 
   const [
@@ -150,13 +150,13 @@ export async function fetchLndNodeDashboard(
     invoicesRes
   ] = await Promise.all([
     getBalance(),
-    makeRequest<LndChannelBalanceResponse>(LND_REST.BALANCE_CHANNELS),
+    makeRequest<LNDChannelBalanceResponse>(LND_REST.BALANCE_CHANNELS),
     getChannels(),
-    makeRequest<{ transactions: LndOnchainTransaction[] }>(
+    makeRequest<{ transactions: LNDOnchainTransaction[] }>(
       LND_REST.TRANSACTIONS
     ),
-    makeRequest<{ payments: LndPayment[] }>(LND_REST.PAYMENTS),
-    makeRequest<{ invoices: LndInvoice[] }>(LND_REST.INVOICES)
+    makeRequest<{ payments: LNDPayment[] }>(LND_REST.PAYMENTS),
+    makeRequest<{ invoices: LNDInvoice[] }>(LND_REST.INVOICES)
   ])
 
   const balance = parseProcessedBalance(blockchainBalance, channelBalance)
@@ -176,13 +176,13 @@ export async function fetchLndNodeDashboard(
   const allTxs = [...onchainTxs, ...paymentTxs, ...invoiceTxs]
   const transactions = mergeCombinedTransactions(allTxs)
 
-  const rawInvoices: Record<string, LndInvoice> = Object.fromEntries(
+  const rawInvoices: Record<string, LNDInvoice> = Object.fromEntries(
     rawInvoiceList.map((i) => [i.r_hash, i])
   )
-  const rawPayments: Record<string, LndPayment> = Object.fromEntries(
+  const rawPayments: Record<string, LNDPayment> = Object.fromEntries(
     rawPaymentList.map((p) => [p.payment_hash, p])
   )
-  const rawOnchainTxs: Record<string, LndOnchainTransaction> =
+  const rawOnchainTxs: Record<string, LNDOnchainTransaction> =
     Object.fromEntries(rawOnchainList.map((t) => [t.tx_hash, t]))
 
   return { balance, rawInvoices, rawOnchainTxs, rawPayments, transactions }

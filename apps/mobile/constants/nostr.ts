@@ -73,6 +73,12 @@ export const MENTION_RE =
 
 export const NOSTR_EVENT_ID_HEX = /^[0-9a-fA-F]{64}$/
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+// Wrapped events / other devices may have clock skew; reject only if created_at
+// is far in the future (match 48h subscription padding).
+
+export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 48 * 60 * 60
+
 export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 /** Shown in place of hidden secret keys (nsec / seed words) — short form. */
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'

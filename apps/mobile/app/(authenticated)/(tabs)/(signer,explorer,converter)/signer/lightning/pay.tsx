@@ -22,7 +22,7 @@ import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Typography } from '@/styles'
 import type {
-  LNDecodedInvoice,
+  LNDDecodedInvoice,
   LNURLPayResponse
 } from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -80,9 +80,8 @@ export default function PayPage() {
   const [lnurlDetails, setLNURLDetails] = useState<LNURLPayResponse | null>(
     null
   )
-  const [decodedInvoice, setDecodedInvoice] = useState<LNDecodedInvoice | null>(
-    null
-  )
+  const [decodedInvoice, setDecodedInvoice] =
+    useState<LNDDecodedInvoice | null>(null)
 
   // Fetch LNURL details and set minimum amount
   const handleLNURLDetected = useCallback(async (lnurl: string) => {
@@ -107,7 +106,7 @@ export default function PayPage() {
   // Decode a bolt11 invoice
   const decodeInvoice = useCallback(
     async (invoice: string) => {
-      const response = await typedMakeRequest<LNDecodedInvoice>(
+      const response = await typedMakeRequest<LNDDecodedInvoice>(
         `/v1/payreq/${invoice}`
       )
 

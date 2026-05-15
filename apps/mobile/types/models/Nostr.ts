@@ -1,16 +1,117 @@
 import { z } from 'zod'
 
 import { NostrAPI } from '@/api/nostr'
+import type { Account } from '@/types/models/Account'
 
-import type { Account } from './Account'
+// ─── Schemas ────────────────────────────────────────────────────────────────
 
-export const NostrMessageSchema = z.object({
-  content: z.union([z.string(), z.record(z.string(), z.unknown())]),
+export const NostrFetchedNoteDataSchema = z.object({
+  authorLud16: z.string().optional(),
+  authorName: z.string().optional(),
+  authorNip05: z.string().optional(),
+  authorPicture: z.string().optional(),
+  content: z.string(),
   created_at: z.number(),
-  decryptedContent: z.string().optional(),
+  kind: z.number(),
+  pubkey: z.string(),
+  tags: z.array(z.array(z.string()))
+})
+
+export const NostrContentKindSchema = z.enum([
+  'json_note',
+  'nevent',
+  'note',
+  'nprofile',
+  'npub',
+  'unknown'
+])
+
+export const NostrDecodedContentSchema = z.object({
+  data: z.string(),
+  fetched: NostrFetchedNoteDataSchema.optional(),
+  isLoading: z.boolean().optional(),
+  kind: NostrContentKindSchema,
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  raw: z.string()
+})
+
+export const NostrDerivedKeysSchema = z.object({
+  mnemonic: z.string(),
+  npub: z.string(),
+  nsec: z.string(),
+  privateKey: z.instanceof(Uint8Array)
+})
+
+export const NostrRelayDisconnectReasonSchema = z.enum([
+  'all_failed',
+  'no_internet',
+  'no_relays',
+  'user_disabled'
+])
+
+export const NostrEnhancedZapTagsSchema = z.object({
+  zapGoal: z.number().optional(),
+  zapLnurl: z.string().optional(),
+  zapMax: z.number().optional(),
+  zapMin: z.number().optional(),
+  zapPayer: z.string().optional(),
+  zapUses: z.number().optional()
+})
+
+export const Nip46ConnectionStatusSchema = z.enum([
+  'connected',
+  'connecting',
+  'disconnected',
+  'error',
+  'relays_unreachable'
+])
+
+export const Nip46MethodSchema = z.enum([
+  'connect',
+  'get_public_key',
+  'nip04_decrypt',
+  'nip04_encrypt',
+  'nip44_decrypt',
+  'nip44_encrypt',
+  'ping',
+  'sign_event'
+])
+
+export const Nip46ParsedUriSchema = z.object({
+  clientPubkey: z.string(),
+  name: z.string().optional(),
+  perms: z.string().optional(),
+  relays: z.array(z.string()),
+  secret: z.string().optional()
+})
+
+export const Nip46PermissionPolicySchema = z.enum([
+  'always_allow',
+  'always_reject',
+  'ask'
+])
+
+export const Nip46RequestSchema = z.object({
   id: z.string(),
-  isSender: z.boolean().optional(),
-  pubkey: z.string().optional()
+  method: Nip46MethodSchema,
+  params: z.array(z.string()),
+  receivedAt: z.number(),
+  sessionId: z.string(),
+  status: z.enum(['approved', 'pending', 'rejected'])
+})
+
+export const Nip46SessionSchema = z.object({
+  clientName: z.string().optional(),
+  clientPubkey: z.string(),
+  connectionError: z.string().optional(),
+  connectionStatus: Nip46ConnectionStatusSchema.optional(),
+  createdAt: z.number(),
+  id: z.string(),
+  lastActiveAt: z.number(),
+  permissions: z.record(Nip46MethodSchema, Nip46PermissionPolicySchema),
+  relays: z.array(z.string()),
+  secret: z.string().optional(),
+  signerNpub: z.string()
 })
 
 export const NostrDMSchema = z.object({
@@ -58,12 +159,28 @@ export const NostrAccountSchema = z.object({
   trustedMemberDevices: z.array(z.string())
 })
 
-export const NostrKind0ProfileSchema = z.object({
+export const NostrZapPreferencesSchema = z.object({
+  autoApprove: z.boolean(),
+  autoApproveWalletId: z.string().optional(),
+  oneTapAmount: z.number(),
+  presetAmounts: z.array(z.number())
+})
+
+export const NostrIdentitySchema = z.object({
   banner: z.string().optional(),
+  createdAt: z.number(),
   displayName: z.string().optional(),
+  isWatchOnly: z.boolean(),
   lud16: z.string().optional(),
+  mnemonic: z.string().optional(),
   nip05: z.string().optional(),
-  picture: z.string().optional()
+  npub: z.string(),
+  nsec: z.string().optional(),
+  picture: z.string().optional(),
+  /** When true, the app may query relays for this identity. Omitted or false means disconnected. */
+  relayConnected: z.boolean().optional(),
+  relays: z.array(z.string()).optional(),
+  zapPreferences: NostrZapPreferencesSchema.optional()
 })
 
 export const NostrKeysSchema = z.object({
@@ -72,230 +189,157 @@ export const NostrKeysSchema = z.object({
   secretNostrKey: z.instanceof(Uint8Array)
 })
 
+export const NostrKind0ProfileSchema = z.object({
+  banner: z.string().optional(),
+  displayName: z.string().optional(),
+  lud16: z.string().optional(),
+  nip05: z.string().optional(),
+  picture: z.string().optional()
+})
+
+export const NostrMessageDataSchema = z.object({
+  data: z.unknown().optional(),
+  data_type: z.enum(['LabelsBip329', 'PSBT', 'SignMessageRequest', 'Tx'])
+})
+
+export const NostrMessageSchema = z.object({
+  content: z.union([z.string(), z.record(z.string(), z.unknown())]),
+  created_at: z.number(),
+  decryptedContent: z.string().optional(),
+  id: z.string(),
+  isSender: z.boolean().optional(),
+  pubkey: z.string().optional()
+})
+
+export const NostrRelayReachabilitySchema = z.enum([
+  'checking',
+  'connected',
+  'disconnected'
+])
+
 export const NostrRelaySchema = z.object({
   name: z.string(),
   url: z.string()
 })
 
-export type NostrMessage = z.infer<typeof NostrMessageSchema>
-export type NostrDM = z.infer<typeof NostrDMSchema>
+export const NostrRelayConnectionDetailSchema = z.object({
+  connected: z.boolean(),
+  error: z.string().optional(),
+  url: z.string()
+})
+
+export const NostrRelayConnectionInfoSchema = z.object({
+  reason: NostrRelayDisconnectReasonSchema.optional(),
+  relayDetails: z.array(NostrRelayConnectionDetailSchema).optional(),
+  status: NostrRelayReachabilitySchema
+})
+
+export const NostrSyncStatusSchema = z.enum([
+  'connecting',
+  'error',
+  'idle',
+  'syncing'
+])
+
+export const NostrSyncStatusEventSchema = z.object({
+  accountId: z.string(),
+  lastError: z.string().optional(),
+  messagesProcessed: z.number().optional(),
+  messagesReceived: z.number().optional(),
+  status: NostrSyncStatusSchema
+})
+
+export const NostrVideoProviderSchema = z.enum([
+  'direct',
+  'twitch_clip',
+  'twitch_vod',
+  'vimeo',
+  'youtube'
+])
+
+export const NostrVideoEmbedSchema = z.object({
+  provider: NostrVideoProviderSchema,
+  thumbnailUrl: z.string().optional(),
+  watchUrl: z.string()
+})
+
+export const NostrUnwrappedEventSchema = z.object({
+  content: z.string(),
+  created_at: z.number().optional(),
+  id: z.string(),
+  pubkey: z.string(),
+  tags: z.array(z.array(z.unknown())).optional()
+})
+
+export const NostrPendingDMSchema = z.object({
+  eventContent: z.record(z.string(), z.unknown()),
+  /** Set to true when the handler already showed its own toast (e.g. PSBT).
+   *  storeBatch will skip the generic "New Device Message" toast. */
+  skipToast: z.boolean().optional(),
+  unwrappedEvent: NostrUnwrappedEventSchema
+})
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export type NostrDecodedContent = z.infer<typeof NostrDecodedContentSchema>
+export type NostrDerivedKeys = z.infer<typeof NostrDerivedKeysSchema>
+export type NostrRelayDisconnectReason = z.infer<
+  typeof NostrRelayDisconnectReasonSchema
+>
+export type EnhancedZapTags = z.infer<typeof NostrEnhancedZapTagsSchema>
+export type FetchedNoteData = z.infer<typeof NostrFetchedNoteDataSchema>
+export type Nip46ConnectionStatus = z.infer<typeof Nip46ConnectionStatusSchema>
+export type Nip46Method = z.infer<typeof Nip46MethodSchema>
+export type Nip46ParsedUri = z.infer<typeof Nip46ParsedUriSchema>
+export type Nip46PermissionPolicy = z.infer<typeof Nip46PermissionPolicySchema>
+export type Nip46Request = z.infer<typeof Nip46RequestSchema>
+export type Nip46Session = z.infer<typeof Nip46SessionSchema>
 export type NostrAccount = z.infer<typeof NostrAccountSchema>
-export type NostrKind0Profile = z.infer<typeof NostrKind0ProfileSchema>
+export type NostrContentKind = z.infer<typeof NostrContentKindSchema>
+export type NostrDM = z.infer<typeof NostrDMSchema>
+export type NostrIdentity = z.infer<typeof NostrIdentitySchema>
 export type NostrKeys = z.infer<typeof NostrKeysSchema>
+export type NostrKind0Profile = z.infer<typeof NostrKind0ProfileSchema>
+export type NostrMessage = z.infer<typeof NostrMessageSchema>
+export type NostrMessageData = z.infer<typeof NostrMessageDataSchema>
 export type NostrRelay = z.infer<typeof NostrRelaySchema>
+export type NostrRelayConnectionInfo = z.infer<
+  typeof NostrRelayConnectionInfoSchema
+>
+export type NostrRelayReachability = z.infer<
+  typeof NostrRelayReachabilitySchema
+>
+export type NostrSyncStatus = z.infer<typeof NostrSyncStatusSchema>
+export type NostrSyncStatusEvent = z.infer<typeof NostrSyncStatusEventSchema>
+export type NostrVideoEmbed = z.infer<typeof NostrVideoEmbedSchema>
+export type NostrVideoProvider = z.infer<typeof NostrVideoProviderSchema>
+export type NostrPendingDM = z.infer<typeof NostrPendingDMSchema>
+export type NostrRelayConnectionDetail = z.infer<
+  typeof NostrRelayConnectionDetailSchema
+>
+export type NostrUnwrappedEvent = z.infer<typeof NostrUnwrappedEventSchema>
+export type NostrZapPreferences = z.infer<typeof NostrZapPreferencesSchema>
 
-export type Nip46ConnectionStatus =
-  | 'connecting'
-  | 'connected'
-  | 'relays_unreachable'
-  | 'error'
-  | 'disconnected'
-
-export type Nip46Method =
-  | 'connect'
-  | 'get_public_key'
-  | 'nip04_decrypt'
-  | 'nip04_encrypt'
-  | 'nip44_decrypt'
-  | 'nip44_encrypt'
-  | 'ping'
-  | 'sign_event'
-
-export type Nip46PermissionPolicy = 'always_allow' | 'always_reject' | 'ask'
-
-export type Nip46Session = {
-  clientName?: string
-  clientPubkey: string
-  connectionError?: string
-  connectionStatus?: Nip46ConnectionStatus
-  createdAt: number
-  id: string
-  lastActiveAt: number
-  permissions: Record<Nip46Method, Nip46PermissionPolicy>
-  relays: string[]
-  secret?: string
-  signerNpub: string
-}
-
-export type Nip46Request = {
-  id: string
-  method: Nip46Method
-  params: string[]
-  receivedAt: number
-  sessionId: string
-  status: 'approved' | 'pending' | 'rejected'
-}
-
-export type Nip46ParsedUri = {
-  clientPubkey: string
-  name?: string
-  perms?: string
-  relays: string[]
-  secret?: string
-}
-
-export type NostrRelayReachability = 'checking' | 'connected' | 'disconnected'
-
-export type RelayConnectionDetail = {
-  url: string
-  connected: boolean
-  error?: string
-}
-
-export type DisconnectReason =
-  | 'no_internet'
-  | 'no_relays'
-  | 'all_failed'
-  | 'user_disabled'
-
-export type NostrRelayConnectionInfo = {
-  status: NostrRelayReachability
-  reason?: DisconnectReason
-  relayDetails?: RelayConnectionDetail[]
-}
-
-export type ZapPreferences = {
-  presetAmounts: number[]
-  oneTapAmount: number
-  autoApprove: boolean
-  autoApproveWalletId?: string
-}
-
-export type NostrIdentity = {
-  npub: string
-  nsec?: string
-  mnemonic?: string
-  displayName?: string
-  picture?: string
-  banner?: string
-  nip05?: string
-  lud16?: string
-  /** When true, the app may query relays for this identity. Omitted or false means disconnected. */
-  relayConnected?: boolean
-  relays?: string[]
-  zapPreferences?: ZapPreferences
-  createdAt: number
-  isWatchOnly: boolean
-}
-// Wrapped events / other devices may have clock skew; reject only if created_at
-// is far in the future (match 48h subscription padding).
-
-export const DM_FUTURE_TOLERANCE_SEC = 48 * 60 * 60
-
-export type UnwrappedNostrEvent = {
-  id: string
-  pubkey: string
-  content: string
-  created_at?: number
-  tags?: unknown[][]
-}
-
-export type NostrMessageData = {
-  data_type: 'LabelsBip329' | 'Tx' | 'PSBT' | 'SignMessageRequest'
-  data?: unknown
-}
-
-export type MessageHandlerContext = {
-  account: Account
-  unwrappedEvent: UnwrappedNostrEvent
-  eventContent: Record<string, unknown>
-  data?: NostrMessageData
-  lastDataExchangeEOSE: number
-  syncStartSec: number
-  onPendingDM: (dm: PendingDM) => void
-}
+// The following types reference class instances or function signatures that
+// cannot be represented as Zod schemas and remain as plain TypeScript types.
 
 export type MessageHandler = {
   canHandle: (context: MessageHandlerContext) => boolean
   handle: (context: MessageHandlerContext) => void | Promise<void>
 }
 
-export type PendingDM = {
-  unwrappedEvent: UnwrappedNostrEvent
+export type MessageHandlerContext = {
+  account: Account
+  data?: NostrMessageData
   eventContent: Record<string, unknown>
-  /** Set to true when the handler already showed its own toast (e.g. PSBT).
-   *  storeBatch will skip the generic "New Device Message" toast. */
-  skipToast?: boolean
-}
-export type DerivedNostrKeys = {
-  nsec: string
-  npub: string
-  privateKey: Uint8Array
-  mnemonic: string
-}
-export type NostrContentKind =
-  | 'npub'
-  | 'note'
-  | 'nevent'
-  | 'nprofile'
-  | 'json_note'
-  | 'unknown'
-
-export type FetchedNoteData = {
-  content: string
-  pubkey: string
-  kind: number
-  tags: string[][]
-  created_at: number
-  authorName?: string
-  authorPicture?: string
-  authorLud16?: string
-  authorNip05?: string
+  lastDataExchangeEOSE: number
+  onPendingDM: (dm: NostrPendingDM) => void
+  syncStartSec: number
+  unwrappedEvent: NostrUnwrappedEvent
 }
 
-export type DecodedNostrContent = {
-  kind: NostrContentKind
-  raw: string
-  data: string
-  metadata?: Record<string, unknown>
-  fetched?: FetchedNoteData
-  isLoading?: boolean
-}
-export type EnhancedZapTags = {
-  zapMin?: number
-  zapMax?: number
-  zapGoal?: number
-  zapUses?: number
-  zapPayer?: string
-  zapLnurl?: string
-}
-export type NostrVideoProvider =
-  | 'youtube'
-  | 'vimeo'
-  | 'twitch_vod'
-  | 'twitch_clip'
-  | 'direct'
-
-export type NostrVideoEmbed = {
-  provider: NostrVideoProvider
-  watchUrl: string
-  thumbnailUrl?: string
-}
-export type NostrSyncStatus = 'idle' | 'connecting' | 'syncing' | 'error'
-
-export type NostrSyncStatusEvent = {
-  accountId: string
-  status: NostrSyncStatus
-  lastError?: string
-  messagesProcessed?: number
-  messagesReceived?: number
-}
 export type NostrSubscriptionHandle = {
   accountId: string
   dataExchangeApi: NostrAPI | null
   protocolApi: NostrAPI | null
 }
-
-// export type NostrMessage = {
-//   id: string
-//   author: string
-//   created_at: number
-//   description: string
-//   event: string
-//   label: number
-//   content: {
-//     description: string
-//     created_at: number
-//     pubkey?: string
-//   }
-// }

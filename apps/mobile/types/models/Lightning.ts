@@ -1,163 +1,55 @@
-export type LNDGraphNodeInfo = {
-  alias: string
-  color: string
-  pub_key: string
+export type Bolt11Decoded = {
+  route_hints?: unknown[]
+  sections: Bolt11Section[]
 }
 
-export type LNDecodedInvoice = {
-  payment_request: string
-  value: string
-  description: string
-  timestamp: string
-  expiry: string
-  payment_hash: string
-  payment_addr: string
-  num_satoshis: string
-  num_msat: string
-  features: Record<string, { name: string }>
-  route_hints: unknown[]
-  payment_secret: string
-  min_final_cltv_expiry: string
+export type Bolt11Section = {
+  name: string
+  value: string | number
 }
 
-export type LNDRequestOptions = {
-  body?: unknown
-  /** When false, HTTP errors do not clear `isConnected` (for optional reads). */
-  disconnectOnError?: boolean
-  headers?: Record<string, string>
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+export type LightningChannelHistoryRow = {
+  extraLine?: string
+  feeSat: number
+  id: string
+  primarySats: number
+  /** Outbound payment amount (sats) or forward amt_out (sats) for display. */
+  source: 'forward' | 'payment'
+  timestampSec: number
 }
 
-export type LNDPaymentResponse = {
-  payment_hash: string
-  payment_preimage: string
-  status: string
-}
-
-export type LNDRequest = <T>(
-  endpoint: string,
-  options?: LNDRequestOptions
-) => Promise<T>
-
-export type LNDConfig = {
-  macaroon: string
-  cert: string
-  url: string
-}
-/** One entry from LND `GET /v1/getinfo` `chains` (REST mirrors gRPC `Chain`). */
-
-export type LNDGetInfoChain = {
-  chain: string
-  network: string
-}
-
-export type LNDNodeInfo = {
-  version: string
-  commit_hash: string
-  identity_pubkey: string
-  alias: string
-  num_active_channels: number
-  num_peers: number
-  block_height: number
-  block_hash: string
-  best_header_timestamp: string
-  synced_to_chain: boolean
-  chains: LNDGetInfoChain[]
-  uris: string[]
-}
-
-export type LNDChannelConstraints = {
-  csv_delay: number
-  chan_reserve_sat: number
-  dust_limit_sat: number
-  max_pending_amt_msat: number
-  min_htlc_msat: number
-  max_accepted_htlcs: number
-}
-
-export type LNDChannel = {
-  active: boolean
-  /** Gossip alias for the remote peer when known (newer LND REST). */
-  peer_alias?: string
-  remote_pubkey: string
-  channel_point: string
-  chan_id: string
-  capacity: number
-  local_balance: number
-  remote_balance: number
-  commit_fee: number
-  commit_weight: number
-  fee_per_kw: number
-  unsettled_balance: number
-  total_satoshis_sent: number
-  total_satoshis_received: number
-  num_updates: number
-  pending_htlcs: unknown[]
-  csv_delay: number
-  private: boolean
-  initiator: boolean
-  chan_status_flags: string
-  local_chan_reserve_sat: number
-  remote_chan_reserve_sat: number
-  static_remote_key: boolean
-  commitment_type: string
-  lifetime: number
-  uptime: number
-  close_address: string
-  push_amount_sat: number
-  thaw_height: number
-  local_constraints: LNDChannelConstraints
-  remote_constraints: LNDChannelConstraints
-}
-export type LNURLPayResponse = {
-  callback: string
-  maxSendable: number
-  minSendable: number
-  metadata: string
-  tag: 'payRequest'
-  commentAllowed?: number
-  nostrPubkey?: string
-  allowsNostr?: boolean
-}
-
-export type LNURLPayInvoiceResponse = {
-  pr: string // bolt11 invoice
-  routes: unknown[] // payment routes, not used in our implementation
-}
-
-export type LNURLWithdrawDetails = {
-  callback: string
-  k1: string
-  minWithdrawable: number
-  maxWithdrawable: number
-  defaultDescription?: string
-  tag: 'withdrawRequest'
-}
-
-export type LNURLWithdrawResponse = {
-  status: 'OK' | 'ERROR'
-  pr?: string
-  reason?: string
-}
-
-export type LndBlockchainBalanceResponse = {
-  total_balance: string
-  confirmed_balance: string
-  unconfirmed_balance: string
-  locked_balance: string
-  reserved_balance_anchor_chan: string
+export type LNDBlockchainBalanceResponse = {
   account_balance?: {
     [key: string]: {
       confirmed_balance: string
       unconfirmed_balance: string
     }
   }
+  confirmed_balance: string
+  locked_balance: string
+  reserved_balance_anchor_chan: string
+  total_balance: string
+  unconfirmed_balance: string
 }
 
-export type LndChannelBalanceResponse = {
+export type LNDChanBackupSnapshot = {
+  multi_chan_backup?: { multi_chan_backup?: string }
+  single_chan_backups?: unknown
+}
+
+export type LNDChannelBalanceResponse = {
   balance: string
-  pending_open_balance: string
+  custom_channel_data?: string
   local_balance: {
+    msat: string
+    sat: string
+  }
+  pending_open_balance: string
+  pending_open_local_balance: {
+    msat: string
+    sat: string
+  }
+  pending_open_remote_balance: {
     msat: string
     sat: string
   }
@@ -173,140 +65,23 @@ export type LndChannelBalanceResponse = {
     msat: string
     sat: string
   }
-  pending_open_local_balance: {
-    msat: string
-    sat: string
-  }
-  pending_open_remote_balance: {
-    msat: string
-    sat: string
-  }
-  custom_channel_data?: string
 }
 
-export type LndOnchainTransaction = {
-  tx_hash: string
-  amount: string
-  num_confirmations: number
-  block_hash: string
-  block_height: number
-  time_stamp: string
-  total_fees: string
-  dest_addresses: string[]
-  raw_tx_hex: string
-  label: string
-}
-
-export type LndPayment = {
-  payment_hash: string
-  value: string
-  creation_date: string
-  fee: string
-  /** Human-readable memo when returned by the node (optional). */
-  memo?: string
-  payment_preimage: string
-  value_sat: string
-  value_msat: string
-  payment_request: string
-  status: string
-  fee_sat: string
-  fee_msat: string
-  creation_time_ns: string
-  htlcs: {
-    status: string
-    route: {
-      hops: {
-        chan_id: string
-        chan_capacity: string
-        amt_to_forward: string
-        fee: string
-        expiry: number
-        amt_to_forward_msat: string
-        fee_msat: string
-        pub_key: string
-      }[]
-      total_time_lock: number
-      total_amt: string
-      total_amt_msat: string
-      total_fees: string
-      total_fees_msat: string
-    }
-  }[]
-}
-
-export type LndInvoice = {
-  r_hash: string
-  payment_request: string
-  add_index: string
-  payment_addr: string
-  payment_sat: string
-  payment_msat: string
-  settled: boolean
-  settle_date: string
-  state: string
-  value: string
-  value_msat: string
-  creation_date: string
-  description: string
-  memo?: string
-  expiry: string
-  cltv_expiry: string
-  amt_paid_sat: string
-  amt_paid_msat: string
-}
-
-export type LndProcessedBalance = {
-  total_balance: number
-  channel_balance: number
-  onchain_balance: number
-}
-
-export type LndCombinedTransaction = {
-  id: string
-  type: 'onchain' | 'lightning_send' | 'lightning_receive'
+export type LNDCombinedTransaction = {
   amount: number
-  timestamp: number
-  status: string
-  hash: string
   description?: string
-  num_confirmations?: number
-  fee?: number
-  originalAmount?: number
   expiry?: number
+  fee?: number
+  hash: string
+  id: string
+  num_confirmations?: number
+  originalAmount?: number
+  status: string
+  timestamp: number
+  type: 'onchain' | 'lightning_send' | 'lightning_receive'
 }
 
-export type LndNodeDashboardData = {
-  balance: LndProcessedBalance
-  transactions: LndCombinedTransaction[]
-  rawInvoices: Record<string, LndInvoice>
-  rawPayments: Record<string, LndPayment>
-  rawOnchainTxs: Record<string, LndOnchainTransaction>
-}
-/** LND REST `ListPeers` (subset). */
-export type LndListPeersResponse = {
-  peers?: LndRestPeer[]
-}
-
-export type LndRestPeer = {
-  address?: string
-  pub_key?: string
-}
-/** LND REST `PendingChannels` (subset; arrays only for counts / light UI). */
-
-export type LndPendingChannelsResponse = {
-  pending_closing_channels?: unknown[]
-  pending_force_closing_channels?: unknown[]
-  pending_open_channels?: unknown[]
-  waiting_close_channels?: unknown[]
-}
-/** LND REST `ExportAllChannelBackups` JSON (subset). */
-
-export type LndChanBackupSnapshot = {
-  multi_chan_backup?: { multi_chan_backup?: string }
-  single_chan_backups?: unknown
-}
-/** LND `ForwardingHistory` event (JSON subset). */
-export type LndForwardingEvent = {
+export type LNDForwardingEvent = {
   amt_in?: string
   amt_out?: string
   chan_id_in?: string
@@ -317,26 +92,250 @@ export type LndForwardingEvent = {
   timestamp_ns?: string
 }
 
-export type LndForwardingHistoryResponse = {
-  forwarding_events?: LndForwardingEvent[]
+export type LNDForwardingHistoryResponse = {
+  forwarding_events?: LNDForwardingEvent[]
   last_offset_index?: number
 }
 
-export type ChannelHistoryRow = {
-  extraLine?: string
-  feeSat: number
-  id: string
-  /** Outbound payment amount (sats) or forward amt_out (sats) for display. */
-  primarySats: number
-  source: 'forward' | 'payment'
-  timestampSec: number
+export type LNDInvoice = {
+  add_index: string
+  amt_paid_msat: string
+  amt_paid_sat: string
+  cltv_expiry: string
+  creation_date: string
+  description: string
+  expiry: string
+  memo?: string
+  payment_addr: string
+  payment_msat: string
+  payment_request: string
+  payment_sat: string
+  r_hash: string
+  settle_date: string
+  settled: boolean
+  state: string
+  value: string
+  value_msat: string
 }
 
-export type Bolt11Section = {
-  name: string
-  value: string | number
+export type LNDListPeersResponse = {
+  peers?: LNDRestPeer[]
 }
-export type Bolt11Decoded = {
-  sections: Bolt11Section[]
-  route_hints?: unknown[]
+
+export type LNDNodeDashboardData = {
+  balance: LNDProcessedBalance
+  rawInvoices: Record<string, LNDInvoice>
+  rawOnchainTxs: Record<string, LNDOnchainTransaction>
+  rawPayments: Record<string, LNDPayment>
+  transactions: LNDCombinedTransaction[]
+}
+
+export type LNDOnchainTransaction = {
+  amount: string
+  block_hash: string
+  block_height: number
+  dest_addresses: string[]
+  label: string
+  num_confirmations: number
+  raw_tx_hex: string
+  time_stamp: string
+  total_fees: string
+  tx_hash: string
+}
+
+export type LNDPayment = {
+  creation_date: string
+  creation_time_ns: string
+  fee: string
+  fee_msat: string
+  fee_sat: string
+  htlcs: {
+    route: {
+      hops: {
+        amt_to_forward: string
+        amt_to_forward_msat: string
+        chan_capacity: string
+        chan_id: string
+        expiry: number
+        fee: string
+        fee_msat: string
+        pub_key: string
+      }[]
+      total_amt: string
+      total_amt_msat: string
+      total_fees: string
+      total_fees_msat: string
+      total_time_lock: number
+    }
+    status: string
+  }[]
+  /** Human-readable memo when returned by the node (optional). */
+  memo?: string
+  payment_hash: string
+  payment_preimage: string
+  payment_request: string
+  status: string
+  value: string
+  value_msat: string
+  value_sat: string
+}
+
+export type LNDPendingChannelsResponse = {
+  pending_closing_channels?: unknown[]
+  pending_force_closing_channels?: unknown[]
+  pending_open_channels?: unknown[]
+  waiting_close_channels?: unknown[]
+}
+
+export type LNDProcessedBalance = {
+  channel_balance: number
+  onchain_balance: number
+  total_balance: number
+}
+
+export type LNDRestPeer = {
+  address?: string
+  pub_key?: string
+}
+
+export type LNDChannel = {
+  active: boolean
+  capacity: number
+  chan_id: string
+  chan_status_flags: string
+  channel_point: string
+  close_address: string
+  commit_fee: number
+  commit_weight: number
+  commitment_type: string
+  csv_delay: number
+  fee_per_kw: number
+  initiator: boolean
+  lifetime: number
+  local_balance: number
+  local_chan_reserve_sat: number
+  local_constraints: LNDChannelConstraints
+  num_updates: number
+  /** Gossip alias for the remote peer when known (newer LND REST). */
+  peer_alias?: string
+  pending_htlcs: unknown[]
+  private: boolean
+  push_amount_sat: number
+  remote_balance: number
+  remote_chan_reserve_sat: number
+  remote_constraints: LNDChannelConstraints
+  remote_pubkey: string
+  static_remote_key: boolean
+  thaw_height: number
+  total_satoshis_received: number
+  total_satoshis_sent: number
+  unsettled_balance: number
+  uptime: number
+}
+
+export type LNDChannelConstraints = {
+  chan_reserve_sat: number
+  csv_delay: number
+  dust_limit_sat: number
+  max_accepted_htlcs: number
+  max_pending_amt_msat: number
+  min_htlc_msat: number
+}
+
+export type LNDConfig = {
+  cert: string
+  macaroon: string
+  url: string
+}
+
+export type LNDDecodedInvoice = {
+  description: string
+  expiry: string
+  features: Record<string, { name: string }>
+  min_final_cltv_expiry: string
+  num_msat: string
+  num_satoshis: string
+  payment_addr: string
+  payment_hash: string
+  payment_request: string
+  payment_secret: string
+  route_hints: unknown[]
+  timestamp: string
+  value: string
+}
+
+export type LNDGetInfoChain = {
+  chain: string
+  network: string
+}
+
+export type LNDGraphNodeInfo = {
+  alias: string
+  color: string
+  pub_key: string
+}
+
+export type LNDNodeInfo = {
+  alias: string
+  best_header_timestamp: string
+  block_hash: string
+  block_height: number
+  chains: LNDGetInfoChain[]
+  commit_hash: string
+  identity_pubkey: string
+  num_active_channels: number
+  num_peers: number
+  synced_to_chain: boolean
+  uris: string[]
+  version: string
+}
+
+export type LNDPaymentResponse = {
+  payment_hash: string
+  payment_preimage: string
+  status: string
+}
+
+export type LNDRequest = <T>(
+  endpoint: string,
+  options?: LNDRequestOptions
+) => Promise<T>
+
+export type LNDRequestOptions = {
+  body?: unknown
+  /** When false, HTTP errors do not clear `isConnected` (for optional reads). */
+  disconnectOnError?: boolean
+  headers?: Record<string, string>
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+}
+
+export type LNURLPayInvoiceResponse = {
+  pr: string // bolt11 invoice
+  routes: unknown[] // payment routes, not used in our implementation
+}
+
+export type LNURLPayResponse = {
+  allowsNostr?: boolean
+  callback: string
+  commentAllowed?: number
+  maxSendable: number
+  metadata: string
+  minSendable: number
+  nostrPubkey?: string
+  tag: 'payRequest'
+}
+
+export type LNURLWithdrawDetails = {
+  callback: string
+  defaultDescription?: string
+  k1: string
+  maxWithdrawable: number
+  minWithdrawable: number
+  tag: 'withdrawRequest'
+}
+
+export type LNURLWithdrawResponse = {
+  pr?: string
+  reason?: string
+  status: 'OK' | 'ERROR'
 }

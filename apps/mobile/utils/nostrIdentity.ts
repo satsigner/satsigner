@@ -3,8 +3,8 @@ import { getPublicKey, nip19 } from 'nostr-tools'
 
 import { NIP06_DERIVATION_PATH } from '@/constants/nostr'
 import {
-  DecodedNostrContent,
-  DerivedNostrKeys,
+  NostrDecodedContent,
+  NostrDerivedKeys,
   EnhancedZapTags
 } from '@/types/models/Nostr'
 import { mnemonicToSeed } from '@/utils/bip39'
@@ -12,7 +12,7 @@ import { deriveNpubFromNsec } from '@/utils/nostr'
 
 export function deriveNostrKeysFromMnemonic(
   mnemonic: string
-): DerivedNostrKeys {
+): NostrDerivedKeys {
   const seed = mnemonicToSeed(mnemonic)
   const root = HDKey.fromMasterSeed(seed)
   const child = root.derive(NIP06_DERIVATION_PATH)
@@ -30,7 +30,7 @@ function stripNostrUri(data: string): string {
   return data.toLowerCase().startsWith('nostr:') ? data.slice(6) : data
 }
 
-export function decodeNostrContent(raw: string): DecodedNostrContent {
+export function decodeNostrContent(raw: string): NostrDecodedContent {
   const trimmed = stripNostrUri(raw.trim())
 
   if (trimmed.startsWith('npub1')) {

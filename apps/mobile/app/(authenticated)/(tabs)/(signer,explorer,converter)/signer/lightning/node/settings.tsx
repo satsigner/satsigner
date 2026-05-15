@@ -22,9 +22,9 @@ import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
 import { Colors, Layout } from '@/styles'
 import type {
-  LndChanBackupSnapshot,
-  LndListPeersResponse,
-  LndPendingChannelsResponse
+  LNDChanBackupSnapshot,
+  LNDListPeersResponse,
+  LNDPendingChannelsResponse
 } from '@/types/models/Lightning'
 import { shareFile } from '@/utils/filesystem'
 import { formatLndChainsForUi } from '@/utils/lndGetInfoChains'
@@ -53,8 +53,8 @@ export default function NodeSettingsPage() {
   } = useLND()
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [peers, setPeers] = useState<LndListPeersResponse | null>(null)
-  const [pending, setPending] = useState<LndPendingChannelsResponse | null>(
+  const [peers, setPeers] = useState<LNDListPeersResponse | null>(null)
+  const [pending, setPending] = useState<LNDPendingChannelsResponse | null>(
     null
   )
   const [peersError, setPeersError] = useState<string | null>(null)
@@ -147,7 +147,7 @@ export default function NodeSettingsPage() {
             void (async () => {
               setBackupLoading(true)
               try {
-                const snap: LndChanBackupSnapshot =
+                const snap: LNDChanBackupSnapshot =
                   await exportAllChannelBackups()
                 const multi = snap?.multi_chan_backup?.multi_chan_backup
                 const hasSingle =

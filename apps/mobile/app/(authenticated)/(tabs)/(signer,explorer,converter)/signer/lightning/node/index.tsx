@@ -51,7 +51,7 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
-import { type LndCombinedTransaction } from '@/types/models/Lightning'
+import { type LNDCombinedTransaction } from '@/types/models/Lightning'
 import { formatNumber, formatShortPubkey } from '@/utils/format'
 import { type LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
 import { lightningChannelHref } from '@/utils/lightningNavigation'
@@ -479,7 +479,7 @@ export default function NodeDetailPage() {
     )
   }
 
-  function renderTxRow(tx: LndCombinedTransaction) {
+  function renderTxRow(tx: LNDCombinedTransaction) {
     const nowMs = Date.now()
     const timestamp = new Date(tx.timestamp * 1000)
     const fiatAmount = satsToFiat(Math.abs(tx.amount), btcPrice)

@@ -8,14 +8,14 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type DecodedNostrContent } from '@/types/models/Nostr'
+import { type NostrDecodedContent } from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
 import { extractPubpayTags, truncateNpub } from '@/utils/nostrIdentity'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 
 type SSNostrNoteTemplateProps = {
-  content: DecodedNostrContent
+  content: NostrDecodedContent
   onPay?: (amountSats: number) => void
 }
 

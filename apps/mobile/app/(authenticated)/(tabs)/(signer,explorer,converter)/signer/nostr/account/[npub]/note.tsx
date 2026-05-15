@@ -57,7 +57,7 @@ import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
 import type {
   NostrKind0Profile,
-  DecodedNostrContent,
+  NostrDecodedContent,
   FetchedNoteData
 } from '@/types/models/Nostr'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
@@ -1929,7 +1929,7 @@ export default function NostrNotePage() {
 
 function deriveNoteItemForFeed(
   fetched: FetchedNoteData | null,
-  decoded: DecodedNostrContent | null
+  decoded: NostrDecodedContent | null
 ): NostrFeedNoteLike | null {
   if (!fetched || !decoded) {
     return null

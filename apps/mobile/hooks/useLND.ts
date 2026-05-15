@@ -4,10 +4,10 @@ import { useShallow } from 'zustand/react/shallow'
 import { LND_REST } from '@/constants/lightning'
 import { useLightningStore } from '@/store/lightning'
 import type {
-  LndChanBackupSnapshot,
-  LndListPeersResponse,
-  LndPendingChannelsResponse,
-  LndBlockchainBalanceResponse,
+  LNDChanBackupSnapshot,
+  LNDListPeersResponse,
+  LNDPendingChannelsResponse,
+  LNDBlockchainBalanceResponse,
   LNDChannel,
   LNDNodeInfo,
   LNDPaymentResponse,
@@ -108,8 +108,8 @@ export const useLND = () => {
     }
   }
 
-  const getBalance = (): Promise<LndBlockchainBalanceResponse> =>
-    makeRequest<LndBlockchainBalanceResponse>('/v1/balance/blockchain')
+  const getBalance = (): Promise<LNDBlockchainBalanceResponse> =>
+    makeRequest<LNDBlockchainBalanceResponse>('/v1/balance/blockchain')
 
   const getChannels = async (): Promise<LNDChannel[]> => {
     try {
@@ -178,7 +178,7 @@ export const useLND = () => {
   }
 
   const exportAllChannelBackups = () =>
-    makeRequest<LndChanBackupSnapshot>(LND_REST.CHANNEL_BACKUP_ALL, {
+    makeRequest<LNDChanBackupSnapshot>(LND_REST.CHANNEL_BACKUP_ALL, {
       disconnectOnError: false
     })
 
@@ -236,12 +236,12 @@ export const useLND = () => {
   }
 
   const getPendingChannels = () =>
-    makeRequest<LndPendingChannelsResponse>(LND_REST.CHANNELS_PENDING, {
+    makeRequest<LNDPendingChannelsResponse>(LND_REST.CHANNELS_PENDING, {
       disconnectOnError: false
     })
 
   const getPeers = () =>
-    makeRequest<LndListPeersResponse>(LND_REST.PEERS, {
+    makeRequest<LNDListPeersResponse>(LND_REST.PEERS, {
       disconnectOnError: false
     })
 
