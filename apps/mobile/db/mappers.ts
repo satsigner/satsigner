@@ -1,3 +1,4 @@
+import { Label } from '@/types/bips/329'
 import {
   type Account,
   type Key,
@@ -8,7 +9,6 @@ import { type Address } from '@/types/models/Address'
 import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type Label } from '@/utils/bip329'
 
 type AccountRow = {
   id: string

@@ -81,12 +81,10 @@ function isExtendedPublicKey(data: string): boolean {
   return validateExtendedKey(data)
 }
 
-async function detectBitcoinContent(
-  data: string
-): Promise<DetectedContent | null> {
+function detectBitcoinContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
-  const descriptorValidation = await validateDescriptorFormat(trimmed)
+  const descriptorValidation = validateDescriptorFormat(trimmed)
   if (descriptorValidation) {
     return {
       cleaned: trimmed,
@@ -548,10 +546,10 @@ function detectImportContent(data: string): DetectedContent | null {
   return null
 }
 
-export async function detectContentByContext(
+export function detectContentByContext(
   data: string,
   context: ContentContext
-): Promise<DetectedContent> {
+): DetectedContent {
   if (!data || data.trim().length === 0) {
     return {
       cleaned: data,
@@ -565,7 +563,7 @@ export async function detectContentByContext(
 
   switch (context) {
     case 'bitcoin':
-      detected = await detectBitcoinContent(data)
+      detected = detectBitcoinContent(data)
       if (!detected) {
         detected = detectLightningContent(data) || detectEcashContent(data)
         if (detected) {
@@ -578,8 +576,7 @@ export async function detectContentByContext(
         detectLndRestConfigConnectionString(data) ||
         detectLightningContent(data)
       if (!detected) {
-        detected =
-          (await detectBitcoinContent(data)) || detectEcashContent(data)
+        detected = detectBitcoinContent(data) || detectEcashContent(data)
         if (detected) {
           detected.type = 'incompatible'
         }
@@ -588,7 +585,7 @@ export async function detectContentByContext(
     case 'ark':
       detected = detectArkContent(data) || detectLightningContent(data)
       if (!detected) {
-        const bitcoinDetected = await detectBitcoinContent(data)
+        const bitcoinDetected = detectBitcoinContent(data)
         if (
           bitcoinDetected?.type === 'bitcoin_uri' ||
           bitcoinDetected?.type === 'bitcoin_address'
@@ -608,7 +605,7 @@ export async function detectContentByContext(
     case 'ecash':
       detected = detectEcashContent(data) || detectLightningContent(data)
       if (!detected) {
-        detected = await detectBitcoinContent(data)
+        detected = detectBitcoinContent(data)
         if (detected) {
           detected.type = 'incompatible'
         }

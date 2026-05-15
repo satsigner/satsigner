@@ -156,15 +156,15 @@ function useSyncAccountWithAddress() {
           sequence: input.sequence,
           witness: input.witness ? input.witness.map(parseHexToBytes) : []
         })
-        if (input.prevout.scriptpubkey_address === address) {
-          sent += input.prevout.value
+        if (input.prevout?.scriptpubkey_address === address) {
+          sent += input.prevout?.value
         }
       }
 
       for (const out of t.vout) {
         vout.push({
-          address: out.scriptpubkey_address,
-          script: parseHexToBytes(out.scriptpubkey),
+          address: out.scriptpubkey_address || '',
+          script: out.scriptpubkey ? parseHexToBytes(out.scriptpubkey) : [],
           value: out.value
         })
         if (out.scriptpubkey_address === address) {
@@ -230,7 +230,8 @@ function useSyncAccountWithAddress() {
       if (txDictionary[u.txid] !== undefined) {
         const txIndex = txDictionary[u.txid]
         const tx = esploraTxs[txIndex]
-        script = parseHexToBytes(tx.vout[u.vout].scriptpubkey)
+        const { scriptpubkey } = tx.vout[u.vout]
+        script = scriptpubkey ? parseHexToBytes(scriptpubkey) : []
       }
 
       return {
@@ -389,7 +390,7 @@ function useSyncAccountWithAddress() {
       const { height } = tx
 
       // fetch raw transaction
-      const rawTx = await electrumClient.getTransaction(txid)
+      const rawTx = await electrumClient.getTransactionRaw(txid)
       rawTransactions.push(rawTx)
 
       // update progress

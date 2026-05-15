@@ -1,6 +1,6 @@
 import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
-import { type Label } from '@/utils/bip329'
+import { Label } from '@/types/bips/329'
 
 import { runTransaction } from '../connection'
 import { dateToIso, optionalToJson } from '../mappers'

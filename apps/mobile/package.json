@@ -105,6 +105,7 @@
     "sonner-native": "^0.17.0",
     "varuint-bitcoin": "1.1.2",
     "victory-native": "^41.16.0",
+    "zod": "^4.4.3",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

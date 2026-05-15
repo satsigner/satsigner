@@ -86,14 +86,11 @@ function publishOnSocket(
 
 export class Nip46BunkerService {
   private sockets: WebSocket[] = []
-  private relays: string[] = []
   private conversationKey: Uint8Array | null = null
   private active = false
   private subId = `nip46-${Date.now()}`
 
   async connect(relays: string[]): Promise<void> {
-    this.relays = relays
-
     const results = await Promise.allSettled(
       relays.map(
         (url) =>

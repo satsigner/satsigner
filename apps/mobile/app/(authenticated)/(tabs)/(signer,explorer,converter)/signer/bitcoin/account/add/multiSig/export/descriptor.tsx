@@ -14,11 +14,8 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type {
-  CreationType,
-  ScriptVersionType,
-  Secret
-} from '@/types/models/Account'
+import type { CreationType, Secret } from '@/types/models/Account'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
 import {

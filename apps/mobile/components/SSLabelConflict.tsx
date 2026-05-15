@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { Colors } from '@/styles'
-import { type Label } from '@/utils/bip329'
+import { type Label } from '@/types/bips/329'
 
 import SSButton from './SSButton'
 import SSCheckbox from './SSCheckbox'

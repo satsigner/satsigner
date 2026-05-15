@@ -2,30 +2,24 @@ import { hmac } from '@noble/hashes/hmac'
 import { pbkdf2Async } from '@noble/hashes/pbkdf2'
 import { sha512 } from '@noble/hashes/sha512'
 import { HDKey } from '@scure/bip32'
-// Wordlists are static data imported directly from bip39 JSON files.
-import chineseSimplified from 'bip39/src/wordlists/chinese_simplified.json'
-import chineseTraditional from 'bip39/src/wordlists/chinese_traditional.json'
-import czech from 'bip39/src/wordlists/czech.json'
-import english from 'bip39/src/wordlists/english.json'
-import french from 'bip39/src/wordlists/french.json'
-import italian from 'bip39/src/wordlists/italian.json'
-import japanese from 'bip39/src/wordlists/japanese.json'
-import korean from 'bip39/src/wordlists/korean.json'
-import portuguese from 'bip39/src/wordlists/portuguese.json'
-import spanish from 'bip39/src/wordlists/spanish.json'
 import {
   type KeychainKind,
   Language,
   Mnemonic,
-  Network,
-  WordCount
+  Network
 } from 'react-native-bdk-sdk'
 
-import type {
+import {
+  DEFAULT_WORD_LIST,
+  LANGUAGE_MAP,
   MnemonicWordCount,
-  ScriptVersionType,
-  Secret
-} from '@/types/models/Account'
+  WORD_COUNT_MAP,
+  WORD_COUNT_TO_ENTROPY_BYTES,
+  WordListName,
+  WORDLISTS
+} from '@/types/bips/39'
+import type { Secret } from '@/types/models/Account'
+import type { ScriptVersionType } from '@/types/models/Script'
 import {
   fingerprintToHex,
   getExtendedPublicKeyFromSeed,
@@ -37,65 +31,6 @@ import {
   getXpubForScriptVersion,
   toHex
 } from '@/utils/bip32'
-
-export const WORDLIST_LIST = [
-  'chinese_simplified',
-  'chinese_traditional',
-  'czech',
-  'english',
-  'french',
-  'italian',
-  'japanese',
-  'korean',
-  'portuguese',
-  'spanish'
-] as const
-
-export type WordListName = (typeof WORDLIST_LIST)[number]
-
-export const DEFAULT_WORD_LIST: WordListName = 'english'
-
-const WORDLISTS: Record<WordListName, string[]> = {
-  chinese_simplified: chineseSimplified,
-  chinese_traditional: chineseTraditional,
-  czech,
-  english,
-  french,
-  italian,
-  japanese,
-  korean,
-  portuguese,
-  spanish
-}
-
-const LANGUAGE_MAP: Record<WordListName, Language> = {
-  chinese_simplified: Language.SimplifiedChinese,
-  chinese_traditional: Language.TraditionalChinese,
-  czech: Language.Czech,
-  english: Language.English,
-  french: Language.French,
-  italian: Language.Italian,
-  japanese: Language.Japanese,
-  korean: Language.Korean,
-  portuguese: Language.Portuguese,
-  spanish: Language.Spanish
-}
-
-const WORD_COUNT_MAP: Record<MnemonicWordCount, WordCount> = {
-  12: WordCount.Words12,
-  15: WordCount.Words15,
-  18: WordCount.Words18,
-  21: WordCount.Words21,
-  24: WordCount.Words24
-}
-
-const WORD_COUNT_TO_ENTROPY_BYTES: Record<MnemonicWordCount, number> = {
-  12: 16,
-  15: 20,
-  18: 24,
-  21: 28,
-  24: 32
-}
 
 export function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
   return WORDLISTS[name]
