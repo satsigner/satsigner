@@ -3,6 +3,7 @@ import {
   AppState,
   Keyboard,
   StyleSheet,
+  TextInput,
   type TextInput as RNTextInput
 } from 'react-native'
 import { toast } from 'sonner-native'
@@ -10,7 +11,6 @@ import { toast } from 'sonner-native'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -20,9 +20,9 @@ import {
   type ContentContext,
   type ContentType,
   detectContentByContext,
-  type DetectedContent
+  type DetectedContent,
+  preprocessByContext
 } from '@/utils/contentDetector'
-import { stripBitcoinPrefix } from '@/utils/parse'
 
 type SSPasteProps = {
   visible: boolean
@@ -71,8 +71,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const validateContent = useCallback(
     async (text: string) => {
       try {
-        const processedText =
-          context === 'bitcoin' ? stripBitcoinPrefix(text) : text
+        const processedText = preprocessByContext(text, context)
         const detectedContent = await detectContentByContext(
           processedText,
           context
@@ -127,8 +126,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         setTimeout(resolve, 100)
       })
 
-      const processedContent =
-        context === 'bitcoin' ? stripBitcoinPrefix(content) : content
+      const processedContent = preprocessByContext(content, context)
 
       const detectedContent = await detectContentByContext(
         processedContent,
@@ -268,7 +266,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     <SSModal visible={visible} fullOpacity onClose={onClose}>
       <SSVStack
         justifyBetween
-        style={{ height: '100%', paddingHorizontal: 20 }}
+        style={{ alignSelf: 'stretch', height: '100%', paddingHorizontal: 20 }}
       >
         <SSVStack itemsCenter gap="md" style={{ width: '100%' }}>
           <SSText center uppercase>
@@ -287,11 +285,12 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
           >
             {getValidationMessage()}
           </SSText>
-          <SSTextInput
+          <TextInput
             ref={inputRef}
             value={content}
             onChangeText={setContent}
             placeholder={getContextDescription()}
+            placeholderTextColor={Colors.gray[400]}
             multiline
             blurOnSubmit
             returnKeyType="done"
@@ -299,7 +298,6 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
               Keyboard.dismiss()
               inputRef.current?.blur()
             }}
-            numberOfLines={20}
             style={[
               styles.textInput,
               {
@@ -329,19 +327,16 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
 const styles = StyleSheet.create({
   textInput: {
+    alignSelf: 'stretch',
     backgroundColor: Colors.gray[900],
     borderRadius: 5,
     borderWidth: 1,
-    fontFamily: 'monospace',
+    color: Colors.white,
     fontSize: 14,
-    height: 'auto',
-    letterSpacing: 0.5,
     maxHeight: 400,
-    maxWidth: 320,
     minHeight: 200,
     padding: 10,
-    textAlign: 'left',
-    width: '100%'
+    textAlign: 'left'
   }
 })
 

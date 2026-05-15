@@ -78,7 +78,10 @@ function SSEcashTokenDetails({
               {t('ecash.tokenDetails.proofs')}
             </SSText>
             <SSText style={styles.detailValue}>
-              {decodedToken.proofs.length} {t('ecash.tokenDetails.proofsCount')}
+              {decodedToken.proofs.length}{' '}
+              {decodedToken.proofs.length === 1
+                ? t('ecash.tokenDetails.proofsCountSingular')
+                : t('ecash.tokenDetails.proofsCount')}
             </SSText>
           </SSHStack>
         </View>

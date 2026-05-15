@@ -29,6 +29,11 @@ import SSNFCModal from '@/components/SSNFCModal'
 import SSPaste from '@/components/SSPaste'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_HIT_BOX
+} from '@/constants/headerChrome'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useEcash } from '@/hooks/useEcash'
 import { useEcashContentHandler } from '@/hooks/useEcashContentHandler'
@@ -42,8 +47,9 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import { formatFiatPrice } from '@/utils/format'
 
+const { '500': ECASH_BALANCE_LABEL_COLOR } = Colors.gray
+
 const MAX_VISIBLE_TRANSACTIONS = 50
-const PRIVACY_MASK = '••••'
 const TAB_WIDTH = '50%'
 
 const tabs = [{ key: 'transactions' }, { key: 'proofs' }]
@@ -57,10 +63,6 @@ export default function EcashAccountDetailPage() {
   const [proofsView, setProofsView] = useState<'list' | 'bubbles'>('list')
 
   const setActiveAccountId = useEcashStore((state) => state.setActiveAccountId)
-
-  if (id && activeAccount?.id !== id) {
-    setActiveAccountId(id)
-  }
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
@@ -86,6 +88,11 @@ export default function EcashAccountDetailPage() {
     onReceive: ecashContentHandler.handleReceive,
     onSend: ecashContentHandler.handleSend
   })
+
+  if (id && activeAccount?.id !== id) {
+    setActiveAccountId(id)
+    return null
+  }
 
   const totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
 
@@ -260,7 +267,10 @@ export default function EcashAccountDetailPage() {
           headerRight: () => (
             <SSIconButton
               onPress={handleSettingsPress}
-              style={{ marginRight: 8 }}
+              style={[
+                HEADER_CHROME_HIT_BOX,
+                { marginRight: -HEADER_CHROME_EDGE_NUDGE }
+              ]}
             >
               <SSIconECash
                 height={16}
@@ -329,7 +339,7 @@ export default function EcashAccountDetailPage() {
                     letterSpacing={-1}
                   />
                 )}
-                <SSText size="xl" color="muted">
+                <SSText size="xl" style={{ color: ECASH_BALANCE_LABEL_COLOR }}>
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
                     : t('bitcoin.sats')}
@@ -337,17 +347,23 @@ export default function EcashAccountDetailPage() {
               </SSHStack>
               {btcPrice > 0 && (
                 <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                  <SSText color="muted">
+                  <SSText
+                    size="xl"
+                    style={{ color: ECASH_BALANCE_LABEL_COLOR }}
+                  >
                     {privacyMode
                       ? PRIVACY_MASK
                       : formatFiatPrice(totalBalance, btcPrice)}
                   </SSText>
-                  <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                  <SSText
+                    size="xl"
+                    style={{ color: ECASH_BALANCE_LABEL_COLOR }}
+                  >
                     {fiatCurrency}
                   </SSText>
                 </SSHStack>
               )}
-              <SSVStack style={styles.statusContainer} gap="xs">
+              <SSHStack gap="sm" style={styles.statusContainer}>
                 {mints.map((mint) => (
                   <SSHStack
                     key={mint.url}
@@ -359,12 +375,12 @@ export default function EcashAccountDetailPage() {
                     ) : (
                       <SSIconBlackIndicator height={10} width={10} />
                     )}
-                    <SSText color="muted" size="xs">
+                    <SSText color="muted" size="xs" numberOfLines={1}>
                       {mint.name || mint.url}
                     </SSText>
                   </SSHStack>
                 ))}
-              </SSVStack>
+              </SSHStack>
             </SSVStack>
             <SSButtonActionsGroup
               context="ecash"
@@ -438,9 +454,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   statusContainer: {
-    alignItems: 'center',
-    paddingBottom: 20,
-    paddingTop: 8
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingBottom: 12,
+    paddingTop: 4
   },
   tabIndicator: {
     backgroundColor: Colors.white,

@@ -1,28 +1,37 @@
+import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
+import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
+import { SSIconEllipsis } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSIconButton from '@/components/SSIconButton'
+import SSModal from '@/components/SSModal'
 import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
 import SSNostrHeroCard from '@/components/SSNostrHeroCard'
-import SSPaymentMethodPicker, {
-  type PaymentMethod
-} from '@/components/SSPaymentMethodPicker'
+import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
-import { Colors } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import { type PaymentMethod } from '@/types/models/PaymentMethod'
+import { setClipboard } from '@/utils/clipboard'
+import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
+import { nostrZapDetailHref } from '@/utils/nostrNavigation'
 import { buildPaymentMethods } from '@/utils/paymentMethods'
 import { initiateZap } from '@/utils/zap'
 
@@ -35,6 +44,8 @@ export default function NostrContactProfile() {
   const router = useRouter()
   const { npub, targetNpub } = useLocalSearchParams<ContactParams>()
 
+  const targetPubkeyHex = getPubKeyHexFromNpub(targetNpub ?? '')
+
   const owner = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
@@ -44,14 +55,32 @@ export default function NostrContactProfile() {
   const [targetIdentity, setTargetIdentity] = useState<NostrIdentity | null>(
     null
   )
+
+  const nip05 = targetIdentity?.nip05?.trim()
+  const { data: nip05Valid } = useQuery({
+    enabled: !!targetPubkeyHex && !!nip05,
+    queryFn: () => validateNip05(targetPubkeyHex!, nip05!),
+    queryKey: ['nostr', 'nip05-valid', targetNpub, nip05],
+    staleTime: 5 * 60_000
+  })
   const [loading, setLoading] = useState(true)
   const [zapLoading, setZapLoading] = useState(false)
-  const [paymentPickerVisible, setPaymentPickerVisible] = useState(false)
+  const [moreModalVisible, setMoreModalVisible] = useState(false)
+  const paymentSheetRef = useRef<BottomSheetMethods>(null)
   const [payAmount, setPayAmount] = useState(0)
 
   const lightningConfig = useLightningStore((state) => state.config)
+  const lightningNodeAlias = useLightningStore(
+    (state) => state.status?.nodeInfo?.alias
+  )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
-  const { mints } = useEcash()
+  const btcPrice = usePriceStore((state) => state.btcPrice)
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
+  const {
+    accounts: ecashAccounts,
+    allMints: ecashAllMints,
+    setActiveAccountId: setEcashActiveAccountId
+  } = useEcash()
   const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingInvoice = useState<{
@@ -60,8 +89,9 @@ export default function NostrContactProfile() {
   } | null>(null)
 
   const availablePaymentMethods = buildPaymentMethods(
-    lightningConfig,
-    mints,
+    lightningConfig ? { ...lightningConfig, alias: lightningNodeAlias } : null,
+    ecashAccounts,
+    ecashAllMints,
     arkAccounts
   )
 
@@ -86,6 +116,7 @@ export default function NostrContactProfile() {
       const api = new NostrAPI(effectiveRelays)
       const profile = await api.fetchKind0(targetNpub)
       setTargetIdentity({
+        banner: profile?.banner,
         createdAt: Date.now(),
         displayName: profile?.displayName,
         isWatchOnly: true,
@@ -124,11 +155,14 @@ export default function NostrContactProfile() {
     setZapLoading(true)
 
     try {
-      const hexPubkey = nip19.decode(targetNpub).data as string
+      if (!targetPubkeyHex) {
+        setZapLoading(false)
+        return
+      }
       const { invoice, zapRequestJson } = await initiateZap({
         amountSats,
         recipientLud16: targetIdentity.lud16,
-        recipientPubkeyHex: hexPubkey,
+        recipientPubkeyHex: targetPubkeyHex,
         relays: effectiveRelays,
         senderNsec: owner.nsec
       })
@@ -147,7 +181,7 @@ export default function NostrContactProfile() {
       }
 
       setPayAmount(amountSats)
-      setPaymentPickerVisible(true)
+      paymentSheetRef.current?.snapToIndex(0)
     } catch {
       setZapLoading(false)
     }
@@ -159,7 +193,7 @@ export default function NostrContactProfile() {
     zapRequestJson?: string,
     amountSats?: number
   ) {
-    setPaymentPickerVisible(false)
+    paymentSheetRef.current?.close()
 
     const bolt11 = invoice || pendingInvoice[0]?.invoice
     const reqJson = zapRequestJson || pendingInvoice[0]?.zapRequestJson || ''
@@ -183,6 +217,9 @@ export default function NostrContactProfile() {
         pathname: '/signer/lightning/pay'
       })
     } else if (method.type === 'ecash') {
+      if (method.accountId) {
+        setEcashActiveAccountId(method.accountId)
+      }
       router.navigate({
         params: bolt11 ? { invoice: bolt11 } : undefined,
         pathname: '/signer/ecash/send'
@@ -215,6 +252,23 @@ export default function NostrContactProfile() {
     })
   }
 
+  if (!targetPubkeyHex) {
+    return (
+      <SSMainLayout>
+        <SSVStack itemsCenter gap="lg" style={styles.centered}>
+          <SSText color="muted">
+            {t('nostrIdentity.contact.invalidNpub')}
+          </SSText>
+          <SSButton
+            label={t('common.back')}
+            variant="ghost"
+            onPress={() => router.back()}
+          />
+        </SSVStack>
+      </SSMainLayout>
+    )
+  }
+
   if (!owner) {
     return (
       <SSMainLayout>
@@ -226,7 +280,7 @@ export default function NostrContactProfile() {
   }
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={{ paddingHorizontal: 0 }}>
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -241,24 +295,32 @@ export default function NostrContactProfile() {
         </SSVStack>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
+          <SSNostrHeroCard
+            identity={targetIdentity}
+            nip05Valid={nip05Valid ?? null}
+          />
           <SSVStack gap="md" style={styles.content}>
-            <SSNostrHeroCard identity={targetIdentity} />
-
-            {targetIdentity.lud16 &&
-              availablePaymentMethods.length > 0 &&
-              owner?.nsec && (
-                <SSButton
-                  label={
-                    zapLoading
-                      ? t('nostrIdentity.note.zapSending')
-                      : `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : 21} sats`
-                  }
-                  variant="gradient"
-                  gradientType="special"
-                  disabled={zapLoading}
-                  onPress={handleZap}
-                />
-              )}
+            <SSHStack gap="sm">
+              {targetIdentity.lud16 &&
+                availablePaymentMethods.length > 0 &&
+                owner?.nsec && (
+                  <SSButton
+                    style={{ flex: 1 }}
+                    label={
+                      zapLoading
+                        ? t('nostrIdentity.note.zapSending')
+                        : `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : 21} sats`
+                    }
+                    variant="gradient"
+                    gradientType="special"
+                    disabled={zapLoading}
+                    onPress={handleZap}
+                  />
+                )}
+              <SSIconButton onPress={() => setMoreModalVisible(true)}>
+                <SSIconEllipsis width={22} height={6} />
+              </SSIconButton>
+            </SSHStack>
 
             {!targetIdentity.lud16 && availablePaymentMethods.length > 0 && (
               <SSText size="xs" color="muted" center>
@@ -277,18 +339,38 @@ export default function NostrContactProfile() {
               relayConnected={owner?.relayConnected === true}
               relays={effectiveRelays}
               onNotePress={handleNotePress}
+              onZapPress={(receipt) => {
+                if (npub) {
+                  router.navigate(nostrZapDetailHref(npub, receipt.id))
+                }
+              }}
             />
           </SSVStack>
         </ScrollView>
       )}
 
       <SSPaymentMethodPicker
-        visible={paymentPickerVisible}
-        onClose={() => setPaymentPickerVisible(false)}
+        ref={paymentSheetRef}
         onSelect={(method) => navigateToPayment(method)}
         methods={availablePaymentMethods}
         amountSats={payAmount}
+        btcPrice={btcPrice}
+        fiatCurrency={fiatCurrency}
       />
+
+      <SSModal
+        visible={moreModalVisible}
+        onClose={() => setMoreModalVisible(false)}
+      >
+        <SSButton
+          label={t('nostrIdentity.contact.copyNpub')}
+          variant="ghost"
+          onPress={() => {
+            void setClipboard(targetNpub ?? '')
+            setMoreModalVisible(false)
+          }}
+        />
+      </SSModal>
     </SSMainLayout>
   )
 }
@@ -300,6 +382,7 @@ const styles = StyleSheet.create({
     paddingVertical: 48
   },
   content: {
-    paddingBottom: 40
+    paddingBottom: 40,
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal
   }
 })

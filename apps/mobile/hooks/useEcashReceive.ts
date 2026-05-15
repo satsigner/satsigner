@@ -5,8 +5,9 @@ import { toast } from 'sonner-native'
 
 import { useEcash, useQuotePolling } from '@/hooks/useEcash'
 import { t } from '@/locales'
-import type { EcashToken } from '@/types/models/Ecash'
+import type { EcashMint, EcashToken } from '@/types/models/Ecash'
 import type { LNURLWithdrawDetails } from '@/types/models/LNURL'
+import { prepareEcashTokenInput } from '@/utils/contentDetector'
 import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,
@@ -49,13 +50,23 @@ export function useEcashReceive() {
   const {
     activeAccountId,
     mints,
+    proofs,
     receiveEcash,
     createMintQuote,
     checkMintQuote,
     mintProofs,
-    checkTokenStatus
+    checkTokenStatus,
+    connectToMint
   } = useEcash()
-  const activeMint = mints[0] ?? null
+  const [isAddingMint, setIsAddingMint] = useState(false)
+  const [selectedMintUrlForLightning, setSelectedMintUrlForLightning] =
+    useState<string | null>(null)
+  const selectedMintForLightning =
+    mints.find((m) => m.url === selectedMintUrlForLightning) ?? mints[0] ?? null
+
+  function setSelectedMintForLightning(mint: EcashMint) {
+    setSelectedMintUrlForLightning(mint.url)
+  }
   const { isPolling, startPolling, stopPolling } = useQuotePolling()
 
   // checkTokenStatus is recreated on every useEcash render, so mirror it into
@@ -117,15 +128,15 @@ export function useEcashReceive() {
   }, [token, decodedToken, isTokenMintConnected])
 
   function handleTokenChange(text: string) {
-    setToken(text)
+    const normalized = prepareEcashTokenInput(text)
+    setToken(normalized)
     setDecodedToken(null)
 
-    const cleanText = text.trim()
-    if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) {
+    if (!normalized || !normalized.toLowerCase().startsWith('cashu')) {
       return
     }
     try {
-      const decoded = getDecodedToken(cleanText)
+      const decoded = getDecodedToken(normalized)
       setDecodedToken(decoded as EcashToken)
     } catch {
       setDecodedToken(null)
@@ -175,7 +186,7 @@ export function useEcashReceive() {
       return
     }
 
-    if (!activeMint) {
+    if (!tokenMintUrl) {
       toast.error(t('ecash.error.noMintConnected'))
       return
     }
@@ -187,7 +198,7 @@ export function useEcashReceive() {
 
     setIsRedeeming(true)
     try {
-      await receiveEcash(activeMint.url, token)
+      await receiveEcash(tokenMintUrl, token)
       setToken('')
       setTokenSpentStatus('unknown')
       if (activeAccountId) {
@@ -225,7 +236,7 @@ export function useEcashReceive() {
       return
     }
 
-    if (!activeMint) {
+    if (!selectedMintForLightning) {
       toast.error(t('ecash.error.noMintConnected'))
       return
     }
@@ -255,7 +266,8 @@ export function useEcashReceive() {
         }
       }
 
-      const quote = await createMintQuote(activeMint.url, amountSats, memo)
+      const mintUrl = selectedMintForLightning.url
+      const quote = await createMintQuote(mintUrl, amountSats, memo)
       setMintQuote(quote)
       setQuoteStatus('PENDING')
       toast.success(t('ecash.success.invoiceCreated'))
@@ -280,16 +292,16 @@ export function useEcashReceive() {
 
       setTimeout(() => {
         startPolling(async () => {
-          if (!activeMint || !quote) {
+          if (!mintUrl || !quote) {
             return false
           }
 
           try {
-            const status = await checkMintQuote(activeMint.url, quote.quote)
+            const status = await checkMintQuote(mintUrl, quote.quote)
             setQuoteStatus(status)
 
             if (status === 'PAID' || status === 'ISSUED') {
-              await mintProofs(activeMint.url, amountSats, quote.quote)
+              await mintProofs(mintUrl, amountSats, quote.quote)
               setMintQuote(null)
               setAmount('')
               setMemo('')
@@ -333,13 +345,28 @@ export function useEcashReceive() {
     setIsLNURLWithdrawMode(false)
   }
 
+  async function addTokenMint() {
+    if (!tokenMintUrl) {
+      return
+    }
+    setIsAddingMint(true)
+    try {
+      await connectToMint(tokenMintUrl)
+    } catch {
+      // Error handling is done in connectToMint
+    } finally {
+      setIsAddingMint(false)
+    }
+  }
+
   return {
-    activeMint,
+    addTokenMint,
     amount,
     createInvoice,
     decodedToken,
     handleLNURLWithdrawInput,
     handleTokenChange,
+    isAddingMint,
     isCreatingQuote,
     isFetchingLNURL,
     isLNURLWithdrawMode,
@@ -350,11 +377,14 @@ export function useEcashReceive() {
     memo,
     mintQuote,
     mints,
+    proofs,
     quoteStatus,
     redeemToken,
     resetLNURLState,
+    selectedMintForLightning,
     setAmount,
     setMemo,
+    setSelectedMintForLightning,
     stopPolling,
     token,
     tokenMintUrl,

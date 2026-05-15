@@ -4,7 +4,8 @@ import { useNFCReader } from '@/hooks/useNFCReader'
 import {
   type ContentContext,
   detectContentByContext,
-  type DetectedContent
+  type DetectedContent,
+  prepareEcashTokenInput
 } from '@/utils/contentDetector'
 
 type UseContentHandlerProps = {
@@ -35,7 +36,9 @@ export function useContentHandler({
 
   const handleNFCContentRead = useCallback(
     (content: string) => {
-      const detectedContent = detectContentByContext(content, context)
+      const normalized =
+        context === 'ecash' ? prepareEcashTokenInput(content) : content
+      const detectedContent = detectContentByContext(normalized, context)
       onContentScanned(detectedContent)
     },
     [context, onContentScanned]

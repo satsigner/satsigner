@@ -1,6 +1,5 @@
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
-import { type ForwardedRef, forwardRef } from 'react'
 import { StyleSheet } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
@@ -13,17 +12,16 @@ type SSBottomSheetProps = {
   snapPoints?: (string | number)[]
   paddingX?: boolean
   children: React.ReactNode
+  ref?: React.Ref<BottomSheetMethods>
 }
 
-function SSBottomSheet(
-  {
-    title,
-    snapPoints = ['50%'],
-    paddingX = true,
-    children
-  }: SSBottomSheetProps,
-  ref: ForwardedRef<BottomSheetMethods>
-) {
+function SSBottomSheet({
+  title,
+  snapPoints = ['50%'],
+  paddingX = true,
+  children,
+  ref
+}: SSBottomSheetProps) {
   return (
     <BottomSheet
       ref={ref}
@@ -73,4 +71,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default forwardRef(SSBottomSheet)
+export default SSBottomSheet

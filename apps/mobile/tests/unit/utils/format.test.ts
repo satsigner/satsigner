@@ -53,10 +53,10 @@ describe('format utils', () => {
   })
 
   describe('formatNostrCardDate', () => {
-    it('should return DD MMM,YY for a Nostr unix timestamp', () => {
+    it('should return MMM DD, YYYY · time for a Nostr unix timestamp', () => {
       const localNoon = new Date(2026, 3, 15, 12, 0, 0)
       const unix = Math.floor(localNoon.getTime() / 1000)
-      expect(formatNostrCardDate(unix)).toBe('Apr 15, 26')
+      expect(formatNostrCardDate(unix)).toBe('Apr 15, 2026 · 12:00pm')
     })
 
     it('should return empty string for zero', () => {

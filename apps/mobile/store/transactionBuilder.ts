@@ -46,6 +46,7 @@ type TransactionBuilderAction = {
   hasInput: (utxo: Utxo) => boolean
   addInput: (utxo: Utxo) => void
   removeInput: (utxo: Utxo) => void
+  removeOrphanedInputs: (accountUtxos: Utxo[]) => void
   addOutput: (output: Omit<Output, 'localId'>) => void
   updateOutput: (
     localId: Output['localId'],
@@ -134,6 +135,17 @@ const useTransactionBuilderStore = create<
       removeInput: (utxo) => {
         set((state) => {
           state.inputs.delete(getUtxoOutpoint(utxo))
+          syncDraft(state)
+        })
+      },
+      removeOrphanedInputs: (accountUtxos) => {
+        set((state) => {
+          const validOutpoints = new Set(accountUtxos.map(getUtxoOutpoint))
+          for (const outpoint of state.inputs.keys()) {
+            if (!validOutpoints.has(outpoint)) {
+              state.inputs.delete(outpoint)
+            }
+          }
           syncDraft(state)
         })
       },

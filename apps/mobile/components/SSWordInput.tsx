@@ -1,4 +1,3 @@
-import { type ForwardedRef, forwardRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -11,20 +10,19 @@ type SSWordInputProps = {
   position: number
   editable?: boolean
   index: number
+  ref?: React.Ref<TextInput>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-function SSWordInput(
-  {
-    value,
-    invalid,
-    position,
-    editable = true,
-    index,
-    style,
-    ...props
-  }: SSWordInputProps,
-  ref: ForwardedRef<TextInput>
-) {
+function SSWordInput({
+  value,
+  invalid,
+  position,
+  editable = true,
+  index,
+  style,
+  ref,
+  ...props
+}: SSWordInputProps) {
   return (
     <View style={styles.containerBase}>
       <TextInput
@@ -76,4 +74,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default forwardRef(SSWordInput)
+export default SSWordInput

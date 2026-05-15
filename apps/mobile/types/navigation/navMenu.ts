@@ -12,6 +12,8 @@ export enum PLATFORM {
  */
 export type NavMenuItemIconProps = {
   focused?: boolean
+  height?: number
+  width?: number
 }
 
 export type NavMenuItem = {

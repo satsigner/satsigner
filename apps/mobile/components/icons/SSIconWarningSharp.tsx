@@ -10,7 +10,7 @@ export default function SSIconWarningSharp({
   height = 82,
   fill = 'none',
   stroke = 'white',
-  strokeWidth = 3,
+  strokeWidth = 1,
   ...rest
 }: IconProps) {
   return (
