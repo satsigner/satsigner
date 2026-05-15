@@ -217,22 +217,6 @@ async function getWalletData(
         )
       }
 
-      const fingerprints = validKeyData.map((kd) => kd.fingerprint)
-      const uniqueFingerprints = [...new Set(fingerprints)]
-      if (uniqueFingerprints.length !== fingerprints.length) {
-        throw new Error(
-          'Multisig wallets require unique keys. Using the same seed for multiple keys is not allowed. Each key must be derived from a different seed.'
-        )
-      }
-
-      const extendedPublicKeys = validKeyData.map((kd) => kd.extendedPublicKey)
-      const uniqueExtendedPublicKeys = [...new Set(extendedPublicKeys)]
-      if (uniqueExtendedPublicKeys.length !== extendedPublicKeys.length) {
-        throw new Error(
-          'Multisig wallets require unique keys. Using the same extended public key for multiple keys is not allowed.'
-        )
-      }
-
       const policyDerivationPath = getMultisigDerivationPathFromScriptVersion(
         scriptVersion,
         toAppNetwork(network)
@@ -858,7 +842,14 @@ async function getTransactionInputValues(
 
   if (backend === 'esplora') {
     const esploraClient = new Esplora(url)
-    vin = await esploraClient.getTxInputValues(tx.id)
+    const esploraVin = await esploraClient.getTxInputValues(tx.id)
+    vin = esploraVin.map((input) => ({
+      previousOutput: input.previousOutput,
+      scriptSig: input.scriptSig,
+      sequence: input.sequence,
+      value: input.value,
+      witness: input.witness || []
+    }))
   }
 
   for (const [index, vinItem] of vin.entries()) {

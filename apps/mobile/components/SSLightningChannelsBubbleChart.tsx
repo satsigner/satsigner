@@ -12,6 +12,7 @@ import {
   LIGHTNING_BUBBLE_CHART_SPOKE_STROKE,
   LIGHTNING_BUBBLE_CHART_SPOKE_STROKE_WIDTH
 } from '@/constants/lightningChannelsBubbleChart'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
@@ -19,8 +20,6 @@ import {
   type LightningBubbleChannelRow,
   buildLightningChannelsBubbleLayout
 } from '@/utils/lightningChannelsBubbleLayout'
-
-const PRIVACY_MASK = '••••'
 
 type SSLightningChannelsBubbleChartProps = {
   height: number

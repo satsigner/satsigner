@@ -25,20 +25,24 @@ describe('buildPaymentMethods', () => {
     })
   })
 
-  it('includes ecash mints', () => {
-    const methods = buildPaymentMethods(null, [
-      { name: 'Mint A', url: 'https://mint-a.example' }
-    ])
+  it('includes ecash accounts with aggregated balance', () => {
+    const methods = buildPaymentMethods(
+      null,
+      [{ id: 'acc-1', name: 'Mint A' }],
+      { 'acc-1': [{ balance: 50 }, { balance: 50 }] }
+    )
     expect(methods).toHaveLength(1)
     expect(methods[0]).toMatchObject({
-      id: 'ecash-https://mint-a.example',
+      balanceSats: 100,
+      id: 'ecash-acc-1',
+      label: 'Mint A',
       type: 'ecash'
     })
   })
 
   it('includes ark accounts with structured accountId', () => {
     const account = arkAccount({ id: 'abc-123', name: 'Signet Ark' })
-    const methods = buildPaymentMethods(null, [], [account])
+    const methods = buildPaymentMethods(null, [], {}, [account])
     expect(methods).toHaveLength(1)
     expect(methods[0]).toMatchObject({
       accountId: 'abc-123',
@@ -51,7 +55,8 @@ describe('buildPaymentMethods', () => {
   it('combines all sources in lightning, ecash, ark order', () => {
     const methods = buildPaymentMethods(
       { url: 'https://lnd.example' },
-      [{ url: 'https://mint.example' }],
+      [{ id: 'acc-1', name: 'Mint' }],
+      {},
       [arkAccount()]
     )
     expect(methods.map((m) => m.type)).toStrictEqual([

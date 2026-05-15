@@ -59,8 +59,8 @@ function formatNostrCardDate(unixSeconds: number): string {
   const d = new Date(unixSeconds * 1000)
   const dd = String(d.getDate()).padStart(2, '0')
   const mmm = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)
-  const yy = String(d.getFullYear()).slice(-2)
-  return `${mmm} ${dd}, ${yy}`
+  const yyyy = String(d.getFullYear())
+  return `${mmm} ${dd}, ${yyyy} · ${formatTime(d)}`
 }
 
 function formatDate(date: Date | string | number) {

@@ -709,6 +709,7 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   input: {
+    alignSelf: 'stretch',
     backgroundColor: '#242424',
     borderRadius: 3,
     color: Colors.white,
@@ -717,7 +718,8 @@ const styles = StyleSheet.create({
     maxHeight: 200,
     minHeight: 100,
     padding: 12,
-    textAlignVertical: 'top'
+    textAlignVertical: 'top',
+    width: '100%'
   },
   jsonPreview: {
     backgroundColor: '#242424',

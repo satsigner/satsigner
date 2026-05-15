@@ -107,7 +107,7 @@ describe('ecash store', () => {
       expect(useEcashStore.getState().proofs['acc-2']).toStrictEqual([proof2])
     })
 
-    it('removes proofs by ID within an account', () => {
+    it('removes proofs by secret within an account', () => {
       useEcashStore.getState().addAccount(makeAccount('acc-1'))
       useEcashStore
         .getState()
@@ -116,7 +116,7 @@ describe('ecash store', () => {
           makeProof('p2', 128, 'https://mint.example')
         ])
 
-      useEcashStore.getState().removeProofs('acc-1', ['p1'])
+      useEcashStore.getState().removeProofs('acc-1', ['secret-p1'])
 
       const proofs = useEcashStore.getState().proofs['acc-1']
       expect(proofs).toHaveLength(1)

@@ -1,14 +1,13 @@
 import { StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
 import { liquidityBarSegmentFlexParts } from '@/utils/lndChannelDetail'
-
-const PRIVACY_MASK = '••••'
 
 type SSLightningChannelLiquidityBarProps = {
   channelCapacity: number

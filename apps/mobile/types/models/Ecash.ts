@@ -104,6 +104,7 @@ export type EcashMeltResult = {
   paid: boolean
   preimage?: string
   change?: EcashProof[]
+  spentProofs?: EcashProof[]
 }
 
 export type EcashMintResult = {

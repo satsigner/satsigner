@@ -4,6 +4,7 @@ import { nip19 } from 'nostr-tools'
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   View
@@ -26,7 +27,7 @@ import { Colors } from '@/styles'
 import { formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
-import { nostrNoteHref } from '@/utils/nostrNavigation'
+import { nostrContactProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 import {
@@ -199,103 +200,120 @@ export default function NostrZapDetail() {
                     ? t('nostrIdentity.zapDetail.profileIncoming')
                     : t('nostrIdentity.zapDetail.profileOutgoing')}
                 </SSText>
-                <SSHStack gap="md" style={styles.profileRow}>
-                  {privacyMode ? (
-                    <View
-                      style={[
-                        styles.profileAvatar,
-                        styles.profileAvatarPlaceholder
-                      ]}
-                    />
-                  ) : counterpartyProfile.picture ? (
-                    <Image
-                      source={{ uri: counterpartyProfile.picture }}
-                      style={styles.profileAvatar}
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.profileAvatar,
-                        styles.profileAvatarPlaceholder
-                      ]}
-                    >
-                      <SSText size="lg" weight="bold">
-                        {(
-                          counterpartyProfile.name?.[0] ||
-                          counterpartyNpub[5] ||
-                          '?'
-                        ).toUpperCase()}
-                      </SSText>
-                    </View>
-                  )}
-                  <SSVStack gap="xs" style={styles.profileMeta}>
-                    <SSText size="md" weight="medium">
-                      {privacyMode
-                        ? NOSTR_PRIVACY_MASK
-                        : counterpartyProfile.name?.trim() || '—'}
-                    </SSText>
-                    <SSVStack gap="xxs">
-                      <SSText size="xxs" color="muted" uppercase>
-                        {t('nostrIdentity.keys.npub')}
-                      </SSText>
+                <Pressable
+                  disabled={!npub || !counterpartyNpub || privacyMode}
+                  onPress={() =>
+                    npub &&
+                    counterpartyNpub &&
+                    router.navigate(
+                      nostrContactProfileHref(npub, counterpartyNpub)
+                    )
+                  }
+                >
+                  <SSVStack gap="sm">
+                    <SSHStack gap="md" style={styles.profileRow}>
                       {privacyMode ? (
-                        <SSText size="xs" type="mono" color="muted">
-                          {NOSTR_PRIVACY_MASK}
-                        </SSText>
+                        <View
+                          style={[
+                            styles.profileAvatar,
+                            styles.profileAvatarPlaceholder
+                          ]}
+                        />
+                      ) : counterpartyProfile.picture ? (
+                        <Image
+                          source={{ uri: counterpartyProfile.picture }}
+                          style={styles.profileAvatar}
+                        />
                       ) : (
-                        <SSClipboardCopy text={counterpartyNpub}>
+                        <View
+                          style={[
+                            styles.profileAvatar,
+                            styles.profileAvatarPlaceholder
+                          ]}
+                        >
+                          <SSText size="lg" weight="bold">
+                            {(
+                              counterpartyProfile.name?.[0] ||
+                              counterpartyNpub[5] ||
+                              '?'
+                            ).toUpperCase()}
+                          </SSText>
+                        </View>
+                      )}
+                      <SSText
+                        size="md"
+                        weight="medium"
+                        style={styles.profileMeta}
+                      >
+                        {privacyMode
+                          ? NOSTR_PRIVACY_MASK
+                          : counterpartyProfile.name?.trim() || '—'}
+                      </SSText>
+                    </SSHStack>
+                    <SSVStack gap="xs">
+                      <SSVStack gap="xxs">
+                        <SSText size="xxs" color="muted" uppercase>
+                          {t('nostrIdentity.keys.npub')}
+                        </SSText>
+                        {privacyMode ? (
                           <SSText size="xs" type="mono" color="muted">
-                            {truncateNpub(counterpartyNpub, 14)}
+                            {NOSTR_PRIVACY_MASK}
                           </SSText>
-                        </SSClipboardCopy>
-                      )}
-                    </SSVStack>
-                    <SSVStack gap="xxs">
-                      <SSText size="xxs" color="muted" uppercase>
-                        {t('nostrIdentity.profile.nip05')}
-                      </SSText>
-                      {privacyMode ? (
-                        <SSText size="sm" color="muted">
-                          {NOSTR_PRIVACY_MASK}
+                        ) : (
+                          <SSClipboardCopy text={counterpartyNpub}>
+                            <SSText size="xs" type="mono" color="muted">
+                              {truncateNpub(counterpartyNpub, 14)}
+                            </SSText>
+                          </SSClipboardCopy>
+                        )}
+                      </SSVStack>
+                      <SSVStack gap="xxs">
+                        <SSText size="xxs" color="muted" uppercase>
+                          {t('nostrIdentity.profile.nip05')}
                         </SSText>
-                      ) : counterpartyProfile.nip05?.trim() ? (
-                        <SSClipboardCopy
-                          text={counterpartyProfile.nip05.trim()}
-                        >
+                        {privacyMode ? (
                           <SSText size="sm" color="muted">
-                            {counterpartyProfile.nip05.trim()}
+                            {NOSTR_PRIVACY_MASK}
                           </SSText>
-                        </SSClipboardCopy>
-                      ) : (
-                        <SSText size="sm" color="muted">
-                          {t('nostrIdentity.account.nip05NotSet')}
-                        </SSText>
-                      )}
-                    </SSVStack>
-                    <SSVStack gap="xxs">
-                      <SSText size="xxs" color="muted" uppercase>
-                        {t('nostrIdentity.profile.lud16')}
-                      </SSText>
-                      {privacyMode ? (
-                        <SSText size="sm" color="muted">
-                          {NOSTR_PRIVACY_MASK}
-                        </SSText>
-                      ) : counterpartyProfile.lud16?.trim() ? (
-                        <SSClipboardCopy
-                          text={counterpartyProfile.lud16.trim()}
-                        >
-                          <SSText size="sm" color="white">
-                            {counterpartyProfile.lud16.trim()}
+                        ) : counterpartyProfile.nip05?.trim() ? (
+                          <SSClipboardCopy
+                            text={counterpartyProfile.nip05.trim()}
+                          >
+                            <SSText size="sm" color="muted">
+                              {counterpartyProfile.nip05.trim()}
+                            </SSText>
+                          </SSClipboardCopy>
+                        ) : (
+                          <SSText size="sm" color="muted">
+                            {t('nostrIdentity.account.nip05NotSet')}
                           </SSText>
-                        </SSClipboardCopy>
-                      ) : (
-                        <SSText size="sm" color="muted">
-                          {t('nostrIdentity.account.lud16NotSet')}
+                        )}
+                      </SSVStack>
+                      <SSVStack gap="xxs">
+                        <SSText size="xxs" color="muted" uppercase>
+                          {t('nostrIdentity.profile.lud16')}
                         </SSText>
-                      )}
+                        {privacyMode ? (
+                          <SSText size="sm" color="muted">
+                            {NOSTR_PRIVACY_MASK}
+                          </SSText>
+                        ) : counterpartyProfile.lud16?.trim() ? (
+                          <SSClipboardCopy
+                            text={counterpartyProfile.lud16.trim()}
+                          >
+                            <SSText size="sm" color="white">
+                              {counterpartyProfile.lud16.trim()}
+                            </SSText>
+                          </SSClipboardCopy>
+                        ) : (
+                          <SSText size="sm" color="muted">
+                            {t('nostrIdentity.account.lud16NotSet')}
+                          </SSText>
+                        )}
+                      </SSVStack>
                     </SSVStack>
                   </SSVStack>
-                </SSHStack>
+                </Pressable>
               </SSVStack>
             ) : null}
             <SSVStack gap="xs">
@@ -464,10 +482,10 @@ const styles = StyleSheet.create({
   },
   profileMeta: {
     flex: 1,
-    minWidth: 0
+    flexShrink: 1
   },
   profileRow: {
-    alignItems: 'flex-start'
+    alignItems: 'center'
   },
   scrollContent: {
     paddingBottom: 24,

@@ -14,9 +14,19 @@ import {
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
+import SSIconBookmark from '@/components/icons/SSIconBookmark'
+import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
+import SSIconChevronDown from '@/components/icons/SSIconChevronDown'
+import SSIconChevronUp from '@/components/icons/SSIconChevronUp'
+import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
+import SSIconHeart from '@/components/icons/SSIconHeart'
+import SSIconQR from '@/components/icons/SSIconQR'
+import SSIconRepost from '@/components/icons/SSIconRepost'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSIconButton from '@/components/SSIconButton'
+import SSModal from '@/components/SSModal'
 import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow,
@@ -24,10 +34,10 @@ import {
 } from '@/components/SSNostrFeedNoteRow'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
-import SSPaymentMethodPicker, {
-  type PaymentMethod
-} from '@/components/SSPaymentMethodPicker'
+import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
+import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
+import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
   DEFAULT_ONE_TAP_AMOUNT,
   DEFAULT_ZAP_PRESETS,
@@ -41,11 +51,14 @@ import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
+import { type NostrKind0Profile } from '@/types/models/Nostr'
+import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatNostrCardDate } from '@/utils/format'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
   type DecodedNostrContent,
   type FetchedNoteData,
@@ -60,6 +73,8 @@ import {
   nostrNoteHref
 } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
+import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
+import { getResolvedEventId } from '@/utils/nostrNoteQuotes'
 import {
   getRelayHintForEventId,
   getReplyParentEventIdHex,
@@ -69,9 +84,12 @@ import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 import { buildPaymentMethods } from '@/utils/paymentMethods'
 import {
   type ZapReceiptInfo,
+  type ZapSortField,
+  countQualifyingZaps,
   enrichZapReceipts,
   fetchZapReceipts,
-  initiateZap
+  initiateZap,
+  sortZapReceipts
 } from '@/utils/zap'
 
 type NoteParams = {
@@ -106,7 +124,7 @@ export default function NostrNotePage() {
   const [notFound, setNotFound] = useState(false)
   const [triedHints, setTriedHints] = useState(false)
   const [triedBroadSearch, setTriedBroadSearch] = useState(false)
-  const [paymentPickerVisible, setPaymentPickerVisible] = useState(false)
+  const paymentSheetRef = useRef<BottomSheetMethods>(null)
   const [payAmount, setPayAmount] = useState(0)
   const [customAmount, setCustomAmount] = useState('')
   const [zapLoading, setZapLoading] = useState(false)
@@ -115,6 +133,11 @@ export default function NostrNotePage() {
   const [replyParentLoading, setReplyParentLoading] = useState(false)
   const [replyParentMissing, setReplyParentMissing] = useState(false)
   const [replyParentKind0Pending, setReplyParentKind0Pending] = useState(false)
+  const [quotedNote, setQuotedNote] = useState<NostrFeedNoteLike | null>(null)
+  const [quotedNoteProfile, setQuotedNoteProfile] =
+    useState<
+      Parameters<typeof SSNostrFeedNoteRow>[0]['resolvedQuotedNoteProfile']
+    >(undefined)
   const effectiveRelaysRef = useRef(effectiveRelays)
   effectiveRelaysRef.current = effectiveRelays
   const fetchedRef = useRef(false)
@@ -124,13 +147,33 @@ export default function NostrNotePage() {
   } | null>(null)
   const zapSheetRef = useRef<BottomSheetMethods>(null)
   const [sheetCustomAmount, setSheetCustomAmount] = useState('')
+  const [sheetZapComment, setSheetZapComment] = useState('')
+  const [showJson, setShowJson] = useState(false)
+  const [showMeta, setShowMeta] = useState(true)
+  const [qrModalVisible, setQrModalVisible] = useState(false)
+  const [nip05Valid, setNip05Valid] = useState<boolean | null>(null)
+  const [zapSortField, setZapSortField] = useState<ZapSortField>('date')
+  const [zapSortAsc, setZapSortAsc] = useState(false)
+  const [zapReceiptsLoading, setZapReceiptsLoading] = useState(false)
+  const [bookmarkLoading, setBookmarkLoading] = useState(false)
+  const [bookmarkModalVisible, setBookmarkModalVisible] = useState(false)
+  const [mentionProfiles, setMentionProfiles] = useState<
+    Record<string, NostrKind0Profile | null>
+  >({})
 
   const zapPrefs = identity?.zapPreferences
   const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
   const oneTapAmount = zapPrefs?.oneTapAmount ?? DEFAULT_ONE_TAP_AMOUNT
 
   const lightningConfig = useLightningStore((state) => state.config)
-  const { mints } = useEcash()
+  const lightningNodeAlias = useLightningStore(
+    (state) => state.status.nodeInfo?.alias
+  )
+  const {
+    accounts: ecashAccounts,
+    allMints: ecashAllMints,
+    setActiveAccountId: setEcashActiveAccountId
+  } = useEcash()
   const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingZap = useZapFlowStore((state) => state.pendingZap)
@@ -138,12 +181,15 @@ export default function NostrNotePage() {
   const clearPendingZap = useZapFlowStore((state) => state.clearPendingZap)
   const setZapResult = useZapFlowStore((state) => state.setZapResult)
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const btcPrice = usePriceStore((state) => state.btcPrice)
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   const decoded = nostrUri ? decodeNostrContent(nostrUri) : null
 
   const availablePaymentMethods = buildPaymentMethods(
-    lightningConfig,
-    mints,
+    lightningConfig ? { ...lightningConfig, alias: lightningNodeAlias } : null,
+    ecashAccounts,
+    ecashAllMints,
     arkAccounts
   )
 
@@ -155,6 +201,7 @@ export default function NostrNotePage() {
   ownPubkeysRef.current = ownPubkeys
 
   async function loadZapReceipts(eventIdHex: string) {
+    setZapReceiptsLoading(true)
     try {
       const receipts = await fetchZapReceipts(
         eventIdHex,
@@ -162,10 +209,11 @@ export default function NostrNotePage() {
         ownPubkeysRef.current
       )
       setZapReceipts(receipts)
+      setZapReceiptsLoading(false)
       await enrichZapReceipts(receipts, effectiveRelaysRef.current)
       setZapReceipts([...receipts])
     } catch {
-      // non-critical
+      setZapReceiptsLoading(false)
     }
   }
 
@@ -175,6 +223,57 @@ export default function NostrNotePage() {
     (decoded.metadata.relays as string[]).length > 0
       ? (decoded.metadata.relays as string[])
       : undefined
+
+  async function loadQuotedNote(quotedEventId: string) {
+    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
+    try {
+      let quotedEvent = await api.fetchEvent(quotedEventId)
+      if (!quotedEvent) {
+        quotedEvent = await NostrAPI.fetchEventFromRelays(
+          quotedEventId,
+          NostrAPI.INDEXING_RELAYS,
+          ownPubkeysRef.current
+        )
+      }
+      if (!quotedEvent) {
+        return
+      }
+      setQuotedNote({
+        content: quotedEvent.content,
+        created_at: quotedEvent.created_at,
+        id: quotedEventId,
+        kind: quotedEvent.kind,
+        pubkey: quotedEvent.pubkey,
+        tags: quotedEvent.tags
+      })
+      try {
+        const profile = await api.fetchKind0(
+          nip19.npubEncode(quotedEvent.pubkey)
+        )
+        setQuotedNoteProfile(profile)
+      } catch {
+        // non-critical
+      }
+    } catch {
+      // fetch failed — quoted note stays hidden
+    }
+  }
+
+  async function fetchMentionProfiles(pubkeys: string[]) {
+    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
+    const resolved: Record<string, NostrKind0Profile | null> = {}
+    await Promise.allSettled(
+      pubkeys.map(async (pubkey) => {
+        try {
+          resolved[pubkey] =
+            (await api.fetchKind0(nip19.npubEncode(pubkey))) ?? null
+        } catch {
+          resolved[pubkey] = null
+        }
+      })
+    )
+    setMentionProfiles(resolved)
+  }
 
   async function handleEventFound(event: {
     content: string
@@ -195,6 +294,23 @@ export default function NostrNotePage() {
 
     if (decoded?.data) {
       loadZapReceipts(decoded.data)
+    }
+
+    const quotedEventId = getResolvedEventId({
+      content: event.content,
+      created_at: event.created_at,
+      id: decoded?.data ?? '',
+      kind: event.kind,
+      pubkey: event.pubkey,
+      tags: event.tags
+    })
+    if (quotedEventId) {
+      void loadQuotedNote(quotedEventId)
+    }
+
+    const mentionPubkeys = extractMentionPubkeys(event.content)
+    if (mentionPubkeys.length > 0) {
+      void fetchMentionProfiles(mentionPubkeys)
     }
 
     const authorNpub = nip19.npubEncode(event.pubkey)
@@ -221,6 +337,9 @@ export default function NostrNotePage() {
         }
       })
       setProfileLoading(false)
+      if (profile.nip05) {
+        setNip05Valid(await validateNip05(event.pubkey, profile.nip05))
+      }
     } catch {
       setProfileLoading(false)
     }
@@ -438,6 +557,13 @@ export default function NostrNotePage() {
             ownPubkeysRef.current
           )
         }
+        if (!event) {
+          event = await NostrAPI.fetchEventFromRelays(
+            replyParentId,
+            NostrAPI.INDEXING_RELAYS,
+            ownPubkeysRef.current
+          )
+        }
         if (cancelled) {
           return
         }
@@ -536,16 +662,54 @@ export default function NostrNotePage() {
       ? Math.min(totalZapped / enhancedZap.zapGoal, 1)
       : undefined
 
+  const qualifyingUseCount = countQualifyingZaps(
+    zapReceipts,
+    enhancedZap.zapMin,
+    enhancedZap.zapMax
+  )
+
   const usesRemaining =
     enhancedZap.zapUses !== undefined
-      ? Math.max(0, enhancedZap.zapUses - zapReceipts.length)
+      ? Math.max(0, enhancedZap.zapUses - qualifyingUseCount)
       : undefined
 
   const isRequestComplete =
     (goalProgress !== undefined && goalProgress >= 1) ||
     (usesRemaining !== undefined && usesRemaining <= 0)
 
-  async function handleZap(amountSats: number) {
+  async function handleBookmarkAction(
+    action: { type: 'add'; source: 'public' | 'private' } | { type: 'remove' }
+  ) {
+    const eventId = decoded?.data
+    if (!eventId || !npub || !identity?.nsec) {
+      return
+    }
+    setBookmarkLoading(true)
+    const api = new NostrAPI(effectiveRelays)
+    try {
+      await api.publishBookmarkUpdate(npub, identity.nsec, {
+        eventId,
+        ...action
+      })
+      toast.success(
+        action.type === 'remove'
+          ? t('nostrIdentity.note.bookmarkRemoved')
+          : t('nostrIdentity.note.bookmarkAdded')
+      )
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(`${t('nostrIdentity.note.bookmarkFailed')}: ${reason}`)
+    } finally {
+      api.disconnect()
+      setBookmarkLoading(false)
+    }
+  }
+
+  function handleBookmarkPress() {
+    setBookmarkModalVisible(true)
+  }
+
+  async function handleZap(amountSats: number, comment?: string) {
     if (!amountSats || amountSats <= 0) {
       return
     }
@@ -571,6 +735,7 @@ export default function NostrNotePage() {
     try {
       const { invoice, zapRequestJson } = await initiateZap({
         amountSats,
+        comment,
         eventIdHex: decoded?.data,
         eventKind: fetched.kind,
         eventTags: fetched.tags,
@@ -604,7 +769,7 @@ export default function NostrNotePage() {
       }
 
       setPayAmount(amountSats)
-      setPaymentPickerVisible(true)
+      paymentSheetRef.current?.snapToIndex(0)
     } catch (error) {
       setZapLoading(false)
       const reason = error instanceof Error ? error.message : 'unknown'
@@ -618,7 +783,7 @@ export default function NostrNotePage() {
     zapRequestJson?: string,
     amountSats?: number
   ) {
-    setPaymentPickerVisible(false)
+    paymentSheetRef.current?.close()
 
     const pending = pendingInvoiceRef.current
     const bolt11 = invoice || pending?.invoice
@@ -643,6 +808,9 @@ export default function NostrNotePage() {
         pathname: '/signer/lightning/pay'
       })
     } else if (method.type === 'ecash') {
+      if (method.accountId) {
+        setEcashActiveAccountId(method.accountId)
+      }
       router.navigate({
         params: bolt11 ? { invoice: bolt11 } : undefined,
         pathname: '/signer/ecash/send'
@@ -678,12 +846,13 @@ export default function NostrNotePage() {
 
   function handleOpenZapSheet() {
     setSheetCustomAmount('')
+    setSheetZapComment('')
     zapSheetRef.current?.snapToIndex(0)
   }
 
   function handleSheetAmountSelected(sats: number) {
     zapSheetRef.current?.close()
-    handleZap(sats)
+    handleZap(sats, sheetZapComment || undefined)
   }
 
   function handleSheetCustomSubmit() {
@@ -692,8 +861,42 @@ export default function NostrNotePage() {
       return
     }
     zapSheetRef.current?.close()
-    handleZap(sats)
+    handleZap(sats, sheetZapComment || undefined)
   }
+
+  function handleZapSortPress(field: 'date' | 'amount') {
+    if (zapSortField === field) {
+      setZapSortAsc((v) => !v)
+    } else {
+      setZapSortField(field)
+      setZapSortAsc(false)
+    }
+  }
+
+  const sortedZapReceipts = sortZapReceipts(
+    zapReceipts,
+    zapSortField,
+    zapSortAsc
+  )
+
+  const noteHexId = decoded?.data ?? ''
+  const noteId = noteHexId ? nip19.noteEncode(noteHexId) : ''
+  const noteNeventId = noteHexId ? nip19.neventEncode({ id: noteHexId }) : ''
+
+  const eventJson = fetched
+    ? JSON.stringify(
+        {
+          content: fetched.content,
+          created_at: fetched.created_at,
+          id: decoded?.data ?? '',
+          kind: fetched.kind,
+          pubkey: fetched.pubkey,
+          tags: fetched.tags
+        },
+        null,
+        2
+      )
+    : ''
 
   if (!decoded || decoded.kind === 'unknown') {
     return (
@@ -737,7 +940,7 @@ export default function NostrNotePage() {
         </SSVStack>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
-          <SSVStack gap="lg" style={styles.content}>
+          <SSVStack gap="md" style={styles.content}>
             {!noteItemForFeed && fetched?.pubkey ? (
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -773,36 +976,54 @@ export default function NostrNotePage() {
                   )}
                   <SSVStack gap="none" style={{ flex: 1 }}>
                     {fetched.authorName && !privacyMode && (
-                      <SSText size="md" weight="medium">
+                      <SSText
+                        size="md"
+                        weight="medium"
+                        style={{ lineHeight: 18 }}
+                      >
                         {fetched.authorName}
                       </SSText>
                     )}
                     {privacyMode && (
-                      <SSText size="md" weight="medium">
+                      <SSText
+                        size="md"
+                        weight="medium"
+                        style={{ lineHeight: 18 }}
+                      >
                         {NOSTR_PRIVACY_MASK}
                       </SSText>
                     )}
-                    <SSText size="xs" color="muted" type="mono">
+                    <SSText
+                      size="xs"
+                      color="muted"
+                      type="mono"
+                      style={{ lineHeight: 16 }}
+                    >
                       {truncateNpub(nip19.npubEncode(fetched.pubkey), 12)}
                     </SSText>
+                    {fetched.authorNip05 && !privacyMode && (
+                      <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                        <SSText
+                          size="xs"
+                          color="muted"
+                          style={{ lineHeight: 16 }}
+                        >
+                          {fetched.authorNip05}
+                        </SSText>
+                        {nip05Valid === true && (
+                          <SSIconCheckCircleThin width={12} height={12} />
+                        )}
+                        {nip05Valid === false && (
+                          <SSIconCircleXThin width={12} height={12} />
+                        )}
+                      </SSHStack>
+                    )}
                   </SSVStack>
                 </SSHStack>
               </TouchableOpacity>
             ) : null}
 
-            {fetched ? (
-              <SSHStack gap="sm">
-                <View style={styles.kindBadge}>
-                  <SSText size="xs">Kind {fetched.kind}</SSText>
-                </View>
-              </SSHStack>
-            ) : null}
-
-            {noteItemForFeed &&
-            fetched &&
-            (fetched.content.length > 0 ||
-              noteImageUrls.length > 0 ||
-              noteVideoEmbeds.length > 0) ? (
+            {noteItemForFeed && fetched ? (
               <SSNostrFeedNoteRow
                 note={noteItemForFeed}
                 privacyMode={privacyMode}
@@ -816,10 +1037,21 @@ export default function NostrNotePage() {
                       npubBech={noteAuthorFeedProps.authorNpubBech}
                       displayName={noteAuthorFeedProps.displayName}
                       nip05={noteAuthorFeedProps.nip05}
+                      nip05Valid={nip05Valid}
                       pictureUri={noteAuthorFeedProps.pictureUri}
                     />
                   ) : undefined
                 }
+                resolvedQuotedNote={quotedNote ?? undefined}
+                resolvedQuotedNoteProfile={quotedNoteProfile}
+                mentionProfiles={mentionProfiles}
+                onQuotePress={(id) => {
+                  if (!npub) {
+                    return
+                  }
+                  const uri = nip19.neventEncode({ id })
+                  router.push(nostrNoteHref(npub, uri))
+                }}
               />
             ) : null}
 
@@ -878,44 +1110,194 @@ export default function NostrNotePage() {
               </View>
             ) : null}
 
-            <SSVStack gap="xs">
-              <SSText size="xs" color="muted" uppercase>
-                {t('nostrIdentity.note.noteId')}
-              </SSText>
-              <SSClipboardCopy text={nostrUri || decoded.raw}>
-                <SSText size="xs" type="mono" color="muted">
-                  {truncateNpub(decoded.raw, 16)}
-                </SSText>
-              </SSClipboardCopy>
-            </SSVStack>
+            {fetched ? (
+              <SSHStack gap="none" style={styles.actionRow}>
+                <SSIconButton
+                  accessibilityLabel={t('nostrIdentity.note.qrTitle')}
+                  style={styles.actionButton}
+                  disabled={!noteNeventId}
+                  onPress={() => setQrModalVisible(true)}
+                >
+                  <SSIconQR width={18} height={18} />
+                </SSIconButton>
+                <SSIconButton
+                  accessibilityLabel={t('nostrIdentity.note.repostTitle')}
+                  style={styles.actionButton}
+                  disabled
+                >
+                  <SSIconRepost width={18} height={16} />
+                </SSIconButton>
+                <SSIconButton
+                  accessibilityLabel={t('nostrIdentity.note.likeTitle')}
+                  style={styles.actionButton}
+                  disabled
+                >
+                  <SSIconHeart width={18} height={16} />
+                </SSIconButton>
+                <SSIconButton
+                  accessibilityLabel={t('nostrIdentity.note.bookmarkTitle')}
+                  style={styles.actionButton}
+                  disabled={
+                    bookmarkLoading || !decoded?.data || !identity?.nsec
+                  }
+                  onPress={handleBookmarkPress}
+                >
+                  <SSIconBookmark
+                    width={14}
+                    height={18}
+                    color={Colors.gray[300]}
+                  />
+                </SSIconButton>
+              </SSHStack>
+            ) : null}
+
+            {fetched ? (
+              <SSVStack gap="xxs">
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setShowMeta((v) => !v)}
+                  style={styles.metaToggle}
+                >
+                  <SSText size="xs" color="muted" uppercase>
+                    {t('nostrIdentity.note.metadata')}
+                  </SSText>
+                  {showMeta ? (
+                    <SSIconChevronUp width={10} height={10} />
+                  ) : (
+                    <SSIconChevronDown width={10} height={10} />
+                  )}
+                </TouchableOpacity>
+                {showMeta ? (
+                  <SSVStack gap="xxs">
+                    <SSHStack gap="xs" style={styles.metaRow}>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        uppercase
+                        style={styles.metaLabel}
+                      >
+                        {t('nostrIdentity.note.metaKind')}
+                      </SSText>
+                      <View style={styles.kindBadge}>
+                        <SSText size="xxs">{fetched.kind}</SSText>
+                      </View>
+                    </SSHStack>
+                    <SSHStack gap="xs" style={styles.metaRow}>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        uppercase
+                        style={styles.metaLabel}
+                      >
+                        {t('nostrIdentity.note.metaNevent')}
+                      </SSText>
+                      <SSClipboardCopy
+                        text={noteNeventId}
+                        style={styles.metaValue}
+                      >
+                        <SSText
+                          size="xxs"
+                          type="mono"
+                          color="muted"
+                          numberOfLines={1}
+                          ellipsizeMode="middle"
+                        >
+                          {noteNeventId}
+                        </SSText>
+                      </SSClipboardCopy>
+                    </SSHStack>
+                    <SSHStack gap="xs" style={styles.metaRow}>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        uppercase
+                        style={styles.metaLabel}
+                      >
+                        {t('nostrIdentity.note.metaNote')}
+                      </SSText>
+                      <SSClipboardCopy text={noteId} style={styles.metaValue}>
+                        <SSText
+                          size="xxs"
+                          type="mono"
+                          color="muted"
+                          numberOfLines={1}
+                          ellipsizeMode="middle"
+                        >
+                          {noteId}
+                        </SSText>
+                      </SSClipboardCopy>
+                    </SSHStack>
+                    <SSHStack gap="xs" style={styles.metaRow}>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        uppercase
+                        style={styles.metaLabel}
+                      >
+                        {t('nostrIdentity.note.metaHex')}
+                      </SSText>
+                      <SSClipboardCopy
+                        text={noteHexId}
+                        style={styles.metaValue}
+                      >
+                        <SSText
+                          size="xxs"
+                          type="mono"
+                          color="muted"
+                          numberOfLines={1}
+                          ellipsizeMode="middle"
+                        >
+                          {noteHexId}
+                        </SSText>
+                      </SSClipboardCopy>
+                    </SSHStack>
+                    {fetched.tags.map((tag, index) => (
+                      <SSHStack key={index} gap="xs" style={styles.metaRow}>
+                        <View style={styles.tagTypeBadge}>
+                          <SSText size="xxs" type="mono">
+                            {tag[0]}
+                          </SSText>
+                        </View>
+                        <SSText
+                          size="xxs"
+                          type="mono"
+                          color="muted"
+                          numberOfLines={1}
+                          ellipsizeMode="middle"
+                          style={styles.metaValue}
+                        >
+                          {tag.slice(1).join(' ')}
+                        </SSText>
+                      </SSHStack>
+                    ))}
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => setShowJson((v) => !v)}
+                      style={styles.metaToggle}
+                    >
+                      <SSText size="xxs" color="muted" uppercase>
+                        {t('nostrIdentity.note.showJson')}
+                      </SSText>
+                      {showJson ? (
+                        <SSIconChevronUp width={10} height={10} />
+                      ) : (
+                        <SSIconChevronDown width={10} height={10} />
+                      )}
+                    </TouchableOpacity>
+                    {showJson ? (
+                      <SSClipboardCopy text={eventJson}>
+                        <SSText size="xxs" type="mono" style={styles.jsonText}>
+                          {eventJson}
+                        </SSText>
+                      </SSClipboardCopy>
+                    ) : null}
+                  </SSVStack>
+                ) : null}
+              </SSVStack>
+            ) : null}
 
             {fetched && availablePaymentMethods.length > 0 && (
               <SSVStack gap="sm">
-                {!profileLoading &&
-                  effectiveLud16 &&
-                  !isRequestComplete &&
-                  !identity?.isWatchOnly && (
-                    <TouchableOpacity
-                      style={styles.oneTapButton}
-                      activeOpacity={0.7}
-                      disabled={zapLoading}
-                      onPress={handleOneTapZap}
-                      onLongPress={handleOpenZapSheet}
-                      delayLongPress={400}
-                    >
-                      <SSText size="md" weight="bold" center>
-                        {privacyMode
-                          ? `${NOSTR_PRIVACY_MASK} sats`
-                          : t('nostrIdentity.note.zapOneTap', {
-                              amount: oneTapAmount
-                            })}
-                      </SSText>
-                      <SSText size="xxs" color="muted" center>
-                        {t('nostrIdentity.note.zapChooseAmount')}
-                      </SSText>
-                    </TouchableOpacity>
-                  )}
-
                 {profileLoading ? (
                   <SSHStack gap="sm" style={styles.zapLoadingRow}>
                     <ActivityIndicator color={Colors.white} size="small" />
@@ -926,11 +1308,11 @@ export default function NostrNotePage() {
                 ) : (
                   <>
                     {isRequestComplete && (
-                      <View style={styles.completeBadge}>
-                        <SSText size="sm" weight="bold" center>
-                          {t('nostrIdentity.note.requestComplete')}
-                        </SSText>
-                      </View>
+                      <SSButton
+                        label={t('nostrIdentity.note.requestComplete')}
+                        variant="default"
+                        style={{ opacity: 0.6 }}
+                      />
                     )}
 
                     {enhancedZap.zapGoal !== undefined && (
@@ -965,10 +1347,18 @@ export default function NostrNotePage() {
                         <SSText size="xs" color="muted">
                           {t('nostrIdentity.note.uses')}
                         </SSText>
-                        <SSText size="xs" weight="medium">
+                        <SSText
+                          size="xs"
+                          weight="medium"
+                          style={
+                            !privacyMode && usesRemaining === 0
+                              ? { color: Colors.success }
+                              : undefined
+                          }
+                        >
                           {privacyMode
                             ? `${NOSTR_PRIVACY_MASK} / ${NOSTR_PRIVACY_MASK}`
-                            : `${zapReceipts.length} / ${enhancedZap.zapUses}`}
+                            : `${qualifyingUseCount} / ${enhancedZap.zapUses}`}
                         </SSText>
                       </SSHStack>
                     )}
@@ -988,9 +1378,8 @@ export default function NostrNotePage() {
 
                     {isFixedAmount && !isRequestComplete && (
                       <SSButton
-                        label={`${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : enhancedZap.zapMin} sats`}
-                        variant="gradient"
-                        gradientType="special"
+                        label={`${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : enhancedZap.zapMin?.toLocaleString()} sats`}
+                        variant="secondary"
                         disabled={zapLoading || !effectiveLud16}
                         onPress={() =>
                           handleAmountSelected(enhancedZap.zapMin!)
@@ -1052,11 +1441,10 @@ export default function NostrNotePage() {
                         <SSButton
                           label={
                             customAmount && parseInt(customAmount, 10) > 0
-                              ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : customAmount} sats`
+                              ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : parseInt(customAmount, 10).toLocaleString()} sats`
                               : t('nostrIdentity.note.zap')
                           }
-                          variant="gradient"
-                          gradientType="special"
+                          variant="secondary"
                           disabled={
                             zapLoading ||
                             !effectiveLud16 ||
@@ -1092,8 +1480,7 @@ export default function NostrNotePage() {
                             </SSVStack>
                             <SSButton
                               label={t('nostrIdentity.note.zap')}
-                              variant="gradient"
-                              gradientType="special"
+                              variant="secondary"
                               disabled={zapLoading || !effectiveLud16}
                               onPress={() => handleAmountSelected(tag.amount)}
                               style={styles.zapButton}
@@ -1103,72 +1490,41 @@ export default function NostrNotePage() {
                       </SSVStack>
                     )}
 
-                    {!isRequestComplete && (
-                      <SSVStack gap="sm">
-                        <SSText size="xs" color="muted" uppercase>
-                          {hasEnhancedZapTags && !isRangeAmount
-                            ? t('nostrIdentity.note.customZap')
-                            : !hasEnhancedZapTags
-                              ? t('nostrIdentity.note.zapAmount')
-                              : ''}
-                        </SSText>
+                    {(hasEnhancedZapTags || pubpayTags.length > 0) && (
+                      <View style={styles.zapSectionSpacer} />
+                    )}
 
-                        {!hasEnhancedZapTags && (
-                          <SSHStack gap="sm" style={styles.presetRow}>
-                            {zapPresets.map((sats) => (
-                              <TouchableOpacity
-                                key={sats}
-                                style={styles.presetButton}
-                                disabled={zapLoading || !effectiveLud16}
-                                onPress={() => handleAmountSelected(sats)}
-                                activeOpacity={0.6}
-                              >
-                                <SSText size="sm" weight="medium" center>
-                                  {privacyMode ? NOSTR_PRIVACY_MASK : sats}
-                                </SSText>
-                              </TouchableOpacity>
-                            ))}
-                          </SSHStack>
-                        )}
+                    {effectiveLud16 && !identity?.isWatchOnly && (
+                      <SSHStack gap="sm">
+                        <SSButton
+                          label={
+                            privacyMode
+                              ? `${NOSTR_PRIVACY_MASK} sats`
+                              : t('nostrIdentity.note.zapOneTap', {
+                                  amount: oneTapAmount
+                                })
+                          }
+                          variant="outline"
+                          disabled={zapLoading}
+                          onPress={handleOneTapZap}
+                          onLongPress={handleOpenZapSheet}
+                          delayLongPress={400}
+                          style={{ flex: 1 }}
+                        />
+                        <SSButton
+                          label={t('nostrIdentity.note.more')}
+                          variant="outline"
+                          disabled={zapLoading}
+                          onPress={handleOpenZapSheet}
+                          style={{ flex: 1 }}
+                        />
+                      </SSHStack>
+                    )}
 
-                        {!isRangeAmount && (
-                          <>
-                            <TextInput
-                              style={styles.customInput}
-                              placeholderTextColor={Colors.gray[500]}
-                              placeholder={t('nostrIdentity.note.customAmount')}
-                              keyboardType="number-pad"
-                              value={customAmount}
-                              onChangeText={setCustomAmount}
-                              returnKeyType="done"
-                              editable={!!effectiveLud16}
-                              onSubmitEditing={handleCustomAmountSubmit}
-                            />
-                            <SSButton
-                              label={
-                                customAmount && parseInt(customAmount, 10) > 0
-                                  ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : customAmount} sats`
-                                  : t('nostrIdentity.note.zap')
-                              }
-                              variant="gradient"
-                              gradientType="special"
-                              disabled={
-                                zapLoading ||
-                                !effectiveLud16 ||
-                                !customAmount ||
-                                parseInt(customAmount, 10) <= 0
-                              }
-                              onPress={handleCustomAmountSubmit}
-                            />
-                          </>
-                        )}
-
-                        {!effectiveLud16 && (
-                          <SSText size="xs" color="muted" center>
-                            {t('nostrIdentity.note.zapEndpointNotFound')}
-                          </SSText>
-                        )}
-                      </SSVStack>
+                    {!effectiveLud16 && (
+                      <SSText size="xs" color="muted" center>
+                        {t('nostrIdentity.note.zapEndpointNotFound')}
+                      </SSText>
                     )}
                   </>
                 )}
@@ -1192,10 +1548,44 @@ export default function NostrNotePage() {
 
             {zapReceipts.length > 0 && (
               <SSVStack gap="sm">
-                <SSText size="xs" color="muted" uppercase>
-                  {t('nostrIdentity.note.zapReceipts')} ({zapReceipts.length})
-                </SSText>
-                {zapReceipts.map((receipt) => (
+                <SSHStack gap="sm" style={styles.zapSortHeader}>
+                  <SSText size="xs" color="muted" uppercase style={{ flex: 1 }}>
+                    {t('nostrIdentity.note.zapReceipts')} ({zapReceipts.length})
+                  </SSText>
+                  <TouchableOpacity
+                    onPress={() => handleZapSortPress('date')}
+                    hitSlop={8}
+                  >
+                    <SSText
+                      size="xxs"
+                      color={zapSortField === 'date' ? 'white' : 'muted'}
+                    >
+                      {t('nostrIdentity.zapSort.date')}
+                      {zapSortField === 'date'
+                        ? zapSortAsc
+                          ? ' ↑'
+                          : ' ↓'
+                        : ''}
+                    </SSText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleZapSortPress('amount')}
+                    hitSlop={8}
+                  >
+                    <SSText
+                      size="xxs"
+                      color={zapSortField === 'amount' ? 'white' : 'muted'}
+                    >
+                      {t('nostrIdentity.zapSort.amount')}
+                      {zapSortField === 'amount'
+                        ? zapSortAsc
+                          ? ' ↑'
+                          : ' ↓'
+                        : ''}
+                    </SSText>
+                  </TouchableOpacity>
+                </SSHStack>
+                {sortedZapReceipts.map((receipt) => (
                   <SSHStack key={receipt.id} gap="sm" style={styles.receiptRow}>
                     <TouchableOpacity
                       activeOpacity={0.7}
@@ -1256,80 +1646,26 @@ export default function NostrNotePage() {
                           {formatNostrCardDate(receipt.createdAt)}
                         </SSText>
                       )}
-                      <SSText size="sm" weight="bold" color="white">
-                        {privacyMode
-                          ? `${NOSTR_PRIVACY_MASK} sats`
-                          : `${receipt.amountSats} sats`}
-                      </SSText>
+                      <SSZapAmountDisplay amountSats={receipt.amountSats} />
                     </SSVStack>
                   </SSHStack>
                 ))}
               </SSVStack>
             )}
 
-            {zapReceipts.length === 0 && fetched && (
+            {zapReceiptsLoading && (
+              <ActivityIndicator
+                color={Colors.white}
+                size="small"
+                style={styles.zapLoader}
+              />
+            )}
+
+            {!zapReceiptsLoading && zapReceipts.length === 0 && fetched && (
               <SSText size="xs" color="muted" center>
                 {t('nostrIdentity.note.noZapsYet')}
               </SSText>
             )}
-
-            {replyParentId && fetched && noteLooksLikeReply(fetched.tags) ? (
-              <SSVStack gap="sm" style={styles.replyParentSection}>
-                <SSText size="xs" color="muted" uppercase>
-                  {t('nostrIdentity.note.replyingTo')}
-                </SSText>
-                {replyParentLoading ? (
-                  <SSHStack gap="sm" style={styles.zapLoadingRow}>
-                    <ActivityIndicator color={Colors.white} size="small" />
-                    <SSText size="xs" color="muted">
-                      {t('nostrIdentity.account.fetchingNote')}
-                    </SSText>
-                  </SSHStack>
-                ) : replyParentMissing ? (
-                  <SSText size="xs" color="muted">
-                    {t('nostrIdentity.note.parentNotOnRelays')}
-                  </SSText>
-                ) : replyParentNoteLike && replyParentAuthorFeedProps ? (
-                  <SSNostrFeedNoteRow
-                    note={replyParentNoteLike}
-                    privacyMode={privacyMode}
-                    showAuthor
-                    expandContent
-                    authorPreview={
-                      <SSNostrFeedAuthorRow
-                        contextNpub={npub || undefined}
-                        loading={replyParentAuthorFeedProps.loading}
-                        npubBech={replyParentAuthorFeedProps.authorNpubBech}
-                        displayName={replyParentAuthorFeedProps.displayName}
-                        nip05={replyParentAuthorFeedProps.nip05}
-                        pictureUri={replyParentAuthorFeedProps.pictureUri}
-                      />
-                    }
-                    onPress={() => {
-                      if (!npub) {
-                        return
-                      }
-                      const uri = nip19.noteEncode(replyParentId)
-                      router.navigate(nostrNoteHref(npub, uri))
-                    }}
-                  />
-                ) : replyParentNoteLike ? (
-                  <SSNostrFeedNoteRow
-                    note={replyParentNoteLike}
-                    privacyMode={privacyMode}
-                    showAuthor={false}
-                    expandContent
-                    onPress={() => {
-                      if (!npub) {
-                        return
-                      }
-                      const uri = nip19.noteEncode(replyParentId)
-                      router.navigate(nostrNoteHref(npub, uri))
-                    }}
-                  />
-                ) : null}
-              </SSVStack>
-            ) : null}
 
             {notFound && !fetched && (
               <SSVStack itemsCenter gap="md" style={styles.notFoundCard}>
@@ -1379,35 +1715,172 @@ export default function NostrNotePage() {
                 )}
               </SSVStack>
             )}
+
+            {replyParentId && fetched && noteLooksLikeReply(fetched.tags) ? (
+              <SSVStack gap="sm" style={styles.replyParentSection}>
+                <TouchableOpacity
+                  activeOpacity={0.6}
+                  disabled={!npub}
+                  onPress={() => {
+                    if (!npub || !replyParentId) {
+                      return
+                    }
+                    router.push(
+                      nostrNoteHref(npub, nip19.noteEncode(replyParentId))
+                    )
+                  }}
+                >
+                  <SSText size="xs" color="muted" uppercase>
+                    {t('nostrIdentity.note.replyingTo')}
+                  </SSText>
+                </TouchableOpacity>
+                {replyParentLoading ? (
+                  <SSHStack gap="sm" style={styles.zapLoadingRow}>
+                    <ActivityIndicator color={Colors.white} size="small" />
+                    <SSText size="xs" color="muted">
+                      {t('nostrIdentity.account.fetchingNote')}
+                    </SSText>
+                  </SSHStack>
+                ) : replyParentMissing ? (
+                  <SSText size="xs" color="muted">
+                    {t('nostrIdentity.note.parentNotOnRelays')}
+                  </SSText>
+                ) : replyParentNoteLike ? (
+                  <TouchableOpacity
+                    activeOpacity={0.6}
+                    disabled={!npub}
+                    style={styles.replyParentNoteRow}
+                    onPress={() => {
+                      if (!npub || !replyParentId) {
+                        return
+                      }
+                      router.push(
+                        nostrNoteHref(npub, nip19.noteEncode(replyParentId))
+                      )
+                    }}
+                  >
+                    <View pointerEvents="none">
+                      <SSNostrFeedNoteRow
+                        note={replyParentNoteLike}
+                        privacyMode={privacyMode}
+                        showAuthor={!!replyParentAuthorFeedProps}
+                        expandContent
+                        authorPreview={
+                          replyParentAuthorFeedProps ? (
+                            <SSNostrFeedAuthorRow
+                              loading={replyParentAuthorFeedProps.loading}
+                              npubBech={
+                                replyParentAuthorFeedProps.authorNpubBech
+                              }
+                              displayName={
+                                replyParentAuthorFeedProps.displayName
+                              }
+                              nip05={replyParentAuthorFeedProps.nip05}
+                              pictureUri={replyParentAuthorFeedProps.pictureUri}
+                            />
+                          ) : undefined
+                        }
+                      />
+                    </View>
+                  </TouchableOpacity>
+                ) : null}
+              </SSVStack>
+            ) : null}
           </SSVStack>
         </ScrollView>
       )}
 
       <SSPaymentMethodPicker
-        visible={paymentPickerVisible}
-        onClose={() => setPaymentPickerVisible(false)}
+        ref={paymentSheetRef}
         onSelect={(method) => navigateToPayment(method)}
         methods={availablePaymentMethods}
         amountSats={payAmount}
+        btcPrice={btcPrice}
+        fiatCurrency={fiatCurrency}
       />
+
+      <SSModal
+        visible={bookmarkModalVisible}
+        onClose={() => setBookmarkModalVisible(false)}
+        label={t('common.cancel')}
+      >
+        <SSVStack gap="sm" style={{ width: '100%' }}>
+          <SSText center uppercase>
+            {t('nostrIdentity.note.bookmarkTitle')}
+          </SSText>
+          <SSButton
+            label={t('nostrIdentity.note.bookmarkPublic')}
+            variant="secondary"
+            onPress={() => {
+              setBookmarkModalVisible(false)
+              void handleBookmarkAction({ source: 'public', type: 'add' })
+            }}
+          />
+          <SSButton
+            label={t('nostrIdentity.note.bookmarkPrivate')}
+            variant="secondary"
+            onPress={() => {
+              setBookmarkModalVisible(false)
+              void handleBookmarkAction({ source: 'private', type: 'add' })
+            }}
+          />
+          <SSButton
+            label={t('nostrIdentity.note.bookmarkRemove')}
+            variant="ghost"
+            onPress={() => {
+              setBookmarkModalVisible(false)
+              void handleBookmarkAction({ type: 'remove' })
+            }}
+          />
+        </SSVStack>
+      </SSModal>
+      <SSModal
+        visible={qrModalVisible}
+        onClose={() => setQrModalVisible(false)}
+        closeButtonVariant="ghost"
+        label={t('common.close')}
+      >
+        <SSVStack gap="lg" style={styles.qrModalContent}>
+          <SSText center uppercase>
+            {t('nostrIdentity.note.qrTitle')}
+          </SSText>
+          <View style={styles.qrContainer}>
+            <SSQRCode
+              value={noteNeventId}
+              size={260}
+              color={Colors.black}
+              backgroundColor={Colors.white}
+            />
+          </View>
+          <SSClipboardCopy text={noteNeventId}>
+            <SSText
+              center
+              size="xxs"
+              type="mono"
+              color="muted"
+              numberOfLines={2}
+              ellipsizeMode="middle"
+            >
+              {noteNeventId}
+            </SSText>
+          </SSClipboardCopy>
+        </SSVStack>
+      </SSModal>
 
       <SSBottomSheet
         ref={zapSheetRef}
         title={t('nostrIdentity.note.zapChooseAmount')}
       >
         <SSVStack gap="sm" style={styles.sheetContent}>
-          <SSHStack gap="sm" style={styles.presetRow}>
+          <SSHStack gap="sm">
             {zapPresets.map((sats) => (
-              <TouchableOpacity
+              <SSButton
                 key={sats}
-                style={styles.presetButton}
-                activeOpacity={0.6}
+                label={privacyMode ? NOSTR_PRIVACY_MASK : sats.toLocaleString()}
+                variant="outline"
                 onPress={() => handleSheetAmountSelected(sats)}
-              >
-                <SSText size="sm" weight="medium" center>
-                  {privacyMode ? NOSTR_PRIVACY_MASK : sats.toLocaleString()}
-                </SSText>
-              </TouchableOpacity>
+                style={{ flex: 1 }}
+              />
             ))}
           </SSHStack>
           <TextInput
@@ -1417,13 +1890,21 @@ export default function NostrNotePage() {
             keyboardType="number-pad"
             value={sheetCustomAmount}
             onChangeText={setSheetCustomAmount}
+            returnKeyType="next"
+          />
+          <TextInput
+            style={styles.customInput}
+            placeholderTextColor={Colors.gray[500]}
+            placeholder={t('nostrIdentity.note.zapCommentPlaceholder')}
+            value={sheetZapComment}
+            onChangeText={setSheetZapComment}
             returnKeyType="done"
             onSubmitEditing={handleSheetCustomSubmit}
           />
           <SSButton
             label={
               sheetCustomAmount && parseInt(sheetCustomAmount, 10) > 0
-                ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : sheetCustomAmount} sats`
+                ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : parseInt(sheetCustomAmount, 10).toLocaleString()} sats`
                 : t('nostrIdentity.note.zap')
             }
             variant="gradient"
@@ -1432,6 +1913,11 @@ export default function NostrNotePage() {
               !sheetCustomAmount || parseInt(sheetCustomAmount, 10) <= 0
             }
             onPress={handleSheetCustomSubmit}
+          />
+          <SSButton
+            label={t('common.cancel')}
+            variant="ghost"
+            onPress={() => zapSheetRef.current?.close()}
           />
         </SSVStack>
       </SSBottomSheet>
@@ -1501,6 +1987,18 @@ function deriveAuthorFeedProps(
 }
 
 const styles = StyleSheet.create({
+  actionButton: {
+    alignItems: 'center',
+    height: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 16
+  },
+  actionRow: {
+    borderBottomWidth: 1,
+    borderColor: Colors.gray[800],
+    justifyContent: 'flex-end',
+    paddingBottom: 4
+  },
   authorAvatar: {
     borderRadius: 24,
     height: 48,
@@ -1539,11 +2037,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between'
   },
+  jsonText: {
+    color: Colors.gray[300],
+    lineHeight: 18
+  },
   kindBadge: {
     backgroundColor: Colors.gray[800],
     borderRadius: 3,
     paddingHorizontal: 8,
     paddingVertical: 3
+  },
+  metaLabel: {
+    flexShrink: 0,
+    width: 44
+  },
+  metaRow: {
+    alignItems: 'center'
+  },
+  metaToggle: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+    width: '100%'
+  },
+  metaValue: {
+    flex: 1,
+    minWidth: 0
   },
   notFoundCard: {
     backgroundColor: Colors.gray[925],
@@ -1555,7 +2075,7 @@ const styles = StyleSheet.create({
   noteCard: {
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
-    borderRadius: 5,
+    borderRadius: 3,
     borderWidth: 1,
     padding: 16,
     position: 'relative'
@@ -1593,7 +2113,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[700],
-    borderRadius: 5,
+    borderRadius: 3,
     borderWidth: 1,
     gap: 2,
     paddingHorizontal: 16,
@@ -1621,6 +2141,17 @@ const styles = StyleSheet.create({
     height: 4,
     overflow: 'hidden',
     width: '100%'
+  },
+  qrContainer: {
+    alignSelf: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    padding: 12
+  },
+  qrModalContent: {
+    alignItems: 'center',
+    paddingBottom: 24,
+    paddingHorizontal: 20
   },
   receiptAmountCol: {
     alignItems: 'flex-end'
@@ -1654,6 +2185,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0
   },
+  replyParentNoteRow: {
+    width: '100%'
+  },
   replyParentSection: {
     borderColor: Colors.gray[800],
     borderTopWidth: 1,
@@ -1666,8 +2200,18 @@ const styles = StyleSheet.create({
   sheetContent: {
     paddingBottom: 24
   },
+  tagTypeBadge: {
+    backgroundColor: Colors.gray[800],
+    borderRadius: 3,
+    flexShrink: 0,
+    paddingHorizontal: 5,
+    paddingVertical: 2
+  },
   zapButton: {
     minWidth: 90
+  },
+  zapLoader: {
+    marginVertical: 8
   },
   zapLoadingRow: {
     alignItems: 'center',
@@ -1683,5 +2227,11 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 14,
     paddingTop: 8
+  },
+  zapSectionSpacer: {
+    height: 8
+  },
+  zapSortHeader: {
+    alignItems: 'center'
   }
 })

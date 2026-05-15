@@ -1,6 +1,6 @@
 {
   "name": "@satsigner/mobile",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": true,
   "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "main": "./index.js",
@@ -105,6 +105,7 @@
     "sonner-native": "^0.17.0",
     "varuint-bitcoin": "1.1.2",
     "victory-native": "^41.16.0",
+    "zod": "^4.4.3",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

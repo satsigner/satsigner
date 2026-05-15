@@ -50,6 +50,7 @@ import SSIconGreenNoSecret from './SSIconGreenNoSecret'
 import SSIconGreyIndicator from './SSIconGreyIndicator'
 import SSIconHalving from './SSIconHalving'
 import SSIconHamburger from './SSIconHamburger'
+import SSIconHeart from './SSIconHeart'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconHistoryChart from './SSIconHistoryChart'
 import SSIconIncoming from './SSIconIncoming'
@@ -74,8 +75,10 @@ import SSIconOutgoingLightning from './SSIconOutgoingLightning'
 import SSIconPasteClipboard from './SSIconPasteClipboard'
 import SSIconPencil from './SSIconPencil'
 import SSIconPlus from './SSIconPlus'
+import SSIconQR from './SSIconQR'
 import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
+import SSIconRepost from './SSIconRepost'
 import SSIconScan from './SSIconScan'
 import SSIconScanNFC from './SSIconScanNFC'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
@@ -150,6 +153,7 @@ export {
   SSIconGreyIndicator,
   SSIconHalving,
   SSIconHamburger,
+  SSIconHeart,
   SSIconHideWarning,
   SSIconHistoryChart,
   SSIconIncoming,
@@ -173,9 +177,11 @@ export {
   SSIconOutgoingLightning,
   SSIconPasteClipboard,
   SSIconPencil,
+  SSIconQR,
   SSIconPlus,
   SSIconRefresh,
   SSIconRemove,
+  SSIconRepost,
   SSIconScan,
   SSIconScanNFC,
   SSIconScriptsP2pkh,

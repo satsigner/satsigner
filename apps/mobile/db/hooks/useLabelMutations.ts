@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { type Label } from '@/utils/bip329'
+import { type Label } from '@/types/bips/329'
 
 import {
   accountKeys,

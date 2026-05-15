@@ -28,6 +28,7 @@ import SSFeeRateChart, {
 } from '@/components/SSFeeRateChart'
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
+import SSOrphanedInputsBanner from '@/components/SSOrphanedInputsBanner'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -64,7 +65,7 @@ import {
 } from '@/utils/parse'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
-import { selectEfficientUtxos } from '@/utils/utxo'
+import { getUtxoOutpoint, selectEfficientUtxos } from '@/utils/utxo'
 
 export default function IOPreview() {
   const router = useRouter()
@@ -84,6 +85,7 @@ export default function IOPreview() {
     inputs,
     addInput,
     removeInput,
+    removeOrphanedInputs,
     outputs,
     getInputs,
     feeRate,
@@ -99,6 +101,7 @@ export default function IOPreview() {
       state.inputs,
       state.addInput,
       state.removeInput,
+      state.removeOrphanedInputs,
       state.outputs,
       state.getInputs,
       state.feeRate,
@@ -216,6 +219,12 @@ export default function IOPreview() {
     [outputs]
   )
   const hasChange = utxosSelectedValue > totalOutputValue + baseMinerFee
+
+  const utxoOutpointSet = new Set(account.utxos.map(getUtxoOutpoint))
+  const orphanedInputs = Array.from(inputs.values()).filter(
+    (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
+  )
+  const hasOrphanedInputs = orphanedInputs.length > 0
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
@@ -982,6 +991,12 @@ export default function IOPreview() {
               />
             </SSHStack>
           </SSVStack>
+          {hasOrphanedInputs && (
+            <SSOrphanedInputsBanner
+              count={orphanedInputs.length}
+              onRemove={() => removeOrphanedInputs(account.utxos)}
+            />
+          )}
           {dustErrorMessage !== '' && (
             <SSDustWarningBanner message={dustErrorMessage} />
           )}
@@ -992,6 +1007,7 @@ export default function IOPreview() {
                 ? t('transaction.build.add.output.title')
                 : t('sign.transaction')
             }
+            disabled={hasOrphanedInputs}
             onPress={
               outputs.length === 0 ? handleOnPressAddOutput : handleGoToPreview
             }

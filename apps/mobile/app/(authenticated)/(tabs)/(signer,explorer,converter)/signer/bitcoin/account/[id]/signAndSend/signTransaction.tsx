@@ -380,6 +380,7 @@ export default function SignTransaction() {
                       transaction={transaction}
                       ownAddresses={ownAddresses}
                       scale={0.9}
+                      showUnspentLabel={false}
                     />
                   </View>
                 )}

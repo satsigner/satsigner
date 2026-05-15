@@ -71,7 +71,18 @@ function useAccountBuilderFinish() {
               updateKeyFingerprint(index, fingerprint as string)
             }
           } else {
-            updateKeyFingerprint(key.index, walletData.fingerprint)
+            const userFingerprint =
+              typeof key.secret === 'object'
+                ? key.secret.fingerprint
+                : undefined
+            const derivedFingerprint = walletData.fingerprint
+            const isZero = (fp?: string) => !fp || /^0+$/.test(fp)
+            const finalFingerprint = !isZero(derivedFingerprint)
+              ? derivedFingerprint
+              : userFingerprint
+            if (finalFingerprint) {
+              updateKeyFingerprint(key.index, finalFingerprint)
+            }
           }
           setKeyDerivationPath(key.index, walletData.derivationPath)
         }

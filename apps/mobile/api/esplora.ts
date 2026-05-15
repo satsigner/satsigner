@@ -1,5 +1,20 @@
-import type { EsploraTx, EsploraUtxo } from '@/types/models/Esplora'
+import z from 'zod'
+
+import {
+  ESPLORA_ADDRESS_TXS_PER_REQUEST,
+  ESPLORA_ERROR_MESSAGES
+} from '@/constants/esplora'
+import { BlockSchema, BlockStatusSchema } from '@/types/models/Blockchain'
+import {
+  EsploraTxOutspendsSchema,
+  EsploraTxSchema,
+  EsploraUtxoSchema
+} from '@/types/models/Esplora'
 import { parseHexToBytes } from '@/utils/parse'
+
+const parseBlocks = z.array(BlockSchema).parse
+const parseTxs = z.array(EsploraTxSchema).parse
+const parseTxIds = z.array(EsploraTxSchema.shape.txid).parse
 
 export default class Esplora {
   public esploraUrl: string
@@ -18,19 +33,17 @@ export default class Esplora {
         },
         method
       })
+
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
       }
-
       const contentType = response.headers.get('Content-Type') || ''
-
-      // Handle different content types
       if (contentType.includes('application/json')) {
         return await response.json()
-      } else if (contentType.includes('application/octet-stream')) {
+      }
+      if (contentType.includes('application/octet-stream')) {
         return await response.arrayBuffer()
       }
-      // text/plain, text/html, missing content-type, etc. — return as text
       return await response.text()
     } catch (error) {
       throw new Error(getVerboseErrorMessage(error), { cause: error })
@@ -38,115 +51,130 @@ export default class Esplora {
   }
 
   async getTxInfo(txid: string) {
-    return (await this._call(`/tx/${txid}`)) as EsploraTx
+    const data = await this._call(`/tx/${txid}`)
+    return EsploraTxSchema.parse(data)
   }
 
   async getTxStatus(txid: string) {
-    return await this._call(`/tx/${txid}/status`)
+    const data = await this._call(`/tx/${txid}/status`)
+    return EsploraTxSchema.shape.status.parse(data)
   }
 
   async getBlockTxids(hash: string): Promise<string[]> {
-    return await this._call(`/block/${hash}/txids`)
+    const data = await this._call(`/block/${hash}/txids`)
+    return z.array(EsploraTxSchema.shape.txid).parse(data)
   }
 
   async getTxHex(txid: string) {
-    return await this._call(`/tx/${txid}/hex`)
+    const data = await this._call(`/tx/${txid}/hex`)
+    return z.string().parse(data)
   }
 
   async getTxRaw(txid: string) {
-    return await this._call(`/tx/${txid}/raw`)
+    const data = await this._call(`/tx/${txid}/raw`)
+    // TODO: verify is data binary content? unclear for now
+    return data
   }
 
   async broadcastTransaction(txHex: string): Promise<string> {
-    const result = await this._call('/tx', 'POST', txHex)
-    return result as string
+    const data = await this._call('/tx', 'POST', txHex)
+    return z.string().parse(data)
   }
 
-  getTxInputValues(txid: string) {
-    return this.getTxInfo(txid).then((data) =>
-      data.vin.map((input) => ({
-        previousOutput: {
-          txid: input.txid,
-          vout: input.vout
-        },
-        scriptSig: parseHexToBytes(input.scriptsig),
-        sequence: input.sequence,
-        value: input.prevout.value,
-        witness: input.witness.map(parseHexToBytes)
-      }))
-    )
+  async getTxInputValues(txid: string) {
+    const txInfo = await this.getTxInfo(txid)
+    return txInfo.vin.map((input) => ({
+      previousOutput: {
+        txid: input.txid,
+        vout: input.vout
+      },
+      scriptSig: parseHexToBytes(input.scriptsig),
+      sequence: input.sequence,
+      value: input.prevout?.value,
+      witness: input.witness?.map(parseHexToBytes)
+    }))
   }
 
   async getTxOutspends(txid: string) {
-    return (await this._call(`/tx/${txid}/outspends`)) as {
-      spent: boolean
-    }[]
+    const data = await this._call(`/tx/${txid}/outspends`)
+    return EsploraTxOutspendsSchema.parse(data)
   }
 
   async getBlockInfo(blockHash: string) {
-    return await this._call(`/block/${blockHash}`)
+    const data = await this._call(`/block/${blockHash}`)
+    return BlockSchema.parse(data)
   }
 
   async getBlockStatus(blockHash: string) {
-    return await this._call(`/block/${blockHash}/status`)
+    const data = await this._call(`/block/${blockHash}/status`)
+    return BlockStatusSchema.parse(data)
   }
 
   async getBlockTransactions(blockHash: string, startIndex = 0) {
-    return await this._call(`/block/${blockHash}/txs/${startIndex}`)
+    const data = await this._call(`/block/${blockHash}/txs/${startIndex}`)
+    return parseTxs(data)
   }
 
   async getBlockTransactionIds(blockHash: string) {
-    return await this._call(`/block/${blockHash}/txids`)
+    const data = await this._call(`/block/${blockHash}/txids`)
+    return parseTxIds(data)
   }
 
   async getBlockAtHeight(height: number) {
-    return await this._call(`/block-height/${height}`)
+    const data = await this._call(`/block-height/${height}`)
+    return BlockSchema.shape.id.parse(data)
   }
 
   async getLatestBlockHash() {
-    return await this._call('/blocks/tip/hash')
+    const data = await this._call('/blocks/tip/hash')
+    return BlockSchema.shape.id.parse(data)
   }
 
   async getLatestBlockHeight() {
-    return await this._call('/blocks/tip/height')
+    const data = await this._call('/blocks/tip/height')
+    return Number(data)
   }
 
   async getBlocks(startHeight: number) {
-    return await this._call(`/blocks/${startHeight}`)
+    const data = await this._call(`/blocks/${startHeight}`)
+    return parseBlocks(data)
   }
 
   async getAddressTxs(address: string, stopAtTxids?: Set<string>) {
     const endpoint = `/address/${address}/txs`
-    const transactions = (await this._call(endpoint)) as EsploraTx[]
+    const data = await this._call(endpoint)
+    const transactions = parseTxs(data)
 
-    // if there are more than 50 transactions, we need to make multiple requests
-    // due to the rate limit (at least for MemPool; we need to confirm it for
-    // other instances).
-    const perPage = 50
-    let lastPage = transactions
-    while (lastPage.length >= perPage) {
+    let lastRequestTransactions = transactions
+    while (lastRequestTransactions.length >= ESPLORA_ADDRESS_TXS_PER_REQUEST) {
       // Early stop: if every txid on this page is already known, no need to paginate further
-      if (stopAtTxids && lastPage.every((tx) => stopAtTxids.has(tx.txid))) {
+      if (
+        stopAtTxids &&
+        lastRequestTransactions.every((tx) => stopAtTxids.has(tx.txid))
+      ) {
         break
       }
 
       const lastTxId = transactions.at(-1)!.txid
-      const nextPage = (await this._call(
+      const data = await this._call(
         `/address/${address}/txs?after_txid=${lastTxId}`
-      )) as EsploraTx[]
-      lastPage = nextPage
-      transactions.push(...nextPage)
+      )
+      const nextPageTransactions = parseTxs(data)
+      lastRequestTransactions = nextPageTransactions
+      transactions.push(...nextPageTransactions)
     }
 
     return transactions
   }
 
   async getAddressTxsInMempool(address: string) {
-    return (await this._call(`/address/${address}/txs/mempool`)) as EsploraTx[]
+    const data = await this._call(`/address/${address}/txs/mempool`)
+    return parseTxs(data)
   }
 
-  async getAddressUtxos(address: string): Promise<EsploraUtxo[]> {
-    return await this._call(`/address/${address}/utxo`)
+  async getAddressUtxos(address: string) {
+    const data = await this._call(`/address/${address}/utxo`)
+    return z.array(EsploraUtxoSchema).parse(data)
   }
 
   async getMempoolInfo() {
@@ -186,38 +214,11 @@ export default class Esplora {
   }
 }
 
-const verboseErrorMessages = [
-  {
-    error: 'timeout',
-    reason: 'Connection timeout - server may be slow or unreachable'
-  },
-  {
-    error: 'Unable to resolve host',
-    reason: 'Unable to resolve host - check server URL and internet connection'
-  },
-  {
-    error: 'ECONNREFUSED',
-    reason: 'Connection refused - server may be down or port is closed'
-  },
-  {
-    error: 'ENOTFOUND',
-    reason: 'Server not found - check the server URL'
-  },
-  {
-    error: 'InvalidCertificate',
-    reason: 'TLS certificate validation failed - check server configuration'
-  },
-  {
-    error: 'NetworkError',
-    reason: 'Network error - check your internet connection'
-  }
-]
-
 function getVerboseErrorMessage(error: unknown) {
   if (!(error instanceof Error)) {
     return 'Unkown error'
   }
-  for (const errorType of verboseErrorMessages) {
+  for (const errorType of ESPLORA_ERROR_MESSAGES) {
     if (error.message.match(errorType.error)) {
       return errorType.reason
     }

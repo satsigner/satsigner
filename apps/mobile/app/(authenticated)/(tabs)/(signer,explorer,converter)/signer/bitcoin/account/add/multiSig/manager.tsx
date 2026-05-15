@@ -11,6 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { hasMultisigDuplicateXpubs } from '@/utils/key'
 
 export default function MultiSigManager() {
   const router = useRouter()
@@ -59,8 +60,11 @@ export default function MultiSigManager() {
       return true
     })
 
-    const allValid = keyValidation.every(Boolean)
-    return allValid
+    if (!keyValidation.every(Boolean)) {
+      return false
+    }
+
+    return !hasMultisigDuplicateXpubs(keys)
   }, [keys, keyCount])
 
   function handleConfirm() {

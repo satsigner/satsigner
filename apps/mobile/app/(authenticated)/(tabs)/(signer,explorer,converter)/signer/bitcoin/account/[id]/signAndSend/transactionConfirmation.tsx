@@ -15,9 +15,9 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { type Label } from '@/types/bips/329'
 import { type Transaction } from '@/types/models/Transaction'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type Label } from '@/utils/bip329'
 import { formatAddress } from '@/utils/format'
 
 export default function TransactionConfirmation() {

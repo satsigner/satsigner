@@ -24,9 +24,8 @@ export const RELAY_PROTOCOL_PREFIX = 'wss://'
 /** Fallback color when npub is missing, invalid, or member has no color (e.g. device/member list UI). */
 export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
 /** Short NDK connect when probing whether at least one relay is reachable. */
-export const NOSTR_RELAY_REACHABILITY_TEST_MS = 5000
-/** Shown when settings privacy mode hides Nostr amounts and identifiers. */
-export const NOSTR_PRIVACY_MASK = '••••'
+export const NOSTR_RELAY_REACHABILITY_TEST_MS = 10000
+export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 /** Shown in place of hidden secret keys (nsec / seed words) — short form. */
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
 /** Shown in place of hidden secret keys — long form for full-width displays. */

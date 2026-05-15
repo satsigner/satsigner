@@ -10,7 +10,10 @@ import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { getKeyFingerprint } from '@/utils/account'
 import { parseBitcoinUri } from '@/utils/bip321'
-import { type DetectedContent } from '@/utils/contentDetector'
+import {
+  type DetectedContent,
+  prepareEcashTokenInput
+} from '@/utils/contentDetector'
 import {
   combinePsbts,
   extractIndividualSignedPsbts,
@@ -455,7 +458,7 @@ function processEcashContent(
   switch (content.type) {
     case 'ecash_token':
       navigate({
-        params: { token: content.cleaned },
+        params: { token: prepareEcashTokenInput(content.cleaned) },
         pathname: '/signer/ecash/receive'
       })
       break

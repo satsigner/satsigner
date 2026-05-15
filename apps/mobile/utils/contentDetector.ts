@@ -12,6 +12,7 @@ import {
 } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
+import { getLndConfigFileUrlFromConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
@@ -41,8 +42,10 @@ export type ContentType =
   | 'lightning_invoice'
   | 'lightning_address'
   | 'lnurl'
+  | 'lnd_rest_config'
   | 'ark_address'
   | 'ecash_token'
+  | 'encrypted_backup'
   | 'bbqr_fragment'
   | 'seed_qr'
   | 'ur'
@@ -58,7 +61,13 @@ export type ContentType =
   | 'incompatible'
   | 'unknown'
 
-export type ContentContext = 'bitcoin' | 'lightning' | 'ark' | 'ecash' | 'nostr'
+export type ContentContext =
+  | 'bitcoin'
+  | 'lightning'
+  | 'ark'
+  | 'ecash'
+  | 'nostr'
+  | 'developer_recover'
 
 export type DetectedContent = {
   type: ContentType
@@ -72,12 +81,10 @@ function isExtendedPublicKey(data: string): boolean {
   return validateExtendedKey(data)
 }
 
-async function detectBitcoinContent(
-  data: string
-): Promise<DetectedContent | null> {
+function detectBitcoinContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
-  const descriptorValidation = await validateDescriptorFormat(trimmed)
+  const descriptorValidation = validateDescriptorFormat(trimmed)
   if (descriptorValidation) {
     return {
       cleaned: trimmed,
@@ -188,6 +195,61 @@ function stripSchemePrefix(data: string): string {
   return data
 }
 
+function normalizeCashuTokenPrefix(token: string): string {
+  const m = token.match(/^(cashu)([ab])(.*)$/i)
+  if (!m) {
+    return token
+  }
+  return `cashu${m[2].toUpperCase()}${m[3]}`
+}
+
+function safeDecodeUriComponent(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+/**
+ * Returns a Cashu token substring when the input embeds `cashuA…` / `cashuB…`
+ * (e.g. `https://wallet.example/e/cashuB…`). Returns null if no marker exists.
+ */
+export function extractCashuTokenFromString(data: string): string | null {
+  const stripped = stripSchemePrefix(data.trim())
+  const matchIndex = stripped.search(/cashu[AB]/i)
+  if (matchIndex === -1) {
+    return null
+  }
+
+  const sliced = stripped.slice(matchIndex)
+  const run = sliced.match(/^(cashu[AB][A-Za-z0-9+/=_%-]*)/i)
+  if (!run) {
+    return null
+  }
+  const [, raw] = run
+
+  return normalizeCashuTokenPrefix(safeDecodeUriComponent(raw))
+}
+
+/** Strips wallet URLs / schemes so paste and decode always see a raw token. */
+export function prepareEcashTokenInput(data: string): string {
+  return extractCashuTokenFromString(data) ?? stripSchemePrefix(data.trim())
+}
+
+export function preprocessByContext(
+  text: string,
+  context: ContentContext
+): string {
+  if (context === 'bitcoin') {
+    return stripBitcoinPrefix(text)
+  }
+  if (context === 'ecash') {
+    return prepareEcashTokenInput(text)
+  }
+  return text
+}
+
 function detectArkContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
   const validation = validateArkAddressWithNetwork(trimmed)
@@ -202,6 +264,21 @@ function detectArkContent(data: string): DetectedContent | null {
     },
     raw: data,
     type: 'ark_address'
+  }
+}
+
+function detectLndRestConfigConnectionString(
+  data: string
+): DetectedContent | null {
+  if (!getLndConfigFileUrlFromConnectionInput(data)) {
+    return null
+  }
+  const trimmed = data.trim()
+  return {
+    cleaned: trimmed,
+    isValid: true,
+    raw: data,
+    type: 'lnd_rest_config'
   }
 }
 
@@ -276,7 +353,7 @@ function detectLightningContent(data: string): DetectedContent | null {
 }
 
 function detectEcashContent(data: string): DetectedContent | null {
-  const trimmed = stripSchemePrefix(data.trim())
+  const trimmed = prepareEcashTokenInput(data)
 
   if (trimmed.startsWith('cashuA') || trimmed.startsWith('cashuB')) {
     try {
@@ -407,6 +484,31 @@ function detectNostrContent(data: string): DetectedContent | null {
   return null
 }
 
+function detectEncryptedBackupPayload(data: string): DetectedContent | null {
+  const trimmed = data.trim()
+  if (!trimmed) {
+    return null
+  }
+  try {
+    const payload = JSON.parse(trimmed) as Record<string, unknown>
+    if (
+      typeof payload.cipher === 'string' &&
+      typeof payload.iv === 'string' &&
+      typeof payload.salt === 'string'
+    ) {
+      return {
+        cleaned: trimmed,
+        isValid: true,
+        raw: data,
+        type: 'encrypted_backup'
+      }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
 function detectImportContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
@@ -444,10 +546,10 @@ function detectImportContent(data: string): DetectedContent | null {
   return null
 }
 
-export async function detectContentByContext(
+export function detectContentByContext(
   data: string,
   context: ContentContext
-): Promise<DetectedContent> {
+): DetectedContent {
   if (!data || data.trim().length === 0) {
     return {
       cleaned: data,
@@ -461,7 +563,7 @@ export async function detectContentByContext(
 
   switch (context) {
     case 'bitcoin':
-      detected = await detectBitcoinContent(data)
+      detected = detectBitcoinContent(data)
       if (!detected) {
         detected = detectLightningContent(data) || detectEcashContent(data)
         if (detected) {
@@ -470,10 +572,11 @@ export async function detectContentByContext(
       }
       break
     case 'lightning':
-      detected = detectLightningContent(data)
+      detected =
+        detectLndRestConfigConnectionString(data) ||
+        detectLightningContent(data)
       if (!detected) {
-        detected =
-          (await detectBitcoinContent(data)) || detectEcashContent(data)
+        detected = detectBitcoinContent(data) || detectEcashContent(data)
         if (detected) {
           detected.type = 'incompatible'
         }
@@ -482,7 +585,7 @@ export async function detectContentByContext(
     case 'ark':
       detected = detectArkContent(data) || detectLightningContent(data)
       if (!detected) {
-        const bitcoinDetected = await detectBitcoinContent(data)
+        const bitcoinDetected = detectBitcoinContent(data)
         if (
           bitcoinDetected?.type === 'bitcoin_uri' ||
           bitcoinDetected?.type === 'bitcoin_address'
@@ -502,7 +605,7 @@ export async function detectContentByContext(
     case 'ecash':
       detected = detectEcashContent(data) || detectLightningContent(data)
       if (!detected) {
-        detected = await detectBitcoinContent(data)
+        detected = detectBitcoinContent(data)
         if (detected) {
           detected.type = 'incompatible'
         }
@@ -514,11 +617,14 @@ export async function detectContentByContext(
         detected = detectLightningContent(data) || detectEcashContent(data)
       }
       break
+    case 'developer_recover':
+      detected = detectEncryptedBackupPayload(data)
+      break
     default:
       break
   }
 
-  if (!detected) {
+  if (!detected && context !== 'developer_recover') {
     detected = detectImportContent(data)
   }
 
@@ -548,9 +654,12 @@ export function isContentTypeSupportedInContext(
         'extended_public_key'
       ].includes(contentType)
     case 'lightning':
-      return ['lightning_invoice', 'lnurl', 'lightning_address'].includes(
-        contentType
-      )
+      return [
+        'lightning_invoice',
+        'lnurl',
+        'lightning_address',
+        'lnd_rest_config'
+      ].includes(contentType)
     case 'ark':
       return [
         'ark_address',
@@ -572,6 +681,8 @@ export function isContentTypeSupportedInContext(
         'nostr_nprofile',
         'nostr_json'
       ].includes(contentType)
+    case 'developer_recover':
+      return contentType === 'encrypted_backup'
     default:
       return false
   }
@@ -597,10 +708,14 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Lightning Address'
     case 'lnurl':
       return 'LNURL Payment Request'
+    case 'lnd_rest_config':
+      return 'LND REST API Config'
     case 'ark_address':
       return 'Ark Address'
     case 'ecash_token':
       return 'Ecash Token'
+    case 'encrypted_backup':
+      return 'Encrypted Backup'
     case 'bbqr_fragment':
       return 'BBQR Fragment'
     case 'seed_qr':

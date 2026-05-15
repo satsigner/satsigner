@@ -1,4 +1,3 @@
-import { type ForwardedRef, forwardRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
@@ -15,23 +14,22 @@ export type SSTextInputProps = {
   status?: 'valid' | 'invalid'
   warning?: string
   error?: string
+  ref?: React.Ref<TextInput>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-function SSTextInput(
-  {
-    variant = 'default',
-    size = 'default',
-    align = 'center',
-    actionRight,
-    status,
-    style,
-    value,
-    error,
-    warning,
-    ...props
-  }: SSTextInputProps,
-  ref: ForwardedRef<TextInput>
-) {
+function SSTextInput({
+  variant = 'default',
+  size = 'default',
+  align = 'center',
+  actionRight,
+  status,
+  style,
+  value,
+  error,
+  warning,
+  ref,
+  ...props
+}: SSTextInputProps) {
   const variantStyle =
     variant === 'default' ? styles.variantDefault : styles.variantOutline
   const sizeStyle = size === 'default' ? styles.sizeDefault : styles.sizeSmall
@@ -148,4 +146,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default forwardRef(SSTextInput)
+export default SSTextInput

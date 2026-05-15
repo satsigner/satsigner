@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { KeychainKind } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -7,11 +7,40 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
+import { type Network } from '@/types/settings/blockchain'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 
+async function deriveAccountAddress(
+  account: Account,
+  network: Network
+): Promise<string> {
+  const temporaryAccount = await getAccountWithDecryptedKeys(account)
+
+  if (account.keys[0].creationType === 'importAddress') {
+    const [{ secret }] = temporaryAccount.keys
+    if (!secret.externalDescriptor) {
+      return ''
+    }
+    return secret.externalDescriptor.startsWith('addr(') &&
+      secret.externalDescriptor.endsWith(')')
+      ? secret.externalDescriptor.slice(5, -1)
+      : secret.externalDescriptor
+  }
+
+  const walletData = await getWalletData(
+    temporaryAccount,
+    appNetworkToBdkNetwork(network)
+  )
+  if (!walletData) {
+    return ''
+  }
+  const addressInfo = walletData.wallet.peekAddress(KeychainKind.External, 0)
+  return addressInfo?.address ?? ''
+}
+
 const useGetAccountAddress = (id: Account['id']) => {
-  const [address, addAccountAddress] = useWalletsStore(
+  const [storedAddress, addAccountAddress] = useWalletsStore(
     useShallow((state) => [state.addresses[id], state.addAccountAddress])
   )
 
@@ -21,63 +50,24 @@ const useGetAccountAddress = (id: Account['id']) => {
 
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
-  async function addAddress() {
-    if (!account || account.keys.length === 0) {
-      return
-    }
+  const fingerprint = account?.keys?.[0]?.fingerprint
+  const hasKeys = (account?.keys?.length ?? 0) > 0
 
-    try {
-      const temporaryAccount = await getAccountWithDecryptedKeys(account)
-
-      if (account.keys[0].creationType === 'importAddress') {
-        const [{ secret }] = temporaryAccount.keys
-        if (!secret.externalDescriptor) {
-          return
-        }
-
-        // Try to extract address from descriptor
-        // It could be in format addr(address) or just a plain address
-        const address =
-          secret.externalDescriptor.startsWith('addr(') &&
-          secret.externalDescriptor.endsWith(')')
-            ? secret.externalDescriptor.slice(5, -1)
-            : secret.externalDescriptor
-        addAccountAddress(account.id, address)
-        return
+  const { data } = useQuery({
+    enabled: !storedAddress && Boolean(account) && hasKeys,
+    queryFn: async () => {
+      const derived = await deriveAccountAddress(account as Account, network)
+      if (derived) {
+        addAccountAddress(id, derived)
       }
+      return derived
+    },
+    queryKey: ['accountAddress', id, network, fingerprint],
+    retry: false,
+    staleTime: Number.POSITIVE_INFINITY
+  })
 
-      // For all other account types, use BDK to generate wallet and get first address
-      const walletData = await getWalletData(
-        temporaryAccount,
-        appNetworkToBdkNetwork(network)
-      )
-
-      if (!walletData) {
-        return
-      }
-
-      // Get the first address from the wallet
-      const addressInfo = walletData.wallet.peekAddress(
-        KeychainKind.External,
-        0
-      )
-      const firstAddress = addressInfo?.address ?? ''
-      addAccountAddress(account.id, firstAddress)
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown reason'
-      throw new Error(`Failed to get account address: ${reason}`, {
-        cause: error
-      })
-    }
-  }
-
-  useEffect(() => {
-    if (!address) {
-      addAddress()
-    }
-  }, [address, id, account]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  return address
+  return storedAddress ?? data
 }
 
 export default useGetAccountAddress
