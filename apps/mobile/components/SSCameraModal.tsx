@@ -567,10 +567,12 @@ function SSCameraModal({
         <CameraView
           onBarcodeScanned={onBarcodeScanned}
           onAvailableLensesChanged={(event: AvailableLenses) => {
-            if (event.lenses.length > 1) {
-              setAvailableLenses(event.lenses)
-              setSelectedLens((prev) => prev ?? event.lenses[0])
+            const { lenses } = event
+            if (lenses.length < 2) {
+              return
             }
+            setAvailableLenses(lenses)
+            setSelectedLens((prev) => prev ?? lenses[0])
           }}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           zoom={zoom}

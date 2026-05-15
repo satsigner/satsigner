@@ -17,8 +17,8 @@ type SSPaymentMethodPickerProps = {
   onSelect: (method: PaymentMethod) => void
   methods: PaymentMethod[]
   amountSats: number
-  btcPrice: number
-  fiatCurrency: string
+  btcPrice?: number
+  fiatCurrency?: string
 }
 
 function SSPaymentMethodPicker({
@@ -26,9 +26,10 @@ function SSPaymentMethodPicker({
   onSelect,
   methods,
   amountSats,
-  btcPrice,
-  fiatCurrency
+  btcPrice = 0,
+  fiatCurrency = ''
 }: SSPaymentMethodPickerProps) {
+  const hasFiatPrice = btcPrice > 0 && fiatCurrency.length > 0
   return (
     <SSBottomSheet ref={ref} title={`Pay ${amountSats.toLocaleString()} sats`}>
       <SSVStack gap="md" style={styles.content}>
@@ -53,7 +54,7 @@ function SSPaymentMethodPicker({
               {method.balanceSats !== undefined && (
                 <SSText size="xs" color="muted">
                   {method.balanceSats.toLocaleString()} sats
-                  {btcPrice > 0
+                  {hasFiatPrice
                     ? ` · ${fiatCurrency} ${formatFiatPrice(method.balanceSats, btcPrice)}`
                     : ''}
                 </SSText>
