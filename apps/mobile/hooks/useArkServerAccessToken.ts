@@ -1,10 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query'
 
 import { releaseArkWallet } from '@/api/ark'
+import { ARK_INVALIDATED_QUERY_KINDS } from '@/constants/ark'
 import { useArkStore } from '@/store/ark'
 import type { Network } from '@/types/settings/blockchain'
-
-const INVALIDATED_QUERY_KINDS = ['wallet', 'balance', 'address'] as const
 
 /**
  * Applies a new Ark server access token for the given network.
@@ -29,7 +28,7 @@ export function useArkServerAccessToken() {
     const accounts = store.accounts.filter((a) => a.network === network)
     for (const account of accounts) {
       releaseArkWallet(account.serverId, account.id)
-      for (const kind of INVALIDATED_QUERY_KINDS) {
+      for (const kind of ARK_INVALIDATED_QUERY_KINDS) {
         queryClient.invalidateQueries({
           queryKey: ['ark', kind, account.id]
         })

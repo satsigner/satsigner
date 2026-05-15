@@ -5,8 +5,6 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  type ArkMovementEvent,
-  type ArkNotificationUnsubscribe,
   openArkWallet,
   subscribeArkNotifications,
   syncArkWallet
@@ -16,7 +14,11 @@ import { t } from '@/locales'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
-import type { ArkAccount } from '@/types/models/Ark'
+import type {
+  ArkAccount,
+  ArkMovementEvent,
+  ArkNotificationUnsubscribe
+} from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 import { formatNumber } from '@/utils/format'
 
@@ -24,7 +26,6 @@ type AccessTokenMap = Partial<Record<Network, string>>
 
 const activeSubscriptions = new Map<string, ArkNotificationUnsubscribe>()
 const inflightSubscriptions = new Set<string>()
-
 const RECEIVE_TOAST_DEDUP_TTL_MS = 60_000
 const recentReceiveToasts = new Map<string, number>()
 

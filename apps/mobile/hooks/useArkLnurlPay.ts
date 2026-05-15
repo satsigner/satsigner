@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 
+import { ARK_LNURL_DETAILS_STALE_MS } from '@/constants/ark'
 import type { LNURLPayResponse } from '@/types/models/Lightning'
 import { decodeLNURL, fetchLNURLPayDetails, isLNURL } from '@/utils/lnurl'
-
-const LNURL_DETAILS_STALE_MS = 60_000
 
 function resolveLnurlUrl(raw: string): string {
   const cleaned = raw.trim().replace(/^lightning:/i, '')
@@ -21,6 +20,6 @@ export function useArkLnurlPayDetails(lnurlRaw: string | null | undefined) {
       return fetchLNURLPayDetails(url)
     },
     queryKey: ['ark', 'lnurl-pay', 'details', lnurlRaw],
-    staleTime: LNURL_DETAILS_STALE_MS
+    staleTime: ARK_LNURL_DETAILS_STALE_MS
   })
 }

@@ -2,11 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { offboardArkVtxos } from '@/api/ark'
 import { useArkStore } from '@/store/ark'
-
-type ArkOffboardInput = {
-  vtxoIds: string[]
-  bitcoinAddress: string
-}
+import type { ArkOffboardInput } from '@/types/models/Ark'
 
 function executeArkOffboard(
   accountId: string,

@@ -19,7 +19,7 @@ import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
-import { truncateArkCounterparty } from '@/utils/arkMovement'
+import { truncateArkCounterparty } from '@/utils/ark'
 import { getBolt11Network } from '@/utils/bolt11Network'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 

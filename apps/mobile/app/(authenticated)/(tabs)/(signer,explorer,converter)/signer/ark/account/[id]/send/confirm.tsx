@@ -12,10 +12,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkLnurlPayDetails } from '@/hooks/useArkLnurlPay'
 import { useArkSend } from '@/hooks/useArkSend'
-import {
-  type ArkSendFeeKind,
-  useArkSendFeeEstimate
-} from '@/hooks/useArkSendFeeEstimate'
+import { useArkSendFeeEstimate } from '@/hooks/useArkSendFeeEstimate'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -25,15 +22,16 @@ import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import type {
+  ArkSendFeeKind,
   ArkSendInput,
   ArkSendKind,
   ArkSendOutcome
 } from '@/types/models/Ark'
+import { truncateArkCounterparty } from '@/utils/ark'
 import {
   type ArkDestinationDraft,
   parseArkDestination
 } from '@/utils/arkDestination'
-import { truncateArkCounterparty } from '@/utils/arkMovement'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { millisatsToSats } from '@/utils/bitcoinUnits'
 import { formatFiatPrice, formatNumber } from '@/utils/format'

@@ -81,7 +81,7 @@ export async function parseArkDestination(
   }
 }
 
-export function destinationKindFromDraft(
+export function arkDestinationKindFromDraft(
   draft: ArkDestinationDraft
 ): ArkSendKind {
   return draft.kind

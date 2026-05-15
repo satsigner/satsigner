@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { createArkBolt11Invoice } from '@/api/ark'
+import { ARK_LNURL_DETAILS_STALE_MS } from '@/constants/ark'
 import { useArkStore } from '@/store/ark'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
 import {
@@ -11,8 +12,6 @@ import {
 } from '@/utils/lnurl'
 
 import { useArkWallet } from './useArkWallet'
-
-const LNURL_DETAILS_STALE_MS = 60_000
 
 function getAccountServerId(accountId: string) {
   const { accounts } = useArkStore.getState()
@@ -42,7 +41,7 @@ export function useArkLnurlWithdrawDetails(
       return fetchLNURLWithdrawDetails(url)
     },
     queryKey: ['ark', 'lnurl-withdraw', 'details', lnurlRaw],
-    staleTime: LNURL_DETAILS_STALE_MS
+    staleTime: ARK_LNURL_DETAILS_STALE_MS
   })
 }
 

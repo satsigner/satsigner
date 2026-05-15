@@ -1,38 +1,34 @@
 import {
-  Config,
-  type FeeEstimate,
-  type LightningSend,
-  type Movement,
-  Network as BarkNetwork,
-  Wallet,
-  WalletNotification_Tags,
-  WalletNotifications,
   type WalletLike,
-  type WalletNotification
+  WalletNotifications,
+  Network as BarkNetwork,
+  Config,
+  Wallet,
+  type WalletNotification,
+  WalletNotification_Tags,
+  type Movement,
+  type LightningSend,
+  type FeeEstimate
 } from '@secondts/bark-react-native'
 
 import type {
+  ArkServerId,
   ArkBalance,
-  ArkFeeEstimate,
-  ArkLightningSendResult,
   ArkMovement,
+  ArkLightningSendResult,
+  ArkFeeEstimate,
+  ArkVtxo,
   ArkServer,
-  ArkVtxo
+  ArkWalletArgs,
+  ArkBolt11Invoice,
+  ArkNotificationListener,
+  ArkNotificationUnsubscribe,
+  ArkMovementEvent,
+  ArkWalletProvider
 } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 
-import type {
-  ArkBolt11Invoice,
-  ArkMovementEvent,
-  ArkNotificationListener,
-  ArkNotificationUnsubscribe,
-  ArkWalletArgs,
-  ArkWalletProvider
-} from '../provider'
-import { registerArkProvider } from '../registry'
-
 const ROUND_TX_REQUIRED_CONFIRMATIONS = 0 // Later allow users to change this on the Ark settings
-
 const walletCache = new Map<string, WalletLike>()
 const inflightOpens = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()
@@ -117,7 +113,6 @@ async function openWallet(args: ArkWalletArgs): Promise<void> {
     inflightOpens.delete(args.accountId)
   }
 }
-
 function mapWalletNotification(
   accountId: string,
   event: WalletNotification
@@ -142,7 +137,6 @@ function mapWalletNotification(
   }
   return null
 }
-
 function getOrCreateNotifications(accountId: string): WalletNotifications {
   const existing = notificationsCache.get(accountId)
   if (existing) {
@@ -153,7 +147,6 @@ function getOrCreateNotifications(accountId: string): WalletNotifications {
   notificationsCache.set(accountId, notifications)
   return notifications
 }
-
 function getOrCreateUnsubscribes(
   accountId: string
 ): Set<ArkNotificationUnsubscribe> {
@@ -165,7 +158,6 @@ function getOrCreateUnsubscribes(
   activeUnsubscribes.set(accountId, set)
   return set
 }
-
 function subscribeNotifications(
   accountId: string,
   listener: ArkNotificationListener
@@ -185,7 +177,6 @@ function subscribeNotifications(
   unsubscribes.add(unsubscribe)
   return unsubscribe
 }
-
 function releaseWallet(accountId: string): void {
   const unsubscribes = activeUnsubscribes.get(accountId)
   if (unsubscribes) {
@@ -201,7 +192,6 @@ function releaseWallet(accountId: string): void {
   }
   walletCache.delete(accountId)
 }
-
 function newAddress(accountId: string): Promise<string> {
   const wallet = getCachedWallet(accountId)
   return wallet.newAddress()
@@ -219,7 +209,6 @@ async function createBolt11Invoice(
     invoice: invoice.invoice
   }
 }
-
 function mapMovement(movement: Movement): ArkMovement {
   return {
     completedAt: movement.completedAt ?? null,
@@ -246,7 +235,6 @@ async function fetchMovements(accountId: string): Promise<ArkMovement[]> {
   const movements = await wallet.history()
   return movements.map(mapMovement)
 }
-
 function mapLightningSend(send: LightningSend): ArkLightningSendResult {
   return {
     amountSats: Number(send.amountSats),
@@ -255,7 +243,6 @@ function mapLightningSend(send: LightningSend): ArkLightningSendResult {
     preimage: send.preimage
   }
 }
-
 function sendArkoor(
   accountId: string,
   arkAddress: string,
@@ -290,7 +277,6 @@ async function payLightningAddress(
   )
   return mapLightningSend(result)
 }
-
 function mapFeeEstimate(estimate: FeeEstimate): ArkFeeEstimate {
   return {
     feeSats: Number(estimate.feeSats),
@@ -329,10 +315,8 @@ async function listSpendableVtxos(accountId: string): Promise<ArkVtxo[]> {
     state: vtxo.state
   }))
 }
-
-const PENDING_RACE_TIMEOUT_MS = 30_000
+const PENDING_RACE_TIMEOUT_MS = 30000
 const PENDING_TXID = 'pending'
-
 function waitForMovementCreated(
   label: string,
   accountId: string,
@@ -352,7 +336,6 @@ function waitForMovementCreated(
     })
   })
 }
-
 function rejectAfterTimeout(label: string, ms: number): Promise<string> {
   return new Promise<string>((_resolve, reject) => {
     setTimeout(() => {
@@ -360,7 +343,6 @@ function rejectAfterTimeout(label: string, ms: number): Promise<string> {
     }, ms)
   })
 }
-
 function offboardVtxos(
   accountId: string,
   vtxoIds: string[],
@@ -383,7 +365,6 @@ async function estimateOffboardFee(
   const estimate = await wallet.estimateOffboardFee(bitcoinAddress, vtxoIds)
   return mapFeeEstimate(estimate)
 }
-
 function sendOnchain(
   accountId: string,
   bitcoinAddress: string,
@@ -424,7 +405,6 @@ async function fetchBalance(accountId: string): Promise<ArkBalance> {
     spendableSats: Number(balance.spendableSats)
   }
 }
-
 const barkProvider: ArkWalletProvider = {
   createBolt11Invoice,
   createWallet,
@@ -447,5 +427,193 @@ const barkProvider: ArkWalletProvider = {
   subscribeNotifications,
   syncWallet
 }
-
 registerArkProvider(barkProvider)
+
+const providers = new Map<ArkServerId, ArkWalletProvider>()
+
+export function registerArkProvider(provider: ArkWalletProvider): void {
+  providers.set(provider.serverId, provider)
+}
+
+export function getArkProvider(serverId: ArkServerId): ArkWalletProvider {
+  const provider = providers.get(serverId)
+  if (!provider) {
+    throw new Error(`No Ark provider registered for '${serverId}'`)
+  }
+  return provider
+}
+
+export async function createArkWallet(args: ArkWalletArgs): Promise<void> {
+  await getArkProvider(args.server.id).createWallet(args)
+}
+
+export async function openArkWallet(args: ArkWalletArgs): Promise<void> {
+  await getArkProvider(args.server.id).openWallet(args)
+}
+
+export async function syncArkWallet(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<void> {
+  await getArkProvider(serverId).syncWallet(accountId)
+}
+
+export function releaseArkWallet(
+  serverId: ArkServerId,
+  accountId: string
+): void {
+  getArkProvider(serverId).releaseWallet(accountId)
+}
+
+export function fetchArkBalance(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkBalance> {
+  return getArkProvider(serverId).fetchBalance(accountId)
+}
+
+export function newArkAddress(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<string> {
+  return getArkProvider(serverId).newAddress(accountId)
+}
+
+export function createArkBolt11Invoice(
+  serverId: ArkServerId,
+  accountId: string,
+  amountSats: number,
+  description?: string
+): Promise<ArkBolt11Invoice> {
+  return getArkProvider(serverId).createBolt11Invoice(
+    accountId,
+    amountSats,
+    description
+  )
+}
+
+export function fetchArkMovements(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkMovement[]> {
+  return getArkProvider(serverId).fetchMovements(accountId)
+}
+
+export function subscribeArkNotifications(
+  serverId: ArkServerId,
+  accountId: string,
+  listener: ArkNotificationListener
+): ArkNotificationUnsubscribe {
+  return getArkProvider(serverId).subscribeNotifications(accountId, listener)
+}
+
+export function sendArkArkoor(
+  serverId: ArkServerId,
+  accountId: string,
+  arkAddress: string,
+  amountSats: number
+): Promise<string> {
+  return getArkProvider(serverId).sendArkoor(accountId, arkAddress, amountSats)
+}
+
+export function payArkBolt11(
+  serverId: ArkServerId,
+  accountId: string,
+  invoice: string,
+  amountSats?: number
+): Promise<ArkLightningSendResult> {
+  return getArkProvider(serverId).payBolt11(accountId, invoice, amountSats)
+}
+
+export function payArkLightningAddress(
+  serverId: ArkServerId,
+  accountId: string,
+  address: string,
+  amountSats: number,
+  comment?: string
+): Promise<ArkLightningSendResult> {
+  return getArkProvider(serverId).payLightningAddress(
+    accountId,
+    address,
+    amountSats,
+    comment
+  )
+}
+
+export function estimateArkArkoorFee(
+  serverId: ArkServerId,
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateArkoorFee(accountId, amountSats)
+}
+
+export function estimateArkLightningSendFee(
+  serverId: ArkServerId,
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateLightningSendFee(
+    accountId,
+    amountSats
+  )
+}
+
+export function listArkSpendableVtxos(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkVtxo[]> {
+  return getArkProvider(serverId).listSpendableVtxos(accountId)
+}
+
+export function offboardArkVtxos(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds: string[],
+  bitcoinAddress: string
+): Promise<string> {
+  return getArkProvider(serverId).offboardVtxos(
+    accountId,
+    vtxoIds,
+    bitcoinAddress
+  )
+}
+
+export function estimateArkOffboardFee(
+  serverId: ArkServerId,
+  accountId: string,
+  bitcoinAddress: string,
+  vtxoIds: string[]
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateOffboardFee(
+    accountId,
+    bitcoinAddress,
+    vtxoIds
+  )
+}
+
+export function sendArkOnchain(
+  serverId: ArkServerId,
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<string> {
+  return getArkProvider(serverId).sendOnchain(
+    accountId,
+    bitcoinAddress,
+    amountSats
+  )
+}
+
+export function estimateArkSendOnchainFee(
+  serverId: ArkServerId,
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateSendOnchainFee(
+    accountId,
+    bitcoinAddress,
+    amountSats
+  )
+}

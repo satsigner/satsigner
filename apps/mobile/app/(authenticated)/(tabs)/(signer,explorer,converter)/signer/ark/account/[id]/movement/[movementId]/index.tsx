@@ -29,7 +29,7 @@ import {
   getArkMovementKind,
   isLightningMovement,
   parseArkCounterparty
-} from '@/utils/arkMovement'
+} from '@/utils/ark'
 import {
   formatDate,
   formatFiatPrice,
