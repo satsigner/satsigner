@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import type { LNURLPayResponse } from '@/types/models/LNURL'
+import type { LNURLPayResponse } from '@/types/models/Lightning'
 import { decodeLNURL, fetchLNURLPayDetails, isLNURL } from '@/utils/lnurl'
 
 const LNURL_DETAILS_STALE_MS = 60_000

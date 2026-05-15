@@ -8,7 +8,7 @@ import {
   type NostrMessageData,
   type PendingDM,
   type UnwrappedNostrEvent
-} from '@/types/nostrMessageHandlers'
+} from '@/types/models/Nostr'
 import { decompressMessage } from '@/utils/nostr'
 
 import { deviceAnnouncementHandler } from './useNostrDeviceAnnouncementHandler'

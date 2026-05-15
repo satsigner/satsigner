@@ -10,7 +10,7 @@ import {
   getCachedZapsByPubkey,
   getNewestCachedTimestamp
 } from '@/db/nostrCache'
-import type { LNURLPayResponse } from '@/types/models/LNURL'
+import type { LNURLPayResponse } from '@/types/models/Lightning'
 import { fetchLNURLPayDetails } from '@/utils/lnurl'
 import { getSecretFromNsec } from '@/utils/nostr'
 

@@ -3,19 +3,17 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { LND_REST } from '@/constants/lightningLnd'
 import { useLightningStore } from '@/store/lightning'
-import { type LndBlockchainBalanceResponse } from '@/types/lndNodeDashboard'
 import type {
   LndChanBackupSnapshot,
   LndListPeersResponse,
-  LndPendingChannelsResponse
-} from '@/types/lndNodeSettings'
-import type {
+  LndPendingChannelsResponse,
+  LndBlockchainBalanceResponse,
   LNDChannel,
   LNDNodeInfo,
   LNDPaymentResponse,
   LNDRequest,
   LNDRequestOptions
-} from '@/types/models/LND'
+} from '@/types/models/Lightning'
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
 
 export const useLND = () => {

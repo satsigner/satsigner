@@ -8,8 +8,10 @@ import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { t } from '@/locales'
 import { useZapFlowStore } from '@/store/zapFlow'
 import type { EcashMint } from '@/types/models/Ecash'
-import type { LNDecodedInvoice } from '@/types/models/LND'
-import type { LNURLPayResponse } from '@/types/models/LNURL'
+import type {
+  LNDecodedInvoice,
+  LNURLPayResponse
+} from '@/types/models/Lightning'
 import {
   decodeLightningInvoice,
   isLightningInvoice

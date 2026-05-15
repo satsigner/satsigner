@@ -27,9 +27,9 @@ import { Colors } from '@/styles'
 import type {
   LndInvoice,
   LndOnchainTransaction,
-  LndPayment
-} from '@/types/lndNodeDashboard'
-import type { LNDGraphNodeInfo } from '@/types/models/LND'
+  LndPayment,
+  LNDGraphNodeInfo
+} from '@/types/models/Lightning'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { formatLightningTxTimeAgo } from '@/utils/lndTransactionDisplay'
 

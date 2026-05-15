@@ -2,7 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { createArkBolt11Invoice } from '@/api/ark'
 import { useArkStore } from '@/store/ark'
-import type { LNURLWithdrawDetails } from '@/types/models/LNURL'
+import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
 import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,

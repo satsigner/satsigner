@@ -1,4 +1,4 @@
-import type { LndPendingChannelsResponse } from '@/types/lndNodeSettings'
+import type { LndPendingChannelsResponse } from '@/types/models/Lightning'
 
 export function formatLndVersion(version: string): string {
   const cleanVersion = version.replace(/[^0-9.]/g, '')

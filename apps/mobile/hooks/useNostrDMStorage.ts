@@ -6,10 +6,10 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import {
   DM_FUTURE_TOLERANCE_SEC,
-  type NostrMessage,
+  NostrDM,
   type PendingDM,
   type UnwrappedNostrEvent
-} from '@/types/nostrMessageHandlers'
+} from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 import {
@@ -63,7 +63,7 @@ function isSenderAllowed(account: Account, senderPubkeyHex: string): boolean {
 function buildNewMessage(
   unwrappedEvent: UnwrappedNostrEvent,
   eventContent: Record<string, unknown>
-): NostrMessage {
+): NostrDM {
   const created_at = eventContent.created_at as number
   const description = (eventContent.description as string) ?? ''
   return {

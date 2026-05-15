@@ -24,14 +24,9 @@ import {
   type MeltQuote,
   type MintQuote
 } from '@/types/models/Ecash'
-import { type LNDConfig } from '@/types/models/LND'
-import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
-import { type NostrIdentity } from '@/types/models/NostrIdentity'
-import {
-  type Config,
-  type Network,
-  type Server
-} from '@/types/settings/blockchain'
+import type { LNDConfig } from '@/types/models/Lightning'
+import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
+import type { Config, Network, Server } from '@/types/settings/blockchain'
 import { aesEncrypt, getPinForDecryption, randomIv } from '@/utils/crypto'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 

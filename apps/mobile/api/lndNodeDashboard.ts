@@ -1,15 +1,16 @@
 import { LND_REST } from '@/constants/lightningLnd'
-import {
-  type LndBlockchainBalanceResponse,
-  type LndChannelBalanceResponse,
-  type LndCombinedTransaction,
-  type LndInvoice,
-  type LndNodeDashboardData,
-  type LndOnchainTransaction,
-  type LndPayment,
-  type LndProcessedBalance
-} from '@/types/lndNodeDashboard'
-import { type LNDChannel, type LNDRequest } from '@/types/models/LND'
+import type {
+  LndBlockchainBalanceResponse,
+  LndChannelBalanceResponse,
+  LndCombinedTransaction,
+  LndInvoice,
+  LndNodeDashboardData,
+  LndOnchainTransaction,
+  LndPayment,
+  LndProcessedBalance,
+  LNDChannel,
+  LNDRequest
+} from '@/types/models/Lightning'
 import {
   decodeLightningInvoice,
   isLightningInvoice

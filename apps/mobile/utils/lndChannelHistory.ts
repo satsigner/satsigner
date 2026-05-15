@@ -2,10 +2,10 @@ import { LND_REST } from '@/constants/lightningLnd'
 import type {
   ChannelHistoryRow,
   LndForwardingEvent,
-  LndForwardingHistoryResponse
-} from '@/types/lndChannelHistory'
-import type { LndPayment } from '@/types/lndNodeDashboard'
-import type { LNDRequest } from '@/types/models/LND'
+  LndForwardingHistoryResponse,
+  LndPayment,
+  LNDRequest
+} from '@/types/models/Lightning'
 import { parseLndSats } from '@/utils/lndChannelDetail'
 
 const FORWARDING_MAX_EVENTS = 200

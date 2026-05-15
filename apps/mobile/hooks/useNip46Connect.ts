@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import { NIP46_DEFAULT_PERMISSIONS } from '@/constants/nip46'
 import { useNip46Store } from '@/store/nip46'
-import type { Nip46Session } from '@/types/models/Nip46'
+import type { Nip46Session } from '@/types/models/Nostr'
 import { randomUuid } from '@/utils/crypto'
 import { parseNostrConnectUri } from '@/utils/nip46'
 

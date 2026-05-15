@@ -1,4 +1,4 @@
-import { type LNDChannel } from '@/types/models/LND'
+import { type LNDChannel } from '@/types/models/Lightning'
 
 /**
  * LND grpc-gateway JSON uses lowerCamelCase; some layers use snake_case.

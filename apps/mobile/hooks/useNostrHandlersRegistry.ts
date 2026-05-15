@@ -1,7 +1,7 @@
 import {
   type MessageHandler,
   type MessageHandlerContext
-} from '@/types/nostrMessageHandlers'
+} from '@/types/models/Nostr'
 
 const handlers: MessageHandler[] = []
 let handlersInitialized = false

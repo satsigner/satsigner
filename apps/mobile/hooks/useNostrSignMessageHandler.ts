@@ -1,6 +1,6 @@
 import { toast } from 'sonner-native'
 
-import { type MessageHandler } from '@/types/nostrMessageHandlers'
+import { type MessageHandler } from '@/types/models/Nostr'
 
 import {
   getAuthorDisplayName,

@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import type { Account } from './Account'
+
 export const NostrMessageSchema = z.object({
   content: z.union([z.string(), z.record(z.string(), z.unknown())]),
   created_at: z.number(),
@@ -79,3 +81,151 @@ export type NostrAccount = z.infer<typeof NostrAccountSchema>
 export type NostrKind0Profile = z.infer<typeof NostrKind0ProfileSchema>
 export type NostrKeys = z.infer<typeof NostrKeysSchema>
 export type NostrRelay = z.infer<typeof NostrRelaySchema>
+
+export type Nip46ConnectionStatus =
+  | 'connecting'
+  | 'connected'
+  | 'relays_unreachable'
+  | 'error'
+  | 'disconnected'
+
+export type Nip46Method =
+  | 'connect'
+  | 'get_public_key'
+  | 'nip04_decrypt'
+  | 'nip04_encrypt'
+  | 'nip44_decrypt'
+  | 'nip44_encrypt'
+  | 'ping'
+  | 'sign_event'
+
+export type Nip46PermissionPolicy = 'always_allow' | 'always_reject' | 'ask'
+
+export type Nip46Session = {
+  clientName?: string
+  clientPubkey: string
+  connectionError?: string
+  connectionStatus?: Nip46ConnectionStatus
+  createdAt: number
+  id: string
+  lastActiveAt: number
+  permissions: Record<Nip46Method, Nip46PermissionPolicy>
+  relays: string[]
+  secret?: string
+  signerNpub: string
+}
+
+export type Nip46Request = {
+  id: string
+  method: Nip46Method
+  params: string[]
+  receivedAt: number
+  sessionId: string
+  status: 'approved' | 'pending' | 'rejected'
+}
+
+export type Nip46ParsedUri = {
+  clientPubkey: string
+  name?: string
+  perms?: string
+  relays: string[]
+  secret?: string
+}
+
+export type NostrRelayReachability = 'checking' | 'connected' | 'disconnected'
+
+export type RelayConnectionDetail = {
+  url: string
+  connected: boolean
+  error?: string
+}
+
+export type DisconnectReason =
+  | 'no_internet'
+  | 'no_relays'
+  | 'all_failed'
+  | 'user_disabled'
+
+export type NostrRelayConnectionInfo = {
+  status: NostrRelayReachability
+  reason?: DisconnectReason
+  relayDetails?: RelayConnectionDetail[]
+}
+
+export type ZapPreferences = {
+  presetAmounts: number[]
+  oneTapAmount: number
+  autoApprove: boolean
+  autoApproveWalletId?: string
+}
+
+export type NostrIdentity = {
+  npub: string
+  nsec?: string
+  mnemonic?: string
+  displayName?: string
+  picture?: string
+  banner?: string
+  nip05?: string
+  lud16?: string
+  /** When true, the app may query relays for this identity. Omitted or false means disconnected. */
+  relayConnected?: boolean
+  relays?: string[]
+  zapPreferences?: ZapPreferences
+  createdAt: number
+  isWatchOnly: boolean
+}
+// Wrapped events / other devices may have clock skew; reject only if created_at
+// is far in the future (match 48h subscription padding).
+
+export const DM_FUTURE_TOLERANCE_SEC = 48 * 60 * 60
+
+export type UnwrappedNostrEvent = {
+  id: string
+  pubkey: string
+  content: string
+  created_at?: number
+  tags?: unknown[][]
+}
+
+export type NostrMessageData = {
+  data_type: 'LabelsBip329' | 'Tx' | 'PSBT' | 'SignMessageRequest'
+  data?: unknown
+}
+
+export type MessageHandlerContext = {
+  account: Account
+  unwrappedEvent: UnwrappedNostrEvent
+  eventContent: Record<string, unknown>
+  data?: NostrMessageData
+  lastDataExchangeEOSE: number
+  syncStartSec: number
+  onPendingDM: (dm: PendingDM) => void
+}
+
+export type MessageHandler = {
+  canHandle: (context: MessageHandlerContext) => boolean
+  handle: (context: MessageHandlerContext) => void | Promise<void>
+}
+
+export type PendingDM = {
+  unwrappedEvent: UnwrappedNostrEvent
+  eventContent: Record<string, unknown>
+  /** Set to true when the handler already showed its own toast (e.g. PSBT).
+   *  storeBatch will skip the generic "New Device Message" toast. */
+  skipToast?: boolean
+}
+
+// export type NostrMessage = {
+//   id: string
+//   author: string
+//   created_at: number
+//   description: string
+//   event: string
+//   label: number
+//   content: {
+//     description: string
+//     created_at: number
+//     pubkey?: string
+//   }
+// }

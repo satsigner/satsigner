@@ -1,4 +1,4 @@
-import type { Nip46Method, Nip46PermissionPolicy } from '@/types/models/Nip46'
+import type { Nip46Method, Nip46PermissionPolicy } from '@/types/models/Nostr'
 
 export const NIP46_EVENT_KIND = 24133
 

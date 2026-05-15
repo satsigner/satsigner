@@ -1,5 +1,5 @@
 import { t } from '@/locales'
-import type { LndCombinedTransaction } from '@/types/lndNodeDashboard'
+import type { LndCombinedTransaction } from '@/types/models/Lightning'
 
 const MS_MIN = 60_000
 const MS_HOUR = 3_600_000

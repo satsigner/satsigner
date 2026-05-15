@@ -25,7 +25,7 @@ import type {
   LndChanBackupSnapshot,
   LndListPeersResponse,
   LndPendingChannelsResponse
-} from '@/types/lndNodeSettings'
+} from '@/types/models/Lightning'
 import { shareFile } from '@/utils/filesystem'
 import { formatLndChainsForUi } from '@/utils/lndGetInfoChains'
 import { getLndErrorMessage, isLndPermissionError } from '@/utils/lndHttpError'

@@ -23,8 +23,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout } from '@/styles'
-import type { ChannelHistoryRow } from '@/types/lndChannelHistory'
-import { type LNDChannel } from '@/types/models/LND'
+import type { ChannelHistoryRow, LNDChannel } from '@/types/models/Lightning'
 import { formatNumber } from '@/utils/format'
 import {
   findChannelByChanId,

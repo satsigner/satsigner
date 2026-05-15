@@ -1,6 +1,6 @@
 import { decode } from '@gandlaf21/bolt11-decode'
 
-import { type LNDecodedInvoice } from '@/types/models/LND'
+import { type LNDecodedInvoice } from '@/types/models/Lightning'
 
 type Bolt11Section = {
   name: string

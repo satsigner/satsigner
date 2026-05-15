@@ -24,9 +24,9 @@ import {
 import type {
   NostrKeys,
   NostrKind0Profile,
-  NostrMessage
+  NostrMessage,
+  NostrRelayConnectionInfo
 } from '@/types/models/Nostr'
-import { type NostrRelayConnectionInfo } from '@/types/models/NostrIdentity'
 import { randomKey } from '@/utils/crypto'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 

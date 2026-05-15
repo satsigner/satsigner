@@ -21,8 +21,10 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Typography } from '@/styles'
-import { type LNDecodedInvoice } from '@/types/models/LND'
-import type { LNURLPayResponse } from '@/types/models/LNURL'
+import type {
+  LNDecodedInvoice,
+  LNURLPayResponse
+} from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   decodeLNURL,

@@ -1,5 +1,5 @@
 import { useNostrStore } from '@/store/nostr'
-import { type MessageHandler } from '@/types/nostrMessageHandlers'
+import { type MessageHandler } from '@/types/models/Nostr'
 
 const deviceAnnouncementHandler: MessageHandler = {
   canHandle: (context) =>

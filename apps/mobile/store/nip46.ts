@@ -8,7 +8,7 @@ import type {
   Nip46PermissionPolicy,
   Nip46Request,
   Nip46Session
-} from '@/types/models/Nip46'
+} from '@/types/models/Nostr'
 
 type Nip46State = {
   pendingRequests: Nip46Request[]

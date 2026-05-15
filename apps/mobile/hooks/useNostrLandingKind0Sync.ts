@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import { NostrAPI } from '@/api/nostr'
 import { PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
 import { getCachedProfile } from '@/db/nostrCache'
-import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import { type NostrIdentity } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 type UseNostrLandingKind0SyncArgs = {

@@ -5,7 +5,7 @@ import type {
   Nip46Method,
   Nip46Request,
   Nip46Session
-} from '@/types/models/Nip46'
+} from '@/types/models/Nostr'
 import { buildNip46ResponsePayload } from '@/utils/nip46'
 import {
   handleConnect,

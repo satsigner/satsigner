@@ -15,7 +15,7 @@ import { Colors, Sizes } from '@/styles'
 import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
-} from '@/types/models/NostrIdentity'
+} from '@/types/models/Nostr'
 import {
   generateColorFromNpub,
   getPubKeyHexFromNpub,
