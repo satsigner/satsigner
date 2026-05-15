@@ -15,6 +15,7 @@ import {
   HEADER_CHROME_HIT_BOX,
   HEADER_CHROME_ICON_SIZE
 } from '@/constants/headerChrome'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -29,8 +30,6 @@ import {
   readLndChannelSatsField
 } from '@/utils/lndChannelDetail'
 import { showNavigation } from '@/utils/navigation'
-
-const PRIVACY_MASK = '••••'
 const HEADER_ICON_STROKE = '#828282'
 const CARD_HORIZONTAL_INSET = 18
 

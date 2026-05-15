@@ -30,10 +30,18 @@ type SSEcashTransactionCardProps = {
 
 function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
   const router = useRouter()
-  const checkingTransactionIds = useEcashStore(
-    (state) => state.checkingTransactionIds
+  const [checkingTransactionIds, activeAccountId, allMints] = useEcashStore(
+    useShallow((state) => [
+      state.checkingTransactionIds,
+      state.activeAccountId,
+      state.mints
+    ])
   )
   const isChecking = checkingTransactionIds.includes(transaction.id)
+  const accountMints = activeAccountId ? (allMints[activeAccountId] ?? []) : []
+  const mintLabel =
+    accountMints.find((m) => m.url === transaction.mintUrl)?.name ??
+    transaction.mintUrl.replace(/^https?:\/\//, '').split('/')[0]
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
       state.currencyUnit,
@@ -131,7 +139,7 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
   return (
     <TouchableOpacity
       onPress={() =>
-        router.push({
+        router.navigate({
           params: { id: transaction.id },
           pathname: '/signer/ecash/transaction/[id]'
         } as never)
@@ -254,19 +262,31 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
           )}
         </SSVStack>
 
-        {transaction.label || transaction.memo ? (
-          <SSHStack justifyBetween>
+        <SSHStack justifyBetween style={{ alignItems: 'center' }}>
+          {transaction.label || transaction.memo ? (
             <SSText
               size="xs"
-              style={{
-                flex: 1,
-                textAlign: 'left'
-              }}
+              style={{ flex: 1, textAlign: 'left' }}
+              numberOfLines={1}
             >
               {transaction.label || transaction.memo}
             </SSText>
-          </SSHStack>
-        ) : null}
+          ) : (
+            <SSText size="xs" />
+          )}
+          <SSText
+            size="xs"
+            numberOfLines={1}
+            style={{
+              color: Colors.gray[500],
+              flexShrink: 1,
+              maxWidth: '60%',
+              textAlign: 'right'
+            }}
+          >
+            {mintLabel}
+          </SSText>
+        </SSHStack>
       </SSVStack>
     </TouchableOpacity>
   )

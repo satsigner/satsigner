@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { type PaymentMethod } from '@/components/SSPaymentMethodPicker'
+import { type PaymentMethod } from '@/types/models/PaymentMethod'
 
 type PendingZap = {
   noteNpub: string

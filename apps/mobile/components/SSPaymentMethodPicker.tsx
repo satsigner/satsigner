@@ -1,74 +1,89 @@
-import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native'
+import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
+import { type RefObject } from 'react'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
+import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
-
-export type PaymentMethod = {
-  id: string
-  label: string
-  type: 'lightning' | 'ecash' | 'ark'
-  detail?: string
-  accountId?: string
-}
+import { type PaymentMethod } from '@/types/models/PaymentMethod'
+import { formatFiatPrice } from '@/utils/format'
 
 type SSPaymentMethodPickerProps = {
-  visible: boolean
-  onClose: () => void
+  ref: RefObject<BottomSheetMethods | null>
   onSelect: (method: PaymentMethod) => void
   methods: PaymentMethod[]
   amountSats: number
+  btcPrice?: number
+  fiatCurrency?: string
 }
 
 function SSPaymentMethodPicker({
-  visible,
-  onClose,
+  ref,
   onSelect,
   methods,
-  amountSats
+  amountSats,
+  btcPrice = 0,
+  fiatCurrency = ''
 }: SSPaymentMethodPickerProps) {
+  const hasFiatPrice = btcPrice > 0 && fiatCurrency.length > 0
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        <View style={styles.sheet}>
-          <SSVStack gap="md">
-            <SSText size="lg" weight="medium" center>
-              Pay {amountSats} sats with:
-            </SSText>
-            {methods.map((method) => (
-              <TouchableOpacity
-                key={method.id}
-                style={styles.methodRow}
-                onPress={() => onSelect(method)}
-                activeOpacity={0.6}
-              >
-                <SSVStack gap="xxs">
-                  <SSText size="md" weight="medium">
-                    {method.label}
+    <SSBottomSheet ref={ref} title={`Pay ${amountSats.toLocaleString()} sats`}>
+      <SSVStack gap="md" style={styles.content}>
+        {methods.map((method) => (
+          <TouchableOpacity
+            key={method.id}
+            style={styles.methodRow}
+            onPress={() => onSelect(method)}
+            activeOpacity={0.6}
+          >
+            <SSVStack gap="xxs">
+              <SSHStack gap="sm" style={styles.methodRowHeader}>
+                <SSText size="md" weight="medium" style={styles.methodLabel}>
+                  {method.label}
+                </SSText>
+                <View style={styles.typeBadge}>
+                  <SSText size="xxs" color="muted">
+                    {t(`paymentMethod.type.${method.type}`)}
                   </SSText>
-                  {method.detail && (
-                    <SSText size="xs" color="muted">
-                      {method.detail}
-                    </SSText>
-                  )}
-                </SSVStack>
-              </TouchableOpacity>
-            ))}
-            <SSButton label="Cancel" variant="ghost" onPress={onClose} />
-          </SSVStack>
-        </View>
-      </View>
-    </Modal>
+                </View>
+              </SSHStack>
+              {method.balanceSats !== undefined && (
+                <SSText size="xs" color="muted">
+                  {method.balanceSats.toLocaleString()} sats
+                  {hasFiatPrice
+                    ? ` · ${fiatCurrency} ${formatFiatPrice(method.balanceSats, btcPrice)}`
+                    : ''}
+                </SSText>
+              )}
+              {method.detail && method.balanceSats === undefined && (
+                <SSText size="xs" color="muted">
+                  {method.detail}
+                </SSText>
+              )}
+            </SSVStack>
+          </TouchableOpacity>
+        ))}
+        <SSButton
+          label={t('common.cancel')}
+          variant="ghost"
+          onPress={() => ref.current?.close()}
+        />
+      </SSVStack>
+    </SSBottomSheet>
   )
 }
 
 const styles = StyleSheet.create({
+  content: {
+    paddingBottom: 16
+  },
+  methodLabel: {
+    flex: 1
+  },
   methodRow: {
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
@@ -77,18 +92,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14
   },
-  overlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    flex: 1,
-    justifyContent: 'flex-end'
+  methodRowHeader: {
+    alignItems: 'center'
   },
-  sheet: {
-    backgroundColor: Colors.gray[950],
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingBottom: 40,
-    paddingHorizontal: 20,
-    paddingTop: 20
+  typeBadge: {
+    backgroundColor: Colors.gray[800],
+    borderColor: Colors.gray[700],
+    borderRadius: 3,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2
   }
 })
 

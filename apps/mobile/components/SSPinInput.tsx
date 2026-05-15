@@ -131,6 +131,7 @@ export type SSPinInputProps = {
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
   withClear?: boolean
+  withDelete?: boolean
 }
 
 function SSPinInput({
@@ -141,7 +142,8 @@ function SSPinInput({
   feedbackText,
   feedbackColor = Colors.gray[300],
   feedbackBold = false,
-  withClear = true
+  withClear = true,
+  withDelete = true
 }: SSPinInputProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -152,12 +154,13 @@ function SSPinInput({
   }, [pin])
 
   function handleDelete() {
-    const newPin = [...pin]
-    const previousIndex = currentIndex - 1
-    if (previousIndex > -1) {
-      newPin[previousIndex] = ''
+    if (currentIndex <= 0) {
+      return
     }
-    setCurrentIndex((currentIndex) => currentIndex - 1)
+    const indexToClear = currentIndex - 1
+    const newPin = [...pin]
+    newPin[indexToClear] = ''
+    setCurrentIndex(indexToClear)
     setPin(newPin)
   }
 
@@ -262,6 +265,7 @@ function SSPinInput({
           onClear={handleClear}
           onDelete={handleDelete}
           withClear={withClear}
+          withDelete={withDelete}
         />
       </SSVStack>
     </SSVStack>

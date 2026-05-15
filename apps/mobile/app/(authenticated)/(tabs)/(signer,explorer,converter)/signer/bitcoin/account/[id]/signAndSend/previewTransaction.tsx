@@ -2110,6 +2110,7 @@ function PreviewTransaction() {
                     transaction={transaction}
                     ownAddresses={ownAddresses}
                     scale={0.9}
+                    showUnspentLabel={false}
                   />
                 </View>
               </SSVStack>

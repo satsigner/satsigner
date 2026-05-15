@@ -274,12 +274,13 @@ export function cacheProfile(
     const now = nowUnix()
     db.execute(
       `INSERT OR REPLACE INTO nostr_profile_cache
-       (pubkey, display_name, picture, nip05, lud16, event_id, created_at, cached_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (pubkey, display_name, picture, banner, nip05, lud16, event_id, created_at, cached_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         pubkey.toLowerCase(),
         profile.displayName ?? null,
         profile.picture ?? null,
+        profile.banner ?? null,
         profile.nip05 ?? null,
         profile.lud16 ?? null,
         eventId ?? null,
@@ -307,6 +308,7 @@ export function getCachedProfile(pubkey: string): CachedProfile | null {
     }
     const r = results[0] as Record<string, unknown>
     return {
+      banner: (r.banner as string) ?? undefined,
       cached_at: r.cached_at as number,
       created_at: r.created_at as number,
       displayName: (r.display_name as string) ?? undefined,

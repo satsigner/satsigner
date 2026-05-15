@@ -4,6 +4,7 @@ import {
   getEncodedTokenV3,
   getEncodedTokenV4,
   Mint,
+  type MeltQuoteBolt11Response,
   type MintQuoteState,
   type Proof,
   Wallet
@@ -29,14 +30,22 @@ type KeysetResponse = {
 }
 
 type WalletInternals = {
+  _keyChain?: {
+    keysets?: Record<string, { active?: boolean; id: string; unit?: string }>
+  }
+  getKeys?: (keysetId: string) => Promise<unknown>
   mint?: {
-    getKeySets?: () => Promise<{ keysets?: KeysetResponse[] }>
     _mintUrl?: string
+    getKeySets?: () => Promise<{ keysets?: KeysetResponse[] }>
     url?: string
   }
-  _keyChain?: {
-    keysets?: Record<string, { id: string; unit?: string; active?: boolean }>
+  on?: {
+    countersReserved?: (cb: (event: CounterReservedEvent) => void) => () => void
   }
+}
+
+function asWalletInternals(wallet: Wallet): WalletInternals {
+  return wallet as unknown as WalletInternals
 }
 
 const walletCache = new Map<string, Wallet>()
@@ -48,7 +57,7 @@ function walletCacheKey(accountId: string, mintUrl: string): string {
 async function getKeysetsFromWallet(
   wallet: Wallet
 ): Promise<{ id: string; unit: string; active: boolean }[]> {
-  const walletInternals = wallet as unknown as WalletInternals
+  const walletInternals = asWalletInternals(wallet)
 
   // Method 1: Use mint.getKeySets() (the actual cashu-ts v3 API)
   if (typeof walletInternals.mint?.getKeySets === 'function') {
@@ -133,14 +142,9 @@ function getWallet(
     const wallet = new Wallet(mint, walletOpts)
 
     if (options?.bip39seed && options.onCounterReserved) {
-      const walletWithEvents = wallet as unknown as {
-        on?: {
-          countersReserved?: (
-            cb: (event: CounterReservedEvent) => void
-          ) => () => void
-        }
-      }
-      walletWithEvents.on?.countersReserved?.(options.onCounterReserved)
+      asWalletInternals(wallet).on?.countersReserved?.(
+        options.onCounterReserved
+      )
     }
 
     walletCache.set(cacheKey, wallet)
@@ -234,30 +238,55 @@ export async function createMeltQuote(
   }
 }
 
+export class EcashSpentProofsError extends Error {
+  readonly spentProofSecrets: string[]
+
+  constructor(spentProofSecrets: string[]) {
+    super(
+      `Token already spent. ${spentProofSecrets.length} proof(s) have been spent.`
+    )
+    this.name = 'EcashSpentProofsError'
+    this.spentProofSecrets = spentProofSecrets
+  }
+}
+
 export async function meltProofs(
   accountId: string,
   mintUrl: string,
   quote: MeltQuote,
   proofs: EcashProof[],
-  _description?: string,
-  originalInvoice?: string,
   options?: WalletOptions
 ): Promise<EcashMeltResult> {
   const wallet = getWallet(accountId, mintUrl, options)
   await wallet.loadMint()
-  const invoiceToUse = originalInvoice || quote.quote
-  const meltQuote = await wallet.createMeltQuote(invoiceToUse)
-  const result = await wallet.meltProofs(meltQuote, proofs)
 
-  const meltResult = result as unknown as {
-    preimage?: string
-    payment_preimage?: string
+  const { validProofs, spentProofs } = await validateProofs(
+    accountId,
+    mintUrl,
+    proofs,
+    options
+  )
+  if (validProofs.length === 0) {
+    throw new Error('No valid proofs available to melt')
   }
+
+  const cashuQuote: MeltQuoteBolt11Response = {
+    amount: quote.amount,
+    expiry: quote.expiry,
+    fee_reserve: quote.fee_reserve,
+    payment_preimage: null,
+    quote: quote.quote,
+    request: '',
+    state: 'UNPAID',
+    unit: 'sat'
+  }
+  const result = await wallet.meltProofs(cashuQuote, validProofs)
 
   return {
     change: result.change?.map((p) => ({ ...p, mintUrl })),
     paid: true,
-    preimage: meltResult.preimage || meltResult.payment_preimage || undefined
+    preimage: result.quote.payment_preimage ?? undefined,
+    spentProofs: spentProofs.length > 0 ? spentProofs : undefined
   }
 }
 
@@ -381,8 +410,10 @@ export async function receiveEcash(
   }
 }
 
-export function getMintBalance(_mintUrl: string, proofs: EcashProof[]): number {
-  return proofs.reduce((sum, proof) => sum + proof.amount, 0)
+export function getMintBalance(mintUrl: string, proofs: EcashProof[]): number {
+  return proofs
+    .filter((p) => p.mintUrl === mintUrl)
+    .reduce((sum, proof) => sum + proof.amount, 0)
 }
 
 export async function validateEcashToken(
@@ -548,9 +579,7 @@ async function loadKeysForKeyset(
   wallet: Wallet,
   keysetId: string
 ): Promise<void> {
-  const walletWithKeys = wallet as unknown as {
-    getKeys?: (keysetId: string) => Promise<unknown>
-  }
+  const walletWithKeys = asWalletInternals(wallet)
   if (typeof walletWithKeys.getKeys === 'function') {
     await walletWithKeys.getKeys(keysetId)
   }

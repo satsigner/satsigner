@@ -210,7 +210,7 @@ export default function SetPin() {
       <SSVStack style={{ flex: 1, height: '100%' }}>
         <SSVStack gap="md" style={{ flex: 1, width: '100%' }}>
           <SSVStack>
-            <SSText uppercase size="lg" color="muted" center>
+            <SSText uppercase size="lg" color="muted" center weight="light">
               {getTitle()}
             </SSText>
           </SSVStack>
@@ -219,18 +219,16 @@ export default function SetPin() {
               pin={currentPinArray}
               setPin={handleCurrentPinChange}
               feedback={getFeedback()}
-              withClear={false}
             />
           )}
           {stage === 'set' && (
-            <SSPinInput pin={pinArray} setPin={setPinArray} withClear={false} />
+            <SSPinInput pin={pinArray} setPin={setPinArray} />
           )}
           {stage === 're-enter' && (
             <SSPinInput
               pin={confirmationPinArray}
               setPin={setConfirmationPinArray}
               feedback={getFeedback()}
-              withClear={false}
             />
           )}
         </SSVStack>

@@ -12,9 +12,16 @@ import { type Transaction } from '@/types/models/Transaction'
 import {
   BLOCK_WIDTH,
   NODE_WIDTH,
+  SANKEY_DIAGRAM_NODE_PADDING_PX,
+  SANKEY_EQUAL_ROW_MIN_SLOT_PX,
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
+import {
+  equalizeSankeyColumnsByDepthH,
+  minSankeyStackedColumnInnerHeightPx
+} from '@/utils/equalizeSankeyColumnLayout'
 import { formatAddress, formatNumber } from '@/utils/format'
+import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
@@ -38,6 +45,8 @@ type SSTransactionChartProps = {
   selectedOutputIndex?: number // Index of the output to highlight (vout)
   dimUnselected?: boolean // Dim non-selected outputs
   scale?: number // Scale factor for the chart (0-1)
+  /** When false, hides the “unspent” line on outputs (e.g. preview before broadcast). */
+  showUnspentLabel?: boolean
 }
 
 function SSTransactionChart({
@@ -45,7 +54,8 @@ function SSTransactionChart({
   ownAddresses = new Set(),
   selectedOutputIndex,
   dimUnselected = false,
-  scale = 1
+  scale = 1,
+  showUnspentLabel = true
 }: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -88,7 +98,7 @@ function SSTransactionChart({
     feeRate = minerFee / txVsize
   }
 
-  const { width: w, height: h, onCanvasLayout } = useLayout()
+  const { onCanvasLayout } = useLayout()
   const { width } = useWindowDimensions()
 
   // output.length + 1 because of mining fee
@@ -105,12 +115,36 @@ function SSTransactionChart({
   const GRAPH_HEIGHT = BASE_GRAPH_HEIGHT * scale
   const GRAPH_WIDTH = width * scale
 
+  const gapScaled = Math.round(SANKEY_DIAGRAM_NODE_PADDING_PX * scale)
+  const minSlotScaled = SANKEY_EQUAL_ROW_MIN_SLOT_PX * scale
+  const feeRowCount = minerFee !== undefined ? 1 : 0
+  const maxColumnNodes = Math.max(
+    inputs.length,
+    outputs.length + feeRowCount,
+    1
+  )
+  const minColumnInnerRequired = minSankeyStackedColumnInnerHeightPx(
+    maxColumnNodes,
+    minSlotScaled,
+    gapScaled
+  )
+
+  const sankeyExtentTop = 20 * scale
+  const legacyExtentBottom = (GRAPH_HEIGHT * 0.65) / 2
+  const legacyInner = legacyExtentBottom - sankeyExtentTop
+  const innerHeight = Math.max(legacyInner, minColumnInnerRequired)
+  const sankeyExtentBottom = sankeyExtentTop + innerHeight
+
+  /** Bottom padding so the last row / ribbons are not clipped by the canvas. */
+  const chartBottomBleedPx = 6 * scale
+  const chartCanvasHeight = sankeyExtentBottom + chartBottomBleedPx
+
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH * scale)
-    .nodePadding(GRAPH_HEIGHT / 2)
+    .nodePadding(gapScaled)
     .extent([
-      [0, 20 * scale],
-      [GRAPH_WIDTH * 0.9, (GRAPH_HEIGHT * 0.65) / 2]
+      [0, sankeyExtentTop],
+      [GRAPH_WIDTH * 0.9, sankeyExtentBottom]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -263,10 +297,20 @@ function SSTransactionChart({
     return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
-  const { links, nodes } = sankeyGenerator({
+  const layoutResult = sankeyGenerator({
     links: sankeyLinks,
     nodes: sankeyNodes
   })
+
+  equalizeSankeyColumnsByDepthH(
+    layoutResult.nodes as Node[],
+    sankeyExtentTop,
+    sankeyExtentBottom,
+    gapScaled,
+    minSlotScaled
+  )
+
+  const { links, nodes } = layoutResult
 
   const transformedLinks = links.map((link) => ({
     source: (link.source as Node).id,
@@ -274,18 +318,33 @@ function SSTransactionChart({
     value: link.value
   }))
 
+  const ribbonPlan = buildSankeyRibbonPlan(
+    nodes.map((node) => ({
+      id: (node as Node).id,
+      type: (node as Node).type,
+      value: (node as Node).value
+    })),
+    transformedLinks
+  )
+
   if (!nodes?.length || !transformedLinks?.length) {
     return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
   return (
-    <View style={{ flex: 1, height: GRAPH_HEIGHT / 2, overflow: 'hidden' }}>
+    <View style={{ flex: 1, height: chartCanvasHeight, overflow: 'hidden' }}>
       <View onLayout={onCanvasLayout}>
-        <Canvas style={{ height: GRAPH_HEIGHT / 2, width: GRAPH_WIDTH }}>
-          <Group origin={{ x: w / 2, y: h / 2 }}>
+        <Canvas style={{ height: chartCanvasHeight, width: GRAPH_WIDTH }}>
+          <Group
+            origin={{
+              x: GRAPH_WIDTH / 2,
+              y: chartCanvasHeight / 2
+            }}
+          >
             <SSSankeyLinks
               links={transformedLinks}
               nodes={nodes as Node[]}
+              ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               BLOCK_WIDTH={BLOCK_WIDTH}
               selectedOutputNode={
@@ -297,6 +356,7 @@ function SSTransactionChart({
             />
             <SSSankeyNodes
               nodes={nodes as Node[]}
+              ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               selectedOutputNode={
                 selectedOutputIndex !== undefined
@@ -304,6 +364,7 @@ function SSTransactionChart({
                   : undefined
               }
               dimUnselected={dimUnselected}
+              showUnspentLabel={showUnspentLabel}
             />
           </Group>
         </Canvas>

@@ -1,4 +1,6 @@
 const IMAGE_FILE_EXT_RE = /\.(?:jpg|jpeg|png|gif|webp|avif|bmp)(?:\?[^\s]*)?$/i
+const MARKDOWN_IMAGE_RE = /!\[[^\]]*]\((https?:[^)\s]+)\)/gi
+const BARE_URL_RE = /https?:\/\/[^\s<>"')]+/gi
 
 export function isPlausibleImageHttpUrl(url: string): boolean {
   const u = url.trim()
@@ -12,6 +14,29 @@ export function isPlausibleImageHttpUrl(url: string): boolean {
     return true
   }
   return false
+}
+
+/**
+ * Removes already-rendered image URLs (and their markdown syntax) from note
+ * content text, collapsing excess blank lines left behind.
+ */
+export function stripImageUrlsFromContent(
+  content: string,
+  urls: string[]
+): string {
+  if (urls.length === 0) {
+    return content
+  }
+  const urlSet = new Set(urls)
+  const withoutMarkdown = content.replace(
+    MARKDOWN_IMAGE_RE,
+    (match, url: string) =>
+      urlSet.has(url.trim().replace(/\)+$/, '')) ? '' : match
+  )
+  const withoutBare = withoutMarkdown.replace(BARE_URL_RE, (match) =>
+    urlSet.has(match.trim().replace(/\)+$/, '')) ? '' : match
+  )
+  return withoutBare.replace(/\n{3,}/g, '\n\n').trim()
 }
 
 /**

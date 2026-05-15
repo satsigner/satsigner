@@ -130,9 +130,13 @@ export type LndCombinedTransaction = {
   num_confirmations?: number
   fee?: number
   originalAmount?: number
+  expiry?: number
 }
 
 export type LndNodeDashboardData = {
   balance: LndProcessedBalance
   transactions: LndCombinedTransaction[]
+  rawInvoices: Record<string, LndInvoice>
+  rawPayments: Record<string, LndPayment>
+  rawOnchainTxs: Record<string, LndOnchainTransaction>
 }

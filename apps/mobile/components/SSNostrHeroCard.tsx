@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient'
 import {
   Image,
   type StyleProp,
@@ -6,9 +7,13 @@ import {
   type ViewStyle
 } from 'react-native'
 
+import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
+import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
+import SSIconLightning from '@/components/icons/SSIconLightning'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
@@ -17,6 +22,7 @@ import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
 } from '@/types/models/NostrIdentity'
+import { generateColorFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
 
 function disconnectReasonLabel(
@@ -58,20 +64,50 @@ function buildDisconnectLabel(info: NostrRelayConnectionInfo): string {
 type SSNostrHeroCardProps = {
   identity: NostrIdentity
   connectionInfo?: NostrRelayConnectionInfo
+  nip05Valid?: boolean | null
   style?: StyleProp<ViewStyle>
 }
 
 function SSNostrHeroCard({
   identity,
   connectionInfo,
+  nip05Valid,
   style
 }: SSNostrHeroCardProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const nip05Value = identity.nip05?.trim()
   const lud16Value = identity.lud16?.trim()
+  const npubColor = generateColorFromNpub(identity.npub)
 
   return (
-    <SSVStack itemsCenter gap="sm" style={[styles.container, style]}>
+    <View style={[styles.container, style]}>
+      <View style={styles.bannerWrap}>
+        {!privacyMode && identity.banner ? (
+          <Image
+            source={{ uri: identity.banner }}
+            style={[styles.banner, styles.bannerImage]}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.bannerPlaceholder} />
+        )}
+        <LinearGradient
+          colors={['#0A0A0A', 'rgba(10,10,10,0.7)', 'rgba(10,10,10,0)']}
+          style={styles.bannerGradientTop}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={[
+            'rgba(10,10,10,0)',
+            'rgba(10,10,10,0.6)',
+            'rgba(10,10,10,0.9)',
+            '#0A0A0A'
+          ]}
+          style={styles.bannerGradientBottom}
+          pointerEvents="none"
+        />
+      </View>
+      <View style={styles.bannerSpacer} />
       <View style={styles.avatarContainer}>
         {privacyMode ? (
           <View style={[styles.avatar, styles.avatarPlaceholder]} />
@@ -91,9 +127,14 @@ function SSNostrHeroCard({
           {privacyMode ? NOSTR_PRIVACY_MASK : identity.displayName || 'Unnamed'}
         </SSText>
         <SSClipboardCopy text={identity.npub}>
-          <SSText size="xs" type="mono" color="muted">
-            {truncateNpub(identity.npub, 12)}
-          </SSText>
+          <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+            <View
+              style={[styles.npubColorDot, { backgroundColor: npubColor }]}
+            />
+            <SSText size="xs" type="mono" color="muted">
+              {truncateNpub(identity.npub, 12)}
+            </SSText>
+          </SSHStack>
         </SSClipboardCopy>
         {privacyMode ? (
           <SSText center color="muted" size="sm">
@@ -101,9 +142,17 @@ function SSNostrHeroCard({
           </SSText>
         ) : nip05Value ? (
           <SSClipboardCopy text={nip05Value}>
-            <SSText size="sm" color="muted">
-              {nip05Value}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+              <SSText size="sm" color="muted">
+                {nip05Value}
+              </SSText>
+              {nip05Valid === true && (
+                <SSIconCheckCircleThin width={12} height={12} />
+              )}
+              {nip05Valid === false && (
+                <SSIconCircleXThin width={12} height={12} />
+              )}
+            </SSHStack>
           </SSClipboardCopy>
         ) : (
           <SSText center color="muted" size="sm" style={styles.metaPlaceholder}>
@@ -116,9 +165,17 @@ function SSNostrHeroCard({
           </SSText>
         ) : lud16Value ? (
           <SSClipboardCopy text={lud16Value}>
-            <SSText size="sm" color="white">
-              {lud16Value}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+              <SSText size="sm" color="muted">
+                {lud16Value}
+              </SSText>
+              <SSIconLightning
+                width={8}
+                height={10}
+                stroke={Colors.gray[300]}
+                strokeWidth={1.5}
+              />
+            </SSHStack>
           </SSClipboardCopy>
         ) : (
           <SSText center color="muted" size="sm" style={styles.metaPlaceholder}>
@@ -151,34 +208,81 @@ function SSNostrHeroCard({
           </SSText>
         )}
       </SSVStack>
-    </SSVStack>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   avatar: {
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 40,
+    borderWidth: 1.5,
     height: 80,
     width: 80
   },
   avatarContainer: {
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    position: 'absolute',
+    top: 20
   },
   avatarPlaceholder: {
     alignItems: 'center',
     backgroundColor: Colors.gray[800],
     justifyContent: 'center'
   },
+  banner: {
+    height: 160,
+    width: '100%'
+  },
+  bannerGradientBottom: {
+    bottom: 0,
+    height: 60,
+    left: 0,
+    position: 'absolute',
+    right: 0
+  },
+  bannerGradientTop: {
+    height: 40,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
+  },
+  bannerImage: {
+    opacity: 0.65
+  },
+  bannerPlaceholder: {
+    backgroundColor: Colors.gray[850],
+    height: 160,
+    width: '100%'
+  },
+  bannerSpacer: {
+    height: 80
+  },
+  bannerWrap: {
+    left: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: 0
+  },
   container: {
-    paddingBottom: 12,
-    paddingTop: 8
+    alignItems: 'center',
+    paddingBottom: 12
   },
   metaBlock: {
+    paddingHorizontal: '6%',
+    paddingTop: 28,
     width: '100%'
   },
   metaPlaceholder: {
     opacity: 0.55
+  },
+  npubColorDot: {
+    borderRadius: 3,
+    height: 6,
+    width: 6
   },
   relayTagChecking: {
     opacity: 0.75
