@@ -1,12 +1,12 @@
 import {
-  type MessageHandler,
-  type MessageHandlerContext
+  type NostrMsgHandler,
+  type NostrMsgHandlerContext
 } from '@/types/models/Nostr'
 
-const handlers: MessageHandler[] = []
+const handlers: NostrMsgHandler[] = []
 let handlersInitialized = false
 
-function registerHandler(handler: MessageHandler): void {
+function registerHandler(handler: NostrMsgHandler): void {
   handlers.push(handler)
 }
 
@@ -19,7 +19,7 @@ function setInitialized(value: boolean): void {
 }
 
 async function processMessage(
-  context: MessageHandlerContext
+  context: NostrMsgHandlerContext
 ): Promise<boolean> {
   for (const handler of handlers) {
     if (handler.canHandle(context)) {
@@ -34,7 +34,7 @@ function clearHandlers(): void {
   handlers.length = 0
 }
 
-function getHandlers(): MessageHandler[] {
+function getHandlers(): NostrMsgHandler[] {
   return [...handlers]
 }
 

@@ -4,7 +4,7 @@ import { InteractionManager } from 'react-native'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 import {
-  type MessageHandlerContext,
+  type NostrMsgHandlerContext,
   type NostrMessageData,
   type NostrPendingDM,
   type NostrUnwrappedEvent
@@ -132,7 +132,7 @@ function useNostrMessageProcessor() {
           const eventContent = getEventContent(unwrappedEvent)
           const data = eventContent.data as NostrMessageData | undefined
 
-          const context: MessageHandlerContext = {
+          const context: NostrMsgHandlerContext = {
             account,
             data,
             eventContent,

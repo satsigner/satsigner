@@ -5,7 +5,7 @@ import { NIP06_DERIVATION_PATH } from '@/constants/nostr'
 import {
   NostrDecodedContent,
   NostrDerivedKeys,
-  EnhancedZapTags
+  NostrEnhancedZapTags
 } from '@/types/models/Nostr'
 import { mnemonicToSeed } from '@/utils/bip39'
 import { deriveNpubFromNsec } from '@/utils/nostr'
@@ -152,13 +152,13 @@ function parseMsatsTag(tags: string[][], name: string): number | undefined {
   return isNaN(val) || val <= 0 ? undefined : Math.floor(val / 1000)
 }
 
-export function extractEnhancedZapTags(tags: string[][]): EnhancedZapTags {
+export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
   const zapGoalRaw = tags.find((t) => t[0] === 'zap-goal')
   const zapUsesRaw = tags.find((t) => t[0] === 'zap-uses')
   const zapPayerRaw = tags.find((t) => t[0] === 'zap-payer')
   const zapLnurlRaw = tags.find((t) => t[0] === 'zap-lnurl')
 
-  const result: EnhancedZapTags = {
+  const result: NostrEnhancedZapTags = {
     zapMax: parseMsatsTag(tags, 'zap-max'),
     zapMin: parseMsatsTag(tags, 'zap-min')
   }
@@ -187,7 +187,7 @@ export function extractEnhancedZapTags(tags: string[][]): EnhancedZapTags {
   return result
 }
 
-export function buildEnhancedZapTags(config: EnhancedZapTags): string[][] {
+export function buildEnhancedZapTags(config: NostrEnhancedZapTags): string[][] {
   const tags: string[][] = []
   if (config.zapMin !== undefined && config.zapMin > 0) {
     tags.push(['zap-min', String(config.zapMin * 1000)])

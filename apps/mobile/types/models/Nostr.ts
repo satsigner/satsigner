@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { NostrAPI } from '@/api/nostr'
-import type { Account } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
@@ -281,13 +281,6 @@ export const NostrPendingDMSchema = z.object({
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type NostrDecodedContent = z.infer<typeof NostrDecodedContentSchema>
-export type NostrDerivedKeys = z.infer<typeof NostrDerivedKeysSchema>
-export type NostrRelayDisconnectReason = z.infer<
-  typeof NostrRelayDisconnectReasonSchema
->
-export type EnhancedZapTags = z.infer<typeof NostrEnhancedZapTagsSchema>
-export type FetchedNoteData = z.infer<typeof NostrFetchedNoteDataSchema>
 export type Nip46ConnectionStatus = z.infer<typeof Nip46ConnectionStatusSchema>
 export type Nip46Method = z.infer<typeof Nip46MethodSchema>
 export type Nip46ParsedUri = z.infer<typeof Nip46ParsedUriSchema>
@@ -296,39 +289,47 @@ export type Nip46Request = z.infer<typeof Nip46RequestSchema>
 export type Nip46Session = z.infer<typeof Nip46SessionSchema>
 export type NostrAccount = z.infer<typeof NostrAccountSchema>
 export type NostrContentKind = z.infer<typeof NostrContentKindSchema>
+export type NostrDecodedContent = z.infer<typeof NostrDecodedContentSchema>
+export type NostrDerivedKeys = z.infer<typeof NostrDerivedKeysSchema>
 export type NostrDM = z.infer<typeof NostrDMSchema>
+export type NostrEnhancedZapTags = z.infer<typeof NostrEnhancedZapTagsSchema>
+export type NostrFetchedNoteData = z.infer<typeof NostrFetchedNoteDataSchema>
 export type NostrIdentity = z.infer<typeof NostrIdentitySchema>
 export type NostrKeys = z.infer<typeof NostrKeysSchema>
 export type NostrKind0Profile = z.infer<typeof NostrKind0ProfileSchema>
-export type NostrMessage = z.infer<typeof NostrMessageSchema>
 export type NostrMessageData = z.infer<typeof NostrMessageDataSchema>
-export type NostrRelay = z.infer<typeof NostrRelaySchema>
-export type NostrRelayConnectionInfo = z.infer<
-  typeof NostrRelayConnectionInfoSchema
->
-export type NostrRelayReachability = z.infer<
-  typeof NostrRelayReachabilitySchema
->
-export type NostrSyncStatus = z.infer<typeof NostrSyncStatusSchema>
-export type NostrSyncStatusEvent = z.infer<typeof NostrSyncStatusEventSchema>
-export type NostrVideoEmbed = z.infer<typeof NostrVideoEmbedSchema>
-export type NostrVideoProvider = z.infer<typeof NostrVideoProviderSchema>
+export type NostrMessage = z.infer<typeof NostrMessageSchema>
 export type NostrPendingDM = z.infer<typeof NostrPendingDMSchema>
 export type NostrRelayConnectionDetail = z.infer<
   typeof NostrRelayConnectionDetailSchema
 >
+export type NostrRelayConnectionInfo = z.infer<
+  typeof NostrRelayConnectionInfoSchema
+>
+export type NostrRelayDisconnectReason = z.infer<
+  typeof NostrRelayDisconnectReasonSchema
+>
+export type NostrRelayReachability = z.infer<
+  typeof NostrRelayReachabilitySchema
+>
+export type NostrRelay = z.infer<typeof NostrRelaySchema>
+export type NostrSyncStatusEvent = z.infer<typeof NostrSyncStatusEventSchema>
+export type NostrSyncStatus = z.infer<typeof NostrSyncStatusSchema>
 export type NostrUnwrappedEvent = z.infer<typeof NostrUnwrappedEventSchema>
+export type NostrVideoEmbed = z.infer<typeof NostrVideoEmbedSchema>
+export type NostrVideoProvider = z.infer<typeof NostrVideoProviderSchema>
 export type NostrZapPreferences = z.infer<typeof NostrZapPreferencesSchema>
 
 // The following types reference class instances or function signatures that
-// cannot be represented as Zod schemas and remain as plain TypeScript types.
+// cannot be represented as Zod schemas because they would cause cyclic imports.
+// TODO: remove Account from MessageHandler
 
-export type MessageHandler = {
-  canHandle: (context: MessageHandlerContext) => boolean
-  handle: (context: MessageHandlerContext) => void | Promise<void>
+export type NostrMsgHandler = {
+  canHandle: (context: NostrMsgHandlerContext) => boolean
+  handle: (context: NostrMsgHandlerContext) => void | Promise<void>
 }
 
-export type MessageHandlerContext = {
+export type NostrMsgHandlerContext = {
   account: Account
   data?: NostrMessageData
   eventContent: Record<string, unknown>

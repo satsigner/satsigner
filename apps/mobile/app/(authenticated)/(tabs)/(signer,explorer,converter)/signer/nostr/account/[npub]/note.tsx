@@ -58,7 +58,7 @@ import { Colors } from '@/styles'
 import type {
   NostrKind0Profile,
   NostrDecodedContent,
-  FetchedNoteData
+  NostrFetchedNoteData
 } from '@/types/models/Nostr'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatNostrCardDate } from '@/utils/format'
@@ -120,7 +120,7 @@ export default function NostrNotePage() {
   const globalRelays = useNostrIdentityStore((state) => state.relays)
   const effectiveRelays = identity?.relays ?? globalRelays
 
-  const [fetched, setFetched] = useState<FetchedNoteData | null>(null)
+  const [fetched, setFetched] = useState<NostrFetchedNoteData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [profileLoading, setProfileLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -131,7 +131,9 @@ export default function NostrNotePage() {
   const [customAmount, setCustomAmount] = useState('')
   const [zapLoading, setZapLoading] = useState(false)
   const [zapReceipts, setZapReceipts] = useState<ZapReceiptInfo[]>([])
-  const [replyParent, setReplyParent] = useState<FetchedNoteData | null>(null)
+  const [replyParent, setReplyParent] = useState<NostrFetchedNoteData | null>(
+    null
+  )
   const [replyParentLoading, setReplyParentLoading] = useState(false)
   const [replyParentMissing, setReplyParentMissing] = useState(false)
   const [replyParentKind0Pending, setReplyParentKind0Pending] = useState(false)
@@ -575,7 +577,7 @@ export default function NostrNotePage() {
           return
         }
 
-        const base: FetchedNoteData = {
+        const base: NostrFetchedNoteData = {
           content: event.content,
           created_at: event.created_at,
           kind: event.kind,
@@ -1928,7 +1930,7 @@ export default function NostrNotePage() {
 }
 
 function deriveNoteItemForFeed(
-  fetched: FetchedNoteData | null,
+  fetched: NostrFetchedNoteData | null,
   decoded: NostrDecodedContent | null
 ): NostrFeedNoteLike | null {
   if (!fetched || !decoded) {
@@ -1951,7 +1953,7 @@ function deriveNoteItemForFeed(
 }
 
 function deriveAuthorFeedProps(
-  noteData: FetchedNoteData | null,
+  noteData: NostrFetchedNoteData | null,
   identity:
     | { displayName?: string; picture?: string; nip05?: string }
     | undefined,

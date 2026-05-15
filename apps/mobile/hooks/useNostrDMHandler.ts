@@ -1,6 +1,6 @@
-import { type MessageHandler } from '@/types/models/Nostr'
+import { type NostrMsgHandler } from '@/types/models/Nostr'
 
-const dmHandler: MessageHandler = {
+const dmHandler: NostrMsgHandler = {
   canHandle: (context) => {
     const { eventContent, data } = context
     // Plain DMs: has description but no data
