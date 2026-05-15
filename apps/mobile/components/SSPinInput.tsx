@@ -16,7 +16,7 @@ import { Colors, Sizes } from '@/styles'
 import SSKeyboard from './SSKeyboard'
 import SSText from './SSText'
 
-type SSPinInputProps = {
+export type SSPinInputProps = {
   feedback?: ReactNode
   feedbackColor?: string
   feedbackBold?: boolean
