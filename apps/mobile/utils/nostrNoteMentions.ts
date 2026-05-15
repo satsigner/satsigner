@@ -1,8 +1,7 @@
 import { nip19 } from 'nostr-tools'
 
+import { MENTION_RE } from '@/constants/nostr'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
-
-const MENTION_RE = /(?:nostr:)?(npub1[a-z0-9]{6,}|nprofile1[a-z0-9]{6,})/gi
 
 function decodeMentionPubkey(bech32: string): string | null {
   try {

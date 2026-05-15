@@ -64,6 +64,15 @@ export const NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
 
 export const NIP46_EVENT_PREVIEW_MAX_LENGTH = 200
 
+export const NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
+
+export const NOSTR_EVENT_REF_RE = /nostr:(note1|nevent1)[a-zA-Z0-9]+/g
+
+export const MENTION_RE =
+  /(?:nostr:)?(npub1[a-z0-9]{6,}|nprofile1[a-z0-9]{6,})/gi
+
+export const NOSTR_EVENT_ID_HEX = /^[0-9a-fA-F]{64}$/
+
 export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 /** Shown in place of hidden secret keys (nsec / seed words) — short form. */
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'

@@ -1,17 +1,14 @@
 import { HDKey } from '@scure/bip32'
 import { getPublicKey, nip19 } from 'nostr-tools'
 
+import { NIP06_DERIVATION_PATH } from '@/constants/nostr'
+import {
+  DecodedNostrContent,
+  DerivedNostrKeys,
+  EnhancedZapTags
+} from '@/types/models/Nostr'
 import { mnemonicToSeed } from '@/utils/bip39'
 import { deriveNpubFromNsec } from '@/utils/nostr'
-
-const NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
-
-type DerivedNostrKeys = {
-  nsec: string
-  npub: string
-  privateKey: Uint8Array
-  mnemonic: string
-}
 
 export function deriveNostrKeysFromMnemonic(
   mnemonic: string
@@ -27,35 +24,6 @@ export function deriveNostrKeysFromMnemonic(
   const nsec = nip19.nsecEncode(privateKey)
   const npub = nip19.npubEncode(publicKey)
   return { mnemonic, npub, nsec, privateKey }
-}
-
-export type NostrContentKind =
-  | 'npub'
-  | 'note'
-  | 'nevent'
-  | 'nprofile'
-  | 'json_note'
-  | 'unknown'
-
-export type FetchedNoteData = {
-  content: string
-  pubkey: string
-  kind: number
-  tags: string[][]
-  created_at: number
-  authorName?: string
-  authorPicture?: string
-  authorLud16?: string
-  authorNip05?: string
-}
-
-export type DecodedNostrContent = {
-  kind: NostrContentKind
-  raw: string
-  data: string
-  metadata?: Record<string, unknown>
-  fetched?: FetchedNoteData
-  isLoading?: boolean
 }
 
 function stripNostrUri(data: string): string {
@@ -173,15 +141,6 @@ export function extractPubpayTags(tags: string[][]): PubpayTag[] {
     }
   }
   return results
-}
-
-export type EnhancedZapTags = {
-  zapMin?: number
-  zapMax?: number
-  zapGoal?: number
-  zapUses?: number
-  zapPayer?: string
-  zapLnurl?: string
 }
 
 function parseMsatsTag(tags: string[][], name: string): number | undefined {

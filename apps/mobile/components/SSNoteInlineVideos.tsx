@@ -11,7 +11,7 @@ import {
 import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type NostrVideoEmbed } from '@/utils/nostrNoteVideoUrls'
+import { type NostrVideoEmbed } from '@/types/models/Nostr'
 
 type SSNoteInlineVideosProps = {
   embeds: NostrVideoEmbed[]

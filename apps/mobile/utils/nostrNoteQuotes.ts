@@ -1,8 +1,7 @@
 import { nip19 } from 'nostr-tools'
 
 import type { NostrFeedNoteLike } from '@/components/SSNostrFeedNoteRow'
-
-const NOSTR_EVENT_REF_RE = /nostr:(note1|nevent1)[a-zA-Z0-9]+/g
+import { NOSTR_EVENT_REF_RE } from '@/constants/nostr'
 
 type RawEvent = {
   content: string

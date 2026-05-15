@@ -9,26 +9,15 @@ import {
 } from '@/constants/nostr'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
-import { type NostrMessage } from '@/types/models/Nostr'
+import {
+  NostrSubscriptionHandle,
+  NostrSyncStatus,
+  NostrSyncStatusEvent,
+  type NostrMessage
+} from '@/types/models/Nostr'
 import { calculateRetryDelay, type RetryConfig } from '@/utils/retryManager'
 
-export type SyncStatus = 'idle' | 'connecting' | 'syncing' | 'error'
-
-export type SyncStatusEvent = {
-  accountId: string
-  status: SyncStatus
-  lastError?: string
-  messagesProcessed?: number
-  messagesReceived?: number
-}
-
-type SubscriptionHandle = {
-  accountId: string
-  dataExchangeApi: NostrAPI | null
-  protocolApi: NostrAPI | null
-}
-
-const subscriptions = new Map<string, SubscriptionHandle>()
+const subscriptions = new Map<string, NostrSubscriptionHandle>()
 const retryTimers = new Map<string, NodeJS.Timeout>()
 const retryAttempts = new Map<string, number>()
 const isSubscribingMap = new Map<string, boolean>()
@@ -42,10 +31,10 @@ emitter.setMaxListeners(50)
 
 function emitStatus(
   accountId: string,
-  status: SyncStatus,
+  status: NostrSyncStatus,
   lastError?: string
 ): void {
-  const event: SyncStatusEvent = {
+  const event: NostrSyncStatusEvent = {
     accountId,
     lastError,
     status

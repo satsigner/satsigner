@@ -331,3 +331,12 @@ export type ChannelHistoryRow = {
   source: 'forward' | 'payment'
   timestampSec: number
 }
+
+export type Bolt11Section = {
+  name: string
+  value: string | number
+}
+export type Bolt11Decoded = {
+  sections: Bolt11Section[]
+  route_hints?: unknown[]
+}

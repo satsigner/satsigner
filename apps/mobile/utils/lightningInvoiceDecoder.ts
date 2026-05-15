@@ -1,16 +1,10 @@
 import { decode } from '@gandlaf21/bolt11-decode'
 
-import { type LNDecodedInvoice } from '@/types/models/Lightning'
-
-type Bolt11Section = {
-  name: string
-  value: string | number
-}
-
-type Bolt11Decoded = {
-  sections: Bolt11Section[]
-  route_hints?: unknown[]
-}
+import type {
+  Bolt11Decoded,
+  Bolt11Section,
+  LNDecodedInvoice
+} from '@/types/models/Lightning'
 
 function mapBolt11DecodeToDecodedInvoice(
   bolt11Decoded: Bolt11Decoded,

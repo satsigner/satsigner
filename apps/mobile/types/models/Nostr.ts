@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { NostrAPI } from '@/api/nostr'
+
 import type { Account } from './Account'
 
 export const NostrMessageSchema = z.object({
@@ -214,6 +216,74 @@ export type PendingDM = {
   /** Set to true when the handler already showed its own toast (e.g. PSBT).
    *  storeBatch will skip the generic "New Device Message" toast. */
   skipToast?: boolean
+}
+export type DerivedNostrKeys = {
+  nsec: string
+  npub: string
+  privateKey: Uint8Array
+  mnemonic: string
+}
+export type NostrContentKind =
+  | 'npub'
+  | 'note'
+  | 'nevent'
+  | 'nprofile'
+  | 'json_note'
+  | 'unknown'
+
+export type FetchedNoteData = {
+  content: string
+  pubkey: string
+  kind: number
+  tags: string[][]
+  created_at: number
+  authorName?: string
+  authorPicture?: string
+  authorLud16?: string
+  authorNip05?: string
+}
+
+export type DecodedNostrContent = {
+  kind: NostrContentKind
+  raw: string
+  data: string
+  metadata?: Record<string, unknown>
+  fetched?: FetchedNoteData
+  isLoading?: boolean
+}
+export type EnhancedZapTags = {
+  zapMin?: number
+  zapMax?: number
+  zapGoal?: number
+  zapUses?: number
+  zapPayer?: string
+  zapLnurl?: string
+}
+export type NostrVideoProvider =
+  | 'youtube'
+  | 'vimeo'
+  | 'twitch_vod'
+  | 'twitch_clip'
+  | 'direct'
+
+export type NostrVideoEmbed = {
+  provider: NostrVideoProvider
+  watchUrl: string
+  thumbnailUrl?: string
+}
+export type NostrSyncStatus = 'idle' | 'connecting' | 'syncing' | 'error'
+
+export type NostrSyncStatusEvent = {
+  accountId: string
+  status: NostrSyncStatus
+  lastError?: string
+  messagesProcessed?: number
+  messagesReceived?: number
+}
+export type NostrSubscriptionHandle = {
+  accountId: string
+  dataExchangeApi: NostrAPI | null
+  protocolApi: NostrAPI | null
 }
 
 // export type NostrMessage = {

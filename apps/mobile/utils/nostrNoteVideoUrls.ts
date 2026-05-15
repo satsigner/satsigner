@@ -1,17 +1,5 @@
+import { NostrVideoEmbed } from '@/types/models/Nostr'
 import { isPlausibleImageHttpUrl } from '@/utils/nostrNoteMedia'
-
-export type NostrVideoProvider =
-  | 'youtube'
-  | 'vimeo'
-  | 'twitch_vod'
-  | 'twitch_clip'
-  | 'direct'
-
-export type NostrVideoEmbed = {
-  provider: NostrVideoProvider
-  watchUrl: string
-  thumbnailUrl?: string
-}
 
 function pushUrl(raw: string, seen: Set<string>, out: string[]) {
   const u = raw.trim().replace(/\)+$/, '')

@@ -8,12 +8,9 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { type DecodedNostrContent } from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
-import {
-  type DecodedNostrContent,
-  extractPubpayTags,
-  truncateNpub
-} from '@/utils/nostrIdentity'
+import { extractPubpayTags, truncateNpub } from '@/utils/nostrIdentity'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 
