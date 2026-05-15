@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import { t } from '@/locales'
+import { Typography } from '@/styles'
 
 type SaveSpendChoice = 'save' | 'spend'
 
@@ -18,14 +19,14 @@ function SSIntroAnimationSaveSpendStep({
         <SSButton
           label={t('intro.steps.saveSpend.optionSave')}
           onPress={() => onPick('save')}
-          uppercase={false}
           variant="outline"
+          textStyle={styles.buttonText}
         />
         <SSButton
           label={t('intro.steps.saveSpend.optionSpend')}
           onPress={() => onPick('spend')}
-          uppercase={false}
           variant="outline"
+          textStyle={styles.buttonText}
         />
       </View>
     </View>
@@ -56,14 +57,14 @@ export function SSIntroAnimationSaveSpendFollowUpStep({
         <SSButton
           label={primaryLabel}
           onPress={onPick}
-          uppercase={false}
           variant="outline"
+          textStyle={styles.buttonText}
         />
         <SSButton
           label={laterLabel}
           onPress={onPick}
-          uppercase={false}
           variant="outline"
+          textStyle={styles.buttonText}
         />
       </View>
     </View>
@@ -71,6 +72,12 @@ export function SSIntroAnimationSaveSpendFollowUpStep({
 }
 
 const styles = StyleSheet.create({
+  buttonText: {
+    fontFamily: Typography.sfProTextUltralight,
+    fontSize: 20,
+    fontWeight: '200',
+    letterSpacing: 3
+  },
   fullScreen: {
     ...StyleSheet.absoluteFillObject
   },

@@ -530,8 +530,6 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
                   />
                 </View>
               </View>
-            ) : currentStep === 8 || currentStep === 9 ? (
-              <View style={styles.saveSpendBottomSpacer} />
             ) : (
               <SSButton
                 variant="secondary"
@@ -651,9 +649,6 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0
-  },
-  saveSpendBottomSpacer: {
-    minHeight: 52
   },
   sideButton: {
     flex: 1

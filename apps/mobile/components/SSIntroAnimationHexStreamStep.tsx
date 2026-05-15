@@ -1,13 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import Animated, {
-  cancelAnimation,
-  Easing,
-  type SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming
-} from 'react-native-reanimated'
 
 import SSText from '@/components/SSText'
 import { t } from '@/locales'
@@ -19,10 +11,14 @@ const HEX_LEFT_PADDING = 8
 /** First row top (fraction of screen height); spacing uses `HEX_ROW_GAP_FRAC`. */
 const HEX_ROW_TOP_FRAC = 0.1
 const HEX_ROW_GAP_FRAC = 0.028
-/** Full opacity for each hex line (reveal still fades rows in via `p`). */
-const HEX_LINE_BASE_OPACITY = 0.42
-// Hex step — uniform fade (all lines at once; easing from hexRowFadeIn)
-const HEX_REVEAL_MS = 420
+/**
+ * Resting opacity for the row stack — parent step container handles the
+ * fade-in, so no internal opacity animation here. Lower value keeps both the
+ * base hex and the white highlight subdued against the dark background.
+ */
+const HEX_LINE_BASE_OPACITY = 1
+/** Delay after mount before the highlight cycle begins. */
+const HEX_BEFORE_CYCLE_MS = 420
 /** Time between hex highlight hops (instant handoff, no fade). */
 const HEX_HIGHLIGHT_STEP_MS = 160
 
@@ -154,20 +150,6 @@ const GENESIS_HEX_HIGHLIGHTS = [
   titleKey: GenesisHexTitleKey
 }[]
 
-function hexRowFadeIn(t: number) {
-  'worklet'
-  if (t <= 0) {
-    return 0
-  }
-  if (t >= 1) {
-    return 1
-  }
-  if (t < 0.5) {
-    return 4 * t * t * t
-  }
-  return 1 - Math.pow(-2 * t + 2, 3) / 2
-}
-
 function genesisBytesInRow(rowIndex: number): number {
   return rowIndex === GENESIS_ROW_COUNT - 1 ? 13 : 16
 }
@@ -266,30 +248,15 @@ function buildGenesisRowTextParts(
 type HexRowProps = {
   highlightLead: (typeof GENESIS_HEX_HIGHLIGHTS)[number] | null
   index: number
-  revealProgress: SharedValue<number>
   row: (typeof GENESIS_BLOCK_HEX_ROWS)[number]
   screenHeight: number
 }
 
-function HexRow({
-  row,
-  index,
-  revealProgress,
-  screenHeight,
-  highlightLead
-}: HexRowProps) {
+function HexRow({ row, index, screenHeight, highlightLead }: HexRowProps) {
   const leadParts = useMemo(
     () => buildGenesisRowTextParts(row.text, index, highlightLead),
     [highlightLead, index, row.text]
   )
-
-  const animStyle = useAnimatedStyle(() => {
-    const raw = Math.min(1, Math.max(0, revealProgress.value))
-    const p = hexRowFadeIn(raw)
-    return {
-      opacity: HEX_LINE_BASE_OPACITY * p
-    }
-  })
 
   const top = (HEX_ROW_TOP_FRAC + index * HEX_ROW_GAP_FRAC) * screenHeight
   const overlayTextProps = {
@@ -299,10 +266,10 @@ function HexRow({
   }
 
   return (
-    <Animated.View style={[styles.hexText, animStyle, { top }]}>
+    <View style={[styles.hexText, { opacity: HEX_LINE_BASE_OPACITY, top }]}>
       <Text
         {...overlayTextProps}
-        style={[styles.hexTextOverlayLine, { color: Colors.white }]}
+        style={[styles.hexTextOverlayLine]}
       >
         {row.text}
       </Text>
@@ -326,7 +293,7 @@ function HexRow({
           </Text>
         </View>
       ) : null}
-    </Animated.View>
+    </View>
   )
 }
 
@@ -337,27 +304,15 @@ type SSIntroAnimationHexStreamStepProps = {
 function SSIntroAnimationHexStreamStep({
   screenHeight
 }: SSIntroAnimationHexStreamStepProps) {
-  const revealProgress = useSharedValue(0)
   const [highlightsEnabled, setHighlightsEnabled] = useState(false)
   const [leadIndex, setLeadIndex] = useState(0)
-
-  const revealDuration = HEX_REVEAL_MS
-
-  useEffect(() => {
-    revealProgress.set(
-      withTiming(1, {
-        duration: revealDuration,
-        easing: Easing.linear
-      })
-    )
-  }, [revealDuration, revealProgress])
 
   useEffect(() => {
     const handle = setTimeout(() => {
       setHighlightsEnabled(true)
-    }, revealDuration)
+    }, HEX_BEFORE_CYCLE_MS)
     return () => clearTimeout(handle)
-  }, [revealDuration])
+  }, [])
 
   useEffect(() => {
     if (!highlightsEnabled) {
@@ -368,12 +323,6 @@ function SSIntroAnimationHexStreamStep({
     }, HEX_HIGHLIGHT_STEP_MS)
     return () => clearInterval(id)
   }, [highlightsEnabled])
-
-  useEffect(() => {
-    return () => {
-      cancelAnimation(revealProgress)
-    }
-  }, [revealProgress])
 
   const highlightLead = highlightsEnabled
     ? GENESIS_HEX_HIGHLIGHTS[leadIndex]
@@ -400,7 +349,6 @@ function SSIntroAnimationHexStreamStep({
           key={`genesis-hex-${i}`}
           row={row}
           index={i}
-          revealProgress={revealProgress}
           screenHeight={screenHeight}
           highlightLead={highlightLead}
         />
@@ -414,7 +362,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject
   },
   hexHlTint: {
-    color: Colors.gray[600]
+    color: Colors.gray[500]
   },
   hexSectionLabel: {
     color: Colors.gray[875],
@@ -423,6 +371,7 @@ const styles = StyleSheet.create({
     right: HEX_LEFT_PADDING
   },
   hexText: {
+    color: Colors.gray[700],
     fontFamily: Typography.sfProMono,
     fontSize: HEX_FONT_SIZE,
     left: HEX_LEFT_PADDING,
@@ -432,6 +381,7 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   hexTextOverlayLine: {
+    color: Colors.gray[700],
     fontFamily: Typography.sfProMono,
     fontSize: HEX_FONT_SIZE,
     lineHeight: HEX_LINE_HEIGHT,

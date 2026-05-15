@@ -2992,7 +2992,7 @@
         "title": "Privacy by Design"
       },
       "coordination": {
-        "description": "Pass PSBTs, messages, and labels between your devices \nand co-signers over Nostr relays — no middleman.",
+        "description": "Pass PSBTs, messages, and labels between your devices \nand co-signers encrypted over Nostr relays (NIP-17 group).",
         "title": "Seamless Coordination"
       },
       "explorer": {
@@ -3025,8 +3025,8 @@
       },
       "saveSpend": {
         "description": "Pick what fits you now — you can always change how you use the app later.",
-        "optionSave": "Want to save",
-        "optionSpend": "Want to spend",
+        "optionSave": "Save",
+        "optionSpend": "Spend",
         "title": "What brings you here?"
       },
       "spendFollowup": {
