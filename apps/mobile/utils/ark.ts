@@ -1,3 +1,5 @@
+import { decode } from 'bitcoin-decoder'
+
 import {
   ARK_REFRESH_SUBSYSTEM_KEYWORD,
   ARK_LIGHTNING_SUBSYSTEM_KINDS,
@@ -7,15 +9,14 @@ import {
   ARK_COUNTERPARTY_TRUNCATE_CHARS
 } from '@/constants/ark'
 import { t } from '@/locales'
-import type { ArkMovement, ArkMovementKind } from '@/types/models/Ark'
+import type {
+  ArkMovement,
+  ArkMovementKind,
+  ArkDestinationDraft,
+  ArkDestinationParseResult,
+  ArkSendKind
+} from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
-
-export function arkNetworkLabel(network: Network): string {
-  if (network === 'bitcoin') {
-    return t('ark.network.bitcoin')
-  }
-  return t('ark.network.signet')
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -26,6 +27,70 @@ function isFeeOnlyMovement(movement: ArkMovement): boolean {
     movement.offchainFeeSats > 0 &&
     movement.effectiveBalanceSats + movement.offchainFeeSats === 0
   )
+}
+
+export async function parseArkDestination(
+  raw: string
+): Promise<ArkDestinationParseResult> {
+  const trimmed = raw?.trim()
+  if (!trimmed) {
+    return { ok: false, reason: 'invalid' }
+  }
+
+  const decoded = await decode(trimmed)
+  if (!decoded.valid) {
+    return { ok: false, reason: 'invalid' }
+  }
+
+  const { destination, metadata } = decoded
+
+  switch (destination.type) {
+    case 'ark-address':
+      return {
+        draft: { address: destination.destination, kind: 'arkoor' },
+        ok: true
+      }
+    case 'bolt11':
+      return {
+        draft: {
+          amountSatsFromInvoice: metadata?.amount,
+          description: metadata?.description,
+          invoice: destination.destination,
+          kind: 'bolt11'
+        },
+        ok: true
+      }
+    case 'lnaddress':
+      return {
+        draft: { address: destination.destination, kind: 'lnaddress' },
+        ok: true
+      }
+    case 'lnurl':
+      return {
+        draft: { kind: 'lnurl', lnurl: destination.destination },
+        ok: true
+      }
+    case 'bitcoin-address':
+      return {
+        draft: { address: destination.destination, kind: 'onchain' },
+        ok: true
+      }
+    default:
+      return { ok: false, reason: 'unsupported' }
+  }
+}
+
+export function arkDestinationKindFromDraft(
+  draft: ArkDestinationDraft
+): ArkSendKind {
+  return draft.kind
+}
+
+export function arkNetworkLabel(network: Network): string {
+  if (network === 'bitcoin') {
+    return t('ark.network.bitcoin')
+  }
+  return t('ark.network.signet')
 }
 
 export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {

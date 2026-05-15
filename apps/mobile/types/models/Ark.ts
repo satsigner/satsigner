@@ -202,3 +202,31 @@ export type ArkOffboardInput = {
   vtxoIds: string[]
   bitcoinAddress: string
 }
+
+export type ArkDestinationDraft =
+  | {
+      kind: 'arkoor'
+      address: string
+    }
+  | {
+      kind: 'bolt11'
+      invoice: string
+      amountSatsFromInvoice?: number
+      description?: string
+    }
+  | {
+      kind: 'lnaddress'
+      address: string
+    }
+  | {
+      kind: 'lnurl'
+      lnurl: string
+    }
+  | {
+      kind: 'onchain'
+      address: string
+    }
+
+export type ArkDestinationParseResult =
+  | { ok: true; draft: ArkDestinationDraft }
+  | { ok: false; reason: 'unsupported' | 'invalid' }

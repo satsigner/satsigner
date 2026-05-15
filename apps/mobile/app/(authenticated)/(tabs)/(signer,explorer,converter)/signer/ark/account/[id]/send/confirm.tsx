@@ -9,6 +9,10 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import {
+  ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS,
+  ARK_KIND_LABEL_KEYS
+} from '@/constants/ark'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkLnurlPayDetails } from '@/hooks/useArkLnurlPay'
 import { useArkSend } from '@/hooks/useArkSend'
@@ -24,40 +28,26 @@ import { Colors } from '@/styles'
 import type {
   ArkSendFeeKind,
   ArkSendInput,
-  ArkSendKind,
-  ArkSendOutcome
+  ArkSendOutcome,
+  ArkDestinationDraft
 } from '@/types/models/Ark'
-import { truncateArkCounterparty } from '@/utils/ark'
-import {
-  type ArkDestinationDraft,
-  parseArkDestination
-} from '@/utils/arkDestination'
+import { truncateArkCounterparty, parseArkDestination } from '@/utils/ark'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { millisatsToSats } from '@/utils/bitcoinUnits'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { validateAddress } from '@/utils/validation'
 
-const KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
-  arkoor: 'ark.send.kind.arkoor',
-  bolt11: 'ark.send.kind.bolt11',
-  lnaddress: 'ark.send.kind.lnaddress',
-  lnurl: 'ark.send.kind.lnurl',
-  onchain: 'ark.send.kind.onchain'
-}
-
-const CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
-
 function destinationDisplay(draft: ArkDestinationDraft): string {
   if (draft.kind === 'arkoor') {
     return truncateArkCounterparty(
       draft.address,
-      CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
     )
   }
   if (draft.kind === 'bolt11') {
     return truncateArkCounterparty(
       draft.invoice,
-      CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
     )
   }
   if (draft.kind === 'lnaddress') {
@@ -66,12 +56,12 @@ function destinationDisplay(draft: ArkDestinationDraft): string {
   if (draft.kind === 'onchain') {
     return truncateArkCounterparty(
       draft.address,
-      CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
     )
   }
   return truncateArkCounterparty(
     draft.lnurl,
-    CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+    ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
   )
 }
 
@@ -287,7 +277,7 @@ export default function ArkSendConfirmPage() {
             <>
               <SSVStack gap="xs">
                 <SSText color="muted" size="xs" uppercase>
-                  {t(KIND_LABEL_KEYS[draft.kind])}
+                  {t(ARK_KIND_LABEL_KEYS[draft.kind])}
                 </SSText>
                 <View style={styles.destinationBox}>
                   <SSClipboardCopy text={destinationSource(draft)}>
