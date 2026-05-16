@@ -1,17 +1,6 @@
 import type { ArkSendKind, ArkServer } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 
-export function getArkServer(
-  network: Network,
-  id: ArkServer['id']
-): ArkServer | undefined {
-  return ARK_SERVERS[network].find((server) => server.id === id)
-}
-
-export function getDefaultArkServer(network: Network): ArkServer | undefined {
-  return ARK_SERVERS[network][0]
-}
-
 export const ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
 export const ARK_COUNTERPARTY_TRUNCATE_CHARS = 8
 export const ARK_INVALIDATED_QUERY_KINDS = [

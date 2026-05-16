@@ -9,7 +9,6 @@ import {
   subscribeArkNotifications,
   syncArkWallet
 } from '@/api/ark'
-import { getArkServer } from '@/constants/ark'
 import { t } from '@/locales'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
@@ -20,6 +19,7 @@ import type {
   ArkNotificationUnsubscribe
 } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
+import { getArkServer } from '@/utils/ark'
 import { formatNumber } from '@/utils/format'
 
 type AccessTokenMap = Partial<Record<Network, string>>

@@ -2,7 +2,6 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { createArkWallet } from '@/api/ark'
-import { getArkServer } from '@/constants/ark'
 import { t } from '@/locales'
 import { deleteArkDatadir, ensureArkDatadir } from '@/storage/arkDatadir'
 import { deleteArkMnemonic, storeArkMnemonic } from '@/storage/encrypted'
@@ -10,6 +9,7 @@ import { useArkStore } from '@/store/ark'
 import { useArkAccountBuilderStore } from '@/store/arkAccountBuilder'
 import type { ArkAccount } from '@/types/models/Ark'
 import { decryptKeySecretFromStore, getPin } from '@/utils/account'
+import { getArkServer } from '@/utils/ark'
 
 import { useCreateSinglesigAccount } from './useCreateSinglesigAccount'
 

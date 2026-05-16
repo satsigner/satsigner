@@ -6,7 +6,8 @@ import {
   ARK_STALE_EXIT_SUBSYSTEM_NAME,
   ARK_STALE_EXIT_SUBSYSTEM_KIND,
   ARK_MUTED_STATUSES,
-  ARK_COUNTERPARTY_TRUNCATE_CHARS
+  ARK_COUNTERPARTY_TRUNCATE_CHARS,
+  ARK_SERVERS
 } from '@/constants/ark'
 import { t } from '@/locales'
 import type {
@@ -14,7 +15,8 @@ import type {
   ArkMovementKind,
   ArkDestinationDraft,
   ArkDestinationParseResult,
-  ArkSendKind
+  ArkSendKind,
+  ArkServer
 } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 
@@ -180,4 +182,15 @@ export function getArkMovementCounterparty(
     return null
   }
   return parseArkCounterparty(first)
+}
+
+export function getArkServer(
+  network: Network,
+  id: ArkServer['id']
+): ArkServer | undefined {
+  return ARK_SERVERS[network].find((server) => server.id === id)
+}
+
+export function getDefaultArkServer(network: Network): ArkServer | undefined {
+  return ARK_SERVERS[network][0]
 }
