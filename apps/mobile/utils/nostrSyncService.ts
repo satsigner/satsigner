@@ -2,10 +2,10 @@ import { EventEmitter } from 'events'
 
 import { NostrAPI } from '@/api/nostr'
 import {
-  DEFAULT_RETRY_CONFIG,
-  EOSE_TIMEOUT_MS,
-  PROTOCOL_SUBSCRIPTION_LIMIT,
-  PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
+  NOSTR_DEFAULT_RETRY_CONFIG,
+  NOSTR_EOSE_TIMEOUT_MS,
+  NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT,
+  NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
 } from '@/constants/nostr'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
@@ -58,7 +58,7 @@ function cancelRetry(accountId: string): void {
 function scheduleRetry(
   account: Account,
   onLoadingChange?: (loading: boolean) => void,
-  config: RetryConfig = DEFAULT_RETRY_CONFIG
+  config: RetryConfig = NOSTR_DEFAULT_RETRY_CONFIG
 ): void {
   const currentAttempt = retryAttempts.get(account.id) || 0
 
@@ -94,8 +94,8 @@ async function createProtocolSubscription(
 
   const protocolLimit =
     lastProtocolEOSE > 0
-      ? PROTOCOL_SUBSCRIPTION_LIMIT
-      : PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
+      ? NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT
+      : NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
 
   const nostrApi = new NostrAPI(relays)
   if (onLoadingChange) {
@@ -271,8 +271,8 @@ async function doFetchOnce(
 
     const fetchOnceProtocolLimit =
       lastProtocolEOSE > 0
-        ? PROTOCOL_SUBSCRIPTION_LIMIT
-        : PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
+        ? NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT
+        : NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
 
     let resolveProtocolEose!: () => void
     const protocolEosePromise = new Promise<void>((resolve) => {
@@ -327,8 +327,8 @@ async function doFetchOnce(
       })
 
     await Promise.all([
-      Promise.race([protocolEosePromise, timeout(EOSE_TIMEOUT_MS)]),
-      Promise.race([dataExchangeEosePromise, timeout(EOSE_TIMEOUT_MS)])
+      Promise.race([protocolEosePromise, timeout(NOSTR_EOSE_TIMEOUT_MS)]),
+      Promise.race([dataExchangeEosePromise, timeout(NOSTR_EOSE_TIMEOUT_MS)])
     ])
 
     await Promise.all([protocolApi.flushQueue(), dataExchangeApi?.flushQueue()])

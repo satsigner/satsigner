@@ -1,4 +1,4 @@
-import { NOSTR_EVENT_ID_HEX } from '@/constants/nostr'
+import { NOSTR_EVENT_ID_RE } from '@/constants/nostr'
 
 function listValidETags(tags: string[][]): string[][] {
   return tags.filter(
@@ -6,7 +6,7 @@ function listValidETags(tags: string[][]): string[][] {
       typeof t[0] === 'string' &&
       t[0].toLowerCase() === 'e' &&
       typeof t[1] === 'string' &&
-      NOSTR_EVENT_ID_HEX.test(t[1])
+      NOSTR_EVENT_ID_RE.test(t[1])
   )
 }
 

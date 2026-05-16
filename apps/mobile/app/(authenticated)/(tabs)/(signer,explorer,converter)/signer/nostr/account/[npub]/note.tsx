@@ -39,8 +39,8 @@ import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
-  DEFAULT_ONE_TAP_AMOUNT,
-  DEFAULT_ZAP_PRESETS,
+  NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
+  NOSTR_ZAP_DEFAULT_PRESETS,
   NOSTR_PRIVACY_MASK
 } from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
@@ -166,8 +166,9 @@ export default function NostrNotePage() {
   >({})
 
   const zapPrefs = identity?.zapPreferences
-  const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
-  const oneTapAmount = zapPrefs?.oneTapAmount ?? DEFAULT_ONE_TAP_AMOUNT
+  const zapPresets = zapPrefs?.presetAmounts ?? NOSTR_ZAP_DEFAULT_PRESETS
+  const oneTapAmount =
+    zapPrefs?.oneTapAmount ?? NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT
 
   const lightningConfig = useLightningStore((state) => state.config)
   const lightningNodeAlias = useLightningStore(

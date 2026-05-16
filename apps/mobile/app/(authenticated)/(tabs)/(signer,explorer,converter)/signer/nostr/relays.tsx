@@ -6,7 +6,7 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { NOSTR_RELAYS, RELAY_PROTOCOL_PREFIX } from '@/constants/nostr'
+import { NOSTR_RELAYS, NOSTR_RELAY_PROTOCOL_PREFIX } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -55,7 +55,7 @@ export default function NostrRelays() {
     if (!customRelayUrl) {
       return
     }
-    const relayUrl = RELAY_PROTOCOL_PREFIX + customRelayUrl
+    const relayUrl = NOSTR_RELAY_PROTOCOL_PREFIX + customRelayUrl
     if (!selectedRelays.includes(relayUrl)) {
       setSelectedRelays((prev) => [...prev, relayUrl])
     }
@@ -98,7 +98,7 @@ export default function NostrRelays() {
                   key={url}
                   selected
                   relay={{
-                    name: url.replace(RELAY_PROTOCOL_PREFIX, ''),
+                    name: url.replace(NOSTR_RELAY_PROTOCOL_PREFIX, ''),
                     url
                   }}
                   onPress={() => handleRelayToggle(url)}
@@ -107,7 +107,7 @@ export default function NostrRelays() {
             <SSVStack gap="sm">
               <SSHStack gap="xs">
                 <SSText color="muted" size="lg" style={styles.relayInputAddOn}>
-                  {RELAY_PROTOCOL_PREFIX}
+                  {NOSTR_RELAY_PROTOCOL_PREFIX}
                 </SSText>
                 <View style={styles.relayInputContainer}>
                   <SSTextInput

@@ -21,7 +21,13 @@ import {
 } from '@/components/SSNostrFeedNoteRow'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
-import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
+import {
+  NOSTR_BOOKMARKS_FILTER_IDS,
+  NOSTR_BOOKMARKS_MAX_FETCH,
+  NOSTR_BOOKMARKS_PAGE_SIZE,
+  NOSTR_PRIVACY_MASK,
+  NOSTR_NOTE_FILTER_OPTIONS
+} from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -65,95 +71,15 @@ type SSNostrFeedTabsProps = {
   relays: string[]
 }
 
-const PAGE_SIZE = 10
-const BOOKMARKS_MAX_FETCH = 100
-const BOOKMARK_FILTER_IDS = new Set(['bookmarks', 'private_bookmarks'])
-
-/** Labels align with https://nostr.dev/ai-reference/ (kinds & NIPs). */
-type NoteKindFilterOption = {
-  id: string
-  kinds: number[]
-  labelKey: string
-}
-
-// TODO: move this to constants/nostr
-const NOTE_KIND_FILTER_OPTIONS: NoteKindFilterOption[] = [
-  {
-    id: 'short_text',
-    kinds: [1],
-    labelKey: 'nostrIdentity.feed.kindShortTextNote'
-  },
-  {
-    id: 'long_form',
-    kinds: [30023],
-    labelKey: 'nostrIdentity.feed.kindLongFormContent'
-  },
-  {
-    id: 'draft_long_form',
-    kinds: [30024],
-    labelKey: 'nostrIdentity.feed.kindDraftLongFormContent'
-  },
-  {
-    id: 'bookmarks',
-    kinds: [],
-    labelKey: 'nostrIdentity.feed.kindBookmarks'
-  },
-  {
-    id: 'private_bookmarks',
-    kinds: [],
-    labelKey: 'nostrIdentity.feed.kindPrivateBookmarks'
-  },
-  {
-    id: 'reposts',
-    kinds: [6, 16],
-    labelKey: 'nostrIdentity.feed.kindReposts'
-  },
-  {
-    id: 'reactions',
-    kinds: [7],
-    labelKey: 'nostrIdentity.feed.kindReaction'
-  },
-  {
-    id: 'picture',
-    kinds: [20],
-    labelKey: 'nostrIdentity.feed.kindPicture'
-  },
-  {
-    id: 'video',
-    kinds: [21, 22],
-    labelKey: 'nostrIdentity.feed.kindVideoEvents'
-  },
-  {
-    id: 'file_metadata',
-    kinds: [1063],
-    labelKey: 'nostrIdentity.feed.kindFileMetadata'
-  },
-  {
-    id: 'poll_response',
-    kinds: [1018],
-    labelKey: 'nostrIdentity.feed.kindPollResponse'
-  },
-  {
-    id: 'label',
-    kinds: [1985],
-    labelKey: 'nostrIdentity.feed.kindLabel'
-  },
-  {
-    id: 'thread',
-    kinds: [11],
-    labelKey: 'nostrIdentity.feed.kindThread'
-  }
-]
-
 /** Feed tab excludes bookmark filters — those are personal lists, not following-timeline content. */
-const FEED_KIND_FILTER_OPTIONS = NOTE_KIND_FILTER_OPTIONS.filter(
-  (o) => !BOOKMARK_FILTER_IDS.has(o.id)
+const FEED_KIND_FILTER_OPTIONS = NOSTR_NOTE_FILTER_OPTIONS.filter(
+  (o) => !NOSTR_BOOKMARKS_FILTER_IDS.has(o.id)
 )
 
-const DEFAULT_KIND_FILTER_ID = NOTE_KIND_FILTER_OPTIONS[0].id
+const DEFAULT_KIND_FILTER_ID = NOSTR_NOTE_FILTER_OPTIONS[0].id
 
 function kindsForNoteKindFilterId(id: string): number[] {
-  const opt = NOTE_KIND_FILTER_OPTIONS.find((o) => o.id === id)
+  const opt = NOSTR_NOTE_FILTER_OPTIONS.find((o) => o.id === id)
   return opt?.kinds.length ? opt.kinds : [1]
 }
 
@@ -389,7 +315,7 @@ function SSNostrFeedTabs({
           ? privBookmarks
           : mergeBookmarks(pubBookmarks, privBookmarks)
 
-      const trimmed = merged.slice(0, BOOKMARKS_MAX_FETCH)
+      const trimmed = merged.slice(0, NOSTR_BOOKMARKS_MAX_FETCH)
       privateBookmarkIdsRef.current = new Set(
         trimmed.filter((b) => b.source === 'private').map((b) => b.eventId)
       )
@@ -425,7 +351,7 @@ function SSNostrFeedTabs({
       return
     }
 
-    if (BOOKMARK_FILTER_IDS.has(notesKindFilterId)) {
+    if (NOSTR_BOOKMARKS_FILTER_IDS.has(notesKindFilterId)) {
       await loadBookmarkNotes()
       return
     }
@@ -437,12 +363,12 @@ function SSNostrFeedTabs({
 
       const fetched = await apiRef.current.fetchNotes(
         npub,
-        PAGE_SIZE,
+        NOSTR_BOOKMARKS_PAGE_SIZE,
         until,
         kindsForNoteKindFilterId(notesKindFilterId)
       )
 
-      if (fetched.length < PAGE_SIZE) {
+      if (fetched.length < NOSTR_BOOKMARKS_PAGE_SIZE) {
         setNotesHasMore(false)
       }
 
@@ -490,12 +416,12 @@ function SSNostrFeedTabs({
 
       const fetched = await apiRef.current.fetchFollowingTimelineNotes(
         npub,
-        PAGE_SIZE,
+        NOSTR_BOOKMARKS_PAGE_SIZE,
         until,
         kindsForNoteKindFilterId(feedKindFilterId)
       )
 
-      if (fetched.length < PAGE_SIZE) {
+      if (fetched.length < NOSTR_BOOKMARKS_PAGE_SIZE) {
         setFeedHasMore(false)
       }
 
@@ -534,13 +460,24 @@ function SSNostrFeedTabs({
           : undefined
 
       const [incomingBatch, sentBatch] = await Promise.all([
-        fetchZapsByPubkey(hexPubkey, relays, PAGE_SIZE, until, ownPubkeys),
-        fetchZapsSentByPubkey(hexPubkey, relays, PAGE_SIZE, until)
+        fetchZapsByPubkey(
+          hexPubkey,
+          relays,
+          NOSTR_BOOKMARKS_PAGE_SIZE,
+          until,
+          ownPubkeys
+        ),
+        fetchZapsSentByPubkey(
+          hexPubkey,
+          relays,
+          NOSTR_BOOKMARKS_PAGE_SIZE,
+          until
+        )
       ])
 
       const fetched = mergeZapReceiptsById([...incomingBatch, ...sentBatch])
-      const incomingHasMore = incomingBatch.length >= PAGE_SIZE
-      const sentHasMore = sentBatch.length >= PAGE_SIZE
+      const incomingHasMore = incomingBatch.length >= NOSTR_BOOKMARKS_PAGE_SIZE
+      const sentHasMore = sentBatch.length >= NOSTR_BOOKMARKS_PAGE_SIZE
 
       if (loadMore) {
         const prevLen = zaps.length
@@ -615,7 +552,7 @@ function SSNostrFeedTabs({
     setFeedExcludeReplies(feedKindFilterId === 'short_text')
   }, [feedKindFilterId])
 
-  const notesKindOpt = NOTE_KIND_FILTER_OPTIONS.find(
+  const notesKindOpt = NOSTR_NOTE_FILTER_OPTIONS.find(
     (o) => o.id === notesKindFilterId
   )
   const notesKindLabel = notesKindOpt ? t(notesKindOpt.labelKey) : ''
@@ -884,7 +821,7 @@ function SSNostrFeedTabs({
                   showAuthor
                   authorPreview={renderFeedAuthorKind0Row(note)}
                   badge={
-                    BOOKMARK_FILTER_IDS.has(notesKindFilterId) &&
+                    NOSTR_BOOKMARKS_FILTER_IDS.has(notesKindFilterId) &&
                     privateBookmarkIdsRef.current.has(note.id) ? (
                       <DecryptedBadge />
                     ) : undefined
@@ -1220,7 +1157,7 @@ function SSNostrFeedTabs({
                 showsVerticalScrollIndicator={false}
               >
                 <SSVStack gap="md">
-                  {NOTE_KIND_FILTER_OPTIONS.map((opt) => (
+                  {NOSTR_NOTE_FILTER_OPTIONS.map((opt) => (
                     <TouchableOpacity
                       key={opt.id}
                       style={styles.kindOptionRow}

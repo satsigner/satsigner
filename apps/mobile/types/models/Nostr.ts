@@ -344,3 +344,10 @@ export type NostrSubscriptionHandle = {
   dataExchangeApi: NostrAPI | null
   protocolApi: NostrAPI | null
 }
+/** Labels align with https://nostr.dev/ai-reference/ (kinds & NIPs). */
+
+export type NostrNoteKindFilterOption = {
+  id: string
+  kinds: number[]
+  labelKey: string
+}

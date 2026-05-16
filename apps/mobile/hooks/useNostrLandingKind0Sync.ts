@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
-import { PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
 import { getCachedProfile } from '@/db/nostrCache'
 import { type NostrIdentity } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
@@ -47,7 +47,7 @@ export function useNostrLandingKind0Sync({
       const hexPk = getPubKeyHexFromNpub(identity.npub)
       if (hexPk) {
         const cached = getCachedProfile(hexPk)
-        if (cached && now - cached.cached_at < PROFILE_CACHE_TTL_SECS) {
+        if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
           updateIdentity(identity.npub, {
             banner: cached.banner || identity.banner,
             displayName: cached.displayName || identity.displayName,

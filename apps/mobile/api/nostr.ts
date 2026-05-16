@@ -21,12 +21,13 @@ import {
 import {
   NIP46_EVENT_KIND,
   NIP46_SUBSCRIPTION_LOOKBACK_SECONDS,
-  FLUSH_QUEUE_DELAY_MS,
-  MAX_PROCESSED_RAW_IDS,
-  MAX_QUEUE_SIZE,
+  NOSTR_FLUSH_QUEUE_DELAY_MS,
+  NOSTR_MAX_PROCESSED_RAW_IDS,
+  NOSTR_MAX_QUEUE_SIZE,
   NOSTR_RELAY_REACHABILITY_TEST_MS,
-  PROCESSING_INTERVAL_MS,
-  PROFILE_CACHE_TTL_SECS
+  NOSTR_PROCESSING_INTERVAL_MS,
+  NOSTR_PROFILE_CACHE_TTL_SECS,
+  NOSTR_NDK_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
 import {
   cacheEvents,
@@ -54,9 +55,6 @@ export type SignedKind1NostrEvent = {
   sig: string
   tags: string[][]
 }
-
-/** NDK waits for this long then continues connecting in the background */
-const NDK_CONNECT_TIMEOUT_MS = 20000
 
 function createMobileNdk(explicitRelayUrls: string[]): NDK {
   return new NDK({
@@ -187,7 +185,7 @@ export class NostrAPI {
       this.ndk = createMobileNdk(this.relays)
     }
 
-    await this.ndk.connect(NDK_CONNECT_TIMEOUT_MS)
+    await this.ndk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
 
     if (!this.ndk.pool) {
       throw new Error('NDK pool not initialized')
@@ -228,7 +226,7 @@ export class NostrAPI {
 
     const cached = getCachedProfile(pk)
     const now = Math.floor(Date.now() / 1000)
-    if (cached && now - cached.cached_at < PROFILE_CACHE_TTL_SECS) {
+    if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
       return {
         banner: cached.banner,
         displayName: cached.displayName,
@@ -971,7 +969,7 @@ export class NostrAPI {
 
     this.isProcessingQueue = false
     if (this.eventQueue.length > 0) {
-      setTimeout(() => this.processQueue(), PROCESSING_INTERVAL_MS)
+      setTimeout(() => this.processQueue(), NOSTR_PROCESSING_INTERVAL_MS)
     }
   }
 
@@ -1040,7 +1038,7 @@ export class NostrAPI {
         }
 
         if (rawId) {
-          if (this.processedRawEventIds.size >= MAX_PROCESSED_RAW_IDS) {
+          if (this.processedRawEventIds.size >= NOSTR_MAX_PROCESSED_RAW_IDS) {
             const entries = Array.from(this.processedRawEventIds)
             for (const id of entries.slice(0, Math.floor(entries.length / 2))) {
               this.processedRawEventIds.delete(id)
@@ -1050,7 +1048,7 @@ export class NostrAPI {
         }
 
         if (!this.processedMessageIds.has(unwrappedEvent.id)) {
-          if (this.eventQueue.length >= MAX_QUEUE_SIZE) {
+          if (this.eventQueue.length >= NOSTR_MAX_QUEUE_SIZE) {
             this.eventQueue.shift()
           }
           const message = {
@@ -1082,7 +1080,7 @@ export class NostrAPI {
       await this.processQueue()
       // Small delay between batches to avoid blocking the JS thread
       await new Promise((resolve) => {
-        setTimeout(resolve, FLUSH_QUEUE_DELAY_MS)
+        setTimeout(resolve, NOSTR_FLUSH_QUEUE_DELAY_MS)
       })
     }
   }

@@ -1,7 +1,7 @@
 import NDK, { type NDKEvent } from '@nostr-dev-kit/ndk'
 import { type NostrEvent, finalizeEvent, nip57 } from 'nostr-tools'
 
-import { PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
 import {
   cacheEvents,
   cacheProfile,
@@ -661,7 +661,7 @@ export async function enrichZapReceipts(
   const stalePubkeys: string[] = []
   for (const pk of uniquePubkeys) {
     const cached = getCachedProfile(pk)
-    if (cached && now - cached.cached_at < PROFILE_CACHE_TTL_SECS) {
+    if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
       profileMap.set(pk, {
         lud16: cached.lud16,
         name: cached.displayName,
