@@ -5,12 +5,9 @@ import {
   estimateArkLightningSendFee,
   estimateArkSendOnchainFee
 } from '@/api/ark'
-import { useArkStore } from '@/store/ark'
-import type {
-  ArkFeeEstimate,
-  ArkSendFeeKind,
-} from '@/types/models/Ark'
 import { useArkWallet } from '@/hooks/useArkWallet'
+import { useArkStore } from '@/store/ark'
+import type { ArkFeeEstimate, ArkSendFeeKind } from '@/types/models/Ark'
 
 export type UseArkSendFeeEstimateArgs = {
   accountId?: string | null
