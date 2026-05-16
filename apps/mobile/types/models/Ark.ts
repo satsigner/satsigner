@@ -124,6 +124,7 @@ export type ArkMovementEvent = {
 }
 
 export type ArkNotificationListener = (event: ArkMovementEvent) => void
+
 export type ArkNotificationUnsubscribe = () => void
 
 export interface ArkWalletProvider {
@@ -190,13 +191,8 @@ export interface ArkWalletProvider {
     amountSats: number
   ) => Promise<ArkFeeEstimate>
 }
+
 export type ArkSendFeeKind = 'arkoor' | 'lightning' | 'onchain'
-export type UseArkSendFeeEstimateArgs = {
-  accountId: string | null | undefined
-  kind: ArkSendFeeKind | null
-  amountSats: number
-  bitcoinAddress?: string
-}
 
 export type ArkOffboardInput = {
   vtxoIds: string[]

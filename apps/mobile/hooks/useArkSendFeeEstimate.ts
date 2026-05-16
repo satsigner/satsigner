@@ -8,10 +8,16 @@ import {
 import { useArkStore } from '@/store/ark'
 import type {
   ArkFeeEstimate,
-  UseArkSendFeeEstimateArgs
+  ArkSendFeeKind,
 } from '@/types/models/Ark'
+import { useArkWallet } from '@/hooks/useArkWallet'
 
-import { useArkWallet } from './useArkWallet'
+export type UseArkSendFeeEstimateArgs = {
+  accountId?: string | null
+  kind: ArkSendFeeKind | null
+  amountSats: number
+  bitcoinAddress?: string
+}
 
 export function useArkSendFeeEstimate({
   accountId,
