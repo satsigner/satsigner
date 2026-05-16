@@ -27,4 +27,5 @@ paths:
 20. No magic numbers or magic strings. Extract to named constants in `/constants` folder or on the same file if it makes sense;
 21. Use `expo-secure-store` or encrypted storage from `@/storage/encrypted` to store sensitive data;
 22. Prefer early returns over nested `if/else`. Guard clauses at top of function, happy path at bottom;
-23. For asynchronous state management and server state, prefer using `TanStack Query`.
+23. For asynchronous state management and server state, prefer using `TanStack Query`;
+24. Don't pass locally-defined functions as JSX props. New reference each render causes child re-renders. Hoist outside component or use stable handler.
