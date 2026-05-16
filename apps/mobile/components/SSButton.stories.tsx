@@ -8,6 +8,10 @@ import storybookLayoutDecorator from './SSStoryBookLayout'
 
 const meta = {
   argTypes: {
+    gradientType: {
+      control: 'select',
+      options: ['default', 'special']
+    },
     loading: {
       control: 'boolean',
       description: 'Button loading'
@@ -78,12 +82,6 @@ export const Subtle: Story = {
 }
 
 export const Gradient: Story = {
-  argTypes: {
-    gradientType: {
-      control: 'select',
-      options: ['default', 'special']
-    }
-  },
   args: {
     variant: 'gradient'
   }
