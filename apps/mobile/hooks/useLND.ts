@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
 import { LND_REST } from '@/constants/lightning'
@@ -15,6 +15,8 @@ import type {
   LNDRequestOptions
 } from '@/types/models/Lightning'
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
+
+const HEALTH_CHECK_INTERVAL_MS = 30_000
 
 export const useLND = () => {
   const { channels, isConnected, isConnecting, lastSync, nodeInfo } =
@@ -258,17 +260,16 @@ export const useLND = () => {
     }
   }
 
-  useEffect(() => {
-    if (!config) {
-      return
-    }
-
-    const checkInterval = setInterval(async () => {
-      await verifyConnection()
-    }, 30000) // Check every 30 seconds
-
-    return () => clearInterval(checkInterval)
-  }, [config]) // eslint-disable-line react-hooks/exhaustive-deps
+  useQuery({
+    enabled: Boolean(config),
+    initialData: false,
+    initialDataUpdatedAt: () => Date.now(),
+    queryFn: verifyConnection,
+    queryKey: ['lnd', 'health', config?.url],
+    refetchInterval: HEALTH_CHECK_INTERVAL_MS,
+    refetchIntervalInBackground: true,
+    staleTime: HEALTH_CHECK_INTERVAL_MS
+  })
 
   return {
     channels,

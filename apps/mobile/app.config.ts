@@ -46,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-router',
       {
         ...(process.env.EXPO_PUBLIC_STORYBOOK_ENABLED === 'true'
-          ? { root: './.storybook' }
+          ? { root: './.rnstorybook' }
           : undefined)
       }
     ],

@@ -1,7 +1,7 @@
 import { withBackgrounds } from '@storybook/addon-ondevice-backgrounds'
 import type { Meta, StoryObj } from '@storybook/react'
 
-import { storybookBackgrounds } from '@/.storybook/utils/backgrounds'
+import { storybookBackgrounds } from '@/.rnstorybook/utils/backgrounds'
 
 import SSLabelConflict from './SSLabelConflict'
 import SSStoryBookLayout from './SSStoryBookLayout'
