@@ -1,9 +1,9 @@
-import { DEFAULT_RETRY_CONFIG } from '@/constants/nostr'
+import { NOSTR_DEFAULT_RETRY_CONFIG } from '@/constants/nostr'
+import { NostrRetryManagerHandle } from '@/types/models/Nostr'
 import {
   calculateRetryDelay,
   createRetryManager,
-  type RetryManagerHandle
-} from '@/utils/retryManager'
+} from '@/utils/nostrRetryManager'
 
 describe('calculateRetryDelay', () => {
   beforeEach(() => {
@@ -64,7 +64,7 @@ describe('calculateRetryDelay', () => {
 })
 
 describe('createRetryManager', () => {
-  let manager: RetryManagerHandle
+  let manager: NostrRetryManagerHandle
 
   beforeEach(() => {
     jest.useFakeTimers()
@@ -240,9 +240,9 @@ describe('createRetryManager', () => {
 
 describe('default retry config', () => {
   it('has sensible defaults', () => {
-    expect(DEFAULT_RETRY_CONFIG.baseDelayMs).toBe(1000)
-    expect(DEFAULT_RETRY_CONFIG.maxDelayMs).toBe(60000)
-    expect(DEFAULT_RETRY_CONFIG.maxRetries).toBe(5)
-    expect(DEFAULT_RETRY_CONFIG.jitterFactor).toBe(0.2)
+    expect(NOSTR_DEFAULT_RETRY_CONFIG.baseDelayMs).toBe(1000)
+    expect(NOSTR_DEFAULT_RETRY_CONFIG.maxDelayMs).toBe(60000)
+    expect(NOSTR_DEFAULT_RETRY_CONFIG.maxRetries).toBe(5)
+    expect(NOSTR_DEFAULT_RETRY_CONFIG.jitterFactor).toBe(0.2)
   })
 })
