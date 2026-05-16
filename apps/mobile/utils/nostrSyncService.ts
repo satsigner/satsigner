@@ -9,19 +9,20 @@ import {
 } from '@/constants/nostr'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
-import {
+import type {
   NostrSubscriptionHandle,
   NostrSyncStatus,
   NostrSyncStatusEvent,
-  type NostrMessage
+  NostrMessage,
+  NostrRetryConfig
 } from '@/types/models/Nostr'
-import { calculateRetryDelay, type RetryConfig } from '@/utils/retryManager'
+import { calculateRetryDelay } from '@/utils/nostrRetryManager'
 
-const subscriptions = new Map<string, NostrSubscriptionHandle>()
-const retryTimers = new Map<string, NodeJS.Timeout>()
-const retryAttempts = new Map<string, number>()
-const isSubscribingMap = new Map<string, boolean>()
-const messageProcessors = new Map<
+const nostrSubscriptions = new Map<string, NostrSubscriptionHandle>()
+const nostrRetryTimers = new Map<string, NodeJS.Timeout>()
+const nostrRetryAttempts = new Map<string, number>()
+const nostrIsSubscribingMap = new Map<string, boolean>()
+const nostrMessageProcessors = new Map<
   string,
   (messages: NostrMessage[]) => void | Promise<void>
 >()
@@ -48,19 +49,19 @@ function emitStatus(
 }
 
 function cancelRetry(accountId: string): void {
-  const timer = retryTimers.get(accountId)
+  const timer = nostrRetryTimers.get(accountId)
   if (timer) {
     clearTimeout(timer)
-    retryTimers.delete(accountId)
+    nostrRetryTimers.delete(accountId)
   }
 }
 
 function scheduleRetry(
   account: Account,
   onLoadingChange?: (loading: boolean) => void,
-  config: RetryConfig = NOSTR_DEFAULT_RETRY_CONFIG
+  config: NostrRetryConfig = NOSTR_DEFAULT_RETRY_CONFIG
 ): void {
-  const currentAttempt = retryAttempts.get(account.id) || 0
+  const currentAttempt = nostrRetryAttempts.get(account.id) || 0
 
   if (currentAttempt >= config.maxRetries) {
     emitStatus(account.id, 'error', 'Max retry attempts reached')
@@ -71,11 +72,11 @@ function scheduleRetry(
   cancelRetry(account.id)
 
   const timer = setTimeout(() => {
-    retryAttempts.set(account.id, currentAttempt + 1)
+    nostrRetryAttempts.set(account.id, currentAttempt + 1)
     startSync(account, onLoadingChange)
   }, delay)
 
-  retryTimers.set(account.id, timer)
+  nostrRetryTimers.set(account.id, timer)
 }
 
 async function createProtocolSubscription(
@@ -154,12 +155,12 @@ async function createDataExchangeSubscription(
 }
 
 async function cleanupSubscription(accountId: string): Promise<void> {
-  const handle = subscriptions.get(accountId)
+  const handle = nostrSubscriptions.get(accountId)
   if (!handle) {
     return
   }
 
-  subscriptions.delete(accountId)
+  nostrSubscriptions.delete(accountId)
   useNostrStore.getState().setSyncing(accountId, false)
 
   const cleanupPromises: Promise<void>[] = []
@@ -197,18 +198,18 @@ async function doStartSync(
   if (!commonNsec || !commonNpub || !deviceNsec || !deviceNpub) {
     return
   }
-  if (isSubscribingMap.get(account.id)) {
+  if (nostrIsSubscribingMap.get(account.id)) {
     return
   }
-  if (subscriptions.has(account.id)) {
+  if (nostrSubscriptions.has(account.id)) {
     return
   }
 
-  isSubscribingMap.set(account.id, true)
+  nostrIsSubscribingMap.set(account.id, true)
   emitStatus(account.id, 'connecting')
 
   try {
-    const processor = messageProcessors.get(account.id)
+    const processor = nostrMessageProcessors.get(account.id)
     if (!processor) {
       throw new Error('No message processor registered for account')
     }
@@ -218,19 +219,19 @@ async function doStartSync(
       createDataExchangeSubscription(account, processor, onLoadingChange)
     ])
 
-    subscriptions.set(account.id, {
+    nostrSubscriptions.set(account.id, {
       accountId: account.id,
       dataExchangeApi,
       protocolApi
     })
 
-    retryAttempts.delete(account.id)
+    nostrRetryAttempts.delete(account.id)
     cancelRetry(account.id)
 
     useNostrStore.getState().setSyncing(account.id, true)
     emitStatus(account.id, 'syncing')
   } finally {
-    isSubscribingMap.set(account.id, false)
+    nostrIsSubscribingMap.set(account.id, false)
   }
 }
 
@@ -250,7 +251,7 @@ async function doFetchOnce(
 
   emitStatus(account.id, 'syncing')
 
-  const processor = messageProcessors.get(account.id)
+  const processor = nostrMessageProcessors.get(account.id)
   if (!processor) {
     throw new Error('No message processor registered for account')
   }
@@ -351,7 +352,7 @@ function setMessageProcessor(
   accountId: string,
   processor: (messages: NostrMessage[]) => void | Promise<void>
 ): void {
-  messageProcessors.set(accountId, processor)
+  nostrMessageProcessors.set(accountId, processor)
 }
 
 async function startSync(
@@ -407,28 +408,28 @@ async function restartSync(
 }
 
 function stopAll(): void {
-  const accountIds = Array.from(subscriptions.keys())
+  const accountIds = Array.from(nostrSubscriptions.keys())
   for (const accountId of accountIds) {
     stopSync(accountId)
   }
-  for (const timer of retryTimers.values()) {
+  for (const timer of nostrRetryTimers.values()) {
     clearTimeout(timer)
   }
-  retryTimers.clear()
-  retryAttempts.clear()
-  isSubscribingMap.clear()
+  nostrRetryTimers.clear()
+  nostrRetryAttempts.clear()
+  nostrIsSubscribingMap.clear()
 }
 
 function hasActiveSubscription(accountId: string): boolean {
-  return subscriptions.has(accountId)
+  return nostrSubscriptions.has(accountId)
 }
 
 function getActiveAccountIds(): string[] {
-  return Array.from(subscriptions.keys())
+  return Array.from(nostrSubscriptions.keys())
 }
 
 function getActiveSubscriptionCount(): number {
-  return subscriptions.size
+  return nostrSubscriptions.size
 }
 
 /**

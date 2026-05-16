@@ -32,8 +32,8 @@ import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { setClipboard } from '@/utils/clipboard'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import { nostrZapDetailHref } from '@/utils/nostrNavigation'
+import { initiateZap } from '@/utils/nostrZap'
 import { buildPaymentMethods } from '@/utils/paymentMethods'
-import { initiateZap } from '@/utils/zap'
 
 type ContactParams = {
   npub: string

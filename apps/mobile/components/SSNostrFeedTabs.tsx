@@ -16,8 +16,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import {
   SSNostrFeedAuthorRow,
-  SSNostrFeedNoteRow,
-  type NostrFeedNoteLike
+  SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
@@ -35,7 +34,12 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
-import { type NostrKind0Profile } from '@/types/models/Nostr'
+import type {
+  NostrFeedNoteLike,
+  NostrKind0Profile,
+  ZapReceiptInfo,
+  ZapSortField
+} from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 import {
@@ -52,14 +56,12 @@ import {
 } from '@/utils/nostrNoteQuotes'
 import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
 import {
-  type ZapReceiptInfo,
-  type ZapSortField,
   enrichZapReceipts,
   fetchZapsByPubkey,
   fetchZapsSentByPubkey,
   mergeZapReceiptsById,
   sortZapReceipts
-} from '@/utils/zap'
+} from '@/utils/nostrZap'
 
 type SSNostrFeedTabsProps = {
   npub: string

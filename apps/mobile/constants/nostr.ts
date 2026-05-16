@@ -34,9 +34,9 @@ export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
 
 // UI
 export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
-export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
 export const NOSTR_HIDDEN_KEY_MASK_LONG = '••••••••••••••••••••••••••••••••'
+export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 
 // RELAYS
 export const NOSTR_RELAY_PROTOCOL_PREFIX = 'wss://'
@@ -186,3 +186,13 @@ export const NOSTR_BOOKMARKS_FILTER_IDS = new Set([
 // ZAP
 export const NOSTR_ZAP_DEFAULT_PRESETS = [21, 100, 500, 1000]
 export const NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT = 21
+export const NOSTR_ZAP_INVOICE_TIMEOUT_MS = 15000
+export const NOSTR_ZAP_RECEIPT_FETCH_LIMIT = 50
+export const NOSTR_ZAP_TAG_NAMES = new Set([
+  'zap-goal',
+  'zap-lnurl',
+  'zap-max',
+  'zap-min',
+  'zap-payer',
+  'zap-uses'
+])

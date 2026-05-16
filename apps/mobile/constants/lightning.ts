@@ -1,3 +1,22 @@
+export const LND_FORWARDING_MAX_EVENTS = 200
+export const LND_FORWARDING_INDEX_OFFSET = 0
+export const LND_REST = {
+  BALANCE_BLOCKCHAIN: '/v1/balance/blockchain',
+  BALANCE_CHANNELS: '/v1/balance/channels',
+  /** ListChannels: peer_alias is omitted unless this flag is set (LND default). */
+  CHANNELS: '/v1/channels?peer_alias_lookup=true',
+  CHANNELS_PENDING: '/v1/channels/pending',
+  /** ExportAllChannelBackups — JSON snapshot; store securely. */
+  CHANNEL_BACKUP_ALL: '/v1/channels/backup',
+  INVOICES: '/v1/invoices?num_max_invoices=250&reversed=true',
+  PAYMENTS: '/v1/payments?include_incomplete=true&num_max_payments=250',
+  PEERS: '/v1/peers',
+  /** ForwardingHistory — POST JSON body (see `lndChannelHistory`). */
+  SWITCH_FORWARDING: '/v1/switch',
+  TRANSACTIONS:
+    '/v1/transactions?start_height=0&end_height=-1&num_max_transactions=250'
+} as const
+
 /** Layout / drawing constants for the Lightning channels bubble chart (no magic numbers in layout util). */
 /**
  * Matches `Layout.mainContainer.paddingHorizontal` (each side). Used to estimate
@@ -27,19 +46,3 @@ export const LIGHTNING_BUBBLE_CHART_MAX_REMOTE_BUBBLE_PX = 30
 export const LIGHTNING_BUBBLE_CHART_FIT_MARGIN_FRAC = 0.92
 export const LIGHTNING_BUBBLE_CHART_AMOUNT_ON_BUBBLE_FONT_PX = 9
 export const LIGHTNING_BUBBLE_CHART_PEER_LABEL_FONT_PX = 10 /** LND REST paths and query strings used by the node dashboard. */
-export const LND_REST = {
-  BALANCE_BLOCKCHAIN: '/v1/balance/blockchain',
-  BALANCE_CHANNELS: '/v1/balance/channels',
-  /** ListChannels: peer_alias is omitted unless this flag is set (LND default). */
-  CHANNELS: '/v1/channels?peer_alias_lookup=true',
-  CHANNELS_PENDING: '/v1/channels/pending',
-  /** ExportAllChannelBackups — JSON snapshot; store securely. */
-  CHANNEL_BACKUP_ALL: '/v1/channels/backup',
-  INVOICES: '/v1/invoices?num_max_invoices=250&reversed=true',
-  PAYMENTS: '/v1/payments?include_incomplete=true&num_max_payments=250',
-  PEERS: '/v1/peers',
-  /** ForwardingHistory — POST JSON body (see `lndChannelHistory`). */
-  SWITCH_FORWARDING: '/v1/switch',
-  TRANSACTIONS:
-    '/v1/transactions?start_height=0&end_height=-1&num_max_transactions=250'
-} as const

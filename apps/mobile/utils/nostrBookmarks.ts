@@ -3,15 +3,10 @@ import {
   encrypt as nip04Encrypt
 } from 'nostr-tools/nip04'
 
-export type BookmarkSource = 'public' | 'private'
+import { NostrParsedBookmark, NostrBookmarkSource } from '@/types/models/Nostr'
 
-export type ParsedBookmark = {
-  eventId: string
-  source: BookmarkSource
-}
-
-export function parsePublicBookmarks(tags: string[][]): ParsedBookmark[] {
-  const result: ParsedBookmark[] = []
+export function parsePublicBookmarks(tags: string[][]): NostrParsedBookmark[] {
+  const result: NostrParsedBookmark[] = []
   for (const tag of tags) {
     if (tag[0] === 'e' && typeof tag[1] === 'string' && tag[1].length === 64) {
       result.push({ eventId: tag[1], source: 'public' })
@@ -24,14 +19,14 @@ export function decryptPrivateBookmarks(
   content: string,
   secretKey: Uint8Array,
   pubkeyHex: string
-): ParsedBookmark[] {
+): NostrParsedBookmark[] {
   if (!content) {
     return []
   }
   try {
     const decrypted = nip04Decrypt(secretKey, pubkeyHex, content)
     const parsed = JSON.parse(decrypted) as string[][]
-    const result: ParsedBookmark[] = []
+    const result: NostrParsedBookmark[] = []
     for (const tag of parsed) {
       if (
         tag[0] === 'e' &&
@@ -48,11 +43,11 @@ export function decryptPrivateBookmarks(
 }
 
 export function mergeBookmarks(
-  pub: ParsedBookmark[],
-  priv: ParsedBookmark[]
-): ParsedBookmark[] {
+  pub: NostrParsedBookmark[],
+  priv: NostrParsedBookmark[]
+): NostrParsedBookmark[] {
   const seen = new Set<string>()
-  const result: ParsedBookmark[] = []
+  const result: NostrParsedBookmark[] = []
   for (const bm of pub) {
     if (!seen.has(bm.eventId)) {
       seen.add(bm.eventId)
@@ -87,7 +82,7 @@ export function encryptPrivateBookmarks(
 export function applyBookmarkUpdate(
   existing: { tags: string[][]; content: string } | null,
   action:
-    | { type: 'add'; eventId: string; source: BookmarkSource }
+    | { type: 'add'; eventId: string; source: NostrBookmarkSource }
     | { type: 'remove'; eventId: string },
   secretKey: Uint8Array | null,
   pubkeyHex: string

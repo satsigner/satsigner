@@ -344,10 +344,97 @@ export type NostrSubscriptionHandle = {
   dataExchangeApi: NostrAPI | null
   protocolApi: NostrAPI | null
 }
-/** Labels align with https://nostr.dev/ai-reference/ (kinds & NIPs). */
+
+// TODO: reorganize this file, which keeps growing as refactoring goes.
 
 export type NostrNoteKindFilterOption = {
   id: string
   kinds: number[]
   labelKey: string
+}
+
+export type NostrBookmarkSource = 'public' | 'private'
+
+export type NostrParsedBookmark = {
+  eventId: string
+  source: NostrBookmarkSource
+}
+
+export type NostrKind1DraftImport = {
+  content: string
+  tags: string[][]
+}
+
+export type NostrFeedNoteLike = {
+  id: string
+  content: string
+  pubkey: string
+  kind: number
+  tags: string[][]
+  created_at: number
+}
+
+export type NostrRetryConfig = {
+  baseDelayMs: number
+  jitterFactor: number
+  maxDelayMs: number
+  maxRetries: number
+}
+
+export type NostrRetryManagerHandle = {
+  cancel: (key: string) => void
+  getAttemptCount: (key: string) => number
+  isMaxRetriesReached: (key: string) => boolean
+  isPending: (key: string) => boolean
+  reset: (key: string) => void
+  resetAll: () => void
+  scheduleRetry: (
+    key: string,
+    callback: () => void
+  ) => { scheduled: boolean; delay: number }
+}
+
+// Zap
+
+export type ZapFlowParams = {
+  recipientLud16: string
+  recipientPubkeyHex: string
+  senderNsec: string
+  eventIdHex?: string
+  eventKind?: number
+  eventTags?: string[][]
+  amountSats: number
+  comment?: string
+  relays: string[]
+}
+
+export type ZapFlowResult = {
+  invoice: string
+  zapRequestJson: string
+}
+
+export type ZapSortField = 'date' | 'amount'
+
+export type ZapReceiptDirection = 'incoming' | 'outgoing'
+
+export type ZapReceiptInfo = {
+  id: string
+  senderPubkey: string
+  senderLud16?: string
+  senderName?: string
+  senderNip05?: string
+  senderPicture?: string
+  recipientLud16?: string
+  recipientPubkey?: string
+  recipientName?: string
+  recipientNip05?: string
+  recipientPicture?: string
+  direction: ZapReceiptDirection
+  amountSats: number
+  comment?: string
+  createdAt: number
+  /** First `e` tag on the receipt: zapped note or other referenced event. */
+  zappedEventId?: string
+  /** Full kind-9735 event JSON (when fetched from relays in this session). */
+  rawEventJson?: string
 }

@@ -1,6 +1,10 @@
 import type { Href } from 'expo-router'
 
-import { LND_REST } from '@/constants/lightning'
+import {
+  LND_FORWARDING_INDEX_OFFSET,
+  LND_FORWARDING_MAX_EVENTS,
+  LND_REST
+} from '@/constants/lightning'
 import type {
   LNDForwardingEvent,
   LNDPayment,
@@ -15,8 +19,6 @@ import { parseLndSats } from './lndChannelDetail'
 export function lightningChannelHref(chanId: string): Href {
   return `/signer/lightning/node/channel/${encodeURIComponent(chanId)}` as Href
 }
-const LND_FORWARDING_MAX_EVENTS = 200
-const LND_FORWARDING_INDEX_OFFSET = 0
 function forwardingEventKey(ev: LNDForwardingEvent): string {
   return [
     ev.timestamp_ns ?? '',

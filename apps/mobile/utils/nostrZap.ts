@@ -1,7 +1,12 @@
 import NDK, { type NDKEvent } from '@nostr-dev-kit/ndk'
 import { type NostrEvent, finalizeEvent, nip57 } from 'nostr-tools'
 
-import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import { MILLISATS_PER_SAT } from '@/constants/btc'
+import {
+  NOSTR_PROFILE_CACHE_TTL_SECS,
+  NOSTR_ZAP_INVOICE_TIMEOUT_MS,
+  NOSTR_ZAP_RECEIPT_FETCH_LIMIT
+} from '@/constants/nostr'
 import {
   cacheEvents,
   cacheProfile,
@@ -11,6 +16,13 @@ import {
   getNewestCachedTimestamp
 } from '@/db/nostrCache'
 import type { LNURLPayResponse } from '@/types/models/Lightning'
+import {
+  ZapReceiptInfo,
+  ZapReceiptDirection,
+  ZapFlowParams,
+  ZapFlowResult,
+  ZapSortField
+} from '@/types/models/Nostr'
 import { fetchLNURLPayDetails } from '@/utils/lnurl'
 import { getSecretFromNsec } from '@/utils/nostr'
 
@@ -48,53 +60,6 @@ function subscribeAndCollect(
     setTimeout(finish, timeoutMs)
   })
 }
-
-export type ZapFlowParams = {
-  recipientLud16: string
-  recipientPubkeyHex: string
-  senderNsec: string
-  eventIdHex?: string
-  eventKind?: number
-  eventTags?: string[][]
-  amountSats: number
-  comment?: string
-  relays: string[]
-}
-
-export type ZapFlowResult = {
-  invoice: string
-  zapRequestJson: string
-}
-
-export type ZapSortField = 'date' | 'amount'
-
-export type ZapReceiptDirection = 'incoming' | 'outgoing'
-
-export type ZapReceiptInfo = {
-  id: string
-  senderPubkey: string
-  senderLud16?: string
-  senderName?: string
-  senderNip05?: string
-  senderPicture?: string
-  recipientLud16?: string
-  recipientPubkey?: string
-  recipientName?: string
-  recipientNip05?: string
-  recipientPicture?: string
-  direction: ZapReceiptDirection
-  amountSats: number
-  comment?: string
-  createdAt: number
-  /** First `e` tag on the receipt: zapped note or other referenced event. */
-  zappedEventId?: string
-  /** Full kind-9735 event JSON (when fetched from relays in this session). */
-  rawEventJson?: string
-}
-
-const MILLISATS_PER_SAT = 1000
-const ZAP_INVOICE_TIMEOUT_MS = 15000
-const ZAP_RECEIPT_FETCH_LIMIT = 50
 
 function getPPubkeysFromTags(tags: string[][]): string[] {
   return tags
@@ -322,7 +287,7 @@ export async function requestZapInvoice(
     new Promise<never>((_resolve, reject) => {
       setTimeout(
         () => reject(new Error('Invoice request timed out')),
-        ZAP_INVOICE_TIMEOUT_MS
+        NOSTR_ZAP_INVOICE_TIMEOUT_MS
       )
     })
   ])
@@ -375,7 +340,7 @@ export async function fetchZapReceipts(
     const filter: Record<string, unknown> = {
       '#e': [eventIdHex],
       kinds: [9735 as never],
-      limit: ZAP_RECEIPT_FETCH_LIMIT
+      limit: NOSTR_ZAP_RECEIPT_FETCH_LIMIT
     }
     const newestTs =
       cachedEvents.length > 0

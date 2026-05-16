@@ -1,24 +1,9 @@
 import { NOSTR_DEFAULT_RETRY_CONFIG } from '@/constants/nostr'
+import { NostrRetryConfig, NostrRetryManagerHandle } from '@/types/models/Nostr'
 
-export type RetryConfig = {
-  baseDelayMs: number
-  jitterFactor: number
-  maxDelayMs: number
-  maxRetries: number
-}
-
-/**
- * Calculate retry delay with exponential backoff and jitter
- *
- * Formula: min(baseDelay * 2^attempt, maxDelay) * (1 + random * jitterFactor)
- *
- * @param attempt - Current retry attempt (0-indexed)
- * @param config - Retry configuration
- * @returns Delay in milliseconds
- */
 export function calculateRetryDelay(
   attempt: number,
-  config: Partial<RetryConfig> = {}
+  config: Partial<NostrRetryConfig> = {}
 ): number {
   const {
     baseDelayMs = NOSTR_DEFAULT_RETRY_CONFIG.baseDelayMs,
@@ -33,23 +18,10 @@ export function calculateRetryDelay(
   return cappedDelay + jitter
 }
 
-export type RetryManagerHandle = {
-  cancel: (key: string) => void
-  getAttemptCount: (key: string) => number
-  isMaxRetriesReached: (key: string) => boolean
-  isPending: (key: string) => boolean
-  reset: (key: string) => void
-  resetAll: () => void
-  scheduleRetry: (
-    key: string,
-    callback: () => void
-  ) => { scheduled: boolean; delay: number }
-}
-
 export function createRetryManager(
-  config: Partial<RetryConfig> = {}
-): RetryManagerHandle {
-  const cfg: RetryConfig = { ...NOSTR_DEFAULT_RETRY_CONFIG, ...config }
+  config: Partial<NostrRetryConfig> = {}
+): NostrRetryManagerHandle {
+  const cfg: NostrRetryConfig = { ...NOSTR_DEFAULT_RETRY_CONFIG, ...config }
   const attempts = new Map<string, number>()
   const timers = new Map<string, NodeJS.Timeout>()
 

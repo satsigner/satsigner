@@ -31,10 +31,10 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
+import { type NostrKind1DraftImport } from '@/types/models/Nostr'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
-  type Kind1DraftImport,
   parseKind1DraftFromJson,
   stripZapTags
 } from '@/utils/nostrComposeImport'
@@ -149,7 +149,7 @@ export default function NostrComposePage() {
     return [...baseTags, ...zapTags]
   }
 
-  function applyKind1Draft(draft: Kind1DraftImport): boolean {
+  function applyKind1Draft(draft: NostrKind1DraftImport): boolean {
     if (draft.content.length > NIP01_MAX_NOTE_LENGTH) {
       toast.error(t('nostrIdentity.compose.importContentTooLong'))
       return false

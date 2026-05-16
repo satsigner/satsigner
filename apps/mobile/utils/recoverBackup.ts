@@ -13,16 +13,16 @@ import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account, type Key } from '@/types/models/Account'
-import { type ArkAccount } from '@/types/models/Ark'
-import {
-  type EcashAccount,
-  type EcashKeysetCounter,
-  type EcashMint,
-  type EcashProof,
-  type EcashTransaction,
-  type MeltQuote,
-  type MintQuote
+import type { Account, Key } from '@/types/models/Account'
+import type { ArkAccount } from '@/types/models/Ark'
+import type {
+  EcashAccount,
+  EcashKeysetCounter,
+  EcashMint,
+  EcashProof,
+  EcashTransaction,
+  MeltQuote,
+  MintQuote
 } from '@/types/models/Ecash'
 import type { LNDConfig } from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'

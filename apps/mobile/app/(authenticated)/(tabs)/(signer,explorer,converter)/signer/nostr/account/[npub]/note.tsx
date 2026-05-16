@@ -29,8 +29,7 @@ import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import {
   SSNostrFeedAuthorRow,
-  SSNostrFeedNoteRow,
-  type NostrFeedNoteLike
+  SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
@@ -58,7 +57,10 @@ import { Colors } from '@/styles'
 import type {
   NostrKind0Profile,
   NostrDecodedContent,
-  NostrFetchedNoteData
+  NostrFetchedNoteData,
+  NostrFeedNoteLike,
+  ZapReceiptInfo,
+  ZapSortField
 } from '@/types/models/Nostr'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatNostrCardDate } from '@/utils/format'
@@ -83,16 +85,14 @@ import {
   noteLooksLikeReply
 } from '@/utils/nostrNoteThread'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
-import { buildPaymentMethods } from '@/utils/paymentMethods'
 import {
-  type ZapReceiptInfo,
-  type ZapSortField,
   countQualifyingZaps,
   enrichZapReceipts,
   fetchZapReceipts,
   initiateZap,
   sortZapReceipts
-} from '@/utils/zap'
+} from '@/utils/nostrZap'
+import { buildPaymentMethods } from '@/utils/paymentMethods'
 
 type NoteParams = {
   npub: string

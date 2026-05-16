@@ -1,4 +1,8 @@
-import { LND_REST } from '@/constants/lightning'
+import {
+  LND_FORWARDING_INDEX_OFFSET,
+  LND_FORWARDING_MAX_EVENTS,
+  LND_REST
+} from '@/constants/lightning'
 import type {
   LightningChannelHistoryRow,
   LNDForwardingEvent,
@@ -7,9 +11,6 @@ import type {
   LNDRequest
 } from '@/types/models/Lightning'
 import { parseLndSats } from '@/utils/lndChannelDetail'
-
-const FORWARDING_MAX_EVENTS = 200
-const FORWARDING_INDEX_OFFSET = 0
 
 function forwardingEventKey(ev: LNDForwardingEvent): string {
   return [
@@ -91,8 +92,8 @@ export async function fetchChannelHistoryRows(
   }
 
   const requestBase = {
-    index_offset: FORWARDING_INDEX_OFFSET,
-    num_max_events: FORWARDING_MAX_EVENTS,
+    index_offset: LND_FORWARDING_INDEX_OFFSET,
+    num_max_events: LND_FORWARDING_MAX_EVENTS,
     peer_alias_lookup: true
   }
 

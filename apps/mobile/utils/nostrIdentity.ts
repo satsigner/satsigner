@@ -2,7 +2,7 @@ import { HDKey } from '@scure/bip32'
 import { getPublicKey, nip19 } from 'nostr-tools'
 
 import { NIP06_DERIVATION_PATH } from '@/constants/nostr'
-import {
+import type {
   NostrDecodedContent,
   NostrDerivedKeys,
   NostrEnhancedZapTags
