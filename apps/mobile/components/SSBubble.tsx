@@ -195,7 +195,7 @@ function SSBubble({
   }, [radius, mainY])
   const memoX = x - 150 / 2
   const memoParagraph = useMemo(() => {
-    if (!customFontManager) {
+    if (!customFontManager || !label) {
       return null
     }
 
@@ -225,7 +225,7 @@ function SSBubble({
           weight: 500
         }
       })
-      .addText(`  ${formatAddress(label || '-')}`)
+      .addText(`  ${formatAddress(label)}`)
       .pop()
       .build()
     para.layout(150)
@@ -234,6 +234,9 @@ function SSBubble({
 
   // Utxo from address
   const fromY = useMemo(() => {
+    if (!label) {
+      return memoY
+    }
     // spacing based on radius because Skia is not consistent for now
     if (radius > 10) {
       return mainY + radius / 2.5
@@ -242,7 +245,7 @@ function SSBubble({
       return mainY + radius / 2.2
     }
     return mainY + radius / 3.5
-  }, [radius, mainY])
+  }, [radius, mainY, memoY, label])
 
   const fromParagraph = useMemo(() => {
     if (!customFontManager) {
@@ -312,14 +315,16 @@ function SSBubble({
             y={mainY}
             width={200}
           />
-          <Group layer={<Paint opacity={descriptionOpacity} />}>
-            <Paragraph
-              paragraph={memoParagraph}
-              x={memoX}
-              y={memoY}
-              width={150}
-            />
-          </Group>
+          {memoParagraph && (
+            <Group layer={<Paint opacity={descriptionOpacity} />}>
+              <Paragraph
+                paragraph={memoParagraph}
+                x={memoX}
+                y={memoY}
+                width={150}
+              />
+            </Group>
+          )}
           <Group layer={<Paint opacity={dateAddressOpacity} />}>
             <Paragraph
               paragraph={fromParagraph}
