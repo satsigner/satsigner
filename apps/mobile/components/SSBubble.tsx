@@ -50,8 +50,6 @@ function SSBubble({
 }: SSBubbleProps) {
   const opacity = useSharedValue(0)
   const dimmedOpacity = useSharedValue(dimmed ? 0.3 : 1)
-  const isSelectedSharedValue = useSharedValue(selected)
-  isSelectedSharedValue.value = selected
 
   useEffect(() => {
     opacity.set(
@@ -70,14 +68,14 @@ function SSBubble({
   }, [dimmed, dimmedOpacity])
 
   const backgroundColor = useDerivedValue(() => {
-    if (isSelectedSharedValue.value) {
+    if (selected) {
       return Colors.white
     }
     if (isZoomedIn?.value) {
       return Colors.gray[300]
     }
     return Colors.gray[400]
-  }, [isZoomedIn, isSelectedSharedValue])
+  }, [isZoomedIn, selected])
 
   const descriptionOpacity = useDerivedValue(() => {
     const zoomedRadius = scale.value * radius
