@@ -26,20 +26,12 @@ import type {
   NostrKeys,
   NostrKind0Profile,
   NostrMessage,
-  NostrRelayConnectionInfo
+  NostrRelayConnectionInfo,
+  NostrSignedKind1Event,
+  NostrUnwrappedKind1059Event
 } from '@/types/models/Nostr'
 import { randomKey } from '@/utils/crypto'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
-
-export type NostrSignedKind1Event = {
-  content: string
-  created_at: number
-  id: string
-  kind: number
-  pubkey: string
-  sig: string
-  tags: string[][]
-}
 
 function createMobileNdk(explicitRelayUrls: string[]): NDK {
   return new NDK({
@@ -118,19 +110,12 @@ function getProfileFromKind0Content(
   }
 }
 
-type UnwrappedKind1059Event = {
-  id: string
-  content: string
-  pubkey: string
-  created_at?: number
-}
-
 function unwrapNip59EventOrNull(
   rawEvent: Event,
   secretKey: Uint8Array
-): UnwrappedKind1059Event | null {
+): NostrUnwrappedKind1059Event | null {
   try {
-    return nip59.unwrapEvent(rawEvent, secretKey) as UnwrappedKind1059Event
+    return nip59.unwrapEvent(rawEvent, secretKey) as NostrUnwrappedKind1059Event
   } catch {
     return null
   }

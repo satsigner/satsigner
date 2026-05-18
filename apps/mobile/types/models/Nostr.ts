@@ -58,6 +58,23 @@ export const NostrEnhancedZapTagsSchema = z.object({
   zapUses: z.number().optional()
 })
 
+export type NostrSignedKind1Event = {
+  content: string
+  created_at: number
+  id: string
+  kind: number
+  pubkey: string
+  sig: string
+  tags: string[][]
+}
+
+export type NostrUnwrappedKind1059Event = {
+  id: string
+  content: string
+  pubkey: string
+  created_at?: number
+}
+
 export const Nip46ConnectionStatusSchema = z.enum([
   'connected',
   'connecting',
@@ -65,6 +82,12 @@ export const Nip46ConnectionStatusSchema = z.enum([
   'error',
   'relays_unreachable'
 ])
+
+export type Nip46IncomingRequest = {
+  id: string
+  method: string
+  params: string[]
+}
 
 export const Nip46MethodSchema = z.enum([
   'connect',

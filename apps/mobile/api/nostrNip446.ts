@@ -7,19 +7,16 @@ import {
 
 import {
   NIP46_EVENT_KIND,
-  NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
+  NIP46_SUBSCRIPTION_LOOKBACK_SECONDS,
+  NOSTR_PUBLISH_TIMEOUT_MS,
+  NOSTR_WS_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
+import { Nip46IncomingRequest } from '@/types/models/Nostr'
 
-const WS_CONNECT_TIMEOUT_MS = 15000
-const PUBLISH_TIMEOUT_MS = 10000
-
-type Nip46IncomingRequest = {
-  id: string
-  method: string
-  params: string[]
-}
 type OnRequestCallback = (request: Nip46IncomingRequest) => void
+
 const globalSeenEvents = new Set<string>()
+
 function subscribeOnSocket(
   ws: WebSocket,
   subId: string,
@@ -60,7 +57,7 @@ function publishOnSocket(
       resolve(result)
     }
 
-    const timer = setTimeout(() => settle(false), PUBLISH_TIMEOUT_MS)
+    const timer = setTimeout(() => settle(false), NOSTR_PUBLISH_TIMEOUT_MS)
 
     function handleMessage(msg: MessageEvent): void {
       try {
@@ -106,7 +103,7 @@ export class Nip46BunkerService {
                 /* ignore */
               }
               reject(new Error(`timeout: ${url}`))
-            }, WS_CONNECT_TIMEOUT_MS)
+            }, NOSTR_WS_CONNECT_TIMEOUT_MS)
 
             ws.addEventListener('open', () => {
               if (settled) {

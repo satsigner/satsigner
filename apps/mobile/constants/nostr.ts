@@ -29,13 +29,16 @@ export const NOSTR_PROFILE_CACHE_MAX_AGE_SECS = 604800
 export const NOSTR_PROFILE_CACHE_TTL_SECS = 3600
 export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT = 5000
 export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10000
+export const NOSTR_PUBLISH_TIMEOUT_MS = 10000
 export const NOSTR_RELAY_REACHABILITY_TEST_MS = 10000
 export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
+export const NOSTR_WS_CONNECT_TIMEOUT_MS = 15000
 
 // UI
 export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
 export const NOSTR_HIDDEN_KEY_MASK_LONG = '••••••••••••••••••••••••••••••••'
+
 export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 
 // RELAYS
