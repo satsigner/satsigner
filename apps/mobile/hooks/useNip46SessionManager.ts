@@ -1,4 +1,4 @@
-import { Nip46BunkerService } from '@/api/nostr'
+import { Nip46BunkerService } from '@/api/nostrNip446'
 import { NIP46_SUPPORTED_METHODS } from '@/constants/nostr'
 import { useNip46Store } from '@/store/nip46'
 import type {
