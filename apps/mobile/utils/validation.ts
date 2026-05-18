@@ -59,19 +59,12 @@ function validateDescriptorChecksum(descriptor: string) {
   )
 }
 
-// Cache of descriptor validation results for reactive UI feedback
-export const descriptorValidityCache = new Map<string, boolean>()
-
 export function validateDescriptor(descriptor: string) {
-  const result = validateDescriptorInternal(descriptor, true)
-  descriptorValidityCache.set(descriptor, result)
-  return result
+  return validateDescriptorInternal(descriptor, true)
 }
 
 export function validateDescriptorFormat(descriptor: string) {
-  const result = validateDescriptorInternal(descriptor, false)
-  descriptorValidityCache.set(descriptor, result)
-  return result
+  return validateDescriptorInternal(descriptor, false)
 }
 
 function validateDescriptorInternal(

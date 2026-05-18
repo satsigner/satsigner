@@ -2,6 +2,7 @@ import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconBubbles } from '@/components/icons'
@@ -32,6 +33,7 @@ type SortField = 'date' | 'amount'
 export default function SelectUtxoList() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const insets = useSafeAreaInsets()
 
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
@@ -40,16 +42,14 @@ export default function SelectUtxoList() {
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
-  const [inputs, getInputs, hasInput, addInput, removeInput] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.inputs,
-        state.getInputs,
-        state.hasInput,
-        state.addInput,
-        state.removeInput
-      ])
-    )
+  const [inputs, hasInput, addInput, removeInput] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.inputs,
+      state.hasInput,
+      state.addInput,
+      state.removeInput
+    ])
+  )
 
   const utxoOutpointSet = new Set(account.utxos.map(getUtxoOutpoint))
   const orphanedInputs = Array.from(inputs.values()).filter(
@@ -94,7 +94,7 @@ export default function SelectUtxoList() {
     () => utxosValue(account.utxos),
     [account.utxos]
   )
-  const utxosSelectedValue = utxosValue(getInputs())
+  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
 
   function handleSelectAllUtxos() {
     for (const utxo of account.utxos) {
@@ -309,10 +309,12 @@ export default function SelectUtxoList() {
               />
             )
           }}
-          contentContainerStyle={{ paddingBottom: 80 }}
+          contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}
         />
       </View>
-      <View style={styles.absoluteSubmitContainer}>
+      <View
+        style={[styles.absoluteSubmitContainer, { bottom: 20 + insets.bottom }]}
+      >
         <SSButton
           label={buttonLabel}
           variant="secondary"
@@ -338,7 +340,6 @@ export default function SelectUtxoList() {
 const styles = StyleSheet.create({
   absoluteSubmitContainer: {
     alignItems: 'center',
-    bottom: 20,
     position: 'absolute',
     width: '100%'
   },
