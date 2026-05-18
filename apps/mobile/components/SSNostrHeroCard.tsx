@@ -21,7 +21,7 @@ import { Colors } from '@/styles'
 import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
-} from '@/types/models/NostrIdentity'
+} from '@/types/models/Nostr'
 import { generateColorFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
 

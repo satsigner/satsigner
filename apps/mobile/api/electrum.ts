@@ -20,7 +20,7 @@ import { parseHexToBytes } from '@/utils/parse'
 import { bytesToHex } from '@/utils/scripts'
 import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
-import { isValidDomainName, isValidIPAddress } from '@/utils/validation/url'
+import { isValidDomainName, isValidIPAddress } from '@/utils/url'
 
 class ModifiedClient extends BlueWalletElectrumClient {
   keepAlive() {

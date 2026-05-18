@@ -12,7 +12,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
-import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import { type NostrIdentity } from '@/types/models/Nostr'
 
 type SendParams = {
   npub: string

@@ -1,11 +1,11 @@
-import { Nip46BunkerService } from '@/api/nip46BunkerService'
-import { NIP46_SUPPORTED_METHODS } from '@/constants/nip46'
+import { Nip46BunkerService } from '@/api/nostrNip446'
+import { NIP46_SUPPORTED_METHODS } from '@/constants/nostr'
 import { useNip46Store } from '@/store/nip46'
 import type {
   Nip46Method,
   Nip46Request,
   Nip46Session
-} from '@/types/models/Nip46'
+} from '@/types/models/Nostr'
 import { buildNip46ResponsePayload } from '@/utils/nip46'
 import {
   handleConnect,

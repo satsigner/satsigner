@@ -1,6 +1,6 @@
 import { toast } from 'sonner-native'
 
-import { type MessageHandler } from '@/types/nostrMessageHandlers'
+import { type NostrMsgHandler } from '@/types/models/Nostr'
 
 import {
   getAuthorDisplayName,
@@ -9,7 +9,7 @@ import {
   TOAST_DURATION
 } from './useNostrNotifyUtils'
 
-const txHandler: MessageHandler = {
+const txHandler: NostrMsgHandler = {
   canHandle: (context) => context.data?.data_type === 'Tx',
 
   handle: (context) => {

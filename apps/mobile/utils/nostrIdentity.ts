@@ -1,21 +1,18 @@
 import { HDKey } from '@scure/bip32'
 import { getPublicKey, nip19 } from 'nostr-tools'
 
+import { NIP06_DERIVATION_PATH } from '@/constants/nostr'
+import type {
+  NostrDecodedContent,
+  NostrDerivedKeys,
+  NostrEnhancedZapTags
+} from '@/types/models/Nostr'
 import { mnemonicToSeed } from '@/utils/bip39'
 import { deriveNpubFromNsec } from '@/utils/nostr'
 
-const NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
-
-type DerivedNostrKeys = {
-  nsec: string
-  npub: string
-  privateKey: Uint8Array
-  mnemonic: string
-}
-
 export function deriveNostrKeysFromMnemonic(
   mnemonic: string
-): DerivedNostrKeys {
+): NostrDerivedKeys {
   const seed = mnemonicToSeed(mnemonic)
   const root = HDKey.fromMasterSeed(seed)
   const child = root.derive(NIP06_DERIVATION_PATH)
@@ -29,40 +26,11 @@ export function deriveNostrKeysFromMnemonic(
   return { mnemonic, npub, nsec, privateKey }
 }
 
-export type NostrContentKind =
-  | 'npub'
-  | 'note'
-  | 'nevent'
-  | 'nprofile'
-  | 'json_note'
-  | 'unknown'
-
-export type FetchedNoteData = {
-  content: string
-  pubkey: string
-  kind: number
-  tags: string[][]
-  created_at: number
-  authorName?: string
-  authorPicture?: string
-  authorLud16?: string
-  authorNip05?: string
-}
-
-export type DecodedNostrContent = {
-  kind: NostrContentKind
-  raw: string
-  data: string
-  metadata?: Record<string, unknown>
-  fetched?: FetchedNoteData
-  isLoading?: boolean
-}
-
 function stripNostrUri(data: string): string {
   return data.toLowerCase().startsWith('nostr:') ? data.slice(6) : data
 }
 
-export function decodeNostrContent(raw: string): DecodedNostrContent {
+export function decodeNostrContent(raw: string): NostrDecodedContent {
   const trimmed = stripNostrUri(raw.trim())
 
   if (trimmed.startsWith('npub1')) {
@@ -175,15 +143,6 @@ export function extractPubpayTags(tags: string[][]): PubpayTag[] {
   return results
 }
 
-export type EnhancedZapTags = {
-  zapMin?: number
-  zapMax?: number
-  zapGoal?: number
-  zapUses?: number
-  zapPayer?: string
-  zapLnurl?: string
-}
-
 function parseMsatsTag(tags: string[][], name: string): number | undefined {
   const tag = tags.find((t) => t[0] === name)
   if (!tag || !tag[1]) {
@@ -193,13 +152,13 @@ function parseMsatsTag(tags: string[][], name: string): number | undefined {
   return isNaN(val) || val <= 0 ? undefined : Math.floor(val / 1000)
 }
 
-export function extractEnhancedZapTags(tags: string[][]): EnhancedZapTags {
+export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
   const zapGoalRaw = tags.find((t) => t[0] === 'zap-goal')
   const zapUsesRaw = tags.find((t) => t[0] === 'zap-uses')
   const zapPayerRaw = tags.find((t) => t[0] === 'zap-payer')
   const zapLnurlRaw = tags.find((t) => t[0] === 'zap-lnurl')
 
-  const result: EnhancedZapTags = {
+  const result: NostrEnhancedZapTags = {
     zapMax: parseMsatsTag(tags, 'zap-max'),
     zapMin: parseMsatsTag(tags, 'zap-min')
   }
@@ -228,7 +187,7 @@ export function extractEnhancedZapTags(tags: string[][]): EnhancedZapTags {
   return result
 }
 
-export function buildEnhancedZapTags(config: EnhancedZapTags): string[][] {
+export function buildEnhancedZapTags(config: NostrEnhancedZapTags): string[][] {
   const tags: string[][] = []
   if (config.zapMin !== undefined && config.zapMin > 0) {
     tags.push(['zap-min', String(config.zapMin * 1000)])

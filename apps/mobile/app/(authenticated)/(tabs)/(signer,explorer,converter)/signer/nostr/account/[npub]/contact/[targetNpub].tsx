@@ -27,13 +27,13 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Layout } from '@/styles'
-import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import { type NostrIdentity } from '@/types/models/Nostr'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { setClipboard } from '@/utils/clipboard'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import { nostrZapDetailHref } from '@/utils/nostrNavigation'
+import { initiateZap } from '@/utils/nostrZap'
 import { buildPaymentMethods } from '@/utils/paymentMethods'
-import { initiateZap } from '@/utils/zap'
 
 type ContactParams = {
   npub: string

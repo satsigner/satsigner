@@ -6,7 +6,7 @@ import { toast } from 'sonner-native'
 import { useEcash, useQuotePolling } from '@/hooks/useEcash'
 import { t } from '@/locales'
 import type { EcashMint, EcashToken } from '@/types/models/Ecash'
-import type { LNURLWithdrawDetails } from '@/types/models/LNURL'
+import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
 import { prepareEcashTokenInput } from '@/utils/contentDetector'
 import {
   decodeLNURL,

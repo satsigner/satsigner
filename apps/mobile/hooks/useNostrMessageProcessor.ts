@@ -4,11 +4,11 @@ import { InteractionManager } from 'react-native'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 import {
-  type MessageHandlerContext,
+  type NostrMsgHandlerContext,
   type NostrMessageData,
-  type PendingDM,
-  type UnwrappedNostrEvent
-} from '@/types/nostrMessageHandlers'
+  type NostrPendingDM,
+  type NostrUnwrappedEvent
+} from '@/types/models/Nostr'
 import { decompressMessage } from '@/utils/nostr'
 
 import { deviceAnnouncementHandler } from './useNostrDeviceAnnouncementHandler'
@@ -26,7 +26,7 @@ import { signMessageHandler } from './useNostrSignMessageHandler'
 import { txHandler } from './useNostrTxHandler'
 
 function getEventContent(
-  unwrappedEvent: UnwrappedNostrEvent
+  unwrappedEvent: NostrUnwrappedEvent
 ): Record<string, unknown> {
   try {
     return JSON.parse(unwrappedEvent.content)
@@ -105,7 +105,7 @@ function useNostrMessageProcessor() {
 
       // Each batch gets its own local accumulator — no module-level state,
       // so concurrent batches and hot-reloads cannot interfere.
-      const pendingDms: PendingDM[] = []
+      const pendingDms: NostrPendingDM[] = []
       const lastDataExchangeEOSE = getLastDataExchangeEOSE(account.id) || 0
       const syncStartSec = getSyncStartSeconds(account)
 
@@ -117,7 +117,7 @@ function useNostrMessageProcessor() {
 
         const chunk = messages.slice(i, i + CHUNK_SIZE)
         for (const msg of chunk) {
-          const unwrappedEvent = msg.content as UnwrappedNostrEvent
+          const unwrappedEvent = msg.content as NostrUnwrappedEvent
 
           // Re-read processedEvents each chunk so deduplication stays accurate
           // across concurrent batches that may have added events since we started.
@@ -132,7 +132,7 @@ function useNostrMessageProcessor() {
           const eventContent = getEventContent(unwrappedEvent)
           const data = eventContent.data as NostrMessageData | undefined
 
-          const context: MessageHandlerContext = {
+          const context: NostrMsgHandlerContext = {
             account,
             data,
             eventContent,
@@ -156,7 +156,7 @@ function useNostrMessageProcessor() {
   const processEvent = useCallback(
     async (
       account: Account,
-      unwrappedEvent: UnwrappedNostrEvent
+      unwrappedEvent: NostrUnwrappedEvent
     ): Promise<void> => {
       await processEventBatch(account, [
         {

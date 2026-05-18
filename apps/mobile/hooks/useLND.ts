@@ -1,21 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
-import { LND_REST } from '@/constants/lightningLnd'
+import { LND_REST } from '@/constants/lightning'
 import { useLightningStore } from '@/store/lightning'
-import { type LndBlockchainBalanceResponse } from '@/types/lndNodeDashboard'
 import type {
-  LndChanBackupSnapshot,
-  LndListPeersResponse,
-  LndPendingChannelsResponse
-} from '@/types/lndNodeSettings'
-import type {
+  LNDChanBackupSnapshot,
+  LNDListPeersResponse,
+  LNDPendingChannelsResponse,
+  LNDBlockchainBalanceResponse,
   LNDChannel,
   LNDNodeInfo,
   LNDPaymentResponse,
   LNDRequest,
   LNDRequestOptions
-} from '@/types/models/LND'
+} from '@/types/models/Lightning'
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
 
 const HEALTH_CHECK_INTERVAL_MS = 30_000
@@ -112,8 +110,8 @@ export const useLND = () => {
     }
   }
 
-  const getBalance = (): Promise<LndBlockchainBalanceResponse> =>
-    makeRequest<LndBlockchainBalanceResponse>('/v1/balance/blockchain')
+  const getBalance = (): Promise<LNDBlockchainBalanceResponse> =>
+    makeRequest<LNDBlockchainBalanceResponse>('/v1/balance/blockchain')
 
   const getChannels = async (): Promise<LNDChannel[]> => {
     try {
@@ -182,7 +180,7 @@ export const useLND = () => {
   }
 
   const exportAllChannelBackups = () =>
-    makeRequest<LndChanBackupSnapshot>(LND_REST.CHANNEL_BACKUP_ALL, {
+    makeRequest<LNDChanBackupSnapshot>(LND_REST.CHANNEL_BACKUP_ALL, {
       disconnectOnError: false
     })
 
@@ -240,12 +238,12 @@ export const useLND = () => {
   }
 
   const getPendingChannels = () =>
-    makeRequest<LndPendingChannelsResponse>(LND_REST.CHANNELS_PENDING, {
+    makeRequest<LNDPendingChannelsResponse>(LND_REST.CHANNELS_PENDING, {
       disconnectOnError: false
     })
 
   const getPeers = () =>
-    makeRequest<LndListPeersResponse>(LND_REST.PEERS, {
+    makeRequest<LNDListPeersResponse>(LND_REST.PEERS, {
       disconnectOnError: false
     })
 

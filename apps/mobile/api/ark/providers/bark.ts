@@ -11,28 +11,24 @@ import {
   type WalletNotification
 } from '@secondts/bark-react-native'
 
+import { registerArkProvider } from '@/api/ark/registry'
 import type {
   ArkBalance,
+  ArkBolt11Invoice,
   ArkFeeEstimate,
   ArkLightningSendResult,
   ArkMovement,
-  ArkServer,
-  ArkVtxo
-} from '@/types/models/Ark'
-import type { Network } from '@/types/settings/blockchain'
-
-import type {
-  ArkBolt11Invoice,
   ArkMovementEvent,
   ArkNotificationListener,
   ArkNotificationUnsubscribe,
+  ArkServer,
+  ArkVtxo,
   ArkWalletArgs,
   ArkWalletProvider
-} from '../provider'
-import { registerArkProvider } from '../registry'
+} from '@/types/models/Ark'
+import type { Network } from '@/types/settings/blockchain'
 
 const ROUND_TX_REQUIRED_CONFIRMATIONS = 0 // Later allow users to change this on the Ark settings
-
 const walletCache = new Map<string, WalletLike>()
 const inflightOpens = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()

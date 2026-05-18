@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
-import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import { type NostrIdentity } from '@/types/models/Nostr'
 
 type NostrIdentityState = {
   identities: NostrIdentity[]

@@ -24,7 +24,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors, Layout } from '@/styles'
-import { type NostrRelayConnectionInfo } from '@/types/models/NostrIdentity'
+import { type NostrRelayConnectionInfo } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
   nostrAccountHref,

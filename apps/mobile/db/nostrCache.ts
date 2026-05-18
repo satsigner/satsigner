@@ -1,9 +1,9 @@
 import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
 import {
-  EVENT_CACHE_MAX_ROWS,
-  OTHER_EVENT_CACHE_MAX_AGE_SECS,
-  PROFILE_CACHE_MAX_AGE_SECS
+  NOSTR_EVENT_CACHE_MAX_ROWS,
+  NOSTR_EVENT_CACHE_MAX_AGE,
+  NOSTR_PROFILE_CACHE_MAX_AGE_SECS
 } from '@/constants/nostr'
 import type { NostrKind0Profile } from '@/types/models/Nostr'
 
@@ -333,11 +333,11 @@ export function pruneCache(): void {
 
     db.execute(
       'DELETE FROM nostr_event_cache WHERE is_own = 0 AND cached_at < ?',
-      [now - OTHER_EVENT_CACHE_MAX_AGE_SECS]
+      [now - NOSTR_EVENT_CACHE_MAX_AGE]
     )
 
     db.execute('DELETE FROM nostr_profile_cache WHERE cached_at < ?', [
-      now - PROFILE_CACHE_MAX_AGE_SECS
+      now - NOSTR_PROFILE_CACHE_MAX_AGE_SECS
     ])
 
     const { results } = db.execute(
@@ -345,8 +345,8 @@ export function pruneCache(): void {
       []
     )
     const count = (results?.[0] as Record<string, unknown>)?.cnt as number
-    if (count > EVENT_CACHE_MAX_ROWS) {
-      const excess = count - EVENT_CACHE_MAX_ROWS
+    if (count > NOSTR_EVENT_CACHE_MAX_ROWS) {
+      const excess = count - NOSTR_EVENT_CACHE_MAX_ROWS
       db.execute(
         `DELETE FROM nostr_event_cache WHERE event_id IN (
           SELECT event_id FROM nostr_event_cache

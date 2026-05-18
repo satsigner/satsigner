@@ -1,4 +1,4 @@
-import { type LNDGetInfoChain } from '@/types/models/LND'
+import { type LNDGetInfoChain } from '@/types/models/Lightning'
 
 function chainEntryToLabel(entry: string | LNDGetInfoChain): string {
   if (typeof entry === 'string') {

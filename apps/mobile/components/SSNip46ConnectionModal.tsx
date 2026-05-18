@@ -5,7 +5,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import type { Nip46ParsedUri } from '@/types/models/Nip46'
+import type { Nip46ParsedUri } from '@/types/models/Nostr'
 import { getMethodLabel } from '@/utils/nip46'
 
 import SSButton from './SSButton'

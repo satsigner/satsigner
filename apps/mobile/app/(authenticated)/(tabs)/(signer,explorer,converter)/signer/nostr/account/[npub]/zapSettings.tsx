@@ -8,7 +8,10 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { DEFAULT_ONE_TAP_AMOUNT, DEFAULT_ZAP_PRESETS } from '@/constants/nostr'
+import {
+  NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
+  NOSTR_ZAP_DEFAULT_PRESETS
+} from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -48,11 +51,11 @@ export default function ZapSettingsPage() {
 
   const prefs = identity?.zapPreferences
   const [presets, setPresets] = useState<number[]>(
-    prefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
+    prefs?.presetAmounts ?? NOSTR_ZAP_DEFAULT_PRESETS
   )
   const [newPreset, setNewPreset] = useState('')
   const [oneTapAmount, setOneTapAmount] = useState(
-    String(prefs?.oneTapAmount ?? DEFAULT_ONE_TAP_AMOUNT)
+    String(prefs?.oneTapAmount ?? NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT)
   )
   const [autoApprove, setAutoApprove] = useState(prefs?.autoApprove ?? false)
   const [autoApproveWalletId, setAutoApproveWalletId] = useState<
@@ -80,13 +83,14 @@ export default function ZapSettingsPage() {
     if (!npub) {
       return
     }
-    const parsedOneTap = parseInt(oneTapAmount, 10) || DEFAULT_ONE_TAP_AMOUNT
+    const parsedOneTap =
+      parseInt(oneTapAmount, 10) || NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT
     updateIdentity(npub, {
       zapPreferences: {
         autoApprove,
         autoApproveWalletId: autoApprove ? autoApproveWalletId : undefined,
         oneTapAmount: parsedOneTap,
-        presetAmounts: presets.length > 0 ? presets : DEFAULT_ZAP_PRESETS
+        presetAmounts: presets.length > 0 ? presets : NOSTR_ZAP_DEFAULT_PRESETS
       }
     })
     toast.success(t('nostrIdentity.zapSettings.saved'))

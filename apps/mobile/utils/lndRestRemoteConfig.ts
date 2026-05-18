@@ -1,4 +1,4 @@
-import type { LNDConfig } from '@/types/models/LND'
+import type { LNDConfig } from '@/types/models/Lightning'
 
 type JsonRecord = Record<string, unknown>
 

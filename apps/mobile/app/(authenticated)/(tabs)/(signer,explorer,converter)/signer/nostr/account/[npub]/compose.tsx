@@ -19,7 +19,7 @@ import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import {
-  MAX_NOTE_LENGTH,
+  NIP01_MAX_NOTE_LENGTH,
   NOSTR_PRIVACY_MASK,
   NOSTR_SIGNED_EVENT_QR_MAX_CHARS
 } from '@/constants/nostr'
@@ -31,10 +31,10 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
+import { type NostrKind1DraftImport } from '@/types/models/Nostr'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
-  type Kind1DraftImport,
   parseKind1DraftFromJson,
   stripZapTags
 } from '@/utils/nostrComposeImport'
@@ -119,7 +119,7 @@ export default function NostrComposePage() {
 
   const canPublish =
     content.trim().length > 0 &&
-    charCount <= MAX_NOTE_LENGTH &&
+    charCount <= NIP01_MAX_NOTE_LENGTH &&
     !publishing &&
     !!identity?.nsec
 
@@ -149,8 +149,8 @@ export default function NostrComposePage() {
     return [...baseTags, ...zapTags]
   }
 
-  function applyKind1Draft(draft: Kind1DraftImport): boolean {
-    if (draft.content.length > MAX_NOTE_LENGTH) {
+  function applyKind1Draft(draft: NostrKind1DraftImport): boolean {
+    if (draft.content.length > NIP01_MAX_NOTE_LENGTH) {
       toast.error(t('nostrIdentity.compose.importContentTooLong'))
       return false
     }
@@ -425,14 +425,14 @@ export default function NostrComposePage() {
               placeholder={t('nostrIdentity.compose.placeholder')}
               multiline
               autoFocus
-              maxLength={MAX_NOTE_LENGTH}
+              maxLength={NIP01_MAX_NOTE_LENGTH}
               value={content}
               onChangeText={setContent}
               textAlignVertical="top"
             />
 
             <SSText size="xxs" color="muted" style={styles.charCount}>
-              {charCount}/{MAX_NOTE_LENGTH}
+              {charCount}/{NIP01_MAX_NOTE_LENGTH}
             </SSText>
 
             <SSVStack gap="sm" style={styles.zapTagsSection}>

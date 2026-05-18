@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { type NostrAPI } from '@/api/nostr'
-import { MAX_PROCESSED_ITEMS } from '@/constants/nostr'
+import { NOSTR_MAX_PROCESSED_ITEMS } from '@/constants/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import { gray } from '@/styles/colors'
 import { generateColorFromNpub } from '@/utils/nostr'
@@ -198,7 +198,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
             return state
           }
           const updated = { ...currentEvents, [eventId]: true as const }
-          const pruned = pruneProcessedIds(updated, MAX_PROCESSED_ITEMS)
+          const pruned = pruneProcessedIds(updated, NOSTR_MAX_PROCESSED_ITEMS)
           return {
             processedEvents: {
               ...state.processedEvents,
@@ -214,7 +214,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
             return state
           }
           const updated = { ...currentIds, [messageId]: true as const }
-          const pruned = pruneProcessedIds(updated, MAX_PROCESSED_ITEMS)
+          const pruned = pruneProcessedIds(updated, NOSTR_MAX_PROCESSED_ITEMS)
           return {
             processedMessageIds: {
               ...state.processedMessageIds,

@@ -23,8 +23,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout } from '@/styles'
-import type { ChannelHistoryRow } from '@/types/lndChannelHistory'
-import { type LNDChannel } from '@/types/models/LND'
+import type {
+  LightningChannelHistoryRow,
+  LNDChannel
+} from '@/types/models/Lightning'
 import { formatNumber } from '@/utils/format'
 import {
   findChannelByChanId,
@@ -317,7 +319,7 @@ export default function LightningChannelDetailPage() {
     chanIdDecoded,
     Boolean(channel)
   )
-  const historyRows: ChannelHistoryRow[] = historyQuery.data ?? []
+  const historyRows: LightningChannelHistoryRow[] = historyQuery.data ?? []
   const historyLoading = historyQuery.fetchStatus === 'fetching'
   const historyError =
     historyQuery.error !== null && historyQuery.error !== undefined
