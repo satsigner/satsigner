@@ -196,7 +196,7 @@ export default function IOPreview() {
     () => utxosValue(account.utxos),
     [account.utxos]
   )
-  const utxosSelectedValue = utxosValue(getInputs())
+  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
 
   // First calculate without change output
   const baseTransactionSize = useMemo(() => {

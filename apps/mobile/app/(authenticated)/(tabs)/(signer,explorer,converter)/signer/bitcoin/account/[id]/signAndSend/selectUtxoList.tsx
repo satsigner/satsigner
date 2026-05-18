@@ -42,16 +42,14 @@ export default function SelectUtxoList() {
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
-  const [inputs, getInputs, hasInput, addInput, removeInput] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.inputs,
-        state.getInputs,
-        state.hasInput,
-        state.addInput,
-        state.removeInput
-      ])
-    )
+  const [inputs, hasInput, addInput, removeInput] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.inputs,
+      state.hasInput,
+      state.addInput,
+      state.removeInput
+    ])
+  )
 
   const utxoOutpointSet = new Set(account.utxos.map(getUtxoOutpoint))
   const orphanedInputs = Array.from(inputs.values()).filter(
@@ -96,7 +94,7 @@ export default function SelectUtxoList() {
     () => utxosValue(account.utxos),
     [account.utxos]
   )
-  const utxosSelectedValue = utxosValue(getInputs())
+  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
 
   function handleSelectAllUtxos() {
     for (const utxo of account.utxos) {

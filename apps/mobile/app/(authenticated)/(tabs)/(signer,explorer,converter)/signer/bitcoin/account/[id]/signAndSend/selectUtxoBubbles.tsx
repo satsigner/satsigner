@@ -37,13 +37,8 @@ function SelectUtxoBubbles() {
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
-  const [inputs, getInputs, addInput, removeInput] = useTransactionBuilderStore(
-    useShallow((state) => [
-      state.inputs,
-      state.getInputs,
-      state.addInput,
-      state.removeInput
-    ])
+  const [inputs, addInput, removeInput] = useTransactionBuilderStore(
+    useShallow((state) => [state.inputs, state.addInput, state.removeInput])
   )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -65,7 +60,7 @@ function SelectUtxoBubbles() {
   }
 
   const utxosTotalValue = utxosValue(account.utxos)
-  const utxosSelectedValue = utxosValue(getInputs())
+  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
 
   function handleOnToggleSelected(utxo: Utxo) {
     const includesInput = inputs.has(getUtxoOutpoint(utxo))
