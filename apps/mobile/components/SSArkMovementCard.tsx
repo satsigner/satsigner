@@ -26,7 +26,7 @@ import {
   isLightningMovement,
   isMutedArkMovement,
   truncateArkCounterparty
-} from '@/utils/ark'
+} from '@/utils/arkMovement'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 
 type SSArkMovementCardProps = {

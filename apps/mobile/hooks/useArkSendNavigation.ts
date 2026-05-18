@@ -4,7 +4,7 @@ import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
 import { type ArkDestinationDraft } from '@/types/models/Ark'
-import { parseArkDestination } from '@/utils/ark'
+import { parseArkDestination } from '@/utils/arkDestination'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getLNURLType } from '@/utils/lnurl'
 

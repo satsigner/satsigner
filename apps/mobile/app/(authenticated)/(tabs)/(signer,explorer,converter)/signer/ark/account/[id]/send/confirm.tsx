@@ -31,7 +31,8 @@ import type {
   ArkSendOutcome,
   ArkDestinationDraft
 } from '@/types/models/Ark'
-import { truncateArkCounterparty, parseArkDestination } from '@/utils/ark'
+import { parseArkDestination } from '@/utils/arkDestination'
+import { truncateArkCounterparty } from '@/utils/arkMovement'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { millisatsToSats } from '@/utils/bitcoinUnits'
 import { formatFiatPrice, formatNumber } from '@/utils/format'

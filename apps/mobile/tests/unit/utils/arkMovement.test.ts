@@ -8,7 +8,7 @@ import {
   isStaleArkExitMovement,
   parseArkCounterparty,
   truncateArkCounterparty
-} from '@/utils/ark'
+} from '@/utils/arkMovement'
 
 function buildMovement(overrides: Partial<ArkMovement> = {}): ArkMovement {
   return {
