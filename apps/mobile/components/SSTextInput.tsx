@@ -2,7 +2,6 @@ import { StyleSheet, TextInput, View } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
-import { descriptorValidityCache } from '@/utils/validation'
 
 import SSText from './SSText'
 
@@ -36,23 +35,10 @@ function SSTextInput({
   const alignStyle = align === 'center' ? styles.alignCenter : styles.alignLeft
   const actionRightPadding = actionRight ? { paddingRight: 48 } : {}
 
-  // If no explicit status, derive from cache (populated by validateDescriptor calls)
-  const cachedValidity =
-    status === undefined && value
-      ? descriptorValidityCache.get(value)
-      : undefined
-  const resolvedStatus =
-    status ??
-    (cachedValidity === true
-      ? 'valid'
-      : cachedValidity === false
-        ? 'invalid'
-        : undefined)
-
   const statusStyle =
-    resolvedStatus === 'valid'
+    status === 'valid'
       ? styles.statusValid
-      : resolvedStatus === 'invalid'
+      : status === 'invalid'
         ? styles.statusInvalid
         : {}
 

@@ -684,6 +684,7 @@ export default function UnifiedImport() {
                       placeholder={t('watchonly.importDescriptor.external')}
                       multiline
                       numberOfLines={3}
+                      status={externalDescriptorError ? 'invalid' : undefined}
                     />
                     {externalDescriptorError && (
                       <SSText
@@ -708,6 +709,7 @@ export default function UnifiedImport() {
                       placeholder={t('watchonly.importDescriptor.internal')}
                       multiline
                       numberOfLines={3}
+                      status={internalDescriptorError ? 'invalid' : undefined}
                     />
                     {internalDescriptorError && (
                       <SSText
