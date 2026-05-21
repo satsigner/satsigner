@@ -19,7 +19,7 @@ import { t } from '@/locales'
 import { useNip46Store } from '@/store/nip46'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
-import type { Nip46ParsedUri } from '@/types/models/Nip46'
+import type { Nip46ParsedUri } from '@/types/models/Nostr'
 import type { DetectedContent } from '@/utils/contentDetector'
 import { parseNostrConnectUri } from '@/utils/nip46'
 

@@ -1,22 +1,21 @@
 import type { Decorator } from '@storybook/react'
-import { ScrollView, View } from 'react-native'
+import { View } from 'react-native'
 
-import { Layout } from '@/styles'
+import { Colors, Layout } from '@/styles'
 
 function SSStoryBookLayout({ children }: { children: React.ReactNode }) {
   return (
     <View
       style={{
         alignItems: 'center',
+        backgroundColor: Colors.transparent,
         flex: 1,
         justifyContent: 'center',
-        paddingBottom: Layout.mainContainer.paddingBottom,
         paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-        paddingTop: Layout.mainContainer.paddingTop,
         width: '100%'
       }}
     >
-      <ScrollView>{children}</ScrollView>
+      {children}
     </View>
   )
 }

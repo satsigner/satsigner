@@ -1,3 +1,5 @@
+import z from 'zod'
+
 export interface BlockchainOracle {
   getAddressUtxos: (address: string) => Promise<UTXO[]>
   getBlock: (blkid: string) => Promise<Block>
@@ -33,162 +35,192 @@ export interface BlockchainOracle {
   getTransactionStatus: (txid: string) => Promise<TxStatus>
 }
 
-export type Satoshi = number
+export const SatoshiSchema = z.number()
 
-export type PriceValue = {
-  currency: Currency
-  fiatPrice: number
-  fiatValue: number
-  value: number
-}
+export const CurrencySchema = z.enum([
+  'USD',
+  'EUR',
+  'GBP',
+  'CAD',
+  'CHF',
+  'AUD',
+  'JPY'
+])
 
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'AUD' | 'JPY'
+export const PriceValueSchema = z.object({
+  currency: CurrencySchema,
+  fiatPrice: z.number(),
+  fiatValue: z.number(),
+  value: z.number()
+})
 
-export type Prices = Partial<{
-  [key in Currency]: number
-}>
+export const PricesSchema = z.object({
+  AUD: z.number().optional(),
+  CAD: z.number().optional(),
+  CHF: z.number().optional(),
+  EUR: z.number().optional(),
+  GBP: z.number().optional(),
+  JPY: z.number().optional(),
+  USD: z.number().optional()
+})
 
-export type BlockStatus = {
-  height: number
-  in_best_chain: boolean
-}
+export const BlockStatusSchema = z.object({
+  height: z.number(),
+  in_best_chain: z.boolean(),
+  next_best: z.string()
+})
 
-export type Block = {
-  id: string
-  difficulty: number
-  height: number
-  mediantime: number
-  merkle_root: string
-  nonce: number
-  previousblockhash: string
-  size: number
-  timestamp: number
-  tx_count: number
-  version: number
-  weight: number
-}
+export const BlockSchema = z.object({
+  bits: z.number().optional(),
+  difficulty: z.number(),
+  height: z.number(),
+  id: z.string(),
+  mediantime: z.number(),
+  merkle_root: z.string(),
+  nonce: z.number(),
+  previousblockhash: z.string(),
+  size: z.number(),
+  timestamp: z.number(),
+  tx_count: z.number(),
+  version: z.number(),
+  weight: z.number()
+})
 
-export type BlockDifficulty = {
-  height: number
-  timestamp: number
-  txCount: number
-  chainWork: string
-  nonce: number
-  size: number
-  weight: number
-  cycleHeight: number
-  timeDifference: number
-}
+export const BlockDifficultySchema = z.object({
+  chainWork: z.string(),
+  cycleHeight: z.number(),
+  height: z.number(),
+  nonce: z.number(),
+  size: z.number(),
+  timeDifference: z.number(),
+  timestamp: z.number(),
+  txCount: z.number(),
+  weight: z.number()
+})
 
-export enum TxPriority {
-  none = 'none',
-  low = 'low',
-  medium = 'medium',
-  high = 'high'
-}
+export const TxPrioritySchema = z.enum(['none', 'low', 'medium', 'high'])
 
-export type Tx = {
-  txid: string
-  version: number
-  locktime: number
-  vin: TxIn[]
-  vout: TxOut[]
-  fee: Satoshi
-  weight: number
-  size: number
-  status: TxStatus
-}
+export const TxOutSchema = z.object({
+  scriptpubkey: z.string().optional(),
+  scriptpubkey_address: z.string().optional(),
+  scriptpubkey_asm: z.string().optional(),
+  scriptpubkey_type: z.string().optional(),
+  value: SatoshiSchema
+})
 
-export type TxOut = {
-  value: Satoshi
-  scriptpubkey?: string
-  scriptpubkey_asm?: string
-  scriptpubkey_type?: string
-  scriptpubkey_address?: string
-}
+export const TxInSchema = z.object({
+  is_coinbase: z.boolean(),
+  prevout: TxOutSchema,
+  scriptsig: z.string(),
+  scriptsig_asm: z.string(),
+  sequence: z.number(),
+  txid: z.string(),
+  vout: z.number()
+})
 
-export type TxIn = {
-  txid: string
-  vout: number
-  scriptsig: string
-  scriptsig_asm: string
-  sequence: number
-  is_coinbase: boolean
-  prevout: TxOut
-}
+export const TxStatusSchema = z.object({
+  block_hash: z.string(),
+  block_height: z.number(),
+  block_time: z.number(),
+  confirmed: z.boolean()
+})
 
-export type TxStatus = {
-  confirmed: boolean
-  block_height: number
-  block_hash: string
-  block_time: number
-}
+export const TxOutspendSchema = z.object({
+  spent: z.boolean(),
+  status: TxStatusSchema,
+  txid: z.string(),
+  vin: z.number()
+})
 
-export type TxOutspend = {
-  spent: boolean
-  txid: string
-  vin: number
-  status: TxStatus
-}
+export const TxSchema = z.object({
+  fee: SatoshiSchema,
+  locktime: z.number(),
+  size: z.number(),
+  status: TxStatusSchema,
+  txid: z.string(),
+  version: z.number(),
+  vin: z.array(TxInSchema),
+  vout: z.array(TxOutSchema),
+  weight: z.number()
+})
 
-export type UTXO = {
-  txid: string
-  vout: number
-  value: number
-  status: TxStatus
-}
+export const UTXOSchema = z.object({
+  status: TxStatusSchema,
+  txid: z.string(),
+  value: z.number(),
+  vout: z.number()
+})
 
-export type MemPool = {
-  count: number
-  vsize: number
-  total_fee: number
-  fee_histogram: [number, number][]
-}
+export const MemPoolSchema = z.object({
+  count: z.number(),
+  fee_histogram: z.array(z.tuple([z.number(), z.number()])),
+  total_fee: z.number(),
+  vsize: z.number()
+})
 
-export type MemPoolFees = {
-  [key in TxPriority]: Satoshi
-}
+export const MemPoolFeesSchema = z.record(TxPrioritySchema, SatoshiSchema)
 
-export type MemPoolBlock = {
-  blockSize: number
-  blockVSize: number
-  nTx: number
-  totalFees: number
-  medianFee: number
-  feeRange: number[]
-}
+export const MemPoolBlockSchema = z.object({
+  blockSize: z.number(),
+  blockVSize: z.number(),
+  feeRange: z.array(z.number()),
+  medianFee: z.number(),
+  nTx: z.number(),
+  totalFees: z.number()
+})
 
-export type DifficultyAdjustment = {
-  adjustedTimeAvg: number
-  difficultyChange: number
-  estimatedRetargetDate: number
-  nextRetargetHeight: number
-  previousRetarget: number
-  progressPercent: number
-  remainingBlocks: number
-  remainingTime: number
-  timeAvg: number
-  timeOffset: number
-}
+export const DifficultyAdjustmentSchema = z.object({
+  adjustedTimeAvg: z.number(),
+  difficultyChange: z.number(),
+  estimatedRetargetDate: z.number(),
+  nextRetargetHeight: z.number(),
+  previousRetarget: z.number(),
+  progressPercent: z.number(),
+  remainingBlocks: z.number(),
+  remainingTime: z.number(),
+  timeAvg: z.number(),
+  timeOffset: z.number()
+})
 
-export type BlockFeeRates = {
-  avgHeight: number
-  timestamp: number
-  avgFee_0: number
-  avgFee_10: number
-  avgFee_25: number
-  avgFee_50: number
-  avgFee_75: number
-  avgFee_90: number
-  avgFee_100: number
-}
+export const BlockFeeRatesSchema = z.object({
+  avgFee_0: z.number(),
+  avgFee_10: z.number(),
+  avgFee_100: z.number(),
+  avgFee_25: z.number(),
+  avgFee_50: z.number(),
+  avgFee_75: z.number(),
+  avgFee_90: z.number(),
+  avgHeight: z.number(),
+  timestamp: z.number()
+})
 
-export type MempoolStatistics = {
-  added: number
-  count: number
-  vbytes_per_second: number
-  mempool_byte_weight: number
-  total_fee: number
-  min_fee: number
-  vsizes: number[]
-}
+export const MempoolStatisticsSchema = z.object({
+  added: z.number(),
+  count: z.number(),
+  mempool_byte_weight: z.number(),
+  min_fee: z.number(),
+  total_fee: z.number(),
+  vbytes_per_second: z.number(),
+  vsizes: z.array(z.number())
+})
+
+export type Satoshi = z.infer<typeof SatoshiSchema>
+export type PriceValue = z.infer<typeof PriceValueSchema>
+export type Currency = z.infer<typeof CurrencySchema>
+export type Prices = z.infer<typeof PricesSchema>
+export type BlockStatus = z.infer<typeof BlockStatusSchema>
+export type Block = z.infer<typeof BlockSchema>
+export type BlockDifficulty = z.infer<typeof BlockDifficultySchema>
+export type TxPriority = z.infer<typeof TxPrioritySchema>
+export type Tx = z.infer<typeof TxSchema>
+export type TxOut = z.infer<typeof TxOutSchema>
+export type TxIn = z.infer<typeof TxInSchema>
+export type TxStatus = z.infer<typeof TxStatusSchema>
+export type TxOutspend = z.infer<typeof TxOutspendSchema>
+export type UTXO = z.infer<typeof UTXOSchema>
+export type MemPool = z.infer<typeof MemPoolSchema>
+export type MemPoolFees = z.infer<typeof MemPoolFeesSchema>
+export type MemPoolBlock = z.infer<typeof MemPoolBlockSchema>
+export type DifficultyAdjustment = z.infer<typeof DifficultyAdjustmentSchema>
+export type BlockFeeRates = z.infer<typeof BlockFeeRatesSchema>
+export type MempoolStatistics = z.infer<typeof MempoolStatisticsSchema>

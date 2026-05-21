@@ -1,5 +1,5 @@
 import { NostrAPI } from '@/api/nostr'
-import { DELAY_BETWEEN_PUBLISHES_MS } from '@/constants/nostr'
+import { NOSTR_DELAY_BETWEEN_PUBLISHES_MS } from '@/constants/nostr'
 import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
 
@@ -54,7 +54,7 @@ function useNostrPublish() {
 
     const trustedDevices = getTrustedDevices(account)
     for (const trustedDeviceNpub of trustedDevices) {
-      await delay(DELAY_BETWEEN_PUBLISHES_MS)
+      await delay(NOSTR_DELAY_BETWEEN_PUBLISHES_MS)
       if (!deviceNsec) {
         continue
       }
@@ -103,7 +103,7 @@ function useNostrPublish() {
       if (trustedDeviceNpub === deviceNpub) {
         continue
       }
-      await delay(DELAY_BETWEEN_PUBLISHES_MS)
+      await delay(NOSTR_DELAY_BETWEEN_PUBLISHES_MS)
       if (!deviceNsec) {
         continue
       }

@@ -1,9 +1,7 @@
-import { type ForwardedRef, forwardRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
-import { descriptorValidityCache } from '@/utils/validation'
 
 import SSText from './SSText'
 
@@ -15,46 +13,32 @@ export type SSTextInputProps = {
   status?: 'valid' | 'invalid'
   warning?: string
   error?: string
+  ref?: React.Ref<TextInput>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-function SSTextInput(
-  {
-    variant = 'default',
-    size = 'default',
-    align = 'center',
-    actionRight,
-    status,
-    style,
-    value,
-    error,
-    warning,
-    ...props
-  }: SSTextInputProps,
-  ref: ForwardedRef<TextInput>
-) {
+function SSTextInput({
+  variant = 'default',
+  size = 'default',
+  align = 'center',
+  actionRight,
+  status,
+  style,
+  value,
+  error,
+  warning,
+  ref,
+  ...props
+}: SSTextInputProps) {
   const variantStyle =
     variant === 'default' ? styles.variantDefault : styles.variantOutline
   const sizeStyle = size === 'default' ? styles.sizeDefault : styles.sizeSmall
   const alignStyle = align === 'center' ? styles.alignCenter : styles.alignLeft
   const actionRightPadding = actionRight ? { paddingRight: 48 } : {}
 
-  // If no explicit status, derive from cache (populated by validateDescriptor calls)
-  const cachedValidity =
-    status === undefined && value
-      ? descriptorValidityCache.get(value)
-      : undefined
-  const resolvedStatus =
-    status ??
-    (cachedValidity === true
-      ? 'valid'
-      : cachedValidity === false
-        ? 'invalid'
-        : undefined)
-
   const statusStyle =
-    resolvedStatus === 'valid'
+    status === 'valid'
       ? styles.statusValid
-      : resolvedStatus === 'invalid'
+      : status === 'invalid'
         ? styles.statusInvalid
         : {}
 
@@ -148,4 +132,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default forwardRef(SSTextInput)
+export default SSTextInput

@@ -1,11 +1,11 @@
 import * as Linking from 'expo-linking'
 
+import {
+  BARK_ACCESS_TOKEN_NETWORK,
+  BARK_ACCESS_TOKEN_PARAM
+} from '@/constants/ark'
 import { useArkServerAccessToken } from '@/hooks/useArkServerAccessToken'
 import { useMountEffect } from '@/hooks/useMountEffect'
-import type { Network } from '@/types/settings/blockchain'
-
-const BARK_ACCESS_TOKEN_PARAM = 'bark_access_token'
-const BARK_ACCESS_TOKEN_NETWORK: Network = 'bitcoin'
 
 function useBarkAccessTokenDeepLink() {
   const { applyAccessToken } = useArkServerAccessToken()

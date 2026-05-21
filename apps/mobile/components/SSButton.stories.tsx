@@ -1,13 +1,17 @@
 import { withBackgrounds } from '@storybook/addon-ondevice-backgrounds'
 import type { Meta, StoryObj } from '@storybook/react'
 
-import { storybookBackgrounds } from '@/.storybook/utils/backgrounds'
+import { storybookBackgrounds } from '@/.rnstorybook/utils/backgrounds'
 
 import SSButton from './SSButton'
 import storybookLayoutDecorator from './SSStoryBookLayout'
 
 const meta = {
   argTypes: {
+    gradientType: {
+      control: 'select',
+      options: ['default', 'special']
+    },
     loading: {
       control: 'boolean',
       description: 'Button loading'
@@ -78,12 +82,6 @@ export const Subtle: Story = {
 }
 
 export const Gradient: Story = {
-  argTypes: {
-    gradientType: {
-      control: 'select',
-      options: ['default', 'special']
-    }
-  },
   args: {
     variant: 'gradient'
   }

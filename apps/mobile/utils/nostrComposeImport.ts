@@ -1,28 +1,18 @@
-const ZAP_TAG_NAMES = new Set([
-  'zap-goal',
-  'zap-lnurl',
-  'zap-max',
-  'zap-min',
-  'zap-payer',
-  'zap-uses'
-])
-
-export type Kind1DraftImport = {
-  content: string
-  tags: string[][]
-}
+import { NOSTR_ZAP_TAG_NAMES } from '@/constants/nostr'
+import { NostrKind1DraftImport } from '@/types/models/Nostr'
 
 export function stripZapTags(tags: string[][]): string[][] {
   return tags.filter(
-    (t) => typeof t[0] === 'string' && !ZAP_TAG_NAMES.has(t[0])
+    (t) => typeof t[0] === 'string' && !NOSTR_ZAP_TAG_NAMES.has(t[0])
   )
 }
 
 /**
- * Parse a kind 1 Nostr event or draft from JSON (unsigned or signed).
  * Only kind 1 is accepted; `id`, `sig`, `pubkey`, and `created_at` are ignored.
  */
-export function parseKind1DraftFromJson(raw: string): Kind1DraftImport | null {
+export function parseKind1DraftFromJson(
+  raw: string
+): NostrKind1DraftImport | null {
   const trimmed = raw.trim()
   if (!trimmed) {
     return null

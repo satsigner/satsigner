@@ -1,4 +1,4 @@
-import type { LndPendingChannelsResponse } from '@/types/lndNodeSettings'
+import type { LNDPendingChannelsResponse } from '@/types/models/Lightning'
 
 export function formatLndVersion(version: string): string {
   const cleanVersion = version.replace(/[^0-9.]/g, '')
@@ -27,7 +27,7 @@ export function formatBestHeaderUtc(bestHeaderTimestamp: string): string {
   return new Date(ms).toISOString()
 }
 
-export function getPendingCounts(p: LndPendingChannelsResponse | null) {
+export function getPendingCounts(p: LNDPendingChannelsResponse | null) {
   if (!p) {
     return {
       closing: 0,

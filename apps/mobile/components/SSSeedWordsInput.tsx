@@ -15,15 +15,14 @@ import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type MnemonicWordCount } from '@/types/models/Account'
+import type { MnemonicWordCount, WordListName } from '@/types/bips/39'
 import { getFingerprintFromSeed } from '@/utils/bip32'
 import {
   detectElectrumSeed,
   getFingerprintFromMnemonic,
   getWordList,
   mnemonicToSeedElectrum,
-  validateMnemonic,
-  type WordListName
+  validateMnemonic
 } from '@/utils/bip39'
 import { type DetectedContent } from '@/utils/contentDetector'
 

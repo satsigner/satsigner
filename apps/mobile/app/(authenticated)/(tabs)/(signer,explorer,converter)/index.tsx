@@ -91,7 +91,7 @@ export default function Home() {
       return () => {
         containerOpacity.value = withTiming(0, { duration: FADE_OUT_DURATION })
       }
-    }, [totalDuration]) // eslint-disable-line react-hooks/exhaustive-deps -- shared values stable
+    }, [totalDuration, containerOpacity, progress])
   )
 
   const containerStyle = useAnimatedStyle(() => ({

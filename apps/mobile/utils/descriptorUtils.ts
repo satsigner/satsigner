@@ -1,4 +1,4 @@
-import { type ScriptVersionType } from '@/types/models/Account'
+import { ScriptVersionType } from '@/types/models/Script'
 import { validateCombinedDescriptor } from '@/utils/validation'
 
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of

@@ -9,30 +9,16 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatFiatPrice } from '@/utils/format'
-
-export type PaymentMethod = {
-  id: string
-  label: string
-  type: 'lightning' | 'ecash' | 'ark'
-  detail?: string
-  accountId?: string
-  balanceSats?: number
-}
-
-const TYPE_LABEL: Record<PaymentMethod['type'], string> = {
-  ark: 'Ark',
-  ecash: 'ECash',
-  lightning: 'Lightning'
-}
 
 type SSPaymentMethodPickerProps = {
   ref: RefObject<BottomSheetMethods | null>
   onSelect: (method: PaymentMethod) => void
   methods: PaymentMethod[]
   amountSats: number
-  btcPrice: number
-  fiatCurrency: string
+  btcPrice?: number
+  fiatCurrency?: string
 }
 
 function SSPaymentMethodPicker({
@@ -40,9 +26,10 @@ function SSPaymentMethodPicker({
   onSelect,
   methods,
   amountSats,
-  btcPrice,
-  fiatCurrency
+  btcPrice = 0,
+  fiatCurrency = ''
 }: SSPaymentMethodPickerProps) {
+  const hasFiatPrice = btcPrice > 0 && fiatCurrency.length > 0
   return (
     <SSBottomSheet ref={ref} title={`Pay ${amountSats.toLocaleString()} sats`}>
       <SSVStack gap="md" style={styles.content}>
@@ -60,14 +47,14 @@ function SSPaymentMethodPicker({
                 </SSText>
                 <View style={styles.typeBadge}>
                   <SSText size="xxs" color="muted">
-                    {TYPE_LABEL[method.type]}
+                    {t(`paymentMethod.type.${method.type}`)}
                   </SSText>
                 </View>
               </SSHStack>
               {method.balanceSats !== undefined && (
                 <SSText size="xs" color="muted">
                   {method.balanceSats.toLocaleString()} sats
-                  {btcPrice > 0
+                  {hasFiatPrice
                     ? ` · ${fiatCurrency} ${formatFiatPrice(method.balanceSats, btcPrice)}`
                     : ''}
                 </SSText>

@@ -67,7 +67,6 @@
     "react/jsx-no-useless-fragment": "allow",
     "unicorn/prefer-code-point": "allow",
     "unicorn/no-hex-escape": "allow",
-    "unicorn/consistent-existence-index-check": "allow",
     "import/no-named-as-default-member": "allow",
     "typescript/no-unsafe-function-type": "allow",
     "unicorn/prefer-date-now": "allow",

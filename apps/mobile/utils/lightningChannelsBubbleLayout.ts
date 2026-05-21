@@ -12,7 +12,7 @@ import {
   LIGHTNING_BUBBLE_CHART_MIN_REMOTE_BUBBLE_PX,
   LIGHTNING_BUBBLE_CHART_PADDING_PX,
   LIGHTNING_BUBBLE_CHART_SPOKE_GAP_PX
-} from '@/constants/lightningChannelsBubbleChart'
+} from '@/constants/lightning'
 
 export type LightningBubbleChannelRow = {
   chanId: string

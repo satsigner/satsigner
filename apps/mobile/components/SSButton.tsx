@@ -39,59 +39,6 @@ export type SSButtonProps = {
   totalButtonsVertical?: number
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
-function getButtonVariantStyle(
-  variant: SSButtonProps['variant'],
-  withSelect?: boolean
-): StyleProp<ViewStyle> {
-  if (variant === 'secondary') {
-    return styles.buttonSecondary
-  }
-  if (variant === 'outline') {
-    return styles.buttonOutline
-  }
-  if (variant === 'ghost') {
-    return styles.buttonGhost
-  }
-  if (variant === 'subtle') {
-    return styles.buttonSubtle
-  }
-  if (variant === 'danger') {
-    return styles.buttonDanger
-  }
-  if (variant === 'elevated') {
-    return styles.buttonDefault
-  }
-  if (variant === 'default' && withSelect) {
-    return styles.buttonWithSelect
-  }
-  return styles.buttonDefault
-}
-
-function getTextVariantStyle(variant: SSButtonProps['variant']) {
-  if (variant === 'secondary') {
-    return styles.textSecondary
-  }
-  if (variant === 'ghost') {
-    return styles.textGhost
-  }
-  if (variant === 'subtle') {
-    return styles.textSubtle
-  }
-  return styles.textDefault
-}
-
-function getLabelColor(
-  variant: SSButtonProps['variant']
-): SSTextProps['color'] {
-  if (variant === 'secondary') {
-    return 'black'
-  }
-  if (variant === 'ghost') {
-    return 'muted'
-  }
-  return 'white'
-}
-
 function SSButton({
   label = '',
   icon,
@@ -307,6 +254,59 @@ function SSButton({
       )}
     </TouchableOpacity>
   )
+}
+
+function getButtonVariantStyle(
+  variant: SSButtonProps['variant'],
+  withSelect?: boolean
+): StyleProp<ViewStyle> {
+  if (variant === 'secondary') {
+    return styles.buttonSecondary
+  }
+  if (variant === 'outline') {
+    return styles.buttonOutline
+  }
+  if (variant === 'ghost') {
+    return styles.buttonGhost
+  }
+  if (variant === 'subtle') {
+    return styles.buttonSubtle
+  }
+  if (variant === 'danger') {
+    return styles.buttonDanger
+  }
+  if (variant === 'elevated') {
+    return styles.buttonDefault
+  }
+  if (variant === 'default' && withSelect) {
+    return styles.buttonWithSelect
+  }
+  return styles.buttonDefault
+}
+
+function getTextVariantStyle(variant: SSButtonProps['variant']) {
+  if (variant === 'secondary') {
+    return styles.textSecondary
+  }
+  if (variant === 'ghost') {
+    return styles.textGhost
+  }
+  if (variant === 'subtle') {
+    return styles.textSubtle
+  }
+  return styles.textDefault
+}
+
+function getLabelColor(
+  variant: SSButtonProps['variant']
+): SSTextProps['color'] {
+  if (variant === 'secondary') {
+    return 'black'
+  }
+  if (variant === 'ghost') {
+    return 'muted'
+  }
+  return 'white'
 }
 
 const styles = StyleSheet.create({

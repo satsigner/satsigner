@@ -25,8 +25,8 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
+import { type Label } from '@/types/bips/329'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type Label } from '@/utils/bip329'
 
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()

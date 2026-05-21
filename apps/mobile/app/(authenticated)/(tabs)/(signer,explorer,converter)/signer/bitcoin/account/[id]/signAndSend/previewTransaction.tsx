@@ -52,11 +52,8 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Sizes, Typography } from '@/styles'
-import {
-  type Key,
-  type MnemonicWordCount,
-  type Secret
-} from '@/types/models/Account'
+import type { MnemonicWordCount } from '@/types/bips/39'
+import { type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import {
   type MockPsbt,
@@ -1380,7 +1377,7 @@ function PreviewTransaction() {
           const decodedMnemonic = detectAndDecodeSeedQR(qrInfo.content)
           if (decodedMnemonic) {
             // Sign the PSBT with the scanned seed
-            await handleSignWithSeedQR(index, decodedMnemonic)
+            handleSignWithSeedQR(index, decodedMnemonic)
             setCameraModalVisible(false)
             resetScanProgress()
             return
@@ -1683,13 +1680,13 @@ function PreviewTransaction() {
   }
 
   // Handle seed words form submission
-  const handleSeedWordsSubmit = async () => {
+  const handleSeedWordsSubmit = () => {
     if (!currentMnemonic || currentCosignerIndex === null) {
       toast.error(t('common.error.validMnemonic'))
       return
     }
 
-    await handleSignWithSeedQR(currentCosignerIndex, currentMnemonic)
+    handleSignWithSeedQR(currentCosignerIndex, currentMnemonic)
 
     // Clear the form and close modals
     setSeedWordsModalVisible(false)
@@ -2234,11 +2231,11 @@ function PreviewTransaction() {
                         ? t('transaction.preview.checkAllSignatures')
                         : t('sign.transaction')
                     }
-                    onPress={async () => {
+                    onPress={() => {
                       // For multisig accounts, combine and finalize PSBTs first
                       if (account?.policyType === 'multisig') {
                         const finalTransactionHex =
-                          await combineAndFinalizeMultisigPSBTs()
+                          combineAndFinalizeMultisigPSBTs()
 
                         if (finalTransactionHex) {
                           router.navigate(

@@ -35,10 +35,10 @@ export function useContentHandler({
   )
 
   const handleNFCContentRead = useCallback(
-    async (content: string) => {
+    (content: string) => {
       const normalized =
         context === 'ecash' ? prepareEcashTokenInput(content) : content
-      const detectedContent = await detectContentByContext(normalized, context)
+      const detectedContent = detectContentByContext(normalized, context)
       onContentScanned(detectedContent)
     },
     [context, onContentScanned]

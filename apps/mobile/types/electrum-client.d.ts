@@ -35,8 +35,10 @@ declare module 'electrum-client' {
     blockchainScripthash_getMempool(
       scriptHash: string
     ): Promise<{ height: number; tx_hash: string; fee: number }[]>
+    blockchainHeaders_subscribe(): Promise<{ height: number }>
     blockchainTransaction_get(txid: string, verbose?: boolean): Promise<string>
     blockchainBlock_header(height: number): Promise<string>
     blockchainTransaction_broadcast(rawTxHex: string): Promise<string>
+    mempool_getFeeHistogram(): Promise<[number, number][]>
   }
 }

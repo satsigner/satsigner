@@ -3,6 +3,7 @@ import { produce } from 'immer'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
+import z from 'zod'
 import { useShallow } from 'zustand/react/shallow'
 
 import Esplora from '@/api/esplora'
@@ -20,27 +21,32 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type { Block, Tx } from '@/types/models/Blockchain'
+import { type Block, type Tx, TxSchema } from '@/types/models/Blockchain'
 import type { ExplorerBlockSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 
-type Transations = Record<
-  Tx['txid'],
-  Tx & { amount: number; verbosity: number }
->
+const BlockTxSchema = TxSchema.extend({
+  amount: z.number(),
+  verbosity: z.number()
+})
+
+type BlockTx = z.infer<typeof BlockTxSchema>
+
+type BlockTxs = Record<Tx['txid'], BlockTx>
 
 export default function BlockTransactions() {
   const { block: blockHash } = useLocalSearchParams<ExplorerBlockSearchParams>()
 
-  const [backend, esploraClient] = useBlockchainStore(
+  const [backend, esploraUrl] = useBlockchainStore(
     useShallow((state) => [
       state.configs['bitcoin'].server.backend,
-      new Esplora(state.configs['bitcoin'].server.url)
+      state.configs['bitcoin'].server.url
     ])
   )
+  const esploraClient = new Esplora(esploraUrl)
 
   const [block, setBlock] = useState<Block | undefined>()
-  const [blockTxs, setBlockTxs] = useState<Transations>({})
+  const [blockTxs, setBlockTxs] = useState<BlockTxs>({})
   const [blockTxids, setBlockTxids] = useState<Tx['txid'][]>([])
   const [visibleTxCount, setVisibleTxCount] = useState(10)
   const [requestStatuses, runRequest] = usePromiseStatuses(['txs'])
@@ -71,15 +77,15 @@ export default function BlockTransactions() {
     await runRequest({
       action: async () => {
         const txInfo = await esploraClient.getTxInfo(txid)
-        setBlockTxs((txs) =>
-          produce(txs, (draft) => {
-            draft[txid] = {
-              ...txInfo,
-              amount: txInfo.vout.reduce((val, out) => val + out.value, 0),
-              verbosity: 1
-            }
-          })
-        )
+        const tx: BlockTx = {
+          ...txInfo,
+          amount: txInfo.vout.reduce((val, out) => val + out.value, 0),
+          verbosity: 1
+        } as BlockTx
+        setBlockTxs((txs: BlockTxs) => ({
+          ...txs,
+          [txid]: tx
+        }))
       },
       errorMessage: 'Failed to get tx info',
       name: txid

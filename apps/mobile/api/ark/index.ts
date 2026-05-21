@@ -1,29 +1,17 @@
+import { getArkProvider } from '@/api/ark/registry'
 import type {
   ArkBalance,
+  ArkBolt11Invoice,
   ArkFeeEstimate,
   ArkLightningSendResult,
   ArkMovement,
+  ArkNotificationListener,
+  ArkNotificationUnsubscribe,
   ArkServerId,
-  ArkVtxo
+  ArkVtxo,
+  ArkWalletArgs
 } from '@/types/models/Ark'
-
-import type {
-  ArkBolt11Invoice,
-  ArkNotificationListener,
-  ArkNotificationUnsubscribe,
-  ArkWalletArgs
-} from './provider'
-import { getArkProvider } from './registry'
-import './providers/bark'
-
-export type {
-  ArkBolt11Invoice,
-  ArkMovementEvent,
-  ArkMovementEventType,
-  ArkNotificationListener,
-  ArkNotificationUnsubscribe,
-  ArkWalletArgs
-} from './provider'
+import '@/api/ark/providers/bark'
 
 export async function createArkWallet(args: ArkWalletArgs): Promise<void> {
   await getArkProvider(args.server.id).createWallet(args)

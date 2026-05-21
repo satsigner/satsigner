@@ -1,8 +1,7 @@
 import { nip19 } from 'nostr-tools'
 
+import { NOSTR_MENTION_RE } from '@/constants/nostr'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
-
-const MENTION_RE = /(?:nostr:)?(npub1[a-z0-9]{6,}|nprofile1[a-z0-9]{6,})/gi
 
 function decodeMentionPubkey(bech32: string): string | null {
   try {
@@ -22,7 +21,7 @@ function decodeMentionPubkey(bech32: string): string | null {
 export function extractMentionPubkeys(content: string): string[] {
   const pubkeys: string[] = []
   const seen = new Set<string>()
-  for (const match of content.matchAll(MENTION_RE)) {
+  for (const match of content.matchAll(NOSTR_MENTION_RE)) {
     const [, bech32] = match
     if (!bech32) {
       continue
@@ -40,7 +39,7 @@ export function resolveMentionsInContent(
   content: string,
   profiles: Record<string, NostrKind0Profile | null>
 ): string {
-  return content.replace(MENTION_RE, (fullMatch, bech32: string) => {
+  return content.replace(NOSTR_MENTION_RE, (fullMatch, bech32: string) => {
     const pubkey = decodeMentionPubkey(bech32)
     if (!pubkey) {
       return fullMatch

@@ -130,13 +130,13 @@ export default function UnifiedImport() {
     }
   }
 
-  async function updateExternalDescriptor(
+  function updateExternalDescriptor(
     descriptor: string,
     skipChecksumValidation = false
   ) {
     const descriptorValidation = skipChecksumValidation
-      ? await validateDescriptorFormat(descriptor)
-      : await validateDescriptor(descriptor)
+      ? validateDescriptorFormat(descriptor)
+      : validateDescriptor(descriptor)
     const basicValidation =
       descriptorValidation && !descriptor.match(/[txyz]priv/)
 
@@ -180,13 +180,13 @@ export default function UnifiedImport() {
     updateDescriptorValidationState()
   }
 
-  async function updateInternalDescriptor(
+  function updateInternalDescriptor(
     descriptor: string,
     skipChecksumValidation = false
   ) {
     const descriptorValidation = skipChecksumValidation
-      ? await validateDescriptorFormat(descriptor)
-      : await validateDescriptor(descriptor)
+      ? validateDescriptorFormat(descriptor)
+      : validateDescriptor(descriptor)
     const basicValidation = descriptorValidation
 
     // Network validation - check if descriptor is compatible with selected network
@@ -312,7 +312,7 @@ export default function UnifiedImport() {
       // Check if the descriptor is combined (contains <0;1> or <0,1>)
       if (isCombinedDescriptor(text)) {
         // Validate the combined descriptor and get separated descriptors
-        const combinedValidation = await validateCombinedDescriptor(
+        const combinedValidation = validateCombinedDescriptor(
           text,
           scriptVersion,
           network as string
@@ -424,7 +424,7 @@ export default function UnifiedImport() {
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
         if (isCombinedDescriptor(text)) {
           // Validate the combined descriptor and get separated descriptors
-          const combinedValidation = await validateCombinedDescriptor(
+          const combinedValidation = validateCombinedDescriptor(
             text,
             scriptVersion,
             network as string
@@ -483,7 +483,7 @@ export default function UnifiedImport() {
     }
   }
 
-  async function handleQRCodeScanned(scanningResult: { data?: string }) {
+  function handleQRCodeScanned(scanningResult: { data?: string }) {
     const data = scanningResult?.data
     if (!data) {
       return
@@ -528,7 +528,7 @@ export default function UnifiedImport() {
       // Check if the descriptor is combined (contains <0;1> or <0,1>)
       if (isCombinedDescriptor(data)) {
         // Validate the combined descriptor and get separated descriptors
-        const combinedValidation = await validateCombinedDescriptor(
+        const combinedValidation = validateCombinedDescriptor(
           data,
           scriptVersion,
           network as string
@@ -684,6 +684,7 @@ export default function UnifiedImport() {
                       placeholder={t('watchonly.importDescriptor.external')}
                       multiline
                       numberOfLines={3}
+                      status={externalDescriptorError ? 'invalid' : undefined}
                     />
                     {externalDescriptorError && (
                       <SSText
@@ -708,6 +709,7 @@ export default function UnifiedImport() {
                       placeholder={t('watchonly.importDescriptor.internal')}
                       multiline
                       numberOfLines={3}
+                      status={internalDescriptorError ? 'invalid' : undefined}
                     />
                     {internalDescriptorError && (
                       <SSText

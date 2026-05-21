@@ -1,6 +1,7 @@
 import { KeychainKind, Network as BdkNetwork } from 'react-native-bdk-sdk'
 
-import { type ScriptVersionType } from '@/types/models/Account'
+import { WORDLIST_LIST } from '@/types/bips/39'
+import { ScriptVersionType } from '@/types/models/Script'
 import { getFingerprintFromSeed } from '@/utils/bip32'
 import {
   detectElectrumSeed,
@@ -14,8 +15,7 @@ import {
   isElectrumDerivationPath,
   mnemonicToSeed,
   mnemonicToSeedElectrum,
-  validateMnemonic,
-  WORDLIST_LIST
+  validateMnemonic
 } from '@/utils/bip39'
 
 const englishMnemonic =

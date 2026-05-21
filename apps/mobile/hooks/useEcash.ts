@@ -429,8 +429,6 @@ export function useEcash() {
       expiry: quote.expiry,
       id: `melt_${Date.now()}_${await randomKey(9)}`,
       invoice: quote.quote,
-      label: quote.quote,
-      memo: quote.quote,
       mintUrl,
       quoteId: quote.quote,
       status: 'settled',

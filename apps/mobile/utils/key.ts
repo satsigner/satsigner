@@ -38,7 +38,7 @@ export function hasMultisigDuplicateXpubs(
   keys: (Key | undefined | null)[]
 ): boolean {
   const xpubs = keys
-    .filter((key): key is Key => key !== undefined && key !== null)
+    .filter((key): key is Key => key !== null && key !== undefined)
     .map((key) => {
       if (typeof key.secret !== 'object') {
         return ''

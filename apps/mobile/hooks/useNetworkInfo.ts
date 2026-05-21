@@ -1,12 +1,91 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { useBlockchainStore } from '@/store/blockchain'
+import type { Backend, Network } from '@/types/settings/blockchain'
 
 export type BlockHeightSource = 'backend' | 'mempool'
+
+const REFETCH_INTERVAL_MS = 30_000
+
+type NetworkInfoResult = {
+  blockHeight: number | null
+  blockHeightSource: BlockHeightSource
+  fee: number | null
+}
+
+async function fetchNetworkInfo(
+  network: Network,
+  serverUrl: string,
+  serverBackend: Backend,
+  mempoolUrl: string
+): Promise<NetworkInfoResult> {
+  let height: number | null = null
+  let source: BlockHeightSource = 'mempool'
+
+  if (serverBackend === 'esplora' && serverUrl) {
+    try {
+      const esplora = new Esplora(serverUrl)
+      const rawHeight = await esplora.getLatestBlockHeight()
+      height = Number(rawHeight)
+      source = 'backend'
+    } catch {
+      // fall through to mempool
+    }
+  } else if (serverBackend === 'electrum' && serverUrl) {
+    let client: ElectrumClient | null = null
+    try {
+      client = ElectrumClient.fromUrl(serverUrl, network)
+      await client.init()
+      const tip = await (
+        client.client as unknown as {
+          blockchainHeaders_subscribe: () => Promise<{
+            height: number
+          } | null>
+        }
+      ).blockchainHeaders_subscribe()
+      if (tip?.height) {
+        height = tip.height as number
+        source = 'backend'
+      }
+    } catch {
+      // fall through to mempool
+    } finally {
+      try {
+        client?.close()
+      } catch {
+        /* silently ignored */
+      }
+    }
+  }
+
+  let fee: number | null = null
+  try {
+    const oracle = new MempoolOracle(mempoolUrl)
+    const [mempoolHeight, fees] = await Promise.all([
+      height === null ? oracle.getCurrentBlockHeight() : Promise.resolve(null),
+      oracle.getMemPoolFees()
+    ])
+    if (height === null && mempoolHeight !== null) {
+      height = mempoolHeight as number
+      source = 'mempool'
+    }
+    if (fees?.high !== null && fees?.high !== undefined) {
+      fee = fees.high
+    }
+  } catch {
+    // backend height kept; fees stay null
+  }
+
+  return {
+    blockHeight: height,
+    blockHeightSource: height !== null ? source : 'mempool',
+    fee
+  }
+}
 
 export function useNetworkInfo() {
   const [selectedNetwork, configsMempool, configs] = useBlockchainStore(
@@ -20,99 +99,40 @@ export function useNetworkInfo() {
   const nextBlockFee = useBlockchainStore((state) => state.nextBlockFee)
   const setNextBlockFee = useBlockchainStore((state) => state.setNextBlockFee)
 
-  const [blockHeight, setBlockHeight] = useState<number | null>(null)
-  const [blockHeightSource, setBlockHeightSource] =
-    useState<BlockHeightSource>('mempool')
+  const { server } = configs[selectedNetwork]
+  const mempoolUrl = configsMempool[selectedNetwork]
 
-  useEffect(() => {
-    setBlockHeight(null)
-    setBlockHeightSource('mempool')
-  }, [selectedNetwork])
-
-  const fetchNetworkInfo = useCallback(async () => {
-    const networkAtStart = selectedNetwork
-    const { server } = configs[networkAtStart]
-    let height: number | null = null
-    let source: BlockHeightSource = 'mempool'
-
-    // Try configured Esplora server for block height only
-    if (server.backend === 'esplora' && server.url) {
-      try {
-        const esplora = new Esplora(server.url)
-        const rawHeight = await esplora.getLatestBlockHeight()
-        height = Number(rawHeight)
-        source = 'backend'
-      } catch {
-        // fall through to mempool
+  const { data } = useQuery({
+    gcTime: 0,
+    queryFn: async () => {
+      const result = await fetchNetworkInfo(
+        selectedNetwork,
+        server.url,
+        server.backend,
+        mempoolUrl
+      )
+      if (
+        result.fee !== null &&
+        useBlockchainStore.getState().selectedNetwork === selectedNetwork
+      ) {
+        setNextBlockFee(Math.round(result.fee))
       }
-    }
+      return result
+    },
+    queryKey: [
+      'networkInfo',
+      selectedNetwork,
+      server.url,
+      server.backend,
+      mempoolUrl
+    ],
+    refetchInterval: REFETCH_INTERVAL_MS,
+    refetchIntervalInBackground: true
+  })
 
-    // Try configured Electrum server for block height only
-    else if (server.backend === 'electrum' && server.url) {
-      let client: ElectrumClient | null = null
-      try {
-        client = ElectrumClient.fromUrl(server.url, networkAtStart)
-        await client.init()
-        const tip = await (
-          client.client as unknown as {
-            blockchainHeaders_subscribe: () => Promise<{
-              height: number
-            } | null>
-          }
-        ).blockchainHeaders_subscribe()
-        if (tip?.height) {
-          height = tip.height as number
-          source = 'backend'
-        }
-      } catch {
-        // fall through to mempool
-      } finally {
-        try {
-          client?.close()
-        } catch {
-          /* silently ignored */
-        }
-      }
-    }
-
-    // Always get fee rates and block height (if missing) from mempool.space
-    let fee: number | null = null
-    try {
-      const mempoolUrl = configsMempool[networkAtStart]
-      const oracle = new MempoolOracle(mempoolUrl)
-      const [mempoolHeight, fees] = await Promise.all([
-        height === null
-          ? oracle.getCurrentBlockHeight()
-          : Promise.resolve(null),
-        oracle.getMemPoolFees()
-      ])
-      if (height === null && mempoolHeight !== null) {
-        height = mempoolHeight as number
-        source = 'mempool'
-      }
-      if (fees?.high !== null && fees?.high !== undefined) {
-        fee = fees.high
-      }
-    } catch {
-      // Heights from our backend above are still used; fees stay unset this round.
-    }
-
-    if (useBlockchainStore.getState().selectedNetwork !== networkAtStart) {
-      return
-    }
-
-    setBlockHeight(height)
-    if (fee !== null) {
-      setNextBlockFee(Math.round(fee))
-    }
-    setBlockHeightSource(height !== null ? source : 'mempool')
-  }, [selectedNetwork, configsMempool, configs, setNextBlockFee])
-
-  useEffect(() => {
-    fetchNetworkInfo()
-    const interval = setInterval(fetchNetworkInfo, 30000)
-    return () => clearInterval(interval)
-  }, [fetchNetworkInfo])
-
-  return { blockHeight, blockHeightSource, nextBlockFee }
+  return {
+    blockHeight: data?.blockHeight ?? null,
+    blockHeightSource: data?.blockHeightSource ?? 'mempool',
+    nextBlockFee
+  }
 }

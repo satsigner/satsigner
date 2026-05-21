@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconList } from '@/components/icons'
@@ -27,6 +28,7 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 function SelectUtxoBubbles() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const insets = useSafeAreaInsets()
 
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
@@ -35,13 +37,8 @@ function SelectUtxoBubbles() {
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
-  const [inputs, getInputs, addInput, removeInput] = useTransactionBuilderStore(
-    useShallow((state) => [
-      state.inputs,
-      state.getInputs,
-      state.addInput,
-      state.removeInput
-    ])
+  const [inputs, addInput, removeInput] = useTransactionBuilderStore(
+    useShallow((state) => [state.inputs, state.addInput, state.removeInput])
   )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -63,7 +60,7 @@ function SelectUtxoBubbles() {
   }
 
   const utxosTotalValue = utxosValue(account.utxos)
-  const utxosSelectedValue = utxosValue(getInputs())
+  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
 
   function handleOnToggleSelected(utxo: Utxo) {
     const includesInput = inputs.has(getUtxoOutpoint(utxo))
@@ -173,7 +170,10 @@ function SelectUtxoBubbles() {
       />
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
-        style={styles.absoluteSubmitContainer}
+        style={[
+          styles.absoluteSubmitContainer,
+          { paddingBottom: 20 + insets.bottom }
+        ]}
         colors={['#0A0A0A00', '#0A0A0A0F', '#0A0A0A2A', '#0A0A0A']}
       >
         <SSVStack style={{ width: '92%' }}>
@@ -238,7 +238,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingBottom: 20,
     paddingHorizontal: 0,
     paddingTop: 0,
     position: 'absolute',

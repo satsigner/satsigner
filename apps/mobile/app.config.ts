@@ -46,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-router',
       {
         ...(process.env.EXPO_PUBLIC_STORYBOOK_ENABLED === 'true'
-          ? { root: './.storybook' }
+          ? { root: './.rnstorybook' }
           : undefined)
       }
     ],
@@ -99,7 +99,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     resizeMode: 'contain'
   },
   userInterfaceStyle: 'dark',
-  version: '0.3.4',
+  version: '0.3.5',
   web: {
     favicon: './assets/favicon.png'
   }

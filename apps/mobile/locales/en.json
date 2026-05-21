@@ -472,6 +472,7 @@
     "error.scanFailed": "Failed to scan QR code",
     "error.urDecodeFailed": "Failed to decode UR QR code",
     "invalidContent": "Invalid {context} content detected",
+    "lens.tele": "Tele",
     "permissions": "Enable camera access in your phone's settings to scan a QR code.",
     "scanQRCode": "Scan QRCode",
     "scanText": "Scan any Bitcoin or Lightning related QR code.",
@@ -2103,6 +2104,11 @@
     "validation.unknown": "Unknown content detected",
     "validation.ur": "Universal Resource detected",
     "validation.valid": "Valid content detected"
+  },
+  "paymentMethod": {
+    "type.ark": "Ark",
+    "type.ecash": "ECash",
+    "type.lightning": "Lightning"
   },
   "preview": {
     "btnCollapse": "Collapse",

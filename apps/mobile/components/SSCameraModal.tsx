@@ -63,19 +63,22 @@ type QRInfo =
 
 const MAX_ZOOM = 1
 
+const LENS_LABEL_ULTRA_WIDE = '0.5×'
+const LENS_LABEL_WIDE = '1×'
+
 function getLensLabel(lens: string): string {
   if (lens.includes('UltraWide') || lens.includes('DualWide')) {
-    return '0.5×'
+    return LENS_LABEL_ULTRA_WIDE
   }
   if (
     lens.includes('WideAngle') ||
     lens.includes('Dual') ||
     lens.includes('Triple')
   ) {
-    return '1×'
+    return LENS_LABEL_WIDE
   }
   if (lens.includes('Telephoto')) {
-    return 'Tele'
+    return t('camera.lens.tele')
   }
   const parts = lens.replace(/builtIn/, '').split(/(?=[A-Z])/)
   return parts.join(' ')
@@ -564,10 +567,12 @@ function SSCameraModal({
         <CameraView
           onBarcodeScanned={onBarcodeScanned}
           onAvailableLensesChanged={(event: AvailableLenses) => {
-            if (event.lenses.length > 1) {
-              setAvailableLenses(event.lenses)
-              setSelectedLens((prev) => prev ?? event.lenses[0])
+            const { lenses } = event
+            if (lenses.length < 2) {
+              return
             }
+            setAvailableLenses(lenses)
+            setSelectedLens((prev) => prev ?? lenses[0])
           }}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           zoom={zoom}

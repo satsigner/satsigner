@@ -9,6 +9,6 @@ defaultConfig.resolver.extraNodeModules = {
   process: require.resolve('process/')
 }
 
-const withStorybook = require('@storybook/react-native/metro/withStorybook')
+const { withStorybook } = require('@storybook/react-native/metro/withStorybook')
 
 module.exports = withStorybook(defaultConfig)

@@ -4,7 +4,7 @@ import { testNostrRelaysReachable } from '@/api/nostr'
 import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
-} from '@/types/models/NostrIdentity'
+} from '@/types/models/Nostr'
 
 type UseNostrLandingRelayReachabilityArgs = {
   activeIdentityNpub: string | null

@@ -1,6 +1,4 @@
-import type { ArkServerId } from '@/types/models/Ark'
-
-import type { ArkWalletProvider } from './provider'
+import type { ArkServerId, ArkWalletProvider } from '@/types/models/Ark'
 
 const providers = new Map<ArkServerId, ArkWalletProvider>()
 

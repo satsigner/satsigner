@@ -1,11 +1,8 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 
-import {
-  type ArkBolt11Invoice,
-  createArkBolt11Invoice,
-  newArkAddress
-} from '@/api/ark'
+import { createArkBolt11Invoice, newArkAddress } from '@/api/ark'
 import { useArkStore } from '@/store/ark'
+import { ArkBolt11Invoice } from '@/types/models/Ark'
 
 import { useArkWallet } from './useArkWallet'
 

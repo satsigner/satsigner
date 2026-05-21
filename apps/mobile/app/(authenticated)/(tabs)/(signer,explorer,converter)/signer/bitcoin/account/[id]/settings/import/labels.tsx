@@ -20,14 +20,9 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
+import { Bip329FileType, bip329FileTypes, Label } from '@/types/bips/329'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import {
-  type Bip329FileType,
-  bip329FileTypes,
-  bip329mimes,
-  bip329parser,
-  type Label
-} from '@/utils/bip329'
+import { bip329mimes, bip329parser } from '@/utils/bip329'
 import { pickFile } from '@/utils/filesystem'
 
 export default function ImportLabels() {

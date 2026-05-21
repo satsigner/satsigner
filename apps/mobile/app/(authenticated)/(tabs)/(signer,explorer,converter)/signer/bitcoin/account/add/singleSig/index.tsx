@@ -17,14 +17,11 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useSettingsStore } from '@/store/settings'
+import { WORDLIST_LIST } from '@/types/bips/39'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
-import {
-  generateMnemonic,
-  getFingerprintFromMnemonic,
-  WORDLIST_LIST
-} from '@/utils/bip39'
+import { generateMnemonic, getFingerprintFromMnemonic } from '@/utils/bip39'
 
 export default function SingleSig() {
   const router = useRouter()

@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
-import { fetchLndNodeDashboard } from '@/api/lndNodeDashboard'
+import { fetchLndNodeDashboard } from '@/api/lightning'
 import { useLND } from '@/hooks/useLND'
 import { t } from '@/locales'
 

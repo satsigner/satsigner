@@ -1,4 +1,4 @@
-import { type ScriptVersionType } from '@/types/models/Account'
+import { type ScriptVersionType } from '@/types/models/Script'
 
 export function getScriptVersionType(
   address: string
