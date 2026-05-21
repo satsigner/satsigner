@@ -11,7 +11,13 @@
   },
   "scripts": {
     "android": "expo run:android",
+    "android:dev": "cross-env APP_VARIANT=development expo run:android",
+    "android:prod": "cross-env APP_VARIANT=production expo run:android",
     "ios": "expo run:ios",
+    "ios:dev": "cross-env APP_VARIANT=development expo run:ios",
+    "ios:prod": "cross-env APP_VARIANT=production expo run:ios",
+    "prebuild:dev": "cross-env APP_VARIANT=development expo prebuild --clean",
+    "prebuild:prod": "cross-env APP_VARIANT=production expo prebuild --clean",
     "sb:android": "cross-env EXPO_PUBLIC_STORYBOOK_ENABLED=true expo run:android",
     "sb:ios": "cross-env EXPO_PUBLIC_STORYBOOK_ENABLED=true expo run:ios",
     "start": "expo start",

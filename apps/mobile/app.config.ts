@@ -2,6 +2,32 @@ import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
 const projectId = process.env.EXPO_PROJECT_ID
 
+const IS_DEV = process.env.APP_VARIANT !== 'production'
+
+const getUniqueIdentifier = () => {
+  if (IS_DEV) {
+    return 'com.satsigner.satsigner.dev'
+  }
+
+  return 'com.satsigner.satsigner'
+}
+
+const getAppName = () => {
+  if (IS_DEV) {
+    return 'satsigner (Dev)'
+  }
+
+  return 'satsigner'
+}
+
+const getScheme = () => {
+  if (IS_DEV) {
+    return 'satsignerdev'
+  }
+
+  return 'satsigner'
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   android: {
@@ -9,7 +35,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: '#ffffff',
       foregroundImage: './assets/adaptive-icon.png'
     },
-    package: 'com.satsigner.satsigner',
+    package: getUniqueIdentifier(),
     permissions: ['NFC']
   },
   androidStatusBar: {
@@ -29,7 +55,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   icon: './assets/icon.png',
   ios: {
-    bundleIdentifier: 'com.satsigner.satsigner',
+    bundleIdentifier: getUniqueIdentifier(),
     infoPlist: {
       NFCReaderUsageDescription:
         'This app uses NFC to read and write data from NFC tags',
@@ -38,7 +64,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     supportsTablet: true
   },
-  name: 'satsigner',
+  name: getAppName(),
   orientation: 'portrait',
   plugins: [
     'expo-dev-client',
@@ -91,7 +117,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-web-browser',
     '@secondts/bark-react-native'
   ],
-  scheme: 'satsigner',
+  scheme: getScheme(),
   slug: 'satsigner',
   splash: {
     backgroundColor: '#000000',
