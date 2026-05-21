@@ -341,8 +341,8 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
     )
   }
 
-  function advanceFromStep(step: number) {
-    const next = step + 1
+  function advanceFromStep(step: number, stepsToAdvance = 1) {
+    const next = step + stepsToAdvance
 
     if (next >= STEP_COUNT) {
       startLogoFinale()
@@ -357,7 +357,8 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
   }
 
   function goBackFromStep(step: number) {
-    const prev = step - 1
+    const skippedFollowUp = step === 10 && saveSpendChoice === null
+    const prev = skippedFollowUp ? step - 2 : step - 1
     stepOffsetX.value = SLIDE_OUT_OFFSET
     textSlideX.value = SLIDE_OUT_OFFSET
     descSlideX.value = SLIDE_OUT_OFFSET
@@ -368,15 +369,17 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
     setCurrentStep(prev)
   }
 
-  function handleNext() {
+  function handleNext(options?: { fromSaveSpendPick?: boolean }) {
     const step = currentStep
+    const stepsToAdvance =
+      step === 8 && !options?.fromSaveSpendPick ? 2 : 1
     textSlideX.set(withTiming(SLIDE_OUT_OFFSET, { duration: TRANSITION_MS }))
     descSlideX.set(withTiming(SLIDE_OUT_OFFSET, { duration: TRANSITION_MS }))
     stepOffsetX.set(withTiming(SLIDE_OUT_OFFSET, { duration: TRANSITION_MS }))
     stepTransition.set(
       withTiming(0, { duration: TRANSITION_MS }, (finished) => {
         if (finished) {
-          runOnJS(advanceFromStep)(step)
+          runOnJS(advanceFromStep)(step, stepsToAdvance)
         }
       })
     )
@@ -403,7 +406,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
 
   function handleSaveSpendPick(choice: 'save' | 'spend') {
     setSaveSpendChoice(choice)
-    handleNext()
+    handleNext({ fromSaveSpendPick: true })
   }
 
   function handleSaveSpendFollowUpPick() {

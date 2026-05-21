@@ -1,3 +1,4 @@
+import { Image as ExpoImage, type ImageSource } from 'expo-image'
 import { useEffect, useMemo } from 'react'
 import { Image, StyleSheet, Text, View } from 'react-native'
 import Animated, {
@@ -11,9 +12,9 @@ import Animated, {
 
 import { Colors, Typography } from '@/styles'
 
-const SUN_FONT_SIZE = 18
+const SUN_FONT_SIZE = 16
 const SUN_LETTER_SPACING = 3.4
-const SUN_LINE_HEIGHT = 20
+const SUN_LINE_HEIGHT = 14
 
 const THANKS_SUN_REVEAL_MS = 520
 const THANKS_ORBIT_REVEAL_MS = 420
@@ -22,46 +23,157 @@ const THANKS_NODE_REVEAL_MS = 320
 const THANKS_BREATHE_MAX = 1.03
 const THANKS_BREATHE_MS = 3600
 
-// Outer planets revolve slower than inner ones (Kepler-ish feel).
-const ORBIT_INNER_PERIOD_MS = 70000
-const ORBIT_MIDDLE_PERIOD_MS = 95000
-const ORBIT_OUTER_PERIOD_MS = 130000
+/** Orbit band count (more rings + mixed node types). */
+const ORBIT_BAND_COUNT = 6
 
-type Planet = {
-  angle: number
-  github: string
+/**
+ * Base period per band (ms for one full turn). Outer bands slower; values
+ * get small deterministic jitter in the effect.
+ */
+const ORBIT_PERIOD_BASE_MS: readonly number[] = [
+  56000, 68000, 80000, 94000, 108000, 124000
+]
+
+const ORBIT_RING_COLOR_INNER = Colors.gray[300]
+const ORBIT_RING_COLOR_OUTER = Colors.gray[800]
+
+function lerpHex(from: string, to: string, t: number): string {
+  const parse = (hex: string) => {
+    const h = hex.replace('#', '')
+    return {
+      b: parseInt(h.slice(4, 6), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      r: parseInt(h.slice(0, 2), 16)
+    }
+  }
+  const a = parse(from)
+  const b = parse(to)
+  const channel = (start: number, end: number) =>
+    Math.round(start + (end - start) * t)
+  const r = channel(a.r, b.r)
+  const g = channel(a.g, b.g)
+  const bl = channel(a.b, b.b)
+  return `#${[r, g, bl]
+    .map((v) => v.toString(16).padStart(2, '0'))
+    .join('')}`
+}
+
+function orbitRingColorForBand(band: number): string {
+  const t =
+    ORBIT_BAND_COUNT > 1 ? band / (ORBIT_BAND_COUNT - 1) : 0
+  return lerpHex(ORBIT_RING_COLOR_INNER, ORBIT_RING_COLOR_OUTER, t)
+}
+
+function orbitRingOpacityForBand(band: number): number {
+  const t =
+    ORBIT_BAND_COUNT > 1 ? band / (ORBIT_BAND_COUNT - 1) : 0
+  return 0.38 + t * 0.52
+}
+
+/**
+ * Stable pseudo-random in [0, 1) from string (no Math.random in render).
+ */
+function hash01(seed: string): number {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  }
+  return (h % 10000) / 10000
+}
+
+const OPENSATS_LOGO = require('@/assets/images/intro/opensats-avatar.png')
+const BTC_LOGO = require('@/assets/images/intro/btc-logo.png')
+
+const BTC_LOGO_SCALE = 0.8
+
+type OrbitBandIndex = 0 | 1 | 2 | 3 | 4 | 5
+
+type OrbitNodeInput = {
+  band: OrbitBandIndex
+  github?: string
+  isCompany?: boolean
+  logo?: ImageSource
+  logoScale?: number
   size: number
 }
 
-// Inner orbit — top contributors by commit count, sized by importance.
-const INNER_PLANETS: readonly Planet[] = [
-  { angle: 0, github: 'psycarlo', size: 56 },
-  { angle: 90, github: 'v4v2', size: 55 },
-  { angle: 180, github: 'pedromvpg', size: 54 },
-  { angle: 270, github: 'tmakerman', size: 42 }
+type OrbitNodeSpec = OrbitNodeInput & {
+  angle: number
+}
+
+/**
+ * All thanks nodes: contributors and logos mixed across bands. Sizes match
+ * the previous inner / middle / outer circles (unchanged pixel diameters).
+ */
+const ORBIT_NODE_INPUTS: readonly OrbitNodeInput[] = [
+  { band: 0, github: 'dergigi', size: 22 },
+  { band: 1, github: 'Yi-Jacob', size: 26 },
+  { band: 1, github: 'francismars', size: 26 },
+  { band: 2, github: 'umarluqman', size: 28 },
+  { band: 2, github: 'Jeezman', size: 32 },
+  { band: 2, github: 'NerdNook-rgb', size: 36 },
+  { band: 3, github: 'garyray-k', size: 28 },
+  { band: 3, github: 'tmakerman', size: 42 },
+  { band: 3, isCompany: true, logo: OPENSATS_LOGO, size: 78 },
+  { band: 4, github: 'pedromvpg', size: 54 },
+  { band: 4, github: 'v4v2', size: 55 },
+  {
+    band: 5,
+    isCompany: true,
+    logo: BTC_LOGO,
+    logoScale: BTC_LOGO_SCALE,
+    size: 78
+  },
+  { band: 5, github: 'psycarlo', size: 56 }
 ]
 
-// Middle orbit — supporting contributors. Angles deliberately offset from
-// inner cardinal positions (0/90/180/270) so planets never sit on the same
-// radial line as an inner planet.
-const MIDDLE_PLANETS: readonly Planet[] = [
-  { angle: 20, github: 'NerdNook-rgb', size: 36 },
-  { angle: 108, github: 'Jeezman', size: 32 },
-  { angle: 200, github: 'garyray-k', size: 28 },
-  { angle: 252, github: 'francismars', size: 26 },
-  { angle: 324, github: 'dergigi', size: 22 }
-]
+/** Even spacing per band + random phase and per-node jitter (new each call). */
+function buildOrbitNodesWithRandomAngles(
+  specs: readonly OrbitNodeInput[]
+): OrbitNodeSpec[] {
+  const perBandCount = new Array<number>(ORBIT_BAND_COUNT).fill(0)
+  const perBandIndex = new Array<number>(ORBIT_BAND_COUNT).fill(0)
+  const bandPhase = Array.from(
+    { length: ORBIT_BAND_COUNT },
+    () => Math.random() * 360
+  )
 
-// Outer orbit — company circles. Largest planets, visual priority of the
-// whole system (Jupiter/Saturn). Placed on a NE/SW diagonal so they don't
-// stack horizontally with the inner planets at 90°/270°.
-const OUTER_COMPANIES = [
-  { angle: 60, size: 78 },
-  { angle: 240, size: 78 }
-] as const
+  for (const spec of specs) {
+    perBandCount[spec.band] += 1
+  }
 
-const TOTAL_NODE_COUNT =
-  INNER_PLANETS.length + MIDDLE_PLANETS.length + OUTER_COMPANIES.length
+  return specs.map((spec) => {
+    const band = spec.band
+    const count = perBandCount[band]
+    const index = perBandIndex[band]
+    perBandIndex[band] += 1
+
+    const phase = bandPhase[band]
+    const slot = count > 0 ? (360 / count) * index : 0
+    const jitterSpan = count > 0 ? (360 / count) * 0.72 : 0
+    const jitter = (Math.random() - 0.5) * jitterSpan
+    const angle = (phase + slot + jitter + 360) % 360
+
+    return { ...spec, angle }
+  })
+}
+
+const TOTAL_NODE_COUNT = ORBIT_NODE_INPUTS.length
+
+function orbitRadiiFromSafeWidth(safeWidth: number): number[] {
+  const fractions = [0.185, 0.23, 0.28, 0.33, 0.375, 0.43]
+  return fractions.map((f) => Math.round(safeWidth * f))
+}
+
+function orbitPeriodWithJitterMs(band: number): number {
+  const base = ORBIT_PERIOD_BASE_MS[band] ?? ORBIT_PERIOD_BASE_MS[0]
+  const jitter = 0.88 + hash01(`orbit-period-${band}`) * 0.22
+  return Math.round(base * jitter)
+}
+
+function orbitDirectionSign(band: number): 1 | -1 {
+  return hash01(`orbit-dir-${band}`) >= 0.5 ? 1 : -1
+}
 
 type PlanetNodeProps = {
   angle: number
@@ -71,6 +183,8 @@ type PlanetNodeProps = {
   finaleProgress: SharedValue<number>
   github?: string
   isCompany?: boolean
+  logo?: ImageSource
+  logoScale?: number
   nodeReveal: SharedValue<number>
   orbitRadius: number
   orbitRotation: SharedValue<number>
@@ -86,6 +200,8 @@ function PlanetNode({
   finaleProgress,
   github,
   isCompany,
+  logo,
+  logoScale,
   nodeReveal,
   orbitRadius,
   orbitRotation,
@@ -117,7 +233,7 @@ function PlanetNode({
           borderRadius: size / 2,
           height: size,
           left: centerX - size / 2,
-          overflow: github ? 'hidden' : 'visible',
+          overflow: github || logo ? 'hidden' : 'visible',
           top: centerY - size / 2,
           width: size
         }
@@ -128,12 +244,23 @@ function PlanetNode({
           source={{ uri: `https://github.com/${github}.png?size=120` }}
           style={{ height: size, width: size }}
         />
+      ) : logo ? (
+        <ExpoImage
+          contentFit="contain"
+          contentPosition="center"
+          source={logo}
+          style={{
+            height: size * (logoScale ?? 1),
+            width: size * (logoScale ?? 1)
+          }}
+        />
       ) : null}
     </Animated.View>
   )
 }
 
 type OrbitRingProps = {
+  borderColor: string
   centerX: number
   centerY: number
   finaleProgress: SharedValue<number>
@@ -143,6 +270,7 @@ type OrbitRingProps = {
 }
 
 function OrbitRing({
+  borderColor,
   centerX,
   centerY,
   finaleProgress,
@@ -160,6 +288,7 @@ function OrbitRing({
         styles.orbitRing,
         ringStyle,
         {
+          borderColor,
           borderRadius: radius,
           height: radius * 2,
           left: centerX - radius,
@@ -186,27 +315,37 @@ function SSIntroAnimationThanksStep({
   const orbitOpacity = useSharedValue(0)
   const nodeReveal = useSharedValue(0)
   const breathe = useSharedValue(1)
-  const orbitInnerRotation = useSharedValue(0)
-  const orbitMiddleRotation = useSharedValue(0)
-  const orbitOuterRotation = useSharedValue(0)
+  const orbitR0 = useSharedValue(0)
+  const orbitR1 = useSharedValue(0)
+  const orbitR2 = useSharedValue(0)
+  const orbitR3 = useSharedValue(0)
+  const orbitR4 = useSharedValue(0)
+  const orbitR5 = useSharedValue(0)
+  const orbitRotations = [
+    orbitR0,
+    orbitR1,
+    orbitR2,
+    orbitR3,
+    orbitR4,
+    orbitR5
+  ]
+
+  const orbitNodes = useMemo(
+    () => buildOrbitNodesWithRandomAngles(ORBIT_NODE_INPUTS),
+    []
+  )
 
   const layout = useMemo(() => {
     // Clamp width so very wide screens (tablets) don't blow the orbit out.
     const safeWidth = Math.min(screenWidth, 460)
     const sunSize = Math.round(safeWidth * 0.24)
-    const orbitOuter = Math.round(safeWidth * 0.43)
-    const orbitMiddle = Math.round(safeWidth * 0.33)
-    const orbitInner = Math.round(safeWidth * 0.22)
-    const sunGlow = orbitInner * 2
+    const orbitRadii = orbitRadiiFromSafeWidth(safeWidth)
     const centerX = screenWidth / 2
     const centerY = screenHeight * 0.32
     return {
       centerX,
       centerY,
-      orbitInner,
-      orbitMiddle,
-      orbitOuter,
-      sunGlow,
+      orbitRadii,
       sunSize
     }
   }, [screenHeight, screenWidth])
@@ -219,11 +358,6 @@ function SSIntroAnimationThanksStep({
           (0.6 + sunReveal.value * 0.4) * (1 + finaleProgress.value * 0.06)
       }
     ]
-  }))
-
-  const sunGlowStyle = useAnimatedStyle(() => ({
-    opacity: sunReveal.value * 0.08 * (1 - finaleProgress.value),
-    transform: [{ scale: 0.85 + breathe.value * 0.18 }]
   }))
 
   useEffect(() => {
@@ -268,137 +402,63 @@ function SSIntroAnimationThanksStep({
       )
     )
 
-    orbitInnerRotation.set(
-      withRepeat(
-        withTiming(360, {
-          duration: ORBIT_INNER_PERIOD_MS,
-          easing: Easing.linear
-        }),
-        -1,
-        false
+    for (let b = 0; b < ORBIT_BAND_COUNT; b++) {
+      const sign = orbitDirectionSign(b)
+      orbitRotations[b].set(
+        withRepeat(
+          withTiming(sign * 360, {
+            duration: orbitPeriodWithJitterMs(b),
+            easing: Easing.linear
+          }),
+          -1,
+          false
+        )
       )
-    )
-    orbitMiddleRotation.set(
-      withRepeat(
-        withTiming(-360, {
-          duration: ORBIT_MIDDLE_PERIOD_MS,
-          easing: Easing.linear
-        }),
-        -1,
-        false
-      )
-    )
-    orbitOuterRotation.set(
-      withRepeat(
-        withTiming(360, {
-          duration: ORBIT_OUTER_PERIOD_MS,
-          easing: Easing.linear
-        }),
-        -1,
-        false
-      )
-    )
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const {
-    centerX,
-    centerY,
-    orbitInner,
-    orbitMiddle,
-    orbitOuter,
-    sunGlow,
-    sunSize
-  } = layout
+  const { centerX, centerY, orbitRadii, sunSize } = layout
+
+  const orbitNodesByZ = useMemo(
+    () =>
+      orbitNodes
+        .map((node, revealIndex) => ({ node, revealIndex }))
+        .sort((a, b) => b.node.size - a.node.size),
+    [orbitNodes]
+  )
 
   return (
     <View style={styles.fullScreen} pointerEvents="none">
-      <Animated.View
-        style={[
-          styles.sunGlow,
-          sunGlowStyle,
-          {
-            borderRadius: sunGlow / 2,
-            height: sunGlow,
-            left: centerX - sunGlow / 2,
-            top: centerY - sunGlow / 2,
-            width: sunGlow
-          }
-        ]}
-      />
-
-      <OrbitRing
-        centerX={centerX}
-        centerY={centerY}
-        finaleProgress={finaleProgress}
-        opacity={orbitOpacity}
-        radius={orbitInner}
-        targetOpacity={0.06}
-      />
-      <OrbitRing
-        centerX={centerX}
-        centerY={centerY}
-        finaleProgress={finaleProgress}
-        opacity={orbitOpacity}
-        radius={orbitMiddle}
-        targetOpacity={0.05}
-      />
-      <OrbitRing
-        centerX={centerX}
-        centerY={centerY}
-        finaleProgress={finaleProgress}
-        opacity={orbitOpacity}
-        radius={orbitOuter}
-        targetOpacity={0.08}
-      />
-
-      {INNER_PLANETS.map((p, i) => (
-        <PlanetNode
-          key={`inner-${i}`}
-          angle={p.angle}
-          breathe={breathe}
+      {orbitRadii.map((radius, band) => (
+        <OrbitRing
+          key={`ring-${band}`}
+          borderColor={orbitRingColorForBand(band)}
           centerX={centerX}
           centerY={centerY}
           finaleProgress={finaleProgress}
-          github={p.github}
-          nodeReveal={nodeReveal}
-          orbitRadius={orbitInner}
-          orbitRotation={orbitInnerRotation}
-          revealIndex={i}
-          size={p.size}
+          opacity={orbitOpacity}
+          radius={radius}
+          targetOpacity={orbitRingOpacityForBand(band)}
         />
       ))}
 
-      {MIDDLE_PLANETS.map((p, i) => (
+      {orbitNodesByZ.map(({ node, revealIndex }) => (
         <PlanetNode
-          key={`middle-${i}`}
-          angle={p.angle}
+          key={`orbit-${revealIndex}-${node.band}-${node.angle}`}
+          angle={node.angle}
           breathe={breathe}
           centerX={centerX}
           centerY={centerY}
           finaleProgress={finaleProgress}
-          github={p.github}
+          github={node.github}
+          isCompany={node.isCompany}
+          logo={node.logo}
+          logoScale={node.logoScale}
           nodeReveal={nodeReveal}
-          orbitRadius={orbitMiddle}
-          orbitRotation={orbitMiddleRotation}
-          revealIndex={INNER_PLANETS.length + i}
-          size={p.size}
-        />
-      ))}
-
-      {OUTER_COMPANIES.map((c, i) => (
-        <PlanetNode
-          key={`company-${i}`}
-          angle={c.angle}
-          breathe={breathe}
-          centerX={centerX}
-          centerY={centerY}
-          finaleProgress={finaleProgress}
-          isCompany
-          nodeReveal={nodeReveal}
-          orbitRadius={orbitOuter}
-          orbitRotation={orbitOuterRotation}
-          revealIndex={INNER_PLANETS.length + MIDDLE_PLANETS.length + i}
-          size={c.size}
+          orbitRadius={orbitRadii[node.band]}
+          orbitRotation={orbitRotations[node.band]}
+          revealIndex={revealIndex}
+          size={node.size}
         />
       ))}
 
@@ -431,21 +491,23 @@ function SSIntroAnimationThanksStep({
 
 const styles = StyleSheet.create({
   companyPlanet: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: Colors.white,
-    borderWidth: 1.5,
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderColor: Colors.gray[600],
+    borderWidth: 2,
+    justifyContent: 'center',
+    overflow: 'hidden',
     position: 'absolute'
   },
   contribPlanet: {
-    borderColor: Colors.white,
-    borderWidth: 1,
+    borderColor: Colors.gray[500],
+    borderWidth: 1.5,
     position: 'absolute'
   },
   fullScreen: {
     ...StyleSheet.absoluteFillObject
   },
   orbitRing: {
-    borderColor: Colors.white,
     borderWidth: 1,
     position: 'absolute'
   },
@@ -454,13 +516,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     justifyContent: 'center'
   },
-  sunGlow: {
-    backgroundColor: Colors.white,
-    position: 'absolute'
-  },
   sunText: {
     color: Colors.black,
-    fontFamily: Typography.sfProTextRegular,
+    fontFamily: Typography.sfProTextMedium,
     fontSize: SUN_FONT_SIZE,
     letterSpacing: SUN_LETTER_SPACING,
     lineHeight: SUN_LINE_HEIGHT,

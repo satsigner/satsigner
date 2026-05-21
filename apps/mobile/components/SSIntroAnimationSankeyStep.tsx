@@ -55,7 +55,7 @@ function SSIntroAnimationSankeyStep({
           chartStyle
         ]}
       >
-        <SSSignSendSankeyIllustration variant="minimal" />
+        <SSSignSendSankeyIllustration />
       </Animated.View>
     </View>
   )

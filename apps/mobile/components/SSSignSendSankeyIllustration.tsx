@@ -1,229 +1,265 @@
-import { useWindowDimensions, View } from "react-native";
-import Svg, { Path, Rect, Text as SvgText } from "react-native-svg";
+import { useWindowDimensions, View } from 'react-native'
+import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg'
 
-import { Colors, Typography } from "@/styles";
+import { Colors } from '@/styles'
 
-const VB_W = 360;
-const VB_H = 520;
-const STROKE = "rgba(255,255,255,0.42)";
-const STROKE_SOFT = "rgba(255,255,255,0.18)";
-const LABEL_FILL = "rgba(255,255,255,0.55)";
-const NODE_STROKE = "rgba(255,255,255,0.5)";
-const NODE_FILL = "rgba(255,255,255,0.06)";
+const VB_W = 360
+const VB_H = 520
 
-type SSSignSendSankeyIllustrationVariant = "default" | "minimal";
+/** Center “transaction” column — all inputs meet the left face, all outputs leave the right face. */
+const TX_LEFT = 168
+const TX_RIGHT = 206
 
-type Flow = { d: string; key: string };
+/** Top of transaction rect; height === ∑ribbon h (both sides). */
+const TX_RECT_TOP = 157
 
-const FLOWS: Flow[] = [
-  {
-    d: "M 88 128 C 112 122 128 178 142 188",
-    key: "in1",
-  },
-  {
-    d: "M 88 248 C 112 255 128 232 142 258",
-    key: "in2",
-  },
-  {
-    d: "M 234 188 C 252 150 260 115 272 96",
-    key: "out1",
-  },
-  {
-    d: "M 234 248 C 252 248 262 242 272 236",
-    key: "out2",
-  },
-  {
-    d: "M 234 292 C 252 318 262 338 272 358",
-    key: "out3",
-  },
-];
+/** All input ribbons share this left edge; all output ribbons share this right edge. */
+const RIBBON_IN_LEFT_X = 0
+const RIBBON_OUT_RIGHT_X = VB_W
 
-type SSSignSendSankeyIllustrationProps = {
-  variant?: SSSignSendSankeyIllustrationVariant;
-};
+/** Same as `SSIntroAnimation` overlay — input ribbons fade up from this at the outer left. */
+const PAGE_BACKGROUND = Colors.gray[950]
 
-function SSSignSendSankeyIllustration({
-  variant = "default",
-}: SSSignSendSankeyIllustrationProps) {
-  const { height, width } = useWindowDimensions();
-  const svgH = Math.min(height * 0.62, VB_H * 1.2);
-  const showLabels = variant === "default";
+/**
+ * Center transaction rect + output ribbons; keep in sync with input gradient end (`NODE_FILL_OPACITY`).
+ */
+const NODE_FILL = 'rgba(255,255,255,0.09)'
+
+const NODE_FILL_OPACITY = 0.09
+
+/** Extra stops ease banding; use `userSpaceOnUse` so every ribbon shares one gradient (fewer cross-lane streaks). */
+const INPUT_GRADIENT_STOPS: readonly {
+  offset: string
+  stopColor: string
+  stopOpacity: number
+}[] = [
+  { offset: '0', stopColor: PAGE_BACKGROUND, stopOpacity: 1 },
+  { offset: '0.22', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.25 },
+  { offset: '0.5', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.55 },
+  { offset: '0.78', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.82 },
+  { offset: '1', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY }
+]
+
+const OUTPUT_GRADIENT_STOPS: readonly {
+  offset: string
+  stopColor: string
+  stopOpacity: number
+}[] = [
+  { offset: '0', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY },
+  { offset: '0.22', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.82 },
+  { offset: '0.5', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.55 },
+  { offset: '0.78', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.25 },
+  { offset: '1', stopColor: PAGE_BACKGROUND, stopOpacity: 1 }
+]
+
+const INPUT_RIBBON_GRADIENT_ID = 'ssSignSendInputRibbonGrad'
+const OUTPUT_RIBBON_GRADIENT_ID = 'ssSignSendOutputRibbonGrad'
+
+function sumLaneHeights(hs: readonly number[]): number {
+  let s = 0
+  for (let i = 0; i < hs.length; i++) {
+    s += hs[i]
+  }
+  return s
+}
+
+/** Per-lane thickness at the left face (order top → bottom). */
+const INPUT_LANE_HS = [8, 29, 9, 24, 10, 6] as const
+/** Per-lane thickness at the right face (4 lanes — top pair 14+8 merged). ∑h matches inputs. */
+const OUTPUT_LANE_HS = [22, 24, 32, 8] as const
+
+const TX_TOTAL_H = sumLaneHeights(INPUT_LANE_HS)
+if (sumLaneHeights(OUTPUT_LANE_HS) !== TX_TOTAL_H) {
+  throw new Error(
+    `Sankey illustration: INPUT ∑h (${TX_TOTAL_H}) must equal OUTPUT ∑h (${sumLaneHeights(OUTPUT_LANE_HS)})`
+  )
+}
+
+type TxSlot = {
+  h: number
+  ty: number
+}
+
+function stackTxSlots(hs: readonly number[], topY: number): TxSlot[] {
+  let y = topY
+  return hs.map((h) => {
+    const ty = y + h / 2
+    y += h
+    return { h, ty }
+  })
+}
+
+const INPUT_TX_SLOTS = stackTxSlots(INPUT_LANE_HS, TX_RECT_TOP)
+const OUTPUT_TX_SLOTS = stackTxSlots(OUTPUT_LANE_HS, TX_RECT_TOP)
+
+type RibbonBias = {
+  b0: number
+  b1: number
+}
+
+type InputRibbon = {
+  bias: RibbonBias
+  key: string
+  slot: number
+  sy: number
+}
+
+type OutputRibbon = {
+  bias: RibbonBias
+  key: string
+  slot: number
+  sy: number
+}
+
+/**
+ * Sankey link–style ribbon; b0/b1 skew the horizontal control anchors (more variation than fixed 0.52/0.48).
+ * `h` is the full band thickness at both ends (constant-width ribbon).
+ */
+function ribbonPath(
+  sx: number,
+  sy: number,
+  h: number,
+  tx: number,
+  ty: number,
+  b0: number,
+  b1: number
+): string {
+  const half = h / 2
+  const top0 = sy - half
+  const bot0 = sy + half
+  const top1 = ty - half
+  const bot1 = ty + half
+  const span = tx - sx
+  const cx0 = sx + span * b0
+  const cx1 = sx + span * b1
+  return [
+    `M ${sx} ${top0}`,
+    `C ${cx0} ${top0} ${cx1} ${top1} ${tx} ${top1}`,
+    `L ${tx} ${bot1}`,
+    `C ${cx1} ${bot1} ${cx0} ${bot0} ${sx} ${bot0}`,
+    'Z'
+  ].join(' ')
+}
+
+/**
+ * Inputs: left edges aligned; vertical scatter and asymmetric beziers vary per lane.
+ */
+const INPUT_RIBBONS: InputRibbon[] = [
+  { bias: { b0: 0.38, b1: 0.62 }, key: 'in-a', slot: 0, sy: 62 },
+  { bias: { b0: 0.58, b1: 0.4 }, key: 'in-b', slot: 1, sy: 118 },
+  { bias: { b0: 0.45, b1: 0.55 }, key: 'in-c', slot: 2, sy: 178 },
+  { bias: { b0: 0.52, b1: 0.44 }, key: 'in-d', slot: 3, sy: 258 },
+  { bias: { b0: 0.41, b1: 0.59 }, key: 'in-e', slot: 4, sy: 322 },
+  { bias: { b0: 0.6, b1: 0.38 }, key: 'in-f', slot: 5, sy: 402 }
+]
+
+/**
+ * Outputs: four ribbons — top two former lanes merged (22px) plus one 32px band vs six inputs.
+ */
+const OUTPUT_RIBBONS: OutputRibbon[] = [
+  { bias: { b0: 0.42, b1: 0.58 }, key: 'out-a', slot: 0, sy: 88 },
+  { bias: { b0: 0.5, b1: 0.46 }, key: 'out-b', slot: 1, sy: 195 },
+  { bias: { b0: 0.39, b1: 0.6 }, key: 'out-c', slot: 2, sy: 298 },
+  { bias: { b0: 0.47, b1: 0.54 }, key: 'out-d', slot: 3, sy: 385 }
+]
+
+function SSSignSendSankeyIllustration() {
+  const { height, width } = useWindowDimensions()
+  const svgH = Math.min(height * 0.62, VB_H * 1.2)
 
   return (
-    <View style={{ alignItems: "center", flex: 1, justifyContent: "center" }}>
+    <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
       <Svg
         height={svgH}
         preserveAspectRatio="xMidYMid meet"
+        shapeRendering="geometricPrecision"
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         width={width}
       >
-        {FLOWS.map((flow) => (
-          <Path
-            key={flow.key}
-            d={flow.d}
-            fill="none"
-            stroke={STROKE_SOFT}
-            strokeLinecap="round"
-            strokeWidth={7}
-          />
-        ))}
-        {FLOWS.map((flow) => (
-          <Path
-            key={`${flow.key}-core`}
-            d={flow.d}
-            fill="none"
-            stroke={STROKE}
-            strokeLinecap="round"
-            strokeWidth={2.5}
-          />
-        ))}
-
+        <Defs>
+          <LinearGradient
+            gradientUnits="userSpaceOnUse"
+            id={INPUT_RIBBON_GRADIENT_ID}
+            x1={RIBBON_IN_LEFT_X}
+            x2={TX_LEFT}
+            y1={0}
+            y2={0}
+          >
+            {INPUT_GRADIENT_STOPS.map((s, i) => (
+              <Stop
+                key={`in-g-${i}`}
+                offset={s.offset}
+                stopColor={s.stopColor}
+                stopOpacity={s.stopOpacity}
+              />
+            ))}
+          </LinearGradient>
+          <LinearGradient
+            gradientUnits="userSpaceOnUse"
+            id={OUTPUT_RIBBON_GRADIENT_ID}
+            x1={TX_RIGHT}
+            x2={RIBBON_OUT_RIGHT_X}
+            y1={0}
+            y2={0}
+          >
+            {OUTPUT_GRADIENT_STOPS.map((s, i) => (
+              <Stop
+                key={`out-g-${i}`}
+                offset={s.offset}
+                stopColor={s.stopColor}
+                stopOpacity={s.stopOpacity}
+              />
+            ))}
+          </LinearGradient>
+        </Defs>
         <Rect
           fill={NODE_FILL}
-          height={40}
-          rx={6}
-          stroke={NODE_STROKE}
-          strokeWidth={1}
-          width={76}
-          x={12}
-          y={108}
+          height={TX_TOTAL_H}
+          width={TX_RIGHT - TX_LEFT}
+          x={TX_LEFT}
+          y={TX_RECT_TOP}
         />
-        {showLabels ? (
-          <SvgText
-            fill={LABEL_FILL}
-            fontFamily={Typography.sfProTextLight}
-            fontSize={11}
-            x={18}
-            y={155}
-          >
-            Prior spend
-          </SvgText>
-        ) : null}
-
-        <Rect
-          fill={NODE_FILL}
-          height={40}
-          rx={6}
-          stroke={NODE_STROKE}
-          strokeWidth={1}
-          width={76}
-          x={12}
-          y={228}
-        />
-        {showLabels ? (
-          <SvgText
-            fill={LABEL_FILL}
-            fontFamily={Typography.sfProTextLight}
-            fontSize={11}
-            x={18}
-            y={285}
-          >
-            Coinjoin mix
-          </SvgText>
-        ) : null}
-
-        <Rect
-          fill={NODE_FILL}
-          height={188}
-          rx={10}
-          stroke={NODE_STROKE}
-          strokeWidth={1}
-          width={92}
-          x={142}
-          y={154}
-        />
-        {showLabels ? (
-          <SvgText
-            fill={LABEL_FILL}
-            fontFamily={Typography.sfProTextLight}
-            fontSize={11}
-            x={148}
-            y={148}
-          >
-            Transaction
-          </SvgText>
-        ) : null}
-
-        <Rect
-          fill={NODE_FILL}
-          height={36}
-          rx={6}
-          stroke={NODE_STROKE}
-          strokeWidth={1}
-          width={80}
-          x={272}
-          y={78}
-        />
-        {showLabels ? (
-          <SvgText
-            fill={LABEL_FILL}
-            fontFamily={Typography.sfProTextLight}
-            fontSize={11}
-            x={278}
-            y={128}
-          >
-            Recipient
-          </SvgText>
-        ) : null}
-
-        <Rect
-          fill={NODE_FILL}
-          height={36}
-          rx={6}
-          stroke={NODE_STROKE}
-          strokeWidth={1}
-          width={80}
-          x={272}
-          y={218}
-        />
-        {showLabels ? (
-          <SvgText
-            fill={LABEL_FILL}
-            fontFamily={Typography.sfProTextLight}
-            fontSize={11}
-            x={278}
-            y={268}
-          >
-            Change back
-          </SvgText>
-        ) : null}
-
-        <Rect
-          fill={NODE_FILL}
-          height={36}
-          rx={6}
-          stroke={NODE_STROKE}
-          strokeWidth={1}
-          width={80}
-          x={272}
-          y={340}
-        />
-        {showLabels ? (
-          <SvgText
-            fill={LABEL_FILL}
-            fontFamily={Typography.sfProTextLight}
-            fontSize={11}
-            x={278}
-            y={390}
-          >
-            Miner fee
-          </SvgText>
-        ) : null}
-
-        {showLabels ? (
-          <SvgText
-            fill={Colors.gray[500]}
-            fontFamily={Typography.sfProTextLight}
-            fontSize={10}
-            x={12}
-            y={24}
-          >
-            Illustration — flows trace how value moved on-chain
-          </SvgText>
-        ) : null}
+        {INPUT_RIBBONS.map((r) => {
+          const slot = INPUT_TX_SLOTS[r.slot]
+          return (
+            <Path
+              key={r.key}
+              d={ribbonPath(
+                RIBBON_IN_LEFT_X,
+                r.sy,
+                slot.h,
+                TX_LEFT,
+                slot.ty,
+                r.bias.b0,
+                r.bias.b1
+              )}
+              fill={`url(#${INPUT_RIBBON_GRADIENT_ID})`}
+              stroke="none"
+            />
+          )
+        })}
+        {OUTPUT_RIBBONS.map((r) => {
+          const slot = OUTPUT_TX_SLOTS[r.slot]
+          return (
+            <Path
+              key={r.key}
+              d={ribbonPath(
+                TX_RIGHT,
+                slot.ty,
+                slot.h,
+                RIBBON_OUT_RIGHT_X,
+                r.sy,
+                r.bias.b0,
+                r.bias.b1
+              )}
+              fill={`url(#${OUTPUT_RIBBON_GRADIENT_ID})`}
+              stroke="none"
+            />
+          )
+        })}
       </Svg>
     </View>
-  );
+  )
 }
 
-export default SSSignSendSankeyIllustration;
+export default SSSignSendSankeyIllustration

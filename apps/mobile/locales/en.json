@@ -3019,7 +3019,7 @@
       },
       "saveFollowup": {
         "description": "You can add a Bitcoin wallet now or finish whenever you are ready.",
-        "optionCreateBitcoin": "Create new Bitcoin wallet",
+        "optionCreateBitcoin": "Create Bitcoin wallet",
         "optionLater": "Set up later",
         "title": "Ready to stack sats?"
       },
