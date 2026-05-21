@@ -1,5 +1,7 @@
 import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
+const projectId = process.env.EXPO_PROJECT_ID
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   android: {
@@ -20,9 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     typedRoutes: true
   },
   extra: {
-    eas: {
-      projectId: 'ab95f67d-1c03-4593-940d-fde0b7cdc34a'
-    },
+    eas: { projectId },
     router: {
       origin: false
     }
@@ -46,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-router',
       {
         ...(process.env.EXPO_PUBLIC_STORYBOOK_ENABLED === 'true'
-          ? { root: './.storybook' }
+          ? { root: './.rnstorybook' }
           : undefined)
       }
     ],
@@ -99,7 +99,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     resizeMode: 'contain'
   },
   userInterfaceStyle: 'dark',
-  version: '0.3.4',
+  version: '0.3.5',
   web: {
     favicon: './assets/favicon.png'
   }

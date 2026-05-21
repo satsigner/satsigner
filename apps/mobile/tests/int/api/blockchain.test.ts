@@ -2,7 +2,8 @@ import { MempoolOracle } from '@/api/blockchain'
 import {
   type BlockchainOracle,
   type PriceValue,
-  TxPriority
+  TxPrioritySchema,
+  MemPoolFees
 } from '@/types/models/Blockchain'
 
 const mempoolspace: BlockchainOracle = new MempoolOracle(
@@ -48,13 +49,13 @@ describe('blockchain » mempool', () => {
   })
 
   it('get mempool fees', async () => {
-    const response = await mempoolspace.getMemPoolFees()
-    expect(response).toHaveProperty(TxPriority.low)
-    expect(response).toHaveProperty(TxPriority.medium)
-    expect(response).toHaveProperty(TxPriority.high)
-    expect(typeof response[TxPriority.low]).toBe('number')
-    expect(typeof response[TxPriority.medium]).toBe('number')
-    expect(typeof response[TxPriority.high]).toBe('number')
+    const response: MemPoolFees = await mempoolspace.getMemPoolFees()
+    expect(response).toHaveProperty(TxPrioritySchema.enum.low)
+    expect(response).toHaveProperty(TxPrioritySchema.enum.medium)
+    expect(response).toHaveProperty(TxPrioritySchema.enum.high)
+    expect(typeof response[TxPrioritySchema.enum.low]).toBe('number')
+    expect(typeof response[TxPrioritySchema.enum.medium]).toBe('number')
+    expect(typeof response[TxPrioritySchema.enum.high]).toBe('number')
   })
 
   it('get fiat price of transaction outputs', async () => {

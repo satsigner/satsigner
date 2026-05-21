@@ -1,5 +1,5 @@
 import { t } from '@/locales'
-import type { LndCombinedTransaction } from '@/types/lndNodeDashboard'
+import type { LNDCombinedTransaction } from '@/types/models/Lightning'
 
 const MS_MIN = 60_000
 const MS_HOUR = 3_600_000
@@ -65,7 +65,7 @@ export type TxStatusBadge =
   | 'in_flight'
 
 export function getTxStatusBadge(
-  tx: LndCombinedTransaction,
+  tx: LNDCombinedTransaction,
   nowMs: number
 ): TxStatusBadge | null {
   if (tx.type === 'lightning_receive') {
@@ -98,7 +98,7 @@ type TxDisplayInfo = {
 }
 
 export function getTxDisplayInfo(
-  tx: LndCombinedTransaction,
+  tx: LNDCombinedTransaction,
   isReceive: boolean
 ): TxDisplayInfo {
   if (tx.type === 'onchain') {
@@ -126,7 +126,7 @@ export function getTxDisplayInfo(
 
 /** Sat amount string for the transaction list fee column (Lightning sends only). */
 export function getTxLightningSendFeeSatString(
-  tx: LndCombinedTransaction,
+  tx: LNDCombinedTransaction,
   privacyMode: boolean
 ): string | null {
   if (privacyMode) {

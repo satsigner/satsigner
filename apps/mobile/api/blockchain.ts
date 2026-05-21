@@ -1,24 +1,25 @@
+import z from 'zod'
+
 import { SATS_PER_BITCOIN } from '@/constants/btc'
-import type {
-  Block,
-  BlockchainOracle,
-  BlockFeeRates,
-  BlockStatus,
-  Currency,
-  DifficultyAdjustment,
-  MemPool,
-  MemPoolBlock,
-  MemPoolFees,
-  MempoolStatistics,
-  Prices,
-  PriceValue,
-  Tx,
-  TxOutspend,
-  TxPriority,
-  TxStatus,
-  UTXO
+import {
+  BlockFeeRatesSchema,
+  BlockSchema,
+  BlockStatusSchema,
+  DifficultyAdjustmentSchema,
+  MemPoolBlockSchema,
+  MemPoolSchema,
+  MempoolStatisticsSchema,
+  PricesSchema,
+  TxOutspendSchema,
+  TxSchema,
+  TxStatusSchema,
+  UTXOSchema,
+  type BlockchainOracle,
+  type Currency,
+  type MemPoolFees,
+  type PriceValue,
+  type TxPriority
 } from '@/types/models/Blockchain'
-import type { NonPartial } from '@/types/utils'
 
 const satoshiToFiat = (btcFiatPrice: number, sats: number, decimals = 2) =>
   Number(((btcFiatPrice * sats) / SATS_PER_BITCOIN).toFixed(decimals))
@@ -48,14 +49,14 @@ export class MempoolOracle implements BlockchainOracle {
     )
   }
 
-  async getAddressUtxos(address: string): Promise<UTXO[]> {
-    const data: UTXO[] = (await this.get(`/address/${address}/utxo`)) as UTXO[]
-    return data
+  async getAddressUtxos(address: string) {
+    const data = await this.get(`/address/${address}/utxo`)
+    return z.array(UTXOSchema).parse(data)
   }
 
-  async getBlock(blkid: string): Promise<Block> {
-    const data: Block = (await this.get(`/block/${blkid}`)) as Block
-    return data
+  async getBlock(blkid: string) {
+    const data = await this.get(`/block/${blkid}`)
+    return BlockSchema.parse(data)
   }
 
   async getBlockRaw(blkid: string): Promise<ArrayBuffer> {
@@ -63,12 +64,13 @@ export class MempoolOracle implements BlockchainOracle {
     return data
   }
 
-  async getBlockAtHeight(height: number): Promise<Block> {
-    const blockHash = await this.getText(`/block-height/${height}`)
+  async getBlockAtHeight(height: number) {
+    const data = await this.getText(`/block-height/${height}`)
+    const blockHash = z.string().parse(data)
     return this.getBlock(blockHash)
   }
 
-  async getBlockAt(timestamp: number): Promise<Block> {
+  async getBlockAt(timestamp: number) {
     const data = (await this.get(
       `/v1/mining/blocks/timestamp/${timestamp}`
     )) as { hash: string }
@@ -77,115 +79,120 @@ export class MempoolOracle implements BlockchainOracle {
     return block
   }
 
-  async getBlockStatus(blkid: string): Promise<BlockStatus> {
-    const data: BlockStatus = (await this.get(
-      `/block/${blkid}/status`
-    )) as BlockStatus
+  async getBlockStatus(blkid: string) {
+    const data = await this.get(`/block/${blkid}/status`)
+    return BlockStatusSchema.parse(data)
+  }
+
+  async getBlockTransactions(blkid: string) {
+    const data = await this.get(`/block/${blkid}/txs`)
+    return z.array(TxSchema).parse(data)
+  }
+
+  async getBlockTransactionIds(blkid: string) {
+    const data = await this.get(`/block/${blkid}/txids`)
+    return z.array(TxSchema.shape.txid).parse(data)
+  }
+
+  async getCurrentBlockHeight() {
+    const data = await this.getText(`/blocks/tip/height`)
+    return Number(data)
+  }
+
+  async getCurrentBlockHash() {
+    const data = await this.getText(`/blocks/tip/hash`)
     return data
   }
 
-  async getBlockTransactions(blkid: string): Promise<Tx[]> {
-    const data: Tx[] = (await this.get(`/block/${blkid}/txs`)) as Tx[]
-    return data
-  }
-
-  async getBlockTransactionIds(blkid: string): Promise<Tx['txid'][]> {
-    const data: Tx['txid'][] = (await this.get(
-      `/block/${blkid}/txids`
-    )) as Tx['txid'][]
-    return data
-  }
-
-  async getCurrentBlockHeight(): Promise<number> {
-    const height = await this.getText(`/blocks/tip/height`)
-    return Number(height)
-  }
-
-  getCurrentBlockHash(): Promise<string> {
-    return this.getText(`/blocks/tip/hash`)
-  }
-
-  async getCurrentFeeRate(priority: TxPriority): Promise<number> {
-    const feeRates: MemPoolFees = await this.getMemPoolFees()
-    return feeRates[priority]
-  }
-
-  async getBlockFeeRates(period: string): Promise<BlockFeeRates> {
-    const data: BlockFeeRates = (await this.get(
-      `/v1/mining/blocks/fee-rates/${period}`
-    )) as BlockFeeRates
-    return data
-  }
-
-  async getMempoolStatistics(period: string): Promise<MempoolStatistics[]> {
-    const data: MempoolStatistics[] = (await this.get(
-      `/v1/statistics/${period}`
-    )) as MempoolStatistics[]
-    return data
-  }
-
-  async getCurrentDifficulty(): Promise<number> {
-    const data = (await this.get(`/v1/mining/hashrate/1d`)) as {
-      currentDifficulty: number
+  async getCurrentFeeRate(priority: TxPriority) {
+    const feeRates = await this.getMemPoolFees()
+    const rate = feeRates[priority]
+    if (rate !== undefined) {
+      return rate
     }
-    return data.currentDifficulty as number
+    throw new Error('unvailable rate')
   }
 
-  async getCurrentHashRate(): Promise<number> {
-    const data = (await this.get(`/v1/mining/hashrate/1d`)) as {
-      currentHashrate: number
-    }
-    return data.currentHashrate as number
+  async getBlockFeeRates(period: string) {
+    const data = await this.get(`/v1/mining/blocks/fee-rates/${period}`)
+    return BlockFeeRatesSchema.parse(data)
   }
 
-  async getDifficultyAdjustment(): Promise<DifficultyAdjustment> {
-    const data: DifficultyAdjustment = (await this.get(
-      `/v1/difficulty-adjustment`
-    )) as DifficultyAdjustment
-    return data
+  async getMempoolStatistics(period: string) {
+    const data = await this.get(`/v1/statistics/${period}`)
+    return z.array(MempoolStatisticsSchema).parse(data)
   }
 
-  async getMemPool(): Promise<MemPool> {
-    const data: MemPool = (await this.get(`/mempool`)) as MemPool
-    return data
+  async getCurrentDifficulty() {
+    const data = await this.get(`/v1/mining/hashrate/1d`)
+    const difficulty = z
+      .object({
+        currentDifficulty: z.number()
+      })
+      .parse(data)
+    return difficulty.currentDifficulty
   }
 
-  async getMemPoolFees(): Promise<MemPoolFees> {
-    const data = (await this.get(`/v1/fees/recommended`)) as {
-      fastestFee: number
-      economyFee: number
-      hourFee: number
-      minimumFee: number
-    }
+  async getCurrentHashRate() {
+    const data = await this.get(`/v1/mining/hashrate/1d`)
+    const hashRate = z
+      .object({
+        currentHashrate: z.number()
+      })
+      .parse(data)
+    return hashRate.currentHashrate
+  }
+
+  async getDifficultyAdjustment() {
+    const data = await this.get(`/v1/difficulty-adjustment`)
+    return DifficultyAdjustmentSchema.parse(data)
+  }
+
+  async getMemPool() {
+    const data = await this.get(`/mempool`)
+    return MemPoolSchema.parse(data)
+  }
+
+  async getMemPoolFees() {
+    const data = await this.get(`/v1/fees/recommended`)
+    const feesObj = z
+      .object({
+        economyFee: z.number(),
+        fastestFee: z.number(),
+        hourFee: z.number(),
+        minimumFee: z.number()
+      })
+      .parse(data)
     const fees: MemPoolFees = {
-      high: data.fastestFee,
-      low: data.economyFee,
-      medium: data.hourFee,
-      none: data.minimumFee
+      high: feesObj.fastestFee,
+      low: feesObj.economyFee,
+      medium: feesObj.hourFee,
+      none: feesObj.minimumFee
     }
     return fees
   }
 
-  async getMemPoolBlocks(): Promise<MemPoolBlock[]> {
-    const data: MemPoolBlock[] = (await this.get(
-      `/v1/fees/mempool-blocks`
-    )) as MemPoolBlock[]
-    return data
+  async getMemPoolBlocks() {
+    const data = await this.get(`/v1/fees/mempool-blocks`)
+    return z.array(MemPoolBlockSchema).parse(data)
   }
 
-  async getPrices(): Promise<NonPartial<Prices>> {
-    const data: NonPartial<Prices> = (await this.get(
-      `/v1/prices`
-    )) as NonPartial<Prices>
-    return data
+  async getPrices() {
+    const data = await this.get('/v1/prices')
+    return PricesSchema.passthrough().parse(data)
   }
 
-  async getPrice(currency: Currency): Promise<number> {
-    const data: NonPartial<Prices> = await this.getPrices()
-    return data[currency] as number
+  async getPrice(currency: Currency) {
+    const prices = await this.getPrices()
+    if (prices[currency] === undefined) {
+      throw new Error(
+        `ERROR: Unavailable price for ${currency} (Server url = ${this.baseUrl})`
+      )
+    }
+    return prices[currency]
   }
 
-  async getPriceAt(currency: string, timestamp: number): Promise<number> {
+  async getPriceAt(currency: string, timestamp: number) {
     const data = (await this.get(
       `/v1/historical-price?currency=${currency}&timestamp=${timestamp}`
     )) as { prices: Record<string, number>[] }
@@ -193,20 +200,24 @@ export class MempoolOracle implements BlockchainOracle {
     return prices[0][currency] as number
   }
 
-  async getFullPriceAt(
-    currency: string,
-    timestamp: number
-  ): Promise<Record<string, number>> {
-    const { prices, exchangeRates } = (await this.get(
+  async getFullPriceAt(currency: Currency, timestamp: number) {
+    const HistoricalPricesSchema = z.object({
+      exchangeRates: z.record(z.string(), z.number()),
+      prices: z.array(PricesSchema)
+    })
+    const data = await this.get(
       `/v1/historical-price?currency=${currency}&timestamp=${timestamp}`
-    )) as {
-      prices: Record<string, number>[]
-      exchangeRates: Record<string, number>
+    )
+    const { prices, exchangeRates } = HistoricalPricesSchema.parse(data)
+
+    if (prices.length === 0 || prices[0][currency] === undefined) {
+      throw new Error(
+        `ERROR: Unavailable price for ${currency} at ${timestamp} (Server url = ${this.baseUrl})`
+      )
     }
 
     const btcPrice = prices[0][currency]
-
-    return Object.fromEntries(
+    const pricesEntries: Record<string, number> = Object.fromEntries(
       Object.entries(exchangeRates)
         .map(([key, rate]) => {
           const currencyCode = key.replace('USD', '')
@@ -214,9 +225,10 @@ export class MempoolOracle implements BlockchainOracle {
         })
         .concat([['USD', btcPrice]])
     )
+    return pricesEntries
   }
 
-  async getPricesAt(currency: string, timestamps: number[]): Promise<number[]> {
+  async getPricesAt(currency: string, timestamps: number[]) {
     const uniqueTimestamps = [...new Set(timestamps)]
     const time2price: Record<string, number> = {}
     for (const time of uniqueTimestamps) {
@@ -227,12 +239,9 @@ export class MempoolOracle implements BlockchainOracle {
     return prices
   }
 
-  async getPricesAddress(
-    currency: Currency,
-    address: string
-  ): Promise<PriceValue[]> {
+  async getPricesAddress(currency: Currency, address: string) {
     const utxos = await this.getAddressUtxos(address)
-    const timestamps = utxos.map((o: UTXO) => o.status.block_time)
+    const timestamps = utxos.map((u) => u.status.block_time)
     const fiatPrices = await this.getPricesAt(currency, timestamps)
     const priceValues: PriceValue[] = []
     for (let i = 0; i < fiatPrices.length; i += 1) {
@@ -244,11 +253,8 @@ export class MempoolOracle implements BlockchainOracle {
     return priceValues
   }
 
-  async getPricesTxInputs(
-    currency: Currency,
-    txid: string
-  ): Promise<PriceValue[]> {
-    const tx: Tx = await this.getTransaction(txid)
+  async getPricesTxInputs(currency: Currency, txid: string) {
+    const tx = await this.getTransaction(txid)
     const timestamp = tx.status.block_time
     const fiatPrice = await this.getPriceAt(currency, timestamp)
     const priceValues: PriceValue[] = []
@@ -264,7 +270,7 @@ export class MempoolOracle implements BlockchainOracle {
     currency: Currency,
     txid: string
   ): Promise<PriceValue[]> {
-    const tx: Tx = await this.getTransaction(txid)
+    const tx = await this.getTransaction(txid)
     const timestamp = tx.status.block_time
     const fiatPrice = await this.getPriceAt(currency, timestamp)
     const priceValues: PriceValue[] = []
@@ -276,25 +282,23 @@ export class MempoolOracle implements BlockchainOracle {
     return priceValues
   }
 
-  async getTransaction(txid: string): Promise<Tx> {
-    const data: Tx = (await this.get(`/tx/${txid}`)) as Tx
-    return data
+  async getTransaction(txid: string) {
+    const data = await this.get(`/tx/${txid}`)
+    return TxSchema.parse(data)
   }
 
-  async getTransactionHex(txid: string): Promise<string> {
-    const data: string = await this.getText(`/tx/${txid}`)
-    return data
+  async getTransactionHex(txid: string) {
+    const data = await this.getText(`/tx/${txid}`)
+    return z.string().parse(data)
   }
 
-  async getTransactionOutspends(txid: string): Promise<TxOutspend[]> {
-    const data: TxOutspend[] = (await this.get(
-      `/tx/${txid}/outspends`
-    )) as TxOutspend[]
-    return data
+  async getTransactionOutspends(txid: string) {
+    const data = await this.get(`/tx/${txid}/outspends`)
+    return z.array(TxOutspendSchema).parse(data)
   }
 
-  async getTransactionStatus(txid: string): Promise<TxStatus> {
-    const data: TxStatus = (await this.get(`/tx/${txid}/status`)) as TxStatus
-    return data
+  async getTransactionStatus(txid: string) {
+    const data = await this.get(`/tx/${txid}/status`)
+    return TxStatusSchema.parse(data)
   }
 }

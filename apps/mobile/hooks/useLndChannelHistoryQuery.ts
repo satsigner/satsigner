@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import type { LNDRequest } from '@/types/models/LND'
+import type { LNDRequest } from '@/types/models/Lightning'
 import { fetchChannelHistoryRows } from '@/utils/lndChannelHistory'
 
 function useLndChannelHistoryQuery(

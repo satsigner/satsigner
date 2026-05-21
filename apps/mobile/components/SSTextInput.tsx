@@ -1,53 +1,44 @@
-import { type ForwardedRef, forwardRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
+import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
-import { descriptorValidityCache } from '@/utils/validation'
 
-type SSTextInputProps = {
+import SSText from './SSText'
+
+export type SSTextInputProps = {
   variant?: 'default' | 'outline'
   size?: 'default' | 'small'
   align?: 'center' | 'left'
   actionRight?: React.ReactNode
   status?: 'valid' | 'invalid'
+  warning?: string
+  error?: string
+  ref?: React.Ref<TextInput>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-function SSTextInput(
-  {
-    variant = 'default',
-    size = 'default',
-    align = 'center',
-    actionRight,
-    status,
-    style,
-    value,
-    ...props
-  }: SSTextInputProps,
-  ref: ForwardedRef<TextInput>
-) {
+function SSTextInput({
+  variant = 'default',
+  size = 'default',
+  align = 'center',
+  actionRight,
+  status,
+  style,
+  value,
+  error,
+  warning,
+  ref,
+  ...props
+}: SSTextInputProps) {
   const variantStyle =
     variant === 'default' ? styles.variantDefault : styles.variantOutline
   const sizeStyle = size === 'default' ? styles.sizeDefault : styles.sizeSmall
   const alignStyle = align === 'center' ? styles.alignCenter : styles.alignLeft
   const actionRightPadding = actionRight ? { paddingRight: 48 } : {}
 
-  // If no explicit status, derive from cache (populated by validateDescriptor calls)
-  const cachedValidity =
-    status === undefined && value
-      ? descriptorValidityCache.get(value)
-      : undefined
-  const resolvedStatus =
-    status ??
-    (cachedValidity === true
-      ? 'valid'
-      : cachedValidity === false
-        ? 'invalid'
-        : undefined)
-
   const statusStyle =
-    resolvedStatus === 'valid'
+    status === 'valid'
       ? styles.statusValid
-      : resolvedStatus === 'invalid'
+      : status === 'invalid'
         ? styles.statusInvalid
         : {}
 
@@ -63,16 +54,30 @@ function SSTextInput(
 
   return (
     <View style={styles.containerBase}>
-      <TextInput
-        ref={ref}
-        placeholderTextColor={Colors.gray[400]}
-        autoCorrect={false}
-        spellCheck={false}
-        value={value}
-        style={textInputStyle}
-        {...props}
-      />
-      <View style={styles.actionRightBase}>{actionRight}</View>
+      <SSVStack gap="xs">
+        <View>
+          <TextInput
+            ref={ref}
+            placeholderTextColor={Colors.gray[400]}
+            autoCorrect={false}
+            spellCheck={false}
+            value={value}
+            style={textInputStyle}
+            {...props}
+          />
+          <View style={styles.actionRightBase}>{actionRight}</View>
+        </View>
+        {error && (
+          <SSText size="xs" style={{ color: Colors.error, lineHeight: 12 }}>
+            {error}
+          </SSText>
+        )}
+        {warning && (
+          <SSText size="xs" style={{ color: Colors.warning, lineHeight: 12 }}>
+            {warning}
+          </SSText>
+        )}
+      </SSVStack>
     </View>
   )
 }
@@ -127,4 +132,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default forwardRef(SSTextInput)
+export default SSTextInput

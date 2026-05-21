@@ -5,7 +5,7 @@ import type {
   LNURLPayResponse,
   LNURLWithdrawDetails,
   LNURLWithdrawResponse
-} from '@/types/models/LNURL'
+} from '@/types/models/Lightning'
 
 export function getLNURLType(input: string) {
   const lowercaseInput = input.toLowerCase()

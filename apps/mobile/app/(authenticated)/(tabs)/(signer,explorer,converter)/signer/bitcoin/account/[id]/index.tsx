@@ -594,8 +594,6 @@ function DerivedAddresses({
   )
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
-  const _windowDimensions = useWindowDimensions()
-
   const [addressPath, setAddressPath] = useState('')
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
@@ -982,7 +980,7 @@ function SpendableOutputs({
                 (a) =>
                   (a.address || '').trim() === (utxo.addressTo || '').trim()
               )
-              const addressEntry = idx >= 0 ? account.addresses[idx] : null
+              const addressEntry = idx !== -1 ? account.addresses[idx] : null
               const addressIndex =
                 addressEntry !== null ? (addressEntry.index ?? idx) : undefined
               return (

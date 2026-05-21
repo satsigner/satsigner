@@ -33,8 +33,8 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
+import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
-import { DEFAULT_WORD_LIST } from '@/utils/bip39'
 import {
   aesDecrypt,
   aesEncrypt,

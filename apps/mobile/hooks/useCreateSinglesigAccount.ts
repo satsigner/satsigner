@@ -3,12 +3,8 @@ import { PIN_KEY } from '@/config/auth'
 import { getItem, storeKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
-import type {
-  Account,
-  Key,
-  MnemonicWordCount,
-  Secret
-} from '@/types/models/Account'
+import { MnemonicWordCount } from '@/types/bips/39'
+import type { Account, Key, Secret } from '@/types/models/Account'
 import type { Network } from '@/types/settings/blockchain'
 import {
   generateMnemonic,

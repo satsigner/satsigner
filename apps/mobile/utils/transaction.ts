@@ -1,9 +1,8 @@
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
-import { type ScriptVersionType } from '@/types/models/Account'
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
-
-import { getScriptVersionType } from './address'
+import type { Output } from '@/types/models/Output'
+import { ScriptVersionType } from '@/types/models/Script'
+import type { Utxo } from '@/types/models/Utxo'
+import { getScriptVersionType } from '@/utils/address'
 
 const BASE_SIZE = 10
 
@@ -55,8 +54,10 @@ export function estimateTransactionSize(
   hasChange?: boolean
 ) {
   const inputTypeSizes = inputs.map((utxo) => {
-    const type = utxo.addressTo ? getScriptVersionType(utxo.addressTo) : 'P2PKH'
-    const size = INPUT_SIZES[type || 'P2PKH']
+    const type: ScriptVersionType = utxo.addressTo
+      ? getScriptVersionType(utxo.addressTo) || 'P2PKH'
+      : 'P2PKH'
+    const size = INPUT_SIZES[type]
     return size
   })
 
@@ -74,7 +75,7 @@ export function estimateTransactionSize(
   }
 
   const outputSize = allOutputs.reduce((sum, o) => {
-    const type = getScriptVersionType(o.to) || 'P2PKH'
+    const type: ScriptVersionType = getScriptVersionType(o.to) || 'P2PKH'
     return sum + OUTPUT_SIZES[type]
   }, 0)
 

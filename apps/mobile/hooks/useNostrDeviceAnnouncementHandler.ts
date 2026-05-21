@@ -1,7 +1,7 @@
 import { useNostrStore } from '@/store/nostr'
-import { type MessageHandler } from '@/types/nostrMessageHandlers'
+import { type NostrMsgHandler } from '@/types/models/Nostr'
 
-const deviceAnnouncementHandler: MessageHandler = {
+const deviceAnnouncementHandler: NostrMsgHandler = {
   canHandle: (context) =>
     context.eventContent.public_key_bech32 !== null &&
     context.eventContent.public_key_bech32 !== undefined,

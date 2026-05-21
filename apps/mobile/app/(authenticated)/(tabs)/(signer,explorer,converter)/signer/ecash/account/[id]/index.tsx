@@ -89,6 +89,11 @@ export default function EcashAccountDetailPage() {
     onSend: ecashContentHandler.handleSend
   })
 
+  if (id && activeAccount?.id !== id) {
+    setActiveAccountId(id)
+    return null
+  }
+
   const totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
 
   const keysetCounters = counters
@@ -258,13 +263,6 @@ export default function EcashAccountDetailPage() {
   return (
     <SSMainLayout>
       <Stack.Screen
-        listeners={{
-          focus: () => {
-            if (id && activeAccount?.id !== id) {
-              setActiveAccountId(id)
-            }
-          }
-        }}
         options={{
           headerRight: () => (
             <SSIconButton

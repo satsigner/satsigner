@@ -1,23 +1,17 @@
 import { finalizeEvent, type NostrEvent, type VerifiedEvent } from 'nostr-tools'
 import {
+  getConversationKey,
   decrypt as nip44Decrypt,
-  encrypt as nip44Encrypt,
-  getConversationKey
+  encrypt as nip44Encrypt
 } from 'nostr-tools/nip44'
 
 import {
   NIP46_EVENT_KIND,
-  NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
-} from '@/constants/nip46'
-
-const WS_CONNECT_TIMEOUT_MS = 15_000
-const PUBLISH_TIMEOUT_MS = 10_000
-
-type Nip46IncomingRequest = {
-  id: string
-  method: string
-  params: string[]
-}
+  NIP46_SUBSCRIPTION_LOOKBACK_SECONDS,
+  NOSTR_PUBLISH_TIMEOUT_MS,
+  NOSTR_WS_CONNECT_TIMEOUT_MS
+} from '@/constants/nostr'
+import { Nip46IncomingRequest } from '@/types/models/Nostr'
 
 type OnRequestCallback = (request: Nip46IncomingRequest) => void
 
@@ -63,7 +57,7 @@ function publishOnSocket(
       resolve(result)
     }
 
-    const timer = setTimeout(() => settle(false), PUBLISH_TIMEOUT_MS)
+    const timer = setTimeout(() => settle(false), NOSTR_PUBLISH_TIMEOUT_MS)
 
     function handleMessage(msg: MessageEvent): void {
       try {
@@ -86,14 +80,11 @@ function publishOnSocket(
 
 export class Nip46BunkerService {
   private sockets: WebSocket[] = []
-  private relays: string[] = []
   private conversationKey: Uint8Array | null = null
   private active = false
   private subId = `nip46-${Date.now()}`
 
   async connect(relays: string[]): Promise<void> {
-    this.relays = relays
-
     const results = await Promise.allSettled(
       relays.map(
         (url) =>
@@ -112,7 +103,7 @@ export class Nip46BunkerService {
                 /* ignore */
               }
               reject(new Error(`timeout: ${url}`))
-            }, WS_CONNECT_TIMEOUT_MS)
+            }, NOSTR_WS_CONNECT_TIMEOUT_MS)
 
             ws.addEventListener('open', () => {
               if (settled) {

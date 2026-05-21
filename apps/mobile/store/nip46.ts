@@ -1,14 +1,14 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { NIP46_DEFAULT_PERMISSIONS } from '@/constants/nip46'
+import { NIP46_DEFAULT_PERMISSIONS } from '@/constants/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import type {
   Nip46Method,
   Nip46PermissionPolicy,
   Nip46Request,
   Nip46Session
-} from '@/types/models/Nip46'
+} from '@/types/models/Nostr'
 
 type Nip46State = {
   pendingRequests: Nip46Request[]

@@ -81,12 +81,10 @@ function isExtendedPublicKey(data: string): boolean {
   return validateExtendedKey(data)
 }
 
-async function detectBitcoinContent(
-  data: string
-): Promise<DetectedContent | null> {
+function detectBitcoinContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
-  const descriptorValidation = await validateDescriptorFormat(trimmed)
+  const descriptorValidation = validateDescriptorFormat(trimmed)
   if (descriptorValidation) {
     return {
       cleaned: trimmed,
@@ -205,6 +203,14 @@ function normalizeCashuTokenPrefix(token: string): string {
   return `cashu${m[2].toUpperCase()}${m[3]}`
 }
 
+function safeDecodeUriComponent(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
 /**
  * Returns a Cashu token substring when the input embeds `cashuA…` / `cashuB…`
  * (e.g. `https://wallet.example/e/cashuB…`). Returns null if no marker exists.
@@ -216,26 +222,32 @@ export function extractCashuTokenFromString(data: string): string | null {
     return null
   }
 
-  let raw = stripped.slice(matchIndex)
-  const run = raw.match(/^(cashu[AB][A-Za-z0-9+/=_%-]*)/i)
+  const sliced = stripped.slice(matchIndex)
+  const run = sliced.match(/^(cashu[AB][A-Za-z0-9+/=_%-]*)/i)
   if (!run) {
     return null
   }
-  raw = run[1]
+  const [, raw] = run
 
-  let decoded = raw
-  try {
-    decoded = decodeURIComponent(raw)
-  } catch {
-    decoded = raw
-  }
-
-  return normalizeCashuTokenPrefix(decoded)
+  return normalizeCashuTokenPrefix(safeDecodeUriComponent(raw))
 }
 
 /** Strips wallet URLs / schemes so paste and decode always see a raw token. */
 export function prepareEcashTokenInput(data: string): string {
   return extractCashuTokenFromString(data) ?? stripSchemePrefix(data.trim())
+}
+
+export function preprocessByContext(
+  text: string,
+  context: ContentContext
+): string {
+  if (context === 'bitcoin') {
+    return stripBitcoinPrefix(text)
+  }
+  if (context === 'ecash') {
+    return prepareEcashTokenInput(text)
+  }
+  return text
 }
 
 function detectArkContent(data: string): DetectedContent | null {
@@ -534,10 +546,10 @@ function detectImportContent(data: string): DetectedContent | null {
   return null
 }
 
-export async function detectContentByContext(
+export function detectContentByContext(
   data: string,
   context: ContentContext
-): Promise<DetectedContent> {
+): DetectedContent {
   if (!data || data.trim().length === 0) {
     return {
       cleaned: data,
@@ -551,7 +563,7 @@ export async function detectContentByContext(
 
   switch (context) {
     case 'bitcoin':
-      detected = await detectBitcoinContent(data)
+      detected = detectBitcoinContent(data)
       if (!detected) {
         detected = detectLightningContent(data) || detectEcashContent(data)
         if (detected) {
@@ -564,8 +576,7 @@ export async function detectContentByContext(
         detectLndRestConfigConnectionString(data) ||
         detectLightningContent(data)
       if (!detected) {
-        detected =
-          (await detectBitcoinContent(data)) || detectEcashContent(data)
+        detected = detectBitcoinContent(data) || detectEcashContent(data)
         if (detected) {
           detected.type = 'incompatible'
         }
@@ -574,7 +585,7 @@ export async function detectContentByContext(
     case 'ark':
       detected = detectArkContent(data) || detectLightningContent(data)
       if (!detected) {
-        const bitcoinDetected = await detectBitcoinContent(data)
+        const bitcoinDetected = detectBitcoinContent(data)
         if (
           bitcoinDetected?.type === 'bitcoin_uri' ||
           bitcoinDetected?.type === 'bitcoin_address'
@@ -594,7 +605,7 @@ export async function detectContentByContext(
     case 'ecash':
       detected = detectEcashContent(data) || detectLightningContent(data)
       if (!detected) {
-        detected = await detectBitcoinContent(data)
+        detected = detectBitcoinContent(data)
         if (detected) {
           detected.type = 'incompatible'
         }

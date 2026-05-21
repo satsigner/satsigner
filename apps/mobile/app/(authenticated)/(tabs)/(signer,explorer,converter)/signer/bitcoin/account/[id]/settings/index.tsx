@@ -10,12 +10,13 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
-import SSPinEntry from '@/components/SSPinEntry'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { PIN_KEY, SALT_KEY } from '@/config/auth'
+import { PIN_KEY } from '@/config/auth'
+import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
@@ -25,29 +26,29 @@ import { getItem, getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Account, type Key, type Secret } from '@/types/models/Account'
+import { type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   decryptAllAccountKeySecrets,
   getAccountFingerprint
 } from '@/utils/account'
 import { isElectrumDerivationPath } from '@/utils/bip39'
-import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
+import { aesDecrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
-import { emptyPin } from '@/utils/pin'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
   const insets = useSafeAreaInsets()
 
-  const [account, updateAccountName, deleteAccount] = useAccountsStore(
+  const [accounts, updateAccountName, deleteAccount] = useAccountsStore(
     useShallow((state) => [
-      state.accounts.find((_account) => _account.id === currentAccountId),
+      state.accounts,
       state.updateAccountName,
       state.deleteAccount
     ])
   )
+  const account = accounts.find((_account) => _account.id === currentAccountId)
   const removeAccountWallet = useWalletsStore(
     (state) => state.removeAccountWallet
   )
@@ -55,21 +56,15 @@ export default function AccountSettings() {
   const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
     account?.keys[0]?.scriptVersion || 'P2WPKH'
   )
-  const [network, setNetwork] = useState<NonNullable<string>>(
-    account?.network || 'signet'
-  )
-  const [accountName, setAccountName] = useState<Account['name']>(
-    account?.name || ''
-  )
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
-
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [pin, setPin] = useState<string[]>(emptyPin)
   const [showPinEntry, setShowPinEntry] = useState(false)
-  const [pinEntryFocus, setPinEntryFocus] = useState(false)
+  const [pinEntryReason, setPinEntryReason] = useState<
+    'mnemonic' | 'deletion' | null
+  >()
 
   const labels = account?.labels ? Object.values(account.labels) : []
   const labelCounts = {
@@ -87,6 +82,16 @@ export default function AccountSettings() {
     }
   }
 
+  const {
+    localAccountName,
+    isValidName,
+    isPseudoDuplicatedName,
+    handleSetAccountName
+  } = useAccountNameValidation({
+    name: account?.name,
+    network: account?.network
+  })
+
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
       case 'singlesig':
@@ -101,44 +106,37 @@ export default function AccountSettings() {
   }
 
   function handleOnViewMnemonic() {
+    setPinEntryReason('mnemonic')
     setShowPinEntry(true)
-    setPin(emptyPin())
-
-    // This will auto-focus the pin input after a little delay.
-    // The delay is needed because the modal has to have become visible first.
-    setTimeout(() => {
-      setPinEntryFocus(true)
-    }, 300)
   }
 
-  function handleCloseMnemonicModal() {
+  function handleConfirmWalletDeletionWithPin() {
+    setPinEntryReason('deletion')
+    setDeleteModalVisible(false)
+    setShowPinEntry(true)
+  }
+
+  function handleClosePinEntry() {
     setShowPinEntry(false)
-    setPin(emptyPin())
-    setPinEntryFocus(false)
   }
 
-  async function handlePinEntry(pinString: string) {
-    const salt = await getItem(SALT_KEY)
-    const storedEncryptedPin = await getItem(PIN_KEY)
-    if (!salt || !storedEncryptedPin) {
-      toast.error('Unable to decrypt PIN')
-      return
-    }
-
-    const encryptedPin = await pbkdf2Encrypt(pinString, salt)
-    const isPinValid = encryptedPin === storedEncryptedPin
-
-    if (isPinValid) {
-      setShowPinEntry(false)
+  async function handleSuccessPin() {
+    setShowPinEntry(false)
+    if (pinEntryReason === 'mnemonic') {
+      await decryptMnemonic()
       setMnemonicModalVisible(true)
-      setTimeout(() => setPin(emptyPin()), 500)
-    } else {
-      setPin(emptyPin())
     }
+    if (pinEntryReason === 'deletion') {
+      setTimeout(deleteThisAccount, 500)
+    }
+  }
+
+  function handlePinTriesOver() {
+    setShowPinEntry(false)
   }
 
   function saveChanges() {
-    updateAccountName(currentAccountId!, accountName)
+    updateAccountName(currentAccountId!, localAccountName)
     router.replace(`/signer/bitcoin/account/${currentAccountId}/`)
   }
 
@@ -148,29 +146,22 @@ export default function AccountSettings() {
     router.replace('/signer/bitcoin/accountList')
   }
 
-  useEffect(() => {
-    async function getMnemonic() {
-      const pin = await getItem(PIN_KEY)
-      if (!account || !pin) {
-        return
-      }
-
-      const stored = await getKeySecret(account.id, 0)
-      if (!stored) {
-        return
-      }
-
-      const accountSecretString = await aesDecrypt(
-        stored.secret,
-        pin,
-        stored.iv
-      )
-      const accountSecret = JSON.parse(accountSecretString) as Secret
-
-      setLocalMnemonic(accountSecret.mnemonic || '')
+  async function decryptMnemonic() {
+    const pin = await getItem(PIN_KEY)
+    if (!account || !pin) {
+      return
     }
-    getMnemonic()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const stored = await getKeySecret(account.id, 0)
+    if (!stored) {
+      return
+    }
+
+    const accountSecretString = await aesDecrypt(stored.secret, pin, stored.iv)
+    const accountSecret = JSON.parse(accountSecretString) as Secret
+
+    setLocalMnemonic(accountSecret.mnemonic || '')
+  }
 
   useEffect(() => {
     async function decryptCurrentAccountKeys() {
@@ -195,13 +186,6 @@ export default function AccountSettings() {
       toast.error(`Failed to decrypt account keys: ${reason}`)
     }
   }, [account])
-
-  // Update network when account changes
-  useEffect(() => {
-    if (account?.network) {
-      setNetwork(account.network)
-    }
-  }, [account?.network])
 
   // Update script version when account changes
   useEffect(() => {
@@ -238,7 +222,21 @@ export default function AccountSettings() {
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
-            <SSTextInput value={accountName} onChangeText={setAccountName} />
+            <SSTextInput
+              value={localAccountName}
+              onChangeText={handleSetAccountName}
+              status={isValidName}
+              error={
+                isValidName === 'invalid'
+                  ? t('account.error.nameDuplicated')
+                  : ''
+              }
+              warning={
+                isPseudoDuplicatedName
+                  ? t('account.error.namePseudoDuplicated')
+                  : ''
+              }
+            />
           </SSFormLayout.Item>
         </SSFormLayout>
         <SSVStack gap="xs" style={styles.infoTable}>
@@ -268,7 +266,7 @@ export default function AccountSettings() {
           </SSHStack>
           <SSHStack justifyBetween>
             <SSText color="muted">{t('account.network.title')}</SSText>
-            <SSText>{network}</SSText>
+            <SSText>{account?.network || '-'}</SSText>
           </SSHStack>
           <SSHStack justifyBetween>
             <SSText color="muted">{t('account.policy.title')}</SSText>
@@ -440,6 +438,7 @@ export default function AccountSettings() {
           <SSButton
             label={t('common.save')}
             variant="secondary"
+            disabled={isValidName !== 'valid'}
             onPress={saveChanges}
           />
         </SSVStack>
@@ -454,12 +453,7 @@ export default function AccountSettings() {
             <SSButton
               label={t('common.yes')}
               style={styles.deleteButton}
-              onPress={() => {
-                setDeleteModalVisible(false)
-                setTimeout(() => {
-                  deleteThisAccount()
-                }, 0)
-              }}
+              onPress={handleConfirmWalletDeletionWithPin}
             />
             <SSButton
               label={t('common.no')}
@@ -598,13 +592,12 @@ export default function AccountSettings() {
           setMnemonicModalVisible(true)
         }}
       />
-      <SSModal visible={showPinEntry} onClose={handleCloseMnemonicModal}>
-        <SSPinEntry
+      <SSModal visible={showPinEntry} onClose={handleClosePinEntry}>
+        <SSPinAuth
           title={t('account.enter.pin')}
-          pin={pin}
-          setPin={setPin}
-          onFillEnded={handlePinEntry}
-          autoFocus={pinEntryFocus}
+          onSuccess={handleSuccessPin}
+          onTriesOver={handlePinTriesOver}
+          maxTries={3}
         />
       </SSModal>
     </ScrollView>

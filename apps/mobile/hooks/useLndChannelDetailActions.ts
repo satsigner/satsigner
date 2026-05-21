@@ -4,7 +4,7 @@ import { Alert, Linking } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
-import type { LNDChannel, LNDGetInfoChain } from '@/types/models/LND'
+import type { LNDChannel, LNDGetInfoChain } from '@/types/models/Lightning'
 import { shareFile } from '@/utils/filesystem'
 import { getLndFundingTxMempoolUrl } from '@/utils/lndGetInfoChains'
 import { getLndErrorMessage } from '@/utils/lndHttpError'

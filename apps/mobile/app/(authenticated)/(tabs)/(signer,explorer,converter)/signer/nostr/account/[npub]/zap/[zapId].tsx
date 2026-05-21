@@ -24,17 +24,14 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
+import { type ZapReceiptInfo } from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
 import { nostrContactProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
-import {
-  enrichZapReceipts,
-  fetchZapReceiptById,
-  type ZapReceiptInfo
-} from '@/utils/zap'
+import { enrichZapReceipts, fetchZapReceiptById } from '@/utils/nostrZap'
 
 type ZapParams = {
   npub: string

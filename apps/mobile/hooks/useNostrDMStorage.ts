@@ -2,14 +2,14 @@ import { nip19 } from 'nostr-tools'
 import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner-native'
 
+import { NOSTR_DM_FUTURE_TOLERANCE_SEC } from '@/constants/nostr'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import {
-  DM_FUTURE_TOLERANCE_SEC,
-  type NostrMessage,
-  type PendingDM,
-  type UnwrappedNostrEvent
-} from '@/types/nostrMessageHandlers'
+  NostrDM,
+  type NostrPendingDM,
+  type NostrUnwrappedEvent
+} from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 import {
@@ -61,9 +61,9 @@ function isSenderAllowed(account: Account, senderPubkeyHex: string): boolean {
 }
 
 function buildNewMessage(
-  unwrappedEvent: UnwrappedNostrEvent,
+  unwrappedEvent: NostrUnwrappedEvent,
   eventContent: Record<string, unknown>
-): NostrMessage {
+): NostrDM {
   const created_at = eventContent.created_at as number
   const description = (eventContent.description as string) ?? ''
   return {
@@ -86,17 +86,17 @@ const DM_STORAGE_DEBOUNCE_MS = 500
 
 function useNostrDMStorage() {
   // Accumulator for pending DMs across multiple storeBatch calls
-  const pendingDmsRef = useRef<Map<string, PendingDM[]>>(new Map())
+  const pendingDmsRef = useRef<Map<string, NostrPendingDM[]>>(new Map())
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const store = useCallback(
     (
       account: Account,
-      unwrappedEvent: UnwrappedNostrEvent,
+      unwrappedEvent: NostrUnwrappedEvent,
       eventContent: Record<string, unknown>
     ) => {
       const created_at = eventContent.created_at as number
-      if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) {
+      if (created_at > Date.now() / 1000 + NOSTR_DM_FUTURE_TOLERANCE_SEC) {
         return
       }
 
@@ -160,7 +160,7 @@ function useNostrDMStorage() {
             Math.abs(m.created_at - newMessage.created_at) <=
               PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
         )
-        if (pendingIdx >= 0) {
+        if (pendingIdx !== -1) {
           currentDms = currentDms.slice()
           currentDms[pendingIdx] = newMessage
           const updatedDms = currentDms.toSorted(
@@ -214,7 +214,7 @@ function useNostrDMStorage() {
       }
 
       const created_at = eventContent.created_at as number
-      if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) {
+      if (created_at > Date.now() / 1000 + NOSTR_DM_FUTURE_TOLERANCE_SEC) {
         continue
       }
 
@@ -234,7 +234,7 @@ function useNostrDMStorage() {
             Math.abs(m.created_at - newMessage.created_at) <=
               PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
         )
-        if (pendingIdx >= 0) {
+        if (pendingIdx !== -1) {
           currentDms = currentDms.slice()
           currentDms[pendingIdx] = newMessage
         } else {
@@ -272,7 +272,7 @@ function useNostrDMStorage() {
 
   // Debounced storeBatch - accumulates DMs and writes to storage after delay
   const storeBatch = useCallback(
-    (account: Account, pendingDms: PendingDM[]) => {
+    (account: Account, pendingDms: NostrPendingDM[]) => {
       if (pendingDms.length === 0) {
         return
       }

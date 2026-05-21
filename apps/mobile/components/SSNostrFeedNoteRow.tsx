@@ -12,7 +12,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type NostrKind0Profile } from '@/types/models/Nostr'
+import { NostrFeedNoteLike, type NostrKind0Profile } from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
 import { truncateNpub } from '@/utils/nostrIdentity'
 import {
@@ -33,15 +33,6 @@ import {
 } from '@/utils/nostrNoteQuotes'
 import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
-
-export type NostrFeedNoteLike = {
-  id: string
-  content: string
-  pubkey: string
-  kind: number
-  tags: string[][]
-  created_at: number
-}
 
 function getDTagFromTags(tags: string[][]): string | undefined {
   const row = tags.find((tag) => tag[0] === 'd')

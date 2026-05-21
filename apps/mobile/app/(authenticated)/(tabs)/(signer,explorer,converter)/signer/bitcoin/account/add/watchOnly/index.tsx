@@ -46,16 +46,14 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import {
-  type CreationType,
-  type ScriptVersionType
-} from '@/types/models/Account'
+import { type CreationType } from '@/types/models/Account'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import { isBBQRFragment } from '@/utils/bbqr'
 import {
   appNetworkToBdkNetwork,
   bitcoinjsNetwork,
-  getDerivationPathFromScriptVersion
+  convertKeyFormat
 } from '@/utils/bitcoin'
 import { DescriptorUtils } from '@/utils/descriptorUtils'
 import { stripBitcoinPrefix } from '@/utils/parse'
@@ -319,19 +317,6 @@ export default function WatchOnly() {
     }
 
     setXpub(xpub)
-
-    // For multisig accounts, use the script version from the store instead of auto-detecting
-    // The script type should be determined by the multisig configuration, not the xpub prefix
-    if (validXpub && localFingerprint) {
-      // Use the script version from the store to determine the correct derivation path
-      const derivationPath = getDerivationPathFromScriptVersion(
-        scriptVersion,
-        network
-      )
-      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
-      setExtendedPublicKey(formattedXpub)
-      // Don't change the script version - keep the one from the store
-    }
   }
 
   async function updateExternalDescriptor(
@@ -370,7 +355,7 @@ export default function WatchOnly() {
   ) {
     // This is a separated descriptor from a combined descriptor
     // Only do format validation, not checksum validation
-    const descriptorValidation = await validateDescriptorFormat(descriptor)
+    const descriptorValidation = validateDescriptorFormat(descriptor)
 
     const basicValidation =
       descriptorValidation && !descriptor.match(/[txyz]priv/)
@@ -381,7 +366,7 @@ export default function WatchOnly() {
 
       if (basicValidation) {
         setExternalDescriptor(descriptor)
-        await extractAndSetFingerprint(descriptor)
+        extractAndSetFingerprint(descriptor)
       }
     } else {
       setIsValidInternalDescriptor(!descriptor || basicValidation)
@@ -559,6 +544,18 @@ export default function WatchOnly() {
   }
 
   async function handleSingleQRCode(data: string) {
+    if (selectedOption === 'importExtendedPub') {
+      updateXpub(data.trim())
+      setCameraModalVisible(false)
+      return
+    }
+
+    if (selectedOption === 'importAddress') {
+      updateAddress(data.trim())
+      setCameraModalVisible(false)
+      return
+    }
+
     if (isCombinedDescriptor(data)) {
       await handleCombinedDescriptor(data, data)
       return
@@ -592,10 +589,12 @@ export default function WatchOnly() {
   }
 
   async function pasteFromClipboard() {
-    const text = await Clipboard.getStringAsync()
-    if (!text) {
+    const rawText = await Clipboard.getStringAsync()
+    if (!rawText) {
       return
     }
+
+    const text = rawText.trim()
 
     if (selectedOption === 'importExtendedPub') {
       updateXpub(text)
@@ -869,7 +868,8 @@ export default function WatchOnly() {
             toast.error(t('watchonly.error.missingFields'))
             return
           }
-          setExtendedPublicKey(xpub)
+          const normalizedXpub = convertKeyFormat(xpub, 'xpub', network)
+          setExtendedPublicKey(normalizedXpub)
           setFingerprint(localFingerprint)
           setScriptVersion(scriptVersion)
         } else if (selectedOption === 'importAddress') {

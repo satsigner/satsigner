@@ -59,18 +59,7 @@ export function equalizeSankeyColumnsByDepthH<T extends DepthHNode>(
       continue
     }
 
-    let gap = gapRequest
-    let slotH = (H - (n - 1) * gap) / n
-
-    if (slotH < minSlotHeightPx && n > 1) {
-      gap = Math.max(0, (H - n * minSlotHeightPx) / (n - 1))
-      slotH = (H - (n - 1) * gap) / n
-    }
-
-    if (slotH < 0) {
-      slotH = H / n
-      gap = 0
-    }
+    const { gap, slotH } = computeSlotMetrics(H, n, gapRequest, minSlotHeightPx)
 
     for (let i = 0; i < n; i += 1) {
       const node = col[i]
@@ -79,4 +68,25 @@ export function equalizeSankeyColumnsByDepthH<T extends DepthHNode>(
       node.y1 = y0 + slotH
     }
   }
+}
+
+function computeSlotMetrics(
+  H: number,
+  n: number,
+  gapRequest: number,
+  minSlotHeightPx: number
+): { gap: number; slotH: number } {
+  const initialSlot = (H - (n - 1) * gapRequest) / n
+  if (initialSlot >= minSlotHeightPx || n <= 1) {
+    if (initialSlot < 0) {
+      return { gap: 0, slotH: H / n }
+    }
+    return { gap: gapRequest, slotH: initialSlot }
+  }
+  const adjustedGap = Math.max(0, (H - n * minSlotHeightPx) / (n - 1))
+  const adjustedSlot = (H - (n - 1) * adjustedGap) / n
+  if (adjustedSlot < 0) {
+    return { gap: 0, slotH: H / n }
+  }
+  return { gap: adjustedGap, slotH: adjustedSlot }
 }

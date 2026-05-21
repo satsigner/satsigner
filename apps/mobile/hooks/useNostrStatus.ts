@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 
 import { type NostrSyncStatus, useNostrStore } from '@/store/nostr'
-import {
-  nostrSyncService,
-  type SyncStatusEvent
-} from '@/utils/nostrSyncService'
+import { type NostrSyncStatusEvent } from '@/types/models/Nostr'
+import { nostrSyncService } from '@/utils/nostrSyncService'
 
 /**
  * Read-only hook for accessing Nostr sync status for an account.
@@ -20,7 +18,7 @@ function useNostrStatus(accountId: string) {
   }, [storeStatus])
 
   useEffect(() => {
-    const handleStatusChange = (event: SyncStatusEvent) => {
+    const handleStatusChange = (event: NostrSyncStatusEvent) => {
       if (event.accountId === accountId) {
         setStatus(useNostrStore.getState().getSyncStatus(accountId))
       }

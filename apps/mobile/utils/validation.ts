@@ -5,7 +5,7 @@ import {
   validateDescriptor as bdkValidateDescriptor
 } from 'react-native-bdk-sdk'
 
-import { type ScriptVersionType } from '@/types/models/Account'
+import { ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 
 bitcoinjs.initEccLib(ecc)
@@ -59,22 +59,15 @@ function validateDescriptorChecksum(descriptor: string) {
   )
 }
 
-// Cache of descriptor validation results for reactive UI feedback
-export const descriptorValidityCache = new Map<string, boolean>()
-
-export async function validateDescriptor(descriptor: string) {
-  const result = await validateDescriptorInternal(descriptor, true)
-  descriptorValidityCache.set(descriptor, result)
-  return result
+export function validateDescriptor(descriptor: string) {
+  return validateDescriptorInternal(descriptor, true)
 }
 
-export async function validateDescriptorFormat(descriptor: string) {
-  const result = await validateDescriptorInternal(descriptor, false)
-  descriptorValidityCache.set(descriptor, result)
-  return result
+export function validateDescriptorFormat(descriptor: string) {
+  return validateDescriptorInternal(descriptor, false)
 }
 
-async function validateDescriptorInternal(
+function validateDescriptorInternal(
   descriptor: string,
   validateChecksum: boolean
 ) {
@@ -106,7 +99,7 @@ async function validateDescriptorInternal(
 
   // Validate checksum first (only if validateChecksum is true)
   if (validateChecksum) {
-    const checksumValidation = await validateDescriptorChecksum(descriptor)
+    const checksumValidation = validateDescriptorChecksum(descriptor)
     if (!checksumValidation) {
       return false
     }
@@ -295,18 +288,13 @@ function separateCombinedDescriptor(combinedDescriptor: string) {
   return { external, internal }
 }
 
-export async function validateCombinedDescriptor(
+export function validateCombinedDescriptor(
   combinedDescriptor: string,
   scriptVersion?: ScriptVersionType,
   networkType?: string
-): Promise<{
-  isValid: boolean
-  error?: string
-  externalDescriptor: string
-  internalDescriptor: string
-}> {
+) {
   // Validate the full combined descriptor including checksum
-  const combinedValidation = await validateDescriptor(combinedDescriptor)
+  const combinedValidation = validateDescriptor(combinedDescriptor)
 
   if (!combinedValidation) {
     // If combined descriptor is invalid, return the error

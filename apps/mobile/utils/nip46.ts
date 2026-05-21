@@ -1,9 +1,9 @@
 import {
   NIP46_EVENT_PREVIEW_MAX_LENGTH,
   NIP46_NOSTR_CONNECT_PREFIX
-} from '@/constants/nip46'
+} from '@/constants/nostr'
 import { t } from '@/locales'
-import type { Nip46ParsedUri } from '@/types/models/Nip46'
+import type { Nip46ParsedUri } from '@/types/models/Nostr'
 
 const HEX_PUBKEY_REGEX = /^[0-9a-f]{64}$/
 

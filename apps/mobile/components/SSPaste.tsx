@@ -21,9 +21,8 @@ import {
   type ContentType,
   detectContentByContext,
   type DetectedContent,
-  prepareEcashTokenInput
+  preprocessByContext
 } from '@/utils/contentDetector'
-import { stripBitcoinPrefix } from '@/utils/parse'
 
 type SSPasteProps = {
   visible: boolean
@@ -72,12 +71,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const validateContent = useCallback(
     async (text: string) => {
       try {
-        const processedText =
-          context === 'bitcoin'
-            ? stripBitcoinPrefix(text)
-            : context === 'ecash'
-              ? prepareEcashTokenInput(text)
-              : text
+        const processedText = preprocessByContext(text, context)
         const detectedContent = await detectContentByContext(
           processedText,
           context
@@ -132,12 +126,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         setTimeout(resolve, 100)
       })
 
-      const processedContent =
-        context === 'bitcoin'
-          ? stripBitcoinPrefix(content)
-          : context === 'ecash'
-            ? prepareEcashTokenInput(content)
-            : content
+      const processedContent = preprocessByContext(content, context)
 
       const detectedContent = await detectContentByContext(
         processedContent,

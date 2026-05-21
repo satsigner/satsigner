@@ -8,8 +8,8 @@ import useNostrSync from '@/hooks/useNostrSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { Label } from '@/types/bips/329'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
-import { type Label } from '@/utils/bip329'
 
 function UtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()

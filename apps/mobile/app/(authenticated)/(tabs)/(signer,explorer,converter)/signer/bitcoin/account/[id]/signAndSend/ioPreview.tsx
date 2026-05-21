@@ -11,6 +11,7 @@ import {
   View
 } from 'react-native'
 import { KeychainKind } from 'react-native-bdk-sdk'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -73,6 +74,7 @@ export default function IOPreview() {
     AccountSearchParams & { dustWarning?: string }
   >()
   const isFocused = useIsFocused()
+  const insets = useSafeAreaInsets()
 
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
@@ -196,7 +198,7 @@ export default function IOPreview() {
     () => utxosValue(account.utxos),
     [account.utxos]
   )
-  const utxosSelectedValue = utxosValue(getInputs())
+  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
 
   // First calculate without change output
   const baseTransactionSize = useMemo(() => {
@@ -913,7 +915,7 @@ export default function IOPreview() {
           bottom: 0,
           flexDirection: 'row',
           justifyContent: 'center',
-          paddingBottom: 20,
+          paddingBottom: 20 + insets.bottom,
           position: 'absolute',
           width: '100%'
         }}

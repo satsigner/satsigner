@@ -1,33 +1,25 @@
 export type ImageExifData = {
-  // Authorship
   artist?: string
   copyright?: string
   description?: string
   software?: string
-  // IPTC
   byline?: string
   city?: string
   country?: string
   headline?: string
   keywords?: string[]
-  // Camera
   make?: string
   model?: string
   lens?: string
-  // Capture settings
   exposureTime?: number
   fNumber?: number
   iso?: number
   focalLength?: number
-  // Date
   dateTimeOriginal?: Date
-  // GPS
   latitude?: number
   longitude?: number
   altitude?: number
 }
-
-// ─── TIFF types ──────────────────────────────────────────────────────────────
 
 const TIFF_BYTE = 1
 const TIFF_ASCII = 2
@@ -44,8 +36,6 @@ const TIFF_TYPE_SIZE: Record<number, number> = {
   [TIFF_RATIONAL]: 8,
   [TIFF_SRATIONAL]: 8
 }
-
-// ─── EXIF tags (IFD0 / ExifIFD / GPSIFD) ────────────────────────────────────
 
 const TAG_IMAGE_DESCRIPTION = 0x010e
 const TAG_MAKE = 0x010f
@@ -70,8 +60,6 @@ const TAG_GPS_LON = 0x0004
 const TAG_GPS_ALT_REF = 0x0005
 const TAG_GPS_ALT = 0x0006
 
-// ─── DataView helpers ────────────────────────────────────────────────────────
-
 function readUint16(view: DataView, offset: number, le: boolean): number {
   return view.getUint16(offset, le)
 }
@@ -91,14 +79,12 @@ function readAscii(view: DataView, offset: number, count: number): string {
     view.getUint8(offset + i)
   )
   const nullIdx = raw.indexOf(0)
-  const bytes = nullIdx >= 0 ? raw.slice(0, nullIdx) : raw
+  const bytes = nullIdx !== -1 ? raw.slice(0, nullIdx) : raw
   return bytes
     .map((b) => String.fromCharCode(b))
     .join('')
     .trim()
 }
-
-// ─── IFD entry reader ────────────────────────────────────────────────────────
 
 type IFDValues = Record<number, number | string | number[] | undefined>
 
@@ -164,8 +150,6 @@ function readIFD(
   return result
 }
 
-// ─── GPS coordinate ──────────────────────────────────────────────────────────
-
 function parseGpsCoord(
   values: IFDValues,
   degMinSecTag: number,
@@ -183,8 +167,6 @@ function parseGpsCoord(
     : decimal
 }
 
-// ─── DateTime parser ─────────────────────────────────────────────────────────
-
 function parseExifDate(raw: unknown): Date | undefined {
   if (typeof raw !== 'string') {
     return undefined
@@ -198,8 +180,6 @@ function parseExifDate(raw: unknown): Date | undefined {
   const date = new Date(y, mo - 1, d, h, mi, s)
   return isNaN(date.getTime()) ? undefined : date
 }
-
-// ─── IPTC parser (APP13 segment) ─────────────────────────────────────────────
 
 type IptcData = {
   byline?: string
@@ -262,8 +242,6 @@ function parseIptc(view: DataView, offset: number, length: number): IptcData {
   }
   return result
 }
-
-// ─── JPEG segment scanner ────────────────────────────────────────────────────
 
 function str(v: unknown): string | undefined {
   if (typeof v !== 'string') {

@@ -4,8 +4,8 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { NostrAPI } from '@/api/nostr'
 import {
-  PROTOCOL_SUBSCRIPTION_LIMIT,
-  PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
+  NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT,
+  NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
 } from '@/constants/nostr'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
@@ -68,8 +68,8 @@ function useNostrSubscriptionManager() {
       await nostrApi.connect()
       const isFullRescan = lastProtocolEOSE === 0
       const limit = isFullRescan
-        ? PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
-        : PROTOCOL_SUBSCRIPTION_LIMIT
+        ? NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
+        : NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT
       await nostrApi.subscribeToKind1059(
         commonNsec as string,
         commonNpub as string,

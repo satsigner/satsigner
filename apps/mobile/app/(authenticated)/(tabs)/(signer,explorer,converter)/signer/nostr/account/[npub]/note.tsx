@@ -29,20 +29,17 @@ import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import {
   SSNostrFeedAuthorRow,
-  SSNostrFeedNoteRow,
-  type NostrFeedNoteLike
+  SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
-import SSPaymentMethodPicker, {
-  type PaymentMethod
-} from '@/components/SSPaymentMethodPicker'
+import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
-  DEFAULT_ONE_TAP_AMOUNT,
-  DEFAULT_ZAP_PRESETS,
+  NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
+  NOSTR_ZAP_DEFAULT_PRESETS,
   NOSTR_PRIVACY_MASK
 } from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
@@ -57,12 +54,18 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
-import { type NostrKind0Profile } from '@/types/models/Nostr'
+import type {
+  NostrKind0Profile,
+  NostrDecodedContent,
+  NostrFetchedNoteData,
+  NostrFeedNoteLike,
+  ZapReceiptInfo,
+  ZapSortField
+} from '@/types/models/Nostr'
+import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
-  type DecodedNostrContent,
-  type FetchedNoteData,
   decodeNostrContent,
   extractEnhancedZapTags,
   extractPubpayTags,
@@ -82,16 +85,14 @@ import {
   noteLooksLikeReply
 } from '@/utils/nostrNoteThread'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
-import { buildPaymentMethods } from '@/utils/paymentMethods'
 import {
-  type ZapReceiptInfo,
-  type ZapSortField,
   countQualifyingZaps,
   enrichZapReceipts,
   fetchZapReceipts,
   initiateZap,
   sortZapReceipts
-} from '@/utils/zap'
+} from '@/utils/nostrZap'
+import { buildPaymentMethods } from '@/utils/paymentMethods'
 
 type NoteParams = {
   npub: string
@@ -119,7 +120,7 @@ export default function NostrNotePage() {
   const globalRelays = useNostrIdentityStore((state) => state.relays)
   const effectiveRelays = identity?.relays ?? globalRelays
 
-  const [fetched, setFetched] = useState<FetchedNoteData | null>(null)
+  const [fetched, setFetched] = useState<NostrFetchedNoteData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [profileLoading, setProfileLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -130,7 +131,9 @@ export default function NostrNotePage() {
   const [customAmount, setCustomAmount] = useState('')
   const [zapLoading, setZapLoading] = useState(false)
   const [zapReceipts, setZapReceipts] = useState<ZapReceiptInfo[]>([])
-  const [replyParent, setReplyParent] = useState<FetchedNoteData | null>(null)
+  const [replyParent, setReplyParent] = useState<NostrFetchedNoteData | null>(
+    null
+  )
   const [replyParentLoading, setReplyParentLoading] = useState(false)
   const [replyParentMissing, setReplyParentMissing] = useState(false)
   const [replyParentKind0Pending, setReplyParentKind0Pending] = useState(false)
@@ -163,8 +166,9 @@ export default function NostrNotePage() {
   >({})
 
   const zapPrefs = identity?.zapPreferences
-  const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
-  const oneTapAmount = zapPrefs?.oneTapAmount ?? DEFAULT_ONE_TAP_AMOUNT
+  const zapPresets = zapPrefs?.presetAmounts ?? NOSTR_ZAP_DEFAULT_PRESETS
+  const oneTapAmount =
+    zapPrefs?.oneTapAmount ?? NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT
 
   const lightningConfig = useLightningStore((state) => state.config)
   const lightningNodeAlias = useLightningStore(
@@ -574,7 +578,7 @@ export default function NostrNotePage() {
           return
         }
 
-        const base: FetchedNoteData = {
+        const base: NostrFetchedNoteData = {
           content: event.content,
           created_at: event.created_at,
           kind: event.kind,
@@ -1927,8 +1931,8 @@ export default function NostrNotePage() {
 }
 
 function deriveNoteItemForFeed(
-  fetched: FetchedNoteData | null,
-  decoded: DecodedNostrContent | null
+  fetched: NostrFetchedNoteData | null,
+  decoded: NostrDecodedContent | null
 ): NostrFeedNoteLike | null {
   if (!fetched || !decoded) {
     return null
@@ -1950,7 +1954,7 @@ function deriveNoteItemForFeed(
 }
 
 function deriveAuthorFeedProps(
-  noteData: FetchedNoteData | null,
+  noteData: NostrFetchedNoteData | null,
   identity:
     | { displayName?: string; picture?: string; nip05?: string }
     | undefined,

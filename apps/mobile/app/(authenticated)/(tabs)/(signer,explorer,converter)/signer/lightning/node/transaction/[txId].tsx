@@ -25,11 +25,11 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type {
-  LndInvoice,
-  LndOnchainTransaction,
-  LndPayment
-} from '@/types/lndNodeDashboard'
-import type { LNDGraphNodeInfo } from '@/types/models/LND'
+  LNDInvoice,
+  LNDOnchainTransaction,
+  LNDPayment,
+  LNDGraphNodeInfo
+} from '@/types/models/Lightning'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { formatLightningTxTimeAgo } from '@/utils/lndTransactionDisplay'
 
@@ -103,7 +103,7 @@ function SectionHeader({ label }: { label: string }) {
   )
 }
 
-type Hop = LndPayment['htlcs'][0]['route']['hops'][0]
+type Hop = LNDPayment['htlcs'][0]['route']['hops'][0]
 
 function shortPubkey(pk: string): string {
   if (!pk) {
@@ -237,7 +237,7 @@ function PaymentDetail({
   privacyMode
 }: {
   nodeInfoMap: Record<string, LNDGraphNodeInfo | null>
-  payment: LndPayment
+  payment: LNDPayment
   privacyMode: boolean
 }) {
   const htlcCount = payment.htlcs?.length ?? 0
@@ -397,7 +397,7 @@ function PaymentDetail({
   )
 }
 
-function paymentHops(payment: LndPayment): Hop[] {
+function paymentHops(payment: LNDPayment): Hop[] {
   return payment.htlcs?.[0]?.route?.hops ?? []
 }
 
@@ -405,7 +405,7 @@ function InvoiceDetail({
   invoice,
   privacyMode
 }: {
-  invoice: LndInvoice
+  invoice: LNDInvoice
   privacyMode: boolean
 }) {
   const settleDate = Number(invoice.settle_date)
@@ -479,7 +479,7 @@ function OnchainDetail({
   onchain,
   privacyMode
 }: {
-  onchain: LndOnchainTransaction
+  onchain: LNDOnchainTransaction
   privacyMode: boolean
 }) {
   const destAddresses = onchain.dest_addresses ?? []

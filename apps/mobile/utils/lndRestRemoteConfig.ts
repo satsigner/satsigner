@@ -1,4 +1,4 @@
-import type { LNDConfig } from '@/types/models/LND'
+import type { LNDConfig } from '@/types/models/Lightning'
 
 type JsonRecord = Record<string, unknown>
 
@@ -8,6 +8,16 @@ export function stripJsonBom(text: string): string {
 
 export function normalizeLndRestBaseUrl(url: string): string {
   return url.trim().replace(/\/+$/, '')
+}
+
+function dequote(value: string): string {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1)
+  }
+  return value
 }
 
 /**
@@ -28,10 +38,11 @@ export function getLndConfigFileUrlFromConnectionInput(
   }
   const firstLine = (trimmed.split(/\r?\n/)[0] ?? trimmed).trim()
   const urlCandidate = firstLine.split(/\s+/)[0] ?? firstLine
-  if (/^https?:\/\/.+/i.test(urlCandidate)) {
-    if (/\.config(?:[/?#]|$)/i.test(urlCandidate)) {
-      return urlCandidate
-    }
+  if (
+    /^https?:\/\/.+/i.test(urlCandidate) &&
+    /\.config(?:[/?#]|$)/i.test(urlCandidate)
+  ) {
+    return urlCandidate
   }
   return null
 }
@@ -41,10 +52,11 @@ export function getLndConfigFileUrlFromConnectionInput(
  * hexadecimal. Hosts often ship base64 or base64url in JSON.
  */
 export function macaroonToLndRestHexHeader(raw: string): string {
-  let s = raw.trim().replace(/\s+/g, '')
-  if (s.startsWith('0x') || s.startsWith('0X')) {
-    s = s.slice(2)
-  }
+  const normalized = raw.trim().replace(/\s+/g, '')
+  const s =
+    normalized.startsWith('0x') || normalized.startsWith('0X')
+      ? normalized.slice(2)
+      : normalized
   if (/^[0-9a-fA-F]+$/.test(s)) {
     if (s.length % 2 === 1) {
       throw new Error('Macaroon hex has odd length')
@@ -113,7 +125,7 @@ function pickRestUrl(entry: JsonRecord): string | null {
 
 function extractLndRestEntry(parsed: unknown): JsonRecord | null {
   if (Array.isArray(parsed) && parsed.length > 0) {
-    const first = parsed[0]
+    const [first] = parsed
     if (first && typeof first === 'object') {
       return first as JsonRecord
     }
@@ -125,7 +137,7 @@ function extractLndRestEntry(parsed: unknown): JsonRecord | null {
   const json = parsed as JsonRecord
   const { configurations } = json
   if (Array.isArray(configurations) && configurations.length > 0) {
-    const first = configurations[0]
+    const [first] = configurations
     if (first && typeof first === 'object') {
       return first as JsonRecord
     }
@@ -160,13 +172,15 @@ function parseLndRemotePairingFromParsedJson(parsed: unknown): LNDConfig {
 
 export function parseLndRemotePairingFromJsonText(text: string): LNDConfig {
   const trimmed = stripJsonBom(text)
-  let parsed: unknown
+  return parseLndRemotePairingFromParsedJson(parseJsonOrThrow(trimmed))
+}
+
+function parseJsonOrThrow(text: string): unknown {
   try {
-    parsed = JSON.parse(trimmed)
+    return JSON.parse(text)
   } catch {
     throw new Error('Config file is not valid JSON')
   }
-  return parseLndRemotePairingFromParsedJson(parsed)
 }
 
 /**
@@ -185,14 +199,7 @@ export function parseLndRemotePairingConnectionString(text: string): LNDConfig {
       continue
     }
     const key = part.slice(0, eq).trim().toLowerCase()
-    let value = part.slice(eq + 1).trim()
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1)
-    }
-    map[key] = value
+    map[key] = dequote(part.slice(eq + 1).trim())
   }
   const type = map.type?.toLowerCase()
   if (type && type !== 'lnd-rest') {

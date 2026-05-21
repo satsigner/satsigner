@@ -8,8 +8,10 @@ import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { t } from '@/locales'
 import { useZapFlowStore } from '@/store/zapFlow'
 import type { EcashMint } from '@/types/models/Ecash'
-import type { LNDecodedInvoice } from '@/types/models/LND'
-import type { LNURLPayResponse } from '@/types/models/LNURL'
+import type {
+  LNDDecodedInvoice,
+  LNURLPayResponse
+} from '@/types/models/Lightning'
 import {
   decodeLightningInvoice,
   isLightningInvoice
@@ -37,9 +39,8 @@ export function useEcashSend() {
   const [generatedTokenV3, setGeneratedTokenV3] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isMelting, setIsMelting] = useState(false)
-  const [decodedInvoice, setDecodedInvoice] = useState<LNDecodedInvoice | null>(
-    null
-  )
+  const [decodedInvoice, setDecodedInvoice] =
+    useState<LNDDecodedInvoice | null>(null)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
   const [lnurlDetails, setLNURLDetails] = useState<LNURLPayResponse | null>(
     null
@@ -289,7 +290,7 @@ export function useEcashSend() {
         return
       }
       try {
-        const lndDecoded = await makeRequest<LNDecodedInvoice>(
+        const lndDecoded = await makeRequest<LNDDecodedInvoice>(
           `/v1/payreq/${cleanText}`
         )
         setDecodedInvoice(lndDecoded)

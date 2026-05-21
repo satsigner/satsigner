@@ -5,9 +5,8 @@ import mmkvStorage from '@/storage/mmkv'
 import type {
   LNDChannel,
   LNDConfig,
-  LNDConnectionStatus,
   LNDNodeInfo
-} from '@/types/models/LND'
+} from '@/types/models/Lightning'
 
 type LightningState = {
   config: LNDConfig | null
@@ -73,3 +72,10 @@ export const useLightningStore = create<LightningState>()(
     }
   )
 )
+export type LNDConnectionStatus = {
+  isConnected: boolean
+  isConnecting: boolean
+  nodeInfo?: LNDNodeInfo
+  channels?: LNDChannel[]
+  lastSync?: string
+}

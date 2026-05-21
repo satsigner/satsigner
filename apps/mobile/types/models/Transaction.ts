@@ -1,38 +1,46 @@
-import { type Prices } from './Blockchain'
+import z from 'zod'
 
-export type Transaction = {
-  id: string
-  type: 'send' | 'receive'
-  sent: number
-  received: number
-  timestamp?: Date
-  blockHeight?: number
-  address?: string
-  label?: string
-  fee?: number
-  size?: number
-  vsize?: number
-  weight?: number
-  version?: number
-  lockTime?: number
-  lockTimeEnabled: boolean
-  raw?: number[]
-  vin: {
-    previousOutput: {
-      txid: string
-      vout: number
-    }
-    sequence: number
-    scriptSig: number[] | string
-    witness: number[][]
-    value?: number
-    label?: string
-  }[]
-  vout: {
-    value: number
-    address: string
-    script: number[] | string
-    label?: string
-  }[]
-  prices: Prices
-}
+import { PricesSchema } from './Blockchain'
+
+export const TransactionSchema = z.object({
+  address: z.string().optional(),
+  blockHeight: z.number().optional(),
+  fee: z.number().optional(),
+  id: z.string(),
+  label: z.string().optional(),
+  lockTime: z.number().optional(),
+  lockTimeEnabled: z.boolean(),
+  prices: PricesSchema,
+  raw: z.array(z.number()).optional(),
+  received: z.number(),
+  sent: z.number(),
+  size: z.number().optional(),
+  timestamp: z.date().optional(),
+  type: z.enum(['send', 'receive']),
+  version: z.number().optional(),
+  vin: z.array(
+    z.object({
+      label: z.string().optional(),
+      previousOutput: z.object({
+        txid: z.string(),
+        vout: z.number()
+      }),
+      scriptSig: z.union([z.array(z.number()), z.string()]),
+      sequence: z.number(),
+      value: z.number().optional(),
+      witness: z.array(z.array(z.number()))
+    })
+  ),
+  vout: z.array(
+    z.object({
+      address: z.string(),
+      label: z.string().optional(),
+      script: z.union([z.array(z.number()), z.string()]),
+      value: z.number()
+    })
+  ),
+  vsize: z.number().optional(),
+  weight: z.number().optional()
+})
+
+export type Transaction = z.infer<typeof TransactionSchema>

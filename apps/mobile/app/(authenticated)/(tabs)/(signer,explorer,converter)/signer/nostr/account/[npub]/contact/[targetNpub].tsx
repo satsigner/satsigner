@@ -12,9 +12,7 @@ import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
 import SSNostrHeroCard from '@/components/SSNostrHeroCard'
-import SSPaymentMethodPicker, {
-  type PaymentMethod
-} from '@/components/SSPaymentMethodPicker'
+import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
@@ -29,12 +27,13 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Layout } from '@/styles'
-import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import { type NostrIdentity } from '@/types/models/Nostr'
+import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { setClipboard } from '@/utils/clipboard'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import { nostrZapDetailHref } from '@/utils/nostrNavigation'
+import { initiateZap } from '@/utils/nostrZap'
 import { buildPaymentMethods } from '@/utils/paymentMethods'
-import { initiateZap } from '@/utils/zap'
 
 type ContactParams = {
   npub: string
