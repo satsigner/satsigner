@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     top: 0
   },
   labelLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2

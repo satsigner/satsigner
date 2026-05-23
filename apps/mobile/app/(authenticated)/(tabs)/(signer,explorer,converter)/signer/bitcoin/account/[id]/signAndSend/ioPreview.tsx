@@ -1,8 +1,8 @@
 import type BottomSheet from '@gorhom/bottom-sheet'
-import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useIsFocused } from 'expo-router/react-navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   type LayoutChangeEvent,

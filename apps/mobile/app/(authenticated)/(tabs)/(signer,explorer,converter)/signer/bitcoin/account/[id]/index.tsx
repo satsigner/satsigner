@@ -1,4 +1,3 @@
-import { useFocusEffect } from '@react-navigation/native'
 import { FlashList } from '@shopify/flash-list'
 import {
   Redirect,
@@ -7,6 +6,7 @@ import {
   useLocalSearchParams,
   useRouter
 } from 'expo-router'
+import { useFocusEffect } from 'expo-router/react-navigation'
 import {
   type Dispatch,
   useCallback,
@@ -1790,7 +1790,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   loaderOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     backgroundColor: 'transparent',
     boxShadow: 'none',
