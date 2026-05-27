@@ -40,8 +40,8 @@ function aesEncrypt(text: string, key: string, iv: string): Promise<string> {
   const updated = cipher.update(new Uint8Array(Buffer.from(text, 'utf8')))
   const finalized = cipher.final()
   const result = Buffer.concat([
-    new Uint8Array(updated as ArrayBuffer),
-    new Uint8Array(finalized as ArrayBuffer)
+    Buffer.from(updated.buffer, updated.byteOffset, updated.byteLength),
+    Buffer.from(finalized.buffer, finalized.byteOffset, finalized.byteLength)
   ])
   return Promise.resolve(result.toString('base64'))
 }
@@ -61,8 +61,8 @@ function aesDecrypt(
   )
   const finalized = decipher.final()
   const result = Buffer.concat([
-    new Uint8Array(updated as ArrayBuffer),
-    new Uint8Array(finalized as ArrayBuffer)
+    Buffer.from(updated.buffer, updated.byteOffset, updated.byteLength),
+    Buffer.from(finalized.buffer, finalized.byteOffset, finalized.byteLength)
   ])
   return Promise.resolve(result.toString('utf8'))
 }

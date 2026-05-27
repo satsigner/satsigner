@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     position: 'absolute'
   },
   pinGlassHost: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 1
   },
   pinGlassLeft: {

@@ -104,26 +104,26 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-build-properties',
       {
-        android: {
-          useHermesV1: false
-        },
         ios: {
-          useHermesV1: false
+          deploymentTarget: '16.4'
         }
       }
     ],
     'expo-image',
     'expo-sharing',
     'expo-web-browser',
-    '@secondts/bark-react-native'
+    '@secondts/bark-react-native',
+    [
+      'expo-splash-screen',
+      {
+        backgroundColor: '#000000',
+        image: './assets/splash.png',
+        resizeMode: 'contain'
+      }
+    ]
   ],
   scheme: getScheme(),
   slug: 'satsigner',
-  splash: {
-    backgroundColor: '#000000',
-    image: './assets/splash.png',
-    resizeMode: 'contain'
-  },
   userInterfaceStyle: 'dark',
   version: '0.3.5',
   web: {

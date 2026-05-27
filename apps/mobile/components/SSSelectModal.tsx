@@ -1,6 +1,5 @@
-import * as StatusBar from 'expo-status-bar'
 import { useEffect } from 'react'
-import { Modal, Platform, ScrollView, View } from 'react-native'
+import { Modal, Platform, ScrollView, StatusBar, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -37,10 +36,11 @@ function SSSelectModal({
       return
     }
     if (!visible) {
-      return StatusBar.setStatusBarBackgroundColor('transparent', false)
+      StatusBar.setBackgroundColor('transparent', false)
+      return
     }
 
-    StatusBar.setStatusBarBackgroundColor('black', false)
+    StatusBar.setBackgroundColor('black', false)
   }, [visible])
 
   return (

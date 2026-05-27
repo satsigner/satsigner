@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
 
 process.env.TZ = 'UTC'
+process.env.EXPO_PUBLIC_USE_RN_FETCH = '1'
 
 const TRANSFORM_PACKAGES = [
   '(jest-)?react-native',

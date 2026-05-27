@@ -1,14 +1,14 @@
 import {
-  type DrawerNavigationProp,
-  useDrawerStatus
-} from '@react-navigation/drawer'
-import {
   Stack,
   useNavigation,
   usePathname,
   useRouter,
   useSegments
 } from 'expo-router'
+import {
+  type DrawerNavigationProp,
+  useDrawerStatus
+} from 'expo-router/build/react-navigation/drawer'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useMemo, useState } from 'react'
 import { Platform, type ViewStyle, View } from 'react-native'

@@ -46,8 +46,10 @@
       "workerd"
     ],
     "overrides": {
-      "react": "^19.2.0",
-      "react-dom": "^19.2.0"
+      "react": "19.2.3",
+      "react-dom": "19.2.3",
+      "@expo/metro-runtime": "56.0.12",
+      "@expo/dom-webview": "56.0.5"
     }
   }
 }
