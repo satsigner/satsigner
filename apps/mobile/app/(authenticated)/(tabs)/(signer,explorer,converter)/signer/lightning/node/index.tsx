@@ -1396,9 +1396,10 @@ const styles = StyleSheet.create({
     gap: 12
   },
   dashboardRefreshingOverlay: {
-    ...StyleSheet.absoluteFill,
     alignItems: 'center',
+    inset: 0,
     justifyContent: 'center',
+    position: 'absolute',
     zIndex: 10
   },
   error: {
