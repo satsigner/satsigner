@@ -80,6 +80,7 @@ function SSButton({
 
   return (
     <TouchableOpacity
+      key={disabled || loading ? 'disabled' : 'enabled'}
       style={buttonStyle}
       activeOpacity={0.6}
       disabled={disabled || loading}
@@ -391,9 +392,10 @@ const styles = StyleSheet.create({
     top: 0
   },
   labelLayer: {
-    ...StyleSheet.absoluteFill,
     alignItems: 'center',
+    inset: 0,
     justifyContent: 'center',
+    position: 'absolute',
     zIndex: 2
   },
   textDefault: {

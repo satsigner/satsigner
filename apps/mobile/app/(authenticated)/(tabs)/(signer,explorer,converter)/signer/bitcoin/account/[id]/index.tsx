@@ -1790,12 +1790,13 @@ const styles = StyleSheet.create({
     flex: 1
   },
   loaderOverlay: {
-    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     backgroundColor: 'transparent',
     boxShadow: 'none',
+    inset: 0,
     justifyContent: 'flex-start',
-    paddingTop: 16
+    paddingTop: 16,
+    position: 'absolute'
   }
 })
 

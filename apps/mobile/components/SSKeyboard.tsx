@@ -292,7 +292,8 @@ function getKeyBorderLight(
 
 const styles = StyleSheet.create({
   keyPressOverlay: {
-    ...StyleSheet.absoluteFill
+    inset: 0,
+    position: 'absolute'
   },
   row: {
     alignSelf: 'center',
