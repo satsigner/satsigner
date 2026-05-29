@@ -80,6 +80,7 @@ function SSButton({
 
   return (
     <TouchableOpacity
+      key={disabled || loading ? 'disabled' : 'enabled'}
       style={buttonStyle}
       activeOpacity={0.6}
       disabled={disabled || loading}
