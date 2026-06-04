@@ -219,7 +219,7 @@ function SSKeyboardCell({
               end={{ x: 0.92, y: 1 }}
               locations={[0, 0.45, 1]}
               start={{ x: 0.08, y: 0 }}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
             />
           </Animated.View>
           <TouchableOpacity
@@ -292,7 +292,8 @@ function getKeyBorderLight(
 
 const styles = StyleSheet.create({
   keyPressOverlay: {
-    ...StyleSheet.absoluteFillObject
+    inset: 0,
+    position: 'absolute'
   },
   row: {
     alignSelf: 'center',

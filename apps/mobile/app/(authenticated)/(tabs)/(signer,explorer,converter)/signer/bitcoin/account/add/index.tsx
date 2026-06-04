@@ -141,7 +141,7 @@ export default function Add() {
           <SSButton
             variant="secondary"
             label={t('common.continue')}
-            disabled={localAccountName === '' || !isValidName}
+            disabled={localAccountName === '' || isValidName !== 'valid'}
             onPress={handleOnPressContinue}
           />
           <SSButton

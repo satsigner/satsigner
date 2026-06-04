@@ -1,9 +1,9 @@
+import { Redirect, useGlobalSearchParams } from 'expo-router'
+import Drawer from 'expo-router/drawer'
 import {
   getFocusedRouteNameFromRoute,
   useRoute
-} from '@react-navigation/native'
-import { Redirect, useGlobalSearchParams } from 'expo-router'
-import Drawer from 'expo-router/drawer'
+} from 'expo-router/react-navigation'
 import { useEffect } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'

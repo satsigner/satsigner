@@ -1,5 +1,5 @@
-import { useFocusEffect } from '@react-navigation/native'
 import { Slot, Stack, useLocalSearchParams } from 'expo-router'
+import { useFocusEffect } from 'expo-router/react-navigation'
 
 import { SSIconEyeOn } from '@/components/icons'
 import SSText from '@/components/SSText'

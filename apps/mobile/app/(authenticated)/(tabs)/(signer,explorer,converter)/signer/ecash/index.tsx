@@ -68,7 +68,7 @@ function EcashAccountCard({
           end={{ x: 0.5, y: 1 }}
           pointerEvents="none"
           start={{ x: 0.5, y: 0 }}
-          style={[StyleSheet.absoluteFillObject, styles.accountCardFill]}
+          style={[StyleSheet.absoluteFill, styles.accountCardFill]}
         />
         <LinearGradient
           colors={[...ECASH_CARD_SHEEN_COLORS]}
@@ -76,7 +76,7 @@ function EcashAccountCard({
           locations={[0, 0.52, 1]}
           pointerEvents="none"
           start={{ x: 0.1, y: 0 }}
-          style={[StyleSheet.absoluteFillObject, styles.accountCardSheen]}
+          style={[StyleSheet.absoluteFill, styles.accountCardSheen]}
         />
         <View pointerEvents="none" style={styles.accountCardInnerStroke} />
         <View style={styles.accountCardContent}>

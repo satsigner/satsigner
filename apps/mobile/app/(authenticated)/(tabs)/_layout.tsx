@@ -1,6 +1,6 @@
-import { type BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Tabs, usePathname, useRouter, useSegments } from 'expo-router'
+import { type BottomTabBarButtonProps } from 'expo-router/js-tabs'
 import {
   type GestureResponderEvent,
   Pressable,
@@ -83,7 +83,7 @@ function TabBarBackground({
         >
           <LinearGradient
             pointerEvents="none"
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             colors={TAB_TOP_BORDER_GRADIENTS[segment].colors}
             locations={TAB_TOP_BORDER_GRADIENTS[segment].locations}
             start={{ x: 0, y: 0 }}
@@ -124,14 +124,11 @@ function TabBarButton({
           {isSelected && (
             <View
               pointerEvents="none"
-              style={[
-                StyleSheet.absoluteFillObject,
-                styles.tabBarGlassContainer
-              ]}
+              style={[StyleSheet.absoluteFill, styles.tabBarGlassContainer]}
             >
               <LinearGradient
                 pointerEvents="none"
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
                 colors={['#0E0E0E', '#060606']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}

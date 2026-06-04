@@ -1,7 +1,7 @@
 import '@/utils/polyfills'
-import { DarkTheme, ThemeProvider } from '@react-navigation/native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
+import { DarkTheme, ThemeProvider } from 'expo-router/react-navigation'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect, useRef, useState } from 'react'
 import {

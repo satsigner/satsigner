@@ -1,6 +1,6 @@
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Canvas, Circle, Group } from "@shopify/react-native-skia";
 import { sankey, type SankeyNodeMinimal } from "d3-sankey";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useMemo, type ReactNode } from "react";
 import {
   ActivityIndicator,

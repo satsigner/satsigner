@@ -1,9 +1,9 @@
+import { LinearGradient } from 'expo-linear-gradient'
 import {
   type DrawerContentComponentProps,
   DrawerContentScrollView,
   useDrawerStatus
-} from '@react-navigation/drawer'
-import { LinearGradient } from 'expo-linear-gradient'
+} from 'expo-router/build/react-navigation/drawer'
 import { Platform, StyleSheet, View } from 'react-native'
 
 import { navMenuGroups } from '@/constants/navItems'
