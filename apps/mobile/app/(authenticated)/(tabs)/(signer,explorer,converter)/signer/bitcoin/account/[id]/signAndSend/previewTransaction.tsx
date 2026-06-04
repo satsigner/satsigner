@@ -41,6 +41,7 @@ import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { usePSBTManagement } from '@/hooks/usePSBTManagement'
+import { useTourStep } from '@/hooks/useTourStep'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -217,6 +218,8 @@ function handlePsbtExtractionError(error: unknown) {
 function PreviewTransaction() {
   const router = useRouter()
   const { id, psbt } = useLocalSearchParams<PreviewTransactionSearchParams>()
+
+  useTourStep('preview_tx')
 
   const [
     inputs,

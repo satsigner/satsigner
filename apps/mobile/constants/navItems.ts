@@ -10,7 +10,10 @@ import {
   SSIconLightning,
   SSIconLiquid,
   SSIconMempool,
+  SSIconNetwork,
   SSIconNostr,
+  SSIconServer,
+  SSIconTransaction,
   SSIconTime,
   SSIconTriangle
 } from '@/components/icons'
@@ -69,24 +72,17 @@ export const navMenuGroups: NavMenuGroup[] = [
     items: [
       {
         icon: SSIconChainTip,
-        isSoon: true,
+        isSoon: false,
         platform: PLATFORM.HYBRID,
         title: t('navigation.item.chaintip'),
-        url: ''
+        url: '/explorer/chaintip'
       },
       {
         icon: SSIconMempool,
-        isSoon: true,
-        platform: PLATFORM.HYBRID,
-        title: t('navigation.item.mempool'),
-        url: ''
-      },
-      {
-        icon: SSIconDifficult,
         isSoon: false,
         platform: PLATFORM.HYBRID,
-        title: t('navigation.item.difficulty'),
-        url: '/explorer/difficulty'
+        title: t('navigation.item.mempool'),
+        url: '/explorer/mempool'
       },
       {
         icon: SSIconBlock,
@@ -96,18 +92,46 @@ export const navMenuGroups: NavMenuGroup[] = [
         url: '/explorer/block'
       },
       {
+        icon: SSIconTransaction,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.transaction'),
+        url: '/explorer/transaction'
+      },
+      {
+        icon: SSIconDifficult,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.difficulty'),
+        url: '/explorer/difficulty'
+      },
+      {
         icon: SSIconHalving,
-        isSoon: true,
+        isSoon: false,
         platform: PLATFORM.HYBRID,
         title: t('navigation.item.halving'),
-        url: ''
+        url: '/explorer/halving'
       },
       {
         icon: SSIconChain,
-        isSoon: true,
+        isSoon: false,
         platform: PLATFORM.HYBRID,
         title: t('navigation.item.chain'),
-        url: ''
+        url: '/explorer/chain'
+      },
+      {
+        icon: SSIconServer,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.node'),
+        url: '/explorer/node'
+      },
+      {
+        icon: SSIconNetwork,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.network'),
+        url: '/explorer/network'
       }
     ],
     title: t('navigation.label.explorer')

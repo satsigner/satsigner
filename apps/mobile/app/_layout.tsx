@@ -18,6 +18,7 @@ import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSImageActionsSheet from '@/components/SSImageActionsSheet'
+import SSIntroAnimation from '@/components/SSIntroAnimation'
 import { useBarkAccessTokenDeepLink } from '@/hooks/useBarkAccessTokenDeepLink'
 import { queryClient } from '@/lib/queryClient'
 import {
@@ -25,6 +26,7 @@ import {
   setLastBackgroundTimestamp
 } from '@/storage/mmkv'
 import { useAuthStore } from '@/store/auth'
+import { useIntroStore } from '@/store/intro'
 import { Colors } from '@/styles'
 
 if (Platform.OS === 'android') {
@@ -54,6 +56,14 @@ export default function RootLayout() {
         state.lockDeltaTime
       ])
     )
+
+  const [introVisible, introForceFirstTime, hideIntro] = useIntroStore(
+    useShallow((state) => [
+      state.visible,
+      state.forceFirstTime,
+      state.hideIntro
+    ])
+  )
 
   const appState = useRef(AppState.currentState)
   const [privacyScreenVisible, setPrivacyScreenVisible] = useState(false)
@@ -128,6 +138,12 @@ export default function RootLayout() {
             </View>
           </ThemeProvider>
           {privacyScreenVisible && <View style={styles.privacyScreen} />}
+          {introVisible && (
+            <SSIntroAnimation
+              firstTime={firstTime || introForceFirstTime}
+              onComplete={hideIntro}
+            />
+          )}
           <SSImageActionsSheet />
           <Toaster
             theme="dark"

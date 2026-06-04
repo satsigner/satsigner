@@ -18,6 +18,7 @@ import {
   SSIconSigner,
   SSIconSignerActive
 } from '@/components/icons'
+import SSTourOverlay from '@/components/SSTourOverlay'
 import { useTabBarBackgroundAnimation } from '@/hooks/useTabBarBackgroundAnimation'
 import { useTabBarButtonAnimation } from '@/hooks/useTabBarButtonAnimation'
 import { Colors } from '@/styles'
@@ -275,6 +276,7 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
+      <SSTourOverlay />
     </View>
   )
 }

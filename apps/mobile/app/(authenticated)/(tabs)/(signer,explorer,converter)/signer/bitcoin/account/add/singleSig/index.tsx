@@ -1,4 +1,4 @@
-import { Redirect, Stack, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -9,6 +9,7 @@ import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import { ENTROPY_TYPES } from '@/config/entropy'
+import { sampleSignetWalletSeed } from '@/constants/samples'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -24,6 +25,9 @@ import { generateMnemonic, getFingerprintFromMnemonic } from '@/utils/bip39'
 
 export default function SingleSig() {
   const router = useRouter()
+  const { tourMode } = useLocalSearchParams<{ tourMode?: string }>()
+  const isTourMode = tourMode === 'true'
+
   const [
     name,
     setScriptVersion,
@@ -55,10 +59,11 @@ export default function SingleSig() {
   const wordList = useSettingsStore((state) => state.mnemonicWordList)
 
   const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
-  const [localScriptVersion, setLocalScriptVersion] =
-    useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
+  const [localScriptVersion, setLocalScriptVersion] = useState<
+    NonNullable<Key['scriptVersion']>
+  >(isTourMode ? 'P2WPKH' : 'P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
-    useState<NonNullable<Key['mnemonicWordCount']>>(24)
+    useState<NonNullable<Key['mnemonicWordCount']>>(12)
   const [localMnemonicWordList, setLocalMnemonicWordList] = useState(wordList)
 
   const [entropyModalVisible, setEntropyModalVisible] = useState(false)
@@ -79,16 +84,15 @@ export default function SingleSig() {
     setMnemonicWordList(localMnemonicWordList)
     setKeyCount(1)
     setKeysRequired(1)
-    setNetwork(network)
+    setNetwork(isTourMode ? 'signet' : network)
 
     if (type === 'generateMnemonic') {
       switch (localEntropyType) {
         case 'none': {
           setLoading(true)
-          const mnemonic = generateMnemonic(
-            localMnemonicWordCount,
-            localMnemonicWordList
-          )
+          const mnemonic = isTourMode
+            ? sampleSignetWalletSeed
+            : generateMnemonic(localMnemonicWordCount, localMnemonicWordList)
           setMnemonic(mnemonic)
 
           const fingerprint = getFingerprintFromMnemonic(mnemonic)

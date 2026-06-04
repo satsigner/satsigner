@@ -286,7 +286,26 @@ class ElectrumClient extends BaseElectrumClient {
     return this.client.mempool_getFeeHistogram()
   }
 
-  async getBlockTimestamp(height: number) {
+  async getServerVersion(): Promise<[string, string]> {
+    const rawClient = this.client as unknown as {
+      server_version: (
+        clientName: string,
+        protocolVersion: string
+      ) => Promise<[string, string]>
+    }
+    const result = await rawClient.server_version('satsigner', '1.4')
+    return Array.isArray(result) ? result : ['', '']
+  }
+
+  async getServerBanner(): Promise<string> {
+    const rawClient = this.client as unknown as {
+      server_banner: () => Promise<string>
+    }
+    const result = await rawClient.server_banner()
+    return typeof result === 'string' ? result : ''
+  }
+
+  async getBlockTimestamp(height: number): Promise<number> {
     const data = await this.client.blockchainBlock_header(height)
     const blockHeaderRaw = z.string().parse(data)
     const blockHeader = bitcoinjs.Block.fromHex(blockHeaderRaw)

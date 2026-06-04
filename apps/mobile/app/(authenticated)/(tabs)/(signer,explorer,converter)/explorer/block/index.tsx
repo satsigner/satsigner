@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router'
+import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -46,7 +46,9 @@ function ExplorerBlock() {
   const padding = 120
   const minPageHeight = windowHeight - padding
 
-  const [inputHeight, setInputHeight] = useState('1')
+  const { height: heightParam } = useLocalSearchParams<{ height?: string }>()
+
+  const [inputHeight, setInputHeight] = useState(heightParam ?? '1')
   const [loading, setLoading] = useState(false)
   const [maxBlockHeight, setMaxBlockHeight] = useState(890_000)
   const [block, setBlock] = useState<Block | null>(null)
@@ -128,7 +130,11 @@ function ExplorerBlock() {
   }
 
   useEffect(() => {
-    fetchLatestBlock()
+    if (heightParam) {
+      fetchBlock(Number(heightParam))
+    } else {
+      fetchLatestBlock()
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

@@ -16,6 +16,7 @@ import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import useNostrSync from '@/hooks/useNostrSync'
+import { useTourStep } from '@/hooks/useTourStep'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -30,6 +31,8 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
+
+  useTourStep('receive')
 
   const [account, setAddrLabel] = useAccountsStore(
     useShallow((state) => [

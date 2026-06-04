@@ -1,5 +1,10 @@
-import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter
+} from 'expo-router'
+import { useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -14,14 +19,35 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useTourStore } from '@/store/tour'
 import { type Account } from '@/types/models/Account'
 
 export default function Add() {
   const router = useRouter()
+  const { tourMode } = useLocalSearchParams<{ tourMode?: string }>()
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const [name, setAccountName, setAccountPolicyType] = useAccountBuilderStore(
     useShallow((state) => [state.name, state.setName, state.setPolicyType])
   )
+  const [
+    prefillAccountName,
+    setPrefillAccountName,
+    currentTourStep,
+    advanceTourStep
+  ] = useTourStore(
+    useShallow((state) => [
+      state.prefillAccountName,
+      state.setPrefillAccountName,
+      state.currentStep,
+      state.advanceStep
+    ])
+  )
+
+  useFocusEffect(() => {
+    if (currentTourStep === 'add_account') {
+      advanceTourStep('account_setup')
+    }
+  })
 
   const [localPolicyType, setLocalPolicyType] =
     useState<NonNullable<Account['policyType']>>('singlesig')
@@ -33,12 +59,21 @@ export default function Add() {
     handleSetAccountName
   } = useAccountNameValidation({ name, network })
 
+  useEffect(() => {
+    if (prefillAccountName === null || prefillAccountName === '') {
+      return
+    }
+    handleSetAccountName(prefillAccountName)
+    setPrefillAccountName(null)
+  }, [prefillAccountName, handleSetAccountName, setPrefillAccountName])
+
   function handleOnPressContinue() {
     setAccountName(localAccountName)
     setAccountPolicyType(localPolicyType)
 
+    const tourParam = tourMode === 'true' ? '?tourMode=true' : ''
     if (localPolicyType === 'singlesig') {
-      router.navigate('/signer/bitcoin/account/add/singleSig')
+      router.navigate(`/signer/bitcoin/account/add/singleSig${tourParam}`)
     } else if (localPolicyType === 'multisig') {
       router.navigate('/signer/bitcoin/account/add/multiSig')
     } else if (localPolicyType === 'watchonly') {
