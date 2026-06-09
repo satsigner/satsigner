@@ -693,7 +693,9 @@
     "energy.totalBitcoin": "Total Bitcoin",
     "title": "Converter",
     "vsize": "Virtual size",
-    "weight": "Weight"
+    "weight": "Weight",
+    "europeanScale": "European Scale",
+    "writtenNumbers": "Written Numbers"
   },
   "date": {
     "date": "Date",

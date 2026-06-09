@@ -10,6 +10,8 @@ import {
   View
 } from 'react-native'
 
+import { sfProTextRegular } from '@/styles/typography'
+
 type DateBlockProps = {
   digits: number[]
   value: number
@@ -21,8 +23,11 @@ type DateBlockProps = {
   markHeight?: number
   markWidth?: number | string
   fadeColor?: string
+  formatter?: (value: number) => string
+  renderItem?: (value: number, textStyle: { color: string; fontSize: number; lineHeight: number }) => React.ReactNode
 
   onChange(type: string, digit: number): void
+  onDragStart?: () => void
 }
 
 type SSDatePickerProps = {
@@ -40,11 +45,13 @@ type SSDatePickerProps = {
   format?: string
 
   onChange(value: Date): void
+  onDragStart?: () => void
 }
 
 function SSDatePicker({
   value,
   onChange,
+  onDragStart,
   height,
   width,
   fontSize,
@@ -120,6 +127,20 @@ function SSDatePicker({
   const getDaysInMonth = (month: number, year: number) =>
     new Date(year, month, 0).getDate()
 
+  const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const formatMonth = (m: number) => MONTH_NAMES[m - 1]
+  const renderDayItem = (d: number, textStyle: { color: string; fontSize: number; lineHeight: number }) => (
+    <>
+      <Text style={[styles.digit, textStyle, { opacity: 0.35, textAlign: 'left', width: 44 }]}>
+        {DAY_NAMES[new Date(selectedYear, selectedMonth - 1, d).getDay()]}
+      </Text>
+      <Text style={[styles.digit, textStyle, { textAlign: 'right', width: 28 }]}>
+        {d}
+      </Text>
+    </>
+  )
+
   const getOrder = () => {
     const now = new Date()
     const isCurrentYear = selectedYear === now.getFullYear()
@@ -137,17 +158,21 @@ function SSDatePicker({
     return (format || 'dd-mm-yyyy').split('-').map((type, index) => {
       switch (type) {
         case 'dd':
-          return { digits: filteredDays, name: 'day', value: date.getDate() }
+          return { digits: filteredDays, formatter: undefined, name: 'day', renderItem: renderDayItem, value: date.getDate() }
         case 'mm':
-          return { digits: filteredMonths, name: 'month', value: selectedMonth }
+          return { digits: filteredMonths, formatter: formatMonth, name: 'month', renderItem: undefined, value: selectedMonth }
         case 'yyyy':
-          return { digits: years, name: 'year', value: selectedYear }
-        default:
+          return { digits: years, formatter: undefined, name: 'year', renderItem: undefined, value: selectedYear }
+        default: {
+          const colName = ['day', 'month', 'year'][index]
           return {
             digits: [filteredDays, filteredMonths, years][index],
-            name: ['day', 'month', 'year'][index],
+            formatter: colName === 'month' ? formatMonth : undefined,
+            name: colName,
+            renderItem: colName === 'day' ? renderDayItem : undefined,
             value: [date.getDate(), selectedMonth, selectedYear][index]
           }
+        }
       }
     })
   }
@@ -164,6 +189,9 @@ function SSDatePicker({
           digits={el.digits}
           value={el.value}
           onChange={changeHandle}
+          onDragStart={onDragStart}
+          formatter={el.formatter}
+          renderItem={el.renderItem}
           height={pickerHeight}
           fontSize={fontSize}
           textColor={textColor}
@@ -184,6 +212,9 @@ function DateBlock({
   digits,
   type,
   onChange,
+  onDragStart,
+  formatter,
+  renderItem,
   height,
   fontSize,
   textColor,
@@ -200,7 +231,8 @@ function DateBlock({
   const offsets = digits.map((_: number, index: number) => index * dHeight)
 
   const fadeFilled: string = hex2rgba(fadeColor || '#ffffff', 1)
-  const fadeTransparent: string = hex2rgba('#000000', 0.7)
+  const fadeMid: string = hex2rgba(fadeColor || '#ffffff', 0.82)
+  const fadeTransparent: string = hex2rgba(fadeColor || '#ffffff', 0)
 
   const scrollRef = useRef<ScrollView>(null)
 
@@ -243,43 +275,51 @@ function DateBlock({
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={0}
         nestedScrollEnabled
+        onScrollBeginDrag={onDragStart}
         onMomentumScrollEnd={handleMomentumScrollEnd}
       >
-        {digits.map((value: number, index: number) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => {
-              onChange(type, digits[index])
-              snapScrollToIndex(index)
-            }}
-          >
-            <Text
-              style={[
-                styles.digit,
-                {
-                  color: textColor || '#000000',
-                  fontSize: fontSize || 22,
-                  height: dHeight,
-                  lineHeight: dHeight,
-                  marginBottom:
-                    index === digits.length - 1 ? height / 2 - dHeight / 2 : 0,
-                  marginTop: index === 0 ? height / 2 - dHeight / 2 : 0
-                }
-              ]}
+        {digits.map((value: number, index: number) => {
+          const textStyle = {
+            color: textColor || '#000000',
+            fontSize: fontSize || 22,
+            lineHeight: dHeight
+          }
+          const containerStyle = {
+            height: dHeight,
+            marginBottom: index === digits.length - 1 ? height / 2 - dHeight / 2 : 0,
+            marginTop: index === 0 ? height / 2 - dHeight / 2 : 0
+          }
+          return (
+            <TouchableOpacity
+              key={index}
+              onPress={() => {
+                onChange(type, digits[index])
+                snapScrollToIndex(index)
+              }}
             >
-              {value}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              {renderItem ? (
+                <View style={[styles.digitRow, containerStyle]}>
+                  {renderItem(value, textStyle)}
+                </View>
+              ) : (
+                <Text style={[styles.digit, textStyle, containerStyle]}>
+                  {formatter ? formatter(value) : value}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )
+        })}
       </ScrollView>
       <LinearGradient
         style={[styles.gradient, { bottom: 0, height: height / 3 }]}
-        colors={[fadeTransparent, fadeFilled]}
+        colors={[fadeTransparent, fadeMid, fadeFilled]}
+        locations={[0, 0.35, 1]}
         pointerEvents="none"
       />
       <LinearGradient
         style={[styles.gradient, { height: height / 3, top: 0 }]}
-        colors={[fadeFilled, fadeTransparent]}
+        colors={[fadeFilled, fadeMid, fadeTransparent]}
+        locations={[0, 0.65, 1]}
         pointerEvents="none"
       />
     </View>
@@ -319,8 +359,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   digit: {
+    fontFamily: sfProTextRegular,
     fontSize: 20,
     textAlign: 'center'
+  },
+  digitRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%'
   },
   gradient: {
     position: 'absolute',
