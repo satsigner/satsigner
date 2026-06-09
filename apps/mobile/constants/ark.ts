@@ -47,5 +47,3 @@ export const ARK_SERVERS: Record<Network, ArkServer[]> = {
 export const ARK_SUPPORTED_NETWORKS: Network[] = ['bitcoin', 'signet']
 export const ARK_STALE_EXIT_SUBSYSTEM_KIND = 'start'
 export const ARK_STALE_EXIT_SUBSYSTEM_NAME = 'bark.exit'
-export const BARK_ACCESS_TOKEN_NETWORK: Network = 'bitcoin'
-export const BARK_ACCESS_TOKEN_PARAM = 'bark_access_token'
