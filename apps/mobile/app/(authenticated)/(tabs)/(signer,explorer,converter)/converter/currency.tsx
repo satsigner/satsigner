@@ -103,16 +103,40 @@ export default function Converter() {
     prevIsLoadingRef.current = isLoading
     if (isLoading) {
       op0.value = withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
-      op1.value = withDelay(MUTE_STAGGER * 1, withTiming(MUTED_OPACITY, { duration: MUTE_DURATION }))
-      op2.value = withDelay(MUTE_STAGGER * 2, withTiming(MUTED_OPACITY, { duration: MUTE_DURATION }))
-      op3.value = withDelay(MUTE_STAGGER * 3, withTiming(MUTED_OPACITY, { duration: MUTE_DURATION }))
-      op4.value = withDelay(MUTE_STAGGER * 4, withTiming(MUTED_OPACITY, { duration: MUTE_DURATION }))
+      op1.value = withDelay(
+        MUTE_STAGGER * 1,
+        withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
+      )
+      op2.value = withDelay(
+        MUTE_STAGGER * 2,
+        withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
+      )
+      op3.value = withDelay(
+        MUTE_STAGGER * 3,
+        withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
+      )
+      op4.value = withDelay(
+        MUTE_STAGGER * 4,
+        withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
+      )
     } else {
       op0.value = withTiming(1, { duration: UNMUTE_DURATION })
-      op1.value = withDelay(UNMUTE_STAGGER * 1, withTiming(1, { duration: UNMUTE_DURATION }))
-      op2.value = withDelay(UNMUTE_STAGGER * 2, withTiming(1, { duration: UNMUTE_DURATION }))
-      op3.value = withDelay(UNMUTE_STAGGER * 3, withTiming(1, { duration: UNMUTE_DURATION }))
-      op4.value = withDelay(UNMUTE_STAGGER * 4, withTiming(1, { duration: UNMUTE_DURATION }))
+      op1.value = withDelay(
+        UNMUTE_STAGGER * 1,
+        withTiming(1, { duration: UNMUTE_DURATION })
+      )
+      op2.value = withDelay(
+        UNMUTE_STAGGER * 2,
+        withTiming(1, { duration: UNMUTE_DURATION })
+      )
+      op3.value = withDelay(
+        UNMUTE_STAGGER * 3,
+        withTiming(1, { duration: UNMUTE_DURATION })
+      )
+      op4.value = withDelay(
+        UNMUTE_STAGGER * 4,
+        withTiming(1, { duration: UNMUTE_DURATION })
+      )
     }
   }
 
@@ -138,9 +162,12 @@ export default function Converter() {
     })
   }
 
-  function getBitcoinValue(key: keyof typeof currencyValues, value: number): number {
-    if (key === 'sats') return value / SATS_PER_BITCOIN
-    if (key === 'bitcoin') return value
+  function getBitcoinValue(
+    key: keyof typeof currencyValues,
+    value: number
+  ): number {
+    if (key === 'sats') {return value / SATS_PER_BITCOIN}
+    if (key === 'bitcoin') {return value}
     const price = prices[key]
     return price ? value / price : 0
   }
@@ -165,14 +192,30 @@ export default function Converter() {
     setCurrencyValues(updatedValues)
   }
 
-  function handleSatsChange(value: number) { handleValueChange('sats', value) }
-  function handleBitcoinChange(value: number) { handleValueChange('bitcoin', value) }
-  function handleUsdChange(value: number) { handleValueChange('USD', value) }
-  function handleEurChange(value: number) { handleValueChange('EUR', value) }
-  function handleGbpChange(value: number) { handleValueChange('GBP', value) }
-  function handleCadChange(value: number) { handleValueChange('CAD', value) }
-  function handleChfChange(value: number) { handleValueChange('CHF', value) }
-  function handleJpyChange(value: number) { handleValueChange('JPY', value) }
+  function handleSatsChange(value: number) {
+    handleValueChange('sats', value)
+  }
+  function handleBitcoinChange(value: number) {
+    handleValueChange('bitcoin', value)
+  }
+  function handleUsdChange(value: number) {
+    handleValueChange('USD', value)
+  }
+  function handleEurChange(value: number) {
+    handleValueChange('EUR', value)
+  }
+  function handleGbpChange(value: number) {
+    handleValueChange('GBP', value)
+  }
+  function handleCadChange(value: number) {
+    handleValueChange('CAD', value)
+  }
+  function handleChfChange(value: number) {
+    handleValueChange('CHF', value)
+  }
+  function handleJpyChange(value: number) {
+    handleValueChange('JPY', value)
+  }
 
   function handleDragStart() {
     setIsLoading(true)
@@ -201,7 +244,9 @@ export default function Converter() {
 
   useFocusEffect(
     useCallback(() => {
-      const timestamp = Math.floor(new Date(dateRef.current).setHours(0, 0, 0, 0) / 1000)
+      const timestamp = Math.floor(
+        new Date(dateRef.current).setHours(0, 0, 0, 0) / 1000
+      )
       setIsLoading(true)
       fetchFullPriceAt(mempoolUrl, timestamp)
     }, [fetchFullPriceAt, mempoolUrl]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -218,9 +263,7 @@ export default function Converter() {
 
   return (
     <>
-      <Stack.Screen
-        options={{ headerTitle: ConverterHeader }}
-      />
+      <Stack.Screen options={{ headerTitle: ConverterHeader }} />
       <SSMainLayout style={styles.mainLayout}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -229,7 +272,12 @@ export default function Converter() {
           <SSVStack gap="none" justifyBetween>
             <SSVStack gap="none">
               <Animated.View style={animStyle0}>
-                <SSVStack itemsCenter widthFull gap="none" style={styles.inputContainer}>
+                <SSVStack
+                  itemsCenter
+                  widthFull
+                  gap="none"
+                  style={styles.inputContainer}
+                >
                   <SSCurrencyInput
                     value={currencyValues.sats.toString()}
                     size="large"
@@ -238,30 +286,58 @@ export default function Converter() {
                     style={styles.currencyInputLarge}
                   />
                   <Animated.View style={writtenNumberAnimStyle}>
-                    <SSText size="xs" color="muted" style={styles.writtenNumber}>
+                    <SSText
+                      size="xs"
+                      color="muted"
+                      style={styles.writtenNumber}
+                    >
                       {formatLargeNumber(currencyValues.sats, useEuropeanScale)}
                     </SSText>
                   </Animated.View>
-                  <SSText size="xs" color="muted" uppercase style={styles.currencyLabelLarge}>
+                  <SSText
+                    size="xs"
+                    color="muted"
+                    uppercase
+                    style={styles.currencyLabelLarge}
+                  >
                     ⚪️ {t('converter.currency.sats')}
                   </SSText>
                 </SSVStack>
               </Animated.View>
               <Animated.View style={animStyle1}>
-                <SSVStack itemsCenter widthFull gap="none" style={styles.inputContainer}>
+                <SSVStack
+                  itemsCenter
+                  widthFull
+                  gap="none"
+                  style={styles.inputContainer}
+                >
                   <SSCurrencyInput
-                    value={currencyValues.bitcoin.toFixed(8).replace(/\.?0+$/, '')}
+                    value={currencyValues.bitcoin
+                      .toFixed(8)
+                      .replace(/\.?0+$/, '')}
                     size="large"
                     onChangeValue={handleBitcoinChange}
                     align="center"
                     style={styles.currencyInputLarge}
                   />
                   <Animated.View style={writtenNumberAnimStyle}>
-                    <SSText size="xs" color="muted" style={styles.writtenNumber}>
-                      {formatLargeNumber(currencyValues.bitcoin, useEuropeanScale)}
+                    <SSText
+                      size="xs"
+                      color="muted"
+                      style={styles.writtenNumber}
+                    >
+                      {formatLargeNumber(
+                        currencyValues.bitcoin,
+                        useEuropeanScale
+                      )}
                     </SSText>
                   </Animated.View>
-                  <SSText size="xs" color="muted" uppercase style={styles.currencyLabelLarge}>
+                  <SSText
+                    size="xs"
+                    color="muted"
+                    uppercase
+                    style={styles.currencyLabelLarge}
+                  >
                     🌍 {t('converter.currency.bitcoin')}
                   </SSText>
                 </SSVStack>
@@ -269,7 +345,11 @@ export default function Converter() {
               <SSVStack gap="none" style={styles.currencySection}>
                 <Animated.View style={animStyle2}>
                   <SSHStack gap="none" style={styles.rowSeparator}>
-                    <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
+                    <SSVStack
+                      itemsCenter
+                      gap="none"
+                      style={styles.currencyBlock}
+                    >
                       <SSCurrencyInput
                         decimal={2}
                         value={currencyValues.USD.toString()}
@@ -279,11 +359,22 @@ export default function Converter() {
                         style={styles.currencyInput}
                       />
                       <Animated.View style={writtenNumberAnimStyle}>
-                        <SSText size="xs" color="muted" style={styles.writtenNumber}>
-                          {formatLargeNumber(currencyValues.USD, useEuropeanScale)}
+                        <SSText
+                          size="xs"
+                          color="muted"
+                          style={styles.writtenNumber}
+                        >
+                          {formatLargeNumber(
+                            currencyValues.USD,
+                            useEuropeanScale
+                          )}
                         </SSText>
                       </Animated.View>
-                      <SSText size="xs" color="muted" style={styles.currencyLabel}>
+                      <SSText
+                        size="xs"
+                        color="muted"
+                        style={styles.currencyLabel}
+                      >
                         🇺🇸 {t('converter.currency.usd')}
                       </SSText>
                     </SSVStack>
@@ -301,11 +392,22 @@ export default function Converter() {
                         style={styles.currencyInput}
                       />
                       <Animated.View style={writtenNumberAnimStyle}>
-                        <SSText size="xs" color="muted" style={styles.writtenNumber}>
-                          {formatLargeNumber(currencyValues.EUR, useEuropeanScale)}
+                        <SSText
+                          size="xs"
+                          color="muted"
+                          style={styles.writtenNumber}
+                        >
+                          {formatLargeNumber(
+                            currencyValues.EUR,
+                            useEuropeanScale
+                          )}
                         </SSText>
                       </Animated.View>
-                      <SSText size="xs" color="muted" style={styles.currencyLabel}>
+                      <SSText
+                        size="xs"
+                        color="muted"
+                        style={styles.currencyLabel}
+                      >
                         🇪🇺 {t('converter.currency.eur')}
                       </SSText>
                     </SSVStack>
@@ -313,7 +415,11 @@ export default function Converter() {
                 </Animated.View>
                 <Animated.View style={animStyle3}>
                   <SSHStack gap="none" style={styles.rowSeparator}>
-                    <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
+                    <SSVStack
+                      itemsCenter
+                      gap="none"
+                      style={styles.currencyBlock}
+                    >
                       <SSCurrencyInput
                         decimal={2}
                         value={currencyValues.GBP.toString()}
@@ -323,11 +429,22 @@ export default function Converter() {
                         style={styles.currencyInput}
                       />
                       <Animated.View style={writtenNumberAnimStyle}>
-                        <SSText size="xs" color="muted" style={styles.writtenNumber}>
-                          {formatLargeNumber(currencyValues.GBP, useEuropeanScale)}
+                        <SSText
+                          size="xs"
+                          color="muted"
+                          style={styles.writtenNumber}
+                        >
+                          {formatLargeNumber(
+                            currencyValues.GBP,
+                            useEuropeanScale
+                          )}
                         </SSText>
                       </Animated.View>
-                      <SSText size="xs" color="muted" style={styles.currencyLabel}>
+                      <SSText
+                        size="xs"
+                        color="muted"
+                        style={styles.currencyLabel}
+                      >
                         🇬🇧 {t('converter.currency.gbp')}
                       </SSText>
                     </SSVStack>
@@ -345,59 +462,96 @@ export default function Converter() {
                         style={styles.currencyInput}
                       />
                       <Animated.View style={writtenNumberAnimStyle}>
-                        <SSText size="xs" color="muted" style={styles.writtenNumber}>
-                          {formatLargeNumber(currencyValues.CAD, useEuropeanScale)}
+                        <SSText
+                          size="xs"
+                          color="muted"
+                          style={styles.writtenNumber}
+                        >
+                          {formatLargeNumber(
+                            currencyValues.CAD,
+                            useEuropeanScale
+                          )}
                         </SSText>
                       </Animated.View>
-                      <SSText size="xs" color="muted" style={styles.currencyLabel}>
+                      <SSText
+                        size="xs"
+                        color="muted"
+                        style={styles.currencyLabel}
+                      >
                         🇨🇦 {t('converter.currency.cad')}
                       </SSText>
                     </SSVStack>
                   </SSHStack>
                 </Animated.View>
                 <Animated.View style={animStyle4}>
-                <SSHStack gap="none" style={styles.rowSeparator}>
-                  <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
-                    <SSCurrencyInput
-                      decimal={2}
-                      value={currencyValues.CHF.toString()}
-                      size="small"
-                      onChangeValue={handleChfChange}
-                      align="center"
-                      style={styles.currencyInput}
-                    />
-                    <Animated.View style={writtenNumberAnimStyle}>
-                      <SSText size="xs" color="muted" style={styles.writtenNumber}>
-                        {formatLargeNumber(currencyValues.CHF, useEuropeanScale)}
+                  <SSHStack gap="none" style={styles.rowSeparator}>
+                    <SSVStack
+                      itemsCenter
+                      gap="none"
+                      style={styles.currencyBlock}
+                    >
+                      <SSCurrencyInput
+                        decimal={2}
+                        value={currencyValues.CHF.toString()}
+                        size="small"
+                        onChangeValue={handleChfChange}
+                        align="center"
+                        style={styles.currencyInput}
+                      />
+                      <Animated.View style={writtenNumberAnimStyle}>
+                        <SSText
+                          size="xs"
+                          color="muted"
+                          style={styles.writtenNumber}
+                        >
+                          {formatLargeNumber(
+                            currencyValues.CHF,
+                            useEuropeanScale
+                          )}
+                        </SSText>
+                      </Animated.View>
+                      <SSText
+                        size="xs"
+                        color="muted"
+                        style={styles.currencyLabel}
+                      >
+                        🇨🇭 {t('converter.currency.chf')}
                       </SSText>
-                    </Animated.View>
-                    <SSText size="xs" color="muted" style={styles.currencyLabel}>
-                      🇨🇭 {t('converter.currency.chf')}
-                    </SSText>
-                  </SSVStack>
-                  <SSVStack
-                    itemsCenter
-                    gap="none"
-                    style={styles.currencyBlockNoBorder}
-                  >
-                    <SSCurrencyInput
-                      decimal={2}
-                      value={currencyValues.JPY.toString()}
-                      size="small"
-                      onChangeValue={handleJpyChange}
-                      align="center"
-                      style={styles.currencyInput}
-                    />
-                    <Animated.View style={writtenNumberAnimStyle}>
-                      <SSText size="xs" color="muted" style={styles.writtenNumber}>
-                        {formatLargeNumber(currencyValues.JPY, useEuropeanScale)}
+                    </SSVStack>
+                    <SSVStack
+                      itemsCenter
+                      gap="none"
+                      style={styles.currencyBlockNoBorder}
+                    >
+                      <SSCurrencyInput
+                        decimal={2}
+                        value={currencyValues.JPY.toString()}
+                        size="small"
+                        onChangeValue={handleJpyChange}
+                        align="center"
+                        style={styles.currencyInput}
+                      />
+                      <Animated.View style={writtenNumberAnimStyle}>
+                        <SSText
+                          size="xs"
+                          color="muted"
+                          style={styles.writtenNumber}
+                        >
+                          {formatLargeNumber(
+                            currencyValues.JPY,
+                            useEuropeanScale
+                          )}
+                        </SSText>
+                      </Animated.View>
+                      <SSText
+                        size="xs"
+                        color="muted"
+                        style={styles.currencyLabel}
+                      >
+                        🇯🇵 {t('converter.currency.jpy')}
                       </SSText>
-                    </Animated.View>
-                    <SSText size="xs" color="muted" style={styles.currencyLabel}>
-                      🇯🇵 {t('converter.currency.jpy')}
-                    </SSText>
-                  </SSVStack>
-                </SSHStack>
+                    </SSVStack>
+                  </SSHStack>
                 </Animated.View>
               </SSVStack>
             </SSVStack>
@@ -429,14 +583,22 @@ export default function Converter() {
                     label={t('converter.writtenNumbers')}
                     variant="outline"
                     onPress={handleToggleWrittenNumbers}
-                    style={showWrittenNumbers ? [styles.toggleButton, styles.toggleButtonActive] : styles.toggleButton}
+                    style={
+                      showWrittenNumbers
+                        ? [styles.toggleButton, styles.toggleButtonActive]
+                        : styles.toggleButton
+                    }
                   />
                   <SSButton
                     label={t('converter.europeanScale')}
                     variant="outline"
                     onPress={handleToggleEuropeanScale}
                     disabled={!showWrittenNumbers}
-                    style={useEuropeanScale ? [styles.toggleButton, styles.toggleButtonActive] : styles.toggleButton}
+                    style={
+                      useEuropeanScale
+                        ? [styles.toggleButton, styles.toggleButtonActive]
+                        : styles.toggleButton
+                    }
                   />
                 </SSHStack>
               </SSVStack>
@@ -500,22 +662,22 @@ const styles = StyleSheet.create({
   headerTitle: {
     letterSpacing: 1
   },
-  mainLayout: {
-    paddingHorizontal: 0,
-    paddingTop: 0
-  },
-  scrollContent: {
-    flexGrow: 1
-  },
   inputContainer: {
     borderColor: Colors.gray[875],
     borderTopWidth: 1,
     paddingBottom: 4,
     paddingTop: 8
   },
+  mainLayout: {
+    paddingHorizontal: 0,
+    paddingTop: 0
+  },
   rowSeparator: {
     borderBottomWidth: 1,
     borderColor: Colors.gray[875]
+  },
+  scrollContent: {
+    flexGrow: 1
   },
   toggleButton: {
     flex: 1

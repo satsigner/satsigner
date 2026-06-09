@@ -24,7 +24,10 @@ type DateBlockProps = {
   markWidth?: number | string
   fadeColor?: string
   formatter?: (value: number) => string
-  renderItem?: (value: number, textStyle: { color: string; fontSize: number; lineHeight: number }) => React.ReactNode
+  renderItem?: (
+    value: number,
+    textStyle: { color: string; fontSize: number; lineHeight: number }
+  ) => React.ReactNode
 
   onChange(type: string, digit: number): void
   onDragStart?: () => void
@@ -127,15 +130,39 @@ function SSDatePicker({
   const getDaysInMonth = (month: number, year: number) =>
     new Date(year, month, 0).getDate()
 
-  const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  const MONTH_NAMES = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+  ]
   const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const formatMonth = (m: number) => MONTH_NAMES[m - 1]
-  const renderDayItem = (d: number, textStyle: { color: string; fontSize: number; lineHeight: number }) => (
+  const renderDayItem = (
+    d: number,
+    textStyle: { color: string; fontSize: number; lineHeight: number }
+  ) => (
     <>
-      <Text style={[styles.digit, textStyle, { opacity: 0.35, textAlign: 'left', width: 44 }]}>
+      <Text
+        style={[
+          styles.digit,
+          textStyle,
+          { opacity: 0.35, textAlign: 'left', width: 44 }
+        ]}
+      >
         {DAY_NAMES[new Date(selectedYear, selectedMonth - 1, d).getDay()]}
       </Text>
-      <Text style={[styles.digit, textStyle, { textAlign: 'right', width: 28 }]}>
+      <Text
+        style={[styles.digit, textStyle, { textAlign: 'right', width: 28 }]}
+      >
         {d}
       </Text>
     </>
@@ -158,11 +185,29 @@ function SSDatePicker({
     return (format || 'dd-mm-yyyy').split('-').map((type, index) => {
       switch (type) {
         case 'dd':
-          return { digits: filteredDays, formatter: undefined, name: 'day', renderItem: renderDayItem, value: date.getDate() }
+          return {
+            digits: filteredDays,
+            formatter: undefined,
+            name: 'day',
+            renderItem: renderDayItem,
+            value: date.getDate()
+          }
         case 'mm':
-          return { digits: filteredMonths, formatter: formatMonth, name: 'month', renderItem: undefined, value: selectedMonth }
+          return {
+            digits: filteredMonths,
+            formatter: formatMonth,
+            name: 'month',
+            renderItem: undefined,
+            value: selectedMonth
+          }
         case 'yyyy':
-          return { digits: years, formatter: undefined, name: 'year', renderItem: undefined, value: selectedYear }
+          return {
+            digits: years,
+            formatter: undefined,
+            name: 'year',
+            renderItem: undefined,
+            value: selectedYear
+          }
         default: {
           const colName = ['day', 'month', 'year'][index]
           return {
@@ -286,7 +331,8 @@ function DateBlock({
           }
           const containerStyle = {
             height: dHeight,
-            marginBottom: index === digits.length - 1 ? height / 2 - dHeight / 2 : 0,
+            marginBottom:
+              index === digits.length - 1 ? height / 2 - dHeight / 2 : 0,
             marginTop: index === 0 ? height / 2 - dHeight / 2 : 0
           }
           return (

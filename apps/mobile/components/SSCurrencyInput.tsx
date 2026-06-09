@@ -60,8 +60,8 @@ function SSCurrencyInput({
   ref,
   ...props
 }: SSCurrencyInputProps) {
-  const [localValue, setLocalValue] = useState(
-    () => formatNumberWithCommas(value?.replace(/,/g, '') || '0', decimal)
+  const [localValue, setLocalValue] = useState(() =>
+    formatNumberWithCommas(value?.replace(/,/g, '') || '0', decimal)
   )
   const prevValueRef = useRef(value)
 

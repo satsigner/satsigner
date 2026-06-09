@@ -17,7 +17,7 @@ const LONG_SCALE = [
 ]
 
 export function formatLargeNumber(num: number, european = false): string {
-  if (!isFinite(num) || num === 0) return ''
+  if (!isFinite(num) || num === 0) {return ''}
 
   const isNegative = num < 0
   const abs = Math.abs(num)
