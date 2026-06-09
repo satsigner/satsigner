@@ -727,6 +727,7 @@
     "account.noAccountsDescription": "Create an Ark wallet to start using off-chain Bitcoin payments.",
     "account.noBitcoinAccounts": "No singlesig on-chain wallets with a recoverable seed on this network.",
     "account.server": "Ark Server",
+    "balance.pending": "Pending %{amount} sats",
     "balance.title": "Balance",
     "error.addressGeneration": "Failed to generate Ark address",
     "error.create": "Failed to create Ark wallet",
