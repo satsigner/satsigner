@@ -139,8 +139,7 @@ export default function Developer() {
     const backupData = {
       accounts: accountsWithSeeds,
       ark: {
-        accounts: arkState.accounts,
-        serverAccessTokens: arkState.serverAccessTokens
+        accounts: arkState.accounts
       },
       ecash: {
         accounts: ecashState.accounts,
