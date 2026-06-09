@@ -2,7 +2,6 @@ import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import {
   openArkWallet,
@@ -18,11 +17,8 @@ import type {
   ArkMovementEvent,
   ArkNotificationUnsubscribe
 } from '@/types/models/Ark'
-import type { Network } from '@/types/settings/blockchain'
 import { getArkServer } from '@/utils/ark'
 import { formatNumber } from '@/utils/format'
-
-type AccessTokenMap = Partial<Record<Network, string>>
 
 const activeSubscriptions = new Map<string, ArkNotificationUnsubscribe>()
 const inflightSubscriptions = new Set<string>()
@@ -62,7 +58,6 @@ function notifyReceive(account: ArkAccount, event: ArkMovementEvent) {
 
 async function subscribeAccount(
   account: ArkAccount,
-  accessToken: string | undefined,
   queryClient: QueryClient
 ): Promise<void> {
   if (
@@ -86,8 +81,7 @@ async function subscribeAccount(
       accountId: account.id,
       datadir,
       mnemonic,
-      server,
-      serverAccessToken: accessToken
+      server
     })
 
     const accountStillExists = useArkStore
@@ -118,21 +112,16 @@ async function subscribeAccount(
 
 async function subscribeAccountSafe(
   account: ArkAccount,
-  accessToken: string | undefined,
   queryClient: QueryClient
 ): Promise<void> {
   try {
-    await subscribeAccount(account, accessToken, queryClient)
+    await subscribeAccount(account, queryClient)
   } catch {
     inflightSubscriptions.delete(account.id)
   }
 }
 
-function syncSubscriptions(
-  accounts: ArkAccount[],
-  accessTokens: AccessTokenMap,
-  queryClient: QueryClient
-) {
+function syncSubscriptions(accounts: ArkAccount[], queryClient: QueryClient) {
   const desiredIds = new Set(accounts.map((a) => a.id))
   for (const [id, unsubscribe] of activeSubscriptions) {
     if (!desiredIds.has(id)) {
@@ -141,11 +130,7 @@ function syncSubscriptions(
     }
   }
   for (const account of accounts) {
-    void subscribeAccountSafe(
-      account,
-      accessTokens[account.network],
-      queryClient
-    )
+    void subscribeAccountSafe(account, queryClient)
   }
 }
 
@@ -170,9 +155,9 @@ async function resyncAccount(
 }
 
 function handleAppForeground(queryClient: QueryClient) {
-  const { accounts, serverAccessTokens } = useArkStore.getState()
+  const { accounts } = useArkStore.getState()
   tearDownAllSubscriptions()
-  syncSubscriptions(accounts, serverAccessTokens, queryClient)
+  syncSubscriptions(accounts, queryClient)
   for (const account of accounts) {
     void resyncAccount(account, queryClient)
   }
@@ -180,13 +165,11 @@ function handleAppForeground(queryClient: QueryClient) {
 
 export function useArkNotifications() {
   const queryClient = useQueryClient()
-  const [accounts, serverAccessTokens] = useArkStore(
-    useShallow((state) => [state.accounts, state.serverAccessTokens])
-  )
+  const accounts = useArkStore((state) => state.accounts)
 
   useEffect(() => {
-    syncSubscriptions(accounts, serverAccessTokens, queryClient)
-  }, [accounts, serverAccessTokens, queryClient])
+    syncSubscriptions(accounts, queryClient)
+  }, [accounts, queryClient])
 
   useEffect(() => {
     let lastState: AppStateStatus = AppState.currentState

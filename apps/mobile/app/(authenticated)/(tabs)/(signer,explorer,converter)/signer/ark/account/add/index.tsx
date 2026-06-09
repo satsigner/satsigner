@@ -102,6 +102,7 @@ export default function ArkAccountAddPage() {
               value={name}
               onChangeText={setName}
               placeholder={t('ark.account.namePlaceholder')}
+              editable={!isCreating}
             />
           </SSVStack>
           <SSVStack gap="sm">
@@ -113,6 +114,7 @@ export default function ArkAccountAddPage() {
                   label={arkNetworkLabel(n)}
                   selected={network === n}
                   onPress={() => handleNetworkChange(n)}
+                  disabled={isCreating}
                 />
               ))}
             </SSVStack>
@@ -126,6 +128,7 @@ export default function ArkAccountAddPage() {
                   label={server.name}
                   selected={serverId === server.id}
                   onPress={() => setServerId(server.id)}
+                  disabled={isCreating}
                 />
               ))}
             </SSVStack>
@@ -146,6 +149,7 @@ export default function ArkAccountAddPage() {
                     label={account.name}
                     selected={bitcoinAccountId === account.id}
                     onPress={() => handleSelectBitcoinAccount(account.id)}
+                    disabled={isCreating}
                   />
                 ))}
               </SSVStack>
@@ -161,6 +165,7 @@ export default function ArkAccountAddPage() {
               label={t('ark.account.createBitcoinToggle')}
               selected={createBitcoinAccount}
               onPress={handleSelectAutoCreate}
+              disabled={isCreating}
             />
           </SSVStack>
           <SSVStack gap="sm" style={styles.actions}>

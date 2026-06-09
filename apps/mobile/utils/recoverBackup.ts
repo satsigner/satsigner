@@ -48,7 +48,6 @@ type BackupData = {
   accounts: BackupAccount[]
   ark?: {
     accounts: ArkAccount[]
-    serverAccessTokens: Partial<Record<Network, string>>
   }
   ecash?: {
     accounts?: EcashAccount[]
@@ -374,13 +373,6 @@ function applyStoreRestore(
   if (data.ark) {
     for (const account of data.ark.accounts) {
       useArkStore.getState().addAccount(account)
-    }
-    for (const [rawNetwork, token] of Object.entries(
-      data.ark.serverAccessTokens
-    )) {
-      if (isNetwork(rawNetwork) && token !== undefined) {
-        useArkStore.getState().setServerAccessToken(rawNetwork, token)
-      }
     }
   }
   if (data.serverSettings) {

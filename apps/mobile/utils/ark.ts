@@ -1,6 +1,6 @@
 import { ARK_SERVERS } from '@/constants/ark'
 import { t } from '@/locales'
-import { ArkServer } from '@/types/models/Ark'
+import { type ArkBalance, ArkServer } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 
 export function arkNetworkLabel(network: Network): string {
@@ -19,4 +19,16 @@ export function getArkServer(
 
 export function getDefaultArkServer(network: Network): ArkServer | undefined {
   return ARK_SERVERS[network][0]
+}
+
+export function getArkPendingSats(balance: ArkBalance): number {
+  return (
+    balance.pendingInRoundSats +
+    balance.pendingBoardSats +
+    balance.claimableLightningReceiveSats
+  )
+}
+
+export function getArkTotalSats(balance: ArkBalance): number {
+  return balance.spendableSats + getArkPendingSats(balance)
 }
