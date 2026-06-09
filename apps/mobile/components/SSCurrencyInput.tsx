@@ -120,7 +120,6 @@ function SSCurrencyInput({
         onChangeText={handleTextChange}
         keyboardType="numeric"
         placeholderTextColor={Colors.gray[400]}
-        includeFontPadding={false}
         textAlignVertical="center"
         style={textInputStyle}
         {...props}
