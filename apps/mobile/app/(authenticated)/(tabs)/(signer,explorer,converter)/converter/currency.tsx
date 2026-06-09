@@ -166,8 +166,12 @@ export default function Converter() {
     key: keyof typeof currencyValues,
     value: number
   ): number {
-    if (key === 'sats') {return value / SATS_PER_BITCOIN}
-    if (key === 'bitcoin') {return value}
+    if (key === 'sats') {
+      return value / SATS_PER_BITCOIN
+    }
+    if (key === 'bitcoin') {
+      return value
+    }
     const price = prices[key]
     return price ? value / price : 0
   }
