@@ -2,8 +2,11 @@
 
 <div align="center">
   <h1>Satsigner</h1>
-  <p>Privacy-first bitcoin signer with complete UTXO control</p>
   <a href="https://satsigner.com/">satsigner.com</a>
+  <p>Privacy-first bitcoin signer with complete UTXO control</p>
+  <a href="https://satsigner.com/apk">
+    <img alt="badge" src="https://shieldcn.dev/badge/Download%20latest%20APK.svg?variant=secondary&logo=lu%3ADownload">
+  </a>
 </div>
 
 <br />
