@@ -125,7 +125,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: getScheme(),
   slug: 'satsigner',
   userInterfaceStyle: 'dark',
-  version: '0.3.5',
+  version: '0.3.6',
   web: {
     favicon: './assets/favicon.png'
   }
