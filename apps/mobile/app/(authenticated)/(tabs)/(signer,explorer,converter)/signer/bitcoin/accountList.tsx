@@ -465,7 +465,7 @@ export default function AccountList() {
         const fingerprint1 = getFingerprintFromMnemonic(
           sampleSignetMultisigKey1
         )
-        const extendedPublicKey1 = await getExtendedPublicKeyFromMnemonicCustom(
+        const extendedPublicKey1 = getExtendedPublicKeyFromMnemonicCustom(
           sampleSignetMultisigKey1,
           '',
           bdkNetwork,
@@ -482,7 +482,7 @@ export default function AccountList() {
         const fingerprint2 = getFingerprintFromMnemonic(
           sampleSignetMultisigKey2
         )
-        const extendedPublicKey2 = await getExtendedPublicKeyFromMnemonicCustom(
+        const extendedPublicKey2 = getExtendedPublicKeyFromMnemonicCustom(
           sampleSignetMultisigKey2,
           '',
           bdkNetwork,
