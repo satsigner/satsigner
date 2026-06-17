@@ -2214,6 +2214,8 @@
     "developer.skipPin": "Skip PIN",
     "developer.storageClearFailed": "Failed to clear storage",
     "developer.storageCleared": "Storage cleared",
+    "developer.design": "Design",
+    "developer.icons": "Icons",
     "developer.title": "Developer",
     "features.bip39.description": "Default language used in mnemonic from BIP39 word list",
     "features.bip39.longDescription": "Select the default language for the word list used in mnemonic seed from BIP39 when creating a new account.",
