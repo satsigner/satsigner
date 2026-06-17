@@ -10,7 +10,6 @@ import Svg, { Circle, G, Path, type SvgProps } from 'react-native-svg'
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 const AnimatedPath = Animated.createAnimatedComponent(Path)
 
-const _CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 17
 const CHECK_PATH_LENGTH = 22
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
