@@ -454,7 +454,7 @@ export default function Design() {
 
             {/* ── Connection Status ── */}
             <Section title="Connection Status Indicator">
-              <SSHStack gap="lg" itemsCenter>
+              <SSHStack gap="lg">
                 <SSVStack gap="xxs" itemsCenter>
                   <SSConnectionStatusIndicator
                     status="checking"
@@ -521,7 +521,7 @@ export default function Design() {
 
             {/* ── Loader ── */}
             <Section title="Loader">
-              <SSHStack gap="lg" itemsCenter>
+              <SSHStack gap="lg">
                 <SSLoader size={40} />
                 <SSLoader size={60} />
                 <SSLoader size={80} />

@@ -111,12 +111,15 @@ import { t } from '@/locales'
 
 type IconEntry = {
   name: string
-  Component: React.ComponentType<{ width?: number; height?: number }>
+  Component: React.ComponentType<{ width: number; height: number }>
 }
 
 const ICON_COLUMNS = 5
 const ICON_SIZE = 24
-const ICON_ESTIMATED_ITEM_SIZE = 54
+
+function CircleIcon({ width }: { width: number; height: number }) {
+  return <SSIconCircle size={width} />
+}
 
 const ICON_LIST: IconEntry[] = [
   { Component: SSIconAbout, name: 'About' },
@@ -135,7 +138,7 @@ const ICON_LIST: IconEntry[] = [
   { Component: SSIconChevronLeft, name: 'ChevronLeft' },
   { Component: SSIconChevronRight, name: 'ChevronRight' },
   { Component: SSIconChevronUp, name: 'ChevronUp' },
-  { Component: SSIconCircle, name: 'Circle' },
+  { Component: CircleIcon, name: 'Circle' },
   { Component: SSIconCircleX, name: 'CircleX' },
   { Component: SSIconCircleXThin, name: 'CircleXThin' },
   { Component: SSIconClose, name: 'Close' },
@@ -262,7 +265,6 @@ export default function Icons() {
           renderItem={renderIconItem}
           keyExtractor={keyExtractor}
           numColumns={ICON_COLUMNS}
-          estimatedItemSize={ICON_ESTIMATED_ITEM_SIZE}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.list}
         />
