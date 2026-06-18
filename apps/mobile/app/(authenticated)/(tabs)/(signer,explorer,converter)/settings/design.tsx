@@ -55,7 +55,9 @@ const PLACEHOLDER_SEED_WORDS = [
   'accident'
 ]
 const ICON_PREVIEW_SIZE = 24
-const NOOP = () => {}
+function NOOP() {
+  // intentional no-op for design preview
+}
 
 const PREVIEW_ICONS = [
   { Component: SSIconBitcoin, name: 'Bitcoin' },
@@ -424,7 +426,7 @@ export default function Design() {
                   ['Size', '141 vB'],
                   [
                     'Txid',
-                    PLACEHOLDER_ADDRESS.slice(0, 16) + '…',
+                    `${PLACEHOLDER_ADDRESS.slice(0, 16)}…`,
                     { variant: 'mono' }
                   ],
                   ['Network', 'mainnet']
