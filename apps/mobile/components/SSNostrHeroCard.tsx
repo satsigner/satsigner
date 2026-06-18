@@ -206,7 +206,7 @@ function SSNostrHeroCard({
             {connectionInfo.status === 'checking'
               ? t('nostrIdentity.account.relayChecking')
               : connectionInfo.status === 'connected'
-                ? t('nostrIdentity.account.relayConnected')
+                ? `${t('nostrIdentity.account.relayConnected')} · ${connectionInfo.relayDetails?.filter((r) => r.connected).length ?? 0}`
                 : buildDisconnectLabel(connectionInfo)}
           </SSText>
         ) : null}

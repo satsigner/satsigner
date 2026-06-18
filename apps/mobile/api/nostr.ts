@@ -96,7 +96,13 @@ export async function testNostrRelaysReachable(
   }
 
   if (connected.length > 0) {
-    return { status: 'connected' }
+    return {
+      relayDetails: probeUrls.map((url) => ({
+        connected: connected.includes(url),
+        url
+      })),
+      status: 'connected'
+    }
   }
 
   return {
@@ -454,16 +460,30 @@ export class NostrAPI {
    * Latest kind 3 (NIP-02 contact list) for this npub; returns followed
    * pubkeys in tag order (64-char hex, lowercase), excluding duplicates and self.
    */
-  async fetchKind3FollowingPubkeys(npub: string): Promise<string[]> {
+  async fetchKind3FollowingPubkeys(npub: string): Promise<{
+    connectedRelayCount: number
+    kind3Found: boolean
+    pubkeys: string[]
+    relaysQueried: string[]
+  }> {
+    const empty = {
+      connectedRelayCount: 0,
+      kind3Found: false,
+      pubkeys: [],
+      relaysQueried: this.relays
+    }
+
     const hexPubkey = getPubKeyHexFromNpub(npub)
     if (!hexPubkey) {
-      return []
+      return empty
     }
 
     await this.connect()
     if (!this.ndk) {
-      return []
+      return empty
     }
+
+    const connectedRelayCount = this.ndk.pool.connectedRelays().length
 
     const filter: NDKFilter = {
       authors: [hexPubkey],
@@ -478,7 +498,7 @@ export class NostrAPI {
     )
 
     if (events.size === 0) {
-      return []
+      return { ...empty, connectedRelayCount }
     }
 
     const sorted = Array.from(events).toSorted(
@@ -486,7 +506,7 @@ export class NostrAPI {
     )
     const [latest] = sorted
     if (!latest) {
-      return []
+      return { ...empty, connectedRelayCount }
     }
 
     const ordered: string[] = []
@@ -506,7 +526,12 @@ export class NostrAPI {
       }
     }
 
-    return ordered
+    return {
+      connectedRelayCount,
+      kind3Found: true,
+      pubkeys: ordered,
+      relaysQueried: this.relays
+    }
   }
 
   async fetchNotes(
@@ -622,7 +647,7 @@ export class NostrAPI {
       created_at: number
     }[]
   > {
-    const following = await this.fetchKind3FollowingPubkeys(npub)
+    const { pubkeys: following } = await this.fetchKind3FollowingPubkeys(npub)
     if (following.length === 0) {
       return []
     }
