@@ -1753,6 +1753,7 @@
     "profile.bannerHint": "Enter a Blossom or image URL for your banner",
     "profile.bannerPlaceholder": "https://blossom.example.com/banner.jpg",
     "profile.blossomServer": "Blossom Server",
+    "profile.blossomServerPlaceholder": "https://blossom.primal.net",
     "profile.picture": "Profile Image (Blossom URL)",
     "profile.pictureHint": "Enter a Blossom or image URL for your profile picture",
     "profile.picturePlaceholder": "https://blossom.example.com/image.jpg",
