@@ -109,7 +109,7 @@ export default function NostrIdentitySettings() {
             </Chiclet>
           </SSHStack>
 
-          <SSVStack gap="sm" widthFull>
+          <SSVStack gap="md" widthFull>
             <SSButton
               label={t('nostrIdentity.settings.profile')}
               variant="outline"
