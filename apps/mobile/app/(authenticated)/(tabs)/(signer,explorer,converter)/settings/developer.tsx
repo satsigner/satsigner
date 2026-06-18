@@ -358,6 +358,14 @@ export default function Developer() {
               onPress={() => setSkipPin(!skipPin)}
             />
           </SSVStack>
+          <SSSeparator color="gradient" />
+          <SSVStack>
+            <SSButton
+              label={t('settings.developer.design')}
+              onPress={() => router.navigate('/settings/design')}
+              variant="outline"
+            />
+          </SSVStack>
         </SSVStack>
       </SSMainLayout>
       <SSModal
