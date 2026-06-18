@@ -143,9 +143,6 @@ function SSNostrHeroCard({
         ) : nip05Value ? (
           <SSClipboardCopy text={nip05Value}>
             <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-              <SSText size="sm" color="muted">
-                {nip05Value}
-              </SSText>
               {nip05Valid === true && (
                 <SSIconCheckCircleThin
                   width={12}
@@ -160,6 +157,9 @@ function SSNostrHeroCard({
                   color={Colors.mainRed}
                 />
               )}
+              <SSText size="sm" color="muted">
+                {nip05Value}
+              </SSText>
             </SSHStack>
           </SSClipboardCopy>
         ) : (
@@ -174,15 +174,15 @@ function SSNostrHeroCard({
         ) : lud16Value ? (
           <SSClipboardCopy text={lud16Value}>
             <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-              <SSText size="sm" color="muted">
-                {lud16Value}
-              </SSText>
               <SSIconLightning
                 width={8}
                 height={10}
                 stroke={Colors.gray[300]}
                 strokeWidth={1.5}
               />
+              <SSText size="sm" color="muted">
+                {lud16Value}
+              </SSText>
             </SSHStack>
           </SSClipboardCopy>
         ) : (
