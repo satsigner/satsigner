@@ -1,20 +1,30 @@
 import { FlashList } from '@shopify/flash-list'
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams } from 'expo-router'
+import { useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 
-import { listBlossomFiles, type BlobDescriptor } from '@/api/blossom'
+import {
+  fetchNostrFileEvents,
+  listBlossomFiles,
+  type BlobDescriptor
+} from '@/api/blossom'
+import { NostrAPI } from '@/api/nostr'
+import SSPairedTabs from '@/components/SSPairedTabs'
 import SSText from '@/components/SSText'
 import { BLOSSOM_DEFAULT_SERVER } from '@/constants/nostr'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors, Layout } from '@/styles'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 type FilesParams = {
   npub: string
 }
+
+type FilesTab = 'blossom' | 'nostr'
 
 const FILE_SIZE_UNITS = ['B', 'KB', 'MB', 'GB'] as const
 
@@ -38,16 +48,38 @@ function formatUploadDate(unixTs: number): string {
   })
 }
 
+function deduplicateBySha256(files: BlobDescriptor[]): BlobDescriptor[] {
+  const seen = new Set<string>()
+  return files.filter((f) => {
+    if (seen.has(f.sha256)) {
+      return false
+    }
+    seen.add(f.sha256)
+    return true
+  })
+}
+
 export default function NostrFiles() {
   const { npub } = useLocalSearchParams<FilesParams>()
+  const [activeTab, setActiveTab] = useState<FilesTab>('nostr')
+
+  const identity = useNostrIdentityStore((state) =>
+    state.identities.find((i) => i.npub === npub)
+  )
+  const globalRelays = useNostrIdentityStore((state) => state.relays)
 
   const pubkeyHex = getPubKeyHexFromNpub(npub) ?? ''
-  const serverUrl = BLOSSOM_DEFAULT_SERVER
+  const serverUrl = identity?.blossomServer ?? BLOSSOM_DEFAULT_SERVER
+  const relays = identity?.relays?.length
+    ? identity.relays
+    : globalRelays.length
+      ? globalRelays
+      : NostrAPI.INDEXING_RELAYS
 
   const {
-    data: files = [],
-    isLoading,
-    isError
+    data: blossomFiles = [],
+    isLoading: isBlossomLoading,
+    isError: isBlossomError
   } = useQuery({
     enabled: !!pubkeyHex,
     queryFn: () => listBlossomFiles(serverUrl, pubkeyHex),
@@ -55,6 +87,25 @@ export default function NostrFiles() {
     retry: 1,
     staleTime: 5 * 60_000
   })
+
+  const {
+    data: nostrFiles = [],
+    isLoading: isNostrLoading,
+    isError: isNostrError
+  } = useQuery({
+    enabled: !!pubkeyHex && relays.length > 0,
+    queryFn: () => fetchNostrFileEvents(pubkeyHex, relays),
+    queryKey: ['nostr', 'files', pubkeyHex, relays.join(',')],
+    retry: 1,
+    staleTime: 5 * 60_000
+  })
+
+  const mergedNostrFiles = deduplicateBySha256([...nostrFiles, ...blossomFiles])
+
+  const isLoading = activeTab === 'blossom' ? isBlossomLoading : isNostrLoading
+  const isError = activeTab === 'blossom' ? isBlossomError : isNostrError
+  const files = activeTab === 'blossom' ? blossomFiles : mergedNostrFiles
+  const errorHint = activeTab === 'blossom' ? serverUrl : relays[0] ?? ''
 
   return (
     <SSMainLayout>
@@ -65,6 +116,20 @@ export default function NostrFiles() {
           )
         }}
       />
+      <SSVStack gap="md" style={styles.tabs}>
+        <SSPairedTabs
+          activeTab={activeTab}
+          primary={{
+            key: 'nostr',
+            label: t('nostrIdentity.files.tabNostr')
+          }}
+          secondary={{
+            key: 'blossom',
+            label: t('nostrIdentity.files.tabBlossom')
+          }}
+          onChange={setActiveTab}
+        />
+      </SSVStack>
       {isLoading ? (
         <SSVStack itemsCenter style={styles.center}>
           <ActivityIndicator color={Colors.gray[400]} />
@@ -75,7 +140,7 @@ export default function NostrFiles() {
             {t('nostrIdentity.files.error')}
           </SSText>
           <SSText color="muted" size="xs">
-            {serverUrl}
+            {errorHint}
           </SSText>
         </SSVStack>
       ) : files.length === 0 ? (
@@ -84,7 +149,7 @@ export default function NostrFiles() {
             {t('nostrIdentity.files.empty')}
           </SSText>
           <SSText color="muted" size="xs">
-            {serverUrl}
+            {errorHint}
           </SSText>
         </SSVStack>
       ) : (
@@ -156,5 +221,9 @@ const styles = StyleSheet.create({
   },
   rowText: {
     flex: 1
+  },
+  tabs: {
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+    paddingTop: 8
   }
 })

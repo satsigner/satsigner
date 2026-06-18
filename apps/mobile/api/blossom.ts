@@ -1,6 +1,8 @@
 import { Buffer } from 'buffer'
 
 import * as DocumentPicker from 'expo-document-picker'
+import NDK from '@nostr-dev-kit/ndk'
+import type { NDKEvent } from '@nostr-dev-kit/ndk'
 
 export type BlobDescriptor = {
   url: string
@@ -10,6 +12,9 @@ export type BlobDescriptor = {
   uploaded: number
   name?: string
 }
+
+const NIP94_FILE_KIND = 1063
+const NOSTR_FILES_FETCH_TIMEOUT_MS = 8000
 
 export async function listBlossomFiles(
   serverUrl: string,
@@ -21,6 +26,69 @@ export async function listBlossomFiles(
     throw new Error(`Failed to list files (HTTP ${response.status})`)
   }
   return response.json() as Promise<BlobDescriptor[]>
+}
+
+function ndkEventToBlobDescriptor(event: NDKEvent): BlobDescriptor | null {
+  const tagMap = Object.fromEntries(event.tags.map(([k, v]) => [k, v ?? '']))
+  const url = tagMap['url']
+  const sha256 = tagMap['x']
+  if (!url || !sha256) {
+    return null
+  }
+  return {
+    name: tagMap['name'] || undefined,
+    sha256,
+    size: Number(tagMap['size'] ?? 0),
+    type: tagMap['m'] || undefined,
+    uploaded: event.created_at ?? 0,
+    url
+  }
+}
+
+export function fetchNostrFileEvents(
+  pubkeyHex: string,
+  relays: string[]
+): Promise<BlobDescriptor[]> {
+  const ndk = new NDK({
+    autoConnectUserRelays: false,
+    enableOutboxModel: false,
+    explicitRelayUrls: relays
+  })
+  ndk.connect()
+
+  return new Promise((resolve) => {
+    const results: BlobDescriptor[] = []
+    let settled = false
+
+    const sub = ndk.subscribe(
+      { authors: [pubkeyHex], kinds: [NIP94_FILE_KIND] },
+      { closeOnEose: false }
+    )
+
+    const finish = () => {
+      if (settled) {
+        return
+      }
+      settled = true
+      sub.stop()
+      resolve(results)
+    }
+
+    sub.on('event', (event: NDKEvent) => {
+      const blob = ndkEventToBlobDescriptor(event)
+      if (blob) {
+        results.push(blob)
+      }
+    })
+
+    sub.on('eose', () => {
+      if (ndk.pool.connectedRelays().length > 0) {
+        finish()
+      }
+    })
+
+    setTimeout(finish, NOSTR_FILES_FETCH_TIMEOUT_MS)
+  })
 }
 import * as FileSystem from 'expo-file-system/legacy'
 import { finalizeEvent } from 'nostr-tools'
