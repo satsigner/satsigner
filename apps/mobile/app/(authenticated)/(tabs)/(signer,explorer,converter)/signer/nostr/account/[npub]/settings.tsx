@@ -157,7 +157,7 @@ export default function NostrIdentitySettings() {
             )}
 
             <SSButton
-              label={t('nostrIdentity.settings.cache')}
+              label={t('nostrIdentity.settings.cache.title')}
               variant="outline"
               onPress={() => router.navigate(nostrAccountHref(npub, 'cache'))}
             />
