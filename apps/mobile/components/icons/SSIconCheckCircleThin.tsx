@@ -1,8 +1,12 @@
 import Svg, { Circle, G, Path, type SvgProps } from 'react-native-svg'
 
-type IconProps = Pick<SvgProps, 'width' | 'height'>
+type IconProps = Pick<SvgProps, 'width' | 'height'> & { color?: string }
 
-export default function SSIconCheckCircleThin({ width, height }: IconProps) {
+export default function SSIconCheckCircleThin({
+  width,
+  height,
+  color = '#fff'
+}: IconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 35 35">
       <G id="check-circle-thin" transform="translate(-0.5 -0.5)">
@@ -14,7 +18,7 @@ export default function SSIconCheckCircleThin({ width, height }: IconProps) {
           r="17"
           transform="translate(1 1)"
           fill="none"
-          stroke="#fff"
+          stroke={color}
           strokeWidth="1"
         />
         <Path
@@ -23,7 +27,7 @@ export default function SSIconCheckCircleThin({ width, height }: IconProps) {
           d="M6.7,15.038l4.208,4.04L22.017,7.8"
           transform="translate(3.894 4.645)"
           fill="none"
-          stroke="#fff"
+          stroke={color}
           strokeWidth="1"
         />
       </G>

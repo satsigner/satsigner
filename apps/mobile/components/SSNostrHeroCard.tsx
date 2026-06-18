@@ -147,10 +147,18 @@ function SSNostrHeroCard({
                 {nip05Value}
               </SSText>
               {nip05Valid === true && (
-                <SSIconCheckCircleThin width={12} height={12} />
+                <SSIconCheckCircleThin
+                  width={12}
+                  height={12}
+                  color={Colors.mainGreen}
+                />
               )}
               {nip05Valid === false && (
-                <SSIconCircleXThin width={12} height={12} />
+                <SSIconCircleXThin
+                  width={12}
+                  height={12}
+                  color={Colors.mainRed}
+                />
               )}
             </SSHStack>
           </SSClipboardCopy>

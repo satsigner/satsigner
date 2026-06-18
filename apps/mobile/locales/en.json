@@ -1557,6 +1557,8 @@
     "calendar.title": "Calendar",
     "chat.title": "Chat",
     "contacts.title": "Contacts",
+    "files.empty": "No files found on this server",
+    "files.error": "Could not load files from Blossom server",
     "files.title": "Files",
     "note.arkComingSoon": "ARK payments coming soon",
     "note.customAmount": "Custom",
