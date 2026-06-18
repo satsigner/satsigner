@@ -191,6 +191,7 @@ export const NostrZapPreferencesSchema = z.object({
 
 export const NostrIdentitySchema = z.object({
   banner: z.string().optional(),
+  blossomServer: z.string().optional(),
   createdAt: z.number(),
   displayName: z.string().optional(),
   isWatchOnly: z.boolean(),

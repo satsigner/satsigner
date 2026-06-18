@@ -32,7 +32,9 @@ export default function NostrIdentityProfile() {
   const [bannerUrl, setBannerUrl] = useState(identity?.banner ?? '')
   const [nip05, setNip05] = useState(identity?.nip05 ?? '')
   const [lud16, setLud16] = useState(identity?.lud16 ?? '')
-  const [blossomServer, setBlossomServer] = useState(BLOSSOM_DEFAULT_SERVER)
+  const [blossomServer, setBlossomServer] = useState(
+    identity?.blossomServer ?? BLOSSOM_DEFAULT_SERVER
+  )
 
   const { isUploading: isPictureUploading, upload: uploadPicture } =
     useBlossomImageUpload(identity?.nsec ?? '')
@@ -60,6 +62,7 @@ export default function NostrIdentityProfile() {
 
     updateIdentity(npub, {
       banner: bannerUrl || undefined,
+      blossomServer: blossomServer || undefined,
       displayName: displayName || undefined,
       lud16: lud16 || undefined,
       nip05: nip05 || undefined,
