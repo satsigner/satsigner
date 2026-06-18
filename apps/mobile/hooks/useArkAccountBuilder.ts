@@ -97,13 +97,11 @@ export function useArkAccountBuilder() {
     const datadir = await ensureArkDatadir(persistedAccount.id)
     await storeArkMnemonic(persistedAccount.id, mnemonic)
     try {
-      const { serverAccessTokens } = useArkStore.getState()
       await createArkWallet({
         accountId: persistedAccount.id,
         datadir,
         mnemonic,
-        server,
-        serverAccessToken: serverAccessTokens[network]
+        server
       })
     } catch (error) {
       await deleteArkMnemonic(persistedAccount.id).catch(() => undefined)

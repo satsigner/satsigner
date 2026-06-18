@@ -659,7 +659,7 @@ function getWalletOverview(
   const txDetailsList = wallet.transactions()
 
   const transactions: Transaction[] = txDetailsList.map((txDetails) =>
-    parseTxDetailsToTransaction(txDetails, localOutputs, network)
+    parseTxDetailsToTransaction(txDetails, localOutputs, network, wallet)
   )
 
   const utxos: Utxo[] = localOutputs.map((localOutput) =>
@@ -713,7 +713,8 @@ function getWalletOverview(
 function parseTxDetailsToTransaction(
   txDetails: TxDetailsN,
   utxos: LocalOutputN[],
-  network: Network
+  network: Network,
+  wallet: BdkWallet
 ): Transaction {
   let address = ''
   const utxo = utxos.find((utxo) => utxo?.outpoint?.txid === txDetails.txid)
@@ -731,13 +732,13 @@ function parseTxDetailsToTransaction(
     received,
     fee,
     confirmationBlockTime,
-    txHex,
     version,
     locktime,
     inputs,
     outputs
   } = txDetails
 
+  const txHex = wallet.getTx(txid)
   const raw = txHex ? hexToBytes(txHex) : []
 
   const vin: Transaction['vin'] = inputs.map((input) => ({
