@@ -223,6 +223,7 @@ const styles = StyleSheet.create({
     gap: 6
   },
   chicletTile: {
+    aspectRatio: 1,
     borderColor: Colors.gray[700],
     borderRadius: 4,
     borderWidth: StyleSheet.hairlineWidth,
@@ -231,8 +232,8 @@ const styles = StyleSheet.create({
   },
   chicletGradient: {
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 16
+    flex: 1,
+    justifyContent: 'center'
   },
   chicletLabel: {
     paddingHorizontal: 2
