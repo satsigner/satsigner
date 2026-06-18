@@ -1760,6 +1760,7 @@
     "relays.public": "Public Relays",
     "relays.saved": "Identity relays saved",
     "relays.title": "Nostr Relays",
+    "settings.profile": "Edit Profile",
     "settings.cache.clearAll": "Clear All Cache",
     "settings.cache.clearAllConfirm": "This will delete all cached notes, zaps, and profiles. Data will be re-fetched from relays on next visit.",
     "settings.cache.clearAllTitle": "Clear all cached data?",
