@@ -21,6 +21,7 @@ function useBlossomImageUpload(nsec: string) {
         nsec,
         serverUrl
       })
+      toast.success(t('nostrIdentity.profile.uploadSuccess'))
       return url
     } catch (error) {
       const message =

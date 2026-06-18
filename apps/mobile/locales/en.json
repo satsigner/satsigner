@@ -1762,6 +1762,7 @@
     "profile.uploadBanner": "Upload Banner",
     "profile.uploadError": "Image upload failed",
     "profile.uploadImage": "Upload Image",
+    "profile.uploadSuccess": "Image uploaded",
     "profile.uploading": "Uploading…",
     "relays.addCustom": "Add Custom Relay",
     "relays.search": "Search relays…",
