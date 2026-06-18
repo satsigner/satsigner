@@ -215,7 +215,8 @@ export default function NostrBlossomServers() {
 
 const styles = StyleSheet.create({
   addButton: {
-    minWidth: 72
+    paddingHorizontal: 16,
+    width: 'auto'
   },
   content: {
     paddingBottom: 40
