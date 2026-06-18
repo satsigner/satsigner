@@ -1764,6 +1764,7 @@
     "profile.uploadImage": "Upload Image",
     "profile.uploading": "Uploading…",
     "relays.addCustom": "Add Custom Relay",
+    "relays.search": "Search relays…",
     "relays.custom": "Custom Relays",
     "relays.inputPlaceholder": "relay.example.com",
     "relays.public": "Public Relays",
