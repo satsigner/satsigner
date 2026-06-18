@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
+import { SSIconCheckCircleThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
@@ -16,6 +16,7 @@ import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
+import { error as errorColor } from '@/styles/colors'
 import { emptyPin } from '@/utils/pin'
 
 type Stage = 'verify' | 'set' | 're-enter'
@@ -169,12 +170,9 @@ export default function SetPin() {
   function getFeedback() {
     if (stage === 'verify' && currentPinWrong && !currentPinFilled) {
       return (
-        <SSVStack itemsCenter gap="xs">
-          <SSIconCircleXThin height={32} width={32} />
-          <SSText uppercase size="lg" color="muted" center>
-            {t('auth.wrongPin')}
-          </SSText>
-        </SSVStack>
+        <SSText uppercase size="lg" center style={{ color: errorColor }}>
+          {t('auth.wrongPin')}
+        </SSText>
       )
     }
     if (stage === 're-enter' && confirmationPinFilled && pinsMatch) {
@@ -189,12 +187,9 @@ export default function SetPin() {
     }
     if (stage === 're-enter' && confirmationPinFilled && !pinsMatch) {
       return (
-        <SSVStack itemsCenter gap="xs">
-          <SSIconCircleXThin height={32} width={32} />
-          <SSText uppercase size="lg" color="muted" center>
-            {t('auth.pinsDontMatch')}
-          </SSText>
-        </SSVStack>
+        <SSText uppercase size="lg" center style={{ color: errorColor }}>
+          {t('auth.pinsDontMatch')}
+        </SSText>
       )
     }
     return null
