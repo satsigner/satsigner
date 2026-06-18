@@ -473,6 +473,14 @@ const useNostrStore = create<NostrState & NostrAction>()(
         // Excluded: syncStatus (runtime), activeSubscriptions (Set),
         // syncingAccounts (runtime), transactionToShare (runtime)
       }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<NostrState & NostrAction>),
+        // Always ensure runtime-only fields start fresh on rehydration
+        activeSubscriptions: new Set<NostrAPI>(),
+        syncingAccounts: {},
+        transactionToShare: null
+      }),
       storage: createJSONStorage(() => mmkvStorage),
       version: 1
     }
