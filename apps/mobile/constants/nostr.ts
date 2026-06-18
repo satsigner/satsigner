@@ -214,6 +214,18 @@ export const NOSTR_BOOKMARKS_FILTER_IDS = new Set([
   'private_bookmarks'
 ])
 
+// BLOSSOM
+export const BLOSSOM_DEFAULT_SERVER = 'https://blossom.primal.net'
+
+export const BLOSSOM_POPULAR_SERVERS: { name: string; url: string }[] = [
+  { name: 'Primal', url: 'https://blossom.primal.net' },
+  { name: 'Satellite', url: 'https://cdn.satellite.earth' },
+  { name: 'Blossom Band', url: 'https://blossom.band' },
+  { name: 'nostr.download', url: 'https://nostr.download' },
+  { name: 'Media Nostr Band', url: 'https://media.nostr.band' },
+  { name: 'Nostr Build', url: 'https://blossom.nostr.build' }
+]
+
 // ZAP
 export const NOSTR_ZAP_DEFAULT_PRESETS = [21, 100, 500, 1000]
 export const NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT = 21

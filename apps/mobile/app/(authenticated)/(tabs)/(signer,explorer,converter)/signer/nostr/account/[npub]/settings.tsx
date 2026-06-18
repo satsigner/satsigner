@@ -119,19 +119,27 @@ export default function NostrIdentitySettings() {
             />
 
             <SSButton
-              label={t('nostrIdentity.settings.manageKeys')}
+              label={t('nostrIdentity.settings.keys')}
               variant="outline"
               onPress={() => router.navigate(nostrAccountHref(npub, 'keys'))}
             />
 
             <SSButton
-              label={t('nostrIdentity.settings.identityRelays')}
+              label={t('nostrIdentity.settings.relays')}
               variant="outline"
               onPress={() => router.navigate(nostrAccountHref(npub, 'relays'))}
             />
 
             <SSButton
-              label={t('nostrIdentity.settings.zapSettings')}
+              label={t('nostrIdentity.settings.blossom')}
+              variant="outline"
+              onPress={() =>
+                router.navigate(nostrAccountHref(npub, 'blossom'))
+              }
+            />
+
+            <SSButton
+              label={t('nostrIdentity.settings.zaps')}
               variant="outline"
               onPress={() =>
                 router.navigate(nostrAccountHref(npub, 'zapSettings'))
@@ -140,7 +148,7 @@ export default function NostrIdentitySettings() {
 
             {!identity.isWatchOnly && (
               <SSButton
-                label={t('nip46.title')}
+                label={t('nostrIdentity.settings.signer')}
                 variant="outline"
                 onPress={() =>
                   router.navigate(nostrAccountHref(npub, 'bunker'))
@@ -149,7 +157,7 @@ export default function NostrIdentitySettings() {
             )}
 
             <SSButton
-              label={t('nostrIdentity.settings.cache.title')}
+              label={t('nostrIdentity.settings.cache')}
               variant="outline"
               onPress={() => router.navigate(nostrAccountHref(npub, 'cache'))}
             />

@@ -69,7 +69,7 @@ export default function NostrFiles() {
   const globalRelays = useNostrIdentityStore((state) => state.relays)
 
   const pubkeyHex = getPubKeyHexFromNpub(npub) ?? ''
-  const serverUrl = identity?.blossomServer ?? BLOSSOM_DEFAULT_SERVER
+  const serverUrl = identity?.blossomServers?.[0] ?? BLOSSOM_DEFAULT_SERVER
   const relays = identity?.relays?.length
     ? identity.relays
     : globalRelays.length

@@ -29,13 +29,11 @@ export default function ProfileSetup() {
   const [pictureUrl, setPictureUrl] = useState('')
   const [nip05, setNip05] = useState('')
   const [lud16, setLud16] = useState('')
-  const [blossomServer, setBlossomServer] = useState(BLOSSOM_DEFAULT_SERVER)
-
   const { isUploading: isPictureUploading, upload: uploadPicture } =
     useBlossomImageUpload(params.nsec ?? '')
 
   async function handleUploadPicture() {
-    const url = await uploadPicture(blossomServer)
+    const url = await uploadPicture(BLOSSOM_DEFAULT_SERVER)
     if (url) {
       setPictureUrl(url)
     }
@@ -48,7 +46,6 @@ export default function ProfileSetup() {
     }
 
     addIdentity({
-      blossomServer: blossomServer || undefined,
       createdAt: Date.now(),
       displayName: displayName || undefined,
       isWatchOnly: false,
@@ -131,21 +128,6 @@ export default function ProfileSetup() {
               variant="outline"
               disabled={isPictureUploading}
               onPress={handleUploadPicture}
-            />
-          </SSVStack>
-
-          {/* Blossom Server */}
-          <SSVStack gap="xs">
-            <SSText size="sm" color="muted" uppercase>
-              {t('nostrIdentity.profile.blossomServer')}
-            </SSText>
-            <SSTextInput
-              placeholder={t('nostrIdentity.profile.blossomServerPlaceholder')}
-              value={blossomServer}
-              onChangeText={setBlossomServer}
-              align="left"
-              autoCapitalize="none"
-              keyboardType="url"
             />
           </SSVStack>
 

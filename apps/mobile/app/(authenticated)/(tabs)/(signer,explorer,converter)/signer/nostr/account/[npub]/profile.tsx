@@ -32,9 +32,8 @@ export default function NostrIdentityProfile() {
   const [bannerUrl, setBannerUrl] = useState(identity?.banner ?? '')
   const [nip05, setNip05] = useState(identity?.nip05 ?? '')
   const [lud16, setLud16] = useState(identity?.lud16 ?? '')
-  const [blossomServer, setBlossomServer] = useState(
-    identity?.blossomServer ?? BLOSSOM_DEFAULT_SERVER
-  )
+  const primaryBlossomServer =
+    identity?.blossomServers?.[0] ?? BLOSSOM_DEFAULT_SERVER
 
   const { isUploading: isPictureUploading, upload: uploadPicture } =
     useBlossomImageUpload(identity?.nsec ?? '')
@@ -42,14 +41,14 @@ export default function NostrIdentityProfile() {
     useBlossomImageUpload(identity?.nsec ?? '')
 
   async function handleUploadPicture() {
-    const url = await uploadPicture(blossomServer)
+    const url = await uploadPicture(primaryBlossomServer)
     if (url) {
       setPictureUrl(url)
     }
   }
 
   async function handleUploadBanner() {
-    const url = await uploadBanner(blossomServer)
+    const url = await uploadBanner(primaryBlossomServer)
     if (url) {
       setBannerUrl(url)
     }
@@ -62,7 +61,6 @@ export default function NostrIdentityProfile() {
 
     updateIdentity(npub, {
       banner: bannerUrl || undefined,
-      blossomServer: blossomServer || undefined,
       displayName: displayName || undefined,
       lud16: lud16 || undefined,
       nip05: nip05 || undefined,
@@ -195,25 +193,6 @@ export default function NostrIdentityProfile() {
               />
             )}
           </SSVStack>
-
-          {/* Blossom Server */}
-          {!identity.isWatchOnly && (
-            <SSVStack gap="xs">
-              <SSText size="sm" color="muted" uppercase>
-                {t('nostrIdentity.profile.blossomServer')}
-              </SSText>
-              <SSTextInput
-                placeholder={t(
-                  'nostrIdentity.profile.blossomServerPlaceholder'
-                )}
-                value={blossomServer}
-                onChangeText={setBlossomServer}
-                align="left"
-                autoCapitalize="none"
-                keyboardType="url"
-              />
-            </SSVStack>
-          )}
 
           {/* NIP-05 */}
           <SSVStack gap="xs">
