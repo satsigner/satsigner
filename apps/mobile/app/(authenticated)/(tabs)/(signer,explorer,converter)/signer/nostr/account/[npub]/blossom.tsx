@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
+import { fetchKind10063Servers } from '@/api/blossom'
+import { NostrAPI } from '@/api/nostr'
 import SSIconX from '@/components/icons/SSIconX'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -17,6 +19,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 type BlossomParams = {
   npub: string
@@ -45,7 +48,11 @@ function ServerRow({ url, isPrimary, onRemove }: ServerRowProps) {
           </SSText>
         </SSHStack>
       </SSVStack>
-      <TouchableOpacity onPress={onRemove} style={styles.removeButton} hitSlop={8}>
+      <TouchableOpacity
+        onPress={onRemove}
+        style={styles.removeButton}
+        hitSlop={8}
+      >
         <SSIconX width={10} height={10} />
       </TouchableOpacity>
     </SSHStack>
@@ -67,6 +74,7 @@ export default function NostrBlossomServers() {
       : [BLOSSOM_DEFAULT_SERVER]
   )
   const [customInput, setCustomInput] = useState('')
+  const [isImporting, setIsImporting] = useState(false)
 
   function handleRemove(url: string) {
     setServers((prev) => prev.filter((s) => s !== url))
@@ -77,7 +85,9 @@ export default function NostrBlossomServers() {
     if (!normalized) {
       return
     }
-    const url = normalized.startsWith('http') ? normalized : `https://${normalized}`
+    const url = normalized.startsWith('http')
+      ? normalized
+      : `https://${normalized}`
     if (servers.includes(url)) {
       toast.error(t('nostrIdentity.blossom.alreadyAdded'))
       return
@@ -89,6 +99,38 @@ export default function NostrBlossomServers() {
   function handleAddPopular(url: string) {
     if (!servers.includes(url)) {
       setServers((prev) => [...prev, url])
+    }
+  }
+
+  async function handleImportFromNostr() {
+    const pubkeyHex = getPubKeyHexFromNpub(npub)
+    if (!pubkeyHex) {
+      return
+    }
+    const relays = identity?.relays?.length
+      ? identity.relays
+      : NostrAPI.INDEXING_RELAYS
+    setIsImporting(true)
+    try {
+      const discovered = await fetchKind10063Servers(pubkeyHex, relays)
+      if (discovered.length === 0) {
+        toast.error(t('nostrIdentity.blossom.noServersFound'))
+        return
+      }
+      setServers((prev) => {
+        const merged = [...prev]
+        for (const url of discovered) {
+          if (!merged.includes(url)) {
+            merged.push(url)
+          }
+        }
+        return merged
+      })
+      toast.success(t('nostrIdentity.blossom.serversImported'))
+    } catch {
+      toast.error(t('nostrIdentity.blossom.importError'))
+    } finally {
+      setIsImporting(false)
     }
   }
 
@@ -142,9 +184,22 @@ export default function NostrBlossomServers() {
           {/* Configured servers */}
           {servers.length > 0 && (
             <SSVStack gap="xs">
-              <SSText size="sm" color="muted" uppercase>
-                {t('nostrIdentity.blossom.yourServers')}
-              </SSText>
+              <SSHStack style={styles.sectionHeader}>
+                <SSText size="sm" color="muted" uppercase>
+                  {t('nostrIdentity.blossom.yourServers')}
+                </SSText>
+                <SSButton
+                  label={
+                    isImporting
+                      ? t('nostrIdentity.blossom.importing')
+                      : t('nostrIdentity.blossom.importFromNostr')
+                  }
+                  variant="ghost"
+                  onPress={handleImportFromNostr}
+                  disabled={isImporting}
+                  style={styles.importButton}
+                />
+              </SSHStack>
               {servers.map((url, index) => (
                 <ServerRow
                   key={url}
@@ -224,6 +279,11 @@ const styles = StyleSheet.create({
   emptyContainer: {
     paddingVertical: 60
   },
+  importButton: {
+    height: 'auto',
+    paddingVertical: 0,
+    width: 'auto'
+  },
   popularRow: {
     alignItems: 'center',
     borderBottomColor: Colors.gray[800],
@@ -240,6 +300,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 4
+  },
+  sectionHeader: {
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
   serverRow: {
     alignItems: 'center',

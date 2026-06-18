@@ -1,8 +1,13 @@
 import { Buffer } from 'buffer'
 
-import * as DocumentPicker from 'expo-document-picker'
 import NDK from '@nostr-dev-kit/ndk'
 import type { NDKEvent } from '@nostr-dev-kit/ndk'
+import * as DocumentPicker from 'expo-document-picker'
+import * as FileSystem from 'expo-file-system/legacy'
+import { finalizeEvent } from 'nostr-tools'
+import QuickCrypto from 'react-native-quick-crypto'
+
+import { getSecretFromNsec } from '@/utils/nostr'
 
 export type BlobDescriptor = {
   url: string
@@ -14,23 +19,51 @@ export type BlobDescriptor = {
 }
 
 const NIP94_FILE_KIND = 1063
+const BLOSSOM_SERVER_LIST_KIND = 10063
 const NOSTR_FILES_FETCH_TIMEOUT_MS = 8000
+const BLOSSOM_AUTH_KIND = 24242
+const BLOSSOM_AUTH_EXPIRY_SECS = 300
 
-export async function listBlossomFiles(
-  serverUrl: string,
-  pubkeyHex: string
-): Promise<BlobDescriptor[]> {
-  const url = `${serverUrl.replace(/\/$/, '')}/list/${pubkeyHex}`
-  const response = await fetch(url)
+async function parseBlossomList(response: Response): Promise<BlobDescriptor[]> {
+  if (response.status === 401 || response.status === 404) {
+    return []
+  }
   if (!response.ok) {
     throw new Error(`Failed to list files (HTTP ${response.status})`)
   }
-  return response.json() as Promise<BlobDescriptor[]>
+  const text = await response.text()
+  try {
+    const parsed = JSON.parse(text) as unknown
+    return Array.isArray(parsed) ? (parsed as BlobDescriptor[]) : []
+  } catch {
+    return []
+  }
+}
+
+export async function listBlossomFiles(
+  serverUrl: string,
+  pubkeyHex: string,
+  nsec?: string
+): Promise<BlobDescriptor[]> {
+  const base = serverUrl.replace(/\/$/, '')
+  const url = `${base}/list/${pubkeyHex}`
+  const response = await fetch(url)
+  if (response.status === 401 && nsec) {
+    const secretKey = getSecretFromNsec(nsec)
+    if (secretKey) {
+      const authHeader = buildListAuthHeader(secretKey, base)
+      const retryResponse = await fetch(url, {
+        headers: { Authorization: authHeader }
+      })
+      return parseBlossomList(retryResponse)
+    }
+  }
+  return parseBlossomList(response)
 }
 
 function ndkEventToBlobDescriptor(event: NDKEvent): BlobDescriptor | null {
   const tagMap = Object.fromEntries(event.tags.map(([k, v]) => [k, v ?? '']))
-  const url = tagMap['url']
+  const { url } = tagMap
   const sha256 = tagMap['x']
   if (!url || !sha256) {
     return null
@@ -45,7 +78,40 @@ function ndkEventToBlobDescriptor(event: NDKEvent): BlobDescriptor | null {
   }
 }
 
-export function fetchNostrFileEvents(
+function subscribeOnce(
+  ndk: NDK,
+  filter: Parameters<NDK['subscribe']>[0],
+  onEvent: (event: NDKEvent) => void,
+  timeoutMs: number
+): Promise<void> {
+  ndk.connect()
+  return new Promise((resolve) => {
+    let settled = false
+
+    const sub = ndk.subscribe(filter, { closeOnEose: false })
+
+    const finish = () => {
+      if (settled) {
+        return
+      }
+      settled = true
+      sub.stop()
+      resolve()
+    }
+
+    sub.on('event', (event: NDKEvent) => {
+      onEvent(event)
+    })
+    sub.on('eose', () => {
+      if (ndk.pool.connectedRelays().length > 0) {
+        finish()
+      }
+    })
+    setTimeout(finish, timeoutMs)
+  })
+}
+
+export async function fetchNostrFileEvents(
   pubkeyHex: string,
   relays: string[]
 ): Promise<BlobDescriptor[]> {
@@ -54,50 +120,45 @@ export function fetchNostrFileEvents(
     enableOutboxModel: false,
     explicitRelayUrls: relays
   })
-  ndk.connect()
-
-  return new Promise((resolve) => {
-    const results: BlobDescriptor[] = []
-    let settled = false
-
-    const sub = ndk.subscribe(
-      { authors: [pubkeyHex], kinds: [NIP94_FILE_KIND] },
-      { closeOnEose: false }
-    )
-
-    const finish = () => {
-      if (settled) {
-        return
-      }
-      settled = true
-      sub.stop()
-      resolve(results)
-    }
-
-    sub.on('event', (event: NDKEvent) => {
+  const results: BlobDescriptor[] = []
+  await subscribeOnce(
+    ndk,
+    { authors: [pubkeyHex], kinds: [NIP94_FILE_KIND] },
+    (event) => {
       const blob = ndkEventToBlobDescriptor(event)
       if (blob) {
         results.push(blob)
       }
-    })
-
-    sub.on('eose', () => {
-      if (ndk.pool.connectedRelays().length > 0) {
-        finish()
-      }
-    })
-
-    setTimeout(finish, NOSTR_FILES_FETCH_TIMEOUT_MS)
-  })
+    },
+    NOSTR_FILES_FETCH_TIMEOUT_MS
+  )
+  return results
 }
-import * as FileSystem from 'expo-file-system/legacy'
-import { finalizeEvent } from 'nostr-tools'
-import QuickCrypto from 'react-native-quick-crypto'
 
-import { getSecretFromNsec } from '@/utils/nostr'
-
-const BLOSSOM_AUTH_KIND = 24242
-const BLOSSOM_AUTH_EXPIRY_SECS = 300
+export async function fetchKind10063Servers(
+  pubkeyHex: string,
+  relays: string[]
+): Promise<string[]> {
+  const ndk = new NDK({
+    autoConnectUserRelays: false,
+    enableOutboxModel: false,
+    explicitRelayUrls: relays
+  })
+  const servers: string[] = []
+  await subscribeOnce(
+    ndk,
+    { authors: [pubkeyHex], kinds: [BLOSSOM_SERVER_LIST_KIND], limit: 1 },
+    (event) => {
+      for (const tag of event.tags) {
+        if (tag[0] === 'server' && tag[1]) {
+          servers.push(tag[1])
+        }
+      }
+    },
+    NOSTR_FILES_FETCH_TIMEOUT_MS
+  )
+  return [...new Set(servers)]
+}
 
 type UploadParams = {
   fileUri: string
@@ -114,11 +175,29 @@ export async function pickImageForUpload(): Promise<{
   if (result.canceled || !result.assets?.[0]) {
     return null
   }
-  const asset = result.assets[0]
+  const [asset] = result.assets
   return {
     mimeType: asset.mimeType ?? 'application/octet-stream',
     uri: asset.uri
   }
+}
+
+function buildListAuthHeader(secretKey: Uint8Array, serverUrl: string): string {
+  const now = Math.floor(Date.now() / 1000)
+  const authEvent = finalizeEvent(
+    {
+      content: 'List blobs',
+      created_at: now,
+      kind: BLOSSOM_AUTH_KIND,
+      tags: [
+        ['t', 'list'],
+        ['server', serverUrl],
+        ['expiration', String(now + BLOSSOM_AUTH_EXPIRY_SECS)]
+      ]
+    },
+    secretKey
+  )
+  return `Nostr ${Buffer.from(JSON.stringify(authEvent)).toString('base64')}`
 }
 
 function buildAuthHeader(payloadHash: string, secretKey: Uint8Array): string {
