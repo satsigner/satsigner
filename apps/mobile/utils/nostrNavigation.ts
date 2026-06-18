@@ -31,9 +31,14 @@ export function nostrAccountHref(
   npub: string,
   segment:
     | 'bunker'
+    | 'cache'
+    | 'calendar'
     | 'chat'
     | 'compose'
+    | 'contacts'
+    | 'files'
     | 'keys'
+    | 'profile'
     | 'relays'
     | 'send'
     | 'settings'

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { clearNdkRegistry } from '@/api/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import { type NostrIdentity } from '@/types/models/Nostr'
 
@@ -53,6 +54,7 @@ const useNostrIdentityStore = create<
       },
 
       clearAll: () => {
+        clearNdkRegistry()
         set({
           activeIdentityNpub: null,
           identities: [],

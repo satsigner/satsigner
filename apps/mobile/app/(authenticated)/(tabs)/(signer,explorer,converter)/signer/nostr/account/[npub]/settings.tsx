@@ -1,44 +1,37 @@
+import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from 'react-native'
-import { toast } from 'sonner-native'
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 
+import {
+  SSIconCalendar,
+  SSIconContacts,
+  SSIconEdit,
+  SSIconFiles
+} from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
-import {
-  type CacheCategory,
-  clearAllCache,
-  clearCacheCategory,
-  getCacheCounts
-} from '@/db/nostrCache'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { nostrAccountHref, nostrIndexHref } from '@/utils/nostrNavigation'
 
 type SettingsParams = {
   npub: string
 }
 
-type CacheCounts = {
-  feedNotes: number
-  ownNotes: number
-  ownZaps: number
-  profiles: number
-  zapReceipts: number
-}
+// Gradient start x shifts left→right across chiclets to simulate a single
+// overhead light source landing at a slightly different angle on each tile.
+const CHICLET_GRADIENT_STARTS: { x: number; y: number }[] = [
+  { x: 0.15, y: 0 },
+  { x: 0.38, y: 0 },
+  { x: 0.62, y: 0 },
+  { x: 0.85, y: 0 }
+]
 
 export default function NostrIdentitySettings() {
   const router = useRouter()
@@ -47,95 +40,9 @@ export default function NostrIdentitySettings() {
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
-  const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
   const removeIdentity = useNostrIdentityStore((state) => state.removeIdentity)
 
-  const [displayName, setDisplayName] = useState(identity?.displayName ?? '')
-  const [pictureUrl, setPictureUrl] = useState(identity?.picture ?? '')
-  const [nip05, setNip05] = useState(identity?.nip05 ?? '')
-  const [lud16, setLud16] = useState(identity?.lud16 ?? '')
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
-  const [clearAllModalVisible, setClearAllModalVisible] = useState(false)
-  const [cacheCounts, setCacheCounts] = useState<CacheCounts>(() => {
-    if (!npub) {
-      return {
-        feedNotes: 0,
-        ownNotes: 0,
-        ownZaps: 0,
-        profiles: 0,
-        zapReceipts: 0
-      }
-    }
-    try {
-      const hex = getPubKeyHexFromNpub(npub)
-      if (!hex) {
-        return {
-          feedNotes: 0,
-          ownNotes: 0,
-          ownZaps: 0,
-          profiles: 0,
-          zapReceipts: 0
-        }
-      }
-      return getCacheCounts(hex)
-    } catch {
-      return {
-        feedNotes: 0,
-        ownNotes: 0,
-        ownZaps: 0,
-        profiles: 0,
-        zapReceipts: 0
-      }
-    }
-  })
-
-  function getHexPubkey(): string {
-    if (!npub) {
-      return ''
-    }
-    return getPubKeyHexFromNpub(npub) ?? ''
-  }
-
-  function refreshCacheCounts() {
-    const hex = getHexPubkey()
-    if (!hex) {
-      return
-    }
-    setCacheCounts(getCacheCounts(hex))
-  }
-
-  function handleClearCategory(category: CacheCategory) {
-    clearCacheCategory(category, getHexPubkey())
-    refreshCacheCounts()
-    toast.success(t('nostrIdentity.settings.cache.cleared'))
-  }
-
-  function handleClearAll() {
-    setClearAllModalVisible(false)
-    clearAllCache()
-    refreshCacheCounts()
-    toast.success(t('nostrIdentity.settings.cache.cleared'))
-  }
-
-  function handleSave() {
-    if (!npub) {
-      return
-    }
-
-    updateIdentity(npub, {
-      displayName: displayName || undefined,
-      lud16: lud16 || undefined,
-      nip05: nip05 || undefined,
-      picture: pictureUrl || undefined
-    })
-
-    toast.success(t('nostrIdentity.settings.saved'))
-    router.back()
-  }
-
-  function handleDeletePress() {
-    setDeleteModalVisible(true)
-  }
 
   function handleConfirmDelete() {
     setDeleteModalVisible(false)
@@ -167,76 +74,40 @@ export default function NostrIdentitySettings() {
         keyboardShouldPersistTaps="handled"
       >
         <SSVStack gap="lg" style={styles.content}>
-          <SSVStack itemsCenter gap="sm">
-            <View style={styles.avatarContainer}>
-              {pictureUrl ? (
-                <Image source={{ uri: pictureUrl }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <SSText size="3xl" weight="bold">
-                    {displayName?.[0]?.toUpperCase() || 'N'}
-                  </SSText>
-                </View>
-              )}
-            </View>
-          </SSVStack>
-
-          <SSVStack gap="xs">
-            <SSText size="sm" color="muted" uppercase>
-              {t('nostrIdentity.profile.displayName')}
-            </SSText>
-            <SSTextInput
-              placeholder={t('nostrIdentity.profile.displayNamePlaceholder')}
-              value={displayName}
-              onChangeText={setDisplayName}
-              align="left"
-            />
-          </SSVStack>
-
-          <SSVStack gap="xs">
-            <SSText size="sm" color="muted" uppercase>
-              {t('nostrIdentity.profile.picture')}
-            </SSText>
-            <SSTextInput
-              placeholder={t('nostrIdentity.profile.picturePlaceholder')}
-              value={pictureUrl}
-              onChangeText={setPictureUrl}
-              align="left"
-              autoCapitalize="none"
-              keyboardType="url"
-            />
-            <SSText size="xs" color="muted">
-              {t('nostrIdentity.profile.pictureHint')}
-            </SSText>
-          </SSVStack>
-
-          <SSVStack gap="xs">
-            <SSText size="sm" color="muted" uppercase>
-              {t('nostrIdentity.profile.nip05')}
-            </SSText>
-            <SSTextInput
-              placeholder={t('nostrIdentity.profile.nip05Placeholder')}
-              value={nip05}
-              onChangeText={setNip05}
-              align="left"
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-          </SSVStack>
-
-          <SSVStack gap="xs">
-            <SSText size="sm" color="muted" uppercase>
-              {t('nostrIdentity.profile.lud16')}
-            </SSText>
-            <SSTextInput
-              placeholder={t('nostrIdentity.profile.lud16Placeholder')}
-              value={lud16}
-              onChangeText={setLud16}
-              align="left"
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-          </SSVStack>
+          <SSHStack gap="sm">
+            <Chiclet
+              gradientStart={CHICLET_GRADIENT_STARTS[0]}
+              label={t('nostrIdentity.profile.title')}
+              onPress={() => router.navigate(nostrAccountHref(npub, 'profile'))}
+            >
+              <SSIconEdit height={24} width={24} />
+            </Chiclet>
+            <Chiclet
+              gradientStart={CHICLET_GRADIENT_STARTS[1]}
+              label={t('nostrIdentity.contacts.title')}
+              onPress={() =>
+                router.navigate(nostrAccountHref(npub, 'contacts'))
+              }
+            >
+              <SSIconContacts color={Colors.gray[200]} height={24} width={24} />
+            </Chiclet>
+            <Chiclet
+              gradientStart={CHICLET_GRADIENT_STARTS[2]}
+              label={t('nostrIdentity.calendar.title')}
+              onPress={() =>
+                router.navigate(nostrAccountHref(npub, 'calendar'))
+              }
+            >
+              <SSIconCalendar color={Colors.gray[200]} height={24} width={24} />
+            </Chiclet>
+            <Chiclet
+              gradientStart={CHICLET_GRADIENT_STARTS[3]}
+              label={t('nostrIdentity.files.title')}
+              onPress={() => router.navigate(nostrAccountHref(npub, 'files'))}
+            >
+              <SSIconFiles color={Colors.gray[200]} height={24} width={24} />
+            </Chiclet>
+          </SSHStack>
 
           <SSButton
             label={t('nostrIdentity.settings.manageKeys')}
@@ -266,54 +137,16 @@ export default function NostrIdentitySettings() {
             />
           )}
 
-          <SSVStack gap="sm" style={styles.cacheSection}>
-            <SSText size="sm" color="muted" uppercase>
-              {t('nostrIdentity.settings.cache.title')}
-            </SSText>
-
-            <CacheRow
-              label={t('nostrIdentity.settings.cache.ownNotes')}
-              count={cacheCounts.ownNotes}
-              onClear={() => handleClearCategory('ownNotes')}
-            />
-            <CacheRow
-              label={t('nostrIdentity.settings.cache.ownZaps')}
-              count={cacheCounts.ownZaps}
-              onClear={() => handleClearCategory('ownZaps')}
-            />
-            <CacheRow
-              label={t('nostrIdentity.settings.cache.feedNotes')}
-              count={cacheCounts.feedNotes}
-              onClear={() => handleClearCategory('feedNotes')}
-            />
-            <CacheRow
-              label={t('nostrIdentity.settings.cache.zapReceipts')}
-              count={cacheCounts.zapReceipts}
-              onClear={() => handleClearCategory('zapReceipts')}
-            />
-            <CacheRow
-              label={t('nostrIdentity.settings.cache.profiles')}
-              count={cacheCounts.profiles}
-              onClear={() => handleClearCategory('profiles')}
-            />
-
-            <SSButton
-              label={t('nostrIdentity.settings.cache.clearAll')}
-              variant="ghost"
-              onPress={() => setClearAllModalVisible(true)}
-            />
-          </SSVStack>
-
           <SSButton
-            label={t('nostrIdentity.settings.save')}
-            variant="secondary"
-            onPress={handleSave}
+            label={t('nostrIdentity.settings.cache.title')}
+            variant="outline"
+            onPress={() => router.navigate(nostrAccountHref(npub, 'cache'))}
           />
 
           <SSButton
             label={t('nostrIdentity.settings.deleteIdentity')}
             variant="danger"
-            onPress={handleDeletePress}
+            onPress={() => setDeleteModalVisible(true)}
           />
         </SSVStack>
       </ScrollView>
@@ -342,104 +175,52 @@ export default function NostrIdentitySettings() {
           </SSVStack>
         </View>
       </SSModal>
-
-      <SSModal
-        visible={clearAllModalVisible}
-        fullOpacity
-        label={t('common.cancel')}
-        onClose={() => setClearAllModalVisible(false)}
-      >
-        <View style={styles.deleteSheet}>
-          <SSVStack gap="md" itemsCenter widthFull>
-            <SSVStack gap="sm" itemsCenter widthFull>
-              <SSText center size="sm" color="muted" uppercase>
-                {t('nostrIdentity.settings.cache.clearAllTitle')}
-              </SSText>
-              <SSText center color="muted" size="sm">
-                {t('nostrIdentity.settings.cache.clearAllConfirm')}
-              </SSText>
-            </SSVStack>
-            <SSButton
-              label={t('nostrIdentity.settings.cache.clearAll')}
-              variant="danger"
-              onPress={handleClearAll}
-            />
-          </SSVStack>
-        </View>
-      </SSModal>
     </SSMainLayout>
   )
 }
 
-type CacheRowProps = {
+type ChicletProps = {
+  children: React.ReactNode
+  gradientStart: { x: number; y: number }
   label: string
-  count: number
-  onClear: () => void
+  onPress: () => void
 }
 
-function CacheRow({ label, count, onClear }: CacheRowProps) {
+function Chiclet({ children, gradientStart, label, onPress }: ChicletProps) {
   return (
-    <SSHStack gap="sm" style={cacheRowStyles.row}>
-      <SSText size="sm" style={cacheRowStyles.label}>
-        {label}
-      </SSText>
-      <SSText size="sm" color="muted" style={cacheRowStyles.count}>
-        {count}
-      </SSText>
-      <TouchableOpacity
-        onPress={onClear}
-        disabled={count === 0}
-        style={cacheRowStyles.clearButton}
-        activeOpacity={0.6}
+    <TouchableOpacity
+      style={styles.chiclet}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <LinearGradient
+        colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)']}
+        start={gradientStart}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.chicletInner}
       >
-        <SSText size="xs" color={count === 0 ? 'muted' : 'white'} uppercase>
-          {t('common.clear')}
+        {children}
+        <SSText size="xs" color="muted" uppercase center>
+          {label}
         </SSText>
-      </TouchableOpacity>
-    </SSHStack>
+      </LinearGradient>
+    </TouchableOpacity>
   )
 }
 
-const cacheRowStyles = StyleSheet.create({
-  clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6
-  },
-  count: {
-    minWidth: 32,
-    textAlign: 'right'
-  },
-  label: {
-    flex: 1
-  },
-  row: {
-    alignItems: 'center',
-    borderBottomColor: Colors.gray[800],
-    borderBottomWidth: 1,
-    paddingVertical: 8
-  }
-})
-
 const styles = StyleSheet.create({
-  avatar: {
-    borderRadius: 40,
-    height: 80,
-    width: 80
+  chiclet: {
+    borderColor: Colors.gray[700],
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    flex: 1,
+    overflow: 'hidden'
   },
-  avatarContainer: {
+  chicletInner: {
     alignItems: 'center',
-    justifyContent: 'center'
-  },
-  avatarPlaceholder: {
-    alignItems: 'center',
-    backgroundColor: Colors.gray[800],
-    justifyContent: 'center'
-  },
-  cacheSection: {
-    borderColor: Colors.gray[800],
-    borderRadius: 3,
-    borderWidth: 1,
-    padding: 12
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 16
   },
   content: {
     paddingBottom: 40

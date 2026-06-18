@@ -41,6 +41,34 @@ function createMobileNdk(explicitRelayUrls: string[]): NDK {
   })
 }
 
+// One NDK instance per relay set, shared across all NostrAPI callers.
+// Prevents duplicate WebSocket connections when multiple screens use the same relays.
+const ndkRegistry = new Map<string, NDK>()
+
+function getOrCreateNdk(relays: string[]): NDK {
+  const key = [...relays].toSorted().join(',')
+  const existing = ndkRegistry.get(key)
+  if (existing) {
+    return existing
+  }
+  const ndk = createMobileNdk(relays)
+  ndkRegistry.set(key, ndk)
+  return ndk
+}
+
+export function clearNdkRegistry(): void {
+  for (const ndk of ndkRegistry.values()) {
+    for (const relay of ndk.pool?.relays.values() ?? []) {
+      try {
+        relay.disconnect()
+      } catch {
+        // best-effort
+      }
+    }
+  }
+  ndkRegistry.clear()
+}
+
 export async function testNostrRelaysReachable(
   relayUrls: string[]
 ): Promise<NostrRelayConnectionInfo> {
@@ -152,7 +180,7 @@ export class NostrAPI {
 
   async connect() {
     if (!this.ndk) {
-      this.ndk = createMobileNdk(this.relays)
+      this.ndk = getOrCreateNdk(this.relays)
     }
 
     await this.ndk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
@@ -172,7 +200,7 @@ export class NostrAPI {
    */
   async connectForPublish(timeoutMs = 10000): Promise<void> {
     if (!this.ndk) {
-      this.ndk = createMobileNdk(this.relays)
+      this.ndk = getOrCreateNdk(this.relays)
     }
 
     await this.ndk.connect(timeoutMs)
@@ -1063,33 +1091,21 @@ export class NostrAPI {
     this.eventQueue = []
     this.processedRawEventIds.clear()
     this._callback = undefined
-
-    // Disconnect every relay in the pool to release WebSocket connections and
-    // their underlying OS threads. Without this, each startSync/stopSync cycle
-    // leaks an NDK instance with live relay connections, eventually exhausting
-    // the Android thread limit (pthread_create OOM).
-    if (this.ndk) {
-      for (const relay of this.ndk.pool.relays.values()) {
-        try {
-          relay.disconnect()
-        } catch {
-          // relay may already be disconnected or in invalid state
-        }
-      }
-    }
+    // NDK relay connections are kept alive via the registry for reuse.
+    // startSync/stopSync cycles reuse the same NDK instance, so the Android
+    // pthread OOM that previously required explicit relay.disconnect() here
+    // is prevented structurally by the singleton registry instead.
   }
 
   disconnect(): void {
-    if (!this.ndk) {
-      return
-    }
-    for (const relay of this.ndk.pool?.relays.values() ?? []) {
+    for (const sub of this.activeSubscriptions) {
       try {
-        relay.disconnect()
+        sub.stop()
       } catch {
-        // relay may already be disconnected
+        // subscription may already be stopped
       }
     }
+    this.activeSubscriptions.clear()
     this.ndk = null
   }
 
