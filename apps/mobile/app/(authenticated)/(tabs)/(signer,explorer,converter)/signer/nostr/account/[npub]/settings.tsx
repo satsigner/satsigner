@@ -109,51 +109,55 @@ export default function NostrIdentitySettings() {
             </Chiclet>
           </SSHStack>
 
-          <SSButton
-            label={t('nostrIdentity.settings.profile')}
-            variant="outline"
-            onPress={() => router.navigate(nostrAccountHref(npub, 'profile'))}
-          />
-
-          <SSButton
-            label={t('nostrIdentity.settings.manageKeys')}
-            variant="outline"
-            onPress={() => router.navigate(nostrAccountHref(npub, 'keys'))}
-          />
-
-          <SSButton
-            label={t('nostrIdentity.settings.identityRelays')}
-            variant="outline"
-            onPress={() => router.navigate(nostrAccountHref(npub, 'relays'))}
-          />
-
-          <SSButton
-            label={t('nostrIdentity.settings.zapSettings')}
-            variant="outline"
-            onPress={() =>
-              router.navigate(nostrAccountHref(npub, 'zapSettings'))
-            }
-          />
-
-          {!identity.isWatchOnly && (
+          <SSVStack gap="xs" widthFull>
             <SSButton
-              label={t('nip46.title')}
+              label={t('nostrIdentity.settings.profile')}
               variant="outline"
-              onPress={() => router.navigate(nostrAccountHref(npub, 'bunker'))}
+              onPress={() => router.navigate(nostrAccountHref(npub, 'profile'))}
             />
-          )}
 
-          <SSButton
-            label={t('nostrIdentity.settings.cache.title')}
-            variant="outline"
-            onPress={() => router.navigate(nostrAccountHref(npub, 'cache'))}
-          />
+            <SSButton
+              label={t('nostrIdentity.settings.manageKeys')}
+              variant="outline"
+              onPress={() => router.navigate(nostrAccountHref(npub, 'keys'))}
+            />
 
-          <SSButton
-            label={t('nostrIdentity.settings.deleteIdentity')}
-            variant="danger"
-            onPress={() => setDeleteModalVisible(true)}
-          />
+            <SSButton
+              label={t('nostrIdentity.settings.identityRelays')}
+              variant="outline"
+              onPress={() => router.navigate(nostrAccountHref(npub, 'relays'))}
+            />
+
+            <SSButton
+              label={t('nostrIdentity.settings.zapSettings')}
+              variant="outline"
+              onPress={() =>
+                router.navigate(nostrAccountHref(npub, 'zapSettings'))
+              }
+            />
+
+            {!identity.isWatchOnly && (
+              <SSButton
+                label={t('nip46.title')}
+                variant="outline"
+                onPress={() =>
+                  router.navigate(nostrAccountHref(npub, 'bunker'))
+                }
+              />
+            )}
+
+            <SSButton
+              label={t('nostrIdentity.settings.cache.title')}
+              variant="outline"
+              onPress={() => router.navigate(nostrAccountHref(npub, 'cache'))}
+            />
+
+            <SSButton
+              label={t('nostrIdentity.settings.deleteIdentity')}
+              variant="danger"
+              onPress={() => setDeleteModalVisible(true)}
+            />
+          </SSVStack>
         </SSVStack>
       </ScrollView>
 
