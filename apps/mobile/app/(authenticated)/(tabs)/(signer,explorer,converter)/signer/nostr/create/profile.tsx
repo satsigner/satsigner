@@ -6,6 +6,8 @@ import { toast } from 'sonner-native'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { BLOSSOM_DEFAULT_SERVER } from '@/constants/nostr'
+import useBlossomImageUpload from '@/hooks/useBlossomImageUpload'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -27,6 +29,17 @@ export default function ProfileSetup() {
   const [pictureUrl, setPictureUrl] = useState('')
   const [nip05, setNip05] = useState('')
   const [lud16, setLud16] = useState('')
+  const [blossomServer, setBlossomServer] = useState(BLOSSOM_DEFAULT_SERVER)
+
+  const { isUploading: isPictureUploading, upload: uploadPicture } =
+    useBlossomImageUpload(params.nsec ?? '')
+
+  async function handleUploadPicture() {
+    const url = await uploadPicture(blossomServer)
+    if (url) {
+      setPictureUrl(url)
+    }
+  }
 
   function handleSave() {
     if (!params.npub || !params.nsec) {
@@ -35,6 +48,7 @@ export default function ProfileSetup() {
     }
 
     addIdentity({
+      blossomServer: blossomServer || undefined,
       createdAt: Date.now(),
       displayName: displayName || undefined,
       isWatchOnly: false,
@@ -108,6 +122,31 @@ export default function ProfileSetup() {
             <SSText size="xs" color="muted">
               {t('nostrIdentity.profile.pictureHint')}
             </SSText>
+            <SSButton
+              label={
+                isPictureUploading
+                  ? t('nostrIdentity.profile.uploading')
+                  : t('nostrIdentity.profile.uploadImage')
+              }
+              variant="outline"
+              disabled={isPictureUploading}
+              onPress={handleUploadPicture}
+            />
+          </SSVStack>
+
+          {/* Blossom Server */}
+          <SSVStack gap="xs">
+            <SSText size="sm" color="muted" uppercase>
+              {t('nostrIdentity.profile.blossomServer')}
+            </SSText>
+            <SSTextInput
+              placeholder={t('nostrIdentity.profile.blossomServerPlaceholder')}
+              value={blossomServer}
+              onChangeText={setBlossomServer}
+              align="left"
+              autoCapitalize="none"
+              keyboardType="url"
+            />
           </SSVStack>
 
           {/* NIP-05 */}
