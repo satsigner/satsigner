@@ -15,6 +15,7 @@ type AccountRow = {
   name: string
   network: string
   policy_type: string
+  display_index: number
   keys: string
   key_count: number
   keys_required: number
@@ -195,6 +196,7 @@ function rowToAccount(
   return {
     addresses,
     createdAt: new Date(row.created_at),
+    displayIndex: row.display_index,
     id: row.id,
     keyCount: row.key_count,
     keys: parseJson<KeyMeta[]>(row.keys, []).map(

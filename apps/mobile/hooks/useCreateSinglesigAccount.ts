@@ -75,6 +75,7 @@ export function useCreateSinglesigAccount() {
       addresses: [],
       createdAt: new Date(),
       id: accountId,
+      displayIndex: 1000,
       keyCount: 1,
       keys: [draftKey],
       keysRequired: 1,

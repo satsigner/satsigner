@@ -16,7 +16,7 @@ function insertAccount(account: Account) {
   runTransaction((tx) => {
     tx.execute(
       `INSERT INTO accounts (
-        id, name, network, policy_type, keys, key_count, keys_required,
+        id, name, network, policy_type, display_index, keys, key_count, keys_required,
         balance, num_addresses, num_transactions, num_utxos, sats_in_mempool,
         created_at, last_synced_at, sync_status, sync_progress_total, sync_progress_done,
         nostr_auto_sync, nostr_common_npub, nostr_common_nsec,
@@ -29,6 +29,7 @@ function insertAccount(account: Account) {
         account.name,
         account.network,
         account.policyType,
+        account.displayIndex,
         keysToJson(account.keys),
         account.keyCount,
         account.keysRequired,
@@ -69,7 +70,7 @@ function updateAccountRow(account: Account) {
   const db = getDb()
   db.execute(
     `UPDATE accounts SET
-      name = ?, network = ?, policy_type = ?, keys = ?,
+      name = ?, network = ?, policy_type = ?, display_index = ?, keys = ?,
       key_count = ?, keys_required = ?,
       balance = ?, num_addresses = ?, num_transactions = ?,
       num_utxos = ?, sats_in_mempool = ?,
@@ -85,6 +86,7 @@ function updateAccountRow(account: Account) {
       account.name,
       account.network,
       account.policyType,
+      account.displayIndex,
       keysToJson(account.keys),
       account.keyCount,
       account.keysRequired,
@@ -119,8 +121,8 @@ function updateFullAccount(account: Account) {
     // Update account row
     tx.execute(
       `UPDATE accounts SET
-        name = ?, network = ?, policy_type = ?, keys = ?,
-        key_count = ?, keys_required = ?,
+        name = ?, network = ?, policy_type = ?, display_index = ?,
+        keys = ?, key_count = ?, keys_required = ?,
         balance = ?, num_addresses = ?, num_transactions = ?,
         num_utxos = ?, sats_in_mempool = ?,
         last_synced_at = ?, sync_status = ?,
@@ -135,6 +137,7 @@ function updateFullAccount(account: Account) {
         account.name,
         account.network,
         account.policyType,
+        account.displayIndex,
         keysToJson(account.keys),
         account.keyCount,
         account.keysRequired,
