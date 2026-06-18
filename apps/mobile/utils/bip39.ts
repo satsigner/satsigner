@@ -149,7 +149,7 @@ export function generateMnemonic(
   const entropySize = WORD_COUNT_TO_ENTROPY_BYTES[wordCount]
   const entropy = new Uint8Array(entropySize)
   crypto.getRandomValues(entropy)
-  return Mnemonic.fromEntropyIn(Array.from(entropy), language).toString()
+  return Mnemonic.fromEntropyIn(entropy.buffer, language).toString()
 }
 
 function binaryStringToBytes(binary: string): number[] {
@@ -173,7 +173,10 @@ export function generateMnemonicFromEntropy(
   const language =
     LANGUAGE_MAP[wordListName as WordListName] ?? Language.English
   const bytes = binaryStringToBytes(entropy)
-  return Mnemonic.fromEntropyIn(bytes, language).toString()
+  return Mnemonic.fromEntropyIn(
+    new Uint8Array(bytes).buffer,
+    language
+  ).toString()
 }
 
 export function mnemonicToSeed(mnemonic: string, passphrase = ''): Uint8Array {
