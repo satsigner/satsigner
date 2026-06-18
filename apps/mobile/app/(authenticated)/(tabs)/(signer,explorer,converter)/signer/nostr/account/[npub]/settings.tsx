@@ -80,7 +80,7 @@ export default function NostrIdentitySettings() {
               label={t('nostrIdentity.chat.title')}
               onPress={() => router.navigate(nostrAccountHref(npub, 'chat'))}
             >
-              <SSIconChatBubble color={Colors.gray[200]} height={24} width={24} />
+              <SSIconChatBubble color={Colors.white} height={24} width={24} />
             </Chiclet>
             <Chiclet
               gradientStart={CHICLET_GRADIENT_STARTS[1]}
@@ -89,7 +89,7 @@ export default function NostrIdentitySettings() {
                 router.navigate(nostrAccountHref(npub, 'contacts'))
               }
             >
-              <SSIconContacts color={Colors.gray[200]} height={24} width={24} />
+              <SSIconContacts color={Colors.white} height={24} width={24} />
             </Chiclet>
             <Chiclet
               gradientStart={CHICLET_GRADIENT_STARTS[2]}
@@ -98,14 +98,14 @@ export default function NostrIdentitySettings() {
                 router.navigate(nostrAccountHref(npub, 'calendar'))
               }
             >
-              <SSIconCalendar color={Colors.gray[200]} height={24} width={24} />
+              <SSIconCalendar color={Colors.white} height={24} width={24} />
             </Chiclet>
             <Chiclet
               gradientStart={CHICLET_GRADIENT_STARTS[3]}
               label={t('nostrIdentity.files.title')}
               onPress={() => router.navigate(nostrAccountHref(npub, 'files'))}
             >
-              <SSIconFiles color={Colors.gray[200]} height={24} width={24} />
+              <SSIconFiles color={Colors.white} height={24} width={24} />
             </Chiclet>
           </SSHStack>
 
@@ -204,10 +204,43 @@ function Chiclet({ children, gradientStart, label, onPress }: ChicletProps) {
           colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)']}
           start={gradientStart}
           end={{ x: 0.5, y: 1 }}
-          style={styles.chicletGradient}
-        >
-          {children}
-        </LinearGradient>
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          style={[styles.glassBorder, styles.glassBorderTop]}
+          colors={[
+            'rgba(255,255,255,0.16)',
+            'rgba(255,255,255,0.30)',
+            'rgba(255,255,255,0.18)'
+          ]}
+          locations={[0, 0.45, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        />
+        <LinearGradient
+          style={[styles.glassBorder, styles.glassBorderBottom]}
+          colors={[
+            'rgba(255,255,255,0.06)',
+            'rgba(255,255,255,0.20)',
+            'rgba(255,255,255,0.06)'
+          ]}
+          locations={[0, 0.5, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        />
+        <LinearGradient
+          style={[styles.glassBorder, styles.glassBorderLeft]}
+          colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.14)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+        <LinearGradient
+          style={[styles.glassBorder, styles.glassBorderRight]}
+          colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.13)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+        <View style={styles.chicletContent}>{children}</View>
       </View>
       <SSText size="xs" color="muted" uppercase center style={styles.chicletLabel}>
         {label}
@@ -224,19 +257,44 @@ const styles = StyleSheet.create({
   },
   chicletTile: {
     aspectRatio: 1,
-    borderColor: Colors.gray[700],
-    borderRadius: 4,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 3,
     overflow: 'hidden',
     width: '100%'
   },
-  chicletGradient: {
+  chicletContent: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center'
   },
   chicletLabel: {
     paddingHorizontal: 2
+  },
+  glassBorder: {
+    position: 'absolute'
+  },
+  glassBorderBottom: {
+    bottom: 0,
+    height: 1,
+    left: 0,
+    right: 0
+  },
+  glassBorderLeft: {
+    bottom: 0,
+    left: 0,
+    top: 0,
+    width: 1
+  },
+  glassBorderRight: {
+    bottom: 0,
+    right: 0,
+    top: 0,
+    width: 1
+  },
+  glassBorderTop: {
+    height: 1,
+    left: 0,
+    right: 0,
+    top: 0
   },
   content: {
     paddingBottom: 40
