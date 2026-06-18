@@ -6,7 +6,8 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import {
   SSIconCalendar,
   SSIconChatBubble,
-  SSIconContacts
+  SSIconContacts,
+  SSIconFiles
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
@@ -26,9 +27,10 @@ type SettingsParams = {
 // Gradient start x shifts left→right across chiclets to simulate a single
 // overhead light source landing at a slightly different angle on each tile.
 const CHICLET_GRADIENT_STARTS: { x: number; y: number }[] = [
-  { x: 0.2, y: 0 },
-  { x: 0.5, y: 0 },
-  { x: 0.8, y: 0 }
+  { x: 0.15, y: 0 },
+  { x: 0.38, y: 0 },
+  { x: 0.62, y: 0 },
+  { x: 0.85, y: 0 }
 ]
 
 export default function NostrIdentitySettings() {
@@ -75,6 +77,13 @@ export default function NostrIdentitySettings() {
           <SSHStack gap="sm">
             <Chiclet
               gradientStart={CHICLET_GRADIENT_STARTS[0]}
+              label={t('nostrIdentity.chat.title')}
+              onPress={() => router.navigate(nostrAccountHref(npub, 'chat'))}
+            >
+              <SSIconChatBubble color={Colors.gray[200]} height={24} width={24} />
+            </Chiclet>
+            <Chiclet
+              gradientStart={CHICLET_GRADIENT_STARTS[1]}
               label={t('nostrIdentity.contacts.title')}
               onPress={() =>
                 router.navigate(nostrAccountHref(npub, 'contacts'))
@@ -83,7 +92,7 @@ export default function NostrIdentitySettings() {
               <SSIconContacts color={Colors.gray[200]} height={24} width={24} />
             </Chiclet>
             <Chiclet
-              gradientStart={CHICLET_GRADIENT_STARTS[1]}
+              gradientStart={CHICLET_GRADIENT_STARTS[2]}
               label={t('nostrIdentity.calendar.title')}
               onPress={() =>
                 router.navigate(nostrAccountHref(npub, 'calendar'))
@@ -92,11 +101,11 @@ export default function NostrIdentitySettings() {
               <SSIconCalendar color={Colors.gray[200]} height={24} width={24} />
             </Chiclet>
             <Chiclet
-              gradientStart={CHICLET_GRADIENT_STARTS[2]}
-              label={t('nostrIdentity.chat.title')}
-              onPress={() => router.navigate(nostrAccountHref(npub, 'chat'))}
+              gradientStart={CHICLET_GRADIENT_STARTS[3]}
+              label={t('nostrIdentity.files.title')}
+              onPress={() => router.navigate(nostrAccountHref(npub, 'files'))}
             >
-              <SSIconChatBubble color={Colors.gray[200]} height={24} width={24} />
+              <SSIconFiles color={Colors.gray[200]} height={24} width={24} />
             </Chiclet>
           </SSHStack>
 
@@ -104,12 +113,6 @@ export default function NostrIdentitySettings() {
             label={t('nostrIdentity.settings.profile')}
             variant="outline"
             onPress={() => router.navigate(nostrAccountHref(npub, 'profile'))}
-          />
-
-          <SSButton
-            label={t('nostrIdentity.files.title')}
-            variant="outline"
-            onPress={() => router.navigate(nostrAccountHref(npub, 'files'))}
           />
 
           <SSButton
@@ -221,7 +224,7 @@ const styles = StyleSheet.create({
   },
   chicletTile: {
     borderColor: Colors.gray[700],
-    borderRadius: 8,
+    borderRadius: 4,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
     width: '100%'
