@@ -65,7 +65,9 @@ export default function NostrIdentitySettings() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t('nostrIdentity.settings.title')}</SSText>
+            <SSText uppercase>
+              {identity.displayName ?? `${npub.slice(0, 12)}…`}
+            </SSText>
           )
         }}
       />
