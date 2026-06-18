@@ -107,6 +107,12 @@ export default function NostrIdentitySettings() {
           />
 
           <SSButton
+            label={t('nostrIdentity.files.title')}
+            variant="outline"
+            onPress={() => router.navigate(nostrAccountHref(npub, 'files'))}
+          />
+
+          <SSButton
             label={t('nostrIdentity.settings.manageKeys')}
             variant="outline"
             onPress={() => router.navigate(nostrAccountHref(npub, 'keys'))}
@@ -190,34 +196,43 @@ function Chiclet({ children, gradientStart, label, onPress }: ChicletProps) {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <LinearGradient
-        colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)']}
-        start={gradientStart}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.chicletInner}
-      >
-        {children}
-        <SSText size="xs" color="muted" uppercase center>
-          {label}
-        </SSText>
-      </LinearGradient>
+      <View style={styles.chicletTile}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)']}
+          start={gradientStart}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.chicletGradient}
+        >
+          {children}
+        </LinearGradient>
+      </View>
+      <SSText size="xs" color="muted" uppercase center style={styles.chicletLabel}>
+        {label}
+      </SSText>
     </TouchableOpacity>
   )
 }
 
 const styles = StyleSheet.create({
   chiclet: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 6
+  },
+  chicletTile: {
     borderColor: Colors.gray[700],
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    flex: 1,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    width: '100%'
   },
-  chicletInner: {
+  chicletGradient: {
     alignItems: 'center',
-    gap: 8,
     paddingHorizontal: 8,
     paddingVertical: 16
+  },
+  chicletLabel: {
+    paddingHorizontal: 2
   },
   content: {
     paddingBottom: 40
