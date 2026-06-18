@@ -1,7 +1,8 @@
 import {
   Config,
   type FeeEstimate,
-  type LightningSend,
+  type LightningSendStatus,
+  LightningSendStatus_Tags,
   type Movement,
   Network as BarkNetwork,
   Wallet,
@@ -29,6 +30,7 @@ import type {
 import type { Network } from '@/types/settings/blockchain'
 
 const ROUND_TX_REQUIRED_CONFIRMATIONS = 0 // Later allow users to change this on the Ark settings
+const LIGHTNING_SEND_WAIT = true // Block until the send reaches a terminal state
 const walletCache = new Map<string, WalletLike>()
 const inflightOpens = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()
@@ -47,12 +49,11 @@ function appNetworkToBarkNetwork(network: Network): BarkNetwork {
   }
 }
 
-function buildConfig(server: ArkServer, serverAccessToken?: string): Config {
+function buildConfig(server: ArkServer): Config {
   return Config.create({
     esploraAddress: server.esploraUrl,
     network: appNetworkToBarkNetwork(server.network),
     roundTxRequiredConfirmations: ROUND_TX_REQUIRED_CONFIRMATIONS,
-    serverAccessToken: serverAccessToken || undefined,
     serverAddress: server.arkUrl
   })
 }
@@ -69,12 +70,11 @@ async function createWallet({
   accountId,
   mnemonic,
   server,
-  datadir,
-  serverAccessToken
+  datadir
 }: ArkWalletArgs): Promise<void> {
   const wallet = await Wallet.create(
     mnemonic,
-    buildConfig(server, serverAccessToken),
+    buildConfig(server),
     datadir,
     false
   )
@@ -84,7 +84,7 @@ async function createWallet({
 async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
   const wallet = await Wallet.openWithDaemon(
     args.mnemonic,
-    buildConfig(args.server, args.serverAccessToken),
+    buildConfig(args.server),
     args.datadir,
     undefined
   )
@@ -243,12 +243,33 @@ async function fetchMovements(accountId: string): Promise<ArkMovement[]> {
   return movements.map(mapMovement)
 }
 
-function mapLightningSend(send: LightningSend): ArkLightningSendResult {
+const NO_HTLC_VTXOS_LOCKED = 0
+
+function mapLightningSendStatus(
+  status: LightningSendStatus,
+  fallbackInvoice: string,
+  fallbackAmountSats: number
+): ArkLightningSendResult {
+  if (status.tag === LightningSendStatus_Tags.Paid) {
+    return {
+      amountSats: fallbackAmountSats,
+      htlcVtxoCount: NO_HTLC_VTXOS_LOCKED,
+      invoice: fallbackInvoice,
+      preimage: status.inner.preimage
+    }
+  }
+  if (status.tag === LightningSendStatus_Tags.InProgress) {
+    const { send } = status.inner
+    return {
+      amountSats: Number(send.amountSats),
+      htlcVtxoCount: send.htlcVtxoCount,
+      invoice: send.invoice
+    }
+  }
   return {
-    amountSats: Number(send.amountSats),
-    htlcVtxoCount: send.htlcVtxoCount,
-    invoice: send.invoice,
-    preimage: send.preimage
+    amountSats: fallbackAmountSats,
+    htlcVtxoCount: NO_HTLC_VTXOS_LOCKED,
+    invoice: fallbackInvoice
   }
 }
 
@@ -268,8 +289,12 @@ async function payBolt11(
 ): Promise<ArkLightningSendResult> {
   const wallet = getCachedWallet(accountId)
   const amount = amountSats === undefined ? undefined : BigInt(amountSats)
-  const result = await wallet.payLightningInvoice(invoice, amount)
-  return mapLightningSend(result)
+  const status = await wallet.payLightningInvoice(
+    invoice,
+    amount,
+    LIGHTNING_SEND_WAIT
+  )
+  return mapLightningSendStatus(status, invoice, amountSats ?? 0)
 }
 
 async function payLightningAddress(
@@ -279,12 +304,13 @@ async function payLightningAddress(
   comment?: string
 ): Promise<ArkLightningSendResult> {
   const wallet = getCachedWallet(accountId)
-  const result = await wallet.payLightningAddress(
+  const status = await wallet.payLightningAddress(
     address,
     BigInt(amountSats),
-    comment
+    comment,
+    LIGHTNING_SEND_WAIT
   )
-  return mapLightningSend(result)
+  return mapLightningSendStatus(status, '', amountSats)
 }
 
 function mapFeeEstimate(estimate: FeeEstimate): ArkFeeEstimate {
