@@ -38,9 +38,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     package: getUniqueIdentifier(),
     permissions: ['NFC']
   },
-  androidStatusBar: {
-    barStyle: 'light-content'
-  },
   assetBundlePatterns: ['**/*'],
   description: 'Privacy-first Bitcoin signer with complete UTXO control',
   experiments: {
@@ -110,6 +107,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       }
     ],
     'expo-image',
+    [
+      'expo-status-bar',
+      {
+        style: 'light'
+      }
+    ],
     'expo-sharing',
     'expo-web-browser',
     '@secondts/bark-react-native',
@@ -125,7 +128,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: getScheme(),
   slug: 'satsigner',
   userInterfaceStyle: 'dark',
-  version: '0.3.5',
+  version: '0.3.6',
   web: {
     favicon: './assets/favicon.png'
   }

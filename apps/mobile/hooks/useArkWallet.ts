@@ -7,7 +7,7 @@ import { useArkStore } from '@/store/ark'
 import { getArkServer } from '@/utils/ark'
 
 async function ensureWalletOpen(accountId: string): Promise<true> {
-  const { accounts, serverAccessTokens } = useArkStore.getState()
+  const { accounts } = useArkStore.getState()
   const account = accounts.find((a) => a.id === accountId)
   if (!account) {
     throw new Error('Ark account not found')
@@ -28,8 +28,7 @@ async function ensureWalletOpen(accountId: string): Promise<true> {
     accountId,
     datadir,
     mnemonic,
-    server,
-    serverAccessToken: serverAccessTokens[account.network]
+    server
   })
   return true
 }
