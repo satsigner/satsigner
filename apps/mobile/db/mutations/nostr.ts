@@ -10,6 +10,14 @@ import { boolToInt, dateToIso, optionalToJson } from '../mappers'
 
 type TransactionContext = NitroSQLiteConnection
 
+function clearNostrData(tx: TransactionContext, accountId: string) {
+  tx.execute('DELETE FROM nostr_dms WHERE account_id = ?', [accountId])
+  tx.execute('DELETE FROM nostr_relays WHERE account_id = ?', [accountId])
+  tx.execute('DELETE FROM nostr_trusted_devices WHERE account_id = ?', [
+    accountId
+  ])
+}
+
 function upsertNostrData(
   tx: TransactionContext,
   accountId: string,
@@ -19,8 +27,9 @@ function upsertNostrData(
     return
   }
 
-  // Clear and re-insert DMs
-  tx.execute('DELETE FROM nostr_dms WHERE account_id = ?', [accountId])
+  // Clear then re-insert DMs, relays, trusted devices
+  clearNostrData(tx, accountId)
+
   for (const dm of nostr.dms) {
     tx.execute(
       `INSERT INTO nostr_dms (
@@ -44,8 +53,6 @@ function upsertNostrData(
     )
   }
 
-  // Clear and re-insert relays
-  tx.execute('DELETE FROM nostr_relays WHERE account_id = ?', [accountId])
   for (const url of nostr.relays) {
     tx.execute('INSERT INTO nostr_relays (account_id, url) VALUES (?, ?)', [
       accountId,
@@ -53,10 +60,6 @@ function upsertNostrData(
     ])
   }
 
-  // Clear and re-insert trusted devices
-  tx.execute('DELETE FROM nostr_trusted_devices WHERE account_id = ?', [
-    accountId
-  ])
   for (const npub of nostr.trustedMemberDevices) {
     tx.execute(
       'INSERT INTO nostr_trusted_devices (account_id, device_npub) VALUES (?, ?)',
@@ -203,6 +206,7 @@ function upsertRelays(accountId: string, relays: string[]) {
 }
 
 export {
+  clearNostrData,
   insertDm,
   markDmsAsRead,
   updateAccountNostr,
