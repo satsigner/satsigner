@@ -125,7 +125,7 @@ function clearAccountChildData(tx: TransactionContext, accountId: string) {
   tx.execute('DELETE FROM transactions WHERE account_id = ?', [accountId])
   tx.execute('DELETE FROM utxos WHERE account_id = ?', [accountId])
   tx.execute('DELETE FROM addresses WHERE account_id = ?', [accountId])
-  clearNostrData()
+  clearNostrData(tx, accountId)
 }
 
 function updateFullAccount(account: Account) {
