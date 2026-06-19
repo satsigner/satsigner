@@ -233,8 +233,8 @@ async function prepareRestore(
     accounts.push({
       addresses: [],
       createdAt: typeof created === 'string' ? new Date(created) : new Date(),
-      id: acc.id,
       displayIndex: 1000,
+      id: acc.id,
       keyCount: acc.keys.length,
       keys: accountKeys,
       keysRequired:
