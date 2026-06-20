@@ -11,7 +11,9 @@ function nostrFollowCacheKey(npub: string): string {
 
 function getNostrFollowCache(npub: string): string[] | null {
   const raw = storage.getString(nostrFollowCacheKey(npub))
-  if (!raw) {return null}
+  if (!raw) {
+    return null
+  }
   try {
     return JSON.parse(raw) as string[]
   } catch {

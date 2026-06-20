@@ -62,18 +62,30 @@ const FILE_TYPE_LABELS: Record<FileTypeFilter, string> = {
 }
 
 function mimeToCategory(mime?: string): Exclude<FileTypeFilter, 'all'> {
-  if (!mime) {return 'other'}
-  if (mime.startsWith('image/')) {return 'image'}
-  if (mime.startsWith('video/')) {return 'video'}
-  if (mime.startsWith('audio/')) {return 'audio'}
-  if (mime.startsWith('text/') || mime === 'application/pdf') {return 'document'}
+  if (!mime) {
+    return 'other'
+  }
+  if (mime.startsWith('image/')) {
+    return 'image'
+  }
+  if (mime.startsWith('video/')) {
+    return 'video'
+  }
+  if (mime.startsWith('audio/')) {
+    return 'audio'
+  }
+  if (mime.startsWith('text/') || mime === 'application/pdf') {
+    return 'document'
+  }
   return 'other'
 }
 
 function deduplicateBySha256(blobs: BlobDescriptor[]): BlobDescriptor[] {
   const seen = new Set<string>()
   return blobs.filter((b) => {
-    if (seen.has(b.sha256)) {return false}
+    if (seen.has(b.sha256)) {
+      return false
+    }
     seen.add(b.sha256)
     return true
   })
@@ -145,7 +157,9 @@ export default function NostrFiles() {
     categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1
   }
   for (const cat of ['image', 'video', 'audio', 'document', 'other'] as const) {
-    if (categoryCounts[cat]) {availableFilters.push(cat)}
+    if (categoryCounts[cat]) {
+      availableFilters.push(cat)
+    }
   }
 
   const visibleFiles =
