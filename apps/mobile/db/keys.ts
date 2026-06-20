@@ -28,6 +28,8 @@ const tagKeys = {
 }
 
 const nostrKeys = {
+  contacts: (npub: string, relaysKey: string) =>
+    ['nostr', 'contacts', npub, relaysKey] as const,
   dms: (accountId: string) => ['nostr', 'dms', accountId] as const,
   relays: (accountId: string) => ['nostr', 'relays', accountId] as const,
   trustedDevices: (accountId: string) =>
