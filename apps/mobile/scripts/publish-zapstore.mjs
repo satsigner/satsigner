@@ -307,7 +307,9 @@ async function main() {
       : await prompt('  Release notes (optional, press Enter to skip): ')
 
   const noteLines = [`SatSigner v${APP_VERSION} is out!`]
-  if (releaseNotes) {noteLines.push('', releaseNotes)}
+  if (releaseNotes) {
+    noteLines.push('', releaseNotes)
+  }
   noteLines.push(
     '',
     ZAPSTORE_APP_URL,

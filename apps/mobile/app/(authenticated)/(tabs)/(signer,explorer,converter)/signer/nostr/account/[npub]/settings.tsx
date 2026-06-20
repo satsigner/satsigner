@@ -133,9 +133,7 @@ export default function NostrIdentitySettings() {
             <SSButton
               label={t('nostrIdentity.settings.blossom')}
               variant="outline"
-              onPress={() =>
-                router.navigate(nostrAccountHref(npub, 'blossom'))
-              }
+              onPress={() => router.navigate(nostrAccountHref(npub, 'blossom'))}
             />
 
             <SSButton
@@ -256,7 +254,13 @@ function Chiclet({ children, gradientStart, label, onPress }: ChicletProps) {
         />
         <View style={styles.chicletContent}>{children}</View>
       </View>
-      <SSText size="xs" color="muted" uppercase center style={styles.chicletLabel}>
+      <SSText
+        size="xs"
+        color="muted"
+        uppercase
+        center
+        style={styles.chicletLabel}
+      >
         {label}
       </SSText>
     </TouchableOpacity>
@@ -269,12 +273,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6
   },
-  chicletTile: {
-    aspectRatio: 1,
-    borderRadius: 3,
-    overflow: 'hidden',
-    width: '100%'
-  },
   chicletContent: {
     alignItems: 'center',
     flex: 1,
@@ -282,6 +280,24 @@ const styles = StyleSheet.create({
   },
   chicletLabel: {
     paddingHorizontal: 2
+  },
+  chicletTile: {
+    aspectRatio: 1,
+    borderRadius: 3,
+    overflow: 'hidden',
+    width: '100%'
+  },
+  content: {
+    paddingBottom: 40
+  },
+  deleteSheet: {
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 0,
+    width: '100%'
+  },
+  emptyContainer: {
+    paddingVertical: 60
   },
   glassBorder: {
     position: 'absolute'
@@ -309,17 +325,5 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0
-  },
-  content: {
-    paddingBottom: 40
-  },
-  deleteSheet: {
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 0,
-    width: '100%'
-  },
-  emptyContainer: {
-    paddingVertical: 60
   }
 })
