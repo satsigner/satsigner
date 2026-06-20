@@ -35,7 +35,12 @@ export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
 export const NOSTR_WS_CONNECT_TIMEOUT_MS = 15000
 
 // UI
+export const NOSTR_ACCOUNT_CARD_ESTIMATED_HEIGHT = 120
+export const NOSTR_EMPTY_STATE_PADDING_VERTICAL = 48
 export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
+export const NOSTR_LIST_ITEM_GAP = 8
+export const NOSTR_LIST_PADDING_VERTICAL = 8
+export const NOSTR_PROFILE_BATCH_SIZE = 40
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
 export const NOSTR_HIDDEN_KEY_MASK_LONG = '••••••••••••••••••••••••••••••••'
 

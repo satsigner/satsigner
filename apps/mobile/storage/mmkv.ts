@@ -5,6 +5,24 @@ const LAST_BACKGROUND_TIMESTAMP_KEY = 'lastBackgroundTimestamp'
 
 const storage = createMMKV({ id: 'mmkv.satsigner' })
 
+function nostrFollowCacheKey(npub: string): string {
+  return `nostr:follows:${npub}`
+}
+
+function getNostrFollowCache(npub: string): string[] | null {
+  const raw = storage.getString(nostrFollowCacheKey(npub))
+  if (!raw) {return null}
+  try {
+    return JSON.parse(raw) as string[]
+  } catch {
+    return null
+  }
+}
+
+function setNostrFollowCache(npub: string, pubkeys: string[]): void {
+  storage.set(nostrFollowCacheKey(npub), JSON.stringify(pubkeys))
+}
+
 const mmkvStorage: StateStorage = {
   getItem: (name) => {
     const value = storage.getString(name)
@@ -30,6 +48,8 @@ export default mmkvStorage
 export {
   clearAllStorage,
   getLastBackgroundTimestamp,
+  getNostrFollowCache,
   mmkvStorage,
-  setLastBackgroundTimestamp
+  setLastBackgroundTimestamp,
+  setNostrFollowCache
 }

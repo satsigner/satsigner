@@ -221,6 +221,11 @@ export const NostrKind0ProfileSchema = z.object({
   picture: z.string().optional()
 })
 
+export const NostrContactItemSchema = z.object({
+  profile: NostrKind0ProfileSchema.nullable(),
+  pubkey: z.string()
+})
+
 export const NostrMessageDataSchema = z.object({
   data: z.unknown().optional(),
   data_type: z.enum(['LabelsBip329', 'PSBT', 'SignMessageRequest', 'Tx'])

@@ -23,6 +23,7 @@ import {
   getCachedProfile,
   getNewestCachedTimestamp
 } from '@/db/nostrCache'
+import { getNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import type {
   NostrKeys,
   NostrKind0Profile,
@@ -31,8 +32,14 @@ import type {
   NostrSignedKind1Event,
   NostrUnwrappedKind1059Event
 } from '@/types/models/Nostr'
+import { type NostrPollResponse } from '@/types/models/Nostr'
+import { chunkArray } from '@/utils/chunkArray'
 import { randomKey } from '@/utils/crypto'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
+import {
+  extractResponseOptionIds,
+  NOSTR_POLL_RESPONSE_KIND
+} from '@/utils/nostrPoll'
 
 function createMobileNdk(explicitRelayUrls: string[]): NDK {
   return new NDK({
@@ -424,6 +431,56 @@ export class NostrAPI {
   }
 
   /**
+   * Streams kind 0 profiles for many pubkeys: SQLite cache first, then relay
+   * batches via fetchKind0Batch. Invokes onBatch after each cache/relay chunk.
+   */
+  async streamKind0Profiles(
+    hexPubkeys: string[],
+    onBatch: (profiles: Map<string, NostrKind0Profile>) => void,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const validKeys = hexPubkeys
+      .map((pk) => pk.toLowerCase())
+      .filter((pk) => /^[0-9a-f]{64}$/.test(pk))
+    if (validKeys.length === 0 || signal?.aborted) {
+      return
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    const missing: string[] = []
+    const cachedBatch = new Map<string, NostrKind0Profile>()
+
+    for (const pk of validKeys) {
+      const cached = getCachedProfile(pk)
+      if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
+        cachedBatch.set(pk, {
+          banner: cached.banner,
+          displayName: cached.displayName,
+          lud16: cached.lud16,
+          nip05: cached.nip05,
+          picture: cached.picture
+        })
+      } else {
+        missing.push(pk)
+      }
+    }
+
+    if (cachedBatch.size > 0 && !signal?.aborted) {
+      onBatch(cachedBatch)
+    }
+
+    for (const slice of chunkArray(missing, NOSTR_PROFILE_BATCH_SIZE)) {
+      if (signal?.aborted) {
+        return
+      }
+      const batch = await this.fetchKind0Batch(slice)
+      if (batch.size > 0 && !signal?.aborted) {
+        onBatch(batch)
+      }
+    }
+  }
+
+  /**
    * Latest kind 10003 (NIP-51 bookmark list) for this npub.
    * Returns raw tags (public bookmarks) and encrypted content (private bookmarks).
    */
@@ -583,6 +640,10 @@ export class NostrAPI {
           ordered.push(pk)
         }
       }
+    }
+
+    if (ordered.length > 0) {
+      setNostrFollowCache(npub, ordered)
     }
 
     return {
