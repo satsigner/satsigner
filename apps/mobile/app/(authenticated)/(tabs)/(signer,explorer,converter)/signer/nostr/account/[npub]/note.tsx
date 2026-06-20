@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -31,6 +32,8 @@ import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
+import SSNostrMarkdownContent from '@/components/SSNostrMarkdownContent'
+import SSNostrPollOptions from '@/components/SSNostrPollOptions'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
@@ -38,11 +41,13 @@ import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
+  NOSTR_PRIVACY_MASK,
   NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
   NOSTR_ZAP_DEFAULT_PRESETS,
-  NOSTR_PRIVACY_MASK
+  NOSTR_POLL_KIND
 } from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
+import { useNostrPollVote } from '@/hooks/useNostrPollVote'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -71,6 +76,7 @@ import {
   extractPubpayTags,
   truncateNpub
 } from '@/utils/nostrIdentity'
+import { isLongFormNostrKind } from '@/utils/nostrLongForm'
 import {
   nostrAccountProfileHref,
   nostrContactProfileHref,
@@ -632,7 +638,32 @@ export default function NostrNotePage() {
     }
   }, [replyParentId, replyParentRelayHint])
 
+  const pollInfo =
+    fetched?.kind === NOSTR_POLL_KIND ? extractPollInfo(fetched.tags) : null
+  const pollExpired = pollInfo ? isPollExpired(pollInfo.endsAt) : false
+  const {
+    handlePollOptionPress,
+    handlePollSubmitMultiple,
+    pollMultipleSelection,
+    pollResponsesLoading,
+    pollVoteCounts,
+    pollVoting,
+    userPollVoteIds
+  } = useNostrPollVote({
+    enabled: Boolean(pollInfo && !privacyMode),
+    eventId: decoded?.data,
+    isExpired: pollExpired,
+    isWatchOnly: Boolean(identity?.isWatchOnly),
+    nsec: identity?.nsec,
+    ownPubkeys,
+    pollInfo,
+    relays: effectiveRelays
+  })
+
   const noteItemForFeed = deriveNoteItemForFeed(fetched, decoded)
+  const isLongFormNote = fetched ? isLongFormNostrKind(fetched.kind) : false
+  const showMarkdownToggle =
+    isLongFormNote && !privacyMode && Boolean(fetched?.content.length)
 
   const noteAuthorFeedProps = deriveAuthorFeedProps(
     fetched,

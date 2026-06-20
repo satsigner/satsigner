@@ -892,12 +892,14 @@ export class NostrAPI {
   }
 
   static readonly INDEXING_RELAYS = [
+    'wss://indexer.coracle.social',
+    'wss://relay.nos.social',
     'wss://relay.nostr.band',
     'wss://relay.primal.net',
     'wss://nos.lol',
     'wss://relay.damus.io',
     'wss://relay.snort.social',
-    'wss://purplepag.es'
+    'wss://indexer.nostrarchives.com'
   ]
 
   async fetchEvent(eventIdHex: string): Promise<{
@@ -1384,6 +1386,110 @@ export class NostrAPI {
 
     await event.sign(signer)
     await this.publishEvent(event)
+    return event.id
+  }
+
+  async fetchPollResponses(
+    pollEventIdHex: string
+  ): Promise<NostrPollResponse[]> {
+    await this.connectForPublish()
+    if (!this.ndk) {
+      return []
+    }
+
+    const filter: NDKFilter = {
+      '#e': [pollEventIdHex],
+      kinds: [NOSTR_POLL_RESPONSE_KIND],
+      limit: 500
+    }
+    const events = await NostrAPI.fetchManyWithTimeout(this.ndk, filter, 15000)
+
+    return [...events].map((event) => ({
+      created_at: event.created_at ?? 0,
+      id: event.id,
+      optionIds: extractResponseOptionIds(
+        event.tags.map((tag) =>
+          tag.filter((value): value is string => typeof value === 'string')
+        )
+      ),
+      pubkey: event.pubkey
+    }))
+  }
+
+  async publishPollResponse(
+    nsec: string,
+    pollEventIdHex: string,
+    optionIds: string[],
+    pollRelays: string[] = []
+  ): Promise<string> {
+    const secretKey = getSecretFromNsec(nsec)
+    if (!secretKey) {
+      throw new Error('Invalid nsec')
+    }
+
+    const publishRelays = Array.from(
+      new Set([...this.relays, ...pollRelays].filter(Boolean))
+    )
+    const signer = new NDKPrivateKeySigner(secretKey)
+    const tempNdk = createMobileNdk(
+      publishRelays.length > 0 ? publishRelays : this.relays
+    )
+    await tempNdk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
+    tempNdk.signer = signer
+
+    const event = new NDKEvent(tempNdk, {
+      content: '',
+      kind: NOSTR_POLL_RESPONSE_KIND,
+      tags: [
+        ['e', pollEventIdHex],
+        ...optionIds.map((optionId) => ['response', optionId] as const)
+      ]
+    })
+
+    await event.sign(signer)
+
+    const allRelayUrls = Array.from(tempNdk.pool?.relays.keys() ?? [])
+    if (allRelayUrls.length === 0) {
+      throw new Error('No relays in pool')
+    }
+
+    const publishPromises = allRelayUrls.map(async (url) => {
+      const relay = tempNdk.pool?.relays.get(url)
+      if (!relay) {
+        return { error: 'Relay not found', success: false as const, url }
+      }
+
+      try {
+        const timeoutPromise = new Promise<never>((_resolve, reject) => {
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  `Publish timeout after ${NostrAPI.PUBLISH_TIMEOUT_MS}ms`
+                )
+              ),
+            NostrAPI.PUBLISH_TIMEOUT_MS
+          )
+        })
+        await Promise.race([relay.publish(event), timeoutPromise])
+        return { success: true as const, url }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unknown publish error'
+        return { error: message, success: false as const, url }
+      }
+    })
+
+    const results = await Promise.all(publishPromises)
+    const succeeded = results.filter((result) => result.success)
+    if (succeeded.length === 0) {
+      const errors = results
+        .filter((result) => !result.success)
+        .map((result) => `${result.url}: ${result.error}`)
+        .join('; ')
+      throw new Error(`Failed to publish to any relay: ${errors}`)
+    }
+
     return event.id
   }
 

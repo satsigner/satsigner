@@ -403,6 +403,27 @@ export type NostrFeedNoteLike = {
   created_at: number
 }
 
+export type NostrPollOption = {
+  id: string
+  label: string
+}
+
+export type NostrPollType = 'singlechoice' | 'multiplechoice'
+
+export type NostrPollInfo = {
+  endsAt?: number
+  options: NostrPollOption[]
+  pollType: NostrPollType
+  relays: string[]
+}
+
+export type NostrPollResponse = {
+  created_at: number
+  id: string
+  optionIds: string[]
+  pubkey: string
+}
+
 export type NostrRetryConfig = {
   baseDelayMs: number
   jitterFactor: number
