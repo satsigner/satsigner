@@ -17,6 +17,9 @@ dist/
 web-build/
 expo-env.d.ts
 .expo
+build-*.apk
+*.apk
+*.aab
 
 # Native
 *.orig.*
