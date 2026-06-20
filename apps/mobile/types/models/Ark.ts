@@ -104,8 +104,6 @@ export type ArkWalletArgs = {
   mnemonic: string
   server: ArkServer
   datadir: string
-  /** Optional bearer for private Ark servers — forwarded as `ark-access-token`. */
-  serverAccessToken?: string
 }
 
 export type ArkBolt11Invoice = {

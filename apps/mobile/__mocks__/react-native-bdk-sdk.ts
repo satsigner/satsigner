@@ -146,7 +146,7 @@ export class Mnemonic {
     return m
   }
 
-  static fromEntropy(entropy: Array<number>): Mnemonic {
+  static fromEntropy(entropy: ArrayBuffer): Mnemonic {
     const hex = Buffer.from(entropy).toString('hex')
     const m = Object.create(Mnemonic.prototype) as Mnemonic
     m._mnemonic = bip39Js.entropyToMnemonic(hex)
@@ -154,7 +154,7 @@ export class Mnemonic {
     return m
   }
 
-  static fromEntropyIn(entropy: Array<number>, language: Language): Mnemonic {
+  static fromEntropyIn(entropy: ArrayBuffer, language: Language): Mnemonic {
     const hex = Buffer.from(entropy).toString('hex')
     const name = LANGUAGE_TO_WORDLIST_NAME[language]
     const wordlist = bip39Js.wordlists[name]
