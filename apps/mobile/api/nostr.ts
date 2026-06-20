@@ -9,10 +9,11 @@ import {
   NOSTR_FLUSH_QUEUE_DELAY_MS,
   NOSTR_MAX_PROCESSED_RAW_IDS,
   NOSTR_MAX_QUEUE_SIZE,
-  NOSTR_RELAY_REACHABILITY_TEST_MS,
+  NOSTR_NDK_CONNECT_TIMEOUT_MS,
   NOSTR_PROCESSING_INTERVAL_MS,
+  NOSTR_PROFILE_BATCH_SIZE,
   NOSTR_PROFILE_CACHE_TTL_SECS,
-  NOSTR_NDK_CONNECT_TIMEOUT_MS
+  NOSTR_RELAY_REACHABILITY_TEST_MS
 } from '@/constants/nostr'
 import {
   cacheEvents,
@@ -56,6 +57,24 @@ function getOrCreateNdk(relays: string[]): NDK {
   return ndk
 }
 
+function resetNdkForRelays(relays: string[]): NDK {
+  const key = [...relays].toSorted().join(',')
+  const existing = ndkRegistry.get(key)
+  if (existing) {
+    for (const relay of existing.pool?.relays.values() ?? []) {
+      try {
+        relay.disconnect()
+      } catch {
+        // best-effort
+      }
+    }
+    ndkRegistry.delete(key)
+  }
+  const ndk = createMobileNdk(relays)
+  ndkRegistry.set(key, ndk)
+  return ndk
+}
+
 export function clearNdkRegistry(): void {
   for (const ndk of ndkRegistry.values()) {
     for (const relay of ndk.pool?.relays.values() ?? []) {
@@ -67,6 +86,32 @@ export function clearNdkRegistry(): void {
     }
   }
   ndkRegistry.clear()
+}
+
+function normalizeRelayUrl(url: string): string {
+  return url.toLowerCase().replace(/\/$/, '')
+}
+
+function buildRelayConnectionInfo(
+  allUrls: string[],
+  connectedUrls: string[]
+): NostrRelayConnectionInfo {
+  const probeUrls = allUrls.slice(0, 3)
+  const connectedNormalized = new Set(connectedUrls.map(normalizeRelayUrl))
+  return {
+    relayDetails: probeUrls.map((url) => ({
+      connected: connectedNormalized.has(normalizeRelayUrl(url)),
+      url
+    })),
+    status: 'connected'
+  }
+}
+
+export async function reconnectNdkForRelays(
+  relayUrls: string[]
+): Promise<void> {
+  const ndk = resetNdkForRelays(relayUrls)
+  await ndk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
 }
 
 export async function testNostrRelaysReachable(
@@ -81,13 +126,33 @@ export async function testNostrRelaysReachable(
     return { reason: 'no_internet', status: 'disconnected' }
   }
 
+  // Check the shared registry NDK first — if it has live connections, trust
+  // its pool state instead of probing with a fresh NDK (which would race
+  // against existing sockets and often report "unreachable" while data flows).
+  const registryKey = [...relayUrls].toSorted().join(',')
+  const registryNdk = ndkRegistry.get(registryKey)
+  if (registryNdk?.pool) {
+    const connected = registryNdk.pool.connectedRelays().map((r) => r.url)
+    if (connected.length > 0) {
+      return buildRelayConnectionInfo(relayUrls, connected)
+    }
+    // Registry NDK exists but all connections are dead — evict the stale
+    // instance and create a fresh one rather than trying to revive it.
+    const freshNdk = resetNdkForRelays(relayUrls)
+    await freshNdk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
+    const reconnected = freshNdk.pool?.connectedRelays().map((r) => r.url) ?? []
+    if (reconnected.length > 0) {
+      return buildRelayConnectionInfo(relayUrls, reconnected)
+    }
+  }
+
+  // No registry entry yet (first probe before any data fetch) — use a throw-away NDK.
   const probeUrls = relayUrls.slice(0, 3)
-  const ndk = createMobileNdk(probeUrls)
+  const probeNdk = createMobileNdk(probeUrls)
+  await probeNdk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
+  const connected = probeNdk.pool?.connectedRelays().map((r) => r.url) ?? []
 
-  await ndk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
-  const connected = ndk.pool?.connectedRelays().map((r) => r.url) ?? []
-
-  for (const relay of ndk.pool?.relays.values() ?? []) {
+  for (const relay of probeNdk.pool?.relays.values() ?? []) {
     try {
       relay.disconnect()
     } catch {
@@ -96,13 +161,7 @@ export async function testNostrRelaysReachable(
   }
 
   if (connected.length > 0) {
-    return {
-      relayDetails: probeUrls.map((url) => ({
-        connected: connected.includes(url),
-        url
-      })),
-      status: 'connected'
-    }
+    return buildRelayConnectionInfo(probeUrls, connected)
   }
 
   return {
