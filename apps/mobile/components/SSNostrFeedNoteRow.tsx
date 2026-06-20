@@ -5,6 +5,7 @@ import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
+import SSNostrMarkdownContent from '@/components/SSNostrMarkdownContent'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSText from '@/components/SSText'
@@ -303,6 +304,8 @@ type SSNostrFeedNoteRowProps = {
   onQuotePress?: (id: string) => void
   /** Profiles keyed by hex pubkey for resolving nostr:npub/nprofile mentions in content. */
   mentionProfiles?: Record<string, NostrKind0Profile | null>
+  /** Render note body as formatted markdown (long-form detail). */
+  formatMarkdown?: boolean
 }
 
 function SSNostrFeedNoteRow({
@@ -318,7 +321,8 @@ function SSNostrFeedNoteRow({
   resolvedQuotedNote,
   resolvedQuotedNoteProfile,
   onQuotePress,
-  mentionProfiles
+  mentionProfiles,
+  formatMarkdown = false
 }: SSNostrFeedNoteRowProps) {
   const isRepost = note.kind === 6 || note.kind === 16
   const repostOriginal = isRepost
@@ -435,6 +439,8 @@ function SSNostrFeedNoteRow({
           <SSText size="sm" color="muted" style={styles.noteContent}>
             {t('nostrIdentity.feed.repostUnavailable')}
           </SSText>
+        ) : formatMarkdown && !privacyMode ? (
+          <SSNostrMarkdownContent content={displayContent} />
         ) : (
           <SSText
             size="sm"
