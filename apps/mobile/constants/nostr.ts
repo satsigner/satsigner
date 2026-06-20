@@ -139,6 +139,10 @@ export const NIP46_DEFAULT_PERMISSIONS: Record<
 }
 
 // REGEX & FILTERS
+export const NOSTR_POLL_KIND = 1068
+export const NOSTR_POLL_RESPONSE_KIND = 1018
+export const NOSTR_KIND_FILTER_HIT_SLOP = 6
+export const NOSTR_KIND_FILTER_TRIGGER_MAX_WIDTH = '72%'
 export const NOSTR_EVENT_REF_RE = /nostr:(note1|nevent1)[a-zA-Z0-9]+/g
 export const NOSTR_MENTION_RE =
   /(?:nostr:)?(npub1[a-z0-9]{6,}|nprofile1[a-z0-9]{6,})/gi

@@ -326,6 +326,7 @@ export type NostrFetchedNoteData = z.infer<typeof NostrFetchedNoteDataSchema>
 export type NostrIdentity = z.infer<typeof NostrIdentitySchema>
 export type NostrKeys = z.infer<typeof NostrKeysSchema>
 export type NostrKind0Profile = z.infer<typeof NostrKind0ProfileSchema>
+export type NostrContactItem = z.infer<typeof NostrContactItemSchema>
 export type NostrMessageData = z.infer<typeof NostrMessageDataSchema>
 export type NostrMessage = z.infer<typeof NostrMessageSchema>
 export type NostrPendingDM = z.infer<typeof NostrPendingDMSchema>
