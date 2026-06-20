@@ -195,8 +195,13 @@ export const NOSTR_NOTE_FILTER_OPTIONS: NostrNoteKindFilterOption[] = [
     labelKey: 'nostrIdentity.feed.kindFileMetadata'
   },
   {
+    id: 'poll',
+    kinds: [NOSTR_POLL_KIND],
+    labelKey: 'nostrIdentity.feed.kindPoll'
+  },
+  {
     id: 'poll_response',
-    kinds: [1018],
+    kinds: [NOSTR_POLL_RESPONSE_KIND],
     labelKey: 'nostrIdentity.feed.kindPollResponse'
   },
   {

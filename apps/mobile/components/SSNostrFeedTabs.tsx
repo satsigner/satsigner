@@ -3,8 +3,6 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
-  Modal,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View
@@ -18,6 +16,12 @@ import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
+import {
+  SSNostrKindFilterSheet,
+  SSNostrKindFilterTrigger,
+  SSNostrReplyFilterChip,
+  ssnostrKindFilterRowStyle
+} from '@/components/SSNostrKindFilter'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
@@ -33,7 +37,6 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
 import type {
   NostrFeedNoteLike,
   NostrKind0Profile,
@@ -98,77 +101,6 @@ function trimDropdownLabel(text: string): string {
     return text
   }
   return `${text.slice(0, DROPDOWN_LABEL_MAX_CHARS - 1)}…`
-}
-
-/** Splits "Title (Kind …)" so the parenthetical can use muted color. */
-function splitKindFilterLabel(label: string): { main: string; suffix: string } {
-  const open = label.lastIndexOf(' (')
-  if (open === -1) {
-    return { main: label, suffix: '' }
-  }
-  return { main: label.slice(0, open), suffix: label.slice(open) }
-}
-
-function trimKindFilterParts(
-  main: string,
-  suffix: string
-): { main: string; suffix: string } {
-  const full = main + suffix
-  if (full.length <= DROPDOWN_LABEL_MAX_CHARS) {
-    return { main, suffix }
-  }
-  const reserve = suffix.length + 1
-  const budget = Math.max(8, DROPDOWN_LABEL_MAX_CHARS - reserve)
-  return {
-    main: `${main.slice(0, budget)}…`,
-    suffix
-  }
-}
-
-type KindFilterLabelTextProps = {
-  label: string
-  size?: TextFontSize
-  weight?: TextFontWeight
-}
-
-function KindFilterLabelText({
-  label,
-  size = 'md',
-  weight = 'medium'
-}: KindFilterLabelTextProps) {
-  const { main, suffix } = splitKindFilterLabel(label)
-  const trimmed = trimKindFilterParts(main, suffix)
-  const rowStyle = { flex: 1, minWidth: 0 as const }
-
-  if (!trimmed.suffix) {
-    return (
-      <SSText
-        size={size}
-        weight={weight}
-        numberOfLines={1}
-        ellipsizeMode="tail"
-        style={rowStyle}
-      >
-        {trimDropdownLabel(trimmed.main)}
-      </SSText>
-    )
-  }
-  return (
-    <SSText
-      size={size}
-      weight={weight}
-      numberOfLines={1}
-      ellipsizeMode="tail"
-      style={rowStyle}
-    >
-      <SSText size={size} weight={weight}>
-        {trimmed.main}
-      </SSText>
-      <SSText size={size} weight={weight} color="muted">
-        {trimmed.suffix}
-      </SSText>
-    </SSText>
-  )
 }
 
 function DecryptedBadge() {
@@ -403,7 +335,8 @@ function SSNostrFeedTabs({
     setFeedLoading(true)
     try {
       if (!loadMore) {
-        const following = await apiRef.current.fetchKind3FollowingPubkeys(npub)
+        const { pubkeys: following } =
+          await apiRef.current.fetchKind3FollowingPubkeys(npub)
         const empty = following.length === 0
         setFeedFollowingEmpty(empty)
         if (empty) {
@@ -563,6 +496,30 @@ function SSNostrFeedTabs({
     (o) => o.id === feedKindFilterId
   )
   const feedKindLabel = feedKindOpt ? t(feedKindOpt.labelKey) : ''
+
+  function openNotesKindSheet() {
+    setNotesKindSheetOpen(true)
+  }
+
+  function closeNotesKindSheet() {
+    setNotesKindSheetOpen(false)
+  }
+
+  function toggleNotesExcludeReplies() {
+    setNotesExcludeReplies((current) => !current)
+  }
+
+  function openFeedKindSheet() {
+    setFeedKindSheetOpen(true)
+  }
+
+  function closeFeedKindSheet() {
+    setFeedKindSheetOpen(false)
+  }
+
+  function toggleFeedExcludeReplies() {
+    setFeedExcludeReplies((current) => !current)
+  }
 
   useEffect(() => {
     if (!relayConnected) {
@@ -770,38 +727,18 @@ function SSNostrFeedTabs({
       <SSVStack gap="sm" style={styles.tabContent}>
         {activeTab === 'notes' && (
           <>
-            <SSHStack gap="sm" style={styles.filterRow}>
-              <TouchableOpacity
-                style={[styles.notesKindTrigger, styles.filterRowKind]}
-                activeOpacity={0.7}
-                onPress={() => setNotesKindSheetOpen(true)}
-              >
-                <SSHStack gap="sm" style={styles.notesKindTriggerInner}>
-                  <View style={styles.notesKindTriggerLabel}>
-                    <KindFilterLabelText label={notesKindLabel} size="xs" />
-                  </View>
-                  <SSText size="xs" color="muted">
-                    ▾
-                  </SSText>
-                </SSHStack>
-              </TouchableOpacity>
-              {notesKindFilterId === 'short_text' && (
-                <TouchableOpacity
-                  style={[
-                    styles.replyFilterChip,
-                    !notesExcludeReplies && styles.replyFilterChipActive
-                  ]}
-                  activeOpacity={0.7}
-                  onPress={() => setNotesExcludeReplies((v) => !v)}
-                >
-                  <SSText
-                    size="xxs"
-                    color={!notesExcludeReplies ? 'white' : 'muted'}
-                  >
-                    {t('nostrIdentity.feed.showReplies')}
-                  </SSText>
-                </TouchableOpacity>
-              )}
+            <SSHStack gap="md" style={ssnostrKindFilterRowStyle}>
+              <SSNostrKindFilterTrigger
+                label={notesKindLabel}
+                onPress={openNotesKindSheet}
+              />
+              {notesKindFilterId === 'short_text' ? (
+                <SSNostrReplyFilterChip
+                  active={!notesExcludeReplies}
+                  label={t('nostrIdentity.feed.showReplies')}
+                  onPress={toggleNotesExcludeReplies}
+                />
+              ) : null}
             </SSHStack>
             {visibleNotes.map((note) => {
               const resolvedId = getResolvedEventId(note)
@@ -875,38 +812,18 @@ function SSNostrFeedTabs({
 
         {activeTab === 'feed' && (
           <>
-            <SSHStack gap="sm" style={styles.filterRow}>
-              <TouchableOpacity
-                style={[styles.notesKindTrigger, styles.filterRowKind]}
-                activeOpacity={0.7}
-                onPress={() => setFeedKindSheetOpen(true)}
-              >
-                <SSHStack gap="sm" style={styles.notesKindTriggerInner}>
-                  <View style={styles.notesKindTriggerLabel}>
-                    <KindFilterLabelText label={feedKindLabel} size="xs" />
-                  </View>
-                  <SSText size="xs" color="muted">
-                    ▾
-                  </SSText>
-                </SSHStack>
-              </TouchableOpacity>
-              {feedKindFilterId === 'short_text' && (
-                <TouchableOpacity
-                  style={[
-                    styles.replyFilterChip,
-                    !feedExcludeReplies && styles.replyFilterChipActive
-                  ]}
-                  activeOpacity={0.7}
-                  onPress={() => setFeedExcludeReplies((v) => !v)}
-                >
-                  <SSText
-                    size="xxs"
-                    color={!feedExcludeReplies ? 'white' : 'muted'}
-                  >
-                    {t('nostrIdentity.feed.showReplies')}
-                  </SSText>
-                </TouchableOpacity>
-              )}
+            <SSHStack gap="md" style={ssnostrKindFilterRowStyle}>
+              <SSNostrKindFilterTrigger
+                label={feedKindLabel}
+                onPress={openFeedKindSheet}
+              />
+              {feedKindFilterId === 'short_text' ? (
+                <SSNostrReplyFilterChip
+                  active={!feedExcludeReplies}
+                  label={t('nostrIdentity.feed.showReplies')}
+                  onPress={toggleFeedExcludeReplies}
+                />
+              ) : null}
             </SSHStack>
             {visibleFeedNotes.map((note) => {
               const resolvedId = getResolvedEventId(note)
@@ -1136,101 +1053,21 @@ function SSNostrFeedTabs({
         )}
       </SSVStack>
 
-      <Modal
+      <SSNostrKindFilterSheet
         visible={notesKindSheetOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setNotesKindSheetOpen(false)}
-      >
-        <View style={styles.kindSheetOverlay}>
-          <TouchableOpacity
-            style={styles.kindSheetBackdrop}
-            activeOpacity={1}
-            onPress={() => setNotesKindSheetOpen(false)}
-          />
-          <View style={styles.kindSheet}>
-            <SSVStack gap="md">
-              <SSText size="lg" weight="medium" center>
-                {t('nostrIdentity.feed.kindFilterSheetTitle')}
-              </SSText>
-              <ScrollView
-                style={styles.kindSheetScroll}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                <SSVStack gap="md">
-                  {NOSTR_NOTE_FILTER_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.id}
-                      style={styles.kindOptionRow}
-                      activeOpacity={0.6}
-                      onPress={() => {
-                        setNotesKindFilterId(opt.id)
-                        setNotesKindSheetOpen(false)
-                      }}
-                    >
-                      <KindFilterLabelText label={t(opt.labelKey)} />
-                    </TouchableOpacity>
-                  ))}
-                </SSVStack>
-              </ScrollView>
-              <SSButton
-                label={t('common.cancel')}
-                variant="ghost"
-                onPress={() => setNotesKindSheetOpen(false)}
-              />
-            </SSVStack>
-          </View>
-        </View>
-      </Modal>
+        onClose={closeNotesKindSheet}
+        options={NOSTR_NOTE_FILTER_OPTIONS}
+        selectedId={notesKindFilterId}
+        onSelect={setNotesKindFilterId}
+      />
 
-      <Modal
+      <SSNostrKindFilterSheet
         visible={feedKindSheetOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setFeedKindSheetOpen(false)}
-      >
-        <View style={styles.kindSheetOverlay}>
-          <TouchableOpacity
-            style={styles.kindSheetBackdrop}
-            activeOpacity={1}
-            onPress={() => setFeedKindSheetOpen(false)}
-          />
-          <View style={styles.kindSheet}>
-            <SSVStack gap="md">
-              <SSText size="lg" weight="medium" center>
-                {t('nostrIdentity.feed.kindFilterSheetTitle')}
-              </SSText>
-              <ScrollView
-                style={styles.kindSheetScroll}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                <SSVStack gap="md">
-                  {FEED_KIND_FILTER_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.id}
-                      style={styles.kindOptionRow}
-                      activeOpacity={0.6}
-                      onPress={() => {
-                        setFeedKindFilterId(opt.id)
-                        setFeedKindSheetOpen(false)
-                      }}
-                    >
-                      <KindFilterLabelText label={t(opt.labelKey)} />
-                    </TouchableOpacity>
-                  ))}
-                </SSVStack>
-              </ScrollView>
-              <SSButton
-                label={t('common.cancel')}
-                variant="ghost"
-                onPress={() => setFeedKindSheetOpen(false)}
-              />
-            </SSVStack>
-          </View>
-        </View>
-      </Modal>
+        onClose={closeFeedKindSheet}
+        options={FEED_KIND_FILTER_OPTIONS}
+        selectedId={feedKindFilterId}
+        onSelect={setFeedKindFilterId}
+      />
     </SSVStack>
   )
 }
@@ -1243,70 +1080,8 @@ const styles = StyleSheet.create({
   emptyText: {
     paddingVertical: 24
   },
-  filterRow: {
-    alignItems: 'center',
-    marginBottom: 8
-  },
-  filterRowKind: {
-    flex: 1,
-    marginBottom: 0
-  },
-  kindOptionRow: {
-    backgroundColor: Colors.gray[925],
-    borderColor: Colors.gray[800],
-    borderRadius: 3,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14
-  },
-  kindSheet: {
-    backgroundColor: Colors.gray[950],
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingBottom: 40,
-    paddingHorizontal: 20,
-    paddingTop: 20
-  },
-  kindSheetBackdrop: {
-    flex: 1
-  },
-  kindSheetOverlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    flex: 1,
-    justifyContent: 'flex-end'
-  },
-  kindSheetScroll: {
-    maxHeight: 380
-  },
   loader: {
     paddingVertical: 16
-  },
-  notesKindTrigger: {
-    borderColor: Colors.gray[800],
-    borderRadius: 3,
-    borderWidth: 1,
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10
-  },
-  notesKindTriggerInner: {
-    alignItems: 'center',
-    minWidth: 0
-  },
-  notesKindTriggerLabel: {
-    flex: 1,
-    minWidth: 0
-  },
-  replyFilterChip: {
-    borderColor: Colors.gray[800],
-    borderRadius: 3,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 10
-  },
-  replyFilterChipActive: {
-    borderColor: Colors.gray[600],
-    borderWidth: 1
   },
   tabBar: {
     borderBottomColor: Colors.gray[800],
