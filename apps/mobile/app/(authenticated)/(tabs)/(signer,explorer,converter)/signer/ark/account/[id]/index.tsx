@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconTriangle } from '@/components/icons'
+import SSIconTime from '@/components/icons/SSIconTime'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -30,8 +31,9 @@ import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
+import { getArkPendingSats, getArkTotalSats } from '@/utils/ark'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { formatFiatPrice } from '@/utils/format'
+import { formatFiatPrice, formatNumber } from '@/utils/format'
 const HEADER_ICON_STROKE = '#828282'
 
 export default function ArkAccountDetailPage() {
@@ -62,8 +64,9 @@ export default function ArkAccountDetailPage() {
   )
 
   const balance = balanceQuery.data ?? cachedBalance
-  const spendable = balance?.spendableSats ?? 0
-  const totalSize = spendable > 1_000_000_000 ? '4xl' : '6xl'
+  const total = balance ? getArkTotalSats(balance) : 0
+  const pending = balance ? getArkPendingSats(balance) : 0
+  const totalSize = total > 1_000_000_000 ? '4xl' : '6xl'
   const isLoading =
     (walletQuery.isLoading || balanceQuery.isLoading) && !balance
   const loadError = walletQuery.error ?? balanceQuery.error
@@ -158,7 +161,7 @@ export default function ArkAccountDetailPage() {
                     </SSText>
                   ) : (
                     <SSStyledSatText
-                      amount={spendable}
+                      amount={total}
                       decimals={0}
                       useZeroPadding={useZeroPadding}
                       currency={currencyUnit}
@@ -178,10 +181,20 @@ export default function ArkAccountDetailPage() {
                     <SSText color="muted">
                       {privacyMode
                         ? PRIVACY_MASK
-                        : formatFiatPrice(spendable, btcPrice)}
+                        : formatFiatPrice(total, btcPrice)}
                     </SSText>
                     <SSText size="xs" style={{ color: Colors.gray[500] }}>
                       {fiatCurrency}
+                    </SSText>
+                  </SSHStack>
+                )}
+                {pending > 0 && !privacyMode && (
+                  <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                    <SSIconTime width={13} height={13} />
+                    <SSText color="muted" size="xs">
+                      {t('ark.balance.pending', {
+                        amount: formatNumber(pending)
+                      })}
                     </SSText>
                   </SSHStack>
                 )}

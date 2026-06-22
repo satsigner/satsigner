@@ -4,9 +4,17 @@ import {
   type ReactNode,
   type SetStateAction,
   useEffect,
+  useRef,
   useState
 } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
 
 import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
@@ -125,6 +133,7 @@ function SSPinInput({
                     isActive={isActive}
                     isFilled={isFilled}
                   />
+                  {isActive && <PinCellGlow />}
                 </View>
               </LinearGradient>
             )
@@ -151,9 +160,9 @@ function SSPinInput({
               : null}
           </View>
         ) : null}
+        {feedback ? <View style={styles.feedbackSlot}>{feedback}</View> : null}
       </SSVStack>
       <SSVStack gap="md" itemsCenter widthFull>
-        {feedback}
         <SSKeyboard
           onPress={handlePress}
           onClear={handleClear}
@@ -214,6 +223,31 @@ function PinDigitGlassOverlay({
         style={[styles.pinGlassEdge, styles.pinGlassRight, { width: edge }]}
       />
     </View>
+  )
+}
+
+function PinCellGlow() {
+  const opacity = useSharedValue(0)
+  const started = useRef(false)
+
+  if (!started.current) {
+    started.current = true
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.07, { duration: 500 }),
+        withTiming(0, { duration: 500 })
+      ),
+      -1
+    )
+  }
+
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }))
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[styles.pinCellGlow, animatedStyle]}
+    />
   )
 }
 
@@ -284,6 +318,13 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     textAlign: 'center',
     width: '100%'
+  },
+  pinCellGlow: {
+    backgroundColor: Colors.white,
+    borderRadius: Sizes.pinInput.borderRadius,
+    inset: 0,
+    position: 'absolute',
+    zIndex: 2
   },
   pinGlassBottom: {
     bottom: 0,

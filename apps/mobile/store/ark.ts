@@ -3,21 +3,18 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
 import type { ArkAccount, ArkBalance } from '@/types/models/Ark'
-import type { Network } from '@/types/settings/blockchain'
 
 type BalanceMap = Record<string, ArkBalance | undefined>
 
 type ArkState = {
   accounts: ArkAccount[]
   balances: BalanceMap
-  serverAccessTokens: Partial<Record<Network, string>>
 }
 
 type ArkAction = {
   addAccount: (account: ArkAccount) => void
   removeAccount: (accountId: string) => void
   updateBalance: (accountId: string, balance: ArkBalance) => void
-  setServerAccessToken: (network: Network, token: string) => void
   clearAllData: () => void
 }
 
@@ -34,8 +31,7 @@ export const useArkStore = create<ArkState & ArkAction>()(
       clearAllData: () =>
         set({
           accounts: [],
-          balances: {},
-          serverAccessTokens: {}
+          balances: {}
         }),
       removeAccount: (accountId) =>
         set((state) => {
@@ -45,14 +41,6 @@ export const useArkStore = create<ArkState & ArkAction>()(
             balances: remainingBalances
           }
         }),
-      serverAccessTokens: {},
-      setServerAccessToken: (network, token) =>
-        set((state) => ({
-          serverAccessTokens: {
-            ...state.serverAccessTokens,
-            [network]: token
-          }
-        })),
       updateBalance: (accountId, balance) =>
         set((state) => ({
           balances: { ...state.balances, [accountId]: balance }
@@ -62,8 +50,7 @@ export const useArkStore = create<ArkState & ArkAction>()(
       name: 'satsigner-ark',
       partialize: (state) => ({
         accounts: state.accounts,
-        balances: state.balances,
-        serverAccessTokens: state.serverAccessTokens
+        balances: state.balances
       }),
       storage: createJSONStorage(() => mmkvStorage),
       version: 1
