@@ -283,7 +283,7 @@ export default function IOPreview() {
     return null
   }
 
-  async function tryParseUriWithValidation(
+  function tryParseUriWithValidation(
     content: string
   ): Promise<ParsedUriParams | null> {
     const parsed = parseUriParameters(content)
@@ -291,10 +291,7 @@ export default function IOPreview() {
       return null
     }
 
-    const detectedContent = await detectContentByContext(
-      parsed.address,
-      'bitcoin'
-    )
+    const detectedContent = detectContentByContext(parsed.address, 'bitcoin')
     if (!detectedContent.isValid) {
       return null
     }
@@ -321,10 +318,7 @@ export default function IOPreview() {
     }
 
     // Step 3: Try content detection
-    const detectedContent = await detectContentByContext(
-      processedContent,
-      'bitcoin'
-    )
+    const detectedContent = detectContentByContext(processedContent, 'bitcoin')
     if (detectedContent.isValid) {
       const success = processContentForOutput(detectedContent, {
         onError: () => setOutputTo(processedContent),
@@ -1058,9 +1052,6 @@ export default function IOPreview() {
                         ? remainingSats + originalOutputAmount - minerFee
                         : remainingSats - minerFee
                     }
-                    fiatCurrency={fiatCurrency}
-                    btcPrice={btcPrice}
-                    satsToFiat={satsToFiat}
                     onValueChange={(value) => setOutputAmount(value)}
                   />
                 </SSVStack>
