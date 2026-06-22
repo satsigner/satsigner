@@ -11,6 +11,7 @@ import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT } from '@/constants/btc'
+import { LIGHTNING_CHANNEL_THRESHOLD } from '@/constants/lightning'
 import {
   useArkAddress,
   useArkBolt11InvoiceMutation
@@ -20,7 +21,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
-import { LIGHTNING_CHANNEL_THRESHOLD } from '@/constants/lightning'
 
 type ReceiveTab = 'ark' | 'lightning'
 

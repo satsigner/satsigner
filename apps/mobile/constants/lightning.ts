@@ -1,4 +1,3 @@
-
 // The LN payment maximum value depends which channels are connected.
 //
 // Payment Size      Expectation
