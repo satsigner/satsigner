@@ -3,7 +3,6 @@ import { Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
@@ -19,9 +18,9 @@ import {
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
+import { LIGHTNING_CHANNEL_THRESHOLD } from '@/constants/lightning'
 
 type ReceiveTab = 'ark' | 'lightning'
 
@@ -46,14 +45,6 @@ export default function ArkReceivePage() {
   const invoice = invoiceMutation.data
   const amountSats = Number(amount || 0)
   const canCreateInvoice = amountSats > 0 && !invoiceMutation.isPending
-
-  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.btcPrice
-    ])
-  )
 
   function handleGenerateNewAddress() {
     addressQuery.refetch()
@@ -166,11 +157,8 @@ export default function ArkReceivePage() {
                   </SSVStack>
                   <SSAmountInput
                     min={DUST_LIMIT}
-                    max={100_000_000}
-                    value={amount ? formatNumber(parseInt(amount, 10)) : ''}
-                    fiatCurrency={fiatCurrency}
-                    btcPrice={btcPrice}
-                    satsToFiat={satsToFiat}
+                    max={LIGHTNING_CHANNEL_THRESHOLD}
+                    value={Number(amount)}
                     onValueChange={(value) => setAmount(`${value}`)}
                   />
                   <SSVStack gap="xs">
