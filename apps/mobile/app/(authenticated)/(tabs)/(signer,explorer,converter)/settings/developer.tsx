@@ -139,8 +139,7 @@ export default function Developer() {
     const backupData = {
       accounts: accountsWithSeeds,
       ark: {
-        accounts: arkState.accounts,
-        serverAccessTokens: arkState.serverAccessTokens
+        accounts: arkState.accounts
       },
       ecash: {
         accounts: ecashState.accounts,
@@ -357,6 +356,14 @@ export default function Developer() {
               label={t('settings.developer.skipPin')}
               selected={skipPin}
               onPress={() => setSkipPin(!skipPin)}
+            />
+          </SSVStack>
+          <SSSeparator color="gradient" />
+          <SSVStack>
+            <SSButton
+              label={t('settings.developer.design')}
+              onPress={() => router.navigate('/settings/design')}
+              variant="outline"
             />
           </SSVStack>
         </SSVStack>
