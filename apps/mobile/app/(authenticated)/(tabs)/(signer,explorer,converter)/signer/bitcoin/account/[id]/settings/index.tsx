@@ -614,7 +614,7 @@ export default function AccountSettings() {
           }}
         >
           <SSText uppercase size="lg" weight="bold">
-            Deleting account
+            {t('bitcoin.account.deletingAccount')}
           </SSText>
           <SSEllipsisAnimation size={20} delay={300} />
         </SSVStack>
