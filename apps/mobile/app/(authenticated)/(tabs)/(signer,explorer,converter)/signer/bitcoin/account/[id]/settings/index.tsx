@@ -603,9 +603,21 @@ export default function AccountSettings() {
           maxTries={3}
         />
       </SSModal>
-      <SSModal visible={deletingModalVisible} onClose={null}>
-        <SSText>Deleting account</SSText>
-        <SSEllipsisAnimation />
+      <SSModal visible={deletingModalVisible} onClose={() => null}>
+        <SSVStack
+          itemsCenter
+          style={{
+            flex: 1,
+            height: '100%',
+            justifyContent: 'center',
+            width: '100%'
+          }}
+        >
+          <SSText uppercase size="lg" weight="bold">
+            Deleting account
+          </SSText>
+          <SSEllipsisAnimation size={20} delay={300} />
+        </SSVStack>
       </SSModal>
     </ScrollView>
   )
