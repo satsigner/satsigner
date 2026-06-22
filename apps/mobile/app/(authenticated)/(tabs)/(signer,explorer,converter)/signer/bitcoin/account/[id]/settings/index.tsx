@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { SSIconCircle, SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinAuth from '@/components/SSPinAuth'
@@ -59,9 +60,10 @@ export default function AccountSettings() {
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
+  const [deletingModalVisible, setDeletingModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [showPinEntry, setShowPinEntry] = useState(false)
+  const [pinEntryModalVisible, setPinEntryModalVisible] = useState(false)
   const [pinEntryReason, setPinEntryReason] = useState<
     'mnemonic' | 'deletion' | null
   >()
@@ -107,32 +109,33 @@ export default function AccountSettings() {
 
   function handleOnViewMnemonic() {
     setPinEntryReason('mnemonic')
-    setShowPinEntry(true)
+    setPinEntryModalVisible(true)
   }
 
   function handleConfirmWalletDeletionWithPin() {
     setPinEntryReason('deletion')
     setDeleteModalVisible(false)
-    setShowPinEntry(true)
+    setPinEntryModalVisible(true)
   }
 
   function handleClosePinEntry() {
-    setShowPinEntry(false)
+    setPinEntryModalVisible(false)
   }
 
   async function handleSuccessPin() {
-    setShowPinEntry(false)
+    setPinEntryModalVisible(false)
     if (pinEntryReason === 'mnemonic') {
       await decryptMnemonic()
       setMnemonicModalVisible(true)
     }
     if (pinEntryReason === 'deletion') {
+      setDeletingModalVisible(true)
       setTimeout(deleteThisAccount, 500)
     }
   }
 
   function handlePinTriesOver() {
-    setShowPinEntry(false)
+    setPinEntryModalVisible(false)
   }
 
   function saveChanges() {
@@ -592,13 +595,17 @@ export default function AccountSettings() {
           setMnemonicModalVisible(true)
         }}
       />
-      <SSModal visible={showPinEntry} onClose={handleClosePinEntry}>
+      <SSModal visible={pinEntryModalVisible} onClose={handleClosePinEntry}>
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleSuccessPin}
           onTriesOver={handlePinTriesOver}
           maxTries={3}
         />
+      </SSModal>
+      <SSModal visible={deletingModalVisible} onClose={null}>
+        <SSText>Deleting account</SSText>
+        <SSEllipsisAnimation />
       </SSModal>
     </ScrollView>
   )
