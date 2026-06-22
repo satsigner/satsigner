@@ -283,9 +283,7 @@ export default function IOPreview() {
     return null
   }
 
-  function tryParseUriWithValidation(
-    content: string
-  ): Promise<ParsedUriParams | null> {
+  function tryParseUriWithValidation(content: string): ParsedUriParams | null {
     const parsed = parseUriParameters(content)
     if (!parsed) {
       return null
@@ -299,7 +297,7 @@ export default function IOPreview() {
     return parsed
   }
 
-  async function handlePasteFromClipboard(content: string) {
+  function handlePasteFromClipboard(content: string) {
     const trimmedContent = content.trim()
 
     // Step 1: Try BIP21 decode
@@ -311,7 +309,7 @@ export default function IOPreview() {
 
     // Step 2: Try manual URI parsing with validation
     const processedContent = stripBitcoinPrefix(trimmedContent)
-    const uriResult = await tryParseUriWithValidation(processedContent)
+    const uriResult = tryParseUriWithValidation(processedContent)
     if (uriResult && uriResult.amount !== undefined) {
       applyParsedOutput(uriResult)
       return
@@ -338,9 +336,9 @@ export default function IOPreview() {
   }
 
   const { pasteFromClipboard } = useClipboardPaste({
-    onPaste: async (content) => {
+    onPaste: (content) => {
       try {
-        await handlePasteFromClipboard(content)
+        handlePasteFromClipboard(content)
       } catch {
         setOutputTo(stripBitcoinPrefix(content.trim()))
       }
