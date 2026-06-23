@@ -40,92 +40,6 @@ import { validateAddress } from '@/utils/validation'
 
 import { styles } from '../../[id]/pay-invoice'
 
-function destinationDisplay(draft: ArkDestinationDraft): string {
-  if (draft.kind === 'arkoor') {
-    return truncateArkCounterparty(
-      draft.address,
-      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
-    )
-  }
-  if (draft.kind === 'bolt11') {
-    return truncateArkCounterparty(
-      draft.invoice,
-      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
-    )
-  }
-  if (draft.kind === 'lnaddress') {
-    return draft.address
-  }
-  if (draft.kind === 'onchain') {
-    return truncateArkCounterparty(
-      draft.address,
-      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
-    )
-  }
-  return truncateArkCounterparty(
-    draft.lnurl,
-    ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
-  )
-}
-
-function buildSendInput(
-  draft: ArkDestinationDraft,
-  amountSats: number,
-  comment: string
-): ArkSendInput {
-  const trimmedComment = comment.trim()
-  if (draft.kind === 'arkoor') {
-    return { address: draft.address, amountSats, kind: 'arkoor' }
-  }
-  if (draft.kind === 'bolt11') {
-    return {
-      amountSats: draft.amountSatsFromInvoice ? undefined : amountSats,
-      invoice: draft.invoice,
-      kind: 'bolt11'
-    }
-  }
-  if (draft.kind === 'lnaddress') {
-    return {
-      address: draft.address,
-      amountSats,
-      comment: trimmedComment || undefined,
-      kind: 'lnaddress'
-    }
-  }
-  if (draft.kind === 'onchain') {
-    return { address: draft.address, amountSats, kind: 'onchain' }
-  }
-  return {
-    amountSats,
-    comment: trimmedComment || undefined,
-    kind: 'lnurl',
-    lnurl: draft.lnurl
-  }
-}
-
-function successToastKey(outcome: ArkSendOutcome): string {
-  if (outcome.kind === 'arkoor') {
-    return 'ark.send.success.arkoor'
-  }
-  if (outcome.kind === 'onchain') {
-    return 'ark.send.success.onchain'
-  }
-  if (outcome.preimage) {
-    return 'ark.send.success.lightning'
-  }
-  return 'ark.send.success.lightningPending'
-}
-
-function feeKindFromDraft(draft: ArkDestinationDraft): ArkSendFeeKind {
-  if (draft.kind === 'arkoor') {
-    return 'arkoor'
-  }
-  if (draft.kind === 'onchain') {
-    return 'onchain'
-  }
-  return 'lightning'
-}
-
 export default function ArkSendConfirmPage() {
   const router = useRouter()
   const { id, destination } = useLocalSearchParams<{
@@ -452,6 +366,92 @@ export default function ArkSendConfirmPage() {
       </ScrollView>
     </SSMainLayout>
   )
+}
+
+function destinationDisplay(draft: ArkDestinationDraft): string {
+  if (draft.kind === 'arkoor') {
+    return truncateArkCounterparty(
+      draft.address,
+      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+    )
+  }
+  if (draft.kind === 'bolt11') {
+    return truncateArkCounterparty(
+      draft.invoice,
+      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+    )
+  }
+  if (draft.kind === 'lnaddress') {
+    return draft.address
+  }
+  if (draft.kind === 'onchain') {
+    return truncateArkCounterparty(
+      draft.address,
+      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+    )
+  }
+  return truncateArkCounterparty(
+    draft.lnurl,
+    ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+  )
+}
+
+function buildSendInput(
+  draft: ArkDestinationDraft,
+  amountSats: number,
+  comment: string
+): ArkSendInput {
+  const trimmedComment = comment.trim()
+  if (draft.kind === 'arkoor') {
+    return { address: draft.address, amountSats, kind: 'arkoor' }
+  }
+  if (draft.kind === 'bolt11') {
+    return {
+      amountSats: draft.amountSatsFromInvoice ? undefined : amountSats,
+      invoice: draft.invoice,
+      kind: 'bolt11'
+    }
+  }
+  if (draft.kind === 'lnaddress') {
+    return {
+      address: draft.address,
+      amountSats,
+      comment: trimmedComment || undefined,
+      kind: 'lnaddress'
+    }
+  }
+  if (draft.kind === 'onchain') {
+    return { address: draft.address, amountSats, kind: 'onchain' }
+  }
+  return {
+    amountSats,
+    comment: trimmedComment || undefined,
+    kind: 'lnurl',
+    lnurl: draft.lnurl
+  }
+}
+
+function successToastKey(outcome: ArkSendOutcome): string {
+  if (outcome.kind === 'arkoor') {
+    return 'ark.send.success.arkoor'
+  }
+  if (outcome.kind === 'onchain') {
+    return 'ark.send.success.onchain'
+  }
+  if (outcome.preimage) {
+    return 'ark.send.success.lightning'
+  }
+  return 'ark.send.success.lightningPending'
+}
+
+function feeKindFromDraft(draft: ArkDestinationDraft): ArkSendFeeKind {
+  if (draft.kind === 'arkoor') {
+    return 'arkoor'
+  }
+  if (draft.kind === 'onchain') {
+    return 'onchain'
+  }
+  return 'lightning'
 }
 
 function destinationSource(draft: ArkDestinationDraft): string {
