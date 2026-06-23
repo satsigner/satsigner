@@ -1,5 +1,6 @@
 import { Modal, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Toaster } from 'sonner-native'
 
 import { t } from '@/locales'
 import { Colors, Layout } from '@/styles'
@@ -26,6 +27,7 @@ function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
           }
         ]}
       >
+        <Toaster /> {/* ensures toasts render above modal */}
         <View style={styles.container}>
           <ScrollView>
             {children}

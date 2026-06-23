@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Modal, Platform, ScrollView, StatusBar, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Toaster } from 'sonner-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -53,6 +54,7 @@ function SSSelectModal({
           paddingTop: insets.top
         }}
       >
+        <Toaster /> {/* ensures toasts render above modal */}
         <SSMainLayout black style={{ paddingBottom: 20 }}>
           <ScrollView>
             <SSVStack gap="lg">
