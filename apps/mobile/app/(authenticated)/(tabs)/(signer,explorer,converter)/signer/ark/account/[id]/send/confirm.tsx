@@ -38,6 +38,8 @@ import { millisatsToSats } from '@/utils/bitcoinUnits'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { validateAddress } from '@/utils/validation'
 
+import { styles } from '../../[id]/pay-invoice'
+
 function destinationDisplay(draft: ArkDestinationDraft): string {
   if (draft.kind === 'arkoor') {
     return truncateArkCounterparty(
@@ -467,29 +469,3 @@ function destinationSource(draft: ArkDestinationDraft): string {
   }
   return draft.lnurl
 }
-
-const styles = StyleSheet.create({
-  actionButton: {
-    flex: 1
-  },
-  actions: {
-    marginTop: 16
-  },
-  container: {
-    paddingBottom: 60,
-    paddingTop: 20
-  },
-  destinationBox: {
-    backgroundColor: Colors.gray[900],
-    borderColor: Colors.gray[800],
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 12
-  },
-  monospace: {
-    fontFamily: 'monospace'
-  },
-  totalRightColumn: {
-    alignItems: 'flex-end'
-  }
-})

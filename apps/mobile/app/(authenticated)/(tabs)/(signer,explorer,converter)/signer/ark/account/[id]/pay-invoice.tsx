@@ -221,7 +221,7 @@ export default function ArkPayInvoicePage() {
   )
 }
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   actionButton: {
     flex: 1
   },
