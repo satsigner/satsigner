@@ -75,12 +75,8 @@ export default function EcashSendPage() {
     tokenVersion
   } = useEcashSend()
 
-  const [fiatCurrency, btcPrice, satsToFiat] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.btcPrice,
-      state.satsToFiat
-    ])
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const { width } = useWindowDimensions()
@@ -213,10 +209,7 @@ export default function EcashSendPage() {
                     (acc, proof) => acc + proof.amount,
                     0
                   )}
-                  fiatCurrency={fiatCurrency}
-                  btcPrice={btcPrice}
                   privacyMode={privacyMode}
-                  satsToFiat={satsToFiat}
                 />
               </SSVStack>
               <SSVStack gap="xs">
