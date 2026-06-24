@@ -4,11 +4,14 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
+import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { DUST_LIMIT } from '@/constants/btc'
+import { LIGHTNING_CHANNEL_THRESHOLD } from '@/constants/lightning'
 import {
   useArkAddress,
   useArkBolt11InvoiceMutation
@@ -152,6 +155,12 @@ export default function ArkReceivePage() {
                       keyboardType="numeric"
                     />
                   </SSVStack>
+                  <SSAmountInput
+                    min={DUST_LIMIT}
+                    max={LIGHTNING_CHANNEL_THRESHOLD}
+                    value={Number(amount)}
+                    onValueChange={(value) => setAmount(`${value}`)}
+                  />
                   <SSVStack gap="xs">
                     <SSText color="muted" size="xs" uppercase>
                       {t('ark.receive.description')}

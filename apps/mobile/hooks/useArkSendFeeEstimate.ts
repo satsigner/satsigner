@@ -15,7 +15,6 @@ export type UseArkSendFeeEstimateArgs = {
   amountSats: number
   bitcoinAddress?: string
 }
-
 export function useArkSendFeeEstimate({
   accountId,
   kind,
