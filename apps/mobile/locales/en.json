@@ -776,6 +776,8 @@
     "receive.amount": "Amount",
     "receive.arkTab": "Ark",
     "receive.createInvoice": "Create Invoice",
+    "receive.description": "Description",
+    "receive.descriptionPlaceholder": "Optional note",
     "receive.generateNewAddress": "Generate new address",
     "receive.lightningTab": "Lightning",
     "receive.newInvoice": "New Invoice",

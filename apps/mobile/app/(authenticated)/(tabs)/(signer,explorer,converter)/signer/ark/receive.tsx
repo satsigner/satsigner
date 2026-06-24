@@ -146,21 +146,13 @@ export default function ArkReceivePage() {
                     <SSText color="muted" size="xs" uppercase>
                       {t('ark.receive.amount')} ({t('bitcoin.sats')})
                     </SSText>
-                    <SSTextInput
-                      value={amount ? formatNumber(parseInt(amount, 10)) : ''}
-                      onChangeText={(text) =>
-                        setAmount(text.replace(/[^0-9]/g, ''))
-                      }
-                      placeholder="0"
-                      keyboardType="numeric"
+                    <SSAmountInput
+                      min={DUST_LIMIT}
+                      max={LIGHTNING_CHANNEL_THRESHOLD}
+                      value={Number(amount)}
+                      onValueChange={(value) => setAmount(`${value}`)}
                     />
                   </SSVStack>
-                  <SSAmountInput
-                    min={DUST_LIMIT}
-                    max={LIGHTNING_CHANNEL_THRESHOLD}
-                    value={Number(amount)}
-                    onValueChange={(value) => setAmount(`${value}`)}
-                  />
                   <SSVStack gap="xs">
                     <SSText color="muted" size="xs" uppercase>
                       {t('ark.receive.description')}
