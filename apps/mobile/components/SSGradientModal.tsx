@@ -24,7 +24,7 @@ function SSGradientModal({
   return (
     <Modal visible={visible} transparent animationType="fade">
       <SSMainLayout style={styles.containerBase}>
-        <Toaster /> {/* ensures toasts render above modal */}
+        <Toaster />
         <LinearGradient
           style={styles.gradientContainerBase}
           colors={[Colors.gray[950], Colors.gray[800]]}

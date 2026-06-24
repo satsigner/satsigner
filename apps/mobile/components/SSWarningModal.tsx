@@ -27,7 +27,7 @@ function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
           }
         ]}
       >
-        <Toaster /> {/* ensures toasts render above modal */}
+        <Toaster />
         <View style={styles.container}>
           <ScrollView>
             {children}

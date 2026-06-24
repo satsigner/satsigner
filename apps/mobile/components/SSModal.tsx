@@ -38,8 +38,8 @@ function SSModal({
           { paddingBottom: insets.bottom, paddingTop: insets.top }
         ]}
       >
+        <Toaster />
         <View style={styles.container}>
-          <Toaster /> {/* ensures toasts render above modal */}
           <SSVStack justifyBetween itemsCenter style={styles.innerContainer}>
             {children}
             {showLabel && label && (

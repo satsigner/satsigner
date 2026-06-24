@@ -54,7 +54,7 @@ function SSSelectModal({
           paddingTop: insets.top
         }}
       >
-        <Toaster /> {/* ensures toasts render above modal */}
+        <Toaster />
         <SSMainLayout black style={{ paddingBottom: 20 }}>
           <ScrollView>
             <SSVStack gap="lg">
