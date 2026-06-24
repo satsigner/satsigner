@@ -8,7 +8,6 @@ import { useShallow } from 'zustand/react/shallow'
 import { SSIconCircle, SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinAuth from '@/components/SSPinAuth'
@@ -60,7 +59,7 @@ export default function AccountSettings() {
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
-  const [deletingModalVisible, setDeletingModalVisible] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [pinEntryModalVisible, setPinEntryModalVisible] = useState(false)
@@ -129,7 +128,7 @@ export default function AccountSettings() {
       setMnemonicModalVisible(true)
     }
     if (pinEntryReason === 'deletion') {
-      setDeletingModalVisible(true)
+      setIsDeletingAccount(true)
       setTimeout(deleteThisAccount, 500)
     }
   }
@@ -436,6 +435,7 @@ export default function AccountSettings() {
           <SSButton
             label={t('account.delete.title')}
             style={styles.deleteButton}
+            loading={isDeletingAccount}
             onPress={() => setDeleteModalVisible(true)}
           />
           <SSButton
@@ -602,22 +602,6 @@ export default function AccountSettings() {
           onTriesOver={handlePinTriesOver}
           maxTries={3}
         />
-      </SSModal>
-      <SSModal visible={deletingModalVisible} onClose={() => null}>
-        <SSVStack
-          itemsCenter
-          style={{
-            flex: 1,
-            height: '100%',
-            justifyContent: 'center',
-            width: '100%'
-          }}
-        >
-          <SSText uppercase size="lg" weight="bold">
-            {t('bitcoin.account.deletingAccount')}
-          </SSText>
-          <SSEllipsisAnimation size={20} delay={300} />
-        </SSVStack>
       </SSModal>
     </ScrollView>
   )
