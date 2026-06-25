@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc, { type RpcBlock } from '@/api/rpc'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
 import SSText from '@/components/SSText'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
@@ -154,6 +155,68 @@ async function fetchFromElectrum(
   return data
 }
 
+async function fetchFromRpc(
+  url: string,
+  username: string,
+  password: string
+): Promise<Partial<ChainData>> {
+  const data: Partial<ChainData> = {}
+  const rpc = new BitcoinRpc(url, username, password)
+
+  await Promise.all([
+    (async () => {
+      try {
+        const info = await rpc.getBlockchainInfo()
+        data.height = info.blocks
+        data.hash = info.bestblockhash
+        data.blockSource = 'backend'
+        const rpcBlock: RpcBlock = await rpc.getBlock(info.bestblockhash)
+        data.block = {
+          height: rpcBlock.height,
+          size: rpcBlock.size,
+          timestamp: rpcBlock.time,
+          tx_count: rpcBlock.tx.length,
+          weight: rpcBlock.weight
+        }
+      } catch {
+        /* silently ignored */
+      }
+    })(),
+    (async () => {
+      try {
+        const mempoolInfo = await rpc.getMempoolInfo()
+        data.mempool = {
+          count: mempoolInfo.size,
+          vsize: mempoolInfo.bytes
+        }
+        data.mempoolSource = 'backend'
+      } catch {
+        /* silently ignored */
+      }
+    })(),
+    (async () => {
+      try {
+        const feeResult = await rpc.estimateSmartFee(1)
+        if (feeResult.feerate !== undefined) {
+          // feerate is BTC/kB — convert to sat/vB
+          const satPerVb = Math.round((feeResult.feerate * 1e8) / 1000)
+          data.fees = {
+            high: satPerVb,
+            low: Math.max(1, Math.round(satPerVb * 0.5)),
+            medium: Math.round(satPerVb * 0.75),
+            none: 1
+          }
+          data.feesSource = 'backend'
+        }
+      } catch {
+        /* silently ignored */
+      }
+    })()
+  ])
+
+  return data
+}
+
 async function fetchMempoolFallback(
   oracle: MempoolOracle,
   existing: Partial<ChainData>
@@ -240,6 +303,12 @@ export default function ChainTip() {
         partial = await fetchFromEsplora(esplora, oracle)
       } else if (server.backend === 'electrum' && server.url) {
         partial = await fetchFromElectrum(server.url, selectedNetwork)
+      } else if (server.backend === 'rpc' && server.url) {
+        partial = await fetchFromRpc(
+          server.url,
+          server.rpcCredentials?.username ?? '',
+          server.rpcCredentials?.password ?? ''
+        )
       }
 
       const full = await fetchMempoolFallback(fallbackOracle, partial)
