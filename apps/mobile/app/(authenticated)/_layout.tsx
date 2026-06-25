@@ -93,7 +93,11 @@ export default function AuthenticatedLayout() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadWallets() {
+    console.log(
+      `[loadWallets] justUnlocked=${justUnlocked} skipPin=${skipPin} connectionMode=${connectionMode} accounts=${accounts.length}`
+    )
     if (!(justUnlocked || skipPin)) {
+      console.log('[loadWallets] skipped — not just unlocked')
       return
     }
 
@@ -103,7 +107,11 @@ export default function AuthenticatedLayout() {
         const existsWallet = !isImportAddress
           ? !!wallets[account.id]
           : !!addresses[account.id]
+        console.log(
+          `[loadWallets] account=${account.id} isImportAddress=${isImportAddress} existsWallet=${existsWallet}`
+        )
         if (existsWallet) {
+          console.log(`[loadWallets] skipping account=${account.id} — wallet already in memory`)
           continue
         }
 
@@ -123,7 +131,7 @@ export default function AuthenticatedLayout() {
             )
           : undefined
         if (walletData) {
-          addAccountWallet(account.id, walletData.wallet)
+          addAccountWallet(account.id, walletData.wallet, walletData.dbPath)
         }
 
         if (isImportAddress && typeof tmpAccount.keys[0].secret === 'object') {
