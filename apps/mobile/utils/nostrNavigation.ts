@@ -48,6 +48,10 @@ export function nostrAccountHref(
   return `/signer/nostr/account/${npub}/${segment}` as Href
 }
 
+export function nostrFileDetailHref(npub: string, sha256: string): Href {
+  return `/signer/nostr/account/${npub}/files/${sha256}` as Href
+}
+
 export function nostrZapDetailHref(npub: string, zapId: string): Href {
   return `/signer/nostr/account/${npub}/zap/${zapId}` as Href
 }

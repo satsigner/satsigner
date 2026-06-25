@@ -49,6 +49,11 @@ export const NOSTR_CONTACT_QR_SLIDE_KEYS = {
   NPUB: 'npub',
   SILENT_PAYMENT: 'silent-payment'
 } as const
+export const NOSTR_BLOSSOM_FILE_DISPLAY_HASH_LENGTH = 12
+export const NOSTR_BLOSSOM_FILE_PREVIEW_HEIGHT = 280
+export const NOSTR_BLOSSOM_FILE_ROW_HEIGHT = 72
+export const NOSTR_BLOSSOM_FILES_STALE_TIME_MS = 5 * 60_000
+export const NOSTR_BLOSSOM_SERVERS_STALE_TIME_MS = 10 * 60_000
 export const NOSTR_PROFILE_BATCH_SIZE = 40
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
 export const NOSTR_HIDDEN_KEY_MASK_LONG = '••••••••••••••••••••••••••••••••'
