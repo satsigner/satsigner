@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { deleteWalletDb } from '@/api/bdk'
 import { SSIconCircle, SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -49,8 +50,8 @@ export default function AccountSettings() {
     ])
   )
   const account = accounts.find((_account) => _account.id === currentAccountId)
-  const removeAccountWallet = useWalletsStore(
-    (state) => state.removeAccountWallet
+  const [removeAccountWallet, dbPaths] = useWalletsStore(
+    useShallow((state) => [state.removeAccountWallet, state.dbPaths])
   )
 
   const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
@@ -60,6 +61,7 @@ export default function AccountSettings() {
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [rescanModalVisible, setRescanModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [pinEntryModalVisible, setPinEntryModalVisible] = useState(false)
@@ -145,6 +147,17 @@ export default function AccountSettings() {
   function deleteThisAccount() {
     deleteAccount(currentAccountId!)
     removeAccountWallet(currentAccountId!)
+    router.replace('/signer/bitcoin/accountList')
+  }
+
+  async function handleRescan() {
+    setRescanModalVisible(false)
+    const dbPath = dbPaths[currentAccountId!]
+    if (dbPath) {
+      await deleteWalletDb(dbPath)
+    }
+    removeAccountWallet(currentAccountId!)
+    toast.success(t('account.rescan.success'))
     router.replace('/signer/bitcoin/accountList')
   }
 
@@ -432,6 +445,13 @@ export default function AccountSettings() {
         </SSVStack>
 
         <SSVStack style={styles.actionsContainer}>
+          {account.keys[0].creationType !== 'importAddress' && (
+            <SSButton
+              label={t('account.rescan.title')}
+              variant="outline"
+              onPress={() => setRescanModalVisible(true)}
+            />
+          )}
           <SSButton
             label={t('account.delete.title')}
             style={styles.deleteButton}
@@ -446,6 +466,30 @@ export default function AccountSettings() {
           />
         </SSVStack>
       </SSVStack>
+      <SSModal
+        visible={rescanModalVisible}
+        onClose={() => setRescanModalVisible(false)}
+      >
+        <SSVStack style={styles.deleteModalOuterContainer}>
+          <SSText center uppercase>
+            {t('account.rescan.confirm')}
+          </SSText>
+          <SSText center color="muted" size="sm">
+            {t('account.rescan.description')}
+          </SSText>
+          <SSHStack style={styles.deleteModalInnerContainer}>
+            <SSButton
+              label={t('common.yes')}
+              variant="secondary"
+              onPress={handleRescan}
+            />
+            <SSButton
+              label={t('common.no')}
+              onPress={() => setRescanModalVisible(false)}
+            />
+          </SSHStack>
+        </SSVStack>
+      </SSModal>
       <SSModal
         visible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}
