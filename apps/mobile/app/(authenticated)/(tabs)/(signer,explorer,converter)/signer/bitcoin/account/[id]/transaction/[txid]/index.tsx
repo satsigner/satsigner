@@ -136,7 +136,8 @@ export default function TxDetails() {
         tx,
         currentServer.backend,
         currentServer.network,
-        currentServer.url
+        currentServer.url,
+        currentServer.rpcCredentials
       )
       loadTx(accountId!, { ...tx, vin })
     }
