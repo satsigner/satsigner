@@ -1,4 +1,3 @@
-import { FlashList } from '@shopify/flash-list'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { ActivityIndicator, StyleSheet } from 'react-native'
@@ -10,7 +9,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { Colors } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import { type NostrContactItem } from '@/types/models/Nostr'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 import { nostrContactProfileHref } from '@/utils/nostrNavigation'
@@ -44,7 +43,7 @@ export default function NostrContacts() {
   }
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={{ paddingHorizontal: 0 }}>
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -84,7 +83,11 @@ export default function NostrContacts() {
           </SSText>
         </SSVStack>
       ) : (
-        <SSNostrContactList contacts={contacts} onPress={handleContactPress} />
+        <SSNostrContactList
+          contacts={contacts}
+          fullWidth
+          onPress={handleContactPress}
+        />
       )}
     </SSMainLayout>
   )
@@ -109,6 +112,7 @@ function RelayList({ relays }: RelayListProps) {
 const styles = StyleSheet.create({
   center: {
     flex: 1,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal
   }
 })
