@@ -12,7 +12,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type Network } from '@/types/settings/blockchain'
+import { type Network, type RpcCredentials } from '@/types/settings/blockchain'
 import {
   decryptAllAccountKeySecrets,
   updateAccountObjectLabels
@@ -38,12 +38,19 @@ function useSyncAccountWithAddress() {
     ])
   )
 
-  const [backend, network, url, configsMempol] = useBlockchainStore(
-    useShallow((state) => {
-      const { server } = state.configs[state.selectedNetwork]
-      return [server.backend, server.network, server.url, state.configsMempool]
-    })
-  )
+  const [backend, network, url, configsMempol, rpcCredentials] =
+    useBlockchainStore(
+      useShallow((state) => {
+        const { server } = state.configs[state.selectedNetwork]
+        return [
+          server.backend,
+          server.network,
+          server.url,
+          state.configsMempool,
+          server.rpcCredentials as RpcCredentials | undefined
+        ]
+      })
+    )
 
   const [loading, setLoading] = useState(false)
 
@@ -567,6 +574,11 @@ function useSyncAccountWithAddress() {
           url,
           network
         )
+      } else if (backend === 'rpc') {
+        // Bitcoin Core RPC does not support per-address history lookups
+        // without a watching wallet. Use BDK wallet sync (useSyncAccountWithWallet)
+        // for RPC-backed accounts instead.
+        throw new Error(t('account.sync.rpcAddressSyncUnsupported'))
       } else {
         throw new Error('unknown backend')
       }
