@@ -252,8 +252,6 @@ export function SSNostrKindFilterSheet({
   )
 }
 
-export const ssnostrKindFilterRowStyle = styles.filterRow
-
 const styles = StyleSheet.create({
   filterRow: {
     alignItems: 'center',
@@ -328,3 +326,5 @@ const styles = StyleSheet.create({
     opacity: 0.65
   }
 })
+
+export const ssnostrKindFilterRowStyle = styles.filterRow
