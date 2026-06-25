@@ -283,18 +283,13 @@ export default function IOPreview() {
     return null
   }
 
-  async function tryParseUriWithValidation(
-    content: string
-  ): Promise<ParsedUriParams | null> {
+  function tryParseUriWithValidation(content: string): ParsedUriParams | null {
     const parsed = parseUriParameters(content)
     if (!parsed) {
       return null
     }
 
-    const detectedContent = await detectContentByContext(
-      parsed.address,
-      'bitcoin'
-    )
+    const detectedContent = detectContentByContext(parsed.address, 'bitcoin')
     if (!detectedContent.isValid) {
       return null
     }
@@ -302,7 +297,7 @@ export default function IOPreview() {
     return parsed
   }
 
-  async function handlePasteFromClipboard(content: string) {
+  function handlePasteFromClipboard(content: string) {
     const trimmedContent = content.trim()
 
     // Step 1: Try BIP21 decode
@@ -314,17 +309,14 @@ export default function IOPreview() {
 
     // Step 2: Try manual URI parsing with validation
     const processedContent = stripBitcoinPrefix(trimmedContent)
-    const uriResult = await tryParseUriWithValidation(processedContent)
+    const uriResult = tryParseUriWithValidation(processedContent)
     if (uriResult && uriResult.amount !== undefined) {
       applyParsedOutput(uriResult)
       return
     }
 
     // Step 3: Try content detection
-    const detectedContent = await detectContentByContext(
-      processedContent,
-      'bitcoin'
-    )
+    const detectedContent = detectContentByContext(processedContent, 'bitcoin')
     if (detectedContent.isValid) {
       const success = processContentForOutput(detectedContent, {
         onError: () => setOutputTo(processedContent),
@@ -344,9 +336,9 @@ export default function IOPreview() {
   }
 
   const { pasteFromClipboard } = useClipboardPaste({
-    onPaste: async (content) => {
+    onPaste: (content) => {
       try {
-        await handlePasteFromClipboard(content)
+        handlePasteFromClipboard(content)
       } catch {
         setOutputTo(stripBitcoinPrefix(content.trim()))
       }
@@ -1058,9 +1050,6 @@ export default function IOPreview() {
                         ? remainingSats + originalOutputAmount - minerFee
                         : remainingSats - minerFee
                     }
-                    fiatCurrency={fiatCurrency}
-                    btcPrice={btcPrice}
-                    satsToFiat={satsToFiat}
                     onValueChange={(value) => setOutputAmount(value)}
                   />
                 </SSVStack>

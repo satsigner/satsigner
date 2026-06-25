@@ -1,3 +1,16 @@
+// The LN payment maximum value depends which channels are connected.
+//
+// Payment Size      Expectation
+// <100K sats        Almost always works
+// 100K – 1M sats    Usually works, minor routing failures
+// 1M – 5M sats      Needs good path, may require splits (MPP)
+// 5M – 20M sats     Direct/wumbo channels or custodials only
+// >20M sats         Very limited paths, likely need on-chain or exchange
+//
+// We are (temporarily) hardcoding the value.
+// TODO: make it possible for users to configure the channel threshold.
+export const LIGHTNING_CHANNEL_THRESHOLD = 1_000_000
+
 export const LND_FORWARDING_MAX_EVENTS = 200
 export const LND_FORWARDING_INDEX_OFFSET = 0
 export const LND_REST = {

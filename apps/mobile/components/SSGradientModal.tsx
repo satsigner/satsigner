@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { Modal, StyleSheet } from 'react-native'
+import { Toaster } from 'sonner-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { t } from '@/locales'
@@ -23,6 +24,7 @@ function SSGradientModal({
   return (
     <Modal visible={visible} transparent animationType="fade">
       <SSMainLayout style={styles.containerBase}>
+        <Toaster />
         <LinearGradient
           style={styles.gradientContainerBase}
           colors={[Colors.gray[950], Colors.gray[800]]}

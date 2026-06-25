@@ -1,3 +1,4 @@
+import { UseQueryResult } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -19,6 +20,7 @@ import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
+import { ArkFeeEstimate } from '@/types/models/Ark'
 import { truncateArkCounterparty } from '@/utils/arkMovement'
 import { getBolt11Network } from '@/utils/bolt11Network'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
@@ -159,45 +161,14 @@ export default function ArkPayInvoicePage() {
               </SSText>
             )}
           </SSVStack>
-          {amountSats > 0 && (
-            <SSVStack gap="xs">
-              <SSHStack justifyBetween>
-                <SSText color="muted" size="xs" uppercase>
-                  {t('ark.send.fee')}
-                </SSText>
-                {feeSats !== undefined ? (
-                  <SSText size="xs">
-                    {formatNumber(feeSats)} {t('bitcoin.sats')}
-                  </SSText>
-                ) : feeEstimateQuery.isPending ? (
-                  <SSText color="muted" size="xs">
-                    {t('ark.send.feeEstimating')}
-                  </SSText>
-                ) : feeEstimateQuery.error ? (
-                  <SSText size="xs" style={{ color: Colors.warning }}>
-                    {t('ark.send.feeUnavailable')}
-                  </SSText>
-                ) : null}
-              </SSHStack>
-              {totalSats !== undefined && (
-                <SSHStack justifyBetween>
-                  <SSText color="muted" size="xs" uppercase>
-                    {t('ark.send.total')}
-                  </SSText>
-                  <SSVStack gap="none" style={styles.totalRightColumn}>
-                    <SSText size="xs">
-                      {formatNumber(totalSats)} {t('bitcoin.sats')}
-                    </SSText>
-                    {btcPrice > 0 && (
-                      <SSText color="muted" size="xs">
-                        {formatFiatPrice(totalSats, btcPrice)} {fiatCurrency}
-                      </SSText>
-                    )}
-                  </SSVStack>
-                </SSHStack>
-              )}
-            </SSVStack>
-          )}
+          <ArkInvoiceStats
+            amountSats={amountSats}
+            totalSats={totalSats}
+            btcPrice={btcPrice}
+            fiatCurrency={fiatCurrency}
+            feeSats={feeSats}
+            feeEstimateQuery={feeEstimateQuery}
+          />
           <SSHStack gap="sm" style={styles.actions}>
             <SSButton
               label={t('common.cancel')}
@@ -221,7 +192,68 @@ export default function ArkPayInvoicePage() {
   )
 }
 
-const styles = StyleSheet.create({
+type ArkInvoiceStatsProps = {
+  amountSats: number
+  btcPrice: number
+  feeEstimateQuery: UseQueryResult<ArkFeeEstimate, Error>
+  feeSats?: number
+  fiatCurrency: string
+  totalSats?: number
+}
+
+export function ArkInvoiceStats({
+  amountSats,
+  totalSats,
+  btcPrice,
+  fiatCurrency,
+  feeSats,
+  feeEstimateQuery
+}: ArkInvoiceStatsProps) {
+  if (amountSats <= 0) {
+    return null
+  }
+  return (
+    <SSVStack gap="xs">
+      <SSHStack justifyBetween>
+        <SSText color="muted" size="xs" uppercase>
+          {t('ark.send.fee')}
+        </SSText>
+        {feeSats !== undefined ? (
+          <SSText size="xs">
+            {formatNumber(feeSats)} {t('bitcoin.sats')}
+          </SSText>
+        ) : feeEstimateQuery.isPending ? (
+          <SSText color="muted" size="xs">
+            {t('ark.send.feeEstimating')}
+          </SSText>
+        ) : feeEstimateQuery.error ? (
+          <SSText size="xs" style={{ color: Colors.warning }}>
+            {t('ark.send.feeUnavailable')}
+          </SSText>
+        ) : null}
+      </SSHStack>
+      {totalSats !== undefined && (
+        <SSHStack justifyBetween>
+          <SSText color="muted" size="xs" uppercase>
+            {t('ark.send.total')}
+          </SSText>
+          <SSVStack gap="none" style={styles.totalRightColumn}>
+            <SSText size="xs">
+              {formatNumber(totalSats)} {t('bitcoin.sats')}
+            </SSText>
+            {btcPrice > 0 && (
+              <SSText color="muted" size="xs">
+                {formatFiatPrice(totalSats, btcPrice)} {fiatCurrency}
+              </SSText>
+            )}
+          </SSVStack>
+        </SSHStack>
+      )}
+    </SSVStack>
+  )
+}
+
+export const styles = StyleSheet.create({
   actionButton: {
     flex: 1
   },

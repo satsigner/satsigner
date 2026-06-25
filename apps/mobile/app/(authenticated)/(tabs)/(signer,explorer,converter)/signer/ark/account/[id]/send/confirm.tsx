@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -38,91 +38,7 @@ import { millisatsToSats } from '@/utils/bitcoinUnits'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { validateAddress } from '@/utils/validation'
 
-function destinationDisplay(draft: ArkDestinationDraft): string {
-  if (draft.kind === 'arkoor') {
-    return truncateArkCounterparty(
-      draft.address,
-      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
-    )
-  }
-  if (draft.kind === 'bolt11') {
-    return truncateArkCounterparty(
-      draft.invoice,
-      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
-    )
-  }
-  if (draft.kind === 'lnaddress') {
-    return draft.address
-  }
-  if (draft.kind === 'onchain') {
-    return truncateArkCounterparty(
-      draft.address,
-      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
-    )
-  }
-  return truncateArkCounterparty(
-    draft.lnurl,
-    ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
-  )
-}
-
-function buildSendInput(
-  draft: ArkDestinationDraft,
-  amountSats: number,
-  comment: string
-): ArkSendInput {
-  const trimmedComment = comment.trim()
-  if (draft.kind === 'arkoor') {
-    return { address: draft.address, amountSats, kind: 'arkoor' }
-  }
-  if (draft.kind === 'bolt11') {
-    return {
-      amountSats: draft.amountSatsFromInvoice ? undefined : amountSats,
-      invoice: draft.invoice,
-      kind: 'bolt11'
-    }
-  }
-  if (draft.kind === 'lnaddress') {
-    return {
-      address: draft.address,
-      amountSats,
-      comment: trimmedComment || undefined,
-      kind: 'lnaddress'
-    }
-  }
-  if (draft.kind === 'onchain') {
-    return { address: draft.address, amountSats, kind: 'onchain' }
-  }
-  return {
-    amountSats,
-    comment: trimmedComment || undefined,
-    kind: 'lnurl',
-    lnurl: draft.lnurl
-  }
-}
-
-function successToastKey(outcome: ArkSendOutcome): string {
-  if (outcome.kind === 'arkoor') {
-    return 'ark.send.success.arkoor'
-  }
-  if (outcome.kind === 'onchain') {
-    return 'ark.send.success.onchain'
-  }
-  if (outcome.preimage) {
-    return 'ark.send.success.lightning'
-  }
-  return 'ark.send.success.lightningPending'
-}
-
-function feeKindFromDraft(draft: ArkDestinationDraft): ArkSendFeeKind {
-  if (draft.kind === 'arkoor') {
-    return 'arkoor'
-  }
-  if (draft.kind === 'onchain') {
-    return 'onchain'
-  }
-  return 'lightning'
-}
+import { ArkInvoiceStats, styles } from '../../[id]/pay-invoice'
 
 export default function ArkSendConfirmPage() {
   const router = useRouter()
@@ -372,46 +288,14 @@ export default function ArkSendConfirmPage() {
                     </SSText>
                   )}
               </SSVStack>
-              {amountSats > 0 && (
-                <SSVStack gap="xs">
-                  <SSHStack justifyBetween>
-                    <SSText color="muted" size="xs" uppercase>
-                      {t('ark.send.fee')}
-                    </SSText>
-                    {feeSats !== undefined ? (
-                      <SSText size="xs">
-                        {formatNumber(feeSats)} {t('bitcoin.sats')}
-                      </SSText>
-                    ) : feeEstimateQuery.isPending ? (
-                      <SSText color="muted" size="xs">
-                        {t('ark.send.feeEstimating')}
-                      </SSText>
-                    ) : feeEstimateQuery.error ? (
-                      <SSText size="xs" style={{ color: Colors.warning }}>
-                        {t('ark.send.feeUnavailable')}
-                      </SSText>
-                    ) : null}
-                  </SSHStack>
-                  {totalSats !== undefined && (
-                    <SSHStack justifyBetween>
-                      <SSText color="muted" size="xs" uppercase>
-                        {t('ark.send.total')}
-                      </SSText>
-                      <SSVStack gap="none" style={styles.totalRightColumn}>
-                        <SSText size="xs">
-                          {formatNumber(totalSats)} {t('bitcoin.sats')}
-                        </SSText>
-                        {btcPrice > 0 && (
-                          <SSText color="muted" size="xs">
-                            {formatFiatPrice(totalSats, btcPrice)}{' '}
-                            {fiatCurrency}
-                          </SSText>
-                        )}
-                      </SSVStack>
-                    </SSHStack>
-                  )}
-                </SSVStack>
-              )}
+              <ArkInvoiceStats
+                amountSats={amountSats}
+                totalSats={totalSats}
+                btcPrice={btcPrice}
+                fiatCurrency={fiatCurrency}
+                feeSats={feeSats}
+                feeEstimateQuery={feeEstimateQuery}
+              />
               {showCommentField &&
                 (draft.kind !== 'lnurl' || (lnurlCommentAllowed ?? 0) > 0) && (
                   <SSVStack gap="xs">
@@ -452,6 +336,92 @@ export default function ArkSendConfirmPage() {
   )
 }
 
+function destinationDisplay(draft: ArkDestinationDraft): string {
+  if (draft.kind === 'arkoor') {
+    return truncateArkCounterparty(
+      draft.address,
+      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+    )
+  }
+  if (draft.kind === 'bolt11') {
+    return truncateArkCounterparty(
+      draft.invoice,
+      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+    )
+  }
+  if (draft.kind === 'lnaddress') {
+    return draft.address
+  }
+  if (draft.kind === 'onchain') {
+    return truncateArkCounterparty(
+      draft.address,
+      ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+    )
+  }
+  return truncateArkCounterparty(
+    draft.lnurl,
+    ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS
+  )
+}
+
+function buildSendInput(
+  draft: ArkDestinationDraft,
+  amountSats: number,
+  comment: string
+): ArkSendInput {
+  const trimmedComment = comment.trim()
+  if (draft.kind === 'arkoor') {
+    return { address: draft.address, amountSats, kind: 'arkoor' }
+  }
+  if (draft.kind === 'bolt11') {
+    return {
+      amountSats: draft.amountSatsFromInvoice ? undefined : amountSats,
+      invoice: draft.invoice,
+      kind: 'bolt11'
+    }
+  }
+  if (draft.kind === 'lnaddress') {
+    return {
+      address: draft.address,
+      amountSats,
+      comment: trimmedComment || undefined,
+      kind: 'lnaddress'
+    }
+  }
+  if (draft.kind === 'onchain') {
+    return { address: draft.address, amountSats, kind: 'onchain' }
+  }
+  return {
+    amountSats,
+    comment: trimmedComment || undefined,
+    kind: 'lnurl',
+    lnurl: draft.lnurl
+  }
+}
+
+function successToastKey(outcome: ArkSendOutcome): string {
+  if (outcome.kind === 'arkoor') {
+    return 'ark.send.success.arkoor'
+  }
+  if (outcome.kind === 'onchain') {
+    return 'ark.send.success.onchain'
+  }
+  if (outcome.preimage) {
+    return 'ark.send.success.lightning'
+  }
+  return 'ark.send.success.lightningPending'
+}
+
+function feeKindFromDraft(draft: ArkDestinationDraft): ArkSendFeeKind {
+  if (draft.kind === 'arkoor') {
+    return 'arkoor'
+  }
+  if (draft.kind === 'onchain') {
+    return 'onchain'
+  }
+  return 'lightning'
+}
+
 function destinationSource(draft: ArkDestinationDraft): string {
   if (draft.kind === 'arkoor') {
     return draft.address
@@ -467,29 +437,3 @@ function destinationSource(draft: ArkDestinationDraft): string {
   }
   return draft.lnurl
 }
-
-const styles = StyleSheet.create({
-  actionButton: {
-    flex: 1
-  },
-  actions: {
-    marginTop: 16
-  },
-  container: {
-    paddingBottom: 60,
-    paddingTop: 20
-  },
-  destinationBox: {
-    backgroundColor: Colors.gray[900],
-    borderColor: Colors.gray[800],
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 12
-  },
-  monospace: {
-    fontFamily: 'monospace'
-  },
-  totalRightColumn: {
-    alignItems: 'flex-end'
-  }
-})
