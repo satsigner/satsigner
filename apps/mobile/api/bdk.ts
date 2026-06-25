@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import {
   addressFromScript,
+  BdkRpcClient,
   BdkWallet,
   BdkTxBuilder,
   createPublicDescriptor,
@@ -20,7 +21,8 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import {
   type Backend,
-  type Network as BlockchainNetwork
+  type Network as BlockchainNetwork,
+  type RpcCredentials
 } from '@/types/settings/blockchain'
 import {
   getExtendedKeyFromDescriptor,
@@ -39,6 +41,7 @@ import { parseAccountAddressesDetails } from '@/utils/parse'
 
 import AppElectrumClient from './electrum'
 import Esplora from './esplora'
+import BitcoinRpc from './rpc'
 
 // Map BDK Network enum to app's string network type
 function toAppNetwork(network: Network): BlockchainNetwork {
@@ -91,12 +94,13 @@ async function getWalletDbPath(
 }
 
 type WalletData = {
-  fingerprint: string
+  dbPath: string
   derivationPath: string
   externalDescriptor: string
+  fingerprint: string
   internalDescriptor: string
-  wallet: BdkWallet
   keyFingerprints?: string[] // Optional for multisig accounts
+  wallet: BdkWallet
 }
 
 async function getWalletData(
@@ -140,13 +144,14 @@ async function getWalletData(
         const { internalDescriptor } = key.secret
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const wallet = await getWalletFromDescriptor(
+        const { wallet, dbPath } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
         )
 
         return {
+          dbPath,
           derivationPath: parsedDescriptor.derivationPath,
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
@@ -258,7 +263,7 @@ async function getWalletData(
 
       const parsedDescriptor = parseDescriptor(externalDescriptor)
 
-      const wallet = await getWalletFromDescriptor(
+      const { wallet, dbPath } = await getWalletFromDescriptor(
         externalDescriptor,
         internalDescriptor,
         network
@@ -267,6 +272,7 @@ async function getWalletData(
       const keyFingerprints = validKeyData.map((kd) => kd.fingerprint)
 
       return {
+        dbPath,
         derivationPath: parsedDescriptor.derivationPath,
         externalDescriptor: finalDescriptor,
         fingerprint: parsedDescriptor.fingerprint,
@@ -291,13 +297,14 @@ async function getWalletData(
         const { internalDescriptor } = key.secret
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const wallet = await getWalletFromDescriptor(
+        const { wallet, dbPath } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
         )
 
         return {
+          dbPath,
           derivationPath: parsedDescriptor.derivationPath,
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
@@ -353,13 +360,14 @@ async function getWalletData(
         )
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const wallet = await getWalletFromDescriptor(
+        const { wallet, dbPath } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
         )
 
         return {
+          dbPath,
           derivationPath: parsedDescriptor.derivationPath,
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
@@ -428,13 +436,14 @@ async function getWalletDataFromMnemonic(
 
   const { fingerprint, derivationPath } = parseDescriptor(externalDescriptor)
 
-  const wallet = await getWalletFromDescriptor(
+  const { wallet, dbPath } = await getWalletFromDescriptor(
     externalDescriptor,
     internalDescriptor,
     network
   )
 
   return {
+    dbPath,
     derivationPath,
     externalDescriptor,
     fingerprint,
@@ -498,11 +507,11 @@ async function getWalletFromDescriptor(
   externalDescriptor: string,
   internalDescriptor: string | undefined,
   network: Network
-): Promise<BdkWallet> {
+): Promise<{ wallet: BdkWallet; dbPath: string }> {
   const ext = externalDescriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
   const int = internalDescriptor?.replace(/#\w+$/, '').replace(/'/g, 'h')
   const dbPath = await getWalletDbPath(ext, int, network)
-  return new BdkWallet(ext, int, network, dbPath)
+  return { dbPath, wallet: new BdkWallet(ext, int, network, dbPath) }
 }
 
 async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
@@ -524,14 +533,96 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
   return getExtendedKeyFromDescriptor(externalDescriptor)
 }
 
+/**
+ * Estimate the block height for a wallet birthday by counting backwards from
+ * the known current tip. More accurate than projecting from genesis because it
+ * uses the real chain tip rather than an assumed average block time.
+ * Falls back to 0 if no tip is available.
+ */
+function estimateBirthHeight(birthday: Date, currentTip: number): number {
+  if (currentTip <= 0) return 0
+  const MS_PER_BLOCK = 10 * 60 * 1000 // ~10 minutes
+  const ageMs = Math.max(0, Date.now() - birthday.getTime())
+  const blocksFromTip = Math.round(ageMs / MS_PER_BLOCK)
+  // Two-week safety buffer so we never miss transactions near the boundary
+  const BUFFER_BLOCKS = 2016
+  return Math.max(0, currentTip - blocksFromTip - BUFFER_BLOCKS)
+}
+
 async function syncWallet(
   wallet: BdkWallet,
   backend: Backend,
   url: string,
   stopGap: number,
-  isFullScan: boolean
+  isFullScan: boolean,
+  rpcCredentials?: RpcCredentials,
+  walletBirthday?: Date,
+  currentTip?: number,
+  rpcScanFromHeight?: number,
+  isGeneratedWallet?: boolean,
+  onRpcProgress?: (current: number, tip: number, pct: number) => void
 ) {
-  if (isFullScan) {
+  if (backend === 'rpc') {
+    const rpcClient = new BdkRpcClient({
+      auth: rpcCredentials
+        ? {
+            password: rpcCredentials.password,
+            type: 'userPass',
+            username: rpcCredentials.username
+          }
+        : { type: 'none' },
+      url
+    })
+
+    // For a full scan use the wallet birthday as the start height.
+    // Downloading full blocks from genesis would take hours; starting near
+    // the wallet creation date keeps the scan practical.
+    const checkpointHeight = wallet.latestCheckpoint()?.height ?? 0
+    const scanFloor = rpcScanFromHeight ?? 0
+
+    let startHeight: number
+    if (!isFullScan) {
+      startHeight = checkpointHeight
+    } else if (isGeneratedWallet && walletBirthday && currentTip) {
+      // For wallets we created, estimate backwards from the known chain tip.
+      // This is accurate because we know exactly when the wallet was created.
+      startHeight = Math.max(scanFloor, estimateBirthHeight(walletBirthday, currentTip))
+    } else {
+      // For imported wallets the creation date is the import date, not the
+      // actual wallet birthday. Use the server-configured floor (default 0).
+      startHeight = scanFloor
+    }
+
+    console.log(
+      `[BDK sync] RPC url=${url} isFullScan=${isFullScan} isGenerated=${isGeneratedWallet ?? false} startHeight=${startHeight} scanFloor=${scanFloor} checkpointHeight=${checkpointHeight} currentTip=${currentTip ?? 'none'} birthday=${walletBirthday?.toISOString() ?? 'none'}`
+    )
+
+    await wallet.syncWithRpc(rpcClient, startHeight, {
+      fetchMempool: true,
+      inspector: onRpcProgress
+        ? {
+            inspect({ currentHeight, tipHeight, progress }) {
+              if (currentHeight % 1000 === 0 || progress >= 0.99) {
+                console.log(
+                  `[BDK sync] RPC progress ${Math.round(progress * 100)}% block ${currentHeight}/${tipHeight}`
+                )
+              }
+              onRpcProgress(currentHeight, tipHeight, progress)
+            }
+          }
+        : {
+            inspect({ currentHeight, tipHeight, progress }) {
+              if (currentHeight % 1000 === 0 || progress >= 0.99) {
+                console.log(
+                  `[BDK sync] RPC progress ${Math.round(progress * 100)}% block ${currentHeight}/${tipHeight}`
+                )
+              }
+            }
+          }
+    })
+
+    console.log('[BDK sync] RPC syncWithRpc completed')
+  } else if (isFullScan) {
     await (backend === 'electrum'
       ? wallet.fullScanWithElectrum(url, stopGap)
       : wallet.fullScanWithEsplora(url, stopGap))
@@ -824,7 +915,8 @@ async function getTransactionInputValues(
   tx: Transaction,
   backend: Backend,
   network: BlockchainNetwork,
-  url: string
+  url: string,
+  rpcCredentials?: RpcCredentials
 ): Promise<Transaction['vin']> {
   if (!tx.vin.some((input) => input.value === undefined)) {
     return tx.vin
@@ -851,6 +943,31 @@ async function getTransactionInputValues(
       value: input.value,
       witness: input.witness || []
     }))
+  }
+
+  if (backend === 'rpc') {
+    const rpcClient = new BitcoinRpc(
+      url,
+      rpcCredentials?.username ?? '',
+      rpcCredentials?.password ?? ''
+    )
+    vin = await Promise.all(
+      tx.vin.map(async (input) => {
+        if (!input.previousOutput?.txid) return input
+        try {
+          const prevTx = await rpcClient.getRawTransaction(
+            input.previousOutput.txid
+          )
+          const prevOut = prevTx.vout[input.previousOutput.vout ?? 0]
+          return {
+            ...input,
+            value: prevOut ? Math.round(prevOut.value * 1e8) : undefined
+          }
+        } catch {
+          return input
+        }
+      })
+    )
   }
 
   for (const [index, vinItem] of vin.entries()) {
@@ -908,17 +1025,44 @@ function broadcastTransaction(
   wallet: BdkWallet,
   psbt: PsbtLike,
   backend: Backend,
-  url: string
+  url: string,
+  rpcCredentials?: RpcCredentials
 ): Promise<string> {
   if (backend === 'electrum') {
     return wallet.broadcastWithElectrum(url, psbt)
   }
+  if (backend === 'rpc') {
+    const rpcClient = new BdkRpcClient({
+      auth: rpcCredentials
+        ? {
+            password: rpcCredentials.password,
+            type: 'userPass',
+            username: rpcCredentials.username
+          }
+        : { type: 'none' },
+      url
+    })
+    return wallet.broadcastWithRpc(rpcClient, psbt)
+  }
   return wallet.broadcastWithEsplora(url, psbt)
+}
+
+async function deleteWalletDb(dbPath: string): Promise<void> {
+  try {
+    const uri = dbPath.startsWith('/') ? `file://${dbPath}` : dbPath
+    const info = await FileSystem.getInfoAsync(uri)
+    if (info.exists) {
+      await FileSystem.deleteAsync(uri, { idempotent: true })
+    }
+  } catch {
+    // best-effort; if the file is already gone the wallet will be recreated
+  }
 }
 
 export {
   broadcastTransaction,
   buildTransaction,
+  deleteWalletDb,
   getDescriptorString,
   getExtendedPublicKeyFromAccountKey,
   getLastUnusedAddressFromWallet,
