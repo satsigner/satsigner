@@ -30,7 +30,7 @@ import type {
 import type { Network } from '@/types/settings/blockchain'
 
 const ROUND_TX_REQUIRED_CONFIRMATIONS = 0 // Later allow users to change this on the Ark settings
-const LIGHTNING_SEND_WAIT = true // Block until the send reaches a terminal state
+const LIGHTNING_SEND_WAIT = false
 const walletCache = new Map<string, WalletLike>()
 const inflightOpens = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()
