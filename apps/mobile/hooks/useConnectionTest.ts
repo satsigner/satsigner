@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import {
   type Backend,
   type Network,
-  type ProxyConfig
+  type ProxyConfig,
+  type RpcCredentials
 } from '@/types/settings/blockchain'
 
 type NodeInfo = {
@@ -25,6 +27,8 @@ export type ConnectionTestResult =
       success: true
       blockHeight?: number
       tipTimestampSec?: number
+      /** True when blockfilterindex=1 is missing — wallet sync will be slow */
+      blockFilterIndexMissing?: boolean
     }
   | {
       success: false
@@ -56,7 +60,8 @@ export function useConnectionTest() {
     url: string,
     backend: Backend,
     network: Network,
-    proxy?: ProxyConfig
+    proxy?: ProxyConfig,
+    rpcCredentials?: RpcCredentials
   ): Promise<ConnectionTestResult> {
     // Debounce rapid connection attempts to prevent memory issues
     const now = Date.now()
@@ -203,6 +208,39 @@ export function useConnectionTest() {
           success: true,
           tipTimestampSec
         }
+      } else if (backend === 'rpc') {
+        const rpc = new BitcoinRpc(
+          url,
+          rpcCredentials?.username ?? '',
+          rpcCredentials?.password ?? ''
+        )
+
+        const chainInfo = await rpc.getBlockchainInfo()
+        const mempoolInfo = await rpc.getMempoolInfo().catch(() => null)
+        const feeResult = await rpc.estimateSmartFee(6).catch(() => null)
+        const hasFilterIndex = await rpc.hasBlockFilterIndex().catch(() => false)
+
+        const blockHeight = chainInfo.blocks
+        const responseTime = Date.now() - startTime
+
+        setNodeInfo({
+          blockHeight,
+          chainWork: chainInfo.chainwork,
+          medianFee: feeResult?.feerate
+            ? Math.round(feeResult.feerate * 1e5)
+            : undefined,
+          mempoolSize: mempoolInfo?.size,
+          network: chainInfo.chain,
+          responseTime,
+          software: 'Bitcoin Core'
+        })
+
+        return {
+          blockFilterIndexMissing: !hasFilterIndex,
+          blockHeight,
+          success: true,
+          tipTimestampSec: chainInfo.mediantime
+        }
       }
       throw new Error('Unknown backend')
     }
@@ -238,14 +276,24 @@ export function useConnectionTest() {
 
       // Still set basic info even if enhanced info fails
       const responseTime = Date.now() - startTime
+      const softwareLabel =
+        backend === 'electrum'
+          ? 'Electrum'
+          : backend === 'rpc'
+            ? 'Bitcoin Core'
+            : 'Esplora'
       setNodeInfo({
         network: network as string,
         responseTime,
-        software: backend === 'electrum' ? 'Electrum' : 'Esplora'
+        software: softwareLabel
       })
 
+      // Surface the full user-facing message (may be multi-line with tips)
+      const displayMessage =
+        error instanceof Error ? error.message : errorMessage
+
       return {
-        error: errorMessage,
+        error: displayMessage,
         success: false
       }
     } finally {
