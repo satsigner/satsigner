@@ -59,9 +59,9 @@ describe('poll vote helpers', () => {
   ]
 
   it('resolves single-choice votes to the first response tag', () => {
-    expect(resolvePollVoteOptionIds(['no', 'yes'], 'singlechoice')).toStrictEqual([
-      'no'
-    ])
+    expect(
+      resolvePollVoteOptionIds(['no', 'yes'], 'singlechoice')
+    ).toStrictEqual(['no'])
   })
 
   it('deduplicates multiple-choice votes', () => {
@@ -80,9 +80,9 @@ describe('poll vote helpers', () => {
   })
 
   it('returns the latest vote for the current user', () => {
-    expect(getUserPollVoteOptionIds(responses, 'pk1', 'singlechoice')).toStrictEqual([
-      'no'
-    ])
+    expect(
+      getUserPollVoteOptionIds(responses, 'pk1', 'singlechoice')
+    ).toStrictEqual(['no'])
   })
 
   it('detects expired polls', () => {

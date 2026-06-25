@@ -1,9 +1,6 @@
-import {
-  contactToIdentity,
-  mergeProfileBatch
-} from '@/utils/nostrContacts'
+import { contactToIdentity, mergeProfileBatch } from '@/utils/nostrContacts'
 
-jest.mock('nostr-tools', () => ({
+jest.mock<typeof import('nostr-tools')>('nostr-tools', () => ({
   nip19: {
     npubEncode: (hex: string) => `npub1mock${hex.slice(0, 8)}`
   }

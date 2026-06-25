@@ -50,7 +50,8 @@ export function useNostrContacts(
   })
 
   const contacts = query.data?.contacts ?? []
-  const showFetchError = query.isError && !hasFollowCache && contacts.length === 0
+  const showFetchError =
+    query.isError && !hasFollowCache && contacts.length === 0
 
   return {
     connectedRelayCount: query.data?.connectedRelayCount ?? 0,

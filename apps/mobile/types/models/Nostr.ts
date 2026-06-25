@@ -385,6 +385,13 @@ export type NostrNoteKindFilterOption = {
 
 export type NostrBookmarkSource = 'public' | 'private'
 
+export type NostrContactQrSlide = {
+  key: string
+  kind: 'placeholder' | 'qr'
+  label: string
+  value?: string
+}
+
 export type NostrParsedBookmark = {
   eventId: string
   source: NostrBookmarkSource

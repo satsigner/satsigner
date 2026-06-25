@@ -3,13 +3,11 @@ import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
-import { SSIconEllipsis } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSIconButton from '@/components/SSIconButton'
-import SSModal from '@/components/SSModal'
+import SSContactProfileQrOverlay from '@/components/SSContactProfileQrOverlay'
 import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
 import SSNostrHeroCard from '@/components/SSNostrHeroCard'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
@@ -29,8 +27,11 @@ import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Layout } from '@/styles'
 import { type NostrIdentity } from '@/types/models/Nostr'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
-import { setClipboard } from '@/utils/clipboard'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
+import {
+  encodeContactNprofile,
+  getContactShareProfileName
+} from '@/utils/nostrContactProfile'
 import { nostrZapDetailHref } from '@/utils/nostrNavigation'
 import { initiateZap } from '@/utils/nostrZap'
 import { buildPaymentMethods } from '@/utils/paymentMethods'
@@ -65,7 +66,8 @@ export default function NostrContactProfile() {
   })
   const [loading, setLoading] = useState(true)
   const [zapLoading, setZapLoading] = useState(false)
-  const [moreModalVisible, setMoreModalVisible] = useState(false)
+  const [qrOverlayVisible, setQrOverlayVisible] = useState(false)
+  const [qrOverlayKey, setQrOverlayKey] = useState(0)
   const paymentSheetRef = useRef<BottomSheetMethods>(null)
   const [payAmount, setPayAmount] = useState(0)
 
@@ -94,6 +96,30 @@ export default function NostrContactProfile() {
     ecashAllMints,
     arkAccounts
   )
+
+  const showZapButton = Boolean(
+    targetIdentity?.lud16 && availablePaymentMethods.length > 0 && owner?.nsec
+  )
+
+  const contactNprofile = targetPubkeyHex
+    ? encodeContactNprofile(targetPubkeyHex, effectiveRelays)
+    : null
+
+  const lud16Value = targetIdentity?.lud16?.trim()
+
+  const shareProfileName = getContactShareProfileName(
+    targetIdentity?.displayName,
+    privacyMode
+  )
+
+  function handleOpenQrOverlay() {
+    setQrOverlayKey((current) => current + 1)
+    setQrOverlayVisible(true)
+  }
+
+  function handleCloseQrOverlay() {
+    setQrOverlayVisible(false)
+  }
 
   async function loadProfile() {
     if (!targetNpub || effectiveRelays.length === 0) {
@@ -300,26 +326,28 @@ export default function NostrContactProfile() {
             nip05Valid={nip05Valid ?? null}
           />
           <SSVStack gap="md" style={styles.content}>
-            <SSHStack gap="sm">
-              {targetIdentity.lud16 &&
-                availablePaymentMethods.length > 0 &&
-                owner?.nsec && (
-                  <SSButton
-                    style={{ flex: 1 }}
-                    label={
-                      zapLoading
-                        ? t('nostrIdentity.note.zapSending')
-                        : `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : 21} sats`
-                    }
-                    variant="gradient"
-                    gradientType="special"
-                    disabled={zapLoading}
-                    onPress={handleZap}
-                  />
-                )}
-              <SSIconButton onPress={() => setMoreModalVisible(true)}>
-                <SSIconEllipsis width={22} height={6} />
-              </SSIconButton>
+            <SSHStack gap="sm" style={styles.actionRow}>
+              {showZapButton ? (
+                <SSButton
+                  disabled={zapLoading}
+                  gradientType="special"
+                  label={
+                    zapLoading
+                      ? t('nostrIdentity.note.zapSending')
+                      : `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : 21} sats`
+                  }
+                  onPress={handleZap}
+                  style={styles.halfButton}
+                  variant="gradient"
+                />
+              ) : null}
+              <SSButton
+                gradientType="special"
+                label={t('nostrIdentity.contact.more')}
+                onPress={handleOpenQrOverlay}
+                style={showZapButton ? styles.halfButton : styles.fullButton}
+                variant="gradient"
+              />
             </SSHStack>
 
             {!targetIdentity.lud16 && availablePaymentMethods.length > 0 && (
@@ -358,24 +386,23 @@ export default function NostrContactProfile() {
         fiatCurrency={fiatCurrency}
       />
 
-      <SSModal
-        visible={moreModalVisible}
-        onClose={() => setMoreModalVisible(false)}
-      >
-        <SSButton
-          label={t('nostrIdentity.contact.copyNpub')}
-          variant="ghost"
-          onPress={() => {
-            void setClipboard(targetNpub ?? '')
-            setMoreModalVisible(false)
-          }}
-        />
-      </SSModal>
+      <SSContactProfileQrOverlay
+        key={qrOverlayKey}
+        contactNprofile={contactNprofile}
+        lud16={lud16Value}
+        onClose={handleCloseQrOverlay}
+        shareProfileName={shareProfileName}
+        targetNpub={targetNpub}
+        visible={qrOverlayVisible}
+      />
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
+  actionRow: {
+    width: '100%'
+  },
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -384,5 +411,13 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 40,
     paddingHorizontal: Layout.mainContainer.paddingHorizontal
+  },
+  fullButton: {
+    flex: 1,
+    minWidth: 0
+  },
+  halfButton: {
+    flex: 1,
+    minWidth: 0
   }
 })

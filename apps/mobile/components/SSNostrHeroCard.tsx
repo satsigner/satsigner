@@ -1,6 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient'
+import { useState } from 'react'
 import {
   Image,
+  Pressable,
   type StyleProp,
   StyleSheet,
   View,
@@ -11,6 +13,7 @@ import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
 import SSIconLightning from '@/components/icons/SSIconLightning'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSFullscreenImageViewer from '@/components/SSFullscreenImageViewer'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
@@ -75,6 +78,7 @@ function SSNostrHeroCard({
   style
 }: SSNostrHeroCardProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const [profileImageExpanded, setProfileImageExpanded] = useState(false)
   const nip05Value = identity.nip05?.trim()
   const lud16Value = identity.lud16?.trim()
   const npubColor = generateColorFromNpub(identity.npub)
@@ -112,7 +116,12 @@ function SSNostrHeroCard({
         {privacyMode ? (
           <View style={[styles.avatar, styles.avatarPlaceholder]} />
         ) : identity.picture ? (
-          <Image source={{ uri: identity.picture }} style={styles.avatar} />
+          <Pressable
+            accessibilityRole="imagebutton"
+            onPress={() => setProfileImageExpanded(true)}
+          >
+            <Image source={{ uri: identity.picture }} style={styles.avatar} />
+          </Pressable>
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
             <SSText size="4xl" weight="bold">
@@ -216,6 +225,11 @@ function SSNostrHeroCard({
           </SSText>
         )}
       </SSVStack>
+      <SSFullscreenImageViewer
+        uri={identity.picture ?? null}
+        visible={profileImageExpanded}
+        onClose={() => setProfileImageExpanded(false)}
+      />
     </View>
   )
 }

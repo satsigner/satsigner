@@ -7,13 +7,11 @@ import {
   NOSTR_LIST_ITEM_GAP,
   NOSTR_LIST_PADDING_VERTICAL
 } from '@/constants/nostr'
-import { Layout } from '@/styles'
 import { type NostrContactItem } from '@/types/models/Nostr'
 import { contactToIdentity } from '@/utils/nostrContacts'
 
 type SSNostrContactListProps = {
   contacts: NostrContactItem[]
-  fullWidth?: boolean
   onPress: (item: NostrContactItem) => void
 }
 
@@ -39,11 +37,7 @@ function NostrContactRow({ item, onPress }: NostrContactRowProps) {
   )
 }
 
-function SSNostrContactList({
-  contacts,
-  fullWidth = false,
-  onPress
-}: SSNostrContactListProps) {
+function SSNostrContactList({ contacts, onPress }: SSNostrContactListProps) {
   function renderItem({ item }: { item: NostrContactItem }) {
     return <NostrContactRow item={item} onPress={onPress} />
   }
@@ -53,7 +47,7 @@ function SSNostrContactList({
   }
 
   return (
-    <View style={[styles.list, fullWidth ? styles.listFullWidth : null]}>
+    <View style={styles.list}>
       <FlashList
         data={contacts}
         estimatedItemSize={NOSTR_ACCOUNT_CARD_ESTIMATED_HEIGHT}
@@ -69,12 +63,8 @@ function SSNostrContactList({
 const styles = StyleSheet.create({
   list: {
     flex: 1,
-    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
     paddingVertical: NOSTR_LIST_PADDING_VERTICAL,
     width: '100%'
-  },
-  listFullWidth: {
-    paddingHorizontal: 0
   },
   separator: {
     height: NOSTR_LIST_ITEM_GAP

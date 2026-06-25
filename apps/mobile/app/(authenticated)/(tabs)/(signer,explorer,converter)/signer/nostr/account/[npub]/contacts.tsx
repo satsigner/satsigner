@@ -9,7 +9,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { Colors, Layout } from '@/styles'
+import { Colors } from '@/styles'
 import { type NostrContactItem } from '@/types/models/Nostr'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 import { nostrContactProfileHref } from '@/utils/nostrNavigation'
@@ -43,7 +43,7 @@ export default function NostrContacts() {
   }
 
   return (
-    <SSMainLayout style={{ paddingHorizontal: 0 }}>
+    <SSMainLayout>
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -83,11 +83,7 @@ export default function NostrContacts() {
           </SSText>
         </SSVStack>
       ) : (
-        <SSNostrContactList
-          contacts={contacts}
-          fullWidth
-          onPress={handleContactPress}
-        />
+        <SSNostrContactList contacts={contacts} onPress={handleContactPress} />
       )}
     </SSMainLayout>
   )
@@ -112,7 +108,6 @@ function RelayList({ relays }: RelayListProps) {
 const styles = StyleSheet.create({
   center: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Layout.mainContainer.paddingHorizontal
+    justifyContent: 'center'
   }
 })
