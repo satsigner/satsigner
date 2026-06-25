@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 import { trimOnionAddress } from '@/utils/format'
@@ -35,14 +36,23 @@ function useVerifyConnection() {
           return 'failed'
         }
         try {
-          const ok =
-            server.backend === 'electrum'
-              ? await ElectrumClient.test(
-                  server.url,
-                  server.network,
-                  config.timeout * 1000
-                )
-              : await Esplora.test(server.url, config.timeout * 1000)
+          let ok: boolean
+          if (server.backend === 'electrum') {
+            ok = await ElectrumClient.test(
+              server.url,
+              server.network,
+              config.timeout * 1000
+            )
+          } else if (server.backend === 'rpc') {
+            ok = await BitcoinRpc.test(
+              server.url,
+              server.rpcCredentials?.username ?? '',
+              server.rpcCredentials?.password ?? '',
+              config.timeout * 1000
+            )
+          } else {
+            ok = await Esplora.test(server.url, config.timeout * 1000)
+          }
           return ok ? 'connected' : 'failed'
         } catch {
           return 'failed'
