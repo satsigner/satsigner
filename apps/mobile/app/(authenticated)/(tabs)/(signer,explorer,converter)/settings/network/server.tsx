@@ -250,12 +250,14 @@ export default function NetworkSettings() {
                                   <SSText
                                     style={{
                                       lineHeight: 16,
-                                      textTransform: 'capitalize'
+                                      ...(server.backend !== 'rpc' && {
+                                        textTransform: 'capitalize'
+                                      })
                                     }}
                                     size="md"
                                     color="muted"
                                   >
-                                    {server.backend}
+                                    {server.backend === 'rpc' ? 'RPC' : server.backend}
                                   </SSText>
                                 </SSHStack>
                                 <SSHStack gap="xs">
