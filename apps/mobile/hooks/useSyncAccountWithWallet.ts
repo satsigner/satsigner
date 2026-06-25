@@ -16,16 +16,23 @@ import { parseAccountAddressesDetails } from '@/utils/parse'
 
 function useSyncAccountWithWallet() {
   const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
+  const setSyncProgress = useAccountsStore((state) => state.setSyncProgress)
 
-  const [selectedNetwork, configs, configsMempol, setLastKnownBlockHeight] =
-    useBlockchainStore(
-      useShallow((state) => [
-        state.selectedNetwork,
-        state.configs,
-        state.configsMempool,
-        state.setLastKnownBlockHeight
-      ])
-    )
+  const [
+    selectedNetwork,
+    configs,
+    configsMempol,
+    setLastKnownBlockHeight,
+    lastKnownBlockHeight
+  ] = useBlockchainStore(
+    useShallow((state) => [
+      state.selectedNetwork,
+      state.configs,
+      state.configsMempool,
+      state.setLastKnownBlockHeight,
+      state.lastKnownBlockHeight
+    ])
+  )
   const { server, config } = configs[selectedNetwork]
 
   const [loading, setLoading] = useState(false)
@@ -45,14 +52,44 @@ function useSyncAccountWithWallet() {
       // wallet DB and account store can be out of sync after crashes.
       const checkpoint = wallet.latestCheckpoint()
       const isFullScan = !checkpoint || checkpoint.height === 0
+      const isGeneratedWallet =
+        latest.keys[0]?.creationType === 'generateMnemonic'
+
+      console.log(
+        `[sync] ── account: ${latest.name ?? latest.id}\n` +
+          `         backend:       ${server.backend}  ${server.url}\n` +
+          `         creationType:  ${latest.keys[0]?.creationType ?? 'unknown'}\n` +
+          `         createdAt:     ${latest.createdAt?.toISOString() ?? 'none'}\n` +
+          `         checkpoint:    ${checkpoint?.height ?? 'none'}\n` +
+          `         isFullScan:    ${isFullScan}\n` +
+          `         isGenerated:   ${isGeneratedWallet}\n` +
+          `         knownTip:      ${lastKnownBlockHeight > 0 ? lastKnownBlockHeight : 'none'}\n` +
+          `         scanFloor:     ${server.rpcScanFromHeight ?? 'none'}\n` +
+          `         stopGap:       ${config.stopGap}`
+      )
 
       await syncWallet(
         wallet,
         server.backend,
         server.url,
         config.stopGap,
-        isFullScan
+        isFullScan,
+        server.rpcCredentials,
+        latest.createdAt,
+        lastKnownBlockHeight > 0 ? lastKnownBlockHeight : undefined,
+        server.rpcScanFromHeight,
+        isGeneratedWallet,
+        server.backend === 'rpc'
+          ? (current, tip) => {
+              setSyncProgress(latest.id, {
+                tasksDone: current,
+                totalTasks: tip
+              })
+            }
+          : undefined
       )
+
+      console.log(`[syncWallet] syncWallet() returned for account=${latest.id}`)
 
       // Update block height from wallet's latest checkpoint
       const latestCheckpoint = wallet.latestCheckpoint()
@@ -124,7 +161,11 @@ function useSyncAccountWithWallet() {
       updatedAccount.lastSyncedAt = new Date()
 
       return updatedAccount
-    } catch {
+    } catch (err) {
+      console.log(
+        `[syncWallet] ERROR for account=${latest.id}:`,
+        err instanceof Error ? err.message : String(err)
+      )
       setSyncStatus(latest.id, 'error')
       toast.error(t('account.syncFailed'))
       return latest

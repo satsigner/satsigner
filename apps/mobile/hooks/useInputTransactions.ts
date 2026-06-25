@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
@@ -279,6 +280,85 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   }
                 }
                 transactionInputAddresses.set(txid, inputAddresses)
+              }
+            } else if (server.backend === 'rpc') {
+              try {
+                const rpc = new BitcoinRpc(
+                  server.url,
+                  server.rpcCredentials?.username ?? '',
+                  server.rpcCredentials?.password ?? ''
+                )
+                const rawTx = await rpc.getRawTransaction(txid).catch(
+                  () => null
+                )
+                if (rawTx) {
+                  const mappedTx: Transaction = {
+                    address: undefined,
+                    blockHeight: rawTx.confirmations
+                      ? undefined
+                      : undefined,
+                    fee: undefined,
+                    id: rawTx.txid,
+                    label: undefined,
+                    lockTime: rawTx.locktime,
+                    lockTimeEnabled: rawTx.locktime > 0,
+                    prices: {},
+                    raw: parseHexToBytes(rawTx.hex),
+                    received: 0,
+                    sent: 0,
+                    size: rawTx.size,
+                    timestamp: rawTx.blocktime
+                      ? new Date(rawTx.blocktime * 1000)
+                      : undefined,
+                    type: 'send',
+                    version: rawTx.version,
+                    vin: rawTx.vin.map((input) => ({
+                      address: 'unknown',
+                      label: undefined,
+                      previousOutput: input.txid
+                        ? {
+                            txid: normalizeTxid(input.txid),
+                            vout: input.vout ?? 0
+                          }
+                        : { txid: '0'.repeat(64), vout: 0 },
+                      scriptSig: [],
+                      sequence: input.sequence,
+                      value: undefined,
+                      witness: input.txinwitness
+                        ? input.txinwitness.map((w) =>
+                            Array.from(Buffer.from(w, 'hex'))
+                          )
+                        : []
+                    })),
+                    vout: rawTx.vout.map((output) => ({
+                      address:
+                        output.scriptPubKey.address ??
+                        output.scriptPubKey.addresses?.[0] ??
+                        '',
+                      label: undefined,
+                      script: parseHexToBytes(output.scriptPubKey.hex),
+                      value: Math.round(output.value * 1e8)
+                    })),
+                    vsize: rawTx.vsize,
+                    weight: rawTx.weight
+                  }
+                  newTransactions.set(txid, {
+                    ...(mappedTx as ExtendedTransaction),
+                    depthH: 0
+                  })
+
+                  const inputAddresses = new Set<string>()
+                  const outputAddresses = new Set<string>()
+                  for (const vout of mappedTx.vout ?? []) {
+                    if (vout.address) {
+                      outputAddresses.add(vout.address)
+                      allOutputAddresses.add(vout.address)
+                    }
+                  }
+                  transactionInputAddresses.set(txid, inputAddresses)
+                }
+              } catch {
+                /* RPC path failed for this txid */
               }
             } else if (server.backend === 'electrum' && electrumClient) {
               // Check if electrumClient is initialized
