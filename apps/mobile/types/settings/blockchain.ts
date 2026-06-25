@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const BackendSchema = z.enum(['electrum', 'esplora'])
+export const BackendSchema = z.enum(['electrum', 'esplora', 'rpc'])
 
 export const NetworkSchema = z.enum(['bitcoin', 'testnet', 'signet'])
 
@@ -10,11 +10,19 @@ export const ProxyConfigSchema = z.object({
   port: z.number()
 })
 
+export const RpcCredentialsSchema = z.object({
+  password: z.string(),
+  username: z.string()
+})
+
 export const ServerSchema = z.object({
   backend: BackendSchema,
   name: z.string(),
   network: NetworkSchema,
   proxy: ProxyConfigSchema.optional(),
+  rpcCredentials: RpcCredentialsSchema.optional(),
+  rpcScanFromHeight: z.number().int().nonnegative().optional(),
+  rpcWalletName: z.string().optional(),
   url: z.string()
 })
 
@@ -28,7 +36,8 @@ export const ConfigSchema = z.object({
 })
 
 export type Backend = z.infer<typeof BackendSchema>
+export type Config = z.infer<typeof ConfigSchema>
 export type Network = z.infer<typeof NetworkSchema>
 export type ProxyConfig = z.infer<typeof ProxyConfigSchema>
+export type RpcCredentials = z.infer<typeof RpcCredentialsSchema>
 export type Server = z.infer<typeof ServerSchema>
-export type Config = z.infer<typeof ConfigSchema>
