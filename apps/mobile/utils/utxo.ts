@@ -1,280 +1,494 @@
+import { type Output } from '@/types/models/Output'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { type Utxo } from '@/types/models/Utxo'
-import { randomNum } from '@/utils/crypto'
+import { getScriptVersionType } from '@/utils/address'
+import { seededRandom } from '@/utils/crypto'
+import {
+  getInputVbytes,
+  getOutputVbytes,
+  getUtxoScriptType,
+  isSegwitInput,
+  SEGWIT_OVERHEAD_VBYTES
+} from '@/utils/transaction'
 
-type _Utxo = Utxo & {
-  effectiveValue?: number
-  scriptType?: 'p2pkh' | 'p2wpkh' | 'p2sh-p2wpkh'
+const DEFAULT_DUST_THRESHOLD = 546
+const DEFAULT_LONG_TERM_FEE_RATE = 5
+const SELECTION_SEED = 42
+const BASE_TX_OVERHEAD_VBYTES = 10
+const DEFAULT_CHANGE_SCRIPT_TYPE: ScriptVersionType = 'P2WPKH'
+const DEFAULT_RECIPIENT_SCRIPT_TYPE: ScriptVersionType = 'P2WPKH'
+
+const BNB_TOTAL_TRIES = 100_000
+const KNAPSACK_ITERATIONS = 1000
+// Sparrow uses SATOSHIS_PER_BITCOIN / 1000 as the knapsack minimum change
+const KNAPSACK_MIN_CHANGE = 100_000
+const STONEWALL_ATTEMPTS = 15
+
+type SelectionStrategy = 'efficiency' | 'privacy'
+
+type UtxoSelectionOptions = {
+  dustThreshold: number
+  longTermFeeRate: number
+  outputs: Output[]
+  changeScriptType: ScriptVersionType
+  recipientScriptType: ScriptVersionType
+  feeFn?: (inputCount: number, hasChange: boolean) => number
 }
 
-type ChangeOutput = {
-  type: string
+type SelectionResult = {
+  inputs: Utxo[]
+  fee: number
+  change: number
+  error?: string
+}
+
+type StonewallOutputType = 'recipient' | 'fakeMix' | 'change'
+
+type StonewallOutput = {
+  type: StonewallOutputType
+  scriptType: ScriptVersionType
   value: number
-  size: number
+}
+
+type StonewallResult = {
+  inputs: Utxo[]
+  outputs: StonewallOutput[]
+  fee: number
+  error?: string
+}
+
+type OutputGroup = {
+  utxos: Utxo[]
+  scriptType: ScriptVersionType
+  value: number
+  effectiveValue: number
+  fee: number
+  longTermFee: number
 }
 
 function getUtxoOutpoint(utxo: Utxo) {
   return `${utxo.txid}:${utxo.vout}`
 }
 
-type UtxoOptions = {
-  dustThreshold: number
-  inputSize: number
-  changeOutputSize: number
-  feeFn?: (inputCount: number, hasChange: boolean) => number
+function sumValue(groups: OutputGroup[]) {
+  return groups.reduce((sum, group) => sum + group.value, 0)
 }
 
-function selectEfficientUtxos(
-  utxos: _Utxo[],
-  targetAmount: number,
-  feeRate: number,
-  options?: Partial<UtxoOptions>
-): {
-  inputs: Utxo[]
-  fee: number
-  change: number
-  error?: string
-} {
-  // Default options
-  const defaultOptions = {
-    changeOutputSize: 34, // Size of change output in bytes
-    dustThreshold: 546, // Min UTXO value in satoshis (Bitcoin dust limit)
-    inputSize: 148 // Average size of input in bytes
-  }
-
-  const opts = { ...defaultOptions, ...options }
-
-  // Calculate cost to spend each UTXO
-  const costToSpend = opts.inputSize * feeRate
-
-  // Filter out UTXOs that would cost more to spend than they're worth
-  const spendableUtxos = utxos.filter((utxo) => utxo.value > costToSpend)
-
-  // If no UTXOs are spendable after filtering, use all UTXOs as fallback
-  const usableUtxos = spendableUtxos.length > 0 ? spendableUtxos : [...utxos]
-
-  // Sort UTXOs by value (ascending)
-  const sortedUtxos = usableUtxos.toSorted((a, b) => a.value - b.value)
-
-  // Store our selection results
-  const selectedUtxos = []
-  let selectedAmount = 0
-  let estimatedFee = 0
-  let change = 0
-
-  // First pass: Try exact match or closest match algorithm
-  const exactMatch = sortedUtxos.find((utxo) => {
-    const txFee = opts.feeFn
-      ? opts.feeFn(1, true)
-      : (opts.inputSize + opts.changeOutputSize) * feeRate
-    const netValue = utxo.value - txFee
-
-    return Math.abs(netValue - targetAmount) < opts.dustThreshold
-  })
-
-  if (exactMatch) {
-    const feeWithChange = opts.feeFn
-      ? opts.feeFn(1, true)
-      : (opts.inputSize + opts.changeOutputSize) * feeRate
-    const potentialChange = exactMatch.value - targetAmount - feeWithChange
-
-    if (potentialChange >= opts.dustThreshold) {
-      return {
-        change: potentialChange,
-        fee: feeWithChange,
-        inputs: [exactMatch]
-      }
-    }
-    // Change would be dust — absorb into fee
-    return {
-      change: 0,
-      fee: exactMatch.value - targetAmount,
-      inputs: [exactMatch]
-    }
-  }
-
-  // Try branch and bound algorithm for optimal selection
-  const result = branchAndBoundUtxoSelection(
-    sortedUtxos,
-    targetAmount,
-    feeRate,
-    opts
-  )
-  if (result) {
-    return result
-  }
-
-  // Fallback to coin selection with accumulative strategy
-  // Start with largest UTXOs (reverse the sorted list) for fewer inputs
-  const reversedUtxos = sortedUtxos.toReversed()
-
-  for (const utxo of reversedUtxos) {
-    selectedUtxos.push(utxo)
-    selectedAmount += utxo.value
-
-    // Calculate fee with change, then check if we can drop the change output
-    const feeWithChange = opts.feeFn
-      ? opts.feeFn(selectedUtxos.length, true)
-      : (selectedUtxos.length * opts.inputSize + opts.changeOutputSize) *
-        feeRate
-    const feeWithoutChange = opts.feeFn
-      ? opts.feeFn(selectedUtxos.length, false)
-      : selectedUtxos.length * opts.inputSize * feeRate
-
-    // If we have enough funds (including fees)
-    if (selectedAmount >= targetAmount + feeWithoutChange) {
-      const potentialChange = selectedAmount - targetAmount - feeWithChange
-
-      if (potentialChange >= opts.dustThreshold) {
-        estimatedFee = feeWithChange
-        change = potentialChange
-      } else {
-        // Change would be dust — absorb it into the fee (no change output)
-        estimatedFee = selectedAmount - targetAmount
-        change = 0
-      }
-
-      break
-    }
-  }
-
-  // Insufficient funds
-  if (selectedAmount < targetAmount + estimatedFee) {
-    return { change: 0, error: 'Insufficient funds', fee: 0, inputs: [] }
-  }
-
-  return {
-    change,
-    fee: estimatedFee,
-    inputs: selectedUtxos
-  }
+function sumEffectiveValue(groups: OutputGroup[]) {
+  return groups.reduce((sum, group) => sum + group.effectiveValue, 0)
 }
 
-function branchAndBoundUtxoSelection(
-  utxos: _Utxo[],
-  targetAmount: number,
+function flattenUtxos(groups: OutputGroup[]) {
+  return groups.flatMap((group) => group.utxos)
+}
+
+/**
+ * Groups UTXOs sharing an address so reused addresses are always co-spent,
+ * matching Sparrow's OutputGroup. Effective value is the UTXO value minus the
+ * fee to spend it at the given fee rate.
+ */
+function buildOutputGroups(
+  utxos: Utxo[],
   feeRate: number,
-  opts: UtxoOptions
-): {
-  inputs: Utxo[]
-  fee: number
-  change: number
-} | null {
-  const MAX_TRIES = 1000000
-  const inputCost = opts.inputSize * feeRate
+  longTermFeeRate: number
+): OutputGroup[] {
+  const groups = new Map<string, OutputGroup>()
 
-  // Calculate the effective value of each UTXO (value minus cost to spend it)
-  const effectiveUtxos = utxos
-    .map((utxo) => ({
-      ...utxo,
-      effectiveValue: utxo.value - inputCost
-    }))
-    .filter((utxo) => utxo.effectiveValue > 0) // Filter out UTXOs that cost more to spend
+  for (const utxo of utxos) {
+    const scriptType = getUtxoScriptType(utxo)
+    const inputVbytes = getInputVbytes(scriptType)
+    // Sparrow truncates (long cast) rather than rounds: floor(WU * rate / 4)
+    const fee = Math.floor(inputVbytes * feeRate)
+    const longTermFee = Math.floor(inputVbytes * longTermFeeRate)
+    const key = utxo.addressTo || getUtxoOutpoint(utxo)
 
-  if (effectiveUtxos.length === 0) {
-    return null
+    const existing = groups.get(key)
+    if (existing) {
+      existing.utxos.push(utxo)
+      existing.value += utxo.value
+      existing.effectiveValue += utxo.value - fee
+      existing.fee += fee
+      existing.longTermFee += longTermFee
+      continue
+    }
+
+    groups.set(key, {
+      effectiveValue: utxo.value - fee,
+      fee,
+      longTermFee,
+      scriptType,
+      utxos: [utxo],
+      value: utxo.value
+    })
   }
 
-  // Calculate total effective value
-  const totalEffectiveValue = effectiveUtxos.reduce(
-    (sum, utxo) => sum + utxo.effectiveValue,
+  return Array.from(groups.values())
+}
+
+function getRecipientVbytes(
+  outputs: Output[],
+  recipientScriptType: ScriptVersionType
+): number {
+  if (outputs.length === 0) {
+    return getOutputVbytes(recipientScriptType)
+  }
+  return outputs.reduce(
+    (sum, output) =>
+      sum + getOutputVbytes(getScriptVersionType(output.to) || 'P2PKH'),
     0
   )
+}
 
-  // If total value is less than target, impossible to satisfy
-  if (totalEffectiveValue < targetAmount) {
+/**
+ * Fee of the transaction skeleton (overhead + recipient outputs) before any
+ * inputs or change are added. Mirrors Sparrow's noInputsFee.
+ */
+function getNoInputsFee(
+  outputs: Output[],
+  feeRate: number,
+  recipientScriptType: ScriptVersionType,
+  walletScriptType: ScriptVersionType
+): number {
+  const recipientVbytes = getRecipientVbytes(outputs, recipientScriptType)
+  // Sparrow sets the segwit flag (0.5 vbyte) when the wallet spends witness inputs.
+  const segwitOverhead = isSegwitInput(walletScriptType)
+    ? SEGWIT_OVERHEAD_VBYTES
+    : 0
+  // Sparrow ceils the no-inputs weight: ceil(noInputsWU * rate / 4)
+  return Math.ceil(
+    (BASE_TX_OVERHEAD_VBYTES + segwitOverhead + recipientVbytes) * feeRate
+  )
+}
+
+/**
+ * Cost of having a change output: the fee to create it now plus the fee to
+ * spend it later at the long term fee rate. Below this, change is not worth
+ * keeping and is absorbed into the fee. Mirrors Sparrow's getCostOfChange.
+ */
+function getCostOfChange(
+  feeRate: number,
+  longTermFeeRate: number,
+  changeScriptType: ScriptVersionType
+): number {
+  const changeOutputVbytes = getOutputVbytes(changeScriptType)
+  // Sparrow's getInputVbytes ceils WU/4, and getFee truncates the final sum
+  const changeInputVbytes = Math.ceil(getInputVbytes(changeScriptType))
+  return Math.floor(
+    changeOutputVbytes * feeRate + changeInputVbytes * longTermFeeRate
+  )
+}
+
+function shuffle<T>(items: T[], random: () => number): T[] {
+  const result = [...items]
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1))
+    const temp = result[i]
+    result[i] = result[j]
+    result[j] = temp
+  }
+  return result
+}
+
+/**
+ * Branch and Bound selection (Sparrow/Bitcoin Core port). Finds a changeless
+ * input set whose effective value lands within [target, target + costOfChange]
+ * while minimising waste (excess value + fee vs long term fee). Returns null
+ * when no such set exists, so callers can fall back to another selector.
+ */
+function selectBranchAndBound(
+  target: number,
+  groups: OutputGroup[],
+  noInputsFee: number,
+  costOfChange: number
+): OutputGroup[] | null {
+  const pool = [...groups].toSorted(
+    (a, b) => b.effectiveValue - a.effectiveValue
+  )
+  const actualTarget = target + noInputsFee
+
+  let currentAvailableValue = sumEffectiveValue(pool)
+  // Sparrow guards against the raw target here (not target + noInputsFee)
+  if (currentAvailableValue < target) {
     return null
   }
 
-  // If we have exact match, return it
-  const exactMatchSet = findExactMatch(effectiveUtxos, targetAmount)
-  if (exactMatchSet) {
-    const fee = exactMatchSet.length * inputCost
-    return {
-      change: 0,
-      fee,
-      inputs: exactMatchSet // No change as we have exact match
-    }
-  }
+  const selection: boolean[] = []
+  let currentValue = 0
+  let currentWaste = 0
+  let bestSelection: boolean[] | null = null
+  let bestWaste = Number.MAX_SAFE_INTEGER
 
-  // Apply Branch and Bound algorithm
-  let bestSelection: _Utxo[] = []
-  let bestWaste = Infinity
+  for (let tries = 0; tries < BNB_TOTAL_TRIES; tries += 1) {
+    let backtrack = false
 
-  // Function to search recursively
-  function search(
-    selection: _Utxo[],
-    effectiveValue: number,
-    depth: number,
-    tries: number
-  ): null | boolean {
-    if (tries > MAX_TRIES) {
-      return false
-    }
-
-    if (effectiveValue >= targetAmount) {
-      // Calculate waste as the sum of all inputs minus target
-      const waste = effectiveValue - targetAmount
-
-      if (waste < bestWaste) {
+    if (
+      currentValue + currentAvailableValue < actualTarget ||
+      currentValue > actualTarget + costOfChange ||
+      (currentWaste > bestWaste &&
+        pool.length > 0 &&
+        pool[0].fee - pool[0].longTermFee > 0)
+    ) {
+      backtrack = true
+    } else if (currentValue >= actualTarget) {
+      currentWaste += currentValue - actualTarget
+      if (currentWaste <= bestWaste) {
         bestSelection = [...selection]
-        bestWaste = waste
+        bestWaste = currentWaste
+      }
+      currentWaste -= currentValue - actualTarget
+      backtrack = true
+    }
+
+    if (backtrack) {
+      while (selection.length > 0 && !selection.at(-1)) {
+        selection.pop()
+        currentAvailableValue += pool[selection.length].effectiveValue
       }
 
-      return true
+      if (selection.length === 0) {
+        break
+      }
+
+      selection[selection.length - 1] = false
+      const group = pool[selection.length - 1]
+      currentValue -= group.effectiveValue
+      currentWaste -= group.fee - group.longTermFee
+      continue
     }
 
-    if (depth >= effectiveUtxos.length) {
-      return false
+    const group = pool[selection.length]
+    currentAvailableValue -= group.effectiveValue
+
+    const previousIndex = selection.length - 1
+    const skipEquivalent =
+      selection.length > 0 &&
+      !selection[previousIndex] &&
+      group.effectiveValue === pool[previousIndex].effectiveValue &&
+      group.fee === pool[previousIndex].fee
+
+    if (skipEquivalent) {
+      selection.push(false)
+    } else {
+      selection.push(true)
+      currentValue += group.effectiveValue
+      currentWaste += group.fee - group.longTermFee
     }
-
-    // Try including this UTXO
-    selection.push(effectiveUtxos[depth])
-    const withResult = search(
-      selection,
-      effectiveValue + effectiveUtxos[depth].effectiveValue,
-      depth + 1,
-      tries + 1
-    )
-    selection.pop()
-
-    // Try excluding this UTXO
-    const withoutResult = search(
-      selection,
-      effectiveValue,
-      depth + 1,
-      tries + 1
-    )
-
-    return withResult || withoutResult
   }
 
-  // Start search with empty selection
-  search([], 0, 0, 0)
+  if (!bestSelection || bestSelection.length === 0) {
+    return null
+  }
 
-  // If we found a selection
-  if (bestSelection) {
-    const totalInputValue = bestSelection.reduce(
-      (sum: number, utxo: Utxo) => sum + utxo.value,
-      0
-    )
-    const feeWithChange = opts.feeFn
-      ? opts.feeFn(bestSelection.length, true)
-      : bestSelection.length * inputCost
-    const potentialChange = totalInputValue - targetAmount - feeWithChange
+  const selected = pool.filter((_, index) => bestSelection?.[index])
+  return selected.length > 0 ? selected : null
+}
 
-    // If change is less than dust, absorb it into fee (no change output)
-    if (potentialChange > 0 && potentialChange < opts.dustThreshold) {
-      return {
-        change: 0,
-        fee: totalInputValue - targetAmount,
-        inputs: bestSelection
+function findApproximateBestSubset(
+  groups: OutputGroup[],
+  totalLower: number,
+  target: number,
+  bestSelection: boolean[],
+  random: () => number
+): number {
+  bestSelection.fill(true)
+  let bestValue = totalLower
+
+  for (
+    let rep = 0;
+    rep < KNAPSACK_ITERATIONS && bestValue !== target;
+    rep += 1
+  ) {
+    const included = Array.from({ length: groups.length }, () => false)
+    let total = 0
+    let reachedTarget = false
+
+    for (let pass = 0; pass < 2 && !reachedTarget; pass += 1) {
+      for (let i = 0; i < groups.length; i += 1) {
+        const take = pass === 0 ? random() < 0.5 : !included[i]
+        if (!take) {
+          continue
+        }
+
+        total += groups[i].effectiveValue
+        included[i] = true
+
+        if (total >= target) {
+          reachedTarget = true
+          if (total < bestValue) {
+            bestValue = total
+            for (let k = 0; k < groups.length; k += 1) {
+              bestSelection[k] = included[k]
+            }
+          }
+          total -= groups[i].effectiveValue
+          included[i] = false
+        }
       }
     }
+  }
 
-    return {
-      change: Math.max(potentialChange, 0),
-      fee: feeWithChange,
-      inputs: bestSelection
+  return bestValue
+}
+
+/**
+ * Knapsack selection (Sparrow port). Stochastic subset-sum approximation used
+ * as a fallback when Branch and Bound finds no changeless solution.
+ */
+function selectKnapsack(
+  target: number,
+  groups: OutputGroup[],
+  noInputsFee: number,
+  random: () => number
+): OutputGroup[] | null {
+  const actualTarget = target + noInputsFee
+  const shuffled = shuffle(groups, random)
+
+  let lowestLarger: OutputGroup | null = null
+  const applicable: OutputGroup[] = []
+  let totalLower = 0
+
+  for (const group of shuffled) {
+    if (group.effectiveValue === actualTarget) {
+      return [group]
+    }
+    if (group.effectiveValue < actualTarget + KNAPSACK_MIN_CHANGE) {
+      applicable.push(group)
+      totalLower += group.effectiveValue
+    } else if (
+      lowestLarger === null ||
+      group.effectiveValue < lowestLarger.effectiveValue
+    ) {
+      lowestLarger = group
+    }
+  }
+
+  if (totalLower === actualTarget) {
+    return applicable
+  }
+
+  if (totalLower < actualTarget) {
+    return lowestLarger ? [lowestLarger] : null
+  }
+
+  applicable.sort((a, b) => b.effectiveValue - a.effectiveValue)
+  const bestSelection = Array.from({ length: applicable.length }, () => false)
+
+  let bestValue = findApproximateBestSubset(
+    applicable,
+    totalLower,
+    actualTarget,
+    bestSelection,
+    random
+  )
+  if (
+    bestValue !== actualTarget &&
+    totalLower >= actualTarget + KNAPSACK_MIN_CHANGE
+  ) {
+    bestValue = findApproximateBestSubset(
+      applicable,
+      totalLower,
+      actualTarget + KNAPSACK_MIN_CHANGE,
+      bestSelection,
+      random
+    )
+  }
+
+  if (
+    lowestLarger !== null &&
+    ((bestValue !== actualTarget &&
+      bestValue < actualTarget + KNAPSACK_MIN_CHANGE) ||
+      lowestLarger.effectiveValue <= bestValue)
+  ) {
+    return [lowestLarger]
+  }
+
+  return applicable.filter((_, index) => bestSelection[index])
+}
+
+/**
+ * Accumulative largest-first fallback. Used only when both Branch and Bound
+ * and Knapsack fail to return a set.
+ */
+function selectAccumulative(
+  target: number,
+  groups: OutputGroup[],
+  noInputsFee: number
+): OutputGroup[] | null {
+  const sorted = [...groups].toSorted(
+    (a, b) => b.effectiveValue - a.effectiveValue
+  )
+  const actualTarget = target + noInputsFee
+  const selected: OutputGroup[] = []
+  let effectiveValue = 0
+
+  for (const group of sorted) {
+    selected.push(group)
+    effectiveValue += group.effectiveValue
+    if (effectiveValue >= actualTarget) {
+      return selected
+    }
+  }
+
+  return null
+}
+
+function takeUntilTarget(
+  target: number,
+  selectedSet: OutputGroup[],
+  available: OutputGroup[]
+): number {
+  let selectedValue = 0
+  while (selectedValue <= target && available.length > 0) {
+    const candidate = available.shift()
+    if (!candidate) {
+      break
+    }
+    selectedSet.push(candidate)
+    selectedValue += candidate.effectiveValue
+  }
+  return selectedValue
+}
+
+/**
+ * Drops output groups that share a transaction with an already-kept group,
+ * keeping the higher-value one. Mirrors Sparrow's getTransactionAlreadySelected
+ * so STONEWALL never spreads UTXOs from one transaction across both sets.
+ */
+function dedupeByTransaction(groups: OutputGroup[]): OutputGroup[] {
+  const unique: OutputGroup[] = []
+  for (const candidate of groups) {
+    const candidateTxids = new Set(candidate.utxos.map((utxo) => utxo.txid))
+    const existingIndex = unique.findIndex((group) =>
+      group.utxos.some((utxo) => candidateTxids.has(utxo.txid))
+    )
+    if (existingIndex === -1) {
+      unique.push(candidate)
+      continue
+    }
+    if (candidate.value > unique[existingIndex].value) {
+      unique[existingIndex] = candidate
+    }
+  }
+  return unique
+}
+
+function stonewallTry(
+  target: number,
+  candidates: OutputGroup[],
+  actualTarget: number,
+  random: () => number
+): OutputGroup[][] | null {
+  for (let attempt = 0; attempt < STONEWALL_ATTEMPTS; attempt += 1) {
+    const randomized = shuffle(candidates, random)
+
+    const set1: OutputGroup[] = []
+    const value1 = takeUntilTarget(actualTarget, set1, randomized)
+
+    const set2: OutputGroup[] = []
+    const value2 = takeUntilTarget(actualTarget, set2, randomized)
+
+    if (value1 >= target && value2 >= target) {
+      return [set1, set2]
     }
   }
 
@@ -282,505 +496,308 @@ function branchAndBoundUtxoSelection(
 }
 
 /**
- * Find a subset of UTXOs that exactly match the target amount
+ * STONEWALL selection (Sparrow/Samourai port). Picks two independent input
+ * sets that each cover the target, so the resulting transaction resembles a
+ * two-party coinjoin. Prefers the recipient script type for the inputs.
  */
-function findExactMatch(utxos: _Utxo[], targetValue: number): Utxo[] | null {
-  // This uses dynamic programming to find subset sum
-  const n = utxos.length
+function selectStonewallSets(
+  target: number,
+  groups: OutputGroup[],
+  noInputsFee: number,
+  preferredScriptType: ScriptVersionType,
+  random: () => number
+): OutputGroup[][] | null {
+  const actualTarget = target + noInputsFee
+  const uniqueGroups = dedupeByTransaction(groups)
 
-  // Create a map where the value is the subset
-  const dp = new Map()
-  dp.set(0, [])
+  const preferred = uniqueGroups.filter(
+    (group) => group.scriptType === preferredScriptType
+  )
+  const preferredSets = stonewallTry(target, preferred, actualTarget, random)
+  if (preferredSets) {
+    return preferredSets
+  }
 
-  for (let i = 0; i < n; i += 1) {
-    const utxo = utxos[i]
-    const { effectiveValue } = utxo
+  return stonewallTry(target, uniqueGroups, actualTarget, random)
+}
 
-    // Create a copy of current dp map to avoid modifying during iteration
-    const currentDp = new Map(dp)
+function estimateFee(
+  inputs: Utxo[],
+  outputVbytes: number,
+  feeRate: number
+): number {
+  const inputVbytes = inputs.reduce(
+    (sum, utxo) => sum + getInputVbytes(getUtxoScriptType(utxo)),
+    0
+  )
+  const segwitOverhead = inputs.some((utxo) =>
+    isSegwitInput(getUtxoScriptType(utxo))
+  )
+    ? SEGWIT_OVERHEAD_VBYTES
+    : 0
+  // Sparrow's getRequiredFeeAmount truncates: floor(rate * virtualSize)
+  return Math.floor(
+    (BASE_TX_OVERHEAD_VBYTES + segwitOverhead + inputVbytes + outputVbytes) *
+      feeRate
+  )
+}
 
-    for (const [value, subset] of currentDp.entries()) {
-      const newValue = value + effectiveValue
-      if (!dp.has(newValue)) {
-        dp.set(newValue, [...subset, utxo])
-      }
+function buildSingleSetResult(
+  groups: OutputGroup[],
+  target: number,
+  feeRate: number,
+  costOfChange: number,
+  options: UtxoSelectionOptions
+): SelectionResult {
+  const inputs = flattenUtxos(groups)
+  const totalValue = sumValue(groups)
 
-      if (newValue === targetValue) {
-        return dp.get(newValue)
-      }
+  const recipientVbytes = getRecipientVbytes(
+    options.outputs,
+    options.recipientScriptType
+  )
+  const changeVbytes = getOutputVbytes(options.changeScriptType)
+
+  const feeWithChange = options.feeFn
+    ? options.feeFn(inputs.length, true)
+    : estimateFee(inputs, recipientVbytes + changeVbytes, feeRate)
+  const feeWithoutChange = options.feeFn
+    ? options.feeFn(inputs.length, false)
+    : estimateFee(inputs, recipientVbytes, feeRate)
+
+  if (totalValue < target + feeWithoutChange) {
+    return { change: 0, error: 'Insufficient funds', fee: 0, inputs: [] }
+  }
+
+  const change = totalValue - target - feeWithChange
+  const minChange = Math.max(costOfChange, options.dustThreshold)
+
+  if (change < minChange) {
+    return { change: 0, fee: totalValue - target, inputs }
+  }
+
+  return { change, fee: feeWithChange, inputs }
+}
+
+function buildStonewallResult(
+  sets: OutputGroup[][],
+  target: number,
+  feeRate: number,
+  options: UtxoSelectionOptions
+): StonewallResult {
+  const numSets = sets.length
+  const allInputs = sets.flatMap(flattenUtxos)
+
+  const recipientVbytes = getRecipientVbytes(
+    options.outputs,
+    options.recipientScriptType
+  )
+  // recipient + one fake-mix output per extra set + one change output per set
+  const fakeMixVbytes =
+    (numSets - 1) * getOutputVbytes(options.recipientScriptType)
+  const changeVbytes = numSets * getOutputVbytes(options.changeScriptType)
+  const rawFee = estimateFee(
+    allInputs,
+    recipientVbytes + fakeMixVbytes + changeVbytes,
+    feeRate
+  )
+  // Round the fee up to a multiple of numSets so it splits evenly across sets
+  // and no satoshis are lost. Mirrors Sparrow's changeFeeRequiredAmt rounding.
+  const fee = rawFee + ((numSets - (rawFee % numSets)) % numSets)
+  const feePerSet = fee / numSets
+  const minChange = Math.max(
+    getCostOfChange(feeRate, options.longTermFeeRate, options.changeScriptType),
+    options.dustThreshold
+  )
+
+  const changeOutputs: StonewallOutput[] = []
+  let changeIsDust = false
+  for (const set of sets) {
+    const setValue = sumValue(set)
+    const changeValue = setValue - target - feePerSet
+    if (changeValue < minChange) {
+      changeIsDust = true
+      break
+    }
+    changeOutputs.push({
+      scriptType: options.changeScriptType,
+      type: 'change',
+      value: changeValue
+    })
+  }
+
+  const fakeMixOutputs: StonewallOutput[] = []
+  for (let i = 1; i < numSets; i += 1) {
+    fakeMixOutputs.push({
+      scriptType: options.recipientScriptType,
+      type: 'fakeMix',
+      value: target
+    })
+  }
+
+  const recipientOutput: StonewallOutput = {
+    scriptType: options.recipientScriptType,
+    type: 'recipient',
+    value: target
+  }
+
+  // When a set's change would be dust, follow Sparrow's privacy-maximizing
+  // branch (Wallet.java:1244-1246): keep both output sets and absorb the
+  // surplus into the fee instead of failing. The recipient + fake-mix structure
+  // and its set indistinguishability are preserved; only the change is dropped.
+  if (changeIsDust) {
+    const totalInputValue = sets.reduce((sum, set) => sum + sumValue(set), 0)
+    const outputsValue = numSets * target
+    return {
+      fee: totalInputValue - outputsValue,
+      inputs: allInputs,
+      outputs: [recipientOutput, ...fakeMixOutputs]
     }
   }
 
-  // Check if we have an exact match for the target value
-  return dp.get(targetValue) || null
+  const outputs: StonewallOutput[] = [
+    recipientOutput,
+    ...fakeMixOutputs,
+    ...changeOutputs
+  ]
+
+  return { fee, inputs: allInputs, outputs }
 }
 
-type StonewallOptions = {
-  recipientType?: string
-  dustThreshold?: number
-  minOutputs?: number
-  maxOutputs?: number
-  minInputs?: number
-  maxInputs?: number
-  sizeP2PKH?: number
-  sizeP2WPKH?: number
-  sizeP2SHP2WPKH?: number
-  outputSizeP2PKH?: number
-  outputSizeP2WPKH?: number
-  txOverhead?: number
-  maxAttempts?: number
+function resolveOptions(
+  feeRate: number,
+  options?: Partial<UtxoSelectionOptions>
+): UtxoSelectionOptions {
+  const longTermFeeRate =
+    options?.longTermFeeRate ?? Math.min(feeRate, DEFAULT_LONG_TERM_FEE_RATE)
+  return {
+    changeScriptType: options?.changeScriptType ?? DEFAULT_CHANGE_SCRIPT_TYPE,
+    dustThreshold: options?.dustThreshold ?? DEFAULT_DUST_THRESHOLD,
+    feeFn: options?.feeFn,
+    longTermFeeRate,
+    outputs: options?.outputs ?? [],
+    recipientScriptType:
+      options?.recipientScriptType ?? DEFAULT_RECIPIENT_SCRIPT_TYPE
+  }
+}
+
+function selectUtxos(
+  utxos: Utxo[],
+  targetAmount: number,
+  feeRate: number,
+  strategy: SelectionStrategy,
+  options?: Partial<UtxoSelectionOptions>
+): SelectionResult {
+  const opts = resolveOptions(feeRate, options)
+
+  const totalAvailable = utxos.reduce((sum, utxo) => sum + utxo.value, 0)
+  if (totalAvailable < targetAmount) {
+    return { change: 0, error: 'Insufficient funds', fee: 0, inputs: [] }
+  }
+
+  const groups = buildOutputGroups(utxos, feeRate, opts.longTermFeeRate)
+  const noInputsFee = getNoInputsFee(
+    opts.outputs,
+    feeRate,
+    opts.recipientScriptType,
+    opts.changeScriptType
+  )
+  const costOfChange = getCostOfChange(
+    feeRate,
+    opts.longTermFeeRate,
+    opts.changeScriptType
+  )
+  const random = seededRandom(SELECTION_SEED)
+
+  let selected =
+    strategy === 'efficiency'
+      ? selectBranchAndBound(targetAmount, groups, noInputsFee, costOfChange)
+      : null
+
+  if (!selected) {
+    selected = selectKnapsack(targetAmount, groups, noInputsFee, random)
+  }
+  if (!selected) {
+    selected = selectAccumulative(targetAmount, groups, noInputsFee)
+  }
+  if (!selected || selected.length === 0) {
+    return { change: 0, error: 'Insufficient funds', fee: 0, inputs: [] }
+  }
+
+  return buildSingleSetResult(
+    selected,
+    targetAmount,
+    feeRate,
+    costOfChange,
+    opts
+  )
+}
+
+function selectEfficientUtxos(
+  utxos: Utxo[],
+  targetAmount: number,
+  feeRate: number,
+  options?: Partial<UtxoSelectionOptions>
+): SelectionResult {
+  return selectUtxos(utxos, targetAmount, feeRate, 'efficiency', options)
 }
 
 /**
- * STONEWALL UTXO Selection Algorithm
- * * selects UTXOs to create two sets of inputs for a transaction, mimicking a CoinJoin-like structure to enhance privacy
- * https://mempool.space/tx/94e5a9a734cdf45ca7387aa786e0c01463ee9102e7e6342aa1712fece0af114f
- * Optimized for privacy by creating transactions that resemble multi-party transactions
- * Ideally, it should support only P2WPKH and P2PKH script types
- * Returns two UTxo sets with similar values
+ * Builds a STONEWALL transaction structure: two independent input sets, the
+ * recipient output, a fake-mix output to self per extra set, and one change
+ * output per set. Returns an error when the UTXOs cannot form the structure.
  */
 function selectStonewallUtxos(
-  utxos: _Utxo[],
+  utxos: Utxo[],
   targetAmount: number,
   feeRate: number,
-  options: StonewallOptions = {}
-): {
-  inputs: Utxo[]
-  outputs: ChangeOutput[]
-  fee: number
-  privacyScore: number
-  txSize: number
-  error?: string
-} {
-  // Default options
-  const defaultOptions = {
-    dustThreshold: 546,
-    maxAttempts: 1000,
-    maxInputs: 10,
-    maxOutputs: 4,
-    minInputs: 4,
-    minOutputs: 2,
-    outputSizeP2PKH: 34,
-    outputSizeP2WPKH: 31,
-    sizeP2PKH: 148,
-    sizeP2SHP2WPKH: 91,
-    sizeP2WPKH: 68,
-    txOverhead: 10
-  }
+  options?: Partial<UtxoSelectionOptions>
+): StonewallResult {
+  const opts = resolveOptions(feeRate, options)
 
-  const opts = { ...defaultOptions, ...options }
-
-  // Check for insufficient funds early
   const totalAvailable = utxos.reduce((sum, utxo) => sum + utxo.value, 0)
   if (totalAvailable < targetAmount) {
-    return {
-      error: 'Insufficient funds',
-      fee: 0,
-      inputs: [],
-      outputs: [],
-      privacyScore: 0,
-      txSize: 0
-    }
+    return { error: 'Insufficient funds', fee: 0, inputs: [], outputs: [] }
   }
 
-  // Filter UTXOs based on postmix option
-  const eligibleUtxos = [...utxos]
+  const groups = buildOutputGroups(utxos, feeRate, opts.longTermFeeRate)
+  const noInputsFee = getNoInputsFee(
+    opts.outputs,
+    feeRate,
+    opts.recipientScriptType,
+    opts.changeScriptType
+  )
+  const random = seededRandom(SELECTION_SEED)
 
-  // Get input size based on script type
-  function getInputSize(utxo: Partial<Pick<_Utxo, 'scriptType'>>) {
-    if (!utxo.scriptType) {
-      return opts.sizeP2PKH
-    } // Default to P2PKH
-
-    switch (utxo.scriptType) {
-      case 'p2wpkh':
-        return opts.sizeP2WPKH
-      case 'p2sh-p2wpkh':
-        return opts.sizeP2SHP2WPKH
-      default:
-        return opts.sizeP2PKH
-    }
-  }
-
-  // Get output size based on script type
-  function getOutputSize(scriptType: string) {
-    if (scriptType === 'p2wpkh') {
-      return opts.outputSizeP2WPKH
-    }
-    return opts.outputSizeP2PKH
-  }
-
-  // Group UTXOs by script type to help with fingerprinting avoidance
-  const utxosByType: { [key: string]: _Utxo[] } = {}
-  for (const utxo of eligibleUtxos) {
-    const type = utxo.scriptType || 'p2pkh'
-    if (!utxosByType[type]) {
-      utxosByType[type] = []
-    }
-    utxosByType[type].push(utxo)
-  }
-
-  // Sort UTXOs by size within each type
-  for (const type of Object.keys(utxosByType)) {
-    utxosByType[type] = utxosByType[type].toSorted(
-      (a: { value: number }, b: { value: number }) => a.value - b.value
-    )
-  }
-
-  // Try to find a suitable STONEWALL structure
-  let bestSolution = null
-  let bestPrivacyScore = 0
-
-  for (let attempt = 0; attempt < opts.maxAttempts; attempt += 1) {
-    // Step 1: Decide how many outputs to create (including recipient)
-    const numOutputs =
-      Math.floor(randomNum() * (opts.maxOutputs - opts.minOutputs + 1)) +
-      opts.minOutputs
-
-    // Step 2: Decide how many inputs to use
-    const numInputs =
-      Math.floor(randomNum() * (opts.maxInputs - opts.minInputs + 1)) +
-      opts.minInputs
-
-    // Step 3: Select random script types for diversity (if available)
-    const availableTypes = Object.keys(utxosByType).filter(
-      (type) => utxosByType[type].length > 0
-    )
-    if (availableTypes.length === 0) {
-      continue
-    }
-
-    // Simplified type selection
-    const selectedTypes = [availableTypes[0]]
-
-    // Step 4: Select inputs
-    const selectedInputs = []
-    let totalInputValue = 0
-
-    // Try to select inputs from different types
-    for (let i = 0; i < numInputs; i += 1) {
-      const [type] = selectedTypes // Always use the first available type
-
-      if (utxosByType[type].length === 0) {
-        // If we can't get enough inputs, this attempt fails
-        break
-      }
-
-      // Select a random UTXO from this type
-      const typeUtxos = utxosByType[type]
-      const randomIndex = Math.floor(randomNum() * typeUtxos.length)
-      const selectedUtxo = typeUtxos[randomIndex]
-
-      selectedInputs.push(selectedUtxo)
-      totalInputValue += selectedUtxo.value
-
-      // Remove the selected UTXO from the available pool
-      utxosByType[type] = typeUtxos.filter(
-        (_: _Utxo, idx: number) => idx !== randomIndex
-      )
-    }
-
-    // Ensure we have at least the minimum required inputs, but be flexible if we don't have enough UTXOs
-    const totalAvailableUtxos = utxos.length
-    const requiredMinInputs = Math.min(opts.minInputs, totalAvailableUtxos)
-    if (selectedInputs.length < requiredMinInputs) {
-      continue // Try another attempt
-    }
-
-    // Make sure we have enough funds with the selected inputs
-    const selectedInputSizes = selectedInputs.map(getInputSize)
-    const totalInputSize = selectedInputSizes.reduce(
-      (sum, size) => sum + size,
-      0
-    )
-
-    // Calculate base fee (inputs + recipient output + overhead)
-    const recipientOutputSize = getOutputSize(options.recipientType || 'p2pkh')
-    const baseFee =
-      (totalInputSize + recipientOutputSize + opts.txOverhead) * feeRate
-
-    // Calculate remaining amount for change outputs
-    const remainingAmount = totalInputValue - targetAmount - baseFee
-
-    // If we don't have enough funds, try again
-    if (remainingAmount <= 0) {
-      continue
-    }
-
-    // Step 5: Calculate change outputs
-    const changeOutputs: ChangeOutput[] = []
-    const numChangeOutputs = numOutputs - 1 // Excluding recipient
-
-    if (numChangeOutputs <= 0) {
-      continue
-    }
-
-    // Add sizes for change outputs
-    let totalChangeOutputSize = 0
-    const changeOutputSizes = []
-
-    for (let i = 0; i < numChangeOutputs; i += 1) {
-      // Randomly select script type for change
-      const changeType =
-        selectedTypes[Math.floor(randomNum() * selectedTypes.length)]
-      const outputSize = getOutputSize(changeType)
-      changeOutputSizes.push(outputSize)
-      totalChangeOutputSize += outputSize
-    }
-
-    // Recalculate fee with change outputs
-    const totalTxSize =
-      totalInputSize +
-      recipientOutputSize +
-      totalChangeOutputSize +
-      opts.txOverhead
-    const totalFee = totalTxSize * feeRate
-
-    // Calculate total available for change
-    const totalChangeAmount = totalInputValue - targetAmount - totalFee
-
-    // If total change is less than dust threshold * number of change outputs, try again
-    if (totalChangeAmount < opts.dustThreshold * numChangeOutputs) {
-      continue
-    }
-
-    // Distribute change amount across change outputs
-    for (let i = 0; i < numChangeOutputs; i += 1) {
-      let changeAmount
-
-      if (i === numChangeOutputs - 1) {
-        // Last change output gets the remainder
-        changeAmount =
-          changeOutputs.length > 0
-            ? totalChangeAmount -
-              changeOutputs.reduce((sum, output) => sum + output.value, 0)
-            : totalChangeAmount
-      } else {
-        // Calculate a target change value based on an uneven distribution
-        const baseAmount = totalChangeAmount / numChangeOutputs
-
-        // Apply variance to avoid equal change outputs
-        const variance = randomNum() * 0.4 - 0.2 // ±20%
-        changeAmount = Math.floor(baseAmount * (1 + variance))
-      }
-
-      // Ensure change amount is above dust threshold
-      if (changeAmount < opts.dustThreshold) {
-        continue
-      }
-
-      // Create change output
-      changeOutputs.push({
-        size: changeOutputSizes[i],
-        type: selectedTypes[Math.floor(randomNum() * selectedTypes.length)],
-        value: changeAmount
-      })
-    }
-
-    // Make sure all change outputs are created and above dust
-    if (changeOutputs.length !== numChangeOutputs) {
-      continue
-    }
-
-    // Verify the total matches our calculations
-    const finalTotalOutput =
-      targetAmount +
-      changeOutputs.reduce((sum, output) => sum + output.value, 0)
-    const finalFee = totalInputValue - finalTotalOutput
-
-    // Calculate privacy score (higher is better)
-    let privacyScore = 0
-
-    // More inputs and outputs = better privacy
-    privacyScore += numInputs * 10
-    privacyScore += numOutputs * 15
-
-    // Variety of script types = better privacy
-    privacyScore +=
-      new Set(selectedInputs.map((utxo) => utxo.scriptType || 'p2pkh')).size *
-      20
-    privacyScore +=
-      new Set(changeOutputs.map((output) => output.type)).size * 20
-
-    // Balanced change outputs = better privacy
-    if (changeOutputs.length > 1) {
-      const values = changeOutputs.map((output) => output.value)
-      const maxValue = Math.max(...values)
-      const minValue = Math.min(...values)
-
-      // More balanced outputs = higher score
-      const balanceRatio = minValue / maxValue
-      privacyScore += balanceRatio * 50
-    }
-
-    // Avoid amount correlation with inputs
-    let hasExactInputMatch = false
-    for (const input of selectedInputs) {
-      if (
-        input.value === targetAmount ||
-        changeOutputs.some((output) => input.value === output.value)
-      ) {
-        hasExactInputMatch = true
-        break
-      }
-    }
-    if (!hasExactInputMatch) {
-      privacyScore += 30
-    }
-
-    // Update best solution if this one has a better privacy score
-    if (privacyScore > bestPrivacyScore) {
-      bestPrivacyScore = privacyScore
-      bestSolution = {
-        fee: finalFee,
-        inputs: selectedInputs,
-        outputs: [
-          {
-            size: getOutputSize(options.recipientType || 'p2pkh'),
-            type: options.recipientType || 'p2pkh',
-            value: targetAmount
-          },
-          ...changeOutputs
-        ],
-        privacyScore,
-        txSize: totalTxSize
-      }
-    }
-  }
-
-  if (!bestSolution) {
+  const sets = selectStonewallSets(
+    targetAmount,
+    groups,
+    noInputsFee,
+    opts.recipientScriptType,
+    random
+  )
+  if (!sets) {
     return {
       error: 'Could not find a suitable STONEWALL structure',
       fee: 0,
       inputs: [],
-      outputs: [],
-      privacyScore: 0,
-      txSize: 0
+      outputs: []
     }
   }
 
-  return bestSolution
-}
-
-/**
- * Calculates the entropy of a STONEWALL transaction
- * Higher entropy means better privacy
- *
- * @param {Object} solution - A STONEWALL transaction solution
- * @returns {Number} Entropy score
- */
-function calculateStonewallEntropy(solution: {
-  inputs: _Utxo[]
-  outputs: ChangeOutput[]
-}): number {
-  if (!solution || !solution.inputs || !solution.outputs) {
-    return 0
-  }
-
-  const { inputs } = solution
-  const { outputs } = solution
-
-  let entropy = 0
-
-  const allValues = [
-    ...inputs.map((i: { value: number }) => i.value),
-    ...outputs.map((o: { value: number }) => o.value)
-  ]
-  const valueDistribution: { [key: number]: number } = {}
-
-  for (const value of allValues) {
-    valueDistribution[value] = (valueDistribution[value] || 0) + 1
-  }
-
-  // Calculate entropy
-  const totalCount = allValues.length
-  for (const count of Object.values(valueDistribution)) {
-    const probability = count / totalCount
-    entropy -= probability * Math.log2(probability)
-  }
-
-  // Scale entropy to a 0-100 score
-  const normalizedEntropy = Math.min(100, entropy * 25)
-
-  return normalizedEntropy
-}
-
-/**
- * Creates different change output amounts that are not obviously related
- *
- * @param {Number} totalChange - Total change amount to distribute
- * @param {Number} numOutputs - Number of change outputs to create
- * @param {Number} dustThreshold - Minimum output value
- * @returns {Array} Array of change output amounts
- */
-function distributeChangeWithPrivacy(
-  totalChange: number,
-  numOutputs: number,
-  dustThreshold: number
-): number[] {
-  if (numOutputs <= 0) {
-    return []
-  }
-  if (numOutputs === 1) {
-    return [totalChange]
-  }
-
-  // Make sure we have enough for all outputs
-  if (totalChange < dustThreshold * numOutputs) {
-    return [totalChange]
-  }
-
-  const changeOutputs = []
-  let remainingAmount = totalChange
-
-  // Create n-1 outputs with privacy-focused values
-  for (let i = 0; i < numOutputs - 1; i += 1) {
-    // Calculate remaining average
-    const avgRemaining = remainingAmount / (numOutputs - i)
-
-    // Create a non-round number with some variance
-    // Use different variance patterns to avoid fingerprinting
-    let variance
-    if (i % 3 === 0) {
-      // Some outputs significantly smaller
-      variance = 0.5 + randomNum() * 0.3
-    } else if (i % 3 === 1) {
-      // Some outputs slightly larger
-      variance = 1.1 + randomNum() * 0.2
-    } else {
-      // Some outputs close to average
-      variance = 0.9 + randomNum() * 0.2
-    }
-
-    // Calculate change amount
-    let changeAmount = Math.floor(avgRemaining * variance)
-
-    // Add some "noise" to avoid round numbers
-    const noise = Math.floor(randomNum() * 100) - 50
-    changeAmount += noise
-
-    // Ensure we don't create dust and leave enough for remaining outputs
-    const minRequired = dustThreshold * (numOutputs - i - 1)
-    if (changeAmount < dustThreshold) {
-      changeAmount = dustThreshold
-    } else if (remainingAmount - changeAmount < minRequired) {
-      changeAmount = remainingAmount - minRequired
-    }
-
-    changeOutputs.push(changeAmount)
-    remainingAmount -= changeAmount
-  }
-
-  // Add the final output with remaining amount
-  changeOutputs.push(remainingAmount)
-
-  return changeOutputs
+  return buildStonewallResult(sets, targetAmount, feeRate, opts)
 }
 
 export {
-  calculateStonewallEntropy,
-  distributeChangeWithPrivacy,
   getUtxoOutpoint,
   selectEfficientUtxos,
-  selectStonewallUtxos
+  selectStonewallUtxos,
+  selectUtxos
+}
+export type {
+  SelectionResult,
+  SelectionStrategy,
+  StonewallOutput,
+  StonewallResult,
+  UtxoSelectionOptions
 }

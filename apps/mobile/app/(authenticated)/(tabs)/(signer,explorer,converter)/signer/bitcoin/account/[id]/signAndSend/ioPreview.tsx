@@ -66,7 +66,17 @@ import {
 } from '@/utils/parse'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
-import { getUtxoOutpoint, selectEfficientUtxos } from '@/utils/utxo'
+import {
+  getUtxoOutpoint,
+  selectEfficientUtxos,
+  selectStonewallUtxos
+} from '@/utils/utxo'
+
+const MAX_INTERNAL_ADDRESS_SCAN = 1000
+// STONEWALL always produces two input sets, so two change outputs
+const STONEWALL_CHANGE_OUTPUTS = 2
+// change + second STONEWALL change + decoy
+const UNUSED_INTERNAL_ADDRESSES_NEEDED = 3
 
 export default function IOPreview() {
   const router = useRouter()
@@ -120,46 +130,71 @@ export default function IOPreview() {
   const mempoolOracle = useMempoolOracle(account?.network || 'bitcoin')
   const wallet = useGetAccountWallet(id!)
   const [changeAddress, setChangeAddress] = useState('')
+  const [decoyAddress, setDecoyAddress] = useState('')
+  const [secondChangeAddress, setSecondChangeAddress] = useState('')
+  const [stonewallChangeValues, setStonewallChangeValues] = useState<number[]>(
+    []
+  )
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
 
   useEffect(() => {
     if (!account || !wallet) {
       return
     }
-    ;(() => {
-      const outputAddresses: Record<string, boolean> = {}
-      for (const tx of account.transactions) {
-        for (const output of tx.vout) {
-          outputAddresses[output.address] = true
-        }
-      }
 
-      let i = 0
-      while (true) {
-        const addressObj = wallet.peekAddress(KeychainKind.Internal, i)
-        const address = addressObj?.address ?? ''
-        if (outputAddresses[address] !== true) {
-          setChangeAddress(address)
-          return
-        }
-        i += 1
+    const usedOutputAddresses: Record<string, boolean> = {}
+    for (const tx of account.transactions) {
+      for (const output of tx.vout) {
+        usedOutputAddresses[output.address] = true
       }
-    })()
+    }
+
+    // Three distinct unused internal addresses (change, STONEWALL per-set
+    // change, decoy) so no address is reused across the outputs.
+    const unusedInternal: string[] = []
+    let i = 0
+    while (
+      unusedInternal.length < UNUSED_INTERNAL_ADDRESSES_NEEDED &&
+      i < MAX_INTERNAL_ADDRESS_SCAN
+    ) {
+      const address =
+        wallet.peekAddress(KeychainKind.Internal, i)?.address ?? ''
+      if (address && usedOutputAddresses[address] !== true) {
+        unusedInternal.push(address)
+      }
+      i += 1
+    }
+
+    if (unusedInternal[0]) {
+      setChangeAddress(unusedInternal[0])
+    }
+    if (unusedInternal[1]) {
+      setSecondChangeAddress(unusedInternal[1])
+    }
+    if (unusedInternal[2]) {
+      setDecoyAddress(unusedInternal[2])
+    }
   }, [account, wallet])
 
-  // this removes the change address if the user goes back to the IO preview.
-  // we add the change address as an output before moving to the next step.
+  // this removes the change addresses if the user goes back to the IO preview.
+  // we add the change address(es) as outputs before moving to the next step.
   useEffect(() => {
     if (!changeAddress || !shouldRemoveChange) {
       return
     }
+    const changeAddresses = new Set([changeAddress, secondChangeAddress])
     for (const output of outputs) {
-      if (output.to === changeAddress) {
+      if (changeAddresses.has(output.to)) {
         removeOutput(output.localId)
-        return
       }
     }
-  }, [outputs, changeAddress, shouldRemoveChange, removeOutput])
+  }, [
+    outputs,
+    changeAddress,
+    secondChangeAddress,
+    shouldRemoveChange,
+    removeOutput
+  ])
 
   const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
     useShallow((state) => [
@@ -577,6 +612,27 @@ export default function IOPreview() {
       return
     }
 
+    // Leaving privacy mode: drop the decoy output it added before reselecting.
+    if (selectedAutoSelectUtxos === 'privacy' && type !== 'privacy') {
+      const decoyOutput = outputs.find((output) => output.to === decoyAddress)
+      if (decoyOutput) {
+        removeOutput(decoyOutput.localId)
+      }
+      setStonewallChangeValues([])
+    }
+
+    // Use stored next-block fee when local fee rate hasn't been hydrated yet
+    const effectiveFeeRate =
+      localFeeRate > 1
+        ? localFeeRate
+        : (useBlockchainStore.getState().nextBlockFee ?? 1)
+
+    // Payment amount excludes any decoy output so the target stays the user's
+    // intended spend even when a stale decoy is still in the output list.
+    const userPaymentAmount = outputs
+      .filter((output) => output.to !== decoyAddress)
+      .reduce((sum, output) => sum + output.amount, 0)
+
     switch (type) {
       case 'user': {
         if (previousUserSelectedUtxos) {
@@ -590,9 +646,44 @@ export default function IOPreview() {
       case 'privacy': {
         setLoadingOptimizeAlgorithm('privacy')
 
+        if (!decoyAddress) {
+          toast.error(t('transaction.error.ChangeAddressNotAvailable'))
+          break
+        }
+
         setPreviousUserSelectedUtxos(getInputs())
 
-        toast.error('Not implemented yet')
+        const stonewallResult = selectStonewallUtxos(
+          account.utxos,
+          userPaymentAmount,
+          effectiveFeeRate,
+          { outputs: outputs.filter((output) => output.to !== decoyAddress) }
+        )
+
+        if (stonewallResult.error) {
+          toast.error(stonewallResult.error)
+          break
+        }
+
+        setAccountUtxos(stonewallResult.inputs)
+        // Decoy is a self-payment equal to the spend: two equal-value outputs
+        // hide the real recipient. Keep the per-set change values so
+        // handleGoToPreview can emit one change output per set.
+        setStonewallChangeValues(
+          stonewallResult.outputs
+            .filter((output) => output.type === 'change')
+            .map((output) => output.value)
+        )
+        addOutput({
+          amount: userPaymentAmount,
+          label: t('sign.decoyOutputLabelDefault'),
+          to: decoyAddress
+        })
+
+        if (effectiveFeeRate !== localFeeRate) {
+          setLocalFeeRate(effectiveFeeRate)
+          setFeeRate(effectiveFeeRate)
+        }
 
         break
       }
@@ -600,12 +691,6 @@ export default function IOPreview() {
         setLoadingOptimizeAlgorithm('efficiency')
 
         setPreviousUserSelectedUtxos(getInputs())
-
-        // Use stored next-block fee when local fee rate hasn't been hydrated yet
-        const effectiveFeeRate =
-          localFeeRate > 1
-            ? localFeeRate
-            : (useBlockchainStore.getState().nextBlockFee ?? 1)
 
         const feeFn = (inputCount: number, hasChange: boolean) => {
           const mockInputs = account.utxos.slice(0, inputCount)
@@ -618,11 +703,8 @@ export default function IOPreview() {
         }
 
         const optimizationResult = selectEfficientUtxos(
-          account.utxos.map((utxo) => ({
-            ...utxo,
-            effectiveValue: utxo.value
-          })),
-          totalOutputValue,
+          account.utxos,
+          userPaymentAmount,
           effectiveFeeRate,
           { feeFn }
         )
@@ -649,6 +731,75 @@ export default function IOPreview() {
     setLoadingOptimizeAlgorithm(false)
   }
 
+  // Emits one change output per STONEWALL set, split by the selector's per-set
+  // proportions. The fee is computed from the real two-change size so value is
+  // conserved and the effective rate stays at target. Returns true if added.
+  function tryAddStonewallChangeOutputs(): boolean {
+    if (
+      selectedAutoSelectUtxos !== 'privacy' ||
+      stonewallChangeValues.length !== STONEWALL_CHANGE_OUTPUTS ||
+      !changeAddress ||
+      !secondChangeAddress
+    ) {
+      return false
+    }
+
+    const changeAddresses = [changeAddress, secondChangeAddress]
+    const nonChangeOutputs = outputs.filter(
+      (output) => !changeAddresses.includes(output.to)
+    )
+    const sumNonChange = nonChangeOutputs.reduce(
+      (sum, output) => sum + output.amount,
+      0
+    )
+
+    const sizingOutputs: Output[] = [
+      ...nonChangeOutputs,
+      ...changeAddresses.map((to, index) => ({
+        amount: 0,
+        label: '',
+        localId: `stonewall-change-sizing-${index}`,
+        to
+      }))
+    ]
+    const { vsize } = estimateTransactionSize(
+      Array.from(inputs.values()),
+      sizingOutputs
+    )
+    const stonewallFee = Math.round(localFeeRate * vsize)
+    const totalChange = utxosSelectedValue - sumNonChange - stonewallFee
+
+    const proportionDenominator = stonewallChangeValues.reduce(
+      (sum, value) => sum + value,
+      0
+    )
+    const firstChange =
+      proportionDenominator > 0
+        ? Math.floor(
+            (totalChange * stonewallChangeValues[0]) / proportionDenominator
+          )
+        : Math.floor(totalChange / STONEWALL_CHANGE_OUTPUTS)
+    const secondChange = totalChange - firstChange
+
+    if (firstChange < DUST_LIMIT || secondChange < DUST_LIMIT) {
+      return false
+    }
+
+    setShouldRemoveChange(false)
+    setFee(stonewallFee)
+    addOutput({
+      amount: firstChange,
+      label: t('sign.changeAddressLabelDefault'),
+      to: changeAddress
+    })
+    addOutput({
+      amount: secondChange,
+      label: t('sign.changeAddressLabelDefault'),
+      to: secondChangeAddress
+    })
+    return true
+  }
+
   function handleGoToPreview() {
     setDustErrorOverride('')
     setFeeRate(localFeeRate)
@@ -669,6 +820,11 @@ export default function IOPreview() {
         setDustErrorOverride(t('transaction.error.dustOutputBelowLimit'))
         return
       }
+    }
+
+    if (tryAddStonewallChangeOutputs()) {
+      proceedToPreview()
+      return
     }
 
     if (remainingBalance > 0 && remainingBalance < DUST_LIMIT) {

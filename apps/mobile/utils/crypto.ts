@@ -25,6 +25,34 @@ function randomNum() {
   return crypto.getRandomValues(new Uint32Array(1))[0] / MAX_UINT32
 }
 
+/**
+ * Deterministic PRNG (mulberry32). Same seed yields the same sequence, so
+ * UTXO selection that relies on shuffling stays reproducible across runs.
+ *
+ * This matches the determinism *intent* of Sparrow's seeded STONEWALL selector
+ * but NOT its numeric output: Sparrow uses java.util.Random (a 48-bit LCG), so
+ * the same seed produces a different shuffle here, and the selected sets will
+ * generally differ from Sparrow (both remain valid selections). Sparrow's
+ * knapsack selector uses an unseeded Random and is therefore not reproducible
+ * at all — it cannot be matched by any seeded generator.
+ *
+ * The bitwise ops are intentional 32-bit integer arithmetic: `>>> 0` coerces to
+ * unsigned 32-bit and `| 0` wraps to signed 32-bit. Math.trunc would change the
+ * result, so prefer-math-trunc/operator-assignment are disabled here.
+ */
+/* eslint-disable unicorn/prefer-math-trunc, operator-assignment */
+function seededRandom(seed: number) {
+  let state = seed >>> 0
+  return function next() {
+    state |= 0
+    state = (state + 0x6d2b79f5) | 0
+    let t = Math.imul(state ^ (state >>> 15), 1 | state)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / MAX_UINT32
+  }
+}
+/* eslint-enable unicorn/prefer-math-trunc, operator-assignment */
+
 function sha256(text: string): Promise<string> {
   const hash = QuickCrypto.createHash('sha256')
   hash.update(text)
@@ -101,5 +129,6 @@ export {
   randomKey,
   randomNum,
   randomUuid,
+  seededRandom,
   sha256
 }

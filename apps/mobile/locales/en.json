@@ -2345,6 +2345,7 @@
   "sign": {
     "changeAddressLabelDefault": "Change",
     "changeAddressLabelFinal": "[change] %{txlabel}",
+    "decoyOutputLabelDefault": "Decoy",
     "transaction": "Sign transaction"
   },
   "time": {

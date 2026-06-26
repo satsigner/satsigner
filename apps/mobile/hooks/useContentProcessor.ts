@@ -71,9 +71,7 @@ function autoSelectUtxos(
   }
 
   const result = selectEfficientUtxos(account.utxos, targetAmount, 1, {
-    changeOutputSize: 34,
-    dustThreshold: 546,
-    inputSize: 148
+    dustThreshold: 546
   })
 
   if (result.error) {
