@@ -699,7 +699,7 @@ export default function IOPreview() {
             outputs,
             hasChange
           )
-          return Math.round(effectiveFeeRate * vsize)
+          return Math.floor(effectiveFeeRate * vsize)
         }
 
         const optimizationResult = selectEfficientUtxos(
@@ -766,7 +766,12 @@ export default function IOPreview() {
       Array.from(inputs.values()),
       sizingOutputs
     )
-    const stonewallFee = Math.round(localFeeRate * vsize)
+    const rawStonewallFee = Math.floor(localFeeRate * vsize)
+    const stonewallFee =
+      rawStonewallFee +
+      ((STONEWALL_CHANGE_OUTPUTS -
+        (rawStonewallFee % STONEWALL_CHANGE_OUTPUTS)) %
+        STONEWALL_CHANGE_OUTPUTS)
     const totalChange = utxosSelectedValue - sumNonChange - stonewallFee
 
     const proportionDenominator = stonewallChangeValues.reduce(

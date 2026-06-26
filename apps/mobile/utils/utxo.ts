@@ -789,6 +789,7 @@ function selectStonewallUtxos(
 }
 
 export {
+  DEFAULT_DUST_THRESHOLD,
   getUtxoOutpoint,
   selectEfficientUtxos,
   selectStonewallUtxos,
