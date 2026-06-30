@@ -86,6 +86,7 @@ type AccountsAction = {
     nostr: Partial<Account['nostr']>
   ) => void
   markDmsAsRead: (id: Account['id']) => void
+  updateAccountBirthday: (id: Account['id'], date: Date | undefined) => void
   setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
   setSyncProgress: (id: Account['id'], syncProgress: SyncProgress) => void
@@ -415,6 +416,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
       reloadAccount(set, account.id)
       invalidateAccount(account.id)
+    },
+    updateAccountBirthday: (id, date) => {
+      set((state) => {
+        const index = state.accounts.findIndex((a) => a.id === id)
+        if (index === -1) return
+        state.accounts[index].birthdayDate = date
+        updateFullAccountDb(state.accounts[index])
+      })
+      invalidateAccount(id)
     },
     updateAccountName: (id, newName) => {
       updateAccountNameDb(id, newName)

@@ -63,6 +63,8 @@ export const DecryptedKeySchema = KeySchema.omit({ secret: true }).extend({
 
 export const AccountSchema = z.object({
   addresses: z.array(AddressSchema),
+  /** User-set wallet birthday. Used as the floor for historical RPC scans. */
+  birthdayDate: z.date().optional(),
   createdAt: z.date(),
   id: z.string(),
   isSyncing: z.boolean().optional(),
@@ -75,6 +77,11 @@ export const AccountSchema = z.object({
   network: NetworkSchema,
   nostr: NostrAccountSchema,
   policyType: PolicyTypeSchema,
+  /**
+   * The block hash returned by the last `listsinceblock` call.
+   * Used to make incremental Core wallet syncs fast (only new blocks).
+   */
+  rpcLastBlockHash: z.string().optional(),
   summary: z.object({
     balance: z.number(),
     numberOfAddresses: z.number(),
