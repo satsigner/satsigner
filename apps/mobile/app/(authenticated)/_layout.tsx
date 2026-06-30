@@ -111,7 +111,9 @@ export default function AuthenticatedLayout() {
           `[loadWallets] account=${account.id} isImportAddress=${isImportAddress} existsWallet=${existsWallet}`
         )
         if (existsWallet) {
-          console.log(`[loadWallets] skipping account=${account.id} — wallet already in memory`)
+          console.log(
+            `[loadWallets] skipping account=${account.id} — wallet already in memory`
+          )
           continue
         }
 
@@ -146,7 +148,9 @@ export default function AuthenticatedLayout() {
         const updatedAccount = !isImportAddress
           ? await syncAccountWithWallet(account, walletData!.wallet)
           : await syncAccountWithAddress(account)
-        if (updatedAccount) updateAccount(updatedAccount)
+        if (updatedAccount) {
+          updateAccount(updatedAccount)
+        }
       } catch (error) {
         const label = account.name ?? account.id
         const reason = error instanceof Error ? error.message : String(error)

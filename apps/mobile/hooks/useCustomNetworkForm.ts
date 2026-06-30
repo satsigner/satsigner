@@ -100,8 +100,12 @@ function parseElectrumUrl(normalized: string): ParsedElectrumUrl | null {
 }
 
 function defaultRpcPort(network: Network): number {
-  if (network === 'testnet') return RPC_DEFAULT_PORT_TESTNET
-  if (network === 'signet') return RPC_DEFAULT_PORT_SIGNET
+  if (network === 'testnet') {
+    return RPC_DEFAULT_PORT_TESTNET
+  }
+  if (network === 'signet') {
+    return RPC_DEFAULT_PORT_SIGNET
+  }
   return RPC_DEFAULT_PORT_MAINNET
 }
 
@@ -210,7 +214,7 @@ export function useCustomNetworkForm() {
           : ''
       try {
         const u = new URL(server.url)
-        const port = u.port ? u.port : ''
+        const port = u.port || ''
         setFormData((prev) => ({
           ...prev,
           backend: 'rpc',
@@ -291,14 +295,18 @@ export function useCustomNetworkForm() {
     try {
       const u = new URL(candidate)
       if (u.protocol === 'http:') {
-        const port = u.port ? u.port : ''
+        const port = u.port || ''
         setFormData((prev) => ({
           ...prev,
           backend: 'rpc',
           host: u.hostname,
           port,
-          rpcPassword: u.password ? decodeURIComponent(u.password) : prev.rpcPassword,
-          rpcUsername: u.username ? decodeURIComponent(u.username) : prev.rpcUsername
+          rpcPassword: u.password
+            ? decodeURIComponent(u.password)
+            : prev.rpcPassword,
+          rpcUsername: u.username
+            ? decodeURIComponent(u.username)
+            : prev.rpcUsername
         }))
         return true
       }

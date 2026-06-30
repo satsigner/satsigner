@@ -1395,7 +1395,9 @@ export default function AccountView() {
       const updatedAccount = !isImportAddress
         ? await syncAccountWithWallet(account, wallet!, true)
         : await syncAccountWithAddress(account)
-      if (updatedAccount) updateAccount(updatedAccount)
+      if (updatedAccount) {
+        updateAccount(updatedAccount)
+      }
     } catch (error) {
       toast.error((error as Error).message)
     }
@@ -1727,8 +1729,8 @@ export default function AccountView() {
                   const pct = Math.round((tasksDone / totalTasks) * 100)
                   return t('account.syncProgressBlocks', {
                     current: tasksDone.toLocaleString(),
-                    tip: totalTasks.toLocaleString(),
-                    pct
+                    pct,
+                    tip: totalTasks.toLocaleString()
                   })
                 })()}
               </SSText>
@@ -1742,7 +1744,7 @@ export default function AccountView() {
           account?.keys[0]?.creationType !== 'generateMnemonic' &&
           account?.keys[0]?.creationType !== 'importAddress' &&
           !account?.birthdayDate && (
-            <View style={{ paddingHorizontal: '6%', marginTop: 4 }}>
+            <View style={{ marginTop: 4, paddingHorizontal: '6%' }}>
               <TouchableOpacity
                 onPress={() =>
                   router.navigate(

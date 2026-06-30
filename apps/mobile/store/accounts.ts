@@ -420,7 +420,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
     updateAccountBirthday: (id, date) => {
       set((state) => {
         const index = state.accounts.findIndex((a) => a.id === id)
-        if (index === -1) return
+        if (index === -1) {
+          return
+        }
         state.accounts[index].birthdayDate = date
         updateFullAccountDb(state.accounts[index])
       })

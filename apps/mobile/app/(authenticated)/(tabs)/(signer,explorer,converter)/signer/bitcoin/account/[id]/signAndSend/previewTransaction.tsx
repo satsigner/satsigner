@@ -22,7 +22,7 @@ import Animated, {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { buildTransaction, buildTransactionWithRpc } from '@/api/bdk'
+import { buildPsbt, buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSDustWarningBanner from '@/components/SSDustWarningBanner'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
@@ -1011,27 +1011,13 @@ function PreviewTransaction() {
         const inputArray = Array.from(inputs.values())
         const outputArray = Array.from(outputs.values())
 
-        const isRpc =
-          server.backend === 'rpc' &&
-          !!server.url &&
-          !!server.rpcCredentials &&
-          !!account
-
-        const fingerprint =
-          account?.keys[0]?.fingerprint ?? account?.id ?? ''
-        const rpcWalletName = `satsigner-${fingerprint}`
-
-        const transaction = isRpc
-          ? await buildTransactionWithRpc(
-              server.url,
-              server.rpcCredentials!,
-              rpcWalletName,
-              {
-                inputs: inputArray,
-                options: { rbf },
-                outputs: outputArray
-              }
-            )
+        const transaction = account
+          ? await buildPsbt(wallet, server, account, {
+              fee,
+              inputs: inputArray,
+              options: { rbf },
+              outputs: outputArray
+            })
           : await buildTransaction(wallet, {
               fee,
               inputs: inputArray,

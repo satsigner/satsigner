@@ -60,9 +60,7 @@ export default function AccountSettings() {
     account?.keys[0]?.scriptVersion || 'P2WPKH'
   )
   const [birthdayInput, setBirthdayInput] = useState(
-    account?.birthdayDate
-      ? account.birthdayDate.toISOString().slice(0, 10)
-      : ''
+    account?.birthdayDate ? account.birthdayDate.toISOString().slice(0, 10) : ''
   )
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])

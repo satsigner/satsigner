@@ -28,7 +28,10 @@ import {
   type ConnectionTestResult,
   useConnectionTest
 } from '@/hooks/useConnectionTest'
-import { defaultRpcPort, useCustomNetworkForm } from '@/hooks/useCustomNetworkForm'
+import {
+  defaultRpcPort,
+  useCustomNetworkForm
+} from '@/hooks/useCustomNetworkForm'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -107,7 +110,10 @@ export default function CustomNetwork() {
   // with background verify calls on top of the manual test button.
   const updateConfig = useBlockchainStore((state) => state.updateConfig)
   useEffect(() => {
-    updateConfig(networkType, { ...configs[networkType].config, connectionMode: 'manual' })
+    updateConfig(networkType, {
+      ...configs[networkType].config,
+      connectionMode: 'manual'
+    })
     return () => {
       updateConfig(networkType, oldConfig)
     }
@@ -248,7 +254,9 @@ export default function CustomNetwork() {
           username: formData.rpcUsername
         },
         rpcScanFromHeight:
-          scanHeight !== undefined && !isNaN(scanHeight) ? scanHeight : undefined,
+          scanHeight !== undefined && !isNaN(scanHeight)
+            ? scanHeight
+            : undefined,
         rpcWalletName: formData.rpcWalletName.trim() || undefined
       }
     }
@@ -481,7 +489,9 @@ export default function CustomNetwork() {
                     </SSText>
                     <SSTextInput
                       value={formData.rpcUsername}
-                      onChangeText={(value) => updateField('rpcUsername', value)}
+                      onChangeText={(value) =>
+                        updateField('rpcUsername', value)
+                      }
                       placeholder={t(
                         'settings.network.server.rpcUsername.placeholder'
                       )}
@@ -494,7 +504,9 @@ export default function CustomNetwork() {
                     </SSText>
                     <SSTextInput
                       value={formData.rpcPassword}
-                      onChangeText={(value) => updateField('rpcPassword', value)}
+                      onChangeText={(value) =>
+                        updateField('rpcPassword', value)
+                      }
                       placeholder={t(
                         'settings.network.server.rpcPassword.placeholder'
                       )}

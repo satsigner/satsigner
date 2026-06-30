@@ -57,7 +57,9 @@ function useSyncAccountWithWallet() {
     for (const id of syncingAccounts) {
       if (id !== accountId) {
         cancelledSyncs.add(id)
-        console.log(`[sync] cancel requested for: ${id} (priority: ${accountId})`)
+        console.log(
+          `[sync] cancel requested for: ${id} (priority: ${accountId})`
+        )
       }
     }
     // Force-evict so the priority sync can enter even if it was already running
@@ -84,12 +86,16 @@ function useSyncAccountWithWallet() {
     // While a priority sync is running, hold off on non-priority background syncs
     // to avoid congesting the connection (especially important for RPC backends).
     if (prioritySyncActive && !isPriority) {
-      console.log(`[sync] deferred — priority sync in progress: ${latest.name ?? latest.id}`)
+      console.log(
+        `[sync] deferred — priority sync in progress: ${latest.name ?? latest.id}`
+      )
       return null
     }
 
     if (syncingAccounts.has(latest.id)) {
-      console.log(`[sync] skipped — already in progress: ${latest.name ?? latest.id}`)
+      console.log(
+        `[sync] skipped — already in progress: ${latest.name ?? latest.id}`
+      )
       // Return null so callers don't overwrite the store with stale account data
       // while the live sync is still updating syncStatus / syncProgress.
       return null
@@ -139,9 +145,12 @@ function useSyncAccountWithWallet() {
 
       // Derive first 5 receive addresses to verify script type / derivation / passphrase
       const previewAddrs: string[] = []
-      for (let i = 0; i < 5; i++) {
+      const PREVIEW_ADDR_COUNT = 5
+      for (let i = 0; i < PREVIEW_ADDR_COUNT; i += 1) {
         try {
-          previewAddrs.push(wallet.peekAddress(KeychainKind.External, i).address)
+          previewAddrs.push(
+            wallet.peekAddress(KeychainKind.External, i).address
+          )
         } catch {
           break
         }
@@ -172,20 +181,18 @@ function useSyncAccountWithWallet() {
           : ''
 
       console.log(
-        `[sync] ── ${latest.name ?? latest.id}\n` +
-          `         network:      ${latest.network}  scriptType: ${latest.keys[0]?.scriptVersion ?? 'unknown'}\n` +
-          `         backend:      ${server.backend}  ${server.url}\n` +
-          `         creationType: ${latest.keys[0]?.creationType ?? 'unknown'}\n` +
-          `         birthday:     ${birthdayLabel}\n` +
-          `         checkpoint:   ${checkpointHeight}  tip: ${tip ?? '? (not yet fetched)'}  gap: ${config.stopGap}\n` +
-          `         isFullScan:   ${isFullScan}  isGenerated: ${isGeneratedWallet}` +
-          noBirthdayWarning +
-          birthdayMissingWarning + '\n' +
-          `         addr[0]: ${previewAddrs[0] ?? '?'}\n` +
-          `         addr[1]: ${previewAddrs[1] ?? '?'}\n` +
-          `         addr[2]: ${previewAddrs[2] ?? '?'}\n` +
-          `         addr[3]: ${previewAddrs[3] ?? '?'}\n` +
-          `         addr[4]: ${previewAddrs[4] ?? '?'}`
+        `[sync] ── ${latest.name ?? latest.id}
+         network:      ${latest.network}  scriptType: ${latest.keys[0]?.scriptVersion ?? 'unknown'}
+         backend:      ${server.backend}  ${server.url}
+         creationType: ${latest.keys[0]?.creationType ?? 'unknown'}
+         birthday:     ${birthdayLabel}
+         checkpoint:   ${checkpointHeight}  tip: ${tip ?? '? (not yet fetched)'}  gap: ${config.stopGap}
+         isFullScan:   ${isFullScan}  isGenerated: ${isGeneratedWallet}${noBirthdayWarning}${birthdayMissingWarning}
+         addr[0]: ${previewAddrs[0] ?? '?'}
+         addr[1]: ${previewAddrs[1] ?? '?'}
+         addr[2]: ${previewAddrs[2] ?? '?'}
+         addr[3]: ${previewAddrs[3] ?? '?'}
+         addr[4]: ${previewAddrs[4] ?? '?'}`
       )
 
       // RPC backend always uses the Bitcoin Core wallet path (importdescriptors +
@@ -253,7 +260,9 @@ function useSyncAccountWithWallet() {
       // may have already written.
       if (cancelledSyncs.has(latest.id)) {
         cancelledSyncs.delete(latest.id)
-        console.log(`[sync] discarding result — was cancelled during sync: ${latest.name ?? latest.id}`)
+        console.log(
+          `[sync] discarding result — was cancelled during sync: ${latest.name ?? latest.id}`
+        )
         setSyncStatus(latest.id, 'synced')
         return null
       }
@@ -331,12 +340,14 @@ function useSyncAccountWithWallet() {
       // rpcLastBlockHash so future syncs are incremental again.
       if (switchingFromRpc) {
         updatedAccount.rpcLastBlockHash = undefined
-        console.log(`[sync] cleared rpcLastBlockHash after full Electrum/Esplora sync`)
+        console.log(
+          `[sync] cleared rpcLastBlockHash after full Electrum/Esplora sync`
+        )
       }
 
       return updatedAccount
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
       console.log(`[sync] ── error: ${latest.name ?? latest.id}: ${msg}`)
 
       // Cancellation is not an error — leave status as 'synced' (or wherever
@@ -360,7 +371,7 @@ function useSyncAccountWithWallet() {
     }
   }
 
-  return { loading, syncAccountWithWallet, prioritizeSync }
+  return { loading, prioritizeSync, syncAccountWithWallet }
 }
 
 export default useSyncAccountWithWallet

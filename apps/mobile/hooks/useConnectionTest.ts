@@ -218,7 +218,9 @@ export function useConnectionTest() {
         const chainInfo = await rpc.getBlockchainInfo()
         const mempoolInfo = await rpc.getMempoolInfo().catch(() => null)
         const feeResult = await rpc.estimateSmartFee(6).catch(() => null)
-        const hasFilterIndex = await rpc.hasBlockFilterIndex().catch(() => false)
+        const hasFilterIndex = await rpc
+          .hasBlockFilterIndex()
+          .catch(() => false)
 
         const blockHeight = chainInfo.blocks
         const responseTime = Date.now() - startTime

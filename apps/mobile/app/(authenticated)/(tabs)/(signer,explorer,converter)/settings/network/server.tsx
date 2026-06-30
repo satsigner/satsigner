@@ -257,7 +257,9 @@ export default function NetworkSettings() {
                                     size="md"
                                     color="muted"
                                   >
-                                    {server.backend === 'rpc' ? 'RPC' : server.backend}
+                                    {server.backend === 'rpc'
+                                      ? 'RPC'
+                                      : server.backend}
                                   </SSText>
                                 </SSHStack>
                                 <SSHStack gap="xs">

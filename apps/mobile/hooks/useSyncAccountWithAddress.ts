@@ -38,7 +38,7 @@ function useSyncAccountWithAddress() {
     ])
   )
 
-  const [backend, network, url, configsMempol, rpcCredentials] =
+  const [backend, network, url, configsMempol, _rpcCredentials] =
     useBlockchainStore(
       useShallow((state) => {
         const { server } = state.configs[state.selectedNetwork]

@@ -288,15 +288,13 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   server.rpcCredentials?.username ?? '',
                   server.rpcCredentials?.password ?? ''
                 )
-                const rawTx = await rpc.getRawTransaction(txid).catch(
-                  () => null
-                )
+                const rawTx = await rpc
+                  .getRawTransaction(txid)
+                  .catch(() => null)
                 if (rawTx) {
                   const mappedTx: Transaction = {
                     address: undefined,
-                    blockHeight: rawTx.confirmations
-                      ? undefined
-                      : undefined,
+                    blockHeight: rawTx.confirmations ? undefined : undefined,
                     fee: undefined,
                     id: rawTx.txid,
                     label: undefined,

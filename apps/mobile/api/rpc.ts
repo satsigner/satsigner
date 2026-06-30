@@ -9,7 +9,9 @@ import { type Network } from '@/types/settings/blockchain'
  * Matches the same pattern used in the mining (energy.tsx) feature.
  */
 function adjustRpcUrl(url: string): string {
-  if (Platform.OS !== 'android') return url
+  if (Platform.OS !== 'android') {
+    return url
+  }
   try {
     const parsed = new URL(url)
     if (
@@ -295,8 +297,8 @@ export default class BitcoinRpc {
         },
         method: 'POST'
       })
-    } catch (err) {
-      throw toUserFacingError(err, this.url)
+    } catch (error) {
+      throw toUserFacingError(error, this.url)
     }
 
     if (response.status === 401) {
@@ -320,23 +322,23 @@ export default class BitcoinRpc {
     return data.result
   }
 
-  async estimateSmartFee(confTarget: number): Promise<SmartFeeResult> {
+  estimateSmartFee(confTarget: number): Promise<SmartFeeResult> {
     return this._call<SmartFeeResult>('estimatesmartfee', [confTarget])
   }
 
-  async getBlock(hash: string): Promise<RpcBlock> {
+  getBlock(hash: string): Promise<RpcBlock> {
     return this._call<RpcBlock>('getblock', [hash, 1])
   }
 
-  async getBlockCount(): Promise<number> {
+  getBlockCount(): Promise<number> {
     return this._call<number>('getblockcount')
   }
 
-  async getBlockHash(height: number): Promise<string> {
+  getBlockHash(height: number): Promise<string> {
     return this._call<string>('getblockhash', [height])
   }
 
-  async getBlockchainInfo(): Promise<BlockchainInfo> {
+  getBlockchainInfo(): Promise<BlockchainInfo> {
     return this._call<BlockchainInfo>('getblockchaininfo')
   }
 
@@ -348,7 +350,10 @@ export default class BitcoinRpc {
    */
   async hasBlockFilterIndex(): Promise<boolean> {
     try {
-      type IndexInfo = Record<string, { synced: boolean; best_block_height: number }>
+      type IndexInfo = Record<
+        string,
+        { synced: boolean; best_block_height: number }
+      >
       const info = await this._call<IndexInfo>('getindexinfo')
       return 'basic block filter index' in info || 'blockfilterindex' in info
     } catch {
@@ -356,25 +361,29 @@ export default class BitcoinRpc {
     }
   }
 
-  async getMempoolInfo(): Promise<MempoolInfo> {
+  getMempoolInfo(): Promise<MempoolInfo> {
     return this._call<MempoolInfo>('getmempoolinfo')
   }
 
-  async getRawTransaction(txid: string): Promise<RpcTransaction> {
+  getRawTransaction(txid: string): Promise<RpcTransaction> {
     return this._call<RpcTransaction>('getrawtransaction', [txid, true])
   }
 
-  async getRawTransactionHex(txid: string): Promise<string> {
+  getRawTransactionHex(txid: string): Promise<string> {
     return this._call<string>('getrawtransaction', [txid, false])
   }
 
-  async sendRawTransaction(txHex: string): Promise<string> {
+  sendRawTransaction(txHex: string): Promise<string> {
     return this._call<string>('sendrawtransaction', [txHex])
   }
 
   static defaultPort(network: Network): number {
-    if (network === 'testnet') return RPC_DEFAULT_PORT_TESTNET
-    if (network === 'signet') return RPC_DEFAULT_PORT_SIGNET
+    if (network === 'testnet') {
+      return RPC_DEFAULT_PORT_TESTNET
+    }
+    if (network === 'signet') {
+      return RPC_DEFAULT_PORT_SIGNET
+    }
     return RPC_DEFAULT_PORT_MAINNET
   }
 
@@ -382,14 +391,14 @@ export default class BitcoinRpc {
    * Get the normalized (checksum-appended) form of a descriptor.
    * Bitcoin Core requires checksums in importdescriptors calls.
    */
-  async getDescriptorInfo(
+  getDescriptorInfo(
     descriptor: string
   ): Promise<{ descriptor: string; isrange: boolean; issolvable: boolean }> {
     return this._call('getdescriptorinfo', [descriptor])
   }
 
   /** List wallets currently loaded in the node. */
-  async listWallets(): Promise<string[]> {
+  listWallets(): Promise<string[]> {
     return this._call<string[]>('listwallets')
   }
 
@@ -397,9 +406,7 @@ export default class BitcoinRpc {
    * Load a wallet. Silently succeeds if it is already loaded.
    * Returns the wallet name on success.
    */
-  async loadWallet(
-    name: string
-  ): Promise<{ name: string; warning?: string }> {
+  loadWallet(name: string): Promise<{ name: string; warning?: string }> {
     return this._call('loadwallet', [name])
   }
 
@@ -407,17 +414,15 @@ export default class BitcoinRpc {
    * Create a new watch-only descriptor wallet.
    * disable_private_keys=true, blank=true, descriptors=true, load_on_startup=true
    */
-  async createWallet(
-    name: string
-  ): Promise<{ name: string; warning?: string }> {
+  createWallet(name: string): Promise<{ name: string; warning?: string }> {
     return this._call('createwallet', [
       name,
-      true,  // disable_private_keys
-      true,  // blank
-      '',    // passphrase
+      true, // disable_private_keys
+      true, // blank
+      '', // passphrase
       false, // avoid_reuse
-      true,  // descriptors
-      true   // load_on_startup
+      true, // descriptors
+      true // load_on_startup
     ])
   }
 
@@ -430,12 +435,11 @@ export default class BitcoinRpc {
     const adjustedUrl = adjustRpcUrl(url)
     const client = new BitcoinRpc(adjustedUrl, username, password)
 
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`Connection to ${adjustedUrl} timed out`)),
-        timeout
-      )
-    )
+    const timeoutPromise = new Promise<never>((_resolve, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Connection to ${adjustedUrl} timed out`))
+      }, timeout)
+    })
 
     try {
       await Promise.race([client.getBlockchainInfo(), timeoutPromise])
@@ -470,7 +474,10 @@ export class BitcoinCoreWallet {
     this.walletUrl = `${adjusted.replace(/\/$/, '')}/wallet/${encodeURIComponent(walletName)}`
   }
 
-  private async _walletCall<T>(method: string, params: unknown[] = []): Promise<T> {
+  private async _walletCall<T>(
+    method: string,
+    params: unknown[] = []
+  ): Promise<T> {
     const body = {
       id: method,
       jsonrpc: '1.0' as const,
@@ -489,21 +496,25 @@ export class BitcoinCoreWallet {
         },
         method: 'POST'
       })
-    } catch (err) {
-      throw toUserFacingError(err, this.walletUrl)
+    } catch (error) {
+      throw toUserFacingError(error, this.walletUrl)
     }
-    if (response.status === 401)
+    if (response.status === 401) {
       throw toUserFacingError(new Error('401 Unauthorized'), this.walletUrl)
-    if (response.status === 403)
+    }
+    if (response.status === 403) {
       throw toUserFacingError(new Error('403 Forbidden'), this.walletUrl)
-    if (!response.ok)
+    }
+    if (!response.ok) {
       throw new Error(`Node returned HTTP ${response.status}`)
+    }
     const data = (await response.json()) as {
       error: { code: number; message: string } | null
       result: T
     }
-    if (data.error)
+    if (data.error) {
       throw new Error(`RPC error ${data.error.code}: ${data.error.message}`)
+    }
     return data.result
   }
 
@@ -513,7 +524,9 @@ export class BitcoinCoreWallet {
    */
   async ensureWallet(): Promise<void> {
     const loaded = await this.nodeRpc.listWallets()
-    if (loaded.includes(this.walletName)) return
+    if (loaded.includes(this.walletName)) {
+      return
+    }
 
     // Try loading first (it might exist on disk but not be loaded)
     try {
@@ -526,7 +539,7 @@ export class BitcoinCoreWallet {
     await this.nodeRpc.createWallet(this.walletName)
   }
 
-  async getWalletInfo(): Promise<CoreWalletInfo> {
+  getWalletInfo(): Promise<CoreWalletInfo> {
     return this._walletCall<CoreWalletInfo>('getwalletinfo')
   }
 
@@ -534,7 +547,7 @@ export class BitcoinCoreWallet {
    * Import one or more descriptors into this wallet.
    * Returns per-descriptor success/error results.
    */
-  async importDescriptors(
+  importDescriptors(
     descriptors: ImportDescriptorRequest[]
   ): Promise<ImportDescriptorResult[]> {
     return this._walletCall<ImportDescriptorResult[]>('importdescriptors', [
@@ -546,7 +559,7 @@ export class BitcoinCoreWallet {
    * Fetch all wallet transactions in reverse chronological order.
    * count=0 means "return all" (Bitcoin Core default is 10; we pass a large value).
    */
-  async listTransactions(count = 99999): Promise<CoreWalletListTx[]> {
+  listTransactions(count = 99999): Promise<CoreWalletListTx[]> {
     return this._walletCall<CoreWalletListTx[]>('listtransactions', [
       '*',
       count,
@@ -561,21 +574,21 @@ export class BitcoinCoreWallet {
    * Returns both the new transactions and the current tip `lastblock` hash
    * which should be stored and passed on the next call.
    */
-  async listSinceBlock(blockHash: string): Promise<{
+  listSinceBlock(blockHash: string): Promise<{
     lastblock: string
     transactions: CoreWalletListTx[]
   }> {
     return this._walletCall('listsinceblock', [
       blockHash,
-      1,    // target_confirmations
+      1, // target_confirmations
       true, // include_watchonly
-      true  // include_removed (catch re-orgs)
+      true // include_removed (catch re-orgs)
     ])
   }
 
-  async listUnspent(): Promise<CoreUnspent[]> {
+  listUnspent(): Promise<CoreUnspent[]> {
     return this._walletCall<CoreUnspent[]>('listunspent', [
-      0,      // minconf
+      0, // minconf
       9999999 // maxconf
     ])
   }
@@ -584,11 +597,11 @@ export class BitcoinCoreWallet {
    * Fetch a single wallet transaction with the decoded (verbose) form included.
    * verbose=true requires Bitcoin Core 19.0+.
    */
-  async getTransaction(txid: string): Promise<CoreTxDetails> {
+  getTransaction(txid: string): Promise<CoreTxDetails> {
     return this._walletCall<CoreTxDetails>('gettransaction', [
       txid,
-      true,  // include_watchonly
-      true   // verbose — adds "decoded" field with full vin/vout
+      true, // include_watchonly
+      true // verbose — adds "decoded" field with full vin/vout
     ])
   }
 
@@ -603,26 +616,22 @@ export class BitcoinCoreWallet {
     intDescriptor: string
   ): Promise<[string, string]> {
     const [extNorm, intNorm] = await Promise.all([
-      this.nodeRpc
-        .getDescriptorInfo(extDescriptor)
-        .then((r) => r.descriptor),
-      this.nodeRpc
-        .getDescriptorInfo(intDescriptor)
-        .then((r) => r.descriptor)
+      this.nodeRpc.getDescriptorInfo(extDescriptor).then((r) => r.descriptor),
+      this.nodeRpc.getDescriptorInfo(intDescriptor).then((r) => r.descriptor)
     ])
     return [extNorm, intNorm]
   }
 
   /** List all descriptors currently loaded in this wallet (Core 21+). */
-  async listDescriptors(): Promise<{
-    descriptors: Array<{
+  listDescriptors(): Promise<{
+    descriptors: {
       active: boolean
       desc: string
       internal: boolean
       next_index: number
       range: [number, number]
       timestamp: number
-    }>
+    }[]
     wallet_name: string
   }> {
     return this._walletCall('listdescriptors')
@@ -634,7 +643,7 @@ export class BitcoinCoreWallet {
    * Callers should wrap it in a timeout and switch to polling
    * `getWalletInfo().scanning` if the connection is dropped.
    */
-  async rescanBlockchain(
+  rescanBlockchain(
     startHeight: number
   ): Promise<{ start_height: number; stop_height: number }> {
     return this._walletCall('rescanblockchain', [startHeight])
