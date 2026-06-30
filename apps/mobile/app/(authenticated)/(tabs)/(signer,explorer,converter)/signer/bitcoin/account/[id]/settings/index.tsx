@@ -42,13 +42,15 @@ export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
   const insets = useSafeAreaInsets()
 
-  const [accounts, updateAccountName, deleteAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts,
-      state.updateAccountName,
-      state.deleteAccount
-    ])
-  )
+  const [accounts, updateAccountName, updateAccountBirthday, deleteAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts,
+        state.updateAccountName,
+        state.updateAccountBirthday,
+        state.deleteAccount
+      ])
+    )
   const account = accounts.find((_account) => _account.id === currentAccountId)
   const [removeAccountWallet, dbPaths] = useWalletsStore(
     useShallow((state) => [state.removeAccountWallet, state.dbPaths])
@@ -56,6 +58,11 @@ export default function AccountSettings() {
 
   const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
     account?.keys[0]?.scriptVersion || 'P2WPKH'
+  )
+  const [birthdayInput, setBirthdayInput] = useState(
+    account?.birthdayDate
+      ? account.birthdayDate.toISOString().slice(0, 10)
+      : ''
   )
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
@@ -150,12 +157,31 @@ export default function AccountSettings() {
     router.replace('/signer/bitcoin/accountList')
   }
 
+  function handleBirthdayChange(value: string) {
+    setBirthdayInput(value)
+    // Accept YYYY-MM-DD format; save on valid date, clear on empty
+    if (!value.trim()) {
+      updateAccountBirthday(currentAccountId!, undefined)
+      return
+    }
+    const parsed = new Date(value.trim())
+    if (!isNaN(parsed.getTime()) && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+      updateAccountBirthday(currentAccountId!, parsed)
+    }
+  }
+
   async function handleRescan() {
     setRescanModalVisible(false)
     const dbPath = dbPaths[currentAccountId!]
-    if (dbPath) {
-      await deleteWalletDb(dbPath)
+    if (!dbPath) {
+      // dbPath is only stored after the wallet was loaded with the new code.
+      // Removing from store and letting loadWallets recreate will NOT help
+      // because the SQLite file still carries the old checkpoint.
+      // Ask the user to lock/unlock the app first so dbPath is available.
+      toast.error(t('account.rescan.requiresReopen'))
+      return
     }
+    await deleteWalletDb(dbPath)
     removeAccountWallet(currentAccountId!)
     toast.success(t('account.rescan.success'))
     router.replace('/signer/bitcoin/accountList')
@@ -279,6 +305,22 @@ export default function AccountSettings() {
                 : '-'}
             </SSText>
           </SSHStack>
+          {account.keys[0].creationType !== 'importAddress' && (
+            <SSVStack gap="xs">
+              <SSHStack justifyBetween>
+                <SSText color="muted">{t('account.birthdayDate.label')}</SSText>
+              </SSHStack>
+              <SSTextInput
+                value={birthdayInput}
+                onChangeText={handleBirthdayChange}
+                placeholder={t('account.birthdayDate.placeholder')}
+                keyboardType="numbers-and-punctuation"
+              />
+              <SSText color="muted" size="xs">
+                {t('account.birthdayDate.helper')}
+              </SSText>
+            </SSVStack>
+          )}
           <SSHStack justifyBetween>
             <SSText color="muted">{t('account.network.title')}</SSText>
             <SSText>{account?.network || '-'}</SSText>

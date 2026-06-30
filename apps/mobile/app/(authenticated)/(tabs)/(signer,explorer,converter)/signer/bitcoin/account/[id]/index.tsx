@@ -1093,6 +1093,10 @@ export default function AccountView() {
       ])
     )
 
+  const server = useBlockchainStore(
+    (state) => state.configs[state.selectedNetwork].server
+  )
+
   const hasUnreadMessages = useMemo(
     () => account?.nostr?.dms?.some((dm) => dm.read === false) ?? false,
     [account?.nostr?.dms]
@@ -1134,7 +1138,7 @@ export default function AccountView() {
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
     )
-  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithWallet, prioritizeSync } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { fetchOnce, startSync, stopSync } = useNostrSync()
 
@@ -1379,11 +1383,19 @@ export default function AccountView() {
       return
     }
 
+    // Cancel all other running syncs so this account gets the full connection.
+    // This is a no-op for Electrum/Esplora (fast enough not to matter) but
+    // makes a real difference for RPC backends where concurrent syncs congest
+    // the node.
+    if (!isImportAddress) {
+      prioritizeSync(account.id)
+    }
+
     try {
       const updatedAccount = !isImportAddress
-        ? await syncAccountWithWallet(account, wallet!)
+        ? await syncAccountWithWallet(account, wallet!, true)
         : await syncAccountWithAddress(account)
-      updateAccount(updatedAccount)
+      if (updatedAccount) updateAccount(updatedAccount)
     } catch (error) {
       toast.error((error as Error).message)
     }
@@ -1691,18 +1703,57 @@ export default function AccountView() {
             </SSVStack>
           </Animated.View>
         )}
-        {account.keys[0].creationType === 'importAddress' &&
-          syncStatus === 'syncing' &&
-          tasksDone !== undefined &&
-          totalTasks !== undefined &&
-          totalTasks > 0 && (
-            <View style={{ marginBottom: -10, marginTop: 10 }}>
-              <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-                <SSLoader size={24} />
-                <SSText center>
-                  {t('account.syncProgress', { tasksDone, totalTasks })}
+        {/* ── Sync status ─────────────────────────────────────────── */}
+        {syncStatus === 'syncing' && (
+          <View style={{ marginTop: 10, paddingHorizontal: '6%' }}>
+            <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+              <SSLoader size={18} />
+              <SSText center size="xs" color="muted">
+                {(() => {
+                  if (
+                    tasksDone === undefined ||
+                    totalTasks === undefined ||
+                    totalTasks === 0
+                  ) {
+                    return t('account.syncing')
+                  }
+                  // Core wallet path: totalTasks = 100, tasksDone = percentage
+                  if (totalTasks === 100) {
+                    return t('account.syncProgressPct', {
+                      pct: Math.round(tasksDone)
+                    })
+                  }
+                  // Compact block filter path: totalTasks = chain tip, tasksDone = current block
+                  const pct = Math.round((tasksDone / totalTasks) * 100)
+                  return t('account.syncProgressBlocks', {
+                    current: tasksDone.toLocaleString(),
+                    tip: totalTasks.toLocaleString(),
+                    pct
+                  })
+                })()}
+              </SSText>
+            </SSHStack>
+          </View>
+        )}
+
+        {/* ── Birthday nudge for RPC imported wallets ──────────────── */}
+        {syncStatus !== 'syncing' &&
+          server?.backend === 'rpc' &&
+          account?.keys[0]?.creationType !== 'generateMnemonic' &&
+          account?.keys[0]?.creationType !== 'importAddress' &&
+          !account?.birthdayDate && (
+            <View style={{ paddingHorizontal: '6%', marginTop: 4 }}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.navigate(
+                    `/signer/bitcoin/account/${id}/settings` as never
+                  )
+                }
+              >
+                <SSText center size="xxs" style={{ color: Colors.warning }}>
+                  {t('account.birthdayDate.nudge')}
                 </SSText>
-              </SSHStack>
+              </TouchableOpacity>
             </View>
           )}
         <View style={{ flex: 1 }}>
