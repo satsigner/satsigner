@@ -693,7 +693,7 @@ function useSyncAccountWithAddress() {
     } catch {
       setSyncStatus(account.id, 'error')
       setLoading(false)
-      toast.error(t('account.syncFailed'))
+      toast.error(`${account.name ?? account.id}: ${t('account.syncFailed')}`)
       return {
         ...updatedAccount,
         syncStatus: 'error'

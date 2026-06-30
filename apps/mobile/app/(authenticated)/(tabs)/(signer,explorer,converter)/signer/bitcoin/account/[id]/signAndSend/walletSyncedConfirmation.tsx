@@ -40,7 +40,7 @@ export default function WalletSyncedConfirmation() {
 
     if (wallet && account) {
       const updatedAccount = await syncAccountWithWallet(account, wallet)
-      updateAccount(updatedAccount)
+      if (updatedAccount) updateAccount(updatedAccount)
     }
 
     setIsSyncing(false)

@@ -331,7 +331,7 @@ export default function AccountList() {
 
     for (const account of walletAccounts) {
       const u = await syncAccountWithWallet(account, wallets[account.id]!)
-      updateAccount(u)
+      if (u) updateAccount(u)
     }
   }
 
@@ -601,7 +601,7 @@ export default function AccountList() {
             data.wallet!
           )
         : await syncAccountWithAddress(data.accountWithEncryptedSecret)
-      updateAccount(updatedAccount)
+      if (updatedAccount) updateAccount(updatedAccount)
     }
     toast.success('Sample wallet created successfully!')
   }

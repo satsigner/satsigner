@@ -101,8 +101,8 @@ export default function AuthenticatedLayout() {
       return
     }
 
-    try {
-      for (const account of accounts) {
+    for (const account of accounts) {
+      try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
         const existsWallet = !isImportAddress
           ? !!wallets[account.id]
@@ -146,13 +146,15 @@ export default function AuthenticatedLayout() {
         const updatedAccount = !isImportAddress
           ? await syncAccountWithWallet(account, walletData!.wallet)
           : await syncAccountWithAddress(account)
-        updateAccount(updatedAccount)
+        if (updatedAccount) updateAccount(updatedAccount)
+      } catch (error) {
+        const label = account.name ?? account.id
+        const reason = error instanceof Error ? error.message : String(error)
+        console.log(`[loadWallets] error for "${label}": ${reason}`)
+        toast.error(`${label}: ${reason}`)
       }
-    } catch (error) {
-      toast.error((error as Error).message)
-    } finally {
-      setJustUnlocked(false)
     }
+    setJustUnlocked(false)
   }
 
   useEffect(() => {

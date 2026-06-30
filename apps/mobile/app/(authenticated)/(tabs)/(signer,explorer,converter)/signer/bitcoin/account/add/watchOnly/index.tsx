@@ -932,7 +932,7 @@ export default function WatchOnly() {
                     data.wallet!
                   )
                 : await syncAccountWithAddress(data.accountWithEncryptedSecret)
-            updateAccount(updatedAccount)
+            if (updatedAccount) updateAccount(updatedAccount)
           } catch {
             /* silently ignored */
           }

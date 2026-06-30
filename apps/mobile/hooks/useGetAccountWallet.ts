@@ -44,8 +44,9 @@ const useGetAccountWallet = (id: Account['id']) => {
 
       addAccountWallet(id, walletData.wallet, walletData.dbPath)
     } catch (error) {
+      const label = account?.name ?? id
       const reason = error instanceof Error ? error.message : 'unknown reason'
-      toast.error(`Failed to load wallet: ${reason}`)
+      toast.error(`${label}: Failed to load wallet: ${reason}`)
     }
   }
 
