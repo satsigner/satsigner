@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { type BdkWallet } from 'react-native-bdk-sdk'
+import { KeychainKind, type BdkWallet } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getWalletOverview, syncWallet } from '@/api/bdk'
+import { getWalletOverview, syncWallet, syncWithCoreWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
+import BitcoinRpc from '@/api/rpc'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -13,6 +14,18 @@ import { updateAccountObjectLabels } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
+
+// Module-level sync state shared across all hook instances.
+//
+// syncingAccounts  – Set of account IDs currently being synced. Acts as a
+//                    mutex so the same account is never synced twice at once.
+// cancelledSyncs   – Syncs added here should abort at the next checkpoint.
+//                    Used by prioritizeSync() to stop background syncs.
+// prioritySyncActive – While true, new non-priority syncs yield immediately
+//                      so the priority sync can use the full connection.
+const syncingAccounts = new Set<string>()
+const cancelledSyncs = new Set<string>()
+let prioritySyncActive = false
 
 function useSyncAccountWithWallet() {
   const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
@@ -37,70 +50,221 @@ function useSyncAccountWithWallet() {
 
   const [loading, setLoading] = useState(false)
 
-  async function syncAccountWithWallet(account: Account, wallet: BdkWallet) {
+  // Cancel all currently running syncs except the given account, then evict
+  // that account from the guard so it can be immediately re-synced at priority.
+  function prioritizeSync(accountId: string) {
+    prioritySyncActive = true
+    for (const id of syncingAccounts) {
+      if (id !== accountId) {
+        cancelledSyncs.add(id)
+        console.log(`[sync] cancel requested for: ${id} (priority: ${accountId})`)
+      }
+    }
+    // Force-evict so the priority sync can enter even if it was already running
+    syncingAccounts.delete(accountId)
+  }
+
+  async function syncAccountWithWallet(
+    account: Account,
+    wallet: BdkWallet,
+    isPriority = false
+  ): Promise<Account | null> {
     const latest =
       useAccountsStore.getState().accounts.find((a) => a.id === account.id) ??
       account
+
+    // If this sync was cancelled by a priority request, silently abort.
+    if (cancelledSyncs.has(latest.id)) {
+      cancelledSyncs.delete(latest.id)
+      console.log(`[sync] aborted (was cancelled): ${latest.name ?? latest.id}`)
+      setSyncStatus(latest.id, 'synced')
+      return null
+    }
+
+    // While a priority sync is running, hold off on non-priority background syncs
+    // to avoid congesting the connection (especially important for RPC backends).
+    if (prioritySyncActive && !isPriority) {
+      console.log(`[sync] deferred — priority sync in progress: ${latest.name ?? latest.id}`)
+      return null
+    }
+
+    if (syncingAccounts.has(latest.id)) {
+      console.log(`[sync] skipped — already in progress: ${latest.name ?? latest.id}`)
+      // Return null so callers don't overwrite the store with stale account data
+      // while the live sync is still updating syncStatus / syncProgress.
+      return null
+    }
+
+    syncingAccounts.add(latest.id)
 
     try {
       setLoading(true)
       setSyncStatus(latest.id, 'syncing')
 
-      // Use the wallet's own checkpoint to decide: if BDK already scanned
-      // this wallet (checkpoint exists beyond genesis), use incremental sync.
-      // This is more reliable than account.transactions.length because the
-      // wallet DB and account store can be out of sync after crashes.
       const checkpoint = wallet.latestCheckpoint()
-      const isFullScan = !checkpoint || checkpoint.height === 0
+      // Treat checkpoints near genesis (< 10,000) as a full scan —
+      // a checkpoint at e.g. block 1052 means history was never actually scanned.
+      //
+      // Also force a full scan when switching FROM RPC to a BDK-based backend
+      // (Electrum/Esplora). The RPC sync path bypasses BDK's keychain index,
+      // so the BDK checkpoint reflects where BDK last stopped scanning, not
+      // where all transactions were found. Without a full scan, BDK would only
+      // pick up recent transactions and lose the older RPC-discovered history.
+      const switchingFromRpc =
+        server.backend !== 'rpc' && !!latest.rpcLastBlockHash
+      const isFullScan =
+        !checkpoint || checkpoint.height < 10_000 || switchingFromRpc
       const isGeneratedWallet =
         latest.keys[0]?.creationType === 'generateMnemonic'
 
-      console.log(
-        `[sync] ── account: ${latest.name ?? latest.id}\n` +
-          `         backend:       ${server.backend}  ${server.url}\n` +
-          `         creationType:  ${latest.keys[0]?.creationType ?? 'unknown'}\n` +
-          `         createdAt:     ${latest.createdAt?.toISOString() ?? 'none'}\n` +
-          `         checkpoint:    ${checkpoint?.height ?? 'none'}\n` +
-          `         isFullScan:    ${isFullScan}\n` +
-          `         isGenerated:   ${isGeneratedWallet}\n` +
-          `         knownTip:      ${lastKnownBlockHeight > 0 ? lastKnownBlockHeight : 'none'}\n` +
-          `         scanFloor:     ${server.rpcScanFromHeight ?? 'none'}\n` +
-          `         stopGap:       ${config.stopGap}`
-      )
+      const checkpointHeight = checkpoint?.height ?? 0
 
-      await syncWallet(
-        wallet,
-        server.backend,
-        server.url,
-        config.stopGap,
-        isFullScan,
-        server.rpcCredentials,
-        latest.createdAt,
-        lastKnownBlockHeight > 0 ? lastKnownBlockHeight : undefined,
-        server.rpcScanFromHeight,
-        isGeneratedWallet,
-        server.backend === 'rpc'
-          ? (current, tip) => {
-              setSyncProgress(latest.id, {
-                tasksDone: current,
-                totalTasks: tip
-              })
-            }
-          : undefined
-      )
-
-      console.log(`[syncWallet] syncWallet() returned for account=${latest.id}`)
-
-      // Update block height from wallet's latest checkpoint
-      const latestCheckpoint = wallet.latestCheckpoint()
-      if (latestCheckpoint) {
-        setLastKnownBlockHeight(latestCheckpoint.height)
+      // If the store tip isn't ready yet, ask the node directly so the
+      // birthday estimate and scan range are always correct.
+      let tip: number | undefined =
+        lastKnownBlockHeight > 0 ? lastKnownBlockHeight : undefined
+      if (!tip && server.backend === 'rpc' && server.url) {
+        try {
+          const rpc = new BitcoinRpc(
+            server.url,
+            server.rpcCredentials?.username ?? '',
+            server.rpcCredentials?.password ?? ''
+          )
+          tip = await rpc.getBlockCount()
+          setLastKnownBlockHeight(tip)
+        } catch {
+          // non-critical — sync will fall back to checkpointHeight
+        }
       }
 
-      const walletSummary = getWalletOverview(
-        wallet,
-        appNetworkToBdkNetwork(server.network),
-        config.stopGap
+      // Derive first 5 receive addresses to verify script type / derivation / passphrase
+      const previewAddrs: string[] = []
+      for (let i = 0; i < 5; i++) {
+        try {
+          previewAddrs.push(wallet.peekAddress(KeychainKind.External, i).address)
+        } catch {
+          break
+        }
+      }
+
+      // Birthday for scan purposes:
+      // - Generated wallets: createdAt IS the real birthday (wallet was just made)
+      // - Imported wallets:  only the user-set birthdayDate counts;
+      //                      createdAt is just the app import date — useless as scan floor
+      const effectiveBirthday = isGeneratedWallet
+        ? latest.createdAt
+        : (latest.birthdayDate ?? undefined)
+
+      const birthdayLabel = isGeneratedWallet
+        ? `${latest.createdAt.toISOString()} (generated)`
+        : latest.birthdayDate
+          ? `${latest.birthdayDate.toISOString()} (user-set)`
+          : 'not set'
+
+      const noBirthdayWarning =
+        !isGeneratedWallet && !latest.birthdayDate && server.backend === 'rpc'
+          ? '  ⚠ no birthday set — will estimate start height from BDK checkpoint (set Birthday in Account Settings for guaranteed full history)'
+          : ''
+
+      const birthdayMissingWarning =
+        !isGeneratedWallet && !latest.birthdayDate && server.backend !== 'rpc'
+          ? '  ⚠ imported wallet — birthday not set, some history may be missed'
+          : ''
+
+      console.log(
+        `[sync] ── ${latest.name ?? latest.id}\n` +
+          `         network:      ${latest.network}  scriptType: ${latest.keys[0]?.scriptVersion ?? 'unknown'}\n` +
+          `         backend:      ${server.backend}  ${server.url}\n` +
+          `         creationType: ${latest.keys[0]?.creationType ?? 'unknown'}\n` +
+          `         birthday:     ${birthdayLabel}\n` +
+          `         checkpoint:   ${checkpointHeight}  tip: ${tip ?? '? (not yet fetched)'}  gap: ${config.stopGap}\n` +
+          `         isFullScan:   ${isFullScan}  isGenerated: ${isGeneratedWallet}` +
+          noBirthdayWarning +
+          birthdayMissingWarning + '\n' +
+          `         addr[0]: ${previewAddrs[0] ?? '?'}\n` +
+          `         addr[1]: ${previewAddrs[1] ?? '?'}\n` +
+          `         addr[2]: ${previewAddrs[2] ?? '?'}\n` +
+          `         addr[3]: ${previewAddrs[3] ?? '?'}\n` +
+          `         addr[4]: ${previewAddrs[4] ?? '?'}`
+      )
+
+      // RPC backend always uses the Bitcoin Core wallet path (importdescriptors +
+      // rescanblockchain + listtransactions) — the same approach as Sparrow Wallet.
+      // Compact block filters are not used for RPC.
+      const useCoreWallet = server.backend === 'rpc' && !!server.rpcCredentials
+
+      let walletSummary: ReturnType<typeof getWalletOverview>
+      let newRpcLastBlockHash: string | undefined
+
+      if (useCoreWallet && server.rpcCredentials) {
+        const coreResult = await syncWithCoreWallet(
+          latest,
+          wallet,
+          server.url,
+          server.rpcCredentials,
+          appNetworkToBdkNetwork(server.network),
+          config.stopGap,
+          (pct) => {
+            setSyncProgress(latest.id, {
+              tasksDone: pct,
+              totalTasks: 100
+            })
+          },
+          () => cancelledSyncs.has(latest.id)
+        )
+        walletSummary = coreResult
+        newRpcLastBlockHash = coreResult.rpcLastBlockHash
+      } else {
+        await syncWallet(
+          wallet,
+          server.backend,
+          server.url,
+          config.stopGap,
+          isFullScan,
+          server.rpcCredentials,
+          effectiveBirthday,
+          tip,
+          server.rpcScanFromHeight,
+          isGeneratedWallet,
+          server.backend === 'rpc'
+            ? (current, tipHeight) => {
+                setSyncProgress(latest.id, {
+                  tasksDone: current,
+                  totalTasks: tipHeight
+                })
+              }
+            : undefined
+        )
+
+        const latestCheckpoint = wallet.latestCheckpoint()
+        if (latestCheckpoint) {
+          setLastKnownBlockHeight(latestCheckpoint.height)
+        }
+
+        walletSummary = getWalletOverview(
+          wallet,
+          appNetworkToBdkNetwork(server.network),
+          config.stopGap
+        )
+      }
+
+      // Post-sync checkpoint: if we were cancelled during the (potentially long)
+      // sync call, discard the result so we don't overwrite what a priority sync
+      // may have already written.
+      if (cancelledSyncs.has(latest.id)) {
+        cancelledSyncs.delete(latest.id)
+        console.log(`[sync] discarding result — was cancelled during sync: ${latest.name ?? latest.id}`)
+        setSyncStatus(latest.id, 'synced')
+        return null
+      }
+
+      const newCheckpoint = wallet.latestCheckpoint()?.height ?? 0
+      const blocksScanned = newCheckpoint - checkpointHeight
+      console.log(
+        `[sync] ── done: ${latest.name ?? latest.id}\n` +
+          `         path: ${useCoreWallet ? 'core-wallet' : server.backend}\n` +
+          `         blocks: ${checkpointHeight} → ${newCheckpoint} (+${blocksScanned})\n` +
+          `         txs: ${walletSummary.transactions.length}  utxos: ${walletSummary.utxos.length}  addrs: ${walletSummary.addresses.length}`
       )
 
       // Capture cached prices before overwriting transactions with fresh BDK data
@@ -117,6 +281,9 @@ function useSyncAccountWithWallet() {
       updatedAccount.utxos = walletSummary.utxos
       updatedAccount.addresses = walletSummary.addresses
       updatedAccount.summary = walletSummary.summary
+      if (newRpcLastBlockHash) {
+        updatedAccount.rpcLastBlockHash = newRpcLastBlockHash
+      }
 
       updatedAccount.addresses = parseAccountAddressesDetails(updatedAccount)
       updatedAccount = updateAccountObjectLabels(updatedAccount)
@@ -160,21 +327,40 @@ function useSyncAccountWithWallet() {
       updatedAccount.syncStatus = 'synced'
       updatedAccount.lastSyncedAt = new Date()
 
+      // After a successful full BDK sync (Electrum/Esplora), clear
+      // rpcLastBlockHash so future syncs are incremental again.
+      if (switchingFromRpc) {
+        updatedAccount.rpcLastBlockHash = undefined
+        console.log(`[sync] cleared rpcLastBlockHash after full Electrum/Esplora sync`)
+      }
+
       return updatedAccount
     } catch (err) {
-      console.log(
-        `[syncWallet] ERROR for account=${latest.id}:`,
-        err instanceof Error ? err.message : String(err)
-      )
+      const msg = err instanceof Error ? err.message : String(err)
+      console.log(`[sync] ── error: ${latest.name ?? latest.id}: ${msg}`)
+
+      // Cancellation is not an error — leave status as 'synced' (or wherever
+      // it was) so the UI doesn't show a red error state.
+      if (msg === 'sync-cancelled') {
+        setSyncStatus(latest.id, 'synced')
+        return null
+      }
+
       setSyncStatus(latest.id, 'error')
-      toast.error(t('account.syncFailed'))
+      toast.error(`${latest.name ?? latest.id}: ${t('account.syncFailed')}`)
       return latest
     } finally {
+      syncingAccounts.delete(latest.id)
+      cancelledSyncs.delete(latest.id)
+      // If this was the priority sync, lift the hold so background syncs can resume
+      if (isPriority) {
+        prioritySyncActive = false
+      }
       setLoading(false)
     }
   }
 
-  return { loading, syncAccountWithWallet }
+  return { loading, syncAccountWithWallet, prioritizeSync }
 }
 
 export default useSyncAccountWithWallet
