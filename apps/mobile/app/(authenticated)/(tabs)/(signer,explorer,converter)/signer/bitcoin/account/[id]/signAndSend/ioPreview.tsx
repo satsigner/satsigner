@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
-import { KeychainKind } from 'react-native-bdk-sdk'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -37,6 +36,7 @@ import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import useUnusedInternalAddresses from '@/hooks/useUnusedInternalAddresses'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import SSHStack from '@/layouts/SSHStack'
@@ -72,11 +72,8 @@ import {
   selectStonewallUtxos
 } from '@/utils/utxo'
 
-const MAX_INTERNAL_ADDRESS_SCAN = 1000
 // STONEWALL always produces two input sets, so two change outputs
 const STONEWALL_CHANGE_OUTPUTS = 2
-// change + second STONEWALL change + decoy
-const UNUSED_INTERNAL_ADDRESSES_NEEDED = 3
 
 export default function IOPreview() {
   const router = useRouter()
@@ -129,52 +126,12 @@ export default function IOPreview() {
 
   const mempoolOracle = useMempoolOracle(account?.network || 'bitcoin')
   const wallet = useGetAccountWallet(id!)
-  const [changeAddress, setChangeAddress] = useState('')
-  const [decoyAddress, setDecoyAddress] = useState('')
-  const [secondChangeAddress, setSecondChangeAddress] = useState('')
+  const { changeAddress, secondChangeAddress, decoyAddress } =
+    useUnusedInternalAddresses(account, wallet)
   const [stonewallChangeValues, setStonewallChangeValues] = useState<number[]>(
     []
   )
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
-
-  useEffect(() => {
-    if (!account || !wallet) {
-      return
-    }
-
-    const usedOutputAddresses: Record<string, boolean> = {}
-    for (const tx of account.transactions) {
-      for (const output of tx.vout) {
-        usedOutputAddresses[output.address] = true
-      }
-    }
-
-    // Three distinct unused internal addresses (change, STONEWALL per-set
-    // change, decoy) so no address is reused across the outputs.
-    const unusedInternal: string[] = []
-    let i = 0
-    while (
-      unusedInternal.length < UNUSED_INTERNAL_ADDRESSES_NEEDED &&
-      i < MAX_INTERNAL_ADDRESS_SCAN
-    ) {
-      const address =
-        wallet.peekAddress(KeychainKind.Internal, i)?.address ?? ''
-      if (address && usedOutputAddresses[address] !== true) {
-        unusedInternal.push(address)
-      }
-      i += 1
-    }
-
-    if (unusedInternal[0]) {
-      setChangeAddress(unusedInternal[0])
-    }
-    if (unusedInternal[1]) {
-      setSecondChangeAddress(unusedInternal[1])
-    }
-    if (unusedInternal[2]) {
-      setDecoyAddress(unusedInternal[2])
-    }
-  }, [account, wallet])
 
   // this removes the change addresses if the user goes back to the IO preview.
   // we add the change address(es) as outputs before moving to the next step.
