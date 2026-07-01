@@ -418,13 +418,19 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       invalidateAccount(account.id)
     },
     updateAccountBirthday: (id, date) => {
+      const account = get().accounts.find((a) => a.id === id)
+      if (!account) {
+        return
+      }
+
+      const updatedAccount: Account = { ...account, birthdayDate: date }
+      updateFullAccountDb(updatedAccount)
+
       set((state) => {
         const index = state.accounts.findIndex((a) => a.id === id)
-        if (index === -1) {
-          return
+        if (index !== -1) {
+          state.accounts[index].birthdayDate = date
         }
-        state.accounts[index].birthdayDate = date
-        updateFullAccountDb(state.accounts[index])
       })
       invalidateAccount(id)
     },

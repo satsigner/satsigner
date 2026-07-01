@@ -1,6 +1,6 @@
 import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
-const CURRENT_VERSION = 3
+const CURRENT_VERSION = 4
 
 const SCHEMA_V1 = `
 CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
@@ -239,6 +239,11 @@ const SCHEMA_V3 = `
 ALTER TABLE nostr_profile_cache ADD COLUMN banner TEXT
 `
 
+const SCHEMA_V4 = `
+ALTER TABLE accounts ADD COLUMN birthday_date TEXT;
+ALTER TABLE accounts ADD COLUMN rpc_last_block_hash TEXT
+`
+
 function runMigrations(db: NitroSQLiteConnection) {
   const currentVersion = getSchemaVersion(db)
 
@@ -274,6 +279,16 @@ function runMigrations(db: NitroSQLiteConnection) {
       db.execute(statement)
     }
     setSchemaVersion(db, 3)
+  }
+
+  if (currentVersion < 4) {
+    const statements = SCHEMA_V4.split(';')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    for (const statement of statements) {
+      db.execute(statement)
+    }
+    setSchemaVersion(db, 4)
   }
 }
 
