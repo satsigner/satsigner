@@ -1,7 +1,5 @@
 import { Platform } from 'react-native'
 
-import { type Network } from '@/types/settings/blockchain'
-
 /**
  * On Android, localhost/127.0.0.1 refers to the device itself, not the host
  * machine. Remap to 10.0.2.2 (the standard Android emulator alias for the
@@ -73,11 +71,14 @@ function toUserFacingError(err: unknown, url: string): Error {
     )
   }
 
-  // Timeout
+  // Timeout — AbortController-triggered aborts surface the "AbortError" name
+  // on the DOMException/Error itself, not necessarily in the message text
+  // (e.g. "The operation was aborted."), so check both.
   if (
     raw.includes('timeout') ||
     raw.includes('timed out') ||
-    raw.includes('AbortError')
+    raw.includes('AbortError') ||
+    (err instanceof Error && err.name === 'AbortError')
   ) {
     return new Error(
       `Connection to ${url} timed out.\n` +
@@ -92,11 +93,36 @@ const RPC_DEFAULT_PORT_MAINNET = 8332
 const RPC_DEFAULT_PORT_SIGNET = 38332
 const RPC_DEFAULT_PORT_TESTNET = 18332
 
+// Default timeout for a single RPC call. A hung/unreachable node must not
+// stall sync or the UI indefinitely — see rescanBlockchain for the one
+// call that legitimately needs a much longer budget.
+const RPC_DEFAULT_TIMEOUT_MS = 30_000
+
 export {
   adjustRpcUrl,
   RPC_DEFAULT_PORT_MAINNET,
   RPC_DEFAULT_PORT_SIGNET,
-  RPC_DEFAULT_PORT_TESTNET
+  RPC_DEFAULT_PORT_TESTNET,
+  RPC_DEFAULT_TIMEOUT_MS
+}
+
+/**
+ * fetch() with an AbortController-based timeout. Rejects with an AbortError
+ * (mapped to a user-facing message by toUserFacingError) if the request
+ * doesn't complete within `timeoutMs`.
+ */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number
+): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 type RpcRequest = {
@@ -201,7 +227,10 @@ export type CoreWalletListTx = {
 export type CoreWalletInfo = {
   balance: number
   descriptors: boolean
-  scanning: false | { duration: number; progress: number }
+  // Bitcoin Core's docs say this is always `false` or a progress object, but
+  // some versions have been observed returning a bare `true` transiently —
+  // callers must defensively handle that case instead of busy-looping.
+  scanning: boolean | { duration: number; progress: number }
   unconfirmed_balance: number
   walletname: string
 }
@@ -276,7 +305,11 @@ export default class BitcoinRpc {
     this.password = password
   }
 
-  private async _call<T>(method: string, params: unknown[] = []): Promise<T> {
+  private async _call<T>(
+    method: string,
+    params: unknown[] = [],
+    timeoutMs: number = RPC_DEFAULT_TIMEOUT_MS
+  ): Promise<T> {
     const body: RpcRequest = {
       id: method,
       jsonrpc: '1.0',
@@ -288,15 +321,19 @@ export default class BitcoinRpc {
 
     let response: Response
     try {
-      response = await fetch(this.url, {
-        body: JSON.stringify(body),
-        cache: 'no-cache',
-        headers: {
-          Authorization: `Basic ${credentials}`,
-          'Content-Type': 'application/json'
+      response = await fetchWithTimeout(
+        this.url,
+        {
+          body: JSON.stringify(body),
+          cache: 'no-cache',
+          headers: {
+            Authorization: `Basic ${credentials}`,
+            'Content-Type': 'application/json'
+          },
+          method: 'POST'
         },
-        method: 'POST'
-      })
+        timeoutMs
+      )
     } catch (error) {
       throw toUserFacingError(error, this.url)
     }
@@ -375,16 +412,6 @@ export default class BitcoinRpc {
 
   sendRawTransaction(txHex: string): Promise<string> {
     return this._call<string>('sendrawtransaction', [txHex])
-  }
-
-  static defaultPort(network: Network): number {
-    if (network === 'testnet') {
-      return RPC_DEFAULT_PORT_TESTNET
-    }
-    if (network === 'signet') {
-      return RPC_DEFAULT_PORT_SIGNET
-    }
-    return RPC_DEFAULT_PORT_MAINNET
   }
 
   /**
@@ -476,7 +503,8 @@ export class BitcoinCoreWallet {
 
   private async _walletCall<T>(
     method: string,
-    params: unknown[] = []
+    params: unknown[] = [],
+    timeoutMs: number = RPC_DEFAULT_TIMEOUT_MS
   ): Promise<T> {
     const body = {
       id: method,
@@ -487,15 +515,19 @@ export class BitcoinCoreWallet {
     const credentials = btoa(`${this.username}:${this.password}`)
     let response: Response
     try {
-      response = await fetch(this.walletUrl, {
-        body: JSON.stringify(body),
-        cache: 'no-cache',
-        headers: {
-          Authorization: `Basic ${credentials}`,
-          'Content-Type': 'application/json'
+      response = await fetchWithTimeout(
+        this.walletUrl,
+        {
+          body: JSON.stringify(body),
+          cache: 'no-cache',
+          headers: {
+            Authorization: `Basic ${credentials}`,
+            'Content-Type': 'application/json'
+          },
+          method: 'POST'
         },
-        method: 'POST'
-      })
+        timeoutMs
+      )
     } catch (error) {
       throw toUserFacingError(error, this.walletUrl)
     }
@@ -577,6 +609,7 @@ export class BitcoinCoreWallet {
   listSinceBlock(blockHash: string): Promise<{
     lastblock: string
     transactions: CoreWalletListTx[]
+    removed?: CoreWalletListTx[]
   }> {
     return this._walletCall('listsinceblock', [
       blockHash,
@@ -639,14 +672,45 @@ export class BitcoinCoreWallet {
 
   /**
    * Trigger a blockchain rescan starting at `startHeight`.
-   * This call is synchronous — it blocks until the rescan completes.
-   * Callers should wrap it in a timeout and switch to polling
-   * `getWalletInfo().scanning` if the connection is dropped.
+   * This call is synchronous — it blocks until the rescan completes, which
+   * can take hours for a full scan. Callers should race it against their own
+   * shorter timeout and switch to polling `getWalletInfo().scanning` if it
+   * doesn't return in time. We give the underlying request a long timeout
+   * budget of its own so our AbortController doesn't cut it off before the
+   * caller's race has a chance to.
    */
   rescanBlockchain(
     startHeight: number
   ): Promise<{ start_height: number; stop_height: number }> {
-    return this._walletCall('rescanblockchain', [startHeight])
+    const RESCAN_TIMEOUT_MS = 6 * 60 * 60 * 1000 // 6 hours
+    return this._walletCall(
+      'rescanblockchain',
+      [startHeight],
+      RESCAN_TIMEOUT_MS
+    )
+  }
+
+  /**
+   * Create an unsigned PSBT. `outputs` must be an array of single-key
+   * {address: amountBtc} objects — Bitcoin Core treats each array element as
+   * a distinct output, which is what allows multiple outputs to share the
+   * same address.
+   */
+  createPsbt(
+    inputs: { txid: string; vout: number; sequence?: number }[],
+    outputs: Record<string, number>[]
+  ): Promise<string> {
+    return this._walletCall<string>('createpsbt', [inputs, outputs])
+  }
+
+  /**
+   * Enrich a PSBT with witness_utxo / bip32_derivation from this watch-only
+   * wallet without attempting to sign it (sign=false).
+   */
+  walletProcessPsbt(
+    psbt: string
+  ): Promise<{ psbt: string; complete: boolean }> {
+    return this._walletCall('walletprocesspsbt', [psbt, false, 'ALL', true])
   }
 
   get name(): string {
