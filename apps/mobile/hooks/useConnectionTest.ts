@@ -215,12 +215,13 @@ export function useConnectionTest() {
           rpcCredentials?.password ?? ''
         )
 
-        const chainInfo = await rpc.getBlockchainInfo()
-        const mempoolInfo = await rpc.getMempoolInfo().catch(() => null)
-        const feeResult = await rpc.estimateSmartFee(6).catch(() => null)
-        const hasFilterIndex = await rpc
-          .hasBlockFilterIndex()
-          .catch(() => false)
+        const [chainInfo, mempoolInfo, feeResult, hasFilterIndex] =
+          await Promise.all([
+            rpc.getBlockchainInfo(),
+            rpc.getMempoolInfo().catch(() => null),
+            rpc.estimateSmartFee(6).catch(() => null),
+            rpc.hasBlockFilterIndex().catch(() => false)
+          ])
 
         const blockHeight = chainInfo.blocks
         const responseTime = Date.now() - startTime

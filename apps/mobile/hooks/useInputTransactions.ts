@@ -292,9 +292,16 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   .getRawTransaction(txid)
                   .catch(() => null)
                 if (rawTx) {
+                  let blockHeight: number | undefined
+                  if (rawTx.confirmations && rawTx.blockhash) {
+                    blockHeight = await rpc
+                      .getBlock(rawTx.blockhash)
+                      .then((block) => block.height)
+                      .catch(() => undefined)
+                  }
                   const mappedTx: Transaction = {
                     address: undefined,
-                    blockHeight: rawTx.confirmations ? undefined : undefined,
+                    blockHeight,
                     fee: undefined,
                     id: rawTx.txid,
                     label: undefined,
@@ -551,6 +558,49 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
         )
 
         currentLevelDeep += 1
+      }
+
+      // Backfill input addresses/values by looking up each vin's previous
+      // output against transactions we've already fetched in this walk.
+      // Needed for the RPC backend: getrawtransaction doesn't return prevout
+      // info the way Esplora/Electrum's decoded views do, so RPC-sourced
+      // vins start out as address: 'unknown' with no input Set populated —
+      // without this, the ancestor tx-graph silently degrades to level 1
+      // for RPC accounts (every deeper transaction fails the address-match
+      // filter below).
+      for (const [txid, tx] of newTransactions.entries()) {
+        if (!tx.vin || tx.vin.length === 0) {
+          continue
+        }
+        let inputAddresses = transactionInputAddresses.get(txid)
+        let changed = false
+        const resolvedVin = tx.vin.map((vin) => {
+          if (vin.address && vin.address !== 'unknown') {
+            return vin
+          }
+          const parentTxid = normalizeTxid(vin.previousOutput.txid)
+          const parentTx = newTransactions.get(parentTxid)
+          const parentOut = parentTx?.vout?.[vin.previousOutput.vout]
+          if (!parentOut?.address) {
+            return vin
+          }
+          changed = true
+          if (!inputAddresses) {
+            inputAddresses = new Set<string>()
+          }
+          inputAddresses.add(parentOut.address)
+          return {
+            ...vin,
+            address: parentOut.address,
+            value: vin.value ?? parentOut.value
+          }
+        })
+        if (changed) {
+          newTransactions.set(txid, { ...tx, vin: resolvedVin })
+          if (inputAddresses) {
+            transactionInputAddresses.set(txid, inputAddresses)
+          }
+        }
       }
 
       // Filter transactions based on input/output address matching

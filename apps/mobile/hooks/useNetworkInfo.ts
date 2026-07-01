@@ -144,7 +144,8 @@ export function useNetworkInfo() {
       server.url,
       server.backend,
       mempoolUrl,
-      server.rpcCredentials?.username
+      server.rpcCredentials?.username,
+      server.rpcCredentials?.password
     ],
     refetchInterval: REFETCH_INTERVAL_MS,
     refetchIntervalInBackground: true

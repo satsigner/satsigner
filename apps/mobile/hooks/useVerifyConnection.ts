@@ -65,7 +65,9 @@ function useVerifyConnection() {
         server.backend,
         server.network,
         config.timeout,
-        config.connectionMode
+        config.connectionMode,
+        server.rpcCredentials?.username,
+        server.rpcCredentials?.password
       ],
       refetchInterval: config.connectionTestInterval * 1000,
       refetchIntervalInBackground: true,

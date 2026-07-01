@@ -12,7 +12,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type Network, type RpcCredentials } from '@/types/settings/blockchain'
+import { type Network } from '@/types/settings/blockchain'
 import {
   decryptAllAccountKeySecrets,
   updateAccountObjectLabels
@@ -38,19 +38,12 @@ function useSyncAccountWithAddress() {
     ])
   )
 
-  const [backend, network, url, configsMempol, _rpcCredentials] =
-    useBlockchainStore(
-      useShallow((state) => {
-        const { server } = state.configs[state.selectedNetwork]
-        return [
-          server.backend,
-          server.network,
-          server.url,
-          state.configsMempool,
-          server.rpcCredentials as RpcCredentials | undefined
-        ]
-      })
-    )
+  const [backend, network, url, configsMempol] = useBlockchainStore(
+    useShallow((state) => {
+      const { server } = state.configs[state.selectedNetwork]
+      return [server.backend, server.network, server.url, state.configsMempool]
+    })
+  )
 
   const [loading, setLoading] = useState(false)
 
