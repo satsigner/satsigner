@@ -24,6 +24,7 @@ import type { Account, Key } from '@/types/models/Account'
 import { type PageRoute } from '@/types/navigation/page'
 import { decryptAllAccountKeySecrets } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { devLog } from '@/utils/logger'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
@@ -93,11 +94,11 @@ export default function AuthenticatedLayout() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadWallets() {
-    console.log(
+    devLog(
       `[loadWallets] justUnlocked=${justUnlocked} skipPin=${skipPin} connectionMode=${connectionMode} accounts=${accounts.length}`
     )
     if (!(justUnlocked || skipPin)) {
-      console.log('[loadWallets] skipped — not just unlocked')
+      devLog('[loadWallets] skipped — not just unlocked')
       return
     }
 
@@ -107,11 +108,11 @@ export default function AuthenticatedLayout() {
         const existsWallet = !isImportAddress
           ? !!wallets[account.id]
           : !!addresses[account.id]
-        console.log(
+        devLog(
           `[loadWallets] account=${account.id} isImportAddress=${isImportAddress} existsWallet=${existsWallet}`
         )
         if (existsWallet) {
-          console.log(
+          devLog(
             `[loadWallets] skipping account=${account.id} — wallet already in memory`
           )
           continue
@@ -154,7 +155,7 @@ export default function AuthenticatedLayout() {
       } catch (error) {
         const label = account.name ?? account.id
         const reason = error instanceof Error ? error.message : String(error)
-        console.log(`[loadWallets] error for "${label}": ${reason}`)
+        devLog(`[loadWallets] error for "${label}": ${reason}`)
         toast.error(`${label}: ${reason}`)
       }
     }
