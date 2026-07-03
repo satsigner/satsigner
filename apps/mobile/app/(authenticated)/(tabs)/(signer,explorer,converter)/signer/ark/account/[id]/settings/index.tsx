@@ -4,9 +4,11 @@ import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconOffboardCircle } from '@/components/icons'
 import SSIconWarning from '@/components/icons/SSIconWarning'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import { useArkDeleteAccount } from '@/hooks/useArkDeleteAccount'
 import { useArkExportDatadir } from '@/hooks/useArkExportDatadir'
@@ -41,6 +43,13 @@ export default function ArkAccountSettingsPage() {
     }
   }
 
+  function handleOffboard() {
+    router.navigate({
+      params: { id },
+      pathname: '/signer/ark/account/[id]/settings/offboard'
+    })
+  }
+
   async function handleConfirmDelete() {
     if (!id) {
       return
@@ -71,17 +80,15 @@ export default function ArkAccountSettingsPage() {
           )
         }}
       />
-      <SSVStack gap="lg" style={styles.container}>
-        <SSButton
-          label={t('ark.offboard.title')}
-          onPress={() =>
-            router.navigate({
-              params: { id },
-              pathname: '/signer/ark/account/[id]/settings/offboard'
-            })
-          }
-          variant="secondary"
+      <SSVStack gap="none">
+        <SSSettingsCards
+          title={t('ark.offboard.title')}
+          description={t('ark.offboard.description')}
+          icon={<SSIconOffboardCircle height={24} width={24} />}
+          onPress={handleOffboard}
         />
+      </SSVStack>
+      <SSVStack gap="lg" style={styles.actions}>
         <SSButton
           label={t('ark.account.exportDb')}
           onPress={handleExportDb}
@@ -130,7 +137,7 @@ export default function ArkAccountSettingsPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  actions: {
     paddingTop: 24
   },
   modalContent: {

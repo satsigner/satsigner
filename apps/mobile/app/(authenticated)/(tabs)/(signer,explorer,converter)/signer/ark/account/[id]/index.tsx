@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconTriangle } from '@/components/icons'
+import { SSIconRefresh, SSIconTriangle } from '@/components/icons'
 import SSIconTime from '@/components/icons/SSIconTime'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
@@ -32,6 +32,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import { getArkPendingSats, getArkTotalSats } from '@/utils/ark'
+import { filterArkMovements } from '@/utils/arkMovement'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 const HEADER_ICON_STROKE = '#828282'
@@ -51,6 +52,7 @@ export default function ArkAccountDetailPage() {
   useFetchBitcoinPrice()
 
   const [cameraVisible, setCameraVisible] = useState(false)
+  const [showRefresh, setShowRefresh] = useState(false)
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
@@ -70,6 +72,12 @@ export default function ArkAccountDetailPage() {
   const isLoading =
     (walletQuery.isLoading || balanceQuery.isLoading) && !balance
   const loadError = walletQuery.error ?? balanceQuery.error
+
+  const movements = filterArkMovements(movementsQuery.data ?? [], showRefresh)
+
+  function handleToggleRefresh() {
+    setShowRefresh((prev) => !prev)
+  }
 
   function handleSend() {
     router.navigate({
@@ -132,7 +140,7 @@ export default function ArkAccountDetailPage() {
       />
       <View style={styles.listContainer}>
         <FlashList
-          data={movementsQuery.data ?? []}
+          data={movements}
           keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
           refreshing={movementsQuery.isRefetching}
@@ -218,6 +226,18 @@ export default function ArkAccountDetailPage() {
                   onReceive={handleReceive}
                 />
               </View>
+              <SSHStack justifyBetween style={styles.toolbar}>
+                <SSText color="muted" uppercase size="xs">
+                  {t('ark.movement.activity')}
+                </SSText>
+                <SSIconButton
+                  onPress={handleToggleRefresh}
+                  style={{ opacity: showRefresh ? 1 : 0.4 }}
+                  accessibilityLabel={t('ark.movement.toggleRefresh')}
+                >
+                  <SSIconRefresh height={16} width={14} />
+                </SSIconButton>
+              </SSHStack>
             </SSVStack>
           }
           renderItem={({ item }) => (
@@ -290,5 +310,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800],
     height: StyleSheet.hairlineWidth,
     marginHorizontal: 20
+  },
+  toolbar: {
+    paddingBottom: 8,
+    paddingHorizontal: 20,
+    width: '100%'
   }
 })

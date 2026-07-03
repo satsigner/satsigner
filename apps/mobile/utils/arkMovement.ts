@@ -50,6 +50,18 @@ export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
   return 'refresh'
 }
 
+export function filterArkMovements(
+  movements: ArkMovement[],
+  showRefresh: boolean
+): ArkMovement[] {
+  if (showRefresh) {
+    return movements
+  }
+  return movements.filter(
+    (movement) => getArkMovementKind(movement) !== 'refresh'
+  )
+}
+
 export function isLightningMovement(movement: ArkMovement): boolean {
   return LIGHTNING_SUBSYSTEM_KINDS.has(movement.subsystemKind.toLowerCase())
 }

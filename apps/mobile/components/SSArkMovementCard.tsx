@@ -34,7 +34,7 @@ type SSArkMovementCardProps = {
   link: Href
 }
 
-const ICON_SIZE = 14
+const ICON_SIZE = 18
 
 function renderDirectionIcon(kind: ArkMovementKind, isLightning: boolean) {
   if (kind === 'refresh') {

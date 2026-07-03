@@ -1,5 +1,6 @@
 import type { ArkMovement, ArkMovementStatus } from '@/types/models/Ark'
 import {
+  filterArkMovements,
   getArkMovementAmountSats,
   getArkMovementCounterparty,
   getArkMovementKind,
@@ -83,6 +84,27 @@ describe('arkMovement utils', () => {
     it('returns refresh when both balances are zero', () => {
       const movement = buildMovement()
       expect(getArkMovementKind(movement)).toBe('refresh')
+    })
+  })
+
+  describe('filterArkMovements', () => {
+    it('hides refresh movements when showRefresh is false', () => {
+      const movements = [
+        buildMovement({ effectiveBalanceSats: 1000, id: 1 }),
+        buildMovement({ id: 2, subsystemName: 'bark.refresh' }),
+        buildMovement({ effectiveBalanceSats: -1000, id: 3 })
+      ]
+      const result = filterArkMovements(movements, false)
+      expect(result.map((m) => m.id)).toStrictEqual([1, 3])
+    })
+
+    it('returns all movements when showRefresh is true', () => {
+      const movements = [
+        buildMovement({ effectiveBalanceSats: 1000, id: 1 }),
+        buildMovement({ id: 2, subsystemName: 'bark.refresh' })
+      ]
+      const result = filterArkMovements(movements, true)
+      expect(result.map((m) => m.id)).toStrictEqual([1, 2])
     })
   })
 

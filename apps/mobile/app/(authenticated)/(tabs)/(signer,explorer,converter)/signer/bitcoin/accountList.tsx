@@ -37,6 +37,7 @@ import {
   sampleTestnet4Address
 } from '@/constants/samples'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import useAccountsFingerprints from '@/hooks/useAccountsFingerprints'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
@@ -223,6 +224,8 @@ export default function AccountList() {
   const filteredAccounts = accounts.filter(
     (acc) => acc.network === tabs[tabIndex].key
   )
+
+  const fingerprints = useAccountsFingerprints(filteredAccounts)
 
   const totalBalance = useMemo(
     () =>
@@ -881,7 +884,17 @@ export default function AccountList() {
                   <AccountCardStaggerItem index={index}>
                     <SSVStack>
                       <SSAccountCard
-                        account={item}
+                        name={item.name}
+                        balance={item.summary.balance}
+                        fingerprint={
+                          item.keys[0].creationType === 'importAddress'
+                            ? undefined
+                            : fingerprints[item.id]
+                        }
+                        watchOnly={item.policyType === 'watchonly'}
+                        syncStatus={item.syncStatus}
+                        lastSyncedAt={item.lastSyncedAt}
+                        stats={item.summary}
                         onPress={() => handleGoToAccount(item.id)}
                       />
                     </SSVStack>
