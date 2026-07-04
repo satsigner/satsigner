@@ -35,22 +35,32 @@ import {
 } from '@/utils/account'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { aesDecrypt } from '@/utils/crypto'
-import { formatAccountCreationDate } from '@/utils/date'
+import {
+  BIRTHDAY_DATE_LENGTH,
+  formatAccountCreationDate,
+  parseBirthdayDate
+} from '@/utils/date'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
   const insets = useSafeAreaInsets()
 
-  const [accounts, updateAccountName, updateAccountBirthday, deleteAccount] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.accounts,
-        state.updateAccountName,
-        state.updateAccountBirthday,
-        state.deleteAccount
-      ])
-    )
+  const [
+    accounts,
+    updateAccount,
+    updateAccountName,
+    updateAccountBirthday,
+    deleteAccount
+  ] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts,
+      state.updateAccount,
+      state.updateAccountName,
+      state.updateAccountBirthday,
+      state.deleteAccount
+    ])
+  )
   const account = accounts.find((_account) => _account.id === currentAccountId)
   const [removeAccountWallet, dbPaths] = useWalletsStore(
     useShallow((state) => [state.removeAccountWallet, state.dbPaths])
@@ -62,6 +72,7 @@ export default function AccountSettings() {
   const [birthdayInput, setBirthdayInput] = useState(
     account?.birthdayDate ? account.birthdayDate.toISOString().slice(0, 10) : ''
   )
+  const [birthdayError, setBirthdayError] = useState(false)
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
@@ -157,15 +168,19 @@ export default function AccountSettings() {
 
   function handleBirthdayChange(value: string) {
     setBirthdayInput(value)
-    // Accept YYYY-MM-DD format; save on valid date, clear on empty
-    if (!value.trim()) {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      setBirthdayError(false)
       updateAccountBirthday(currentAccountId!, undefined)
       return
     }
-    const parsed = new Date(value.trim())
-    if (!isNaN(parsed.getTime()) && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+    const parsed = parseBirthdayDate(trimmed)
+    if (parsed) {
+      setBirthdayError(false)
       updateAccountBirthday(currentAccountId!, parsed)
+      return
     }
+    setBirthdayError(trimmed.length >= BIRTHDAY_DATE_LENGTH)
   }
 
   async function handleRescan() {
@@ -180,6 +195,11 @@ export default function AccountSettings() {
       return
     }
     await deleteWalletDb(dbPath)
+    // Also clear the RPC incremental-sync checkpoint, otherwise the next
+    // sync resumes from rpcLastBlockHash instead of doing a full rescan.
+    if (account?.rpcLastBlockHash) {
+      updateAccount({ ...account, rpcLastBlockHash: undefined })
+    }
     removeAccountWallet(currentAccountId!)
     toast.success(t('account.rescan.success'))
     router.replace('/signer/bitcoin/accountList')
@@ -313,6 +333,8 @@ export default function AccountSettings() {
                 onChangeText={handleBirthdayChange}
                 placeholder={t('account.birthdayDate.placeholder')}
                 keyboardType="numbers-and-punctuation"
+                status={birthdayError ? 'invalid' : undefined}
+                error={birthdayError ? t('account.birthdayDate.error') : ''}
               />
               <SSText color="muted" size="xs">
                 {t('account.birthdayDate.helper')}
