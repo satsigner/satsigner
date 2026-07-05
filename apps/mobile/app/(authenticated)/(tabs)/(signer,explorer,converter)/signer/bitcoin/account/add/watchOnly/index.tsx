@@ -1165,7 +1165,7 @@ export default function WatchOnly() {
         title={t('watchonly.titleModal').toUpperCase()}
         selectedText={t(`watchonly.${selectedOption}.title`)}
         selectedDescription={
-          <SSCollapsible>
+          <SSCollapsible fadeColor={Colors.black}>
             <SSText color="muted" size="md">
               {t(`watchonly.${selectedOption}.text`)}
             </SSText>

@@ -3,7 +3,6 @@ import { useCallback } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 
 import SSCollapsible from '@/components/SSCollapsible'
-import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -30,13 +29,25 @@ const monoTextStyle = { fontFamily: 'monospace' as const }
 
 export default function FiatData() {
   const {
+    customFiatPriceApiUrl,
     fetchCurrentPrices,
     fetchHistoricalPrices,
-    fiatPriceApiUrl,
+    fiatPriceProvider,
+    setCustomFiatPriceApiUrl,
     setFetchCurrentPrices,
     setFetchHistoricalPrices,
-    setFiatPriceApiUrl
+    setFiatPriceProvider
   } = useFiatData()
+
+  const selectMempool = useCallback(
+    () => setFiatPriceProvider('mempool'),
+    [setFiatPriceProvider]
+  )
+
+  const selectCustom = useCallback(
+    () => setFiatPriceProvider('custom'),
+    [setFiatPriceProvider]
+  )
 
   const toggleFetchCurrentPrices = useCallback(
     () => setFetchCurrentPrices(!fetchCurrentPrices),
@@ -48,7 +59,8 @@ export default function FiatData() {
     [fetchHistoricalPrices, setFetchHistoricalPrices]
   )
 
-  const isDefaultUrl = fiatPriceApiUrl === DEFAULT_FIAT_PRICE_API_URL
+  const isMempool = fiatPriceProvider === 'mempool'
+  const isCustom = fiatPriceProvider === 'custom'
 
   return (
     <>
@@ -83,49 +95,66 @@ export default function FiatData() {
             <SSFormLayout>
               <SSFormLayout.Item>
                 <SSFormLayout.Label label={tl('priceProvider')} />
-                <SSText color="muted" size="sm">
-                  {tl('provider.mempool')}
-                </SSText>
-                <SSTextInput
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="url"
-                  onChangeText={setFiatPriceApiUrl}
-                  placeholder={DEFAULT_FIAT_PRICE_API_URL}
-                  value={fiatPriceApiUrl}
-                />
-                <SSText color="muted" size="xs">
-                  {tl('apiUrlHint')}
-                </SSText>
-                {!isDefaultUrl ? (
-                  <SSButton
-                    label={tl('resetApiUrl')}
-                    onPress={() =>
-                      setFiatPriceApiUrl(DEFAULT_FIAT_PRICE_API_URL)
-                    }
-                    variant="ghost"
+                <SSVStack gap="sm">
+                  <SSCheckbox
+                    label={tl('provider.mempool')}
+                    selected={isMempool}
+                    onPress={selectMempool}
                   />
-                ) : null}
-                <SSCollapsible>
-                  <SSVStack gap="md" style={styles.apiFormat}>
-                    <SSVStack gap="xs">
-                      <SSText size="sm">
-                        {tl('apiFormat.currentPrices')}
+                  {isMempool ? (
+                    <SSText color="muted" size="xs" style={styles.providerUrl}>
+                      {DEFAULT_FIAT_PRICE_API_URL}
+                    </SSText>
+                  ) : null}
+                  <SSCheckbox
+                    label={tl('provider.custom')}
+                    selected={isCustom}
+                    onPress={selectCustom}
+                  />
+                  {isCustom ? (
+                    <SSVStack gap="sm" style={styles.customProvider}>
+                      <SSTextInput
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="url"
+                        onChangeText={setCustomFiatPriceApiUrl}
+                        placeholder={tl('provider.customPlaceholder')}
+                        value={customFiatPriceApiUrl}
+                      />
+                      <SSText color="muted" size="xs">
+                        {tl('apiUrlHint')}
                       </SSText>
-                      <SSText color="muted" size="xs" style={monoTextStyle}>
-                        {CURRENT_PRICES_RESPONSE}
-                      </SSText>
+                      <SSCollapsible>
+                        <SSVStack gap="md" style={styles.apiFormat}>
+                          <SSVStack gap="xs">
+                            <SSText size="sm">
+                              {tl('apiFormat.currentPrices')}
+                            </SSText>
+                            <SSText
+                              color="muted"
+                              size="xs"
+                              style={monoTextStyle}
+                            >
+                              {CURRENT_PRICES_RESPONSE}
+                            </SSText>
+                          </SSVStack>
+                          <SSVStack gap="xs">
+                            <SSText size="sm">
+                              {tl('apiFormat.historicalPrices')}
+                            </SSText>
+                            <SSText
+                              color="muted"
+                              size="xs"
+                              style={monoTextStyle}
+                            >
+                              {HISTORICAL_PRICE_RESPONSE}
+                            </SSText>
+                          </SSVStack>
+                        </SSVStack>
+                      </SSCollapsible>
                     </SSVStack>
-                    <SSVStack gap="xs">
-                      <SSText size="sm">
-                        {tl('apiFormat.historicalPrices')}
-                      </SSText>
-                      <SSText color="muted" size="xs" style={monoTextStyle}>
-                        {HISTORICAL_PRICE_RESPONSE}
-                      </SSText>
-                    </SSVStack>
-                  </SSVStack>
-                </SSCollapsible>
+                  ) : null}
+                </SSVStack>
               </SSFormLayout.Item>
             </SSFormLayout>
             <SSVStack gap="sm">
@@ -147,5 +176,12 @@ const styles = StyleSheet.create({
   apiFormat: {
     paddingTop: 8,
     width: '100%'
+  },
+  customProvider: {
+    paddingLeft: 8,
+    width: '100%'
+  },
+  providerUrl: {
+    paddingLeft: 8
   }
 })

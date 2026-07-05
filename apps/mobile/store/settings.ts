@@ -4,8 +4,10 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { DEFAULT_FIAT_PRICE_API_URL } from '@/constants/fiatPriceApi'
 import mmkvStorage from '@/storage/mmkv'
 import { usePriceStore } from '@/store/price'
-import { normalizeFiatPriceApiUrl } from '@/utils/fiatData'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
+import { normalizeFiatPriceApiUrl } from '@/utils/fiatData'
+
+type FiatPriceProvider = 'custom' | 'mempool'
 
 type SettingsState = {
   mnemonicWordList: WordListName
@@ -17,6 +19,7 @@ type SettingsState = {
   fetchCurrentPrices: boolean
   fetchHistoricalPrices: boolean
   fiatPriceApiUrl: string
+  fiatPriceProvider: FiatPriceProvider
 }
 
 type SettingsAction = {
@@ -32,7 +35,31 @@ type SettingsAction = {
     fetchHistoricalPrices: SettingsState['fetchHistoricalPrices']
   ) => void
   setFiatPriceApiUrl: (fiatPriceApiUrl: SettingsState['fiatPriceApiUrl']) => void
+  setFiatPriceProvider: (
+    fiatPriceProvider: SettingsState['fiatPriceProvider']
+  ) => void
   togglePrivacyMode: () => void
+}
+
+function migrateFiatPriceSettings(
+  persisted: Partial<SettingsState> | undefined,
+  merged: SettingsState & SettingsAction
+) {
+  if (!persisted || 'fiatPriceProvider' in persisted) {
+    return merged
+  }
+
+  const legacyUrl = normalizeFiatPriceApiUrl(persisted.fiatPriceApiUrl ?? '')
+
+  if (legacyUrl && legacyUrl !== DEFAULT_FIAT_PRICE_API_URL) {
+    merged.fiatPriceProvider = 'custom'
+    merged.fiatPriceApiUrl = legacyUrl
+  } else {
+    merged.fiatPriceProvider = 'mempool'
+    merged.fiatPriceApiUrl = ''
+  }
+
+  return merged
 }
 
 const useSettingsStore = create<SettingsState & SettingsAction>()(
@@ -41,7 +68,8 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       currencyUnit: 'sats',
       fetchCurrentPrices: true,
       fetchHistoricalPrices: false,
-      fiatPriceApiUrl: DEFAULT_FIAT_PRICE_API_URL,
+      fiatPriceApiUrl: '',
+      fiatPriceProvider: 'mempool',
       mnemonicWordList: DEFAULT_WORD_LIST,
       privacyMode: false,
       setCurrencyUnit: (currencyUnit) => {
@@ -62,6 +90,9 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       setFiatPriceApiUrl: (fiatPriceApiUrl) => {
         set({ fiatPriceApiUrl: normalizeFiatPriceApiUrl(fiatPriceApiUrl) })
       },
+      setFiatPriceProvider: (fiatPriceProvider) => {
+        set({ fiatPriceProvider })
+      },
       setShowWarning: (showWarning) => {
         set({ showWarning })
       },
@@ -77,8 +108,17 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
         set((state) => ({ privacyMode: !state.privacyMode })),
       useZeroPadding: false
     }),
-    { name: 'settings-store', storage: createJSONStorage(() => mmkvStorage) }
+    {
+      merge: (persistedState, currentState) =>
+        migrateFiatPriceSettings(
+          persistedState as Partial<SettingsState> | undefined,
+          { ...currentState, ...(persistedState as Partial<SettingsState>) }
+        ),
+      name: 'settings-store',
+      storage: createJSONStorage(() => mmkvStorage)
+    }
   )
 )
 
 export { useSettingsStore }
+export type { FiatPriceProvider }
