@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { type StyleProp, type TextStyle, type ViewStyle } from 'react-native'
 import TimeAgo from 'react-timeago'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -8,10 +9,14 @@ import { formatDate, formatTime } from '@/utils/format'
 
 import SSText, { type SSTextProps } from './SSText'
 
+// The style is applied both to text and, when a suffix is present, to a
+// wrapping SSHStack (a View), so it must satisfy both style shapes.
 type SSTimeAgoTextProps = {
   date: Date
   suffix?: string
-} & SSTextProps
+  live?: boolean
+  style?: StyleProp<ViewStyle & TextStyle>
+} & Omit<SSTextProps, 'style'>
 
 type OldDateDisplay = {
   agoText: string
@@ -24,6 +29,7 @@ function SSTimeAgoText({
   suffix,
   style,
   numberOfLines,
+  live = true,
   ...textProps
 }: SSTimeAgoTextProps) {
   const displayRef = useRef<OldDateDisplay>({ agoText: '', isOld: false })
@@ -97,7 +103,7 @@ function SSTimeAgoText({
   return (
     <TimeAgo
       date={date}
-      live
+      live={live}
       component={
         ((props: { children: React.ReactNode }) => {
           if (suffix) {

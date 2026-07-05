@@ -1,8 +1,42 @@
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
 import type { Output } from '@/types/models/Output'
 import { ScriptVersionType } from '@/types/models/Script'
+import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import { getScriptVersionType } from '@/utils/address'
+
+function areTransactionsEquivalent(a: Transaction, b: Transaction): boolean {
+  return (
+    a.id === b.id &&
+    a.type === b.type &&
+    a.sent === b.sent &&
+    a.received === b.received &&
+    a.blockHeight === b.blockHeight &&
+    a.label === b.label &&
+    a.prices?.USD === b.prices?.USD &&
+    (a.timestamp?.getTime() ?? 0) === (b.timestamp?.getTime() ?? 0)
+  )
+}
+
+/**
+ * Every sync rebuilds all Transaction objects from scratch, so React sees new
+ * references for rows that did not actually change and re-renders the whole
+ * list. This reuses the previous object reference for any transaction whose
+ * rendered fields are unchanged, so only genuinely-updated rows re-render.
+ */
+export function reconcileTransactions(
+  previous: Transaction[],
+  next: Transaction[]
+): Transaction[] {
+  if (previous.length === 0) {
+    return next
+  }
+  const previousById = new Map(previous.map((tx) => [tx.id, tx]))
+  return next.map((tx) => {
+    const old = previousById.get(tx.id)
+    return old && areTransactionsEquivalent(old, tx) ? old : tx
+  })
+}
 
 const BASE_SIZE = 10
 

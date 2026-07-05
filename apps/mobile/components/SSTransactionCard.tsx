@@ -128,6 +128,7 @@ function SSTransactionCard({
             <SSTimeAgoText
               date={new Date(transaction.timestamp)}
               size="xs"
+              live={false}
               suffix={formatTxId(transaction.id, 4)}
               style={{ flex: 1, marginRight: Layout.hStack.gap.sm }}
             />

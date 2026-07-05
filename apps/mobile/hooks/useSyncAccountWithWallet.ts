@@ -17,6 +17,7 @@ import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatTimestamp } from '@/utils/format'
 import { devLog } from '@/utils/logger'
 import { parseAccountAddressesDetails } from '@/utils/parse'
+import { reconcileTransactions } from '@/utils/transaction'
 
 // Module-level sync state shared across all hook instances.
 //
@@ -344,6 +345,13 @@ function useSyncAccountWithWallet() {
           }
         }
       }
+
+      // Reuse prior object references for transactions that did not change,
+      // so the transaction list only re-renders rows that actually differ.
+      updatedAccount.transactions = reconcileTransactions(
+        latest.transactions,
+        updatedAccount.transactions
+      )
 
       updatedAccount.syncStatus = 'synced'
       updatedAccount.lastSyncedAt = new Date()

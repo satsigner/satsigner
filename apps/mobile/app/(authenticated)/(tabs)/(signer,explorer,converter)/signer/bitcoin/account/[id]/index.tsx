@@ -111,6 +111,9 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 
 const TX_STAGGER_DELAY_MS = 70
 const TX_STAGGER_DURATION_MS = 320
+// Only the first screenful gets the intro fade; rows scrolled into view later
+// (or recycled by FlashList) render instantly instead of waiting out a delay.
+const MAX_STAGGERED_ITEMS = 8
 
 function DraftTransactionCard({ accountId }: { accountId: string }) {
   const router = useRouter()
@@ -206,10 +209,16 @@ function TransactionStaggerItem({
   index: number
   children: React.ReactNode
 }) {
-  const opacity = useSharedValue(0)
-  const translateY = useSharedValue(12)
+  const shouldAnimate = index < MAX_STAGGERED_ITEMS
+  const opacity = useSharedValue(shouldAnimate ? 0 : 1)
+  const translateY = useSharedValue(shouldAnimate ? 12 : 0)
 
   useEffect(() => {
+    if (!shouldAnimate) {
+      opacity.set(1)
+      translateY.set(0)
+      return
+    }
     const delay = index * TX_STAGGER_DELAY_MS
     opacity.set(
       withDelay(
@@ -229,7 +238,7 @@ function TransactionStaggerItem({
         })
       )
     )
-  }, [index, opacity, translateY])
+  }, [shouldAnimate, index, opacity, translateY])
 
   const staggerStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
