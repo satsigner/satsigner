@@ -61,8 +61,8 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3
@@ -113,19 +113,15 @@ function AccountCardStaggerItem({
 export default function AccountList() {
   const router = useRouter()
 
-  const [
-    network,
-    setSelectedNetwork,
-    connectionMode,
-    autoConnectDelay
-  ] = useBlockchainStore(
-    useShallow((state) => [
-      state.selectedNetwork,
-      state.setSelectedNetwork,
-      state.configs[state.selectedNetwork].config.connectionMode,
-      state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
-    ])
-  )
+  const [network, setSelectedNetwork, connectionMode, autoConnectDelay] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.selectedNetwork,
+        state.setSelectedNetwork,
+        state.configs[state.selectedNetwork].config.connectionMode,
+        state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
+      ])
+    )
   const { fiatPriceApiUrl } = useFiatData()
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])

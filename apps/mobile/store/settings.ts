@@ -1,11 +1,12 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { DEFAULT_FIAT_PRICE_API_URL } from '@/constants/fiatPriceApi'
+import {
+  DEFAULT_FIAT_PRICE_API_URL,
+  normalizeFiatPriceApiUrl
+} from '@/constants/fiatPriceApi'
 import mmkvStorage from '@/storage/mmkv'
-import { usePriceStore } from '@/store/price'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
-import { normalizeFiatPriceApiUrl } from '@/utils/fiatData'
 
 type FiatPriceProvider = 'custom' | 'mempool'
 
@@ -34,7 +35,9 @@ type SettingsAction = {
   setFetchHistoricalPrices: (
     fetchHistoricalPrices: SettingsState['fetchHistoricalPrices']
   ) => void
-  setFiatPriceApiUrl: (fiatPriceApiUrl: SettingsState['fiatPriceApiUrl']) => void
+  setFiatPriceApiUrl: (
+    fiatPriceApiUrl: SettingsState['fiatPriceApiUrl']
+  ) => void
   setFiatPriceProvider: (
     fiatPriceProvider: SettingsState['fiatPriceProvider']
   ) => void
@@ -75,14 +78,8 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
       },
-      setMnemonicWordList: (mnemonicWordList) => {
-        set({ mnemonicWordList })
-      },
       setFetchCurrentPrices: (fetchCurrentPrices) => {
         set({ fetchCurrentPrices })
-        if (!fetchCurrentPrices) {
-          usePriceStore.getState().resetCurrentPrices()
-        }
       },
       setFetchHistoricalPrices: (fetchHistoricalPrices) => {
         set({ fetchHistoricalPrices })
@@ -92,6 +89,9 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       },
       setFiatPriceProvider: (fiatPriceProvider) => {
         set({ fiatPriceProvider })
+      },
+      setMnemonicWordList: (mnemonicWordList) => {
+        set({ mnemonicWordList })
       },
       setShowWarning: (showWarning) => {
         set({ showWarning })
@@ -120,5 +120,5 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
   )
 )
 
-export { useSettingsStore }
+export { migrateFiatPriceSettings, useSettingsStore }
 export type { FiatPriceProvider }

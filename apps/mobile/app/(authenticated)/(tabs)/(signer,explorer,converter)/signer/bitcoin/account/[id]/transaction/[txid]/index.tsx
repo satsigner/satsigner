@@ -290,8 +290,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
       return
     }
 
-    const amount =
-      tx.type === 'receive' ? tx.received : tx.sent - tx.received
+    const amount = tx.type === 'receive' ? tx.received : tx.sent - tx.received
     setAmount(amount)
     setType(tx.type)
 

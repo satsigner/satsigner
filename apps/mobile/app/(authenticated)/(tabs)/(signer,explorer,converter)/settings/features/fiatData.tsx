@@ -1,9 +1,8 @@
 import { Stack } from 'expo-router'
-import { useCallback } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 
-import SSCollapsible from '@/components/SSCollapsible'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSCollapsible from '@/components/SSCollapsible'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import {
@@ -39,25 +38,21 @@ export default function FiatData() {
     setFiatPriceProvider
   } = useFiatData()
 
-  const selectMempool = useCallback(
-    () => setFiatPriceProvider('mempool'),
-    [setFiatPriceProvider]
-  )
+  function selectMempool() {
+    setFiatPriceProvider('mempool')
+  }
 
-  const selectCustom = useCallback(
-    () => setFiatPriceProvider('custom'),
-    [setFiatPriceProvider]
-  )
+  function selectCustom() {
+    setFiatPriceProvider('custom')
+  }
 
-  const toggleFetchCurrentPrices = useCallback(
-    () => setFetchCurrentPrices(!fetchCurrentPrices),
-    [fetchCurrentPrices, setFetchCurrentPrices]
-  )
+  function toggleFetchCurrentPrices() {
+    setFetchCurrentPrices(!fetchCurrentPrices)
+  }
 
-  const toggleFetchHistoricalPrices = useCallback(
-    () => setFetchHistoricalPrices(!fetchHistoricalPrices),
-    [fetchHistoricalPrices, setFetchHistoricalPrices]
-  )
+  function toggleFetchHistoricalPrices() {
+    setFetchHistoricalPrices(!fetchHistoricalPrices)
+  }
 
   const isMempool = fiatPriceProvider === 'mempool'
   const isCustom = fiatPriceProvider === 'custom'

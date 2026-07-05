@@ -94,4 +94,10 @@ const usePriceStore = create<PriceState & PriceAction>()(
   )
 )
 
+useSettingsStore.subscribe((state, prevState) => {
+  if (prevState.fetchCurrentPrices && !state.fetchCurrentPrices) {
+    usePriceStore.getState().resetCurrentPrices()
+  }
+})
+
 export { usePriceStore }

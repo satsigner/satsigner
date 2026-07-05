@@ -13,8 +13,8 @@ import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { updateAccountObjectLabels } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { formatTimestamp } from '@/utils/format'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { formatTimestamp } from '@/utils/format'
 import { devLog } from '@/utils/logger'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
@@ -46,14 +46,12 @@ function useSyncAccountWithWallet() {
   const [
     selectedNetwork,
     configs,
-    configsMempol,
     setLastKnownBlockHeight,
     lastKnownBlockHeight
   ] = useBlockchainStore(
     useShallow((state) => [
       state.selectedNetwork,
       state.configs,
-      state.configsMempool,
       state.setLastKnownBlockHeight,
       state.lastKnownBlockHeight
     ])

@@ -14,9 +14,9 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { Colors, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 
 export default function Converter() {
   const hasInitializedRef = useRef(false)
@@ -40,7 +40,7 @@ export default function Converter() {
   const [prices, fetchFullPriceAt] = usePriceStore(
     useShallow((state) => [state.prices, state.fetchFullPriceAt])
   )
-  const { fiatPriceApiUrl, showHistoricalFiat } = useFiatData()
+  const { showHistoricalFiat } = useFiatData()
 
   function handleValueChange(key: keyof typeof currencyValues, value: number) {
     setLastChangedKey(key)
@@ -133,132 +133,156 @@ export default function Converter() {
               {showHistoricalFiat ? (
                 <>
                   <SSVStack gap="none" style={styles.currencySection}>
-                <SSHStack gap="none" style={styles.rowSeparator}>
-                  <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
-                    <SSCurrencyInput
-                      decimal={2}
-                      value={currencyValues.USD.toString()}
-                      size="small"
-                      onChangeValue={(value) => handleValueChange('USD', value)}
-                      align="center"
-                      style={styles.currencyInput}
-                    />
-                    <SSText size="xs" color="muted">
-                      🇺🇸 {t('converter.currency.usd')}
-                    </SSText>
+                    <SSHStack gap="none" style={styles.rowSeparator}>
+                      <SSVStack
+                        itemsCenter
+                        gap="none"
+                        style={styles.currencyBlock}
+                      >
+                        <SSCurrencyInput
+                          decimal={2}
+                          value={currencyValues.USD.toString()}
+                          size="small"
+                          onChangeValue={(value) =>
+                            handleValueChange('USD', value)
+                          }
+                          align="center"
+                          style={styles.currencyInput}
+                        />
+                        <SSText size="xs" color="muted">
+                          🇺🇸 {t('converter.currency.usd')}
+                        </SSText>
+                      </SSVStack>
+                      <SSVStack
+                        itemsCenter
+                        gap="none"
+                        style={styles.currencyBlockNoBorder}
+                      >
+                        <SSCurrencyInput
+                          decimal={2}
+                          value={currencyValues.EUR.toString()}
+                          size="small"
+                          onChangeValue={(value) =>
+                            handleValueChange('EUR', value)
+                          }
+                          align="center"
+                          style={styles.currencyInput}
+                        />
+                        <SSText size="xs" color="muted">
+                          🇪🇺 {t('converter.currency.eur')}
+                        </SSText>
+                      </SSVStack>
+                    </SSHStack>
+                    <SSHStack gap="none" style={styles.rowSeparator}>
+                      <SSVStack
+                        itemsCenter
+                        gap="none"
+                        style={styles.currencyBlock}
+                      >
+                        <SSCurrencyInput
+                          decimal={2}
+                          value={currencyValues.GBP.toString()}
+                          size="small"
+                          onChangeValue={(value) =>
+                            handleValueChange('GBP', value)
+                          }
+                          align="center"
+                          style={styles.currencyInput}
+                        />
+                        <SSText size="xs" color="muted">
+                          🇬🇧 {t('converter.currency.gbp')}
+                        </SSText>
+                      </SSVStack>
+                      <SSVStack
+                        itemsCenter
+                        gap="none"
+                        style={styles.currencyBlockNoBorder}
+                      >
+                        <SSCurrencyInput
+                          decimal={2}
+                          value={currencyValues.CAD.toString()}
+                          size="small"
+                          onChangeValue={(value) =>
+                            handleValueChange('CAD', value)
+                          }
+                          align="center"
+                          style={styles.currencyInput}
+                        />
+                        <SSText size="xs" color="muted">
+                          🇨🇦 {t('converter.currency.cad')}
+                        </SSText>
+                      </SSVStack>
+                    </SSHStack>
+                    <SSHStack gap="none" style={styles.rowSeparator}>
+                      <SSVStack
+                        itemsCenter
+                        gap="none"
+                        style={styles.currencyBlock}
+                      >
+                        <SSCurrencyInput
+                          decimal={2}
+                          value={currencyValues.CHF.toString()}
+                          size="small"
+                          onChangeValue={(value) =>
+                            handleValueChange('CHF', value)
+                          }
+                          align="center"
+                          style={styles.currencyInput}
+                        />
+                        <SSText size="xs" color="muted">
+                          🇨🇭 {t('converter.currency.chf')}
+                        </SSText>
+                      </SSVStack>
+                      <SSVStack
+                        itemsCenter
+                        gap="none"
+                        style={styles.currencyBlockNoBorder}
+                      >
+                        <SSCurrencyInput
+                          decimal={2}
+                          value={currencyValues.JPY.toString()}
+                          size="small"
+                          onChangeValue={(value) =>
+                            handleValueChange('JPY', value)
+                          }
+                          align="center"
+                          style={styles.currencyInput}
+                        />
+                        <SSText size="xs" color="muted">
+                          🇯🇵 {t('converter.currency.jpy')}
+                        </SSText>
+                      </SSVStack>
+                    </SSHStack>
                   </SSVStack>
-                  <SSVStack
-                    itemsCenter
-                    gap="none"
-                    style={styles.currencyBlockNoBorder}
-                  >
-                    <SSCurrencyInput
-                      decimal={2}
-                      value={currencyValues.EUR.toString()}
-                      size="small"
-                      onChangeValue={(value) => handleValueChange('EUR', value)}
-                      align="center"
-                      style={styles.currencyInput}
-                    />
-                    <SSText size="xs" color="muted">
-                      🇪🇺 {t('converter.currency.eur')}
-                    </SSText>
-                  </SSVStack>
-                </SSHStack>
-                <SSHStack gap="none" style={styles.rowSeparator}>
-                  <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
-                    <SSCurrencyInput
-                      decimal={2}
-                      value={currencyValues.GBP.toString()}
-                      size="small"
-                      onChangeValue={(value) => handleValueChange('GBP', value)}
-                      align="center"
-                      style={styles.currencyInput}
-                    />
-                    <SSText size="xs" color="muted">
-                      🇬🇧 {t('converter.currency.gbp')}
-                    </SSText>
-                  </SSVStack>
-                  <SSVStack
-                    itemsCenter
-                    gap="none"
-                    style={styles.currencyBlockNoBorder}
-                  >
-                    <SSCurrencyInput
-                      decimal={2}
-                      value={currencyValues.CAD.toString()}
-                      size="small"
-                      onChangeValue={(value) => handleValueChange('CAD', value)}
-                      align="center"
-                      style={styles.currencyInput}
-                    />
-                    <SSText size="xs" color="muted">
-                      🇨🇦 {t('converter.currency.cad')}
-                    </SSText>
-                  </SSVStack>
-                </SSHStack>
-                <SSHStack gap="none" style={styles.rowSeparator}>
-                  <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
-                    <SSCurrencyInput
-                      decimal={2}
-                      value={currencyValues.CHF.toString()}
-                      size="small"
-                      onChangeValue={(value) => handleValueChange('CHF', value)}
-                      align="center"
-                      style={styles.currencyInput}
-                    />
-                    <SSText size="xs" color="muted">
-                      🇨🇭 {t('converter.currency.chf')}
-                    </SSText>
-                  </SSVStack>
-                  <SSVStack
-                    itemsCenter
-                    gap="none"
-                    style={styles.currencyBlockNoBorder}
-                  >
-                    <SSCurrencyInput
-                      decimal={2}
-                      value={currencyValues.JPY.toString()}
-                      size="small"
-                      onChangeValue={(value) => handleValueChange('JPY', value)}
-                      align="center"
-                      style={styles.currencyInput}
-                    />
-                    <SSText size="xs" color="muted">
-                      🇯🇵 {t('converter.currency.jpy')}
-                    </SSText>
-                  </SSVStack>
-                </SSHStack>
-              </SSVStack>
                 </>
               ) : null}
             </SSVStack>
             {showHistoricalFiat ? (
               <SSVStack style={styles.dateContainer} gap="lg">
-              <SSDatePicker
-                key={pickerKey}
-                value={date}
-                onChange={(value) => setDate(value)}
-                width="80%"
-                height={200}
-                fontSize={Sizes.text.fontSize['2xl']}
-                textColor={Colors.white}
-                fadeColor={Colors.black}
-                markColor={Colors.gray[950]}
-                markHeight={46}
-                startYear={2011}
-              />
-              <SSButton
-                key="today"
-                label={t('date.today')}
-                variant="outline"
-                onPress={() => {
-                  setDate(new Date())
-                  setPickerKey((prev) => prev + 1)
-                }}
-                disabled={date.toDateString() === new Date().toDateString()}
-              />
-            </SSVStack>
+                <SSDatePicker
+                  key={pickerKey}
+                  value={date}
+                  onChange={(value) => setDate(value)}
+                  width="80%"
+                  height={200}
+                  fontSize={Sizes.text.fontSize['2xl']}
+                  textColor={Colors.white}
+                  fadeColor={Colors.black}
+                  markColor={Colors.gray[950]}
+                  markHeight={46}
+                  startYear={2011}
+                />
+                <SSButton
+                  key="today"
+                  label={t('date.today')}
+                  variant="outline"
+                  onPress={() => {
+                    setDate(new Date())
+                    setPickerKey((prev) => prev + 1)
+                  }}
+                  disabled={date.toDateString() === new Date().toDateString()}
+                />
+              </SSVStack>
             ) : null}
           </SSVStack>
         </ScrollView>

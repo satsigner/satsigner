@@ -82,10 +82,10 @@ function SSTransactionCard({
   const { showCurrentFiat, showHistoricalFiat } = useFiatData()
 
   const { prices } = transaction
-  const oldPrice =
-    showHistoricalFiat && prices ? prices[fiatCurrency] : null
-  const historicalPrice =
-    showHistoricalFiat ? prices?.[fiatCurrency] : undefined
+  const oldPrice = showHistoricalFiat && prices ? prices[fiatCurrency] : null
+  const historicalPrice = showHistoricalFiat
+    ? prices?.[fiatCurrency]
+    : undefined
   const currentFiatPrice =
     showCurrentFiat && btcPrice && btcPrice > 0
       ? formatFiatPrice(Math.abs(amount), btcPrice)
@@ -94,8 +94,7 @@ function SSTransactionCard({
     historicalPrice && historicalPrice > 0
       ? formatFiatPrice(Math.abs(amount), historicalPrice)
       : ''
-  const hasPriceDisplay =
-    currentFiatPrice !== '' || historicalFiatPrice !== ''
+  const hasPriceDisplay = currentFiatPrice !== '' || historicalFiatPrice !== ''
 
   const percentChange =
     showCurrentFiat &&

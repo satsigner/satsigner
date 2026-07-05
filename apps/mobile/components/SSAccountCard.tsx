@@ -218,10 +218,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               <SSText color="muted">
                 {privacyMode
                   ? '••••'
-                  : formatNumber(
-                      satsToFiat(account.summary.balance || 0),
-                      2
-                    )}
+                  : formatNumber(satsToFiat(account.summary.balance || 0), 2)}
               </SSText>
               <SSText size="xs" style={{ color: Colors.gray[500] }}>
                 {fiatCurrency}

@@ -19,8 +19,8 @@ import {
   updateAccountObjectLabels
 } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
-import { formatTimestamp } from '@/utils/format'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -40,10 +40,10 @@ function useSyncAccountWithAddress() {
     ])
   )
 
-  const [backend, network, url, configsMempol] = useBlockchainStore(
+  const [backend, network, url] = useBlockchainStore(
     useShallow((state) => {
       const { server } = state.configs[state.selectedNetwork]
-      return [server.backend, server.network, server.url, state.configsMempool]
+      return [server.backend, server.network, server.url]
     })
   )
 

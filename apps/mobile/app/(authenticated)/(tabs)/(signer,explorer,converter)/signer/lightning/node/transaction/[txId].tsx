@@ -30,8 +30,8 @@ import type {
   LNDPayment,
   LNDGraphNodeInfo
 } from '@/types/models/Lightning'
-import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { formatLightningTxTimeAgo } from '@/utils/lndTransactionDisplay'
 
 function formatUnixTimestamp(unixSeconds: number): string {
@@ -597,8 +597,7 @@ export default function LndTransactionDetailPage() {
         : t('lightning.node.txDetail.type.onchain')
 
   const privacyMode = useSettingsStore(useShallow((s) => s.privacyMode))
-  const { showCurrentFiat, showHistoricalFiat, fiatPriceApiUrl } =
-    useFiatData()
+  const { showCurrentFiat, showHistoricalFiat, fiatPriceApiUrl } = useFiatData()
   const { makeRequest } = useLND()
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((s) => [s.btcPrice, s.fiatCurrency])
@@ -662,9 +661,7 @@ export default function LndTransactionDetailPage() {
       ? formatFiatPrice(satsAbs, effectiveBtcPrice)
       : null
   const historicalFiat =
-    showHistoricalFiat &&
-    historicalBtcPrice &&
-    historicalBtcPrice > 0
+    showHistoricalFiat && historicalBtcPrice && historicalBtcPrice > 0
       ? formatFiatPrice(satsAbs, historicalBtcPrice)
       : null
 

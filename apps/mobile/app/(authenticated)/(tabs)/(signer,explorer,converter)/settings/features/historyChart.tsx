@@ -173,8 +173,7 @@ export default function HistoryChart() {
                 onPress={
                   !showCurrentFiat || !showHistoricalFiat
                     ? undefined
-                    : () =>
-                        setSelectedShowFiatPercentageChange((prev) => !prev)
+                    : () => setSelectedShowFiatPercentageChange((prev) => !prev)
                 }
               />
             </SSVStack>

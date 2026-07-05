@@ -102,8 +102,8 @@ import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { formatAddress, formatNumber } from '@/utils/format'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { time } from '@/utils/time'
@@ -1131,7 +1131,7 @@ export default function AccountView() {
       state.btcPrice
     ])
   )
-  const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
+  const { showCurrentFiat } = useFiatData()
   const [lastKnownBlockHeight, connectionMode, autoConnectDelay] =
     useBlockchainStore(
       useShallow((state) => [

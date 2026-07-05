@@ -1,7 +1,12 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
 
-import { SSIconFiat, SSIconHistoryChart, SSIconSeed, SSIconZero } from '@/components/icons'
+import {
+  SSIconFiat,
+  SSIconHistoryChart,
+  SSIconSeed,
+  SSIconZero
+} from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'

@@ -8,8 +8,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { deleteWalletDb } from '@/api/bdk'
 import { SSIconCircle, SSIconEyeOn, SSIconSettings } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSIconButton from '@/components/SSIconButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinAuth from '@/components/SSPinAuth'
@@ -47,8 +47,6 @@ import {
   parseBirthdayDate
 } from '@/utils/date'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
-
-const HEADER_ICON_STROKE = '#828282'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -283,7 +281,7 @@ export default function AccountSettings() {
             >
               <SSIconSettings
                 height={HEADER_CHROME_SETTINGS_ICON_SIZE}
-                stroke={HEADER_ICON_STROKE}
+                stroke={Colors.gray[200]}
                 width={HEADER_CHROME_SETTINGS_ICON_SIZE}
               />
             </SSIconButton>

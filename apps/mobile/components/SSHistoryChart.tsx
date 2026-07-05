@@ -816,7 +816,8 @@ function SSHistoryChart({
         initialLabels.push({
           amount: d.amount,
           boundBox: {
-            bottom: showFiatOnChart && effectiveBtcPrice > 0 ? bottom - 10 : bottom,
+            bottom:
+              showFiatOnChart && effectiveBtcPrice > 0 ? bottom - 10 : bottom,
             height:
               showFiatOnChart && effectiveBtcPrice > 0
                 ? height + (showFiatAtTxTime && historicalFiatValue ? 12 : 12)
@@ -868,7 +869,8 @@ function SSHistoryChart({
     chartHeight,
     showFiatOnChart,
     showFiatAtTxTime,
-    btcPrice,
+    showHistoricalFiat,
+    effectiveBtcPrice,
     satsToFiat,
     fiatCurrency,
     transactionsMap
@@ -1068,7 +1070,8 @@ function SSHistoryChart({
     showFiatOnChart,
     showFiatAtTxTime,
     showFiatPercentageChange,
-    btcPrice,
+    showHistoricalFiat,
+    effectiveBtcPrice,
     fiatCurrency,
     transactionsMap
   ])

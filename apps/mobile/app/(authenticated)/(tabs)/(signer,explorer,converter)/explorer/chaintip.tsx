@@ -12,8 +12,8 @@ import Esplora from '@/api/esplora'
 import BitcoinRpc, { type RpcBlock } from '@/api/rpc'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
 import SSText from '@/components/SSText'
-import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useFiatData } from '@/hooks/useFiatData'
+import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -27,11 +27,13 @@ import type {
   MempoolStatistics
 } from '@/types/models/Blockchain'
 import type { Network } from '@/types/settings/blockchain'
-import { formatBytes, formatDate } from '@/utils/format'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { formatBytes, formatDate } from '@/utils/format'
 import { time } from '@/utils/time'
 
 const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+
+const SECONDS_PER_DAY = time.days(1) / 1000
 
 const tn = _tn('explorer.chaintip')
 
@@ -287,8 +289,7 @@ export default function ChainTip() {
   )
   const { server } = configs[selectedNetwork]
   const fallbackOracle = useMempoolOracle(selectedNetwork)
-  const { showCurrentFiat, showHistoricalFiat, fiatPriceApiUrl } =
-    useFiatData()
+  const { showCurrentFiat, showHistoricalFiat, fiatPriceApiUrl } = useFiatData()
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
@@ -347,7 +348,7 @@ export default function ChainTip() {
       const now = Math.floor(Date.now() / 1000)
       const timestamps = Array.from(
         { length: PRICE_CHART_DAYS },
-        (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * 86400
+        (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * SECONDS_PER_DAY
       )
       const oracle = new MempoolOracle(getFiatPriceApiUrl())
       const prices = await oracle.getPricesAt(fiatCurrency, timestamps)

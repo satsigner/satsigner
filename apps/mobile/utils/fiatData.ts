@@ -1,9 +1,10 @@
-import { DEFAULT_FIAT_PRICE_API_URL } from '@/constants/fiatPriceApi'
+import {
+  DEFAULT_FIAT_PRICE_API_URL,
+  normalizeFiatPriceApiUrl
+} from '@/constants/fiatPriceApi'
 import { useSettingsStore } from '@/store/settings'
 
-export function normalizeFiatPriceApiUrl(url: string) {
-  return url.trim().replace(/\/+$/, '')
-}
+export { normalizeFiatPriceApiUrl }
 
 export function getFiatPriceApiUrl() {
   const { fiatPriceApiUrl, fiatPriceProvider } = useSettingsStore.getState()
@@ -17,12 +18,8 @@ export function getFiatPriceApiUrl() {
 }
 
 export function getFiatDataSettings() {
-  const {
-    fetchCurrentPrices,
-    fetchHistoricalPrices,
-    fiatPriceApiUrl,
-    fiatPriceProvider
-  } = useSettingsStore.getState()
+  const { fetchCurrentPrices, fetchHistoricalPrices, fiatPriceProvider } =
+    useSettingsStore.getState()
 
   return {
     fetchCurrentPrices,
