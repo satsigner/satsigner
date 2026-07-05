@@ -98,6 +98,14 @@ const RPC_DEFAULT_PORT_TESTNET = 18332
 // call that legitimately needs a much longer budget.
 const RPC_DEFAULT_TIMEOUT_MS = 30_000
 
+// A synchronous rescanblockchain call blocks until the scan finishes, which
+// can take hours. Give it a budget of its own so the AbortController doesn't
+// cut it off before the caller's shorter race has a chance to poll instead.
+const RPC_RESCAN_TIMEOUT_MS = 6 * 60 * 60 * 1000
+
+// listtransactions defaults to 10; pass a large count to mean "return all".
+const RPC_LIST_TRANSACTIONS_COUNT = 99_999
+
 export {
   adjustRpcUrl,
   RPC_DEFAULT_PORT_MAINNET,
@@ -136,6 +144,63 @@ type RpcResponse<T> = {
   error: { code: number; message: string } | null
   id: string
   result: T
+}
+
+/**
+ * Single source of truth for a JSON-RPC POST: builds the request body, adds
+ * Basic auth, applies the timeout, and normalizes HTTP/RPC errors into
+ * user-facing messages. Both the node-level and wallet-level clients delegate
+ * here so the request/error handling never drifts between the two.
+ */
+async function rpcFetch<T>(
+  url: string,
+  method: string,
+  params: unknown[],
+  username: string,
+  password: string,
+  timeoutMs: number
+): Promise<T> {
+  const body: RpcRequest = { id: method, jsonrpc: '1.0', method, params }
+  const credentials = btoa(`${username}:${password}`)
+
+  let response: Response
+  try {
+    response = await fetchWithTimeout(
+      url,
+      {
+        body: JSON.stringify(body),
+        cache: 'no-cache',
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          'Content-Type': 'application/json'
+        },
+        method: 'POST'
+      },
+      timeoutMs
+    )
+  } catch (error) {
+    throw toUserFacingError(error, url)
+  }
+
+  if (response.status === 401) {
+    throw toUserFacingError(new Error('401 Unauthorized'), url)
+  }
+
+  if (response.status === 403) {
+    throw toUserFacingError(new Error('403 Forbidden'), url)
+  }
+
+  if (!response.ok) {
+    throw new Error(`Node returned HTTP ${response.status}`)
+  }
+
+  const data = (await response.json()) as RpcResponse<T>
+
+  if (data.error) {
+    throw new Error(`RPC error ${data.error.code}: ${data.error.message}`)
+  }
+
+  return data.result
 }
 
 export type BlockchainInfo = {
@@ -305,58 +370,19 @@ export default class BitcoinRpc {
     this.password = password
   }
 
-  private async _call<T>(
+  private _call<T>(
     method: string,
     params: unknown[] = [],
     timeoutMs: number = RPC_DEFAULT_TIMEOUT_MS
   ): Promise<T> {
-    const body: RpcRequest = {
-      id: method,
-      jsonrpc: '1.0',
+    return rpcFetch<T>(
+      this.url,
       method,
-      params
-    }
-
-    const credentials = btoa(`${this.username}:${this.password}`)
-
-    let response: Response
-    try {
-      response = await fetchWithTimeout(
-        this.url,
-        {
-          body: JSON.stringify(body),
-          cache: 'no-cache',
-          headers: {
-            Authorization: `Basic ${credentials}`,
-            'Content-Type': 'application/json'
-          },
-          method: 'POST'
-        },
-        timeoutMs
-      )
-    } catch (error) {
-      throw toUserFacingError(error, this.url)
-    }
-
-    if (response.status === 401) {
-      throw toUserFacingError(new Error('401 Unauthorized'), this.url)
-    }
-
-    if (response.status === 403) {
-      throw toUserFacingError(new Error('403 Forbidden'), this.url)
-    }
-
-    if (!response.ok) {
-      throw new Error(`Node returned HTTP ${response.status}`)
-    }
-
-    const data = (await response.json()) as RpcResponse<T>
-
-    if (data.error) {
-      throw new Error(`RPC error ${data.error.code}: ${data.error.message}`)
-    }
-
-    return data.result
+      params,
+      this.username,
+      this.password,
+      timeoutMs
+    )
   }
 
   estimateSmartFee(confTarget: number): Promise<SmartFeeResult> {
@@ -501,53 +527,19 @@ export class BitcoinCoreWallet {
     this.walletUrl = `${adjusted.replace(/\/$/, '')}/wallet/${encodeURIComponent(walletName)}`
   }
 
-  private async _walletCall<T>(
+  private _walletCall<T>(
     method: string,
     params: unknown[] = [],
     timeoutMs: number = RPC_DEFAULT_TIMEOUT_MS
   ): Promise<T> {
-    const body = {
-      id: method,
-      jsonrpc: '1.0' as const,
+    return rpcFetch<T>(
+      this.walletUrl,
       method,
-      params
-    }
-    const credentials = btoa(`${this.username}:${this.password}`)
-    let response: Response
-    try {
-      response = await fetchWithTimeout(
-        this.walletUrl,
-        {
-          body: JSON.stringify(body),
-          cache: 'no-cache',
-          headers: {
-            Authorization: `Basic ${credentials}`,
-            'Content-Type': 'application/json'
-          },
-          method: 'POST'
-        },
-        timeoutMs
-      )
-    } catch (error) {
-      throw toUserFacingError(error, this.walletUrl)
-    }
-    if (response.status === 401) {
-      throw toUserFacingError(new Error('401 Unauthorized'), this.walletUrl)
-    }
-    if (response.status === 403) {
-      throw toUserFacingError(new Error('403 Forbidden'), this.walletUrl)
-    }
-    if (!response.ok) {
-      throw new Error(`Node returned HTTP ${response.status}`)
-    }
-    const data = (await response.json()) as {
-      error: { code: number; message: string } | null
-      result: T
-    }
-    if (data.error) {
-      throw new Error(`RPC error ${data.error.code}: ${data.error.message}`)
-    }
-    return data.result
+      params,
+      this.username,
+      this.password,
+      timeoutMs
+    )
   }
 
   /**
@@ -591,7 +583,9 @@ export class BitcoinCoreWallet {
    * Fetch all wallet transactions in reverse chronological order.
    * count=0 means "return all" (Bitcoin Core default is 10; we pass a large value).
    */
-  listTransactions(count = 99999): Promise<CoreWalletListTx[]> {
+  listTransactions(
+    count = RPC_LIST_TRANSACTIONS_COUNT
+  ): Promise<CoreWalletListTx[]> {
     return this._walletCall<CoreWalletListTx[]>('listtransactions', [
       '*',
       count,
@@ -682,11 +676,10 @@ export class BitcoinCoreWallet {
   rescanBlockchain(
     startHeight: number
   ): Promise<{ start_height: number; stop_height: number }> {
-    const RESCAN_TIMEOUT_MS = 6 * 60 * 60 * 1000 // 6 hours
     return this._walletCall(
       'rescanblockchain',
       [startHeight],
-      RESCAN_TIMEOUT_MS
+      RPC_RESCAN_TIMEOUT_MS
     )
   }
 

@@ -16,6 +16,7 @@ import {
   type AddressInfo
 } from 'react-native-bdk-sdk'
 
+import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
@@ -1530,7 +1531,7 @@ async function syncWithCoreWallet(
     for (let i = 0; i < MAX_POLLS; i += 1) {
       if (isCancelled?.()) {
         devLog('[CoreWallet] poll cancelled')
-        throw new Error('sync-cancelled')
+        throw new Error(SYNC_CANCELLED_ERROR)
       }
       try {
         const info = await coreWallet.getWalletInfo()

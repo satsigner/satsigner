@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { getWalletOverview, syncWallet, syncWithCoreWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
 import BitcoinRpc from '@/api/rpc'
+import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -311,8 +312,9 @@ function useSyncAccountWithWallet() {
       // Apply cached prices and collect timestamps only for unpriced transactions
       const unpricedTimestamps: number[] = []
       for (const tx of updatedAccount.transactions) {
-        if (cachedPrices[tx.id] !== undefined) {
-          tx.prices = { USD: cachedPrices[tx.id]! }
+        const cachedPrice = cachedPrices[tx.id]
+        if (cachedPrice !== undefined) {
+          tx.prices = { USD: cachedPrice }
         } else if (tx.timestamp) {
           unpricedTimestamps.push(formatTimestamp(tx.timestamp))
         }
@@ -372,7 +374,7 @@ function useSyncAccountWithWallet() {
 
       // Cancellation is not an error — leave status as 'synced' (or wherever
       // it was) so the UI doesn't show a red error state.
-      if (msg === 'sync-cancelled') {
+      if (msg === SYNC_CANCELLED_ERROR) {
         setSyncStatus(latest.id, 'synced')
         return null
       }
