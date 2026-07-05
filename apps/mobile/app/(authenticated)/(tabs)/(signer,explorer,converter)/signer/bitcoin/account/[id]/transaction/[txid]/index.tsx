@@ -34,7 +34,8 @@ import { type TxSearchParams } from '@/types/navigation/searchParams'
 import {
   formatConfirmations,
   formatFiatPrice,
-  formatNumber
+  formatNumber,
+  formatPercentualChange
 } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
 
@@ -249,8 +250,12 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     (state) => state.lastKnownBlockHeight
   )
 
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.useZeroPadding,
+      state.privacyMode
+    ])
   )
 
   const [amount, setAmount] = useState(0)
@@ -264,21 +269,30 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
       ? lastKnownBlockHeight - tx.blockHeight + 1
       : 0
 
+  const historicalBtcPrice = tx?.prices?.[fiatCurrency]
+  const percentChange =
+    btcPrice && btcPrice > 0 && historicalBtcPrice && historicalBtcPrice > 0
+      ? formatPercentualChange(btcPrice, historicalBtcPrice)
+      : ''
+
   const updateInfo = () => {
     if (!tx) {
       return
     }
 
-    const amount = tx.received - tx.sent
+    const amount =
+      tx.type === 'receive' ? tx.received : tx.sent - tx.received
     setAmount(amount)
     setType(tx.type)
 
     if (btcPrice) {
-      setPrice(formatFiatPrice(Number(amount), btcPrice))
+      setPrice(formatFiatPrice(Math.abs(amount), btcPrice))
     }
 
     if (tx.prices) {
-      setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency] || 0))
+      setOldPrice(
+        formatFiatPrice(Math.abs(amount), tx.prices[fiatCurrency] || 0)
+      )
     }
 
     if (tx.vin) {
@@ -299,18 +313,28 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
           {type === 'send' && <SSIconOutgoing height={12} width={12} />}
           <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
             {amount !== 0 ? (
-              <SSStyledSatText
-                amount={Math.abs(amount)}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                currency={currencyUnit}
-                type={tx?.type}
-                weight="light"
-              />
+              privacyMode ? (
+                <SSText size="4xl" weight="light">
+                  ••••
+                </SSText>
+              ) : (
+                <SSStyledSatText
+                  amount={Math.abs(amount)}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
+                  type={tx?.type}
+                  textSize="4xl"
+                  noColor={false}
+                  showSign={false}
+                  weight="light"
+                  letterSpacing={-0.5}
+                />
+              )
             ) : (
               <SSText color="muted">?</SSText>
             )}
-            <SSText color="muted">
+            <SSText color="muted" size="sm">
               {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
             </SSText>
           </SSHStack>
@@ -319,17 +343,30 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
           <SSHStack gap="xs">
             {price && (
               <SSText color="muted" size="sm">
-                {price}
+                {privacyMode ? '••••' : price}
               </SSText>
             )}
-            {oldPrice && (
-              <SSText color="muted" size="sm">
-                ({oldPrice})
-              </SSText>
-            )}
-            <SSText color="muted" size="sm">
+            <SSText size="sm" style={{ color: Colors.gray[500] }}>
               {fiatCurrency}
             </SSText>
+            {oldPrice && (
+              <SSText color="muted" size="sm">
+                ({privacyMode ? '••••' : oldPrice})
+              </SSText>
+            )}
+            {!privacyMode && percentChange !== '' ? (
+              <SSText
+                size="sm"
+                style={{
+                  color:
+                    percentChange[0] === '+'
+                      ? Colors.softBarGreen
+                      : Colors.softBarRed
+                }}
+              >
+                {percentChange}
+              </SSText>
+            ) : null}
           </SSHStack>
         )}
       </SSVStack>

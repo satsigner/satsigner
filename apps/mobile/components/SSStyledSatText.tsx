@@ -11,6 +11,7 @@ type SSStyledSatTextProps = {
   currency?: 'sats' | 'btc'
   type?: 'send' | 'receive'
   noColor?: boolean
+  showSign?: boolean
   textSize?: TextFontSize
   weight?: TextFontWeight
   letterSpacing?: number
@@ -23,6 +24,7 @@ function SSStyledSatText({
   currency = 'sats',
   type = 'send',
   noColor = true,
+  showSign = true,
   textSize = '3xl',
   weight = 'regular',
   letterSpacing = -0.1
@@ -38,7 +40,7 @@ function SSStyledSatText({
 
   return (
     <SSText size={textSize}>
-      {type === 'send' && !noColor && (
+      {type === 'send' && !noColor && showSign && (
         <SSText
           size={textSize}
           weight="medium"

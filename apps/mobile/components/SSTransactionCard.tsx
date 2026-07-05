@@ -15,7 +15,7 @@ import { Colors, Layout, Sizes } from '@/styles'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import {
-  formatConfirmations,
+  formatConfirmationsWithBlock,
   formatFiatPrice,
   formatPercentualChange,
   formatTxId
@@ -81,24 +81,16 @@ function SSTransactionCard({
 
   const { prices } = transaction
   const oldPrice = prices ? prices[fiatCurrency] : null
-  const priceItemsToDisplay: string[] = []
-
-  if (btcPrice && btcPrice > 0) {
-    priceItemsToDisplay.push(formatFiatPrice(Math.abs(amount), btcPrice))
-  }
-
   const historicalPrice = prices?.[fiatCurrency]
-  if (historicalPrice && historicalPrice > 0) {
-    priceItemsToDisplay.push(
-      `(${formatFiatPrice(Math.abs(amount), historicalPrice)})`
-    )
-  }
+  const currentFiatPrice =
+    btcPrice && btcPrice > 0 ? formatFiatPrice(Math.abs(amount), btcPrice) : ''
+  const historicalFiatPrice =
+    historicalPrice && historicalPrice > 0
+      ? formatFiatPrice(Math.abs(amount), historicalPrice)
+      : ''
+  const hasPriceDisplay =
+    currentFiatPrice !== '' || historicalFiatPrice !== ''
 
-  if (priceItemsToDisplay.length > 0) {
-    priceItemsToDisplay.push(fiatCurrency)
-  }
-
-  const priceDisplay = priceItemsToDisplay.join(' ')
   const percentChange =
     btcPrice && btcPrice > 0 && oldPrice && oldPrice > 0
       ? formatPercentualChange(btcPrice, oldPrice)
@@ -121,18 +113,26 @@ function SSTransactionCard({
         ]}
         gap="none"
       >
-        <SSHStack justifyBetween>
-          <SSText color="muted" size="xs">
-            {formatTxId(transaction.id)}
-          </SSText>
-          <SSHStack gap="none">
-            {(confirmations >= 0 || !hasConfirmation) && (
-              <SSText size="xs" style={confirmationColor}>
-                {formatConfirmations(confirmations)}
-                {hasConfirmation ? ' - ' : ''}
-              </SSText>
-            )}
-            {hasConfirmation && (
+        <SSHStack justifyBetween style={{ alignItems: 'flex-start' }}>
+          {transaction.timestamp ? (
+            <SSTimeAgoText
+              date={new Date(transaction.timestamp)}
+              size="xs"
+              suffix={formatTxId(transaction.id, 4)}
+              style={{ flex: 1, marginRight: Layout.hStack.gap.sm }}
+            />
+          ) : (
+            <SSText
+              color="muted"
+              size="xs"
+              numberOfLines={1}
+              style={{ flex: 1, marginRight: Layout.hStack.gap.sm }}
+            >
+              {formatTxId(transaction.id, 4)}
+            </SSText>
+          )}
+          <SSHStack gap="none" style={{ flexShrink: 0 }}>
+            {hasConfirmation ? (
               <SSText
                 size="xs"
                 style={
@@ -141,9 +141,16 @@ function SSTransactionCard({
                     : styles.confirmedEnough
                 }
               >
-                {`${t('bitcoin.block')} ${confirmedAtBlockHeight.toLocaleString(
-                  'en-US'
-                )}`}
+                {confirmations <= 0
+                  ? `${t('bitcoin.confirmations.unconfirmed')} • ${confirmedAtBlockHeight.toLocaleString('en-US')}`
+                  : formatConfirmationsWithBlock(
+                      confirmations,
+                      confirmedAtBlockHeight
+                    )}
+              </SSText>
+            ) : (
+              <SSText size="xs" style={confirmationColor}>
+                {t('bitcoin.confirmations.unconfirmed')}
               </SSText>
             )}
           </SSHStack>
@@ -192,13 +199,14 @@ function SSTransactionCard({
                   </SSText>
                 ) : (
                   <SSStyledSatText
-                    amount={amount}
+                    amount={Math.abs(amount)}
                     decimals={0}
                     useZeroPadding={useZeroPadding}
                     currency={currencyUnit}
                     type={transaction.type}
                     textSize={smallView ? 'xl' : '4xl'}
                     noColor={false}
+                    showSign={false}
                     weight="light"
                     letterSpacing={smallView ? 0 : -0.5}
                   />
@@ -211,30 +219,28 @@ function SSTransactionCard({
               </SSHStack>
             </SSHStack>
             {walletBalance !== undefined && (
-              <SSHStack gap="xs">
-                <SSText color="muted">
-                  {privacyMode ? (
-                    <SSText
-                      size={smallView ? 'xs' : 'sm'}
-                      color="muted"
-                      style={{
-                        lineHeight: Sizes.text.fontSize[smallView ? 'xs' : 'sm']
-                      }}
-                    >
-                      ••••
-                    </SSText>
-                  ) : (
-                    <SSStyledSatText
-                      amount={walletBalance}
-                      decimals={0}
-                      useZeroPadding={useZeroPadding}
-                      currency={currencyUnit}
-                      type={transaction.type}
-                      textSize={smallView ? 'xs' : 'sm'}
-                    />
-                  )}
-                </SSText>
-                <SSText size="xs" color="muted">
+              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                {privacyMode ? (
+                  <SSText
+                    size={smallView ? 'xs' : 'sm'}
+                    color="muted"
+                    style={{
+                      lineHeight: Sizes.text.fontSize[smallView ? 'xs' : 'sm']
+                    }}
+                  >
+                    ••••
+                  </SSText>
+                ) : (
+                  <SSStyledSatText
+                    amount={walletBalance}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    type={transaction.type}
+                    textSize={smallView ? 'xs' : 'sm'}
+                  />
+                )}
+                <SSText color="muted" size={smallView ? 'xs' : 'sm'}>
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
                     : t('bitcoin.sats')}
@@ -242,7 +248,7 @@ function SSTransactionCard({
               </SSHStack>
             )}
           </SSHStack>
-          {priceDisplay !== '' && (
+          {hasPriceDisplay && (
             <SSHStack justifyBetween>
               <SSHStack
                 gap="xs"
@@ -250,19 +256,46 @@ function SSTransactionCard({
                   height: smallView ? 14 : 22
                 }}
               >
-                <SSText
-                  style={{ color: Colors.gray[400] }}
-                  size={smallView ? 'xs' : 'sm'}
-                >
-                  {privacyMode ? '••••' : priceDisplay}
-                </SSText>
+                {privacyMode ? (
+                  <SSText
+                    style={{ color: Colors.gray[400] }}
+                    size={smallView ? 'xs' : 'sm'}
+                  >
+                    ••••
+                  </SSText>
+                ) : (
+                  <>
+                    {currentFiatPrice !== '' ? (
+                      <SSText
+                        style={{ color: Colors.gray[400] }}
+                        size={smallView ? 'xs' : 'sm'}
+                      >
+                        {currentFiatPrice}
+                      </SSText>
+                    ) : null}
+                    <SSText
+                      style={{ color: Colors.gray[500] }}
+                      size={smallView ? 'xs' : 'sm'}
+                    >
+                      {fiatCurrency}
+                    </SSText>
+                    {historicalFiatPrice !== '' ? (
+                      <SSText
+                        style={{ color: Colors.gray[400] }}
+                        size={smallView ? 'xs' : 'sm'}
+                      >
+                        ({historicalFiatPrice})
+                      </SSText>
+                    ) : null}
+                  </>
+                )}
                 {!privacyMode && percentChange !== '' && (
                   <SSText
                     style={{
                       color:
                         percentChange[0] === '+'
-                          ? Colors.mainGreen
-                          : Colors.mainRed
+                          ? Colors.softBarGreen
+                          : Colors.softBarRed
                     }}
                     size={smallView ? 'xs' : 'sm'}
                   >
@@ -297,13 +330,6 @@ function SSTransactionCard({
               ).label
             }
           </SSText>
-          {transaction.timestamp ? (
-            <SSTimeAgoText
-              date={new Date(transaction.timestamp)}
-              size="xs"
-              style={{ flexShrink: 0, marginRight: Layout.hStack.gap.sm }}
-            />
-          ) : null}
           <SSHStack gap="xs" style={{ flexShrink: 0 }}>
             {transaction.label ? (
               parseLabel(transaction.label).tags.map((tag, index) => (
@@ -354,7 +380,7 @@ function SSTransactionCard({
 
 const styles = StyleSheet.create({
   confirmedEnough: {
-    color: Colors.softBarGreen
+    color: Colors.gray[400]
   },
   confirmedFew: {
     color: Colors.warning
