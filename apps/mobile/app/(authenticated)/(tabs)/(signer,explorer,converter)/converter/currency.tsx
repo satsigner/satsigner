@@ -8,12 +8,13 @@ import SSCurrencyInput from '@/components/SSCurrencyInput'
 import SSDatePicker from '@/components/SSDatePicker'
 import SSText from '@/components/SSText'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { Colors, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
 
@@ -39,9 +40,7 @@ export default function Converter() {
   const [prices, fetchFullPriceAt] = usePriceStore(
     useShallow((state) => [state.prices, state.fetchFullPriceAt])
   )
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool['bitcoin']
-  )
+  const { fiatPriceApiUrl, showHistoricalFiat } = useFiatData()
 
   function handleValueChange(key: keyof typeof currencyValues, value: number) {
     setLastChangedKey(key)
@@ -73,8 +72,11 @@ export default function Converter() {
   }
 
   useFocusEffect(() => {
+    if (!showHistoricalFiat) {
+      return
+    }
     const timestamp = Math.floor(date.setHours(0, 0, 0, 0) / 1000)
-    fetchFullPriceAt(mempoolUrl, timestamp)
+    fetchFullPriceAt(getFiatPriceApiUrl(), timestamp)
   })
 
   useFocusEffect(() => {
@@ -128,7 +130,9 @@ export default function Converter() {
                   {t('converter.currency.bitcoin')}
                 </SSText>
               </SSVStack>
-              <SSVStack gap="none" style={styles.currencySection}>
+              {showHistoricalFiat ? (
+                <>
+                  <SSVStack gap="none" style={styles.currencySection}>
                 <SSHStack gap="none" style={styles.rowSeparator}>
                   <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
                     <SSCurrencyInput
@@ -226,8 +230,11 @@ export default function Converter() {
                   </SSVStack>
                 </SSHStack>
               </SSVStack>
+                </>
+              ) : null}
             </SSVStack>
-            <SSVStack style={styles.dateContainer} gap="lg">
+            {showHistoricalFiat ? (
+              <SSVStack style={styles.dateContainer} gap="lg">
               <SSDatePicker
                 key={pickerKey}
                 value={date}
@@ -252,6 +259,7 @@ export default function Converter() {
                 disabled={date.toDateString() === new Date().toDateString()}
               />
             </SSVStack>
+            ) : null}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>

@@ -9,6 +9,7 @@ import Esplora from '@/api/esplora'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -19,6 +20,7 @@ import {
 } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -612,11 +614,11 @@ function useSyncAccountWithAddress() {
       const uniqueTimestamps = [...new Set(timestamps)]
 
       // Fetch historical prices
-      const mempoolUrl = configsMempol['bitcoin']
-      const oracle = new MempoolOracle(mempoolUrl)
+      const { fetchHistoricalPrices } = useSettingsStore.getState()
+      const oracle = new MempoolOracle(getFiatPriceApiUrl())
       let prices: number[] = []
 
-      if (uniqueTimestamps.length > 0) {
+      if (fetchHistoricalPrices && uniqueTimestamps.length > 0) {
         try {
           const historicalPrices = await oracle.getPricesAt(
             'USD',

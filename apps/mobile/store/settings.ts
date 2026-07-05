@@ -1,7 +1,10 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { DEFAULT_FIAT_PRICE_API_URL } from '@/constants/fiatPriceApi'
 import mmkvStorage from '@/storage/mmkv'
+import { usePriceStore } from '@/store/price'
+import { normalizeFiatPriceApiUrl } from '@/utils/fiatData'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
 
 type SettingsState = {
@@ -11,6 +14,9 @@ type SettingsState = {
   showWarning: boolean
   skipSeedConfirmation: boolean
   privacyMode: boolean
+  fetchCurrentPrices: boolean
+  fetchHistoricalPrices: boolean
+  fiatPriceApiUrl: string
 }
 
 type SettingsAction = {
@@ -19,6 +25,13 @@ type SettingsAction = {
   setShowWarning: (showWarning: SettingsState['showWarning']) => void
   setSkipSeedConfirmation: (skip: SettingsState['skipSeedConfirmation']) => void
   setMnemonicWordList: (wordList: SettingsState['mnemonicWordList']) => void
+  setFetchCurrentPrices: (
+    fetchCurrentPrices: SettingsState['fetchCurrentPrices']
+  ) => void
+  setFetchHistoricalPrices: (
+    fetchHistoricalPrices: SettingsState['fetchHistoricalPrices']
+  ) => void
+  setFiatPriceApiUrl: (fiatPriceApiUrl: SettingsState['fiatPriceApiUrl']) => void
   togglePrivacyMode: () => void
 }
 
@@ -26,6 +39,9 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
   persist(
     (set) => ({
       currencyUnit: 'sats',
+      fetchCurrentPrices: true,
+      fetchHistoricalPrices: false,
+      fiatPriceApiUrl: DEFAULT_FIAT_PRICE_API_URL,
       mnemonicWordList: DEFAULT_WORD_LIST,
       privacyMode: false,
       setCurrencyUnit: (currencyUnit) => {
@@ -33,6 +49,18 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       },
       setMnemonicWordList: (mnemonicWordList) => {
         set({ mnemonicWordList })
+      },
+      setFetchCurrentPrices: (fetchCurrentPrices) => {
+        set({ fetchCurrentPrices })
+        if (!fetchCurrentPrices) {
+          usePriceStore.getState().resetCurrentPrices()
+        }
+      },
+      setFetchHistoricalPrices: (fetchHistoricalPrices) => {
+        set({ fetchHistoricalPrices })
+      },
+      setFiatPriceApiUrl: (fiatPriceApiUrl) => {
+        set({ fiatPriceApiUrl: normalizeFiatPriceApiUrl(fiatPriceApiUrl) })
       },
       setShowWarning: (showWarning) => {
         set({ showWarning })

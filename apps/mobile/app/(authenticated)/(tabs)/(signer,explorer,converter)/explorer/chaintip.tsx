@@ -13,6 +13,7 @@ import BitcoinRpc, { type RpcBlock } from '@/api/rpc'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
 import SSText from '@/components/SSText'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -27,6 +28,7 @@ import type {
 } from '@/types/models/Blockchain'
 import type { Network } from '@/types/settings/blockchain'
 import { formatBytes, formatDate } from '@/utils/format'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { time } from '@/utils/time'
 
 const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
@@ -285,9 +287,12 @@ export default function ChainTip() {
   )
   const { server } = configs[selectedNetwork]
   const fallbackOracle = useMempoolOracle(selectedNetwork)
+  const { showCurrentFiat, showHistoricalFiat, fiatPriceApiUrl } =
+    useFiatData()
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
+  const effectiveBtcPrice = showCurrentFiat ? btcPrice : 0
 
   const [chainData, setChainData] = useState<ChainData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -337,16 +342,18 @@ export default function ChainTip() {
     timestamps: number[]
     prices: number[]
   }>({
+    enabled: showHistoricalFiat,
     queryFn: async () => {
       const now = Math.floor(Date.now() / 1000)
       const timestamps = Array.from(
         { length: PRICE_CHART_DAYS },
         (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * 86400
       )
-      const prices = await fallbackOracle.getPricesAt(fiatCurrency, timestamps)
+      const oracle = new MempoolOracle(getFiatPriceApiUrl())
+      const prices = await oracle.getPricesAt(fiatCurrency, timestamps)
       return { prices, timestamps }
     },
-    queryKey: ['chaintip-price-history', fiatCurrency],
+    queryKey: ['chaintip-price-history', fiatCurrency, fiatPriceApiUrl],
     staleTime: time.minutes(10)
   })
 
@@ -555,15 +562,17 @@ export default function ChainTip() {
             <Row
               label={`BTC / ${fiatCurrency}`}
               value={
-                btcPrice > 0
-                  ? btcPrice.toLocaleString(undefined, {
+                effectiveBtcPrice > 0
+                  ? effectiveBtcPrice.toLocaleString(undefined, {
                       maximumFractionDigits: 0
                     })
                   : '--'
               }
               loading={false}
             />
-            {priceChartData.length > 0 && priceChartDomain && (
+            {showHistoricalFiat &&
+            priceChartData.length > 0 &&
+            priceChartDomain ? (
               <View style={styles.priceChartWrapper}>
                 <SSText
                   size="xxs"
@@ -603,7 +612,7 @@ export default function ChainTip() {
                   }
                 </CartesianChart>
               </View>
-            )}
+            ) : null}
           </SSVStack>
         </SSVStack>
       </ScrollView>

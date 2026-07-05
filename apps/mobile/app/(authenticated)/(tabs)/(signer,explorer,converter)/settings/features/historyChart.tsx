@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -13,6 +14,7 @@ import { useChartSettingStore } from '@/store/chartSettings'
 
 export default function HistoryChart() {
   const router = useRouter()
+  const { showCurrentFiat, showHistoricalFiat } = useFiatData()
   const [
     showLabel,
     setShowLabel,
@@ -132,20 +134,31 @@ export default function HistoryChart() {
                   'settings.features.charts.historyChart.layers.showFiatOnChart'
                 )}
                 selected={selectedShowFiatOnChart}
-                onPress={() => {
-                  setSelectedShowFiatOnChart((prev) => !prev)
-                  if (selectedShowFiatOnChart) {
-                    setSelectedShowFiatAtTxTime(false)
-                  }
-                }}
+                disabled={!showCurrentFiat}
+                onPress={
+                  !showCurrentFiat
+                    ? undefined
+                    : () => {
+                        setSelectedShowFiatOnChart((prev) => !prev)
+                        if (selectedShowFiatOnChart) {
+                          setSelectedShowFiatAtTxTime(false)
+                        }
+                      }
+                }
               />
               <SSCheckbox
                 label={t(
                   'settings.features.charts.historyChart.layers.showFiatAtTxTime'
                 )}
                 selected={selectedShowFiatAtTxTime}
-                disabled={!selectedShowFiatOnChart}
+                disabled={
+                  !showCurrentFiat ||
+                  !showHistoricalFiat ||
+                  !selectedShowFiatOnChart
+                }
                 onPress={
+                  !showCurrentFiat ||
+                  !showHistoricalFiat ||
                   !selectedShowFiatOnChart
                     ? undefined
                     : () => setSelectedShowFiatAtTxTime((prev) => !prev)
@@ -156,8 +169,12 @@ export default function HistoryChart() {
                   'settings.features.charts.historyChart.layers.showFiatPercentageChange'
                 )}
                 selected={selectedShowFiatPercentageChange}
-                onPress={() =>
-                  setSelectedShowFiatPercentageChange((prev) => !prev)
+                disabled={!showCurrentFiat || !showHistoricalFiat}
+                onPress={
+                  !showCurrentFiat || !showHistoricalFiat
+                    ? undefined
+                    : () =>
+                        setSelectedShowFiatPercentageChange((prev) => !prev)
                 }
               />
             </SSVStack>

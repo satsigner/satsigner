@@ -37,6 +37,7 @@ import {
   sampleTestnet4Address
 } from '@/constants/samples'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import { useFiatData } from '@/hooks/useFiatData'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
@@ -60,6 +61,7 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import { time } from '@/utils/time'
 
@@ -115,17 +117,16 @@ export default function AccountList() {
     network,
     setSelectedNetwork,
     connectionMode,
-    autoConnectDelay,
-    mainnetMempoolUrl
+    autoConnectDelay
   ] = useBlockchainStore(
     useShallow((state) => [
       state.selectedNetwork,
       state.setSelectedNetwork,
       state.configs[state.selectedNetwork].config.connectionMode,
-      state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
-      state.configsMempool['bitcoin']
+      state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
     ])
   )
+  const { fiatPriceApiUrl } = useFiatData()
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )
@@ -265,8 +266,8 @@ export default function AccountList() {
   }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    fetchPrices(mainnetMempoolUrl)
-  }, [fetchPrices, mainnetMempoolUrl])
+    fetchPrices(getFiatPriceApiUrl())
+  }, [fetchPrices, fiatPriceApiUrl])
 
   function handleOnNavigateToAddAccount() {
     clearAccount()

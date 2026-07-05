@@ -1,13 +1,14 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { deleteWalletDb } from '@/api/bdk'
-import { SSIconCircle, SSIconEyeOn } from '@/components/icons'
+import { SSIconCircle, SSIconEyeOn, SSIconSettings } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSIconButton from '@/components/SSIconButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
@@ -17,6 +18,11 @@ import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { PIN_KEY } from '@/config/auth'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_HIT_BOX,
+  HEADER_CHROME_SETTINGS_ICON_SIZE
+} from '@/constants/headerChrome'
 import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
@@ -41,6 +47,8 @@ import {
   parseBirthdayDate
 } from '@/utils/date'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
+
+const HEADER_ICON_STROKE = '#828282'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -263,7 +271,23 @@ export default function AccountSettings() {
     <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
       <Stack.Screen
         options={{
-          headerRight: () => null,
+          headerRight: () => (
+            <SSIconButton
+              style={
+                Platform.OS === 'android' && [
+                  HEADER_CHROME_HIT_BOX,
+                  { marginRight: -HEADER_CHROME_EDGE_NUDGE }
+                ]
+              }
+              onPress={() => router.navigate('/settings')}
+            >
+              <SSIconSettings
+                height={HEADER_CHROME_SETTINGS_ICON_SIZE}
+                stroke={HEADER_ICON_STROKE}
+                width={HEADER_CHROME_SETTINGS_ICON_SIZE}
+              />
+            </SSIconButton>
+          ),
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>

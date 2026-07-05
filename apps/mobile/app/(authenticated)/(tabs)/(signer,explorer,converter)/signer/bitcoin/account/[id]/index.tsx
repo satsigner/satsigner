@@ -78,6 +78,7 @@ import {
 } from '@/constants/headerChrome'
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
+import { useFiatData } from '@/hooks/useFiatData'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
@@ -102,6 +103,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatAddress, formatNumber } from '@/utils/format'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { time } from '@/utils/time'
@@ -1129,11 +1131,11 @@ export default function AccountView() {
       state.btcPrice
     ])
   )
-  const [lastKnownBlockHeight, mempoolUrl, connectionMode, autoConnectDelay] =
+  const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
+  const [lastKnownBlockHeight, connectionMode, autoConnectDelay] =
     useBlockchainStore(
       useShallow((state) => [
         state.lastKnownBlockHeight,
-        state.configsMempool['bitcoin'],
         state.configs[state.selectedNetwork].config.connectionMode,
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
@@ -1415,7 +1417,7 @@ export default function AccountView() {
 
   async function handleOnRefresh() {
     setRefreshing(true)
-    await fetchPrices(mempoolUrl)
+    await fetchPrices(getFiatPriceApiUrl())
     await refreshAccount()
     // Fire-and-forget - don't block refresh completion for Nostr sync
     refreshAccountLabels()
@@ -1659,21 +1661,21 @@ export default function AccountView() {
                       : t('bitcoin.sats')}
                   </SSText>
                 </SSHStack>
-                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                  <SSText color="muted">
-                    {!btcPrice || btcPrice <= 0
-                      ? '--'
-                      : privacyMode
+                {showCurrentFiat ? (
+                  <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                    <SSText color="muted">
+                      {privacyMode
                         ? '••••'
                         : formatNumber(
                             satsToFiat(account.summary.balance || 0),
                             2
                           )}
-                  </SSText>
-                  <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                    {fiatCurrency}
-                  </SSText>
-                </SSHStack>
+                    </SSText>
+                    <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                      {fiatCurrency}
+                    </SSText>
+                  </SSHStack>
+                ) : null}
               </SSVStack>
               <SSVStack gap="none">
                 {account.keys[0].creationType !== 'importAddress' && (

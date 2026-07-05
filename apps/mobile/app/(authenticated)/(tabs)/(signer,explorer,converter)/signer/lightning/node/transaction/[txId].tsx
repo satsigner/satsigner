@@ -14,13 +14,13 @@ import {
   HEADER_CHROME_ICON_SIZE
 } from '@/constants/headerChrome'
 import { PRIVACY_MASK } from '@/constants/privacy'
+import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
 import { useLndNodeDashboard } from '@/hooks/useLndNodeDashboard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
@@ -31,6 +31,7 @@ import type {
   LNDGraphNodeInfo
 } from '@/types/models/Lightning'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatLightningTxTimeAgo } from '@/utils/lndTransactionDisplay'
 
 function formatUnixTimestamp(unixSeconds: number): string {
@@ -596,20 +597,27 @@ export default function LndTransactionDetailPage() {
         : t('lightning.node.txDetail.type.onchain')
 
   const privacyMode = useSettingsStore(useShallow((s) => s.privacyMode))
+  const { showCurrentFiat, showHistoricalFiat, fiatPriceApiUrl } =
+    useFiatData()
   const { makeRequest } = useLND()
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((s) => [s.btcPrice, s.fiatCurrency])
   )
-  const mempoolUrl = useBlockchainStore((s) => s.configsMempool['bitcoin'])
+  const effectiveBtcPrice = showCurrentFiat ? btcPrice : 0
 
   const { data: historicalBtcPrice } = useQuery({
-    enabled: !!tx?.timestamp,
+    enabled: showHistoricalFiat && !!tx?.timestamp,
     queryFn: async () => {
-      const oracle = new MempoolOracle(mempoolUrl)
+      const oracle = new MempoolOracle(getFiatPriceApiUrl())
       const prices = await oracle.getFullPriceAt(fiatCurrency, tx!.timestamp)
       return prices[fiatCurrency] ?? 0
     },
-    queryKey: ['btcHistoricalPrice', fiatCurrency, tx?.timestamp],
+    queryKey: [
+      'btcHistoricalPrice',
+      fiatCurrency,
+      tx?.timestamp,
+      fiatPriceApiUrl
+    ],
     staleTime: Infinity
   })
 
@@ -649,9 +657,14 @@ export default function LndTransactionDetailPage() {
   })
 
   const satsAbs = tx ? Math.abs(tx.amount) : 0
-  const currentFiat = btcPrice > 0 ? formatFiatPrice(satsAbs, btcPrice) : null
+  const currentFiat =
+    showCurrentFiat && effectiveBtcPrice > 0
+      ? formatFiatPrice(satsAbs, effectiveBtcPrice)
+      : null
   const historicalFiat =
-    historicalBtcPrice && historicalBtcPrice > 0
+    showHistoricalFiat &&
+    historicalBtcPrice &&
+    historicalBtcPrice > 0
       ? formatFiatPrice(satsAbs, historicalBtcPrice)
       : null
 

@@ -7,6 +7,7 @@ import {
 } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -78,12 +79,17 @@ function SSTransactionCard({
       state.privacyMode
     ])
   )
+  const { showCurrentFiat, showHistoricalFiat } = useFiatData()
 
   const { prices } = transaction
-  const oldPrice = prices ? prices[fiatCurrency] : null
-  const historicalPrice = prices?.[fiatCurrency]
+  const oldPrice =
+    showHistoricalFiat && prices ? prices[fiatCurrency] : null
+  const historicalPrice =
+    showHistoricalFiat ? prices?.[fiatCurrency] : undefined
   const currentFiatPrice =
-    btcPrice && btcPrice > 0 ? formatFiatPrice(Math.abs(amount), btcPrice) : ''
+    showCurrentFiat && btcPrice && btcPrice > 0
+      ? formatFiatPrice(Math.abs(amount), btcPrice)
+      : ''
   const historicalFiatPrice =
     historicalPrice && historicalPrice > 0
       ? formatFiatPrice(Math.abs(amount), historicalPrice)
@@ -92,7 +98,12 @@ function SSTransactionCard({
     currentFiatPrice !== '' || historicalFiatPrice !== ''
 
   const percentChange =
-    btcPrice && btcPrice > 0 && oldPrice && oldPrice > 0
+    showCurrentFiat &&
+    showHistoricalFiat &&
+    btcPrice &&
+    btcPrice > 0 &&
+    oldPrice &&
+    oldPrice > 0
       ? formatPercentualChange(btcPrice, oldPrice)
       : ''
 

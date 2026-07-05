@@ -11,6 +11,7 @@ import Animated, {
 import { useShallow } from 'zustand/react/shallow'
 
 import useAccountFingerprint from '@/hooks/useAccountFingerprint'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -33,12 +34,8 @@ type SSAccountCardProps = {
 
 function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   const platform = Platform.OS
-  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.btcPrice
-    ])
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
     useShallow((state) => [
@@ -48,6 +45,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     ])
   )
   const fingerprint = useAccountFingerprint(account)
+  const { showCurrentFiat } = useFiatData()
 
   const rotation = useSharedValue(0)
 
@@ -209,24 +207,27 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
             </SSText>
           </SSHStack>
-          <SSHStack
-            gap="xs"
-            style={{
-              alignItems: 'baseline',
-              paddingVertical: platform === 'android' ? 0 : 1
-            }}
-          >
-            <SSText color="muted">
-              {!btcPrice || btcPrice <= 0
-                ? '--'
-                : privacyMode
+          {showCurrentFiat ? (
+            <SSHStack
+              gap="xs"
+              style={{
+                alignItems: 'baseline',
+                paddingVertical: platform === 'android' ? 0 : 1
+              }}
+            >
+              <SSText color="muted">
+                {privacyMode
                   ? '••••'
-                  : formatNumber(satsToFiat(account.summary.balance || 0), 2)}
-            </SSText>
-            <SSText size="xs" style={{ color: Colors.gray[500] }}>
-              {fiatCurrency}
-            </SSText>
-          </SSHStack>
+                  : formatNumber(
+                      satsToFiat(account.summary.balance || 0),
+                      2
+                    )}
+              </SSText>
+              <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                {fiatCurrency}
+              </SSText>
+            </SSHStack>
+          ) : null}
           <SSHStack>
             <SSVStack gap="none">
               <SSText color="white" size="md">

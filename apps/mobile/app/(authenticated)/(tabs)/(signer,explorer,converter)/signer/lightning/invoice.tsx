@@ -17,10 +17,10 @@ import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import { useLND } from '@/hooks/useLND'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -53,14 +53,12 @@ export default function InvoicePage() {
       state.fetchPrices
     ])
   )
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool['bitcoin']
-  )
+  const { fiatPriceApiUrl } = useFiatData()
 
   // Fetch prices on mount and when currency changes
   useEffect(() => {
-    fetchPrices(mempoolUrl)
-  }, [fetchPrices, fiatCurrency, mempoolUrl])
+    fetchPrices(fiatPriceApiUrl)
+  }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
 
   const [invoiceAmount, setInvoiceAmount] = useState('')
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')

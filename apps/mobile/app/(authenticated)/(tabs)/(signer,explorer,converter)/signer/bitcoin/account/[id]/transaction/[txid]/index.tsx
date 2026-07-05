@@ -21,6 +21,7 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionVinList from '@/components/SSTransactionVinList'
 import SSTransactionVoutList from '@/components/SSTransactionVoutList'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -245,6 +246,8 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   const [fiatCurrency, btcPrice] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.btcPrice])
   )
+  const { showCurrentFiat, showHistoricalFiat } = useFiatData()
+  const effectiveBtcPrice = showCurrentFiat ? btcPrice : 0
 
   const lastKnownBlockHeight = useBlockchainStore(
     (state) => state.lastKnownBlockHeight
@@ -269,10 +272,17 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
       ? lastKnownBlockHeight - tx.blockHeight + 1
       : 0
 
-  const historicalBtcPrice = tx?.prices?.[fiatCurrency]
+  const historicalBtcPrice = showHistoricalFiat
+    ? tx?.prices?.[fiatCurrency]
+    : undefined
   const percentChange =
-    btcPrice && btcPrice > 0 && historicalBtcPrice && historicalBtcPrice > 0
-      ? formatPercentualChange(btcPrice, historicalBtcPrice)
+    showCurrentFiat &&
+    showHistoricalFiat &&
+    effectiveBtcPrice &&
+    effectiveBtcPrice > 0 &&
+    historicalBtcPrice &&
+    historicalBtcPrice > 0
+      ? formatPercentualChange(effectiveBtcPrice, historicalBtcPrice)
       : ''
 
   const updateInfo = () => {
@@ -285,14 +295,18 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     setAmount(amount)
     setType(tx.type)
 
-    if (btcPrice) {
-      setPrice(formatFiatPrice(Math.abs(amount), btcPrice))
+    if (showCurrentFiat && effectiveBtcPrice) {
+      setPrice(formatFiatPrice(Math.abs(amount), effectiveBtcPrice))
+    } else {
+      setPrice('')
     }
 
-    if (tx.prices) {
+    if (showHistoricalFiat && tx.prices) {
       setOldPrice(
         formatFiatPrice(Math.abs(amount), tx.prices[fiatCurrency] || 0)
       )
+    } else {
+      setOldPrice('')
     }
 
     if (tx.vin) {

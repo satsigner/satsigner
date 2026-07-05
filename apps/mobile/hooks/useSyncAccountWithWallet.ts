@@ -9,10 +9,12 @@ import BitcoinRpc from '@/api/rpc'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { updateAccountObjectLabels } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { devLog } from '@/utils/logger'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
@@ -318,28 +320,30 @@ function useSyncAccountWithWallet() {
       }
 
       if (unpricedTimestamps.length > 0) {
-        const uniqueTimestamps = [...new Set(unpricedTimestamps)]
-        const mempoolUrl = configsMempol['bitcoin']
-        const oracle = new MempoolOracle(mempoolUrl)
-        try {
-          const fetchedPrices = await oracle.getPricesAt(
-            'USD',
-            uniqueTimestamps
-          )
-          const priceMap: Record<number, number> = {}
-          for (const [i, ts] of uniqueTimestamps.entries()) {
-            priceMap[ts] = fetchedPrices[i]
-          }
-          for (const tx of updatedAccount.transactions) {
-            if (!tx.prices?.USD && tx.timestamp) {
-              const price = priceMap[formatTimestamp(tx.timestamp)]
-              if (price !== undefined) {
-                tx.prices = { USD: price }
+        const { fetchHistoricalPrices } = useSettingsStore.getState()
+        if (fetchHistoricalPrices) {
+          const uniqueTimestamps = [...new Set(unpricedTimestamps)]
+          const oracle = new MempoolOracle(getFiatPriceApiUrl())
+          try {
+            const fetchedPrices = await oracle.getPricesAt(
+              'USD',
+              uniqueTimestamps
+            )
+            const priceMap: Record<number, number> = {}
+            for (const [i, ts] of uniqueTimestamps.entries()) {
+              priceMap[ts] = fetchedPrices[i]
+            }
+            for (const tx of updatedAccount.transactions) {
+              if (!tx.prices?.USD && tx.timestamp) {
+                const price = priceMap[formatTimestamp(tx.timestamp)]
+                if (price !== undefined) {
+                  tx.prices = { USD: price }
+                }
               }
             }
+          } catch {
+            toast.error(t('account.sync.historicalPricesFailed'))
           }
-        } catch {
-          toast.error(t('account.sync.historicalPricesFailed'))
         }
       }
 
