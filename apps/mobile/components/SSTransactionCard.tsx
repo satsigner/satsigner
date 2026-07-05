@@ -110,6 +110,10 @@ function SSTransactionCard({
 
   const smallView = expand || `${amount}`.length > 10
 
+  const parsedLabel = parseLabel(
+    transaction.label || t('transaction.noLabel').toUpperCase()
+  )
+
   return (
     <TouchableOpacity onPress={() => router.navigate(link)}>
       <SSVStack
@@ -335,15 +339,11 @@ function SSTransactionCard({
             ]}
             numberOfLines={1}
           >
-            {
-              parseLabel(
-                transaction.label || t('transaction.noLabel').toUpperCase()
-              ).label
-            }
+            {parsedLabel.label}
           </SSText>
           <SSHStack gap="xs" style={{ flexShrink: 0 }}>
             {transaction.label ? (
-              parseLabel(transaction.label).tags.map((tag, index) => (
+              parsedLabel.tags.map((tag, index) => (
                 <SSText
                   key={index}
                   size={smallView ? 'xxs' : 'xs'}

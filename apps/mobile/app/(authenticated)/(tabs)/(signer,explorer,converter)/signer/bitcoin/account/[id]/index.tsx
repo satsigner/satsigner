@@ -318,7 +318,6 @@ function TotalTransactions({
         <SSVStack
           style={{
             flex: 1,
-            height: 400,
             minHeight: 200
           }}
           gap={expand ? 'sm' : 'md'}
