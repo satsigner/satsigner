@@ -76,6 +76,13 @@ function hexToBytes(hex: string): number[] {
 
 const WALLETS_DIR = `${FileSystem.documentDirectory}wallets/`
 
+// Log RPC scan progress every N blocks (and always at completion).
+const RPC_PROGRESS_LOG_INTERVAL = 5000
+
+// Two-week (~2016 block) safety buffer so a birthday/checkpoint estimate never
+// starts the scan past a transaction near the boundary.
+const RPC_SCAN_BUFFER_BLOCKS = 2016
+
 async function ensureWalletsDir() {
   const dirInfo = await FileSystem.getInfoAsync(WALLETS_DIR)
   if (!dirInfo.exists) {
@@ -556,9 +563,7 @@ function estimateBirthHeight(birthday: Date, currentTip: number): number {
   const MS_PER_BLOCK = 10 * 60 * 1000 // ~10 minutes
   const ageMs = Math.max(0, Date.now() - birthday.getTime())
   const blocksFromTip = Math.round(ageMs / MS_PER_BLOCK)
-  // Two-week safety buffer so we never miss transactions near the boundary
-  const BUFFER_BLOCKS = 2016
-  return Math.max(0, currentTip - blocksFromTip - BUFFER_BLOCKS)
+  return Math.max(0, currentTip - blocksFromTip - RPC_SCAN_BUFFER_BLOCKS)
 }
 
 async function syncWallet(
@@ -618,26 +623,19 @@ async function syncWallet(
 
     await wallet.syncWithRpc(rpcClient, startHeight, {
       fetchMempool: true,
-      inspector: onRpcProgress
-        ? {
-            inspect({ currentHeight, tipHeight, progress }) {
-              if (currentHeight % 5000 === 0 || progress >= 1) {
-                devLog(
-                  `[BDK sync] RPC progress ${Math.round(progress * 100)}% block ${currentHeight}/${tipHeight}`
-                )
-              }
-              onRpcProgress(currentHeight, tipHeight, progress)
-            }
+      inspector: {
+        inspect({ currentHeight, tipHeight, progress }) {
+          if (
+            currentHeight % RPC_PROGRESS_LOG_INTERVAL === 0 ||
+            progress >= 1
+          ) {
+            devLog(
+              `[BDK sync] RPC progress ${Math.round(progress * 100)}% block ${currentHeight}/${tipHeight}`
+            )
           }
-        : {
-            inspect({ currentHeight, tipHeight, progress }) {
-              if (currentHeight % 5000 === 0 || progress >= 1) {
-                devLog(
-                  `[BDK sync] RPC progress ${Math.round(progress * 100)}% block ${currentHeight}/${tipHeight}`
-                )
-              }
-            }
-          }
+          onRpcProgress?.(currentHeight, tipHeight, progress)
+        }
+      }
     })
 
     devLog('[BDK sync] RPC syncWithRpc completed')
@@ -1415,7 +1413,10 @@ async function syncWithCoreWallet(
       if (birthdayUnix > GENESIS_TIMESTAMP) {
         const floorUnix = birthdayUnix - TWO_WEEKS_SECS
         const ageMs = Math.max(0, floorUnix * 1000 - GENESIS_TIMESTAMP * 1000)
-        const h = Math.max(0, Math.round(ageMs / MS_PER_BLOCK) - 2016)
+        const h = Math.max(
+          0,
+          Math.round(ageMs / MS_PER_BLOCK) - RPC_SCAN_BUFFER_BLOCKS
+        )
         devLog(
           `[CoreWallet] birthday=${account.birthdayDate.toISOString()}  startHeight=${h}`
         )
@@ -1429,9 +1430,9 @@ async function syncWithCoreWallet(
     try {
       const cp = wallet.latestCheckpoint()
       if (cp && cp.height > 10000) {
-        const h = Math.max(0, cp.height - 2016)
+        const h = Math.max(0, cp.height - RPC_SCAN_BUFFER_BLOCKS)
         devLog(
-          `[CoreWallet] no birthday — using BDK checkpoint ${cp.height} minus 2016-block buffer → startHeight=${h}`
+          `[CoreWallet] no birthday — using BDK checkpoint ${cp.height} minus ${RPC_SCAN_BUFFER_BLOCKS}-block buffer → startHeight=${h}`
         )
         return h
       }
