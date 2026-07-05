@@ -25,9 +25,7 @@ import {
 } from 'react-native'
 import Animated, {
   Easing,
-  useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withTiming
 } from 'react-native-reanimated'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
@@ -109,11 +107,8 @@ import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
-const TX_STAGGER_DELAY_MS = 70
-const TX_STAGGER_DURATION_MS = 320
-// Only the first screenful gets the intro fade; rows scrolled into view later
-// (or recycled by FlashList) render instantly instead of waiting out a delay.
-const MAX_STAGGERED_ITEMS = 8
+// Render further beyond the viewport so fast scrolls hit fewer blank cells.
+const TX_LIST_DRAW_DISTANCE = 500
 
 function DraftTransactionCard({ accountId }: { accountId: string }) {
   const router = useRouter()
@@ -200,52 +195,6 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
       </SSVStack>
     </TouchableOpacity>
   )
-}
-
-function TransactionStaggerItem({
-  index,
-  children
-}: {
-  index: number
-  children: React.ReactNode
-}) {
-  const shouldAnimate = index < MAX_STAGGERED_ITEMS
-  const opacity = useSharedValue(shouldAnimate ? 0 : 1)
-  const translateY = useSharedValue(shouldAnimate ? 12 : 0)
-
-  useEffect(() => {
-    if (!shouldAnimate) {
-      opacity.set(1)
-      translateY.set(0)
-      return
-    }
-    const delay = index * TX_STAGGER_DELAY_MS
-    opacity.set(
-      withDelay(
-        delay,
-        withTiming(1, {
-          duration: TX_STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease)
-        })
-      )
-    )
-    translateY.set(
-      withDelay(
-        delay,
-        withTiming(0, {
-          duration: TX_STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease)
-        })
-      )
-    )
-  }, [shouldAnimate, index, opacity, translateY])
-
-  const staggerStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }]
-  }))
-
-  return <Animated.View style={staggerStyle}>{children}</Animated.View>
 }
 
 type TotalTransactionsProps = {
@@ -383,30 +332,29 @@ function TotalTransactions({
                 ) : null
               }
               renderItem={({ item, index }) => (
-                <TransactionStaggerItem index={index}>
-                  <SSVStack gap="none">
-                    <SSBalanceChangeBar
-                      transaction={item}
-                      balance={transactionBalances[index]}
-                      maxBalance={maxBalance}
-                    />
-                    <SSTransactionCard
-                      btcPrice={btcPrice}
-                      fiatCurrency={fiatCurrency}
-                      transaction={item}
-                      expand={expand}
-                      walletBalance={transactionBalances[index]}
-                      blockHeight={blockchainHeight}
-                      link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
-                    />
-                  </SSVStack>
-                </TransactionStaggerItem>
+                <SSVStack gap="none">
+                  <SSBalanceChangeBar
+                    transaction={item}
+                    balance={transactionBalances[index]}
+                    maxBalance={maxBalance}
+                  />
+                  <SSTransactionCard
+                    btcPrice={btcPrice}
+                    fiatCurrency={fiatCurrency}
+                    transaction={item}
+                    expand={expand}
+                    walletBalance={transactionBalances[index]}
+                    blockHeight={blockchainHeight}
+                    link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
+                  />
+                </SSVStack>
               )}
               ListEmptyComponent={
                 <SSVStack style={{ alignItems: 'center', paddingTop: 50 }}>
                   <SSText color="muted">No transactions</SSText>
                 </SSVStack>
               }
+              drawDistance={TX_LIST_DRAW_DISTANCE}
               keyExtractor={(item) => item.id}
               refreshControl={
                 <RefreshControl
