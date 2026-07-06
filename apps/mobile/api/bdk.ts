@@ -42,7 +42,6 @@ import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
-import { devLog } from '@/utils/logger'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
 import AppElectrumClient from './electrum'
@@ -75,9 +74,6 @@ function hexToBytes(hex: string): number[] {
 }
 
 const WALLETS_DIR = `${FileSystem.documentDirectory}wallets/`
-
-// Log RPC scan progress every N blocks (and always at completion).
-const RPC_PROGRESS_LOG_INTERVAL = 5000
 
 // Two-week (~2016 block) safety buffer so a birthday/checkpoint estimate never
 // starts the scan past a transaction near the boundary.
@@ -613,32 +609,14 @@ async function syncWallet(
       startHeight = scanFloor
     }
 
-    const birthdayStr =
-      isGeneratedWallet && walletBirthday
-        ? ` birthday=${walletBirthday.toISOString()}`
-        : ''
-    devLog(
-      `[BDK sync] RPC url=${url} isFullScan=${isFullScan} isGenerated=${isGeneratedWallet ?? false} startHeight=${startHeight} scanFloor=${scanFloor} checkpointHeight=${checkpointHeight} currentTip=${currentTip ?? 'none'}${birthdayStr}`
-    )
-
     await wallet.syncWithRpc(rpcClient, startHeight, {
       fetchMempool: true,
       inspector: {
         inspect({ currentHeight, tipHeight, progress }) {
-          if (
-            currentHeight % RPC_PROGRESS_LOG_INTERVAL === 0 ||
-            progress >= 1
-          ) {
-            devLog(
-              `[BDK sync] RPC progress ${Math.round(progress * 100)}% block ${currentHeight}/${tipHeight}`
-            )
-          }
           onRpcProgress?.(currentHeight, tipHeight, progress)
         }
       }
     })
-
-    devLog('[BDK sync] RPC syncWithRpc completed')
   } else if (isFullScan) {
     await (backend === 'electrum'
       ? wallet.fullScanWithElectrum(url, stopGap)
@@ -1072,12 +1050,10 @@ async function buildTransactionWithRpc(
 
   // Step 1: create unsigned PSBT
   const rawPsbt = await coreWallet.createPsbt(rpcInputs, rpcOutputs)
-  devLog(`[buildTxRpc] createpsbt ok`)
 
   // Step 2: walletprocesspsbt with sign=false to add witness_utxo and bip32_derivation
   // The watch-only Core wallet enriches the PSBT without trying to sign it.
   const processed = await coreWallet.walletProcessPsbt(rawPsbt)
-  devLog(`[buildTxRpc] walletprocesspsbt ok  complete=${processed.complete}`)
 
   return new Psbt(processed.psbt)
 }
@@ -1359,8 +1335,6 @@ async function syncWithCoreWallet(
     }
     ;[extDescRaw, intDescRaw] = descriptors
   }
-  devLog(`[CoreWallet] ext: ${extDescRaw.slice(0, 60)}…`)
-  devLog(`[CoreWallet] int: ${intDescRaw.slice(0, 60)}…`)
 
   // ── 3. Normalize descriptors via getdescriptorinfo ───────────────────────
   // Split <0;1> multi-path descriptors if needed, then normalize each.
@@ -1387,8 +1361,6 @@ async function syncWithCoreWallet(
     rawExt,
     rawInt
   )
-  devLog(`[CoreWallet] normalized ext: ${extNorm.slice(0, 60)}…`)
-  devLog(`[CoreWallet] normalized int: ${intNorm.slice(0, 60)}…`)
 
   // ── 4. Determine if import + rescan are needed ───────────────────────────
   let needsRescan = false
@@ -1404,7 +1376,6 @@ async function syncWithCoreWallet(
     const TWO_WEEKS_SECS = 60 * 60 * 24 * 14
 
     if (rpcScanFromHeight !== undefined) {
-      devLog(`[CoreWallet] user-set scan-from-height=${rpcScanFromHeight}`)
       return rpcScanFromHeight
     }
 
@@ -1417,9 +1388,6 @@ async function syncWithCoreWallet(
           0,
           Math.round(ageMs / MS_PER_BLOCK) - RPC_SCAN_BUFFER_BLOCKS
         )
-        devLog(
-          `[CoreWallet] birthday=${account.birthdayDate.toISOString()}  startHeight=${h}`
-        )
         return h
       }
     }
@@ -1431,18 +1399,12 @@ async function syncWithCoreWallet(
       const cp = wallet.latestCheckpoint()
       if (cp && cp.height > 10000) {
         const h = Math.max(0, cp.height - RPC_SCAN_BUFFER_BLOCKS)
-        devLog(
-          `[CoreWallet] no birthday — using BDK checkpoint ${cp.height} minus ${RPC_SCAN_BUFFER_BLOCKS}-block buffer → startHeight=${h}`
-        )
         return h
       }
     } catch {
       // latestCheckpoint not available
     }
 
-    devLog(
-      '[CoreWallet] no birthday and no checkpoint — scanning from genesis. Set a Birthday in Account Settings to speed up future syncs.'
-    )
     return 0
   }
 
@@ -1477,32 +1439,20 @@ async function syncWithCoreWallet(
       }
       startHeight = computeStartHeight()
       needsRescan = true
-      devLog(`[CoreWallet] importdescriptors done  startHeight=${startHeight}`)
     } else if (!account.rpcLastBlockHash) {
       startHeight = computeStartHeight()
       needsRescan = true
-      devLog(
-        `[CoreWallet] already imported but no prior sync — rescan from ${startHeight}`
-      )
-    } else {
-      devLog(
-        `[CoreWallet] incremental sync from ${account.rpcLastBlockHash.slice(0, 8)}…`
-      )
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     if (!msg.includes('listdescriptors')) {
       throw error
     }
-    devLog(
-      '[CoreWallet] listdescriptors not supported — assuming already imported'
-    )
   }
 
   // ── 5. Trigger rescanblockchain + poll until done ────────────────────────
   if (needsRescan) {
     const tipHeight = await coreWallet.getBlockCount()
-    devLog(`[CoreWallet] rescanblockchain from height ${startHeight} …`)
     try {
       await Promise.race([
         coreWallet.rescanBlockchain(startHeight),
@@ -1512,14 +1462,9 @@ async function syncWithCoreWallet(
           }, 60_000)
         })
       ])
-      devLog('[CoreWallet] rescanblockchain completed synchronously')
     } catch (error) {
       const msg = error instanceof Error ? error.message : ''
-      if (msg === 'rescan-timeout') {
-        devLog('[CoreWallet] rescanblockchain still running (>60s) — polling')
-      } else if (msg.includes('already rescanning')) {
-        devLog('[CoreWallet] rescan already in progress — polling')
-      } else {
+      if (msg !== 'rescan-timeout' && !msg.includes('already rescanning')) {
         throw error
       }
     }
@@ -1528,11 +1473,9 @@ async function syncWithCoreWallet(
     const MAX_POLLS = 2160
     const POLL_INTERVAL_MS = 3000
     let consecutiveErrors = 0
-    let lastPct = -1
 
     for (let i = 0; i < MAX_POLLS; i += 1) {
       if (isCancelled?.()) {
-        devLog('[CoreWallet] poll cancelled')
         throw new Error(SYNC_CANCELLED_ERROR)
       }
       try {
@@ -1547,12 +1490,6 @@ async function syncWithCoreWallet(
         // without progress details, but still fall through to the sleep
         // below instead of busy-looping.
         if (scanning !== true && typeof scanning === 'object') {
-          const pct = Math.round(scanning.progress * 100)
-          const mins = Math.round(scanning.duration / 60)
-          if (pct !== lastPct || i % 60 === 0) {
-            devLog(`[CoreWallet] rescan ${pct}% (${mins}m elapsed, poll #${i})`)
-            lastPct = pct
-          }
           // Core reports a 0–1 fraction; map it back to an approximate block
           // height across the scanned range so the UI can show current / tip.
           const currentHeight =
@@ -1566,7 +1503,6 @@ async function syncWithCoreWallet(
       } catch (error) {
         consecutiveErrors += 1
         const msg = error instanceof Error ? error.message : String(error)
-        devLog(`[CoreWallet] poll error #${consecutiveErrors}: ${msg}`)
         if (consecutiveErrors >= 5) {
           throw new Error(
             `Lost connection during rescan after ${consecutiveErrors} retries: ${msg}`,
@@ -1585,10 +1521,6 @@ async function syncWithCoreWallet(
   // ── 6. Fetch data ────────────────────────────────────────────────────────
   const priorHash = account.rpcLastBlockHash ?? ''
   const isIncremental = priorHash.length === 64
-
-  devLog(
-    `[CoreWallet] fetching ${isIncremental ? `incremental (since ${priorHash.slice(0, 8)}…)` : 'full history'}`
-  )
 
   const [sinceResult, unspent] = await Promise.all([
     coreWallet.listSinceBlock(priorHash),
@@ -1610,9 +1542,6 @@ async function syncWithCoreWallet(
       }
     }
   }
-  devLog(
-    `[CoreWallet] inserted ${unspent.filter((u) => u.scriptPubKey).length} txouts into BDK wallet`
-  )
 
   const newLastBlockHash = sinceResult.lastblock
   const listTxs = isIncremental
@@ -1677,9 +1606,6 @@ async function syncWithCoreWallet(
     (sinceResult.removed ?? []).map((entry) => entry.txid)
   )
   if (removedTxids.size > 0) {
-    devLog(
-      `[CoreWallet] reorg detected — dropping ${removedTxids.size} removed tx(es): ${[...removedTxids].join(', ')}`
-    )
     for (const txid of removedTxids) {
       txMap.delete(txid)
     }
@@ -1846,10 +1772,6 @@ async function syncWithCoreWallet(
   const usedExternalCount = addresses.filter(
     (a) => a.keychain === 'external' && usedAddresses.has(a.address)
   ).length
-
-  devLog(
-    `[CoreWallet] sync done: ${walletName}  txs=${transactions.length}  utxos=${utxos.length}  confirmed=${confirmedBalance}`
-  )
 
   return {
     addresses,
