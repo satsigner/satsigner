@@ -38,7 +38,6 @@ type SSAccountCardProps = {
   onPress(): void
   fingerprint?: string
   watchOnly?: boolean
-  networkLabel?: string
   syncStatus?: Account['syncStatus']
   lastSyncedAt?: Account['lastSyncedAt']
   stats?: SSAccountCardStats
@@ -50,7 +49,6 @@ function SSAccountCard({
   onPress,
   fingerprint,
   watchOnly = false,
-  networkLabel,
   syncStatus,
   lastSyncedAt,
   stats
@@ -202,11 +200,6 @@ function SSAccountCard({
               {name}
             </SSText>
             {watchOnly && <SSIconEyeOn height={16} width={16} />}
-            {networkLabel ? (
-              <SSText size="xs" color="muted" uppercase>
-                {networkLabel}
-              </SSText>
-            ) : null}
           </SSHStack>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText

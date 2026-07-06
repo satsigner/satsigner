@@ -114,7 +114,6 @@ export default function ArkAccountListPage() {
               <SSAccountCard
                 name={item.name}
                 balance={balances[item.id]?.spendableSats ?? 0}
-                networkLabel={arkNetworkLabel(item.network)}
                 onPress={() => handleAccountPress(item)}
               />
             )}
