@@ -16,7 +16,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
-import { Colors } from '@/styles'
+import { Colors, Layout } from '@/styles'
 
 export default function ArkAccountSettingsPage() {
   const router = useRouter()
@@ -70,7 +70,7 @@ export default function ArkAccountSettingsPage() {
   }
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -138,7 +138,11 @@ export default function ArkAccountSettingsPage() {
 
 const styles = StyleSheet.create({
   actions: {
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
     paddingTop: 24
+  },
+  container: {
+    paddingHorizontal: 0
   },
   modalContent: {
     paddingVertical: 8,
