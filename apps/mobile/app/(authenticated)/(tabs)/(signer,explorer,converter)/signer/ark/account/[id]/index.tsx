@@ -241,12 +241,10 @@ export default function ArkAccountDetailPage() {
             </SSVStack>
           }
           renderItem={({ item }) => (
-            <View style={styles.movementItem}>
-              <SSArkMovementCard
-                movement={item}
-                link={`/signer/ark/account/${id}/movement/${item.id}`}
-              />
-            </View>
+            <SSArkMovementCard
+              movement={item}
+              link={`/signer/ark/account/${id}/movement/${item.id}`}
+            />
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
@@ -283,7 +281,6 @@ export default function ArkAccountDetailPage() {
 const styles = StyleSheet.create({
   actionRow: {
     marginBottom: 16,
-    paddingHorizontal: 20,
     paddingVertical: 12,
     width: '100%'
   },
@@ -294,7 +291,6 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingHorizontal: 20,
     paddingTop: 32
   },
   errorFooter: {
@@ -303,17 +299,12 @@ const styles = StyleSheet.create({
   listContainer: {
     flex: 1
   },
-  movementItem: {
-    paddingHorizontal: 20
-  },
   separator: {
     backgroundColor: Colors.gray[800],
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: 20
+    height: StyleSheet.hairlineWidth
   },
   toolbar: {
     paddingBottom: 8,
-    paddingHorizontal: 20,
     width: '100%'
   }
 })
