@@ -35,6 +35,7 @@ type BackupKey = Key & {
   seedWords?: string
 }
 type BackupAccount = {
+  birthdayDate?: string
   id: string
   keys: BackupKey[]
   keysRequired?: number
@@ -42,6 +43,7 @@ type BackupAccount = {
   network: Account['network']
   nostr?: NostrAccount
   policyType: Account['policyType']
+  rpcLastBlockHash?: string
   summary?: Account['summary']
 }
 type BackupData = {
@@ -232,6 +234,7 @@ async function prepareRestore(
     const created = (acc as { createdAt?: string }).createdAt
     accounts.push({
       addresses: [],
+      birthdayDate: acc.birthdayDate ? new Date(acc.birthdayDate) : undefined,
       createdAt: typeof created === 'string' ? new Date(created) : new Date(),
       id: acc.id,
       keyCount: acc.keys.length,
@@ -246,6 +249,7 @@ async function prepareRestore(
       network: acc.network,
       nostr,
       policyType: acc.policyType,
+      rpcLastBlockHash: acc.rpcLastBlockHash,
       summary: {
         balance: 0,
         numberOfAddresses: 0,
