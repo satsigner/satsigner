@@ -122,7 +122,7 @@ export default function AccountList() {
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
     )
-  const { fiatPriceApiUrl } = useFiatData()
+  const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )
@@ -262,8 +262,11 @@ export default function AccountList() {
   }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (!showCurrentFiat) {
+      return
+    }
     fetchPrices(getFiatPriceApiUrl())
-  }, [fetchPrices, fiatPriceApiUrl])
+  }, [fetchPrices, fiatPriceApiUrl, showCurrentFiat])
 
   function handleOnNavigateToAddAccount() {
     clearAccount()

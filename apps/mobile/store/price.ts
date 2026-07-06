@@ -6,6 +6,7 @@ import { SATS_PER_BITCOIN } from '@/constants/btc'
 import mmkvStorage from '@/storage/mmkv'
 import { useSettingsStore } from '@/store/settings'
 import type { Currency, Prices } from '@/types/models/Blockchain'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 
 const EMPTY_PRICES: Prices = {
   AUD: 0,
@@ -97,6 +98,11 @@ const usePriceStore = create<PriceState & PriceAction>()(
 useSettingsStore.subscribe((state, prevState) => {
   if (prevState.fetchCurrentPrices && !state.fetchCurrentPrices) {
     usePriceStore.getState().resetCurrentPrices()
+    return
+  }
+
+  if (!prevState.fetchCurrentPrices && state.fetchCurrentPrices) {
+    void usePriceStore.getState().fetchPrices(getFiatPriceApiUrl())
   }
 })
 

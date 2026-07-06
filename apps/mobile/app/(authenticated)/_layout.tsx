@@ -13,6 +13,7 @@ import { getWalletData } from '@/api/bdk'
 import SSNavMenu from '@/components/SSNavMenu'
 import { pruneCache } from '@/db/nostrCache'
 import { useArkNotifications } from '@/hooks/useArkNotifications'
+import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
@@ -72,6 +73,7 @@ export default function AuthenticatedLayout() {
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   useArkNotifications()
+  useFetchBitcoinPrice()
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
 
