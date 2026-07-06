@@ -39,6 +39,8 @@ import {
   formatPercentualChange
 } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
+import { getAccountAddressSets } from '@/utils/address'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -49,9 +51,13 @@ export default function TxDetails() {
       return [acc, acc?.transactions.find((t) => t.id === txid), state.loadTx]
     })
   )
-  const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address)),
-    [account]
+  const { ownAddresses, internalAddresses } = useMemo(
+    () => getAccountAddressSets(account?.addresses ?? []),
+    [account?.addresses]
+  )
+  const unspentOutpoints = useMemo(
+    () => new Set(account?.utxos.map(getUtxoOutpoint) ?? []),
+    [account?.utxos]
   )
 
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -187,6 +193,8 @@ export default function TxDetails() {
               <SSTransactionChart
                 transaction={tx}
                 ownAddresses={ownAddresses}
+                internalAddresses={internalAddresses}
+                unspentOutpoints={unspentOutpoints}
                 scale={0.9}
               />
             </SSVStack>

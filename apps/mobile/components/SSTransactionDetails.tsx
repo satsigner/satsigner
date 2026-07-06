@@ -21,6 +21,7 @@ import {
   type TransactionData
 } from '@/utils/psbt'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
+import { getAccountAddressSets } from '@/utils/address'
 
 type SSTransactionDetailsProps = {
   transactionData: TransactionData
@@ -57,9 +58,14 @@ function SSTransactionDetails({
 
   const signedPsbts = extractIndividualSignedPsbts(combinedPsbt, originalPsbt)
   const matchedAccount = accountMatch?.account || account
-  const ownAddresses = useMemo(
-    () => new Set(matchedAccount?.addresses?.map((a) => a.address)),
-    [matchedAccount]
+  const { ownAddresses, internalAddresses } = useMemo(
+    () => getAccountAddressSets(matchedAccount?.addresses ?? []),
+    [matchedAccount?.addresses]
+  )
+  const unspentOutpoints = useMemo(
+    () =>
+      new Set(matchedAccount?.utxos.map((utxo) => `${utxo.txid}:${utxo.vout}`) ?? []),
+    [matchedAccount?.utxos]
   )
 
   if (!txid) {
@@ -138,6 +144,8 @@ function SSTransactionDetails({
               <SSTransactionChart
                 transaction={transaction}
                 ownAddresses={ownAddresses}
+                internalAddresses={internalAddresses}
+                unspentOutpoints={unspentOutpoints}
                 scale={0.75}
               />
             </View>
@@ -168,6 +176,8 @@ function SSTransactionDetails({
             <SSTransactionChart
               transaction={transaction}
               ownAddresses={ownAddresses}
+              internalAddresses={internalAddresses}
+              unspentOutpoints={unspentOutpoints}
             />
           </View>
           {isMultisig && (

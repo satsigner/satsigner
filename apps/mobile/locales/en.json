@@ -2486,6 +2486,7 @@
     "build.sign.transactionId": "Transaction Id",
     "build.type.customAmount": "Type custom amount for automatic selection",
     "build.type.label": "Type label",
+    "build.spent": "Spent",
     "build.unspent": "Unspent",
     "build.update.fee.title": "Change fee",
     "build.update.outputs": "Remove or decrease outputs",

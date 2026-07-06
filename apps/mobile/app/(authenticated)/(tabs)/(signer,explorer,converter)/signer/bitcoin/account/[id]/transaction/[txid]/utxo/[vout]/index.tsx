@@ -26,6 +26,8 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatNumber } from '@/utils/format'
+import { getAccountAddressSets } from '@/utils/address'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 type UtxoDetailsProps = {
   accountId: string
@@ -33,6 +35,8 @@ type UtxoDetailsProps = {
   onPressTx: () => void
   onSpendUtxo: () => void
   ownAddresses?: Set<string>
+  internalAddresses?: Set<string>
+  unspentOutpoints?: Set<string>
   tx?: Transaction
   utxo?: Utxo
   addressIndex?: number
@@ -44,6 +48,8 @@ function UtxoDetails({
   onPressTx,
   onSpendUtxo,
   ownAddresses = new Set(),
+  internalAddresses = new Set(),
+  unspentOutpoints,
   tx,
   utxo,
   addressIndex,
@@ -190,6 +196,8 @@ function UtxoDetails({
                 <SSTransactionChart
                   transaction={tx}
                   ownAddresses={ownAddresses}
+                  internalAddresses={internalAddresses}
+                  unspentOutpoints={unspentOutpoints}
                   selectedOutputIndex={utxo?.vout}
                   dimUnselected
                   scale={0.9}
@@ -258,9 +266,13 @@ function UtxoDetailsPage() {
   })()
 
   const allAccountUtxos = account?.utxos || []
-  const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address)),
-    [account]
+  const { ownAddresses, internalAddresses } = useMemo(
+    () => getAccountAddressSets(account?.addresses ?? []),
+    [account?.addresses]
+  )
+  const unspentOutpoints = useMemo(
+    () => new Set(account?.utxos.map(getUtxoOutpoint) ?? []),
+    [account?.utxos]
   )
   const addInput = useTransactionBuilderStore((state) => state.addInput)
 
@@ -304,6 +316,8 @@ function UtxoDetailsPage() {
           onPressTx={navigateToTx}
           onSpendUtxo={handleSpendUtxo}
           ownAddresses={ownAddresses}
+          internalAddresses={internalAddresses}
+          unspentOutpoints={unspentOutpoints}
           tx={tx}
           utxo={utxo}
           addressIndex={addressIndex}

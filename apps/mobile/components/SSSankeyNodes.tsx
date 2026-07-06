@@ -208,6 +208,7 @@ function NodeText({
   const isMiningFee = localId.includes('minerFee')
   const isChange = localId === 'remainingBalance'
   const isUnspent = ioData?.isUnspent
+  const usesOutputDetailLayout = isUnspent || isSelfSend || isChange
 
   const shadowPaint = useMemo(() => {
     const paint = Skia.Paint()
@@ -403,8 +404,16 @@ function NodeText({
     }
 
     const buildUnspentParagraph = () => {
+      const spentStatusText = t('transaction.build.spent')
+      const unspentStatusText = t('transaction.build.unspent')
+      const showSpendStatus =
+        showUnspentLabel &&
+        (isUnspent ||
+          ioData?.text === spentStatusText ||
+          ioData?.text === unspentStatusText)
+
       const para = createParagraphBuilder()
-      if (showUnspentLabel) {
+      if (showSpendStatus) {
         para
           .pushStyle({
             ...baseTextStyle,
@@ -419,7 +428,7 @@ function NodeText({
           fontSize: BASE_FONT_SIZE
         })
         .addText(
-          showUnspentLabel
+          showSpendStatus
             ? `\n${ioData?.value?.toLocaleString()} `
             : `${ioData?.value?.toLocaleString()} `
         )
@@ -525,7 +534,7 @@ function NodeText({
       para = buildBlockParagraph()
     } else if (isMiningFee) {
       para = buildMiningFeeParagraph()
-    } else if (isUnspent) {
+    } else if (usesOutputDetailLayout) {
       para = buildUnspentParagraph()
     } else {
       para = buildSpentParagraph()
@@ -538,6 +547,7 @@ function NodeText({
     isBlock,
     isMiningFee,
     isUnspent,
+    usesOutputDetailLayout,
     width,
     ioData?.txSize,
     ioData.vSize,
@@ -562,8 +572,10 @@ function NodeText({
     : // ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT
       y
 
-  // Apply additional margin if the node is unspent
-  const groupBaseX = isUnspent ? paragraphX + NODE_MARGIN_LEFT : paragraphX
+  // Apply additional margin if the node is unspent or self-send
+  const groupBaseX = usesOutputDetailLayout
+    ? paragraphX + NODE_MARGIN_LEFT
+    : paragraphX
 
   // Get placeholder rects if it's a mining fee node
   const placeholderRectsMinerIcon = useMemo(() => {
@@ -574,11 +586,11 @@ function NodeText({
   }, [mainParagraph, isMiningFee])
 
   const placeholderRectsUnspentIcon = useMemo(() => {
-    if (isUnspent && mainParagraph) {
+    if (usesOutputDetailLayout && mainParagraph) {
       return mainParagraph.getRectsForPlaceholders()
     }
     return []
-  }, [mainParagraph, isUnspent])
+  }, [mainParagraph, usesOutputDetailLayout])
 
   const dustBorderPaint = useMemo(() => {
     const paint = Skia.Paint()
@@ -650,7 +662,7 @@ function NodeText({
           width={paragraphActualWidth}
         />
       )}
-      {isUnspent &&
+      {usesOutputDetailLayout &&
         changeIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
         placeholderRectsUnspentIcon[0] &&
@@ -663,7 +675,7 @@ function NodeText({
             height={placeholderRectsUnspentIcon[0].rect.height}
           />
         )}
-      {isUnspent &&
+      {usesOutputDetailLayout &&
         labelIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
         placeholderRectsUnspentIcon[0] &&
@@ -678,7 +690,7 @@ function NodeText({
             height={placeholderRectsUnspentIcon[0].rect.height}
           />
         )}
-      {isUnspent &&
+      {usesOutputDetailLayout &&
         changeIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
         placeholderRectsUnspentIcon[0] &&
