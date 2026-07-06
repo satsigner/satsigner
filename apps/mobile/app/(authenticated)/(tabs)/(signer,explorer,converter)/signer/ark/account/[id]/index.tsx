@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconRefresh, SSIconTriangle } from '@/components/icons'
+import { SSIconFilter, SSIconTriangle } from '@/components/icons'
 import SSIconTime from '@/components/icons/SSIconTime'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
+import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
+import SSPopover from '@/components/SSPopover'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import {
@@ -230,13 +232,17 @@ export default function ArkAccountDetailPage() {
                 <SSText color="muted" uppercase size="xs">
                   {t('ark.movement.activity')}
                 </SSText>
-                <SSIconButton
-                  onPress={handleToggleRefresh}
-                  style={{ opacity: showRefresh ? 1 : 0.4 }}
-                  accessibilityLabel={t('ark.movement.toggleRefresh')}
+                <SSPopover
+                  accessibilityLabel={t('ark.movement.filter')}
+                  trigger={<SSIconFilter height={16} width={18} />}
                 >
-                  <SSIconRefresh height={16} width={14} />
-                </SSIconButton>
+                  <SSCheckbox
+                    label={t('ark.movement.showRefreshes')}
+                    labelProps={{ color: 'white', size: 'md' }}
+                    selected={showRefresh}
+                    onPress={handleToggleRefresh}
+                  />
+                </SSPopover>
               </SSHStack>
             </SSVStack>
           }

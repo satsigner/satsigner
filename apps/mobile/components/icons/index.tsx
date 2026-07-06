@@ -44,6 +44,7 @@ import SSIconEyeOff from './SSIconEyeOff'
 import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
 import SSIconFiat from './SSIconFiat'
+import SSIconFilter from './SSIconFilter'
 import SSIconGreen from './SSIconGreen'
 import SSIconGreenIndicator from './SSIconGreenIndicator'
 import SSIconGreenNoSecret from './SSIconGreenNoSecret'
@@ -147,6 +148,7 @@ export {
   SSIconEyeOn,
   SSIconFeature,
   SSIconFiat,
+  SSIconFilter,
   SSIconGreen,
   SSIconGreenIndicator,
   SSIconGreenNoSecret,
