@@ -354,7 +354,6 @@
     "syncing": "Syncing...",
     "syncProgress": "Syncing... %{tasksDone}/%{totalTasks} completed",
     "syncProgressBlocks": "Scanning block %{current} / %{tip} — %{pct}%",
-    "syncProgressPct": "Rescanning... %{pct}%",
     "transaction.dataInvalid": "This does not contain transaction data",
     "transaction.dataNotFound": "Transaction data not found",
     "transaction.dataParseFailed": "Failed to parse transaction data",

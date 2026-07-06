@@ -1733,13 +1733,7 @@ export default function AccountView() {
                   ) {
                     return t('account.syncing')
                   }
-                  // Core wallet path: totalTasks = 100, tasksDone = percentage
-                  if (totalTasks === 100) {
-                    return t('account.syncProgressPct', {
-                      pct: Math.round(tasksDone)
-                    })
-                  }
-                  // Compact block filter path: totalTasks = chain tip, tasksDone = current block
+                  // totalTasks = chain tip, tasksDone = current block scanned
                   const pct = Math.round((tasksDone / totalTasks) * 100)
                   return t('account.syncProgressBlocks', {
                     current: tasksDone.toLocaleString(),

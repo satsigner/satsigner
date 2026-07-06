@@ -214,6 +214,10 @@ function useSyncAccountWithWallet() {
       let newRpcLastBlockHash: string | undefined
 
       if (useCoreWallet && server.rpcCredentials) {
+        // Start indeterminate; block-count progress only exists during a full
+        // rescan. Incremental syncs (listsinceblock) have no scan phase, so
+        // this stays indeterminate rather than showing a misleading 100%.
+        setSyncProgress(latest.id, { tasksDone: 0, totalTasks: 0 })
         const coreResult = await syncWithCoreWallet(
           latest,
           wallet,
@@ -221,10 +225,10 @@ function useSyncAccountWithWallet() {
           server.rpcCredentials,
           appNetworkToBdkNetwork(server.network),
           config.stopGap,
-          (pct) => {
+          (currentHeight, tipHeight) => {
             setSyncProgress(latest.id, {
-              tasksDone: pct,
-              totalTasks: 100
+              tasksDone: currentHeight,
+              totalTasks: tipHeight
             })
           },
           () => cancelledSyncs.has(latest.id),

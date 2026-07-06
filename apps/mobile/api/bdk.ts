@@ -1325,7 +1325,7 @@ async function syncWithCoreWallet(
   credentials: RpcCredentials,
   bdkNetwork: Network,
   stopGap: number,
-  onProgress?: (progress: number) => void,
+  onProgress?: (currentHeight: number, tipHeight: number) => void,
   isCancelled?: () => boolean,
   rpcWalletName?: string,
   rpcScanFromHeight?: number
@@ -1501,6 +1501,7 @@ async function syncWithCoreWallet(
 
   // ── 5. Trigger rescanblockchain + poll until done ────────────────────────
   if (needsRescan) {
+    const tipHeight = await coreWallet.getBlockCount()
     devLog(`[CoreWallet] rescanblockchain from height ${startHeight} …`)
     try {
       await Promise.race([
@@ -1552,7 +1553,15 @@ async function syncWithCoreWallet(
             devLog(`[CoreWallet] rescan ${pct}% (${mins}m elapsed, poll #${i})`)
             lastPct = pct
           }
-          onProgress?.(pct)
+          // Core reports a 0–1 fraction; map it back to an approximate block
+          // height across the scanned range so the UI can show current / tip.
+          const currentHeight =
+            tipHeight > startHeight
+              ? Math.round(
+                  startHeight + scanning.progress * (tipHeight - startHeight)
+                )
+              : tipHeight
+          onProgress?.(currentHeight, tipHeight)
         }
       } catch (error) {
         consecutiveErrors += 1
@@ -1569,9 +1578,9 @@ async function syncWithCoreWallet(
         setTimeout(resolve, POLL_INTERVAL_MS)
       })
     }
-  }
 
-  onProgress?.(100)
+    onProgress?.(tipHeight, tipHeight)
+  }
 
   // ── 6. Fetch data ────────────────────────────────────────────────────────
   const priorHash = account.rpcLastBlockHash ?? ''

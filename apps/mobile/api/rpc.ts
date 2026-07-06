@@ -567,6 +567,10 @@ export class BitcoinCoreWallet {
     return this._walletCall<CoreWalletInfo>('getwalletinfo')
   }
 
+  getBlockCount(): Promise<number> {
+    return this.nodeRpc.getBlockCount()
+  }
+
   /**
    * Import one or more descriptors into this wallet.
    * Returns per-descriptor success/error results.
