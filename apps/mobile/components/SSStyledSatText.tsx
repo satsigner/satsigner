@@ -38,20 +38,25 @@ function SSStyledSatText({
       ? spacedFormatted.length
       : spacedFormatted.search(/[1-9]/)
 
+  const leading = spacedFormatted.slice(0, firstNonZeroIndex)
+  const rest = spacedFormatted.slice(firstNonZeroIndex)
+  const hasLeading = leading.length > 0
+  const baseStyle = { letterSpacing, lineHeight: text.fontSize[textSize] }
+
   const leadingColor = noColor
     ? Colors.softWhite
-    : type === 'send'
-      ? Colors.softRed
-      : Colors.softGreen
+    : zeroPadding && hasLeading
+      ? type === 'send'
+        ? Colors.softBarRed
+        : Colors.softBarGreen
+      : type === 'send'
+        ? Colors.softRed
+        : Colors.softGreen
   const mainColor = noColor
     ? Colors.white
     : type === 'send'
       ? Colors.mainRed
       : Colors.mainGreen
-
-  const leading = spacedFormatted.slice(0, firstNonZeroIndex)
-  const rest = spacedFormatted.slice(firstNonZeroIndex)
-  const baseStyle = { letterSpacing, lineHeight: text.fontSize[textSize] }
 
   return (
     <SSText size={textSize}>
