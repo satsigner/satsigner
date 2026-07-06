@@ -17,14 +17,14 @@ import {
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
 import {
-  equalizeSankeyColumnsByDepthH,
-  minSankeyStackedColumnInnerHeightPx
-} from '@/utils/equalizeSankeyColumnLayout'
-import {
   isChangeOutputAddress,
   isChangeOutputLabel,
   normalizeAddressSet
 } from '@/utils/address'
+import {
+  equalizeSankeyColumnsByDepthH,
+  minSankeyStackedColumnInnerHeightPx
+} from '@/utils/equalizeSankeyColumnLayout'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 

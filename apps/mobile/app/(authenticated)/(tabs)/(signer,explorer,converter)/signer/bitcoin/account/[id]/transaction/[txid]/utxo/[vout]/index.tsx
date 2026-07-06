@@ -25,8 +25,8 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
-import { formatDate, formatNumber } from '@/utils/format'
 import { getAccountAddressSets } from '@/utils/address'
+import { formatDate, formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type UtxoDetailsProps = {
@@ -271,7 +271,7 @@ function UtxoDetailsPage() {
     [account?.addresses]
   )
   const unspentOutpoints = useMemo(
-    () => new Set(account?.utxos.map(getUtxoOutpoint) ?? []),
+    () => new Set(account?.utxos.map(getUtxoOutpoint)),
     [account?.utxos]
   )
   const addInput = useTransactionBuilderStore((state) => state.addInput)

@@ -32,6 +32,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
+import { getAccountAddressSets } from '@/utils/address'
 import {
   formatConfirmations,
   formatFiatPrice,
@@ -39,7 +40,6 @@ import {
   formatPercentualChange
 } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
-import { getAccountAddressSets } from '@/utils/address'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 export default function TxDetails() {
@@ -56,7 +56,7 @@ export default function TxDetails() {
     [account?.addresses]
   )
   const unspentOutpoints = useMemo(
-    () => new Set(account?.utxos.map(getUtxoOutpoint) ?? []),
+    () => new Set(account?.utxos.map(getUtxoOutpoint)),
     [account?.utxos]
   )
 

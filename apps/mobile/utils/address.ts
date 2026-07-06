@@ -1,6 +1,6 @@
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type Account } from '@/types/models/Account'
 import { t } from '@/locales'
+import { type Account } from '@/types/models/Account'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { parseLabel } from '@/utils/parse'
 
 export function normalizeAddressSet(addresses: Iterable<string>): Set<string> {

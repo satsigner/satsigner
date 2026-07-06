@@ -10,6 +10,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
+import { getAccountAddressSets } from '@/utils/address'
 import {
   type AccountMatchResult,
   extractIndividualSignedPsbts,
@@ -21,7 +22,6 @@ import {
   type TransactionData
 } from '@/utils/psbt'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
-import { getAccountAddressSets } from '@/utils/address'
 
 type SSTransactionDetailsProps = {
   transactionData: TransactionData
@@ -64,7 +64,7 @@ function SSTransactionDetails({
   )
   const unspentOutpoints = useMemo(
     () =>
-      new Set(matchedAccount?.utxos.map((utxo) => `${utxo.txid}:${utxo.vout}`) ?? []),
+      new Set(matchedAccount?.utxos.map((utxo) => `${utxo.txid}:${utxo.vout}`)),
     [matchedAccount?.utxos]
   )
 

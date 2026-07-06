@@ -332,8 +332,7 @@ function SSTransactionCard({
                       size={smallView ? 'xs' : 'sm'}
                       color="muted"
                       style={{
-                        lineHeight:
-                          Sizes.text.fontSize[smallView ? 'xs' : 'sm']
+                        lineHeight: Sizes.text.fontSize[smallView ? 'xs' : 'sm']
                       }}
                     >
                       ••••
@@ -363,8 +362,7 @@ function SSTransactionCard({
                         balancePercentChange[0] === '+'
                           ? Colors.softBarGreen
                           : Colors.softBarRed,
-                      lineHeight:
-                        Sizes.text.fontSize[smallView ? 'xxs' : 'xs'],
+                      lineHeight: Sizes.text.fontSize[smallView ? 'xxs' : 'xs'],
                       marginTop: -3
                     }}
                     size={smallView ? 'xxs' : 'xs'}
