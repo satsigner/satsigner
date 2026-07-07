@@ -18,12 +18,32 @@ import type {
   ArkNotificationUnsubscribe
 } from '@/types/models/Ark'
 import { getArkServer } from '@/utils/ark'
+import { invalidateArkAccountQueries } from '@/utils/arkSync'
 import { formatNumber } from '@/utils/format'
 
 const activeSubscriptions = new Map<string, ArkNotificationUnsubscribe>()
 const inflightSubscriptions = new Set<string>()
 const RECEIVE_TOAST_DEDUP_TTL_MS = 60_000
 const recentReceiveToasts = new Map<string, number>()
+const INVALIDATE_DEBOUNCE_MS = 400
+const pendingInvalidations = new Map<string, ReturnType<typeof setTimeout>>()
+
+// Rounds/refreshes emit bursts of movement events; coalesce them so each
+// burst costs one refetch batch instead of one per event.
+function scheduleAccountInvalidation(
+  queryClient: QueryClient,
+  accountId: string
+) {
+  const existing = pendingInvalidations.get(accountId)
+  if (existing) {
+    clearTimeout(existing)
+  }
+  const timer = setTimeout(() => {
+    pendingInvalidations.delete(accountId)
+    void invalidateArkAccountQueries(queryClient, accountId)
+  }, INVALIDATE_DEBOUNCE_MS)
+  pendingInvalidations.set(accountId, timer)
+}
 
 function shouldSkipDuplicateReceiveToast(key: string): boolean {
   const now = Date.now()
@@ -95,12 +115,7 @@ async function subscribeAccount(
       account.serverId,
       account.id,
       (event) => {
-        queryClient.invalidateQueries({
-          queryKey: ['ark', 'balance', account.id]
-        })
-        queryClient.invalidateQueries({
-          queryKey: ['ark', 'movements', account.id]
-        })
+        scheduleAccountInvalidation(queryClient, account.id)
         notifyReceive(account, event)
       }
     )
@@ -150,8 +165,7 @@ async function resyncAccount(
   } catch {
     // best effort — wallet may not be open yet on resume
   }
-  queryClient.invalidateQueries({ queryKey: ['ark', 'balance', account.id] })
-  queryClient.invalidateQueries({ queryKey: ['ark', 'movements', account.id] })
+  await invalidateArkAccountQueries(queryClient, account.id)
 }
 
 function handleAppForeground(queryClient: QueryClient) {

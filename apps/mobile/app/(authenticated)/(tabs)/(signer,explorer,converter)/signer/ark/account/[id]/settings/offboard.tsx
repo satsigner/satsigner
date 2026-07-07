@@ -37,9 +37,22 @@ function sumVtxoSats(vtxos: ArkVtxo[], selected: Set<string>): number {
   )
 }
 
+function parsePreselectedVtxoIds(raw: string | undefined): string[] {
+  if (!raw) {
+    return []
+  }
+  return decodeURIComponent(raw)
+    .split(',')
+    .filter((value) => value.length > 0)
+}
+
 export default function ArkSendOffboardPage() {
   const router = useRouter()
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { id, vtxoIds, selectAll } = useLocalSearchParams<{
+    id: string
+    vtxoIds?: string
+    selectAll?: string
+  }>()
   const [accounts] = useArkStore(useShallow((state) => [state.accounts]))
   const account = accounts.find((a) => a.id === id)
   const network = account?.network
@@ -51,11 +64,18 @@ export default function ArkSendOffboardPage() {
   const offboardMutation = useArkOffboard(id)
 
   const [address, setAddress] = useState('')
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(parsePreselectedVtxoIds(vtxoIds))
+  )
   const [cameraVisible, setCameraVisible] = useState(false)
   const [pasteVisible, setPasteVisible] = useState(false)
+  const [didAutoSelectAll, setDidAutoSelectAll] = useState(false)
 
   const vtxos = vtxosQuery.data ?? []
+  if (selectAll === 'true' && !didAutoSelectAll && vtxos.length > 0) {
+    setSelectedIds(new Set(vtxos.map((vtxo) => vtxo.id)))
+    setDidAutoSelectAll(true)
+  }
   const selectedArray = Array.from(selectedIds)
   const selectedAmount = sumVtxoSats(vtxos, selectedIds)
   const trimmedAddress = address.trim()
@@ -281,7 +301,11 @@ export default function ArkSendOffboardPage() {
                     {t('ark.offboard.feeEstimating')}
                   </SSText>
                 ) : feeEstimateQuery.error ? (
-                  <SSText size="xs" style={{ color: Colors.warning }}>
+                  <SSText
+                    size="xs"
+                    style={{ color: Colors.warning }}
+                    onPress={() => feeEstimateQuery.refetch()}
+                  >
                     {t('ark.offboard.feeUnavailable')}
                   </SSText>
                 ) : null}

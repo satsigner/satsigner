@@ -1,31 +1,25 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { offboardArkVtxos } from '@/api/ark'
-import type { ArkOffboardInput } from '@/types/models/Ark'
+import { refreshArkVtxos } from '@/api/ark'
 import { getArkAccountOrThrow } from '@/utils/ark'
 import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 
-function executeArkOffboard(
+function executeArkRefresh(
   accountId: string,
-  input: ArkOffboardInput
+  vtxoIds: string[]
 ): Promise<string> {
   const account = getArkAccountOrThrow(accountId)
-  return offboardArkVtxos(
-    account.serverId,
-    accountId,
-    input.vtxoIds,
-    input.bitcoinAddress
-  )
+  return refreshArkVtxos(account.serverId, accountId, vtxoIds)
 }
 
-export function useArkOffboard(accountId: string | null | undefined) {
+export function useArkRefresh(accountId: string | null | undefined) {
   const queryClient = useQueryClient()
-  return useMutation<string, Error, ArkOffboardInput>({
-    mutationFn: (input) => {
+  return useMutation<string, Error, string[]>({
+    mutationFn: (vtxoIds) => {
       if (!accountId) {
         throw new Error('Ark account is required')
       }
-      return executeArkOffboard(accountId, input)
+      return executeArkRefresh(accountId, vtxoIds)
     },
     onSuccess: () => {
       if (!accountId) {

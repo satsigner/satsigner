@@ -3,15 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import { openArkWallet } from '@/api/ark'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
-import { useArkStore } from '@/store/ark'
-import { getArkServer } from '@/utils/ark'
+import { getArkAccountOrThrow, getArkServer } from '@/utils/ark'
 
 async function ensureWalletOpen(accountId: string): Promise<true> {
-  const { accounts } = useArkStore.getState()
-  const account = accounts.find((a) => a.id === accountId)
-  if (!account) {
-    throw new Error('Ark account not found')
-  }
+  const account = getArkAccountOrThrow(accountId)
 
   const server = getArkServer(account.network, account.serverId)
   if (!server) {

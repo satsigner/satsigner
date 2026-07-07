@@ -52,6 +52,21 @@ export type ArkVtxo = {
   expiryHeight: number
   kind: string
   state: string
+  spendable: boolean
+  exitDepth: number
+}
+
+export type ArkDerivedAddress = {
+  index: number
+  address: string
+}
+
+export type ArkAddress = {
+  index: number
+  address: string
+  used: boolean
+  receivedSats: number
+  receiveCount: number
 }
 
 export type ArkSendKind =
@@ -168,6 +183,18 @@ export interface ArkWalletProvider {
     amountSats: number
   ) => Promise<ArkFeeEstimate>
   listSpendableVtxos: (accountId: string) => Promise<ArkVtxo[]>
+  listAllVtxos: (accountId: string) => Promise<ArkVtxo[]>
+  refreshVtxos: (accountId: string, vtxoIds: string[]) => Promise<string>
+  startExit: (accountId: string, vtxoIds?: string[]) => Promise<void>
+  estimateRefreshFee: (
+    accountId: string,
+    vtxoIds: string[]
+  ) => Promise<ArkFeeEstimate>
+  deriveAddresses: (
+    accountId: string,
+    startIndex: number,
+    count: number
+  ) => Promise<ArkDerivedAddress[]>
   offboardVtxos: (
     accountId: string,
     vtxoIds: string[],

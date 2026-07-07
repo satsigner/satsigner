@@ -1,6 +1,5 @@
 import type { ArkMovement, ArkMovementStatus } from '@/types/models/Ark'
 import {
-  filterArkMovements,
   getArkMovementAmountSats,
   getArkMovementCounterparty,
   getArkMovementKind,
@@ -8,6 +7,8 @@ import {
   isMutedArkMovement,
   isStaleArkExitMovement,
   parseArkCounterparty,
+  selectArkRefreshes,
+  selectArkTransactions,
   truncateArkCounterparty
 } from '@/utils/arkMovement'
 
@@ -87,24 +88,27 @@ describe('arkMovement utils', () => {
     })
   })
 
-  describe('filterArkMovements', () => {
-    it('hides refresh movements when showRefresh is false', () => {
+  describe('selectArkTransactions', () => {
+    it('keeps only send and receive movements', () => {
       const movements = [
         buildMovement({ effectiveBalanceSats: 1000, id: 1 }),
         buildMovement({ id: 2, subsystemName: 'bark.refresh' }),
         buildMovement({ effectiveBalanceSats: -1000, id: 3 })
       ]
-      const result = filterArkMovements(movements, false)
+      const result = selectArkTransactions(movements)
       expect(result.map((m) => m.id)).toStrictEqual([1, 3])
     })
+  })
 
-    it('returns all movements when showRefresh is true', () => {
+  describe('selectArkRefreshes', () => {
+    it('keeps only refresh movements', () => {
       const movements = [
         buildMovement({ effectiveBalanceSats: 1000, id: 1 }),
-        buildMovement({ id: 2, subsystemName: 'bark.refresh' })
+        buildMovement({ id: 2, subsystemName: 'bark.refresh' }),
+        buildMovement({ effectiveBalanceSats: -1000, id: 3 })
       ]
-      const result = filterArkMovements(movements, true)
-      expect(result.map((m) => m.id)).toStrictEqual([1, 2])
+      const result = selectArkRefreshes(movements)
+      expect(result.map((m) => m.id)).toStrictEqual([2])
     })
   })
 

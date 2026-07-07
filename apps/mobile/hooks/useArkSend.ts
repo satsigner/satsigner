@@ -6,24 +6,16 @@ import {
   sendArkArkoor,
   sendArkOnchain
 } from '@/api/ark'
-import { useArkStore } from '@/store/ark'
 import type { ArkSendInput, ArkSendOutcome } from '@/types/models/Ark'
+import { getArkAccountOrThrow } from '@/utils/ark'
+import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 import { handleLNURLPay } from '@/utils/lnurl'
 
-function getAccountServerId(accountId: string) {
-  const { accounts } = useArkStore.getState()
-  const account = accounts.find((a) => a.id === accountId)
-  if (!account) {
-    throw new Error('Ark account not found')
-  }
-  return account.serverId
-}
-
-async function executeArkSend(
+export async function executeArkSend(
   accountId: string,
   input: ArkSendInput
 ): Promise<ArkSendOutcome> {
-  const serverId = getAccountServerId(accountId)
+  const { serverId } = getArkAccountOrThrow(accountId)
 
   if (input.kind === 'arkoor') {
     const txid = await sendArkArkoor(
@@ -108,12 +100,7 @@ export function useArkSend(accountId: string | null | undefined) {
       if (!accountId) {
         return
       }
-      queryClient.invalidateQueries({
-        queryKey: ['ark', 'balance', accountId]
-      })
-      queryClient.invalidateQueries({
-        queryKey: ['ark', 'movements', accountId]
-      })
+      syncArkAccountAndInvalidate(queryClient, accountId)
     }
   })
 }

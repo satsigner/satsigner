@@ -1,3 +1,5 @@
+import { t } from '@/locales'
+import { Colors } from '@/styles'
 import type { ArkMovement, ArkMovementKind } from '@/types/models/Ark'
 
 const REFRESH_SUBSYSTEM_KEYWORD = 'refresh'
@@ -50,15 +52,15 @@ export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
   return 'refresh'
 }
 
-export function filterArkMovements(
-  movements: ArkMovement[],
-  showRefresh: boolean
-): ArkMovement[] {
-  if (showRefresh) {
-    return movements
-  }
+export function selectArkTransactions(movements: ArkMovement[]): ArkMovement[] {
   return movements.filter(
     (movement) => getArkMovementKind(movement) !== 'refresh'
+  )
+}
+
+export function selectArkRefreshes(movements: ArkMovement[]): ArkMovement[] {
+  return movements.filter(
+    (movement) => getArkMovementKind(movement) === 'refresh'
   )
 }
 
@@ -109,6 +111,48 @@ export function truncateArkCounterparty(
     return value
   }
   return `${value.slice(0, chars)}...${value.slice(-chars)}`
+}
+
+export function getArkMovementStatusColor(status: string): string {
+  switch (status) {
+    case 'pending':
+      return Colors.warning
+    case 'successful':
+      return Colors.softBarGreen
+    case 'failed':
+    case 'canceled':
+      return Colors.error
+    default:
+      return Colors.gray[400]
+  }
+}
+
+export function getArkMovementStatusLabel(status: string): string {
+  switch (status) {
+    case 'pending':
+      return t('ark.movement.status.pending')
+    case 'successful':
+      return t('ark.movement.status.successful')
+    case 'failed':
+      return t('ark.movement.status.failed')
+    case 'canceled':
+      return t('ark.movement.status.canceled')
+    default:
+      return status.toUpperCase()
+  }
+}
+
+export function getArkMovementKindLabel(kind: ArkMovementKind): string {
+  switch (kind) {
+    case 'receive':
+      return t('ark.movement.kind.receive')
+    case 'send':
+      return t('ark.movement.kind.send')
+    case 'refresh':
+      return t('ark.movement.kind.refresh')
+    default:
+      return ''
+  }
 }
 
 export function getArkMovementCounterparty(

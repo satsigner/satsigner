@@ -2,6 +2,7 @@ import { getArkProvider } from '@/api/ark/registry'
 import type {
   ArkBalance,
   ArkBolt11Invoice,
+  ArkDerivedAddress,
   ArkFeeEstimate,
   ArkLightningSendResult,
   ArkMovement,
@@ -129,11 +130,11 @@ export function estimateArkLightningSendFee(
   )
 }
 
-export function listArkSpendableVtxos(
+export function listArkVtxos(
   serverId: ArkServerId,
   accountId: string
 ): Promise<ArkVtxo[]> {
-  return getArkProvider(serverId).listSpendableVtxos(accountId)
+  return getArkProvider(serverId).listAllVtxos(accountId)
 }
 
 export function offboardArkVtxos(
@@ -160,6 +161,39 @@ export function estimateArkOffboardFee(
     bitcoinAddress,
     vtxoIds
   )
+}
+
+export function startArkExit(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds?: string[]
+): Promise<void> {
+  return getArkProvider(serverId).startExit(accountId, vtxoIds)
+}
+
+export function refreshArkVtxos(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds: string[]
+): Promise<string> {
+  return getArkProvider(serverId).refreshVtxos(accountId, vtxoIds)
+}
+
+export function deriveArkAddresses(
+  serverId: ArkServerId,
+  accountId: string,
+  startIndex: number,
+  count: number
+): Promise<ArkDerivedAddress[]> {
+  return getArkProvider(serverId).deriveAddresses(accountId, startIndex, count)
+}
+
+export function estimateArkRefreshFee(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds: string[]
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateRefreshFee(accountId, vtxoIds)
 }
 
 export function sendArkOnchain(

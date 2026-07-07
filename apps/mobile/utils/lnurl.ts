@@ -1,5 +1,6 @@
 import { bech32 } from 'bech32'
 
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import type {
   LNURLPayInvoiceResponse,
   LNURLPayResponse,
@@ -88,6 +89,22 @@ export function decodeLNURL(input: string): string {
   }
 
   return url
+}
+
+export function resolveLnurlUrl(raw: string): string {
+  const cleaned = raw.trim().replace(/^lightning:/i, '')
+  return isLNURL(cleaned) ? decodeLNURL(cleaned) : cleaned
+}
+
+export function isLnurlWithdrawAmountInRange(
+  amountSats: number,
+  details: Pick<LNURLWithdrawDetails, 'minWithdrawable' | 'maxWithdrawable'>
+): boolean {
+  const amountMillisats = amountSats * MILLISATS_PER_SAT
+  return (
+    amountMillisats >= details.minWithdrawable &&
+    amountMillisats <= details.maxWithdrawable
+  )
 }
 
 export async function fetchLNURLPayDetails(

@@ -160,8 +160,8 @@ importers:
         specifier: ^3.1.0
         version: 3.1.0
       bitcoin-decoder:
-        specifier: ^0.3.0
-        version: 0.3.0(typescript@6.0.3)
+        specifier: ^0.7.0
+        version: 0.7.0(typescript@6.0.3)
       bitcoinjs-lib:
         specifier: ^6.1.7
         version: 6.1.7
@@ -4430,8 +4430,9 @@ packages:
   bip39@3.1.0:
     resolution: {integrity: sha512-c9kiwdk45Do5GL0vJMe7tS95VjCii65mYAH7DfWl3uW8AVzXKQVUm64i3hzVybBDMp9r7j9iNxR85+ul8MdN/A==}
 
-  bitcoin-decoder@0.3.0:
-    resolution: {integrity: sha512-2AlqMNFCosrsNXJ1KArJnAtIwrPffOMeG0Mpf4gyHDVC1LwLq+F9jsG2LC3zKJSuQ+XUKv+M2fIyMpVtanxhAw==}
+  bitcoin-decoder@0.7.0:
+    resolution: {integrity: sha512-O3qmHlDfL0AVhpR+7Ngeodd2IqeKMUolx2SXXiv2iiFVMIAbA+WWbIkO/MbNC0ZgC1wdoeC2iw8HQpMUPKwRsA==}
+    engines: {node: '>=22'}
 
   bitcoinjs-lib@6.1.7:
     resolution: {integrity: sha512-tlf/r2DGMbF7ky1MgUqXHzypYHakkEnm0SZP23CJKIqNY/5uNAnMbFhMJdhjrL/7anfb/U8+AlpdjPWjPnAalg==}
@@ -7179,6 +7180,14 @@ packages:
 
   nostr-tools@2.23.3:
     resolution: {integrity: sha512-AALyt9k8xPdF4UV2mlLJ2mgCn4kpTB0DZ8t2r6wjdUh6anfx2cTVBsHUlo9U0EY/cKC5wcNyiMAmRJV5OVEalA==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  nostr-tools@2.23.9:
+    resolution: {integrity: sha512-PBN3TpGh+EszlTZWpQdvcqEMqhcKcY1vTw0Xkkccg+TyP7y/icu9/iXJw72aFZ/ETm35ehU0hneGTXLaTSkImw==}
     peerDependencies:
       typescript: '>=5.0.0'
     peerDependenciesMeta:
@@ -13421,12 +13430,13 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.8.0
 
-  bitcoin-decoder@0.3.0(typescript@6.0.3):
+  bitcoin-decoder@0.7.0(typescript@6.0.3):
     dependencies:
       '@noble/hashes': 2.0.1
       '@scure/base': 2.0.0
       bip-321: 0.0.10(typescript@6.0.3)
       light-bolt11-decoder: 3.2.0
+      nostr-tools: 2.23.9(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
 
@@ -16906,6 +16916,18 @@ snapshots:
   normalize-path@3.0.0: {}
 
   nostr-tools@2.23.3(typescript@6.0.3):
+    dependencies:
+      '@noble/ciphers': 2.1.1
+      '@noble/curves': 2.0.1
+      '@noble/hashes': 2.0.1
+      '@scure/base': 2.0.0
+      '@scure/bip32': 2.0.1
+      '@scure/bip39': 2.0.1
+      nostr-wasm: 0.1.0
+    optionalDependencies:
+      typescript: 6.0.3
+
+  nostr-tools@2.23.9(typescript@6.0.3):
     dependencies:
       '@noble/ciphers': 2.1.1
       '@noble/curves': 2.0.1

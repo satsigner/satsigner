@@ -1,19 +1,10 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { createArkBolt11Invoice, newArkAddress } from '@/api/ark'
-import { useArkStore } from '@/store/ark'
 import { ArkBolt11Invoice } from '@/types/models/Ark'
+import { getArkAccountOrThrow } from '@/utils/ark'
 
 import { useArkWallet } from './useArkWallet'
-
-function getAccountServerId(accountId: string) {
-  const { accounts } = useArkStore.getState()
-  const account = accounts.find((a) => a.id === accountId)
-  if (!account) {
-    throw new Error('Ark account not found')
-  }
-  return account.serverId
-}
 
 export function useArkAddress(accountId: string | null | undefined) {
   const { data: walletReady } = useArkWallet(accountId)
@@ -24,7 +15,7 @@ export function useArkAddress(accountId: string | null | undefined) {
       if (!accountId) {
         throw new Error('Ark account id is required')
       }
-      return newArkAddress(getAccountServerId(accountId), accountId)
+      return newArkAddress(getArkAccountOrThrow(accountId).serverId, accountId)
     },
     queryKey: ['ark', 'address', accountId],
     staleTime: Infinity
@@ -45,7 +36,7 @@ export function useArkBolt11InvoiceMutation(
         throw new Error('Ark account is required')
       }
       return createArkBolt11Invoice(
-        getAccountServerId(accountId),
+        getArkAccountOrThrow(accountId).serverId,
         accountId,
         amountSats,
         description
