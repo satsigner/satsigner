@@ -19,28 +19,6 @@ type SSNip46ConnectionModalProps = {
   visible: boolean
 }
 
-function formatNpub(hex: string): string {
-  try {
-    return nip19.npubEncode(hex)
-  } catch {
-    return hex
-  }
-}
-
-function abbreviate(value: string, chars = 16): string {
-  if (value.length <= chars * 2 + 3) {
-    return value
-  }
-  return `${value.slice(0, chars)}...${value.slice(-chars)}`
-}
-
-function parseRequestedMethods(perms: string): string[] {
-  return perms
-    .split(',')
-    .map((p) => p.trim())
-    .filter(Boolean)
-}
-
 export default function SSNip46ConnectionModal({
   onConnect,
   onReject,
@@ -116,6 +94,28 @@ export default function SSNip46ConnectionModal({
       </View>
     </SSModal>
   )
+}
+
+function formatNpub(hex: string): string {
+  try {
+    return nip19.npubEncode(hex)
+  } catch {
+    return hex
+  }
+}
+
+function abbreviate(value: string, chars = 16): string {
+  if (value.length <= chars * 2 + 3) {
+    return value
+  }
+  return `${value.slice(0, chars)}...${value.slice(-chars)}`
+}
+
+function parseRequestedMethods(perms: string): string[] {
+  return perms
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
 }
 
 const styles = StyleSheet.create({
