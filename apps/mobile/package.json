@@ -21,6 +21,7 @@
     "sb:android": "cross-env EXPO_PUBLIC_STORYBOOK_ENABLED=true expo run:android",
     "sb:ios": "cross-env EXPO_PUBLIC_STORYBOOK_ENABLED=true expo run:ios",
     "start": "expo start",
+    "variant": "node scripts/variant.mjs",
     "storybook-generate": "sb-rn-get-stories",
     "test": "pnpm test:unit && pnpm test:int",
     "test:int": "jest ./tests/int",

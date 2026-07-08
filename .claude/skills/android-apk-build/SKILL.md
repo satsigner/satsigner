@@ -8,6 +8,24 @@ version: 1.1.0
 
 Build APKs directly on this machine without EAS cloud. All commands run from `apps/mobile/android/`.
 
+## Per-branch / per-PR variants (`pnpm variant`)
+
+Use `pnpm variant` (from `apps/mobile/`) to build coexisting installs, each with a unique Android package id derived from a suffix. Because Android sandboxes storage (MMKV, SQLite, secure store) per package id, each suffix keeps its own isolated, persistent database — so switching git branches never forces a DB reset.
+
+```bash
+pnpm variant                                # current git branch -> unique id
+pnpm variant -- --suffix pr453              # explicit suffix
+pnpm variant -- --plain                     # no suffix (default dev id)
+pnpm variant -- --release --device          # standalone prod-mode build
+pnpm variant -- --apk --suffix pr453 --release   # named APK, no install
+```
+
+Flags: `--suffix <v>`, `--plain`, `--prod`, `--release`, `--prebuild-only`, `--apk`, `--ios`; anything else (e.g. `--device Pixel_9`) passes through to `expo run:*`.
+
+The script sets `APP_VARIANT_SUFFIX`, runs `expo prebuild --clean` (which rebakes the package id, since it is compiled into `android/`), then builds. `--apk` copies the Gradle output to `dist/apks/satsigner-<dev|prod>-<suffix>-<release|debug>.apk`.
+
+Changing suffix requires a re-prebuild (handled automatically). To remove a variant: `adb uninstall com.satsigner.satsigner.dev.<segment>`.
+
 ## Standalone vs. Metro-connected builds
 
 This project uses `expo-dev-client`. This matters for how the app runs:
