@@ -1,8 +1,10 @@
+import { DUST_LIMIT } from '@/constants/btc'
 import { type Output } from '@/types/models/Output'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Utxo } from '@/types/models/Utxo'
 import { getScriptVersionType } from '@/utils/address'
-import { seededRandom } from '@/utils/crypto'
+import { shuffle } from '@/utils/array'
+import { randomNum, seededRandom } from '@/utils/crypto'
 import {
   getInputVbytes,
   getOutputVbytes,
@@ -11,9 +13,8 @@ import {
   SEGWIT_OVERHEAD_VBYTES
 } from '@/utils/transaction'
 
-const DEFAULT_DUST_THRESHOLD = 546
 const DEFAULT_LONG_TERM_FEE_RATE = 5
-const SELECTION_SEED = 42
+const SELECTION_SEED_MAX = 0x1_0000_0000
 const BASE_TX_OVERHEAD_VBYTES = 10
 const DEFAULT_CHANGE_SCRIPT_TYPE: ScriptVersionType = 'P2WPKH'
 const DEFAULT_RECIPIENT_SCRIPT_TYPE: ScriptVersionType = 'P2WPKH'
@@ -23,6 +24,8 @@ const KNAPSACK_ITERATIONS = 1000
 // Sparrow uses SATOSHIS_PER_BITCOIN / 1000 as the knapsack minimum change
 const KNAPSACK_MIN_CHANGE = 100_000
 const STONEWALL_ATTEMPTS = 15
+// Sparrow StonewallUtxoSelector uses new Random(42) for deterministic set building
+const STONEWALL_SELECTION_SEED = 42
 
 type SelectionStrategy = 'efficiency' | 'privacy'
 
@@ -32,7 +35,13 @@ type UtxoSelectionOptions = {
   outputs: Output[]
   changeScriptType: ScriptVersionType
   recipientScriptType: ScriptVersionType
+  seed: number
   feeFn?: (inputCount: number, hasChange: boolean) => number
+}
+
+type StonewallChangeOutput = {
+  amount: number
+  to: string
 }
 
 type SelectionResult = {
@@ -176,17 +185,6 @@ function getCostOfChange(
   return Math.floor(
     changeOutputVbytes * feeRate + changeInputVbytes * longTermFeeRate
   )
-}
-
-function shuffle<T>(items: T[], random: () => number): T[] {
-  const result = [...items]
-  for (let i = result.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1))
-    const temp = result[i]
-    result[i] = result[j]
-    result[j] = temp
-  }
-  return result
 }
 
 /**
@@ -611,19 +609,24 @@ function buildStonewallResult(
   )
 
   const changeOutputs: StonewallOutput[] = []
-  let changeIsDust = false
   for (const set of sets) {
     const setValue = sumValue(set)
     const changeValue = setValue - target - feePerSet
-    if (changeValue < minChange) {
-      changeIsDust = true
-      break
+    if (changeValue < 0) {
+      return {
+        error: 'Could not find a suitable STONEWALL structure',
+        fee: 0,
+        inputs: [],
+        outputs: []
+      }
     }
-    changeOutputs.push({
-      scriptType: options.changeScriptType,
-      type: 'change',
-      value: changeValue
-    })
+    if (changeValue >= minChange) {
+      changeOutputs.push({
+        scriptType: options.changeScriptType,
+        type: 'change',
+        value: changeValue
+      })
+    }
   }
 
   const fakeMixOutputs: StonewallOutput[] = []
@@ -641,27 +644,23 @@ function buildStonewallResult(
     value: target
   }
 
-  // When a set's change would be dust, follow Sparrow's privacy-maximizing
-  // branch (Wallet.java:1244-1246): keep both output sets and absorb the
-  // surplus into the fee instead of failing. The recipient + fake-mix structure
-  // and its set indistinguishability are preserved; only the change is dropped.
-  if (changeIsDust) {
-    const totalInputValue = sets.reduce((sum, set) => sum + sumValue(set), 0)
-    const outputsValue = numSets * target
-    return {
-      fee: totalInputValue - outputsValue,
-      inputs: allInputs,
-      outputs: [recipientOutput, ...fakeMixOutputs]
-    }
-  }
-
   const outputs: StonewallOutput[] = [
     recipientOutput,
     ...fakeMixOutputs,
     ...changeOutputs
   ]
 
-  return { fee, inputs: allInputs, outputs }
+  const totalInputValue = sets.reduce((sum, set) => sum + sumValue(set), 0)
+  const totalOutputValue = outputs.reduce(
+    (sum, output) => sum + output.value,
+    0
+  )
+
+  return {
+    fee: totalInputValue - totalOutputValue,
+    inputs: allInputs,
+    outputs
+  }
 }
 
 function resolveOptions(
@@ -672,13 +671,31 @@ function resolveOptions(
     options?.longTermFeeRate ?? Math.min(feeRate, DEFAULT_LONG_TERM_FEE_RATE)
   return {
     changeScriptType: options?.changeScriptType ?? DEFAULT_CHANGE_SCRIPT_TYPE,
-    dustThreshold: options?.dustThreshold ?? DEFAULT_DUST_THRESHOLD,
+    dustThreshold: options?.dustThreshold ?? DUST_LIMIT,
     feeFn: options?.feeFn,
     longTermFeeRate,
     outputs: options?.outputs ?? [],
     recipientScriptType:
-      options?.recipientScriptType ?? DEFAULT_RECIPIENT_SCRIPT_TYPE
+      options?.recipientScriptType ?? DEFAULT_RECIPIENT_SCRIPT_TYPE,
+    seed: options?.seed ?? Math.floor(randomNum() * SELECTION_SEED_MAX)
   }
+}
+
+function mapStonewallChangeOutputs(
+  changeValues: number[],
+  changeAddresses: string[]
+): StonewallChangeOutput[] {
+  const count = Math.min(changeValues.length, changeAddresses.length)
+  const outputs: StonewallChangeOutput[] = []
+
+  for (let index = 0; index < count; index += 1) {
+    outputs.push({
+      amount: changeValues[index],
+      to: changeAddresses[index]
+    })
+  }
+
+  return outputs
 }
 
 function selectUtxos(
@@ -707,7 +724,7 @@ function selectUtxos(
     opts.longTermFeeRate,
     opts.changeScriptType
   )
-  const random = seededRandom(SELECTION_SEED)
+  const random = seededRandom(opts.seed)
 
   let selected =
     strategy === 'efficiency'
@@ -753,7 +770,10 @@ function selectStonewallUtxos(
   feeRate: number,
   options?: Partial<UtxoSelectionOptions>
 ): StonewallResult {
-  const opts = resolveOptions(feeRate, options)
+  const opts = resolveOptions(feeRate, {
+    ...options,
+    seed: options?.seed ?? STONEWALL_SELECTION_SEED
+  })
 
   const totalAvailable = utxos.reduce((sum, utxo) => sum + utxo.value, 0)
   if (totalAvailable < targetAmount) {
@@ -767,7 +787,7 @@ function selectStonewallUtxos(
     opts.recipientScriptType,
     opts.changeScriptType
   )
-  const random = seededRandom(SELECTION_SEED)
+  const random = seededRandom(opts.seed)
 
   const sets = selectStonewallSets(
     targetAmount,
@@ -789,8 +809,8 @@ function selectStonewallUtxos(
 }
 
 export {
-  DEFAULT_DUST_THRESHOLD,
   getUtxoOutpoint,
+  mapStonewallChangeOutputs,
   selectEfficientUtxos,
   selectStonewallUtxos,
   selectUtxos
@@ -798,6 +818,7 @@ export {
 export type {
   SelectionResult,
   SelectionStrategy,
+  StonewallChangeOutput,
   StonewallOutput,
   StonewallResult,
   UtxoSelectionOptions

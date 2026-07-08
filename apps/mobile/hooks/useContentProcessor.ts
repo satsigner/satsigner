@@ -23,7 +23,7 @@ import {
   findMatchingAccount,
   getCollectedSignerPubkeys
 } from '@/utils/psbt'
-import { DEFAULT_DUST_THRESHOLD, selectEfficientUtxos } from '@/utils/utxo'
+import { selectEfficientUtxos } from '@/utils/utxo'
 
 export type BitcoinUriExceedsBalancePromptInfo = {
   address: string
@@ -71,7 +71,7 @@ function autoSelectUtxos(
   }
 
   const result = selectEfficientUtxos(account.utxos, targetAmount, 1, {
-    dustThreshold: DEFAULT_DUST_THRESHOLD
+    dustThreshold: DUST_LIMIT
   })
 
   if (result.error) {

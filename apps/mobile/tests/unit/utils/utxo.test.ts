@@ -1,9 +1,12 @@
 import { type Utxo } from '@/types/models/Utxo'
 import {
+  mapStonewallChangeOutputs,
   selectEfficientUtxos,
   selectStonewallUtxos,
   selectUtxos
 } from '@/utils/utxo'
+
+const STONEWALL_TEST_SEED = 42
 
 // getScriptVersionType only checks the prefix, the first data char and the
 // length (42-44 for P2WPKH), not the checksum, so a synthetic bech32-shaped
@@ -25,6 +28,10 @@ function createMockUtxos(values: number[]): Utxo[] {
 
 function sumInputs(inputs: Utxo[]): number {
   return inputs.reduce((sum, input) => sum + input.value, 0)
+}
+
+function sumOutputs(outputs: { value: number }[]): number {
+  return outputs.reduce((sum, output) => sum + output.value, 0)
 }
 
 describe('efficiency UTXO Selection Algorithm', () => {
@@ -150,12 +157,19 @@ describe('efficiency UTXO Selection Algorithm', () => {
 })
 
 describe('stonewall utxo selection algorithm', () => {
+  const stonewallOptions = { seed: STONEWALL_TEST_SEED }
+
   it('should create a valid STONEWALL transaction with sufficient funds', () => {
     const utxos = createMockUtxos([10000, 20000, 30000, 40000, 50000, 60000])
     const targetAmount = 75000
     const feeRate = 2
 
-    const result = selectStonewallUtxos(utxos, targetAmount, feeRate)
+    const result = selectStonewallUtxos(
+      utxos,
+      targetAmount,
+      feeRate,
+      stonewallOptions
+    )
 
     expect(result.error).toBeUndefined()
     expect(result.inputs).toBeDefined()
@@ -166,12 +180,10 @@ describe('stonewall utxo selection algorithm', () => {
     // recipient + one change per set.
     expect(result.outputs.length).toBeGreaterThanOrEqual(2)
 
-    const totalOutput = result.outputs.reduce(
-      (sum, output) => sum + output.value,
-      0
-    )
     // Value is conserved: inputs == outputs + fee.
-    expect(sumInputs(result.inputs)).toStrictEqual(totalOutput + result.fee)
+    expect(sumInputs(result.inputs)).toStrictEqual(
+      sumOutputs(result.outputs) + result.fee
+    )
 
     // Exactly one recipient output, paid the requested amount.
     const recipients = result.outputs.filter((o) => o.type === 'recipient')
@@ -187,7 +199,12 @@ describe('stonewall utxo selection algorithm', () => {
     const targetAmount = 10000
     const feeRate = 1
 
-    const result = selectStonewallUtxos(utxos, targetAmount, feeRate)
+    const result = selectStonewallUtxos(
+      utxos,
+      targetAmount,
+      feeRate,
+      stonewallOptions
+    )
 
     expect(result.error).toBe('Insufficient funds')
   })
@@ -197,7 +214,12 @@ describe('stonewall utxo selection algorithm', () => {
     const targetAmount = 50000
     const feeRate = 1
 
-    const result = selectStonewallUtxos(utxos, targetAmount, feeRate)
+    const result = selectStonewallUtxos(
+      utxos,
+      targetAmount,
+      feeRate,
+      stonewallOptions
+    )
 
     expect(result.error).toBeUndefined()
 
@@ -214,7 +236,12 @@ describe('stonewall utxo selection algorithm', () => {
     const targetAmount = 10000
     const feeRate = 1
 
-    const result = selectStonewallUtxos(utxos, targetAmount, feeRate)
+    const result = selectStonewallUtxos(
+      utxos,
+      targetAmount,
+      feeRate,
+      stonewallOptions
+    )
 
     expect(result.error).toBeUndefined()
     // No change outputs: the dust was absorbed into the fee.
@@ -222,8 +249,102 @@ describe('stonewall utxo selection algorithm', () => {
     // Structure preserved: one recipient + one fake-mix, both the target amount.
     expect(result.outputs.filter((o) => o.type === 'recipient')).toHaveLength(1)
     expect(result.outputs.filter((o) => o.type === 'fakeMix')).toHaveLength(1)
-    const totalOutput = result.outputs.reduce((sum, o) => sum + o.value, 0)
-    expect(sumInputs(result.inputs)).toStrictEqual(totalOutput + result.fee)
+    expect(sumInputs(result.inputs)).toStrictEqual(
+      sumOutputs(result.outputs) + result.fee
+    )
+  })
+
+  it('should keep the large set change when only the other set is dust', () => {
+    const utxos = createMockUtxos([120000, 10500, 10500, 10500, 10500])
+    const targetAmount = 10000
+    const feeRate = 1
+
+    const result = selectStonewallUtxos(
+      utxos,
+      targetAmount,
+      feeRate,
+      stonewallOptions
+    )
+
+    expect(result.error).toBeUndefined()
+
+    const changeOutputs = result.outputs.filter((o) => o.type === 'change')
+    expect(changeOutputs).toHaveLength(1)
+    expect(changeOutputs[0].value).toBeGreaterThan(546)
+    expect(sumInputs(result.inputs)).toStrictEqual(
+      sumOutputs(result.outputs) + result.fee
+    )
+  })
+
+  it('should satisfy fee equals inputs minus outputs in privacy mode', () => {
+    const utxos = createMockUtxos([10000, 20000, 30000, 40000, 50000, 60000])
+    const targetAmount = 75000
+    const feeRate = 2
+
+    const result = selectStonewallUtxos(
+      utxos,
+      targetAmount,
+      feeRate,
+      stonewallOptions
+    )
+
+    expect(result.error).toBeUndefined()
+    expect(result.fee).toBe(
+      sumInputs(result.inputs) - sumOutputs(result.outputs)
+    )
+  })
+
+  it('should map stonewall change values to change addresses', () => {
+    const mapped = mapStonewallChangeOutputs(
+      [1000, 2000],
+      ['bc1qchange1', 'bc1qchange2']
+    )
+
+    expect(mapped).toStrictEqual([
+      { amount: 1000, to: 'bc1qchange1' },
+      { amount: 2000, to: 'bc1qchange2' }
+    ])
+  })
+
+  it('should fail cleanly when sets cannot balance target and fee', () => {
+    const utxos = createMockUtxos([35000, 15000])
+    const targetAmount = 20000
+    const feeRate = 1
+
+    const result = selectStonewallUtxos(
+      utxos,
+      targetAmount,
+      feeRate,
+      stonewallOptions
+    )
+
+    expect(result.error).toBe('Could not find a suitable STONEWALL structure')
+    expect(result.inputs).toHaveLength(0)
+  })
+
+  it('should produce deterministic inputs for a fixed seed', () => {
+    const utxos = createMockUtxos([10000, 20000, 30000, 40000, 50000, 60000])
+    const targetAmount = 75000
+    const feeRate = 2
+
+    const first = selectStonewallUtxos(
+      utxos,
+      targetAmount,
+      feeRate,
+      stonewallOptions
+    )
+    const second = selectStonewallUtxos(
+      utxos,
+      targetAmount,
+      feeRate,
+      stonewallOptions
+    )
+
+    expect(first.error).toBeUndefined()
+    expect(second.error).toBeUndefined()
+    expect(first.inputs.map((input) => input.txid)).toStrictEqual(
+      second.inputs.map((input) => input.txid)
+    )
   })
 
   it('should handle large UTXO sets efficiently', () => {
@@ -233,7 +354,12 @@ describe('stonewall utxo selection algorithm', () => {
     const targetAmount = 500000
     const feeRate = 2
 
-    const result = selectStonewallUtxos(utxos, targetAmount, feeRate)
+    const result = selectStonewallUtxos(
+      utxos,
+      targetAmount,
+      feeRate,
+      stonewallOptions
+    )
 
     expect(result.error).toBeUndefined()
     expect(result.inputs).toBeDefined()
