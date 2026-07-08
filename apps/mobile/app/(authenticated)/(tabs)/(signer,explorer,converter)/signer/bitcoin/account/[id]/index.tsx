@@ -240,6 +240,7 @@ function TransactionStaggerItem({
 type TotalTransactionsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
+  handleOnForceRescan: () => Promise<void>
   handleOnExpand: (state: boolean) => void
   expand: boolean
   setSortDirection: Dispatch<React.SetStateAction<Direction>>
@@ -251,6 +252,7 @@ type TotalTransactionsProps = {
 function TotalTransactions({
   account,
   handleOnRefresh,
+  handleOnForceRescan,
   handleOnExpand,
   expand,
   setSortDirection,
@@ -308,7 +310,10 @@ function TotalTransactions({
     <View style={{ flex: 1, paddingHorizontal: '6%' }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSHStack>
-          <SSIconButton onPress={() => handleOnRefresh()}>
+          <SSIconButton
+            onPress={() => handleOnRefresh()}
+            onLongPress={() => handleOnForceRescan()}
+          >
             <SSIconRefresh height={18} width={22} />
           </SSIconButton>
           <SSIconButton onPress={() => handleOnExpand(!expand)}>
@@ -1304,6 +1309,7 @@ export default function AccountView() {
           <TotalTransactions
             account={account}
             handleOnRefresh={handleOnRefresh}
+            handleOnForceRescan={handleOnForceRescan}
             handleOnExpand={handleOnExpand}
             expand={expand}
             setSortDirection={setSortDirectionTransactions}
@@ -1365,7 +1371,7 @@ export default function AccountView() {
     )
   }
 
-  async function refreshAccount() {
+  async function refreshAccount(forceFullScan = false) {
     if (!account) {
       return
     }
@@ -1381,7 +1387,7 @@ export default function AccountView() {
 
     try {
       const updatedAccount = !isImportAddress
-        ? await syncAccountWithWallet(account, wallet!)
+        ? await syncAccountWithWallet(account, wallet!, forceFullScan)
         : await syncAccountWithAddress(account)
       updateAccount(updatedAccount)
     } catch (error) {
@@ -1399,13 +1405,25 @@ export default function AccountView() {
     }
   }
 
-  async function handleOnRefresh() {
+  async function handleOnRefresh(forceFullScan = false) {
     setRefreshing(true)
     await fetchPrices(mempoolUrl)
-    await refreshAccount()
+    await refreshAccount(forceFullScan)
     // Fire-and-forget - don't block refresh completion for Nostr sync
     refreshAccountLabels()
     setRefreshing(false)
+  }
+
+  // Long-press the refresh button to force a full rescan. This re-derives
+  // addresses using the current gap limit, so a bumped stopGap can discover
+  // transactions an incremental sync would never reveal.
+  async function handleOnForceRescan() {
+    const isImportAddress = account?.keys[0]?.creationType === 'importAddress'
+    if (isImportAddress) {
+      return handleOnRefresh()
+    }
+    toast.info(t('account.sync.fullRescanStarted'))
+    return handleOnRefresh(true)
   }
 
   function handleOnExpand(state: boolean) {
