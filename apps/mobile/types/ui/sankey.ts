@@ -57,5 +57,8 @@ export const SANKEY_EQUAL_ROW_MIN_SLOT_PX = 64
 /** Bezier control-point extent cap in Skia link paths. */
 export const SANKEY_LINK_CURVE_CONTROL_MAX_PX = 60
 
-/** Along outgoing-unspent ribbon gradient (0–1): pure red holds until this stop, then fades to white. */
-export const SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP = 0.45
+/** Soft red for outgoing-unspent sankey ribbons (fades to white at plateau stop). */
+export const SANKEY_OUTGOING_UNSPENT_RIBBON_COLOR = '#D98A8A'
+
+/** Along outgoing-unspent ribbon gradient (0–1): ribbon color holds until this stop, then fades to white. */
+export const SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP = 0.1

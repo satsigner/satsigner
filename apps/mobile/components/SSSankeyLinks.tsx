@@ -1,9 +1,10 @@
 import { Group, Path, Skia, vec } from '@shopify/react-native-skia'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
-import { error, gray } from '@/styles/colors'
+import { gray, white } from '@/styles/colors'
 import {
   SANKEY_LINK_CURVE_CONTROL_MAX_PX,
+  SANKEY_OUTGOING_UNSPENT_RIBBON_COLOR,
   SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP
 } from '@/types/ui/sankey'
 import {
@@ -198,6 +199,7 @@ function SSSankeyLinks({
             <Path
               path={path1}
               style="fill"
+              antiAlias={false}
               color={isCurrentTx || isOwnOrUnspentRibbon ? 'white' : gray[700]}
               opacity={isCurrentTx || isOwnOrUnspentRibbon ? 1 : 0.5}
             />
@@ -218,8 +220,8 @@ function SSSankeyLinks({
                     midY,
                     gradEndX,
                     midY,
-                    [gray[900], isCurrentInput ? gray[500] : '#FFFFFF'],
-                    [0, 0.7]
+                    [gray[900], isCurrentInput ? gray[200] : white],
+                    [0, isCurrentInput ? 1 : 0.7]
                   )}
                 />
               </>
@@ -234,7 +236,11 @@ function SSSankeyLinks({
                   midY,
                   gradEndX,
                   midY,
-                  [error, error, '#FFFFFF'],
+                  [
+                    SANKEY_OUTGOING_UNSPENT_RIBBON_COLOR,
+                    SANKEY_OUTGOING_UNSPENT_RIBBON_COLOR,
+                    white
+                  ],
                   [0, SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP, 1]
                 )}
               />
