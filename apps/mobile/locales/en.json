@@ -463,6 +463,7 @@
   },
   "camera": {
     "button.resetScan": "Reset Scan",
+    "detected": "QR code detected",
     "enableCameraAccess": "Enable Camera Access",
     "error.assembleFailed": "Failed to assemble multi-part QR code",
     "error.bbqrDecodeFailed": "Failed to decode BBQR QR code",
@@ -473,6 +474,7 @@
     "error.urDecodeFailed": "Failed to decode UR QR code",
     "invalidContent": "Invalid {context} content detected",
     "lens.tele": "Tele",
+    "loadingContent": "Loading…",
     "permissions": "Enable camera access in your phone's settings to scan a QR code.",
     "scanQRCode": "Scan QRCode",
     "scanText": "Scan any Bitcoin or Lightning related QR code.",
