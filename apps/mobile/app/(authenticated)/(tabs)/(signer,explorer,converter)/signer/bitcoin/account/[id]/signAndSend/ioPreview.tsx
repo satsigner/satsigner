@@ -68,12 +68,10 @@ import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
   getUtxoOutpoint,
+  mapStonewallChangeOutputs,
   selectEfficientUtxos,
   selectStonewallUtxos
 } from '@/utils/utxo'
-
-// STONEWALL always produces two input sets, so two change outputs
-const STONEWALL_CHANGE_OUTPUTS = 2
 
 export default function IOPreview() {
   const router = useRouter()
@@ -131,6 +129,7 @@ export default function IOPreview() {
   const [stonewallChangeValues, setStonewallChangeValues] = useState<number[]>(
     []
   )
+  const [stonewallFee, setStonewallFee] = useState<number | null>(null)
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
 
   // this removes the change addresses if the user goes back to the IO preview.
@@ -139,7 +138,9 @@ export default function IOPreview() {
     if (!changeAddress || !shouldRemoveChange) {
       return
     }
-    const changeAddresses = new Set([changeAddress, secondChangeAddress])
+    const changeAddresses = new Set(
+      [changeAddress, secondChangeAddress, decoyAddress].filter(Boolean)
+    )
     for (const output of outputs) {
       if (changeAddresses.has(output.to)) {
         removeOutput(output.localId)
@@ -149,6 +150,7 @@ export default function IOPreview() {
     outputs,
     changeAddress,
     secondChangeAddress,
+    decoyAddress,
     shouldRemoveChange,
     removeOutput
   ])
@@ -428,8 +430,11 @@ export default function IOPreview() {
   }, [feeRate, nextBlockFee, setFeeRate])
 
   useEffect(() => {
+    if (selectedAutoSelectUtxos === 'privacy') {
+      return
+    }
     setFee(Math.round(localFeeRate * transactionSize.vsize))
-  }, [localFeeRate, transactionSize, setFee])
+  }, [localFeeRate, transactionSize, selectedAutoSelectUtxos, setFee])
 
   useEffect(() => {
     setLocalFeeRate(feeRate)
@@ -576,6 +581,7 @@ export default function IOPreview() {
         removeOutput(decoyOutput.localId)
       }
       setStonewallChangeValues([])
+      setStonewallFee(null)
     }
 
     // Use stored next-block fee when local fee rate hasn't been hydrated yet
@@ -623,14 +629,13 @@ export default function IOPreview() {
         }
 
         setAccountUtxos(stonewallResult.inputs)
-        // Decoy is a self-payment equal to the spend: two equal-value outputs
-        // hide the real recipient. Keep the per-set change values so
-        // handleGoToPreview can emit one change output per set.
         setStonewallChangeValues(
           stonewallResult.outputs
             .filter((output) => output.type === 'change')
             .map((output) => output.value)
         )
+        setStonewallFee(stonewallResult.fee)
+        setFee(stonewallResult.fee)
         addOutput({
           amount: userPaymentAmount,
           label: t('sign.decoyOutputLabelDefault'),
@@ -688,77 +693,34 @@ export default function IOPreview() {
     setLoadingOptimizeAlgorithm(false)
   }
 
-  // Emits one change output per STONEWALL set, split by the selector's per-set
-  // proportions. The fee is computed from the real two-change size so value is
-  // conserved and the effective rate stays at target. Returns true if added.
   function tryAddStonewallChangeOutputs(): boolean {
+    if (selectedAutoSelectUtxos !== 'privacy' || stonewallFee === null) {
+      return false
+    }
+
     if (
-      selectedAutoSelectUtxos !== 'privacy' ||
-      stonewallChangeValues.length !== STONEWALL_CHANGE_OUTPUTS ||
-      !changeAddress ||
-      !secondChangeAddress
+      stonewallChangeValues.length > 0 &&
+      (!changeAddress || !secondChangeAddress)
     ) {
       return false
     }
 
-    const changeAddresses = [changeAddress, secondChangeAddress]
-    const nonChangeOutputs = outputs.filter(
-      (output) => !changeAddresses.includes(output.to)
+    const changeOutputs = mapStonewallChangeOutputs(
+      stonewallChangeValues,
+      [changeAddress, secondChangeAddress].filter(Boolean)
     )
-    const sumNonChange = nonChangeOutputs.reduce(
-      (sum, output) => sum + output.amount,
-      0
-    )
-
-    const sizingOutputs: Output[] = [
-      ...nonChangeOutputs,
-      ...changeAddresses.map((to, index) => ({
-        amount: 0,
-        label: '',
-        localId: `stonewall-change-sizing-${index}`,
-        to
-      }))
-    ]
-    const { vsize } = estimateTransactionSize(
-      Array.from(inputs.values()),
-      sizingOutputs
-    )
-    const rawStonewallFee = Math.floor(localFeeRate * vsize)
-    const stonewallFee =
-      rawStonewallFee +
-      ((STONEWALL_CHANGE_OUTPUTS -
-        (rawStonewallFee % STONEWALL_CHANGE_OUTPUTS)) %
-        STONEWALL_CHANGE_OUTPUTS)
-    const totalChange = utxosSelectedValue - sumNonChange - stonewallFee
-
-    const proportionDenominator = stonewallChangeValues.reduce(
-      (sum, value) => sum + value,
-      0
-    )
-    const firstChange =
-      proportionDenominator > 0
-        ? Math.floor(
-            (totalChange * stonewallChangeValues[0]) / proportionDenominator
-          )
-        : Math.floor(totalChange / STONEWALL_CHANGE_OUTPUTS)
-    const secondChange = totalChange - firstChange
-
-    if (firstChange < DUST_LIMIT || secondChange < DUST_LIMIT) {
-      return false
-    }
 
     setShouldRemoveChange(false)
     setFee(stonewallFee)
-    addOutput({
-      amount: firstChange,
-      label: t('sign.changeAddressLabelDefault'),
-      to: changeAddress
-    })
-    addOutput({
-      amount: secondChange,
-      label: t('sign.changeAddressLabelDefault'),
-      to: secondChangeAddress
-    })
+
+    for (const output of changeOutputs) {
+      addOutput({
+        amount: output.amount,
+        label: t('sign.changeAddressLabelDefault'),
+        to: output.to
+      })
+    }
+
     return true
   }
 
