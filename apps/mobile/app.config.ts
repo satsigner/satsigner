@@ -1,57 +1,22 @@
 import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
+import { APP_VARIANT_PRODUCTION } from '@/constants/variant'
+import {
+  getVariantAppName,
+  getVariantPackageId,
+  getVariantScheme
+} from '@/utils/variantSuffix'
+
 const projectId = process.env.EXPO_PROJECT_ID
 
-const IS_DEV = process.env.APP_VARIANT !== 'production'
-
-// Optional per-branch/per-PR suffix, set by scripts/variant.mjs. When present,
-// it is appended to the package id, app name, and URL scheme so multiple builds
-// can coexist on the same device, each with its own isolated storage.
+const IS_DEV = process.env.APP_VARIANT !== APP_VARIANT_PRODUCTION
 const RAW_SUFFIX = process.env.APP_VARIANT_SUFFIX ?? ''
 
-// Android package segments must be lowercase, alphanumeric or underscore, and
-// cannot start with a digit.
-const getPackageSegment = () => {
-  const segment = RAW_SUFFIX.toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 24)
+const getUniqueIdentifier = () => getVariantPackageId(IS_DEV, RAW_SUFFIX)
 
-  if (!segment) {
-    return ''
-  }
+const getAppName = () => getVariantAppName(IS_DEV, RAW_SUFFIX)
 
-  return /^[a-z]/.test(segment) ? segment : `b_${segment}`
-}
-
-// URI schemes disallow underscores, so strip everything except [a-z0-9].
-const getSchemeSegment = () =>
-  RAW_SUFFIX.toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    .slice(0, 24)
-
-const PACKAGE_SEGMENT = getPackageSegment()
-const SCHEME_SEGMENT = getSchemeSegment()
-
-const getUniqueIdentifier = () => {
-  const base = IS_DEV ? 'com.satsigner.satsigner.dev' : 'com.satsigner.satsigner'
-
-  return PACKAGE_SEGMENT ? `${base}.${PACKAGE_SEGMENT}` : base
-}
-
-const getAppName = () => {
-  if (IS_DEV) {
-    return PACKAGE_SEGMENT ? `${PACKAGE_SEGMENT} (Dev)` : 'satsigner (Dev)'
-  }
-
-  return PACKAGE_SEGMENT ? `${PACKAGE_SEGMENT} (Prod)` : 'satsigner'
-}
-
-const getScheme = () => {
-  const base = IS_DEV ? 'satsignerdev' : 'satsigner'
-
-  return SCHEME_SEGMENT ? `${base}${SCHEME_SEGMENT}` : base
-}
+const getScheme = () => getVariantScheme(IS_DEV, RAW_SUFFIX)
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,

@@ -2,12 +2,6 @@
 /**
  * Per-branch / per-PR app variant builder.
  *
- * Resolves a unique suffix (from a flag or the current git branch), sets it as
- * an env var, runs `expo prebuild --clean`, and optionally builds/installs the
- * app. Each suffix produces a distinct Android package id, so multiple builds
- * coexist on one device — each with its own isolated storage (MMKV, SQLite,
- * secure store).
- *
  * Usage:
  *   pnpm variant                              current git branch -> unique id
  *   pnpm variant -- --suffix pr453            explicit suffix
@@ -25,11 +19,29 @@ import { copyFileSync, mkdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { APP_VARIANT_PRODUCTION } from '../constants/variant.ts'
+import {
+  getVariantAppName,
+  getVariantPackageId,
+  sanitizePackageSegment
+} from '../utils/variantSuffix.ts'
+
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const MOBILE_DIR = join(SCRIPT_DIR, '..')
 
-function parseArgs(argv) {
-  const args = {
+type VariantArgs = {
+  apk: boolean
+  device: string[]
+  ios: boolean
+  plain: boolean
+  prebuildOnly: boolean
+  prod: boolean
+  release: boolean
+  suffix: string | undefined
+}
+
+function parseArgs(argv: string[]) {
+  const args: VariantArgs = {
     apk: false,
     device: [],
     ios: false,
@@ -40,8 +52,15 @@ function parseArgs(argv) {
     suffix: undefined
   }
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i]
+  const remaining = [...argv]
+
+  while (remaining.length > 0) {
+    const arg = remaining.shift()
+
+    if (!arg) {
+      continue
+    }
+
     switch (arg) {
       case '--apk':
         args.apk = true
@@ -64,10 +83,9 @@ function parseArgs(argv) {
         args.release = true
         break
       case '--suffix':
-        args.suffix = argv[++i]
+        args.suffix = remaining.shift()
         break
       default:
-        // Everything else (e.g. --device, Pixel_9) is passed through to expo.
         args.device.push(arg)
     }
   }
@@ -86,23 +104,7 @@ function getGitBranch() {
   }
 }
 
-// Mirror the sanitization in app.config.ts so printed/copied names match the
-// values baked into the native project.
-function sanitizePackageSegment(raw) {
-  const segment = raw
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 24)
-
-  if (!segment) {
-    return ''
-  }
-
-  return /^[a-z]/.test(segment) ? segment : `b_${segment}`
-}
-
-function resolveSuffix(args) {
+function resolveSuffix(args: VariantArgs) {
   if (args.plain) {
     return { raw: '', source: 'plain' }
   }
@@ -115,7 +117,12 @@ function resolveSuffix(args) {
   return { raw: branch, source: `branch ${branch || '(unknown)'}` }
 }
 
-function run(command, commandArgs, env, cwd = MOBILE_DIR) {
+function run(
+  command: string,
+  commandArgs: string[],
+  env: NodeJS.ProcessEnv,
+  cwd = MOBILE_DIR
+) {
   const result = spawnSync(command, commandArgs, {
     cwd,
     env,
@@ -127,24 +134,62 @@ function run(command, commandArgs, env, cwd = MOBILE_DIR) {
   }
 }
 
+function buildApk({
+  buildType,
+  env,
+  packageId,
+  segment,
+  variant
+}: {
+  buildType: 'debug' | 'release'
+  env: NodeJS.ProcessEnv
+  packageId: string
+  segment: string
+  variant: string
+}) {
+  const androidDir = join(MOBILE_DIR, 'android')
+  const gradleTask =
+    buildType === 'release' ? 'assembleRelease' : 'assembleDebug'
+
+  run('./gradlew', [gradleTask], env, androidDir)
+
+  const builtApk = join(
+    androidDir,
+    'app',
+    'build',
+    'outputs',
+    'apk',
+    buildType,
+    `app-${buildType}.apk`
+  )
+
+  const outDir = join(MOBILE_DIR, 'dist', 'apks')
+  mkdirSync(outDir, { recursive: true })
+
+  const variantLabel = variant === APP_VARIANT_PRODUCTION ? 'prod' : 'dev'
+  const suffixLabel = segment || 'plain'
+  const outApk = join(
+    outDir,
+    `satsigner-${variantLabel}-${suffixLabel}-${buildType}.apk`
+  )
+
+  copyFileSync(builtApk, outApk)
+
+  console.log('')
+  console.log(`APK:     ${outApk}`)
+  console.log(`Package: ${packageId}`)
+  console.log(`Install: adb install "${outApk}"`)
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2))
   const { raw, source } = resolveSuffix(args)
+  const isDev = !args.prod
   const segment = sanitizePackageSegment(raw)
-  const variant = args.prod ? 'production' : 'development'
+  const variant = args.prod ? APP_VARIANT_PRODUCTION : 'development'
   const buildType = args.release ? 'release' : 'debug'
-
-  const base = args.prod
-    ? 'com.satsigner.satsigner'
-    : 'com.satsigner.satsigner.dev'
-  const packageId = segment ? `${base}.${segment}` : base
-  const appName = args.prod
-    ? segment
-      ? `${segment} (Prod)`
-      : 'satsigner'
-    : segment
-      ? `${segment} (Dev)`
-      : 'satsigner (Dev)'
+  const packageId = getVariantPackageId(isDev, raw)
+  const appName = getVariantAppName(isDev, raw)
 
   console.log('')
   console.log(`Variant: ${variant}`)
@@ -161,10 +206,6 @@ function main() {
 
   const platform = args.ios ? 'ios' : 'android'
 
-  // `expo prebuild --clean` deletes the native folder with a plain rmdir that
-  // fails on non-empty nested build artifacts (e.g. android/app/.cxx). Remove
-  // the folder ourselves first with a recursive/force delete so prebuild starts
-  // from a clean slate.
   rmSync(join(MOBILE_DIR, platform), { force: true, recursive: true })
 
   run('npx', ['expo', 'prebuild', '--clean', '--platform', platform], env)
@@ -190,40 +231,6 @@ function main() {
   runArgs.push(...args.device)
 
   run('npx', runArgs, env)
-}
-
-function buildApk({ buildType, env, packageId, segment, variant }) {
-  const androidDir = join(MOBILE_DIR, 'android')
-  const gradleTask = buildType === 'release' ? 'assembleRelease' : 'assembleDebug'
-
-  run('./gradlew', [gradleTask], env, androidDir)
-
-  const builtApk = join(
-    androidDir,
-    'app',
-    'build',
-    'outputs',
-    'apk',
-    buildType,
-    `app-${buildType}.apk`
-  )
-
-  const outDir = join(MOBILE_DIR, 'dist', 'apks')
-  mkdirSync(outDir, { recursive: true })
-
-  const variantLabel = variant === 'production' ? 'prod' : 'dev'
-  const suffixLabel = segment || 'plain'
-  const outApk = join(
-    outDir,
-    `satsigner-${variantLabel}-${suffixLabel}-${buildType}.apk`
-  )
-
-  copyFileSync(builtApk, outApk)
-
-  console.log('')
-  console.log(`APK:     ${outApk}`)
-  console.log(`Package: ${packageId}`)
-  console.log(`Install: adb install "${outApk}"`)
 }
 
 main()

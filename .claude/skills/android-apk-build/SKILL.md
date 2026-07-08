@@ -22,7 +22,7 @@ pnpm variant -- --apk --suffix pr453 --release   # named APK, no install
 
 Flags: `--suffix <v>`, `--plain`, `--prod`, `--release`, `--prebuild-only`, `--apk`, `--ios`; anything else (e.g. `--device Pixel_9`) passes through to `expo run:*`.
 
-The script sets `APP_VARIANT_SUFFIX`, runs `expo prebuild --clean` (which rebakes the package id, since it is compiled into `android/`), then builds. `--apk` copies the Gradle output to `dist/apks/satsigner-<dev|prod>-<suffix>-<release|debug>.apk`.
+The script sets `APP_VARIANT_SUFFIX`, runs `expo prebuild --clean` (which rebakes the package id, since it is compiled into `android/`), then builds. `--apk` copies the Gradle output to `dist/apks/satsigner-<dev|prod>-<suffix>-<release|debug>.apk`. Suffix sanitization lives in `utils/variantSuffix.ts` and is covered by unit tests.
 
 Changing suffix requires a re-prebuild (handled automatically). To remove a variant: `adb uninstall com.satsigner.satsigner.dev.<segment>`.
 
