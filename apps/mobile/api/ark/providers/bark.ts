@@ -56,7 +56,6 @@ function appNetworkToBarkNetwork(network: Network): BarkNetwork {
 function buildConfig(server: ArkServer): Config {
   return Config.create({
     esploraAddress: server.esploraUrl,
-    network: appNetworkToBarkNetwork(server.network),
     roundTxRequiredConfirmations: ROUND_TX_REQUIRED_CONFIRMATIONS,
     serverAddress: server.arkUrl
   })
@@ -76,21 +75,31 @@ async function createWallet({
   server,
   datadir
 }: ArkWalletArgs): Promise<void> {
-  const wallet = await Wallet.create(
+  const wallet = await Wallet.open(
+    appNetworkToBarkNetwork(server.network),
     mnemonic,
     buildConfig(server),
-    datadir,
-    false
+    {
+      createIfNotExists: true,
+      createWithoutServer: false,
+      datadir,
+      runDaemon: false
+    }
   )
   walletCache.set(accountId, wallet)
 }
 
 async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
-  const wallet = await Wallet.openWithDaemon(
+  const wallet = await Wallet.open(
+    appNetworkToBarkNetwork(args.server.network),
     args.mnemonic,
     buildConfig(args.server),
-    args.datadir,
-    undefined
+    {
+      createIfNotExists: true,
+      createWithoutServer: false,
+      datadir: args.datadir,
+      runDaemon: true
+    }
   )
   walletCache.set(args.accountId, wallet)
   try {
@@ -316,7 +325,7 @@ function sendArkoor(
   accountId: string,
   arkAddress: string,
   amountSats: number
-): Promise<string> {
+): Promise<void> {
   const wallet = getCachedWallet(accountId)
   return wallet.sendArkoorPayment(arkAddress, BigInt(amountSats))
 }

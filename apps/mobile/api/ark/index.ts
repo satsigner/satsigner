@@ -83,7 +83,7 @@ export function sendArkArkoor(
   accountId: string,
   arkAddress: string,
   amountSats: number
-): Promise<string> {
+): Promise<void> {
   return getArkProvider(serverId).sendArkoor(accountId, arkAddress, amountSats)
 }
 

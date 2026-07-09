@@ -27,9 +27,8 @@ export const Config = {
 }
 
 export const Wallet = {
-  create: jest.fn(),
   instanceOf: (_obj: unknown): boolean => false,
-  openWithDaemon: jest.fn()
+  open: jest.fn()
 }
 
 const notificationInstances = new Set<WalletNotifications>()
@@ -74,6 +73,5 @@ export function __countWalletNotificationListeners(): number {
 
 export function __resetBarkMock(): void {
   notificationInstances.clear()
-  Wallet.create.mockReset()
-  Wallet.openWithDaemon.mockReset()
+  Wallet.open.mockReset()
 }
