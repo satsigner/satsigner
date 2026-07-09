@@ -1,10 +1,9 @@
 import { type BdkWallet, KeychainKind } from 'react-native-bdk-sdk'
 
+import { UNUSED_INTERNAL_ADDRESSES_NEEDED } from '@/constants/btc'
 import { type Account } from '@/types/models/Account'
 
 const MAX_INTERNAL_ADDRESS_SCAN = 1000
-// change + second STONEWALL change + decoy
-const UNUSED_INTERNAL_ADDRESSES_NEEDED = 3
 
 function getUsedOutputAddresses(account: Account): Set<string> {
   const used = new Set<string>()
