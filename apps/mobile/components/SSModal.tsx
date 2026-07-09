@@ -1,5 +1,6 @@
 import { Modal, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Toaster } from 'sonner-native'
 
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -37,6 +38,7 @@ function SSModal({
           { paddingBottom: insets.bottom, paddingTop: insets.top }
         ]}
       >
+        <Toaster />
         <View style={styles.container}>
           <SSVStack justifyBetween itemsCenter style={styles.innerContainer}>
             {children}
