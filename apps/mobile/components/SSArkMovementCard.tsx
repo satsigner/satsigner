@@ -3,6 +3,7 @@ import { StyleSheet, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSArkMovementIcon from '@/components/SSArkMovementIcon'
+import SSLabelTags from '@/components/SSLabelTags'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
@@ -26,11 +27,16 @@ import { formatFiatPrice, formatNumber } from '@/utils/format'
 type SSArkMovementCardProps = {
   movement: ArkMovement
   link: Href
+  label?: string
 }
 
 const ICON_SIZE = 18
 
-function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
+function SSArkMovementCard({
+  movement,
+  link,
+  label = ''
+}: SSArkMovementCardProps) {
   const router = useRouter()
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
@@ -130,6 +136,7 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
               )}
             </SSText>
           )}
+          <SSLabelTags label={label} size="xs" />
         </SSVStack>
         <SSVStack gap="xxs" style={styles.rightColumn}>
           <SSTimeAgoText date={timestamp} size="xs" />

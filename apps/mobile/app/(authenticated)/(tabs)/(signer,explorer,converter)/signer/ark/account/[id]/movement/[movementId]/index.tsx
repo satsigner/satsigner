@@ -3,8 +3,10 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSArkMovementIcon from '@/components/SSArkMovementIcon'
+import SSLabelDetails from '@/components/SSLabelDetails'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import { useArkLabels } from '@/hooks/useArkLabels'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -18,6 +20,7 @@ import {
   getArkMovementAmountSats,
   getArkMovementKind,
   getArkMovementKindLabel,
+  getArkMovementLabelRef,
   getArkMovementStatusColor,
   getArkMovementStatusLabel,
   isLightningMovement,
@@ -106,7 +109,7 @@ function AddressList({ label, values }: AddressListProps) {
   )
 }
 
-function MovementSummary({ movement }: { movement: ArkMovement }) {
+export function MovementSummary({ movement }: { movement: ArkMovement }) {
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
       state.currencyUnit,
@@ -179,11 +182,16 @@ export default function ArkMovementDetailPage() {
     movementId: string
   }>()
   const movementsQuery = useArkMovements(id)
+  const labelsQuery = useArkLabels(id)
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const numericMovementId = Number(movementId)
   const movement = movementsQuery.data?.find(
     (item) => item.id === numericMovementId
   )
+  const movementLabel = movement
+    ? (labelsQuery.data?.[getArkMovementLabelRef(movement)]?.label ?? '')
+    : ''
 
   const satsUnit = t('bitcoin.sats')
 
@@ -208,6 +216,12 @@ export default function ArkMovementDetailPage() {
         <ScrollView>
           <SSVStack gap="lg" style={styles.container}>
             <MovementSummary movement={movement} />
+            <SSLabelDetails
+              label={movementLabel}
+              link={`/signer/ark/account/${id}/movement/${movementId}/label`}
+              header={t('transaction.label')}
+              privacyMode={privacyMode}
+            />
             <SSVStack gap="none" style={styles.section}>
               <DetailRow
                 label={t('ark.movement.detail.kind')}

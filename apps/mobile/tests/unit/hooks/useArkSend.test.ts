@@ -47,7 +47,7 @@ describe('executeArkSend', () => {
   })
 
   it('routes arkoor sends to sendArkArkoor', async () => {
-    jest.mocked(sendArkArkoor).mockResolvedValue('txid1')
+    jest.mocked(sendArkArkoor).mockResolvedValue(undefined)
     const outcome = await executeArkSend(ACCOUNT_ID, {
       address: 'ark1abc',
       amountSats: 100,
@@ -61,8 +61,7 @@ describe('executeArkSend', () => {
     )
     expect(outcome).toStrictEqual({
       amountSats: 100,
-      kind: 'arkoor',
-      txid: 'txid1'
+      kind: 'arkoor'
     })
   })
 

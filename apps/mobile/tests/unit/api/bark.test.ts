@@ -9,7 +9,7 @@ import type { ArkServer, ArkWalletProvider } from '@/types/models/Ark'
 type BarkTestHelpers = {
   __countWalletNotificationListeners: () => number
   __emitWalletNotification: (event: unknown) => void
-  Wallet: { create: jest.Mock; openWithDaemon: jest.Mock }
+  Wallet: { open: jest.Mock }
 }
 
 const { __countWalletNotificationListeners, __emitWalletNotification, Wallet } =
@@ -74,7 +74,7 @@ async function openWallet(
   accountId: string,
   wallet: FakeWallet
 ): Promise<void> {
-  Wallet.openWithDaemon.mockResolvedValue(wallet)
+  Wallet.open.mockResolvedValue(wallet)
   await provider.openWallet({
     accountId,
     datadir: `/tmp/${accountId}`,
@@ -274,7 +274,7 @@ describe('bark provider', () => {
     const failing = buildFakeWallet({
       sync: jest.fn().mockRejectedValue(new Error('network down'))
     })
-    Wallet.openWithDaemon.mockResolvedValueOnce(failing)
+    Wallet.open.mockResolvedValueOnce(failing)
     await expect(
       provider.openWallet({
         accountId: 'retry1',
@@ -285,7 +285,7 @@ describe('bark provider', () => {
     ).rejects.toThrow('network down')
 
     const healthy = buildFakeWallet()
-    Wallet.openWithDaemon.mockResolvedValueOnce(healthy)
+    Wallet.open.mockResolvedValueOnce(healthy)
     await expect(
       provider.openWallet({
         accountId: 'retry1',
@@ -294,7 +294,7 @@ describe('bark provider', () => {
         server: SERVER
       })
     ).resolves.toBeUndefined()
-    expect(Wallet.openWithDaemon).toHaveBeenCalledTimes(2)
+    expect(Wallet.open).toHaveBeenCalledTimes(2)
     expect(healthy.sync).toHaveBeenCalledTimes(1)
   })
 

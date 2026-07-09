@@ -1,7 +1,5 @@
 import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
-const CURRENT_VERSION = 3
-
 const SCHEMA_V1 = `
 CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
 
@@ -239,6 +237,33 @@ const SCHEMA_V3 = `
 ALTER TABLE nostr_profile_cache ADD COLUMN banner TEXT
 `
 
+// No foreign key on account_id: ark accounts live in the MMKV-backed ark
+// store, not in the SQLite accounts table.
+const SCHEMA_V4 = `
+CREATE TABLE IF NOT EXISTS ark_labels (
+  ref TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  label TEXT NOT NULL,
+  PRIMARY KEY (ref, account_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ark_labels_account ON ark_labels(account_id);
+`
+
+const SCHEMAS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4]
+const CURRENT_VERSION = SCHEMAS.length
+
+function runSchemaStatements(db: NitroSQLiteConnection, schema: string) {
+  const statements = schema
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  for (const statement of statements) {
+    db.execute(statement)
+  }
+}
+
 function runMigrations(db: NitroSQLiteConnection) {
   const currentVersion = getSchemaVersion(db)
 
@@ -246,34 +271,13 @@ function runMigrations(db: NitroSQLiteConnection) {
     return
   }
 
-  if (currentVersion < 1) {
-    const statements = SCHEMA_V1.split(';')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    for (const statement of statements) {
-      db.execute(statement)
+  for (const [index, schema] of SCHEMAS.entries()) {
+    const version = index + 1
+    if (currentVersion >= version) {
+      continue
     }
-    setSchemaVersion(db, 1)
-  }
-
-  if (currentVersion < 2) {
-    const statements = SCHEMA_V2.split(';')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    for (const statement of statements) {
-      db.execute(statement)
-    }
-    setSchemaVersion(db, 2)
-  }
-
-  if (currentVersion < 3) {
-    const statements = SCHEMA_V3.split(';')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    for (const statement of statements) {
-      db.execute(statement)
-    }
-    setSchemaVersion(db, 3)
+    runSchemaStatements(db, schema)
+    setSchemaVersion(db, version)
   }
 }
 

@@ -52,6 +52,10 @@ export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
   return 'refresh'
 }
 
+export function getArkMovementLabelRef(movement: ArkMovement): string {
+  return `movement:${movement.id}`
+}
+
 export function selectArkTransactions(movements: ArkMovement[]): ArkMovement[] {
   return movements.filter(
     (movement) => getArkMovementKind(movement) !== 'refresh'

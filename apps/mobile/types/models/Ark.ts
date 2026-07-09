@@ -162,7 +162,7 @@ export interface ArkWalletProvider {
     accountId: string,
     arkAddress: string,
     amountSats: number
-  ) => Promise<string>
+  ) => Promise<void>
   payBolt11: (
     accountId: string,
     invoice: string,

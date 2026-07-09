@@ -18,13 +18,8 @@ export async function executeArkSend(
   const { serverId } = getArkAccountOrThrow(accountId)
 
   if (input.kind === 'arkoor') {
-    const txid = await sendArkArkoor(
-      serverId,
-      accountId,
-      input.address,
-      input.amountSats
-    )
-    return { amountSats: input.amountSats, kind: 'arkoor', txid }
+    await sendArkArkoor(serverId, accountId, input.address, input.amountSats)
+    return { amountSats: input.amountSats, kind: 'arkoor' }
   }
 
   if (input.kind === 'bolt11') {

@@ -3,6 +3,7 @@ import {
   getArkMovementAmountSats,
   getArkMovementCounterparty,
   getArkMovementKind,
+  getArkMovementLabelRef,
   isLightningMovement,
   isMutedArkMovement,
   isStaleArkExitMovement,
@@ -261,6 +262,25 @@ describe('arkMovement utils', () => {
         subsystemName: 'bark.lightning_send'
       })
       expect(getArkMovementCounterparty(movement)).toBe('lnbc500...')
+    })
+  })
+
+  describe('getArkMovementLabelRef', () => {
+    it('builds the ref from the movement id', () => {
+      const movement = buildMovement({ id: 7 })
+      expect(getArkMovementLabelRef(movement)).toBe('movement:7')
+    })
+
+    it('does not change when vtxo ids are populated later', () => {
+      const pending = buildMovement({ id: 7, status: 'pending' })
+      const settled = buildMovement({
+        id: 7,
+        inputVtxoIds: ['a:0'],
+        outputVtxoIds: ['c:0']
+      })
+      expect(getArkMovementLabelRef(pending)).toBe(
+        getArkMovementLabelRef(settled)
+      )
     })
   })
 })

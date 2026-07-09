@@ -41,6 +41,7 @@ import { useArkAddresses } from '@/hooks/useArkAddresses'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkExit } from '@/hooks/useArkExit'
 import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
+import { useArkLabels } from '@/hooks/useArkLabels'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import { useArkRefresh } from '@/hooks/useArkRefresh'
 import { useArkRefreshFeeEstimate } from '@/hooks/useArkRefreshFeeEstimate'
@@ -59,7 +60,11 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import type { ArkAddress, ArkMovement } from '@/types/models/Ark'
 import { getArkPendingSats, getArkTotalSats } from '@/utils/ark'
-import { selectArkRefreshes, selectArkTransactions } from '@/utils/arkMovement'
+import {
+  getArkMovementLabelRef,
+  selectArkRefreshes,
+  selectArkTransactions
+} from '@/utils/arkMovement'
 import {
   type ArkVtxoListItem,
   buildArkVtxoSections,
@@ -93,6 +98,7 @@ export default function ArkAccountDetailPage() {
   const movementsQuery = useArkMovements(id)
   const vtxosQuery = useArkVtxos(id)
   const addressesResult = useArkAddresses(id)
+  const labelsQuery = useArkLabels(id)
   const { handleContentReady } = useArkSendNavigation(id)
   useFetchBitcoinPrice()
 
@@ -131,6 +137,7 @@ export default function ArkAccountDetailPage() {
   const vtxos = vtxosQuery.data ?? []
   const vtxoItems = buildArkVtxoSections(vtxos)
   const { addresses } = addressesResult
+  const labels = labelsQuery.data ?? {}
 
   const selectedSpendableIds = filterSelectableVtxoIds(vtxos, selectedIds)
   const selectedVtxos = vtxos.filter((vtxo) =>
@@ -218,6 +225,20 @@ export default function ArkAccountDetailPage() {
     setSelectedIds([])
   }
 
+  function handleEditAddressLabel(address: string) {
+    router.navigate({
+      params: { addr: address, id },
+      pathname: '/signer/ark/account/[id]/address/[addr]/label'
+    })
+  }
+
+  function handleEditVtxoLabel(vtxoId: string) {
+    router.navigate({
+      params: { id, vtxoId },
+      pathname: '/signer/ark/account/[id]/vtxo/[vtxoId]/label'
+    })
+  }
+
   function handleOffboardSelected() {
     router.navigate(
       `/signer/ark/account/${id}/settings/offboard?vtxoIds=${encodeURIComponent(
@@ -299,12 +320,19 @@ export default function ArkAccountDetailPage() {
       <SSArkMovementCard
         movement={item}
         link={`/signer/ark/account/${id}/movement/${item.id}`}
+        label={labels[getArkMovementLabelRef(item)]?.label ?? ''}
       />
     )
   }
 
   function renderAddressItem({ item }: { item: ArkAddress }) {
-    return <SSArkAddressCard address={item} />
+    return (
+      <SSArkAddressCard
+        address={item}
+        label={labels[item.address]?.label ?? ''}
+        onEditLabel={handleEditAddressLabel}
+      />
+    )
   }
 
   function renderVtxoItem({ item }: { item: ArkVtxoListItem }) {
@@ -328,6 +356,8 @@ export default function ArkAccountDetailPage() {
         vtxo={item.vtxo}
         selected={selectedSpendableIds.includes(item.vtxo.id)}
         onToggle={item.vtxo.spendable ? handleToggleVtxo : undefined}
+        label={labels[item.vtxo.id]?.label ?? ''}
+        onEditLabel={handleEditVtxoLabel}
       />
     )
   }

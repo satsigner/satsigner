@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSIconButton from '@/components/SSIconButton'
+import SSLabelTags from '@/components/SSLabelTags'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -11,16 +13,24 @@ import { Colors } from '@/styles'
 import type { ArkVtxo } from '@/types/models/Ark'
 import { formatTxId } from '@/utils/format'
 
+import { SSIconEditPencil } from './icons'
+
+const EDIT_ICON_SIZE = 16
+
 type SSArkVtxoCardProps = {
   vtxo: ArkVtxo
   selected?: boolean
   onToggle?: (id: string) => void
+  label?: string
+  onEditLabel?: (id: string) => void
 }
 
 function SSArkVtxoCard({
   vtxo,
   selected = false,
-  onToggle
+  onToggle,
+  label = '',
+  onEditLabel
 }: SSArkVtxoCardProps) {
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
@@ -68,12 +78,23 @@ function SSArkVtxoCard({
           <SSText size="xxs" style={styles.id} numberOfLines={1}>
             {formatTxId(vtxo.id)}
           </SSText>
+          <SSLabelTags label={label} size="xxs" />
         </SSVStack>
       </SSHStack>
       <SSVStack gap="xxs" style={styles.rightColumn}>
-        <SSText size="xs" color="muted" uppercase>
-          {vtxo.spendable ? t('ark.vtxo.spendable') : t('ark.vtxo.locked')}
-        </SSText>
+        <SSHStack gap="sm">
+          <SSText size="xs" color="muted" uppercase>
+            {vtxo.spendable ? t('ark.vtxo.spendable') : t('ark.vtxo.locked')}
+          </SSText>
+          {onEditLabel && (
+            <SSIconButton onPress={() => onEditLabel(vtxo.id)}>
+              <SSIconEditPencil
+                height={EDIT_ICON_SIZE}
+                width={EDIT_ICON_SIZE}
+              />
+            </SSIconButton>
+          )}
+        </SSHStack>
         <SSText size="xxs" style={styles.expiry}>
           {t('ark.vtxo.expiry', { height: vtxo.expiryHeight })}
         </SSText>

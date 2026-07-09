@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 
 import { releaseArkWallet } from '@/api/ark'
+import { deleteArkLabelsByAccount } from '@/db/mutations/arkLabels'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import { deleteArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
@@ -20,6 +21,7 @@ export function useArkDeleteAccount() {
 
     await deleteArkMnemonic(accountId)
     await deleteArkDatadir(accountId)
+    deleteArkLabelsByAccount(accountId)
     removeAccount(accountId)
     clearArkDerivedAddresses(accountId)
 
