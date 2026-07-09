@@ -1417,7 +1417,7 @@ export default function AccountView() {
   // Long-press the refresh button to force a full rescan. This re-derives
   // addresses using the current gap limit, so a bumped stopGap can discover
   // transactions an incremental sync would never reveal.
-  async function handleOnForceRescan() {
+  function handleOnForceRescan() {
     const isImportAddress = account?.keys[0]?.creationType === 'importAddress'
     if (isImportAddress) {
       return handleOnRefresh()
