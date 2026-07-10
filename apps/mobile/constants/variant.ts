@@ -1,12 +1,15 @@
-export const VARIANT_SUFFIX_MAX_LENGTH = 24
-
-export const PACKAGE_ID_DEV = 'com.satsigner.satsigner.dev'
-export const PACKAGE_ID_PROD = 'com.satsigner.satsigner'
-
-export const SCHEME_DEV = 'satsignerdev'
-export const SCHEME_PROD = 'satsigner'
-
-export const APP_NAME_DEV = 'satsigner (Dev)'
-export const APP_NAME_PROD = 'satsigner'
-
-export const APP_VARIANT_PRODUCTION = 'production'
+export {
+  APP_NAME_DEV,
+  APP_NAME_PROD,
+  APP_VARIANT_PRODUCTION,
+  PACKAGE_ID_DEV,
+  PACKAGE_ID_PROD,
+  SCHEME_DEV,
+  SCHEME_PROD,
+  VARIANT_SUFFIX_MAX_LENGTH,
+  getVariantAppName,
+  getVariantPackageId,
+  getVariantScheme,
+  sanitizePackageSegment,
+  sanitizeSchemeSegment
+} from './variant.cjs'

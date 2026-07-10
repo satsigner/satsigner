@@ -19,12 +19,12 @@ import { copyFileSync, mkdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { APP_VARIANT_PRODUCTION } from '../constants/variant'
 import {
+  APP_VARIANT_PRODUCTION,
   getVariantAppName,
   getVariantPackageId,
   sanitizePackageSegment
-} from '../utils/variantSuffix'
+} from '../constants/variant.cjs'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const MOBILE_DIR = join(SCRIPT_DIR, '..')

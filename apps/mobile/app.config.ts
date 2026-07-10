@@ -1,11 +1,11 @@
 import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
-import { APP_VARIANT_PRODUCTION } from '@/constants/variant'
 import {
+  APP_VARIANT_PRODUCTION,
   getVariantAppName,
   getVariantPackageId,
   getVariantScheme
-} from '@/utils/variantSuffix'
+} from './constants/variant.cjs'
 
 const projectId = process.env.EXPO_PROJECT_ID
 
