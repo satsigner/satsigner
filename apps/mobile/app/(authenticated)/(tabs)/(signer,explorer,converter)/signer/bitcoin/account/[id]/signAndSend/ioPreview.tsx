@@ -53,6 +53,7 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
+import { getScriptVersionType } from '@/utils/address'
 import { parseBitcoinUri } from '@/utils/bip321'
 import {
   detectContentByContext,
@@ -616,11 +617,30 @@ export default function IOPreview() {
 
         setPreviousUserSelectedUtxos(getInputs())
 
+        const paymentOutputs = outputs.filter(
+          (output) => output.to !== decoyAddress
+        )
+        const recipientAddress = paymentOutputs[0]?.to
+        const recipientScriptType =
+          (recipientAddress && getScriptVersionType(recipientAddress)) ||
+          account.keys[0]?.scriptVersion ||
+          'P2WPKH'
+        const changeScriptType =
+          account.keys[0]?.scriptVersion ||
+          account.addresses.find((address) => address.keychain === 'external')
+            ?.scriptVersion ||
+          recipientScriptType
+
         const stonewallResult = selectStonewallUtxos(
           account.utxos,
           userPaymentAmount,
           effectiveFeeRate,
-          { outputs: outputs.filter((output) => output.to !== decoyAddress) }
+          {
+            addresses: account.addresses,
+            changeScriptType,
+            outputs: paymentOutputs,
+            recipientScriptType
+          }
         )
 
         if (stonewallResult.error) {

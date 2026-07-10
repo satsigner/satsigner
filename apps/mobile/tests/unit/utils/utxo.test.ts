@@ -1,9 +1,12 @@
 import { type Utxo } from '@/types/models/Utxo'
+import { shuffleWithJavaRandom } from '@/utils/array'
+import { javaSeededRandom } from '@/utils/crypto'
 import {
   mapStonewallChangeOutputs,
   selectEfficientUtxos,
   selectStonewallUtxos,
-  selectUtxos
+  selectUtxos,
+  sortUtxosForSparrowSelection
 } from '@/utils/utxo'
 
 const STONEWALL_TEST_SEED = 42
@@ -159,6 +162,78 @@ describe('efficiency UTXO Selection Algorithm', () => {
 describe('stonewall utxo selection algorithm', () => {
   const stonewallOptions = { seed: STONEWALL_TEST_SEED }
 
+  it('should match java.util.Random shuffle output for seed 42', () => {
+    const random = javaSeededRandom(STONEWALL_TEST_SEED)
+    const shuffled = shuffleWithJavaRandom([0, 1, 2, 3, 4, 5], random)
+
+    expect(shuffled).toStrictEqual([1, 0, 4, 5, 3, 2])
+  })
+
+  it('should order utxos by external address index before internal', () => {
+    const utxos: Utxo[] = [
+      {
+        addressTo: p2wpkhAddress(2),
+        keychain: 'internal',
+        label: '',
+        txid: 'tx-internal',
+        value: 1000,
+        vout: 0
+      },
+      {
+        addressTo: p2wpkhAddress(1),
+        keychain: 'external',
+        label: '',
+        txid: 'tx-external-1',
+        value: 2000,
+        vout: 0
+      },
+      {
+        addressTo: p2wpkhAddress(0),
+        keychain: 'external',
+        label: '',
+        txid: 'tx-external-0',
+        value: 3000,
+        vout: 0
+      }
+    ]
+
+    const ordered = sortUtxosForSparrowSelection(utxos, [
+      {
+        address: p2wpkhAddress(0),
+        index: 0,
+        keychain: 'external',
+        label: '',
+        summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
+        transactions: [],
+        utxos: []
+      },
+      {
+        address: p2wpkhAddress(1),
+        index: 1,
+        keychain: 'external',
+        label: '',
+        summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
+        transactions: [],
+        utxos: []
+      },
+      {
+        address: p2wpkhAddress(2),
+        index: 0,
+        keychain: 'internal',
+        label: '',
+        summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
+        transactions: [],
+        utxos: []
+      }
+    ])
+
+    expect(ordered.map((utxo) => utxo.txid)).toStrictEqual([
+      'tx-external-0',
+      'tx-external-1',
+      'tx-internal'
+    ])
+  })
+
   it('should create a valid STONEWALL transaction with sufficient funds', () => {
     const utxos = createMockUtxos([10000, 20000, 30000, 40000, 50000, 60000])
     const targetAmount = 75000
@@ -254,7 +329,7 @@ describe('stonewall utxo selection algorithm', () => {
     )
   })
 
-  it('should keep the large set change when only the other set is dust', () => {
+  it('should still succeed when mixed-size sets include dust-sized change', () => {
     const utxos = createMockUtxos([120000, 10500, 10500, 10500, 10500])
     const targetAmount = 10000
     const feeRate = 1
@@ -267,13 +342,14 @@ describe('stonewall utxo selection algorithm', () => {
     )
 
     expect(result.error).toBeUndefined()
-
-    const changeOutputs = result.outputs.filter((o) => o.type === 'change')
-    expect(changeOutputs).toHaveLength(1)
-    expect(changeOutputs[0].value).toBeGreaterThan(546)
+    expect(result.outputs.filter((o) => o.type === 'recipient')).toHaveLength(1)
+    expect(result.outputs.filter((o) => o.type === 'fakeMix')).toHaveLength(1)
     expect(sumInputs(result.inputs)).toStrictEqual(
       sumOutputs(result.outputs) + result.fee
     )
+
+    const changeOutputs = result.outputs.filter((o) => o.type === 'change')
+    expect(changeOutputs.every((output) => output.value > 546)).toBe(true)
   })
 
   it('should satisfy fee equals inputs minus outputs in privacy mode', () => {

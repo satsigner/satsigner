@@ -53,6 +53,46 @@ function seededRandom(seed: number) {
 }
 /* eslint-enable unicorn/prefer-math-trunc, operator-assignment */
 
+const JAVA_RANDOM_MULTIPLIER = 0x5deece66dn
+const JAVA_RANDOM_ADDEND = 0xbn
+const JAVA_RANDOM_MASK = (1n << 48n) - 1n
+
+/**
+ * Deterministic PRNG matching java.util.Random (48-bit LCG). Sparrow's
+ * StonewallUtxoSelector uses new Random(42), so STONEWALL selection must use
+ * this instead of mulberry32 to produce the same shuffle sequence.
+ */
+function javaSeededRandom(seed: number) {
+  let state = (BigInt(seed) ^ JAVA_RANDOM_MULTIPLIER) & JAVA_RANDOM_MASK
+
+  function next(bits: number) {
+    state =
+      (state * JAVA_RANDOM_MULTIPLIER + JAVA_RANDOM_ADDEND) & JAVA_RANDOM_MASK
+    return Number(state >> BigInt(48 - bits))
+  }
+
+  function nextInt(bound: number) {
+    if (bound <= 0) {
+      throw new Error('bound must be positive')
+    }
+
+    if ((bound & (bound - 1)) === 0) {
+      return Number((BigInt(bound) * BigInt(next(31))) >> 31n)
+    }
+
+    let bits: number
+    let val: number
+    do {
+      bits = next(31)
+      val = bits % bound
+    } while (bits - val + (bound - 1) < 0)
+
+    return val
+  }
+
+  return { nextInt }
+}
+
 function sha256(text: string): Promise<string> {
   const hash = QuickCrypto.createHash('sha256')
   hash.update(text)
@@ -129,6 +169,7 @@ export {
   randomKey,
   randomNum,
   randomUuid,
+  javaSeededRandom,
   seededRandom,
   sha256
 }

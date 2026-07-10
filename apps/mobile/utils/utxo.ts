@@ -1,10 +1,11 @@
 import { DUST_LIMIT } from '@/constants/btc'
+import { type Address } from '@/types/models/Address'
 import { type Output } from '@/types/models/Output'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Utxo } from '@/types/models/Utxo'
 import { getScriptVersionType } from '@/utils/address'
-import { shuffle } from '@/utils/array'
-import { randomNum, seededRandom } from '@/utils/crypto'
+import { shuffle, shuffleWithJavaRandom } from '@/utils/array'
+import { javaSeededRandom, randomNum, seededRandom } from '@/utils/crypto'
 import {
   getInputVbytes,
   getOutputVbytes,
@@ -30,6 +31,7 @@ const STONEWALL_SELECTION_SEED = 42
 type SelectionStrategy = 'efficiency' | 'privacy'
 
 type UtxoSelectionOptions = {
+  addresses?: Pick<Address, 'address' | 'index' | 'keychain'>[]
   dustThreshold: number
   longTermFeeRate: number
   outputs: Output[]
@@ -89,6 +91,69 @@ function sumEffectiveValue(groups: OutputGroup[]) {
 
 function flattenUtxos(groups: OutputGroup[]) {
   return groups.flatMap((group) => group.utxos)
+}
+
+function keychainRank(keychain?: Address['keychain']) {
+  return keychain === 'internal' ? 1 : 0
+}
+
+/**
+ * Orders UTXOs like Sparrow's getGroupedUtxos: external addresses first, then
+ * internal, each in derivation index order, then txid/vout within an address.
+ */
+function sortUtxosForSparrowSelection(
+  utxos: Utxo[],
+  addresses?: Pick<Address, 'address' | 'index' | 'keychain'>[]
+): Utxo[] {
+  if (!addresses?.length) {
+    return [...utxos].toSorted((a, b) => {
+      const keychainDiff = keychainRank(a.keychain) - keychainRank(b.keychain)
+      if (keychainDiff !== 0) {
+        return keychainDiff
+      }
+
+      const addressDiff = (a.addressTo || '').localeCompare(b.addressTo || '')
+      if (addressDiff !== 0) {
+        return addressDiff
+      }
+
+      const txidDiff = a.txid.localeCompare(b.txid)
+      if (txidDiff !== 0) {
+        return txidDiff
+      }
+
+      return a.vout - b.vout
+    })
+  }
+
+  const addressRank = new Map<string, number>()
+  const sortedAddresses = [...addresses].toSorted((a, b) => {
+    const keychainDiff = keychainRank(a.keychain) - keychainRank(b.keychain)
+    if (keychainDiff !== 0) {
+      return keychainDiff
+    }
+
+    return (a.index ?? 0) - (b.index ?? 0)
+  })
+
+  for (const [index, address] of sortedAddresses.entries()) {
+    addressRank.set(address.address, index)
+  }
+
+  return [...utxos].toSorted((a, b) => {
+    const rankA = addressRank.get(a.addressTo || '') ?? Number.MAX_SAFE_INTEGER
+    const rankB = addressRank.get(b.addressTo || '') ?? Number.MAX_SAFE_INTEGER
+    if (rankA !== rankB) {
+      return rankA - rankB
+    }
+
+    const txidDiff = a.txid.localeCompare(b.txid)
+    if (txidDiff !== 0) {
+      return txidDiff
+    }
+
+    return a.vout - b.vout
+  })
 }
 
 /**
@@ -464,7 +529,8 @@ function dedupeByTransaction(groups: OutputGroup[]): OutputGroup[] {
       continue
     }
     if (candidate.value > unique[existingIndex].value) {
-      unique[existingIndex] = candidate
+      unique.splice(existingIndex, 1)
+      unique.push(candidate)
     }
   }
   return unique
@@ -474,10 +540,10 @@ function stonewallTry(
   target: number,
   candidates: OutputGroup[],
   actualTarget: number,
-  random: () => number
+  random: { nextInt(bound: number): number }
 ): OutputGroup[][] | null {
   for (let attempt = 0; attempt < STONEWALL_ATTEMPTS; attempt += 1) {
-    const randomized = shuffle(candidates, random)
+    const randomized = shuffleWithJavaRandom(candidates, random)
 
     const set1: OutputGroup[] = []
     const value1 = takeUntilTarget(actualTarget, set1, randomized)
@@ -503,7 +569,7 @@ function selectStonewallSets(
   groups: OutputGroup[],
   noInputsFee: number,
   preferredScriptType: ScriptVersionType,
-  random: () => number
+  random: { nextInt(bound: number): number }
 ): OutputGroup[][] | null {
   const actualTarget = target + noInputsFee
   const uniqueGroups = dedupeByTransaction(groups)
@@ -670,6 +736,7 @@ function resolveOptions(
   const longTermFeeRate =
     options?.longTermFeeRate ?? Math.min(feeRate, DEFAULT_LONG_TERM_FEE_RATE)
   return {
+    addresses: options?.addresses,
     changeScriptType: options?.changeScriptType ?? DEFAULT_CHANGE_SCRIPT_TYPE,
     dustThreshold: options?.dustThreshold ?? DUST_LIMIT,
     feeFn: options?.feeFn,
@@ -775,19 +842,20 @@ function selectStonewallUtxos(
     seed: options?.seed ?? STONEWALL_SELECTION_SEED
   })
 
-  const totalAvailable = utxos.reduce((sum, utxo) => sum + utxo.value, 0)
+  const orderedUtxos = sortUtxosForSparrowSelection(utxos, opts.addresses)
+  const totalAvailable = orderedUtxos.reduce((sum, utxo) => sum + utxo.value, 0)
   if (totalAvailable < targetAmount) {
     return { error: 'Insufficient funds', fee: 0, inputs: [], outputs: [] }
   }
 
-  const groups = buildOutputGroups(utxos, feeRate, opts.longTermFeeRate)
+  const groups = buildOutputGroups(orderedUtxos, feeRate, opts.longTermFeeRate)
   const noInputsFee = getNoInputsFee(
     opts.outputs,
     feeRate,
     opts.recipientScriptType,
     opts.changeScriptType
   )
-  const random = seededRandom(opts.seed)
+  const random = javaSeededRandom(opts.seed)
 
   const sets = selectStonewallSets(
     targetAmount,
@@ -813,7 +881,8 @@ export {
   mapStonewallChangeOutputs,
   selectEfficientUtxos,
   selectStonewallUtxos,
-  selectUtxos
+  selectUtxos,
+  sortUtxosForSparrowSelection
 }
 export type {
   SelectionResult,
