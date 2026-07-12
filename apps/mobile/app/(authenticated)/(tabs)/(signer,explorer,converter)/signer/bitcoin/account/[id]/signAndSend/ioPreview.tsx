@@ -48,30 +48,44 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout, Typography } from '@/styles'
+import {
+  type AutoSelectUtxosAlgorithm,
+  type LoadingAutoSelectUtxosAlgorithm
+} from '@/types/models/AutoSelectUtxos'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
-import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
-import { getScriptVersionType } from '@/utils/address'
+import {
+  autoSelectUtxosDescriptionKey,
+  autoSelectUtxosTitleKey
+} from '@/utils/autoSelectUtxos'
 import { parseBitcoinUri } from '@/utils/bip321'
 import {
   detectContentByContext,
   type DetectedContent
 } from '@/utils/contentDetector'
-import { formatNumber } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
 import {
   type ParsedUriParams,
   parseUriParameters,
   stripBitcoinPrefix
 } from '@/utils/parse'
+import {
+  buildSingleTxChartOutputs,
+  buildStonewallPreviewOutputs,
+  CHART_REMAINING_BALANCE_LOCAL_ID,
+  getStonewallPaymentContext
+} from '@/utils/stonewall'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
   getUtxoOutpoint,
   mapStonewallChangeOutputs,
+  mapStonewallFakeMixOutputs,
   selectEfficientUtxos,
-  selectStonewallUtxos
+  selectStonewallUtxos,
+  splitStonewallOutputValues
 } from '@/utils/utxo'
 
 export default function IOPreview() {
@@ -130,7 +144,15 @@ export default function IOPreview() {
   const [stonewallChangeValues, setStonewallChangeValues] = useState<number[]>(
     []
   )
+  const [stonewallFakeMixValues, setStonewallFakeMixValues] = useState<
+    number[]
+  >([])
   const [stonewallFee, setStonewallFee] = useState<number | null>(null)
+  const [excludedUtxoOutpoints, setExcludedUtxoOutpoints] = useState<
+    Set<string>
+  >(() => new Set())
+  const [removeInputModalVisible, setRemoveInputModalVisible] = useState(false)
+  const [inputToRemove, setInputToRemove] = useState<Utxo | null>(null)
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
 
   // this removes the change addresses if the user goes back to the IO preview.
@@ -166,9 +188,8 @@ export default function IOPreview() {
 
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
-  type AutoSelectUtxosAlgorithms = 'user' | 'privacy' | 'efficiency'
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
-    useState<AutoSelectUtxosAlgorithms>('user')
+    useState<AutoSelectUtxosAlgorithm>('user')
 
   const [loadHistory, setLoadHistory] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
@@ -179,9 +200,8 @@ export default function IOPreview() {
   const [localFeeRate, setLocalFeeRate] = useState(feeRate)
   const [outputsCount, setOutputsCount] = useState(0)
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
-  const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] = useState<
-    false | 'privacy' | 'efficiency'
-  >(false)
+  const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] =
+    useState<LoadingAutoSelectUtxosAlgorithm>(false)
 
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
@@ -354,6 +374,11 @@ export default function IOPreview() {
     [localFeeRate, transactionSize.vsize]
   )
 
+  const effectiveMinerFee =
+    selectedAutoSelectUtxos === 'privacy' && stonewallFee !== null
+      ? stonewallFee
+      : minerFee
+
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
 
   const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
@@ -376,25 +401,29 @@ export default function IOPreview() {
       (sum, output) => sum + output.amount,
       0
     )
-    return totalInputValue - totalOutputValue - minerFee
-  }, [minerFee, outputs, utxosSelectedValue])
+    return totalInputValue - totalOutputValue - effectiveMinerFee
+  }, [effectiveMinerFee, outputs, utxosSelectedValue])
 
-  // Calculate outputs for chart including remaining balance
-  const singleTxOutputs = useMemo(() => {
-    const chartOutputs: Output[] = [...outputs]
+  const stonewallPreviewOutputs =
+    selectedAutoSelectUtxos === 'privacy' &&
+    stonewallFee !== null &&
+    decoyAddress
+      ? buildStonewallPreviewOutputs({
+          changeAddress,
+          changeValues: stonewallChangeValues,
+          decoyAddress,
+          fakeMixValues: stonewallFakeMixValues,
+          fee: stonewallFee,
+          secondChangeAddress
+        })
+      : []
 
-    // Always include remaining balance if there is any
-    if (remainingBalance > 0) {
-      chartOutputs.push({
-        amount: remainingBalance,
-        label: '',
-        localId: 'remainingBalance', // WARN: do not change it!
-        to: changeAddress
-      })
-    }
-
-    return chartOutputs
-  }, [outputs, remainingBalance, changeAddress])
+  const singleTxOutputs = buildSingleTxChartOutputs({
+    changeAddress,
+    outputs,
+    previewOutputs: stonewallPreviewOutputs,
+    remainingBalance
+  })
 
   useEffect(() => {
     if (remainingSats < 0) {
@@ -532,7 +561,7 @@ export default function IOPreview() {
     if (localId === 'current-minerFee') {
       changeFeeBottomSheetRef.current?.expand()
       return
-    } else if (localId === 'remainingBalance') {
+    } else if (localId === CHART_REMAINING_BALANCE_LOCAL_ID) {
       setAddOutputModalVisible(true)
       return
     }
@@ -563,7 +592,102 @@ export default function IOPreview() {
     }
   }
 
-  function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithms) {
+  function applyStonewallSelection(excluded: Set<string>): boolean {
+    if (!decoyAddress) {
+      toast.error(t('transaction.error.ChangeAddressNotAvailable'))
+      return false
+    }
+
+    const {
+      changeScriptType,
+      effectiveFeeRate,
+      paymentOutputs,
+      recipientScriptType,
+      userPaymentAmount
+    } = getStonewallPaymentContext({
+      accountAddresses: account.addresses,
+      accountScriptVersion: account.keys[0]?.scriptVersion,
+      decoyAddress,
+      localFeeRate,
+      nextBlockFee: useBlockchainStore.getState().nextBlockFee,
+      outputs
+    })
+
+    const pool = account.utxos.filter(
+      (utxo) => !excluded.has(getUtxoOutpoint(utxo))
+    )
+
+    const stonewallResult = selectStonewallUtxos(
+      pool,
+      userPaymentAmount,
+      effectiveFeeRate,
+      {
+        addresses: account.addresses,
+        changeScriptType,
+        outputs: paymentOutputs,
+        recipientScriptType
+      }
+    )
+
+    if (stonewallResult.error) {
+      toast.error(stonewallResult.error)
+      return false
+    }
+
+    const { changeValues, fakeMixValues } = splitStonewallOutputValues(
+      stonewallResult.outputs
+    )
+
+    setAccountUtxos(stonewallResult.inputs)
+    setStonewallChangeValues(changeValues)
+    setStonewallFakeMixValues(fakeMixValues)
+    setStonewallFee(stonewallResult.fee)
+    setFee(stonewallResult.fee)
+
+    if (effectiveFeeRate !== localFeeRate) {
+      setLocalFeeRate(effectiveFeeRate)
+      setFeeRate(effectiveFeeRate)
+    }
+
+    return true
+  }
+
+  function handleOnPressInput(outpoint: string) {
+    if (selectedAutoSelectUtxos !== 'privacy') {
+      return
+    }
+
+    const utxo = inputs.get(outpoint)
+    if (!utxo) {
+      return
+    }
+
+    setInputToRemove(utxo)
+    setRemoveInputModalVisible(true)
+  }
+
+  function handleCancelRemoveInput() {
+    setRemoveInputModalVisible(false)
+    setInputToRemove(null)
+  }
+
+  function handleConfirmRemoveInput() {
+    if (!inputToRemove) {
+      return
+    }
+
+    const outpoint = getUtxoOutpoint(inputToRemove)
+    const nextExcluded = new Set(excludedUtxoOutpoints)
+    nextExcluded.add(outpoint)
+
+    if (applyStonewallSelection(nextExcluded)) {
+      setExcludedUtxoOutpoints(nextExcluded)
+      setRemoveInputModalVisible(false)
+      setInputToRemove(null)
+    }
+  }
+
+  function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithm) {
     if (type === selectedAutoSelectUtxos) {
       return
     }
@@ -582,20 +706,19 @@ export default function IOPreview() {
         removeOutput(decoyOutput.localId)
       }
       setStonewallChangeValues([])
+      setStonewallFakeMixValues([])
       setStonewallFee(null)
+      setExcludedUtxoOutpoints(new Set())
     }
 
-    // Use stored next-block fee when local fee rate hasn't been hydrated yet
-    const effectiveFeeRate =
-      localFeeRate > 1
-        ? localFeeRate
-        : (useBlockchainStore.getState().nextBlockFee ?? 1)
-
-    // Payment amount excludes any decoy output so the target stays the user's
-    // intended spend even when a stale decoy is still in the output list.
-    const userPaymentAmount = outputs
-      .filter((output) => output.to !== decoyAddress)
-      .reduce((sum, output) => sum + output.amount, 0)
+    const { effectiveFeeRate, userPaymentAmount } = getStonewallPaymentContext({
+      accountAddresses: account.addresses,
+      accountScriptVersion: account.keys[0]?.scriptVersion,
+      decoyAddress,
+      localFeeRate,
+      nextBlockFee: useBlockchainStore.getState().nextBlockFee,
+      outputs
+    })
 
     switch (type) {
       case 'user': {
@@ -616,55 +739,10 @@ export default function IOPreview() {
         }
 
         setPreviousUserSelectedUtxos(getInputs())
+        setExcludedUtxoOutpoints(new Set())
 
-        const paymentOutputs = outputs.filter(
-          (output) => output.to !== decoyAddress
-        )
-        const recipientAddress = paymentOutputs[0]?.to
-        const recipientScriptType =
-          (recipientAddress && getScriptVersionType(recipientAddress)) ||
-          account.keys[0]?.scriptVersion ||
-          'P2WPKH'
-        const changeScriptType =
-          account.keys[0]?.scriptVersion ||
-          account.addresses.find((address) => address.keychain === 'external')
-            ?.scriptVersion ||
-          recipientScriptType
-
-        const stonewallResult = selectStonewallUtxos(
-          account.utxos,
-          userPaymentAmount,
-          effectiveFeeRate,
-          {
-            addresses: account.addresses,
-            changeScriptType,
-            outputs: paymentOutputs,
-            recipientScriptType
-          }
-        )
-
-        if (stonewallResult.error) {
-          toast.error(stonewallResult.error)
+        if (!applyStonewallSelection(new Set())) {
           break
-        }
-
-        setAccountUtxos(stonewallResult.inputs)
-        setStonewallChangeValues(
-          stonewallResult.outputs
-            .filter((output) => output.type === 'change')
-            .map((output) => output.value)
-        )
-        setStonewallFee(stonewallResult.fee)
-        setFee(stonewallResult.fee)
-        addOutput({
-          amount: userPaymentAmount,
-          label: t('sign.decoyOutputLabelDefault'),
-          to: decoyAddress
-        })
-
-        if (effectiveFeeRate !== localFeeRate) {
-          setLocalFeeRate(effectiveFeeRate)
-          setFeeRate(effectiveFeeRate)
         }
 
         break
@@ -713,7 +791,7 @@ export default function IOPreview() {
     setLoadingOptimizeAlgorithm(false)
   }
 
-  function tryAddStonewallChangeOutputs(): boolean {
+  function tryAddStonewallOutputs(): boolean {
     if (selectedAutoSelectUtxos !== 'privacy' || stonewallFee === null) {
       return false
     }
@@ -725,6 +803,14 @@ export default function IOPreview() {
       return false
     }
 
+    if (stonewallFakeMixValues.length > 0 && !decoyAddress) {
+      return false
+    }
+
+    const fakeMixOutputs = mapStonewallFakeMixOutputs(
+      stonewallFakeMixValues,
+      decoyAddress
+    )
     const changeOutputs = mapStonewallChangeOutputs(
       stonewallChangeValues,
       [changeAddress, secondChangeAddress].filter(Boolean)
@@ -732,6 +818,15 @@ export default function IOPreview() {
 
     setShouldRemoveChange(false)
     setFee(stonewallFee)
+
+    for (const output of fakeMixOutputs) {
+      addOutput({
+        amount: output.amount,
+        kind: 'fakeMix',
+        label: t('sign.decoyOutputLabelDefault'),
+        to: output.to
+      })
+    }
 
     for (const output of changeOutputs) {
       addOutput({
@@ -752,7 +847,7 @@ export default function IOPreview() {
       0
     )
 
-    const totalRequired = totalOutputAmount + minerFee
+    const totalRequired = totalOutputAmount + effectiveMinerFee
 
     if (totalRequired > utxosSelectedValue) {
       toast.error(t('transaction.error.insufficientInputs'))
@@ -766,7 +861,7 @@ export default function IOPreview() {
       }
     }
 
-    if (tryAddStonewallChangeOutputs()) {
+    if (tryAddStonewallOutputs()) {
       proceedToPreview()
       return
     }
@@ -832,6 +927,18 @@ export default function IOPreview() {
     }
   }
 
+  function handleSelectUserAutoUtxos() {
+    handleOnChangeUtxoSelection('user')
+  }
+
+  function handleSelectPrivacyAutoUtxos() {
+    handleOnChangeUtxoSelection('privacy')
+  }
+
+  function handleSelectEfficiencyAutoUtxos() {
+    handleOnChangeUtxoSelection('efficiency')
+  }
+
   const handleTopLayout = (event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout
     setTopGradientHeight(height)
@@ -839,15 +946,13 @@ export default function IOPreview() {
   const handleLoadHistory = () => {
     setLoadHistory(!loadHistory)
   }
-  // if (!nodes.length || !links.length) return <Redirect href="/" />
 
-  // Memoized set of own addresses for efficient lookup
-  const ownAddressesSet = useMemo<Set<string>>(() => {
-    if (!account) {
-      return new Set<string>()
-    }
-    return new Set<string>(account.addresses.map((a) => a.address))
-  }, [account])
+  const ownAddressesSet = account
+    ? new Set(account.addresses.map((address) => address.address))
+    : new Set<string>()
+
+  const chartOnPressInput =
+    selectedAutoSelectUtxos === 'privacy' ? handleOnPressInput : undefined
 
   return (
     <View
@@ -872,21 +977,25 @@ export default function IOPreview() {
         >
           {loadHistory ? (
             <SSMultipleSankeyDiagram
+              onPressInput={chartOnPressInput}
               onPressOutput={handleOnPressOutput}
               currentOutputLocalId={currentOutputLocalId}
               inputs={inputs}
               outputs={singleTxOutputs}
               feeRate={feeRate}
               ownAddresses={ownAddressesSet}
+              overlayHeaderHeight={topGradientHeight}
             />
           ) : (
             <SSCurrentTransactionChart
               inputs={inputs}
               outputs={singleTxOutputs}
               feeRate={localFeeRate}
+              onPressInput={chartOnPressInput}
               onPressOutput={handleOnPressOutput}
               currentOutputLocalId={currentOutputLocalId}
               ownAddresses={ownAddressesSet}
+              overlayHeaderHeight={topGradientHeight}
             />
           )}
         </View>
@@ -901,7 +1010,7 @@ export default function IOPreview() {
         <LinearGradient
           style={{
             paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-            paddingTop: Layout.mainContainer.paddingTop,
+            paddingTop: Layout.vStack.gap.sm,
             pointerEvents: 'none',
             width: '100%'
           }}
@@ -909,13 +1018,7 @@ export default function IOPreview() {
           locations={[0.19, 0.566, 0.77, 1]}
           colors={['#0A0A0AFF', '#0A0A0A85', '#0A0A0A68', '#0A0A0A00']}
         >
-          <SSVStack
-            itemsCenter
-            gap="sm"
-            style={{
-              flex: 1
-            }}
-          >
+          <SSVStack gap="xs" itemsCenter style={{ flex: 1 }}>
             <SSBlockFeePriceRow
               blockHeight={blockHeight}
               btcPrice={btcPrice}
@@ -923,11 +1026,30 @@ export default function IOPreview() {
               nextBlockFee={nextBlockFee}
               blockHeightSource={blockHeightSource}
             />
-            <SSVStack itemsCenter gap="xs">
-              <SSText>
-                {inputs.size} {t('common.of').toLowerCase()}{' '}
-                {account.utxos.length} {t('common.selected').toLowerCase()}
-              </SSText>
+            <SSHStack
+              gap="sm"
+              style={{ alignItems: 'center', flexWrap: 'wrap' }}
+            >
+              <SSHStack gap="xxs">
+                <SSText size="xxs" style={{ color: Colors.gray[75] }}>
+                  {inputs.size}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray[400] }}>
+                  {t('common.of').toLowerCase()}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray[75] }}>
+                  {account.utxos.length}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray[400] }}>
+                  {t('common.selected').toLowerCase()}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray[400] }}>
+                  {t('common.separator')}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray[75] }}>
+                  {t(autoSelectUtxosTitleKey(selectedAutoSelectUtxos))}
+                </SSText>
+              </SSHStack>
               <SSHStack gap="xs">
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
                   {t('common.total')}
@@ -947,31 +1069,28 @@ export default function IOPreview() {
                   {fiatCurrency}
                 </SSText>
               </SSHStack>
-            </SSVStack>
-            <SSVStack itemsCenter gap="none">
+            </SSHStack>
+            <SSVStack gap="xxs" itemsCenter>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText
-                  size="7xl"
+                  size="5xl"
                   color="white"
                   weight="ultralight"
-                  style={{ lineHeight: 62 }}
+                  style={{ lineHeight: 44 }}
                 >
                   {formatNumber(utxosSelectedValue, 0, zeroPadding)}
                 </SSText>
-                <SSText size="xl" color="muted">
+                <SSText size="lg" color="muted">
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
                     : t('bitcoin.sats')}
                 </SSText>
               </SSHStack>
-              <SSHStack
-                gap="xs"
-                style={{ alignItems: 'baseline', marginTop: -5 }}
-              >
-                <SSText size="md" color="muted">
+              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                <SSText size="sm" color="muted">
                   {formatNumber(satsToFiat(utxosSelectedValue), 2)}
                 </SSText>
-                <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                <SSText size="xxs" style={{ color: Colors.gray[500] }}>
                   {fiatCurrency}
                 </SSText>
               </SSHStack>
@@ -993,7 +1112,7 @@ export default function IOPreview() {
           style={{
             height: topGradientHeight,
             paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-            paddingTop: Layout.mainContainer.paddingTop,
+            paddingTop: Layout.vStack.gap.sm,
             width: '100%'
           }}
           locations={[0, 0.56, 0.77, 1]}
@@ -1020,6 +1139,7 @@ export default function IOPreview() {
         ]}
       >
         <SSVStack
+          gap="xs"
           style={{
             paddingHorizontal: Layout.mainContainer.paddingHorizontal,
             width: '100%'
@@ -1052,38 +1172,6 @@ export default function IOPreview() {
                 </SSHStack>
               </TouchableOpacity>
             )}
-            <SSHStack>
-              <SSButton
-                variant="outline"
-                label={t('transaction.build.add.input.title')}
-                style={{ flex: 1 }}
-                onPress={() =>
-                  router.navigate(
-                    `/signer/bitcoin/account/${id}/signAndSend/selectUtxoList`
-                  )
-                }
-              />
-              <SSButton
-                variant="outline"
-                label={t('transaction.build.add.output.title')}
-                style={{ flex: 1 }}
-                onPress={handleOnPressAddOutput}
-              />
-            </SSHStack>
-            <SSHStack>
-              <SSButton
-                variant="outline"
-                label={t('transaction.build.options.title')}
-                style={{ flex: 1 }}
-                onPress={() => optionsBottomSheetRef.current?.expand()}
-              />
-              <SSButton
-                variant="outline"
-                label={t('transaction.build.update.fee.title')}
-                style={{ flex: 1 }}
-                onPress={() => changeFeeBottomSheetRef.current?.expand()}
-              />
-            </SSHStack>
           </SSVStack>
           {hasOrphanedInputs && (
             <SSOrphanedInputsBanner
@@ -1094,26 +1182,64 @@ export default function IOPreview() {
           {dustErrorMessage !== '' && (
             <SSDustWarningBanner message={dustErrorMessage} />
           )}
-          <SSButton
-            variant="secondary"
-            label={
-              outputs.length === 0
-                ? t('transaction.build.add.output.title')
-                : t('sign.transaction')
-            }
-            disabled={hasOrphanedInputs}
-            onPress={
-              outputs.length === 0 ? handleOnPressAddOutput : handleGoToPreview
-            }
-          />
-          <SSButton
-            variant="ghost"
-            label={t('transaction.discard')}
-            onPress={() => {
-              clearTransaction()
-              router.navigate(`/signer/bitcoin/account/${id}`)
-            }}
-          />
+          <SSVStack gap="xs">
+            <SSHStack gap="xs">
+              <SSButton
+                variant="outline"
+                label={t('transaction.build.toolbar.input')}
+                style={{ flex: 1 }}
+                onPress={() =>
+                  router.navigate(
+                    `/signer/bitcoin/account/${id}/signAndSend/selectUtxoList`
+                  )
+                }
+              />
+              <SSButton
+                variant="outline"
+                label={t('transaction.build.toolbar.options')}
+                style={{ flex: 1 }}
+                onPress={() => optionsBottomSheetRef.current?.expand()}
+              />
+              <SSButton
+                variant="outline"
+                label={t('transaction.build.toolbar.fee')}
+                style={{ flex: 1 }}
+                onPress={() => changeFeeBottomSheetRef.current?.expand()}
+              />
+              <SSButton
+                variant="outline"
+                label={t('transaction.build.toolbar.output')}
+                style={{ flex: 1 }}
+                onPress={handleOnPressAddOutput}
+              />
+            </SSHStack>
+            <SSHStack gap="xs">
+              <SSButton
+                variant="outline"
+                label={t('transaction.discard')}
+                style={{ flex: 1 }}
+                onPress={() => {
+                  clearTransaction()
+                  router.navigate(`/signer/bitcoin/account/${id}`)
+                }}
+              />
+              <SSButton
+                variant="secondary"
+                label={
+                  outputs.length === 0
+                    ? t('transaction.build.add.output.title')
+                    : t('sign.transaction')
+                }
+                style={{ flex: 1 }}
+                disabled={hasOrphanedInputs}
+                onPress={
+                  outputs.length === 0
+                    ? handleOnPressAddOutput
+                    : handleGoToPreview
+                }
+              />
+            </SSHStack>
+          </SSVStack>
         </SSVStack>
       </LinearGradient>
       <SSModal
@@ -1222,6 +1348,50 @@ export default function IOPreview() {
           </ScrollView>
         </View>
       </SSModal>
+      <SSModal
+        fullOpacity
+        visible={removeInputModalVisible}
+        label=""
+        onClose={handleCancelRemoveInput}
+      >
+        <SSVStack justifyBetween style={{ flex: 1, width: '100%' }}>
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <SSVStack gap="lg" style={{ alignItems: 'center' }}>
+              <SSText uppercase weight="bold">
+                {t('transaction.build.remove.input.title')}
+              </SSText>
+              {inputToRemove ? (
+                <SSVStack gap="sm" itemsCenter>
+                  <SSText color="muted" center>
+                    {inputToRemove.label || t('common.noLabel')}
+                  </SSText>
+                  <SSText center>
+                    {formatAddress(inputToRemove.txid, 8)}:{inputToRemove.vout}
+                  </SSText>
+                  <SSText center>
+                    {formatNumber(inputToRemove.value, 0, zeroPadding)} sats
+                  </SSText>
+                </SSVStack>
+              ) : null}
+              <SSText color="muted" center>
+                {t('transaction.build.remove.input.message')}
+              </SSText>
+            </SSVStack>
+          </View>
+          <SSVStack gap="md">
+            <SSButton
+              variant="danger"
+              label={t('transaction.build.remove.input.confirm')}
+              onPress={handleConfirmRemoveInput}
+            />
+            <SSButton
+              variant="ghost"
+              label={t('common.cancel')}
+              onPress={handleCancelRemoveInput}
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
       <SSBottomSheet
         ref={optionsBottomSheetRef}
         title={t('transaction.build.options.title')}
@@ -1234,38 +1404,30 @@ export default function IOPreview() {
             <SSHStack justifyBetween>
               <SSRadioButton
                 variant="outline"
-                label={t(
-                  'transaction.build.options.autoSelect.utxos.user.title'
-                )}
+                label={t(autoSelectUtxosTitleKey('user'))}
                 selected={selectedAutoSelectUtxos === 'user'}
                 style={{ flex: 1, width: '33%' }}
-                onPress={() => handleOnChangeUtxoSelection('user')}
+                onPress={handleSelectUserAutoUtxos}
               />
               <SSRadioButton
                 variant="outline"
-                label={t(
-                  'transaction.build.options.autoSelect.utxos.privacy.title'
-                )}
+                label={t(autoSelectUtxosTitleKey('privacy'))}
                 loading={loadingOptimizeAlgorithm === 'privacy'}
                 selected={selectedAutoSelectUtxos === 'privacy'}
                 style={{ flex: 1, width: '33%' }}
-                onPress={() => handleOnChangeUtxoSelection('privacy')}
+                onPress={handleSelectPrivacyAutoUtxos}
               />
               <SSRadioButton
                 variant="outline"
-                label={t(
-                  'transaction.build.options.autoSelect.utxos.efficiency.title'
-                )}
+                label={t(autoSelectUtxosTitleKey('efficiency'))}
                 loading={loadingOptimizeAlgorithm === 'efficiency'}
                 selected={selectedAutoSelectUtxos === 'efficiency'}
                 style={{ flex: 1, width: '33%' }}
-                onPress={() => handleOnChangeUtxoSelection('efficiency')}
+                onPress={handleSelectEfficiencyAutoUtxos}
               />
             </SSHStack>
             <SSText color="muted">
-              {t(
-                `transaction.build.options.autoSelect.utxos.${selectedAutoSelectUtxos}.description`
-              )}
+              {t(autoSelectUtxosDescriptionKey(selectedAutoSelectUtxos))}
             </SSText>
           </SSVStack>
           <SSVStack>
