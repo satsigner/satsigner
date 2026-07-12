@@ -7,7 +7,9 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatDate, formatRelativeTime } from '@/utils/date'
 import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
+import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 import type { ExtendedTransaction } from './useInputTransactions'
 
@@ -21,6 +23,7 @@ export type TxNode = {
   indexV?: number
   vout?: number
   prevout?: { txid: string; vout: number }
+  inputOutpoint?: string
   localId?: string
   ioData: {
     address?: string
@@ -40,6 +43,7 @@ export type TxNode = {
     vSize?: number
     higherFee?: boolean // miner fee is 10% or higher of the total transaction value
     feePercentage?: number // miner fee is 10% or higher of the total transaction value
+    isFakeMix?: boolean
     isSelfSend?: boolean // NEW: flag for self-send
   }
 }
@@ -49,30 +53,6 @@ type Link = {
   target: string
   value: number | undefined
 }
-
-// type Transaction = {
-//   txid: string
-//   size: number
-//   weight: number
-//   vin: {
-//     txid: string
-//     vout: number
-//     prevout: {
-//       scriptpubkey_address: string
-//       value: number
-//     }
-//     indexV?: number
-//     label?: string
-//   }[]
-//   vout?: {
-//     scriptpubkey_address: string
-//     value: number
-//     indexV?: number
-//     vout?: number
-//   }[]
-//   depthH: number
-//   status: { block_height?: number; block_time?: number }
-// }
 
 type UseNodesAndLinksProps = {
   transactions: Map<string, ExtendedTransaction>
@@ -131,7 +111,8 @@ export const useNodesAndLinks = ({
           address: formatAddress(output.to, 4),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.amount), 2),
-          isSelfSend: ownAddresses.has(output.to),
+          isFakeMix: output.kind === 'fakeMix',
+          isSelfSend: output.kind !== 'fakeMix' && ownAddresses.has(output.to),
           isUnspent: true,
           label: output.label,
           text: t('transaction.build.unspent'),
@@ -157,7 +138,7 @@ export const useNodesAndLinks = ({
             text: t('transaction.build.unspent'),
             value: remainingBalance
           },
-          localId: 'remainingBalance',
+          localId: CHART_REMAINING_BALANCE_LOCAL_ID,
           type: 'text',
           value: remainingBalance,
           vout: outputs.length
@@ -373,23 +354,26 @@ export const useNodesAndLinks = ({
                   vinTx.prevValue === output.value
               )?.txid || ''
 
-            const label =
-              Array.from(inputs.values()).find(
-                (input) =>
-                  input.vout === idx &&
-                  input.value === output.value &&
-                  input.addressTo === output.address
-              )?.label ?? ''
+            const matchingInput = Array.from(inputs.values()).find(
+              (input) =>
+                input.txid === tx.id &&
+                input.vout === idx &&
+                input.value === output.value &&
+                input.addressTo === output.address
+            )
 
             const node = {
               depthH: outputDepth,
               id: `vout-${outputDepth}-${output.index}`,
+              inputOutpoint: matchingInput
+                ? getUtxoOutpoint(matchingInput)
+                : undefined,
               ioData: {
                 address: formatAddress(output.address, 4),
                 fiatCurrency,
                 fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
                 isSelfSend: ownAddresses.has(output.address),
-                label,
+                label: matchingInput?.label ?? '',
                 text: t('common.from'),
                 value: output.value ?? 0
               },

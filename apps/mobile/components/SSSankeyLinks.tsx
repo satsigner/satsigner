@@ -12,6 +12,7 @@ import {
   ribbonWidthForLink,
   stackedRibbonOffsetBeforeLink
 } from '@/utils/sankeyFlowWidths'
+import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
 interface Node {
   id: string
@@ -117,9 +118,14 @@ function SSSankeyLinks({
         const ribbonW = ribbonWidthForLink(ribbonPlan, link.source, link.target)
 
         const isUnspent = targetNode.ioData?.isUnspent === true
-        const isSelfSendOutput = targetNode.ioData?.isSelfSend === true
-        const isOwnOrUnspentRibbon = isUnspent || isSelfSendOutput
-        const isRemainingBalance = targetNode.localId === 'remainingBalance'
+        const isFakeMixOutput = targetNode.ioData?.isFakeMix === true
+        const isSelfSendOutput =
+          targetNode.ioData?.isSelfSend === true &&
+          targetNode.ioData?.isFakeMix !== true
+        const isOwnOrUnspentRibbon =
+          isUnspent || isSelfSendOutput || isFakeMixOutput
+        const isRemainingBalance =
+          targetNode.localId === CHART_REMAINING_BALANCE_LOCAL_ID
         const isCurrentTxMinerFee = targetNode.localId === 'current-minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
         const isCurrentTx =
@@ -227,7 +233,8 @@ function SSSankeyLinks({
               </>
             ) : isOwnOrUnspentRibbon &&
               !isRemainingBalance &&
-              !isSelfSendOutput ? (
+              !isSelfSendOutput &&
+              !isFakeMixOutput ? (
               <Path
                 path={path1}
                 style="fill"

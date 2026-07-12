@@ -24,7 +24,6 @@ import {
   NODE_WIDTH,
   SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
   SANKEY_CURRENT_TX_EXTENT_ROW_SCALE,
-  SANKEY_CURRENT_TX_EXTENT_TOP_PX,
   SANKEY_CURRENT_TX_EXTENT_X_INSET_PX,
   SANKEY_DIAGRAM_NODE_PADDING_PX,
   SANKEY_EQUAL_ROW_MIN_SLOT_PX,
@@ -36,7 +35,10 @@ import {
 } from '@/utils/equalizeSankeyColumnLayout'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
+import { getSankeyExtentTopPx } from '@/utils/sankeyLayout'
+import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
@@ -54,24 +56,29 @@ interface Node extends SankeyNodeMinimal<object, object> {
   ioData: TxNode['ioData']
   nextTx?: string
   localId?: string
+  inputOutpoint?: string
 }
 
 type SSCurrentTransactionChartProps = {
   inputs: Map<string, Utxo>
   outputs: (Omit<Output, 'to'> & { to?: string })[]
   feeRate: number
+  onPressInput?: (outpoint: string) => void
   onPressOutput?: (localId?: string) => void
   currentOutputLocalId?: string
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  overlayHeaderHeight?: number
 }
 
 function SSCurrentTransactionChart({
   inputs: inputMap,
   outputs: outputArray,
   feeRate: feeRateProp,
+  onPressInput,
   onPressOutput,
   currentOutputLocalId,
-  ownAddresses = new Set()
+  ownAddresses = new Set(),
+  overlayHeaderHeight
 }: SSCurrentTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -128,6 +135,7 @@ function SSCurrentTransactionChart({
   const GRAPH_WIDTH = safeWinW
 
   const SANKEY_EXTENT_BOTTOM_MARGIN_PX = 8
+  const extentTopCap = getSankeyExtentTopPx(overlayHeaderHeight)
 
   const chartGeometry = useMemo(() => {
     let graphHeight = safeWinH * 0.7
@@ -146,7 +154,7 @@ function SSCurrentTransactionChart({
 
     for (let pass = 0; pass < 3; pass += 1) {
       const extentTop = Math.min(
-        SANKEY_CURRENT_TX_EXTENT_TOP_PX,
+        extentTopCap,
         Math.max(
           SANKEY_EXTENT_BOTTOM_MARGIN_PX,
           graphHeight -
@@ -179,7 +187,7 @@ function SSCurrentTransactionChart({
     }
 
     const extentTop = Math.min(
-      SANKEY_CURRENT_TX_EXTENT_TOP_PX,
+      extentTopCap,
       Math.max(
         SANKEY_EXTENT_BOTTOM_MARGIN_PX,
         graphHeight -
@@ -203,7 +211,7 @@ function SSCurrentTransactionChart({
       graphHeight,
       sankeyExtentBottomY
     }
-  }, [inputMap.size, minerFee, outputArray.length, safeWinH])
+  }, [extentTopCap, inputMap.size, minerFee, outputArray.length, safeWinH])
 
   const GRAPH_HEIGHT = chartGeometry.graphHeight
   const { extentTop } = chartGeometry
@@ -256,6 +264,7 @@ function SSCurrentTransactionChart({
     const inputNodes: TxNode[] = inputArray.map((input, index) => ({
       depthH: 0,
       id: String(index + 1),
+      inputOutpoint: getUtxoOutpoint(input),
       ioData: {
         address: formatAddress(input.txid, 4),
         fiatCurrency,
@@ -289,12 +298,17 @@ function SSCurrentTransactionChart({
         address: output?.to ? formatAddress(output?.to, 6) : '',
         fiatCurrency,
         fiatValue: formatNumber(satsToFiat(output.amount), 2),
-        isSelfSend: !!(output.to && ownAddresses.has(output.to)),
+        isFakeMix: output.kind === 'fakeMix',
+        isSelfSend: !!(
+          output.to &&
+          ownAddresses.has(output.to) &&
+          output.kind !== 'fakeMix'
+        ),
         isUnspent: true,
         label: output.label,
         value: output.amount
       },
-      localId: output.to ? output.localId : 'remainingBalance',
+      localId: output.to ? output.localId : CHART_REMAINING_BALANCE_LOCAL_ID,
       type: 'text',
       value: output.amount
     }))
@@ -543,26 +557,33 @@ function SSCurrentTransactionChart({
               animatedStyle
             ]}
           >
-            {nodeStyles.map((style, index) => (
-              <TouchableOpacity
-                key={style.localId ?? index}
-                style={[
-                  styles.node,
-                  {
-                    height: style.height,
-                    left: style.x,
-                    position: 'absolute',
-                    top: style.y,
-                    width: style.width
+            {nodeStyles.map((style, index) => {
+              const node = nodes[index] as Node
+              const { inputOutpoint } = node
+
+              return (
+                <TouchableOpacity
+                  key={style.localId ?? inputOutpoint ?? index}
+                  style={[
+                    styles.node,
+                    {
+                      height: style.height,
+                      left: style.x,
+                      position: 'absolute',
+                      top: style.y,
+                      width: style.width
+                    }
+                  ]}
+                  onPress={
+                    inputOutpoint && onPressInput
+                      ? () => onPressInput(inputOutpoint)
+                      : node.depthH === maxDepthH && onPressOutput
+                        ? () => onPressOutput(style.localId)
+                        : undefined
                   }
-                ]}
-                onPress={
-                  (nodes[index] as Node).depthH === maxDepthH && onPressOutput
-                    ? () => onPressOutput(style.localId)
-                    : undefined
-                }
-              />
-            ))}
+                />
+              )
+            })}
           </Animated.View>
         </View>
       </GestureDetector>

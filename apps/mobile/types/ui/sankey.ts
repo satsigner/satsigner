@@ -9,6 +9,7 @@ export interface Link extends SankeyLinkMinimal<object, object> {
 }
 
 export interface Node extends SankeyNodeMinimal<object, object> {
+  inputOutpoint?: string
   localId?: string
   id: string
   depth?: number
@@ -39,8 +40,11 @@ export const SANKEY_BLOCK_TX_STRIP_MAX_PX = 80
 /** Minimum inner height (extent bottom − top) so the box stays valid when the window is short. */
 export const SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX = 120
 
+/** Gap between measured overlay header bottom and sankey top extent. */
+export const SANKEY_OVERLAY_HEADER_GAP_PX = 8
+
 /** Top edge Y for d3-sankey extent in SSCurrentTransactionChart (must stay below bottom Y). */
-export const SANKEY_CURRENT_TX_EXTENT_TOP_PX = 200
+export const SANKEY_CURRENT_TX_EXTENT_TOP_PX = 170
 
 /** Scales vertical extent vs row count (lower = tighter vertical packing). */
 export const SANKEY_CURRENT_TX_EXTENT_ROW_SCALE = 0.12

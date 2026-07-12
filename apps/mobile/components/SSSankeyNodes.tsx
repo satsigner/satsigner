@@ -31,8 +31,9 @@ import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
 } from '@/utils/sankeyFlowWidths'
+import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
-interface ISSankeyNodes {
+type SSSankeyNodesProps = {
   nodes: Node[]
   ribbonPlan: SankeyRibbonPlan
   sankeyGenerator: { nodeWidth: () => number }
@@ -58,7 +59,7 @@ function SSSankeyNodes({
   selectedOutputNode,
   dimUnselected = false,
   showUnspentLabel = true
-}: ISSankeyNodes) {
+}: SSSankeyNodesProps) {
   const customFontManager = useSFProFonts()
 
   const maxDepth =
@@ -162,8 +163,11 @@ function SSSankeyNodes({
           isTransactionChart={isTransactionChart}
           selectedOutputNode={selectedOutputNode}
           isHigherCurrentMinerFee={isHigherCurrentMinerFee}
+          isFakeMix={node.ioData?.isFakeMix === true}
           isSelfSend={
-            node.ioData?.isSelfSend && !(node?.localId === 'remainingBalance')
+            node.ioData?.isSelfSend &&
+            !(node?.localId === CHART_REMAINING_BALANCE_LOCAL_ID) &&
+            node.ioData?.isFakeMix !== true
           }
           showUnspentLabel={showUnspentLabel}
         />
@@ -189,6 +193,7 @@ function NodeText({
   isTransactionChart,
   selectedOutputNode,
   isHigherCurrentMinerFee,
+  isFakeMix,
   isSelfSend,
   showUnspentLabel = true
 }: {
@@ -202,11 +207,12 @@ function NodeText({
   isTransactionChart: boolean
   selectedOutputNode?: string
   isHigherCurrentMinerFee?: boolean
+  isFakeMix?: boolean
   isSelfSend?: boolean
   showUnspentLabel?: boolean
 }) {
   const isMiningFee = localId.includes('minerFee')
-  const isChange = localId === 'remainingBalance'
+  const isChange = localId === CHART_REMAINING_BALANCE_LOCAL_ID
   const isUnspent = ioData?.isUnspent
 
   const shadowPaint = useMemo(() => {
@@ -228,6 +234,7 @@ function NodeText({
 
   const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
   const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
+  const fakeMixIconSvg = useSVG(require('@/assets/green-fake-mix.svg'))
   const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
   const blockNodeParagraph = useMemo(() => {
     if (!customFontManager) {
@@ -314,7 +321,7 @@ function NodeText({
       Skia.ParagraphBuilder.Make(
         {
           ellipsis: '…',
-          maxLines: isSelfSend ? 6 : 5,
+          maxLines: isSelfSend || isFakeMix ? 6 : 5,
           strutStyle: {
             forceStrutHeight: true,
             heightMultiplier: 1,
@@ -403,6 +410,7 @@ function NodeText({
     }
 
     const buildUnspentParagraph = () => {
+      const isGreenOutput = isChange || isSelfSend || isFakeMix
       const para = createParagraphBuilder()
       if (showUnspentLabel) {
         para
@@ -415,7 +423,7 @@ function NodeText({
       para
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color(isChange || isSelfSend ? 'white' : mainRed),
+          color: Skia.Color(isGreenOutput ? 'white' : mainRed),
           fontSize: BASE_FONT_SIZE
         })
         .addText(
@@ -444,7 +452,7 @@ function NodeText({
         .addText(ioData?.address ? `${ioData?.address}\n` : '')
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color(isChange || isSelfSend ? mainGreen : mainRed),
+          color: Skia.Color(isGreenOutput ? mainGreen : mainRed),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
@@ -461,9 +469,11 @@ function NodeText({
         .addText(
           isChange
             ? ` ${t('transaction.build.change')}`
-            : isSelfSend
-              ? ` ${t('transaction.build.selfSend')}`
-              : ` ${ioData.label ?? ''}`
+            : isFakeMix
+              ? ` ${t('transaction.build.fakeMix')}`
+              : isSelfSend
+                ? ` ${t('transaction.build.selfSend')}`
+                : ` ${ioData.label ?? ''}`
         )
         .pushStyle({
           ...baseTextStyle,
@@ -551,6 +561,7 @@ function NodeText({
     ioData.label,
     isHigherCurrentMinerFee,
     isChange,
+    isFakeMix,
     isSelfSend,
     showUnspentLabel
   ])
@@ -664,11 +675,25 @@ function NodeText({
           />
         )}
       {isUnspent &&
+        fakeMixIconSvg &&
+        placeholderRectsUnspentIcon.length > 0 &&
+        placeholderRectsUnspentIcon[0] &&
+        isFakeMix && (
+          <ImageSVG
+            svg={fakeMixIconSvg}
+            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
+            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
+            width={placeholderRectsUnspentIcon[0].rect.width}
+            height={placeholderRectsUnspentIcon[0].rect.height}
+          />
+        )}
+      {isUnspent &&
         labelIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
         placeholderRectsUnspentIcon[0] &&
         !isChange &&
         !isSelfSend &&
+        !isFakeMix &&
         ioData?.label && (
           <ImageSVG
             svg={labelIconSvg}

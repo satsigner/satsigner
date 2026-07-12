@@ -30,6 +30,7 @@ import {
   type Node
 } from '@/types/ui/sankey'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
+import { getSankeyExtentTopPx } from '@/utils/sankeyLayout'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
@@ -38,21 +39,25 @@ const LINK_MAX_WIDTH = 100
 const NODE_WIDTH = 98
 
 type SSMultipleSankeyDiagramProps = {
+  onPressInput?: (outpoint: string) => void
   onPressOutput?: (localId?: string) => void
   currentOutputLocalId?: string
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  overlayHeaderHeight?: number
 }
 
 function SSMultipleSankeyDiagram({
+  onPressInput,
   onPressOutput,
   currentOutputLocalId,
   inputs,
   outputs,
   feeRate,
-  ownAddresses = new Set()
+  ownAddresses = new Set(),
+  overlayHeaderHeight
 }: SSMultipleSankeyDiagramProps) {
   const DEEP_LEVEL = 2 // how deep the tx history
   const { error, fetchInputTransactions, loading, transactions } =
@@ -90,12 +95,14 @@ function SSMultipleSankeyDiagram({
       : 0
   }, [sankeyNodes])
 
+  const sankeyExtentTopPx = getSankeyExtentTopPx(overlayHeaderHeight)
+
   const sankeyGenerator = useMemo(() => {
     const gen = sankey()
       .nodeWidth(NODE_WIDTH)
       .nodePadding(SANKEY_DIAGRAM_NODE_PADDING_PX)
       .extent([
-        [0, 200],
+        [0, sankeyExtentTopPx],
         [2000 * (maxDepthH / 10), 1000 * (maxNodeCountInDepthH / 9)]
       ])
       .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
@@ -104,7 +111,7 @@ function SSMultipleSankeyDiagram({
       return depthH ?? 0
     })
     return gen
-  }, [maxDepthH, maxNodeCountInDepthH])
+  }, [maxDepthH, maxNodeCountInDepthH, sankeyExtentTopPx])
 
   // Run sankey layout with fallback on error
   const { layoutFailed, links, nodes } = useMemo(() => {
@@ -395,26 +402,33 @@ function SSMultipleSankeyDiagram({
             ]}
             onLayout={onCanvasLayout}
           >
-            {nodeStyles.map((style, index) => (
-              <TouchableOpacity
-                key={style.localId ?? index}
-                style={[
-                  styles.node,
-                  {
-                    height: style.height,
-                    left: style.x,
-                    position: 'absolute',
-                    top: style.y,
-                    width: style.width
+            {nodeStyles.map((style, index) => {
+              const node = nodes[index] as Node
+              const { inputOutpoint } = node
+
+              return (
+                <TouchableOpacity
+                  key={style.localId ?? inputOutpoint ?? index}
+                  style={[
+                    styles.node,
+                    {
+                      height: style.height,
+                      left: style.x,
+                      position: 'absolute',
+                      top: style.y,
+                      width: style.width
+                    }
+                  ]}
+                  onPress={
+                    inputOutpoint && onPressInput
+                      ? () => onPressInput(inputOutpoint)
+                      : node.depthH === maxDepthH && onPressOutput
+                        ? () => onPressOutput(style.localId)
+                        : undefined
                   }
-                ]}
-                onPress={
-                  (nodes[index] as Node).depthH === maxDepthH && onPressOutput
-                    ? () => onPressOutput(style.localId)
-                    : undefined
-                }
-              />
-            ))}
+                />
+              )
+            })}
           </Animated.View>
         </View>
       </GestureDetector>
