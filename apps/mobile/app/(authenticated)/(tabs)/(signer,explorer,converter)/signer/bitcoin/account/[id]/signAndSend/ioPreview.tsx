@@ -39,6 +39,7 @@ import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useUnusedInternalAddresses from '@/hooks/useUnusedInternalAddresses'
+import { useUriAutoSelectUtxos } from '@/hooks/useUriAutoSelectUtxos'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -54,11 +55,13 @@ import {
 } from '@/types/models/AutoSelectUtxos'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type IoPreviewSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
 import {
   autoSelectUtxosDescriptionKey,
-  autoSelectUtxosTitleKey
+  autoSelectUtxosTitleKey,
+  shouldAutoSelectUtxosFromBitcoinUri,
+  shouldAutoSelectUtxosFromParsedAmount
 } from '@/utils/autoSelectUtxos'
 import { parseBitcoinUri } from '@/utils/bip321'
 import {
@@ -91,18 +94,22 @@ import {
 
 export default function IOPreview() {
   const router = useRouter()
-  const { id, dustWarning } = useLocalSearchParams<
-    AccountSearchParams & { dustWarning?: string }
-  >()
+  const { id, autoSelectFromUri, dustWarning } =
+    useLocalSearchParams<IoPreviewSearchParams>()
   const isFocused = useIsFocused()
   const insets = useSafeAreaInsets()
 
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
   )
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
-  )
+  const [currencyUnit, defaultAutoSelectUtxos, useZeroPadding] =
+    useSettingsStore(
+      useShallow((state) => [
+        state.currencyUnit,
+        state.defaultAutoSelectUtxos,
+        state.useZeroPadding
+      ])
+    )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [
     inputs,
@@ -192,6 +199,13 @@ export default function IOPreview() {
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
     useState<AutoSelectUtxosAlgorithm>('user')
 
+  const markUriAutoSelectPendingRef = useRef<(() => void) | undefined>(
+    undefined
+  )
+  const applyUtxoSelectionRef = useRef<
+    (type: AutoSelectUtxosAlgorithm) => boolean
+  >(() => false)
+
   const [loadHistory, setLoadHistory] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [topGradientHeight, setTopGradientHeight] = useState(0)
@@ -203,6 +217,15 @@ export default function IOPreview() {
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] =
     useState<LoadingAutoSelectUtxosAlgorithm>(false)
+
+  const { markUriAutoSelectPending } = useUriAutoSelectUtxos({
+    autoSelectFromUri,
+    decoyAddress,
+    defaultAlgorithm: defaultAutoSelectUtxos,
+    onApplyAlgorithm: (type) => applyUtxoSelectionRef.current(type),
+    outputsLength: outputs.length
+  })
+  markUriAutoSelectPendingRef.current = markUriAutoSelectPending
 
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
@@ -280,6 +303,10 @@ export default function IOPreview() {
     if (parsed.label !== undefined) {
       setOutputLabel(parsed.label)
     }
+
+    if (shouldAutoSelectUtxosFromParsedAmount(parsed.amount)) {
+      markUriAutoSelectPendingRef.current?.()
+    }
   }
 
   function tryDecodeBip21(content: string): ParsedUriParams | null {
@@ -342,6 +369,13 @@ export default function IOPreview() {
         setOutputLabel,
         setOutputTo
       })
+      if (
+        success &&
+        detectedContent.type === 'bitcoin_uri' &&
+        shouldAutoSelectUtxosFromBitcoinUri(trimmedContent)
+      ) {
+        markUriAutoSelectPendingRef.current?.()
+      }
       if (success) {
         return
       }
@@ -494,6 +528,14 @@ export default function IOPreview() {
       setOutputLabel,
       setOutputTo
     })
+
+    if (
+      success &&
+      content.type === 'bitcoin_uri' &&
+      shouldAutoSelectUtxosFromBitcoinUri(content.cleaned.trim())
+    ) {
+      markUriAutoSelectPendingRef.current?.()
+    }
 
     if (success) {
       setCameraModalVisible(false)
@@ -695,16 +737,18 @@ export default function IOPreview() {
     }
   }
 
-  function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithm) {
+  function handleOnChangeUtxoSelection(
+    type: AutoSelectUtxosAlgorithm
+  ): boolean {
     if (type === selectedAutoSelectUtxos) {
-      return
+      return true
     }
 
     if (outputs.length === 0 && (type === 'privacy' || type === 'efficiency')) {
       toast.error(
         t('transaction.build.errors.noOutputSelected.autoUtxoSelection')
       )
-      return
+      return false
     }
 
     // Leaving privacy mode: drop the decoy output it added before reselecting.
@@ -735,7 +779,8 @@ export default function IOPreview() {
         if (previousUserSelectedUtxos) {
           setAccountUtxos(previousUserSelectedUtxos)
         } else {
-          return router.back()
+          router.back()
+          return false
         }
 
         break
@@ -800,7 +845,10 @@ export default function IOPreview() {
       setSelectedAutoSelectUtxos(type)
     }
     setLoadingOptimizeAlgorithm(false)
+    return selectionSucceeded
   }
+
+  applyUtxoSelectionRef.current = handleOnChangeUtxoSelection
 
   function tryAddStonewallOutputs(): boolean {
     if (selectedAutoSelectUtxos !== 'privacy' || stonewallFee === null) {

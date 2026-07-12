@@ -66,3 +66,10 @@ export const SANKEY_OUTGOING_UNSPENT_RIBBON_COLOR = '#D98A8A'
 
 /** Along outgoing-unspent ribbon gradient (0–1): ribbon color holds until this stop, then fades to white. */
 export const SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP = 0.1
+
+export function getSankeyExtentTopPx(overlayHeaderHeight?: number): number {
+  if (overlayHeaderHeight && overlayHeaderHeight > 0) {
+    return overlayHeaderHeight + SANKEY_OVERLAY_HEADER_GAP_PX
+  }
+  return SANKEY_CURRENT_TX_EXTENT_TOP_PX
+}

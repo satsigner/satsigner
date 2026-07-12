@@ -27,7 +27,8 @@ import {
   SANKEY_CURRENT_TX_EXTENT_X_INSET_PX,
   SANKEY_DIAGRAM_NODE_PADDING_PX,
   SANKEY_EQUAL_ROW_MIN_SLOT_PX,
-  SAFE_LIMIT_OF_INPUTS_OUTPUTS
+  SAFE_LIMIT_OF_INPUTS_OUTPUTS,
+  getSankeyExtentTopPx
 } from '@/types/ui/sankey'
 import {
   equalizeSankeyColumnsByDepthH,
@@ -35,7 +36,6 @@ import {
 } from '@/utils/equalizeSankeyColumnLayout'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
-import { getSankeyExtentTopPx } from '@/utils/sankeyLayout'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'

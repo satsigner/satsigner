@@ -25,12 +25,12 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import {
   BLOCK_WIDTH,
+  getSankeyExtentTopPx,
   SANKEY_DIAGRAM_NODE_PADDING_PX,
   type Link,
   type Node
 } from '@/types/ui/sankey'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
-import { getSankeyExtentTopPx } from '@/utils/sankeyLayout'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'

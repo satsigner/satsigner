@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
+import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 
 type SettingsState = {
   mnemonicWordList: WordListName
@@ -11,6 +12,7 @@ type SettingsState = {
   showWarning: boolean
   skipSeedConfirmation: boolean
   privacyMode: boolean
+  defaultAutoSelectUtxos: AutoSelectUtxosAlgorithm
 }
 
 type SettingsAction = {
@@ -19,6 +21,9 @@ type SettingsAction = {
   setShowWarning: (showWarning: SettingsState['showWarning']) => void
   setSkipSeedConfirmation: (skip: SettingsState['skipSeedConfirmation']) => void
   setMnemonicWordList: (wordList: SettingsState['mnemonicWordList']) => void
+  setDefaultAutoSelectUtxos: (
+    algorithm: SettingsState['defaultAutoSelectUtxos']
+  ) => void
   togglePrivacyMode: () => void
 }
 
@@ -26,10 +31,14 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
   persist(
     (set) => ({
       currencyUnit: 'sats',
+      defaultAutoSelectUtxos: 'privacy',
       mnemonicWordList: DEFAULT_WORD_LIST,
       privacyMode: false,
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
+      },
+      setDefaultAutoSelectUtxos: (defaultAutoSelectUtxos) => {
+        set({ defaultAutoSelectUtxos })
       },
       setMnemonicWordList: (mnemonicWordList) => {
         set({ mnemonicWordList })
