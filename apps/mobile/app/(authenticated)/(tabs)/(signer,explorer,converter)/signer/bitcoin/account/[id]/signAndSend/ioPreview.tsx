@@ -80,6 +80,7 @@ import {
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
+  filterUtxosByExcludedOutpoints,
   getUtxoOutpoint,
   mapStonewallChangeOutputs,
   mapStonewallFakeMixOutputs,
@@ -552,6 +553,15 @@ export default function IOPreview() {
 
   function handleSetFeeRate() {
     setFeeRate(localFeeRate)
+
+    if (
+      selectedAutoSelectUtxos === 'privacy' &&
+      stonewallFee !== null &&
+      !applyStonewallSelection(excludedUtxoOutpoints)
+    ) {
+      return
+    }
+
     changeFeeBottomSheetRef.current?.close()
   }
 
@@ -613,9 +623,7 @@ export default function IOPreview() {
       outputs
     })
 
-    const pool = account.utxos.filter(
-      (utxo) => !excluded.has(getUtxoOutpoint(utxo))
-    )
+    const pool = filterUtxosByExcludedOutpoints(account.utxos, excluded)
 
     const stonewallResult = selectStonewallUtxos(
       pool,
@@ -720,6 +728,8 @@ export default function IOPreview() {
       outputs
     })
 
+    let selectionSucceeded = true
+
     switch (type) {
       case 'user': {
         if (previousUserSelectedUtxos) {
@@ -735,15 +745,13 @@ export default function IOPreview() {
 
         if (!decoyAddress) {
           toast.error(t('transaction.error.ChangeAddressNotAvailable'))
+          selectionSucceeded = false
           break
         }
 
         setPreviousUserSelectedUtxos(getInputs())
         setExcludedUtxoOutpoints(new Set())
-
-        if (!applyStonewallSelection(new Set())) {
-          break
-        }
+        selectionSucceeded = applyStonewallSelection(new Set())
 
         break
       }
@@ -771,6 +779,7 @@ export default function IOPreview() {
 
         if (optimizationResult.error) {
           toast.error(optimizationResult.error)
+          selectionSucceeded = false
           break
         }
 
@@ -787,7 +796,9 @@ export default function IOPreview() {
         break
     }
 
-    setSelectedAutoSelectUtxos(type)
+    if (selectionSucceeded) {
+      setSelectedAutoSelectUtxos(type)
+    }
     setLoadingOptimizeAlgorithm(false)
   }
 

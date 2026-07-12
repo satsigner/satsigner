@@ -86,6 +86,14 @@ function getUtxoOutpoint(utxo: Utxo) {
   return `${utxo.txid}:${utxo.vout}`
 }
 
+function filterUtxosByExcludedOutpoints(
+  utxos: Utxo[],
+  excludedOutpoints: Iterable<string>
+) {
+  const excluded = new Set(excludedOutpoints)
+  return utxos.filter((utxo) => !excluded.has(getUtxoOutpoint(utxo)))
+}
+
 function sumValue(groups: OutputGroup[]) {
   return groups.reduce((sum, group) => sum + group.value, 0)
 }
@@ -932,6 +940,7 @@ function splitStonewallOutputValues(outputs: StonewallOutput[]) {
 }
 
 export {
+  filterUtxosByExcludedOutpoints,
   getUtxoOutpoint,
   mapStonewallChangeOutputs,
   mapStonewallFakeMixOutputs,
