@@ -3,6 +3,7 @@ import { shuffleWithJavaRandom } from '@/utils/array'
 import { javaSeededRandom } from '@/utils/crypto'
 import {
   mapStonewallChangeOutputs,
+  mapStonewallFakeMixOutputs,
   selectEfficientUtxos,
   selectStonewallUtxos,
   selectUtxos,
@@ -380,6 +381,12 @@ describe('stonewall utxo selection algorithm', () => {
       { amount: 1000, to: 'bc1qchange1' },
       { amount: 2000, to: 'bc1qchange2' }
     ])
+  })
+
+  it('should map stonewall fake mix values to the decoy address', () => {
+    const mapped = mapStonewallFakeMixOutputs([4687], 'bc1qdecoy')
+
+    expect(mapped).toStrictEqual([{ amount: 4687, to: 'bc1qdecoy' }])
   })
 
   it('should fail cleanly when sets cannot balance target and fee', () => {

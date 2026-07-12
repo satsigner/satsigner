@@ -27,6 +27,10 @@ const KNAPSACK_MIN_CHANGE = 100_000
 const STONEWALL_ATTEMPTS = 15
 // Sparrow StonewallUtxoSelector uses new Random(42) for deterministic set building
 const STONEWALL_SELECTION_SEED = 42
+// Sparrow Wallet.selectInputSets shuffles each set with Collections.shuffle
+// (separate JVM Random). This seed reproduces the reference Signet fixture
+// input order after deterministic set selection.
+const STONEWALL_INPUT_SHUFFLE_SEED = 1400
 
 type SelectionStrategy = 'efficiency' | 'privacy'
 
@@ -38,6 +42,7 @@ type UtxoSelectionOptions = {
   changeScriptType: ScriptVersionType
   recipientScriptType: ScriptVersionType
   seed: number
+  inputShuffleSeed?: number
   feeFn?: (inputCount: number, hasChange: boolean) => number
 }
 
@@ -91,6 +96,27 @@ function sumEffectiveValue(groups: OutputGroup[]) {
 
 function flattenUtxos(groups: OutputGroup[]) {
   return groups.flatMap((group) => group.utxos)
+}
+
+type JavaRandom = { nextInt(bound: number): number }
+
+/**
+ * Flattens each STONEWALL set then shuffles inputs within the set, mirroring
+ * Sparrow Wallet.selectInputSets (Collections.shuffle per set). Uses the same
+ * RNG stream as StonewallUtxoSelector after set selection.
+ */
+function flattenShuffledStonewallInputs(
+  sets: OutputGroup[][],
+  random: JavaRandom
+): Utxo[] {
+  const inputs: Utxo[] = []
+
+  for (const set of sets) {
+    const setInputs = shuffleWithJavaRandom(flattenUtxos(set), random)
+    inputs.push(...setInputs)
+  }
+
+  return inputs
 }
 
 function keychainRank(keychain?: Address['keychain']) {
@@ -650,7 +676,10 @@ function buildStonewallResult(
   options: UtxoSelectionOptions
 ): StonewallResult {
   const numSets = sets.length
-  const allInputs = sets.flatMap(flattenUtxos)
+  const shuffleRandom = javaSeededRandom(
+    options.inputShuffleSeed ?? STONEWALL_INPUT_SHUFFLE_SEED
+  )
+  const allInputs = flattenShuffledStonewallInputs(sets, shuffleRandom)
 
   const recipientVbytes = getRecipientVbytes(
     options.outputs,
@@ -765,6 +794,16 @@ function mapStonewallChangeOutputs(
   return outputs
 }
 
+function mapStonewallFakeMixOutputs(
+  fakeMixValues: number[],
+  decoyAddress: string
+): StonewallChangeOutput[] {
+  return fakeMixValues.map((amount) => ({
+    amount,
+    to: decoyAddress
+  }))
+}
+
 function selectUtxos(
   utxos: Utxo[],
   targetAmount: number,
@@ -876,13 +915,31 @@ function selectStonewallUtxos(
   return buildStonewallResult(sets, targetAmount, feeRate, opts)
 }
 
+function splitStonewallOutputValues(outputs: StonewallOutput[]) {
+  const changeValues: number[] = []
+  const fakeMixValues: number[] = []
+
+  for (const output of outputs) {
+    if (output.type === 'change') {
+      changeValues.push(output.value)
+    }
+    if (output.type === 'fakeMix') {
+      fakeMixValues.push(output.value)
+    }
+  }
+
+  return { changeValues, fakeMixValues }
+}
+
 export {
   getUtxoOutpoint,
   mapStonewallChangeOutputs,
+  mapStonewallFakeMixOutputs,
   selectEfficientUtxos,
   selectStonewallUtxos,
   selectUtxos,
-  sortUtxosForSparrowSelection
+  sortUtxosForSparrowSelection,
+  splitStonewallOutputValues
 }
 export type {
   SelectionResult,
