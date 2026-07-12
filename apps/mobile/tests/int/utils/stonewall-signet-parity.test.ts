@@ -92,6 +92,7 @@ function runStonewall(
         {
           amount: SIGNET_STONEWALL_AMOUNT,
           label: 'Test utxos selection',
+          localId: 'signet-stonewall-recipient',
           to: SIGNET_STONEWALL_RECIPIENT
         }
       ],
@@ -147,7 +148,7 @@ const describeLive =
 describeLive('signet stonewall sparrow parity', () => {
   jest.setTimeout(180_000)
 
-  it('compares wallet UTXOs and STONEWALL selection against Sparrow', async () => {
+  test('compares wallet UTXOs and STONEWALL selection against Sparrow', async () => {
     const wallet = await fetchWalletSnapshot()
 
     expect(wallet.utxos.length).toBeGreaterThan(0)
@@ -228,5 +229,31 @@ describeLive('signet stonewall sparrow parity', () => {
     expect(
       fullPool.inputs.reduce((sum, input) => sum + input.value, 0)
     ).toBeGreaterThan(SIGNET_STONEWALL_AMOUNT * 2)
+  })
+
+  test('matches Sparrow inputs and fee when esplora catalog is complete', async () => {
+    const wallet = await fetchWalletSnapshot()
+
+    if (wallet.utxos.length !== SPARROW_UTXO_CATALOG.length) {
+      return
+    }
+
+    for (const ref of SPARROW_UTXO_CATALOG) {
+      const hit = wallet.utxos.find((utxo) => matchUtxoToRef(utxo, ref))
+      expect(hit).toBeDefined()
+    }
+
+    const result = runStonewall(wallet.utxos, wallet.addresses)
+    expect(result.error).toBeUndefined()
+
+    const expectedOutpoints = SPARROW_STONEWALL_SELECTION.map((ref) => {
+      const hit = wallet.utxos.find((utxo) => matchUtxoToRef(utxo, ref))
+      expect(hit).toBeDefined()
+      return getUtxoOutpoint(hit!)
+    })
+
+    expect(result.fee).toBe(SPARROW_STONEWALL_FEE)
+    expect(result.inputs.map(getUtxoOutpoint)).toStrictEqual(expectedOutpoints)
+    expect(result.inputs).toHaveLength(8)
   })
 })

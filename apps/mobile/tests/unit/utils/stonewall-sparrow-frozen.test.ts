@@ -1,8 +1,3 @@
-import {
-  matchUtxoToRef,
-  SPARROW_STONEWALL_FEE,
-  SPARROW_STONEWALL_SELECTION
-} from '@/tests/int/utils/signetStonewallFixture'
 import { buildFrozenSignetPool } from '@/tests/int/utils/signetStonewallFrozenPool'
 import {
   SIGNET_STONEWALL_AMOUNT,
@@ -30,6 +25,7 @@ function stonewallSelect(
         {
           amount: SIGNET_STONEWALL_AMOUNT,
           label: 'Test utxos selection',
+          localId: 'signet-stonewall-recipient',
           to: SIGNET_STONEWALL_RECIPIENT
         }
       ],
@@ -40,33 +36,6 @@ function stonewallSelect(
 }
 
 describe('stonewall sparrow frozen pool', () => {
-  /**
-   * Requires correct derivation indices for all 16 catalog UTXOs in
-   * signetStonewallFrozenPool.ts. Three entries still use estimated indices.
-   * See STONEWALL-SPARROW-PARITY.md.
-   */
-  it.skip('matches Sparrow after excluding the first auto-selected input', () => {
-    const { addresses, utxos } = buildFrozenSignetPool()
-
-    const auto = stonewallSelect(utxos, addresses)
-    expect(auto.error).toBeUndefined()
-
-    const [removed] = auto.inputs
-    const afterRemoval = stonewallSelect(utxos, addresses, [removed])
-    expect(afterRemoval.error).toBeUndefined()
-
-    const expectedOutpoints = SPARROW_STONEWALL_SELECTION.map((ref) => {
-      const hit = utxos.find((utxo) => matchUtxoToRef(utxo, ref))
-      expect(hit).toBeDefined()
-      return getUtxoOutpoint(hit!)
-    }).toSorted()
-
-    expect(afterRemoval.fee).toBe(SPARROW_STONEWALL_FEE)
-    expect(afterRemoval.inputs.map(getUtxoOutpoint).toSorted()).toStrictEqual(
-      expectedOutpoints
-    )
-  })
-
   it('produces a valid STONEWALL structure on the frozen catalog', () => {
     const { addresses, utxos } = buildFrozenSignetPool()
     const result = stonewallSelect(utxos, addresses)

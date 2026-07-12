@@ -13,11 +13,12 @@ const SIGNET_ESPLORA_URL = 'https://mempool.space/signet/api'
 const SIGNET_STONEWALL_DESCRIPTOR =
   'wpkh([60c6c741/84h/1h/0h]tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/<0;1>/*)#xgd2rmj0'
 
-const SIGNET_STONEWALL_RECIPIENT = 'tb1qgju6fjh40ksx3ewheuwf40gwwzerhj5x0esxcq'
+const SIGNET_STONEWALL_RECIPIENT = 'tb1qka4utqxjj8g9az433nv0nnkfxsa9l9y0zfjvuj'
 
 const SIGNET_STONEWALL_AMOUNT = 4687
 
-const SIGNET_STONEWALL_FEE_RATE = 0.5
+/** Sparrow used ~1 sat/vB for this send (UI showed 678 sats fee). */
+const SIGNET_STONEWALL_FEE_RATE = 1
 
 /** Scan range for esplora (150 covers most catalog UTXOs; Sparrow may scan to 230). */
 const MAX_SCAN_INDEX = 150
