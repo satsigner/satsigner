@@ -3,12 +3,12 @@ import { BIP32Factory } from 'bip32'
 import { payments, networks } from 'bitcoinjs-lib'
 
 import Esplora from '@/api/esplora'
-import { MEMPOOL_SIGNET_URL } from '@/config/servers'
 import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 
-const SIGNET_ESPLORA_URL = MEMPOOL_SIGNET_URL
+/** Esplora endpoint; matches SatSigner Signet default (mempool.space). */
+const SIGNET_ESPLORA_URL = 'https://mempool.space/signet/api'
 
 const SIGNET_STONEWALL_DESCRIPTOR =
   'wpkh([60c6c741/84h/1h/0h]tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/<0;1>/*)#xgd2rmj0'
@@ -19,7 +19,7 @@ const SIGNET_STONEWALL_AMOUNT = 4687
 
 const SIGNET_STONEWALL_FEE_RATE = 0.5
 
-/** Scan wide enough to include all Sparrow-indexed addresses on signet. */
+/** Scan range for esplora (150 covers most catalog UTXOs; Sparrow may scan to 230). */
 const MAX_SCAN_INDEX = 150
 
 const bip32 = BIP32Factory(ecc)

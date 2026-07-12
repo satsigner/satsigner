@@ -10,13 +10,11 @@ import {
 /**
  * STONEWALL parity vs Sparrow on Signet.
  *
- * Both wallets should use mempool.space Signet:
- * - SatSigner: Settings → Network → Signet → Mempool (Esplora)
- *   https://mempool.space/signet/api
- * - Sparrow: Settings → Server → Public server → Mempool Signet (Electrum)
- *   ssl://mempool.space:60602 — then resync the wallet
+ * Live test: scans mempool Esplora (opt-in on CI via STONEWALL_LIVE_TEST=1).
+ * Offline coverage: tests/unit/utils/stonewall-sparrow-frozen.test.ts
  *
- * Run: cd apps/mobile && npx jest tests/int/utils/stonewall-signet-parity.test.ts
+ * Run locally:
+ *   cd apps/mobile && npx jest tests/int/utils/stonewall-signet-parity.test.ts
  */
 import {
   fetchWalletSnapshot,
@@ -141,7 +139,12 @@ type SignetStonewallWalletSnapshot = Awaited<
   ReturnType<typeof fetchWalletSnapshot>
 >
 
-describe('signet stonewall sparrow parity', () => {
+const describeLive =
+  process.env.CI === 'true' && process.env.STONEWALL_LIVE_TEST !== '1'
+    ? describe.skip
+    : describe
+
+describeLive('signet stonewall sparrow parity', () => {
   jest.setTimeout(180_000)
 
   it('compares wallet UTXOs and STONEWALL selection against Sparrow', async () => {
