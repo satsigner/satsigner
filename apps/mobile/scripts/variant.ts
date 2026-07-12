@@ -15,7 +15,7 @@
  */
 
 import { execFileSync, spawnSync } from 'node:child_process'
-import { copyFileSync, mkdirSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -28,6 +28,32 @@ import {
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const MOBILE_DIR = join(SCRIPT_DIR, '..')
+
+function removeNativeDir(path: string) {
+  if (!existsSync(path)) {
+    return
+  }
+
+  try {
+    rmSync(path, {
+      force: true,
+      maxRetries: 5,
+      recursive: true,
+      retryDelay: 100
+    })
+  } catch (error) {
+    const code =
+      error && typeof error === 'object' && 'code' in error
+        ? String(error.code)
+        : ''
+
+    if (code !== 'ENOTEMPTY' && code !== 'EBUSY' && code !== 'EPERM') {
+      throw error
+    }
+
+    execFileSync('rm', ['-rf', path])
+  }
+}
 
 type VariantArgs = {
   apk: boolean
@@ -206,7 +232,7 @@ function main() {
 
   const platform = args.ios ? 'ios' : 'android'
 
-  rmSync(join(MOBILE_DIR, platform), { force: true, recursive: true })
+  removeNativeDir(join(MOBILE_DIR, platform))
 
   run('npx', ['expo', 'prebuild', '--clean', '--platform', platform], env)
 
