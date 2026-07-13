@@ -45,11 +45,6 @@ export type TxNode = {
     feePercentage?: number // miner fee is 10% or higher of the total transaction value
     isFakeMix?: boolean
     isSelfSend?: boolean // NEW: flag for self-send
-    /**
-     * When the tx is underfunded (inputs < outputs + fee), each output has a max
-     * amount it can be set to given other outputs. Used to highlight which
-     * outputs need editing.
-     */
     maxAllowedSats?: number
   }
 }

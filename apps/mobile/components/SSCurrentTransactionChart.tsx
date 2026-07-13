@@ -38,6 +38,10 @@ import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
+import {
+  getOutputMaxAllowedSats,
+  isTransactionUnderfunded
+} from '@/utils/transactionFunding'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
@@ -254,13 +258,26 @@ function SSCurrentTransactionChart({
       }
     ]
 
-    const isUnderfunded = totalInputValue < totalOutputValue + minerFee
-    const outputsTotal = outputArray.reduce((sum, output) => sum + output.amount, 0)
+    const isUnderfunded = isTransactionUnderfunded(
+      totalInputValue,
+      totalOutputValue,
+      minerFee
+    )
+    const outputsTotal = outputArray.reduce(
+      (sum, output) => sum + output.amount,
+      0
+    )
 
     const outputNodes: TxNode[] = outputArray.map((output, index) => {
-      const localId = output.to ? output.localId : CHART_REMAINING_BALANCE_LOCAL_ID
-      const otherOutputsTotal = outputsTotal - output.amount
-      const maxAllowedSats = Math.max(0, totalInputValue - minerFee - otherOutputsTotal)
+      const localId = output.to
+        ? output.localId
+        : CHART_REMAINING_BALANCE_LOCAL_ID
+      const maxAllowedSats = getOutputMaxAllowedSats({
+        minerFeeSats: minerFee,
+        outputAmountSats: output.amount,
+        outputsTotalSats: outputsTotal,
+        totalInputSats: totalInputValue
+      })
 
       return {
         depthH: 2,
