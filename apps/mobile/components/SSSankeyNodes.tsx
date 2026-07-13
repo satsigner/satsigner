@@ -411,6 +411,23 @@ function NodeText({
 
     const buildUnspentParagraph = () => {
       const isGreenOutput = isChange || isSelfSend || isFakeMix
+    const shouldUseUnderfundedColors =
+      !isChange &&
+      !isMiningFee &&
+      typeof ioData?.value === 'number' &&
+      typeof ioData?.maxAllowedSats === 'number'
+
+    const isOverAllowed =
+      shouldUseUnderfundedColors && ioData.value > ioData.maxAllowedSats
+
+    const satsValueColor = shouldUseUnderfundedColors
+      ? isOverAllowed
+        ? warning
+        : 'white'
+      : isGreenOutput
+        ? 'white'
+        : mainRed
+
       const para = createParagraphBuilder()
       if (showUnspentLabel) {
         para
@@ -423,7 +440,7 @@ function NodeText({
       para
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color(isGreenOutput ? 'white' : mainRed),
+        color: Skia.Color(satsValueColor),
           fontSize: BASE_FONT_SIZE
         })
         .addText(

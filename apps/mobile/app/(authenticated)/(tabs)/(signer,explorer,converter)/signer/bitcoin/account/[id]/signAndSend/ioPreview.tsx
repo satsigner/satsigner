@@ -91,6 +91,7 @@ import {
   selectStonewallUtxos,
   splitStonewallOutputValues
 } from '@/utils/utxo'
+import { warning } from '@/styles/colors'
 
 export default function IOPreview() {
   const router = useRouter()
@@ -438,6 +439,8 @@ export default function IOPreview() {
     )
     return totalInputValue - totalOutputValue - effectiveMinerFee
   }, [effectiveMinerFee, outputs, utxosSelectedValue])
+
+  const isUnderfunded = remainingBalance < 0
 
   const stonewallPreviewOutputs =
     selectedAutoSelectUtxos === 'privacy' &&
@@ -1088,6 +1091,7 @@ export default function IOPreview() {
               nextBlockFee={nextBlockFee}
               blockHeightSource={blockHeightSource}
             />
+            
             <SSHStack
               gap="sm"
               style={{ alignItems: 'center', flexWrap: 'wrap' }}
@@ -1132,6 +1136,17 @@ export default function IOPreview() {
                 </SSText>
               </SSHStack>
             </SSHStack>
+            {isUnderfunded ? (
+              <SSText
+                size="xxs"
+                style={{
+                  color: warning,
+                  marginTop: -2
+                }}
+              >
+                {t('transaction.error.insufficientInputs')}
+              </SSText>
+            ) : null}
             <SSVStack gap="xxs" itemsCenter>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText

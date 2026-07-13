@@ -254,27 +254,40 @@ function SSCurrentTransactionChart({
       }
     ]
 
-    const outputNodes: TxNode[] = outputArray.map((output, index) => ({
-      depthH: 2,
-      id: String(index + 2 + inputArray.length),
-      ioData: {
-        address: output?.to ? formatAddress(output?.to, 6) : '',
-        fiatCurrency,
-        fiatValue: formatNumber(satsToFiat(output.amount), 2),
-        isFakeMix: output.kind === 'fakeMix',
-        isSelfSend: !!(
-          output.to &&
-          ownAddresses.has(output.to) &&
-          output.kind !== 'fakeMix'
-        ),
-        isUnspent: true,
-        label: output.label,
+    const isUnderfunded = totalInputValue < totalOutputValue + minerFee
+    const outputsTotal = outputArray.reduce((sum, output) => sum + output.amount, 0)
+
+    const outputNodes: TxNode[] = outputArray.map((output, index) => {
+      const localId = output.to ? output.localId : CHART_REMAINING_BALANCE_LOCAL_ID
+      const otherOutputsTotal = outputsTotal - output.amount
+      const maxAllowedSats = Math.max(0, totalInputValue - minerFee - otherOutputsTotal)
+
+      return {
+        depthH: 2,
+        id: String(index + 2 + inputArray.length),
+        ioData: {
+          address: output?.to ? formatAddress(output?.to, 6) : '',
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(output.amount), 2),
+          isFakeMix: output.kind === 'fakeMix',
+          isSelfSend: !!(
+            output.to &&
+            ownAddresses.has(output.to) &&
+            output.kind !== 'fakeMix'
+          ),
+          isUnspent: true,
+          label: output.label,
+          maxAllowedSats:
+            isUnderfunded && localId !== CHART_REMAINING_BALANCE_LOCAL_ID
+              ? maxAllowedSats
+              : undefined,
+          value: output.amount
+        },
+        localId,
+        type: 'text',
         value: output.amount
-      },
-      localId: output.to ? output.localId : CHART_REMAINING_BALANCE_LOCAL_ID,
-      type: 'text',
-      value: output.amount
-    }))
+      }
+    })
 
     if (minerFee !== undefined && minerFee > 0) {
       // Calculate total output value with addresses for fee analysis
@@ -316,6 +329,7 @@ function SSCurrentTransactionChart({
     inputArray,
     outputArray,
     totalInputValue,
+    totalOutputValue,
     safeTxSize,
     safeTxVsize,
     minerFee,
