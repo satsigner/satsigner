@@ -703,10 +703,6 @@ export default function IOPreview() {
   }
 
   function handleOnPressInput(outpoint: string) {
-    if (selectedAutoSelectUtxos !== 'privacy') {
-      return
-    }
-
     const utxo = inputs.get(outpoint)
     if (!utxo) {
       return
@@ -726,15 +722,23 @@ export default function IOPreview() {
       return
     }
 
-    const outpoint = getUtxoOutpoint(inputToRemove)
-    const nextExcluded = new Set(excludedUtxoOutpoints)
-    nextExcluded.add(outpoint)
+    if (selectedAutoSelectUtxos === 'privacy') {
+      const outpoint = getUtxoOutpoint(inputToRemove)
+      const nextExcluded = new Set(excludedUtxoOutpoints)
+      nextExcluded.add(outpoint)
 
-    if (applyStonewallSelection(nextExcluded)) {
-      setExcludedUtxoOutpoints(nextExcluded)
-      setRemoveInputModalVisible(false)
-      setInputToRemove(null)
+      if (applyStonewallSelection(nextExcluded)) {
+        setExcludedUtxoOutpoints(nextExcluded)
+        setRemoveInputModalVisible(false)
+        setInputToRemove(null)
+      }
+
+      return
     }
+
+    removeInput(inputToRemove)
+    setRemoveInputModalVisible(false)
+    setInputToRemove(null)
   }
 
   function handleOnChangeUtxoSelection(
@@ -1010,8 +1014,7 @@ export default function IOPreview() {
     ? new Set(account.addresses.map((address) => address.address))
     : new Set<string>()
 
-  const chartOnPressInput =
-    selectedAutoSelectUtxos === 'privacy' ? handleOnPressInput : undefined
+  const chartOnPressInput = handleOnPressInput
 
   return (
     <View
