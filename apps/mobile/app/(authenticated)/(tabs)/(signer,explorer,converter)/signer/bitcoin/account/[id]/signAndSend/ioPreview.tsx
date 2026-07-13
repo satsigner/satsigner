@@ -1179,27 +1179,29 @@ export default function IOPreview() {
         />
       </View>
       <LinearGradient
-        locations={[0, 0.05, 0.15, 0.3, 1]}
+        locations={[0, 0.1, 0.15, 0.3, 1]}
         style={{
           backgroundColor: Colors.transparent,
           bottom: 0,
           flexDirection: 'row',
           justifyContent: 'center',
           paddingBottom: 20 + insets.bottom,
+          paddingTop: 70,
           position: 'absolute',
           width: '100%'
         }}
         colors={[
           '#0A0A0A00',
-          '#0A0A0A1A',
-          '#0A0A0A4B',
-          '#0A0A0AA6',
-          '#0A0A0AF5'
+          '#0A0A0A88',
+          '#0A0A0ABB',
+          '#0A0A0AF2',
+          '#0A0A0AFF'
         ]}
       >
         <SSVStack
           gap="xs"
           style={{
+            marginTop: -44,
             paddingHorizontal: Layout.mainContainer.paddingHorizontal,
             width: '100%'
           }}
