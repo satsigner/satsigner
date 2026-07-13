@@ -31,6 +31,7 @@ import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
 } from '@/utils/sankeyFlowWidths'
+import { getUnspentOutputSatsColor } from '@/utils/sankeyOutputLabel'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
 type SSSankeyNodesProps = {
@@ -410,23 +411,14 @@ function NodeText({
     }
 
     const buildUnspentParagraph = () => {
-      const isGreenOutput = isChange || isSelfSend || isFakeMix
-    const shouldUseUnderfundedColors =
-      !isChange &&
-      !isMiningFee &&
-      typeof ioData?.value === 'number' &&
-      typeof ioData?.maxAllowedSats === 'number'
-
-    const isOverAllowed =
-      shouldUseUnderfundedColors && ioData.value > ioData.maxAllowedSats
-
-    const satsValueColor = shouldUseUnderfundedColors
-      ? isOverAllowed
-        ? warning
-        : 'white'
-      : isGreenOutput
-        ? 'white'
-        : mainRed
+      const isGreenOutput = Boolean(isChange || isSelfSend || isFakeMix)
+      const satsValueColor = getUnspentOutputSatsColor({
+        isChange,
+        isGreenOutput,
+        isMiningFee,
+        maxAllowedSats: ioData?.maxAllowedSats,
+        value: ioData?.value
+      })
 
       const para = createParagraphBuilder()
       if (showUnspentLabel) {
@@ -440,7 +432,7 @@ function NodeText({
       para
         .pushStyle({
           ...baseTextStyle,
-        color: Skia.Color(satsValueColor),
+          color: Skia.Color(satsValueColor),
           fontSize: BASE_FONT_SIZE
         })
         .addText(
@@ -570,6 +562,7 @@ function NodeText({
     ioData.vSize,
     ioData?.feeRate,
     ioData?.value,
+    ioData?.maxAllowedSats,
     ioData.fiatValue,
     ioData.fiatCurrency,
     ioData?.text,
