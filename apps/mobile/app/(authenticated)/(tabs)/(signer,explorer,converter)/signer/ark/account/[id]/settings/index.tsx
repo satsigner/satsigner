@@ -227,7 +227,7 @@ export default function ArkAccountSettingsPage() {
           disabled={isExporting}
         />
         <SSButton
-          label={t('common.delete')}
+          label={t('ark.account.deleteWalletAction')}
           onPress={() => setDeleteModalVisible(true)}
           variant="danger"
         />
