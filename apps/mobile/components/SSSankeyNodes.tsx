@@ -141,8 +141,14 @@ function SSSankeyNodes({
               y={y}
               width={BLOCK_WIDTH / 1.5}
               height={txSizeHeight}
-              opacity={0.7}
-              color={isCurrentTxBlockNode ? gray[200] : gray[500]}
+              opacity={isTransactionChart ? 0.6 : 0.7}
+              color={
+                isTransactionChart
+                  ? gray[500]
+                  : isCurrentTxBlockNode
+                    ? gray[100]
+                    : gray[500]
+              }
             />
           </Group>
         )
@@ -340,15 +346,15 @@ function NodeText({
       para
         .pushStyle({
           ...baseTextStyle,
-          fontSize: SM_FONT_SIZE
-        })
-        .addText(`${ioData?.txSize} B`)
-        .pushStyle({
-          ...baseTextStyle,
-          color: Skia.Color('white'),
           fontSize: XS_FONT_SIZE
         })
-        .addText(`\n${Math.ceil(ioData.vSize ?? 0)} vB`)
+        .addText(`${Math.ceil(ioData.vSize ?? 0)} vB`)
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color('rgba(255,255,255,0.6)'),
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(`\n${ioData?.txSize} B`)
         .pop()
 
       return para.build()
