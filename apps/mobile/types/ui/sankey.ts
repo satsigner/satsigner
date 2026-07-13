@@ -55,8 +55,14 @@ export const SANKEY_CURRENT_TX_EXTENT_X_INSET_PX = 26
 /** Vertical gap between stacked nodes (d3-sankey nodePadding). */
 export const SANKEY_DIAGRAM_NODE_PADDING_PX = 42
 
+/** Tighter row gap for ioPreview current-tx sankey. */
+export const SANKEY_CURRENT_TX_NODE_PADDING_PX = 30
+
 /** Minimum row height when equalizing stacked sankey columns after layout (matches card row height). */
 export const SANKEY_EQUAL_ROW_MIN_SLOT_PX = 64
+
+/** Minimum row height for ioPreview current-tx sankey label cards. */
+export const SANKEY_CURRENT_TX_EQUAL_ROW_MIN_SLOT_PX = 52
 
 /** Bezier control-point extent cap in Skia link paths. */
 export const SANKEY_LINK_CURVE_CONTROL_MAX_PX = 60
