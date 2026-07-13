@@ -33,13 +33,24 @@ function SSSelectionActionBar({
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
       <View style={styles.bar}>
-        <SSText size="sm" style={styles.summary} numberOfLines={1}>
-          {summary}
-        </SSText>
-        {actions.map((action) => (
-          <View key={action.label} style={styles.actionGroup}>
-            <View style={styles.divider} />
+        <View style={styles.header}>
+          <SSText size="sm" style={styles.summary}>
+            {summary}
+          </SSText>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onClear}
+            hitSlop={8}
+            style={({ pressed }) => pressed && styles.actionDimmed}
+          >
+            <SSIconX width={12} height={12} />
+          </Pressable>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.actionRow}>
+          {actions.map((action) => (
             <Pressable
+              key={action.label}
               accessibilityLabel={action.label}
               accessibilityRole="button"
               disabled={action.disabled}
@@ -51,30 +62,15 @@ function SSSelectionActionBar({
             >
               {action.icon}
               <SSText
-                size="sm"
-                numberOfLines={1}
-                style={[
-                  styles.actionLabel,
-                  action.destructive && styles.destructiveLabel
-                ]}
+                size="xs"
+                center
+                style={action.destructive && styles.destructiveLabel}
               >
                 {action.label}
               </SSText>
             </Pressable>
-          </View>
-        ))}
-        <View style={styles.divider} />
-        <Pressable
-          accessibilityRole="button"
-          onPress={onClear}
-          hitSlop={8}
-          style={({ pressed }) => [
-            styles.action,
-            pressed && styles.actionDimmed
-          ]}
-        >
-          <SSIconX width={12} height={12} />
-        </Pressable>
+          ))}
+        </View>
       </View>
     </View>
   )
@@ -83,47 +79,43 @@ function SSSelectionActionBar({
 const styles = StyleSheet.create({
   action: {
     alignItems: 'center',
-    flexDirection: 'row',
-    flexShrink: 1,
-    gap: 6,
-    paddingHorizontal: 10,
+    flex: 1,
+    gap: 4,
+    paddingHorizontal: 4,
     paddingVertical: 10
   },
   actionDimmed: {
     opacity: 0.5
   },
-  actionGroup: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexShrink: 1
-  },
-  actionLabel: {
-    flexShrink: 1
+  actionRow: {
+    flexDirection: 'row'
   },
   bar: {
-    alignItems: 'center',
+    alignSelf: 'stretch',
     backgroundColor: Colors.gray[900],
     borderColor: Colors.gray[800],
     borderRadius: 12,
     borderWidth: 1,
     elevation: 12,
-    flexDirection: 'row',
-    maxWidth: '100%',
-    paddingHorizontal: 6,
-    paddingVertical: 2
+    paddingHorizontal: 8,
+    paddingVertical: 6
   },
   destructiveLabel: {
     color: Colors.error
   },
   divider: {
-    alignSelf: 'center',
     backgroundColor: Colors.gray[800],
-    height: 20,
-    width: StyleSheet.hairlineWidth
+    height: StyleSheet.hairlineWidth
+  },
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 6,
+    paddingVertical: 8
   },
   summary: {
-    flexShrink: 1,
-    paddingHorizontal: 10
+    flexShrink: 1
   },
   wrapper: {
     alignItems: 'center',
