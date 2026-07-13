@@ -1180,6 +1180,7 @@ export default function IOPreview() {
       </View>
       <LinearGradient
         locations={[0, 0.1, 0.15, 0.3, 1]}
+        pointerEvents="box-none"
         style={{
           backgroundColor: Colors.transparent,
           bottom: 0,
@@ -1201,7 +1202,7 @@ export default function IOPreview() {
         <SSVStack
           gap="xs"
           style={{
-            marginTop: -44,
+            marginTop: -70,
             paddingHorizontal: Layout.mainContainer.paddingHorizontal,
             width: '100%'
           }}
