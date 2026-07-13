@@ -33,6 +33,12 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  IO_PREVIEW_BOTTOM_GRADIENT_COLORS,
+  IO_PREVIEW_BOTTOM_GRADIENT_EXTEND_PX,
+  IO_PREVIEW_BOTTOM_GRADIENT_LOCATIONS,
+  IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
+} from '@/constants/ioPreviewLayout'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -49,6 +55,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout, Typography } from '@/styles'
+import { warning } from '@/styles/colors'
 import {
   type AutoSelectUtxosAlgorithm,
   type LoadingAutoSelectUtxosAlgorithm
@@ -83,6 +90,10 @@ import {
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
+  getTransactionRemainingBalance,
+  isTransactionUnderfunded
+} from '@/utils/transactionFunding'
+import {
   filterUtxosByExcludedOutpoints,
   getUtxoOutpoint,
   mapStonewallChangeOutputs,
@@ -91,7 +102,6 @@ import {
   selectStonewallUtxos,
   splitStonewallOutputValues
 } from '@/utils/utxo'
-import { warning } from '@/styles/colors'
 
 export default function IOPreview() {
   const router = useRouter()
@@ -431,16 +441,17 @@ export default function IOPreview() {
     staleTime: time.minutes(5)
   })
 
-  const remainingBalance = useMemo(() => {
-    const totalInputValue = utxosSelectedValue
-    const totalOutputValue = outputs.reduce(
-      (sum, output) => sum + output.amount,
-      0
-    )
-    return totalInputValue - totalOutputValue - effectiveMinerFee
-  }, [effectiveMinerFee, outputs, utxosSelectedValue])
+  const remainingBalance = getTransactionRemainingBalance(
+    utxosSelectedValue,
+    totalOutputValue,
+    effectiveMinerFee
+  )
 
-  const isUnderfunded = remainingBalance < 0
+  const isUnderfunded = isTransactionUnderfunded(
+    utxosSelectedValue,
+    totalOutputValue,
+    effectiveMinerFee
+  )
 
   const stonewallPreviewOutputs =
     selectedAutoSelectUtxos === 'privacy' &&
@@ -1091,7 +1102,7 @@ export default function IOPreview() {
               nextBlockFee={nextBlockFee}
               blockHeightSource={blockHeightSource}
             />
-            
+
             <SSHStack
               gap="sm"
               style={{ alignItems: 'center', flexWrap: 'wrap' }}
@@ -1141,7 +1152,7 @@ export default function IOPreview() {
                 size="xxs"
                 style={{
                   color: warning,
-                  marginTop: -2
+                  marginTop: IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
                 }}
               >
                 {t('transaction.error.insufficientInputs')}
@@ -1197,7 +1208,7 @@ export default function IOPreview() {
         />
       </View>
       <LinearGradient
-        locations={[0, 0.1, 0.15, 0.3, 1]}
+        locations={[...IO_PREVIEW_BOTTOM_GRADIENT_LOCATIONS]}
         pointerEvents="box-none"
         style={{
           backgroundColor: Colors.transparent,
@@ -1205,22 +1216,16 @@ export default function IOPreview() {
           flexDirection: 'row',
           justifyContent: 'center',
           paddingBottom: 20 + insets.bottom,
-          paddingTop: 70,
+          paddingTop: IO_PREVIEW_BOTTOM_GRADIENT_EXTEND_PX,
           position: 'absolute',
           width: '100%'
         }}
-        colors={[
-          '#0A0A0A00',
-          '#0A0A0A88',
-          '#0A0A0ABB',
-          '#0A0A0AF2',
-          '#0A0A0AFF'
-        ]}
+        colors={[...IO_PREVIEW_BOTTOM_GRADIENT_COLORS]}
       >
         <SSVStack
           gap="xs"
           style={{
-            marginTop: -70,
+            marginTop: -IO_PREVIEW_BOTTOM_GRADIENT_EXTEND_PX,
             paddingHorizontal: Layout.mainContainer.paddingHorizontal,
             width: '100%'
           }}
