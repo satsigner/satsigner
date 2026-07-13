@@ -10,6 +10,7 @@ import {
   parseArkCounterparty,
   selectArkRefreshes,
   selectArkTransactions,
+  sortArkMovements,
   truncateArkCounterparty
 } from '@/utils/arkMovement'
 
@@ -110,6 +111,29 @@ describe('arkMovement utils', () => {
       ]
       const result = selectArkRefreshes(movements)
       expect(result.map((m) => m.id)).toStrictEqual([2])
+    })
+  })
+
+  describe('sortArkMovements', () => {
+    const movements = [
+      buildMovement({ createdAt: '2026-01-02T00:00:00.000Z', id: 1 }),
+      buildMovement({ createdAt: '2026-01-03T00:00:00.000Z', id: 2 }),
+      buildMovement({ createdAt: '2026-01-01T00:00:00.000Z', id: 3 })
+    ]
+
+    it('sorts oldest first when ascending', () => {
+      const result = sortArkMovements(movements, 'asc')
+      expect(result.map((m) => m.id)).toStrictEqual([3, 1, 2])
+    })
+
+    it('sorts newest first when descending', () => {
+      const result = sortArkMovements(movements, 'desc')
+      expect(result.map((m) => m.id)).toStrictEqual([2, 1, 3])
+    })
+
+    it('does not mutate the input array', () => {
+      sortArkMovements(movements, 'asc')
+      expect(movements.map((m) => m.id)).toStrictEqual([1, 2, 3])
     })
   })
 

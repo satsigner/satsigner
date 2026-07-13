@@ -5,6 +5,9 @@ import {
   LightningSendStatus_Tags,
   type Movement,
   Network as BarkNetwork,
+  OnchainWallet,
+  type OnchainWalletLike,
+  type PendingBoard,
   type Vtxo,
   Wallet,
   WalletNotification_Tags,
@@ -24,7 +27,10 @@ import type {
   ArkMovementEvent,
   ArkNotificationListener,
   ArkNotificationUnsubscribe,
+  ArkOnchainBalance,
+  ArkPendingBoard,
   ArkServer,
+  ArkServerInfo,
   ArkVtxo,
   ArkWalletArgs,
   ArkWalletProvider
@@ -35,6 +41,9 @@ import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
 const ROUND_TX_REQUIRED_CONFIRMATIONS = 0 // Later allow users to change this on the Ark settings
 const LIGHTNING_SEND_WAIT = false
 const walletCache = new Map<string, WalletLike>()
+const walletArgsCache = new Map<string, ArkWalletArgs>()
+const onchainWalletCache = new Map<string, OnchainWalletLike>()
+const inflightOnchainOpens = new Map<string, Promise<OnchainWalletLike>>()
 const inflightOpens = new Map<string, Promise<void>>()
 const inflightSyncs = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()
@@ -69,24 +78,20 @@ function getCachedWallet(accountId: string): WalletLike {
   return wallet
 }
 
-async function createWallet({
-  accountId,
-  mnemonic,
-  server,
-  datadir
-}: ArkWalletArgs): Promise<void> {
+async function createWallet(args: ArkWalletArgs): Promise<void> {
   const wallet = await Wallet.open(
-    appNetworkToBarkNetwork(server.network),
-    mnemonic,
-    buildConfig(server),
+    appNetworkToBarkNetwork(args.server.network),
+    args.mnemonic,
+    buildConfig(args.server),
     {
       createIfNotExists: true,
       createWithoutServer: false,
-      datadir,
+      datadir: args.datadir,
       runDaemon: false
     }
   )
-  walletCache.set(accountId, wallet)
+  walletCache.set(args.accountId, wallet)
+  walletArgsCache.set(args.accountId, args)
 }
 
 async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
@@ -102,6 +107,7 @@ async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
     }
   )
   walletCache.set(args.accountId, wallet)
+  walletArgsCache.set(args.accountId, args)
   try {
     await wallet.sync()
   } catch (error) {
@@ -221,11 +227,17 @@ function releaseWallet(accountId: string): void {
     activeUnsubscribes.delete(accountId)
   }
   notificationsCache.delete(accountId)
+  const onchainWallet = onchainWalletCache.get(accountId)
+  if (onchainWallet && OnchainWallet.instanceOf(onchainWallet)) {
+    onchainWallet.uniffiDestroy()
+  }
+  onchainWalletCache.delete(accountId)
   const wallet = walletCache.get(accountId)
   if (wallet && Wallet.instanceOf(wallet)) {
     wallet.uniffiDestroy()
   }
   walletCache.delete(accountId)
+  walletArgsCache.delete(accountId)
 }
 
 function newAddress(accountId: string): Promise<string> {
@@ -233,7 +245,7 @@ function newAddress(accountId: string): Promise<string> {
   return wallet.newAddress()
 }
 
-function deriveAddresses(
+async function deriveAddresses(
   accountId: string,
   startIndex: number,
   count: number
@@ -243,12 +255,17 @@ function deriveAddresses(
     { length: count },
     (_, offset) => startIndex + offset
   )
-  return Promise.all(
-    indices.map(async (index) => ({
-      address: await wallet.peekAddress(index),
-      index
-    }))
-  )
+  const addresses: ArkDerivedAddress[] = []
+  for (const index of indices) {
+    // peekAddress only returns already-revealed addresses and errors for
+    // indices beyond the last derived one, so stop at the first failure.
+    try {
+      addresses.push({ address: await wallet.peekAddress(index), index })
+    } catch {
+      break
+    }
+  }
+  return addresses
 }
 
 async function createBolt11Invoice(
@@ -563,6 +580,121 @@ async function estimateSendOnchainFee(
   return mapFeeEstimate(estimate)
 }
 
+async function openOnchainWallet(
+  args: ArkWalletArgs
+): Promise<OnchainWalletLike> {
+  const onchainWallet = await OnchainWallet.default_(
+    appNetworkToBarkNetwork(args.server.network),
+    args.mnemonic,
+    buildConfig(args.server),
+    args.datadir
+  )
+  // wallet released while the open was inflight; don't resurrect the cache
+  if (walletArgsCache.get(args.accountId) !== args) {
+    if (OnchainWallet.instanceOf(onchainWallet)) {
+      onchainWallet.uniffiDestroy()
+    }
+    throw new Error(`Ark wallet released for account '${args.accountId}'`)
+  }
+  onchainWalletCache.set(args.accountId, onchainWallet)
+  return onchainWallet
+}
+
+async function getOrCreateOnchainWallet(
+  accountId: string
+): Promise<OnchainWalletLike> {
+  const cached = onchainWalletCache.get(accountId)
+  if (cached) {
+    return cached
+  }
+  const inflight = inflightOnchainOpens.get(accountId)
+  if (inflight) {
+    return inflight
+  }
+  const args = walletArgsCache.get(accountId)
+  if (!args) {
+    throw new Error(`Ark wallet not opened for account '${accountId}'`)
+  }
+  const promise = openOnchainWallet(args)
+  inflightOnchainOpens.set(accountId, promise)
+  try {
+    return await promise
+  } finally {
+    inflightOnchainOpens.delete(accountId)
+  }
+}
+
+async function fetchOnchainBalance(
+  accountId: string
+): Promise<ArkOnchainBalance> {
+  const onchainWallet = await getOrCreateOnchainWallet(accountId)
+  await onchainWallet.sync()
+  const balance = await onchainWallet.balance()
+  return {
+    confirmedSats: Number(balance.confirmedSats),
+    pendingSats: Number(balance.pendingSats),
+    totalSats: Number(balance.totalSats)
+  }
+}
+
+async function newOnchainAddress(accountId: string): Promise<string> {
+  const onchainWallet = await getOrCreateOnchainWallet(accountId)
+  return onchainWallet.newAddress()
+}
+
+function mapPendingBoard(pendingBoard: PendingBoard): ArkPendingBoard {
+  return {
+    amountSats: Number(pendingBoard.amountSats),
+    txid: pendingBoard.txid,
+    vtxoId: pendingBoard.vtxoId
+  }
+}
+
+async function board(
+  accountId: string,
+  amountSats?: number
+): Promise<ArkPendingBoard> {
+  const wallet = getCachedWallet(accountId)
+  const onchainWallet = await getOrCreateOnchainWallet(accountId)
+  const pendingBoard =
+    amountSats === undefined
+      ? await wallet.boardAll(onchainWallet)
+      : await wallet.boardAmount(onchainWallet, BigInt(amountSats))
+  return mapPendingBoard(pendingBoard)
+}
+
+async function estimateBoardFee(
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  const wallet = getCachedWallet(accountId)
+  const estimate = await wallet.estimateBoardFee(BigInt(amountSats))
+  return mapFeeEstimate(estimate)
+}
+
+async function listPendingBoards(
+  accountId: string
+): Promise<ArkPendingBoard[]> {
+  const wallet = getCachedWallet(accountId)
+  await wallet.syncPendingBoards()
+  const pendingBoards = await wallet.pendingBoards()
+  return pendingBoards.map(mapPendingBoard)
+}
+
+async function fetchServerInfo(
+  accountId: string
+): Promise<ArkServerInfo | null> {
+  const wallet = getCachedWallet(accountId)
+  const info = await wallet.arkInfo()
+  if (!info) {
+    return null
+  }
+  return {
+    minBoardAmountSats: Number(info.minBoardAmountSats),
+    requiredBoardConfirmations: info.requiredBoardConfirmations
+  }
+}
+
 async function fetchBalance(accountId: string): Promise<ArkBalance> {
   const wallet = getCachedWallet(accountId)
   const balance = await wallet.balance()
@@ -579,19 +711,25 @@ async function fetchBalance(accountId: string): Promise<ArkBalance> {
 }
 
 const barkProvider: ArkWalletProvider = {
+  board,
   createBolt11Invoice,
   createWallet,
   deriveAddresses,
   estimateArkoorFee,
+  estimateBoardFee,
   estimateLightningSendFee,
   estimateOffboardFee,
   estimateRefreshFee,
   estimateSendOnchainFee,
   fetchBalance,
   fetchMovements,
+  fetchOnchainBalance,
+  fetchServerInfo,
   listAllVtxos,
+  listPendingBoards,
   listSpendableVtxos,
   newAddress,
+  newOnchainAddress,
   offboardVtxos,
   openWallet,
   payBolt11,

@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import {
   SSIconArrowsClockwise,
+  SSIconBoardCircle,
   SSIconOffboardCircle,
   SSIconSignOut
 } from '@/components/icons'
@@ -103,6 +104,13 @@ export default function ArkAccountSettingsPage() {
     })
   }
 
+  function handleBoard() {
+    router.navigate({
+      params: { id },
+      pathname: '/signer/ark/account/[id]/settings/board'
+    })
+  }
+
   function handleOffboardAll() {
     if (spendableVtxoIds.length === 0) {
       toast.error(t('ark.vtxo.emptySpendable'))
@@ -175,6 +183,17 @@ export default function ArkAccountSettingsPage() {
             />
           }
           onPress={handleRefreshAll}
+        />
+        <SSSettingsCards
+          title={t('ark.board.allTitle')}
+          description={t('ark.board.allDescription')}
+          icon={
+            <SSIconBoardCircle
+              height={SETTINGS_ICON_SIZE}
+              width={SETTINGS_ICON_SIZE}
+            />
+          }
+          onPress={handleBoard}
         />
         <SSSettingsCards
           title={t('ark.offboard.allTitle')}

@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSAccountCard from '@/components/SSAccountCard'
+import SSAccountCard, {
+  type SSAccountCardStat
+} from '@/components/SSAccountCard'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -18,13 +20,36 @@ import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useArkAccountBuilderStore } from '@/store/arkAccountBuilder'
 import { Colors } from '@/styles'
-import type { ArkAccount } from '@/types/models/Ark'
+import type { ArkAccount, ArkAccountStats } from '@/types/models/Ark'
 import { arkNetworkLabel } from '@/utils/ark'
+
+function buildArkAccountCardStats(
+  stats: ArkAccountStats | undefined
+): SSAccountCardStat[] {
+  return [
+    {
+      label: t('accounts.totalTransactions'),
+      value: stats?.numberOfTransactions ?? 0
+    },
+    {
+      label: t('ark.tab.addresses'),
+      value: stats?.numberOfAddresses ?? 0
+    },
+    {
+      label: t('ark.tab.vtxos'),
+      value: stats?.numberOfVtxos ?? 0
+    },
+    {
+      label: t('ark.tab.refreshes'),
+      value: stats?.numberOfRefreshes ?? 0
+    }
+  ]
+}
 
 export default function ArkAccountListPage() {
   const router = useRouter()
-  const [accounts, balances] = useArkStore(
-    useShallow((state) => [state.accounts, state.balances])
+  const [accounts, balances, stats] = useArkStore(
+    useShallow((state) => [state.accounts, state.balances, state.stats])
   )
   useFetchBitcoinPrice()
 
@@ -114,6 +139,7 @@ export default function ArkAccountListPage() {
               <SSAccountCard
                 name={item.name}
                 balance={balances[item.id]?.spendableSats ?? 0}
+                stats={buildArkAccountCardStats(stats[item.id])}
                 onPress={() => handleAccountPress(item)}
               />
             )}

@@ -13,7 +13,9 @@ import Animated, {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSAccountCard from '@/components/SSAccountCard'
+import SSAccountCard, {
+  type SSAccountCardStat
+} from '@/components/SSAccountCard'
 import SSAccountCardSkeleton from '@/components/SSAccountCardSkeleton'
 import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
@@ -54,6 +56,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
+import { type Account } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
 import {
   getExtendedPublicKeyFromMnemonic,
@@ -65,6 +68,29 @@ import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3
+
+function buildAccountCardStats(
+  summary: Account['summary']
+): SSAccountCardStat[] {
+  return [
+    {
+      label: t('accounts.totalTransactions'),
+      value: summary.numberOfTransactions
+    },
+    {
+      label: t('accounts.derivedAddresses'),
+      value: summary.numberOfAddresses
+    },
+    {
+      label: t('accounts.spendableOutputs'),
+      value: summary.numberOfUtxos
+    },
+    {
+      label: t('accounts.satsInMempool'),
+      value: summary.satsInMempool
+    }
+  ]
+}
 
 const STAGGER_DELAY_MS = 70
 const STAGGER_DURATION_MS = 320
@@ -894,7 +920,7 @@ export default function AccountList() {
                         watchOnly={item.policyType === 'watchonly'}
                         syncStatus={item.syncStatus}
                         lastSyncedAt={item.lastSyncedAt}
-                        stats={item.summary}
+                        stats={buildAccountCardStats(item.summary)}
                         onPress={() => handleGoToAccount(item.id)}
                       />
                     </SSVStack>

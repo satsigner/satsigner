@@ -1,5 +1,6 @@
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement, ArkMovementKind } from '@/types/models/Ark'
 
 const REFRESH_SUBSYSTEM_KEYWORD = 'refresh'
@@ -66,6 +67,16 @@ export function selectArkRefreshes(movements: ArkMovement[]): ArkMovement[] {
   return movements.filter(
     (movement) => getArkMovementKind(movement) === 'refresh'
   )
+}
+
+export function sortArkMovements(
+  movements: ArkMovement[],
+  direction: Direction
+): ArkMovement[] {
+  return movements.toSorted((a, b) => {
+    const diff = Date.parse(a.createdAt) - Date.parse(b.createdAt)
+    return direction === 'asc' ? diff : -diff
+  })
 }
 
 export function isLightningMovement(movement: ArkMovement): boolean {

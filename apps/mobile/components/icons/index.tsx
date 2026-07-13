@@ -5,6 +5,7 @@ import SSIconArrowsClockwise from './SSIconArrowsClockwise'
 import SSIconBitcoin from './SSIconBitcoin'
 import SSIconBlackIndicator from './SSIconBlackIndicator'
 import SSIconBlock from './SSIconBlock'
+import SSIconBoardCircle from './SSIconBoardCircle'
 import SSIconBubbles from './SSIconBubbles'
 import SSIconCamera from './SSIconCamera'
 import SSIconChain from './SSIconChain'
@@ -112,6 +113,7 @@ export {
   SSIconBitcoin,
   SSIconBlackIndicator,
   SSIconBlock,
+  SSIconBoardCircle,
   SSIconBubbles,
   SSIconCamera,
   SSIconChain,

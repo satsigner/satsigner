@@ -25,11 +25,9 @@ import SSFingerprint from './SSFingerprint'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 
-type SSAccountCardStats = {
-  numberOfTransactions: number
-  numberOfAddresses: number
-  numberOfUtxos: number
-  satsInMempool: number
+export type SSAccountCardStat = {
+  label: string
+  value: number
 }
 
 type SSAccountCardProps = {
@@ -40,7 +38,7 @@ type SSAccountCardProps = {
   watchOnly?: boolean
   syncStatus?: Account['syncStatus']
   lastSyncedAt?: Account['lastSyncedAt']
-  stats?: SSAccountCardStats
+  stats?: SSAccountCardStat[]
 }
 
 function SSAccountCard({
@@ -243,40 +241,18 @@ function SSAccountCard({
               {fiatCurrency}
             </SSText>
           </SSHStack>
-          {stats ? (
+          {stats && stats.length > 0 ? (
             <SSHStack>
-              <SSVStack gap="none">
-                <SSText color="white" size="md">
-                  {formatNumber(stats.numberOfTransactions)}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {t('accounts.totalTransactions')}
-                </SSText>
-              </SSVStack>
-              <SSVStack gap="none">
-                <SSText color="white" size="md">
-                  {formatNumber(stats.numberOfAddresses)}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {t('accounts.derivedAddresses')}
-                </SSText>
-              </SSVStack>
-              <SSVStack gap="none">
-                <SSText color="white" size="md">
-                  {formatNumber(stats.numberOfUtxos)}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {t('accounts.spendableOutputs')}
-                </SSText>
-              </SSVStack>
-              <SSVStack gap="none">
-                <SSText color="white" size="md">
-                  {formatNumber(stats.satsInMempool)}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {t('accounts.satsInMempool')}
-                </SSText>
-              </SSVStack>
+              {stats.map((stat) => (
+                <SSVStack gap="none" key={stat.label}>
+                  <SSText color="white" size="md">
+                    {formatNumber(stat.value)}
+                  </SSText>
+                  <SSText size="xs" color="muted">
+                    {stat.label}
+                  </SSText>
+                </SSVStack>
+              ))}
             </SSHStack>
           ) : null}
         </SSVStack>

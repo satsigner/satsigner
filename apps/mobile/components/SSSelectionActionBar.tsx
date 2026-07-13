@@ -33,7 +33,7 @@ function SSSelectionActionBar({
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
       <View style={styles.bar}>
-        <SSText size="sm" style={styles.summary}>
+        <SSText size="sm" style={styles.summary} numberOfLines={1}>
           {summary}
         </SSText>
         {actions.map((action) => (
@@ -52,7 +52,11 @@ function SSSelectionActionBar({
               {action.icon}
               <SSText
                 size="sm"
-                style={action.destructive ? styles.destructiveLabel : undefined}
+                numberOfLines={1}
+                style={[
+                  styles.actionLabel,
+                  action.destructive && styles.destructiveLabel
+                ]}
               >
                 {action.label}
               </SSText>
@@ -80,6 +84,7 @@ const styles = StyleSheet.create({
   action: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexShrink: 1,
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 10
@@ -89,7 +94,11 @@ const styles = StyleSheet.create({
   },
   actionGroup: {
     alignItems: 'center',
-    flexDirection: 'row'
+    flexDirection: 'row',
+    flexShrink: 1
+  },
+  actionLabel: {
+    flexShrink: 1
   },
   bar: {
     alignItems: 'center',
@@ -99,6 +108,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     elevation: 12,
     flexDirection: 'row',
+    maxWidth: '100%',
     paddingHorizontal: 6,
     paddingVertical: 2
   },
@@ -112,6 +122,7 @@ const styles = StyleSheet.create({
     width: StyleSheet.hairlineWidth
   },
   summary: {
+    flexShrink: 1,
     paddingHorizontal: 10
   },
   wrapper: {

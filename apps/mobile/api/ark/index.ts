@@ -8,7 +8,10 @@ import type {
   ArkMovement,
   ArkNotificationListener,
   ArkNotificationUnsubscribe,
+  ArkOnchainBalance,
+  ArkPendingBoard,
   ArkServerId,
+  ArkServerInfo,
   ArkVtxo,
   ArkWalletArgs
 } from '@/types/models/Ark'
@@ -220,4 +223,48 @@ export function estimateArkSendOnchainFee(
     bitcoinAddress,
     amountSats
   )
+}
+
+export function fetchArkOnchainBalance(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkOnchainBalance> {
+  return getArkProvider(serverId).fetchOnchainBalance(accountId)
+}
+
+export function newArkOnchainAddress(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<string> {
+  return getArkProvider(serverId).newOnchainAddress(accountId)
+}
+
+export function boardArk(
+  serverId: ArkServerId,
+  accountId: string,
+  amountSats?: number
+): Promise<ArkPendingBoard> {
+  return getArkProvider(serverId).board(accountId, amountSats)
+}
+
+export function estimateArkBoardFee(
+  serverId: ArkServerId,
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateBoardFee(accountId, amountSats)
+}
+
+export function listArkPendingBoards(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkPendingBoard[]> {
+  return getArkProvider(serverId).listPendingBoards(accountId)
+}
+
+export function fetchArkServerInfo(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkServerInfo | null> {
+  return getArkProvider(serverId).fetchServerInfo(accountId)
 }

@@ -43,17 +43,38 @@ describe('useArkStore', () => {
     expect(useArkStore.getState().balances.a1?.spendableSats).toBe(1500)
   })
 
-  it('removeAccount removes both the account and its balance', () => {
+  it('updateStats merges partial stats over defaults', () => {
+    useArkStore.getState().addAccount(buildAccount('a1'))
+    useArkStore.getState().updateStats('a1', { numberOfTransactions: 3 })
+    expect(useArkStore.getState().stats.a1).toStrictEqual({
+      numberOfAddresses: 0,
+      numberOfRefreshes: 0,
+      numberOfTransactions: 3,
+      numberOfVtxos: 0
+    })
+
+    useArkStore.getState().updateStats('a1', { numberOfVtxos: 5 })
+    expect(useArkStore.getState().stats.a1).toStrictEqual({
+      numberOfAddresses: 0,
+      numberOfRefreshes: 0,
+      numberOfTransactions: 3,
+      numberOfVtxos: 5
+    })
+  })
+
+  it('removeAccount removes the account, its balance and its stats', () => {
     useArkStore.getState().addAccount(buildAccount('a1'))
     useArkStore.getState().addAccount(buildAccount('a2'))
     useArkStore.getState().updateBalance('a1', buildBalance(1500))
     useArkStore.getState().updateBalance('a2', buildBalance(2500))
+    useArkStore.getState().updateStats('a1', { numberOfTransactions: 3 })
 
     useArkStore.getState().removeAccount('a1')
 
     const state = useArkStore.getState()
     expect(state.accounts.map((a) => a.id)).toStrictEqual(['a2'])
     expect('a1' in state.balances).toBe(false)
+    expect('a1' in state.stats).toBe(false)
     expect(state.balances.a2?.spendableSats).toBe(2500)
   })
 
@@ -63,12 +84,14 @@ describe('useArkStore', () => {
     expect(useArkStore.getState().accounts).toHaveLength(1)
   })
 
-  it('clearAllData resets accounts and balances', () => {
+  it('clearAllData resets accounts, balances and stats', () => {
     useArkStore.getState().addAccount(buildAccount('a1'))
     useArkStore.getState().updateBalance('a1', buildBalance(1500))
+    useArkStore.getState().updateStats('a1', { numberOfTransactions: 3 })
     useArkStore.getState().clearAllData()
     const state = useArkStore.getState()
     expect(state.accounts).toStrictEqual([])
     expect(state.balances).toStrictEqual({})
+    expect(state.stats).toStrictEqual({})
   })
 })

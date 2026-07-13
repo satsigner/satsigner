@@ -14,12 +14,15 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   SSIconArrowLineDown,
   SSIconArrowsClockwise,
+  SSIconCollapse,
+  SSIconExpand,
+  SSIconRefresh,
   SSIconSignOut,
   SSIconTriangle
 } from '@/components/icons'
 import SSIconTime from '@/components/icons/SSIconTime'
 import SSActionButton from '@/components/SSActionButton'
-import SSArkAddressCard from '@/components/SSArkAddressCard'
+import SSArkAddressesView from '@/components/SSArkAddressesView'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSArkVtxoCard from '@/components/SSArkVtxoCard'
 import SSButton from '@/components/SSButton'
@@ -29,6 +32,7 @@ import SSIconButton from '@/components/SSIconButton'
 import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
 import SSSelectionActionBar from '@/components/SSSelectionActionBar'
+import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import {
@@ -58,12 +62,14 @@ import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
-import type { ArkAddress, ArkMovement } from '@/types/models/Ark'
+import { type Direction } from '@/types/logic/sort'
+import type { ArkMovement } from '@/types/models/Ark'
 import { getArkPendingSats, getArkTotalSats } from '@/utils/ark'
 import {
   getArkMovementLabelRef,
   selectArkRefreshes,
-  selectArkTransactions
+  selectArkTransactions,
+  sortArkMovements
 } from '@/utils/arkMovement'
 import {
   type ArkVtxoListItem,
@@ -104,6 +110,9 @@ export default function ArkAccountDetailPage() {
 
   const [cameraVisible, setCameraVisible] = useState(false)
   const [tabIndex, setTabIndex] = useState(0)
+  const [expand, setExpand] = useState(false)
+  const [transactionsSortDirection, setTransactionsSortDirection] =
+    useState<Direction>('desc')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [refreshModalVisible, setRefreshModalVisible] = useState(false)
   const [exitModalVisible, setExitModalVisible] = useState(false)
@@ -163,7 +172,7 @@ export default function ArkAccountDetailPage() {
     {
       count: transactions.length,
       key: 'transactions',
-      label: t('ark.tab.transactions')
+      label: t('accounts.totalTransactions')
     },
     {
       count: addresses.length,
@@ -208,9 +217,14 @@ export default function ArkAccountDetailPage() {
 
   function handleTabChange(index: number) {
     setTabIndex(index)
+    setExpand(false)
     if (index !== VTXOS_TAB_INDEX) {
       setSelectedIds([])
     }
+  }
+
+  function handleToggleExpand() {
+    setExpand((prev) => !prev)
   }
 
   function handleToggleVtxo(vtxoId: string) {
@@ -229,13 +243,6 @@ export default function ArkAccountDetailPage() {
     router.navigate({
       params: { addr: address, id },
       pathname: '/signer/ark/account/[id]/address/[addr]/label'
-    })
-  }
-
-  function handleEditVtxoLabel(vtxoId: string) {
-    router.navigate({
-      params: { id, vtxoId },
-      pathname: '/signer/ark/account/[id]/vtxo/[vtxoId]/label'
     })
   }
 
@@ -325,16 +332,6 @@ export default function ArkAccountDetailPage() {
     )
   }
 
-  function renderAddressItem({ item }: { item: ArkAddress }) {
-    return (
-      <SSArkAddressCard
-        address={item}
-        label={labels[item.address]?.label ?? ''}
-        onEditLabel={handleEditAddressLabel}
-      />
-    )
-  }
-
   function renderVtxoItem({ item }: { item: ArkVtxoListItem }) {
     if (item.type === 'header') {
       return (
@@ -356,8 +353,6 @@ export default function ArkAccountDetailPage() {
         vtxo={item.vtxo}
         selected={selectedSpendableIds.includes(item.vtxo.id)}
         onToggle={item.vtxo.spendable ? handleToggleVtxo : undefined}
-        label={labels[item.vtxo.id]?.label ?? ''}
-        onEditLabel={handleEditVtxoLabel}
       />
     )
   }
@@ -388,26 +383,57 @@ export default function ArkAccountDetailPage() {
     )
   }
 
-  function renderMovementList(data: ArkMovement[], emptyLabel: string) {
+  function renderMovementList(
+    data: ArkMovement[],
+    emptyLabel: string,
+    controls?: ReactNode
+  ) {
     const refreshing = syncMutation.isPending || movementsQuery.isFetching
     return renderListWithLoader(
-      <FlashList
-        data={data}
-        keyExtractor={(item) => String(item.id)}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        refreshControl={renderRefreshControl(refreshing)}
-        renderItem={renderMovementItem}
-        ItemSeparatorComponent={renderSeparator}
-        ListEmptyComponent={
-          movementsQuery.isLoading ? null : (
-            <SSVStack style={styles.emptyContainer}>
-              <SSText color="muted">{emptyLabel}</SSText>
-            </SSVStack>
-          )
-        }
-      />,
+      <>
+        {controls}
+        <FlashList
+          data={data}
+          keyExtractor={(item) => String(item.id)}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          refreshControl={renderRefreshControl(refreshing)}
+          renderItem={renderMovementItem}
+          ItemSeparatorComponent={renderSeparator}
+          ListEmptyComponent={
+            movementsQuery.isLoading ? null : (
+              <SSVStack style={styles.emptyContainer}>
+                <SSText color="muted">{emptyLabel}</SSText>
+              </SSVStack>
+            )
+          }
+        />
+      </>,
       refreshing
+    )
+  }
+
+  function renderTransactionsControls() {
+    return (
+      <SSHStack justifyBetween style={styles.movementControls}>
+        <SSHStack>
+          <SSIconButton onPress={syncAccount}>
+            <SSIconRefresh height={18} width={22} />
+          </SSIconButton>
+          <SSIconButton onPress={handleToggleExpand}>
+            {expand ? (
+              <SSIconCollapse height={15} width={15} />
+            ) : (
+              <SSIconExpand height={15} width={16} />
+            )}
+          </SSIconButton>
+        </SSHStack>
+        <SSSortDirectionToggle
+          onDirectionChanged={(direction) =>
+            setTransactionsSortDirection(direction)
+          }
+        />
+      </SSHStack>
     )
   }
 
@@ -438,18 +464,23 @@ export default function ArkAccountDetailPage() {
     if (route.key === 'addresses') {
       const refreshing = syncMutation.isPending || addressesResult.isLoading
       return renderListWithLoader(
-        <FlashList
-          data={addresses}
-          keyExtractor={(item) => item.address}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          refreshControl={renderRefreshControl(refreshing)}
-          renderItem={renderAddressItem}
-          ItemSeparatorComponent={renderSeparator}
-          ListEmptyComponent={
+        <SSArkAddressesView
+          addresses={addresses}
+          labels={labels}
+          expand={expand}
+          onToggleExpand={handleToggleExpand}
+          onRefresh={syncAccount}
+          onPressAddress={handleEditAddressLabel}
+          emptyComponent={
             addressesResult.isLoading ? null : (
               <SSVStack style={styles.emptyContainer}>
-                <SSText color="muted">{t('ark.address.empty')}</SSText>
+                {addressesResult.error ? (
+                  <SSText style={{ color: Colors.warning }}>
+                    {t('ark.error.addressList')}
+                  </SSText>
+                ) : (
+                  <SSText color="muted">{t('ark.address.empty')}</SSText>
+                )}
               </SSVStack>
             )
           }
@@ -462,10 +493,17 @@ export default function ArkAccountDetailPage() {
       return renderMovementList(refreshes, t('ark.refresh.empty'))
     }
 
-    return renderMovementList(transactions, t('ark.movement.empty'))
+    return renderMovementList(
+      sortArkMovements(transactions, transactionsSortDirection),
+      t('ark.movement.empty'),
+      renderTransactionsControls()
+    )
   }
 
   function renderTabBar() {
+    if (expand) {
+      return null
+    }
     return (
       <SSHStack gap="none" style={styles.tabBar}>
         {tabConfig.map((tab, index) => (
@@ -501,78 +539,82 @@ export default function ArkAccountDetailPage() {
           )
         }}
       />
-      <SSVStack itemsCenter gap="none" style={styles.header}>
-        <SSVStack style={styles.balanceContainer} gap="xs">
-          <SSText color="muted" size="xs" uppercase>
-            {t('ark.balance.title')}
-          </SSText>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            {privacyMode ? (
-              <SSText
-                color="white"
-                size={totalSize}
-                weight="ultralight"
-                style={{
-                  letterSpacing: -1,
-                  lineHeight: Sizes.text.fontSize[totalSize]
-                }}
-              >
-                {PRIVACY_MASK}
-              </SSText>
-            ) : (
-              <SSStyledSatText
-                amount={total}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                currency={currencyUnit}
-                textSize={totalSize}
-                weight="ultralight"
-                letterSpacing={-1}
-              />
-            )}
-            <SSText size="xl" color="muted">
-              {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
+      {!expand && (
+        <SSVStack itemsCenter gap="none" style={styles.header}>
+          <SSVStack style={styles.balanceContainer} gap="xs">
+            <SSText color="muted" size="xs" uppercase>
+              {t('ark.balance.title')}
             </SSText>
-          </SSHStack>
-          {btcPrice > 0 && (
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText color="muted">
-                {privacyMode ? PRIVACY_MASK : formatFiatPrice(total, btcPrice)}
-              </SSText>
-              <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                {fiatCurrency}
+              {privacyMode ? (
+                <SSText
+                  color="white"
+                  size={totalSize}
+                  weight="ultralight"
+                  style={{
+                    letterSpacing: -1,
+                    lineHeight: Sizes.text.fontSize[totalSize]
+                  }}
+                >
+                  {PRIVACY_MASK}
+                </SSText>
+              ) : (
+                <SSStyledSatText
+                  amount={total}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
+                  textSize={totalSize}
+                  weight="ultralight"
+                  letterSpacing={-1}
+                />
+              )}
+              <SSText size="xl" color="muted">
+                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
               </SSText>
             </SSHStack>
-          )}
-          {pending > 0 && !privacyMode && (
-            <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-              <SSIconTime width={13} height={13} />
+            {btcPrice > 0 && (
+              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                <SSText color="muted">
+                  {privacyMode
+                    ? PRIVACY_MASK
+                    : formatFiatPrice(total, btcPrice)}
+                </SSText>
+                <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                  {fiatCurrency}
+                </SSText>
+              </SSHStack>
+            )}
+            {pending > 0 && !privacyMode && (
+              <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                <SSIconTime width={13} height={13} />
+                <SSText color="muted" size="xs">
+                  {t('ark.balance.pending', { amount: formatNumber(pending) })}
+                </SSText>
+              </SSHStack>
+            )}
+            {isLoading && (
               <SSText color="muted" size="xs">
-                {t('ark.balance.pending', { amount: formatNumber(pending) })}
+                {t('common.loading')}
               </SSText>
-            </SSHStack>
-          )}
-          {isLoading && (
-            <SSText color="muted" size="xs">
-              {t('common.loading')}
-            </SSText>
-          )}
-          {!!loadError && !isLoading && (
-            <SSText style={{ color: Colors.warning }} size="xs" center>
-              {t('ark.error.walletLoad')}
-            </SSText>
-          )}
+            )}
+            {!!loadError && !isLoading && (
+              <SSText style={{ color: Colors.warning }} size="xs" center>
+                {t('ark.error.walletLoad')}
+              </SSText>
+            )}
+          </SSVStack>
+          <View style={styles.actionRow}>
+            <SSButtonActionsGroup
+              compact
+              context="ark"
+              onSend={handleSend}
+              onCamera={handleCamera}
+              onReceive={handleReceive}
+            />
+          </View>
         </SSVStack>
-        <View style={styles.actionRow}>
-          <SSButtonActionsGroup
-            compact
-            context="ark"
-            onSend={handleSend}
-            onCamera={handleCamera}
-            onReceive={handleReceive}
-          />
-        </View>
-      </SSVStack>
+      )}
       <TabView
         swipeEnabled={false}
         navigationState={{ index: tabIndex, routes }}
@@ -780,6 +822,10 @@ const styles = StyleSheet.create({
   modalContent: {
     paddingVertical: 8,
     width: '100%'
+  },
+  movementControls: {
+    paddingHorizontal: CONTENT_PADDING_HORIZONTAL,
+    paddingVertical: 16
   },
   sceneContainer: {
     flex: 1

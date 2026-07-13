@@ -19,6 +19,13 @@ export type ArkAccount = {
   createdAt: string
 }
 
+export type ArkAccountStats = {
+  numberOfTransactions: number
+  numberOfAddresses: number
+  numberOfVtxos: number
+  numberOfRefreshes: number
+}
+
 export type ArkBalance = {
   spendableSats: number
   pendingInRoundSats: number
@@ -44,6 +51,23 @@ export type ArkFeeEstimate = {
   feeSats: number
   netAmountSats: number
   vtxoIdsSpent: string[]
+}
+
+export type ArkOnchainBalance = {
+  confirmedSats: number
+  pendingSats: number
+  totalSats: number
+}
+
+export type ArkPendingBoard = {
+  vtxoId: string
+  amountSats: number
+  txid: string
+}
+
+export type ArkServerInfo = {
+  minBoardAmountSats: number
+  requiredBoardConfirmations: number
 }
 
 export type ArkVtxo = {
@@ -215,6 +239,15 @@ export interface ArkWalletProvider {
     bitcoinAddress: string,
     amountSats: number
   ) => Promise<ArkFeeEstimate>
+  fetchOnchainBalance: (accountId: string) => Promise<ArkOnchainBalance>
+  newOnchainAddress: (accountId: string) => Promise<string>
+  board: (accountId: string, amountSats?: number) => Promise<ArkPendingBoard>
+  estimateBoardFee: (
+    accountId: string,
+    amountSats: number
+  ) => Promise<ArkFeeEstimate>
+  listPendingBoards: (accountId: string) => Promise<ArkPendingBoard[]>
+  fetchServerInfo: (accountId: string) => Promise<ArkServerInfo | null>
 }
 
 export type ArkSendFeeKind = 'arkoor' | 'lightning' | 'onchain'
