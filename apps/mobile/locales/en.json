@@ -718,6 +718,7 @@
     "account.creating": "Creating Ark wallet…",
     "account.deleteSuccess": "Ark wallet deleted",
     "account.deleteWallet": "Delete Ark Wallet",
+    "account.deleteWalletAction": "Delete Wallet",
     "account.deleteWalletWarning": "This will permanently delete this Ark wallet, including its stored mnemonic and local cache. The linked on-chain Bitcoin wallet is not removed. This action cannot be undone.",
     "account.existingWallet": "Use an existing on-chain wallet",
     "account.exportDb": "Export Database",
