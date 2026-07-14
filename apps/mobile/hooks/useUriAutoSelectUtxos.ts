@@ -60,5 +60,5 @@ export function useUriAutoSelectUtxos({
     }
   }, [uriAutoSelectPending, outputsLength, defaultAlgorithm, decoyAddress])
 
-  return { markUriAutoSelectPending }
+  return { markUriAutoSelectPending, uriAutoSelectPending }
 }

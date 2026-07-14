@@ -1,4 +1,4 @@
-import { Canvas, Circle, Group } from '@shopify/react-native-skia'
+import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import {
@@ -67,6 +67,8 @@ type SSCurrentTransactionChartProps = {
   inputs: Map<string, Utxo>
   outputs: (Omit<Output, 'to'> & { to?: string })[]
   feeRate: number
+  effectiveMinerFeeSats?: number
+  suppressUnderfundedWarning?: boolean
   onPressInput?: (outpoint: string) => void
   onPressOutput?: (localId?: string) => void
   currentOutputLocalId?: string
@@ -78,6 +80,8 @@ function SSCurrentTransactionChart({
   inputs: inputMap,
   outputs: outputArray,
   feeRate: feeRateProp,
+  effectiveMinerFeeSats,
+  suppressUnderfundedWarning = false,
   onPressInput,
   onPressOutput,
   currentOutputLocalId,
@@ -121,6 +125,14 @@ function SSCurrentTransactionChart({
   const safeTxVsize = Number.isNaN(txVsize) ? 0 : txVsize
 
   const minerFee = useMemo(() => {
+    if (
+      typeof effectiveMinerFeeSats === 'number' &&
+      !Number.isNaN(effectiveMinerFeeSats) &&
+      effectiveMinerFeeSats >= 0
+    ) {
+      return effectiveMinerFeeSats
+    }
+
     // Ensure feeRateProp and safeTxVsize are valid numbers
     if (
       Number.isNaN(feeRateProp) ||
@@ -131,7 +143,7 @@ function SSCurrentTransactionChart({
       return 0
     }
     return Math.round(feeRateProp * safeTxVsize)
-  }, [feeRateProp, safeTxVsize])
+  }, [effectiveMinerFeeSats, feeRateProp, safeTxVsize])
 
   const { width: winW, height: winH } = useWindowDimensions()
   const safeWinW = Math.max(1, winW)
@@ -258,11 +270,13 @@ function SSCurrentTransactionChart({
       }
     ]
 
-    const isUnderfunded = isTransactionUnderfunded(
-      totalInputValue,
-      totalOutputValue,
-      minerFee
-    )
+    const isUnderfunded =
+      !suppressUnderfundedWarning &&
+      isTransactionUnderfunded(
+        totalInputValue,
+        totalOutputValue,
+        minerFee
+      )
     const outputsTotal = outputArray.reduce(
       (sum, output) => sum + output.amount,
       0
@@ -353,7 +367,8 @@ function SSCurrentTransactionChart({
     feeRateProp,
     satsToFiat,
     fiatCurrency,
-    ownAddresses
+    ownAddresses,
+    suppressUnderfundedWarning
   ])
 
   const sankeyLinks = useMemo(() => {

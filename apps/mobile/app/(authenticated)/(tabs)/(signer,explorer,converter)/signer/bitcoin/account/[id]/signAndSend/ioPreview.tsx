@@ -1,9 +1,9 @@
 import type BottomSheet from '@gorhom/bottom-sheet'
 import { useQuery } from '@tanstack/react-query'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useIsFocused } from 'expo-router/react-navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   type LayoutChangeEvent,
   ScrollView,
@@ -90,8 +90,11 @@ import {
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
+  getCommittedTransactionOutputSats,
+  getFundingMinerFeeSats,
   getTransactionRemainingBalance,
-  isTransactionUnderfunded
+  isTransactionUnderfunded,
+  shouldDeferUnderfundedWarning
 } from '@/utils/transactionFunding'
 import {
   filterUtxosByExcludedOutpoints,
@@ -173,11 +176,16 @@ export default function IOPreview() {
   const [removeInputModalVisible, setRemoveInputModalVisible] = useState(false)
   const [inputToRemove, setInputToRemove] = useState<Utxo | null>(null)
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
+  const shouldRemoveChangeRef = useRef(true)
+
+  useEffect(() => {
+    shouldRemoveChangeRef.current = shouldRemoveChange
+  }, [shouldRemoveChange])
 
   // this removes the change addresses if the user goes back to the IO preview.
   // we add the change address(es) as outputs before moving to the next step.
   useEffect(() => {
-    if (!changeAddress || !shouldRemoveChange) {
+    if (!changeAddress || !shouldRemoveChangeRef.current) {
       return
     }
     const changeAddresses = new Set(
@@ -210,6 +218,17 @@ export default function IOPreview() {
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
     useState<AutoSelectUtxosAlgorithm>('user')
 
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedAutoSelectUtxos !== 'privacy') {
+        return
+      }
+
+      shouldRemoveChangeRef.current = true
+      setShouldRemoveChange(true)
+    }, [selectedAutoSelectUtxos])
+  )
+
   const markUriAutoSelectPendingRef = useRef<(() => void) | undefined>(
     undefined
   )
@@ -229,7 +248,7 @@ export default function IOPreview() {
   const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] =
     useState<LoadingAutoSelectUtxosAlgorithm>(false)
 
-  const { markUriAutoSelectPending } = useUriAutoSelectUtxos({
+  const { markUriAutoSelectPending, uriAutoSelectPending } = useUriAutoSelectUtxos({
     autoSelectFromUri,
     decoyAddress,
     defaultAlgorithm: defaultAutoSelectUtxos,
@@ -420,10 +439,106 @@ export default function IOPreview() {
     [localFeeRate, transactionSize.vsize]
   )
 
+  const stonewallPaymentContext = useMemo(
+    () =>
+      getStonewallPaymentContext({
+        accountAddresses: account.addresses,
+        accountScriptVersion: account.keys[0]?.scriptVersion,
+        decoyAddress,
+        localFeeRate,
+        nextBlockFee: useBlockchainStore.getState().nextBlockFee,
+        outputs
+      }),
+    [
+      account.addresses,
+      account.keys,
+      decoyAddress,
+      localFeeRate,
+      outputs
+    ]
+  )
+
+  const stonewallPreviewOutputs =
+    selectedAutoSelectUtxos === 'privacy' &&
+    stonewallFee !== null &&
+    decoyAddress
+      ? buildStonewallPreviewOutputs({
+          changeAddress,
+          changeValues: stonewallChangeValues,
+          decoyAddress,
+          fakeMixLabel: stonewallPaymentContext.paymentLabel,
+          fakeMixValues: stonewallFakeMixValues,
+          fee: stonewallFee,
+          secondChangeAddress
+        })
+      : []
+
+  const stonewallOutputsMaterialized = outputs.some(
+    (output) => output.kind === 'fakeMix'
+  )
+  const chartStonewallPreviewOutputs = stonewallOutputsMaterialized
+    ? []
+    : stonewallPreviewOutputs
+
+  const committedOutputSats = getCommittedTransactionOutputSats(
+    totalOutputValue,
+    chartStonewallPreviewOutputs.map((output) => output.amount)
+  )
+
+  const fundingOutputsForSize = useMemo(
+    () => [...outputs, ...chartStonewallPreviewOutputs],
+    [chartStonewallPreviewOutputs, outputs]
+  )
+
+  const projectedMinerFee = useMemo(() => {
+    if (inputs.size === 0) {
+      return 0
+    }
+
+    const inputArray = Array.from(inputs.values())
+    const { vsize: baseVsize } = estimateTransactionSize(
+      inputArray,
+      fundingOutputsForSize
+    )
+    const baseFee = Math.round(localFeeRate * baseVsize)
+    const hasFundingChange =
+      utxosSelectedValue > committedOutputSats + baseFee
+    const { vsize } = estimateTransactionSize(
+      inputArray,
+      fundingOutputsForSize,
+      hasFundingChange
+    )
+
+    return Math.round(localFeeRate * vsize)
+  }, [
+    committedOutputSats,
+    fundingOutputsForSize,
+    inputs,
+    localFeeRate,
+    utxosSelectedValue
+  ])
+
+  const fundingMinerFee = getFundingMinerFeeSats({
+    projectedMinerFeeSats: projectedMinerFee,
+    stonewallMinerFeeSats:
+      selectedAutoSelectUtxos === 'privacy' ? stonewallFee : null
+  })
+
   const effectiveMinerFee =
     selectedAutoSelectUtxos === 'privacy' && stonewallFee !== null
       ? stonewallFee
       : minerFee
+
+  const deferUnderfundedWarning =
+    shouldDeferUnderfundedWarning({
+      defaultAutoSelectAlgorithm: defaultAutoSelectUtxos,
+      inputsCount: inputs.size,
+      isAutoSelectPending: uriAutoSelectPending,
+      isSelectingUtxos: loadingOptimizeAlgorithm !== false,
+      outputsCount: outputs.length,
+      selectedAlgorithm: selectedAutoSelectUtxos
+    }) ||
+    (selectedAutoSelectUtxos === 'privacy' && stonewallFee === null)
 
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
 
@@ -443,42 +558,32 @@ export default function IOPreview() {
 
   const remainingBalance = getTransactionRemainingBalance(
     utxosSelectedValue,
-    totalOutputValue,
-    effectiveMinerFee
+    committedOutputSats,
+    fundingMinerFee
   )
 
-  const isUnderfunded = isTransactionUnderfunded(
-    utxosSelectedValue,
-    totalOutputValue,
-    effectiveMinerFee
-  )
-
-  const stonewallPreviewOutputs =
-    selectedAutoSelectUtxos === 'privacy' &&
-    stonewallFee !== null &&
-    decoyAddress
-      ? buildStonewallPreviewOutputs({
-          changeAddress,
-          changeValues: stonewallChangeValues,
-          decoyAddress,
-          fakeMixValues: stonewallFakeMixValues,
-          fee: stonewallFee,
-          secondChangeAddress
-        })
-      : []
+  const isUnderfunded =
+    !deferUnderfundedWarning &&
+    isTransactionUnderfunded(
+      utxosSelectedValue,
+      committedOutputSats,
+      fundingMinerFee
+    )
 
   const singleTxOutputs = buildSingleTxChartOutputs({
     changeAddress,
     outputs,
-    previewOutputs: stonewallPreviewOutputs,
+    previewOutputs: chartStonewallPreviewOutputs,
     remainingBalance
   })
 
   useEffect(() => {
-    if (remainingSats < 0) {
-      toast.error(t('transaction.error.insufficientInputs'))
+    if (deferUnderfundedWarning || !isUnderfunded) {
+      return
     }
-  }, [remainingSats])
+
+    toast.error(t('transaction.error.insufficientInputs'))
+  }, [deferUnderfundedWarning, isUnderfunded])
 
   useEffect(() => {
     if (feeRate === 0) {
@@ -621,13 +726,77 @@ export default function IOPreview() {
     changeFeeBottomSheetRef.current?.close()
   }
 
-  function handleOnPressOutput(localId?: string) {
-    setCurrentOutputLocalId(localId)
+  function materializeStonewallOutputs(): boolean {
+    if (selectedAutoSelectUtxos !== 'privacy' || stonewallFee === null) {
+      return false
+    }
 
+    if (stonewallFakeMixValues.length > 0 && !decoyAddress) {
+      return false
+    }
+
+    const changeAddresses = [changeAddress, secondChangeAddress].filter(Boolean)
+    if (stonewallChangeValues.length > changeAddresses.length) {
+      return false
+    }
+
+    if (
+      stonewallChangeValues.length === 0 &&
+      stonewallFakeMixValues.length === 0
+    ) {
+      return false
+    }
+
+    const fakeMixOutputs = mapStonewallFakeMixOutputs(
+      stonewallFakeMixValues,
+      decoyAddress
+    )
+    const changeOutputs = mapStonewallChangeOutputs(
+      stonewallChangeValues,
+      changeAddresses
+    )
+
+    shouldRemoveChangeRef.current = false
+    setShouldRemoveChange(false)
+    setFee(stonewallFee)
+
+    for (const output of fakeMixOutputs) {
+      addOutput({
+        amount: output.amount,
+        kind: 'fakeMix',
+        label: stonewallPaymentContext.paymentLabel,
+        to: output.to
+      })
+    }
+
+    for (const output of changeOutputs) {
+      addOutput({
+        amount: output.amount,
+        label: t('sign.changeAddressLabelDefault'),
+        to: output.to
+      })
+    }
+
+    return true
+  }
+
+  function handleOnPressOutput(localId?: string) {
     if (localId === 'current-minerFee') {
+      setCurrentOutputLocalId(localId)
       changeFeeBottomSheetRef.current?.expand()
       return
-    } else if (localId === CHART_REMAINING_BALANCE_LOCAL_ID) {
+    }
+
+    if (
+      selectedAutoSelectUtxos === 'privacy' ||
+      selectedAutoSelectUtxos === 'efficiency'
+    ) {
+      return
+    }
+
+    setCurrentOutputLocalId(localId)
+
+    if (localId === CHART_REMAINING_BALANCE_LOCAL_ID) {
       setAddOutputModalVisible(true)
       return
     }
@@ -869,62 +1038,13 @@ export default function IOPreview() {
   applyUtxoSelectionRef.current = handleOnChangeUtxoSelection
 
   function tryAddStonewallOutputs(): boolean {
-    if (selectedAutoSelectUtxos !== 'privacy' || stonewallFee === null) {
-      return false
-    }
-
-    if (
-      stonewallChangeValues.length > 0 &&
-      (!changeAddress || !secondChangeAddress)
-    ) {
-      return false
-    }
-
-    if (stonewallFakeMixValues.length > 0 && !decoyAddress) {
-      return false
-    }
-
-    const fakeMixOutputs = mapStonewallFakeMixOutputs(
-      stonewallFakeMixValues,
-      decoyAddress
-    )
-    const changeOutputs = mapStonewallChangeOutputs(
-      stonewallChangeValues,
-      [changeAddress, secondChangeAddress].filter(Boolean)
-    )
-
-    setShouldRemoveChange(false)
-    setFee(stonewallFee)
-
-    for (const output of fakeMixOutputs) {
-      addOutput({
-        amount: output.amount,
-        kind: 'fakeMix',
-        label: t('sign.decoyOutputLabelDefault'),
-        to: output.to
-      })
-    }
-
-    for (const output of changeOutputs) {
-      addOutput({
-        amount: output.amount,
-        label: t('sign.changeAddressLabelDefault'),
-        to: output.to
-      })
-    }
-
-    return true
+    return materializeStonewallOutputs()
   }
 
   function handleGoToPreview() {
     setDustErrorOverride('')
     setFeeRate(localFeeRate)
-    const totalOutputAmount = outputs.reduce(
-      (acc, output) => acc + output.amount,
-      0
-    )
-
-    const totalRequired = totalOutputAmount + effectiveMinerFee
+    const totalRequired = committedOutputSats + fundingMinerFee
 
     if (totalRequired > utxosSelectedValue) {
       toast.error(t('transaction.error.insufficientInputs'))
@@ -938,7 +1058,12 @@ export default function IOPreview() {
       }
     }
 
-    if (tryAddStonewallOutputs()) {
+    if (selectedAutoSelectUtxos === 'privacy') {
+      if (!tryAddStonewallOutputs()) {
+        toast.error(t('transaction.error.ChangeAddressNotAvailable'))
+        return
+      }
+
       proceedToPreview()
       return
     }
@@ -1067,6 +1192,8 @@ export default function IOPreview() {
               inputs={inputs}
               outputs={singleTxOutputs}
               feeRate={localFeeRate}
+              effectiveMinerFeeSats={fundingMinerFee}
+              suppressUnderfundedWarning={deferUnderfundedWarning}
               onPressInput={chartOnPressInput}
               onPressOutput={handleOnPressOutput}
               currentOutputLocalId={currentOutputLocalId}
@@ -1486,12 +1613,12 @@ export default function IOPreview() {
             <SSText color="muted" uppercase>
               {t('transaction.build.options.autoSelect.utxos.label')}
             </SSText>
-            <SSHStack justifyBetween>
+            <SSHStack gap="xs">
               <SSRadioButton
                 variant="outline"
                 label={t(autoSelectUtxosTitleKey('user'))}
                 selected={selectedAutoSelectUtxos === 'user'}
-                style={{ flex: 1, width: '33%' }}
+                style={{ flex: 1 }}
                 onPress={handleSelectUserAutoUtxos}
               />
               <SSRadioButton
@@ -1499,7 +1626,7 @@ export default function IOPreview() {
                 label={t(autoSelectUtxosTitleKey('privacy'))}
                 loading={loadingOptimizeAlgorithm === 'privacy'}
                 selected={selectedAutoSelectUtxos === 'privacy'}
-                style={{ flex: 1, width: '33%' }}
+                style={{ flex: 1 }}
                 onPress={handleSelectPrivacyAutoUtxos}
               />
               <SSRadioButton
@@ -1507,7 +1634,7 @@ export default function IOPreview() {
                 label={t(autoSelectUtxosTitleKey('efficiency'))}
                 loading={loadingOptimizeAlgorithm === 'efficiency'}
                 selected={selectedAutoSelectUtxos === 'efficiency'}
-                style={{ flex: 1, width: '33%' }}
+                style={{ flex: 1 }}
                 onPress={handleSelectEfficiencyAutoUtxos}
               />
             </SSHStack>
