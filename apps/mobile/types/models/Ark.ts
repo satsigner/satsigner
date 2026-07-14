@@ -160,6 +160,13 @@ export type ArkMovementEvent = {
   effectiveBalanceSats: number
 }
 
+export type ArkReceiveOverlayEvent = {
+  accountId: string
+  accountName: string
+  movementId: number
+  amountSats: number
+}
+
 export type ArkNotificationListener = (event: ArkMovementEvent) => void
 
 export type ArkNotificationUnsubscribe = () => void

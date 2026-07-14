@@ -1,17 +1,16 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
-import { toast } from 'sonner-native'
 
 import {
   openArkWallet,
   subscribeArkNotifications,
   syncArkWallet
 } from '@/api/ark'
-import { t } from '@/locales'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
+import { useArkReceiveOverlayStore } from '@/store/arkReceiveOverlay'
 import type {
   ArkAccount,
   ArkMovementEvent,
@@ -19,12 +18,11 @@ import type {
 } from '@/types/models/Ark'
 import { getArkServer } from '@/utils/ark'
 import { invalidateArkAccountQueries } from '@/utils/arkSync'
-import { formatNumber } from '@/utils/format'
 
 const activeSubscriptions = new Map<string, ArkNotificationUnsubscribe>()
 const inflightSubscriptions = new Set<string>()
-const RECEIVE_TOAST_DEDUP_TTL_MS = 60_000
-const recentReceiveToasts = new Map<string, number>()
+const RECEIVE_EVENT_DEDUP_TTL_MS = 60_000
+const recentReceiveEvents = new Map<string, number>()
 const INVALIDATE_DEBOUNCE_MS = 400
 const pendingInvalidations = new Map<string, ReturnType<typeof setTimeout>>()
 
@@ -45,18 +43,18 @@ function scheduleAccountInvalidation(
   pendingInvalidations.set(accountId, timer)
 }
 
-function shouldSkipDuplicateReceiveToast(key: string): boolean {
+function shouldSkipDuplicateReceiveEvent(key: string): boolean {
   const now = Date.now()
-  for (const [existingKey, timestamp] of recentReceiveToasts) {
-    if (now - timestamp > RECEIVE_TOAST_DEDUP_TTL_MS) {
-      recentReceiveToasts.delete(existingKey)
+  for (const [existingKey, timestamp] of recentReceiveEvents) {
+    if (now - timestamp > RECEIVE_EVENT_DEDUP_TTL_MS) {
+      recentReceiveEvents.delete(existingKey)
     }
   }
-  const last = recentReceiveToasts.get(key)
-  if (last !== undefined && now - last < RECEIVE_TOAST_DEDUP_TTL_MS) {
+  const last = recentReceiveEvents.get(key)
+  if (last !== undefined && now - last < RECEIVE_EVENT_DEDUP_TTL_MS) {
     return true
   }
-  recentReceiveToasts.set(key, now)
+  recentReceiveEvents.set(key, now)
   return false
 }
 
@@ -65,15 +63,15 @@ function notifyReceive(account: ArkAccount, event: ArkMovementEvent) {
     return
   }
   const key = `${account.id}:${event.movementId}`
-  if (shouldSkipDuplicateReceiveToast(key)) {
+  if (shouldSkipDuplicateReceiveEvent(key)) {
     return
   }
-  toast.success(
-    t('ark.notifications.received', {
-      amount: formatNumber(event.effectiveBalanceSats),
-      wallet: account.name
-    })
-  )
+  useArkReceiveOverlayStore.getState().enqueueReceive({
+    accountId: account.id,
+    accountName: account.name,
+    amountSats: event.effectiveBalanceSats,
+    movementId: event.movementId
+  })
 }
 
 async function subscribeAccount(
