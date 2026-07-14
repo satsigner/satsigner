@@ -337,7 +337,9 @@ async function main() {
   process.exit(0)
 }
 
-main().catch((error) => {
+try {
+  await main()
+} catch (error) {
   console.error('\nError:', error.message)
   process.exit(1)
-})
+}

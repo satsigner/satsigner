@@ -3,7 +3,6 @@ import { StyleSheet, View } from 'react-native'
 
 import SSNostrAccountCard from '@/components/SSNostrAccountCard'
 import {
-  NOSTR_ACCOUNT_CARD_ESTIMATED_HEIGHT,
   NOSTR_LIST_ITEM_GAP,
   NOSTR_LIST_PADDING_VERTICAL
 } from '@/constants/nostr'
@@ -50,7 +49,6 @@ function SSNostrContactList({ contacts, onPress }: SSNostrContactListProps) {
     <View style={styles.list}>
       <FlashList
         data={contacts}
-        estimatedItemSize={NOSTR_ACCOUNT_CARD_ESTIMATED_HEIGHT}
         ItemSeparatorComponent={NostrContactListSeparator}
         keyExtractor={keyExtractor}
         renderItem={renderItem}

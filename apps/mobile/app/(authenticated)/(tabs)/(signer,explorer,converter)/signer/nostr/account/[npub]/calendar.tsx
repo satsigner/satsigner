@@ -106,7 +106,6 @@ export default function NostrCalendar() {
       ) : (
         <FlashList
           data={events}
-          estimatedItemSize={72}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => <CalendarRow event={item} />}

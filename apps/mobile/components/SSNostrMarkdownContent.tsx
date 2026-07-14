@@ -44,8 +44,12 @@ type HeadingStyle = {
 
 const BODY_SIZE: TextFontSize = 'md'
 
-function openLink(url: string) {
-  void Linking.openURL(url).catch(() => undefined)
+async function openLink(url: string) {
+  try {
+    await Linking.openURL(url)
+  } catch {
+    // Ignore invalid or unsupported links.
+  }
 }
 
 function getOrderedListMarker(index: number): string {
@@ -90,7 +94,7 @@ function MarkdownLinkSegment({
   url: string
 }) {
   function handlePress() {
-    openLink(url)
+    void openLink(url)
   }
 
   return (
@@ -250,6 +254,10 @@ function MarkdownBlockView({
         </View>
       </View>
     )
+  }
+
+  if (block.type === 'spacer') {
+    return null
   }
 
   return (

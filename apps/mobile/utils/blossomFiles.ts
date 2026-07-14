@@ -22,11 +22,9 @@ export const BLOSSOM_FILE_TYPE_FILTERS: BlossomFileCategory[] = [
   'other'
 ]
 
-type BlossomFileDetailItem = [
-  string,
-  string | number | undefined,
-  { copyToClipboard?: boolean }?
-]
+type BlossomFileDetailItem =
+  | [string, string | number | undefined]
+  | [string, string | number | undefined, { copyToClipboard?: boolean }]
 
 export function formatBlossomFileSize(bytes: number): string {
   const maxUnitIndex = FILE_SIZE_UNITS.length - 1

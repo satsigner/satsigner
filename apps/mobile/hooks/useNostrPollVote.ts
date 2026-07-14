@@ -69,11 +69,12 @@ export function useNostrPollVote({
     const generation = loadGenerationRef.current + 1
     loadGenerationRef.current = generation
     setPollResponsesLoading(true)
+    const pollEventId = eventId
 
     async function loadPollResponses() {
       const api = new NostrAPI(relays, ownPubkeys)
       try {
-        const responses = await api.fetchPollResponses(eventId)
+        const responses = await api.fetchPollResponses(pollEventId)
         if (loadGenerationRef.current !== generation) {
           return
         }
@@ -97,12 +98,12 @@ export function useNostrPollVote({
   useEffect(() => {
     if (
       pollInfo?.pollType !== 'multiplechoice' ||
-      userPollVoteIds.length === 0
+      userPollVoteKey.length === 0
     ) {
       return
     }
-    setPollMultipleSelection(userPollVoteIds)
-  }, [pollInfo?.pollType, userPollVoteKey, userPollVoteIds])
+    setPollMultipleSelection(userPollVoteKey.split('|'))
+  }, [pollInfo?.pollType, userPollVoteKey])
 
   async function submitPollVote(optionIds: string[]) {
     if (

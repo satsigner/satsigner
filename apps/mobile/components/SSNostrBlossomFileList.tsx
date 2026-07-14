@@ -3,10 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native'
 
 import { type BlobDescriptor } from '@/api/blossom'
 import SSText from '@/components/SSText'
-import {
-  NOSTR_BLOSSOM_FILE_ROW_HEIGHT,
-  NOSTR_LIST_PADDING_VERTICAL
-} from '@/constants/nostr'
+import { NOSTR_LIST_PADDING_VERTICAL } from '@/constants/nostr'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 import {
@@ -73,7 +70,6 @@ function SSNostrBlossomFileList({
       <FlashList
         contentContainerStyle={styles.listContent}
         data={files}
-        estimatedItemSize={NOSTR_BLOSSOM_FILE_ROW_HEIGHT}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}

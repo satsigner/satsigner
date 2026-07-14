@@ -176,7 +176,6 @@ export default function SSContactProfileQrOverlay({
             <FlashList
               data={qrSlides}
               decelerationRate="fast"
-              estimatedItemSize={pagerWidth}
               getItemType={(item) => item.kind}
               horizontal
               keyExtractor={(item) => item.key}

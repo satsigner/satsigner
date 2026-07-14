@@ -82,7 +82,10 @@ export default function NostrFiles() {
             availableFilters={availableFilters}
             onFilterChange={handleFilterChange}
           />
-          <SSNostrBlossomFileList files={visibleFiles} onPress={handleFilePress} />
+          <SSNostrBlossomFileList
+            files={visibleFiles}
+            onPress={handleFilePress}
+          />
         </View>
       )}
     </SSMainLayout>

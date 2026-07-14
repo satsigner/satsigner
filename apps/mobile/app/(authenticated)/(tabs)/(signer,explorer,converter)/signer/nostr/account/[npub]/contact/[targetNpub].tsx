@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'

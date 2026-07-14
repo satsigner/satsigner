@@ -88,20 +88,11 @@ function kindsForNoteKindFilterId(id: string): number[] {
   return opt?.kinds.length ? opt.kinds : [1]
 }
 
-const DROPDOWN_LABEL_MAX_CHARS = 36
-
 type FeedTab = 'feed' | 'notes' | 'zaps'
 
 type FeedAuthorKind0State =
   | { status: 'loading' }
   | { status: 'ready'; profile: NostrKind0Profile | null }
-
-function trimDropdownLabel(text: string): string {
-  if (text.length <= DROPDOWN_LABEL_MAX_CHARS) {
-    return text
-  }
-  return `${text.slice(0, DROPDOWN_LABEL_MAX_CHARS - 1)}…`
-}
 
 function DecryptedBadge() {
   return (

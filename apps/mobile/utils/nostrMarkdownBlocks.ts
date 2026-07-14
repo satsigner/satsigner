@@ -111,7 +111,7 @@ export function parseInlineSegments(text: string): MarkdownInlineSegment[] {
   let lastIndex = 0
 
   for (const match of text.matchAll(INLINE_RE)) {
-    const token = match[0]
+    const [token] = match
     const start = match.index ?? 0
 
     if (start > lastIndex) {
@@ -158,20 +158,18 @@ export function parseInlineSegments(text: string): MarkdownInlineSegment[] {
 export function collapseMarkdownSpacers(
   blocks: MarkdownBlock[]
 ): VisibleMarkdownBlock[] {
-  return blocks.reduce<{
-    items: VisibleMarkdownBlock[]
-    pendingBreak: boolean
-  }>(
-    (acc, block) => {
-      if (block.type === 'spacer') {
-        return { ...acc, pendingBreak: true }
-      }
+  const items: VisibleMarkdownBlock[] = []
+  let pendingBreak = false
 
-      return {
-        items: [...acc.items, { afterBreak: acc.pendingBreak, block }],
-        pendingBreak: false
-      }
-    },
-    { items: [], pendingBreak: false }
-  ).items
+  for (const block of blocks) {
+    if (block.type === 'spacer') {
+      pendingBreak = true
+      continue
+    }
+
+    items.push({ afterBreak: pendingBreak, block })
+    pendingBreak = false
+  }
+
+  return items
 }

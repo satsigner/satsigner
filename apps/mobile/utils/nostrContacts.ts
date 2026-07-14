@@ -137,9 +137,9 @@ export async function fetchNostrContacts(
           return
         }
         const merged = mergeProfileBatch(contacts, batch)
-        merged.forEach((contact, index) => {
+        for (const [index, contact] of merged.entries()) {
           contacts[index] = contact
-        })
+        }
         onProfileBatch?.(merged)
       },
       signal

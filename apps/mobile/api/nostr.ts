@@ -23,16 +23,16 @@ import {
   getCachedProfile,
   getNewestCachedTimestamp
 } from '@/db/nostrCache'
-import { getNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
+import { setNostrFollowCache } from '@/storage/mmkv'
 import type {
   NostrKeys,
   NostrKind0Profile,
   NostrMessage,
+  NostrPollResponse,
   NostrRelayConnectionInfo,
   NostrSignedKind1Event,
   NostrUnwrappedKind1059Event
 } from '@/types/models/Nostr'
-import { type NostrPollResponse } from '@/types/models/Nostr'
 import { chunkArray } from '@/utils/chunkArray'
 import { randomKey } from '@/utils/crypto'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
@@ -369,6 +369,66 @@ export class NostrAPI {
       return Promise.resolve(null)
     }
     return this.fetchKind0ByPubkeyHex(hexPubkey)
+  }
+
+  async fetchCalendarEvents(npub: string): Promise<
+    {
+      description: string
+      end?: number
+      id: string
+      kind: number
+      location?: string
+      start: number
+      title: string
+    }[]
+  > {
+    const hexPubkey = getPubKeyHexFromNpub(npub)
+    if (!hexPubkey) {
+      return []
+    }
+
+    await this.connectForPublish()
+    if (!this.ndk) {
+      return []
+    }
+
+    const events = await NostrAPI.fetchManyWithTimeout(
+      this.ndk,
+      {
+        authors: [hexPubkey],
+        kinds: [31922 as NDKKind],
+        limit: 500
+      },
+      15000
+    )
+
+    return [...events]
+      .flatMap((event) => {
+        function getTagValue(name: string): string | undefined {
+          return event.tags.find((tag) => tag[0] === name)?.[1]
+        }
+
+        const start = Number(getTagValue('start'))
+        if (!Number.isFinite(start)) {
+          return []
+        }
+
+        const endValue = Number(getTagValue('end'))
+        const location = getTagValue('location')
+
+        return [
+          {
+            description: event.content,
+            ...(Number.isFinite(endValue) ? { end: endValue } : {}),
+            id: event.id,
+            kind: event.kind ?? 31922,
+            ...(location ? { location } : {}),
+            start,
+            title: getTagValue('title') ?? getTagValue('summary') ?? 'Untitled'
+          }
+        ]
+      })
+      .toSorted((a, b) => a.start - b.start)
   }
 
   /**
@@ -1399,7 +1459,7 @@ export class NostrAPI {
 
     const filter: NDKFilter = {
       '#e': [pollEventIdHex],
-      kinds: [NOSTR_POLL_RESPONSE_KIND],
+      kinds: [NOSTR_POLL_RESPONSE_KIND as NDKKind],
       limit: 500
     }
     const events = await NostrAPI.fetchManyWithTimeout(this.ndk, filter, 15000)
@@ -1442,7 +1502,7 @@ export class NostrAPI {
       kind: NOSTR_POLL_RESPONSE_KIND,
       tags: [
         ['e', pollEventIdHex],
-        ...optionIds.map((optionId) => ['response', optionId] as const)
+        ...optionIds.map((optionId) => ['response', optionId])
       ]
     })
 
