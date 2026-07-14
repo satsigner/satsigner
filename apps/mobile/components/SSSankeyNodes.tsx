@@ -498,7 +498,9 @@ function NodeText({
             weight: 800
           }
         })
-        .addText(isSelfSend && ioData?.label ? ` ${ioData.label}` : '')
+        .addText(
+          (isSelfSend || isFakeMix) && ioData?.label ? ` ${ioData.label}` : ''
+        )
         .pop()
 
       return para.build()

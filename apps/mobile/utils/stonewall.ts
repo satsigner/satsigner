@@ -14,6 +14,7 @@ const STONEWALL_CHANGE_LOCAL_ID_PREFIX = 'stonewallChange'
 export type StonewallPaymentContext = {
   changeScriptType: ScriptVersionType
   effectiveFeeRate: number
+  paymentLabel: string
   paymentOutputs: Output[]
   recipientScriptType: ScriptVersionType
   userPaymentAmount: number
@@ -32,6 +33,7 @@ type StonewallPreviewParams = {
   changeAddress: string
   changeValues: number[]
   decoyAddress?: string
+  fakeMixLabel?: string
   fakeMixValues: number[]
   fee: number | null
   secondChangeAddress?: string
@@ -76,10 +78,15 @@ export function getStonewallPaymentContext(
     input.localFeeRate > MIN_HYDRATED_FEE_RATE
       ? input.localFeeRate
       : (input.nextBlockFee ?? MIN_HYDRATED_FEE_RATE)
+  const paymentLabel =
+    paymentOutputs.find((output) => output.label?.trim())?.label?.trim() ??
+    paymentOutputs[0]?.label ??
+    ''
 
   return {
     changeScriptType,
     effectiveFeeRate,
+    paymentLabel,
     paymentOutputs,
     recipientScriptType,
     userPaymentAmount
@@ -103,7 +110,7 @@ export function buildStonewallPreviewOutputs(
     previewOutputs.push({
       amount,
       kind: 'fakeMix',
-      label: t('sign.decoyOutputLabelDefault'),
+      label: params.fakeMixLabel ?? '',
       localId: stonewallFakeMixLocalId(index),
       to: params.decoyAddress
     })

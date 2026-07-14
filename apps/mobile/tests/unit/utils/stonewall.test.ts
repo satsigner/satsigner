@@ -35,6 +35,7 @@ describe('buildStonewallPreviewOutputs', () => {
     expect(outputs[0]).toMatchObject({
       amount: 500,
       kind: 'fakeMix',
+      label: 'Coffee shop',
       localId: 'stonewallFakeMix-0',
       to: 'bc1qdecoy'
     })
@@ -101,6 +102,7 @@ describe('getStonewallPaymentContext', () => {
 
     expect(context.userPaymentAmount).toBe(1000)
     expect(context.paymentOutputs).toHaveLength(1)
+    expect(context.paymentLabel).toBe('pay')
     expect(context.effectiveFeeRate).toBe(2)
   })
 })
