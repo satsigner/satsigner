@@ -3,9 +3,12 @@ import { javaSeededRandom } from '@/utils/crypto'
 const JAVA_RANDOM_MULTIPLIER = 0x5deece66dn
 const JAVA_RANDOM_ADDEND = 0xbn
 const JAVA_RANDOM_MASK = (1n << 48n) - 1n
+const INT32_MAX = 2147483647
 
-// Reference java.util.Random.nextInt(bound) using `| 0` to reproduce Java's
-// signed 32-bit overflow in the rejection sampling condition exactly.
+// Reference java.util.Random.nextInt(bound). Java's rejection sampling
+// condition `bits - val + (bound - 1) < 0` relies on signed 32-bit overflow;
+// since all operands are non-negative and < 2^31, that overflow happens
+// exactly when the sum exceeds INT32_MAX.
 function javaReferenceRandom(seed: number) {
   let state = (BigInt(seed) ^ JAVA_RANDOM_MULTIPLIER) & JAVA_RANDOM_MASK
 
@@ -25,7 +28,7 @@ function javaReferenceRandom(seed: number) {
     do {
       bits = next(31)
       val = bits % bound
-    } while (((bits - val + (bound - 1)) | 0) < 0)
+    } while (bits - val + (bound - 1) > INT32_MAX)
 
     return val
   }
@@ -75,7 +78,7 @@ describe('javaSeededRandom', () => {
 
   it('throws on non-positive bound', () => {
     const random = javaSeededRandom(42)
-    expect(() => random.nextInt(0)).toThrow()
-    expect(() => random.nextInt(-5)).toThrow()
+    expect(() => random.nextInt(0)).toThrow('bound must be positive')
+    expect(() => random.nextInt(-5)).toThrow('bound must be positive')
   })
 })
