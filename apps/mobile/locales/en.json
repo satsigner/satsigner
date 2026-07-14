@@ -875,7 +875,7 @@
     "send.confirm": "Confirm send",
     "send.confirmTitle": "Confirm send",
     "send.destination": "Destination",
-    "send.destinationPlaceholder": "Ark address, Lightning invoice, LNURL or Lightning address",
+    "send.destinationPlaceholder": "Ark address, Bitcoin address, Lightning invoice, LNURL or Lightning address",
     "send.error.addressNetworkMismatch": "Destination does not match the account network",
     "send.error.amountOutOfRange": "Amount must be between %{min} and %{max} sats",
     "send.error.generic": "Failed to send payment",
