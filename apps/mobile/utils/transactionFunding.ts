@@ -1,4 +1,7 @@
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import { type Output } from '@/types/models/Output'
+import { type Utxo } from '@/types/models/Utxo'
+import { estimateTransactionSize } from '@/utils/transaction'
 
 export function getTransactionRemainingBalance(
   totalInputSats: number,
@@ -58,6 +61,33 @@ export function getFundingMinerFeeSats(params: {
   }
 
   return params.projectedMinerFeeSats
+}
+
+export function getProjectedMinerFeeSats(params: {
+  committedOutputSats: number
+  feeRate: number
+  fundingOutputs: Output[]
+  inputs: Utxo[]
+  totalInputSats: number
+}): number {
+  if (params.inputs.length === 0) {
+    return 0
+  }
+
+  const { vsize: baseVsize } = estimateTransactionSize(
+    params.inputs,
+    params.fundingOutputs
+  )
+  const baseFee = Math.round(params.feeRate * baseVsize)
+  const hasFundingChange =
+    params.totalInputSats > params.committedOutputSats + baseFee
+  const { vsize } = estimateTransactionSize(
+    params.inputs,
+    params.fundingOutputs,
+    hasFundingChange
+  )
+
+  return Math.round(params.feeRate * vsize)
 }
 
 export function shouldDeferUnderfundedWarning(params: {

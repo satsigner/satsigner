@@ -1,5 +1,6 @@
 import {
   buildSingleTxChartOutputs,
+  buildStonewallMaterializationPlan,
   buildStonewallPreviewOutputs,
   CHART_REMAINING_BALANCE_LOCAL_ID,
   getStonewallPaymentContext
@@ -49,6 +50,50 @@ describe('buildStonewallPreviewOutputs', () => {
       localId: 'stonewallChange-1',
       to: 'bc1qchange2'
     })
+  })
+})
+
+describe('buildStonewallMaterializationPlan', () => {
+  it('returns fake mix and change outputs ready for the store', () => {
+    const plan = buildStonewallMaterializationPlan({
+      changeAddress: 'bc1qchange1',
+      changeValues: [1_000],
+      decoyAddress: 'bc1qdecoy',
+      fakeMixLabel: 'Coffee shop',
+      fakeMixValues: [500],
+      fee: 678,
+      secondChangeAddress: 'bc1qchange2'
+    })
+
+    expect(plan).toStrictEqual({
+      fee: 678,
+      outputs: [
+        {
+          amount: 500,
+          kind: 'fakeMix',
+          label: 'Coffee shop',
+          to: 'bc1qdecoy'
+        },
+        {
+          amount: 1_000,
+          label: 'Change',
+          to: 'bc1qchange1'
+        }
+      ]
+    })
+  })
+
+  it('returns null when stonewall fee is unavailable', () => {
+    expect(
+      buildStonewallMaterializationPlan({
+        changeAddress: 'bc1qchange1',
+        changeValues: [],
+        decoyAddress: 'bc1qdecoy',
+        fakeMixLabel: '',
+        fakeMixValues: [500],
+        fee: null
+      })
+    ).toBeNull()
   })
 })
 

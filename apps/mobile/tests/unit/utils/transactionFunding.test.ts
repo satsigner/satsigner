@@ -2,6 +2,7 @@ import {
   getCommittedTransactionOutputSats,
   getFundingMinerFeeSats,
   getOutputMaxAllowedSats,
+  getProjectedMinerFeeSats,
   getTransactionRemainingBalance,
   isTransactionUnderfunded,
   shouldDeferUnderfundedWarning
@@ -71,6 +72,44 @@ describe('getFundingMinerFeeSats', () => {
         stonewallMinerFeeSats: 678
       })
     ).toBe(678)
+  })
+})
+
+describe('getProjectedMinerFeeSats', () => {
+  it('returns 0 when there are no inputs', () => {
+    expect(
+      getProjectedMinerFeeSats({
+        committedOutputSats: 50_000,
+        feeRate: 2,
+        fundingOutputs: [
+          { amount: 50_000, label: '', localId: '1', to: 'bc1q' }
+        ],
+        inputs: [],
+        totalInputSats: 0
+      })
+    ).toBe(0)
+  })
+
+  it('includes change output vsize when inputs cover committed outputs and fee', () => {
+    const input = {
+      address: 'bc1qinput',
+      txid: 'aa'.repeat(32),
+      value: 200_000,
+      vout: 0
+    }
+    const fundingOutputs = [
+      { amount: 50_000, label: '', localId: '1', to: 'bc1qpay' }
+    ]
+
+    const feeWithoutChange = getProjectedMinerFeeSats({
+      committedOutputSats: 50_000,
+      feeRate: 1,
+      fundingOutputs,
+      inputs: [input],
+      totalInputSats: 200_000
+    })
+
+    expect(feeWithoutChange).toBeGreaterThan(0)
   })
 })
 

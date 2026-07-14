@@ -3,6 +3,10 @@ import { type Address } from '@/types/models/Address'
 import { type Output } from '@/types/models/Output'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { getScriptVersionType } from '@/utils/address'
+import {
+  mapStonewallChangeOutputs,
+  mapStonewallFakeMixOutputs
+} from '@/utils/utxo'
 
 export const CHART_REMAINING_BALANCE_LOCAL_ID = 'remainingBalance'
 
@@ -44,6 +48,26 @@ type ChartOutputsParams = {
   outputs: Output[]
   previewOutputs: Output[]
   remainingBalance: number
+}
+
+export type StonewallMaterializationPlan = {
+  fee: number
+  outputs: {
+    amount: number
+    kind?: Output['kind']
+    label: string
+    to: string
+  }[]
+}
+
+type StonewallMaterializationParams = {
+  changeAddress: string
+  changeValues: number[]
+  decoyAddress?: string
+  fakeMixLabel: string
+  fakeMixValues: number[]
+  fee: number | null
+  secondChangeAddress?: string
 }
 
 function stonewallFakeMixLocalId(index: number) {
@@ -135,6 +159,64 @@ export function buildStonewallPreviewOutputs(
   }
 
   return previewOutputs
+}
+
+export function buildStonewallMaterializationPlan(
+  params: StonewallMaterializationParams
+): StonewallMaterializationPlan | null {
+  if (params.fee === null) {
+    return null
+  }
+
+  if (params.fakeMixValues.length > 0 && !params.decoyAddress) {
+    return null
+  }
+
+  const changeAddresses = [
+    params.changeAddress,
+    params.secondChangeAddress
+  ].flatMap((address) => (address ? [address] : []))
+
+  if (params.changeValues.length > changeAddresses.length) {
+    return null
+  }
+
+  if (params.changeValues.length === 0 && params.fakeMixValues.length === 0) {
+    return null
+  }
+
+  const fakeMixOutputs = mapStonewallFakeMixOutputs(
+    params.fakeMixValues,
+    params.decoyAddress ?? ''
+  )
+  const changeOutputs = mapStonewallChangeOutputs(
+    params.changeValues,
+    changeAddresses
+  )
+
+  const outputs: StonewallMaterializationPlan['outputs'] = []
+
+  for (const output of fakeMixOutputs) {
+    outputs.push({
+      amount: output.amount,
+      kind: 'fakeMix',
+      label: params.fakeMixLabel,
+      to: output.to
+    })
+  }
+
+  for (const output of changeOutputs) {
+    outputs.push({
+      amount: output.amount,
+      label: t('sign.changeAddressLabelDefault'),
+      to: output.to
+    })
+  }
+
+  return {
+    fee: params.fee,
+    outputs
+  }
 }
 
 export function buildSingleTxChartOutputs(
