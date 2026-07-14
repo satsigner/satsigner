@@ -14,8 +14,10 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   SSIconArrowLineDown,
   SSIconArrowsClockwise,
+  SSIconBubbles,
   SSIconCollapse,
   SSIconExpand,
+  SSIconList,
   SSIconRefresh,
   SSIconSignOut,
   SSIconTriangle
@@ -26,6 +28,7 @@ import SSArkAddressesView from '@/components/SSArkAddressesView'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSArkRefreshCard from '@/components/SSArkRefreshCard'
 import SSArkVtxoCard from '@/components/SSArkVtxoCard'
+import SSArkVtxosBubbleChart from '@/components/SSArkVtxosBubbleChart'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -92,6 +95,7 @@ const SELECTION_ICON_SIZE = 15
 
 type ArkTabKey = 'transactions' | 'addresses' | 'vtxos' | 'refreshes'
 type ArkTabRoute = { key: ArkTabKey }
+type ArkVtxosView = 'list' | 'bubbles'
 
 export default function ArkAccountDetailPage() {
   const router = useRouter()
@@ -119,6 +123,7 @@ export default function ArkAccountDetailPage() {
   const [refreshesSortDirection, setRefreshesSortDirection] =
     useState<Direction>('desc')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [vtxosView, setVtxosView] = useState<ArkVtxosView>('list')
   const [refreshModalVisible, setRefreshModalVisible] = useState(false)
   const [exitModalVisible, setExitModalVisible] = useState(false)
 
@@ -244,6 +249,18 @@ export default function ArkAccountDetailPage() {
         ? prev.filter((selectedId) => selectedId !== vtxoId)
         : [...prev, vtxoId]
     )
+  }
+
+  function handleToggleVtxosView() {
+    setVtxosView((prev) => (prev === 'list' ? 'bubbles' : 'list'))
+  }
+
+  function handleVtxoBubblePress(vtxoId: string) {
+    const vtxo = vtxos.find((item) => item.id === vtxoId)
+    if (!vtxo?.spendable) {
+      return
+    }
+    handleToggleVtxo(vtxoId)
   }
 
   function handleClearSelection() {
@@ -505,10 +522,46 @@ export default function ArkAccountDetailPage() {
     )
   }
 
-  function renderScene({ route }: SceneRendererProps & { route: ArkTabRoute }) {
-    if (route.key === 'vtxos') {
-      const refreshing = syncMutation.isPending || vtxosQuery.isFetching
+  function renderVtxosControls() {
+    return (
+      <SSHStack justifyBetween style={styles.vtxosControls}>
+        <SSIconButton onPress={syncAccount}>
+          <SSIconRefresh height={18} width={22} />
+        </SSIconButton>
+        <SSIconButton onPress={handleToggleVtxosView}>
+          {vtxosView === 'list' ? (
+            <SSIconBubbles height={16} width={16} />
+          ) : (
+            <SSIconList height={16} width={16} />
+          )}
+        </SSIconButton>
+      </SSHStack>
+    )
+  }
+
+  function renderVtxosScene() {
+    const refreshing = syncMutation.isPending || vtxosQuery.isFetching
+
+    if (vtxosView === 'bubbles') {
       return renderListWithLoader(
+        <>
+          {renderVtxosControls()}
+          <SSArkVtxosBubbleChart
+            vtxos={vtxos}
+            selectedIds={selectedSpendableIds}
+            privacyMode={privacyMode}
+            width={width}
+            height={width * 0.8}
+            onVtxoPress={handleVtxoBubblePress}
+          />
+        </>,
+        refreshing
+      )
+    }
+
+    return renderListWithLoader(
+      <>
+        {renderVtxosControls()}
         <FlashList
           data={vtxoItems}
           keyExtractor={(item) => item.key}
@@ -524,9 +577,15 @@ export default function ArkAccountDetailPage() {
               </SSVStack>
             )
           }
-        />,
-        refreshing
-      )
+        />
+      </>,
+      refreshing
+    )
+  }
+
+  function renderScene({ route }: SceneRendererProps & { route: ArkTabRoute }) {
+    if (route.key === 'vtxos') {
+      return renderVtxosScene()
     }
 
     if (route.key === 'addresses') {
@@ -946,5 +1005,9 @@ const styles = StyleSheet.create({
   vtxoSelectAllText: {
     color: Colors.gray[75],
     textDecorationLine: 'underline'
+  },
+  vtxosControls: {
+    paddingHorizontal: CONTENT_PADDING_HORIZONTAL,
+    paddingVertical: 16
   }
 })
