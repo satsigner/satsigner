@@ -45,6 +45,7 @@ type SSMultipleSankeyDiagramProps = {
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
+  elevatedFeeRateHighlight?: boolean
   ownAddresses?: Set<string> // NEW: prop for own addresses
   overlayHeaderHeight?: number
 }
@@ -56,6 +57,7 @@ function SSMultipleSankeyDiagram({
   inputs,
   outputs,
   feeRate,
+  elevatedFeeRateHighlight = false,
   ownAddresses = new Set(),
   overlayHeaderHeight
 }: SSMultipleSankeyDiagramProps) {
@@ -64,6 +66,7 @@ function SSMultipleSankeyDiagram({
     useInputTransactions(inputs, DEEP_LEVEL)
 
   const { nodes: sankeyNodes, links: sankeyLinks } = useNodesAndLinks({
+    elevatedFeeRateHighlight,
     feeRate,
     inputs,
     outputs,

@@ -84,7 +84,8 @@ import {
 import {
   estimateTargetBlocks,
   getFeeRateInputMax,
-  getFeeRateSliderMax
+  getFeeRateSliderMax,
+  shouldHighlightElevatedFeeRate
 } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber } from '@/utils/format'
 import {
@@ -514,6 +515,15 @@ export default function IOPreview() {
       selectedAlgorithm: selectedAutoSelectUtxos
     }) ||
     (selectedAutoSelectUtxos === 'privacy' && stonewallFee === null)
+
+  const elevatedFeeRateHighlight = shouldHighlightElevatedFeeRate({
+    deferWarning: deferUnderfundedWarning,
+    feeRate: localFeeRate,
+    fundingMinerFeeSats: fundingMinerFee,
+    inputsCount: inputs.size,
+    nextBlockFee,
+    totalInputSats: utxosSelectedValue
+  })
 
   const feeRateSliderMax = getFeeRateSliderMax(nextBlockFee)
   const feeRateInputMax = getFeeRateInputMax(nextBlockFee)
@@ -1143,7 +1153,8 @@ export default function IOPreview() {
               currentOutputLocalId={currentOutputLocalId}
               inputs={inputs}
               outputs={singleTxOutputs}
-              feeRate={feeRate}
+              feeRate={localFeeRate}
+              elevatedFeeRateHighlight={elevatedFeeRateHighlight}
               ownAddresses={ownAddressesSet}
               overlayHeaderHeight={topGradientHeight}
             />
@@ -1153,6 +1164,7 @@ export default function IOPreview() {
               outputs={singleTxOutputs}
               feeRate={localFeeRate}
               effectiveMinerFeeSats={fundingMinerFee}
+              elevatedFeeRateHighlight={elevatedFeeRateHighlight}
               suppressUnderfundedWarning={deferUnderfundedWarning}
               onPressInput={chartOnPressInput}
               onPressOutput={handleOnPressOutput}

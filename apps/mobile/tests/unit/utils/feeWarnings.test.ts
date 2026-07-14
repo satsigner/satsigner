@@ -3,7 +3,8 @@ import {
   getFeeRateInputMax,
   getFeeRateSliderMax,
   isElevatedFeeRate,
-  isHighMinerFee
+  isHighMinerFee,
+  shouldHighlightElevatedFeeRate
 } from '@/utils/feeWarnings'
 
 describe('getFeePercentage', () => {
@@ -69,5 +70,59 @@ describe('isElevatedFeeRate', () => {
 
   it('is false when fee rate is below 2x the recommendation', () => {
     expect(isElevatedFeeRate(19, 10)).toBe(false)
+  })
+})
+
+describe('shouldHighlightElevatedFeeRate', () => {
+  it('is false while warnings are deferred', () => {
+    expect(
+      shouldHighlightElevatedFeeRate({
+        deferWarning: true,
+        feeRate: 20,
+        fundingMinerFeeSats: 1_000,
+        inputsCount: 1,
+        nextBlockFee: 10,
+        totalInputSats: 100_000
+      })
+    ).toBe(false)
+  })
+
+  it('is false without selected inputs', () => {
+    expect(
+      shouldHighlightElevatedFeeRate({
+        deferWarning: false,
+        feeRate: 20,
+        fundingMinerFeeSats: 1_000,
+        inputsCount: 0,
+        nextBlockFee: 10,
+        totalInputSats: 100_000
+      })
+    ).toBe(false)
+  })
+
+  it('is false when miner fee is already high', () => {
+    expect(
+      shouldHighlightElevatedFeeRate({
+        deferWarning: false,
+        feeRate: 20,
+        fundingMinerFeeSats: 10_000,
+        inputsCount: 1,
+        nextBlockFee: 10,
+        totalInputSats: 110_000
+      })
+    ).toBe(false)
+  })
+
+  it('is true when fee rate is elevated and other checks pass', () => {
+    expect(
+      shouldHighlightElevatedFeeRate({
+        deferWarning: false,
+        feeRate: 20,
+        fundingMinerFeeSats: 1_000,
+        inputsCount: 1,
+        nextBlockFee: 10,
+        totalInputSats: 100_000
+      })
+    ).toBe(true)
   })
 })

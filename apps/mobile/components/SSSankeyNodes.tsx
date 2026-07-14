@@ -67,9 +67,6 @@ function SSSankeyNodes({
     nodes.length === 0 ? 0 : Math.max(...nodes.map((node) => node.depthH))
 
   const renderNode = (node: Node) => {
-    const isHigherCurrentMinerFee =
-      node.localId === 'current-minerFee' && node.ioData?.higherFee
-
     const isSelectedOutput =
       selectedOutputNode !== undefined && node.localId === selectedOutputNode
     const shouldDim =
@@ -169,7 +166,6 @@ function SSSankeyNodes({
           localId={node?.localId ?? ''}
           isTransactionChart={isTransactionChart}
           selectedOutputNode={selectedOutputNode}
-          isHigherCurrentMinerFee={isHigherCurrentMinerFee}
           isFakeMix={node.ioData?.isFakeMix === true}
           isSelfSend={
             node.ioData?.isSelfSend &&
@@ -199,7 +195,6 @@ function NodeText({
   ioData,
   isTransactionChart,
   selectedOutputNode,
-  isHigherCurrentMinerFee,
   isFakeMix,
   isSelfSend,
   showUnspentLabel = true
@@ -213,12 +208,13 @@ function NodeText({
   ioData: TxNode['ioData']
   isTransactionChart: boolean
   selectedOutputNode?: string
-  isHigherCurrentMinerFee?: boolean
   isFakeMix?: boolean
   isSelfSend?: boolean
   showUnspentLabel?: boolean
 }) {
   const isMiningFee = localId.includes('minerFee')
+  const isHigherMinerFee = ioData?.higherFee === true
+  const isFeeValueWarning = isHigherMinerFee || ioData?.elevatedFeeRate === true
   const isChange = localId === CHART_REMAINING_BALANCE_LOCAL_ID
   const isUnspent = ioData?.isUnspent
 
@@ -361,22 +357,27 @@ function NodeText({
     }
 
     const buildMiningFeeParagraph = () => {
+      const feeRateColor = isFeeValueWarning ? warning : 'white'
+      const satsValueColor = isFeeValueWarning ? warning : 'white'
+      const satVbLabelColor = isFeeValueWarning ? warning : Colors.gray[200]
+
       const para = createParagraphBuilder()
       para
         .pushStyle({
           ...baseTextStyle,
+          color: Skia.Color(feeRateColor),
           fontSize: XS_FONT_SIZE
         })
-        .addText(`${ioData?.feeRate}`) // Add optional chaining and nullish coalescing
+        .addText(`${ioData?.feeRate}`)
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color(Colors.gray[200]),
+          color: Skia.Color(satVbLabelColor),
           fontSize: XS_FONT_SIZE
         })
         .addText(` ${t('bitcoin.sats').toLowerCase()}/vB \n`)
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color('white'),
+          color: Skia.Color(satsValueColor),
           fontSize: BASE_FONT_SIZE
         })
 
@@ -389,7 +390,6 @@ function NodeText({
         .addText(`sats\n`)
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .pushStyle({
-          // Style for the icon + text line (red for both current and past miner fee)
           ...baseTextStyle,
           color: Skia.Color(mainRed),
           fontSize: XS_FONT_SIZE,
@@ -397,7 +397,6 @@ function NodeText({
             weight: 800
           }
         })
-        // Add placeholder for the miner svg icon
         .addPlaceholder(
           ICON_SIZE,
           ICON_SIZE,
@@ -405,13 +404,22 @@ function NodeText({
           TextBaseline.Alphabetic,
           0
         )
-        .addText(` ${ioData?.text ?? ''} `) // Add optional chaining and nullish coalescing
-        .addText(
-          isHigherCurrentMinerFee && ioData?.feePercentage
-            ? `${ioData?.feePercentage}%`
-            : ''
-        )
+        .addText(` ${ioData?.text ?? ''}`)
         .pop()
+
+      if (isHigherMinerFee && ioData?.feePercentage) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(warning),
+            fontSize: XS_FONT_SIZE,
+            fontStyle: {
+              weight: 800
+            }
+          })
+          .addText(` ${ioData.feePercentage}%`)
+          .pop()
+      }
 
       return para.build()
     }
@@ -577,7 +585,8 @@ function NodeText({
     ioData?.feePercentage,
     ioData?.address,
     ioData.label,
-    isHigherCurrentMinerFee,
+    isHigherMinerFee,
+    isFeeValueWarning,
     isChange,
     isFakeMix,
     isSelfSend,

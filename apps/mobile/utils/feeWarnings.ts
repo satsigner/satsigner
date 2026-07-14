@@ -75,6 +75,30 @@ export function isElevatedFeeRate(
   return feeRate >= recommended * FEE_RATE_ELEVATED_MULTIPLIER
 }
 
+export function shouldHighlightElevatedFeeRate(params: {
+  deferWarning: boolean
+  feeRate: number
+  fundingMinerFeeSats: number
+  inputsCount: number
+  nextBlockFee: number | null | undefined
+  totalInputSats: number
+}): boolean {
+  if (params.deferWarning || params.inputsCount === 0) {
+    return false
+  }
+
+  if (
+    isHighMinerFee({
+      minerFeeSats: params.fundingMinerFeeSats,
+      totalInputSats: params.totalInputSats
+    })
+  ) {
+    return false
+  }
+
+  return isElevatedFeeRate(params.feeRate, params.nextBlockFee)
+}
+
 export function estimateTargetBlocks(
   feeRate: number,
   nextBlockFee: number | null | undefined

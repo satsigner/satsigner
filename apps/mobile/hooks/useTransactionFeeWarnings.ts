@@ -5,8 +5,8 @@ import { toast } from 'sonner-native'
 import { t } from '@/locales'
 import {
   getFeePercentage,
-  isElevatedFeeRate,
-  isHighMinerFee
+  isHighMinerFee,
+  shouldHighlightElevatedFeeRate
 } from '@/utils/feeWarnings'
 import { formatNumber } from '@/utils/format'
 
@@ -50,7 +50,14 @@ export function useTransactionFeeWarnings({
       minerFeeSats: fundingMinerFee,
       totalInputSats
     })
-    const elevatedFeeRate = isElevatedFeeRate(feeRate, nextBlockFee)
+    const elevatedFeeRate = shouldHighlightElevatedFeeRate({
+      deferWarning,
+      feeRate,
+      fundingMinerFeeSats: fundingMinerFee,
+      inputsCount,
+      nextBlockFee,
+      totalInputSats
+    })
 
     if (!highMinerFee && !elevatedFeeRate) {
       return

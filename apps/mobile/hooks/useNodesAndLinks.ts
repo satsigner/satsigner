@@ -43,6 +43,7 @@ export type TxNode = {
     txId?: number | string
     vSize?: number
     higherFee?: boolean // miner fee is 10% or higher of the total transaction value
+    elevatedFeeRate?: boolean // fee rate is at least 2x the recommended next-block fee
     feePercentage?: number // miner fee is 10% or higher of the total transaction value
     isFakeMix?: boolean
     isSelfSend?: boolean // NEW: flag for self-send
@@ -61,6 +62,7 @@ type UseNodesAndLinksProps = {
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
+  elevatedFeeRateHighlight?: boolean
   ownAddresses?: Set<string>
 }
 
@@ -69,6 +71,7 @@ export const useNodesAndLinks = ({
   inputs,
   outputs,
   feeRate,
+  elevatedFeeRateHighlight = false,
   ownAddresses = new Set()
 }: UseNodesAndLinksProps) => {
   const [fiatCurrency, satsToFiat] = usePriceStore(
@@ -154,6 +157,7 @@ export const useNodesAndLinks = ({
         minerFeeSats: minerFee,
         totalOutputSats: totalOutputValueForFee
       })
+      const elevatedFeeRateForCurrentTx = elevatedFeeRateHighlight
 
       const feePercentageForCurrentTx = getFeePercentage({
         minerFeeSats: minerFee,
@@ -165,6 +169,7 @@ export const useNodesAndLinks = ({
         id: `vout-${blockDepth + 1}-0`,
         indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
         ioData: {
+          elevatedFeeRate: elevatedFeeRateForCurrentTx,
           feePercentage: Math.round(feePercentageForCurrentTx * 10000) / 100,
           feeRate: Math.round(feeRate),
           fiatCurrency,
@@ -207,6 +212,7 @@ export const useNodesAndLinks = ({
     maxExistingDepth,
     outputs,
     feeRate,
+    elevatedFeeRateHighlight,
     satsToFiat,
     fiatCurrency,
     ownAddresses

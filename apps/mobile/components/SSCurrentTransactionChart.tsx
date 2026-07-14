@@ -69,6 +69,7 @@ type SSCurrentTransactionChartProps = {
   outputs: (Omit<Output, 'to'> & { to?: string })[]
   feeRate: number
   effectiveMinerFeeSats?: number
+  elevatedFeeRateHighlight?: boolean
   suppressUnderfundedWarning?: boolean
   onPressInput?: (outpoint: string) => void
   onPressOutput?: (localId?: string) => void
@@ -82,6 +83,7 @@ function SSCurrentTransactionChart({
   outputs: outputArray,
   feeRate: feeRateProp,
   effectiveMinerFeeSats,
+  elevatedFeeRateHighlight = false,
   suppressUnderfundedWarning = false,
   onPressInput,
   onPressOutput,
@@ -324,6 +326,7 @@ function SSCurrentTransactionChart({
         minerFeeSats: minerFee,
         totalOutputSats: totalOutputValueForFee
       })
+      const elevatedFeeRate = elevatedFeeRateHighlight
 
       const feePercentage = getFeePercentage({
         minerFeeSats: minerFee,
@@ -334,6 +337,7 @@ function SSCurrentTransactionChart({
         depthH: 2,
         id: String(inputArray.length + outputArray.length + 2),
         ioData: {
+          elevatedFeeRate,
           feePercentage: Math.round(feePercentage * 10000) / 100,
           feeRate:
             feeRateProp !== undefined ? Math.round(feeRateProp) : undefined,
@@ -359,6 +363,7 @@ function SSCurrentTransactionChart({
     safeTxVsize,
     minerFee,
     feeRateProp,
+    elevatedFeeRateHighlight,
     satsToFiat,
     fiatCurrency,
     ownAddresses,
