@@ -6,6 +6,7 @@ import { usePriceStore } from '@/store/price'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatDate, formatRelativeTime } from '@/utils/date'
+import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -147,27 +148,24 @@ export const useNodesAndLinks = ({
       }
 
       // Add mining fee node
-      // Calculate total output value for outputs with addresses configured
-      const totalOutputValueWithAddresses = outputs
-        .filter((output) => output.to && output.to.trim() !== '')
-        .reduce((sum, output) => sum + output.amount, 0)
+      const totalOutputValueForFee = totalInputValue - minerFee
 
-      const higherFeeForCurrentTx =
-        totalOutputValueWithAddresses > 0
-          ? minerFee >= totalOutputValueWithAddresses * 0.1
-          : false
+      const higherFeeForCurrentTx = isHighMinerFee({
+        minerFeeSats: minerFee,
+        totalOutputSats: totalOutputValueForFee
+      })
 
-      const feePercentageForCurrentTx =
-        totalOutputValueWithAddresses > 0
-          ? (minerFee / totalOutputValueWithAddresses) * 100
-          : 0
+      const feePercentageForCurrentTx = getFeePercentage({
+        minerFeeSats: minerFee,
+        totalOutputSats: totalOutputValueForFee
+      })
 
       outputNodes.push({
         depthH: blockDepth + 1,
         id: `vout-${blockDepth + 1}-0`,
         indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
         ioData: {
-          feePercentage: Math.round(feePercentageForCurrentTx * 100) / 100,
+          feePercentage: Math.round(feePercentageForCurrentTx * 10000) / 100,
           feeRate: Math.round(feeRate),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(minerFee), 2),
@@ -264,11 +262,6 @@ export const useNodesAndLinks = ({
             (sum, output) => sum + (output.value ?? 0),
             0
           )
-
-          // Calculate total output value for outputs with addresses configured
-          const totalOutputValueWithAddresses = tx.vout
-            .filter((output) => output.address && output.address.trim() !== '')
-            .reduce((sum, output) => sum + (output.value ?? 0), 0)
 
           const minerFee = totalInputValue - totalOutputValue
 
@@ -395,22 +388,21 @@ export const useNodesAndLinks = ({
             // Use vout length as index, similar to outputNodesCurrentTransaction fee calculation
             const feeVoutIndex = tx.vout.length
             const minerFeeRate = vsize > 0 ? Math.round(minerFee / vsize) : 0
-            const higherFeeForPastTx =
-              totalOutputValueWithAddresses > 0
-                ? minerFee >= totalOutputValueWithAddresses * 0.1
-                : false
+            const higherFeeForPastTx = isHighMinerFee({
+              minerFeeSats: minerFee,
+              totalOutputSats: totalOutputValue
+            })
 
-            // Calculate fee percentage for past transaction
-            const feePercentageForPastTx =
-              totalOutputValueWithAddresses > 0
-                ? (minerFee / totalOutputValueWithAddresses) * 100
-                : 0
+            const feePercentageForPastTx = getFeePercentage({
+              minerFeeSats: minerFee,
+              totalOutputSats: totalOutputValue
+            })
 
             feeNode.push({
               depthH: feeOutputDepth,
               id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
               ioData: {
-                feePercentage: Math.round(feePercentageForPastTx * 100) / 100,
+                feePercentage: Math.round(feePercentageForPastTx * 10000) / 100,
                 feeRate: minerFeeRate,
                 fiatCurrency,
                 fiatValue: formatNumber(satsToFiat(minerFee), 2),

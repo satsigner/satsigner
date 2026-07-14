@@ -34,8 +34,8 @@ import {
   equalizeSankeyColumnsByDepthH,
   minSankeyStackedColumnInnerHeightPx
 } from '@/utils/equalizeSankeyColumnLayout'
-import { formatAddress, formatNumber } from '@/utils/format'
 import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
+import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -273,11 +273,7 @@ function SSCurrentTransactionChart({
 
     const isUnderfunded =
       !suppressUnderfundedWarning &&
-      isTransactionUnderfunded(
-        totalInputValue,
-        totalOutputValue,
-        minerFee
-      )
+      isTransactionUnderfunded(totalInputValue, totalOutputValue, minerFee)
     const outputsTotal = outputArray.reduce(
       (sum, output) => sum + output.amount,
       0

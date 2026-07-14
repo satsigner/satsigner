@@ -2628,7 +2628,9 @@
     "orphanedInputs.remove": "Remove",
     "orphanedInputs.sectionTitle": "UNAVAILABLE INPUTS",
     "orphanedInputs.spentLabel": "Possibly spent",
-    "orphanedInputs.warning": "%{count} selected input(s) may have been spent and cannot be used."
+    "orphanedInputs.warning": "%{count} selected input(s) may have been spent and cannot be used.",
+    "warning.elevatedFeeRate": "Fee rate (%{rate} sat/vB) is much higher than the current recommendation (%{recommended} sat/vB).",
+    "warning.highMinerFee": "Miner fee is %{percentage}% of the payment — higher than usual."
   },
   "upcoming": {
     "bitcoin.description": "Visualise the latest blocks and mempool key points",
