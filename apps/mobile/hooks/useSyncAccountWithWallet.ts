@@ -43,23 +43,19 @@ function useSyncAccountWithWallet() {
       setLoading(true)
       setSyncStatus(latest.id, 'syncing')
 
-      // Use the wallet's own checkpoint to decide: if BDK already scanned
-      // this wallet (checkpoint exists beyond genesis), use incremental sync.
-      // This is more reliable than account.transactions.length because the
-      // wallet DB and account store can be out of sync after crashes.
-      //
-      // forceFullScan overrides this: an incremental sync never reveals new
-      // addresses, so a bumped gap limit only takes effect via a full scan.
+      // Use the wallet checkpoint to pick incremental vs full scan on first sync.
+      // forceFullScan overrides: incremental sync never discovers new addresses,
+      // so a bumped gap limit only takes effect via a full scan.
       const checkpoint = wallet.latestCheckpoint()
-      const isFullScan = !checkpoint || checkpoint.height === 0
+      const fullScan =
+        forceFullScan || !checkpoint || checkpoint.height === 0
 
       await syncWallet(
         wallet,
         server.backend,
         server.url,
         config.stopGap,
-        isFullScan,
-        forceFullScan
+        fullScan
       )
 
       // Update block height from wallet's latest checkpoint
