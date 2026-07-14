@@ -853,6 +853,7 @@
     "account.createAccount": "Create Account",
     "account.deleteAccount": "Delete Account",
     "account.deleteAccountWarning": "This will permanently delete this account and all its data. This action cannot be undone.",
+    "account.deletingAccount": "Deleting Account",
     "account.generateSeed": "Generate New Seed",
     "account.hideSeed": "Hide Seed Words",
     "account.importSeed": "Import Existing Seed",
