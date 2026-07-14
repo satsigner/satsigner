@@ -94,9 +94,10 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     backgroundColor: Colors.gray[900],
     borderColor: Colors.gray[800],
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     elevation: 12,
+    overflow: 'hidden',
     paddingHorizontal: 8,
     paddingVertical: 6
   },

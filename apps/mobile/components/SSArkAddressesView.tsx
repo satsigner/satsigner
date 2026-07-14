@@ -134,7 +134,7 @@ function SSArkAddressesView({
   function renderTable() {
     return (
       <ScrollView style={styles.tableScroll} horizontal>
-        <SSVStack gap="none" style={{ width: tableWidth }}>
+        <SSVStack gap="none" style={[styles.tableContainer, { width: tableWidth }]}>
           <SSHStack style={[styles.headerRow, { width: tableWidth }]}>
             <SSText style={[styles.headerText, styles.columnIndex]}>#</SSText>
             <SSText style={[styles.headerText, styles.columnAddress]}>
@@ -286,6 +286,12 @@ const styles = StyleSheet.create({
   sortToggle: {
     justifyContent: 'flex-end',
     width: 40
+  },
+  tableContainer: {
+    borderColor: Colors.gray[700],
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: 'hidden'
   },
   tableBodyContent: {
     paddingBottom: 24
