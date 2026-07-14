@@ -19,6 +19,13 @@ export type ArkAccount = {
   createdAt: string
 }
 
+export type ArkAccountStats = {
+  numberOfTransactions: number
+  numberOfAddresses: number
+  numberOfVtxos: number
+  numberOfRefreshes: number
+}
+
 export type ArkBalance = {
   spendableSats: number
   pendingInRoundSats: number
@@ -46,12 +53,44 @@ export type ArkFeeEstimate = {
   vtxoIdsSpent: string[]
 }
 
+export type ArkOnchainBalance = {
+  confirmedSats: number
+  pendingSats: number
+  totalSats: number
+}
+
+export type ArkPendingBoard = {
+  vtxoId: string
+  amountSats: number
+  txid: string
+}
+
+export type ArkServerInfo = {
+  minBoardAmountSats: number
+  requiredBoardConfirmations: number
+}
+
 export type ArkVtxo = {
   id: string
   amountSats: number
   expiryHeight: number
   kind: string
   state: string
+  spendable: boolean
+  exitDepth: number
+}
+
+export type ArkDerivedAddress = {
+  index: number
+  address: string
+}
+
+export type ArkAddress = {
+  index: number
+  address: string
+  used: boolean
+  receivedSats: number
+  receiveCount: number
 }
 
 export type ArkSendKind =
@@ -121,6 +160,13 @@ export type ArkMovementEvent = {
   effectiveBalanceSats: number
 }
 
+export type ArkReceiveOverlayEvent = {
+  accountId: string
+  accountName: string
+  movementId: number
+  amountSats: number
+}
+
 export type ArkNotificationListener = (event: ArkMovementEvent) => void
 
 export type ArkNotificationUnsubscribe = () => void
@@ -147,7 +193,7 @@ export interface ArkWalletProvider {
     accountId: string,
     arkAddress: string,
     amountSats: number
-  ) => Promise<string>
+  ) => Promise<void>
   payBolt11: (
     accountId: string,
     invoice: string,
@@ -168,6 +214,18 @@ export interface ArkWalletProvider {
     amountSats: number
   ) => Promise<ArkFeeEstimate>
   listSpendableVtxos: (accountId: string) => Promise<ArkVtxo[]>
+  listAllVtxos: (accountId: string) => Promise<ArkVtxo[]>
+  refreshVtxos: (accountId: string, vtxoIds: string[]) => Promise<string>
+  startExit: (accountId: string, vtxoIds?: string[]) => Promise<void>
+  estimateRefreshFee: (
+    accountId: string,
+    vtxoIds: string[]
+  ) => Promise<ArkFeeEstimate>
+  deriveAddresses: (
+    accountId: string,
+    startIndex: number,
+    count: number
+  ) => Promise<ArkDerivedAddress[]>
   offboardVtxos: (
     accountId: string,
     vtxoIds: string[],
@@ -188,6 +246,15 @@ export interface ArkWalletProvider {
     bitcoinAddress: string,
     amountSats: number
   ) => Promise<ArkFeeEstimate>
+  fetchOnchainBalance: (accountId: string) => Promise<ArkOnchainBalance>
+  newOnchainAddress: (accountId: string) => Promise<string>
+  board: (accountId: string, amountSats?: number) => Promise<ArkPendingBoard>
+  estimateBoardFee: (
+    accountId: string,
+    amountSats: number
+  ) => Promise<ArkFeeEstimate>
+  listPendingBoards: (accountId: string) => Promise<ArkPendingBoard[]>
+  fetchServerInfo: (accountId: string) => Promise<ArkServerInfo | null>
 }
 
 export type ArkSendFeeKind = 'arkoor' | 'lightning' | 'onchain'

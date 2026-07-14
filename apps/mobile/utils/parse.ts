@@ -137,7 +137,7 @@ function parseLabel(rawLabel: string) {
     return { label: rawLabel, tags: [] }
   }
 
-  const tags = matches.map((match) => match.replace('#', ''))
+  const tags = [...new Set(matches.map((match) => match.replace('#', '')))]
   const label = rawLabel.replace(/#.*/, '').trim()
   return { label, tags }
 }

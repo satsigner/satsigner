@@ -13,6 +13,7 @@ type SSPairedTabsProps<T extends string> = {
   activeTab: T
   primary: Tab<T>
   secondary: Tab<T>
+  tertiary?: Tab<T>
   onChange: (tab: T) => void
 }
 
@@ -20,9 +21,12 @@ function SSPairedTabs<T extends string>({
   activeTab,
   primary,
   secondary,
+  tertiary,
   onChange
 }: SSPairedTabsProps<T>) {
-  const tabs: Tab<T>[] = [primary, secondary]
+  const tabs: Tab<T>[] = tertiary
+    ? [primary, secondary, tertiary]
+    : [primary, secondary]
   return (
     <SSHStack gap="md">
       {tabs.map((tab) => {
