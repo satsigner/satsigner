@@ -31,10 +31,7 @@ function adjustRpcUrl(url: string): string {
 
   try {
     const parsed = new URL(url)
-    if (
-      parsed.hostname === 'localhost' ||
-      parsed.hostname === '127.0.0.1'
-    ) {
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
       parsed.hostname = '10.0.2.2'
       return parsed.toString()
     }

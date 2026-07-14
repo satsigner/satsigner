@@ -44,8 +44,8 @@ import {
   type Network,
   type Server
 } from '@/types/settings/blockchain'
-import { formatDate } from '@/utils/date'
 import { suppressConnectionPoll } from '@/utils/connectionPollSuppression'
+import { formatDate } from '@/utils/date'
 import { trimOnionAddress } from '@/utils/format'
 
 const tnServer = _tn('settings.network.server')

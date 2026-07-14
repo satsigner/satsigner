@@ -8,8 +8,8 @@ import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
-import { trimOnionAddress } from '@/utils/format'
 import { isConnectionPollSuppressed } from '@/utils/connectionPollSuppression'
+import { trimOnionAddress } from '@/utils/format'
 
 export type ConnectionVerifyStatus = 'checking' | 'connected' | 'failed'
 
