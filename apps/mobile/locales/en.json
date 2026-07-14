@@ -911,7 +911,7 @@
     "offboard.clearAll": "Clear",
     "offboard.noVtxos": "No spendable VTXOs",
     "offboard.selectedSummary": "%{count} selected · %{amount} sats",
-    "offboard.fee": "Round fee",
+    "offboard.fee": "Offboard fee",
     "offboard.feeEstimating": "Estimating…",
     "offboard.feeUnavailable": "Fee unavailable — tap to retry",
     "offboard.confirm": "Offboard",
