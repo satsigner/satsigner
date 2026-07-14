@@ -4,6 +4,7 @@ import {
   useQueryClient,
   type QueryClient
 } from '@tanstack/react-query'
+import { useEffect, useRef } from 'react'
 
 import {
   boardArk,
@@ -20,6 +21,11 @@ import type {
   ArkServerInfo
 } from '@/types/models/Ark'
 import { getArkAccountOrThrow } from '@/utils/ark'
+import {
+  getArkAutoBoardStatus,
+  getArkMinBoardAmount,
+  type ArkAutoBoardStatus
+} from '@/utils/arkBoard'
 import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 
 import { useArkWallet } from './useArkWallet'
@@ -154,4 +160,81 @@ export function useArkBoardMutation(accountId: string | null | undefined) {
       syncArkAccountAndInvalidate(queryClient, accountId)
     }
   })
+}
+
+export type ArkAutoBoard = {
+  status: ArkAutoBoardStatus
+  confirmedSats: number
+  pendingSats: number
+  minAmountSats: number | undefined
+  error: Error | null
+  retry: () => void
+}
+
+type UseArkAutoBoardArgs = {
+  accountId: string | null | undefined
+  enabled: boolean
+  onBoarded?: () => void
+}
+
+export function useArkAutoBoard({
+  accountId,
+  enabled,
+  onBoarded
+}: UseArkAutoBoardArgs): ArkAutoBoard {
+  const balanceQuery = useArkOnchainBalance(accountId)
+  const serverInfoQuery = useArkServerInfo(accountId)
+  const boardMutation = useArkBoardMutation(accountId)
+  const hasFiredRef = useRef(false)
+
+  const confirmedSats = balanceQuery.data?.confirmedSats ?? 0
+  const pendingSats = balanceQuery.data?.pendingSats ?? 0
+  const minBoardAmountSats = serverInfoQuery.data?.minBoardAmountSats
+  const minAmountSats = getArkMinBoardAmount(minBoardAmountSats)
+
+  const status = getArkAutoBoardStatus({
+    boardFailed: boardMutation.isError,
+    confirmedSats,
+    isBoarding: boardMutation.isPending,
+    minBoardAmountSats,
+    pendingSats
+  })
+
+  useEffect(() => {
+    const belowMinimum =
+      minAmountSats !== undefined && confirmedSats < minAmountSats
+    if (belowMinimum) {
+      hasFiredRef.current = false
+      if (boardMutation.isSuccess) {
+        boardMutation.reset()
+      }
+    }
+    const shouldBoard =
+      enabled &&
+      status === 'readyToBoard' &&
+      boardMutation.isIdle &&
+      !hasFiredRef.current
+    if (!shouldBoard) {
+      return
+    }
+    hasFiredRef.current = true
+    boardMutation.mutate(
+      { amountSats: undefined },
+      { onSuccess: () => onBoarded?.() }
+    )
+  }, [enabled, status, confirmedSats, minAmountSats, boardMutation, onBoarded])
+
+  function retry() {
+    hasFiredRef.current = false
+    boardMutation.reset()
+  }
+
+  return {
+    confirmedSats,
+    error: boardMutation.error,
+    minAmountSats,
+    pendingSats,
+    retry,
+    status
+  }
 }
