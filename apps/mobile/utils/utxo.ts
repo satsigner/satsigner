@@ -619,6 +619,12 @@ function selectStonewallSets(
   return stonewallTry(target, uniqueGroups, actualTarget, random)
 }
 
+const DEFAULT_MIN_RELAY_FEE_RATE = 1
+
+function isMinRelayFeeRate(feeRate: number): boolean {
+  return feeRate > 0 && feeRate <= DEFAULT_MIN_RELAY_FEE_RATE
+}
+
 function estimateFee(
   inputs: Utxo[],
   outputVbytes: number,
@@ -702,9 +708,13 @@ function buildStonewallResult(
     recipientVbytes + fakeMixVbytes + changeVbytes,
     feeRate
   )
+  // Sparrow adds 1 sat at min relay fee for maximum relayability before
+  // rounding the STONEWALL fee to a multiple of the set count.
+  let adjustedFee = isMinRelayFeeRate(feeRate) ? rawFee + 1 : rawFee
   // Round the fee up to a multiple of numSets so it splits evenly across sets
   // and no satoshis are lost. Mirrors Sparrow's changeFeeRequiredAmt rounding.
-  const fee = rawFee + ((numSets - (rawFee % numSets)) % numSets)
+  const fee =
+    adjustedFee + ((numSets - (adjustedFee % numSets)) % numSets)
   const feePerSet = fee / numSets
   const minChange = Math.max(
     getCostOfChange(feeRate, options.longTermFeeRate, options.changeScriptType),

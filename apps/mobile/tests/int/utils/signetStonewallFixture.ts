@@ -174,8 +174,8 @@ const SPARROW_STONEWALL_SELECTION: SparrowUtxoRef[] = [
   }
 ]
 
-/** Sparrow UI showed 678 sats; selector computes 676 at 1 sat/vB (2-sat rounding). */
-const SPARROW_STONEWALL_FEE = 676
+/** Sparrow UI fee for the reference Signet STONEWALL send at 1 sat/vB. */
+const SPARROW_STONEWALL_FEE = 678
 
 function outpointKey(prefix: string, vout: number, value: number) {
   return `${prefix}:${vout}:${value}`

@@ -25,8 +25,9 @@ describe('buildStonewallPreviewOutputs', () => {
       changeAddress: 'bc1qchange1',
       changeValues: [1000, 2000],
       decoyAddress: 'bc1qdecoy',
+      fakeMixLabel: 'Coffee shop',
       fakeMixValues: [500],
-      fee: 676,
+      fee: 678,
       secondChangeAddress: 'bc1qchange2'
     })
 
