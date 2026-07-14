@@ -539,6 +539,14 @@ async function estimateOffboardFee(
   return mapFeeEstimate(estimate)
 }
 
+async function refreshWalletVtxos(
+  wallet: WalletLike,
+  vtxoIds: string[]
+): Promise<string> {
+  const txid = await wallet.refreshVtxos(vtxoIds)
+  return txid ?? ''
+}
+
 // Refreshing joins the next Ark round, which can take minutes; resolve as
 // soon as the wallet records the refresh movement instead of awaiting it.
 function refreshVtxos(accountId: string, vtxoIds: string[]): Promise<string> {
@@ -547,7 +555,7 @@ function refreshVtxos(accountId: string, vtxoIds: string[]): Promise<string> {
     'ark-refresh',
     accountId,
     (movement) => isArkRefreshSubsystemName(movement.subsystemName),
-    wallet.refreshVtxos(vtxoIds).then((txid) => txid ?? '')
+    refreshWalletVtxos(wallet, vtxoIds)
   )
 }
 
