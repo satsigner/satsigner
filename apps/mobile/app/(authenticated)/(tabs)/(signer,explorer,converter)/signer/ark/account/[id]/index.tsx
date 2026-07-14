@@ -154,6 +154,12 @@ export default function ArkAccountDetailPage() {
     selectedSpendableIds.includes(vtxo.id)
   )
   const hasSelection = selectedSpendableIds.length > 0
+  const spendableVtxoIds = vtxos
+    .filter((vtxo) => vtxo.spendable)
+    .map((vtxo) => vtxo.id)
+  const allSpendableSelected =
+    spendableVtxoIds.length > 0 &&
+    selectedSpendableIds.length === spendableVtxoIds.length
   const refreshFeeQuery = useArkRefreshFeeEstimate({
     accountId: id,
     enabled: refreshModalVisible,
@@ -238,6 +244,10 @@ export default function ArkAccountDetailPage() {
 
   function handleClearSelection() {
     setSelectedIds([])
+  }
+
+  function handleToggleSelectAllVtxos() {
+    setSelectedIds(allSpendableSelected ? [] : spendableVtxoIds)
   }
 
   function handleEditAddressLabel(address: string) {
@@ -335,6 +345,30 @@ export default function ArkAccountDetailPage() {
 
   function renderVtxoItem({ item }: { item: ArkVtxoListItem }) {
     if (item.type === 'header') {
+      if (item.group === 'spendable') {
+        return (
+          <SSHStack justifyBetween style={styles.vtxoSectionHeaderRow}>
+            <SSText color="muted" size="xs" uppercase>
+              {t('ark.vtxo.spendable')} ({item.count})
+            </SSText>
+            <SSIconButton
+              style={styles.vtxoSelectAllButton}
+              onPress={handleToggleSelectAllVtxos}
+            >
+              <SSText
+                size="xs"
+                uppercase
+                numberOfLines={1}
+                style={styles.vtxoSelectAllText}
+              >
+                {allSpendableSelected
+                  ? t('common.deselectAll')
+                  : t('common.selectAll')}
+              </SSText>
+            </SSIconButton>
+          </SSHStack>
+        )
+      }
       return (
         <SSText
           color="muted"
@@ -342,10 +376,7 @@ export default function ArkAccountDetailPage() {
           uppercase
           style={styles.vtxoSectionHeader}
         >
-          {item.group === 'spendable'
-            ? t('ark.vtxo.spendable')
-            : t('ark.vtxo.locked')}{' '}
-          ({item.count})
+          {t('ark.vtxo.locked')} ({item.count})
         </SSText>
       )
     }
@@ -858,5 +889,17 @@ const styles = StyleSheet.create({
   vtxoSectionHeader: {
     paddingBottom: 4,
     paddingTop: 16
+  },
+  vtxoSectionHeaderRow: {
+    alignItems: 'center',
+    paddingBottom: 4,
+    paddingTop: 16
+  },
+  vtxoSelectAllButton: {
+    flexShrink: 0
+  },
+  vtxoSelectAllText: {
+    color: Colors.gray[75],
+    textDecorationLine: 'underline'
   }
 })
