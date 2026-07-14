@@ -47,8 +47,7 @@ function useSyncAccountWithWallet() {
       // forceFullScan overrides: incremental sync never discovers new addresses,
       // so a bumped gap limit only takes effect via a full scan.
       const checkpoint = wallet.latestCheckpoint()
-      const fullScan =
-        forceFullScan || !checkpoint || checkpoint.height === 0
+      const fullScan = forceFullScan || !checkpoint || checkpoint.height === 0
 
       await syncWallet(
         wallet,
