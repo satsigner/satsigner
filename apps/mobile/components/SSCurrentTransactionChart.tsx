@@ -35,6 +35,7 @@ import {
   minSankeyStackedColumnInnerHeightPx
 } from '@/utils/equalizeSankeyColumnLayout'
 import { formatAddress, formatNumber } from '@/utils/format'
+import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -321,26 +322,23 @@ function SSCurrentTransactionChart({
     })
 
     if (minerFee !== undefined && minerFee > 0) {
-      // Calculate total output value with addresses for fee analysis
-      const totalOutputValueWithAddresses = outputArray
-        .filter((output) => output.to && output.to.trim() !== '')
-        .reduce((sum, output) => sum + output.amount, 0)
+      const totalOutputValueForFee = totalInputValue - minerFee
 
-      const higherFee =
-        totalOutputValueWithAddresses > 0
-          ? minerFee >= totalOutputValueWithAddresses * 0.1
-          : false
+      const higherFee = isHighMinerFee({
+        minerFeeSats: minerFee,
+        totalOutputSats: totalOutputValueForFee
+      })
 
-      const feePercentage =
-        totalOutputValueWithAddresses > 0
-          ? (minerFee / totalOutputValueWithAddresses) * 100
-          : 0
+      const feePercentage = getFeePercentage({
+        minerFeeSats: minerFee,
+        totalOutputSats: totalOutputValueForFee
+      })
 
       outputNodes.push({
         depthH: 2,
         id: String(inputArray.length + outputArray.length + 2),
         ioData: {
-          feePercentage: Math.round(feePercentage * 100) / 100,
+          feePercentage: Math.round(feePercentage * 10000) / 100,
           feeRate:
             feeRateProp !== undefined ? Math.round(feeRateProp) : undefined,
           fiatCurrency,
@@ -533,27 +531,6 @@ function SSCurrentTransactionChart({
               selectedOutputNode={currentOutputLocalId}
               showUnspentLabel={false}
             />
-            {nodes.map((node, index) => {
-              const typedNode = node as Node
-              const style = nodeStyles[index] // Get corresponding style for width/height
-              const width = style.width + 20
-              if (typedNode.depthH === maxDepthH) {
-                const cy = style.y + 6.5 // 5px top padding + 1.5px circle center offset
-
-                const circle1Cx = style.x + width - 31 // style.x + style.width - 16 (right padding + icon width) + 1.48926 (circle cx in icon)
-                const circle2Cx = style.x + width - 35 // style.x + style.width - 16 + 5.48926
-                const circle3Cx = style.x + width - 39 // style.x + style.width - 16 + 9.48926
-
-                return (
-                  <Group key={`ellipsis-${typedNode.id}`}>
-                    <Circle cx={circle1Cx} cy={cy} r={1} color="#D9D9D9" />
-                    <Circle cx={circle2Cx} cy={cy} r={1} color="#D9D9D9" />
-                    <Circle cx={circle3Cx} cy={cy} r={1} color="#D9D9D9" />
-                  </Group>
-                )
-              }
-              return null
-            })}
           </Group>
         </Canvas>
       </View>

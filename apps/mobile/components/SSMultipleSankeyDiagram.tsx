@@ -1,4 +1,4 @@
-import { Canvas, Circle, Group } from '@shopify/react-native-skia'
+import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useHeaderHeight } from 'expo-router/react-navigation'
 import { useMemo, type ReactNode } from 'react'
@@ -368,27 +368,6 @@ function SSMultipleSankeyDiagram({
               sankeyGenerator={sankeyGenerator}
               selectedOutputNode={currentOutputLocalId}
             />
-            {nodes.map((node, index) => {
-              const typedNode = node as Node
-              const style = nodeStyles[index] // Get corresponding style for width/height
-
-              if (typedNode.depthH === maxDepthH) {
-                const cy = style.y + 6.5 // 5px top padding + 1.5px circle center offset
-
-                const circle1Cx = style.x + style.width - 31 // style.x + style.width - 16 (right padding + icon width) + 1.48926 (circle cx in icon)
-                const circle2Cx = style.x + style.width - 35 // style.x + style.width - 16 + 5.48926
-                const circle3Cx = style.x + style.width - 39 // style.x + style.width - 16 + 9.48926
-
-                return (
-                  <Group key={`ellipsis-${typedNode.id}`}>
-                    <Circle cx={circle1Cx} cy={cy} r={1} color="#D9D9D9" />
-                    <Circle cx={circle2Cx} cy={cy} r={1} color="#D9D9D9" />
-                    <Circle cx={circle3Cx} cy={cy} r={1} color="#D9D9D9" />
-                  </Group>
-                )
-              }
-              return null
-            })}
           </Group>
         </Canvas>
       </View>
