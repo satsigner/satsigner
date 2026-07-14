@@ -2,6 +2,7 @@ import type { ArkSendKind, ArkServer } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 
 export const ARK_ADDRESS_MAX_SCAN = 1000
+export const ARK_ADDRESS_SCAN_BATCH_SIZE = 20
 export const ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
 export const ARK_EXIT_TX_VBYTES_PER_LEVEL = 200
 export const ARK_EXIT_CPFP_CHILD_VBYTES_PER_LEVEL = 175

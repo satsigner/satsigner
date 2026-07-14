@@ -107,33 +107,23 @@ export function countUsedArkAddresses(addresses: ArkAddress[]): number {
 export async function scanArkAddresses(
   derive: DeriveAddresses,
   receiveInfo: Map<string, ReceiveInfo>,
-  stopGap: number,
+  batchSize: number,
   maxScan: number
 ): Promise<ArkAddress[]> {
   const addresses: ArkAddress[] = []
   let index = 0
-  let consecutiveUnused = 0
 
-  while (consecutiveUnused < stopGap && index < maxScan) {
-    const batch = await derive(index, stopGap)
-    if (batch.length === 0) {
-      break
-    }
+  while (index < maxScan) {
+    const count = Math.min(batchSize, maxScan - index)
+    const batch = await derive(index, count)
     for (const entry of batch) {
-      const address = toArkAddress(entry, receiveInfo)
-      addresses.push(address)
-      consecutiveUnused = address.used ? 0 : consecutiveUnused + 1
+      addresses.push(toArkAddress(entry, receiveInfo))
+    }
+    if (batch.length < count) {
+      break
     }
     index += batch.length
   }
 
-  const highestUsedIndex = addresses.reduce(
-    (highest, address) =>
-      address.used && address.index > highest ? address.index : highest,
-    -1
-  )
-
-  return addresses.filter(
-    (address) => address.index <= highestUsedIndex + stopGap
-  )
+  return addresses
 }

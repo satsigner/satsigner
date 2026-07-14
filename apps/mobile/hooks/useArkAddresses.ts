@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { deriveArkAddresses } from '@/api/ark'
-import { DEFAULT_STOP_GAP } from '@/config/servers'
-import { ARK_ADDRESS_MAX_SCAN } from '@/constants/ark'
+import {
+  ARK_ADDRESS_MAX_SCAN,
+  ARK_ADDRESS_SCAN_BATCH_SIZE,
+  ARK_QUERY_STALE_TIME_MS
+} from '@/constants/ark'
 import { useArkStore } from '@/store/ark'
 import type { ArkAddress } from '@/types/models/Ark'
 import { getArkAccountOrThrow } from '@/utils/ark'
@@ -46,7 +49,7 @@ export function useArkAddresses(
           deriveArkAddresses(account.serverId, accountId, startIndex, count)
         ),
         receiveInfo,
-        DEFAULT_STOP_GAP,
+        ARK_ADDRESS_SCAN_BATCH_SIZE,
         ARK_ADDRESS_MAX_SCAN
       )
       updateStats(accountId, {
@@ -54,8 +57,8 @@ export function useArkAddresses(
       })
       return addresses
     },
-    queryKey: ['ark', 'addresses', accountId, movements?.length ?? 0],
-    staleTime: 60_000
+    queryKey: ['ark', 'addresses', accountId, movementsQuery.dataUpdatedAt],
+    staleTime: ARK_QUERY_STALE_TIME_MS
   })
 
   return {

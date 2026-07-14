@@ -28,6 +28,7 @@ import type { Label } from '@/types/bips/329'
 import { type Direction } from '@/types/logic/sort'
 import type { ArkAddress } from '@/types/models/Ark'
 import { formatAddress } from '@/utils/format'
+import { parseLabel } from '@/utils/parse'
 
 const TABLE_WIDTH_RATIO = 1.2
 const TABLE_BODY_HEIGHT_RATIO = 0.32
@@ -45,13 +46,15 @@ type SSArkAddressesViewProps = {
   emptyComponent: React.ReactNode
 }
 
-function trimLabel(label: string | undefined): string {
-  if (!label) {
+function trimLabel(rawLabel: string | undefined): string {
+  const { label, tags } = parseLabel(rawLabel ?? '')
+  const text = label || tags.join(' ')
+  if (!text) {
     return t('transaction.noLabel')
   }
-  return label.length > LABEL_TRUNCATE_CHARS
-    ? `${label.substring(0, LABEL_TRUNCATE_CHARS)}...`
-    : label
+  return text.length > LABEL_TRUNCATE_CHARS
+    ? `${text.substring(0, LABEL_TRUNCATE_CHARS)}...`
+    : text
 }
 
 function SSArkAddressesView({

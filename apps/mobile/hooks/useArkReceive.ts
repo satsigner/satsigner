@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { createArkBolt11Invoice, newArkAddress } from '@/api/ark'
 import { ArkBolt11Invoice } from '@/types/models/Ark'
@@ -8,14 +8,23 @@ import { useArkWallet } from './useArkWallet'
 
 export function useArkAddress(accountId: string | null | undefined) {
   const { data: walletReady } = useArkWallet(accountId)
+  const queryClient = useQueryClient()
 
   return useQuery<string>({
     enabled: Boolean(walletReady && accountId),
-    queryFn: () => {
+    queryFn: async () => {
       if (!accountId) {
         throw new Error('Ark account id is required')
       }
-      return newArkAddress(getArkAccountOrThrow(accountId).serverId, accountId)
+      const address = await newArkAddress(
+        getArkAccountOrThrow(accountId).serverId,
+        accountId
+      )
+      // Each fetch reveals a new address, so the addresses list must rescan.
+      queryClient.invalidateQueries({
+        queryKey: ['ark', 'addresses', accountId]
+      })
+      return address
     },
     queryKey: ['ark', 'address', accountId],
     staleTime: Infinity

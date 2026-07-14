@@ -33,17 +33,19 @@ function buildMovement(overrides: Partial<ArkMovement> = {}): ArkMovement {
   }
 }
 
-function fakeDerive(
-  startIndex: number,
-  count: number
-): Promise<ArkDerivedAddress[]> {
-  return Promise.resolve(
-    Array.from({ length: count }, (_, offset) => ({
-      address: `addr${startIndex + offset}`,
-      index: startIndex + offset
-    }))
-  )
+function makeDerive(revealedCount: number) {
+  return (startIndex: number, count: number): Promise<ArkDerivedAddress[]> => {
+    const length = Math.max(0, Math.min(count, revealedCount - startIndex))
+    return Promise.resolve(
+      Array.from({ length }, (_, offset) => ({
+        address: `addr${startIndex + offset}`,
+        index: startIndex + offset
+      }))
+    )
+  }
 }
+
+const fakeDerive = makeDerive(Number.MAX_SAFE_INTEGER)
 
 describe('buildArkReceiveInfo', () => {
   it('accumulates received sats and count per address from receive movements', () => {
@@ -76,39 +78,52 @@ describe('buildArkReceiveInfo', () => {
 })
 
 describe('scanArkAddresses', () => {
-  it('scans until stopGap consecutive unused and trims to highestUsed + gap', async () => {
+  it('returns every revealed address with its usage info', async () => {
     const info = buildArkReceiveInfo([
       buildMovement({
         effectiveBalanceSats: 1000,
         receivedOnAddresses: ['addr2']
       })
     ])
-    const result = await scanArkAddresses(fakeDerive, info, 3, 100)
+    const result = await scanArkAddresses(makeDerive(8), info, 3, 100)
     expect(result.map((address) => address.index)).toStrictEqual([
-      0, 1, 2, 3, 4, 5
+      0, 1, 2, 3, 4, 5, 6, 7
     ])
     expect(result.find((a) => a.index === 2)).toMatchObject({
       receiveCount: 1,
       receivedSats: 1000,
       used: true
     })
+    expect(result.filter((a) => a.index !== 2).every((a) => !a.used)).toBe(true)
   })
 
-  it('returns the first gap addresses when none are used', async () => {
-    const result = await scanArkAddresses(fakeDerive, new Map(), 3, 100)
-    expect(result.map((address) => address.index)).toStrictEqual([0, 1, 2])
-    expect(result.every((address) => !address.used)).toBe(true)
-  })
-
-  it('stops at maxScan as a safety bound', async () => {
+  it('includes revealed addresses far beyond the last used one', async () => {
     const info = buildArkReceiveInfo([
       buildMovement({
         effectiveBalanceSats: 1000,
         receivedOnAddresses: ['addr0']
       })
     ])
-    const result = await scanArkAddresses(fakeDerive, info, 2, 4)
-    expect(result.length).toBeLessThanOrEqual(4)
+    const result = await scanArkAddresses(makeDerive(30), info, 5, 100)
+    expect(result).toHaveLength(30)
+    expect(result.at(-1)).toMatchObject({ index: 29, used: false })
+  })
+
+  it('returns an empty list when no address was revealed', async () => {
+    const result = await scanArkAddresses(makeDerive(0), new Map(), 3, 100)
+    expect(result).toStrictEqual([])
+  })
+
+  it('handles a revealed count that is an exact multiple of the batch size', async () => {
+    const result = await scanArkAddresses(makeDerive(6), new Map(), 3, 100)
+    expect(result.map((address) => address.index)).toStrictEqual([
+      0, 1, 2, 3, 4, 5
+    ])
+  })
+
+  it('stops at maxScan as a safety bound', async () => {
+    const result = await scanArkAddresses(fakeDerive, new Map(), 3, 4)
+    expect(result.map((address) => address.index)).toStrictEqual([0, 1, 2, 3])
   })
 })
 
