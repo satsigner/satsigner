@@ -16,17 +16,16 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { millisatsToSats } from '@/utils/bitcoinUnits'
-import { decodeLNURL, isLNURL } from '@/utils/lnurl'
+import { resolveLnurlUrl } from '@/utils/lnurl'
 
 const AWAIT_TIMEOUT_MS = 120_000
+const AWAIT_POLL_INTERVAL_MS = 3000
 
 type Phase = 'ready' | 'awaiting' | 'success' | 'timeout'
 
 function safeServiceHost(lnurl: string): string | null {
   try {
-    const cleaned = lnurl.trim().replace(/^lightning:/i, '')
-    const url = isLNURL(cleaned) ? decodeLNURL(cleaned) : cleaned
-    return new URL(url).host
+    return new URL(resolveLnurlUrl(lnurl)).host
   } catch {
     return null
   }
@@ -38,10 +37,13 @@ export default function ArkReceiveLnurlWithdrawPage() {
 
   const detailsQuery = useArkLnurlWithdrawDetails(id, lnurl)
   const withdrawMutation = useArkLnurlWithdraw(id)
-  const balanceQuery = useArkBalance(id)
 
   const [userAmount, setUserAmount] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('ready')
+
+  const balanceQuery = useArkBalance(id, {
+    refetchIntervalMs: phase === 'awaiting' ? AWAIT_POLL_INTERVAL_MS : undefined
+  })
   const baselineRef = useRef<number | null>(null)
   const expectedDeltaRef = useRef<number>(0)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)

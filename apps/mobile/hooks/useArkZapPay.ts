@@ -1,22 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { payArkBolt11 } from '@/api/ark'
-import { useArkStore } from '@/store/ark'
 import { useZapFlowStore } from '@/store/zapFlow'
 import type { ArkLightningSendResult } from '@/types/models/Ark'
+import { getArkAccountOrThrow } from '@/utils/ark'
+import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 
 type UseArkZapPayInput = {
   invoice: string
   amountSats: number
-}
-
-function getAccountServerId(accountId: string) {
-  const { accounts } = useArkStore.getState()
-  const account = accounts.find((a) => a.id === accountId)
-  if (!account) {
-    throw new Error('Ark account not found')
-  }
-  return account.serverId
 }
 
 export function useArkZapPay(accountId: string | null | undefined) {
@@ -26,7 +18,7 @@ export function useArkZapPay(accountId: string | null | undefined) {
       if (!accountId) {
         throw new Error('Ark account is required')
       }
-      const serverId = getAccountServerId(accountId)
+      const { serverId } = getArkAccountOrThrow(accountId)
       return payArkBolt11(serverId, accountId, invoice, amountSats)
     },
     onSuccess: () => {
@@ -34,12 +26,7 @@ export function useArkZapPay(accountId: string | null | undefined) {
       if (!accountId) {
         return
       }
-      queryClient.invalidateQueries({
-        queryKey: ['ark', 'balance', accountId]
-      })
-      queryClient.invalidateQueries({
-        queryKey: ['ark', 'movements', accountId]
-      })
+      syncArkAccountAndInvalidate(queryClient, accountId)
     }
   })
 }

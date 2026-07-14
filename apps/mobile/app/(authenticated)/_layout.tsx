@@ -10,6 +10,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
+import SSArkReceiveOverlay from '@/components/SSArkReceiveOverlay'
 import SSNavMenu from '@/components/SSNavMenu'
 import { pruneCache } from '@/db/nostrCache'
 import { useArkNotifications } from '@/hooks/useArkNotifications'
@@ -206,6 +207,7 @@ export default function AuthenticatedLayout() {
       >
         <Drawer.Screen name="(tabs)" />
       </Drawer>
+      <SSArkReceiveOverlay />
     </GestureHandlerRootView>
   )
 }

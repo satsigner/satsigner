@@ -67,12 +67,10 @@ export default function SetPin() {
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
   function handleCurrentPinChange(newPin: React.SetStateAction<string[]>) {
-    const resolved =
-      typeof newPin === 'function' ? newPin(currentPinArray) : newPin
-    if (currentPinWrong && resolved.some((d) => d !== '')) {
+    setCurrentPinArray(newPin)
+    if (currentPinWrong) {
       setCurrentPinWrong(false)
     }
-    setCurrentPinArray(resolved)
   }
 
   async function handleVerifyPin() {

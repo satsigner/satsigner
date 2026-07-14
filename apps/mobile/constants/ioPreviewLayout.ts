@@ -1,0 +1,15 @@
+export const IO_PREVIEW_BOTTOM_GRADIENT_EXTEND_PX = 70
+
+export const IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX = -2
+
+export const IO_PREVIEW_BOTTOM_GRADIENT_LOCATIONS = [
+  0, 0.1, 0.15, 0.3, 1
+] as const
+
+export const IO_PREVIEW_BOTTOM_GRADIENT_COLORS = [
+  '#0A0A0A00',
+  '#0A0A0A88',
+  '#0A0A0ABB',
+  '#0A0A0AF2',
+  '#0A0A0AFF'
+] as const

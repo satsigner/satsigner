@@ -3,10 +3,17 @@ import {
   getArkMovementAmountSats,
   getArkMovementCounterparty,
   getArkMovementKind,
+  getArkMovementLabelRef,
+  getArkRefreshVtxoCounts,
+  getArkRefreshVtxoLabel,
+  isArkRefreshSubsystemName,
   isLightningMovement,
   isMutedArkMovement,
   isStaleArkExitMovement,
   parseArkCounterparty,
+  selectArkRefreshes,
+  selectArkTransactions,
+  sortArkMovements,
   truncateArkCounterparty
 } from '@/utils/arkMovement'
 
@@ -83,6 +90,107 @@ describe('arkMovement utils', () => {
     it('returns refresh when both balances are zero', () => {
       const movement = buildMovement()
       expect(getArkMovementKind(movement)).toBe('refresh')
+    })
+  })
+
+  describe('isArkRefreshSubsystemName', () => {
+    it('matches subsystem names containing "refresh" case-insensitively', () => {
+      expect(isArkRefreshSubsystemName('bark.refresh')).toBe(true)
+      expect(isArkRefreshSubsystemName('Bark.Refresh')).toBe(true)
+    })
+
+    it('rejects unrelated subsystem names', () => {
+      expect(isArkRefreshSubsystemName('bark.send')).toBe(false)
+      expect(isArkRefreshSubsystemName('bark.offboard')).toBe(false)
+    })
+  })
+
+  describe('selectArkTransactions', () => {
+    it('keeps only send and receive movements', () => {
+      const movements = [
+        buildMovement({ effectiveBalanceSats: 1000, id: 1 }),
+        buildMovement({ id: 2, subsystemName: 'bark.refresh' }),
+        buildMovement({ effectiveBalanceSats: -1000, id: 3 })
+      ]
+      const result = selectArkTransactions(movements)
+      expect(result.map((m) => m.id)).toStrictEqual([1, 3])
+    })
+  })
+
+  describe('selectArkRefreshes', () => {
+    it('keeps only refresh movements', () => {
+      const movements = [
+        buildMovement({ effectiveBalanceSats: 1000, id: 1 }),
+        buildMovement({ id: 2, subsystemName: 'bark.refresh' }),
+        buildMovement({ effectiveBalanceSats: -1000, id: 3 })
+      ]
+      const result = selectArkRefreshes(movements)
+      expect(result.map((m) => m.id)).toStrictEqual([2])
+    })
+  })
+
+  describe('getArkRefreshVtxoCounts', () => {
+    it('returns input and output vtxo counts', () => {
+      const movement = buildMovement({
+        inputVtxoIds: ['a', 'b', 'c', 'd'],
+        outputVtxoIds: ['e']
+      })
+      expect(getArkRefreshVtxoCounts(movement)).toStrictEqual({
+        inputs: 4,
+        outputs: 1
+      })
+    })
+
+    it('returns zeros when both sides are empty', () => {
+      expect(getArkRefreshVtxoCounts(buildMovement())).toStrictEqual({
+        inputs: 0,
+        outputs: 0
+      })
+    })
+  })
+
+  describe('getArkRefreshVtxoLabel', () => {
+    it('shows consolidation when both sides have vtxos', () => {
+      const movement = buildMovement({
+        inputVtxoIds: ['a', 'b', 'c', 'd'],
+        outputVtxoIds: ['e']
+      })
+      expect(getArkRefreshVtxoLabel(movement)).toBe('4 → 1 VTXOs')
+    })
+
+    it('falls back to the non-empty count when one side is empty', () => {
+      const movement = buildMovement({
+        inputVtxoIds: [],
+        outputVtxoIds: ['a', 'b', 'c']
+      })
+      expect(getArkRefreshVtxoLabel(movement)).toBe('3 VTXOs')
+    })
+
+    it('falls back to the refresh label when both sides are empty', () => {
+      expect(getArkRefreshVtxoLabel(buildMovement())).toBe('Refresh')
+    })
+  })
+
+  describe('sortArkMovements', () => {
+    const movements = [
+      buildMovement({ createdAt: '2026-01-02T00:00:00.000Z', id: 1 }),
+      buildMovement({ createdAt: '2026-01-03T00:00:00.000Z', id: 2 }),
+      buildMovement({ createdAt: '2026-01-01T00:00:00.000Z', id: 3 })
+    ]
+
+    it('sorts oldest first when ascending', () => {
+      const result = sortArkMovements(movements, 'asc')
+      expect(result.map((m) => m.id)).toStrictEqual([3, 1, 2])
+    })
+
+    it('sorts newest first when descending', () => {
+      const result = sortArkMovements(movements, 'desc')
+      expect(result.map((m) => m.id)).toStrictEqual([2, 1, 3])
+    })
+
+    it('does not mutate the input array', () => {
+      sortArkMovements(movements, 'asc')
+      expect(movements.map((m) => m.id)).toStrictEqual([1, 2, 3])
     })
   })
 
@@ -235,6 +343,25 @@ describe('arkMovement utils', () => {
         subsystemName: 'bark.lightning_send'
       })
       expect(getArkMovementCounterparty(movement)).toBe('lnbc500...')
+    })
+  })
+
+  describe('getArkMovementLabelRef', () => {
+    it('builds the ref from the movement id', () => {
+      const movement = buildMovement({ id: 7 })
+      expect(getArkMovementLabelRef(movement)).toBe('movement:7')
+    })
+
+    it('does not change when vtxo ids are populated later', () => {
+      const pending = buildMovement({ id: 7, status: 'pending' })
+      const settled = buildMovement({
+        id: 7,
+        inputVtxoIds: ['a:0'],
+        outputVtxoIds: ['c:0']
+      })
+      expect(getArkMovementLabelRef(pending)).toBe(
+        getArkMovementLabelRef(settled)
+      )
     })
   })
 })

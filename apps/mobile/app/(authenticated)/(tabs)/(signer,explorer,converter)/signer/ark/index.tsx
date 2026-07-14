@@ -1,15 +1,17 @@
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSAccountCard, {
+  type SSAccountCardStat
+} from '@/components/SSAccountCard'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
-import SSStyledSatText from '@/components/SSStyledSatText'
+import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import { ARK_SERVERS, ARK_SUPPORTED_NETWORKS } from '@/constants/ark'
-import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -17,98 +19,37 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useArkAccountBuilderStore } from '@/store/arkAccountBuilder'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
-import { Colors, Sizes } from '@/styles'
-import type { ArkAccount } from '@/types/models/Ark'
+import { Colors } from '@/styles'
+import type { ArkAccount, ArkAccountStats } from '@/types/models/Ark'
 import { arkNetworkLabel } from '@/utils/ark'
-import { formatFiatPrice } from '@/utils/format'
 
-function ArkAccountCard({
-  account,
-  balance,
-  onPress
-}: {
-  account: ArkAccount
-  balance: number
-  onPress: () => void
-}) {
-  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.privacyMode,
-      state.useZeroPadding
-    ])
-  )
-  const [btcPrice, fiatCurrency] = usePriceStore(
-    useShallow((state) => [state.btcPrice, state.fiatCurrency])
-  )
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [pressed && styles.accountCardPressed]}
-    >
-      <View style={styles.accountCard}>
-        <View style={styles.accountCardHeader}>
-          <SSText weight="medium" size="md">
-            {account.name}
-          </SSText>
-          <SSText color="muted" size="xs" uppercase>
-            {arkNetworkLabel(account.network)}
-          </SSText>
-        </View>
-        <View style={styles.accountCardBody}>
-          <View style={styles.amountRow}>
-            {privacyMode ? (
-              <SSText
-                size="lg"
-                weight="ultralight"
-                style={{ lineHeight: Sizes.text.fontSize.lg }}
-              >
-                {NOSTR_PRIVACY_MASK}
-              </SSText>
-            ) : (
-              <SSStyledSatText
-                amount={balance}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                currency={currencyUnit}
-                textSize="lg"
-                weight="ultralight"
-                letterSpacing={-1}
-              />
-            )}
-            <SSText
-              color="muted"
-              size="xs"
-              style={{ opacity: privacyMode ? 0 : 1 }}
-            >
-              {currencyUnit === 'btc' ? 'BTC' : 'sats'}
-            </SSText>
-          </View>
-          {btcPrice > 0 && (
-            <SSText
-              color="muted"
-              size="sm"
-              style={{ opacity: privacyMode ? 0 : 1 }}
-            >
-              {formatFiatPrice(balance, btcPrice)}{' '}
-              <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                {fiatCurrency}
-              </SSText>
-            </SSText>
-          )}
-        </View>
-      </View>
-    </Pressable>
-  )
+function buildArkAccountCardStats(
+  stats: ArkAccountStats | undefined
+): SSAccountCardStat[] {
+  return [
+    {
+      label: t('accounts.totalTransactions'),
+      value: stats?.numberOfTransactions ?? 0
+    },
+    {
+      label: t('ark.tab.addresses'),
+      value: stats?.numberOfAddresses ?? 0
+    },
+    {
+      label: t('ark.tab.vtxos'),
+      value: stats?.numberOfVtxos ?? 0
+    },
+    {
+      label: t('ark.tab.refreshes'),
+      value: stats?.numberOfRefreshes ?? 0
+    }
+  ]
 }
 
 export default function ArkAccountListPage() {
   const router = useRouter()
-  const [accounts, balances] = useArkStore(
-    useShallow((state) => [state.accounts, state.balances])
+  const [accounts, balances, stats] = useArkStore(
+    useShallow((state) => [state.accounts, state.balances, state.stats])
   )
   useFetchBitcoinPrice()
 
@@ -195,13 +136,16 @@ export default function ArkAccountListPage() {
             data={filteredAccounts}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <ArkAccountCard
-                account={item}
+              <SSAccountCard
+                name={item.name}
                 balance={balances[item.id]?.spendableSats ?? 0}
+                stats={buildArkAccountCardStats(stats[item.id])}
                 onPress={() => handleAccountPress(item)}
               />
             )}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ItemSeparatorComponent={() => (
+              <SSSeparator style={{ marginVertical: 16 }} color="gradient" />
+            )}
           />
           <SSButton
             label={t('ark.account.create')}
@@ -215,36 +159,6 @@ export default function ArkAccountListPage() {
 }
 
 const styles = StyleSheet.create({
-  accountCard: {
-    backgroundColor: Colors.gray[900],
-    borderColor: Colors.gray[800],
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 16
-  },
-  accountCardBody: {
-    alignItems: 'baseline',
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 4
-  },
-  accountCardHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  accountCardPressed: {
-    opacity: 0.7
-  },
-  addButton: {
-    maxWidth: 280,
-    width: '100%'
-  },
-  amountRow: {
-    alignItems: 'baseline',
-    flexDirection: 'row',
-    gap: 3
-  },
   emptyState: {
     paddingHorizontal: 20,
     paddingVertical: 60
@@ -253,9 +167,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: 20,
     paddingTop: 16
-  },
-  separator: {
-    height: 8
   },
   tabIndicator: {
     alignSelf: 'center',
