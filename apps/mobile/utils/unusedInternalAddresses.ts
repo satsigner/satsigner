@@ -15,7 +15,7 @@ function getUsedOutputAddresses(account: Account): Set<string> {
   return used
 }
 
-function useUnusedInternalAddresses(account?: Account, wallet?: BdkWallet) {
+function getUnusedInternalAddresses(account?: Account, wallet?: BdkWallet) {
   const empty = {
     changeAddress: '',
     decoyAddress: '',
@@ -48,4 +48,4 @@ function useUnusedInternalAddresses(account?: Account, wallet?: BdkWallet) {
   }
 }
 
-export default useUnusedInternalAddresses
+export { getUnusedInternalAddresses }

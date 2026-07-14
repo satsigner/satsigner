@@ -50,7 +50,6 @@ import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import { useTransactionFeeWarnings } from '@/hooks/useTransactionFeeWarnings'
-import useUnusedInternalAddresses from '@/hooks/useUnusedInternalAddresses'
 import { useUriAutoSelectUtxos } from '@/hooks/useUriAutoSelectUtxos'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -110,6 +109,7 @@ import {
   isTransactionUnderfunded,
   shouldDeferUnderfundedWarning
 } from '@/utils/transactionFunding'
+import { getUnusedInternalAddresses } from '@/utils/unusedInternalAddresses'
 import {
   filterUtxosByExcludedOutpoints,
   getUtxoOutpoint,
@@ -174,7 +174,7 @@ export default function IOPreview() {
   const mempoolOracle = useMempoolOracle(account?.network || 'bitcoin')
   const wallet = useGetAccountWallet(id!)
   const { changeAddress, secondChangeAddress, decoyAddress } =
-    useUnusedInternalAddresses(account, wallet)
+    getUnusedInternalAddresses(account, wallet)
   const [stonewallChangeValues, setStonewallChangeValues] = useState<number[]>(
     []
   )
