@@ -826,6 +826,7 @@
     "refresh.error": "Failed to refresh VTXOs",
     "refresh.feeLabel": "Round fee: %{amount} %{unit}",
     "refresh.feeUnavailable": "Fee estimate unavailable — tap to retry",
+    "refresh.nextExpiry": "next expiry block %{height}",
     "refresh.success": "Refresh submitted",
     "refresh.vtxoConsolidation": "%{inputs} → %{outputs} VTXOs",
     "refresh.vtxoCount": "%{count} VTXOs",

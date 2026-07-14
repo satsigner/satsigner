@@ -24,6 +24,16 @@ export function filterSelectableVtxoIds(
   return selectedIds.filter((id) => spendableIds.has(id))
 }
 
+export function getArkNextExpiryHeight(vtxos: ArkVtxo[]): number | null {
+  const spendableHeights = vtxos
+    .filter((vtxo) => vtxo.spendable)
+    .map((vtxo) => vtxo.expiryHeight)
+  if (spendableHeights.length === 0) {
+    return null
+  }
+  return Math.min(...spendableHeights)
+}
+
 export function sumArkVtxoSats(vtxos: ArkVtxo[], ids: Set<string>): number {
   return vtxos.reduce(
     (total, vtxo) => (ids.has(vtxo.id) ? total + vtxo.amountSats : total),

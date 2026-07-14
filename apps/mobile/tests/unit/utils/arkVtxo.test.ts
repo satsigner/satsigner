@@ -3,6 +3,7 @@ import {
   buildArkVtxoSections,
   filterCurrentArkVtxos,
   filterSelectableVtxoIds,
+  getArkNextExpiryHeight,
   sumArkVtxoSats
 } from '@/utils/arkVtxo'
 
@@ -91,6 +92,32 @@ describe('filterCurrentArkVtxos', () => {
     expect(filterCurrentArkVtxos(vtxos).map((vtxo) => vtxo.id)).toStrictEqual([
       'c'
     ])
+  })
+})
+
+describe('getArkNextExpiryHeight', () => {
+  it('returns the minimum expiry height among spendable vtxos', () => {
+    const vtxos = [
+      buildVtxo({ expiryHeight: 300, id: 'a' }),
+      buildVtxo({ expiryHeight: 150, id: 'b' }),
+      buildVtxo({ expiryHeight: 200, id: 'c' })
+    ]
+    expect(getArkNextExpiryHeight(vtxos)).toBe(150)
+  })
+
+  it('ignores non-spendable vtxos', () => {
+    const vtxos = [
+      buildVtxo({ expiryHeight: 50, id: 'a', spendable: false }),
+      buildVtxo({ expiryHeight: 200, id: 'b' })
+    ]
+    expect(getArkNextExpiryHeight(vtxos)).toBe(200)
+  })
+
+  it('returns null when there are no spendable vtxos', () => {
+    expect(getArkNextExpiryHeight([])).toBeNull()
+    expect(
+      getArkNextExpiryHeight([buildVtxo({ id: 'a', spendable: false })])
+    ).toBeNull()
   })
 })
 

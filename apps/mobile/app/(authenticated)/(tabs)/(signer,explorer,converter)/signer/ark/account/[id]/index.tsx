@@ -76,7 +76,8 @@ import {
 import {
   type ArkVtxoListItem,
   buildArkVtxoSections,
-  filterSelectableVtxoIds
+  filterSelectableVtxoIds,
+  getArkNextExpiryHeight
 } from '@/utils/arkVtxo'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
@@ -484,8 +485,17 @@ export default function ArkAccountDetailPage() {
   }
 
   function renderRefreshesControls() {
+    const nextExpiryHeight = getArkNextExpiryHeight(vtxos)
     return (
-      <SSHStack style={styles.refreshesControls}>
+      <SSHStack justifyBetween style={styles.refreshesControls}>
+        <SSIconButton onPress={syncAccount}>
+          <SSIconRefresh height={18} width={22} />
+        </SSIconButton>
+        {nextExpiryHeight !== null && (
+          <SSText color="muted" size="xs">
+            {t('ark.refresh.nextExpiry', { height: nextExpiryHeight })}
+          </SSText>
+        )}
         <SSSortDirectionToggle
           onDirectionChanged={(direction) =>
             setRefreshesSortDirection(direction)
@@ -890,7 +900,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16
   },
   refreshesControls: {
-    justifyContent: 'flex-end',
     paddingHorizontal: CONTENT_PADDING_HORIZONTAL,
     paddingVertical: 16
   },
