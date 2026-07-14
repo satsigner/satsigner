@@ -1,7 +1,12 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
 
-import { SSIconHistoryChart, SSIconSeed, SSIconZero } from '@/components/icons'
+import {
+  SSIconBubbles,
+  SSIconHistoryChart,
+  SSIconSeed,
+  SSIconZero
+} from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
@@ -49,6 +54,14 @@ export default function Features() {
                 icon={<SSIconZero width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/features/currencyFormatting')
+                }}
+              />
+              <SSSettingsCards
+                title={t('settings.features.autoSelectUtxos.title')}
+                description={t('settings.features.autoSelectUtxos.description')}
+                icon={<SSIconBubbles width={24} height={24} />}
+                onPress={() => {
+                  router.navigate('/settings/features/autoSelectUtxos')
                 }}
               />
               <SSSettingsCards
