@@ -29,9 +29,20 @@ import SSText from './SSText'
 type SSAccountCardProps = {
   account: Account
   onPress(): void
+  onLongPress?: () => void
+  delayLongPress?: number
+  activeOpacity?: number
+  longPressDisabled?: boolean
 }
 
-function SSAccountCard({ account, onPress }: SSAccountCardProps) {
+function SSAccountCard({
+  account,
+  onPress,
+  onLongPress,
+  delayLongPress = 250,
+  activeOpacity = 0.5,
+  longPressDisabled = false
+}: SSAccountCardProps) {
   const platform = Platform.OS
   const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
     useShallow((state) => [
@@ -171,7 +182,13 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   }
 
   return (
-    <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
+    <TouchableOpacity
+      activeOpacity={activeOpacity}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={delayLongPress}
+      disabled={longPressDisabled}
+    >
       <SSHStack justifyBetween style={{ position: 'relative' }}>
         <SSVStack gap={platform === 'android' ? 'none' : 'xxs'}>
           {account.keys[0].creationType === 'importAddress' ? null : (

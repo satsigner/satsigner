@@ -77,6 +77,7 @@ type AccountsState = {
 }
 
 type AccountsAction = {
+  setAccounts: (accounts: Account[]) => void
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => void
   updateAccountName: (id: Account['id'], newName: string) => void
@@ -319,6 +320,12 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         state.accounts[accountIndex].keys[keyIndex] = resetKeyData
       })
       invalidateAccount(accountId)
+    },
+    setAccounts: (accounts) => {
+      // TODO: setAccountsDb
+      set((state) => {
+        state.accounts = accounts
+      })
     },
     setAddrLabel: (accountId, addr, label) => {
       const account = get().accounts.find((account) => account.id === accountId)

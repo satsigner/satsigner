@@ -64,6 +64,7 @@ export const DecryptedKeySchema = KeySchema.omit({ secret: true }).extend({
 export const AccountSchema = z.object({
   addresses: z.array(AddressSchema),
   createdAt: z.date(),
+  displayIndex: z.number(),
   id: z.string(),
   isSyncing: z.boolean().optional(),
   keyCount: z.number(),
