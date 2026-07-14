@@ -56,6 +56,7 @@ function seededRandom(seed: number) {
 const JAVA_RANDOM_MULTIPLIER = 0x5deece66dn
 const JAVA_RANDOM_ADDEND = 0xbn
 const JAVA_RANDOM_MASK = (1n << 48n) - 1n
+const JAVA_INTEGER_MAX_VALUE = 0x7fffffff
 
 /**
  * Deterministic PRNG matching java.util.Random (48-bit LCG). Sparrow's
@@ -85,7 +86,9 @@ function javaSeededRandom(seed: number) {
     do {
       bits = next(31)
       val = bits % bound
-    } while (bits - val + (bound - 1) < 0)
+      // Java rejects when `bits - val + (bound - 1)` overflows a signed
+      // 32-bit int; JS numbers do not wrap, so test the overflow directly.
+    } while (bits - val + (bound - 1) > JAVA_INTEGER_MAX_VALUE)
 
     return val
   }
