@@ -95,8 +95,6 @@ function SSLabelInput({
       </SSText>
       <SSTextInput
         align="left"
-        multiline
-        numberOfLines={3}
         blurOnSubmit
         style={{
           height: 'auto',

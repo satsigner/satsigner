@@ -74,11 +74,15 @@ function SSTagInput({
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             blurOnSubmit={false}
-            placeholder={t('common.addTag')}
             align="left"
             size="small"
             ref={(ref: TextInput | null) => {
               inputRef.current = ref
+            }}
+            style={{
+              height: 'auto',
+              padding: 10,
+              textAlignVertical: 'top'
             }}
           />
         </View>
