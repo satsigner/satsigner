@@ -51,7 +51,11 @@ function removeNativeDir(path: string) {
       throw error
     }
 
-    execFileSync('rm', ['-rf', path])
+    if (process.platform === 'win32') {
+      execFileSync('cmd', ['/c', 'rmdir', '/s', '/q', path])
+    } else {
+      execFileSync('rm', ['-rf', path])
+    }
   }
 }
 
@@ -149,7 +153,14 @@ function run(
   env: NodeJS.ProcessEnv,
   cwd = MOBILE_DIR
 ) {
-  const result = spawnSync(command, commandArgs, {
+  // Windows commands like npx and gradlew are .cmd/.bat scripts, which
+  // spawnSync refuses to execute without a shell (Node >= 18.18), so route
+  // them through cmd.
+  const useCmdShell = process.platform === 'win32'
+  const file = useCmdShell ? 'cmd' : command
+  const args = useCmdShell ? ['/c', command, ...commandArgs] : commandArgs
+
+  const result = spawnSync(file, args, {
     cwd,
     env,
     stdio: 'inherit'
@@ -177,7 +188,8 @@ function buildApk({
   const gradleTask =
     buildType === 'release' ? 'assembleRelease' : 'assembleDebug'
 
-  run('./gradlew', [gradleTask], env, androidDir)
+  const gradlew = process.platform === 'win32' ? 'gradlew.bat' : './gradlew'
+  run(gradlew, [gradleTask], env, androidDir)
 
   const builtApk = join(
     androidDir,
