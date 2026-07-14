@@ -8,6 +8,7 @@ import type { ArkAddress } from '@/types/models/Ark'
 import { getArkAccountOrThrow } from '@/utils/ark'
 import {
   buildArkReceiveInfo,
+  countUsedArkAddresses,
   scanArkAddresses,
   withArkDerivedAddressCache
 } from '@/utils/arkAddress'
@@ -48,7 +49,9 @@ export function useArkAddresses(
         DEFAULT_STOP_GAP,
         ARK_ADDRESS_MAX_SCAN
       )
-      updateStats(accountId, { numberOfAddresses: addresses.length })
+      updateStats(accountId, {
+        numberOfAddresses: countUsedArkAddresses(addresses)
+      })
       return addresses
     },
     queryKey: ['ark', 'addresses', accountId, movements?.length ?? 0],

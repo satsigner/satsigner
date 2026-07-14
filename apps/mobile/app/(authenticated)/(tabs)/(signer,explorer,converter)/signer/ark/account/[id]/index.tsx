@@ -65,6 +65,7 @@ import { Colors, Layout, Sizes } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement } from '@/types/models/Ark'
 import { getArkPendingSats, getArkTotalSats } from '@/utils/ark'
+import { countUsedArkAddresses } from '@/utils/arkAddress'
 import {
   getArkMovementLabelRef,
   selectArkRefreshes,
@@ -175,7 +176,7 @@ export default function ArkAccountDetailPage() {
       label: t('accounts.totalTransactions')
     },
     {
-      count: addresses.length,
+      count: countUsedArkAddresses(addresses),
       key: 'addresses',
       label: t('ark.tab.addresses')
     },

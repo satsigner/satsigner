@@ -100,6 +100,10 @@ function toArkAddress(
   }
 }
 
+export function countUsedArkAddresses(addresses: ArkAddress[]): number {
+  return addresses.filter((address) => address.used).length
+}
+
 export async function scanArkAddresses(
   derive: DeriveAddresses,
   receiveInfo: Map<string, ReceiveInfo>,

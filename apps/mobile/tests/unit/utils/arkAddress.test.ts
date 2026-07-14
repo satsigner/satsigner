@@ -6,6 +6,7 @@ import type {
 import {
   buildArkReceiveInfo,
   clearArkDerivedAddresses,
+  countUsedArkAddresses,
   scanArkAddresses,
   withArkDerivedAddressCache
 } from '@/utils/arkAddress'
@@ -108,6 +109,25 @@ describe('scanArkAddresses', () => {
     ])
     const result = await scanArkAddresses(fakeDerive, info, 2, 4)
     expect(result.length).toBeLessThanOrEqual(4)
+  })
+})
+
+describe('countUsedArkAddresses', () => {
+  it('counts only addresses marked as used', async () => {
+    const info = buildArkReceiveInfo([
+      buildMovement({
+        effectiveBalanceSats: 1000,
+        receivedOnAddresses: ['addr2']
+      })
+    ])
+    const addresses = await scanArkAddresses(fakeDerive, info, 3, 100)
+    expect(addresses.length).toBeGreaterThan(1)
+    expect(countUsedArkAddresses(addresses)).toBe(1)
+  })
+
+  it('returns zero when no address is used', async () => {
+    const addresses = await scanArkAddresses(fakeDerive, new Map(), 3, 100)
+    expect(countUsedArkAddresses(addresses)).toBe(0)
   })
 })
 
