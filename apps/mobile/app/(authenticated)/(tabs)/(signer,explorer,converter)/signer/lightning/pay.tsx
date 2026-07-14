@@ -7,6 +7,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSBrantaVerificationPanel from '@/components/SSBrantaVerificationPanel'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
@@ -82,6 +83,8 @@ export default function PayPage() {
   )
   const [decodedInvoice, setDecodedInvoice] =
     useState<LNDDecodedInvoice | null>(null)
+  const [brantaRawContent, setBrantaRawContent] = useState('')
+  const [brantaIsQrSource, setBrantaIsQrSource] = useState(false)
 
   // Fetch LNURL details and set minimum amount
   const handleLNURLDetected = useCallback(async (lnurl: string) => {
@@ -120,9 +123,11 @@ export default function PayPage() {
 
   // Update LNURL mode and fetch details when payment request changes
   const handlePaymentRequestChange = useCallback(
-    async (text: string) => {
+    async (text: string, options?: { isQrSource?: boolean; rawContent?: string }) => {
       // Clear previous state
       setPaymentRequest(text)
+      setBrantaRawContent(options?.rawContent ?? text)
+      setBrantaIsQrSource(options?.isQrSource ?? false)
       const isLNURLInput = isLNURL(text)
       setIsLNURLMode(isLNURLInput)
       setDecodedInvoice(null) // Clear previous decode
@@ -243,10 +248,14 @@ export default function PayPage() {
 
   const handleContentScanned = (content: DetectedContent) => {
     setCameraModalVisible(false)
+    const rawContent = content.raw ?? content.cleaned
     const cleanText = content.cleaned.replace(/^lightning:/i, '')
 
     if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
-      handlePaymentRequestChange(cleanText)
+      void handlePaymentRequestChange(cleanText, {
+        isQrSource: true,
+        rawContent
+      })
     } else {
       toast.error(
         'Invalid QR Code: the scanned QR code is not a valid Lightning payment request or LNURL'
@@ -265,7 +274,10 @@ export default function PayPage() {
       const cleanText = text.trim()
 
       if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
-        await handlePaymentRequestChange(cleanText)
+        await handlePaymentRequestChange(cleanText, {
+          isQrSource: true,
+          rawContent: cleanText
+        })
       } else {
         toast.error(
           'Invalid Payment Request: the clipboard content is not a valid Lightning payment request or LNURL'
@@ -331,7 +343,12 @@ export default function PayPage() {
                       styles.monospaceInput
                     ]}
                     value={paymentRequest}
-                    onChangeText={handlePaymentRequestChange}
+                    onChangeText={(text) => {
+                      void handlePaymentRequestChange(text, {
+                        isQrSource: false,
+                        rawContent: text
+                      })
+                    }}
                     placeholder={
                       isLNURLMode
                         ? 'Enter LNURL'
@@ -359,6 +376,10 @@ export default function PayPage() {
                       disabled={isFetchingDetails}
                     />
                   </SSHStack>
+                  <SSBrantaVerificationPanel
+                    rawContent={brantaRawContent || paymentRequest}
+                    isQrSource={brantaIsQrSource}
+                  />
                 </SSVStack>
                 {decodedInvoice && !isLNURLMode && (
                   <SSPaymentDetails

@@ -6,6 +6,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSBrantaVerificationPanel from '@/components/SSBrantaVerificationPanel'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -208,6 +209,10 @@ export default function ArkSendConfirmPage() {
                     {t('ark.send.error.addressNetworkMismatch')}
                   </SSText>
                 )}
+                <SSBrantaVerificationPanel
+                  rawContent={destination ?? ''}
+                  isQrSource
+                />
               </SSVStack>
               {draft.kind === 'bolt11' && draft.description && (
                 <SSVStack gap="xs">

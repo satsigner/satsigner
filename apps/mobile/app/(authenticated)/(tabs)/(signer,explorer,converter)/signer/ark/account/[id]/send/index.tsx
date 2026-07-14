@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSBrantaVerificationPanel from '@/components/SSBrantaVerificationPanel'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSPaste from '@/components/SSPaste'
 import SSText from '@/components/SSText'
@@ -22,6 +23,8 @@ export default function ArkSendEntryPage() {
   const { handleContentReady, processDestination } = useArkSendNavigation(id)
 
   const [destination, setDestination] = useState('')
+  const [brantaRawContent, setBrantaRawContent] = useState('')
+  const [brantaIsQrSource, setBrantaIsQrSource] = useState(false)
   const [cameraVisible, setCameraVisible] = useState(false)
   const [pasteVisible, setPasteVisible] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
@@ -29,6 +32,8 @@ export default function ArkSendEntryPage() {
   async function handleScanned(content: DetectedContent) {
     setCameraVisible(false)
     setPasteVisible(false)
+    setBrantaRawContent(content.raw ?? content.cleaned)
+    setBrantaIsQrSource(true)
     await handleContentReady(content)
   }
 
@@ -57,13 +62,21 @@ export default function ArkSendEntryPage() {
             <SSTextInput
               align="left"
               value={destination}
-              onChangeText={setDestination}
+              onChangeText={(text) => {
+                setDestination(text)
+                setBrantaRawContent(text)
+                setBrantaIsQrSource(false)
+              }}
               placeholder={t('ark.send.destinationPlaceholder')}
               multiline
               numberOfLines={4}
               style={styles.input}
             />
           </SSVStack>
+          <SSBrantaVerificationPanel
+            rawContent={brantaRawContent || destination}
+            isQrSource={brantaIsQrSource}
+          />
           <SSHStack gap="sm">
             <SSButton
               label={t('ark.send.paste')}

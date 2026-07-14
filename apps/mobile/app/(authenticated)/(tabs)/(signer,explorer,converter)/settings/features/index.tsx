@@ -1,7 +1,12 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
 
-import { SSIconHistoryChart, SSIconSeed, SSIconZero } from '@/components/icons'
+import {
+  SSIconHistoryChart,
+  SSIconSeed,
+  SSIconWarning,
+  SSIconZero
+} from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
@@ -57,6 +62,20 @@ export default function Features() {
                 icon={<SSIconSeed width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/features/bip39')
+                }}
+              />
+              <SSSettingsCards
+                title={t('settings.features.branta.title')}
+                description={t('settings.features.branta.description')}
+                icon={
+                  <SSIconWarning
+                    width={24}
+                    height={24}
+                    stroke={Colors.white}
+                  />
+                }
+                onPress={() => {
+                  router.navigate('/settings/features/branta')
                 }}
               />
             </SSVStack>

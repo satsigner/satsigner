@@ -19,6 +19,7 @@ import { SSIconChevronLeft } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSBottomSheet from '@/components/SSBottomSheet'
+import SSBrantaVerificationPanel from '@/components/SSBrantaVerificationPanel'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
@@ -234,6 +235,8 @@ export default function IOPreview() {
   const [outputAmount, setOutputAmount] = useState(DUST_LIMIT)
   const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
+  const [brantaSourceRaw, setBrantaSourceRaw] = useState('')
+  const [brantaIsQrSource, setBrantaIsQrSource] = useState(false)
   const [dustErrorOverride, setDustErrorOverride] = useState(
     dustWarning ? t('transaction.error.dustOutputBelowLimit') : ''
   )
@@ -299,6 +302,8 @@ export default function IOPreview() {
 
   function handlePasteFromClipboard(content: string) {
     const trimmedContent = content.trim()
+    setBrantaSourceRaw(trimmedContent)
+    setBrantaIsQrSource(true)
 
     // Step 1: Try BIP21 decode
     const bip21Result = tryDecodeBip21(trimmedContent)
@@ -449,6 +454,9 @@ export default function IOPreview() {
       return
     }
 
+    setBrantaSourceRaw(content.raw ?? content.cleaned)
+    setBrantaIsQrSource(true)
+
     const success = processContentForOutput(content, {
       onError: (message) => {
         if (message === t('transaction.error.dustOutputBelowLimit')) {
@@ -479,6 +487,8 @@ export default function IOPreview() {
     setOutputAmount(DUST_LIMIT)
     setOriginalOutputAmount(0)
     setOutputLabel('')
+    setBrantaSourceRaw('')
+    setBrantaIsQrSource(false)
   }
 
   function handleOnPressAddOutput() {
@@ -1068,7 +1078,11 @@ export default function IOPreview() {
                       paddingTop: 12,
                       textAlignVertical: 'top'
                     }}
-                    onChangeText={(text) => setOutputTo(text)}
+                    onChangeText={(text) => {
+                      setOutputTo(text)
+                      setBrantaSourceRaw(text)
+                      setBrantaIsQrSource(false)
+                    }}
                   />
                   <SSHStack gap="md">
                     <SSButton
@@ -1084,6 +1098,10 @@ export default function IOPreview() {
                       onPress={() => setCameraModalVisible(true)}
                     />
                   </SSHStack>
+                  <SSBrantaVerificationPanel
+                    rawContent={brantaSourceRaw || outputTo}
+                    isQrSource={brantaIsQrSource}
+                  />
                 </SSVStack>
                 <SSTextInput
                   multiline
