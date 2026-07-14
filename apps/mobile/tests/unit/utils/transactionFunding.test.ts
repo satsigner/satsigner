@@ -1,7 +1,10 @@
 import {
+  getCommittedTransactionOutputSats,
+  getFundingMinerFeeSats,
   getOutputMaxAllowedSats,
   getTransactionRemainingBalance,
-  isTransactionUnderfunded
+  isTransactionUnderfunded,
+  shouldDeferUnderfundedWarning
 } from '@/utils/transactionFunding'
 
 describe('getTransactionRemainingBalance', () => {
@@ -41,5 +44,112 @@ describe('getOutputMaxAllowedSats', () => {
         totalInputSats: 10_000
       })
     ).toBe(0)
+  })
+})
+
+describe('getCommittedTransactionOutputSats', () => {
+  it('includes stonewall preview output amounts', () => {
+    expect(getCommittedTransactionOutputSats(50_000, [4_687, 1_000])).toBe(
+      55_687
+    )
+  })
+})
+
+describe('getFundingMinerFeeSats', () => {
+  it('uses the projected fee when no stonewall fee is available', () => {
+    expect(
+      getFundingMinerFeeSats({
+        projectedMinerFeeSats: 1_500
+      })
+    ).toBe(1_500)
+  })
+
+  it('uses the stonewall fee when privacy selection is active', () => {
+    expect(
+      getFundingMinerFeeSats({
+        projectedMinerFeeSats: 2_500,
+        stonewallMinerFeeSats: 678
+      })
+    ).toBe(678)
+  })
+})
+
+describe('shouldDeferUnderfundedWarning', () => {
+  it('defers while uri auto-select is pending', () => {
+    expect(
+      shouldDeferUnderfundedWarning({
+        defaultAutoSelectAlgorithm: 'privacy',
+        inputsCount: 0,
+        isAutoSelectPending: true,
+        isSelectingUtxos: false,
+        outputsCount: 1,
+        selectedAlgorithm: 'user'
+      })
+    ).toBe(true)
+  })
+
+  it('does not defer uri auto-select pending once inputs are selected', () => {
+    expect(
+      shouldDeferUnderfundedWarning({
+        defaultAutoSelectAlgorithm: 'privacy',
+        inputsCount: 2,
+        isAutoSelectPending: true,
+        isSelectingUtxos: false,
+        outputsCount: 1,
+        selectedAlgorithm: 'user'
+      })
+    ).toBe(false)
+  })
+
+  it('defers while utxo selection is running', () => {
+    expect(
+      shouldDeferUnderfundedWarning({
+        defaultAutoSelectAlgorithm: 'privacy',
+        inputsCount: 0,
+        isAutoSelectPending: false,
+        isSelectingUtxos: true,
+        outputsCount: 1,
+        selectedAlgorithm: 'user'
+      })
+    ).toBe(true)
+  })
+
+  it('defers when outputs exist but auto-select has not populated inputs yet', () => {
+    expect(
+      shouldDeferUnderfundedWarning({
+        defaultAutoSelectAlgorithm: 'privacy',
+        inputsCount: 0,
+        isAutoSelectPending: false,
+        isSelectingUtxos: false,
+        outputsCount: 1,
+        selectedAlgorithm: 'user'
+      })
+    ).toBe(true)
+  })
+
+  it('does not defer once inputs are selected', () => {
+    expect(
+      shouldDeferUnderfundedWarning({
+        defaultAutoSelectAlgorithm: 'privacy',
+        inputsCount: 2,
+        isAutoSelectPending: false,
+        isSelectingUtxos: false,
+        outputsCount: 1,
+        selectedAlgorithm: 'privacy'
+      })
+    ).toBe(false)
+  })
+
+  it('does not defer for user mode with no auto-select default', () => {
+    expect(
+      shouldDeferUnderfundedWarning({
+        defaultAutoSelectAlgorithm: 'user',
+        inputsCount: 0,
+        isAutoSelectPending: false,
+        isSelectingUtxos: false,
+        outputsCount: 1,
+        selectedAlgorithm: 'user'
+      })
+    ).toBe(false)
   })
 })
