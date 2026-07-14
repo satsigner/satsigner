@@ -2,12 +2,16 @@ import { getArkProvider } from '@/api/ark/registry'
 import type {
   ArkBalance,
   ArkBolt11Invoice,
+  ArkDerivedAddress,
   ArkFeeEstimate,
   ArkLightningSendResult,
   ArkMovement,
   ArkNotificationListener,
   ArkNotificationUnsubscribe,
+  ArkOnchainBalance,
+  ArkPendingBoard,
   ArkServerId,
+  ArkServerInfo,
   ArkVtxo,
   ArkWalletArgs
 } from '@/types/models/Ark'
@@ -82,7 +86,7 @@ export function sendArkArkoor(
   accountId: string,
   arkAddress: string,
   amountSats: number
-): Promise<string> {
+): Promise<void> {
   return getArkProvider(serverId).sendArkoor(accountId, arkAddress, amountSats)
 }
 
@@ -129,11 +133,11 @@ export function estimateArkLightningSendFee(
   )
 }
 
-export function listArkSpendableVtxos(
+export function listArkVtxos(
   serverId: ArkServerId,
   accountId: string
 ): Promise<ArkVtxo[]> {
-  return getArkProvider(serverId).listSpendableVtxos(accountId)
+  return getArkProvider(serverId).listAllVtxos(accountId)
 }
 
 export function offboardArkVtxos(
@@ -162,6 +166,39 @@ export function estimateArkOffboardFee(
   )
 }
 
+export function startArkExit(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds?: string[]
+): Promise<void> {
+  return getArkProvider(serverId).startExit(accountId, vtxoIds)
+}
+
+export function refreshArkVtxos(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds: string[]
+): Promise<string> {
+  return getArkProvider(serverId).refreshVtxos(accountId, vtxoIds)
+}
+
+export function deriveArkAddresses(
+  serverId: ArkServerId,
+  accountId: string,
+  startIndex: number,
+  count: number
+): Promise<ArkDerivedAddress[]> {
+  return getArkProvider(serverId).deriveAddresses(accountId, startIndex, count)
+}
+
+export function estimateArkRefreshFee(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds: string[]
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateRefreshFee(accountId, vtxoIds)
+}
+
 export function sendArkOnchain(
   serverId: ArkServerId,
   accountId: string,
@@ -186,4 +223,48 @@ export function estimateArkSendOnchainFee(
     bitcoinAddress,
     amountSats
   )
+}
+
+export function fetchArkOnchainBalance(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkOnchainBalance> {
+  return getArkProvider(serverId).fetchOnchainBalance(accountId)
+}
+
+export function newArkOnchainAddress(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<string> {
+  return getArkProvider(serverId).newOnchainAddress(accountId)
+}
+
+export function boardArk(
+  serverId: ArkServerId,
+  accountId: string,
+  amountSats?: number
+): Promise<ArkPendingBoard> {
+  return getArkProvider(serverId).board(accountId, amountSats)
+}
+
+export function estimateArkBoardFee(
+  serverId: ArkServerId,
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateBoardFee(accountId, amountSats)
+}
+
+export function listArkPendingBoards(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkPendingBoard[]> {
+  return getArkProvider(serverId).listPendingBoards(accountId)
+}
+
+export function fetchArkServerInfo(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkServerInfo | null> {
+  return getArkProvider(serverId).fetchServerInfo(accountId)
 }

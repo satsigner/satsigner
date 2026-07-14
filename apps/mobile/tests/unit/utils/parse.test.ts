@@ -95,6 +95,11 @@ describe('parse utils', () => {
       expect(result.label).toBe('Test label')
       expect(result.tags).toStrictEqual(['kyc', 'satsigner'])
     })
+
+    it('should dedupe repeated tags', () => {
+      const result = parseLabel('Test label #vault #vault #kyc')
+      expect(result.tags).toStrictEqual(['vault', 'kyc'])
+    })
   })
 
   describe('parseLabelTags', () => {

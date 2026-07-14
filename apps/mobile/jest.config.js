@@ -26,6 +26,8 @@ const TRANSFORM_PACKAGES = [
 
 const config = {
   moduleNameMapper: {
+    '^@secondts/bark-react-native$':
+      '<rootDir>/__mocks__/secondts-bark-react-native.ts',
     '^bip-321$': '<rootDir>/__mocks__/bip-321.ts',
     '^expo-secure-store$': '<rootDir>/__mocks__/expo-secure-store.ts',
     '^react-native-bdk-sdk$': '<rootDir>/__mocks__/react-native-bdk-sdk.ts',

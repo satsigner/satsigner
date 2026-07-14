@@ -1,13 +1,15 @@
 import type { ArkSendKind, ArkServer } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 
+export const ARK_ADDRESS_MAX_SCAN = 1000
+export const ARK_ADDRESS_SCAN_BATCH_SIZE = 20
 export const ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
+export const ARK_EXIT_TX_VBYTES_PER_LEVEL = 200
+export const ARK_EXIT_CPFP_CHILD_VBYTES_PER_LEVEL = 175
+export const ARK_EXIT_CLAIM_BASE_VBYTES = 50
+export const ARK_EXIT_CLAIM_VBYTES_PER_VTXO = 70
+export const ARK_EXIT_FEE_RATE_SAFETY_MULTIPLIER = 1.25
 export const ARK_COUNTERPARTY_TRUNCATE_CHARS = 8
-export const ARK_INVALIDATED_QUERY_KINDS = [
-  'wallet',
-  'balance',
-  'address'
-] as const
 export const ARK_KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
   arkoor: 'ark.send.kind.arkoor',
   bolt11: 'ark.send.kind.bolt11',
@@ -22,6 +24,7 @@ export const ARK_LIGHTNING_SUBSYSTEM_KINDS = new Set([
 ])
 export const ARK_LNURL_DETAILS_STALE_MS = 60000
 export const ARK_MUTED_STATUSES = new Set(['failed', 'canceled'])
+export const ARK_QUERY_STALE_TIME_MS = 30_000
 export const ARK_REFRESH_SUBSYSTEM_KEYWORD = 'refresh'
 export const ARK_SERVERS: Record<Network, ArkServer[]> = {
   bitcoin: [

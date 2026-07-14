@@ -11,6 +11,7 @@ import { TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
+import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
@@ -62,6 +63,7 @@ type QRInfo =
   | { type: 'single'; content: string }
 
 const MAX_ZOOM = 1
+const CAMERA_SIZE = 400
 
 const LENS_LABEL_ULTRA_WIDE = '0.5×'
 const LENS_LABEL_WIDE = '1×'
@@ -156,6 +158,12 @@ function assembleRawMultiPart(
   return null
 }
 
+function waitForNextFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => resolve())
+  })
+}
+
 function decodeSingleUR(content: string): string | null {
   try {
     return decodeURGeneric(content)
@@ -176,6 +184,7 @@ function SSCameraModal({
   title
 }: SSCameraModalProps) {
   const [permission, requestPermission] = useCameraPermissions()
+  const [isFinalizing, setIsFinalizing] = useState(false)
   const [progress, setProgress] = useState<ProgressUI>(INITIAL_PROGRESS)
   const [zoom, setZoom] = useState(0)
   const [availableLenses, setAvailableLenses] = useState<string[]>([])
@@ -212,7 +221,7 @@ function SSCameraModal({
     onContentScannedRef.current = onContentScanned
   }, [context, onClose, onContentScanned])
 
-  const resetScanState = useCallback(() => {
+  const resetScanRefs = useCallback(() => {
     rawStateRef.current = null
     if (urDecoderRef.current) {
       urDecoderRef.current.reset()
@@ -223,33 +232,53 @@ function SSCameraModal({
     warnedPartialCashuRef.current = false
     finishedRef.current = false
     setProgress(INITIAL_PROGRESS)
-    setZoom(0)
   }, [])
 
-  const finalizeWithContent = useCallback(async (assembled: string) => {
-    finishedRef.current = true
-    const detected = await detectContentByContext(assembled, contextRef.current)
-    onCloseRef.current()
-    rawStateRef.current = null
-    if (urDecoderRef.current) {
-      urDecoderRef.current.reset()
-      urDecoderRef.current = null
-    }
-    processingRef.current = false
-    lastDataRef.current = null
-    warnedPartialCashuRef.current = false
-    setProgress(INITIAL_PROGRESS)
-    if (!detected.isValid) {
-      setTimeout(() => {
-        toast.error(t('camera.error.invalidContent'))
-      }, 100)
+  const resetScanState = useCallback(() => {
+    resetScanRefs()
+    setIsFinalizing(false)
+    setZoom(0)
+  }, [resetScanRefs])
+
+  const finalizeWithContent = useCallback(
+    async (assembled: string) => {
+      finishedRef.current = true
+      setIsFinalizing(true)
+
+      await waitForNextFrame()
+
+      const detected = detectContentByContext(assembled, contextRef.current)
+
+      if (!detected.isValid) {
+        onCloseRef.current()
+        resetScanRefs()
+        setIsFinalizing(false)
+        setTimeout(() => {
+          toast.error(t('camera.error.invalidContent'))
+        }, 100)
+        return
+      }
+
+      onContentScannedRef.current(detected)
+
+      requestAnimationFrame(() => {
+        onCloseRef.current()
+        resetScanRefs()
+      })
+    },
+    [resetScanRefs]
+  )
+
+  const handleModalClose = useCallback(() => {
+    if (isFinalizing) {
       return
     }
-    onContentScannedRef.current(detected)
-  }, [])
+    onClose()
+  }, [isFinalizing, onClose])
 
   const handleSinglePayload = useCallback(
     async (data: string) => {
+      setIsFinalizing(true)
       let finalContent = data
 
       try {
@@ -258,6 +287,7 @@ function SSCameraModal({
           if (decoded) {
             finalContent = Buffer.from(decoded).toString('hex')
           } else {
+            setIsFinalizing(false)
             toast.error(t('camera.error.bbqrDecodeFailed'))
             return
           }
@@ -268,6 +298,7 @@ function SSCameraModal({
           if (decoded) {
             finalContent = decoded
           } else {
+            setIsFinalizing(false)
             toast.error(t('camera.error.urDecodeFailed'))
             return
           }
@@ -275,6 +306,7 @@ function SSCameraModal({
           const decodedMnemonic = detectAndDecodeSeedQR(data)
           if (decodedMnemonic) {
             finishedRef.current = true
+            await waitForNextFrame()
             onContentScannedRef.current({
               cleaned: data,
               isValid: true,
@@ -282,12 +314,15 @@ function SSCameraModal({
               raw: data,
               type: 'seed_qr'
             })
-            onCloseRef.current()
-            resetScanState()
+            requestAnimationFrame(() => {
+              onCloseRef.current()
+              resetScanState()
+            })
             return
           }
         }
       } catch {
+        setIsFinalizing(false)
         toast.error(t('camera.error.processFailed'))
         return
       }
@@ -511,6 +546,7 @@ function SSCameraModal({
 
         await handleSinglePayload(qrInfo.content)
       } catch (error) {
+        setIsFinalizing(false)
         toast.error(error instanceof Error ? error.message : String(error))
       } finally {
         processingRef.current = false
@@ -555,30 +591,68 @@ function SSCameraModal({
   const progressTotal = progress.total
 
   return (
-    <SSModal visible={visible} fullOpacity onClose={onClose}>
+    <SSModal
+      visible={visible}
+      fullOpacity
+      onClose={handleModalClose}
+      showLabel={!isFinalizing}
+    >
       <SSVStack itemsCenter gap="md">
         <SSText color="muted" uppercase>
-          {title ||
-            (progressType
-              ? `Scanning ${progressType.toUpperCase()} QR Code`
-              : t('transaction.build.options.importOutputs.qrcode'))}
+          {isFinalizing
+            ? t('camera.detected')
+            : title ||
+              (progressType
+                ? `Scanning ${progressType.toUpperCase()} QR Code`
+                : t('transaction.build.options.importOutputs.qrcode'))}
         </SSText>
 
-        <CameraView
-          onBarcodeScanned={onBarcodeScanned}
-          onAvailableLensesChanged={(event: AvailableLenses) => {
-            const { lenses } = event
-            if (lenses.length < 2) {
-              return
-            }
-            setAvailableLenses(lenses)
-            setSelectedLens((prev) => prev ?? lenses[0])
+        <View
+          style={{
+            height: CAMERA_SIZE,
+            position: 'relative',
+            width: CAMERA_SIZE
           }}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          zoom={zoom}
-          selectedLens={selectedLens}
-          style={{ height: 400, width: 400 }}
-        />
+        >
+          <CameraView
+            onBarcodeScanned={isFinalizing ? undefined : onBarcodeScanned}
+            onAvailableLensesChanged={(event: AvailableLenses) => {
+              const { lenses } = event
+              if (lenses.length < 2) {
+                return
+              }
+              setAvailableLenses(lenses)
+              setSelectedLens((prev) => prev ?? lenses[0])
+            }}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            zoom={zoom}
+            selectedLens={selectedLens}
+            style={{ height: CAMERA_SIZE, width: CAMERA_SIZE }}
+          />
+          {isFinalizing ? (
+            <View
+              style={{
+                alignItems: 'center',
+                backgroundColor: 'rgba(0,0,0,0.85)',
+                bottom: 0,
+                gap: 12,
+                justifyContent: 'center',
+                left: 0,
+                position: 'absolute',
+                right: 0,
+                top: 0
+              }}
+            >
+              <SSLoader />
+              <SSText color="white" center>
+                {t('camera.detected')}
+              </SSText>
+              <SSText color="muted" center size="sm">
+                {t('camera.loadingContent')}
+              </SSText>
+            </View>
+          ) : null}
+        </View>
         <View
           style={{
             alignItems: 'center',
