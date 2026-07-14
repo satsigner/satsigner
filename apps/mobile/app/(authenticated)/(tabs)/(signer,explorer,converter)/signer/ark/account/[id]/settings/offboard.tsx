@@ -93,11 +93,13 @@ export default function ArkSendOffboardPage() {
   const feeSats = feeEstimateQuery.data?.feeSats
 
   const allSelected = vtxos.length > 0 && selectedIds.size === vtxos.length
+  const feeExceedsAmount = feeSats !== undefined && feeSats >= selectedAmount
   const canConfirm =
     addressValid &&
     selectedIds.size > 0 &&
     !offboardMutation.isPending &&
-    feeSats !== undefined
+    feeSats !== undefined &&
+    !feeExceedsAmount
 
   function toggleVtxo(vtxoId: string) {
     setSelectedIds((prev) => {
@@ -135,6 +137,10 @@ export default function ArkSendOffboardPage() {
       return
     }
     if (feeSats === undefined) {
+      return
+    }
+    if (feeExceedsAmount) {
+      toast.error(t('ark.offboard.error.feeExceedsAmount'))
       return
     }
     offboardMutation.mutate(
@@ -293,7 +299,10 @@ export default function ArkSendOffboardPage() {
                   {t('ark.offboard.fee')}
                 </SSText>
                 {feeSats !== undefined ? (
-                  <SSText size="xs">
+                  <SSText
+                    size="xs"
+                    style={feeExceedsAmount ? { color: Colors.warning } : null}
+                  >
                     {formatNumber(feeSats)} {t('bitcoin.sats')}
                   </SSText>
                 ) : feeEstimateQuery.isPending ? (
@@ -310,6 +319,11 @@ export default function ArkSendOffboardPage() {
                   </SSText>
                 ) : null}
               </SSHStack>
+            )}
+            {addressValid && feeExceedsAmount && (
+              <SSText size="xs" style={{ color: Colors.warning }}>
+                {t('ark.offboard.error.feeExceedsAmount')}
+              </SSText>
             )}
           </SSVStack>
         )}

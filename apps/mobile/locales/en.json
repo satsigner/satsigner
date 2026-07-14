@@ -920,6 +920,7 @@
     "offboard.error.noSelection": "Select at least one VTXO",
     "offboard.error.generic": "Failed to offboard",
     "offboard.error.load": "Failed to load VTXOs",
+    "offboard.error.feeExceedsAmount": "Fee exceeds the selected amount",
     "network.bitcoin": "Mainnet",
     "network.signet": "Signet"
   },
