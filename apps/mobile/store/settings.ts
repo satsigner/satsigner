@@ -7,6 +7,7 @@ import {
 } from '@/constants/fiatPriceApi'
 import mmkvStorage from '@/storage/mmkv'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
+import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 
 type FiatPriceProvider = 'custom' | 'mempool'
 
@@ -21,6 +22,7 @@ type SettingsState = {
   fetchHistoricalPrices: boolean
   fiatPriceApiUrl: string
   fiatPriceProvider: FiatPriceProvider
+  defaultAutoSelectUtxos: AutoSelectUtxosAlgorithm
 }
 
 type SettingsAction = {
@@ -40,6 +42,9 @@ type SettingsAction = {
   ) => void
   setFiatPriceProvider: (
     fiatPriceProvider: SettingsState['fiatPriceProvider']
+  ) => void
+  setDefaultAutoSelectUtxos: (
+    algorithm: SettingsState['defaultAutoSelectUtxos']
   ) => void
   togglePrivacyMode: () => void
 }
@@ -69,6 +74,7 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
   persist(
     (set) => ({
       currencyUnit: 'sats',
+      defaultAutoSelectUtxos: 'privacy',
       fetchCurrentPrices: true,
       fetchHistoricalPrices: false,
       fiatPriceApiUrl: '',
@@ -77,6 +83,9 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       privacyMode: false,
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
+      },
+      setDefaultAutoSelectUtxos: (defaultAutoSelectUtxos) => {
+        set({ defaultAutoSelectUtxos })
       },
       setFetchCurrentPrices: (fetchCurrentPrices) => {
         set({ fetchCurrentPrices })

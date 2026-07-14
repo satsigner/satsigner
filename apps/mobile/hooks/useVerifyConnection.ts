@@ -9,6 +9,7 @@ import BitcoinRpc from '@/api/rpc'
 import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 import { trimOnionAddress } from '@/utils/format'
+import { isConnectionPollSuppressed } from '@/utils/connectionPollSuppression'
 
 export type ConnectionVerifyStatus = 'checking' | 'connected' | 'failed'
 
@@ -26,7 +27,9 @@ function useVerifyConnection() {
 
   const { data: connectionStatus = 'checking', refetch } =
     useQuery<ConnectionVerifyStatus>({
-      enabled: config.connectionMode !== 'manual',
+      enabled:
+        config.connectionMode !== 'manual' &&
+        !isConnectionPollSuppressed(selectedNetwork),
       gcTime: 0,
       queryFn: async () => {
         if (isConnectionAvailable.current === null) {

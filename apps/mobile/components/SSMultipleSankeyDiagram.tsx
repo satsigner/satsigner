@@ -1,4 +1,4 @@
-import { Canvas, Circle, Group } from '@shopify/react-native-skia'
+import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useHeaderHeight } from 'expo-router/react-navigation'
 import { useMemo, type ReactNode } from 'react'
@@ -25,6 +25,7 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import {
   BLOCK_WIDTH,
+  getSankeyExtentTopPx,
   SANKEY_DIAGRAM_NODE_PADDING_PX,
   type Link,
   type Node
@@ -38,27 +39,34 @@ const LINK_MAX_WIDTH = 100
 const NODE_WIDTH = 98
 
 type SSMultipleSankeyDiagramProps = {
+  onPressInput?: (outpoint: string) => void
   onPressOutput?: (localId?: string) => void
   currentOutputLocalId?: string
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
+  elevatedFeeRateHighlight?: boolean
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  overlayHeaderHeight?: number
 }
 
 function SSMultipleSankeyDiagram({
+  onPressInput,
   onPressOutput,
   currentOutputLocalId,
   inputs,
   outputs,
   feeRate,
-  ownAddresses = new Set()
+  elevatedFeeRateHighlight = false,
+  ownAddresses = new Set(),
+  overlayHeaderHeight
 }: SSMultipleSankeyDiagramProps) {
   const DEEP_LEVEL = 2 // how deep the tx history
   const { error, fetchInputTransactions, loading, transactions } =
     useInputTransactions(inputs, DEEP_LEVEL)
 
   const { nodes: sankeyNodes, links: sankeyLinks } = useNodesAndLinks({
+    elevatedFeeRateHighlight,
     feeRate,
     inputs,
     outputs,
@@ -90,12 +98,14 @@ function SSMultipleSankeyDiagram({
       : 0
   }, [sankeyNodes])
 
+  const sankeyExtentTopPx = getSankeyExtentTopPx(overlayHeaderHeight)
+
   const sankeyGenerator = useMemo(() => {
     const gen = sankey()
       .nodeWidth(NODE_WIDTH)
       .nodePadding(SANKEY_DIAGRAM_NODE_PADDING_PX)
       .extent([
-        [0, 200],
+        [0, sankeyExtentTopPx],
         [2000 * (maxDepthH / 10), 1000 * (maxNodeCountInDepthH / 9)]
       ])
       .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
@@ -104,7 +114,7 @@ function SSMultipleSankeyDiagram({
       return depthH ?? 0
     })
     return gen
-  }, [maxDepthH, maxNodeCountInDepthH])
+  }, [maxDepthH, maxNodeCountInDepthH, sankeyExtentTopPx])
 
   // Run sankey layout with fallback on error
   const { layoutFailed, links, nodes } = useMemo(() => {
@@ -361,27 +371,6 @@ function SSMultipleSankeyDiagram({
               sankeyGenerator={sankeyGenerator}
               selectedOutputNode={currentOutputLocalId}
             />
-            {nodes.map((node, index) => {
-              const typedNode = node as Node
-              const style = nodeStyles[index] // Get corresponding style for width/height
-
-              if (typedNode.depthH === maxDepthH) {
-                const cy = style.y + 6.5 // 5px top padding + 1.5px circle center offset
-
-                const circle1Cx = style.x + style.width - 31 // style.x + style.width - 16 (right padding + icon width) + 1.48926 (circle cx in icon)
-                const circle2Cx = style.x + style.width - 35 // style.x + style.width - 16 + 5.48926
-                const circle3Cx = style.x + style.width - 39 // style.x + style.width - 16 + 9.48926
-
-                return (
-                  <Group key={`ellipsis-${typedNode.id}`}>
-                    <Circle cx={circle1Cx} cy={cy} r={1} color="#D9D9D9" />
-                    <Circle cx={circle2Cx} cy={cy} r={1} color="#D9D9D9" />
-                    <Circle cx={circle3Cx} cy={cy} r={1} color="#D9D9D9" />
-                  </Group>
-                )
-              }
-              return null
-            })}
           </Group>
         </Canvas>
       </View>
@@ -395,26 +384,33 @@ function SSMultipleSankeyDiagram({
             ]}
             onLayout={onCanvasLayout}
           >
-            {nodeStyles.map((style, index) => (
-              <TouchableOpacity
-                key={style.localId ?? index}
-                style={[
-                  styles.node,
-                  {
-                    height: style.height,
-                    left: style.x,
-                    position: 'absolute',
-                    top: style.y,
-                    width: style.width
+            {nodeStyles.map((style, index) => {
+              const node = nodes[index] as Node
+              const { inputOutpoint } = node
+
+              return (
+                <TouchableOpacity
+                  key={style.localId ?? inputOutpoint ?? index}
+                  style={[
+                    styles.node,
+                    {
+                      height: style.height,
+                      left: style.x,
+                      position: 'absolute',
+                      top: style.y,
+                      width: style.width
+                    }
+                  ]}
+                  onPress={
+                    inputOutpoint && onPressInput
+                      ? () => onPressInput(inputOutpoint)
+                      : node.depthH === maxDepthH && onPressOutput
+                        ? () => onPressOutput(style.localId)
+                        : undefined
                   }
-                ]}
-                onPress={
-                  (nodes[index] as Node).depthH === maxDepthH && onPressOutput
-                    ? () => onPressOutput(style.localId)
-                    : undefined
-                }
-              />
-            ))}
+                />
+              )
+            })}
           </Animated.View>
         </View>
       </GestureDetector>

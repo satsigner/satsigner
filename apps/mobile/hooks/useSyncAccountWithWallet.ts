@@ -77,6 +77,7 @@ function useSyncAccountWithWallet() {
   async function syncAccountWithWallet(
     account: Account,
     wallet: BdkWallet,
+    forceFullScan = false,
     isPriority = false
   ): Promise<Account | null> {
     const latest =
@@ -120,7 +121,10 @@ function useSyncAccountWithWallet() {
       const switchingFromRpc =
         server.backend !== 'rpc' && !!latest.rpcLastBlockHash
       const isFullScan =
-        !checkpoint || checkpoint.height < 10_000 || switchingFromRpc
+        forceFullScan ||
+        !checkpoint ||
+        checkpoint.height < 10_000 ||
+        switchingFromRpc
       const isGeneratedWallet =
         latest.keys[0]?.creationType === 'generateMnemonic'
 

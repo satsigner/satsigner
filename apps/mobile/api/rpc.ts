@@ -1,21 +1,39 @@
 import { Platform } from 'react-native'
 
+let androidIsEmulator: boolean | null = null
+
+async function initRpcUrlAdjustments() {
+  if (Platform.OS !== 'android') {
+    return
+  }
+
+  try {
+    const DeviceInfo = await import('react-native-device-info')
+    androidIsEmulator = await DeviceInfo.default.isEmulator()
+  } catch {
+    androidIsEmulator = null
+  }
+}
+
 /**
- * On Android, localhost/127.0.0.1 refers to the device itself, not the host
- * machine. Remap to 10.0.2.2 (the standard Android emulator alias for the
- * host) so users can enter familiar addresses and have them just work.
- * Matches the same pattern used in the mining (energy.tsx) feature.
+ * On Android emulators, localhost/127.0.0.1 refers to the device itself, not
+ * the host machine. Remap to 10.0.2.2 (the standard Android emulator alias
+ * for the host) so users can enter familiar addresses and have them just work.
  */
 function adjustRpcUrl(url: string): string {
   if (Platform.OS !== 'android') {
     return url
   }
+
+  if (androidIsEmulator === false) {
+    return url
+  }
+
   try {
     const parsed = new URL(url)
     if (
       parsed.hostname === 'localhost' ||
-      parsed.hostname === '127.0.0.1' ||
-      parsed.hostname.startsWith('172.')
+      parsed.hostname === '127.0.0.1'
     ) {
       parsed.hostname = '10.0.2.2'
       return parsed.toString()
@@ -108,6 +126,7 @@ const RPC_LIST_TRANSACTIONS_COUNT = 99_999
 
 export {
   adjustRpcUrl,
+  initRpcUrlAdjustments,
   RPC_DEFAULT_PORT_MAINNET,
   RPC_DEFAULT_PORT_SIGNET,
   RPC_DEFAULT_PORT_TESTNET,

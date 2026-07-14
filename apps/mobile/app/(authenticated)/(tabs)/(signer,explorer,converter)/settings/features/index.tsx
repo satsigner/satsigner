@@ -2,6 +2,7 @@ import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
 
 import {
+  SSIconBubbles,
   SSIconFiat,
   SSIconHistoryChart,
   SSIconSeed,
@@ -62,6 +63,14 @@ export default function Features() {
                 icon={<SSIconFiat width={24} height={16} />}
                 onPress={() => {
                   router.navigate('/settings/features/fiatData')
+                }}
+              />
+              <SSSettingsCards
+                title={t('settings.features.autoSelectUtxos.title')}
+                description={t('settings.features.autoSelectUtxos.description')}
+                icon={<SSIconBubbles width={24} height={24} />}
+                onPress={() => {
+                  router.navigate('/settings/features/autoSelectUtxos')
                 }}
               />
               <SSSettingsCards

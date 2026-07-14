@@ -111,7 +111,7 @@ function defaultRpcPort(network: Network): number {
 
 export { defaultRpcPort }
 
-export function useCustomNetworkForm() {
+export function useCustomNetworkForm(network: Network = 'bitcoin') {
   const [formData, setFormData] = useState<CustomNetworkFormData>({
     backend: 'electrum',
     host: '',
@@ -146,9 +146,8 @@ export function useCustomNetworkForm() {
         : `https://${formData.host}`
     }
     if (formData.backend === 'rpc') {
-      return formData.port.trim()
-        ? `http://${formData.host}:${formData.port}`
-        : `http://${formData.host}`
+      const port = formData.port.trim() || String(defaultRpcPort(network))
+      return `http://${formData.host}:${port}`
     }
     const protocol = formData.protocol === 'ssl' ? 'ssl' : 'tcp'
     return `${protocol}://${formData.host}:${formData.port}`

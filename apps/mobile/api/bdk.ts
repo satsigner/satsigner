@@ -47,6 +47,7 @@ import { parseAccountAddressesDetails } from '@/utils/parse'
 import AppElectrumClient from './electrum'
 import Esplora from './esplora'
 import BitcoinRpc, {
+  adjustRpcUrl,
   BitcoinCoreWallet,
   type CoreTxDetails,
   type ImportDescriptorRequest
@@ -584,7 +585,7 @@ async function syncWallet(
             username: rpcCredentials.username
           }
         : { type: 'none' },
-      url
+      url: adjustRpcUrl(url)
     })
 
     // For a full scan use the wallet birthday as the start height.
@@ -1139,7 +1140,7 @@ function broadcastTransaction(
             username: rpcCredentials.username
           }
         : { type: 'none' },
-      url
+      url: adjustRpcUrl(url)
     })
     return wallet.broadcastWithRpc(rpcClient, psbt)
   }

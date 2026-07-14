@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { estimateArkOffboardFee } from '@/api/ark'
-import { useArkStore } from '@/store/ark'
 import type { ArkFeeEstimate } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
+import { getArkAccountOrThrow } from '@/utils/ark'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
 
@@ -37,11 +37,7 @@ export function useArkOffboardFeeEstimate({
       if (!accountId) {
         throw new Error('Ark account id is required')
       }
-      const { accounts } = useArkStore.getState()
-      const account = accounts.find((a) => a.id === accountId)
-      if (!account) {
-        throw new Error('Ark account not found')
-      }
+      const account = getArkAccountOrThrow(accountId)
       return estimateArkOffboardFee(
         account.serverId,
         accountId,

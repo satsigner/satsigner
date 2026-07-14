@@ -87,15 +87,15 @@ export function buildSankeyRibbonPlan(
 
     const sumIn = inputLinks.reduce((s, l) => s + l.value, 0)
     const sumOut = outputLinks.reduce((s, l) => s + l.value, 0)
-    const throughput =
-      sumIn > 0 ? sumIn : sumOut > 0 ? sumOut : (block.value ?? 0)
+    const throughput = Math.max(sumIn, sumOut, block.value ?? 0)
 
     const H = totalThroughputToBandHeight(throughput)
     bandHeightByBlockId.set(block.id, H)
 
+    const inputBandHeight = throughput > 0 ? (H * sumIn) / throughput : H
     const inputWidths = linearShareWidths(
       inputLinks.map((l) => l.value),
-      H,
+      inputBandHeight,
       SANKEY_RIBBON_DUST_MIN_PX
     )
     for (let i = 0; i < inputLinks.length; i += 1) {
@@ -103,9 +103,10 @@ export function buildSankeyRibbonPlan(
       linkWidthByKey.set(linkRibbonKey(l.source, l.target), inputWidths[i] ?? 0)
     }
 
+    const outputBandHeight = throughput > 0 ? (H * sumOut) / throughput : H
     const outputWidths = linearShareWidths(
       outputLinks.map((l) => l.value),
-      H,
+      outputBandHeight,
       SANKEY_RIBBON_DUST_MIN_PX
     )
     for (let i = 0; i < outputLinks.length; i += 1) {

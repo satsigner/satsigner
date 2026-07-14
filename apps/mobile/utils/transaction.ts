@@ -39,6 +39,9 @@ export function reconcileTransactions(
 }
 
 const BASE_SIZE = 10
+const WITNESS_SCALE_FACTOR = 4
+// Segwit marker + flag: 2 bytes, witness-discounted (1 weight unit each)
+const SEGWIT_MARKER_FLAG_WEIGHT = 2
 
 const INPUT_SIZES: Record<
   ScriptVersionType,
@@ -55,12 +58,41 @@ const INPUT_SIZES: Record<
 
 const OUTPUT_SIZES: Record<ScriptVersionType, number> = {
   P2PKH: 34,
-  P2SH: 34,
-  'P2SH-P2WPKH': 31,
-  'P2SH-P2WSH': 43,
+  // Every P2SH-wrapped type pays to the same 23-byte P2SH scriptPubKey
+  // (OP_HASH160 <20> OP_EQUAL), so the output length is 8 + 1 + 23 = 32 vbytes.
+  P2SH: 32,
+  'P2SH-P2WPKH': 32,
+  'P2SH-P2WSH': 32,
   P2TR: 43,
   P2WPKH: 31,
   P2WSH: 43
+}
+
+// Sparrow includes the segwit marker/flag (2 WU = 0.5 vbyte) in virtual size.
+export const SEGWIT_OVERHEAD_VBYTES =
+  SEGWIT_MARKER_FLAG_WEIGHT / WITNESS_SCALE_FACTOR
+
+export function isSegwitInput(scriptType: ScriptVersionType): boolean {
+  return INPUT_SIZES[scriptType].witness > 0
+}
+
+export function getUtxoScriptType(utxo: Utxo): ScriptVersionType {
+  return utxo.addressTo
+    ? getScriptVersionType(utxo.addressTo) || 'P2PKH'
+    : 'P2PKH'
+}
+
+export function getInputWeightUnits(scriptType: ScriptVersionType): number {
+  const size = INPUT_SIZES[scriptType]
+  return size.base * WITNESS_SCALE_FACTOR + size.witness
+}
+
+export function getInputVbytes(scriptType: ScriptVersionType): number {
+  return getInputWeightUnits(scriptType) / WITNESS_SCALE_FACTOR
+}
+
+export function getOutputVbytes(scriptType: ScriptVersionType): number {
+  return OUTPUT_SIZES[scriptType]
 }
 
 // TODO: To be removed
@@ -116,14 +148,13 @@ export function estimateTransactionSize(
   const baseSize = BASE_SIZE + inputBase + outputSize
 
   const hasWitness = inputWitness > 0
-  const baseSizeWithMarker = hasWitness ? baseSize : baseSize
 
   const weight = hasWitness
-    ? baseSizeWithMarker * 4 + inputWitness
-    : baseSize * 3
+    ? baseSize * WITNESS_SCALE_FACTOR + inputWitness + SEGWIT_MARKER_FLAG_WEIGHT
+    : baseSize * WITNESS_SCALE_FACTOR
 
-  const size = hasWitness ? baseSizeWithMarker + inputWitness + 2 : baseSize
-  const vsize = hasWitness ? Math.ceil(weight / 4) : size
+  const size = hasWitness ? baseSize + inputWitness + 2 : baseSize
+  const vsize = hasWitness ? Math.ceil(weight / WITNESS_SCALE_FACTOR) : size
 
   return { size, vsize }
 }

@@ -5,7 +5,10 @@ export const useInteractionId = () => {
   const interactionId = useSharedValue('')
 
   const getInteractionId = useCallback(
-    () => interactionId.get(),
+    function getInteractionIdWorklet() {
+      'worklet'
+      return interactionId.get()
+    },
     [interactionId]
   )
 

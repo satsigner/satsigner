@@ -45,6 +45,7 @@ import {
   type Server
 } from '@/types/settings/blockchain'
 import { formatDate } from '@/utils/date'
+import { suppressConnectionPoll } from '@/utils/connectionPollSuppression'
 import { trimOnionAddress } from '@/utils/format'
 
 const tnServer = _tn('settings.network.server')
@@ -63,7 +64,7 @@ export default function CustomNetwork() {
     updateProxyField,
     constructUrl,
     constructTrimmedUrl
-  } = useCustomNetworkForm()
+  } = useCustomNetworkForm(networkType)
   const [scanModalVisible, setScanModalVisible] = useState(false)
   const scanHandledRef = useRef(false)
   const [, requestCameraPermission] = useCameraPermissions()
@@ -102,22 +103,12 @@ export default function CustomNetwork() {
   const [editingServer, setEditingServer] = useState<Server | null>(null)
   const [oldNetwork] = useState<Network>(selectedNetwork)
   const [oldServer] = useState<Server>(configs[networkType].server)
-  const [oldConfig] = useState(configs[networkType].config)
   /** Shown under connection status so tip height/time stay visible without relying on toast alone. */
   const [lastProbeLine, setLastProbeLine] = useState<string | null>(null)
 
   // Pause auto-polling while this screen is open to avoid flooding the node
   // with background verify calls on top of the manual test button.
-  const updateConfig = useBlockchainStore((state) => state.updateConfig)
-  useEffect(() => {
-    updateConfig(networkType, {
-      ...configs[networkType].config,
-      connectionMode: 'manual'
-    })
-    return () => {
-      updateConfig(networkType, oldConfig)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => suppressConnectionPoll(networkType), [networkType])
 
   useEffect(() => {
     if (editUrl && customServers.length > 0) {

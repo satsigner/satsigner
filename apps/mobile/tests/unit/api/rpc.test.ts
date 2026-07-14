@@ -50,9 +50,11 @@ describe('adjustRpcUrl', () => {
     expect(adjustRpcUrl('http://127.0.0.1:8332/')).toBe('http://10.0.2.2:8332/')
   })
 
-  it('remaps 172.x addresses (common Docker bridge range) on Android', () => {
+  it('leaves Docker bridge addresses untouched on Android', () => {
     Platform.OS = 'android'
-    expect(adjustRpcUrl('http://172.17.0.2:8332')).toBe('http://10.0.2.2:8332/')
+    expect(adjustRpcUrl('http://172.17.0.2:8332')).toBe(
+      'http://172.17.0.2:8332'
+    )
   })
 
   it('leaves other LAN addresses untouched on Android', () => {

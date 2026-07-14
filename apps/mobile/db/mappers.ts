@@ -128,6 +128,13 @@ type LabelRow = {
   value: number | null
 }
 
+type ArkLabelRow = {
+  ref: string
+  account_id: string
+  type: string
+  label: string
+}
+
 type NostrDmRow = {
   id: string
   account_id: string
@@ -324,6 +331,14 @@ function rowToLabel(row: LabelRow): Label {
   }
 }
 
+function rowToArkLabel(row: ArkLabelRow): Label {
+  return {
+    label: row.label,
+    ref: row.ref,
+    type: row.type as Label['type']
+  }
+}
+
 function rowToNostrDm(row: NostrDmRow): NostrDM {
   return {
     author: row.author,
@@ -367,6 +382,7 @@ export {
   parseJson,
   rowToAccount,
   rowToAddress,
+  rowToArkLabel,
   rowToLabel,
   rowToNostrDm,
   rowToTransaction,
@@ -376,6 +392,7 @@ export {
 export type {
   AccountRow,
   AddressRow,
+  ArkLabelRow,
   LabelRow,
   NostrDmRow,
   TransactionRow,

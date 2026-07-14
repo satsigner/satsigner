@@ -1,4 +1,4 @@
-import { Canvas, Circle, Group } from '@shopify/react-native-skia'
+import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import {
@@ -24,19 +24,26 @@ import {
   NODE_WIDTH,
   SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
   SANKEY_CURRENT_TX_EXTENT_ROW_SCALE,
-  SANKEY_CURRENT_TX_EXTENT_TOP_PX,
   SANKEY_CURRENT_TX_EXTENT_X_INSET_PX,
-  SANKEY_DIAGRAM_NODE_PADDING_PX,
-  SANKEY_EQUAL_ROW_MIN_SLOT_PX,
-  SAFE_LIMIT_OF_INPUTS_OUTPUTS
+  SANKEY_CURRENT_TX_EQUAL_ROW_MIN_SLOT_PX,
+  SANKEY_CURRENT_TX_NODE_PADDING_PX,
+  SAFE_LIMIT_OF_INPUTS_OUTPUTS,
+  getSankeyExtentTopPx
 } from '@/types/ui/sankey'
 import {
   equalizeSankeyColumnsByDepthH,
   minSankeyStackedColumnInnerHeightPx
 } from '@/utils/equalizeSankeyColumnLayout'
+import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
+import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
+import {
+  getOutputMaxAllowedSats,
+  isTransactionUnderfunded
+} from '@/utils/transactionFunding'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
@@ -54,24 +61,35 @@ interface Node extends SankeyNodeMinimal<object, object> {
   ioData: TxNode['ioData']
   nextTx?: string
   localId?: string
+  inputOutpoint?: string
 }
 
 type SSCurrentTransactionChartProps = {
   inputs: Map<string, Utxo>
   outputs: (Omit<Output, 'to'> & { to?: string })[]
   feeRate: number
+  effectiveMinerFeeSats?: number
+  elevatedFeeRateHighlight?: boolean
+  suppressUnderfundedWarning?: boolean
+  onPressInput?: (outpoint: string) => void
   onPressOutput?: (localId?: string) => void
   currentOutputLocalId?: string
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  overlayHeaderHeight?: number
 }
 
 function SSCurrentTransactionChart({
   inputs: inputMap,
   outputs: outputArray,
   feeRate: feeRateProp,
+  effectiveMinerFeeSats,
+  elevatedFeeRateHighlight = false,
+  suppressUnderfundedWarning = false,
+  onPressInput,
   onPressOutput,
   currentOutputLocalId,
-  ownAddresses = new Set()
+  ownAddresses = new Set(),
+  overlayHeaderHeight
 }: SSCurrentTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -110,6 +128,14 @@ function SSCurrentTransactionChart({
   const safeTxVsize = Number.isNaN(txVsize) ? 0 : txVsize
 
   const minerFee = useMemo(() => {
+    if (
+      typeof effectiveMinerFeeSats === 'number' &&
+      !Number.isNaN(effectiveMinerFeeSats) &&
+      effectiveMinerFeeSats >= 0
+    ) {
+      return effectiveMinerFeeSats
+    }
+
     // Ensure feeRateProp and safeTxVsize are valid numbers
     if (
       Number.isNaN(feeRateProp) ||
@@ -120,7 +146,7 @@ function SSCurrentTransactionChart({
       return 0
     }
     return Math.round(feeRateProp * safeTxVsize)
-  }, [feeRateProp, safeTxVsize])
+  }, [effectiveMinerFeeSats, feeRateProp, safeTxVsize])
 
   const { width: winW, height: winH } = useWindowDimensions()
   const safeWinW = Math.max(1, winW)
@@ -128,9 +154,9 @@ function SSCurrentTransactionChart({
   const GRAPH_WIDTH = safeWinW
 
   const SANKEY_EXTENT_BOTTOM_MARGIN_PX = 8
+  const extentTopCap = getSankeyExtentTopPx(overlayHeaderHeight)
 
   const chartGeometry = useMemo(() => {
-    let graphHeight = safeWinH * 0.7
     const rowCount = Math.max(inputMap.size, outputArray.length + 1)
     const feeRows = minerFee > 0 ? 1 : 0
     const maxColumnNodes = Math.max(
@@ -140,52 +166,16 @@ function SSCurrentTransactionChart({
     )
     const minInnerEqualRows = minSankeyStackedColumnInnerHeightPx(
       maxColumnNodes,
-      SANKEY_EQUAL_ROW_MIN_SLOT_PX,
-      SANKEY_DIAGRAM_NODE_PADDING_PX
+      SANKEY_CURRENT_TX_EQUAL_ROW_MIN_SLOT_PX,
+      SANKEY_CURRENT_TX_NODE_PADDING_PX
     )
-
-    for (let pass = 0; pass < 3; pass += 1) {
-      const extentTop = Math.min(
-        SANKEY_CURRENT_TX_EXTENT_TOP_PX,
-        Math.max(
-          SANKEY_EXTENT_BOTTOM_MARGIN_PX,
-          graphHeight -
-            SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX -
-            SANKEY_EXTENT_BOTTOM_MARGIN_PX
-        )
-      )
-
-      const rawSankeyExtentBottomY =
-        graphHeight * rowCount * SANKEY_CURRENT_TX_EXTENT_ROW_SCALE
-
-      const sankeyExtentBottomY = Math.min(
-        graphHeight - SANKEY_EXTENT_BOTTOM_MARGIN_PX,
-        Math.max(
-          extentTop + SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX,
-          rawSankeyExtentBottomY,
-          extentTop + minInnerEqualRows
-        )
-      )
-
-      const neededHeight = sankeyExtentBottomY + SANKEY_EXTENT_BOTTOM_MARGIN_PX
-      if (neededHeight <= graphHeight + 0.5) {
-        return {
-          extentTop,
-          graphHeight,
-          sankeyExtentBottomY
-        }
-      }
-      graphHeight = neededHeight
-    }
-
-    const extentTop = Math.min(
-      SANKEY_CURRENT_TX_EXTENT_TOP_PX,
-      Math.max(
+    const extentTop = extentTopCap
+    const graphHeight = Math.max(
+      safeWinH * 0.7,
+      extentTop +
+        SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX +
         SANKEY_EXTENT_BOTTOM_MARGIN_PX,
-        graphHeight -
-          SANKEY_CURRENT_TX_EXTENT_MIN_INNER_HEIGHT_PX -
-          SANKEY_EXTENT_BOTTOM_MARGIN_PX
-      )
+      extentTop + minInnerEqualRows + SANKEY_EXTENT_BOTTOM_MARGIN_PX
     )
     const rawSankeyExtentBottomY =
       graphHeight * rowCount * SANKEY_CURRENT_TX_EXTENT_ROW_SCALE
@@ -203,7 +193,7 @@ function SSCurrentTransactionChart({
       graphHeight,
       sankeyExtentBottomY
     }
-  }, [inputMap.size, minerFee, outputArray.length, safeWinH])
+  }, [extentTopCap, inputMap.size, minerFee, outputArray.length, safeWinH])
 
   const GRAPH_HEIGHT = chartGeometry.graphHeight
   const { extentTop } = chartGeometry
@@ -235,7 +225,7 @@ function SSCurrentTransactionChart({
   const sankeyGenerator = useMemo(() => {
     const gen = sankey()
       .nodeWidth(NODE_WIDTH)
-      .nodePadding(SANKEY_DIAGRAM_NODE_PADDING_PX)
+      .nodePadding(SANKEY_CURRENT_TX_NODE_PADDING_PX)
       .extent([
         [SANKEY_CURRENT_TX_EXTENT_X_INSET_PX, extentTop],
         [extentX1, sankeyExtentBottomY]
@@ -256,6 +246,7 @@ function SSCurrentTransactionChart({
     const inputNodes: TxNode[] = inputArray.map((input, index) => ({
       depthH: 0,
       id: String(index + 1),
+      inputOutpoint: getUtxoOutpoint(input),
       ioData: {
         address: formatAddress(input.txid, 4),
         fiatCurrency,
@@ -282,44 +273,72 @@ function SSCurrentTransactionChart({
       }
     ]
 
-    const outputNodes: TxNode[] = outputArray.map((output, index) => ({
-      depthH: 2,
-      id: String(index + 2 + inputArray.length),
-      ioData: {
-        address: output?.to ? formatAddress(output?.to, 6) : '',
-        fiatCurrency,
-        fiatValue: formatNumber(satsToFiat(output.amount), 2),
-        isSelfSend: !!(output.to && ownAddresses.has(output.to)),
-        isUnspent: true,
-        label: output.label,
+    const isUnderfunded =
+      !suppressUnderfundedWarning &&
+      isTransactionUnderfunded(totalInputValue, totalOutputValue, minerFee)
+    const outputsTotal = outputArray.reduce(
+      (sum, output) => sum + output.amount,
+      0
+    )
+
+    const outputNodes: TxNode[] = outputArray.map((output, index) => {
+      const localId = output.to
+        ? output.localId
+        : CHART_REMAINING_BALANCE_LOCAL_ID
+      const maxAllowedSats = getOutputMaxAllowedSats({
+        minerFeeSats: minerFee,
+        outputAmountSats: output.amount,
+        outputsTotalSats: outputsTotal,
+        totalInputSats: totalInputValue
+      })
+
+      return {
+        depthH: 2,
+        id: String(index + 2 + inputArray.length),
+        ioData: {
+          address: output?.to ? formatAddress(output?.to, 6) : '',
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(output.amount), 2),
+          isFakeMix: output.kind === 'fakeMix',
+          isSelfSend: !!(
+            output.to &&
+            ownAddresses.has(output.to) &&
+            output.kind !== 'fakeMix'
+          ),
+          isUnspent: true,
+          label: output.label,
+          maxAllowedSats:
+            isUnderfunded && localId !== CHART_REMAINING_BALANCE_LOCAL_ID
+              ? maxAllowedSats
+              : undefined,
+          value: output.amount
+        },
+        localId,
+        type: 'text',
         value: output.amount
-      },
-      localId: output.to ? output.localId : 'remainingBalance',
-      type: 'text',
-      value: output.amount
-    }))
+      }
+    })
 
     if (minerFee !== undefined && minerFee > 0) {
-      // Calculate total output value with addresses for fee analysis
-      const totalOutputValueWithAddresses = outputArray
-        .filter((output) => output.to && output.to.trim() !== '')
-        .reduce((sum, output) => sum + output.amount, 0)
+      const totalOutputValueForFee = totalInputValue - minerFee
 
-      const higherFee =
-        totalOutputValueWithAddresses > 0
-          ? minerFee >= totalOutputValueWithAddresses * 0.1
-          : false
+      const higherFee = isHighMinerFee({
+        minerFeeSats: minerFee,
+        totalOutputSats: totalOutputValueForFee
+      })
+      const elevatedFeeRate = elevatedFeeRateHighlight
 
-      const feePercentage =
-        totalOutputValueWithAddresses > 0
-          ? (minerFee / totalOutputValueWithAddresses) * 100
-          : 0
+      const feePercentage = getFeePercentage({
+        minerFeeSats: minerFee,
+        totalOutputSats: totalOutputValueForFee
+      })
 
       outputNodes.push({
         depthH: 2,
         id: String(inputArray.length + outputArray.length + 2),
         ioData: {
-          feePercentage: Math.round(feePercentage * 100) / 100,
+          elevatedFeeRate,
+          feePercentage: Math.round(feePercentage * 10000) / 100,
           feeRate:
             feeRateProp !== undefined ? Math.round(feeRateProp) : undefined,
           fiatCurrency,
@@ -339,13 +358,16 @@ function SSCurrentTransactionChart({
     inputArray,
     outputArray,
     totalInputValue,
+    totalOutputValue,
     safeTxSize,
     safeTxVsize,
     minerFee,
     feeRateProp,
+    elevatedFeeRateHighlight,
     satsToFiat,
     fiatCurrency,
-    ownAddresses
+    ownAddresses,
+    suppressUnderfundedWarning
   ])
 
   const sankeyLinks = useMemo(() => {
@@ -405,8 +427,8 @@ function SSCurrentTransactionChart({
     layoutResult.nodes as Node[],
     extentTop,
     sankeyExtentBottomY,
-    SANKEY_DIAGRAM_NODE_PADDING_PX,
-    SANKEY_EQUAL_ROW_MIN_SLOT_PX
+    SANKEY_CURRENT_TX_NODE_PADDING_PX,
+    SANKEY_CURRENT_TX_EQUAL_ROW_MIN_SLOT_PX
   )
 
   const { links, nodes } = layoutResult
@@ -510,27 +532,6 @@ function SSCurrentTransactionChart({
               selectedOutputNode={currentOutputLocalId}
               showUnspentLabel={false}
             />
-            {nodes.map((node, index) => {
-              const typedNode = node as Node
-              const style = nodeStyles[index] // Get corresponding style for width/height
-              const width = style.width + 20
-              if (typedNode.depthH === maxDepthH) {
-                const cy = style.y + 6.5 // 5px top padding + 1.5px circle center offset
-
-                const circle1Cx = style.x + width - 31 // style.x + style.width - 16 (right padding + icon width) + 1.48926 (circle cx in icon)
-                const circle2Cx = style.x + width - 35 // style.x + style.width - 16 + 5.48926
-                const circle3Cx = style.x + width - 39 // style.x + style.width - 16 + 9.48926
-
-                return (
-                  <Group key={`ellipsis-${typedNode.id}`}>
-                    <Circle cx={circle1Cx} cy={cy} r={1} color="#D9D9D9" />
-                    <Circle cx={circle2Cx} cy={cy} r={1} color="#D9D9D9" />
-                    <Circle cx={circle3Cx} cy={cy} r={1} color="#D9D9D9" />
-                  </Group>
-                )
-              }
-              return null
-            })}
           </Group>
         </Canvas>
       </View>
@@ -543,26 +544,33 @@ function SSCurrentTransactionChart({
               animatedStyle
             ]}
           >
-            {nodeStyles.map((style, index) => (
-              <TouchableOpacity
-                key={style.localId ?? index}
-                style={[
-                  styles.node,
-                  {
-                    height: style.height,
-                    left: style.x,
-                    position: 'absolute',
-                    top: style.y,
-                    width: style.width
+            {nodeStyles.map((style, index) => {
+              const node = nodes[index] as Node
+              const { inputOutpoint } = node
+
+              return (
+                <TouchableOpacity
+                  key={style.localId ?? inputOutpoint ?? index}
+                  style={[
+                    styles.node,
+                    {
+                      height: style.height,
+                      left: style.x,
+                      position: 'absolute',
+                      top: style.y,
+                      width: style.width
+                    }
+                  ]}
+                  onPress={
+                    inputOutpoint && onPressInput
+                      ? () => onPressInput(inputOutpoint)
+                      : node.depthH === maxDepthH && onPressOutput
+                        ? () => onPressOutput(style.localId)
+                        : undefined
                   }
-                ]}
-                onPress={
-                  (nodes[index] as Node).depthH === maxDepthH && onPressOutput
-                    ? () => onPressOutput(style.localId)
-                    : undefined
-                }
-              />
-            ))}
+                />
+              )
+            })}
           </Animated.View>
         </View>
       </GestureDetector>
