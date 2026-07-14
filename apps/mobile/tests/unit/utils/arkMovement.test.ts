@@ -4,6 +4,9 @@ import {
   getArkMovementCounterparty,
   getArkMovementKind,
   getArkMovementLabelRef,
+  getArkRefreshVtxoCounts,
+  getArkRefreshVtxoLabel,
+  isArkRefreshSubsystemName,
   isLightningMovement,
   isMutedArkMovement,
   isStaleArkExitMovement,
@@ -90,6 +93,18 @@ describe('arkMovement utils', () => {
     })
   })
 
+  describe('isArkRefreshSubsystemName', () => {
+    it('matches subsystem names containing "refresh" case-insensitively', () => {
+      expect(isArkRefreshSubsystemName('bark.refresh')).toBe(true)
+      expect(isArkRefreshSubsystemName('Bark.Refresh')).toBe(true)
+    })
+
+    it('rejects unrelated subsystem names', () => {
+      expect(isArkRefreshSubsystemName('bark.send')).toBe(false)
+      expect(isArkRefreshSubsystemName('bark.offboard')).toBe(false)
+    })
+  })
+
   describe('selectArkTransactions', () => {
     it('keeps only send and receive movements', () => {
       const movements = [
@@ -111,6 +126,48 @@ describe('arkMovement utils', () => {
       ]
       const result = selectArkRefreshes(movements)
       expect(result.map((m) => m.id)).toStrictEqual([2])
+    })
+  })
+
+  describe('getArkRefreshVtxoCounts', () => {
+    it('returns input and output vtxo counts', () => {
+      const movement = buildMovement({
+        inputVtxoIds: ['a', 'b', 'c', 'd'],
+        outputVtxoIds: ['e']
+      })
+      expect(getArkRefreshVtxoCounts(movement)).toStrictEqual({
+        inputs: 4,
+        outputs: 1
+      })
+    })
+
+    it('returns zeros when both sides are empty', () => {
+      expect(getArkRefreshVtxoCounts(buildMovement())).toStrictEqual({
+        inputs: 0,
+        outputs: 0
+      })
+    })
+  })
+
+  describe('getArkRefreshVtxoLabel', () => {
+    it('shows consolidation when both sides have vtxos', () => {
+      const movement = buildMovement({
+        inputVtxoIds: ['a', 'b', 'c', 'd'],
+        outputVtxoIds: ['e']
+      })
+      expect(getArkRefreshVtxoLabel(movement)).toBe('4 → 1 VTXOs')
+    })
+
+    it('falls back to the non-empty count when one side is empty', () => {
+      const movement = buildMovement({
+        inputVtxoIds: [],
+        outputVtxoIds: ['a', 'b', 'c']
+      })
+      expect(getArkRefreshVtxoLabel(movement)).toBe('3 VTXOs')
+    })
+
+    it('falls back to the refresh label when both sides are empty', () => {
+      expect(getArkRefreshVtxoLabel(buildMovement())).toBe('Refresh')
     })
   })
 

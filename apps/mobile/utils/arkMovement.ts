@@ -29,10 +29,12 @@ function isFeeOnlyMovement(movement: ArkMovement): boolean {
   )
 }
 
+export function isArkRefreshSubsystemName(subsystemName: string): boolean {
+  return subsystemName.toLowerCase().includes(REFRESH_SUBSYSTEM_KEYWORD)
+}
+
 export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
-  if (
-    movement.subsystemName.toLowerCase().includes(REFRESH_SUBSYSTEM_KEYWORD)
-  ) {
+  if (isArkRefreshSubsystemName(movement.subsystemName)) {
     return 'refresh'
   }
   if (movement.effectiveBalanceSats > 0) {
@@ -168,6 +170,28 @@ export function getArkMovementKindLabel(kind: ArkMovementKind): string {
     default:
       return ''
   }
+}
+
+export function getArkRefreshVtxoCounts(movement: ArkMovement): {
+  inputs: number
+  outputs: number
+} {
+  return {
+    inputs: movement.inputVtxoIds.length,
+    outputs: movement.outputVtxoIds.length
+  }
+}
+
+export function getArkRefreshVtxoLabel(movement: ArkMovement): string {
+  const { inputs, outputs } = getArkRefreshVtxoCounts(movement)
+  if (inputs > 0 && outputs > 0) {
+    return t('ark.refresh.vtxoConsolidation', { inputs, outputs })
+  }
+  const count = Math.max(inputs, outputs)
+  if (count > 0) {
+    return t('ark.refresh.vtxoCount', { count })
+  }
+  return t('ark.movement.refreshLabel')
 }
 
 export function getArkMovementCounterparty(

@@ -1,6 +1,14 @@
 import type { ArkVtxo } from '@/types/models/Ark'
 
+const ARK_VTXO_HISTORICAL_STATES = new Set(['spent', 'exited'])
+
 export type ArkVtxoGroup = 'spendable' | 'locked'
+
+export function filterCurrentArkVtxos(vtxos: ArkVtxo[]): ArkVtxo[] {
+  return vtxos.filter(
+    (vtxo) => !ARK_VTXO_HISTORICAL_STATES.has(vtxo.state.toLowerCase())
+  )
+}
 
 export type ArkVtxoListItem =
   | { type: 'header'; key: string; group: ArkVtxoGroup; count: number }

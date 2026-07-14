@@ -1,6 +1,7 @@
 import type { ArkVtxo } from '@/types/models/Ark'
 import {
   buildArkVtxoSections,
+  filterCurrentArkVtxos,
   filterSelectableVtxoIds,
   sumArkVtxoSats
 } from '@/utils/arkVtxo'
@@ -64,6 +65,32 @@ describe('filterSelectableVtxoIds', () => {
   it('keeps ids again once a vtxo returns to spendable', () => {
     const vtxos = [buildVtxo({ id: 'v1', spendable: true })]
     expect(filterSelectableVtxoIds(vtxos, ['v1'])).toStrictEqual(['v1'])
+  })
+})
+
+describe('filterCurrentArkVtxos', () => {
+  it('drops spent and exited vtxos, keeps spendable and locked', () => {
+    const vtxos = [
+      buildVtxo({ id: 'a', state: 'Spendable' }),
+      buildVtxo({ id: 'b', spendable: false, state: 'Locked' }),
+      buildVtxo({ id: 'c', spendable: false, state: 'Spent' }),
+      buildVtxo({ id: 'd', spendable: false, state: 'Exited' })
+    ]
+    expect(filterCurrentArkVtxos(vtxos).map((vtxo) => vtxo.id)).toStrictEqual([
+      'a',
+      'b'
+    ])
+  })
+
+  it('matches states case-insensitively', () => {
+    const vtxos = [
+      buildVtxo({ id: 'a', spendable: false, state: 'spent' }),
+      buildVtxo({ id: 'b', spendable: false, state: 'exited' }),
+      buildVtxo({ id: 'c', state: 'spendable' })
+    ]
+    expect(filterCurrentArkVtxos(vtxos).map((vtxo) => vtxo.id)).toStrictEqual([
+      'c'
+    ])
   })
 })
 

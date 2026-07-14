@@ -99,9 +99,9 @@ export default function ArkAccountSettingsPage() {
       },
       onSuccess: () => {
         toast.success(t('ark.refresh.success'))
-        setRefreshModalVisible(false)
       }
     })
+    setRefreshModalVisible(false)
   }
 
   function handleBoard() {

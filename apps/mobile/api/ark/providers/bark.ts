@@ -36,6 +36,8 @@ import type {
   ArkWalletProvider
 } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
+import { isArkRefreshSubsystemName } from '@/utils/arkMovement'
+import { filterCurrentArkVtxos } from '@/utils/arkVtxo'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
 
 const ROUND_TX_REQUIRED_CONFIRMATIONS = 0 // Later allow users to change this on the Ark settings
@@ -442,7 +444,9 @@ async function listAllVtxos(accountId: string): Promise<ArkVtxo[]> {
     wallet.spendableVtxos()
   ])
   const spendableIds = new Set(spendable.map((vtxo) => vtxo.id))
-  return all.map((vtxo) => mapVtxo(vtxo, spendableIds.has(vtxo.id)))
+  return filterCurrentArkVtxos(
+    all.map((vtxo) => mapVtxo(vtxo, spendableIds.has(vtxo.id)))
+  )
 }
 
 async function startExit(accountId: string, vtxoIds?: string[]): Promise<void> {
@@ -463,7 +467,7 @@ const PENDING_TXID = 'pending'
 function raceMovementCreated(
   label: string,
   accountId: string,
-  subsystemKinds: string[],
+  matchesMovement: (movement: Movement) => boolean,
   operation: Promise<string>
 ): Promise<string> {
   const notifications = getOrCreateNotifications(accountId)
@@ -490,7 +494,7 @@ function raceMovementCreated(
       if (event.tag !== WalletNotification_Tags.MovementCreated) {
         return
       }
-      if (!subsystemKinds.includes(event.inner.movement.subsystemKind)) {
+      if (!matchesMovement(event.inner.movement)) {
         return
       }
       settle(() => resolve(PENDING_TXID))
@@ -520,7 +524,7 @@ function offboardVtxos(
   return raceMovementCreated(
     'ark-offboard',
     accountId,
-    ['offboard'],
+    (movement) => movement.subsystemKind === 'offboard',
     wallet.offboardVtxos(vtxoIds, bitcoinAddress)
   )
 }
@@ -535,13 +539,16 @@ async function estimateOffboardFee(
   return mapFeeEstimate(estimate)
 }
 
-async function refreshVtxos(
-  accountId: string,
-  vtxoIds: string[]
-): Promise<string> {
+// Refreshing joins the next Ark round, which can take minutes; resolve as
+// soon as the wallet records the refresh movement instead of awaiting it.
+function refreshVtxos(accountId: string, vtxoIds: string[]): Promise<string> {
   const wallet = getCachedWallet(accountId)
-  const txid = await wallet.refreshVtxos(vtxoIds)
-  return txid ?? ''
+  return raceMovementCreated(
+    'ark-refresh',
+    accountId,
+    (movement) => isArkRefreshSubsystemName(movement.subsystemName),
+    wallet.refreshVtxos(vtxoIds).then((txid) => txid ?? '')
+  )
 }
 
 async function estimateRefreshFee(
@@ -562,7 +569,7 @@ function sendOnchain(
   return raceMovementCreated(
     'ark-sendOnchain',
     accountId,
-    ['send_onchain'],
+    (movement) => movement.subsystemKind === 'send_onchain',
     wallet.sendOnchain(bitcoinAddress, BigInt(amountSats))
   )
 }

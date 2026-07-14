@@ -83,14 +83,15 @@ async function openWallet(
   })
 }
 
-function movementCreatedEvent(subsystemKind: string) {
+function movementCreatedEvent(subsystemKind: string, subsystemName = '') {
   return {
     inner: {
       movement: {
         effectiveBalanceSats: 0n,
         id: 1,
         status: 'pending',
-        subsystemKind
+        subsystemKind,
+        subsystemName
       }
     },
     tag: 'MovementCreated'
@@ -377,6 +378,57 @@ describe('bark provider', () => {
     walletOp.reject(new Error('late failure'))
     await Promise.resolve()
     expect(__countWalletNotificationListeners()).toBe(0)
+  })
+
+  it('refreshVtxos resolves with the txid when the wallet finishes first', async () => {
+    const wallet = buildFakeWallet({
+      refreshVtxos: jest.fn().mockResolvedValue('txid-refresh')
+    })
+    await openWallet('ref1', wallet)
+    await expect(provider.refreshVtxos('ref1', ['vtxo1'])).resolves.toBe(
+      'txid-refresh'
+    )
+    expect(__countWalletNotificationListeners()).toBe(0)
+  })
+
+  it('refreshVtxos resolves pending when the refresh movement notification wins', async () => {
+    const wallet = buildFakeWallet({
+      refreshVtxos: jest.fn().mockReturnValue(new Promise(() => {}))
+    })
+    await openWallet('ref2', wallet)
+    const pending = provider.refreshVtxos('ref2', ['vtxo1'])
+    __emitWalletNotification(movementCreatedEvent('round', 'bark.refresh'))
+    await expect(pending).resolves.toBe('pending')
+    expect(__countWalletNotificationListeners()).toBe(0)
+  })
+
+  it('refreshVtxos ignores movement notifications of other subsystems', async () => {
+    const wallet = buildFakeWallet({
+      refreshVtxos: jest.fn().mockResolvedValue('txid-late')
+    })
+    await openWallet('ref3', wallet)
+    const pending = provider.refreshVtxos('ref3', ['vtxo1'])
+    __emitWalletNotification(movementCreatedEvent('arkoor', 'bark.send'))
+    await expect(pending).resolves.toBe('txid-late')
+  })
+
+  it('refreshVtxos rejects when the wallet operation fails first', async () => {
+    const wallet = buildFakeWallet({
+      refreshVtxos: jest.fn().mockRejectedValue(new Error('round failed'))
+    })
+    await openWallet('ref4', wallet)
+    await expect(provider.refreshVtxos('ref4', ['vtxo1'])).rejects.toThrow(
+      'round failed'
+    )
+    expect(__countWalletNotificationListeners()).toBe(0)
+  })
+
+  it('refreshVtxos maps an undefined txid to an empty string', async () => {
+    const wallet = buildFakeWallet({
+      refreshVtxos: jest.fn().mockResolvedValue(undefined)
+    })
+    await openWallet('ref5', wallet)
+    await expect(provider.refreshVtxos('ref5', ['vtxo1'])).resolves.toBe('')
   })
 
   it('sendOnchain rejects after the timeout when nothing settles', async () => {

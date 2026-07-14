@@ -1,4 +1,4 @@
-import { FlashList } from '@shopify/flash-list'
+import { FlashList, type ListRenderItem } from '@shopify/flash-list'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type ReactNode, useState } from 'react'
 import {
@@ -24,6 +24,7 @@ import SSIconTime from '@/components/icons/SSIconTime'
 import SSActionButton from '@/components/SSActionButton'
 import SSArkAddressesView from '@/components/SSArkAddressesView'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
+import SSArkRefreshCard from '@/components/SSArkRefreshCard'
 import SSArkVtxoCard from '@/components/SSArkVtxoCard'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
@@ -113,6 +114,8 @@ export default function ArkAccountDetailPage() {
   const [tabIndex, setTabIndex] = useState(0)
   const [expand, setExpand] = useState(false)
   const [transactionsSortDirection, setTransactionsSortDirection] =
+    useState<Direction>('desc')
+  const [refreshesSortDirection, setRefreshesSortDirection] =
     useState<Direction>('desc')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [refreshModalVisible, setRefreshModalVisible] = useState(false)
@@ -281,10 +284,10 @@ export default function ArkAccountDetailPage() {
       },
       onSuccess: () => {
         toast.success(t('ark.refresh.success'))
-        setSelectedIds([])
-        setRefreshModalVisible(false)
       }
     })
+    setRefreshModalVisible(false)
+    setSelectedIds([])
   }
 
   function handleEmergencyExitSelected() {
@@ -336,6 +339,16 @@ export default function ArkAccountDetailPage() {
   function renderMovementItem({ item }: { item: ArkMovement }) {
     return (
       <SSArkMovementCard
+        movement={item}
+        link={`/signer/ark/account/${id}/movement/${item.id}`}
+        label={labels[getArkMovementLabelRef(item)]?.label ?? ''}
+      />
+    )
+  }
+
+  function renderRefreshItem({ item }: { item: ArkMovement }) {
+    return (
+      <SSArkRefreshCard
         movement={item}
         link={`/signer/ark/account/${id}/movement/${item.id}`}
         label={labels[getArkMovementLabelRef(item)]?.label ?? ''}
@@ -418,7 +431,8 @@ export default function ArkAccountDetailPage() {
   function renderMovementList(
     data: ArkMovement[],
     emptyLabel: string,
-    controls?: ReactNode
+    controls?: ReactNode,
+    renderItem: ListRenderItem<ArkMovement> = renderMovementItem
   ) {
     const refreshing = syncMutation.isPending || movementsQuery.isFetching
     return renderListWithLoader(
@@ -430,7 +444,7 @@ export default function ArkAccountDetailPage() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           refreshControl={renderRefreshControl(refreshing)}
-          renderItem={renderMovementItem}
+          renderItem={renderItem}
           ItemSeparatorComponent={renderSeparator}
           ListEmptyComponent={
             movementsQuery.isLoading ? null : (
@@ -463,6 +477,18 @@ export default function ArkAccountDetailPage() {
         <SSSortDirectionToggle
           onDirectionChanged={(direction) =>
             setTransactionsSortDirection(direction)
+          }
+        />
+      </SSHStack>
+    )
+  }
+
+  function renderRefreshesControls() {
+    return (
+      <SSHStack style={styles.refreshesControls}>
+        <SSSortDirectionToggle
+          onDirectionChanged={(direction) =>
+            setRefreshesSortDirection(direction)
           }
         />
       </SSHStack>
@@ -522,7 +548,12 @@ export default function ArkAccountDetailPage() {
     }
 
     if (route.key === 'refreshes') {
-      return renderMovementList(refreshes, t('ark.refresh.empty'))
+      return renderMovementList(
+        sortArkMovements(refreshes, refreshesSortDirection),
+        t('ark.refresh.empty'),
+        renderRefreshesControls(),
+        renderRefreshItem
+      )
     }
 
     return renderMovementList(
@@ -855,6 +886,11 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   movementControls: {
+    paddingHorizontal: CONTENT_PADDING_HORIZONTAL,
+    paddingVertical: 16
+  },
+  refreshesControls: {
+    justifyContent: 'flex-end',
     paddingHorizontal: CONTENT_PADDING_HORIZONTAL,
     paddingVertical: 16
   },

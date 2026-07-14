@@ -827,6 +827,8 @@
     "refresh.feeLabel": "Round fee: %{amount} %{unit}",
     "refresh.feeUnavailable": "Fee estimate unavailable — tap to retry",
     "refresh.success": "Refresh submitted",
+    "refresh.vtxoConsolidation": "%{inputs} → %{outputs} VTXOs",
+    "refresh.vtxoCount": "%{count} VTXOs",
     "tab.addresses": "Used\nAddresses",
     "tab.refreshes": "Round\nRefreshes",
     "tab.vtxos": "Current\nVTXOs",
