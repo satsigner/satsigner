@@ -1,7 +1,12 @@
 import type BottomSheet from '@gorhom/bottom-sheet'
 import { useQuery } from '@tanstack/react-query'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter
+} from 'expo-router'
 import { useIsFocused } from 'expo-router/react-navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -44,6 +49,7 @@ import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
+import { useTransactionFeeWarnings } from '@/hooks/useTransactionFeeWarnings'
 import useUnusedInternalAddresses from '@/hooks/useUnusedInternalAddresses'
 import { useUriAutoSelectUtxos } from '@/hooks/useUriAutoSelectUtxos'
 import SSHStack from '@/layouts/SSHStack'
@@ -75,6 +81,11 @@ import {
   detectContentByContext,
   type DetectedContent
 } from '@/utils/contentDetector'
+import {
+  estimateTargetBlocks,
+  getFeeRateInputMax,
+  getFeeRateSliderMax
+} from '@/utils/feeWarnings'
 import { formatAddress, formatNumber } from '@/utils/format'
 import {
   type ParsedUriParams,
@@ -83,6 +94,7 @@ import {
 } from '@/utils/parse'
 import {
   buildSingleTxChartOutputs,
+  buildStonewallMaterializationPlan,
   buildStonewallPreviewOutputs,
   CHART_REMAINING_BALANCE_LOCAL_ID,
   getStonewallPaymentContext
@@ -92,6 +104,7 @@ import { estimateTransactionSize } from '@/utils/transaction'
 import {
   getCommittedTransactionOutputSats,
   getFundingMinerFeeSats,
+  getProjectedMinerFeeSats,
   getTransactionRemainingBalance,
   isTransactionUnderfunded,
   shouldDeferUnderfundedWarning
@@ -99,8 +112,6 @@ import {
 import {
   filterUtxosByExcludedOutpoints,
   getUtxoOutpoint,
-  mapStonewallChangeOutputs,
-  mapStonewallFakeMixOutputs,
   selectEfficientUtxos,
   selectStonewallUtxos,
   splitStonewallOutputValues
@@ -178,9 +189,10 @@ export default function IOPreview() {
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
   const shouldRemoveChangeRef = useRef(true)
 
-  useEffect(() => {
-    shouldRemoveChangeRef.current = shouldRemoveChange
-  }, [shouldRemoveChange])
+  function updateShouldRemoveChange(value: boolean) {
+    shouldRemoveChangeRef.current = value
+    setShouldRemoveChange(value)
+  }
 
   // this removes the change addresses if the user goes back to the IO preview.
   // we add the change address(es) as outputs before moving to the next step.
@@ -225,7 +237,7 @@ export default function IOPreview() {
       }
 
       shouldRemoveChangeRef.current = true
-      setShouldRemoveChange(true)
+      updateShouldRemoveChange(true)
     }, [selectedAutoSelectUtxos])
   )
 
@@ -248,13 +260,14 @@ export default function IOPreview() {
   const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] =
     useState<LoadingAutoSelectUtxosAlgorithm>(false)
 
-  const { markUriAutoSelectPending, uriAutoSelectPending } = useUriAutoSelectUtxos({
-    autoSelectFromUri,
-    decoyAddress,
-    defaultAlgorithm: defaultAutoSelectUtxos,
-    onApplyAlgorithm: (type) => applyUtxoSelectionRef.current(type),
-    outputsLength: outputs.length
-  })
+  const { markUriAutoSelectPending, uriAutoSelectPending } =
+    useUriAutoSelectUtxos({
+      autoSelectFromUri,
+      decoyAddress,
+      defaultAlgorithm: defaultAutoSelectUtxos,
+      onApplyAlgorithm: (type) => applyUtxoSelectionRef.current(type),
+      outputsLength: outputs.length
+    })
   markUriAutoSelectPendingRef.current = markUriAutoSelectPending
 
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
@@ -439,24 +452,14 @@ export default function IOPreview() {
     [localFeeRate, transactionSize.vsize]
   )
 
-  const stonewallPaymentContext = useMemo(
-    () =>
-      getStonewallPaymentContext({
-        accountAddresses: account.addresses,
-        accountScriptVersion: account.keys[0]?.scriptVersion,
-        decoyAddress,
-        localFeeRate,
-        nextBlockFee: useBlockchainStore.getState().nextBlockFee,
-        outputs
-      }),
-    [
-      account.addresses,
-      account.keys,
-      decoyAddress,
-      localFeeRate,
-      outputs
-    ]
-  )
+  const stonewallPaymentContext = getStonewallPaymentContext({
+    accountAddresses: account.addresses,
+    accountScriptVersion: account.keys[0]?.scriptVersion,
+    decoyAddress,
+    localFeeRate,
+    nextBlockFee,
+    outputs
+  })
 
   const stonewallPreviewOutputs =
     selectedAutoSelectUtxos === 'privacy' &&
@@ -485,49 +488,21 @@ export default function IOPreview() {
     chartStonewallPreviewOutputs.map((output) => output.amount)
   )
 
-  const fundingOutputsForSize = useMemo(
-    () => [...outputs, ...chartStonewallPreviewOutputs],
-    [chartStonewallPreviewOutputs, outputs]
-  )
+  const fundingOutputsForSize = [...outputs, ...chartStonewallPreviewOutputs]
 
-  const projectedMinerFee = useMemo(() => {
-    if (inputs.size === 0) {
-      return 0
-    }
-
-    const inputArray = Array.from(inputs.values())
-    const { vsize: baseVsize } = estimateTransactionSize(
-      inputArray,
-      fundingOutputsForSize
-    )
-    const baseFee = Math.round(localFeeRate * baseVsize)
-    const hasFundingChange =
-      utxosSelectedValue > committedOutputSats + baseFee
-    const { vsize } = estimateTransactionSize(
-      inputArray,
-      fundingOutputsForSize,
-      hasFundingChange
-    )
-
-    return Math.round(localFeeRate * vsize)
-  }, [
+  const projectedMinerFee = getProjectedMinerFeeSats({
     committedOutputSats,
-    fundingOutputsForSize,
-    inputs,
-    localFeeRate,
-    utxosSelectedValue
-  ])
+    feeRate: localFeeRate,
+    fundingOutputs: fundingOutputsForSize,
+    inputs: Array.from(inputs.values()),
+    totalInputSats: utxosSelectedValue
+  })
 
   const fundingMinerFee = getFundingMinerFeeSats({
     projectedMinerFeeSats: projectedMinerFee,
     stonewallMinerFeeSats:
       selectedAutoSelectUtxos === 'privacy' ? stonewallFee : null
   })
-
-  const effectiveMinerFee =
-    selectedAutoSelectUtxos === 'privacy' && stonewallFee !== null
-      ? stonewallFee
-      : minerFee
 
   const deferUnderfundedWarning =
     shouldDeferUnderfundedWarning({
@@ -539,6 +514,10 @@ export default function IOPreview() {
       selectedAlgorithm: selectedAutoSelectUtxos
     }) ||
     (selectedAutoSelectUtxos === 'privacy' && stonewallFee === null)
+
+  const feeRateSliderMax = getFeeRateSliderMax(nextBlockFee)
+  const feeRateInputMax = getFeeRateInputMax(nextBlockFee)
+  const estimatedTargetBlocks = estimateTargetBlocks(localFeeRate, nextBlockFee)
 
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
 
@@ -575,6 +554,16 @@ export default function IOPreview() {
     outputs,
     previewOutputs: chartStonewallPreviewOutputs,
     remainingBalance
+  })
+
+  useTransactionFeeWarnings({
+    deferWarning: deferUnderfundedWarning,
+    feeRate: localFeeRate,
+    fundingMinerFee,
+    inputsCount: inputs.size,
+    isFocused,
+    nextBlockFee,
+    totalInputSats: utxosSelectedValue
   })
 
   useEffect(() => {
@@ -727,54 +716,25 @@ export default function IOPreview() {
   }
 
   function materializeStonewallOutputs(): boolean {
-    if (selectedAutoSelectUtxos !== 'privacy' || stonewallFee === null) {
+    const plan = buildStonewallMaterializationPlan({
+      changeAddress,
+      changeValues: stonewallChangeValues,
+      decoyAddress,
+      fakeMixLabel: stonewallPaymentContext.paymentLabel,
+      fakeMixValues: stonewallFakeMixValues,
+      fee: stonewallFee,
+      secondChangeAddress
+    })
+
+    if (!plan) {
       return false
     }
 
-    if (stonewallFakeMixValues.length > 0 && !decoyAddress) {
-      return false
-    }
+    updateShouldRemoveChange(false)
+    setFee(plan.fee)
 
-    const changeAddresses = [changeAddress, secondChangeAddress].filter(Boolean)
-    if (stonewallChangeValues.length > changeAddresses.length) {
-      return false
-    }
-
-    if (
-      stonewallChangeValues.length === 0 &&
-      stonewallFakeMixValues.length === 0
-    ) {
-      return false
-    }
-
-    const fakeMixOutputs = mapStonewallFakeMixOutputs(
-      stonewallFakeMixValues,
-      decoyAddress
-    )
-    const changeOutputs = mapStonewallChangeOutputs(
-      stonewallChangeValues,
-      changeAddresses
-    )
-
-    shouldRemoveChangeRef.current = false
-    setShouldRemoveChange(false)
-    setFee(stonewallFee)
-
-    for (const output of fakeMixOutputs) {
-      addOutput({
-        amount: output.amount,
-        kind: 'fakeMix',
-        label: stonewallPaymentContext.paymentLabel,
-        to: output.to
-      })
-    }
-
-    for (const output of changeOutputs) {
-      addOutput({
-        amount: output.amount,
-        label: t('sign.changeAddressLabelDefault'),
-        to: output.to
-      })
+    for (const output of plan.outputs) {
+      addOutput(output)
     }
 
     return true
@@ -1082,7 +1042,7 @@ export default function IOPreview() {
         return
       }
 
-      setShouldRemoveChange(false)
+      updateShouldRemoveChange(false)
       addOutput({
         amount: remainingBalance,
         label: t('sign.changeAddressLabelDefault'),
@@ -1696,8 +1656,9 @@ export default function IOPreview() {
             value={localFeeRate}
             onValueChange={setLocalFeeRate}
             vbytes={transactionSize.vsize}
-            max={40}
-            estimatedBlock={Math.trunc(40 / localFeeRate)}
+            max={feeRateSliderMax}
+            inputMax={feeRateInputMax}
+            estimatedBlock={estimatedTargetBlocks}
             fiatCurrency={fiatCurrency}
             satsToFiat={satsToFiat}
           />
