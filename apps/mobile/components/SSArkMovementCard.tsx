@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'flex-start',
     paddingBottom: 10,
-    paddingTop: 10
+    paddingTop: 4
   },
   counterparty: {
     color: Colors.gray[400]

@@ -808,8 +808,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0
   },
   listContent: {
-    paddingHorizontal: CONTENT_PADDING_HORIZONTAL,
-    paddingTop: 8
+    paddingHorizontal: CONTENT_PADDING_HORIZONTAL
   },
   loaderOverlay: {
     alignItems: 'center',
