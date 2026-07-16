@@ -57,7 +57,7 @@ function SSLabelInput({
   }
 
   function handleInputEnded() {
-    const matches = label.match(/#\w[\w\d]+/g)
+    const matches = label.match(/#\w+/g)
 
     if (!matches) {
       return
@@ -95,14 +95,7 @@ function SSLabelInput({
       </SSText>
       <SSTextInput
         align="left"
-        multiline
-        numberOfLines={3}
         blurOnSubmit
-        style={{
-          height: 'auto',
-          padding: 10,
-          textAlignVertical: 'top'
-        }}
         value={label}
         onChangeText={setLabel}
         onBlur={handleInputEnded}

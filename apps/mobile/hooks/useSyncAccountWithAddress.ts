@@ -9,6 +9,7 @@ import Esplora from '@/api/esplora'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -18,6 +19,7 @@ import {
   updateAccountObjectLabels
 } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -38,10 +40,10 @@ function useSyncAccountWithAddress() {
     ])
   )
 
-  const [backend, network, url, configsMempol] = useBlockchainStore(
+  const [backend, network, url] = useBlockchainStore(
     useShallow((state) => {
       const { server } = state.configs[state.selectedNetwork]
-      return [server.backend, server.network, server.url, state.configsMempool]
+      return [server.backend, server.network, server.url]
     })
   )
 
@@ -567,6 +569,11 @@ function useSyncAccountWithAddress() {
           url,
           network
         )
+      } else if (backend === 'rpc') {
+        // Bitcoin Core RPC does not support per-address history lookups
+        // without a watching wallet. Use BDK wallet sync (useSyncAccountWithWallet)
+        // for RPC-backed accounts instead.
+        throw new Error(t('account.sync.rpcAddressSyncUnsupported'))
       } else {
         throw new Error('unknown backend')
       }
@@ -607,11 +614,11 @@ function useSyncAccountWithAddress() {
       const uniqueTimestamps = [...new Set(timestamps)]
 
       // Fetch historical prices
-      const mempoolUrl = configsMempol['bitcoin']
-      const oracle = new MempoolOracle(mempoolUrl)
+      const { fetchHistoricalPrices } = useSettingsStore.getState()
+      const oracle = new MempoolOracle(getFiatPriceApiUrl())
       let prices: number[] = []
 
-      if (uniqueTimestamps.length > 0) {
+      if (fetchHistoricalPrices && uniqueTimestamps.length > 0) {
         try {
           const historicalPrices = await oracle.getPricesAt(
             'USD',
@@ -681,7 +688,7 @@ function useSyncAccountWithAddress() {
     } catch {
       setSyncStatus(account.id, 'error')
       setLoading(false)
-      toast.error(t('account.syncFailed'))
+      toast.error(`${account.name ?? account.id}: ${t('account.syncFailed')}`)
       return {
         ...updatedAccount,
         syncStatus: 'error'

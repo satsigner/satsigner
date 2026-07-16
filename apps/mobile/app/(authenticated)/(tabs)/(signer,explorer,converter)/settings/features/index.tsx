@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native'
 
 import {
   SSIconBubbles,
+  SSIconFiat,
   SSIconHistoryChart,
   SSIconSeed,
   SSIconZero
@@ -54,6 +55,14 @@ export default function Features() {
                 icon={<SSIconZero width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/features/currencyFormatting')
+                }}
+              />
+              <SSSettingsCards
+                title={t('settings.features.fiatData.title')}
+                description={t('settings.features.fiatData.description')}
+                icon={<SSIconFiat width={24} height={16} />}
+                onPress={() => {
+                  router.navigate('/settings/features/fiatData')
                 }}
               />
               <SSSettingsCards

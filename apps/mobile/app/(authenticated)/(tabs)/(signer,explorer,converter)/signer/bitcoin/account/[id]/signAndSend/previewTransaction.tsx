@@ -22,7 +22,7 @@ import Animated, {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { buildTransaction } from '@/api/bdk'
+import { buildPsbt, buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSDustWarningBanner from '@/components/SSDustWarningBanner'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
@@ -264,6 +264,9 @@ function PreviewTransaction() {
   )
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
+  const { server } = useBlockchainStore(
+    (state) => state.configs[state.selectedNetwork]
+  )
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const [transactionId, setTransactionId] = useState('')
   const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
@@ -1008,12 +1011,19 @@ function PreviewTransaction() {
         const inputArray = Array.from(inputs.values())
         const outputArray = Array.from(outputs.values())
 
-        const transaction = await buildTransaction(wallet, {
-          fee,
-          inputs: inputArray,
-          options: { rbf },
-          outputs: outputArray
-        })
+        const transaction = account
+          ? await buildPsbt(wallet, server, account, {
+              fee,
+              inputs: inputArray,
+              options: { rbf },
+              outputs: outputArray
+            })
+          : await buildTransaction(wallet, {
+              fee,
+              inputs: inputArray,
+              options: { rbf },
+              outputs: outputArray
+            })
 
         if (cancelled) {
           return

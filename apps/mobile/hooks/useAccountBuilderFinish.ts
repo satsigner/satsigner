@@ -102,7 +102,11 @@ function useAccountBuilderFinish() {
 
       addAccount(accountWithEncryptedSecret)
       if (walletData) {
-        addAccountWallet(accountWithEncryptedSecret.id, walletData.wallet)
+        addAccountWallet(
+          accountWithEncryptedSecret.id,
+          walletData.wallet,
+          walletData.dbPath
+        )
       }
 
       if (isImportAddress && typeof account.keys[0].secret === 'object') {

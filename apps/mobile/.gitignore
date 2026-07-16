@@ -2,6 +2,11 @@
 
 # dependencies
 node_modules/
+# this is a pnpm monorepo — npm lockfiles here are accidental
+package-lock.json
+
+# local RPC debug script — requires a live Bitcoin Core node
+scripts/test-rpc-descriptor.mjs
 
 # android
 .android

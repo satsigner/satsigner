@@ -78,6 +78,7 @@ import {
 } from '@/constants/headerChrome'
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
+import { useFiatData } from '@/hooks/useFiatData'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
@@ -101,14 +102,26 @@ import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
+import {
+  createScanThroughputTracker,
+  formatBlocksPerSec,
+  formatScanDuration
+} from '@/utils/scanThroughput'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
+// Render further beyond the viewport so fast scrolls hit fewer blank cells.
+const TX_LIST_DRAW_DISTANCE = 500
+
 const TX_STAGGER_DELAY_MS = 70
 const TX_STAGGER_DURATION_MS = 320
+// Only the first screenful gets the intro fade; rows scrolled into view later
+// (or recycled by FlashList) render instantly instead of waiting out a delay.
+const MAX_STAGGERED_ITEMS = 8
 
 function DraftTransactionCard({ accountId }: { accountId: string }) {
   const router = useRouter()
@@ -204,10 +217,16 @@ function TransactionStaggerItem({
   index: number
   children: React.ReactNode
 }) {
-  const opacity = useSharedValue(0)
-  const translateY = useSharedValue(12)
+  const shouldAnimate = index < MAX_STAGGERED_ITEMS
+  const opacity = useSharedValue(shouldAnimate ? 0 : 1)
+  const translateY = useSharedValue(shouldAnimate ? 12 : 0)
 
   useEffect(() => {
+    if (!shouldAnimate) {
+      opacity.set(1)
+      translateY.set(0)
+      return
+    }
     const delay = index * TX_STAGGER_DELAY_MS
     opacity.set(
       withDelay(
@@ -227,7 +246,7 @@ function TransactionStaggerItem({
         })
       )
     )
-  }, [index, opacity, translateY])
+  }, [shouldAnimate, index, opacity, translateY])
 
   const staggerStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -247,6 +266,151 @@ type TotalTransactionsProps = {
   refreshing: boolean
   sortDirection: Direction
   blockchainHeight: number
+  syncStatus?: Account['syncStatus']
+  tasksDone?: number
+  totalTasks?: number
+  transactionsFound?: number
+  currentBlockTimeSec?: number
+  scanFromTimeSec?: number
+}
+
+function syncProgressLabel(tasksDone?: number, totalTasks?: number): string {
+  if (tasksDone === undefined || totalTasks === undefined || totalTasks === 0) {
+    return t('account.syncing')
+  }
+  const pct = Math.min(100, Math.round((tasksDone / totalTasks) * 100))
+  return t('account.syncProgressBlocks', {
+    current: tasksDone.toLocaleString(),
+    pct,
+    tip: totalTasks.toLocaleString()
+  })
+}
+
+function SyncScanStats({
+  syncStatus,
+  tasksDone,
+  totalTasks,
+  transactionsFound,
+  currentBlockTimeSec,
+  scanFromTimeSec
+}: {
+  syncStatus?: Account['syncStatus']
+  tasksDone?: number
+  totalTasks?: number
+  transactionsFound?: number
+  currentBlockTimeSec?: number
+  scanFromTimeSec?: number
+}) {
+  const trackerRef = useRef(createScanThroughputTracker())
+  const [throughput, setThroughput] = useState({
+    blocksPerSec: null as number | null,
+    etaSeconds: null as number | null,
+    pct: 0
+  })
+
+  const isSyncing = syncStatus === 'syncing'
+  const hasBlockProgress =
+    tasksDone !== undefined && totalTasks !== undefined && totalTasks > 0
+  // Full-history / first scan emits birthday→tip date metadata. Incremental
+  // catch-ups only get the blocks/% line.
+  const isInitialScan =
+    currentBlockTimeSec !== undefined && scanFromTimeSec !== undefined
+
+  useEffect(() => {
+    setThroughput(
+      trackerRef.current.update(
+        hasBlockProgress ? tasksDone : undefined,
+        hasBlockProgress ? totalTasks : undefined,
+        isSyncing && isInitialScan
+      )
+    )
+  }, [hasBlockProgress, isInitialScan, isSyncing, tasksDone, totalTasks])
+
+  if (!isSyncing) {
+    return null
+  }
+
+  const rateLabel =
+    isInitialScan && throughput.blocksPerSec !== null
+      ? t('account.syncBlocksPerSec', {
+          rate: formatBlocksPerSec(throughput.blocksPerSec)
+        })
+      : null
+  const etaLabel = !isInitialScan
+    ? null
+    : throughput.etaSeconds !== null
+      ? t('account.syncEta', {
+          eta: formatScanDuration(throughput.etaSeconds)
+        })
+      : hasBlockProgress
+        ? t('account.syncEtaCalculating')
+        : null
+
+  const scanRangeLabel = isInitialScan
+    ? t('account.syncScanRange', {
+        current: formatDate(currentBlockTimeSec * 1000),
+        from: formatDate(scanFromTimeSec * 1000)
+      })
+    : null
+
+  const txFoundLabel =
+    isInitialScan && transactionsFound !== undefined
+      ? t('account.syncTransactionsFound', {
+          count: transactionsFound
+        })
+      : null
+
+  return (
+    <SSVStack gap="xs" style={styles.syncStats}>
+      <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+        <SSLoader size={18} />
+        <SSText center size="xs" color="muted">
+          {syncProgressLabel(tasksDone, totalTasks)}
+        </SSText>
+      </SSHStack>
+      {scanRangeLabel ? (
+        <SSText center size="xs" color="muted">
+          {scanRangeLabel}
+        </SSText>
+      ) : null}
+      {rateLabel || etaLabel || txFoundLabel ? (
+        <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+          {txFoundLabel ? (
+            <SSText center size="xs" color="muted">
+              {txFoundLabel}
+            </SSText>
+          ) : null}
+          {txFoundLabel && (rateLabel || etaLabel) ? (
+            <SSText center size="xs" color="muted">
+              ·
+            </SSText>
+          ) : null}
+          {rateLabel ? (
+            <SSText center size="xs" color="muted">
+              {rateLabel}
+            </SSText>
+          ) : null}
+          {rateLabel && etaLabel ? (
+            <SSText center size="xs" color="muted">
+              ·
+            </SSText>
+          ) : null}
+          {etaLabel ? (
+            <SSText center size="xs" color="muted">
+              {etaLabel}
+            </SSText>
+          ) : null}
+        </SSHStack>
+      ) : null}
+      {isInitialScan && hasBlockProgress ? (
+        <View style={styles.syncProgressTrack}>
+          <View
+            style={[styles.syncProgressFill, { width: `${throughput.pct}%` }]}
+          />
+        </View>
+      ) : null}
+    </SSVStack>
+  )
 }
 
 function TotalTransactions({
@@ -258,7 +422,13 @@ function TotalTransactions({
   setSortDirection,
   refreshing,
   blockchainHeight,
-  sortDirection
+  sortDirection,
+  syncStatus,
+  tasksDone,
+  totalTasks,
+  transactionsFound,
+  currentBlockTimeSec,
+  scanFromTimeSec
 }: TotalTransactionsProps) {
   const { width } = useWindowDimensions()
   const horizontalPaddingPx = width * 0.06
@@ -345,6 +515,14 @@ function TotalTransactions({
           />
         </SSHStack>
       </SSHStack>
+      <SyncScanStats
+        syncStatus={syncStatus}
+        tasksDone={tasksDone}
+        totalTasks={totalTasks}
+        transactionsFound={transactionsFound}
+        currentBlockTimeSec={currentBlockTimeSec}
+        scanFromTimeSec={scanFromTimeSec}
+      />
       {showHistoryChart && sortedTransactions.length > 0 ? (
         <View
           style={{
@@ -363,7 +541,6 @@ function TotalTransactions({
         <SSVStack
           style={{
             flex: 1,
-            height: 400,
             minHeight: 200
           }}
           gap={expand ? 'sm' : 'md'}
@@ -401,6 +578,7 @@ function TotalTransactions({
                   <SSText color="muted">No transactions</SSText>
                 </SSVStack>
               }
+              drawDistance={TX_LIST_DRAW_DISTANCE}
               keyExtractor={(item) => item.id}
               refreshControl={
                 <RefreshControl
@@ -413,11 +591,11 @@ function TotalTransactions({
                 />
               }
             />
-            {refreshing && (
+            {refreshing && syncStatus !== 'syncing' ? (
               <View style={styles.loaderOverlay} pointerEvents="none">
                 <SSLoader size={32} />
               </View>
-            )}
+            ) : null}
           </View>
         </SSVStack>
       )}
@@ -1087,16 +1265,32 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [updateAccount, account, syncStatus, tasksDone, totalTasks] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.updateAccount,
-        state.accounts.find((a) => a.id === id),
-        state.accounts.find((a) => a.id === id)?.syncStatus,
-        state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
-        state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks
-      ])
-    )
+  const [
+    updateAccount,
+    account,
+    syncStatus,
+    tasksDone,
+    totalTasks,
+    transactionsFound,
+    currentBlockTimeSec,
+    scanFromTimeSec
+  ] = useAccountsStore(
+    useShallow((state) => [
+      state.updateAccount,
+      state.accounts.find((a) => a.id === id),
+      state.accounts.find((a) => a.id === id)?.syncStatus,
+      state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
+      state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks,
+      state.accounts.find((a) => a.id === id)?.syncProgress?.transactionsFound,
+      state.accounts.find((a) => a.id === id)?.syncProgress
+        ?.currentBlockTimeSec,
+      state.accounts.find((a) => a.id === id)?.syncProgress?.scanFromTimeSec
+    ])
+  )
+
+  const server = useBlockchainStore(
+    (state) => state.configs[state.selectedNetwork].server
+  )
 
   const hasUnreadMessages = useMemo(
     () => account?.nostr?.dms?.some((dm) => dm.read === false) ?? false,
@@ -1130,16 +1324,16 @@ export default function AccountView() {
       state.btcPrice
     ])
   )
-  const [lastKnownBlockHeight, mempoolUrl, connectionMode, autoConnectDelay] =
+  const { showCurrentFiat } = useFiatData()
+  const [lastKnownBlockHeight, connectionMode, autoConnectDelay] =
     useBlockchainStore(
       useShallow((state) => [
         state.lastKnownBlockHeight,
-        state.configsMempool['bitcoin'],
         state.configs[state.selectedNetwork].config.connectionMode,
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
     )
-  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithWallet, prioritizeSync } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { fetchOnce, startSync, stopSync } = useNostrSync()
 
@@ -1316,6 +1510,12 @@ export default function AccountView() {
             refreshing={refreshing}
             sortDirection={sortDirectionTransactions}
             blockchainHeight={blockchainHeight}
+            syncStatus={syncStatus}
+            tasksDone={tasksDone}
+            totalTasks={totalTasks}
+            transactionsFound={transactionsFound}
+            currentBlockTimeSec={currentBlockTimeSec}
+            scanFromTimeSec={scanFromTimeSec}
           />
         )
       case 'derivedAddresses':
@@ -1385,11 +1585,21 @@ export default function AccountView() {
       return
     }
 
+    // Cancel all other running syncs so this account gets the full connection.
+    // This is a no-op for Electrum/Esplora (fast enough not to matter) but
+    // makes a real difference for RPC backends where concurrent syncs congest
+    // the node.
+    if (!isImportAddress) {
+      prioritizeSync(account.id)
+    }
+
     try {
       const updatedAccount = !isImportAddress
-        ? await syncAccountWithWallet(account, wallet!, forceFullScan)
+        ? await syncAccountWithWallet(account, wallet!, forceFullScan, true)
         : await syncAccountWithAddress(account)
-      updateAccount(updatedAccount)
+      if (updatedAccount) {
+        updateAccount(updatedAccount)
+      }
     } catch (error) {
       toast.error((error as Error).message)
     }
@@ -1407,7 +1617,7 @@ export default function AccountView() {
 
   async function handleOnRefresh(forceFullScan = false) {
     setRefreshing(true)
-    await fetchPrices(mempoolUrl)
+    await fetchPrices(getFiatPriceApiUrl())
     await refreshAccount(forceFullScan)
     // Fire-and-forget - don't block refresh completion for Nostr sync
     refreshAccountLabels()
@@ -1663,21 +1873,21 @@ export default function AccountView() {
                       : t('bitcoin.sats')}
                   </SSText>
                 </SSHStack>
-                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                  <SSText color="muted">
-                    {!btcPrice || btcPrice <= 0
-                      ? '--'
-                      : privacyMode
+                {showCurrentFiat ? (
+                  <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                    <SSText color="muted">
+                      {privacyMode
                         ? '••••'
                         : formatNumber(
                             satsToFiat(account.summary.balance || 0),
                             2
                           )}
-                  </SSText>
-                  <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                    {fiatCurrency}
-                  </SSText>
-                </SSHStack>
+                    </SSText>
+                    <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                      {fiatCurrency}
+                    </SSText>
+                  </SSHStack>
+                ) : null}
               </SSVStack>
               <SSVStack gap="none">
                 {account.keys[0].creationType !== 'importAddress' && (
@@ -1709,18 +1919,24 @@ export default function AccountView() {
             </SSVStack>
           </Animated.View>
         )}
-        {account.keys[0].creationType === 'importAddress' &&
-          syncStatus === 'syncing' &&
-          tasksDone !== undefined &&
-          totalTasks !== undefined &&
-          totalTasks > 0 && (
-            <View style={{ marginBottom: -10, marginTop: 10 }}>
-              <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-                <SSLoader size={24} />
-                <SSText center>
-                  {t('account.syncProgress', { tasksDone, totalTasks })}
+        {/* ── Birthday nudge for RPC imported wallets ──────────────── */}
+        {syncStatus !== 'syncing' &&
+          server?.backend === 'rpc' &&
+          account?.keys[0]?.creationType !== 'generateMnemonic' &&
+          account?.keys[0]?.creationType !== 'importAddress' &&
+          !account?.birthdayDate && (
+            <View style={{ marginTop: 4, paddingHorizontal: '6%' }}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.navigate(
+                    `/signer/bitcoin/account/${id}/settings/birthday` as never
+                  )
+                }
+              >
+                <SSText center size="xxs" style={{ color: Colors.warning }}>
+                  {t('account.birthdayDate.nudge')}
                 </SSText>
-              </SSHStack>
+              </TouchableOpacity>
             </View>
           )}
         <View style={{ flex: 1 }}>
@@ -1815,6 +2031,22 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingTop: 16,
     position: 'absolute'
+  },
+  syncProgressFill: {
+    backgroundColor: Colors.white,
+    borderRadius: 1,
+    height: 1
+  },
+  syncProgressTrack: {
+    alignSelf: 'center',
+    backgroundColor: Colors.gray[700],
+    borderRadius: 1,
+    height: 1,
+    overflow: 'hidden',
+    width: '35%'
+  },
+  syncStats: {
+    paddingBottom: 12
   }
 })
 

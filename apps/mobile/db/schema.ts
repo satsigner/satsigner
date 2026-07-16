@@ -251,7 +251,12 @@ CREATE TABLE IF NOT EXISTS ark_labels (
 CREATE INDEX IF NOT EXISTS idx_ark_labels_account ON ark_labels(account_id);
 `
 
-const SCHEMAS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4]
+const SCHEMA_V5 = `
+ALTER TABLE accounts ADD COLUMN birthday_date TEXT;
+ALTER TABLE accounts ADD COLUMN rpc_last_block_hash TEXT
+`
+
+const SCHEMAS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5]
 const CURRENT_VERSION = SCHEMAS.length
 
 function runSchemaStatements(db: NitroSQLiteConnection, schema: string) {
