@@ -1,5 +1,5 @@
 import { Stack, useFocusEffect } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import Animated, {
   useAnimatedStyle,
@@ -13,7 +13,6 @@ import SSCurrencyInput from '@/components/SSCurrencyInput'
 import SSDatePicker from '@/components/SSDatePicker'
 import SSText from '@/components/SSText'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
-import { useMountEffect } from '@/hooks/useMountEffect'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -46,6 +45,8 @@ type CurrencyKey =
   | 'CHF'
   | 'JPY'
 
+type PricesMap = ReturnType<typeof usePriceStore.getState>['prices']
+
 function ConverterHeader() {
   return (
     <SSText uppercase style={styles.headerTitle}>
@@ -56,11 +57,12 @@ function ConverterHeader() {
 
 export default function Converter() {
   const hasInitializedRef = useRef(false)
+  const priceRequestIdRef = useRef(0)
 
   const [date, setDate] = useState(new Date())
   const dateRef = useRef(date)
   const [pickerKey, setPickerKey] = useState(0)
-  const [lastChangeKey, setLastChangedKey] = useState<CurrencyKey>('sats')
+  const [lastChangeKey, setLastChangedKey] = useState<CurrencyKey>('bitcoin')
   const [showWrittenNumbers, setShowWrittenNumbers] = useState(false)
   const [useEuropeanScale, setUseEuropeanScale] = useState(false)
   const [currencyValues, setCurrencyValues] = useState({
@@ -159,18 +161,10 @@ export default function Converter() {
     )
   }
 
-  function startLoading() {
-    animateLoading(true)
-  }
-
-  function stopLoading() {
-    animateLoading(false)
-  }
-
   function getBitcoinValue(
     key: CurrencyKey,
     value: number,
-    priceMap = usePriceStore.getState().prices
+    priceMap: PricesMap
   ): number {
     if (key === 'sats') {
       return value / SATS_PER_BITCOIN
@@ -207,19 +201,34 @@ export default function Converter() {
   }
 
   async function refreshPricesForDate(value: Date) {
+    const requestId = ++priceRequestIdRef.current
     const timestamp = Math.floor(new Date(value).setHours(0, 0, 0, 0) / 1000)
-    startLoading()
+    animateLoading(true)
     try {
       await fetchFullPriceAt(mempoolUrl, timestamp)
+      if (requestId !== priceRequestIdRef.current) {
+        return
+      }
       const key = lastChangeKeyRef.current
-      applyAnchoredValues(key, currencyValuesRef.current[key])
+      const anchoredValue = currencyValuesRef.current[key]
+      applyAnchoredValues(
+        key,
+        hasInitializedRef.current ? anchoredValue : 1,
+        usePriceStore.getState().prices
+      )
+      hasInitializedRef.current = true
     } finally {
-      stopLoading()
+      if (requestId === priceRequestIdRef.current) {
+        animateLoading(false)
+      }
     }
   }
 
+  const refreshPricesForDateRef = useRef(refreshPricesForDate)
+  refreshPricesForDateRef.current = refreshPricesForDate
+
   function handleDragStart() {
-    startLoading()
+    animateLoading(true)
   }
 
   function handleToggleWrittenNumbers() {
@@ -249,16 +258,13 @@ export default function Converter() {
     void refreshPricesForDate(value)
   }
 
-  useMountEffect(() => {
-    if (!hasInitializedRef.current) {
-      hasInitializedRef.current = true
-      handleValueChange('bitcoin', 1)
-    }
-  })
-
-  useFocusEffect(() => {
-    void refreshPricesForDate(dateRef.current)
-  })
+  // useCallback required: useFocusEffect re-runs whenever the callback identity
+  // changes, which would refetch on every keystroke and overwrite input state.
+  useFocusEffect(
+    useCallback(() => {
+      void refreshPricesForDateRef.current(dateRef.current)
+    }, [])
+  )
 
   return (
     <>
