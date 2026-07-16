@@ -288,7 +288,7 @@
     "rescan.confirm": "Rescan from beginning?",
     "rescan.description": "This will delete the cached wallet history and scan all blocks from your configured start height. For imported wallets set a 'Scan From Block' in the RPC server settings to avoid scanning from genesis.",
     "rescan.requiresReopen": "Please lock and unlock the app first, then try again.",
-    "rescan.success": "Wallet reset. Rescan will start on next unlock.",
+    "rescan.success": "Wallet history cleared. Syncing from the start…",
     "rescan.title": "Rescan Wallet",
     "script": "Script",
     "seed.dropAndKeep.tpub": "Drop Seed & Keep TPub",

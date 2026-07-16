@@ -172,7 +172,10 @@ export default function AccountSettings() {
 
   async function handleRescan() {
     setRescanModalVisible(false)
-    const dbPath = dbPaths[currentAccountId!]
+    if (!account || !currentAccountId) {
+      return
+    }
+    const dbPath = dbPaths[currentAccountId]
     if (!dbPath) {
       // dbPath is only stored after the wallet was loaded with the new code.
       // Removing from store and letting loadWallets recreate will NOT help
@@ -182,14 +185,29 @@ export default function AccountSettings() {
       return
     }
     await deleteWalletDb(dbPath)
-    // Also clear the RPC incremental-sync checkpoint, otherwise the next
-    // sync resumes from rpcLastBlockHash instead of doing a full rescan.
-    if (account?.rpcLastBlockHash) {
-      updateAccount({ ...account, rpcLastBlockHash: undefined })
-    }
-    removeAccountWallet(currentAccountId!)
+    // Wipe cached chain data and the RPC incremental checkpoint so the next
+    // sync does a full history scan instead of merging with stale state.
+    // Keep keys, labels, birthday, and Nostr config.
+    updateAccount({
+      ...account,
+      addresses: [],
+      lastSyncedAt: undefined,
+      rpcLastBlockHash: undefined,
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      syncProgress: undefined,
+      syncStatus: 'unsynced',
+      transactions: [],
+      utxos: []
+    })
+    removeAccountWallet(currentAccountId)
     toast.success(t('account.rescan.success'))
-    router.replace('/signer/bitcoin/accountList')
+    router.replace(`/signer/bitcoin/account/${currentAccountId}/`)
   }
 
   async function decryptMnemonic() {

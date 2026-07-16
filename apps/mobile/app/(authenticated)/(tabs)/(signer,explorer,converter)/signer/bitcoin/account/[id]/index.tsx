@@ -311,29 +311,34 @@ function SyncScanStats({
   const isSyncing = syncStatus === 'syncing'
   const hasBlockProgress =
     tasksDone !== undefined && totalTasks !== undefined && totalTasks > 0
+  // Full-history / first scan emits birthday→tip date metadata. Incremental
+  // catch-ups only get the blocks/% line.
+  const isInitialScan =
+    currentBlockTimeSec !== undefined && scanFromTimeSec !== undefined
 
   useEffect(() => {
     setThroughput(
       trackerRef.current.update(
         hasBlockProgress ? tasksDone : undefined,
         hasBlockProgress ? totalTasks : undefined,
-        isSyncing
+        isSyncing && isInitialScan
       )
     )
-  }, [hasBlockProgress, isSyncing, tasksDone, totalTasks])
+  }, [hasBlockProgress, isInitialScan, isSyncing, tasksDone, totalTasks])
 
   if (!isSyncing) {
     return null
   }
 
   const rateLabel =
-    throughput.blocksPerSec !== null
+    isInitialScan && throughput.blocksPerSec !== null
       ? t('account.syncBlocksPerSec', {
           rate: formatBlocksPerSec(throughput.blocksPerSec)
         })
       : null
-  const etaLabel =
-    throughput.etaSeconds !== null
+  const etaLabel = !isInitialScan
+    ? null
+    : throughput.etaSeconds !== null
       ? t('account.syncEta', {
           eta: formatScanDuration(throughput.etaSeconds)
         })
@@ -341,16 +346,15 @@ function SyncScanStats({
         ? t('account.syncEtaCalculating')
         : null
 
-  const scanRangeLabel =
-    currentBlockTimeSec !== undefined && scanFromTimeSec !== undefined
-      ? t('account.syncScanRange', {
-          current: formatDate(currentBlockTimeSec * 1000),
-          from: formatDate(scanFromTimeSec * 1000)
-        })
-      : null
+  const scanRangeLabel = isInitialScan
+    ? t('account.syncScanRange', {
+        current: formatDate(currentBlockTimeSec * 1000),
+        from: formatDate(scanFromTimeSec * 1000)
+      })
+    : null
 
   const txFoundLabel =
-    transactionsFound !== undefined
+    isInitialScan && transactionsFound !== undefined
       ? t('account.syncTransactionsFound', {
           count: transactionsFound
         })
@@ -398,7 +402,7 @@ function SyncScanStats({
           ) : null}
         </SSHStack>
       ) : null}
-      {hasBlockProgress ? (
+      {isInitialScan && hasBlockProgress ? (
         <View style={styles.syncProgressTrack}>
           <View
             style={[styles.syncProgressFill, { width: `${throughput.pct}%` }]}
