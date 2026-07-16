@@ -7,7 +7,6 @@ import Animated, {
   withDelay,
   withTiming
 } from 'react-native-reanimated'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCurrencyInput from '@/components/SSCurrencyInput'
@@ -62,7 +61,6 @@ export default function Converter() {
   const dateRef = useRef(date)
   const [pickerKey, setPickerKey] = useState(0)
   const [lastChangeKey, setLastChangedKey] = useState<CurrencyKey>('sats')
-  const [isLoading, setIsLoading] = useState(false)
   const [showWrittenNumbers, setShowWrittenNumbers] = useState(false)
   const [useEuropeanScale, setUseEuropeanScale] = useState(false)
   const [currencyValues, setCurrencyValues] = useState({
@@ -76,25 +74,17 @@ export default function Converter() {
     sats: 0
   })
 
-  const [prices, fetchFullPriceAt] = usePriceStore(
-    useShallow((state) => [state.prices, state.fetchFullPriceAt])
-  )
-  const prevPricesRef = useRef(prices)
+  const fetchFullPriceAt = usePriceStore((state) => state.fetchFullPriceAt)
+  const lastChangeKeyRef = useRef(lastChangeKey)
+  lastChangeKeyRef.current = lastChangeKey
+  const currencyValuesRef = useRef(currencyValues)
+  currencyValuesRef.current = currencyValues
 
   const writtenNumberH = useSharedValue(0)
   const writtenNumberAnimStyle = useAnimatedStyle(() => ({
-    height: writtenNumberH.value,
+    height: writtenNumberH.get(),
     overflow: 'hidden'
   }))
-
-  const prevShowWrittenRef = useRef(showWrittenNumbers)
-  if (prevShowWrittenRef.current !== showWrittenNumbers) {
-    prevShowWrittenRef.current = showWrittenNumbers
-    writtenNumberH.value = withTiming(
-      showWrittenNumbers ? WRITTEN_NUMBER_HEIGHT : 0,
-      { duration: WRITTEN_NUMBER_DURATION }
-    )
-  }
 
   const op0 = useSharedValue(1)
   const op1 = useSharedValue(1)
@@ -102,111 +92,146 @@ export default function Converter() {
   const op3 = useSharedValue(1)
   const op4 = useSharedValue(1)
 
-  const animStyle0 = useAnimatedStyle(() => ({ opacity: op0.value }))
-  const animStyle1 = useAnimatedStyle(() => ({ opacity: op1.value }))
-  const animStyle2 = useAnimatedStyle(() => ({ opacity: op2.value }))
-  const animStyle3 = useAnimatedStyle(() => ({ opacity: op3.value }))
-  const animStyle4 = useAnimatedStyle(() => ({ opacity: op4.value }))
-
-  const prevIsLoadingRef = useRef(isLoading)
-  if (prevIsLoadingRef.current !== isLoading) {
-    prevIsLoadingRef.current = isLoading
-    if (isLoading) {
-      op0.value = withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
-      op1.value = withDelay(
-        MUTE_STAGGER * 1,
-        withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
-      )
-      op2.value = withDelay(
-        MUTE_STAGGER * 2,
-        withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
-      )
-      op3.value = withDelay(
-        MUTE_STAGGER * 3,
-        withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
-      )
-      op4.value = withDelay(
-        MUTE_STAGGER * 4,
-        withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
-      )
-    } else {
-      op0.value = withTiming(1, { duration: UNMUTE_DURATION })
-      op1.value = withDelay(
-        UNMUTE_STAGGER * 1,
-        withTiming(1, { duration: UNMUTE_DURATION })
-      )
-      op2.value = withDelay(
-        UNMUTE_STAGGER * 2,
-        withTiming(1, { duration: UNMUTE_DURATION })
-      )
-      op3.value = withDelay(
-        UNMUTE_STAGGER * 3,
-        withTiming(1, { duration: UNMUTE_DURATION })
-      )
-      op4.value = withDelay(
-        UNMUTE_STAGGER * 4,
-        withTiming(1, { duration: UNMUTE_DURATION })
-      )
-    }
-  }
+  const animStyle0 = useAnimatedStyle(() => ({ opacity: op0.get() }))
+  const animStyle1 = useAnimatedStyle(() => ({ opacity: op1.get() }))
+  const animStyle2 = useAnimatedStyle(() => ({ opacity: op2.get() }))
+  const animStyle3 = useAnimatedStyle(() => ({ opacity: op3.get() }))
+  const animStyle4 = useAnimatedStyle(() => ({ opacity: op4.get() }))
 
   const mempoolUrl = useBlockchainStore(
     (state) => state.configsMempool['bitcoin']
   )
 
-  if (prices !== prevPricesRef.current && hasInitializedRef.current) {
-    prevPricesRef.current = prices
-    const anchoredValue = currencyValues[lastChangeKey]
-    const btc = getBitcoinValue(lastChangeKey, anchoredValue)
-    setIsLoading(false)
-    setCurrencyValues({
-      CAD: (prices.CAD || 0) * btc,
-      CHF: (prices.CHF || 0) * btc,
-      EUR: (prices.EUR || 0) * btc,
-      GBP: (prices.GBP || 0) * btc,
-      JPY: (prices.JPY || 0) * btc,
-      USD: (prices.USD || 0) * btc,
-      bitcoin: btc,
-      sats: Math.round(btc * SATS_PER_BITCOIN),
-      [lastChangeKey]: anchoredValue
-    })
+  function animateLoading(loading: boolean) {
+    if (loading) {
+      op0.set(withTiming(MUTED_OPACITY, { duration: MUTE_DURATION }))
+      op1.set(
+        withDelay(
+          MUTE_STAGGER * 1,
+          withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
+        )
+      )
+      op2.set(
+        withDelay(
+          MUTE_STAGGER * 2,
+          withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
+        )
+      )
+      op3.set(
+        withDelay(
+          MUTE_STAGGER * 3,
+          withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
+        )
+      )
+      op4.set(
+        withDelay(
+          MUTE_STAGGER * 4,
+          withTiming(MUTED_OPACITY, { duration: MUTE_DURATION })
+        )
+      )
+      return
+    }
+
+    op0.set(withTiming(1, { duration: UNMUTE_DURATION }))
+    op1.set(
+      withDelay(
+        UNMUTE_STAGGER * 1,
+        withTiming(1, { duration: UNMUTE_DURATION })
+      )
+    )
+    op2.set(
+      withDelay(
+        UNMUTE_STAGGER * 2,
+        withTiming(1, { duration: UNMUTE_DURATION })
+      )
+    )
+    op3.set(
+      withDelay(
+        UNMUTE_STAGGER * 3,
+        withTiming(1, { duration: UNMUTE_DURATION })
+      )
+    )
+    op4.set(
+      withDelay(
+        UNMUTE_STAGGER * 4,
+        withTiming(1, { duration: UNMUTE_DURATION })
+      )
+    )
   }
 
-  function getBitcoinValue(key: CurrencyKey, value: number): number {
+  function startLoading() {
+    animateLoading(true)
+  }
+
+  function stopLoading() {
+    animateLoading(false)
+  }
+
+  function getBitcoinValue(
+    key: CurrencyKey,
+    value: number,
+    priceMap = usePriceStore.getState().prices
+  ): number {
     if (key === 'sats') {
       return value / SATS_PER_BITCOIN
     }
     if (key === 'bitcoin') {
       return value
     }
-    const price = prices[key]
+    const price = priceMap[key]
     return price ? value / price : 0
+  }
+
+  function applyAnchoredValues(
+    key: CurrencyKey,
+    anchoredValue: number,
+    priceMap = usePriceStore.getState().prices
+  ) {
+    const btc = getBitcoinValue(key, anchoredValue, priceMap)
+    setCurrencyValues({
+      CAD: (priceMap.CAD || 0) * btc,
+      CHF: (priceMap.CHF || 0) * btc,
+      EUR: (priceMap.EUR || 0) * btc,
+      GBP: (priceMap.GBP || 0) * btc,
+      JPY: (priceMap.JPY || 0) * btc,
+      USD: (priceMap.USD || 0) * btc,
+      bitcoin: btc,
+      sats: Math.round(btc * SATS_PER_BITCOIN),
+      [key]: anchoredValue
+    })
   }
 
   function handleValueChange(key: CurrencyKey, value: number) {
     setLastChangedKey(key)
+    applyAnchoredValues(key, value)
+  }
 
-    const bitcoinValue = getBitcoinValue(key, value)
-
-    setCurrencyValues({
-      CAD: (prices.CAD || 0) * bitcoinValue,
-      CHF: (prices.CHF || 0) * bitcoinValue,
-      EUR: (prices.EUR || 0) * bitcoinValue,
-      GBP: (prices.GBP || 0) * bitcoinValue,
-      JPY: (prices.JPY || 0) * bitcoinValue,
-      USD: (prices.USD || 0) * bitcoinValue,
-      bitcoin: bitcoinValue,
-      sats: Math.round(bitcoinValue * SATS_PER_BITCOIN),
-      [key]: value
-    })
+  async function refreshPricesForDate(value: Date) {
+    const timestamp = Math.floor(new Date(value).setHours(0, 0, 0, 0) / 1000)
+    startLoading()
+    try {
+      await fetchFullPriceAt(mempoolUrl, timestamp)
+      const key = lastChangeKeyRef.current
+      applyAnchoredValues(key, currencyValuesRef.current[key])
+    } finally {
+      stopLoading()
+    }
   }
 
   function handleDragStart() {
-    setIsLoading(true)
+    startLoading()
   }
 
   function handleToggleWrittenNumbers() {
-    setShowWrittenNumbers((prev) => !prev)
+    setShowWrittenNumbers((prev) => {
+      const next = !prev
+      writtenNumberH.set(
+        withTiming(next ? WRITTEN_NUMBER_HEIGHT : 0, {
+          duration: WRITTEN_NUMBER_DURATION
+        })
+      )
+      return next
+    })
   }
 
   function handleToggleEuropeanScale() {
@@ -221,9 +246,7 @@ export default function Converter() {
   function handleDateChange(value: Date) {
     dateRef.current = value
     setDate(value)
-    const timestamp = Math.floor(new Date(value).setHours(0, 0, 0, 0) / 1000)
-    setIsLoading(true)
-    fetchFullPriceAt(mempoolUrl, timestamp)
+    void refreshPricesForDate(value)
   }
 
   useMountEffect(() => {
@@ -234,11 +257,7 @@ export default function Converter() {
   })
 
   useFocusEffect(() => {
-    const timestamp = Math.floor(
-      new Date(dateRef.current).setHours(0, 0, 0, 0) / 1000
-    )
-    setIsLoading(true)
-    fetchFullPriceAt(mempoolUrl, timestamp)
+    void refreshPricesForDate(dateRef.current)
   })
 
   return (
