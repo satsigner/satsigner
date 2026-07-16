@@ -3,9 +3,85 @@ import {
   buildStonewallMaterializationPlan,
   buildStonewallPreviewOutputs,
   CHART_REMAINING_BALANCE_LOCAL_ID,
+  classifyChartOutput,
+  getEphemeralChangeOutputLocalIds,
   getStonewallPaymentContext
 } from '@/utils/stonewall'
 import { splitStonewallOutputValues } from '@/utils/utxo'
+
+describe('classifyChartOutput', () => {
+  const own = new Set(['bc1qown', 'bc1qchange', 'bc1qdecoy'])
+
+  it('marks fake-mix outputs', () => {
+    expect(
+      classifyChartOutput(
+        {
+          kind: 'fakeMix',
+          label: 'Coffee',
+          localId: 'stonewallFakeMix-0',
+          to: 'bc1qdecoy'
+        },
+        own
+      )
+    ).toStrictEqual({
+      isChange: false,
+      isFakeMix: true,
+      isSelfSend: false
+    })
+  })
+
+  it('marks change outputs by kind even when address is wallet-owned', () => {
+    expect(
+      classifyChartOutput(
+        {
+          kind: 'change',
+          label: 'Change',
+          localId: 'stonewallChange-0',
+          to: 'bc1qchange'
+        },
+        own
+      )
+    ).toStrictEqual({
+      isChange: true,
+      isFakeMix: false,
+      isSelfSend: false
+    })
+  })
+
+  it('marks self-sends to own addresses that are not change', () => {
+    expect(
+      classifyChartOutput(
+        {
+          label: 'Refund',
+          localId: 'out-1',
+          to: 'bc1qown'
+        },
+        own
+      )
+    ).toStrictEqual({
+      isChange: false,
+      isFakeMix: false,
+      isSelfSend: true
+    })
+  })
+
+  it('marks external recipients as spends', () => {
+    expect(
+      classifyChartOutput(
+        {
+          label: 'Merchant',
+          localId: 'out-2',
+          to: 'bc1qexternal'
+        },
+        own
+      )
+    ).toStrictEqual({
+      isChange: false,
+      isFakeMix: false,
+      isSelfSend: false
+    })
+  })
+})
 
 describe('buildStonewallPreviewOutputs', () => {
   it('returns empty when fee is null', () => {
@@ -42,14 +118,34 @@ describe('buildStonewallPreviewOutputs', () => {
     })
     expect(outputs[1]).toMatchObject({
       amount: 1000,
+      kind: 'change',
       localId: 'stonewallChange-0',
       to: 'bc1qchange1'
     })
     expect(outputs[2]).toMatchObject({
       amount: 2000,
+      kind: 'change',
       localId: 'stonewallChange-1',
       to: 'bc1qchange2'
     })
+  })
+
+  it('applies label overrides to preview outputs', () => {
+    const outputs = buildStonewallPreviewOutputs({
+      changeAddress: 'bc1qchange1',
+      changeValues: [1000],
+      decoyAddress: 'bc1qdecoy',
+      fakeMixLabel: 'Coffee shop',
+      fakeMixValues: [500],
+      fee: 678,
+      labelOverrides: {
+        'stonewallChange-0': 'Savings',
+        'stonewallFakeMix-0': 'Decoy'
+      }
+    })
+
+    expect(outputs[0].label).toBe('Decoy')
+    expect(outputs[1].label).toBe('Savings')
   })
 })
 
@@ -76,6 +172,7 @@ describe('buildStonewallMaterializationPlan', () => {
         },
         {
           amount: 1_000,
+          kind: 'change',
           label: 'Change',
           to: 'bc1qchange1'
         }
@@ -164,5 +261,52 @@ describe('splitStonewallOutputValues', () => {
       changeValues: [200, 300],
       fakeMixValues: [100]
     })
+  })
+})
+
+describe('getEphemeralChangeOutputLocalIds', () => {
+  it('returns stonewall-managed and change-address output ids', () => {
+    expect(
+      getEphemeralChangeOutputLocalIds(
+        [
+          {
+            kind: undefined,
+            localId: 'payment',
+            to: 'bc1qrecipient'
+          },
+          {
+            kind: 'fakeMix',
+            localId: 'stonewallFakeMix-0',
+            to: 'bc1qdecoy'
+          },
+          {
+            kind: 'change',
+            localId: 'stonewallChange-0',
+            to: 'bc1qchange'
+          },
+          {
+            kind: undefined,
+            localId: 'user-change',
+            to: 'bc1qchange2'
+          }
+        ],
+        ['bc1qchange', 'bc1qchange2', 'bc1qdecoy']
+      )
+    ).toStrictEqual(['stonewallFakeMix-0', 'stonewallChange-0', 'user-change'])
+  })
+
+  it('ignores undefined change addresses and payment outputs', () => {
+    expect(
+      getEphemeralChangeOutputLocalIds(
+        [
+          {
+            kind: undefined,
+            localId: 'payment',
+            to: 'bc1qrecipient'
+          }
+        ],
+        [undefined, undefined]
+      )
+    ).toStrictEqual([])
   })
 })

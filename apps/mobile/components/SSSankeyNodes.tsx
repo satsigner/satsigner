@@ -167,9 +167,14 @@ function SSSankeyNodes({
           isTransactionChart={isTransactionChart}
           selectedOutputNode={selectedOutputNode}
           isFakeMix={node.ioData?.isFakeMix === true}
+          isChange={
+            node.ioData?.isChange === true ||
+            node?.localId === CHART_REMAINING_BALANCE_LOCAL_ID
+          }
           isSelfSend={
-            node.ioData?.isSelfSend &&
-            !(node?.localId === CHART_REMAINING_BALANCE_LOCAL_ID) &&
+            node.ioData?.isSelfSend === true &&
+            node.ioData?.isChange !== true &&
+            node?.localId !== CHART_REMAINING_BALANCE_LOCAL_ID &&
             node.ioData?.isFakeMix !== true
           }
           showUnspentLabel={showUnspentLabel}
@@ -196,6 +201,7 @@ function NodeText({
   isTransactionChart,
   selectedOutputNode,
   isFakeMix,
+  isChange: isChangeProp,
   isSelfSend,
   showUnspentLabel = true
 }: {
@@ -209,13 +215,15 @@ function NodeText({
   isTransactionChart: boolean
   selectedOutputNode?: string
   isFakeMix?: boolean
+  isChange?: boolean
   isSelfSend?: boolean
   showUnspentLabel?: boolean
 }) {
   const isMiningFee = localId.includes('minerFee')
   const isHigherMinerFee = ioData?.higherFee === true
   const isFeeValueWarning = isHigherMinerFee || ioData?.elevatedFeeRate === true
-  const isChange = localId === CHART_REMAINING_BALANCE_LOCAL_ID
+  const isChange =
+    isChangeProp === true || localId === CHART_REMAINING_BALANCE_LOCAL_ID
   const isUnspent = ioData?.isUnspent
 
   const shadowPaint = useMemo(() => {

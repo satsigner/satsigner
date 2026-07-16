@@ -1,4 +1,4 @@
-export type OutputKind = 'fakeMix'
+export type OutputKind = 'fakeMix' | 'change'
 
 export type Output = {
   localId: string

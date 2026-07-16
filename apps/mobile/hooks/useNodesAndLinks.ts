@@ -8,7 +8,10 @@ import { type Utxo } from '@/types/models/Utxo'
 import { formatDate, formatRelativeTime } from '@/utils/date'
 import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
-import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
+import {
+  CHART_REMAINING_BALANCE_LOCAL_ID,
+  classifyChartOutput
+} from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -46,6 +49,7 @@ export type TxNode = {
     elevatedFeeRate?: boolean // fee rate is at least 2x the recommended next-block fee
     feePercentage?: number // miner fee is 10% or higher of the total transaction value
     isFakeMix?: boolean
+    isChange?: boolean
     isSelfSend?: boolean // NEW: flag for self-send
     maxAllowedSats?: number
   }
@@ -116,8 +120,7 @@ export const useNodesAndLinks = ({
           address: formatAddress(output.to, 4),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.amount), 2),
-          isFakeMix: output.kind === 'fakeMix',
-          isSelfSend: output.kind !== 'fakeMix' && ownAddresses.has(output.to),
+          ...classifyChartOutput(output, ownAddresses),
           isUnspent: true,
           label: output.label,
           text: t('transaction.build.unspent'),
@@ -139,6 +142,7 @@ export const useNodesAndLinks = ({
           ioData: {
             fiatCurrency,
             fiatValue: formatNumber(satsToFiat(remainingBalance), 2),
+            isChange: true,
             isUnspent: true,
             text: t('transaction.build.unspent'),
             value: remainingBalance
