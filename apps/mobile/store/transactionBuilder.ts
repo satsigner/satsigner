@@ -5,12 +5,33 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
 import mmkvStorage from '@/storage/mmkv'
+import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { randomUuid } from '@/utils/crypto'
+import {
+  DEFAULT_AUTO_SELECT,
+  resolveDraftAlgorithm
+} from '@/utils/draftSelection'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 enableMapSet()
+
+type StonewallPreviewState = {
+  changeValues: number[]
+  excludedUtxoOutpoints: string[]
+  fakeMixValues: number[]
+  fee: number | null
+  labelOverrides: Record<string, string>
+}
+
+const EMPTY_STONEWALL_PREVIEW: StonewallPreviewState = {
+  changeValues: [],
+  excludedUtxoOutpoints: [],
+  fakeMixValues: [],
+  fee: null,
+  labelOverrides: {}
+}
 
 type SavedDraft = {
   inputs: Record<string, Utxo>
@@ -20,6 +41,9 @@ type SavedDraft = {
   timeLock: number
   rbf: boolean
   cpfp: boolean
+  /** Last applied UTXO selection mode — defaults to 'user' for older drafts. */
+  selectedAutoSelectUtxos?: AutoSelectUtxosAlgorithm
+  stonewallPreview?: StonewallPreviewState
 }
 
 type TransactionBuilderState = {
@@ -31,6 +55,8 @@ type TransactionBuilderState = {
   timeLock: number
   rbf: boolean
   cpfp: boolean
+  selectedAutoSelectUtxos: AutoSelectUtxosAlgorithm
+  stonewallPreview: StonewallPreviewState
   psbt?: PsbtLike
   signedTx?: string
   signedPsbts: Map<number, string>
@@ -56,6 +82,9 @@ type TransactionBuilderAction = {
   setFeeRate: (feeRate: TransactionBuilderState['feeRate']) => void
   setFee: (fee: TransactionBuilderState['fee']) => void
   setRbf: (rbf: TransactionBuilderState['rbf']) => void
+  setSelectedAutoSelectUtxos: (algorithm: AutoSelectUtxosAlgorithm) => void
+  setStonewallPreview: (preview: Partial<StonewallPreviewState>) => void
+  clearStonewallPreview: () => void
   setPsbt: (psbt: NonNullable<TransactionBuilderState['psbt']>) => void
   setSignedTx: (
     signedTx: NonNullable<TransactionBuilderState['signedTx']>
@@ -64,10 +93,27 @@ type TransactionBuilderAction = {
   setBroadcasted: (broadcasted: boolean) => void
 }
 
+function normalizeStonewallPreview(
+  preview?: StonewallPreviewState
+): StonewallPreviewState {
+  if (!preview) {
+    return { ...EMPTY_STONEWALL_PREVIEW, labelOverrides: {} }
+  }
+  return {
+    changeValues: preview.changeValues ?? [],
+    excludedUtxoOutpoints: preview.excludedUtxoOutpoints ?? [],
+    fakeMixValues: preview.fakeMixValues ?? [],
+    fee: preview.fee ?? null,
+    labelOverrides: { ...(preview.labelOverrides ?? {}) }
+  }
+}
+
 function syncDraft(state: Draft<TransactionBuilderState>) {
   if (!state.accountId) {
     return
   }
+  // Avoid current(stonewallPreview): after replace it may be a plain object.
+  const preview = state.stonewallPreview
   state.drafts[state.accountId] = {
     cpfp: state.cpfp,
     fee: state.fee,
@@ -75,6 +121,14 @@ function syncDraft(state: Draft<TransactionBuilderState>) {
     inputs: Object.fromEntries(current(state.inputs)),
     outputs: current(state.outputs),
     rbf: state.rbf,
+    selectedAutoSelectUtxos: state.selectedAutoSelectUtxos,
+    stonewallPreview: {
+      changeValues: [...preview.changeValues],
+      excludedUtxoOutpoints: [...preview.excludedUtxoOutpoints],
+      fakeMixValues: [...preview.fakeMixValues],
+      fee: preview.fee,
+      labelOverrides: { ...preview.labelOverrides }
+    },
     timeLock: state.timeLock
   }
 }
@@ -101,6 +155,12 @@ const useTransactionBuilderStore = create<
       clearPsbt: () => {
         set({ psbt: undefined })
       },
+      clearStonewallPreview: () => {
+        set((state) => {
+          state.stonewallPreview = normalizeStonewallPreview()
+          syncDraft(state)
+        })
+      },
       clearTransaction: () => {
         const { accountId, drafts } = get()
         const updatedDrafts = { ...drafts }
@@ -118,8 +178,10 @@ const useTransactionBuilderStore = create<
           outputs: [],
           psbt: undefined,
           rbf: true,
+          selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
           signedPsbts: new Map<number, string>(),
           signedTx: undefined,
+          stonewallPreview: normalizeStonewallPreview(),
           timeLock: 0
         })
       },
@@ -160,6 +222,7 @@ const useTransactionBuilderStore = create<
           syncDraft(state)
         })
       },
+      selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
       setAccountId: (accountId) => {
         const {
           accountId: currentId,
@@ -170,7 +233,9 @@ const useTransactionBuilderStore = create<
           timeLock,
           rbf,
           cpfp,
-          drafts
+          drafts,
+          selectedAutoSelectUtxos,
+          stonewallPreview
         } = get()
 
         if (currentId === accountId) {
@@ -187,6 +252,8 @@ const useTransactionBuilderStore = create<
             inputs: Object.fromEntries(inputs),
             outputs: [...outputs],
             rbf,
+            selectedAutoSelectUtxos,
+            stonewallPreview: normalizeStonewallPreview(stonewallPreview),
             timeLock
           }
         }
@@ -205,8 +272,12 @@ const useTransactionBuilderStore = create<
           outputs: newDraft?.outputs ?? [],
           psbt: undefined,
           rbf: newDraft?.rbf ?? true,
+          selectedAutoSelectUtxos: resolveDraftAlgorithm(newDraft),
           signedPsbts: new Map<number, string>(),
           signedTx: undefined,
+          stonewallPreview: normalizeStonewallPreview(
+            newDraft?.stonewallPreview
+          ),
           timeLock: newDraft?.timeLock ?? 0
         })
       },
@@ -234,13 +305,33 @@ const useTransactionBuilderStore = create<
           syncDraft(state)
         })
       },
+      setSelectedAutoSelectUtxos: (algorithm) => {
+        set((state) => {
+          state.selectedAutoSelectUtxos = algorithm
+          syncDraft(state)
+        })
+      },
       setSignedPsbts: (signedPsbts) => {
         set({ signedPsbts })
       },
       setSignedTx: (signedTx) => {
         set({ signedTx })
       },
+      setStonewallPreview: (preview) => {
+        set((state) => {
+          state.stonewallPreview = {
+            ...state.stonewallPreview,
+            ...preview,
+            labelOverrides:
+              preview.labelOverrides !== undefined
+                ? preview.labelOverrides
+                : state.stonewallPreview.labelOverrides
+          }
+          syncDraft(state)
+        })
+      },
       signedPsbts: new Map<number, string>(),
+      stonewallPreview: normalizeStonewallPreview(),
       timeLock: 0,
       updateOutput: (localId, output) => {
         set((state) => {
@@ -271,6 +362,8 @@ const useTransactionBuilderStore = create<
           inputs: new Map(Object.entries(draft.inputs)),
           outputs: draft.outputs,
           rbf: draft.rbf,
+          selectedAutoSelectUtxos: resolveDraftAlgorithm(draft),
+          stonewallPreview: normalizeStonewallPreview(draft.stonewallPreview),
           timeLock: draft.timeLock
         })
       },
@@ -284,4 +377,4 @@ const useTransactionBuilderStore = create<
 )
 
 export { useTransactionBuilderStore }
-export type { SavedDraft }
+export type { SavedDraft, StonewallPreviewState }
