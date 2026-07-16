@@ -17,11 +17,11 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors, Layout, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
 import { isToday } from '@/utils/date'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatLargeNumber } from '@/utils/format'
 
 const MUTED_OPACITY = 0.35
@@ -99,10 +99,6 @@ export default function Converter() {
   const animStyle2 = useAnimatedStyle(() => ({ opacity: op2.get() }))
   const animStyle3 = useAnimatedStyle(() => ({ opacity: op3.get() }))
   const animStyle4 = useAnimatedStyle(() => ({ opacity: op4.get() }))
-
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool['bitcoin']
-  )
 
   function animateLoading(loading: boolean) {
     if (loading) {
@@ -206,7 +202,7 @@ export default function Converter() {
     const timestamp = Math.floor(new Date(value).setHours(0, 0, 0, 0) / 1000)
     animateLoading(true)
     try {
-      await fetchFullPriceAt(mempoolUrl, timestamp)
+      await fetchFullPriceAt(getFiatPriceApiUrl(), timestamp)
       if (requestId !== priceRequestIdRef.current) {
         return
       }

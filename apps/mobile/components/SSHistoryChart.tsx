@@ -23,6 +23,7 @@ import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
+import { useFiatData } from '@/hooks/useFiatData'
 import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
@@ -91,6 +92,8 @@ function SSHistoryChart({
       state.satsToFiat
     ])
   )
+  const { showCurrentFiat, showHistoricalFiat } = useFiatData()
+  const effectiveBtcPrice = showCurrentFiat ? btcPrice : 0
 
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
@@ -800,6 +803,7 @@ function SSHistoryChart({
         const transaction = transactionsMap.get(d.id)
         const historicalPrice =
           showFiatAtTxTime &&
+          showHistoricalFiat &&
           transaction?.prices &&
           transaction.prices[fiatCurrency]
             ? transaction.prices[fiatCurrency]
@@ -812,18 +816,19 @@ function SSHistoryChart({
         initialLabels.push({
           amount: d.amount,
           boundBox: {
-            bottom: showFiatOnChart && btcPrice > 0 ? bottom - 10 : bottom,
+            bottom:
+              showFiatOnChart && effectiveBtcPrice > 0 ? bottom - 10 : bottom,
             height:
-              showFiatOnChart && btcPrice > 0
+              showFiatOnChart && effectiveBtcPrice > 0
                 ? height + (showFiatAtTxTime && historicalFiatValue ? 12 : 12)
                 : height,
             left,
             right,
-            top: showFiatOnChart && btcPrice > 0 ? top - 10 : top,
+            top: showFiatOnChart && effectiveBtcPrice > 0 ? top - 10 : top,
             width
           },
           fiatValue:
-            showFiatOnChart && btcPrice > 0 && d.amount !== undefined
+            showFiatOnChart && effectiveBtcPrice > 0 && d.amount !== undefined
               ? satsToFiat(d.amount)
               : undefined,
           historicalFiatValue,
@@ -831,7 +836,7 @@ function SSHistoryChart({
           index,
           type: d.type,
           x,
-          y: showFiatOnChart && btcPrice > 0 ? y - 10 : y
+          y: showFiatOnChart && effectiveBtcPrice > 0 ? y - 10 : y
         })
       }
     }
@@ -864,7 +869,8 @@ function SSHistoryChart({
     chartHeight,
     showFiatOnChart,
     showFiatAtTxTime,
-    btcPrice,
+    showHistoricalFiat,
+    effectiveBtcPrice,
     satsToFiat,
     fiatCurrency,
     transactionsMap
@@ -900,10 +906,13 @@ function SSHistoryChart({
 
       const transaction = transactionsMap.get(label.id)
       const historicalPrice =
-        transaction?.prices && transaction.prices[fiatCurrency]
+        showHistoricalFiat &&
+        transaction?.prices &&
+        transaction.prices[fiatCurrency]
           ? transaction.prices[fiatCurrency]
           : undefined
-      const hasHistoricalPrice = historicalPrice && btcPrice > 0
+      const hasHistoricalPrice =
+        showHistoricalFiat && historicalPrice && effectiveBtcPrice > 0
       const needsSecondLine =
         (showFiatOnChart && label.fiatValue !== undefined) ||
         (showFiatPercentageChange && hasHistoricalPrice)
@@ -977,17 +986,24 @@ function SSHistoryChart({
 
       if (
         showFiatOnChart &&
+        effectiveBtcPrice > 0 &&
         label.fiatValue !== undefined &&
         label.amount !== undefined
       ) {
-        const currentPriceText = `≈ ${formatFiatPrice(label.amount, btcPrice)} ${fiatCurrency}`
+        const currentPriceText = `≈ ${formatFiatPrice(label.amount, effectiveBtcPrice)} ${fiatCurrency}`
         const historicalPriceText =
-          showFiatAtTxTime && historicalPrice && label.amount !== undefined
+          showFiatAtTxTime &&
+          showHistoricalFiat &&
+          historicalPrice &&
+          label.amount !== undefined
             ? ` (${formatFiatPrice(label.amount, historicalPrice)} ${fiatCurrency})`
             : ''
         const percentageChangeText =
-          showFiatPercentageChange && historicalPrice && btcPrice > 0
-            ? formatPercentualChange(btcPrice, historicalPrice)
+          showFiatPercentageChange &&
+          showHistoricalFiat &&
+          historicalPrice &&
+          effectiveBtcPrice > 0
+            ? formatPercentualChange(effectiveBtcPrice, historicalPrice)
             : ''
 
         para
@@ -1015,12 +1031,13 @@ function SSHistoryChart({
         }
       } else if (
         showFiatPercentageChange &&
+        showHistoricalFiat &&
         historicalPrice &&
-        btcPrice > 0 &&
+        effectiveBtcPrice > 0 &&
         label.amount !== undefined
       ) {
         const percentageChangeText = formatPercentualChange(
-          btcPrice,
+          effectiveBtcPrice,
           historicalPrice
         )
         const isPositive = percentageChangeText[0] === '+'
@@ -1053,7 +1070,8 @@ function SSHistoryChart({
     showFiatOnChart,
     showFiatAtTxTime,
     showFiatPercentageChange,
-    btcPrice,
+    showHistoricalFiat,
+    effectiveBtcPrice,
     fiatCurrency,
     transactionsMap
   ])

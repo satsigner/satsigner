@@ -111,12 +111,14 @@ export default function Developer() {
 
     const accountsWithSeeds = await Promise.all(
       accounts.map(async (account) => ({
+        birthdayDate: account.birthdayDate,
         id: account.id,
         keys: await keysWithSeeds(account.id, account.keys),
         name: account.name,
         network: account.network,
         nostr: account.nostr,
         policyType: account.policyType,
+        rpcLastBlockHash: account.rpcLastBlockHash,
         summary: account.summary
       }))
     )

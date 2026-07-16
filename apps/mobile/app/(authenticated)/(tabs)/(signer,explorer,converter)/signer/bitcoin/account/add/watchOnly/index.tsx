@@ -932,7 +932,9 @@ export default function WatchOnly() {
                     data.wallet!
                   )
                 : await syncAccountWithAddress(data.accountWithEncryptedSecret)
-            updateAccount(updatedAccount)
+            if (updatedAccount) {
+              updateAccount(updatedAccount)
+            }
           } catch {
             /* silently ignored */
           }
@@ -1163,7 +1165,7 @@ export default function WatchOnly() {
         title={t('watchonly.titleModal').toUpperCase()}
         selectedText={t(`watchonly.${selectedOption}.title`)}
         selectedDescription={
-          <SSCollapsible>
+          <SSCollapsible fadeColor={Colors.black}>
             <SSText color="muted" size="md">
               {t(`watchonly.${selectedOption}.text`)}
             </SSText>

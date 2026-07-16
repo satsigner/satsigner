@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
@@ -280,6 +281,90 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                 }
                 transactionInputAddresses.set(txid, inputAddresses)
               }
+            } else if (server.backend === 'rpc') {
+              try {
+                const rpc = new BitcoinRpc(
+                  server.url,
+                  server.rpcCredentials?.username ?? '',
+                  server.rpcCredentials?.password ?? ''
+                )
+                const rawTx = await rpc
+                  .getRawTransaction(txid)
+                  .catch(() => null)
+                if (rawTx) {
+                  let blockHeight: number | undefined
+                  if (rawTx.confirmations && rawTx.blockhash) {
+                    blockHeight = await rpc
+                      .getBlock(rawTx.blockhash)
+                      .then((block) => block.height)
+                      .catch(() => undefined)
+                  }
+                  const mappedTx: Transaction = {
+                    address: undefined,
+                    blockHeight,
+                    fee: undefined,
+                    id: rawTx.txid,
+                    label: undefined,
+                    lockTime: rawTx.locktime,
+                    lockTimeEnabled: rawTx.locktime > 0,
+                    prices: {},
+                    raw: parseHexToBytes(rawTx.hex),
+                    received: 0,
+                    sent: 0,
+                    size: rawTx.size,
+                    timestamp: rawTx.blocktime
+                      ? new Date(rawTx.blocktime * 1000)
+                      : undefined,
+                    type: 'send',
+                    version: rawTx.version,
+                    vin: rawTx.vin.map((input) => ({
+                      address: 'unknown',
+                      label: undefined,
+                      previousOutput: input.txid
+                        ? {
+                            txid: normalizeTxid(input.txid),
+                            vout: input.vout ?? 0
+                          }
+                        : { txid: '0'.repeat(64), vout: 0 },
+                      scriptSig: [],
+                      sequence: input.sequence,
+                      value: undefined,
+                      witness: input.txinwitness
+                        ? input.txinwitness.map((w) =>
+                            Array.from(Buffer.from(w, 'hex'))
+                          )
+                        : []
+                    })),
+                    vout: rawTx.vout.map((output) => ({
+                      address:
+                        output.scriptPubKey.address ??
+                        output.scriptPubKey.addresses?.[0] ??
+                        '',
+                      label: undefined,
+                      script: parseHexToBytes(output.scriptPubKey.hex),
+                      value: Math.round(output.value * 1e8)
+                    })),
+                    vsize: rawTx.vsize,
+                    weight: rawTx.weight
+                  }
+                  newTransactions.set(txid, {
+                    ...(mappedTx as ExtendedTransaction),
+                    depthH: 0
+                  })
+
+                  const inputAddresses = new Set<string>()
+                  const outputAddresses = new Set<string>()
+                  for (const vout of mappedTx.vout ?? []) {
+                    if (vout.address) {
+                      outputAddresses.add(vout.address)
+                      allOutputAddresses.add(vout.address)
+                    }
+                  }
+                  transactionInputAddresses.set(txid, inputAddresses)
+                }
+              } catch {
+                /* RPC path failed for this txid */
+              }
             } else if (server.backend === 'electrum' && electrumClient) {
               // Check if electrumClient is initialized
               try {
@@ -473,6 +558,49 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
         )
 
         currentLevelDeep += 1
+      }
+
+      // Backfill input addresses/values by looking up each vin's previous
+      // output against transactions we've already fetched in this walk.
+      // Needed for the RPC backend: getrawtransaction doesn't return prevout
+      // info the way Esplora/Electrum's decoded views do, so RPC-sourced
+      // vins start out as address: 'unknown' with no input Set populated —
+      // without this, the ancestor tx-graph silently degrades to level 1
+      // for RPC accounts (every deeper transaction fails the address-match
+      // filter below).
+      for (const [txid, tx] of newTransactions.entries()) {
+        if (!tx.vin || tx.vin.length === 0) {
+          continue
+        }
+        let inputAddresses = transactionInputAddresses.get(txid)
+        let changed = false
+        const resolvedVin = tx.vin.map((vin) => {
+          if (vin.address && vin.address !== 'unknown') {
+            return vin
+          }
+          const parentTxid = normalizeTxid(vin.previousOutput.txid)
+          const parentTx = newTransactions.get(parentTxid)
+          const parentOut = parentTx?.vout?.[vin.previousOutput.vout]
+          if (!parentOut?.address) {
+            return vin
+          }
+          changed = true
+          if (!inputAddresses) {
+            inputAddresses = new Set<string>()
+          }
+          inputAddresses.add(parentOut.address)
+          return {
+            ...vin,
+            address: parentOut.address,
+            value: vin.value ?? parentOut.value
+          }
+        })
+        if (changed) {
+          newTransactions.set(txid, { ...tx, vin: resolvedVin })
+          if (inputAddresses) {
+            transactionInputAddresses.set(txid, inputAddresses)
+          }
+        }
       }
 
       // Filter transactions based on input/output address matching

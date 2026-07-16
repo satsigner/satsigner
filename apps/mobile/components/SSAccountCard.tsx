@@ -10,12 +10,13 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Layout, Sizes } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
@@ -52,6 +53,7 @@ function SSAccountCard({
   stats
 }: SSAccountCardProps) {
   const platform = Platform.OS
+  const { showCurrentFiat } = useFiatData()
   const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -199,48 +201,52 @@ function SSAccountCard({
             </SSText>
             {watchOnly && <SSIconEyeOn height={16} width={16} />}
           </SSHStack>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText
-              size="3xl"
-              color="white"
-              style={{ lineHeight: Sizes.text.fontSize['3xl'] }}
-            >
-              {privacyMode ? (
-                '••••'
-              ) : (
-                <SSStyledSatText
-                  amount={balance}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  textSize="3xl"
-                  weight="light"
-                  letterSpacing={-1}
-                />
-              )}
-            </SSText>
-            <SSText size="xl" color="muted">
-              {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-            </SSText>
-          </SSHStack>
-          <SSHStack
-            gap="xs"
-            style={{
-              alignItems: 'baseline',
-              paddingVertical: platform === 'android' ? 0 : 1
-            }}
-          >
-            <SSText color="muted">
-              {!btcPrice || btcPrice <= 0
-                ? '--'
-                : privacyMode
-                  ? '••••'
-                  : formatNumber(satsToFiat(balance), 2)}
-            </SSText>
-            <SSText size="xs" style={{ color: Colors.gray[500] }}>
-              {fiatCurrency}
-            </SSText>
-          </SSHStack>
+          <SSVStack gap="none">
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText
+                size="3xl"
+                color="white"
+                style={{ lineHeight: Sizes.text.fontSize['3xl'] }}
+              >
+                {privacyMode ? (
+                  '••••'
+                ) : (
+                  <SSStyledSatText
+                    amount={balance}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    textSize="3xl"
+                    weight="light"
+                    letterSpacing={-1}
+                  />
+                )}
+              </SSText>
+              <SSText size="xl" color="muted">
+                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
+              </SSText>
+            </SSHStack>
+            {showCurrentFiat ? (
+              <SSHStack
+                gap="xs"
+                style={{
+                  alignItems: 'baseline',
+                  marginTop: -Layout.vStack.gap.xs
+                }}
+              >
+                <SSText color="muted">
+                  {!btcPrice || btcPrice <= 0
+                    ? '--'
+                    : privacyMode
+                      ? '••••'
+                      : formatNumber(satsToFiat(balance), 2)}
+                </SSText>
+                <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                  {fiatCurrency}
+                </SSText>
+              </SSHStack>
+            ) : null}
+          </SSVStack>
           {stats && stats.length > 0 ? (
             <SSHStack>
               {stats.map((stat) => (

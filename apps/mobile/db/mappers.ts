@@ -28,6 +28,8 @@ type AccountRow = {
   sync_status: string
   sync_progress_total: number | null
   sync_progress_done: number | null
+  birthday_date: string | null
+  rpc_last_block_hash: string | null
   nostr_auto_sync: number
   nostr_common_npub: string
   nostr_common_nsec: string
@@ -201,6 +203,7 @@ function rowToAccount(
 
   return {
     addresses,
+    birthdayDate: row.birthday_date ? new Date(row.birthday_date) : undefined,
     createdAt: new Date(row.created_at),
     id: row.id,
     keyCount: row.key_count,
@@ -214,6 +217,7 @@ function rowToAccount(
     network: row.network as Account['network'],
     nostr,
     policyType: row.policy_type as Account['policyType'],
+    rpcLastBlockHash: row.rpc_last_block_hash ?? undefined,
     summary: {
       balance: row.balance,
       numberOfAddresses: row.num_addresses,

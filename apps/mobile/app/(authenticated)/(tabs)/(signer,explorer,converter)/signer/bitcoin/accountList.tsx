@@ -40,6 +40,7 @@ import {
 } from '@/constants/samples'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import useAccountsFingerprints from '@/hooks/useAccountsFingerprints'
+import { useFiatData } from '@/hooks/useFiatData'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
@@ -65,6 +66,7 @@ import {
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3
@@ -138,21 +140,16 @@ function AccountCardStaggerItem({
 export default function AccountList() {
   const router = useRouter()
 
-  const [
-    network,
-    setSelectedNetwork,
-    connectionMode,
-    autoConnectDelay,
-    mainnetMempoolUrl
-  ] = useBlockchainStore(
-    useShallow((state) => [
-      state.selectedNetwork,
-      state.setSelectedNetwork,
-      state.configs[state.selectedNetwork].config.connectionMode,
-      state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
-      state.configsMempool['bitcoin']
-    ])
-  )
+  const [network, setSelectedNetwork, connectionMode, autoConnectDelay] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.selectedNetwork,
+        state.setSelectedNetwork,
+        state.configs[state.selectedNetwork].config.connectionMode,
+        state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
+      ])
+    )
+  const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )
@@ -294,8 +291,11 @@ export default function AccountList() {
   }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    fetchPrices(mainnetMempoolUrl)
-  }, [fetchPrices, mainnetMempoolUrl])
+    if (!showCurrentFiat) {
+      return
+    }
+    fetchPrices(getFiatPriceApiUrl())
+  }, [fetchPrices, fiatPriceApiUrl, showCurrentFiat])
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
@@ -360,7 +360,9 @@ export default function AccountList() {
 
     for (const account of walletAccounts) {
       const u = await syncAccountWithWallet(account, wallets[account.id]!)
-      updateAccount(u)
+      if (u) {
+        updateAccount(u)
+      }
     }
   }
 
@@ -630,7 +632,9 @@ export default function AccountList() {
             data.wallet!
           )
         : await syncAccountWithAddress(data.accountWithEncryptedSecret)
-      updateAccount(updatedAccount)
+      if (updatedAccount) {
+        updateAccount(updatedAccount)
+      }
     }
     toast.success('Sample wallet created successfully!')
   }
@@ -795,7 +799,7 @@ export default function AccountList() {
         options={{
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('app.name')}
+              {t('bitcoin.network.bitcoin')}
             </SSText>
           )
         }}

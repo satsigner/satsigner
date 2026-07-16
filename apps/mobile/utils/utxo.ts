@@ -14,6 +14,8 @@ import {
   SEGWIT_OVERHEAD_VBYTES
 } from '@/utils/transaction'
 
+import { getUtxoOutpoint } from './outpoint'
+
 const DEFAULT_LONG_TERM_FEE_RATE = 5
 const SELECTION_SEED_MAX = 0x1_0000_0000
 const BASE_TX_OVERHEAD_VBYTES = 10
@@ -80,10 +82,6 @@ type OutputGroup = {
   effectiveValue: number
   fee: number
   longTermFee: number
-}
-
-function getUtxoOutpoint(utxo: Utxo) {
-  return `${utxo.txid}:${utxo.vout}`
 }
 
 function filterUtxosByExcludedOutpoints(

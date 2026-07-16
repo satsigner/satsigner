@@ -86,6 +86,22 @@ export function formatDateShort(timestamp: number | undefined): string {
   })
 }
 
+export const BIRTHDAY_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
+export const BIRTHDAY_DATE_LENGTH = 10
+
+/** Parses a YYYY-MM-DD birthday string. Returns null when malformed or not a real calendar date. */
+export function parseBirthdayDate(value: string): Date | null {
+  const trimmed = value.trim()
+  if (!BIRTHDAY_DATE_REGEX.test(trimmed)) {
+    return null
+  }
+  const parsed = new Date(trimmed)
+  if (isNaN(parsed.getTime())) {
+    return null
+  }
+  return parsed
+}
+
 export function formatAccountCreationDate(
   createdAt: Date | string | number | undefined
 ): string {

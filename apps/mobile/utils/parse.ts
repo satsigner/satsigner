@@ -2,7 +2,7 @@ import { t } from '@/locales'
 import type { Account } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 
-import { getUtxoOutpoint } from './utxo'
+import { getUtxoOutpoint } from './outpoint'
 
 function parseAccountAddressesDetails({
   addresses,

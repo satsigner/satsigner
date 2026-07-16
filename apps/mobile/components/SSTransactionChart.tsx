@@ -17,6 +17,11 @@ import {
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
 import {
+  isChangeOutputAddress,
+  isChangeOutputLabel,
+  normalizeAddressSet
+} from '@/utils/address'
+import {
   equalizeSankeyColumnsByDepthH,
   minSankeyStackedColumnInnerHeightPx
 } from '@/utils/equalizeSankeyColumnLayout'
@@ -43,6 +48,10 @@ interface Node extends SankeyNodeMinimal<object, object> {
 type SSTransactionChartProps = {
   transaction: Transaction
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  /** Wallet change (internal) addresses for identifying change outputs. */
+  internalAddresses?: Set<string>
+  /** Wallet UTXO outpoints (`txid:vout`) still unspent on-chain. */
+  unspentOutpoints?: Set<string>
   selectedOutputIndex?: number // Index of the output to highlight (vout)
   dimUnselected?: boolean // Dim non-selected outputs
   scale?: number // Scale factor for the chart (0-1)
@@ -53,6 +62,8 @@ type SSTransactionChartProps = {
 function SSTransactionChart({
   transaction,
   ownAddresses = new Set(),
+  internalAddresses = new Set(),
+  unspentOutpoints,
   selectedOutputIndex,
   dimUnselected = false,
   scale = 1,
@@ -60,6 +71,15 @@ function SSTransactionChart({
 }: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+
+  const normalizedOwnAddresses = useMemo(
+    () => normalizeAddressSet(ownAddresses),
+    [ownAddresses]
+  )
+  const normalizedInternalAddresses = useMemo(
+    () => normalizeAddressSet(internalAddresses),
+    [internalAddresses]
   )
 
   const totalOutputValue = transaction.vout.reduce(
@@ -191,8 +211,17 @@ function SSTransactionChart({
     const outputNodes: TxNode[] = outputs.map((output, index) => {
       const nodeId = String(index + 2 + inputs.length)
       const label = output.label ?? ''
+      const outputAddress = output.address.trim()
       const isChange =
-        label.includes('Change') || label.includes('[Change for]')
+        isChangeOutputAddress(outputAddress, normalizedInternalAddresses) ||
+        isChangeOutputLabel(label)
+      const isUnspent = unspentOutpoints
+        ? unspentOutpoints.has(`${transaction.id}:${index}`)
+        : true
+      const isSelfSend =
+        !isChange &&
+        outputAddress !== '' &&
+        normalizedOwnAddresses.has(outputAddress)
 
       return {
         depthH: 2,
@@ -201,10 +230,12 @@ function SSTransactionChart({
           address: formatAddress(output.address, 6),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.value), 2),
-          isSelfSend: !!(output.address && ownAddresses.has(output.address)),
-          isUnspent: true,
+          isSelfSend,
+          isUnspent,
           label: label || t('common.noLabel'),
-          text: t('transaction.build.unspent'),
+          text: isUnspent
+            ? t('transaction.build.unspent')
+            : t('transaction.build.spent'),
           value: output.value
         },
         localId: isChange ? 'remainingBalance' : `output-${index}`,
@@ -258,7 +289,10 @@ function SSTransactionChart({
     satsToFiat,
     fiatCurrency,
     totalOutputValue,
-    ownAddresses
+    normalizedOwnAddresses,
+    normalizedInternalAddresses,
+    unspentOutpoints,
+    transaction.id
   ])
 
   const sankeyLinks = useMemo(() => {

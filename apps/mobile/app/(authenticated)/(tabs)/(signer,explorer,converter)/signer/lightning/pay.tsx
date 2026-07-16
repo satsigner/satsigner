@@ -11,12 +11,11 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSText from '@/components/SSText'
-import { MEMPOOL_MAINNET_URL } from '@/config/servers'
+import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
@@ -66,14 +65,11 @@ export default function PayPage() {
       state.btcPrice
     ])
   )
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool['bitcoin']
-  )
+  const { fiatPriceApiUrl } = useFiatData()
 
   useEffect(() => {
-    const url = mempoolUrl?.trim() ? mempoolUrl : MEMPOOL_MAINNET_URL
-    fetchPrices(url)
-  }, [fetchPrices, fiatCurrency, mempoolUrl])
+    fetchPrices(fiatPriceApiUrl)
+  }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)

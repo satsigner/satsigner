@@ -102,6 +102,21 @@ function formatFiatPrice(sats: number, btcPrice: number) {
   return formatNumber((sats * btcPrice) / SATS_PER_BITCOIN, 2)
 }
 
+function formatConfirmationCount(confirmations: number) {
+  if (confirmations < 1_000) {
+    return `${confirmations}`
+  }
+
+  if (confirmations < 1_000_000) {
+    const roundedValue = Math.round(confirmations / 1_000)
+    return `~${roundedValue}k`
+  }
+
+  const roundedValue = Math.round(confirmations / 1_000_000)
+
+  return `~${roundedValue}M`
+}
+
 function formatConfirmations(confirmations: number) {
   if (confirmations <= 0) {
     return t('bitcoin.confirmations.unconfirmed')
@@ -111,21 +126,23 @@ function formatConfirmations(confirmations: number) {
     return t('bitcoin.confirmations.oneBlock')
   }
 
-  const manyBlocks = (blocks: string) =>
-    t('bitcoin.confirmations.manyBlocks', { blocks })
+  return t('bitcoin.confirmations.manyBlocks', {
+    blocks: formatConfirmationCount(confirmations)
+  })
+}
 
-  if (confirmations < 1_000) {
-    return manyBlocks(`${confirmations}`)
-  }
+function formatConfirmationsWithBlock(
+  confirmations: number,
+  blockHeight: number
+) {
+  const confLabel =
+    confirmations === 1
+      ? t('bitcoin.confirmations.oneConf')
+      : t('bitcoin.confirmations.manyConfs', {
+          blocks: formatConfirmationCount(confirmations)
+        })
 
-  if (confirmations < 1_000_000) {
-    const roundedValue = Math.round(confirmations / 1_000)
-    return manyBlocks(`~${roundedValue}k`)
-  }
-
-  const roundedValue = Math.round(confirmations / 1_000_000)
-
-  return manyBlocks(`~${roundedValue}M`)
+  return `${confLabel} • ${blockHeight.toLocaleString('en-US')}`
 }
 
 type TimeFromNow = [
@@ -164,6 +181,10 @@ function formatTimeFromNow(milliseconds: number): TimeFromNow {
 }
 
 function formatTxId(txid: string, character = 6) {
+  if (txid.includes('...') || txid.length <= character * 2 + 3) {
+    return txid
+  }
+
   const beginning = txid.substring(0, character)
   const end = txid.substring(txid.length - character, txid.length)
   return `${beginning}...${end}`
@@ -293,6 +314,7 @@ export {
   formatAddress,
   formatBytes,
   formatConfirmations,
+  formatConfirmationsWithBlock,
   formatDate,
   formatFiatPrice,
   formatLargeNumber,
