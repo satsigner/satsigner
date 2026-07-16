@@ -72,6 +72,7 @@ function SSTransactionCard({
 
   const { type, received, sent } = transaction
   const amount = type === 'receive' ? received : sent - received
+  const { label, tags } = parseLabel(transaction.label || '')
 
   const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
     useShallow((state) => [
@@ -120,10 +121,6 @@ function SSTransactionCard({
   const router = useRouter()
 
   const smallView = expand || `${amount}`.length > 10
-
-  const parsedLabel = parseLabel(
-    transaction.label || t('transaction.noLabel').toUpperCase()
-  )
 
   return (
     <TouchableOpacity onPress={() => router.navigate(link)}>
@@ -300,16 +297,13 @@ function SSTransactionCard({
             <SSText
               size={smallView ? 'xxs' : 'xs'}
               style={[
-                {
-                  marginRight: Layout.hStack.gap.sm,
-                  marginTop: 4,
-                  textAlign: 'left'
-                },
-                !transaction.label && { color: Colors.gray[500] }
+                styles.label,
+                { marginTop: 4 },
+                !label && { color: Colors.gray[500] }
               ]}
               numberOfLines={1}
             >
-              {parsedLabel.label}
+              {label || t('transaction.noLabel').toUpperCase()}
             </SSText>
           </SSVStack>
           <SSVStack
@@ -375,20 +369,12 @@ function SSTransactionCard({
               <View />
             )}
             <SSHStack gap="xs" style={{ flexShrink: 0, marginTop: 4 }}>
-              {transaction.label ? (
-                parsedLabel.tags.map((tag, index) => (
+              {tags.length ? (
+                tags.map((tag, index) => (
                   <SSText
                     key={index}
                     size={smallView ? 'xxs' : 'xs'}
-                    style={[
-                      { alignSelf: 'flex-start', textAlign: 'right' },
-                      {
-                        backgroundColor: Colors.gray[700],
-                        borderRadius: 4,
-                        paddingHorizontal: 6,
-                        paddingVertical: 2
-                      }
-                    ]}
+                    style={styles.tag}
                     uppercase
                     numberOfLines={1}
                   >
@@ -399,15 +385,9 @@ function SSTransactionCard({
                 <SSText
                   size={smallView ? 'xxs' : 'xs'}
                   style={[
-                    {
-                      color: Colors.gray[500],
-                      textAlign: 'right'
-                    },
-                    {
-                      backgroundColor: Colors.gray[950],
-                      borderRadius: 4,
-                      paddingVertical: smallView ? 0 : 2
-                    }
+                    styles.tag,
+                    styles.tagEmpty,
+                    { paddingVertical: smallView ? 0 : 2 }
                   ]}
                   uppercase
                   numberOfLines={1}
@@ -429,6 +409,23 @@ const styles = StyleSheet.create({
   },
   confirmedFew: {
     color: Colors.warning
+  },
+  label: {
+    flex: 1,
+    marginRight: Layout.hStack.gap.sm,
+    textAlign: 'left'
+  },
+  tag: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.gray[700],
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    textAlign: 'right'
+  },
+  tagEmpty: {
+    backgroundColor: Colors.gray[950],
+    color: Colors.gray[500]
   },
   unconfirmed: {
     color: Colors.error
