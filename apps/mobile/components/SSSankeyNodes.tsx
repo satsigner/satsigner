@@ -62,6 +62,10 @@ function SSSankeyNodes({
   showUnspentLabel = true
 }: SSSankeyNodesProps) {
   const customFontManager = useSFProFonts()
+  const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
+  const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
+  const fakeMixIconSvg = useSVG(require('@/assets/green-fake-mix.svg'))
+  const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
 
   const maxDepth =
     nodes.length === 0 ? 0 : Math.max(...nodes.map((node) => node.depthH))
@@ -178,6 +182,10 @@ function SSSankeyNodes({
             node.ioData?.isFakeMix !== true
           }
           showUnspentLabel={showUnspentLabel}
+          labelIconSvg={labelIconSvg}
+          changeIconSvg={changeIconSvg}
+          fakeMixIconSvg={fakeMixIconSvg}
+          minerFeeIconSvg={minerFeeIconSvg}
         />
       </Group>
     )
@@ -203,7 +211,11 @@ function NodeText({
   isFakeMix,
   isChange: isChangeProp,
   isSelfSend,
-  showUnspentLabel = true
+  showUnspentLabel = true,
+  labelIconSvg,
+  changeIconSvg,
+  fakeMixIconSvg,
+  minerFeeIconSvg
 }: {
   localId: string
   isBlock: boolean
@@ -218,13 +230,17 @@ function NodeText({
   isChange?: boolean
   isSelfSend?: boolean
   showUnspentLabel?: boolean
+  labelIconSvg: ReturnType<typeof useSVG>
+  changeIconSvg: ReturnType<typeof useSVG>
+  fakeMixIconSvg: ReturnType<typeof useSVG>
+  minerFeeIconSvg: ReturnType<typeof useSVG>
 }) {
   const isMiningFee = localId.includes('minerFee')
   const isHigherMinerFee = ioData?.higherFee === true
   const isFeeValueWarning = isHigherMinerFee || ioData?.elevatedFeeRate === true
   const isChange =
     isChangeProp === true || localId === CHART_REMAINING_BALANCE_LOCAL_ID
-  const isUnspent = ioData?.isUnspent
+  const isUnspent = ioData?.isUnspent === true
 
   const shadowPaint = useMemo(() => {
     const paint = Skia.Paint()
@@ -242,11 +258,6 @@ function NodeText({
     )
     return paint
   }, [])
-
-  const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
-  const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
-  const fakeMixIconSvg = useSVG(require('@/assets/green-fake-mix.svg'))
-  const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
   const blockNodeParagraph = useMemo(() => {
     if (!customFontManager) {
       return null
@@ -612,19 +623,11 @@ function NodeText({
   const groupBaseX = isUnspent ? paragraphX + NODE_MARGIN_LEFT : paragraphX
 
   // Get placeholder rects if it's a mining fee node
-  const placeholderRectsMinerIcon = useMemo(() => {
-    if (isMiningFee && mainParagraph) {
-      return mainParagraph.getRectsForPlaceholders()
-    }
-    return []
-  }, [mainParagraph, isMiningFee])
+  const placeholderRectsMinerIcon =
+    isMiningFee && mainParagraph ? mainParagraph.getRectsForPlaceholders() : []
 
-  const placeholderRectsUnspentIcon = useMemo(() => {
-    if (isUnspent && mainParagraph) {
-      return mainParagraph.getRectsForPlaceholders()
-    }
-    return []
-  }, [mainParagraph, isUnspent])
+  const placeholderRectsUnspentIcon =
+    isUnspent && mainParagraph ? mainParagraph.getRectsForPlaceholders() : []
 
   const dustBorderPaint = useMemo(() => {
     const paint = Skia.Paint()
@@ -640,6 +643,18 @@ function NodeText({
 
   const paragraphActualWidth = isBlock ? width * 0.6 : width - PADDING_LEFT
   const paragraphActualHeight = mainParagraph.getHeight()
+
+  const unspentIconRect = placeholderRectsUnspentIcon[0]?.rect
+  const minerIconRect = placeholderRectsMinerIcon[0]?.rect
+  const fallbackIconY = Math.max(0, paragraphActualHeight - ICON_SIZE - 2)
+  const unspentIconX = groupBaseX + (unspentIconRect?.x ?? 0)
+  const unspentIconY = paragraphY + (unspentIconRect?.y ?? fallbackIconY)
+  const unspentIconW = unspentIconRect?.width ?? ICON_SIZE
+  const unspentIconH = unspentIconRect?.height ?? ICON_SIZE
+  const minerIconX = paragraphX + (minerIconRect?.x ?? 0)
+  const minerIconY = paragraphY + (minerIconRect?.y ?? fallbackIconY)
+  const minerIconW = minerIconRect?.width ?? ICON_SIZE
+  const minerIconH = minerIconRect?.height ?? ICON_SIZE
 
   const isDustOutput =
     isUnspent &&
@@ -696,73 +711,56 @@ function NodeText({
           width={paragraphActualWidth}
         />
       )}
+      {isUnspent && changeIconSvg && isChange ? (
+        <ImageSVG
+          svg={changeIconSvg}
+          x={unspentIconX}
+          y={unspentIconY}
+          width={unspentIconW}
+          height={unspentIconH}
+        />
+      ) : null}
+      {isUnspent && fakeMixIconSvg && isFakeMix ? (
+        <ImageSVG
+          svg={fakeMixIconSvg}
+          x={unspentIconX}
+          y={unspentIconY}
+          width={unspentIconW}
+          height={unspentIconH}
+        />
+      ) : null}
       {isUnspent &&
-        changeIconSvg &&
-        placeholderRectsUnspentIcon.length > 0 &&
-        placeholderRectsUnspentIcon[0] &&
-        isChange && (
-          <ImageSVG
-            svg={changeIconSvg}
-            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
-            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
-            width={placeholderRectsUnspentIcon[0].rect.width}
-            height={placeholderRectsUnspentIcon[0].rect.height}
-          />
-        )}
-      {isUnspent &&
-        fakeMixIconSvg &&
-        placeholderRectsUnspentIcon.length > 0 &&
-        placeholderRectsUnspentIcon[0] &&
-        isFakeMix && (
-          <ImageSVG
-            svg={fakeMixIconSvg}
-            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
-            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
-            width={placeholderRectsUnspentIcon[0].rect.width}
-            height={placeholderRectsUnspentIcon[0].rect.height}
-          />
-        )}
-      {isUnspent &&
-        labelIconSvg &&
-        placeholderRectsUnspentIcon.length > 0 &&
-        placeholderRectsUnspentIcon[0] &&
-        !isChange &&
-        !isSelfSend &&
-        !isFakeMix &&
-        ioData?.label && (
-          <ImageSVG
-            svg={labelIconSvg}
-            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
-            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
-            width={placeholderRectsUnspentIcon[0].rect.width}
-            height={placeholderRectsUnspentIcon[0].rect.height}
-          />
-        )}
-      {isUnspent &&
-        changeIconSvg &&
-        placeholderRectsUnspentIcon.length > 0 &&
-        placeholderRectsUnspentIcon[0] &&
-        isSelfSend && (
-          <ImageSVG
-            svg={changeIconSvg}
-            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
-            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
-            width={placeholderRectsUnspentIcon[0].rect.width}
-            height={placeholderRectsUnspentIcon[0].rect.height}
-          />
-        )}
-      {isMiningFee &&
-        minerFeeIconSvg &&
-        placeholderRectsMinerIcon.length > 0 &&
-        placeholderRectsMinerIcon[0] && (
-          <ImageSVG
-            svg={minerFeeIconSvg}
-            x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
-            y={paragraphY + placeholderRectsMinerIcon[0].rect.y}
-            width={placeholderRectsMinerIcon[0].rect.width}
-            height={placeholderRectsMinerIcon[0].rect.height}
-          />
-        )}
+      labelIconSvg &&
+      !isChange &&
+      !isSelfSend &&
+      !isFakeMix &&
+      ioData?.label ? (
+        <ImageSVG
+          svg={labelIconSvg}
+          x={unspentIconX}
+          y={unspentIconY}
+          width={unspentIconW}
+          height={unspentIconH}
+        />
+      ) : null}
+      {isUnspent && changeIconSvg && isSelfSend ? (
+        <ImageSVG
+          svg={changeIconSvg}
+          x={unspentIconX}
+          y={unspentIconY}
+          width={unspentIconW}
+          height={unspentIconH}
+        />
+      ) : null}
+      {isMiningFee && minerFeeIconSvg ? (
+        <ImageSVG
+          svg={minerFeeIconSvg}
+          x={minerIconX}
+          y={minerIconY}
+          width={minerIconW}
+          height={minerIconH}
+        />
+      ) : null}
     </Group>
   )
 }

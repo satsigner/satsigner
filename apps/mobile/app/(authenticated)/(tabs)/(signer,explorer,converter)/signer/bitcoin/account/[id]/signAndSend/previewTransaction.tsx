@@ -927,6 +927,7 @@ function PreviewTransaction() {
 
     const vout = outputs.map((output: Output) => ({
       address: output.to,
+      kind: output.kind,
       label: output.label || '',
       script: '' as string | number[],
       value: output.amount
