@@ -2,12 +2,13 @@ import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useEffect, useMemo, useState } from 'react'
 import { View } from 'react-native'
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
+import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -19,6 +20,10 @@ import { type Label } from '@/types/bips/329'
 import { type Transaction } from '@/types/models/Transaction'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
+
+const TITLE_DELAY_MS = 350
+const DETAILS_DELAY_MS = 550
+const BUTTON_DELAY_MS = 700
 
 export default function TransactionConfirmation() {
   const router = useRouter()
@@ -241,33 +246,46 @@ export default function TransactionConfirmation() {
     <>
       <SSMainLayout style={{ paddingBottom: 32 }}>
         <SSVStack justifyBetween>
-          <SSVStack itemsCenter>
-            <SSText size="md" uppercase weight="light">
-              {t('sent.broadcasted')}
-            </SSText>
-            <SSVStack gap="none" itemsCenter>
-              <SSText color="muted" uppercase>
-                {t('transaction.id')}
+          <SSVStack gap="lg" itemsCenter>
+            <SSSuccessCheckAnimation />
+            <Animated.View
+              entering={FadeInDown.delay(TITLE_DELAY_MS).duration(450)}
+            >
+              <SSText size="md" uppercase weight="light">
+                {t('sent.broadcasted')}
               </SSText>
-              <SSText>{formatAddress(psbt.txid())}</SSText>
+            </Animated.View>
+            <Animated.View
+              entering={FadeIn.delay(DETAILS_DELAY_MS).duration(400)}
+            >
+              <SSVStack gap="none" itemsCenter>
+                <SSText color="muted" uppercase>
+                  {t('transaction.id')}
+                </SSText>
+                <SSText>{formatAddress(psbt.txid())}</SSText>
+              </SSVStack>
+            </Animated.View>
+          </SSVStack>
+          <Animated.View entering={FadeIn.delay(BUTTON_DELAY_MS).duration(300)}>
+            <SSVStack>
+              <SSClipboardCopy text={psbt.txid()}>
+                <SSButton
+                  variant="outline"
+                  label={t('sent.copyTransactionId')}
+                />
+              </SSClipboardCopy>
+              <SSButton
+                variant="outline"
+                label={t('sent.viewOnMempool')}
+                onPress={handleViewOnMempool}
+              />
+              <SSButton
+                variant="secondary"
+                label={t('common.backToAccountHome')}
+                onPress={handleBackToHome}
+              />
             </SSVStack>
-            <SSIconSuccess width={159} height={159} />
-          </SSVStack>
-          <SSVStack>
-            <SSClipboardCopy text={psbt.txid()}>
-              <SSButton variant="outline" label={t('sent.copyTransactionId')} />
-            </SSClipboardCopy>
-            <SSButton
-              variant="outline"
-              label={t('sent.viewOnMempool')}
-              onPress={handleViewOnMempool}
-            />
-            <SSButton
-              variant="secondary"
-              label={t('common.backToAccountHome')}
-              onPress={() => handleBackToHome()}
-            />
-          </SSVStack>
+          </Animated.View>
         </SSVStack>
       </SSMainLayout>
       <SSModal

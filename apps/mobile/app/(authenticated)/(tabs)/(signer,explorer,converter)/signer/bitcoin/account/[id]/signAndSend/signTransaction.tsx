@@ -13,6 +13,7 @@ import Esplora from '@/api/esplora'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
+import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
@@ -353,13 +354,11 @@ export default function SignTransaction() {
                     : tn(signed ? 'signed' : 'signing')}
               </SSText>
 
-              {signed && !broadcasted && (
+              {signed && !broadcasted ? (
                 <SSIconSuccess width={159} height={159} variant="outline" />
-              )}
-              {!signed && !broadcasted && <SSLoader size={160} />}
-              {broadcasted && (
-                <SSIconSuccess width={159} height={159} variant="filled" />
-              )}
+              ) : null}
+              {!signed && !broadcasted ? <SSLoader size={160} /> : null}
+              {broadcasted ? <SSSuccessCheckAnimation /> : null}
             </SSVStack>
 
             <SSVStack>
