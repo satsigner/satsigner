@@ -16,11 +16,7 @@ import {
   SANKEY_EQUAL_ROW_MIN_SLOT_PX,
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
-import {
-  isChangeOutputAddress,
-  isChangeOutputLabel,
-  normalizeAddressSet
-} from '@/utils/address'
+import { isChangeOutputAddress, normalizeAddressSet } from '@/utils/address'
 import {
   equalizeSankeyColumnsByDepthH,
   minSankeyStackedColumnInnerHeightPx
@@ -28,6 +24,7 @@ import {
 import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
+import { classifyChartOutput } from '@/utils/stonewall'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
@@ -98,6 +95,7 @@ function SSTransactionChart({
 
   const outputs = transaction.vout.map((output) => ({
     address: output.address,
+    kind: output.kind,
     label: output.label || '',
     value: output.value
   }))
@@ -212,16 +210,24 @@ function SSTransactionChart({
       const nodeId = String(index + 2 + inputs.length)
       const label = output.label ?? ''
       const outputAddress = output.address.trim()
-      const isChange =
-        isChangeOutputAddress(outputAddress, normalizedInternalAddresses) ||
-        isChangeOutputLabel(label)
+      const { isChange, isFakeMix, isSelfSend } = classifyChartOutput(
+        {
+          kind: output.kind,
+          label,
+          localId: `output-${index}`,
+          to: outputAddress
+        },
+        normalizedOwnAddresses
+      )
+      // Fake-mix uses an unused internal address — never treat it as change.
+      const isChangeOutput =
+        !isFakeMix &&
+        (isChange ||
+          isChangeOutputAddress(outputAddress, normalizedInternalAddresses))
       const isUnspent = unspentOutpoints
         ? unspentOutpoints.has(`${transaction.id}:${index}`)
         : true
-      const isSelfSend =
-        !isChange &&
-        outputAddress !== '' &&
-        normalizedOwnAddresses.has(outputAddress)
+      const isSelfSendOutput = !isChangeOutput && !isFakeMix && isSelfSend
 
       return {
         depthH: 2,
@@ -230,7 +236,9 @@ function SSTransactionChart({
           address: formatAddress(output.address, 6),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.value), 2),
-          isSelfSend,
+          isChange: isChangeOutput,
+          isFakeMix,
+          isSelfSend: isSelfSendOutput,
           isUnspent,
           label: label || t('common.noLabel'),
           text: isUnspent
@@ -238,7 +246,7 @@ function SSTransactionChart({
             : t('transaction.build.spent'),
           value: output.value
         },
-        localId: isChange ? 'remainingBalance' : `output-${index}`,
+        localId: `output-${index}`,
         type: 'text',
         value: output.value
       }
