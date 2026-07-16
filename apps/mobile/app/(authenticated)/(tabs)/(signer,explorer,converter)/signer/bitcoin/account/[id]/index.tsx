@@ -102,8 +102,14 @@ import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { getDraftIoCounts } from '@/utils/draftSelection'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
-import { formatAddress, formatDate, formatNumber } from '@/utils/format'
+import {
+  formatAddress,
+  formatDate,
+  formatFiatPrice,
+  formatNumber
+} from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import {
   createScanThroughputTracker,
@@ -128,9 +134,14 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
   const [drafts, clearTransaction] = useTransactionBuilderStore(
     useShallow((state) => [state.drafts, state.clearTransaction])
   )
+  const [btcPrice, fiatCurrency] = usePriceStore(
+    useShallow((state) => [state.btcPrice, state.fiatCurrency])
+  )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const { showCurrentFiat } = useFiatData()
 
   const draft = drafts[accountId]
-  const inputCount = Object.keys(draft?.inputs ?? {}).length
+  const { inputCount, outputCount } = getDraftIoCounts(draft)
   const outputs = draft?.outputs ?? []
   const fee = draft?.fee ?? 0
   const totalOut = outputs.reduce((sum, o) => sum + o.amount, 0)
@@ -139,9 +150,13 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
       ? t('transaction.input.singular')
       : t('transaction.input.plural')
   const outputLabel =
-    outputs.length === 1
+    outputCount === 1
       ? t('transaction.output.singular')
       : t('transaction.output.plural')
+  const currentFiatPrice =
+    showCurrentFiat && btcPrice && btcPrice > 0 && totalOut > 0
+      ? formatFiatPrice(totalOut, btcPrice)
+      : ''
 
   return (
     <TouchableOpacity
@@ -169,10 +184,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
             {t('transaction.unsent')}
           </SSText>
         </SSHStack>
-        <SSHStack
-          justifyBetween
-          style={{ alignItems: 'flex-end', marginTop: 5 }}
-        >
+        <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack gap="sm" style={{ alignItems: 'center' }}>
             <SSIconOutgoing height={21} width={21} />
             <SSText
@@ -180,17 +192,31 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
               weight="light"
               style={{ color: Colors.gray[400] }}
             >
-              {totalOut > 0 ? totalOut.toLocaleString() : '--'}
+              {privacyMode
+                ? '••••'
+                : totalOut > 0
+                  ? totalOut.toLocaleString()
+                  : '--'}
             </SSText>
             <SSText color="muted" size="sm">
               {t('bitcoin.sats')}
             </SSText>
           </SSHStack>
-        </SSHStack>
+          {currentFiatPrice !== '' ? (
+            <SSHStack gap="xs" style={{ height: 22, marginTop: 2 }}>
+              <SSText style={{ color: Colors.gray[400] }} size="sm">
+                {privacyMode ? '••••' : currentFiatPrice}
+              </SSText>
+              <SSText style={{ color: Colors.gray[500] }} size="sm">
+                {fiatCurrency}
+              </SSText>
+            </SSHStack>
+          ) : null}
+        </SSVStack>
         <SSHStack justifyBetween style={{ marginTop: 2 }}>
           <SSText size="xs" color="muted">
             {inputCount} {inputLabel}
-            {outputs.length > 0 ? `, ${outputs.length} ${outputLabel}` : ''}
+            {outputCount > 0 ? `, ${outputCount} ${outputLabel}` : ''}
             {fee > 0 ? `, ${fee.toLocaleString()} ${t('transaction.fee')}` : ''}
           </SSText>
           <TouchableOpacity
