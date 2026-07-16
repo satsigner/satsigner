@@ -201,7 +201,8 @@ export default function Converter() {
   }
 
   async function refreshPricesForDate(value: Date) {
-    const requestId = ++priceRequestIdRef.current
+    const requestId = priceRequestIdRef.current + 1
+    priceRequestIdRef.current = requestId
     const timestamp = Math.floor(new Date(value).setHours(0, 0, 0, 0) / 1000)
     animateLoading(true)
     try {
