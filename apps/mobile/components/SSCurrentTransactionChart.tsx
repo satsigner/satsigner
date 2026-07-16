@@ -37,7 +37,10 @@ import {
 import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
-import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
+import {
+  CHART_REMAINING_BALANCE_LOCAL_ID,
+  classifyChartOutput
+} from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
   getOutputMaxAllowedSats,
@@ -299,12 +302,7 @@ function SSCurrentTransactionChart({
           address: output?.to ? formatAddress(output?.to, 6) : '',
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.amount), 2),
-          isFakeMix: output.kind === 'fakeMix',
-          isSelfSend: !!(
-            output.to &&
-            ownAddresses.has(output.to) &&
-            output.kind !== 'fakeMix'
-          ),
+          ...classifyChartOutput(output, ownAddresses),
           isUnspent: true,
           label: output.label,
           maxAllowedSats:

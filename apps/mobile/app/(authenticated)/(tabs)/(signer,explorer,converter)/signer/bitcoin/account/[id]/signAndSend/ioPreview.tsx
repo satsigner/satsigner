@@ -97,7 +97,10 @@ import {
   buildStonewallMaterializationPlan,
   buildStonewallPreviewOutputs,
   CHART_REMAINING_BALANCE_LOCAL_ID,
-  getStonewallPaymentContext
+  getEphemeralChangeOutputLocalIds,
+  getStonewallPaymentContext,
+  isStonewallManagedOutput,
+  isStonewallPreviewLocalId
 } from '@/utils/stonewall'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -151,7 +154,12 @@ export default function IOPreview() {
     setFeeRate,
     setFee,
     clearPsbt,
-    clearTransaction
+    clearTransaction,
+    selectedAutoSelectUtxos,
+    setSelectedAutoSelectUtxos,
+    stonewallPreview,
+    setStonewallPreview,
+    clearStonewallPreview
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -167,7 +175,12 @@ export default function IOPreview() {
       state.setFeeRate,
       state.setFee,
       state.clearPsbt,
-      state.clearTransaction
+      state.clearTransaction,
+      state.selectedAutoSelectUtxos,
+      state.setSelectedAutoSelectUtxos,
+      state.stonewallPreview,
+      state.setStonewallPreview,
+      state.clearStonewallPreview
     ])
   )
 
@@ -175,48 +188,29 @@ export default function IOPreview() {
   const wallet = useGetAccountWallet(id!)
   const { changeAddress, secondChangeAddress, decoyAddress } =
     getUnusedInternalAddresses(account, wallet)
-  const [stonewallChangeValues, setStonewallChangeValues] = useState<number[]>(
-    []
-  )
-  const [stonewallFakeMixValues, setStonewallFakeMixValues] = useState<
-    number[]
-  >([])
-  const [stonewallFee, setStonewallFee] = useState<number | null>(null)
-  const [excludedUtxoOutpoints, setExcludedUtxoOutpoints] = useState<
-    Set<string>
-  >(() => new Set())
+  const stonewallChangeValues = stonewallPreview.changeValues
+  const stonewallFakeMixValues = stonewallPreview.fakeMixValues
+  const stonewallFee = stonewallPreview.fee
+  const stonewallLabelOverrides = stonewallPreview.labelOverrides
+  const excludedUtxoOutpoints = new Set(stonewallPreview.excludedUtxoOutpoints)
   const [removeInputModalVisible, setRemoveInputModalVisible] = useState(false)
   const [inputToRemove, setInputToRemove] = useState<Utxo | null>(null)
-  const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
-  const shouldRemoveChangeRef = useRef(true)
 
-  function updateShouldRemoveChange(value: boolean) {
-    shouldRemoveChangeRef.current = value
-    setShouldRemoveChange(value)
-  }
-
-  // this removes the change addresses if the user goes back to the IO preview.
-  // we add the change address(es) as outputs before moving to the next step.
-  useEffect(() => {
-    if (!changeAddress || !shouldRemoveChangeRef.current) {
-      return
-    }
-    const changeAddresses = new Set(
-      [changeAddress, secondChangeAddress, decoyAddress].filter(Boolean)
-    )
-    for (const output of outputs) {
-      if (changeAddresses.has(output.to)) {
-        removeOutput(output.localId)
+  // Only strip on focus — watching outputs races with materialize on continue.
+  useFocusEffect(
+    useCallback(() => {
+      const { outputs: currentOutputs, removeOutput: remove } =
+        useTransactionBuilderStore.getState()
+      const localIds = getEphemeralChangeOutputLocalIds(currentOutputs, [
+        changeAddress,
+        secondChangeAddress,
+        decoyAddress
+      ])
+      for (const localId of localIds) {
+        remove(localId)
       }
-    }
-  }, [
-    outputs,
-    changeAddress,
-    secondChangeAddress,
-    decoyAddress,
-    shouldRemoveChange,
-    removeOutput
-  ])
+    }, [changeAddress, secondChangeAddress, decoyAddress])
+  )
 
   const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
     useShallow((state) => [
@@ -227,20 +221,6 @@ export default function IOPreview() {
   )
 
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
-
-  const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
-    useState<AutoSelectUtxosAlgorithm>('user')
-
-  useFocusEffect(
-    useCallback(() => {
-      if (selectedAutoSelectUtxos !== 'privacy') {
-        return
-      }
-
-      shouldRemoveChangeRef.current = true
-      updateShouldRemoveChange(true)
-    }, [selectedAutoSelectUtxos])
-  )
 
   const markUriAutoSelectPendingRef = useRef<(() => void) | undefined>(
     undefined
@@ -473,6 +453,7 @@ export default function IOPreview() {
           fakeMixLabel: stonewallPaymentContext.paymentLabel,
           fakeMixValues: stonewallFakeMixValues,
           fee: stonewallFee,
+          labelOverrides: stonewallLabelOverrides,
           secondChangeAddress
         })
       : []
@@ -681,12 +662,42 @@ export default function IOPreview() {
       return
     }
 
+    if (isStonewallPreviewLocalId(currentOutputLocalId)) {
+      if (!currentOutputLocalId || !outputLabel.trim()) {
+        return
+      }
+      setStonewallPreview({
+        labelOverrides: {
+          ...stonewallLabelOverrides,
+          [currentOutputLocalId]: outputLabel
+        }
+      })
+      setAddOutputModalVisible(false)
+      resetLocalOutput()
+      return
+    }
+
     const outputIndex = outputs.findIndex(
       (output) => output.localId === currentOutputLocalId
     )
+    const existing = outputIndex === -1 ? undefined : outputs[outputIndex]
+
+    if (isStonewallManagedOutput(existing) && existing) {
+      updateOutput(existing.localId, {
+        amount: existing.amount,
+        kind: existing.kind,
+        label: outputLabel,
+        to: existing.to
+      })
+      setOutputsCount((prev: number) => prev + 1)
+      setAddOutputModalVisible(false)
+      resetLocalOutput()
+      return
+    }
 
     const output = {
       amount: outputAmount,
+      kind: existing?.kind,
       label: outputLabel,
       to: stripBitcoinPrefix(outputTo)
     }
@@ -704,6 +715,15 @@ export default function IOPreview() {
 
   function handleRemoveOutput() {
     if (!currentOutputLocalId) {
+      return
+    }
+    if (isStonewallPreviewLocalId(currentOutputLocalId)) {
+      return
+    }
+    const existing = outputs.find(
+      (output) => output.localId === currentOutputLocalId
+    )
+    if (isStonewallManagedOutput(existing)) {
       return
     }
     removeOutput(currentOutputLocalId)
@@ -733,6 +753,7 @@ export default function IOPreview() {
       fakeMixLabel: stonewallPaymentContext.paymentLabel,
       fakeMixValues: stonewallFakeMixValues,
       fee: stonewallFee,
+      labelOverrides: stonewallLabelOverrides,
       secondChangeAddress
     })
 
@@ -740,8 +761,16 @@ export default function IOPreview() {
       return false
     }
 
-    updateShouldRemoveChange(false)
     setFee(plan.fee)
+
+    const alreadyMaterialized = useTransactionBuilderStore
+      .getState()
+      .outputs.some(
+        (output) => output.kind === 'fakeMix' || output.kind === 'change'
+      )
+    if (alreadyMaterialized) {
+      return true
+    }
 
     for (const output of plan.outputs) {
       addOutput(output)
@@ -757,10 +786,7 @@ export default function IOPreview() {
       return
     }
 
-    if (
-      selectedAutoSelectUtxos === 'privacy' ||
-      selectedAutoSelectUtxos === 'efficiency'
-    ) {
+    if (selectedAutoSelectUtxos === 'efficiency') {
       return
     }
 
@@ -774,16 +800,29 @@ export default function IOPreview() {
     const outputIndex = outputs.findIndex(
       (output) => output.localId === localId
     )
-    if (outputIndex === -1) {
+    if (outputIndex !== -1) {
+      setOutputTo(outputs[outputIndex].to)
+      setOutputAmount(outputs[outputIndex].amount)
+      setOriginalOutputAmount(outputs[outputIndex].amount)
+      setOutputLabel(outputs[outputIndex].label)
+      setCurrentOutputNumber(outputIndex + 1)
+      setAddOutputModalVisible(true)
       return
     }
 
-    setOutputTo(outputs[outputIndex].to)
-    setOutputAmount(outputs[outputIndex].amount)
-    setOriginalOutputAmount(outputs[outputIndex].amount)
-    setOutputLabel(outputs[outputIndex].label)
-    setCurrentOutputNumber(outputIndex + 1)
+    const previewIndex = chartStonewallPreviewOutputs.findIndex(
+      (output) => output.localId === localId
+    )
+    if (previewIndex === -1) {
+      return
+    }
 
+    const preview = chartStonewallPreviewOutputs[previewIndex]
+    setOutputTo(preview.to)
+    setOutputAmount(preview.amount)
+    setOriginalOutputAmount(preview.amount)
+    setOutputLabel(preview.label)
+    setCurrentOutputNumber(outputs.length + previewIndex + 1)
     setAddOutputModalVisible(true)
   }
 
@@ -842,9 +881,12 @@ export default function IOPreview() {
     )
 
     setAccountUtxos(stonewallResult.inputs)
-    setStonewallChangeValues(changeValues)
-    setStonewallFakeMixValues(fakeMixValues)
-    setStonewallFee(stonewallResult.fee)
+    setStonewallPreview({
+      changeValues,
+      excludedUtxoOutpoints: Array.from(excluded),
+      fakeMixValues,
+      fee: stonewallResult.fee
+    })
     setFee(stonewallResult.fee)
 
     if (effectiveFeeRate !== localFeeRate) {
@@ -881,7 +923,6 @@ export default function IOPreview() {
       nextExcluded.add(outpoint)
 
       if (applyStonewallSelection(nextExcluded)) {
-        setExcludedUtxoOutpoints(nextExcluded)
         setRemoveInputModalVisible(false)
         setInputToRemove(null)
       }
@@ -914,10 +955,7 @@ export default function IOPreview() {
       if (decoyOutput) {
         removeOutput(decoyOutput.localId)
       }
-      setStonewallChangeValues([])
-      setStonewallFakeMixValues([])
-      setStonewallFee(null)
-      setExcludedUtxoOutpoints(new Set())
+      clearStonewallPreview()
     }
 
     const { effectiveFeeRate, userPaymentAmount } = getStonewallPaymentContext({
@@ -952,7 +990,6 @@ export default function IOPreview() {
         }
 
         setPreviousUserSelectedUtxos(getInputs())
-        setExcludedUtxoOutpoints(new Set())
         selectionSucceeded = applyStonewallSelection(new Set())
 
         break
@@ -1052,7 +1089,6 @@ export default function IOPreview() {
         return
       }
 
-      updateShouldRemoveChange(false)
       addOutput({
         amount: remainingBalance,
         label: t('sign.changeAddressLabelDefault'),
@@ -1119,9 +1155,27 @@ export default function IOPreview() {
     setLoadHistory(!loadHistory)
   }
 
-  const ownAddressesSet = account
-    ? new Set(account.addresses.map((address) => address.address))
-    : new Set<string>()
+  const ownAddressesSet = useMemo(() => {
+    const addresses = new Set(
+      account ? account.addresses.map((entry) => entry.address.trim()) : []
+    )
+    for (const address of [changeAddress, secondChangeAddress, decoyAddress]) {
+      const normalized = address?.trim()
+      if (normalized) {
+        addresses.add(normalized)
+      }
+    }
+    return addresses
+  }, [account, changeAddress, secondChangeAddress, decoyAddress])
+
+  const editingOutput =
+    outputs.find((output) => output.localId === currentOutputLocalId) ??
+    chartStonewallPreviewOutputs.find(
+      (output) => output.localId === currentOutputLocalId
+    )
+  const isEditingStonewallManagedOutput =
+    isStonewallManagedOutput(editingOutput) ||
+    isStonewallPreviewLocalId(currentOutputLocalId)
 
   const chartOnPressInput = handleOnPressInput
 
@@ -1443,25 +1497,31 @@ export default function IOPreview() {
               </SSVStack>
               <SSVStack gap="md">
                 <SSVStack gap="none">
-                  <SSAmountInput
-                    key={`amount-input-${outputsCount}`}
-                    min={DUST_LIMIT}
-                    max={
-                      currentOutputLocalId
-                        ? Math.max(
-                            remainingSats + originalOutputAmount - minerFee,
-                            DUST_LIMIT
-                          )
-                        : Math.max(remainingSats - minerFee, DUST_LIMIT)
+                  <View
+                    pointerEvents={
+                      isEditingStonewallManagedOutput ? 'none' : 'auto'
                     }
-                    value={currentOutputLocalId ? outputAmount : DUST_LIMIT}
-                    remainingSats={
-                      currentOutputLocalId
-                        ? remainingSats + originalOutputAmount - minerFee
-                        : remainingSats - minerFee
-                    }
-                    onValueChange={(value) => setOutputAmount(value)}
-                  />
+                  >
+                    <SSAmountInput
+                      key={`amount-input-${outputsCount}`}
+                      min={DUST_LIMIT}
+                      max={
+                        currentOutputLocalId
+                          ? Math.max(
+                              remainingSats + originalOutputAmount - minerFee,
+                              DUST_LIMIT
+                            )
+                          : Math.max(remainingSats - minerFee, DUST_LIMIT)
+                      }
+                      value={currentOutputLocalId ? outputAmount : DUST_LIMIT}
+                      remainingSats={
+                        currentOutputLocalId
+                          ? remainingSats + originalOutputAmount - minerFee
+                          : remainingSats - minerFee
+                      }
+                      onValueChange={(value) => setOutputAmount(value)}
+                    />
+                  </View>
                 </SSVStack>
                 <SSVStack>
                   <SSTextInput
@@ -1470,6 +1530,7 @@ export default function IOPreview() {
                     align="left"
                     multiline
                     numberOfLines={4}
+                    editable={!isEditingStonewallManagedOutput}
                     style={{
                       fontFamily: Typography.sfProMono,
                       fontSize: 22,
@@ -1480,20 +1541,22 @@ export default function IOPreview() {
                     }}
                     onChangeText={(text) => setOutputTo(text)}
                   />
-                  <SSHStack gap="md">
-                    <SSButton
-                      variant="outline"
-                      label={t('common.paste')}
-                      style={{ flex: 1 }}
-                      onPress={pasteFromClipboard}
-                    />
-                    <SSButton
-                      variant="outline"
-                      label={t('camera.scanQRCode')}
-                      style={{ flex: 1 }}
-                      onPress={() => setCameraModalVisible(true)}
-                    />
-                  </SSHStack>
+                  {!isEditingStonewallManagedOutput ? (
+                    <SSHStack gap="md">
+                      <SSButton
+                        variant="outline"
+                        label={t('common.paste')}
+                        style={{ flex: 1 }}
+                        onPress={pasteFromClipboard}
+                      />
+                      <SSButton
+                        variant="outline"
+                        label={t('camera.scanQRCode')}
+                        style={{ flex: 1 }}
+                        onPress={() => setCameraModalVisible(true)}
+                      />
+                    </SSHStack>
+                  ) : null}
                 </SSVStack>
                 <SSTextInput
                   multiline
@@ -1516,7 +1579,9 @@ export default function IOPreview() {
                     label={t('transaction.build.remove.output.title')}
                     variant="danger"
                     style={{ flex: 1 }}
-                    disabled={!currentOutputLocalId}
+                    disabled={
+                      !currentOutputLocalId || isEditingStonewallManagedOutput
+                    }
                     onPress={handleRemoveOutput}
                   />
                   <SSButton

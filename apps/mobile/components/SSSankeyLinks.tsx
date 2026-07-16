@@ -119,13 +119,16 @@ function SSSankeyLinks({
 
         const isUnspent = targetNode.ioData?.isUnspent === true
         const isFakeMixOutput = targetNode.ioData?.isFakeMix === true
+        const isChangeOutput =
+          targetNode.ioData?.isChange === true ||
+          targetNode.localId === CHART_REMAINING_BALANCE_LOCAL_ID
         const isSelfSendOutput =
           targetNode.ioData?.isSelfSend === true &&
-          targetNode.ioData?.isFakeMix !== true
+          targetNode.ioData?.isFakeMix !== true &&
+          !isChangeOutput
         const isOwnOrUnspentRibbon =
-          isUnspent || isSelfSendOutput || isFakeMixOutput
-        const isRemainingBalance =
-          targetNode.localId === CHART_REMAINING_BALANCE_LOCAL_ID
+          isUnspent || isSelfSendOutput || isFakeMixOutput || isChangeOutput
+        const isRemainingBalance = isChangeOutput
         const isCurrentTxMinerFee = targetNode.localId === 'current-minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
         const isCurrentTx =
