@@ -269,11 +269,13 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     ])
   )
 
-  const [amount, setAmount] = useState(0)
-  const [oldPrice, setOldPrice] = useState('')
-  const [price, setPrice] = useState('')
-  const [type, setType] = useState('')
-  const [inputsCount, setInputsCount] = useState(0)
+  const amount = tx
+    ? tx.type === 'receive'
+      ? tx.received
+      : tx.sent - tx.received
+    : 0
+  const type = tx?.type ?? ''
+  const inputsCount = tx?.vin?.length ?? 0
 
   const confirmations =
     tx?.blockHeight && lastKnownBlockHeight > 0
@@ -283,47 +285,22 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   const historicalBtcPrice = showHistoricalFiat
     ? tx?.prices?.[fiatCurrency]
     : undefined
+  const price =
+    showCurrentFiat && effectiveBtcPrice > 0
+      ? formatFiatPrice(Math.abs(amount), effectiveBtcPrice)
+      : ''
+  const oldPrice =
+    showHistoricalFiat && historicalBtcPrice && historicalBtcPrice > 0
+      ? formatFiatPrice(Math.abs(amount), historicalBtcPrice)
+      : ''
   const percentChange =
     showCurrentFiat &&
     showHistoricalFiat &&
-    effectiveBtcPrice &&
     effectiveBtcPrice > 0 &&
     historicalBtcPrice &&
     historicalBtcPrice > 0
       ? formatPercentualChange(effectiveBtcPrice, historicalBtcPrice)
       : ''
-
-  const updateInfo = () => {
-    if (!tx) {
-      return
-    }
-
-    const amount = tx.type === 'receive' ? tx.received : tx.sent - tx.received
-    setAmount(amount)
-    setType(tx.type)
-
-    if (showCurrentFiat && effectiveBtcPrice) {
-      setPrice(formatFiatPrice(Math.abs(amount), effectiveBtcPrice))
-    } else {
-      setPrice('')
-    }
-
-    if (showHistoricalFiat && tx.prices) {
-      setOldPrice(
-        formatFiatPrice(Math.abs(amount), tx.prices[fiatCurrency] || 0)
-      )
-    } else {
-      setOldPrice('')
-    }
-
-    if (tx.vin) {
-      setInputsCount(tx.vin.length)
-    }
-  }
-
-  useEffect(() => {
-    updateInfo()
-  }, [tx, lastKnownBlockHeight]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SSVStack gap="none" style={{ alignItems: 'center' }}>
@@ -362,19 +339,19 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
         </SSHStack>
         {(price || oldPrice) && (
           <SSHStack gap="xs">
-            {price && (
+            {price ? (
               <SSText color="muted" size="sm">
                 {privacyMode ? '••••' : price}
               </SSText>
-            )}
+            ) : null}
             <SSText size="sm" style={{ color: Colors.gray[500] }}>
               {fiatCurrency}
             </SSText>
-            {oldPrice && (
+            {oldPrice ? (
               <SSText color="muted" size="sm">
                 ({privacyMode ? '••••' : oldPrice})
               </SSText>
-            )}
+            ) : null}
             {!privacyMode && percentChange !== '' ? (
               <SSText
                 size="sm"

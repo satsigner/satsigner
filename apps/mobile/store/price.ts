@@ -104,6 +104,18 @@ useSettingsStore.subscribe((state, prevState) => {
   if (!prevState.fetchCurrentPrices && state.fetchCurrentPrices) {
     void usePriceStore.getState().fetchPrices(getFiatPriceApiUrl())
   }
+
+  if (!prevState.fetchHistoricalPrices && state.fetchHistoricalPrices) {
+    void (async () => {
+      try {
+        const { backfillHistoricalPrices } =
+          await import('@/utils/historicalPrices')
+        await backfillHistoricalPrices()
+      } catch {
+        // Non-fatal — user can pull-to-refresh to retry via sync.
+      }
+    })()
+  }
 })
 
 export { usePriceStore }
