@@ -1,5 +1,5 @@
-import { Stack, useFocusEffect } from 'expo-router'
-import { useCallback, useRef, useState } from 'react'
+import { Stack } from 'expo-router'
+import { useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import Animated, {
   useAnimatedStyle,
@@ -14,6 +14,7 @@ import SSCurrencyInput from '@/components/SSCurrencyInput'
 import SSDatePicker from '@/components/SSDatePicker'
 import SSText from '@/components/SSText'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { useMountEffect } from '@/hooks/useMountEffect'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -22,7 +23,8 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors, Layout, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
-import { formatLargeNumber } from '@/utils/formatLargeNumber'
+import { isToday } from '@/utils/date'
+import { formatLargeNumber } from '@/utils/format'
 
 const MUTED_OPACITY = 0.35
 const MUTE_DURATION = 150
@@ -34,6 +36,16 @@ const DATE_PICKER_HEIGHT = 160
 const DATE_PICKER_MARK_HEIGHT = 46
 const WRITTEN_NUMBER_HEIGHT = 20
 const WRITTEN_NUMBER_DURATION = 180
+
+type CurrencyKey =
+  | 'sats'
+  | 'bitcoin'
+  | 'USD'
+  | 'EUR'
+  | 'GBP'
+  | 'CAD'
+  | 'CHF'
+  | 'JPY'
 
 function ConverterHeader() {
   return (
@@ -49,9 +61,7 @@ export default function Converter() {
   const [date, setDate] = useState(new Date())
   const dateRef = useRef(date)
   const [pickerKey, setPickerKey] = useState(0)
-  const [lastChangeKey, setLastChangedKey] = useState<
-    'sats' | 'bitcoin' | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'JPY'
-  >('sats')
+  const [lastChangeKey, setLastChangedKey] = useState<CurrencyKey>('sats')
   const [isLoading, setIsLoading] = useState(false)
   const [showWrittenNumbers, setShowWrittenNumbers] = useState(false)
   const [useEuropeanScale, setUseEuropeanScale] = useState(false)
@@ -162,10 +172,7 @@ export default function Converter() {
     })
   }
 
-  function getBitcoinValue(
-    key: keyof typeof currencyValues,
-    value: number
-  ): number {
+  function getBitcoinValue(key: CurrencyKey, value: number): number {
     if (key === 'sats') {
       return value / SATS_PER_BITCOIN
     }
@@ -176,12 +183,12 @@ export default function Converter() {
     return price ? value / price : 0
   }
 
-  function handleValueChange(key: keyof typeof currencyValues, value: number) {
+  function handleValueChange(key: CurrencyKey, value: number) {
     setLastChangedKey(key)
 
     const bitcoinValue = getBitcoinValue(key, value)
 
-    const updatedValues = {
+    setCurrencyValues({
       CAD: (prices.CAD || 0) * bitcoinValue,
       CHF: (prices.CHF || 0) * bitcoinValue,
       EUR: (prices.EUR || 0) * bitcoinValue,
@@ -191,34 +198,7 @@ export default function Converter() {
       bitcoin: bitcoinValue,
       sats: Math.round(bitcoinValue * SATS_PER_BITCOIN),
       [key]: value
-    }
-
-    setCurrencyValues(updatedValues)
-  }
-
-  function handleSatsChange(value: number) {
-    handleValueChange('sats', value)
-  }
-  function handleBitcoinChange(value: number) {
-    handleValueChange('bitcoin', value)
-  }
-  function handleUsdChange(value: number) {
-    handleValueChange('USD', value)
-  }
-  function handleEurChange(value: number) {
-    handleValueChange('EUR', value)
-  }
-  function handleGbpChange(value: number) {
-    handleValueChange('GBP', value)
-  }
-  function handleCadChange(value: number) {
-    handleValueChange('CAD', value)
-  }
-  function handleChfChange(value: number) {
-    handleValueChange('CHF', value)
-  }
-  function handleJpyChange(value: number) {
-    handleValueChange('JPY', value)
+    })
   }
 
   function handleDragStart() {
@@ -246,24 +226,15 @@ export default function Converter() {
     fetchFullPriceAt(mempoolUrl, timestamp)
   }
 
-  useFocusEffect(
-    useCallback(() => {
-      const timestamp = Math.floor(
-        new Date(dateRef.current).setHours(0, 0, 0, 0) / 1000
-      )
-      setIsLoading(true)
-      fetchFullPriceAt(mempoolUrl, timestamp)
-    }, [fetchFullPriceAt, mempoolUrl]) // eslint-disable-line react-hooks/exhaustive-deps
-  )
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!hasInitializedRef.current) {
-        hasInitializedRef.current = true
-        handleValueChange('bitcoin', 1)
-      }
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  )
+  useMountEffect(() => {
+    const timestamp = Math.floor(
+      new Date(dateRef.current).setHours(0, 0, 0, 0) / 1000
+    )
+    setIsLoading(true)
+    fetchFullPriceAt(mempoolUrl, timestamp)
+    hasInitializedRef.current = true
+    handleValueChange('bitcoin', 1)
+  })
 
   return (
     <>
@@ -285,7 +256,7 @@ export default function Converter() {
                   <SSCurrencyInput
                     value={currencyValues.sats.toString()}
                     size="large"
-                    onChangeValue={handleSatsChange}
+                    onChangeValue={(value) => handleValueChange('sats', value)}
                     align="center"
                     style={styles.currencyInputLarge}
                   />
@@ -320,7 +291,9 @@ export default function Converter() {
                       .toFixed(8)
                       .replace(/\.?0+$/, '')}
                     size="large"
-                    onChangeValue={handleBitcoinChange}
+                    onChangeValue={(value) =>
+                      handleValueChange('bitcoin', value)
+                    }
                     align="center"
                     style={styles.currencyInputLarge}
                   />
@@ -358,7 +331,9 @@ export default function Converter() {
                         decimal={2}
                         value={currencyValues.USD.toString()}
                         size="small"
-                        onChangeValue={handleUsdChange}
+                        onChangeValue={(value) =>
+                          handleValueChange('USD', value)
+                        }
                         align="center"
                         style={styles.currencyInput}
                       />
@@ -391,7 +366,9 @@ export default function Converter() {
                         decimal={2}
                         value={currencyValues.EUR.toString()}
                         size="small"
-                        onChangeValue={handleEurChange}
+                        onChangeValue={(value) =>
+                          handleValueChange('EUR', value)
+                        }
                         align="center"
                         style={styles.currencyInput}
                       />
@@ -428,7 +405,9 @@ export default function Converter() {
                         decimal={2}
                         value={currencyValues.GBP.toString()}
                         size="small"
-                        onChangeValue={handleGbpChange}
+                        onChangeValue={(value) =>
+                          handleValueChange('GBP', value)
+                        }
                         align="center"
                         style={styles.currencyInput}
                       />
@@ -461,7 +440,9 @@ export default function Converter() {
                         decimal={2}
                         value={currencyValues.CAD.toString()}
                         size="small"
-                        onChangeValue={handleCadChange}
+                        onChangeValue={(value) =>
+                          handleValueChange('CAD', value)
+                        }
                         align="center"
                         style={styles.currencyInput}
                       />
@@ -498,7 +479,9 @@ export default function Converter() {
                         decimal={2}
                         value={currencyValues.CHF.toString()}
                         size="small"
-                        onChangeValue={handleChfChange}
+                        onChangeValue={(value) =>
+                          handleValueChange('CHF', value)
+                        }
                         align="center"
                         style={styles.currencyInput}
                       />
@@ -531,7 +514,9 @@ export default function Converter() {
                         decimal={2}
                         value={currencyValues.JPY.toString()}
                         size="small"
-                        onChangeValue={handleJpyChange}
+                        onChangeValue={(value) =>
+                          handleValueChange('JPY', value)
+                        }
                         align="center"
                         style={styles.currencyInput}
                       />
@@ -580,7 +565,7 @@ export default function Converter() {
                   label={t('date.today')}
                   variant="outline"
                   onPress={handleTodayPress}
-                  disabled={date.toDateString() === new Date().toDateString()}
+                  disabled={isToday(date)}
                 />
                 <SSHStack gap="sm">
                   <SSButton

@@ -10,7 +10,26 @@ import {
   View
 } from 'react-native'
 
+import { useMountEffect } from '@/hooks/useMountEffect'
+import { t } from '@/locales'
 import { sfProTextRegular } from '@/styles/typography'
+
+const MONTH_KEYS = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec'
+] as const
+
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
 
 type DateBlockProps = {
   digits: number[]
@@ -78,21 +97,16 @@ function SSDatePicker({
     () => new Date().getMonth() + 1
   )
 
-  useEffect(() => {
+  useMountEffect(() => {
     const end = endYear || new Date().getFullYear()
     const start = !startYear || startYear > end ? end - 100 : startYear
 
-    const days = Array.from({ length: 31 }, (_, index) => index + 1)
-    const months = Array.from({ length: 12 }, (_, index) => index + 1)
-    const years = Array.from(
-      { length: end - start + 1 },
-      (_, index) => start + index
+    setDays(Array.from({ length: 31 }, (_, index) => index + 1))
+    setMonths(Array.from({ length: 12 }, (_, index) => index + 1))
+    setYears(
+      Array.from({ length: end - start + 1 }, (_, index) => start + index)
     )
-
-    setDays(days)
-    setMonths(months)
-    setYears(years)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  })
 
   const pickerHeight: number = Math.round(height || windowHeight / 3.5)
   const pickerWidth: number | string = width || '100%'
@@ -130,22 +144,7 @@ function SSDatePicker({
   const getDaysInMonth = (month: number, year: number) =>
     new Date(year, month, 0).getDate()
 
-  const MONTH_NAMES = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
-  ]
-  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const formatMonth = (m: number) => MONTH_NAMES[m - 1]
+  const formatMonth = (m: number) => t(`date.${MONTH_KEYS[m - 1]}`)
   const renderDayItem = (
     d: number,
     textStyle: { color: string; fontSize: number; lineHeight: number }
@@ -158,7 +157,9 @@ function SSDatePicker({
           { opacity: 0.35, textAlign: 'left', width: 44 }
         ]}
       >
-        {DAY_NAMES[new Date(selectedYear, selectedMonth - 1, d).getDay()]}
+        {t(
+          `date.${DAY_KEYS[new Date(selectedYear, selectedMonth - 1, d).getDay()]}`
+        )}
       </Text>
       <Text
         style={[styles.digit, textStyle, { textAlign: 'right', width: 28 }]}
