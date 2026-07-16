@@ -43,6 +43,10 @@ import {
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
 import { parseAccountAddressesDetails } from '@/utils/parse'
+import {
+  computeRpcScanStartHeight,
+  estimateBirthHeight
+} from '@/utils/rpcScanStartHeight'
 
 import AppElectrumClient from './electrum'
 import Esplora from './esplora'
@@ -75,10 +79,6 @@ function hexToBytes(hex: string): number[] {
 }
 
 const WALLETS_DIR = `${FileSystem.documentDirectory}wallets/`
-
-// Two-week (~2016 block) safety buffer so a birthday/checkpoint estimate never
-// starts the scan past a transaction near the boundary.
-const RPC_SCAN_BUFFER_BLOCKS = 2016
 
 async function ensureWalletsDir() {
   const dirInfo = await FileSystem.getInfoAsync(WALLETS_DIR)
@@ -545,22 +545,6 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
     network
   )
   return getExtendedKeyFromDescriptor(externalDescriptor)
-}
-
-/**
- * Estimate the block height for a wallet birthday by counting backwards from
- * the known current tip. More accurate than projecting from genesis because it
- * uses the real chain tip rather than an assumed average block time.
- * Falls back to 0 if no tip is available.
- */
-function estimateBirthHeight(birthday: Date, currentTip: number): number {
-  if (currentTip <= 0) {
-    return 0
-  }
-  const MS_PER_BLOCK = 10 * 60 * 1000 // ~10 minutes
-  const ageMs = Math.max(0, Date.now() - birthday.getTime())
-  const blocksFromTip = Math.round(ageMs / MS_PER_BLOCK)
-  return Math.max(0, currentTip - blocksFromTip - RPC_SCAN_BUFFER_BLOCKS)
 }
 
 async function syncWallet(
@@ -1302,7 +1286,15 @@ async function syncWithCoreWallet(
   credentials: RpcCredentials,
   bdkNetwork: Network,
   stopGap: number,
-  onProgress?: (currentHeight: number, tipHeight: number) => void,
+  onProgress?: (
+    currentHeight: number,
+    tipHeight: number,
+    meta?: {
+      currentBlockTimeSec?: number
+      scanFromTimeSec?: number
+      transactionsFound?: number
+    }
+  ) => void,
   isCancelled?: () => boolean,
   rpcWalletName?: string,
   rpcScanFromHeight?: number
@@ -1365,48 +1357,29 @@ async function syncWithCoreWallet(
 
   // ── 4. Determine if import + rescan are needed ───────────────────────────
   let needsRescan = false
-  let startHeight = 0
 
-  // Smart start-height selection (mirrors test script logic):
-  //  1. User-set birthdayDate → convert to approximate block height (fastest)
-  //  2. BDK wallet checkpoint → use that minus a 2-week buffer (avoids genesis)
-  //  3. Neither → scan from genesis (warn user to set a birthday)
-  function computeStartHeight(): number {
-    const GENESIS_TIMESTAMP = 1231006505
-    const MS_PER_BLOCK = 10 * 60 * 1000
-    const TWO_WEEKS_SECS = 60 * 60 * 24 * 14
-
-    if (rpcScanFromHeight !== undefined) {
-      return rpcScanFromHeight
-    }
-
-    if (account.birthdayDate) {
-      const birthdayUnix = Math.floor(account.birthdayDate.getTime() / 1000)
-      if (birthdayUnix > GENESIS_TIMESTAMP) {
-        const floorUnix = birthdayUnix - TWO_WEEKS_SECS
-        const ageMs = Math.max(0, floorUnix * 1000 - GENESIS_TIMESTAMP * 1000)
-        const h = Math.max(
-          0,
-          Math.round(ageMs / MS_PER_BLOCK) - RPC_SCAN_BUFFER_BLOCKS
-        )
-        return h
-      }
-    }
-
-    // Fall back to BDK checkpoint — compact filters already validated the chain
-    // up to this block so we don't need to re-scan older blocks unless the
-    // user sets a birthday that predates the checkpoint.
+  // Smart start-height selection:
+  //  1. Server rpcScanFromHeight override
+  //  2. User-set birthdayDate → tip-relative estimate
+  //  3. BDK wallet checkpoint → use that minus a 2-week buffer
+  //  4. Neither → scan from genesis (warn user to set a birthday)
+  function resolveStartHeight(tipHeight: number): number {
+    let checkpointHeight: number | undefined
     try {
       const cp = wallet.latestCheckpoint()
-      if (cp && cp.height > 10000) {
-        const h = Math.max(0, cp.height - RPC_SCAN_BUFFER_BLOCKS)
-        return h
+      if (cp) {
+        checkpointHeight = cp.height
       }
     } catch {
       // latestCheckpoint not available
     }
 
-    return 0
+    return computeRpcScanStartHeight({
+      birthdayDate: account.birthdayDate,
+      checkpointHeight,
+      currentTip: tipHeight,
+      rpcScanFromHeight
+    })
   }
 
   try {
@@ -1438,10 +1411,8 @@ async function syncWithCoreWallet(
           )
         }
       }
-      startHeight = computeStartHeight()
       needsRescan = true
     } else if (!account.rpcLastBlockHash) {
-      startHeight = computeStartHeight()
       needsRescan = true
     }
   } catch (error) {
@@ -1454,6 +1425,70 @@ async function syncWithCoreWallet(
   // ── 5. Trigger rescanblockchain + poll until done ────────────────────────
   if (needsRescan) {
     const tipHeight = await coreWallet.getBlockCount()
+    const startHeight = resolveStartHeight(tipHeight)
+
+    let tipMediantime = Math.floor(Date.now() / 1000)
+    try {
+      const chainInfo = await coreWallet.getBlockchainInfo()
+      tipMediantime = chainInfo.mediantime
+    } catch {
+      // fall back to wall clock for date estimates
+    }
+
+    const SECONDS_PER_BLOCK = 10 * 60
+    const estimateBlockTimeSec = (height: number): number =>
+      tipMediantime - Math.max(0, tipHeight - height) * SECONDS_PER_BLOCK
+
+    const scanFromTimeSec = account.birthdayDate
+      ? Math.floor(account.birthdayDate.getTime() / 1000)
+      : estimateBlockTimeSec(startHeight)
+
+    const emitProgress = (
+      currentHeight: number,
+      tip: number,
+      transactionsFound?: number
+    ) => {
+      onProgress?.(currentHeight, tip, {
+        currentBlockTimeSec: estimateBlockTimeSec(currentHeight),
+        scanFromTimeSec,
+        transactionsFound
+      })
+    }
+
+    // Abort any in-progress Core rescan (e.g. a previous birthday-less scan
+    // from genesis) so we can restart from the resolved start height.
+    const ensureRescanStopped = async () => {
+      try {
+        const info = await coreWallet.getWalletInfo()
+        if (info.scanning === false) {
+          return
+        }
+        await coreWallet.abortRescan()
+      } catch {
+        // ignore — may not be scanning, or older Core without abortrescan
+      }
+
+      for (let i = 0; i < 40; i += 1) {
+        if (isCancelled?.()) {
+          throw new Error(SYNC_CANCELLED_ERROR)
+        }
+        try {
+          const info = await coreWallet.getWalletInfo()
+          if (info.scanning === false) {
+            return
+          }
+        } catch {
+          return
+        }
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 500)
+        })
+      }
+    }
+
+    await ensureRescanStopped()
+    emitProgress(startHeight, tipHeight)
+
     try {
       await Promise.race([
         coreWallet.rescanBlockchain(startHeight),
@@ -1465,7 +1500,30 @@ async function syncWithCoreWallet(
       ])
     } catch (error) {
       const msg = error instanceof Error ? error.message : ''
-      if (msg !== 'rescan-timeout' && !msg.includes('already rescanning')) {
+      if (msg === 'rescan-timeout') {
+        // still scanning — fall through to poll
+      } else if (msg.includes('already rescanning')) {
+        // Another client started a scan; abort and retry once from our height.
+        await ensureRescanStopped()
+        try {
+          await Promise.race([
+            coreWallet.rescanBlockchain(startHeight),
+            new Promise<never>((_resolve, reject) => {
+              setTimeout(() => {
+                reject(new Error('rescan-timeout'))
+              }, 60_000)
+            })
+          ])
+        } catch (retryError) {
+          const retryMsg = retryError instanceof Error ? retryError.message : ''
+          if (
+            retryMsg !== 'rescan-timeout' &&
+            !retryMsg.includes('already rescanning')
+          ) {
+            throw retryError
+          }
+        }
+      } else {
         throw error
       }
     }
@@ -1477,12 +1535,18 @@ async function syncWithCoreWallet(
 
     for (let i = 0; i < MAX_POLLS; i += 1) {
       if (isCancelled?.()) {
+        try {
+          await coreWallet.abortRescan()
+        } catch {
+          // best-effort stop so a restarted sync can begin at a new height
+        }
         throw new Error(SYNC_CANCELLED_ERROR)
       }
       try {
         const info = await coreWallet.getWalletInfo()
         consecutiveErrors = 0
         if (info.scanning === false) {
+          emitProgress(tipHeight, tipHeight, info.txcount)
           break
         }
         const { scanning } = info
@@ -1499,7 +1563,9 @@ async function syncWithCoreWallet(
                   startHeight + scanning.progress * (tipHeight - startHeight)
                 )
               : tipHeight
-          onProgress?.(currentHeight, tipHeight)
+          emitProgress(currentHeight, tipHeight, info.txcount)
+        } else {
+          emitProgress(startHeight, tipHeight, info.txcount)
         }
       } catch (error) {
         consecutiveErrors += 1
@@ -1516,7 +1582,7 @@ async function syncWithCoreWallet(
       })
     }
 
-    onProgress?.(tipHeight, tipHeight)
+    emitProgress(tipHeight, tipHeight)
   }
 
   // ── 6. Fetch data ────────────────────────────────────────────────────────

@@ -34,6 +34,15 @@ const syncingAccounts = new Set<string>()
 const cancelledSyncs = new Set<string>()
 let prioritySyncAccountId: string | undefined
 
+/** Mark an in-flight sync to abort at the next poll checkpoint. */
+function cancelAccountSync(accountId: string) {
+  cancelledSyncs.add(accountId)
+}
+
+function isAccountSyncing(accountId: string): boolean {
+  return syncingAccounts.has(accountId)
+}
+
 function isPrioritySyncActiveFor(accountId: string): boolean {
   return (
     prioritySyncAccountId !== undefined && prioritySyncAccountId !== accountId
@@ -174,10 +183,13 @@ function useSyncAccountWithWallet() {
           server.rpcCredentials,
           appNetworkToBdkNetwork(server.network),
           config.stopGap,
-          (currentHeight, tipHeight) => {
+          (currentHeight, tipHeight, meta) => {
             setSyncProgress(latest.id, {
+              currentBlockTimeSec: meta?.currentBlockTimeSec,
+              scanFromTimeSec: meta?.scanFromTimeSec,
               tasksDone: currentHeight,
-              totalTasks: tipHeight
+              totalTasks: tipHeight,
+              transactionsFound: meta?.transactionsFound
             })
           },
           () => cancelledSyncs.has(latest.id),
@@ -335,4 +347,5 @@ function useSyncAccountWithWallet() {
   return { loading, prioritizeSync, syncAccountWithWallet }
 }
 
+export { cancelAccountSync, isAccountSyncing }
 export default useSyncAccountWithWallet

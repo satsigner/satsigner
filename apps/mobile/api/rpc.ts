@@ -19,6 +19,8 @@ async function initRpcUrlAdjustments() {
  * On Android emulators, localhost/127.0.0.1 refers to the device itself, not
  * the host machine. Remap to 10.0.2.2 (the standard Android emulator alias
  * for the host) so users can enter familiar addresses and have them just work.
+ * When device-info is unavailable (androidIsEmulator === null), remapping still
+ * applies so emulator setups keep working.
  */
 function adjustRpcUrl(url: string): string {
   if (Platform.OS !== 'android') {
@@ -64,8 +66,12 @@ function toUserFacingError(err: unknown, url: string): Error {
     return new Error(
       `Connected to ${url} but the node reset the connection.\n` +
         'Possible causes:\n' +
-        '• rpcallowip in bitcoin.conf does not include your device IP — add rpcallowip=192.168.0.0/16\n' +
-        '• A VPN or Tor proxy (e.g. Orbot) is routing local traffic through Tor — disable full-device VPN mode for local connections'
+        '• rpcbind is 127.0.0.1 only — set rpcbind=0.0.0.0 (or your LAN IP) in bitcoin.conf\n' +
+        '• rpcallowip does not include your phone — add rpcallowip=192.168.0.0/16\n' +
+        '• Wrong port — RPC is 8332 (mainnet), 38332 (signet), 18332 (testnet); P2P is 8333\n' +
+        '• Host firewall blocking inbound RPC from your phone\n' +
+        '• VPN or Tor on the phone (e.g. Orbot) routing LAN traffic away from the node\n' +
+        `(Technical: ${raw})`
     )
   }
 
@@ -312,6 +318,8 @@ export type CoreWalletInfo = {
   // some versions have been observed returning a bare `true` transiently —
   // callers must defensively handle that case instead of busy-looping.
   scanning: boolean | { duration: number; progress: number }
+  /** Total transactions known to the wallet (grows during rescanblockchain). */
+  txcount?: number
   unconfirmed_balance: number
   walletname: string
 }
@@ -587,6 +595,10 @@ export class BitcoinCoreWallet {
     return this.nodeRpc.getBlockCount()
   }
 
+  getBlockchainInfo(): Promise<BlockchainInfo> {
+    return this.nodeRpc.getBlockchainInfo()
+  }
+
   /**
    * Import one or more descriptors into this wallet.
    * Returns per-descriptor success/error results.
@@ -701,6 +713,14 @@ export class BitcoinCoreWallet {
       [startHeight],
       RPC_RESCAN_TIMEOUT_MS
     )
+  }
+
+  /**
+   * Stop an in-progress `rescanblockchain`. Safe to call when no scan is
+   * running (Core returns an error we ignore at the call site).
+   */
+  abortRescan(): Promise<boolean> {
+    return this._walletCall<boolean>('abortrescan')
   }
 
   /**

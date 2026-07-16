@@ -799,7 +799,7 @@ export default function AccountList() {
         options={{
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('app.name')}
+              {t('bitcoin.network.bitcoin')}
             </SSText>
           )
         }}

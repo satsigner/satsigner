@@ -113,7 +113,8 @@ export default function NetworkSettings() {
         server.url,
         server.backend,
         server.network,
-        server.proxy
+        server.proxy,
+        server.rpcCredentials
       )
 
       if (!result.success) {

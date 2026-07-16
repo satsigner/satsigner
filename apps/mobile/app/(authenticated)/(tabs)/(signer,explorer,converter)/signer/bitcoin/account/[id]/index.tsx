@@ -103,9 +103,14 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
+import {
+  createScanThroughputTracker,
+  formatBlocksPerSec,
+  formatScanDuration
+} from '@/utils/scanThroughput'
 import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -261,6 +266,151 @@ type TotalTransactionsProps = {
   refreshing: boolean
   sortDirection: Direction
   blockchainHeight: number
+  syncStatus?: Account['syncStatus']
+  tasksDone?: number
+  totalTasks?: number
+  transactionsFound?: number
+  currentBlockTimeSec?: number
+  scanFromTimeSec?: number
+}
+
+function syncProgressLabel(tasksDone?: number, totalTasks?: number): string {
+  if (
+    tasksDone === undefined ||
+    totalTasks === undefined ||
+    totalTasks === 0
+  ) {
+    return t('account.syncing')
+  }
+  const pct = Math.min(100, Math.round((tasksDone / totalTasks) * 100))
+  return t('account.syncProgressBlocks', {
+    current: tasksDone.toLocaleString(),
+    pct,
+    tip: totalTasks.toLocaleString()
+  })
+}
+
+function SyncScanStats({
+  syncStatus,
+  tasksDone,
+  totalTasks,
+  transactionsFound,
+  currentBlockTimeSec,
+  scanFromTimeSec
+}: {
+  syncStatus?: Account['syncStatus']
+  tasksDone?: number
+  totalTasks?: number
+  transactionsFound?: number
+  currentBlockTimeSec?: number
+  scanFromTimeSec?: number
+}) {
+  const trackerRef = useRef(createScanThroughputTracker())
+  const [throughput, setThroughput] = useState({
+    blocksPerSec: null as number | null,
+    etaSeconds: null as number | null,
+    pct: 0
+  })
+
+  const isSyncing = syncStatus === 'syncing'
+  const hasBlockProgress =
+    tasksDone !== undefined && totalTasks !== undefined && totalTasks > 0
+
+  useEffect(() => {
+    setThroughput(
+      trackerRef.current.update(
+        hasBlockProgress ? tasksDone : undefined,
+        hasBlockProgress ? totalTasks : undefined,
+        isSyncing
+      )
+    )
+  }, [hasBlockProgress, isSyncing, tasksDone, totalTasks])
+
+  if (!isSyncing) {
+    return null
+  }
+
+  const rateLabel =
+    throughput.blocksPerSec !== null
+      ? t('account.syncBlocksPerSec', {
+          rate: formatBlocksPerSec(throughput.blocksPerSec)
+        })
+      : null
+  const etaLabel =
+    throughput.etaSeconds !== null
+      ? t('account.syncEta', {
+          eta: formatScanDuration(throughput.etaSeconds)
+        })
+      : hasBlockProgress
+        ? t('account.syncEtaCalculating')
+        : null
+
+  const scanRangeLabel =
+    currentBlockTimeSec !== undefined && scanFromTimeSec !== undefined
+      ? t('account.syncScanRange', {
+          current: formatDate(currentBlockTimeSec * 1000),
+          from: formatDate(scanFromTimeSec * 1000)
+        })
+      : null
+
+  const txFoundLabel =
+    transactionsFound !== undefined
+      ? t('account.syncTransactionsFound', {
+          count: transactionsFound.toLocaleString()
+        })
+      : null
+
+  return (
+    <SSVStack gap="xs" style={styles.syncStats}>
+      <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+        <SSLoader size={18} />
+        <SSText center size="xs" color="muted">
+          {syncProgressLabel(tasksDone, totalTasks)}
+        </SSText>
+      </SSHStack>
+      {scanRangeLabel ? (
+        <SSText center size="xs" color="muted">
+          {scanRangeLabel}
+        </SSText>
+      ) : null}
+      {rateLabel || etaLabel || txFoundLabel ? (
+        <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+          {txFoundLabel ? (
+            <SSText center size="xs" color="muted">
+              {txFoundLabel}
+            </SSText>
+          ) : null}
+          {txFoundLabel && (rateLabel || etaLabel) ? (
+            <SSText center size="xs" color="muted">
+              ·
+            </SSText>
+          ) : null}
+          {rateLabel ? (
+            <SSText center size="xs" color="muted">
+              {rateLabel}
+            </SSText>
+          ) : null}
+          {rateLabel && etaLabel ? (
+            <SSText center size="xs" color="muted">
+              ·
+            </SSText>
+          ) : null}
+          {etaLabel ? (
+            <SSText center size="xs" color="muted">
+              {etaLabel}
+            </SSText>
+          ) : null}
+        </SSHStack>
+      ) : null}
+      {hasBlockProgress ? (
+        <View style={styles.syncProgressTrack}>
+          <View
+            style={[styles.syncProgressFill, { width: `${throughput.pct}%` }]}
+          />
+        </View>
+      ) : null}
+    </SSVStack>
+  )
 }
 
 function TotalTransactions({
@@ -272,7 +422,13 @@ function TotalTransactions({
   setSortDirection,
   refreshing,
   blockchainHeight,
-  sortDirection
+  sortDirection,
+  syncStatus,
+  tasksDone,
+  totalTasks,
+  transactionsFound,
+  currentBlockTimeSec,
+  scanFromTimeSec
 }: TotalTransactionsProps) {
   const { width } = useWindowDimensions()
   const horizontalPaddingPx = width * 0.06
@@ -359,6 +515,14 @@ function TotalTransactions({
           />
         </SSHStack>
       </SSHStack>
+      <SyncScanStats
+        syncStatus={syncStatus}
+        tasksDone={tasksDone}
+        totalTasks={totalTasks}
+        transactionsFound={transactionsFound}
+        currentBlockTimeSec={currentBlockTimeSec}
+        scanFromTimeSec={scanFromTimeSec}
+      />
       {showHistoryChart && sortedTransactions.length > 0 ? (
         <View
           style={{
@@ -427,11 +591,11 @@ function TotalTransactions({
                 />
               }
             />
-            {refreshing && (
+            {refreshing && syncStatus !== 'syncing' ? (
               <View style={styles.loaderOverlay} pointerEvents="none">
                 <SSLoader size={32} />
               </View>
-            )}
+            ) : null}
           </View>
         </SSVStack>
       )}
@@ -1101,16 +1265,27 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [updateAccount, account, syncStatus, tasksDone, totalTasks] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.updateAccount,
-        state.accounts.find((a) => a.id === id),
-        state.accounts.find((a) => a.id === id)?.syncStatus,
-        state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
-        state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks
-      ])
-    )
+  const [
+    updateAccount,
+    account,
+    syncStatus,
+    tasksDone,
+    totalTasks,
+    transactionsFound,
+    currentBlockTimeSec,
+    scanFromTimeSec
+  ] = useAccountsStore(
+    useShallow((state) => [
+      state.updateAccount,
+      state.accounts.find((a) => a.id === id),
+      state.accounts.find((a) => a.id === id)?.syncStatus,
+      state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
+      state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks,
+      state.accounts.find((a) => a.id === id)?.syncProgress?.transactionsFound,
+      state.accounts.find((a) => a.id === id)?.syncProgress?.currentBlockTimeSec,
+      state.accounts.find((a) => a.id === id)?.syncProgress?.scanFromTimeSec
+    ])
+  )
 
   const server = useBlockchainStore(
     (state) => state.configs[state.selectedNetwork].server
@@ -1334,6 +1509,12 @@ export default function AccountView() {
             refreshing={refreshing}
             sortDirection={sortDirectionTransactions}
             blockchainHeight={blockchainHeight}
+            syncStatus={syncStatus}
+            tasksDone={tasksDone}
+            totalTasks={totalTasks}
+            transactionsFound={transactionsFound}
+            currentBlockTimeSec={currentBlockTimeSec}
+            scanFromTimeSec={scanFromTimeSec}
           />
         )
       case 'derivedAddresses':
@@ -1737,33 +1918,6 @@ export default function AccountView() {
             </SSVStack>
           </Animated.View>
         )}
-        {/* ── Sync status ─────────────────────────────────────────── */}
-        {syncStatus === 'syncing' && (
-          <View style={{ marginTop: 10, paddingHorizontal: '6%' }}>
-            <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-              <SSLoader size={18} />
-              <SSText center size="xs" color="muted">
-                {(() => {
-                  if (
-                    tasksDone === undefined ||
-                    totalTasks === undefined ||
-                    totalTasks === 0
-                  ) {
-                    return t('account.syncing')
-                  }
-                  // totalTasks = chain tip, tasksDone = current block scanned
-                  const pct = Math.round((tasksDone / totalTasks) * 100)
-                  return t('account.syncProgressBlocks', {
-                    current: tasksDone.toLocaleString(),
-                    pct,
-                    tip: totalTasks.toLocaleString()
-                  })
-                })()}
-              </SSText>
-            </SSHStack>
-          </View>
-        )}
-
         {/* ── Birthday nudge for RPC imported wallets ──────────────── */}
         {syncStatus !== 'syncing' &&
           server?.backend === 'rpc' &&
@@ -1774,7 +1928,7 @@ export default function AccountView() {
               <TouchableOpacity
                 onPress={() =>
                   router.navigate(
-                    `/signer/bitcoin/account/${id}/settings` as never
+                    `/signer/bitcoin/account/${id}/settings/birthday` as never
                   )
                 }
               >
@@ -1876,6 +2030,22 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingTop: 16,
     position: 'absolute'
+  },
+  syncProgressFill: {
+    backgroundColor: Colors.white,
+    borderRadius: 1,
+    height: 1
+  },
+  syncProgressTrack: {
+    alignSelf: 'center',
+    backgroundColor: Colors.gray[700],
+    borderRadius: 1,
+    height: 1,
+    overflow: 'hidden',
+    width: '35%'
+  },
+  syncStats: {
+    paddingBottom: 12
   }
 })
 

@@ -423,13 +423,26 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         return
       }
 
-      const updatedAccount: Account = { ...account, birthdayDate: date }
+      const prevTime = account.birthdayDate?.getTime()
+      const nextTime = date?.getTime()
+      if (prevTime === nextTime) {
+        return
+      }
+
+      // Clearing the RPC checkpoint forces the next sync to rescan from the
+      // new birthday instead of continuing incrementally from the old range.
+      const updatedAccount: Account = {
+        ...account,
+        birthdayDate: date,
+        rpcLastBlockHash: undefined
+      }
       updateFullAccountDb(updatedAccount)
 
       set((state) => {
         const index = state.accounts.findIndex((a) => a.id === id)
         if (index !== -1) {
           state.accounts[index].birthdayDate = date
+          state.accounts[index].rpcLastBlockHash = undefined
         }
       })
       invalidateAccount(id)

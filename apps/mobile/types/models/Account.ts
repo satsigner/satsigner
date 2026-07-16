@@ -20,8 +20,14 @@ export const SyncStatusSchema = z.enum([
 ])
 
 export const SyncProgressSchema = z.object({
+  /** Approximate unix time of the block currently being scanned. */
+  currentBlockTimeSec: z.number().optional(),
+  /** Approximate unix time of the scan start (birthday / start height). */
+  scanFromTimeSec: z.number().optional(),
   tasksDone: z.number(),
-  totalTasks: z.number()
+  totalTasks: z.number(),
+  /** Wallet tx count observed mid-rescan (Bitcoin Core getwalletinfo.txcount). */
+  transactionsFound: z.number().optional()
 })
 
 export const CreationTypeSchema = z.enum([

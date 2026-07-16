@@ -334,6 +334,16 @@ describe('bitcoinCoreWallet', () => {
     })
   })
 
+  it('sends abortrescan on the wallet-scoped URL', async () => {
+    mockFetch.mockResolvedValueOnce(rpcResult(true))
+    const wallet = new BitcoinCoreWallet(NODE_URL, USER, PASS, 'w')
+
+    await expect(wallet.abortRescan()).resolves.toBe(true)
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(body.method).toBe('abortrescan')
+  })
+
   it('listSinceBlock requests include_removed so reorgs can be reconciled', async () => {
     mockFetch.mockResolvedValueOnce(
       rpcResult({ lastblock: 'hash', removed: [], transactions: [] })

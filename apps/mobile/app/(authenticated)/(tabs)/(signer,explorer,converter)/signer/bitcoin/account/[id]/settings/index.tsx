@@ -1,12 +1,23 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Platform, ScrollView, StyleSheet, View } from 'react-native'
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { deleteWalletDb } from '@/api/bdk'
-import { SSIconCircle, SSIconEyeOn, SSIconSettings } from '@/components/icons'
+import {
+  SSIconChevronRight,
+  SSIconCircle,
+  SSIconEyeOn,
+  SSIconSettings
+} from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSIconButton from '@/components/SSIconButton'
@@ -41,11 +52,8 @@ import {
 } from '@/utils/account'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { aesDecrypt } from '@/utils/crypto'
-import {
-  BIRTHDAY_DATE_LENGTH,
-  formatAccountCreationDate,
-  parseBirthdayDate
-} from '@/utils/date'
+import { formatAccountCreationDate } from '@/utils/date'
+import { formatDate } from '@/utils/format'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function AccountSettings() {
@@ -56,14 +64,12 @@ export default function AccountSettings() {
     accounts,
     updateAccount,
     updateAccountName,
-    updateAccountBirthday,
     deleteAccount
   ] = useAccountsStore(
     useShallow((state) => [
       state.accounts,
       state.updateAccount,
       state.updateAccountName,
-      state.updateAccountBirthday,
       state.deleteAccount
     ])
   )
@@ -75,10 +81,6 @@ export default function AccountSettings() {
   const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
     account?.keys[0]?.scriptVersion || 'P2WPKH'
   )
-  const [birthdayInput, setBirthdayInput] = useState(
-    account?.birthdayDate ? account.birthdayDate.toISOString().slice(0, 10) : ''
-  )
-  const [birthdayError, setBirthdayError] = useState(false)
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
@@ -170,23 +172,6 @@ export default function AccountSettings() {
     deleteAccount(currentAccountId!)
     removeAccountWallet(currentAccountId!)
     router.replace('/signer/bitcoin/accountList')
-  }
-
-  function handleBirthdayChange(value: string) {
-    setBirthdayInput(value)
-    const trimmed = value.trim()
-    if (!trimmed) {
-      setBirthdayError(false)
-      updateAccountBirthday(currentAccountId!, undefined)
-      return
-    }
-    const parsed = parseBirthdayDate(trimmed)
-    if (parsed) {
-      setBirthdayError(false)
-      updateAccountBirthday(currentAccountId!, parsed)
-      return
-    }
-    setBirthdayError(trimmed.length >= BIRTHDAY_DATE_LENGTH)
   }
 
   async function handleRescan() {
@@ -346,22 +331,25 @@ export default function AccountSettings() {
             </SSText>
           </SSHStack>
           {account.keys[0].creationType !== 'importAddress' && (
-            <SSVStack gap="xs">
+            <TouchableOpacity
+              onPress={() =>
+                router.navigate(
+                  `/signer/bitcoin/account/${currentAccountId}/settings/birthday`
+                )
+              }
+            >
               <SSHStack justifyBetween>
                 <SSText color="muted">{t('account.birthdayDate.label')}</SSText>
+                <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                  <SSText>
+                    {account.birthdayDate
+                      ? formatDate(account.birthdayDate)
+                      : t('account.birthdayDate.unset')}
+                  </SSText>
+                  <SSIconChevronRight height={12} width={7} />
+                </SSHStack>
               </SSHStack>
-              <SSTextInput
-                value={birthdayInput}
-                onChangeText={handleBirthdayChange}
-                placeholder={t('account.birthdayDate.placeholder')}
-                keyboardType="numbers-and-punctuation"
-                status={birthdayError ? 'invalid' : undefined}
-                error={birthdayError ? t('account.birthdayDate.error') : ''}
-              />
-              <SSText color="muted" size="xs">
-                {t('account.birthdayDate.helper')}
-              </SSText>
-            </SSVStack>
+            </TouchableOpacity>
           )}
           <SSHStack justifyBetween>
             <SSText color="muted">{t('account.network.title')}</SSText>

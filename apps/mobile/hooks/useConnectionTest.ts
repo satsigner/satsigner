@@ -9,6 +9,7 @@ import {
   type ProxyConfig,
   type RpcCredentials
 } from '@/types/settings/blockchain'
+import { expectedCoreChain, formatChainMismatchError } from '@/utils/rpcNetwork'
 
 type NodeInfo = {
   version?: string
@@ -225,6 +226,13 @@ export function useConnectionTest() {
 
         const blockHeight = chainInfo.blocks
         const responseTime = Date.now() - startTime
+
+        const expectedChain = expectedCoreChain(network)
+        if (chainInfo.chain !== expectedChain) {
+          throw new Error(
+            formatChainMismatchError(network, chainInfo.chain, url)
+          )
+        }
 
         setNodeInfo({
           blockHeight,
