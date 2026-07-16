@@ -23,6 +23,11 @@ const labelKeys = {
   all: (accountId: string) => ['labels', accountId] as const
 }
 
+const arkLabelKeys = {
+  all: (accountId: string | null | undefined) =>
+    ['ark', 'labels', accountId] as const
+}
+
 const tagKeys = {
   all: ['tags'] as const
 }
@@ -37,6 +42,7 @@ const nostrKeys = {
 export {
   accountKeys,
   addressKeys,
+  arkLabelKeys,
   labelKeys,
   nostrKeys,
   tagKeys,

@@ -20,6 +20,7 @@ import {
   equalizeSankeyColumnsByDepthH,
   minSankeyStackedColumnInnerHeightPx
 } from '@/utils/equalizeSankeyColumnLayout'
+import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 
@@ -212,19 +213,19 @@ function SSTransactionChart({
       }
     })
 
-    const totalOutputValueWithAddresses = outputs
-      .filter((output) => output.address && output.address.trim() !== '')
-      .reduce((sum, output) => sum + output.value, 0)
-
     const higherFee =
-      totalOutputValueWithAddresses > 0
-        ? minerFee !== undefined &&
-          minerFee >= totalOutputValueWithAddresses * 0.1
-        : false
+      minerFee !== undefined &&
+      isHighMinerFee({
+        minerFeeSats: minerFee,
+        totalOutputSats: totalOutputValue
+      })
 
     const feePercentage =
-      totalOutputValueWithAddresses > 0 && minerFee !== undefined
-        ? (minerFee / totalOutputValueWithAddresses) * 100
+      minerFee !== undefined
+        ? getFeePercentage({
+            minerFeeSats: minerFee,
+            totalOutputSats: totalOutputValue
+          })
         : 0
 
     if (minerFee !== undefined) {
@@ -232,7 +233,7 @@ function SSTransactionChart({
         depthH: 2,
         id: String(inputs.length + outputs.length + 2),
         ioData: {
-          feePercentage: Math.round(feePercentage * 100) / 100,
+          feePercentage: Math.round(feePercentage * 10000) / 100,
           feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(minerFee), 2),

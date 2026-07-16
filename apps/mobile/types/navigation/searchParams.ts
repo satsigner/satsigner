@@ -27,6 +27,11 @@ export type AccountSearchParams = {
   id: string
 }
 
+export type IoPreviewSearchParams = AccountSearchParams & {
+  autoSelectFromUri?: string
+  dustWarning?: string
+}
+
 export type PreviewTransactionSearchParams = AccountSearchParams & {
   psbt?: string
   signedPsbt?: string

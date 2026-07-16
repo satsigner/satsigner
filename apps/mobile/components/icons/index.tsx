@@ -1,8 +1,11 @@
 import SSIconAbout from './SSIconAbout'
 import SSIconAdd from './SSIconAdd'
+import SSIconArrowLineDown from './SSIconArrowLineDown'
+import SSIconArrowsClockwise from './SSIconArrowsClockwise'
 import SSIconBitcoin from './SSIconBitcoin'
 import SSIconBlackIndicator from './SSIconBlackIndicator'
 import SSIconBlock from './SSIconBlock'
+import SSIconBoardCircle from './SSIconBoardCircle'
 import SSIconBubbles from './SSIconBubbles'
 import SSIconCamera from './SSIconCamera'
 import SSIconChain from './SSIconChain'
@@ -44,6 +47,7 @@ import SSIconEyeOff from './SSIconEyeOff'
 import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
 import SSIconFiat from './SSIconFiat'
+import SSIconFilter from './SSIconFilter'
 import SSIconGreen from './SSIconGreen'
 import SSIconGreenIndicator from './SSIconGreenIndicator'
 import SSIconGreenNoSecret from './SSIconGreenNoSecret'
@@ -88,6 +92,7 @@ import SSIconServerOptions from './SSIconServerOptions'
 import SSIconSettings from './SSIconSettings'
 import SSIconSigner from './SSIconSigner'
 import SSIconSignerActive from './SSIconSignerActive'
+import SSIconSignOut from './SSIconSignOut'
 import SSIconSingleSignature from './SSIconSingleSignature'
 import SSIconSuccess from './SSIconSuccess'
 import SSIconTable from './SSIconTable'
@@ -103,9 +108,12 @@ import SSIconZero from './SSIconZero'
 export {
   SSIconAbout,
   SSIconAdd,
+  SSIconArrowLineDown,
+  SSIconArrowsClockwise,
   SSIconBitcoin,
   SSIconBlackIndicator,
   SSIconBlock,
+  SSIconBoardCircle,
   SSIconBubbles,
   SSIconCamera,
   SSIconChain,
@@ -147,6 +155,7 @@ export {
   SSIconEyeOn,
   SSIconFeature,
   SSIconFiat,
+  SSIconFilter,
   SSIconGreen,
   SSIconGreenIndicator,
   SSIconGreenNoSecret,
@@ -191,6 +200,7 @@ export {
   SSIconSettings,
   SSIconSigner,
   SSIconSignerActive,
+  SSIconSignOut,
   SSIconSingleSignature,
   SSIconSuccess,
   SSIconTable,

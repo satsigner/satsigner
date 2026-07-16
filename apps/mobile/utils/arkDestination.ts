@@ -1,34 +1,10 @@
 import { decode } from 'bitcoin-decoder'
 
-import type { ArkSendKind } from '@/types/models/Ark'
-
-export type ArkDestinationDraft =
-  | {
-      kind: 'arkoor'
-      address: string
-    }
-  | {
-      kind: 'bolt11'
-      invoice: string
-      amountSatsFromInvoice?: number
-      description?: string
-    }
-  | {
-      kind: 'lnaddress'
-      address: string
-    }
-  | {
-      kind: 'lnurl'
-      lnurl: string
-    }
-  | {
-      kind: 'onchain'
-      address: string
-    }
-
-export type ArkDestinationParseResult =
-  | { ok: true; draft: ArkDestinationDraft }
-  | { ok: false; reason: 'unsupported' | 'invalid' }
+import type {
+  ArkDestinationDraft,
+  ArkDestinationParseResult,
+  ArkSendKind
+} from '@/types/models/Ark'
 
 export async function parseArkDestination(
   raw: string
@@ -42,13 +18,16 @@ export async function parseArkDestination(
   if (!decoded.valid) {
     return { ok: false, reason: 'invalid' }
   }
+  if (decoded.kind !== 'payment') {
+    return { ok: false, reason: 'unsupported' }
+  }
 
   const { destination, metadata } = decoded
 
   switch (destination.type) {
     case 'ark-address':
       return {
-        draft: { address: destination.destination, kind: 'arkoor' },
+        draft: { address: destination.value, kind: 'arkoor' },
         ok: true
       }
     case 'bolt11':
@@ -56,24 +35,24 @@ export async function parseArkDestination(
         draft: {
           amountSatsFromInvoice: metadata?.amount,
           description: metadata?.description,
-          invoice: destination.destination,
+          invoice: destination.value,
           kind: 'bolt11'
         },
         ok: true
       }
     case 'lnaddress':
       return {
-        draft: { address: destination.destination, kind: 'lnaddress' },
+        draft: { address: destination.value, kind: 'lnaddress' },
         ok: true
       }
     case 'lnurl':
       return {
-        draft: { kind: 'lnurl', lnurl: destination.destination },
+        draft: { kind: 'lnurl', lnurl: destination.value },
         ok: true
       }
     case 'bitcoin-address':
       return {
-        draft: { address: destination.destination, kind: 'onchain' },
+        draft: { address: destination.value, kind: 'onchain' },
         ok: true
       }
     default:

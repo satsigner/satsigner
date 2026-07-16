@@ -1,0 +1,1 @@
+export const AUTO_SELECT_FROM_URI_SEARCH_PARAM = '1'

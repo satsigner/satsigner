@@ -128,6 +128,7 @@ export default function ArkSendConfirmPage() {
     !!draft &&
     amountSats > 0 &&
     !exceedsBalance &&
+    feeSats !== undefined &&
     !sendMutation.isPending &&
     onchainAddressNetworkValid &&
     lnurlAmountInRange &&
@@ -406,10 +407,7 @@ function successToastKey(outcome: ArkSendOutcome): string {
   if (outcome.kind === 'onchain') {
     return 'ark.send.success.onchain'
   }
-  if (outcome.preimage) {
-    return 'ark.send.success.lightning'
-  }
-  return 'ark.send.success.lightningPending'
+  return 'ark.send.success.lightning'
 }
 
 function feeKindFromDraft(draft: ArkDestinationDraft): ArkSendFeeKind {
