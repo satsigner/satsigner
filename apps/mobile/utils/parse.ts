@@ -132,7 +132,7 @@ function parseHexToBytes(hex: string): number[] {
 }
 
 function parseLabel(rawLabel: string) {
-  const matches = rawLabel.match(/#\w[\w\d]+/g)
+  const matches = rawLabel.match(/#\w+/g)
   if (!matches) {
     return { label: rawLabel, tags: [] }
   }
