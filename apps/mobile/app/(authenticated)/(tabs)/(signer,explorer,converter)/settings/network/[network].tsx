@@ -56,6 +56,7 @@ export default function CustomNetwork() {
     editUrl?: string
   }>()
   const router = useRouter()
+  const networkType = network as Network
   const {
     applyPastedUrl,
     formData,
@@ -68,8 +69,6 @@ export default function CustomNetwork() {
   const [scanModalVisible, setScanModalVisible] = useState(false)
   const scanHandledRef = useRef(false)
   const [, requestCameraPermission] = useCameraPermissions()
-
-  const networkType = network as Network
 
   const [
     selectedNetwork,

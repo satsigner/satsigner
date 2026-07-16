@@ -105,12 +105,12 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
-import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import {
   createScanThroughputTracker,
   formatBlocksPerSec,
   formatScanDuration
 } from '@/utils/scanThroughput'
+import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -275,11 +275,7 @@ type TotalTransactionsProps = {
 }
 
 function syncProgressLabel(tasksDone?: number, totalTasks?: number): string {
-  if (
-    tasksDone === undefined ||
-    totalTasks === undefined ||
-    totalTasks === 0
-  ) {
+  if (tasksDone === undefined || totalTasks === undefined || totalTasks === 0) {
     return t('account.syncing')
   }
   const pct = Math.min(100, Math.round((tasksDone / totalTasks) * 100))
@@ -356,7 +352,7 @@ function SyncScanStats({
   const txFoundLabel =
     transactionsFound !== undefined
       ? t('account.syncTransactionsFound', {
-          count: transactionsFound.toLocaleString()
+          count: transactionsFound
         })
       : null
 
@@ -1282,7 +1278,8 @@ export default function AccountView() {
       state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
       state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks,
       state.accounts.find((a) => a.id === id)?.syncProgress?.transactionsFound,
-      state.accounts.find((a) => a.id === id)?.syncProgress?.currentBlockTimeSec,
+      state.accounts.find((a) => a.id === id)?.syncProgress
+        ?.currentBlockTimeSec,
       state.accounts.find((a) => a.id === id)?.syncProgress?.scanFromTimeSec
     ])
   )

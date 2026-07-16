@@ -105,8 +105,9 @@ export default function AccountBirthdayPage() {
 
   function handleSelectBlockMode() {
     setMode('block')
-    if (!blockInput && account.birthdayDate && tip > 0) {
-      setBlockInput(String(estimateBirthHeight(account.birthdayDate, tip)))
+    const birthdayDate = account?.birthdayDate
+    if (!blockInput && birthdayDate && tip > 0) {
+      setBlockInput(String(estimateBirthHeight(birthdayDate, tip)))
     }
   }
 

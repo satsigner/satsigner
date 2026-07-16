@@ -237,10 +237,12 @@ export class BdkWallet {
   persist = jest.fn(() => true)
   syncWithEsplora = jest.fn(() => Promise.resolve())
   syncWithElectrum = jest.fn(() => Promise.resolve())
+  syncWithRpc = jest.fn(() => Promise.resolve())
   fullScanWithEsplora = jest.fn(() => Promise.resolve())
   fullScanWithElectrum = jest.fn(() => Promise.resolve())
   broadcastWithEsplora = jest.fn(() => Promise.resolve('mock-txid'))
   broadcastWithElectrum = jest.fn(() => Promise.resolve('mock-txid'))
+  broadcastWithRpc = jest.fn(() => Promise.resolve('mock-txid'))
   send = jest.fn(() => Promise.resolve('mock-txid'))
   drain = jest.fn(() => Promise.resolve('mock-txid'))
   latestCheckpoint = jest.fn(() => undefined)
@@ -284,6 +286,20 @@ export class BdkElectrumClient {
   get raw() {
     return {}
   }
+}
+
+export class BdkRpcClient {
+  constructor(_opts: {
+    url: string
+    auth:
+      | { type: 'cookieFile'; path: string }
+      | { type: 'userPass'; username: string; password: string }
+      | { type: 'none' }
+  }) {}
+  get raw() {
+    return {}
+  }
+  getBlockHeight = jest.fn(() => 0)
 }
 
 export const bdkCreateWallet = jest.fn(() =>

@@ -29,7 +29,8 @@ function estimateDateFromHeight(
 ): Date {
   const SECONDS_PER_BLOCK = 10 * 60
   const unix =
-    tipMediantimeSec - Math.max(0, currentTip - Math.max(0, height)) * SECONDS_PER_BLOCK
+    tipMediantimeSec -
+    Math.max(0, currentTip - Math.max(0, height)) * SECONDS_PER_BLOCK
   return new Date(Math.max(0, unix) * 1000)
 }
 

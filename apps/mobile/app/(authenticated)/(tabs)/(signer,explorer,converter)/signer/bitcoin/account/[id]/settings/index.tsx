@@ -60,19 +60,15 @@ export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
   const insets = useSafeAreaInsets()
 
-  const [
-    accounts,
-    updateAccount,
-    updateAccountName,
-    deleteAccount
-  ] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts,
-      state.updateAccount,
-      state.updateAccountName,
-      state.deleteAccount
-    ])
-  )
+  const [accounts, updateAccount, updateAccountName, deleteAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts,
+        state.updateAccount,
+        state.updateAccountName,
+        state.deleteAccount
+      ])
+    )
   const account = accounts.find((_account) => _account.id === currentAccountId)
   const [removeAccountWallet, dbPaths] = useWalletsStore(
     useShallow((state) => [state.removeAccountWallet, state.dbPaths])
