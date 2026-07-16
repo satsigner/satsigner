@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router'
+import { Stack, useFocusEffect } from 'expo-router'
 import { useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import Animated, {
@@ -227,13 +227,18 @@ export default function Converter() {
   }
 
   useMountEffect(() => {
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true
+      handleValueChange('bitcoin', 1)
+    }
+  })
+
+  useFocusEffect(() => {
     const timestamp = Math.floor(
       new Date(dateRef.current).setHours(0, 0, 0, 0) / 1000
     )
     setIsLoading(true)
     fetchFullPriceAt(mempoolUrl, timestamp)
-    hasInitializedRef.current = true
-    handleValueChange('bitcoin', 1)
   })
 
   return (

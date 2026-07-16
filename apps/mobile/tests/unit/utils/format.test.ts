@@ -10,6 +10,7 @@ import {
 } from '@/utils/format'
 
 jest.mock<typeof import('@/locales')>('@/locales', () => ({
+  i18n: { locale: 'en' },
   t: jest.fn((key: string) => {
     const words: Record<string, string> = {
       'numbers.billiard': 'billiard',

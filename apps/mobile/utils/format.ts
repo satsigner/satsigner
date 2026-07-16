@@ -1,5 +1,5 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
-import { t } from '@/locales'
+import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
@@ -238,7 +238,7 @@ function formatScaledWord(
 function formatLargeNumber(
   num: number,
   european = false,
-  locale = 'en'
+  locale = i18n.locale
 ): string {
   if (!isFinite(num) || num === 0 || Math.abs(num) < 1e3) {
     return ''
