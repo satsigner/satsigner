@@ -10,6 +10,16 @@ export const ProxyConfigSchema = z.object({
   port: z.number()
 })
 
+/**
+ * Bitcoin Core RPC credentials.
+ *
+ * SECURITY: These are currently persisted in plaintext via the blockchain
+ * Zustand store (unencrypted MMKV in `storage/mmkv.ts`). Unlike seed material
+ * (expo-secure-store), a compromised device backup or filesystem read can
+ * expose node credentials — which grant full RPC control, including spend if
+ * a hot wallet is loaded. Prefer a watch-only Core wallet and treat the
+ * device as the security boundary until credentials move to SecureStore.
+ */
 export const RpcCredentialsSchema = z.object({
   password: z.string(),
   username: z.string()

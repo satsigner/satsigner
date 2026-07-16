@@ -219,9 +219,7 @@ describe('bitcoinRpc', () => {
 
   describe('bitcoinRpc.test', () => {
     beforeEach(() => {
-      // BitcoinRpc.test() races the call against its own setTimeout, which
-      // is never cleared once the race settles — use fake timers so that
-      // lingering timer doesn't keep the process/test runner alive.
+      // AbortController timeout in fetchWithTimeout uses setTimeout.
       jest.useFakeTimers()
     })
 
@@ -242,12 +240,39 @@ describe('bitcoinRpc', () => {
     })
 
     it('resolves false when the call does not complete before the timeout', async () => {
-      mockFetch.mockReturnValueOnce(new Promise(() => {}))
+      mockFetch.mockImplementationOnce(
+        (_url: string, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            const signal = init?.signal
+            if (!signal) {
+              return
+            }
+            const abort = () => {
+              const err = new Error('The operation was aborted')
+              err.name = 'AbortError'
+              reject(err)
+            }
+            if (signal.aborted) {
+              abort()
+              return
+            }
+            signal.addEventListener('abort', abort, { once: true })
+          })
+      )
 
       const promise = BitcoinRpc.test(NODE_URL, USER, PASS, 10)
       await jest.advanceTimersByTimeAsync(10)
 
       await expect(promise).resolves.toBe(false)
+    })
+
+    it('passes the timeout budget into the AbortController', async () => {
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout')
+      mockFetch.mockResolvedValueOnce(rpcResult({ blocks: 1, chain: 'main' }))
+
+      await BitcoinRpc.test(NODE_URL, USER, PASS, 1234)
+
+      expect(setTimeoutSpy.mock.calls.map((call) => call[1])).toContain(1234)
     })
   })
 })

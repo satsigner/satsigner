@@ -547,6 +547,52 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
   return getExtendedKeyFromDescriptor(externalDescriptor)
 }
 
+/** Cap Zustand/UI updates during BDK RPC scans (inspector fires per block). */
+const RPC_PROGRESS_THROTTLE_MS = 250
+
+function createThrottledRpcProgress(
+  onRpcProgress: (current: number, tip: number, pct: number) => void
+): (current: number, tip: number, pct: number) => void {
+  let lastEmitMs = 0
+  let pending: { current: number; pct: number; tip: number } | null = null
+  let timer: ReturnType<typeof setTimeout> | null = null
+
+  function flush() {
+    timer = null
+    if (!pending) {
+      return
+    }
+    const { current, tip, pct } = pending
+    pending = null
+    lastEmitMs = Date.now()
+    onRpcProgress(current, tip, pct)
+  }
+
+  return function emit(current: number, tip: number, pct: number) {
+    const isComplete = pct >= 1 || (tip > 0 && current >= tip)
+    if (isComplete) {
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
+      pending = null
+      lastEmitMs = Date.now()
+      onRpcProgress(current, tip, pct)
+      return
+    }
+
+    pending = { current, pct, tip }
+    const elapsed = Date.now() - lastEmitMs
+    if (elapsed >= RPC_PROGRESS_THROTTLE_MS) {
+      flush()
+      return
+    }
+    if (!timer) {
+      timer = setTimeout(flush, RPC_PROGRESS_THROTTLE_MS - elapsed)
+    }
+  }
+}
+
 async function syncWallet(
   wallet: BdkWallet,
   backend: Backend,
@@ -594,11 +640,15 @@ async function syncWallet(
       startHeight = scanFloor
     }
 
+    const emitProgress = onRpcProgress
+      ? createThrottledRpcProgress(onRpcProgress)
+      : undefined
+
     await wallet.syncWithRpc(rpcClient, startHeight, {
       fetchMempool: true,
       inspector: {
         inspect({ currentHeight, tipHeight, progress }) {
-          onRpcProgress?.(currentHeight, tipHeight, progress)
+          emitProgress?.(currentHeight, tipHeight, progress)
         }
       }
     })

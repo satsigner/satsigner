@@ -425,8 +425,10 @@ export default class BitcoinRpc {
     return this._call<string>('getblockhash', [height])
   }
 
-  getBlockchainInfo(): Promise<BlockchainInfo> {
-    return this._call<BlockchainInfo>('getblockchaininfo')
+  getBlockchainInfo(
+    timeoutMs: number = RPC_DEFAULT_TIMEOUT_MS
+  ): Promise<BlockchainInfo> {
+    return this._call<BlockchainInfo>('getblockchaininfo', [], timeoutMs)
   }
 
   /**
@@ -503,23 +505,21 @@ export default class BitcoinRpc {
     ])
   }
 
+  /**
+   * Lightweight reachability probe for background connection polling.
+   * Uses AbortController via getBlockchainInfo so hung hosts fail within
+   * `timeout` ms without leaking timers. Returns a bare boolean — detailed
+   * errors belong in the interactive connection test (useConnectionTest).
+   */
   static async test(
     url: string,
     username: string,
     password: string,
     timeout: number
   ): Promise<boolean> {
-    const adjustedUrl = adjustRpcUrl(url)
-    const client = new BitcoinRpc(adjustedUrl, username, password)
-
-    const timeoutPromise = new Promise<never>((_resolve, reject) => {
-      setTimeout(() => {
-        reject(new Error(`Connection to ${adjustedUrl} timed out`))
-      }, timeout)
-    })
-
+    const client = new BitcoinRpc(url, username, password)
     try {
-      await Promise.race([client.getBlockchainInfo(), timeoutPromise])
+      await client.getBlockchainInfo(timeout)
       return true
     } catch {
       return false
