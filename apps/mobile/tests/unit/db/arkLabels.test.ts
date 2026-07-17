@@ -6,6 +6,8 @@ const execute = jest.mocked(getDb().execute)
 
 describe('ark labels db', () => {
   beforeEach(() => {
+    // Migrations run on first getDb(); clear so assertions only see label SQL.
+    getDb()
     execute.mockClear()
     execute.mockReturnValue({ results: [] })
   })
