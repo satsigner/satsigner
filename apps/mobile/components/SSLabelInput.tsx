@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react'
+import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { Sizes } from '@/styles'
+import { getLabelTextSize } from '@/utils/label'
 import { parseLabel, parseLabelTags } from '@/utils/parse'
 
 import SSButton from './SSButton'
 import SSTagInput from './SSTagInput'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
+
+const LABEL_INPUT_MIN_HEIGHT = Sizes.textInput.height.default * 3
 
 type SSLabelInputProps = {
   label: string
@@ -27,6 +32,7 @@ function SSLabelInput({
   const [selectedTags, setSelectedTags] = useState([] as string[])
   const [tags, setLocalTags] = useState(() => getTags())
   const [label, setLabel] = useState('')
+  const labelFontSize = Sizes.text.fontSize[getLabelTextSize(label)]
 
   function saveLabel() {
     const newLabel = parseLabelTags(label, selectedTags)
@@ -89,21 +95,19 @@ function SSLabelInput({
   }
 
   return (
-    <SSVStack style={{ paddingVertical: 20 }}>
-      <SSText weight="bold" uppercase>
-        {t('common.label')}
-      </SSText>
+    <SSVStack style={styles.container} gap="sm">
+      <SSText uppercase>{t('common.label')}</SSText>
       <SSTextInput
         align="left"
-        blurOnSubmit
+        multiline
+        numberOfLines={4}
+        textAlignVertical="top"
         value={label}
         onChangeText={setLabel}
         onBlur={handleInputEnded}
-        onSubmitEditing={handleInputEnded}
+        style={[styles.labelInput, { fontSize: labelFontSize }]}
       />
-      <SSText weight="bold" uppercase>
-        {t('common.tags')}
-      </SSText>
+      <SSText uppercase>{t('common.tags')}</SSText>
       <SSTagInput
         tags={tags}
         selectedTags={selectedTags}
@@ -118,5 +122,15 @@ function SSLabelInput({
     </SSVStack>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 20
+  },
+  labelInput: {
+    height: LABEL_INPUT_MIN_HEIGHT,
+    paddingVertical: 12
+  }
+})
 
 export default SSLabelInput

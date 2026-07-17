@@ -323,6 +323,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     : 0
   const type = tx?.type ?? ''
   const inputsCount = tx?.vin?.length ?? 0
+  const outputsCount = tx?.vout?.length ?? 0
 
   const confirmations =
     tx?.blockHeight && lastKnownBlockHeight > 0
@@ -440,6 +441,15 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
             {inputsCount === 1
               ? t('transaction.input.singular').toLowerCase()
               : t('transaction.input.plural').toLowerCase()}
+          </SSText>
+        </SSHStack>
+        <SSHStack gap="xs">
+          <SSText color="muted">{t('common.to').toLowerCase()}</SSText>
+          <SSText>
+            {outputsCount || '?'}{' '}
+            {outputsCount === 1
+              ? t('transaction.output.singular').toLowerCase()
+              : t('transaction.output.plural').toLowerCase()}
           </SSText>
         </SSHStack>
       </SSHStack>
