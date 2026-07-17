@@ -482,6 +482,20 @@ export default class BitcoinRpc {
     return this._call<string>('getrawtransaction', [txid, false])
   }
 
+  /**
+   * Node UTXO set lookup for any outpoint. Returns null when spent (or unknown).
+   */
+  getTxOut(
+    txid: string,
+    vout: number,
+    includeMempool = true
+  ): Promise<Record<string, unknown> | null> {
+    return this._call<Record<string, unknown> | null>('gettxout', [
+      txid,
+      vout,
+      includeMempool
+    ])
+  }
 
   sendRawTransaction(txHex: string): Promise<string> {
     return this._call<string>('sendrawtransaction', [txHex])
