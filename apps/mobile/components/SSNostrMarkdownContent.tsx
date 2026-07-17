@@ -20,6 +20,7 @@ import {
 } from '@/types/models/NostrMarkdown'
 import {
   collapseMarkdownSpacers,
+  isSafeHttpUrl,
   parseMarkdownBlocks
 } from '@/utils/nostrMarkdownBlocks'
 
@@ -45,6 +46,9 @@ type HeadingStyle = {
 const BODY_SIZE: TextFontSize = 'md'
 
 async function openLink(url: string) {
+  if (!isSafeHttpUrl(url)) {
+    return
+  }
   try {
     await Linking.openURL(url)
   } catch {

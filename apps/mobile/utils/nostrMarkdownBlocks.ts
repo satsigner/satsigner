@@ -17,6 +17,15 @@ function trimLineStart(line: string): string {
 const INLINE_RE =
   /(`[^`\n]+`|\*\*[^*\n]+\*\*|__[^_\n]+__|\*[^*\n]+\*|_[^_\n]+_|\[[^\]]+\]\([^)]+\))/g
 
+export function isSafeHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url.trim())
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
   const lines = content.replace(/\r\n/g, '\n').split('\n')
   const blocks: MarkdownBlock[] = []
@@ -132,7 +141,7 @@ export function parseInlineSegments(text: string): MarkdownInlineSegment[] {
       segments.push({ type: 'italic', value: token.slice(1, -1) })
     } else if (token.startsWith('[')) {
       const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
-      if (linkMatch) {
+      if (linkMatch && isSafeHttpUrl(linkMatch[2])) {
         segments.push({ label: linkMatch[1], type: 'link', url: linkMatch[2] })
       } else {
         segments.push({ type: 'text', value: token })

@@ -1,5 +1,6 @@
 import {
   collapseMarkdownSpacers,
+  isSafeHttpUrl,
   parseInlineSegments,
   parseMarkdownBlocks
 } from '@/utils/nostrMarkdownBlocks'
@@ -91,5 +92,26 @@ describe('parseInlineSegments', () => {
       { type: 'text', value: ' and ' },
       { type: 'code', value: 'code' }
     ])
+  })
+
+  it('renders non-http(s) link schemes as plain text', () => {
+    expect(
+      parseInlineSegments('Tap [wallet](bitcoin:bc1qxy) now')
+    ).toStrictEqual([
+      { type: 'text', value: 'Tap ' },
+      { type: 'text', value: '[wallet](bitcoin:bc1qxy)' },
+      { type: 'text', value: ' now' }
+    ])
+  })
+})
+
+describe('isSafeHttpUrl', () => {
+  it('allows http and https only', () => {
+    expect(isSafeHttpUrl('https://example.com')).toBe(true)
+    expect(isSafeHttpUrl('http://example.com/path')).toBe(true)
+    expect(isSafeHttpUrl('bitcoin:bc1qxy')).toBe(false)
+    expect(isSafeHttpUrl('tel:+15551212')).toBe(false)
+    expect(isSafeHttpUrl('javascript:alert(1)')).toBe(false)
+    expect(isSafeHttpUrl('not a url')).toBe(false)
   })
 })

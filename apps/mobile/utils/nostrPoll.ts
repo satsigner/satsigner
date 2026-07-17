@@ -83,10 +83,14 @@ export function resolvePollVoteOptionIds(
 export function getUserPollVoteOptionIds(
   responses: NostrPollResponse[],
   voterPubkeyHex: string,
-  pollType: NostrPollType
+  pollType: NostrPollType,
+  endsAt?: number
 ): string[] {
   const userResponses = responses
     .filter((response) => response.pubkey === voterPubkeyHex)
+    .filter(
+      (response) => endsAt === undefined || response.created_at <= endsAt
+    )
     .toSorted((a, b) => b.created_at - a.created_at)
 
   if (userResponses.length === 0) {
@@ -98,11 +102,15 @@ export function getUserPollVoteOptionIds(
 
 export function tallyPollVotes(
   responses: NostrPollResponse[],
-  pollType: NostrPollType
+  pollType: NostrPollType,
+  endsAt?: number
 ): Map<string, number> {
   const latestByPubkey = new Map<string, NostrPollResponse>()
 
   for (const response of responses) {
+    if (endsAt !== undefined && response.created_at > endsAt) {
+      continue
+    }
     const existing = latestByPubkey.get(response.pubkey)
     if (!existing || response.created_at > existing.created_at) {
       latestByPubkey.set(response.pubkey, response)

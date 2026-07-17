@@ -79,10 +79,24 @@ describe('poll vote helpers', () => {
     )
   })
 
+  it('discards votes created after endsAt when tallying', () => {
+    expect(tallyPollVotes(responses, 'singlechoice', 15)).toStrictEqual(
+      new Map([
+        ['yes', 2]
+      ])
+    )
+  })
+
   it('returns the latest vote for the current user', () => {
     expect(
       getUserPollVoteOptionIds(responses, 'pk1', 'singlechoice')
     ).toStrictEqual(['no'])
+  })
+
+  it('ignores the user vote when it was created after endsAt', () => {
+    expect(
+      getUserPollVoteOptionIds(responses, 'pk1', 'singlechoice', 15)
+    ).toStrictEqual(['yes'])
   })
 
   it('detects expired polls', () => {

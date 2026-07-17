@@ -78,6 +78,16 @@ function ndkEventToBlobDescriptor(event: NDKEvent): BlobDescriptor | null {
   }
 }
 
+function disconnectNdkPool(ndk: NDK): void {
+  try {
+    for (const relay of ndk.pool?.relays.values() ?? []) {
+      relay.disconnect()
+    }
+  } catch {
+    // best-effort cleanup
+  }
+}
+
 function subscribeOnce(
   ndk: NDK,
   filter: Parameters<NDK['subscribe']>[0],
@@ -96,6 +106,7 @@ function subscribeOnce(
       }
       settled = true
       sub.stop()
+      disconnectNdkPool(ndk)
       resolve()
     }
 

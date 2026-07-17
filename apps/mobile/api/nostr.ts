@@ -49,6 +49,17 @@ function createMobileNdk(explicitRelayUrls: string[]): NDK {
   })
 }
 
+function disconnectNdkPool(ndk: NDK): void {
+  try {
+    ndk.pool?.removeAllListeners?.()
+    for (const relay of ndk.pool?.relays.values() ?? []) {
+      relay.disconnect()
+    }
+  } catch {
+    // best-effort cleanup
+  }
+}
+
 // One NDK instance per relay set, shared across all NostrAPI callers.
 // Prevents duplicate WebSocket connections when multiple screens use the same relays.
 const ndkRegistry = new Map<string, NDK>()
@@ -251,9 +262,9 @@ export class NostrAPI {
   }
 
   async connect() {
-    if (!this.ndk) {
-      this.ndk = getOrCreateNdk(this.relays)
-    }
+    // Always resolve from the registry so all_failed resets don't leave this
+    // instance pinned to an evicted/disconnected NDK.
+    this.ndk = getOrCreateNdk(this.relays)
 
     await this.ndk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
 
@@ -271,9 +282,9 @@ export class NostrAPI {
    * handles the case where nothing connects in time.
    */
   async connectForPublish(timeoutMs = 10000): Promise<void> {
-    if (!this.ndk) {
-      this.ndk = getOrCreateNdk(this.relays)
-    }
+    // Always resolve from the registry so all_failed resets don't leave this
+    // instance pinned to an evicted/disconnected NDK.
+    this.ndk = getOrCreateNdk(this.relays)
 
     await this.ndk.connect(timeoutMs)
 
@@ -1076,14 +1087,7 @@ export class NostrAPI {
       cacheEvents([{ id: event.id, ...formatted }], ownPubkeys)
       return formatted
     } finally {
-      try {
-        tempNdk.pool?.removeAllListeners?.()
-        for (const relay of tempNdk.pool?.relays.values() ?? []) {
-          relay.disconnect()
-        }
-      } catch {
-        // cleanup best-effort
-      }
+      disconnectNdkPool(tempNdk)
     }
   }
 
@@ -1121,14 +1125,7 @@ export class NostrAPI {
       }
       return JSON.stringify(NostrAPI.ndkEventToStorableRecord(event), null, 2)
     } finally {
-      try {
-        tempNdk.pool?.removeAllListeners?.()
-        for (const relay of tempNdk.pool?.relays.values() ?? []) {
-          relay.disconnect()
-        }
-      } catch {
-        // cleanup best-effort
-      }
+      disconnectNdkPool(tempNdk)
     }
   }
 
@@ -1494,63 +1491,68 @@ export class NostrAPI {
     const tempNdk = createMobileNdk(
       publishRelays.length > 0 ? publishRelays : this.relays
     )
-    await tempNdk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
-    tempNdk.signer = signer
 
-    const event = new NDKEvent(tempNdk, {
-      content: '',
-      kind: NOSTR_POLL_RESPONSE_KIND,
-      tags: [
-        ['e', pollEventIdHex],
-        ...optionIds.map((optionId) => ['response', optionId])
-      ]
-    })
+    try {
+      await tempNdk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
+      tempNdk.signer = signer
 
-    await event.sign(signer)
+      const event = new NDKEvent(tempNdk, {
+        content: '',
+        kind: NOSTR_POLL_RESPONSE_KIND,
+        tags: [
+          ['e', pollEventIdHex],
+          ...optionIds.map((optionId) => ['response', optionId])
+        ]
+      })
 
-    const allRelayUrls = Array.from(tempNdk.pool?.relays.keys() ?? [])
-    if (allRelayUrls.length === 0) {
-      throw new Error('No relays in pool')
-    }
+      await event.sign(signer)
 
-    const publishPromises = allRelayUrls.map(async (url) => {
-      const relay = tempNdk.pool?.relays.get(url)
-      if (!relay) {
-        return { error: 'Relay not found', success: false as const, url }
+      const allRelayUrls = Array.from(tempNdk.pool?.relays.keys() ?? [])
+      if (allRelayUrls.length === 0) {
+        throw new Error('No relays in pool')
       }
 
-      try {
-        const timeoutPromise = new Promise<never>((_resolve, reject) => {
-          setTimeout(
-            () =>
-              reject(
-                new Error(
-                  `Publish timeout after ${NostrAPI.PUBLISH_TIMEOUT_MS}ms`
-                )
-              ),
-            NostrAPI.PUBLISH_TIMEOUT_MS
-          )
-        })
-        await Promise.race([relay.publish(event), timeoutPromise])
-        return { success: true as const, url }
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : 'Unknown publish error'
-        return { error: message, success: false as const, url }
+      const publishPromises = allRelayUrls.map(async (url) => {
+        const relay = tempNdk.pool?.relays.get(url)
+        if (!relay) {
+          return { error: 'Relay not found', success: false as const, url }
+        }
+
+        try {
+          const timeoutPromise = new Promise<never>((_resolve, reject) => {
+            setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `Publish timeout after ${NostrAPI.PUBLISH_TIMEOUT_MS}ms`
+                  )
+                ),
+              NostrAPI.PUBLISH_TIMEOUT_MS
+            )
+          })
+          await Promise.race([relay.publish(event), timeoutPromise])
+          return { success: true as const, url }
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Unknown publish error'
+          return { error: message, success: false as const, url }
+        }
+      })
+
+      const results = await Promise.all(publishPromises)
+      const succeeded = results.filter((result) => result.success)
+      if (succeeded.length === 0) {
+        const errors = results
+          .filter((result) => !result.success)
+          .map((result) => `${result.url}: ${result.error}`)
+          .join('; ')
+        throw new Error(`Failed to publish to any relay: ${errors}`)
       }
-    })
 
-    const results = await Promise.all(publishPromises)
-    const succeeded = results.filter((result) => result.success)
-    if (succeeded.length === 0) {
-      const errors = results
-        .filter((result) => !result.success)
-        .map((result) => `${result.url}: ${result.error}`)
-        .join('; ')
-      throw new Error(`Failed to publish to any relay: ${errors}`)
+      return event.id
+    } finally {
+      disconnectNdkPool(tempNdk)
     }
-
-    return event.id
   }
 
   async publishEvent(event: NDKEvent): Promise<void> {

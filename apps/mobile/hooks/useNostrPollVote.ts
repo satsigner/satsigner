@@ -49,11 +49,16 @@ export function useNostrPollVote({
 
   const ownPubkeyHex = ownPubkeys[0] ?? ''
   const pollVoteCounts = pollInfo
-    ? tallyPollVotes(pollResponses, pollInfo.pollType)
+    ? tallyPollVotes(pollResponses, pollInfo.pollType, pollInfo.endsAt)
     : new Map<string, number>()
   const userPollVoteIds =
     pollInfo && ownPubkeyHex
-      ? getUserPollVoteOptionIds(pollResponses, ownPubkeyHex, pollInfo.pollType)
+      ? getUserPollVoteOptionIds(
+          pollResponses,
+          ownPubkeyHex,
+          pollInfo.pollType,
+          pollInfo.endsAt
+        )
       : []
 
   const userPollVoteKey = userPollVoteIds.join('|')
