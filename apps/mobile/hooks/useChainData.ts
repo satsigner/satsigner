@@ -15,7 +15,13 @@ export function useChainData() {
 
   return useQuery({
     queryFn: () => fetchChainData(server, selectedNetwork, oracle),
-    queryKey: ['chain-data', server.url, server.backend, selectedNetwork],
+    queryKey: [
+      'chain-data',
+      server.url,
+      server.backend,
+      selectedNetwork,
+      server.rpcCredentials?.username
+    ],
     staleTime: time.minutes(1)
   })
 }

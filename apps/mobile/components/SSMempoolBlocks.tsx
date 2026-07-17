@@ -98,7 +98,7 @@ export default function SSMempoolBlocks({ blocks }: SSMempoolBlocksProps) {
       </Canvas>
 
       {/* Touch overlay for block selection */}
-      <View style={[StyleSheet.absoluteFillObject, { height: CANVAS_HEIGHT }]}>
+      <View style={[StyleSheet.absoluteFill, { height: CANVAS_HEIGHT }]}>
         <SSHStack gap="none" style={{ height: CANVAS_HEIGHT }}>
           {displayBlocks.map((_, i) => (
             <TouchableOpacity

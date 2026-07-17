@@ -126,7 +126,7 @@ export async function fetchBitnodesNetworkStats(): Promise<NetworkStats> {
       string,
       [
         number,
-        number,
+        string,
         string,
         string,
         string,

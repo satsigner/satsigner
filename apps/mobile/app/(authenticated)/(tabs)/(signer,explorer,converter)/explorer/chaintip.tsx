@@ -21,6 +21,7 @@ import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
+import type { MemPoolFees } from '@/types/models/Blockchain'
 import { formatBytes, formatDate } from '@/utils/format'
 
 const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
@@ -198,7 +199,15 @@ export default function ChainTip() {
             </SSVStack>
           </SSVStack>
 
-          {/* External data opt-in */}
+          {chainData?.feesSource === 'backend' && chainData.fees ? (
+            <FeeRatesSection
+              fees={chainData.fees}
+              source={chainData.feesSource}
+              sourceLabel={sourceLabel(chainData.feesSource)}
+              loading={isLoading}
+            />
+          ) : null}
+
           {!showExternal && (
             <SSVStack style={{ alignItems: 'center' }}>
               <SSButton
@@ -214,53 +223,23 @@ export default function ChainTip() {
 
           {showExternal && (
             <>
-              {/* Fee Rates — mempool.space */}
-              <SSVStack gap="sm">
-                <SectionHeader
-                  title={tn('fees')}
+              {chainData?.feesSource !== 'backend' ? (
+                <FeeRatesSection
+                  fees={chainData?.fees ?? null}
                   source={chainData?.feesSource ?? 'mempool'}
                   sourceLabel={
                     chainData?.feesSource
                       ? sourceLabel(chainData.feesSource)
                       : 'mempool.space'
                   }
+                  loading={isLoading}
                 />
-                <SSVStack gap="xs">
-                  <Row
-                    label={tn('feesHigh')}
-                    value={
-                      chainData?.fees ? `${chainData.fees.high} sat/vB` : '--'
-                    }
-                    loading={isLoading}
-                  />
-                  <Row
-                    label={tn('feesMedium')}
-                    value={
-                      chainData?.fees ? `${chainData.fees.medium} sat/vB` : '--'
-                    }
-                    loading={isLoading}
-                  />
-                  <Row
-                    label={tn('feesLow')}
-                    value={
-                      chainData?.fees ? `${chainData.fees.low} sat/vB` : '--'
-                    }
-                    loading={isLoading}
-                  />
-                  <Row
-                    label={tn('feesNone')}
-                    value={
-                      chainData?.fees ? `${chainData.fees.none} sat/vB` : '--'
-                    }
-                    loading={isLoading}
-                  />
-                </SSVStack>
-                <SSVStack gap="sm" style={{ marginTop: 8 }}>
-                  <SSFeeRateChart
-                    mempoolStatistics={mempoolStatistics}
-                    timeRange="2hours"
-                  />
-                </SSVStack>
+              ) : null}
+              <SSVStack gap="sm" style={{ marginTop: 8 }}>
+                <SSFeeRateChart
+                  mempoolStatistics={mempoolStatistics}
+                  timeRange="2hours"
+                />
               </SSVStack>
 
               {/* Price — mempool.space */}
@@ -328,6 +307,50 @@ export default function ChainTip() {
         </SSVStack>
       </ScrollView>
     </SSMainLayout>
+  )
+}
+
+function FeeRatesSection({
+  fees,
+  source,
+  sourceLabel,
+  loading
+}: {
+  fees: MemPoolFees | null
+  source: DataSource
+  sourceLabel: string
+  loading: boolean
+}) {
+  return (
+    <SSVStack gap="sm">
+      <SectionHeader
+        title={tn('fees')}
+        source={source}
+        sourceLabel={sourceLabel}
+      />
+      <SSVStack gap="xs">
+        <Row
+          label={tn('feesHigh')}
+          value={fees ? `${fees.high} sat/vB` : '--'}
+          loading={loading}
+        />
+        <Row
+          label={tn('feesMedium')}
+          value={fees ? `${fees.medium} sat/vB` : '--'}
+          loading={loading}
+        />
+        <Row
+          label={tn('feesLow')}
+          value={fees ? `${fees.low} sat/vB` : '--'}
+          loading={loading}
+        />
+        <Row
+          label={tn('feesNone')}
+          value={fees ? `${fees.none} sat/vB` : '--'}
+          loading={loading}
+        />
+      </SSVStack>
+    </SSVStack>
   )
 }
 

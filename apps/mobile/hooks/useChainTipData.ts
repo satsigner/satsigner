@@ -4,10 +4,16 @@ import { useShallow } from 'zustand/react/shallow'
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Block, MemPool, MemPoolFees } from '@/types/models/Blockchain'
-import type { Network } from '@/types/settings/blockchain'
+import type {
+  Backend,
+  Network,
+  RpcCredentials
+} from '@/types/settings/blockchain'
+import { feesFromBtcPerKb } from '@/utils/rpcFees'
 import { time } from '@/utils/time'
 
 export type DataSource = 'backend' | 'mempool'
@@ -115,6 +121,61 @@ async function fromElectrum(
   return data
 }
 
+async function fromRpc(
+  url: string,
+  username: string,
+  password: string
+): Promise<Partial<ChainTipData>> {
+  const data: Partial<ChainTipData> = {}
+  const rpc = new BitcoinRpc(url, username, password)
+
+  await Promise.all([
+    (async () => {
+      try {
+        const info = await rpc.getBlockchainInfo()
+        data.height = info.blocks
+        data.hash = info.bestblockhash
+        data.blockSource = 'backend'
+        const rpcBlock = await rpc.getBlock(info.bestblockhash)
+        data.block = {
+          height: rpcBlock.height,
+          size: rpcBlock.size,
+          timestamp: rpcBlock.time,
+          tx_count: rpcBlock.tx.length,
+          weight: rpcBlock.weight
+        }
+      } catch {
+        /* silently ignored */
+      }
+    })(),
+    (async () => {
+      try {
+        const mempoolInfo = await rpc.getMempoolInfo()
+        data.mempool = {
+          count: mempoolInfo.size,
+          vsize: mempoolInfo.bytes
+        }
+        data.mempoolSource = 'backend'
+      } catch {
+        /* silently ignored */
+      }
+    })(),
+    (async () => {
+      try {
+        const feeResult = await rpc.estimateSmartFee(1)
+        if (feeResult.feerate !== undefined) {
+          data.fees = feesFromBtcPerKb(feeResult.feerate)
+          data.feesSource = 'backend'
+        }
+      } catch {
+        /* silently ignored */
+      }
+    })()
+  ])
+
+  return data
+}
+
 async function fillFromMempoolFallback(
   oracle: MempoolOracle,
   partial: Partial<ChainTipData>
@@ -149,6 +210,9 @@ async function fillFromMempoolFallback(
       }
     })(),
     (async () => {
+      if (data.fees !== null) {
+        return
+      }
       try {
         data.fees = await oracle.getMemPoolFees()
         data.feesSource = 'mempool'
@@ -188,21 +252,36 @@ async function fillFromMempoolFallback(
 
 async function fetchChainTipData(
   serverUrl: string,
-  backend: string,
+  backend: Backend,
   network: Network,
-  oracle: MempoolOracle
+  oracle: MempoolOracle,
+  rpcCredentials?: RpcCredentials
 ): Promise<ChainTipData> {
-  let partial: Partial<ChainTipData> = {}
-
   if (backend === 'esplora' && serverUrl) {
     const esplora = new Esplora(serverUrl)
     const localOracle = new MempoolOracle(serverUrl)
-    partial = await fromEsplora(esplora, localOracle)
-  } else if (backend === 'electrum' && serverUrl) {
-    partial = await fromElectrum(serverUrl, network)
+    return fillFromMempoolFallback(
+      oracle,
+      await fromEsplora(esplora, localOracle)
+    )
   }
-
-  return fillFromMempoolFallback(oracle, partial)
+  if (backend === 'electrum' && serverUrl) {
+    return fillFromMempoolFallback(
+      oracle,
+      await fromElectrum(serverUrl, network)
+    )
+  }
+  if (backend === 'rpc' && serverUrl) {
+    return fillFromMempoolFallback(
+      oracle,
+      await fromRpc(
+        serverUrl,
+        rpcCredentials?.username ?? '',
+        rpcCredentials?.password ?? ''
+      )
+    )
+  }
+  return fillFromMempoolFallback(oracle, {})
 }
 
 export function useChainTipData() {
@@ -214,8 +293,20 @@ export function useChainTipData() {
 
   return useQuery({
     queryFn: () =>
-      fetchChainTipData(server.url, server.backend, selectedNetwork, oracle),
-    queryKey: ['chain-tip', server.url, server.backend, selectedNetwork],
+      fetchChainTipData(
+        server.url,
+        server.backend,
+        selectedNetwork,
+        oracle,
+        server.rpcCredentials
+      ),
+    queryKey: [
+      'chain-tip',
+      server.url,
+      server.backend,
+      selectedNetwork,
+      server.rpcCredentials?.username
+    ],
     staleTime: time.minutes(1)
   })
 }

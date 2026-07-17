@@ -3,8 +3,13 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import type { Block } from '@/types/models/Blockchain'
-import type { Network } from '@/types/settings/blockchain'
+import type {
+  Backend,
+  Network,
+  RpcCredentials
+} from '@/types/settings/blockchain'
 
 export type ChainSource = 'backend' | 'mempool'
 
@@ -77,6 +82,28 @@ async function fromElectrum(
   return data
 }
 
+async function fromRpc(
+  url: string,
+  username: string,
+  password: string
+): Promise<Partial<ChainData>> {
+  const data: Partial<ChainData> = {}
+  try {
+    const rpc = new BitcoinRpc(url, username, password)
+    const info = await rpc.getBlockchainInfo()
+    data.height = info.blocks
+    data.hash = info.bestblockhash
+    data.difficulty = info.difficulty
+    data.source = 'backend'
+
+    const block = await rpc.getBlock(info.bestblockhash)
+    data.timestamp = block.time
+  } catch {
+    /* silently ignored */
+  }
+  return data
+}
+
 async function fillFromMempool(
   oracle: MempoolOracle,
   partial: Partial<ChainData>
@@ -127,7 +154,9 @@ async function fillFromMempool(
         if (data.difficulty === null) {
           data.difficulty = block.difficulty
         }
-        data.source = 'mempool'
+        if (needsHeight || needsHash) {
+          data.source = 'mempool'
+        }
       } catch {
         /* silently ignored */
       }
@@ -156,7 +185,8 @@ async function fillFromMempool(
 }
 
 type ServerConfig = {
-  backend: string
+  backend: Backend
+  rpcCredentials?: RpcCredentials
   url: string
 }
 
@@ -165,15 +195,23 @@ export async function fetchChainData(
   network: Network,
   oracle: MempoolOracle
 ): Promise<ChainData> {
-  let partial: Partial<ChainData> = {}
-
   if (server.backend === 'esplora' && server.url) {
     const esplora = new Esplora(server.url)
     const localOracle = new MempoolOracle(server.url)
-    partial = await fromEsplora(esplora, localOracle)
-  } else if (server.backend === 'electrum' && server.url) {
-    partial = await fromElectrum(server.url, network)
+    return fillFromMempool(oracle, await fromEsplora(esplora, localOracle))
   }
-
-  return fillFromMempool(oracle, partial)
+  if (server.backend === 'electrum' && server.url) {
+    return fillFromMempool(oracle, await fromElectrum(server.url, network))
+  }
+  if (server.backend === 'rpc' && server.url) {
+    return fillFromMempool(
+      oracle,
+      await fromRpc(
+        server.url,
+        server.rpcCredentials?.username ?? '',
+        server.rpcCredentials?.password ?? ''
+      )
+    )
+  }
+  return fillFromMempool(oracle, {})
 }

@@ -1,8 +1,7 @@
-import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 import { useQuery } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Dimensions, StyleSheet, useWindowDimensions, View } from 'react-native'
 
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
@@ -25,6 +24,7 @@ import {
 import { formatDate, formatTimeFromNow } from '@/utils/format'
 import { time } from '@/utils/time'
 
+const SCREEN_HEIGHT = Dimensions.get('screen').height
 const CANVAS_HEIGHT = 0.7 * SCREEN_HEIGHT
 const BLOCKS_PER_EPOCH = 2016
 

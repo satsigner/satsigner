@@ -35,8 +35,8 @@ export default function ExplorerMempool() {
   const feeHistogram = basicData?.feeHistogram ?? []
   const vsizeFromHistogram = basicData?.vsizeFromHistogram ?? 0
 
-  const minFeeRate = feeHistogram.length > 0 ? feeHistogram.at(-1)[0] : null
-  const maxFeeRate = feeHistogram.length > 0 ? feeHistogram[0][0] : null
+  const minFeeRate = feeHistogram.length > 0 ? feeHistogram.at(-1)?.[0] : null
+  const maxFeeRate = feeHistogram.length > 0 ? feeHistogram[0]?.[0] : null
 
   function sourceLabel(src: 'backend' | 'mempool') {
     return src === 'backend'

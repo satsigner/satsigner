@@ -4,11 +4,14 @@ import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import ElectrumClient from '@/api/electrum'
-import Esplora from '@/api/esplora'
+import {
+  type ExplorerBlock,
+  fetchExplorerBlock,
+  fetchExplorerTipHeight
+} from '@/api/explorerBlock'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSExploreBlock, { type Block } from '@/components/SSExploreBlock'
+import SSExploreBlock from '@/components/SSExploreBlock'
 import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSText from '@/components/SSText'
@@ -19,97 +22,55 @@ import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 
-function getDifficultyFromBits(bits: number): number {
-  const exponent = bits >>> 24
-  const mantissa = bits & 0x007fffff
-  let target = BigInt(mantissa)
-  const shift = 8 * (exponent - 3)
-  if (shift >= 0) {
-    target *= 1n << BigInt(shift)
-  } else {
-    target /= 1n << BigInt(-shift)
-  }
-  const maxTarget =
-    0x00000000ffff0000000000000000000000000000000000000000000000000000n
-  return Number(maxTarget) / Number(target)
-}
+const DEFAULT_MAX_BLOCK_HEIGHT = 890_000
+const PAGE_PADDING = 120
 
-function ExplorerBlock() {
-  const [backendUrl, backend] = useBlockchainStore(
+function ExplorerBlockPage() {
+  const [backendUrl, backend, rpcCredentials] = useBlockchainStore(
     useShallow((state) => [
       state.configs['bitcoin'].server.url,
-      state.configs['bitcoin'].server.backend
+      state.configs['bitcoin'].server.backend,
+      state.configs['bitcoin'].server.rpcCredentials
     ])
   )
 
   const { height: windowHeight } = useWindowDimensions()
-  const padding = 120
-  const minPageHeight = windowHeight - padding
+  const minPageHeight = windowHeight - PAGE_PADDING
 
   const { height: heightParam } = useLocalSearchParams<{ height?: string }>()
 
   const [inputHeight, setInputHeight] = useState(heightParam ?? '1')
   const [loading, setLoading] = useState(false)
-  const [maxBlockHeight, setMaxBlockHeight] = useState(890_000)
-  const [block, setBlock] = useState<Block | null>(null)
+  const [maxBlockHeight, setMaxBlockHeight] = useState(DEFAULT_MAX_BLOCK_HEIGHT)
+  const [block, setBlock] = useState<ExplorerBlock | null>(null)
 
-  async function fetchBlockEsplora(height: number): Promise<Block> {
-    const esplora = new Esplora(backendUrl)
-    const blockHash = await esplora.getBlockAtHeight(height)
-    const block = await esplora.getBlockInfo(blockHash)
-    return block
-  }
-
-  async function fetchBlockElectrum(height: number): Promise<Block> {
-    const electrum = await ElectrumClient.initClientFromUrl(backendUrl)
-    const block = await electrum.getBlock(height)
-    electrum.close()
-    return {
-      difficulty: getDifficultyFromBits(block.bits),
-      height,
-      id: block.getId(),
-      mediantime: undefined,
-      merkle_root: block.merkleRoot?.toString('hex'),
-      nonce: block.nonce,
-      previousblockhash: block.prevHash?.toString('hex'),
-      size: block.weight() * 4,
-      timestamp: block.timestamp,
-      tx_count: block.transactions?.length,
-      version: block.version,
-      weight: block.weight()
-    }
-  }
-
-  async function fetchBlock(height: number) {
+  async function loadBlock(height: number) {
     setLoading(true)
     try {
-      const block =
-        backend === 'esplora'
-          ? await fetchBlockEsplora(height)
-          : await fetchBlockElectrum(height)
-      setBlock(block)
+      const nextBlock = await fetchExplorerBlock(
+        backendUrl,
+        backend,
+        height,
+        rpcCredentials
+      )
+      setBlock(nextBlock)
       setInputHeight(height.toString())
-      return block
+      return nextBlock
     } catch {
-      toast.error(`Failed to fetch block ${block}`)
+      toast.error(`Failed to fetch block ${height}`)
     } finally {
       setLoading(false)
     }
   }
 
-  async function fetchLatestBlock() {
-    let tipHeight: number
-    if (backend === 'esplora') {
-      const esplora = new Esplora(backendUrl)
-      tipHeight = await esplora.getLatestBlockHeight()
-    } else {
-      const electrum = await ElectrumClient.initClientFromUrl(backendUrl)
-      const header = await electrum.subscribeToBlockHeaders()
-      tipHeight = header?.height ?? 0
-      electrum.close()
-    }
+  async function loadLatestBlock() {
+    const tipHeight = await fetchExplorerTipHeight(
+      backendUrl,
+      backend,
+      rpcCredentials
+    )
     setMaxBlockHeight(tipHeight)
-    await fetchBlock(tipHeight)
+    await loadBlock(tipHeight)
   }
 
   function fetchBlockFromInput() {
@@ -118,7 +79,7 @@ function ExplorerBlock() {
       toast.error('Invalid block height')
       return
     }
-    fetchBlock(height)
+    loadBlock(height)
   }
 
   function nextBlockHeight() {
@@ -131,9 +92,9 @@ function ExplorerBlock() {
 
   useEffect(() => {
     if (heightParam) {
-      fetchBlock(Number(heightParam))
+      loadBlock(Number(heightParam))
     } else {
-      fetchLatestBlock()
+      loadLatestBlock()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -226,4 +187,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default ExplorerBlock
+export default ExplorerBlockPage

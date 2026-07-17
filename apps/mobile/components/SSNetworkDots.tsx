@@ -84,7 +84,7 @@ export default function SSNetworkDots({ distribution }: SSNetworkDotsProps) {
       </Canvas>
 
       {/* Touch overlay */}
-      <View style={[StyleSheet.absoluteFillObject, { height: CANVAS_HEIGHT }]}>
+      <View style={[StyleSheet.absoluteFill, { height: CANVAS_HEIGHT }]}>
         {dots.map((dot) => (
           <TouchableOpacity
             key={dot.country}

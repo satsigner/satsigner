@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import { SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
@@ -22,6 +23,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
 
 const tn = _tn('explorer.transaction')
 
@@ -45,7 +47,8 @@ function detectInputType(value: string): 'txid' | 'rawTx' | null {
 async function broadcastRawTx(
   hex: string,
   url: string,
-  backend: string
+  backend: Backend,
+  rpcCredentials?: RpcCredentials
 ): Promise<string> {
   if (backend === 'electrum') {
     const client = await ElectrumClient.initClientFromUrl(url)
@@ -54,6 +57,14 @@ async function broadcastRawTx(
     } finally {
       client.close()
     }
+  }
+  if (backend === 'rpc') {
+    const rpc = new BitcoinRpc(
+      url,
+      rpcCredentials?.username ?? '',
+      rpcCredentials?.password ?? ''
+    )
+    return rpc.sendRawTransaction(hex)
   }
   const esplora = new Esplora(url)
   return esplora.broadcastTransaction(hex)
@@ -131,7 +142,7 @@ export default function ExplorerTransaction() {
 
   const { mutate: broadcast, isPending: isBroadcasting } = useMutation({
     mutationFn: (hex: string) =>
-      broadcastRawTx(hex, server.url, server.backend),
+      broadcastRawTx(hex, server.url, server.backend, server.rpcCredentials),
     onError: () => toast.error(tn('broadcastError')),
     onSuccess: (txid) => {
       toast.success(tn('broadcastSuccess'))
