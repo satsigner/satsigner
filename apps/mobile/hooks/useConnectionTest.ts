@@ -2,10 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
-import BitcoinRpc, {
-  type BlockchainInfo,
-  type NetworkInfo
-} from '@/api/rpc'
+import BitcoinRpc, { type BlockchainInfo, type NetworkInfo } from '@/api/rpc'
 import {
   type Backend,
   type Network,
