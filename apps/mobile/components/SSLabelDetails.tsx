@@ -5,6 +5,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { type TextFontSize } from '@/styles/sizes'
 import { parseLabel } from '@/utils/parse'
 
 import { SSIconEditPencil } from './icons'
@@ -16,6 +17,19 @@ type SSLabelDetailsProps = {
   link: Href
   header: string
   privacyMode?: boolean
+}
+
+function getLabelTextSize(label: string): TextFontSize {
+  if (label.length > 48) {
+    return 'sm'
+  }
+  if (label.length > 32) {
+    return 'md'
+  }
+  if (label.length > 20) {
+    return 'lg'
+  }
+  return 'xl'
 }
 
 function SSLabelDetails({
@@ -32,9 +46,12 @@ function SSLabelDetails({
         <SSText uppercase color="muted">
           {header}
         </SSText>
-        {label && <SSText size="2xl">{privacyMode ? '••••' : label}</SSText>}
-        {!label && (
-          <SSText color="muted">
+        {label ? (
+          <SSText size={getLabelTextSize(label)} weight="light">
+            {privacyMode ? '••••' : label}
+          </SSText>
+        ) : (
+          <SSText color="muted" weight="light">
             {privacyMode ? '••••' : t('transaction.noLabel')}
           </SSText>
         )}
@@ -60,7 +77,7 @@ function SSLabelDetails({
         )}
       </SSVStack>
       <SSIconButton onPress={() => router.navigate(link)}>
-        <SSIconEditPencil height={20} width={20} />
+        <SSIconEditPencil height={16} width={16} strokeWidth={0.75} />
       </SSIconButton>
     </SSHStack>
   )
