@@ -11,6 +11,7 @@ type SSStyledSatTextProps = {
   currency?: 'sats' | 'btc'
   type?: 'send' | 'receive'
   noColor?: boolean
+  showSign?: boolean
   textSize?: TextFontSize
   weight?: TextFontWeight
   letterSpacing?: number
@@ -23,6 +24,7 @@ function SSStyledSatText({
   currency = 'sats',
   type = 'send',
   noColor = true,
+  showSign = true,
   textSize = '3xl',
   weight = 'regular',
   letterSpacing = -0.1
@@ -36,9 +38,29 @@ function SSStyledSatText({
       ? spacedFormatted.length
       : spacedFormatted.search(/[1-9]/)
 
+  const leading = spacedFormatted.slice(0, firstNonZeroIndex)
+  const rest = spacedFormatted.slice(firstNonZeroIndex)
+  const hasLeading = leading.length > 0
+  const baseStyle = { letterSpacing, lineHeight: text.fontSize[textSize] }
+
+  const leadingColor = noColor
+    ? Colors.softWhite
+    : zeroPadding && hasLeading
+      ? type === 'send'
+        ? Colors.softBarRed
+        : Colors.softBarGreen
+      : type === 'send'
+        ? Colors.softRed
+        : Colors.softGreen
+  const mainColor = noColor
+    ? Colors.white
+    : type === 'send'
+      ? Colors.mainRed
+      : Colors.mainGreen
+
   return (
     <SSText size={textSize}>
-      {type === 'send' && !noColor && (
+      {type === 'send' && !noColor && showSign && (
         <SSText
           size={textSize}
           weight="medium"
@@ -47,34 +69,24 @@ function SSStyledSatText({
           -
         </SSText>
       )}
-      {spacedFormatted.split('').map((char, index) => {
-        const isBeforeFirstNonZero = index < firstNonZeroIndex
-
-        return (
-          <SSText
-            key={index}
-            size={textSize}
-            weight={weight}
-            style={{
-              color: noColor
-                ? isBeforeFirstNonZero
-                  ? Colors.softWhite
-                  : Colors.white
-                : type === 'send'
-                  ? isBeforeFirstNonZero
-                    ? Colors.softRed
-                    : Colors.mainRed
-                  : isBeforeFirstNonZero
-                    ? Colors.softGreen
-                    : Colors.mainGreen,
-              letterSpacing,
-              lineHeight: text.fontSize[textSize]
-            }}
-          >
-            {char}
-          </SSText>
-        )
-      })}
+      {leading !== '' && (
+        <SSText
+          size={textSize}
+          weight={weight}
+          style={{ color: leadingColor, ...baseStyle }}
+        >
+          {leading}
+        </SSText>
+      )}
+      {rest !== '' && (
+        <SSText
+          size={textSize}
+          weight={weight}
+          style={{ color: mainColor, ...baseStyle }}
+        >
+          {rest}
+        </SSText>
+      )}
     </SSText>
   )
 }

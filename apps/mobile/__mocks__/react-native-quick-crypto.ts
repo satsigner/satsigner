@@ -1,5 +1,5 @@
-const mockCipherUpdate = jest.fn().mockReturnValue(new ArrayBuffer(16))
-const mockCipherFinal = jest.fn().mockReturnValue(new ArrayBuffer(0))
+const mockCipherUpdate = jest.fn().mockReturnValue(Buffer.alloc(16))
+const mockCipherFinal = jest.fn().mockReturnValue(Buffer.alloc(0))
 
 const QuickCrypto = {
   createCipheriv: jest.fn().mockReturnValue({
@@ -7,8 +7,8 @@ const QuickCrypto = {
     update: mockCipherUpdate
   }),
   createDecipheriv: jest.fn().mockReturnValue({
-    final: jest.fn().mockReturnValue(new ArrayBuffer(0)),
-    update: jest.fn().mockReturnValue(new ArrayBuffer(16))
+    final: jest.fn().mockReturnValue(Buffer.alloc(0)),
+    update: jest.fn().mockReturnValue(Buffer.alloc(16))
   }),
   createHash: jest.fn().mockImplementation(() => {
     let data = ''

@@ -59,8 +59,8 @@ export const textInput = {
   },
   height: {
     default: 58,
-    large: 42,
-    small: 34
+    large: 56,
+    small: 42
   }
 }
 

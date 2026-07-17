@@ -111,12 +111,14 @@ export default function Developer() {
 
     const accountsWithSeeds = await Promise.all(
       accounts.map(async (account) => ({
+        birthdayDate: account.birthdayDate,
         id: account.id,
         keys: await keysWithSeeds(account.id, account.keys),
         name: account.name,
         network: account.network,
         nostr: account.nostr,
         policyType: account.policyType,
+        rpcLastBlockHash: account.rpcLastBlockHash,
         summary: account.summary
       }))
     )
@@ -139,8 +141,7 @@ export default function Developer() {
     const backupData = {
       accounts: accountsWithSeeds,
       ark: {
-        accounts: arkState.accounts,
-        serverAccessTokens: arkState.serverAccessTokens
+        accounts: arkState.accounts
       },
       ecash: {
         accounts: ecashState.accounts,
@@ -357,6 +358,14 @@ export default function Developer() {
               label={t('settings.developer.skipPin')}
               selected={skipPin}
               onPress={() => setSkipPin(!skipPin)}
+            />
+          </SSVStack>
+          <SSSeparator color="gradient" />
+          <SSVStack>
+            <SSButton
+              label={t('settings.developer.design')}
+              onPress={() => router.navigate('/settings/design')}
+              variant="outline"
             />
           </SSVStack>
         </SSVStack>

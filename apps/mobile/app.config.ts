@@ -1,6 +1,22 @@
 import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
+import {
+  APP_VARIANT_PRODUCTION,
+  getVariantAppName,
+  getVariantPackageId,
+  getVariantScheme
+} from './constants/variant.cjs'
+
 const projectId = process.env.EXPO_PROJECT_ID
+
+const IS_DEV = process.env.APP_VARIANT !== APP_VARIANT_PRODUCTION
+const RAW_SUFFIX = process.env.APP_VARIANT_SUFFIX ?? ''
+
+const getUniqueIdentifier = () => getVariantPackageId(IS_DEV, RAW_SUFFIX)
+
+const getAppName = () => getVariantAppName(IS_DEV, RAW_SUFFIX)
+
+const getScheme = () => getVariantScheme(IS_DEV, RAW_SUFFIX)
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -9,11 +25,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: '#ffffff',
       foregroundImage: './assets/adaptive-icon.png'
     },
-    package: 'com.satsigner.satsigner',
+    package: getUniqueIdentifier(),
     permissions: ['NFC']
-  },
-  androidStatusBar: {
-    barStyle: 'light-content'
   },
   assetBundlePatterns: ['**/*'],
   description: 'Privacy-first Bitcoin signer with complete UTXO control',
@@ -29,16 +42,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   icon: './assets/icon.png',
   ios: {
-    bundleIdentifier: 'com.satsigner.satsigner',
+    bundleIdentifier: getUniqueIdentifier(),
     infoPlist: {
       NFCReaderUsageDescription:
         'This app uses NFC to read and write data from NFC tags',
+      NSAppTransportSecurity: {
+        NSAllowsLocalNetworking: true
+      },
       UIDesignRequiresCompatibility: true,
       'com.apple.developer.nfc.readersession.formats': ['NDEF', 'TAG']
     },
     supportsTablet: true
   },
-  name: 'satsigner',
+  name: getAppName(),
   orientation: 'portrait',
   plugins: [
     'expo-dev-client',
@@ -79,27 +95,36 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-build-properties',
       {
         android: {
-          useHermesV1: false
+          usesCleartextTraffic: true
         },
         ios: {
-          useHermesV1: false
+          deploymentTarget: '16.4'
         }
       }
     ],
     'expo-image',
+    [
+      'expo-status-bar',
+      {
+        style: 'light'
+      }
+    ],
     'expo-sharing',
     'expo-web-browser',
-    '@secondts/bark-react-native'
+    '@secondts/bark-react-native',
+    [
+      'expo-splash-screen',
+      {
+        backgroundColor: '#000000',
+        image: './assets/splash.png',
+        resizeMode: 'contain'
+      }
+    ]
   ],
-  scheme: 'satsigner',
+  scheme: getScheme(),
   slug: 'satsigner',
-  splash: {
-    backgroundColor: '#000000',
-    image: './assets/splash.png',
-    resizeMode: 'contain'
-  },
   userInterfaceStyle: 'dark',
-  version: '0.3.5',
+  version: '0.3.6',
   web: {
     favicon: './assets/favicon.png'
   }

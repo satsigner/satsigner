@@ -95,7 +95,7 @@ function SSNostrAccountCard({
             x: 0.5 - ACTIVE_GRADIENT_TAN_5_DEG / 2,
             y: 0
           }}
-          style={[StyleSheet.absoluteFillObject, styles.activeGradientFill]}
+          style={[StyleSheet.absoluteFill, styles.activeGradientFill]}
         />
       ) : null}
       {isActive ? (
@@ -109,7 +109,7 @@ function SSNostrAccountCard({
           locations={[0, 0.55, 1]}
           pointerEvents="none"
           start={{ x: 0.14, y: 0 }}
-          style={[StyleSheet.absoluteFillObject, styles.activeGlassSheen]}
+          style={[StyleSheet.absoluteFill, styles.activeGlassSheen]}
         />
       ) : null}
       {isActive ? (

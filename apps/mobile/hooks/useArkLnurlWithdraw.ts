@@ -2,30 +2,17 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { createArkBolt11Invoice } from '@/api/ark'
 import { ARK_LNURL_DETAILS_STALE_MS } from '@/constants/ark'
-import { useArkStore } from '@/store/ark'
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
+import { getArkAccountOrThrow } from '@/utils/ark'
 import {
-  decodeLNURL,
   fetchLNURLWithdrawDetails,
-  isLNURL,
-  requestLNURLWithdrawInvoice
+  isLnurlWithdrawAmountInRange,
+  requestLNURLWithdrawInvoice,
+  resolveLnurlUrl
 } from '@/utils/lnurl'
 
 import { useArkWallet } from './useArkWallet'
-
-function getAccountServerId(accountId: string) {
-  const { accounts } = useArkStore.getState()
-  const account = accounts.find((a) => a.id === accountId)
-  if (!account) {
-    throw new Error('Ark account not found')
-  }
-  return account.serverId
-}
-
-function resolveLnurlUrl(raw: string): string {
-  const cleaned = raw.trim().replace(/^lightning:/i, '')
-  return isLNURL(cleaned) ? decodeLNURL(cleaned) : cleaned
-}
 
 export function useArkLnurlWithdrawDetails(
   accountId: string | null | undefined,
@@ -66,22 +53,18 @@ export function useArkLnurlWithdraw(accountId: string | null | undefined) {
       if (!walletReady) {
         throw new Error('Ark wallet not ready')
       }
-      const amountMillisats = amountSats * 1000
-      if (
-        amountMillisats < details.minWithdrawable ||
-        amountMillisats > details.maxWithdrawable
-      ) {
+      if (!isLnurlWithdrawAmountInRange(amountSats, details)) {
         throw new Error('Amount out of range')
       }
       const invoice = await createArkBolt11Invoice(
-        getAccountServerId(accountId),
+        getArkAccountOrThrow(accountId).serverId,
         accountId,
         amountSats,
         details.defaultDescription
       )
       await requestLNURLWithdrawInvoice(
         details.callback,
-        amountMillisats,
+        amountSats * MILLISATS_PER_SAT,
         details.k1,
         details.defaultDescription,
         invoice.invoice

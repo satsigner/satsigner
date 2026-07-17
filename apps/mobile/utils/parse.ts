@@ -2,7 +2,7 @@ import { t } from '@/locales'
 import type { Account } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 
-import { getUtxoOutpoint } from './utxo'
+import { getUtxoOutpoint } from './outpoint'
 
 function parseAccountAddressesDetails({
   addresses,
@@ -132,12 +132,12 @@ function parseHexToBytes(hex: string): number[] {
 }
 
 function parseLabel(rawLabel: string) {
-  const matches = rawLabel.match(/#\w[\w\d]+/g)
+  const matches = rawLabel.match(/#\w+/g)
   if (!matches) {
     return { label: rawLabel, tags: [] }
   }
 
-  const tags = matches.map((match) => match.replace('#', ''))
+  const tags = [...new Set(matches.map((match) => match.replace('#', '')))]
   const label = rawLabel.replace(/#.*/, '').trim()
   return { label, tags }
 }

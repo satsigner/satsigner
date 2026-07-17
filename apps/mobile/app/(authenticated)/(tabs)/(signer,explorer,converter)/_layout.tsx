@@ -1,15 +1,14 @@
 import {
-  type DrawerNavigationProp,
-  useDrawerStatus
-} from '@react-navigation/drawer'
-import {
   Stack,
   useNavigation,
   usePathname,
   useRouter,
   useSegments
 } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
+import {
+  type DrawerNavigationProp,
+  useDrawerStatus
+} from 'expo-router/build/react-navigation/drawer'
 import { useEffect, useMemo, useState } from 'react'
 import { Platform, type ViewStyle, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -204,39 +203,36 @@ export default function StackLayout(params: { segment?: string }) {
   }, [params])
 
   return (
-    <>
-      <Stack
-        screenOptions={{
-          contentStyle: {
-            backgroundColor: Colors.gray[950]
-          },
-          headerBackVisible: false,
-          headerBackground: () => (
-            <View
-              style={{
-                alignItems: 'center',
-                backgroundColor: Colors.gray[950],
-                height: '100%',
-                justifyContent: 'center'
-              }}
-            />
-          ),
-          headerLeft: () => <HeaderLeft isShowNav={isShowNav} />,
-          headerRight: () => <HeaderRight />,
-          // Native stack accepts height; Expo's Stack typings only allow backgroundColor.
-          headerStyle: stackHeaderStyle as { backgroundColor?: string },
-          headerTintColor: Colors.gray[200],
-          headerTitle: () => (
-            <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('app.name')}
-            </SSText>
-          ),
-          headerTitleAlign: 'center'
-        }}
-      >
-        {homeScreen}
-      </Stack>
-      <StatusBar style="light" />
-    </>
+    <Stack
+      screenOptions={{
+        contentStyle: {
+          backgroundColor: Colors.gray[950]
+        },
+        headerBackVisible: false,
+        headerBackground: () => (
+          <View
+            style={{
+              alignItems: 'center',
+              backgroundColor: Colors.gray[950],
+              height: '100%',
+              justifyContent: 'center'
+            }}
+          />
+        ),
+        headerLeft: () => <HeaderLeft isShowNav={isShowNav} />,
+        headerRight: () => <HeaderRight />,
+        // Native stack accepts height; Expo's Stack typings only allow backgroundColor.
+        headerStyle: stackHeaderStyle as { backgroundColor?: string },
+        headerTintColor: Colors.gray[200],
+        headerTitle: () => (
+          <SSText uppercase style={{ letterSpacing: 1 }}>
+            {t('app.name')}
+          </SSText>
+        ),
+        headerTitleAlign: 'center'
+      }}
+    >
+      {homeScreen}
+    </Stack>
   )
 }

@@ -4,8 +4,13 @@ import { useShallow } from 'zustand/react/shallow'
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import { useBlockchainStore } from '@/store/blockchain'
-import type { Backend, Network } from '@/types/settings/blockchain'
+import type {
+  Backend,
+  Network,
+  RpcCredentials
+} from '@/types/settings/blockchain'
 
 export type BlockHeightSource = 'backend' | 'mempool'
 
@@ -21,12 +26,25 @@ async function fetchNetworkInfo(
   network: Network,
   serverUrl: string,
   serverBackend: Backend,
-  mempoolUrl: string
+  mempoolUrl: string,
+  rpcCredentials?: RpcCredentials
 ): Promise<NetworkInfoResult> {
   let height: number | null = null
   let source: BlockHeightSource = 'mempool'
 
-  if (serverBackend === 'esplora' && serverUrl) {
+  if (serverBackend === 'rpc' && serverUrl) {
+    try {
+      const rpc = new BitcoinRpc(
+        serverUrl,
+        rpcCredentials?.username ?? '',
+        rpcCredentials?.password ?? ''
+      )
+      height = await rpc.getBlockCount()
+      source = 'backend'
+    } catch {
+      // fall through to mempool
+    }
+  } else if (serverBackend === 'esplora' && serverUrl) {
     try {
       const esplora = new Esplora(serverUrl)
       const rawHeight = await esplora.getLatestBlockHeight()
@@ -109,7 +127,8 @@ export function useNetworkInfo() {
         selectedNetwork,
         server.url,
         server.backend,
-        mempoolUrl
+        mempoolUrl,
+        server.rpcCredentials
       )
       if (
         result.fee !== null &&
@@ -124,7 +143,9 @@ export function useNetworkInfo() {
       selectedNetwork,
       server.url,
       server.backend,
-      mempoolUrl
+      mempoolUrl,
+      server.rpcCredentials?.username,
+      server.rpcCredentials?.password
     ],
     refetchInterval: REFETCH_INTERVAL_MS,
     refetchIntervalInBackground: true

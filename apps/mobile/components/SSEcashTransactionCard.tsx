@@ -10,15 +10,16 @@ import {
   SSIconOutgoingLightning
 } from '@/components/icons'
 import SSText from '@/components/SSText'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type EcashTransaction } from '@/types/models/Ecash'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatFiatPrice } from '@/utils/format'
 
 import SSStyledSatText from './SSStyledSatText'
@@ -57,14 +58,11 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
       state.fetchPrices
     ])
   )
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool['bitcoin']
-  )
+  const { fiatPriceApiUrl } = useFiatData()
 
-  // Fetch prices on mount and when currency changes
   useEffect(() => {
-    fetchPrices(mempoolUrl)
-  }, [fetchPrices, fiatCurrency, mempoolUrl])
+    fetchPrices(getFiatPriceApiUrl())
+  }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
 
   const priceDisplay =
     btcPrice && !privacyMode

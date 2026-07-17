@@ -16,12 +16,15 @@ import {
   SANKEY_EQUAL_ROW_MIN_SLOT_PX,
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
+import { isChangeOutputAddress, normalizeAddressSet } from '@/utils/address'
 import {
   equalizeSankeyColumnsByDepthH,
   minSankeyStackedColumnInnerHeightPx
 } from '@/utils/equalizeSankeyColumnLayout'
+import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
+import { classifyChartOutput } from '@/utils/stonewall'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
@@ -42,6 +45,10 @@ interface Node extends SankeyNodeMinimal<object, object> {
 type SSTransactionChartProps = {
   transaction: Transaction
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  /** Wallet change (internal) addresses for identifying change outputs. */
+  internalAddresses?: Set<string>
+  /** Wallet UTXO outpoints (`txid:vout`) still unspent on-chain. */
+  unspentOutpoints?: Set<string>
   selectedOutputIndex?: number // Index of the output to highlight (vout)
   dimUnselected?: boolean // Dim non-selected outputs
   scale?: number // Scale factor for the chart (0-1)
@@ -52,6 +59,8 @@ type SSTransactionChartProps = {
 function SSTransactionChart({
   transaction,
   ownAddresses = new Set(),
+  internalAddresses = new Set(),
+  unspentOutpoints,
   selectedOutputIndex,
   dimUnselected = false,
   scale = 1,
@@ -59,6 +68,15 @@ function SSTransactionChart({
 }: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+
+  const normalizedOwnAddresses = useMemo(
+    () => normalizeAddressSet(ownAddresses),
+    [ownAddresses]
+  )
+  const normalizedInternalAddresses = useMemo(
+    () => normalizeAddressSet(internalAddresses),
+    [internalAddresses]
   )
 
   const totalOutputValue = transaction.vout.reduce(
@@ -77,6 +95,7 @@ function SSTransactionChart({
 
   const outputs = transaction.vout.map((output) => ({
     address: output.address,
+    kind: output.kind,
     label: output.label || '',
     value: output.value
   }))
@@ -190,8 +209,25 @@ function SSTransactionChart({
     const outputNodes: TxNode[] = outputs.map((output, index) => {
       const nodeId = String(index + 2 + inputs.length)
       const label = output.label ?? ''
-      const isChange =
-        label.includes('Change') || label.includes('[Change for]')
+      const outputAddress = output.address.trim()
+      const { isChange, isFakeMix, isSelfSend } = classifyChartOutput(
+        {
+          kind: output.kind,
+          label,
+          localId: `output-${index}`,
+          to: outputAddress
+        },
+        normalizedOwnAddresses
+      )
+      // Fake-mix uses an unused internal address — never treat it as change.
+      const isChangeOutput =
+        !isFakeMix &&
+        (isChange ||
+          isChangeOutputAddress(outputAddress, normalizedInternalAddresses))
+      const isUnspent = unspentOutpoints
+        ? unspentOutpoints.has(`${transaction.id}:${index}`)
+        : true
+      const isSelfSendOutput = !isChangeOutput && !isFakeMix && isSelfSend
 
       return {
         depthH: 2,
@@ -200,31 +236,35 @@ function SSTransactionChart({
           address: formatAddress(output.address, 6),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.value), 2),
-          isSelfSend: !!(output.address && ownAddresses.has(output.address)),
-          isUnspent: true,
+          isChange: isChangeOutput,
+          isFakeMix,
+          isSelfSend: isSelfSendOutput,
+          isUnspent,
           label: label || t('common.noLabel'),
-          text: t('transaction.build.unspent'),
+          text: isUnspent
+            ? t('transaction.build.unspent')
+            : t('transaction.build.spent'),
           value: output.value
         },
-        localId: isChange ? 'remainingBalance' : `output-${index}`,
+        localId: `output-${index}`,
         type: 'text',
         value: output.value
       }
     })
 
-    const totalOutputValueWithAddresses = outputs
-      .filter((output) => output.address && output.address.trim() !== '')
-      .reduce((sum, output) => sum + output.value, 0)
-
     const higherFee =
-      totalOutputValueWithAddresses > 0
-        ? minerFee !== undefined &&
-          minerFee >= totalOutputValueWithAddresses * 0.1
-        : false
+      minerFee !== undefined &&
+      isHighMinerFee({
+        minerFeeSats: minerFee,
+        totalOutputSats: totalOutputValue
+      })
 
     const feePercentage =
-      totalOutputValueWithAddresses > 0 && minerFee !== undefined
-        ? (minerFee / totalOutputValueWithAddresses) * 100
+      minerFee !== undefined
+        ? getFeePercentage({
+            minerFeeSats: minerFee,
+            totalOutputSats: totalOutputValue
+          })
         : 0
 
     if (minerFee !== undefined) {
@@ -232,7 +272,7 @@ function SSTransactionChart({
         depthH: 2,
         id: String(inputs.length + outputs.length + 2),
         ioData: {
-          feePercentage: Math.round(feePercentage * 100) / 100,
+          feePercentage: Math.round(feePercentage * 10000) / 100,
           feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(minerFee), 2),
@@ -257,7 +297,10 @@ function SSTransactionChart({
     satsToFiat,
     fiatCurrency,
     totalOutputValue,
-    ownAddresses
+    normalizedOwnAddresses,
+    normalizedInternalAddresses,
+    unspentOutpoints,
+    transaction.id
   ])
 
   const sankeyLinks = useMemo(() => {

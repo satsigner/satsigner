@@ -13,12 +13,14 @@ import {
 } from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 
 export default function Settings() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const { showCurrentFiat } = useFiatData()
 
   return (
     <>
@@ -48,12 +50,14 @@ export default function Settings() {
             icon={<SSIconFeature height={24} width={24} />}
             onPress={() => router.navigate('/settings/features')}
           />
-          <SSSettingsCards
-            title={t('settings.fiat.title')}
-            description={t('settings.fiat.description')}
-            icon={<SSIconFiat height={16} width={24} />}
-            onPress={() => router.navigate('/settings/fiat')}
-          />
+          {showCurrentFiat ? (
+            <SSSettingsCards
+              title={t('settings.fiat.title')}
+              description={t('settings.fiat.description')}
+              icon={<SSIconFiat height={16} width={24} />}
+              onPress={() => router.navigate('/settings/fiat')}
+            />
+          ) : null}
           <SSSettingsCards
             title={t('settings.security.title')}
             description={t('settings.security.description')}

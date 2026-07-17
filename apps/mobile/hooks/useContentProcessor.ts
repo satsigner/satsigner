@@ -4,11 +4,13 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { type Href } from 'expo-router'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 
+import { AUTO_SELECT_FROM_URI_SEARCH_PARAM } from '@/constants/autoSelectUtxos'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { getKeyFingerprint } from '@/utils/account'
+import { isUriPaymentAmount } from '@/utils/autoSelectUtxos'
 import { parseBitcoinUri } from '@/utils/bip321'
 import {
   type DetectedContent,
@@ -71,9 +73,7 @@ function autoSelectUtxos(
   }
 
   const result = selectEfficientUtxos(account.utxos, targetAmount, 1, {
-    changeOutputSize: 34,
-    dustThreshold: 546,
-    inputSize: 148
+    dustThreshold: DUST_LIMIT
   })
 
   if (result.error) {
@@ -97,11 +97,19 @@ function commitBitcoinUriToIoPreview(
   amountSats: number
 ) {
   actions.addOutput?.({ amount: amountSats, label, to: address })
-  if (account) {
+
+  const useSettingsAutoSelect = isUriPaymentAmount(amountSats)
+  if (!useSettingsAutoSelect && account) {
     autoSelectUtxos(account, amountSats, actions)
   }
+
   actions.navigate({
-    params: { id: accountId },
+    params: {
+      autoSelectFromUri: useSettingsAutoSelect
+        ? AUTO_SELECT_FROM_URI_SEARCH_PARAM
+        : undefined,
+      id: accountId
+    },
     pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
   })
 }

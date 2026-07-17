@@ -21,6 +21,7 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionVinList from '@/components/SSTransactionVinList'
 import SSTransactionVoutList from '@/components/SSTransactionVoutList'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -31,12 +32,15 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
+import { getAccountAddressSets } from '@/utils/address'
 import {
   formatConfirmations,
   formatFiatPrice,
-  formatNumber
+  formatNumber,
+  formatPercentualChange
 } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -47,9 +51,13 @@ export default function TxDetails() {
       return [acc, acc?.transactions.find((t) => t.id === txid), state.loadTx]
     })
   )
-  const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address)),
-    [account]
+  const { ownAddresses, internalAddresses } = useMemo(
+    () => getAccountAddressSets(account?.addresses ?? []),
+    [account?.addresses]
+  )
+  const unspentOutpoints = useMemo(
+    () => new Set(account?.utxos.map(getUtxoOutpoint)),
+    [account?.utxos]
   )
 
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -136,7 +144,8 @@ export default function TxDetails() {
         tx,
         currentServer.backend,
         currentServer.network,
-        currentServer.url
+        currentServer.url,
+        currentServer.rpcCredentials
       )
       loadTx(accountId!, { ...tx, vin })
     }
@@ -184,6 +193,8 @@ export default function TxDetails() {
               <SSTransactionChart
                 transaction={tx}
                 ownAddresses={ownAddresses}
+                internalAddresses={internalAddresses}
+                unspentOutpoints={unspentOutpoints}
                 scale={0.9}
               />
             </SSVStack>
@@ -243,51 +254,53 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   const [fiatCurrency, btcPrice] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.btcPrice])
   )
+  const { showCurrentFiat, showHistoricalFiat } = useFiatData()
+  const effectiveBtcPrice = showCurrentFiat ? btcPrice : 0
 
   const lastKnownBlockHeight = useBlockchainStore(
     (state) => state.lastKnownBlockHeight
   )
 
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.useZeroPadding,
+      state.privacyMode
+    ])
   )
 
-  const [amount, setAmount] = useState(0)
-  const [oldPrice, setOldPrice] = useState('')
-  const [price, setPrice] = useState('')
-  const [type, setType] = useState('')
-  const [inputsCount, setInputsCount] = useState(0)
+  const amount = tx
+    ? tx.type === 'receive'
+      ? tx.received
+      : tx.sent - tx.received
+    : 0
+  const type = tx?.type ?? ''
+  const inputsCount = tx?.vin?.length ?? 0
 
   const confirmations =
     tx?.blockHeight && lastKnownBlockHeight > 0
       ? lastKnownBlockHeight - tx.blockHeight + 1
       : 0
 
-  const updateInfo = () => {
-    if (!tx) {
-      return
-    }
-
-    const amount = tx.received - tx.sent
-    setAmount(amount)
-    setType(tx.type)
-
-    if (btcPrice) {
-      setPrice(formatFiatPrice(Number(amount), btcPrice))
-    }
-
-    if (tx.prices) {
-      setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency] || 0))
-    }
-
-    if (tx.vin) {
-      setInputsCount(tx.vin.length)
-    }
-  }
-
-  useEffect(() => {
-    updateInfo()
-  }, [tx, lastKnownBlockHeight]) // eslint-disable-line react-hooks/exhaustive-deps
+  const historicalBtcPrice = showHistoricalFiat
+    ? tx?.prices?.[fiatCurrency]
+    : undefined
+  const price =
+    showCurrentFiat && effectiveBtcPrice > 0
+      ? formatFiatPrice(Math.abs(amount), effectiveBtcPrice)
+      : ''
+  const oldPrice =
+    showHistoricalFiat && historicalBtcPrice && historicalBtcPrice > 0
+      ? formatFiatPrice(Math.abs(amount), historicalBtcPrice)
+      : ''
+  const percentChange =
+    showCurrentFiat &&
+    showHistoricalFiat &&
+    effectiveBtcPrice > 0 &&
+    historicalBtcPrice &&
+    historicalBtcPrice > 0
+      ? formatPercentualChange(effectiveBtcPrice, historicalBtcPrice)
+      : ''
 
   return (
     <SSVStack gap="none" style={{ alignItems: 'center' }}>
@@ -298,37 +311,60 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
           {type === 'send' && <SSIconOutgoing height={12} width={12} />}
           <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
             {amount !== 0 ? (
-              <SSStyledSatText
-                amount={Math.abs(amount)}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                currency={currencyUnit}
-                type={tx?.type}
-                weight="light"
-              />
+              privacyMode ? (
+                <SSText size="4xl" weight="light">
+                  ••••
+                </SSText>
+              ) : (
+                <SSStyledSatText
+                  amount={Math.abs(amount)}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
+                  type={tx?.type}
+                  textSize="4xl"
+                  noColor={false}
+                  showSign={false}
+                  weight="light"
+                  letterSpacing={-0.5}
+                />
+              )
             ) : (
               <SSText color="muted">?</SSText>
             )}
-            <SSText color="muted">
+            <SSText color="muted" size="sm">
               {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
             </SSText>
           </SSHStack>
         </SSHStack>
         {(price || oldPrice) && (
           <SSHStack gap="xs">
-            {price && (
+            {price ? (
               <SSText color="muted" size="sm">
-                {price}
+                {privacyMode ? '••••' : price}
               </SSText>
-            )}
-            {oldPrice && (
-              <SSText color="muted" size="sm">
-                ({oldPrice})
-              </SSText>
-            )}
-            <SSText color="muted" size="sm">
+            ) : null}
+            <SSText size="sm" style={{ color: Colors.gray[500] }}>
               {fiatCurrency}
             </SSText>
+            {oldPrice ? (
+              <SSText color="muted" size="sm">
+                ({privacyMode ? '••••' : oldPrice})
+              </SSText>
+            ) : null}
+            {!privacyMode && percentChange !== '' ? (
+              <SSText
+                size="sm"
+                style={{
+                  color:
+                    percentChange[0] === '+'
+                      ? Colors.softBarGreen
+                      : Colors.softBarRed
+                }}
+              >
+                {percentChange}
+              </SSText>
+            ) : null}
           </SSHStack>
         )}
       </SSVStack>

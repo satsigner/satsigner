@@ -1,18 +1,21 @@
+import { Redirect, useGlobalSearchParams } from 'expo-router'
+import Drawer from 'expo-router/drawer'
 import {
   getFocusedRouteNameFromRoute,
   useRoute
-} from '@react-navigation/native'
-import { Redirect, useGlobalSearchParams } from 'expo-router'
-import Drawer from 'expo-router/drawer'
+} from 'expo-router/react-navigation'
 import { useEffect } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
+import { initRpcUrlAdjustments } from '@/api/rpc'
+import SSArkReceiveOverlay from '@/components/SSArkReceiveOverlay'
 import SSNavMenu from '@/components/SSNavMenu'
 import { pruneCache } from '@/db/nostrCache'
 import { useArkNotifications } from '@/hooks/useArkNotifications'
+import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
@@ -71,6 +74,11 @@ export default function AuthenticatedLayout() {
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   useArkNotifications()
+  useFetchBitcoinPrice()
+
+  useEffect(() => {
+    void initRpcUrlAdjustments()
+  }, [])
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
 
@@ -97,8 +105,8 @@ export default function AuthenticatedLayout() {
       return
     }
 
-    try {
-      for (const account of accounts) {
+    for (const account of accounts) {
+      try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
         const existsWallet = !isImportAddress
           ? !!wallets[account.id]
@@ -123,7 +131,7 @@ export default function AuthenticatedLayout() {
             )
           : undefined
         if (walletData) {
-          addAccountWallet(account.id, walletData.wallet)
+          addAccountWallet(account.id, walletData.wallet, walletData.dbPath)
         }
 
         if (isImportAddress && typeof tmpAccount.keys[0].secret === 'object') {
@@ -138,13 +146,16 @@ export default function AuthenticatedLayout() {
         const updatedAccount = !isImportAddress
           ? await syncAccountWithWallet(account, walletData!.wallet)
           : await syncAccountWithAddress(account)
-        updateAccount(updatedAccount)
+        if (updatedAccount) {
+          updateAccount(updatedAccount)
+        }
+      } catch (error) {
+        const label = account.name ?? account.id
+        const reason = error instanceof Error ? error.message : String(error)
+        toast.error(`${label}: ${reason}`)
       }
-    } catch (error) {
-      toast.error((error as Error).message)
-    } finally {
-      setJustUnlocked(false)
     }
+    setJustUnlocked(false)
   }
 
   useEffect(() => {
@@ -206,6 +217,7 @@ export default function AuthenticatedLayout() {
       >
         <Drawer.Screen name="(tabs)" />
       </Drawer>
+      <SSArkReceiveOverlay />
     </GestureHandlerRootView>
   )
 }

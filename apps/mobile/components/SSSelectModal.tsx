@@ -1,7 +1,7 @@
-import * as StatusBar from 'expo-status-bar'
 import { useEffect } from 'react'
-import { Modal, Platform, ScrollView, View } from 'react-native'
+import { Modal, Platform, ScrollView, StatusBar, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Toaster } from 'sonner-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -37,10 +37,11 @@ function SSSelectModal({
       return
     }
     if (!visible) {
-      return StatusBar.setStatusBarBackgroundColor('transparent', false)
+      StatusBar.setBackgroundColor('transparent', false)
+      return
     }
 
-    StatusBar.setStatusBarBackgroundColor('black', false)
+    StatusBar.setBackgroundColor('black', false)
   }, [visible])
 
   return (
@@ -53,6 +54,7 @@ function SSSelectModal({
           paddingTop: insets.top
         }}
       >
+        <Toaster />
         <SSMainLayout black style={{ paddingBottom: 20 }}>
           <ScrollView>
             <SSVStack gap="lg">

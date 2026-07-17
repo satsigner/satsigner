@@ -1,7 +1,7 @@
 import '@/utils/polyfills'
-import { DarkTheme, ThemeProvider } from '@react-navigation/native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
+import { DarkTheme, ThemeProvider } from 'expo-router/react-navigation'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -18,7 +18,6 @@ import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSImageActionsSheet from '@/components/SSImageActionsSheet'
-import { useBarkAccessTokenDeepLink } from '@/hooks/useBarkAccessTokenDeepLink'
 import { queryClient } from '@/lib/queryClient'
 import {
   getLastBackgroundTimestamp,
@@ -37,11 +36,6 @@ const appTheme = {
     ...DarkTheme.colors,
     background: Colors.gray[950]
   }
-}
-
-function BarkAccessTokenDeepLinkBridge() {
-  useBarkAccessTokenDeepLink()
-  return null
 }
 
 export default function RootLayout() {
@@ -120,7 +114,6 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <BarkAccessTokenDeepLinkBridge />
         <GestureHandlerRootView style={styles.root}>
           <ThemeProvider value={appTheme}>
             <View style={styles.container}>

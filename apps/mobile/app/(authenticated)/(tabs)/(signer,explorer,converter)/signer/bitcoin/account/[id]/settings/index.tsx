@@ -1,13 +1,26 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconCircle, SSIconEyeOn } from '@/components/icons'
+import { deleteWalletDb } from '@/api/bdk'
+import {
+  SSIconChevronRight,
+  SSIconCircle,
+  SSIconEyeOn,
+  SSIconSettings
+} from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinAuth from '@/components/SSPinAuth'
@@ -16,6 +29,11 @@ import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { PIN_KEY } from '@/config/auth'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_HIT_BOX,
+  HEADER_CHROME_SETTINGS_ICON_SIZE
+} from '@/constants/headerChrome'
 import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
@@ -35,22 +53,25 @@ import {
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { aesDecrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
+import { formatDate } from '@/utils/format'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
   const insets = useSafeAreaInsets()
 
-  const [accounts, updateAccountName, deleteAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts,
-      state.updateAccountName,
-      state.deleteAccount
-    ])
-  )
+  const [accounts, updateAccount, updateAccountName, deleteAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts,
+        state.updateAccount,
+        state.updateAccountName,
+        state.deleteAccount
+      ])
+    )
   const account = accounts.find((_account) => _account.id === currentAccountId)
-  const removeAccountWallet = useWalletsStore(
-    (state) => state.removeAccountWallet
+  const [removeAccountWallet, dbPaths] = useWalletsStore(
+    useShallow((state) => [state.removeAccountWallet, state.dbPaths])
   )
 
   const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
@@ -59,9 +80,11 @@ export default function AccountSettings() {
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [rescanModalVisible, setRescanModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [showPinEntry, setShowPinEntry] = useState(false)
+  const [pinEntryModalVisible, setPinEntryModalVisible] = useState(false)
   const [pinEntryReason, setPinEntryReason] = useState<
     'mnemonic' | 'deletion' | null
   >()
@@ -107,32 +130,33 @@ export default function AccountSettings() {
 
   function handleOnViewMnemonic() {
     setPinEntryReason('mnemonic')
-    setShowPinEntry(true)
+    setPinEntryModalVisible(true)
   }
 
   function handleConfirmWalletDeletionWithPin() {
     setPinEntryReason('deletion')
     setDeleteModalVisible(false)
-    setShowPinEntry(true)
+    setPinEntryModalVisible(true)
   }
 
   function handleClosePinEntry() {
-    setShowPinEntry(false)
+    setPinEntryModalVisible(false)
   }
 
   async function handleSuccessPin() {
-    setShowPinEntry(false)
+    setPinEntryModalVisible(false)
     if (pinEntryReason === 'mnemonic') {
       await decryptMnemonic()
       setMnemonicModalVisible(true)
     }
     if (pinEntryReason === 'deletion') {
+      setIsDeletingAccount(true)
       setTimeout(deleteThisAccount, 500)
     }
   }
 
   function handlePinTriesOver() {
-    setShowPinEntry(false)
+    setPinEntryModalVisible(false)
   }
 
   function saveChanges() {
@@ -144,6 +168,46 @@ export default function AccountSettings() {
     deleteAccount(currentAccountId!)
     removeAccountWallet(currentAccountId!)
     router.replace('/signer/bitcoin/accountList')
+  }
+
+  async function handleRescan() {
+    setRescanModalVisible(false)
+    if (!account || !currentAccountId) {
+      return
+    }
+    const dbPath = dbPaths[currentAccountId]
+    if (!dbPath) {
+      // dbPath is only stored after the wallet was loaded with the new code.
+      // Removing from store and letting loadWallets recreate will NOT help
+      // because the SQLite file still carries the old checkpoint.
+      // Ask the user to lock/unlock the app first so dbPath is available.
+      toast.error(t('account.rescan.requiresReopen'))
+      return
+    }
+    await deleteWalletDb(dbPath)
+    // Wipe cached chain data and the RPC incremental checkpoint so the next
+    // sync does a full history scan instead of merging with stale state.
+    // Keep keys, labels, birthday, and Nostr config.
+    updateAccount({
+      ...account,
+      addresses: [],
+      lastSyncedAt: undefined,
+      rpcLastBlockHash: undefined,
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      syncProgress: undefined,
+      syncStatus: 'unsynced',
+      transactions: [],
+      utxos: []
+    })
+    removeAccountWallet(currentAccountId)
+    toast.success(t('account.rescan.success'))
+    router.replace(`/signer/bitcoin/account/${currentAccountId}/`)
   }
 
   async function decryptMnemonic() {
@@ -204,7 +268,23 @@ export default function AccountSettings() {
     <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
       <Stack.Screen
         options={{
-          headerRight: () => null,
+          headerRight: () => (
+            <SSIconButton
+              style={
+                Platform.OS === 'android' && [
+                  HEADER_CHROME_HIT_BOX,
+                  { marginRight: -HEADER_CHROME_EDGE_NUDGE }
+                ]
+              }
+              onPress={() => router.navigate('/settings')}
+            >
+              <SSIconSettings
+                height={HEADER_CHROME_SETTINGS_ICON_SIZE}
+                stroke={Colors.gray[200]}
+                width={HEADER_CHROME_SETTINGS_ICON_SIZE}
+              />
+            </SSIconButton>
+          ),
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -264,6 +344,27 @@ export default function AccountSettings() {
                 : '-'}
             </SSText>
           </SSHStack>
+          {account.keys[0].creationType !== 'importAddress' && (
+            <TouchableOpacity
+              onPress={() =>
+                router.navigate(
+                  `/signer/bitcoin/account/${currentAccountId}/settings/birthday`
+                )
+              }
+            >
+              <SSHStack justifyBetween>
+                <SSText color="muted">{t('account.birthdayDate.label')}</SSText>
+                <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                  <SSText>
+                    {account.birthdayDate
+                      ? formatDate(account.birthdayDate)
+                      : t('account.birthdayDate.unset')}
+                  </SSText>
+                  <SSIconChevronRight height={12} width={7} />
+                </SSHStack>
+              </SSHStack>
+            </TouchableOpacity>
+          )}
           <SSHStack justifyBetween>
             <SSText color="muted">{t('account.network.title')}</SSText>
             <SSText>{account?.network || '-'}</SSText>
@@ -430,9 +531,17 @@ export default function AccountSettings() {
         </SSVStack>
 
         <SSVStack style={styles.actionsContainer}>
+          {account.keys[0].creationType !== 'importAddress' && (
+            <SSButton
+              label={t('account.rescan.title')}
+              variant="outline"
+              onPress={() => setRescanModalVisible(true)}
+            />
+          )}
           <SSButton
             label={t('account.delete.title')}
             style={styles.deleteButton}
+            loading={isDeletingAccount}
             onPress={() => setDeleteModalVisible(true)}
           />
           <SSButton
@@ -443,6 +552,30 @@ export default function AccountSettings() {
           />
         </SSVStack>
       </SSVStack>
+      <SSModal
+        visible={rescanModalVisible}
+        onClose={() => setRescanModalVisible(false)}
+      >
+        <SSVStack style={styles.deleteModalOuterContainer}>
+          <SSText center uppercase>
+            {t('account.rescan.confirm')}
+          </SSText>
+          <SSText center color="muted" size="sm">
+            {t('account.rescan.description')}
+          </SSText>
+          <SSHStack style={styles.deleteModalInnerContainer}>
+            <SSButton
+              label={t('common.yes')}
+              variant="secondary"
+              onPress={handleRescan}
+            />
+            <SSButton
+              label={t('common.no')}
+              onPress={() => setRescanModalVisible(false)}
+            />
+          </SSHStack>
+        </SSVStack>
+      </SSModal>
       <SSModal
         visible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}
@@ -592,7 +725,7 @@ export default function AccountSettings() {
           setMnemonicModalVisible(true)
         }}
       />
-      <SSModal visible={showPinEntry} onClose={handleClosePinEntry}>
+      <SSModal visible={pinEntryModalVisible} onClose={handleClosePinEntry}>
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleSuccessPin}

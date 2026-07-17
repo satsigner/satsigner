@@ -34,6 +34,7 @@ export const TransactionSchema = z.object({
   vout: z.array(
     z.object({
       address: z.string(),
+      kind: z.enum(['fakeMix', 'change']).optional(),
       label: z.string().optional(),
       script: z.union([z.array(z.number()), z.string()]),
       value: z.number()

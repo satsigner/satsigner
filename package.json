@@ -1,6 +1,6 @@
 {
   "name": "satsigner",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "private": true,
   "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "keywords": [
@@ -25,11 +25,11 @@
     "fix": "ultracite fix"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.1.0",
     "oxfmt": "^0.42.0",
     "oxlint": "~1.57.0",
     "oxlint-tsgolint": "^0.20.0",
-    "turbo": "^2.0.1",
+    "turbo": "^2.9.14",
     "ultracite": "7.3.2"
   },
   "engines": {
@@ -46,8 +46,10 @@
       "workerd"
     ],
     "overrides": {
-      "react": "^19.2.0",
-      "react-dom": "^19.2.0"
+      "react": "19.2.3",
+      "react-dom": "19.2.3",
+      "@expo/metro-runtime": "56.0.12",
+      "@expo/dom-webview": "56.0.5"
     }
   }
 }

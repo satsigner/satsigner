@@ -1,12 +1,26 @@
 import {
   formatAddress,
   formatDate,
+  formatLargeNumber,
   formatNostrCardDate,
   formatNumber,
   formatShortPubkey,
   formatTime,
   formatTxId
 } from '@/utils/format'
+
+jest.mock<typeof import('@/locales')>('@/locales', () => ({
+  i18n: { locale: 'en' },
+  t: jest.fn((key: string) => {
+    const words: Record<string, string> = {
+      'numbers.billiard': 'billiard',
+      'numbers.quadrillion': 'quadrillion',
+      'numbers.trilliard': 'trilliard',
+      'numbers.trillion': 'trillion'
+    }
+    return words[key] ?? key
+  })
+}))
 
 describe('format utils', () => {
   describe('formatAddress', () => {
@@ -81,6 +95,36 @@ describe('format utils', () => {
   describe('formatTxId', () => {
     it('should return first and last six characters of the address', () => {
       expect(formatTxId('1111111111111111111114oLvT2')).toBe('111111...4oLvT2')
+    })
+  })
+
+  describe('formatLargeNumber', () => {
+    it('should return empty for zero, non-finite, and values under one thousand', () => {
+      expect(formatLargeNumber(0)).toBe('')
+      expect(formatLargeNumber(NaN)).toBe('')
+      expect(formatLargeNumber(42)).toBe('')
+      expect(formatLargeNumber(999)).toBe('')
+    })
+
+    it('should use Intl compact long for short-scale values', () => {
+      expect(formatLargeNumber(1_000)).toBe('1 thousand')
+      expect(formatLargeNumber(1_000_000)).toBe('1 million')
+      expect(formatLargeNumber(30_000_000_000)).toBe('30 billion')
+      expect(formatLargeNumber(1_500_000_000)).toBe('~2 billion')
+    })
+
+    it('should use i18n for quadrillion and above on short scale', () => {
+      expect(formatLargeNumber(1e15)).toBe('1 quadrillion')
+      expect(formatLargeNumber(2e15)).toBe('2 quadrillions')
+      expect(formatLargeNumber(1.5e15)).toBe('~2 quadrillions')
+    })
+
+    it('should use European long-scale naming when european is true', () => {
+      expect(formatLargeNumber(1e9, true)).toBe('1 milliard')
+      expect(formatLargeNumber(1e12, true)).toBe('1 billion')
+      expect(formatLargeNumber(1e15, true)).toBe('1 billiard')
+      expect(formatLargeNumber(1e18, true)).toBe('1 trillion')
+      expect(formatLargeNumber(1e21, true)).toBe('1 trilliard')
     })
   })
 })

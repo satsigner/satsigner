@@ -1,4 +1,3 @@
-import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 import {
   Canvas,
   Circle,
@@ -13,6 +12,7 @@ import {
 } from '@shopify/react-native-skia'
 import { memo, useCallback, useMemo } from 'react'
 import {
+  Dimensions,
   Platform,
   type StyleProp,
   StyleSheet,
@@ -29,6 +29,7 @@ import { useLayout } from '@/hooks/useLayout'
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
 
+const SCREEN_HEIGHT = Dimensions.get('screen').height
 const FACTOR_BLOCK_DISTANCE = 0.055
 const RADIUS_SPIRAL_START = 1
 const FACTOR_SPIRAL_GROWTH = 0.97
