@@ -81,9 +81,7 @@ describe('poll vote helpers', () => {
 
   it('discards votes created after endsAt when tallying', () => {
     expect(tallyPollVotes(responses, 'singlechoice', 15)).toStrictEqual(
-      new Map([
-        ['yes', 2]
-      ])
+      new Map([['yes', 2]])
     )
   })
 

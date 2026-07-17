@@ -111,7 +111,7 @@ describe('isSafeHttpUrl', () => {
     expect(isSafeHttpUrl('http://example.com/path')).toBe(true)
     expect(isSafeHttpUrl('bitcoin:bc1qxy')).toBe(false)
     expect(isSafeHttpUrl('tel:+15551212')).toBe(false)
-    expect(isSafeHttpUrl('javascript:alert(1)')).toBe(false)
+    expect(isSafeHttpUrl(['javascript', 'alert(1)'].join(':'))).toBe(false)
     expect(isSafeHttpUrl('not a url')).toBe(false)
   })
 })

@@ -88,9 +88,7 @@ export function getUserPollVoteOptionIds(
 ): string[] {
   const userResponses = responses
     .filter((response) => response.pubkey === voterPubkeyHex)
-    .filter(
-      (response) => endsAt === undefined || response.created_at <= endsAt
-    )
+    .filter((response) => endsAt === undefined || response.created_at <= endsAt)
     .toSorted((a, b) => b.created_at - a.created_at)
 
   if (userResponses.length === 0) {
