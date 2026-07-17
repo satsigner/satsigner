@@ -436,6 +436,14 @@ const useNostrStore = create<NostrState & NostrAction>()(
       trustedDevices: {}
     }),
     {
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<NostrState & NostrAction>),
+        // Always ensure runtime-only fields start fresh on rehydration
+        activeSubscriptions: new Set<NostrAPI>(),
+        syncingAccounts: {},
+        transactionToShare: null
+      }),
       migrate: (persistedState, version) => {
         const state = persistedState as Record<string, unknown> & {
           processedEvents?: Record<string, ProcessedIdsMap | string[]>
