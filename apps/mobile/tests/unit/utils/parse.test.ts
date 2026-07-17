@@ -162,5 +162,13 @@ describe('parse utils', () => {
         parseDescriptor(lower).xpubs.toSorted()
       )
     })
+
+    it("parses Electrum segwit origin [fp/0']", () => {
+      const d =
+        "wpkh([e30a0cd1/0']xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG/0/*)"
+      const { hardenedPath, xpubs } = parseDescriptor(d)
+      expect(hardenedPath).toBe('m/0h')
+      expect(xpubs).toHaveLength(1)
+    })
   })
 })

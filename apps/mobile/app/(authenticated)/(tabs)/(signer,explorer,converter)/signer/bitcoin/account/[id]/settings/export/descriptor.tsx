@@ -127,7 +127,7 @@ export default function DescriptorPage() {
           decryptedSecret = key.secret as Secret
         }
 
-        const descriptorString = getOutputDescriptorStringForKey(
+        const descriptorString = await getOutputDescriptorStringForKey(
           key,
           decryptedSecret,
           network
