@@ -131,7 +131,7 @@ export default function TxDetails() {
     }
 
     if (tx.blockHeight) {
-      setHeight(tx.blockHeight.toString())
+      setHeight(tx.blockHeight.toLocaleString('en-US'))
     }
 
     if (tx.size) {
@@ -258,10 +258,10 @@ export default function TxDetails() {
                   txid,
                   { copyToClipboard: true, variant: 'mono', width: '100%' }
                 ],
-                [t('transaction.size'), size],
+                [t('transaction.size'), size, { unit: t('bitcoin.bytes') }],
                 [t('transaction.weight'), weight],
                 [t('transaction.vsize'), vsize],
-                [t('transaction.fee'), fee],
+                [t('transaction.fee'), fee, { unit: t('bitcoin.sats') }],
                 [t('transaction.feeBytes'), feePerByte],
                 [t('transaction.feeVBytes'), feePerVByte],
                 [t('transaction.version'), version],

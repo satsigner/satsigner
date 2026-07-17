@@ -221,7 +221,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
           <SSText size="xs" color="muted">
             {inputCount} {inputLabel}
             {outputCount > 0 ? `, ${outputCount} ${outputLabel}` : ''}
-            {fee > 0 ? `, ${fee.toLocaleString()} ${t('transaction.fee')}` : ''}
+            {fee > 0 ? `, ${fee.toLocaleString()} ${t('bitcoin.sats')}` : ''}
           </SSText>
           <TouchableOpacity
             onPress={(e) => {
