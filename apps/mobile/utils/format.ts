@@ -181,6 +181,9 @@ function formatTimeFromNow(milliseconds: number): TimeFromNow {
 }
 
 function formatTxId(txid: string, character = 6) {
+  if (!txid) {
+    return ''
+  }
   if (txid.includes('...') || txid.length <= character * 2 + 3) {
     return txid
   }
