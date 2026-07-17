@@ -126,9 +126,11 @@ function SSSankeyLinks({
           targetNode.ioData?.isSelfSend === true &&
           targetNode.ioData?.isFakeMix !== true &&
           !isChangeOutput
+        // Owned unspent ribbons stay solid white; spent change uses the fadeout.
         const isOwnOrUnspentRibbon =
-          isUnspent || isSelfSendOutput || isFakeMixOutput || isChangeOutput
-        const isRemainingBalance = isChangeOutput
+          isUnspent || isSelfSendOutput || isFakeMixOutput
+        const isRemainingBalance =
+          targetNode.localId === CHART_REMAINING_BALANCE_LOCAL_ID
         const isCurrentTxMinerFee = targetNode.localId === 'current-minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
         const isCurrentTx =
@@ -237,7 +239,8 @@ function SSSankeyLinks({
             ) : isOwnOrUnspentRibbon &&
               !isRemainingBalance &&
               !isSelfSendOutput &&
-              !isFakeMixOutput ? (
+              !isFakeMixOutput &&
+              !isChangeOutput ? (
               <Path
                 path={path1}
                 style="fill"
