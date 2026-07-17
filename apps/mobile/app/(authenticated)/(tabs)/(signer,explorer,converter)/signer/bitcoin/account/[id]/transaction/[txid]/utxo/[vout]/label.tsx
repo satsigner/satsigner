@@ -39,7 +39,10 @@ function UtxoLabel() {
   }
 
   return (
-    <ScrollView>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+    >
       <Stack.Screen
         options={{
           headerTitle: () => <SSText>{t('transaction.edit.label.utxo')}</SSText>
