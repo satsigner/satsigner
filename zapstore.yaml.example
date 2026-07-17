@@ -1,0 +1,13 @@
+# zapstore.yaml — Zapstore publisher configuration for SatSigner.
+#
+# Steps to activate:
+#   1. cp zapstore.yaml.example zapstore.yaml
+#   2. Replace <YOUR_NPUB_HERE> with the release account npub
+#   3. Commit zapstore.yaml to the repo root
+#
+# The pubkey must match the nsec/mnemonic used when running publish:zapstore.
+
+identifier: com.satsigner.satsigner.dev
+name: SatSigner
+repository: github.com/satsigner/satsigner
+pubkey: <YOUR_NPUB_HERE>

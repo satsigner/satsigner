@@ -119,6 +119,10 @@ import {
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import {
+  annotateTransactionsWithWalletOwnership,
+  getTransactionRunningBalances
+} from '@/utils/walletOwnership'
 
 // Render further beyond the viewport so fast scrolls hit fewer blank cells.
 const TX_LIST_DRAW_DISTANCE = 500
@@ -217,7 +221,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
           <SSText size="xs" color="muted">
             {inputCount} {inputLabel}
             {outputCount > 0 ? `, ${outputCount} ${outputLabel}` : ''}
-            {fee > 0 ? `, ${fee.toLocaleString()} ${t('transaction.fee')}` : ''}
+            {fee > 0 ? `, ${fee.toLocaleString()} ${t('bitcoin.sats')}` : ''}
           </SSText>
           <TouchableOpacity
             onPress={(e) => {
@@ -471,34 +475,36 @@ function TotalTransactions({
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
 
+  const annotatedTransactions = useMemo(
+    () =>
+      annotateTransactionsWithWalletOwnership(
+        [...account.transactions],
+        account.addresses
+      ),
+    [account.addresses, account.transactions]
+  )
+
   const sortedTransactions = useMemo(
-    () => sortTransactions([...account.transactions], sortDirection),
-    [account.transactions, sortDirection]
+    () => sortTransactions(annotatedTransactions, sortDirection),
+    [annotatedTransactions, sortDirection]
   )
 
   const chartTransactions = useMemo(
-    () => sortTransactions([...account.transactions], 'desc'),
-    [account.transactions]
+    () => sortTransactions(annotatedTransactions, 'desc'),
+    [annotatedTransactions]
   )
 
-  const transactionBalances = useMemo(() => {
-    let balance = 0
-    const balances = sortedTransactions.map((tx) => {
-      const received = tx.received || 0
-      const sent = tx.sent || 0
-      balance = balance + received - sent
-      return balance
-    })
-
-    return balances.toReversed()
-  }, [sortedTransactions])
+  const balanceByTxId = useMemo(
+    () => getTransactionRunningBalances(annotatedTransactions),
+    [annotatedTransactions]
+  )
 
   const maxBalance = useMemo(() => {
-    if (transactionBalances.length === 0) {
+    if (balanceByTxId.size === 0) {
       return 0
     }
-    return Math.max(...transactionBalances)
-  }, [transactionBalances])
+    return Math.max(...balanceByTxId.values())
+  }, [balanceByTxId])
 
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
 
@@ -584,7 +590,7 @@ function TotalTransactions({
                   <SSVStack gap="none">
                     <SSBalanceChangeBar
                       transaction={item}
-                      balance={transactionBalances[index]}
+                      balance={balanceByTxId.get(item.id)}
                       maxBalance={maxBalance}
                     />
                     <SSTransactionCard
@@ -592,7 +598,7 @@ function TotalTransactions({
                       fiatCurrency={fiatCurrency}
                       transaction={item}
                       expand={expand}
-                      walletBalance={transactionBalances[index]}
+                      walletBalance={balanceByTxId.get(item.id)}
                       blockHeight={blockchainHeight}
                       link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
                     />
@@ -1235,8 +1241,12 @@ function SatsInMempool({
   )
 
   const mempoolTransactions = useMemo(
-    () => account.transactions.filter((tx) => !tx.blockHeight),
-    [account.transactions]
+    () =>
+      annotateTransactionsWithWalletOwnership(
+        account.transactions,
+        account.addresses
+      ).filter((tx) => !tx.blockHeight),
+    [account.addresses, account.transactions]
   )
 
   if (mempoolTransactions.length === 0) {

@@ -12,9 +12,13 @@ const AnimatedPath = Animated.createAnimatedComponent(Path)
 
 const CHECK_PATH_LENGTH = 22
 
-type IconProps = Pick<SvgProps, 'width' | 'height'>
+type IconProps = Pick<SvgProps, 'width' | 'height'> & { color?: string }
 
-export default function SSIconCheckCircleThin({ width, height }: IconProps) {
+export default function SSIconCheckCircleThin({
+  width,
+  height,
+  color = '#fff'
+}: IconProps) {
   const circleOpacity = useSharedValue(0)
   const checkOffset = useSharedValue(CHECK_PATH_LENGTH)
   const started = useRef(false)
@@ -42,7 +46,7 @@ export default function SSIconCheckCircleThin({ width, height }: IconProps) {
           r="17"
           transform="translate(1 1)"
           fill="none"
-          stroke="#fff"
+          stroke={color}
           strokeWidth="1"
           animatedProps={circleProps}
         />
@@ -50,7 +54,7 @@ export default function SSIconCheckCircleThin({ width, height }: IconProps) {
           d="M6.7,15.038l4.208,4.04L22.017,7.8"
           transform="translate(3.894 4.645)"
           fill="none"
-          stroke="#fff"
+          stroke={color}
           strokeWidth="1.2"
           strokeLinecap="round"
           strokeLinejoin="round"

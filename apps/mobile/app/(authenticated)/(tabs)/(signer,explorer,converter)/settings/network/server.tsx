@@ -11,10 +11,7 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import { servers } from '@/constants/servers'
-import {
-  type ConnectionTestResult,
-  useConnectionTest
-} from '@/hooks/useConnectionTest'
+import { useConnectionTest } from '@/hooks/useConnectionTest'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -23,7 +20,11 @@ import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Network, type Server } from '@/types/settings/blockchain'
-import { formatDate } from '@/utils/date'
+import {
+  formatBannerForToast,
+  successProbeDescription,
+  successToastDescription
+} from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
 
 const tn = _tn('settings.network.server')
@@ -71,26 +72,10 @@ export default function NetworkSettings() {
   const [testingServer, setTestingServer] = useState<string | null>(null)
   /** Persists latest successful probe (tip height and time) for all backends. */
   const [lastProbeBanner, setLastProbeBanner] = useState<string | null>(null)
+  /** Electrum server.banner from the last successful probe. */
+  const [lastServerBanner, setLastServerBanner] = useState<string | null>(null)
 
   const networks: Network[] = ['bitcoin', 'testnet', 'signet']
-
-  function successToastDescription(
-    result: Extract<ConnectionTestResult, { success: true }>
-  ): string {
-    const dateSec = result.tipTimestampSec ?? Math.floor(Date.now() / 1000)
-    const dateStr = formatDate(dateSec)
-    if (
-      result.blockHeight !== null &&
-      result.blockHeight !== undefined &&
-      result.blockHeight > 0
-    ) {
-      return tn('tester.successDetail', {
-        date: dateStr,
-        height: result.blockHeight.toLocaleString()
-      })
-    }
-    return tn('tester.successNoHeight', { date: dateStr })
-  }
 
   function handleSelectServer(network: Network, server: Server) {
     setSelectedServers((prev) => ({
@@ -106,6 +91,7 @@ export default function NetworkSettings() {
   async function handleTestConnection(server: Server) {
     setTestingServer(server.url)
     setLastProbeBanner(null)
+    setLastServerBanner(null)
     await resetTest()
 
     try {
@@ -126,16 +112,17 @@ export default function NetworkSettings() {
         return
       }
 
-      const probeLine = successToastDescription(result)
+      const probeLine = successProbeDescription(result)
       setLastProbeBanner(
         `${server.name} (${trimOnionAddress(server.url)}): ${tn(
           'tester.success'
         )} — ${probeLine}`
       )
+      setLastServerBanner(result.banner?.trim() ? result.banner.trim() : null)
 
       try {
         toast.success(`${server.name} (${server.url})`, {
-          description: `${tn('tester.success')} — ${probeLine}`
+          description: successToastDescription(result)
         })
       } catch {
         // Avoid crashing if sonner handler was ever invalid; banner still shows tip.
@@ -368,14 +355,26 @@ export default function NetworkSettings() {
         </ScrollView>
         <SSVStack gap="md" style={{ flexShrink: 0, paddingTop: 16 }}>
           {lastProbeBanner ? (
-            <SSText
-              center
-              color="muted"
-              size="xs"
-              style={{ paddingHorizontal: 8 }}
-            >
-              {lastProbeBanner}
-            </SSText>
+            <SSVStack gap="xs">
+              <SSText
+                center
+                color="muted"
+                size="xs"
+                style={{ paddingHorizontal: 8 }}
+              >
+                {lastProbeBanner}
+              </SSText>
+              {lastServerBanner ? (
+                <SSVStack gap="none" style={{ paddingHorizontal: 8 }}>
+                  <SSText center color="muted" size="xxs" uppercase>
+                    {tn('tester.banner')}
+                  </SSText>
+                  <SSText center color="muted" size="xs" type="mono">
+                    {formatBannerForToast(lastServerBanner)}
+                  </SSText>
+                </SSVStack>
+              ) : null}
+            </SSVStack>
           ) : null}
           <SSButton
             variant="secondary"

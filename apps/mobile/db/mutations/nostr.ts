@@ -125,6 +125,10 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
     updates.push('nostr_device_nsec = ?')
     params.push(nostr.deviceNsec)
   }
+  if (nostr.deviceMnemonic !== undefined) {
+    updates.push('nostr_device_mnemonic = ?')
+    params.push(nostr.deviceMnemonic || null)
+  }
   if (nostr.deviceDisplayName !== undefined) {
     updates.push('nostr_device_display_name = ?')
     params.push(nostr.deviceDisplayName)

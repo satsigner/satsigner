@@ -4,6 +4,7 @@ import {
   buildStonewallPreviewOutputs,
   CHART_REMAINING_BALANCE_LOCAL_ID,
   classifyChartOutput,
+  classifyChartOutputs,
   getEphemeralChangeOutputLocalIds,
   getStonewallPaymentContext
 } from '@/utils/stonewall'
@@ -12,7 +13,7 @@ import { splitStonewallOutputValues } from '@/utils/utxo'
 describe('classifyChartOutput', () => {
   const own = new Set(['bc1qown', 'bc1qchange', 'bc1qdecoy'])
 
-  it('marks fake-mix outputs', () => {
+  it('treats legacy fake-mix kind as change (Sparrow ownership model)', () => {
     expect(
       classifyChartOutput(
         {
@@ -24,8 +25,9 @@ describe('classifyChartOutput', () => {
         own
       )
     ).toStrictEqual({
-      isChange: false,
-      isFakeMix: true,
+      isChange: true,
+      isFakeMix: false,
+      isReceive: false,
       isSelfSend: false
     })
   })
@@ -44,11 +46,50 @@ describe('classifyChartOutput', () => {
     ).toStrictEqual({
       isChange: true,
       isFakeMix: false,
+      isReceive: false,
       isSelfSend: false
     })
   })
 
-  it('marks self-sends to own addresses that are not change', () => {
+  it('marks self-sends only on wallet sends to own non-change addresses', () => {
+    expect(
+      classifyChartOutput(
+        {
+          label: 'Refund',
+          localId: 'out-1',
+          to: 'bc1qown'
+        },
+        own,
+        { isWalletSend: true }
+      )
+    ).toStrictEqual({
+      isChange: false,
+      isFakeMix: false,
+      isReceive: false,
+      isSelfSend: true
+    })
+  })
+
+  it('marks receives to our address as receive (not self-send)', () => {
+    expect(
+      classifyChartOutput(
+        {
+          label: 'Payment from Alice',
+          localId: 'out-1',
+          to: 'bc1qown'
+        },
+        own,
+        { isWalletSend: false }
+      )
+    ).toStrictEqual({
+      isChange: false,
+      isFakeMix: false,
+      isReceive: true,
+      isSelfSend: false
+    })
+  })
+
+  it('marks own-address outputs as receive without wallet-send context', () => {
     expect(
       classifyChartOutput(
         {
@@ -61,7 +102,8 @@ describe('classifyChartOutput', () => {
     ).toStrictEqual({
       isChange: false,
       isFakeMix: false,
-      isSelfSend: true
+      isReceive: true,
+      isSelfSend: false
     })
   })
 
@@ -78,6 +120,114 @@ describe('classifyChartOutput', () => {
     ).toStrictEqual({
       isChange: false,
       isFakeMix: false,
+      isReceive: false,
+      isSelfSend: false
+    })
+  })
+})
+
+describe('classifyChartOutputs', () => {
+  const own = new Set(['bc1qown', 'bc1qchange', 'bc1qdecoy', 'bc1qchange2'])
+
+  it('promotes equal-amount owned outputs to fake mix on 4-output stonewalls', () => {
+    expect(
+      classifyChartOutputs(
+        [
+          {
+            amount: 5000,
+            label: 'Coffee',
+            localId: 'pay',
+            to: 'bc1qexternal'
+          },
+          {
+            amount: 5000,
+            kind: 'change',
+            label: 'Change',
+            localId: 'decoy',
+            to: 'bc1qdecoy'
+          },
+          {
+            amount: 1200,
+            kind: 'change',
+            label: 'Change',
+            localId: 'c1',
+            to: 'bc1qchange'
+          },
+          {
+            amount: 800,
+            kind: 'change',
+            label: 'Change',
+            localId: 'c2',
+            to: 'bc1qchange2'
+          }
+        ],
+        own,
+        { isWalletSend: true }
+      )
+    ).toStrictEqual([
+      {
+        isChange: false,
+        isFakeMix: false,
+        isReceive: false,
+        isSelfSend: false
+      },
+      {
+        isChange: false,
+        isFakeMix: true,
+        isReceive: false,
+        isSelfSend: false
+      },
+      {
+        isChange: true,
+        isFakeMix: false,
+        isReceive: false,
+        isSelfSend: false
+      },
+      {
+        isChange: true,
+        isFakeMix: false,
+        isReceive: false,
+        isSelfSend: false
+      }
+    ])
+  })
+
+  it('does not mark fake mix on receive transactions even with equal amounts', () => {
+    expect(
+      classifyChartOutputs(
+        [
+          {
+            amount: 5000,
+            label: 'From elsewhere',
+            localId: 'recv',
+            to: 'bc1qown'
+          },
+          {
+            amount: 5000,
+            label: 'Other',
+            localId: 'other',
+            to: 'bc1qexternal'
+          },
+          {
+            amount: 100,
+            label: 'A',
+            localId: 'a',
+            to: 'bc1qexternal2'
+          },
+          {
+            amount: 200,
+            label: 'B',
+            localId: 'b',
+            to: 'bc1qexternal3'
+          }
+        ],
+        own,
+        { isWalletSend: false }
+      )[0]
+    ).toStrictEqual({
+      isChange: false,
+      isFakeMix: false,
+      isReceive: true,
       isSelfSend: false
     })
   })
@@ -97,7 +247,7 @@ describe('buildStonewallPreviewOutputs', () => {
     ).toStrictEqual([])
   })
 
-  it('builds fake-mix and change preview outputs', () => {
+  it('builds decoy and change preview outputs as wallet change', () => {
     const outputs = buildStonewallPreviewOutputs({
       changeAddress: 'bc1qchange1',
       changeValues: [1000, 2000],
@@ -111,8 +261,8 @@ describe('buildStonewallPreviewOutputs', () => {
     expect(outputs).toHaveLength(3)
     expect(outputs[0]).toMatchObject({
       amount: 500,
-      kind: 'fakeMix',
-      label: 'Coffee shop',
+      kind: 'change',
+      label: 'Change',
       localId: 'stonewallFakeMix-0',
       to: 'bc1qdecoy'
     })
@@ -150,7 +300,7 @@ describe('buildStonewallPreviewOutputs', () => {
 })
 
 describe('buildStonewallMaterializationPlan', () => {
-  it('returns fake mix and change outputs ready for the store', () => {
+  it('returns decoy and change outputs ready for the store', () => {
     const plan = buildStonewallMaterializationPlan({
       changeAddress: 'bc1qchange1',
       changeValues: [1_000],
@@ -166,8 +316,8 @@ describe('buildStonewallMaterializationPlan', () => {
       outputs: [
         {
           amount: 500,
-          kind: 'fakeMix',
-          label: 'Coffee shop',
+          kind: 'change',
+          label: 'Change',
           to: 'bc1qdecoy'
         },
         {
@@ -275,7 +425,7 @@ describe('getEphemeralChangeOutputLocalIds', () => {
             to: 'bc1qrecipient'
           },
           {
-            kind: 'fakeMix',
+            kind: 'change',
             localId: 'stonewallFakeMix-0',
             to: 'bc1qdecoy'
           },

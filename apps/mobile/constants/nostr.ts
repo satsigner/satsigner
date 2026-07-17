@@ -35,7 +35,26 @@ export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
 export const NOSTR_WS_CONNECT_TIMEOUT_MS = 15000
 
 // UI
+export const NOSTR_ACCOUNT_CARD_ESTIMATED_HEIGHT = 120
+export const NOSTR_EMPTY_STATE_PADDING_VERTICAL = 48
 export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
+export const NOSTR_LIST_ITEM_GAP = 8
+export const NOSTR_LIST_PADDING_VERTICAL = 8
+export const NOSTR_CONTACT_QR_CODE_SIZE = 200
+export const NOSTR_CONTACT_QR_CONTAINER_PADDING = 12
+export const NOSTR_CONTACT_QR_PAGER_DOT_SIZE = 8
+export const NOSTR_CONTACT_QR_SLIDE_KEYS = {
+  LUD16: 'lud16',
+  NPROFILE: 'nprofile',
+  NPUB: 'npub',
+  SILENT_PAYMENT: 'silent-payment'
+} as const
+export const NOSTR_BLOSSOM_FILE_DISPLAY_HASH_LENGTH = 12
+export const NOSTR_BLOSSOM_FILE_PREVIEW_HEIGHT = 280
+export const NOSTR_BLOSSOM_FILE_ROW_HEIGHT = 72
+export const NOSTR_BLOSSOM_FILES_STALE_TIME_MS = 5 * 60_000
+export const NOSTR_BLOSSOM_SERVERS_STALE_TIME_MS = 10 * 60_000
+export const NOSTR_PROFILE_BATCH_SIZE = 40
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
 export const NOSTR_HIDDEN_KEY_MASK_LONG = '••••••••••••••••••••••••••••••••'
 
@@ -44,33 +63,61 @@ export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 // RELAYS
 export const NOSTR_RELAY_PROTOCOL_PREFIX = 'wss://'
 export const NOSTR_RELAYS: NostrRelay[] = [
+  { name: '0xchat', url: 'wss://relay.0xchat.com' },
+  { name: 'Agora', url: 'wss://relay.agora.social' },
   { name: 'Angani', url: 'wss://nostr-1.nbo.angani.co' },
+  { name: 'Azzamo', url: 'wss://relay.azzamo.net' },
   { name: 'Bitcoiner Social', url: 'wss://nostr.bitcoiner.social' },
+  { name: 'Bostr', url: 'wss://bostr.online' },
   { name: 'Btc Library', url: 'wss://nostr.btc-library.com' },
   { name: 'Coracle', url: 'wss://bucket.coracle.social' },
+  { name: 'Creatr', url: 'wss://creatr.nostr.wine' },
   { name: 'Damus', url: 'wss://relay.damus.io' },
   { name: 'Data Haus', url: 'wss://nostr.data.haus' },
   { name: 'Dwadziesciajeden', url: 'wss://relay.dwadziesciajeden.pl' },
   { name: 'Einundzwanzig Space', url: 'wss://nostr.einundzwanzig.space' },
+  { name: 'Flashsoft', url: 'wss://relay.flashsoft.eu' },
+  { name: 'Hodlbod', url: 'wss://relay.hodlbod.com' },
+  { name: 'JB55', url: 'wss://relay.jb55.com' },
+  { name: 'Lume', url: 'wss://relay.lume.nu' },
   { name: 'Mostro', url: 'wss://relay.mostro.network' },
+  { name: 'Mutinywallet', url: 'wss://nostr.mutinywallet.com' },
   { name: 'Nos lol (POW 28 bits required)', url: 'wss://nos.lol' },
   { name: 'Nostr Band', url: 'wss://relay.nostr.band' },
   { name: 'Nostr BG', url: 'wss://relay.nostr.bg' },
+  { name: 'Nostr Land', url: 'wss://relay.nostr.land' },
   { name: 'Nostr Mom', url: 'wss://nostr.mom' },
+  { name: 'Nostr Online', url: 'wss://relay.nostr.online' },
   { name: 'Nostr Wine', url: 'wss://nostr.wine' },
+  { name: 'Nostr World', url: 'wss://relay.nostr.world' },
+  { name: 'Nostrich House', url: 'wss://relay.nostrich.house' },
   { name: 'Nostromo', url: 'wss://relay.nostromo.social' },
   { name: 'Nostrue', url: 'wss://nostrue.com' },
   { name: 'Offchain', url: 'wss://offchain.pub' },
   { name: 'Openhoofd', url: 'wss://strfry.openhoofd.nl' },
+  { name: 'Orangepill', url: 'wss://relay.orangepill.dev' },
+  { name: 'Plebs Town', url: 'wss://relay.plebs.town' },
+  { name: 'Plebstr', url: 'wss://plebstr.com' },
   { name: 'Primal', url: 'wss://relay.primal.net' },
+  { name: 'Primal Premium', url: 'wss://premium.primal.net' },
   { name: 'Purple Relay', url: 'wss://ch.purplerelay.com' },
+  { name: 'Purplepag.es', url: 'wss://purplepag.es' },
   { name: 'Sathoarder', url: 'wss://nostr.sathoarder.com' },
   { name: 'Satlantis', url: 'wss://relay.satlantis.io' },
+  { name: 'Satoshi Stream', url: 'wss://relay.satoshi.stream' },
   { name: 'Schneimi', url: 'wss://nostr.schneimi.de' },
+  { name: 'Siamstr', url: 'wss://siamstr.com' },
   { name: 'Snort', url: 'wss://relay.snort.social' },
+  { name: 'Stacker News', url: 'wss://relay.stacker.news' },
   { name: 'Swiss Enigma', url: 'wss://nostr.swiss-enigma.ch' },
+  { name: 'The Dude', url: 'wss://relay.thedude.cloud' },
+  { name: 'Utxo One', url: 'wss://relay.utxo.one' },
   { name: 'Vulpem', url: 'wss://nostr.vulpem.com' },
-  { name: 'YakiHonne', url: 'wss://nostr-01.yakihonne.com' }
+  { name: 'Wellorder', url: 'wss://wellorder.net' },
+  { name: 'YakiHonne', url: 'wss://nostr-01.yakihonne.com' },
+  { name: 'Yakihonne', url: 'wss://relay.yakihonne.com' },
+  { name: 'Zap Band', url: 'wss://relay.zap.band' },
+  { name: 'Zapstore', url: 'wss://relay.zapstore.dev' }
 ]
 
 // NIPS
@@ -106,6 +153,10 @@ export const NIP46_DEFAULT_PERMISSIONS: Record<
 }
 
 // REGEX & FILTERS
+export const NOSTR_POLL_KIND = 1068
+export const NOSTR_POLL_RESPONSE_KIND = 1018
+export const NOSTR_KIND_FILTER_HIT_SLOP = 6
+export const NOSTR_KIND_FILTER_TRIGGER_MAX_WIDTH = '72%'
 export const NOSTR_EVENT_REF_RE = /nostr:(note1|nevent1)[a-zA-Z0-9]+/g
 export const NOSTR_MENTION_RE =
   /(?:nostr:)?(npub1[a-z0-9]{6,}|nprofile1[a-z0-9]{6,})/gi
@@ -162,8 +213,13 @@ export const NOSTR_NOTE_FILTER_OPTIONS: NostrNoteKindFilterOption[] = [
     labelKey: 'nostrIdentity.feed.kindFileMetadata'
   },
   {
+    id: 'poll',
+    kinds: [NOSTR_POLL_KIND],
+    labelKey: 'nostrIdentity.feed.kindPoll'
+  },
+  {
     id: 'poll_response',
-    kinds: [1018],
+    kinds: [NOSTR_POLL_RESPONSE_KIND],
     labelKey: 'nostrIdentity.feed.kindPollResponse'
   },
   {
@@ -185,6 +241,18 @@ export const NOSTR_BOOKMARKS_FILTER_IDS = new Set([
   'bookmarks',
   'private_bookmarks'
 ])
+
+// BLOSSOM
+export const BLOSSOM_DEFAULT_SERVER = 'https://blossom.primal.net'
+
+export const BLOSSOM_POPULAR_SERVERS: { name: string; url: string }[] = [
+  { name: 'Primal', url: 'https://blossom.primal.net' },
+  { name: 'Satellite', url: 'https://cdn.satellite.earth' },
+  { name: 'Blossom Band', url: 'https://blossom.band' },
+  { name: 'nostr.download', url: 'https://nostr.download' },
+  { name: 'Media Nostr Band', url: 'https://media.nostr.band' },
+  { name: 'Nostr Build', url: 'https://blossom.nostr.build' }
+]
 
 // ZAP
 export const NOSTR_ZAP_DEFAULT_PRESETS = [21, 100, 500, 1000]

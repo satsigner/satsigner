@@ -1,7 +1,7 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { Psbt, type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -14,6 +14,7 @@ import BitcoinRpc from '@/api/rpc'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
+import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
@@ -30,6 +31,11 @@ import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import {
+  buildKnownTxIds,
+  buildOutpointLabelsByRef,
+  buildTxLabelsById
+} from '@/utils/sankeyInputLabel'
 import {
   estimateTransactionSize,
   legacyEstimateTransactionSize
@@ -163,6 +169,18 @@ export default function SignTransaction() {
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
   const ownAddresses = new Set(account?.addresses?.map((a) => a.address))
+  const txLabelsById = useMemo(
+    () => buildTxLabelsById(account?.transactions),
+    [account?.transactions]
+  )
+  const knownTxIds = useMemo(
+    () => buildKnownTxIds(account?.transactions),
+    [account?.transactions]
+  )
+  const outpointLabelsByRef = useMemo(
+    () => buildOutpointLabelsByRef(account ?? {}),
+    [account]
+  )
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
@@ -370,9 +388,7 @@ export default function SignTransaction() {
                 <SSIconSuccess width={159} height={159} variant="outline" />
               )}
               {!signed && !broadcasted && <SSLoader size={160} />}
-              {broadcasted && (
-                <SSIconSuccess width={159} height={159} variant="filled" />
-              )}
+              {broadcasted && <SSSuccessCheckAnimation />}
             </SSVStack>
 
             <SSVStack>
@@ -390,8 +406,12 @@ export default function SignTransaction() {
                 {transaction && (
                   <View style={{ overflow: 'hidden', width: '100%' }}>
                     <SSTransactionChart
+                      accountId={id}
                       transaction={transaction}
                       ownAddresses={ownAddresses}
+                      txLabelsById={txLabelsById}
+                      knownTxIds={knownTxIds}
+                      outpointLabelsByRef={outpointLabelsByRef}
                       scale={0.9}
                       showUnspentLabel={false}
                     />

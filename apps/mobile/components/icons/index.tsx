@@ -7,6 +7,7 @@ import SSIconBlackIndicator from './SSIconBlackIndicator'
 import SSIconBlock from './SSIconBlock'
 import SSIconBoardCircle from './SSIconBoardCircle'
 import SSIconBubbles from './SSIconBubbles'
+import SSIconCalendar from './SSIconCalendar'
 import SSIconCamera from './SSIconCamera'
 import SSIconChain from './SSIconChain'
 import SSIconChainTip from './SSIconChainTip'
@@ -24,6 +25,7 @@ import SSIconCircleXThin from './SSIconCircleXThin'
 import SSIconClose from './SSIconClose'
 import SSIconCloseThin from './SSIconCloseThin'
 import SSIconCollapse from './SSIconCollapse'
+import SSIconContacts from './SSIconContacts'
 import SSIconConverter from './SSIconConverter'
 import SSIconConverterActive from './SSIconConverterActive'
 import SSIconCurrency from './SSIconCurrency'
@@ -47,6 +49,7 @@ import SSIconEyeOff from './SSIconEyeOff'
 import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
 import SSIconFiat from './SSIconFiat'
+import SSIconFiles from './SSIconFiles'
 import SSIconFilter from './SSIconFilter'
 import SSIconGreen from './SSIconGreen'
 import SSIconGreenIndicator from './SSIconGreenIndicator'
@@ -116,6 +119,7 @@ export {
   SSIconBlock,
   SSIconBoardCircle,
   SSIconBubbles,
+  SSIconCalendar,
   SSIconCamera,
   SSIconChain,
   SSIconChainTip,
@@ -133,6 +137,7 @@ export {
   SSIconClose,
   SSIconCloseThin,
   SSIconCollapse,
+  SSIconContacts,
   SSIconConverter,
   SSIconConverterActive,
   SSIconCurrency,
@@ -156,6 +161,7 @@ export {
   SSIconEyeOn,
   SSIconFeature,
   SSIconFiat,
+  SSIconFiles,
   SSIconFilter,
   SSIconGreen,
   SSIconGreenIndicator,

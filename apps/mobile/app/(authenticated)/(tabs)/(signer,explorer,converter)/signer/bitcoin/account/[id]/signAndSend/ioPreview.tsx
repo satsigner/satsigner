@@ -93,6 +93,10 @@ import {
   stripBitcoinPrefix
 } from '@/utils/parse'
 import {
+  buildOutpointLabelsByRef,
+  buildTxLabelsById
+} from '@/utils/sankeyInputLabel'
+import {
   buildSingleTxChartOutputs,
   buildStonewallMaterializationPlan,
   buildStonewallPreviewOutputs,
@@ -459,7 +463,7 @@ export default function IOPreview() {
       : []
 
   const stonewallOutputsMaterialized = outputs.some(
-    (output) => output.kind === 'fakeMix'
+    (output) => output.kind === 'fakeMix' || output.kind === 'change'
   )
   const chartStonewallPreviewOutputs = stonewallOutputsMaterialized
     ? []
@@ -1168,6 +1172,15 @@ export default function IOPreview() {
     return addresses
   }, [account, changeAddress, secondChangeAddress, decoyAddress])
 
+  const txLabelsById = useMemo(
+    () => buildTxLabelsById(account?.transactions),
+    [account?.transactions]
+  )
+  const outpointLabelsByRef = useMemo(
+    () => buildOutpointLabelsByRef(account ?? {}),
+    [account]
+  )
+
   const editingOutput =
     outputs.find((output) => output.localId === currentOutputLocalId) ??
     chartStonewallPreviewOutputs.find(
@@ -1210,6 +1223,8 @@ export default function IOPreview() {
               feeRate={localFeeRate}
               elevatedFeeRateHighlight={elevatedFeeRateHighlight}
               ownAddresses={ownAddressesSet}
+              txLabelsById={txLabelsById}
+              outpointLabelsByRef={outpointLabelsByRef}
               overlayHeaderHeight={topGradientHeight}
             />
           ) : (
@@ -1224,6 +1239,8 @@ export default function IOPreview() {
               onPressOutput={handleOnPressOutput}
               currentOutputLocalId={currentOutputLocalId}
               ownAddresses={ownAddressesSet}
+              txLabelsById={txLabelsById}
+              outpointLabelsByRef={outpointLabelsByRef}
               overlayHeaderHeight={topGradientHeight}
             />
           )}

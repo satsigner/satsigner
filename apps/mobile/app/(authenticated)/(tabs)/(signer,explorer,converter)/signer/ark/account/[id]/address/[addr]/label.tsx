@@ -31,7 +31,10 @@ export default function ArkAddressLabelPage() {
   }
 
   return (
-    <ScrollView>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+    >
       <Stack.Screen
         options={{
           headerTitle: () => <SSText>{t('address.label.title')}</SSText>

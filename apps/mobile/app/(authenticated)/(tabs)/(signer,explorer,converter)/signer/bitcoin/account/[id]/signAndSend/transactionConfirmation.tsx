@@ -2,12 +2,13 @@ import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useEffect, useMemo, useState } from 'react'
 import { View } from 'react-native'
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
+import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -16,9 +17,45 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Label } from '@/types/bips/329'
+import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
+import { annotateTransactionsWithWalletOwnership } from '@/utils/walletOwnership'
+
+function isReturnedBuilderOutput(
+  output: { kind?: string; to: string },
+  ownAddresses: Set<string>
+) {
+  // Builder marks stonewall decoy/change as kind 'change'. Decoy addresses are
+  // often not yet in account.addresses (unused peeked internals).
+  return (
+    output.kind === 'change' ||
+    output.kind === 'fakeMix' ||
+    ownAddresses.has(output.to)
+  )
+}
+
+function makeOptimisticAddress(
+  address: string,
+  keychain: 'internal' | 'external',
+  network: Account['addresses'][number]['network']
+): Account['addresses'][number] {
+  return {
+    address,
+    keychain,
+    label: '',
+    network,
+    summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
+    transactions: [],
+    utxos: []
+  }
+}
+
+const TITLE_DELAY_MS = 350
+const DETAILS_DELAY_MS = 550
+const BUTTON_DELAY_MS = 700
 
 export default function TransactionConfirmation() {
   const router = useRouter()
@@ -171,9 +208,21 @@ export default function TransactionConfirmation() {
     const totalIn = inputsList.reduce((sum, u) => sum + u.value, 0)
 
     const ownAddresses = new Set(account.addresses.map((a) => a.address))
-    const receivedChange = outputs
-      .filter((o) => ownAddresses.has(o.to))
-      .reduce((sum, o) => sum + o.amount, 0)
+    const addressKeychain = new Map(
+      account.addresses.map(
+        (address) =>
+          [
+            address.address,
+            address.keychain === 'internal' ? 'internal' : 'external'
+          ] as const
+      )
+    )
+    let receivedReturned = 0
+    for (const output of outputs) {
+      if (isReturnedBuilderOutput(output, ownAddresses)) {
+        receivedReturned += output.amount
+      }
+    }
 
     const optimisticTx: Transaction = {
       blockHeight: undefined,
@@ -182,7 +231,7 @@ export default function TransactionConfirmation() {
       label: txLabelText || undefined,
       lockTimeEnabled: false,
       prices: {},
-      received: receivedChange,
+      received: receivedReturned,
       sent: totalIn,
       timestamp: new Date(),
       type: 'send',
@@ -194,11 +243,12 @@ export default function TransactionConfirmation() {
         value: u.value,
         witness: []
       })),
-      vout: outputs.map((o) => ({
-        address: o.to,
-        label: o.label,
+      vout: outputs.map((output) => ({
+        address: output.to,
+        kind: output.kind,
+        label: output.label,
         script: '',
-        value: o.amount
+        value: output.amount
       }))
     }
 
@@ -206,17 +256,58 @@ export default function TransactionConfirmation() {
     const remainingUtxos = account.utxos.filter(
       (u) => !spentOutpoints.has(`${u.txid}:${u.vout}`)
     )
+    const returnedUtxos: Utxo[] = []
+    const knownAddresses = new Set(ownAddresses)
+    const newAddresses: Account['addresses'] = []
+    const network = account.addresses[0]?.network
+
+    for (const [vout, output] of outputs.entries()) {
+      if (!isReturnedBuilderOutput(output, ownAddresses)) {
+        continue
+      }
+
+      const keychain =
+        output.kind === 'change' || output.kind === 'fakeMix'
+          ? 'internal'
+          : (addressKeychain.get(output.to) ?? 'external')
+
+      returnedUtxos.push({
+        addressTo: output.to,
+        keychain,
+        label: output.label || '',
+        timestamp: new Date(),
+        txid,
+        value: output.amount,
+        vout
+      })
+
+      if (!knownAddresses.has(output.to)) {
+        knownAddresses.add(output.to)
+        newAddresses.push(makeOptimisticAddress(output.to, keychain, network))
+      }
+    }
+
+    const optimisticTransactions = annotateTransactionsWithWalletOwnership(
+      [optimisticTx],
+      [...account.addresses, ...newAddresses]
+    )
 
     updateAccount({
       ...account,
+      addresses: [...account.addresses, ...newAddresses],
       summary: {
         ...account.summary,
-        balance: account.summary.balance - (totalIn - receivedChange),
+        balance: account.summary.balance - (totalIn - receivedReturned),
         numberOfTransactions: account.summary.numberOfTransactions + 1,
-        numberOfUtxos: remainingUtxos.length
+        numberOfUtxos: remainingUtxos.length + returnedUtxos.length
       },
-      transactions: [optimisticTx, ...account.transactions],
-      utxos: remainingUtxos
+      transactions: [
+        ...(optimisticTransactions[0]
+          ? [optimisticTransactions[0]]
+          : [optimisticTx]),
+        ...account.transactions
+      ],
+      utxos: [...returnedUtxos, ...remainingUtxos]
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -241,33 +332,46 @@ export default function TransactionConfirmation() {
     <>
       <SSMainLayout style={{ paddingBottom: 32 }}>
         <SSVStack justifyBetween>
-          <SSVStack itemsCenter>
-            <SSText size="md" uppercase weight="light">
-              {t('sent.broadcasted')}
-            </SSText>
-            <SSVStack gap="none" itemsCenter>
-              <SSText color="muted" uppercase>
-                {t('transaction.id')}
+          <SSVStack gap="lg" itemsCenter>
+            <SSSuccessCheckAnimation />
+            <Animated.View
+              entering={FadeInDown.delay(TITLE_DELAY_MS).duration(450)}
+            >
+              <SSText size="md" uppercase weight="light">
+                {t('sent.broadcasted')}
               </SSText>
-              <SSText>{formatAddress(psbt.txid())}</SSText>
+            </Animated.View>
+            <Animated.View
+              entering={FadeIn.delay(DETAILS_DELAY_MS).duration(400)}
+            >
+              <SSVStack gap="none" itemsCenter>
+                <SSText color="muted" uppercase>
+                  {t('transaction.id')}
+                </SSText>
+                <SSText>{formatAddress(psbt.txid())}</SSText>
+              </SSVStack>
+            </Animated.View>
+          </SSVStack>
+          <Animated.View entering={FadeIn.delay(BUTTON_DELAY_MS).duration(300)}>
+            <SSVStack>
+              <SSClipboardCopy text={psbt.txid()}>
+                <SSButton
+                  variant="outline"
+                  label={t('sent.copyTransactionId')}
+                />
+              </SSClipboardCopy>
+              <SSButton
+                variant="outline"
+                label={t('sent.viewOnMempool')}
+                onPress={handleViewOnMempool}
+              />
+              <SSButton
+                variant="secondary"
+                label={t('common.backToAccountHome')}
+                onPress={handleBackToHome}
+              />
             </SSVStack>
-            <SSIconSuccess width={159} height={159} />
-          </SSVStack>
-          <SSVStack>
-            <SSClipboardCopy text={psbt.txid()}>
-              <SSButton variant="outline" label={t('sent.copyTransactionId')} />
-            </SSClipboardCopy>
-            <SSButton
-              variant="outline"
-              label={t('sent.viewOnMempool')}
-              onPress={handleViewOnMempool}
-            />
-            <SSButton
-              variant="secondary"
-              label={t('common.backToAccountHome')}
-              onPress={() => handleBackToHome()}
-            />
-          </SSVStack>
+          </Animated.View>
         </SSVStack>
       </SSMainLayout>
       <SSModal

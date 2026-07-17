@@ -4,8 +4,7 @@ import {
   ActivityIndicator,
   InteractionManager,
   ScrollView,
-  StyleSheet,
-  View
+  StyleSheet
 } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -29,7 +28,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
 import { getAccountAddressSets } from '@/utils/address'
@@ -39,8 +38,15 @@ import {
   formatNumber,
   formatPercentualChange
 } from '@/utils/format'
+import {
+  buildKnownTxIds,
+  buildOutpointLabelsByRef,
+  buildSpendingTxIdsByOutpoint,
+  buildTxLabelsById
+} from '@/utils/sankeyInputLabel'
 import { bytesToHex } from '@/utils/scripts'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import { annotateTransactionsWithWalletOwnership } from '@/utils/walletOwnership'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -55,9 +61,33 @@ export default function TxDetails() {
     () => getAccountAddressSets(account?.addresses ?? []),
     [account?.addresses]
   )
+  const displayTx = useMemo(() => {
+    if (!tx || !account) {
+      return tx
+    }
+    return (
+      annotateTransactionsWithWalletOwnership([tx], account.addresses)[0] ?? tx
+    )
+  }, [account, tx])
   const unspentOutpoints = useMemo(
     () => new Set(account?.utxos.map(getUtxoOutpoint)),
     [account?.utxos]
+  )
+  const txLabelsById = useMemo(
+    () => buildTxLabelsById(account?.transactions),
+    [account?.transactions]
+  )
+  const knownTxIds = useMemo(
+    () => buildKnownTxIds(account?.transactions),
+    [account?.transactions]
+  )
+  const spendingTxIdsByOutpoint = useMemo(
+    () => buildSpendingTxIdsByOutpoint(account?.transactions),
+    [account?.transactions]
+  )
+  const outpointLabelsByRef = useMemo(
+    () => buildOutpointLabelsByRef(account ?? {}),
+    [account]
   )
 
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -71,6 +101,7 @@ export default function TxDetails() {
   const placeholder = '-'
 
   const [isReady, setIsReady] = useState(false)
+  const [chartLoading, setChartLoading] = useState(true)
   const [fee, setFee] = useState(placeholder)
   const [feePerByte, setFeePerByte] = useState(placeholder)
   const [feePerVByte, setFeePerVByte] = useState(placeholder)
@@ -90,13 +121,17 @@ export default function TxDetails() {
     return () => task.cancel()
   }, [])
 
+  useEffect(() => {
+    setChartLoading(true)
+  }, [txid])
+
   async function updateInfo() {
     if (!tx) {
       return
     }
 
     if (tx.blockHeight) {
-      setHeight(tx.blockHeight.toString())
+      setHeight(tx.blockHeight.toLocaleString('en-US'))
     }
 
     if (tx.size) {
@@ -159,7 +194,7 @@ export default function TxDetails() {
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!accountId || !txid || !tx) {
+  if (!accountId || !txid || !displayTx) {
     return <Redirect href="/" />
   }
 
@@ -171,33 +206,45 @@ export default function TxDetails() {
         }}
       />
       <SSVStack style={styles.container}>
-        <SSTxDetailsHeader tx={tx} />
+        <SSTxDetailsHeader tx={displayTx} />
         <SSSeparator color="gradient" />
         <SSLabelDetails
-          label={tx.label || ''}
+          label={displayTx.label || ''}
           link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/label`}
           header={t('transaction.label')}
           privacyMode={privacyMode}
         />
-        {!isReady ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color="white" size="large" />
-          </View>
-        ) : (
-          <>
-            <SSVStack style={{ paddingTop: 50 }}>
-              <SSSeparator color="gradient" />
-              <SSText uppercase color="muted">
-                {t('transaction.details.chart')}
-              </SSText>
-              <SSTransactionChart
-                transaction={tx}
-                ownAddresses={ownAddresses}
-                internalAddresses={internalAddresses}
-                unspentOutpoints={unspentOutpoints}
-                scale={0.9}
+        <SSVStack style={{ paddingTop: 50 }}>
+          <SSSeparator color="gradient" />
+          <SSHStack gap="xxs">
+            <SSText uppercase color="muted">
+              {t('transaction.details.chart')}
+            </SSText>
+            {chartLoading ? (
+              <ActivityIndicator
+                size="small"
+                color={Colors.gray[300]}
+                style={{ transform: [{ scale: 0.7 }] }}
               />
-            </SSVStack>
+            ) : null}
+          </SSHStack>
+          <SSTransactionChart
+            key={txid}
+            accountId={accountId}
+            transaction={displayTx}
+            ownAddresses={ownAddresses}
+            internalAddresses={internalAddresses}
+            unspentOutpoints={unspentOutpoints}
+            txLabelsById={txLabelsById}
+            knownTxIds={knownTxIds}
+            spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
+            outpointLabelsByRef={outpointLabelsByRef}
+            scale={0.9}
+            onLoadingChange={setChartLoading}
+          />
+        </SSVStack>
+        {!isReady ? null : (
+          <>
             <SSSeparator color="gradient" />
             <SSDetailsList
               columns={3}
@@ -211,10 +258,10 @@ export default function TxDetails() {
                   txid,
                   { copyToClipboard: true, variant: 'mono', width: '100%' }
                 ],
-                [t('transaction.size'), size],
+                [t('transaction.size'), size, { unit: t('bitcoin.bytes') }],
                 [t('transaction.weight'), weight],
                 [t('transaction.vsize'), vsize],
-                [t('transaction.fee'), fee],
+                [t('transaction.fee'), fee, { unit: t('bitcoin.sats') }],
                 [t('transaction.feeBytes'), feePerByte],
                 [t('transaction.feeVBytes'), feePerVByte],
                 [t('transaction.version'), version],
@@ -233,10 +280,10 @@ export default function TxDetails() {
                 <SSText>{placeholder}</SSText>
               )}
             </SSVStack>
-            <SSTransactionVinList vin={tx.vin} />
+            <SSTransactionVinList vin={displayTx.vin} />
             <SSTransactionVoutList
-              vout={tx.vout}
-              txid={tx.id}
+              vout={displayTx.vout}
+              txid={displayTx.id}
               accountId={accountId}
             />
           </>
@@ -276,6 +323,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     : 0
   const type = tx?.type ?? ''
   const inputsCount = tx?.vin?.length ?? 0
+  const outputsCount = tx?.vout?.length ?? 0
 
   const confirmations =
     tx?.blockHeight && lastKnownBlockHeight > 0
@@ -303,41 +351,45 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
       : ''
 
   return (
-    <SSVStack gap="none" style={{ alignItems: 'center' }}>
-      {tx?.timestamp && <SSTimeAgoText date={new Date(tx.timestamp)} />}
-      <SSVStack gap="xs" style={{ alignItems: 'center', marginTop: 16 }}>
+    <SSVStack gap="sm" itemsCenter>
+      {tx?.timestamp ? <SSTimeAgoText date={new Date(tx.timestamp)} /> : null}
+      <SSVStack gap="xxs" itemsCenter>
         <SSHStack gap="sm" style={{ alignItems: 'center' }}>
           {type === 'receive' && <SSIconIncoming height={12} width={12} />}
           {type === 'send' && <SSIconOutgoing height={12} width={12} />}
           <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
             {amount !== 0 ? (
-              privacyMode ? (
-                <SSText size="4xl" weight="light">
-                  ••••
-                </SSText>
-              ) : (
-                <SSStyledSatText
-                  amount={Math.abs(amount)}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  type={tx?.type}
-                  textSize="4xl"
-                  noColor={false}
-                  showSign={false}
-                  weight="light"
-                  letterSpacing={-0.5}
-                />
-              )
+              <SSText
+                size="4xl"
+                weight="ultralight"
+                style={{ lineHeight: Sizes.text.fontSize['4xl'] }}
+              >
+                {privacyMode ? (
+                  '••••'
+                ) : (
+                  <SSStyledSatText
+                    amount={Math.abs(amount)}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    type={tx?.type}
+                    textSize="4xl"
+                    noColor={false}
+                    showSign={false}
+                    weight="ultralight"
+                    letterSpacing={0.1}
+                  />
+                )}
+              </SSText>
             ) : (
               <SSText color="muted">?</SSText>
             )}
-            <SSText color="muted" size="sm">
+            <SSText color="muted" size="xl">
               {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
             </SSText>
           </SSHStack>
         </SSHStack>
-        {(price || oldPrice) && (
+        {price || oldPrice ? (
           <SSHStack gap="xs">
             {price ? (
               <SSText color="muted" size="sm">
@@ -366,17 +418,18 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
               </SSText>
             ) : null}
           </SSHStack>
-        )}
+        ) : null}
       </SSVStack>
       <SSHStack gap="sm">
         <SSText
+          weight="light"
           style={{
             color:
               confirmations < 1
                 ? Colors.error
                 : confirmations < 6
                   ? Colors.warning
-                  : Colors.success
+                  : Colors.mainGreen
           }}
         >
           {formatConfirmations(confirmations)}
@@ -390,6 +443,15 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
               : t('transaction.input.plural').toLowerCase()}
           </SSText>
         </SSHStack>
+        <SSHStack gap="xs">
+          <SSText color="muted">{t('common.to').toLowerCase()}</SSText>
+          <SSText>
+            {outputsCount || '?'}{' '}
+            {outputsCount === 1
+              ? t('transaction.output.singular').toLowerCase()
+              : t('transaction.output.plural').toLowerCase()}
+          </SSText>
+        </SSHStack>
       </SSHStack>
     </SSVStack>
   )
@@ -401,9 +463,5 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'space-between',
     padding: 20
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    paddingVertical: 60
   }
 })

@@ -35,6 +35,7 @@ type AccountRow = {
   nostr_common_nsec: string
   nostr_device_npub: string | null
   nostr_device_nsec: string | null
+  nostr_device_mnemonic: string | null
   nostr_device_display_name: string | null
   nostr_device_picture: string | null
   nostr_last_backup_fingerprint: string | null
@@ -184,6 +185,7 @@ function rowToAccount(
     commonNpub: row.nostr_common_npub,
     commonNsec: row.nostr_common_nsec,
     deviceDisplayName: row.nostr_device_display_name ?? undefined,
+    deviceMnemonic: row.nostr_device_mnemonic ?? undefined,
     deviceNpub: row.nostr_device_npub ?? undefined,
     deviceNsec: row.nostr_device_nsec ?? undefined,
     devicePicture: row.nostr_device_picture ?? undefined,
