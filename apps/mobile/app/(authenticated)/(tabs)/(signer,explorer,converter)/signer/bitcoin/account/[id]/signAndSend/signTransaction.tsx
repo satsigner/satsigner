@@ -14,6 +14,7 @@ import BitcoinRpc from '@/api/rpc'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
+import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
@@ -387,9 +388,7 @@ export default function SignTransaction() {
                 <SSIconSuccess width={159} height={159} variant="outline" />
               )}
               {!signed && !broadcasted && <SSLoader size={160} />}
-              {broadcasted && (
-                <SSIconSuccess width={159} height={159} variant="filled" />
-              )}
+              {broadcasted && <SSSuccessCheckAnimation />}
             </SSVStack>
 
             <SSVStack>
