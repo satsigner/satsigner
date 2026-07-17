@@ -44,12 +44,12 @@ type NostrDescriptorAccountSlice = Pick<Account, 'network' | 'policyType'>
  * Descriptor string for Nostr shared keys: matches Export Descriptor for
  * singlesig/watchonly, and the full policy descriptor for multisig.
  */
-export function resolveDescriptorForNostrCommonKeys(
+export async function resolveDescriptorForNostrCommonKeys(
   account: NostrDescriptorAccountSlice,
   firstKey: Key,
   secret: Secret,
   walletData: WalletDescriptorSlice | undefined
-): string {
+): Promise<string> {
   const fromWallet = walletData?.externalDescriptor?.trim() || ''
   const fromSecret = secret.externalDescriptor?.trim() || ''
 
@@ -58,18 +58,22 @@ export function resolveDescriptorForNostrCommonKeys(
   }
 
   return (
-    getOutputDescriptorStringForKey(firstKey, secret, account.network) ||
+    (await getOutputDescriptorStringForKey(
+      firstKey,
+      secret,
+      account.network
+    )) ||
     fromWallet ||
     fromSecret
   )
 }
 
 /** Public output descriptor shown on Export Descriptor (QR / copy). */
-export function getOutputDescriptorStringForKey(
+export async function getOutputDescriptorStringForKey(
   key: Key,
   secret: Secret,
   appNetwork: AppNetwork
-): string {
+): Promise<string> {
   const bdkNetwork = appNetworkToBdkNetwork(appNetwork)
 
   if (
@@ -81,7 +85,7 @@ export function getOutputDescriptorStringForKey(
       return stored
     }
     if (secret.mnemonic && key.scriptVersion) {
-      return getPublicDescriptorFromMnemonic(
+      return await getPublicDescriptorFromMnemonic(
         secret.mnemonic,
         key.scriptVersion,
         KeychainKind.External,

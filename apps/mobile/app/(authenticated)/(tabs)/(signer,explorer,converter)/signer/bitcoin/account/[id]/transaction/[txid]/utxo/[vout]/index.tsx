@@ -27,6 +27,12 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 import { getAccountAddressSets } from '@/utils/address'
 import { formatDate, formatNumber } from '@/utils/format'
+import {
+  buildKnownTxIds,
+  buildOutpointLabelsByRef,
+  buildSpendingTxIdsByOutpoint,
+  buildTxLabelsById
+} from '@/utils/sankeyInputLabel'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type UtxoDetailsProps = {
@@ -37,6 +43,10 @@ type UtxoDetailsProps = {
   ownAddresses?: Set<string>
   internalAddresses?: Set<string>
   unspentOutpoints?: Set<string>
+  txLabelsById?: Map<string, string>
+  knownTxIds?: ReadonlySet<string>
+  spendingTxIdsByOutpoint?: Map<string, string>
+  outpointLabelsByRef?: Map<string, string>
   tx?: Transaction
   utxo?: Utxo
   addressIndex?: number
@@ -50,6 +60,10 @@ function UtxoDetails({
   ownAddresses = new Set(),
   internalAddresses = new Set(),
   unspentOutpoints,
+  txLabelsById,
+  knownTxIds,
+  spendingTxIdsByOutpoint,
+  outpointLabelsByRef,
   tx,
   utxo,
   addressIndex,
@@ -194,10 +208,15 @@ function UtxoDetails({
                   {t('transaction.details.chart')}
                 </SSText>
                 <SSTransactionChart
+                  accountId={accountId}
                   transaction={tx}
                   ownAddresses={ownAddresses}
                   internalAddresses={internalAddresses}
                   unspentOutpoints={unspentOutpoints}
+                  txLabelsById={txLabelsById}
+                  knownTxIds={knownTxIds}
+                  spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
+                  outpointLabelsByRef={outpointLabelsByRef}
                   selectedOutputIndex={utxo?.vout}
                   dimUnselected
                   scale={0.9}
@@ -274,6 +293,22 @@ function UtxoDetailsPage() {
     () => new Set(account?.utxos.map(getUtxoOutpoint)),
     [account?.utxos]
   )
+  const txLabelsById = useMemo(
+    () => buildTxLabelsById(account?.transactions),
+    [account?.transactions]
+  )
+  const knownTxIds = useMemo(
+    () => buildKnownTxIds(account?.transactions),
+    [account?.transactions]
+  )
+  const spendingTxIdsByOutpoint = useMemo(
+    () => buildSpendingTxIdsByOutpoint(account?.transactions),
+    [account?.transactions]
+  )
+  const outpointLabelsByRef = useMemo(
+    () => buildOutpointLabelsByRef(account ?? {}),
+    [account]
+  )
   const addInput = useTransactionBuilderStore((state) => state.addInput)
 
   function navigateToTx() {
@@ -318,6 +353,10 @@ function UtxoDetailsPage() {
           ownAddresses={ownAddresses}
           internalAddresses={internalAddresses}
           unspentOutpoints={unspentOutpoints}
+          txLabelsById={txLabelsById}
+          knownTxIds={knownTxIds}
+          spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
+          outpointLabelsByRef={outpointLabelsByRef}
           tx={tx}
           utxo={utxo}
           addressIndex={addressIndex}

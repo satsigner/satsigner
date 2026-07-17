@@ -40,6 +40,7 @@ function makeAccountRow(overrides: Partial<AccountRow> = {}): AccountRow {
     nostr_common_npub: 'npub1abc',
     nostr_common_nsec: 'nsec1abc',
     nostr_device_display_name: null,
+    nostr_device_mnemonic: null,
     nostr_device_npub: null,
     nostr_device_nsec: null,
     nostr_device_picture: null,
@@ -393,6 +394,8 @@ describe('rowToAccount', () => {
     const row = makeAccountRow({
       nostr_auto_sync: 1,
       nostr_device_display_name: 'My Phone',
+      nostr_device_mnemonic:
+        'abandon ability able about above absent absorb abstract absurd abuse access accident',
       nostr_device_npub: 'npub1dev',
       nostr_device_nsec: 'nsec1dev',
       nostr_device_picture: 'https://pic.example.com',
@@ -403,6 +406,9 @@ describe('rowToAccount', () => {
     const result = rowToAccount(row, [], [], [], {}, [], [], [])
 
     expect(result.nostr.autoSync).toBe(true)
+    expect(result.nostr.deviceMnemonic).toBe(
+      'abandon ability able about above absent absorb abstract absurd abuse access accident'
+    )
     expect(result.nostr.deviceNpub).toBe('npub1dev')
     expect(result.nostr.deviceNsec).toBe('nsec1dev')
     expect(result.nostr.deviceDisplayName).toBe('My Phone')

@@ -7,7 +7,7 @@ import type {
   NostrDerivedKeys,
   NostrEnhancedZapTags
 } from '@/types/models/Nostr'
-import { mnemonicToSeed } from '@/utils/bip39'
+import { generateMnemonic, mnemonicToSeed } from '@/utils/bip39'
 import { deriveNpubFromNsec } from '@/utils/nostr'
 
 export function deriveNostrKeysFromMnemonic(
@@ -24,6 +24,12 @@ export function deriveNostrKeysFromMnemonic(
   const nsec = nip19.nsecEncode(privateKey)
   const npub = nip19.npubEncode(publicKey)
   return { mnemonic, npub, nsec, privateKey }
+}
+
+/** New personal device keys: BIP39 seed → NIP-06 nsec/npub. */
+export function generateDeviceNostrKeysFromSeed(): NostrDerivedKeys {
+  const mnemonic = generateMnemonic(12)
+  return deriveNostrKeysFromMnemonic(mnemonic)
 }
 
 function stripNostrUri(data: string): string {

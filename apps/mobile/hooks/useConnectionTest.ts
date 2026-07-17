@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
-import BitcoinRpc from '@/api/rpc'
+import BitcoinRpc, { type BlockchainInfo, type NetworkInfo } from '@/api/rpc'
 import {
   type Backend,
   type Network,
@@ -28,6 +28,11 @@ export type ConnectionTestResult =
       success: true
       blockHeight?: number
       tipTimestampSec?: number
+      /**
+       * Free-form server banner: Electrum `server.banner`, or for RPC a
+       * Sparrow-style line built from `getnetworkinfo.subversion` (+ status).
+       */
+      banner?: string
       /** True when blockfilterindex=1 is missing — wallet sync will be slow */
       blockFilterIndexMissing?: boolean
     }
@@ -35,6 +40,50 @@ export type ConnectionTestResult =
       success: false
       error?: string
     }
+
+/** Bitcoin Core packs versions as major*10000 + minor*100 + patch. */
+function formatCoreVersion(version: number): string {
+  const major = Math.floor(version / 10000)
+  const minor = Math.floor((version % 10000) / 100)
+  const patch = version % 100
+  return `${major}.${minor}.${patch}`
+}
+
+/**
+ * Mirror Sparrow/Cormorant: banner is Core's subversion, with connection and
+ * sync status appended when useful.
+ */
+function formatRpcBanner(
+  networkInfo: NetworkInfo,
+  chainInfo: BlockchainInfo
+): string {
+  const lines: string[] = []
+  const subversion = networkInfo.subversion?.trim()
+  if (subversion) {
+    lines.push(
+      networkInfo.networkactive === false
+        ? `${subversion} (disconnected)`
+        : subversion
+    )
+  } else {
+    lines.push(`Bitcoin Core ${formatCoreVersion(networkInfo.version)}`)
+  }
+
+  if (chainInfo.initialblockdownload) {
+    const pct = Math.round((chainInfo.verificationprogress ?? 0) * 100)
+    lines.push(`Initial block download (${pct}%)`)
+  }
+
+  if (chainInfo.pruned) {
+    lines.push('Pruned node')
+  }
+
+  if (typeof networkInfo.connections === 'number') {
+    lines.push(`${networkInfo.connections} peer connections`)
+  }
+
+  return lines.join('\n')
+}
 
 export function useConnectionTest() {
   const [testing, setTesting] = useState(false)
@@ -121,6 +170,17 @@ export function useConnectionTest() {
           }
         }
 
+        // Electrum server.banner — free-form server message (often ASCII art)
+        let banner: string | undefined
+        try {
+          const rawBanner = await client.client.server_banner()
+          if (typeof rawBanner === 'string' && rawBanner.trim()) {
+            banner = rawBanner.trim()
+          }
+        } catch {
+          // optional — not all servers implement banner
+        }
+
         // Try mempool fee histogram for mempool size
         let mempoolSize
         try {
@@ -156,6 +216,7 @@ export function useConnectionTest() {
         }
 
         return {
+          banner,
           blockHeight: blockHeight > 0 ? blockHeight : undefined,
           success: true,
           tipTimestampSec
@@ -216,9 +277,10 @@ export function useConnectionTest() {
           rpcCredentials?.password ?? ''
         )
 
-        const [chainInfo, mempoolInfo, feeResult, hasFilterIndex] =
+        const [chainInfo, networkInfo, mempoolInfo, feeResult, hasFilterIndex] =
           await Promise.all([
             rpc.getBlockchainInfo(),
+            rpc.getNetworkInfo().catch(() => null),
             rpc.getMempoolInfo().catch(() => null),
             rpc.estimateSmartFee(6).catch(() => null),
             rpc.hasBlockFilterIndex().catch(() => false)
@@ -234,6 +296,10 @@ export function useConnectionTest() {
           )
         }
 
+        const banner = networkInfo
+          ? formatRpcBanner(networkInfo, chainInfo)
+          : undefined
+
         setNodeInfo({
           blockHeight,
           chainWork: chainInfo.chainwork,
@@ -243,10 +309,14 @@ export function useConnectionTest() {
           mempoolSize: mempoolInfo?.size,
           network: chainInfo.chain,
           responseTime,
-          software: 'Bitcoin Core'
+          software: networkInfo?.subversion?.trim() || 'Bitcoin Core',
+          version: networkInfo
+            ? formatCoreVersion(networkInfo.version)
+            : undefined
         })
 
         return {
+          banner,
           blockFilterIndexMissing: !hasFilterIndex,
           blockHeight,
           success: true,

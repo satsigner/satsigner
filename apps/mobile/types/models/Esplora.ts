@@ -58,7 +58,8 @@ export const EsploraUtxoSchema = z.object({
 
 export const EsploraTxOutspendsSchema = z.array(
   z.object({
-    spent: z.boolean()
+    spent: z.boolean(),
+    txid: z.string().optional()
   })
 )
 

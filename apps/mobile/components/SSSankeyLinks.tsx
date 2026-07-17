@@ -126,9 +126,15 @@ function SSSankeyLinks({
           targetNode.ioData?.isSelfSend === true &&
           targetNode.ioData?.isFakeMix !== true &&
           !isChangeOutput
-        const isOwnOrUnspentRibbon =
-          isUnspent || isSelfSendOutput || isFakeMixOutput || isChangeOutput
-        const isRemainingBalance = isChangeOutput
+        const isReceiveOutput =
+          targetNode.ioData?.isReceive === true &&
+          targetNode.ioData?.isFakeMix !== true &&
+          targetNode.ioData?.isSelfSend !== true &&
+          !isChangeOutput
+        // Solid while unspent; spent arms (incl. owned receive/self-send) use fade.
+        const isOwnOrUnspentRibbon = isUnspent
+        const isRemainingBalance =
+          targetNode.localId === CHART_REMAINING_BALANCE_LOCAL_ID
         const isCurrentTxMinerFee = targetNode.localId === 'current-minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
         const isCurrentTx =
@@ -237,7 +243,9 @@ function SSSankeyLinks({
             ) : isOwnOrUnspentRibbon &&
               !isRemainingBalance &&
               !isSelfSendOutput &&
-              !isFakeMixOutput ? (
+              !isReceiveOutput &&
+              !isFakeMixOutput &&
+              !isChangeOutput ? (
               <Path
                 path={path1}
                 style="fill"

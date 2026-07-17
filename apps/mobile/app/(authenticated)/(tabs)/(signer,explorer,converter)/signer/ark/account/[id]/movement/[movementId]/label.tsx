@@ -45,7 +45,10 @@ export default function ArkMovementLabelPage() {
   }
 
   return (
-    <ScrollView>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+    >
       <Stack.Screen
         options={{
           headerTitle: () => (

@@ -37,6 +37,7 @@ import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDateShort } from '@/utils/date'
 import { generateColorFromNpub, getPubKeyHexFromNpub } from '@/utils/nostr'
+import { generateDeviceNostrKeysFromSeed } from '@/utils/nostrIdentity'
 
 const SYNCING_MESSAGE_KEYS = [
   'account.nostrSync.syncingConnecting',
@@ -674,17 +675,13 @@ export default function NostrSync() {
     })
   }
 
-  const handleCreateNewKey = async () => {
+  const handleCreateNewKey = () => {
     if (!accountId) {
       return
     }
     setIsGeneratingKeys(true)
     try {
-      const keys = await NostrAPI.generateNostrKeys()
-      if (!keys) {
-        toast.error(t('account.nostrSync.errorGenerateDeviceKeys'))
-        return
-      }
+      const keys = generateDeviceNostrKeysFromSeed()
       const current = useAccountsStore
         .getState()
         .accounts.find((a) => a.id === accountId)
@@ -702,6 +699,7 @@ export default function NostrSync() {
       }
       updateAccountNostr(accountId, {
         ...nostrBase,
+        deviceMnemonic: keys.mnemonic,
         deviceNpub: keys.npub,
         deviceNsec: keys.nsec,
         lastUpdated: new Date()
@@ -710,7 +708,7 @@ export default function NostrSync() {
       setDeviceNpub(keys.npub)
       setDeviceColor(generateColorFromNpub(keys.npub))
     } catch {
-      toast.error('Failed to generate device keys')
+      toast.error(t('account.nostrSync.errorGenerateDeviceKeys'))
     } finally {
       setIsGeneratingKeys(false)
     }

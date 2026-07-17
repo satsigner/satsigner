@@ -21,6 +21,12 @@ import {
   getMultisigInfoFromPsbt,
   type TransactionData
 } from '@/utils/psbt'
+import {
+  buildKnownTxIds,
+  buildOutpointLabelsByRef,
+  buildSpendingTxIdsByOutpoint,
+  buildTxLabelsById
+} from '@/utils/sankeyInputLabel'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 type SSTransactionDetailsProps = {
@@ -66,6 +72,22 @@ function SSTransactionDetails({
     () =>
       new Set(matchedAccount?.utxos.map((utxo) => `${utxo.txid}:${utxo.vout}`)),
     [matchedAccount?.utxos]
+  )
+  const txLabelsById = useMemo(
+    () => buildTxLabelsById(matchedAccount?.transactions),
+    [matchedAccount?.transactions]
+  )
+  const knownTxIds = useMemo(
+    () => buildKnownTxIds(matchedAccount?.transactions),
+    [matchedAccount?.transactions]
+  )
+  const spendingTxIdsByOutpoint = useMemo(
+    () => buildSpendingTxIdsByOutpoint(matchedAccount?.transactions),
+    [matchedAccount?.transactions]
+  )
+  const outpointLabelsByRef = useMemo(
+    () => buildOutpointLabelsByRef(matchedAccount ?? {}),
+    [matchedAccount]
   )
 
   if (!txid) {
@@ -142,10 +164,15 @@ function SSTransactionDetails({
           {visibility?.sankey ? (
             <View style={styles.chatChartContainer}>
               <SSTransactionChart
+                accountId={matchedAccount?.id}
                 transaction={transaction}
                 ownAddresses={ownAddresses}
                 internalAddresses={internalAddresses}
                 unspentOutpoints={unspentOutpoints}
+                txLabelsById={txLabelsById}
+                knownTxIds={knownTxIds}
+                spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
+                outpointLabelsByRef={outpointLabelsByRef}
                 scale={0.75}
               />
             </View>
@@ -174,10 +201,14 @@ function SSTransactionDetails({
         <>
           <View style={styles.chartContainer}>
             <SSTransactionChart
+              accountId={matchedAccount?.id}
               transaction={transaction}
               ownAddresses={ownAddresses}
               internalAddresses={internalAddresses}
               unspentOutpoints={unspentOutpoints}
+              txLabelsById={txLabelsById}
+              knownTxIds={knownTxIds}
+              outpointLabelsByRef={outpointLabelsByRef}
             />
           </View>
           {isMultisig && (

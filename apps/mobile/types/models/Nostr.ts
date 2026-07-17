@@ -158,6 +158,7 @@ export const NostrAccountSchema = z.object({
   commonNpub: z.string(),
   commonNsec: z.string(),
   deviceDisplayName: z.string().optional(),
+  deviceMnemonic: z.string().optional(),
   deviceNpub: z.string().optional(),
   deviceNsec: z.string().optional(),
   devicePicture: z.string().optional(),

@@ -27,6 +27,7 @@ import {
   getPrivateDescriptorFromSeed,
   getPrivateDescriptorFromSeedWithPath,
   getPublicDescriptorFromSeed,
+  getPublicDescriptorFromSeedWithPath,
   getVersionsForNetwork,
   getXpubForScriptVersion,
   toHex
@@ -138,6 +139,25 @@ export async function getPrivateDescriptorFromElectrumMnemonic(
   )
 }
 
+export async function getPublicDescriptorFromElectrumMnemonic(
+  mnemonic: string,
+  electrumType: string,
+  kind: KeychainKind,
+  passphrase: string,
+  network: Network
+): Promise<string> {
+  const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
+  const scriptVersion = ELECTRUM_SCRIPT_VERSION[electrumType] ?? 'P2WPKH'
+  const path = getElectrumDerivationPath(electrumType).replace(/^m\/?/, '')
+  return getPublicDescriptorFromSeedWithPath(
+    seed,
+    scriptVersion,
+    kind,
+    network,
+    path
+  )
+}
+
 export function generateMnemonic(
   wordCount: MnemonicWordCount = 12,
   wordListName = 'english'
@@ -185,13 +205,23 @@ export function mnemonicToSeed(mnemonic: string, passphrase = ''): Uint8Array {
   return new Uint8Array(Buffer.from(seedHex, 'hex'))
 }
 
-export function getPublicDescriptorFromMnemonic(
+export async function getPublicDescriptorFromMnemonic(
   mnemonic: string,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
   passphrase: string | undefined,
   network: Network
-): string {
+): Promise<string> {
+  const electrumType = detectElectrumSeed(mnemonic)
+  if (electrumType) {
+    return await getPublicDescriptorFromElectrumMnemonic(
+      mnemonic,
+      electrumType,
+      kind,
+      passphrase ?? '',
+      network
+    )
+  }
   const seed = mnemonicToSeed(mnemonic, passphrase ?? '')
   return getPublicDescriptorFromSeed(seed, scriptVersion, kind, network)
 }
