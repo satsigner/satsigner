@@ -140,16 +140,17 @@ function classifyChartOutput(
   },
   ownAddresses: Set<string>
 ): ChartOutputFlags {
-  const isFakeMix = output.kind === 'fakeMix'
+  // Sparrow model: stonewall decoys are wallet change outputs, not a separate
+  // “fake mix” UI type. Legacy `kind: 'fakeMix'` still counts as change.
   const isChange =
-    !isFakeMix &&
-    (output.kind === 'change' ||
-      output.localId === CHART_REMAINING_BALANCE_LOCAL_ID ||
-      isChangeOutputLabel(output.label ?? ''))
+    output.kind === 'change' ||
+    output.kind === 'fakeMix' ||
+    output.localId === CHART_REMAINING_BALANCE_LOCAL_ID ||
+    isChangeOutputLabel(output.label ?? '')
   const isSelfSend =
-    !isFakeMix && !isChange && !!output.to && ownAddresses.has(output.to.trim())
+    !isChange && !!output.to && ownAddresses.has(output.to.trim())
 
-  return { isChange, isFakeMix, isSelfSend }
+  return { isChange, isFakeMix: false, isSelfSend }
 }
 
 export function getStonewallPaymentContext(
@@ -207,10 +208,12 @@ export function buildStonewallPreviewOutputs(
 
   for (const [index, amount] of params.fakeMixValues.entries()) {
     const localId = stonewallFakeMixLocalId(index)
+    // Decoy equal-amount output → change address (Sparrow: ownership, not a
+    // separate “fake mix” kind in the wallet UI).
     previewOutputs.push({
       amount,
-      kind: 'fakeMix',
-      label: overrides[localId] ?? params.fakeMixLabel ?? '',
+      kind: 'change',
+      label: overrides[localId] ?? t('sign.changeAddressLabelDefault'),
       localId,
       to: params.decoyAddress
     })
@@ -279,8 +282,8 @@ export function buildStonewallMaterializationPlan(
     const localId = stonewallFakeMixLocalId(index)
     outputs.push({
       amount: output.amount,
-      kind: 'fakeMix',
-      label: overrides[localId] ?? params.fakeMixLabel,
+      kind: 'change',
+      label: overrides[localId] ?? t('sign.changeAddressLabelDefault'),
       to: output.to
     })
   }

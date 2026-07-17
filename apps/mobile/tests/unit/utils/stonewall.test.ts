@@ -12,7 +12,7 @@ import { splitStonewallOutputValues } from '@/utils/utxo'
 describe('classifyChartOutput', () => {
   const own = new Set(['bc1qown', 'bc1qchange', 'bc1qdecoy'])
 
-  it('marks fake-mix outputs', () => {
+  it('treats legacy fake-mix kind as change (Sparrow ownership model)', () => {
     expect(
       classifyChartOutput(
         {
@@ -24,8 +24,8 @@ describe('classifyChartOutput', () => {
         own
       )
     ).toStrictEqual({
-      isChange: false,
-      isFakeMix: true,
+      isChange: true,
+      isFakeMix: false,
       isSelfSend: false
     })
   })
@@ -97,7 +97,7 @@ describe('buildStonewallPreviewOutputs', () => {
     ).toStrictEqual([])
   })
 
-  it('builds fake-mix and change preview outputs', () => {
+  it('builds decoy and change preview outputs as wallet change', () => {
     const outputs = buildStonewallPreviewOutputs({
       changeAddress: 'bc1qchange1',
       changeValues: [1000, 2000],
@@ -111,8 +111,8 @@ describe('buildStonewallPreviewOutputs', () => {
     expect(outputs).toHaveLength(3)
     expect(outputs[0]).toMatchObject({
       amount: 500,
-      kind: 'fakeMix',
-      label: 'Coffee shop',
+      kind: 'change',
+      label: 'Change',
       localId: 'stonewallFakeMix-0',
       to: 'bc1qdecoy'
     })
@@ -150,7 +150,7 @@ describe('buildStonewallPreviewOutputs', () => {
 })
 
 describe('buildStonewallMaterializationPlan', () => {
-  it('returns fake mix and change outputs ready for the store', () => {
+  it('returns decoy and change outputs ready for the store', () => {
     const plan = buildStonewallMaterializationPlan({
       changeAddress: 'bc1qchange1',
       changeValues: [1_000],
@@ -166,8 +166,8 @@ describe('buildStonewallMaterializationPlan', () => {
       outputs: [
         {
           amount: 500,
-          kind: 'fakeMix',
-          label: 'Coffee shop',
+          kind: 'change',
+          label: 'Change',
           to: 'bc1qdecoy'
         },
         {
@@ -275,7 +275,7 @@ describe('getEphemeralChangeOutputLocalIds', () => {
             to: 'bc1qrecipient'
           },
           {
-            kind: 'fakeMix',
+            kind: 'change',
             localId: 'stonewallFakeMix-0',
             to: 'bc1qdecoy'
           },
