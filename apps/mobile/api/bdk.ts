@@ -47,6 +47,11 @@ import {
   computeRpcScanStartHeight,
   estimateBirthHeight
 } from '@/utils/rpcScanStartHeight'
+import {
+  annotateTransactionsWithWalletOwnership,
+  collectTransactionOutputAddresses,
+  ensureAddressesIncludeSeenOutputs
+} from '@/utils/walletOwnership'
 
 import AppElectrumClient from './electrum'
 import Esplora from './esplora'
@@ -794,15 +799,27 @@ function getWalletOverview(
     stopGap
   )
 
+  addresses = ensureAddressesIncludeSeenOutputs(
+    wallet,
+    toAppNetwork(network),
+    addresses,
+    collectTransactionOutputAddresses(transactions)
+  )
+
+  const ownedTransactions = annotateTransactionsWithWalletOwnership(
+    transactions,
+    addresses
+  )
+
   addresses = parseAccountAddressesDetails({
     addresses,
     keys: [{ scriptVersion: undefined }],
-    transactions,
+    transactions: ownedTransactions,
     utxos
   } as Account)
 
   const seenAddress: Record<string, boolean> = {}
-  for (const tx of transactions) {
+  for (const tx of ownedTransactions) {
     for (const output of tx.vout) {
       if (output.address) {
         seenAddress[output.address] = true
@@ -826,7 +843,7 @@ function getWalletOverview(
       numberOfUtxos: localOutputs.length,
       satsInMempool: balance.trustedPending + balance.untrustedPending
     },
-    transactions,
+    transactions: ownedTransactions,
     utxos
   }
 }
@@ -1849,7 +1866,7 @@ async function syncWithCoreWallet(
     ...utxos.map((u) => u.addressTo ?? '')
   ])
 
-  const addresses: Account['addresses'] = []
+  let addresses: Account['addresses'] = []
   let lastUsedExternal = -1
   for (let i = 0; i < stopGap * 2; i += 1) {
     const addr = wallet.peekAddress(KeychainKind.External, i).address
@@ -1871,16 +1888,51 @@ async function syncWithCoreWallet(
     }
   }
 
+  let lastUsedInternal = -1
+  for (let i = 0; i < stopGap * 2; i += 1) {
+    const addr = wallet.peekAddress(KeychainKind.Internal, i).address
+    if (usedAddresses.has(addr)) {
+      lastUsedInternal = i
+    }
+    addresses.push({
+      address: addr,
+      index: i,
+      keychain: 'internal',
+      label: '',
+      network: appNetwork,
+      summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
+      transactions: [],
+      utxos: []
+    })
+    if (i >= lastUsedInternal + stopGap) {
+      break
+    }
+  }
+
+  addresses = ensureAddressesIncludeSeenOutputs(
+    wallet,
+    appNetwork,
+    addresses,
+    collectTransactionOutputAddresses(transactions)
+  )
+
+  const ownedTransactions = annotateTransactionsWithWalletOwnership(
+    transactions,
+    addresses
+  )
+
   const confirmedBalance = utxos
     .filter((u) =>
-      transactions.find((tx) => tx.id === u.txid && (tx.blockHeight ?? 0) > 0)
+      ownedTransactions.find(
+        (tx) => tx.id === u.txid && (tx.blockHeight ?? 0) > 0
+      )
     )
     .reduce((sum, u) => sum + u.value, 0)
 
   const mempoolBalance = utxos
     .filter(
       (u) =>
-        !transactions.some(
+        !ownedTransactions.some(
           (tx) => tx.id === u.txid && (tx.blockHeight ?? 0) > 0
         )
     )
@@ -1896,11 +1948,11 @@ async function syncWithCoreWallet(
     summary: {
       balance: confirmedBalance,
       numberOfAddresses: usedExternalCount,
-      numberOfTransactions: transactions.length,
+      numberOfTransactions: ownedTransactions.length,
       numberOfUtxos: utxos.length,
       satsInMempool: mempoolBalance
     },
-    transactions,
+    transactions: ownedTransactions,
     utxos
   }
 }
