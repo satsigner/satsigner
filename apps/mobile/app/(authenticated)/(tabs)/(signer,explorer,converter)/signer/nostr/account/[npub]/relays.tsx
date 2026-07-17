@@ -54,6 +54,7 @@ export default function NostrIdentityRelays() {
     identity?.relays ?? globalRelays
   )
   const [customRelayUrl, setCustomRelayUrl] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
 
   function handleRelayToggle(relayUrl: string) {
     setSelectedRelays((prev) =>
@@ -126,7 +127,17 @@ export default function NostrIdentityRelays() {
             <SSText size="xs" color="muted">
               {t('nostrIdentity.settings.identityRelaysHint')}
             </SSText>
-            {NOSTR_RELAYS.map((relay) => (
+            <SSTextInput
+              placeholder={t('nostrIdentity.relays.search')}
+              value={searchQuery}
+              align="left"
+              onChangeText={setSearchQuery}
+            />
+            {NOSTR_RELAYS.filter(
+              (r) =>
+                r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                r.url.toLowerCase().includes(searchQuery.toLowerCase())
+            ).map((relay) => (
               <RelayRow
                 key={relay.url}
                 relay={relay}

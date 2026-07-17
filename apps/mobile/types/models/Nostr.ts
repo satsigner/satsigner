@@ -192,6 +192,7 @@ export const NostrZapPreferencesSchema = z.object({
 
 export const NostrIdentitySchema = z.object({
   banner: z.string().optional(),
+  blossomServers: z.array(z.string()).optional(),
   createdAt: z.number(),
   displayName: z.string().optional(),
   isWatchOnly: z.boolean(),
@@ -219,6 +220,11 @@ export const NostrKind0ProfileSchema = z.object({
   lud16: z.string().optional(),
   nip05: z.string().optional(),
   picture: z.string().optional()
+})
+
+export const NostrContactItemSchema = z.object({
+  profile: NostrKind0ProfileSchema.nullable(),
+  pubkey: z.string()
 })
 
 export const NostrMessageDataSchema = z.object({
@@ -321,6 +327,7 @@ export type NostrFetchedNoteData = z.infer<typeof NostrFetchedNoteDataSchema>
 export type NostrIdentity = z.infer<typeof NostrIdentitySchema>
 export type NostrKeys = z.infer<typeof NostrKeysSchema>
 export type NostrKind0Profile = z.infer<typeof NostrKind0ProfileSchema>
+export type NostrContactItem = z.infer<typeof NostrContactItemSchema>
 export type NostrMessageData = z.infer<typeof NostrMessageDataSchema>
 export type NostrMessage = z.infer<typeof NostrMessageSchema>
 export type NostrPendingDM = z.infer<typeof NostrPendingDMSchema>
@@ -379,6 +386,13 @@ export type NostrNoteKindFilterOption = {
 
 export type NostrBookmarkSource = 'public' | 'private'
 
+export type NostrContactQrSlide = {
+  key: string
+  kind: 'placeholder' | 'qr'
+  label: string
+  value?: string
+}
+
 export type NostrParsedBookmark = {
   eventId: string
   source: NostrBookmarkSource
@@ -396,6 +410,27 @@ export type NostrFeedNoteLike = {
   kind: number
   tags: string[][]
   created_at: number
+}
+
+export type NostrPollOption = {
+  id: string
+  label: string
+}
+
+export type NostrPollType = 'singlechoice' | 'multiplechoice'
+
+export type NostrPollInfo = {
+  endsAt?: number
+  options: NostrPollOption[]
+  pollType: NostrPollType
+  relays: string[]
+}
+
+export type NostrPollResponse = {
+  created_at: number
+  id: string
+  optionIds: string[]
+  pubkey: string
 }
 
 export type NostrRetryConfig = {
