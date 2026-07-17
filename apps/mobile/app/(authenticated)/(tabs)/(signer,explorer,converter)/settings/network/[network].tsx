@@ -43,6 +43,7 @@ import {
 } from '@/types/settings/blockchain'
 import { suppressConnectionPoll } from '@/utils/connectionPollSuppression'
 import {
+  formatBannerForToast,
   successProbeDescription,
   successToastDescription
 } from '@/utils/connectionTestDisplay'
@@ -582,7 +583,7 @@ export default function CustomNetwork() {
                           {tnServer('tester.banner')}
                         </SSText>
                         <SSText center color="muted" size="xs" type="mono">
-                          {lastBanner}
+                          {formatBannerForToast(lastBanner)}
                         </SSText>
                       </SSVStack>
                     ) : null}

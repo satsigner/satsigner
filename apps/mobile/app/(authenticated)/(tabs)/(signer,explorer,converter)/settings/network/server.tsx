@@ -21,6 +21,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Network, type Server } from '@/types/settings/blockchain'
 import {
+  formatBannerForToast,
   successProbeDescription,
   successToastDescription
 } from '@/utils/connectionTestDisplay'
@@ -369,7 +370,7 @@ export default function NetworkSettings() {
                     {tn('tester.banner')}
                   </SSText>
                   <SSText center color="muted" size="xs" type="mono">
-                    {lastServerBanner}
+                    {formatBannerForToast(lastServerBanner)}
                   </SSText>
                 </SSVStack>
               ) : null}

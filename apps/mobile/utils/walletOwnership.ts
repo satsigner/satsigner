@@ -124,7 +124,7 @@ function annotateTransactionsWithWalletOwnership(
 
   return transactions.map((transaction) => {
     const vout = transaction.vout.map((output) => {
-      const address = output.address.trim()
+      const address = output.address?.trim()
       if (!address || !internalAddresses.has(address)) {
         return output
       }
@@ -141,7 +141,7 @@ function annotateTransactionsWithWalletOwnership(
     let returned = 0
     let external = 0
     for (const output of vout) {
-      const address = output.address.trim()
+      const address = output.address?.trim()
       if (address && ownAddresses.has(address)) {
         returned += output.value
       } else {

@@ -69,6 +69,30 @@ describe('annotateTransactionsWithWalletOwnership', () => {
     expect(annotated[0]?.vout[0]?.kind).toBeUndefined()
   })
 
+  it('tolerates addressless OP_RETURN outputs without throwing', () => {
+    const annotated = annotateTransactionsWithWalletOwnership(
+      [
+        makeTx({
+          fee: 500,
+          received: 9_500,
+          sent: 10_000,
+          vout: [
+            {
+              address: undefined as unknown as string,
+              script: '',
+              value: 0
+            },
+            { address: 'bc1qchange', script: '', value: 9_500 }
+          ]
+        })
+      ],
+      OWN_ADDRESSES
+    )
+
+    expect(annotated[0]?.vout[1]?.kind).toBe('change')
+    expect(annotated[0]?.received).toBe(9_500)
+  })
+
   it('reconstructs Core-style net payment sent so delta is payment + fee', () => {
     const annotated = annotateTransactionsWithWalletOwnership(
       [

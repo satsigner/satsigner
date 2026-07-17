@@ -262,7 +262,7 @@ function SSTransactionChartCanvas({
       if (status !== 'pending') {
         continue
       }
-      const address = output.address.trim()
+      const address = output.address?.trim()
       if (!address) {
         continue
       }
@@ -392,7 +392,7 @@ function SSTransactionChartCanvas({
         kind: output.kind,
         label: output.label ?? '',
         localId: `output-${index}`,
-        to: output.address.trim(),
+        to: output.address?.trim() ?? '',
         value: output.value
       })),
       normalizedOwnAddresses,
@@ -402,7 +402,7 @@ function SSTransactionChartCanvas({
     const outputNodes: TxNode[] = outputs.map((output, index) => {
       const nodeId = String(index + 2 + inputs.length)
       const label = output.label ?? ''
-      const outputAddress = output.address.trim()
+      const outputAddress = output.address?.trim() ?? ''
       const { isChange, isFakeMix, isReceive, isSelfSend } = outputFlags[
         index
       ] ?? {
@@ -444,7 +444,7 @@ function SSTransactionChartCanvas({
         depthH: 2,
         id: nodeId,
         ioData: {
-          address: formatAddress(output.address, 6),
+          address: formatAddress(outputAddress, 6),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.value), 2),
           isChange: isChangeOutput,
