@@ -2627,6 +2627,7 @@
     "build.preview.keyInput": "Input your secret private key to sign the transaction",
     "build.preview.noKey": "Missing private key",
     "build.preview.psbt": "PSBT: Share partially signed bitcoin transaction on external hardware",
+    "build.receive": "Receive",
     "build.remove.input.confirm": "Remove and rebuild",
     "build.remove.input.message": "Exclude this input and rebuild the privacy transaction with new UTXOs.",
     "build.remove.input.title": "Remove input",

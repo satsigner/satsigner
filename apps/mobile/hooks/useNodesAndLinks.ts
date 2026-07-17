@@ -11,7 +11,7 @@ import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
 import {
   CHART_REMAINING_BALANCE_LOCAL_ID,
-  classifyChartOutput
+  classifyChartOutputs
 } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -57,6 +57,7 @@ export type TxNode = {
     feePercentage?: number // miner fee is 10% or higher of the total transaction value
     isFakeMix?: boolean
     isChange?: boolean
+    isReceive?: boolean
     isSelfSend?: boolean // NEW: flag for self-send
     maxAllowedSats?: number
   }
@@ -125,6 +126,10 @@ export const useNodesAndLinks = ({
       // Create output nodes
       let outputNodes: TxNode[] = []
 
+      const outputFlags = classifyChartOutputs(outputs, ownAddresses, {
+        isWalletSend: true
+      })
+
       outputNodes = outputs.map((output, index) => ({
         depthH: blockDepth + 1,
         id: `vout-${blockDepth + 1}-${index + 1}`,
@@ -133,7 +138,11 @@ export const useNodesAndLinks = ({
           address: formatAddress(output.to, 4),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.amount), 2),
-          ...classifyChartOutput(output, ownAddresses),
+          ...(outputFlags[index] ?? {
+            isChange: false,
+            isFakeMix: false,
+            isSelfSend: false
+          }),
           isUnspent: true,
           label: output.label,
           text: t('transaction.build.unspent'),
@@ -420,7 +429,10 @@ export const useNodesAndLinks = ({
                 address: formatAddress(output.address, 4),
                 fiatCurrency,
                 fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
-                isSelfSend: ownAddresses.has(output.address),
+                isReceive:
+                  tx.type !== 'send' && ownAddresses.has(output.address),
+                isSelfSend:
+                  tx.type === 'send' && ownAddresses.has(output.address),
                 label: matchingInput?.label ?? '',
                 text: t('common.from'),
                 value: output.value ?? 0

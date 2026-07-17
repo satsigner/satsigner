@@ -13,6 +13,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { useLayout } from '@/hooks/useLayout'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
+import { useTransactionOutspends } from '@/hooks/useTransactionOutspends'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { type Transaction } from '@/types/models/Transaction'
@@ -32,7 +33,11 @@ import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
-import { classifyChartOutput } from '@/utils/stonewall'
+import {
+  resolveChartOutputSpendStatus,
+  type ChartOutputSpendStatus
+} from '@/utils/sankeyOutputLabel'
+import { classifyChartOutputs } from '@/utils/stonewall'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
@@ -245,6 +250,32 @@ function SSTransactionChartCanvas({
     onLoadingChangeRef.current?.(false)
   }, [canDrawStructure, labelsReady, transaction.id])
 
+  const pendingOutspendOutputs: { address: string; vout: number }[] = []
+  if (unspentOutpoints && canDrawStructure) {
+    for (const [index, output] of outputs.entries()) {
+      const outpoint = `${transaction.id}:${index}`
+      const status = resolveChartOutputSpendStatus({
+        outpoint,
+        spendingTxIdsByOutpoint,
+        unspentOutpoints
+      })
+      if (status !== 'pending') {
+        continue
+      }
+      const address = output.address.trim()
+      if (!address) {
+        continue
+      }
+      pendingOutspendOutputs.push({ address, vout: index })
+    }
+  }
+
+  const { data: networkOutspends } = useTransactionOutspends({
+    enabled: labelsReady && pendingOutspendOutputs.length > 0,
+    outputs: pendingOutspendOutputs,
+    txid: transaction.id
+  })
+
   const minerFee = inputs.every((input) => input.valueIsKnown)
     ? inputs.reduce((prevValue, input) => prevValue + input.value, 0) -
       totalOutputValue
@@ -356,33 +387,58 @@ function SSTransactionChartCanvas({
       }
     ]
 
+    const outputFlags = classifyChartOutputs(
+      outputs.map((output, index) => ({
+        kind: output.kind,
+        label: output.label ?? '',
+        localId: `output-${index}`,
+        to: output.address.trim(),
+        value: output.value
+      })),
+      normalizedOwnAddresses,
+      { isWalletSend: transaction.type === 'send' }
+    )
+
     const outputNodes: TxNode[] = outputs.map((output, index) => {
       const nodeId = String(index + 2 + inputs.length)
       const label = output.label ?? ''
       const outputAddress = output.address.trim()
-      const { isChange, isSelfSend } = classifyChartOutput(
-        {
-          kind: output.kind,
-          label,
-          localId: `output-${index}`,
-          to: outputAddress
-        },
-        normalizedOwnAddresses
-      )
+      const { isChange, isFakeMix, isReceive, isSelfSend } = outputFlags[
+        index
+      ] ?? {
+        isChange: false,
+        isFakeMix: false,
+        isReceive: false,
+        isSelfSend: false
+      }
       // Sparrow: wallet-owned / change-chain outputs stay green; only external
-      // payments are spends.
+      // payments are spends. Equal-amount owned peers of a 4-out stonewall are
+      // fake-mix (not change/self-send) for the chart label + icon.
       const isChangeOutput =
-        isChange ||
-        isChangeOutputAddress(outputAddress, normalizedInternalAddresses)
-      const isSelfSendOutput = !isChangeOutput && isSelfSend
-      const isPrivacyOwnedOutput = isChangeOutput || isSelfSendOutput
-      const isUnspent = unspentOutpoints
-        ? unspentOutpoints.has(`${transaction.id}:${index}`) ||
-          (!transaction.blockHeight && isPrivacyOwnedOutput)
-        : true
-      const nextTx = isUnspent
-        ? undefined
-        : getSpendingTxId(spendingTxIdsByOutpoint, `${transaction.id}:${index}`)
+        !isFakeMix &&
+        (isChange ||
+          isChangeOutputAddress(outputAddress, normalizedInternalAddresses))
+      const isSelfSendOutput = !isChangeOutput && !isFakeMix && isSelfSend
+      const isReceiveOutput =
+        !isChangeOutput && !isFakeMix && !isSelfSendOutput && isReceive
+      const outpoint = `${transaction.id}:${index}`
+      const localSpendStatus = resolveChartOutputSpendStatus({
+        outpoint,
+        spendingTxIdsByOutpoint,
+        unspentOutpoints
+      })
+      const networkOutspend = networkOutspends?.get(index)
+      const spendStatus: ChartOutputSpendStatus = networkOutspend
+        ? networkOutspend.spent
+          ? 'spent'
+          : 'unspent'
+        : localSpendStatus
+      const isUnspent = spendStatus === 'unspent'
+      const nextTx =
+        spendStatus === 'spent'
+          ? (networkOutspend?.spendingTxId ??
+            getSpendingTxId(spendingTxIdsByOutpoint, outpoint))
+          : undefined
 
       return {
         depthH: 2,
@@ -392,13 +448,17 @@ function SSTransactionChartCanvas({
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.value), 2),
           isChange: isChangeOutput,
-          isFakeMix: false,
+          isFakeMix,
+          isReceive: isReceiveOutput,
           isSelfSend: isSelfSendOutput,
           isUnspent,
           label: label || t('common.noLabel'),
-          text: isUnspent
-            ? t('transaction.build.unspent')
-            : t('transaction.build.spent'),
+          text:
+            spendStatus === 'pending'
+              ? '?'
+              : spendStatus === 'unspent'
+                ? t('transaction.build.unspent')
+                : t('transaction.build.spent'),
           value: output.value
         },
         localId: `output-${index}`,
@@ -457,8 +517,9 @@ function SSTransactionChartCanvas({
     normalizedInternalAddresses,
     unspentOutpoints,
     spendingTxIdsByOutpoint,
-    transaction.blockHeight,
+    networkOutspends,
     transaction.id,
+    transaction.type,
     txLabelsById,
     outpointLabelsByRef
   ])

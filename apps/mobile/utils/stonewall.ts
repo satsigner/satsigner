@@ -131,26 +131,98 @@ function getEphemeralChangeOutputLocalIds(
 type ChartOutputFlags = {
   isChange: boolean
   isFakeMix: boolean
+  isReceive: boolean
   isSelfSend: boolean
 }
 
+type ChartOutputForClassification = Pick<
+  Output,
+  'kind' | 'label' | 'localId'
+> & {
+  amount?: number
+  to?: string
+  value?: number
+}
+
+type ChartOutputClassificationOptions = {
+  /**
+   * True when this wallet funded the transaction (Sparrow consolidation /
+   * self-send). Receive txs that merely pay to our address must stay false.
+   */
+  isWalletSend?: boolean
+}
+
+function getChartOutputAmount(output: ChartOutputForClassification): number {
+  return output.amount ?? output.value ?? 0
+}
+
 function classifyChartOutput(
-  output: Pick<Output, 'kind' | 'label' | 'localId'> & {
-    to?: string
-  },
-  ownAddresses: Set<string>
+  output: ChartOutputForClassification,
+  ownAddresses: Set<string>,
+  options?: ChartOutputClassificationOptions
 ): ChartOutputFlags {
-  // Sparrow model: stonewall decoys are wallet change outputs, not a separate
-  // “fake mix” UI type. Legacy `kind: 'fakeMix'` still counts as change.
+  // Ownership: stonewall decoys are wallet change. UI may later promote equal-amount
+  // owned outputs to fake-mix via classifyChartOutputs (Sparrow reconstruction).
   const isChange =
     output.kind === 'change' ||
     output.kind === 'fakeMix' ||
     output.localId === CHART_REMAINING_BALANCE_LOCAL_ID ||
     isChangeOutputLabel(output.label ?? '')
-  const isSelfSend =
-    !isChange && !!output.to && ownAddresses.has(output.to.trim())
+  const isOwnAddress = !!output.to && ownAddresses.has(output.to.trim())
+  // Sparrow consolidation/self-send: we paid to our own receive address.
+  const isSelfSend = options?.isWalletSend === true && !isChange && isOwnAddress
+  // Sparrow deposit: someone else paid to our address (not a self-send).
+  const isReceive = options?.isWalletSend !== true && !isChange && isOwnAddress
 
-  return { isChange, isFakeMix: false, isSelfSend }
+  return { isChange, isFakeMix: false, isReceive, isSelfSend }
+}
+
+/**
+ * Classify chart outputs with Sparrow-style fake-mix reconstruction.
+ *
+ * Sparrow (HeadersController): a wallet change output is Fake Mix when the tx
+ * has 4 outputs and another output shares the same value. Self-sends (own
+ * receive addresses on a wallet send) use the same equal-amount rule.
+ */
+function classifyChartOutputs(
+  outputs: ChartOutputForClassification[],
+  ownAddresses: Set<string>,
+  options?: ChartOutputClassificationOptions
+): ChartOutputFlags[] {
+  const baseFlags = outputs.map((output) =>
+    classifyChartOutput(output, ownAddresses, options)
+  )
+
+  if (outputs.length !== 4 || options?.isWalletSend !== true) {
+    return baseFlags
+  }
+
+  return baseFlags.map((flags, index) => {
+    const isWalletOwned = flags.isChange || flags.isSelfSend
+    if (!isWalletOwned) {
+      return flags
+    }
+
+    const amount = getChartOutputAmount(outputs[index])
+    if (amount <= 0) {
+      return flags
+    }
+
+    const hasEqualPeer = outputs.some(
+      (peer, peerIndex) =>
+        peerIndex !== index && getChartOutputAmount(peer) === amount
+    )
+    if (!hasEqualPeer) {
+      return flags
+    }
+
+    return {
+      isChange: false,
+      isFakeMix: true,
+      isReceive: false,
+      isSelfSend: false
+    }
+  })
 }
 
 export function getStonewallPaymentContext(
@@ -328,6 +400,7 @@ export function buildSingleTxChartOutputs(
 
 export {
   classifyChartOutput,
+  classifyChartOutputs,
   getEphemeralChangeOutputLocalIds,
   isStonewallManagedOutput,
   isStonewallPreviewLocalId

@@ -240,6 +240,13 @@ function SSSankeyNodes({
               node?.localId !== CHART_REMAINING_BALANCE_LOCAL_ID &&
               node.ioData?.isFakeMix !== true
             }
+            isReceive={
+              node.ioData?.isReceive === true &&
+              node.ioData?.isChange !== true &&
+              node.ioData?.isSelfSend !== true &&
+              node.ioData?.isFakeMix !== true &&
+              node?.localId !== CHART_REMAINING_BALANCE_LOCAL_ID
+            }
             showUnspentLabel={showUnspentLabel}
             labelIconSvg={labelIconSvg}
             changeIconSvg={changeIconSvg}
@@ -267,6 +274,7 @@ function NodeText({
   isFakeMix,
   isChange: isChangeProp,
   isSelfSend,
+  isReceive,
   showUnspentLabel = true,
   labelIconSvg,
   changeIconSvg,
@@ -285,6 +293,7 @@ function NodeText({
   isFakeMix?: boolean
   isChange?: boolean
   isSelfSend?: boolean
+  isReceive?: boolean
   showUnspentLabel?: boolean
   labelIconSvg: ReturnType<typeof useSVG>
   changeIconSvg: ReturnType<typeof useSVG>
@@ -298,7 +307,9 @@ function NodeText({
     isChangeProp === true || localId === CHART_REMAINING_BALANCE_LOCAL_ID
   const isUnspent = ioData?.isUnspent === true
   const isInput = ioData?.isInput === true
-  const isPrivacyOwnedOutput = Boolean(isChange || isSelfSend || isFakeMix)
+  const isPrivacyOwnedOutput = Boolean(
+    isChange || isSelfSend || isReceive || isFakeMix
+  )
   const usePrivacyOutputLayout = isUnspent || isPrivacyOwnedOutput
 
   const shadowPaint = useMemo(() => {
@@ -402,7 +413,7 @@ function NodeText({
       Skia.ParagraphBuilder.Make(
         {
           ellipsis: '…',
-          maxLines: isSelfSend || isFakeMix ? 6 : 5,
+          maxLines: isSelfSend || isReceive || isFakeMix ? 6 : 5,
           strutStyle: {
             forceStrutHeight: true,
             heightMultiplier: 1,
@@ -503,7 +514,9 @@ function NodeText({
     }
 
     const buildUnspentParagraph = () => {
-      const isGreenOutput = Boolean(isChange || isSelfSend || isFakeMix)
+      const isGreenOutput = Boolean(
+        isChange || isSelfSend || isReceive || isFakeMix
+      )
       const satsValueColor = getUnspentOutputSatsColor({
         isChange,
         isGreenOutput,
@@ -560,7 +573,7 @@ function NodeText({
             weight: 800
           }
         })
-        // Single placeholder for icon (change, self-send, or label)
+        // Single placeholder for icon (change, self-send, receive, or label)
         .addPlaceholder(
           ICON_SIZE,
           ICON_SIZE,
@@ -575,7 +588,9 @@ function NodeText({
               ? ` ${t('transaction.build.fakeMix')}`
               : isSelfSend
                 ? ` ${t('transaction.build.selfSend')}`
-                : ` ${trimNodeLabel(ioData.label)}`
+                : isReceive
+                  ? ` ${t('transaction.build.receive')}`
+                  : ` ${trimNodeLabel(ioData.label)}`
         )
         .pushStyle({
           ...baseTextStyle,
@@ -586,7 +601,7 @@ function NodeText({
           }
         })
         .addText(
-          (isSelfSend || isFakeMix) && ioData?.label
+          (isSelfSend || isReceive || isFakeMix) && ioData?.label
             ? ` ${trimNodeLabel(ioData.label)}`
             : ''
         )
@@ -758,6 +773,7 @@ function NodeText({
     isChange,
     isFakeMix,
     isSelfSend,
+    isReceive,
     isPrivacyOwnedOutput,
     showUnspentLabel
   ])
@@ -895,6 +911,7 @@ function NodeText({
       labelIconSvg &&
       !isChange &&
       !isSelfSend &&
+      !isReceive &&
       !isFakeMix &&
       ioData?.label ? (
         <ImageSVG
@@ -905,7 +922,7 @@ function NodeText({
           height={outputIconH}
         />
       ) : null}
-      {usePrivacyOutputLayout && changeIconSvg && isSelfSend ? (
+      {usePrivacyOutputLayout && changeIconSvg && (isSelfSend || isReceive) ? (
         <ImageSVG
           svg={changeIconSvg}
           x={outputIconX}

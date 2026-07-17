@@ -40,7 +40,7 @@ import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
 import {
   CHART_REMAINING_BALANCE_LOCAL_ID,
-  classifyChartOutput
+  classifyChartOutputs
 } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
@@ -300,6 +300,10 @@ function SSCurrentTransactionChart({
       0
     )
 
+    const outputFlags = classifyChartOutputs(outputArray, ownAddresses, {
+      isWalletSend: true
+    })
+
     const outputNodes: TxNode[] = outputArray.map((output, index) => {
       const localId = output.to
         ? output.localId
@@ -318,7 +322,12 @@ function SSCurrentTransactionChart({
           address: output?.to ? formatAddress(output?.to, 6) : '',
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.amount), 2),
-          ...classifyChartOutput(output, ownAddresses),
+          ...(outputFlags[index] ?? {
+            isChange: false,
+            isFakeMix: false,
+            isReceive: false,
+            isSelfSend: false
+          }),
           isUnspent: true,
           label: output.label,
           maxAllowedSats:
