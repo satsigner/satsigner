@@ -1,18 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { offboardArkVtxos } from '@/api/ark'
-import { useArkStore } from '@/store/ark'
 import type { ArkOffboardInput } from '@/types/models/Ark'
+import { getArkAccountOrThrow } from '@/utils/ark'
+import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 
 function executeArkOffboard(
   accountId: string,
   input: ArkOffboardInput
 ): Promise<string> {
-  const { accounts } = useArkStore.getState()
-  const account = accounts.find((a) => a.id === accountId)
-  if (!account) {
-    throw new Error('Ark account not found')
-  }
+  const account = getArkAccountOrThrow(accountId)
   return offboardArkVtxos(
     account.serverId,
     accountId,
@@ -34,15 +31,7 @@ export function useArkOffboard(accountId: string | null | undefined) {
       if (!accountId) {
         return
       }
-      queryClient.invalidateQueries({
-        queryKey: ['ark', 'balance', accountId]
-      })
-      queryClient.invalidateQueries({
-        queryKey: ['ark', 'movements', accountId]
-      })
-      queryClient.invalidateQueries({
-        queryKey: ['ark', 'spendable-vtxos', accountId]
-      })
+      syncArkAccountAndInvalidate(queryClient, accountId)
     }
   })
 }

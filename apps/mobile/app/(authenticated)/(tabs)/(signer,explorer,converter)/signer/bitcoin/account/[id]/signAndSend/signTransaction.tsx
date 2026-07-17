@@ -10,6 +10,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { broadcastTransaction, signTransaction } from '@/api/bdk'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
@@ -88,6 +89,7 @@ function buildSignTransactionChartModel(
 
   const vout = outputs.map((output: Output) => ({
     address: output.to,
+    kind: output.kind,
     label: output.label || '',
     script: '' as string | number[],
     value: output.amount
@@ -211,7 +213,8 @@ export default function SignTransaction() {
       wallet,
       psbt,
       currentConfig.server.backend,
-      currentConfig.server.url
+      currentConfig.server.url,
+      currentConfig.server.rpcCredentials
     ).then((txid) => txid)
   }
 
@@ -245,6 +248,16 @@ export default function SignTransaction() {
     if (currentConfig.server.backend === 'esplora') {
       const esploraClient = new Esplora(currentConfig.server.url)
       await esploraClient.broadcastTransaction(signedTx)
+      return true
+    }
+
+    if (currentConfig.server.backend === 'rpc') {
+      const rpc = new BitcoinRpc(
+        currentConfig.server.url,
+        currentConfig.server.rpcCredentials?.username ?? '',
+        currentConfig.server.rpcCredentials?.password ?? ''
+      )
+      await rpc.sendRawTransaction(signedTx)
       return true
     }
 

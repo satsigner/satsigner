@@ -1,5 +1,5 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
-import { t } from '@/locales'
+import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
@@ -102,6 +102,21 @@ function formatFiatPrice(sats: number, btcPrice: number) {
   return formatNumber((sats * btcPrice) / SATS_PER_BITCOIN, 2)
 }
 
+function formatConfirmationCount(confirmations: number) {
+  if (confirmations < 1_000) {
+    return `${confirmations}`
+  }
+
+  if (confirmations < 1_000_000) {
+    const roundedValue = Math.round(confirmations / 1_000)
+    return `~${roundedValue}k`
+  }
+
+  const roundedValue = Math.round(confirmations / 1_000_000)
+
+  return `~${roundedValue}M`
+}
+
 function formatConfirmations(confirmations: number) {
   if (confirmations <= 0) {
     return t('bitcoin.confirmations.unconfirmed')
@@ -111,21 +126,23 @@ function formatConfirmations(confirmations: number) {
     return t('bitcoin.confirmations.oneBlock')
   }
 
-  const manyBlocks = (blocks: string) =>
-    t('bitcoin.confirmations.manyBlocks', { blocks })
+  return t('bitcoin.confirmations.manyBlocks', {
+    blocks: formatConfirmationCount(confirmations)
+  })
+}
 
-  if (confirmations < 1_000) {
-    return manyBlocks(`${confirmations}`)
-  }
+function formatConfirmationsWithBlock(
+  confirmations: number,
+  blockHeight: number
+) {
+  const confLabel =
+    confirmations === 1
+      ? t('bitcoin.confirmations.oneConf')
+      : t('bitcoin.confirmations.manyConfs', {
+          blocks: formatConfirmationCount(confirmations)
+        })
 
-  if (confirmations < 1_000_000) {
-    const roundedValue = Math.round(confirmations / 1_000)
-    return manyBlocks(`~${roundedValue}k`)
-  }
-
-  const roundedValue = Math.round(confirmations / 1_000_000)
-
-  return manyBlocks(`~${roundedValue}M`)
+  return `${confLabel} • ${blockHeight.toLocaleString('en-US')}`
 }
 
 type TimeFromNow = [
@@ -164,6 +181,10 @@ function formatTimeFromNow(milliseconds: number): TimeFromNow {
 }
 
 function formatTxId(txid: string, character = 6) {
+  if (txid.includes('...') || txid.length <= character * 2 + 3) {
+    return txid
+  }
+
   const beginning = txid.substring(0, character)
   const end = txid.substring(txid.length - character, txid.length)
   return `${beginning}...${end}`
@@ -211,6 +232,66 @@ function formatBytes(bytes: number) {
   return `${bytes} B`
 }
 
+const QUADRILLION = 1e15
+const BILLIARD = 1e15
+const TRILLION_LONG = 1e18
+const TRILLIARD = 1e21
+
+const COMPACT_LONG_OPTS: Intl.NumberFormatOptions = {
+  compactDisplay: 'long',
+  notation: 'compact'
+}
+
+function formatScaledWord(
+  num: number,
+  divisor: number,
+  wordKey: string
+): string {
+  const isNegative = num < 0
+  const abs = Math.abs(num)
+  const rounded = Math.round(abs / divisor)
+  const approx = rounded * divisor !== abs ? '~' : ''
+  const word = t(`numbers.${wordKey}`)
+  const plural = rounded > 1 ? 's' : ''
+  return `${isNegative ? '-' : ''}${approx}${rounded} ${word}${plural}`
+}
+
+function formatLargeNumber(
+  num: number,
+  european = false,
+  locale = i18n.locale
+): string {
+  if (!isFinite(num) || num === 0 || Math.abs(num) < 1e3) {
+    return ''
+  }
+
+  if (european && Math.abs(num) >= BILLIARD) {
+    if (Math.abs(num) >= TRILLIARD) {
+      return formatScaledWord(num, TRILLIARD, 'trilliard')
+    }
+    if (Math.abs(num) >= TRILLION_LONG) {
+      return formatScaledWord(num, TRILLION_LONG, 'trillion')
+    }
+    return formatScaledWord(num, BILLIARD, 'billiard')
+  }
+
+  if (!european && Math.abs(num) >= QUADRILLION) {
+    return formatScaledWord(num, QUADRILLION, 'quadrillion')
+  }
+
+  const intlLocale = european ? 'fr' : locale
+  const exact = new Intl.NumberFormat(intlLocale, {
+    ...COMPACT_LONG_OPTS,
+    maximumFractionDigits: 20
+  }).format(num)
+  const rounded = new Intl.NumberFormat(intlLocale, {
+    ...COMPACT_LONG_OPTS,
+    maximumFractionDigits: 0
+  }).format(num)
+
+  return (exact !== rounded ? '~' : '') + rounded
+}
+
 function trimOnionAddress(url: string): string {
   const onionMatch = url.match(/([a-z2-7]{16,56}\.onion)(:\d+)?/i)
   if (!onionMatch) {
@@ -233,8 +314,10 @@ export {
   formatAddress,
   formatBytes,
   formatConfirmations,
+  formatConfirmationsWithBlock,
   formatDate,
   formatFiatPrice,
+  formatLargeNumber,
   formatNostrCardDate,
   formatNumber,
   formatPageUrl,

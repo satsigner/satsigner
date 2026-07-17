@@ -11,7 +11,13 @@
 import { useCallback, useState } from 'react'
 
 import {
+  RPC_DEFAULT_PORT_MAINNET,
+  RPC_DEFAULT_PORT_SIGNET,
+  RPC_DEFAULT_PORT_TESTNET
+} from '@/api/rpc'
+import {
   type Backend,
+  type Network,
   type ProxyConfig,
   type Server
 } from '@/types/settings/blockchain'
@@ -37,11 +43,15 @@ const TRIM_SURROUNDING_QUOTES_REGEX = /^['"]+|['"]+$/g
 
 type CustomNetworkFormData = {
   backend: Backend
-  name: string
-  protocol: 'tcp' | 'ssl'
   host: string
+  name: string
   port: string
+  protocol: 'tcp' | 'ssl'
   proxy: ProxyConfig
+  rpcPassword: string
+  rpcScanFromHeight: string
+  rpcUsername: string
+  rpcWalletName: string
 }
 
 type ParsedElectrumUrl = {
@@ -89,7 +99,19 @@ function parseElectrumUrl(normalized: string): ParsedElectrumUrl | null {
   return null
 }
 
-export function useCustomNetworkForm() {
+function defaultRpcPort(network: Network): number {
+  if (network === 'testnet') {
+    return RPC_DEFAULT_PORT_TESTNET
+  }
+  if (network === 'signet') {
+    return RPC_DEFAULT_PORT_SIGNET
+  }
+  return RPC_DEFAULT_PORT_MAINNET
+}
+
+export { defaultRpcPort }
+
+export function useCustomNetworkForm(network: Network = 'bitcoin') {
   const [formData, setFormData] = useState<CustomNetworkFormData>({
     backend: 'electrum',
     host: '',
@@ -100,7 +122,11 @@ export function useCustomNetworkForm() {
       enabled: false,
       host: DEFAULT_PROXY_HOST,
       port: DEFAULT_PROXY_PORT
-    }
+    },
+    rpcPassword: '',
+    rpcScanFromHeight: '',
+    rpcUsername: '',
+    rpcWalletName: ''
   })
 
   function updateField(field: keyof CustomNetworkFormData, value: string) {
@@ -118,6 +144,10 @@ export function useCustomNetworkForm() {
       return formData.port.trim()
         ? `https://${formData.host}:${formData.port}`
         : `https://${formData.host}`
+    }
+    if (formData.backend === 'rpc') {
+      const port = formData.port.trim() || String(defaultRpcPort(network))
+      return `http://${formData.host}:${port}`
     }
     const protocol = formData.protocol === 'ssl' ? 'ssl' : 'tcp'
     return `${protocol}://${formData.host}:${formData.port}`
@@ -145,7 +175,11 @@ export function useCustomNetworkForm() {
         enabled: false,
         host: DEFAULT_PROXY_HOST,
         port: DEFAULT_PROXY_PORT
-      }
+      },
+      rpcPassword: '',
+      rpcScanFromHeight: '',
+      rpcUsername: '',
+      rpcWalletName: ''
     })
   }
 
@@ -166,8 +200,45 @@ export function useCustomNetworkForm() {
           enabled: false,
           host: DEFAULT_PROXY_HOST,
           port: DEFAULT_PROXY_PORT
-        }
+        },
+        rpcPassword: '',
+        rpcScanFromHeight: '',
+        rpcUsername: '',
+        rpcWalletName: ''
       })
+    } else if (server.backend === 'rpc') {
+      const scanFromHeight =
+        server.rpcScanFromHeight !== undefined
+          ? String(server.rpcScanFromHeight)
+          : ''
+      try {
+        const u = new URL(server.url)
+        const port = u.port || ''
+        setFormData((prev) => ({
+          ...prev,
+          backend: 'rpc',
+          host: u.hostname,
+          name: server.name,
+          port,
+          proxy: server.proxy ?? prev.proxy,
+          rpcPassword: server.rpcCredentials?.password ?? '',
+          rpcScanFromHeight: scanFromHeight,
+          rpcUsername: server.rpcCredentials?.username ?? '',
+          rpcWalletName: server.rpcWalletName ?? ''
+        }))
+      } catch {
+        setFormData((prev) => ({
+          ...prev,
+          backend: 'rpc',
+          host: '',
+          name: server.name,
+          port: '',
+          rpcPassword: server.rpcCredentials?.password ?? '',
+          rpcScanFromHeight: scanFromHeight,
+          rpcUsername: server.rpcCredentials?.username ?? '',
+          rpcWalletName: server.rpcWalletName ?? ''
+        }))
+      }
     } else {
       try {
         const u = new URL(server.url)
@@ -178,7 +249,10 @@ export function useCustomNetworkForm() {
           host: u.hostname,
           name: server.name,
           port,
-          proxy: server.proxy ?? prev.proxy
+          proxy: server.proxy ?? prev.proxy,
+          rpcPassword: '',
+          rpcUsername: '',
+          rpcWalletName: ''
         }))
       } catch {
         setFormData((prev) => ({
@@ -186,7 +260,10 @@ export function useCustomNetworkForm() {
           backend: 'esplora',
           host: '',
           name: server.name,
-          port: ''
+          port: '',
+          rpcPassword: '',
+          rpcUsername: '',
+          rpcWalletName: ''
         }))
       }
     }
@@ -216,6 +293,22 @@ export function useCustomNetworkForm() {
     }
     try {
       const u = new URL(candidate)
+      if (u.protocol === 'http:') {
+        const port = u.port || ''
+        setFormData((prev) => ({
+          ...prev,
+          backend: 'rpc',
+          host: u.hostname,
+          port,
+          rpcPassword: u.password
+            ? decodeURIComponent(u.password)
+            : prev.rpcPassword,
+          rpcUsername: u.username
+            ? decodeURIComponent(u.username)
+            : prev.rpcUsername
+        }))
+        return true
+      }
       if (u.protocol !== 'https:') {
         return false
       }

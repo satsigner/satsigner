@@ -9,8 +9,10 @@ import { useShallow } from 'zustand/react/shallow'
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc, { type RpcBlock } from '@/api/rpc'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
 import SSText from '@/components/SSText'
+import { useFiatData } from '@/hooks/useFiatData'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -25,10 +27,13 @@ import type {
   MempoolStatistics
 } from '@/types/models/Blockchain'
 import type { Network } from '@/types/settings/blockchain'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatBytes, formatDate } from '@/utils/format'
 import { time } from '@/utils/time'
 
 const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+
+const SECONDS_PER_DAY = time.days(1) / 1000
 
 const tn = _tn('explorer.chaintip')
 
@@ -154,6 +159,68 @@ async function fetchFromElectrum(
   return data
 }
 
+async function fetchFromRpc(
+  url: string,
+  username: string,
+  password: string
+): Promise<Partial<ChainData>> {
+  const data: Partial<ChainData> = {}
+  const rpc = new BitcoinRpc(url, username, password)
+
+  await Promise.all([
+    (async () => {
+      try {
+        const info = await rpc.getBlockchainInfo()
+        data.height = info.blocks
+        data.hash = info.bestblockhash
+        data.blockSource = 'backend'
+        const rpcBlock: RpcBlock = await rpc.getBlock(info.bestblockhash)
+        data.block = {
+          height: rpcBlock.height,
+          size: rpcBlock.size,
+          timestamp: rpcBlock.time,
+          tx_count: rpcBlock.tx.length,
+          weight: rpcBlock.weight
+        }
+      } catch {
+        /* silently ignored */
+      }
+    })(),
+    (async () => {
+      try {
+        const mempoolInfo = await rpc.getMempoolInfo()
+        data.mempool = {
+          count: mempoolInfo.size,
+          vsize: mempoolInfo.bytes
+        }
+        data.mempoolSource = 'backend'
+      } catch {
+        /* silently ignored */
+      }
+    })(),
+    (async () => {
+      try {
+        const feeResult = await rpc.estimateSmartFee(1)
+        if (feeResult.feerate !== undefined) {
+          // feerate is BTC/kB — convert to sat/vB
+          const satPerVb = Math.round((feeResult.feerate * 1e8) / 1000)
+          data.fees = {
+            high: satPerVb,
+            low: Math.max(1, Math.round(satPerVb * 0.5)),
+            medium: Math.round(satPerVb * 0.75),
+            none: 1
+          }
+          data.feesSource = 'backend'
+        }
+      } catch {
+        /* silently ignored */
+      }
+    })()
+  ])
+
+  return data
+}
+
 async function fetchMempoolFallback(
   oracle: MempoolOracle,
   existing: Partial<ChainData>
@@ -222,9 +289,11 @@ export default function ChainTip() {
   )
   const { server } = configs[selectedNetwork]
   const fallbackOracle = useMempoolOracle(selectedNetwork)
+  const { showCurrentFiat, showHistoricalFiat, fiatPriceApiUrl } = useFiatData()
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
+  const effectiveBtcPrice = showCurrentFiat ? btcPrice : 0
 
   const [chainData, setChainData] = useState<ChainData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -240,6 +309,12 @@ export default function ChainTip() {
         partial = await fetchFromEsplora(esplora, oracle)
       } else if (server.backend === 'electrum' && server.url) {
         partial = await fetchFromElectrum(server.url, selectedNetwork)
+      } else if (server.backend === 'rpc' && server.url) {
+        partial = await fetchFromRpc(
+          server.url,
+          server.rpcCredentials?.username ?? '',
+          server.rpcCredentials?.password ?? ''
+        )
       }
 
       const full = await fetchMempoolFallback(fallbackOracle, partial)
@@ -268,16 +343,18 @@ export default function ChainTip() {
     timestamps: number[]
     prices: number[]
   }>({
+    enabled: showHistoricalFiat,
     queryFn: async () => {
       const now = Math.floor(Date.now() / 1000)
       const timestamps = Array.from(
         { length: PRICE_CHART_DAYS },
-        (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * 86400
+        (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * SECONDS_PER_DAY
       )
-      const prices = await fallbackOracle.getPricesAt(fiatCurrency, timestamps)
+      const oracle = new MempoolOracle(getFiatPriceApiUrl())
+      const prices = await oracle.getPricesAt(fiatCurrency, timestamps)
       return { prices, timestamps }
     },
-    queryKey: ['chaintip-price-history', fiatCurrency],
+    queryKey: ['chaintip-price-history', fiatCurrency, fiatPriceApiUrl],
     staleTime: time.minutes(10)
   })
 
@@ -486,15 +563,17 @@ export default function ChainTip() {
             <Row
               label={`BTC / ${fiatCurrency}`}
               value={
-                btcPrice > 0
-                  ? btcPrice.toLocaleString(undefined, {
+                effectiveBtcPrice > 0
+                  ? effectiveBtcPrice.toLocaleString(undefined, {
                       maximumFractionDigits: 0
                     })
                   : '--'
               }
               loading={false}
             />
-            {priceChartData.length > 0 && priceChartDomain && (
+            {showHistoricalFiat &&
+            priceChartData.length > 0 &&
+            priceChartDomain ? (
               <View style={styles.priceChartWrapper}>
                 <SSText
                   size="xxs"
@@ -534,7 +613,7 @@ export default function ChainTip() {
                   }
                 </CartesianChart>
               </View>
-            )}
+            ) : null}
           </SSVStack>
         </SSVStack>
       </ScrollView>

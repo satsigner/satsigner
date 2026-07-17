@@ -2,6 +2,7 @@ import { ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
+import SSOutlineGlassBorders from './SSOutlineGlassBorders'
 import SSText from './SSText'
 
 type SSRadioButtonProps = {
@@ -20,18 +21,18 @@ function SSRadioButton({
   style,
   ...props
 }: SSRadioButtonProps) {
-  const radioButtonVariantStyles = selected
-    ? variant === 'default'
-      ? styles.selectedDefault
-      : styles.selectedOutline
-    : variant === 'default'
-      ? styles.unselectedDefault
-      : styles.unselectedOutline
+  const radioButtonVariantStyles =
+    variant === 'default'
+      ? selected
+        ? styles.selectedDefault
+        : styles.unselectedDefault
+      : undefined
 
   return (
     <TouchableOpacity
       style={[
         styles.buttonBase,
+        variant === 'outline' && styles.buttonOutline,
         radioButtonVariantStyles,
         disabled && styles.disabled,
         style
@@ -39,6 +40,7 @@ function SSRadioButton({
       activeOpacity={variant === 'default' ? 0.6 : 1}
       {...props}
     >
+      {variant === 'outline' ? <SSOutlineGlassBorders /> : null}
       {!loading ? (
         <SSText
           uppercase
@@ -57,11 +59,16 @@ function SSRadioButton({
 const styles = StyleSheet.create({
   buttonBase: {
     alignItems: 'center',
-    borderRadius: Sizes.radioButton.borderRadius,
+    borderRadius: Sizes.button.borderRadius,
     flexDirection: 'row',
-    height: Sizes.radioButton.height,
+    height: Sizes.button.height,
     justifyContent: 'center',
     width: '100%'
+  },
+  buttonOutline: {
+    backgroundColor: Colors.transparent,
+    borderWidth: 0,
+    overflow: 'hidden'
   },
   disabled: {
     opacity: 0.3
@@ -72,16 +79,8 @@ const styles = StyleSheet.create({
     borderStyle: 'solid',
     borderWidth: Sizes.radioButton.borderWidth
   },
-  selectedOutline: {
-    borderColor: Colors.white,
-    borderWidth: Sizes.radioButton.borderWidth
-  },
   unselectedDefault: {
     backgroundColor: Colors.gray[950],
-    borderColor: Colors.gray[700],
-    borderWidth: Sizes.radioButton.borderWidth
-  },
-  unselectedOutline: {
     borderColor: Colors.gray[700],
     borderWidth: Sizes.radioButton.borderWidth
   }

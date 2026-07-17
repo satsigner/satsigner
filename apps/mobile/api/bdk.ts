@@ -1,12 +1,14 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import {
   addressFromScript,
+  BdkRpcClient,
   BdkWallet,
   BdkTxBuilder,
   createPublicDescriptor,
   DescriptorTemplate,
   KeychainKind,
   type Network,
+  Psbt,
   type PsbtLike,
   type TxDetailsN,
   type LocalOutputN,
@@ -14,31 +16,46 @@ import {
   type AddressInfo
 } from 'react-native-bdk-sdk'
 
+import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import {
   type Backend,
-  type Network as BlockchainNetwork
+  type Network as BlockchainNetwork,
+  type RpcCredentials,
+  type Server
 } from '@/types/settings/blockchain'
 import {
   getExtendedKeyFromDescriptor,
-  getFingerprintFromExtendedPublicKey
+  getFingerprintFromExtendedPublicKey,
+  getPublicDescriptorFromSeed
 } from '@/utils/bip32'
 import {
   detectElectrumSeed,
   getPrivateDescriptorFromElectrumMnemonic,
-  getPrivateDescriptorFromMnemonic
+  getPrivateDescriptorFromMnemonic,
+  mnemonicToSeed
 } from '@/utils/bip39'
 import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
 import { parseAccountAddressesDetails } from '@/utils/parse'
+import {
+  computeRpcScanStartHeight,
+  estimateBirthHeight
+} from '@/utils/rpcScanStartHeight'
 
 import AppElectrumClient from './electrum'
 import Esplora from './esplora'
+import BitcoinRpc, {
+  adjustRpcUrl,
+  BitcoinCoreWallet,
+  type CoreTxDetails,
+  type ImportDescriptorRequest
+} from './rpc'
 
 // Map BDK Network enum to app's string network type
 function toAppNetwork(network: Network): BlockchainNetwork {
@@ -91,12 +108,13 @@ async function getWalletDbPath(
 }
 
 type WalletData = {
-  fingerprint: string
+  dbPath: string
   derivationPath: string
   externalDescriptor: string
+  fingerprint: string
   internalDescriptor: string
-  wallet: BdkWallet
   keyFingerprints?: string[] // Optional for multisig accounts
+  wallet: BdkWallet
 }
 
 async function getWalletData(
@@ -140,13 +158,14 @@ async function getWalletData(
         const { internalDescriptor } = key.secret
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const wallet = await getWalletFromDescriptor(
+        const { wallet, dbPath } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
         )
 
         return {
+          dbPath,
           derivationPath: parsedDescriptor.derivationPath,
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
@@ -258,7 +277,7 @@ async function getWalletData(
 
       const parsedDescriptor = parseDescriptor(externalDescriptor)
 
-      const wallet = await getWalletFromDescriptor(
+      const { wallet, dbPath } = await getWalletFromDescriptor(
         externalDescriptor,
         internalDescriptor,
         network
@@ -267,6 +286,7 @@ async function getWalletData(
       const keyFingerprints = validKeyData.map((kd) => kd.fingerprint)
 
       return {
+        dbPath,
         derivationPath: parsedDescriptor.derivationPath,
         externalDescriptor: finalDescriptor,
         fingerprint: parsedDescriptor.fingerprint,
@@ -291,13 +311,14 @@ async function getWalletData(
         const { internalDescriptor } = key.secret
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const wallet = await getWalletFromDescriptor(
+        const { wallet, dbPath } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
         )
 
         return {
+          dbPath,
           derivationPath: parsedDescriptor.derivationPath,
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
@@ -353,13 +374,14 @@ async function getWalletData(
         )
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const wallet = await getWalletFromDescriptor(
+        const { wallet, dbPath } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
         )
 
         return {
+          dbPath,
           derivationPath: parsedDescriptor.derivationPath,
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
@@ -428,13 +450,14 @@ async function getWalletDataFromMnemonic(
 
   const { fingerprint, derivationPath } = parseDescriptor(externalDescriptor)
 
-  const wallet = await getWalletFromDescriptor(
+  const { wallet, dbPath } = await getWalletFromDescriptor(
     externalDescriptor,
     internalDescriptor,
     network
   )
 
   return {
+    dbPath,
     derivationPath,
     externalDescriptor,
     fingerprint,
@@ -498,11 +521,11 @@ async function getWalletFromDescriptor(
   externalDescriptor: string,
   internalDescriptor: string | undefined,
   network: Network
-): Promise<BdkWallet> {
+): Promise<{ wallet: BdkWallet; dbPath: string }> {
   const ext = externalDescriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
   const int = internalDescriptor?.replace(/#\w+$/, '').replace(/'/g, 'h')
   const dbPath = await getWalletDbPath(ext, int, network)
-  return new BdkWallet(ext, int, network, dbPath)
+  return { dbPath, wallet: new BdkWallet(ext, int, network, dbPath) }
 }
 
 async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
@@ -524,14 +547,112 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
   return getExtendedKeyFromDescriptor(externalDescriptor)
 }
 
+/** Cap Zustand/UI updates during BDK RPC scans (inspector fires per block). */
+const RPC_PROGRESS_THROTTLE_MS = 250
+
+function createThrottledRpcProgress(
+  onRpcProgress: (current: number, tip: number, pct: number) => void
+): (current: number, tip: number, pct: number) => void {
+  let lastEmitMs = 0
+  let pending: { current: number; pct: number; tip: number } | null = null
+  let timer: ReturnType<typeof setTimeout> | null = null
+
+  function flush() {
+    timer = null
+    if (!pending) {
+      return
+    }
+    const { current, tip, pct } = pending
+    pending = null
+    lastEmitMs = Date.now()
+    onRpcProgress(current, tip, pct)
+  }
+
+  return function emit(current: number, tip: number, pct: number) {
+    const isComplete = pct >= 1 || (tip > 0 && current >= tip)
+    if (isComplete) {
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
+      pending = null
+      lastEmitMs = Date.now()
+      onRpcProgress(current, tip, pct)
+      return
+    }
+
+    pending = { current, pct, tip }
+    const elapsed = Date.now() - lastEmitMs
+    if (elapsed >= RPC_PROGRESS_THROTTLE_MS) {
+      flush()
+      return
+    }
+    if (!timer) {
+      timer = setTimeout(flush, RPC_PROGRESS_THROTTLE_MS - elapsed)
+    }
+  }
+}
+
 async function syncWallet(
   wallet: BdkWallet,
   backend: Backend,
   url: string,
   stopGap: number,
-  isFullScan: boolean
+  isFullScan: boolean,
+  rpcCredentials?: RpcCredentials,
+  walletBirthday?: Date,
+  currentTip?: number,
+  rpcScanFromHeight?: number,
+  isGeneratedWallet?: boolean,
+  onRpcProgress?: (current: number, tip: number, pct: number) => void
 ) {
-  if (isFullScan) {
+  if (backend === 'rpc') {
+    const rpcClient = new BdkRpcClient({
+      auth: rpcCredentials
+        ? {
+            password: rpcCredentials.password,
+            type: 'userPass',
+            username: rpcCredentials.username
+          }
+        : { type: 'none' },
+      url: adjustRpcUrl(url)
+    })
+
+    // For a full scan use the wallet birthday as the start height.
+    // Downloading full blocks from genesis would take hours; starting near
+    // the wallet creation date keeps the scan practical.
+    const checkpointHeight = wallet.latestCheckpoint()?.height ?? 0
+    const scanFloor = rpcScanFromHeight ?? 0
+
+    let startHeight: number
+    if (!isFullScan) {
+      startHeight = checkpointHeight
+    } else if (isGeneratedWallet && walletBirthday && currentTip) {
+      // For wallets we created, estimate backwards from the known chain tip.
+      // This is accurate because we know exactly when the wallet was created.
+      startHeight = Math.max(
+        scanFloor,
+        estimateBirthHeight(walletBirthday, currentTip)
+      )
+    } else {
+      // For imported wallets the creation date is the import date, not the
+      // actual wallet birthday. Use the server-configured floor (default 0).
+      startHeight = scanFloor
+    }
+
+    const emitProgress = onRpcProgress
+      ? createThrottledRpcProgress(onRpcProgress)
+      : undefined
+
+    await wallet.syncWithRpc(rpcClient, startHeight, {
+      fetchMempool: true,
+      inspector: {
+        inspect({ currentHeight, tipHeight, progress }) {
+          emitProgress?.(currentHeight, tipHeight, progress)
+        }
+      }
+    })
+  } else if (isFullScan) {
     await (backend === 'electrum'
       ? wallet.fullScanWithElectrum(url, stopGap)
       : wallet.fullScanWithEsplora(url, stopGap))
@@ -824,7 +945,8 @@ async function getTransactionInputValues(
   tx: Transaction,
   backend: Backend,
   network: BlockchainNetwork,
-  url: string
+  url: string,
+  rpcCredentials?: RpcCredentials
 ): Promise<Transaction['vin']> {
   if (!tx.vin.some((input) => input.value === undefined)) {
     return tx.vin
@@ -853,6 +975,33 @@ async function getTransactionInputValues(
     }))
   }
 
+  if (backend === 'rpc') {
+    const rpcClient = new BitcoinRpc(
+      url,
+      rpcCredentials?.username ?? '',
+      rpcCredentials?.password ?? ''
+    )
+    vin = await Promise.all(
+      tx.vin.map(async (input) => {
+        if (!input.previousOutput?.txid) {
+          return input
+        }
+        try {
+          const prevTx = await rpcClient.getRawTransaction(
+            input.previousOutput.txid
+          )
+          const prevOut = prevTx.vout[input.previousOutput.vout ?? 0]
+          return {
+            ...input,
+            value: prevOut ? Math.round(prevOut.value * 1e8) : undefined
+          }
+        } catch {
+          return input
+        }
+      })
+    )
+  }
+
   for (const [index, vinItem] of vin.entries()) {
     vin[index] = {
       ...(tx.vin[index] || {}),
@@ -865,6 +1014,83 @@ async function getTransactionInputValues(
 
 function getLastUnusedAddressFromWallet(wallet: BdkWallet): AddressInfo {
   return wallet.nextUnusedAddress(KeychainKind.External)
+}
+
+/**
+ * Build a PSBT via Bitcoin Core's wallet RPC (createpsbt + walletprocesspsbt)
+ * then wrap it as a BDK PsbtLike so it can be signed by wallet.sign().
+ *
+ * This is the correct path for RPC backends because BDK's TxBuilder.finish()
+ * requires UTXOs to be in BDK's keychain index (populated only by native BDK
+ * sync). Since we bypass BDK sync for RPC, the keychain index is empty and
+ * TxBuilder throws OutpointNotFound. Bitcoin Core's watch-only wallet already
+ * knows the UTXOs (from importdescriptors + rescanblockchain), so we delegate
+ * PSBT construction to it and only use BDK for key derivation / signing.
+ */
+// Converts an integer satoshi amount to a BTC decimal string-safe number,
+// rounding to 8 decimal places to avoid binary floating-point drift
+// (e.g. avoids values like 0.1 + 0.2 style representation errors).
+function satsToBtc(sats: number): number {
+  return Number((sats / 1e8).toFixed(8))
+}
+
+// Resolves the Bitcoin Core wallet name to use for an account. Prefers the
+// user-provided rpcWalletName (Settings > Server) so multiple accounts can
+// share or target a specific already-existing Core wallet; otherwise falls
+// back to a deterministic per-account name derived from the key fingerprint.
+function resolveRpcWalletName(
+  account: Account,
+  rpcWalletName?: string
+): string {
+  const trimmed = rpcWalletName?.trim()
+  if (trimmed) {
+    return trimmed
+  }
+  const fingerprint = account.keys[0]?.fingerprint ?? account.id
+  return `satsigner-${fingerprint}`
+}
+
+async function buildTransactionWithRpc(
+  nodeUrl: string,
+  credentials: RpcCredentials,
+  walletName: string,
+  data: {
+    inputs: Utxo[]
+    outputs: Output[]
+    options: { rbf: boolean }
+  }
+): Promise<PsbtLike> {
+  const coreWallet = new BitcoinCoreWallet(
+    nodeUrl,
+    credentials.username,
+    credentials.password,
+    walletName
+  )
+
+  const rpcInputs = data.inputs.map((u) => ({
+    sequence: data.options.rbf ? 0xfffffffd : 0xffffffff,
+    txid: u.txid,
+    vout: u.vout
+  }))
+
+  // Bitcoin Core's `createpsbt` takes an array of single-key {address: amount}
+  // objects for its `outputs` param — each array element is a distinct output,
+  // which is how the RPC lets multiple outputs share the same address. Merging
+  // them into a single Record<address, number> would silently collapse
+  // legitimate duplicate-address outputs into one. Sats are integers, so each
+  // amount is converted to BTC exactly once (no repeated float accumulation).
+  const rpcOutputs = data.outputs.map((o) => ({
+    [o.to]: satsToBtc(o.amount)
+  }))
+
+  // Step 1: create unsigned PSBT
+  const rawPsbt = await coreWallet.createPsbt(rpcInputs, rpcOutputs)
+
+  // Step 2: walletprocesspsbt with sign=false to add witness_utxo and bip32_derivation
+  // The watch-only Core wallet enriches the PSBT without trying to sign it.
+  const processed = await coreWallet.walletProcessPsbt(rawPsbt)
+
+  return new Psbt(processed.psbt)
 }
 
 function buildTransaction(
@@ -898,6 +1124,31 @@ function buildTransaction(
   return txBuilder.finish(wallet)
 }
 
+function buildPsbt(
+  wallet: BdkWallet,
+  server: Server,
+  account: Account,
+  data: {
+    fee: number
+    inputs: Utxo[]
+    outputs: Output[]
+    options: { rbf: boolean }
+  }
+): Promise<PsbtLike> {
+  const { backend, url, rpcCredentials, rpcWalletName } = server
+
+  if (backend === 'rpc' && url && rpcCredentials) {
+    const walletName = resolveRpcWalletName(account, rpcWalletName)
+    return buildTransactionWithRpc(url, rpcCredentials, walletName, {
+      inputs: data.inputs,
+      options: data.options,
+      outputs: data.outputs
+    })
+  }
+
+  return buildTransaction(wallet, data)
+}
+
 function signTransaction(psbt: PsbtLike, wallet: BdkWallet): boolean {
   const signed = wallet.sign(psbt)
   wallet.persist()
@@ -908,25 +1159,781 @@ function broadcastTransaction(
   wallet: BdkWallet,
   psbt: PsbtLike,
   backend: Backend,
-  url: string
+  url: string,
+  rpcCredentials?: RpcCredentials
 ): Promise<string> {
   if (backend === 'electrum') {
     return wallet.broadcastWithElectrum(url, psbt)
   }
+  if (backend === 'rpc') {
+    const rpcClient = new BdkRpcClient({
+      auth: rpcCredentials
+        ? {
+            password: rpcCredentials.password,
+            type: 'userPass',
+            username: rpcCredentials.username
+          }
+        : { type: 'none' },
+      url: adjustRpcUrl(url)
+    })
+    return wallet.broadcastWithRpc(rpcClient, psbt)
+  }
   return wallet.broadcastWithEsplora(url, psbt)
+}
+
+// ─── Bitcoin Core wallet sync (importdescriptors path) ───────────────────────
+
+// Extended-private-key prefixes across mainnet/testnet and SLIP132 script
+// variants (BIP44/49/84/86). Matched case-insensitively against the whole
+// descriptor string to detect private key material before it could be sent
+// to a remote RPC node.
+const PRIVATE_EXTENDED_KEY_PREFIXES = [
+  'xprv',
+  'tprv',
+  'yprv',
+  'uprv',
+  'zprv',
+  'vprv'
+]
+
+function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
+  const lower = descriptor.toLowerCase()
+  return PRIVATE_EXTENDED_KEY_PREFIXES.some((prefix) => lower.includes(prefix))
+}
+
+// Thrown when a descriptor contains private key material that must not be
+// silently dropped — distinguished from other derivation failures so it is
+// never swallowed by the catch-all below and re-surfaced to null.
+class PrivateKeyDescriptorError extends Error {
+  name = 'PrivateKeyDescriptorError'
+}
+
+/**
+ * Derive a pair of watch-only (public) descriptors for an account.
+ * Used to import the wallet into Bitcoin Core's descriptor wallet.
+ * Returns [externalDescriptor, internalDescriptor].
+ */
+function getPublicDescriptorsForAccount(
+  account: Account,
+  network: Network
+): [string, string] | null {
+  const [key] = account.keys
+  if (!key) {
+    return null
+  }
+
+  try {
+    if (
+      key.creationType === 'generateMnemonic' ||
+      key.creationType === 'importMnemonic'
+    ) {
+      if (
+        typeof key.secret === 'string' ||
+        !key.secret.mnemonic ||
+        !key.scriptVersion
+      ) {
+        return null
+      }
+      const seed = mnemonicToSeed(
+        key.secret.mnemonic,
+        key.secret.passphrase ?? ''
+      )
+      const external = getPublicDescriptorFromSeed(
+        seed,
+        key.scriptVersion,
+        KeychainKind.External,
+        network
+      )
+      const internal = getPublicDescriptorFromSeed(
+        seed,
+        key.scriptVersion,
+        KeychainKind.Internal,
+        network
+      )
+      return [external, internal]
+    }
+
+    if (key.creationType === 'importExtendedPub') {
+      if (
+        typeof key.secret === 'string' ||
+        !key.secret.extendedPublicKey ||
+        !key.scriptVersion
+      ) {
+        return null
+      }
+      const template = key.scriptVersion as unknown as DescriptorTemplate
+      const external = createPublicDescriptor(
+        key.secret.extendedPublicKey,
+        template,
+        KeychainKind.External,
+        network
+      )
+      const internal = createPublicDescriptor(
+        key.secret.extendedPublicKey,
+        template,
+        KeychainKind.Internal,
+        network
+      )
+      return [external, internal]
+    }
+
+    if (key.creationType === 'importDescriptor') {
+      if (typeof key.secret === 'string' || !key.secret.externalDescriptor) {
+        return null
+      }
+      const ext = key.secret.externalDescriptor
+      const int = key.secret.internalDescriptor
+      if (!int) {
+        return null
+      }
+      // Imported descriptors may contain private key material (xprv/tprv/etc).
+      // We must never forward that to a remote Bitcoin Core node just to
+      // derive a watch-only import — refuse instead of silently leaking it.
+      if (
+        descriptorHasPrivateKeyMaterial(ext) ||
+        descriptorHasPrivateKeyMaterial(int)
+      ) {
+        throw new PrivateKeyDescriptorError(
+          'This account was imported from a descriptor containing private ' +
+            'key material. Core wallet sync cannot safely convert it to a ' +
+            'watch-only descriptor — re-import using the extended public ' +
+            'key (xpub/ypub/zpub) instead.'
+        )
+      }
+      return [ext, int]
+    }
+  } catch (error) {
+    if (error instanceof PrivateKeyDescriptorError) {
+      throw error
+    }
+    // fall through to null
+  }
+
+  return null
+}
+
+type CoreWalletSyncResult = Pick<
+  Account,
+  'transactions' | 'utxos' | 'addresses' | 'summary'
+>
+
+/**
+ * Sync a wallet via Bitcoin Core's descriptor wallet (importdescriptors path).
+ * This does NOT require blockfilterindex=1 and is faster than compact filters
+ * for wallets with a known birthday timestamp.
+ *
+ * Flow:
+ *  1. Ensure a watch-only descriptor wallet exists (named via rpcWalletName, or
+ *     defaulting to `satsigner-{fingerprint}`)
+ *  2. Import descriptors with the wallet's birthday timestamp (first call only)
+ *  3. Wait for Bitcoin Core to finish rescanning
+ *  4. Fetch transactions + UTXOs and map to app types
+ */
+async function syncWithCoreWallet(
+  account: Account,
+  wallet: BdkWallet,
+  nodeUrl: string,
+  credentials: RpcCredentials,
+  bdkNetwork: Network,
+  stopGap: number,
+  onProgress?: (
+    currentHeight: number,
+    tipHeight: number,
+    meta?: {
+      currentBlockTimeSec?: number
+      scanFromTimeSec?: number
+      transactionsFound?: number
+    }
+  ) => void,
+  isCancelled?: () => boolean,
+  rpcWalletName?: string,
+  rpcScanFromHeight?: number
+): Promise<CoreWalletSyncResult & { rpcLastBlockHash: string }> {
+  const walletName = resolveRpcWalletName(account, rpcWalletName)
+  const coreWallet = new BitcoinCoreWallet(
+    nodeUrl,
+    credentials.username,
+    credentials.password,
+    walletName
+  )
+
+  // ── 1. Ensure the wallet exists on the node ──────────────────────────────
+  await coreWallet.ensureWallet()
+
+  // ── 2. Get public descriptors from the already-initialized BDK wallet ────
+  // Using wallet.publicDescriptor() avoids re-accessing the potentially
+  // encrypted mnemonic — the wallet object already holds the decrypted keys.
+  let extDescRaw: string
+  let intDescRaw: string
+  try {
+    extDescRaw = wallet.publicDescriptor(KeychainKind.External)
+    intDescRaw = wallet.publicDescriptor(KeychainKind.Internal)
+  } catch {
+    const descriptors = getPublicDescriptorsForAccount(account, bdkNetwork)
+    if (!descriptors) {
+      throw new Error(
+        'Could not derive public descriptors for this account. ' +
+          'Core wallet sync requires a mnemonic, xpub, or descriptor-based account.'
+      )
+    }
+    ;[extDescRaw, intDescRaw] = descriptors
+  }
+
+  // ── 3. Normalize descriptors via getdescriptorinfo ───────────────────────
+  // Split <0;1> multi-path descriptors if needed, then normalize each.
+  function splitMultiPath(desc: string): [string, string] | null {
+    const m = desc.match(/^(.+?)<(\d+);(\d+)>(.+?)(?:#.*)?$/)
+    if (!m) {
+      return null
+    }
+    return [`${m[1]}${m[2]}${m[4]}`, `${m[1]}${m[3]}${m[4]}`]
+  }
+
+  let extForInfo = extDescRaw
+  let intForInfo = intDescRaw
+  // Strip existing checksum before sending to getdescriptorinfo
+  extForInfo = extForInfo.replace(/#[a-z0-9]{8}$/, '')
+  intForInfo = intForInfo.replace(/#[a-z0-9]{8}$/, '')
+
+  const splitExt = splitMultiPath(extForInfo)
+  const splitInt = splitMultiPath(intForInfo)
+  const rawExt = splitExt ? splitExt[0] : extForInfo
+  const rawInt = splitInt ? splitInt[1] : intForInfo
+
+  const [extNorm, intNorm] = await coreWallet.normalizeDescriptors(
+    rawExt,
+    rawInt
+  )
+
+  // ── 4. Determine if import + rescan are needed ───────────────────────────
+  let needsRescan = false
+
+  // Smart start-height selection:
+  //  1. Server rpcScanFromHeight override
+  //  2. User-set birthdayDate → tip-relative estimate
+  //  3. BDK wallet checkpoint → use that minus a 2-week buffer
+  //  4. Neither → scan from genesis (warn user to set a birthday)
+  function resolveStartHeight(tipHeight: number): number {
+    let checkpointHeight: number | undefined
+    try {
+      const cp = wallet.latestCheckpoint()
+      if (cp) {
+        checkpointHeight = cp.height
+      }
+    } catch {
+      // latestCheckpoint not available
+    }
+
+    return computeRpcScanStartHeight({
+      birthdayDate: account.birthdayDate,
+      checkpointHeight,
+      currentTip: tipHeight,
+      rpcScanFromHeight
+    })
+  }
+
+  try {
+    const existing = await coreWallet.listDescriptors()
+    const alreadyImported = existing.descriptors.length > 0
+
+    if (!alreadyImported) {
+      const importReqs: ImportDescriptorRequest[] = [
+        {
+          active: true,
+          desc: extNorm,
+          internal: false,
+          range: [0, stopGap],
+          timestamp: 'now'
+        },
+        {
+          active: true,
+          desc: intNorm,
+          internal: true,
+          range: [0, stopGap],
+          timestamp: 'now'
+        }
+      ]
+      const results = await coreWallet.importDescriptors(importReqs)
+      for (const result of results) {
+        if (!result.success && result.error) {
+          throw new Error(
+            `importdescriptors failed: ${result.error.message} (code ${result.error.code})`
+          )
+        }
+      }
+      needsRescan = true
+    } else if (!account.rpcLastBlockHash) {
+      needsRescan = true
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (!msg.includes('listdescriptors')) {
+      throw error
+    }
+  }
+
+  // ── 5. Trigger rescanblockchain + poll until done ────────────────────────
+  if (needsRescan) {
+    const tipHeight = await coreWallet.getBlockCount()
+    const startHeight = resolveStartHeight(tipHeight)
+
+    let tipMediantime = Math.floor(Date.now() / 1000)
+    try {
+      const chainInfo = await coreWallet.getBlockchainInfo()
+      tipMediantime = chainInfo.mediantime
+    } catch {
+      // fall back to wall clock for date estimates
+    }
+
+    const SECONDS_PER_BLOCK = 10 * 60
+    const estimateBlockTimeSec = (height: number): number =>
+      tipMediantime - Math.max(0, tipHeight - height) * SECONDS_PER_BLOCK
+
+    const scanFromTimeSec = account.birthdayDate
+      ? Math.floor(account.birthdayDate.getTime() / 1000)
+      : estimateBlockTimeSec(startHeight)
+
+    const emitProgress = (
+      currentHeight: number,
+      tip: number,
+      transactionsFound?: number
+    ) => {
+      onProgress?.(currentHeight, tip, {
+        currentBlockTimeSec: estimateBlockTimeSec(currentHeight),
+        scanFromTimeSec,
+        transactionsFound
+      })
+    }
+
+    // Abort any in-progress Core rescan (e.g. a previous birthday-less scan
+    // from genesis) so we can restart from the resolved start height.
+    const ensureRescanStopped = async () => {
+      try {
+        const info = await coreWallet.getWalletInfo()
+        if (info.scanning === false) {
+          return
+        }
+        await coreWallet.abortRescan()
+      } catch {
+        // ignore — may not be scanning, or older Core without abortrescan
+      }
+
+      for (let i = 0; i < 40; i += 1) {
+        if (isCancelled?.()) {
+          throw new Error(SYNC_CANCELLED_ERROR)
+        }
+        try {
+          const info = await coreWallet.getWalletInfo()
+          if (info.scanning === false) {
+            return
+          }
+        } catch {
+          return
+        }
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 500)
+        })
+      }
+    }
+
+    await ensureRescanStopped()
+    emitProgress(startHeight, tipHeight)
+
+    try {
+      await Promise.race([
+        coreWallet.rescanBlockchain(startHeight),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => {
+            reject(new Error('rescan-timeout'))
+          }, 60_000)
+        })
+      ])
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : ''
+      if (msg === 'rescan-timeout') {
+        // still scanning — fall through to poll
+      } else if (msg.includes('already rescanning')) {
+        // Another client started a scan; abort and retry once from our height.
+        await ensureRescanStopped()
+        try {
+          await Promise.race([
+            coreWallet.rescanBlockchain(startHeight),
+            new Promise<never>((_resolve, reject) => {
+              setTimeout(() => {
+                reject(new Error('rescan-timeout'))
+              }, 60_000)
+            })
+          ])
+        } catch (retryError) {
+          const retryMsg = retryError instanceof Error ? retryError.message : ''
+          if (
+            retryMsg !== 'rescan-timeout' &&
+            !retryMsg.includes('already rescanning')
+          ) {
+            throw retryError
+          }
+        }
+      } else {
+        throw error
+      }
+    }
+
+    // Poll getwalletinfo.scanning until done (max ~6 hours)
+    const MAX_POLLS = 2160
+    const POLL_INTERVAL_MS = 3000
+    let consecutiveErrors = 0
+
+    for (let i = 0; i < MAX_POLLS; i += 1) {
+      if (isCancelled?.()) {
+        try {
+          await coreWallet.abortRescan()
+        } catch {
+          // best-effort stop so a restarted sync can begin at a new height
+        }
+        throw new Error(SYNC_CANCELLED_ERROR)
+      }
+      try {
+        const info = await coreWallet.getWalletInfo()
+        consecutiveErrors = 0
+        if (info.scanning === false) {
+          emitProgress(tipHeight, tipHeight, info.txcount)
+          break
+        }
+        const { scanning } = info
+        // Some Core versions (or a brief window before progress stats are
+        // populated) report `scanning` as a bare boolean — keep polling
+        // without progress details, but still fall through to the sleep
+        // below instead of busy-looping.
+        if (scanning !== true && typeof scanning === 'object') {
+          // Core reports a 0–1 fraction; map it back to an approximate block
+          // height across the scanned range so the UI can show current / tip.
+          const currentHeight =
+            tipHeight > startHeight
+              ? Math.round(
+                  startHeight + scanning.progress * (tipHeight - startHeight)
+                )
+              : tipHeight
+          emitProgress(currentHeight, tipHeight, info.txcount)
+        } else {
+          emitProgress(startHeight, tipHeight, info.txcount)
+        }
+      } catch (error) {
+        consecutiveErrors += 1
+        const msg = error instanceof Error ? error.message : String(error)
+        if (consecutiveErrors >= 5) {
+          throw new Error(
+            `Lost connection during rescan after ${consecutiveErrors} retries: ${msg}`,
+            { cause: error }
+          )
+        }
+      }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, POLL_INTERVAL_MS)
+      })
+    }
+
+    emitProgress(tipHeight, tipHeight)
+  }
+
+  // ── 6. Fetch data ────────────────────────────────────────────────────────
+  const priorHash = account.rpcLastBlockHash ?? ''
+  const isIncremental = priorHash.length === 64
+
+  const [sinceResult, unspent] = await Promise.all([
+    coreWallet.listSinceBlock(priorHash),
+    coreWallet.listUnspent()
+  ])
+
+  // Populate BDK's internal wallet DB with the current UTXOs so that
+  // buildTransaction / sign can locate the outpoints without a BDK sync.
+  // This is what lets us bypass compact block filters entirely.
+  for (const u of unspent) {
+    if (u.scriptPubKey) {
+      try {
+        wallet.insertTxout(
+          { txid: u.txid, vout: u.vout },
+          { scriptPubkeyHex: u.scriptPubKey, value: Math.round(u.amount * 1e8) }
+        )
+      } catch {
+        // non-critical — BDK may already know this outpoint
+      }
+    }
+  }
+
+  const newLastBlockHash = sinceResult.lastblock
+  const listTxs = isIncremental
+    ? // Merge new txs with existing ones already stored on the account
+      [
+        ...sinceResult.transactions,
+        ...account.transactions.map((tx) => ({
+          amount: tx.type === 'receive' ? tx.received / 1e8 : -(tx.sent / 1e8),
+          blockheight: tx.blockHeight,
+          blocktime: tx.timestamp
+            ? Math.floor(tx.timestamp.getTime() / 1000)
+            : undefined,
+          category: tx.type as 'send' | 'receive',
+          confirmations: 0,
+          time: tx.timestamp ? Math.floor(tx.timestamp.getTime() / 1000) : 0,
+          timereceived: 0,
+          txid: tx.id,
+          vout: 0
+        }))
+      ]
+    : sinceResult.transactions
+
+  // Group list entries by txid and aggregate sent/received amounts
+  const txMap = new Map<
+    string,
+    {
+      blockheight?: number
+      blocktime?: number
+      confirmations: number
+      received: number // sats
+      sent: number // sats
+      time: number
+      txid: string
+    }
+  >()
+
+  for (const entry of listTxs) {
+    const existing = txMap.get(entry.txid)
+    const amtSat = Math.round(Math.abs(entry.amount) * 1e8)
+    if (!existing) {
+      txMap.set(entry.txid, {
+        blockheight: entry.blockheight,
+        blocktime: entry.blocktime,
+        confirmations: entry.confirmations,
+        received: entry.category === 'receive' ? amtSat : 0,
+        sent: entry.category === 'send' ? amtSat : 0,
+        time: entry.time,
+        txid: entry.txid
+      })
+    } else if (entry.category === 'receive') {
+      existing.received += amtSat
+    } else if (entry.category === 'send') {
+      existing.sent += amtSat
+    }
+  }
+
+  // Reconcile re-orgs: drop any transaction Core reports as removed so a
+  // disconnected block doesn't leave a stale confirmed tx in the account.
+  // If the tx is still valid (just unconfirmed), it will reappear on the
+  // next sync via listsinceblock/listunspent.
+  const removedTxids = new Set(
+    (sinceResult.removed ?? []).map((entry) => entry.txid)
+  )
+  if (removedTxids.size > 0) {
+    for (const txid of removedTxids) {
+      txMap.delete(txid)
+    }
+  }
+
+  // Fetch full decoded tx for each unique txid (needed for vin/vout display)
+  const txids = [...txMap.keys()]
+  const transactions: Transaction[] = []
+
+  await Promise.all(
+    txids.map(async (txid) => {
+      const summary = txMap.get(txid)!
+      let decoded: CoreTxDetails
+      try {
+        decoded = await coreWallet.getTransaction(txid)
+      } catch {
+        // Fall back to basic info if verbose fetch fails
+        transactions.push({
+          address: '',
+          blockHeight: summary.blockheight,
+          fee: undefined,
+          id: txid,
+          label: '',
+          lockTime: 0,
+          lockTimeEnabled: false,
+          prices: {},
+          raw: [],
+          received: summary.received,
+          sent: summary.sent,
+          size: undefined,
+          timestamp: summary.blocktime
+            ? new Date(summary.blocktime * 1000)
+            : undefined,
+          type: summary.sent > 0 ? 'send' : 'receive',
+          version: undefined,
+          vin: [],
+          vout: [],
+          vsize: undefined,
+          weight: undefined
+        })
+        return
+      }
+
+      const raw = decoded.hex
+        ? Array.from(
+            (decoded.hex.match(/.{1,2}/g) ?? []).map((b) => parseInt(b, 16))
+          )
+        : []
+
+      const d = decoded.decoded
+      const vin: Transaction['vin'] = (d?.vin ?? []).map((v) => ({
+        previousOutput: {
+          txid: v.txid ?? '',
+          vout: v.vout ?? 0
+        },
+        scriptSig: v.coinbase ? [] : [],
+        sequence: v.sequence,
+        witness: (v.txinwitness ?? []).map((w) =>
+          (w.match(/.{1,2}/g) ?? []).map((b) => parseInt(b, 16))
+        )
+      }))
+
+      const vout: Transaction['vout'] = (d?.vout ?? []).map((o) => ({
+        address: o.scriptPubKey.address ?? o.scriptPubKey.addresses?.[0] ?? '',
+        script: (o.scriptPubKey.hex.match(/.{1,2}/g) ?? []).map((b) =>
+          parseInt(b, 16)
+        ),
+        value: Math.round(o.value * 1e8)
+      }))
+
+      const fee =
+        decoded.fee !== undefined
+          ? Math.abs(Math.round(decoded.fee * 1e8))
+          : undefined
+
+      transactions.push({
+        address: vout.find((o) => o.address)?.address ?? '',
+        blockHeight: decoded.blockheight ?? summary.blockheight,
+        fee,
+        id: txid,
+        label: '',
+        lockTime: d?.locktime ?? 0,
+        lockTimeEnabled: (d?.locktime ?? 0) > 0,
+        prices: {},
+        raw,
+        received: summary.received,
+        sent: summary.sent,
+        size: raw.length || undefined,
+        timestamp: decoded.blocktime
+          ? new Date(decoded.blocktime * 1000)
+          : undefined,
+        type: summary.sent > 0 ? 'send' : 'receive',
+        version: d?.version,
+        vin,
+        vout,
+        vsize: d?.vsize,
+        weight: d?.weight
+      })
+    })
+  )
+
+  // Sort by blockheight descending (newest first, unconfirmed on top)
+  transactions.sort(
+    (a, b) => (b.blockHeight ?? Infinity) - (a.blockHeight ?? Infinity)
+  )
+
+  // ── 5. Build UTXOs ───────────────────────────────────────────────────────
+  const utxos: Utxo[] = unspent.map((u) => ({
+    addressTo: u.address,
+    keychain: 'external' as const,
+    script: u.scriptPubKey
+      ? (u.scriptPubKey.match(/.{1,2}/g) ?? []).map((b) => parseInt(b, 16))
+      : undefined,
+    timestamp: undefined,
+    txid: u.txid,
+    value: Math.round(u.amount * 1e8),
+    vout: u.vout
+  }))
+
+  // ── 6. Build address list from BDK (address derivation only) ─────────────
+  const appNetwork = toAppNetwork(bdkNetwork)
+  const usedAddresses = new Set([
+    ...transactions.flatMap((tx) => tx.vout.map((o) => o.address)),
+    ...utxos.map((u) => u.addressTo ?? '')
+  ])
+
+  const addresses: Account['addresses'] = []
+  let lastUsedExternal = -1
+  for (let i = 0; i < stopGap * 2; i += 1) {
+    const addr = wallet.peekAddress(KeychainKind.External, i).address
+    if (usedAddresses.has(addr)) {
+      lastUsedExternal = i
+    }
+    addresses.push({
+      address: addr,
+      index: i,
+      keychain: 'external',
+      label: '',
+      network: appNetwork,
+      summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
+      transactions: [],
+      utxos: []
+    })
+    if (i >= lastUsedExternal + stopGap) {
+      break
+    }
+  }
+
+  const confirmedBalance = utxos
+    .filter((u) =>
+      transactions.find((tx) => tx.id === u.txid && (tx.blockHeight ?? 0) > 0)
+    )
+    .reduce((sum, u) => sum + u.value, 0)
+
+  const mempoolBalance = utxos
+    .filter(
+      (u) =>
+        !transactions.some(
+          (tx) => tx.id === u.txid && (tx.blockHeight ?? 0) > 0
+        )
+    )
+    .reduce((sum, u) => sum + u.value, 0)
+
+  const usedExternalCount = addresses.filter(
+    (a) => a.keychain === 'external' && usedAddresses.has(a.address)
+  ).length
+
+  return {
+    addresses,
+    rpcLastBlockHash: newLastBlockHash,
+    summary: {
+      balance: confirmedBalance,
+      numberOfAddresses: usedExternalCount,
+      numberOfTransactions: transactions.length,
+      numberOfUtxos: utxos.length,
+      satsInMempool: mempoolBalance
+    },
+    transactions,
+    utxos
+  }
+}
+
+async function deleteWalletDb(dbPath: string): Promise<void> {
+  try {
+    const uri = dbPath.startsWith('/') ? `file://${dbPath}` : dbPath
+    const info = await FileSystem.getInfoAsync(uri)
+    if (info.exists) {
+      await FileSystem.deleteAsync(uri, { idempotent: true })
+    }
+  } catch {
+    // best-effort; if the file is already gone the wallet will be recreated
+  }
 }
 
 export {
   broadcastTransaction,
+  buildPsbt,
   buildTransaction,
+  buildTransactionWithRpc,
+  deleteWalletDb,
   getDescriptorString,
   getExtendedPublicKeyFromAccountKey,
   getLastUnusedAddressFromWallet,
+  getPublicDescriptorsForAccount,
   getTransactionInputValues,
   getWalletAddresses,
   getWalletData,
   getWalletOverview,
   parseDescriptor,
+  resolveRpcWalletName,
   signTransaction,
-  syncWallet
+  syncWallet,
+  syncWithCoreWallet
 }

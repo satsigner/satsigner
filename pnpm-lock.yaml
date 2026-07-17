@@ -133,8 +133,8 @@ importers:
         specifier: ^1.2.6
         version: 1.2.6
       '@secondts/bark-react-native':
-        specifier: ^0.8.0
-        version: 0.8.0(react-native@0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
+        specifier: ^0.11.3
+        version: 0.11.3(react-native@0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
       '@shopify/flash-list':
         specifier: 2.0.2
         version: 2.0.2(@babel/runtime@7.29.2)(react-native@0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
@@ -160,8 +160,8 @@ importers:
         specifier: ^3.1.0
         version: 3.1.0
       bitcoin-decoder:
-        specifier: ^0.3.0
-        version: 0.3.0(typescript@6.0.3)
+        specifier: ^0.7.0
+        version: 0.7.0(typescript@6.0.3)
       bitcoinjs-lib:
         specifier: ^6.1.7
         version: 6.1.7
@@ -271,8 +271,8 @@ importers:
         specifier: 0.85.3
         version: 0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3)
       react-native-bdk-sdk:
-        specifier: 0.4.0
-        version: 0.4.0(react-native@0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
+        specifier: 0.6.0
+        version: 0.6.0(react-native@0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
       react-native-bouncy-checkbox:
         specifier: ^4.1.4
         version: 4.1.4
@@ -3222,8 +3222,8 @@ packages:
   '@scure/bip39@2.0.1':
     resolution: {integrity: sha512-PsxdFj/d2AcJcZDX1FXN3dDgitDDTmwf78rKZq1a6c1P1Nan1X/Sxc7667zU3U+AN60g7SxxP0YCVw2H/hBycg==}
 
-  '@secondts/bark-react-native@0.8.0':
-    resolution: {integrity: sha512-9LrWRUCYR3nblbqBOm6BKhAhnO6SzBY0fngceI7SwRj87r8iVURMHf9lQ2OWTE7Ave0sT0z27QklDd53GoQkAA==}
+  '@secondts/bark-react-native@0.11.3':
+    resolution: {integrity: sha512-0rP1RZva+fa8ErlqQoe7ant8OEvS6UZFtcMUJ/xVfd+fkicq9Bjscvk/PiZ0bijf2iJUDM4QCmE5sVypWWTjyA==}
     peerDependencies:
       react: 19.2.3
       react-native: '*'
@@ -4430,8 +4430,9 @@ packages:
   bip39@3.1.0:
     resolution: {integrity: sha512-c9kiwdk45Do5GL0vJMe7tS95VjCii65mYAH7DfWl3uW8AVzXKQVUm64i3hzVybBDMp9r7j9iNxR85+ul8MdN/A==}
 
-  bitcoin-decoder@0.3.0:
-    resolution: {integrity: sha512-2AlqMNFCosrsNXJ1KArJnAtIwrPffOMeG0Mpf4gyHDVC1LwLq+F9jsG2LC3zKJSuQ+XUKv+M2fIyMpVtanxhAw==}
+  bitcoin-decoder@0.7.0:
+    resolution: {integrity: sha512-O3qmHlDfL0AVhpR+7Ngeodd2IqeKMUolx2SXXiv2iiFVMIAbA+WWbIkO/MbNC0ZgC1wdoeC2iw8HQpMUPKwRsA==}
+    engines: {node: '>=22'}
 
   bitcoinjs-lib@6.1.7:
     resolution: {integrity: sha512-tlf/r2DGMbF7ky1MgUqXHzypYHakkEnm0SZP23CJKIqNY/5uNAnMbFhMJdhjrL/7anfb/U8+AlpdjPWjPnAalg==}
@@ -7185,6 +7186,14 @@ packages:
       typescript:
         optional: true
 
+  nostr-tools@2.23.9:
+    resolution: {integrity: sha512-PBN3TpGh+EszlTZWpQdvcqEMqhcKcY1vTw0Xkkccg+TyP7y/icu9/iXJw72aFZ/ETm35ehU0hneGTXLaTSkImw==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   nostr-wasm@0.1.0:
     resolution: {integrity: sha512-78BTryCLcLYv96ONU8Ws3Q1JzjlAt+43pWQhIl86xZmWeegYCNLPml7yQ+gG3vR6V5h4XGj+TxO+SS5dsThQIA==}
 
@@ -7590,8 +7599,8 @@ packages:
       react: 19.2.3
       react-dom: 19.2.3
 
-  react-native-bdk-sdk@0.4.0:
-    resolution: {integrity: sha512-s13FLGufJPnnM/2AX9Y9XvNSzmC782kvLsZuD17ZZW/E6JqYey1FjRKd0hdwkxtOMIrhD42x4d1dFigjKo08cA==}
+  react-native-bdk-sdk@0.6.0:
+    resolution: {integrity: sha512-HzTh/bEDfwlYPZgkF8+OZBQbDH77PXrda2CQorusPMWFbi7whloVtjiHkyy8VQYfT09/QJPY0r+ugfnHqHaPpw==}
     peerDependencies:
       react: 19.2.3
       react-native: '*'
@@ -11979,7 +11988,7 @@ snapshots:
       '@noble/hashes': 2.0.1
       '@scure/base': 2.0.0
 
-  '@secondts/bark-react-native@0.8.0(react-native@0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)':
+  '@secondts/bark-react-native@0.11.3(react-native@0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)':
     dependencies:
       react: 19.2.3
       react-native: 0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3)
@@ -13421,12 +13430,13 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.8.0
 
-  bitcoin-decoder@0.3.0(typescript@6.0.3):
+  bitcoin-decoder@0.7.0(typescript@6.0.3):
     dependencies:
       '@noble/hashes': 2.0.1
       '@scure/base': 2.0.0
       bip-321: 0.0.10(typescript@6.0.3)
       light-bolt11-decoder: 3.2.0
+      nostr-tools: 2.23.9(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
 
@@ -16917,6 +16927,18 @@ snapshots:
     optionalDependencies:
       typescript: 6.0.3
 
+  nostr-tools@2.23.9(typescript@6.0.3):
+    dependencies:
+      '@noble/ciphers': 2.1.1
+      '@noble/curves': 2.0.1
+      '@noble/hashes': 2.0.1
+      '@scure/base': 2.0.0
+      '@scure/bip32': 2.0.1
+      '@scure/bip39': 2.0.1
+      nostr-wasm: 0.1.0
+    optionalDependencies:
+      typescript: 6.0.3
+
   nostr-wasm@0.1.0: {}
 
   npm-package-arg@11.0.3:
@@ -17441,7 +17463,7 @@ snapshots:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  react-native-bdk-sdk@0.4.0(react-native@0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3):
+  react-native-bdk-sdk@0.6.0(react-native@0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3):
     dependencies:
       react: 19.2.3
       react-native: 0.85.3(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3)

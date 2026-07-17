@@ -86,6 +86,7 @@ type AccountsAction = {
     nostr: Partial<Account['nostr']>
   ) => void
   markDmsAsRead: (id: Account['id']) => void
+  updateAccountBirthday: (id: Account['id'], date: Date | undefined) => void
   setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
   setSyncProgress: (id: Account['id'], syncProgress: SyncProgress) => void
@@ -415,6 +416,36 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
       reloadAccount(set, account.id)
       invalidateAccount(account.id)
+    },
+    updateAccountBirthday: (id, date) => {
+      const account = get().accounts.find((a) => a.id === id)
+      if (!account) {
+        return
+      }
+
+      const prevTime = account.birthdayDate?.getTime()
+      const nextTime = date?.getTime()
+      if (prevTime === nextTime) {
+        return
+      }
+
+      // Clearing the RPC checkpoint forces the next sync to rescan from the
+      // new birthday instead of continuing incrementally from the old range.
+      const updatedAccount: Account = {
+        ...account,
+        birthdayDate: date,
+        rpcLastBlockHash: undefined
+      }
+      updateFullAccountDb(updatedAccount)
+
+      set((state) => {
+        const index = state.accounts.findIndex((a) => a.id === id)
+        if (index !== -1) {
+          state.accounts[index].birthdayDate = date
+          state.accounts[index].rpcLastBlockHash = undefined
+        }
+      })
+      invalidateAccount(id)
     },
     updateAccountName: (id, newName) => {
       updateAccountNameDb(id, newName)

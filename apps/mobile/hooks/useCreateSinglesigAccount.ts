@@ -133,7 +133,7 @@ export function useCreateSinglesigAccount() {
     }
 
     addAccount(persistedAccount)
-    addAccountWallet(persistedAccount.id, walletData.wallet)
+    addAccountWallet(persistedAccount.id, walletData.wallet, walletData.dbPath)
 
     return { account: persistedAccount, mnemonic }
   }

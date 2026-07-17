@@ -28,6 +28,8 @@ type AccountRow = {
   sync_status: string
   sync_progress_total: number | null
   sync_progress_done: number | null
+  birthday_date: string | null
+  rpc_last_block_hash: string | null
   nostr_auto_sync: number
   nostr_common_npub: string
   nostr_common_nsec: string
@@ -126,6 +128,13 @@ type LabelRow = {
   value: number | null
 }
 
+type ArkLabelRow = {
+  ref: string
+  account_id: string
+  type: string
+  label: string
+}
+
 type NostrDmRow = {
   id: string
   account_id: string
@@ -194,6 +203,7 @@ function rowToAccount(
 
   return {
     addresses,
+    birthdayDate: row.birthday_date ? new Date(row.birthday_date) : undefined,
     createdAt: new Date(row.created_at),
     id: row.id,
     keyCount: row.key_count,
@@ -207,6 +217,7 @@ function rowToAccount(
     network: row.network as Account['network'],
     nostr,
     policyType: row.policy_type as Account['policyType'],
+    rpcLastBlockHash: row.rpc_last_block_hash ?? undefined,
     summary: {
       balance: row.balance,
       numberOfAddresses: row.num_addresses,
@@ -320,6 +331,14 @@ function rowToLabel(row: LabelRow): Label {
   }
 }
 
+function rowToArkLabel(row: ArkLabelRow): Label {
+  return {
+    label: row.label,
+    ref: row.ref,
+    type: row.type as Label['type']
+  }
+}
+
 function rowToNostrDm(row: NostrDmRow): NostrDM {
   return {
     author: row.author,
@@ -363,6 +382,7 @@ export {
   parseJson,
   rowToAccount,
   rowToAddress,
+  rowToArkLabel,
   rowToLabel,
   rowToNostrDm,
   rowToTransaction,
@@ -372,6 +392,7 @@ export {
 export type {
   AccountRow,
   AddressRow,
+  ArkLabelRow,
   LabelRow,
   NostrDmRow,
   TransactionRow,

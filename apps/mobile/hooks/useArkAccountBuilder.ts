@@ -5,8 +5,10 @@ import { createArkWallet } from '@/api/ark'
 import { t } from '@/locales'
 import { deleteArkDatadir, ensureArkDatadir } from '@/storage/arkDatadir'
 import { deleteArkMnemonic, storeArkMnemonic } from '@/storage/encrypted'
+import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useArkAccountBuilderStore } from '@/store/arkAccountBuilder'
+import { useWalletsStore } from '@/store/wallets'
 import type { ArkAccount } from '@/types/models/Ark'
 import { decryptKeySecretFromStore, getPin } from '@/utils/account'
 import { getArkServer } from '@/utils/ark'
@@ -56,6 +58,10 @@ export function useArkAccountBuilder() {
   )
 
   const addArkAccount = useArkStore((state) => state.addAccount)
+  const deleteBitcoinAccount = useAccountsStore((state) => state.deleteAccount)
+  const removeAccountWallet = useWalletsStore(
+    (state) => state.removeAccountWallet
+  )
   const { createSinglesigAccount } = useCreateSinglesigAccount()
 
   async function resolveMnemonic(
@@ -106,6 +112,10 @@ export function useArkAccountBuilder() {
     } catch (error) {
       await deleteArkMnemonic(persistedAccount.id).catch(() => undefined)
       await deleteArkDatadir(persistedAccount.id).catch(() => undefined)
+      if (createBitcoinAccount && linkedBitcoinAccountId) {
+        deleteBitcoinAccount(linkedBitcoinAccountId)
+        removeAccountWallet(linkedBitcoinAccountId)
+      }
       throw error
     }
 
