@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -31,6 +32,8 @@ import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
+import SSNostrMarkdownContent from '@/components/SSNostrMarkdownContent'
+import SSNostrPollOptions from '@/components/SSNostrPollOptions'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
@@ -38,11 +41,13 @@ import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
+  NOSTR_PRIVACY_MASK,
   NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
   NOSTR_ZAP_DEFAULT_PRESETS,
-  NOSTR_PRIVACY_MASK
+  NOSTR_POLL_KIND
 } from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
+import { useNostrPollVote } from '@/hooks/useNostrPollVote'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -71,6 +76,7 @@ import {
   extractPubpayTags,
   truncateNpub
 } from '@/utils/nostrIdentity'
+import { isLongFormNostrKind } from '@/utils/nostrLongForm'
 import {
   nostrAccountProfileHref,
   nostrContactProfileHref,
@@ -85,6 +91,7 @@ import {
   noteLooksLikeReply
 } from '@/utils/nostrNoteThread'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
+import { extractPollInfo, isPollExpired } from '@/utils/nostrPoll'
 import {
   countQualifyingZaps,
   enrichZapReceipts,
@@ -154,6 +161,9 @@ export default function NostrNotePage() {
   const [sheetZapComment, setSheetZapComment] = useState('')
   const [showJson, setShowJson] = useState(false)
   const [showMeta, setShowMeta] = useState(true)
+  const [formatMarkdownByNoteId, setFormatMarkdownByNoteId] = useState<
+    Record<string, boolean>
+  >({})
   const [qrModalVisible, setQrModalVisible] = useState(false)
   const [nip05Valid, setNip05Valid] = useState<boolean | null>(null)
   const [zapSortField, setZapSortField] = useState<ZapSortField>('date')
@@ -632,7 +642,32 @@ export default function NostrNotePage() {
     }
   }, [replyParentId, replyParentRelayHint])
 
+  const pollInfo =
+    fetched?.kind === NOSTR_POLL_KIND ? extractPollInfo(fetched.tags) : null
+  const pollExpired = pollInfo ? isPollExpired(pollInfo.endsAt) : false
+  const {
+    handlePollOptionPress,
+    handlePollSubmitMultiple,
+    pollMultipleSelection,
+    pollResponsesLoading,
+    pollVoteCounts,
+    pollVoting,
+    userPollVoteIds
+  } = useNostrPollVote({
+    enabled: Boolean(pollInfo && !privacyMode),
+    eventId: decoded?.data,
+    isExpired: pollExpired,
+    isWatchOnly: Boolean(identity?.isWatchOnly),
+    nsec: identity?.nsec,
+    ownPubkeys,
+    pollInfo,
+    relays: effectiveRelays
+  })
+
   const noteItemForFeed = deriveNoteItemForFeed(fetched, decoded)
+  const isLongFormNote = fetched ? isLongFormNostrKind(fetched.kind) : false
+  const showMarkdownToggle =
+    isLongFormNote && !privacyMode && Boolean(fetched?.content.length)
 
   const noteAuthorFeedProps = deriveAuthorFeedProps(
     fetched,
@@ -887,6 +922,29 @@ export default function NostrNotePage() {
   const noteHexId = decoded?.data ?? ''
   const noteId = noteHexId ? nip19.noteEncode(noteHexId) : ''
   const noteNeventId = noteHexId ? nip19.neventEncode({ id: noteHexId }) : ''
+  const formatMarkdown = noteHexId
+    ? formatMarkdownByNoteId[noteHexId] === true
+    : false
+
+  function handlePlainTextViewPress() {
+    if (!noteHexId) {
+      return
+    }
+    setFormatMarkdownByNoteId((prev) => ({
+      ...prev,
+      [noteHexId]: false
+    }))
+  }
+
+  function handleFormattedViewPress() {
+    if (!noteHexId) {
+      return
+    }
+    setFormatMarkdownByNoteId((prev) => ({
+      ...prev,
+      [noteHexId]: true
+    }))
+  }
 
   const eventJson = fetched
     ? JSON.stringify(
@@ -1028,12 +1086,58 @@ export default function NostrNotePage() {
               </TouchableOpacity>
             ) : null}
 
+            {showMarkdownToggle ? (
+              <SSHStack gap="sm" style={styles.markdownToggleRow}>
+                <Pressable
+                  onPress={handlePlainTextViewPress}
+                  style={[
+                    styles.markdownToggleTab,
+                    !formatMarkdown
+                      ? styles.markdownToggleTabActive
+                      : styles.markdownToggleTabInactive
+                  ]}
+                >
+                  <SSText
+                    center
+                    uppercase
+                    weight="medium"
+                    style={{
+                      color: !formatMarkdown ? Colors.white : Colors.gray[50]
+                    }}
+                  >
+                    {t('nostrIdentity.note.plainText')}
+                  </SSText>
+                </Pressable>
+                <Pressable
+                  onPress={handleFormattedViewPress}
+                  style={[
+                    styles.markdownToggleTab,
+                    formatMarkdown
+                      ? styles.markdownToggleTabActive
+                      : styles.markdownToggleTabInactive
+                  ]}
+                >
+                  <SSText
+                    center
+                    uppercase
+                    weight="medium"
+                    style={{
+                      color: formatMarkdown ? Colors.white : Colors.gray[50]
+                    }}
+                  >
+                    {t('nostrIdentity.note.formattedMarkdown')}
+                  </SSText>
+                </Pressable>
+              </SSHStack>
+            ) : null}
+
             {noteItemForFeed && fetched ? (
               <SSNostrFeedNoteRow
                 note={noteItemForFeed}
                 privacyMode={privacyMode}
                 showAuthor={Boolean(fetched.pubkey)}
                 expandContent
+                formatMarkdown={formatMarkdown && showMarkdownToggle}
                 authorPreview={
                   noteAuthorFeedProps ? (
                     <SSNostrFeedAuthorRow
@@ -1079,18 +1183,22 @@ export default function NostrNotePage() {
                   </View>
                 ) : null}
                 {fetched.content.length > 0 ? (
-                  <SSText
-                    style={[
-                      styles.noteText,
-                      !privacyMode &&
-                        noteLooksLikeReply(fetched.tags) &&
-                        styles.noteTextWithReplyTag
-                    ]}
-                  >
-                    {privacyMode
-                      ? t('nostrIdentity.feed.hiddenInPrivacyMode')
-                      : fetched.content}
-                  </SSText>
+                  formatMarkdown && showMarkdownToggle ? (
+                    <SSNostrMarkdownContent content={fetched.content} />
+                  ) : (
+                    <SSText
+                      style={[
+                        styles.noteText,
+                        !privacyMode &&
+                          noteLooksLikeReply(fetched.tags) &&
+                          styles.noteTextWithReplyTag
+                      ]}
+                    >
+                      {privacyMode
+                        ? t('nostrIdentity.feed.hiddenInPrivacyMode')
+                        : fetched.content}
+                    </SSText>
+                  )
                 ) : null}
                 {noteImageUrls.length > 0 ? (
                   <SSNoteInlineImages
@@ -1113,6 +1221,21 @@ export default function NostrNotePage() {
                   />
                 ) : null}
               </View>
+            ) : null}
+
+            {pollInfo && !privacyMode ? (
+              <SSNostrPollOptions
+                canVote={Boolean(identity?.nsec) && !identity?.isWatchOnly}
+                isExpired={pollExpired}
+                onOptionPress={handlePollOptionPress}
+                onSubmitMultiple={handlePollSubmitMultiple}
+                pollInfo={pollInfo}
+                pollMultipleSelection={pollMultipleSelection}
+                pollResponsesLoading={pollResponsesLoading}
+                pollVoteCounts={pollVoteCounts}
+                pollVoting={pollVoting}
+                userPollVoteIds={userPollVoteIds}
+              />
             ) : null}
 
             {fetched ? (
@@ -2051,6 +2174,23 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     paddingHorizontal: 8,
     paddingVertical: 3
+  },
+  markdownToggleRow: {
+    marginBottom: 4
+  },
+  markdownToggleTab: {
+    borderRadius: 3,
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  markdownToggleTabActive: {
+    backgroundColor: Colors.gray[800]
+  },
+  markdownToggleTabInactive: {
+    backgroundColor: Colors.gray[925],
+    borderColor: Colors.gray[800],
+    borderWidth: 1
   },
   metaLabel: {
     flexShrink: 0,

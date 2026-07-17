@@ -231,17 +231,22 @@ function parseMultisigDescriptor(descriptor: string) {
   return { hardenedPath, xpubs }
 }
 
+function normalizePathSegment(segment: string): string {
+  return segment.replace(/['H]/g, 'h')
+}
+
+/**
+ * Singlesig origin: BIP84/86 `[fp/84'/0'/0']` or Electrum `[fp/0']` / `[fp]`.
+ */
 function parseSinglesigDescriptor(descriptor: string) {
-  const match = descriptor.match(/\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/)
+  const match = descriptor.match(/\[([0-9a-fA-F]+)((?:\/[0-9]+[hH']?)*)\]/i)
   if (!match) {
     throw new Error('Invalid singlesig descriptor format')
   }
 
-  const [purpose, coinType, accountIndex] = match.slice(2)
-  const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace(
-    "'",
-    'h'
-  )}/${accountIndex.replace("'", 'h')}`
+  const pathPart = match[2] ?? ''
+  const segments = pathPart.split('/').filter(Boolean).map(normalizePathSegment)
+  const hardenedPath = segments.length === 0 ? 'm' : `m/${segments.join('/')}`
 
   const xpubs = extractSortedDescriptorXpubs(descriptor)
 

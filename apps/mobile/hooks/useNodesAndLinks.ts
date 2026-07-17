@@ -8,9 +8,10 @@ import { type Utxo } from '@/types/models/Utxo'
 import { formatDate, formatRelativeTime } from '@/utils/date'
 import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
+import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
 import {
   CHART_REMAINING_BALANCE_LOCAL_ID,
-  classifyChartOutput
+  classifyChartOutputs
 } from '@/utils/stonewall'
 import { estimateTransactionSize } from '@/utils/transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -37,6 +38,12 @@ export type TxNode = {
     fiatCurrency?: string
     text?: string
     isUnspent?: boolean
+    /** True for vin / selected-UTXO nodes (left column), not spent outputs. */
+    isInput?: boolean
+    /** Previous output index (vout) for input nodes. */
+    vout?: number
+    /** Full previous transaction id for input outpoint navigation. */
+    prevTxId?: string
     feeRate?: number
     minerFee?: number
     blockTime?: string
@@ -50,6 +57,7 @@ export type TxNode = {
     feePercentage?: number // miner fee is 10% or higher of the total transaction value
     isFakeMix?: boolean
     isChange?: boolean
+    isReceive?: boolean
     isSelfSend?: boolean // NEW: flag for self-send
     maxAllowedSats?: number
   }
@@ -68,6 +76,10 @@ type UseNodesAndLinksProps = {
   feeRate: number
   elevatedFeeRateHighlight?: boolean
   ownAddresses?: Set<string>
+  /** Account-level tx labels (preferred over UTXO labels for input nodes). */
+  txLabelsById?: Map<string, string> | Record<string, string>
+  /** Labels keyed by `txid:vout` for the consumed UTXO. */
+  outpointLabelsByRef?: Map<string, string> | Record<string, string>
 }
 
 export const useNodesAndLinks = ({
@@ -76,7 +88,9 @@ export const useNodesAndLinks = ({
   outputs,
   feeRate,
   elevatedFeeRateHighlight = false,
-  ownAddresses = new Set()
+  ownAddresses = new Set(),
+  txLabelsById: accountTxLabelsById,
+  outpointLabelsByRef: accountOutpointLabelsByRef
 }: UseNodesAndLinksProps) => {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -112,6 +126,10 @@ export const useNodesAndLinks = ({
       // Create output nodes
       let outputNodes: TxNode[] = []
 
+      const outputFlags = classifyChartOutputs(outputs, ownAddresses, {
+        isWalletSend: true
+      })
+
       outputNodes = outputs.map((output, index) => ({
         depthH: blockDepth + 1,
         id: `vout-${blockDepth + 1}-${index + 1}`,
@@ -120,7 +138,11 @@ export const useNodesAndLinks = ({
           address: formatAddress(output.to, 4),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.amount), 2),
-          ...classifyChartOutput(output, ownAddresses),
+          ...(outputFlags[index] ?? {
+            isChange: false,
+            isFakeMix: false,
+            isSelfSend: false
+          }),
           isUnspent: true,
           label: output.label,
           text: t('transaction.build.unspent'),
@@ -253,6 +275,29 @@ export const useNodesAndLinks = ({
     [transactions]
   )
 
+  const txLabelsById = useMemo(() => {
+    const labels = new Map<string, string>()
+    if (accountTxLabelsById instanceof Map) {
+      for (const [id, label] of accountTxLabelsById) {
+        if (label.trim()) {
+          labels.set(id, label.trim())
+        }
+      }
+    } else if (accountTxLabelsById) {
+      for (const [id, label] of Object.entries(accountTxLabelsById)) {
+        if (label.trim()) {
+          labels.set(id, label.trim())
+        }
+      }
+    }
+    for (const tx of transactions.values()) {
+      if (tx.label?.trim() && !labels.has(tx.id)) {
+        labels.set(tx.id, tx.label.trim())
+      }
+    }
+    return labels
+  }, [accountTxLabelsById, transactions])
+
   const previousConfirmedNodes: TxNode[] = useMemo(() => {
     if (transactions.size > 0 && inputs.size > 0) {
       const depthIndices = new Map<number, number>()
@@ -297,14 +342,22 @@ export const useNodesAndLinks = ({
               depthH,
               id: `vin-${depthH}-${currentIndex}`,
               ioData: {
-                address: `${formatAddress(input.address, 4)}`,
+                address: formatTxId(input.previousOutput.txid, 4),
                 fiatCurrency,
                 fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
+                isInput: true,
                 isSelfSend: ownAddresses.has(input.address),
-                label: `${input.label ?? ''}`,
+                label: resolveSankeyInputLabel(
+                  input.previousOutput.txid,
+                  input.previousOutput.vout,
+                  txLabelsById,
+                  accountOutpointLabelsByRef
+                ),
+                prevTxId: input.previousOutput.txid,
                 text: t('common.from'),
                 txId: tx.id,
-                value: input.value ?? 0
+                value: input.value ?? 0,
+                vout: input.previousOutput.vout
               },
               prevout: input.previousOutput,
               txId: tx.id,
@@ -376,7 +429,10 @@ export const useNodesAndLinks = ({
                 address: formatAddress(output.address, 4),
                 fiatCurrency,
                 fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
-                isSelfSend: ownAddresses.has(output.address),
+                isReceive:
+                  tx.type !== 'send' && ownAddresses.has(output.address),
+                isSelfSend:
+                  tx.type === 'send' && ownAddresses.has(output.address),
                 label: matchingInput?.label ?? '',
                 text: t('common.from'),
                 value: output.value ?? 0
@@ -449,7 +505,9 @@ export const useNodesAndLinks = ({
     transactions,
     satsToFiat,
     fiatCurrency,
-    ownAddresses
+    ownAddresses,
+    txLabelsById,
+    accountOutpointLabelsByRef
   ])
 
   const nodes = [

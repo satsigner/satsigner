@@ -24,10 +24,7 @@ import SSModal from '@/components/SSModal'
 import SSProxyFormFields from '@/components/SSProxyFormFields'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import {
-  type ConnectionTestResult,
-  useConnectionTest
-} from '@/hooks/useConnectionTest'
+import { useConnectionTest } from '@/hooks/useConnectionTest'
 import {
   defaultRpcPort,
   useCustomNetworkForm
@@ -45,7 +42,11 @@ import {
   type Server
 } from '@/types/settings/blockchain'
 import { suppressConnectionPoll } from '@/utils/connectionPollSuppression'
-import { formatDate } from '@/utils/date'
+import {
+  formatBannerForToast,
+  successProbeDescription,
+  successToastDescription
+} from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
 
 const tnServer = _tn('settings.network.server')
@@ -104,6 +105,8 @@ export default function CustomNetwork() {
   const [oldServer] = useState<Server>(configs[networkType].server)
   /** Shown under connection status so tip height/time stay visible without relying on toast alone. */
   const [lastProbeLine, setLastProbeLine] = useState<string | null>(null)
+  /** Electrum server.banner text from the last successful probe. */
+  const [lastBanner, setLastBanner] = useState<string | null>(null)
 
   // Pause auto-polling while this screen is open to avoid flooding the node
   // with background verify calls on top of the manual test button.
@@ -124,24 +127,6 @@ export default function CustomNetwork() {
   const protocols = ['ssl', 'tcp'] as const
 
   const urlPreview = useMemo(() => constructTrimmedUrl(), [constructTrimmedUrl])
-
-  function successToastDescription(
-    result: Extract<ConnectionTestResult, { success: true }>
-  ): string {
-    const dateSec = result.tipTimestampSec ?? Math.floor(Date.now() / 1000)
-    const dateStr = formatDate(dateSec)
-    if (
-      result.blockHeight !== null &&
-      result.blockHeight !== undefined &&
-      result.blockHeight > 0
-    ) {
-      return tnServer('tester.successDetail', {
-        date: dateStr,
-        height: result.blockHeight.toLocaleString()
-      })
-    }
-    return tnServer('tester.successNoHeight', { date: dateStr })
-  }
 
   async function handlePaste() {
     try {
@@ -259,6 +244,7 @@ export default function CustomNetwork() {
     }
 
     setLastProbeLine(null)
+    setLastBanner(null)
 
     const server = buildServer()
 
@@ -283,12 +269,12 @@ export default function CustomNetwork() {
       setSelectedNetwork(networkType)
       updateServer(networkType, server)
 
-      const probeLine = successToastDescription(result)
-      setLastProbeLine(probeLine)
+      setLastProbeLine(successProbeDescription(result))
+      setLastBanner(result.banner?.trim() ? result.banner.trim() : null)
 
       try {
         toast.success(`${server.name} (${trimOnionAddress(server.url)})`, {
-          description: `${tnServer('tester.success')} — ${probeLine}`
+          description: successToastDescription(result)
         })
       } catch {
         // sonner handler can break if a nested modal mounted its own Toaster; root Toaster should recover
@@ -587,9 +573,21 @@ export default function CustomNetwork() {
                   </SSText>
                 </SSHStack>
                 {lastProbeLine ? (
-                  <SSText center color="muted" size="xs">
-                    {`${tnServer('tester.success')} — ${lastProbeLine}`}
-                  </SSText>
+                  <SSVStack gap="xs">
+                    <SSText center color="muted" size="xs">
+                      {`${tnServer('tester.success')} — ${lastProbeLine}`}
+                    </SSText>
+                    {lastBanner ? (
+                      <SSVStack gap="none">
+                        <SSText center color="muted" size="xxs" uppercase>
+                          {tnServer('tester.banner')}
+                        </SSText>
+                        <SSText center color="muted" size="xs" type="mono">
+                          {formatBannerForToast(lastBanner)}
+                        </SSText>
+                      </SSVStack>
+                    ) : null}
+                  </SSVStack>
                 ) : null}
               </SSVStack>
             </SSVStack>

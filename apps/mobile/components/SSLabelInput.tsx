@@ -1,19 +1,34 @@
-import { useEffect, useState } from 'react'
+import { router } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
+import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { Sizes } from '@/styles'
+import { getLabelTextSize } from '@/utils/label'
 import { parseLabel, parseLabelTags } from '@/utils/parse'
 
 import SSButton from './SSButton'
-import SSTagInput from './SSTagInput'
+import SSTagInput, { type SSTagInputHandle } from './SSTagInput'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
+
+const LABEL_INPUT_MIN_HEIGHT = Sizes.textInput.height.default * 3
 
 type SSLabelInputProps = {
   label: string
   onUpdateLabel: (label: string) => void
+}
+
+function stripLineBreaks(text: string) {
+  return text.replace(/[\r\n]+/g, '')
+}
+
+function cancelLabelChanges() {
+  router.back()
 }
 
 function SSLabelInput({
@@ -23,21 +38,26 @@ function SSLabelInput({
   const [getTags, setTags] = useAccountsStore(
     useShallow((state) => [state.getTags, state.setTags])
   )
+  const keyboardHeight = useKeyboardHeight()
+  const tagInputRef = useRef<SSTagInputHandle>(null)
 
   const [selectedTags, setSelectedTags] = useState([] as string[])
   const [tags, setLocalTags] = useState(() => getTags())
   const [label, setLabel] = useState('')
+  const labelFontSize = Sizes.text.fontSize[getLabelTextSize(label)]
 
   function saveLabel() {
     const newLabel = parseLabelTags(label, selectedTags)
     if (newLabel !== originalLabel) {
       onUpdateLabel(newLabel)
+      return
     }
+    router.back()
   }
 
   useEffect(() => {
     const { label, tags } = parseLabel(originalLabel)
-    setLabel(label)
+    setLabel(stripLineBreaks(label))
     setSelectedTags(tags)
   }, [originalLabel])
 
@@ -88,23 +108,32 @@ function SSLabelInput({
     setLabel(label.replace(/#.*/, '').trim())
   }
 
+  function handleLabelSubmit() {
+    handleInputEnded()
+    tagInputRef.current?.focus()
+  }
+
   return (
-    <SSVStack style={{ paddingVertical: 20 }}>
-      <SSText weight="bold" uppercase>
-        {t('common.label')}
-      </SSText>
+    <SSVStack style={styles.container} gap="sm">
+      <SSText uppercase>{t('common.label')}</SSText>
       <SSTextInput
         align="left"
+        multiline
+        numberOfLines={4}
+        textAlignVertical="top"
+        // Multiline defaults blurOnSubmit=false (inserts newline). Force submit
+        // so Return moves focus to tags; line breaks are also stripped on change.
         blurOnSubmit
+        returnKeyType="next"
         value={label}
-        onChangeText={setLabel}
+        onChangeText={(text) => setLabel(stripLineBreaks(text))}
         onBlur={handleInputEnded}
-        onSubmitEditing={handleInputEnded}
+        onSubmitEditing={handleLabelSubmit}
+        style={[styles.labelInput, { fontSize: labelFontSize }]}
       />
-      <SSText weight="bold" uppercase>
-        {t('common.tags')}
-      </SSText>
+      <SSText uppercase>{t('common.tags')}</SSText>
       <SSTagInput
+        ref={tagInputRef}
         tags={tags}
         selectedTags={selectedTags}
         onAdd={onAddTag}
@@ -115,8 +144,25 @@ function SSLabelInput({
         label={t('common.save')}
         variant="secondary"
       />
+      <SSButton
+        onPress={cancelLabelChanges}
+        label={t('common.cancel')}
+        variant="ghost"
+      />
+      {keyboardHeight > 0 ? <View style={{ height: keyboardHeight }} /> : null}
     </SSVStack>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 20
+  },
+  labelInput: {
+    fontWeight: '300',
+    height: LABEL_INPUT_MIN_HEIGHT,
+    paddingVertical: 12
+  }
+})
 
 export default SSLabelInput

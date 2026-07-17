@@ -19,6 +19,7 @@ import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
@@ -32,6 +33,7 @@ import { Colors } from '@/styles'
 import type { NostrKind0Profile } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { deriveNpubFromNsec, generateColorFromNpub } from '@/utils/nostr'
+import { generateDeviceNostrKeysFromSeed } from '@/utils/nostrIdentity'
 
 const COMMON_KEYS_LOAD_TIMEOUT_MS = 45_000
 
@@ -55,7 +57,12 @@ function NostrKeys() {
   const [deviceNsec, setNsec] = useState<string>(
     account?.nostr?.deviceNsec ?? ''
   )
+  const [deviceMnemonic, setDeviceMnemonic] = useState(
+    account?.nostr?.deviceMnemonic ?? ''
+  )
   const [nsecRevealed, setNsecRevealed] = useState(false)
+  const [seedRevealed, setSeedRevealed] = useState(false)
+  const [seedQrVisible, setSeedQrVisible] = useState(false)
   const [commonNsecRevealed, setCommonNsecRevealed] = useState(false)
   const [loadingCommonKeys, setLoadingCommonKeys] = useState(
     () => !(account?.nostr?.commonNsec && account?.nostr?.commonNpub)
@@ -279,16 +286,22 @@ function NostrKeys() {
     }
   }, [account?.nostr?.commonNpub, account?.nostr?.commonNsec])
 
-  async function generateNewNsec() {
+  useEffect(() => {
+    if (account?.nostr?.deviceNsec) {
+      setNsec(account.nostr.deviceNsec)
+    }
+    setDeviceMnemonic(account?.nostr?.deviceMnemonic ?? '')
+  }, [account?.nostr?.deviceMnemonic, account?.nostr?.deviceNsec])
+
+  function generateNewNsec() {
     try {
-      const keys = await NostrAPI.generateNostrKeys()
-      if (!keys) {
-        toast.error(t('account.nostrSync.errorGenerateDeviceKeys'))
-        return
-      }
+      const keys = generateDeviceNostrKeysFromSeed()
       setNsec(keys.nsec)
+      setDeviceMnemonic(keys.mnemonic)
+      setNsecRevealed(true)
+      setSeedRevealed(false)
     } catch {
-      toast.error('Failed to generate key')
+      toast.error(t('account.nostrSync.errorGenerateDeviceKeys'))
     }
   }
 
@@ -300,9 +313,19 @@ function NostrKeys() {
         return
       }
       setNsec(text.trim())
+      setDeviceMnemonic('')
+      setSeedRevealed(false)
       toast.success(t('common.success.dataPasted'))
     } catch {
       toast.error(t('common.error.failedToPaste'))
+    }
+  }
+
+  function handleNsecChange(text: string) {
+    setNsec(text)
+    if (deviceMnemonic) {
+      setDeviceMnemonic('')
+      setSeedRevealed(false)
     }
   }
 
@@ -331,6 +354,7 @@ function NostrKeys() {
 
     const updates: Parameters<typeof updateAccountNostr>[1] = {
       ...base,
+      deviceMnemonic: deviceMnemonic.trim() || '',
       deviceNpub: npub,
       deviceNsec: trimmed,
       lastUpdated: new Date()
@@ -593,26 +617,61 @@ function NostrKeys() {
                   >
                     <SSTextInput
                       value={deviceNsec}
-                      onChangeText={setNsec}
+                      onChangeText={handleNsecChange}
                       placeholder={t('account.nostrSync.nsec')}
                       style={[styles.input, styles.monoInput]}
                       multiline
                       numberOfLines={2}
                       textAlignVertical="top"
                     />
-                    {deviceNsec && (
-                      <SSButton
-                        variant="default"
-                        label={t('common.showQR')}
-                        onPress={() =>
-                          setQrModal({
-                            type: 'nsec',
-                            value: deviceNsec.trim()
-                          })
-                        }
-                        style={styles.showQrButton}
-                      />
-                    )}
+                    {deviceNsec ? (
+                      <SSHStack gap="sm" style={styles.nsecActionRow}>
+                        <SSButton
+                          variant="default"
+                          label={t('common.showQR')}
+                          onPress={() =>
+                            setQrModal({
+                              type: 'nsec',
+                              value: deviceNsec.trim()
+                            })
+                          }
+                          style={styles.nsecActionButton}
+                        />
+                        {deviceMnemonic ? (
+                          <SSButton
+                            variant="default"
+                            label={
+                              seedRevealed
+                                ? t('account.nostrSync.hideSeed')
+                                : t('account.nostrSync.showSeed')
+                            }
+                            onPress={() => setSeedRevealed((v) => !v)}
+                            style={styles.nsecActionButton}
+                          />
+                        ) : null}
+                      </SSHStack>
+                    ) : null}
+                    {seedRevealed && deviceMnemonic ? (
+                      <SSVStack gap="xs" style={styles.seedReveal}>
+                        <SSText color="muted" center>
+                          {t('account.nostrSync.seedWords')}
+                        </SSText>
+                        <SSText
+                          type="mono"
+                          size="sm"
+                          selectable
+                          center
+                          style={styles.seedWordsText}
+                        >
+                          {deviceMnemonic}
+                        </SSText>
+                        <SSButton
+                          variant="secondary"
+                          label={t('account.seed.seedqr.title')}
+                          onPress={() => setSeedQrVisible(true)}
+                        />
+                      </SSVStack>
+                    ) : null}
                     <Pressable
                       onPress={() => setNsecRevealed(false)}
                       style={styles.revealRow}
@@ -630,7 +689,11 @@ function NostrKeys() {
                       <SSButton
                         variant="danger"
                         label={t('common.clear')}
-                        onPress={() => setNsec('')}
+                        onPress={() => {
+                          setNsec('')
+                          setDeviceMnemonic('')
+                          setSeedRevealed(false)
+                        }}
                         style={styles.clearPasteButton}
                       />
                       <SSButton
@@ -710,6 +773,14 @@ function NostrKeys() {
           )}
         </SSVStack>
       </SSModal>
+      {deviceMnemonic ? (
+        <SSSeedQR
+          mnemonic={deviceMnemonic}
+          visible={seedQrVisible}
+          title={t('account.nostrSync.seedWords')}
+          onClose={() => setSeedQrVisible(false)}
+        />
+      ) : null}
     </SSMainLayout>
   )
 }
@@ -788,6 +859,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center'
   },
+  nsecActionButton: {
+    flex: 1,
+    marginTop: 12,
+    minWidth: 0
+  },
+  nsecActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap'
+  },
   nsecContainer: {
     backgroundColor: '#1a1a1a',
     borderColor: 'rgba(255, 255, 255, 0.25)',
@@ -834,6 +914,12 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1
+  },
+  seedReveal: {
+    marginTop: 8
+  },
+  seedWordsText: {
+    lineHeight: 22
   },
   showQrButton: {
     marginTop: 20

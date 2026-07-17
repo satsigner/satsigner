@@ -42,6 +42,7 @@ export default function NostrRelays() {
 
   const [selectedRelays, setSelectedRelays] = useState<string[]>(storeRelays)
   const [customRelayUrl, setCustomRelayUrl] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
 
   function handleRelayToggle(relayUrl: string) {
     setSelectedRelays((prev) =>
@@ -80,7 +81,17 @@ export default function NostrRelays() {
         <SSVStack gap="lg">
           <SSVStack gap="sm">
             <SSText uppercase>{t('nostrIdentity.relays.public')}</SSText>
-            {NOSTR_RELAYS.map((relay) => (
+            <SSTextInput
+              placeholder={t('nostrIdentity.relays.search')}
+              value={searchQuery}
+              align="left"
+              onChangeText={setSearchQuery}
+            />
+            {NOSTR_RELAYS.filter(
+              (r) =>
+                r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                r.url.toLowerCase().includes(searchQuery.toLowerCase())
+            ).map((relay) => (
               <RelayRow
                 key={relay.url}
                 relay={relay}

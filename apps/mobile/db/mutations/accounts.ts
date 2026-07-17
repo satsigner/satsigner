@@ -25,10 +25,11 @@ function insertAccount(account: Account) {
         created_at, last_synced_at, sync_status, sync_progress_total, sync_progress_done,
         birthday_date, rpc_last_block_hash,
         nostr_auto_sync, nostr_common_npub, nostr_common_nsec,
-        nostr_device_npub, nostr_device_nsec, nostr_device_display_name, nostr_device_picture,
+        nostr_device_npub, nostr_device_nsec, nostr_device_mnemonic,
+        nostr_device_display_name, nostr_device_picture,
         nostr_last_backup_fingerprint, nostr_last_updated, nostr_sync_start,
         nostr_npub_aliases, nostr_npub_profiles
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         account.id,
         account.name,
@@ -54,6 +55,7 @@ function insertAccount(account: Account) {
         account.nostr?.commonNsec ?? '',
         account.nostr?.deviceNpub ?? null,
         account.nostr?.deviceNsec ?? null,
+        account.nostr?.deviceMnemonic ?? null,
         account.nostr?.deviceDisplayName ?? null,
         account.nostr?.devicePicture ?? null,
         account.nostr?.lastBackupFingerprint ?? null,
@@ -87,7 +89,7 @@ function updateAccountRow(
       sync_progress_total = ?, sync_progress_done = ?,
       birthday_date = ?, rpc_last_block_hash = ?,
       nostr_auto_sync = ?, nostr_common_npub = ?, nostr_common_nsec = ?,
-      nostr_device_npub = ?, nostr_device_nsec = ?,
+      nostr_device_npub = ?, nostr_device_nsec = ?, nostr_device_mnemonic = ?,
       nostr_device_display_name = ?, nostr_device_picture = ?,
       nostr_last_backup_fingerprint = ?, nostr_last_updated = ?, nostr_sync_start = ?,
       nostr_npub_aliases = ?, nostr_npub_profiles = ?
@@ -115,6 +117,7 @@ function updateAccountRow(
       account.nostr?.commonNsec ?? '',
       account.nostr?.deviceNpub ?? null,
       account.nostr?.deviceNsec ?? null,
+      account.nostr?.deviceMnemonic ?? null,
       account.nostr?.deviceDisplayName ?? null,
       account.nostr?.devicePicture ?? null,
       account.nostr?.lastBackupFingerprint ?? null,

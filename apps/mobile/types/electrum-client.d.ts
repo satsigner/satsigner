@@ -16,6 +16,7 @@ declare module 'electrum-client' {
     reconnect(): void
     onError(error: Error): void
     server_ping(): Promise<void>
+    server_banner(): Promise<string>
     initElectrum(
       params: { client: string; version: string },
       persistencePolicy?: { maxRetry: number; callback: null | (() => void) }

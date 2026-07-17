@@ -114,6 +114,7 @@ export default function Developer() {
         birthdayDate: account.birthdayDate,
         id: account.id,
         keys: await keysWithSeeds(account.id, account.keys),
+        labels: account.labels,
         name: account.name,
         network: account.network,
         nostr: account.nostr,

@@ -13,6 +13,7 @@ import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
+import type { Label } from '@/types/bips/329'
 import type { Account, Key } from '@/types/models/Account'
 import type { ArkAccount } from '@/types/models/Ark'
 import type {
@@ -39,6 +40,7 @@ type BackupAccount = {
   id: string
   keys: BackupKey[]
   keysRequired?: number
+  labels?: Record<string, Label>
   name: string
   network: Account['network']
   nostr?: NostrAccount
@@ -243,7 +245,7 @@ async function prepareRestore(
         acc.policyType === 'singlesig'
           ? 1
           : (acc.keysRequired ?? acc.keys.length),
-      labels: {},
+      labels: acc.labels ?? {},
       lastSyncedAt: new Date(),
       name: acc.name,
       network: acc.network,

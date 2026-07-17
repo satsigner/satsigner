@@ -232,9 +232,23 @@ export type BlockchainInfo = {
   chainwork: string
   difficulty: number
   headers: number
+  /** Present while the node is catching up to the tip */
+  initialblockdownload?: boolean
   mediantime: number
   pruned: boolean
   verificationprogress: number
+  warnings?: string | string[]
+}
+
+/** Subset of `getnetworkinfo` used for connection-test display (Sparrow-style). */
+export type NetworkInfo = {
+  connections?: number
+  networkactive?: boolean
+  protocolversion?: number
+  /** e.g. `/Satoshi:28.0.0/` — Sparrow surfaces this as the server banner */
+  subversion: string
+  /** Packed version, e.g. 280000 for v28.0.0 */
+  version: number
 }
 
 export type RpcBlock = {
@@ -431,6 +445,12 @@ export default class BitcoinRpc {
     return this._call<BlockchainInfo>('getblockchaininfo', [], timeoutMs)
   }
 
+  getNetworkInfo(
+    timeoutMs: number = RPC_DEFAULT_TIMEOUT_MS
+  ): Promise<NetworkInfo> {
+    return this._call<NetworkInfo>('getnetworkinfo', [], timeoutMs)
+  }
+
   /**
    * Check whether `blockfilterindex=1` is enabled.
    * BDK's syncWithRpc uses getblockfilter per block; without the index Bitcoin
@@ -460,6 +480,21 @@ export default class BitcoinRpc {
 
   getRawTransactionHex(txid: string): Promise<string> {
     return this._call<string>('getrawtransaction', [txid, false])
+  }
+
+  /**
+   * Node UTXO set lookup for any outpoint. Returns null when spent (or unknown).
+   */
+  getTxOut(
+    txid: string,
+    vout: number,
+    includeMempool = true
+  ): Promise<Record<string, unknown> | null> {
+    return this._call<Record<string, unknown> | null>('gettxout', [
+      txid,
+      vout,
+      includeMempool
+    ])
   }
 
   sendRawTransaction(txHex: string): Promise<string> {

@@ -256,8 +256,26 @@ ALTER TABLE accounts ADD COLUMN birthday_date TEXT;
 ALTER TABLE accounts ADD COLUMN rpc_last_block_hash TEXT
 `
 
-const SCHEMAS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5]
+const SCHEMA_V6 = `
+ALTER TABLE accounts ADD COLUMN nostr_device_mnemonic TEXT
+`
+
+const SCHEMAS = [
+  SCHEMA_V1,
+  SCHEMA_V2,
+  SCHEMA_V3,
+  SCHEMA_V4,
+  SCHEMA_V5,
+  SCHEMA_V6
+]
 const CURRENT_VERSION = SCHEMAS.length
+
+function isBenignMigrationError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return (
+    /duplicate column name/i.test(message) || /already exists/i.test(message)
+  )
+}
 
 function runSchemaStatements(db: NitroSQLiteConnection, schema: string) {
   const statements = schema
@@ -265,25 +283,59 @@ function runSchemaStatements(db: NitroSQLiteConnection, schema: string) {
     .map((s) => s.trim())
     .filter(Boolean)
   for (const statement of statements) {
-    db.execute(statement)
+    try {
+      db.execute(statement)
+    } catch (error) {
+      // Replaying ALTERs when schema_version is wrong must not block later
+      // migrations (e.g. V6 after a false V5 re-run).
+      if (!isBenignMigrationError(error)) {
+        throw error
+      }
+    }
+  }
+}
+
+function tableHasColumn(
+  db: NitroSQLiteConnection,
+  table: string,
+  column: string
+): boolean {
+  const { results } = db.execute(`PRAGMA table_info(${table})`)
+  return (results ?? []).some((row) => row.name === column)
+}
+
+/** Additive columns that must exist even if schema_version is ahead/out of sync. */
+function ensureAccountsColumns(db: NitroSQLiteConnection) {
+  const columns: [string, string][] = [
+    ['birthday_date', 'TEXT'],
+    ['rpc_last_block_hash', 'TEXT'],
+    ['nostr_device_mnemonic', 'TEXT']
+  ]
+  for (const [column, sqlType] of columns) {
+    if (tableHasColumn(db, 'accounts', column)) {
+      continue
+    }
+    db.execute(`ALTER TABLE accounts ADD COLUMN ${column} ${sqlType}`)
   }
 }
 
 function runMigrations(db: NitroSQLiteConnection) {
   const currentVersion = getSchemaVersion(db)
 
-  if (currentVersion >= CURRENT_VERSION) {
-    return
+  if (currentVersion < CURRENT_VERSION) {
+    for (const [index, schema] of SCHEMAS.entries()) {
+      const version = index + 1
+      if (currentVersion >= version) {
+        continue
+      }
+      runSchemaStatements(db, schema)
+      setSchemaVersion(db, version)
+    }
   }
 
-  for (const [index, schema] of SCHEMAS.entries()) {
-    const version = index + 1
-    if (currentVersion >= version) {
-      continue
-    }
-    runSchemaStatements(db, schema)
-    setSchemaVersion(db, version)
-  }
+  // Always verify critical columns — Fast Refresh / version skew can leave
+  // schema_version ahead of the real table shape.
+  ensureAccountsColumns(db)
 }
 
 export { runMigrations }

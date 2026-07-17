@@ -116,7 +116,7 @@ function useNostrSync() {
       appNetworkToBdkNetwork(tmpAccount.network)
     )
 
-    const externalDescriptor = resolveDescriptorForNostrCommonKeys(
+    const externalDescriptor = await resolveDescriptorForNostrCommonKeys(
       tmpAccount,
       firstKey,
       secret,

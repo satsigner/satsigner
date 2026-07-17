@@ -47,6 +47,8 @@ type SSMultipleSankeyDiagramProps = {
   feeRate: number
   elevatedFeeRateHighlight?: boolean
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  txLabelsById?: Map<string, string> | Record<string, string>
+  outpointLabelsByRef?: Map<string, string> | Record<string, string>
   overlayHeaderHeight?: number
 }
 
@@ -59,6 +61,8 @@ function SSMultipleSankeyDiagram({
   feeRate,
   elevatedFeeRateHighlight = false,
   ownAddresses = new Set(),
+  txLabelsById,
+  outpointLabelsByRef,
   overlayHeaderHeight
 }: SSMultipleSankeyDiagramProps) {
   const DEEP_LEVEL = 2 // how deep the tx history
@@ -69,9 +73,11 @@ function SSMultipleSankeyDiagram({
     elevatedFeeRateHighlight,
     feeRate,
     inputs,
+    outpointLabelsByRef,
     outputs,
     ownAddresses,
-    transactions // pass to hook for future use
+    transactions,
+    txLabelsById
   })
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
