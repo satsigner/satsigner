@@ -2519,6 +2519,7 @@
     "network.server.server.warning.text": "Your data requests relating to wallet addresses, transactions, and utxos will go out to potentially untrusted server.",
     "network.server.server.warning.title": "Warning",
     "network.server.test": "Test connection",
+    "network.server.tester.banner": "Banner",
     "network.server.tester.error": "Connection test error",
     "network.server.tester.failed": "Connection test failed",
     "network.server.tester.success": "Connection test successful",
