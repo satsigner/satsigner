@@ -80,6 +80,11 @@ import {
   matchSignedPsbtsToCosigners,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
+import {
+  buildKnownTxIds,
+  buildOutpointLabelsByRef,
+  buildTxLabelsById
+} from '@/utils/sankeyInputLabel'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
   estimateTransactionSize,
@@ -257,6 +262,18 @@ function PreviewTransaction() {
   )
   const ownAddresses = useMemo(
     () => new Set(account?.addresses?.map((a) => a.address)),
+    [account]
+  )
+  const txLabelsById = useMemo(
+    () => buildTxLabelsById(account?.transactions),
+    [account?.transactions]
+  )
+  const knownTxIds = useMemo(
+    () => buildKnownTxIds(account?.transactions),
+    [account?.transactions]
+  )
+  const outpointLabelsByRef = useMemo(
+    () => buildOutpointLabelsByRef(account ?? {}),
     [account]
   )
   const setTransactionToShare = useNostrStore(
@@ -2115,8 +2132,12 @@ function PreviewTransaction() {
                 </SSText>
                 <View style={{ overflow: 'hidden' }}>
                   <SSTransactionChart
+                    accountId={id}
                     transaction={transaction}
                     ownAddresses={ownAddresses}
+                    txLabelsById={txLabelsById}
+                    knownTxIds={knownTxIds}
+                    outpointLabelsByRef={outpointLabelsByRef}
                     scale={0.9}
                     showUnspentLabel={false}
                   />
