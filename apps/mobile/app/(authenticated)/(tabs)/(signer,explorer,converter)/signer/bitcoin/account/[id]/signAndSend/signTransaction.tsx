@@ -367,11 +367,11 @@ export default function SignTransaction() {
                     : tn(signed ? 'signed' : 'signing')}
               </SSText>
 
-              {signed && !broadcasted ? (
+              {signed && !broadcasted && (
                 <SSIconSuccess width={159} height={159} variant="outline" />
-              ) : null}
-              {!signed && !broadcasted ? <SSLoader size={160} /> : null}
-              {broadcasted ? <SSSuccessCheckAnimation /> : null}
+              )}
+              {!signed && !broadcasted && <SSLoader size={160} />}
+              {broadcasted && <SSSuccessCheckAnimation />}
             </SSVStack>
 
             <SSVStack>
