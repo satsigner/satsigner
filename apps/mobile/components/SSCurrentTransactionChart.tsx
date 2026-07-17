@@ -35,8 +35,9 @@ import {
   minSankeyStackedColumnInnerHeightPx
 } from '@/utils/equalizeSankeyColumnLayout'
 import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
+import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
 import {
   CHART_REMAINING_BALANCE_LOCAL_ID,
   classifyChartOutput
@@ -78,6 +79,10 @@ type SSCurrentTransactionChartProps = {
   onPressOutput?: (localId?: string) => void
   currentOutputLocalId?: string
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  /** Labels keyed by transaction id — used for input outpoint labels. */
+  txLabelsById?: Map<string, string> | Record<string, string>
+  /** Labels keyed by `txid:vout` for the consumed UTXO. */
+  outpointLabelsByRef?: Map<string, string> | Record<string, string>
   overlayHeaderHeight?: number
 }
 
@@ -92,6 +97,8 @@ function SSCurrentTransactionChart({
   onPressOutput,
   currentOutputLocalId,
   ownAddresses = new Set(),
+  txLabelsById,
+  outpointLabelsByRef,
   overlayHeaderHeight
 }: SSCurrentTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
@@ -251,15 +258,24 @@ function SSCurrentTransactionChart({
       id: String(index + 1),
       inputOutpoint: getUtxoOutpoint(input),
       ioData: {
-        address: formatAddress(input.txid, 4),
+        address: formatTxId(input.txid, 4),
         fiatCurrency,
         fiatValue: formatNumber(satsToFiat(input.value), 2),
-        label: input.label ?? t('common.noLabel'),
+        isInput: true,
+        label: resolveSankeyInputLabel(
+          input.txid,
+          input.vout,
+          txLabelsById,
+          outpointLabelsByRef
+        ),
+        prevTxId: input.txid,
         text: t('common.from'),
-        value: input.value
+        value: input.value,
+        vout: input.vout
       },
       type: 'text',
-      value: input.value
+      value: input.value,
+      vout: input.vout
     }))
 
     const blockNode: TxNode[] = [
@@ -365,7 +381,9 @@ function SSCurrentTransactionChart({
     satsToFiat,
     fiatCurrency,
     ownAddresses,
-    suppressUnderfundedWarning
+    suppressUnderfundedWarning,
+    txLabelsById,
+    outpointLabelsByRef
   ])
 
   const sankeyLinks = useMemo(() => {
