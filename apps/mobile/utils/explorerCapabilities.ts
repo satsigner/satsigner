@@ -56,17 +56,11 @@ const CAPABILITY_KEYS: Record<
   },
   rawBlock: {
     electrum: {
-      fixKey: 'explorer.capability.rawBlock.fix',
-      whyKey: 'explorer.capability.rawBlock.why'
+      fixKey: 'explorer.capability.rawBlock.electrum.fix',
+      whyKey: 'explorer.capability.rawBlock.electrum.why'
     },
-    esplora: {
-      fixKey: 'explorer.capability.rawBlock.fix',
-      whyKey: 'explorer.capability.rawBlock.why'
-    },
-    rpc: {
-      fixKey: 'explorer.capability.rawBlock.fix',
-      whyKey: 'explorer.capability.rawBlock.why'
-    }
+    esplora: { fixKey: null, whyKey: null },
+    rpc: { fixKey: null, whyKey: null }
   },
   txLookup: {
     electrum: { fixKey: null, whyKey: null },

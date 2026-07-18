@@ -105,6 +105,21 @@ export default class Esplora {
     return BlockSchema.parse(data)
   }
 
+  async getBlockRawHex(blockHash: string): Promise<string> {
+    const data = await this._call(`/block/${blockHash}/raw`)
+    if (typeof data === 'string') {
+      const trimmed = data.trim()
+      if (/^[0-9a-f]+$/i.test(trimmed)) {
+        return trimmed.toLowerCase()
+      }
+      return Buffer.from(trimmed, 'binary').toString('hex')
+    }
+    if (data instanceof ArrayBuffer) {
+      return Buffer.from(data).toString('hex')
+    }
+    throw new Error('Unexpected block raw response')
+  }
+
   async getBlockStatus(blockHash: string) {
     const data = await this._call(`/block/${blockHash}/status`)
     return BlockStatusSchema.parse(data)

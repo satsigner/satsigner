@@ -37,6 +37,18 @@ describe('explorerCapabilities', () => {
         getExplorerCapability('rpc', 'difficultyAdjustment').available
       ).toBe(false)
     })
+
+    it('marks raw block available for esplora and rpc', () => {
+      expect(getExplorerCapability('esplora', 'rawBlock').available).toBe(true)
+      expect(getExplorerCapability('rpc', 'rawBlock').available).toBe(true)
+    })
+
+    it('marks raw block unavailable for electrum with why/fix keys', () => {
+      const result = getExplorerCapability('electrum', 'rawBlock')
+      expect(result.available).toBe(false)
+      expect(result.whyKey).toBe('explorer.capability.rawBlock.electrum.why')
+      expect(result.fixKey).toBe('explorer.capability.rawBlock.electrum.fix')
+    })
   })
 
   describe('canViewBlockTransactions', () => {

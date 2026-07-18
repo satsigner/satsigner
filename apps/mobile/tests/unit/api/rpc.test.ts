@@ -115,22 +115,29 @@ describe('bitcoinRpc', () => {
       1
     ])
 
+    mockFetch.mockResolvedValueOnce(rpcResult('00abc'))
+    await rpc.getBlockHex('abc')
+    expect(JSON.parse(mockFetch.mock.calls[1][1].body).params).toStrictEqual([
+      'abc',
+      0
+    ])
+
     mockFetch.mockResolvedValueOnce(rpcResult('abc'))
     await rpc.getBlockHash(100)
-    expect(JSON.parse(mockFetch.mock.calls[1][1].body).params).toStrictEqual([
+    expect(JSON.parse(mockFetch.mock.calls[2][1].body).params).toStrictEqual([
       100
     ])
 
     mockFetch.mockResolvedValueOnce(rpcResult({}))
     await rpc.getRawTransaction('txid1')
-    expect(JSON.parse(mockFetch.mock.calls[2][1].body).params).toStrictEqual([
+    expect(JSON.parse(mockFetch.mock.calls[3][1].body).params).toStrictEqual([
       'txid1',
       true
     ])
 
     mockFetch.mockResolvedValueOnce(rpcResult('deadbeef'))
     await rpc.getRawTransactionHex('txid1')
-    expect(JSON.parse(mockFetch.mock.calls[3][1].body).params).toStrictEqual([
+    expect(JSON.parse(mockFetch.mock.calls[4][1].body).params).toStrictEqual([
       'txid1',
       false
     ])

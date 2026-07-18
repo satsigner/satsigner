@@ -122,3 +122,44 @@ export async function fetchExplorerTipHeight(
     electrum.close()
   }
 }
+
+export type ExplorerBlockRawHexSource = 'backend' | 'mempool'
+
+export type ExplorerBlockRawHex = {
+  hex: string
+  source: ExplorerBlockRawHexSource
+}
+
+export async function fetchExplorerBlockRawHex(
+  blockHash: string,
+  url: string,
+  backend: Backend,
+  rpcCredentials?: RpcCredentials
+): Promise<ExplorerBlockRawHex> {
+  if (backend === 'esplora') {
+    const esplora = new Esplora(url)
+    const hex = await esplora.getBlockRawHex(blockHash)
+    return { hex, source: 'backend' }
+  }
+  if (backend === 'rpc') {
+    const rpc = new BitcoinRpc(
+      url,
+      rpcCredentials?.username ?? '',
+      rpcCredentials?.password ?? ''
+    )
+    const hex = await rpc.getBlockHex(blockHash)
+    return { hex, source: 'backend' }
+  }
+  throw new Error('electrum_unsupported')
+}
+
+export async function fetchExplorerBlockRawHexFromMempool(
+  blockHash: string,
+  mempoolOracle: MempoolOracle
+): Promise<ExplorerBlockRawHex> {
+  const raw = await mempoolOracle.getBlockRaw(blockHash)
+  return {
+    hex: Buffer.from(raw).toString('hex'),
+    source: 'mempool'
+  }
+}
