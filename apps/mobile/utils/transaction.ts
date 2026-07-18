@@ -255,12 +255,32 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
         selectedInputs &&
         tx.vout &&
         tx.vout.length > 0 &&
-        tx.vout.some((output) =>
-          Array.from(selectedInputs.values()).some(
-            (input) =>
-              input.value === output.value &&
-              input.scriptpubkey_address === output.address
-          )
+        tx.vout.some((output, idx) =>
+          Array.from(selectedInputs.entries()).some(([key, input]) => {
+            const colon = key.lastIndexOf(':')
+            const keyTxid = colon !== -1 ? key.slice(0, colon) : key
+            const keyVout =
+              colon !== -1 ? Number(key.slice(colon + 1)) : Number.NaN
+            if (
+              keyTxid.toLowerCase() === txid.toLowerCase() &&
+              keyVout === idx
+            ) {
+              return true
+            }
+            const inputAddress = input.scriptpubkey_address || ''
+            const outputAddress = output.address || ''
+            if (input.value !== output.value) {
+              return false
+            }
+            if (
+              inputAddress &&
+              outputAddress &&
+              inputAddress !== outputAddress
+            ) {
+              return false
+            }
+            return inputAddress === outputAddress || !inputAddress
+          })
         )
 
       // Check if this transaction is not an input to any other transaction in our set

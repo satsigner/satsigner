@@ -38,6 +38,11 @@ export type TxNode = {
     fiatCurrency?: string
     text?: string
     isUnspent?: boolean
+    /**
+     * Explorer / non-wallet charts: no spend vs change coloring.
+     * Red is reserved for wallet spend outputs.
+     */
+    isNeutralOutput?: boolean
     /** True for vin / selected-UTXO nodes (left column), not spent outputs. */
     isInput?: boolean
     /** Previous output index (vout) for input nodes. */
@@ -60,6 +65,8 @@ export type TxNode = {
     isReceive?: boolean
     isSelfSend?: boolean // NEW: flag for self-send
     maxAllowedSats?: number
+    /** OP_RETURN / witness commitment / empty script tag for chart labels. */
+    specialTag?: string
   }
 }
 
@@ -74,8 +81,15 @@ type UseNodesAndLinksProps = {
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
+  /** When set, use this confirmed fee instead of feeRate × estimated vsize. */
+  minerFeeSats?: number
   elevatedFeeRateHighlight?: boolean
   ownAddresses?: Set<string>
+  /**
+   * Wallet send charts use spend/change coloring. Explorer history should pass
+   * false so outputs stay neutral (red reserved for wallet spends).
+   */
+  walletSpendColors?: boolean
   /** Account-level tx labels (preferred over UTXO labels for input nodes). */
   txLabelsById?: Map<string, string> | Record<string, string>
   /** Labels keyed by `txid:vout` for the consumed UTXO. */
@@ -87,8 +101,10 @@ export const useNodesAndLinks = ({
   inputs,
   outputs,
   feeRate,
+  minerFeeSats,
   elevatedFeeRateHighlight = false,
   ownAddresses = new Set(),
+  walletSpendColors = true,
   txLabelsById: accountTxLabelsById,
   outpointLabelsByRef: accountOutpointLabelsByRef
 }: UseNodesAndLinksProps) => {
@@ -109,7 +125,12 @@ export const useNodesAndLinks = ({
         outputs,
         true
       )
-      const minerFee = Math.round(feeRate * vsize)
+      const minerFee =
+        minerFeeSats !== undefined
+          ? Math.max(0, Math.round(minerFeeSats))
+          : Math.round(feeRate * vsize)
+      const displayFeeRate =
+        vsize > 0 ? Math.round(minerFee / vsize) : Math.round(feeRate)
 
       // Calculate total input value
       const totalInputValue = Array.from(inputs.values()).reduce(
@@ -127,7 +148,7 @@ export const useNodesAndLinks = ({
       let outputNodes: TxNode[] = []
 
       const outputFlags = classifyChartOutputs(outputs, ownAddresses, {
-        isWalletSend: true
+        isWalletSend: walletSpendColors
       })
 
       outputNodes = outputs.map((output, index) => ({
@@ -138,14 +159,24 @@ export const useNodesAndLinks = ({
           address: formatAddress(output.to, 4),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.amount), 2),
-          ...(outputFlags[index] ?? {
-            isChange: false,
-            isFakeMix: false,
-            isSelfSend: false
-          }),
-          isUnspent: true,
+          ...(walletSpendColors
+            ? (outputFlags[index] ?? {
+                isChange: false,
+                isFakeMix: false,
+                isSelfSend: false
+              })
+            : {
+                isChange: false,
+                isFakeMix: false,
+                isNeutralOutput: true,
+                isReceive: false,
+                isSelfSend: false
+              }),
+          isUnspent: walletSpendColors,
           label: output.label,
-          text: t('transaction.build.unspent'),
+          text: walletSpendColors
+            ? t('transaction.build.unspent')
+            : t('common.to'),
           value: output.amount
         },
         localId: output.localId,
@@ -154,7 +185,12 @@ export const useNodesAndLinks = ({
         vout: index
       }))
 
-      const remainingBalance = totalInputValue - totalOutputValue - minerFee
+      // Confirmed explorer fees are exact — do not invent a "remaining balance"
+      // arm from feeRate × estimated vsize mismatch.
+      const remainingBalance =
+        minerFeeSats !== undefined
+          ? 0
+          : totalInputValue - totalOutputValue - minerFee
 
       if (remainingBalance > 0) {
         outputNodes.push({
@@ -190,26 +226,28 @@ export const useNodesAndLinks = ({
         totalOutputSats: totalOutputValueForFee
       })
 
-      outputNodes.push({
-        depthH: blockDepth + 1,
-        id: `vout-${blockDepth + 1}-0`,
-        indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
-        ioData: {
-          elevatedFeeRate: elevatedFeeRateForCurrentTx,
-          feePercentage: Math.round(feePercentageForCurrentTx * 10000) / 100,
-          feeRate: Math.round(feeRate),
-          fiatCurrency,
-          fiatValue: formatNumber(satsToFiat(minerFee), 2),
-          higherFee: higherFeeForCurrentTx,
-          minerFee,
-          text: t('transaction.build.minerFee'),
-          value: minerFee
-        },
-        localId: 'current-minerFee',
-        type: 'text',
-        value: minerFee,
-        vout: outputs.length + (remainingBalance > 0 ? 1 : 0)
-      })
+      if (minerFee > 0) {
+        outputNodes.push({
+          depthH: blockDepth + 1,
+          id: `vout-${blockDepth + 1}-0`,
+          indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
+          ioData: {
+            elevatedFeeRate: elevatedFeeRateForCurrentTx,
+            feePercentage: Math.round(feePercentageForCurrentTx * 10000) / 100,
+            feeRate: displayFeeRate,
+            fiatCurrency,
+            fiatValue: formatNumber(satsToFiat(minerFee), 2),
+            higherFee: higherFeeForCurrentTx,
+            minerFee,
+            text: t('transaction.build.minerFee'),
+            value: minerFee
+          },
+          localId: 'current-minerFee',
+          type: 'text',
+          value: minerFee,
+          vout: outputs.length + (remainingBalance > 0 ? 1 : 0)
+        })
+      }
 
       return [
         {
@@ -222,11 +260,11 @@ export const useNodesAndLinks = ({
             blockTime: '',
             txSize: size,
             vSize: vsize,
-            value: totalOutputValue - minerFee
+            value: totalOutputValue
           },
           localId: undefined,
           type: 'block',
-          value: totalOutputValue - minerFee
+          value: totalOutputValue
         } as TxNode,
         ...outputNodes
       ]
@@ -238,10 +276,12 @@ export const useNodesAndLinks = ({
     maxExistingDepth,
     outputs,
     feeRate,
+    minerFeeSats,
     elevatedFeeRateHighlight,
     satsToFiat,
     fiatCurrency,
-    ownAddresses
+    ownAddresses,
+    walletSpendColors
   ])
 
   const outputAddresses = useMemo(() => {
@@ -411,13 +451,30 @@ export const useNodesAndLinks = ({
                   vinTx.prevValue === output.value
               )?.txid || ''
 
-            const matchingInput = Array.from(inputs.values()).find(
-              (input) =>
-                input.txid === tx.id &&
-                input.vout === idx &&
-                input.value === output.value &&
-                input.addressTo === output.address
-            )
+            const matchingInput = Array.from(inputs.values()).find((input) => {
+              if (input.txid !== tx.id || input.vout !== idx) {
+                return false
+              }
+              if (
+                typeof input.value === 'number' &&
+                typeof output.value === 'number' &&
+                input.value !== output.value
+              ) {
+                return false
+              }
+              const inputAddress = input.addressTo || ''
+              const outputAddress = output.address || ''
+              // Outpoint already matches; only reject when both addresses are
+              // present and disagree (explorer often has one side empty).
+              if (
+                inputAddress &&
+                outputAddress &&
+                inputAddress !== outputAddress
+              ) {
+                return false
+              }
+              return true
+            })
 
             const node = {
               depthH: outputDepth,
@@ -429,10 +486,15 @@ export const useNodesAndLinks = ({
                 address: formatAddress(output.address, 4),
                 fiatCurrency,
                 fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
+                isNeutralOutput: !walletSpendColors,
                 isReceive:
-                  tx.type !== 'send' && ownAddresses.has(output.address),
+                  walletSpendColors &&
+                  tx.type !== 'send' &&
+                  ownAddresses.has(output.address),
                 isSelfSend:
-                  tx.type === 'send' && ownAddresses.has(output.address),
+                  walletSpendColors &&
+                  tx.type === 'send' &&
+                  ownAddresses.has(output.address),
                 label: matchingInput?.label ?? '',
                 text: t('common.from'),
                 value: output.value ?? 0
@@ -506,6 +568,7 @@ export const useNodesAndLinks = ({
     satsToFiat,
     fiatCurrency,
     ownAddresses,
+    walletSpendColors,
     txLabelsById,
     accountOutpointLabelsByRef
   ])

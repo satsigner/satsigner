@@ -118,6 +118,7 @@ function SSSankeyLinks({
         const ribbonW = ribbonWidthForLink(ribbonPlan, link.source, link.target)
 
         const isUnspent = targetNode.ioData?.isUnspent === true
+        const isNeutralOutput = targetNode.ioData?.isNeutralOutput === true
         const isFakeMixOutput = targetNode.ioData?.isFakeMix === true
         const isChangeOutput =
           targetNode.ioData?.isChange === true ||
@@ -131,8 +132,9 @@ function SSSankeyLinks({
           targetNode.ioData?.isFakeMix !== true &&
           targetNode.ioData?.isSelfSend !== true &&
           !isChangeOutput
-        // Solid while unspent; spent arms (incl. owned receive/self-send) use fade.
-        const isOwnOrUnspentRibbon = isUnspent
+        // Solid while unspent/neutral; spent arms (incl. owned receive/self-send) use fade.
+        // Neutral = explorer (no wallet spend red).
+        const isOwnOrUnspentRibbon = isUnspent || isNeutralOutput
         const isRemainingBalance =
           targetNode.localId === CHART_REMAINING_BALANCE_LOCAL_ID
         const isCurrentTxMinerFee = targetNode.localId === 'current-minerFee'
@@ -198,7 +200,13 @@ function SSSankeyLinks({
         }
         const path1 = generateCustomLink(points)
 
-        if (targetNode.value === 0 && targetNode.depthH === maxDepthH) {
+        // Hide zero-width ordinary outputs, but keep OP_RETURN / special tags
+        // (layout stubs use value 1; still guard real zeros without a tag).
+        if (
+          targetNode.value === 0 &&
+          targetNode.depthH === maxDepthH &&
+          !targetNode.ioData?.specialTag
+        ) {
           return null
         }
 
@@ -242,6 +250,7 @@ function SSSankeyLinks({
               </>
             ) : isOwnOrUnspentRibbon &&
               !isRemainingBalance &&
+              !isNeutralOutput &&
               !isSelfSendOutput &&
               !isReceiveOutput &&
               !isFakeMixOutput &&
