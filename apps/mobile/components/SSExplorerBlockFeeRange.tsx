@@ -46,7 +46,7 @@ function SSExplorerBlockFeeRange({
           const total = Math.max(max - min, 0.01)
           return (
             <View
-              key={`${start}-${end}`}
+              key={`fee-seg-${index}-${start}-${end}`}
               style={[
                 styles.segment,
                 {
