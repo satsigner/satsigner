@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { type MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
+import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
 import type {
   ExplorerTransaction,
@@ -145,6 +147,16 @@ async function fetchFromRpc(
   return explorerTxFromHex(hex)
 }
 
+async function fetchFromMempool(
+  txid: string,
+  oracle: Pick<MempoolOracle, 'getTransactionHex'>,
+  onPhase: (phase: ExplorerLoadingPhase) => void
+): Promise<ExplorerTransaction> {
+  onPhase(`Loading ${txid.slice(0, 8)}...${txid.slice(-8)} from mempool.space`)
+  const hex = await oracle.getTransactionHex(txid)
+  return explorerTxFromHex(hex)
+}
+
 function fetchTransaction(
   txid: string,
   url: string,
@@ -163,34 +175,57 @@ function fetchTransaction(
 
 export function useExplorerTransaction(txid: string | null) {
   const [loadingPhase, setLoadingPhase] = useState<ExplorerLoadingPhase>(null)
+  const [useMempool, setUseMempool] = useState(false)
 
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
   const { server } = configs[selectedNetwork]
+  const oracle = useMempoolOracle(selectedNetwork)
 
   const query = useQuery({
     enabled: txid !== null && txid.length === TXID_LENGTH,
     gcTime: 0,
     networkMode: 'always',
-    queryFn: () =>
-      fetchTransaction(
-        txid!,
+    queryFn: () => {
+      if (!txid) {
+        return Promise.reject(new Error('missing_txid'))
+      }
+      if (useMempool) {
+        return withTimeout(
+          fetchFromMempool(txid, oracle, setLoadingPhase),
+          oracle.baseUrl
+        )
+      }
+      return fetchTransaction(
+        txid,
         server.url,
         server.backend,
         setLoadingPhase,
         server.rpcCredentials
-      ),
+      )
+    },
     queryKey: [
       'explorer-transaction',
       txid,
       server.url,
       server.backend,
-      server.rpcCredentials?.username
+      server.rpcCredentials?.username,
+      useMempool,
+      selectedNetwork
     ],
     retry: 1,
     staleTime: time.infinity
   })
 
-  return { ...query, loadingPhase: query.isLoading ? loadingPhase : null }
+  function loadFromMempool() {
+    setUseMempool(true)
+  }
+
+  return {
+    ...query,
+    loadFromMempool,
+    loadingPhase: query.isLoading ? loadingPhase : null,
+    useMempool
+  }
 }

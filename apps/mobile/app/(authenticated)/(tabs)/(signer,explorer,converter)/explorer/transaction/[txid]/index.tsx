@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSDetailsList from '@/components/SSDetailsList'
+import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSLoader from '@/components/SSLoader'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSSeparator from '@/components/SSSeparator'
@@ -14,6 +15,7 @@ import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { useExplorerTransaction } from '@/hooks/useExplorerTransaction'
+import { useExplorerTransactionEnrich } from '@/hooks/useExplorerTransactionEnrich'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
@@ -23,6 +25,8 @@ import type { ExplorerTransaction } from '@/types/models/ExplorerTransaction'
 import type { Output } from '@/types/models/Output'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
+import { getExplorerCapability } from '@/utils/explorerCapabilities'
+import { formatDate } from '@/utils/format'
 
 const tn = _tn('explorer.transaction')
 
@@ -94,17 +98,42 @@ export default function ExplorerTransactionDetail() {
   )
   const { server } = configs[selectedNetwork]
   const sourceLabel = `${server.name} (${server.backend})`
+  const txCapability = getExplorerCapability(server.backend, 'txLookup')
 
   const resolvedTxid = Array.isArray(txid) ? txid[0] : (txid ?? null)
   const {
     data: tx,
     isLoading,
     isError,
-    loadingPhase
+    loadingPhase,
+    loadFromMempool,
+    useMempool
   } = useExplorerTransaction(resolvedTxid)
+  const {
+    data: enrichment,
+    isError: enrichError,
+    isLoading: isEnriching,
+    loadFromMempool: loadEnrichment,
+    loaded: enrichLoaded
+  } = useExplorerTransactionEnrich(resolvedTxid)
+
+  const displaySourceLabel = useMempool ? 'mempool.space' : sourceLabel
 
   const inputsMap = tx ? buildInputsMap(tx) : new Map<string, Utxo>()
   const outputsList = tx ? buildOutputsList(tx) : []
+
+  function hideFlow() {
+    setShowFlow(false)
+  }
+
+  function revealFlow() {
+    setShowFlow(true)
+  }
+
+  function loadTxFromMempool() {
+    loadFromMempool()
+    loadEnrichment()
+  }
 
   const stackScreen = (
     <Stack.Screen
@@ -127,7 +156,7 @@ export default function ExplorerTransactionDetail() {
           <SSButton
             label={t('common.back')}
             variant="outline"
-            onPress={() => setShowFlow(false)}
+            onPress={hideFlow}
           />
         </View>
       </View>
@@ -150,9 +179,32 @@ export default function ExplorerTransactionDetail() {
         )}
 
         {isError && (
-          <View style={styles.loadingContainer}>
-            <SSText color="muted">{tn('notFound')}</SSText>
-          </View>
+          <SSVStack gap="sm" style={styles.loadingContainer}>
+            <SSText color="muted" center>
+              {server.backend === 'rpc' ? tn('notFoundRpc') : tn('notFound')}
+            </SSText>
+            <SSText size="xxs" type="mono" center style={styles.sourceLabel}>
+              {sourceLabel}
+            </SSText>
+            <SSText size="xxs" type="mono" center style={styles.serverUrl}>
+              {server.url}
+            </SSText>
+            {txCapability.whyKey && txCapability.fixKey ? (
+              <SSExplorerCapabilityBanner
+                why={t(txCapability.whyKey)}
+                fix={t(txCapability.fixKey)}
+                onLoad={loadTxFromMempool}
+                loading={(isLoading && useMempool) || isEnriching}
+              />
+            ) : (
+              <SSExplorerCapabilityBanner
+                why={tn('loadWhy')}
+                fix={tn('loadFix')}
+                onLoad={loadTxFromMempool}
+                loading={(isLoading && useMempool) || isEnriching}
+              />
+            )}
+          </SSVStack>
         )}
 
         {tx && (
@@ -194,9 +246,66 @@ export default function ExplorerTransactionDetail() {
               <SSButton
                 label={t('transaction.loadHistory')}
                 variant="outline"
-                onPress={() => setShowFlow(true)}
+                onPress={revealFlow}
               />
             )}
+
+            {!enrichLoaded ? (
+              <SSExplorerCapabilityBanner
+                why={tn('enrichWhy')}
+                fix={tn('enrichFix')}
+                onLoad={loadEnrichment}
+                loading={isEnriching}
+              />
+            ) : null}
+
+            {enrichLoaded && isEnriching ? (
+              <SSText size="xs" color="muted" center>
+                {t('common.loadingDots')}
+              </SSText>
+            ) : null}
+
+            {enrichError ? (
+              <SSText size="sm" color="muted" center>
+                {tn('enrichError')}
+              </SSText>
+            ) : null}
+
+            {enrichment ? (
+              <SSVStack gap="xs">
+                <SSText size="xxs" style={styles.externalSource}>
+                  mempool.space
+                </SSText>
+                <SSDetailsList
+                  columns={2}
+                  headerSize="sm"
+                  textSize="md"
+                  uppercase={false}
+                  items={[
+                    [
+                      tn('confirmed'),
+                      enrichment.status.confirmed ? tn('yes') : tn('no')
+                    ],
+                    [
+                      tn('blockHeight'),
+                      enrichment.status.block_height?.toString() ?? '--'
+                    ],
+                    [
+                      tn('blockTime'),
+                      enrichment.status.block_time
+                        ? formatDate(enrichment.status.block_time * 1000)
+                        : '--'
+                    ],
+                    [
+                      tn('spentOutputs'),
+                      enrichment.outspends
+                        .filter((o) => o.spent)
+                        .length.toString()
+                    ]
+                  ]}
+                />
+              </SSVStack>
+            ) : null}
 
             <SSSeparator color="gradient" />
 
@@ -211,8 +320,13 @@ export default function ExplorerTransactionDetail() {
                     {tx.txid}
                   </SSText>
                 </SSClipboardCopy>
-                <SSText size="xxs" style={styles.sourceLabel}>
-                  {sourceLabel}
+                <SSText
+                  size="xxs"
+                  style={
+                    useMempool ? styles.externalSource : styles.sourceLabel
+                  }
+                >
+                  {displaySourceLabel}
                 </SSText>
               </SSVStack>
             </SSHStack>
@@ -336,6 +450,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20
   },
+  externalSource: { color: Colors.gray[500] },
   flex: { flex: 1 },
   header: { alignItems: 'center' },
   headerAmount: { alignItems: 'center', marginTop: 16 },
@@ -343,6 +458,7 @@ const styles = StyleSheet.create({
   loadingContainer: { alignItems: 'center', gap: 16, paddingVertical: 60 },
   loadingPhase: { opacity: 0.6 },
   sectionWithTopPadding: { paddingTop: 50 },
+  serverUrl: { color: Colors.gray[500], opacity: 0.9 },
   sourceLabel: { color: Colors.mainGreen, opacity: 0.8 },
   txidContent: { flex: 1 },
   txidSection: { alignItems: 'flex-start' }

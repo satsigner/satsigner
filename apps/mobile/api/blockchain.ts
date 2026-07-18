@@ -32,21 +32,30 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   get(endpoint: string) {
-    return fetch(this.baseUrl + endpoint).then(
-      (response: Response) => response.json() as Promise<unknown>
-    )
+    return fetch(this.baseUrl + endpoint).then((response: Response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      return response.json() as Promise<unknown>
+    })
   }
 
   getText(endpoint: string): Promise<string> {
-    return fetch(this.baseUrl + endpoint).then(
-      (response: Response) => response.text() as Promise<string>
-    )
+    return fetch(this.baseUrl + endpoint).then((response: Response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      return response.text()
+    })
   }
 
   getBinary(endpoint: string): Promise<ArrayBuffer> {
-    return fetch(this.baseUrl + endpoint).then(
-      (response: Response) => response.arrayBuffer() as Promise<ArrayBuffer>
-    )
+    return fetch(this.baseUrl + endpoint).then((response: Response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      return response.arrayBuffer()
+    })
   }
 
   async getAddressUtxos(address: string) {
@@ -288,7 +297,7 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async getTransactionHex(txid: string) {
-    const data = await this.getText(`/tx/${txid}`)
+    const data = await this.getText(`/tx/${txid}/hex`)
     return z.string().parse(data)
   }
 
