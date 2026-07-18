@@ -1,10 +1,11 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
+import SSLoader from '@/components/SSLoader'
 import SSMempoolBlocks from '@/components/SSMempoolBlocks'
 import SSText from '@/components/SSText'
 import {
@@ -61,7 +62,7 @@ export default function ExplorerMempool() {
       />
       {isLoadingBasic && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="white" size="large" />
+          <SSLoader size={80} />
         </View>
       )}
       <ScrollView showsVerticalScrollIndicator={false}>

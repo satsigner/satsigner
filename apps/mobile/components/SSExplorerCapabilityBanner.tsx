@@ -49,11 +49,13 @@ function SSExplorerCapabilityBanner({
 
 const styles = StyleSheet.create({
   container: {
+    alignSelf: 'stretch',
     borderColor: Colors.gray[800],
     borderCurve: 'continuous',
     borderRadius: 8,
     borderWidth: 1,
-    padding: 12
+    padding: 12,
+    width: '100%'
   }
 })
 

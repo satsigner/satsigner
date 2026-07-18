@@ -1,9 +1,10 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import { useChainData } from '@/hooks/useChainData'
 import { useBackendServerInfo, useBitnodesNodeInfo } from '@/hooks/useNodeData'
@@ -55,7 +56,7 @@ export default function ExplorerNode() {
       />
       {(isLoadingChain || isLoadingInfo) && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="white" size="large" />
+          <SSLoader size={80} />
         </View>
       )}
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -189,9 +190,9 @@ export default function ExplorerNode() {
                 sourceLabel="bitnodes.io"
               />
               {isLoadingBitnodes && (
-                <SSText size="sm" style={styles.labelText}>
-                  {tn('loading')}
-                </SSText>
+                <View style={styles.inlineLoading}>
+                  <SSLoader size={64} />
+                </View>
               )}
               {!isLoadingBitnodes && bitnodesInfo === null && (
                 <SSText size="sm" style={styles.labelText}>
@@ -287,6 +288,10 @@ const styles = StyleSheet.create({
   },
   container: { paddingTop: 0 },
   hashText: { color: Colors.gray['100'], fontFamily: 'monospace' },
+  inlineLoading: {
+    alignItems: 'center',
+    paddingVertical: 24
+  },
   labelText: { color: Colors.gray['400'] },
   loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   privacyNote: { color: Colors.gray['600'], marginTop: 4, textAlign: 'center' },
