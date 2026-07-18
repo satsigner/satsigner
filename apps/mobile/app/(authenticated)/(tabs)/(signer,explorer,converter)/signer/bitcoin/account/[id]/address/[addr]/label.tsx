@@ -1,11 +1,11 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
 import useNostrSync from '@/hooks/useNostrSync'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -49,10 +49,7 @@ function AddressLabel() {
   }
 
   return (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="interactive"
-    >
+    <SSScrollView keyboardDismissMode="interactive">
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -71,7 +68,7 @@ function AddressLabel() {
         </SSVStack>
         <SSLabelInput label={address.label} onUpdateLabel={updateLabel} />
       </SSVStack>
-    </ScrollView>
+    </SSScrollView>
   )
 }
 
