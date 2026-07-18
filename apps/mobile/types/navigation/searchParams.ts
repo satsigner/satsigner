@@ -23,6 +23,10 @@ export type ExplorerBlockSearchParams = {
   block: string
 }
 
+export type ExplorerAddressSearchParams = {
+  address: string
+}
+
 export type AccountSearchParams = {
   id: string
 }

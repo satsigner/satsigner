@@ -88,7 +88,7 @@ export default class Esplora {
         txid: input.txid,
         vout: input.vout
       },
-      scriptSig: parseHexToBytes(input.scriptsig),
+      scriptSig: parseHexToBytes(input.scriptsig ?? ''),
       sequence: input.sequence,
       value: input.prevout?.value,
       witness: input.witness?.map(parseHexToBytes)
@@ -170,6 +170,16 @@ export default class Esplora {
   async getAddressTxsInMempool(address: string) {
     const data = await this._call(`/address/${address}/txs/mempool`)
     return parseTxs(data)
+  }
+
+  /** Address summary (chain/mempool funded/spent sums). */
+  getAddress(address: string): Promise<unknown> {
+    return this._call(`/address/${address}`)
+  }
+
+  /** First page of address txs only (no pagination). */
+  getAddressTxsPage(address: string): Promise<unknown> {
+    return this._call(`/address/${address}/txs`)
   }
 
   async getAddressUtxos(address: string) {

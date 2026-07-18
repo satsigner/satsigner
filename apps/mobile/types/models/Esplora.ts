@@ -5,9 +5,9 @@ export const EsploraTxSchema = z.object({
   locktime: z.number(),
   size: z.number(),
   status: z.object({
-    block_hash: z.string(),
-    block_height: z.number(),
-    block_time: z.number(),
+    block_hash: z.string().optional(),
+    block_height: z.number().optional(),
+    block_time: z.number().optional(),
     confirmed: z.boolean()
   }),
   txid: z.string(),
@@ -23,9 +23,10 @@ export const EsploraTxSchema = z.object({
           scriptpubkey_type: z.string().optional(),
           value: z.number()
         })
-        .nullable(),
-      scriptsig: z.string(),
-      scriptsig_asm: z.string(),
+        .nullable()
+        .optional(),
+      scriptsig: z.string().optional(),
+      scriptsig_asm: z.string().optional(),
       sequence: z.number(),
       txid: z.string(),
       vout: z.number(),

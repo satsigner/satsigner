@@ -1,240 +1,184 @@
-import { FlashList } from '@shopify/flash-list'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
-import { router, Stack } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet } from 'react-native'
+import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 
+import { SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
-import SSExplorerSection from '@/components/SSExplorerSection'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { useExplorerAddress } from '@/hooks/useExplorerAddress'
+import { EXPLORER_EXAMPLE_ADDRESSES } from '@/constants/explorerExamples'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t, tn as _tn } from '@/locales'
+import { tn as _tn } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type { ExplorerAddressUtxo } from '@/types/explorer/address'
-import { formatExplorerBackendSource } from '@/utils/explorerCapabilities'
-import { formatNumber } from '@/utils/format'
 
 const tn = _tn('explorer.address')
 
-type UtxoRowProps = {
-  utxo: ExplorerAddressUtxo
-}
-
-function UtxoRow({ utxo }: UtxoRowProps) {
-  function openTx() {
-    router.push(`/explorer/transaction/${utxo.txid}`)
+function formatExampleAddress(address: string): string {
+  if (address.length <= 20) {
+    return address
   }
-
-  return (
-    <Pressable onPress={openTx} style={styles.listItem}>
-      <SSText type="mono" size="xs">
-        {utxo.txid.slice(0, 12)}…:{utxo.vout}
-      </SSText>
-      <SSText size="sm">{formatNumber(utxo.value)} sats</SSText>
-    </Pressable>
-  )
+  return `${address.slice(0, 10)}...${address.slice(-8)}`
 }
 
-type TxRowProps = {
-  txid: string
-}
-
-function TxRow({ txid }: TxRowProps) {
-  function openTx() {
-    router.push(`/explorer/transaction/${txid}`)
-  }
-
-  return (
-    <Pressable onPress={openTx} style={styles.listItem}>
-      <SSText type="mono" size="xs">
-        {txid}
-      </SSText>
-    </Pressable>
-  )
-}
-
-function renderUtxo({ item }: { item: ExplorerAddressUtxo }) {
-  return <UtxoRow utxo={item} />
-}
-
-function renderTx({ item }: { item: string }) {
-  return <TxRow txid={item} />
-}
-
-function utxoKey(item: ExplorerAddressUtxo) {
-  return `${item.txid}:${item.vout}`
-}
-
-function txKey(txid: string) {
-  return txid
-}
-
-export default function ExplorerAddressPage() {
+export default function ExplorerAddress() {
+  const router = useRouter()
   const [input, setInput] = useState('')
-  const [lookupAddress, setLookupAddress] = useState<string | null>(null)
+  const [scanOpen, setScanOpen] = useState(false)
+  const [permission, requestPermission] = useCameraPermissions()
+  const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork)
+  const showExamples = selectedNetwork === 'bitcoin'
 
-  const {
-    data,
-    isLoading,
-    isError,
-    backendSupported,
-    capability,
-    loadFromMempool,
-    ready,
-    server,
-    useMempool
-  } = useExplorerAddress(lookupAddress)
-
-  async function pasteAddress() {
-    const text = await Clipboard.getStringAsync()
-    if (text) {
-      setInput(text.trim())
-    }
-  }
-
-  function lookup() {
-    const next = input.trim()
-    if (!next) {
+  function navigate(address: string) {
+    const trimmed = address.trim()
+    if (!trimmed) {
       toast.error(tn('invalid'))
       return
     }
-    setLookupAddress(next)
+    router.push({
+      params: { address: trimmed },
+      pathname: '/explorer/address/[address]'
+    })
   }
 
-  const sourceLabel = data
-    ? data.source === 'backend'
-      ? formatExplorerBackendSource(server.name, server.backend)
-      : 'mempool.space'
-    : null
+  function handleLoad() {
+    navigate(input)
+  }
+
+  function handleExample(address: string) {
+    setInput(address)
+    navigate(address)
+  }
+
+  async function handlePaste() {
+    const text = await Clipboard.getStringAsync()
+    const trimmed = text.trim()
+    if (!trimmed) {
+      return
+    }
+    setInput(trimmed)
+  }
+
+  async function handleScan() {
+    if (!permission?.granted) {
+      const result = await requestPermission()
+      if (!result.granted) {
+        return
+      }
+    }
+    setScanOpen(true)
+  }
+
+  function handleBarcodeScanned({ data }: { data: string }) {
+    setScanOpen(false)
+    const trimmed = data.trim()
+    setInput(trimmed)
+    navigate(trimmed)
+  }
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
-      <SSVStack gap="md" style={styles.container}>
-        <SSTextInput
-          value={input}
-          onChangeText={setInput}
-          placeholder={tn('placeholder')}
-          align="center"
-        />
-        <SSHStack gap="sm">
-          <SSButton
-            style={styles.half}
-            variant="outline"
-            label={t('common.paste')}
-            onPress={pasteAddress}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <SSVStack gap="md" style={styles.inputRow}>
+          <SSTextInput
+            placeholder={tn('placeholder')}
+            value={input}
+            onChangeText={setInput}
+            autoCapitalize="none"
+            autoCorrect={false}
+            align="left"
+            multiline
+            numberOfLines={3}
+            scrollEnabled={false}
+            textAlignVertical="top"
+            style={styles.addressInput}
           />
-          <SSButton
-            style={styles.half}
-            variant="secondary"
-            label={tn('lookup')}
-            onPress={lookup}
-          />
-        </SSHStack>
-
-        {!backendSupported && ready && !useMempool ? (
-          <SSExplorerCapabilityBanner
-            why={t(capability.whyKey!)}
-            fix={t(capability.fixKey!)}
-            onLoad={loadFromMempool}
-          />
-        ) : null}
-
-        {isLoading ? (
-          <SSVStack itemsCenter>
-            <ActivityIndicator size="large" />
-            <SSText>{t('common.loadingDots')}</SSText>
-          </SSVStack>
-        ) : null}
-
-        {isError ? (
-          <SSVStack gap="sm">
-            <SSText color="muted">{tn('notFound')}</SSText>
-            <SSExplorerCapabilityBanner
-              why={t('explorer.capability.addressHistory.rpc.why')}
-              fix={t('explorer.capability.addressHistory.rpc.fix')}
-              onLoad={loadFromMempool}
+          <SSHStack gap="sm">
+            <SSButton
+              label={tn('paste')}
+              variant="outline"
+              onPress={handlePaste}
+              style={styles.actionButton}
             />
-          </SSVStack>
-        ) : null}
-
-        {data ? (
-          <>
-            <SSExplorerSection
-              title={tn('balance')}
-              source={data.source === 'mempool' ? 'mempool' : 'backend'}
-              sourceLabel={sourceLabel}
-            >
-              <SSText weight="bold">
-                {formatNumber(data.confirmed + data.unconfirmed)} sats
-              </SSText>
-              <SSText size="xs" color="muted">
-                {tn('confirmed')}: {formatNumber(data.confirmed)} ·{' '}
-                {tn('unconfirmed')}: {formatNumber(data.unconfirmed)}
-              </SSText>
-            </SSExplorerSection>
-
-            <SSExplorerSection title={tn('utxos')}>
-              <SSVStack style={styles.listBox}>
-                <FlashList
-                  data={data.utxos}
-                  keyExtractor={utxoKey}
-                  renderItem={renderUtxo}
-                  ListEmptyComponent={
-                    <SSText color="muted" size="sm">
-                      {tn('noUtxos')}
+            <SSButton
+              label={tn('scanQr')}
+              variant="outline"
+              onPress={handleScan}
+              style={styles.actionButton}
+            />
+          </SSHStack>
+          <SSButton
+            label={tn('load')}
+            variant="outline"
+            onPress={handleLoad}
+            disabled={input.trim().length === 0}
+          />
+          {showExamples ? (
+            <SSVStack gap="none">
+              {EXPLORER_EXAMPLE_ADDRESSES.map((ex) => (
+                <TouchableOpacity
+                  key={ex.address}
+                  style={styles.exampleCard}
+                  onPress={() => handleExample(ex.address)}
+                >
+                  <SSVStack gap="xxs" style={styles.exampleCardContent}>
+                    <SSText size="sm" weight="medium">
+                      {ex.label}
                     </SSText>
-                  }
-                />
-              </SSVStack>
-            </SSExplorerSection>
-
-            <SSExplorerSection title={tn('transactions')}>
-              <SSVStack style={styles.listBox}>
-                <FlashList
-                  data={data.txids}
-                  keyExtractor={txKey}
-                  renderItem={renderTx}
-                  ListEmptyComponent={
-                    <SSText color="muted" size="sm">
-                      {tn('noTransactions')}
+                    <SSText size="xxs" color="muted">
+                      {ex.description}
                     </SSText>
-                  }
-                />
-              </SSVStack>
-            </SSExplorerSection>
-          </>
-        ) : null}
-      </SSVStack>
+                    <SSText type="mono" size="xxs" color="muted">
+                      {formatExampleAddress(ex.address)}
+                    </SSText>
+                  </SSVStack>
+                  <SSIconChevronRight
+                    width={12}
+                    height={12}
+                    stroke={Colors.gray['600']}
+                  />
+                </TouchableOpacity>
+              ))}
+            </SSVStack>
+          ) : null}
+        </SSVStack>
+      </ScrollView>
+
+      <SSModal visible={scanOpen} onClose={() => setScanOpen(false)}>
+        <CameraView
+          style={styles.camera}
+          onBarcodeScanned={handleBarcodeScanned}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+        />
+      </SSModal>
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingBottom: 24
+  actionButton: { flex: 1 },
+  addressInput: { height: 96 },
+  camera: { height: 300, width: '100%' },
+  container: { paddingTop: 0 },
+  exampleCard: {
+    alignItems: 'center',
+    borderBottomColor: Colors.gray['800'],
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 14
   },
-  half: {
-    flex: 1
-  },
-  listBox: {
-    height: 220
-  },
-  listItem: {
-    borderTopColor: Colors.gray[800],
-    borderTopWidth: 1,
-    gap: 4,
-    paddingVertical: 10
-  }
+  exampleCardContent: { flex: 1, paddingRight: 12 },
+  inputRow: { paddingTop: 16 }
 })

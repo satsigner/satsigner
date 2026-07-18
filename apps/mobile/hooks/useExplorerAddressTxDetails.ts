@@ -3,72 +3,84 @@ import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  fetchExplorerAddressFromBackend,
-  fetchExplorerAddressFromMempool
+  fetchExplorerAddressTxDetailsFromBackend,
+  fetchExplorerAddressTxDetailsFromMempool
 } from '@/api/explorerAddress'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
-import { getExplorerCapability } from '@/utils/explorerCapabilities'
 import { time } from '@/utils/time'
 
-export function useExplorerAddress(address: string | null) {
+type UseExplorerAddressTxDetailsArgs = {
+  address: string | null
+  txids: string[]
+  /** Prefer mempool when the address itself was loaded from mempool.space. */
+  preferMempool?: boolean
+}
+
+export function useExplorerAddressTxDetails({
+  address,
+  txids,
+  preferMempool = false
+}: UseExplorerAddressTxDetailsArgs) {
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
   const { server } = configs[selectedNetwork]
   const oracle = useMempoolOracle(selectedNetwork)
+  const [requested, setRequested] = useState(false)
   const [useMempool, setUseMempool] = useState(false)
-  const [mempoolForAddress, setMempoolForAddress] = useState<string | null>(
-    null
-  )
 
-  const capability = getExplorerCapability(server.backend, 'addressHistory')
-  const backendSupported = capability.available
   const trimmed = address?.trim() ?? ''
   const ready = trimmed.length > 20
-  const mempoolEnabled = useMempool && mempoolForAddress === trimmed
+  const mempoolEnabled = useMempool || preferMempool
 
   const query = useQuery({
-    enabled: ready,
+    enabled: ready && requested,
     queryFn: () => {
       if (mempoolEnabled) {
-        return fetchExplorerAddressFromMempool(trimmed, oracle)
+        return fetchExplorerAddressTxDetailsFromMempool(trimmed, oracle)
       }
-      return fetchExplorerAddressFromBackend(
+      return fetchExplorerAddressTxDetailsFromBackend(
         trimmed,
         server.url,
         server.backend,
         selectedNetwork,
-        server.rpcCredentials
+        txids
       )
     },
     queryKey: [
-      'explorer-address',
+      'explorer-address-tx-details',
       trimmed,
       server.backend,
       server.url,
       mempoolEnabled,
-      selectedNetwork
+      selectedNetwork,
+      txids.slice(0, 50).join(',')
     ],
+    retry: false,
     staleTime: time.minutes(2)
   })
 
-  function loadFromMempool() {
+  function loadDetails() {
     if (!trimmed) {
       return
     }
-    setMempoolForAddress(trimmed)
+    setRequested(true)
+  }
+
+  function loadDetailsFromMempool() {
+    if (!trimmed) {
+      return
+    }
     setUseMempool(true)
+    setRequested(true)
   }
 
   return {
     ...query,
-    address: trimmed,
-    backendSupported,
-    capability,
-    loadFromMempool,
-    ready,
-    server,
+    loadDetails,
+    loadDetailsFromMempool,
+    requested,
     useMempool: mempoolEnabled
   }
 }
