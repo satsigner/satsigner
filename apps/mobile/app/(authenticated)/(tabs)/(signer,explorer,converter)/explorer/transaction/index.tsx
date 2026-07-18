@@ -16,11 +16,12 @@ import SSModal from '@/components/SSModal'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { EXPLORER_EXAMPLE_TRANSACTIONS } from '@/constants/explorerExamples'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
@@ -42,6 +43,32 @@ function detectInputType(value: string): 'txid' | 'rawTx' | null {
     return 'rawTx'
   }
   return null
+}
+
+function ExampleIoCount({
+  count,
+  kind
+}: {
+  count: number
+  kind: 'in' | 'out'
+}) {
+  const word =
+    kind === 'in'
+      ? count === 1
+        ? t('transaction.input.singular')
+        : t('transaction.input.plural')
+      : count === 1
+        ? t('transaction.output.singular')
+        : t('transaction.output.plural')
+
+  return (
+    <SSHStack gap="xs" style={styles.exampleIoRow}>
+      <SSText size="xs">{count}</SSText>
+      <SSText size="xs" color="muted">
+        {word.toLowerCase()}
+      </SSText>
+    </SSHStack>
+  )
 }
 
 async function broadcastRawTx(
@@ -70,61 +97,6 @@ async function broadcastRawTx(
   return esplora.broadcastTransaction(hex)
 }
 
-const EXAMPLE_TRANSACTIONS = [
-  {
-    description:
-      'First Bitcoin transaction between two people — Satoshi sent 10 BTC to Hal Finney (Jan 12, 2009)',
-    label: 'First Tx',
-    txid: 'f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16'
-  },
-  {
-    description:
-      'First known Bitcoin sale to USD — Martti "Sirius" Malmi sold 5,050 BTC for $5.02 (2009)',
-    label: 'First BTC Sale',
-    txid: '7dff938918f07619abd38e4510890396b1cef4fbeca154fb7aafba8843295ea2'
-  },
-  {
-    description:
-      'First real-world Bitcoin purchase — 10,000 BTC for two pizzas (May 22, 2010)',
-    label: 'Pizza Day',
-    txid: 'a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d'
-  },
-  {
-    description:
-      '500,000 BTC moved in a single transaction — largest BTC amount ever (Nov 2011)',
-    label: '500K BTC',
-    txid: '29a3efd3ef04f9153d47a990bd7b048a4b2d213daaa5fb8ed670fb85f13bdbcf'
-  },
-  {
-    description:
-      '194,993 BTC transferred — likely a major exchange or whale (Nov 2013)',
-    label: '195K BTC',
-    txid: '1c12443203a48f42cdf7b1acee5b4b1c1fedc144cb909a3bf5edbffafb0cd204'
-  },
-  {
-    description: '180,000 BTC moved in a single output (Mar 2014)',
-    label: '180K BTC',
-    txid: '4ee89f7cf824a85ad5f11d52604ffdebe9f01302bcea8ddec0af450f9185ddf1'
-  },
-  {
-    description:
-      '130,004 BTC transferred, 66,633 BTC retained by sender (Jan 2019)',
-    label: '130K BTC',
-    txid: 'f6c98463b7b6bc9c866e66a1341dac29e524071c553282f583e30f3009afb901'
-  },
-  {
-    description: '109,232 BTC — $491M at transaction time (Nov 2018)',
-    label: '109K BTC',
-    txid: '1ee11c8a24c9244f14c4d5a9c3670c13664f4ae8f7738c31b4f21221a5bdfbd1'
-  },
-  {
-    description:
-      '94,504 BTC — largest USD amount ever moved at its time, $1B (Sep 2019)',
-    label: '$1B Move',
-    txid: '4410c8d14ff9f87ceeed1d65cb58e7c7b2422b2d7529afc675208ce2ce09ed7d'
-  }
-]
-
 export default function ExplorerTransaction() {
   const router = useRouter()
   const [inputTxid, setInputTxid] = useState('')
@@ -137,6 +109,7 @@ export default function ExplorerTransaction() {
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
   const { server } = configs[selectedNetwork]
+  const showExamples = selectedNetwork === 'bitcoin'
 
   const inputType = detectInputType(inputTxid)
 
@@ -246,32 +219,42 @@ export default function ExplorerTransaction() {
             loading={isBroadcasting}
             disabled={inputType === null}
           />
-          <SSVStack gap="none">
-            {EXAMPLE_TRANSACTIONS.map((ex) => (
-              <TouchableOpacity
-                key={ex.txid}
-                style={styles.exampleCard}
-                onPress={() => handleExample(ex.txid)}
-              >
-                <SSVStack gap="xxs" style={styles.exampleCardContent}>
-                  <SSText size="sm" weight="medium">
-                    {ex.label}
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    {ex.description}
-                  </SSText>
-                  <SSText type="mono" size="xxs" color="muted">
-                    {ex.txid.slice(0, 8)}...{ex.txid.slice(-8)}
-                  </SSText>
-                </SSVStack>
-                <SSIconChevronRight
-                  width={12}
-                  height={12}
-                  stroke={Colors.gray['600']}
-                />
-              </TouchableOpacity>
-            ))}
-          </SSVStack>
+          {showExamples ? (
+            <SSVStack gap="none">
+              {EXPLORER_EXAMPLE_TRANSACTIONS.map((ex) => (
+                <TouchableOpacity
+                  key={ex.txid}
+                  style={styles.exampleCard}
+                  onPress={() => handleExample(ex.txid)}
+                >
+                  <SSVStack gap="xxs" style={styles.exampleCardContent}>
+                    <SSHStack gap="sm" style={styles.exampleLabelRow}>
+                      <SSText
+                        size="sm"
+                        weight="medium"
+                        style={styles.exampleLabel}
+                      >
+                        {ex.label}
+                      </SSText>
+                      <ExampleIoCount count={ex.inputs} kind="in" />
+                      <ExampleIoCount count={ex.outputs} kind="out" />
+                    </SSHStack>
+                    <SSText size="xxs" color="muted">
+                      {ex.description}
+                    </SSText>
+                    <SSText type="mono" size="xxs" color="muted">
+                      {ex.txid.slice(0, 8)}...{ex.txid.slice(-8)}
+                    </SSText>
+                  </SSVStack>
+                  <SSIconChevronRight
+                    width={12}
+                    height={12}
+                    stroke={Colors.gray['600']}
+                  />
+                </TouchableOpacity>
+              ))}
+            </SSVStack>
+          ) : null}
         </SSVStack>
       </ScrollView>
 
@@ -306,6 +289,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14
   },
   exampleCardContent: { flex: 1, paddingRight: 12 },
+  exampleIoRow: { alignItems: 'baseline', flexShrink: 0, width: 'auto' },
+  exampleLabel: { flexShrink: 1 },
+  exampleLabelRow: { alignItems: 'baseline', flexWrap: 'wrap', width: 'auto' },
   inputRow: { paddingTop: 16 },
   txidInput: { height: 96 }
 })

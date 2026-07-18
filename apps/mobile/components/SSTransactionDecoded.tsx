@@ -478,6 +478,7 @@ function SSTransactionDecodedWithWarning(props: SSTransactionDecodedProps) {
   if (!dismissed && !showRawHex && thresholdCheck(props)) {
     return (
       <SSPerformanceWarning
+        dismissLabel={tn('btnLoadAnyway')}
         onDismiss={() => setDismissed(true)}
         onSecondaryAction={handleLoadRawHex}
         secondaryActionLoading={loadingRawHex}

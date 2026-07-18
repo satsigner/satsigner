@@ -66,29 +66,38 @@ function parseOutspends(raw: unknown): TxOutspend[] {
 export function useExplorerTransactionEnrich(txid: string | null) {
   const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork)
   const oracle = useMempoolOracle(selectedNetwork)
-  const [enabled, setEnabled] = useState(false)
+  const [enabledForTxid, setEnabledForTxid] = useState<string | null>(null)
+
+  const normalizedTxid = txid?.trim().toLowerCase() ?? null
+  const enabled =
+    normalizedTxid !== null &&
+    normalizedTxid.length === 64 &&
+    enabledForTxid === normalizedTxid
 
   const query = useQuery({
-    enabled: enabled && txid !== null && txid.length === 64,
+    enabled,
     queryFn: async (): Promise<ExplorerTransactionEnrichment> => {
-      if (!txid) {
+      if (!normalizedTxid) {
         throw new Error('missing_txid')
       }
       const [statusRaw, outspendsRaw] = await Promise.all([
-        oracle.get(`/tx/${txid}/status`),
-        oracle.get(`/tx/${txid}/outspends`)
+        oracle.get(`/tx/${normalizedTxid}/status`),
+        oracle.get(`/tx/${normalizedTxid}/outspends`)
       ])
       return {
         outspends: parseOutspends(outspendsRaw),
         status: parseStatus(statusRaw)
       }
     },
-    queryKey: ['explorer-tx-enrich', txid, selectedNetwork],
+    queryKey: ['explorer-tx-enrich', normalizedTxid, selectedNetwork],
     staleTime: time.minutes(5)
   })
 
   function loadFromMempool() {
-    setEnabled(true)
+    if (!normalizedTxid || normalizedTxid.length !== 64) {
+      return
+    }
+    setEnabledForTxid(normalizedTxid)
   }
 
   return {

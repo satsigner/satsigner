@@ -22,7 +22,6 @@ export type ExplorerLoadingPhase = string | null
 const TXID_LENGTH = 64
 const TIMEOUT_MS = 30_000
 const TIMEOUT_TOR_MS = 90_000
-
 function withTimeout<T>(promise: Promise<T>, url: string): Promise<T> {
   const ms = url.includes('.onion') ? TIMEOUT_TOR_MS : TIMEOUT_MS
   return Promise.race([
@@ -39,12 +38,18 @@ function bytesToHex(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString('hex')
 }
 
+/** Wire-order outpoint hash → explorer txid (Hermes: no TypedArray#toReversed). */
+function outpointHashBytesToTxid(hash: Uint8Array): string {
+  // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+  return Buffer.from(hash).reverse().toString('hex')
+}
+
 function explorerTxFromHex(hex: string): ExplorerTransaction {
-  const tx = TxDecoded.fromHex(hex)
+  const tx = TxDecoded.fromHex(hex.trim())
 
   const inputs: ExplorerTxInput[] = tx.ins.map((inp) => ({
     isCoinbase: tx.isCoinbase(),
-    prevTxid: bytesToHex(Buffer.from(inp.hash).toReversed()),
+    prevTxid: outpointHashBytesToTxid(inp.hash),
     prevVout: inp.index,
     scriptSig: bytesToHex(inp.script),
     sequence: inp.sequence,
@@ -58,6 +63,7 @@ function explorerTxFromHex(hex: string): ExplorerTransaction {
   }))
 
   return {
+    hex: hex.trim(),
     inputs,
     isCoinbase: tx.isCoinbase(),
     isSegwit: tx.hasWitnesses(),
@@ -98,24 +104,31 @@ async function fetchFromEsplora(
     url.length > 40 ? `${url.slice(0, 20)}...${url.slice(-12)}` : url
   onPhase(`Loading ${txid.slice(0, 8)}...${txid.slice(-8)} from ${shortUrl}`)
   const esplora = new Esplora(url)
-  const tx = await esplora.getTxInfo(txid)
+  const [tx, hexResult] = await Promise.all([
+    esplora.getTxInfo(txid),
+    esplora.getTxHex(txid).catch(() => null)
+  ])
 
   const inputs: ExplorerTxInput[] = tx.vin.map((inp) => ({
+    address: inp.prevout?.scriptpubkey_address,
     isCoinbase: inp.is_coinbase,
     prevTxid: inp.txid,
     prevVout: inp.vout,
     scriptSig: inp.scriptsig ?? '',
     sequence: inp.sequence,
+    value: inp.prevout?.value,
     witness: inp.witness ?? []
   }))
 
   const outputs: ExplorerTxOutput[] = tx.vout.map((out, i) => ({
+    address: out.scriptpubkey_address,
     index: i,
     script: out.scriptpubkey ?? '',
     value: out.value
   }))
 
   return {
+    hex: hexResult?.trim() || undefined,
     inputs,
     isCoinbase: tx.vin[0]?.is_coinbase ?? false,
     isSegwit: tx.vin.some((inp) => inp.witness && inp.witness.length > 0),
@@ -149,12 +162,26 @@ async function fetchFromRpc(
 
 async function fetchFromMempool(
   txid: string,
-  oracle: Pick<MempoolOracle, 'getTransactionHex'>,
+  oracle: Pick<MempoolOracle, 'baseUrl' | 'getTransactionHex'>,
   onPhase: (phase: ExplorerLoadingPhase) => void
 ): Promise<ExplorerTransaction> {
   onPhase(`Loading ${txid.slice(0, 8)}...${txid.slice(-8)} from mempool.space`)
-  const hex = await oracle.getTransactionHex(txid)
-  return explorerTxFromHex(hex)
+
+  // Prefer JSON (confirmed txs) so we avoid hex decode when possible.
+  try {
+    return await fetchFromEsplora(txid, oracle.baseUrl, onPhase)
+  } catch {
+    // Unconfirmed / schema mismatch: fall back to raw hex.
+  }
+
+  try {
+    const hex = await oracle.getTransactionHex(txid)
+    return explorerTxFromHex(hex)
+  } catch {
+    const esplora = new Esplora(oracle.baseUrl)
+    const hex = await esplora.getTxHex(txid)
+    return explorerTxFromHex(hex)
+  }
 }
 
 function fetchTransaction(
@@ -175,7 +202,10 @@ function fetchTransaction(
 
 export function useExplorerTransaction(txid: string | null) {
   const [loadingPhase, setLoadingPhase] = useState<ExplorerLoadingPhase>(null)
-  const [useMempool, setUseMempool] = useState(false)
+  const [mempoolTx, setMempoolTx] = useState<ExplorerTransaction | null>(null)
+  const [mempoolLoading, setMempoolLoading] = useState(false)
+  const [mempoolError, setMempoolError] = useState(false)
+  const [loadedTxid, setLoadedTxid] = useState<string | null>(null)
 
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
@@ -183,22 +213,26 @@ export function useExplorerTransaction(txid: string | null) {
   const { server } = configs[selectedNetwork]
   const oracle = useMempoolOracle(selectedNetwork)
 
-  const query = useQuery({
-    enabled: txid !== null && txid.length === TXID_LENGTH,
+  const normalizedTxid = txid?.trim().toLowerCase() ?? null
+
+  if (normalizedTxid !== loadedTxid) {
+    setLoadedTxid(normalizedTxid)
+    setMempoolTx(null)
+    setMempoolError(false)
+    setMempoolLoading(false)
+    setLoadingPhase(null)
+  }
+
+  const backendQuery = useQuery({
+    enabled: normalizedTxid !== null && normalizedTxid.length === TXID_LENGTH,
     gcTime: 0,
     networkMode: 'always',
     queryFn: () => {
-      if (!txid) {
+      if (!normalizedTxid) {
         return Promise.reject(new Error('missing_txid'))
       }
-      if (useMempool) {
-        return withTimeout(
-          fetchFromMempool(txid, oracle, setLoadingPhase),
-          oracle.baseUrl
-        )
-      }
       return fetchTransaction(
-        txid,
+        normalizedTxid,
         server.url,
         server.backend,
         setLoadingPhase,
@@ -207,25 +241,56 @@ export function useExplorerTransaction(txid: string | null) {
     },
     queryKey: [
       'explorer-transaction',
-      txid,
+      normalizedTxid,
       server.url,
       server.backend,
       server.rpcCredentials?.username,
-      useMempool,
       selectedNetwork
     ],
     retry: 1,
     staleTime: time.infinity
   })
 
-  function loadFromMempool() {
-    setUseMempool(true)
+  async function loadFromMempool() {
+    if (!normalizedTxid || normalizedTxid.length !== TXID_LENGTH) {
+      return
+    }
+
+    setMempoolLoading(true)
+    setMempoolError(false)
+    setLoadingPhase(
+      `Loading ${normalizedTxid.slice(0, 8)}...${normalizedTxid.slice(-8)} from mempool.space`
+    )
+
+    try {
+      const result = await withTimeout(
+        fetchFromMempool(normalizedTxid, oracle, setLoadingPhase),
+        oracle.baseUrl
+      )
+      setMempoolTx(result)
+      setMempoolError(false)
+    } catch {
+      setMempoolTx(null)
+      setMempoolError(true)
+    } finally {
+      setMempoolLoading(false)
+      setLoadingPhase(null)
+    }
   }
 
+  const useMempool = mempoolTx !== null
+  const isLoading = mempoolLoading || (!useMempool && backendQuery.isLoading)
+  const isError =
+    mempoolError || (!useMempool && !mempoolLoading && backendQuery.isError)
+
   return {
-    ...query,
+    data: mempoolTx ?? backendQuery.data,
+    error: backendQuery.error,
+    isError,
+    isLoading,
     loadFromMempool,
-    loadingPhase: query.isLoading ? loadingPhase : null,
+    loadingPhase: isLoading ? loadingPhase : null,
+    mempoolError,
     useMempool
   }
 }
