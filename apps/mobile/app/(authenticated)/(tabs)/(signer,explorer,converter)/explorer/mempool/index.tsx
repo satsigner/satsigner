@@ -4,6 +4,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSMempoolBlocks from '@/components/SSMempoolBlocks'
 import SSText from '@/components/SSText'
 import {
@@ -34,9 +35,16 @@ export default function ExplorerMempool() {
 
   const feeHistogram = basicData?.feeHistogram ?? []
   const vsizeFromHistogram = basicData?.vsizeFromHistogram ?? 0
+  const backendVsize = basicData?.vsize ?? vsizeFromHistogram
 
-  const minFeeRate = feeHistogram.length > 0 ? feeHistogram.at(-1)?.[0] : null
+  const minFeeRate =
+    basicData?.minFeeRate ??
+    (feeHistogram.length > 0 ? (feeHistogram.at(-1)?.[0] ?? null) : null)
   const maxFeeRate = feeHistogram.length > 0 ? feeHistogram[0]?.[0] : null
+
+  function enableExternal() {
+    setShowExternal(true)
+  }
 
   function sourceLabel(src: 'backend' | 'mempool') {
     return src === 'backend'
@@ -68,15 +76,30 @@ export default function ExplorerMempool() {
               }
             />
             <SSVStack gap="xs">
+              {basicData?.count !== null && basicData?.count !== undefined ? (
+                <Row
+                  label={tn('pendingTxs')}
+                  value={basicData.count.toLocaleString()}
+                  loading={isLoadingBasic}
+                />
+              ) : null}
               <Row
                 label={tn('mempoolSize')}
                 value={
-                  vsizeFromHistogram > 0
-                    ? formatBytes(vsizeFromHistogram)
+                  backendVsize && backendVsize > 0
+                    ? formatBytes(backendVsize)
                     : '--'
                 }
                 loading={isLoadingBasic}
               />
+              {basicData?.totalFee !== null &&
+              basicData?.totalFee !== undefined ? (
+                <Row
+                  label={tn('totalFees')}
+                  value={`${basicData.totalFee.toLocaleString()} sats`}
+                  loading={isLoadingBasic}
+                />
+              ) : null}
               <Row
                 label={tn('minFeeRate')}
                 value={minFeeRate !== null ? `${minFeeRate} sat/vB` : '--'}
@@ -99,21 +122,17 @@ export default function ExplorerMempool() {
             </SSVStack>
           </SSVStack>
 
-          {/* External data opt-in */}
-          {!showExternal && (
-            <SSVStack style={{ alignItems: 'center' }}>
-              <SSButton
-                label={tn('loadExternal')}
-                variant="outline"
-                onPress={() => setShowExternal(true)}
-              />
-              <SSText size="xs" style={styles.privacyNote}>
-                {tn('externalNote')}
-              </SSText>
-            </SSVStack>
-          )}
+          {!showExternal ? (
+            <SSExplorerCapabilityBanner
+              why={tn('externalWhy')}
+              fix={tn('externalNote')}
+              onLoad={enableExternal}
+              loadLabel={tn('loadExternal')}
+              loading={isLoadingExtended}
+            />
+          ) : null}
 
-          {showExternal && (
+          {showExternal ? (
             <>
               <SSVStack gap="sm">
                 <SectionHeader
@@ -194,7 +213,7 @@ export default function ExplorerMempool() {
                 </SSVStack>
               ) : null}
             </>
-          )}
+          ) : null}
         </SSVStack>
       </ScrollView>
     </SSMainLayout>

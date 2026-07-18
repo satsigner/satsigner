@@ -2,26 +2,45 @@ import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
+  fetchBackendServerInfo,
   fetchBitnodesNetworkStats,
-  fetchBitnodesNodeInfo,
-  fetchElectrumServerInfo
+  fetchBitnodesNodeInfo
 } from '@/api/explorerNode'
 import { useBlockchainStore } from '@/store/blockchain'
 import { time } from '@/utils/time'
 
-export function useElectrumServerInfo() {
+export function useBackendServerInfo() {
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
   const { server } = configs[selectedNetwork]
-  const isElectrum = server.backend === 'electrum' && Boolean(server.url)
+  const supportsServerInfo =
+    (server.backend === 'electrum' || server.backend === 'rpc') &&
+    Boolean(server.url)
 
   return useQuery({
-    enabled: isElectrum,
-    queryFn: () => fetchElectrumServerInfo(server.url, selectedNetwork),
-    queryKey: ['electrum-server-info', server.url, selectedNetwork],
+    enabled: supportsServerInfo,
+    queryFn: () =>
+      fetchBackendServerInfo(
+        server.url,
+        server.backend,
+        selectedNetwork,
+        server.rpcCredentials
+      ),
+    queryKey: [
+      'backend-server-info',
+      server.url,
+      server.backend,
+      selectedNetwork,
+      server.rpcCredentials?.username
+    ],
     staleTime: time.minutes(30)
   })
+}
+
+/** @deprecated Prefer useBackendServerInfo */
+export function useElectrumServerInfo() {
+  return useBackendServerInfo()
 }
 
 export function useBitnodesNodeInfo(enabled: boolean) {

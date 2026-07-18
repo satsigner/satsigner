@@ -385,7 +385,7 @@ function newtonRaphson(
 
 const styles = StyleSheet.create({
   canvas: {
-    backgroundColor: '#000',
+    backgroundColor: Colors.gray[950],
     position: 'relative'
   },
   closeButton: {
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   },
   container: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: Colors.gray[950],
     borderColor: 'yellow',
     flex: 1,
     justifyContent: 'center'
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
     zIndex: 10
   },
   overlayCanvas: {
-    backgroundColor: '#000',
+    backgroundColor: Colors.gray[950],
     height: 200,
     marginBottom: 16,
     width: 200

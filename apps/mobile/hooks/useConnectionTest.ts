@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState } from 'react'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
-import BitcoinRpc, { type BlockchainInfo, type NetworkInfo } from '@/api/rpc'
+import BitcoinRpc from '@/api/rpc'
 import {
   type Backend,
   type Network,
   type ProxyConfig,
   type RpcCredentials
 } from '@/types/settings/blockchain'
+import { formatCoreVersion, formatRpcBanner } from '@/utils/rpcBanner'
 import { expectedCoreChain, formatChainMismatchError } from '@/utils/rpcNetwork'
 
 type NodeInfo = {
@@ -40,50 +41,6 @@ export type ConnectionTestResult =
       success: false
       error?: string
     }
-
-/** Bitcoin Core packs versions as major*10000 + minor*100 + patch. */
-function formatCoreVersion(version: number): string {
-  const major = Math.floor(version / 10000)
-  const minor = Math.floor((version % 10000) / 100)
-  const patch = version % 100
-  return `${major}.${minor}.${patch}`
-}
-
-/**
- * Mirror Sparrow/Cormorant: banner is Core's subversion, with connection and
- * sync status appended when useful.
- */
-function formatRpcBanner(
-  networkInfo: NetworkInfo,
-  chainInfo: BlockchainInfo
-): string {
-  const lines: string[] = []
-  const subversion = networkInfo.subversion?.trim()
-  if (subversion) {
-    lines.push(
-      networkInfo.networkactive === false
-        ? `${subversion} (disconnected)`
-        : subversion
-    )
-  } else {
-    lines.push(`Bitcoin Core ${formatCoreVersion(networkInfo.version)}`)
-  }
-
-  if (chainInfo.initialblockdownload) {
-    const pct = Math.round((chainInfo.verificationprogress ?? 0) * 100)
-    lines.push(`Initial block download (${pct}%)`)
-  }
-
-  if (chainInfo.pruned) {
-    lines.push('Pruned node')
-  }
-
-  if (typeof networkInfo.connections === 'number') {
-    lines.push(`${networkInfo.connections} peer connections`)
-  }
-
-  return lines.join('\n')
-}
 
 export function useConnectionTest() {
   const [testing, setTesting] = useState(false)

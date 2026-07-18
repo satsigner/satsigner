@@ -236,9 +236,11 @@ export default function ExplorerHalving() {
                         {halvingHeight.toLocaleString()}
                       </SSText>
                       <SSText size="xs" style={[styles.colSubsidy, textStyle]}>
-                        {(h.subsidySats / SATS_PER_BITCOIN)
-                          .toFixed(8)
-                          .replace(/\.?0+$/, '')}
+                        {h.subsidySats === 0
+                          ? '0.00000000'
+                          : (h.subsidySats / SATS_PER_BITCOIN)
+                              .toFixed(8)
+                              .replace(/\.?0+$/, '')}
                       </SSText>
                       <View style={styles.colCircle}>
                         <View

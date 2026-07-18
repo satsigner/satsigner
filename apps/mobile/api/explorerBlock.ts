@@ -1,29 +1,16 @@
+import { type MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import type { Block as BaseBlock } from '@/types/models/Blockchain'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
 import type { PartialSome } from '@/types/utils'
+import { getDifficultyFromBits } from '@/utils/bitcoin/difficulty'
 
 export type ExplorerBlock = PartialSome<
   BaseBlock,
   'merkle_root' | 'mediantime' | 'tx_count' | 'previousblockhash'
 >
-
-function getDifficultyFromBits(bits: number): number {
-  const exponent = bits >>> 24
-  const mantissa = bits & 0x007fffff
-  let target = BigInt(mantissa)
-  const shift = 8 * (exponent - 3)
-  if (shift >= 0) {
-    target *= 1n << BigInt(shift)
-  } else {
-    target /= 1n << BigInt(-shift)
-  }
-  const maxTarget =
-    0x00000000ffff0000000000000000000000000000000000000000000000000000n
-  return Number(maxTarget) / Number(target)
-}
 
 async function fetchBlockEsplora(
   url: string,
@@ -101,6 +88,13 @@ export function fetchExplorerBlock(
     return fetchBlockRpc(url, height, rpcCredentials)
   }
   return fetchBlockElectrum(url, height)
+}
+
+export function fetchExplorerBlockFromMempool(
+  height: number,
+  oracle: MempoolOracle
+): Promise<ExplorerBlock> {
+  return oracle.getBlockAtHeight(height)
 }
 
 export async function fetchExplorerTipHeight(

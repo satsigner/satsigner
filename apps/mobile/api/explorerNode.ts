@@ -1,11 +1,20 @@
 import ElectrumClient from '@/api/electrum'
-import type { Network } from '@/types/settings/blockchain'
+import BitcoinRpc from '@/api/rpc'
+import type {
+  Backend,
+  Network,
+  RpcCredentials
+} from '@/types/settings/blockchain'
+import { formatCoreVersion, formatRpcBanner } from '@/utils/rpcBanner'
 
-export type ElectrumServerInfo = {
+export type BackendServerInfo = {
   serverSoftware: string
   protocolVersion: string
   banner: string
 }
+
+/** @deprecated Prefer BackendServerInfo */
+export type ElectrumServerInfo = BackendServerInfo
 
 export type BitnodesNodeInfo = {
   address: string
@@ -15,6 +24,11 @@ export type BitnodesNodeInfo = {
 }
 
 const BITNODES_API = 'https://bitnodes.io/api/v1'
+const EMPTY_SERVER_INFO: BackendServerInfo = {
+  banner: '',
+  protocolVersion: '',
+  serverSoftware: ''
+}
 
 function safeClose(client: ElectrumClient | null): void {
   try {
@@ -27,7 +41,7 @@ function safeClose(client: ElectrumClient | null): void {
 export async function fetchElectrumServerInfo(
   serverUrl: string,
   network: Network
-): Promise<ElectrumServerInfo> {
+): Promise<BackendServerInfo> {
   let client: ElectrumClient | null = null
   try {
     client = ElectrumClient.fromUrl(serverUrl, network)
@@ -40,7 +54,8 @@ export async function fetchElectrumServerInfo(
 
     const version =
       versionResult.status === 'fulfilled' ? versionResult.value : ['', '']
-    const banner = bannerResult.status === 'fulfilled' ? bannerResult.value : ''
+    const banner =
+      bannerResult.status === 'fulfilled' ? bannerResult.value.trim() : ''
 
     return {
       banner,
@@ -48,10 +63,52 @@ export async function fetchElectrumServerInfo(
       serverSoftware: version[0] ?? ''
     }
   } catch {
-    return { banner: '', protocolVersion: '', serverSoftware: '' }
+    return EMPTY_SERVER_INFO
   } finally {
     safeClose(client)
   }
+}
+
+async function fetchRpcServerInfo(
+  serverUrl: string,
+  rpcCredentials?: RpcCredentials
+): Promise<BackendServerInfo> {
+  try {
+    const rpc = new BitcoinRpc(
+      serverUrl,
+      rpcCredentials?.username ?? '',
+      rpcCredentials?.password ?? ''
+    )
+    const [chainInfo, networkInfo] = await Promise.all([
+      rpc.getBlockchainInfo(),
+      rpc.getNetworkInfo()
+    ])
+
+    return {
+      banner: formatRpcBanner(networkInfo, chainInfo),
+      protocolVersion: networkInfo.protocolversion?.toString() ?? '',
+      serverSoftware:
+        networkInfo.subversion?.trim() ||
+        `Bitcoin Core ${formatCoreVersion(networkInfo.version)}`
+    }
+  } catch {
+    return EMPTY_SERVER_INFO
+  }
+}
+
+export function fetchBackendServerInfo(
+  serverUrl: string,
+  backend: Backend,
+  network: Network,
+  rpcCredentials?: RpcCredentials
+): Promise<BackendServerInfo> {
+  if (backend === 'electrum') {
+    return fetchElectrumServerInfo(serverUrl, network)
+  }
+  if (backend === 'rpc') {
+    return fetchRpcServerInfo(serverUrl, rpcCredentials)
+  }
+  return Promise.resolve(EMPTY_SERVER_INFO)
 }
 
 function extractHost(url: string): string {

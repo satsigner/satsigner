@@ -1,15 +1,22 @@
 import { useFont } from '@shopify/react-native-skia'
-import { Stack } from 'expo-router'
+import { router, Stack } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View
+} from 'react-native'
 import { CartesianChart, Line } from 'victory-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSButton from '@/components/SSButton'
+import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
 import SSText from '@/components/SSText'
 import {
   useChainTipData,
+  useChainTipExternalData,
   useChainTipMempoolStats,
   useChainTipPriceHistory
 } from '@/hooks/useChainTipData'
@@ -40,6 +47,8 @@ export default function ChainTip() {
   const [showExternal, setShowExternal] = useState(false)
 
   const { data: chainData, isLoading } = useChainTipData()
+  const { data: externalData, isLoading: isLoadingExternal } =
+    useChainTipExternalData(showExternal)
   const { data: mempoolStatistics } = useChainTipMempoolStats(
     '2h',
     showExternal
@@ -89,6 +98,17 @@ export default function ChainTip() {
     }).format(new Date(timestampSeconds * 1000))
   }
 
+  function openTipBlock() {
+    if (typeof chainData?.height !== 'number') {
+      return
+    }
+    router.push(`/explorer/block?height=${chainData.height}`)
+  }
+
+  function enableExternal() {
+    setShowExternal(true)
+  }
+
   return (
     <SSMainLayout style={styles.container}>
       <Stack.Screen
@@ -115,11 +135,16 @@ export default function ChainTip() {
               }
             />
             <SSVStack gap="xs">
-              <Row
-                label={tn('height')}
-                value={chainData?.height?.toLocaleString() ?? '--'}
-                loading={isLoading}
-              />
+              <Pressable
+                onPress={openTipBlock}
+                disabled={typeof chainData?.height !== 'number'}
+              >
+                <Row
+                  label={tn('height')}
+                  value={chainData?.height?.toLocaleString() ?? '--'}
+                  loading={isLoading}
+                />
+              </Pressable>
               <Row
                 label={tn('timestamp')}
                 value={
@@ -158,6 +183,13 @@ export default function ChainTip() {
                   {isLoading ? '--' : (chainData?.hash ?? '--')}
                 </SSText>
               </SSVStack>
+              {typeof chainData?.height === 'number' ? (
+                <Pressable onPress={openTipBlock}>
+                  <SSText size="xs" style={styles.linkText}>
+                    {tn('viewBlock')}
+                  </SSText>
+                </Pressable>
+              ) : null}
             </SSVStack>
           </SSVStack>
 
@@ -208,31 +240,24 @@ export default function ChainTip() {
             />
           ) : null}
 
-          {!showExternal && (
-            <SSVStack style={{ alignItems: 'center' }}>
-              <SSButton
-                label={tn('loadExternal')}
-                variant="outline"
-                onPress={() => setShowExternal(true)}
-              />
-              <SSText size="xs" style={styles.privacyNote}>
-                {tn('externalNote')}
-              </SSText>
-            </SSVStack>
-          )}
+          {!showExternal ? (
+            <SSExplorerCapabilityBanner
+              why={tn('externalWhy')}
+              fix={tn('externalNote')}
+              onLoad={enableExternal}
+              loadLabel={tn('loadExternal')}
+              loading={isLoadingExternal}
+            />
+          ) : null}
 
           {showExternal && (
             <>
               {chainData?.feesSource !== 'backend' ? (
                 <FeeRatesSection
-                  fees={chainData?.fees ?? null}
-                  source={chainData?.feesSource ?? 'mempool'}
-                  sourceLabel={
-                    chainData?.feesSource
-                      ? sourceLabel(chainData.feesSource)
-                      : 'mempool.space'
-                  }
-                  loading={isLoading}
+                  fees={externalData?.fees ?? null}
+                  source="mempool"
+                  sourceLabel="mempool.space"
+                  loading={isLoadingExternal}
                 />
               ) : null}
               <SSVStack gap="sm" style={{ marginTop: 8 }}>
@@ -414,6 +439,11 @@ const styles = StyleSheet.create({
   labelText: {
     color: Colors.gray['400']
   },
+  linkText: {
+    color: Colors.mainGreen,
+    marginTop: 4,
+    textDecorationLine: 'underline'
+  },
   loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   priceChartWrapper: {
     borderColor: Colors.gray[700],
@@ -423,11 +453,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     overflow: 'hidden',
     padding: 12
-  },
-  privacyNote: {
-    color: Colors.gray['600'],
-    marginTop: 4,
-    textAlign: 'center'
   },
   row: {
     alignItems: 'center',
