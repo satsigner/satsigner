@@ -145,14 +145,17 @@ describe('consensus utils', () => {
       expect(halvings[0].subsidySats).toBe(50 * 100_000_000)
     })
 
-    it('includes 33 halvings before subsidy drops to 0', () => {
+    it('includes the zero-subsidy epoch after 33 positive subsidies', () => {
       const halvings = historicalHalvings()
-      expect(halvings).toHaveLength(33)
+      expect(halvings).toHaveLength(34)
+      expect(halvings.at(-2)?.subsidySats).toBe(1)
+      expect(halvings.at(-1)?.subsidySats).toBe(0)
+      expect(halvings.at(-1)?.epoch).toBe(33)
     })
 
-    it('last entry has 1 sat subsidy', () => {
+    it('last entry has 0 sat subsidy', () => {
       const halvings = historicalHalvings()
-      expect(halvings.at(-1).subsidySats).toBe(1)
+      expect(halvings.at(-1)?.subsidySats).toBe(0)
     })
   })
 })

@@ -83,21 +83,21 @@ export function estimatedHashRateEHs(difficulty: number): number {
 
 /**
  * Static historical halvings based on consensus rules and known timestamps.
- * The first two (epochs 0 and 1) were before height-based calculation was relevant.
+ * Includes the first epoch where the subsidy reaches 0 sats.
  */
 export function historicalHalvings(): HistoricalHalving[] {
   const halvings: HistoricalHalving[] = []
   let epoch = 0
   while (true) {
     const subsidySats = Math.floor(INITIAL_SUBSIDY_SATS / 2 ** epoch)
-    if (subsidySats === 0) {
-      break
-    }
     halvings.push({
       epoch,
       height: epoch * HALVING_INTERVAL,
       subsidySats
     })
+    if (subsidySats === 0) {
+      break
+    }
     epoch += 1
   }
   return halvings
