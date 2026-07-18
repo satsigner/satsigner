@@ -1,16 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { router, Stack } from 'expo-router'
 import { useState } from 'react'
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import { useChainData } from '@/hooks/useChainData'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
@@ -61,7 +56,7 @@ export default function ExplorerChain() {
     if (typeof height !== 'number') {
       return
     }
-    router.push(`/explorer/block?height=${height}`)
+    router.push(`/explorer/block/${height}`)
   }
 
   const blocksInEpoch = height !== null ? height % 2016 : null
@@ -88,7 +83,7 @@ export default function ExplorerChain() {
       />
       {isLoading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="white" size="large" />
+          <SSLoader size={80} />
         </View>
       )}
       <ScrollView showsVerticalScrollIndicator={false}>

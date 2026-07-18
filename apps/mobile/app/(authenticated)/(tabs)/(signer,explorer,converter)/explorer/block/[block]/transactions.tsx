@@ -1,11 +1,12 @@
 import { FlashList } from '@shopify/flash-list'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSExplorerTxSizeBars from '@/components/SSExplorerTxSizeBars'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import { useExplorerBlockTransactions } from '@/hooks/useExplorerBlockTransactions'
 import SSHStack from '@/layouts/SSHStack'
@@ -63,7 +64,6 @@ export default function BlockTransactions() {
     isLoading,
     isError,
     error,
-    backendSupported,
     capability,
     loadFromMempool,
     server,
@@ -74,29 +74,12 @@ export default function BlockTransactions() {
     setVisibleCount((count) => count + PAGE_SIZE)
   }
 
-  if (!backendSupported && !useMempool) {
-    return (
-      <SSMainLayout>
-        <SSExplorerCapabilityBanner
-          why={t(
-            capability.whyKey ?? 'explorer.block.transactions.wrongBackend'
-          )}
-          fix={t(
-            capability.fixKey ?? 'explorer.capability.blockTxList.electrum.fix'
-          )}
-          onLoad={loadFromMempool}
-        />
-      </SSMainLayout>
-    )
-  }
-
   if (isLoading) {
     return (
       <SSMainLayout>
-        <SSVStack itemsCenter>
-          <SSText size="md">{t('common.loadingDots')}</SSText>
-          <ActivityIndicator size="large" />
-        </SSVStack>
+        <View style={styles.loadingContainer}>
+          <SSLoader size={80} />
+        </View>
       </SSMainLayout>
     )
   }
@@ -110,11 +93,19 @@ export default function BlockTransactions() {
               ? error.message
               : t('explorer.block.transactions.wrongBackend')}
           </SSText>
-          <SSExplorerCapabilityBanner
-            why={t('explorer.capability.blockTxList.electrum.why')}
-            fix={t('explorer.capability.blockTxList.electrum.fix')}
-            onLoad={loadFromMempool}
-          />
+          {!useMempool ? (
+            <SSExplorerCapabilityBanner
+              why={t(
+                capability.whyKey ??
+                  'explorer.capability.blockTxList.electrum.why'
+              )}
+              fix={t(
+                capability.fixKey ??
+                  'explorer.capability.blockTxList.electrum.fix'
+              )}
+              onLoad={loadFromMempool}
+            />
+          ) : null}
         </SSVStack>
       </SSMainLayout>
     )
@@ -172,6 +163,12 @@ const styles = StyleSheet.create({
   footer: {
     justifyContent: 'center',
     paddingVertical: 12
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 60
   },
   sourceLabel: {
     color: Colors.gray[500]

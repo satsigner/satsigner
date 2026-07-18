@@ -1,18 +1,13 @@
 import { useFont } from '@shopify/react-native-skia'
 import { router, Stack } from 'expo-router'
 import { useState } from 'react'
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { CartesianChart, Line } from 'victory-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import {
   useChainTipData,
@@ -102,7 +97,7 @@ export default function ChainTip() {
     if (typeof chainData?.height !== 'number') {
       return
     }
-    router.push(`/explorer/block?height=${chainData.height}`)
+    router.push(`/explorer/block/${chainData.height}`)
   }
 
   function enableExternal() {
@@ -118,7 +113,7 @@ export default function ChainTip() {
       />
       {isLoading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="white" size="large" />
+          <SSLoader size={80} />
         </View>
       )}
       <ScrollView showsVerticalScrollIndicator={false}>

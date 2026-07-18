@@ -1,14 +1,9 @@
 import { Stack, useRouter } from 'expo-router'
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHalvingProgress from '@/components/SSHalvingProgress'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { useChainData } from '@/hooks/useChainData'
@@ -81,7 +76,7 @@ export default function ExplorerHalving() {
       />
       {isLoading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="white" size="large" />
+          <SSLoader size={80} />
         </View>
       )}
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -225,7 +220,7 @@ export default function ExplorerHalving() {
                     key={h.epoch}
                     disabled={!isPast}
                     onPress={() =>
-                      router.push(`/explorer/block?height=${halvingHeight}`)
+                      router.push(`/explorer/block/${halvingHeight}`)
                     }
                   >
                     <SSHStack gap="none" style={styles.halvingRow}>

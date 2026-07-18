@@ -12,10 +12,13 @@ export function useExplorerBlockViz(height: number | null) {
     useShallow((state) => [state.selectedNetwork])
   )
   const oracle = useMempoolOracle(selectedNetwork)
-  const [enabled, setEnabled] = useState(false)
+  const [enabledForHeight, setEnabledForHeight] = useState<number | null>(null)
+
+  const enabled =
+    typeof height === 'number' && height > 0 && enabledForHeight === height
 
   const query = useQuery({
-    enabled: enabled && typeof height === 'number' && height > 0,
+    enabled,
     queryFn: () => {
       if (typeof height !== 'number') {
         throw new TypeError('missing_height')
@@ -27,7 +30,10 @@ export function useExplorerBlockViz(height: number | null) {
   })
 
   function loadFromMempool() {
-    setEnabled(true)
+    if (typeof height !== 'number' || height <= 0) {
+      return
+    }
+    setEnabledForHeight(height)
   }
 
   return {

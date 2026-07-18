@@ -372,7 +372,7 @@ function BlockDetails({ block, onClose }: BlockDetailsProps) {
 
   function openBlock() {
     onClose()
-    router.push(`/explorer/block?height=${blockHeight}`)
+    router.push(`/explorer/block/${blockHeight}`)
   }
 
   return (

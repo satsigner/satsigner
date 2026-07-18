@@ -1,323 +1,246 @@
-import { Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { useQuery } from '@tanstack/react-query'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useState } from 'react'
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  type ExplorerBlock,
-  fetchExplorerBlock,
-  fetchExplorerBlockFromMempool,
-  fetchExplorerTipHeight
-} from '@/api/explorerBlock'
+import { fetchExplorerTipHeight } from '@/api/explorerBlock'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSExploreBlock from '@/components/SSExploreBlock'
-import SSExplorerBlockFeeRange from '@/components/SSExplorerBlockFeeRange'
-import SSExplorerBlockFeeRateBars from '@/components/SSExplorerBlockFeeRateBars'
-import SSExplorerBlockVizStats from '@/components/SSExplorerBlockVizStats'
-import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
-import SSExplorerSection from '@/components/SSExplorerSection'
-import SSExplorerTxSizeBars from '@/components/SSExplorerTxSizeBars'
 import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSText from '@/components/SSText'
-import { useExplorerBlockViz } from '@/hooks/useExplorerBlockViz'
-import useMempoolOracle from '@/hooks/useMempoolOracle'
+import {
+  type ExplorerExampleBlock,
+  EXPLORER_EXAMPLE_BLOCKS
+} from '@/constants/explorerExamples'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
-import { saveFile } from '@/utils/filesystem'
+import { time } from '@/utils/time'
+
+const tn = _tn('explorer.block')
 
 const DEFAULT_MAX_BLOCK_HEIGHT = 890_000
-const PAGE_PADDING = 120
 
-function ExplorerBlockPage() {
+function formatExampleHeight(height: number): string {
+  return `Block ${height.toLocaleString('en-US')}`
+}
+
+function parseHeightParam(value: string | undefined): number | null {
+  if (!value) {
+    return null
+  }
+  const height = Number(value)
+  if (!Number.isInteger(height) || height < 0) {
+    return null
+  }
+  return height
+}
+
+type ExampleBlockCardProps = {
+  example: ExplorerExampleBlock
+  onSelect: (height: number) => void
+}
+
+function ExampleBlockCard({ example, onSelect }: ExampleBlockCardProps) {
+  function handlePress() {
+    onSelect(example.height)
+  }
+
+  return (
+    <TouchableOpacity style={styles.exampleCard} onPress={handlePress}>
+      <SSVStack gap="xxs" style={styles.exampleCardContent}>
+        <SSText size="sm" weight="medium">
+          {example.label}
+        </SSText>
+        <SSText size="xxs" color="muted">
+          {example.description}
+        </SSText>
+        <SSText type="mono" size="xxs" color="muted">
+          {formatExampleHeight(example.height)}
+        </SSText>
+      </SSVStack>
+      <SSIconChevronRight width={12} height={12} stroke={Colors.gray['600']} />
+    </TouchableOpacity>
+  )
+}
+
+export default function ExplorerBlockSearch() {
+  const router = useRouter()
+  const { height: heightParam } = useLocalSearchParams<{ height?: string }>()
+  const legacyHeight = parseHeightParam(heightParam)
+
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
   const { server } = configs[selectedNetwork]
-  const { url: backendUrl, backend, rpcCredentials } = server
-  const sourceLabel = `${server.name} (${server.backend})`
-  const mempoolOracle = useMempoolOracle(selectedNetwork)
+  const showExamples = selectedNetwork === 'bitcoin'
 
-  const { height: windowHeight } = useWindowDimensions()
-  const minPageHeight = windowHeight - PAGE_PADDING
+  const tipQuery = useQuery({
+    queryFn: () =>
+      fetchExplorerTipHeight(server.url, server.backend, server.rpcCredentials),
+    queryKey: [
+      'explorer-tip-height',
+      server.backend,
+      server.url,
+      selectedNetwork
+    ],
+    staleTime: time.minutes(1)
+  })
 
-  const { height: heightParam } = useLocalSearchParams<{ height?: string }>()
-
-  const [inputHeight, setInputHeight] = useState(heightParam ?? '1')
-  const [loading, setLoading] = useState(false)
-  const [loadingMeta, setLoadingMeta] = useState(false)
-  const [downloading, setDownloading] = useState(false)
-  const [maxBlockHeight, setMaxBlockHeight] = useState(DEFAULT_MAX_BLOCK_HEIGHT)
-  const [block, setBlock] = useState<ExplorerBlock | null>(null)
-  const [metaFromMempool, setMetaFromMempool] = useState(false)
+  const maxBlockHeight = tipQuery.data ?? DEFAULT_MAX_BLOCK_HEIGHT
+  const [inputHeight, setInputHeight] = useState('0')
 
   const heightNumber = Number(inputHeight)
-  const atMinHeight = heightNumber <= 1
+  const isValidHeight =
+    Number.isInteger(heightNumber) &&
+    heightNumber >= 0 &&
+    heightNumber <= maxBlockHeight
+  const atMinHeight = heightNumber <= 0
   const atMaxHeight = heightNumber >= maxBlockHeight
-  const displaySourceLabel = metaFromMempool ? 'mempool.space' : sourceLabel
-  const showLoadFullMeta = backend === 'electrum' && !metaFromMempool
-  const vizHeight = block?.height ?? null
-  const {
-    data: vizData,
-    isError: vizError,
-    isLoading: vizLoading,
-    loadFromMempool,
-    loaded: vizLoaded
-  } = useExplorerBlockViz(vizHeight)
 
-  async function loadBlock(height: number) {
-    setLoading(true)
-    try {
-      const nextBlock = await fetchExplorerBlock(
-        backendUrl,
-        backend,
-        height,
-        rpcCredentials
-      )
-      setBlock(nextBlock)
-      setMetaFromMempool(false)
-      setInputHeight(height.toString())
-      return nextBlock
-    } catch {
-      toast.error(`Failed to fetch block ${height}`)
-    } finally {
-      setLoading(false)
-    }
+  if (legacyHeight !== null) {
+    return <Redirect href={`/explorer/block/${legacyHeight}`} />
   }
 
-  async function loadFullMetaFromMempool() {
-    const height = Number(inputHeight)
-    if (!height) {
+  function navigate(height: number) {
+    if (!Number.isInteger(height) || height < 0) {
+      toast.error(tn('invalid'))
       return
     }
-    setLoadingMeta(true)
-    try {
-      const nextBlock = await fetchExplorerBlockFromMempool(
-        height,
-        mempoolOracle
-      )
-      setBlock(nextBlock)
-      setMetaFromMempool(true)
-    } catch {
-      toast.error(t('explorer.block.loadFullMetaError'))
-    } finally {
-      setLoadingMeta(false)
-    }
-  }
-
-  async function loadLatestBlock() {
-    const tipHeight = await fetchExplorerTipHeight(
-      backendUrl,
-      backend,
-      rpcCredentials
-    )
-    setMaxBlockHeight(tipHeight)
-    await loadBlock(tipHeight)
-  }
-
-  function fetchBlockFromInput() {
-    const height = Number(inputHeight)
-    if (height === block?.height || height > maxBlockHeight || height < 0) {
-      toast.error('Invalid block height')
+    if (tipQuery.data !== undefined && height > tipQuery.data) {
+      toast.error(tn('invalid'))
       return
     }
-    loadBlock(height)
+    router.push(`/explorer/block/${height}`)
+  }
+
+  function handleLoad() {
+    if (!isValidHeight) {
+      toast.error(tn('invalid'))
+      return
+    }
+    navigate(heightNumber)
+  }
+
+  function handleExample(height: number) {
+    setInputHeight(height.toString())
+    navigate(height)
+  }
+
+  function handleLatest() {
+    if (tipQuery.data === undefined) {
+      return
+    }
+    setInputHeight(tipQuery.data.toString())
+    navigate(tipQuery.data)
   }
 
   function nextBlockHeight() {
-    setInputHeight(Math.min(maxBlockHeight, Number(inputHeight) + 1).toString())
+    setInputHeight(Math.min(maxBlockHeight, heightNumber + 1).toString())
   }
 
   function prevBlockHeight() {
-    setInputHeight(Math.max(1, Number(inputHeight) - 1).toString())
+    setInputHeight(Math.max(0, heightNumber - 1).toString())
   }
-
-  async function downloadRawHex() {
-    if (!block?.id) {
-      return
-    }
-    setDownloading(true)
-    try {
-      const raw = await mempoolOracle.getBlockRaw(block.id)
-      const hex = Buffer.from(raw).toString('hex')
-      await saveFile({
-        dialogTitle: t('explorer.block.downloadRawHex'),
-        fileContent: hex,
-        filename: `block-${block.height}.hex`,
-        mimeType: 'text/plain'
-      })
-    } catch {
-      toast.error(t('explorer.block.downloadRawHexError'))
-    } finally {
-      setDownloading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (heightParam) {
-      loadBlock(Number(heightParam))
-    } else {
-      loadLatestBlock()
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <ScrollView>
+    <SSMainLayout style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('explorer.block.title')}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
-      <SSMainLayout style={{ paddingBottom: 20, paddingTop: 0 }}>
-        <SSVStack justifyBetween style={{ minHeight: minPageHeight }}>
-          <SSExploreBlock
-            block={block}
-            sourceLabel={displaySourceLabel}
-            canViewTransactions={Boolean(block?.id)}
-          />
-          {showLoadFullMeta ? (
-            <SSExplorerCapabilityBanner
-              why={t('explorer.block.electrumApproximate')}
-              fix={t('explorer.block.loadFullMetaNote')}
-              onLoad={loadFullMetaFromMempool}
-              loadLabel={t('explorer.block.loadFullMeta')}
-              loading={loadingMeta}
-            />
-          ) : null}
-
-          {!vizLoaded ? (
-            <SSExplorerCapabilityBanner
-              why={t('explorer.block.viz.why')}
-              fix={t('explorer.block.viz.fix')}
-              onLoad={loadFromMempool}
-              loadLabel={t('explorer.block.viz.load')}
-              loading={vizLoading}
-              disabled={!block?.id}
-            />
-          ) : null}
-
-          {vizLoaded && vizLoading ? (
-            <SSVStack itemsCenter gap="sm">
-              <ActivityIndicator color={Colors.white} />
-              <SSText size="xs" color="muted">
-                {t('common.loadingDots')}
-              </SSText>
-            </SSVStack>
-          ) : null}
-
-          {vizError ? (
-            <SSText size="sm" color="muted" center>
-              {t('explorer.block.viz.loadError')}
-            </SSText>
-          ) : null}
-
-          {vizData ? (
-            <SSExplorerSection
-              title={t('explorer.block.viz.title')}
-              source="mempool"
-              sourceLabel="mempool.space"
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <SSVStack gap="md" style={styles.inputRow}>
+          <SSHStack gap="sm" style={styles.navRow}>
+            <SSIconButton
+              disabled={atMinHeight}
+              style={[
+                styles.navButton,
+                atMinHeight ? styles.navButtonDisabled : null
+              ]}
+              onPress={prevBlockHeight}
             >
-              <SSExplorerBlockFeeRange
-                feeRange={vizData.extras.feeRange}
-                medianFee={vizData.extras.medianFee}
+              <SSIconChevronLeft
+                height={18}
+                width={18}
+                stroke={atMinHeight ? Colors.gray[600] : Colors.white}
               />
-              <SSExplorerBlockFeeRateBars
-                sampleTxs={vizData.sampleTxs}
-                totalTxCount={vizData.txCount}
+            </SSIconButton>
+            <View style={styles.navInput}>
+              <SSNumberInput
+                variant="outline"
+                align="center"
+                min={0}
+                max={maxBlockHeight}
+                value={inputHeight}
+                onChangeText={setInputHeight}
+                placeholder={tn('placeholder')}
               />
-              <SSExplorerTxSizeBars
-                sizes={vizData.sampleTxs.map((tx) => tx.weight)}
-                totalTxCount={vizData.txCount}
+            </View>
+            <SSIconButton
+              disabled={atMaxHeight}
+              style={[
+                styles.navButton,
+                atMaxHeight ? styles.navButtonDisabled : null
+              ]}
+              onPress={nextBlockHeight}
+            >
+              <SSIconChevronRight
+                height={18}
+                width={18}
+                stroke={atMaxHeight ? Colors.gray[600] : Colors.white}
               />
-              <SSExplorerBlockVizStats
-                extras={vizData.extras}
-                txCount={vizData.txCount}
-              />
-            </SSExplorerSection>
-          ) : null}
-
-          <SSVStack gap="sm">
-            <SSHStack gap="sm" style={styles.navRow}>
-              <SSIconButton
-                disabled={atMinHeight}
-                style={[
-                  styles.navButton,
-                  atMinHeight ? styles.navButtonDisabled : null
-                ]}
-                onPress={prevBlockHeight}
-              >
-                <SSIconChevronLeft
-                  height={18}
-                  width={18}
-                  stroke={atMinHeight ? Colors.gray[600] : Colors.white}
+            </SSIconButton>
+          </SSHStack>
+          <SSButton
+            label={tn('load')}
+            variant="outline"
+            onPress={handleLoad}
+            disabled={!isValidHeight}
+          />
+          <SSButton
+            label={tn('latest')}
+            variant="ghost"
+            onPress={handleLatest}
+            loading={tipQuery.isLoading || tipQuery.isFetching}
+            disabled={tipQuery.data === undefined}
+          />
+          {showExamples ? (
+            <SSVStack gap="none">
+              {EXPLORER_EXAMPLE_BLOCKS.map((example) => (
+                <ExampleBlockCard
+                  key={example.height}
+                  example={example}
+                  onSelect={handleExample}
                 />
-              </SSIconButton>
-              <View style={styles.navInput}>
-                <SSNumberInput
-                  variant="outline"
-                  align="center"
-                  min={1}
-                  max={maxBlockHeight}
-                  value={inputHeight}
-                  onChangeText={setInputHeight}
-                />
-              </View>
-              <SSIconButton
-                disabled={atMaxHeight}
-                style={[
-                  styles.navButton,
-                  atMaxHeight ? styles.navButtonDisabled : null
-                ]}
-                onPress={nextBlockHeight}
-              >
-                <SSIconChevronRight
-                  height={18}
-                  width={18}
-                  stroke={atMaxHeight ? Colors.gray[600] : Colors.white}
-                />
-              </SSIconButton>
-            </SSHStack>
-            <SSButton
-              variant="outline"
-              loading={loading}
-              disabled={Number(inputHeight) === block?.height}
-              label={t('common.fetch')}
-              onPress={fetchBlockFromInput}
-            />
-            <SSVStack gap="xxs">
-              <SSButton
-                variant="ghost"
-                loading={downloading}
-                disabled={!block?.id || downloading}
-                label={t('explorer.block.downloadRawHex')}
-                onPress={downloadRawHex}
-              />
-              <SSText size="xxs" center color="muted">
-                {t('explorer.block.downloadRawHexSource')}
-              </SSText>
+              ))}
             </SSVStack>
-          </SSVStack>
+          ) : null}
         </SSVStack>
-      </SSMainLayout>
-    </ScrollView>
+      </ScrollView>
+    </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
+  container: { paddingTop: 0 },
+  exampleCard: {
+    alignItems: 'center',
+    borderBottomColor: Colors.gray['800'],
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 14
+  },
+  exampleCardContent: { flex: 1, paddingRight: 12 },
+  inputRow: { paddingTop: 16 },
   navButton: {
     alignItems: 'center',
     borderColor: Colors.gray[700],
@@ -339,5 +262,3 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   }
 })
-
-export default ExplorerBlockPage

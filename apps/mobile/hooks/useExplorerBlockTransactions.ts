@@ -18,17 +18,20 @@ export function useExplorerBlockTransactions(blockHash: string | undefined) {
   const { server } = configs[selectedNetwork]
   const oracle = useMempoolOracle(selectedNetwork)
   const [useMempool, setUseMempool] = useState(false)
+  const [mempoolForBlock, setMempoolForBlock] = useState<string | null>(null)
 
   const capability = getExplorerCapability(server.backend, 'blockTxList')
   const backendSupported = capability.available
+  const mempoolEnabled =
+    useMempool && blockHash !== undefined && mempoolForBlock === blockHash
 
   const query = useQuery({
-    enabled: Boolean(blockHash) && (backendSupported || useMempool),
+    enabled: Boolean(blockHash),
     queryFn: () => {
       if (!blockHash) {
         throw new Error('missing_block_hash')
       }
-      if (useMempool || !backendSupported) {
+      if (mempoolEnabled) {
         return fetchBlockTxidsFromMempool(blockHash, oracle)
       }
       return fetchBlockTxidsFromBackend(
@@ -43,13 +46,17 @@ export function useExplorerBlockTransactions(blockHash: string | undefined) {
       blockHash,
       server.backend,
       server.url,
-      useMempool,
+      mempoolEnabled,
       selectedNetwork
     ],
     staleTime: time.minutes(5)
   })
 
   function loadFromMempool() {
+    if (!blockHash) {
+      return
+    }
+    setMempoolForBlock(blockHash)
     setUseMempool(true)
   }
 
@@ -59,6 +66,6 @@ export function useExplorerBlockTransactions(blockHash: string | undefined) {
     capability,
     loadFromMempool,
     server,
-    useMempool
+    useMempool: mempoolEnabled
   }
 }
