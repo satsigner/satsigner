@@ -26,7 +26,7 @@ export function useExplorerBlockTransactions(blockHash: string | undefined) {
     useMempool && blockHash !== undefined && mempoolForBlock === blockHash
 
   const query = useQuery({
-    enabled: Boolean(blockHash),
+    enabled: Boolean(blockHash) && (backendSupported || mempoolEnabled),
     queryFn: () => {
       if (!blockHash) {
         throw new Error('missing_block_hash')
