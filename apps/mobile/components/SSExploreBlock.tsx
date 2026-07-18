@@ -18,6 +18,8 @@ export type Block = PartialSome<
 
 type SSExploreBlockProps = {
   block: Block | null
+  sourceLabel?: string
+  canViewTransactions?: boolean
 }
 
 function blockWeightPercentage(weight: number) {
@@ -40,14 +42,30 @@ function formatBlockHash(hash?: string) {
   return hash.startsWith('0000') ? hash : hash.split('').toReversed().join('')
 }
 
-function SSExploreBlock({ block }: SSExploreBlockProps) {
+function SSExploreBlock({
+  block,
+  sourceLabel,
+  canViewTransactions = false
+}: SSExploreBlockProps) {
   const weight = block?.weight || 0
   const percentageWeight = blockWeightPercentage(weight)
+  const txCountLabel = block?.tx_count
+    ? canViewTransactions
+      ? `${block.tx_count} (${t('explorer.block.viewTransactions')})`
+      : `${block.tx_count}`
+    : ''
   return (
     <SSVStack style={styles.centered} gap="none">
-      <SSHStack gap="xs">
-        <SSText weight="bold">{block?.height || '?'}</SSText>
-      </SSHStack>
+      <SSVStack gap="xxs" style={styles.centered}>
+        <SSHStack gap="xs">
+          <SSText weight="bold">{block?.height || '?'}</SSText>
+        </SSHStack>
+        {sourceLabel ? (
+          <SSText size="xxs" style={styles.sourceLabel}>
+            {sourceLabel}
+          </SSText>
+        ) : null}
+      </SSVStack>
       <View style={{ marginBottom: 15, marginTop: 5 }}>
         <View
           style={[
@@ -97,8 +115,12 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
           [t('explorer.block.dateMedian'), formatBlockDate(block?.mediantime)],
           [
             t('explorer.block.txCount'),
-            block?.tx_count ? `${block.tx_count} (view transactions)` : '',
-            { navigateToLink: `/explorer/block/${block?.id}/transactions` }
+            txCountLabel,
+            canViewTransactions && block?.id
+              ? {
+                  navigateToLink: `/explorer/block/${block.id}/transactions`
+                }
+              : {}
           ],
           [t('explorer.block.version'), block?.version],
           [t('explorer.block.nonce'), block?.nonce],
@@ -132,6 +154,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     justifyContent: 'center',
     width: 100
+  },
+  sourceLabel: {
+    color: Colors.mainGreen,
+    opacity: 0.8
   }
 })
 

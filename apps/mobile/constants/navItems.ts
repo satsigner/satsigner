@@ -1,6 +1,7 @@
 import {
   SSIconBitcoin,
   SSIconBlock,
+  SSIconBubbles,
   SSIconChain,
   SSIconChainTip,
   SSIconCurrency,
@@ -97,6 +98,13 @@ export const navMenuGroups: NavMenuGroup[] = [
         platform: PLATFORM.HYBRID,
         title: t('navigation.item.transaction'),
         url: '/explorer/transaction'
+      },
+      {
+        icon: SSIconBubbles,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.address'),
+        url: '/explorer/address'
       },
       {
         icon: SSIconDifficult,
