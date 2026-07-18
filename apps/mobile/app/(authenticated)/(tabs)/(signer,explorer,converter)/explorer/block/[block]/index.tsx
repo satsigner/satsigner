@@ -3,6 +3,10 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
+import {
+  fetchExplorerBlockRawHex,
+  fetchExplorerBlockRawHexFromMempool
+} from '@/api/explorerBlock'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSExploreBlock from '@/components/SSExploreBlock'
@@ -22,10 +26,13 @@ import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
-import { formatExplorerBackendSource } from '@/utils/explorerCapabilities'
+import {
+  formatExplorerBackendSource,
+  getExplorerCapability
+} from '@/utils/explorerCapabilities'
 import { saveFile } from '@/utils/filesystem'
 
 const tn = _tn('explorer.block')
@@ -59,6 +66,7 @@ export default function ExplorerBlockDetail() {
 
   const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork)
   const mempoolOracle = useMempoolOracle(selectedNetwork)
+  const [loadingHex, setLoadingHex] = useState(false)
 
   const {
     data: block,
@@ -74,7 +82,7 @@ export default function ExplorerBlockDetail() {
   const sourceLabel = formatExplorerBackendSource(server.name, server.backend)
   const displaySourceLabel = useMempool ? 'mempool.space' : sourceLabel
   const showLoadFullMeta = server.backend === 'electrum' && !useMempool
-  const [downloading, setDownloading] = useState(false)
+  const rawBlockCapability = getExplorerCapability(server.backend, 'rawBlock')
 
   const vizHeight = block?.height ?? null
   const {
@@ -107,24 +115,57 @@ export default function ExplorerBlockDetail() {
     goToHeight(height + 1)
   }
 
-  async function downloadRawHex() {
+  function handleViewHex() {
     if (!block?.id) {
       return
     }
-    setDownloading(true)
+    router.push(`/explorer/block/${block.id}/hex`)
+  }
+
+  async function saveBlockHex(hex: string, height: number) {
+    await saveFile({
+      dialogTitle: tn('downloadRawHex'),
+      fileContent: hex,
+      filename: `block-${height}.hex`,
+      mimeType: 'text/plain'
+    })
+  }
+
+  async function handleDownloadHex() {
+    if (!block?.id || !rawBlockCapability.available) {
+      return
+    }
+    setLoadingHex(true)
     try {
-      const raw = await mempoolOracle.getBlockRaw(block.id)
-      const hex = Buffer.from(raw).toString('hex')
-      await saveFile({
-        dialogTitle: tn('downloadRawHex'),
-        fileContent: hex,
-        filename: `block-${block.height}.hex`,
-        mimeType: 'text/plain'
-      })
+      const { hex } = await fetchExplorerBlockRawHex(
+        block.id,
+        server.url,
+        server.backend,
+        server.rpcCredentials
+      )
+      await saveBlockHex(hex, block.height)
     } catch {
       toast.error(tn('downloadRawHexError'))
     } finally {
-      setDownloading(false)
+      setLoadingHex(false)
+    }
+  }
+
+  async function handleDownloadHexFromMempool() {
+    if (!block?.id) {
+      return
+    }
+    setLoadingHex(true)
+    try {
+      const { hex } = await fetchExplorerBlockRawHexFromMempool(
+        block.id,
+        mempoolOracle
+      )
+      await saveBlockHex(hex, block.height)
+    } catch {
+      toast.error(tn('downloadRawHexError'))
+    } finally {
+      setLoadingHex(false)
     }
   }
 
@@ -287,16 +328,55 @@ export default function ExplorerBlockDetail() {
                 </SSIconButton>
               </SSHStack>
               <SSVStack gap="xxs">
-                <SSButton
-                  variant="ghost"
-                  loading={downloading}
-                  disabled={!block.id || downloading}
-                  label={tn('downloadRawHex')}
-                  onPress={downloadRawHex}
-                />
-                <SSText size="xxs" center color="muted">
-                  {tn('downloadRawHexSource')}
-                </SSText>
+                {rawBlockCapability.available ? (
+                  <>
+                    <SSHStack gap="sm">
+                      <SSButton
+                        variant="ghost"
+                        disabled={!block.id}
+                        label={tn('viewHex')}
+                        onPress={handleViewHex}
+                        style={styles.hexActionButton}
+                      />
+                      <SSButton
+                        variant="ghost"
+                        loading={loadingHex}
+                        disabled={!block.id || loadingHex}
+                        label={tn('downloadRawHex')}
+                        onPress={handleDownloadHex}
+                        style={styles.hexActionButton}
+                      />
+                    </SSHStack>
+                    <SSText size="xxs" center color="muted">
+                      {tn('downloadRawHexSource', {
+                        source: sourceLabel
+                      })}
+                    </SSText>
+                  </>
+                ) : (
+                  <>
+                    <SSButton
+                      variant="ghost"
+                      disabled={!block.id}
+                      label={tn('viewHex')}
+                      onPress={handleViewHex}
+                    />
+                    <SSExplorerCapabilityBanner
+                      why={t(
+                        rawBlockCapability.whyKey ??
+                          'explorer.capability.rawBlock.electrum.why'
+                      )}
+                      fix={t(
+                        rawBlockCapability.fixKey ??
+                          'explorer.capability.rawBlock.electrum.fix'
+                      )}
+                      onLoad={handleDownloadHexFromMempool}
+                      loadLabel={tn('downloadRawHex')}
+                      loading={loadingHex}
+                      disabled={!block.id}
+                    />
+                  </>
+                )}
               </SSVStack>
             </SSVStack>
           </SSVStack>
@@ -317,6 +397,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     alignItems: 'center',
     maxWidth: 240
+  },
+  hexActionButton: {
+    flex: 1
   },
   loadingContainer: {
     alignItems: 'center',
