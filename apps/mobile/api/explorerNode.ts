@@ -1,4 +1,4 @@
-import ElectrumClient from '@/api/electrum'
+import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import BitcoinRpc from '@/api/rpc'
 import type {
   Backend,
@@ -30,14 +30,6 @@ const EMPTY_SERVER_INFO: BackendServerInfo = {
   serverSoftware: ''
 }
 
-function safeClose(client: ElectrumClient | null): void {
-  try {
-    client?.close()
-  } catch {
-    /* silently ignored */
-  }
-}
-
 export async function fetchElectrumServerInfo(
   serverUrl: string,
   network: Network
@@ -65,7 +57,7 @@ export async function fetchElectrumServerInfo(
   } catch {
     return EMPTY_SERVER_INFO
   } finally {
-    safeClose(client)
+    closeElectrumClientQuietly(client)
   }
 }
 

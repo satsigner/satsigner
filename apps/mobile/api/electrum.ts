@@ -553,4 +553,14 @@ class ElectrumClient extends BaseElectrumClient {
   }
 }
 
+export function closeElectrumClientQuietly(
+  client: ElectrumClient | null | undefined
+): void {
+  try {
+    client?.close()
+  } catch {
+    /* silently ignored */
+  }
+}
+
 export default ElectrumClient

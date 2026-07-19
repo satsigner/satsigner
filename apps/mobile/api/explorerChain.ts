@@ -1,6 +1,6 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import ElectrumClient from '@/api/electrum'
+import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import type {
@@ -27,14 +27,6 @@ function emptyChainData(source: ChainSource = 'backend'): ChainData {
     height: null,
     source,
     timestamp: null
-  }
-}
-
-function safeClose(client: ElectrumClient | null): void {
-  try {
-    client?.close()
-  } catch {
-    /* silently ignored */
   }
 }
 
@@ -79,7 +71,7 @@ async function fromElectrum(url: string, network: Network): Promise<ChainData> {
   } catch {
     /* silently ignored */
   } finally {
-    safeClose(client)
+    closeElectrumClientQuietly(client)
   }
   return data
 }
