@@ -72,18 +72,18 @@ export const navMenuGroups: NavMenuGroup[] = [
   {
     items: [
       {
-        icon: SSIconChainTip,
-        isSoon: false,
-        platform: PLATFORM.HYBRID,
-        title: t('navigation.item.chaintip'),
-        url: '/explorer/chaintip'
-      },
-      {
         icon: SSIconMempool,
         isSoon: false,
         platform: PLATFORM.HYBRID,
         title: t('navigation.item.mempool'),
         url: '/explorer/mempool'
+      },
+      {
+        icon: SSIconChainTip,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.chaintip'),
+        url: '/explorer/chaintip'
       },
       {
         icon: SSIconBlock,
