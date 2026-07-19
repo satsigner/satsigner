@@ -31,7 +31,11 @@ export default function HistoryChart() {
     showFiatAtTxTime,
     setShowFiatAtTxTime,
     showFiatPercentageChange,
-    setShowFiatPercentageChange
+    setShowFiatPercentageChange,
+    showTransactionFlowChart,
+    setShowTransactionFlowChart,
+    showUtxoFlowChart,
+    setShowUtxoFlowChart
   ] = useChartSettingStore(
     useShallow((state) => [
       state.showLabel,
@@ -49,7 +53,11 @@ export default function HistoryChart() {
       state.showFiatAtTxTime,
       state.setShowFiatAtTxTime,
       state.showFiatPercentageChange,
-      state.setShowFiatPercentageChange
+      state.setShowFiatPercentageChange,
+      state.showTransactionFlowChart,
+      state.setShowTransactionFlowChart,
+      state.showUtxoFlowChart,
+      state.setShowUtxoFlowChart
     ])
   )
 
@@ -69,16 +77,24 @@ export default function HistoryChart() {
   ] = useState(showFiatPercentageChange)
   const [selectedLockZoomToXAxis, setSelectedLockZoomToXAxis] =
     useState(lockZoomToXAxis)
+  const [
+    selectedShowTransactionFlowChart,
+    setSelectedShowTransactionFlowChart
+  ] = useState(showTransactionFlowChart)
+  const [selectedShowUtxoFlowChart, setSelectedShowUtxoFlowChart] =
+    useState(showUtxoFlowChart)
 
   function handleOnSave() {
-    setShowLabel(selectedShowLabel)
-    setShowAmount(selectedShowAmount)
-    setShowTransactionInfo(selectedShowTransactionInfo)
-    setShowOutputField(selectedShowOutputField)
-    setShowFiatOnChart(selectedShowFiatOnChart)
-    setShowFiatAtTxTime(selectedShowFiatAtTxTime)
-    setShowFiatPercentageChange(selectedShowFiatPercentageChange)
     setLockZoomToXAxis(selectedLockZoomToXAxis)
+    setShowAmount(selectedShowAmount)
+    setShowFiatAtTxTime(selectedShowFiatAtTxTime)
+    setShowFiatOnChart(selectedShowFiatOnChart)
+    setShowFiatPercentageChange(selectedShowFiatPercentageChange)
+    setShowLabel(selectedShowLabel)
+    setShowOutputField(selectedShowOutputField)
+    setShowTransactionFlowChart(selectedShowTransactionFlowChart)
+    setShowTransactionInfo(selectedShowTransactionInfo)
+    setShowUtxoFlowChart(selectedShowUtxoFlowChart)
     router.back()
   }
 
@@ -175,6 +191,22 @@ export default function HistoryChart() {
                     ? undefined
                     : () => setSelectedShowFiatPercentageChange((prev) => !prev)
                 }
+              />
+              <SSCheckbox
+                label={t(
+                  'settings.features.charts.historyChart.layers.showTransactionFlowChart'
+                )}
+                selected={selectedShowTransactionFlowChart}
+                onPress={() =>
+                  setSelectedShowTransactionFlowChart((prev) => !prev)
+                }
+              />
+              <SSCheckbox
+                label={t(
+                  'settings.features.charts.historyChart.layers.showUtxoFlowChart'
+                )}
+                selected={selectedShowUtxoFlowChart}
+                onPress={() => setSelectedShowUtxoFlowChart((prev) => !prev)}
               />
             </SSVStack>
             <SSVStack>

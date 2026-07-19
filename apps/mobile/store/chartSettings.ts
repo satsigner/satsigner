@@ -12,6 +12,8 @@ type ChartSettingState = {
   showFiatOnChart: boolean
   showFiatAtTxTime: boolean
   showFiatPercentageChange: boolean
+  showTransactionFlowChart: boolean
+  showUtxoFlowChart: boolean
 }
 
 type ChartSettingAction = {
@@ -34,6 +36,12 @@ type ChartSettingAction = {
   ) => void
   setShowFiatPercentageChange: (
     showFiatPercentageChange: ChartSettingState['showFiatPercentageChange']
+  ) => void
+  setShowTransactionFlowChart: (
+    showTransactionFlowChart: ChartSettingState['showTransactionFlowChart']
+  ) => void
+  setShowUtxoFlowChart: (
+    showUtxoFlowChart: ChartSettingState['showUtxoFlowChart']
   ) => void
 }
 
@@ -65,8 +73,14 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
       setShowOutputField: (showOutputField) => {
         set({ showOutputField })
       },
+      setShowTransactionFlowChart: (showTransactionFlowChart) => {
+        set({ showTransactionFlowChart })
+      },
       setShowTransactionInfo: (showTransactionInfo) => {
         set({ showTransactionInfo })
+      },
+      setShowUtxoFlowChart: (showUtxoFlowChart) => {
+        set({ showUtxoFlowChart })
       },
       showAmount: true,
       showFiatAtTxTime: false,
@@ -74,7 +88,9 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
       showFiatPercentageChange: false,
       showLabel: true,
       showOutputField: false,
-      showTransactionInfo: true
+      showTransactionFlowChart: true,
+      showTransactionInfo: true,
+      showUtxoFlowChart: true
     }),
     {
       name: 'satsigner-blockchain',
