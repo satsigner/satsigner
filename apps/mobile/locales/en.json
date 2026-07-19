@@ -2419,6 +2419,7 @@
     "viewOnMempool": "View on mempool.space"
   },
   "settings": {
+    "about.changeLog": "Change Log",
     "about.description": "App version and related build information.",
     "about.title": "About",
     "ark.description": "Ark server configuration per network.",
