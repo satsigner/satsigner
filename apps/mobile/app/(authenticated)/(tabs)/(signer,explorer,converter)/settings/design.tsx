@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import {
   SSIconBitcoin,
@@ -34,6 +34,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -139,7 +140,7 @@ export default function Design() {
         }}
       />
       <SSMainLayout>
-        <ScrollView
+        <SSScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
         >
@@ -532,7 +533,7 @@ export default function Design() {
               </SSHStack>
             </Section>
           </SSVStack>
-        </ScrollView>
+        </SSScrollView>
       </SSMainLayout>
 
       <SSModal visible={modalVisible} onClose={handleCloseModal} fullOpacity>

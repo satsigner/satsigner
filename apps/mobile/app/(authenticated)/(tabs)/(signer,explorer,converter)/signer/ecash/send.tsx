@@ -1,12 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions
-} from 'react-native'
+import { Pressable, StyleSheet, useWindowDimensions } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -23,6 +18,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { ANIMATED_QR_INTERVAL_MS, useEcashSend } from '@/hooks/useEcashSend'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
@@ -180,7 +176,7 @@ export default function EcashSendPage() {
           )
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack gap="lg" style={{ paddingBottom: 60 }}>
           <SSEcashLightningTabs
             activeTab={activeTab}
@@ -440,7 +436,7 @@ export default function EcashSendPage() {
             </SSVStack>
           )}
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
       <SSCameraModal
         visible={cameraModalVisible}
         onClose={() => setCameraModalVisible(false)}

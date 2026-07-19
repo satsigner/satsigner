@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Image, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -9,6 +9,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { BLOSSOM_DEFAULT_SERVER } from '@/constants/nostr'
 import useBlossomImageUpload from '@/hooks/useBlossomImageUpload'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
@@ -70,7 +71,7 @@ export default function ProfileSetup() {
           )
         }}
       />
-      <ScrollView
+      <SSScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -167,7 +168,7 @@ export default function ProfileSetup() {
             onPress={handleSave}
           />
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }

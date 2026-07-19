@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
@@ -9,6 +9,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_RELAYS, NOSTR_RELAY_PROTOCOL_PREFIX } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
@@ -69,7 +70,7 @@ export default function NostrRelays() {
   }
 
   return (
-    <ScrollView>
+    <SSScrollView>
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -144,7 +145,7 @@ export default function NostrRelays() {
           />
         </SSVStack>
       </SSMainLayout>
-    </ScrollView>
+    </SSScrollView>
   )
 }
 
