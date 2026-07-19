@@ -81,8 +81,11 @@ function UtxoDetails({
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
-  const showUtxoFlowChart = useChartSettingStore(
-    (state) => state.showUtxoFlowChart
+  const [showTransactionFlowChart, showUtxoFlowChart] = useChartSettingStore(
+    useShallow((state) => [
+      state.showTransactionFlowChart,
+      state.showUtxoFlowChart
+    ])
   )
 
   const { width, height } = useWindowDimensions()
@@ -204,7 +207,7 @@ function UtxoDetails({
             </SSText>
             <SSAddressDisplay address={txid} />
           </SSVStack>
-          {tx && (
+          {tx && showTransactionFlowChart && (
             <>
               <SSSeparator color="gradient" />
               <SSVStack gap="sm">
