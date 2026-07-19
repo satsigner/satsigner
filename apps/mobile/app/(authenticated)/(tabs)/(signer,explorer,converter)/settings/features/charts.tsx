@@ -11,6 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useChartSettingStore } from '@/store/chartSettings'
+import SSSeparator from '@/components/SSSeparator'
 
 export default function Charts() {
   const router = useRouter()
@@ -111,6 +112,7 @@ export default function Charts() {
       <SSVStack justifyBetween>
         <ScrollView>
           <SSVStack gap="lg">
+            <SSSeparator />
             <SSVStack gap="md">
               <SSText weight="bold" uppercase>
                 {t('settings.features.charts.historyChart.title')}
@@ -213,6 +215,7 @@ export default function Charts() {
                 />
               </SSVStack>
             </SSVStack>
+            <SSSeparator />
             <SSVStack gap="md">
               <SSText weight="bold" uppercase>
                 {t('settings.features.charts.transactionFlowChart.title')}
@@ -227,6 +230,7 @@ export default function Charts() {
                 }
               />
             </SSVStack>
+            <SSSeparator />
             <SSVStack gap="md">
               <SSText weight="bold" uppercase>
                 {t('settings.features.charts.utxoBubbles.title')}
