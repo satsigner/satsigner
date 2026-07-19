@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
-import ElectrumClient from '@/api/electrum'
+import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
@@ -13,27 +13,12 @@ import type {
   RpcCredentials
 } from '@/types/settings/blockchain'
 import { getDifficultyFromBits } from '@/utils/bitcoin/difficulty'
+import { feesFromUnknownEsploraEstimates } from '@/utils/esploraFees'
+import { PRICE_CHART_DAYS } from '@/utils/priceChart'
 import { feesFromBtcPerKb } from '@/utils/rpcFees'
 import { time } from '@/utils/time'
 
-function feesFromEsploraEstimates(
-  estimates: Record<string, number>
-): MemPoolFees | null {
-  function rate(key: string): number | null {
-    const value = estimates[key]
-    return typeof value === 'number' ? value : null
-  }
-  const high = rate('1') ?? rate('2')
-  if (high === null) {
-    return null
-  }
-  return {
-    high,
-    low: rate('6') ?? rate('12') ?? high,
-    medium: rate('3') ?? rate('6') ?? high,
-    none: rate('144') ?? rate('504') ?? 1
-  }
-}
+export { PRICE_CHART_DAYS }
 
 export type DataSource = 'backend' | 'mempool'
 
@@ -58,14 +43,6 @@ function emptyChainTipData(): ChainTipData {
     height: null,
     mempool: null,
     mempoolSource: 'backend'
-  }
-}
-
-function safeClose(client: ElectrumClient | null): void {
-  try {
-    client?.close()
-  } catch {
-    /* silently ignored */
   }
 }
 
@@ -104,7 +81,7 @@ async function fromEsplora(esplora: Esplora): Promise<ChainTipData> {
     (async () => {
       try {
         const estimates = await esplora.getFeeEstimates()
-        const fees = feesFromEsploraEstimates(estimates)
+        const fees = feesFromUnknownEsploraEstimates(estimates)
         if (fees) {
           data.fees = fees
           data.feesSource = 'backend'
@@ -164,7 +141,7 @@ async function fromElectrum(
   } catch {
     /* connection init failed */
   } finally {
-    safeClose(client)
+    closeElectrumClientQuietly(client)
   }
   return data
 }
@@ -287,26 +264,33 @@ export function useChainTipMempoolStats(
   })
 }
 
+const SECONDS_PER_DAY = 86_400
+
 export function useChainTipPriceHistory(
   fiatCurrency: string,
   enabled: boolean
 ) {
   const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork)
   const oracle = useMempoolOracle(selectedNetwork)
-  const PRICE_CHART_DAYS = 7
 
   return useQuery({
     enabled,
     queryFn: async () => {
-      const now = Math.floor(Date.now() / 1000)
-      const timestamps = Array.from(
-        { length: PRICE_CHART_DAYS },
-        (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * 86400
-      )
-      const prices = await oracle.getPricesAt(fiatCurrency, timestamps)
-      return { prices, timestamps }
+      const series = await oracle.getHistoricalPriceSeries(fiatCurrency)
+      const cutoff =
+        Math.floor(Date.now() / 1000) - PRICE_CHART_DAYS * SECONDS_PER_DAY
+      const window = series.filter((point) => point.time >= cutoff)
+      return {
+        prices: window.map((point) => point.price),
+        timestamps: window.map((point) => point.time)
+      }
     },
-    queryKey: ['chaintip-price-history', fiatCurrency, selectedNetwork],
+    queryKey: [
+      'chaintip-price-history',
+      PRICE_CHART_DAYS,
+      fiatCurrency,
+      selectedNetwork
+    ],
     staleTime: time.minutes(10)
   })
 }

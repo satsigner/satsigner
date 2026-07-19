@@ -1431,6 +1431,8 @@
     "chaintip.mempoolSize": "Size",
     "chaintip.mempoolTxs": "Transactions",
     "chaintip.price": "Price",
+    "chaintip.priceChangePeriod": "%{days} days",
+    "chaintip.priceChartEmpty": "No price history",
     "chaintip.size": "Size",
     "chaintip.source": "Source:",
     "chaintip.timestamp": "Timestamp",

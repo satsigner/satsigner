@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   hashText: { color: Colors.gray['100'], fontFamily: 'monospace' },
   labelText: { color: Colors.gray['400'] },
   linkText: {
-    color: Colors.mainGreen,
+    color: Colors.white,
     marginTop: 4,
     textDecorationLine: 'underline'
   },
