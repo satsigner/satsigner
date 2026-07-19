@@ -39,9 +39,9 @@ const mockGetAddressUtxos = jest.fn()
 jest.mock<typeof import('@/api/esplora')>('@/api/esplora', () => ({
   __esModule: true,
   default: jest.fn().mockReturnValue({
-    getAddress: mockGetAddress,
-    getAddressTxsPage: mockGetAddressTxsPage,
-    getAddressUtxos: mockGetAddressUtxos
+    getAddress: (...args: unknown[]) => mockGetAddress(...args),
+    getAddressTxsPage: (...args: unknown[]) => mockGetAddressTxsPage(...args),
+    getAddressUtxos: (...args: unknown[]) => mockGetAddressUtxos(...args)
   })
 }))
 
