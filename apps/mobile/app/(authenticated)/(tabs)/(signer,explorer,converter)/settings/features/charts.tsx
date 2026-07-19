@@ -5,13 +5,13 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import { useFiatData } from '@/hooks/useFiatData'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useChartSettingStore } from '@/store/chartSettings'
-import SSSeparator from '@/components/SSSeparator'
 
 export default function Charts() {
   const router = useRouter()
@@ -202,9 +202,7 @@ export default function Charts() {
               </SSVStack>
               <SSVStack>
                 <SSText>
-                  {t(
-                    'settings.features.charts.historyChart.navigation.title'
-                  )}
+                  {t('settings.features.charts.historyChart.navigation.title')}
                 </SSText>
                 <SSCheckbox
                   label={t(
@@ -221,9 +219,7 @@ export default function Charts() {
                 {t('settings.features.charts.transactionFlowChart.title')}
               </SSText>
               <SSCheckbox
-                label={t(
-                  'settings.features.charts.transactionFlowChart.show'
-                )}
+                label={t('settings.features.charts.transactionFlowChart.show')}
                 selected={selectedShowTransactionFlowChart}
                 onPress={() =>
                   setSelectedShowTransactionFlowChart((prev) => !prev)
