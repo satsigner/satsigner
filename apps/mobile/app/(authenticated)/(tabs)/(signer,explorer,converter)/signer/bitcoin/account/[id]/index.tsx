@@ -527,7 +527,7 @@ function TotalTransactions({
           </SSIconButton>
           {showHistoryChart && (
             <SSIconButton
-              onPress={() => router.navigate(`/settings/features/historyChart`)}
+              onPress={() => router.navigate(`/settings/features/charts`)}
             >
               <SSIconChartSettings width={22} height={18} />
             </SSIconButton>
