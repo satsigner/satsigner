@@ -154,7 +154,7 @@ function useSyncAccountWithAddress() {
             txid: input.txid,
             vout: input.vout
           },
-          scriptSig: parseHexToBytes(input.scriptsig),
+          scriptSig: parseHexToBytes(input.scriptsig ?? ''),
           sequence: input.sequence,
           witness: input.witness ? input.witness.map(parseHexToBytes) : []
         })
@@ -187,7 +187,9 @@ function useSyncAccountWithAddress() {
         received,
         sent,
         size: t.size,
-        timestamp: new Date(t.status.block_time * 1000),
+        timestamp: t.status.block_time
+          ? new Date(t.status.block_time * 1000)
+          : undefined,
         type: received > 0 ? 'receive' : 'send',
         version: t.version,
         vin,

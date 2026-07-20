@@ -37,6 +37,11 @@ import {
   resolveChartOutputSpendStatus,
   type ChartOutputSpendStatus
 } from '@/utils/sankeyOutputLabel'
+import {
+  classifySpecialOutput,
+  specialOutputLayoutValue,
+  specialOutputTag
+} from '@/utils/specialOutput'
 import { classifyChartOutputs } from '@/utils/stonewall'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
@@ -77,6 +82,11 @@ type SSTransactionChartProps = {
   scale?: number // Scale factor for the chart (0-1)
   /** When false, hides the “unspent” line on outputs (e.g. preview before broadcast). */
   showUnspentLabel?: boolean
+  /**
+   * When false, output arms/labels stay neutral (no wallet spend red).
+   * Use for explorer; wallet screens leave the default.
+   */
+  walletSpendColors?: boolean
   /** Called with `false` once the chart (including labels) has painted. */
   onLoadingChange?: (loading: boolean) => void
 }
@@ -177,6 +187,7 @@ function SSTransactionChartCanvas({
   dimUnselected = false,
   scale = 1,
   showUnspentLabel = true,
+  walletSpendColors = true,
   onLoadingChange
 }: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
@@ -202,7 +213,7 @@ function SSTransactionChartCanvas({
   const inputs = transaction.vin.map((input) => ({
     label: input.label || '',
     txid: input.previousOutput.txid,
-    value: input.value || defaultInputValue,
+    value: input.value ?? defaultInputValue,
     valueIsKnown: input.value !== undefined,
     vout: input.previousOutput.vout
   }))
@@ -211,6 +222,7 @@ function SSTransactionChartCanvas({
     address: output.address,
     kind: output.kind,
     label: output.label || '',
+    script: output.script,
     value: output.value
   }))
 
@@ -276,10 +288,13 @@ function SSTransactionChartCanvas({
     txid: transaction.id
   })
 
-  const minerFee = inputs.every((input) => input.valueIsKnown)
+  const rawMinerFee = inputs.every((input) => input.valueIsKnown)
     ? inputs.reduce((prevValue, input) => prevValue + input.value, 0) -
       totalOutputValue
     : undefined
+  // Hide invalid fees (e.g. rounding when prevouts were synthesized).
+  const minerFee =
+    rawMinerFee !== undefined && rawMinerFee >= 0 ? rawMinerFee : undefined
 
   const txSize = transaction.size
   const txVsize = transaction.vsize
@@ -349,13 +364,25 @@ function SSTransactionChartCanvas({
       return []
     }
 
+    function fiatFields(sats: number) {
+      const fiatAmount = satsToFiat(sats)
+      if (fiatAmount <= 0) {
+        return {}
+      }
+      return {
+        fiatCurrency,
+        fiatValue: formatNumber(fiatAmount, 2)
+      }
+    }
+
     const inputNodes: TxNode[] = inputs.map((input, index) => ({
       depthH: 0,
       id: String(index + 1),
       ioData: {
         address: formatTxId(input.txid, 4),
-        fiatCurrency,
-        fiatValue: formatNumber(satsToFiat(input.value), 2),
+        // Only attach fiat when prevout value is real — equal-split placeholders
+        // are for layout/labels, not priced amounts.
+        ...(input.valueIsKnown ? fiatFields(input.value) : {}),
         isInput: true,
         label: resolveSankeyInputLabel(
           input.txid,
@@ -365,7 +392,8 @@ function SSTransactionChartCanvas({
         ),
         prevTxId: input.txid,
         text: t('common.from'),
-        value: input.valueIsKnown ? input.value : 0,
+        // Always show a sats amount: known prevout, or equal-split placeholder.
+        value: input.value,
         vout: input.vout
       },
       type: 'text',
@@ -403,6 +431,9 @@ function SSTransactionChartCanvas({
       const nodeId = String(index + 2 + inputs.length)
       const label = output.label ?? ''
       const outputAddress = output.address?.trim() ?? ''
+      const specialKind = classifySpecialOutput(output.script)
+      const specialTag = specialOutputTag(specialKind)
+      const layoutValue = specialOutputLayoutValue(output.value, specialKind)
       const { isChange, isFakeMix, isReceive, isSelfSend } = outputFlags[
         index
       ] ?? {
@@ -433,9 +464,10 @@ function SSTransactionChartCanvas({
           ? 'spent'
           : 'unspent'
         : localSpendStatus
-      const isUnspent = spendStatus === 'unspent'
+      const isNeutralOutput = !walletSpendColors
+      const isUnspent = !isNeutralOutput && spendStatus === 'unspent'
       const nextTx =
-        spendStatus === 'spent'
+        !isNeutralOutput && spendStatus === 'spent'
           ? (networkOutspend?.spendingTxId ??
             getSpendingTxId(spendingTxIdsByOutpoint, outpoint))
           : undefined
@@ -444,17 +476,19 @@ function SSTransactionChartCanvas({
         depthH: 2,
         id: nodeId,
         ioData: {
-          address: formatAddress(outputAddress, 6),
-          fiatCurrency,
-          fiatValue: formatNumber(satsToFiat(output.value), 2),
-          isChange: isChangeOutput,
-          isFakeMix,
-          isReceive: isReceiveOutput,
-          isSelfSend: isSelfSendOutput,
+          address: outputAddress ? formatAddress(outputAddress, 6) : undefined,
+          ...(specialKind && output.value <= 0 ? {} : fiatFields(output.value)),
+          isChange: isNeutralOutput ? false : isChangeOutput,
+          isFakeMix: isNeutralOutput ? false : isFakeMix,
+          isNeutralOutput,
+          isReceive: isNeutralOutput ? false : isReceiveOutput,
+          isSelfSend: isNeutralOutput ? false : isSelfSendOutput,
           isUnspent,
-          label: label || t('common.noLabel'),
-          text:
-            spendStatus === 'pending'
+          label: label || specialTag || t('common.noLabel'),
+          specialTag,
+          text: isNeutralOutput
+            ? undefined
+            : spendStatus === 'pending'
               ? '?'
               : spendStatus === 'unspent'
                 ? t('transaction.build.unspent')
@@ -464,7 +498,7 @@ function SSTransactionChartCanvas({
         localId: `output-${index}`,
         nextTx,
         type: 'text',
-        value: output.value
+        value: layoutValue
       }
     })
 
@@ -490,8 +524,7 @@ function SSTransactionChartCanvas({
         ioData: {
           feePercentage: Math.round(feePercentage * 10000) / 100,
           feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
-          fiatCurrency,
-          fiatValue: formatNumber(satsToFiat(minerFee), 2),
+          ...fiatFields(minerFee),
           higherFee,
           text: t('transaction.build.minerFee'),
           value: minerFee // round to 2 decimals
@@ -521,7 +554,8 @@ function SSTransactionChartCanvas({
     transaction.id,
     transaction.type,
     txLabelsById,
-    outpointLabelsByRef
+    outpointLabelsByRef,
+    walletSpendColors
   ])
 
   const sankeyLinks = useMemo(() => {
@@ -536,11 +570,14 @@ function SSTransactionChartCanvas({
       y1: 0
     }))
 
-    const blockToOutputLinks = outputs.map((output, index) => ({
-      source: String(inputs.length + 1),
-      target: String(index + inputs.length + 2),
-      value: output.value
-    }))
+    const blockToOutputLinks = outputs.map((output, index) => {
+      const specialKind = classifySpecialOutput(output.script)
+      return {
+        source: String(inputs.length + 1),
+        target: String(index + inputs.length + 2),
+        value: specialOutputLayoutValue(output.value, specialKind)
+      }
+    })
 
     if (minerFee) {
       blockToOutputLinks.push({

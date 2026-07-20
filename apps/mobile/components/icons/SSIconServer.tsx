@@ -1,21 +1,42 @@
-import Svg, { Line, Rect, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, Line, type SvgProps } from 'react-native-svg'
+
+import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
 
 type SSIconServerProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 
-export default function SSIconServer({ width, height }: SSIconServerProps) {
+const SPOKES = [0, 45, 90, 135, 180, 225, 270, 315]
+const CX = 12
+const CY = 12
+const INNER_R = 6.5
+const OUTER_R = 10
+
+export default function SSIconServer({
+  width = 24,
+  height = 24,
+  color = '#909090'
+}: SSIconServerProps & NavMenuItemIconProps) {
   return (
     <Svg
       width={width}
       height={height}
       viewBox="0 0 24 24"
-      fill="#000"
-      stroke="#fff"
-      strokeWidth={2}
+      fill="none"
+      stroke={color}
+      strokeWidth={1}
     >
-      <Rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
-      <Rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
-      <Line x1="6" x2="6.01" y1="6" y2="6" />
-      <Line x1="6" x2="6.01" y1="18" y2="18" />
+      <Circle cx={CX} cy={CY} r={4.5} />
+      {SPOKES.map((deg) => {
+        const rad = (deg * Math.PI) / 180
+        return (
+          <Line
+            key={deg}
+            x1={CX + INNER_R * Math.cos(rad)}
+            y1={CY + INNER_R * Math.sin(rad)}
+            x2={CX + OUTER_R * Math.cos(rad)}
+            y2={CY + OUTER_R * Math.sin(rad)}
+          />
+        )
+      })}
     </Svg>
   )
 }

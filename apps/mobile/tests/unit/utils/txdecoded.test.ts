@@ -130,6 +130,13 @@ describe('transaction decoding', () => {
       it('decodes locktime', () => {
         expect(decodedTx.getLocktime().value).toBe(expected.locktime)
       })
+
+      it('decodes when input hash is a Uint8Array (RN)', () => {
+        const tx = TxDecoded.fromHex(hex)
+        tx.ins[0].hash = Uint8Array.from(tx.ins[0].hash)
+        expect(() => tx.decode()).not.toThrow()
+        expect(tx.getInputHash(0).hex).toHaveLength(64)
+      })
     })
   }
 })

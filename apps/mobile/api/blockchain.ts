@@ -32,21 +32,30 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   get(endpoint: string) {
-    return fetch(this.baseUrl + endpoint).then(
-      (response: Response) => response.json() as Promise<unknown>
-    )
+    return fetch(this.baseUrl + endpoint).then((response: Response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      return response.json() as Promise<unknown>
+    })
   }
 
   getText(endpoint: string): Promise<string> {
-    return fetch(this.baseUrl + endpoint).then(
-      (response: Response) => response.text() as Promise<string>
-    )
+    return fetch(this.baseUrl + endpoint).then((response: Response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      return response.text()
+    })
   }
 
   getBinary(endpoint: string): Promise<ArrayBuffer> {
-    return fetch(this.baseUrl + endpoint).then(
-      (response: Response) => response.arrayBuffer() as Promise<ArrayBuffer>
-    )
+    return fetch(this.baseUrl + endpoint).then((response: Response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      return response.arrayBuffer()
+    })
   }
 
   async getAddressUtxos(address: string) {
@@ -200,6 +209,36 @@ export class MempoolOracle implements BlockchainOracle {
     return prices[0][currency] as number
   }
 
+  /**
+   * Full historical price series for a currency (typically hourly).
+   * Prefer this over many `getPriceAt` calls when charting a window.
+   */
+  async getHistoricalPriceSeries(currency: string) {
+    const data = await this.get(`/v1/historical-price?currency=${currency}`)
+    const parsed = z
+      .object({
+        prices: z.array(
+          z
+            .object({
+              time: z.number()
+            })
+            .passthrough()
+        )
+      })
+      .parse(data)
+
+    const points: { price: number; time: number }[] = []
+    for (const row of parsed.prices) {
+      const price = Reflect.get(row, currency)
+      if (typeof price !== 'number' || !Number.isFinite(price)) {
+        continue
+      }
+      points.push({ price, time: row.time })
+    }
+
+    return points.toSorted((a, b) => a.time - b.time)
+  }
+
   async getFullPriceAt(currency: Currency, timestamp: number) {
     const HistoricalPricesSchema = z.object({
       exchangeRates: z.record(z.string(), z.number()),
@@ -288,7 +327,7 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async getTransactionHex(txid: string) {
-    const data = await this.getText(`/tx/${txid}`)
+    const data = await this.getText(`/tx/${txid}/hex`)
     return z.string().parse(data)
   }
 

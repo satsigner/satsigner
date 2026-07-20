@@ -431,6 +431,11 @@ export default class BitcoinRpc {
     return this._call<RpcBlock>('getblock', [hash, 1])
   }
 
+  /** Verbosity 0 — serialized block as hex. */
+  getBlockHex(hash: string): Promise<string> {
+    return this._call<string>('getblock', [hash, 0])
+  }
+
   getBlockCount(): Promise<number> {
     return this._call<number>('getblockcount')
   }

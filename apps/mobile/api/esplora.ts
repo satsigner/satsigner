@@ -88,7 +88,7 @@ export default class Esplora {
         txid: input.txid,
         vout: input.vout
       },
-      scriptSig: parseHexToBytes(input.scriptsig),
+      scriptSig: parseHexToBytes(input.scriptsig ?? ''),
       sequence: input.sequence,
       value: input.prevout?.value,
       witness: input.witness?.map(parseHexToBytes)
@@ -103,6 +103,21 @@ export default class Esplora {
   async getBlockInfo(blockHash: string) {
     const data = await this._call(`/block/${blockHash}`)
     return BlockSchema.parse(data)
+  }
+
+  async getBlockRawHex(blockHash: string): Promise<string> {
+    const data = await this._call(`/block/${blockHash}/raw`)
+    if (typeof data === 'string') {
+      const trimmed = data.trim()
+      if (/^[0-9a-f]+$/i.test(trimmed)) {
+        return trimmed.toLowerCase()
+      }
+      return Buffer.from(trimmed, 'binary').toString('hex')
+    }
+    if (data instanceof ArrayBuffer) {
+      return Buffer.from(data).toString('hex')
+    }
+    throw new Error('Unexpected block raw response')
   }
 
   async getBlockStatus(blockHash: string) {
@@ -170,6 +185,16 @@ export default class Esplora {
   async getAddressTxsInMempool(address: string) {
     const data = await this._call(`/address/${address}/txs/mempool`)
     return parseTxs(data)
+  }
+
+  /** Address summary (chain/mempool funded/spent sums). */
+  getAddress(address: string): Promise<unknown> {
+    return this._call(`/address/${address}`)
+  }
+
+  /** First page of address txs only (no pagination). */
+  getAddressTxsPage(address: string): Promise<unknown> {
+    return this._call(`/address/${address}/txs`)
   }
 
   async getAddressUtxos(address: string) {

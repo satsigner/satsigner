@@ -306,11 +306,13 @@ function NodeText({
   const isChange =
     isChangeProp === true || localId === CHART_REMAINING_BALANCE_LOCAL_ID
   const isUnspent = ioData?.isUnspent === true
+  const isNeutralOutput = ioData?.isNeutralOutput === true
   const isInput = ioData?.isInput === true
   const isPrivacyOwnedOutput = Boolean(
     isChange || isSelfSend || isReceive || isFakeMix
   )
-  const usePrivacyOutputLayout = isUnspent || isPrivacyOwnedOutput
+  const usePrivacyOutputLayout =
+    !isNeutralOutput && (isUnspent || isPrivacyOwnedOutput)
 
   const shadowPaint = useMemo(() => {
     const paint = Skia.Paint()
@@ -610,6 +612,61 @@ function NodeText({
       return para.build()
     }
 
+    const buildNeutralOutputParagraph = () => {
+      const hasFiat = Boolean(ioData?.fiatValue && ioData?.fiatCurrency)
+      const hasAddress = Boolean(ioData?.address)
+      const specialTag = ioData?.specialTag?.trim()
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE
+        })
+        .addText(formatSatsAmount(ioData?.value))
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(`${SATS_UNIT}\n`)
+      if (hasFiat) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(gray[300]),
+            fontSize: XS_FONT_SIZE
+          })
+          .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
+      }
+      if (specialTag) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(Colors.gray[200]),
+            fontSize: XS_FONT_SIZE,
+            fontStyle: {
+              weight: 800
+            }
+          })
+          .addText(specialTag)
+      } else if (hasAddress) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(gray[500]),
+            fontSize: XS_FONT_SIZE
+          })
+          .addText(`${t('common.to')} `)
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(white),
+            fontSize: XS_FONT_SIZE
+          })
+          .addText(`${ioData.address}`)
+      }
+      return para.build()
+    }
+
     const buildInputParagraph = () => {
       const hasFiat = Boolean(ioData?.fiatValue && ioData?.fiatCurrency)
       const hasOutpoint =
@@ -719,9 +776,11 @@ function NodeText({
           0
         )
         .addText(
-          hasLabel
-            ? ` ${trimNodeLabel(ioData.label)}`
-            : ` ${t('common.noLabel')}`
+          ioData?.specialTag
+            ? ` ${ioData.specialTag}`
+            : hasLabel
+              ? ` ${trimNodeLabel(ioData.label)}`
+              : ` ${t('common.noLabel')}`
         )
         .pop()
 
@@ -735,6 +794,8 @@ function NodeText({
       para = buildMiningFeeParagraph()
     } else if (isInput) {
       para = buildInputParagraph()
+    } else if (isNeutralOutput) {
+      para = buildNeutralOutputParagraph()
     } else if (isUnspent || isPrivacyOwnedOutput) {
       // Wallet-owned outputs keep green styling if UTXO set has not caught up.
       para = buildUnspentParagraph()
@@ -755,6 +816,7 @@ function NodeText({
     isMiningFee,
     isInput,
     isUnspent,
+    isNeutralOutput,
     width,
     ioData?.txSize,
     ioData.vSize,
@@ -767,6 +829,7 @@ function NodeText({
     ioData?.feePercentage,
     ioData?.address,
     ioData.label,
+    ioData?.specialTag,
     ioData?.vout,
     isHigherMinerFee,
     isFeeValueWarning,
@@ -787,7 +850,12 @@ function NodeText({
 
   // Apply additional margin when output cards show a leading status icon
   const isSpentOutput =
-    !isBlock && !isMiningFee && !isInput && !isUnspent && !isPrivacyOwnedOutput
+    !isBlock &&
+    !isMiningFee &&
+    !isInput &&
+    !isNeutralOutput &&
+    !isUnspent &&
+    !isPrivacyOwnedOutput
   const groupBaseX =
     usePrivacyOutputLayout || isSpentOutput
       ? paragraphX + NODE_MARGIN_LEFT

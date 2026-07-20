@@ -1,0 +1,654 @@
+import { Stack, useLocalSearchParams } from 'expo-router'
+import { useState } from 'react'
+import { ScrollView, StyleSheet, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
+
+import SSButton from '@/components/SSButton'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSDetailsList from '@/components/SSDetailsList'
+import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
+import SSLoader from '@/components/SSLoader'
+import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
+import SSSeparator from '@/components/SSSeparator'
+import SSStyledSatText from '@/components/SSStyledSatText'
+import SSText from '@/components/SSText'
+import SSTransactionChart from '@/components/SSTransactionChart'
+import SSTransactionDecoded from '@/components/SSTransactionDecoded'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { getExplorerExampleTransaction } from '@/constants/explorerExamples'
+import { useExplorerTransaction } from '@/hooks/useExplorerTransaction'
+import { useExplorerTransactionEnrich } from '@/hooks/useExplorerTransactionEnrich'
+import { useFiatData } from '@/hooks/useFiatData'
+import SSHStack from '@/layouts/SSHStack'
+import SSVStack from '@/layouts/SSVStack'
+import { t, tn as _tn } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
+import { usePriceStore } from '@/store/price'
+import { Colors } from '@/styles'
+import type { ExplorerTransaction } from '@/types/models/ExplorerTransaction'
+import type { Output } from '@/types/models/Output'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import { getExplorerCapability } from '@/utils/explorerCapabilities'
+import { formatDate, formatFiatPrice, formatNumber } from '@/utils/format'
+import { classifySpecialOutput, specialOutputTag } from '@/utils/specialOutput'
+
+const tn = _tn('explorer.transaction')
+
+function formatBtcAmount(sats: number): string {
+  return `${(sats / SATS_PER_BITCOIN).toFixed(8).replace(/\.?0+$/, '')} BTC`
+}
+
+function formatSatsFiatLabel(
+  sats: number,
+  btcPrice: number,
+  fiatCurrency: string,
+  showFiat: boolean
+): string | null {
+  if (!showFiat || btcPrice <= 0) {
+    return null
+  }
+  return `${formatFiatPrice(sats, btcPrice)} ${fiatCurrency}`
+}
+
+type SatsAmountProps = {
+  sats: number
+  fiatLabel: string | null
+}
+
+function SatsAmount({ sats, fiatLabel }: SatsAmountProps) {
+  return (
+    <SSVStack gap="none">
+      <SSText color="muted">{t('transaction.value')}</SSText>
+      <SSHStack gap="xs" style={styles.amountRow}>
+        <SSText size="lg">{formatNumber(sats)}</SSText>
+        <SSText color="muted" size="sm">
+          {t('bitcoin.sats')}
+        </SSText>
+      </SSHStack>
+      <SSText color="muted">{formatBtcAmount(sats)}</SSText>
+      {fiatLabel ? (
+        <SSText color="muted" size="sm">
+          {fiatLabel}
+        </SSText>
+      ) : null}
+    </SSVStack>
+  )
+}
+
+function buildInputsMap(tx: ExplorerTransaction): Map<string, Utxo> {
+  const nonCoinbaseInputs = tx.inputs.filter((inp) => !inp.isCoinbase)
+  if (nonCoinbaseInputs.length === 0) {
+    return new Map<string, Utxo>()
+  }
+
+  const totalOutputValue = tx.outputs.reduce((sum, o) => sum + o.value, 0)
+  const knownTotal = nonCoinbaseInputs.reduce(
+    (sum, inp) => sum + (inp.value ?? 0),
+    0
+  )
+  const missingCount = nonCoinbaseInputs.filter(
+    (inp) => typeof inp.value !== 'number'
+  ).length
+  const approxInputValue =
+    missingCount > 0
+      ? Math.max(0, Math.round((totalOutputValue - knownTotal) / missingCount))
+      : 0
+  const map = new Map<string, Utxo>()
+
+  for (const inp of nonCoinbaseInputs) {
+    map.set(`${inp.prevTxid}:${inp.prevVout}`, {
+      addressTo: inp.address ?? '',
+      keychain: 'external',
+      txid: inp.prevTxid,
+      value: inp.value ?? approxInputValue,
+      vout: inp.prevVout
+    })
+  }
+  return map
+}
+
+function buildOutputsList(tx: ExplorerTransaction): Output[] {
+  return tx.outputs.map((out, i) => ({
+    amount: out.value,
+    label: tn('output', { index: i.toString() }),
+    localId: `output-${i}`,
+    to: out.address ?? ''
+  }))
+}
+
+function explorerHistoryFee(tx: ExplorerTransaction): {
+  feeRate: number
+  minerFeeSats: number
+} {
+  const nonCoinbaseInputs = tx.inputs.filter((inp) => !inp.isCoinbase)
+  const totalIn = nonCoinbaseInputs.reduce(
+    (sum, inp) => sum + (inp.value ?? 0),
+    0
+  )
+  const totalOut = tx.outputs.reduce((sum, o) => sum + o.value, 0)
+  const minerFeeSats = totalIn > 0 ? Math.max(0, totalIn - totalOut) : 0
+  const feeRate = tx.vsize > 0 ? minerFeeSats / tx.vsize : 0
+  return { feeRate, minerFeeSats }
+}
+
+function buildChartTransaction(tx: ExplorerTransaction): Transaction {
+  const totalOutputValue = tx.outputs.reduce((sum, o) => sum + o.value, 0)
+
+  return {
+    id: tx.txid,
+    lockTimeEnabled: false,
+    prices: {},
+    received: totalOutputValue,
+    sent: 0,
+    size: tx.size,
+    type: 'receive',
+    version: tx.version,
+    vin: tx.inputs.map((inp) => ({
+      previousOutput: { txid: inp.prevTxid, vout: inp.prevVout },
+      scriptSig: inp.scriptSig,
+      sequence: inp.sequence,
+      // Leave unknown prevouts undefined so the chart can equal-split for
+      // display without treating the fee as known (avoids negative fees from
+      // rounding on large multi-input txs like pizza day).
+      value: inp.isCoinbase ? totalOutputValue : inp.value,
+      witness: []
+    })),
+    vout: tx.outputs.map((out) => ({
+      address: out.address ?? '',
+      script: out.script,
+      value: out.value
+    })),
+    vsize: tx.vsize,
+    weight: tx.weight
+  }
+}
+
+export default function ExplorerTransactionDetail() {
+  const { txid } = useLocalSearchParams<{ txid: string }>()
+  const [showFlow, setShowFlow] = useState(false)
+
+  const [selectedNetwork, configs] = useBlockchainStore(
+    useShallow((state) => [state.selectedNetwork, state.configs])
+  )
+  const { server } = configs[selectedNetwork]
+  const sourceLabel = `${server.name} (${server.backend})`
+  const txCapability = getExplorerCapability(server.backend, 'txLookup')
+  const [fiatCurrency, btcPrice] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.btcPrice])
+  )
+  const { showCurrentFiat } = useFiatData()
+
+  const resolvedTxid = Array.isArray(txid) ? txid[0] : (txid ?? null)
+  const example = getExplorerExampleTransaction(resolvedTxid)
+  const {
+    data: tx,
+    isLoading,
+    isError,
+    loadingPhase,
+    loadFromMempool,
+    mempoolError,
+    useMempool
+  } = useExplorerTransaction(resolvedTxid)
+  const {
+    data: enrichment,
+    isError: enrichError,
+    isLoading: isEnriching,
+    loadFromMempool: loadEnrichment,
+    loaded: enrichLoaded
+  } = useExplorerTransactionEnrich(resolvedTxid)
+
+  const displaySourceLabel = useMempool ? 'mempool.space' : sourceLabel
+
+  const inputsMap = tx ? buildInputsMap(tx) : new Map<string, Utxo>()
+  const outputsList = tx ? buildOutputsList(tx) : []
+  const historyFee = tx
+    ? explorerHistoryFee(tx)
+    : { feeRate: 0, minerFeeSats: 0 }
+
+  function hideFlow() {
+    setShowFlow(false)
+  }
+
+  function revealFlow() {
+    setShowFlow(true)
+  }
+
+  function loadTxFromMempool() {
+    loadFromMempool()
+    loadEnrichment()
+  }
+
+  const stackScreen = (
+    <Stack.Screen
+      options={{
+        headerTitle: () => (
+          <SSVStack gap="none" style={styles.headerTitle}>
+            {example ? (
+              <SSText
+                size="xs"
+                color="muted"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {example.label}
+              </SSText>
+            ) : null}
+            <SSText uppercase numberOfLines={1} adjustsFontSizeToFit>
+              {t('transaction.details.title')}
+            </SSText>
+          </SSVStack>
+        )
+      }}
+    />
+  )
+
+  if (showFlow) {
+    return (
+      <View style={styles.flex}>
+        {stackScreen}
+        <SSMultipleSankeyDiagram
+          inputs={inputsMap}
+          outputs={outputsList}
+          feeRate={historyFee.feeRate}
+          minerFeeSats={historyFee.minerFeeSats}
+          walletSpendColors={false}
+        />
+        <View style={styles.closeButtonContainer}>
+          <SSButton
+            label={t('common.back')}
+            variant="outline"
+            onPress={hideFlow}
+          />
+        </View>
+      </View>
+    )
+  }
+
+  return (
+    <ScrollView>
+      {stackScreen}
+      <SSVStack style={styles.container}>
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <SSLoader size={80} />
+            {loadingPhase !== null && (
+              <SSText size="xxs" type="mono" center style={styles.loadingPhase}>
+                {loadingPhase}
+              </SSText>
+            )}
+          </View>
+        )}
+
+        {isError ? (
+          <SSVStack gap="sm" style={styles.errorContainer} widthFull>
+            <SSText color="muted" center>
+              {mempoolError
+                ? tn('mempoolLoadError')
+                : server.backend === 'rpc'
+                  ? tn('notFoundRpc')
+                  : tn('notFound')}
+            </SSText>
+            {!mempoolError ? (
+              <>
+                <SSText
+                  size="xxs"
+                  type="mono"
+                  center
+                  style={styles.sourceLabel}
+                >
+                  {sourceLabel}
+                </SSText>
+                <SSText size="xxs" type="mono" center style={styles.serverUrl}>
+                  {server.url}
+                </SSText>
+              </>
+            ) : null}
+            {txCapability.whyKey && txCapability.fixKey ? (
+              <SSExplorerCapabilityBanner
+                why={t(txCapability.whyKey)}
+                fix={t(txCapability.fixKey)}
+                onLoad={loadTxFromMempool}
+                loading={isLoading || isEnriching}
+              />
+            ) : (
+              <SSExplorerCapabilityBanner
+                why={tn('loadWhy')}
+                fix={tn('loadFix')}
+                onLoad={loadTxFromMempool}
+                loading={isLoading || isEnriching}
+              />
+            )}
+          </SSVStack>
+        ) : null}
+
+        {tx && (
+          <>
+            {/* Header — matches SSTxDetailsHeader layout */}
+            <SSVStack gap="none" style={styles.header}>
+              <SSVStack gap="xs" style={styles.headerAmount}>
+                <SSHStack gap="xs" style={styles.headerAmountRow}>
+                  <SSStyledSatText
+                    amount={tx.outputs.reduce((sum, o) => sum + o.value, 0)}
+                    decimals={0}
+                    noColor
+                    weight="light"
+                  />
+                  <SSText color="muted">{t('bitcoin.sats')}</SSText>
+                </SSHStack>
+              </SSVStack>
+              <SSHStack gap="xs">
+                <SSText color="muted">{t('common.from').toLowerCase()}</SSText>
+                <SSText>
+                  {tx.inputs.length}{' '}
+                  {tx.inputs.length === 1
+                    ? t('transaction.input.singular').toLowerCase()
+                    : t('transaction.input.plural').toLowerCase()}
+                </SSText>
+                <SSText color="muted">{t('common.to').toLowerCase()}</SSText>
+                <SSText>
+                  {tx.outputs.length}{' '}
+                  {tx.outputs.length === 1
+                    ? t('transaction.output.singular').toLowerCase()
+                    : t('transaction.output.plural').toLowerCase()}
+                </SSText>
+              </SSHStack>
+            </SSVStack>
+
+            <SSTransactionChart
+              transaction={buildChartTransaction(tx)}
+              showUnspentLabel={false}
+              walletSpendColors={false}
+            />
+
+            {inputsMap.size > 0 && (
+              <SSButton
+                label={t('transaction.loadHistory')}
+                variant="outline"
+                onPress={revealFlow}
+              />
+            )}
+
+            {!enrichLoaded ? (
+              <SSExplorerCapabilityBanner
+                why={tn('enrichWhy')}
+                fix={tn('enrichFix')}
+                onLoad={loadEnrichment}
+                loading={isEnriching}
+              />
+            ) : null}
+
+            {enrichLoaded && isEnriching ? (
+              <View style={styles.loadingContainer}>
+                <SSLoader size={80} />
+              </View>
+            ) : null}
+
+            {enrichError ? (
+              <SSText size="sm" color="muted" center>
+                {tn('enrichError')}
+              </SSText>
+            ) : null}
+
+            {enrichment ? (
+              <SSVStack gap="xs">
+                <SSText size="xxs" style={styles.externalSource}>
+                  mempool.space
+                </SSText>
+                <SSDetailsList
+                  columns={2}
+                  headerSize="sm"
+                  textSize="md"
+                  uppercase={false}
+                  items={[
+                    [
+                      tn('confirmed'),
+                      enrichment.status.confirmed ? tn('yes') : tn('no')
+                    ],
+                    [
+                      tn('blockHeight'),
+                      enrichment.status.block_height?.toString() ?? '--'
+                    ],
+                    [
+                      tn('blockTime'),
+                      enrichment.status.block_time
+                        ? formatDate(enrichment.status.block_time * 1000)
+                        : '--'
+                    ],
+                    [
+                      tn('spentOutputs'),
+                      enrichment.outspends
+                        .filter((o) => o.spent)
+                        .length.toString()
+                    ]
+                  ]}
+                />
+              </SSVStack>
+            ) : null}
+
+            <SSSeparator color="gradient" />
+
+            {/* Txid — matches SSLabelDetails layout */}
+            <SSHStack justifyBetween style={styles.txidSection}>
+              <SSVStack gap="sm" style={styles.txidContent}>
+                <SSText uppercase color="muted">
+                  {tn('txid')}
+                </SSText>
+                <SSClipboardCopy text={tx.txid} fullWidth>
+                  <SSText type="mono" size="xs">
+                    {tx.txid}
+                  </SSText>
+                </SSClipboardCopy>
+                <SSText
+                  size="xxs"
+                  style={
+                    useMempool ? styles.externalSource : styles.sourceLabel
+                  }
+                >
+                  {displaySourceLabel}
+                </SSText>
+              </SSVStack>
+            </SSHStack>
+
+            <SSSeparator color="gradient" />
+
+            {/* Details grid */}
+            <SSDetailsList
+              columns={3}
+              headerSize="sm"
+              textSize="md"
+              uppercase={false}
+              items={[
+                [tn('version'), tx.version.toString()],
+                [tn('locktime'), tx.locktime.toString()],
+                [tn('size'), `${tx.size} B`],
+                [tn('vsize'), `${tx.vsize} vB`],
+                [tn('weight'), `${tx.weight} WU`],
+                [t('transaction.input.count'), tx.inputs.length.toString()],
+                [t('transaction.output.count'), tx.outputs.length.toString()],
+                [tn('segwit'), tx.isSegwit ? tn('yes') : tn('no')],
+                [tn('coinbase'), tx.isCoinbase ? tn('yes') : tn('no')]
+              ]}
+            />
+
+            <SSSeparator color="gradient" />
+            <SSVStack gap="sm">
+              <SSText uppercase color="muted">
+                {t('transaction.decoded.title')}
+              </SSText>
+              {tx.hex ? (
+                <SSTransactionDecoded txHex={tx.hex} />
+              ) : (
+                <SSText>-</SSText>
+              )}
+            </SSVStack>
+
+            {/* Inputs — matches SSTransactionVinList style */}
+            {tx.inputs.map((inp, i) => {
+              const inputFiat =
+                typeof inp.value === 'number'
+                  ? formatSatsFiatLabel(
+                      inp.value,
+                      btcPrice,
+                      fiatCurrency,
+                      showCurrentFiat
+                    )
+                  : null
+
+              return (
+                <SSVStack key={i} style={styles.sectionWithTopPadding}>
+                  <SSSeparator color="gradient" />
+                  <SSText size="lg">
+                    {t('transaction.input.title')} {i}
+                  </SSText>
+                  {inp.isCoinbase ? (
+                    <SSText color="muted">{tn('coinbaseInput')}</SSText>
+                  ) : (
+                    <>
+                      {typeof inp.value === 'number' ? (
+                        <SatsAmount sats={inp.value} fiatLabel={inputFiat} />
+                      ) : null}
+                      {inp.address ? (
+                        <SSVStack gap="none">
+                          <SSText color="muted">{t('bitcoin.address')}</SSText>
+                          <SSClipboardCopy text={inp.address}>
+                            <SSText type="mono" size="md">
+                              {inp.address}
+                            </SSText>
+                          </SSClipboardCopy>
+                        </SSVStack>
+                      ) : null}
+                      <SSVStack gap="none">
+                        <SSText color="muted">
+                          {t('transaction.input.previousOutput.transaction')}
+                        </SSText>
+                        <SSClipboardCopy text={inp.prevTxid}>
+                          <SSText type="mono" size="md">
+                            {inp.prevTxid}
+                          </SSText>
+                        </SSClipboardCopy>
+                      </SSVStack>
+                      <SSVStack gap="none">
+                        <SSText color="muted">
+                          {t('transaction.input.previousOutput.vout')}
+                        </SSText>
+                        <SSText size="lg">{inp.prevVout}</SSText>
+                      </SSVStack>
+                    </>
+                  )}
+                  <SSVStack gap="none">
+                    <SSText color="muted">
+                      {t('transaction.input.sequence')}
+                    </SSText>
+                    <SSText size="lg">
+                      {`0x${inp.sequence.toString(16).padStart(8, '0')}`}
+                    </SSText>
+                  </SSVStack>
+                  {inp.witness.length > 0 ? (
+                    <SSVStack gap="none">
+                      <SSText color="muted">
+                        {tn('witness', { count: inp.witness.length })}
+                      </SSText>
+                      {inp.witness.map((w, wi) => (
+                        <SSClipboardCopy key={wi} text={w}>
+                          <SSText type="mono" size="xxs">
+                            {w}
+                          </SSText>
+                        </SSClipboardCopy>
+                      ))}
+                    </SSVStack>
+                  ) : null}
+                </SSVStack>
+              )
+            })}
+
+            {/* Outputs — matches SSTransactionVoutList style */}
+            {tx.outputs.map((out) => {
+              const specialTag = specialOutputTag(
+                classifySpecialOutput(out.script)
+              )
+              const outputFiat =
+                specialTag && out.value <= 0
+                  ? null
+                  : formatSatsFiatLabel(
+                      out.value,
+                      btcPrice,
+                      fiatCurrency,
+                      showCurrentFiat
+                    )
+
+              return (
+                <SSVStack key={out.index} style={styles.sectionWithTopPadding}>
+                  <SSSeparator color="gradient" />
+                  <SSText size="lg">
+                    {t('transaction.output.title')} {out.index}
+                  </SSText>
+                  {specialTag ? (
+                    <SSVStack gap="none">
+                      <SSText color="muted">{t('common.type')}</SSText>
+                      <SSText size="lg">{specialTag}</SSText>
+                    </SSVStack>
+                  ) : null}
+                  <SatsAmount sats={out.value} fiatLabel={outputFiat} />
+                  {out.address ? (
+                    <SSVStack gap="none">
+                      <SSText color="muted">{t('bitcoin.address')}</SSText>
+                      <SSClipboardCopy text={out.address}>
+                        <SSText type="mono" size="md">
+                          {out.address}
+                        </SSText>
+                      </SSClipboardCopy>
+                    </SSVStack>
+                  ) : null}
+                  <SSVStack>
+                    <SSText color="muted">{tn('script')}</SSText>
+                    <SSClipboardCopy text={out.script}>
+                      <SSText type="mono" size="xxs">
+                        {out.script}
+                      </SSText>
+                    </SSClipboardCopy>
+                  </SSVStack>
+                </SSVStack>
+              )
+            })}
+          </>
+        )}
+      </SSVStack>
+    </ScrollView>
+  )
+}
+
+const styles = StyleSheet.create({
+  amountRow: { alignItems: 'baseline', width: 'auto' },
+  closeButtonContainer: {
+    bottom: 32,
+    paddingHorizontal: 16,
+    position: 'absolute',
+    width: '100%'
+  },
+  container: {
+    flexDirection: 'column',
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    padding: 20
+  },
+  errorContainer: {
+    alignItems: 'stretch',
+    gap: 16,
+    paddingVertical: 60,
+    width: '100%'
+  },
+  externalSource: { color: Colors.gray[500] },
+  flex: { flex: 1 },
+  header: { alignItems: 'center' },
+  headerAmount: { alignItems: 'center', marginTop: 16 },
+  headerAmountRow: { alignItems: 'baseline', width: 'auto' },
+  headerTitle: { alignItems: 'center' },
+  loadingContainer: { alignItems: 'center', gap: 16, paddingVertical: 60 },
+  loadingPhase: { opacity: 0.6 },
+  sectionWithTopPadding: { paddingTop: 50 },
+  serverUrl: { color: Colors.gray[500], opacity: 0.9 },
+  sourceLabel: { color: Colors.mainGreen, opacity: 0.8 },
+  txidContent: { flex: 1 },
+  txidSection: { alignItems: 'flex-start' }
+})
