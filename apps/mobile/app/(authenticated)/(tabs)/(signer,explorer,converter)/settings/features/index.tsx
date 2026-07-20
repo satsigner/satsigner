@@ -32,10 +32,8 @@ export default function Features() {
           <SSVStack gap="lg">
             <SSVStack>
               <SSSettingsCards
-                title={t('settings.features.charts.historyChart.title')}
-                description={t(
-                  'settings.features.charts.historyChart.description'
-                )}
+                title={t('settings.features.charts.title')}
+                description={t('settings.features.charts.description')}
                 icon={
                   <SSIconHistoryChart
                     width={24}
@@ -44,7 +42,7 @@ export default function Features() {
                   />
                 }
                 onPress={() => {
-                  router.navigate('/settings/features/historyChart')
+                  router.navigate('/settings/features/charts')
                 }}
               />
               <SSSettingsCards
