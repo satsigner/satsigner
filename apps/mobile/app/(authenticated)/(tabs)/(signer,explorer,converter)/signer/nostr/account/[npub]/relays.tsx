@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -10,6 +10,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_RELAYS, NOSTR_RELAY_PROTOCOL_PREFIX } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
@@ -118,7 +119,7 @@ export default function NostrIdentityRelays() {
           )
         }}
       />
-      <ScrollView
+      <SSScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -191,7 +192,7 @@ export default function NostrIdentityRelays() {
             onPress={handleSave}
           />
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }

@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -8,6 +8,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -56,7 +57,7 @@ export default function EcashAccountRecoveryPage() {
           )
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <SSScrollView showsVerticalScrollIndicator={false}>
         <SSVStack gap="lg" style={styles.container}>
           {!hasSeed ? (
             <SSVStack gap="sm">
@@ -126,7 +127,7 @@ export default function EcashAccountRecoveryPage() {
             </>
           )}
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }
