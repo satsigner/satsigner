@@ -1,12 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -37,6 +31,7 @@ import {
 import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -265,7 +260,7 @@ export default function AccountSettings() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
+    <SSScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -733,7 +728,7 @@ export default function AccountSettings() {
           maxTries={3}
         />
       </SSModal>
-    </ScrollView>
+    </SSScrollView>
   )
 }
 

@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, ScrollView, StyleSheet } from 'react-native'
+import { Alert, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -9,6 +9,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { deleteEcashMnemonic } from '@/storage/encrypted'
@@ -93,7 +94,7 @@ export default function EcashAccountSettingsPage() {
           )
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <SSScrollView showsVerticalScrollIndicator={false}>
         <SSVStack style={styles.container} gap="lg">
           <SSVStack gap="sm">
             <SSText uppercase>{t('ecash.account.name')}</SSText>
@@ -182,7 +183,7 @@ export default function EcashAccountSettingsPage() {
             />
           </SSVStack>
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }

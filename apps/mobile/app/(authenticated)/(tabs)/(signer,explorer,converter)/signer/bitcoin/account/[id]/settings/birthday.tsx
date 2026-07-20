@@ -1,6 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSDatePicker from '@/components/SSDatePicker'
@@ -10,6 +10,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { useApplyAccountBirthday } from '@/hooks/useApplyAccountBirthday'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -125,7 +126,7 @@ export default function AccountBirthdayPage() {
           )
         }}
       />
-      <ScrollView
+      <SSScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
@@ -240,7 +241,7 @@ export default function AccountBirthdayPage() {
             />
           ) : null}
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }

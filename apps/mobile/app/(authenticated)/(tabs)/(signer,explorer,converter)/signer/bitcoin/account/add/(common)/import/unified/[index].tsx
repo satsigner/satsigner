@@ -2,7 +2,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -15,6 +15,7 @@ import { useNFCReader } from '@/hooks/useNFCReader'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
@@ -619,7 +620,7 @@ export default function UnifiedImport() {
           headerTitle: () => <SSText uppercase>{name}</SSText>
         }}
       />
-      <ScrollView style={styles.container}>
+      <SSScrollView style={styles.container}>
         <SSVStack justifyBetween style={{ flex: 1 }}>
           <SSVStack>
             <SSFormLayout>
@@ -765,7 +766,7 @@ export default function UnifiedImport() {
             />
           </SSVStack>
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
 
       <SSModal
         visible={cameraModalVisible}

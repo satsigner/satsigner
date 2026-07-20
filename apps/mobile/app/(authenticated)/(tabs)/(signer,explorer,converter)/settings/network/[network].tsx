@@ -13,7 +13,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ScrollView, TouchableOpacity } from 'react-native'
+import { TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -32,6 +32,7 @@ import {
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -332,7 +333,7 @@ export default function CustomNetwork() {
         }}
       />
       <SSVStack gap="lg" justifyBetween>
-        <ScrollView
+        <SSScrollView
           style={{ marginBottom: 24 }}
           showsVerticalScrollIndicator={false}
         >
@@ -613,7 +614,7 @@ export default function CustomNetwork() {
               />
             </SSVStack>
           </SSVStack>
-        </ScrollView>
+        </SSScrollView>
       </SSVStack>
 
       <SSModal
