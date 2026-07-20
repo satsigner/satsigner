@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -10,6 +10,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_RELAYS, NOSTR_RELAY_PROTOCOL_PREFIX } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -71,7 +72,7 @@ function SSNostrRelaysSelection() {
   }
 
   return (
-    <ScrollView>
+    <SSScrollView>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{tl('title')}</SSText>
@@ -134,7 +135,7 @@ function SSNostrRelaysSelection() {
           />
         </SSVStack>
       </SSMainLayout>
-    </ScrollView>
+    </SSScrollView>
   )
 }
 

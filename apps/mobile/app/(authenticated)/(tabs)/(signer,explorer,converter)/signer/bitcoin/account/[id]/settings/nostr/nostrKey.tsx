@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   View
 } from 'react-native'
@@ -26,6 +25,7 @@ import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -416,7 +416,7 @@ function NostrKeys() {
         }}
       />
       <SSVStack style={styles.pageContainer}>
-        <ScrollView
+        <SSScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -734,7 +734,7 @@ function NostrKeys() {
               style={styles.cancelButton}
             />
           </SSVStack>
-        </ScrollView>
+        </SSScrollView>
       </SSVStack>
       <SSModal
         visible={qrModal !== null}

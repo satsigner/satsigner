@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -12,6 +12,7 @@ import {
   useArkLnurlWithdrawDetails
 } from '@/hooks/useArkLnurlWithdraw'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -185,7 +186,7 @@ export default function ArkReceiveLnurlWithdrawPage() {
           )
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack gap="lg" style={styles.container}>
           {serviceHost && (
             <SSVStack gap="xs">
@@ -277,7 +278,7 @@ export default function ArkReceiveLnurlWithdrawPage() {
             </SSVStack>
           )}
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }
