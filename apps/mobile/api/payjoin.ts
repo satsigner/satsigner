@@ -2,11 +2,13 @@ import {
   createReceiverSession,
   createSenderSession,
   fetchOhttpKeys,
+  httpPost,
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
   receiverProcessResponse,
   resumeReceiverSession,
+  resumeSenderSession,
   senderExtractRequest,
   senderProcessResponse
 } from 'react-native-payjoin'
@@ -65,6 +67,46 @@ async function defaultFetch(
     signal?: AbortSignal
   }
 ): Promise<HttpResponse> {
+  const method = (init?.method ?? 'GET').toUpperCase()
+
+  // Android OkHttp often fails OHTTP relay POSTs with HTTP/2 SETTINGS errors.
+  // Prefer native reqwest (HTTP/1.1 + rustls) when available — same stack as
+  // createReceiverSession / live signet tests.
+  if (
+    method === 'POST' &&
+    isNativeAvailable() &&
+    init?.signal?.aborted !== true
+  ) {
+    const contentType =
+      init?.headers?.['Content-Type'] ??
+      init?.headers?.['content-type'] ??
+      'application/octet-stream'
+    const bodyBytes =
+      typeof init?.body === 'string'
+        ? new TextEncoder().encode(init.body)
+        : (init?.body ?? new Uint8Array())
+    try {
+      const native = await httpPost(url, contentType, bodyBytes)
+      if (init?.signal?.aborted) {
+        throw new Error('The operation was aborted')
+      }
+      const body = new TextDecoder().decode(native.body)
+      return { body, bytes: native.body, status: native.status }
+    } catch (error) {
+      // Fall through to JS fetch only for non-native failures that look like
+      // missing symbols (stale APK without httpPost). Real network errors
+      // should surface so the poll loop can retry.
+      const message = error instanceof Error ? error.message : String(error)
+      if (
+        !message.includes('httpPost') &&
+        !message.includes('http_post') &&
+        !message.includes('is not a function')
+      ) {
+        throw error
+      }
+    }
+  }
+
   const response = await fetch(url, {
     body: init?.body as BodyInit | undefined,
     headers: init?.headers,
@@ -786,7 +828,8 @@ async function createReceivePayjoinSession(params: {
     pjos: PAYJOIN_DEFAULT_PJOS,
     protocol,
     role: 'receiver',
-    status: nativeState ? 'ready' : 'error',
+    // 'waiting' = mailbox live and receiver will poll for the sender.
+    status: nativeState ? 'waiting' : 'error',
     ttlMs: params.ttlMs,
     uri: pjUri!
   })

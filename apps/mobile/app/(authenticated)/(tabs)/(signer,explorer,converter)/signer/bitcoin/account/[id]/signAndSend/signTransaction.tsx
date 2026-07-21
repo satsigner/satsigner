@@ -34,6 +34,7 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import { useNow } from '@/hooks/useNow'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
@@ -49,6 +50,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import {
   detectEndpointKind,
   hasPayjoinParam,
@@ -192,6 +194,14 @@ export default function SignTransaction() {
     ])
   )
   const payjoinEnabled = useSettingsStore((s) => s.payjoinEnabled)
+  const senderSessionExpiresAt = usePayjoinSessionsStore((state) =>
+    id ? state.getActiveSenderSession(id)?.expiresAt : undefined
+  )
+  const nowMs = useNow()
+  const payjoinExpiringLabel = formatPayjoinExpiringLabel(
+    senderSessionExpiresAt,
+    nowMs
+  )
   const [payjoinStatus, setPayjoinStatus] = useState<string | null>(null)
   const [waitingForReceiver, setWaitingForReceiver] = useState(false)
   const [checkingPayjoin, setCheckingPayjoin] = useState(false)
@@ -658,6 +668,17 @@ export default function SignTransaction() {
               {waitingForReceiver && !signed ? (
                 <SSText color="muted" size="sm" style={{ textAlign: 'center' }}>
                   {t('transaction.build.payjoin.waitingReceiverHint')}
+                </SSText>
+              ) : null}
+
+              {!signed && payjoinStatus && payjoinExpiringLabel ? (
+                <SSText
+                  testID="send-payjoin-expiring"
+                  color="muted"
+                  size="xs"
+                  center
+                >
+                  {payjoinExpiringLabel}
                 </SSText>
               ) : null}
 

@@ -9,6 +9,7 @@ import {
   pollReceiverSession,
   tryResumeReceiverSession
 } from '@/api/payjoin'
+import { PAYJOIN_MIN_CONTRIBUTE_SATS } from '@/constants/payjoin'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useSettingsStore } from '@/store/settings'
@@ -30,17 +31,24 @@ type UsePayjoinReceiverParams = {
   signPsbt?: (psbtBase64: string) => Promise<string> | string
 }
 
-function isRecoverableReceiverError(message: string): boolean {
+const RECEIVER_POLL_INTERVAL_MS = 4_000
+const MAX_SESSION_RENEWALS = 2
+
+function walletCanContributeToPayjoin(utxos: Utxo[]): boolean {
+  return utxos.some((utxo) => utxo.value > PAYJOIN_MIN_CONTRIBUTE_SATS)
+}
+
+/** Native session is gone — recreate mailbox. Do NOT use for transient fetch/PSBT errors. */
+function isDeadReceiverSessionError(message: string): boolean {
   const lower = message.toLowerCase()
   return (
     lower.includes('receiver session not found') ||
     lower.includes('missing ohttp') ||
     lower.includes('recreate') ||
-    lower.includes('expired') ||
-    lower.includes('expir') ||
-    lower.includes('gone') ||
-    lower.includes('not found') ||
-    lower.includes('unavailable')
+    lower.includes('finalize instead of polling') ||
+    lower.includes('already has a proposal') ||
+    (lower.includes('expired') && !lower.includes('psbt')) ||
+    lower.includes('session gone')
   )
 }
 
@@ -58,15 +66,22 @@ function usePayjoinReceiver({
   const [session, setSession] = useState<PayjoinSession | null>(null)
   const [negotiating, setNegotiating] = useState(false)
   const [renewing, setRenewing] = useState(false)
+  const [polling, setPolling] = useState(false)
+  const [lastPolledAt, setLastPolledAt] = useState<number | null>(null)
   const pollingRef = useRef(false)
   const recreateRef = useRef(false)
   const startingRef = useRef(false)
+  const renewCountRef = useRef(0)
+  const sessionRef = useRef<PayjoinSession | null>(null)
+
+  const canContribute = walletCanContributeToPayjoin(utxos)
 
   const canUsePayjoin =
     payjoinEnabled &&
     isNativeAvailable() &&
     !!address &&
-    account?.policyType === 'singlesig'
+    account?.policyType === 'singlesig' &&
+    canContribute
 
   const buildCallbacks = useCallback(() => {
     const store = usePayjoinSessionsStore.getState()
@@ -100,12 +115,14 @@ function usePayjoinReceiver({
       label
     })
     setSession(created)
+    sessionRef.current = created
     return created
   }, [accountId, address, amountSats, label])
 
   const startSession = useCallback(async () => {
     if (!canUsePayjoin || !address) {
       setSession(null)
+      sessionRef.current = null
       return
     }
     if (startingRef.current) {
@@ -123,8 +140,6 @@ function usePayjoinReceiver({
         existing.address === address &&
         existing.expiresAt > Date.now()
       ) {
-        // Resume native memory before rewriting BIP21 extras. Skipping resume
-        // left a dead nativeState that polls then surfaced as "expired".
         const resumed = await tryResumeReceiverSession(existing)
         if (!resumed) {
           await createFreshSession()
@@ -152,6 +167,7 @@ function usePayjoinReceiver({
             }
             usePayjoinSessionsStore.getState().upsertSession(updated)
             setSession(updated)
+            sessionRef.current = updated
             return
           } catch {
             // Fall through to recreate if URI rewrite fails.
@@ -161,12 +177,14 @@ function usePayjoinReceiver({
         }
 
         setSession(resumed)
+        sessionRef.current = resumed
         return
       }
 
       await createFreshSession()
     } catch {
       setSession(null)
+      sessionRef.current = null
     } finally {
       startingRef.current = false
     }
@@ -174,6 +192,17 @@ function usePayjoinReceiver({
 
   const renewAfterFailure = useCallback(
     async (failedSession: PayjoinSession | null, message: string) => {
+      if (renewCountRef.current >= MAX_SESSION_RENEWALS) {
+        console.warn(
+          '[payjoin] receiver renew skipped (cap reached)',
+          message
+        )
+        return
+      }
+      if (!isDeadReceiverSessionError(message)) {
+        console.warn('[payjoin] receiver keeping session after', message)
+        return
+      }
       console.warn('[payjoin] receiver renewing session', message)
       if (failedSession?.id) {
         usePayjoinSessionsStore.getState().removeSession(failedSession.id)
@@ -182,6 +211,7 @@ function usePayjoinReceiver({
         return
       }
       recreateRef.current = true
+      renewCountRef.current += 1
       setRenewing(true)
       try {
         await createFreshSession()
@@ -194,39 +224,54 @@ function usePayjoinReceiver({
   )
 
   const pollOnce = useCallback(async () => {
+    const current = sessionRef.current
     if (
-      !session?.nativeState ||
+      !current?.nativeState ||
       pollingRef.current ||
-      session.status === 'expired' ||
-      session.status === 'completed'
+      current.status === 'expired' ||
+      current.status === 'completed'
     ) {
-      return
-    }
-    // Dead sessions: renew instead of leaving the UI stuck on "expired".
-    if (session.status === 'error') {
-      await renewAfterFailure(session, session.error ?? 'error status')
       return
     }
 
     pollingRef.current = true
+    setPolling(true)
     try {
+      console.log('[payjoin] receiver poll', {
+        sessionId: current.id,
+        status: current.status
+      })
       const { session: updated, originalPsbtBase64 } =
         await pollReceiverSession({
           callbacks: buildCallbacks(),
-          session
+          session: current
         })
+
+      setLastPolledAt(Date.now())
 
       if (updated.status === 'error') {
         const message = updated.error ?? 'payjoin poll error'
-        if (isRecoverableReceiverError(message)) {
+        if (isDeadReceiverSessionError(message)) {
           await renewAfterFailure(updated, message)
           return
         }
-        setSession(updated)
+        // Transient protocol/network errors: stay on the same mailbox URI.
+        const recovered: PayjoinSession = {
+          ...current,
+          error: undefined,
+          nativeState: updated.nativeState ?? current.nativeState,
+          status: 'waiting',
+          updatedAt: Date.now()
+        }
+        usePayjoinSessionsStore.getState().upsertSession(recovered)
+        setSession(recovered)
+        sessionRef.current = recovered
+        console.warn('[payjoin] receiver poll soft-error, still waiting', message)
         return
       }
 
       setSession(updated)
+      sessionRef.current = updated
       if (originalPsbtBase64 && updated.status === 'proposal_received') {
         setNegotiating(true)
         try {
@@ -235,30 +280,41 @@ function usePayjoinReceiver({
             session: updated
           })
           setSession(finalized)
+          sessionRef.current = finalized
         } finally {
           setNegotiating(false)
         }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      if (isRecoverableReceiverError(message)) {
-        await renewAfterFailure(session, message)
+      setLastPolledAt(Date.now())
+      if (isDeadReceiverSessionError(message)) {
+        await renewAfterFailure(current, message)
         return
       }
-      const failed = {
-        ...session,
-        error: message,
-        status: 'error' as const,
+      // Keep waiting — e.g. HTTP/2 SETTINGS preface / relay blips.
+      console.warn('[payjoin] receiver poll failed, retrying later', message)
+      const stillWaiting: PayjoinSession = {
+        ...current,
+        error: undefined,
+        status: 'waiting',
         updatedAt: Date.now()
       }
-      usePayjoinSessionsStore.getState().upsertSession(failed)
-      setSession(failed)
+      usePayjoinSessionsStore.getState().upsertSession(stillWaiting)
+      setSession(stillWaiting)
+      sessionRef.current = stillWaiting
     } finally {
       pollingRef.current = false
+      setPolling(false)
     }
-  }, [buildCallbacks, renewAfterFailure, session])
+  }, [buildCallbacks, renewAfterFailure])
 
   useEffect(() => {
+    sessionRef.current = session
+  }, [session])
+
+  useEffect(() => {
+    renewCountRef.current = 0
     void startSession()
   }, [startSession])
 
@@ -272,20 +328,17 @@ function usePayjoinReceiver({
       return
     }
 
-    // Immediately renew stuck error sessions when Receive is open.
-    if (session.status === 'error') {
-      void pollOnce()
-      return
-    }
-
     if (!session.nativeState) {
       void startSession()
       return
     }
 
+    // Kick one poll immediately so "Waiting for sender" is visibly active.
+    void pollOnce()
+
     const interval = setInterval(() => {
       void pollOnce()
-    }, 4000)
+    }, RECEIVER_POLL_INTERVAL_MS)
 
     function onAppState(next: AppStateStatus) {
       if (next === 'active') {
@@ -298,35 +351,47 @@ function usePayjoinReceiver({
       clearInterval(interval)
       sub.remove()
     }
-  }, [canUsePayjoin, pollOnce, session, startSession])
+    // Re-bind when the mailbox identity changes, not on every soft status tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pollOnce/startSession stable enough via refs
+  }, [canUsePayjoin, session?.id, session?.nativeState, startSession])
 
   const statusLabelKey = !canUsePayjoin
     ? null
     : renewing
       ? 'receive.payjoin.status.renewing'
-      : negotiating || session?.status === 'negotiating'
+      : negotiating ||
+          session?.status === 'negotiating' ||
+          session?.status === 'proposal_received' ||
+          session?.status === 'finalizing'
         ? 'receive.payjoin.status.negotiating'
         : session?.status === 'completed'
           ? 'receive.payjoin.status.completed'
-          : session?.status === 'expired' || session?.status === 'error'
+          : session?.status === 'expired'
             ? 'receive.payjoin.status.expired'
-            : session?.status === 'waiting' || session?.status === 'ready'
-              ? 'receive.payjoin.status.ready'
-              : 'receive.payjoin.status.ready'
+            : session?.nativeState &&
+                (session.status === 'waiting' ||
+                  session.status === 'ready' ||
+                  session.status === 'initializing' ||
+                  session.status === 'error')
+              ? 'receive.payjoin.status.waiting'
+              : session
+                ? 'receive.payjoin.status.ready'
+                : 'receive.payjoin.status.ready'
 
   return {
+    canContribute,
     canUsePayjoin,
+    lastPolledAt,
     negotiating,
     payjoinUri:
-      canUsePayjoin &&
-      session?.status !== 'error' &&
-      session?.status !== 'expired'
-        ? session?.uri
+      canUsePayjoin && session && session.status !== 'expired'
+        ? session.uri
         : undefined,
+    polling,
     restartSession: startSession,
     session,
     statusLabelKey
   }
 }
 
-export { usePayjoinReceiver }
+export { usePayjoinReceiver, walletCanContributeToPayjoin }

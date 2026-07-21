@@ -23,11 +23,18 @@ const PAYJOIN_BIP77_SEND_TIMEOUT_MS = 60_000
 /** Default: do not allow payment output substitution (Bull Bitcoin parity). */
 const PAYJOIN_DEFAULT_PJOS: 0 | 1 = 0
 
+/**
+ * Minimum UTXO value (sats) a receiver must have to contribute an input.
+ * Empty / dust-only wallets cannot complete a Payjoin as receiver.
+ */
+const PAYJOIN_MIN_CONTRIBUTE_SATS = 1_000
+
 export {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_DIRECTORY_URL,
+  PAYJOIN_MIN_CONTRIBUTE_SATS,
   PAYJOIN_OHTTP_RELAY_URLS,
   PAYJOIN_SESSION_TTL_MS
 }

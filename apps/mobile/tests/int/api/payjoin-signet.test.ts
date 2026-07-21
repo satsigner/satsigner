@@ -9,7 +9,8 @@
  *   cd apps/mobile && pnpm test:int:payjoin
  *
  * For a live directory roundtrip that asserts HTTP 2xx from payjo.in / OHTTP
- * relay and broadcasts a completed Signet payjoin tx:
+ * relay, uses local Electrum (default tcp://192.168.68.100:60001), and broadcasts
+ * a completed Signet payjoin tx:
  *   cd apps/mobile && pnpm test:int:payjoin:live
  */
 import ecc from '@bitcoinerlab/secp256k1'
