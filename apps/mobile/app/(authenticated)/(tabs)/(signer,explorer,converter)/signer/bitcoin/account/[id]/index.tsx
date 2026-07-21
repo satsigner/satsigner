@@ -86,6 +86,7 @@ import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useNostrSync from '@/hooks/useNostrSync'
+import { useNow } from '@/hooks/useNow'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
@@ -115,6 +116,7 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
+import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import {
@@ -200,6 +202,7 @@ function PayjoinSessionCard({
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const { showCurrentFiat } = useFiatData()
+  const nowMs = useNow()
 
   const amountSats = payjoinSessionAmountSats(session)
   const pollUrl = session.pjEndpoint
@@ -210,6 +213,7 @@ function PayjoinSessionCard({
       ? formatFiatPrice(amountSats, btcPrice)
       : ''
   const isSender = session.role === 'sender'
+  const expiringLabel = formatPayjoinExpiringLabel(session.expiresAt, nowMs)
 
   function handleOpenSession() {
     if (!isSender) {
@@ -253,9 +257,20 @@ function PayjoinSessionCard({
               ? t('transaction.payjoin.send')
               : t('transaction.payjoin.receive')}
           </SSText>
-          <SSText size="xs" style={{ color: Colors.warning }}>
-            {payjoinSessionStatusLabel(session)}
-          </SSText>
+          <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
+            <SSText size="xs" style={{ color: Colors.warning }}>
+              {payjoinSessionStatusLabel(session)}
+            </SSText>
+            {expiringLabel ? (
+              <SSText
+                testID="payjoin-session-expiring"
+                size="xs"
+                color="muted"
+              >
+                {expiringLabel}
+              </SSText>
+            ) : null}
+          </SSVStack>
         </SSHStack>
         <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack gap="sm" style={{ alignItems: 'center' }}>
@@ -674,9 +689,10 @@ function TotalTransactions({
     () =>
       annotateTransactionsWithWalletOwnership(
         [...account.transactions],
-        account.addresses
+        account.addresses,
+        account.utxos
       ),
-    [account.addresses, account.transactions]
+    [account.addresses, account.transactions, account.utxos]
   )
 
   const sortedTransactions = useMemo(
@@ -1450,9 +1466,10 @@ function SatsInMempool({
     () =>
       annotateTransactionsWithWalletOwnership(
         account.transactions,
-        account.addresses
+        account.addresses,
+        account.utxos
       ).filter((tx) => !tx.blockHeight),
-    [account.addresses, account.transactions]
+    [account.addresses, account.transactions, account.utxos]
   )
 
   if (mempoolTransactions.length === 0) {

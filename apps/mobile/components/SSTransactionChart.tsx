@@ -33,6 +33,7 @@ import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
+import { isOwnedOutpoint } from '@/utils/sankeyInputOwnership'
 import {
   resolveChartOutputSpendStatus,
   type ChartOutputSpendStatus
@@ -77,6 +78,11 @@ type SSTransactionChartProps = {
   internalAddresses?: Set<string>
   /** Wallet UTXO outpoints (`txid:vout`) still unspent on-chain. */
   unspentOutpoints?: Set<string>
+  /**
+   * Outpoints this wallet created/holds. Marks Sankey inputs as ours vs
+   * counterparty (Payjoin).
+   */
+  ownedOutpoints?: ReadonlySet<string>
   selectedOutputIndex?: number // Index of the output to highlight (vout)
   dimUnselected?: boolean // Dim non-selected outputs
   scale?: number // Scale factor for the chart (0-1)
@@ -183,6 +189,7 @@ function SSTransactionChartCanvas({
   ownAddresses = new Set(),
   internalAddresses = new Set(),
   unspentOutpoints,
+  ownedOutpoints,
   selectedOutputIndex,
   dimUnselected = false,
   scale = 1,
@@ -375,31 +382,38 @@ function SSTransactionChartCanvas({
       }
     }
 
-    const inputNodes: TxNode[] = inputs.map((input, index) => ({
-      depthH: 0,
-      id: String(index + 1),
-      ioData: {
-        address: formatTxId(input.txid, 4),
-        // Only attach fiat when prevout value is real — equal-split placeholders
-        // are for layout/labels, not priced amounts.
-        ...(input.valueIsKnown ? fiatFields(input.value) : {}),
-        isInput: true,
-        label: resolveSankeyInputLabel(
-          input.txid,
-          input.vout,
-          txLabelsById,
-          outpointLabelsByRef
-        ),
-        prevTxId: input.txid,
-        text: t('common.from'),
-        // Always show a sats amount: known prevout, or equal-split placeholder.
+    const inputNodes: TxNode[] = inputs.map((input, index) => {
+      const isOwnInput = walletSpendColors
+        ? isOwnedOutpoint(ownedOutpoints, input.txid, input.vout)
+        : undefined
+
+      return {
+        depthH: 0,
+        id: String(index + 1),
+        ioData: {
+          address: formatTxId(input.txid, 4),
+          // Only attach fiat when prevout value is real — equal-split placeholders
+          // are for layout/labels, not priced amounts.
+          ...(input.valueIsKnown ? fiatFields(input.value) : {}),
+          isInput: true,
+          isOwnInput,
+          label: resolveSankeyInputLabel(
+            input.txid,
+            input.vout,
+            txLabelsById,
+            outpointLabelsByRef
+          ),
+          prevTxId: input.txid,
+          text: t('common.from'),
+          // Always show a sats amount: known prevout, or equal-split placeholder.
+          value: input.value,
+          vout: input.vout
+        },
+        type: 'text',
         value: input.value,
         vout: input.vout
-      },
-      type: 'text',
-      value: input.value,
-      vout: input.vout
-    }))
+      }
+    })
 
     const blockNode: TxNode[] = [
       {
@@ -549,6 +563,7 @@ function SSTransactionChartCanvas({
     normalizedOwnAddresses,
     normalizedInternalAddresses,
     unspentOutpoints,
+    ownedOutpoints,
     spendingTxIdsByOutpoint,
     networkOutspends,
     transaction.id,

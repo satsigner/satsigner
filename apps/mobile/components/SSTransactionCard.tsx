@@ -23,6 +23,7 @@ import {
   formatTxId
 } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
+import { getWalletTransactionEffect } from '@/utils/walletOwnership'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'
 import SSStyledSatText from './SSStyledSatText'
@@ -70,8 +71,7 @@ function SSTransactionCard({
         ? styles.confirmedFew
         : styles.confirmedEnough
 
-  const { type, received, sent } = transaction
-  const amount = type === 'receive' ? received : sent - received
+  const { amount, type } = getWalletTransactionEffect(transaction)
   const { label, tags } = parseLabel(transaction.label || '')
 
   const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
@@ -106,7 +106,8 @@ function SSTransactionCard({
       ? formatPercentualChange(btcPrice, oldPrice)
       : ''
 
-  const balanceDelta = (received || 0) - (sent || 0)
+  const balanceDelta =
+    (transaction.received || 0) - (transaction.sent || 0)
   const previousBalance =
     walletBalance !== undefined ? walletBalance - balanceDelta : undefined
   const balancePercentChange =
@@ -191,13 +192,13 @@ function SSTransactionCard({
                 gap={smallView ? 'xs' : 'sm'}
                 style={{ alignItems: 'center' }}
               >
-                {transaction.type === 'receive' && (
+                {type === 'receive' && (
                   <SSIconIncoming
                     height={smallView ? 12 : 21}
                     width={smallView ? 12 : 21}
                   />
                 )}
-                {transaction.type === 'send' && (
+                {type === 'send' && (
                   <SSIconOutgoing
                     height={smallView ? 12 : 21}
                     width={smallView ? 12 : 21}
@@ -222,7 +223,7 @@ function SSTransactionCard({
                       decimals={0}
                       useZeroPadding={useZeroPadding}
                       currency={currencyUnit}
-                      type={transaction.type}
+                      type={type}
                       textSize={smallView ? 'xl' : '4xl'}
                       noColor={false}
                       showSign={false}

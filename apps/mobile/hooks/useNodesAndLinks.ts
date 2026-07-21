@@ -45,6 +45,11 @@ export type TxNode = {
     isNeutralOutput?: boolean
     /** True for vin / selected-UTXO nodes (left column), not spent outputs. */
     isInput?: boolean
+    /**
+     * Wallet-owned input (spent our UTXO). `false` = counterparty input
+     * (typical Payjoin contribute). Undefined when ownership is unknown.
+     */
+    isOwnInput?: boolean
     /** Previous output index (vout) for input nodes. */
     vout?: number
     /** Full previous transaction id for input outpoint navigation. */

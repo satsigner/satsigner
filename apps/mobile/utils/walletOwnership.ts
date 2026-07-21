@@ -3,7 +3,12 @@ import { type BdkWallet, KeychainKind } from 'react-native-bdk-sdk'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { getAccountAddressSets } from '@/utils/address'
+import {
+  buildOwnedOutpoints,
+  isOwnedOutpoint
+} from '@/utils/sankeyInputOwnership'
 import { sortTransactions } from '@/utils/sort'
 
 const MAX_OWNERSHIP_ADDRESS_SCAN = 1000
@@ -110,10 +115,14 @@ function shouldReconstructOwnedInputs(params: {
 /**
  * Tag internal outputs as change and fix send `received`/`sent` from ownership
  * so card amount and running balance are payment (+ fee), not every output.
+ *
+ * Mixed-ownership txs (Payjoin): count only our inputs/outputs so a receive
+ * Payjoin is net-positive instead of a huge fake send.
  */
 function annotateTransactionsWithWalletOwnership(
   transactions: Transaction[],
-  accountAddresses: Account['addresses']
+  accountAddresses: Account['addresses'],
+  utxos?: Utxo[]
 ): Transaction[] {
   const { internalAddresses, ownAddresses } =
     getAccountAddressSets(accountAddresses)
@@ -121,6 +130,12 @@ function annotateTransactionsWithWalletOwnership(
   if (ownAddresses.size === 0) {
     return transactions
   }
+
+  const ownedOutpoints = buildOwnedOutpoints({
+    addresses: accountAddresses,
+    transactions,
+    utxos
+  })
 
   return transactions.map((transaction) => {
     const vout = transaction.vout.map((output) => {
@@ -134,10 +149,6 @@ function annotateTransactionsWithWalletOwnership(
       return { ...output, kind: 'change' as const }
     })
 
-    if (transaction.sent <= 0) {
-      return { ...transaction, vout }
-    }
-
     let returned = 0
     let external = 0
     for (const output of vout) {
@@ -147,6 +158,48 @@ function annotateTransactionsWithWalletOwnership(
       } else {
         external += output.value
       }
+    }
+
+    let ownInputSum = 0
+    let foreignInputSum = 0
+    let inputsClassified = 0
+    for (const input of transaction.vin ?? []) {
+      const owned = isOwnedOutpoint(
+        ownedOutpoints,
+        input.previousOutput?.txid,
+        input.previousOutput?.vout
+      )
+      if (owned === undefined) {
+        continue
+      }
+      inputsClassified += 1
+      const value = input.value ?? 0
+      if (owned) {
+        ownInputSum += value
+      } else {
+        foreignInputSum += value
+      }
+    }
+
+    const mixedOwnership =
+      inputsClassified >= 2 && ownInputSum > 0 && foreignInputSum > 0
+
+    if (mixedOwnership) {
+      const sent = ownInputSum
+      const received = returned
+      const type: Transaction['type'] =
+        received >= sent ? 'receive' : 'send'
+      return {
+        ...transaction,
+        received,
+        sent,
+        type,
+        vout
+      }
+    }
+
+    if (transaction.sent <= 0) {
+      return { ...transaction, vout }
     }
 
     const fee = transaction.fee ?? 0
@@ -168,6 +221,30 @@ function annotateTransactionsWithWalletOwnership(
       vout
     }
   })
+}
+
+/**
+ * Wallet balance effect for UI: receive/send amount after ownership annotation.
+ * For Payjoin receive this is net gain (own outputs − own inputs), not gross.
+ */
+function getWalletTransactionEffect(tx: {
+  received?: number
+  sent?: number
+  type?: Transaction['type']
+}): { amount: number; type: 'receive' | 'send' } {
+  const received = tx.received || 0
+  const sent = tx.sent || 0
+  const net = received - sent
+  if (net > 0) {
+    return { amount: net, type: 'receive' }
+  }
+  if (net < 0) {
+    return { amount: -net, type: 'send' }
+  }
+  return {
+    amount: 0,
+    type: tx.type === 'receive' ? 'receive' : 'send'
+  }
 }
 
 /**
@@ -194,5 +271,6 @@ export {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
   ensureAddressesIncludeSeenOutputs,
-  getTransactionRunningBalances
+  getTransactionRunningBalances,
+  getWalletTransactionEffect
 }
