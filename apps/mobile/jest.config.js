@@ -34,6 +34,7 @@ const config = {
     '^react-native-mmkv$': '<rootDir>/__mocks__/react-native-mmkv.ts',
     '^react-native-nitro-sqlite$':
       '<rootDir>/__mocks__/react-native-nitro-sqlite.ts',
+    '^react-native-payjoin$': '<rootDir>/__mocks__/react-native-payjoin.ts',
     '^react-native-quick-crypto$':
       '<rootDir>/__mocks__/react-native-quick-crypto.ts'
   },

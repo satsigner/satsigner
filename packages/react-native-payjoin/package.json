@@ -1,0 +1,52 @@
+{
+  "name": "react-native-payjoin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Payjoin Dev Kit UniFFI bindings for SatSigner (BIP77 + BIP78)",
+  "homepage": "https://github.com/satsigner/satsigner",
+  "license": "MIT",
+  "author": "SatSigner",
+  "source": "./src/index.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "react-native": "./src/index.ts",
+  "files": [
+    "src",
+    "android",
+    "ios",
+    "cpp",
+    "rust",
+    "build",
+    "*.podspec",
+    "react-native.config.js",
+    "ubrn.config.yaml",
+    "scripts"
+  ],
+  "scripts": {
+    "ubrn:ios": "ubrn build ios --release --config ubrn.config.yaml --and-generate && node scripts/patch-index.js",
+    "ubrn:android": "ubrn build android --release --config ubrn.config.yaml --and-generate && node scripts/codegen:android && node scripts/patch-index.js",
+    "ubrn:generate": "ubrn generate jsi turbo-module --config ubrn.config.yaml && node scripts/patch-index.js",
+    "codegen:android": "node scripts/codegen-android.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "uniffi-bindgen-react-native": "0.31.0-2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/satsigner/satsigner.git",
+    "directory": "packages/react-native-payjoin"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "codegenConfig": {
+    "name": "RNPayjoinSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.satsigner.payjoin"
+    }
+  }
+}
