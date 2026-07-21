@@ -26,6 +26,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
@@ -95,6 +96,10 @@ export default function TxDetails() {
   )
 
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+
+  const showTransactionFlowChart = useChartSettingStore(
+    (state) => state.showTransactionFlowChart
+  )
 
   const currentServer = configs[selectedNetwork].server
 
@@ -214,35 +219,37 @@ export default function TxDetails() {
           header={t('transaction.label')}
           privacyMode={privacyMode}
         />
-        <SSVStack style={{ paddingTop: 50 }}>
-          <SSSeparator color="gradient" />
-          <SSHStack gap="xxs">
-            <SSText uppercase color="muted">
-              {t('transaction.details.chart')}
-            </SSText>
-            {chartLoading ? (
-              <ActivityIndicator
-                size="small"
-                color={Colors.gray[300]}
-                style={{ transform: [{ scale: 0.7 }] }}
-              />
-            ) : null}
-          </SSHStack>
-          <SSTransactionChart
-            key={txid}
-            accountId={accountId}
-            transaction={displayTx}
-            ownAddresses={ownAddresses}
-            internalAddresses={internalAddresses}
-            unspentOutpoints={unspentOutpoints}
-            txLabelsById={txLabelsById}
-            knownTxIds={knownTxIds}
-            spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
-            outpointLabelsByRef={outpointLabelsByRef}
-            scale={0.9}
-            onLoadingChange={setChartLoading}
-          />
-        </SSVStack>
+        {showTransactionFlowChart && (
+          <SSVStack style={{ paddingTop: 50 }}>
+            <SSSeparator color="gradient" />
+            <SSHStack gap="xxs">
+              <SSText uppercase color="muted">
+                {t('transaction.details.chart')}
+              </SSText>
+              {chartLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={Colors.gray[300]}
+                  style={{ transform: [{ scale: 0.7 }] }}
+                />
+              ) : null}
+            </SSHStack>
+            <SSTransactionChart
+              key={txid}
+              accountId={accountId}
+              transaction={displayTx}
+              ownAddresses={ownAddresses}
+              internalAddresses={internalAddresses}
+              unspentOutpoints={unspentOutpoints}
+              txLabelsById={txLabelsById}
+              knownTxIds={knownTxIds}
+              spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
+              outpointLabelsByRef={outpointLabelsByRef}
+              scale={0.9}
+              onLoadingChange={setChartLoading}
+            />
+          </SSVStack>
+        )}
         {!isReady ? null : (
           <>
             <SSSeparator color="gradient" />

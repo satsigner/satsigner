@@ -4,36 +4,44 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import mmkvStorage from '@/storage/mmkv'
 
 type ChartSettingState = {
-  showLabel: boolean
-  showAmount: boolean
-  showTransactionInfo: boolean
-  showOutputField: boolean
   lockZoomToXAxis: boolean
-  showFiatOnChart: boolean
+  showAmount: boolean
   showFiatAtTxTime: boolean
+  showFiatOnChart: boolean
   showFiatPercentageChange: boolean
+  showLabel: boolean
+  showOutputField: boolean
+  showTransactionFlowChart: boolean
+  showTransactionInfo: boolean
+  showUtxoFlowChart: boolean
 }
 
 type ChartSettingAction = {
-  setShowLabel: (showLabel: ChartSettingState['showLabel']) => void
-  setShowAmount: (showAmount: ChartSettingState['showAmount']) => void
-  setShowTransactionInfo: (
-    showTransactionInfo: ChartSettingState['showTransactionInfo']
-  ) => void
-  setShowOutputField: (
-    showOutputField: ChartSettingState['showOutputField']
-  ) => void
   setLockZoomToXAxis: (
     lockZoomToXAxis: ChartSettingState['lockZoomToXAxis']
+  ) => void
+  setShowAmount: (showAmount: ChartSettingState['showAmount']) => void
+  setShowFiatAtTxTime: (
+    showFiatAtTxTime: ChartSettingState['showFiatAtTxTime']
   ) => void
   setShowFiatOnChart: (
     showFiatOnChart: ChartSettingState['showFiatOnChart']
   ) => void
-  setShowFiatAtTxTime: (
-    showFiatAtTxTime: ChartSettingState['showFiatAtTxTime']
-  ) => void
   setShowFiatPercentageChange: (
     showFiatPercentageChange: ChartSettingState['showFiatPercentageChange']
+  ) => void
+  setShowLabel: (showLabel: ChartSettingState['showLabel']) => void
+  setShowOutputField: (
+    showOutputField: ChartSettingState['showOutputField']
+  ) => void
+  setShowTransactionFlowChart: (
+    showTransactionFlowChart: ChartSettingState['showTransactionFlowChart']
+  ) => void
+  setShowTransactionInfo: (
+    showTransactionInfo: ChartSettingState['showTransactionInfo']
+  ) => void
+  setShowUtxoFlowChart: (
+    showUtxoFlowChart: ChartSettingState['showUtxoFlowChart']
   ) => void
 }
 
@@ -65,8 +73,14 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
       setShowOutputField: (showOutputField) => {
         set({ showOutputField })
       },
+      setShowTransactionFlowChart: (showTransactionFlowChart) => {
+        set({ showTransactionFlowChart })
+      },
       setShowTransactionInfo: (showTransactionInfo) => {
         set({ showTransactionInfo })
+      },
+      setShowUtxoFlowChart: (showUtxoFlowChart) => {
+        set({ showUtxoFlowChart })
       },
       showAmount: true,
       showFiatAtTxTime: false,
@@ -74,7 +88,9 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
       showFiatPercentageChange: false,
       showLabel: true,
       showOutputField: false,
-      showTransactionInfo: true
+      showTransactionFlowChart: true,
+      showTransactionInfo: true,
+      showUtxoFlowChart: true
     }),
     {
       name: 'satsigner-blockchain',

@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSAmountInput from '@/components/SSAmountInput'
@@ -24,6 +24,7 @@ import {
 } from '@/hooks/useArkReceive'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -122,7 +123,7 @@ export default function ArkReceivePage() {
           headerTitle: () => <SSText uppercase>{t('ark.receive.title')}</SSText>
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack gap="lg" style={styles.container}>
           <SSPairedTabs<ReceiveTab>
             activeTab={activeTab}
@@ -352,7 +353,7 @@ export default function ArkReceivePage() {
             </SSVStack>
           )}
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }
