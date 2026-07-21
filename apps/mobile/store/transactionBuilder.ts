@@ -57,6 +57,8 @@ type TransactionBuilderState = {
   cpfp: boolean
   selectedAutoSelectUtxos: AutoSelectUtxosAlgorithm
   stonewallPreview: StonewallPreviewState
+  /** Full BIP21 URI with pj= when sending to a Payjoin invoice. */
+  payjoinUri?: string
   psbt?: PsbtLike
   signedTx?: string
   signedPsbts: Map<number, string>
@@ -91,6 +93,7 @@ type TransactionBuilderAction = {
   ) => void
   setSignedPsbts: (signedPsbts: TransactionBuilderState['signedPsbts']) => void
   setBroadcasted: (broadcasted: boolean) => void
+  setPayjoinUri: (payjoinUri: string | undefined) => void
 }
 
 function normalizeStonewallPreview(
@@ -176,6 +179,7 @@ const useTransactionBuilderStore = create<
           feeRate: 0,
           inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
           outputs: [],
+          payjoinUri: undefined,
           psbt: undefined,
           rbf: true,
           selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
@@ -193,6 +197,7 @@ const useTransactionBuilderStore = create<
       hasInput: (utxo) => get().inputs.has(getUtxoOutpoint(utxo)),
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
       outputs: [],
+      payjoinUri: undefined,
       rbf: true,
       removeInput: (utxo) => {
         set((state) => {
@@ -295,6 +300,9 @@ const useTransactionBuilderStore = create<
           state.feeRate = feeRate
           syncDraft(state)
         })
+      },
+      setPayjoinUri: (payjoinUri) => {
+        set({ payjoinUri })
       },
       setPsbt: (psbt) => {
         set({ psbt })

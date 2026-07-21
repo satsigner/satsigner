@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import Animated, {
+  cancelAnimation,
   Easing,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -70,6 +72,10 @@ import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3
+const STAGGER_DELAY_MS = 70
+const STAGGER_DURATION_MS = 320
+const MAX_STAGGERED_ITEMS = 8
+const SAMPLE_ACCOUNTS_DELAY_MS = 400
 
 function buildAccountCardStats(
   summary: Account['summary']
@@ -94,47 +100,129 @@ function buildAccountCardStats(
   ]
 }
 
-const STAGGER_DELAY_MS = 70
-const STAGGER_DURATION_MS = 320
+function runStaggerIn(
+  opacity: SharedValue<number>,
+  translateY: SharedValue<number>,
+  delayMs: number
+) {
+  cancelAnimation(opacity)
+  cancelAnimation(translateY)
+  opacity.set(0)
+  translateY.set(12)
+  opacity.set(
+    withDelay(
+      delayMs,
+      withTiming(1, {
+        duration: STAGGER_DURATION_MS,
+        easing: Easing.out(Easing.ease)
+      })
+    )
+  )
+  translateY.set(
+    withDelay(
+      delayMs,
+      withTiming(0, {
+        duration: STAGGER_DURATION_MS,
+        easing: Easing.out(Easing.ease)
+      })
+    )
+  )
+}
 
+function forceStaggerVisible(
+  opacity: SharedValue<number>,
+  translateY: SharedValue<number>
+) {
+  cancelAnimation(opacity)
+  cancelAnimation(translateY)
+  opacity.set(1)
+  translateY.set(0)
+}
+
+/**
+ * Fade/slide-in that stays reliable with FlashList recycling:
+ * - keyed by itemId so a recycled cell restarts for the new account
+ * - cleanup forces opacity 1 so a mid-animation recycle never leaves a blank cell
+ * - JS timeout fallback if the UI-thread animation is dropped
+ */
 function AccountCardStaggerItem({
   index,
+  itemId,
   children
 }: {
   index: number
+  itemId: string
   children: React.ReactNode
 }) {
-  const opacity = useSharedValue(0)
-  const translateY = useSharedValue(12)
+  const shouldAnimate = index < MAX_STAGGERED_ITEMS
+  const opacity = useSharedValue(shouldAnimate ? 0 : 1)
+  const translateY = useSharedValue(shouldAnimate ? 12 : 0)
 
   useEffect(() => {
-    const delay = index * STAGGER_DELAY_MS
+    if (!shouldAnimate) {
+      forceStaggerVisible(opacity, translateY)
+      return
+    }
+
+    const delayMs = index * STAGGER_DELAY_MS
+    runStaggerIn(opacity, translateY, delayMs)
+
+    const fallback = setTimeout(
+      () => forceStaggerVisible(opacity, translateY),
+      delayMs + STAGGER_DURATION_MS + 50
+    )
+
+    return () => {
+      clearTimeout(fallback)
+      // Dropping a cell mid-fade must never leave the recycled view invisible.
+      forceStaggerVisible(opacity, translateY)
+    }
+  }, [itemId, index, shouldAnimate, opacity, translateY])
+
+  const staggerStyle = useAnimatedStyle(() => ({
+    opacity: opacity.get(),
+    transform: [{ translateY: translateY.get() }]
+  }))
+
+  return <Animated.View style={staggerStyle}>{children}</Animated.View>
+}
+
+function SampleAccountsFadeIn({ children }: { children: React.ReactNode }) {
+  const opacity = useSharedValue(0)
+
+  useEffect(() => {
+    cancelAnimation(opacity)
+    opacity.set(0)
     opacity.set(
       withDelay(
-        delay,
+        SAMPLE_ACCOUNTS_DELAY_MS,
         withTiming(1, {
           duration: STAGGER_DURATION_MS,
           easing: Easing.out(Easing.ease)
         })
       )
     )
-    translateY.set(
-      withDelay(
-        delay,
-        withTiming(0, {
-          duration: STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease)
-        })
-      )
-    )
-  }, [index, opacity, translateY])
 
-  const staggerStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }]
+    const fallback = setTimeout(
+      () => {
+        cancelAnimation(opacity)
+        opacity.set(1)
+      },
+      SAMPLE_ACCOUNTS_DELAY_MS + STAGGER_DURATION_MS + 50
+    )
+
+    return () => {
+      clearTimeout(fallback)
+      cancelAnimation(opacity)
+      opacity.set(1)
+    }
+  }, [opacity])
+
+  const style = useAnimatedStyle(() => ({
+    opacity: opacity.get()
   }))
 
-  return <Animated.View style={staggerStyle}>{children}</Animated.View>
+  return <Animated.View style={style}>{children}</Animated.View>
 }
 
 export default function AccountList() {
@@ -216,27 +304,6 @@ export default function AccountList() {
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
   // SQLite store initializes synchronously via JSI — always hydrated
   const hasHydrated = true
-  const sampleAccountsOpacity = useSharedValue(0)
-
-  useEffect(() => {
-    if (!hasHydrated) {
-      return
-    }
-    sampleAccountsOpacity.set(0)
-    sampleAccountsOpacity.set(
-      withDelay(
-        400,
-        withTiming(1, {
-          duration: 320,
-          easing: Easing.out(Easing.ease)
-        })
-      )
-    )
-  }, [hasHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const sampleAccountsStyle = useAnimatedStyle(() => ({
-    opacity: sampleAccountsOpacity.value
-  }))
 
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
@@ -903,15 +970,16 @@ export default function AccountList() {
               ))}
             </SSVStack>
           ) : (
-            <Animated.View
+            <View
               style={{
                 minHeight: listContainerMinHeight
               }}
             >
               <FlashList
                 data={filteredAccounts}
+                keyExtractor={(item) => item.id}
                 renderItem={({ item, index }) => (
-                  <AccountCardStaggerItem index={index}>
+                  <AccountCardStaggerItem index={index} itemId={item.id}>
                     <SSVStack>
                       <SSAccountCard
                         name={item.name}
@@ -946,10 +1014,10 @@ export default function AccountList() {
                 }
                 showsVerticalScrollIndicator={false}
               />
-              <Animated.View style={sampleAccountsStyle}>
+              <SampleAccountsFadeIn>
                 {renderSamplewallets()}
-              </Animated.View>
-            </Animated.View>
+              </SampleAccountsFadeIn>
+            </View>
           )}
         </ScrollView>
       </SSMainLayout>

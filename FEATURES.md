@@ -15,6 +15,7 @@
 
 ### Security & Privacy
 
+- **Payjoin (BIP77 + BIP78)**: Async Payjoin receive/send via Payjoin Dev Kit for Bull Bitcoin interop, plus BIP78 HTTPS send/receive through the directory bridge; falls back to a normal transaction when unavailable
 - **PIN Protection**: AES-256-CBC encryption with PIN-protected access
 - **Seed Dropping**: Remove mnemonics after key extraction for enhanced security
 - **Duress PIN**: Support for duress scenarios

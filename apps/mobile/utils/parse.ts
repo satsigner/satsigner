@@ -272,6 +272,10 @@ type ParsedUriParams = {
   address: string
   amount?: number
   label?: string
+  /** Payjoin endpoint URL when present (decoded, :// preserved). */
+  pj?: string
+  /** Output substitution flag from BIP78/BIP77. */
+  pjos?: 0 | 1
 }
 
 /**
@@ -290,14 +294,43 @@ function parseUriParameters(content: string): ParsedUriParams | null {
     return { address: addressPart }
   }
 
-  const params = new URLSearchParams(queryString.substring(1))
+  const rawQuery = queryString.substring(1)
+  const params = new URLSearchParams(rawQuery)
   const amountParam = params.get('amount')
   const labelParam = params.get('label')
+
+  // Extract pj without URLSearchParams mutating :// encoding.
+  let pj: string | undefined
+  let pjos: 0 | 1 | undefined
+  for (const part of rawQuery.split('&')) {
+    const eq = part.indexOf('=')
+    if (eq === -1) {
+      continue
+    }
+    const key = part.slice(0, eq).toLowerCase()
+    const value = part.slice(eq + 1)
+    if (key === 'pj' && value) {
+      try {
+        pj = decodeURIComponent(value)
+      } catch {
+        pj = value
+      }
+    }
+    if (key === 'pjos') {
+      if (value === '0') {
+        pjos = 0
+      } else if (value === '1') {
+        pjos = 1
+      }
+    }
+  }
 
   return {
     address: addressPart,
     amount: amountParam ? parseFloat(amountParam) : undefined,
-    label: labelParam ? decodeURIComponent(labelParam) : undefined
+    label: labelParam ? decodeURIComponent(labelParam) : undefined,
+    ...(pj ? { pj } : {}),
+    ...(pjos !== undefined ? { pjos } : {})
   }
 }
 

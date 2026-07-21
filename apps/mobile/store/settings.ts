@@ -18,6 +18,8 @@ type SettingsState = {
   showWarning: boolean
   skipSeedConfirmation: boolean
   privacyMode: boolean
+  /** When true, BIP21 receive URIs include a Payjoin session (default on). */
+  payjoinEnabled: boolean
   fetchCurrentPrices: boolean
   fetchHistoricalPrices: boolean
   fiatPriceApiUrl: string
@@ -46,6 +48,7 @@ type SettingsAction = {
   setDefaultAutoSelectUtxos: (
     algorithm: SettingsState['defaultAutoSelectUtxos']
   ) => void
+  setPayjoinEnabled: (payjoinEnabled: SettingsState['payjoinEnabled']) => void
   togglePrivacyMode: () => void
 }
 
@@ -80,6 +83,7 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       fiatPriceApiUrl: '',
       fiatPriceProvider: 'mempool',
       mnemonicWordList: DEFAULT_WORD_LIST,
+      payjoinEnabled: true,
       privacyMode: false,
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
@@ -101,6 +105,9 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       },
       setMnemonicWordList: (mnemonicWordList) => {
         set({ mnemonicWordList })
+      },
+      setPayjoinEnabled: (payjoinEnabled) => {
+        set({ payjoinEnabled })
       },
       setShowWarning: (showWarning) => {
         set({ showWarning })

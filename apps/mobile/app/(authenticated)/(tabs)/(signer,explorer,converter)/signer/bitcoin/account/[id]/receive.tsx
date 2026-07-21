@@ -2,10 +2,11 @@ import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, TextInput } from 'react-native'
-import { KeychainKind } from 'react-native-bdk-sdk'
+import { KeychainKind, Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { signTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSNumberInput from '@/components/SSNumberInput'
@@ -16,16 +17,20 @@ import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import useNostrSync from '@/hooks/useNostrSync'
+import { usePayjoinReceiver } from '@/hooks/usePayjoinReceiver'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Label } from '@/types/bips/329'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { appendParamsToPayjoinUri } from '@/utils/payjoinUri'
 
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -39,6 +44,11 @@ export default function Receive() {
   )
   const wallet = useGetAccountWallet(id!)
   const { sendLabelsToNostr } = useNostrSync()
+  // Hydrate amount/label from a persisted session before the receiver hook
+  // runs — otherwise a remount with empty fields clears session.amountSats.
+  const existingPayjoinSession = id
+    ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
+    : undefined
 
   const [addressData, setAddressData] = useState<{
     localAddress?: string
@@ -49,16 +59,27 @@ export default function Receive() {
 
   const { localAddress, localAddressNumber, localAddressQR, localAddressPath } =
     addressData
-  const [localCustomAmount, setLocalCustomAmount] = useState<string>()
+  const [localCustomAmount, setLocalCustomAmount] = useState<string>(() =>
+    existingPayjoinSession?.amountSats && existingPayjoinSession.amountSats > 0
+      ? String(existingPayjoinSession.amountSats)
+      : undefined
+  )
   const [localFiatAmount, setLocalFiatAmount] = useState<string>()
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
-  const [localLabel, setLocalLabel] = useState<string>()
+  const [localLabel, setLocalLabel] = useState<string>(
+    () => existingPayjoinSession?.label
+  )
   const [isGenerating, setIsGenerating] = useState(false)
   const [includeLabel, setIncludeLabel] = useState(true)
   const [includeAmount] = useState(true)
   const [includeBitcoinPrefix, setIncludeBitcoinPrefix] = useState(true)
+  const [includePayjoin, setIncludePayjoin] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [isManualAddress, setIsManualAddress] = useState(false)
+
+  const [payjoinEnabled, setPayjoinEnabled] = useSettingsStore(
+    useShallow((state) => [state.payjoinEnabled, state.setPayjoinEnabled])
+  )
 
   const {
     isHardwareSupported: nfcHardwareSupported,
@@ -90,20 +111,64 @@ export default function Receive() {
     []
   )
 
+  const amountSatsForPayjoin =
+    includeAmount &&
+    localCustomAmount &&
+    Number(localCustomAmount) > 0 &&
+    Number(localCustomAmount) <= 2_100_000_000_000_000
+      ? Number(localCustomAmount)
+      : undefined
+
+  const {
+    canUsePayjoin,
+    payjoinUri,
+    session: payjoinSession,
+    statusLabelKey,
+    negotiating: payjoinNegotiating
+  } = usePayjoinReceiver({
+    account,
+    accountId: id!,
+    address: includePayjoin && payjoinEnabled ? localAddress : undefined,
+    amountSats: amountSatsForPayjoin,
+    label: includeLabel ? localLabel : undefined,
+    signPsbt: (psbtBase64) => {
+      if (!wallet) {
+        return psbtBase64
+      }
+      const proposal = new Psbt(psbtBase64)
+      signTransaction(proposal, wallet)
+      return proposal.toBase64()
+    },
+    utxos: account?.utxos ?? []
+  })
+
   const localFinalAddressQR = useMemo(() => {
+    if (includePayjoin && payjoinEnabled && canUsePayjoin && payjoinUri) {
+      // Session resume used to ignore Label/amount toggles; rewrite BIP21
+      // extras on the displayed URI so the toggle is immediate.
+      let uri = payjoinUri
+      try {
+        uri = appendParamsToPayjoinUri(payjoinUri, {
+          amountSats: amountSatsForPayjoin,
+          label: includeLabel ? localLabel : undefined
+        })
+      } catch {
+        uri = payjoinUri
+      }
+      if (!includeBitcoinPrefix && uri.toLowerCase().startsWith('bitcoin:')) {
+        uri = uri.substring(8)
+      }
+      return uri
+    }
+
     if (!localAddressQR) {
       return ''
     }
 
     const queryParts: string[] = []
 
-    if (
-      includeAmount &&
-      localCustomAmount &&
-      Number(localCustomAmount) > 0 &&
-      Number(localCustomAmount) <= 2_100_000_000_000_000
-    ) {
-      const amountInBTC = Number(localCustomAmount) / 100_000_000
+    if (amountSatsForPayjoin !== undefined) {
+      const amountInBTC = amountSatsForPayjoin / 100_000_000
       const formattedAmount = amountInBTC.toFixed(8).replace(/\.?0+$/, '')
       queryParts.push(`amount=${encodeURIComponent(formattedAmount)}`)
     }
@@ -123,12 +188,15 @@ export default function Receive() {
       ? `${baseUri}?${queryParts.join('&')}`
       : baseUri
   }, [
-    localCustomAmount,
-    localLabel,
-    includeAmount,
-    includeLabel,
+    amountSatsForPayjoin,
+    canUsePayjoin,
     includeBitcoinPrefix,
-    localAddressQR
+    includeLabel,
+    includePayjoin,
+    localAddressQR,
+    localLabel,
+    payjoinEnabled,
+    payjoinUri
   ])
 
   const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
@@ -419,14 +487,16 @@ export default function Receive() {
               <SSVStack gap="sm" itemsCenter style={styles.sectionSpacing}>
                 <SSText>Bitcoin URI</SSText>
                 <TextInput
+                  testID="receive-bitcoin-uri"
                   value={localFinalAddressQR}
                   editable={false}
                   selectTextOnFocus
                   multiline
                   style={styles.uriTextInput}
                 />
-                <SSHStack gap="sm" justifyBetween>
+                <SSHStack gap="sm" style={styles.uriActionsRow}>
                   <SSButton
+                    testID="receive-copy-uri"
                     label={t('common.copy')}
                     variant="secondary"
                     style={styles.toggleButton}
@@ -453,6 +523,49 @@ export default function Receive() {
                     onPress={handleToggleLabel}
                   />
                 </SSHStack>
+                {account?.policyType === 'singlesig' ? (
+                  <SSVStack gap="xs" itemsCenter widthFull>
+                    <SSButton
+                      testID="receive-payjoin-toggle"
+                      label={
+                        includePayjoin && payjoinEnabled
+                          ? t('receive.payjoin.enable')
+                          : t('receive.payjoin.disable')
+                      }
+                      variant="outline"
+                      style={styles.payjoinButton}
+                      onPress={() => {
+                        const next = !(includePayjoin && payjoinEnabled)
+                        setIncludePayjoin(next)
+                        setPayjoinEnabled(next)
+                      }}
+                    />
+                    {includePayjoin && payjoinEnabled && statusLabelKey ? (
+                      <SSVStack gap="xxs" itemsCenter>
+                        <SSText
+                          testID="receive-payjoin-status"
+                          color="muted"
+                          size="sm"
+                          center
+                        >
+                          {payjoinNegotiating
+                            ? t('receive.payjoin.status.negotiating')
+                            : t(statusLabelKey)}
+                        </SSText>
+                        {payjoinSession?.pjEndpoint ? (
+                          <SSText
+                            testID="receive-payjoin-poll-url"
+                            color="muted"
+                            size="xs"
+                            center
+                          >
+                            {payjoinSession.pjEndpoint.split('#')[0]}
+                          </SSText>
+                        ) : null}
+                      </SSVStack>
+                    ) : null}
+                  </SSVStack>
+                ) : null}
               </SSVStack>
             )}
           </SSVStack>
@@ -627,7 +740,16 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline'
   },
   toggleButton: {
-    flex: 1
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 8
+  },
+  uriActionsRow: {
+    alignSelf: 'stretch',
+    width: '100%'
+  },
+  payjoinButton: {
+    width: '100%'
   },
   uriTextInput: {
     backgroundColor: Colors.gray[800],

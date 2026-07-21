@@ -92,6 +92,7 @@ import {
   parseUriParameters,
   stripBitcoinPrefix
 } from '@/utils/parse'
+import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   buildOutpointLabelsByRef,
   buildTxLabelsById
@@ -163,7 +164,8 @@ export default function IOPreview() {
     setSelectedAutoSelectUtxos,
     stonewallPreview,
     setStonewallPreview,
-    clearStonewallPreview
+    clearStonewallPreview,
+    setPayjoinUri
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -184,9 +186,27 @@ export default function IOPreview() {
       state.setSelectedAutoSelectUtxos,
       state.stonewallPreview,
       state.setStonewallPreview,
-      state.clearStonewallPreview
+      state.clearStonewallPreview,
+      state.setPayjoinUri
     ])
   )
+
+  // ioPreview only stores the invoice — Payjoin server (OHTTP / directory /
+  // BIP78 endpoint) is contacted later on sign via sendPayjoin.
+  useEffect(() => {
+    const state = useTransactionBuilderStore.getState()
+    const uri = state.payjoinUri
+    const parsed = uri ? parsePayjoinUri(uri) : undefined
+    console.log('[ioPreview] load', {
+      callingPayjoinServer: false,
+      hasPayjoinUri: !!uri,
+      payjoinUri: uri ?? null,
+      endpointKind: parsed?.endpointKind ?? null,
+      pj: parsed?.params?.pj ?? null,
+      outputs: state.outputs.length,
+      inputs: state.inputs.size
+    })
+  }, [])
 
   const mempoolOracle = useMempoolOracle(account?.network || 'bitcoin')
   const wallet = useGetAccountWallet(id!)
@@ -316,7 +336,7 @@ export default function IOPreview() {
     [utxosSelectedValue, outputs]
   )
 
-  function applyParsedOutput(parsed: ParsedUriParams) {
+  function applyParsedOutput(parsed: ParsedUriParams, rawUri?: string) {
     setOutputTo(parsed.address)
     if (parsed.amount !== undefined && parsed.amount > 0) {
       const amountInSats = Math.round(parsed.amount * SATS_PER_BITCOIN)
@@ -332,7 +352,30 @@ export default function IOPreview() {
       setOutputLabel(parsed.label)
     }
 
-    if (shouldAutoSelectUtxosFromParsedAmount(parsed.amount)) {
+    const uriForPayjoin =
+      rawUri ??
+      (parsed.pj
+        ? `bitcoin:${parsed.address}?${parsed.amount ? `amount=${parsed.amount}&` : ''}${parsed.pjos !== undefined ? `pjos=${parsed.pjos}&` : ''}pj=${parsed.pj}`
+        : undefined)
+    const isPayjoin = !!(
+      uriForPayjoin && hasPayjoinParam(uriForPayjoin)
+    )
+    if (isPayjoin && uriForPayjoin) {
+      setPayjoinUri(
+        uriForPayjoin.toLowerCase().startsWith('bitcoin:')
+          ? uriForPayjoin
+          : `bitcoin:${uriForPayjoin}`
+      )
+      toast.success(t('transaction.build.payjoin.uriDetected'))
+    } else {
+      setPayjoinUri(undefined)
+    }
+
+    // Skip privacy / STONEWALL auto-select for Payjoin invoices.
+    if (
+      !isPayjoin &&
+      shouldAutoSelectUtxosFromParsedAmount(parsed.amount)
+    ) {
       markUriAutoSelectPendingRef.current?.()
     }
   }
@@ -341,6 +384,17 @@ export default function IOPreview() {
     let uriToDecode = content
     if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
       uriToDecode = `bitcoin:${uriToDecode}`
+    }
+
+    const payjoinParsed = parsePayjoinUri(uriToDecode)
+    if (payjoinParsed.isValid && payjoinParsed.params) {
+      return {
+        address: payjoinParsed.params.address,
+        amount: payjoinParsed.params.amountBtc || 0,
+        label: payjoinParsed.params.label || '',
+        pj: payjoinParsed.params.pj,
+        pjos: payjoinParsed.params.pjos
+      }
     }
 
     const parsed = parseBitcoinUri(uriToDecode)
@@ -371,10 +425,10 @@ export default function IOPreview() {
   function handlePasteFromClipboard(content: string) {
     const trimmedContent = content.trim()
 
-    // Step 1: Try BIP21 decode
+    // Step 1: Try BIP21 decode (including Payjoin pj=)
     const bip21Result = tryDecodeBip21(trimmedContent)
     if (bip21Result) {
-      applyParsedOutput(bip21Result)
+      applyParsedOutput(bip21Result, trimmedContent)
       return
     }
 
@@ -382,29 +436,34 @@ export default function IOPreview() {
     const processedContent = stripBitcoinPrefix(trimmedContent)
     const uriResult = tryParseUriWithValidation(processedContent)
     if (uriResult && uriResult.amount !== undefined) {
-      applyParsedOutput(uriResult)
+      applyParsedOutput(uriResult, trimmedContent)
       return
     }
 
     // Step 3: Try content detection
     const detectedContent = detectContentByContext(processedContent, 'bitcoin')
     if (detectedContent.isValid) {
-      const success = processContentForOutput(detectedContent, {
+      const { ok, payjoin } = processContentForOutput(detectedContent, {
         onError: () => setOutputTo(processedContent),
         onWarning: () => undefined,
         remainingSats,
         setOutputAmount,
         setOutputLabel,
-        setOutputTo
+        setOutputTo,
+        setPayjoinUri
       })
+      if (ok && payjoin) {
+        toast.success(t('transaction.build.payjoin.uriDetected'))
+      }
       if (
-        success &&
+        ok &&
+        !payjoin &&
         detectedContent.type === 'bitcoin_uri' &&
         shouldAutoSelectUtxosFromBitcoinUri(trimmedContent)
       ) {
         markUriAutoSelectPendingRef.current?.()
       }
-      if (success) {
+      if (ok) {
         return
       }
     }
@@ -614,35 +673,9 @@ export default function IOPreview() {
       return
     }
 
-    const success = processContentForOutput(content, {
-      onError: (message) => {
-        if (message === t('transaction.error.dustOutputBelowLimit')) {
-          setDustErrorOverride(message)
-          setCameraModalVisible(false)
-        } else {
-          toast.error(t('transaction.error.address.invalid'))
-        }
-      },
-      onWarning: () => {
-        toast.warning(t('transaction.error.bip21.insufficientSats'))
-      },
-      remainingSats,
-      setOutputAmount,
-      setOutputLabel,
-      setOutputTo
-    })
-
-    if (
-      success &&
-      content.type === 'bitcoin_uri' &&
-      shouldAutoSelectUtxosFromBitcoinUri(content.cleaned.trim())
-    ) {
-      markUriAutoSelectPendingRef.current?.()
-    }
-
-    if (success) {
-      setCameraModalVisible(false)
-    }
+    // Same Payjoin-aware path as paste (raw keeps bitcoin: + pj=).
+    handlePasteFromClipboard(content.raw?.trim() || content.cleaned.trim())
+    setCameraModalVisible(false)
   }
 
   function resetLocalOutput() {
@@ -1542,6 +1575,7 @@ export default function IOPreview() {
                 </SSVStack>
                 <SSVStack>
                   <SSTextInput
+                    testID="send-output-address"
                     value={outputTo}
                     placeholder={t('transaction.address')}
                     align="left"
@@ -1556,11 +1590,21 @@ export default function IOPreview() {
                       paddingTop: 12,
                       textAlignVertical: 'top'
                     }}
-                    onChangeText={(text) => setOutputTo(text)}
+                    onChangeText={(text) => {
+                      // Long-press paste / Maestro inputText hit onChangeText,
+                      // not the Paste button — still detect Payjoin URIs.
+                      if (hasPayjoinParam(text)) {
+                        handlePasteFromClipboard(text)
+                        return
+                      }
+                      setOutputTo(text)
+                      setPayjoinUri(undefined)
+                    }}
                   />
                   {!isEditingStonewallManagedOutput ? (
                     <SSHStack gap="md">
                       <SSButton
+                        testID="send-paste-output"
                         variant="outline"
                         label={t('common.paste')}
                         style={{ flex: 1 }}
@@ -1576,6 +1620,7 @@ export default function IOPreview() {
                   ) : null}
                 </SSVStack>
                 <SSTextInput
+                  testID="send-output-label"
                   multiline
                   numberOfLines={4}
                   placeholder={t('transaction.build.add.label.title')}

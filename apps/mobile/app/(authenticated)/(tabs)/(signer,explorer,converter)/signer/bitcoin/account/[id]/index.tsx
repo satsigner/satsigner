@@ -23,6 +23,7 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
+import { Psbt } from 'react-native-bdk-sdk'
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -43,6 +44,7 @@ import {
   SSIconExpand,
   SSIconEyeOn,
   SSIconHistoryChart,
+  SSIconIncoming,
   SSIconKeys,
   SSIconList,
   SSIconMenu,
@@ -72,6 +74,7 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_HIT_BOX
@@ -92,6 +95,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -101,6 +105,7 @@ import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type PayjoinSession } from '@/types/payjoin'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getDraftIoCounts } from '@/utils/draftSelection'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
@@ -110,6 +115,7 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
+import { parsePayjoinUri } from '@/utils/payjoinUri'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import {
   createScanThroughputTracker,
@@ -132,6 +138,183 @@ const TX_STAGGER_DURATION_MS = 320
 // Only the first screenful gets the intro fade; rows scrolled into view later
 // (or recycled by FlashList) render instantly instead of waiting out a delay.
 const MAX_STAGGERED_ITEMS = 8
+
+const ACTIVE_PAYJOIN_STATUSES = new Set([
+  'ready',
+  'waiting',
+  'negotiating',
+  'initializing',
+  'proposal_received',
+  'finalizing'
+])
+
+function payjoinSessionAmountSats(session: PayjoinSession): number {
+  if (session.amountSats !== undefined && session.amountSats > 0) {
+    return session.amountSats
+  }
+  const parsed = parsePayjoinUri(session.uri)
+  if (parsed.params?.amountBtc !== undefined && parsed.params.amountBtc > 0) {
+    return Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
+  }
+  return 0
+}
+
+function payjoinSessionStatusLabel(session: PayjoinSession): string {
+  if (session.role === 'sender') {
+    if (session.status === 'negotiating') {
+      return t('receive.payjoin.status.negotiating')
+    }
+    return t('transaction.build.payjoin.waitingReceiver')
+  }
+  if (
+    session.status === 'negotiating' ||
+    session.status === 'proposal_received' ||
+    session.status === 'finalizing'
+  ) {
+    return t('receive.payjoin.status.negotiating')
+  }
+  if (session.status === 'completed') {
+    return t('receive.payjoin.status.completed')
+  }
+  return t('receive.payjoin.status.waiting')
+}
+
+function PayjoinSessionCard({
+  accountId,
+  session
+}: {
+  accountId: string
+  session: PayjoinSession
+}) {
+  const router = useRouter()
+  const removeSession = usePayjoinSessionsStore((state) => state.removeSession)
+  const [setAccountId, setPayjoinUri, setPsbt] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.setAccountId,
+      state.setPayjoinUri,
+      state.setPsbt
+    ])
+  )
+  const [btcPrice, fiatCurrency] = usePriceStore(
+    useShallow((state) => [state.btcPrice, state.fiatCurrency])
+  )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const { showCurrentFiat } = useFiatData()
+
+  const amountSats = payjoinSessionAmountSats(session)
+  const pollUrl = session.pjEndpoint
+    ? session.pjEndpoint.split('#')[0]
+    : undefined
+  const currentFiatPrice =
+    showCurrentFiat && btcPrice && btcPrice > 0 && amountSats > 0
+      ? formatFiatPrice(amountSats, btcPrice)
+      : ''
+  const isSender = session.role === 'sender'
+
+  function handleOpenSession() {
+    if (!isSender) {
+      router.navigate(`/signer/bitcoin/account/${accountId}/receive`)
+      return
+    }
+    setAccountId(accountId)
+    if (session.uri) {
+      setPayjoinUri(session.uri)
+    }
+    if (session.originalPsbtBase64) {
+      setPsbt(new Psbt(session.originalPsbtBase64))
+      router.navigate(
+        `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
+      )
+      return
+    }
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview`
+    )
+  }
+
+  function handleDiscardSession() {
+    removeSession(session.id)
+  }
+
+  return (
+    <TouchableOpacity onPress={handleOpenSession} activeOpacity={0.7}>
+      <SSVStack
+        gap="none"
+        style={{
+          opacity: 0.85,
+          paddingBottom: 12,
+          paddingHorizontal: 0,
+          paddingTop: 4
+        }}
+      >
+        <SSHStack justifyBetween>
+          <SSText color="muted" size="xs">
+            {isSender
+              ? t('transaction.payjoin.send')
+              : t('transaction.payjoin.receive')}
+          </SSText>
+          <SSText size="xs" style={{ color: Colors.warning }}>
+            {payjoinSessionStatusLabel(session)}
+          </SSText>
+        </SSHStack>
+        <SSVStack gap="none" style={{ marginTop: 5 }}>
+          <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+            {isSender ? (
+              <SSIconOutgoing height={21} width={21} />
+            ) : (
+              <SSIconIncoming height={21} width={21} />
+            )}
+            <SSText
+              size="4xl"
+              weight="light"
+              style={{ color: Colors.gray[400] }}
+            >
+              {privacyMode
+                ? '••••'
+                : amountSats > 0
+                  ? amountSats.toLocaleString()
+                  : '--'}
+            </SSText>
+            <SSText color="muted" size="sm">
+              {t('bitcoin.sats')}
+            </SSText>
+          </SSHStack>
+          {currentFiatPrice !== '' ? (
+            <SSHStack gap="xs" style={{ height: 22, marginTop: 2 }}>
+              <SSText style={{ color: Colors.gray[400] }} size="sm">
+                {privacyMode ? '••••' : currentFiatPrice}
+              </SSText>
+              <SSText style={{ color: Colors.gray[500] }} size="sm">
+                {fiatCurrency}
+              </SSText>
+            </SSHStack>
+          ) : null}
+        </SSVStack>
+        <SSHStack justifyBetween style={{ marginTop: 2 }}>
+          <SSText
+            size="xs"
+            color="muted"
+            style={{ flex: 1, paddingRight: 8 }}
+            numberOfLines={1}
+          >
+            {pollUrl ?? session.address}
+          </SSText>
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation()
+              handleDiscardSession()
+            }}
+            hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
+          >
+            <SSText size="xs" style={{ color: Colors.gray[500] }}>
+              {t('transaction.discard')}
+            </SSText>
+          </TouchableOpacity>
+        </SSHStack>
+      </SSVStack>
+    </TouchableOpacity>
+  )
+}
 
 function DraftTransactionCard({ accountId }: { accountId: string }) {
   const router = useRouter()
@@ -464,11 +647,23 @@ function TotalTransactions({
   const horizontalPaddingPx = width * 0.06
 
   const drafts = useTransactionBuilderStore((state) => state.drafts)
+  const payjoinSessions = usePayjoinSessionsStore((state) => state.sessions)
 
   const savedDraft = drafts[account.id]
   const hasDraft =
     savedDraft !== undefined &&
     (Object.keys(savedDraft.inputs).length > 0 || savedDraft.outputs.length > 0)
+  const activePayjoinSessions = useMemo(() => {
+    const now = Date.now()
+    return payjoinSessions.filter(
+      (session) =>
+        session.accountId === account.id &&
+        session.expiresAt > now &&
+        ACTIVE_PAYJOIN_STATUSES.has(session.status) &&
+        (session.role === 'receiver' || !!session.nativeState)
+    )
+  }, [account.id, payjoinSessions])
+  const hasActivityHeader = hasDraft || activePayjoinSessions.length > 0
   const router = useRouter()
 
   const [btcPrice, fiatCurrency] = usePriceStore(
@@ -581,8 +776,19 @@ function TotalTransactions({
             <FlashList
               data={sortedTransactions.toReversed()}
               ListHeaderComponent={
-                hasDraft ? (
-                  <DraftTransactionCard accountId={account.id} />
+                hasActivityHeader ? (
+                  <SSVStack gap="sm">
+                    {hasDraft ? (
+                      <DraftTransactionCard accountId={account.id} />
+                    ) : null}
+                    {activePayjoinSessions.map((session) => (
+                      <PayjoinSessionCard
+                        key={session.id}
+                        accountId={account.id}
+                        session={session}
+                      />
+                    ))}
+                  </SSVStack>
                 ) : null
               }
               renderItem={({ item, index }) => (

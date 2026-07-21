@@ -16,6 +16,7 @@ import {
   type DetectedContent,
   prepareEcashTokenInput
 } from '@/utils/contentDetector'
+import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   combinePsbts,
   extractIndividualSignedPsbts,
@@ -44,9 +45,33 @@ type ProcessorActions = {
   setRbf?: (enabled: boolean) => void
   setSignedPsbts?: (psbts: Map<number, string>) => void
   setPsbt?: (psbt: PsbtLike) => void
+  setPayjoinUri?: (uri: string | undefined) => void
   promptBitcoinUriExceedsBalance?: (
     info: BitcoinUriExceedsBalancePromptInfo
   ) => Promise<'cancel' | 'without_amount'>
+}
+
+function toBitcoinUri(text: string): string {
+  const trimmed = text.trim()
+  return trimmed.toLowerCase().startsWith('bitcoin:')
+    ? trimmed
+    : `bitcoin:${trimmed}`
+}
+
+/** Prefer raw (may still have bitcoin:), then cleaned (prefix stripped). */
+function extractPayjoinUriFromContent(
+  content: DetectedContent
+): string | undefined {
+  for (const candidate of [content.raw, content.cleaned]) {
+    if (!candidate?.trim()) {
+      continue
+    }
+    const uri = toBitcoinUri(candidate)
+    if (hasPayjoinParam(uri) && parsePayjoinUri(uri).isValid) {
+      return uri
+    }
+  }
+  return undefined
 }
 
 function autoSelectUtxos(
@@ -94,9 +119,23 @@ function commitBitcoinUriToIoPreview(
   account: Account | undefined,
   address: string,
   label: string,
-  amountSats: number
+  amountSats: number,
+  payjoinUri?: string
 ) {
   actions.addOutput?.({ amount: amountSats, label, to: address })
+
+  if (payjoinUri) {
+    actions.setPayjoinUri?.(payjoinUri)
+    // Efficient inputs only — skip settings privacy / STONEWALL auto-select.
+    if (account) {
+      autoSelectUtxos(account, amountSats, actions)
+    }
+    actions.navigate({
+      params: { id: accountId },
+      pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
+    })
+    return
+  }
 
   const useSettingsAutoSelect = isUriPaymentAmount(amountSats)
   if (!useSettingsAutoSelect && account) {
@@ -295,7 +334,8 @@ async function processBitcoinContent(
       const commitOrPromptBitcoinUri = async (
         address: string,
         label: string,
-        amountSats: number
+        amountSats: number,
+        payjoinUri?: string
       ): Promise<'cancel' | 'dust' | 'ok'> => {
         if (amountSats > 1 && amountSats < DUST_LIMIT) {
           actions.addOutput?.({
@@ -303,6 +343,9 @@ async function processBitcoinContent(
             label,
             to: address
           })
+          if (payjoinUri) {
+            actions.setPayjoinUri?.(payjoinUri)
+          }
           if (account) {
             autoSelectUtxos(account, amountSats, actions)
           }
@@ -330,7 +373,8 @@ async function processBitcoinContent(
               account,
               address,
               label,
-              1
+              1,
+              payjoinUri
             )
             return 'ok'
           }
@@ -343,12 +387,32 @@ async function processBitcoinContent(
           account,
           address,
           label,
-          amountSats
+          amountSats,
+          payjoinUri
         )
         return 'ok'
       }
 
       try {
+        const payjoinUri = extractPayjoinUriFromContent(content)
+        const payjoinParsed = payjoinUri
+          ? parsePayjoinUri(payjoinUri)
+          : undefined
+
+        if (payjoinParsed?.isValid && payjoinParsed.params) {
+          const amountSats =
+            Math.round(
+              (payjoinParsed.params.amountBtc || 0) * SATS_PER_BITCOIN
+            ) || 1
+          await commitOrPromptBitcoinUri(
+            payjoinParsed.params.address,
+            payjoinParsed.params.label || '',
+            amountSats,
+            payjoinUri
+          )
+          break
+        }
+
         let uriToDecode = content.cleaned
         if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
           uriToDecode = `bitcoin:${uriToDecode}`
@@ -388,7 +452,15 @@ async function processBitcoinContent(
               }
             }
 
-            await commitOrPromptBitcoinUri(address, label, amountSats)
+            const fallbackPayjoin = hasPayjoinParam(toBitcoinUri(content.cleaned))
+              ? toBitcoinUri(content.cleaned)
+              : undefined
+            await commitOrPromptBitcoinUri(
+              address,
+              label,
+              amountSats,
+              fallbackPayjoin
+            )
           }
         }
       } catch {
@@ -524,30 +596,59 @@ export function processContentForOutput(
     setOutputTo: (address: string) => void
     setOutputAmount: (amount: number) => void
     setOutputLabel: (label: string) => void
+    setPayjoinUri?: (uri: string | undefined) => void
     onError: (message: string) => void
     onWarning: (message: string) => void
     remainingSats?: number
   }
-) {
+): { ok: boolean; payjoin: boolean } {
   if (!content.isValid) {
     actions.onError(t('error.invalidContent'))
-    return false
+    return { ok: false, payjoin: false }
   }
 
   if (content.type === 'psbt') {
     actions.onError(t('error.psbtCannotBeUsedForOutputs'))
-    return false
+    return { ok: false, payjoin: false }
   }
 
   if (content.type === 'bitcoin_address') {
     actions.setOutputTo(content.cleaned)
     actions.setOutputAmount(1)
     actions.setOutputLabel('')
-    return true
+    actions.setPayjoinUri?.(undefined)
+    return { ok: true, payjoin: false }
   }
 
   if (content.type === 'bitcoin_uri') {
     try {
+      const payjoinUri = extractPayjoinUriFromContent(content)
+      const payjoinParsed = payjoinUri
+        ? parsePayjoinUri(payjoinUri)
+        : undefined
+
+      if (payjoinParsed?.isValid && payjoinParsed.params) {
+        actions.setOutputTo(payjoinParsed.params.address)
+        const amountBtc = payjoinParsed.params.amountBtc
+        if (amountBtc !== undefined && amountBtc > 0) {
+          const amountInSats = Math.round(amountBtc * SATS_PER_BITCOIN)
+          if (amountInSats > 0 && amountInSats < DUST_LIMIT) {
+            actions.onError(t('transaction.error.dustOutputBelowLimit'))
+            return { ok: false, payjoin: true }
+          }
+          if (actions.remainingSats && amountInSats > actions.remainingSats) {
+            actions.onWarning(t('error.insufficientFundsForAmount'))
+          } else {
+            actions.setOutputAmount(amountInSats)
+          }
+        } else {
+          actions.setOutputAmount(1)
+        }
+        actions.setOutputLabel(payjoinParsed.params.label || '')
+        actions.setPayjoinUri?.(payjoinUri)
+        return { ok: true, payjoin: true }
+      }
+
       let uriToDecode = content.cleaned
       if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
         uriToDecode = `bitcoin:${uriToDecode}`
@@ -563,7 +664,7 @@ export function processContentForOutput(
             const amountInSats = Math.round(amountInBTC * SATS_PER_BITCOIN)
             if (amountInSats > 0 && amountInSats < DUST_LIMIT) {
               actions.onError(t('transaction.error.dustOutputBelowLimit'))
-              return false
+              return { ok: false, payjoin: false }
             }
             if (actions.remainingSats && amountInSats > actions.remainingSats) {
               actions.onWarning(t('error.insufficientFundsForAmount'))
@@ -578,14 +679,15 @@ export function processContentForOutput(
         }
 
         actions.setOutputLabel(parsed.label || '')
-        return true
+        actions.setPayjoinUri?.(undefined)
+        return { ok: true, payjoin: false }
       }
     } catch {
       actions.onError(t('error.failedToDecodeBitcoinUri'))
-      return false
+      return { ok: false, payjoin: false }
     }
   }
 
   actions.onError(t('error.noValidAddressFound'))
-  return false
+  return { ok: false, payjoin: false }
 }
