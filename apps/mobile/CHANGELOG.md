@@ -2,7 +2,7 @@
 
 ## v0.3.6 (2026-06-10)
 
-### Highlights 
+### Highlights
 
 - Migrate to Expo SDK v56
 - Ark updates https://github.com/satsigner/satsigner/pull/404
@@ -10,7 +10,7 @@
 
 ## v0.3.5 (2026-05-15)
 
-###  Fixes and improvements
+### Fixes and improvements
 
 - Import xpub
 - Block account creation with same name as another
@@ -18,13 +18,13 @@
 
 ## v0.3.4 (2026-04-29)
 
-###  Highlights
+### Highlights
 
 - Prefill LNURL pay amount with minSendable
 - Allow users to export `bark` sqlite DB in Ark wallet settings
-- Add Ark as an option to pay zaps on nostr notes 
+- Add Ark as an option to pay zaps on nostr notes
 
-###  Fixes and improvements
+### Fixes and improvements
 
 - bitcoinUnits utils
 - Set `roundTxRequiredConfirmations` to `0` by default
@@ -33,13 +33,13 @@
 
 ## v0.3.3 (2026-04-28)
 
-###  Highlights
+### Highlights
 
 - Add Ark LNURL withdraw receive flow
 - Update `@secondts/bark-react-native` to `0.5.0`
 - Option to add description on BOLT11 invoices
 
-###  Fixes and improvements
+### Fixes and improvements
 
 - Fix Ark `sendOnchain`/`offboard` hang via race-against-`MovementCreated` with 30s timeout
 - Hide "exceeds balance" warning on Ark send confirm while mutation pending
@@ -48,22 +48,22 @@
 
 ## v0.3.2 (2026-04-28)
 
-###  Highlights
+### Highlights
 
 - Implement Ark `sendOnchain` feature
 
-###  Fixes and improvements
+### Fixes and improvements
 
 - Fix Ark fee estimation UI flicker
 - Guard Ark send confirm against re-entry
-- Mute stale `bark.exit` start movements 
-- Fix refresh UI display 
-- Dedupe toast for same movement id 
+- Mute stale `bark.exit` start movements
+- Fix refresh UI display
+- Dedupe toast for same movement id
 - Re-subscribe notifications and resync wallet when returning from background
 
 ## v0.3.1 (2026-04-28)
 
-##  Highlights
+## Highlights
 
 ### Ark Fixes
 
@@ -71,9 +71,9 @@
 
 ## v0.3.0 (2026-04-27)
 
-##  Highlights
+## Highlights
 
-### Ark Payments 
+### Ark Payments
 
 - Enable Ark Payment with [bark-react-native](https://npmx.dev/package/@secondts/bark-react-native)
 

@@ -10,9 +10,8 @@ defaultConfig.resolver.extraNodeModules = {
 }
 
 defaultConfig.resolver.sourceExts.push('md')
-defaultConfig.transformer.babelTransformerPath = require.resolve(
-  './metro.transformer.js'
-)
+defaultConfig.transformer.babelTransformerPath =
+  require.resolve('./metro.transformer.js')
 
 const { withStorybook } = require('@storybook/react-native/metro/withStorybook')
 
