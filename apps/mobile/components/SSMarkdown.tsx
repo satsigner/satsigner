@@ -22,9 +22,9 @@ import {
   collapseMarkdownSpacers,
   isSafeHttpUrl,
   parseMarkdownBlocks
-} from '@/utils/nostrMarkdownBlocks'
+} from '@/utils/markdown'
 
-type SSNostrMarkdownContentProps = {
+type SSMarkdownProps = {
   content: string
 }
 
@@ -271,7 +271,7 @@ function MarkdownBlockView({
   )
 }
 
-function SSNostrMarkdownContent({ content }: SSNostrMarkdownContentProps) {
+function SSMarkdown({ content }: SSMarkdownProps) {
   const visibleBlocks = collapseMarkdownSpacers(parseMarkdownBlocks(content))
 
   return (
@@ -396,4 +396,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSNostrMarkdownContent
+export default SSMarkdown

@@ -32,7 +32,7 @@ import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
-import SSNostrMarkdownContent from '@/components/SSNostrMarkdownContent'
+import SSMarkdown from '@/components/SSMarkdown'
 import SSNostrPollOptions from '@/components/SSNostrPollOptions'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
@@ -1184,7 +1184,7 @@ export default function NostrNotePage() {
                 ) : null}
                 {fetched.content.length > 0 ? (
                   formatMarkdown && showMarkdownToggle ? (
-                    <SSNostrMarkdownContent content={fetched.content} />
+                    <SSMarkdown content={fetched.content} />
                   ) : (
                     <SSText
                       style={[
