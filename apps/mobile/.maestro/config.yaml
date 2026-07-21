@@ -1,0 +1,12 @@
+# Shared Maestro config — single source of truth for CLI + Studio.
+# Studio: open apps/mobile/.maestro
+appId: com.satsigner.satsigner.dev.feat_bitcoin_core_rpc
+env:
+  ACCOUNT_NAME: 'Sample (segwit)'
+flows:
+  - 'flows/smoke-*.yaml'
+  - 'flows/payjoin-*.yaml'
+excludeTags:
+  - manual
+# Prefer run-with-results.sh (writes apps/mobile/.maestro/results/latest).
+testOutputDir: results

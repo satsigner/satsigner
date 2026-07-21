@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+---
+# Open Bitcoin account list and select SIGNET tab.
+# Always resets from whatever screen the previous run left us on.
+
+- runFlow:
+    file: goto-account-list.yaml
+
+- runFlow:
+    when:
+      visible: '(?i)^Bitcoin$'
+    commands:
+      - tapOn: '(?i)^Bitcoin$'
+
+- extendedWaitUntil:
+    visible: '(?i)^SIGNET$'
+    timeout: 30000
+- tapOn: '(?i)^SIGNET$'
+
+- extendedWaitUntil:
+    visible: '(?i)Add Account'
+    timeout: 15000

@@ -1,0 +1,86 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - send
+  - signet
+---
+# Send to a Payjoin URI on signet using Sample (segwit) (pre-funded UTXOs).
+#
+#   maestro test -e APP_ID=com.satsigner.satsigner.dev.feat_bitcoin_core_rpc \
+#     -e PAYJOIN_URI='bitcoin:tb1q…?pj=…' \
+#     maestro/satsigner-workspace/payjoin-send-signet.yaml
+
+- runFlow:
+    file: shared/launch.yaml
+- runFlow:
+    file: shared/skip-pin-and-warning.yaml
+# If prior receive left us on Payjoin Receive, exit cleanly before Sample send
+- runFlow:
+    file: shared/leave-to-account-list.yaml
+- runFlow:
+    file: shared/open-sample-segwit.yaml
+- tapOn:
+    id: account-send
+# List picker: "Select All" is not in the a11y tree — tap a Sample UTXO amount.
+- extendedWaitUntil:
+    visible: 'SELECT UTXOS TO CONTINUE'
+    timeout: 30000
+- tapOn: '186,443'
+- extendedWaitUntil:
+    visible: 'USE 1 UTXO'
+    timeout: 15000
+- tapOn: 'USE 1 UTXO'
+- extendedWaitUntil:
+    visible: 'Output'
+    timeout: 20000
+- tapOn: 'Output'
+- extendedWaitUntil:
+    visible:
+      id: send-output-address
+    timeout: 15000
+# Do not tapOn placeholder "Address" — on some AVDs that focuses the OS
+# stylus / handwriting drawer and steals inputText.
+- runFlow:
+    when:
+      visible: '(?i)Stylus|Handwriting|Writing tools|Scribe'
+    commands:
+      - back
+- tapOn:
+    id: send-output-address
+- eraseText
+- inputText: ${PAYJOIN_URI}
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Payjoin invoice detected'
+    timeout: 15000
+    optional: true
+- tapOn:
+    id: send-output-label
+- eraseText
+- inputText: 'maestro-payjoin'
+- hideKeyboard
+- tapOn: 'Save output'
+- tapOn: 'Sign transaction'
+- extendedWaitUntil:
+    visible: 'Sign transaction'
+    timeout: 20000
+- tapOn: 'Sign transaction'
+- extendedWaitUntil:
+    visible:
+      id: send-broadcast
+    timeout: 120000
+- runFlow:
+    when:
+      visible: '.*Negotiating Payjoin.*'
+    commands:
+      - extendedWaitUntil:
+          notVisible: '.*Negotiating Payjoin.*'
+          timeout: 90000
+- assertVisible:
+    id: send-broadcast
+- tapOn:
+    id: send-broadcast
+- extendedWaitUntil:
+    visible: '.*broadcast.*'
+    timeout: 60000
+    optional: true

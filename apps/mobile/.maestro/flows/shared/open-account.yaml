@@ -1,0 +1,7 @@
+appId: ${APP_ID}
+---
+# Alias: open/load Sample (segwit). For a custom name use create-signet-singlesig
+# with -e ACCOUNT_NAME=myacct (no regex metacharacters in the name).
+
+- runFlow:
+    file: open-sample-segwit.yaml

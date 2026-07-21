@@ -1,6 +1,52 @@
 ---
 title: End-to-End Tests
-description: SatSigner end-to-end tests.
+description: SatSigner end-to-end tests with Maestro (local agent feedback loop).
 ---
 
-Soon
+## Maestro (local Android)
+
+UI flows live in
+[`apps/mobile/.maestro`](https://github.com/satsigner/satsigner/tree/master/apps/mobile/.maestro)
+— **single YAML source of truth**. Open that folder in Maestro Studio
+(`pnpm maestro:link-studio` prints the path).
+
+Agent protocol:
+[`AGENT_FEEDBACK.md`](https://github.com/satsigner/satsigner/blob/master/apps/mobile/.maestro/AGENT_FEEDBACK.md)
+— `prep → run → STATUS.json / SUMMARY / failure.png → patch → re-run`.
+
+### CLI loop
+
+From `apps/mobile`, with Metro on `:8081` and an emulator/device up.
+Quit **Maestro Studio** before CLI runs (shared Android driver).
+
+```bash
+pnpm maestro:prep
+pnpm maestro:smoke
+```
+
+On failure, diagnose without Studio:
+
+```bash
+cat .maestro/results/latest/STATUS.json
+cat .maestro/results/latest/SUMMARY.txt
+# open .maestro/results/latest/failure.png
+pnpm maestro:last
+```
+
+Artifacts per run: `STATUS.json`, `SUMMARY.txt` (PASS-only when green),
+`console.log`, `failure.png` (on fail), JUnit / Maestro debug under
+`apps/mobile/.maestro/results/latest/`.
+
+| Command | Purpose |
+|---|---|
+| `pnpm maestro:prep` | `adb reverse`, Metro check, clear session locks |
+| `pnpm maestro:smoke` | Non-payjoin boot → known account-list screen |
+| `pnpm maestro:last` | Print latest SUMMARY |
+| `pnpm maestro:link-studio` | Print path to open in Maestro Studio |
+| `pnpm maestro:sync` | Copy newest Studio run from `~/.maestro/tests` into `results/latest` |
+
+Pass Maestro env with generic `-e KEY=VALUE` (see runner). Optional product
+suites: `pnpm maestro:payjoin:*`. Driver flakes: keep
+`MAESTRO_REINSTALL_DRIVER=1` (default) or set `0` when healthy.
+
+Full details: [`.maestro/README.md`](https://github.com/satsigner/satsigner/blob/master/apps/mobile/.maestro/README.md).

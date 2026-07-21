@@ -1,0 +1,39 @@
+appId: ${APP_ID}
+---
+# Attach Expo Dev Client to Metro only when the app is not already showing JS UI.
+# Do NOT launchApp then openLink — double-creates React context.
+# Do NOT use waitForAnimationToEnd — Expo loading never settles.
+#
+# Before cold start (Studio or CLI):
+#   adb reverse tcp:8081 tcp:8081
+#   Metro on host :8081
+#
+# "Already in the app" includes deep screens (settings, explorer, receive…).
+# Downstream flows call goto-account-list / ensure-signet to reach a known start.
+
+- runFlow:
+    when:
+      visible: '(?i)Bitcoin|Set pin|Acknowledge|Don.?t trust|Enter your PIN|Add Account|SIGNET|SIGNER|EXPLORER|CONVERTER|Payjoin|USE 1 UTXO|Sample \(segwit\)|App Settings|Settings|Features|Explorer|Converter'
+    commands:
+      - evalScript: ${output.skippedLaunch = true}
+
+- runFlow:
+    when:
+      notVisible: '(?i)Bitcoin|Set pin|Acknowledge|Don.?t trust|Enter your PIN|Add Account|SIGNET|SIGNER|EXPLORER|CONVERTER|Payjoin|USE 1 UTXO|Sample \(segwit\)|App Settings|Settings|Features|Explorer|Converter'
+    commands:
+      - stopApp
+      - openLink: exp+satsigner://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081
+      - tapOn:
+          text: 'Just once'
+          optional: true
+      - tapOn:
+          text: 'Always'
+          optional: true
+      - runFlow:
+          when:
+            visible: 'Continue'
+          commands:
+            - tapOn: 'Continue'
+      - extendedWaitUntil:
+          visible: '(?i)Bitcoin|Set pin|Acknowledge|Don.?t trust|Enter your PIN|Add Account|SIGNET|SIGNER|App Settings'
+          timeout: 120000

@@ -1,0 +1,41 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - receive
+  - signet
+---
+# Assert Receive exposes a BIP77 Payjoin URI (pj=).
+# Uses Sample (segwit) by default (existing account or SAMPLE ACCOUNTS load).
+#
+#   maestro test -e APP_ID=com.satsigner.satsigner.dev.feat_bitcoin_core_rpc \
+#     maestro/satsigner-workspace/payjoin-receive-signet.yaml
+
+- runFlow:
+    file: shared/launch.yaml
+- runFlow:
+    file: shared/skip-pin-and-warning.yaml
+- runFlow:
+    file: shared/open-sample-segwit.yaml
+- tapOn:
+    id: account-receive
+- extendedWaitUntil:
+    visible:
+      id: receive-payjoin-toggle
+    timeout: 20000
+- assertVisible: 'Payjoin'
+- extendedWaitUntil:
+    visible: 'Payjoin ready'
+    timeout: 45000
+- assertVisible:
+    id: receive-payjoin-status
+    text: 'Payjoin ready'
+- assertVisible:
+    id: receive-bitcoin-uri
+- copyTextFrom:
+    id: receive-bitcoin-uri
+- evalScript: ${output.uri = maestro.copiedText}
+- evalScript: ${console.log('PAYJOIN_URI_CAPTURE=' + output.uri)}
+- assertTrue: ${output.uri.includes('pj=')}
+- assertTrue: ${output.uri.toLowerCase().includes('bitcoin:')}
+- tapOn:
+    id: receive-copy-uri

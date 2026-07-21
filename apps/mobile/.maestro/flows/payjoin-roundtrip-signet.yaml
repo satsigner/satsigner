@@ -1,0 +1,25 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - roundtrip
+  - signet
+  - manual
+---
+# Two-device / two-emulator Payjoin roundtrip on signet.
+#
+# Receiver polling only runs while the Receive screen is mounted, so a
+# single-device A→B→A flow cannot complete BIP77. Use two targets:
+#
+#   # Terminal A (receiver emulator/device)
+#   # Terminal A — Sample (segwit) receive (keep screen open)
+#   maestro test … payjoin-receive-signet.yaml
+#
+#   # Terminal B — Sample (segwit) send (funded UTXOs)
+#   maestro test -e PAYJOIN_URI="$URI" … payjoin-send-signet.yaml
+#
+# Or run the helper:
+#   pnpm maestro:payjoin:roundtrip
+#
+# This file is intentionally a no-op marker for the suite (tag: manual).
+
+- assertTrue: ${true}
