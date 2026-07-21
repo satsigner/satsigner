@@ -2419,7 +2419,10 @@
     "viewOnMempool": "View on mempool.space"
   },
   "settings": {
-    "about.changeLog": "Change Log",
+    "about.changelog.apk": "APK",
+    "about.changelog.error": "Failed to load change log",
+    "about.changelog.sourcecode": "Source code",
+    "about.changelog.title": "Change Log",
     "about.description": "App version and related build information.",
     "about.title": "About",
     "ark.description": "Ark server configuration per network.",
