@@ -10,11 +10,15 @@ name = "satsigner_payjoin"
 
 [dependencies]
 base64 = "0.22"
-bitcoin = { version = "0.32", features = ["base64"] }
+bitcoin = { version = "0.32", features = ["base64", "serde"] }
 ohttp = { version = "0.6.0", package = "bitcoin-ohttp" }
 hex = "0.4"
 once_cell = "1"
 payjoin = { version = "0.25", features = ["v1", "v2", "io"] }
+reqwest = { version = "0.12", default-features = false, features = [
+  "blocking",
+  "rustls-tls"
+] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
@@ -29,8 +33,4 @@ uniffi = { version = "=0.31.0", features = ["build"] }
 [dev-dependencies]
 bip39 = "2"
 hex = "0.4"
-reqwest = { version = "0.12", default-features = false, features = [
-  "blocking",
-  "rustls-tls"
-] }
 serde_json = "1"

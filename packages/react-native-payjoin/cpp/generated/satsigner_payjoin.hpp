@@ -24,6 +24,7 @@ class NativeSatsignerPayjoin : public jsi::HostObject {
     jsi::Value cpp_uniffi_satsigner_payjoin_fn_func_create_receiver_session(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_satsigner_payjoin_fn_func_create_sender_session(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_satsigner_payjoin_fn_func_fetch_ohttp_keys(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
+    jsi::Value cpp_uniffi_satsigner_payjoin_fn_func_http_post(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_satsigner_payjoin_fn_func_is_native_available(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_satsigner_payjoin_fn_func_receiver_contribute_and_finalize(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_satsigner_payjoin_fn_func_receiver_extract_request(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
@@ -35,6 +36,7 @@ class NativeSatsignerPayjoin : public jsi::HostObject {
     jsi::Value cpp_uniffi_satsigner_payjoin_checksum_func_create_receiver_session(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_satsigner_payjoin_checksum_func_create_sender_session(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_satsigner_payjoin_checksum_func_fetch_ohttp_keys(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
+    jsi::Value cpp_uniffi_satsigner_payjoin_checksum_func_http_post(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_satsigner_payjoin_checksum_func_is_native_available(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_satsigner_payjoin_checksum_func_receiver_contribute_and_finalize(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_satsigner_payjoin_checksum_func_receiver_extract_request(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);

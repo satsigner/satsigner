@@ -142,6 +142,13 @@ extern "C" {
         RustBuffer directory_url, 
         RustCallStatus *uniffi_out_err
     );
+    RustBuffer uniffi_satsigner_payjoin_fn_func_http_post(
+        RustBuffer url, 
+        RustBuffer content_type, 
+        RustBuffer body, 
+        uint64_t timeout_ms, 
+        RustCallStatus *uniffi_out_err
+    );
     int8_t uniffi_satsigner_payjoin_fn_func_is_native_available(RustCallStatus *uniffi_out_err
     );
     RustBuffer uniffi_satsigner_payjoin_fn_func_receiver_contribute_and_finalize(
@@ -378,6 +385,8 @@ extern "C" {
     uint16_t uniffi_satsigner_payjoin_checksum_func_create_sender_session(
     );
     uint16_t uniffi_satsigner_payjoin_checksum_func_fetch_ohttp_keys(
+    );
+    uint16_t uniffi_satsigner_payjoin_checksum_func_http_post(
     );
     uint16_t uniffi_satsigner_payjoin_checksum_func_is_native_available(
     );
@@ -1851,6 +1860,14 @@ NativeSatsignerPayjoin::NativeSatsignerPayjoin(
             return this->cpp_uniffi_satsigner_payjoin_fn_func_fetch_ohttp_keys(rt, thisVal, args, count);
         }
     );
+    props["ubrn_uniffi_satsigner_payjoin_fn_func_http_post"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_uniffi_satsigner_payjoin_fn_func_http_post"),
+        4,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_uniffi_satsigner_payjoin_fn_func_http_post(rt, thisVal, args, count);
+        }
+    );
     props["ubrn_uniffi_satsigner_payjoin_fn_func_is_native_available"] = jsi::Function::createFromHostFunction(
         rt,
         jsi::PropNameID::forAscii(rt, "ubrn_uniffi_satsigner_payjoin_fn_func_is_native_available"),
@@ -1937,6 +1954,14 @@ NativeSatsignerPayjoin::NativeSatsignerPayjoin(
         0,
         [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
             return this->cpp_uniffi_satsigner_payjoin_checksum_func_fetch_ohttp_keys(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_uniffi_satsigner_payjoin_checksum_func_http_post"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_uniffi_satsigner_payjoin_checksum_func_http_post"),
+        0,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_uniffi_satsigner_payjoin_checksum_func_http_post(rt, thisVal, args, count);
         }
     );
     props["ubrn_uniffi_satsigner_payjoin_checksum_func_is_native_available"] = jsi::Function::createFromHostFunction(
@@ -2098,6 +2123,16 @@ jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_fn_func_fetch_oh
         
         return uniffi::satsigner_payjoin::Bridging<RustBuffer>::toJs(rt, callInvoker, value);
 }
+jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_fn_func_http_post(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = uniffi_satsigner_payjoin_fn_func_http_post(uniffi::satsigner_payjoin::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1]), uniffi::satsigner_payjoin::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[2]), uniffi_jsi::Bridging<uint64_t>::fromJs(rt, callInvoker, args[3]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi::satsigner_payjoin::Bridging<RustBuffer>::toJs(rt, callInvoker, value);
+}
 jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_fn_func_is_native_available(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
         RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
         auto value = uniffi_satsigner_payjoin_fn_func_is_native_available(&status
@@ -2193,6 +2228,13 @@ jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_checksum_func_cr
 }
 jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_checksum_func_fetch_ohttp_keys(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
         auto value = uniffi_satsigner_payjoin_checksum_func_fetch_ohttp_keys(
+        );
+
+        
+        return uniffi_jsi::Bridging<uint16_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_checksum_func_http_post(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        auto value = uniffi_satsigner_payjoin_checksum_func_http_post(
         );
 
         

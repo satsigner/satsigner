@@ -77,6 +77,21 @@ async function fetchOhttpKeys(
   return 'mock-ohttp-keys'
 }
 
+async function httpPost(
+  url: string,
+  contentType: string,
+  body: Uint8Array,
+  _timeoutMs = 45_000
+): Promise<{ status: number; body: Uint8Array }> {
+  const response = await fetch(url, {
+    body: body as BodyInit,
+    headers: { 'Content-Type': contentType },
+    method: 'POST'
+  })
+  const bytes = new Uint8Array(await response.arrayBuffer())
+  return { body: bytes, status: response.status }
+}
+
 async function createReceiverSession(
   init: ReceiverSessionInit
 ): Promise<ReceiverSessionHandle> {
@@ -330,6 +345,7 @@ export {
   createReceiverSession,
   createSenderSession,
   fetchOhttpKeys,
+  httpPost,
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,

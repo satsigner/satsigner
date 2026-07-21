@@ -40,6 +40,13 @@ interface NativeModuleInterface {
     directoryUrl: Uint8Array,
     uniffi_out_err: UniffiRustCallStatus,
   ): Uint8Array;
+  ubrn_uniffi_satsigner_payjoin_fn_func_http_post(
+    url: Uint8Array,
+    contentType: Uint8Array,
+    body: Uint8Array,
+    timeoutMs: bigint,
+    uniffi_out_err: UniffiRustCallStatus,
+  ): Uint8Array;
   ubrn_uniffi_satsigner_payjoin_fn_func_is_native_available(
     uniffi_out_err: UniffiRustCallStatus,
   ): number;
@@ -78,6 +85,7 @@ interface NativeModuleInterface {
   ubrn_uniffi_satsigner_payjoin_checksum_func_create_receiver_session(): number;
   ubrn_uniffi_satsigner_payjoin_checksum_func_create_sender_session(): number;
   ubrn_uniffi_satsigner_payjoin_checksum_func_fetch_ohttp_keys(): number;
+  ubrn_uniffi_satsigner_payjoin_checksum_func_http_post(): number;
   ubrn_uniffi_satsigner_payjoin_checksum_func_is_native_available(): number;
   ubrn_uniffi_satsigner_payjoin_checksum_func_receiver_contribute_and_finalize(): number;
   ubrn_uniffi_satsigner_payjoin_checksum_func_receiver_extract_request(): number;

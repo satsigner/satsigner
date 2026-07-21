@@ -3,8 +3,9 @@ mod persist;
 mod types;
 
 pub use types::{
-    ContributeResult, ExtractRequestResult, PayjoinNativeRequest, ProcessResult, ReceiverInput,
-    ReceiverSessionHandle, ReceiverSessionInit, SenderSessionHandle, SenderSessionInit
+    ContributeResult, ExtractRequestResult, HttpResponse, PayjoinNativeRequest, ProcessResult,
+    ReceiverInput, ReceiverSessionHandle, ReceiverSessionInit, SenderSessionHandle,
+    SenderSessionInit
 };
 
 use std::collections::HashMap;
@@ -123,7 +124,20 @@ fn original_psbt_from_events(events: &[SessionEvent]) -> Result<String, PayjoinE
         if let SessionEvent::RetrievedOriginalPayload { original, .. } = event {
             let value = serde_json::to_value(original)
                 .map_err(|e| PayjoinError::msg(e.to_string()))?;
-            if let Some(psbt) = value.get("psbt").and_then(|v| v.as_str()) {
+            if let Some(s) = value.as_str() {
+                return Ok(s.to_string());
+            }
+            if let Some(psbt_val) = value.get("psbt") {
+                if let Some(s) = psbt_val.as_str() {
+                    return Ok(s.to_string());
+                }
+                let psbt: Psbt = serde_json::from_value(psbt_val.clone()).map_err(|e| {
+                    PayjoinError::msg(format!("decode original psbt: {e}"))
+                })?;
+                return Ok(psbt.to_string());
+            }
+            // Some payloads serialize as the PSBT object at the root.
+            if let Ok(psbt) = serde_json::from_value::<Psbt>(value) {
                 return Ok(psbt.to_string());
             }
         }
@@ -134,6 +148,37 @@ fn original_psbt_from_events(events: &[SessionEvent]) -> Result<String, PayjoinE
 #[uniffi::export]
 pub fn is_native_available() -> bool {
     true
+}
+
+/// POST via reqwest (rustls, HTTP/1.1). Prefer this over RN `fetch` for OHTTP
+/// relay traffic — Android OkHttp often breaks on HTTP/2 with these relays.
+#[uniffi::export]
+pub fn http_post(
+    url: String,
+    content_type: String,
+    body: Vec<u8>,
+    timeout_ms: u64
+) -> Result<HttpResponse, PayjoinError> {
+    let timeout = Duration::from_millis(timeout_ms.max(1_000));
+    let client = reqwest::blocking::Client::builder()
+        .timeout(timeout)
+        .http1_only()
+        .build()
+        .map_err(|e| PayjoinError::msg(format!("http client: {e}")))?;
+
+    let response = client
+        .post(&url)
+        .header("Content-Type", content_type)
+        .body(body)
+        .send()
+        .map_err(|e| PayjoinError::msg(format!("fetch failed: {e}")))?;
+
+    let status = response.status().as_u16();
+    let body = response
+        .bytes()
+        .map_err(|e| PayjoinError::msg(format!("read body: {e}")))?
+        .to_vec();
+    Ok(HttpResponse { status, body })
 }
 
 #[uniffi::export]
@@ -257,13 +302,25 @@ pub fn receiver_process_response(
                 .load()
                 .map_err(|e| PayjoinError::msg(e.to_string()))?
                 .collect();
-            let psbt_base64 = original_psbt_from_events(&events)?;
-            entry.live = ReceiverLive::Unchecked(next);
-            receivers.insert(id, entry);
-            Ok(ProcessResult::Proposal {
-                psbt_base64,
-                state
-            })
+            match original_psbt_from_events(&events) {
+                Ok(psbt_base64) => {
+                    entry.live = ReceiverLive::Unchecked(next);
+                    receivers.insert(id, entry);
+                    Ok(ProcessResult::Proposal {
+                        psbt_base64,
+                        state
+                    })
+                }
+                Err(error) => {
+                    // Keep the session alive — dropping it forced the app into a
+                    // recreate loop and invalidated the QR the sender already has.
+                    entry.live = ReceiverLive::Unchecked(next);
+                    receivers.insert(id, entry);
+                    Ok(ProcessResult::Error {
+                        message: error.to_string()
+                    })
+                }
+            }
         }
         Ok(OptionalTransitionOutcome::Stasis(same)) => {
             entry.live = ReceiverLive::Initialized(same);
@@ -302,7 +359,33 @@ pub fn receiver_contribute_and_finalize(
         };
         let signed_psbt = Psbt::from_str(&signed_psbt_base64)?;
         let proposal = provisional
-            .finalize_proposal(|_| Ok(signed_psbt.clone()))
+            .finalize_proposal(|cleared| {
+                // Start from cleared (sender finals removed). Apply finals only for
+                // inputs the wallet finalized that still lack finals on `cleared`.
+                let mut merged = cleared.clone();
+                for i in 0..merged.inputs.len() {
+                    if merged.inputs[i].final_script_witness.is_some()
+                        || merged.inputs[i].final_script_sig.is_some()
+                        || merged.inputs[i].tap_key_sig.is_some()
+                    {
+                        continue;
+                    }
+                    let Some(signed_in) = signed_psbt.inputs.get(i) else {
+                        continue;
+                    };
+                    if signed_in.final_script_witness.is_none()
+                        && signed_in.final_script_sig.is_none()
+                        && signed_in.tap_key_sig.is_none()
+                    {
+                        continue;
+                    }
+                    merged.inputs[i].final_script_witness =
+                        signed_in.final_script_witness.clone();
+                    merged.inputs[i].final_script_sig = signed_in.final_script_sig.clone();
+                    merged.inputs[i].tap_key_sig = signed_in.tap_key_sig.clone();
+                }
+                Ok(merged)
+            })
             .save(&noop_recv())
             .map_err(|e| PayjoinError::msg(e.to_string()))?;
         let psbt_base64 = proposal.psbt().to_string();

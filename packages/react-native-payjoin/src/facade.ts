@@ -8,6 +8,7 @@ import {
   createReceiverSession as nativeCreateReceiverSession,
   createSenderSession as nativeCreateSenderSession,
   fetchOhttpKeys as nativeFetchOhttpKeys,
+  httpPost as nativeHttpPost,
   isNativeAvailable as nativeIsNativeAvailable,
   receiverContributeAndFinalize as nativeReceiverContributeAndFinalize,
   receiverExtractRequest as nativeReceiverExtractRequest,
@@ -16,6 +17,7 @@ import {
   resumeSenderSession as nativeResumeSenderSession,
   senderExtractRequest as nativeSenderExtractRequest,
   senderProcessResponse as nativeSenderProcessResponse,
+  type HttpResponse as NativeHttpResponse,
   type PayjoinNativeRequest as NativePayjoinNativeRequest,
   type ReceiverSessionHandle as NativeReceiverSessionHandle,
   type SenderSessionHandle as NativeSenderSessionHandle
@@ -51,6 +53,11 @@ type PayjoinNativeRequest = {
   url: string
   body: Uint8Array
   contentType: string
+}
+
+type HttpResponse = {
+  status: number
+  body: Uint8Array
 }
 
 type ProcessResult =
@@ -161,7 +168,11 @@ function adaptSenderHandle(
 
 function isNativeAvailable(): boolean {
   try {
-    // Throws when the Turbo Module / Rust crate failed to install.
+    // Throws when the Turbo Module / Rust crate failed to install, or when
+    // JS bindings are ahead of the installed native binary (checksum miss).
+    if (typeof nativeIsNativeAvailable !== 'function') {
+      return false
+    }
     return nativeIsNativeAvailable()
   } catch {
     return false
@@ -173,6 +184,21 @@ async function fetchOhttpKeys(
   directoryUrl: string
 ): Promise<string> {
   return callNativeSync(() => nativeFetchOhttpKeys(relayUrl, directoryUrl))
+}
+
+async function httpPost(
+  url: string,
+  contentType: string,
+  body: Uint8Array,
+  timeoutMs = 45_000
+): Promise<HttpResponse> {
+  const result: NativeHttpResponse = callNativeSync(() =>
+    nativeHttpPost(url, contentType, toArrayBuffer(body), BigInt(timeoutMs))
+  )
+  return {
+    body: toUint8Array(result.body),
+    status: result.status
+  }
 }
 
 async function createReceiverSession(
@@ -306,6 +332,7 @@ export {
   createReceiverSession,
   createSenderSession,
   fetchOhttpKeys,
+  httpPost,
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
@@ -317,6 +344,7 @@ export {
 }
 
 export type {
+  HttpResponse,
   ProcessResult,
   ReceiverSessionHandle,
   ReceiverSessionInit,

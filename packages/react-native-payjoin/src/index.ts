@@ -17,8 +17,20 @@ import * as satsigner_payjoin from './generated/satsigner_payjoin'
 
 let initialized = false
 if (!initialized && rustInstalled) {
-  satsigner_payjoin.default.initialize()
-  initialized = true
+  try {
+    satsigner_payjoin.default.initialize()
+    initialized = true
+  } catch (error) {
+    // Stale APK / missing UniFFI symbols (e.g. http_post) after a JS-only
+    // Metro reload. Keep the package importable so routes still load; the
+    // facade reports isNativeAvailable() === false until a native rebuild.
+    installError = error
+    rustInstalled = false
+    console.warn(
+      '[react-native-payjoin] native init failed — rebuild the app to pick up PDK bindings',
+      error
+    )
+  }
 }
 
 export async function uniffiInitAsync() {
@@ -30,6 +42,7 @@ export {
   createReceiverSession,
   createSenderSession,
   fetchOhttpKeys,
+  httpPost,
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
@@ -41,6 +54,7 @@ export {
 } from './facade'
 
 export type {
+  HttpResponse,
   ProcessResult,
   ReceiverSessionHandle,
   ReceiverSessionInit,

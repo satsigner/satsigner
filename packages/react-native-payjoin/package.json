@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "ubrn:ios": "ubrn build ios --release --config ubrn.config.yaml --and-generate && node scripts/patch-index.js",
-    "ubrn:android": "ubrn build android --release --config ubrn.config.yaml --and-generate && node scripts/codegen:android && node scripts/patch-index.js",
+    "ubrn:android": "ubrn build android --release --config ubrn.config.yaml --and-generate && node scripts/codegen-android.js && node scripts/patch-index.js",
     "ubrn:generate": "ubrn generate jsi turbo-module --config ubrn.config.yaml && node scripts/patch-index.js",
     "codegen:android": "node scripts/codegen-android.js",
     "typecheck": "tsc --noEmit"

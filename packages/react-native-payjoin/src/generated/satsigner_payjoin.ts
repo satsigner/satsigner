@@ -40,6 +40,7 @@ import {
   FfiConverterBool,
   FfiConverterInt32,
   FfiConverterOptional,
+  FfiConverterUInt16,
   FfiConverterUInt32,
   FfiConverterUInt64,
   RustBuffer,
@@ -113,6 +114,34 @@ export function fetchOhttpKeys(
         return nativeModule().ubrn_uniffi_satsigner_payjoin_fn_func_fetch_ohttp_keys(
           FfiConverterString.lower(relayUrl),
           FfiConverterString.lower(directoryUrl),
+          callStatus,
+        );
+      },
+      /*liftString:*/ FfiConverterString.lift,
+    ),
+  );
+}
+/**
+ * POST via reqwest (rustls, HTTP/1.1). Prefer this over RN `fetch` for OHTTP
+ * relay traffic — Android OkHttp often breaks on HTTP/2 with these relays.
+ */
+export function httpPost(
+  url: string,
+  contentType: string,
+  body: ArrayBuffer,
+  timeoutMs: /*u64*/ bigint,
+): HttpResponse /*throws*/ {
+  return FfiConverterTypeHttpResponse.lift(
+    uniffiCaller.rustCallWithError(
+      /*liftError:*/ FfiConverterTypePayjoinError.lift.bind(
+        FfiConverterTypePayjoinError,
+      ),
+      /*caller:*/ (callStatus) => {
+        return nativeModule().ubrn_uniffi_satsigner_payjoin_fn_func_http_post(
+          FfiConverterString.lower(url),
+          FfiConverterString.lower(contentType),
+          FfiConverterArrayBuffer.lower(body),
+          FfiConverterUInt64.lower(timeoutMs),
           callStatus,
         );
       },
@@ -356,6 +385,56 @@ const FfiConverterTypeExtractRequestResult = (() => {
       return (
         FfiConverterTypePayjoinNativeRequest.allocationSize(value.request) +
         FfiConverterString.allocationSize(value.state)
+      );
+    }
+  }
+  return new FFIConverter();
+})();
+
+/**
+ * Raw HTTP response for OHTTP/directory posts.
+ * Used instead of RN `fetch` on Android, where OkHttp HTTP/2 often fails with
+ * "Required SETTINGS preface not received" against Payjoin relays.
+ */
+export type HttpResponse = {
+  status: /*u16*/ number;
+  body: ArrayBuffer;
+};
+
+/**
+ * Generated factory for {@link HttpResponse} record objects.
+ */
+export const HttpResponse = (() => {
+  const defaults = () => ({});
+  const create = (() => {
+    return uniffiCreateRecord<HttpResponse, ReturnType<typeof defaults>>(
+      defaults,
+    );
+  })();
+  return Object.freeze({
+    create,
+    new: create,
+    defaults: () => Object.freeze(defaults()) as Partial<HttpResponse>,
+  });
+})();
+
+const FfiConverterTypeHttpResponse = (() => {
+  type TypeName = HttpResponse;
+  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+    read(from: RustBuffer): TypeName {
+      return {
+        status: FfiConverterUInt16.read(from),
+        body: FfiConverterArrayBuffer.read(from),
+      };
+    }
+    write(value: TypeName, into: RustBuffer): void {
+      FfiConverterUInt16.write(value.status, into);
+      FfiConverterArrayBuffer.write(value.body, into);
+    }
+    allocationSize(value: TypeName): number {
+      return (
+        FfiConverterUInt16.allocationSize(value.status) +
+        FfiConverterArrayBuffer.allocationSize(value.body)
       );
     }
   }
@@ -1096,6 +1175,14 @@ function uniffiEnsureInitialized() {
     );
   }
   if (
+    nativeModule().ubrn_uniffi_satsigner_payjoin_checksum_func_http_post() !==
+    22672
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      "uniffi_satsigner_payjoin_checksum_func_http_post",
+    );
+  }
+  if (
     nativeModule().ubrn_uniffi_satsigner_payjoin_checksum_func_is_native_available() !==
     48292
   ) {
@@ -1166,6 +1253,7 @@ export default Object.freeze({
   converters: {
     FfiConverterTypeContributeResult,
     FfiConverterTypeExtractRequestResult,
+    FfiConverterTypeHttpResponse,
     FfiConverterTypePayjoinError,
     FfiConverterTypePayjoinNativeRequest,
     FfiConverterTypeProcessResult,

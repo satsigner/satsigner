@@ -35,6 +35,15 @@ pub struct PayjoinNativeRequest {
     pub content_type: String
 }
 
+/// Raw HTTP response for OHTTP/directory posts.
+/// Used instead of RN `fetch` on Android, where OkHttp HTTP/2 often fails with
+/// "Required SETTINGS preface not received" against Payjoin relays.
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct HttpResponse {
+    pub status: u16,
+    pub body: Vec<u8>
+}
+
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct ReceiverInput {
     pub txid: String,
