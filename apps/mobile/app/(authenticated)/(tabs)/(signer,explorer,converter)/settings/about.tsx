@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
 import { Linking, ScrollView, StyleSheet } from 'react-native'
+import { toast } from 'sonner-native'
 
 import SSMarkdown from '@/components/SSMarkdown'
+import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import { APP_VERSION, BUILD_NUMBER } from '@/constants/version'
 import SSHStack from '@/layouts/SSHStack'
@@ -28,12 +30,12 @@ export default function About() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
         >
-          <SSVStack gap="lg">
+          <SSVStack gap="md">
             <SSHStack justifyBetween>
               <SSText uppercase>{t('common.version')}</SSText>
               <SSText>{`${APP_VERSION} (${BUILD_NUMBER})`}</SSText>
             </SSHStack>
-            <SSVStack gap="sm">
+            <SSVStack gap="lg">
               <SSText uppercase weight="bold">
                 {t('settings.about.changelog.title')}
               </SSText>
@@ -65,23 +67,28 @@ function Changelog() {
     tarball_url: string | null
   }
 
-  // Matches the trailing "## Changelog" / "### Full Changelog" heading
-  // GitHub appends to release descriptions, which only links to the commit
-  // history rather than summarizing it.
-  const CHANGELOG_SECTION_REGEX = /^#{1,6}\s*.*changelog.*$/im
-  const EMOJI_REGEX =
-    /[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]+/gu
+  function parseDescription(rawDescription: string) {
+    let description = rawDescription
 
-  function stripChangelogSection(description: string) {
+    // strip changelog heading section. which only links to the commit history rather than summarizing it.
+    const CHANGELOG_SECTION_REGEX = /^#{1,6}\s*.*changelog.*$/im
     const match = description.match(CHANGELOG_SECTION_REGEX)
-    if (!match || match.index === undefined) {
-      return description.trim()
+    if (match !== null && match.index !== undefined) {
+      description = description.slice(0, match.index)
     }
-    return description.slice(0, match.index).trim()
-  }
 
-  function removeEmojis(description: string) {
-    return description.replace(EMOJI_REGEX, '').replace(/[ \t]+$/gm, '')
+    // remove emojis & whitespaces
+    const EMOJI_REGEX =
+      /[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]+/gu
+    description = description.replace(EMOJI_REGEX, '').replace(/[ \t]+$/gm, '')
+
+    // downgrade markdown headers
+    description = description.replace(/^#+/gm, '####')
+
+    // delete line break
+    description = description.replace(/\n\n+/gm, '\n')
+
+    return description
   }
 
   async function fetchGithubReleases(): Promise<GithubRelease[]> {
@@ -97,13 +104,10 @@ function Changelog() {
   }
 
   async function openLink(url: string) {
-    if (!isSafeHttpUrl(url)) {
-      return
-    }
     try {
       await Linking.openURL(url)
     } catch {
-      // Ignore invalid or unsupported links.
+      toast.error('Failed to open URL')
     }
   }
 
@@ -130,39 +134,40 @@ function Changelog() {
       {releases.map((release) => {
         const version = release.tag_name || release.name || ''
         const date = release.published_at?.slice(0, 10) ?? ''
-        const description = removeEmojis(
-          stripChangelogSection(release.body ?? '')
-        )
+        const description = parseDescription(release.body || '')
         const tarballUrl = release.tarball_url
         const apkAsset = release.assets.find((asset) =>
           asset.name.endsWith('.apk')
         )
 
         return (
-          <SSVStack key={release.id} gap="xs">
-            <SSText weight="bold">{`${version} (${date})`}</SSText>
-            {!!description && <SSMarkdown content={description} />}
-            <SSVStack gap="xs">
-              {!!tarballUrl && (
-                <SSText
-                  size="xs"
-                  style={styles.link}
-                  onPress={() => openLink(tarballUrl)}
-                >
-                  {t('settings.about.changelog.sourcecode')}
-                </SSText>
-              )}
-              {!!apkAsset && (
-                <SSText
-                  size="xs"
-                  style={styles.link}
-                  onPress={() => openLink(apkAsset.browser_download_url)}
-                >
-                  {t('settings.about.changelog.apk')}
-                </SSText>
-              )}
+          <>
+            <SSSeparator />
+            <SSVStack key={release.id} gap="md">
+              <SSText weight="bold">{`${version} (${date})`}</SSText>
+              {description && <SSMarkdown content={description} />}
+              <SSHStack gap="sm">
+                {tarballUrl && (
+                  <SSText
+                    size="xs"
+                    style={styles.link}
+                    onPress={() => openLink(tarballUrl)}
+                  >
+                    {t('settings.about.changelog.sourcecode')}
+                  </SSText>
+                )}
+                {apkAsset && (
+                  <SSText
+                    size="xs"
+                    style={styles.link}
+                    onPress={() => openLink(apkAsset.browser_download_url)}
+                  >
+                    {t('settings.about.changelog.apk')}
+                  </SSText>
+                )}
+              </SSHStack>
             </SSVStack>
-          </SSVStack>
+          </>
         )
       })}
     </SSVStack>
