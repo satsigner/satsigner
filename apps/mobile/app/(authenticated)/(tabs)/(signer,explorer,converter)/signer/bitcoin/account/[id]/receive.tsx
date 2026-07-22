@@ -1,4 +1,5 @@
 import * as Clipboard from 'expo-clipboard'
+import * as Haptics from 'expo-haptics'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, TextInput } from 'react-native'
@@ -9,17 +10,22 @@ import { useShallow } from 'zustand/react/shallow'
 import { signTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
+import SSLoader from '@/components/SSLoader'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSQRCode from '@/components/SSQRCode'
+import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import useNostrSync from '@/hooks/useNostrSync'
 import { useNow } from '@/hooks/useNow'
-import { usePayjoinReceiver, walletCanContributeToPayjoin } from '@/hooks/usePayjoinReceiver'
+import {
+  usePayjoinReceiver,
+  walletCanContributeToPayjoin
+} from '@/hooks/usePayjoinReceiver'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -34,10 +40,8 @@ import { type Label } from '@/types/bips/329'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
-import {
-  appendParamsToPayjoinUri,
-  parsePayjoinUri
-} from '@/utils/payjoinUri'
+import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
+import { appendParamsToPayjoinUri, parsePayjoinUri } from '@/utils/payjoinUri'
 
 function amountSatsFromPayjoinSession(
   session?: PayjoinSession | null
@@ -97,12 +101,12 @@ export default function Receive() {
     addressData
   const [localCustomAmount, setLocalCustomAmount] = useState<string>(() => {
     const sats = amountSatsFromPayjoinSession(existingPayjoinSession)
-    return sats ? String(sats) : undefined
+    return sats ? String(sats) : String(DUST_LIMIT)
   })
   const [localFiatAmount, setLocalFiatAmount] = useState<string>()
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
-  const [localLabel, setLocalLabel] = useState<string>(
-    () => labelFromPayjoinSession(existingPayjoinSession)
+  const [localLabel, setLocalLabel] = useState<string>(() =>
+    labelFromPayjoinSession(existingPayjoinSession)
   )
   const [isGenerating, setIsGenerating] = useState(false)
   const [includeLabel, setIncludeLabel] = useState(true)
@@ -111,6 +115,9 @@ export default function Receive() {
   const [includePayjoin, setIncludePayjoin] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [isManualAddress, setIsManualAddress] = useState(false)
+  // Distinguishes "user turned Payjoin off" from "we auto-disabled while UTXOs
+  // were still empty on first paint" so we can re-enable once coins appear.
+  const userSetPayjoinRef = useRef(false)
 
   const [payjoinEnabled, setPayjoinEnabled] = useSettingsStore(
     useShallow((state) => [state.payjoinEnabled, state.setPayjoinEnabled])
@@ -157,11 +164,27 @@ export default function Receive() {
       ? Number(localCustomAmount)
       : undefined
 
+  const signPayjoinPsbt = useCallback(
+    (psbtBase64: string) => {
+      if (!wallet) {
+        return psbtBase64
+      }
+      const prepared = preparePayjoinPsbtForWalletSign({
+        getPrevTxHex: (txid) => wallet.getTx(txid),
+        psbtBase64,
+        utxos: accountUtxos
+      })
+      const proposal = new Psbt(prepared)
+      signTransaction(proposal, wallet)
+      return proposal.toBase64()
+    },
+    [accountUtxos, wallet]
+  )
+
   const {
     canContribute,
     canUsePayjoin,
     payjoinUri,
-    polling: payjoinPolling,
     session: payjoinSession,
     statusLabelKey,
     negotiating: payjoinNegotiating
@@ -174,14 +197,7 @@ export default function Receive() {
         : undefined,
     amountSats: amountSatsForPayjoin,
     label: includeLabel ? localLabel : undefined,
-    signPsbt: (psbtBase64) => {
-      if (!wallet) {
-        return psbtBase64
-      }
-      const proposal = new Psbt(psbtBase64)
-      signTransaction(proposal, wallet)
-      return proposal.toBase64()
-    },
+    signPsbt: signPayjoinPsbt,
     utxos: accountUtxos
   })
 
@@ -190,12 +206,33 @@ export default function Receive() {
     payjoinSession?.expiresAt,
     nowMs
   )
+  const payjoinCompleted = payjoinSession?.status === 'completed'
+  const celebratedPayjoinIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!canContribute && includePayjoin) {
-      setIncludePayjoin(false)
+    if (!canContribute) {
+      if (includePayjoin) {
+        setIncludePayjoin(false)
+      }
+      return
     }
-  }, [canContribute, includePayjoin])
+    // UTXOs often arrive after mount — restore Payjoin unless the user opted out.
+    if (!userSetPayjoinRef.current && payjoinEnabled && !includePayjoin) {
+      setIncludePayjoin(true)
+    }
+  }, [canContribute, includePayjoin, payjoinEnabled])
+
+  useEffect(() => {
+    if (!payjoinCompleted || !payjoinSession?.id) {
+      return
+    }
+    if (celebratedPayjoinIdRef.current === payjoinSession.id) {
+      return
+    }
+    celebratedPayjoinIdRef.current = payjoinSession.id
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    toast.success(t('receive.payjoin.completed.toast'))
+  }, [payjoinCompleted, payjoinSession?.id])
 
   // Keep amount/label fields in sync with the active session / BIP21 URI
   // (e.g. remount, resume, or amount only present on the URI).
@@ -222,17 +259,31 @@ export default function Receive() {
   ])
 
   const localFinalAddressQR = useMemo(() => {
-    if (includePayjoin && payjoinEnabled && canUsePayjoin && payjoinUri) {
+    // Prefer any live session URI (includes pj=) while Payjoin is on — even if
+    // canUsePayjoin briefly lags — so the QR does not snap to a plain address.
+    const sessionMatchesAddress =
+      !localAddress ||
+      !payjoinSession?.address ||
+      payjoinSession.address === localAddress
+    const sessionUri =
+      includePayjoin && payjoinEnabled && sessionMatchesAddress
+        ? payjoinUri ||
+          (payjoinSession?.status !== 'expired'
+            ? payjoinSession?.uri
+            : undefined)
+        : undefined
+
+    if (sessionUri) {
       // Session resume used to ignore Label/amount toggles; rewrite BIP21
       // extras on the displayed URI so the toggle is immediate.
-      let uri = payjoinUri
+      let uri = sessionUri
       try {
-        uri = appendParamsToPayjoinUri(payjoinUri, {
+        uri = appendParamsToPayjoinUri(sessionUri, {
           amountSats: amountSatsForPayjoin,
           label: includeLabel ? localLabel : undefined
         })
       } catch {
-        uri = payjoinUri
+        uri = sessionUri
       }
       if (!includeBitcoinPrefix && uri.toLowerCase().startsWith('bitcoin:')) {
         uri = uri.substring(8)
@@ -268,13 +319,16 @@ export default function Receive() {
       : baseUri
   }, [
     amountSatsForPayjoin,
-    canUsePayjoin,
     includeBitcoinPrefix,
     includeLabel,
     includePayjoin,
+    localAddress,
     localAddressQR,
     localLabel,
     payjoinEnabled,
+    payjoinSession?.address,
+    payjoinSession?.status,
+    payjoinSession?.uri,
     payjoinUri
   ])
 
@@ -504,7 +558,10 @@ export default function Receive() {
           }
         }}
       />
-      <ScrollView>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <SSVStack itemsCenter gap="lg">
           <SSVStack>
             <SSVStack gap="none" itemsCenter>
@@ -532,7 +589,23 @@ export default function Receive() {
               </SSHStack>
               <SSText>{t('receive.neverUsed')}</SSText>
             </SSVStack>
-            {isLoading ? (
+            {payjoinCompleted ? (
+              <SSVStack itemsCenter gap="md" style={styles.sectionSpacing}>
+                <SSSuccessCheckAnimation width={160} />
+                <SSText
+                  testID="receive-payjoin-completed"
+                  size="md"
+                  uppercase
+                  weight="light"
+                  center
+                >
+                  {t('receive.payjoin.completed.title')}
+                </SSText>
+                <SSText color="muted" size="sm" center>
+                  {t('receive.payjoin.completed.hint')}
+                </SSText>
+              </SSVStack>
+            ) : isLoading ? (
               <SSVStack itemsCenter gap="md">
                 <SSHStack gap="xs">
                   <SSText color="muted">
@@ -544,7 +617,15 @@ export default function Receive() {
             ) : (
               localFinalAddressQR && (
                 <SSVStack itemsCenter gap="md">
-                  <SSQRCode value={localFinalAddressQR} />
+                  <SSQRCode
+                    // BIP77 pj= URIs are long — H ecl overflows and yields no QR.
+                    ecl={
+                      localFinalAddressQR.toLowerCase().includes('pj=')
+                        ? 'L'
+                        : 'H'
+                    }
+                    value={localFinalAddressQR}
+                  />
                   <SSHStack>
                     {nfcHardwareSupported && (
                       <SSButton
@@ -562,7 +643,7 @@ export default function Receive() {
                 </SSVStack>
               )
             )}
-            {localFinalAddressQR && (
+            {!payjoinCompleted && localFinalAddressQR ? (
               <SSVStack gap="sm" itemsCenter style={styles.sectionSpacing}>
                 <SSText>Bitcoin URI</SSText>
                 <TextInput
@@ -570,17 +651,18 @@ export default function Receive() {
                   value={localFinalAddressQR}
                   editable={false}
                   selectTextOnFocus
+                  showSoftInputOnFocus={false}
                   multiline
                   style={styles.uriTextInput}
                 />
+                <SSButton
+                  testID="receive-copy-uri"
+                  label={t('common.copy')}
+                  variant="secondary"
+                  style={styles.copyButton}
+                  onPress={() => copyToClipboard(localFinalAddressQR)}
+                />
                 <SSHStack gap="sm" style={styles.uriActionsRow}>
-                  <SSButton
-                    testID="receive-copy-uri"
-                    label={t('common.copy')}
-                    variant="secondary"
-                    style={styles.toggleButton}
-                    onPress={() => copyToClipboard(localFinalAddressQR)}
-                  />
                   <SSButton
                     label={
                       includeBitcoinPrefix
@@ -601,208 +683,241 @@ export default function Receive() {
                     style={styles.toggleButton}
                     onPress={handleToggleLabel}
                   />
-                </SSHStack>
-                {account?.policyType === 'singlesig' ? (
-                  <SSVStack gap="xs" itemsCenter widthFull>
+                  {account?.policyType === 'singlesig' ? (
                     <SSButton
                       testID="receive-payjoin-toggle"
                       label={
                         includePayjoin && payjoinEnabled
-                          ? t('receive.payjoin.enable')
-                          : t('receive.payjoin.disable')
+                          ? t('receive.payjoin.disable')
+                          : t('receive.payjoin.enable')
                       }
                       variant="outline"
-                      style={styles.payjoinButton}
-                      disabled={!canContribute}
+                      style={styles.toggleButton}
                       onPress={() => {
+                        // Keep pressable when empty so we can toast — `disabled`
+                        // swallows taps and feels like a dead control.
                         if (!canContribute) {
                           toast.warning(t('receive.payjoin.emptyWallet'))
                           return
                         }
                         const next = !(includePayjoin && payjoinEnabled)
+                        userSetPayjoinRef.current = true
                         setIncludePayjoin(next)
                         setPayjoinEnabled(next)
                       }}
                     />
-                    {!canContribute ? (
-                      <SSText
-                        testID="receive-payjoin-empty-wallet"
-                        color="muted"
-                        size="sm"
-                        center
-                      >
-                        {t('receive.payjoin.emptyWallet')}
-                      </SSText>
-                    ) : includePayjoin && payjoinEnabled && statusLabelKey ? (
-                      <SSVStack gap="xxs" itemsCenter>
-                        <SSHStack gap="xs">
-                          {payjoinPolling || payjoinNegotiating ? (
-                            <SSEllipsisAnimation size={3} />
-                          ) : null}
-                          <SSText
-                            testID="receive-payjoin-status"
-                            color="muted"
-                            size="sm"
-                            center
-                          >
-                            {payjoinNegotiating
-                              ? t('receive.payjoin.status.negotiating')
-                              : payjoinPolling &&
-                                  statusLabelKey ===
-                                    'receive.payjoin.status.waiting'
-                                ? t('receive.payjoin.status.polling')
-                                : t(statusLabelKey)}
-                          </SSText>
-                        </SSHStack>
-                        {payjoinExpiringLabel ? (
-                          <SSText
-                            testID="receive-payjoin-expiring"
-                            color="muted"
-                            size="xs"
-                            center
-                          >
-                            {payjoinExpiringLabel}
-                          </SSText>
-                        ) : null}
-                        {payjoinSession?.pjEndpoint ? (
-                          <SSText
-                            testID="receive-payjoin-poll-url"
-                            color="muted"
-                            size="xs"
-                            center
-                          >
-                            {payjoinSession.pjEndpoint.split('#')[0]}
-                          </SSText>
-                        ) : null}
-                      </SSVStack>
-                    ) : null}
-                  </SSVStack>
-                ) : null}
-              </SSVStack>
-            )}
-          </SSVStack>
-          <SSFormLayout>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={`${t('receive.customAmount')} (${
-                  amountMode === 'sats' ? t('bitcoin.sats') : fiatCurrency
-                })`}
-              />
-              {amountMode === 'sats' ? (
-                <>
-                  <SSNumberInput
-                    min={1}
-                    max={2_100_000_000_000_000}
-                    value={localCustomAmount}
-                    placeholder={t('receive.placeholder.sats')}
-                    align="center"
-                    keyboardType="numeric"
-                    onChangeText={setLocalCustomAmount}
-                    allowDecimal={false}
-                    allowValidEmpty
-                    alwaysTriggerOnChange
-                    style={styles.amountTextInput}
-                  />
-                  {btcPrice > 0 && (
+                  ) : null}
+                </SSHStack>
+                {account?.policyType === 'singlesig' ? (
+                  !canContribute ? (
                     <SSText
+                      testID="receive-payjoin-empty-wallet"
                       color="muted"
                       size="sm"
                       center
-                      onPress={handleSwitchToFiat}
-                      style={styles.switchableAmount}
                     >
-                      {localCustomAmount && getFiatAmount(localCustomAmount)
-                        ? getFiatAmount(localCustomAmount)
-                        : `${t('receive.enterIn')} ${fiatCurrency}`}
+                      {t('receive.payjoin.emptyWallet')}
                     </SSText>
-                  )}
-                </>
-              ) : (
-                <>
-                  <TextInput
-                    value={localFiatAmount}
-                    onChangeText={handleFiatAmountChange}
-                    keyboardType="decimal-pad"
-                    placeholder={`0.00 ${fiatCurrency}`}
-                    placeholderTextColor={Colors.gray[400]}
-                    style={[styles.amountTextInput, styles.fiatTextInput]}
-                  />
-                  <SSText
-                    color="muted"
-                    size="sm"
-                    center
-                    onPress={handleSwitchToSats}
-                    style={styles.switchableAmount}
-                  >
-                    {localFiatAmount && getSatsDisplay(localFiatAmount)
-                      ? getSatsDisplay(localFiatAmount)
-                      : `${t('receive.enterIn')} ${t('bitcoin.sats')}`}
-                  </SSText>
-                </>
-              )}
-              <SSButton
-                label={t('receive.pasteAmount')}
-                variant="subtle"
-                onPress={handlePasteAmount}
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('receive.label')} />
-              <SSTextInput
-                onChangeText={handleLabelChange}
-                value={localLabel}
-                placeholder={t('receive.placeholder.label')}
-                multiline
-                numberOfLines={3}
-                style={styles.labelTextInput}
-              />
-              <SSButton
-                label={t('receive.pasteLabel')}
-                variant="subtle"
-                onPress={handlePasteLabel}
-              />
-            </SSFormLayout.Item>
-          </SSFormLayout>
-          <SSVStack>
-            <SSVStack gap="xs" itemsCenter style={styles.sectionSpacing}>
-              <SSText>{t('receive.address')}</SSText>
-              {isLoading ? (
-                <SSText color="muted">...</SSText>
-              ) : (
-                localAddress && (
-                  <SSVStack itemsCenter gap="xs">
-                    <TextInput
-                      value={formatAddressInGroups(localAddress)}
-                      editable={false}
-                      selectTextOnFocus
-                      multiline
-                      style={styles.addressTextInput}
-                    />
-                    <SSHStack>
-                      <SSButton
-                        label={t('common.copy')}
-                        variant="subtle"
-                        onPress={() => copyToClipboard(localAddress)}
-                      />
-                    </SSHStack>
-                  </SSVStack>
-                )
-              )}
-            </SSVStack>
+                  ) : includePayjoin && payjoinEnabled && statusLabelKey ? (
+                    <SSVStack gap="xxs" itemsCenter widthFull>
+                      <SSHStack
+                        gap="sm"
+                        style={{ alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        {payjoinNegotiating ||
+                        statusLabelKey ===
+                          'receive.payjoin.status.negotiating' ||
+                        statusLabelKey === 'receive.payjoin.status.waiting' ||
+                        statusLabelKey ===
+                          'receive.payjoin.status.initializing' ||
+                        statusLabelKey ===
+                          'receive.payjoin.status.polling' ? (
+                          <SSLoader size={18} />
+                        ) : null}
+                        <SSText
+                          testID="receive-payjoin-status"
+                          color="muted"
+                          size="sm"
+                          center
+                        >
+                          {payjoinNegotiating
+                            ? t('receive.payjoin.status.negotiating')
+                            : t(statusLabelKey)}
+                        </SSText>
+                      </SSHStack>
+                      {payjoinExpiringLabel ? (
+                        <SSText
+                          testID="receive-payjoin-expiring"
+                          color="muted"
+                          size="xs"
+                          center
+                        >
+                          {payjoinExpiringLabel}
+                        </SSText>
+                      ) : null}
+                      {payjoinSession?.pjEndpoint ? (
+                        <SSText
+                          testID="receive-payjoin-poll-url"
+                          color="muted"
+                          size="xs"
+                          center
+                        >
+                          {payjoinSession.pjEndpoint.split('#')[0]}
+                        </SSText>
+                      ) : null}
+                    </SSVStack>
+                  ) : null
+                ) : null}
+              </SSVStack>
+            ) : null}
           </SSVStack>
+          {payjoinCompleted ? null : (
+            <>
+              <SSFormLayout>
+                <SSFormLayout.Item>
+                  <SSFormLayout.Label
+                    label={`${t('receive.customAmount')} (${
+                      amountMode === 'sats' ? t('bitcoin.sats') : fiatCurrency
+                    })`}
+                  />
+                  {amountMode === 'sats' ? (
+                    <>
+                      <SSNumberInput
+                        min={DUST_LIMIT}
+                        max={2_100_000_000_000_000}
+                        value={localCustomAmount}
+                        placeholder={t('receive.placeholder.sats')}
+                        align="center"
+                        keyboardType="numeric"
+                        onChangeText={setLocalCustomAmount}
+                        allowDecimal={false}
+                        allowValidEmpty
+                        alwaysTriggerOnChange
+                        style={styles.amountTextInput}
+                      />
+                      {btcPrice > 0 && (
+                        <SSText
+                          color="muted"
+                          size="sm"
+                          center
+                          onPress={handleSwitchToFiat}
+                          style={styles.switchableAmount}
+                        >
+                          {localCustomAmount && getFiatAmount(localCustomAmount)
+                            ? getFiatAmount(localCustomAmount)
+                            : `${t('receive.enterIn')} ${fiatCurrency}`}
+                        </SSText>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <TextInput
+                        value={localFiatAmount}
+                        onChangeText={handleFiatAmountChange}
+                        keyboardType="decimal-pad"
+                        placeholder={`0.00 ${fiatCurrency}`}
+                        placeholderTextColor={Colors.gray[400]}
+                        style={[styles.amountTextInput, styles.fiatTextInput]}
+                      />
+                      <SSText
+                        color="muted"
+                        size="sm"
+                        center
+                        onPress={handleSwitchToSats}
+                        style={styles.switchableAmount}
+                      >
+                        {localFiatAmount && getSatsDisplay(localFiatAmount)
+                          ? getSatsDisplay(localFiatAmount)
+                          : `${t('receive.enterIn')} ${t('bitcoin.sats')}`}
+                      </SSText>
+                    </>
+                  )}
+                  <SSButton
+                    label={t('receive.pasteAmount')}
+                    variant="subtle"
+                    onPress={handlePasteAmount}
+                  />
+                </SSFormLayout.Item>
+                <SSFormLayout.Item>
+                  <SSFormLayout.Label label={t('receive.label')} />
+                  <SSTextInput
+                    onChangeText={handleLabelChange}
+                    value={localLabel}
+                    placeholder={t('receive.placeholder.label')}
+                    multiline
+                    numberOfLines={3}
+                    style={styles.labelTextInput}
+                  />
+                  <SSButton
+                    label={t('receive.pasteLabel')}
+                    variant="subtle"
+                    onPress={handlePasteLabel}
+                  />
+                </SSFormLayout.Item>
+              </SSFormLayout>
+              <SSVStack>
+                <SSVStack gap="xs" itemsCenter style={styles.sectionSpacing}>
+                  <SSText>{t('receive.address')}</SSText>
+                  {isLoading ? (
+                    <SSText color="muted">...</SSText>
+                  ) : (
+                    localAddress && (
+                      <SSVStack itemsCenter gap="xs">
+                        <TextInput
+                          value={formatAddressInGroups(localAddress)}
+                          editable={false}
+                          selectTextOnFocus
+                          showSoftInputOnFocus={false}
+                          multiline
+                          style={styles.addressTextInput}
+                        />
+                        <SSHStack>
+                          <SSButton
+                            label={t('common.copy')}
+                            variant="subtle"
+                            onPress={() => copyToClipboard(localAddress)}
+                          />
+                        </SSHStack>
+                      </SSVStack>
+                    )
+                  )}
+                </SSVStack>
+              </SSVStack>
+            </>
+          )}
           <SSVStack widthFull gap="sm">
-            <SSButton
-              label={t('receive.generateAnother')}
-              variant="secondary"
-              loading={isGenerating}
-              disabled={isGenerating || isLoading}
-              onPress={generateAnotherAddress}
-            />
-            <SSButton
-              label={t('common.cancel')}
-              variant="ghost"
-              onPress={() => router.back()}
-            />
+            {payjoinCompleted ? (
+              <>
+                <SSButton
+                  testID="receive-payjoin-back-home"
+                  label={t('common.backToAccountHome')}
+                  variant="secondary"
+                  onPress={() => router.back()}
+                />
+                <SSButton
+                  label={t('receive.generateAnother')}
+                  variant="outline"
+                  loading={isGenerating}
+                  disabled={isGenerating || isLoading}
+                  onPress={generateAnotherAddress}
+                />
+              </>
+            ) : (
+              <>
+                <SSButton
+                  label={t('receive.generateAnother')}
+                  variant="secondary"
+                  loading={isGenerating}
+                  disabled={isGenerating || isLoading}
+                  onPress={generateAnotherAddress}
+                />
+                <SSButton
+                  label={t('common.cancel')}
+                  variant="ghost"
+                  onPress={() => router.back()}
+                />
+              </>
+            )}
           </SSVStack>
         </SSVStack>
       </ScrollView>
@@ -826,6 +941,10 @@ const styles = StyleSheet.create({
   },
   amountTextInput: {
     fontSize: 21
+  },
+  copyButton: {
+    alignSelf: 'stretch',
+    width: '100%'
   },
   fiatTextInput: {
     backgroundColor: Colors.gray[850],
@@ -859,9 +978,6 @@ const styles = StyleSheet.create({
   },
   uriActionsRow: {
     alignSelf: 'stretch',
-    width: '100%'
-  },
-  payjoinButton: {
     width: '100%'
   },
   uriTextInput: {

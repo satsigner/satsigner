@@ -108,6 +108,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { formatRelativeTime } from '@/utils/date'
 import { getDraftIoCounts } from '@/utils/draftSelection'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import {
@@ -116,9 +117,9 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
+import { parseAccountAddressesDetails } from '@/utils/parse'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
-import { parseAccountAddressesDetails } from '@/utils/parse'
 import {
   createScanThroughputTracker,
   formatBlocksPerSec,
@@ -246,43 +247,43 @@ function PayjoinSessionCard({
         gap="none"
         style={{
           opacity: 0.85,
-          paddingBottom: 12,
+          paddingBottom: 8,
           paddingHorizontal: 0,
-          paddingTop: 4
+          paddingTop: 2
         }}
       >
-        <SSHStack justifyBetween>
-          <SSText color="muted" size="xs">
-            {isSender
-              ? t('transaction.payjoin.send')
-              : t('transaction.payjoin.receive')}
-          </SSText>
-          <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
-            <SSText size="xs" style={{ color: Colors.warning }}>
-              {payjoinSessionStatusLabel(session)}
+        <SSHStack justifyBetween style={{ alignItems: 'center' }}>
+          <SSHStack gap="xs" style={{ alignItems: 'center', flexShrink: 1 }}>
+            <SSText color="muted" size="xs">
+              {isSender
+                ? t('transaction.payjoin.send')
+                : t('transaction.payjoin.receive')}
             </SSText>
             {expiringLabel ? (
-              <SSText
-                testID="payjoin-session-expiring"
-                size="xs"
-                color="muted"
-              >
-                {expiringLabel}
+              <SSText testID="payjoin-session-expiring" size="xs" color="muted">
+                · {expiringLabel}
               </SSText>
             ) : null}
-          </SSVStack>
+          </SSHStack>
+          <SSText size="xs" style={{ color: Colors.warning }}>
+            {payjoinSessionStatusLabel(session)}
+          </SSText>
         </SSHStack>
-        <SSVStack gap="none" style={{ marginTop: 5 }}>
+        <SSVStack gap="none" style={{ marginTop: 2 }}>
           <SSHStack gap="sm" style={{ alignItems: 'center' }}>
             {isSender ? (
-              <SSIconOutgoing height={21} width={21} />
+              <SSIconOutgoing height={18} width={18} />
             ) : (
-              <SSIconIncoming height={21} width={21} />
+              <SSIconIncoming height={18} width={18} />
             )}
             <SSText
               size="4xl"
               weight="light"
-              style={{ color: Colors.gray[400] }}
+              style={{
+                color: Colors.gray[400],
+                letterSpacing: -0.5,
+                lineHeight: Sizes.text.fontSize['4xl']
+              }}
             >
               {privacyMode
                 ? '••••'
@@ -295,7 +296,7 @@ function PayjoinSessionCard({
             </SSText>
           </SSHStack>
           {currentFiatPrice !== '' ? (
-            <SSHStack gap="xs" style={{ height: 22, marginTop: 2 }}>
+            <SSHStack gap="xs" style={{ height: 18, marginTop: 0 }}>
               <SSText style={{ color: Colors.gray[400] }} size="sm">
                 {privacyMode ? '••••' : currentFiatPrice}
               </SSText>
@@ -373,9 +374,9 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
         gap="none"
         style={{
           opacity: 0.85,
-          paddingBottom: 12,
+          paddingBottom: 8,
           paddingHorizontal: 0,
-          paddingTop: 4
+          paddingTop: 2
         }}
       >
         <SSHStack justifyBetween>
@@ -386,13 +387,17 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
             {t('transaction.unsent')}
           </SSText>
         </SSHStack>
-        <SSVStack gap="none" style={{ marginTop: 5 }}>
+        <SSVStack gap="none" style={{ marginTop: 2 }}>
           <SSHStack gap="sm" style={{ alignItems: 'center' }}>
-            <SSIconOutgoing height={21} width={21} />
+            <SSIconOutgoing height={18} width={18} />
             <SSText
               size="4xl"
               weight="light"
-              style={{ color: Colors.gray[400] }}
+              style={{
+                color: Colors.gray[400],
+                letterSpacing: -0.5,
+                lineHeight: Sizes.text.fontSize['4xl']
+              }}
             >
               {privacyMode
                 ? '••••'
@@ -405,7 +410,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
             </SSText>
           </SSHStack>
           {currentFiatPrice !== '' ? (
-            <SSHStack gap="xs" style={{ height: 22, marginTop: 2 }}>
+            <SSHStack gap="xs" style={{ height: 18, marginTop: 0 }}>
               <SSText style={{ color: Colors.gray[400] }} size="sm">
                 {privacyMode ? '••••' : currentFiatPrice}
               </SSText>
@@ -514,6 +519,29 @@ function syncProgressLabel(tasksDone?: number, totalTasks?: number): string {
   })
 }
 
+/** Toolbar title when idle — replaces static "Account activity". */
+function lastSyncedLabel(
+  lastSyncedAt: Account['lastSyncedAt'],
+  nowMs: number
+): string {
+  if (!lastSyncedAt) {
+    return t('account.sync.status.unsynced')
+  }
+  const syncedMs =
+    lastSyncedAt instanceof Date
+      ? lastSyncedAt.getTime()
+      : new Date(lastSyncedAt).getTime()
+  if (isNaN(syncedMs) || syncedMs > nowMs + 60_000) {
+    return t('account.sync.status.unsynced')
+  }
+  // formatRelativeTime wraps chart labels in parentheses — strip for prose.
+  const relative = formatRelativeTime(Math.floor(syncedMs / 1000)).replace(
+    /^\(|\)$/g,
+    ''
+  )
+  return t('account.lastSynced', { time: relative })
+}
+
 function SyncScanStats({
   syncStatus,
   tasksDone,
@@ -554,19 +582,20 @@ function SyncScanStats({
     )
   }, [hasBlockProgress, isInitialScan, isSyncing, tasksDone, totalTasks])
 
-  if (!isSyncing) {
+  // Primary sync / last-synced copy lives in the toolbar title. This block only
+  // adds initial-scan extras so the list does not jump for normal catch-ups.
+  if (!isSyncing || !isInitialScan) {
     return null
   }
 
   const rateLabel =
-    isInitialScan && throughput.blocksPerSec !== null
+    throughput.blocksPerSec !== null
       ? t('account.syncBlocksPerSec', {
           rate: formatBlocksPerSec(throughput.blocksPerSec)
         })
       : null
-  const etaLabel = !isInitialScan
-    ? null
-    : throughput.etaSeconds !== null
+  const etaLabel =
+    throughput.etaSeconds !== null
       ? t('account.syncEta', {
           eta: formatScanDuration(throughput.etaSeconds)
         })
@@ -574,15 +603,13 @@ function SyncScanStats({
         ? t('account.syncEtaCalculating')
         : null
 
-  const scanRangeLabel = isInitialScan
-    ? t('account.syncScanRange', {
-        current: formatDate(currentBlockTimeSec * 1000),
-        from: formatDate(scanFromTimeSec * 1000)
-      })
-    : null
+  const scanRangeLabel = t('account.syncScanRange', {
+    current: formatDate(currentBlockTimeSec * 1000),
+    from: formatDate(scanFromTimeSec * 1000)
+  })
 
   const txFoundLabel =
-    isInitialScan && transactionsFound !== undefined
+    transactionsFound !== undefined
       ? t('account.syncTransactionsFound', {
           count: transactionsFound
         })
@@ -590,17 +617,9 @@ function SyncScanStats({
 
   return (
     <SSVStack gap="xs" style={styles.syncStats}>
-      <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-        <SSLoader size={18} />
-        <SSText center size="xs" color="muted">
-          {syncProgressLabel(tasksDone, totalTasks)}
-        </SSText>
-      </SSHStack>
-      {scanRangeLabel ? (
-        <SSText center size="xs" color="muted">
-          {scanRangeLabel}
-        </SSText>
-      ) : null}
+      <SSText center size="xs" color="muted">
+        {scanRangeLabel}
+      </SSText>
       {rateLabel || etaLabel || txFoundLabel ? (
         <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
           {txFoundLabel ? (
@@ -630,7 +649,7 @@ function SyncScanStats({
           ) : null}
         </SSHStack>
       ) : null}
-      {isInitialScan && hasBlockProgress ? (
+      {hasBlockProgress ? (
         <View style={styles.syncProgressTrack}>
           <View
             style={[styles.syncProgressFill, { width: `${throughput.pct}%` }]}
@@ -678,7 +697,13 @@ function TotalTransactions({
         (session.role === 'receiver' || !!session.nativeState)
     )
   }, [account.id, payjoinSessions])
-  const hasActivityHeader = hasDraft || activePayjoinSessions.length > 0
+  // Sender waiting already owns the in-progress send (PSBT + mailbox). Showing
+  // the transaction-builder draft beside it duplicates the same payment.
+  const hasActiveSenderPayjoin = activePayjoinSessions.some(
+    (session) => session.role === 'sender'
+  )
+  const showDraft = hasDraft && !hasActiveSenderPayjoin
+  const hasActivityHeader = showDraft || activePayjoinSessions.length > 0
   const router = useRouter()
 
   const [btcPrice, fiatCurrency] = usePriceStore(
@@ -718,6 +743,11 @@ function TotalTransactions({
   }, [balanceByTxId])
 
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
+  const nowMs = useNow()
+  const isSyncing = syncStatus === 'syncing'
+  const activityTitle = isSyncing
+    ? syncProgressLabel(tasksDone, totalTasks)
+    : lastSyncedLabel(account.lastSyncedAt, nowMs)
 
   return (
     <View style={{ flex: 1, paddingHorizontal: '6%' }}>
@@ -744,7 +774,20 @@ function TotalTransactions({
             </SSIconButton>
           )}
         </SSHStack>
-        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
+        <SSHStack
+          gap="sm"
+          style={{
+            alignItems: 'center',
+            flexShrink: 1,
+            justifyContent: 'center',
+            minHeight: 18
+          }}
+        >
+          {isSyncing ? <SSLoader size={18} /> : null}
+          <SSText color="muted" size="xs" center numberOfLines={1}>
+            {activityTitle}
+          </SSText>
+        </SSHStack>
         <SSHStack>
           <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
             {showHistoryChart ? (
@@ -794,7 +837,7 @@ function TotalTransactions({
               ListHeaderComponent={
                 hasActivityHeader ? (
                   <SSVStack gap="sm">
-                    {hasDraft ? (
+                    {showDraft ? (
                       <DraftTransactionCard accountId={account.id} />
                     ) : null}
                     {activePayjoinSessions.map((session) => (
