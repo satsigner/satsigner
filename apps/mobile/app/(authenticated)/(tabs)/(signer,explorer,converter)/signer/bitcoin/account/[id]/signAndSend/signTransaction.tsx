@@ -15,16 +15,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { broadcastTransaction, signTransaction } from '@/api/bdk'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
-import {
-  pollBip77Send,
-  sendPayjoin,
-  startBip77Send
-} from '@/api/payjoin'
+import { pollBip77Send, sendPayjoin, startBip77Send } from '@/api/payjoin'
 import BitcoinRpc from '@/api/rpc'
-import {
-  PAYJOIN_DEFAULT_PJOS,
-  PAYJOIN_DIRECTORY_URL
-} from '@/constants/payjoin'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
@@ -33,9 +25,14 @@ import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
+import {
+  PAYJOIN_DEFAULT_PJOS,
+  PAYJOIN_DIRECTORY_URL
+} from '@/constants/payjoin'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNow } from '@/hooks/useNow'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -51,6 +48,13 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
+import {
+  compactError,
+  mailboxFromUri,
+  payjoinLog,
+  payjoinWarn
+} from '@/utils/payjoinLog'
+import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
 import {
   detectEndpointKind,
   hasPayjoinParam,
@@ -422,7 +426,13 @@ export default function SignTransaction() {
         ...outputs.filter((o) => o.kind === 'change').map((o) => o.to)
       ],
       signPsbt: (proposalBase64) => {
-        const proposal = new Psbt(proposalBase64)
+        const utxos = Array.from(inputs.values())
+        const prepared = preparePayjoinPsbtForWalletSign({
+          getPrevTxHex: (txid) => wallet.getTx(txid),
+          psbtBase64: proposalBase64,
+          utxos
+        })
+        const proposal = new Psbt(prepared)
         signTransaction(proposal, wallet)
         return proposal.toBase64()
       },
@@ -476,7 +486,10 @@ export default function SignTransaction() {
         session,
         timeoutMs: 15_000
       })
-      console.log('[payjoin] pollBip77Send result', result.kind)
+      payjoinLog('ui pollBip77Send result', {
+        kind: result.kind,
+        mailbox: mailboxFromUri(session.uri)
+      })
       if (result.kind === 'proposal') {
         applyPayjoinProposal(result.result.psbtBase64)
         return
@@ -485,11 +498,14 @@ export default function SignTransaction() {
         enterWaitingForReceiver()
         return
       }
-      console.warn('[payjoin] poll fallback', result.reason)
+      payjoinWarn('ui poll fallback', {
+        mailbox: mailboxFromUri(session.uri),
+        reason: compactError(result.reason)
+      })
       toast.warning(t('transaction.build.payjoin.fallback'))
       signOriginalTransaction()
     } catch (error) {
-      console.warn('[payjoin] poll threw', error)
+      payjoinWarn('ui poll threw', { error: compactError(error) })
       toast.warning(t('transaction.build.payjoin.fallback'))
       signOriginalTransaction()
     } finally {
@@ -520,7 +536,14 @@ export default function SignTransaction() {
       setRawTx(signedTx)
       return
     }
-    if (!wallet || !psbt || !account || !id || signed || payjoinBusyRef.current) {
+    if (
+      !wallet ||
+      !psbt ||
+      !account ||
+      !id ||
+      signed ||
+      payjoinBusyRef.current
+    ) {
       return
     }
 
@@ -555,7 +578,9 @@ export default function SignTransaction() {
 
       // BIP78 needs an always-on endpoint — keep the blocking path.
       if (endpointKind === 'bip78') {
-        console.log('[payjoin] sendPayjoin start (bip78)', { payjoinUri })
+        payjoinLog('ui sendPayjoin start (bip78)', {
+          mailbox: mailboxFromUri(payjoinUri)
+        })
         const result = await sendPayjoin({
           accountId: id,
           callbacks,
@@ -564,24 +589,26 @@ export default function SignTransaction() {
           payjoinUri,
           paymentAmountSats
         })
-        console.log('[payjoin] sendPayjoin result', result)
+        payjoinLog('ui sendPayjoin result', {
+          ok: result.ok,
+          usedPayjoin: result.ok ? result.usedPayjoin : false
+        })
         if (result.ok && result.usedPayjoin) {
           applyPayjoinProposal(result.psbtBase64)
           return
         }
-        console.warn(
-          '[payjoin] fallback',
-          result.ok ? result.reason : result.error
-        )
+        payjoinWarn('ui bip78 fallback', {
+          reason: result.ok ? result.reason : result.error
+        })
         toast.warning(t('transaction.build.payjoin.fallback'))
         signOriginalTransaction()
         return
       }
 
       // BIP77: post original, then allow switching to Receive and resume.
-      console.log('[payjoin] startBip77Send', {
-        payjoinUri,
-        paymentAmountSats
+      payjoinLog('ui startBip77Send', {
+        amountSats: paymentAmountSats,
+        mailbox: mailboxFromUri(payjoinUri)
       })
       const started = await startBip77Send({
         accountId: id,
@@ -589,11 +616,16 @@ export default function SignTransaction() {
         disableOutputSubstitution:
           (parsed.params?.pjos ?? PAYJOIN_DEFAULT_PJOS) === 0,
         originalPsbtBase64: originalBase64,
-        paymentAmountSats,
         payjoinUri,
+        paymentAmountSats,
         quickPollMs: 3_000
       })
-      console.log('[payjoin] startBip77Send result', started.kind)
+      payjoinLog('ui startBip77Send result', {
+        kind: started.kind,
+        mailbox: mailboxFromUri(payjoinUri),
+        reason:
+          started.kind === 'fallback' ? compactError(started.reason) : undefined
+      })
 
       if (started.kind === 'proposal') {
         applyPayjoinProposal(started.result.psbtBase64)
@@ -603,11 +635,14 @@ export default function SignTransaction() {
         enterWaitingForReceiver()
         return
       }
-      console.warn('[payjoin] start fallback', started.reason)
+      payjoinWarn('ui start fallback', {
+        mailbox: mailboxFromUri(payjoinUri),
+        reason: compactError(started.reason)
+      })
       toast.warning(t('transaction.build.payjoin.fallback'))
       signOriginalTransaction()
     } catch (error) {
-      console.warn('[payjoin] send threw', error)
+      payjoinWarn('ui send threw', { error: compactError(error) })
       toast.warning(t('transaction.build.payjoin.fallback'))
       signOriginalTransaction()
     } finally {
@@ -637,7 +672,9 @@ export default function SignTransaction() {
   }
 
   function handleOpenAccounts() {
-    router.navigate('/signer/bitcoin/accountList')
+    // replace avoids remounting signAndSend layouts with a missing account id
+    // (that crashed on account.name during dismiss/navigate transitions).
+    router.replace('/signer/bitcoin/accountList')
   }
 
   if (!account || !psbt) {
@@ -650,53 +687,74 @@ export default function SignTransaction() {
         <ScrollView>
           <SSVStack justifyBetween style={{ minHeight: '100%' }}>
             <SSVStack itemsCenter>
-              <SSText
-                testID="send-payjoin-status"
-                size="md"
-                uppercase
-                weight="light"
-              >
-                {broadcasted
-                  ? t('sent.broadcasted')
-                  : payjoinStatus && !signed
-                    ? payjoinStatus
+              {!signed && payjoinStatus ? (
+                <SSVStack gap="xxs" itemsCenter>
+                  <SSHStack
+                    gap="sm"
+                    style={{ alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <SSLoader size={18} />
+                    <SSText
+                      testID="send-payjoin-status"
+                      color="muted"
+                      size="sm"
+                      center
+                    >
+                      {payjoinStatus}
+                    </SSText>
+                  </SSHStack>
+                  {waitingForReceiver ? (
+                    <SSText
+                      color="muted"
+                      size="sm"
+                      style={{ textAlign: 'center' }}
+                    >
+                      {t('transaction.build.payjoin.waitingReceiverHint')}
+                    </SSText>
+                  ) : null}
+                  {payjoinExpiringLabel ? (
+                    <SSText
+                      testID="send-payjoin-expiring"
+                      color="muted"
+                      size="xs"
+                      center
+                    >
+                      {payjoinExpiringLabel}
+                    </SSText>
+                  ) : null}
+                  {payjoinPollUrl ? (
+                    <SSText
+                      testID="send-payjoin-poll-url"
+                      color="muted"
+                      size="xs"
+                      center
+                    >
+                      {payjoinPollUrl}
+                    </SSText>
+                  ) : null}
+                </SSVStack>
+              ) : (
+                <SSText
+                  testID="send-payjoin-status"
+                  size="md"
+                  uppercase
+                  weight="light"
+                >
+                  {broadcasted
+                    ? t('sent.broadcasted')
                     : account?.policyType === 'multisig' && signedTx
                       ? tn('readyToBroadcast')
                       : tn(signed ? 'signed' : 'signing')}
-              </SSText>
-
-              {waitingForReceiver && !signed ? (
-                <SSText color="muted" size="sm" style={{ textAlign: 'center' }}>
-                  {t('transaction.build.payjoin.waitingReceiverHint')}
                 </SSText>
-              ) : null}
-
-              {!signed && payjoinStatus && payjoinExpiringLabel ? (
-                <SSText
-                  testID="send-payjoin-expiring"
-                  color="muted"
-                  size="xs"
-                  center
-                >
-                  {payjoinExpiringLabel}
-                </SSText>
-              ) : null}
+              )}
 
               {signed && !broadcasted && (
                 <SSIconSuccess width={159} height={159} variant="outline" />
               )}
-              {!signed && !broadcasted && <SSLoader size={160} />}
-              {broadcasted && <SSSuccessCheckAnimation />}
-              {!signed && payjoinStatus && payjoinPollUrl ? (
-                <SSText
-                  testID="send-payjoin-poll-url"
-                  color="muted"
-                  size="xs"
-                  center
-                >
-                  {payjoinPollUrl}
-                </SSText>
+              {!signed && !broadcasted && !payjoinStatus ? (
+                <SSLoader size={160} />
               ) : null}
+              {broadcasted && <SSSuccessCheckAnimation />}
             </SSVStack>
 
             <SSVStack>
@@ -815,7 +873,9 @@ export default function SignTransaction() {
               <SSButton
                 testID="send-broadcast"
                 variant="secondary"
-                label={broadcasted ? t('sent.broadcasted') : t('send.broadcast')}
+                label={
+                  broadcasted ? t('sent.broadcasted') : t('send.broadcast')
+                }
                 disabled={!signed || (!psbt && !signedTx) || broadcasted}
                 loading={broadcasting}
                 onPress={() => {
