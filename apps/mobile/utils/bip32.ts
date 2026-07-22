@@ -7,6 +7,7 @@ import {
   Network as BDKNetwork
 } from 'react-native-bdk-sdk'
 
+import { type AddressKeyPair } from '@/types/models/Address'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import {
@@ -276,7 +277,7 @@ export function getExtendedPrivateKeyFromDescriptor(descriptor: string) {
 export function getAddressKeyPairFromSeed(
   seed: Uint8Array,
   derivationPath: string
-): { privateKey: string; publicKey: string } {
+): AddressKeyPair {
   const root = bip32.fromSeed(seed)
   const child = root.derivePath(derivationPath)
   const privateKey = child.privateKey ? toHex(child.privateKey) : ''
@@ -295,7 +296,7 @@ export function getAddressKeyPairFromExtendedKey(
   extendedKey: string,
   network: BDKNetwork,
   relativePath: string
-): { privateKey: string; publicKey: string } {
+): AddressKeyPair {
   const node = bip32.fromBase58(extendedKey, BIP32Networks[network])
   const child = node.derivePath(relativePath)
   const privateKey = child.privateKey ? toHex(child.privateKey) : ''

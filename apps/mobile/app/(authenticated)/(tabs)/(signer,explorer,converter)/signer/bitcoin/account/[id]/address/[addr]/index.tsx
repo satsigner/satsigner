@@ -25,25 +25,14 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type Account, type Secret } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
+import { type AddressKeyPair } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret, getAccountFingerprint } from '@/utils/account'
-import {
-  getAddressKeyPairFromExtendedKey,
-  getAddressKeyPairFromSeed,
-  getExtendedPrivateKeyFromDescriptor
-} from '@/utils/bip32'
-import { mnemonicToSeed } from '@/utils/bip39'
-import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
+import { getAddressKeyPair } from '@/utils/key'
 import { getUtxoOutpoint } from '@/utils/utxo'
-
-type AddressKeyPair = {
-  privateKey: string
-  publicKey: string
-}
 
 function AddressDetails() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
@@ -340,45 +329,6 @@ function AddressDetails() {
       </SSModal>
     </>
   )
-}
-
-function getAddressKeyPair(
-  secret: Secret,
-  address: Pick<Address, 'derivationPath' | 'index' | 'keychain'>,
-  network: Account['network']
-): AddressKeyPair | null {
-  if (
-    !address.derivationPath ||
-    address.index === undefined ||
-    !address.keychain
-  ) {
-    return null
-  }
-
-  try {
-    if (secret.mnemonic) {
-      const seed = mnemonicToSeed(secret.mnemonic, secret.passphrase)
-      return getAddressKeyPairFromSeed(seed, address.derivationPath)
-    }
-
-    const descriptor = secret.externalDescriptor || secret.internalDescriptor
-    const extendedPrivateKey = descriptor
-      ? getExtendedPrivateKeyFromDescriptor(descriptor)
-      : ''
-
-    if (!extendedPrivateKey) {
-      return null
-    }
-
-    const change = address.keychain === 'internal' ? 1 : 0
-    return getAddressKeyPairFromExtendedKey(
-      extendedPrivateKey,
-      appNetworkToBdkNetwork(network),
-      `${change}/${address.index}`
-    )
-  } catch {
-    return null
-  }
 }
 
 export default AddressDetails

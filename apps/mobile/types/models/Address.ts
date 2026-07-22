@@ -25,6 +25,13 @@ export const WatchedAddressSchema = AddressSchema.extend({
   new: z.boolean().optional()
 })
 
+export const AddressKeyPairSchema = z.object({
+  privateKey: z.string(),
+  publicKey: z.string()
+})
+
 export type Address = z.infer<typeof AddressSchema>
 
 export type WatchedAddress = z.infer<typeof WatchedAddressSchema>
+
+export type AddressKeyPair = z.infer<typeof AddressKeyPairSchema>
