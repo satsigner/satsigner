@@ -142,12 +142,11 @@ extern "C" {
         RustBuffer directory_url, 
         RustCallStatus *uniffi_out_err
     );
-    RustBuffer uniffi_satsigner_payjoin_fn_func_http_post(
+    /*handle*/ uint64_t uniffi_satsigner_payjoin_fn_func_http_post(
         RustBuffer url, 
         RustBuffer content_type, 
         RustBuffer body, 
-        uint64_t timeout_ms, 
-        RustCallStatus *uniffi_out_err
+        uint64_t timeout_ms
     );
     int8_t uniffi_satsigner_payjoin_fn_func_is_native_available(RustCallStatus *uniffi_out_err
     );
@@ -1932,6 +1931,390 @@ NativeSatsignerPayjoin::NativeSatsignerPayjoin(
             return this->cpp_uniffi_satsigner_payjoin_fn_func_sender_process_response(rt, thisVal, args, count);
         }
     );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_u8"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_u8"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_u8(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_u8"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_u8"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_u8(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_u8"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_u8"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_u8(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_u8"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_u8"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_u8(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_i8"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_i8"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_i8(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_i8"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_i8"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_i8(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_i8"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_i8"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_i8(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_i8"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_i8"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_i8(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_u16"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_u16"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_u16(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_u16"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_u16"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_u16(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_u16"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_u16"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_u16(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_u16"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_u16"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_u16(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_i16"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_i16"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_i16(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_i16"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_i16"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_i16(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_i16"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_i16"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_i16(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_i16"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_i16"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_i16(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_u32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_u32"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_u32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_u32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_u32"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_u32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_u32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_u32"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_u32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_u32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_u32"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_u32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_i32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_i32"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_i32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_i32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_i32"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_i32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_i32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_i32"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_i32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_i32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_i32"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_i32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_u64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_u64"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_u64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_u64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_u64"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_u64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_u64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_u64"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_u64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_u64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_u64"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_u64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_i64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_i64"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_i64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_i64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_i64"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_i64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_i64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_i64"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_i64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_i64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_i64"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_i64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_f32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_f32"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_f32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_f32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_f32"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_f32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_f32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_f32"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_f32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_f32"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_f32"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_f32(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_f64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_f64"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_f64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_f64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_f64"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_f64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_f64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_f64"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_f64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_f64"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_f64"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_f64(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_rust_buffer"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_rust_buffer"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_rust_buffer(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_rust_buffer"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_rust_buffer"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_rust_buffer(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_rust_buffer"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_rust_buffer"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_rust_buffer(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_rust_buffer"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_rust_buffer"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_rust_buffer(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_poll_void"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_poll_void"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_poll_void(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_cancel_void"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_cancel_void"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_cancel_void(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_free_void"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_free_void"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_free_void(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_ffi_satsigner_payjoin_rust_future_complete_void"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_ffi_satsigner_payjoin_rust_future_complete_void"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_ffi_satsigner_payjoin_rust_future_complete_void(rt, thisVal, args, count);
+        }
+    );
     props["ubrn_uniffi_satsigner_payjoin_checksum_func_create_receiver_session"] = jsi::Function::createFromHostFunction(
         rt,
         jsi::PropNameID::forAscii(rt, "ubrn_uniffi_satsigner_payjoin_checksum_func_create_receiver_session"),
@@ -2124,14 +2507,11 @@ jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_fn_func_fetch_oh
         return uniffi::satsigner_payjoin::Bridging<RustBuffer>::toJs(rt, callInvoker, value);
 }
 jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_fn_func_http_post(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
-        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
-        auto value = uniffi_satsigner_payjoin_fn_func_http_post(uniffi::satsigner_payjoin::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1]), uniffi::satsigner_payjoin::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[2]), uniffi_jsi::Bridging<uint64_t>::fromJs(rt, callInvoker, args[3]), 
-            &status
+        auto value = uniffi_satsigner_payjoin_fn_func_http_post(uniffi::satsigner_payjoin::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1]), uniffi::satsigner_payjoin::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[2]), uniffi_jsi::Bridging<uint64_t>::fromJs(rt, callInvoker, args[3])
         );
-        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
 
         
-        return uniffi::satsigner_payjoin::Bridging<RustBuffer>::toJs(rt, callInvoker, value);
+        return uniffi_jsi::Bridging</*handle*/ uint64_t>::toJs(rt, callInvoker, value);
 }
 jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_fn_func_is_native_available(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
         RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
@@ -2211,6 +2591,378 @@ jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_fn_func_sender_p
 
         
         return uniffi::satsigner_payjoin::Bridging<RustBuffer>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_u8(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_u8(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_u8(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_u8(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_u8(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_u8(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_u8(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_u8(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi_jsi::Bridging<uint8_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_i8(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_i8(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_i8(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_i8(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_i8(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_i8(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_i8(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_i8(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi_jsi::Bridging<int8_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_u16(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_u16(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_u16(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_u16(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_u16(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_u16(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_u16(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_u16(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi_jsi::Bridging<uint16_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_i16(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_i16(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_i16(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_i16(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_i16(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_i16(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_i16(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_i16(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi_jsi::Bridging<int16_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_u32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_u32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_u32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_u32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_u32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_u32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_u32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_u32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi_jsi::Bridging<uint32_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_i32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_i32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_i32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_i32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_i32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_i32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_i32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_i32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi_jsi::Bridging<int32_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_u64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_u64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_u64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_u64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_u64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_u64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_u64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_u64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi_jsi::Bridging<uint64_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_i64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_i64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_i64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_i64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_i64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_i64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_i64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_i64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi_jsi::Bridging<int64_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_f32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_f32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_f32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_f32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_f32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_f32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_f32(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_f32(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi_jsi::Bridging<float>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_f64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_f64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_f64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_f64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_f64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_f64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_f64(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_f64(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi_jsi::Bridging<double>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_rust_buffer(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_rust_buffer(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_rust_buffer(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_rust_buffer(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_rust_buffer(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_rust_buffer(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_rust_buffer(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        auto value = ffi_satsigner_payjoin_rust_future_complete_rust_buffer(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return uniffi::satsigner_payjoin::Bridging<RustBuffer>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_poll_void(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_poll_void(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::satsigner_payjoin::Bridging<UniffiRustFutureContinuationCallback>::fromJs(rt, callInvoker, args[1]), uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_cancel_void(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_cancel_void(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_free_void(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        ffi_satsigner_payjoin_rust_future_free_void(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeSatsignerPayjoin::cpp_ffi_satsigner_payjoin_rust_future_complete_void(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::satsigner_payjoin::Bridging<RustCallStatus>::rustSuccess(rt);
+        ffi_satsigner_payjoin_rust_future_complete_void(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::satsigner_payjoin::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return jsi::Value::undefined();
 }
 jsi::Value NativeSatsignerPayjoin::cpp_uniffi_satsigner_payjoin_checksum_func_create_receiver_session(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
         auto value = uniffi_satsigner_payjoin_checksum_func_create_receiver_session(

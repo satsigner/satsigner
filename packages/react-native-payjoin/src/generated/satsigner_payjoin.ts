@@ -50,6 +50,7 @@ import {
   UniffiRustCaller,
   uniffiCreateFfiConverterString,
   uniffiCreateRecord,
+  uniffiRustCallAsync,
   uniffiTypeNameSymbol,
   variantOrdinalSymbol,
 } from "uniffi-bindgen-react-native";
@@ -124,30 +125,52 @@ export function fetchOhttpKeys(
 /**
  * POST via reqwest (rustls, HTTP/1.1). Prefer this over RN `fetch` for OHTTP
  * relay traffic — Android OkHttp often breaks on HTTP/2 with these relays.
+ *
+ * Async so UniFFI does not block the JS thread for the whole round trip
+ * (sync `reqwest::blocking` froze receive-screen buttons while scroll still worked).
  */
-export function httpPost(
+export async function httpPost(
   url: string,
   contentType: string,
   body: ArrayBuffer,
   timeoutMs: /*u64*/ bigint,
-): HttpResponse /*throws*/ {
-  return FfiConverterTypeHttpResponse.lift(
-    uniffiCaller.rustCallWithError(
-      /*liftError:*/ FfiConverterTypePayjoinError.lift.bind(
-        FfiConverterTypePayjoinError,
-      ),
-      /*caller:*/ (callStatus) => {
+  asyncOpts_?: { signal: AbortSignal },
+): Promise<HttpResponse> /*throws*/ {
+  const __stack = uniffiIsDebug ? new Error().stack : undefined;
+  try {
+    return await uniffiRustCallAsync(
+      /*rustCaller:*/ uniffiCaller,
+      /*rustFutureFunc:*/ () => {
         return nativeModule().ubrn_uniffi_satsigner_payjoin_fn_func_http_post(
           FfiConverterString.lower(url),
           FfiConverterString.lower(contentType),
           FfiConverterArrayBuffer.lower(body),
           FfiConverterUInt64.lower(timeoutMs),
-          callStatus,
         );
       },
+      /*pollFunc:*/ nativeModule()
+        .ubrn_ffi_satsigner_payjoin_rust_future_poll_rust_buffer,
+      /*cancelFunc:*/ nativeModule()
+        .ubrn_ffi_satsigner_payjoin_rust_future_cancel_rust_buffer,
+      /*completeFunc:*/ nativeModule()
+        .ubrn_ffi_satsigner_payjoin_rust_future_complete_rust_buffer,
+      /*freeFunc:*/ nativeModule()
+        .ubrn_ffi_satsigner_payjoin_rust_future_free_rust_buffer,
+      /*liftFunc:*/ FfiConverterTypeHttpResponse.lift.bind(
+        FfiConverterTypeHttpResponse,
+      ),
       /*liftString:*/ FfiConverterString.lift,
-    ),
-  );
+      /*asyncOpts:*/ asyncOpts_,
+      /*errorHandler:*/ FfiConverterTypePayjoinError.lift.bind(
+        FfiConverterTypePayjoinError,
+      ),
+    );
+  } catch (__error: any) {
+    if (uniffiIsDebug && __error instanceof Error) {
+      __error.stack = __stack;
+    }
+    throw __error;
+  }
 }
 export function isNativeAvailable(): boolean {
   return FfiConverterBool.lift(
@@ -1176,7 +1199,7 @@ function uniffiEnsureInitialized() {
   }
   if (
     nativeModule().ubrn_uniffi_satsigner_payjoin_checksum_func_http_post() !==
-    22672
+    9241
   ) {
     throw new UniffiInternalError.ApiChecksumMismatch(
       "uniffi_satsigner_payjoin_checksum_func_http_post",

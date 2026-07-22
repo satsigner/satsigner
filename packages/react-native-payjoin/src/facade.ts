@@ -192,12 +192,19 @@ async function httpPost(
   body: Uint8Array,
   timeoutMs = 45_000
 ): Promise<HttpResponse> {
-  const result: NativeHttpResponse = callNativeSync(() =>
-    nativeHttpPost(url, contentType, toArrayBuffer(body), BigInt(timeoutMs))
-  )
-  return {
-    body: toUint8Array(result.body),
-    status: result.status
+  try {
+    const result: NativeHttpResponse = await nativeHttpPost(
+      url,
+      contentType,
+      toArrayBuffer(body),
+      BigInt(timeoutMs)
+    )
+    return {
+      body: toUint8Array(result.body),
+      status: result.status
+    }
+  } catch (error) {
+    throw wrapNativeError(error)
   }
 }
 

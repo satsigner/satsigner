@@ -799,6 +799,9 @@ fn live_directory_payjoin_roundtrip_and_broadcast() {
         wallet.receive_script.clone(),
         PAYMENT_SATS
     );
+    // Bind sender OHTTP relay (create_sender_session reads last fetch_ohttp_keys).
+    let _ = fetch_ohttp_keys(RELAY.to_string(), DIRECTORY.to_string())
+        .expect("fetch_ohttp_keys before sender create");
     let sender = create_sender_session(SenderSessionInit {
         disable_output_substitution: true,
         original_psbt_base64: original.to_string(),
@@ -997,6 +1000,8 @@ fn live_directory_payjoin_sample_to_clown_wallet() {
         receiver.receive_script.clone(),
         PAYMENT_SATS
     );
+    let _ = fetch_ohttp_keys(RELAY.to_string(), DIRECTORY.to_string())
+        .expect("fetch_ohttp_keys before sender create");
     let sender_session = create_sender_session(SenderSessionInit {
         disable_output_substitution: true,
         original_psbt_base64: original.to_string(),

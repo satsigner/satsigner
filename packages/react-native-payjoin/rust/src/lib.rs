@@ -77,6 +77,11 @@ static RECEIVERS: Lazy<Mutex<HashMap<String, ReceiverEntry>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 static SENDERS: Lazy<Mutex<HashMap<String, SenderEntry>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
+/// Last relay passed to `fetch_ohttp_keys`. JS shuffles relays and calls that
+/// before `create_sender_session`; without this, send always hardcoded
+/// `DEFAULT_OHTTP_RELAY` and ignored the JS loop (hung posts / empty mailbox).
+static NEXT_SENDER_OHTTP_RELAY: Lazy<Mutex<Option<String>>> =
+    Lazy::new(|| Mutex::new(None));
 
 fn encode_state(role: &str, id: &str, protocol: &str) -> String {
     use base64::Engine;
@@ -152,15 +157,18 @@ pub fn is_native_available() -> bool {
 
 /// POST via reqwest (rustls, HTTP/1.1). Prefer this over RN `fetch` for OHTTP
 /// relay traffic — Android OkHttp often breaks on HTTP/2 with these relays.
+///
+/// Async so UniFFI does not block the JS thread for the whole round trip
+/// (sync `reqwest::blocking` froze receive-screen buttons while scroll still worked).
 #[uniffi::export]
-pub fn http_post(
+pub async fn http_post(
     url: String,
     content_type: String,
     body: Vec<u8>,
     timeout_ms: u64
 ) -> Result<HttpResponse, PayjoinError> {
     let timeout = Duration::from_millis(timeout_ms.max(1_000));
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .timeout(timeout)
         .http1_only()
         .build()
@@ -171,11 +179,13 @@ pub fn http_post(
         .header("Content-Type", content_type)
         .body(body)
         .send()
+        .await
         .map_err(|e| PayjoinError::msg(format!("fetch failed: {e}")))?;
 
     let status = response.status().as_u16();
     let body = response
         .bytes()
+        .await
         .map_err(|e| PayjoinError::msg(format!("read body: {e}")))?
         .to_vec();
     Ok(HttpResponse { status, body })
@@ -183,6 +193,9 @@ pub fn http_post(
 
 #[uniffi::export]
 pub fn fetch_ohttp_keys(relay_url: String, directory_url: String) -> Result<String, PayjoinError> {
+    *NEXT_SENDER_OHTTP_RELAY
+        .lock()
+        .expect("sender relay lock") = Some(relay_url.clone());
     let keys: OhttpKeys =
         runtime_block_on(payjoin::io::fetch_ohttp_keys(&relay_url, &directory_url))?;
     Ok(keys.to_string())
@@ -283,10 +296,10 @@ pub fn receiver_process_response(
         .remove(&id)
         .ok_or_else(|| PayjoinError::msg("receiver session not found"))?;
 
-    let ohttp_ctx = entry
-        .pending_ohttp
-        .take()
-        .ok_or_else(|| PayjoinError::msg("missing ohttp context; call extract first"))?;
+    let Some(ohttp_ctx) = entry.pending_ohttp.take() else {
+        receivers.insert(id, entry);
+        return Err(PayjoinError::msg("missing ohttp context; call extract first"));
+    };
 
     let ReceiverLive::Initialized(receiver) = entry.live else {
         receivers.insert(id, entry);
@@ -295,6 +308,11 @@ pub fn receiver_process_response(
         });
     };
 
+    // PDK's process_response consumes `self`. Transient/fatal directory errors
+    // (e.g. OHTTP AEAD) do not return the Initialized receiver — without this
+    // clone the mailbox handle is dropped and the next poll is "session not
+    // found", which used to mint a new QR and orphan the sender.
+    let receiver_backup = receiver.clone();
     let persister = MemoryPersister::<SessionEvent>::new();
     match receiver.process_response(&body, ohttp_ctx).save(&persister) {
         Ok(OptionalTransitionOutcome::Progress(next)) => {
@@ -330,9 +348,14 @@ pub fn receiver_process_response(
                 state
             })
         }
-        Err(error) => Ok(ProcessResult::Error {
-            message: error.to_string()
-        })
+        Err(error) => {
+            entry.live = ReceiverLive::Initialized(receiver_backup);
+            entry.pending_ohttp = None;
+            receivers.insert(id, entry);
+            Ok(ProcessResult::Error {
+                message: error.to_string()
+            })
+        }
     }
 }
 
@@ -353,6 +376,7 @@ pub fn receiver_contribute_and_finalize(
     // Second call: finalize + build directory POST from a provisional proposal.
     if !signed_psbt_base64.is_empty() {
         let ReceiverLive::Provisional(provisional) = entry.live else {
+            receivers.insert(id, entry);
             return Err(PayjoinError::msg(
                 "expected provisional proposal; call contribute with empty signed first"
             ));
@@ -392,6 +416,8 @@ pub fn receiver_contribute_and_finalize(
         let (request, _ohttp_ctx) = proposal
             .create_post_request(&ohttp_relay)
             .map_err(|e| PayjoinError::msg(e.to_string()))?;
+        // Proposal consumed into the directory POST — do not re-insert. JS must
+        // deliver `request` successfully before treating the receive as done.
         return Ok(ContributeResult {
             request: request.into(),
             state,
@@ -400,6 +426,7 @@ pub fn receiver_contribute_and_finalize(
     }
 
     let ReceiverLive::Unchecked(unchecked) = entry.live else {
+        receivers.insert(id, entry);
         return Err(PayjoinError::msg(
             "no original proposal to contribute to; poll first"
         ));
@@ -501,7 +528,11 @@ pub fn create_sender_session(
 
     let is_v2 = matches!(uri.extras.pj_param(), PjParam::V2(_));
     let id = Uuid::new_v4().to_string();
-    let ohttp_relay = DEFAULT_OHTTP_RELAY.to_string();
+    let ohttp_relay = NEXT_SENDER_OHTTP_RELAY
+        .lock()
+        .expect("sender relay lock")
+        .clone()
+        .unwrap_or_else(|| DEFAULT_OHTTP_RELAY.to_string());
 
     if is_v2 {
         let mut builder = send_v2::SenderBuilder::new(psbt, uri);
