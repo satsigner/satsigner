@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
-import { Linking, ScrollView, StyleSheet } from 'react-native'
-import { toast } from 'sonner-native'
+import { ScrollView, StyleSheet } from 'react-native'
 
 import SSMarkdown from '@/components/SSMarkdown'
 import SSSeparator from '@/components/SSSeparator'
@@ -11,6 +10,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { openUrl } from '@/utils/url'
 
 type GithubReleaseAsset = {
   browser_download_url: string
@@ -78,7 +78,7 @@ export default function Changelog() {
                           <SSText
                             size="xs"
                             style={styles.link}
-                            onPress={() => openLink(tarballUrl)}
+                            onPress={() => openUrl(tarballUrl)}
                           >
                             {t('settings.about.changelog.sourcecode')}
                           </SSText>
@@ -88,7 +88,7 @@ export default function Changelog() {
                             size="xs"
                             style={styles.link}
                             onPress={() =>
-                              openLink(apkAsset.browser_download_url)
+                              openUrl(apkAsset.browser_download_url)
                             }
                           >
                             {t('settings.about.changelog.apk')}
@@ -139,14 +139,6 @@ async function fetchGithubReleases(): Promise<GithubRelease[]> {
   }
   const releases: GithubRelease[] = await response.json()
   return releases.filter((release) => !release.draft)
-}
-
-async function openLink(url: string) {
-  try {
-    await Linking.openURL(url)
-  } catch {
-    toast.error('Failed to open URL')
-  }
 }
 
 const styles = StyleSheet.create({
