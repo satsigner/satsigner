@@ -108,6 +108,12 @@ function AddressDetails() {
     setShowKeyPinEntry(false)
   }
 
+  function handleSignMessagePress() {
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/address/${addr}/signMessage`
+    )
+  }
+
   useEffect(() => {
     if (!address) {
       return
@@ -311,6 +317,13 @@ function AddressDetails() {
                 <SSText color="muted" size="xs">
                   {t('address.details.key.unavailable')}
                 </SSText>
+              )}
+              {account.policyType !== 'watchonly' && (
+                <SSButton
+                  label={t('address.details.signMessage')}
+                  variant="subtle"
+                  onPress={handleSignMessagePress}
+                />
               )}
             </SSVStack>
           </SSVStack>
