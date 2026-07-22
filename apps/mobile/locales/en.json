@@ -2849,7 +2849,7 @@
     "network.server.host.placeholder.rpc": "10.0.2.2 (emulator) or 192.168.x.x (LAN)",
     "network.server.hostLabel": "Host",
     "network.server.network": "Bitcoin Network",
-    "network.server.port.placeholder.electrum": "50001 (tcp) or 50002 (ssl)",
+    "network.server.port.placeholder.electrum": "%{tcp} (tcp) or %{ssl} (ssl)",
     "network.server.port.placeholder.esplora": "443 (optional, defaults to 443)",
     "network.server.portLabel": "Port",
     "network.server.protocol.ssl": "SSL/TLS",
