@@ -11,15 +11,16 @@ appId: ${APP_ID}
 # "Already in the app" includes deep screens (settings, explorer, receive…).
 # Downstream flows call goto-account-list / ensure-signet to reach a known start.
 
+# Do not match bare "Settings" — Android launcher app drawer has a Settings icon.
 - runFlow:
     when:
-      visible: '(?i)Bitcoin|Set pin|Acknowledge|Don.?t trust|Enter your PIN|Add Account|SIGNET|SIGNER|EXPLORER|CONVERTER|Payjoin|USE 1 UTXO|Sample \(segwit\)|App Settings|Settings|Features|Explorer|Converter'
+      visible: '(?i)Bitcoin|Set pin|Acknowledge|Don.?t trust|Enter your PIN|Add Account|SIGNET|SIGNER|EXPLORER|CONVERTER|Payjoin|USE 1 UTXO|Sample \(segwit\)|App Settings'
     commands:
       - evalScript: ${output.skippedLaunch = true}
 
 - runFlow:
     when:
-      notVisible: '(?i)Bitcoin|Set pin|Acknowledge|Don.?t trust|Enter your PIN|Add Account|SIGNET|SIGNER|EXPLORER|CONVERTER|Payjoin|USE 1 UTXO|Sample \(segwit\)|App Settings|Settings|Features|Explorer|Converter'
+      notVisible: '(?i)Bitcoin|Set pin|Acknowledge|Don.?t trust|Enter your PIN|Add Account|SIGNET|SIGNER|EXPLORER|CONVERTER|Payjoin|USE 1 UTXO|Sample \(segwit\)|App Settings'
     commands:
       - stopApp
       - openLink: exp+satsigner://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081

@@ -136,7 +136,7 @@ appId: ${APP_ID}
             notVisible: '(?i)Add Account'
             notVisible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
             notVisible: '(?i)^SIGNET$'
-            visible: '(?i)Payjoin ready|App Settings|SELECT UTXOS TO CONTINUE|Select spendable outputs|USE 1 UTXO|USE ALL UTXOS|Save output|Sign transaction'
+            visible: '(?i)Payjoin ready|Waiting for sender|Expiring in|Checking mailbox|App Settings|SELECT UTXOS TO CONTINUE|Select spendable outputs|USE 1 UTXO|USE ALL UTXOS|Save output|Sign transaction'
           commands:
             - back
       # Left the app

@@ -37,9 +37,12 @@
     "maestro:all": "bash .maestro/scripts/run-all.sh",
     "maestro:payjoin:receive": "bash .maestro/scripts/run-with-results.sh .maestro/flows/payjoin-receive-signet.yaml",
     "maestro:payjoin:receive:fresh": "bash .maestro/scripts/run-with-results.sh .maestro/flows/payjoin-receive-fresh-signet.yaml",
+    "maestro:payjoin:receive:clown": "bash .maestro/scripts/run-with-results.sh .maestro/flows/payjoin-receive-clown-signet.yaml",
     "maestro:payjoin:receive:new": "bash .maestro/scripts/run-with-results.sh .maestro/flows/payjoin-receive-new-wallet-signet.yaml",
+    "maestro:payjoin:receive:empty": "bash .maestro/scripts/run-with-results.sh .maestro/flows/payjoin-receive-empty-wallet-signet.yaml",
     "maestro:payjoin:send": "bash .maestro/scripts/run-payjoin-send.sh",
-    "maestro:payjoin:sample-to-new": "bash .maestro/scripts/payjoin-sample-to-new.sh",
+    "maestro:payjoin:sample-to-clown": "bash .maestro/scripts/payjoin-sample-to-clown.sh",
+    "maestro:payjoin:sample-to-new": "bash .maestro/scripts/payjoin-sample-to-clown.sh",
     "maestro:payjoin:roundtrip": "bash .maestro/scripts/payjoin-roundtrip.sh",
     "typecheck": "tsc --noEmit",
     "types": "expo customize tsconfig.json"

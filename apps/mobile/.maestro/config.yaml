@@ -1,8 +1,13 @@
 # Shared Maestro config — single source of truth for CLI + Studio.
 # Studio: open apps/mobile/.maestro
-appId: com.satsigner.satsigner.dev.feat_bitcoin_core_rpc
+#
+# appId MUST match the variant package installed/open on the device
+# (pnpm variant → com.satsigner.satsigner.dev.<suffix>). Override per run with
+# APP_ID=… if you switch variants.
+appId: com.satsigner.satsigner.dev.feature_payjoin
 env:
   ACCOUNT_NAME: 'Sample (segwit)'
+  CLOWN_ACCOUNT_NAME: 'Clown'
 flows:
   - 'flows/smoke-*.yaml'
   - 'flows/payjoin-*.yaml'

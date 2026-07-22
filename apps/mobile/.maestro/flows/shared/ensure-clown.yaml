@@ -1,0 +1,101 @@
+appId: ${APP_ID}
+---
+# Ensure the Clown signet wallet exists (open or import BIP39 seed).
+# Seed: CLOWN_MNEMONIC (24 words). Imported account name: CLOWN_ACCOUNT_NAME.
+# Prefer a pre-imported funded Clown — import is for fresh devices only.
+#
+# If already on the account list with Clown visible, open it immediately.
+
+- runFlow:
+    when:
+      visible: '(?i)Add Account'
+      visible: '(?i)^Clown$'
+    commands:
+      - tapOn: '(?i)^Clown$'
+      - extendedWaitUntil:
+          visible:
+            id: account-receive
+          timeout: 30000
+
+- runFlow:
+    when:
+      notVisible:
+        id: account-receive
+    commands:
+      - runFlow:
+          file: ensure-signet.yaml
+      - scrollUntilVisible:
+          element:
+            text: '(?i)^Clown$'
+          direction: DOWN
+          timeout: 15000
+          centerElement: true
+          optional: true
+      - runFlow:
+          when:
+            visible: '(?i)^Clown$'
+          commands:
+            - tapOn: '(?i)^Clown$'
+            - extendedWaitUntil:
+                visible:
+                  id: account-receive
+                timeout: 30000
+      # Missing → import seed (clipboard should already hold CLOWN_MNEMONIC)
+      - runFlow:
+          when:
+            notVisible:
+              id: account-receive
+          commands:
+            - tapOn: 'Add Account'
+            - extendedWaitUntil:
+                visible: 'Name'
+                timeout: 15000
+            - tapOn: 'Name'
+            - eraseText
+            - inputText: ${CLOWN_ACCOUNT_NAME}
+            - hideKeyboard
+            - extendedWaitUntil:
+                visible: 'Continue'
+                timeout: 10000
+            - tapOn: 'Continue'
+            - extendedWaitUntil:
+                visible: 'Import Seed'
+                timeout: 20000
+            - tapOn: 'Import Seed'
+            - extendedWaitUntil:
+                visible: 'Paste'
+                timeout: 20000
+            - tapOn: 'Paste'
+            - extendedWaitUntil:
+                visible: 'Import Seed'
+                timeout: 30000
+            - tapOn: 'Import Seed'
+            - runFlow:
+                when:
+                  visible: 'Skip'
+                commands:
+                  - tapOn: 'Skip'
+                  - tapOn: 'Yes'
+            - runFlow:
+                when:
+                  visible: 'Acknowledge'
+                commands:
+                  - tapOn: 'Acknowledge'
+            - runFlow:
+                file: goto-account-list.yaml
+            - scrollUntilVisible:
+                element:
+                  text: '(?i)^Clown$'
+                direction: DOWN
+                timeout: 45000
+                centerElement: true
+            - tapOn: '(?i)^Clown$'
+            - extendedWaitUntil:
+                visible:
+                  id: account-receive
+                timeout: 45000
+
+- extendedWaitUntil:
+    visible:
+      id: account-receive
+    timeout: 45000

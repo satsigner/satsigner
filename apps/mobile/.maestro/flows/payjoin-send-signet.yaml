@@ -4,11 +4,15 @@ tags:
   - send
   - signet
 ---
-# Send to a Payjoin URI on signet using Sample (segwit) (pre-funded UTXOs).
+# Send to a Payjoin URI on signet using Sample (segwit) as the funded sender.
+# Typical pair: Clown receive (`payjoin-receive-clown-signet`) → this send.
 #
-#   maestro test -e APP_ID=com.satsigner.satsigner.dev.feat_bitcoin_core_rpc \
-#     -e PAYJOIN_URI='bitcoin:tb1q…?pj=…' \
-#     maestro/satsigner-workspace/payjoin-send-signet.yaml
+# BIP77 async path (from device logs):
+#   post original → "Waiting for receiver" (Check / Open accounts)
+# Full roundtrip continues in payjoin-clown-finish-receive +
+# payjoin-sample-resume-send (see sample-to-clown.sh).
+#
+#   PAYJOIN_URI='bitcoin:…?pj=…' pnpm maestro:payjoin:send
 
 - runFlow:
     file: shared/launch.yaml
@@ -65,22 +69,31 @@ tags:
     visible: 'Sign transaction'
     timeout: 20000
 - tapOn: 'Sign transaction'
+# After post: either immediate proposal (broadcast) or async wait for Clown.
 - extendedWaitUntil:
-    visible:
-      id: send-broadcast
+    visible: '(?i).*(Waiting for receiver|Check for Payjoin response|broadcast).*'
     timeout: 120000
 - runFlow:
     when:
-      visible: '.*Negotiating Payjoin.*'
+      visible: '(?i)Waiting for receiver|Check for Payjoin response'
     commands:
+      - assertVisible: '(?i)Check for Payjoin response'
+      - runFlow:
+          when:
+            visible: '(?i)Expiring in .* min'
+          commands:
+            - assertVisible: '(?i)Expiring in .* min'
+      - assertVisible:
+          id: send-payjoin-open-accounts
+- runFlow:
+    when:
+      visible:
+        id: send-broadcast
+      notVisible: '(?i)Waiting for receiver'
+    commands:
+      - tapOn:
+          id: send-broadcast
       - extendedWaitUntil:
-          notVisible: '.*Negotiating Payjoin.*'
-          timeout: 90000
-- assertVisible:
-    id: send-broadcast
-- tapOn:
-    id: send-broadcast
-- extendedWaitUntil:
-    visible: '.*broadcast.*'
-    timeout: 60000
-    optional: true
+          visible: '(?i).*broadcast.*'
+          timeout: 60000
+          optional: true

@@ -46,7 +46,8 @@ Artifacts per run: `STATUS.json`, `SUMMARY.txt` (PASS-only when green),
 | `pnpm maestro:sync` | Copy newest Studio run from `~/.maestro/tests` into `results/latest` |
 
 Pass Maestro env with generic `-e KEY=VALUE` (see runner). Optional product
-suites: `pnpm maestro:payjoin:*`. Driver flakes: keep
+suites: `pnpm maestro:payjoin:*` (receive needs a funded singlesig;
+`receive:empty` covers the empty-wallet path). Driver flakes: keep
 `MAESTRO_REINSTALL_DRIVER=1` (default) or set `0` when healthy.
 
 Full details: [`.maestro/README.md`](https://github.com/satsigner/satsigner/blob/master/apps/mobile/.maestro/README.md).

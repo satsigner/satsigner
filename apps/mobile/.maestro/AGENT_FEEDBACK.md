@@ -31,6 +31,10 @@ Ensures `adb reverse` for Metro `:8081`, Metro reachability check, and clears
 stale Maestro session locks. Quit **Maestro Studio** first (CLI and Studio share
 the Android driver).
 
+**Check `APP_ID` matches the variant on the device** before running (see
+`.maestro/README.md`). A mismatch cold-starts the wrong package and skips the
+account-list fast path.
+
 ### 2. Run
 
 Default smoke (no payjoin):

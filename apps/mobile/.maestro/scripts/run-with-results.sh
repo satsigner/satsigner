@@ -12,6 +12,10 @@
 #
 # MAESTRO_REINSTALL_DRIVER=1 (default) reinstalls the Android driver each run.
 # Set to 0 to skip (faster when the driver is already healthy).
+#
+# APP_ID must match the variant package on the device (pnpm variant suffix).
+# Wrong id → Maestro attaches to another install and never sees Add Account /
+# Sample / Clown on the screen you are looking at.
 set -euo pipefail
 
 export PATH="${HOME}/.maestro/bin:${PATH}"
@@ -24,7 +28,7 @@ MOBILE_DIR="$(cd "${MAESTRO_DIR}/.." && pwd)"
 RESULTS_DIR="${MAESTRO_DIR}/results/latest"
 CONSOLE_LOG="${RESULTS_DIR}/console.log"
 MAESTRO_LOG="${RESULTS_DIR}/maestro.log"
-APP_ID="${APP_ID:-com.satsigner.satsigner.dev.feat_bitcoin_core_rpc}"
+APP_ID="${APP_ID:-com.satsigner.satsigner.dev.feature_payjoin}"
 
 cd "${MOBILE_DIR}"
 bash "${SCRIPT_DIR}/prep-android.sh"

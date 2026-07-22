@@ -7,7 +7,19 @@ Agent protocol: see [`AGENT_FEEDBACK.md`](./AGENT_FEEDBACK.md)
 (`prep → run → STATUS.json / SUMMARY → patch → re-run`).
 
 Default package id for current native builds:
-`com.satsigner.satsigner.dev.feat_bitcoin_core_rpc` (override with `APP_ID`).
+`com.satsigner.satsigner.dev.feature_payjoin` (override with `APP_ID`).
+
+**Variant package must match the app on the device.** `pnpm variant` installs a
+suffix-specific id (e.g. `….feature_payjoin`, `….feat_bitcoin_core_rpc`). Maestro
+defaults in `config.yaml` / `run-with-results.sh` must be that same id — otherwise
+launch skips the visible UI, cold-starts the wrong package, and flows look “blind”
+(Add Account / Sample / Clown never match). Confirm with:
+
+```bash
+adb shell dumpsys activity activities | rg 'satsigner\.satsigner\.dev'
+# or: adb shell pm list packages | rg satsigner
+APP_ID=com.satsigner.satsigner.dev.<your_suffix> pnpm maestro:smoke
+```
 
 ## Prerequisites
 
@@ -26,6 +38,8 @@ Default package id for current native builds:
 | Crash: `App react context shouldn't be created before` | Do not `launchApp` then `openLink` — `shared/launch.yaml` uses `stopApp` + deep link only |
 | Stuck on **Open with** | Launch taps **Just once**; keep a single SatSigner package installed |
 | Wrong screen / “Add Account” missing | Dirty app state — shared `goto-account-list` resets to Bitcoin list |
+| Launch never sees Add Account / Sample / Clown | **Wrong `APP_ID`** — set it to the variant package actually open on the device (see note above) |
+| Stuck NotificationShade / empty hierarchy | Swipe shade closed (or reboot); Maestro can’t see app UI while shade has focus |
 
 ## Single YAML tree
 
@@ -54,12 +68,17 @@ pnpm maestro:last           # STATUS / SUMMARY for latest run
 pnpm maestro:link-studio    # prints Studio path (.maestro/)
 ```
 
-Optional Payjoin (signet) suites — product flows, not the runner contract:
+Optional Payjoin (signet) suites — product flows, not the runner contract.
+**Funded pair:** Clown receives, Sample (segwit) sends — four Maestro steps
+(`pnpm maestro:payjoin:sample-to-clown`): receive → send/wait → finish receive →
+resume send/broadcast. Empty wallets assert messaging via
+`pnpm maestro:payjoin:receive:empty`.
 
 ```bash
-pnpm maestro:payjoin:receive
+pnpm maestro:payjoin:receive:clown     # Clown → Waiting for sender + Expiring + PAYJO.IN
+pnpm maestro:payjoin:sample-to-clown   # 4-step Sample → Clown roundtrip
 PAYJOIN_URI='bitcoin:…?pj=…' pnpm maestro:payjoin:send
-# or: pnpm maestro:payjoin:send -- -e PAYJOIN_URI='bitcoin:…?pj=…'
+pnpm maestro:payjoin:receive:empty     # new empty wallet → empty-wallet messaging
 ```
 
 Markers: `MAESTRO_RUN_START` … `MAESTRO_EXIT=<code>` … `MAESTRO_RUN_END`.
@@ -92,7 +111,14 @@ Every `run-with-results` run writes **`apps/mobile/.maestro/results/latest/`**:
 | Flow | What it checks |
 |---|---|
 | `flows/smoke-boot.yaml` | Launch → skip PIN → Bitcoin account list (`Add Account`) |
-| `flows/payjoin-*.yaml` | Optional Payjoin receive/send (signet) |
+| `flows/payjoin-receive-clown-signet.yaml` | Funded **Clown** receive → waiting + expiring + `PAYJO.IN` |
+| `flows/payjoin-receive-signet.yaml` | Funded Sample receive (solo / debug) |
+| `flows/payjoin-receive-empty-wallet-signet.yaml` | New empty wallet → empty-wallet messaging, no session |
+| `flows/payjoin-receive-new-wallet-signet.yaml` | Named account: empty messaging **or** active session if funded |
+| `flows/payjoin-send-signet.yaml` | **Sample** pastes URI → sign → **Waiting for receiver** (or broadcast) |
+| `flows/payjoin-clown-finish-receive.yaml` | Re-open Clown → poll/finalize → **Payjoin complete** |
+| `flows/payjoin-sample-resume-send.yaml` | Sample session card → Check response → broadcast |
+| `flows/payjoin-roundtrip-signet.yaml` | Manual two-device marker |
 
 Shared helpers: `launch.yaml`, `skip-pin-and-warning.yaml`, `goto-account-list.yaml`,
 `ensure-signet.yaml`, `open-sample-segwit.yaml`, …

@@ -1,0 +1,30 @@
+appId: ${APP_ID}
+---
+# Open the funded Clown signet singlesig (native SegWit / P2WPKH).
+# Import once via ensure-clown.yaml if missing.
+
+- runFlow:
+    file: ensure-signet.yaml
+
+- scrollUntilVisible:
+    element:
+      text: '(?i)^Clown$'
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+    optional: true
+
+- runFlow:
+    when:
+      visible: '(?i)^Clown$'
+    commands:
+      - tapOn: '(?i)^Clown$'
+      - extendedWaitUntil:
+          visible:
+            id: account-receive
+          timeout: 30000
+
+- extendedWaitUntil:
+    visible:
+      id: account-receive
+    timeout: 30000

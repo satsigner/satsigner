@@ -2,11 +2,19 @@ appId: ${APP_ID}
 ---
 # Leave Receive / account home and reach the Bitcoin account list.
 # Prefer tab + BITCOIN over many `back` presses (those can exit the app).
+# If already on the account list, do nothing.
+
+- runFlow:
+    when:
+      visible: '(?i)Add Account'
+    commands:
+      - evalScript: ${output.alreadyOnAccountList = true}
 
 - runFlow:
     when:
       visible:
         id: receive-payjoin-toggle
+      notVisible: '(?i)Add Account'
     commands:
       - back
 
@@ -14,6 +22,7 @@ appId: ${APP_ID}
 - runFlow:
     when:
       visible: '(?i)SELECT UTXOS TO CONTINUE|Select spendable outputs'
+      notVisible: '(?i)Add Account'
     commands:
       - back
 

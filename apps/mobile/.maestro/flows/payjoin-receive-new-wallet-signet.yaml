@@ -5,10 +5,12 @@ tags:
   - signet
   - fresh
 ---
-# Create (or open) ACCOUNT_NAME singlesig on signet, then expose a Payjoin URI.
-# Pair with payjoin-send-signet using Sample (segwit) as the funded sender.
+# Create/open ACCOUNT_NAME and assert Payjoin receive when the wallet can contribute.
+# Fresh empty wallets cannot — use payjoin-receive-empty-wallet-signet.yaml for that.
+# Fund ACCOUNT_NAME on signet (≥1000 sats) before expecting a BIP77 URI.
 #
-#   -e ACCOUNT_NAME=pjrecv1
+#   -e ACCOUNT_NAME=pjre
+#   pnpm maestro:payjoin:receive:new
 
 - runFlow:
     file: shared/launch.yaml
@@ -18,24 +20,19 @@ tags:
     file: shared/create-signet-singlesig.yaml
 - tapOn:
     id: account-receive
-- extendedWaitUntil:
-    visible:
-      id: receive-payjoin-toggle
-    timeout: 20000
-- assertVisible: 'Payjoin'
-- extendedWaitUntil:
-    visible: 'Payjoin ready'
-    timeout: 60000
-- assertVisible:
-    id: receive-payjoin-status
-    text: 'Payjoin ready'
-- assertVisible:
-    id: receive-bitcoin-uri
-- copyTextFrom:
-    id: receive-bitcoin-uri
-- evalScript: ${output.uri = maestro.copiedText}
-- evalScript: ${console.log('PAYJOIN_URI_CAPTURE=' + output.uri)}
-- assertTrue: ${output.uri.includes('pj=')}
-- assertTrue: ${output.uri.toLowerCase().includes('bitcoin:')}
-- tapOn:
-    id: receive-copy-uri
+# Branch: empty → messaging; funded → active session + pj= URI.
+- runFlow:
+    when:
+      visible:
+        id: receive-payjoin-empty-wallet
+    commands:
+      - assertVisible: 'Empty wallets cannot use Payjoin'
+      - assertNotVisible:
+          id: receive-payjoin-status
+- runFlow:
+    when:
+      notVisible:
+        id: receive-payjoin-empty-wallet
+    commands:
+      - runFlow:
+          file: shared/assert-payjoin-receive-active.yaml
