@@ -7,8 +7,9 @@ const PAYJOIN_DIRECTORY_URL = 'https://payjo.in'
  */
 const PAYJOIN_OHTTP_RELAY_URLS = [
   'https://ohttp.achow101.com',
-  'https://pj.bobspacebkk.com',
-  'https://ohttp.cakewallet.com'
+  'https://pj.bobspacebkk.com'
+  // cakewallet often fails Android OkHttp (HTTP/2 SETTINGS preface) and then
+  // native HTTP/1.1 as well — leave it out so sessions are not bound to a dead relay.
 ] as const
 
 /** Default receiver session TTL (10 minutes), matching PDK tutorial defaults. */

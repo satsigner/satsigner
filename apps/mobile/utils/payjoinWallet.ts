@@ -80,12 +80,18 @@ function buildPayjoinWalletCallbacks(params: {
     isScriptOwned: (scriptHex) => ownedScripts.has(scriptHex),
     listCandidateOutpoints: () =>
       params.utxos
-        .map((utxo) => ({
-          scriptHex: utxoScriptHex(utxo),
-          txid: utxo.txid,
-          value: utxo.value,
-          vout: utxo.vout
-        }))
+        .map((utxo) => {
+          const fromScript = utxoScriptHex(utxo)
+          const fromAddress = utxo.addressTo
+            ? addressScriptHex(utxo.addressTo, params.network)
+            : undefined
+          return {
+            scriptHex: fromScript || fromAddress || '',
+            txid: utxo.txid,
+            value: utxo.value,
+            vout: utxo.vout
+          }
+        })
         .filter((candidate) => !!candidate.scriptHex),
     markInputSeen: params.markInputSeen,
     outputScriptsHex,

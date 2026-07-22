@@ -59,7 +59,9 @@ const usePayjoinSessionsStore = create<
             (s.status === 'ready' ||
               s.status === 'waiting' ||
               s.status === 'negotiating' ||
-              s.status === 'initializing')
+              s.status === 'initializing' ||
+              s.status === 'proposal_received' ||
+              s.status === 'finalizing')
         )
         // Prefer a session that still has native state for resume.
         return (

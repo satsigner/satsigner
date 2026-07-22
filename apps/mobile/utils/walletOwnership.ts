@@ -113,6 +113,52 @@ function shouldReconstructOwnedInputs(params: {
 }
 
 /**
+ * Map outpoint → sats from wallet history / UTXOs so Payjoin annotation works
+ * before the tx-detail screen hydrates `vin[].value` from Electrum/Esplora.
+ */
+function buildOutpointValueMap(
+  transactions: Transaction[],
+  utxos?: Utxo[]
+): Map<string, number> {
+  const values = new Map<string, number>()
+
+  for (const utxo of utxos ?? []) {
+    if (typeof utxo.value === 'number') {
+      values.set(`${utxo.txid}:${utxo.vout}`, utxo.value)
+    }
+  }
+
+  for (const tx of transactions) {
+    if (!tx.id) {
+      continue
+    }
+    for (let index = 0; index < (tx.vout?.length ?? 0); index += 1) {
+      const output = tx.vout?.[index]
+      if (output && typeof output.value === 'number') {
+        values.set(`${tx.id}:${index}`, output.value)
+      }
+    }
+  }
+
+  return values
+}
+
+function resolveInputValue(
+  input: Transaction['vin'][number],
+  outpointValues: ReadonlyMap<string, number>
+): number | undefined {
+  if (typeof input.value === 'number') {
+    return input.value
+  }
+  const txid = input.previousOutput?.txid
+  const vout = input.previousOutput?.vout
+  if (!txid || typeof vout !== 'number') {
+    return undefined
+  }
+  return outpointValues.get(`${txid}:${vout}`)
+}
+
+/**
  * Tag internal outputs as change and fix send `received`/`sent` from ownership
  * so card amount and running balance are payment (+ fee), not every output.
  *
@@ -136,6 +182,7 @@ function annotateTransactionsWithWalletOwnership(
     transactions,
     utxos
   })
+  const outpointValues = buildOutpointValueMap(transactions, utxos)
 
   return transactions.map((transaction) => {
     const vout = transaction.vout.map((output) => {
@@ -161,8 +208,8 @@ function annotateTransactionsWithWalletOwnership(
     }
 
     let ownInputSum = 0
-    let foreignInputSum = 0
-    let inputsClassified = 0
+    let ownInputCount = 0
+    let foreignInputCount = 0
     for (const input of transaction.vin ?? []) {
       const owned = isOwnedOutpoint(
         ownedOutpoints,
@@ -172,17 +219,18 @@ function annotateTransactionsWithWalletOwnership(
       if (owned === undefined) {
         continue
       }
-      inputsClassified += 1
-      const value = input.value ?? 0
+      const value = resolveInputValue(input, outpointValues) ?? 0
       if (owned) {
+        ownInputCount += 1
         ownInputSum += value
       } else {
-        foreignInputSum += value
+        foreignInputCount += 1
       }
     }
 
-    const mixedOwnership =
-      inputsClassified >= 2 && ownInputSum > 0 && foreignInputSum > 0
+    // Ownership alone is enough — do not require hydrated input values.
+    // BDK omits vin.value until the detail screen fetches prevouts.
+    const mixedOwnership = ownInputCount > 0 && foreignInputCount > 0
 
     if (mixedOwnership) {
       const sent = ownInputSum

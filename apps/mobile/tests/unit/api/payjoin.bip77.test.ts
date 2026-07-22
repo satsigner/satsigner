@@ -115,6 +115,29 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
     expect(polled.session.status).toBe('waiting')
   })
 
+  it('pending poll does not downgrade a session that already has the original', async () => {
+    const session = await createReceivePayjoinSession({
+      accountId: 'a1',
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      amountSats: 50_000
+    })
+
+    const withProposal = {
+      ...session,
+      originalPsbtBase64: original.toBase64(),
+      status: 'proposal_received' as const
+    }
+
+    const polled = await pollReceiverSession({
+      callbacks,
+      fetchImpl: noopFetch,
+      session: withProposal
+    })
+
+    expect(polled.session.status).toBe('proposal_received')
+    expect(polled.originalPsbtBase64).toBe(original.toBase64())
+  })
+
   it('receiver finalizes after directory-bridged BIP78 original', async () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
@@ -135,7 +158,48 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
     )
   })
 
-  it('rejects replay of seen inputs', async () => {
+  it('prefers unseen contribute inputs over seen ones', async () => {
+    const session = await createReceivePayjoinSession({
+      accountId: 'a1',
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+    })
+    usePayjoinSessionsStore.getState().markInputSeen(`${TXID_B}:1`)
+
+    const withProposal = {
+      ...session,
+      originalPsbtBase64: original.toBase64(),
+      status: 'proposal_received' as const
+    }
+
+    const finalized = await finalizeReceiverPayjoin({
+      callbacks: {
+        ...callbacks,
+        listCandidateOutpoints: () => [
+          {
+            scriptHex: '0014' + '44'.repeat(20),
+            txid: TXID_B,
+            value: 100_000,
+            vout: 1
+          },
+          {
+            scriptHex: '0014' + '55'.repeat(20),
+            txid: TXID_A,
+            value: 90_000,
+            vout: 2
+          }
+        ]
+      },
+      fetchImpl: noopFetch,
+      session: withProposal
+    })
+
+    expect(finalized.status).toBe('completed')
+    expect(usePayjoinSessionsStore.getState().hasSeenInput(`${TXID_A}:2`)).toBe(
+      true
+    )
+  })
+
+  it('reuses an unspent seen input when it is the only candidate', async () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
       address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
@@ -164,8 +228,8 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
       session: withProposal
     })
 
-    expect(finalized.status).toBe('error')
-    expect(finalized.error).toContain('seen before')
+    expect(finalized.status).toBe('completed')
+    expect(finalized.error).toBeUndefined()
   })
 
   it('bIP77 send completes when mailbox has proposal', async () => {

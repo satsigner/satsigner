@@ -144,6 +144,46 @@ describe('payjoin hardening (phase 7)', () => {
     )
   })
 
+  it('does not mark receiver complete when proposal POST fails', async () => {
+    const session = await createReceivePayjoinSession({
+      accountId: 'a1',
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+    })
+    const original = buildPsbt({
+      inputs: [{ txid: TXID_A, vout: 0 }],
+      outputs: [{ script: paymentScript, value: 50_000 }]
+    })
+
+    await expect(
+      finalizeReceiverPayjoin({
+        callbacks: {
+          hasSeenInput: () => false,
+          isScriptOwned: () => false,
+          listCandidateOutpoints: () => [
+            {
+              scriptHex: '0014' + '44'.repeat(20),
+              txid: TXID_B,
+              value: 100_000,
+              vout: 1
+            }
+          ],
+          markInputSeen: () => undefined,
+          signPsbt: (psbt) => psbt
+        },
+        fetchImpl: async () => ({
+          body: 'relay down',
+          bytes: new Uint8Array(),
+          status: 502
+        }),
+        session: {
+          ...session,
+          originalPsbtBase64: original.toBase64(),
+          status: 'proposal_received'
+        }
+      })
+    ).rejects.toThrow(/bip77 receiver proposal post/)
+  })
+
   it('self-transfer bypasses payjoin even with pj URI', async () => {
     const original = buildPsbt({
       inputs: [{ txid: TXID_A, vout: 0 }],

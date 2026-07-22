@@ -181,6 +181,49 @@ describe('annotateTransactionsWithWalletOwnership', () => {
     expect(getWalletTransactionEffect(pj!).amount).toBe(2_000)
     expect(getWalletTransactionEffect(pj!).type).toBe('receive')
   })
+
+  it('classifies receive Payjoin before vin values are hydrated from the network', () => {
+    // BDK sync stores previousOutput refs but omits input.value until the
+    // transaction detail screen calls getTransactionInputValues.
+    const funding = makeTx({
+      id: 'funding',
+      received: 2_500,
+      sent: 0,
+      type: 'receive',
+      vout: [{ address: 'bc1qchange', script: '', value: 2_500 }]
+    })
+    const payjoin = makeTx({
+      fee: 868,
+      id: 'payjoin',
+      received: 4_500,
+      sent: 180_207,
+      type: 'send',
+      vin: [
+        {
+          previousOutput: { txid: 'funding', vout: 0 }
+        },
+        {
+          previousOutput: { txid: 'counterparty', vout: 1 }
+        }
+      ],
+      vout: [
+        { address: 'bc1qchange', script: '', value: 4_500 },
+        { address: 'bc1qpay', script: '', value: 174_839 }
+      ]
+    })
+
+    const annotated = annotateTransactionsWithWalletOwnership(
+      [funding, payjoin],
+      [makeAddress('bc1qchange')]
+    )
+    const pj = annotated.find((tx) => tx.id === 'payjoin')
+
+    expect(pj?.type).toBe('receive')
+    expect(pj?.sent).toBe(2_500)
+    expect(pj?.received).toBe(4_500)
+    expect(getWalletTransactionEffect(pj!).amount).toBe(2_000)
+    expect(getWalletTransactionEffect(pj!).type).toBe('receive')
+  })
 })
 
 describe('getTransactionRunningBalances', () => {

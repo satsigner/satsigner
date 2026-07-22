@@ -442,11 +442,7 @@ export function SSTxDetailsHeader({
           </SSHStack>
         </SSHStack>
         {contributedLabel ? (
-          <SSText
-            testID="tx-details-contributed"
-            color="muted"
-            size="sm"
-          >
+          <SSText testID="tx-details-contributed" color="muted" size="sm">
             {contributedLabel}
           </SSText>
         ) : null}

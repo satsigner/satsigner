@@ -31,6 +31,14 @@ import {
 } from '@/types/payjoin'
 import { getShuffledOhttpRelays } from '@/utils/payjoinRelays'
 import {
+  compactError,
+  mailboxFromEndpoint,
+  mailboxFromUri,
+  payjoinLog,
+  payjoinWarn,
+  urlHost
+} from '@/utils/payjoinLog'
+import {
   appendParamsToPayjoinUri,
   buildPayjoinUri,
   detectEndpointKind,
@@ -58,6 +66,76 @@ type FetchLike = (
   }
 ) => Promise<HttpResponse>
 
+/** While >0, receiver polls should skip so a same-device send can POST the mailbox. */
+let senderPostDepth = 0
+
+function beginSenderPost(): void {
+  senderPostDepth += 1
+}
+
+function endSenderPost(): void {
+  senderPostDepth = Math.max(0, senderPostDepth - 1)
+}
+
+function isSenderPostInFlight(): boolean {
+  return senderPostDepth > 0
+}
+
+const PAYJOIN_FETCH_TIMEOUT_MS = 90_000
+
+function withTimeoutSignal(
+  parent: AbortSignal | undefined,
+  timeoutMs: number
+): { signal: AbortSignal; clear: () => void } {
+  const controller = new AbortController()
+  const timer = setTimeout(() => {
+    controller.abort()
+  }, timeoutMs)
+
+  function onParentAbort() {
+    controller.abort()
+  }
+  if (parent) {
+    if (parent.aborted) {
+      controller.abort()
+    } else {
+      parent.addEventListener('abort', onParentAbort, { once: true })
+    }
+  }
+
+  return {
+    clear() {
+      clearTimeout(timer)
+      parent?.removeEventListener('abort', onParentAbort)
+    },
+    signal: controller.signal
+  }
+}
+
+function isHttp2PrefaceError(error: unknown): boolean {
+  const message = (
+    error instanceof Error ? error.message : String(error)
+  ).toLowerCase()
+  return (
+    message.includes('settings') ||
+    message.includes('preface') ||
+    message.includes('http2') ||
+    message.includes('http/2')
+  )
+}
+
+function isSuccessfulHttpStatus(status: number): boolean {
+  return status >= 200 && status < 300
+}
+
+function assertPayjoinHttpOk(res: HttpResponse, context: string): void {
+  if (!isSuccessfulHttpStatus(res.status)) {
+    throw new Error(
+      `${context}: HTTP ${res.status}${res.body ? ` — ${res.body.slice(0, 160)}` : ''}`
+    )
+  }
+}
+
 async function defaultFetch(
   url: string,
   init?: {
@@ -68,54 +146,118 @@ async function defaultFetch(
   }
 ): Promise<HttpResponse> {
   const method = (init?.method ?? 'GET').toUpperCase()
+  const host = urlHost(url)
+  const bodyLen =
+    typeof init?.body === 'string'
+      ? init.body.length
+      : (init?.body?.byteLength ?? 0)
+  const timed = withTimeoutSignal(init?.signal, PAYJOIN_FETCH_TIMEOUT_MS)
+  const startedAt = Date.now()
 
-  // Android OkHttp often fails OHTTP relay POSTs with HTTP/2 SETTINGS errors.
-  // Prefer native reqwest (HTTP/1.1 + rustls) when available — same stack as
-  // createReceiverSession / live signet tests.
-  if (
-    method === 'POST' &&
-    isNativeAvailable() &&
-    init?.signal?.aborted !== true
-  ) {
-    const contentType =
-      init?.headers?.['Content-Type'] ??
-      init?.headers?.['content-type'] ??
-      'application/octet-stream'
-    const bodyBytes =
-      typeof init?.body === 'string'
-        ? new TextEncoder().encode(init.body)
-        : (init?.body ?? new Uint8Array())
-    try {
-      const native = await httpPost(url, contentType, bodyBytes)
-      if (init?.signal?.aborted) {
-        throw new Error('The operation was aborted')
-      }
-      const body = new TextDecoder().decode(native.body)
-      return { body, bytes: native.body, status: native.status }
-    } catch (error) {
-      // Fall through to JS fetch only for non-native failures that look like
-      // missing symbols (stale APK without httpPost). Real network errors
-      // should surface so the poll loop can retry.
-      const message = error instanceof Error ? error.message : String(error)
-      if (
-        !message.includes('httpPost') &&
-        !message.includes('http_post') &&
-        !message.includes('is not a function')
-      ) {
-        throw error
-      }
+  // Prefer JS fetch (non-blocking). Android OkHttp often fails OHTTP relays with
+  // HTTP/2 SETTINGS preface errors — fall back to native HTTP/1.1 reqwest only
+  // then. Do NOT treat AbortSignal timeouts as preface failures: BIP77 mailbox
+  // polls are long-lived and aborting them is normal; retry on the next tick.
+  try {
+    const response = await fetch(url, {
+      body: init?.body as BodyInit | undefined,
+      headers: init?.headers,
+      method: init?.method ?? 'GET',
+      signal: timed.signal
+    })
+    timed.clear()
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    const body = new TextDecoder().decode(bytes)
+    payjoinLog('http js', {
+      bodyLen,
+      host,
+      method,
+      ms: Date.now() - startedAt,
+      resBytes: bytes.byteLength,
+      status: response.status
+    })
+    return { body, bytes, status: response.status }
+  } catch (error) {
+    timed.clear()
+    const timedOut =
+      timed.signal.aborted && init?.signal?.aborted !== true
+    if (timedOut) {
+      payjoinWarn('http js timeout', {
+        bodyLen,
+        host,
+        method,
+        ms: Date.now() - startedAt
+      })
+      throw new Error(
+        `payjoin fetch timed out after ${PAYJOIN_FETCH_TIMEOUT_MS}ms`
+      )
     }
+    if (
+      method !== 'POST' ||
+      !isHttp2PrefaceError(error) ||
+      !isNativeAvailable() ||
+      init?.signal?.aborted === true
+    ) {
+      payjoinWarn('http js failed', {
+        bodyLen,
+        error: compactError(error),
+        host,
+        method,
+        ms: Date.now() - startedAt
+      })
+      throw error
+    }
+    payjoinWarn('http js preface → native', {
+      bodyLen,
+      error: compactError(error),
+      host,
+      method,
+      ms: Date.now() - startedAt
+    })
   }
 
-  const response = await fetch(url, {
-    body: init?.body as BodyInit | undefined,
-    headers: init?.headers,
-    method: init?.method ?? 'GET',
-    signal: init?.signal
-  })
-  const bytes = new Uint8Array(await response.arrayBuffer())
-  const body = new TextDecoder().decode(bytes)
-  return { body, bytes, status: response.status }
+  const contentType =
+    init?.headers?.['Content-Type'] ??
+    init?.headers?.['content-type'] ??
+    'application/octet-stream'
+  const bodyBytes =
+    typeof init?.body === 'string'
+      ? new TextEncoder().encode(init.body)
+      : (init?.body ?? new Uint8Array())
+  const nativeStartedAt = Date.now()
+  try {
+    const native = await httpPost(url, contentType, bodyBytes, 45_000)
+    if (init?.signal?.aborted) {
+      throw new Error('The operation was aborted')
+    }
+    if (typeof native.status !== 'number') {
+      throw new Error('native HTTP returned an invalid response')
+    }
+    payjoinLog('http native', {
+      bodyLen: bodyBytes.byteLength,
+      host,
+      method,
+      ms: Date.now() - nativeStartedAt,
+      resBytes: native.body.byteLength,
+      status: native.status
+    })
+    return {
+      body: new TextDecoder().decode(native.body),
+      bytes: native.body,
+      status: native.status
+    }
+  } catch (nativeError) {
+    const message =
+      nativeError instanceof Error ? nativeError.message : String(nativeError)
+    payjoinWarn('http native failed', {
+      bodyLen: bodyBytes.byteLength,
+      error: compactError(message),
+      host,
+      method,
+      ms: Date.now() - nativeStartedAt
+    })
+    throw new Error(`native HTTP/1.1 fallback failed: ${message}`)
+  }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -400,7 +542,12 @@ type Bip77AsyncSendResult =
  * If the receiver is already polling, a proposal may arrive immediately;
  * otherwise persists sender nativeState so the user can open Receive and
  * come back to pollBip77Send.
+ *
+ * Concurrent calls for the same mailbox (ioPreview remount / double focus)
+ * share one in-flight promise so we do not POST twice and orphan the receiver.
  */
+const bip77SendInFlight = new Map<string, Promise<Bip77AsyncSendResult>>()
+
 async function startBip77Send(params: {
   accountId: string
   payjoinUri: string
@@ -412,6 +559,35 @@ async function startBip77Send(params: {
   /** Brief wait for an already-online receiver before returning "waiting". */
   quickPollMs?: number
 }): Promise<Bip77AsyncSendResult> {
+  const parsed = parsePayjoinUri(params.payjoinUri)
+  const mailbox =
+    parsed.params?.pj?.split('/').pop()?.split('#')[0] ?? params.payjoinUri
+  const existing = bip77SendInFlight.get(mailbox)
+  if (existing) {
+    payjoinLog('sender dedupe in-flight', { mailbox })
+    return existing
+  }
+
+  const pending = startBip77SendOnce(params, mailbox).finally(() => {
+    bip77SendInFlight.delete(mailbox)
+  })
+  bip77SendInFlight.set(mailbox, pending)
+  return pending
+}
+
+async function startBip77SendOnce(
+  params: {
+    accountId: string
+    payjoinUri: string
+    originalPsbtBase64: string
+    paymentAmountSats: number
+    disableOutputSubstitution: boolean
+    callbacks: PayjoinWalletCallbacks
+    fetchImpl?: FetchLike
+    quickPollMs?: number
+  },
+  mailbox: string
+): Promise<Bip77AsyncSendResult> {
   if (!isNativeAvailable()) {
     return {
       kind: 'fallback',
@@ -425,108 +601,163 @@ async function startBip77Send(params: {
   let lastError = 'bip77 send failed'
   const parsed = parsePayjoinUri(params.payjoinUri)
 
-  for (const relay of relays) {
-    try {
-      await fetchOhttpKeys(relay, PAYJOIN_DIRECTORY_URL)
-      const created = await createSenderSession({
-        disableOutputSubstitution: params.disableOutputSubstitution,
-        originalPsbtBase64: params.originalPsbtBase64,
-        pjUri: params.payjoinUri
-      })
-
-      let { state } = created
-      if (created.request) {
-        const res = await fetchImpl(created.request.url, {
-          body: created.request.body,
-          headers: { 'Content-Type': created.request.contentType },
-          method: 'POST'
+  beginSenderPost()
+  const startedAt = Date.now()
+  payjoinLog('sender start', {
+    amountSats: params.paymentAmountSats,
+    mailbox,
+    relays: relays.length
+  })
+  try {
+    for (const relay of relays) {
+      try {
+        payjoinLog('sender try relay', { mailbox, relay })
+        await fetchOhttpKeys(relay, PAYJOIN_DIRECTORY_URL)
+        const created = await createSenderSession({
+          disableOutputSubstitution: params.disableOutputSubstitution,
+          originalPsbtBase64: params.originalPsbtBase64,
+          pjUri: params.payjoinUri
         })
-        const processed = await senderProcessResponse(state, res.bytes)
-        if (processed.kind === 'error') {
-          lastError = processed.message
-          continue
-        }
-        if (processed.kind === 'proposal') {
-          const result = await finalizeSenderProposal(
-            processed.psbtBase64,
-            params.originalPsbtBase64,
-            params.paymentAmountSats,
-            params.disableOutputSubstitution,
-            params.callbacks,
-            'v2'
-          )
-          if (result.ok && result.usedPayjoin) {
-            return { kind: 'proposal', result }
-          }
-          return {
-            kind: 'fallback',
-            originalPsbtBase64: params.originalPsbtBase64,
-            reason: result.ok ? result.reason : result.error
-          }
-        }
-        state = processed.state
-      }
 
-      // Short poll in case the receiver is already online.
-      const quickDeadline = Date.now() + (params.quickPollMs ?? 3_000)
-      while (Date.now() < quickDeadline) {
-        const { request, state: nextState } = await senderExtractRequest(state)
-        state = nextState
-        const res = await fetchImpl(request.url, {
-          body: request.body,
-          headers: { 'Content-Type': request.contentType },
-          method: 'POST'
+        let { state } = created
+        if (created.request) {
+          payjoinLog('sender post original', {
+            mailbox,
+            relay,
+            reqBytes: created.request.body.byteLength,
+            urlHost: urlHost(created.request.url)
+          })
+          const res = await fetchImpl(created.request.url, {
+            body: created.request.body,
+            headers: { 'Content-Type': created.request.contentType },
+            method: 'POST'
+          })
+          assertPayjoinHttpOk(res, 'bip77 sender original post')
+          const processed = await senderProcessResponse(state, res.bytes)
+          payjoinLog('sender post original result', {
+            kind: processed.kind,
+            mailbox,
+            relay,
+            status: res.status
+          })
+          if (processed.kind === 'error') {
+            lastError = processed.message
+            continue
+          }
+          if (processed.kind === 'proposal') {
+            const result = await finalizeSenderProposal(
+              processed.psbtBase64,
+              params.originalPsbtBase64,
+              params.paymentAmountSats,
+              params.disableOutputSubstitution,
+              params.callbacks,
+              'v2'
+            )
+            if (result.ok && result.usedPayjoin) {
+              payjoinLog('sender got proposal immediately', {
+                mailbox,
+                ms: Date.now() - startedAt
+              })
+              return { kind: 'proposal', result }
+            }
+            payjoinWarn('sender proposal finalize failed', {
+              mailbox,
+              reason: result.ok ? result.reason : result.error
+            })
+            return {
+              kind: 'fallback',
+              originalPsbtBase64: params.originalPsbtBase64,
+              reason: result.ok ? result.reason : result.error
+            }
+          }
+          state = processed.state
+        }
+
+        // Short poll in case the receiver is already online.
+        const quickDeadline = Date.now() + (params.quickPollMs ?? 3_000)
+        let quickPolls = 0
+        while (Date.now() < quickDeadline) {
+          quickPolls += 1
+          const { request, state: nextState } = await senderExtractRequest(state)
+          state = nextState
+          const res = await fetchImpl(request.url, {
+            body: request.body,
+            headers: { 'Content-Type': request.contentType },
+            method: 'POST'
+          })
+          assertPayjoinHttpOk(res, 'bip77 sender poll')
+          const processed = await senderProcessResponse(state, res.bytes)
+          if (processed.kind === 'proposal') {
+            const result = await finalizeSenderProposal(
+              processed.psbtBase64,
+              params.originalPsbtBase64,
+              params.paymentAmountSats,
+              params.disableOutputSubstitution,
+              params.callbacks,
+              'v2'
+            )
+            if (result.ok && result.usedPayjoin) {
+              payjoinLog('sender got proposal after quick poll', {
+                mailbox,
+                ms: Date.now() - startedAt,
+                quickPolls
+              })
+              return { kind: 'proposal', result }
+            }
+            return {
+              kind: 'fallback',
+              originalPsbtBase64: params.originalPsbtBase64,
+              reason: result.ok ? result.reason : result.error
+            }
+          }
+          if (processed.kind === 'error') {
+            lastError = processed.message
+            break
+          }
+          state = processed.state
+          await sleep(400)
+        }
+
+        const session = buildNewSession({
+          accountId: params.accountId,
+          address: parsed.params?.address ?? '',
+          amountSats: params.paymentAmountSats,
+          nativeState: state,
+          originalPsbtBase64: params.originalPsbtBase64,
+          pjEndpoint: parsed.params?.pj ?? '',
+          pjos: parsed.params?.pjos ?? PAYJOIN_DEFAULT_PJOS,
+          protocol: 'v2',
+          role: 'sender',
+          status: 'waiting',
+          uri: params.payjoinUri
         })
-        const processed = await senderProcessResponse(state, res.bytes)
-        if (processed.kind === 'proposal') {
-          const result = await finalizeSenderProposal(
-            processed.psbtBase64,
-            params.originalPsbtBase64,
-            params.paymentAmountSats,
-            params.disableOutputSubstitution,
-            params.callbacks,
-            'v2'
-          )
-          if (result.ok && result.usedPayjoin) {
-            return { kind: 'proposal', result }
-          }
-          return {
-            kind: 'fallback',
-            originalPsbtBase64: params.originalPsbtBase64,
-            reason: result.ok ? result.reason : result.error
-          }
-        }
-        if (processed.kind === 'error') {
-          lastError = processed.message
-          break
-        }
-        state = processed.state
-        await sleep(400)
+        usePayjoinSessionsStore.getState().upsertSession(session)
+        payjoinLog('sender waiting for receiver', {
+          mailbox,
+          ms: Date.now() - startedAt,
+          quickPolls,
+          relay,
+          sessionId: session.id
+        })
+        return { kind: 'waiting', session }
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : lastError
+        payjoinWarn('sender relay failed', {
+          error: compactError(lastError),
+          mailbox,
+          relay
+        })
       }
-
-      const session = buildNewSession({
-        accountId: params.accountId,
-        address: parsed.params?.address ?? '',
-        amountSats: params.paymentAmountSats,
-        nativeState: state,
-        originalPsbtBase64: params.originalPsbtBase64,
-        pjEndpoint: parsed.params?.pj ?? '',
-        pjos: parsed.params?.pjos ?? PAYJOIN_DEFAULT_PJOS,
-        protocol: 'v2',
-        role: 'sender',
-        status: 'waiting',
-        uri: params.payjoinUri
-      })
-      usePayjoinSessionsStore.getState().upsertSession(session)
-      console.log('[payjoin] startBip77Send waiting for receiver', {
-        sessionId: session.id
-      })
-      return { kind: 'waiting', session }
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : lastError
     }
+  } finally {
+    endSenderPost()
   }
 
+  payjoinWarn('sender fallback', {
+    mailbox,
+    ms: Date.now() - startedAt,
+    reason: lastError
+  })
   return {
     kind: 'fallback',
     originalPsbtBase64: params.originalPsbtBase64,
@@ -556,6 +787,15 @@ async function pollBip77Send(params: {
   let state = params.session.nativeState
   let lastError = 'still waiting for receiver'
   const deadline = Date.now() + (params.timeoutMs ?? 15_000)
+  const mailbox = mailboxFromEndpoint(params.session.pjEndpoint)
+  const startedAt = Date.now()
+  let polls = 0
+
+  payjoinLog('sender resume poll', {
+    mailbox,
+    sessionId: params.session.id,
+    timeoutMs: params.timeoutMs ?? 15_000
+  })
 
   usePayjoinSessionsStore
     .getState()
@@ -563,6 +803,7 @@ async function pollBip77Send(params: {
 
   try {
     while (Date.now() < deadline) {
+      polls += 1
       const { request, state: nextState } = await senderExtractRequest(state)
       state = nextState
       const res = await fetchImpl(request.url, {
@@ -570,7 +811,14 @@ async function pollBip77Send(params: {
         headers: { 'Content-Type': request.contentType },
         method: 'POST'
       })
+      assertPayjoinHttpOk(res, 'bip77 sender resume poll')
       const processed = await senderProcessResponse(state, res.bytes)
+      payjoinLog('sender resume tick', {
+        kind: processed.kind,
+        mailbox,
+        polls,
+        status: res.status
+      })
       if (processed.kind === 'proposal') {
         const result = await finalizeSenderProposal(
           processed.psbtBase64,
@@ -586,6 +834,11 @@ async function pollBip77Send(params: {
             'completed',
             { nativeState: undefined, payjoinPsbtBase64: result.psbtBase64 }
           )
+          payjoinLog('sender resume got proposal', {
+            mailbox,
+            ms: Date.now() - startedAt,
+            polls
+          })
           return { kind: 'proposal', result }
         }
         return {
@@ -603,6 +856,11 @@ async function pollBip77Send(params: {
     }
   } catch (error) {
     lastError = error instanceof Error ? error.message : lastError
+    payjoinWarn('sender resume error', {
+      error: compactError(lastError),
+      mailbox,
+      polls
+    })
   }
 
   const updated: PayjoinSession = {
@@ -613,7 +871,12 @@ async function pollBip77Send(params: {
     updatedAt: Date.now()
   }
   usePayjoinSessionsStore.getState().upsertSession(updated)
-  console.log('[payjoin] pollBip77Send still waiting', { reason: lastError })
+  payjoinLog('sender resume still waiting', {
+    mailbox,
+    ms: Date.now() - startedAt,
+    polls,
+    reason: compactError(lastError)
+  })
   return { kind: 'waiting', session: updated }
 }
 
@@ -747,6 +1010,25 @@ async function tryResumeReceiverSession(
   }
 }
 
+/**
+ * Soft resume: restore the in-memory handle from persisted nativeState without
+ * deleting the JS session. Used when a poll fails with "session not found"
+ * after Metro reload — keep the same pj= so a waiting sender is not orphaned.
+ */
+async function resumePersistedReceiverSession(
+  session: PayjoinSession
+): Promise<boolean> {
+  if (!session.nativeState || !isNativeAvailable()) {
+    return false
+  }
+  try {
+    await resumeReceiverSession(session.nativeState)
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function createReceivePayjoinSession(params: {
   accountId: string
   address: string
@@ -768,6 +1050,10 @@ async function createReceivePayjoinSession(params: {
     let lastError: unknown
     for (const relay of relays) {
       try {
+        payjoinLog('receiver create try relay', {
+          address: params.address.slice(0, 12),
+          relay
+        })
         await fetchOhttpKeys(relay, PAYJOIN_DIRECTORY_URL)
         const handle = await createReceiverSession({
           address: params.address,
@@ -782,9 +1068,18 @@ async function createReceivePayjoinSession(params: {
         })
         nativeState = handle.state
         lastError = undefined
+        payjoinLog('receiver mailbox ready', {
+          mailbox: mailboxFromUri(pjUri),
+          relay,
+          sessionNativeId: handle.id
+        })
         break
       } catch (error) {
         lastError = error
+        payjoinWarn('receiver create relay failed', {
+          error: compactError(error),
+          relay
+        })
       }
     }
     if (!nativeState) {
@@ -828,13 +1123,19 @@ async function createReceivePayjoinSession(params: {
     pjos: PAYJOIN_DEFAULT_PJOS,
     protocol,
     role: 'receiver',
-    // 'waiting' = mailbox live and receiver will poll for the sender.
-    status: nativeState ? 'waiting' : 'error',
+    // 'ready' = mailbox created (URI has pj=); poll moves it to 'waiting'.
+    status: nativeState ? 'ready' : 'error',
     ttlMs: params.ttlMs,
     uri: pjUri!
   })
 
   usePayjoinSessionsStore.getState().upsertSession(session)
+  payjoinLog('receiver session stored', {
+    error: createError ? compactError(createError) : undefined,
+    mailbox: mailboxFromEndpoint(session.pjEndpoint),
+    sessionId: session.id,
+    status: session.status
+  })
   return session
 }
 
@@ -851,9 +1152,17 @@ async function pollReceiverSession(params: {
   originalPsbtBase64?: string
 }> {
   if (!params.session.nativeState || !isNativeAvailable()) {
+    payjoinWarn('receiver poll skipped', {
+      hasNative: isNativeAvailable(),
+      hasState: !!params.session.nativeState,
+      mailbox: mailboxFromEndpoint(params.session.pjEndpoint),
+      sessionId: params.session.id
+    })
     return { session: params.session }
   }
 
+  const mailbox = mailboxFromEndpoint(params.session.pjEndpoint)
+  const startedAt = Date.now()
   const fetchImpl = params.fetchImpl ?? defaultFetch
   const { request, state } = await receiverExtractRequest(
     params.session.nativeState
@@ -863,10 +1172,39 @@ async function pollReceiverSession(params: {
     headers: { 'Content-Type': request.contentType },
     method: 'POST'
   })
+  assertPayjoinHttpOk(res, 'bip77 receiver poll')
   const processed = await receiverProcessResponse(state, res.bytes)
+  payjoinLog('receiver poll result', {
+    kind: processed.kind,
+    mailbox,
+    ms: Date.now() - startedAt,
+    prevStatus: params.session.status,
+    resBytes: res.bytes.byteLength,
+    sessionId: params.session.id,
+    status: res.status
+  })
 
   if (processed.kind === 'pending') {
     const now = Date.now()
+    // Never downgrade a session that already holds the sender original —
+    // overwriting proposal_received → waiting made the UI poll forever.
+    if (params.session.originalPsbtBase64) {
+      const updated = {
+        ...params.session,
+        expiresAt: Math.max(
+          params.session.expiresAt,
+          now + PAYJOIN_SESSION_TTL_MS
+        ),
+        nativeState: processed.state,
+        status: 'proposal_received' as const,
+        updatedAt: now
+      }
+      usePayjoinSessionsStore.getState().upsertSession(updated)
+      return {
+        originalPsbtBase64: params.session.originalPsbtBase64,
+        session: updated
+      }
+    }
     const updated = {
       ...params.session,
       // Keep the mailbox alive in the app while the user is still polling.
@@ -921,12 +1259,20 @@ async function finalizeReceiverPayjoin(params: {
   const candidates = await params.callbacks.listCandidateOutpoints()
   const store = usePayjoinSessionsStore.getState()
 
+  // Prefer inputs never contributed. If every unspent candidate is already
+  // marked seen, reuse one — still being listed means the prior Payjoin did
+  // not spend it (abandoned / failed POST), so hard-rejecting left wallets
+  // stuck on "Negotiating…" forever.
   let chosen = candidates.find(
     (c) => !store.hasSeenInput(`${c.txid}:${c.vout}`)
   )
   if (!chosen && candidates.length > 0) {
     const [firstCandidate] = candidates
     chosen = firstCandidate
+    payjoinWarn('receiver finalize reusing unspent seen input', {
+      outpoint: `${chosen.txid}:${chosen.vout}`,
+      sessionId: params.session.id
+    })
   }
   if (!chosen) {
     const updated = {
@@ -939,17 +1285,14 @@ async function finalizeReceiverPayjoin(params: {
   }
 
   const outpoint = `${chosen.txid}:${chosen.vout}`
-  if (store.hasSeenInput(outpoint)) {
-    const updated = {
-      ...params.session,
-      error: 'input seen before',
-      status: 'error' as const
-    }
-    store.upsertSession(updated)
-    return updated
-  }
 
   const fetchImpl = params.fetchImpl ?? defaultFetch
+
+  payjoinLog('receiver finalize contribute', {
+    mailbox: mailboxFromEndpoint(params.session.pjEndpoint),
+    outpoint,
+    sessionId: params.session.id
+  })
 
   // First pass builds the provisional Payjoin PSBT (empty signature).
   const prepared = await receiverContributeAndFinalize(
@@ -964,18 +1307,34 @@ async function finalizeReceiverPayjoin(params: {
     signed
   )
 
-  if (request.url) {
-    await fetchImpl(request.url, {
-      body: request.body,
-      headers: { 'Content-Type': request.contentType },
-      method: 'POST'
-    })
+  // Never mark complete until the payjoin proposal is posted back — otherwise
+  // the receive UI celebrates while the sender keeps "waiting for receiver".
+  if (!request.url) {
+    const updated = {
+      ...params.session,
+      error: 'missing directory post after finalize',
+      nativeState: state,
+      payjoinPsbtBase64: psbtBase64,
+      proposalPsbtBase64: psbtBase64,
+      status: 'error' as const,
+      updatedAt: Date.now()
+    }
+    store.upsertSession(updated)
+    return updated
   }
+
+  const res = await fetchImpl(request.url, {
+    body: request.body,
+    headers: { 'Content-Type': request.contentType },
+    method: 'POST'
+  })
+  assertPayjoinHttpOk(res, 'bip77 receiver proposal post')
 
   store.markInputSeen(outpoint)
 
   const updated: PayjoinSession = {
     ...params.session,
+    error: undefined,
     nativeState: state,
     payjoinPsbtBase64: psbtBase64,
     proposalPsbtBase64: psbtBase64,
@@ -1015,10 +1374,12 @@ export {
   createReceivePayjoinSession,
   defaultFetch,
   finalizeReceiverPayjoin,
+  isSenderPostInFlight,
   pollBip77Send,
   pollReceiverSession,
   postBip78OriginalPsbt,
   processDirectoryBridgedBip78Proposal,
+  resumePersistedReceiverSession,
   sendBip78,
   sendPayjoin,
   startBip77Send,
