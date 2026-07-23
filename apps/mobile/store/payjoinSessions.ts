@@ -28,8 +28,38 @@ type PayjoinSessionsAction = {
   clearAll: () => void
 }
 
+const TERMINAL_PAYJOIN_STATUSES = new Set<PayjoinSessionStatus>([
+  'cancelled',
+  'completed',
+  'error',
+  'expired',
+  'fallback'
+])
+
 function createSessionId(): string {
   return `pj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+}
+
+/** Drop PSBT / native blobs once a session is terminal — keeps MMKV + heap lean. */
+function stripHeavySessionFields(session: PayjoinSession): PayjoinSession {
+  if (!TERMINAL_PAYJOIN_STATUSES.has(session.status)) {
+    return session
+  }
+  if (
+    session.nativeState === undefined &&
+    session.originalPsbtBase64 === undefined &&
+    session.proposalPsbtBase64 === undefined &&
+    session.payjoinPsbtBase64 === undefined
+  ) {
+    return session
+  }
+  return {
+    ...session,
+    nativeState: undefined,
+    originalPsbtBase64: undefined,
+    payjoinPsbtBase64: undefined,
+    proposalPsbtBase64: undefined
+  }
 }
 
 const usePayjoinSessionsStore = create<
@@ -39,14 +69,20 @@ const usePayjoinSessionsStore = create<
     (set, get) => ({
       clearAll: () => set({ seenInputs: [], sessions: [] }),
       clearExpiredSessions: (now = Date.now()) => {
-        set((state) => ({
-          sessions: state.sessions.filter(
-            (s) =>
-              s.expiresAt > now ||
-              s.status === 'completed' ||
-              s.status === 'fallback'
-          )
-        }))
+        set((state) => {
+          const sessions = state.sessions
+            .filter((session) => session.expiresAt > now)
+            .map(stripHeavySessionFields)
+          if (sessions.length === state.sessions.length) {
+            const unchanged = sessions.every(
+              (session, index) => session === state.sessions[index]
+            )
+            if (unchanged) {
+              return state
+            }
+          }
+          return { sessions }
+        })
       },
 
       getActiveReceiverSession: (accountId) => {
@@ -64,9 +100,7 @@ const usePayjoinSessionsStore = create<
               s.status === 'finalizing')
         )
         // Prefer a session that still has native state for resume.
-        return (
-          candidates.find((s) => !!s.nativeState) ?? candidates[0]
-        )
+        return candidates.find((s) => !!s.nativeState) ?? candidates[0]
       },
 
       getActiveSenderSession: (accountId) => {
@@ -89,7 +123,9 @@ const usePayjoinSessionsStore = create<
 
       markInputSeen: (outpoint) => {
         set((state) => {
-          if (state.seenInputs.includes(outpoint)) {return state}
+          if (state.seenInputs.includes(outpoint)) {
+            return state
+          }
           const seenInputs = [...state.seenInputs, outpoint]
           // Cap growth
           if (seenInputs.length > 2000) {
@@ -111,27 +147,29 @@ const usePayjoinSessionsStore = create<
 
       updateSessionStatus: (id, status, patch) => {
         set((state) => ({
-          sessions: state.sessions.map((session) =>
-            session.id === id
-              ? {
-                  ...session,
-                  ...patch,
-                  status,
-                  updatedAt: Date.now()
-                }
-              : session
-          )
+          sessions: state.sessions.map((session) => {
+            if (session.id !== id) {
+              return session
+            }
+            return stripHeavySessionFields({
+              ...session,
+              ...patch,
+              status,
+              updatedAt: Date.now()
+            })
+          })
         }))
       },
 
       upsertSession: (session) => {
+        const nextSession = stripHeavySessionFields(session)
         set((state) => {
-          const index = state.sessions.findIndex((s) => s.id === session.id)
+          const index = state.sessions.findIndex((s) => s.id === nextSession.id)
           if (index === -1) {
-            return { sessions: [...state.sessions, session] }
+            return { sessions: [...state.sessions, nextSession] }
           }
           const next = [...state.sessions]
-          next[index] = session
+          next[index] = nextSession
           return { sessions: next }
         })
       }
@@ -162,4 +200,10 @@ function buildNewSession(
   }
 }
 
-export { buildNewSession, createSessionId, usePayjoinSessionsStore }
+export {
+  buildNewSession,
+  createSessionId,
+  stripHeavySessionFields,
+  TERMINAL_PAYJOIN_STATUSES,
+  usePayjoinSessionsStore
+}

@@ -24,6 +24,7 @@ import {
   setLastBackgroundTimestamp
 } from '@/storage/mmkv'
 import { useAuthStore } from '@/store/auth'
+import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { Colors } from '@/styles'
 
 if (Platform.OS === 'android') {
@@ -104,8 +105,10 @@ export default function RootLayout() {
       // Keep the overlay visible briefly so the /unlock redirect renders
       // before the previous screen becomes visible
       setTimeout(() => setPrivacyScreenVisible(false), 300)
+      usePayjoinSessionsStore.getState().clearExpiredSessions()
     } else if (nextAppState === 'active') {
       setPrivacyScreenVisible(false)
+      usePayjoinSessionsStore.getState().clearExpiredSessions()
     }
 
     appState.current = nextAppState
