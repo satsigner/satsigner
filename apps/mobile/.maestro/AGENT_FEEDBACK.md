@@ -62,13 +62,13 @@ Driver flakes: `MAESTRO_REINSTALL_DRIVER=1` (default) passes
 
 Every run writes `apps/mobile/.maestro/results/latest/`:
 
-| File | Purpose |
-|---|---|
-| `STATUS.json` | Machine contract: `ok`, `exitCode`, `flow`, `appId`, `startedAt`, `endedAt`, `artifactDir`, `failureMessage`, `screenshots[]` |
-| `SUMMARY.txt` | Human/agent digest — **PASS-only** on success; failure sections only when `ok=false` |
-| `console.log` | Full live tee |
-| `failure.png` | Canonical failure screenshot (on fail) |
-| `report.xml` / `maestro.log` / `commands-*.json` | Maestro debug |
+| File                                             | Purpose                                                                                                                       |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `STATUS.json`                                    | Machine contract: `ok`, `exitCode`, `flow`, `appId`, `startedAt`, `endedAt`, `artifactDir`, `failureMessage`, `screenshots[]` |
+| `SUMMARY.txt`                                    | Human/agent digest — **PASS-only** on success; failure sections only when `ok=false`                                          |
+| `console.log`                                    | Full live tee                                                                                                                 |
+| `failure.png`                                    | Canonical failure screenshot (on fail)                                                                                        |
+| `report.xml` / `maestro.log` / `commands-*.json` | Maestro debug                                                                                                                 |
 
 On failure, diagnose from:
 
@@ -98,13 +98,13 @@ Stop when `STATUS.json` has `"ok": true` and `SUMMARY.txt` starts with `PASS`.
 
 ## Commands cheat sheet
 
-| Command | Role |
-|---|---|
-| `pnpm maestro:prep` | Device + Metro prep |
-| `pnpm maestro:smoke` | Non-payjoin boot → account list |
-| `pnpm maestro:last` | Print latest SUMMARY |
-| `pnpm maestro:link-studio` | Print Studio path (open `.maestro/`) |
-| `pnpm maestro:sync` | Copy newest Studio `~/.maestro/tests` run into `results/latest` |
+| Command                    | Role                                                            |
+| -------------------------- | --------------------------------------------------------------- |
+| `pnpm maestro:prep`        | Device + Metro prep                                             |
+| `pnpm maestro:smoke`       | Non-payjoin boot → account list                                 |
+| `pnpm maestro:last`        | Print latest SUMMARY                                            |
+| `pnpm maestro:link-studio` | Print Studio path (open `.maestro/`)                            |
+| `pnpm maestro:sync`        | Copy newest Studio `~/.maestro/tests` run into `results/latest` |
 
 Payjoin flows (`pnpm maestro:payjoin:*`) are optional product suites on top of
 this harness; they do not define the runner contract.
