@@ -245,7 +245,7 @@ export default function TxDetails() {
           header={t('transaction.label')}
           privacyMode={privacyMode}
         />
-        <SSVStack style={{ paddingTop: 50 }}>
+        <SSVStack gap="sm">
           <SSSeparator color="gradient" />
           <SSHStack gap="xxs" justifyBetween style={{ width: '100%' }}>
             <SSHStack gap="xxs">
