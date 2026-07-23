@@ -87,7 +87,7 @@ function autoSelectUtxos(
   const { addInput, setFeeRate } = actions
   // Match ioPreview fee hydration — selecting at 1 sat/vB then bumping the
   // rate left Payjoin invoices underfunded until the user added inputs.
-  const nextBlockFee = useBlockchainStore.getState().nextBlockFee
+  const { nextBlockFee } = useBlockchainStore.getState()
   const feeRate =
     typeof nextBlockFee === 'number' && nextBlockFee > 1 ? nextBlockFee : 1
 
@@ -466,7 +466,9 @@ async function processBitcoinContent(
               }
             }
 
-            const fallbackPayjoin = hasPayjoinParam(toBitcoinUri(content.cleaned))
+            const fallbackPayjoin = hasPayjoinParam(
+              toBitcoinUri(content.cleaned)
+            )
               ? toBitcoinUri(content.cleaned)
               : undefined
             await commitOrPromptBitcoinUri(
@@ -637,13 +639,11 @@ export function processContentForOutput(
   if (content.type === 'bitcoin_uri') {
     try {
       const payjoinUri = extractPayjoinUriFromContent(content)
-      const payjoinParsed = payjoinUri
-        ? parsePayjoinUri(payjoinUri)
-        : undefined
+      const payjoinParsed = payjoinUri ? parsePayjoinUri(payjoinUri) : undefined
 
       if (payjoinParsed?.isValid && payjoinParsed.params) {
         actions.setOutputTo(payjoinParsed.params.address)
-        const amountBtc = payjoinParsed.params.amountBtc
+        const { amountBtc } = payjoinParsed.params
         if (amountBtc !== undefined && amountBtc > 0) {
           const amountInSats = Math.round(amountBtc * SATS_PER_BITCOIN)
           if (amountInSats > 0 && amountInSats < DUST_LIMIT) {

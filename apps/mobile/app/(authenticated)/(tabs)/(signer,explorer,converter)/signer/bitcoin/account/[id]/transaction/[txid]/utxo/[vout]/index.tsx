@@ -44,6 +44,7 @@ type UtxoDetailsProps = {
   ownAddresses?: Set<string>
   internalAddresses?: Set<string>
   unspentOutpoints?: Set<string>
+  ownedOutpoints?: ReadonlySet<string>
   txLabelsById?: Map<string, string>
   knownTxIds?: ReadonlySet<string>
   spendingTxIdsByOutpoint?: Map<string, string>
@@ -61,6 +62,7 @@ function UtxoDetails({
   ownAddresses = new Set(),
   internalAddresses = new Set(),
   unspentOutpoints,
+  ownedOutpoints,
   txLabelsById,
   knownTxIds,
   spendingTxIdsByOutpoint,
@@ -364,6 +366,7 @@ function UtxoDetailsPage() {
           ownAddresses={ownAddresses}
           internalAddresses={internalAddresses}
           unspentOutpoints={unspentOutpoints}
+          ownedOutpoints={ownedOutpoints}
           txLabelsById={txLabelsById}
           knownTxIds={knownTxIds}
           spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}

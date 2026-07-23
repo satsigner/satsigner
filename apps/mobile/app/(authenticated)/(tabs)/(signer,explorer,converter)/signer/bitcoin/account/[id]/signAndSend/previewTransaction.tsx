@@ -72,11 +72,11 @@ import {
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { formatAddress, formatNumber } from '@/utils/format'
+import { parseHexToBytes } from '@/utils/parse'
 import {
   formatPayjoinExpiryLabel,
   parsePayjoinExpiresAtMs
 } from '@/utils/payjoinExpiry'
-import { parseHexToBytes } from '@/utils/parse'
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   type ExtractedTransactionData,

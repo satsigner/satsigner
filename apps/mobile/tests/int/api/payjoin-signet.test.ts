@@ -13,6 +13,7 @@
  * a completed Signet payjoin tx:
  *   cd apps/mobile && pnpm test:int:payjoin:live
  */
+/* eslint-disable jest/no-conditional-expect, jest/max-expects -- soft assertions when payjoin relay/fallback varies */
 import ecc from '@bitcoinerlab/secp256k1'
 import { BIP32Factory } from 'bip32'
 import * as bitcoinjs from 'bitcoinjs-lib'
@@ -45,11 +46,12 @@ const SIGNET_NETWORK = bitcoinjs.networks.testnet
 const PAYMENT_SATS = 5_555
 const LABEL = 'Payjoin signet integration'
 
-const noopFetch: FetchLike = async () => ({
-  body: '',
-  bytes: new Uint8Array(),
-  status: 200
-})
+const noopFetch: FetchLike = () =>
+  Promise.resolve({
+    body: '',
+    bytes: new Uint8Array(),
+    status: 200
+  })
 
 function deriveSampleSignetWallet() {
   const seed = mnemonicToSeed(sampleSignetWalletSeed)
@@ -100,7 +102,7 @@ function buildOriginalPsbt(params: {
     index: 0,
     sequence: 0xfffffffd,
     witnessUtxo: {
-      script: Buffer.from('0014' + '11'.repeat(20), 'hex'),
+      script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
       value: inputValue
     }
   })
@@ -122,7 +124,7 @@ function buildProposalPsbt(params: {
     index: 0,
     sequence: 0xfffffffd,
     witnessUtxo: {
-      script: Buffer.from('0014' + '11'.repeat(20), 'hex'),
+      script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
       value: 100_000
     }
   })
@@ -131,7 +133,7 @@ function buildProposalPsbt(params: {
     index: 1,
     sequence: 0xfffffffd,
     witnessUtxo: {
-      script: Buffer.from('0014' + '44'.repeat(20), 'hex'),
+      script: Buffer.from(`0014${'44'.repeat(20)}`, 'hex'),
       value: 100_000
     }
   })
@@ -175,9 +177,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     expect(parsed.isValid).toBe(true)
     expect(parsed.params?.address).toBe(wallet.receiveAddress)
     expect(parsed.params?.pj).toContain('payjo.in')
-    expect(Math.round((parsed.params?.amountBtc ?? 0) * 1e8)).toBe(
-      PAYMENT_SATS
-    )
+    expect(Math.round((parsed.params?.amountBtc ?? 0) * 1e8)).toBe(PAYMENT_SATS)
     expect(parsed.params?.label).toBe(LABEL)
   })
 
@@ -263,7 +263,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
         scriptHex === wallet.changeScript.toString('hex'),
       listCandidateOutpoints: () => [
         {
-          scriptHex: Buffer.from('0014' + '44'.repeat(20), 'hex').toString(
+          scriptHex: Buffer.from(`0014${'44'.repeat(20)}`, 'hex').toString(
             'hex'
           ),
           txid: 'bb'.repeat(32),
@@ -293,7 +293,9 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     } else if (sendResult.ok && !sendResult.usedPayjoin) {
       // Fallback is acceptable only if the mock proposal path failed.
       // Prefer usedPayjoin — fail loudly with reason for debugging.
-      throw new Error(`expected payjoin success, got fallback: ${sendResult.reason}`)
+      throw new Error(
+        `expected payjoin success, got fallback: ${sendResult.reason}`
+      )
     }
 
     const { session: withOriginal, originalPsbtBase64 } =
@@ -306,8 +308,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
 
     const toFinalize = {
       ...withOriginal,
-      originalPsbtBase64:
-        originalPsbtBase64 ?? withOriginal.originalPsbtBase64,
+      originalPsbtBase64: originalPsbtBase64 ?? withOriginal.originalPsbtBase64,
       status: 'proposal_received' as const
     }
     usePayjoinSessionsStore.getState().upsertSession(toFinalize)
@@ -349,8 +350,8 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       disableOutputSubstitution: true,
       fetchImpl: noopFetch,
       originalPsbtBase64: original.toBase64(),
-      paymentAmountSats: PAYMENT_SATS,
       payjoinUri: handle.pjUri,
+      paymentAmountSats: PAYMENT_SATS,
       quickPollMs: 200
     })
 

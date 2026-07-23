@@ -13,6 +13,7 @@ if (!rustInstalled) {
   }
 }
 
+// eslint-disable-next-line import/first -- install must run before generated imports
 import * as satsigner_payjoin from './generated/satsigner_payjoin'
 
 let initialized = false

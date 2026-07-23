@@ -28,7 +28,7 @@ function usePayjoinSender({
   signPsbt
 }: UsePayjoinSenderParams) {
   const payjoinEnabled = useSettingsStore((s) => s.payjoinEnabled)
-  const networkName = useBlockchainStore((s) => s.network)
+  const networkName = useBlockchainStore((s) => s.selectedNetwork)
   const [negotiating, setNegotiating] = useState(false)
   const [lastResult, setLastResult] = useState<PayjoinSendResult | null>(null)
 

@@ -71,7 +71,11 @@ function SSLabelDetails({
               {hasTags
                 ? tags.map((tag) => (
                     <View key={tag} style={styles.tag}>
-                      <SSText size="xs" uppercase={false} style={styles.tagText}>
+                      <SSText
+                        size="xs"
+                        uppercase={false}
+                        style={styles.tagText}
+                      >
                         {tag}
                       </SSText>
                     </View>

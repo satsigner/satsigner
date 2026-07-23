@@ -31,8 +31,8 @@ import {
 } from '@/constants/payjoin'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNow } from '@/hooks/useNow'
-import SSMainLayout from '@/layouts/SSMainLayout'
 import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -265,8 +265,7 @@ export default function SignTransaction() {
   // after the proposal is signed (waiting → signed), and again right after
   // setBroadcasted(true) before navigate, was spiking RSS into LMK.
   // Keep the chart off for the whole payjoin session on this screen.
-  const suppressTransactionChart =
-    waitingForReceiver || !!payjoinStatus
+  const suppressTransactionChart = waitingForReceiver || !!payjoinStatus
 
   const transaction = suppressTransactionChart
     ? null
@@ -420,7 +419,7 @@ export default function SignTransaction() {
       parsePayjoinUri(payjoinUri).params?.pj ||
       PAYJOIN_DIRECTORY_URL
     return raw.split('#')[0] || PAYJOIN_DIRECTORY_URL
-  }, [id, payjoinUri, waitingForReceiver, payjoinStatus])
+  }, [id, payjoinUri])
 
   function buildCallbacks() {
     if (!wallet || !account) {
@@ -526,7 +525,7 @@ export default function SignTransaction() {
     }
   }
 
-  async function skipPayjoinAndSign() {
+  function skipPayjoinAndSign() {
     const session = id
       ? usePayjoinSessionsStore.getState().getActiveSenderSession(id)
       : undefined

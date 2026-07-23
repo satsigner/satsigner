@@ -6,14 +6,10 @@ const defaultConfig = getDefaultConfig(__dirname)
 // Maestro harness + results — not JS; watching them can crash Metro if the
 // tree flips between directory and symlink.
 const maestroBlock = new RegExp(
-  `${path
-    .resolve(__dirname, 'maestro')
-    .replace(/[/\\]/g, '[/\\\\]')}[/\\\\].*`
+  `${path.resolve(__dirname, 'maestro').replace(/[/\\]/g, '[/\\\\]')}[/\\\\].*`
 )
 const dotMaestroBlock = new RegExp(
-  `${path
-    .resolve(__dirname, '.maestro')
-    .replace(/[/\\]/g, '[/\\\\]')}[/\\\\].*`
+  `${path.resolve(__dirname, '.maestro').replace(/[/\\]/g, '[/\\\\]')}[/\\\\].*`
 )
 const priorBlock = defaultConfig.resolver.blockList
 defaultConfig.resolver.blockList = priorBlock

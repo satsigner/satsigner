@@ -4,10 +4,10 @@ import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
 
 describe('buildPayjoinWalletCallbacks listCandidateOutpoints', () => {
   it('derives scriptHex from addressTo when utxo.script is missing', () => {
-    const address = bitcoinjs.payments.p2wpkh({
+    const { address } = bitcoinjs.payments.p2wpkh({
       hash: Buffer.alloc(20, 0x44),
       network: bitcoinjs.networks.testnet
-    }).address
+    })
     if (!address) {
       throw new Error('expected testnet address')
     }

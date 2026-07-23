@@ -19,10 +19,9 @@ function withReceiverSessionBip21Params(
   const nextLabel = extras.label
   const amountMatches =
     (session.amountSats ?? undefined) === (nextAmount ?? undefined)
-  const labelMatches =
-    (session.label ?? undefined) === (nextLabel ?? undefined)
+  const labelMatches = (session.label ?? undefined) === (nextLabel ?? undefined)
 
-  let uri = session.uri
+  let { uri } = session
   try {
     uri = appendParamsToPayjoinUri(session.uri, {
       amountSats: nextAmount,
@@ -41,8 +40,8 @@ function withReceiverSessionBip21Params(
     ...session,
     amountSats: nextAmount,
     label: nextLabel,
-    uri,
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
+    uri
   }
 }
 

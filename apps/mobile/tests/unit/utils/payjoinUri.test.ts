@@ -110,7 +110,9 @@ describe('payjoinUri', () => {
       const withAmount = appendParamsToPayjoinUri(pdkUri, {
         amountSats: 10_000
       })
-      expect(withAmount.toLowerCase()).toContain('pj=https://payjo.in/mb%23rk1-mock')
+      expect(withAmount.toLowerCase()).toContain(
+        'pj=https://payjo.in/mb%23rk1-mock'
+      )
       expect(withAmount).toContain('amount=0.0001')
       const parsed = parsePayjoinUri(withAmount)
       expect(parsed.isValid).toBe(true)

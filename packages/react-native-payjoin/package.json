@@ -6,10 +6,12 @@
   "homepage": "https://github.com/satsigner/satsigner",
   "license": "MIT",
   "author": "SatSigner",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/satsigner/satsigner.git",
+    "directory": "packages/react-native-payjoin"
+  },
   "source": "./src/index.ts",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "react-native": "./src/index.ts",
   "files": [
     "src",
     "android",
@@ -22,6 +24,9 @@
     "ubrn.config.yaml",
     "scripts"
   ],
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "react-native": "./src/index.ts",
   "scripts": {
     "ubrn:ios": "ubrn build ios --release --config ubrn.config.yaml --and-generate && node scripts/patch-index.js",
     "ubrn:android": "ubrn build android --release --config ubrn.config.yaml --and-generate && node scripts/codegen-android.js && node scripts/patch-index.js",
@@ -31,11 +36,6 @@
   },
   "dependencies": {
     "uniffi-bindgen-react-native": "0.31.0-2"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/satsigner/satsigner.git",
-    "directory": "packages/react-native-payjoin"
   },
   "peerDependencies": {
     "react": "*",

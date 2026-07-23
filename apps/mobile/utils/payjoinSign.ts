@@ -4,6 +4,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { utxoScriptHex } from '@/utils/payjoinWallet'
 
 function txidFromPsbtInputHash(hash: Buffer | Uint8Array): string {
+  // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
   return Buffer.from(hash).reverse().toString('hex')
 }
 

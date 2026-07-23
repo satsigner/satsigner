@@ -106,8 +106,7 @@ function SSTransactionCard({
       ? formatPercentualChange(btcPrice, oldPrice)
       : ''
 
-  const balanceDelta =
-    (transaction.received || 0) - (transaction.sent || 0)
+  const balanceDelta = (transaction.received || 0) - (transaction.sent || 0)
   const previousBalance =
     walletBalance !== undefined ? walletBalance - balanceDelta : undefined
   const balancePercentChange =

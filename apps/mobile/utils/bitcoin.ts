@@ -318,4 +318,4 @@ export function getMultisigScriptTypeFromScriptVersion(
   }
 }
 
-export { bip21decode, bitcoinjsNetwork, isBip21, isBitcoinAddress }
+export { bip21decode, isBip21, isBitcoinAddress }

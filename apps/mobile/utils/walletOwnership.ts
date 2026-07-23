@@ -235,8 +235,7 @@ function annotateTransactionsWithWalletOwnership(
     if (mixedOwnership) {
       const sent = ownInputSum
       const received = returned
-      const type: Transaction['type'] =
-        received >= sent ? 'receive' : 'send'
+      const type: Transaction['type'] = received >= sent ? 'receive' : 'send'
       return {
         ...transaction,
         received,

@@ -1876,8 +1876,7 @@ export default function IOPreview() {
                   {t('transaction.build.payjoin.data.amount')}
                 </SSText>
                 <SSText>
-                  {formatNumber(payjoinInvoice.amountSats)}{' '}
-                  {t('bitcoin.sats')}
+                  {formatNumber(payjoinInvoice.amountSats)} {t('bitcoin.sats')}
                 </SSText>
               </SSVStack>
             ) : null}
@@ -1923,9 +1922,7 @@ export default function IOPreview() {
                   {t('transaction.build.payjoin.data.pjos')}
                 </SSText>
                 <SSText>
-                  {payjoinInvoice.pjos === 1
-                    ? t('common.yes')
-                    : t('common.no')}
+                  {payjoinInvoice.pjos === 1 ? t('common.yes') : t('common.no')}
                 </SSText>
               </SSVStack>
             ) : null}

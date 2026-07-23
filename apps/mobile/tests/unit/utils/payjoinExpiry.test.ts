@@ -38,7 +38,10 @@ describe('payjoinExpiry', () => {
     buf.writeUInt32LE(unixSeconds)
     const words = bech32.toWords([...buf])
     const charset = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
-    const ex = `EX1${words.map((w) => charset[w]).join('').toUpperCase()}`
+    const ex = `EX1${words
+      .map((w) => charset[w])
+      .join('')
+      .toUpperCase()}`
     const pj = `https://payjo.in/ABC123#${ex}-OH1MOCK-RK1MOCK`
     expect(parsePayjoinExpiresAtMs(pj)).toBe(unixSeconds * 1000)
     expect(

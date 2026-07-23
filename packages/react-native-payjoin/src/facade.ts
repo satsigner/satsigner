@@ -2,6 +2,7 @@
  * App-facing facade over UniFFI-generated PDK bindings.
  * Keeps async signatures and `{ kind }` process results used by `@/api/payjoin`.
  */
+/* eslint-disable require-await -- sync UniFFI wrapped in async Promise API */
 import {
   ProcessResult as NativeProcessResult,
   ProcessResult_Tags,

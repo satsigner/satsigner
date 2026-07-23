@@ -51,9 +51,9 @@ describe('payjoin scaffold (phase 0)', () => {
 
     const resumed = await tryResumeReceiverSession(broken)
     expect(resumed).toBeNull()
-    expect(
-      usePayjoinSessionsStore.getState().getSession(session.id)?.id
-    ).toBe(session.id)
+    expect(usePayjoinSessionsStore.getState().getSession(session.id)?.id).toBe(
+      session.id
+    )
   })
 
   it('removes the JS session when nativeState is missing', async () => {

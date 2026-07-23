@@ -272,17 +272,17 @@ function appendParamsToPayjoinUri(
     )
   }
 
-  const amountSats = Object.prototype.hasOwnProperty.call(extras, 'amountSats')
+  const amountSats = Object.hasOwn(extras, 'amountSats')
     ? extras.amountSats
     : parsed.params.amountBtc !== undefined
       ? Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
       : undefined
 
-  const label = Object.prototype.hasOwnProperty.call(extras, 'label')
+  const label = Object.hasOwn(extras, 'label')
     ? extras.label
     : parsed.params.label
 
-  const message = Object.prototype.hasOwnProperty.call(extras, 'message')
+  const message = Object.hasOwn(extras, 'message')
     ? extras.message
     : parsed.params.message
 

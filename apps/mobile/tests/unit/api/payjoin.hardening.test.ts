@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-conditional-expect, jest/max-expects -- soft assertions when payjoin relay/fallback varies */
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { __resetPayjoinMock } from 'react-native-payjoin'
 
@@ -22,7 +23,7 @@ function buildPsbt(params: {
       index: input.vout,
       sequence: 0xfffffffd,
       witnessUtxo: {
-        script: Buffer.from('0014' + '11'.repeat(20), 'hex'),
+        script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
         value: 100_000
       }
     })
@@ -36,8 +37,8 @@ function buildPsbt(params: {
 const TXID_A = 'aa'.repeat(32)
 const TXID_B = 'bb'.repeat(32)
 const TXID_C = 'cc'.repeat(32)
-const paymentScript = Buffer.from('0014' + '22'.repeat(20), 'hex')
-const changeScript = Buffer.from('0014' + '33'.repeat(20), 'hex')
+const paymentScript = Buffer.from(`0014${'22'.repeat(20)}`, 'hex')
+const changeScript = Buffer.from(`0014${'33'.repeat(20)}`, 'hex')
 
 describe('payjoin hardening (phase 7)', () => {
   beforeEach(() => {
@@ -114,7 +115,7 @@ describe('payjoin hardening (phase 7)', () => {
       isScriptOwned: () => false,
       listCandidateOutpoints: () => [
         {
-          scriptHex: '0014' + '44'.repeat(20),
+          scriptHex: `0014${'44'.repeat(20)}`,
           txid: TXID_B,
           value: 100_000,
           vout: 1
@@ -126,11 +127,12 @@ describe('payjoin hardening (phase 7)', () => {
 
     const finalized = await finalizeReceiverPayjoin({
       callbacks,
-      fetchImpl: async () => ({
-        body: '',
-        bytes: new Uint8Array(),
-        status: 200
-      }),
+      fetchImpl: () =>
+        Promise.resolve({
+          body: '',
+          bytes: new Uint8Array(),
+          status: 200
+        }),
       session: {
         ...session,
         originalPsbtBase64: original.toBase64(),
@@ -161,7 +163,7 @@ describe('payjoin hardening (phase 7)', () => {
           isScriptOwned: () => false,
           listCandidateOutpoints: () => [
             {
-              scriptHex: '0014' + '44'.repeat(20),
+              scriptHex: `0014${'44'.repeat(20)}`,
               txid: TXID_B,
               value: 100_000,
               vout: 1
@@ -170,11 +172,12 @@ describe('payjoin hardening (phase 7)', () => {
           markInputSeen: () => undefined,
           signPsbt: (psbt) => psbt
         },
-        fetchImpl: async () => ({
-          body: 'relay down',
-          bytes: new Uint8Array(),
-          status: 502
-        }),
+        fetchImpl: () =>
+          Promise.resolve({
+            body: 'relay down',
+            bytes: new Uint8Array(),
+            status: 502
+          }),
         session: {
           ...session,
           originalPsbtBase64: original.toBase64(),
@@ -189,9 +192,8 @@ describe('payjoin hardening (phase 7)', () => {
       inputs: [{ txid: TXID_A, vout: 0 }],
       outputs: [{ script: changeScript, value: 90_000 }]
     })
-    const fetchImpl: FetchLike = async () => {
-      throw new Error('network should not be used')
-    }
+    const fetchImpl: FetchLike = () =>
+      Promise.reject(new Error('network should not be used'))
 
     const result = await sendPayjoin({
       callbacks: {

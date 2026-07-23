@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-conditional-expect, jest/max-expects -- soft assertions when payjoin relay/fallback varies */
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { __resetPayjoinMock } from 'react-native-payjoin'
 
@@ -19,7 +20,7 @@ function buildPsbt(params: {
       index: input.vout,
       sequence: 0xfffffffd,
       witnessUtxo: {
-        script: Buffer.from('0014' + '11'.repeat(20), 'hex'),
+        script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
         value: 100_000
       }
     })
@@ -32,8 +33,8 @@ function buildPsbt(params: {
 
 const TXID_A = 'aa'.repeat(32)
 const TXID_B = 'bb'.repeat(32)
-const paymentScript = Buffer.from('0014' + '22'.repeat(20), 'hex')
-const changeScript = Buffer.from('0014' + '33'.repeat(20), 'hex')
+const paymentScript = Buffer.from(`0014${'22'.repeat(20)}`, 'hex')
+const changeScript = Buffer.from(`0014${'33'.repeat(20)}`, 'hex')
 
 const original = buildPsbt({
   inputs: [{ txid: TXID_A, vout: 0 }],
@@ -59,7 +60,7 @@ const callbacks: PayjoinWalletCallbacks = {
   isScriptOwned: (scriptHex) => scriptHex === changeScript.toString('hex'),
   listCandidateOutpoints: () => [
     {
-      scriptHex: Buffer.from('0014' + '44'.repeat(20), 'hex').toString('hex'),
+      scriptHex: Buffer.from(`0014${'44'.repeat(20)}`, 'hex').toString('hex'),
       txid: TXID_B,
       value: 100_000,
       vout: 1
@@ -75,11 +76,12 @@ describe('payjoin BIP78 send (phase 2)', () => {
   })
 
   it('posts original PSBT and returns proposal', async () => {
-    const fetchImpl: FetchLike = async () => ({
-      body: proposal.toBase64(),
-      bytes: new Uint8Array(Buffer.from(proposal.toBase64(), 'utf8')),
-      status: 200
-    })
+    const fetchImpl: FetchLike = () =>
+      Promise.resolve({
+        body: proposal.toBase64(),
+        bytes: new Uint8Array(Buffer.from(proposal.toBase64(), 'utf8')),
+        status: 200
+      })
 
     const result = await postBip78OriginalPsbt({
       endpoint: 'https://example.com/pj',
@@ -94,14 +96,15 @@ describe('payjoin BIP78 send (phase 2)', () => {
   })
 
   it('maps BIP78 unavailable JSON error', async () => {
-    const fetchImpl: FetchLike = async () => ({
-      body: JSON.stringify({
-        errorCode: 'unavailable',
-        message: 'try later'
-      }),
-      bytes: new Uint8Array(),
-      status: 503
-    })
+    const fetchImpl: FetchLike = () =>
+      Promise.resolve({
+        body: JSON.stringify({
+          errorCode: 'unavailable',
+          message: 'try later'
+        }),
+        bytes: new Uint8Array(),
+        status: 503
+      })
 
     const result = await postBip78OriginalPsbt({
       endpoint: 'https://example.com/pj',
@@ -120,11 +123,12 @@ describe('payjoin BIP78 send (phase 2)', () => {
       errorCode: 'original-psbt-rejected',
       message: 'bad'
     })
-    const fetchImpl: FetchLike = async () => ({
-      body,
-      bytes: new Uint8Array(Buffer.from(body, 'utf8')),
-      status: 400
-    })
+    const fetchImpl: FetchLike = () =>
+      Promise.resolve({
+        body,
+        bytes: new Uint8Array(Buffer.from(body, 'utf8')),
+        status: 400
+      })
 
     const result = await sendPayjoin({
       callbacks,
@@ -147,11 +151,12 @@ describe('payjoin BIP78 send (phase 2)', () => {
   })
 
   it('returns signed payjoin PSBT on success', async () => {
-    const fetchImpl: FetchLike = async () => ({
-      body: proposal.toBase64(),
-      bytes: new Uint8Array(Buffer.from(proposal.toBase64(), 'utf8')),
-      status: 200
-    })
+    const fetchImpl: FetchLike = () =>
+      Promise.resolve({
+        body: proposal.toBase64(),
+        bytes: new Uint8Array(Buffer.from(proposal.toBase64(), 'utf8')),
+        status: 200
+      })
 
     const result = await sendPayjoin({
       callbacks,
@@ -176,9 +181,7 @@ describe('payjoin BIP78 send (phase 2)', () => {
         ...callbacks,
         isScriptOwned: () => true
       },
-      fetchImpl: async () => {
-        throw new Error('should not fetch')
-      },
+      fetchImpl: () => Promise.reject(new Error('should not fetch')),
       originalPsbtBase64: original.toBase64(),
       outputScriptsHex: [changeScript.toString('hex')],
       payjoinUri:

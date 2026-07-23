@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-conditional-expect, jest/max-expects -- soft assertions when payjoin relay/fallback varies */
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import {
@@ -17,7 +18,7 @@ function buildPsbt(params: {
       index: input.vout,
       sequence: 0xfffffffd,
       witnessUtxo: {
-        script: Buffer.from('0014' + '11'.repeat(20), 'hex'),
+        script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
         value: 100_000
       }
     })
@@ -31,9 +32,9 @@ function buildPsbt(params: {
 const TXID_A = 'aa'.repeat(32)
 const TXID_B = 'bb'.repeat(32)
 
-const paymentScript = Buffer.from('0014' + '22'.repeat(20), 'hex')
-const changeScript = Buffer.from('0014' + '33'.repeat(20), 'hex')
-const receiverInputScript = Buffer.from('0014' + '44'.repeat(20), 'hex')
+const paymentScript = Buffer.from(`0014${'22'.repeat(20)}`, 'hex')
+const changeScript = Buffer.from(`0014${'33'.repeat(20)}`, 'hex')
+const receiverInputScript = Buffer.from(`0014${'44'.repeat(20)}`, 'hex')
 
 describe('payjoinValidate', () => {
   describe('parseBip78ErrorBody', () => {
@@ -109,7 +110,8 @@ describe('payjoinValidate', () => {
     it('accepts a valid pjos=0 proposal', () => {
       const result = validatePayjoinProposal({
         disableOutputSubstitution: true,
-        isScriptOwned: (scriptHex) => scriptHex === changeScript.toString('hex'),
+        isScriptOwned: (scriptHex) =>
+          scriptHex === changeScript.toString('hex'),
         originalPsbtBase64: original.toBase64(),
         paymentAmountSats: 50_000,
         proposalPsbtBase64: proposalPjos0.toBase64()
@@ -154,7 +156,7 @@ describe('payjoinValidate', () => {
         ],
         outputs: [
           {
-            script: Buffer.from('0014' + '55'.repeat(20), 'hex'),
+            script: Buffer.from(`0014${'55'.repeat(20)}`, 'hex'),
             value: 50_000
           },
           { script: changeScript, value: 148_500 }
@@ -176,7 +178,8 @@ describe('payjoinValidate', () => {
     it('allows extra outputs when substitution enabled', () => {
       const result = validatePayjoinProposal({
         disableOutputSubstitution: false,
-        isScriptOwned: (scriptHex) => scriptHex === changeScript.toString('hex'),
+        isScriptOwned: (scriptHex) =>
+          scriptHex === changeScript.toString('hex'),
         originalPsbtBase64: original.toBase64(),
         paymentAmountSats: 50_000,
         proposalPsbtBase64: proposal.toBase64()

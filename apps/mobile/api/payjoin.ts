@@ -8,7 +8,6 @@ import {
   receiverExtractRequest,
   receiverProcessResponse,
   resumeReceiverSession,
-  resumeSenderSession,
   senderExtractRequest,
   senderProcessResponse
 } from 'react-native-payjoin'
@@ -29,7 +28,6 @@ import {
   type PayjoinSession,
   type PayjoinWalletCallbacks
 } from '@/types/payjoin'
-import { getShuffledOhttpRelays } from '@/utils/payjoinRelays'
 import {
   compactError,
   mailboxFromEndpoint,
@@ -38,6 +36,7 @@ import {
   payjoinWarn,
   urlHost
 } from '@/utils/payjoinLog'
+import { getShuffledOhttpRelays } from '@/utils/payjoinRelays'
 import {
   appendParamsToPayjoinUri,
   buildPayjoinUri,
@@ -179,8 +178,7 @@ async function defaultFetch(
     return { body, bytes, status: response.status }
   } catch (error) {
     timed.clear()
-    const timedOut =
-      timed.signal.aborted && init?.signal?.aborted !== true
+    const timedOut = timed.signal.aborted && init?.signal?.aborted !== true
     if (timedOut) {
       payjoinWarn('http js timeout', {
         bodyLen,
@@ -189,7 +187,8 @@ async function defaultFetch(
         ms: Date.now() - startedAt
       })
       throw new Error(
-        `payjoin fetch timed out after ${PAYJOIN_FETCH_TIMEOUT_MS}ms`
+        `payjoin fetch timed out after ${PAYJOIN_FETCH_TIMEOUT_MS}ms`,
+        { cause: error }
       )
     }
     if (
@@ -231,7 +230,7 @@ async function defaultFetch(
       throw new Error('The operation was aborted')
     }
     if (typeof native.status !== 'number') {
-      throw new Error('native HTTP returned an invalid response')
+      throw new TypeError('native HTTP returned an invalid response')
     }
     payjoinLog('http native', {
       bodyLen: bodyBytes.byteLength,
@@ -256,7 +255,9 @@ async function defaultFetch(
       method,
       ms: Date.now() - nativeStartedAt
     })
-    throw new Error(`native HTTP/1.1 fallback failed: ${message}`)
+    throw new Error(`native HTTP/1.1 fallback failed: ${message}`, {
+      cause: nativeError
+    })
   }
 }
 
@@ -568,11 +569,13 @@ async function startBip77Send(params: {
     return existing
   }
 
-  const pending = startBip77SendOnce(params, mailbox).finally(() => {
-    bip77SendInFlight.delete(mailbox)
-  })
+  const pending = startBip77SendOnce(params, mailbox)
   bip77SendInFlight.set(mailbox, pending)
-  return pending
+  try {
+    return await pending
+  } finally {
+    bip77SendInFlight.delete(mailbox)
+  }
 }
 
 async function startBip77SendOnce(
@@ -678,7 +681,8 @@ async function startBip77SendOnce(
         let quickPolls = 0
         while (Date.now() < quickDeadline) {
           quickPolls += 1
-          const { request, state: nextState } = await senderExtractRequest(state)
+          const { request, state: nextState } =
+            await senderExtractRequest(state)
           state = nextState
           const res = await fetchImpl(request.url, {
             body: request.body,
@@ -797,11 +801,12 @@ async function pollBip77Send(params: {
   }
 
   function fallbackDeadSession(reason: string): Bip77AsyncSendResult {
-    usePayjoinSessionsStore.getState().updateSessionStatus(
-      params.session.id,
-      'fallback',
-      { error: reason, nativeState: undefined }
-    )
+    usePayjoinSessionsStore
+      .getState()
+      .updateSessionStatus(params.session.id, 'fallback', {
+        error: reason,
+        nativeState: undefined
+      })
     payjoinWarn('sender resume unrecoverable — falling back', {
       mailbox,
       reason: compactError(reason),
@@ -849,11 +854,12 @@ async function pollBip77Send(params: {
             'v2'
           )
           if (result.ok && result.usedPayjoin) {
-            usePayjoinSessionsStore.getState().updateSessionStatus(
-              params.session.id,
-              'completed',
-              { nativeState: undefined, payjoinPsbtBase64: result.psbtBase64 }
-            )
+            usePayjoinSessionsStore
+              .getState()
+              .updateSessionStatus(params.session.id, 'completed', {
+                nativeState: undefined,
+                payjoinPsbtBase64: result.psbtBase64
+              })
             payjoinLog('sender resume got proposal', {
               mailbox,
               ms: Date.now() - startedAt,
@@ -936,8 +942,8 @@ async function sendBip77(params: {
     disableOutputSubstitution: params.disableOutputSubstitution,
     fetchImpl: params.fetchImpl,
     originalPsbtBase64: params.originalPsbtBase64,
-    paymentAmountSats: params.paymentAmountSats,
     payjoinUri: params.payjoinUri,
+    paymentAmountSats: params.paymentAmountSats,
     quickPollMs: Math.min(params.timeoutMs, 5_000)
   })
 
@@ -1249,7 +1255,10 @@ async function pollReceiverSession(params: {
     const updated = {
       ...params.session,
       // Keep the mailbox alive in the app while the user is still polling.
-      expiresAt: Math.max(params.session.expiresAt, now + PAYJOIN_SESSION_TTL_MS),
+      expiresAt: Math.max(
+        params.session.expiresAt,
+        now + PAYJOIN_SESSION_TTL_MS
+      ),
       nativeState: processed.state,
       status: 'waiting' as const,
       updatedAt: now
