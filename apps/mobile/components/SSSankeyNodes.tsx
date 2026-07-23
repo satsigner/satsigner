@@ -27,6 +27,7 @@ import {
   SANKEY_BLOCK_TX_STRIP_MAX_PX,
   type Node
 } from '@/types/ui/sankey'
+import { formatFeeRateSatPerVb } from '@/utils/format'
 import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
@@ -504,7 +505,7 @@ function NodeText({
           color: Skia.Color(feeRateColor),
           fontSize: XS_FONT_SIZE
         })
-        .addText(`${ioData?.feeRate}`)
+        .addText(`${formatFeeRateSatPerVb(ioData?.feeRate ?? 0)}`)
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(satVbLabelColor),

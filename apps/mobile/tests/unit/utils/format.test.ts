@@ -1,6 +1,7 @@
 import {
   formatAddress,
   formatDate,
+  formatFeeRateSatPerVb,
   formatLargeNumber,
   formatNostrCardDate,
   formatNumber,
@@ -43,6 +44,20 @@ describe('format utils', () => {
 
     it('should return the correct localized number with decimals', () => {
       expect(formatNumber(0.795, 2)).toBe('0.80')
+    })
+  })
+
+  describe('formatFeeRateSatPerVb', () => {
+    it('shows two decimals for sub-1 sat/vB rates', () => {
+      expect(formatFeeRateSatPerVb(344 / 888)).toBe('0.39')
+    })
+
+    it('shows integers for whole rates', () => {
+      expect(formatFeeRateSatPerVb(12)).toBe('12')
+    })
+
+    it('shows one decimal for fractional rates under 10', () => {
+      expect(formatFeeRateSatPerVb(1.5)).toBe('1.5')
     })
   })
 

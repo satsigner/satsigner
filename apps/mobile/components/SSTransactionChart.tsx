@@ -537,7 +537,7 @@ function SSTransactionChartCanvas({
         id: String(inputs.length + outputs.length + 2),
         ioData: {
           feePercentage: Math.round(feePercentage * 10000) / 100,
-          feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
+          feeRate,
           ...fiatFields(minerFee),
           higherFee,
           text: t('transaction.build.minerFee'),
