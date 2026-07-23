@@ -791,6 +791,25 @@ async function pollBip77Send(params: {
   const startedAt = Date.now()
   let polls = 0
 
+  function isDeadNativeSession(message: string): boolean {
+    // nativeState is only an in-memory id — process death / OOM loses SENDERS.
+    return /sender session not found/i.test(message)
+  }
+
+  function fallbackDeadSession(reason: string): Bip77AsyncSendResult {
+    usePayjoinSessionsStore.getState().updateSessionStatus(
+      params.session.id,
+      'fallback',
+      { error: reason, nativeState: undefined }
+    )
+    payjoinWarn('sender resume unrecoverable — falling back', {
+      mailbox,
+      reason: compactError(reason),
+      sessionId: params.session.id
+    })
+    return { kind: 'fallback', originalPsbtBase64, reason }
+  }
+
   payjoinLog('sender resume poll', {
     mailbox,
     sessionId: params.session.id,
@@ -820,35 +839,53 @@ async function pollBip77Send(params: {
         status: res.status
       })
       if (processed.kind === 'proposal') {
-        const result = await finalizeSenderProposal(
-          processed.psbtBase64,
-          originalPsbtBase64,
-          params.paymentAmountSats,
-          params.disableOutputSubstitution,
-          params.callbacks,
-          'v2'
-        )
-        if (result.ok && result.usedPayjoin) {
-          usePayjoinSessionsStore.getState().updateSessionStatus(
-            params.session.id,
-            'completed',
-            { nativeState: undefined, payjoinPsbtBase64: result.psbtBase64 }
+        try {
+          const result = await finalizeSenderProposal(
+            processed.psbtBase64,
+            originalPsbtBase64,
+            params.paymentAmountSats,
+            params.disableOutputSubstitution,
+            params.callbacks,
+            'v2'
           )
-          payjoinLog('sender resume got proposal', {
+          if (result.ok && result.usedPayjoin) {
+            usePayjoinSessionsStore.getState().updateSessionStatus(
+              params.session.id,
+              'completed',
+              { nativeState: undefined, payjoinPsbtBase64: result.psbtBase64 }
+            )
+            payjoinLog('sender resume got proposal', {
+              mailbox,
+              ms: Date.now() - startedAt,
+              polls
+            })
+            return { kind: 'proposal', result }
+          }
+          return {
+            kind: 'fallback',
+            originalPsbtBase64,
+            reason: result.ok ? result.reason : result.error
+          }
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'finalize proposal failed'
+          payjoinWarn('sender finalize threw — falling back', {
+            error: compactError(message),
             mailbox,
-            ms: Date.now() - startedAt,
             polls
           })
-          return { kind: 'proposal', result }
-        }
-        return {
-          kind: 'fallback',
-          originalPsbtBase64,
-          reason: result.ok ? result.reason : result.error
+          return {
+            kind: 'fallback',
+            originalPsbtBase64,
+            reason: message
+          }
         }
       }
       if (processed.kind === 'error') {
         lastError = processed.message
+        if (isDeadNativeSession(lastError)) {
+          return fallbackDeadSession(lastError)
+        }
         break
       }
       state = processed.state
@@ -861,6 +898,9 @@ async function pollBip77Send(params: {
       mailbox,
       polls
     })
+    if (isDeadNativeSession(lastError)) {
+      return fallbackDeadSession(lastError)
+    }
   }
 
   const updated: PayjoinSession = {
@@ -990,9 +1030,11 @@ function clearReceiverSessionsForAccount(accountId: string) {
 
 /**
  * Resume a persisted receiver session only if Rust still has it in memory.
- * After Metro reload / process death, nativeState is stale — callers recreate.
- * Always removes the JS session when resume is impossible so we do not keep
- * polling a dead mailbox id.
+ *
+ * - Missing nativeState: remove the JS session so Receive can mint cleanly.
+ * - Native map miss (Metro reload / process death): keep the JS session.
+ *   Deleting here used to mint a new pj= every time the user reopened Receive
+ *   to check status, orphaning any sender already waiting on the old mailbox.
  */
 async function tryResumeReceiverSession(
   session: PayjoinSession
@@ -1005,7 +1047,6 @@ async function tryResumeReceiverSession(
     await resumeReceiverSession(session.nativeState)
     return session
   } catch {
-    usePayjoinSessionsStore.getState().removeSession(session.id)
     return null
   }
 }
@@ -1301,11 +1342,11 @@ async function finalizeReceiverPayjoin(params: {
     ''
   )
   const signed = await params.callbacks.signPsbt(prepared.psbtBase64)
-  const { request, state, psbtBase64 } = await receiverContributeAndFinalize(
-    prepared.state,
-    chosen,
-    signed
-  )
+  const {
+    request,
+    state: finalizedState,
+    psbtBase64
+  } = await receiverContributeAndFinalize(prepared.state, chosen, signed)
 
   // Never mark complete until the payjoin proposal is posted back — otherwise
   // the receive UI celebrates while the sender keeps "waiting for receiver".
@@ -1313,7 +1354,7 @@ async function finalizeReceiverPayjoin(params: {
     const updated = {
       ...params.session,
       error: 'missing directory post after finalize',
-      nativeState: state,
+      nativeState: finalizedState,
       payjoinPsbtBase64: psbtBase64,
       proposalPsbtBase64: psbtBase64,
       status: 'error' as const,
@@ -1335,7 +1376,9 @@ async function finalizeReceiverPayjoin(params: {
   const updated: PayjoinSession = {
     ...params.session,
     error: undefined,
-    nativeState: state,
+    // Drop native handle after the proposal is posted — keeps MMKV small and
+    // avoids retaining the receiver entry once the sender can poll it.
+    nativeState: undefined,
     payjoinPsbtBase64: psbtBase64,
     proposalPsbtBase64: psbtBase64,
     status: 'completed',

@@ -11,6 +11,11 @@ function outpointKey(txid: string, vout: number): string {
   return `${txid}:${vout}`
 }
 
+/** Hermes may lack TypedArray.toReversed — use Buffer.reverse() instead. */
+function txidFromPsbtInputHash(hash: Buffer | Uint8Array): string {
+  return Buffer.from(hash).reverse().toString('hex')
+}
+
 /**
  * Minimal BIP78 proposal sanity checks when the native PDK validator is
  * unavailable. Full validation belongs in rust-payjoin; this guards the
@@ -38,14 +43,14 @@ function validatePayjoinProposal(params: {
 
   const originalOutpoints = new Set(
     original.txInputs.map((input) => {
-      const txid = Buffer.from(input.hash.toReversed()).toString('hex')
+      const txid = txidFromPsbtInputHash(input.hash)
       return outpointKey(txid, input.index)
     })
   )
 
   for (const key of originalOutpoints) {
     const found = proposal.txInputs.some((input) => {
-      const txid = Buffer.from(input.hash.toReversed()).toString('hex')
+      const txid = txidFromPsbtInputHash(input.hash)
       return outpointKey(txid, input.index) === key
     })
     if (!found) {
@@ -59,7 +64,7 @@ function validatePayjoinProposal(params: {
   }
 
   for (const input of proposal.txInputs) {
-    const txid = Buffer.from(input.hash.toReversed()).toString('hex')
+    const txid = txidFromPsbtInputHash(input.hash)
     const key = outpointKey(txid, input.index)
     if (originalOutpoints.has(key)) {
       continue
