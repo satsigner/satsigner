@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
 import { isNativeAvailable } from 'react-native-payjoin'
 
@@ -8,8 +8,7 @@ import {
   finalizeReceiverPayjoin,
   isSenderPostInFlight,
   pollReceiverSession,
-  resumePersistedReceiverSession,
-  tryResumeReceiverSession
+  resumePersistedReceiverSession
 } from '@/api/payjoin'
 import { PAYJOIN_MIN_CONTRIBUTE_SATS } from '@/constants/payjoin'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -25,6 +24,11 @@ import {
   payjoinLog,
   payjoinWarn
 } from '@/utils/payjoinLog'
+import {
+  receiverPollEffectKey,
+  resolveReceiverPollMode
+} from '@/utils/payjoinReceiverPoll'
+import { resolveReceiverSessionOnStart } from '@/utils/payjoinReceiverStart'
 import { withReceiverSessionBip21Params } from '@/utils/payjoinSessionParams'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
 import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
@@ -36,17 +40,16 @@ type UsePayjoinReceiverParams = {
   amountSats?: number
   label?: string
   utxos: Utxo[]
-  /** Sign callback from BDK wallet when available. */
   signPsbt?: (psbtBase64: string) => Promise<string> | string
 }
 
 const RECEIVER_POLL_INTERVAL_MS = 8_000
+const START_SESSION_LOCK_MS = 45_000
 
 function walletCanContributeToPayjoin(utxos: Utxo[]): boolean {
   return utxos.some((utxo) => utxo.value > PAYJOIN_MIN_CONTRIBUTE_SATS)
 }
 
-/** Directory/PDK mailbox TTL elapsed — old pj= is dead; a new QR is required. */
 function isMailboxExpiredError(message: string): boolean {
   const lower = message.toLowerCase()
   return (
@@ -55,10 +58,6 @@ function isMailboxExpiredError(message: string): boolean {
   )
 }
 
-/**
- * Native in-memory handle is gone (Metro reload / process death). The mailbox
- * may still be valid — do NOT auto-mint a new QR (that orphans a waiting sender).
- */
 function isNativeSessionMissingError(message: string): boolean {
   const lower = message.toLowerCase()
   return (
@@ -69,14 +68,11 @@ function isNativeSessionMissingError(message: string): boolean {
   )
 }
 
-/** Only protocol mailbox expiry requires a new pj= URI. */
 function shouldReplaceMailbox(message: string): boolean {
   return isMailboxExpiredError(message)
 }
 
 function sessionNeedsFinalize(session: PayjoinSession): boolean {
-  // originalPsbt alone is enough — a soft-error / startSession resume used to
-  // downgrade proposal_received → waiting and then we polled forever.
   if (
     !!session.originalPsbtBase64 &&
     session.status !== 'completed' &&
@@ -102,9 +98,8 @@ function usePayjoinReceiver({
   signPsbt
 }: UsePayjoinReceiverParams) {
   const payjoinEnabled = useSettingsStore((s) => s.payjoinEnabled)
-  const networkName = useBlockchainStore((s) => s.network)
+  const networkName = useBlockchainStore((s) => s.selectedNetwork)
   const [session, setSession] = useState<PayjoinSession | null>(() => {
-    // Hydrate so the QR can show `pj=` immediately on remount / toggle-on.
     const existing = usePayjoinSessionsStore
       .getState()
       .getActiveReceiverSession(accountId)
@@ -115,20 +110,25 @@ function usePayjoinReceiver({
   })
   const [negotiating, setNegotiating] = useState(false)
   const [starting, setStarting] = useState(false)
-  // Do not mirror every poll in React state — setPolling(true/false) every few
-  // seconds re-rendered the whole receive screen while native HTTP blocked JS.
   const [lastPolledAt, setLastPolledAt] = useState<number | null>(null)
+
   const pollingRef = useRef(false)
   const startingRef = useRef(false)
   const startingStartedAtRef = useRef(0)
   const sessionRef = useRef<PayjoinSession | null>(session)
-  const amountSatsRef = useRef(amountSats)
-  const labelRef = useRef(label)
-  amountSatsRef.current = amountSats
-  labelRef.current = label
+  const paramsRef = useRef({
+    account,
+    accountId,
+    address,
+    amountSats,
+    canUsePayjoin: false,
+    label,
+    networkName,
+    signPsbt,
+    utxos
+  })
 
   const canContribute = walletCanContributeToPayjoin(utxos)
-
   const canUsePayjoin =
     payjoinEnabled &&
     isNativeAvailable() &&
@@ -136,52 +136,87 @@ function usePayjoinReceiver({
     account?.policyType === 'singlesig' &&
     canContribute
 
-  const buildCallbacks = useCallback(() => {
+  paramsRef.current = {
+    account,
+    accountId,
+    address,
+    amountSats,
+    canUsePayjoin,
+    label,
+    networkName,
+    signPsbt,
+    utxos
+  }
+
+  function setReceiverSession(next: PayjoinSession | null) {
+    sessionRef.current = next
+    setSession(next)
+  }
+
+  function persistSession(base: PayjoinSession) {
+    const synced = withReceiverSessionBip21Params(base, {
+      amountSats: paramsRef.current.amountSats,
+      label: paramsRef.current.label
+    })
+    usePayjoinSessionsStore.getState().upsertSession(synced)
+    sessionRef.current = synced
+    return synced
+  }
+
+  function buildCallbacks() {
+    const {
+      account: currentAccount,
+      address: currentAddress,
+      networkName: currentNetwork,
+      signPsbt: currentSignPsbt,
+      utxos: currentUtxos
+    } = paramsRef.current
     const store = usePayjoinSessionsStore.getState()
     return buildPayjoinWalletCallbacks({
       hasSeenInput: (outpoint) => store.hasSeenInput(outpoint),
       markInputSeen: (outpoint) => store.markInputSeen(outpoint),
-      network: bitcoinjsNetwork(networkName),
+      network: bitcoinjsNetwork(currentNetwork),
       ownedAddresses: [
-        ...(account?.addresses ?? []).map((a) => a.address),
-        address
+        ...(currentAccount?.addresses ?? []).map((entry) => entry.address),
+        currentAddress
       ].filter((value): value is string => !!value),
       signPsbt: (psbtBase64) => {
-        if (!signPsbt) {
+        if (!currentSignPsbt) {
           return psbtBase64
         }
-        return signPsbt(psbtBase64)
+        return currentSignPsbt(psbtBase64)
       },
-      utxos
+      utxos: currentUtxos
     })
-  }, [account?.addresses, address, networkName, signPsbt, utxos])
+  }
 
-  const createFreshSession = useCallback(async () => {
-    if (!address) {
+  async function createFreshSession() {
+    const { accountId: id, address: receiveAddress } = paramsRef.current
+    if (!receiveAddress) {
       return null
     }
-    clearReceiverSessionsForAccount(accountId)
+    clearReceiverSessionsForAccount(id)
     const created = await createReceivePayjoinSession({
-      accountId,
-      address,
-      amountSats: amountSatsRef.current,
-      label: labelRef.current
+      accountId: id,
+      address: receiveAddress,
+      amountSats: paramsRef.current.amountSats,
+      label: paramsRef.current.label
     })
-    setSession(created)
-    sessionRef.current = created
+    setReceiverSession(created)
     return created
-  }, [accountId, address])
+  }
 
-  const startSession = useCallback(async () => {
-    if (!canUsePayjoin || !address) {
-      // Keep the last URI on screen while Payjoin is toggled off — clearing here
-      // made the QR snap back to a plain address and look like the toggle failed.
+  async function startSession() {
+    const {
+      accountId: id,
+      address: receiveAddress,
+      canUsePayjoin: armed
+    } = paramsRef.current
+    if (!armed || !receiveAddress) {
       return
     }
     if (startingRef.current) {
-      // Fast refresh / thrown poll handlers can leave the lock stuck and the UI
-      // on "Starting Payjoin session…" forever.
-      if (Date.now() - startingStartedAtRef.current < 45_000) {
+      if (Date.now() - startingStartedAtRef.current < START_SESSION_LOCK_MS) {
         return
       }
       payjoinWarn('clearing stale startSession lock')
@@ -192,103 +227,16 @@ function usePayjoinReceiver({
     setStarting(true)
 
     try {
-      const amountSatsNow = amountSatsRef.current
-      const labelNow = labelRef.current
-      const store = usePayjoinSessionsStore.getState()
-
-      // Error/expired on the hydrated ref: soft-resume first so Metro reload
-      // does not mint a new pj= and orphan a sender already waiting.
-      // (getActiveReceiverSession excludes error/expired.)
-      const hydrated = sessionRef.current
-      if (
-        hydrated &&
-        hydrated.accountId === accountId &&
-        (hydrated.status === 'error' || hydrated.status === 'expired')
-      ) {
-        if (
-          hydrated.status === 'error' &&
-          hydrated.nativeState &&
-          hydrated.expiresAt > Date.now()
-        ) {
-          if (hydrated.originalPsbtBase64) {
-            const restored = withReceiverSessionBip21Params(
-              {
-                ...hydrated,
-                error: undefined,
-                status: 'proposal_received',
-                updatedAt: Date.now()
-              },
-              {
-                amountSats: amountSatsNow,
-                label: labelNow
-              }
-            )
-            store.upsertSession(restored)
-            setSession(restored)
-            sessionRef.current = restored
-            return
-          }
-          const softOk = await resumePersistedReceiverSession(hydrated)
-          if (softOk) {
-            const restored = withReceiverSessionBip21Params(
-              {
-                ...hydrated,
-                error: undefined,
-                status: 'waiting',
-                updatedAt: Date.now()
-              },
-              {
-                amountSats: amountSatsNow,
-                label: labelNow
-              }
-            )
-            store.upsertSession(restored)
-            setSession(restored)
-            sessionRef.current = restored
-            return
-          }
-        }
-        await createFreshSession()
+      const resolved = await resolveReceiverSessionOnStart({
+        accountId: id,
+        amountSats: paramsRef.current.amountSats,
+        hydrated: sessionRef.current,
+        label: paramsRef.current.label
+      })
+      if (resolved.kind === 'session') {
+        setReceiverSession(resolved.session)
         return
       }
-
-      const existing = store.getActiveReceiverSession(accountId)
-
-      // Prefer the active mailbox for this account — even if the unused-address
-      // picker drifted (e.g. "generate another" then leave/reopen from the card).
-      // Matching on address alone used to mint a new pj= on every status check.
-      if (existing && existing.expiresAt > Date.now()) {
-        const resumed = await tryResumeReceiverSession(existing)
-        if (resumed) {
-          const synced = withReceiverSessionBip21Params(resumed, {
-            amountSats: amountSatsNow,
-            label: labelNow
-          })
-          usePayjoinSessionsStore.getState().upsertSession(synced)
-          setSession(synced)
-          sessionRef.current = synced
-          return
-        }
-
-        // Native resume failed but JS session kept (mailbox may still be live).
-        // Soft-keep the same pj= — do not mint a replacement QR.
-        const kept = usePayjoinSessionsStore.getState().getSession(existing.id)
-        if (kept && kept.expiresAt > Date.now()) {
-          const synced = withReceiverSessionBip21Params(kept, {
-            amountSats: amountSatsNow,
-            label: labelNow
-          })
-          usePayjoinSessionsStore.getState().upsertSession(synced)
-          setSession(synced)
-          sessionRef.current = synced
-          return
-        }
-
-        // nativeState was missing — tryResume removed the dead session.
-        await createFreshSession()
-        return
-      }
-
       await createFreshSession()
     } catch (error) {
       payjoinWarn('receiver startSession failed', {
@@ -298,152 +246,133 @@ function usePayjoinReceiver({
       startingRef.current = false
       setStarting(false)
     }
-  }, [accountId, address, canUsePayjoin, createFreshSession])
+  }
 
-  const replaceDeadSession = useCallback(
-    async (failedSession: PayjoinSession | null, message: string) => {
-      const expired = isMailboxExpiredError(message)
-      payjoinWarn(
-        expired
-          ? 'receiver mailbox expired — creating a new QR'
-          : 'receiver native session lost — creating a new QR',
-        {
-          error: compactError(message),
-          mailbox: mailboxFromEndpoint(failedSession?.pjEndpoint),
-          sessionId: failedSession?.id
-        }
-      )
-      if (failedSession?.id) {
-        usePayjoinSessionsStore.getState().removeSession(failedSession.id)
+  async function replaceDeadSession(
+    failedSession: PayjoinSession | null,
+    message: string
+  ) {
+    const expired = isMailboxExpiredError(message)
+    payjoinWarn(
+      expired
+        ? 'receiver mailbox expired — creating a new QR'
+        : 'receiver native session lost — creating a new QR',
+      {
+        error: compactError(message),
+        mailbox: mailboxFromEndpoint(failedSession?.pjEndpoint),
+        sessionId: failedSession?.id
       }
-      sessionRef.current = null
-      setSession(null)
-      // Mailbox is unusable either way — mint a fresh URI so Receive does not
-      // look empty when the user returns. Sender must re-scan if they already had
-      // the old pj=.
-      if (!canUsePayjoin || !address || startingRef.current) {
-        return
-      }
-      startingRef.current = true
-      setStarting(true)
-      try {
-        await createFreshSession()
-      } catch (error) {
-        payjoinWarn('replaceDeadSession create failed', {
-          error: compactError(error)
-        })
-      } finally {
-        startingRef.current = false
-        setStarting(false)
-      }
-    },
-    [address, canUsePayjoin, createFreshSession]
-  )
+    )
+    if (failedSession?.id) {
+      usePayjoinSessionsStore.getState().removeSession(failedSession.id)
+    }
+    setReceiverSession(null)
+    if (
+      !paramsRef.current.canUsePayjoin ||
+      !paramsRef.current.address ||
+      startingRef.current
+    ) {
+      return
+    }
+    startingRef.current = true
+    setStarting(true)
+    try {
+      await createFreshSession()
+    } catch (error) {
+      payjoinWarn('replaceDeadSession create failed', {
+        error: compactError(error)
+      })
+    } finally {
+      startingRef.current = false
+      setStarting(false)
+    }
+  }
 
-  const persistSession = useCallback((base: PayjoinSession) => {
-    const synced = withReceiverSessionBip21Params(base, {
-      amountSats: amountSatsRef.current,
-      label: labelRef.current
-    })
-    usePayjoinSessionsStore.getState().upsertSession(synced)
-    sessionRef.current = synced
-    return synced
-  }, [])
-
-  const finalizeOnce = useCallback(
-    async (session: PayjoinSession) => {
-      if (!session.originalPsbtBase64 || !session.nativeState) {
-        payjoinWarn('receiver finalize skipped — missing state', {
-          hasNative: !!session.nativeState,
-          hasOriginal: !!session.originalPsbtBase64,
-          mailbox: mailboxFromEndpoint(session.pjEndpoint),
-          sessionId: session.id
-        })
-        return
-      }
-      setNegotiating(true)
-      try {
-        payjoinLog('receiver finalize', {
-          mailbox: mailboxFromEndpoint(session.pjEndpoint),
-          sessionId: session.id,
-          status: session.status
-        })
-        const finalized = await finalizeReceiverPayjoin({
-          callbacks: buildCallbacks(),
-          session
-        })
-        // Non-throwing errors (no utxos, etc.) used to set status=error, which
-        // triggered startSession → waiting and abandoned the proposal.
+  async function finalizeOnce(target: PayjoinSession) {
+    if (!target.originalPsbtBase64 || !target.nativeState) {
+      payjoinWarn('receiver finalize skipped — missing state', {
+        hasNative: !!target.nativeState,
+        hasOriginal: !!target.originalPsbtBase64,
+        mailbox: mailboxFromEndpoint(target.pjEndpoint),
+        sessionId: target.id
+      })
+      return
+    }
+    setNegotiating(true)
+    try {
+      payjoinLog('receiver finalize', {
+        mailbox: mailboxFromEndpoint(target.pjEndpoint),
+        sessionId: target.id,
+        status: target.status
+      })
+      const finalized = await finalizeReceiverPayjoin({
+        callbacks: buildCallbacks(),
+        session: target
+      })
+      if (
+        finalized.status === 'error' &&
+        finalized.originalPsbtBase64 &&
+        finalized.nativeState
+      ) {
+        const message = finalized.error ?? 'unknown'
         if (
-          finalized.status === 'error' &&
-          finalized.originalPsbtBase64 &&
-          finalized.nativeState
-        ) {
-          const message = finalized.error ?? 'unknown'
-          // Terminal contribute failures — retrying will never help.
-          if (
-            /no utxos to contribute|missing proposal state|missing directory post/i.test(
-              message
-            )
-          ) {
-            payjoinWarn('receiver finalize terminal error', {
-              error: compactError(message),
-              mailbox: mailboxFromEndpoint(session.pjEndpoint),
-              sessionId: session.id
-            })
-            setSession(persistSession(finalized))
-            setNegotiating(false)
-            return
-          }
-          payjoinWarn('receiver finalize failed, will retry', {
-            error: compactError(message),
-            mailbox: mailboxFromEndpoint(session.pjEndpoint),
-            sessionId: session.id
-          })
-          setSession(
-            persistSession({
-              ...finalized,
-              status: 'proposal_received',
-              updatedAt: Date.now()
-            })
+          /no utxos to contribute|missing proposal state|missing directory post/i.test(
+            message
           )
+        ) {
+          payjoinWarn('receiver finalize terminal error', {
+            error: compactError(message),
+            mailbox: mailboxFromEndpoint(target.pjEndpoint),
+            sessionId: target.id
+          })
+          setReceiverSession(persistSession(finalized))
+          setNegotiating(false)
           return
         }
-        payjoinLog('receiver finalize done', {
-          mailbox: mailboxFromEndpoint(finalized.pjEndpoint),
-          sessionId: finalized.id,
-          status: finalized.status
-        })
-        setSession(persistSession(finalized))
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        // Keep proposal state so the next tick retries finalize — do not renew.
         payjoinWarn('receiver finalize failed, will retry', {
           error: compactError(message),
-          mailbox: mailboxFromEndpoint(session.pjEndpoint),
-          sessionId: session.id
+          mailbox: mailboxFromEndpoint(target.pjEndpoint),
+          sessionId: target.id
         })
-        setSession(
+        setReceiverSession(
           persistSession({
-            ...session,
-            error: message,
+            ...finalized,
             status: 'proposal_received',
             updatedAt: Date.now()
           })
         )
-      } finally {
-        // Keep negotiating=true (and the receive spinner) while a proposal is
-        // still pending finalize — clearing here made the loader flicker off.
-        if (!sessionNeedsFinalize(sessionRef.current ?? session)) {
-          setNegotiating(false)
-        }
+        return
       }
-    },
-    [buildCallbacks, persistSession]
-  )
+      payjoinLog('receiver finalize done', {
+        mailbox: mailboxFromEndpoint(finalized.pjEndpoint),
+        sessionId: finalized.id,
+        status: finalized.status
+      })
+      setReceiverSession(persistSession(finalized))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      payjoinWarn('receiver finalize failed, will retry', {
+        error: compactError(message),
+        mailbox: mailboxFromEndpoint(target.pjEndpoint),
+        sessionId: target.id
+      })
+      setReceiverSession(
+        persistSession({
+          ...target,
+          error: message,
+          status: 'proposal_received',
+          updatedAt: Date.now()
+        })
+      )
+    } finally {
+      if (!sessionNeedsFinalize(sessionRef.current ?? target)) {
+        setNegotiating(false)
+      }
+    }
+  }
 
-  const pollOnce = useCallback(async () => {
-    const current = sessionRef.current
+  async function pollOnce() {
+    const { current } = sessionRef
     if (
       !current?.nativeState ||
       pollingRef.current ||
@@ -454,7 +383,6 @@ function usePayjoinReceiver({
       return
     }
 
-    // Same-device Sample→Clown: leave the mailbox free while sender POSTs.
     if (isSenderPostInFlight()) {
       payjoinLog('receiver poll paused — sender posting', {
         mailbox: mailboxFromEndpoint(current.pjEndpoint),
@@ -465,8 +393,6 @@ function usePayjoinReceiver({
 
     pollingRef.current = true
     try {
-      // Already holding the original — finalize; never poll (Rust errors and we
-      // used to wrongly renew the mailbox the sender is posting to).
       if (sessionNeedsFinalize(current)) {
         await finalizeOnce(current)
         return
@@ -501,8 +427,6 @@ function usePayjoinReceiver({
           return
         }
         if (isNativeSessionMissingError(message)) {
-          // Keep the same pj= URI — resume in-memory handle after Metro reload.
-          // Do NOT mark status=error (that stops polling and orphans the sender).
           payjoinWarn('receiver native handle missing — try resume', {
             error: compactError(message),
             mailbox: mailboxFromEndpoint(current.pjEndpoint),
@@ -510,7 +434,7 @@ function usePayjoinReceiver({
           })
           const resumed = await resumePersistedReceiverSession(current)
           if (resumed) {
-            setSession(
+            setReceiverSession(
               persistSession({
                 ...current,
                 error: undefined,
@@ -520,7 +444,7 @@ function usePayjoinReceiver({
             )
             return
           }
-          setSession(
+          setReceiverSession(
             persistSession({
               ...current,
               error: message,
@@ -530,9 +454,7 @@ function usePayjoinReceiver({
           )
           return
         }
-        // Transient protocol/network errors (incl. OHTTP AEAD): same mailbox.
-        // Always update React — skipping setSession left the UI stuck on error.
-        setSession(
+        setReceiverSession(
           persistSession({
             ...current,
             error: undefined,
@@ -551,17 +473,15 @@ function usePayjoinReceiver({
 
       const synced = persistSession(updated)
       if (originalPsbtBase64 && synced.status === 'proposal_received') {
-        setSession(synced)
+        setReceiverSession(synced)
         await finalizeOnce(synced)
         return
       }
 
-      // Pending mailbox check: persist native state without remounting receive UI
-      // when the BIP21 URI / status the user sees did not change.
       const uriUnchanged = synced.uri === current.uri
       const statusUnchanged = synced.status === current.status
       if (!uriUnchanged || !statusUnchanged) {
-        setSession(synced)
+        setReceiverSession(synced)
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -576,7 +496,7 @@ function usePayjoinReceiver({
           status: 'proposal_received',
           updatedAt: Date.now()
         })
-        setSession(withProposal)
+        setReceiverSession(withProposal)
         await finalizeOnce(withProposal)
         return
       }
@@ -592,7 +512,7 @@ function usePayjoinReceiver({
         })
         const resumed = await resumePersistedReceiverSession(current)
         if (resumed) {
-          setSession(
+          setReceiverSession(
             persistSession({
               ...current,
               error: undefined,
@@ -602,7 +522,7 @@ function usePayjoinReceiver({
           )
           return
         }
-        setSession(
+        setReceiverSession(
           persistSession({
             ...current,
             error: message,
@@ -612,7 +532,6 @@ function usePayjoinReceiver({
         )
         return
       }
-      // Keep waiting — e.g. HTTP/2 SETTINGS preface / relay blips.
       payjoinWarn('receiver poll failed, retrying later', {
         error: compactError(message),
         mailbox: mailboxFromEndpoint(current.pjEndpoint),
@@ -621,70 +540,63 @@ function usePayjoinReceiver({
     } finally {
       pollingRef.current = false
     }
-  }, [buildCallbacks, finalizeOnce, persistSession, replaceDeadSession])
+  }
 
-  useEffect(() => {
-    sessionRef.current = session
-  }, [session])
-
-  // Session often starts before the user types an amount. QR/copy rewrite BIP21
-  // locally; persist into the store so the account card is not "--".
-  useEffect(() => {
-    const current = sessionRef.current
+  // Keep account-card BIP21 fields in sync when amount/label change.
+  const bip21Key = `${session?.id ?? ''}|${amountSats ?? ''}|${label ?? ''}`
+  const [prevBip21Key, setPrevBip21Key] = useState(bip21Key)
+  if (bip21Key !== prevBip21Key) {
+    setPrevBip21Key(bip21Key)
+    const { current } = sessionRef
     if (
-      !current ||
-      current.status === 'completed' ||
-      current.status === 'expired'
+      current &&
+      current.status !== 'completed' &&
+      current.status !== 'expired'
     ) {
-      return
-    }
-    const synced = withReceiverSessionBip21Params(current, {
-      amountSats,
-      label
-    })
-    if (synced === current) {
-      return
-    }
-    usePayjoinSessionsStore.getState().upsertSession(synced)
-    sessionRef.current = synced
-    setSession(synced)
-  }, [amountSats, label, session?.id])
-
-  useEffect(() => {
-    // Start immediately when Payjoin is armed so the QR picks up `pj=` without
-    // a false "ready" gap. Heavy OHTTP work still blocks briefly on sync UniFFI.
-    void startSession()
-  }, [startSession])
-
-  useEffect(() => {
-    if (
-      !session ||
-      !canUsePayjoin ||
-      session.status === 'expired' ||
-      session.status === 'completed'
-    ) {
-      return
-    }
-
-    // Recover from a prior "native missing → error" mark without minting a new QR.
-    // If we already have the sender original, finalize — do not soft-resume to waiting.
-    if (session.status === 'error') {
-      if (session.originalPsbtBase64 && session.nativeState) {
-        void pollOnce()
-        return
+      const synced = withReceiverSessionBip21Params(current, {
+        amountSats,
+        label
+      })
+      if (synced !== current) {
+        usePayjoinSessionsStore.getState().upsertSession(synced)
+        sessionRef.current = synced
+        setSession(synced)
       }
+    }
+  }
+
+  const pollKey = receiverPollEffectKey(
+    resolveReceiverPollMode({
+      canUsePayjoin,
+      session: session ?? undefined
+    })
+  )
+  const armKey =
+    canUsePayjoin && address ? `${accountId}|${address}` : 'disarmed'
+
+  // Arm / resume mailbox when Payjoin becomes usable for this address.
+  useEffect(() => {
+    if (armKey === 'disarmed') {
+      return
+    }
+    void startSession()
+  }, [armKey])
+
+  // Poll + foreground resume while a live mailbox exists.
+  useEffect(() => {
+    if (pollKey === 'off') {
+      return
+    }
+    if (pollKey.startsWith('restart:')) {
       void startSession()
       return
     }
-
-    if (!session.nativeState) {
-      void startSession()
+    if (pollKey.startsWith('retry_poll:')) {
+      void pollOnce()
       return
     }
 
-    // Kick one poll immediately so "Waiting for sender" is visibly active.
     void pollOnce()
-
     const interval = setInterval(() => {
       void pollOnce()
     }, RECEIVER_POLL_INTERVAL_MS)
@@ -700,9 +612,7 @@ function usePayjoinReceiver({
       clearInterval(interval)
       sub.remove()
     }
-    // Re-bind when the mailbox identity changes, not on every soft status tick.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- pollOnce/startSession stable enough via refs
-  }, [canUsePayjoin, session?.id, session?.nativeState, session?.status, startSession])
+  }, [pollKey])
 
   const livePayjoinUri =
     !!session?.uri &&
@@ -713,9 +623,6 @@ function usePayjoinReceiver({
       ? session.uri
       : undefined
 
-  // Check terminal statuses before "initializing" — a failed create used to set
-  // status=error with a placeholder pj=, and excluding that from hasPayjoinUri
-  // left the UI stuck on "Starting Payjoin session…".
   const statusLabelKey = !canUsePayjoin
     ? null
     : session?.status === 'completed'
@@ -742,11 +649,7 @@ function usePayjoinReceiver({
     canUsePayjoin,
     lastPolledAt,
     negotiating,
-    // Prefer the session URI whenever it has pj= — the receive screen gates on
-    // the Payjoin toggle. Requiring canUsePayjoin here hid pj= while address
-    // / UTXO readiness briefly lagged behind an already-created session.
     payjoinUri: livePayjoinUri,
-    /** True while a mailbox poll is in flight (ref — does not re-render). */
     polling: pollingRef.current,
     restartSession: startSession,
     session,

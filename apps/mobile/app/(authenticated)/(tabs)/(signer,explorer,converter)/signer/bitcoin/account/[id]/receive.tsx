@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, TextInput } from 'react-native'
 import { KeychainKind, Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -39,9 +39,14 @@ import { Colors } from '@/styles'
 import { type Label } from '@/types/bips/329'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
+import {
+  findExternalAddressIndex,
+  resolveReceiveAddressSelection
+} from '@/utils/externalAddress'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
-import { appendParamsToPayjoinUri, parsePayjoinUri } from '@/utils/payjoinUri'
+import { parsePayjoinUri } from '@/utils/payjoinUri'
+import { buildReceiveQrUri } from '@/utils/receiveQrUri'
 
 function amountSatsFromPayjoinSession(
   session?: PayjoinSession | null
@@ -84,14 +89,10 @@ export default function Receive() {
   )
   const wallet = useGetAccountWallet(id!)
   const { sendLabelsToNostr } = useNostrSync()
-  // Hydrate amount/label from a persisted session before the receiver hook
-  // runs — otherwise a remount with empty fields clears session.amountSats.
   const existingPayjoinSession = id
     ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
     : undefined
 
-  // Pin to the active payjoin receive address on remount so the unused-address
-  // picker cannot drift and mint a new mailbox when checking status from the card.
   const [addressData, setAddressData] = useState<{
     localAddress?: string
     localAddressNumber?: number
@@ -108,16 +109,30 @@ export default function Receive() {
     }
   })
 
-  const { localAddress, localAddressNumber, localAddressQR, localAddressPath } =
-    addressData
+  const {
+    localAddress,
+    localAddressNumber: storedAddressNumber,
+    localAddressQR,
+    localAddressPath: storedAddressPath
+  } = addressData
+  const localAddressNumber =
+    storedAddressNumber ??
+    (wallet && localAddress
+      ? findExternalAddressIndex(wallet, localAddress)
+      : undefined)
+  const localAddressPath =
+    storedAddressPath ??
+    (account && localAddressNumber !== undefined
+      ? `${account.keys[0].derivationPath}/0/${localAddressNumber}`
+      : undefined)
   const [localCustomAmount, setLocalCustomAmount] = useState<string>(() => {
     const sats = amountSatsFromPayjoinSession(existingPayjoinSession)
     return sats ? String(sats) : String(DUST_LIMIT)
   })
   const [localFiatAmount, setLocalFiatAmount] = useState<string>()
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
-  const [localLabel, setLocalLabel] = useState<string>(() =>
-    labelFromPayjoinSession(existingPayjoinSession)
+  const [localLabel, setLocalLabel] = useState<string>(
+    () => labelFromPayjoinSession(existingPayjoinSession) ?? ''
   )
   const [isGenerating, setIsGenerating] = useState(false)
   const [includeLabel, setIncludeLabel] = useState(true)
@@ -156,20 +171,13 @@ export default function Receive() {
     ])
   )
 
-  const saveLabelTimeoutRef = useRef<NodeJS.Timeout>(undefined)
+  const saveLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  )
 
   function formatAddressInGroups(address: string): string {
     return (address.match(/(.{1,4})/g) || []).join(' ')
   }
-
-  useEffect(
-    () => () => {
-      if (saveLabelTimeoutRef.current) {
-        clearTimeout(saveLabelTimeoutRef.current)
-      }
-    },
-    []
-  )
 
   const amountSatsForPayjoin =
     includeAmount &&
@@ -179,26 +187,22 @@ export default function Receive() {
       ? Number(localCustomAmount)
       : undefined
 
-  const signPayjoinPsbt = useCallback(
-    (psbtBase64: string) => {
-      if (!wallet) {
-        return psbtBase64
-      }
-      const prepared = preparePayjoinPsbtForWalletSign({
-        getPrevTxHex: (txid) => wallet.getTx(txid),
-        psbtBase64,
-        utxos: accountUtxos
-      })
-      const proposal = new Psbt(prepared)
-      signTransaction(proposal, wallet)
-      return proposal.toBase64()
-    },
-    [accountUtxos, wallet]
-  )
+  function signPayjoinPsbt(psbtBase64: string) {
+    if (!wallet) {
+      return psbtBase64
+    }
+    const prepared = preparePayjoinPsbtForWalletSign({
+      getPrevTxHex: (txid) => wallet.getTx(txid),
+      psbtBase64,
+      utxos: account?.utxos ?? []
+    })
+    const proposal = new Psbt(prepared)
+    signTransaction(proposal, wallet)
+    return proposal.toBase64()
+  }
 
   const {
     canContribute,
-    canUsePayjoin,
     payjoinUri,
     session: payjoinSession,
     statusLabelKey,
@@ -224,19 +228,103 @@ export default function Receive() {
   const payjoinCompleted = payjoinSession?.status === 'completed'
   const celebratedPayjoinIdRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    if (!canContribute) {
-      if (includePayjoin) {
-        setIncludePayjoin(false)
-      }
-      return
-    }
-    // UTXOs often arrive after mount — restore Payjoin unless the user opted out.
-    if (!userSetPayjoinRef.current && payjoinEnabled && !includePayjoin) {
-      setIncludePayjoin(true)
-    }
-  }, [canContribute, includePayjoin, payjoinEnabled])
+  if (!canContribute && includePayjoin) {
+    setIncludePayjoin(false)
+  } else if (
+    canContribute &&
+    !userSetPayjoinRef.current &&
+    payjoinEnabled &&
+    !includePayjoin
+  ) {
+    setIncludePayjoin(true)
+  }
 
+  const sessionAmountKey = payjoinSession?.id ?? ''
+  const [hydratedSessionAmountKey, setHydratedSessionAmountKey] =
+    useState(sessionAmountKey)
+  if (sessionAmountKey !== hydratedSessionAmountKey) {
+    setHydratedSessionAmountKey(sessionAmountKey)
+    if (payjoinSession) {
+      const sats = amountSatsFromPayjoinSession(payjoinSession)
+      if (sats && (!localCustomAmount || Number(localCustomAmount) <= 0)) {
+        setLocalCustomAmount(String(sats))
+      }
+      const sessionLabel = labelFromPayjoinSession(payjoinSession)
+      if (sessionLabel && !localLabel) {
+        setLocalLabel(sessionLabel)
+      }
+    }
+  }
+
+  const localFinalAddressQR = buildReceiveQrUri({
+    amountSats: amountSatsForPayjoin,
+    includeBitcoinPrefix,
+    includeLabel,
+    includePayjoin,
+    label: localLabel,
+    localAddress,
+    localAddressQR,
+    payjoinEnabled,
+    payjoinSessionAddress: payjoinSession?.address,
+    payjoinSessionStatus: payjoinSession?.status,
+    payjoinSessionUri: payjoinSession?.uri,
+    payjoinUri
+  })
+
+  const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
+  const addressInfoKey = addressInfo
+    ? `${addressInfo.address}:${addressInfo.index}`
+    : addressInfo === null
+      ? 'loading'
+      : 'missing'
+  const [loadedAddressInfoKey, setLoadedAddressInfoKey] = useState<string>(() =>
+    existingPayjoinSession?.address ? 'pinned' : ''
+  )
+
+  if (
+    wallet &&
+    account &&
+    addressInfo?.address &&
+    !isManualAddress &&
+    addressInfoKey !== loadedAddressInfoKey
+  ) {
+    const derivationPath = account.keys[0]?.derivationPath
+    if (derivationPath) {
+      setLoadedAddressInfoKey(addressInfoKey)
+      const activeSession = id
+        ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
+        : undefined
+      const selection = resolveReceiveAddressSelection({
+        derivationPath,
+        fallback: {
+          address: addressInfo.address,
+          index: addressInfo.index
+        },
+        preferredAddress: activeSession?.address,
+        wallet
+      })
+      setAddressData({
+        localAddress: selection.address,
+        localAddressNumber: selection.index,
+        localAddressPath: selection.path,
+        localAddressQR: selection.qrUri
+      })
+      const existingAddress = account.addresses.find(
+        (addr) => addr.address === selection.address
+      )
+      if (existingAddress?.label) {
+        setLocalLabel(existingAddress.label)
+      }
+      setIsManualAddress(true)
+      setIsLoading(false)
+    }
+  } else if (!wallet && isLoading) {
+    setIsLoading(false)
+  } else if (addressInfo === null && !isManualAddress && !isLoading) {
+    setIsLoading(true)
+  }
+
+  // Completion toast/haptics are external side effects — keep a narrow effect.
   useEffect(() => {
     if (!payjoinCompleted || !payjoinSession?.id) {
       return
@@ -248,201 +336,6 @@ export default function Receive() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
     toast.success(t('receive.payjoin.completed.toast'))
   }, [payjoinCompleted, payjoinSession?.id])
-
-  // Keep amount/label fields in sync with the active session / BIP21 URI
-  // (e.g. remount, resume, or amount only present on the URI).
-  useEffect(() => {
-    if (!payjoinSession) {
-      return
-    }
-    const sats = amountSatsFromPayjoinSession(payjoinSession)
-    if (sats && (!localCustomAmount || Number(localCustomAmount) <= 0)) {
-      setLocalCustomAmount(String(sats))
-    }
-    const sessionLabel = labelFromPayjoinSession(payjoinSession)
-    if (sessionLabel && !localLabel) {
-      setLocalLabel(sessionLabel)
-    }
-  }, [
-    localCustomAmount,
-    localLabel,
-    payjoinSession,
-    payjoinSession?.amountSats,
-    payjoinSession?.id,
-    payjoinSession?.label,
-    payjoinSession?.uri
-  ])
-
-  const localFinalAddressQR = useMemo(() => {
-    // Prefer any live session URI (includes pj=) while Payjoin is on — even if
-    // canUsePayjoin briefly lags — so the QR does not snap to a plain address.
-    const sessionMatchesAddress =
-      !localAddress ||
-      !payjoinSession?.address ||
-      payjoinSession.address === localAddress
-    const sessionUri =
-      includePayjoin && payjoinEnabled && sessionMatchesAddress
-        ? payjoinUri ||
-          (payjoinSession?.status !== 'expired'
-            ? payjoinSession?.uri
-            : undefined)
-        : undefined
-
-    if (sessionUri) {
-      // Session resume used to ignore Label/amount toggles; rewrite BIP21
-      // extras on the displayed URI so the toggle is immediate.
-      let uri = sessionUri
-      try {
-        uri = appendParamsToPayjoinUri(sessionUri, {
-          amountSats: amountSatsForPayjoin,
-          label: includeLabel ? localLabel : undefined
-        })
-      } catch {
-        uri = sessionUri
-      }
-      if (!includeBitcoinPrefix && uri.toLowerCase().startsWith('bitcoin:')) {
-        uri = uri.substring(8)
-      }
-      return uri
-    }
-
-    if (!localAddressQR) {
-      return ''
-    }
-
-    const queryParts: string[] = []
-
-    if (amountSatsForPayjoin !== undefined) {
-      const amountInBTC = amountSatsForPayjoin / 100_000_000
-      const formattedAmount = amountInBTC.toFixed(8).replace(/\.?0+$/, '')
-      queryParts.push(`amount=${encodeURIComponent(formattedAmount)}`)
-    }
-
-    if (includeLabel && localLabel) {
-      queryParts.push(`label=${encodeURIComponent(localLabel)}`)
-    }
-
-    let baseUri = localAddressQR
-
-    // Remove bitcoin: prefix if not wanted (case-insensitive)
-    if (!includeBitcoinPrefix && baseUri.toLowerCase().startsWith('bitcoin:')) {
-      baseUri = baseUri.substring(8) // Remove "BITCOIN:" (8 characters)
-    }
-
-    return queryParts.length > 0
-      ? `${baseUri}?${queryParts.join('&')}`
-      : baseUri
-  }, [
-    amountSatsForPayjoin,
-    includeBitcoinPrefix,
-    includeLabel,
-    includePayjoin,
-    localAddress,
-    localAddressQR,
-    localLabel,
-    payjoinEnabled,
-    payjoinSession?.address,
-    payjoinSession?.status,
-    payjoinSession?.uri,
-    payjoinUri
-  ])
-
-  const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
-
-  // Resolve derivation index for a session-pinned address (wallet may load later).
-  useEffect(() => {
-    if (
-      !wallet ||
-      !account ||
-      !localAddress ||
-      localAddressNumber !== undefined
-    ) {
-      return
-    }
-    for (let index = 0; index < 1000; index += 1) {
-      try {
-        const peeked = wallet.peekAddress(KeychainKind.External, index)
-        if (peeked?.address === localAddress) {
-          setAddressData((prev) => ({
-            ...prev,
-            localAddressNumber: index,
-            localAddressPath: `${account.keys[0].derivationPath}/0/${index}`
-          }))
-          return
-        }
-      } catch {
-        break
-      }
-    }
-  }, [account, localAddress, localAddressNumber, wallet])
-
-  // Load address when addressInfo changes
-  useEffect(() => {
-    if (!wallet || !addressInfo || isManualAddress) {
-      if (!wallet) {
-        toast(t('error.notFound.wallet'))
-        setIsLoading(false)
-      } else if (addressInfo === null) {
-        setIsLoading(true)
-      }
-      return
-    }
-
-    function loadAddress() {
-      if (!addressInfo?.address) {
-        return
-      }
-
-      // Prefer an active payjoin receive address over first-unused so reopening
-      // from the account card does not drift onto a different address/mailbox.
-      const activeSession = id
-        ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
-        : undefined
-      const address = activeSession?.address || addressInfo.address
-      let index = addressInfo.index
-      let path = `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
-
-      if (
-        activeSession?.address &&
-        activeSession.address !== addressInfo.address
-      ) {
-        for (let i = 0; i < 1000; i += 1) {
-          try {
-            const peeked = wallet!.peekAddress(KeychainKind.External, i)
-            if (peeked?.address === activeSession.address) {
-              index = i
-              path = `${account?.keys[0].derivationPath}/0/${i}`
-              break
-            }
-          } catch {
-            break
-          }
-        }
-      }
-
-      const qrUri = `bitcoin:${address}`
-
-      setAddressData({
-        localAddress: address,
-        localAddressNumber: index,
-        localAddressPath: path,
-        localAddressQR: qrUri
-      })
-
-      // Set existing label if found
-      const existingAddress = account?.addresses.find(
-        (addr) => addr.address === address
-      )
-      if (existingAddress?.label) {
-        setLocalLabel(existingAddress.label)
-      }
-
-      setIsManualAddress(true)
-      setIsLoading(false)
-    }
-
-    loadAddress()
-  }, [addressInfo, wallet, account?.keys, account?.addresses, isManualAddress, id, account])
 
   function generateAnotherAddress() {
     if (!wallet || !account) {
@@ -487,31 +380,28 @@ export default function Receive() {
     }
   }
 
-  const handleLabelChange = useCallback(
-    (text: string) => {
-      setLocalLabel(text)
+  function handleLabelChange(text: string) {
+    setLocalLabel(text)
 
-      if (saveLabelTimeoutRef.current) {
-        clearTimeout(saveLabelTimeoutRef.current)
-      }
+    if (saveLabelTimeoutRef.current) {
+      clearTimeout(saveLabelTimeoutRef.current)
+    }
 
-      saveLabelTimeoutRef.current = setTimeout(() => {
-        if (localAddress && text.trim()) {
-          const updatedAccount = setAddrLabel(id!, localAddress, text.trim())
-          if (updatedAccount?.nostr?.autoSync) {
-            const singleLabelData: Label = {
-              label: text.trim(),
-              ref: localAddress,
-              spendable: true,
-              type: 'addr'
-            }
-            sendLabelsToNostr(updatedAccount, singleLabelData)
+    saveLabelTimeoutRef.current = setTimeout(() => {
+      if (localAddress && text.trim()) {
+        const updatedAccount = setAddrLabel(id!, localAddress, text.trim())
+        if (updatedAccount?.nostr?.autoSync) {
+          const singleLabelData: Label = {
+            label: text.trim(),
+            ref: localAddress,
+            spendable: true,
+            type: 'addr'
           }
+          sendLabelsToNostr(updatedAccount, singleLabelData)
         }
-      }, 1000)
-    },
-    [localAddress, id, setAddrLabel, sendLabelsToNostr]
-  )
+      }
+    }, 1000)
+  }
 
   async function handleNFCExport() {
     if (!localFinalAddressQR) {
@@ -586,7 +476,7 @@ export default function Receive() {
       .replace(/^(\d*\.?\d*).*$/, '$1')
     setLocalFiatAmount(cleaned)
     const sats = getSatsFromFiat(cleaned)
-    setLocalCustomAmount(sats !== null ? sats.toString() : undefined)
+    setLocalCustomAmount(sats !== null ? sats.toString() : '')
   }
 
   function handleToggleLabel() {
@@ -790,7 +680,10 @@ export default function Receive() {
                     <SSVStack gap="xxs" itemsCenter widthFull>
                       <SSHStack
                         gap="sm"
-                        style={{ alignItems: 'center', justifyContent: 'center' }}
+                        style={{
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
                       >
                         {payjoinNegotiating ||
                         statusLabelKey ===
@@ -798,8 +691,7 @@ export default function Receive() {
                         statusLabelKey === 'receive.payjoin.status.waiting' ||
                         statusLabelKey ===
                           'receive.payjoin.status.initializing' ||
-                        statusLabelKey ===
-                          'receive.payjoin.status.polling' ? (
+                        statusLabelKey === 'receive.payjoin.status.polling' ? (
                           <SSLoader size={18} />
                         ) : null}
                         <SSText
