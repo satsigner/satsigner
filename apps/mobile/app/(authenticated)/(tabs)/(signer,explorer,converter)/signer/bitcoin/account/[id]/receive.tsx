@@ -90,12 +90,23 @@ export default function Receive() {
     ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
     : undefined
 
+  // Pin to the active payjoin receive address on remount so the unused-address
+  // picker cannot drift and mint a new mailbox when checking status from the card.
   const [addressData, setAddressData] = useState<{
     localAddress?: string
     localAddressNumber?: number
     localAddressQR?: string
     localAddressPath?: string
-  }>({})
+  }>(() => {
+    const addr = existingPayjoinSession?.address
+    if (!addr) {
+      return {}
+    }
+    return {
+      localAddress: addr,
+      localAddressQR: `bitcoin:${addr}`
+    }
+  })
 
   const { localAddress, localAddressNumber, localAddressQR, localAddressPath } =
     addressData
@@ -113,8 +124,12 @@ export default function Receive() {
   const [includeAmount] = useState(true)
   const [includeBitcoinPrefix, setIncludeBitcoinPrefix] = useState(true)
   const [includePayjoin, setIncludePayjoin] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isManualAddress, setIsManualAddress] = useState(false)
+  const [isLoading, setIsLoading] = useState(
+    () => !existingPayjoinSession?.address
+  )
+  const [isManualAddress, setIsManualAddress] = useState(
+    () => !!existingPayjoinSession?.address
+  )
   // Distinguishes "user turned Payjoin off" from "we auto-disabled while UTXOs
   // were still empty on first paint" so we can re-enable once coins appear.
   const userSetPayjoinRef = useRef(false)
@@ -334,6 +349,33 @@ export default function Receive() {
 
   const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
 
+  // Resolve derivation index for a session-pinned address (wallet may load later).
+  useEffect(() => {
+    if (
+      !wallet ||
+      !account ||
+      !localAddress ||
+      localAddressNumber !== undefined
+    ) {
+      return
+    }
+    for (let index = 0; index < 1000; index += 1) {
+      try {
+        const peeked = wallet.peekAddress(KeychainKind.External, index)
+        if (peeked?.address === localAddress) {
+          setAddressData((prev) => ({
+            ...prev,
+            localAddressNumber: index,
+            localAddressPath: `${account.keys[0].derivationPath}/0/${index}`
+          }))
+          return
+        }
+      } catch {
+        break
+      }
+    }
+  }, [account, localAddress, localAddressNumber, wallet])
+
   // Load address when addressInfo changes
   useEffect(() => {
     if (!wallet || !addressInfo || isManualAddress) {
@@ -351,13 +393,39 @@ export default function Receive() {
         return
       }
 
-      const { address } = addressInfo
+      // Prefer an active payjoin receive address over first-unused so reopening
+      // from the account card does not drift onto a different address/mailbox.
+      const activeSession = id
+        ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
+        : undefined
+      const address = activeSession?.address || addressInfo.address
+      let index = addressInfo.index
+      let path = `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
+
+      if (
+        activeSession?.address &&
+        activeSession.address !== addressInfo.address
+      ) {
+        for (let i = 0; i < 1000; i += 1) {
+          try {
+            const peeked = wallet!.peekAddress(KeychainKind.External, i)
+            if (peeked?.address === activeSession.address) {
+              index = i
+              path = `${account?.keys[0].derivationPath}/0/${i}`
+              break
+            }
+          } catch {
+            break
+          }
+        }
+      }
+
       const qrUri = `bitcoin:${address}`
 
       setAddressData({
         localAddress: address,
-        localAddressNumber: addressInfo.index,
-        localAddressPath: `${account?.keys[0].derivationPath}/0/${addressInfo.index}`,
+        localAddressNumber: index,
+        localAddressPath: path,
         localAddressQR: qrUri
       })
 
@@ -374,7 +442,7 @@ export default function Receive() {
     }
 
     loadAddress()
-  }, [addressInfo, wallet, account?.keys, account?.addresses, isManualAddress])
+  }, [addressInfo, wallet, account?.keys, account?.addresses, isManualAddress, id, account])
 
   function generateAnotherAddress() {
     if (!wallet || !account) {

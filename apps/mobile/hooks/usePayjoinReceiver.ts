@@ -192,61 +192,57 @@ function usePayjoinReceiver({
     setStarting(true)
 
     try {
-      // Drop a hydrated session for a different address so we never show a
-      // stale pj= URI / "ready" while recreating for the current receive addr.
-      if (sessionRef.current && sessionRef.current.address !== address) {
-        setSession(null)
-        sessionRef.current = null
-      }
+      const amountSatsNow = amountSatsRef.current
+      const labelNow = labelRef.current
+      const store = usePayjoinSessionsStore.getState()
 
-      // Error/expired: try soft-resume first so Metro reload does not mint a
-      // new pj= and orphan a sender already waiting on this mailbox.
+      // Error/expired on the hydrated ref: soft-resume first so Metro reload
+      // does not mint a new pj= and orphan a sender already waiting.
+      // (getActiveReceiverSession excludes error/expired.)
+      const hydrated = sessionRef.current
       if (
-        sessionRef.current?.status === 'error' ||
-        sessionRef.current?.status === 'expired'
+        hydrated &&
+        hydrated.accountId === accountId &&
+        (hydrated.status === 'error' || hydrated.status === 'expired')
       ) {
-        const dead = sessionRef.current
         if (
-          dead.status === 'error' &&
-          dead.nativeState &&
-          dead.expiresAt > Date.now()
+          hydrated.status === 'error' &&
+          hydrated.nativeState &&
+          hydrated.expiresAt > Date.now()
         ) {
-          // Already holding the sender original — resume to finalize, never
-          // downgrade to waiting (that made Receive poll forever after a
-          // transient finalize failure).
-          if (dead.originalPsbtBase64) {
+          if (hydrated.originalPsbtBase64) {
             const restored = withReceiverSessionBip21Params(
               {
-                ...dead,
+                ...hydrated,
                 error: undefined,
                 status: 'proposal_received',
                 updatedAt: Date.now()
               },
               {
-                amountSats: amountSatsRef.current,
-                label: labelRef.current
+                amountSats: amountSatsNow,
+                label: labelNow
               }
             )
-            usePayjoinSessionsStore.getState().upsertSession(restored)
+            store.upsertSession(restored)
             setSession(restored)
             sessionRef.current = restored
             return
           }
-          const resumed = await resumePersistedReceiverSession(dead)
-          if (resumed) {
+          const softOk = await resumePersistedReceiverSession(hydrated)
+          if (softOk) {
             const restored = withReceiverSessionBip21Params(
               {
-                ...dead,
+                ...hydrated,
                 error: undefined,
                 status: 'waiting',
                 updatedAt: Date.now()
               },
               {
-                amountSats: amountSatsRef.current,
-                label: labelRef.current
+                amountSats: amountSatsNow,
+                label: labelNow
               }
             )
-            usePayjoinSessionsStore.getState().upsertSession(restored)
+            store.upsertSession(restored)
             setSession(restored)
             sessionRef.current = restored
             return
@@ -256,30 +252,40 @@ function usePayjoinReceiver({
         return
       }
 
-      const amountSatsNow = amountSatsRef.current
-      const labelNow = labelRef.current
-      const existing = usePayjoinSessionsStore
-        .getState()
-        .getActiveReceiverSession(accountId)
+      const existing = store.getActiveReceiverSession(accountId)
 
-      if (
-        existing &&
-        existing.address === address &&
-        existing.expiresAt > Date.now()
-      ) {
+      // Prefer the active mailbox for this account — even if the unused-address
+      // picker drifted (e.g. "generate another" then leave/reopen from the card).
+      // Matching on address alone used to mint a new pj= on every status check.
+      if (existing && existing.expiresAt > Date.now()) {
         const resumed = await tryResumeReceiverSession(existing)
-        if (!resumed) {
-          await createFreshSession()
+        if (resumed) {
+          const synced = withReceiverSessionBip21Params(resumed, {
+            amountSats: amountSatsNow,
+            label: labelNow
+          })
+          usePayjoinSessionsStore.getState().upsertSession(synced)
+          setSession(synced)
+          sessionRef.current = synced
           return
         }
 
-        const synced = withReceiverSessionBip21Params(resumed, {
-          amountSats: amountSatsNow,
-          label: labelNow
-        })
-        usePayjoinSessionsStore.getState().upsertSession(synced)
-        setSession(synced)
-        sessionRef.current = synced
+        // Native resume failed but JS session kept (mailbox may still be live).
+        // Soft-keep the same pj= — do not mint a replacement QR.
+        const kept = usePayjoinSessionsStore.getState().getSession(existing.id)
+        if (kept && kept.expiresAt > Date.now()) {
+          const synced = withReceiverSessionBip21Params(kept, {
+            amountSats: amountSatsNow,
+            label: labelNow
+          })
+          usePayjoinSessionsStore.getState().upsertSession(synced)
+          setSession(synced)
+          sessionRef.current = synced
+          return
+        }
+
+        // nativeState was missing — tryResume removed the dead session.
+        await createFreshSession()
         return
       }
 
