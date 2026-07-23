@@ -9,13 +9,16 @@ appId: ${APP_ID}
 - runFlow:
     when:
       visible: '(?i)Add Account'
-      visible: '(?i)^Clown$'
     commands:
-      - tapOn: '(?i)^Clown$'
-      - extendedWaitUntil:
-          visible:
-            id: account-receive
-          timeout: 30000
+      - runFlow:
+          when:
+            visible: '(?i)^Clown$'
+          commands:
+            - tapOn: '(?i)^Clown$'
+            - extendedWaitUntil:
+                visible:
+                  id: account-receive
+                timeout: 30000
 
 - runFlow:
     when:

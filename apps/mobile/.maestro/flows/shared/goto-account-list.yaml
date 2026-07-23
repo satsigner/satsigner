@@ -60,12 +60,15 @@ appId: ${APP_ID}
     when:
       notVisible: '(?i)Add Account'
       visible: '(?i)^BITCOIN$'
-      visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
     commands:
-      - tapOn: '(?i)^BITCOIN$'
-      - extendedWaitUntil:
-          visible: '(?i)Add Account|SIGNET|Sample'
-          timeout: 30000
+      - runFlow:
+          when:
+            visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
+          commands:
+            - tapOn: '(?i)^BITCOIN$'
+            - extendedWaitUntil:
+                visible: '(?i)Add Account|SIGNET|Sample'
+                timeout: 30000
 
 - runFlow:
     when:
@@ -78,8 +81,7 @@ appId: ${APP_ID}
     when:
       true: ${output.atAccountList != true}
       visible: '(?i)^Signer$'
-      notVisible: '(?i)LIGHTNING|ARK|LIQUID'
-      notVisible: '(?i)Add Account'
+      notVisible: '(?i)LIGHTNING|ARK|LIQUID|Add Account'
     commands:
       - tapOn: '(?i)^Signer$'
 
@@ -87,12 +89,15 @@ appId: ${APP_ID}
     when:
       notVisible: '(?i)Add Account'
       visible: '(?i)^BITCOIN$'
-      visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
     commands:
-      - tapOn: '(?i)^BITCOIN$'
-      - extendedWaitUntil:
-          visible: '(?i)Add Account|SIGNET|Sample'
-          timeout: 30000
+      - runFlow:
+          when:
+            visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
+          commands:
+            - tapOn: '(?i)^BITCOIN$'
+            - extendedWaitUntil:
+                visible: '(?i)Add Account|SIGNET|Sample'
+                timeout: 30000
 
 - runFlow:
     when:
@@ -111,20 +116,21 @@ appId: ${APP_ID}
           when:
             notVisible: '(?i)Add Account'
             visible: '(?i)^BITCOIN$'
-            visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
           commands:
-            - tapOn: '(?i)^BITCOIN$'
-            - extendedWaitUntil:
-                visible: '(?i)Add Account|SIGNET|Sample'
-                timeout: 20000
+            - runFlow:
+                when:
+                  visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
+                commands:
+                  - tapOn: '(?i)^BITCOIN$'
+                  - extendedWaitUntil:
+                      visible: '(?i)Add Account|SIGNET|Sample'
+                      timeout: 20000
       # Already on bitcoin account list (network tabs / sample card) — wait,
       # never back (back returns to the SIGNER menu and loops forever).
       # Exclude UTXO picker: header also says SAMPLE (SEGWIT).
       - runFlow:
           when:
-            notVisible: '(?i)Add Account'
-            notVisible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
-            notVisible: '(?i)SELECT UTXOS TO CONTINUE|Select spendable outputs|USE 1 UTXO|USE ALL UTXOS'
+            notVisible: '(?i)Add Account|LIGHTNING|ARK|LIQUID|ECASH|SELECT UTXOS TO CONTINUE|Select spendable outputs|USE 1 UTXO|USE ALL UTXOS'
             visible: '(?i)^SIGNET$|Sample \(segwit\)|TESTNET'
           commands:
             - extendedWaitUntil:
@@ -133,17 +139,14 @@ appId: ${APP_ID}
       # Nested only (receive payjoin / UTXO picker / send / settings)
       - runFlow:
           when:
-            notVisible: '(?i)Add Account'
-            notVisible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
-            notVisible: '(?i)^SIGNET$'
+            notVisible: '(?i)Add Account|LIGHTNING|ARK|LIQUID|ECASH|^SIGNET$'
             visible: '(?i)Payjoin ready|Waiting for sender|Expiring in|Checking mailbox|App Settings|SELECT UTXOS TO CONTINUE|Select spendable outputs|USE 1 UTXO|USE ALL UTXOS|Save output|Sign transaction'
           commands:
             - back
       # Left the app
       - runFlow:
           when:
-            notVisible: '(?i)Add Account'
-            notVisible: '(?i)SIGNER|EXPLORER|CONVERTER|Payjoin|App Settings|Enter your PIN|Set pin|BITCOIN|SIGNET|Sample|LIGHTNING|SELECT UTXOS|spendable outputs'
+            notVisible: '(?i)Add Account|SIGNER|EXPLORER|CONVERTER|Payjoin|App Settings|Enter your PIN|Set pin|BITCOIN|SIGNET|Sample|LIGHTNING|SELECT UTXOS|spendable outputs'
           commands:
             - openLink: exp+satsigner://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081
             - tapOn:
@@ -158,17 +161,18 @@ appId: ${APP_ID}
     when:
       notVisible: '(?i)Add Account'
       visible: '(?i)^BITCOIN$'
-      visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
     commands:
-      - tapOn: '(?i)^BITCOIN$'
+      - runFlow:
+          when:
+            visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
+          commands:
+            - tapOn: '(?i)^BITCOIN$'
 
 # Final: on list chrome without Add Account → wait for it
 - runFlow:
     when:
-      notVisible: '(?i)Add Account'
-      notVisible: '(?i)SELECT UTXOS TO CONTINUE|Select spendable outputs'
+      notVisible: '(?i)Add Account|SELECT UTXOS TO CONTINUE|Select spendable outputs|LIGHTNING|ARK|LIQUID|ECASH'
       visible: '(?i)^SIGNET$|Sample \(segwit\)'
-      notVisible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
     commands:
       - extendedWaitUntil:
           visible: '(?i)Add Account'
