@@ -134,8 +134,7 @@ export const useNodesAndLinks = ({
         minerFeeSats !== undefined
           ? Math.max(0, Math.round(minerFeeSats))
           : Math.round(feeRate * vsize)
-      const displayFeeRate =
-        vsize > 0 ? Math.round(minerFee / vsize) : Math.round(feeRate)
+      const displayFeeRate = vsize > 0 ? minerFee / vsize : feeRate
 
       // Calculate total input value
       const totalInputValue = Array.from(inputs.values()).reduce(
@@ -520,7 +519,7 @@ export const useNodesAndLinks = ({
             const feeOutputDepth = tx.depthH + 1
             // Use vout length as index, similar to outputNodesCurrentTransaction fee calculation
             const feeVoutIndex = tx.vout.length
-            const minerFeeRate = vsize > 0 ? Math.round(minerFee / vsize) : 0
+            const minerFeeRate = vsize > 0 ? minerFee / vsize : 0
             const higherFeeForPastTx = isHighMinerFee({
               minerFeeSats: minerFee,
               totalOutputSats: totalOutputValue

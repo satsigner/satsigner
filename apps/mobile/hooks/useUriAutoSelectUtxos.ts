@@ -10,6 +10,8 @@ type UseUriAutoSelectUtxosParams = {
   autoSelectFromUri?: string | string[]
   defaultAlgorithm: AutoSelectUtxosAlgorithm
   decoyAddress?: string
+  /** When set, wait until a network fee estimate exists before selecting. */
+  nextBlockFee?: number | null
   onApplyAlgorithm: (algorithm: AutoSelectUtxosAlgorithm) => boolean
   outputsLength: number
 }
@@ -18,6 +20,7 @@ export function useUriAutoSelectUtxos({
   autoSelectFromUri,
   defaultAlgorithm,
   decoyAddress,
+  nextBlockFee,
   onApplyAlgorithm,
   outputsLength
 }: UseUriAutoSelectUtxosParams) {
@@ -54,11 +57,26 @@ export function useUriAutoSelectUtxos({
       return
     }
 
+    // Efficiency/privacy selection uses nextBlockFee when local fee is still 1.
+    // Wait so we do not underfund and then hydrate the rate without reselecting.
+    if (
+      (defaultAlgorithm === 'efficiency' || defaultAlgorithm === 'privacy') &&
+      (nextBlockFee === null || nextBlockFee === undefined || nextBlockFee < 1)
+    ) {
+      return
+    }
+
     if (onApplyAlgorithmRef.current(defaultAlgorithm)) {
       hasAppliedUriAutoSelectRef.current = true
       setUriAutoSelectPending(false)
     }
-  }, [uriAutoSelectPending, outputsLength, defaultAlgorithm, decoyAddress])
+  }, [
+    uriAutoSelectPending,
+    outputsLength,
+    defaultAlgorithm,
+    decoyAddress,
+    nextBlockFee
+  ])
 
   return { markUriAutoSelectPending, uriAutoSelectPending }
 }

@@ -7,6 +7,7 @@ import { type PsbtLike } from 'react-native-bdk-sdk'
 import { AUTO_SELECT_FROM_URI_SEARCH_PARAM } from '@/constants/autoSelectUtxos'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { getKeyFingerprint } from '@/utils/account'
@@ -84,9 +85,14 @@ function autoSelectUtxos(
   }
 
   const { addInput, setFeeRate } = actions
+  // Match ioPreview fee hydration — selecting at 1 sat/vB then bumping the
+  // rate left Payjoin invoices underfunded until the user added inputs.
+  const nextBlockFee = useBlockchainStore.getState().nextBlockFee
+  const feeRate =
+    typeof nextBlockFee === 'number' && nextBlockFee > 1 ? nextBlockFee : 1
 
   if (setFeeRate && typeof setFeeRate === 'function') {
-    setFeeRate(1)
+    setFeeRate(feeRate)
   }
 
   if (targetAmount === 0 || targetAmount === 1) {
@@ -97,7 +103,7 @@ function autoSelectUtxos(
     return
   }
 
-  const result = selectEfficientUtxos(account.utxos, targetAmount, 1, {
+  const result = selectEfficientUtxos(account.utxos, targetAmount, feeRate, {
     dustThreshold: DUST_LIMIT
   })
 
@@ -126,12 +132,20 @@ function commitBitcoinUriToIoPreview(
 
   if (payjoinUri) {
     actions.setPayjoinUri?.(payjoinUri)
-    // Efficient inputs only — skip settings privacy / STONEWALL auto-select.
-    if (account) {
+    // Defer fee-aware efficiency selection to ioPreview (uses nextBlockFee).
+    // Pre-selecting here at 1 sat/vB caused "Amount exceed max…" after fee
+    // hydration. Always efficiency — never privacy/STONEWALL for Payjoin.
+    const deferFeeAwareSelect = isUriPaymentAmount(amountSats)
+    if (!deferFeeAwareSelect && account) {
       autoSelectUtxos(account, amountSats, actions)
     }
     actions.navigate({
-      params: { id: accountId },
+      params: {
+        autoSelectFromUri: deferFeeAwareSelect
+          ? AUTO_SELECT_FROM_URI_SEARCH_PARAM
+          : undefined,
+        id: accountId
+      },
       pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
     })
     return
