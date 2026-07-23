@@ -27,7 +27,7 @@ export default function About() {
           )
         }}
       />
-      <SSMainLayout>
+      <SSMainLayout style={{ paddingBottom: 40 }}>
         <SSVStack gap="md" justifyBetween>
           <SSVStack gap="md">
             <SSHStack justifyBetween>
@@ -43,35 +43,35 @@ export default function About() {
               onPress={() => router.navigate('/settings/about/changelog')}
             >
               <SSHStack justifyBetween>
-                <SSText uppercase>
-                  {t('settings.about.changelog.title')}
-                </SSText>
+                <SSText uppercase>{t('settings.about.changelog.title')}</SSText>
                 <SSIconChevronRight height={11.6} width={6} />
               </SSHStack>
             </TouchableOpacity>
           </SSVStack>
-          <SSVStack gap="md">
-            <SSText uppercase weight="bold">
+          <SSVStack gap="sm" itemsCenter>
+            <SSText size="md" uppercase>
               {t('settings.about.followProject')}
             </SSText>
-            <TouchableOpacity
-              activeOpacity={0.5}
-              onPress={() => openUrl(NOSTR_PROFILE_URL)}
-            >
-              <SSHStack gap="sm">
-                <SSIconNostr width={16} height={16} />
-                <SSText>{t('settings.about.nostr')}</SSText>
-              </SSHStack>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.5}
-              onPress={() => openUrl(X_PROFILE_URL)}
-            >
-              <SSHStack gap="sm">
-                <SSIconX width={16} height={16} />
-                <SSText>{t('settings.about.x')}</SSText>
-              </SSHStack>
-            </TouchableOpacity>
+            <SSVStack gap="sm">
+              <TouchableOpacity
+                activeOpacity={0.5}
+                onPress={() => openUrl(NOSTR_PROFILE_URL)}
+              >
+                <SSHStack gap="sm">
+                  <SSIconNostr width={16} height={16} />
+                  <SSText>{t('settings.about.nostr')}</SSText>
+                </SSHStack>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.5}
+                onPress={() => openUrl(X_PROFILE_URL)}
+              >
+                <SSHStack gap="sm">
+                  <SSIconX width={16} height={16} />
+                  <SSText>{t('settings.about.x')}</SSText>
+                </SSHStack>
+              </TouchableOpacity>
+            </SSVStack>
           </SSVStack>
         </SSVStack>
       </SSMainLayout>
