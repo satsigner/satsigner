@@ -36,10 +36,12 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import { PIN_KEY } from '@/config/auth'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
+import { useNow } from '@/hooks/useNow'
 import { usePSBTManagement } from '@/hooks/usePSBTManagement'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -69,7 +71,13 @@ import {
 } from '@/utils/bbqr'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
+import { formatAddress, formatNumber } from '@/utils/format'
+import {
+  formatPayjoinExpiryLabel,
+  parsePayjoinExpiresAtMs
+} from '@/utils/payjoinExpiry'
 import { parseHexToBytes } from '@/utils/parse'
+import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   type ExtractedTransactionData,
   extractIndividualSignedPsbts,
@@ -237,7 +245,8 @@ function PreviewTransaction() {
     setRbf,
     signedPsbtsFromStore,
     clearTransaction,
-    clearPsbt
+    clearPsbt,
+    payjoinUri
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -253,8 +262,36 @@ function PreviewTransaction() {
       state.setRbf,
       state.signedPsbts,
       state.clearTransaction,
-      state.clearPsbt
+      state.clearPsbt,
+      state.payjoinUri
     ])
+  )
+
+  const payjoinInvoice = useMemo(() => {
+    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
+      return undefined
+    }
+    const parsed = parsePayjoinUri(payjoinUri)
+    if (!parsed.isValid || !parsed.params) {
+      return undefined
+    }
+    const amountSats =
+      parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
+        ? Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
+        : undefined
+    return {
+      address: parsed.params.address,
+      amountSats,
+      endpointKind: parsed.endpointKind,
+      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
+      label: parsed.params.label
+    }
+  }, [payjoinUri])
+
+  const nowMs = useNow()
+  const payjoinExpiryLabel = formatPayjoinExpiryLabel(
+    payjoinInvoice?.expiresAt,
+    nowMs
   )
 
   const account = useAccountsStore((state) =>
@@ -2090,6 +2127,31 @@ function PreviewTransaction() {
         <SSVStack justifyBetween>
           <ScrollView>
             <SSVStack>
+              {payjoinInvoice ? (
+                <View style={styles.payjoinNote} testID="preview-payjoin-note">
+                  <SSText size="xs" uppercase color="muted" center>
+                    {t('transaction.build.payjoin.previewNote.title')}
+                  </SSText>
+                  <SSText size="sm" weight="light" center>
+                    {[
+                      payjoinInvoice.endpointKind === 'bip78'
+                        ? t('transaction.build.payjoin.data.bip78')
+                        : t('transaction.build.payjoin.data.bip77'),
+                      payjoinInvoice.amountSats !== undefined
+                        ? `${formatNumber(payjoinInvoice.amountSats)} ${t('bitcoin.sats')}`
+                        : null,
+                      payjoinInvoice.label || null,
+                      formatAddress(payjoinInvoice.address, 6),
+                      payjoinExpiryLabel
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </SSText>
+                  <SSText size="xs" center style={styles.payjoinNoteHint}>
+                    {t('transaction.build.payjoin.previewNote.hint')}
+                  </SSText>
+                </View>
+              ) : null}
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
                   {t('transaction.id')}
@@ -2913,6 +2975,13 @@ function PreviewTransaction() {
 const styles = StyleSheet.create({
   mainLayout: { paddingBottom: 20, paddingTop: 0 },
   modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' },
+  payjoinNote: {
+    gap: 4,
+    paddingVertical: 4
+  },
+  payjoinNoteHint: {
+    color: Colors.gray[500]
+  },
   qrFormatSegmentTrack: {
     alignSelf: 'center',
     backgroundColor: Colors.gray[850],

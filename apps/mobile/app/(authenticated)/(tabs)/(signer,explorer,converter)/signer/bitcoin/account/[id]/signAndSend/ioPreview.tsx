@@ -50,6 +50,7 @@ import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
+import { useNow } from '@/hooks/useNow'
 import { useTransactionFeeWarnings } from '@/hooks/useTransactionFeeWarnings'
 import { useUriAutoSelectUtxos } from '@/hooks/useUriAutoSelectUtxos'
 import SSHStack from '@/layouts/SSHStack'
@@ -93,6 +94,10 @@ import {
   parseUriParameters,
   stripBitcoinPrefix
 } from '@/utils/parse'
+import {
+  formatPayjoinExpiryLabel,
+  parsePayjoinExpiresAtMs
+} from '@/utils/payjoinExpiry'
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   buildOutpointLabelsByRef,
@@ -268,11 +273,19 @@ export default function IOPreview() {
   const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] =
     useState<LoadingAutoSelectUtxosAlgorithm>(false)
 
+  // Payjoin invoices always use efficient coin selection — privacy/STONEWALL
+  // would rewrite outputs and break the pj= mailbox payment.
+  const uriAutoSelectAlgorithm =
+    payjoinUri && hasPayjoinParam(payjoinUri)
+      ? 'efficiency'
+      : defaultAutoSelectUtxos
+
   const { markUriAutoSelectPending, uriAutoSelectPending } =
     useUriAutoSelectUtxos({
       autoSelectFromUri,
       decoyAddress,
-      defaultAlgorithm: defaultAutoSelectUtxos,
+      defaultAlgorithm: uriAutoSelectAlgorithm,
+      nextBlockFee,
       onApplyAlgorithm: (type) => applyUtxoSelectionRef.current(type),
       outputsLength: outputs.length
     })
@@ -281,6 +294,7 @@ export default function IOPreview() {
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
   const payjoinDataBottomSheetRef = useRef<BottomSheet>(null)
+  const nowMs = useNow()
 
   const payjoinInvoice = useMemo(() => {
     if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
@@ -298,12 +312,18 @@ export default function IOPreview() {
       address: parsed.params.address,
       amountSats,
       endpointKind: parsed.endpointKind,
+      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
       label: parsed.params.label,
       pj: parsed.params.pj,
       pjos: parsed.params.pjos,
       uri: payjoinUri
     }
   }, [payjoinUri])
+
+  const payjoinExpiryLabel = formatPayjoinExpiryLabel(
+    payjoinInvoice?.expiresAt,
+    nowMs
+  )
 
   function handleOpenPayjoinData() {
     payjoinDataBottomSheetRef.current?.expand()
@@ -408,8 +428,9 @@ export default function IOPreview() {
       setPayjoinUri(undefined)
     }
 
-    // Skip privacy / STONEWALL auto-select for Payjoin invoices.
-    if (!isPayjoin && shouldAutoSelectUtxosFromParsedAmount(parsed.amount)) {
+    // Payjoin still needs fee-aware efficiency selection (forced via
+    // uriAutoSelectAlgorithm). Non-payjoin uses the settings default.
+    if (shouldAutoSelectUtxosFromParsedAmount(parsed.amount)) {
       markUriAutoSelectPendingRef.current?.()
     }
   }
@@ -491,7 +512,6 @@ export default function IOPreview() {
       }
       if (
         ok &&
-        !payjoin &&
         detectedContent.type === 'bitcoin_uri' &&
         shouldAutoSelectUtxosFromBitcoinUri(trimmedContent)
       ) {
@@ -585,7 +605,7 @@ export default function IOPreview() {
 
   const deferUnderfundedWarning =
     shouldDeferUnderfundedWarning({
-      defaultAutoSelectAlgorithm: defaultAutoSelectUtxos,
+      defaultAutoSelectAlgorithm: uriAutoSelectAlgorithm,
       inputsCount: inputs.size,
       isAutoSelectPending: uriAutoSelectPending,
       isSelectingUtxos: loadingOptimizeAlgorithm !== false,
@@ -1867,6 +1887,16 @@ export default function IOPreview() {
                   {t('transaction.build.payjoin.data.label')}
                 </SSText>
                 <SSText>{payjoinInvoice.label}</SSText>
+              </SSVStack>
+            ) : null}
+            {payjoinExpiryLabel ? (
+              <SSVStack gap="xs">
+                <SSText color="muted" uppercase size="xs">
+                  {t('transaction.build.payjoin.data.expires')}
+                </SSText>
+                <SSText testID="send-payjoin-data-expires">
+                  {payjoinExpiryLabel}
+                </SSText>
               </SSVStack>
             ) : null}
             <SSVStack gap="xs">

@@ -261,12 +261,16 @@ export default function SignTransaction() {
     }
   }
 
-  const transaction = buildSignTransactionChartModel(
-    psbt ?? null,
-    inputs,
-    outputs,
-    rawTx
-  )
+  // Payjoin keeps two wallets + OHTTP state hot on 2GB AVDs. Remounting Skia
+  // after the proposal is signed (waiting → signed), and again right after
+  // setBroadcasted(true) before navigate, was spiking RSS into LMK.
+  // Keep the chart off for the whole payjoin session on this screen.
+  const suppressTransactionChart =
+    waitingForReceiver || !!payjoinStatus
+
+  const transaction = suppressTransactionChart
+    ? null
+    : buildSignTransactionChartModel(psbt ?? null, inputs, outputs, rawTx)
 
   function handleBroadcastSingleSig() {
     if (!psbt || !wallet) {
@@ -355,6 +359,14 @@ export default function SignTransaction() {
       }
 
       setBroadcasted(true)
+      if (id) {
+        const store = usePayjoinSessionsStore.getState()
+        for (const session of store.sessions) {
+          if (session.accountId === id && session.role === 'sender') {
+            store.updateSessionStatus(session.id, 'completed')
+          }
+        }
+      }
       router.navigate(
         `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
       )
@@ -769,7 +781,7 @@ export default function SignTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {t('transaction.build.preview.contents')}
                 </SSText>
-                {transaction && (
+                {transaction ? (
                   <View style={{ overflow: 'hidden', width: '100%' }}>
                     <SSTransactionChart
                       accountId={id}
@@ -782,13 +794,13 @@ export default function SignTransaction() {
                       showUnspentLabel={false}
                     />
                   </View>
-                )}
+                ) : null}
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
                   {tn('transaction')}
                 </SSText>
-                {rawTx !== '' && (
+                {rawTx !== '' && !suppressTransactionChart ? (
                   <>
                     {(() => {
                       const isValidHex =
@@ -832,7 +844,7 @@ export default function SignTransaction() {
                       }
                     })()}
                   </>
-                )}
+                ) : null}
               </SSVStack>
             </SSVStack>
 
