@@ -7,6 +7,7 @@ import {
   Network as BDKNetwork
 } from 'react-native-bdk-sdk'
 
+import { type AddressKeyPair } from '@/types/models/Address'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import {
@@ -261,6 +262,49 @@ export function getExtendedPublicKeyFromSeed(
 export function getExtendedKeyFromDescriptor(descriptor: string) {
   const match = descriptor.match(/([xyztuv]pub)[A-Za-z0-9]+/i)
   return match ? match[0] : ''
+}
+
+// TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors
+export function getExtendedPrivateKeyFromDescriptor(descriptor: string) {
+  const match = descriptor.match(/([xyztuv]prv)[A-Za-z0-9]+/i)
+  return match ? match[0] : ''
+}
+
+/**
+ * Derive the raw hex private/public key pair at a full BIP32 path
+ * (e.g. "m/84'/0'/0'/0/3") from a master seed.
+ */
+export function getAddressKeyPairFromSeed(
+  seed: Uint8Array,
+  derivationPath: string
+): AddressKeyPair {
+  const root = bip32.fromSeed(seed)
+  const child = root.derivePath(derivationPath)
+  const privateKey = child.privateKey ? toHex(child.privateKey) : ''
+  const publicKey = toHex(child.publicKey)
+  if (child.privateKey) {
+    child.privateKey.fill(0)
+  }
+  return { privateKey, publicKey }
+}
+
+/**
+ * Derive the raw hex private/public key pair at a path relative to an
+ * account-level extended private key (e.g. "0/3" for change/index).
+ */
+export function getAddressKeyPairFromExtendedKey(
+  extendedKey: string,
+  network: BDKNetwork,
+  relativePath: string
+): AddressKeyPair {
+  const node = bip32.fromBase58(extendedKey, BIP32Networks[network])
+  const child = node.derivePath(relativePath)
+  const privateKey = child.privateKey ? toHex(child.privateKey) : ''
+  const publicKey = toHex(child.publicKey)
+  if (child.privateKey) {
+    child.privateKey.fill(0)
+  }
+  return { privateKey, publicKey }
 }
 
 // TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors

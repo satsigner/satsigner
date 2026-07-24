@@ -4,12 +4,16 @@ import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBubbleChart from '@/components/SSBubbleChart'
+import SSButton from '@/components/SSButton'
 import SSDetailsList from '@/components/SSDetailsList'
 import SSLabelDetails from '@/components/SSLabelDetails'
+import SSModal from '@/components/SSModal'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
@@ -21,11 +25,13 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
+import { type AddressKeyPair } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import { getAccountFingerprint } from '@/utils/account'
+import { decryptKeySecret, getAccountFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
+import { getAddressKeyPair } from '@/utils/key'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 function AddressDetails() {
@@ -68,6 +74,45 @@ function AddressDetails() {
   const mainLayoutHorizontalPadding = 12
   const GRAPH_HEIGHT = height * 0.44
   const GRAPH_WIDTH = width * ((100 - mainLayoutHorizontalPadding) / 100)
+
+  const [showKeyPinEntry, setShowKeyPinEntry] = useState(false)
+  const [addressKeyPair, setAddressKeyPair] = useState<AddressKeyPair | null>(
+    null
+  )
+  const [keyUnavailable, setKeyUnavailable] = useState(false)
+
+  const key = account?.keys[0]
+
+  async function handleRevealKeys() {
+    if (!account || !address || !key) {
+      return
+    }
+    try {
+      const secret = await decryptKeySecret(key)
+      const pair = getAddressKeyPair(secret, address, account.network)
+      setAddressKeyPair(pair)
+      setKeyUnavailable(!pair)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown reason'
+      toast.error(`${t('address.details.key.unableToDecrypt')}: ${reason}`)
+    } finally {
+      setShowKeyPinEntry(false)
+    }
+  }
+
+  function handleShowKeyPress() {
+    setShowKeyPinEntry(true)
+  }
+
+  function handleKeyPinTriesOver() {
+    setShowKeyPinEntry(false)
+  }
+
+  function handleSignMessagePress() {
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/address/${addr}/signMessage`
+    )
+  }
 
   useEffect(() => {
     if (!address) {
@@ -249,14 +294,52 @@ function AddressDetails() {
               <SSDetailsList
                 columns={1}
                 items={[
-                  [t('address.details.key.public'), ''],
-                  [t('address.details.key.private'), '']
+                  [
+                    t('address.details.key.public'),
+                    addressKeyPair?.publicKey,
+                    { copyToClipboard: true, variant: 'mono' }
+                  ],
+                  [
+                    t('address.details.key.private'),
+                    addressKeyPair?.privateKey,
+                    { copyToClipboard: true, variant: 'mono' }
+                  ]
                 ]}
               />
+              {!addressKeyPair && !keyUnavailable && (
+                <SSButton
+                  label={t('address.details.key.reveal')}
+                  variant="outline"
+                  onPress={handleShowKeyPress}
+                />
+              )}
+              {keyUnavailable && (
+                <SSText color="muted" size="xs">
+                  {t('address.details.key.unavailable')}
+                </SSText>
+              )}
+              {account.policyType !== 'watchonly' && (
+                <SSButton
+                  label={t('address.details.signMessage')}
+                  variant="subtle"
+                  onPress={handleSignMessagePress}
+                />
+              )}
             </SSVStack>
           </SSVStack>
         </SSMainLayout>
       </ScrollView>
+      <SSModal
+        visible={showKeyPinEntry}
+        onClose={() => setShowKeyPinEntry(false)}
+      >
+        <SSPinAuth
+          title={t('account.enter.pin')}
+          onSuccess={handleRevealKeys}
+          onTriesOver={handleKeyPinTriesOver}
+          maxTries={3}
+        />
+      </SSModal>
     </>
   )
 }
