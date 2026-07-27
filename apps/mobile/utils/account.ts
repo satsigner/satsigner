@@ -1,28 +1,10 @@
-import { PIN_KEY } from '@/config/auth'
-import { getItem, getKeySecret, storeKeySecret } from '@/storage/encrypted'
-import type {
-  Account,
-  DecryptedAccount,
-  DecryptedKey,
-  Key,
-  Secret
-} from '@/types/models/Account'
+import { getKeySecret, storeKeySecret } from '@/storage/encrypted'
+import type { Account, Key, Secret } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
+import { decryptKeySecret, getPin } from '@/utils/decryption'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 const MAX_DAYS_WITHOUT_SYNCING = 3
-
-function addContextToError(
-  error: unknown,
-  context: string,
-  fallbackMessage: string
-) {
-  return new Error(
-    error instanceof Error
-      ? `${error.message} ${context}`
-      : `${fallbackMessage} ${context}`
-  )
-}
 
 // update labels in the field transactions, utxos, and addresses
 // using the field labels.
@@ -121,94 +103,6 @@ export function updateAccountObjectLabels(account: Account) {
   return updatedAccount
 }
 
-export async function getPin() {
-  const pin = await getItem(PIN_KEY)
-  if (!pin) {
-    throw new Error('Failed to obtain PIN for decryption')
-  }
-  return pin
-}
-
-// decrypt key secret from expo-secure-store using account context
-export async function decryptKeySecretFromStore(
-  accountId: string,
-  keyIndex: number,
-  pin: string
-): Promise<Secret> {
-  const stored = await getKeySecret(accountId, keyIndex)
-  if (!stored) {
-    throw new Error(`Key secret not found in secure storage (key #${keyIndex})`)
-  }
-
-  let decryptedSecret = ''
-  try {
-    decryptedSecret = await aesDecrypt(stored.secret, pin, stored.iv)
-  } catch {
-    throw new Error('AES decryption failed')
-  }
-
-  let secretObject: object = {}
-  try {
-    secretObject = JSON.parse(decryptedSecret)
-  } catch {
-    throw new Error('Failed to parse decrypted key secret')
-  }
-
-  const expectedObjKeys = new Set([
-    'mnemonic',
-    'passphrase',
-    'externalDescriptor',
-    'internalDescriptor',
-    'extendedPublicKey',
-    'fingerprint'
-  ])
-  if (Object.keys(secretObject).some((k) => !expectedObjKeys.has(k))) {
-    throw new Error('Invalid serialized secret')
-  }
-
-  return secretObject as Secret
-}
-
-// decrypt key secret without account context using provided PIN
-// (used during builder flow when secret is still in memory)
-export async function decryptKeySecretUsingPin(key: Key, pin: string) {
-  // object already decrypt
-  if (typeof key.secret === 'object') {
-    return key.secret
-  }
-
-  // decryption validation
-  let decryptedSecret = ''
-  try {
-    decryptedSecret = await aesDecrypt(key.secret, pin, key.iv)
-  } catch {
-    throw new Error('AES decryption failed')
-  }
-
-  // parse validation
-  let secretObject: object = {}
-  try {
-    secretObject = JSON.parse(decryptedSecret)
-  } catch {
-    throw new Error('Failed to parse decrypted key secret')
-  }
-
-  // serialized object validation
-  const expectedObjKeys = new Set([
-    'mnemonic',
-    'passphrase',
-    'externalDescriptor',
-    'internalDescriptor',
-    'extendedPublicKey',
-    'fingerprint'
-  ])
-  if (Object.keys(secretObject).some((k) => !expectedObjKeys.has(k))) {
-    throw new Error('Invalid serialized secret')
-  }
-
-  return secretObject as Secret
-}
-
 export async function dropSeedFromKey(
   accountId: string,
   key: Key,
@@ -252,74 +146,6 @@ export function dropSeedFromKeyInMemory(key: Key): Key {
       internalDescriptor: secret.internalDescriptor
     }
   }
-}
-
-// decrypt key secret without account context using PIN from store
-export async function decryptKeySecret(key: Key) {
-  const pin = await getPin()
-  return decryptKeySecretUsingPin(key, pin)
-}
-
-// decrypt key secret knowing account context — reads from secure store
-export async function decryptKeySecretAt(
-  accountId: string,
-  keyIndex: number,
-  pin: string
-) {
-  try {
-    return await decryptKeySecretFromStore(accountId, keyIndex, pin)
-  } catch (error) {
-    throw addContextToError(error, `[key #${keyIndex}]`, 'Decryption failed')
-  }
-}
-
-export async function decryptAccountKeySecret(
-  account: Account,
-  keyIndex: number
-) {
-  try {
-    const pin = await getPin()
-    return decryptKeySecretAt(account.id, keyIndex, pin)
-  } catch (error) {
-    throw addContextToError(
-      error,
-      `(key #${keyIndex} account ${account.name})`,
-      'Decryption of secret failed'
-    )
-  }
-}
-
-export async function decryptAllAccountKeySecrets(account: Account) {
-  try {
-    const secrets: Secret[] = []
-    const pin = await getPin()
-    for (let index = 0; index < account.keys.length; index += 1) {
-      const secret = await decryptKeySecretAt(account.id, index, pin)
-      secrets.push(secret)
-    }
-    return secrets
-  } catch (error) {
-    throw addContextToError(
-      error,
-      `(account ${account.name})`,
-      'Decryption of secret failed'
-    )
-  }
-}
-
-export async function getAccountWithDecryptedKeys(account: Account) {
-  const decryptedSecrets = await decryptAllAccountKeySecrets(account)
-  const decryptedAccount: DecryptedAccount = {
-    ...account,
-    keys: account.keys.map((key, index) => {
-      const decryptedKey: DecryptedKey = {
-        ...key,
-        secret: decryptedSecrets[index]
-      }
-      return decryptedKey
-    })
-  }
-  return decryptedAccount
 }
 
 export function getAccountFingerprint(

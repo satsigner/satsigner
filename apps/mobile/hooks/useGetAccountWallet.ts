@@ -6,8 +6,8 @@ import { getWalletData } from '@/api/bdk'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
-import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { getBitcoinWithDecryptedKeys } from '@/utils/decryption'
 
 const useGetAccountWallet = (id: Account['id']) => {
   const [wallet, addAccountWallet] = useWalletsStore(
@@ -32,7 +32,7 @@ const useGetAccountWallet = (id: Account['id']) => {
     }
 
     try {
-      const tmpAccount = await getAccountWithDecryptedKeys(account)
+      const tmpAccount = await getBitcoinWithDecryptedKeys(account)
       const walletData = await getWalletData(
         tmpAccount,
         appNetworkToBdkNetwork(account.network)

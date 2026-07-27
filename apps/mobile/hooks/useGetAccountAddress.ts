@@ -8,14 +8,14 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
-import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { getBitcoinWithDecryptedKeys } from '@/utils/decryption'
 
 async function deriveAccountAddress(
   account: Account,
   network: Network
 ): Promise<string> {
-  const temporaryAccount = await getAccountWithDecryptedKeys(account)
+  const temporaryAccount = await getBitcoinWithDecryptedKeys(account)
 
   if (account.keys[0].creationType === 'importAddress') {
     const [{ secret }] = temporaryAccount.keys

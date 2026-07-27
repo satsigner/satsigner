@@ -41,13 +41,11 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import {
-  decryptAllAccountKeySecrets,
-  getAccountFingerprint
-} from '@/utils/account'
+import { getAccountFingerprint } from '@/utils/account'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { aesDecrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
+import { decryptAllBitcoinKeySecrets } from '@/utils/decryption'
 import { formatDate } from '@/utils/format'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
@@ -227,7 +225,7 @@ export default function AccountSettings() {
       if (!account) {
         return
       }
-      const secrets = await decryptAllAccountKeySecrets(account)
+      const secrets = await decryptAllBitcoinKeySecrets(account)
       const decryptedKeyData = account.keys.map((key, index) => {
         const newKey: Key = {
           ...key,

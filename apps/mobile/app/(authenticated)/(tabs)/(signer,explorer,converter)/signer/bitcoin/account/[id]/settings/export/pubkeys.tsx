@@ -16,10 +16,10 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { appNetworkToBdkNetwork, convertKeyFormat } from '@/utils/bitcoin'
+import { getBitcoinWithDecryptedKeys } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportPubkeys() {
@@ -56,7 +56,7 @@ export default function ExportPubkeys() {
       setIsLoading(true)
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
-        const tmpAccount = await getAccountWithDecryptedKeys(account)
+        const tmpAccount = await getBitcoinWithDecryptedKeys(account)
         const walletData = !isImportAddress
           ? await getWalletData(tmpAccount, appNetworkToBdkNetwork(network))
           : undefined

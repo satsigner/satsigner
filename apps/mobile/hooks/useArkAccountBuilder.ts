@@ -10,8 +10,8 @@ import { useArkStore } from '@/store/ark'
 import { useArkAccountBuilderStore } from '@/store/arkAccountBuilder'
 import { useWalletsStore } from '@/store/wallets'
 import type { ArkAccount } from '@/types/models/Ark'
-import { decryptKeySecretFromStore, getPin } from '@/utils/account'
 import { getArkServer } from '@/utils/ark'
+import { decryptKeySecretFromStore, getPin } from '@/utils/decryption'
 
 import { useCreateSinglesigAccount } from './useCreateSinglesigAccount'
 

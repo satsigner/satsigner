@@ -25,8 +25,8 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type PageRoute } from '@/types/navigation/page'
-import { decryptAllAccountKeySecrets } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { decryptAllBitcoinKeySecrets } from '@/utils/decryption'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
@@ -115,7 +115,7 @@ export default function AuthenticatedLayout() {
           continue
         }
 
-        const secrets = await decryptAllAccountKeySecrets(account)
+        const secrets = await decryptAllBitcoinKeySecrets(account)
         const tmpAccount: Account = {
           ...account,
           keys: account.keys.map((key, index) => {

@@ -5,8 +5,8 @@ import { getWalletData } from '@/api/bdk'
 import { useNostrStore } from '@/store/nostr'
 import { Label } from '@/types/bips/329'
 import type { Account } from '@/types/models/Account'
-import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { getBitcoinWithDecryptedKeys } from '@/utils/decryption'
 import { resolveDescriptorForNostrCommonKeys } from '@/utils/getOutputDescriptorForKey'
 import { deriveNostrKeysFromDescriptor } from '@/utils/nostr'
 import { nostrSyncService } from '@/utils/nostrSyncService'
@@ -107,7 +107,7 @@ function useNostrSync() {
       return
     }
 
-    const tmpAccount = await getAccountWithDecryptedKeys(account)
+    const tmpAccount = await getBitcoinWithDecryptedKeys(account)
     const [firstKey] = tmpAccount.keys
     const { secret } = firstKey
 

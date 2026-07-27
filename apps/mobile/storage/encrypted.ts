@@ -30,11 +30,11 @@ function deleteItem(key: string): Promise<void> {
   return SecureStore.deleteItemAsync(vKey)
 }
 
-function getKeySecretStoreKey(accountId: string, keyIndex: number) {
+function getStoreKeyForKeySecret(accountId: string, keyIndex: number) {
   return `${KEY_SECRET_PREFIX}.${accountId}.${keyIndex}`
 }
 
-function getKeyIvStoreKey(accountId: string, keyIndex: number) {
+function getStoreKeyForKeyIv(accountId: string, keyIndex: number) {
   return `${KEY_IV_PREFIX}.${accountId}.${keyIndex}`
 }
 
@@ -44,16 +44,16 @@ async function storeKeySecret(
   secret: string,
   iv: string
 ) {
-  await setItem(getKeySecretStoreKey(accountId, keyIndex), secret)
-  await setItem(getKeyIvStoreKey(accountId, keyIndex), iv)
+  await setItem(getStoreKeyForKeySecret(accountId, keyIndex), secret)
+  await setItem(getStoreKeyForKeyIv(accountId, keyIndex), iv)
 }
 
 async function getKeySecret(
   accountId: string,
   keyIndex: number
 ): Promise<{ secret: string; iv: string } | null> {
-  const secret = await getItem(getKeySecretStoreKey(accountId, keyIndex))
-  const iv = await getItem(getKeyIvStoreKey(accountId, keyIndex))
+  const secret = await getItem(getStoreKeyForKeySecret(accountId, keyIndex))
+  const iv = await getItem(getStoreKeyForKeyIv(accountId, keyIndex))
   if (!secret || !iv) {
     return null
   }
@@ -61,8 +61,8 @@ async function getKeySecret(
 }
 
 async function deleteKeySecret(accountId: string, keyIndex: number) {
-  await deleteItem(getKeySecretStoreKey(accountId, keyIndex))
-  await deleteItem(getKeyIvStoreKey(accountId, keyIndex))
+  await deleteItem(getStoreKeyForKeySecret(accountId, keyIndex))
+  await deleteItem(getStoreKeyForKeyIv(accountId, keyIndex))
 }
 
 async function deleteAllKeySecrets(accountId: string, keyCount: number) {
