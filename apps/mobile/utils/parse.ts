@@ -144,11 +144,12 @@ function parseLabel(rawLabel: string) {
 
 /** Normalizes UTXO label for display; fixes broken "Change for %{txlabel}" interpolation. */
 function normalizeUtxoLabelForDisplay(rawLabel: string): string {
-  const { label } = parseLabel(rawLabel || '')
+  const { label, tags } = parseLabel(rawLabel || '')
   if (label.includes('[missing') && label.includes('txlabel')) {
     return t('sign.changeAddressLabelDefault')
   }
-  return label
+  // Include tags so tag-only labels (e.g. "#alpha") are visible, not "No label".
+  return parseLabelTags(label, tags)
 }
 
 function parseLabelTags(label: string, tags: string[]) {

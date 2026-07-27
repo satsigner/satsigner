@@ -131,6 +131,7 @@ import {
   selectStonewallUtxos,
   splitStonewallOutputValues
 } from '@/utils/utxo'
+import { applyUtxoDenylist } from '@/utils/utxoList'
 
 export default function IOPreview() {
   const router = useRouter()
@@ -948,7 +949,11 @@ export default function IOPreview() {
       outputs
     })
 
-    const pool = filterUtxosByExcludedOutpoints(account.utxos, excluded)
+    const selectableUtxos = applyUtxoDenylist(
+      account.utxos,
+      account.excludedUtxoOutpoints ?? []
+    )
+    const pool = filterUtxosByExcludedOutpoints(selectableUtxos, excluded)
 
     const stonewallResult = selectStonewallUtxos(
       pool,
@@ -1090,8 +1095,13 @@ export default function IOPreview() {
 
         setPreviousUserSelectedUtxos(getInputs())
 
+        const selectableUtxos = applyUtxoDenylist(
+          account.utxos,
+          account.excludedUtxoOutpoints ?? []
+        )
+
         const feeFn = (inputCount: number, hasChange: boolean) => {
-          const mockInputs = account.utxos.slice(0, inputCount)
+          const mockInputs = selectableUtxos.slice(0, inputCount)
           const { vsize } = estimateTransactionSize(
             mockInputs,
             outputs,
@@ -1101,7 +1111,7 @@ export default function IOPreview() {
         }
 
         const optimizationResult = selectEfficientUtxos(
-          account.utxos,
+          selectableUtxos,
           userPaymentAmount,
           effectiveFeeRate,
           { feeFn }

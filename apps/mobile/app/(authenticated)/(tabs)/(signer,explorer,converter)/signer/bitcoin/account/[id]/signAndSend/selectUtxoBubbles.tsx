@@ -6,12 +6,13 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconList } from '@/components/icons'
+import { SSIconExclude, SSIconFilter, SSIconList } from '@/components/icons'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
+import SSUtxoListControlsModal from '@/components/SSUtxoListControlsModal'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -19,11 +20,20 @@ import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { useUtxoListControlsStore } from '@/store/utxoListControls'
 import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import {
+  applyUtxoDenylist,
+  DEFAULT_UTXO_LIST_FILTER,
+  filterUtxos,
+  type UtxoKeychainFilter,
+  type UtxoLabelFilter,
+  type UtxoListFilter
+} from '@/utils/utxoList'
 
 function SelectUtxoBubbles() {
   const router = useRouter()
@@ -31,7 +41,7 @@ function SelectUtxoBubbles() {
   const insets = useSafeAreaInsets()
 
   const account = useAccountsStore(
-    (state) => state.accounts.find((account) => account.id === id)!
+    (state) => state.accounts.find((entry) => entry.id === id)!
   )
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
@@ -51,16 +61,32 @@ function SelectUtxoBubbles() {
 
   const [customAmountModalVisible, setCustomAmountModalVisible] =
     useState(false)
+  const [filter, setFilter] = useState<UtxoListFilter>(DEFAULT_UTXO_LIST_FILTER)
+  const [controlsModalVisible, setControlsModalVisible] = useState(false)
+  const [groupMode, setGroupMode] = useUtxoListControlsStore(
+    useShallow((state) => [state.groupMode, state.setGroupMode])
+  )
+
+  const excludedOutpoints = account.excludedUtxoOutpoints
+  const excludedCount = excludedOutpoints?.length ?? 0
+  const selectableUtxos = filterUtxos(
+    applyUtxoDenylist(account.utxos, excludedOutpoints ?? []),
+    filter
+  )
 
   const hasSelectedUtxos = inputs.size > 0
-  const selectedAllUtxos = inputs.size === account.utxos.length
+  const selectedAllUtxos =
+    selectableUtxos.length > 0 &&
+    selectableUtxos.every((utxo) => inputs.has(getUtxoOutpoint(utxo)))
 
   function utxosValue(utxos: Utxo[]): number {
     return utxos.reduce((acc, utxo) => acc + utxo.value, 0)
   }
 
-  const utxosTotalValue = utxosValue(account.utxos)
+  const utxosTotalValue = utxosValue(selectableUtxos)
   const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
+  const controlsActive =
+    filter.keychain !== 'all' || filter.label !== 'all' || groupMode !== 'none'
 
   function handleOnToggleSelected(utxo: Utxo) {
     const includesInput = inputs.has(getUtxoOutpoint(utxo))
@@ -73,15 +99,23 @@ function SelectUtxoBubbles() {
   }
 
   function handleSelectAllUtxos() {
-    for (const utxo of account.utxos) {
+    for (const utxo of selectableUtxos) {
       addInput(utxo)
     }
   }
 
   function handleDeselectAllUtxos() {
-    for (const utxo of account.utxos) {
+    for (const utxo of selectableUtxos) {
       removeInput(utxo)
     }
+  }
+
+  function setKeychainFilter(keychain: UtxoKeychainFilter) {
+    setFilter((prev) => ({ ...prev, keychain }))
+  }
+
+  function setLabelFilter(label: UtxoLabelFilter) {
+    setFilter((prev) => ({ ...prev, label }))
   }
 
   return (
@@ -93,25 +127,50 @@ function SelectUtxoBubbles() {
       >
         <SSVStack>
           <SSHStack justifyBetween>
-            <SSText color="muted">{t('utxo.group')}</SSText>
-            <SSText size="md">
-              {t('transaction.build.select.spendableOutputs')}
-            </SSText>
             <SSIconButton
               onPress={() =>
                 router.navigate(
-                  `/signer/bitcoin/account/${id}/signAndSend/selectUtxoList`
+                  `/signer/bitcoin/account/${id}/signAndSend/excludeUtxos`
                 )
               }
+              style={styles.badgeButton}
             >
-              <SSIconList height={16} width={24} />
+              <SSIconExclude height={16} width={16} />
+              {excludedCount > 0 ? (
+                <View style={styles.excludeBadge}>
+                  <SSText size="xxs" style={styles.excludeBadgeText}>
+                    {excludedCount}
+                  </SSText>
+                </View>
+              ) : null}
             </SSIconButton>
+            <SSText size="md">
+              {t('transaction.build.select.spendableOutputs')}
+            </SSText>
+            <SSHStack gap="sm">
+              <SSIconButton
+                onPress={() => setControlsModalVisible(true)}
+                style={styles.badgeButton}
+              >
+                <SSIconFilter height={16} width={16} />
+                {controlsActive ? <View style={styles.badgeDot} /> : null}
+              </SSIconButton>
+              <SSIconButton
+                onPress={() =>
+                  router.navigate(
+                    `/signer/bitcoin/account/${id}/signAndSend/selectUtxoList`
+                  )
+                }
+              >
+                <SSIconList height={15} width={15} />
+              </SSIconButton>
+            </SSHStack>
           </SSHStack>
           <SSVStack itemsCenter gap="sm">
             <SSVStack itemsCenter gap="xs">
               <SSText>
                 {inputs.size} {t('common.of').toLowerCase()}{' '}
-                {account.utxos.length} {t('common.selected').toLowerCase()}
+                {selectableUtxos.length} {t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
@@ -162,10 +221,11 @@ function SelectUtxoBubbles() {
         </SSVStack>
       </LinearGradient>
       <SSBubbleChart
-        utxos={account.utxos}
+        utxos={selectableUtxos}
         canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
         inputs={Array.from(inputs.values())}
         onPress={handleOnToggleSelected}
+        groupMode={groupMode}
         style={{ position: 'absolute', top: 40 }}
       />
       <LinearGradient
@@ -228,6 +288,15 @@ function SelectUtxoBubbles() {
           </SSText>
         </SSVStack>
       </SSModal>
+      <SSUtxoListControlsModal
+        visible={controlsModalVisible}
+        filter={filter}
+        groupMode={groupMode}
+        onClose={() => setControlsModalVisible(false)}
+        onKeychainChange={setKeychainFilter}
+        onLabelChange={setLabelFilter}
+        onGroupModeChange={setGroupMode}
+      />
     </View>
   )
 }
@@ -249,6 +318,34 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     zIndex: 20
+  },
+  badgeButton: {
+    position: 'relative'
+  },
+  badgeDot: {
+    backgroundColor: Colors.white,
+    borderRadius: 3,
+    height: 6,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 6
+  },
+  excludeBadge: {
+    alignItems: 'center',
+    backgroundColor: Colors.error,
+    borderRadius: 7,
+    height: 14,
+    justifyContent: 'center',
+    minWidth: 14,
+    paddingHorizontal: 3,
+    position: 'absolute',
+    right: -4,
+    top: -4
+  },
+  excludeBadgeText: {
+    color: Colors.white,
+    lineHeight: 12
   }
 })
 

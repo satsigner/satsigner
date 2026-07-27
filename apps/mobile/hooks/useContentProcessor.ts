@@ -28,6 +28,7 @@ import {
   getCollectedSignerPubkeys
 } from '@/utils/psbt'
 import { selectEfficientUtxos } from '@/utils/utxo'
+import { applyUtxoDenylist } from '@/utils/utxoList'
 
 export type BitcoinUriExceedsBalancePromptInfo = {
   address: string
@@ -80,7 +81,11 @@ function autoSelectUtxos(
   targetAmount: number,
   actions: Pick<ProcessorActions, 'addInput' | 'setFeeRate'>
 ) {
-  if (!account || account.utxos.length === 0) {
+  const selectableUtxos = applyUtxoDenylist(
+    account.utxos,
+    account.excludedUtxoOutpoints ?? []
+  )
+  if (!account || selectableUtxos.length === 0) {
     return
   }
 
@@ -96,19 +101,19 @@ function autoSelectUtxos(
   }
 
   if (targetAmount === 0 || targetAmount === 1) {
-    const highestUtxo = account.utxos.reduce((max: Utxo, utxo: Utxo) =>
+    const highestUtxo = selectableUtxos.reduce((max: Utxo, utxo: Utxo) =>
       utxo.value > max.value ? utxo : max
     )
     addInput?.(highestUtxo)
     return
   }
 
-  const result = selectEfficientUtxos(account.utxos, targetAmount, feeRate, {
+  const result = selectEfficientUtxos(selectableUtxos, targetAmount, feeRate, {
     dustThreshold: DUST_LIMIT
   })
 
   if (result.error) {
-    const highestUtxo = account.utxos.reduce((max: Utxo, utxo: Utxo) =>
+    const highestUtxo = selectableUtxos.reduce((max: Utxo, utxo: Utxo) =>
       utxo.value > max.value ? utxo : max
     )
     addInput?.(highestUtxo)

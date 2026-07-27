@@ -4,7 +4,7 @@ import { Toaster } from 'sonner-native'
 
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Layout } from '@/styles'
+import { Colors, Layout } from '@/styles'
 
 import SSButton, { type SSButtonProps } from './SSButton'
 
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     zIndex: 1000
   },
   containerFullOpacity: {
-    backgroundColor: 'rgba(0, 0, 0, 1)',
+    backgroundColor: Colors.gray[950],
     zIndex: 1000
   },
   innerContainer: {

@@ -1,11 +1,11 @@
 import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconBubbles } from '@/components/icons'
+import { SSIconBubbles, SSIconExclude, SSIconFilter } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -13,6 +13,7 @@ import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSUtxoItem from '@/components/SSUtxoItem'
+import SSUtxoListControlsModal from '@/components/SSUtxoListControlsModal'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -20,15 +21,32 @@ import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { useUtxoListControlsStore } from '@/store/utxoListControls'
 import { Colors, Layout } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { formatNumber } from '@/utils/format'
-import { compareAmount, compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import {
+  DEFAULT_UTXO_LIST_FILTER,
+  isUtxoExcluded,
+  prepareUtxoList,
+  type UtxoKeychainFilter,
+  type UtxoLabelFilter,
+  type UtxoListFilter,
+  type UtxoSortField
+} from '@/utils/utxoList'
+import {
+  groupDisplayTitle,
+  UTXO_SORT_FIELDS,
+  utxoSortFieldLabel
+} from '@/utils/utxoListUi'
 
-type SortField = 'date' | 'amount'
+type ListRow =
+  | { type: 'header'; key: string; title: string }
+  | { type: 'utxo'; key: string; utxo: Utxo }
 
 export default function SelectUtxoList() {
   const router = useRouter()
@@ -36,7 +54,7 @@ export default function SelectUtxoList() {
   const insets = useSafeAreaInsets()
 
   const account = useAccountsStore(
-    (state) => state.accounts.find((account) => account.id === id)!
+    (state) => state.accounts.find((entry) => entry.id === id)!
   )
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
@@ -50,7 +68,19 @@ export default function SelectUtxoList() {
       state.removeInput
     ])
   )
+  const [groupMode, sortField, sortDirection, setGroupMode, setSort] =
+    useUtxoListControlsStore(
+      useShallow((state) => [
+        state.groupMode,
+        state.sortField,
+        state.sortDirection,
+        state.setGroupMode,
+        state.setSort
+      ])
+    )
 
+  const excludedOutpoints = account.excludedUtxoOutpoints
+  const excludedCount = excludedOutpoints?.length ?? 0
   const utxoOutpointSet = new Set(account.utxos.map(getUtxoOutpoint))
   const orphanedInputs = Array.from(inputs.values()).filter(
     (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
@@ -60,14 +90,49 @@ export default function SelectUtxoList() {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const [sortDirection, setSortDirection] = useState<Direction>('desc')
-  const [sortField, setSortField] = useState<SortField>('amount')
+  const [filter, setFilter] = useState<UtxoListFilter>(DEFAULT_UTXO_LIST_FILTER)
+  const [controlsModalVisible, setControlsModalVisible] = useState(false)
+
+  const groups = prepareUtxoList({
+    excludedOutpoints: excludedOutpoints ?? [],
+    filter,
+    groupMode,
+    hideExcluded: false,
+    sortDirection,
+    sortField,
+    utxos: account.utxos
+  })
+
+  const listRows: ListRow[] = []
+  for (const group of groups) {
+    if (groupMode !== 'none') {
+      listRows.push({
+        key: `header:${group.key}`,
+        title: groupDisplayTitle(groupMode, group.key, group.title),
+        type: 'header'
+      })
+    }
+    for (const utxo of group.utxos) {
+      listRows.push({
+        key: getUtxoOutpoint(utxo),
+        type: 'utxo',
+        utxo
+      })
+    }
+  }
+
+  const visibleUtxos = groups.flatMap((group) => group.utxos)
+  const selectableUtxos = visibleUtxos.filter(
+    (utxo) => !isUtxoExcluded(utxo, excludedOutpoints ?? [])
+  )
 
   const hasSelectedUtxos = inputs.size > 0
-  const selectedAllUtxos = inputs.size === account.utxos.length
+  const selectedAllUtxos =
+    selectableUtxos.length > 0 &&
+    selectableUtxos.every((utxo) => hasInput(utxo))
   const selectedCount = inputs.size
 
-  const buttonLabel = useMemo(() => {
+  function buttonLabel() {
     if (!hasSelectedUtxos) {
       return t('transaction.build.add.inputs.button.noSelection')
     }
@@ -80,85 +145,114 @@ export default function SelectUtxoList() {
     return t('transaction.build.add.inputs.button.multipleSelected', {
       count: selectedCount
     })
-  }, [hasSelectedUtxos, selectedAllUtxos, selectedCount])
+  }
 
-  const largestValue = useMemo(
-    () => Math.max(...account.utxos.map((utxo) => utxo.value)),
-    [account.utxos]
-  )
+  const largestValue = Math.max(0, ...account.utxos.map((utxo) => utxo.value))
 
-  const utxosValue = (utxos: Utxo[]): number =>
-    utxos.reduce((acc, utxo) => acc + utxo.value, 0)
+  function utxosValue(utxos: Utxo[]): number {
+    return utxos.reduce((acc, utxo) => acc + utxo.value, 0)
+  }
 
-  const utxosTotalValue = useMemo(
-    () => utxosValue(account.utxos),
-    [account.utxos]
-  )
+  const utxosTotalValue = utxosValue(selectableUtxos)
   const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
 
   function handleSelectAllUtxos() {
-    for (const utxo of account.utxos) {
+    for (const utxo of selectableUtxos) {
       addInput(utxo)
     }
   }
 
   function handleDeselectAllUtxos() {
-    for (const utxo of account.utxos) {
+    for (const utxo of selectableUtxos) {
       removeInput(utxo)
     }
   }
 
-  function sortUtxos(utxos: Utxo[]) {
-    return utxos.toSorted((utxo1, utxo2) =>
-      sortDirection === 'asc'
-        ? sortField === 'date'
-          ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
-          : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
-        : sortField === 'date'
-          ? compareAmount(utxo1.value, utxo2.value)
-          : compareAmount(utxo2.value, utxo1.value)
-    )
-  }
-
-  function handleOnDirectionChanged(field: SortField, direction: Direction) {
-    setSortField(field)
-    setSortDirection(direction)
+  function handleOnDirectionChanged(
+    field: UtxoSortField,
+    direction: Direction
+  ) {
+    setSort(field, direction)
   }
 
   function handleOnToggleSelected(utxo: Utxo) {
-    const includesInput = hasInput(utxo)
-
-    if (includesInput) {
+    if (isUtxoExcluded(utxo, excludedOutpoints ?? []) && !hasInput(utxo)) {
+      return
+    }
+    if (hasInput(utxo)) {
       removeInput(utxo)
     } else {
       addInput(utxo)
     }
   }
 
+  function handleToggleExcluded(utxo: Utxo) {
+    if (hasInput(utxo)) {
+      removeInput(utxo)
+    }
+    toggleUtxoExcluded(account.id, utxo)
+  }
+
+  function setKeychainFilter(keychain: UtxoKeychainFilter) {
+    setFilter((prev) => ({ ...prev, keychain }))
+  }
+
+  function setLabelFilter(label: UtxoLabelFilter) {
+    setFilter((prev) => ({ ...prev, label }))
+  }
+
+  const controlsActive =
+    filter.keychain !== 'all' || filter.label !== 'all' || groupMode !== 'none'
+
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.headerContainer}>
         <SSVStack>
           <SSHStack justifyBetween>
-            <SSText color="muted">{t('utxo.group')}</SSText>
-            <SSText size="md">
-              {t('transaction.build.select.spendableOutputs')}
-            </SSText>
             <SSIconButton
               onPress={() =>
                 router.navigate(
-                  `/signer/bitcoin/account/${id}/signAndSend/selectUtxoBubbles`
+                  `/signer/bitcoin/account/${id}/signAndSend/excludeUtxos`
                 )
               }
+              style={styles.badgeButton}
             >
-              <SSIconBubbles height={22} width={24} />
+              <SSIconExclude height={16} width={16} />
+              {excludedCount > 0 ? (
+                <View style={styles.excludeBadge}>
+                  <SSText size="xxs" style={styles.excludeBadgeText}>
+                    {excludedCount}
+                  </SSText>
+                </View>
+              ) : null}
             </SSIconButton>
+            <SSText size="md">
+              {t('transaction.build.select.spendableOutputs')}
+            </SSText>
+            <SSHStack gap="sm">
+              <SSIconButton
+                onPress={() => setControlsModalVisible(true)}
+                style={styles.badgeButton}
+              >
+                <SSIconFilter height={16} width={16} />
+                {controlsActive ? <View style={styles.badgeDot} /> : null}
+              </SSIconButton>
+              <SSIconButton
+                onPress={() =>
+                  router.navigate(
+                    `/signer/bitcoin/account/${id}/signAndSend/selectUtxoBubbles`
+                  )
+                }
+              >
+                <SSIconBubbles height={15} width={15} />
+              </SSIconButton>
+            </SSHStack>
           </SSHStack>
           <SSVStack itemsCenter gap="sm">
             <SSVStack itemsCenter gap="xs">
               <SSText>
                 {inputs.size} {t('common.of').toLowerCase()}{' '}
-                {account.utxos.length} {t('common.selected').toLowerCase()}
+                {selectableUtxos.length} {t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
@@ -247,20 +341,16 @@ export default function SelectUtxoList() {
           />
         </View>
         <SSHStack gap="sm" style={{ flexShrink: 0 }}>
-          <SSSortDirectionToggle
-            label={t('common.date')}
-            showArrow={sortField === 'date'}
-            onDirectionChanged={(direction) =>
-              handleOnDirectionChanged('date', direction)
-            }
-          />
-          <SSSortDirectionToggle
-            label={t('common.amount')}
-            showArrow={sortField === 'amount'}
-            onDirectionChanged={(direction) =>
-              handleOnDirectionChanged('amount', direction)
-            }
-          />
+          {UTXO_SORT_FIELDS.map((field) => (
+            <SSSortDirectionToggle
+              key={field}
+              label={utxoSortFieldLabel(field)}
+              active={sortField === field}
+              onDirectionChanged={(direction) =>
+                handleOnDirectionChanged(field, direction)
+              }
+            />
+          ))}
         </SSHStack>
       </SSHStack>
       {orphanedInputs.length > 0 && (
@@ -291,19 +381,32 @@ export default function SelectUtxoList() {
       )}
       <View style={{ flex: 1 }}>
         <FlashList
-          data={sortUtxos([...account.utxos])}
+          data={listRows}
+          keyExtractor={(item) => item.key}
           renderItem={({ item }) => {
+            if (item.type === 'header') {
+              return (
+                <View style={styles.groupHeader}>
+                  <SSText size="xs" color="muted" uppercase>
+                    {item.title}
+                  </SSText>
+                </View>
+              )
+            }
             const idx = account.addresses.findIndex(
-              (a) => (a.address || '').trim() === (item.addressTo || '').trim()
+              (a) =>
+                (a.address || '').trim() === (item.utxo.addressTo || '').trim()
             )
             const addressEntry = idx !== -1 ? account.addresses[idx] : null
             const addressIndex =
               addressEntry !== null ? (addressEntry.index ?? idx) : undefined
             return (
               <SSUtxoItem
-                utxo={item}
-                selected={inputs.has(getUtxoOutpoint(item))}
+                utxo={item.utxo}
+                selected={inputs.has(getUtxoOutpoint(item.utxo))}
                 onToggleSelected={handleOnToggleSelected}
+                onToggleExcluded={handleToggleExcluded}
+                excluded={isUtxoExcluded(item.utxo, excludedOutpoints ?? [])}
                 largestValue={largestValue}
                 addressIndex={addressIndex}
               />
@@ -316,7 +419,7 @@ export default function SelectUtxoList() {
         style={[styles.absoluteSubmitContainer, { bottom: 20 + insets.bottom }]}
       >
         <SSButton
-          label={buttonLabel}
+          label={buttonLabel()}
           variant="secondary"
           disabled={!hasSelectedUtxos}
           style={[
@@ -333,6 +436,15 @@ export default function SelectUtxoList() {
           }
         />
       </View>
+      <SSUtxoListControlsModal
+        visible={controlsModalVisible}
+        filter={filter}
+        groupMode={groupMode}
+        onClose={() => setControlsModalVisible(false)}
+        onKeychainChange={setKeychainFilter}
+        onLabelChange={setLabelFilter}
+        onGroupModeChange={setGroupMode}
+      />
     </View>
   )
 }
@@ -342,6 +454,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     width: '100%'
+  },
+  badgeButton: {
+    position: 'relative'
+  },
+  badgeDot: {
+    backgroundColor: Colors.white,
+    borderRadius: 3,
+    height: 6,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 6
+  },
+  excludeBadge: {
+    alignItems: 'center',
+    backgroundColor: Colors.error,
+    borderRadius: 7,
+    height: 14,
+    justifyContent: 'center',
+    minWidth: 14,
+    paddingHorizontal: 3,
+    position: 'absolute',
+    right: -4,
+    top: -4
+  },
+  excludeBadgeText: {
+    color: Colors.white,
+    lineHeight: 12
+  },
+  groupHeader: {
+    backgroundColor: Colors.gray[900],
+    paddingHorizontal: '5%',
+    paddingVertical: 8
   },
   headerContainer: {
     paddingHorizontal: Layout.mainContainer.paddingHorizontal,

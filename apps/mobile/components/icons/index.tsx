@@ -42,6 +42,7 @@ import SSIconECash from './SSIconECash'
 import SSIconEdit from './SSIconEdit'
 import SSIconEditPencil from './SSIconEditPencil'
 import SSIconEllipsis from './SSIconEllipsis'
+import SSIconExclude from './SSIconExclude'
 import SSIconExpand from './SSIconExpand'
 import SSIconExplorer from './SSIconExplorer'
 import SSIconExplorerActive from './SSIconExplorerActive'
@@ -154,6 +155,7 @@ export {
   SSIconEdit,
   SSIconEditPencil,
   SSIconEllipsis,
+  SSIconExclude,
   SSIconExpand,
   SSIconExplorer,
   SSIconExplorerActive,

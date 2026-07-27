@@ -301,8 +301,8 @@ function getWalletTransactionEffect(tx: {
 function getTransactionRunningBalances(
   transactions: Transaction[]
 ): Map<string, number> {
-  // This codebase's sort helper uses inverted names: 'desc' ⇒ oldest first.
-  const chronological = sortTransactions(transactions, 'desc')
+  // Oldest → newest so running balances accumulate correctly.
+  const chronological = sortTransactions(transactions, 'asc', 'date')
   let balance = 0
   const balances = new Map<string, number>()
 
