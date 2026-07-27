@@ -1,6 +1,12 @@
 import { PIN_KEY } from '@/config/auth'
 import { getItem, getKeySecret } from '@/storage/encrypted'
-import type { Account, DecryptedAccount, DecryptedKey, Key, Secret } from '@/types/models/Account'
+import type {
+  Account,
+  DecryptedAccount,
+  DecryptedKey,
+  Key,
+  Secret
+} from '@/types/models/Account'
 import { aesDecrypt } from '@/utils/crypto'
 
 function addContextToError(
@@ -23,10 +29,10 @@ export async function getPin() {
   return pin
 }
 
-// decrypt key secret from expo-secure-store using account context
-export async function decryptKeySecretFromStore(
-  accountId: string,
-  keyIndex: number,
+// decrypt account key secret from expo-secure-store using provided pin
+export async function decryptAccountKeySecretUsingPin(
+  accountId: Account['id'],
+  keyIndex: Key['index'],
   pin: string
 ): Promise<Secret> {
   const stored = await getKeySecret(accountId, keyIndex)
@@ -61,6 +67,15 @@ export async function decryptKeySecretFromStore(
   }
 
   return secretObject as Secret
+}
+
+// decrypt account key secret from expo-secure-store using PIN from store
+export async function decryptAccountKeySecret(
+  accountId: Account['id'],
+  keyIndex: Key['index']
+) {
+  const pin = await getPin()
+  return decryptAccountKeySecretUsingPin(accountId, keyIndex, pin)
 }
 
 // decrypt key secret without account context using provided PIN
@@ -116,7 +131,7 @@ export async function decryptKeySecretAt(
   pin: string
 ) {
   try {
-    return await decryptKeySecretFromStore(accountId, keyIndex, pin)
+    return await decryptAccountKeySecretUsingPin(accountId, keyIndex, pin)
   } catch (error) {
     throw addContextToError(error, `[key #${keyIndex}]`, 'Decryption failed')
   }

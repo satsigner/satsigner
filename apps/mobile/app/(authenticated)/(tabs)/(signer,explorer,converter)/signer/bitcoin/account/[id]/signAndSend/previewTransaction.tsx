@@ -45,7 +45,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
-import { getItem, getKeySecret } from '@/storage/encrypted'
+import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
@@ -68,7 +68,7 @@ import {
   isBBQRFragment
 } from '@/utils/bbqr'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
-import { aesDecrypt } from '@/utils/crypto'
+import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import { parseHexToBytes } from '@/utils/parse'
 import {
   type ExtractedTransactionData,
@@ -216,6 +216,24 @@ function handlePsbtExtractionError(error: unknown) {
     toast.warning(
       'Failed to process PSBT with enhanced features. Using basic processing.'
     )
+  }
+}
+
+async function decryptKeyOrFallback(
+  accountId: string,
+  keyIndex: number,
+  key: Key,
+  pin: string
+): Promise<Key> {
+  try {
+    const secret = await decryptAccountKeySecretUsingPin(
+      accountId,
+      keyIndex,
+      pin
+    )
+    return { ...key, secret }
+  } catch {
+    return key
   }
 }
 
@@ -1900,32 +1918,13 @@ function PreviewTransaction() {
         return
       }
 
-      try {
-        const decryptedKeysData = await Promise.all(
-          account.keys.map(async (key, index) => {
-            const stored = await getKeySecret(account.id, index)
-            if (!stored) {
-              return key
-            }
-
-            const decryptedSecretString = await aesDecrypt(
-              stored.secret,
-              pin,
-              stored.iv
-            )
-            const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-
-            return {
-              ...key,
-              secret: decryptedSecret
-            }
-          })
+      const decryptedKeysData = await Promise.all(
+        account.keys.map((key, index) =>
+          decryptKeyOrFallback(account.id, index, key, pin)
         )
+      )
 
-        setDecryptedKeys(decryptedKeysData)
-      } catch {
-        setDecryptedKeys([])
-      }
+      setDecryptedKeys(decryptedKeysData)
     }
     decryptKeys()
   }, [account])

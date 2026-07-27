@@ -1,5 +1,7 @@
 import * as SecureStore from 'expo-secure-store'
 
+import type { EncryptedKeySecret } from '@/types/models/Account'
+
 const VERSION = '1'
 const KEY_SECRET_PREFIX = 'key_secret'
 const KEY_IV_PREFIX = 'key_iv'
@@ -51,7 +53,7 @@ async function storeKeySecret(
 async function getKeySecret(
   accountId: string,
   keyIndex: number
-): Promise<{ secret: string; iv: string } | null> {
+): Promise<EncryptedKeySecret | null> {
   const secret = await getItem(getStoreKeyForKeySecret(accountId, keyIndex))
   const iv = await getItem(getStoreKeyForKeyIv(accountId, keyIndex))
   if (!secret || !iv) {

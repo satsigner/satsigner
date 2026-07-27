@@ -11,15 +11,14 @@ import { useArkAccountBuilderStore } from '@/store/arkAccountBuilder'
 import { useWalletsStore } from '@/store/wallets'
 import type { ArkAccount } from '@/types/models/Ark'
 import { getArkServer } from '@/utils/ark'
-import { decryptKeySecretFromStore, getPin } from '@/utils/decryption'
+import { decryptAccountKeySecret } from '@/utils/decryption'
 
 import { useCreateSinglesigAccount } from './useCreateSinglesigAccount'
 
 async function resolveMnemonicFromBitcoinAccount(
   accountId: string
 ): Promise<string> {
-  const pin = await getPin()
-  const secret = await decryptKeySecretFromStore(accountId, 0, pin)
+  const secret = await decryptAccountKeySecret(accountId, 0)
   if (!secret.mnemonic) {
     throw new Error('Selected Bitcoin account has no mnemonic')
   }
