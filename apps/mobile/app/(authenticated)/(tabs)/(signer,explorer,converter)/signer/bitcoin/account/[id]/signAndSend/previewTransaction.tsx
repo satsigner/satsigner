@@ -35,7 +35,6 @@ import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
-import { PIN_KEY } from '@/config/auth'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
@@ -45,7 +44,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
@@ -68,7 +66,7 @@ import {
   isBBQRFragment
 } from '@/utils/bbqr'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
-import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
+import { decryptAccountKeySecret } from '@/utils/decryption'
 import { parseHexToBytes } from '@/utils/parse'
 import {
   type ExtractedTransactionData,
@@ -222,15 +220,10 @@ function handlePsbtExtractionError(error: unknown) {
 async function decryptKeyOrFallback(
   accountId: string,
   keyIndex: number,
-  key: Key,
-  pin: string
+  key: Key
 ): Promise<Key> {
   try {
-    const secret = await decryptAccountKeySecretUsingPin(
-      accountId,
-      keyIndex,
-      pin
-    )
+    const secret = await decryptAccountKeySecret(accountId, keyIndex)
     return { ...key, secret }
   } catch {
     return key
@@ -1913,14 +1906,9 @@ function PreviewTransaction() {
         return
       }
 
-      const pin = await getItem(PIN_KEY)
-      if (!pin) {
-        return
-      }
-
       const decryptedKeysData = await Promise.all(
         account.keys.map((key, index) =>
-          decryptKeyOrFallback(account.id, index, key, pin)
+          decryptKeyOrFallback(account.id, index, key)
         )
       )
 
