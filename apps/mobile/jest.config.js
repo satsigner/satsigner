@@ -21,7 +21,8 @@ const TRANSFORM_PACKAGES = [
   '@scure/.*',
   '@cashu/.*',
   '@noble/.*',
-  'bip32'
+  'bip32',
+  'immer'
 ].join('|')
 
 const config = {
