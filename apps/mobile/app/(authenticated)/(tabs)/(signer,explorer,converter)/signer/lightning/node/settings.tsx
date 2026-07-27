@@ -212,7 +212,7 @@ export default function NodeSettingsPage() {
               onPress={handleRefresh}
               disabled={!isConnected || isConnecting}
             >
-              <SSIconRefresh height={18} width={22} />
+              <SSIconRefresh height={16} width={19} />
             </SSIconButton>
           ),
           headerTitle: () => (
