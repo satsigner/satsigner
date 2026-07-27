@@ -12,8 +12,15 @@ const PAYJOIN_OHTTP_RELAY_URLS = [
   // native HTTP/1.1 as well — leave it out so sessions are not bound to a dead relay.
 ] as const
 
-/** Default receiver session TTL (10 minutes), matching PDK tutorial defaults. */
-const PAYJOIN_SESSION_TTL_MS = 10 * 60 * 1000
+/** Default receiver session TTL (5 minutes). */
+const PAYJOIN_SESSION_TTL_MS = 5 * 60 * 1000
+
+/** Allowed session TTL presets for settings (1 / 5 / 10 minutes). */
+const PAYJOIN_SESSION_TTL_PRESETS_MS = [
+  1 * 60 * 1000,
+  5 * 60 * 1000,
+  10 * 60 * 1000
+] as const
 
 /** BIP78 synchronous request timeout. */
 const PAYJOIN_BIP78_TIMEOUT_MS = 30_000
@@ -25,10 +32,17 @@ const PAYJOIN_BIP77_SEND_TIMEOUT_MS = 60_000
 const PAYJOIN_DEFAULT_PJOS: 0 | 1 = 0
 
 /**
+ * Minimum BIP21 receive amount (sats) before a Payjoin `pj=` is advertised.
+ * Below this floor the QR stays plain BIP21 while the mailbox can remain alive
+ * (anti-probing / Bull Bitcoin parity).
+ */
+const PAYJOIN_MIN_RECEIVE_SATS = 5_000
+
+/**
  * Minimum UTXO value (sats) a receiver must have to contribute an input.
  * Empty / dust-only wallets cannot complete a Payjoin as receiver.
  */
-const PAYJOIN_MIN_CONTRIBUTE_SATS = 1_000
+const PAYJOIN_MIN_CONTRIBUTE_SATS = 5_000
 
 export {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
@@ -36,6 +50,8 @@ export {
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_DIRECTORY_URL,
   PAYJOIN_MIN_CONTRIBUTE_SATS,
+  PAYJOIN_MIN_RECEIVE_SATS,
   PAYJOIN_OHTTP_RELAY_URLS,
-  PAYJOIN_SESSION_TTL_MS
+  PAYJOIN_SESSION_TTL_MS,
+  PAYJOIN_SESSION_TTL_PRESETS_MS
 }

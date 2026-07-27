@@ -180,6 +180,8 @@ export default function SignTransaction() {
     psbt,
     setPsbt,
     signedTx,
+    signedPsbtBase64,
+    setSignedTx,
     inputs,
     outputs,
     broadcasted,
@@ -190,6 +192,8 @@ export default function SignTransaction() {
       state.psbt,
       state.setPsbt,
       state.signedTx,
+      state.signedPsbtBase64,
+      state.setSignedTx,
       state.inputs,
       state.outputs,
       state.broadcasted,
@@ -447,15 +451,19 @@ export default function SignTransaction() {
         signTransaction(proposal, wallet)
         return proposal.toBase64()
       },
+      transactions: account.transactions ?? [],
       utxos: Array.from(inputs.values())
     })
   }
 
   function applyPayjoinProposal(psbtBase64: string) {
     const payjoinPsbt = new Psbt(psbtBase64)
+    const hex = payjoinPsbt.extractTxHex()
     setPsbt(payjoinPsbt)
+    // Persist into the draft so a crash mid-broadcast can resume signed.
+    setSignedTx(hex, psbtBase64)
     setSigned(true)
-    setRawTx(payjoinPsbt.extractTxHex())
+    setRawTx(hex)
     setWaitingForReceiver(false)
     setPayjoinStatus(t('transaction.build.payjoin.success'))
     toast.success(t('transaction.build.payjoin.success'))
@@ -466,10 +474,13 @@ export default function SignTransaction() {
       return
     }
     signTransaction(psbt, wallet)
-    const signedPsbt = new Psbt(psbt.toBase64())
+    const signedBase64 = psbt.toBase64()
+    const signedPsbt = new Psbt(signedBase64)
+    const hex = signedPsbt.extractTxHex()
     setSigned(true)
     setPsbt(signedPsbt)
-    setRawTx(psbt.extractTxHex())
+    setSignedTx(hex, signedBase64)
+    setRawTx(hex)
     setWaitingForReceiver(false)
     setPayjoinStatus(null)
   }
@@ -545,6 +556,9 @@ export default function SignTransaction() {
     if (signedTx) {
       setSigned(true)
       setRawTx(signedTx)
+      if (!psbt && signedPsbtBase64) {
+        setPsbt(new Psbt(signedPsbtBase64))
+      }
       return
     }
     if (

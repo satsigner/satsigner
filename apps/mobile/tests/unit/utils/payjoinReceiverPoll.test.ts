@@ -32,7 +32,7 @@ describe('resolveReceiverPollMode', () => {
     ).toStrictEqual({ kind: 'off' })
   })
 
-  it('turns off for completed and expired sessions', () => {
+  it('turns off for completed, expired, fallback, and cancelled', () => {
     expect(
       resolveReceiverPollMode({
         canUsePayjoin: true,
@@ -45,9 +45,21 @@ describe('resolveReceiverPollMode', () => {
         session: session({ id: 'a', status: 'expired' })
       })
     ).toStrictEqual({ kind: 'off' })
+    expect(
+      resolveReceiverPollMode({
+        canUsePayjoin: true,
+        session: session({ id: 'a', status: 'fallback' })
+      })
+    ).toStrictEqual({ kind: 'off' })
+    expect(
+      resolveReceiverPollMode({
+        canUsePayjoin: true,
+        session: session({ id: 'a', status: 'cancelled' })
+      })
+    ).toStrictEqual({ kind: 'off' })
   })
 
-  it('retries poll for recoverable errors, otherwise restarts', () => {
+  it('retries poll for recoverable errors, otherwise turns off', () => {
     expect(
       resolveReceiverPollMode({
         canUsePayjoin: true,
@@ -64,7 +76,7 @@ describe('resolveReceiverPollMode', () => {
         canUsePayjoin: true,
         session: session({ id: 'a', status: 'error' })
       })
-    ).toStrictEqual({ kind: 'restart', sessionId: 'a' })
+    ).toStrictEqual({ kind: 'off' })
   })
 
   it('restarts when native state is missing, otherwise polls', () => {

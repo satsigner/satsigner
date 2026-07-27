@@ -1,8 +1,10 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Output } from '@/types/models/Output'
+import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import { filterPayjoinContributeUtxos } from '@/utils/payjoinUtxos'
 
 function bytesToHex(bytes: number[] | Uint8Array): string {
   return Buffer.from(bytes).toString('hex')
@@ -58,6 +60,7 @@ function buildOwnedScriptSet(
 
 function buildPayjoinWalletCallbacks(params: {
   utxos: Utxo[]
+  transactions?: Transaction[]
   outputs?: Output[]
   network: bitcoinjs.Network
   ownedAddresses?: string[]
@@ -65,6 +68,9 @@ function buildPayjoinWalletCallbacks(params: {
   markInputSeen: (outpoint: string) => void
   signPsbt: (psbtBase64: string) => string | Promise<string>
 }): PayjoinWalletCallbacks & { outputScriptsHex: string[] } {
+  const contributeUtxos = params.transactions
+    ? filterPayjoinContributeUtxos(params.utxos, params.transactions)
+    : params.utxos
   const ownedScripts = buildOwnedScriptSet(
     params.utxos,
     params.ownedAddresses ?? [],
@@ -79,7 +85,7 @@ function buildPayjoinWalletCallbacks(params: {
     hasSeenInput: params.hasSeenInput,
     isScriptOwned: (scriptHex) => ownedScripts.has(scriptHex),
     listCandidateOutpoints: () =>
-      params.utxos
+      contributeUtxos
         .map((utxo) => {
           const fromScript = utxoScriptHex(utxo)
           const fromAddress = utxo.addressTo

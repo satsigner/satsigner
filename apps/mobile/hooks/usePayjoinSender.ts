@@ -68,6 +68,7 @@ function usePayjoinSender({
             ...outputs.filter((o) => o.kind === 'change').map((o) => o.to)
           ].filter(Boolean),
           signPsbt,
+          transactions: account?.transactions ?? [],
           utxos: inputs
         })
 
@@ -86,6 +87,7 @@ function usePayjoinSender({
     },
     [
       account?.addresses,
+      account?.transactions,
       inputs,
       networkName,
       outputs,

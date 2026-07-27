@@ -17,6 +17,7 @@ import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { PAYJOIN_MIN_RECEIVE_SATS } from '@/constants/payjoin'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
@@ -44,9 +45,13 @@ import {
   resolveReceiveAddressSelection
 } from '@/utils/externalAddress'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
+import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
-import { buildReceiveQrUri } from '@/utils/receiveQrUri'
+import {
+  buildReceiveQrUri,
+  shouldIncludePayjoinInUri
+} from '@/utils/receiveQrUri'
 
 function amountSatsFromPayjoinSession(
   session?: PayjoinSession | null
@@ -154,7 +159,10 @@ export default function Receive() {
   )
 
   const accountUtxos = account?.utxos ?? []
-  const canContributePayjoin = walletCanContributeToPayjoin(accountUtxos)
+  const canContributePayjoin = walletCanContributeToPayjoin(
+    accountUtxos,
+    account?.transactions ?? []
+  )
 
   const {
     isHardwareSupported: nfcHardwareSupported,
@@ -225,36 +233,55 @@ export default function Receive() {
     payjoinSession?.expiresAt,
     nowMs
   )
-  const payjoinCompleted = payjoinSession?.status === 'completed'
+  const payjoinCompleted =
+    !!payjoinSession && isPayjoinSuccess(payjoinSession.status)
+  const advertisePayjoinInQr = shouldIncludePayjoinInUri({
+    amountSats: amountSatsForPayjoin
+  })
+  const showBelowMinReceiveHint =
+    includePayjoin &&
+    payjoinEnabled &&
+    canContribute &&
+    amountSatsForPayjoin !== undefined &&
+    !advertisePayjoinInQr
   const celebratedPayjoinIdRef = useRef<string | null>(null)
 
-  if (!canContribute && includePayjoin) {
-    setIncludePayjoin(false)
-  } else if (
-    canContribute &&
-    !userSetPayjoinRef.current &&
-    payjoinEnabled &&
-    !includePayjoin
-  ) {
-    setIncludePayjoin(true)
-  }
-
-  const sessionAmountKey = payjoinSession?.id ?? ''
-  const [hydratedSessionAmountKey, setHydratedSessionAmountKey] =
-    useState(sessionAmountKey)
-  if (sessionAmountKey !== hydratedSessionAmountKey) {
-    setHydratedSessionAmountKey(sessionAmountKey)
-    if (payjoinSession) {
-      const sats = amountSatsFromPayjoinSession(payjoinSession)
-      if (sats && (!localCustomAmount || Number(localCustomAmount) <= 0)) {
-        setLocalCustomAmount(String(sats))
-      }
-      const sessionLabel = labelFromPayjoinSession(payjoinSession)
-      if (sessionLabel && !localLabel) {
-        setLocalLabel(sessionLabel)
-      }
+  // Auto-toggle payjoin when contribution eligibility changes (not during render —
+  // siblings like TotalTransactions stay mounted under the account stack).
+  useEffect(() => {
+    if (!canContribute && includePayjoin) {
+      setIncludePayjoin(false)
+      return
     }
-  }
+    if (
+      canContribute &&
+      !userSetPayjoinRef.current &&
+      payjoinEnabled &&
+      !includePayjoin
+    ) {
+      setIncludePayjoin(true)
+    }
+  }, [canContribute, includePayjoin, payjoinEnabled])
+
+  // Hydrate amount/label once when a resumed session appears.
+  const hydratedSessionIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!payjoinSession?.id) {
+      return
+    }
+    if (hydratedSessionIdRef.current === payjoinSession.id) {
+      return
+    }
+    hydratedSessionIdRef.current = payjoinSession.id
+    const sats = amountSatsFromPayjoinSession(payjoinSession)
+    if (sats && (!localCustomAmount || Number(localCustomAmount) <= 0)) {
+      setLocalCustomAmount(String(sats))
+    }
+    const sessionLabel = labelFromPayjoinSession(payjoinSession)
+    if (sessionLabel && !localLabel) {
+      setLocalLabel(sessionLabel)
+    }
+  }, [localCustomAmount, localLabel, payjoinSession])
 
   const localFinalAddressQR = buildReceiveQrUri({
     amountSats: amountSatsForPayjoin,
@@ -272,57 +299,56 @@ export default function Receive() {
   })
 
   const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
-  const addressInfoKey = addressInfo
-    ? `${addressInfo.address}:${addressInfo.index}`
-    : addressInfo === null
-      ? 'loading'
-      : 'missing'
-  const [loadedAddressInfoKey, setLoadedAddressInfoKey] = useState<string>(() =>
-    existingPayjoinSession?.address ? 'pinned' : ''
-  )
 
-  if (
-    wallet &&
-    account &&
-    addressInfo?.address &&
-    !isManualAddress &&
-    addressInfoKey !== loadedAddressInfoKey
-  ) {
-    const derivationPath = account.keys[0]?.derivationPath
-    if (derivationPath) {
-      setLoadedAddressInfoKey(addressInfoKey)
-      const activeSession = id
-        ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
-        : undefined
-      const selection = resolveReceiveAddressSelection({
-        derivationPath,
-        fallback: {
-          address: addressInfo.address,
-          index: addressInfo.index
-        },
-        preferredAddress: activeSession?.address,
-        wallet
-      })
-      setAddressData({
-        localAddress: selection.address,
-        localAddressNumber: selection.index,
-        localAddressPath: selection.path,
-        localAddressQR: selection.qrUri
-      })
-      const existingAddress = account.addresses.find(
-        (addr) => addr.address === selection.address
-      )
-      if (existingAddress?.label) {
-        setLocalLabel(existingAddress.label)
-      }
-      setIsManualAddress(true)
+  // Load / pin receive address after first-unused (or active session) resolves.
+  useEffect(() => {
+    if (!wallet && isLoading) {
       setIsLoading(false)
+      return
     }
-  } else if (!wallet && isLoading) {
+    if (isManualAddress) {
+      return
+    }
+    if (addressInfo === null) {
+      if (!isLoading) {
+        setIsLoading(true)
+      }
+      return
+    }
+    if (!wallet || !account || !addressInfo.address) {
+      return
+    }
+    const derivationPath = account.keys[0]?.derivationPath
+    if (!derivationPath) {
+      return
+    }
+    const activeSession = id
+      ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
+      : undefined
+    const selection = resolveReceiveAddressSelection({
+      derivationPath,
+      fallback: {
+        address: addressInfo.address,
+        index: addressInfo.index
+      },
+      preferredAddress: activeSession?.address,
+      wallet
+    })
+    setAddressData({
+      localAddress: selection.address,
+      localAddressNumber: selection.index,
+      localAddressPath: selection.path,
+      localAddressQR: selection.qrUri
+    })
+    const existingAddress = account.addresses.find(
+      (addr) => addr.address === selection.address
+    )
+    if (existingAddress?.label) {
+      setLocalLabel(existingAddress.label)
+    }
+    setIsManualAddress(true)
     setIsLoading(false)
-  } else if (addressInfo === null && !isManualAddress && !isLoading) {
-    setIsLoading(true)
-  }
+  }, [account, addressInfo, id, isLoading, isManualAddress, wallet])
 
   // Completion toast/haptics are external side effects — keep a narrow effect.
   useEffect(() => {
@@ -676,57 +702,75 @@ export default function Receive() {
                     >
                       {t('receive.payjoin.emptyWallet')}
                     </SSText>
-                  ) : includePayjoin && payjoinEnabled && statusLabelKey ? (
+                  ) : (
                     <SSVStack gap="xxs" itemsCenter widthFull>
-                      <SSHStack
-                        gap="sm"
-                        style={{
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        {payjoinNegotiating ||
-                        statusLabelKey ===
-                          'receive.payjoin.status.negotiating' ||
-                        statusLabelKey === 'receive.payjoin.status.waiting' ||
-                        statusLabelKey ===
-                          'receive.payjoin.status.initializing' ||
-                        statusLabelKey === 'receive.payjoin.status.polling' ? (
-                          <SSLoader size={18} />
-                        ) : null}
+                      {showBelowMinReceiveHint ? (
                         <SSText
-                          testID="receive-payjoin-status"
+                          testID="receive-payjoin-below-min"
                           color="muted"
                           size="sm"
                           center
                         >
-                          {payjoinNegotiating
-                            ? t('receive.payjoin.status.negotiating')
-                            : t(statusLabelKey)}
-                        </SSText>
-                      </SSHStack>
-                      {payjoinExpiringLabel ? (
-                        <SSText
-                          testID="receive-payjoin-expiring"
-                          color="muted"
-                          size="xs"
-                          center
-                        >
-                          {payjoinExpiringLabel}
+                          {t('receive.payjoin.belowMinReceive', {
+                            count: PAYJOIN_MIN_RECEIVE_SATS
+                          })}
                         </SSText>
                       ) : null}
-                      {payjoinSession?.pjEndpoint ? (
-                        <SSText
-                          testID="receive-payjoin-poll-url"
-                          color="muted"
-                          size="xs"
-                          center
-                        >
-                          {payjoinSession.pjEndpoint.split('#')[0]}
-                        </SSText>
+                      {includePayjoin && payjoinEnabled && statusLabelKey ? (
+                        <SSVStack gap="xxs" itemsCenter widthFull>
+                          <SSHStack
+                            gap="sm"
+                            style={{
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            {payjoinNegotiating ||
+                            statusLabelKey ===
+                              'receive.payjoin.status.negotiating' ||
+                            statusLabelKey ===
+                              'receive.payjoin.status.waiting' ||
+                            statusLabelKey ===
+                              'receive.payjoin.status.initializing' ||
+                            statusLabelKey ===
+                              'receive.payjoin.status.polling' ? (
+                              <SSLoader size={18} />
+                            ) : null}
+                            <SSText
+                              testID="receive-payjoin-status"
+                              color="muted"
+                              size="sm"
+                              center
+                            >
+                              {payjoinNegotiating
+                                ? t('receive.payjoin.status.negotiating')
+                                : t(statusLabelKey)}
+                            </SSText>
+                          </SSHStack>
+                          {payjoinExpiringLabel ? (
+                            <SSText
+                              testID="receive-payjoin-expiring"
+                              color="muted"
+                              size="xs"
+                              center
+                            >
+                              {payjoinExpiringLabel}
+                            </SSText>
+                          ) : null}
+                          {payjoinSession?.pjEndpoint ? (
+                            <SSText
+                              testID="receive-payjoin-poll-url"
+                              color="muted"
+                              size="xs"
+                              center
+                            >
+                              {payjoinSession.pjEndpoint.split('#')[0]}
+                            </SSText>
+                          ) : null}
+                        </SSVStack>
                       ) : null}
                     </SSVStack>
-                  ) : null
+                  )
                 ) : null}
               </SSVStack>
             ) : null}

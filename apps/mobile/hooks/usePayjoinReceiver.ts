@@ -10,10 +10,9 @@ import {
   pollReceiverSession,
   resumePersistedReceiverSession
 } from '@/api/payjoin'
-import { PAYJOIN_MIN_CONTRIBUTE_SATS } from '@/constants/payjoin'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
-import { useSettingsStore } from '@/store/settings'
+import { getPayjoinSessionTtlMs, useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PayjoinSession } from '@/types/payjoin'
@@ -30,7 +29,12 @@ import {
 } from '@/utils/payjoinReceiverPoll'
 import { resolveReceiverSessionOnStart } from '@/utils/payjoinReceiverStart'
 import { withReceiverSessionBip21Params } from '@/utils/payjoinSessionParams'
+import {
+  isPayjoinFallback,
+  isPayjoinSuccess
+} from '@/utils/payjoinSessionStatus'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
+import { walletCanContributeToPayjoin } from '@/utils/payjoinUtxos'
 import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
 
 type UsePayjoinReceiverParams = {
@@ -45,10 +49,6 @@ type UsePayjoinReceiverParams = {
 
 const RECEIVER_POLL_INTERVAL_MS = 8_000
 const START_SESSION_LOCK_MS = 45_000
-
-function walletCanContributeToPayjoin(utxos: Utxo[]): boolean {
-  return utxos.some((utxo) => utxo.value > PAYJOIN_MIN_CONTRIBUTE_SATS)
-}
 
 function isMailboxExpiredError(message: string): boolean {
   const lower = message.toLowerCase()
@@ -75,9 +75,9 @@ function shouldReplaceMailbox(message: string): boolean {
 function sessionNeedsFinalize(session: PayjoinSession): boolean {
   if (
     !!session.originalPsbtBase64 &&
-    session.status !== 'completed' &&
+    !isPayjoinSuccess(session.status) &&
     session.status !== 'expired' &&
-    session.status !== 'fallback'
+    !isPayjoinFallback(session.status)
   ) {
     return true
   }
@@ -128,7 +128,10 @@ function usePayjoinReceiver({
     utxos
   })
 
-  const canContribute = walletCanContributeToPayjoin(utxos)
+  const canContribute = walletCanContributeToPayjoin(
+    utxos,
+    account?.transactions ?? []
+  )
   const canUsePayjoin =
     payjoinEnabled &&
     isNativeAvailable() &&
@@ -186,6 +189,7 @@ function usePayjoinReceiver({
         }
         return currentSignPsbt(psbtBase64)
       },
+      transactions: currentAccount?.transactions ?? [],
       utxos: currentUtxos
     })
   }
@@ -200,7 +204,8 @@ function usePayjoinReceiver({
       accountId: id,
       address: receiveAddress,
       amountSats: paramsRef.current.amountSats,
-      label: paramsRef.current.label
+      label: paramsRef.current.label,
+      ttlMs: getPayjoinSessionTtlMs()
     })
     setReceiverSession(created)
     return created
@@ -444,13 +449,9 @@ function usePayjoinReceiver({
             )
             return
           }
-          setReceiverSession(
-            persistSession({
-              ...current,
-              error: message,
-              status: 'waiting',
-              updatedAt: Date.now()
-            })
+          await replaceDeadSession(
+            current,
+            'receiver native session lost after restart'
           )
           return
         }
@@ -522,13 +523,9 @@ function usePayjoinReceiver({
           )
           return
         }
-        setReceiverSession(
-          persistSession({
-            ...current,
-            error: message,
-            status: 'waiting',
-            updatedAt: Date.now()
-          })
+        await replaceDeadSession(
+          current,
+          'receiver native session lost after restart'
         )
         return
       }
@@ -543,27 +540,28 @@ function usePayjoinReceiver({
   }
 
   // Keep account-card BIP21 fields in sync when amount/label change.
-  const bip21Key = `${session?.id ?? ''}|${amountSats ?? ''}|${label ?? ''}`
-  const [prevBip21Key, setPrevBip21Key] = useState(bip21Key)
-  if (bip21Key !== prevBip21Key) {
-    setPrevBip21Key(bip21Key)
+  // Must not write the sessions store during render — index TotalTransactions
+  // (and other subscribers) are often still mounted under the stack.
+  useEffect(() => {
     const { current } = sessionRef
     if (
-      current &&
-      current.status !== 'completed' &&
-      current.status !== 'expired'
+      !current ||
+      current.status === 'completed' ||
+      current.status === 'expired'
     ) {
-      const synced = withReceiverSessionBip21Params(current, {
-        amountSats,
-        label
-      })
-      if (synced !== current) {
-        usePayjoinSessionsStore.getState().upsertSession(synced)
-        sessionRef.current = synced
-        setSession(synced)
-      }
+      return
     }
-  }
+    const synced = withReceiverSessionBip21Params(current, {
+      amountSats,
+      label
+    })
+    if (synced === current) {
+      return
+    }
+    usePayjoinSessionsStore.getState().upsertSession(synced)
+    sessionRef.current = synced
+    setSession(synced)
+  }, [amountSats, label, session?.id])
 
   const pollKey = receiverPollEffectKey(
     resolveReceiverPollMode({
@@ -625,24 +623,26 @@ function usePayjoinReceiver({
 
   const statusLabelKey = !canUsePayjoin
     ? null
-    : session?.status === 'completed'
+    : session && isPayjoinSuccess(session.status)
       ? 'receive.payjoin.status.completed'
-      : session?.status === 'expired'
-        ? 'receive.payjoin.status.expired'
-        : session?.status === 'error'
-          ? 'receive.payjoin.status.unavailable'
-          : negotiating ||
-              session?.status === 'negotiating' ||
-              session?.status === 'proposal_received' ||
-              session?.status === 'finalizing'
-            ? 'receive.payjoin.status.negotiating'
-            : starting || !livePayjoinUri
-              ? 'receive.payjoin.status.initializing'
-              : session?.error
-                ? 'receive.payjoin.status.polling'
-                : session?.status === 'waiting'
-                  ? 'receive.payjoin.status.waiting'
-                  : 'receive.payjoin.status.ready'
+      : session && isPayjoinFallback(session.status)
+        ? null
+        : session?.status === 'expired'
+          ? 'receive.payjoin.status.expired'
+          : session?.status === 'error'
+            ? 'receive.payjoin.status.unavailable'
+            : negotiating ||
+                session?.status === 'negotiating' ||
+                session?.status === 'proposal_received' ||
+                session?.status === 'finalizing'
+              ? 'receive.payjoin.status.negotiating'
+              : starting || !livePayjoinUri
+                ? 'receive.payjoin.status.initializing'
+                : session?.error
+                  ? 'receive.payjoin.status.polling'
+                  : session?.status === 'waiting'
+                    ? 'receive.payjoin.status.waiting'
+                    : 'receive.payjoin.status.ready'
 
   return {
     canContribute,
@@ -658,4 +658,5 @@ function usePayjoinReceiver({
   }
 }
 
-export { usePayjoinReceiver, walletCanContributeToPayjoin }
+export { usePayjoinReceiver }
+export { walletCanContributeToPayjoin } from '@/utils/payjoinUtxos'

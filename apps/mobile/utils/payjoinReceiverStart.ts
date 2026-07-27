@@ -4,6 +4,7 @@ import {
 } from '@/api/payjoin'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { type PayjoinSession } from '@/types/payjoin'
+import { receiverNativeStateIsDurable } from '@/utils/payjoinReceiverState'
 import { withReceiverSessionBip21Params } from '@/utils/payjoinSessionParams'
 
 type ReceiverStartBip21 = {
@@ -104,8 +105,15 @@ async function resolveReceiverSessionOnStart(params: {
     return { kind: 'session', session: applyBip21(resumed, bip21) }
   }
 
+  // Soft-keep only durable event-log blobs (Metro reload / brief native miss).
+  // Legacy id-only nativeState cannot rehydrate after process death — minting
+  // fresh avoids an infinite "session not found" poll loop on a dead mailbox.
   const kept = usePayjoinSessionsStore.getState().getSession(existing.id)
-  if (kept && kept.expiresAt > Date.now()) {
+  if (
+    kept &&
+    kept.expiresAt > Date.now() &&
+    receiverNativeStateIsDurable(kept.nativeState)
+  ) {
     return { kind: 'session', session: applyBip21(kept, bip21) }
   }
 

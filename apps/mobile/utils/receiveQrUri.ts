@@ -1,4 +1,5 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { PAYJOIN_MIN_RECEIVE_SATS } from '@/constants/payjoin'
 import { appendParamsToPayjoinUri } from '@/utils/payjoinUri'
 
 function stripBitcoinPrefix(uri: string): string {
@@ -6,6 +7,22 @@ function stripBitcoinPrefix(uri: string): string {
     return uri.substring(8)
   }
   return uri
+}
+
+/**
+ * Advertise `pj=` only when amount is unset or meets the anti-probing floor.
+ * A set amount below the floor yields a plain BIP21 QR while the mailbox can
+ * stay alive.
+ */
+function shouldIncludePayjoinInUri(params: {
+  amountSats?: number
+  minReceiveSats?: number
+}): boolean {
+  const minReceive = params.minReceiveSats ?? PAYJOIN_MIN_RECEIVE_SATS
+  if (params.amountSats === undefined) {
+    return true
+  }
+  return params.amountSats >= minReceive
 }
 
 function buildReceiveQrUri(params: {
@@ -22,12 +39,16 @@ function buildReceiveQrUri(params: {
   payjoinSessionUri?: string
   payjoinUri?: string
 }): string {
+  const advertisePayjoin =
+    params.includePayjoin &&
+    params.payjoinEnabled &&
+    shouldIncludePayjoinInUri({ amountSats: params.amountSats })
   const sessionMatchesAddress =
     !params.localAddress ||
     !params.payjoinSessionAddress ||
     params.payjoinSessionAddress === params.localAddress
   const sessionUri =
-    params.includePayjoin && params.payjoinEnabled && sessionMatchesAddress
+    advertisePayjoin && sessionMatchesAddress
       ? params.payjoinUri ||
         (params.payjoinSessionStatus !== 'expired'
           ? params.payjoinSessionUri
@@ -71,4 +92,4 @@ function buildReceiveQrUri(params: {
   return queryParts.length > 0 ? `${baseUri}?${queryParts.join('&')}` : baseUri
 }
 
-export { buildReceiveQrUri }
+export { buildReceiveQrUri, shouldIncludePayjoinInUri }

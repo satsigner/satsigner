@@ -1,9 +1,13 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { PAYJOIN_SESSION_TTL_MS } from '@/constants/payjoin'
 import mmkvStorage from '@/storage/mmkv'
+import { getPayjoinSessionTtlMs } from '@/store/settings'
 import { type PayjoinSession, type PayjoinSessionStatus } from '@/types/payjoin'
+import {
+  isPayjoinTerminal,
+  PAYJOIN_TERMINAL_STATUSES
+} from '@/utils/payjoinSessionStatus'
 
 type PayjoinSessionsState = {
   sessions: PayjoinSession[]
@@ -28,13 +32,7 @@ type PayjoinSessionsAction = {
   clearAll: () => void
 }
 
-const TERMINAL_PAYJOIN_STATUSES = new Set<PayjoinSessionStatus>([
-  'cancelled',
-  'completed',
-  'error',
-  'expired',
-  'fallback'
-])
+const TERMINAL_PAYJOIN_STATUSES = PAYJOIN_TERMINAL_STATUSES
 
 function createSessionId(): string {
   return `pj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
@@ -42,7 +40,7 @@ function createSessionId(): string {
 
 /** Drop PSBT / native blobs once a session is terminal — keeps MMKV + heap lean. */
 function stripHeavySessionFields(session: PayjoinSession): PayjoinSession {
-  if (!TERMINAL_PAYJOIN_STATUSES.has(session.status)) {
+  if (!isPayjoinTerminal(session.status)) {
     return session
   }
   if (
@@ -190,7 +188,7 @@ function buildNewSession(
   }
 ): PayjoinSession {
   const now = Date.now()
-  const ttl = partial.ttlMs ?? PAYJOIN_SESSION_TTL_MS
+  const ttl = partial.ttlMs ?? getPayjoinSessionTtlMs()
   return {
     ...partial,
     createdAt: now,

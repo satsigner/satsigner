@@ -19,12 +19,15 @@ use bitcoin::{Address, Amount, FeeRate, OutPoint, Script, ScriptBuf, TxOut, Txid
 use once_cell::sync::Lazy;
 use payjoin::persist::{NoopSessionPersister, OptionalTransitionOutcome, SessionPersister};
 use payjoin::receive::v2::{
-    Initialized, ProvisionalProposal, Receiver, ReceiverBuilder, SessionEvent,
-    UncheckedOriginalPayload
+    replay_event_log, Initialized, ProvisionalProposal, ReceiveSession, Receiver,
+    ReceiverBuilder, SessionEvent, UncheckedOriginalPayload
 };
 use payjoin::receive::InputPair;
 use payjoin::send::v1 as send_v1;
-use payjoin::send::v2 as send_v2;
+use payjoin::send::v2::{
+    self as send_v2, replay_event_log as replay_send_event_log, SendSession,
+    SessionEvent as SendSessionEvent
+};
 use payjoin::{OhttpKeys, PjParam, Uri, UriExt};
 use tokio::runtime::Runtime;
 use uuid::Uuid;
@@ -65,12 +68,19 @@ struct ReceiverEntry {
     ohttp_relay: String,
     pj_uri: String,
     receive_script: ScriptBuf,
-    pending_ohttp: Option<OhttpCtx>
+    pending_ohttp: Option<OhttpCtx>,
+    /// PDK event log — serialized into `nativeState` so resume works after
+    /// process death (the in-memory RECEIVERS map is empty then).
+    events: Vec<SessionEvent>
 }
 
 struct SenderEntry {
     live: SenderLive,
-    pending_ohttp: Option<OhttpCtx>
+    pending_ohttp: Option<OhttpCtx>,
+    /// PDK sender event log — serialized into `nativeState` so resume works
+    /// after process death (the in-memory SENDERS map is empty then).
+    events: Vec<SendSessionEvent>,
+    ohttp_relay: String
 }
 
 static RECEIVERS: Lazy<Mutex<HashMap<String, ReceiverEntry>>> =
@@ -93,7 +103,170 @@ fn encode_state(role: &str, id: &str, protocol: &str) -> String {
     base64::engine::general_purpose::STANDARD.encode(payload.to_string().as_bytes())
 }
 
-fn decode_state_id(state: &str) -> Result<(String, String), PayjoinError> {
+fn encode_receiver_state(
+    id: &str,
+    ohttp_relay: &str,
+    pj_uri: &str,
+    receive_script_hex: &str,
+    events: &[SessionEvent]
+) -> Result<String, PayjoinError> {
+    use base64::Engine;
+    let events_json = serde_json::to_value(events)
+        .map_err(|e| PayjoinError::msg(format!("encode receiver events: {e}")))?;
+    let payload = serde_json::json!({
+        "events": events_json,
+        "id": id,
+        "ohttp_relay": ohttp_relay,
+        "pj_uri": pj_uri,
+        "protocol": "v2",
+        "receive_script_hex": receive_script_hex,
+        "role": "receiver"
+    });
+    Ok(base64::engine::general_purpose::STANDARD.encode(payload.to_string().as_bytes()))
+}
+
+type DecodedReceiverState = (String, String, String, ScriptBuf, Vec<SessionEvent>);
+
+fn decode_receiver_state(state: &str) -> Result<DecodedReceiverState, PayjoinError> {
+    use base64::Engine;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(state)
+        .map_err(|e| PayjoinError::msg(format!("invalid state encoding: {e}")))?;
+    let value: serde_json::Value = serde_json::from_slice(&bytes)?;
+    let id = value
+        .get("id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| PayjoinError::msg("state missing id"))?
+        .to_string();
+    let ohttp_relay = value
+        .get("ohttp_relay")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let pj_uri = value
+        .get("pj_uri")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let receive_script = match value.get("receive_script_hex").and_then(|v| v.as_str()) {
+        Some(hex) => ScriptBuf::from_hex(hex)
+            .map_err(|e| PayjoinError::msg(format!("decode receive script: {e}")))?,
+        None => ScriptBuf::new()
+    };
+    let events = match value.get("events") {
+        Some(events_val) => serde_json::from_value(events_val.clone())
+            .map_err(|e| PayjoinError::msg(format!("decode receiver events: {e}")))?,
+        None => Vec::new()
+    };
+    Ok((id, ohttp_relay, pj_uri, receive_script, events))
+}
+
+fn entry_state(id: &str, entry: &ReceiverEntry) -> Result<String, PayjoinError> {
+    encode_receiver_state(
+        id,
+        &entry.ohttp_relay,
+        &entry.pj_uri,
+        &hex::encode(entry.receive_script.as_bytes()),
+        &entry.events
+    )
+}
+
+fn live_from_receive_session(session: ReceiveSession) -> Result<ReceiverLive, PayjoinError> {
+    match session {
+        ReceiveSession::Initialized(receiver) => Ok(ReceiverLive::Initialized(receiver)),
+        ReceiveSession::UncheckedOriginalPayload(receiver) => {
+            Ok(ReceiverLive::Unchecked(receiver))
+        }
+        ReceiveSession::ProvisionalProposal(receiver) => Ok(ReceiverLive::Provisional(receiver)),
+        _ => Err(PayjoinError::msg(
+            "unsupported receiver resume state after replay"
+        ))
+    }
+}
+
+fn rehydrate_receiver_entry(
+    ohttp_relay: String,
+    pj_uri: String,
+    receive_script: ScriptBuf,
+    events: Vec<SessionEvent>
+) -> Result<ReceiverEntry, PayjoinError> {
+    if events.is_empty() {
+        return Err(PayjoinError::msg(
+            "receiver session not found in memory; recreate it"
+        ));
+    }
+    let persister = MemoryPersister::from_events(events.clone());
+    let (session, _history) = replay_event_log(&persister)
+        .map_err(|e| PayjoinError::msg(format!("receiver replay failed: {e}")))?;
+    Ok(ReceiverEntry {
+        events,
+        live: live_from_receive_session(session)?,
+        ohttp_relay,
+        pending_ohttp: None,
+        pj_uri,
+        receive_script
+    })
+}
+
+fn runtime_block_on<F: std::future::Future>(future: F) -> F::Output {
+    RUNTIME.block_on(future)
+}
+
+fn noop_recv() -> NoopSessionPersister<SessionEvent> {
+    NoopSessionPersister::default()
+}
+
+fn encode_sender_state(
+    id: &str,
+    protocol: &str,
+    ohttp_relay: &str,
+    events: &[SendSessionEvent]
+) -> Result<String, PayjoinError> {
+    use base64::Engine;
+    // Persist events as a JSON *string* so the parent object never goes through
+    // serde_json::Value round-trips that break empty-tuple SessionEvents.
+    let events_str = serde_json::to_string(events)
+        .map_err(|e| PayjoinError::msg(format!("encode sender events: {e}")))?;
+    let payload = serde_json::json!({
+        "events_json": events_str,
+        "id": id,
+        "ohttp_relay": ohttp_relay,
+        "protocol": protocol,
+        "role": "sender"
+    });
+    Ok(base64::engine::general_purpose::STANDARD.encode(payload.to_string().as_bytes()))
+}
+
+type DecodedSenderState = (String, String, String, Vec<SendSessionEvent>);
+
+/// `SessionEvent::PostedOriginalPsbt()` is an empty tuple variant. Some
+/// serde_json paths emit `null` instead of `[]`; normalize before decode.
+fn normalize_send_events_json(events_val: &mut serde_json::Value) {
+    let Some(arr) = events_val.as_array_mut() else {
+        return;
+    };
+    for event in arr {
+        let Some(obj) = event.as_object_mut() else {
+            continue;
+        };
+        if let Some(payload) = obj.get_mut("PostedOriginalPsbt") {
+            if payload.is_null() {
+                *payload = serde_json::json!([]);
+            }
+        }
+    }
+}
+
+fn deserialize_send_events(
+    mut events_val: serde_json::Value
+) -> Result<Vec<SendSessionEvent>, PayjoinError> {
+    normalize_send_events_json(&mut events_val);
+    // `from_value` mishandles empty-tuple variants (`PostedOriginalPsbt()`).
+    serde_json::from_str(&events_val.to_string())
+        .map_err(|e| PayjoinError::msg(format!("decode sender events: {e}")))
+}
+
+fn decode_sender_id_protocol(state: &str) -> Result<(String, String), PayjoinError> {
     use base64::Engine;
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(state)
@@ -112,16 +285,117 @@ fn decode_state_id(state: &str) -> Result<(String, String), PayjoinError> {
     Ok((id, protocol))
 }
 
-fn runtime_block_on<F: std::future::Future>(future: F) -> F::Output {
-    RUNTIME.block_on(future)
+fn decode_sender_state(state: &str) -> Result<DecodedSenderState, PayjoinError> {
+    use base64::Engine;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(state)
+        .map_err(|e| PayjoinError::msg(format!("invalid state encoding: {e}")))?;
+    let value: serde_json::Value = serde_json::from_slice(&bytes)?;
+    let id = value
+        .get("id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| PayjoinError::msg("state missing id"))?
+        .to_string();
+    let protocol = value
+        .get("protocol")
+        .and_then(|v| v.as_str())
+        .unwrap_or("v2")
+        .to_string();
+    let ohttp_relay = value
+        .get("ohttp_relay")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let events = if let Some(events_str) = value.get("events_json").and_then(|v| v.as_str()) {
+        let mut parsed: serde_json::Value = serde_json::from_str(events_str)
+            .map_err(|e| PayjoinError::msg(format!("decode sender events_json: {e}")))?;
+        normalize_send_events_json(&mut parsed);
+        serde_json::from_str(&parsed.to_string())
+            .map_err(|e| PayjoinError::msg(format!("decode sender events: {e}")))?
+    } else if let Some(events_val) = value.get("events") {
+        // Legacy nested-array form from the first durable-sender build.
+        deserialize_send_events(events_val.clone())?
+    } else {
+        Vec::new()
+    };
+    Ok((id, protocol, ohttp_relay, events))
 }
 
-fn noop_recv() -> NoopSessionPersister<SessionEvent> {
-    NoopSessionPersister::default()
+fn sender_entry_state(id: &str, protocol: &str, entry: &SenderEntry) -> Result<String, PayjoinError> {
+    encode_sender_state(id, protocol, &entry.ohttp_relay, &entry.events)
 }
 
-fn noop_send() -> NoopSessionPersister<send_v2::SessionEvent> {
-    NoopSessionPersister::default()
+fn live_from_send_session(
+    session: SendSession,
+    ohttp_relay: String
+) -> Result<SenderLive, PayjoinError> {
+    match session {
+        SendSession::WithReplyKey(sender) => Ok(SenderLive::V2WithReply {
+            sender,
+            ohttp_relay
+        }),
+        SendSession::PollingForProposal(sender) => Ok(SenderLive::V2Polling {
+            sender,
+            ohttp_relay
+        }),
+        _ => Err(PayjoinError::msg(
+            "unsupported sender resume state after replay"
+        ))
+    }
+}
+
+fn rehydrate_sender_entry(
+    ohttp_relay: String,
+    events: Vec<SendSessionEvent>
+) -> Result<SenderEntry, PayjoinError> {
+    if events.is_empty() {
+        return Err(PayjoinError::msg(
+            "sender session not found in memory; recreate it"
+        ));
+    }
+    let persister = MemoryPersister::from_events(events.clone());
+    let (session, _history) = replay_send_event_log(&persister)
+        .map_err(|e| PayjoinError::msg(format!("sender replay failed: {e}")))?;
+    Ok(SenderEntry {
+        events,
+        live: live_from_send_session(session, ohttp_relay.clone())?,
+        ohttp_relay,
+        pending_ohttp: None
+    })
+}
+
+fn ensure_sender_in_memory(state: &str) -> Result<(String, String), PayjoinError> {
+    // Prefer id-only lookup so an in-memory session survives even if the
+    // persisted event JSON still has the PostedOriginalPsbt null quirk.
+    let (id, protocol) = decode_sender_id_protocol(state)?;
+    {
+        let senders = SENDERS.lock().expect("senders lock");
+        if senders.contains_key(&id) {
+            return Ok((id, protocol));
+        }
+    }
+    if protocol != "v2" {
+        return Err(PayjoinError::msg("sender session not found in memory"));
+    }
+    let (_, _, ohttp_relay, events) = decode_sender_state(state)?;
+    let entry = rehydrate_sender_entry(ohttp_relay, events)?;
+    SENDERS
+        .lock()
+        .expect("senders lock")
+        .insert(id.clone(), entry);
+    Ok((id, protocol))
+}
+
+fn append_send_events(
+    entry: &mut SenderEntry,
+    persister: &MemoryPersister<SendSessionEvent>
+) -> Result<(), PayjoinError> {
+    let new_events: Vec<SendSessionEvent> = persister
+        .load()
+        .map_err(|e| PayjoinError::msg(e.to_string()))?
+        .collect();
+    entry.events.extend(new_events);
+    Ok(())
 }
 
 fn original_psbt_from_events(events: &[SessionEvent]) -> Result<String, PayjoinError> {
@@ -218,23 +492,35 @@ pub fn create_receiver_session(
         .map_err(|e| PayjoinError::msg(e.to_string()))?
         .with_expiration(Duration::from_secs(init.expire_seconds.max(60)));
 
+    let persister = MemoryPersister::<SessionEvent>::new();
     let receiver = builder
         .build()
-        .save(&noop_recv())
+        .save(&persister)
         .map_err(|e| PayjoinError::msg(e.to_string()))?;
 
+    let events: Vec<SessionEvent> = persister
+        .load()
+        .map_err(|e| PayjoinError::msg(e.to_string()))?
+        .collect();
     let pj_uri = receiver.pj_uri().to_string();
     let id = Uuid::new_v4().to_string();
-    let state = encode_state("receiver", &id, "v2");
+    let state = encode_receiver_state(
+        &id,
+        &init.ohttp_relay_url,
+        &pj_uri,
+        &hex::encode(receive_script.as_bytes()),
+        &events
+    )?;
 
     RECEIVERS.lock().expect("receivers lock").insert(
         id.clone(),
         ReceiverEntry {
+            events,
             live: ReceiverLive::Initialized(receiver),
             ohttp_relay: init.ohttp_relay_url,
+            pending_ohttp: None,
             pj_uri: pj_uri.clone(),
-            receive_script,
-            pending_ohttp: None
+            receive_script
         }
     );
 
@@ -247,22 +533,51 @@ pub fn create_receiver_session(
 
 #[uniffi::export]
 pub fn resume_receiver_session(state: String) -> Result<ReceiverSessionHandle, PayjoinError> {
-    let (id, _) = decode_state_id(&state)?;
-    let receivers = RECEIVERS.lock().expect("receivers lock");
-    let entry = receivers
-        .get(&id)
-        .ok_or_else(|| PayjoinError::msg("receiver session not found in memory; recreate it"))?;
+    let (id, ohttp_relay, pj_uri, receive_script, events) = decode_receiver_state(&state)?;
+    {
+        let receivers = RECEIVERS.lock().expect("receivers lock");
+        if let Some(entry) = receivers.get(&id) {
+            let next_state = entry_state(&id, entry).unwrap_or_else(|_| state.clone());
+            return Ok(ReceiverSessionHandle {
+                id,
+                pj_uri: entry.pj_uri.clone(),
+                state: next_state
+            });
+        }
+    }
 
-    Ok(ReceiverSessionHandle {
-        id,
+    let entry = rehydrate_receiver_entry(ohttp_relay, pj_uri, receive_script, events)?;
+    let handle = ReceiverSessionHandle {
+        id: id.clone(),
         pj_uri: entry.pj_uri.clone(),
-        state
-    })
+        state: entry_state(&id, &entry)?
+    };
+    RECEIVERS
+        .lock()
+        .expect("receivers lock")
+        .insert(id, entry);
+    Ok(handle)
+}
+
+fn ensure_receiver_in_memory(state: &str) -> Result<String, PayjoinError> {
+    let (id, ohttp_relay, pj_uri, receive_script, events) = decode_receiver_state(state)?;
+    {
+        let receivers = RECEIVERS.lock().expect("receivers lock");
+        if receivers.contains_key(&id) {
+            return Ok(id);
+        }
+    }
+    let entry = rehydrate_receiver_entry(ohttp_relay, pj_uri, receive_script, events)?;
+    RECEIVERS
+        .lock()
+        .expect("receivers lock")
+        .insert(id.clone(), entry);
+    Ok(id)
 }
 
 #[uniffi::export]
 pub fn receiver_extract_request(state: String) -> Result<ExtractRequestResult, PayjoinError> {
-    let (id, _) = decode_state_id(&state)?;
+    let id = ensure_receiver_in_memory(&state)?;
     let mut receivers = RECEIVERS.lock().expect("receivers lock");
     let entry = receivers
         .get_mut(&id)
@@ -278,10 +593,11 @@ pub fn receiver_extract_request(state: String) -> Result<ExtractRequestResult, P
         .create_poll_request(&entry.ohttp_relay)
         .map_err(|e| PayjoinError::msg(e.to_string()))?;
     entry.pending_ohttp = Some(ohttp_ctx);
+    let next_state = entry_state(&id, entry)?;
 
     Ok(ExtractRequestResult {
         request: request.into(),
-        state
+        state: next_state
     })
 }
 
@@ -290,7 +606,7 @@ pub fn receiver_process_response(
     state: String,
     body: Vec<u8>
 ) -> Result<ProcessResult, PayjoinError> {
-    let (id, _) = decode_state_id(&state)?;
+    let id = ensure_receiver_in_memory(&state)?;
     let mut receivers = RECEIVERS.lock().expect("receivers lock");
     let mut entry = receivers
         .remove(&id)
@@ -316,17 +632,20 @@ pub fn receiver_process_response(
     let persister = MemoryPersister::<SessionEvent>::new();
     match receiver.process_response(&body, ohttp_ctx).save(&persister) {
         Ok(OptionalTransitionOutcome::Progress(next)) => {
-            let events: Vec<SessionEvent> = persister
+            let new_events: Vec<SessionEvent> = persister
                 .load()
                 .map_err(|e| PayjoinError::msg(e.to_string()))?
                 .collect();
-            match original_psbt_from_events(&events) {
+            entry.events.extend(new_events);
+            let events_snapshot = entry.events.clone();
+            match original_psbt_from_events(&events_snapshot) {
                 Ok(psbt_base64) => {
                     entry.live = ReceiverLive::Unchecked(next);
+                    let next_state = entry_state(&id, &entry)?;
                     receivers.insert(id, entry);
                     Ok(ProcessResult::Proposal {
                         psbt_base64,
-                        state
+                        state: next_state
                     })
                 }
                 Err(error) => {
@@ -341,11 +660,17 @@ pub fn receiver_process_response(
             }
         }
         Ok(OptionalTransitionOutcome::Stasis(same)) => {
+            let new_events: Vec<SessionEvent> = persister
+                .load()
+                .map_err(|e| PayjoinError::msg(e.to_string()))?
+                .collect();
+            entry.events.extend(new_events);
             entry.live = ReceiverLive::Initialized(same);
+            let next_state = entry_state(&id, &entry)?;
             receivers.insert(id, entry);
             Ok(ProcessResult::Pending {
                 next_request: None,
-                state
+                state: next_state
             })
         }
         Err(error) => {
@@ -365,7 +690,7 @@ pub fn receiver_contribute_and_finalize(
     input: ReceiverInput,
     signed_psbt_base64: String
 ) -> Result<ContributeResult, PayjoinError> {
-    let (id, _) = decode_state_id(&state)?;
+    let id = ensure_receiver_in_memory(&state)?;
     let mut receivers = RECEIVERS.lock().expect("receivers lock");
     let mut entry = receivers
         .remove(&id)
@@ -375,6 +700,7 @@ pub fn receiver_contribute_and_finalize(
 
     // Second call: finalize + build directory POST from a provisional proposal.
     if !signed_psbt_base64.is_empty() {
+        let next_state = entry_state(&id, &entry).unwrap_or_else(|_| state.clone());
         let ReceiverLive::Provisional(provisional) = entry.live else {
             receivers.insert(id, entry);
             return Err(PayjoinError::msg(
@@ -420,7 +746,7 @@ pub fn receiver_contribute_and_finalize(
         // deliver `request` successfully before treating the receive as done.
         return Ok(ContributeResult {
             request: request.into(),
-            state,
+            state: next_state,
             psbt_base64
         });
     }
@@ -489,6 +815,7 @@ pub fn receiver_contribute_and_finalize(
 
     let psbt_base64 = provisional.psbt_to_sign().to_string();
     entry.live = ReceiverLive::Provisional(provisional);
+    let next_state = entry_state(&id, &entry)?;
     receivers.insert(id, entry);
 
     Ok(ContributeResult {
@@ -497,7 +824,7 @@ pub fn receiver_contribute_and_finalize(
             body: Vec::new(),
             content_type: "application/octet-stream".into()
         },
-        state,
+        state: next_state,
         psbt_base64
     })
 }
@@ -539,13 +866,18 @@ pub fn create_sender_session(
         if init.disable_output_substitution {
             builder = builder.always_disable_output_substitution();
         }
+        let persister = MemoryPersister::<SendSessionEvent>::new();
         let sender = builder
             .build_recommended(FeeRate::BROADCAST_MIN)
             .map_err(|e| PayjoinError::msg(e.to_string()))?
-            .save(&noop_send())
+            .save(&persister)
             .map_err(|e| PayjoinError::msg(e.to_string()))?;
+        let events: Vec<SendSessionEvent> = persister
+            .load()
+            .map_err(|e| PayjoinError::msg(e.to_string()))?
+            .collect();
 
-        let state = encode_state("sender", &id, "v2");
+        let state = encode_sender_state(&id, "v2", &ohttp_relay, &events)?;
         let (request, ohttp_ctx) = sender
             .create_v2_post_request(&ohttp_relay)
             .map_err(|e| PayjoinError::msg(e.to_string()))?;
@@ -553,10 +885,12 @@ pub fn create_sender_session(
         SENDERS.lock().expect("senders lock").insert(
             id.clone(),
             SenderEntry {
+                events,
                 live: SenderLive::V2WithReply {
                     sender,
-                    ohttp_relay
+                    ohttp_relay: ohttp_relay.clone()
                 },
+                ohttp_relay,
                 pending_ohttp: Some(ohttp_ctx)
             }
         );
@@ -582,7 +916,9 @@ pub fn create_sender_session(
     SENDERS.lock().expect("senders lock").insert(
         id.clone(),
         SenderEntry {
+            events: Vec::new(),
             live: SenderLive::V1 { context },
+            ohttp_relay: String::new(),
             pending_ohttp: None
         }
     );
@@ -599,22 +935,43 @@ const DEFAULT_OHTTP_RELAY: &str = "https://pj.bobspacebkk.com";
 
 #[uniffi::export]
 pub fn resume_sender_session(state: String) -> Result<SenderSessionHandle, PayjoinError> {
-    let (id, protocol) = decode_state_id(&state)?;
-    let senders = SENDERS.lock().expect("senders lock");
-    if !senders.contains_key(&id) {
+    let (id, protocol) = decode_sender_id_protocol(&state)?;
+    {
+        let senders = SENDERS.lock().expect("senders lock");
+        if let Some(entry) = senders.get(&id) {
+            let next_state =
+                sender_entry_state(&id, &protocol, entry).unwrap_or_else(|_| state.clone());
+            return Ok(SenderSessionHandle {
+                id,
+                protocol,
+                state: next_state,
+                request: None
+            });
+        }
+    }
+
+    if protocol != "v2" {
         return Err(PayjoinError::msg("sender session not found in memory"));
     }
-    Ok(SenderSessionHandle {
-        id,
-        protocol,
-        state,
+
+    let (_, _, ohttp_relay, events) = decode_sender_state(&state)?;
+    let entry = rehydrate_sender_entry(ohttp_relay, events)?;
+    let handle = SenderSessionHandle {
+        id: id.clone(),
+        protocol: protocol.clone(),
+        state: sender_entry_state(&id, &protocol, &entry)?,
         request: None
-    })
+    };
+    SENDERS
+        .lock()
+        .expect("senders lock")
+        .insert(id, entry);
+    Ok(handle)
 }
 
 #[uniffi::export]
 pub fn sender_extract_request(state: String) -> Result<ExtractRequestResult, PayjoinError> {
-    let (id, _) = decode_state_id(&state)?;
+    let (id, protocol) = ensure_sender_in_memory(&state)?;
     let mut senders = SENDERS.lock().expect("senders lock");
     let entry = senders
         .get_mut(&id)
@@ -626,9 +983,10 @@ pub fn sender_extract_request(state: String) -> Result<ExtractRequestResult, Pay
                 .create_poll_request(ohttp_relay)
                 .map_err(|e| PayjoinError::msg(e.to_string()))?;
             entry.pending_ohttp = Some(ohttp_ctx);
+            let next_state = sender_entry_state(&id, &protocol, entry)?;
             Ok(ExtractRequestResult {
                 request: request.into(),
-                state
+                state: next_state
             })
         }
         SenderLive::V2WithReply { sender, ohttp_relay } => {
@@ -636,9 +994,10 @@ pub fn sender_extract_request(state: String) -> Result<ExtractRequestResult, Pay
                 .create_v2_post_request(ohttp_relay)
                 .map_err(|e| PayjoinError::msg(e.to_string()))?;
             entry.pending_ohttp = Some(ohttp_ctx);
+            let next_state = sender_entry_state(&id, &protocol, entry)?;
             Ok(ExtractRequestResult {
                 request: request.into(),
-                state
+                state: next_state
             })
         }
         SenderLive::V1 { .. } => Err(PayjoinError::msg(
@@ -652,7 +1011,7 @@ pub fn sender_process_response(
     state: String,
     body: Vec<u8>
 ) -> Result<ProcessResult, PayjoinError> {
-    let (id, _) = decode_state_id(&state)?;
+    let (id, protocol) = ensure_sender_in_memory(&state)?;
     let mut senders = SENDERS.lock().expect("senders lock");
     let entry = senders
         .remove(&id)
@@ -675,21 +1034,24 @@ pub fn sender_process_response(
             let ohttp_ctx = entry
                 .pending_ohttp
                 .ok_or_else(|| PayjoinError::msg("missing ohttp context"))?;
-            match sender.process_response(&body, ohttp_ctx).save(&noop_send()) {
+            let persister = MemoryPersister::<SendSessionEvent>::new();
+            match sender.process_response(&body, ohttp_ctx).save(&persister) {
                 Ok(next) => {
-                    senders.insert(
-                        id,
-                        SenderEntry {
-                            live: SenderLive::V2Polling {
-                                sender: next,
-                                ohttp_relay
-                            },
-                            pending_ohttp: None
-                        }
-                    );
+                    let mut next_entry = SenderEntry {
+                        events: entry.events,
+                        live: SenderLive::V2Polling {
+                            sender: next,
+                            ohttp_relay: ohttp_relay.clone()
+                        },
+                        ohttp_relay,
+                        pending_ohttp: None
+                    };
+                    append_send_events(&mut next_entry, &persister)?;
+                    let next_state = sender_entry_state(&id, &protocol, &next_entry)?;
+                    senders.insert(id, next_entry);
                     Ok(ProcessResult::Pending {
                         next_request: None,
-                        state
+                        state: next_state
                     })
                 }
                 Err(error) => Ok(ProcessResult::Error {
@@ -704,25 +1066,39 @@ pub fn sender_process_response(
             let ohttp_ctx = entry
                 .pending_ohttp
                 .ok_or_else(|| PayjoinError::msg("missing ohttp context"))?;
-            match sender.process_response(&body, ohttp_ctx).save(&noop_send()) {
-                Ok(OptionalTransitionOutcome::Progress(psbt)) => Ok(ProcessResult::Proposal {
-                    psbt_base64: psbt.to_string(),
-                    state
-                }),
+            let persister = MemoryPersister::<SendSessionEvent>::new();
+            match sender.process_response(&body, ohttp_ctx).save(&persister) {
+                Ok(OptionalTransitionOutcome::Progress(psbt)) => {
+                    let mut events = entry.events;
+                    let new_events: Vec<SendSessionEvent> = persister
+                        .load()
+                        .map_err(|e| PayjoinError::msg(e.to_string()))?
+                        .collect();
+                    events.extend(new_events);
+                    let next_state =
+                        encode_sender_state(&id, &protocol, &ohttp_relay, &events)
+                            .unwrap_or(state);
+                    Ok(ProcessResult::Proposal {
+                        psbt_base64: psbt.to_string(),
+                        state: next_state
+                    })
+                }
                 Ok(OptionalTransitionOutcome::Stasis(same)) => {
-                    senders.insert(
-                        id,
-                        SenderEntry {
-                            live: SenderLive::V2Polling {
-                                sender: same,
-                                ohttp_relay
-                            },
-                            pending_ohttp: None
-                        }
-                    );
+                    let mut next_entry = SenderEntry {
+                        events: entry.events,
+                        live: SenderLive::V2Polling {
+                            sender: same,
+                            ohttp_relay: ohttp_relay.clone()
+                        },
+                        ohttp_relay,
+                        pending_ohttp: None
+                    };
+                    append_send_events(&mut next_entry, &persister)?;
+                    let next_state = sender_entry_state(&id, &protocol, &next_entry)?;
+                    senders.insert(id, next_entry);
                     Ok(ProcessResult::Pending {
                         next_request: None,
-                        state
+                        state: next_state
                     })
                 }
                 Err(error) => Ok(ProcessResult::Error {
@@ -730,5 +1106,42 @@ pub fn sender_process_response(
                 })
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn posted_original_psbt_roundtrips_through_sender_state() {
+        let event = SendSessionEvent::PostedOriginalPsbt();
+        let state = encode_sender_state(
+            "id",
+            "v2",
+            "https://ohttp.example",
+            &[
+                // Created is heavy; PostedOriginal alone exercises the quirk.
+                event.clone()
+            ]
+        )
+        .expect("encode state");
+        let (_, _, relay, events) = decode_sender_state(&state).expect("decode state");
+        assert_eq!(relay, "https://ohttp.example");
+        assert_eq!(events, vec![event.clone()]);
+
+        // Legacy nested `events` array (first durable build) still loads.
+        use base64::Engine;
+        let legacy_payload = serde_json::json!({
+            "events": [{ "PostedOriginalPsbt": null }],
+            "id": "id",
+            "ohttp_relay": "https://ohttp.example",
+            "protocol": "v2",
+            "role": "sender"
+        });
+        let legacy = base64::engine::general_purpose::STANDARD
+            .encode(legacy_payload.to_string().as_bytes());
+        let (_, _, _, legacy_events) = decode_sender_state(&legacy).expect("decode legacy");
+        assert_eq!(legacy_events, vec![SendSessionEvent::PostedOriginalPsbt()]);
     }
 }

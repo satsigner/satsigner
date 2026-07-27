@@ -16,13 +16,13 @@ import {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
   PAYJOIN_DEFAULT_PJOS,
-  PAYJOIN_DIRECTORY_URL,
-  PAYJOIN_SESSION_TTL_MS
+  PAYJOIN_DIRECTORY_URL
 } from '@/constants/payjoin'
 import {
   buildNewSession,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
+import { getPayjoinSessionTtlMs } from '@/store/settings'
 import {
   type PayjoinSendResult,
   type PayjoinSession,
@@ -38,6 +38,10 @@ import {
 } from '@/utils/payjoinLog'
 import { getShuffledOhttpRelays } from '@/utils/payjoinRelays'
 import {
+  isPayjoinSuccess,
+  isPayjoinTerminal
+} from '@/utils/payjoinSessionStatus'
+import {
   appendParamsToPayjoinUri,
   buildPayjoinUri,
   detectEndpointKind,
@@ -48,6 +52,7 @@ import {
   parseBip78ErrorBody,
   validatePayjoinProposal
 } from '@/utils/payjoinValidate'
+import { extractTransactionIdFromPSBT } from '@/utils/psbt'
 
 type HttpResponse = {
   status: number
@@ -778,16 +783,38 @@ async function pollBip77Send(params: {
   fetchImpl?: FetchLike
   timeoutMs?: number
 }): Promise<Bip77AsyncSendResult> {
+  const originalPsbtBase64 = params.session.originalPsbtBase64 ?? ''
+  if (isPayjoinTerminal(params.session.status)) {
+    if (
+      isPayjoinSuccess(params.session.status) &&
+      params.session.payjoinPsbtBase64
+    ) {
+      return {
+        kind: 'proposal',
+        result: {
+          ok: true,
+          protocol: 'v2',
+          psbtBase64: params.session.payjoinPsbtBase64,
+          usedPayjoin: true
+        }
+      }
+    }
+    return {
+      kind: 'fallback',
+      originalPsbtBase64,
+      reason: `sender session already ${params.session.status}`
+    }
+  }
+
   if (!params.session.nativeState || !isNativeAvailable()) {
     return {
       kind: 'fallback',
-      originalPsbtBase64: params.session.originalPsbtBase64 ?? '',
+      originalPsbtBase64,
       reason: 'payjoin sender session missing native state'
     }
   }
 
   const fetchImpl = params.fetchImpl ?? defaultFetch
-  const originalPsbtBase64 = params.session.originalPsbtBase64 ?? ''
   let state = params.session.nativeState
   let lastError = 'still waiting for receiver'
   const deadline = Date.now() + (params.timeoutMs ?? 15_000)
@@ -796,7 +823,8 @@ async function pollBip77Send(params: {
   let polls = 0
 
   function isDeadNativeSession(message: string): boolean {
-    // nativeState is only an in-memory id — process death / OOM loses SENDERS.
+    // Durable nativeState can replay after process death. "not found" means
+    // a legacy id-only blob or a corrupt/expired event log.
     return /sender session not found/i.test(message)
   }
 
@@ -827,6 +855,16 @@ async function pollBip77Send(params: {
 
   try {
     while (Date.now() < deadline) {
+      const live = usePayjoinSessionsStore
+        .getState()
+        .getSession(params.session.id)
+      if (live && isPayjoinTerminal(live.status)) {
+        return {
+          kind: 'fallback',
+          originalPsbtBase64,
+          reason: `sender session became ${live.status}`
+        }
+      }
       polls += 1
       const { request, state: nextState } = await senderExtractRequest(state)
       state = nextState
@@ -1085,7 +1123,7 @@ async function createReceivePayjoinSession(params: {
 }): Promise<PayjoinSession> {
   const relays = getShuffledOhttpRelays()
   const expireSeconds = Math.floor(
-    (params.ttlMs ?? PAYJOIN_SESSION_TTL_MS) / 1000
+    (params.ttlMs ?? getPayjoinSessionTtlMs()) / 1000
   )
 
   let pjUri: string
@@ -1240,7 +1278,7 @@ async function pollReceiverSession(params: {
         ...params.session,
         expiresAt: Math.max(
           params.session.expiresAt,
-          now + PAYJOIN_SESSION_TTL_MS
+          now + getPayjoinSessionTtlMs()
         ),
         nativeState: processed.state,
         status: 'proposal_received' as const,
@@ -1257,7 +1295,7 @@ async function pollReceiverSession(params: {
       // Keep the mailbox alive in the app while the user is still polling.
       expiresAt: Math.max(
         params.session.expiresAt,
-        now + PAYJOIN_SESSION_TTL_MS
+        now + getPayjoinSessionTtlMs()
       ),
       nativeState: processed.state,
       status: 'waiting' as const,
@@ -1382,16 +1420,32 @@ async function finalizeReceiverPayjoin(params: {
 
   store.markInputSeen(outpoint)
 
+  let txid: string | undefined
+  try {
+    txid = extractTransactionIdFromPSBT(psbtBase64) ?? undefined
+  } catch (error) {
+    payjoinWarn('receiver finalize txid extract failed', {
+      error: compactError(error),
+      sessionId: params.session.id
+    })
+  }
+  const now = Date.now()
   const updated: PayjoinSession = {
     ...params.session,
     error: undefined,
+    // Keep the card alive past mailbox TTL until broadcast sync or discard.
+    expiresAt: Math.max(
+      params.session.expiresAt,
+      now + getPayjoinSessionTtlMs()
+    ),
     // Drop native handle after the proposal is posted — keeps MMKV small and
     // avoids retaining the receiver entry once the sender can poll it.
     nativeState: undefined,
     payjoinPsbtBase64: psbtBase64,
     proposalPsbtBase64: psbtBase64,
     status: 'completed',
-    updatedAt: Date.now()
+    txid,
+    updatedAt: now
   }
   store.upsertSession(updated)
   return updated
