@@ -35,6 +35,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
+import { getBackupFilename } from '@/utils/backupFilename'
 import {
   aesDecrypt,
   aesEncrypt,
@@ -112,6 +113,7 @@ export default function Developer() {
     const accountsWithSeeds = await Promise.all(
       accounts.map(async (account) => ({
         birthdayDate: account.birthdayDate,
+        excludedUtxoOutpoints: account.excludedUtxoOutpoints ?? [],
         id: account.id,
         keys: await keysWithSeeds(account.id, account.keys),
         labels: account.labels,
@@ -220,7 +222,7 @@ export default function Developer() {
       })
       const result = await Share.share({
         message: encryptedPayload,
-        title: t('settings.developer.backupData')
+        title: getBackupFilename()
       })
       if (result.action === Share.sharedAction) {
         toast.success(t('settings.developer.backupSuccess'))
@@ -244,7 +246,7 @@ export default function Developer() {
       toast.error(t('settings.developer.backupPassphraseInvalid'))
       return
     }
-    const filename = `satsigner-backup-${Date.now()}.json`
+    const filename = getBackupFilename()
     try {
       const salt = await generateSalt()
       const key = await pbkdf2Encrypt(backupPassphrase, salt)

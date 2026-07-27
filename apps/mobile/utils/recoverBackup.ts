@@ -37,6 +37,7 @@ type BackupKey = Key & {
 }
 type BackupAccount = {
   birthdayDate?: string
+  excludedUtxoOutpoints?: string[]
   id: string
   keys: BackupKey[]
   keysRequired?: number
@@ -238,6 +239,7 @@ async function prepareRestore(
       addresses: [],
       birthdayDate: acc.birthdayDate ? new Date(acc.birthdayDate) : undefined,
       createdAt: typeof created === 'string' ? new Date(created) : new Date(),
+      excludedUtxoOutpoints: acc.excludedUtxoOutpoints ?? [],
       id: acc.id,
       keyCount: acc.keys.length,
       keys: accountKeys,
