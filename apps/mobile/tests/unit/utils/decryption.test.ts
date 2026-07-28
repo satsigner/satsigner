@@ -84,7 +84,9 @@ describe('getPin', () => {
   it('throws when no pin is stored', async () => {
     getItem.mockResolvedValue(null)
 
-    await expect(getPin()).rejects.toThrow('Failed to obtain PIN for decryption')
+    await expect(getPin()).rejects.toThrow(
+      'Failed to obtain PIN for decryption'
+    )
   })
 })
 
@@ -222,13 +224,11 @@ describe('getBitcoinWithDecryptedKeys', () => {
 
   it('returns the account with each key secret decrypted', async () => {
     getItem.mockResolvedValue('1234')
-    getKeySecret.mockImplementation(
-      async (_accountId: string, keyIndex: number) => ({
-        iv: `iv-${keyIndex}`,
-        secret: `enc-${keyIndex}`
-      })
-    )
-    aesDecrypt.mockImplementation(async (secret: string) =>
+    getKeySecret.mockImplementation((_accountId: string, keyIndex: number) => ({
+      iv: `iv-${keyIndex}`,
+      secret: `enc-${keyIndex}`
+    }))
+    aesDecrypt.mockImplementation((secret: string) =>
       JSON.stringify({ mnemonic: `mnemonic-for-${secret}` })
     )
 
