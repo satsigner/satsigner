@@ -140,7 +140,9 @@ import {
   type UtxoKeychainFilter,
   type UtxoLabelFilter,
   type UtxoListFilter,
-  type UtxoSortField
+  type UtxoScriptFilter,
+  type UtxoSortField,
+  type UtxoTagFilter
 } from '@/utils/utxoList'
 import {
   groupDisplayTitle,
@@ -1538,7 +1540,11 @@ function SpendableOutputs({
   const visibleUtxos = groups.flatMap((group) => group.utxos)
 
   const controlsActive =
-    filter.keychain !== 'all' || filter.label !== 'all' || groupMode !== 'none'
+    filter.keychain !== 'all' ||
+    filter.label !== 'all' ||
+    filter.script !== 'all' ||
+    filter.tag !== 'all' ||
+    groupMode !== 'none'
 
   function handleOnDirectionChanged(
     field: UtxoSortField,
@@ -1553,6 +1559,14 @@ function SpendableOutputs({
 
   function setLabelFilter(label: UtxoLabelFilter) {
     setFilter((prev) => ({ ...prev, label }))
+  }
+
+  function setTagFilter(tag: UtxoTagFilter) {
+    setFilter((prev) => ({ ...prev, tag }))
+  }
+
+  function setScriptFilter(script: UtxoScriptFilter) {
+    setFilter((prev) => ({ ...prev, script }))
   }
 
   return (
@@ -1724,8 +1738,14 @@ function SpendableOutputs({
         filter={filter}
         groupMode={groupMode}
         onClose={() => setControlsModalVisible(false)}
+        onReset={() => {
+          setFilter(DEFAULT_UTXO_LIST_FILTER)
+          setGroupMode('none')
+        }}
         onKeychainChange={setKeychainFilter}
         onLabelChange={setLabelFilter}
+        onScriptChange={setScriptFilter}
+        onTagChange={setTagFilter}
         onGroupModeChange={setGroupMode}
       />
     </View>

@@ -1,4 +1,5 @@
 import { t } from '@/locales'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { type UtxoGroupMode, type UtxoSortField } from '@/utils/utxoList'
 
 const UTXO_SORT_FIELDS: UtxoSortField[] = ['amount', 'label', 'date']
@@ -9,6 +10,20 @@ const UTXO_GROUP_MODES: UtxoGroupMode[] = [
   'label',
   'tag',
   'keychain'
+]
+
+/** Scripts detectable from address (nested P2SH-* resolve as P2SH). */
+const UTXO_SCRIPT_FILTER_OPTIONS: ScriptVersionType[] = [
+  'P2PKH',
+  'P2SH',
+  'P2WPKH',
+  'P2WSH',
+  'P2TR'
+]
+
+const UTXO_SCRIPT_FILTER_PAIRS: [ScriptVersionType, ScriptVersionType][] = [
+  ['P2PKH', 'P2SH'],
+  ['P2WPKH', 'P2WSH']
 ]
 
 function utxoSortFieldLabel(field: UtxoSortField) {
@@ -58,6 +73,8 @@ function groupDisplayTitle(mode: UtxoGroupMode, key: string, title: string) {
 export {
   groupDisplayTitle,
   UTXO_GROUP_MODES,
+  UTXO_SCRIPT_FILTER_OPTIONS,
+  UTXO_SCRIPT_FILTER_PAIRS,
   UTXO_SORT_FIELDS,
   utxoGroupModeLabel,
   utxoSortFieldLabel

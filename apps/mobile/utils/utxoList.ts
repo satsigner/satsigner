@@ -1,8 +1,10 @@
 import { type Direction } from '@/types/logic/sort'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { type Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint } from '@/utils/outpoint'
 import { parseLabel } from '@/utils/parse'
 import { compareAmount, compareLabel, compareTimestamp } from '@/utils/sort'
+import { getUtxoScriptType } from '@/utils/transaction'
 
 type UtxoSortField = 'date' | 'amount' | 'label'
 
@@ -12,9 +14,16 @@ type UtxoKeychainFilter = 'all' | 'external' | 'internal'
 
 type UtxoLabelFilter = 'all' | 'labeled' | 'unlabeled'
 
+type UtxoTagFilter = 'all' | 'tagged' | 'untagged'
+
+/** Address-detectable script types (nested P2SH-* appear as P2SH). */
+type UtxoScriptFilter = 'all' | ScriptVersionType
+
 type UtxoListFilter = {
   keychain: UtxoKeychainFilter
   label: UtxoLabelFilter
+  script: UtxoScriptFilter
+  tag: UtxoTagFilter
 }
 
 type UtxoGroup = {
@@ -25,7 +34,9 @@ type UtxoGroup = {
 
 const DEFAULT_UTXO_LIST_FILTER: UtxoListFilter = {
   keychain: 'all',
-  label: 'all'
+  label: 'all',
+  script: 'all',
+  tag: 'all'
 }
 
 function isUtxoExcluded(
@@ -72,12 +83,22 @@ function filterUtxos(
     if (filter.keychain !== 'all' && utxo.keychain !== filter.keychain) {
       return false
     }
-    const { label } = parseLabel(utxo.label || '')
+    if (filter.script !== 'all' && getUtxoScriptType(utxo) !== filter.script) {
+      return false
+    }
+    const { label, tags } = parseLabel(utxo.label || '')
     const hasLabelText = Boolean(label.trim())
     if (filter.label === 'labeled' && !hasLabelText) {
       return false
     }
     if (filter.label === 'unlabeled' && hasLabelText) {
+      return false
+    }
+    const hasTags = tags.length > 0
+    if (filter.tag === 'tagged' && !hasTags) {
+      return false
+    }
+    if (filter.tag === 'untagged' && hasTags) {
       return false
     }
     return true
@@ -220,5 +241,7 @@ export type {
   UtxoKeychainFilter,
   UtxoLabelFilter,
   UtxoListFilter,
-  UtxoSortField
+  UtxoScriptFilter,
+  UtxoSortField,
+  UtxoTagFilter
 }

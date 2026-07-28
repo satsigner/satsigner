@@ -78,24 +78,46 @@ describe('utxoList', () => {
   })
 
   describe('filterUtxos', () => {
-    it('filters by keychain and label text (ignoring tag-only labels)', () => {
+    it('filters by keychain, label text, tags, and script', () => {
       const receive = filterUtxos(utxos, {
         keychain: 'external',
-        label: 'all'
+        label: 'all',
+        script: 'all',
+        tag: 'all'
       })
       expect(receive).toHaveLength(2)
 
       const labeled = filterUtxos(utxos, {
         keychain: 'all',
-        label: 'labeled'
+        label: 'labeled',
+        script: 'all',
+        tag: 'all'
       })
       expect(labeled.map((u) => u.txid).toSorted()).toStrictEqual(['a', 'c'])
 
       const unlabeled = filterUtxos(utxos, {
         keychain: 'internal',
-        label: 'unlabeled'
+        label: 'unlabeled',
+        script: 'all',
+        tag: 'all'
       })
       expect(unlabeled.map((u) => u.txid)).toStrictEqual(['b'])
+
+      const tagged = filterUtxos(utxos, {
+        keychain: 'all',
+        label: 'all',
+        script: 'all',
+        tag: 'tagged'
+      })
+      expect(tagged.map((u) => u.txid).toSorted()).toStrictEqual(['a', 'c'])
+
+      const untagged = filterUtxos(utxos, {
+        keychain: 'all',
+        label: 'all',
+        script: 'all',
+        tag: 'untagged'
+      })
+      expect(untagged.map((u) => u.txid)).toStrictEqual(['b'])
 
       const tagOnly = makeUtxo({
         label: '#solo',
@@ -103,11 +125,57 @@ describe('utxoList', () => {
         vout: 0
       })
       expect(
-        filterUtxos([tagOnly], { keychain: 'all', label: 'labeled' })
+        filterUtxos([tagOnly], {
+          keychain: 'all',
+          label: 'labeled',
+          script: 'all',
+          tag: 'all'
+        })
       ).toHaveLength(0)
       expect(
-        filterUtxos([tagOnly], { keychain: 'all', label: 'unlabeled' })
+        filterUtxos([tagOnly], {
+          keychain: 'all',
+          label: 'unlabeled',
+          script: 'all',
+          tag: 'all'
+        })
       ).toHaveLength(1)
+      expect(
+        filterUtxos([tagOnly], {
+          keychain: 'all',
+          label: 'all',
+          script: 'all',
+          tag: 'tagged'
+        })
+      ).toHaveLength(1)
+
+      const p2wpkh = makeUtxo({
+        addressTo: 'tb1qmj3dcj45tugree3f87mrxvc5aqm4hkz4x3t9np',
+        txid: 'e',
+        vout: 0
+      })
+      const p2tr = makeUtxo({
+        addressTo:
+          'tb1pptev7vzxjvlpnazg6zk4l9j3qw6990kwfmz43ppyms79525qzf8qd8rpup',
+        txid: 'f',
+        vout: 0
+      })
+      expect(
+        filterUtxos([p2wpkh, p2tr], {
+          keychain: 'all',
+          label: 'all',
+          script: 'P2WPKH',
+          tag: 'all'
+        }).map((u) => u.txid)
+      ).toStrictEqual(['e'])
+      expect(
+        filterUtxos([p2wpkh, p2tr], {
+          keychain: 'all',
+          label: 'all',
+          script: 'P2TR',
+          tag: 'all'
+        }).map((u) => u.txid)
+      ).toStrictEqual(['f'])
     })
   })
 
@@ -161,7 +229,12 @@ describe('utxoList', () => {
       const excluded = [getUtxoOutpoint(utxos[1])]
       const groups = prepareUtxoList({
         excludedOutpoints: excluded,
-        filter: { keychain: 'external', label: 'all' },
+        filter: {
+          keychain: 'external',
+          label: 'all',
+          script: 'all',
+          tag: 'all'
+        },
         groupMode: 'address',
         sortDirection: 'asc',
         sortField: 'amount',

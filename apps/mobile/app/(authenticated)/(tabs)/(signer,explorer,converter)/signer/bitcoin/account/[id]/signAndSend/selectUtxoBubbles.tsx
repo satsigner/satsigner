@@ -32,7 +32,9 @@ import {
   filterUtxos,
   type UtxoKeychainFilter,
   type UtxoLabelFilter,
-  type UtxoListFilter
+  type UtxoListFilter,
+  type UtxoScriptFilter,
+  type UtxoTagFilter
 } from '@/utils/utxoList'
 
 function SelectUtxoBubbles() {
@@ -86,7 +88,11 @@ function SelectUtxoBubbles() {
   const utxosTotalValue = utxosValue(selectableUtxos)
   const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
   const controlsActive =
-    filter.keychain !== 'all' || filter.label !== 'all' || groupMode !== 'none'
+    filter.keychain !== 'all' ||
+    filter.label !== 'all' ||
+    filter.script !== 'all' ||
+    filter.tag !== 'all' ||
+    groupMode !== 'none'
 
   function handleOnToggleSelected(utxo: Utxo) {
     const includesInput = inputs.has(getUtxoOutpoint(utxo))
@@ -116,6 +122,14 @@ function SelectUtxoBubbles() {
 
   function setLabelFilter(label: UtxoLabelFilter) {
     setFilter((prev) => ({ ...prev, label }))
+  }
+
+  function setTagFilter(tag: UtxoTagFilter) {
+    setFilter((prev) => ({ ...prev, tag }))
+  }
+
+  function setScriptFilter(script: UtxoScriptFilter) {
+    setFilter((prev) => ({ ...prev, script }))
   }
 
   return (
@@ -293,8 +307,14 @@ function SelectUtxoBubbles() {
         filter={filter}
         groupMode={groupMode}
         onClose={() => setControlsModalVisible(false)}
+        onReset={() => {
+          setFilter(DEFAULT_UTXO_LIST_FILTER)
+          setGroupMode('none')
+        }}
         onKeychainChange={setKeychainFilter}
         onLabelChange={setLabelFilter}
+        onScriptChange={setScriptFilter}
+        onTagChange={setTagFilter}
         onGroupModeChange={setGroupMode}
       />
     </View>
