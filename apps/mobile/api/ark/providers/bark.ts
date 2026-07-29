@@ -45,7 +45,6 @@ const LIGHTNING_SEND_WAIT = false
 const walletCache = new Map<string, WalletLike>()
 const walletArgsCache = new Map<string, ArkWalletArgs>()
 const onchainWalletCache = new Map<string, OnchainWalletLike>()
-const inflightOnchainOpens = new Map<string, Promise<OnchainWalletLike>>()
 const inflightOpens = new Map<string, Promise<void>>()
 const inflightSyncs = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()
@@ -80,36 +79,50 @@ function getCachedWallet(accountId: string): WalletLike {
   return wallet
 }
 
-async function createWallet(args: ArkWalletArgs): Promise<void> {
-  const wallet = await Wallet.open(
+// Since bark 0.12, boarding, exits and the daemon use the onchain wallet
+// supplied at open time (`WalletOpenArgs.onchain`), so it must be created
+// upfront instead of lazily.
+async function openWalletWithOnchain(
+  args: ArkWalletArgs,
+  runDaemon: boolean
+): Promise<void> {
+  const onchainWallet = await OnchainWallet.default_(
     appNetworkToBarkNetwork(args.server.network),
     args.mnemonic,
     buildConfig(args.server),
-    {
-      createIfNotExists: true,
-      createWithoutServer: false,
-      datadir: args.datadir,
-      runDaemon: false
-    }
+    args.datadir
   )
-  walletCache.set(args.accountId, wallet)
+  try {
+    const wallet = await Wallet.open(
+      appNetworkToBarkNetwork(args.server.network),
+      args.mnemonic,
+      buildConfig(args.server),
+      {
+        createIfNotExists: true,
+        createWithoutServer: false,
+        datadir: args.datadir,
+        onchain: onchainWallet,
+        runDaemon
+      }
+    )
+    walletCache.set(args.accountId, wallet)
+  } catch (error) {
+    if (OnchainWallet.instanceOf(onchainWallet)) {
+      onchainWallet.uniffiDestroy()
+    }
+    throw error
+  }
+  onchainWalletCache.set(args.accountId, onchainWallet)
   walletArgsCache.set(args.accountId, args)
 }
 
+async function createWallet(args: ArkWalletArgs): Promise<void> {
+  await openWalletWithOnchain(args, false)
+}
+
 async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
-  const wallet = await Wallet.open(
-    appNetworkToBarkNetwork(args.server.network),
-    args.mnemonic,
-    buildConfig(args.server),
-    {
-      createIfNotExists: true,
-      createWithoutServer: false,
-      datadir: args.datadir,
-      runDaemon: true
-    }
-  )
-  walletCache.set(args.accountId, wallet)
-  walletArgsCache.set(args.accountId, args)
+  await openWalletWithOnchain(args, true)
+  const wallet = getCachedWallet(args.accountId)
   try {
     await wallet.sync()
   } catch (error) {
@@ -276,7 +289,11 @@ async function createBolt11Invoice(
   description?: string
 ): Promise<ArkBolt11Invoice> {
   const wallet = getCachedWallet(accountId)
-  const invoice = await wallet.bolt11Invoice(BigInt(amountSats), description)
+  const invoice = await wallet.bolt11Invoice(
+    BigInt(amountSats),
+    description,
+    undefined
+  )
   return {
     amountSats: Number(invoice.amountSats),
     invoice: invoice.invoice
@@ -595,54 +612,18 @@ async function estimateSendOnchainFee(
   return mapFeeEstimate(estimate)
 }
 
-async function openOnchainWallet(
-  args: ArkWalletArgs
-): Promise<OnchainWalletLike> {
-  const onchainWallet = await OnchainWallet.default_(
-    appNetworkToBarkNetwork(args.server.network),
-    args.mnemonic,
-    buildConfig(args.server),
-    args.datadir
-  )
-  // wallet released while the open was inflight; don't resurrect the cache
-  if (walletArgsCache.get(args.accountId) !== args) {
-    if (OnchainWallet.instanceOf(onchainWallet)) {
-      onchainWallet.uniffiDestroy()
-    }
-    throw new Error(`Ark wallet released for account '${args.accountId}'`)
-  }
-  onchainWalletCache.set(args.accountId, onchainWallet)
-  return onchainWallet
-}
-
-async function getOrCreateOnchainWallet(
-  accountId: string
-): Promise<OnchainWalletLike> {
-  const cached = onchainWalletCache.get(accountId)
-  if (cached) {
-    return cached
-  }
-  const inflight = inflightOnchainOpens.get(accountId)
-  if (inflight) {
-    return inflight
-  }
-  const args = walletArgsCache.get(accountId)
-  if (!args) {
+function getCachedOnchainWallet(accountId: string): OnchainWalletLike {
+  const onchainWallet = onchainWalletCache.get(accountId)
+  if (!onchainWallet) {
     throw new Error(`Ark wallet not opened for account '${accountId}'`)
   }
-  const promise = openOnchainWallet(args)
-  inflightOnchainOpens.set(accountId, promise)
-  try {
-    return await promise
-  } finally {
-    inflightOnchainOpens.delete(accountId)
-  }
+  return onchainWallet
 }
 
 async function fetchOnchainBalance(
   accountId: string
 ): Promise<ArkOnchainBalance> {
-  const onchainWallet = await getOrCreateOnchainWallet(accountId)
+  const onchainWallet = getCachedOnchainWallet(accountId)
   await onchainWallet.sync()
   const balance = await onchainWallet.balance()
   return {
@@ -652,8 +633,8 @@ async function fetchOnchainBalance(
   }
 }
 
-async function newOnchainAddress(accountId: string): Promise<string> {
-  const onchainWallet = await getOrCreateOnchainWallet(accountId)
+function newOnchainAddress(accountId: string): Promise<string> {
+  const onchainWallet = getCachedOnchainWallet(accountId)
   return onchainWallet.newAddress()
 }
 
@@ -670,11 +651,10 @@ async function board(
   amountSats?: number
 ): Promise<ArkPendingBoard> {
   const wallet = getCachedWallet(accountId)
-  const onchainWallet = await getOrCreateOnchainWallet(accountId)
   const pendingBoard =
     amountSats === undefined
-      ? await wallet.boardAll(onchainWallet)
-      : await wallet.boardAmount(onchainWallet, BigInt(amountSats))
+      ? await wallet.boardAll()
+      : await wallet.boardAmount(BigInt(amountSats))
   return mapPendingBoard(pendingBoard)
 }
 

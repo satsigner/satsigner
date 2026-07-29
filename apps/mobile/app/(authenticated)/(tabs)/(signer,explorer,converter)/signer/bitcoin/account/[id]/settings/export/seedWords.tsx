@@ -17,7 +17,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { decryptKeySecret } from '@/utils/account'
+import { decryptKeySecret } from '@/utils/decryption'
 
 export default function SeedWordsPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<

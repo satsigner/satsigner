@@ -20,7 +20,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { getAccountWithDecryptedKeys } from '@/utils/account'
 import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey
@@ -32,6 +31,7 @@ import {
   getMultisigScriptTypeFromScriptVersion,
   appNetworkToBdkNetwork
 } from '@/utils/bitcoin'
+import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 
 // Function to calculate checksum for descriptor using a simpler approach
