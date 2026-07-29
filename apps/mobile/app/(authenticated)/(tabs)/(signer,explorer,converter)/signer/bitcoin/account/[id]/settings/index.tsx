@@ -211,9 +211,8 @@ export default function AccountSettings() {
     try {
       const accountSecret = await decryptAccountKeySecret(account.id, 0)
       setLocalMnemonic(accountSecret.mnemonic || '')
-    } catch (error: unknown) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`Decryption failed: ${reason}`)
+    } catch {
+      toast.error(t('account.seed.unableToDecrypt'))
     }
   }
 
