@@ -51,9 +51,14 @@ function ImportDescriptorFromAccount() {
 
   const [selectedAccountId, setSelectedAccountId] = useState<Account['id']>()
   const [loading, setLoading] = useState(false)
-
+  
   async function handlePressCreate() {
     setLoading(true)
+    await handleCreate()
+    setLoading(false)
+  }
+
+  async function handleCreate() {
     const chosenAccount = accounts.find(
       (account) => account.id === selectedAccountId
     )
@@ -114,8 +119,6 @@ function ImportDescriptorFromAccount() {
     )
     setKey(Number(keyIndex))
     clearKeyState()
-
-    setLoading(false)
     router.dismiss(3)
   }
 
