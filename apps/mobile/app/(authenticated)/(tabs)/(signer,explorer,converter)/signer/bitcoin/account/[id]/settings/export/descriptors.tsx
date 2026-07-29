@@ -31,7 +31,7 @@ import {
   getMultisigScriptTypeFromScriptVersion,
   appNetworkToBdkNetwork
 } from '@/utils/bitcoin'
-import { getBitcoinWithDecryptedKeys } from '@/utils/decryption'
+import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 
 // Function to calculate checksum for descriptor using a simpler approach
@@ -90,7 +90,7 @@ export default function ExportDescriptors() {
         const isImportAddress =
           account.keys?.[0]?.creationType === 'importAddress'
 
-        const temporaryAccount = await getBitcoinWithDecryptedKeys(account)
+        const temporaryAccount = await getAccountWithDecryptedKeys(account)
 
         let descriptorString = ''
 

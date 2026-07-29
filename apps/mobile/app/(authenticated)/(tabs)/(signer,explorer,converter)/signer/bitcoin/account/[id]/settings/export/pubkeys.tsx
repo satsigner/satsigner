@@ -19,7 +19,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { appNetworkToBdkNetwork, convertKeyFormat } from '@/utils/bitcoin'
-import { getBitcoinWithDecryptedKeys } from '@/utils/decryption'
+import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportPubkeys() {
@@ -56,7 +56,7 @@ export default function ExportPubkeys() {
       setIsLoading(true)
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
-        const tmpAccount = await getBitcoinWithDecryptedKeys(account)
+        const tmpAccount = await getAccountWithDecryptedKeys(account)
         const walletData = !isImportAddress
           ? await getWalletData(tmpAccount, appNetworkToBdkNetwork(network))
           : undefined

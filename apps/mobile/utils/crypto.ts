@@ -153,12 +153,15 @@ async function doubleShaEncrypt(text: string): Promise<string> {
   return sha256(first)
 }
 
-async function getPinForDecryption(skipPin = false): Promise<string | null> {
+async function getPin(skipPin = false): Promise<string> {
   if (skipPin) {
     return DEFAULT_PIN
   }
-
-  return await getItem(PIN_KEY)
+  const pin = await getItem(PIN_KEY)
+  if (typeof pin !== 'string') {
+    throw new Error('PIN unavailable')
+  }
+  return pin
 }
 
 export {
@@ -166,7 +169,7 @@ export {
   aesEncrypt,
   doubleShaEncrypt,
   generateSalt,
-  getPinForDecryption,
+  getPin,
   pbkdf2Encrypt,
   randomIv,
   randomKey,

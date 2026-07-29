@@ -38,7 +38,7 @@ import { type Key } from '@/types/models/Account'
 import {
   aesEncrypt,
   generateSalt,
-  getPinForDecryption,
+  getPin,
   pbkdf2Encrypt,
   randomIv
 } from '@/utils/crypto'
@@ -68,7 +68,7 @@ export default function Developer() {
   >(null)
   const [backupPassphrase, setBackupPassphrase] = useState('')
   async function buildBackupWithSeeds(): Promise<string> {
-    const pin = await getPinForDecryption(skipPin)
+    const pin = await getPin(skipPin)
     const keysWithSeeds = async (accountId: string, keys: Key[]) => {
       const result = []
       for (const key of keys) {

@@ -44,7 +44,7 @@ import { isElectrumDerivationPath } from '@/utils/bip39'
 import { formatAccountCreationDate } from '@/utils/date'
 import {
   decryptAccountKeySecret,
-  decryptAllBitcoinKeySecrets
+  decryptAccountKeySecrets
 } from '@/utils/decryption'
 import { formatDate } from '@/utils/format'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
@@ -222,7 +222,7 @@ export default function AccountSettings() {
       if (!account) {
         return
       }
-      const secrets = await decryptAllBitcoinKeySecrets(account)
+      const secrets = await decryptAccountKeySecrets(account)
       const decryptedKeyData = account.keys.map((key, index) => {
         const newKey: Key = {
           ...key,
