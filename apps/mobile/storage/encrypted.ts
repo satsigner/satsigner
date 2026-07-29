@@ -1,12 +1,15 @@
 import * as SecureStore from 'expo-secure-store'
 
+import type { EncryptedKeySecret } from '@/types/models/Account'
+
 const VERSION = '1'
+const KEY_SECRET_PREFIX = 'key_secret'
+const KEY_IV_PREFIX = 'key_iv'
+const ECASH_MNEMONIC_PREFIX = 'ecash_mnemonic'
+const ARK_MNEMONIC_PREFIX = 'ark_mnemonic'
 
 /**
  * Store an item in the SharedPreferences (android) or Keychain (iOS)
- * @param {string} key The key by which to do a lookup
- * @param {string} value The value to be stored
- * @returns {Promise<void>}
  */
 async function setItem(key: string, value: string): Promise<void> {
   const vKey = `${VERSION}_${key}`
@@ -15,8 +18,6 @@ async function setItem(key: string, value: string): Promise<void> {
 
 /**
  * Read an item stored in the SharedPreferences (android) or Keychain (iOS)
- * @param {string} key The key by which to do a lookup
- * @returns {Promise<string | null>} The stored value
  */
 function getItem(key: string): Promise<string | null> {
   const vKey = `${VERSION}_${key}`
@@ -24,25 +25,18 @@ function getItem(key: string): Promise<string | null> {
 }
 
 /**
- * Delete an item sotred in the SharedPreferences (android) or Keychain (iOS)
- * @param {string} key The key that was used to store the associated value
- * @returns {Promise<void>} A promise that will reject if the value couldn't be deleted
+ * Delete an item stored in the SharedPreferences (android) or Keychain (iOS)
  */
 function deleteItem(key: string): Promise<void> {
   const vKey = `${VERSION}_${key}`
   return SecureStore.deleteItemAsync(vKey)
 }
 
-const KEY_SECRET_PREFIX = 'key_secret'
-const KEY_IV_PREFIX = 'key_iv'
-const ECASH_MNEMONIC_PREFIX = 'ecash_mnemonic'
-const ARK_MNEMONIC_PREFIX = 'ark_mnemonic'
-
-function keySecretKey(accountId: string, keyIndex: number) {
+function getStoreKeyForKeySecret(accountId: string, keyIndex: number) {
   return `${KEY_SECRET_PREFIX}.${accountId}.${keyIndex}`
 }
 
-function keyIvKey(accountId: string, keyIndex: number) {
+function getStoreKeyForKeyIv(accountId: string, keyIndex: number) {
   return `${KEY_IV_PREFIX}.${accountId}.${keyIndex}`
 }
 
@@ -52,16 +46,16 @@ async function storeKeySecret(
   secret: string,
   iv: string
 ) {
-  await setItem(keySecretKey(accountId, keyIndex), secret)
-  await setItem(keyIvKey(accountId, keyIndex), iv)
+  await setItem(getStoreKeyForKeySecret(accountId, keyIndex), secret)
+  await setItem(getStoreKeyForKeyIv(accountId, keyIndex), iv)
 }
 
 async function getKeySecret(
   accountId: string,
   keyIndex: number
-): Promise<{ secret: string; iv: string } | null> {
-  const secret = await getItem(keySecretKey(accountId, keyIndex))
-  const iv = await getItem(keyIvKey(accountId, keyIndex))
+): Promise<EncryptedKeySecret | null> {
+  const secret = await getItem(getStoreKeyForKeySecret(accountId, keyIndex))
+  const iv = await getItem(getStoreKeyForKeyIv(accountId, keyIndex))
   if (!secret || !iv) {
     return null
   }
@@ -69,8 +63,8 @@ async function getKeySecret(
 }
 
 async function deleteKeySecret(accountId: string, keyIndex: number) {
-  await deleteItem(keySecretKey(accountId, keyIndex))
-  await deleteItem(keyIvKey(accountId, keyIndex))
+  await deleteItem(getStoreKeyForKeySecret(accountId, keyIndex))
+  await deleteItem(getStoreKeyForKeyIv(accountId, keyIndex))
 }
 
 async function deleteAllKeySecrets(accountId: string, keyCount: number) {

@@ -20,7 +20,7 @@ import {
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { deleteItem, getEcashMnemonic, getKeySecret } from '@/storage/encrypted'
+import { deleteItem, getEcashMnemonic } from '@/storage/encrypted'
 import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
@@ -36,13 +36,13 @@ import { Colors } from '@/styles'
 import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
 import {
-  aesDecrypt,
   aesEncrypt,
   generateSalt,
-  getPinForDecryption,
+  getPin,
   pbkdf2Encrypt,
   randomIv
 } from '@/utils/crypto'
+import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import { saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 
@@ -68,7 +68,7 @@ export default function Developer() {
   >(null)
   const [backupPassphrase, setBackupPassphrase] = useState('')
   async function buildBackupWithSeeds(): Promise<string> {
-    const pin = await getPinForDecryption(skipPin)
+    const pin = await getPin(skipPin)
     const keysWithSeeds = async (accountId: string, keys: Key[]) => {
       const result = []
       for (const key of keys) {
@@ -86,16 +86,13 @@ export default function Developer() {
         let passphrase: string | undefined
         if (pin) {
           try {
-            const stored = await getKeySecret(accountId, key.index)
-            if (stored) {
-              const decrypted = await aesDecrypt(stored.secret, pin, stored.iv)
-              const secret = JSON.parse(decrypted) as {
-                mnemonic?: string
-                passphrase?: string
-              }
-              seedWords = secret.mnemonic
-              passphrase = secret.passphrase
-            }
+            const secret = await decryptAccountKeySecretUsingPin(
+              accountId,
+              key.index,
+              pin
+            )
+            seedWords = secret.mnemonic
+            passphrase = secret.passphrase
           } catch {
             // leave seedWords/passphrase undefined
           }

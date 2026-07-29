@@ -7,11 +7,9 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
-import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
@@ -20,7 +18,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Network } from '@/types/settings/blockchain'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { convertKeyFormat } from '@/utils/bitcoin'
-import { aesDecrypt } from '@/utils/crypto'
+import { aesDecrypt, getPin } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
 // Helper function to get the appropriate translation key for key format buttons
@@ -214,10 +212,7 @@ export default function PublicKeyPage() {
       }
 
       setIsLoading(true)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) {
-        return
-      }
+      const pin = await getPin()
 
       try {
         // Decrypt the key's secret

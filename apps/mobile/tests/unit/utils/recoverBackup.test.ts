@@ -2,7 +2,7 @@ import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
 jest.mock<typeof import('@/utils/crypto')>('@/utils/crypto', () => ({
   aesEncrypt: jest.fn(),
-  getPinForDecryption: jest.fn(),
+  getPin: jest.fn(),
   randomIv: jest.fn()
 }))
 
@@ -54,8 +54,8 @@ jest.mock<typeof import('@/store/wallets')>('@/store/wallets', () => ({
   useWalletsStore: { getState: jest.fn(), setState: jest.fn() }
 }))
 
-const { getPinForDecryption } = jest.requireMock('@/utils/crypto') as {
-  getPinForDecryption: jest.Mock
+const { getPin } = jest.requireMock('@/utils/crypto') as {
+  getPin: jest.Mock
 }
 const { useAuthStore } = jest.requireMock('@/store/auth') as {
   useAuthStore: { getState: jest.Mock }
@@ -63,7 +63,7 @@ const { useAuthStore } = jest.requireMock('@/store/auth') as {
 
 function setPin(pin: string | null) {
   useAuthStore.getState.mockReturnValue({ skipPin: false })
-  getPinForDecryption.mockResolvedValue(pin)
+  getPin.mockResolvedValue(pin)
 }
 
 describe('performRecoverOverwrite validation', () => {

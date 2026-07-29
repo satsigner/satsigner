@@ -6,7 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DURESS_PIN_KEY, PIN_KEY, SALT_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, SALT_KEY } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import SSVStack from '@/layouts/SSVStack'
 import { deleteItem, getItem } from '@/storage/encrypted'
@@ -14,7 +14,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useWalletsStore } from '@/store/wallets'
 import { gray } from '@/styles/colors'
-import { pbkdf2Encrypt } from '@/utils/crypto'
+import { getPin, pbkdf2Encrypt } from '@/utils/crypto'
 import { emptyPin } from '@/utils/pin'
 
 type SSPinAuthProps = {
@@ -54,7 +54,7 @@ function SSPinAuth({
   }, [resetPin])
 
   async function handleFillEnded(inputPin: string) {
-    const hashedPin = await getItem(PIN_KEY)
+    const hashedPin = await getPin()
     const hashedDuressPin = await getItem(DURESS_PIN_KEY)
     const salt = await getItem(SALT_KEY)
     if (!hashedPin || !salt) {

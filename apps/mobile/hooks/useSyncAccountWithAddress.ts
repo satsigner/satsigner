@@ -14,11 +14,9 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network } from '@/types/settings/blockchain'
-import {
-  decryptAllAccountKeySecrets,
-  updateAccountObjectLabels
-} from '@/utils/account'
+import { updateAccountObjectLabels } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
@@ -699,7 +697,7 @@ function useSyncAccountWithAddress() {
   async function decryptAccountAddressDescriptors(
     account: Account
   ): Promise<string[]> {
-    const secrets = await decryptAllAccountKeySecrets(account)
+    const secrets = await decryptAccountKeySecrets(account)
     return secrets
       .map((secret) => secret.externalDescriptor || '')
       .filter((descriptor) => descriptor.startsWith('addr'))
