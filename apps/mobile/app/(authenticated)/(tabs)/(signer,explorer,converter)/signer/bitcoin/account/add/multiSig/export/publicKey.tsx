@@ -198,7 +198,7 @@ export default function PublicKeyPage() {
   )
 
   useEffect(() => {
-    async function getPublicKey() {
+    function getPublicKey() {
       if (!keyIndex) {
         return
       }

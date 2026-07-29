@@ -58,11 +58,7 @@ export default function SeedWordsPage() {
       // Check if the secret is encrypted (string)
       if (typeof key.secret === 'string') {
         // Decrypt the key's secret
-        const decryptedSecretString = await aesDecrypt(
-          key.secret,
-          pin,
-          key.iv
-        )
+        const decryptedSecretString = await aesDecrypt(key.secret, pin, key.iv)
         const decryptedSecret = JSON.parse(decryptedSecretString)
 
         if (decryptedSecret.mnemonic) {

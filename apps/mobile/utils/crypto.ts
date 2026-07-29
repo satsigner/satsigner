@@ -158,7 +158,7 @@ async function getPin(skipPin = false): Promise<string> {
     return DEFAULT_PIN
   }
   const pin = await getItem(PIN_KEY)
-  if (typeof pin !== 'string') {
+  if (pin === null) {
     throw new Error('PIN unavailable')
   }
   return pin

@@ -6,18 +6,21 @@ import {
   getAccountWithDecryptedKeys
 } from '@/utils/decryption'
 
-jest.mock<Partial<typeof import('@/storage/encrypted')>>('@/storage/encrypted', () => ({
-  getItem: jest.fn(),
-  getKeySecret: jest.fn()
-}))
+jest.mock<Partial<typeof import('@/storage/encrypted')>>(
+  '@/storage/encrypted',
+  () => ({
+    getKeySecret: jest.fn()
+  })
+)
 
 jest.mock<Partial<typeof import('@/utils/crypto')>>('@/utils/crypto', () => ({
-  aesDecrypt: jest.fn()
+  aesDecrypt: jest.fn(),
+  getPin: jest.fn()
 }))
 
-const { getItem, getKeySecret } = jest.requireMock('@/storage/encrypted')
+const { getKeySecret } = jest.requireMock('@/storage/encrypted')
 
-const { aesDecrypt } = jest.requireMock('@/utils/crypto') 
+const { aesDecrypt, getPin } = jest.requireMock('@/utils/crypto')
 
 function makeKey(overrides: Partial<Key> = {}): Key {
   return {
@@ -99,15 +102,14 @@ describe('decryptAccountKeySecretUsingPin', () => {
     aesDecrypt.mockResolvedValue('not-json')
     await expect(
       decryptAccountKeySecretUsingPin('acc-1', 0, '1234')
-    ).rejects.toThrow('Failed to parse decrypted key secret')
+    ).rejects.toThrow('Invalid JSON object')
   })
 
-  it('throws when the parsed secret has unexpected keys', async () => {
+  it('strips unrecognized keys from the parsed secret', async () => {
     getKeySecret.mockResolvedValue({ iv: 'iv-1', secret: 'enc' })
     aesDecrypt.mockResolvedValue(JSON.stringify({ evil: true, mnemonic: 'w' }))
-    await expect(
-      decryptAccountKeySecretUsingPin('acc-1', 0, '1234')
-    ).rejects.toThrow('Invalid serialized secret')
+    const secret = await decryptAccountKeySecretUsingPin('acc-1', 0, '1234')
+    expect(secret).toStrictEqual({ mnemonic: 'w' })
   })
 })
 
@@ -143,16 +145,15 @@ describe('decryptKeySecretUsingPin', () => {
     aesDecrypt.mockResolvedValue('not-json')
     const key = makeKey({ iv: 'iv-1', secret: 'encrypted-string' })
     await expect(decryptKeySecretUsingPin(key, '1234')).rejects.toThrow(
-      'Failed to parse decrypted key secret'
+      'Invalid JSON object'
     )
   })
 
-  it('throws when the parsed secret has unexpected keys', async () => {
-    aesDecrypt.mockResolvedValue(JSON.stringify({ evil: true }))
+  it('strips unrecognized keys from the parsed secret', async () => {
+    aesDecrypt.mockResolvedValue(JSON.stringify({ evil: true, mnemonic: 'w' }))
     const key = makeKey({ iv: 'iv-1', secret: 'encrypted-string' })
-    await expect(decryptKeySecretUsingPin(key, '1234')).rejects.toThrow(
-      'Invalid serialized secret'
-    )
+    const secret = await decryptKeySecretUsingPin(key, '1234')
+    expect(secret).toStrictEqual({ mnemonic: 'w' })
   })
 })
 
@@ -176,13 +177,13 @@ describe('decryptKeySecretAt', () => {
   })
 })
 
-describe('getBitcoinWithDecryptedKeys', () => {
+describe('getAccountWithDecryptedKeys', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
   it('returns the account with each key secret decrypted', async () => {
-    getItem.mockResolvedValue('1234')
+    getPin.mockResolvedValue('1234')
     getKeySecret.mockImplementation((_accountId: string, keyIndex: number) => ({
       iv: `iv-${keyIndex}`,
       secret: `enc-${keyIndex}`
@@ -203,7 +204,7 @@ describe('getBitcoinWithDecryptedKeys', () => {
   })
 
   it('propagates decryption errors with account context', async () => {
-    getItem.mockResolvedValue('1234')
+    getPin.mockResolvedValue('1234')
     getKeySecret.mockResolvedValue(null)
     const account = makeAccount({ keys: [makeKey()] })
     await expect(getAccountWithDecryptedKeys(account)).rejects.toThrow(
