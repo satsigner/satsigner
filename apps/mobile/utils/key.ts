@@ -94,6 +94,7 @@ export function getAddressKeyPair(
   address: Pick<Address, 'derivationPath' | 'index' | 'keychain'>,
   network: Account['network']
 ): AddressKeyPair | null {
+  console.log(secret, address)
   if (
     !address.derivationPath ||
     address.index === undefined ||

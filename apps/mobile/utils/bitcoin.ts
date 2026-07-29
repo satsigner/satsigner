@@ -2,6 +2,7 @@ import { networks } from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 import { Network as BdkNetwork } from 'react-native-bdk-sdk'
 
+import { Account, Key } from '@/types/models/Account'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 
@@ -252,6 +253,21 @@ export function getDerivationPathFromScriptVersion(
     default:
       return `84'/${coinType}'/0'`
   }
+}
+
+export function getAccountDerivationPath(
+  account: Account,
+  keyIndex: Key['index'] = 0
+) {
+  if (!account.keys[keyIndex]) {
+    return null
+  }
+  const { scriptVersion } = account.keys[keyIndex]
+  if (!scriptVersion) {
+    return null
+  }
+  const { network } = account
+  return getDerivationPathFromScriptVersion(scriptVersion, network)
 }
 
 export function getMultisigDerivationPathFromScriptVersion(

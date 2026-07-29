@@ -25,11 +25,12 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type AddressKeyPair } from '@/types/models/Address'
+import { Address, type AddressKeyPair } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import { decryptKeySecret, getAccountFingerprint } from '@/utils/account'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { getAccountFingerprint } from '@/utils/account'
+import { bitcoinjsNetwork, getAccountDerivationPath } from '@/utils/bitcoin'
+import { decryptAccountKeySecret } from '@/utils/decryption'
 import { formatNumber } from '@/utils/format'
 import { getAddressKeyPair } from '@/utils/key'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -47,30 +48,30 @@ function AddressDetails() {
     ])
   )
 
+  // TODO: update account store to ensure addresses have derivation path
+  const accountPath = account ? getAccountDerivationPath(account) : ''
+  const fallbackPath = accountPath ? `${accountPath}/${address?.index}` : ''
+  const derivationPath = address?.derivationPath ?? fallbackPath
+
   const transactions = account?.transactions.filter((tx) =>
     address?.transactions.includes(tx.id)
   )
-
   const addressUtxos = account?.utxos.filter((utxo) =>
     address?.utxos.includes(getUtxoOutpoint(utxo))
   )
-
   const allAccountUtxos = account?.utxos || []
 
   const privacyMode = useSettingsStore((state) => state.privacyMode)
-
   const addressUtxoInputs = useMemo(() => addressUtxos || [], [addressUtxos])
-
   const blockchainHeight = useBlockchainStore(
     (state) => state.lastKnownBlockHeight
   )
-
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
 
+  // TODO: move graph logic elsewhere
   const { width, height } = useWindowDimensions()
-
   const mainLayoutHorizontalPadding = 12
   const GRAPH_HEIGHT = height * 0.44
   const GRAPH_WIDTH = width * ((100 - mainLayoutHorizontalPadding) / 100)
@@ -88,8 +89,13 @@ function AddressDetails() {
       return
     }
     try {
-      const secret = await decryptKeySecret(key)
-      const pair = getAddressKeyPair(secret, address, account.network)
+      const secret = await decryptAccountKeySecret(account.id, key.index)
+      const addressWithDerivationPath: Address = { ...address, derivationPath }
+      const pair = getAddressKeyPair(
+        secret,
+        addressWithDerivationPath,
+        account.network
+      )
       setAddressKeyPair(pair)
       setKeyUnavailable(!pair)
     } catch (error) {
@@ -273,7 +279,7 @@ function AddressDetails() {
                 items={[
                   [
                     t('address.details.derivation.path'),
-                    address.derivationPath,
+                    derivationPath,
                     { variant: 'mono' }
                   ],
                   [t('address.details.derivation.index'), address.index],
