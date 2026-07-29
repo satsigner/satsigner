@@ -8,17 +8,15 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
-import { PIN_KEY } from '@/config/auth'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { aesDecrypt } from '@/utils/crypto'
+import { aesDecrypt, getPin } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 import { getOutputDescriptorStringForKey } from '@/utils/getOutputDescriptorForKey'
 
@@ -96,10 +94,7 @@ export default function DescriptorPage() {
       }
 
       setIsLoading(true)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) {
-        return
-      }
+      const pin = await getPin()
 
       try {
         const keyIndexNum = parseInt(keyIndex, 10)

@@ -8,11 +8,9 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
-import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
@@ -206,10 +204,6 @@ export default function PublicKeyPage() {
       }
 
       setIsLoading(true)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) {
-        return
-      }
 
       try {
         const accountData = getAccountData()
