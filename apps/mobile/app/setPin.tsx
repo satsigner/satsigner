@@ -7,16 +7,16 @@ import { SSIconCheckCircleThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN, PIN_KEY } from '@/config/auth'
+import { DEFAULT_PIN } from '@/config/auth'
 import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
+import { getPin } from '@/utils/crypto'
 import { emptyPin } from '@/utils/pin'
 
 type Stage = 'verify' | 'set' | 're-enter'
@@ -121,9 +121,9 @@ export default function SetPin() {
 
     setSkipPin(false)
 
-    const currentPinEncrypted = await getItem(PIN_KEY)
+    const currentPinEncrypted = await getPin()
     await setPin(pinArray.join(''))
-    const newPinEncrypted = await getItem(PIN_KEY)
+    const newPinEncrypted = await getPin()
     if (
       currentPinEncrypted &&
       newPinEncrypted &&

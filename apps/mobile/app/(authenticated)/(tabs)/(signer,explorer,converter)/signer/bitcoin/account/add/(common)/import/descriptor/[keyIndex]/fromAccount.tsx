@@ -8,12 +8,10 @@ import { getDescriptorString } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
-import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem, getKeySecret } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -21,7 +19,7 @@ import { type Account, type Secret } from '@/types/models/Account'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { aesDecrypt } from '@/utils/crypto'
+import { decryptAccountKeySecret } from '@/utils/decryption'
 
 function ImportDescriptorFromAccount() {
   const router = useRouter()
@@ -56,10 +54,11 @@ function ImportDescriptorFromAccount() {
 
   async function handlePressCreate() {
     setLoading(true)
-    const pin = await getItem(PIN_KEY)
-    if (!pin) {
-      return
-    }
+    await handleCreate()
+    setLoading(false)
+  }
+
+  async function handleCreate() {
     const chosenAccount = accounts.find(
       (account) => account.id === selectedAccountId
     )
@@ -68,13 +67,12 @@ function ImportDescriptorFromAccount() {
     }
 
     const [firstKey] = chosenAccount.keys
-    const stored = await getKeySecret(chosenAccount.id, 0)
-    if (!stored) {
+    let accountSecret: Secret
+    try {
+      accountSecret = await decryptAccountKeySecret(chosenAccount.id, 0)
+    } catch {
       return
     }
-
-    const accountSecretString = await aesDecrypt(stored.secret, pin, stored.iv)
-    const accountSecret = JSON.parse(accountSecretString) as Secret
 
     const { creationType } = firstKey
     let externalDescriptorString: Secret['externalDescriptor']
@@ -121,8 +119,6 @@ function ImportDescriptorFromAccount() {
     )
     setKey(Number(keyIndex))
     clearKeyState()
-
-    setLoading(false)
     router.dismiss(3)
   }
 

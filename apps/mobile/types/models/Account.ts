@@ -67,6 +67,11 @@ export const DecryptedKeySchema = KeySchema.omit({ secret: true }).extend({
   secret: SecretSchema
 })
 
+export const EncryptedKeySecretSchema = z.object({
+  iv: z.string(),
+  secret: z.string()
+})
+
 export const AccountSchema = z.object({
   addresses: z.array(AddressSchema),
   /** User-set wallet birthday. Used as the floor for historical RPC scans. */
@@ -111,6 +116,7 @@ export type Account = z.infer<typeof AccountSchema>
 export type CreationType = z.infer<typeof CreationTypeSchema>
 export type DecryptedAccount = z.infer<typeof DecryptedAccountSchema>
 export type DecryptedKey = z.infer<typeof DecryptedKeySchema>
+export type EncryptedKeySecret = z.infer<typeof EncryptedKeySecretSchema>
 export type Key = z.infer<typeof KeySchema>
 export type KeyMeta = z.infer<typeof KeyMetaSchema>
 export type PolicyType = z.infer<typeof PolicyTypeSchema>
