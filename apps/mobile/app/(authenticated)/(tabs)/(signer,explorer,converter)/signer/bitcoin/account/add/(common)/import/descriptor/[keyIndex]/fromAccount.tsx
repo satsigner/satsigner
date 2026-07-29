@@ -51,7 +51,7 @@ function ImportDescriptorFromAccount() {
 
   const [selectedAccountId, setSelectedAccountId] = useState<Account['id']>()
   const [loading, setLoading] = useState(false)
-  
+
   async function handlePressCreate() {
     setLoading(true)
     await handleCreate()
