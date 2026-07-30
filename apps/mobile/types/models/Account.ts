@@ -59,6 +59,8 @@ export const KeyMetaSchema = z.object({
 })
 
 export const KeySchema = KeyMetaSchema.extend({
+  /** Set on DB load, stripped on DB write. */
+  accountId: z.string().optional(),
   iv: z.string(),
   secret: z.union([SecretSchema, z.string()])
 })

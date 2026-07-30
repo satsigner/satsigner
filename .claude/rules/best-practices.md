@@ -5,6 +5,7 @@ paths:
 
 # Best Practices
 
+0. Don't add irrelevant comments. Code should speak for itself. Add comments only when strictly necessary to explain the code that follows.
 1. Avoid using `useEffect`;
 2. We are using react-compiler, so avoid using `useMemo`, `memo`, and `useCallback`;
 3. Avoid duplicating code. Use or create `util`, `api`, or `store` functions;
