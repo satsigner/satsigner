@@ -155,6 +155,24 @@ describe('decryptKeySecretUsingPin', () => {
     const secret = await decryptKeySecretUsingPin(key, '1234')
     expect(secret).toStrictEqual({ mnemonic: 'w' })
   })
+
+  it('falls back to secure storage when the secret is empty and accountId is set', async () => {
+    getKeySecret.mockResolvedValue({ iv: 'stored-iv', secret: 'stored-enc' })
+    aesDecrypt.mockResolvedValue(JSON.stringify({ mnemonic: 'word1 word2' }))
+    const key = makeKey({ accountId: 'acc-1', index: 2 })
+    const secret = await decryptKeySecretUsingPin(key, '1234')
+    expect(getKeySecret).toHaveBeenCalledWith('acc-1', 2)
+    expect(aesDecrypt).toHaveBeenCalledWith('stored-enc', '1234', 'stored-iv')
+    expect(secret).toStrictEqual({ mnemonic: 'word1 word2' })
+  })
+
+  it('throws when the secret is empty and there is no accountId', async () => {
+    const key = makeKey()
+    await expect(decryptKeySecretUsingPin(key, '1234')).rejects.toThrow(
+      'Key secret not available'
+    )
+    expect(aesDecrypt).not.toHaveBeenCalled()
+  })
 })
 
 describe('decryptKeySecretAt', () => {
