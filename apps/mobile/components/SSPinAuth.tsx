@@ -6,7 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DURESS_PIN_KEY, SALT_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, SALT_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import SSVStack from '@/layouts/SSVStack'
 import { deleteItem, getItem } from '@/storage/encrypted'
@@ -14,8 +14,8 @@ import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useWalletsStore } from '@/store/wallets'
 import { gray } from '@/styles/colors'
-import { getPin, pbkdf2Encrypt } from '@/utils/crypto'
-import { emptyPin } from '@/utils/pin'
+import { pbkdf2Encrypt } from '@/utils/crypto'
+import { emptyPin, getPin } from '@/utils/pin'
 
 type SSPinAuthProps = {
   onFail?: () => void
@@ -57,14 +57,19 @@ function SSPinAuth({
     const hashedPin = await getPin()
     const hashedDuressPin = await getItem(DURESS_PIN_KEY)
     const salt = await getItem(SALT_KEY)
+    const saltDuress = await getItem(SALT_KEY_DURESS)
     if (!hashedPin || !salt) {
       toast.error('Failed to retrieve PIN for authentication')
       return
     }
+
     const hashedInput = await pbkdf2Encrypt(inputPin, salt)
+    const hashedInputDuress = saltDuress
+      ? await pbkdf2Encrypt(inputPin, saltDuress)
+      : ''
 
     // DURESS PIN
-    if (duressPinEnabled && hashedInput === hashedDuressPin) {
+    if (duressPinEnabled && hashedInputDuress === hashedDuressPin) {
       // erase data
       deleteAccounts()
       deleteWallets()
@@ -74,6 +79,7 @@ function SSPinAuth({
       // acting as if the duress pin was the true pin
       setDuressPinEnabled(false)
       await deleteItem(DURESS_PIN_KEY)
+      await deleteItem(SALT_KEY_DURESS)
 
       // reset route
       router.dismissAll()
@@ -81,25 +87,22 @@ function SSPinAuth({
       return
     }
 
-    // Upon failure, the pin reset is already done here
+    // Upon failure, the reset of local pin state is done here
     if (hashedInput !== hashedPin) {
       setPin(emptyPin())
-
-      // max tries logic
       const newTries = tries + 1
       setTries(newTries)
       if (maxTries && newTries >= maxTries && onTriesOver) {
         onTriesOver()
       }
-
-      // The fail callback could be show a warning, dismiss a modal, etc...
+      // the fail callback could be show a warning, dismiss a modal, etc...
       if (onFail) {
         onFail()
       }
       return
     }
 
-    // The success callback could be unlock the app, or view mnemonic, or confirm wallet deletion
+    // the success callback could be unlock the app, or view mnemonic, or confirm wallet deletion
     onSuccess()
   }
 

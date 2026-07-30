@@ -23,7 +23,7 @@ import SSButton from '@/components/SSButton'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
+import { DEFAULT_PIN } from '@/config/auth'
 import {
   sampleMultiAddressTether,
   sampleSalvadorAddress,
@@ -49,7 +49,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { setItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -65,9 +64,8 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
-import { getPin } from '@/utils/pin'
+import { getPin, setPin } from '@/utils/pin'
 import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3
@@ -380,18 +378,12 @@ export default function AccountList() {
   }
 
   async function loadSampleWallet(type: SampleWallet) {
-    // Check if PIN is available, if not set a default one
+    // IMPORTANT: do not permit using satsigner without setting PIN, it is not safe!
     const pin = await getPin()
-
-    // TODO: remove DEFAULT_PIN
     if (!pin) {
-      const salt = await generateSalt()
-      const encryptedPin = await pbkdf2Encrypt(DEFAULT_PIN, salt)
-      await setItem(PIN_KEY, encryptedPin)
-      await setItem(SALT_KEY, salt)
+      await setPin(DEFAULT_PIN)
     }
 
-    // Verify PIN is accessible
     const verifyPin = await getPin()
     if (!verifyPin) {
       throw new Error('Failed to set or retrieve PIN')

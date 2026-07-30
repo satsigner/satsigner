@@ -238,7 +238,8 @@ export default function PublicKeyPage() {
       const convertedKey = convertPublicKeyFormat(rawPublicKey, selectedFormat)
       setPublicKey(convertedKey)
     }
-  }, [selectedFormat, rawPublicKey, convertPublicKeyFormat])
+    // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
+  }, [selectedFormat, rawPublicKey])
 
   function exportPublicKey() {
     const accountData = getAccountData()

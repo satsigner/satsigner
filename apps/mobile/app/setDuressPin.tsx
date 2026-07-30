@@ -12,12 +12,12 @@ import { DURESS_PIN_KEY, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem, setItem } from '@/storage/encrypted'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
 import { pbkdf2Encrypt } from '@/utils/crypto'
-import { emptyPin, getPin } from '@/utils/pin'
+import { emptyPin, getPin, setPin } from '@/utils/pin'
 
 type Stage = 'set' | 're-enter'
 
@@ -42,20 +42,20 @@ export default function SetPin() {
   const confirmationPinFilled = !confirmationPinArray.includes('')
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
-  async function setPin(pin: string) {
+  async function setDuressPin(pin: string) {
     const salt = await getItem(SALT_KEY)
-    const encryptedPin = await getPin()
-    if (!salt || !encryptedPin) {
+    const regularPinHashed = await getPin()
+    if (!salt || !regularPinHashed) {
       toast.error('Normal PIN must be set before setting Duress PIN')
       return false
     }
     const encryptedDuressPin = await pbkdf2Encrypt(pin, salt)
-    if (encryptedPin === encryptedDuressPin) {
+    if (regularPinHashed === encryptedDuressPin) {
       toast.error(t('auth.pinMatchDuressPin'))
       handleGoBack()
       return false
     }
-    await setItem(DURESS_PIN_KEY, encryptedDuressPin)
+    await setPin(pin, DURESS_PIN_KEY)
     return true
   }
 
@@ -85,7 +85,7 @@ export default function SetPin() {
     }
 
     setLoading(true)
-    const isPinSet = await setPin(pinArray.join(''))
+    const isPinSet = await setDuressPin(pinArray.join(''))
     setLoading(false)
 
     if (!isPinSet) {

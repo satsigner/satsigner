@@ -69,7 +69,7 @@ export default function Developer() {
   const [backupPassphrase, setBackupPassphrase] = useState('')
 
   async function buildBackupWithSeeds(): Promise<string> {
-    const pin = await getPin(skipPin)
+    const pin = await getPin()
     const keysWithSeeds = async (accountId: string, keys: Key[]) => {
       const result = []
       for (const key of keys) {

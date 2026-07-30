@@ -1,11 +1,33 @@
-import { PIN_SIZE, DEFAULT_PIN, PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
+import {
+  PIN_SIZE,
+  DEFAULT_PIN,
+  DEFAULT_PIN_KEY,
+  PIN_KEY,
+  SALT_KEY,
+  DURESS_PIN_KEY,
+  SALT_KEY_DURESS
+} from '@/config/auth'
+import { getItem, setItem } from '@/storage/encrypted'
+import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 
-async function getPin(skipPin = false): Promise<string> {
-  if (skipPin) {
+// TODO: remove default pin by enforce setting pin
+type PinType = typeof PIN_KEY | typeof DURESS_PIN_KEY | typeof DEFAULT_PIN
+
+async function setPin(pin: string, pinType: PinType = PIN_KEY) {
+  const salt = await generateSalt()
+  const hashedPin = await pbkdf2Encrypt(pin, salt)
+  const saltKey = pinType === DURESS_PIN_KEY ? SALT_KEY_DURESS : SALT_KEY
+  const pinKey = pinType === DURESS_PIN_KEY ? DURESS_PIN_KEY : PIN_KEY
+  await setItem(saltKey, salt)
+  await setItem(pinKey, hashedPin)
+  return hashedPin
+}
+
+async function getPin(pinType = PIN_KEY): Promise<string> {
+  if (pinType === DEFAULT_PIN_KEY) {
     return DEFAULT_PIN
   }
-  const pin = await getItem(PIN_KEY)
+  const pin = await getItem(pinType)
   if (pin === null) {
     throw new Error('PIN unavailable')
   }
@@ -51,5 +73,6 @@ export {
   fillPinDigit,
   getPin,
   getPinCursorIndex,
-  isPinFilled
+  isPinFilled,
+  setPin
 }
