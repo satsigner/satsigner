@@ -32,7 +32,7 @@ export async function decryptAccountKeySecretUsingPin(
   if (!stored) {
     throw new Error(`Key secret not found in secure storage (key #${keyIndex})`)
   }
-  return decryptKeySecretUsingPin(stored as Key, pin)
+  return decryptKeySecretUsingPin(stored, pin)
 }
 
 export async function decryptAccountKeySecret(
@@ -46,9 +46,18 @@ export async function decryptAccountKeySecret(
 export async function decryptKeySecretUsingPin(
   key: Key | EncryptedKeySecret,
   pin: string
-) {
+): Promise<Secret> {
   if (typeof key.secret === 'object') {
     return key.secret
+  }
+
+  if (!key.secret) {
+    if ('accountId' in key && key.accountId) {
+      return decryptAccountKeySecretUsingPin(key.accountId, key.index, pin)
+    }
+    throw new Error(
+      'Key secret not available: no in-memory secret and no account context'
+    )
   }
 
   let decryptedSecret = ''

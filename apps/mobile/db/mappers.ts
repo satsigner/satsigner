@@ -210,7 +210,7 @@ function rowToAccount(
     id: row.id,
     keyCount: row.key_count,
     keys: parseJson<KeyMeta[]>(row.keys, []).map(
-      (meta): Key => ({ ...meta, iv: '', secret: '' })
+      (meta): Key => ({ ...meta, accountId: row.id, iv: '', secret: '' })
     ),
     keysRequired: row.keys_required,
     labels,
