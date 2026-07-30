@@ -16,8 +16,7 @@ import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
-import { getPin } from '@/utils/crypto'
-import { emptyPin } from '@/utils/pin'
+import { emptyPin, getPin } from '@/utils/pin'
 
 type Stage = 'verify' | 'set' | 're-enter'
 

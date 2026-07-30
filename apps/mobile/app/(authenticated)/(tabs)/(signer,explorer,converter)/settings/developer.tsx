@@ -38,13 +38,13 @@ import { type Key } from '@/types/models/Account'
 import {
   aesEncrypt,
   generateSalt,
-  getPin,
   pbkdf2Encrypt,
   randomIv
 } from '@/utils/crypto'
 import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import { saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
+import { getPin } from '@/utils/pin'
 
 export default function Developer() {
   const router = useRouter()

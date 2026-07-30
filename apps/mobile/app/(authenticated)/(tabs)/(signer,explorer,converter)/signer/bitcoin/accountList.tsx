@@ -65,8 +65,9 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { generateSalt, getPin, pbkdf2Encrypt } from '@/utils/crypto'
+import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { getPin } from '@/utils/pin'
 import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3

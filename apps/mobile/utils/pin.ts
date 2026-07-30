@@ -1,4 +1,16 @@
-import { PIN_SIZE } from '@/config/auth'
+import { PIN_SIZE, DEFAULT_PIN, PIN_KEY } from '@/config/auth'
+import { getItem } from '@/storage/encrypted'
+
+async function getPin(skipPin = false): Promise<string> {
+  if (skipPin) {
+    return DEFAULT_PIN
+  }
+  const pin = await getItem(PIN_KEY)
+  if (pin === null) {
+    throw new Error('PIN unavailable')
+  }
+  return pin
+}
 
 function emptyPin(): string[] {
   return Array.from<string>({ length: PIN_SIZE }).fill('')
@@ -37,6 +49,7 @@ export {
   deletePinDigit,
   emptyPin,
   fillPinDigit,
+  getPin,
   getPinCursorIndex,
   isPinFilled
 }

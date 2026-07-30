@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -14,9 +14,9 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Secret } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { convertKeyFormat } from '@/utils/bitcoin'
+import { decryptAccountKeySecret, decryptKeySecret } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 
 type PublicKeyFormat = 'xpub' | 'ypub' | 'zpub' | 'vpub' | 'tpub' | 'upub'
@@ -170,90 +170,68 @@ export default function PublicKeyPage() {
     return formatButtons
   }
 
-  const convertPublicKeyFormat = useCallback(
-    (publicKey: string, targetFormat: PublicKeyFormat): string => {
-      // Check if the public key is in a valid format
-      const validPrefixes = [
-        'xpub',
-        'ypub',
-        'zpub',
-        'vpub',
-        'tpub',
-        'upub',
-        'vpub',
-        'wpub'
-      ]
-      const hasValidPrefix = validPrefixes.some((prefix) =>
-        publicKey.startsWith(prefix)
-      )
+  function convertPublicKeyFormat(
+    publicKey: string,
+    targetFormat: PublicKeyFormat
+  ) {
+    const validPrefixes = [
+      'xpub',
+      'ypub',
+      'zpub',
+      'vpub',
+      'tpub',
+      'upub',
+      'vpub',
+      'wpub'
+    ]
+    const hasValidPrefix = validPrefixes.some((prefix) =>
+      publicKey.startsWith(prefix)
+    )
+    if (!hasValidPrefix) {
+      return publicKey
+    }
+    return convertKeyFormat(publicKey, targetFormat, network)
+  }
 
-      if (!hasValidPrefix) {
-        return publicKey
-      }
-
-      // Use the network-aware conversion utility
-      return convertKeyFormat(publicKey, targetFormat, network)
-    },
-    [network]
-  )
+  async function getPublicKey() {
+    if (!keyIndex) {
+      return
+    }
+    const accountData = getAccountData()
+    const keyIndexNum = parseInt(keyIndex, 10)
+    const key = accountData.keys[keyIndexNum]
+    if (!key) {
+      toast.error('Key not found')
+      return
+    }
+    setScriptVersion(key.scriptVersion || 'P2WPKH')
+    const secret = key.secret
+      ? await decryptKeySecret(key)
+      : await decryptAccountKeySecret(accountData.id, keyIndexNum)
+    const publicKeyString =
+      secret.extendedPublicKey ??
+      (secret.externalDescriptor
+        ? getExtendedKeyFromDescriptor(secret.externalDescriptor)
+        : '')
+    if (!publicKeyString) {
+      toast.error('Could not extract public key')
+      return
+    }
+    setRawPublicKey(publicKeyString)
+    setPublicKey(convertPublicKeyFormat(publicKeyString, selectedFormat))
+  }
 
   useEffect(() => {
-    function getPublicKey() {
-      if (!keyIndex) {
-        return
-      }
-
+    try {
       setIsLoading(true)
-
-      try {
-        const accountData = getAccountData()
-        const keyIndexNum = parseInt(keyIndex, 10)
-        const key = accountData.keys[keyIndexNum]
-
-        if (!key) {
-          toast.error('Key not found')
-          return
-        }
-
-        // Get script version from the key
-        const keyScriptVersion = key.scriptVersion || 'P2WPKH'
-        setScriptVersion(keyScriptVersion)
-
-        // Get the public key from the key data
-        let publicKeyString = ''
-        if (typeof key.secret === 'object') {
-          const secret = key.secret as Secret
-          if (secret.extendedPublicKey) {
-            publicKeyString = secret.extendedPublicKey
-          } else if (secret.externalDescriptor) {
-            publicKeyString = getExtendedKeyFromDescriptor(
-              secret.externalDescriptor
-            )
-          }
-        }
-
-        if (!publicKeyString) {
-          toast.error('Could not extract public key')
-          return
-        }
-
-        setRawPublicKey(publicKeyString)
-        setPublicKey(convertPublicKeyFormat(publicKeyString, selectedFormat))
-      } catch {
-        toast.error('Failed to get public key')
-      } finally {
-        setIsLoading(false)
-      }
+      getPublicKey()
+    } catch {
+      toast.error('Failed to get public key')
+    } finally {
+      setIsLoading(false)
     }
-
-    getPublicKey()
-  }, [
-    keyIndex,
-    getAccountData,
-    network,
-    selectedFormat,
-    convertPublicKeyFormat
-  ])
+    // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
+  }, [keyIndex, network, selectedFormat, convertPublicKeyFormat])
 
   useEffect(() => {
     if (rawPublicKey) {
@@ -328,7 +306,6 @@ export default function PublicKeyPage() {
             </View>
           ) : null}
         </View>
-
         {/* Public Key Text */}
         {!isLoading && publicKey && (
           <>
@@ -358,7 +335,6 @@ export default function PublicKeyPage() {
             />
           </>
         )}
-
         <SSButton
           label={t('common.cancel')}
           variant="ghost"

@@ -16,8 +16,8 @@ import { getItem, setItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
-import { getPin, pbkdf2Encrypt } from '@/utils/crypto'
-import { emptyPin } from '@/utils/pin'
+import { pbkdf2Encrypt } from '@/utils/crypto'
+import { emptyPin, getPin } from '@/utils/pin'
 
 type Stage = 'set' | 're-enter'
 

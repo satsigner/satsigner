@@ -11,8 +11,9 @@ import {
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
-import { generateSalt, getPin, pbkdf2Encrypt } from '@/utils/crypto'
+import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
+import { getPin } from '@/utils/pin'
 
 type AuthState = {
   firstTime: boolean
