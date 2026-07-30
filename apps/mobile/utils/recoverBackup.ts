@@ -5,7 +5,6 @@ import {
 } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
-import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
@@ -443,8 +442,7 @@ async function writeKeychain(
 export async function performRecoverOverwrite(
   decrypted: string
 ): Promise<RecoverResult> {
-  const { skipPin } = useAuthStore.getState()
-  const pin = await getPin(skipPin)
+  const pin = await getPin()
   if (!pin) {
     return { error: 'PIN unavailable', success: false }
   }
