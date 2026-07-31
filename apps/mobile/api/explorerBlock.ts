@@ -1,64 +1,78 @@
-import { type MempoolOracle } from '@/api/blockchain'
-import ElectrumClient from '@/api/electrum'
-import Esplora from '@/api/esplora'
-import BitcoinRpc from '@/api/rpc'
-import type { Block as BaseBlock } from '@/types/models/Blockchain'
-import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
-import type { PartialSome } from '@/types/utils'
-import { getDifficultyFromBits } from '@/utils/bitcoin/difficulty'
+import { type MempoolOracle } from "@/api/blockchain";
+import ElectrumClient from "@/api/electrum";
+import Esplora from "@/api/esplora";
+import BitcoinRpc from "@/api/rpc";
+import type { Block as BaseBlock } from "@/types/models/Blockchain";
+import type { Backend, RpcCredentials } from "@/types/settings/blockchain";
+import type { PartialSome } from "@/types/utils";
+import { getDifficultyFromBits } from "@/utils/bitcoin/difficulty";
 
 export type ExplorerBlock = PartialSome<
   BaseBlock,
-  'merkle_root' | 'mediantime' | 'tx_count' | 'previousblockhash'
->
+  | "merkle_root"
+  | "mediantime"
+  | "previousblockhash"
+  | "size"
+  | "tx_count"
+  | "weight"
+>;
+
+/** bitcoinjs header hashes are internal LE; reverse for canonical display hex. */
+function hashBytesToDisplayHex(hash: Buffer | undefined): string | undefined {
+  if (!hash || hash.length === 0) {
+    return undefined;
+  }
+  // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+  return Buffer.from(hash).reverse().toString("hex");
+}
 
 async function fetchBlockEsplora(
   url: string,
-  height: number
+  height: number,
 ): Promise<ExplorerBlock> {
-  const esplora = new Esplora(url)
-  const blockHash = await esplora.getBlockAtHeight(height)
-  return esplora.getBlockInfo(blockHash)
+  const esplora = new Esplora(url);
+  const blockHash = await esplora.getBlockAtHeight(height);
+  return esplora.getBlockInfo(blockHash);
 }
 
 async function fetchBlockElectrum(
   url: string,
-  height: number
+  height: number,
 ): Promise<ExplorerBlock> {
-  const electrum = await ElectrumClient.initClientFromUrl(url)
+  const electrum = await ElectrumClient.initClientFromUrl(url);
   try {
-    const block = await electrum.getBlock(height)
+    const block = await electrum.getBlock(height);
     return {
       difficulty: getDifficultyFromBits(block.bits),
       height,
       id: block.getId(),
       mediantime: undefined,
-      merkle_root: block.merkleRoot?.toString('hex'),
+      merkle_root: hashBytesToDisplayHex(block.merkleRoot),
       nonce: block.nonce,
-      previousblockhash: block.prevHash?.toString('hex'),
-      size: block.weight() * 4,
+      previousblockhash: hashBytesToDisplayHex(block.prevHash),
+      size: undefined,
       timestamp: block.timestamp,
-      tx_count: block.transactions?.length,
+      tx_count: undefined,
       version: block.version,
-      weight: block.weight()
-    }
+      weight: undefined,
+    };
   } finally {
-    electrum.close()
+    electrum.close();
   }
 }
 
 async function fetchBlockRpc(
   url: string,
   height: number,
-  rpcCredentials?: RpcCredentials
+  rpcCredentials?: RpcCredentials,
 ): Promise<ExplorerBlock> {
   const rpc = new BitcoinRpc(
     url,
-    rpcCredentials?.username ?? '',
-    rpcCredentials?.password ?? ''
-  )
-  const hash = await rpc.getBlockHash(height)
-  const rpcBlock = await rpc.getBlock(hash)
+    rpcCredentials?.username ?? "",
+    rpcCredentials?.password ?? "",
+  );
+  const hash = await rpc.getBlockHash(height);
+  const rpcBlock = await rpc.getBlock(hash);
   return {
     difficulty: rpcBlock.difficulty,
     height: rpcBlock.height,
@@ -71,95 +85,95 @@ async function fetchBlockRpc(
     timestamp: rpcBlock.time,
     tx_count: rpcBlock.tx.length,
     version: rpcBlock.version,
-    weight: rpcBlock.weight
-  }
+    weight: rpcBlock.weight,
+  };
 }
 
 export function fetchExplorerBlock(
   url: string,
   backend: Backend,
   height: number,
-  rpcCredentials?: RpcCredentials
+  rpcCredentials?: RpcCredentials,
 ): Promise<ExplorerBlock> {
-  if (backend === 'esplora') {
-    return fetchBlockEsplora(url, height)
+  if (backend === "esplora") {
+    return fetchBlockEsplora(url, height);
   }
-  if (backend === 'rpc') {
-    return fetchBlockRpc(url, height, rpcCredentials)
+  if (backend === "rpc") {
+    return fetchBlockRpc(url, height, rpcCredentials);
   }
-  return fetchBlockElectrum(url, height)
+  return fetchBlockElectrum(url, height);
 }
 
 export function fetchExplorerBlockFromMempool(
   height: number,
-  oracle: MempoolOracle
+  oracle: MempoolOracle,
 ): Promise<ExplorerBlock> {
-  return oracle.getBlockAtHeight(height)
+  return oracle.getBlockAtHeight(height);
 }
 
 export async function fetchExplorerTipHeight(
   url: string,
   backend: Backend,
-  rpcCredentials?: RpcCredentials
+  rpcCredentials?: RpcCredentials,
 ): Promise<number> {
-  if (backend === 'esplora') {
-    const esplora = new Esplora(url)
-    return esplora.getLatestBlockHeight()
+  if (backend === "esplora") {
+    const esplora = new Esplora(url);
+    return esplora.getLatestBlockHeight();
   }
-  if (backend === 'rpc') {
+  if (backend === "rpc") {
     const rpc = new BitcoinRpc(
       url,
-      rpcCredentials?.username ?? '',
-      rpcCredentials?.password ?? ''
-    )
-    return rpc.getBlockCount()
+      rpcCredentials?.username ?? "",
+      rpcCredentials?.password ?? "",
+    );
+    return rpc.getBlockCount();
   }
-  const electrum = await ElectrumClient.initClientFromUrl(url)
+  const electrum = await ElectrumClient.initClientFromUrl(url);
   try {
-    const header = await electrum.subscribeToBlockHeaders()
-    return header?.height ?? 0
+    const header = await electrum.subscribeToBlockHeaders();
+    return header?.height ?? 0;
   } finally {
-    electrum.close()
+    electrum.close();
   }
 }
 
-export type ExplorerBlockRawHexSource = 'backend' | 'mempool'
+export type ExplorerBlockRawHexSource = "backend" | "mempool";
 
 export type ExplorerBlockRawHex = {
-  hex: string
-  source: ExplorerBlockRawHexSource
-}
+  hex: string;
+  source: ExplorerBlockRawHexSource;
+};
 
 export async function fetchExplorerBlockRawHex(
   blockHash: string,
   url: string,
   backend: Backend,
-  rpcCredentials?: RpcCredentials
+  rpcCredentials?: RpcCredentials,
 ): Promise<ExplorerBlockRawHex> {
-  if (backend === 'esplora') {
-    const esplora = new Esplora(url)
-    const hex = await esplora.getBlockRawHex(blockHash)
-    return { hex, source: 'backend' }
+  if (backend === "esplora") {
+    const esplora = new Esplora(url);
+    const hex = await esplora.getBlockRawHex(blockHash);
+    return { hex, source: "backend" };
   }
-  if (backend === 'rpc') {
+  if (backend === "rpc") {
     const rpc = new BitcoinRpc(
       url,
-      rpcCredentials?.username ?? '',
-      rpcCredentials?.password ?? ''
-    )
-    const hex = await rpc.getBlockHex(blockHash)
-    return { hex, source: 'backend' }
+      rpcCredentials?.username ?? "",
+      rpcCredentials?.password ?? "",
+    );
+    const hex = await rpc.getBlockHex(blockHash);
+    return { hex, source: "backend" };
   }
-  throw new Error('electrum_unsupported')
+  throw new Error("electrum_unsupported");
 }
 
 export async function fetchExplorerBlockRawHexFromMempool(
   blockHash: string,
-  mempoolOracle: MempoolOracle
+  mempoolOracle: MempoolOracle,
 ): Promise<ExplorerBlockRawHex> {
-  const raw = await mempoolOracle.getBlockRaw(blockHash)
+  const raw = await mempoolOracle.getBlockRaw(blockHash);
   return {
-    hex: Buffer.from(raw).toString('hex'),
-    source: 'mempool'
-  }
+    hex: Buffer.from(raw).toString("hex"),
+    source: "mempool",
+  };
 }
