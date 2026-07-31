@@ -1,12 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -28,7 +22,6 @@ import SSSeedQR from '@/components/SSSeedQR'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { PIN_KEY } from '@/config/auth'
 import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_HIT_BOX,
@@ -37,22 +30,22 @@ import {
 import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem, getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Key, type Secret } from '@/types/models/Account'
+import { type Key } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import {
-  decryptAllAccountKeySecrets,
-  getAccountFingerprint
-} from '@/utils/account'
+import { getAccountFingerprint } from '@/utils/account'
 import { isElectrumDerivationPath } from '@/utils/bip39'
-import { aesDecrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
+import {
+  decryptAccountKeySecret,
+  decryptAccountKeySecrets
+} from '@/utils/decryption'
 import { formatDate } from '@/utils/format'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
@@ -211,20 +204,16 @@ export default function AccountSettings() {
   }
 
   async function decryptMnemonic() {
-    const pin = await getItem(PIN_KEY)
-    if (!account || !pin) {
+    if (!account) {
       return
     }
 
-    const stored = await getKeySecret(account.id, 0)
-    if (!stored) {
-      return
+    try {
+      const accountSecret = await decryptAccountKeySecret(account.id, 0)
+      setLocalMnemonic(accountSecret.mnemonic || '')
+    } catch {
+      toast.error(t('account.seed.unableToDecrypt'))
     }
-
-    const accountSecretString = await aesDecrypt(stored.secret, pin, stored.iv)
-    const accountSecret = JSON.parse(accountSecretString) as Secret
-
-    setLocalMnemonic(accountSecret.mnemonic || '')
   }
 
   useEffect(() => {
@@ -232,7 +221,7 @@ export default function AccountSettings() {
       if (!account) {
         return
       }
-      const secrets = await decryptAllAccountKeySecrets(account)
+      const secrets = await decryptAccountKeySecrets(account)
       const decryptedKeyData = account.keys.map((key, index) => {
         const newKey: Key = {
           ...key,
@@ -265,7 +254,7 @@ export default function AccountSettings() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
+    <SSScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -733,7 +722,7 @@ export default function AccountSettings() {
           maxTries={3}
         />
       </SSModal>
-    </ScrollView>
+    </SSScrollView>
   )
 }
 

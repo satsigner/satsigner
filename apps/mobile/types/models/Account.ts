@@ -59,12 +59,19 @@ export const KeyMetaSchema = z.object({
 })
 
 export const KeySchema = KeyMetaSchema.extend({
+  /** Set on DB load, stripped on DB write. */
+  accountId: z.string().optional(),
   iv: z.string(),
   secret: z.union([SecretSchema, z.string()])
 })
 
 export const DecryptedKeySchema = KeySchema.omit({ secret: true }).extend({
   secret: SecretSchema
+})
+
+export const EncryptedKeySecretSchema = z.object({
+  iv: z.string(),
+  secret: z.string()
 })
 
 export const AccountSchema = z.object({
@@ -113,6 +120,7 @@ export type Account = z.infer<typeof AccountSchema>
 export type CreationType = z.infer<typeof CreationTypeSchema>
 export type DecryptedAccount = z.infer<typeof DecryptedAccountSchema>
 export type DecryptedKey = z.infer<typeof DecryptedKeySchema>
+export type EncryptedKeySecret = z.infer<typeof EncryptedKeySecretSchema>
 export type Key = z.infer<typeof KeySchema>
 export type KeyMeta = z.infer<typeof KeyMetaSchema>
 export type PolicyType = z.infer<typeof PolicyTypeSchema>

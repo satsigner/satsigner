@@ -1,10 +1,10 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { ScrollView } from 'react-native'
 
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
 import useGetAccountTransactionOutput from '@/hooks/useGetAccountTransactionOutput'
 import useNostrSync from '@/hooks/useNostrSync'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -39,10 +39,7 @@ function UtxoLabel() {
   }
 
   return (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="interactive"
-    >
+    <SSScrollView keyboardDismissMode="interactive">
       <Stack.Screen
         options={{
           headerTitle: () => <SSText>{t('transaction.edit.label.utxo')}</SSText>
@@ -61,7 +58,7 @@ function UtxoLabel() {
         </SSVStack>
         <SSLabelInput label={utxo.label || ''} onUpdateLabel={updateLabel} />
       </SSVStack>
-    </ScrollView>
+    </SSScrollView>
   )
 }
 

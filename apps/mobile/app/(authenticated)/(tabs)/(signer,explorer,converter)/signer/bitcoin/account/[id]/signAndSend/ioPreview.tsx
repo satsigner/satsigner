@@ -10,12 +10,7 @@ import {
 } from 'expo-router'
 import { useIsFocused } from 'expo-router/react-navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  type LayoutChangeEvent,
-  ScrollView,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { type LayoutChangeEvent, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -54,6 +49,7 @@ import { useNow } from '@/hooks/useNow'
 import { useTransactionFeeWarnings } from '@/hooks/useTransactionFeeWarnings'
 import { useUriAutoSelectUtxos } from '@/hooks/useUriAutoSelectUtxos'
 import SSHStack from '@/layouts/SSHStack'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -1628,7 +1624,7 @@ export default function IOPreview() {
         fullOpacity
       >
         <View style={{ alignSelf: 'center', maxWidth: 1000, width: '100%' }}>
-          <ScrollView style={{ width: '100%' }}>
+          <SSScrollView style={{ width: '100%' }}>
             <SSVStack gap="lg" style={{ paddingHorizontal: 16 }}>
               <SSVStack itemsCenter>
                 <SSText uppercase>
@@ -1748,7 +1744,7 @@ export default function IOPreview() {
                 </SSHStack>
               </SSVStack>
             </SSVStack>
-          </ScrollView>
+          </SSScrollView>
         </View>
       </SSModal>
       <SSModal

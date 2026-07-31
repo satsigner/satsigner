@@ -11,7 +11,7 @@ import {
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
-import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import { generateSalt, getPin, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
 
 type AuthState = {
@@ -139,7 +139,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
           throw new Error('Failed to validate PIN')
         }
         const encrypted = await pbkdf2Encrypt(pin, salt)
-        const savedPin = await getItem(PIN_KEY)
+        const savedPin = await getPin()
         return encrypted === savedPin
       }
     }),

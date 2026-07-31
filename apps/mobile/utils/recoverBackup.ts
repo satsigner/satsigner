@@ -28,7 +28,7 @@ import type {
 import type { LNDConfig } from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
 import type { Config, Network, Server } from '@/types/settings/blockchain'
-import { aesEncrypt, getPinForDecryption, randomIv } from '@/utils/crypto'
+import { aesEncrypt, getPin, randomIv } from '@/utils/crypto'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 
 type BackupKey = Key & {
@@ -445,7 +445,7 @@ export async function performRecoverOverwrite(
   decrypted: string
 ): Promise<RecoverResult> {
   const { skipPin } = useAuthStore.getState()
-  const pin = await getPinForDecryption(skipPin)
+  const pin = await getPin(skipPin)
   if (!pin) {
     return { error: 'PIN unavailable', success: false }
   }

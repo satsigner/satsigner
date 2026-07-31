@@ -31,6 +31,19 @@ export const Wallet = {
   open: jest.fn()
 }
 
+function buildFakeOnchainWallet() {
+  return {
+    balance: jest.fn(),
+    newAddress: jest.fn(),
+    sync: jest.fn()
+  }
+}
+
+export const OnchainWallet = {
+  default_: jest.fn(() => Promise.resolve(buildFakeOnchainWallet())),
+  instanceOf: (_obj: unknown): boolean => false
+}
+
 const notificationInstances = new Set<WalletNotifications>()
 
 export class WalletNotifications {

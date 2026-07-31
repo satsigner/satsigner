@@ -1,6 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView } from 'react-native'
 import { KeychainKind } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -14,6 +13,7 @@ import SSWordInput from '@/components/SSWordInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -171,7 +171,7 @@ export default function GenerateMnemonic() {
           headerTitle: () => <SSText uppercase>{name}</SSText>
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack justifyBetween>
           <SSFormLayout>
             <SSFormLayout.Item>
@@ -219,7 +219,7 @@ export default function GenerateMnemonic() {
             />
           </SSVStack>
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }

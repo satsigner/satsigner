@@ -51,7 +51,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem, setItem } from '@/storage/encrypted'
+import { setItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -67,7 +67,7 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import { generateSalt, getPin, pbkdf2Encrypt } from '@/utils/crypto'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { time } from '@/utils/time'
 
@@ -447,7 +447,7 @@ export default function AccountList() {
 
   async function loadSampleWallet(type: SampleWallet) {
     // Check if PIN is available, if not set a default one
-    const pin = await getItem(PIN_KEY)
+    const pin = await getPin()
 
     // TODO: remove DEFAULT_PIN
     if (!pin) {
@@ -458,7 +458,7 @@ export default function AccountList() {
     }
 
     // Verify PIN is accessible
-    const verifyPin = await getItem(PIN_KEY)
+    const verifyPin = await getPin()
     if (!verifyPin) {
       throw new Error('Failed to set or retrieve PIN')
     }

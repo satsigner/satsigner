@@ -5,7 +5,7 @@ import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
-import SSNostrMarkdownContent from '@/components/SSNostrMarkdownContent'
+import SSMarkdown from '@/components/SSMarkdown'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSText from '@/components/SSText'
@@ -440,7 +440,7 @@ function SSNostrFeedNoteRow({
             {t('nostrIdentity.feed.repostUnavailable')}
           </SSText>
         ) : formatMarkdown && !privacyMode ? (
-          <SSNostrMarkdownContent content={displayContent} />
+          <SSMarkdown content={displayContent} />
         ) : (
           <SSText
             size="sm"

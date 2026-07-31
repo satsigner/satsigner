@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -22,6 +22,7 @@ import { useEcash, useQuotePolling } from '@/hooks/useEcash'
 import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
@@ -304,7 +305,7 @@ export default function EcashTransactionDetailPage() {
           )
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack gap="lg">
           <SSVStack gap="md" style={styles.headerCard}>
             <SSHStack gap="md" style={{ alignItems: 'center' }}>
@@ -572,7 +573,7 @@ export default function EcashTransactionDetailPage() {
             </SSVStack>
           )}
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
       <SSModal
         visible={qrModalVisible}
         onClose={() => setQrModalVisible(false)}

@@ -13,7 +13,9 @@ import { upsertUtxos } from './utxos'
 type TransactionContext = NitroSQLiteConnection
 
 function keysToJson(keys: Key[]): string {
-  return JSON.stringify(keys.map(({ secret: _s, iv: _iv, ...meta }) => meta))
+  return JSON.stringify(
+    keys.map(({ secret: _s, iv: _iv, accountId: _a, ...meta }) => meta)
+  )
 }
 
 function insertAccount(account: Account) {

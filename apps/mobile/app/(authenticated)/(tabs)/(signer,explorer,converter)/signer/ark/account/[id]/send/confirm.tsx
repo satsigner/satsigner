@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -20,6 +20,7 @@ import { useArkSendFeeEstimate } from '@/hooks/useArkSendFeeEstimate'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
@@ -179,7 +180,7 @@ export default function ArkSendConfirmPage() {
           )
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack gap="lg" style={styles.container}>
           {parsedQuery.isLoading && (
             <SSText color="muted" center>
@@ -332,7 +333,7 @@ export default function ArkSendConfirmPage() {
             </>
           )}
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }

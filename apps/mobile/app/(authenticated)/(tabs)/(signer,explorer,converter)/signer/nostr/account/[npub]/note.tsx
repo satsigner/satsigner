@@ -27,12 +27,12 @@ import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSIconButton from '@/components/SSIconButton'
+import SSMarkdown from '@/components/SSMarkdown'
 import SSModal from '@/components/SSModal'
 import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
-import SSNostrMarkdownContent from '@/components/SSNostrMarkdownContent'
 import SSNostrPollOptions from '@/components/SSNostrPollOptions'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
@@ -1184,7 +1184,7 @@ export default function NostrNotePage() {
                 ) : null}
                 {fetched.content.length > 0 ? (
                   formatMarkdown && showMarkdownToggle ? (
-                    <SSNostrMarkdownContent content={fetched.content} />
+                    <SSMarkdown content={fetched.content} />
                   ) : (
                     <SSText
                       style={[

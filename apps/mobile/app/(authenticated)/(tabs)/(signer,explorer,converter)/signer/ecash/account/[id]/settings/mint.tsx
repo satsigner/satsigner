@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -11,6 +11,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
@@ -97,7 +98,7 @@ export default function EcashAccountMintPage() {
           headerTitle: () => <SSText uppercase>{t('ecash.mint.title')}</SSText>
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack gap="lg">
           {mints.length > 0 && (
             <SSVStack gap="md">
@@ -208,7 +209,7 @@ export default function EcashAccountMintPage() {
             </SSVStack>
           </SSVStack>
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }
