@@ -1,98 +1,116 @@
-import { CameraView, useCameraPermissions } from 'expo-camera'
-import * as Clipboard from 'expo-clipboard'
-import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
-import { toast } from 'sonner-native'
+import { CameraView, useCameraPermissions } from "expo-camera";
+import * as Clipboard from "expo-clipboard";
+import { Stack, useRouter } from "expo-router";
+import { useRef, useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { toast } from "sonner-native";
 
-import { SSIconChevronRight } from '@/components/icons'
-import SSButton from '@/components/SSButton'
-import SSModal from '@/components/SSModal'
-import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
-import { EXPLORER_EXAMPLE_ADDRESSES } from '@/constants/explorerExamples'
-import SSHStack from '@/layouts/SSHStack'
-import SSMainLayout from '@/layouts/SSMainLayout'
-import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
-import { Colors } from '@/styles'
+import { SSIconChevronRight } from "@/components/icons";
+import SSButton from "@/components/SSButton";
+import SSModal from "@/components/SSModal";
+import SSText from "@/components/SSText";
+import SSTextInput from "@/components/SSTextInput";
+import { EXPLORER_EXAMPLE_ADDRESSES } from "@/constants/explorerExamples";
+import SSHStack from "@/layouts/SSHStack";
+import SSMainLayout from "@/layouts/SSMainLayout";
+import SSVStack from "@/layouts/SSVStack";
+import { tn as _tn } from "@/locales";
+import { useBlockchainStore } from "@/store/blockchain";
+import { Colors } from "@/styles";
+import { parseUriParameters, stripBitcoinPrefix } from "@/utils/parse";
 
-const tn = _tn('explorer.address')
+const tn = _tn("explorer.address");
 
 function formatExampleAddress(address: string): string {
   if (address.length <= 20) {
-    return address
+    return address;
   }
-  return `${address.slice(0, 10)}...${address.slice(-8)}`
+  return `${address.slice(0, 10)}...${address.slice(-8)}`;
+}
+
+function resolveExplorerAddressInput(raw: string): string {
+  const stripped = stripBitcoinPrefix(raw.trim());
+  const parsed = parseUriParameters(stripped);
+  return (parsed?.address ?? stripped).trim();
 }
 
 export default function ExplorerAddress() {
-  const router = useRouter()
-  const [input, setInput] = useState('')
-  const [scanOpen, setScanOpen] = useState(false)
-  const [permission, requestPermission] = useCameraPermissions()
-  const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork)
-  const showExamples = selectedNetwork === 'bitcoin'
+  const router = useRouter();
+  const [input, setInput] = useState("");
+  const [scanOpen, setScanOpen] = useState(false);
+  const scannedRef = useRef(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork);
+  const showExamples = selectedNetwork === "bitcoin";
 
   function navigate(address: string) {
-    const trimmed = address.trim()
+    const trimmed = resolveExplorerAddressInput(address);
     if (!trimmed) {
-      toast.error(tn('invalid'))
-      return
+      toast.error(tn("invalid"));
+      return;
     }
     router.push({
       params: { address: trimmed },
-      pathname: '/explorer/address/[address]'
-    })
+      pathname: "/explorer/address/[address]",
+    });
   }
 
   function handleLoad() {
-    navigate(input)
+    navigate(input);
   }
 
   function handleExample(address: string) {
-    setInput(address)
-    navigate(address)
+    setInput(address);
+    navigate(address);
   }
 
   async function handlePaste() {
-    const text = await Clipboard.getStringAsync()
-    const trimmed = text.trim()
+    const text = await Clipboard.getStringAsync();
+    const trimmed = text.trim();
     if (!trimmed) {
-      return
+      return;
     }
-    setInput(trimmed)
+    setInput(trimmed);
   }
 
   async function handleScan() {
     if (!permission?.granted) {
-      const result = await requestPermission()
+      const result = await requestPermission();
       if (!result.granted) {
-        return
+        return;
       }
     }
-    setScanOpen(true)
+    scannedRef.current = false;
+    setScanOpen(true);
+  }
+
+  function handleScanClose() {
+    setScanOpen(false);
+    scannedRef.current = false;
   }
 
   function handleBarcodeScanned({ data }: { data: string }) {
-    setScanOpen(false)
-    const trimmed = data.trim()
-    setInput(trimmed)
-    navigate(trimmed)
+    if (scannedRef.current) {
+      return;
+    }
+    scannedRef.current = true;
+    setScanOpen(false);
+    const resolved = resolveExplorerAddressInput(data);
+    setInput(resolved);
+    navigate(resolved);
   }
 
   return (
     <SSMainLayout style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
+          headerTitle: () => <SSText uppercase>{tn("title")}</SSText>,
         }}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
         <SSVStack gap="md" style={styles.inputRow}>
           <SSTextInput
-            placeholder={tn('placeholder')}
+            placeholder={tn("placeholder")}
             value={input}
             onChangeText={setInput}
             autoCapitalize="none"
@@ -106,20 +124,20 @@ export default function ExplorerAddress() {
           />
           <SSHStack gap="sm">
             <SSButton
-              label={tn('paste')}
+              label={tn("paste")}
               variant="outline"
               onPress={handlePaste}
               style={styles.actionButton}
             />
             <SSButton
-              label={tn('scanQr')}
+              label={tn("scanQr")}
               variant="outline"
               onPress={handleScan}
               style={styles.actionButton}
             />
           </SSHStack>
           <SSButton
-            label={tn('load')}
+            label={tn("load")}
             variant="outline"
             onPress={handleLoad}
             disabled={input.trim().length === 0}
@@ -146,7 +164,7 @@ export default function ExplorerAddress() {
                   <SSIconChevronRight
                     width={12}
                     height={12}
-                    stroke={Colors.gray['600']}
+                    stroke={Colors.gray["600"]}
                   />
                 </TouchableOpacity>
               ))}
@@ -155,30 +173,30 @@ export default function ExplorerAddress() {
         </SSVStack>
       </ScrollView>
 
-      <SSModal visible={scanOpen} onClose={() => setScanOpen(false)}>
+      <SSModal visible={scanOpen} onClose={handleScanClose}>
         <CameraView
           style={styles.camera}
           onBarcodeScanned={handleBarcodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
         />
       </SSModal>
     </SSMainLayout>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   actionButton: { flex: 1 },
   addressInput: { height: 96 },
-  camera: { height: 300, width: '100%' },
+  camera: { height: 300, width: "100%" },
   container: { paddingTop: 0 },
   exampleCard: {
-    alignItems: 'center',
-    borderBottomColor: Colors.gray['800'],
+    alignItems: "center",
+    borderBottomColor: Colors.gray["800"],
     borderBottomWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 14
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 14,
   },
   exampleCardContent: { flex: 1, paddingRight: 12 },
-  inputRow: { paddingTop: 16 }
-})
+  inputRow: { paddingTop: 16 },
+});
