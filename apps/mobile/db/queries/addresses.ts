@@ -2,6 +2,10 @@ import { type Address } from '@/types/models/Address'
 
 import { getDb } from '../connection'
 import { type AddressRow, rowToAddress } from '../mappers'
+import {
+  getAddressTxIdsByAccount,
+  getAddressUtxoRefsByAccount
+} from './children'
 
 function getAddressesByAccount(accountId: string): Address[] {
   const db = getDb()
@@ -9,11 +13,15 @@ function getAddressesByAccount(accountId: string): Address[] {
     'SELECT * FROM addresses WHERE account_id = ?',
     [accountId]
   )
+  const txIdsByAddress = getAddressTxIdsByAccount(accountId)
+  const utxoRefsByAddress = getAddressUtxoRefsByAccount(accountId)
   return (results ?? []).map((row) => {
     const addr = row as AddressRow
-    const txIds = getAddressTxIds(accountId, addr.address)
-    const utxoRefs = getAddressUtxoRefs(accountId, addr.address)
-    return rowToAddress(addr, txIds, utxoRefs)
+    return rowToAddress(
+      addr,
+      txIdsByAddress.get(addr.address) ?? [],
+      utxoRefsByAddress.get(addr.address) ?? []
+    )
   })
 }
 

@@ -34,3 +34,21 @@ export function range(end: number, start = 0) {
   }
   return result
 }
+
+/**
+ * Bucket items by a derived key, preserving input order within each bucket.
+ * Lets a single bulk query replace per-parent child queries.
+ */
+export function groupBy<T, K>(items: T[], getKey: (item: T) => K): Map<K, T[]> {
+  const groups = new Map<K, T[]>()
+  for (const item of items) {
+    const key = getKey(item)
+    const bucket = groups.get(key)
+    if (bucket) {
+      bucket.push(item)
+      continue
+    }
+    groups.set(key, [item])
+  }
+  return groups
+}
