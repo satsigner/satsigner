@@ -12,6 +12,8 @@ import {
   SSIconDiceTwo
 } from '@/components/icons'
 import SSBinaryDisplay from '@/components/SSBinaryDisplay'
+import SSButton from '@/components/SSButton'
+import SSCheckbox from '@/components/SSCheckbox'
 import SSDice from '@/components/SSDice'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -24,6 +26,25 @@ import {
   generateMnemonicFromEntropy,
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
+import {
+  entropyBitsForWordCount,
+  entropyFromDiceRolls,
+  isSequenceBiased,
+  mixWithSystemEntropy,
+  requiredDiceRolls
+} from '@/utils/entropy'
+
+const DICE_ICONS = [
+  SSIconDiceOne,
+  SSIconDiceTwo,
+  SSIconDiceThree,
+  SSIconDiceFour,
+  SSIconDiceFive,
+  SSIconDiceSix
+]
+
+const DICE_FACES = 6
+const PREVIEW_BITS = 128
 
 export default function DiceEntropy() {
   const router = useRouter()
@@ -41,53 +62,39 @@ export default function DiceEntropy() {
       ])
     )
 
-  const length = 32 * (mnemonicWordCount / 3)
-  const approxRolls = Math.round(length / Math.log2(6))
+  const bits = entropyBitsForWordCount(mnemonicWordCount)
+  const totalRolls = requiredDiceRolls(bits)
 
-  const [step, setStep] = useState(0)
-  const [bits, setBits] = useState('')
   const [rolls, setRolls] = useState<number[]>([])
+  const [mixEntropy, setMixEntropy] = useState(true)
 
-  const DiceIcons = [
-    SSIconDiceOne,
-    SSIconDiceTwo,
-    SSIconDiceThree,
-    SSIconDiceFour,
-    SSIconDiceFive,
-    SSIconDiceSix
-  ]
+  const complete = rolls.length >= totalRolls
+  const biased = isSequenceBiased(rolls.map(String), DICE_FACES)
 
-  function handleDicePress(value: number) {
-    if (bits.length < length) {
-      const updatedRolls = [...rolls, value]
-      setRolls(updatedRolls)
+  const previewEntropy =
+    rolls.length > 0 ? entropyFromDiceRolls(rolls, PREVIEW_BITS) : ''
 
-      let base10 = 0n
-      for (const digit of updatedRolls) {
-        base10 = base10 * 6n + BigInt(digit)
-      }
-
-      let newBits = base10.toString(2)
-      const padded = Math.ceil(newBits.length / 8) * 8
-      newBits = newBits.padStart(padded, '0')
-      setBits(newBits)
-
-      const newStep = step + 1
-      setStep(newStep)
-
-      if (newBits.length >= length) {
-        const mnemonic = generateMnemonicFromEntropy(
-          newBits.slice(0, length),
-          mnemonicWordList
-        )
-        setMnemonic(mnemonic)
-        const fingerprint = getFingerprintFromMnemonic(mnemonic)
-        setFingerprint(fingerprint)
-        router.navigate(
-          `/signer/bitcoin/account/add/generate/mnemonic/${index}`
-        )
-      }
+  function handleDicePress(face: number) {
+    if (rolls.length >= totalRolls) {
+      return
     }
+    setRolls([...rolls, face])
+  }
+
+  function handleUndo() {
+    setRolls(rolls.slice(0, -1))
+  }
+
+  function handleContinue() {
+    const userEntropy = entropyFromDiceRolls(rolls, bits)
+    const entropy = mixEntropy
+      ? mixWithSystemEntropy(userEntropy, bits)
+      : userEntropy
+
+    const mnemonic = generateMnemonicFromEntropy(entropy, mnemonicWordList)
+    setMnemonic(mnemonic)
+    setFingerprint(getFingerprintFromMnemonic(mnemonic))
+    router.navigate(`/signer/bitcoin/account/add/generate/mnemonic/${index}`)
   }
 
   return (
@@ -104,17 +111,8 @@ export default function DiceEntropy() {
         gap="lg"
         style={{ flex: 1, justifyContent: 'space-evenly' }}
       >
-        <View
-          style={{
-            backgroundColor: Colors.gray[950],
-            borderRadius: 8,
-            minHeight: 180,
-            minWidth: '100%',
-            paddingHorizontal: 8,
-            paddingVertical: 16
-          }}
-        >
-          <SSBinaryDisplay binary={bits} />
+        <View style={styles.display}>
+          <SSBinaryDisplay binary={previewEntropy} />
         </View>
         <ScrollView
           style={{ flex: 1, gap: 32 }}
@@ -123,9 +121,9 @@ export default function DiceEntropy() {
           <SSVStack itemsCenter gap="lg">
             <SSVStack itemsCenter gap="lg">
               <SSVStack itemsCenter style={{ gap: -20 }}>
-                <SSText size="8xl">{step}</SSText>
+                <SSText size="8xl">{rolls.length}</SSText>
                 <SSText size="sm" color="muted" uppercase>
-                  {t('common.of')} {approxRolls}
+                  {t('common.of')} {totalRolls}
                 </SSText>
               </SSVStack>
               <SSText
@@ -136,14 +134,48 @@ export default function DiceEntropy() {
               >
                 {t(`account.entropy.dice.desc.${mnemonicWordCount}`)}
               </SSText>
+              {biased ? (
+                <SSText size="sm" color="muted" center>
+                  {t('account.entropy.biasWarning')}
+                </SSText>
+              ) : null}
             </SSVStack>
-            <SSHStack style={styles.grid}>
-              {DiceIcons.map((Icon, index) => (
-                <SSDice key={index} onPress={() => handleDicePress(index)}>
-                  <Icon width={diceSize} height={diceSize} />
-                </SSDice>
-              ))}
-            </SSHStack>
+            {complete ? null : (
+              <SSHStack style={styles.grid}>
+                {DICE_ICONS.map((Icon, iconIndex) => (
+                  <SSDice
+                    key={iconIndex}
+                    onPress={() => handleDicePress(iconIndex + 1)}
+                  >
+                    <Icon width={diceSize} height={diceSize} />
+                  </SSDice>
+                ))}
+              </SSHStack>
+            )}
+            <SSVStack gap="sm" style={styles.actions}>
+              <SSCheckbox
+                selected={mixEntropy}
+                label={t('account.entropy.mixWithDevice')}
+                onPress={() => setMixEntropy(!mixEntropy)}
+              />
+              <SSText size="xs" color="muted">
+                {t('account.entropy.mixWithDeviceDescription')}
+              </SSText>
+              {rolls.length > 0 && !complete ? (
+                <SSButton
+                  variant="ghost"
+                  label={t('common.undo')}
+                  onPress={handleUndo}
+                />
+              ) : null}
+              {complete ? (
+                <SSButton
+                  variant="secondary"
+                  label={t('common.continue')}
+                  onPress={handleContinue}
+                />
+              ) : null}
+            </SSVStack>
           </SSVStack>
         </ScrollView>
       </SSVStack>
@@ -152,8 +184,20 @@ export default function DiceEntropy() {
 }
 
 const styles = StyleSheet.create({
+  actions: {
+    marginTop: 24,
+    width: '100%'
+  },
   container: {
     paddingBottom: 12
+  },
+  display: {
+    backgroundColor: Colors.gray[950],
+    borderRadius: 8,
+    minHeight: 180,
+    minWidth: '100%',
+    paddingHorizontal: 8,
+    paddingVertical: 16
   },
   grid: {
     alignItems: 'center',

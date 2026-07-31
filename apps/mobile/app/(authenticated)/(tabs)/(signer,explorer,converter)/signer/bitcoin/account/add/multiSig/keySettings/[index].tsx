@@ -83,9 +83,6 @@ export default function MultiSigKeySettings() {
           )
           break
         }
-        case 'drawing': {
-          break
-        }
         case 'coin': {
           router.navigate({
             params: { index },
