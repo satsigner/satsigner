@@ -2,6 +2,13 @@ type PayjoinProtocolVersion = 'v1' | 'v2'
 
 type PayjoinEndpointKind = 'bip78' | 'bip77'
 
+/**
+ * How Payjoin coordination happens.
+ * - `directory`: BIP77/BIP78 over a Payjoin directory + OHTTP relays (interop default).
+ * - `manual`: fully offline out-of-band PSBT handoff; never touches the network.
+ */
+type PayjoinCoordinationMode = 'directory' | 'manual'
+
 type PayjoinUriParams = {
   address: string
   amountBtc?: number
@@ -108,6 +115,7 @@ type PayjoinNativeRequest = {
 export type {
   PayjoinBip78Error,
   PayjoinBip78ErrorCode,
+  PayjoinCoordinationMode,
   PayjoinEndpointKind,
   PayjoinNativeRequest,
   PayjoinProtocolVersion,

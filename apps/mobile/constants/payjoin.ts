@@ -1,5 +1,13 @@
+import { type PayjoinCoordinationMode } from '@/types/payjoin'
+
 /** Default BIP77 Payjoin Directory (Bull Bitcoin / Payjoin Foundation ecosystem). */
 const PAYJOIN_DIRECTORY_URL = 'https://payjo.in'
+
+/**
+ * Default coordination mode. Directory remains the interop default; Manual is an
+ * opt-in fully-offline out-of-band handoff.
+ */
+const PAYJOIN_DEFAULT_COORDINATION_MODE: PayjoinCoordinationMode = 'directory'
 
 /**
  * Default OHTTP relays. Callers must shuffle before use to avoid network-layer
@@ -47,6 +55,7 @@ const PAYJOIN_MIN_CONTRIBUTE_SATS = 5_000
 export {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
+  PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_DIRECTORY_URL,
   PAYJOIN_MIN_CONTRIBUTE_SATS,
