@@ -1465,6 +1465,7 @@
     "difficulty.title": "Difficulty",
     "difficulty.viewBlock": "VIEW BLOCK",
     "halving.blocksMinedThisEpoch": "Blocks Mined This Epoch",
+    "halving.blocksToGo": "%{count} blocks to go",
     "halving.blocksUntilHalving": "Blocks Until Halving",
     "halving.currentEpoch": "Current Epoch",
     "halving.epoch": "Epoch",
