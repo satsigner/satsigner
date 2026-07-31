@@ -1,9 +1,10 @@
-import { ScrollView, StyleSheet } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 
+import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Layout } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import {
   type UtxoGroupMode,
   type UtxoKeychainFilter,
@@ -18,6 +19,7 @@ import {
 } from '@/utils/utxoListUi'
 
 import SSButton from './SSButton'
+import SSIconButton from './SSIconButton'
 import SSModal from './SSModal'
 import SSRadioButton from './SSRadioButton'
 import SSText from './SSText'
@@ -61,9 +63,19 @@ function SSUtxoListControlsModal({
           showsVerticalScrollIndicator={false}
         >
           <SSVStack gap="lg" style={styles.content}>
-            <SSText uppercase center>
-              {t('utxo.filter.title')}
-            </SSText>
+            <SSHStack gap="none" itemsCenter style={styles.header}>
+              <SSIconButton onPress={onClose} style={styles.headerBack}>
+                <SSIconBackArrow
+                  height={24}
+                  stroke={Colors.gray[200]}
+                  width={24}
+                />
+              </SSIconButton>
+              <SSText uppercase center style={styles.headerTitle}>
+                {t('utxo.filter.title')}
+              </SSText>
+              <View style={styles.headerSpacer} />
+            </SSHStack>
 
             <SSVStack gap="sm">
               <SSText color="muted" uppercase center>
@@ -234,7 +246,7 @@ function SSUtxoListControlsModal({
             style={styles.footerButton}
           />
           <SSButton
-            label={t('common.done')}
+            label={t('common.cancel')}
             variant="ghost"
             onPress={onClose}
             style={styles.footerButton}
@@ -258,6 +270,22 @@ const styles = StyleSheet.create({
   halfOption: {
     flex: 1,
     width: undefined
+  },
+  header: {
+    width: '100%'
+  },
+  headerBack: {
+    alignItems: 'center',
+    height: 40,
+    justifyContent: 'center',
+    width: 40
+  },
+  headerSpacer: {
+    height: 40,
+    width: 40
+  },
+  headerTitle: {
+    flex: 1
   },
   pairRow: {
     width: '100%'
