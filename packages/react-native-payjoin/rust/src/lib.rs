@@ -3,9 +3,9 @@ mod persist;
 mod types;
 
 pub use types::{
-    ContributeResult, ExtractRequestResult, HttpResponse, PayjoinNativeRequest, ProcessResult,
-    ReceiverInput, ReceiverSessionHandle, ReceiverSessionInit, SenderSessionHandle,
-    SenderSessionInit
+    ContributeResult, ExtractRequestResult, HttpResponse, ManualContributeResult,
+    ManualFinalizeResult, PayjoinNativeRequest, ProcessResult, ReceiverInput,
+    ReceiverSessionHandle, ReceiverSessionInit, SenderSessionHandle, SenderSessionInit
 };
 
 use std::collections::HashMap;
@@ -18,6 +18,7 @@ use bitcoin::psbt::Psbt;
 use bitcoin::{Address, Amount, FeeRate, OutPoint, Script, ScriptBuf, TxOut, Txid};
 use once_cell::sync::Lazy;
 use payjoin::persist::{NoopSessionPersister, OptionalTransitionOutcome, SessionPersister};
+use payjoin::receive::v1;
 use payjoin::receive::v2::{
     replay_event_log, Initialized, ProvisionalProposal, ReceiveSession, Receiver,
     ReceiverBuilder, SessionEvent, UncheckedOriginalPayload
@@ -840,6 +841,174 @@ fn input_pair_from_txout(txout: TxOut, outpoint: OutPoint) -> Result<InputPair, 
     Err(PayjoinError::msg(
         "unsupported script type for payjoin contribution; need p2wpkh or p2tr"
     ))
+}
+
+/// Minimal BIP78 request headers for the manual (offline) receiver. The original
+/// PSBT arrives out of band, so we synthesize the headers PDK expects.
+struct ManualHeaders {
+    content_length: String
+}
+
+impl v1::Headers for ManualHeaders {
+    fn get_header(&self, key: &str) -> Option<&str> {
+        match key {
+            "content-length" => Some(self.content_length.as_str()),
+            "content-type" => Some("text/plain"),
+            _ => None
+        }
+    }
+}
+
+fn encode_provisional_state(
+    provisional: &v1::ProvisionalProposal
+) -> Result<String, PayjoinError> {
+    use base64::Engine;
+    let json = serde_json::to_string(provisional)?;
+    Ok(base64::engine::general_purpose::STANDARD.encode(json.as_bytes()))
+}
+
+fn decode_provisional_state(state: &str) -> Result<v1::ProvisionalProposal, PayjoinError> {
+    use base64::Engine;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(state.as_bytes())
+        .map_err(|e| PayjoinError::msg(e.to_string()))?;
+    let provisional = serde_json::from_slice::<v1::ProvisionalProposal>(&bytes)?;
+    Ok(provisional)
+}
+
+/// Manual (offline) receiver step 1: ingest the sender's original PSBT, run the
+/// BIP78 receiver checks with real ownership/seen-input guards, contribute one
+/// input, and return the provisional proposal PSBT for the receiver to sign.
+/// No directory request is created.
+#[uniffi::export]
+pub fn receiver_manual_contribute(
+    original_psbt_base64: String,
+    receive_address: String,
+    disable_output_substitution: bool,
+    input: ReceiverInput,
+    owned_scripts_hex: Vec<String>,
+    seen_outpoints: Vec<String>
+) -> Result<ManualContributeResult, PayjoinError> {
+    let body_string = original_psbt_base64.trim().to_string();
+    let body = body_string.as_bytes();
+    let headers = ManualHeaders {
+        content_length: body.len().to_string()
+    };
+    let query = if disable_output_substitution {
+        "v=1&disableoutputsubstitution=true"
+    } else {
+        "v=1"
+    };
+
+    let unchecked = v1::UncheckedOriginalPayload::from_request(body, query, headers)
+        .map_err(|e| PayjoinError::msg(e.to_string()))?;
+
+    // Interactive receiver: the receiver manually imports the original, so the
+    // anti-probing broadcast-suitability check is unnecessary.
+    let maybe_owned = unchecked.assume_interactive_receiver();
+
+    let owned_set: std::collections::HashSet<ScriptBuf> = owned_scripts_hex
+        .iter()
+        .filter_map(|hex| ScriptBuf::from_hex(hex).ok())
+        .collect();
+    let mut is_owned = |script: &Script| Ok(owned_set.contains(script));
+    let maybe_seen = maybe_owned
+        .check_inputs_not_owned(&mut is_owned)
+        .map_err(|e| PayjoinError::msg(e.to_string()))?;
+
+    let seen_set: std::collections::HashSet<OutPoint> = seen_outpoints
+        .iter()
+        .filter_map(|outpoint| OutPoint::from_str(outpoint).ok())
+        .collect();
+    let mut is_known = |outpoint: &OutPoint| Ok(seen_set.contains(outpoint));
+    let outputs_unknown = maybe_seen
+        .check_no_inputs_seen_before(&mut is_known)
+        .map_err(|e| PayjoinError::msg(e.to_string()))?;
+
+    let address = Address::from_str(&receive_address)?.assume_checked();
+    let receive_script = address.script_pubkey();
+    let mut is_receiver_output = |script: &Script| Ok(script == receive_script.as_script());
+    let wants_outputs = outputs_unknown
+        .identify_receiver_outputs(&mut is_receiver_output)
+        .map_err(|e| PayjoinError::msg(e.to_string()))?;
+
+    let wants_inputs = wants_outputs.commit_outputs();
+
+    let txid = Txid::from_str(&input.txid).map_err(|e| PayjoinError::msg(e.to_string()))?;
+    let script = ScriptBuf::from_hex(&input.script_hex)
+        .map_err(|e| PayjoinError::msg(e.to_string()))?;
+    let txout = TxOut {
+        value: Amount::from_sat(input.value),
+        script_pubkey: script
+    };
+    let outpoint = OutPoint {
+        txid,
+        vout: input.vout
+    };
+    let input_pair = input_pair_from_txout(txout, outpoint)?;
+
+    let wants_inputs = wants_inputs
+        .contribute_inputs(vec![input_pair])
+        .map_err(|e| PayjoinError::msg(e.to_string()))?;
+    let wants_fee_range = wants_inputs.commit_inputs();
+
+    let provisional = wants_fee_range
+        .apply_fee_range(None, None)
+        .map_err(|e| PayjoinError::msg(e.to_string()))?;
+
+    let provisional_psbt_base64 = provisional.psbt_to_sign().to_string();
+    let provisional_state = encode_provisional_state(&provisional)?;
+
+    Ok(ManualContributeResult {
+        provisional_psbt_base64,
+        provisional_state
+    })
+}
+
+/// Manual (offline) receiver step 2: given the provisional state from
+/// [`receiver_manual_contribute`] and the receiver-signed provisional PSBT,
+/// finalize the Payjoin proposal PSBT to hand back to the sender out of band.
+#[uniffi::export]
+pub fn receiver_manual_finalize(
+    provisional_state: String,
+    signed_psbt_base64: String
+) -> Result<ManualFinalizeResult, PayjoinError> {
+    let provisional = decode_provisional_state(&provisional_state)?;
+    let signed_psbt = Psbt::from_str(&signed_psbt_base64)?;
+
+    let proposal = provisional
+        .finalize_proposal(|cleared| {
+            // Start from cleared (sender finals removed). Apply finals only for
+            // inputs the wallet finalized that still lack finals on `cleared`.
+            let mut merged = cleared.clone();
+            for i in 0..merged.inputs.len() {
+                if merged.inputs[i].final_script_witness.is_some()
+                    || merged.inputs[i].final_script_sig.is_some()
+                    || merged.inputs[i].tap_key_sig.is_some()
+                {
+                    continue;
+                }
+                let Some(signed_in) = signed_psbt.inputs.get(i) else {
+                    continue;
+                };
+                if signed_in.final_script_witness.is_none()
+                    && signed_in.final_script_sig.is_none()
+                    && signed_in.tap_key_sig.is_none()
+                {
+                    continue;
+                }
+                merged.inputs[i].final_script_witness = signed_in.final_script_witness.clone();
+                merged.inputs[i].final_script_sig = signed_in.final_script_sig.clone();
+                merged.inputs[i].tap_key_sig = signed_in.tap_key_sig.clone();
+            }
+            Ok(merged)
+        })
+        .map_err(|e| PayjoinError::msg(e.to_string()))?;
+
+    let proposal_psbt_base64 = proposal.psbt().to_string();
+    Ok(ManualFinalizeResult {
+        proposal_psbt_base64
+    })
 }
 
 #[uniffi::export]

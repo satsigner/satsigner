@@ -204,6 +204,31 @@ async function receiverContributeAndFinalize(
   }
 }
 
+async function receiverManualContribute(
+  originalPsbtBase64: string,
+  _receiveAddress: string,
+  _disableOutputSubstitution: boolean,
+  _input: { txid: string; vout: number; value: number; scriptHex: string },
+  _ownedScriptsHex: string[],
+  _seenOutpoints: string[]
+): Promise<{ provisionalPsbtBase64: string; provisionalState: string }> {
+  return {
+    provisionalPsbtBase64: originalPsbtBase64,
+    provisionalState: encodeState({
+      originalPsbtBase64,
+      phase: 'manual-provisional',
+      role: 'receiver'
+    })
+  }
+}
+
+async function receiverManualFinalize(
+  _provisionalState: string,
+  signedPsbtBase64: string
+): Promise<{ proposalPsbtBase64: string }> {
+  return { proposalPsbtBase64: signedPsbtBase64 }
+}
+
 function detectProtocol(pjUri: string): 'v1' | 'v2' {
   if (pjUri.includes('payjo.in') || pjUri.includes('#')) {
     return 'v2'
@@ -349,6 +374,8 @@ export {
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
+  receiverManualContribute,
+  receiverManualFinalize,
   receiverProcessResponse,
   resumeReceiverSession,
   resumeSenderSession,

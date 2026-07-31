@@ -65,6 +65,22 @@ pub struct ContributeResult {
     pub psbt_base64: String
 }
 
+/// Result of the first manual (offline / BIP78) receiver call: the receiver has
+/// contributed an input and produced a provisional proposal PSBT to sign. No
+/// directory request is created — coordination happens out of band.
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct ManualContributeResult {
+    pub provisional_psbt_base64: String,
+    pub provisional_state: String
+}
+
+/// Result of the second manual receiver call: the finalized Payjoin proposal PSBT
+/// the receiver hands back to the sender out of band.
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct ManualFinalizeResult {
+    pub proposal_psbt_base64: String
+}
+
 #[derive(Debug, Clone, uniffi::Enum)]
 pub enum ProcessResult {
     Pending {

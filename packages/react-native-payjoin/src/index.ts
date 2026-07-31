@@ -45,6 +45,8 @@ export {
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
+  receiverManualContribute,
+  receiverManualFinalize,
   receiverProcessResponse,
   resumeReceiverSession,
   resumeSenderSession,
@@ -63,25 +65,6 @@ export type {
 
 export function wasNativeInstallSuccessful(): boolean {
   return rustInstalled && installError === undefined
-}
-
-/**
- * Jest mock helpers — stubs here so TypeScript accepts test imports.
- * The apps/mobile Jest mock replaces these at runtime.
- */
-export function __resetPayjoinMock(): void {
-  throw new Error(
-    '__resetPayjoinMock is only available when react-native-payjoin is mocked'
-  )
-}
-
-export function __setMailboxProposal(
-  _mailboxId: string,
-  _proposalPsbtBase64: string
-): void {
-  throw new Error(
-    '__setMailboxProposal is only available when react-native-payjoin is mocked'
-  )
 }
 
 export default {

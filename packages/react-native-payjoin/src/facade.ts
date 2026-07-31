@@ -13,6 +13,8 @@ import {
   isNativeAvailable as nativeIsNativeAvailable,
   receiverContributeAndFinalize as nativeReceiverContributeAndFinalize,
   receiverExtractRequest as nativeReceiverExtractRequest,
+  receiverManualContribute as nativeReceiverManualContribute,
+  receiverManualFinalize as nativeReceiverManualFinalize,
   receiverProcessResponse as nativeReceiverProcessResponse,
   resumeReceiverSession as nativeResumeReceiverSession,
   resumeSenderSession as nativeResumeSenderSession,
@@ -293,6 +295,52 @@ async function receiverContributeAndFinalize(
   }
 }
 
+async function receiverManualContribute(
+  originalPsbtBase64: string,
+  receiveAddress: string,
+  disableOutputSubstitution: boolean,
+  input: {
+    txid: string
+    vout: number
+    value: number
+    scriptHex: string
+  },
+  ownedScriptsHex: string[],
+  seenOutpoints: string[]
+): Promise<{ provisionalPsbtBase64: string; provisionalState: string }> {
+  const result = callNativeSync(() =>
+    nativeReceiverManualContribute(
+      originalPsbtBase64,
+      receiveAddress,
+      disableOutputSubstitution,
+      {
+        scriptHex: input.scriptHex,
+        txid: input.txid,
+        value: BigInt(input.value),
+        vout: input.vout
+      },
+      ownedScriptsHex,
+      seenOutpoints
+    )
+  )
+  return {
+    provisionalPsbtBase64: result.provisionalPsbtBase64,
+    provisionalState: result.provisionalState
+  }
+}
+
+async function receiverManualFinalize(
+  provisionalState: string,
+  signedPsbtBase64: string
+): Promise<{ proposalPsbtBase64: string }> {
+  const result = callNativeSync(() =>
+    nativeReceiverManualFinalize(provisionalState, signedPsbtBase64)
+  )
+  return {
+    proposalPsbtBase64: result.proposalPsbtBase64
+  }
+}
+
 async function createSenderSession(
   init: SenderSessionInit
 ): Promise<SenderSessionHandle> {
@@ -344,6 +392,8 @@ export {
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
+  receiverManualContribute,
+  receiverManualFinalize,
   receiverProcessResponse,
   resumeReceiverSession,
   resumeSenderSession,
