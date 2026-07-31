@@ -1,4 +1,4 @@
-import { scaleLinear } from 'd3'
+import { scaleLinear } from 'd3-scale'
 import { type DimensionValue, StyleSheet, View } from 'react-native'
 
 import { Colors } from '@/styles'
