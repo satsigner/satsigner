@@ -98,6 +98,9 @@ function usePayjoinReceiver({
   signPsbt
 }: UsePayjoinReceiverParams) {
   const payjoinEnabled = useSettingsStore((s) => s.payjoinEnabled)
+  const payjoinCoordinationMode = useSettingsStore(
+    (s) => s.payjoinCoordinationMode
+  )
   const networkName = useBlockchainStore((s) => s.selectedNetwork)
   const [session, setSession] = useState<PayjoinSession | null>(() => {
     const existing = usePayjoinSessionsStore
@@ -132,8 +135,11 @@ function usePayjoinReceiver({
     utxos,
     account?.transactions ?? []
   )
+  // Directory mailbox path only. Manual (offline) coordination uses a separate
+  // import/export UI and must not mint or poll directory sessions.
   const canUsePayjoin =
     payjoinEnabled &&
+    payjoinCoordinationMode === 'directory' &&
     isNativeAvailable() &&
     !!address &&
     account?.policyType === 'singlesig' &&

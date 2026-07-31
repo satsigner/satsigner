@@ -6,6 +6,8 @@ import {
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
+  receiverManualContribute,
+  receiverManualFinalize,
   receiverProcessResponse,
   resumeReceiverSession,
   senderExtractRequest,
@@ -15,14 +17,18 @@ import {
 import {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
-  PAYJOIN_DEFAULT_PJOS,
-  PAYJOIN_DIRECTORY_URL
+  PAYJOIN_DEFAULT_PJOS
 } from '@/constants/payjoin'
 import {
   buildNewSession,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
-import { getPayjoinSessionTtlMs } from '@/store/settings'
+import {
+  getPayjoinSessionTtlMs,
+  getResolvedPayjoinDirectoryUrl,
+  useSettingsStore
+} from '@/store/settings'
+import { hasCustomPayjoinDirectoryUrl } from '@/utils/payjoinMode'
 import {
   type PayjoinSendResult,
   type PayjoinSession,
@@ -606,6 +612,7 @@ async function startBip77SendOnce(
 
   const fetchImpl = params.fetchImpl ?? defaultFetch
   const relays = getShuffledOhttpRelays()
+  const directoryUrl = getResolvedPayjoinDirectoryUrl()
   let lastError = 'bip77 send failed'
   const parsed = parsePayjoinUri(params.payjoinUri)
 
@@ -620,7 +627,7 @@ async function startBip77SendOnce(
     for (const relay of relays) {
       try {
         payjoinLog('sender try relay', { mailbox, relay })
-        await fetchOhttpKeys(relay, PAYJOIN_DIRECTORY_URL)
+        await fetchOhttpKeys(relay, directoryUrl)
         const created = await createSenderSession({
           disableOutputSubstitution: params.disableOutputSubstitution,
           originalPsbtBase64: params.originalPsbtBase64,
@@ -1063,6 +1070,82 @@ async function finalizeSenderProposal(
   }
 }
 
+type ManualReceiveResult =
+  | { ok: true; proposalPsbtBase64: string; contributedOutpoint: string }
+  | { ok: false; error: string }
+
+/**
+ * Manual (offline) receiver: ingest the sender's original PSBT out of band,
+ * contribute one input, sign it, and return the Payjoin proposal PSBT to hand
+ * back to the sender. No directory / OHTTP calls are made.
+ */
+async function processManualOriginalPsbt(params: {
+  originalPsbtBase64: string
+  receiveAddress: string
+  disableOutputSubstitution: boolean
+  ownedScriptsHex: string[]
+  seenOutpoints: string[]
+  callbacks: PayjoinWalletCallbacks
+}): Promise<ManualReceiveResult> {
+  if (!isNativeAvailable()) {
+    return { error: 'payjoin native module unavailable', ok: false }
+  }
+
+  try {
+    const candidates = await params.callbacks.listCandidateOutpoints()
+    const chosen =
+      candidates.find(
+        (c) => !params.callbacks.hasSeenInput(`${c.txid}:${c.vout}`)
+      ) ?? candidates[0]
+    if (!chosen) {
+      return { error: 'no utxos to contribute', ok: false }
+    }
+    const outpoint = `${chosen.txid}:${chosen.vout}`
+
+    const contribute = await receiverManualContribute(
+      params.originalPsbtBase64,
+      params.receiveAddress,
+      params.disableOutputSubstitution,
+      chosen,
+      params.ownedScriptsHex,
+      params.seenOutpoints
+    )
+    const signed = await params.callbacks.signPsbt(
+      contribute.provisionalPsbtBase64
+    )
+    const { proposalPsbtBase64 } = await receiverManualFinalize(
+      contribute.provisionalState,
+      signed
+    )
+
+    await params.callbacks.markInputSeen(outpoint)
+    return { contributedOutpoint: outpoint, ok: true, proposalPsbtBase64 }
+  } catch (error) {
+    return { error: compactError(error), ok: false }
+  }
+}
+
+/**
+ * Manual (offline) sender: validate the receiver's proposal against the original
+ * PSBT, then sign it. No directory / OHTTP calls are made.
+ */
+function applyManualSenderProposal(params: {
+  proposalPsbtBase64: string
+  originalPsbtBase64: string
+  paymentAmountSats: number
+  disableOutputSubstitution: boolean
+  callbacks: PayjoinWalletCallbacks
+}): Promise<PayjoinSendResult> {
+  return finalizeSenderProposal(
+    params.proposalPsbtBase64,
+    params.originalPsbtBase64,
+    params.paymentAmountSats,
+    params.disableOutputSubstitution,
+    params.callbacks,
+    'v1'
+  )
+}
+
 function clearReceiverSessionsForAccount(accountId: string) {
   const store = usePayjoinSessionsStore.getState()
   for (const session of store.sessions) {
@@ -1122,6 +1205,7 @@ async function createReceivePayjoinSession(params: {
   ttlMs?: number
 }): Promise<PayjoinSession> {
   const relays = getShuffledOhttpRelays()
+  const directoryUrl = getResolvedPayjoinDirectoryUrl()
   const expireSeconds = Math.floor(
     (params.ttlMs ?? getPayjoinSessionTtlMs()) / 1000
   )
@@ -1139,10 +1223,10 @@ async function createReceivePayjoinSession(params: {
           address: params.address.slice(0, 12),
           relay
         })
-        await fetchOhttpKeys(relay, PAYJOIN_DIRECTORY_URL)
+        await fetchOhttpKeys(relay, directoryUrl)
         const handle = await createReceiverSession({
           address: params.address,
-          directoryUrl: PAYJOIN_DIRECTORY_URL,
+          directoryUrl,
           expireSeconds,
           ohttpRelayUrl: relay
         })
@@ -1172,7 +1256,12 @@ async function createReceivePayjoinSession(params: {
         lastError instanceof Error
           ? lastError.message
           : 'failed to create payjoin session'
-      const placeholderEndpoint = `${PAYJOIN_DIRECTORY_URL}/unavailable#RK1-pending`
+      // Custom directory must not silently fall back to the default host.
+      const customDirectory = useSettingsStore.getState().payjoinDirectoryUrl
+      if (hasCustomPayjoinDirectoryUrl(customDirectory)) {
+        throw new Error(createError)
+      }
+      const placeholderEndpoint = `${directoryUrl}/unavailable#RK1-pending`
       pjUri = buildPayjoinUri({
         address: params.address,
         amountSats: params.amountSats,
@@ -1184,7 +1273,7 @@ async function createReceivePayjoinSession(params: {
   } else {
     // Offline / unlinked: still produce a structurally valid BIP21+pj URI
     // so QR/copy flows and unit tests work. Negotiation requires native PDK.
-    const placeholderEndpoint = `${PAYJOIN_DIRECTORY_URL}/unlinked#RK1-pending`
+    const placeholderEndpoint = `${directoryUrl}/unlinked#RK1-pending`
     pjUri = buildPayjoinUri({
       address: params.address,
       amountSats: params.amountSats,
@@ -1476,6 +1565,7 @@ async function processDirectoryBridgedBip78Proposal(params: {
 }
 
 export {
+  applyManualSenderProposal,
   clearReceiverSessionsForAccount,
   createReceivePayjoinSession,
   defaultFetch,
@@ -1485,6 +1575,7 @@ export {
   pollReceiverSession,
   postBip78OriginalPsbt,
   processDirectoryBridgedBip78Proposal,
+  processManualOriginalPsbt,
   resumePersistedReceiverSession,
   sendBip78,
   sendPayjoin,
@@ -1492,4 +1583,9 @@ export {
   tryResumeReceiverSession
 }
 
-export type { Bip77AsyncSendResult, FetchLike, HttpResponse }
+export type {
+  Bip77AsyncSendResult,
+  FetchLike,
+  HttpResponse,
+  ManualReceiveResult
+}

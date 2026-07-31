@@ -67,7 +67,10 @@ function buildPayjoinWalletCallbacks(params: {
   hasSeenInput: (outpoint: string) => boolean
   markInputSeen: (outpoint: string) => void
   signPsbt: (psbtBase64: string) => string | Promise<string>
-}): PayjoinWalletCallbacks & { outputScriptsHex: string[] } {
+}): PayjoinWalletCallbacks & {
+  outputScriptsHex: string[]
+  ownedScriptsHex: string[]
+} {
   const contributeUtxos = params.transactions
     ? filterPayjoinContributeUtxos(params.utxos, params.transactions)
     : params.utxos
@@ -101,6 +104,7 @@ function buildPayjoinWalletCallbacks(params: {
         .filter((candidate) => !!candidate.scriptHex),
     markInputSeen: params.markInputSeen,
     outputScriptsHex,
+    ownedScriptsHex: [...ownedScripts],
     signPsbt: params.signPsbt
   }
 }

@@ -8,16 +8,21 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { signTransaction } from '@/api/bdk'
+import { processManualOriginalPsbt } from '@/api/payjoin'
 import SSButton from '@/components/SSButton'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSLoader from '@/components/SSLoader'
 import SSNumberInput from '@/components/SSNumberInput'
+import SSPsbtTransport from '@/components/SSPsbtTransport'
 import SSQRCode from '@/components/SSQRCode'
 import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
-import { PAYJOIN_MIN_RECEIVE_SATS } from '@/constants/payjoin'
+import {
+  PAYJOIN_DEFAULT_PJOS,
+  PAYJOIN_MIN_RECEIVE_SATS
+} from '@/constants/payjoin'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
@@ -40,6 +45,7 @@ import { Colors } from '@/styles'
 import { type Label } from '@/types/bips/329'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import {
   findExternalAddressIndex,
   resolveReceiveAddressSelection
@@ -48,6 +54,7 @@ import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
+import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
 import {
   buildReceiveQrUri,
   shouldIncludePayjoinInUri
@@ -154,15 +161,22 @@ export default function Receive() {
   // were still empty on first paint" so we can re-enable once coins appear.
   const userSetPayjoinRef = useRef(false)
 
-  const [payjoinEnabled, setPayjoinEnabled] = useSettingsStore(
-    useShallow((state) => [state.payjoinEnabled, state.setPayjoinEnabled])
+  // Master switch is read-only here; per-invoice control is local `includePayjoin`.
+  const payjoinEnabled = useSettingsStore((state) => state.payjoinEnabled)
+  const payjoinCoordinationMode = useSettingsStore(
+    (state) => state.payjoinCoordinationMode
   )
+  const isManualPayjoin = payjoinCoordinationMode === 'manual'
 
   const accountUtxos = account?.utxos ?? []
   const canContributePayjoin = walletCanContributeToPayjoin(
     accountUtxos,
     account?.transactions ?? []
   )
+  const [manualProposalPsbt, setManualProposalPsbt] = useState<string | null>(
+    null
+  )
+  const [manualBusy, setManualBusy] = useState(false)
 
   const {
     isHardwareSupported: nfcHardwareSupported,
@@ -219,7 +233,10 @@ export default function Receive() {
     account,
     accountId: id!,
     address:
-      includePayjoin && payjoinEnabled && canContributePayjoin
+      !isManualPayjoin &&
+      includePayjoin &&
+      payjoinEnabled &&
+      canContributePayjoin
         ? localAddress
         : undefined,
     amountSats: amountSatsForPayjoin,
@@ -227,6 +244,45 @@ export default function Receive() {
     signPsbt: signPayjoinPsbt,
     utxos: accountUtxos
   })
+
+  async function handleImportManualOriginal(originalPsbtBase64: string) {
+    if (!account || !localAddress || !wallet) {
+      toast.error(t('receive.payjoin.manual.missingAddress'))
+      return
+    }
+    setManualBusy(true)
+    try {
+      const store = usePayjoinSessionsStore.getState()
+      const callbacks = buildPayjoinWalletCallbacks({
+        hasSeenInput: (outpoint) => store.hasSeenInput(outpoint),
+        markInputSeen: (outpoint) => store.markInputSeen(outpoint),
+        network: bitcoinjsNetwork(account.network),
+        ownedAddresses: [
+          localAddress,
+          ...(account.addresses ?? []).map((a) => a.address)
+        ],
+        signPsbt: signPayjoinPsbt,
+        transactions: account.transactions ?? [],
+        utxos: accountUtxos
+      })
+      const result = await processManualOriginalPsbt({
+        callbacks,
+        disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
+        originalPsbtBase64: originalPsbtBase64,
+        ownedScriptsHex: callbacks.ownedScriptsHex,
+        receiveAddress: localAddress,
+        seenOutpoints: []
+      })
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      setManualProposalPsbt(result.proposalPsbtBase64)
+      toast.success(t('receive.payjoin.manual.proposalReady'))
+    } finally {
+      setManualBusy(false)
+    }
+  }
 
   const nowMs = useNow()
   const payjoinExpiringLabel = formatPayjoinExpiringLabel(
@@ -241,6 +297,7 @@ export default function Receive() {
   const showBelowMinReceiveHint =
     includePayjoin &&
     payjoinEnabled &&
+    !isManualPayjoin &&
     canContribute &&
     amountSatsForPayjoin !== undefined &&
     !advertisePayjoinInQr
@@ -684,10 +741,9 @@ export default function Receive() {
                           toast.warning(t('receive.payjoin.emptyWallet'))
                           return
                         }
-                        const next = !(includePayjoin && payjoinEnabled)
+                        const next = !includePayjoin
                         userSetPayjoinRef.current = true
                         setIncludePayjoin(next)
-                        setPayjoinEnabled(next)
                       }}
                     />
                   ) : null}
@@ -716,7 +772,44 @@ export default function Receive() {
                           })}
                         </SSText>
                       ) : null}
-                      {includePayjoin && payjoinEnabled && statusLabelKey ? (
+                      {includePayjoin &&
+                      payjoinEnabled &&
+                      isManualPayjoin ? (
+                        <SSVStack gap="sm" itemsCenter widthFull>
+                          <SSText color="muted" size="sm" center>
+                            {t('receive.payjoin.manual.hint')}
+                          </SSText>
+                          <SSText size="sm" uppercase center>
+                            {t('receive.payjoin.manual.importOriginal')}
+                          </SSText>
+                          <SSPsbtTransport
+                            mode="import"
+                            testIDPrefix="receive-payjoin-import"
+                            disabled={!localAddress}
+                            loading={manualBusy}
+                            pasteLabel={t('common.paste')}
+                            onImport={handleImportManualOriginal}
+                          />
+                          {manualProposalPsbt ? (
+                            <SSVStack gap="sm" itemsCenter widthFull>
+                              <SSText size="sm" uppercase center>
+                                {t('receive.payjoin.manual.copyProposal')}
+                              </SSText>
+                              <SSPsbtTransport
+                                mode="export"
+                                testIDPrefix="receive-payjoin-export"
+                                psbtBase64={manualProposalPsbt}
+                                disabled={manualBusy}
+                                copyLabel={t('common.copy')}
+                              />
+                            </SSVStack>
+                          ) : null}
+                        </SSVStack>
+                      ) : null}
+                      {includePayjoin &&
+                      payjoinEnabled &&
+                      !isManualPayjoin &&
+                      statusLabelKey ? (
                         <SSVStack gap="xxs" itemsCenter widthFull>
                           <SSHStack
                             gap="sm"

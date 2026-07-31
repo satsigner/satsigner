@@ -15,11 +15,17 @@ import { useShallow } from 'zustand/react/shallow'
 import { broadcastTransaction, signTransaction } from '@/api/bdk'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
-import { pollBip77Send, sendPayjoin, startBip77Send } from '@/api/payjoin'
+import {
+  applyManualSenderProposal,
+  pollBip77Send,
+  sendPayjoin,
+  startBip77Send
+} from '@/api/payjoin'
 import BitcoinRpc from '@/api/rpc'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
+import SSPsbtTransport from '@/components/SSPsbtTransport'
 import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
@@ -202,6 +208,10 @@ export default function SignTransaction() {
     ])
   )
   const payjoinEnabled = useSettingsStore((s) => s.payjoinEnabled)
+  const payjoinCoordinationMode = useSettingsStore(
+    (s) => s.payjoinCoordinationMode
+  )
+  const isManualPayjoin = payjoinCoordinationMode === 'manual'
   const senderSessionExpiresAt = usePayjoinSessionsStore((state) =>
     id ? state.getActiveSenderSession(id)?.expiresAt : undefined
   )
@@ -213,6 +223,10 @@ export default function SignTransaction() {
   const [payjoinStatus, setPayjoinStatus] = useState<string | null>(null)
   const [waitingForReceiver, setWaitingForReceiver] = useState(false)
   const [checkingPayjoin, setCheckingPayjoin] = useState(false)
+  const [manualOriginalPsbt, setManualOriginalPsbt] = useState<string | null>(
+    null
+  )
+  const [manualBusy, setManualBusy] = useState(false)
   const payjoinBusyRef = useRef(false)
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
@@ -268,8 +282,9 @@ export default function SignTransaction() {
   // Payjoin keeps two wallets + OHTTP state hot on 2GB AVDs. Remounting Skia
   // after the proposal is signed (waiting → signed), and again right after
   // setBroadcasted(true) before navigate, was spiking RSS into LMK.
-  // Keep the chart off for the whole payjoin session on this screen.
-  const suppressTransactionChart = waitingForReceiver || !!payjoinStatus
+  // Keep the chart off during directory wait or Manual handoff.
+  const suppressTransactionChart =
+    waitingForReceiver || !!payjoinStatus || !!manualOriginalPsbt
 
   const transaction = suppressTransactionChart
     ? null
@@ -548,8 +563,48 @@ export default function SignTransaction() {
           nativeState: undefined
         })
     }
+    setManualOriginalPsbt(null)
     toast.warning(t('transaction.build.payjoin.fallback'))
     signOriginalTransaction()
+  }
+
+  async function handleImportManualProposal(proposalPsbtBase64: string) {
+    if (!manualOriginalPsbt || !wallet || !account) {
+      return
+    }
+    setManualBusy(true)
+    try {
+      const callbacks = buildCallbacks()
+      const result = await applyManualSenderProposal({
+        callbacks,
+        disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
+        originalPsbtBase64: manualOriginalPsbt,
+        paymentAmountSats,
+        proposalPsbtBase64
+      })
+      if (!result.ok || !result.usedPayjoin) {
+        toast.error(
+          result.ok
+            ? (result.reason ?? t('transaction.build.payjoin.fallback'))
+            : result.error
+        )
+        return
+      }
+      setManualOriginalPsbt(null)
+      applyPayjoinProposal(result.psbtBase64)
+    } finally {
+      setManualBusy(false)
+    }
+  }
+
+  function enterManualPayjoinHandoff() {
+    if (!psbt) {
+      return
+    }
+    const originalBase64 = psbt.toBase64()
+    setManualOriginalPsbt(originalBase64)
+    setPayjoinStatus(t('transaction.build.payjoin.manual.waiting'))
+    setWaitingForReceiver(false)
   }
 
   async function startOrResumePayjoinSign() {
@@ -567,13 +622,24 @@ export default function SignTransaction() {
       !account ||
       !id ||
       signed ||
-      payjoinBusyRef.current
+      payjoinBusyRef.current ||
+      manualOriginalPsbt
     ) {
+      return
+    }
+
+    if (
+      payjoinEnabled &&
+      isManualPayjoin &&
+      account.policyType === 'singlesig'
+    ) {
+      enterManualPayjoinHandoff()
       return
     }
 
     const shouldPayjoin =
       payjoinEnabled &&
+      !isManualPayjoin &&
       account.policyType === 'singlesig' &&
       !!payjoinUri &&
       hasPayjoinParam(payjoinUri)
@@ -861,7 +927,40 @@ export default function SignTransaction() {
               </SSVStack>
             </SSVStack>
 
-            {waitingForReceiver && !signed ? (
+            {manualOriginalPsbt && !signed ? (
+              <SSVStack>
+                <SSText color="muted" size="sm" center>
+                  {t('transaction.build.payjoin.manual.hint')}
+                </SSText>
+                <SSText size="sm" uppercase center>
+                  {t('transaction.build.payjoin.manual.copyOriginal')}
+                </SSText>
+                <SSPsbtTransport
+                  mode="export"
+                  testIDPrefix="send-payjoin-export"
+                  psbtBase64={manualOriginalPsbt}
+                  disabled={manualBusy}
+                  copyLabel={t('common.copy')}
+                />
+                <SSText size="sm" uppercase center>
+                  {t('transaction.build.payjoin.manual.pasteProposal')}
+                </SSText>
+                <SSPsbtTransport
+                  mode="import"
+                  testIDPrefix="send-payjoin-import"
+                  loading={manualBusy}
+                  pasteLabel={t('common.paste')}
+                  onImport={handleImportManualProposal}
+                />
+                <SSButton
+                  testID="send-payjoin-skip"
+                  variant="ghost"
+                  label={t('transaction.build.payjoin.skip')}
+                  disabled={manualBusy}
+                  onPress={skipPayjoinAndSign}
+                />
+              </SSVStack>
+            ) : waitingForReceiver && !signed ? (
               <SSVStack>
                 <SSButton
                   testID="send-payjoin-open-accounts"
@@ -882,9 +981,7 @@ export default function SignTransaction() {
                   variant="ghost"
                   label={t('transaction.build.payjoin.skip')}
                   disabled={checkingPayjoin}
-                  onPress={() => {
-                    void skipPayjoinAndSign()
-                  }}
+                  onPress={skipPayjoinAndSign}
                 />
               </SSVStack>
             ) : !signed && payjoinStatus ? (
@@ -903,9 +1000,7 @@ export default function SignTransaction() {
                 }
                 disabled={!signed || (!psbt && !signedTx) || broadcasted}
                 loading={broadcasting}
-                onPress={() => {
-                  handleBroadcastTransaction()
-                }}
+                onPress={handleBroadcastTransaction}
               />
             )}
             {signed && (
