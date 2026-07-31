@@ -37,7 +37,8 @@ const config = {
       '<rootDir>/__mocks__/react-native-nitro-sqlite.ts',
     '^react-native-payjoin$': '<rootDir>/__mocks__/react-native-payjoin.ts',
     '^react-native-quick-crypto$':
-      '<rootDir>/__mocks__/react-native-quick-crypto.ts'
+      '<rootDir>/__mocks__/react-native-quick-crypto.ts',
+    '^sonner-native$': '<rootDir>/__mocks__/sonner-native.ts'
   },
   preset: 'jest-expo',
   transformIgnorePatterns: [
