@@ -385,7 +385,16 @@
     "transaction.signFlow": "Go to Sign Flow",
     "transaction.signRequest": "Transaction Sign Request",
     "utxos": "UTXOs",
-    "viewMnemonic": "View mnemonic"
+    "viewMnemonic": "View mnemonic",
+    "entropy.coin.bitsNote": "Each flip adds 1 bit of entropy.",
+    "entropy.dice.bitsNote": "Each roll adds about 2.585 bits of entropy.",
+    "entropy.drawing.bitsNote": "Each stroke sample adds about 1 bit of entropy.",
+    "entropy.drawing.desc.12": "To achieve 128 bits of entropy, draw freely across the canvas until enough random samples are collected. Samples are hashed into the final seed.",
+    "entropy.drawing.desc.15": "To achieve 160 bits of entropy, draw freely across the canvas until enough random samples are collected. Samples are hashed into the final seed.",
+    "entropy.drawing.desc.18": "To achieve 192 bits of entropy, draw freely across the canvas until enough random samples are collected. Samples are hashed into the final seed.",
+    "entropy.drawing.desc.21": "To achieve 224 bits of entropy, draw freely across the canvas until enough random samples are collected. Samples are hashed into the final seed.",
+    "entropy.drawing.desc.24": "To achieve 256 bits of entropy, draw freely across the canvas until enough random samples are collected. Samples are hashed into the final seed.",
+    "entropy.drawing.title": "Generate Entropy by Drawing"
   },
   "accounts": {
     "address": "Address",

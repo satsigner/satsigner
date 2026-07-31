@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -28,7 +28,7 @@ import {
 export default function DiceEntropy() {
   const router = useRouter()
   const { width: screenWidth } = useWindowDimensions()
-  const diceSize = Math.min(screenWidth * 0.25, 120)
+  const diceSize = Math.min(screenWidth * 0.22, 100)
   const { index } = useLocalSearchParams()
 
   const [mnemonicWordCount, mnemonicWordList, setMnemonic, setFingerprint] =
@@ -47,6 +47,7 @@ export default function DiceEntropy() {
   const [step, setStep] = useState(0)
   const [bits, setBits] = useState('')
   const [rolls, setRolls] = useState<number[]>([])
+  const [lastRoll, setLastRoll] = useState<number | null>(null)
 
   const DiceIcons = [
     SSIconDiceOne,
@@ -61,6 +62,7 @@ export default function DiceEntropy() {
     if (bits.length < length) {
       const updatedRolls = [...rolls, value]
       setRolls(updatedRolls)
+      setLastRoll(value)
 
       let base10 = 0n
       for (const digit of updatedRolls) {
@@ -99,59 +101,55 @@ export default function DiceEntropy() {
           )
         }}
       />
-      <SSVStack
-        itemsCenter
-        gap="lg"
-        style={{ flex: 1, justifyContent: 'space-evenly' }}
-      >
-        <View
-          style={{
-            backgroundColor: Colors.gray[950],
-            borderRadius: 8,
-            minHeight: 180,
-            minWidth: '100%',
-            paddingHorizontal: 8,
-            paddingVertical: 16
-          }}
-        >
+      <SSVStack gap="md" style={{ flex: 1 }}>
+        <View style={styles.binary}>
           <SSBinaryDisplay binary={bits} />
         </View>
-        <ScrollView
-          style={{ flex: 1, gap: 32 }}
-          showsVerticalScrollIndicator={false}
-        >
-          <SSVStack itemsCenter gap="lg">
-            <SSVStack itemsCenter gap="lg">
-              <SSVStack itemsCenter style={{ gap: -20 }}>
-                <SSText size="8xl">{step}</SSText>
-                <SSText size="sm" color="muted" uppercase>
-                  {t('common.of')} {approxRolls}
-                </SSText>
-              </SSVStack>
-              <SSText
-                size="sm"
-                color="muted"
-                center
-                style={{ letterSpacing: 0.5 }}
-              >
-                {t(`account.entropy.dice.desc.${mnemonicWordCount}`)}
-              </SSText>
-            </SSVStack>
-            <SSHStack style={styles.grid}>
-              {DiceIcons.map((Icon, index) => (
-                <SSDice key={index} onPress={() => handleDicePress(index)}>
-                  <Icon width={diceSize} height={diceSize} />
-                </SSDice>
-              ))}
-            </SSHStack>
+        <SSVStack itemsCenter gap="md" style={styles.bottom}>
+          <SSVStack itemsCenter style={{ gap: -20 }}>
+            <SSText size="8xl">{step}</SSText>
+            <SSText size="sm" color="muted" uppercase>
+              {t('common.of')} {approxRolls}
+            </SSText>
           </SSVStack>
-        </ScrollView>
+          <SSText size="sm" color="muted" center style={{ letterSpacing: 0.5 }}>
+            {t(`account.entropy.dice.desc.${mnemonicWordCount}`)}
+          </SSText>
+          <SSText size="sm" color="muted" center>
+            {t('account.entropy.dice.bitsNote')}
+          </SSText>
+          <SSHStack style={styles.grid}>
+            {DiceIcons.map((Icon, index) => (
+              <SSDice
+                key={index}
+                selected={lastRoll === index}
+                onPress={() => handleDicePress(index)}
+              >
+                <Icon width={diceSize} height={diceSize} />
+              </SSDice>
+            ))}
+          </SSHStack>
+        </SSVStack>
       </SSVStack>
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
+  binary: {
+    backgroundColor: Colors.gray[950],
+    borderRadius: 8,
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+    paddingHorizontal: 8,
+    paddingVertical: 16,
+    width: '100%'
+  },
+  bottom: {
+    flexShrink: 0,
+    width: '100%'
+  },
   container: {
     paddingBottom: 12
   },
@@ -159,7 +157,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 12,
-    justifyContent: 'center',
-    marginTop: 24
+    justifyContent: 'center'
   }
 })

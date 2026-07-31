@@ -1,7 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
@@ -71,83 +70,82 @@ export default function CoinEntropy() {
           )
         }}
       />
-      <SSVStack itemsCenter gap="lg" justifyBetween style={{ flex: 1 }}>
-        <View
-          style={{
-            backgroundColor: Colors.gray[950],
-            borderRadius: 8,
-            minHeight: 180,
-            minWidth: '100%',
-            paddingHorizontal: 8,
-            paddingVertical: 16
-          }}
-        >
+      <SSVStack gap="lg" style={{ flex: 1 }}>
+        <View style={styles.binary}>
           <SSBinaryDisplay binary={bits} />
         </View>
-        <ScrollView
-          style={{
-            flex: 1,
-            gap: 32,
-            marginBottom: 12
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <SSVStack itemsCenter gap="lg">
-            <SSVStack itemsCenter gap="lg">
-              <SSVStack itemsCenter style={{ gap: -20 }}>
-                <SSText size="8xl">{step}</SSText>
-                <SSText size="sm" color="muted" uppercase>
-                  {t('common.of')} {length}
-                </SSText>
-              </SSVStack>
-              <SSText
-                size="sm"
-                color="muted"
-                center
-                style={{ letterSpacing: 0.5 }}
-              >
-                {t(`account.entropy.coin.desc.${mnemonicWordCount}`)}
-              </SSText>
-            </SSVStack>
-            <SSHStack justifyBetween style={{ marginTop: 24 }}>
-              <TouchableOpacity
-                key="front"
-                activeOpacity={1}
-                style={[
-                  styles.coin,
-                  {
-                    borderRadius: coinSize / 2,
-                    height: coinSize,
-                    width: coinSize
-                  }
-                ]}
-                onPress={() => handleFlip('0')}
-              />
-              <TouchableOpacity
-                key="back"
-                activeOpacity={1}
-                style={[
-                  styles.coin,
-                  {
-                    borderRadius: coinSize / 2,
-                    height: coinSize,
-                    width: coinSize
-                  }
-                ]}
-                onPress={() => handleFlip('1')}
-              />
-            </SSHStack>
+        <SSVStack itemsCenter gap="lg" style={styles.bottom}>
+          <SSVStack itemsCenter style={{ gap: -20 }}>
+            <SSText size="8xl">{step}</SSText>
+            <SSText size="sm" color="muted" uppercase>
+              {t('common.of')} {length}
+            </SSText>
           </SSVStack>
-        </ScrollView>
+          <SSText size="sm" color="muted" center style={{ letterSpacing: 0.5 }}>
+            {t(`account.entropy.coin.desc.${mnemonicWordCount}`)}
+          </SSText>
+          <SSText size="sm" color="muted" center>
+            {t('account.entropy.coin.bitsNote')}
+          </SSText>
+          <SSHStack justifyBetween>
+            <TouchableOpacity
+              key="front"
+              activeOpacity={1}
+              style={[
+                styles.coin,
+                styles.coinDark,
+                {
+                  borderRadius: coinSize / 2,
+                  height: coinSize,
+                  width: coinSize
+                }
+              ]}
+              onPress={() => handleFlip('0')}
+            />
+            <TouchableOpacity
+              key="back"
+              activeOpacity={1}
+              style={[
+                styles.coin,
+                styles.coinLight,
+                {
+                  borderRadius: coinSize / 2,
+                  height: coinSize,
+                  width: coinSize
+                }
+              ]}
+              onPress={() => handleFlip('1')}
+            />
+          </SSHStack>
+        </SSVStack>
       </SSVStack>
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
+  binary: {
+    backgroundColor: Colors.gray[950],
+    borderRadius: 8,
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+    paddingHorizontal: 8,
+    paddingVertical: 16,
+    width: '100%'
+  },
+  bottom: {
+    flexShrink: 0,
+    width: '100%'
+  },
   coin: {
-    backgroundColor: Colors.gray[75],
+    backgroundColor: Colors.gray[75]
+  },
+  coinDark: {
     opacity: 0.2
+  },
+  coinLight: {
+    opacity: 0.55
   },
   container: {
     paddingBottom: 12
