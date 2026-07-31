@@ -1,6 +1,14 @@
 export const sampleSignetWalletSeed =
   'surprise winter sausage nation grape nerve cereal because price rally pride gym'
 
+/** Cross-wallet Payjoin receiver (Maestro / Rust live_signet_roundtrip). */
+export const clownSignetWalletSeed =
+  'clown believe select betray misery shine bone coyote benefit evoke auction hybrid famous equip know embark will alter mushroom beauty creek online announce hidden'
+
+export const CLOWN_ACCOUNT_NAME = 'Clown'
+
+export const SAMPLE_SEGWIT_ACCOUNT_NAME = 'Sample (segwit)'
+
 export const sampleSignetAddress = 'tb1qzfrh7avv5d9v2yzx75d7wlqy39mz0quxgfqddy'
 
 // xpub of legacy wallet

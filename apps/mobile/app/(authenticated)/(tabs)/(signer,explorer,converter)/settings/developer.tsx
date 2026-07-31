@@ -366,6 +366,11 @@ export default function Developer() {
           <SSSeparator color="gradient" />
           <SSVStack>
             <SSButton
+              label={t('settings.developer.diagnosis.title')}
+              onPress={() => router.navigate('/settings/developerDiagnosis')}
+              variant="outline"
+            />
+            <SSButton
               label={t('settings.developer.design')}
               onPress={() => router.navigate('/settings/design')}
               variant="outline"
