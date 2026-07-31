@@ -4,123 +4,119 @@ import {
   Path,
   Skia,
   Text,
-  useFont,
-} from "@shopify/react-native-skia";
-import { useWindowDimensions } from "react-native";
+  useFont
+} from '@shopify/react-native-skia'
+import { useWindowDimensions } from 'react-native'
 
-import { SATS_PER_BITCOIN } from "@/constants/btc";
-import { t, tn as _tn } from "@/locales";
-import { Colors } from "@/styles";
+import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { t, tn as _tn } from '@/locales'
+import { Colors } from '@/styles'
 import {
   HALVING_INTERVAL,
   blockSubsidySats,
   halvingEpoch,
-  historicalHalvings,
-} from "@/utils/bitcoin/consensus";
+  historicalHalvings
+} from '@/utils/bitcoin/consensus'
 
-const tn = _tn("explorer.halving");
+const tn = _tn('explorer.halving')
 
-const CANVAS_HEIGHT = 280;
-const TRACK_RADIUS = 110;
-const TRACK_WIDTH = 2;
-const MILESTONE_RADIUS = 3;
+const CANVAS_HEIGHT = 280
+const TRACK_RADIUS = 110
+const TRACK_WIDTH = 2
+const MILESTONE_RADIUS = 3
 
 type SSHalvingProgressProps = {
-  height: number;
-};
+  height: number
+}
 
 export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
-  const { width } = useWindowDimensions();
+  const { width } = useWindowDimensions()
   const fontCenterLg = useFont(
-    require("@/assets/fonts/SF-Pro-Text-Regular.otf"),
-    20,
-  );
+    require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
+    20
+  )
   const fontCenterMd = useFont(
-    require("@/assets/fonts/SF-Pro-Text-Regular.otf"),
-    17,
-  );
+    require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
+    17
+  )
   const fontCenterSm = useFont(
-    require("@/assets/fonts/SF-Pro-Text-Regular.otf"),
-    13,
-  );
+    require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
+    13
+  )
   const fontSmall = useFont(
-    require("@/assets/fonts/SF-Pro-Text-Regular.otf"),
-    11,
-  );
+    require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
+    11
+  )
 
-  const epoch = halvingEpoch(height);
-  const blocksInEpoch = height - epoch * HALVING_INTERVAL;
-  const progress = blocksInEpoch / HALVING_INTERVAL;
-  const subsidyBtc = blockSubsidySats(height) / SATS_PER_BITCOIN;
+  const epoch = halvingEpoch(height)
+  const blocksInEpoch = height - epoch * HALVING_INTERVAL
+  const progress = blocksInEpoch / HALVING_INTERVAL
+  const subsidyBtc = blockSubsidySats(height) / SATS_PER_BITCOIN
 
   const fontCenter =
     subsidyBtc >= 1
       ? fontCenterLg
       : subsidyBtc >= 0.1
         ? fontCenterMd
-        : fontCenterSm;
-  const halvings = historicalHalvings();
+        : fontCenterSm
+  const halvings = historicalHalvings()
 
-  const cx = width / 2;
-  const cy = CANVAS_HEIGHT / 2;
+  const cx = width / 2
+  const cy = CANVAS_HEIGHT / 2
 
-  const START_ANGLE = -Math.PI / 2;
-  const sweepAngle = progress * 2 * Math.PI;
+  const START_ANGLE = -Math.PI / 2
+  const sweepAngle = progress * 2 * Math.PI
 
   function arcPath(
     centerX: number,
     centerY: number,
     radius: number,
     startAngle: number,
-    endAngle: number,
+    endAngle: number
   ): string {
-    const x1 = centerX + radius * Math.cos(startAngle);
-    const y1 = centerY + radius * Math.sin(startAngle);
-    const x2 = centerX + radius * Math.cos(endAngle);
-    const y2 = centerY + radius * Math.sin(endAngle);
-    const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
-    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
+    const x1 = centerX + radius * Math.cos(startAngle)
+    const y1 = centerY + radius * Math.sin(startAngle)
+    const x2 = centerX + radius * Math.cos(endAngle)
+    const y2 = centerY + radius * Math.sin(endAngle)
+    const largeArc = endAngle - startAngle > Math.PI ? 1 : 0
+    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`
   }
 
   const trackPath = Skia.Path.MakeFromSVGString(
-    arcPath(cx, cy, TRACK_RADIUS, 0, 2 * Math.PI - 0.001),
-  );
+    arcPath(cx, cy, TRACK_RADIUS, 0, 2 * Math.PI - 0.001)
+  )
   const progressPath =
     sweepAngle > 0.01
       ? Skia.Path.MakeFromSVGString(
-          arcPath(cx, cy, TRACK_RADIUS, START_ANGLE, START_ANGLE + sweepAngle),
+          arcPath(cx, cy, TRACK_RADIUS, START_ANGLE, START_ANGLE + sweepAngle)
         )
-      : null;
+      : null
 
-  const nextHalving = (epoch + 1) * HALVING_INTERVAL;
-  const blocksRemaining = HALVING_INTERVAL - blocksInEpoch;
-  const subsidyDecimals = Math.max(0, epoch - 1);
+  const nextHalving = (epoch + 1) * HALVING_INTERVAL
+  const blocksRemaining = HALVING_INTERVAL - blocksInEpoch
+  const subsidyDecimals = Math.max(0, epoch - 1)
 
-  const centerLabel = `${subsidyBtc.toFixed(subsidyDecimals)} ${t("bitcoin.btc")}`;
-  const epochLabel = tn("epochLabel", { epoch });
-  const percentLabel = `${(progress * 100).toFixed(1)}%`;
-  const currentBlockLabel = height.toLocaleString();
-  const targetBlockLabel = `/ ${nextHalving.toLocaleString()}`;
-  const blocksToGoLabel = tn("blocksToGo", {
-    count: blocksRemaining,
-  });
+  const centerLabel = `${subsidyBtc.toFixed(subsidyDecimals)} ${t('bitcoin.btc')}`
+  const epochLabel = tn('epochLabel', { epoch })
+  const percentLabel = `${(progress * 100).toFixed(1)}%`
+  const currentBlockLabel = height.toLocaleString()
+  const targetBlockLabel = `/ ${nextHalving.toLocaleString()}`
+  const blocksToGoLabel = tn('blocksToGo', {
+    count: blocksRemaining
+  })
 
-  const centerLabelWidth = fontCenter
-    ? fontCenter.getTextWidth(centerLabel)
-    : 0;
-  const epochLabelWidth = fontSmall ? fontSmall.getTextWidth(epochLabel) : 0;
-  const percentLabelWidth = fontSmall
-    ? fontSmall.getTextWidth(percentLabel)
-    : 0;
+  const centerLabelWidth = fontCenter ? fontCenter.getTextWidth(centerLabel) : 0
+  const epochLabelWidth = fontSmall ? fontSmall.getTextWidth(epochLabel) : 0
+  const percentLabelWidth = fontSmall ? fontSmall.getTextWidth(percentLabel) : 0
   const currentBlockLabelWidth = fontSmall
     ? fontSmall.getTextWidth(currentBlockLabel)
-    : 0;
+    : 0
   const targetBlockLabelWidth = fontSmall
     ? fontSmall.getTextWidth(targetBlockLabel)
-    : 0;
+    : 0
   const blocksToGoLabelWidth = fontSmall
     ? fontSmall.getTextWidth(blocksToGoLabel)
-    : 0;
+    : 0
 
   return (
     <Canvas style={{ height: CANVAS_HEIGHT, width }}>
@@ -128,7 +124,7 @@ export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
       {trackPath && (
         <Path
           path={trackPath}
-          color={Colors.gray["800"]}
+          color={Colors.gray['800']}
           style="stroke"
           strokeWidth={TRACK_WIDTH}
           strokeCap="round"
@@ -148,11 +144,11 @@ export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
 
       {/* Milestone dots for past/current halvings spaced around the track */}
       {halvings.slice(0, epoch + 1).map((h) => {
-        const shownCount = epoch + 1;
-        const ratio = shownCount > 1 ? h.epoch / shownCount : 0;
-        const angle = START_ANGLE + ratio * 2 * Math.PI;
-        const mx = cx + TRACK_RADIUS * Math.cos(angle);
-        const my = cy + TRACK_RADIUS * Math.sin(angle);
+        const shownCount = epoch + 1
+        const ratio = shownCount > 1 ? h.epoch / shownCount : 0
+        const angle = START_ANGLE + ratio * 2 * Math.PI
+        const mx = cx + TRACK_RADIUS * Math.cos(angle)
+        const my = cy + TRACK_RADIUS * Math.sin(angle)
         return (
           <Circle
             key={h.epoch}
@@ -161,7 +157,7 @@ export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
             r={MILESTONE_RADIUS}
             color={Colors.white}
           />
-        );
+        )
       })}
 
       {/* Center text */}
@@ -189,7 +185,7 @@ export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
           y={cy + 2}
           text={percentLabel}
           font={fontSmall}
-          color={Colors.gray["400"]}
+          color={Colors.gray['400']}
         />
       )}
       {fontSmall && (
@@ -212,7 +208,7 @@ export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
           y={cy + 20}
           text={targetBlockLabel}
           font={fontSmall}
-          color={Colors.gray["500"]}
+          color={Colors.gray['500']}
         />
       )}
       {fontSmall && (
@@ -221,9 +217,9 @@ export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
           y={cy + 36}
           text={blocksToGoLabel}
           font={fontSmall}
-          color={Colors.gray["600"]}
+          color={Colors.gray['600']}
         />
       )}
     </Canvas>
-  );
+  )
 }
