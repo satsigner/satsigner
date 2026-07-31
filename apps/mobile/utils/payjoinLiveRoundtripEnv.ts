@@ -19,7 +19,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
-import { getAccountWithDecryptedKeys } from '@/utils/account'
+import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
 import { type PayjoinRoundtripEnv } from '@/utils/payjoinLiveRoundtrip'
 import {
