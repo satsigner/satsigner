@@ -139,9 +139,7 @@ export default function DeveloperDiagnosis() {
                 {t('settings.developer.diagnosis.payjoinRoundtrip.title')}
               </SSText>
               <SSText color="muted" size="sm">
-                {t(
-                  'settings.developer.diagnosis.payjoinRoundtrip.description'
-                )}
+                {t('settings.developer.diagnosis.payjoinRoundtrip.description')}
               </SSText>
               <SSText size="sm">{diagnosisStatusLabel(status)}</SSText>
               {logLines.length > 0 ? (

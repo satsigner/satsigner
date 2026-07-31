@@ -63,7 +63,7 @@ function SSUtxoListControlsModal({
           showsVerticalScrollIndicator={false}
         >
           <SSVStack gap="lg" style={styles.content}>
-            <SSHStack gap="none" itemsCenter style={styles.header}>
+            <SSHStack gap="none" style={styles.header}>
               <SSIconButton onPress={onClose} style={styles.headerBack}>
                 <SSIconBackArrow
                   height={24}

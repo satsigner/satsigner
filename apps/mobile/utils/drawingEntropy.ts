@@ -21,7 +21,9 @@ export function shouldAcceptDrawingSample(
   next: { x: number; y: number },
   minDistance = DRAWING_SAMPLE_MIN_DISTANCE_PX
 ): boolean {
-  if (!last) return true
+  if (!last) {
+    return true
+  }
   return distanceBetweenPoints(last, next) >= minDistance
 }
 

@@ -21,11 +21,11 @@ import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
+import { type PayjoinRoundtripEnv } from '@/utils/payjoinLiveRoundtrip'
 import {
   findClownAccount,
   findSampleAccount
 } from '@/utils/payjoinLiveRoundtripAccounts'
-import { type PayjoinRoundtripEnv } from '@/utils/payjoinLiveRoundtrip'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
 import {
   filterPayjoinContributeUtxos,
@@ -73,7 +73,7 @@ async function buildPayjoinLiveRoundtripEnv(): Promise<PayjoinRoundtripEnv> {
     throw new Error(t('settings.developer.diagnosis.error.wrongNetwork'))
   }
 
-  const accounts = useAccountsStore.getState().accounts
+  const { accounts } = useAccountsStore.getState()
   const maybeSender = findSampleAccount(accounts)
   const maybeReceiver = findClownAccount(accounts)
   if (!maybeSender || !maybeReceiver) {
@@ -127,7 +127,7 @@ async function buildPayjoinLiveRoundtripEnv(): Promise<PayjoinRoundtripEnv> {
     KeychainKind.Internal,
     0
   ).address
-  const server = configs[selectedNetwork].server
+  const { server } = configs[selectedNetwork]
   const sessions = usePayjoinSessionsStore.getState()
   const network = bitcoinjsNetwork(selectedNetwork)
 

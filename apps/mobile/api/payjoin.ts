@@ -28,7 +28,6 @@ import {
   getResolvedPayjoinDirectoryUrl,
   useSettingsStore
 } from '@/store/settings'
-import { hasCustomPayjoinDirectoryUrl } from '@/utils/payjoinMode'
 import {
   type PayjoinSendResult,
   type PayjoinSession,
@@ -42,6 +41,7 @@ import {
   payjoinWarn,
   urlHost
 } from '@/utils/payjoinLog'
+import { hasCustomPayjoinDirectoryUrl } from '@/utils/payjoinMode'
 import { getShuffledOhttpRelays } from '@/utils/payjoinRelays'
 import {
   isPayjoinSuccess,

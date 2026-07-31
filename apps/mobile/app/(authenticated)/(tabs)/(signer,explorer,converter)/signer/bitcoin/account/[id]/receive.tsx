@@ -772,9 +772,7 @@ export default function Receive() {
                           })}
                         </SSText>
                       ) : null}
-                      {includePayjoin &&
-                      payjoinEnabled &&
-                      isManualPayjoin ? (
+                      {includePayjoin && payjoinEnabled && isManualPayjoin ? (
                         <SSVStack gap="sm" itemsCenter widthFull>
                           <SSText color="muted" size="sm" center>
                             {t('receive.payjoin.manual.hint')}

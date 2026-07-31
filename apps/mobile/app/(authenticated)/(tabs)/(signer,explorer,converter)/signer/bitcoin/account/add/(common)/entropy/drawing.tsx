@@ -57,7 +57,9 @@ export default function DrawingEntropy() {
       : drawingPointsToBinary(points, bitLength).slice(0, estimatedBits)
 
   function finishWithPoints(nextPoints: DrawingPoint[]) {
-    if (completedRef.current) return
+    if (completedRef.current) {
+      return
+    }
     completedRef.current = true
 
     const bits = drawingPointsToBinary(nextPoints, bitLength)
@@ -69,8 +71,12 @@ export default function DrawingEntropy() {
   }
 
   function addSample(x: number, y: number) {
-    if (completedRef.current) return
-    if (!shouldAcceptDrawingSample(lastSampleRef.current, { x, y })) return
+    if (completedRef.current) {
+      return
+    }
+    if (!shouldAcceptDrawingSample(lastSampleRef.current, { x, y })) {
+      return
+    }
 
     lastSampleRef.current = { x, y }
     const sample: DrawingPoint = { t: Date.now(), x, y }
@@ -85,7 +91,9 @@ export default function DrawingEntropy() {
   }
 
   function handleClear() {
-    if (completedRef.current) return
+    if (completedRef.current) {
+      return
+    }
     pointsRef.current = []
     lastSampleRef.current = null
     currentPathRef.current = null
@@ -101,7 +109,9 @@ export default function DrawingEntropy() {
   const panGesture = Gesture.Pan()
     .runOnJS(true)
     .onBegin((event) => {
-      if (completedRef.current) return
+      if (completedRef.current) {
+        return
+      }
       const path = Skia.Path.Make()
       path.moveTo(event.x, event.y)
       currentPathRef.current = path
@@ -109,16 +119,22 @@ export default function DrawingEntropy() {
       addSample(event.x, event.y)
     })
     .onUpdate((event) => {
-      if (completedRef.current) return
+      if (completedRef.current) {
+        return
+      }
       const path = currentPathRef.current
-      if (!path) return
+      if (!path) {
+        return
+      }
       path.lineTo(event.x, event.y)
       bumpStroke()
       addSample(event.x, event.y)
     })
     .onEnd(() => {
       const path = currentPathRef.current
-      if (!path) return
+      if (!path) {
+        return
+      }
       setPaths((prev) => [...prev, path])
       currentPathRef.current = null
       bumpStroke()

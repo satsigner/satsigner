@@ -51,8 +51,7 @@ function SSPsbtTransport({
 
   const { isHardwareSupported: nfcWriteSupported } = useNFCEmitter()
   const { isHardwareSupported: nfcReadSupported } = useNFCReader()
-  const nfcSupported =
-    mode === 'export' ? nfcWriteSupported : nfcReadSupported
+  const nfcSupported = mode === 'export' ? nfcWriteSupported : nfcReadSupported
 
   const qrChunks = useMemo(() => {
     if (!psbtBase64) {
@@ -98,8 +97,8 @@ function SSPsbtTransport({
     if (!onImport) {
       return
     }
-    const text = (await Clipboard.getStringAsync()).trim()
-    const normalized = normalizePsbtToBase64(text)
+    const clipboardText = await Clipboard.getStringAsync()
+    const normalized = normalizePsbtToBase64(clipboardText.trim())
     if (!normalized) {
       toast.error(t('common.psbtTransport.invalidPsbt'))
       return
@@ -197,9 +196,7 @@ function SSPsbtTransport({
                 />
               </View>
             ) : (
-              <SSText color="muted">
-                {t('common.psbtTransport.qrError')}
-              </SSText>
+              <SSText color="muted">{t('common.psbtTransport.qrError')}</SSText>
             )}
             {qrChunks.length > 1 ? (
               <SSText color="muted" size="sm" center>
@@ -225,7 +222,7 @@ function SSPsbtTransport({
           mode="write"
           dataToWrite={psbtBase64}
           onClose={() => setNfcVisible(false)}
-          onContentRead={() => {}}
+          onContentRead={() => undefined}
         />
       </>
     )

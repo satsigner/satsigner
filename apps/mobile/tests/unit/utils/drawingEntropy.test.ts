@@ -90,14 +90,14 @@ describe('drawingEntropy', () => {
 
   describe('getDrawingEntropyProgress', () => {
     it('reports incomplete progress below the bit length', () => {
-      expect(getDrawingEntropyProgress(40, 128)).toEqual({
+      expect(getDrawingEntropyProgress(40, 128)).toStrictEqual({
         complete: false,
         estimatedBits: 40
       })
     })
 
     it('reports complete when samples cover the bit length', () => {
-      expect(getDrawingEntropyProgress(128, 128)).toEqual({
+      expect(getDrawingEntropyProgress(128, 128)).toStrictEqual({
         complete: true,
         estimatedBits: 128
       })

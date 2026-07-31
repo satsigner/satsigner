@@ -6,12 +6,12 @@ import {
   pollReceiverSession,
   startBip77Send
 } from '@/api/payjoin'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_DEFAULT_PJOS
 } from '@/constants/payjoin'
 import { t } from '@/locales'
+import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import {
   type PayjoinSession,
   type PayjoinWalletCallbacks

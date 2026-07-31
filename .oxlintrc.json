@@ -12,7 +12,8 @@
     "**/android",
     "**/ios",
     "**/utils/polyfills.ts",
-    "**/routeTree.gen.ts"
+    "**/routeTree.gen.ts",
+    "packages/react-native-payjoin/src/generated/**"
   ],
   "rules": {
     "no-use-before-define": "allow",
