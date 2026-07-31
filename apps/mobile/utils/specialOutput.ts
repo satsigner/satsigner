@@ -1,46 +1,77 @@
-import { t } from '@/locales'
+import { t } from "@/locales";
 
 /** BIP141 witness commitment header after OP_RETURN push. */
-const WITNESS_COMMITMENT_HEADER = [0xaa, 0x21, 0xa9, 0xed] as const
-const OP_RETURN = 0x6a
-const OP_PUSHBYTES_36 = 0x24
+const WITNESS_COMMITMENT_HEADER = [0xaa, 0x21, 0xa9, 0xed] as const;
+const OP_RETURN = 0x6a;
+const OP_PUSHBYTES_36 = 0x24;
 
-export type SpecialOutputKind = 'empty' | 'op_return' | 'witness_commitment'
+export type SpecialOutputKind = "empty" | "op_return" | "witness_commitment";
 
-export type OutputScript = string | number[] | Uint8Array | undefined
+export type OutputScript = string | number[] | Uint8Array | undefined;
 
 /**
  * Normalize scriptPubKey to bytes. Accepts hex strings (Esplora) or byte arrays
- * (wallet / BDK). ASM strings starting with OP_RETURN are treated as OP_RETURN.
+ * (wallet / BDK). ASM strings starting with OP_RETURN may include a hex payload
+ * (e.g. BIP141 witness commitments).
  */
 export function scriptToBytes(script: OutputScript): Uint8Array | undefined {
   if (script === undefined) {
-    return undefined
+    return undefined;
   }
 
-  if (typeof script === 'string') {
-    const trimmed = script.trim()
+  if (typeof script === "string") {
+    const trimmed = script.trim();
     if (!trimmed) {
-      return new Uint8Array()
+      return new Uint8Array();
     }
 
     if (/^OP_RETURN\b/i.test(trimmed)) {
-      return new Uint8Array([OP_RETURN])
+      return asmOpReturnToBytes(trimmed);
     }
 
-    const hex = trimmed.toLowerCase().replace(/^0x/, '')
+    const hex = trimmed.toLowerCase().replace(/^0x/, "");
     if (hex.length % 2 !== 0 || !/^[0-9a-f]*$/.test(hex)) {
-      return undefined
+      return undefined;
     }
 
-    const bytes = new Uint8Array(hex.length / 2)
+    const bytes = new Uint8Array(hex.length / 2);
     for (let i = 0; i < bytes.length; i += 1) {
-      bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16)
+      bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
     }
-    return bytes
+    return bytes;
   }
 
-  return Uint8Array.from(script)
+  return Uint8Array.from(script);
+}
+
+function asmOpReturnToBytes(asm: string): Uint8Array {
+  const rest = asm.replace(/^OP_RETURN\s*/i, "").trim();
+  if (!rest) {
+    return new Uint8Array([OP_RETURN]);
+  }
+
+  const pushMatch = rest.match(/^OP_PUSHBYTES_(\d+)\s+/i);
+  const hexPart = pushMatch ? rest.slice(pushMatch[0].length) : rest;
+  const hex = hexPart.toLowerCase().replace(/^0x/, "").replace(/\s+/g, "");
+  if (hex.length === 0 || hex.length % 2 !== 0 || !/^[0-9a-f]*$/.test(hex)) {
+    return new Uint8Array([OP_RETURN]);
+  }
+
+  const data = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < data.length; i += 1) {
+    data[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+
+  // Minimal push encoding for data length 1–75 (covers witness commitments).
+  if (data.length > 0 && data.length <= 75) {
+    const out = new Uint8Array(2 + data.length);
+    out[0] = OP_RETURN;
+    out[1] = data.length;
+    out.set(data, 2);
+    return out;
+  }
+
+  return new Uint8Array([OP_RETURN]);
 }
 
 /**
@@ -48,20 +79,20 @@ export function scriptToBytes(script: OutputScript): Uint8Array | undefined {
  * Returns undefined for ordinary addressable payment scripts.
  */
 export function classifySpecialOutput(
-  script: OutputScript
+  script: OutputScript,
 ): SpecialOutputKind | undefined {
-  const bytes = scriptToBytes(script)
+  const bytes = scriptToBytes(script);
   if (bytes === undefined) {
-    return undefined
+    return undefined;
   }
 
   if (bytes.length === 0) {
-    return 'empty'
+    return "empty";
   }
 
   // Core IsUnspendable: script starts with OP_RETURN.
   if (bytes[0] !== OP_RETURN) {
-    return undefined
+    return undefined;
   }
 
   // BIP141 witness commitment: OP_RETURN <36 bytes: aa21a9ed || hash>
@@ -73,10 +104,10 @@ export function classifySpecialOutput(
     bytes[4] === WITNESS_COMMITMENT_HEADER[2] &&
     bytes[5] === WITNESS_COMMITMENT_HEADER[3]
   ) {
-    return 'witness_commitment'
+    return "witness_commitment";
   }
 
-  return 'op_return'
+  return "op_return";
 }
 
 /**
@@ -85,25 +116,25 @@ export function classifySpecialOutput(
  */
 export function specialOutputLayoutValue(
   value: number,
-  kind: SpecialOutputKind | undefined
+  kind: SpecialOutputKind | undefined,
 ): number {
   if (kind !== undefined && value <= 0) {
-    return 1
+    return 1;
   }
-  return value
+  return value;
 }
 
 export function specialOutputTag(
-  kind: SpecialOutputKind | undefined
+  kind: SpecialOutputKind | undefined,
 ): string | undefined {
-  if (kind === 'empty') {
-    return t('transaction.output.special.empty')
+  if (kind === "empty") {
+    return t("transaction.output.special.empty");
   }
-  if (kind === 'op_return') {
-    return t('transaction.output.special.opReturn')
+  if (kind === "op_return") {
+    return t("transaction.output.special.opReturn");
   }
-  if (kind === 'witness_commitment') {
-    return t('transaction.output.special.witnessCommitment')
+  if (kind === "witness_commitment") {
+    return t("transaction.output.special.witnessCommitment");
   }
-  return undefined
+  return undefined;
 }
