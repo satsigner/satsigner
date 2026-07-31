@@ -1,10 +1,10 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
 import useNostrSync from '@/hooks/useNostrSync'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -50,10 +50,7 @@ function TransactionLabel() {
   }
 
   return (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="interactive"
-    >
+    <SSScrollView keyboardDismissMode="interactive">
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -65,7 +62,7 @@ function TransactionLabel() {
         <SSTxDetailsHeader tx={tx} />
         <SSLabelInput label={tx.label || ''} onUpdateLabel={updateLabel} />
       </SSVStack>
-    </ScrollView>
+    </SSScrollView>
   )
 }
 

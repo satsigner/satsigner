@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -11,6 +11,7 @@ import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useEcashAccountBuilder } from '@/hooks/useEcashAccountBuilder'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -110,7 +111,7 @@ export default function EcashAccountAddPage() {
           )
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <SSScrollView showsVerticalScrollIndicator={false}>
         <SSVStack gap="lg" style={styles.container}>
           {step === 'name' && (
             <>
@@ -219,7 +220,7 @@ export default function EcashAccountAddPage() {
             </SSVStack>
           )}
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
       <SSCameraModal
         visible={cameraModalVisible}
         onClose={() => setCameraModalVisible(false)}

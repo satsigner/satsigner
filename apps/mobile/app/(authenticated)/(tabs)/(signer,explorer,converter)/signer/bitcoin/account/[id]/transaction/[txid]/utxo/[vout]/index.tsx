@@ -19,6 +19,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -80,6 +81,12 @@ function UtxoDetails({
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const [showTransactionFlowChart, showUtxoFlowChart] = useChartSettingStore(
+    useShallow((state) => [
+      state.showTransactionFlowChart,
+      state.showUtxoFlowChart
+    ])
+  )
 
   const { width, height } = useWindowDimensions()
   const CHART_VERTICAL_PADDING = 40
@@ -126,7 +133,7 @@ function UtxoDetails({
 
   return (
     <ScrollView>
-      {utxo && allAccountUtxos.length > 0 && (
+      {utxo && allAccountUtxos.length > 0 && showUtxoFlowChart && (
         <>
           <View>
             <GestureHandlerRootView style={{ flex: 1 }}>
@@ -200,7 +207,7 @@ function UtxoDetails({
             </SSText>
             <SSAddressDisplay address={txid} />
           </SSVStack>
-          {tx && (
+          {tx && showTransactionFlowChart && (
             <>
               <SSSeparator color="gradient" />
               <SSVStack gap="sm">

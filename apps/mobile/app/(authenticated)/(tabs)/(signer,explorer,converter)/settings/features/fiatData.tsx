@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router'
-import { ScrollView, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 
 import SSCheckbox from '@/components/SSCheckbox'
 import SSCollapsible from '@/components/SSCollapsible'
@@ -13,6 +13,7 @@ import {
 import { useFiatData } from '@/hooks/useFiatData'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { tn } from '@/locales'
 
@@ -66,7 +67,7 @@ export default function FiatData() {
         }}
       />
       <SSMainLayout>
-        <ScrollView
+        <SSScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -161,7 +162,7 @@ export default function FiatData() {
               ))}
             </SSVStack>
           </SSVStack>
-        </ScrollView>
+        </SSScrollView>
       </SSMainLayout>
     </>
   )

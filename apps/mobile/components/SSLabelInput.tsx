@@ -1,9 +1,8 @@
 import { router } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -38,7 +37,6 @@ function SSLabelInput({
   const [getTags, setTags] = useAccountsStore(
     useShallow((state) => [state.getTags, state.setTags])
   )
-  const keyboardHeight = useKeyboardHeight()
   const tagInputRef = useRef<SSTagInputHandle>(null)
 
   const [selectedTags, setSelectedTags] = useState([] as string[])
@@ -149,7 +147,6 @@ function SSLabelInput({
         label={t('common.cancel')}
         variant="ghost"
       />
-      {keyboardHeight > 0 ? <View style={{ height: keyboardHeight }} /> : null}
     </SSVStack>
   )
 }

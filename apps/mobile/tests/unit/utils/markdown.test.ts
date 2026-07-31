@@ -3,7 +3,7 @@ import {
   isSafeHttpUrl,
   parseInlineSegments,
   parseMarkdownBlocks
-} from '@/utils/nostrMarkdownBlocks'
+} from '@/utils/markdown'
 
 describe('parseMarkdownBlocks', () => {
   it('parses headings, lists, and code blocks', () => {

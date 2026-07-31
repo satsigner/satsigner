@@ -1,10 +1,11 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { ScrollView, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
 import { useArkLabels, useSetArkLabel } from '@/hooks/useArkLabels'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 
@@ -31,10 +32,7 @@ export default function ArkAddressLabelPage() {
   }
 
   return (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="interactive"
-    >
+    <SSScrollView keyboardDismissMode="interactive">
       <Stack.Screen
         options={{
           headerTitle: () => <SSText>{t('address.label.title')}</SSText>
@@ -46,7 +44,7 @@ export default function ArkAddressLabelPage() {
           <SSLabelInput label={currentLabel} onUpdateLabel={updateLabel} />
         )}
       </SSVStack>
-    </ScrollView>
+    </SSScrollView>
   )
 }
 
