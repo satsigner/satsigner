@@ -27,6 +27,10 @@ const TRANSFORM_PACKAGES = [
 
 const config = {
   moduleNameMapper: {
+    // The adapter and the package it wraps share one facade contract, so both
+    // resolve to the same mock: tests drive `@/api/payjoin` with no native
+    // module, and keep importing the helpers from 'react-native-payjoin'.
+    '^@/api/payjoinNative$': '<rootDir>/__mocks__/react-native-payjoin.ts',
     '^@secondts/bark-react-native$':
       '<rootDir>/__mocks__/secondts-bark-react-native.ts',
     '^bip-321$': '<rootDir>/__mocks__/bip-321.ts',

@@ -58,6 +58,26 @@ const PAYJOIN_LIVE_ROUNDTRIP_PAYMENT_SATS = 5_000
 /** Absolute fee (sats) for the diagnostics original PSBT on Signet. */
 const PAYJOIN_LIVE_ROUNDTRIP_FEE_SATS = 500
 
+/**
+ * Floor for a receiver mailbox lifetime. PDK rejects very short expirations, and
+ * a session shorter than this cannot survive the sender's first poll.
+ */
+const PAYJOIN_MIN_SESSION_EXPIRE_SECONDS = 60
+
+/**
+ * Sentinel returned by the OHTTP key probe. The keys object itself is not
+ * serializable across the native boundary, and callers only use the probe to
+ * confirm a relay is reachable before creating a session.
+ */
+const PAYJOIN_OHTTP_KEYS_PROBE_OK = 'ohttp-keys-ok'
+
+/**
+ * Throwaway BIP21 URI used to confirm the native bindings are loaded. Parsed
+ * only for its side effect of crossing into Rust; the result is discarded.
+ */
+const PAYJOIN_NATIVE_PROBE_URI =
+  'bitcoin:tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx?pj=https://payjo.in'
+
 export {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
@@ -68,6 +88,9 @@ export {
   PAYJOIN_LIVE_ROUNDTRIP_PAYMENT_SATS,
   PAYJOIN_MIN_CONTRIBUTE_SATS,
   PAYJOIN_MIN_RECEIVE_SATS,
+  PAYJOIN_MIN_SESSION_EXPIRE_SECONDS,
+  PAYJOIN_NATIVE_PROBE_URI,
+  PAYJOIN_OHTTP_KEYS_PROBE_OK,
   PAYJOIN_OHTTP_RELAY_URLS,
   PAYJOIN_SESSION_TTL_MS,
   PAYJOIN_SESSION_TTL_PRESETS_MS

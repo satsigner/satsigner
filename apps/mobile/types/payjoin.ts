@@ -112,7 +112,49 @@ type PayjoinNativeRequest = {
   contentType: string
 }
 
+type HttpResponse = {
+  status: number
+  body: Uint8Array
+}
+
+type ReceiverSessionInit = {
+  address: string
+  directoryUrl: string
+  ohttpRelayUrl: string
+  expireSeconds: number
+}
+
+type ReceiverSessionHandle = {
+  id: string
+  pjUri: string
+  state: string
+}
+
+type SenderSessionInit = {
+  pjUri: string
+  originalPsbtBase64: string
+  disableOutputSubstitution: boolean
+}
+
+type SenderSessionHandle = {
+  id: string
+  protocol: PayjoinProtocolVersion
+  state: string
+  request?: PayjoinNativeRequest
+}
+
+/**
+ * Outcome of advancing a native session one step. `state` carries the updated
+ * resumable blob, so callers persist it after every transition.
+ */
+type ProcessResult =
+  | { kind: 'pending'; nextRequest?: PayjoinNativeRequest; state: string }
+  | { kind: 'proposal'; psbtBase64: string; state: string }
+  | { kind: 'completed'; state: string }
+  | { kind: 'error'; message: string }
+
 export type {
+  HttpResponse,
   PayjoinBip78Error,
   PayjoinBip78ErrorCode,
   PayjoinCoordinationMode,
@@ -124,5 +166,10 @@ export type {
   PayjoinSessionRole,
   PayjoinSessionStatus,
   PayjoinUriParams,
-  PayjoinWalletCallbacks
+  PayjoinWalletCallbacks,
+  ProcessResult,
+  ReceiverSessionHandle,
+  ReceiverSessionInit,
+  SenderSessionHandle,
+  SenderSessionInit
 }

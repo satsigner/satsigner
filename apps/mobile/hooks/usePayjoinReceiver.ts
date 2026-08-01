@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
-import { isNativeAvailable } from 'react-native-payjoin'
 
 import {
   clearReceiverSessionsForAccount,
@@ -10,6 +9,7 @@ import {
   pollReceiverSession,
   resumePersistedReceiverSession
 } from '@/api/payjoin'
+import { isNativeAvailable } from '@/api/payjoinNative'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { getPayjoinSessionTtlMs, useSettingsStore } from '@/store/settings'
