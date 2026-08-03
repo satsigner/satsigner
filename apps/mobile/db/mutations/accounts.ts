@@ -136,6 +136,12 @@ function clearAccountChildData(tx: TransactionContext, accountId: string) {
   tx.execute('DELETE FROM transactions WHERE account_id = ?', [accountId])
   tx.execute('DELETE FROM utxos WHERE account_id = ?', [accountId])
   tx.execute('DELETE FROM addresses WHERE account_id = ?', [accountId])
+  // Junction tables have no FK to addresses, so they need explicit deletes.
+  // Without these, stale address->tx / address->utxo mappings survive a resync.
+  tx.execute('DELETE FROM address_transactions WHERE account_id = ?', [
+    accountId
+  ])
+  tx.execute('DELETE FROM address_utxos WHERE account_id = ?', [accountId])
   clearNostrData(tx, accountId)
 }
 
@@ -169,6 +175,8 @@ function deleteAllAccounts() {
     tx.execute('DELETE FROM transactions')
     tx.execute('DELETE FROM utxos')
     tx.execute('DELETE FROM addresses')
+    tx.execute('DELETE FROM address_transactions')
+    tx.execute('DELETE FROM address_utxos')
   })
 }
 

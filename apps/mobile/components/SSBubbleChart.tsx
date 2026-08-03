@@ -1,5 +1,5 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
-import { hierarchy, type HierarchyCircularNode, pack } from 'd3'
+import { hierarchy, type HierarchyCircularNode, pack } from 'd3-hierarchy'
 import { useMemo } from 'react'
 import {
   type GestureResponderEvent,
