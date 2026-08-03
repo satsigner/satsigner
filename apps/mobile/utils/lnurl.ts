@@ -8,6 +8,18 @@ import type {
   LNURLWithdrawResponse
 } from '@/types/models/Lightning'
 
+function assertHttpsUrl(url: string): void {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new Error('Invalid LNURL URL')
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new Error('LNURL must use HTTPS')
+  }
+}
+
 export function getLNURLType(input: string) {
   const lowercaseInput = input.toLowerCase()
   const isLNURLInput =
@@ -87,6 +99,7 @@ export function decodeLNURL(input: string): string {
   if (!URL.canParse(url)) {
     throw new Error('Unable to parse URL')
   }
+  assertHttpsUrl(url)
 
   return url
 }
@@ -110,6 +123,7 @@ export function isLnurlWithdrawAmountInRange(
 export async function fetchLNURLPayDetails(
   url: string
 ): Promise<LNURLPayResponse> {
+  assertHttpsUrl(url)
   let response = await fetch(url)
 
   if (response.status === 404) {
@@ -164,6 +178,7 @@ export async function requestLNURLPayInvoice(
 ): Promise<string> {
   const amountMillisats = amount * 1000
 
+  assertHttpsUrl(callback)
   const url = new URL(callback)
   url.searchParams.append('amount', amountMillisats.toString())
   if (comment && details?.commentAllowed) {
@@ -225,6 +240,7 @@ export async function handleLNURLPay(
 export async function fetchLNURLWithdrawDetails(
   url: string
 ): Promise<LNURLWithdrawDetails> {
+  assertHttpsUrl(url)
   const response = await fetch(url)
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`)
@@ -261,6 +277,7 @@ export async function requestLNURLWithdrawInvoice(
   description?: string,
   pr?: string
 ): Promise<LNURLWithdrawResponse> {
+  assertHttpsUrl(callback)
   const amountSats = Math.floor(amount / 1000)
   const url = new URL(callback)
   url.searchParams.append('k1', k1)
