@@ -1,4 +1,4 @@
-import { Redirect, Stack, useRouter } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, Share, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
@@ -317,10 +317,6 @@ export default function Developer() {
       const message = error instanceof Error ? error.message : String(error)
       toast.error(`${t('settings.developer.storageClearFailed')}: ${message}`)
     }
-  }
-
-  if (!__DEV__) {
-    return <Redirect href="/" />
   }
 
   return (
