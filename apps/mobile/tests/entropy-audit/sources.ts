@@ -15,6 +15,11 @@ export type EntropySourceName =
   | 'coinBiased'
   | 'mix'
   | 'brokenRestricted'
+  | 'brokenLowEntropy'
+
+const LOW_ENTROPY_SEED_BITS = 30
+const LCG_MULTIPLIER = 1664525
+const LCG_INCREMENT = 1013904223
 
 export function sampleCsprng(byteCount: number): Uint8Array {
   const bytes = new Uint8Array(byteCount)
@@ -28,6 +33,22 @@ export function sampleBrokenRestricted(byteCount: number): Uint8Array {
   crypto.getRandomValues(bytes)
   bytes[0] %= 5
   return bytes
+}
+
+/**
+ * Deliberately broken: entire roll sequence derived from a ~30-bit seed via an
+ * LCG (Trust Wallet 2023 class bug). Distribution tests cannot see this through
+ * the hash; only the collision test catches it.
+ */
+export function sampleBrokenLowEntropy(bits: number): Uint8Array {
+  const seedBytes = new Uint32Array(1)
+  crypto.getRandomValues(seedBytes)
+  let state = seedBytes[0] >>> (32 - LOW_ENTROPY_SEED_BITS)
+  const rolls = Array.from({ length: requiredDiceRolls(bits) }, () => {
+    state = (Math.imul(state, LCG_MULTIPLIER) + LCG_INCREMENT) >>> 0
+    return 1 + ((state >>> 8) % 6)
+  })
+  return bitsToBytes(entropyFromDiceRolls(rolls, bits))
 }
 
 export function sampleDice(bits: number, face: () => number): Uint8Array {
@@ -68,6 +89,8 @@ export function sampleSource(
       return sampleMixedDice(bits)
     case 'brokenRestricted':
       return sampleBrokenRestricted(byteCount)
+    case 'brokenLowEntropy':
+      return sampleBrokenLowEntropy(bits)
     default: {
       const _exhaustive: never = name
       throw new Error(`Unknown source: ${_exhaustive}`)

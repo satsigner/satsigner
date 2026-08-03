@@ -99,7 +99,24 @@ export function serialCorrelation(buffers: Uint8Array[]): number {
   return numerator / denominator
 }
 
-export function collisionCount(buffers: Uint8Array[]): number {
+/**
+ * Biased sources repeat identical input logs, which re-counts the same digest
+ * and violates the chi-square independence assumption. Distribution tests on
+ * conditioned output should run on distinct samples.
+ */
+export function uniqueBuffers(buffers: Uint8Array[]): Uint8Array[] {
+  const seen = new Set<string>()
+  return buffers.filter((buffer) => {
+    const key = Buffer.from(buffer).toString('hex')
+    if (seen.has(key)) {
+      return false
+    }
+    seen.add(key)
+    return true
+  })
+}
+
+export function collisionCount(buffers: Iterable<Uint8Array>): number {
   const seen = new Set<string>()
   let collisions = 0
   for (const buffer of buffers) {

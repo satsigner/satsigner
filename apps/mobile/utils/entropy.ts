@@ -191,6 +191,9 @@ export function isSequenceBiased(
 /**
  * True when the sequence is an exact repetition of a short cycle (e.g. 1,2,3,4,5,6
  * repeating). First-order bias checks miss this; true entropy is near zero.
+ *
+ * Detects exact repetition only: a single deviation from the cycle defeats it.
+ * Best-effort nudge for obviously non-random input, not a randomness test.
  */
 export function isSequencePatterned(symbols: string[]): boolean {
   if (symbols.length < 8) {
