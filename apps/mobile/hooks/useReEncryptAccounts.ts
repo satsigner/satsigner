@@ -2,6 +2,7 @@ import { getKeySecret, storeKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
 import { reEncryptNostrSecrets } from '@/utils/nostrSecrets'
+import { reEncryptServiceSecrets } from '@/utils/serviceSecrets'
 
 export default function useReEncryptAccounts() {
   const accounts = useAccountsStore((state) => state.accounts)
@@ -34,6 +35,7 @@ export default function useReEncryptAccounts() {
     }
 
     await reEncryptNostrSecrets(oldPinEncrypted, newPinEncrypted)
+    await reEncryptServiceSecrets(oldPinEncrypted, newPinEncrypted)
   }
 
   return reEncryptAccounts

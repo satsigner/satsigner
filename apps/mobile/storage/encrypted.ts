@@ -11,6 +11,10 @@ const NOSTR_IDENTITY_SECRET_PREFIX = 'nostr_identity_secret'
 const NOSTR_IDENTITY_IV_PREFIX = 'nostr_identity_iv'
 const NOSTR_ACCOUNT_SECRET_PREFIX = 'nostr_account_secret'
 const NOSTR_ACCOUNT_IV_PREFIX = 'nostr_account_iv'
+const LND_CONFIG_SECRET_PREFIX = 'lnd_config_secret'
+const LND_CONFIG_IV_PREFIX = 'lnd_config_iv'
+const RPC_CREDENTIALS_SECRET_PREFIX = 'rpc_credentials_secret'
+const RPC_CREDENTIALS_IV_PREFIX = 'rpc_credentials_iv'
 
 /**
  * Store an item in the SharedPreferences (android) or Keychain (iOS)
@@ -157,24 +161,74 @@ async function deleteNostrAccountSecret(accountId: string): Promise<void> {
   await deleteItem(`${NOSTR_ACCOUNT_IV_PREFIX}.${accountId}`)
 }
 
+async function storeLndConfigSecret(secret: string, iv: string): Promise<void> {
+  await setItem(LND_CONFIG_SECRET_PREFIX, secret)
+  await setItem(LND_CONFIG_IV_PREFIX, iv)
+}
+
+async function getLndConfigSecret(): Promise<EncryptedKeySecret | null> {
+  const secret = await getItem(LND_CONFIG_SECRET_PREFIX)
+  const iv = await getItem(LND_CONFIG_IV_PREFIX)
+  if (!secret || !iv) {
+    return null
+  }
+  return { iv, secret }
+}
+
+async function deleteLndConfigSecret(): Promise<void> {
+  await deleteItem(LND_CONFIG_SECRET_PREFIX)
+  await deleteItem(LND_CONFIG_IV_PREFIX)
+}
+
+async function storeRpcCredentialsSecret(
+  network: string,
+  secret: string,
+  iv: string
+): Promise<void> {
+  await setItem(`${RPC_CREDENTIALS_SECRET_PREFIX}.${network}`, secret)
+  await setItem(`${RPC_CREDENTIALS_IV_PREFIX}.${network}`, iv)
+}
+
+async function getRpcCredentialsSecret(
+  network: string
+): Promise<EncryptedKeySecret | null> {
+  const secret = await getItem(`${RPC_CREDENTIALS_SECRET_PREFIX}.${network}`)
+  const iv = await getItem(`${RPC_CREDENTIALS_IV_PREFIX}.${network}`)
+  if (!secret || !iv) {
+    return null
+  }
+  return { iv, secret }
+}
+
+async function deleteRpcCredentialsSecret(network: string): Promise<void> {
+  await deleteItem(`${RPC_CREDENTIALS_SECRET_PREFIX}.${network}`)
+  await deleteItem(`${RPC_CREDENTIALS_IV_PREFIX}.${network}`)
+}
+
 export {
   deleteAllKeySecrets,
   deleteArkMnemonic,
   deleteEcashMnemonic,
   deleteItem,
   deleteKeySecret,
+  deleteLndConfigSecret,
   deleteNostrAccountSecret,
   deleteNostrIdentitySecret,
+  deleteRpcCredentialsSecret,
   getArkMnemonic,
   getEcashMnemonic,
   getItem,
   getKeySecret,
+  getLndConfigSecret,
   getNostrAccountSecret,
   getNostrIdentitySecret,
+  getRpcCredentialsSecret,
   setItem,
   storeArkMnemonic,
   storeEcashMnemonic,
   storeKeySecret,
+  storeLndConfigSecret,
   storeNostrAccountSecret,
-  storeNostrIdentitySecret
+  storeNostrIdentitySecret,
+  storeRpcCredentialsSecret
 }

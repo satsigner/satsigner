@@ -30,6 +30,7 @@ import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
+import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
 
 export default function AuthenticatedLayout() {
   const routeParams = useGlobalSearchParams()
@@ -170,6 +171,7 @@ export default function AuthenticatedLayout() {
       if (ju || pinSkipped) {
         try {
           await migrateAndHydrateNostrSecrets()
+          await migrateAndHydrateServiceSecrets()
         } catch {
           // non-critical for boot; secrets may remain unavailable until next unlock
         }
