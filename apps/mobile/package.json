@@ -43,6 +43,8 @@
     "maestro:payjoin:sample-to-clown": "bash .maestro/scripts/payjoin-sample-to-clown.sh",
     "maestro:payjoin:sample-to-new": "bash .maestro/scripts/payjoin-sample-to-clown.sh",
     "maestro:payjoin:roundtrip": "bash .maestro/scripts/payjoin-roundtrip.sh",
+    "test:entropy": "jest ./tests/entropy-audit",
+    "entropy:audit": "cross-env ENTROPY_AUDIT_SAMPLES=5000 jest ./tests/entropy-audit --verbose",
     "typecheck": "tsc --noEmit",
     "types": "expo customize tsconfig.json"
   },
