@@ -7,6 +7,10 @@ const KEY_SECRET_PREFIX = 'key_secret'
 const KEY_IV_PREFIX = 'key_iv'
 const ECASH_MNEMONIC_PREFIX = 'ecash_mnemonic'
 const ARK_MNEMONIC_PREFIX = 'ark_mnemonic'
+const NOSTR_IDENTITY_SECRET_PREFIX = 'nostr_identity_secret'
+const NOSTR_IDENTITY_IV_PREFIX = 'nostr_identity_iv'
+const NOSTR_ACCOUNT_SECRET_PREFIX = 'nostr_account_secret'
+const NOSTR_ACCOUNT_IV_PREFIX = 'nostr_account_iv'
 
 /**
  * Store an item in the SharedPreferences (android) or Keychain (iOS)
@@ -103,18 +107,74 @@ async function deleteArkMnemonic(accountId: string): Promise<void> {
   await deleteItem(`${ARK_MNEMONIC_PREFIX}.${accountId}`)
 }
 
+async function storeNostrIdentitySecret(
+  npub: string,
+  secret: string,
+  iv: string
+): Promise<void> {
+  await setItem(`${NOSTR_IDENTITY_SECRET_PREFIX}.${npub}`, secret)
+  await setItem(`${NOSTR_IDENTITY_IV_PREFIX}.${npub}`, iv)
+}
+
+async function getNostrIdentitySecret(
+  npub: string
+): Promise<EncryptedKeySecret | null> {
+  const secret = await getItem(`${NOSTR_IDENTITY_SECRET_PREFIX}.${npub}`)
+  const iv = await getItem(`${NOSTR_IDENTITY_IV_PREFIX}.${npub}`)
+  if (!secret || !iv) {
+    return null
+  }
+  return { iv, secret }
+}
+
+async function deleteNostrIdentitySecret(npub: string): Promise<void> {
+  await deleteItem(`${NOSTR_IDENTITY_SECRET_PREFIX}.${npub}`)
+  await deleteItem(`${NOSTR_IDENTITY_IV_PREFIX}.${npub}`)
+}
+
+async function storeNostrAccountSecret(
+  accountId: string,
+  secret: string,
+  iv: string
+): Promise<void> {
+  await setItem(`${NOSTR_ACCOUNT_SECRET_PREFIX}.${accountId}`, secret)
+  await setItem(`${NOSTR_ACCOUNT_IV_PREFIX}.${accountId}`, iv)
+}
+
+async function getNostrAccountSecret(
+  accountId: string
+): Promise<EncryptedKeySecret | null> {
+  const secret = await getItem(`${NOSTR_ACCOUNT_SECRET_PREFIX}.${accountId}`)
+  const iv = await getItem(`${NOSTR_ACCOUNT_IV_PREFIX}.${accountId}`)
+  if (!secret || !iv) {
+    return null
+  }
+  return { iv, secret }
+}
+
+async function deleteNostrAccountSecret(accountId: string): Promise<void> {
+  await deleteItem(`${NOSTR_ACCOUNT_SECRET_PREFIX}.${accountId}`)
+  await deleteItem(`${NOSTR_ACCOUNT_IV_PREFIX}.${accountId}`)
+}
+
 export {
   deleteAllKeySecrets,
   deleteArkMnemonic,
   deleteEcashMnemonic,
   deleteItem,
   deleteKeySecret,
+  deleteNostrAccountSecret,
+  deleteNostrIdentitySecret,
   getArkMnemonic,
   getEcashMnemonic,
   getItem,
   getKeySecret,
+  getNostrAccountSecret,
+  getNostrIdentitySecret,
   setItem,
   storeArkMnemonic,
   storeEcashMnemonic,
-  storeKeySecret
+  storeKeySecret,
+  storeNostrAccountSecret,
+  storeNostrIdentitySecret
 }
