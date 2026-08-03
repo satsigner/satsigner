@@ -23,7 +23,7 @@ RESULTS="${MAESTRO_DIR}/results"
 SERIAL="${ANDROID_SERIAL:-}"
 URI_FILE="${RESULTS}/last-payjoin-uri.txt"
 
-# Same seed as packages/react-native-payjoin/rust/tests/live_signet_roundtrip.rs
+# Fixed Signet seed shared with the in-app payjoin roundtrip diagnostics.
 CLOWN_ACCOUNT_NAME="${CLOWN_ACCOUNT_NAME:-Clown}"
 CLOWN_MNEMONIC="${CLOWN_MNEMONIC:-clown believe select betray misery shine bone coyote benefit evoke auction hybrid famous equip know embark will alter mushroom beauty creek online announce hidden}"
 

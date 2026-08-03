@@ -210,7 +210,8 @@ async function receiverManualContribute(
   _disableOutputSubstitution: boolean,
   _input: { txid: string; vout: number; value: number; scriptHex: string },
   _ownedScriptsHex: string[],
-  _seenOutpoints: string[]
+  _seenOutpoints: string[],
+  _ownedOutpoints: string[] = []
 ): Promise<{ provisionalPsbtBase64: string; provisionalState: string }> {
   return {
     provisionalPsbtBase64: originalPsbtBase64,

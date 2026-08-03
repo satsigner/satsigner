@@ -12,8 +12,7 @@ import {
   resumeReceiverSession,
   senderExtractRequest,
   senderProcessResponse
-} from 'react-native-payjoin'
-
+} from '@/api/payjoinNative'
 import {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
@@ -1101,6 +1100,9 @@ async function processManualOriginalPsbt(params: {
       return { error: 'no utxos to contribute', ok: false }
     }
     const outpoint = `${chosen.txid}:${chosen.vout}`
+    // Rejects an original PSBT that already spends our own coins, which is what
+    // stops a sender from getting the receiver to fund their payment.
+    const ownedOutpoints = candidates.map((c) => `${c.txid}:${c.vout}`)
 
     const contribute = await receiverManualContribute(
       params.originalPsbtBase64,
@@ -1108,7 +1110,8 @@ async function processManualOriginalPsbt(params: {
       params.disableOutputSubstitution,
       chosen,
       params.ownedScriptsHex,
-      params.seenOutpoints
+      params.seenOutpoints,
+      ownedOutpoints
     )
     const signed = await params.callbacks.signPsbt(
       contribute.provisionalPsbtBase64

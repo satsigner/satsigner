@@ -6,6 +6,7 @@ onlyBuiltDependencies:
   - '@shopify/react-native-skia'
   - esbuild
   - react-native-bdk-sdk
+  - react-native-payjoin
   - sharp
   - '@secondts/bark-react-native'
   - workerd

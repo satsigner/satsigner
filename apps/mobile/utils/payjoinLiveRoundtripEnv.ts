@@ -1,5 +1,4 @@
 import { KeychainKind, Psbt } from 'react-native-bdk-sdk'
-import { isNativeAvailable } from 'react-native-payjoin'
 
 import {
   broadcastTransaction,
@@ -8,6 +7,7 @@ import {
   signTransaction
 } from '@/api/bdk'
 import Esplora from '@/api/esplora'
+import { isNativeAvailable } from '@/api/payjoinNative'
 import {
   PAYJOIN_LIVE_ROUNDTRIP_FEE_SATS,
   PAYJOIN_LIVE_ROUNDTRIP_PAYMENT_SATS,
