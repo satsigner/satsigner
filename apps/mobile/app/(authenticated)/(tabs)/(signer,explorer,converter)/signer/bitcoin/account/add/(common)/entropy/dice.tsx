@@ -1,6 +1,13 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -29,7 +36,7 @@ import {
 import {
   entropyBitsForWordCount,
   entropyFromDiceRolls,
-  isSequenceBiased,
+  isSequenceWeak,
   mixWithSystemEntropy,
   requiredDiceRolls
 } from '@/utils/entropy'
@@ -44,7 +51,6 @@ const DICE_ICONS = [
 ]
 
 const DICE_FACES = 6
-const PREVIEW_BITS = 128
 
 export default function DiceEntropy() {
   const router = useRouter()
@@ -69,32 +75,65 @@ export default function DiceEntropy() {
   const [mixEntropy, setMixEntropy] = useState(true)
 
   const complete = rolls.length >= totalRolls
-  const biased = isSequenceBiased(rolls.map(String), DICE_FACES)
+  const rollSymbols = rolls.map(String)
+  const weak = isSequenceWeak(rollSymbols, DICE_FACES)
+  const weakUnmixed = weak && !mixEntropy
 
   const previewEntropy =
-    rolls.length > 0 ? entropyFromDiceRolls(rolls, PREVIEW_BITS) : ''
+    rolls.length > 0
+      ? entropyFromDiceRolls(rolls, bits, { allowPartial: true })
+      : ''
 
   function handleDicePress(face: number) {
     if (rolls.length >= totalRolls) {
       return
     }
-    setRolls([...rolls, face])
+    setRolls((current) => [...current, face])
   }
 
   function handleUndo() {
-    setRolls(rolls.slice(0, -1))
+    setRolls((current) => current.slice(0, -1))
   }
 
-  function handleContinue() {
-    const userEntropy = entropyFromDiceRolls(rolls, bits)
-    const entropy = mixEntropy
-      ? mixWithSystemEntropy(userEntropy, bits)
-      : userEntropy
-
+  function finishWithEntropy(entropy: string) {
     const mnemonic = generateMnemonicFromEntropy(entropy, mnemonicWordList)
     setMnemonic(mnemonic)
     setFingerprint(getFingerprintFromMnemonic(mnemonic))
     router.navigate(`/signer/bitcoin/account/add/generate/mnemonic/${index}`)
+  }
+
+  function buildEntropy() {
+    const userEntropy = entropyFromDiceRolls(rolls, bits)
+    return mixEntropy ? mixWithSystemEntropy(userEntropy, bits) : userEntropy
+  }
+
+  function handleContinue() {
+    try {
+      if (weakUnmixed) {
+        Alert.alert(
+          t('account.entropy.weakInputTitle'),
+          t('account.entropy.weakInputUnmixed'),
+          [
+            { style: 'cancel', text: t('common.cancel') },
+            {
+              onPress: () => {
+                try {
+                  finishWithEntropy(buildEntropy())
+                } catch {
+                  toast.error(t('account.entropy.generateError'))
+                }
+              },
+              style: 'destructive',
+              text: t('account.entropy.continueAnyway')
+            }
+          ]
+        )
+        return
+      }
+      finishWithEntropy(buildEntropy())
+    } catch {
+      toast.error(t('account.entropy.generateError'))
+    }
   }
 
   return (
@@ -113,6 +152,13 @@ export default function DiceEntropy() {
       >
         <View style={styles.display}>
           <SSBinaryDisplay binary={previewEntropy} />
+          {rolls.length > 0 ? (
+            <SSText size="xs" color="muted" center style={styles.previewNote}>
+              {mixEntropy
+                ? t('account.entropy.previewMixedNote')
+                : t('account.entropy.previewNote')}
+            </SSText>
+          ) : null}
         </View>
         <ScrollView
           style={{ flex: 1, gap: 32 }}
@@ -134,9 +180,11 @@ export default function DiceEntropy() {
               >
                 {t(`account.entropy.dice.desc.${mnemonicWordCount}`)}
               </SSText>
-              {biased ? (
-                <SSText size="sm" color="muted" center>
-                  {t('account.entropy.biasWarning')}
+              {weak ? (
+                <SSText size="sm" center style={styles.warningText}>
+                  {mixEntropy
+                    ? t('account.entropy.biasWarningMixed')
+                    : t('account.entropy.biasWarningUnmixed')}
                 </SSText>
               ) : null}
             </SSVStack>
@@ -152,16 +200,26 @@ export default function DiceEntropy() {
                 ))}
               </SSHStack>
             )}
+            {complete ? (
+              <SSVStack gap="xs" style={styles.logBox}>
+                <SSText size="xs" color="muted" uppercase>
+                  {t('account.entropy.recordedInput')}
+                </SSText>
+                <SSText size="sm" style={styles.logText}>
+                  {rolls.join(' ')}
+                </SSText>
+              </SSVStack>
+            ) : null}
             <SSVStack gap="sm" style={styles.actions}>
               <SSCheckbox
                 selected={mixEntropy}
                 label={t('account.entropy.mixWithDevice')}
-                onPress={() => setMixEntropy(!mixEntropy)}
+                onPress={() => setMixEntropy((current) => !current)}
               />
               <SSText size="xs" color="muted">
                 {t('account.entropy.mixWithDeviceDescription')}
               </SSText>
-              {rolls.length > 0 && !complete ? (
+              {rolls.length > 0 ? (
                 <SSButton
                   variant="ghost"
                   label={t('common.undo')}
@@ -194,6 +252,7 @@ const styles = StyleSheet.create({
   display: {
     backgroundColor: Colors.gray[950],
     borderRadius: 8,
+    gap: 8,
     minHeight: 180,
     minWidth: '100%',
     paddingHorizontal: 8,
@@ -205,5 +264,22 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'center',
     marginTop: 24
+  },
+  logBox: {
+    backgroundColor: Colors.gray[900],
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    padding: 12,
+    width: '100%'
+  },
+  logText: {
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 1
+  },
+  previewNote: {
+    marginTop: 4
+  },
+  warningText: {
+    color: Colors.warning
   }
 })

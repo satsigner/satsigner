@@ -1,12 +1,14 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
   View
 } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSBinaryDisplay from '@/components/SSBinaryDisplay'
@@ -26,13 +28,12 @@ import {
 import {
   entropyBitsForWordCount,
   entropyFromCoinFlips,
-  isSequenceBiased,
+  isSequenceWeak,
   mixWithSystemEntropy,
   requiredCoinFlips
 } from '@/utils/entropy'
 
 const COIN_SIDES = 2
-const PREVIEW_BITS = 128
 
 export default function CoinEntropy() {
   const router = useRouter()
@@ -57,32 +58,64 @@ export default function CoinEntropy() {
   const [mixEntropy, setMixEntropy] = useState(true)
 
   const complete = flips.length >= totalFlips
-  const biased = isSequenceBiased(flips, COIN_SIDES)
+  const weak = isSequenceWeak(flips, COIN_SIDES)
+  const weakUnmixed = weak && !mixEntropy
 
   const previewEntropy =
-    flips.length > 0 ? entropyFromCoinFlips(flips, PREVIEW_BITS) : ''
+    flips.length > 0
+      ? entropyFromCoinFlips(flips, bits, { allowPartial: true })
+      : ''
 
   function handleFlip(bit: '0' | '1') {
     if (flips.length >= totalFlips) {
       return
     }
-    setFlips([...flips, bit])
+    setFlips((current) => [...current, bit])
   }
 
   function handleUndo() {
-    setFlips(flips.slice(0, -1))
+    setFlips((current) => current.slice(0, -1))
   }
 
-  function handleContinue() {
-    const userEntropy = entropyFromCoinFlips(flips, bits)
-    const entropy = mixEntropy
-      ? mixWithSystemEntropy(userEntropy, bits)
-      : userEntropy
-
+  function finishWithEntropy(entropy: string) {
     const mnemonic = generateMnemonicFromEntropy(entropy, mnemonicWordList)
     setMnemonic(mnemonic)
     setFingerprint(getFingerprintFromMnemonic(mnemonic))
     router.navigate(`/signer/bitcoin/account/add/generate/mnemonic/${index}`)
+  }
+
+  function buildEntropy() {
+    const userEntropy = entropyFromCoinFlips(flips, bits)
+    return mixEntropy ? mixWithSystemEntropy(userEntropy, bits) : userEntropy
+  }
+
+  function handleContinue() {
+    try {
+      if (weakUnmixed) {
+        Alert.alert(
+          t('account.entropy.weakInputTitle'),
+          t('account.entropy.weakInputUnmixed'),
+          [
+            { style: 'cancel', text: t('common.cancel') },
+            {
+              onPress: () => {
+                try {
+                  finishWithEntropy(buildEntropy())
+                } catch {
+                  toast.error(t('account.entropy.generateError'))
+                }
+              },
+              style: 'destructive',
+              text: t('account.entropy.continueAnyway')
+            }
+          ]
+        )
+        return
+      }
+      finishWithEntropy(buildEntropy())
+    } catch {
+      toast.error(t('account.entropy.generateError'))
+    }
   }
 
   const coinShape = {
@@ -103,6 +136,13 @@ export default function CoinEntropy() {
       <SSVStack itemsCenter gap="lg" justifyBetween style={{ flex: 1 }}>
         <View style={styles.display}>
           <SSBinaryDisplay binary={previewEntropy} />
+          {flips.length > 0 ? (
+            <SSText size="xs" color="muted" center style={styles.previewNote}>
+              {mixEntropy
+                ? t('account.entropy.previewMixedNote')
+                : t('account.entropy.previewNote')}
+            </SSText>
+          ) : null}
         </View>
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
           <SSVStack itemsCenter gap="lg">
@@ -121,9 +161,11 @@ export default function CoinEntropy() {
               >
                 {t(`account.entropy.coin.desc.${mnemonicWordCount}`)}
               </SSText>
-              {biased ? (
-                <SSText size="sm" color="muted" center>
-                  {t('account.entropy.biasWarning')}
+              {weak ? (
+                <SSText size="sm" center style={styles.warningText}>
+                  {mixEntropy
+                    ? t('account.entropy.biasWarningMixed')
+                    : t('account.entropy.biasWarningUnmixed')}
                 </SSText>
               ) : null}
             </SSVStack>
@@ -151,16 +193,26 @@ export default function CoinEntropy() {
                 </TouchableOpacity>
               </SSHStack>
             )}
+            {complete ? (
+              <SSVStack gap="xs" style={styles.logBox}>
+                <SSText size="xs" color="muted" uppercase>
+                  {t('account.entropy.recordedInput')}
+                </SSText>
+                <SSText size="sm" style={styles.logText}>
+                  {flips.join('')}
+                </SSText>
+              </SSVStack>
+            ) : null}
             <SSVStack gap="sm" style={styles.actions}>
               <SSCheckbox
                 selected={mixEntropy}
                 label={t('account.entropy.mixWithDevice')}
-                onPress={() => setMixEntropy(!mixEntropy)}
+                onPress={() => setMixEntropy((current) => !current)}
               />
               <SSText size="xs" color="muted">
                 {t('account.entropy.mixWithDeviceDescription')}
               </SSText>
-              {flips.length > 0 && !complete ? (
+              {flips.length > 0 ? (
                 <SSButton
                   variant="ghost"
                   label={t('common.undo')}
@@ -205,6 +257,7 @@ const styles = StyleSheet.create({
   display: {
     backgroundColor: Colors.gray[950],
     borderRadius: 8,
+    gap: 8,
     minHeight: 180,
     minWidth: '100%',
     paddingHorizontal: 8,
@@ -213,9 +266,26 @@ const styles = StyleSheet.create({
   headsLabel: {
     color: Colors.gray[950]
   },
+  logBox: {
+    backgroundColor: Colors.gray[900],
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    padding: 12,
+    width: '100%'
+  },
+  logText: {
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 1
+  },
+  previewNote: {
+    marginTop: 4
+  },
   scroll: {
     flex: 1,
     gap: 32,
     marginBottom: 12
+  },
+  warningText: {
+    color: Colors.warning
   }
 })
