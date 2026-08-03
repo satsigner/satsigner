@@ -70,8 +70,8 @@ export default function MultiSigKeySettings() {
         case 'none': {
           setLoading(true)
 
-          // TODO: add support for multi-lang word list
-          const mnemonic = generateMnemonic(localMnemonicWordCount)
+          // Multisig generate currently always uses the English wordlist.
+          const mnemonic = generateMnemonic(localMnemonicWordCount, 'english')
           setMnemonic(mnemonic)
 
           const fingerprint = getFingerprintFromMnemonic(mnemonic)
@@ -81,9 +81,6 @@ export default function MultiSigKeySettings() {
           router.navigate(
             `/signer/bitcoin/account/add/generate/mnemonic/${index}`
           )
-          break
-        }
-        case 'drawing': {
           break
         }
         case 'coin': {
