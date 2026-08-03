@@ -260,7 +260,20 @@ const SCHEMA_V6 = `
 ALTER TABLE accounts ADD COLUMN nostr_device_mnemonic TEXT
 `
 
+// Junction tables are read by (account_id, address) but their primary keys lead
+// with `address`, so those lookups could not use the PK prefix. The orphan
+// deletes clean up rows left behind before clearAccountChildData removed them.
 const SCHEMA_V7 = `
+CREATE INDEX IF NOT EXISTS idx_addr_txs ON address_transactions(account_id, address);
+CREATE INDEX IF NOT EXISTS idx_addr_utxos ON address_utxos(account_id, address);
+
+DELETE FROM address_transactions WHERE (address, account_id) NOT IN
+  (SELECT address, account_id FROM addresses);
+DELETE FROM address_utxos WHERE (address, account_id) NOT IN
+  (SELECT address, account_id FROM addresses)
+`
+
+const SCHEMA_V8 = `
 ALTER TABLE accounts ADD COLUMN excluded_utxo_outpoints TEXT DEFAULT '[]'
 `
 
@@ -271,7 +284,8 @@ const SCHEMAS = [
   SCHEMA_V4,
   SCHEMA_V5,
   SCHEMA_V6,
-  SCHEMA_V7
+  SCHEMA_V7,
+  SCHEMA_V8
 ]
 const CURRENT_VERSION = SCHEMAS.length
 

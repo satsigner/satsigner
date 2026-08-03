@@ -7,6 +7,7 @@ import {
   type TxOutputRow,
   rowToTransaction
 } from '../mappers'
+import { hydrateTransactionRows } from './children'
 
 function getTransactionsByAccount(accountId: string): Transaction[] {
   const db = getDb()
@@ -14,9 +15,7 @@ function getTransactionsByAccount(accountId: string): Transaction[] {
     'SELECT * FROM transactions WHERE account_id = ?',
     [accountId]
   )
-  return (results ?? []).map((row) =>
-    hydrateTransaction(row as TransactionRow, accountId)
-  )
+  return hydrateTransactionRows((results ?? []) as TransactionRow[], accountId)
 }
 
 function getTransactionById(

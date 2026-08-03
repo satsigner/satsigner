@@ -1825,28 +1825,20 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [
-    updateAccount,
-    account,
-    syncStatus,
+  const [updateAccount, account] = useAccountsStore(
+    useShallow((state) => [
+      state.updateAccount,
+      state.accounts.find((a) => a.id === id)
+    ])
+  )
+  const syncStatus = account?.syncStatus
+  const {
     tasksDone,
     totalTasks,
     transactionsFound,
     currentBlockTimeSec,
     scanFromTimeSec
-  ] = useAccountsStore(
-    useShallow((state) => [
-      state.updateAccount,
-      state.accounts.find((a) => a.id === id),
-      state.accounts.find((a) => a.id === id)?.syncStatus,
-      state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
-      state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks,
-      state.accounts.find((a) => a.id === id)?.syncProgress?.transactionsFound,
-      state.accounts.find((a) => a.id === id)?.syncProgress
-        ?.currentBlockTimeSec,
-      state.accounts.find((a) => a.id === id)?.syncProgress?.scanFromTimeSec
-    ])
-  )
+  } = account?.syncProgress ?? {}
 
   const server = useBlockchainStore(
     (state) => state.configs[state.selectedNetwork].server
