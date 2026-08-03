@@ -241,7 +241,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts[index].excludedUtxoOutpoints = excludedUtxoOutpoints
         }
       })
-      invalidateAccount(accountId)
     },
     getTags: () => get().tags,
     importLabels: (accountId: string, labels: Label[]) => {
@@ -272,7 +271,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts[index].excludedUtxoOutpoints = excludedUtxoOutpoints
         }
       })
-      invalidateAccount(accountId)
     },
     loadTx: (accountId, tx) => {
       const { accounts } = get()
