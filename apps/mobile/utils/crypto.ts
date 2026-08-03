@@ -1,7 +1,7 @@
 import QuickCrypto from 'react-native-quick-crypto'
 import uuid from 'react-native-uuid'
 
-import { DEFAULT_PIN, PIN_KEY } from '@/config/auth'
+import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 
 const MAX_UINT32 = 0xffffffff // 2^32 - 1
@@ -153,10 +153,12 @@ async function doubleShaEncrypt(text: string): Promise<string> {
   return sha256(first)
 }
 
-async function getPin(skipPin = false): Promise<string> {
-  if (skipPin) {
-    return DEFAULT_PIN
-  }
+/**
+ * Returns the PIN-derived key material stored in SecureStore (PBKDF2 hex digest).
+ * Never returns a plaintext default PIN — callers that need encryption must use
+ * the stored digest even when the lock screen is skipped in development.
+ */
+async function getPin(): Promise<string> {
   const pin = await getItem(PIN_KEY)
   if (pin === null) {
     throw new Error('PIN unavailable')

@@ -130,6 +130,11 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ requiresAuth })
       },
       setSkipPin(skipPin) {
+        // Lock-screen bypass is development-only. Production builds ignore it.
+        if (!__DEV__ && skipPin) {
+          set({ skipPin: false })
+          return
+        }
         set({ skipPin })
       },
       skipPin: false,
@@ -145,6 +150,12 @@ const useAuthStore = create<AuthState & AuthAction>()(
     }),
     {
       name: 'satsigner-auth',
+      onRehydrateStorage: () => (state) => {
+        // Persisted skipPin must never unlock production builds.
+        if (!__DEV__ && state?.skipPin) {
+          state.skipPin = false
+        }
+      },
       partialize: (state) => {
         const { pendingRecoverData: _, ...rest } = state
         return rest

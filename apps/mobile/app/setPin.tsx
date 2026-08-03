@@ -85,6 +85,10 @@ export default function SetPin() {
   }
 
   async function handleSetPinLater() {
+    // DEFAULT_PIN / lock-screen skip is development-only. Production must set a PIN.
+    if (!__DEV__) {
+      return
+    }
     if (fromSettings) {
       setSkipPin(true)
       await setPin(DEFAULT_PIN)
@@ -268,20 +272,20 @@ export default function SetPin() {
               onPress={() => setCurrentPinArray(emptyPin())}
             />
           )}
-          {stage === 'set' && !pinFilled && !fromSettings && (
+          {__DEV__ && stage === 'set' && !pinFilled && !fromSettings ? (
             <SSButton
               label={t('auth.setPinLater')}
               variant="ghost"
               onPress={() => handleSetPinLater()}
             />
-          )}
-          {stage === 'set' && !pinFilled && fromSettings && (
+          ) : null}
+          {__DEV__ && stage === 'set' && !pinFilled && fromSettings ? (
             <SSButton
               label={t('auth.noPin')}
               variant="ghost"
               onPress={() => handleSetPinLater()}
             />
-          )}
+          ) : null}
           {stage === 'set' && pinFilled && (
             <SSButton
               label={t('common.clear')}
