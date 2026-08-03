@@ -27,6 +27,7 @@ import type { Account, Key } from '@/types/models/Account'
 import { type PageRoute } from '@/types/navigation/page'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
+import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
@@ -160,8 +161,20 @@ export default function AuthenticatedLayout() {
 
   useEffect(() => {
     async function run() {
-      const { justUnlocked: ju, pendingRecoverData: pending } =
-        useAuthStore.getState()
+      const {
+        justUnlocked: ju,
+        pendingRecoverData: pending,
+        skipPin: pinSkipped
+      } = useAuthStore.getState()
+
+      if (ju || pinSkipped) {
+        try {
+          await migrateAndHydrateNostrSecrets()
+        } catch {
+          // non-critical for boot; secrets may remain unavailable until next unlock
+        }
+      }
+
       if (ju && pending) {
         const { success } = await performRecoverOverwrite(pending)
         setPendingRecoverData(null)

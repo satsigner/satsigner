@@ -15,6 +15,7 @@ import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useWalletsStore } from '@/store/wallets'
 import { type Network } from '@/types/settings/blockchain'
+import { deleteAllNostrSecretsForWipe } from '@/utils/nostrSecrets'
 
 const BLOCKCHAIN_NETWORKS: Network[] = ['bitcoin', 'testnet', 'signet']
 
@@ -24,6 +25,11 @@ const BLOCKCHAIN_NETWORKS: Network[] = ['bitcoin', 'testnet', 'signet']
  */
 export async function secureWipeAllWalletData(): Promise<void> {
   const { accounts } = useAccountsStore.getState()
+  const { identities } = useNostrIdentityStore.getState()
+  await deleteAllNostrSecretsForWipe(
+    identities.map((identity) => identity.npub),
+    accounts.map((account) => account.id)
+  )
   await Promise.all(
     accounts.map((account) =>
       deleteAllKeySecrets(account.id, account.keys.length)
