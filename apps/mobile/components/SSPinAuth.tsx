@@ -2,20 +2,18 @@ import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import Animated from 'react-native-reanimated'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import { DURESS_PIN_KEY, SALT_KEY } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import SSVStack from '@/layouts/SSVStack'
-import { deleteItem, getItem } from '@/storage/encrypted'
-import { useAccountsStore } from '@/store/accounts'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
-import { useWalletsStore } from '@/store/wallets'
 import { gray } from '@/styles/colors'
 import { getPin, pbkdf2Encrypt } from '@/utils/crypto'
 import { emptyPin } from '@/utils/pin'
+import { secureWipeAllWalletData } from '@/utils/secureWipe'
 
 type SSPinAuthProps = {
   onFail?: () => void
@@ -35,13 +33,7 @@ function SSPinAuth({
   resetPin,
   ...props
 }: SSPinAuthProps) {
-  const [duressPinEnabled, setDuressPinEnabled] = useAuthStore(
-    useShallow((state) => [state.duressPinEnabled, state.setDuressPinEnabled])
-  )
-  const [deleteAccounts, deleteTags] = useAccountsStore(
-    useShallow((state) => [state.deleteAccounts, state.deleteTags])
-  )
-  const deleteWallets = useWalletsStore((state) => state.deleteWallets)
+  const duressPinEnabled = useAuthStore((state) => state.duressPinEnabled)
   const [pin, setPin] = useState<string[]>(emptyPin())
   const [tries, setTries] = useState(0)
   const { shakeStyle } = useAnimatedShake()
@@ -63,19 +55,9 @@ function SSPinAuth({
     }
     const hashedInput = await pbkdf2Encrypt(inputPin, salt)
 
-    // DURESS PIN
+    // DURESS PIN — wipe secrets/stores so the duress PIN appears as the real PIN.
     if (duressPinEnabled && hashedInput === hashedDuressPin) {
-      // erase data
-      deleteAccounts()
-      deleteWallets()
-      deleteTags()
-
-      // delete evidence there existed a duress pin in the first place,
-      // acting as if the duress pin was the true pin
-      setDuressPinEnabled(false)
-      await deleteItem(DURESS_PIN_KEY)
-
-      // reset route
+      await secureWipeAllWalletData()
       router.dismissAll()
       router.push('/')
       return
