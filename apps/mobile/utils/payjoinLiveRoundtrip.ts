@@ -103,6 +103,7 @@ type PayjoinRoundtripEnv = {
   receiverAddress: string
   paymentAmountSats: number
   senderCallbacks: PayjoinWalletCallbacks
+  senderOutputScriptsHex: string[]
   receiverCallbacks: PayjoinWalletCallbacks
   /** Build + sign (not finalize) the Sample original PSBT paying the Clown address. */
   buildAndSignOriginal: (
@@ -142,6 +143,7 @@ async function pollForProposal(params: {
   session: PayjoinSession
   paymentAmountSats: number
   callbacks: PayjoinWalletCallbacks
+  outputScriptsHex: string[]
   signal?: AbortSignal
 }): Promise<string> {
   let current = params.session
@@ -150,6 +152,7 @@ async function pollForProposal(params: {
     const result = await pollBip77Send({
       callbacks: params.callbacks,
       disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
+      outputScriptsHex: params.outputScriptsHex,
       paymentAmountSats: params.paymentAmountSats,
       session: current
     })
@@ -216,6 +219,7 @@ async function runPayjoinLiveRoundtrip(params: {
       callbacks: env.senderCallbacks,
       disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
       originalPsbtBase64,
+      outputScriptsHex: env.senderOutputScriptsHex,
       payjoinUri: receiverSession.uri,
       paymentAmountSats: env.paymentAmountSats
     })
@@ -252,6 +256,7 @@ async function runPayjoinLiveRoundtrip(params: {
         ? started.result.psbtBase64
         : await pollForProposal({
             callbacks: env.senderCallbacks,
+            outputScriptsHex: env.senderOutputScriptsHex,
             paymentAmountSats: env.paymentAmountSats,
             session: started.session,
             signal

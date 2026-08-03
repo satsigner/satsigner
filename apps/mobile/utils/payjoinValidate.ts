@@ -22,12 +22,124 @@ function txidFromPsbtInputHash(hash: Buffer | Uint8Array): string {
  * unavailable. Full validation belongs in rust-payjoin; this guards the
  * TypeScript BIP78 HTTP path used in tests and as a fallback.
  */
+function scriptHexOf(output: { script: Buffer | Uint8Array }): string {
+  return Buffer.from(output.script).toString('hex')
+}
+
+/**
+ * The intended payee outputs must survive the proposal unchanged in script and
+ * never lose value — even when output substitution is enabled, the sender still
+ * pays who it meant to. Anchored by index so a substituted attacker output at a
+ * different position cannot masquerade as the payment.
+ */
+function checkPaymentOutputs(params: {
+  original: bitcoinjs.Psbt
+  proposal: bitcoinjs.Psbt
+  paymentScriptsHex: string[]
+  paymentAmountSats: number
+  isScriptOwned: (scriptHex: string) => boolean
+}): ValidateProposalResult {
+  const paymentScripts = new Set(params.paymentScriptsHex)
+  const paymentIndices = params.original.txOutputs
+    .map((output, index) => ({ index, scriptHex: scriptHexOf(output) }))
+    .filter((entry) => paymentScripts.has(entry.scriptHex))
+    .map((entry) => entry.index)
+
+  if (paymentIndices.length === 0) {
+    // No known payee script to anchor (self-transfer or un-plumbed caller):
+    // fall back to requiring the non-owned total to cover the requested amount.
+    const paidToNonOwned = params.proposal.txOutputs.reduce(
+      (sum, output) =>
+        params.isScriptOwned(scriptHexOf(output)) ? sum : sum + output.value,
+      0
+    )
+    if (paidToNonOwned > 0 && paidToNonOwned < params.paymentAmountSats) {
+      return { ok: false, reason: 'receiver payment amount reduced' }
+    }
+    return { ok: true }
+  }
+
+  const singlePayment = paymentIndices.length === 1
+  for (const index of paymentIndices) {
+    const originalOut = params.original.txOutputs[index]!
+    const proposalOut = params.proposal.txOutputs[index]
+    if (!proposalOut || !originalOut.script.equals(proposalOut.script)) {
+      return { ok: false, reason: 'payment output substituted or removed' }
+    }
+    if (proposalOut.value < originalOut.value) {
+      return { ok: false, reason: 'receiver payment amount reduced' }
+    }
+    if (singlePayment && proposalOut.value < params.paymentAmountSats) {
+      return { ok: false, reason: 'receiver payment amount reduced' }
+    }
+  }
+  return { ok: true }
+}
+
+function sumNewInputValues(
+  proposal: bitcoinjs.Psbt,
+  originalOutpoints: Set<string>
+): number {
+  return proposal.txInputs.reduce((sum, input, index) => {
+    const key = outpointKey(txidFromPsbtInputHash(input.hash), input.index)
+    if (originalOutpoints.has(key)) {
+      return sum
+    }
+    return sum + (proposal.data.inputs[index]?.witnessUtxo?.value ?? 0)
+  }, 0)
+}
+
+/**
+ * Sender-owned change may only shrink by what the receiver actually added to
+ * the transaction (its new inputs minus its new outputs). Without this bound a
+ * receiver could drain the sender's change to miner fees.
+ */
+function checkSenderChange(params: {
+  original: bitcoinjs.Psbt
+  proposal: bitcoinjs.Psbt
+  originalOutpoints: Set<string>
+  isScriptOwned: (scriptHex: string) => boolean
+}): ValidateProposalResult {
+  const originalScripts = new Set(params.original.txOutputs.map(scriptHexOf))
+  const newInputSats = sumNewInputValues(
+    params.proposal,
+    params.originalOutpoints
+  )
+  const newOutputSats = params.proposal.txOutputs.reduce(
+    (sum, output) =>
+      originalScripts.has(scriptHexOf(output)) ? sum : sum + output.value,
+    0
+  )
+  const maxChangeDecrease = Math.max(0, newInputSats - newOutputSats)
+  const sameOutputCount =
+    params.proposal.txOutputs.length === params.original.txOutputs.length
+
+  for (let index = 0; index < params.original.txOutputs.length; index += 1) {
+    const originalOut = params.original.txOutputs[index]!
+    if (!params.isScriptOwned(scriptHexOf(originalOut))) {
+      continue
+    }
+    const matched = params.proposal.txOutputs.find((output) =>
+      output.script.equals(originalOut.script)
+    )
+    const fallback = sameOutputCount
+      ? params.proposal.txOutputs[index]
+      : undefined
+    const proposalChange = (matched ?? fallback)?.value ?? 0
+    if (originalOut.value - proposalChange > maxChangeDecrease) {
+      return { ok: false, reason: 'sender change drained' }
+    }
+  }
+  return { ok: true }
+}
+
 function validatePayjoinProposal(params: {
   originalPsbtBase64: string
   proposalPsbtBase64: string
   paymentAmountSats: number
   disableOutputSubstitution: boolean
   isScriptOwned: (scriptHex: string) => boolean
+  paymentScriptsHex: string[]
 }): ValidateProposalResult {
   let original: bitcoinjs.Psbt
   let proposal: bitcoinjs.Psbt
@@ -64,16 +176,6 @@ function validatePayjoinProposal(params: {
     return { ok: false, reason: 'proposal has no receiver input' }
   }
 
-  for (const input of proposal.txInputs) {
-    const txid = txidFromPsbtInputHash(input.hash)
-    const key = outpointKey(txid, input.index)
-    if (originalOutpoints.has(key)) {
-      continue
-    }
-    // New inputs should not be owned by the sender.
-    // We cannot always know script from PSBT input; skip if unavailable.
-  }
-
   if (params.disableOutputSubstitution) {
     if (proposal.txOutputs.length !== original.txOutputs.length) {
       return {
@@ -91,28 +193,23 @@ function validatePayjoinProposal(params: {
     }
   }
 
-  // Ensure receiver is paid at least the requested amount on some output
-  // that is not owned by the sender (best-effort using callback).
-  let paidToReceiver = 0
-  for (const output of proposal.txOutputs) {
-    const scriptHex = Buffer.from(output.script).toString('hex')
-    if (!params.isScriptOwned(scriptHex)) {
-      paidToReceiver += output.value
-    }
+  const paymentCheck = checkPaymentOutputs({
+    isScriptOwned: params.isScriptOwned,
+    original,
+    paymentAmountSats: params.paymentAmountSats,
+    paymentScriptsHex: params.paymentScriptsHex,
+    proposal
+  })
+  if (!paymentCheck.ok) {
+    return paymentCheck
   }
 
-  if (paidToReceiver < params.paymentAmountSats) {
-    // Sender-owned change is excluded; if all outputs look owned, skip amount check.
-    const anyNonOwned = proposal.txOutputs.some((output) => {
-      const scriptHex = Buffer.from(output.script).toString('hex')
-      return !params.isScriptOwned(scriptHex)
-    })
-    if (anyNonOwned) {
-      return { ok: false, reason: 'receiver payment amount reduced' }
-    }
-  }
-
-  return { ok: true }
+  return checkSenderChange({
+    isScriptOwned: params.isScriptOwned,
+    original,
+    originalOutpoints,
+    proposal
+  })
 }
 
 function parseBip78ErrorBody(body: string): PayjoinBip78Error {

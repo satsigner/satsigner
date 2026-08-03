@@ -516,9 +516,11 @@ export default function SignTransaction() {
       const parsed = parsePayjoinUri(session.uri || payjoinUri || '')
       const disableOutputSubstitution =
         (parsed.params?.pjos ?? session.pjos) === 0
+      const pollCallbacks = buildCallbacks()
       const result = await pollBip77Send({
-        callbacks: buildCallbacks(),
+        callbacks: pollCallbacks,
         disableOutputSubstitution,
+        outputScriptsHex: pollCallbacks.outputScriptsHex,
         paymentAmountSats: session.amountSats ?? paymentAmountSats,
         session,
         timeoutMs: 15_000
@@ -579,6 +581,7 @@ export default function SignTransaction() {
         callbacks,
         disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
         originalPsbtBase64: manualOriginalPsbt,
+        outputScriptsHex: callbacks.outputScriptsHex,
         paymentAmountSats,
         proposalPsbtBase64
       })
@@ -707,6 +710,7 @@ export default function SignTransaction() {
         disableOutputSubstitution:
           (parsed.params?.pjos ?? PAYJOIN_DEFAULT_PJOS) === 0,
         originalPsbtBase64: originalBase64,
+        outputScriptsHex: callbacks.outputScriptsHex,
         payjoinUri,
         paymentAmountSats,
         quickPollMs: 3_000

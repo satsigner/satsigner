@@ -350,6 +350,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       disableOutputSubstitution: true,
       fetchImpl: noopFetch,
       originalPsbtBase64: original.toBase64(),
+      outputScriptsHex: [wallet.receiveScript.toString('hex')],
       payjoinUri: handle.pjUri,
       paymentAmountSats: PAYMENT_SATS,
       quickPollMs: 200

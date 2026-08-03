@@ -31,7 +31,10 @@ import {
   filterPayjoinContributeUtxos,
   isConfirmedUtxo
 } from '@/utils/payjoinUtxos'
-import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
+import {
+  addressScriptHex,
+  buildPayjoinWalletCallbacks
+} from '@/utils/payjoinWallet'
 
 function pickFundingUtxo(
   utxos: Utxo[],
@@ -239,7 +242,10 @@ async function buildPayjoinLiveRoundtripEnv(): Promise<PayjoinRoundtripEnv> {
     receiverAddress,
     receiverCallbacks: buildReceiverCallbacks(),
     senderAccountId: sender.id,
-    senderCallbacks: buildSenderCallbacks()
+    senderCallbacks: buildSenderCallbacks(),
+    senderOutputScriptsHex: [addressScriptHex(receiverAddress, network)].filter(
+      (script): script is string => !!script
+    )
   }
 }
 

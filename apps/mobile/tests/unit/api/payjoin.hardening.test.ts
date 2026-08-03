@@ -62,6 +62,7 @@ describe('payjoin hardening (phase 7)', () => {
       isScriptOwned: () => false,
       originalPsbtBase64: original.toBase64(),
       paymentAmountSats: 50_000,
+      paymentScriptsHex: [paymentScript.toString('hex')],
       proposalPsbtBase64: adversarial.toBase64()
     })
 
@@ -92,6 +93,7 @@ describe('payjoin hardening (phase 7)', () => {
       isScriptOwned: (scriptHex) => scriptHex === changeScript.toString('hex'),
       originalPsbtBase64: original.toBase64(),
       paymentAmountSats: 50_000,
+      paymentScriptsHex: [paymentScript.toString('hex')],
       proposalPsbtBase64: reduced.toBase64()
     })
 

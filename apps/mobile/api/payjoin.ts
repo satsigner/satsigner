@@ -375,6 +375,7 @@ async function sendPayjoin(params: {
       endpoint: parsed.params.pj,
       fetchImpl: params.fetchImpl,
       originalPsbtBase64: params.originalPsbtBase64,
+      outputScriptsHex: params.outputScriptsHex,
       payjoinUri: params.payjoinUri,
       paymentAmountSats: params.paymentAmountSats,
       timeoutMs: params.timeoutMs
@@ -387,6 +388,7 @@ async function sendPayjoin(params: {
     disableOutputSubstitution,
     fetchImpl: params.fetchImpl,
     originalPsbtBase64: params.originalPsbtBase64,
+    outputScriptsHex: params.outputScriptsHex,
     payjoinUri: params.payjoinUri,
     paymentAmountSats: params.paymentAmountSats,
     timeoutMs: params.timeoutMs ?? PAYJOIN_BIP77_SEND_TIMEOUT_MS
@@ -399,6 +401,7 @@ async function sendBip78(params: {
   paymentAmountSats: number
   disableOutputSubstitution: boolean
   callbacks: PayjoinWalletCallbacks
+  outputScriptsHex: string[]
   fetchImpl?: FetchLike
   timeoutMs?: number
   payjoinUri?: string
@@ -447,6 +450,7 @@ async function sendBip78(params: {
             },
             originalPsbtBase64: params.originalPsbtBase64,
             paymentAmountSats: params.paymentAmountSats,
+            paymentScriptsHex: params.outputScriptsHex,
             proposalPsbtBase64: processed.psbtBase64
           })
           if (!validation.ok) {
@@ -503,6 +507,7 @@ async function sendBip78(params: {
     },
     originalPsbtBase64: params.originalPsbtBase64,
     paymentAmountSats: params.paymentAmountSats,
+    paymentScriptsHex: params.outputScriptsHex,
     proposalPsbtBase64: response.proposalBase64
   })
 
@@ -566,6 +571,7 @@ async function startBip77Send(params: {
   paymentAmountSats: number
   disableOutputSubstitution: boolean
   callbacks: PayjoinWalletCallbacks
+  outputScriptsHex: string[]
   fetchImpl?: FetchLike
   /** Brief wait for an already-online receiver before returning "waiting". */
   quickPollMs?: number
@@ -596,6 +602,7 @@ async function startBip77SendOnce(
     paymentAmountSats: number
     disableOutputSubstitution: boolean
     callbacks: PayjoinWalletCallbacks
+    outputScriptsHex: string[]
     fetchImpl?: FetchLike
     quickPollMs?: number
   },
@@ -665,7 +672,8 @@ async function startBip77SendOnce(
               params.paymentAmountSats,
               params.disableOutputSubstitution,
               params.callbacks,
-              'v2'
+              'v2',
+              params.outputScriptsHex
             )
             if (result.ok && result.usedPayjoin) {
               payjoinLog('sender got proposal immediately', {
@@ -709,7 +717,8 @@ async function startBip77SendOnce(
               params.paymentAmountSats,
               params.disableOutputSubstitution,
               params.callbacks,
-              'v2'
+              'v2',
+              params.outputScriptsHex
             )
             if (result.ok && result.usedPayjoin) {
               payjoinLog('sender got proposal after quick poll', {
@@ -786,6 +795,7 @@ async function pollBip77Send(params: {
   paymentAmountSats: number
   disableOutputSubstitution: boolean
   callbacks: PayjoinWalletCallbacks
+  outputScriptsHex: string[]
   fetchImpl?: FetchLike
   timeoutMs?: number
 }): Promise<Bip77AsyncSendResult> {
@@ -895,7 +905,8 @@ async function pollBip77Send(params: {
             params.paymentAmountSats,
             params.disableOutputSubstitution,
             params.callbacks,
-            'v2'
+            'v2',
+            params.outputScriptsHex
           )
           if (result.ok && result.usedPayjoin) {
             usePayjoinSessionsStore
@@ -976,6 +987,7 @@ async function sendBip77(params: {
   paymentAmountSats: number
   disableOutputSubstitution: boolean
   callbacks: PayjoinWalletCallbacks
+  outputScriptsHex: string[]
   fetchImpl?: FetchLike
   timeoutMs: number
   accountId?: string
@@ -986,6 +998,7 @@ async function sendBip77(params: {
     disableOutputSubstitution: params.disableOutputSubstitution,
     fetchImpl: params.fetchImpl,
     originalPsbtBase64: params.originalPsbtBase64,
+    outputScriptsHex: params.outputScriptsHex,
     payjoinUri: params.payjoinUri,
     paymentAmountSats: params.paymentAmountSats,
     quickPollMs: Math.min(params.timeoutMs, 5_000)
@@ -1007,6 +1020,7 @@ async function sendBip77(params: {
     callbacks: params.callbacks,
     disableOutputSubstitution: params.disableOutputSubstitution,
     fetchImpl: params.fetchImpl,
+    outputScriptsHex: params.outputScriptsHex,
     paymentAmountSats: params.paymentAmountSats,
     session: started.session,
     timeoutMs: params.timeoutMs
@@ -1038,7 +1052,8 @@ async function finalizeSenderProposal(
   paymentAmountSats: number,
   disableOutputSubstitution: boolean,
   callbacks: PayjoinWalletCallbacks,
-  protocol: 'v1' | 'v2'
+  protocol: 'v1' | 'v2',
+  outputScriptsHex: string[]
 ): Promise<PayjoinSendResult> {
   const validation = validatePayjoinProposal({
     disableOutputSubstitution,
@@ -1048,6 +1063,7 @@ async function finalizeSenderProposal(
     },
     originalPsbtBase64,
     paymentAmountSats,
+    paymentScriptsHex: outputScriptsHex,
     proposalPsbtBase64
   })
 
@@ -1138,6 +1154,7 @@ function applyManualSenderProposal(params: {
   paymentAmountSats: number
   disableOutputSubstitution: boolean
   callbacks: PayjoinWalletCallbacks
+  outputScriptsHex: string[]
 }): Promise<PayjoinSendResult> {
   return finalizeSenderProposal(
     params.proposalPsbtBase64,
@@ -1145,7 +1162,8 @@ function applyManualSenderProposal(params: {
     params.paymentAmountSats,
     params.disableOutputSubstitution,
     params.callbacks,
-    'v1'
+    'v1',
+    params.outputScriptsHex
   )
 }
 

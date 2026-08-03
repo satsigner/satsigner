@@ -135,6 +135,7 @@ describe('payjoin manual (offline) helpers', () => {
         callbacks: senderCallbacks,
         disableOutputSubstitution: true,
         originalPsbtBase64: original,
+        outputScriptsHex: [paymentScript.toString('hex')],
         paymentAmountSats: 50_000,
         proposalPsbtBase64: proposal
       })
@@ -161,6 +162,7 @@ describe('payjoin manual (offline) helpers', () => {
         callbacks: senderCallbacks,
         disableOutputSubstitution: true,
         originalPsbtBase64: original,
+        outputScriptsHex: [paymentScript.toString('hex')],
         paymentAmountSats: 50_000,
         proposalPsbtBase64: tampered
       })

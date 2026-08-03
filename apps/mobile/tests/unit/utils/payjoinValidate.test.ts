@@ -35,6 +35,9 @@ const TXID_B = 'bb'.repeat(32)
 const paymentScript = Buffer.from(`0014${'22'.repeat(20)}`, 'hex')
 const changeScript = Buffer.from(`0014${'33'.repeat(20)}`, 'hex')
 const receiverInputScript = Buffer.from(`0014${'44'.repeat(20)}`, 'hex')
+const attackerScript = Buffer.from(`0014${'55'.repeat(20)}`, 'hex')
+const paymentScriptHex = paymentScript.toString('hex')
+const changeScriptHex = changeScript.toString('hex')
 
 describe('payjoinValidate', () => {
   describe('parseBip78ErrorBody', () => {
@@ -83,18 +86,6 @@ describe('payjoinValidate', () => {
       ]
     })
 
-    const proposal = buildPsbt({
-      inputs: [
-        { txid: TXID_A, vout: 0 },
-        { txid: TXID_B, vout: 1 }
-      ],
-      outputs: [
-        { script: paymentScript, value: 50_000 },
-        { script: changeScript, value: 48_500 },
-        { script: receiverInputScript, value: 100_000 }
-      ]
-    })
-
     // Re-build proposal with same output count for pjos=0 happy path
     const proposalPjos0 = buildPsbt({
       inputs: [
@@ -110,10 +101,10 @@ describe('payjoinValidate', () => {
     it('accepts a valid pjos=0 proposal', () => {
       const result = validatePayjoinProposal({
         disableOutputSubstitution: true,
-        isScriptOwned: (scriptHex) =>
-          scriptHex === changeScript.toString('hex'),
+        isScriptOwned: (scriptHex) => scriptHex === changeScriptHex,
         originalPsbtBase64: original.toBase64(),
         paymentAmountSats: 50_000,
+        paymentScriptsHex: [paymentScriptHex],
         proposalPsbtBase64: proposalPjos0.toBase64()
       })
       expect(result.ok).toBe(true)
@@ -129,6 +120,7 @@ describe('payjoinValidate', () => {
         isScriptOwned: () => false,
         originalPsbtBase64: original.toBase64(),
         paymentAmountSats: 50_000,
+        paymentScriptsHex: [paymentScriptHex],
         proposalPsbtBase64: bad.toBase64()
       })
       expect(result.ok).toBe(false)
@@ -140,6 +132,7 @@ describe('payjoinValidate', () => {
         isScriptOwned: () => false,
         originalPsbtBase64: original.toBase64(),
         paymentAmountSats: 50_000,
+        paymentScriptsHex: [paymentScriptHex],
         proposalPsbtBase64: original.toBase64()
       })
       expect(result.ok).toBe(false)
@@ -155,10 +148,7 @@ describe('payjoinValidate', () => {
           { txid: TXID_B, vout: 1 }
         ],
         outputs: [
-          {
-            script: Buffer.from(`0014${'55'.repeat(20)}`, 'hex'),
-            value: 50_000
-          },
+          { script: attackerScript, value: 50_000 },
           { script: changeScript, value: 148_500 }
         ]
       })
@@ -167,6 +157,7 @@ describe('payjoinValidate', () => {
         isScriptOwned: () => false,
         originalPsbtBase64: original.toBase64(),
         paymentAmountSats: 50_000,
+        paymentScriptsHex: [paymentScriptHex],
         proposalPsbtBase64: substituted.toBase64()
       })
       expect(result.ok).toBe(false)
@@ -175,16 +166,104 @@ describe('payjoinValidate', () => {
       }
     })
 
-    it('allows extra outputs when substitution enabled', () => {
+    it('accepts an extra receiver output with a balanced fee contribution (pjos=1)', () => {
+      // Receiver adds a 100_000 input and takes 99_500 back to itself; the
+      // 500 sat difference plus the sender's 500 sat change drop cover the
+      // higher fee, so the sender change decrease stays within the bound.
+      const proposal = buildPsbt({
+        inputs: [
+          { txid: TXID_A, vout: 0 },
+          { txid: TXID_B, vout: 1 }
+        ],
+        outputs: [
+          { script: paymentScript, value: 50_000 },
+          { script: changeScript, value: 48_500 },
+          { script: receiverInputScript, value: 99_500 }
+        ]
+      })
       const result = validatePayjoinProposal({
         disableOutputSubstitution: false,
-        isScriptOwned: (scriptHex) =>
-          scriptHex === changeScript.toString('hex'),
+        isScriptOwned: (scriptHex) => scriptHex === changeScriptHex,
         originalPsbtBase64: original.toBase64(),
         paymentAmountSats: 50_000,
+        paymentScriptsHex: [paymentScriptHex],
         proposalPsbtBase64: proposal.toBase64()
       })
       expect(result.ok).toBe(true)
+    })
+
+    it('rejects a substituted payee output even when pjos=1', () => {
+      const swapped = buildPsbt({
+        inputs: [
+          { txid: TXID_A, vout: 0 },
+          { txid: TXID_B, vout: 1 }
+        ],
+        outputs: [
+          { script: attackerScript, value: 50_000 },
+          { script: changeScript, value: 48_500 },
+          { script: receiverInputScript, value: 99_500 }
+        ]
+      })
+      const result = validatePayjoinProposal({
+        disableOutputSubstitution: false,
+        isScriptOwned: (scriptHex) => scriptHex === changeScriptHex,
+        originalPsbtBase64: original.toBase64(),
+        paymentAmountSats: 50_000,
+        paymentScriptsHex: [paymentScriptHex],
+        proposalPsbtBase64: swapped.toBase64()
+      })
+      expect(result.ok).toBe(false)
+    })
+
+    it('rejects draining sender change to fees when pjos=1', () => {
+      const drained = buildPsbt({
+        inputs: [
+          { txid: TXID_A, vout: 0 },
+          { txid: TXID_B, vout: 1 }
+        ],
+        outputs: [
+          { script: paymentScript, value: 50_000 },
+          { script: changeScript, value: 1 },
+          { script: receiverInputScript, value: 100_000 }
+        ]
+      })
+      const result = validatePayjoinProposal({
+        disableOutputSubstitution: false,
+        isScriptOwned: (scriptHex) => scriptHex === changeScriptHex,
+        originalPsbtBase64: original.toBase64(),
+        paymentAmountSats: 50_000,
+        paymentScriptsHex: [paymentScriptHex],
+        proposalPsbtBase64: drained.toBase64()
+      })
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.reason).toContain('change')
+      }
+    })
+
+    it('rejects a reduced payment amount when pjos=1', () => {
+      const reduced = buildPsbt({
+        inputs: [
+          { txid: TXID_A, vout: 0 },
+          { txid: TXID_B, vout: 1 }
+        ],
+        outputs: [
+          { script: paymentScript, value: 10_000 },
+          { script: changeScript, value: 148_500 }
+        ]
+      })
+      const result = validatePayjoinProposal({
+        disableOutputSubstitution: false,
+        isScriptOwned: (scriptHex) => scriptHex === changeScriptHex,
+        originalPsbtBase64: original.toBase64(),
+        paymentAmountSats: 50_000,
+        paymentScriptsHex: [paymentScriptHex],
+        proposalPsbtBase64: reduced.toBase64()
+      })
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.reason).toContain('amount')
+      }
     })
   })
 })
