@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router'
+import { Redirect, Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, Share, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
@@ -51,8 +51,12 @@ export default function Developer() {
   const accounts = useAccountsStore((state) => state.accounts)
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
-  const [skipPin, setSkipPin] = useAuthStore(
-    useShallow((state) => [state.skipPin, state.setSkipPin])
+  const [skipPin, setSkipPin, enableDevSkipPin] = useAuthStore(
+    useShallow((state) => [
+      state.skipPin,
+      state.setSkipPin,
+      state.enableDevSkipPin
+    ])
   )
   const [currencyUnit, useZeroPadding, mnemonicWordList] = useSettingsStore(
     useShallow((s) => [s.currencyUnit, s.useZeroPadding, s.mnemonicWordList])
@@ -315,6 +319,10 @@ export default function Developer() {
     }
   }
 
+  if (!__DEV__) {
+    return <Redirect href="/" />
+  }
+
   return (
     <>
       <Stack.Screen
@@ -357,7 +365,13 @@ export default function Developer() {
                 <SSCheckbox
                   label={t('settings.developer.skipPin')}
                   selected={skipPin}
-                  onPress={() => setSkipPin(!skipPin)}
+                  onPress={() => {
+                    if (skipPin) {
+                      setSkipPin(false)
+                      return
+                    }
+                    void enableDevSkipPin()
+                  }}
                 />
               </SSVStack>
             </>

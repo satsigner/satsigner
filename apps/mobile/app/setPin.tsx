@@ -7,7 +7,6 @@ import { SSIconCheckCircleThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN } from '@/config/auth'
 import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -34,6 +33,7 @@ export default function SetPin() {
     setFirstTime,
     setRequiresAuth,
     setSkipPin,
+    enableDevSkipPin,
     skipPin,
     validatePin
   ] = useAuthStore(
@@ -42,6 +42,7 @@ export default function SetPin() {
       state.setFirstTime,
       state.setRequiresAuth,
       state.setSkipPin,
+      state.enableDevSkipPin,
       state.skipPin,
       state.validatePin
     ])
@@ -85,19 +86,17 @@ export default function SetPin() {
   }
 
   async function handleSetPinLater() {
-    // DEFAULT_PIN / lock-screen skip is development-only. Production must set a PIN.
+    // Dev-only lock-screen skip. Encryption uses a random ephemeral key, never
+    // a hardcoded PIN like "2121".
     if (!__DEV__) {
       return
     }
+    await enableDevSkipPin()
     if (fromSettings) {
-      setSkipPin(true)
-      await setPin(DEFAULT_PIN)
       router.back()
       return
     }
     setFirstTime(false)
-    setSkipPin(true)
-    await setPin(DEFAULT_PIN)
     if (showWarning) {
       router.replace('./warning')
     } else {

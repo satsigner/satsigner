@@ -23,7 +23,7 @@ import SSButton from '@/components/SSButton'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
+import { PIN_KEY, SALT_KEY } from '@/config/auth'
 import {
   sampleMultiAddressTether,
   sampleSalvadorAddress,
@@ -65,7 +65,7 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { generateSalt, getPin, pbkdf2Encrypt } from '@/utils/crypto'
+import { generateSalt, getPin, pbkdf2Encrypt, randomKey } from '@/utils/crypto'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { time } from '@/utils/time'
 
@@ -379,16 +379,17 @@ export default function AccountList() {
   }
 
   async function loadSampleWallet(type: SampleWallet) {
-    // Sample wallets need encryption key material. In development only, seed
-    // DEFAULT_PIN when none exists so demos work without completing set-PIN.
+    // Sample wallets need encryption key material. In development only, create a
+    // random ephemeral key when none exists (never a hardcoded PIN).
     try {
       await getPin()
     } catch {
       if (!__DEV__) {
         throw new Error('PIN unavailable')
       }
+      const ephemeral = await randomKey(32)
       const salt = await generateSalt()
-      const encryptedPin = await pbkdf2Encrypt(DEFAULT_PIN, salt)
+      const encryptedPin = await pbkdf2Encrypt(ephemeral, salt)
       await setItem(PIN_KEY, encryptedPin)
       await setItem(SALT_KEY, salt)
     }
