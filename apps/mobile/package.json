@@ -26,6 +26,8 @@
     "test": "pnpm test:unit && pnpm test:int",
     "test:int": "jest ./tests/int",
     "test:unit": "jest ./tests/unit",
+    "test:entropy": "jest ./tests/entropy-audit",
+    "entropy:audit": "cross-env ENTROPY_AUDIT_SAMPLES=5000 jest ./tests/entropy-audit --verbose",
     "typecheck": "tsc --noEmit",
     "types": "expo customize tsconfig.json"
   },

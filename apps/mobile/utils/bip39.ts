@@ -158,6 +158,15 @@ export async function getPublicDescriptorFromElectrumMnemonic(
   )
 }
 
+/**
+ * Generate a new BIP39 mnemonic.
+ *
+ * English uses BDK's native `Mnemonic` constructor (Rust OsRng / getrandom in
+ * the shipped libbdk_ffi). Other wordlists draw entropy via
+ * `crypto.getRandomValues` (react-native-get-random-values) and pass it to
+ * `Mnemonic.fromEntropyIn`. Both are OS CSPRNG-backed; do not replace either
+ * with Math.random or a non-crypto PRNG.
+ */
 export function generateMnemonic(
   wordCount: MnemonicWordCount = 12,
   wordListName = 'english'
