@@ -1,4 +1,11 @@
-import { randomIv, randomKey, randomNum, randomUuid } from '@/utils/crypto'
+import { shuffle } from '@/utils/array'
+import {
+  randomIv,
+  randomKey,
+  randomNum,
+  randomUuid,
+  seededRandom
+} from '@/utils/crypto'
 import { getConfirmWordCandidates } from '@/utils/seed'
 
 const englishMnemonic =
@@ -171,6 +178,39 @@ describe('randomUuid', () => {
       ids.add(randomUuid())
     }
     expect(ids.size).toBe(1000)
+  })
+})
+
+describe('seededRandom', () => {
+  it('stays within [0, 1)', () => {
+    for (let seed = 0; seed < 200; seed += 1) {
+      const next = seededRandom(seed)
+      for (let i = 0; i < 50; i += 1) {
+        const value = next()
+        expect(value).toBeGreaterThanOrEqual(0)
+        expect(value).toBeLessThan(1)
+      }
+    }
+  })
+
+  it('is deterministic for the same seed', () => {
+    const a = seededRandom(42)
+    const b = seededRandom(42)
+    for (let i = 0; i < 20; i += 1) {
+      expect(a()).toBe(b())
+    }
+  })
+
+  // Regression: dividing by 2^32-1 let a maximal word return exactly 1.0,
+  // so Fisher–Yates wrote past the end of the array (undefined hole).
+  it('never produces an out-of-range shuffle index', () => {
+    for (let seed = 0; seed < 500; seed += 1) {
+      const items = [1, 2, 3, 4, 5, 6, 7, 8]
+      const shuffled = shuffle(items, seededRandom(seed))
+      expect(shuffled).toHaveLength(items.length)
+      expect(shuffled.every((item) => item !== undefined)).toBe(true)
+      expect(new Set(shuffled).size).toBe(items.length)
+    }
   })
 })
 
