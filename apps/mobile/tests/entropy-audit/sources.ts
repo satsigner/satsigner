@@ -45,7 +45,8 @@ export function sampleBrokenLowEntropy(bits: number): Uint8Array {
   crypto.getRandomValues(seedBytes)
   let state = seedBytes[0] >>> (32 - LOW_ENTROPY_SEED_BITS)
   const rolls = Array.from({ length: requiredDiceRolls(bits) }, () => {
-    state = (Math.imul(state, LCG_MULTIPLIER) + LCG_INCREMENT) >>> 0
+    // No `>>> 0` wrap needed: Math.imul and `>>>` both reduce mod 2^32.
+    state = Math.imul(state, LCG_MULTIPLIER) + LCG_INCREMENT
     return 1 + ((state >>> 8) % 6)
   })
   return bitsToBytes(entropyFromDiceRolls(rolls, bits))

@@ -1,13 +1,3 @@
-/**
- * Use real node:crypto instead of the shared jest.fn-based mock: jest.fn
- * records every call's args and results, which retains gigabytes at
- * large-N collision sampling.
- */
-jest.mock('react-native-quick-crypto', () => ({
-  __esModule: true,
-  default: jest.requireActual('node:crypto')
-}))
-
 import { sampleSource, type EntropySourceName } from './sources'
 import {
   bitBalance,
@@ -17,6 +7,19 @@ import {
   serialCorrelation,
   uniqueBuffers
 } from './stats'
+
+/**
+ * Use real node:crypto instead of the shared jest.fn-based mock: jest.fn
+ * records every call's args and results, which retains gigabytes at
+ * large-N collision sampling.
+ */
+jest.mock<{ __esModule: true; default: typeof import('node:crypto') }>(
+  'react-native-quick-crypto',
+  () => ({
+    __esModule: true,
+    default: jest.requireActual<typeof import('node:crypto')>('node:crypto')
+  })
+)
 
 const SAMPLES = Number(process.env.ENTROPY_AUDIT_SAMPLES ?? 2000)
 /**
@@ -41,7 +44,7 @@ const HEALTHY_SOURCES: EntropySourceName[] = [
 ]
 
 /** Biased generators often repeat identical input logs; collisions there are expected. */
-const COLLISION_FREE_SOURCES: Set<EntropySourceName> = new Set([
+const COLLISION_FREE_SOURCES = new Set<EntropySourceName>([
   'csprng',
   'dice',
   'coin',
@@ -52,7 +55,11 @@ function collect(name: EntropySourceName, n = SAMPLES): Uint8Array[] {
   return Array.from({ length: n }, () => sampleSource(name, BYTE_COUNT))
 }
 
-/** Streams samples so collision runs at large N without holding them all. */
+/**
+ * Streams samples so collision runs at large N without holding them all.
+ *
+ * @yields one conditioned sample
+ */
 function* stream(name: EntropySourceName, n: number): Generator<Uint8Array> {
   for (let i = 0; i < n; i += 1) {
     yield sampleSource(name, BYTE_COUNT)
