@@ -1,19 +1,42 @@
 import QuickCrypto from 'react-native-quick-crypto'
 
-import { MnemonicWordCount } from '@/types/bips/39'
+import { type MnemonicWordCount } from '@/types/bips/39'
 
 const DICE_FACES = 6
 const COIN_SIDES = 2
 const BITS_PER_BYTE = 8
 const UINT32_RANGE = 0x100000000
+const SHA512_BITS = 512
+const MAX_PATTERN_PERIOD = 12
+
+export type EntropyOptions = {
+  /**
+   * When true, skip the minimum-length check so partial input can be hashed for
+   * live previews. Final seed generation must leave this unset/false.
+   */
+  allowPartial?: boolean
+}
 
 /**
+ * Offline reproduction (mix off):
+ *   SHA-512("dice:" + rolls.join(","))[0 .. bits/8]
+ *   SHA-512("coin:" + flips.join(""))[0 .. bits/8]
+ * Digests are SHA-512; only the leading bits/8 bytes are kept as the BIP39
+ * entropy bitstring.
+ *
  * Raw user input is never used as entropy directly. It is conditioned through
- * SHA-512 so that a biased or degenerate input sequence (an unfair coin, a user
- * tapping one button repeatedly) still yields a uniform output, and so that
- * every input position affects the result.
+ * SHA-512 so that a biased or degenerate input sequence still yields a uniform
+ * *byte distribution*. Hashing does not add entropy — unmixed seeds are only
+ * as strong as the user's input.
  */
 function hashToBits(domain: string, input: string, bits: number): string {
+  if (!Number.isInteger(bits) || bits <= 0 || bits > SHA512_BITS) {
+    throw new Error(`bits must be an integer in (0, ${SHA512_BITS}]`)
+  }
+  if (bits % BITS_PER_BYTE !== 0) {
+    throw new Error('bits must be divisible by 8')
+  }
+
   const digest = QuickCrypto.createHash('sha512')
     .update(`${domain}:${input}`)
     .digest()
@@ -40,16 +63,38 @@ export function requiredCoinFlips(bits: number): number {
  * Rolls are printed die faces (1..6), so the sequence the user records on paper
  * matches the sequence hashed here.
  */
-export function entropyFromDiceRolls(rolls: number[], bits: number): string {
-  if (rolls.some((face) => !Number.isInteger(face) || face < 1 || face > 6)) {
+export function entropyFromDiceRolls(
+  rolls: number[],
+  bits: number,
+  options: EntropyOptions = {}
+): string {
+  if (
+    rolls.some(
+      (face) => !Number.isInteger(face) || face < 1 || face > DICE_FACES
+    )
+  ) {
     throw new Error('Invalid dice roll: faces must be integers in [1, 6]')
+  }
+  if (!options.allowPartial && rolls.length < requiredDiceRolls(bits)) {
+    throw new Error(
+      `Need at least ${requiredDiceRolls(bits)} dice rolls for ${bits} bits`
+    )
   }
   return hashToBits('dice', rolls.join(','), bits)
 }
 
-export function entropyFromCoinFlips(flips: string[], bits: number): string {
+export function entropyFromCoinFlips(
+  flips: string[],
+  bits: number,
+  options: EntropyOptions = {}
+): string {
   if (flips.some((flip) => flip !== '0' && flip !== '1')) {
     throw new Error("Invalid coin flip: values must be '0' or '1'")
+  }
+  if (!options.allowPartial && flips.length < requiredCoinFlips(bits)) {
+    throw new Error(
+      `Need at least ${requiredCoinFlips(bits)} coin flips for ${bits} bits`
+    )
   }
   return hashToBits('coin', flips.join(''), bits)
 }
@@ -66,7 +111,15 @@ export function mixWithSystemEntropy(
   userEntropy: string,
   bits: number
 ): string {
-  const systemBytes = QuickCrypto.randomBytes(bits / BITS_PER_BYTE)
+  if (userEntropy.length !== bits || !/^[01]+$/.test(userEntropy)) {
+    throw new Error(
+      'userEntropy must be a binary string of the requested width'
+    )
+  }
+  const byteCount = bits / BITS_PER_BYTE
+  const systemBytes = new Uint8Array(byteCount)
+  // Same CSPRNG surface as randomIndex / randomNum (react-native-get-random-values).
+  crypto.getRandomValues(systemBytes)
   const system = Buffer.from(systemBytes).toString('hex')
   return hashToBits('mix', `${userEntropy}|${system}`, bits)
 }
@@ -133,4 +186,43 @@ export function isSequenceBiased(
   }
   const ideal = Math.log2(alphabetSize)
   return observedEntropyRate(symbols) / ideal < threshold
+}
+
+/**
+ * True when the sequence is an exact repetition of a short cycle (e.g. 1,2,3,4,5,6
+ * repeating). First-order bias checks miss this; true entropy is near zero.
+ */
+export function isSequencePatterned(symbols: string[]): boolean {
+  if (symbols.length < 8) {
+    return false
+  }
+
+  const maxPeriod = Math.min(Math.floor(symbols.length / 3), MAX_PATTERN_PERIOD)
+
+  for (let period = 1; period <= maxPeriod; period += 1) {
+    let matches = true
+    for (let i = period; i < symbols.length; i += 1) {
+      if (symbols[i] !== symbols[i % period]) {
+        matches = false
+        break
+      }
+    }
+    if (matches) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/** True when first-order bias or a short repeating cycle makes input weak. */
+export function isSequenceWeak(
+  symbols: string[],
+  alphabetSize: number,
+  threshold = 0.85
+): boolean {
+  return (
+    isSequenceBiased(symbols, alphabetSize, threshold) ||
+    isSequencePatterned(symbols)
+  )
 }

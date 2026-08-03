@@ -3,6 +3,8 @@ import {
   entropyFromCoinFlips,
   entropyFromDiceRolls,
   isSequenceBiased,
+  isSequencePatterned,
+  isSequenceWeak,
   mixWithSystemEntropy,
   observedEntropyRate,
   randomCoinFlip,
@@ -11,6 +13,14 @@ import {
   requiredCoinFlips,
   requiredDiceRolls
 } from '@/utils/entropy'
+
+const PARTIAL = { allowPartial: true } as const
+
+/** Frozen vectors: SHA-512("domain:input") truncated to bits/8 bytes as bits. */
+const DICE_KAT_128 =
+  '11111100110000101110001101010111000000011110000111001110110000010111000110001000110100110000110111111000111011100000111101110110'
+const COIN_KAT_128 =
+  '10111100110011010110000000111001010111100100000000100101110100110111000101000010101111011101111000001000110000110000101001011010'
 
 const WORD_COUNTS = [12, 15, 18, 21, 24] as const
 
@@ -140,15 +150,26 @@ describe('entropyFromDiceRolls', () => {
   it('distinguishes roll logs that differ only by a leading roll', () => {
     const base = Array.from({ length: 47 }, () => 4)
     const withLeading = [1, ...base]
-    expect(entropyFromDiceRolls(withLeading, 128)).not.toBe(
-      entropyFromDiceRolls(base, 128)
+    expect(entropyFromDiceRolls(withLeading, 128, PARTIAL)).not.toBe(
+      entropyFromDiceRolls(base, 128, PARTIAL)
     )
   })
 
   it('is order sensitive', () => {
-    const a = entropyFromDiceRolls([1, 2, 3, 4, 5, 6], 128)
-    const b = entropyFromDiceRolls([6, 5, 4, 3, 2, 1], 128)
+    const a = entropyFromDiceRolls([1, 2, 3, 4, 5, 6], 128, PARTIAL)
+    const b = entropyFromDiceRolls([6, 5, 4, 3, 2, 1], 128, PARTIAL)
     expect(a).not.toBe(b)
+  })
+
+  it('rejects too few rolls unless allowPartial is set', () => {
+    expect(() => entropyFromDiceRolls([1, 2, 3], 128)).toThrow('Need at least')
+    expect(entropyFromDiceRolls([1, 2, 3], 128, PARTIAL)).toHaveLength(128)
+  })
+
+  it('matches the frozen dice hash construction', () => {
+    expect(entropyFromDiceRolls([1, 2, 3, 4, 5, 6], 128, PARTIAL)).toBe(
+      DICE_KAT_128
+    )
   })
 
   it('is sensitive to every roll position', () => {
@@ -306,9 +327,24 @@ describe('entropyFromCoinFlips', () => {
   })
 
   it('is order sensitive', () => {
-    const a = entropyFromCoinFlips(['0', '1', '1', '0'], 128)
-    const b = entropyFromCoinFlips(['0', '1', '0', '1'], 128)
+    const a = entropyFromCoinFlips(['0', '1', '1', '0'], 128, PARTIAL)
+    const b = entropyFromCoinFlips(['0', '1', '0', '1'], 128, PARTIAL)
     expect(a).not.toBe(b)
+  })
+
+  it('rejects too few flips unless allowPartial is set', () => {
+    expect(() => entropyFromCoinFlips(['0', '1'], 128)).toThrow('Need at least')
+    expect(entropyFromCoinFlips(['0', '1'], 128, PARTIAL)).toHaveLength(128)
+  })
+
+  it('matches the frozen coin hash construction', () => {
+    expect(
+      entropyFromCoinFlips(
+        ['0', '1', '0', '1', '0', '1', '0', '1'],
+        128,
+        PARTIAL
+      )
+    ).toBe(COIN_KAT_128)
   })
 
   it('is deterministic for the same flip log', () => {
@@ -367,8 +403,8 @@ describe('entropyFromCoinFlips', () => {
 
 describe('dice and coin domain separation', () => {
   it('produces different entropy for structurally identical inputs', () => {
-    const dice = entropyFromDiceRolls([1, 1, 1, 1], 128)
-    const coin = entropyFromCoinFlips(['0', '0', '0', '0'], 128)
+    const dice = entropyFromDiceRolls([1, 1, 1, 1], 128, PARTIAL)
+    const coin = entropyFromCoinFlips(['0', '0', '0', '0'], 128, PARTIAL)
     expect(dice).not.toBe(coin)
   })
 })
@@ -586,7 +622,7 @@ describe('isSequenceBiased', () => {
     expect(isSequenceBiased(rolls, 6)).toBe(true)
   })
 
-  it('accepts a uniform dice sequence', () => {
+  it('accepts a uniform dice sequence for first-order bias', () => {
     const rolls = Array.from({ length: 300 }, (_, i) => String((i % 6) + 1))
     expect(isSequenceBiased(rolls, 6)).toBe(false)
   })
@@ -603,5 +639,61 @@ describe('isSequenceBiased', () => {
     ]
     expect(isSequenceBiased(flips, 2, 0.99)).toBe(true)
     expect(isSequenceBiased(flips, 2, 0.5)).toBe(false)
+  })
+})
+
+describe('isSequencePatterned', () => {
+  it('does not judge sequences that are too short', () => {
+    expect(isSequencePatterned(['1', '2', '1', '2', '1', '2'])).toBe(false)
+  })
+
+  it('flags a repeating 1-6 cycle', () => {
+    const rolls = Array.from({ length: 48 }, (_, i) => String((i % 6) + 1))
+    expect(isSequencePatterned(rolls)).toBe(true)
+  })
+
+  it('flags alternating coin flips', () => {
+    const flips = Array.from({ length: 40 }, (_, i) =>
+      i % 2 === 0 ? '0' : '1'
+    )
+    expect(isSequencePatterned(flips)).toBe(true)
+  })
+
+  it('accepts a non-periodic dice sequence', () => {
+    const rolls = '123156241635425163142536415263'.split('').concat('312645')
+    expect(isSequencePatterned(rolls)).toBe(false)
+  })
+})
+
+describe('isSequenceWeak', () => {
+  it('flags first-order bias', () => {
+    const flips = Array.from({ length: 100 }, () => '0')
+    expect(isSequenceWeak(flips, 2)).toBe(true)
+  })
+
+  it('flags patterned but first-order-uniform input', () => {
+    const rolls = Array.from({ length: 48 }, (_, i) => String((i % 6) + 1))
+    expect(isSequenceBiased(rolls, 6)).toBe(false)
+    expect(isSequenceWeak(rolls, 6)).toBe(true)
+  })
+})
+
+describe('mixWithSystemEntropy strength', () => {
+  it('rejects user entropy of the wrong width', () => {
+    expect(() => mixWithSystemEntropy('01', 128)).toThrow('userEntropy')
+  })
+
+  it('folds a full-width CSPRNG contribution', () => {
+    const user = entropyFromDiceRolls(
+      rollsFor(128, () => 2),
+      128
+    )
+    const spy = jest.spyOn(globalThis.crypto, 'getRandomValues')
+    mixWithSystemEntropy(user, 128)
+    expect(spy.mock.calls.length).toBeGreaterThan(0)
+    const [[arg]] = spy.mock.calls
+    expect(arg).toBeInstanceOf(Uint8Array)
+    expect(arg).toHaveLength(16)
+    spy.mockRestore()
   })
 })
