@@ -8,6 +8,7 @@ import {
   sendPayjoin,
   type FetchLike
 } from '@/api/payjoin'
+import * as payjoinNative from '@/api/payjoinNative'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
 import { validatePayjoinProposal } from '@/utils/payjoinValidate'
@@ -144,6 +145,56 @@ describe('payjoin hardening (phase 7)', () => {
     expect(usePayjoinSessionsStore.getState().hasSeenInput(`${TXID_B}:1`)).toBe(
       true
     )
+  })
+
+  it('passes working ownership and replay checks to the receiver contribute step', async () => {
+    const nativeSpy = jest.spyOn(payjoinNative, 'receiverContributeAndFinalize')
+    const session = await createReceivePayjoinSession({
+      accountId: 'a1',
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+    })
+    const original = buildPsbt({
+      inputs: [{ txid: TXID_A, vout: 0 }],
+      outputs: [{ script: paymentScript, value: 50_000 }]
+    })
+    const ownedScript = `0014${'99'.repeat(20)}`
+    const seenOutpoint = `${TXID_A}:0`
+
+    const callbacks: PayjoinWalletCallbacks = {
+      hasSeenInput: (o) => o === seenOutpoint,
+      isScriptOwned: (s) => s === ownedScript,
+      listCandidateOutpoints: () => [
+        {
+          scriptHex: `0014${'44'.repeat(20)}`,
+          txid: TXID_B,
+          value: 100_000,
+          vout: 1
+        }
+      ],
+      markInputSeen: () => undefined,
+      signPsbt: (psbt) => psbt
+    }
+
+    await finalizeReceiverPayjoin({
+      callbacks,
+      fetchImpl: () =>
+        Promise.resolve({ body: '', bytes: new Uint8Array(), status: 200 }),
+      session: {
+        ...session,
+        originalPsbtBase64: original.toBase64(),
+        status: 'proposal_received'
+      }
+    })
+
+    const contributeCall = nativeSpy.mock.calls.find((call) => call[2] === '')
+    expect(contributeCall).toBeDefined()
+    const checks = contributeCall?.[3]
+    expect(checks).toBeDefined()
+    expect(checks?.isInputOwned(ownedScript)).toBe(true)
+    expect(checks?.isInputOwned(`0014${'00'.repeat(20)}`)).toBe(false)
+    expect(checks?.isInputSeen(seenOutpoint)).toBe(true)
+    expect(checks?.isInputSeen(`${TXID_C}:0`)).toBe(false)
+    nativeSpy.mockRestore()
   })
 
   it('does not mark receiver complete when proposal POST fails', async () => {

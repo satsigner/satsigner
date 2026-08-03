@@ -620,14 +620,27 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 /**
+ * Ownership and replay predicates the receiver runs against the sender's
+ * original PSBT inputs. Mirrors the data the manual path hands to
+ * `receiverManualContribute`, but as callbacks the JS typestate can invoke
+ * directly.
+ */
+type ReceiverWalletChecks = {
+  isInputOwned: (scriptHex: string) => boolean
+  isInputSeen: (outpoint: string) => boolean
+}
+
+/**
  * Runs the receiver checks and contributes one input, or — when a signed PSBT
  * is supplied — finalizes the provisional proposal and builds the directory
- * POST. Two-phase so the wallet can sign in between.
+ * POST. Two-phase so the wallet can sign in between. `checks` is only consumed
+ * on the contribute pass; the finalize pass leaves it undefined.
  */
 async function receiverContributeAndFinalize(
   state: string,
   input: ReceiverInput,
-  signedPsbtBase64: string
+  signedPsbtBase64: string,
+  checks?: ReceiverWalletChecks
 ): Promise<{
   request: PayjoinNativeRequest
   state: string
@@ -639,7 +652,7 @@ async function receiverContributeAndFinalize(
     if (signedPsbtBase64) {
       return finalizeReceiver(id, entry, signedPsbtBase64)
     }
-    return contributeReceiver(id, entry, input)
+    return contributeReceiver(id, entry, input, checks)
   } catch (error) {
     throw toError(error)
   }
@@ -677,22 +690,31 @@ function finalizeReceiver(
 function contributeReceiver(
   id: string,
   entry: ReceiverEntry,
-  input: ReceiverInput
+  input: ReceiverInput,
+  checks?: ReceiverWalletChecks
 ): { request: PayjoinNativeRequest; state: string; psbtBase64: string } {
   if (entry.live.kind !== 'unchecked') {
     throw new Error('no original proposal to contribute to; poll first')
   }
   const persister = createPersister()
   const { receiveScriptHex } = entry
+  const isInputOwned = checks?.isInputOwned ?? (() => false)
+  const isInputSeen = checks?.isInputSeen ?? (() => false)
 
   const maybeOwned = entry.live.receiver
     .assumeInteractiveReceiver()
     .save(persister)
   const maybeSeen = maybeOwned
-    .checkInputsNotOwned({ callback: () => false })
+    .checkInputsNotOwned({
+      callback: (script: ArrayBuffer) =>
+        isInputOwned(bytesToHex(new Uint8Array(script)))
+    })
     .save(persister)
   const outputsUnknown = maybeSeen
-    .checkNoInputsSeenBefore({ callback: () => false })
+    .checkNoInputsSeenBefore({
+      callback: (outpoint: { txid: string; vout: number }) =>
+        isInputSeen(`${outpoint.txid}:${outpoint.vout}`)
+    })
     .save(persister)
   const wantsOutputs = outputsUnknown
     .identifyReceiverOutputs({

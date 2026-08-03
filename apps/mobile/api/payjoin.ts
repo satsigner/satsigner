@@ -1474,11 +1474,24 @@ async function finalizeReceiverPayjoin(params: {
     sessionId: params.session.id
   })
 
-  // First pass builds the provisional Payjoin PSBT (empty signature).
+  // First pass builds the provisional Payjoin PSBT (empty signature). The
+  // ownership and replay checks reject a sender that tries to spend the
+  // receiver's own coins or probe its UTXO set with a replayed input.
+  const walletChecks = {
+    isInputOwned: (scriptHex: string) => {
+      const owned = params.callbacks.isScriptOwned(scriptHex)
+      return typeof owned === 'boolean' ? owned : false
+    },
+    isInputSeen: (outpoint: string) => {
+      const seen = params.callbacks.hasSeenInput(outpoint)
+      return typeof seen === 'boolean' ? seen : false
+    }
+  }
   const prepared = await receiverContributeAndFinalize(
     params.session.nativeState,
     chosen,
-    ''
+    '',
+    walletChecks
   )
   const signed = await params.callbacks.signPsbt(prepared.psbtBase64)
   const {

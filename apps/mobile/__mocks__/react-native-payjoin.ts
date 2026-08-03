@@ -165,7 +165,11 @@ async function receiverContributeAndFinalize(
     value: number
     scriptHex: string
   },
-  signedPsbtBase64: string
+  signedPsbtBase64: string,
+  _checks?: {
+    isInputOwned: (scriptHex: string) => boolean
+    isInputSeen: (outpoint: string) => boolean
+  }
 ): Promise<{
   request: PayjoinNativeRequest
   state: string
