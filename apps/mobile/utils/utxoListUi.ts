@@ -38,31 +38,31 @@ function utxoSortFieldLabel(field: UtxoSortField) {
 
 function utxoGroupModeLabel(mode: UtxoGroupMode) {
   if (mode === 'none') {
-    return t('utxo.group.option.none')
+    return t('utxo.grouping.option.none')
   }
   if (mode === 'address') {
-    return t('utxo.group.option.address')
+    return t('utxo.grouping.option.address')
   }
   if (mode === 'label') {
-    return t('utxo.group.option.label')
+    return t('utxo.grouping.option.label')
   }
   if (mode === 'tag') {
-    return t('utxo.group.option.tag')
+    return t('utxo.grouping.option.tag')
   }
-  return t('utxo.group.option.keychain')
+  return t('utxo.grouping.option.keychain')
 }
 
 function groupDisplayTitle(mode: UtxoGroupMode, key: string, title: string) {
   if (mode === 'keychain') {
     return key === 'internal'
-      ? t('utxo.group.keychain.change')
-      : t('utxo.group.keychain.receive')
+      ? t('utxo.grouping.keychain.change')
+      : t('utxo.grouping.keychain.receive')
   }
   if (mode === 'label' && !title) {
-    return t('utxo.group.unlabeled')
+    return t('utxo.grouping.unlabeled')
   }
   if (mode === 'tag' && !title) {
-    return t('utxo.group.untagged')
+    return t('utxo.grouping.untagged')
   }
   if (mode === 'tag') {
     return `#${title}`

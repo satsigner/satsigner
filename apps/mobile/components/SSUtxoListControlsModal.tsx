@@ -207,7 +207,7 @@ function SSUtxoListControlsModal({
 
             <SSVStack gap="sm">
               <SSText color="muted" uppercase center>
-                {t('utxo.group.title')}
+                {t('utxo.grouping.title')}
               </SSText>
               <SSVStack gap="xs">
                 <SSRadioButton
