@@ -98,9 +98,6 @@ export default function SingleSig() {
           router.navigate('/signer/bitcoin/account/add/generate/mnemonic/0')
           break
         }
-        case 'drawing': {
-          break
-        }
         case 'coin': {
           router.navigate({
             params: { index: 0 },

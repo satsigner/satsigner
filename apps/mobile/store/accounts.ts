@@ -3,15 +3,6 @@ import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
 import {
-  accountKeys,
-  addressKeys,
-  labelKeys,
-  nostrKeys,
-  tagKeys,
-  transactionKeys,
-  utxoKeys
-} from '@/db/keys'
-import {
   deleteAccount as deleteAccountDb,
   deleteAllAccounts as deleteAllAccountsDb,
   insertAccount as insertAccountDb,
@@ -39,7 +30,6 @@ import {
 } from '@/db/mutations/tags'
 import { upsertSingleTransaction } from '@/db/mutations/transactions'
 import { getAccountById, getAccounts } from '@/db/queries/accounts'
-import { queryClient } from '@/lib/queryClient'
 import { deleteAllKeySecrets, deleteKeySecret } from '@/storage/encrypted'
 import { type Label } from '@/types/bips/329'
 import {
@@ -120,27 +110,6 @@ type AccountsAction = {
   resetKey: (accountId: Account['id'], keyIndex: number) => void
 }
 
-/**
- * Invalidate TanStack Query cache after a Zustand mutation.
- * Keeps TQ consumers in sync when mutations go through the store.
- */
-function invalidateAccount(accountId: string) {
-  queryClient.invalidateQueries({ queryKey: accountKeys.detail(accountId) })
-  queryClient.invalidateQueries({ queryKey: transactionKeys.all(accountId) })
-  queryClient.invalidateQueries({ queryKey: utxoKeys.all(accountId) })
-  queryClient.invalidateQueries({ queryKey: addressKeys.all(accountId) })
-  queryClient.invalidateQueries({ queryKey: labelKeys.all(accountId) })
-  queryClient.invalidateQueries({ queryKey: nostrKeys.dms(accountId) })
-}
-
-function invalidateAllAccounts() {
-  queryClient.invalidateQueries({ queryKey: accountKeys.all })
-}
-
-function invalidateTags() {
-  queryClient.invalidateQueries({ queryKey: tagKeys.all })
-}
-
 type ImmerSet = (fn: (state: Draft<AccountsState>) => void) => void
 
 /**
@@ -170,7 +139,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       set((state) => {
         state.accounts.push(account)
       })
-      invalidateAllAccounts()
     },
     deleteAccount: (id) => {
       const account = get().accounts.find((a) => a.id === id)
@@ -184,7 +152,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts.splice(index, 1)
         }
       })
-      invalidateAllAccounts()
     },
     deleteAccounts: () => {
       const { accounts } = get()
@@ -195,12 +162,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       set((state) => {
         state.accounts = []
       })
-      invalidateAllAccounts()
     },
     deleteTags: () => {
       deleteTagsDb()
       set({ tags: [] })
-      invalidateTags()
     },
     dropSeedFromKey: async (accountId, keyIndex) => {
       const state = get()
@@ -232,7 +197,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           }
           state.accounts[accountIndex].keys[keyIndex] = newKey
         })
-        invalidateAccount(accountId)
         return {
           message: 'Seed dropped successfully',
           success: true
@@ -249,7 +213,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
     importLabels: (accountId: string, labels: Label[]) => {
       const labelsAdded = importLabelsDb(accountId, labels)
       reloadAccount(set, accountId)
-      invalidateAccount(accountId)
       return labelsAdded
     },
     loadTx: (accountId, tx) => {
@@ -273,7 +236,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       set((state) => {
         state.accounts[accountIndex].transactions[txIndex] = tx
       })
-      invalidateAccount(accountId)
     },
     markDmsAsRead: (id) => {
       markDmsAsReadDb(id)
@@ -286,7 +248,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (dm) => (dm.read === false ? { ...dm, read: true } : dm)
         )
       })
-      invalidateAccount(id)
     },
     resetKey: (accountId, keyIndex) => {
       const resetKeyData: Key = {
@@ -319,7 +280,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
         state.accounts[accountIndex].keys[keyIndex] = resetKeyData
       })
-      invalidateAccount(accountId)
     },
     setAddrLabel: (accountId, addr, label) => {
       const account = get().accounts.find((account) => account.id === accountId)
@@ -328,7 +288,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       }
 
       cascadeAddrLabel(accountId, addr, label)
-      invalidateAccount(accountId)
       return reloadAccount(set, accountId)
     },
     setLastSyncedAt: (id, date) => {
@@ -339,7 +298,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts[index].lastSyncedAt = date
         }
       })
-      invalidateAccount(id)
     },
     setSyncProgress: (id, syncProgress) => {
       updateSyncProgressDb(id, syncProgress)
@@ -351,7 +309,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           }
         }
       })
-      invalidateAccount(id)
     },
     setSyncStatus: (id, syncStatus) => {
       updateSyncStatusDb(id, syncStatus)
@@ -361,12 +318,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts[index].syncStatus = syncStatus
         }
       })
-      invalidateAccount(id)
     },
     setTags: (tags: string[]) => {
       setTagsDb(tags)
       set({ tags })
-      invalidateTags()
     },
     setTxLabel: (accountId, txid, label) => {
       const account = get().accounts.find((account) => account.id === accountId)
@@ -375,7 +330,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       }
 
       cascadeTxLabel(accountId, txid, label)
-      invalidateAccount(accountId)
       return reloadAccount(set, accountId)
     },
     setUtxoLabel: (accountId, txid, vout, label) => {
@@ -385,7 +339,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       }
 
       cascadeUtxoLabel(accountId, txid, vout, label)
-      invalidateAccount(accountId)
       return reloadAccount(set, accountId)
     },
     tags: getTagsDb(),
@@ -415,7 +368,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       updateFullAccountDb(mergedAccount)
 
       reloadAccount(set, account.id)
-      invalidateAccount(account.id)
     },
     updateAccountBirthday: (id, date) => {
       const account = get().accounts.find((a) => a.id === id)
@@ -445,7 +397,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts[index].rpcLastBlockHash = undefined
         }
       })
-      invalidateAccount(id)
     },
     updateAccountName: (id, newName) => {
       updateAccountNameDb(id, newName)
@@ -455,7 +406,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts[index].name = newName
         }
       })
-      invalidateAccount(id)
     },
     updateAccountNostr: (id, nostr) => {
       updateAccountNostrDb(id, nostr)
@@ -480,7 +430,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           ...nostr
         }
       })
-      invalidateAccount(id)
     },
     updateKeyName: (id, keyIndex, newName) => {
       const account = get().accounts.find((a) => a.id === id)
@@ -501,7 +450,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
         state.accounts[index].keys[keyIndex].name = newName
       })
-      invalidateAccount(id)
     }
   }))
 )

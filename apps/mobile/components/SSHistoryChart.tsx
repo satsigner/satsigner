@@ -16,7 +16,15 @@ import {
   TileMode,
   vec
 } from '@shopify/react-native-skia'
-import * as d3 from 'd3'
+import { format } from 'd3-format'
+import {
+  type ScaleLinear,
+  type ScaleTime,
+  scaleLinear,
+  scaleTime
+} from 'd3-scale'
+import { area, curveStepAfter, line } from 'd3-shape'
+import { timeFormat } from 'd3-time-format'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Fragment, memo, useCallback, useMemo, useRef, useState } from 'react'
 import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
@@ -291,14 +299,13 @@ function SSHistoryChart({
   const chartHeight = containerSize.height - margin.top - margin.bottom
 
   const xScale = useMemo(
-    () => d3.scaleTime().domain([startDate, endDate]).range([0, chartWidth]),
+    () => scaleTime().domain([startDate, endDate]).range([0, chartWidth]),
     [chartWidth, endDate, startDate]
   )
 
   const yScale = useMemo(
     () =>
-      d3
-        .scaleLinear()
+      scaleLinear()
         .domain([
           lockZoomToXAxis ? 0 : startY,
           lockZoomToXAxis
@@ -587,22 +594,20 @@ function SSHistoryChart({
 
   const lineGenerator = useMemo(
     () =>
-      d3
-        .line<HistoryChartData>()
+      line<HistoryChartData>()
         .x((d) => xScale(d.date))
         .y((d) => yScale(d.balance))
-        .curve(d3.curveStepAfter),
+        .curve(curveStepAfter),
     [xScale, yScale]
   )
 
   const areaGenerator = useMemo(
     () =>
-      d3
-        .area<HistoryChartData>()
+      area<HistoryChartData>()
         .x((d) => xScale(d.date))
         .y0(chartHeight * scale)
         .y1((d) => yScale(d.balance))
-        .curve(d3.curveStepAfter),
+        .curve(curveStepAfter),
     [chartHeight, scale, xScale, yScale]
   )
 
@@ -615,8 +620,8 @@ function SSHistoryChart({
     [areaGenerator, validChartData]
   )
 
-  const yAxisFormatter = useMemo(() => d3.format('.3s'), [])
-  const numberCommaFormatter = useMemo(() => d3.format(','), [])
+  const yAxisFormatter = useMemo(() => format('.3s'), [])
+  const numberCommaFormatter = useMemo(() => format(','), [])
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout
@@ -1179,7 +1184,7 @@ function SSHistoryChart({
 type YScaleRendererProps = {
   customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
-  yScale: d3.ScaleLinear<number, number>
+  yScale: ScaleLinear<number, number>
   chartHeight: number
   chartWidth: number
   yAxisFormatter: (value: number) => string
@@ -1498,7 +1503,7 @@ const MemoizedXScaleRenderer = memo(XScaleRenderer)
 type XAxisRendererProps = {
   customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
-  xScale: d3.ScaleTime<number, number>
+  xScale: ScaleTime<number, number>
   chartHeight: number
   showTransactionInfo: boolean
 }
@@ -1516,9 +1521,8 @@ function XAxisRenderer({
   const font = matchFont(fontStyle, customFontManager)
   const ticks = xScale.ticks(3)
   const tickData = ticks.map((tick, index) => {
-    const currentDate = d3.timeFormat('%b %d')(tick)
-    const previousDate =
-      index > 0 ? d3.timeFormat('%b %d')(ticks[index - 1]) : ''
+    const currentDate = timeFormat('%b %d')(tick)
+    const previousDate = index > 0 ? timeFormat('%b %d')(ticks[index - 1]) : ''
     const displayTime = previousDate === currentDate
     return { currentDate, displayTime, tick, x: xScale(tick) }
   })
@@ -1529,9 +1533,7 @@ function XAxisRenderer({
           <Text
             x={x}
             y={chartHeight + (showTransactionInfo ? 60 : 20)}
-            text={
-              displayTime ? d3.timeFormat('%b %d %H:%M')(tick) : currentDate
-            }
+            text={displayTime ? timeFormat('%b %d %H:%M')(tick) : currentDate}
             font={font}
             color="#777777"
           />
@@ -1809,7 +1811,7 @@ type CursorRendererProps = {
   fontStyle: { fontFamily: string; fontSize: number }
   cursorX: Date | undefined
   cursorY: number | undefined
-  xScale: d3.ScaleTime<number, number>
+  xScale: ScaleTime<number, number>
   chartHeight: number
   zeroPadding: boolean
 }

@@ -19,6 +19,12 @@ function getDb(): NitroSQLiteConnection {
     const db = open({ name: DB_NAME })
     db.execute('PRAGMA journal_mode = WAL')
     db.execute('PRAGMA foreign_keys = ON')
+    // NORMAL is safe under WAL: an app crash cannot corrupt the db, only an OS
+    // crash / power loss can lose the last commits. Everything stored here is
+    // re-syncable chain data — key material lives in expo-secure-store.
+    db.execute('PRAGMA synchronous = NORMAL')
+    db.execute('PRAGMA cache_size = -8000')
+    db.execute('PRAGMA temp_store = MEMORY')
     globalThis.__satsignerDb = db
     migratedForModuleLoad = false
   }
