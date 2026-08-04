@@ -67,7 +67,7 @@ export function formatCompactFiat(value: number): string {
     return `${formatNumber(value / 1_000_000, 1)}M`
   }
   if (value >= 1_000) {
-    return `${formatNumber(value / 1_000, 0)}k`
+    return `${formatNumber(value / 1_000, 1)}k`
   }
   return formatNumber(value, 0)
 }

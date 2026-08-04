@@ -24,14 +24,17 @@ const TIMEOUT_MS = 30_000
 const TIMEOUT_TOR_MS = 90_000
 function withTimeout<T>(promise: Promise<T>, url: string): Promise<T> {
   const ms = url.includes('.onion') ? TIMEOUT_TOR_MS : TIMEOUT_MS
-  return Promise.race([
-    promise,
-    new Promise<T>((_resolve, reject) => {
-      setTimeout(() => {
-        reject(new Error('timeout'))
-      }, ms)
-    })
-  ])
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const timeoutPromise = new Promise<T>((_resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('timeout'))
+    }, ms)
+  })
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId)
+    }
+  })
 }
 
 function bytesToHex(bytes: Uint8Array): string {

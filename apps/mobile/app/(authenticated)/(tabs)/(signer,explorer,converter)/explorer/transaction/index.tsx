@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -101,6 +101,7 @@ export default function ExplorerTransaction() {
   const router = useRouter()
   const [inputTxid, setInputTxid] = useState('')
   const [scanOpen, setScanOpen] = useState(false)
+  const scannedRef = useRef(false)
   const [nfcOpen, setNfcOpen] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
   const { isAvailable: nfcAvailable } = useNFCReader()
@@ -130,7 +131,7 @@ export default function ExplorerTransaction() {
   function handleInputContent(text: string) {
     const trimmed = text.trim().toLowerCase()
     setInputTxid(trimmed)
-    if (trimmed.length === TXID_LENGTH) {
+    if (detectInputType(trimmed) === 'txid') {
       navigate(trimmed)
     }
   }
@@ -160,10 +161,20 @@ export default function ExplorerTransaction() {
         return
       }
     }
+    scannedRef.current = false
     setScanOpen(true)
   }
 
+  function handleScanClose() {
+    setScanOpen(false)
+    scannedRef.current = false
+  }
+
   function handleBarcodeScanned({ data }: { data: string }) {
+    if (scannedRef.current) {
+      return
+    }
+    scannedRef.current = true
     setScanOpen(false)
     handleInputContent(data)
   }
@@ -258,7 +269,7 @@ export default function ExplorerTransaction() {
         </SSVStack>
       </ScrollView>
 
-      <SSModal visible={scanOpen} onClose={() => setScanOpen(false)}>
+      <SSModal visible={scanOpen} onClose={handleScanClose}>
         <CameraView
           style={styles.camera}
           onBarcodeScanned={handleBarcodeScanned}

@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -17,6 +17,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { parseUriParameters, stripBitcoinPrefix } from '@/utils/parse'
 
 const tn = _tn('explorer.address')
 
@@ -27,16 +28,23 @@ function formatExampleAddress(address: string): string {
   return `${address.slice(0, 10)}...${address.slice(-8)}`
 }
 
+function resolveExplorerAddressInput(raw: string): string {
+  const stripped = stripBitcoinPrefix(raw.trim())
+  const parsed = parseUriParameters(stripped)
+  return (parsed?.address ?? stripped).trim()
+}
+
 export default function ExplorerAddress() {
   const router = useRouter()
   const [input, setInput] = useState('')
   const [scanOpen, setScanOpen] = useState(false)
+  const scannedRef = useRef(false)
   const [permission, requestPermission] = useCameraPermissions()
   const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork)
   const showExamples = selectedNetwork === 'bitcoin'
 
   function navigate(address: string) {
-    const trimmed = address.trim()
+    const trimmed = resolveExplorerAddressInput(address)
     if (!trimmed) {
       toast.error(tn('invalid'))
       return
@@ -72,14 +80,24 @@ export default function ExplorerAddress() {
         return
       }
     }
+    scannedRef.current = false
     setScanOpen(true)
   }
 
-  function handleBarcodeScanned({ data }: { data: string }) {
+  function handleScanClose() {
     setScanOpen(false)
-    const trimmed = data.trim()
-    setInput(trimmed)
-    navigate(trimmed)
+    scannedRef.current = false
+  }
+
+  function handleBarcodeScanned({ data }: { data: string }) {
+    if (scannedRef.current) {
+      return
+    }
+    scannedRef.current = true
+    setScanOpen(false)
+    const resolved = resolveExplorerAddressInput(data)
+    setInput(resolved)
+    navigate(resolved)
   }
 
   return (
@@ -155,7 +173,7 @@ export default function ExplorerAddress() {
         </SSVStack>
       </ScrollView>
 
-      <SSModal visible={scanOpen} onClose={() => setScanOpen(false)}>
+      <SSModal visible={scanOpen} onClose={handleScanClose}>
         <CameraView
           style={styles.camera}
           onBarcodeScanned={handleBarcodeScanned}

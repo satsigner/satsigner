@@ -75,6 +75,7 @@ type TransactionBuilderState = {
 type TransactionBuilderAction = {
   clearPsbt: () => void
   clearTransaction: () => void
+  clearAllData: () => void
   setAccountId: (accountId: string) => void
   getInputs: () => Utxo[]
   hasInput: (utxo: Utxo) => boolean
@@ -171,6 +172,25 @@ const useTransactionBuilderStore = create<
         })
       },
       broadcasted: false,
+      clearAllData: () => {
+        set({
+          accountId: undefined,
+          broadcasted: false,
+          cpfp: true,
+          drafts: {},
+          fee: 0,
+          feeRate: 0,
+          inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+          outputs: [],
+          psbt: undefined,
+          rbf: true,
+          selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
+          signedPsbts: new Map<number, string>(),
+          signedTx: undefined,
+          stonewallPreview: normalizeStonewallPreview(),
+          timeLock: 0
+        })
+      },
       clearPsbt: () => {
         set({ psbt: undefined })
       },

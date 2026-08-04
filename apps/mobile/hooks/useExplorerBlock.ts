@@ -26,6 +26,7 @@ export function useExplorerBlock(height: number | null) {
   const mempoolEnabled = useMempool && mempoolForHeight === resolvedHeight
 
   const tipQuery = useQuery({
+    enabled: Boolean(backendUrl) && ready,
     queryFn: () => fetchExplorerTipHeight(backendUrl, backend, rpcCredentials),
     queryKey: ['explorer-tip-height', backend, backendUrl, selectedNetwork],
     staleTime: time.minutes(1)

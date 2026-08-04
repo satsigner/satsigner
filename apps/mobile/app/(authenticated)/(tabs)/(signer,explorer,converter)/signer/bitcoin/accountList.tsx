@@ -446,21 +446,18 @@ export default function AccountList() {
   }
 
   async function loadSampleWallet(type: SampleWallet) {
-    // Check if PIN is available, if not set a default one
-    const pin = await getPin()
-
-    // TODO: remove DEFAULT_PIN
-    if (!pin) {
+    // Sample wallets need encryption key material. In development only, seed
+    // DEFAULT_PIN when none exists so demos work without completing set-PIN.
+    try {
+      await getPin()
+    } catch {
+      if (!__DEV__) {
+        throw new Error('PIN unavailable')
+      }
       const salt = await generateSalt()
       const encryptedPin = await pbkdf2Encrypt(DEFAULT_PIN, salt)
       await setItem(PIN_KEY, encryptedPin)
       await setItem(SALT_KEY, salt)
-    }
-
-    // Verify PIN is accessible
-    const verifyPin = await getPin()
-    if (!verifyPin) {
-      throw new Error('Failed to set or retrieve PIN')
     }
 
     setName(`Sample (${type})`)

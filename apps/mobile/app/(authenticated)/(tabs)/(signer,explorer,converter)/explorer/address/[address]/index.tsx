@@ -1,4 +1,3 @@
-import { FlashList } from '@shopify/flash-list'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -33,12 +32,12 @@ import type { ExplorerAddressUtxo } from '@/types/explorer/address'
 import type { Utxo } from '@/types/models/Utxo'
 import { formatExplorerBackendSource } from '@/utils/explorerCapabilities'
 import { formatNumber } from '@/utils/format'
+import { parseUriParameters, stripBitcoinPrefix } from '@/utils/parse'
 
 const tn = _tn('explorer.address')
 
 const EMPTY_UTXO_SELECTION: Utxo[] = []
 const UTXO_BUBBLE_CHART_HEIGHT = 280
-const UTXO_LIST_HEIGHT = 220
 const TOGGLE_ICON_SIZE = 16
 const LOADER_SIZE = 80
 const SCREEN_PADDING = 20
@@ -84,14 +83,6 @@ function UtxoRow({ utxo }: UtxoRowProps) {
   )
 }
 
-function renderUtxo({ item }: { item: ExplorerAddressUtxo }) {
-  return <UtxoRow utxo={item} />
-}
-
-function utxoKey(item: ExplorerAddressUtxo) {
-  return `${item.txid}:${item.vout}`
-}
-
 function resolveAddressParam(
   address: string | string[] | undefined
 ): string | null {
@@ -100,9 +91,14 @@ function resolveAddressParam(
     return null
   }
   try {
-    return decodeURIComponent(raw).trim()
+    const decoded = decodeURIComponent(raw).trim()
+    const stripped = stripBitcoinPrefix(decoded)
+    const parsed = parseUriParameters(stripped)
+    return (parsed?.address ?? stripped).trim() || null
   } catch {
-    return raw.trim()
+    const stripped = stripBitcoinPrefix(raw.trim())
+    const parsed = parseUriParameters(stripped)
+    return (parsed?.address ?? stripped).trim() || null
   }
 }
 
@@ -309,12 +305,10 @@ export default function ExplorerAddressDetail() {
                   />
                 </GestureHandlerRootView>
               ) : (
-                <SSVStack style={styles.listBox}>
-                  <FlashList
-                    data={data.utxos}
-                    keyExtractor={utxoKey}
-                    renderItem={renderUtxo}
-                  />
+                <SSVStack gap="none">
+                  {data.utxos.map((utxo) => (
+                    <UtxoRow key={`${utxo.txid}:${utxo.vout}`} utxo={utxo} />
+                  ))}
                 </SSVStack>
               )}
             </SSVStack>
@@ -322,6 +316,7 @@ export default function ExplorerAddressDetail() {
             <SSExplorerAddressTransactions
               address={data.address}
               txids={data.txids}
+              heightByTxid={data.heightByTxid}
               preferMempool={useMempool}
             />
           </>
@@ -355,9 +350,6 @@ const styles = StyleSheet.create({
   headerAmount: { alignItems: 'center', marginTop: Layout.vStack.gap.md },
   headerAmountRow: { alignItems: 'baseline', width: 'auto' },
   headerTitle: { alignItems: 'center' },
-  listBox: {
-    height: UTXO_LIST_HEIGHT
-  },
   listItem: {
     borderTopColor: Colors.gray[800],
     borderTopWidth: 1,

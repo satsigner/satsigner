@@ -103,6 +103,8 @@ export function fetchBackendServerInfo(
   return Promise.resolve(EMPTY_SERVER_INFO)
 }
 
+const MAINNET_P2P_PORT = 8333
+
 function extractHost(url: string): string {
   try {
     const withProto = url.includes('://') ? url : `tcp://${url}`
@@ -112,24 +114,34 @@ function extractHost(url: string): string {
   }
 }
 
+function extractPort(url: string): number {
+  try {
+    const withProto = url.includes('://') ? url : `tcp://${url}`
+    const { port } = new URL(withProto)
+    return port ? Number(port) : MAINNET_P2P_PORT
+  } catch {
+    const match = /:(\d+)$/.exec(url)
+    return match ? Number(match[1]) : MAINNET_P2P_PORT
+  }
+}
+
 export async function fetchBitnodesNodeInfo(
-  serverUrl: string
+  serverUrl: string,
+  network: Network
 ): Promise<BitnodesNodeInfo | null> {
+  // Bitnodes only indexes mainnet. On testnet/signet the same host would match
+  // an unrelated mainnet node record, so skip the lookup entirely.
+  if (network !== 'bitcoin') {
+    return null
+  }
   const host = extractHost(serverUrl)
   if (!host) {
     return null
   }
+  const port = extractPort(serverUrl)
 
   try {
-    const snapshotRes = await fetch(`${BITNODES_API}/snapshots/?limit=1`)
-    const snapshot = (await snapshotRes.json()) as {
-      results: { url: string }[]
-    }
-    if (!snapshot.results?.[0]?.url) {
-      return null
-    }
-
-    const nodeRes = await fetch(`${BITNODES_API}/nodes/${host}-8333/`)
+    const nodeRes = await fetch(`${BITNODES_API}/nodes/${host}-${port}/`)
     if (!nodeRes.ok) {
       return null
     }
@@ -157,18 +169,38 @@ export type NetworkStats = {
   countryDistribution: { country: string; count: number }[]
 }
 
+const EMPTY_NETWORK_STATS: NetworkStats = {
+  countryDistribution: [],
+  totalNodes: 0,
+  versionDistribution: []
+}
+
 export async function fetchBitnodesNetworkStats(): Promise<NetworkStats> {
+  try {
+    return await fetchBitnodesNetworkStatsUnsafe()
+  } catch {
+    return EMPTY_NETWORK_STATS
+  }
+}
+
+async function fetchBitnodesNetworkStatsUnsafe(): Promise<NetworkStats> {
   const snapshotRes = await fetch(`${BITNODES_API}/snapshots/?limit=1`)
+  if (!snapshotRes.ok) {
+    return EMPTY_NETWORK_STATS
+  }
   const snapshot = (await snapshotRes.json()) as {
     results: { url: string; total_nodes: number }[]
   }
 
   const latest = snapshot.results?.[0]
   if (!latest) {
-    return { countryDistribution: [], totalNodes: 0, versionDistribution: [] }
+    return EMPTY_NETWORK_STATS
   }
 
   const nodesRes = await fetch(`${latest.url}?limit=500`)
+  if (!nodesRes.ok) {
+    return EMPTY_NETWORK_STATS
+  }
   const nodesData = (await nodesRes.json()) as {
     total_nodes: number
     nodes: Record<
@@ -187,6 +219,10 @@ export async function fetchBitnodesNetworkStats(): Promise<NetworkStats> {
         string
       ]
     >
+  }
+
+  if (!nodesData.nodes || typeof nodesData.nodes !== 'object') {
+    return { ...EMPTY_NETWORK_STATS, totalNodes: nodesData.total_nodes ?? 0 }
   }
 
   const versionMap: Record<string, number> = {}

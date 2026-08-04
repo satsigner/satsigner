@@ -69,7 +69,7 @@ export default function Developer() {
   >(null)
   const [backupPassphrase, setBackupPassphrase] = useState('')
   async function buildBackupWithSeeds(): Promise<string> {
-    const pin = await getPin(skipPin)
+    const pin = await getPin()
     const keysWithSeeds = async (accountId: string, keys: Key[]) => {
       const result = []
       for (const key of keys) {
@@ -352,14 +352,18 @@ export default function Developer() {
               onPress={() => setClearStorageModalVisible(true)}
             />
           </SSVStack>
-          <SSSeparator color="gradient" />
-          <SSVStack>
-            <SSCheckbox
-              label={t('settings.developer.skipPin')}
-              selected={skipPin}
-              onPress={() => setSkipPin(!skipPin)}
-            />
-          </SSVStack>
+          {__DEV__ ? (
+            <>
+              <SSSeparator color="gradient" />
+              <SSVStack>
+                <SSCheckbox
+                  label={t('settings.developer.skipPin')}
+                  selected={skipPin}
+                  onPress={() => setSkipPin(!skipPin)}
+                />
+              </SSVStack>
+            </>
+          ) : null}
           <SSSeparator color="gradient" />
           <SSVStack>
             <SSButton

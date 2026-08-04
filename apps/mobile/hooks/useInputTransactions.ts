@@ -728,6 +728,13 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
 
       // Keep ancestors linked by outpoint even when address matching fails
       // (RPC / hex fallback often lack prevout addresses).
+      const spentByIncluded = new Set<string>()
+      for (const included of filteredTransactions.values()) {
+        for (const vin of included.vin ?? []) {
+          spentByIncluded.add(normalizeTxid(vin.previousOutput.txid))
+        }
+      }
+
       let expanded = true
       while (expanded) {
         expanded = false
@@ -735,16 +742,14 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
           if (filteredTransactions.has(txid)) {
             continue
           }
-          const spendsThis = Array.from(filteredTransactions.values()).some(
-            (included) =>
-              included.vin?.some(
-                (vin) => normalizeTxid(vin.previousOutput.txid) === txid
-              )
-          )
-          if (spendsThis) {
-            filteredTransactions.set(txid, tx)
-            expanded = true
+          if (!spentByIncluded.has(txid)) {
+            continue
           }
+          filteredTransactions.set(txid, tx)
+          for (const vin of tx.vin ?? []) {
+            spentByIncluded.add(normalizeTxid(vin.previousOutput.txid))
+          }
+          expanded = true
         }
       }
 

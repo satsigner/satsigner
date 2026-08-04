@@ -1,4 +1,3 @@
-import { FlashList } from '@shopify/flash-list'
 import { router } from 'expo-router'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -19,7 +18,6 @@ import type { Transaction } from '@/types/models/Transaction'
 const tn = _tn('explorer.address')
 
 const LOADER_SIZE = 48
-const TXID_LIST_HEIGHT = 220
 
 type TxRowProps = {
   txid: string
@@ -43,23 +41,17 @@ function TxRow({ txid }: TxRowProps) {
   )
 }
 
-function renderTx({ item }: { item: string }) {
-  return <TxRow txid={item} />
-}
-
-function txKey(txid: string) {
-  return txid
-}
-
 type SSExplorerAddressTransactionsProps = {
   address: string
   txids: string[]
+  heightByTxid?: Record<string, number>
   preferMempool?: boolean
 }
 
 function SSExplorerAddressTransactions({
   address,
   txids,
+  heightByTxid,
   preferMempool = false
 }: SSExplorerAddressTransactionsProps) {
   const blockchainHeight = useBlockchainStore(
@@ -79,6 +71,7 @@ function SSExplorerAddressTransactions({
     useMempool
   } = useExplorerAddressTxDetails({
     address,
+    heightByTxid,
     preferMempool,
     txids
   })
@@ -162,8 +155,10 @@ function SSExplorerAddressTransactions({
       ) : null}
 
       {!requested && txids.length > 0 && !isFetching ? (
-        <SSVStack style={styles.listBox}>
-          <FlashList data={txids} keyExtractor={txKey} renderItem={renderTx} />
+        <SSVStack gap="none">
+          {txids.map((txid) => (
+            <TxRow key={txid} txid={txid} />
+          ))}
         </SSVStack>
       ) : null}
     </SSVStack>
@@ -171,9 +166,6 @@ function SSExplorerAddressTransactions({
 }
 
 const styles = StyleSheet.create({
-  listBox: {
-    height: TXID_LIST_HEIGHT
-  },
   listItem: {
     borderTopColor: Colors.gray[800],
     borderTopWidth: 1,

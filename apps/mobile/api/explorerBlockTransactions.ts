@@ -25,7 +25,7 @@ export async function fetchBlockTxidsFromBackend(
     ])
     return {
       height: block.height,
-      sizes: sampleTxs.map((tx) => tx.weight),
+      sizes: sampleTxs.map((tx) => Math.ceil(tx.weight / 4)),
       source: 'backend',
       txids
     }
@@ -60,7 +60,7 @@ export async function fetchBlockTxidsFromMempool(
   ])
   return {
     height: block.height,
-    sizes: sampleTxs.map((tx) => tx.weight),
+    sizes: sampleTxs.map((tx) => Math.ceil(tx.weight / 4)),
     source: 'mempool',
     txids
   }

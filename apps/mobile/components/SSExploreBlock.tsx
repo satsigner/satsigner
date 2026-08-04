@@ -14,7 +14,12 @@ import SSDetailsList from './SSDetailsList'
 
 export type Block = PartialSome<
   BaseBlock,
-  'merkle_root' | 'mediantime' | 'tx_count' | 'previousblockhash'
+  | 'mediantime'
+  | 'merkle_root'
+  | 'previousblockhash'
+  | 'size'
+  | 'tx_count'
+  | 'weight'
 >
 
 type SSExploreBlockProps = {
@@ -115,7 +120,7 @@ function SSExploreBlock({
   const emptyDisplayPercentage = blockEmptyDisplayPercentage(percentageWeight)
   const barFillPercentage = blockBarFillPercentage(percentageWeight)
   const showCapacity = Boolean(block && (size > 0 || weight > 0))
-  // Electrum maps size as weight * 4 (not serialized bytes). Hide that fake size.
+  // Electrum headers omit size/weight; ignore any bogus size === weight * 4.
   const sizeIsApproximate = weight > 0 && size === weight * 4
   const showSerializedSize = size > 0 && !sizeIsApproximate
   const txCount = block?.tx_count

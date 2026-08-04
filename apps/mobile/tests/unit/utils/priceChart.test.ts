@@ -25,7 +25,7 @@ describe('priceDomainFromData', () => {
 
 describe('formatCompactFiat', () => {
   it('formats thousands and millions', () => {
-    expect(formatCompactFiat(1_500)).toBe('2k')
+    expect(formatCompactFiat(1_500)).toBe('1.5k')
     expect(formatCompactFiat(1_500_000)).toBe('1.5M')
   })
 })

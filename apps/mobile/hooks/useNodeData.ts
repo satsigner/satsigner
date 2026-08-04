@@ -48,11 +48,13 @@ export function useBitnodesNodeInfo(enabled: boolean) {
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
   const { server } = configs[selectedNetwork]
+  // Bitnodes indexes mainnet only; don't fire for testnet/signet.
+  const isMainnet = selectedNetwork === 'bitcoin'
 
   return useQuery({
-    enabled: enabled && Boolean(server.url),
-    queryFn: () => fetchBitnodesNodeInfo(server.url),
-    queryKey: ['bitnodes-node', server.url],
+    enabled: enabled && isMainnet && Boolean(server.url),
+    queryFn: () => fetchBitnodesNodeInfo(server.url, selectedNetwork),
+    queryKey: ['bitnodes-node', server.url, selectedNetwork],
     staleTime: time.hours(1)
   })
 }

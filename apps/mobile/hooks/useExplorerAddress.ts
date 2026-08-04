@@ -27,9 +27,10 @@ export function useExplorerAddress(address: string | null) {
   const trimmed = address?.trim() ?? ''
   const ready = trimmed.length > 20
   const mempoolEnabled = useMempool && mempoolForAddress === trimmed
+  const enabled = ready && (backendSupported || mempoolEnabled)
 
   const query = useQuery({
-    enabled: ready,
+    enabled,
     queryFn: () => {
       if (mempoolEnabled) {
         return fetchExplorerAddressFromMempool(trimmed, oracle)

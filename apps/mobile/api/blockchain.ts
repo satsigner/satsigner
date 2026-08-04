@@ -214,7 +214,8 @@ export class MempoolOracle implements BlockchainOracle {
    * Prefer this over many `getPriceAt` calls when charting a window.
    */
   async getHistoricalPriceSeries(currency: string) {
-    const data = await this.get(`/v1/historical-price?currency=${currency}`)
+    const currencyKey = currency.toUpperCase()
+    const data = await this.get(`/v1/historical-price?currency=${currencyKey}`)
     const parsed = z
       .object({
         prices: z.array(
@@ -229,7 +230,7 @@ export class MempoolOracle implements BlockchainOracle {
 
     const points: { price: number; time: number }[] = []
     for (const row of parsed.prices) {
-      const price = Reflect.get(row, currency)
+      const price = Reflect.get(row, currencyKey)
       if (typeof price !== 'number' || !Number.isFinite(price)) {
         continue
       }

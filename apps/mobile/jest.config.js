@@ -18,6 +18,7 @@ const TRANSFORM_PACKAGES = [
   'react-native-bdk-sdk',
   'react-native-svg',
   'uint8array-tools',
+  'immer',
   '@scure/.*',
   '@cashu/.*',
   '@noble/.*',

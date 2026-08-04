@@ -13,5 +13,7 @@ export type ExplorerAddressData = {
   unconfirmed: number
   utxos: ExplorerAddressUtxo[]
   txids: string[]
+  /** Confirmation height per txid, when the backend already exposed it. */
+  heightByTxid?: Record<string, number>
   source: ExplorerDataSource
 }

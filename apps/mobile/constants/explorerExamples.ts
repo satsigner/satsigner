@@ -315,6 +315,12 @@ export const EXPLORER_EXAMPLE_ADDRESSES: ExplorerExampleAddress[] = [
     description:
       'Provably unspendable burn address — coins sent here are destroyed',
     label: 'Bitcoin Eater'
+  },
+  {
+    address: 'bc1qq85v2c926eg6pgxhwp6q7lf6cnsz80qs3fcu9r',
+    description:
+      'Native SegWit address that accumulated funds from the Coldcard exploit',
+    label: 'Coldcard hack #1'
   }
 ]
 

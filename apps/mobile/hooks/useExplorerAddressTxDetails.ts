@@ -13,6 +13,8 @@ import { time } from '@/utils/time'
 type UseExplorerAddressTxDetailsArgs = {
   address: string | null
   txids: string[]
+  /** Confirmation height per txid, when already known from the address load. */
+  heightByTxid?: Record<string, number>
   /** Prefer mempool when the address itself was loaded from mempool.space. */
   preferMempool?: boolean
 }
@@ -20,6 +22,7 @@ type UseExplorerAddressTxDetailsArgs = {
 export function useExplorerAddressTxDetails({
   address,
   txids,
+  heightByTxid,
   preferMempool = false
 }: UseExplorerAddressTxDetailsArgs) {
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -45,7 +48,8 @@ export function useExplorerAddressTxDetails({
         server.url,
         server.backend,
         selectedNetwork,
-        txids
+        txids,
+        heightByTxid
       )
     },
     queryKey: [

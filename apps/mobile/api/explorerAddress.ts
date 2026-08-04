@@ -134,9 +134,14 @@ async function fromElectrum(
       client.getAddressUtxos(address),
       client.getAddressTransactions(address)
     ])
+    const heightByTxid: Record<string, number> = {}
+    for (const tx of txs) {
+      heightByTxid[tx.tx_hash] = tx.height
+    }
     return {
       address,
       confirmed: balance.confirmed,
+      heightByTxid,
       source: 'backend',
       txids: txs.map((tx) => tx.tx_hash),
       unconfirmed: balance.unconfirmed,
@@ -227,7 +232,8 @@ async function fetchElectrumAddressTxDetails(
   address: string,
   url: string,
   network: Network,
-  txids: string[]
+  txids: string[],
+  heightByTxid?: Record<string, number>
 ): Promise<Transaction[]> {
   const client = ElectrumClient.fromUrl(url, network)
   try {
@@ -237,12 +243,15 @@ async function fetchElectrumAddressTxDetails(
       return []
     }
 
-    const history = await client.getAddressTransactions(address)
-    const heightByTxid = new Map(
-      history.map((entry) => [entry.tx_hash, entry.height] as const)
+    // Heights come from the address history the caller already fetched; only
+    // fall back to a re-fetch when they were not provided.
+    const heights = await resolveElectrumTxHeights(
+      client,
+      address,
+      limitedTxids,
+      heightByTxid
     )
     const rawTransactions = await client.getTransactions(limitedTxids)
-    const heights = limitedTxids.map((txid) => heightByTxid.get(txid) ?? 0)
     const timestamps = await client.getBlockTimestamps(heights)
     return client.parseAddressTransactions(
       address,
@@ -255,18 +264,41 @@ async function fetchElectrumAddressTxDetails(
   }
 }
 
+async function resolveElectrumTxHeights(
+  client: ElectrumClient,
+  address: string,
+  txids: string[],
+  heightByTxid?: Record<string, number>
+): Promise<number[]> {
+  if (heightByTxid) {
+    return txids.map((txid) => heightByTxid[txid] ?? 0)
+  }
+  const history = await client.getAddressTransactions(address)
+  const fetched = new Map(
+    history.map((entry) => [entry.tx_hash, entry.height] as const)
+  )
+  return txids.map((txid) => fetched.get(txid) ?? 0)
+}
+
 export function fetchExplorerAddressTxDetailsFromBackend(
   address: string,
   url: string,
   backend: Backend,
   network: Network,
-  txids: string[]
+  txids: string[],
+  heightByTxid?: Record<string, number>
 ): Promise<Transaction[]> {
   if (backend === 'esplora') {
     return fetchEsploraAddressTxDetails(url, address)
   }
   if (backend === 'electrum') {
-    return fetchElectrumAddressTxDetails(address, url, network, txids)
+    return fetchElectrumAddressTxDetails(
+      address,
+      url,
+      network,
+      txids,
+      heightByTxid
+    )
   }
   return Promise.reject(new Error('rpc_unsupported'))
 }

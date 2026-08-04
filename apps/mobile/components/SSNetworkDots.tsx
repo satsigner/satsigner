@@ -35,7 +35,7 @@ export default function SSNetworkDots({ distribution }: SSNetworkDotsProps) {
   }
 
   const displayEntries = distribution.slice(0, COLS * ROWS)
-  const maxCount = Math.max(...displayEntries.map((e) => e.count))
+  const maxCount = Math.max(...displayEntries.map((e) => e.count), 1)
 
   const cellWidth = width / COLS
   const cellHeight = CANVAS_HEIGHT / ROWS

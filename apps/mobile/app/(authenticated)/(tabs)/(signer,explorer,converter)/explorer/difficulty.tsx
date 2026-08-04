@@ -140,7 +140,7 @@ function ExplorerDifficulty() {
     return `~${tnTime(`${timeUnit}s`, { value: value.toFixed(4) })}`
   })()
 
-  const epochNumber = Number(fetchedEpoch ?? inputEpoch)
+  const epochNumber = Number(inputEpoch)
   const atMinEpoch = epochNumber <= 0
   const atMaxEpoch = epochNumber >= MAX_EPOCH
   const backendSourceLabel = formatExplorerBackendSource(

@@ -17,10 +17,14 @@ describe('scriptToBytes', () => {
     ])
   })
 
-  it('treats ASM OP_RETURN as OP_RETURN', () => {
+  it('treats bare ASM OP_RETURN as OP_RETURN', () => {
+    expect(Array.from(scriptToBytes('OP_RETURN') ?? [])).toStrictEqual([0x6a])
+  })
+
+  it('parses ASM OP_RETURN hex payload', () => {
     expect(
       Array.from(scriptToBytes('OP_RETURN 68656c6c6f') ?? [])
-    ).toStrictEqual([0x6a])
+    ).toStrictEqual([0x6a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f])
   })
 })
 
@@ -40,6 +44,13 @@ describe('classifySpecialOutput', () => {
   it('detects BIP141 witness commitments', () => {
     const hash = '11'.repeat(32)
     expect(classifySpecialOutput(`6a24aa21a9ed${hash}`)).toBe(
+      'witness_commitment'
+    )
+  })
+
+  it('detects BIP141 witness commitments from ASM', () => {
+    const hash = '11'.repeat(32)
+    expect(classifySpecialOutput(`OP_RETURN aa21a9ed${hash}`)).toBe(
       'witness_commitment'
     )
   })

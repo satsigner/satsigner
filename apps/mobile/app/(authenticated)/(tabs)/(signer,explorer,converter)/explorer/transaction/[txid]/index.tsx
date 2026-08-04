@@ -119,15 +119,24 @@ function buildOutputsList(tx: ExplorerTransaction): Output[] {
 
 function explorerHistoryFee(tx: ExplorerTransaction): {
   feeRate: number
-  minerFeeSats: number
+  minerFeeSats: number | undefined
 } {
   const nonCoinbaseInputs = tx.inputs.filter((inp) => !inp.isCoinbase)
+  // Only Esplora/mempool JSON exposes prevout values. On electrum / rpc / hex
+  // fallback they are unknown, so the fee is unknowable — return undefined so
+  // the chart falls back to feeRate × vsize instead of asserting a fee of zero.
+  const hasKnownInputValues = nonCoinbaseInputs.some(
+    (inp) => typeof inp.value === 'number'
+  )
+  if (!hasKnownInputValues) {
+    return { feeRate: 0, minerFeeSats: undefined }
+  }
   const totalIn = nonCoinbaseInputs.reduce(
     (sum, inp) => sum + (inp.value ?? 0),
     0
   )
   const totalOut = tx.outputs.reduce((sum, o) => sum + o.value, 0)
-  const minerFeeSats = totalIn > 0 ? Math.max(0, totalIn - totalOut) : 0
+  const minerFeeSats = Math.max(0, totalIn - totalOut)
   const feeRate = tx.vsize > 0 ? minerFeeSats / tx.vsize : 0
   return { feeRate, minerFeeSats }
 }
@@ -204,7 +213,7 @@ export default function ExplorerTransactionDetail() {
   const outputsList = tx ? buildOutputsList(tx) : []
   const historyFee = tx
     ? explorerHistoryFee(tx)
-    : { feeRate: 0, minerFeeSats: 0 }
+    : { feeRate: 0, minerFeeSats: undefined }
 
   function hideFlow() {
     setShowFlow(false)

@@ -9,8 +9,22 @@ import { getDifficultyFromBits } from '@/utils/bitcoin/difficulty'
 
 export type ExplorerBlock = PartialSome<
   BaseBlock,
-  'merkle_root' | 'mediantime' | 'tx_count' | 'previousblockhash'
+  | 'merkle_root'
+  | 'mediantime'
+  | 'previousblockhash'
+  | 'size'
+  | 'tx_count'
+  | 'weight'
 >
+
+/** bitcoinjs header hashes are internal LE; reverse for canonical display hex. */
+function hashBytesToDisplayHex(hash: Buffer | undefined): string | undefined {
+  if (!hash || hash.length === 0) {
+    return undefined
+  }
+  // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+  return Buffer.from(hash).reverse().toString('hex')
+}
 
 async function fetchBlockEsplora(
   url: string,
@@ -33,14 +47,14 @@ async function fetchBlockElectrum(
       height,
       id: block.getId(),
       mediantime: undefined,
-      merkle_root: block.merkleRoot?.toString('hex'),
+      merkle_root: hashBytesToDisplayHex(block.merkleRoot),
       nonce: block.nonce,
-      previousblockhash: block.prevHash?.toString('hex'),
-      size: block.weight() * 4,
+      previousblockhash: hashBytesToDisplayHex(block.prevHash),
+      size: undefined,
       timestamp: block.timestamp,
-      tx_count: block.transactions?.length,
+      tx_count: undefined,
       version: block.version,
-      weight: block.weight()
+      weight: undefined
     }
   } finally {
     electrum.close()

@@ -11,7 +11,8 @@ export type OutputScript = string | number[] | Uint8Array | undefined
 
 /**
  * Normalize scriptPubKey to bytes. Accepts hex strings (Esplora) or byte arrays
- * (wallet / BDK). ASM strings starting with OP_RETURN are treated as OP_RETURN.
+ * (wallet / BDK). ASM strings starting with OP_RETURN may include a hex payload
+ * (e.g. BIP141 witness commitments).
  */
 export function scriptToBytes(script: OutputScript): Uint8Array | undefined {
   if (script === undefined) {
@@ -25,7 +26,7 @@ export function scriptToBytes(script: OutputScript): Uint8Array | undefined {
     }
 
     if (/^OP_RETURN\b/i.test(trimmed)) {
-      return new Uint8Array([OP_RETURN])
+      return asmOpReturnToBytes(trimmed)
     }
 
     const hex = trimmed.toLowerCase().replace(/^0x/, '')
@@ -41,6 +42,36 @@ export function scriptToBytes(script: OutputScript): Uint8Array | undefined {
   }
 
   return Uint8Array.from(script)
+}
+
+function asmOpReturnToBytes(asm: string): Uint8Array {
+  const rest = asm.replace(/^OP_RETURN\s*/i, '').trim()
+  if (!rest) {
+    return new Uint8Array([OP_RETURN])
+  }
+
+  const pushMatch = rest.match(/^OP_PUSHBYTES_(\d+)\s+/i)
+  const hexPart = pushMatch ? rest.slice(pushMatch[0].length) : rest
+  const hex = hexPart.toLowerCase().replace(/^0x/, '').replace(/\s+/g, '')
+  if (hex.length === 0 || hex.length % 2 !== 0 || !/^[0-9a-f]*$/.test(hex)) {
+    return new Uint8Array([OP_RETURN])
+  }
+
+  const data = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < data.length; i += 1) {
+    data[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16)
+  }
+
+  // Minimal push encoding for data length 1–75 (covers witness commitments).
+  if (data.length > 0 && data.length <= 75) {
+    const out = new Uint8Array(2 + data.length)
+    out[0] = OP_RETURN
+    out[1] = data.length
+    out.set(data, 2)
+    return out
+  }
+
+  return new Uint8Array([OP_RETURN])
 }
 
 /**
