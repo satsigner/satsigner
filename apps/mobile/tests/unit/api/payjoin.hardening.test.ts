@@ -159,12 +159,14 @@ describe('payjoin hardening (phase 7)', () => {
       inputs: [{ txid: TXID_A, vout: 0 }],
       outputs: [{ script: paymentScript, value: 50_000 }]
     })
-    const ownedScript = `0014${'99'.repeat(20)}`
+    // The receiver owns its candidate UTXO (TXID_B:1); the sender's original
+    // input (TXID_A:0) has been seen before.
+    const ownedOutpoint = `${TXID_B}:1`
     const seenOutpoint = `${TXID_A}:0`
 
     const callbacks: PayjoinWalletCallbacks = {
       hasSeenInput: (o) => o === seenOutpoint,
-      isScriptOwned: (s) => s === ownedScript,
+      isScriptOwned: () => false,
       listCandidateOutpoints: () => [
         {
           scriptHex: `0014${'44'.repeat(20)}`,
@@ -192,10 +194,10 @@ describe('payjoin hardening (phase 7)', () => {
     expect(contributeCall).toBeDefined()
     const checks = contributeCall?.[3]
     expect(checks).toBeDefined()
-    expect(checks?.isInputOwned(ownedScript)).toBe(true)
-    expect(checks?.isInputOwned(`0014${'00'.repeat(20)}`)).toBe(false)
-    expect(checks?.isInputSeen(seenOutpoint)).toBe(true)
-    expect(checks?.isInputSeen(`${TXID_C}:0`)).toBe(false)
+    expect(checks?.isOutpointOwned(ownedOutpoint)).toBe(true)
+    expect(checks?.isOutpointOwned(`${TXID_C}:0`)).toBe(false)
+    expect(checks?.isOutpointSeen(seenOutpoint)).toBe(true)
+    expect(checks?.isOutpointSeen(ownedOutpoint)).toBe(false)
     nativeSpy.mockRestore()
   })
 

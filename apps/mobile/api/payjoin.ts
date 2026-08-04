@@ -1494,13 +1494,15 @@ async function finalizeReceiverPayjoin(params: {
 
   // First pass builds the provisional Payjoin PSBT (empty signature). The
   // ownership and replay checks reject a sender that tries to spend the
-  // receiver's own coins or probe its UTXO set with a replayed input.
+  // receiver's own coins or probe its UTXO set with a replayed input. Both
+  // checks are keyed by outpoint; ownership mirrors the manual path, treating
+  // the receiver's candidate UTXOs as its owned coins.
+  const ownedOutpoints = new Set(
+    candidates.map((candidate) => `${candidate.txid}:${candidate.vout}`)
+  )
   const walletChecks = {
-    isInputOwned: (scriptHex: string) => {
-      const owned = params.callbacks.isScriptOwned(scriptHex)
-      return typeof owned === 'boolean' ? owned : false
-    },
-    isInputSeen: (outpoint: string) => {
+    isOutpointOwned: (outpoint: string) => ownedOutpoints.has(outpoint),
+    isOutpointSeen: (outpoint: string) => {
       const seen = params.callbacks.hasSeenInput(outpoint)
       return typeof seen === 'boolean' ? seen : false
     }

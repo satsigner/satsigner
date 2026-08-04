@@ -621,13 +621,13 @@ function hexToBytes(hex: string): Uint8Array {
 
 /**
  * Ownership and replay predicates the receiver runs against the sender's
- * original PSBT inputs. Mirrors the data the manual path hands to
- * `receiverManualContribute`, but as callbacks the JS typestate can invoke
- * directly.
+ * original PSBT inputs, keyed by outpoint (`txid:vout`). Mirrors the data the
+ * manual path hands to `receiverManualContribute`, but as callbacks the JS
+ * typestate can invoke directly.
  */
 type ReceiverWalletChecks = {
-  isInputOwned: (scriptHex: string) => boolean
-  isInputSeen: (outpoint: string) => boolean
+  isOutpointOwned: (outpoint: string) => boolean
+  isOutpointSeen: (outpoint: string) => boolean
 }
 
 /**
@@ -698,22 +698,22 @@ function contributeReceiver(
   }
   const persister = createPersister()
   const { receiveScriptHex } = entry
-  const isInputOwned = checks?.isInputOwned ?? (() => false)
-  const isInputSeen = checks?.isInputSeen ?? (() => false)
+  const isOutpointOwned = checks?.isOutpointOwned ?? (() => false)
+  const isOutpointSeen = checks?.isOutpointSeen ?? (() => false)
 
   const maybeOwned = entry.live.receiver
     .assumeInteractiveReceiver()
     .save(persister)
   const maybeSeen = maybeOwned
     .checkInputsNotOwned({
-      callback: (script: ArrayBuffer) =>
-        isInputOwned(bytesToHex(new Uint8Array(script)))
+      callback: (outpoint: { txid: string; vout: number }) =>
+        isOutpointOwned(`${outpoint.txid}:${outpoint.vout}`)
     })
     .save(persister)
   const outputsUnknown = maybeSeen
     .checkNoInputsSeenBefore({
       callback: (outpoint: { txid: string; vout: number }) =>
-        isInputSeen(`${outpoint.txid}:${outpoint.vout}`)
+        isOutpointSeen(`${outpoint.txid}:${outpoint.vout}`)
     })
     .save(persister)
   const wantsOutputs = outputsUnknown
