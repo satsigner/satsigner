@@ -72,6 +72,7 @@ import {
   type ExtractedTransactionData,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
+  extractTransactionDataFromPSBT,
   extractTransactionDataFromPSBTEnhanced,
   extractTransactionIdFromPSBT,
   getCollectedSignerPubkeys,
@@ -410,9 +411,13 @@ function PreviewTransaction() {
   }
 
   function processBasicPsbt(psbtBase64: string) {
+    const extractedData = extractTransactionDataFromPSBT(psbtBase64, network)
+    if (extractedData) {
+      processExtractedPsbtData(extractedData)
+    }
     const txid = generateTransactionId(psbtBase64)
     setTransactionId(txid)
-    const mockResult = createMockPsbt(psbtBase64, txid, 0)
+    const mockResult = createMockPsbt(psbtBase64, txid, extractedData?.fee ?? 0)
     setPsbt(mockResult)
     setIsLoadingPSBT(false)
   }

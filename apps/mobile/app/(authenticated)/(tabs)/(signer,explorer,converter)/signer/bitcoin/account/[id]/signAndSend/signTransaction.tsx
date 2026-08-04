@@ -31,6 +31,8 @@ import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { extractTransactionDataFromPSBT } from '@/utils/psbt'
 import {
   buildKnownTxIds,
   buildOutpointLabelsByRef,
@@ -40,6 +42,7 @@ import {
   estimateTransactionSize,
   legacyEstimateTransactionSize
 } from '@/utils/transaction'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 const tn = _tn('transaction.build.sign')
 
@@ -47,7 +50,8 @@ function buildSignTransactionChartModel(
   psbt: PsbtLike | null,
   inputs: Map<string, Utxo>,
   outputs: Output[],
-  finalizedTxHex: string
+  finalizedTxHex: string,
+  appNetwork: AppNetwork
 ): Transaction | null {
   if (!psbt) {
     return null
@@ -82,6 +86,67 @@ function buildSignTransactionChartModel(
         : legacyEstimateTransactionSize(inputs.size, outputs.length)
     size = est.size
     vsize = est.vsize
+  }
+
+  // Prefer PSBT I/O (what will be signed/broadcast) over builder store state.
+  const psbtBase64 = typeof psbt.toBase64 === 'function' ? psbt.toBase64() : ''
+  const extracted = psbtBase64
+    ? extractTransactionDataFromPSBT(psbtBase64, appNetwork)
+    : null
+
+  if (extracted && extracted.inputs.length > 0) {
+    const vin = extracted.inputs.map((input) => {
+      const storeInput = inputs.get(
+        getUtxoOutpoint({
+          keychain: input.keychain ?? 'external',
+          txid: input.txid,
+          value: input.value,
+          vout: input.vout
+        })
+      )
+      return {
+        label: storeInput?.label || input.label || '',
+        previousOutput: { txid: input.txid, vout: input.vout },
+        scriptSig: '' as string | number[],
+        sequence: 0,
+        value: input.value,
+        witness: [] as number[][]
+      }
+    })
+
+    const usedOutputLocalIds = new Set<string>()
+    const vout = extracted.outputs.map((output) => {
+      const match = outputs.find(
+        (candidate) =>
+          !usedOutputLocalIds.has(candidate.localId) &&
+          candidate.to === output.address &&
+          candidate.amount === output.value
+      )
+      if (match) {
+        usedOutputLocalIds.add(match.localId)
+      }
+      return {
+        address: output.address,
+        kind: match?.kind,
+        label: match?.label || output.label || '',
+        script: output.script,
+        value: output.value
+      }
+    })
+
+    return {
+      fee: extracted.fee,
+      id: psbt.txid(),
+      lockTimeEnabled: false,
+      prices: {},
+      received: 0,
+      sent: 0,
+      size,
+      type: 'send' as const,
+      vin,
+      vout,
+      vsize
+    }
   }
 
   const vin = Array.from(inputs.values()).map((input: Utxo) => ({
@@ -220,7 +285,8 @@ export default function SignTransaction() {
     psbt ?? null,
     inputs,
     outputs,
-    rawTx
+    rawTx,
+    selectedNetwork
   )
 
   function handleBroadcastSingleSig() {

@@ -25,6 +25,12 @@ type AuthState = {
   skipPin: boolean
   duressPinEnabled: boolean
   justUnlocked: boolean
+  /**
+   * Set when a legacy production `skipPin` flag is cleared on rehydrate. These
+   * users silently had their PIN set to `DEFAULT_PIN`; they must be routed to
+   * set a real PIN without being asked for a current one they never chose.
+   */
+  requirePinMigration: boolean
   /** Decrypted backup JSON; when set, recovery runs after next unlock. Not persisted. */
   pendingRecoverData: string | null
 }
@@ -47,6 +53,7 @@ type AuthAction = {
   clearPageHistory: () => void
   setJustUnlocked: (justUnlocked: AuthState['justUnlocked']) => void
   setPendingRecoverData: (data: string | null) => void
+  setRequirePinMigration: (requirePinMigration: boolean) => void
 }
 
 const useAuthStore = create<AuthState & AuthAction>()(
@@ -89,6 +96,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       pendingRecoverData: null,
       pinMaxTries: DEFAULT_PIN_MAX_TRIES,
       pinTries: 0,
+      requirePinMigration: false,
       requiresAuth: false,
       resetPinTries: () => {
         set({ pinTries: 0 })
@@ -126,10 +134,18 @@ const useAuthStore = create<AuthState & AuthAction>()(
       setPinMaxTries: (maxTries) => {
         set({ pinMaxTries: maxTries })
       },
+      setRequirePinMigration: (requirePinMigration) => {
+        set({ requirePinMigration })
+      },
       setRequiresAuth: (requiresAuth) => {
         set({ requiresAuth })
       },
       setSkipPin(skipPin) {
+        // Lock-screen bypass is development-only. Production builds ignore it.
+        if (!__DEV__ && skipPin) {
+          set({ skipPin: false })
+          return
+        }
         set({ skipPin })
       },
       skipPin: false,
@@ -145,6 +161,14 @@ const useAuthStore = create<AuthState & AuthAction>()(
     }),
     {
       name: 'satsigner-auth',
+      onRehydrateStorage: () => (state) => {
+        // Persisted skipPin must never unlock production builds.
+        if (!__DEV__ && state?.skipPin) {
+          state.skipPin = false
+          // Legacy skip users are on DEFAULT_PIN; flag them to set a real PIN.
+          state.requirePinMigration = true
+        }
+      },
       partialize: (state) => {
         const { pendingRecoverData: _, ...rest } = state
         return rest
