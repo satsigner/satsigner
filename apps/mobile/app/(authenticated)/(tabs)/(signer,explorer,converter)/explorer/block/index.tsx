@@ -1,223 +1,264 @@
-import { Stack } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { useQuery } from '@tanstack/react-query'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useState } from 'react'
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import ElectrumClient from '@/api/electrum'
-import Esplora from '@/api/esplora'
+import { fetchExplorerTipHeight } from '@/api/explorerBlock'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSExploreBlock, { type Block } from '@/components/SSExploreBlock'
 import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSText from '@/components/SSText'
+import {
+  type ExplorerExampleBlock,
+  EXPLORER_EXAMPLE_BLOCKS
+} from '@/constants/explorerExamples'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
+import { time } from '@/utils/time'
 
-function getDifficultyFromBits(bits: number): number {
-  const exponent = bits >>> 24
-  const mantissa = bits & 0x007fffff
-  let target = BigInt(mantissa)
-  const shift = 8 * (exponent - 3)
-  if (shift >= 0) {
-    target *= 1n << BigInt(shift)
-  } else {
-    target /= 1n << BigInt(-shift)
-  }
-  const maxTarget =
-    0x00000000ffff0000000000000000000000000000000000000000000000000000n
-  return Number(maxTarget) / Number(target)
+const tn = _tn('explorer.block')
+
+const DEFAULT_MAX_BLOCK_HEIGHT = 890_000
+
+function formatExampleHeight(height: number): string {
+  return `Block ${height.toLocaleString('en-US')}`
 }
 
-function ExplorerBlock() {
-  const [backendUrl, backend] = useBlockchainStore(
-    useShallow((state) => [
-      state.configs['bitcoin'].server.url,
-      state.configs['bitcoin'].server.backend
-    ])
+function parseHeightParam(value: string | undefined): number | null {
+  if (!value) {
+    return null
+  }
+  const height = Number(value)
+  if (!Number.isInteger(height) || height < 0) {
+    return null
+  }
+  return height
+}
+
+type ExampleBlockCardProps = {
+  example: ExplorerExampleBlock
+  onSelect: (height: number) => void
+}
+
+function ExampleBlockCard({ example, onSelect }: ExampleBlockCardProps) {
+  function handlePress() {
+    onSelect(example.height)
+  }
+
+  return (
+    <TouchableOpacity style={styles.exampleCard} onPress={handlePress}>
+      <SSVStack gap="xxs" style={styles.exampleCardContent}>
+        <SSText size="sm" weight="medium">
+          {example.label}
+        </SSText>
+        <SSText size="xxs" color="muted">
+          {example.description}
+        </SSText>
+        <SSText type="mono" size="xxs" color="muted">
+          {formatExampleHeight(example.height)}
+        </SSText>
+      </SSVStack>
+      <SSIconChevronRight width={12} height={12} stroke={Colors.gray['600']} />
+    </TouchableOpacity>
   )
+}
 
-  const { height: windowHeight } = useWindowDimensions()
-  const padding = 120
-  const minPageHeight = windowHeight - padding
+export default function ExplorerBlockSearch() {
+  const router = useRouter()
+  const { height: heightParam } = useLocalSearchParams<{ height?: string }>()
+  const legacyHeight = parseHeightParam(heightParam)
 
-  const [inputHeight, setInputHeight] = useState('1')
-  const [loading, setLoading] = useState(false)
-  const [maxBlockHeight, setMaxBlockHeight] = useState(890_000)
-  const [block, setBlock] = useState<Block | null>(null)
+  const [selectedNetwork, configs] = useBlockchainStore(
+    useShallow((state) => [state.selectedNetwork, state.configs])
+  )
+  const { server } = configs[selectedNetwork]
+  const showExamples = selectedNetwork === 'bitcoin'
 
-  async function fetchBlockEsplora(height: number): Promise<Block> {
-    const esplora = new Esplora(backendUrl)
-    const blockHash = await esplora.getBlockAtHeight(height)
-    const block = await esplora.getBlockInfo(blockHash)
-    return block
+  const tipQuery = useQuery({
+    queryFn: () =>
+      fetchExplorerTipHeight(server.url, server.backend, server.rpcCredentials),
+    queryKey: [
+      'explorer-tip-height',
+      server.backend,
+      server.url,
+      selectedNetwork
+    ],
+    staleTime: time.minutes(1)
+  })
+
+  const maxBlockHeight = tipQuery.data ?? DEFAULT_MAX_BLOCK_HEIGHT
+  const [inputHeight, setInputHeight] = useState('0')
+
+  const heightNumber = Number(inputHeight)
+  const isValidHeight =
+    Number.isInteger(heightNumber) &&
+    heightNumber >= 0 &&
+    heightNumber <= maxBlockHeight
+  const atMinHeight = heightNumber <= 0
+  const atMaxHeight = heightNumber >= maxBlockHeight
+
+  if (legacyHeight !== null) {
+    return <Redirect href={`/explorer/block/${legacyHeight}`} />
   }
 
-  async function fetchBlockElectrum(height: number): Promise<Block> {
-    const electrum = await ElectrumClient.initClientFromUrl(backendUrl)
-    const block = await electrum.getBlock(height)
-    electrum.close()
-    return {
-      difficulty: getDifficultyFromBits(block.bits),
-      height,
-      id: block.getId(),
-      mediantime: undefined,
-      merkle_root: block.merkleRoot?.toString('hex'),
-      nonce: block.nonce,
-      previousblockhash: block.prevHash?.toString('hex'),
-      size: block.weight() * 4,
-      timestamp: block.timestamp,
-      tx_count: block.transactions?.length,
-      version: block.version,
-      weight: block.weight()
-    }
-  }
-
-  async function fetchBlock(height: number) {
-    setLoading(true)
-    try {
-      const block =
-        backend === 'esplora'
-          ? await fetchBlockEsplora(height)
-          : await fetchBlockElectrum(height)
-      setBlock(block)
-      setInputHeight(height.toString())
-      return block
-    } catch {
-      toast.error(`Failed to fetch block ${block}`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function fetchLatestBlock() {
-    let tipHeight: number
-    if (backend === 'esplora') {
-      const esplora = new Esplora(backendUrl)
-      tipHeight = await esplora.getLatestBlockHeight()
-    } else {
-      const electrum = await ElectrumClient.initClientFromUrl(backendUrl)
-      const header = await electrum.subscribeToBlockHeaders()
-      tipHeight = header?.height ?? 0
-      electrum.close()
-    }
-    setMaxBlockHeight(tipHeight)
-    await fetchBlock(tipHeight)
-  }
-
-  function fetchBlockFromInput() {
-    const height = Number(inputHeight)
-    if (height === block?.height || height > maxBlockHeight || height < 0) {
-      toast.error('Invalid block height')
+  function navigate(height: number) {
+    if (!Number.isInteger(height) || height < 0) {
+      toast.error(tn('invalid'))
       return
     }
-    fetchBlock(height)
+    if (tipQuery.data !== undefined && height > tipQuery.data) {
+      toast.error(tn('invalid'))
+      return
+    }
+    router.push(`/explorer/block/${height}`)
+  }
+
+  function handleLoad() {
+    if (!isValidHeight) {
+      toast.error(tn('invalid'))
+      return
+    }
+    navigate(heightNumber)
+  }
+
+  function handleExample(height: number) {
+    setInputHeight(height.toString())
+    navigate(height)
+  }
+
+  function handleLatest() {
+    if (tipQuery.data === undefined) {
+      return
+    }
+    setInputHeight(tipQuery.data.toString())
+    navigate(tipQuery.data)
   }
 
   function nextBlockHeight() {
-    setInputHeight(Math.min(maxBlockHeight, Number(inputHeight) + 1).toString())
+    setInputHeight(Math.min(maxBlockHeight, heightNumber + 1).toString())
   }
 
   function prevBlockHeight() {
-    setInputHeight(Math.max(1, Number(inputHeight) - 1).toString())
+    setInputHeight(Math.max(0, heightNumber - 1).toString())
   }
 
-  useEffect(() => {
-    fetchLatestBlock()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
-    <ScrollView>
+    <SSMainLayout style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('explorer.block.title')}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
-      <SSMainLayout style={{ paddingBottom: 20, paddingTop: 0 }}>
-        <SSVStack justifyBetween style={{ minHeight: minPageHeight }}>
-          <SSExploreBlock block={block} />
-          <SSVStack>
-            <SSHStack justifyBetween>
-              <SSIconButton
-                style={[
-                  styles.chevronButton,
-                  {
-                    borderColor:
-                      inputHeight === '1' ? Colors.barRed : Colors.gray[500]
-                  }
-                ]}
-                onPress={prevBlockHeight}
-              >
-                <SSIconChevronLeft
-                  height={22}
-                  width={24}
-                  stroke={
-                    inputHeight === '1' ? Colors.barRed : Colors.gray[500]
-                  }
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <SSVStack gap="md" style={styles.inputRow}>
+          <SSHStack gap="sm" style={styles.navRow}>
+            <SSIconButton
+              disabled={atMinHeight}
+              style={[
+                styles.navButton,
+                atMinHeight ? styles.navButtonDisabled : null
+              ]}
+              onPress={prevBlockHeight}
+            >
+              <SSIconChevronLeft
+                height={18}
+                width={18}
+                stroke={atMinHeight ? Colors.gray[600] : Colors.white}
+              />
+            </SSIconButton>
+            <View style={styles.navInput}>
+              <SSNumberInput
+                variant="outline"
+                align="center"
+                min={0}
+                max={maxBlockHeight}
+                value={inputHeight}
+                onChangeText={setInputHeight}
+                placeholder={tn('placeholder')}
+              />
+            </View>
+            <SSIconButton
+              disabled={atMaxHeight}
+              style={[
+                styles.navButton,
+                atMaxHeight ? styles.navButtonDisabled : null
+              ]}
+              onPress={nextBlockHeight}
+            >
+              <SSIconChevronRight
+                height={18}
+                width={18}
+                stroke={atMaxHeight ? Colors.gray[600] : Colors.white}
+              />
+            </SSIconButton>
+          </SSHStack>
+          <SSButton
+            label={tn('load')}
+            variant="outline"
+            onPress={handleLoad}
+            disabled={!isValidHeight}
+          />
+          <SSButton
+            label={tn('latest')}
+            variant="ghost"
+            onPress={handleLatest}
+            loading={tipQuery.isLoading || tipQuery.isFetching}
+            disabled={tipQuery.data === undefined}
+          />
+          {showExamples ? (
+            <SSVStack gap="none">
+              {EXPLORER_EXAMPLE_BLOCKS.map((example) => (
+                <ExampleBlockCard
+                  key={example.height}
+                  example={example}
+                  onSelect={handleExample}
                 />
-              </SSIconButton>
-              <View style={{ flexGrow: 1 }}>
-                <SSNumberInput
-                  min={1}
-                  max={maxBlockHeight}
-                  value={inputHeight}
-                  onChangeText={setInputHeight}
-                  style={styles.input}
-                />
-              </View>
-              <SSIconButton
-                style={[
-                  styles.chevronButton,
-                  {
-                    borderColor:
-                      inputHeight === `${maxBlockHeight}`
-                        ? Colors.barRed
-                        : Colors.gray[500]
-                  }
-                ]}
-                onPress={nextBlockHeight}
-              >
-                <SSIconChevronRight
-                  height={22}
-                  width={24}
-                  stroke={
-                    inputHeight === `${maxBlockHeight}`
-                      ? Colors.barRed
-                      : Colors.gray[500]
-                  }
-                />
-              </SSIconButton>
-            </SSHStack>
-            <SSButton
-              loading={loading}
-              disabled={Number(inputHeight) === block?.height}
-              label="Fetch"
-              onPress={fetchBlockFromInput}
-            />
-          </SSVStack>
+              ))}
+            </SSVStack>
+          ) : null}
         </SSVStack>
-      </SSMainLayout>
-    </ScrollView>
+      </ScrollView>
+    </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  chevronButton: {
-    borderColor: Colors.gray[500],
-    borderRadius: 10,
-    borderWidth: 1,
-    padding: 15
+  container: { paddingTop: 0 },
+  exampleCard: {
+    alignItems: 'center',
+    borderBottomColor: Colors.gray['800'],
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 14
   },
-  input: {
-    textAlign: 'center'
+  exampleCardContent: { flex: 1, paddingRight: 12 },
+  inputRow: { paddingTop: 16 },
+  navButton: {
+    alignItems: 'center',
+    borderColor: Colors.gray[700],
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    borderWidth: 1,
+    height: Sizes.textInput.height.default,
+    justifyContent: 'center',
+    width: Sizes.textInput.height.default
+  },
+  navButtonDisabled: {
+    borderColor: Colors.gray[800],
+    opacity: 0.55
+  },
+  navInput: {
+    flex: 1
+  },
+  navRow: {
+    alignItems: 'center'
   }
 })
-
-export default ExplorerBlock

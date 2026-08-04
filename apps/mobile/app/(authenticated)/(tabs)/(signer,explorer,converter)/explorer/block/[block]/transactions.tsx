@@ -1,271 +1,178 @@
-import { useLocalSearchParams } from 'expo-router'
-import { produce } from 'immer'
-import { useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
-import { TouchableOpacity } from 'react-native-gesture-handler'
-import z from 'zod'
-import { useShallow } from 'zustand/react/shallow'
+import { FlashList } from '@shopify/flash-list'
+import { router, useLocalSearchParams } from 'expo-router'
+import { useState } from 'react'
+import { Pressable, StyleSheet, View } from 'react-native'
 
-import Esplora from '@/api/esplora'
-import { SSIconWarning } from '@/components/icons'
-import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSDetailsList from '@/components/SSDetailsList'
+import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
+import SSExplorerTxSizeBars from '@/components/SSExplorerTxSizeBars'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
-import SSTransactionVinList from '@/components/SSTransactionVinList'
-import SSTransactionVoutList from '@/components/SSTransactionVoutList'
-import { usePromiseStatuses } from '@/hooks/usePromiseStatus'
+import { useExplorerBlockTransactions } from '@/hooks/useExplorerBlockTransactions'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Block, type Tx, TxSchema } from '@/types/models/Blockchain'
 import type { ExplorerBlockSearchParams } from '@/types/navigation/searchParams'
-import { formatNumber } from '@/utils/format'
+import { formatExplorerBackendSource } from '@/utils/explorerCapabilities'
 
-const BlockTxSchema = TxSchema.extend({
-  amount: z.number(),
-  verbosity: z.number()
-})
+const INITIAL_VISIBLE = 20
+const PAGE_SIZE = 20
 
-type BlockTx = z.infer<typeof BlockTxSchema>
+type TxRowProps = {
+  txid: string
+  index: number
+}
 
-type BlockTxs = Record<Tx['txid'], BlockTx>
-
-export default function BlockTransactions() {
-  const { block: blockHash } = useLocalSearchParams<ExplorerBlockSearchParams>()
-
-  const [backend, esploraUrl] = useBlockchainStore(
-    useShallow((state) => [
-      state.configs['bitcoin'].server.backend,
-      state.configs['bitcoin'].server.url
-    ])
-  )
-  const esploraClient = new Esplora(esploraUrl)
-
-  const [block, setBlock] = useState<Block | undefined>()
-  const [blockTxs, setBlockTxs] = useState<BlockTxs>({})
-  const [blockTxids, setBlockTxids] = useState<Tx['txid'][]>([])
-  const [visibleTxCount, setVisibleTxCount] = useState(10)
-  const [requestStatuses, runRequest] = usePromiseStatuses(['txs'])
-
-  async function fetchBlock() {
-    const data = await esploraClient.getBlockInfo(blockHash!)
-    setBlock(data)
-  }
-
-  async function fetchBlockTransactions() {
-    await runRequest({
-      action: async () => {
-        const blockTxids = await esploraClient.getBlockTransactionIds(
-          blockHash!
-        )
-        setBlockTxids(blockTxids)
-      },
-      errorMessage: 'Failed to fetch block transactions',
-      name: 'txs'
-    })
-  }
-
-  function showMoreTxIds() {
-    setVisibleTxCount((currentValue) => currentValue + 10)
-  }
-
-  async function loadTxData(txid: Tx['txid']) {
-    await runRequest({
-      action: async () => {
-        const txInfo = await esploraClient.getTxInfo(txid)
-        const tx: BlockTx = {
-          ...txInfo,
-          amount: txInfo.vout.reduce((val, out) => val + out.value, 0),
-          verbosity: 1
-        } as BlockTx
-        setBlockTxs((txs: BlockTxs) => ({
-          ...txs,
-          [txid]: tx
-        }))
-      },
-      errorMessage: 'Failed to get tx info',
-      name: txid
-    })
-  }
-
-  function setTxVerbosity(txid: Tx['txid'], verbosity: number) {
-    setBlockTxs((txs) =>
-      produce(txs, (draft) => {
-        draft[txid]['verbosity'] = verbosity
-      })
-    )
-  }
-
-  useEffect(() => {
-    if (!blockHash || backend !== 'esplora') {
-      return
-    }
-    if (!block) {
-      fetchBlock()
-    }
-    if (Object.keys(blockTxs).length === 0) {
-      fetchBlockTransactions()
-    }
-  }, [blockHash, backend]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (backend !== 'esplora') {
-    return (
-      <SSMainLayout>
-        <SSVStack>
-          <SSText>{t('explorer.block.transactions.wrongBackend')}</SSText>
-        </SSVStack>
-      </SSMainLayout>
-    )
-  }
-
-  if (requestStatuses['txs']?.status === 'error') {
-    return (
-      <SSMainLayout>
-        <SSVStack gap="sm">
-          <SSHStack
-            style={{ alignContent: 'center', justifyContent: 'center' }}
-            gap="sm"
-          >
-            <SSIconWarning height={16} width={16} />
-            <SSText>{requestStatuses['txs'].error}</SSText>
-          </SSHStack>
-          <SSButton
-            label={t('common.fetch')}
-            onPress={fetchBlockTransactions}
-          />
-        </SSVStack>
-      </SSMainLayout>
-    )
-  }
-
-  if (
-    requestStatuses['txs']?.status === 'idle' ||
-    requestStatuses['txs']?.status === 'pending'
-  ) {
-    return (
-      <SSMainLayout>
-        <SSVStack itemsCenter>
-          <SSText size="md">{t('common.loadingDots')}</SSText>
-          <ActivityIndicator size="large" />
-        </SSVStack>
-      </SSMainLayout>
-    )
+function TxRow({ txid, index }: TxRowProps) {
+  function openTransaction() {
+    router.push(`/explorer/transaction/${txid}`)
   }
 
   return (
-    <SSMainLayout>
-      <ScrollView>
-        <SSVStack>
-          <SSVStack itemsCenter gap="none">
-            <SSText center size="md">
-              {t('explorer.block.transactions.title', {
-                block: block?.height || '?'
-              })}
-            </SSText>
-          </SSVStack>
-          <SSVStack gap="none">
-            {blockTxids.slice(0, visibleTxCount).map((txid, index) => {
-              const tx = blockTxs[txid]
-              return (
-                <SSVStack key={txid} gap="none" style={styles.txListItem}>
-                  <SSText weight="bold">
-                    {index !== 0
-                      ? `#${index}`
-                      : `#${index} [${t('transaction.coinbase')}]`}
-                  </SSText>
-                  <SSClipboardCopy text={txid}>
-                    <SSText type="mono">{txid}</SSText>
-                  </SSClipboardCopy>
-                  {tx?.verbosity > 0 && (
-                    <View style={{ marginVertical: 20 }}>
-                      <SSDetailsList
-                        columns={2}
-                        items={[
-                          [t('common.amount'), formatNumber(tx.amount)],
-                          [t('preview.fee'), formatNumber(tx.fee)],
-                          [t('preview.inputPlural'), tx.vin.length],
-                          [t('preview.outputPlural'), tx.vout.length]
-                        ]}
-                      />
-                    </View>
-                  )}
-                  {tx?.verbosity > 1 && (
-                    <SSVStack gap="xs" style={{ marginBottom: 20 }}>
-                      {index > 0 && (
-                        <SSTransactionVinList
-                          vin={tx.vin.map((input) => ({
-                            previousOutput: {
-                              txid: input.txid,
-                              vout: input.vout
-                            },
-                            scriptSig: input.scriptsig_asm,
-                            sequence: input.sequence,
-                            value: input.prevout.value,
-                            witness: []
-                          }))}
-                        />
-                      )}
-                      <SSTransactionVoutList
-                        vout={tx.vout.map((output) => ({
-                          address: output.scriptpubkey_address || '',
-                          script: output.scriptpubkey_asm || [],
-                          value: output.value
-                        }))}
-                        txid={tx.txid}
-                      />
-                    </SSVStack>
-                  )}
-                  <SSVStack gap="none">
-                    {!tx && !requestStatuses[txid]?.status && (
-                      <TouchableOpacity onPress={() => loadTxData(txid)}>
-                        <SSText size="xs" color="muted">
-                          {t('common.showMore')}
-                        </SSText>
-                      </TouchableOpacity>
-                    )}
-                    {!tx && requestStatuses[txid]?.status === 'pending' && (
-                      <SSHStack gap="sm" style={{ alignItems: 'center' }}>
-                        <ActivityIndicator />
-                        <SSText size="xs" color="muted">
-                          {t('common.loadingDots')}
-                        </SSText>
-                      </SSHStack>
-                    )}
-                    {tx && tx.verbosity > 0 && (
-                      <TouchableOpacity
-                        onPress={() => setTxVerbosity(txid, tx.verbosity - 1)}
-                      >
-                        <SSText size="xs" color="muted">
-                          {t('common.showLess')}
-                        </SSText>
-                      </TouchableOpacity>
-                    )}
-                    {tx && tx.verbosity < 2 && (
-                      <TouchableOpacity
-                        onPress={() => setTxVerbosity(txid, tx.verbosity + 1)}
-                      >
-                        <SSText size="xs" color="muted">
-                          {t('common.showMore')}
-                        </SSText>
-                      </TouchableOpacity>
-                    )}
-                  </SSVStack>
-                </SSVStack>
-              )
-            })}
-          </SSVStack>
-          <SSButton label={t('common.loadMore')} onPress={showMoreTxIds} />
+    <SSVStack gap="none" style={styles.txListItem}>
+      <SSText weight="bold">
+        {index === 0 ? `#${index} [${t('transaction.coinbase')}]` : `#${index}`}
+      </SSText>
+      <SSClipboardCopy text={txid}>
+        <SSText type="mono">{txid}</SSText>
+      </SSClipboardCopy>
+      <Pressable onPress={openTransaction}>
+        <SSText size="xs" color="muted">
+          {t('common.showMore')}
+        </SSText>
+      </Pressable>
+    </SSVStack>
+  )
+}
+
+function renderTxRow({ item, index }: { item: string; index: number }) {
+  return <TxRow txid={item} index={index} />
+}
+
+function txKeyExtractor(txid: string) {
+  return txid
+}
+
+export default function BlockTransactions() {
+  const { block: blockHash } = useLocalSearchParams<ExplorerBlockSearchParams>()
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE)
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    capability,
+    loadFromMempool,
+    server,
+    useMempool
+  } = useExplorerBlockTransactions(blockHash)
+
+  function showMore() {
+    setVisibleCount((count) => count + PAGE_SIZE)
+  }
+
+  if (isLoading) {
+    return (
+      <SSMainLayout>
+        <View style={styles.loadingContainer}>
+          <SSLoader size={80} />
+        </View>
+      </SSMainLayout>
+    )
+  }
+
+  if (isError || !data) {
+    return (
+      <SSMainLayout>
+        <SSVStack gap="sm">
+          <SSText>
+            {error instanceof Error
+              ? error.message
+              : t('explorer.block.transactions.wrongBackend')}
+          </SSText>
+          {!useMempool ? (
+            <SSExplorerCapabilityBanner
+              why={t(
+                capability.whyKey ??
+                  'explorer.capability.blockTxList.electrum.why'
+              )}
+              fix={t(
+                capability.fixKey ??
+                  'explorer.capability.blockTxList.electrum.fix'
+              )}
+              onLoad={loadFromMempool}
+            />
+          ) : null}
         </SSVStack>
-      </ScrollView>
+      </SSMainLayout>
+    )
+  }
+
+  const visibleTxids = data.txids.slice(0, visibleCount)
+  const sourceLabel =
+    data.source === 'backend'
+      ? formatExplorerBackendSource(server.name, server.backend)
+      : 'mempool.space'
+  const canLoadMore = visibleCount < data.txids.length
+
+  return (
+    <SSMainLayout>
+      <SSVStack gap="sm" style={styles.container}>
+        <SSVStack itemsCenter gap="xxs">
+          <SSText center size="md">
+            {t('explorer.block.transactions.title', {
+              block: data.height ?? '?'
+            })}
+          </SSText>
+          <SSText size="xxs" style={styles.sourceLabel}>
+            {sourceLabel}
+          </SSText>
+        </SSVStack>
+        <SSExplorerTxSizeBars
+          sizes={data.sizes}
+          totalTxCount={data.txids.length}
+        />
+        <FlashList
+          data={visibleTxids}
+          keyExtractor={txKeyExtractor}
+          onEndReached={canLoadMore ? showMore : undefined}
+          onEndReachedThreshold={0.4}
+          renderItem={renderTxRow}
+          ListFooterComponent={
+            canLoadMore ? (
+              <SSHStack style={styles.footer}>
+                <SSText size="xs" color="muted">
+                  {t('common.loadMore')}
+                </SSText>
+              </SSHStack>
+            ) : null
+          }
+        />
+      </SSVStack>
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1
+  },
+  footer: {
+    justifyContent: 'center',
+    paddingVertical: 12
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 60
+  },
+  sourceLabel: {
+    color: Colors.gray[500]
+  },
   txListItem: {
     borderTopColor: Colors.barGray,
     borderTopWidth: 1,
