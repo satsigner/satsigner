@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
-import ElectrumClient from '@/api/electrum'
+import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import { fetchBackendNextBlockFee } from '@/api/explorerMempool'
 import BitcoinRpc from '@/api/rpc'
 import { useBlockchainStore } from '@/store/blockchain'
 import type {
@@ -13,6 +14,7 @@ import type {
 } from '@/types/settings/blockchain'
 
 export type BlockHeightSource = 'backend' | 'mempool'
+export type FeeSource = 'backend' | 'mempool'
 
 const REFETCH_INTERVAL_MS = 30_000
 
@@ -20,6 +22,7 @@ type NetworkInfoResult = {
   blockHeight: number | null
   blockHeightSource: BlockHeightSource
   fee: number | null
+  feeSource: FeeSource | null
 }
 
 async function fetchNetworkInfo(
@@ -58,50 +61,53 @@ async function fetchNetworkInfo(
     try {
       client = ElectrumClient.fromUrl(serverUrl, network)
       await client.init()
-      const tip = await (
-        client.client as unknown as {
-          blockchainHeaders_subscribe: () => Promise<{
-            height: number
-          } | null>
-        }
-      ).blockchainHeaders_subscribe()
+      const tip = await client.subscribeToBlockHeaders()
       if (tip?.height) {
-        height = tip.height as number
+        height = tip.height
         source = 'backend'
       }
     } catch {
       // fall through to mempool
     } finally {
-      try {
-        client?.close()
-      } catch {
-        /* silently ignored */
-      }
+      closeElectrumClientQuietly(client)
     }
   }
 
-  let fee: number | null = null
+  const backendFee = await fetchBackendNextBlockFee(
+    serverUrl,
+    serverBackend,
+    network,
+    rpcCredentials
+  )
+
+  let fee = backendFee
+  let feeSource: FeeSource | null = backendFee !== null ? 'backend' : null
+
   try {
     const oracle = new MempoolOracle(mempoolUrl)
+    const needsHeight = height === null
+    const needsFee = fee === null
     const [mempoolHeight, fees] = await Promise.all([
-      height === null ? oracle.getCurrentBlockHeight() : Promise.resolve(null),
-      oracle.getMemPoolFees()
+      needsHeight ? oracle.getCurrentBlockHeight() : Promise.resolve(null),
+      needsFee ? oracle.getMemPoolFees() : Promise.resolve(null)
     ])
-    if (height === null && mempoolHeight !== null) {
-      height = mempoolHeight as number
+    if (height === null && typeof mempoolHeight === 'number') {
+      height = mempoolHeight
       source = 'mempool'
     }
-    if (fees?.high !== null && fees?.high !== undefined) {
+    if (fee === null && fees?.high !== null && fees?.high !== undefined) {
       fee = fees.high
+      feeSource = 'mempool'
     }
   } catch {
-    // backend height kept; fees stay null
+    // backend height/fee kept
   }
 
   return {
     blockHeight: height,
     blockHeightSource: height !== null ? source : 'mempool',
-    fee
+    fee,
+    feeSource
   }
 }
 
@@ -154,6 +160,7 @@ export function useNetworkInfo() {
   return {
     blockHeight: data?.blockHeight ?? null,
     blockHeightSource: data?.blockHeightSource ?? 'mempool',
+    feeSource: data?.feeSource ?? null,
     nextBlockFee
   }
 }
