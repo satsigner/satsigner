@@ -316,6 +316,7 @@ export default function ExplorerAddressDetail() {
             <SSExplorerAddressTransactions
               address={data.address}
               txids={data.txids}
+              heightByTxid={data.heightByTxid}
               preferMempool={useMempool}
             />
           </>

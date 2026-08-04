@@ -44,12 +44,14 @@ function TxRow({ txid }: TxRowProps) {
 type SSExplorerAddressTransactionsProps = {
   address: string
   txids: string[]
+  heightByTxid?: Record<string, number>
   preferMempool?: boolean
 }
 
 function SSExplorerAddressTransactions({
   address,
   txids,
+  heightByTxid,
   preferMempool = false
 }: SSExplorerAddressTransactionsProps) {
   const blockchainHeight = useBlockchainStore(
@@ -69,6 +71,7 @@ function SSExplorerAddressTransactions({
     useMempool
   } = useExplorerAddressTxDetails({
     address,
+    heightByTxid,
     preferMempool,
     txids
   })
