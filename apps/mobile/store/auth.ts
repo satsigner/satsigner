@@ -4,15 +4,25 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   DEFAULT_LOCK_DELTA_TIME_SECONDS,
   DEFAULT_PIN_MAX_TRIES,
+  DURESS_KDF_KEY,
   DURESS_PIN_KEY,
+  PIN_KDF_KEY,
   PIN_KEY,
+  PIN_LENGTH_KEY,
   SALT_KEY
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
-import { generateSalt, getPin, pbkdf2Encrypt } from '@/utils/crypto'
+import { generateSalt, getPin } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
+import {
+  derivePinDigest,
+  getBestAvailableKdf,
+  getStoredKdfConfig,
+  safeEqualHex,
+  storeKdfConfig
+} from '@/utils/pinKdf'
 
 type AuthState = {
   firstTime: boolean
@@ -94,10 +104,17 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ pinTries: 0 })
       },
       setDuressPin: async (pin) => {
-        const salt = await generateSalt()
-        const encryptedPin = await pbkdf2Encrypt(pin, salt)
-        await setItem(SALT_KEY, salt)
+        // Reuse the existing salt: SSPinAuth compares both digests against a
+        // single salt, so regenerating it here would silently invalidate the
+        // main PIN (and vice versa on the next setPin).
+        const salt = await getItem(SALT_KEY)
+        if (!salt) {
+          throw new Error('PIN must be set before setting a duress PIN')
+        }
+        const kdf = getBestAvailableKdf()
+        const encryptedPin = await derivePinDigest(pin, salt, kdf)
         await setItem(DURESS_PIN_KEY, encryptedPin)
+        await storeKdfConfig(kdf, DURESS_KDF_KEY)
       },
       setDuressPinEnabled(duressPinEnabled) {
         set({ duressPinEnabled })
@@ -119,9 +136,12 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       setPin: async (pin) => {
         const salt = await generateSalt()
-        const encryptedPin = await pbkdf2Encrypt(pin, salt)
+        const kdf = getBestAvailableKdf()
+        const encryptedPin = await derivePinDigest(pin, salt, kdf)
         await setItem(SALT_KEY, salt)
         await setItem(PIN_KEY, encryptedPin)
+        await storeKdfConfig(kdf, PIN_KDF_KEY)
+        await setItem(PIN_LENGTH_KEY, String(pin.length))
       },
       setPinMaxTries: (maxTries) => {
         set({ pinMaxTries: maxTries })
@@ -138,9 +158,10 @@ const useAuthStore = create<AuthState & AuthAction>()(
         if (!salt) {
           throw new Error('Failed to validate PIN')
         }
-        const encrypted = await pbkdf2Encrypt(pin, salt)
+        const kdf = await getStoredKdfConfig()
+        const encrypted = await derivePinDigest(pin, salt, kdf)
         const savedPin = await getPin()
-        return encrypted === savedPin
+        return safeEqualHex(encrypted, savedPin)
       }
     }),
     {

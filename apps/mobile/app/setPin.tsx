@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -7,17 +8,25 @@ import { SSIconCheckCircleThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN } from '@/config/auth'
+import {
+  DEFAULT_PIN,
+  PIN_LENGTH_KEY,
+  PIN_MAX_LENGTH,
+  PIN_MIN_LENGTH,
+  PIN_SIZE
+} from '@/config/auth'
 import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
-import { Layout, Sizes } from '@/styles'
+import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
 import { getPin } from '@/utils/crypto'
-import { emptyPin } from '@/utils/pin'
+import { clampPinLength, emptyPin } from '@/utils/pin'
 
 type Stage = 'verify' | 'set' | 're-enter'
 
@@ -60,11 +69,35 @@ export default function SetPin() {
   const [confirmationPinArray, setConfirmationPinArray] =
     useState<string[]>(emptyPin)
   const [currentPinWrong, setCurrentPinWrong] = useState(false)
+  const [pinLength, setPinLength] = useState(PIN_SIZE)
+
+  // The verify stage (changing an existing PIN) must match the stored length.
+  useEffect(() => {
+    if (!(fromSettings && !skipPin)) {
+      return
+    }
+    async function loadPinLength() {
+      const stored = await getItem(PIN_LENGTH_KEY)
+      const length = clampPinLength(stored ? Number(stored) : Number.NaN)
+      setCurrentPinArray(emptyPin(length))
+      // Preselect the current length for the new PIN as well.
+      setPinLength(length)
+      setPinArray(emptyPin(length))
+      setConfirmationPinArray(emptyPin(length))
+    }
+    loadPinLength()
+  }, [fromSettings, skipPin])
 
   const currentPinFilled = !currentPinArray.includes('')
   const pinFilled = !pinArray.includes('')
   const confirmationPinFilled = !confirmationPinArray.includes('')
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
+
+  function handlePinLengthChange(length: number) {
+    setPinLength(length)
+    setPinArray(emptyPin(length))
+    setConfirmationPinArray(emptyPin(length))
+  }
 
   function handleCurrentPinChange(newPin: React.SetStateAction<string[]>) {
     setCurrentPinArray(newPin)
@@ -106,11 +139,11 @@ export default function SetPin() {
   }
 
   function clearPin() {
-    setPinArray(emptyPin())
+    setPinArray(emptyPin(pinLength))
   }
 
   function clearConfirmationPin() {
-    setConfirmationPinArray(emptyPin())
+    setConfirmationPinArray(emptyPin(pinLength))
   }
 
   async function handleSetPin() {
@@ -215,7 +248,43 @@ export default function SetPin() {
             />
           )}
           {stage === 'set' && (
-            <SSPinInput pin={pinArray} setPin={setPinArray} />
+            <SSVStack gap="md" itemsCenter>
+              <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+                <SSText size="sm" color="muted">
+                  {t('auth.pinLength')}:
+                </SSText>
+                {Array.from(
+                  { length: PIN_MAX_LENGTH - PIN_MIN_LENGTH + 1 },
+                  (_, i) => PIN_MIN_LENGTH + i
+                ).map((length) => (
+                  <Pressable
+                    key={length}
+                    onPress={() => handlePinLengthChange(length)}
+                    style={{
+                      alignItems: 'center',
+                      borderColor:
+                        length === pinLength
+                          ? Colors.gray[200]
+                          : Colors.gray[700],
+                      borderRadius: 4,
+                      borderWidth: 1,
+                      height: 32,
+                      justifyContent: 'center',
+                      width: 32
+                    }}
+                  >
+                    <SSText
+                      size="sm"
+                      color={length === pinLength ? undefined : 'muted'}
+                      weight={length === pinLength ? 'bold' : 'regular'}
+                    >
+                      {String(length)}
+                    </SSText>
+                  </Pressable>
+                ))}
+              </SSHStack>
+              <SSPinInput pin={pinArray} setPin={setPinArray} />
+            </SSVStack>
           )}
           {stage === 're-enter' && (
             <SSPinInput

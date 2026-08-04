@@ -8,6 +8,7 @@ import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
+import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -15,6 +16,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { error, success, warning } from '@/styles/colors'
 import type { MnemonicWordCount, WordListName } from '@/types/bips/39'
 import { getFingerprintFromSeed } from '@/utils/bip32'
 import {
@@ -25,6 +27,7 @@ import {
   validateMnemonic
 } from '@/utils/bip39'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { estimatePassphraseStrength } from '@/utils/passphraseStrength'
 
 type SeedWordInfo = {
   value: string
@@ -486,6 +489,24 @@ export default function SSSeedWordsInput({
               onChangeText={handlePassphraseChange}
               value={passphrase}
             />
+            {passphrase.length > 0 &&
+              (() => {
+                const strength = estimatePassphraseStrength(passphrase)
+                const strengthColor =
+                  strength.level === 'strong'
+                    ? success
+                    : strength.level === 'fair'
+                      ? warning
+                      : error
+                return (
+                  <SSText size="xs" style={{ color: strengthColor }}>
+                    {t(`account.passphrase.strength.${strength.level}`)}
+                    {strength.level === 'weak'
+                      ? ` — ${t('account.passphrase.strength.weakHint')}`
+                      : ''}
+                  </SSText>
+                )
+              })()}
           </SSFormLayout.Item>
         )}
         {(showChecksum || showFingerprint) && (

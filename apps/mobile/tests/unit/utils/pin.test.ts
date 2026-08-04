@@ -1,4 +1,5 @@
 import {
+  clampPinLength,
   deletePinDigit,
   emptyPin,
   fillPinDigit,
@@ -107,5 +108,31 @@ describe('pin utils', () => {
       expect(isPinFilled(['1', '2', '3', ''])).toBe(false)
       expect(isPinFilled(['', '', '', ''])).toBe(false)
     })
+  })
+})
+
+describe('emptyPin with explicit length', () => {
+  it('creates arrays of the requested length', () => {
+    expect(emptyPin(4)).toStrictEqual(['', '', '', ''])
+    expect(emptyPin(8)).toStrictEqual(Array.from({ length: 8 }).fill(''))
+  })
+
+  it('defaults to the legacy PIN size', () => {
+    expect(emptyPin()).toHaveLength(4)
+  })
+})
+
+describe('clampPinLength', () => {
+  it('keeps lengths inside [4, 8]', () => {
+    expect(clampPinLength(4)).toBe(4)
+    expect(clampPinLength(6)).toBe(6)
+    expect(clampPinLength(8)).toBe(8)
+  })
+
+  it('clamps out-of-range and invalid values to bounds/default', () => {
+    expect(clampPinLength(1)).toBe(4)
+    expect(clampPinLength(99)).toBe(8)
+    expect(clampPinLength(Number.NaN)).toBe(4)
+    expect(clampPinLength(5.5)).toBe(4)
   })
 })

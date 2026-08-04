@@ -15,7 +15,6 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated'
 
-import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
@@ -76,7 +75,7 @@ function SSPinInput({
   }
 
   function handleClear() {
-    setPin(emptyPin())
+    setPin(emptyPin(pin.length))
   }
 
   function handlePress(digit: string) {
@@ -87,7 +86,7 @@ function SSPinInput({
     <SSVStack itemsCenter gap="none" justifyBetween>
       <SSVStack gap="none" itemsCenter widthFull>
         <SSHStack gap="sm">
-          {Array.from({ length: PIN_SIZE }).map((_, index) => {
+          {Array.from({ length: pin.length }).map((_, index) => {
             const isActive = index === currentIndex
             const isFilled = pin[index] !== ''
             const rim = getPinFieldLight(index, isActive, isFilled)
