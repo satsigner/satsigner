@@ -3,7 +3,7 @@ import { Buffer } from 'buffer'
 import NDK, { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NetInfo from '@react-native-community/netinfo'
-import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
+import { type Event, nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
 
 import {
   NOSTR_FLUSH_QUEUE_DELAY_MS,
@@ -221,16 +221,46 @@ function getProfileFromKind0Content(
   }
 }
 
+const NIP17_SEAL_KIND = 13
+
+// NIP-17 unwrap with mandatory sender-authenticity checks. nostr-tools'
+// nip59.unwrapEvent only decrypts the two NIP-44 layers and returns the
+// rumor: it never verifies the seal's signature nor that the seal and rumor
+// pubkeys match, so anyone able to address a gift wrap to a victim (e.g. a
+// relay, which learns device npubs from the sync filters) could forge the
+// rumor author and impersonate a trusted device. Both checks are MUSTs in
+// NIP-17, so events failing them are rejected here.
 function unwrapNip59EventOrNull(
   rawEvent: Event,
   secretKey: Uint8Array
 ): NostrUnwrappedKind1059Event | null {
   try {
-    return nip59.unwrapEvent(rawEvent, secretKey) as NostrUnwrappedKind1059Event
+    const sealJson = nip44.v2.decrypt(
+      rawEvent.content,
+      nip44.getConversationKey(secretKey, rawEvent.pubkey)
+    )
+    const seal = JSON.parse(sealJson) as Event
+    if (seal.kind !== NIP17_SEAL_KIND || !verifyEvent(seal)) {
+      return null
+    }
+
+    const rumorJson = nip44.v2.decrypt(
+      seal.content,
+      nip44.getConversationKey(secretKey, seal.pubkey)
+    )
+    const rumor = JSON.parse(rumorJson) as NostrUnwrappedKind1059Event
+    if (rumor.pubkey !== seal.pubkey) {
+      return null
+    }
+
+    return rumor
   } catch {
     return null
   }
 }
+
+// Exported for unit tests
+export { unwrapNip59EventOrNull }
 
 export class NostrAPI {
   private ndk: NDK | null = null

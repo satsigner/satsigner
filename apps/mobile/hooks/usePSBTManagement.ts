@@ -25,12 +25,16 @@ export function usePSBTManagement({
 
   const convertPsbtToFinalTransaction = useCallback(
     (psbtHex: string): string => {
-      // First, try to combine with original PSBT if available
       const originalPsbtBase64 = txBuilderPsbt?.toBase64()
-      let combinedPsbt: bitcoinjs.Psbt | undefined
       let psbt: bitcoinjs.Psbt | undefined
 
       if (originalPsbtBase64) {
+        // A transaction is under review: the supplied PSBT must correspond
+        // to it. combine() enforces identical unsigned transactions and
+        // throws on a mismatch — never fall back to finalizing a foreign
+        // PSBT standalone, or an attacker could substitute what gets
+        // broadcast for what the user reviewed.
+        let combinedPsbt: bitcoinjs.Psbt
         try {
           const signedPsbtBase64 = Buffer.from(psbtHex, 'hex').toString(
             'base64'
@@ -39,23 +43,26 @@ export function usePSBTManagement({
           const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
           combinedPsbt = originalPsbt.combine(signedPsbt)
         } catch {
-          /* silently ignored */
+          throw new Error(
+            'The supplied PSBT does not match the transaction under review'
+          )
         }
-      }
-
-      if (combinedPsbt) {
         try {
           combinedPsbt.finalizeAllInputs()
           const tx = combinedPsbt.extractTransaction()
           const finalTxHex = tx.toHex().toUpperCase()
           return finalTxHex
         } catch {
-          const combinedBase64 = combinedPsbt.toBase64()
-          return combinedBase64
+          // Not fully signed yet (e.g. a cosigner's partial signature in a
+          // multisig flow): the combined PSBT provably shares the unsigned
+          // transaction under review, so returning it for further combining
+          // is safe.
+          return combinedPsbt.toBase64()
         }
       }
 
-      // Fallback: try direct PSBT processing without combination
+      // No original PSBT (watch-only broadcast of an externally built and
+      // signed PSBT): standalone processing is the only option.
       try {
         psbt = bitcoinjs.Psbt.fromHex(psbtHex)
       } catch {

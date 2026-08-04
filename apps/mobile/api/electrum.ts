@@ -22,6 +22,22 @@ import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 import { isValidDomainName, isValidIPAddress } from '@/utils/url'
 
+// The library hardcodes `{ rejectUnauthorized: false }` when wrapping the
+// TCP socket with TLS (client.js `initSocket`), silently disabling
+// certificate verification on every ssl:// Electrum connection and exposing
+// all wallet traffic to trivial MITM. Force verification on: with no custom
+// CA configured, react-native-tcp-socket then uses the system trust store
+// on Android and kCFStreamSSLPeerName + system trust evaluation on iOS.
+class VerifyingTLSSocket extends TcpSocket.TLSSocket {
+  constructor(socket: InstanceType<typeof TcpSocket.Socket>) {
+    // TLSSocketOptions omits rejectUnauthorized from its types, but both
+    // native implementations (Android/iOS) honor it.
+    super(socket, {
+      rejectUnauthorized: true
+    } as unknown as ConstructorParameters<typeof TcpSocket.TLSSocket>[1])
+  }
+}
+
 class ModifiedClient extends BlueWalletElectrumClient {
   keepAlive() {
     if (this.timeout !== null && this.timeout !== undefined) {
@@ -47,9 +63,32 @@ class ModifiedClient extends BlueWalletElectrumClient {
   }
 }
 
+// Electrum servers are not trusted: a malicious server (or a MITM, if TLS
+// verification ever fails) could serve fabricated transactions and inflated
+// UTXO values — e.g. reporting a 0.01 BTC UTXO as 1 BTC so the signed segwit
+// transaction pays the difference as miner fee. Every raw transaction is
+// verified against the txid it was requested with, and every reported UTXO
+// is cross-checked against its (verified) creating transaction.
+function assertRawTxMatchesTxid(rawTxHex: string, expectedTxid: string): void {
+  let actualTxid: string
+  try {
+    actualTxid = bitcoinjs.Transaction.fromHex(rawTxHex).getId()
+  } catch {
+    throw new Error('Electrum server returned malformed transaction data')
+  }
+  if (actualTxid.toLowerCase() !== expectedTxid.toLowerCase()) {
+    throw new Error(
+      'Electrum server returned a transaction that does not match the requested txid'
+    )
+  }
+}
+
+const TX_CACHE_MAX_ENTRIES = 5000
+
 class BaseElectrumClient {
   client: ModifiedClient
   network: bitcoinjs.networks.Network
+  private txCache = new Map<string, string>()
 
   constructor({
     host,
@@ -58,7 +97,7 @@ class BaseElectrumClient {
     network = 'signet'
   }: ElectrumClientInterface['props']) {
     const net = TcpSocket
-    const tls = TcpSocket
+    const tls = { TLSSocket: VerifyingTLSSocket }
     const options = {}
     this.client = new ModifiedClient(net, tls, port, host, protocol, options)
     this.network = bitcoinjsNetwork(network)
@@ -194,7 +233,46 @@ class BaseElectrumClient {
   async getAddressUtxos(address: string) {
     const scriptHash = this.addressToScriptHash(address)
     const data = await this.client.blockchainScripthash_listunspent(scriptHash)
-    return ElectrumClientSchema.shape.addressUtxos.parse(data)
+    const utxos = ElectrumClientSchema.shape.addressUtxos.parse(data)
+    await this.verifyAddressUtxos(address, utxos)
+    return utxos
+  }
+
+  // Cross-check every server-reported UTXO against its creating transaction
+  // (itself verified by txid): the output must exist, pay the expected
+  // address, and carry the exact value the server claimed.
+  private async verifyAddressUtxos(
+    address: string,
+    utxos: ElectrumClientInterface['addressUtxos']
+  ): Promise<void> {
+    if (utxos.length === 0) {
+      return
+    }
+    const expectedScript = bitcoinjs.address.toOutputScript(
+      address,
+      this.network
+    )
+    const txids = [...new Set(utxos.map((utxo) => utxo.tx_hash))]
+    const rawTxs = await this.getTransactions(txids)
+    const prevTxById = new Map(
+      txids.map((txid, index) => [
+        txid.toLowerCase(),
+        bitcoinjs.Transaction.fromHex(rawTxs[index])
+      ])
+    )
+    for (const utxo of utxos) {
+      const prevTx = prevTxById.get(utxo.tx_hash.toLowerCase())
+      const out = prevTx?.outs[utxo.tx_pos]
+      if (
+        !out ||
+        out.value !== utxo.value ||
+        !out.script.equals(expectedScript)
+      ) {
+        throw new Error(
+          'Electrum server returned UTXO data inconsistent with the blockchain'
+        )
+      }
+    }
   }
 
   async getAddressTransactions(address: string) {
@@ -210,20 +288,44 @@ class BaseElectrumClient {
   }
 
   async getTransactionRaw(txid: string, verbose = false) {
+    const cached = this.txCache.get(txid.toLowerCase())
+    if (cached !== undefined && !verbose) {
+      return cached
+    }
     const txRaw = await this.client.blockchainTransaction_get(txid, verbose)
 
     // this does NOT parse the raw transaction! it only validates it is a string
-    return z.string().parse(txRaw)
+    const raw = z.string().parse(txRaw)
+    if (!verbose) {
+      assertRawTxMatchesTxid(raw, txid)
+      this.cacheTransaction(txid, raw)
+    }
+    return raw
   }
 
   async getTransactions(txIds: string[]) {
     const verbose = false // verbose=true is not supported by some clients
     const rawTxs: string[] = []
     for (const txid of txIds) {
+      const cached = this.txCache.get(txid.toLowerCase())
+      if (cached !== undefined) {
+        rawTxs.push(cached)
+        continue
+      }
       const raw = await this.client.blockchainTransaction_get(txid, verbose)
-      rawTxs.push(raw)
+      const parsedRaw = z.string().parse(raw)
+      assertRawTxMatchesTxid(parsedRaw, txid)
+      this.cacheTransaction(txid, parsedRaw)
+      rawTxs.push(parsedRaw)
     }
     return rawTxs
+  }
+
+  private cacheTransaction(txid: string, rawTxHex: string): void {
+    if (this.txCache.size >= TX_CACHE_MAX_ENTRIES) {
+      this.txCache.clear()
+    }
+    this.txCache.set(txid.toLowerCase(), rawTxHex)
   }
 }
 
