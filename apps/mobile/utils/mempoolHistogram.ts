@@ -85,11 +85,15 @@ export function projectedBlocksFromHistogram(
 
     const entryFee = minFee
     const topFee = maxFee
+    // Size-weighted average — NOT (min+max)/2. Electrum histograms use
+    // power-of-2 fee bins; a tiny 16384 sat/vB outlier + bulk at 1 sat/vB
+    // made the midpoint ~8192 and blew up send fees (feeRate × vsize).
+    const medianFee = filled > 0 ? totalFees / filled : entryFee
     blocks.push({
       blockSize: Math.round(filled * 4),
       blockVSize: Math.round(filled),
       feeRange: [entryFee, topFee],
-      medianFee: (entryFee + topFee) / 2,
+      medianFee,
       nTx: 0,
       totalFees: Math.round(totalFees)
     })
@@ -113,15 +117,20 @@ export function feesFromProjectedBlocks(
 
   const minimum = Math.max(1, Math.round(minFeeRate ?? 1))
   const [first, second, third] = blocks
-  const high = Math.max(minimum, Math.round(first.medianFee))
-  const medium = Math.max(
-    minimum,
-    Math.round(second?.medianFee ?? first.medianFee)
-  )
-  const low = Math.max(
-    minimum,
-    Math.round(third?.medianFee ?? second?.medianFee ?? first.medianFee)
-  )
+  // Entry fee (bottom of the projected block) is what you must pay to be
+  // included in that ~1 MvB slice — not the min/max midpoint or the top
+  // outlier bin.
+  function tierRate(block: MemPoolBlock | undefined): number {
+    if (!block) {
+      return minimum
+    }
+    const [entry] = block.feeRange
+    return Math.max(minimum, Math.round(entry))
+  }
+
+  const high = tierRate(first)
+  const medium = tierRate(second ?? first)
+  const low = tierRate(third ?? second ?? first)
 
   return {
     high: Math.max(high, medium, low, minimum),

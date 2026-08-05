@@ -3,7 +3,12 @@ import { type BdkWallet, KeychainKind } from 'react-native-bdk-sdk'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { getAccountAddressSets } from '@/utils/address'
+import {
+  buildOwnedOutpoints,
+  isOwnedOutpoint
+} from '@/utils/sankeyInputOwnership'
 import { sortTransactions } from '@/utils/sort'
 
 const MAX_OWNERSHIP_ADDRESS_SCAN = 1000
@@ -108,12 +113,62 @@ function shouldReconstructOwnedInputs(params: {
 }
 
 /**
+ * Map outpoint → sats from wallet history / UTXOs so Payjoin annotation works
+ * before the tx-detail screen hydrates `vin[].value` from Electrum/Esplora.
+ */
+function buildOutpointValueMap(
+  transactions: Transaction[],
+  utxos?: Utxo[]
+): Map<string, number> {
+  const values = new Map<string, number>()
+
+  for (const utxo of utxos ?? []) {
+    if (typeof utxo.value === 'number') {
+      values.set(`${utxo.txid}:${utxo.vout}`, utxo.value)
+    }
+  }
+
+  for (const tx of transactions) {
+    if (!tx.id) {
+      continue
+    }
+    for (let index = 0; index < (tx.vout?.length ?? 0); index += 1) {
+      const output = tx.vout?.[index]
+      if (output && typeof output.value === 'number') {
+        values.set(`${tx.id}:${index}`, output.value)
+      }
+    }
+  }
+
+  return values
+}
+
+function resolveInputValue(
+  input: Transaction['vin'][number],
+  outpointValues: ReadonlyMap<string, number>
+): number | undefined {
+  if (typeof input.value === 'number') {
+    return input.value
+  }
+  const txid = input.previousOutput?.txid
+  const vout = input.previousOutput?.vout
+  if (!txid || typeof vout !== 'number') {
+    return undefined
+  }
+  return outpointValues.get(`${txid}:${vout}`)
+}
+
+/**
  * Tag internal outputs as change and fix send `received`/`sent` from ownership
  * so card amount and running balance are payment (+ fee), not every output.
+ *
+ * Mixed-ownership txs (Payjoin): count only our inputs/outputs so a receive
+ * Payjoin is net-positive instead of a huge fake send.
  */
 function annotateTransactionsWithWalletOwnership(
   transactions: Transaction[],
-  accountAddresses: Account['addresses']
+  accountAddresses: Account['addresses'],
+  utxos?: Utxo[]
 ): Transaction[] {
   const { internalAddresses, ownAddresses } =
     getAccountAddressSets(accountAddresses)
@@ -121,6 +176,13 @@ function annotateTransactionsWithWalletOwnership(
   if (ownAddresses.size === 0) {
     return transactions
   }
+
+  const ownedOutpoints = buildOwnedOutpoints({
+    addresses: accountAddresses,
+    transactions,
+    utxos
+  })
+  const outpointValues = buildOutpointValueMap(transactions, utxos)
 
   return transactions.map((transaction) => {
     const vout = transaction.vout.map((output) => {
@@ -134,10 +196,6 @@ function annotateTransactionsWithWalletOwnership(
       return { ...output, kind: 'change' as const }
     })
 
-    if (transaction.sent <= 0) {
-      return { ...transaction, vout }
-    }
-
     let returned = 0
     let external = 0
     for (const output of vout) {
@@ -147,6 +205,48 @@ function annotateTransactionsWithWalletOwnership(
       } else {
         external += output.value
       }
+    }
+
+    let ownInputSum = 0
+    let ownInputCount = 0
+    let foreignInputCount = 0
+    for (const input of transaction.vin ?? []) {
+      const owned = isOwnedOutpoint(
+        ownedOutpoints,
+        input.previousOutput?.txid,
+        input.previousOutput?.vout
+      )
+      if (owned === undefined) {
+        continue
+      }
+      const value = resolveInputValue(input, outpointValues) ?? 0
+      if (owned) {
+        ownInputCount += 1
+        ownInputSum += value
+      } else {
+        foreignInputCount += 1
+      }
+    }
+
+    // Ownership alone is enough — do not require hydrated input values.
+    // BDK omits vin.value until the detail screen fetches prevouts.
+    const mixedOwnership = ownInputCount > 0 && foreignInputCount > 0
+
+    if (mixedOwnership) {
+      const sent = ownInputSum
+      const received = returned
+      const type: Transaction['type'] = received >= sent ? 'receive' : 'send'
+      return {
+        ...transaction,
+        received,
+        sent,
+        type,
+        vout
+      }
+    }
+
+    if (transaction.sent <= 0) {
+      return { ...transaction, vout }
     }
 
     const fee = transaction.fee ?? 0
@@ -171,14 +271,38 @@ function annotateTransactionsWithWalletOwnership(
 }
 
 /**
+ * Wallet balance effect for UI: receive/send amount after ownership annotation.
+ * For Payjoin receive this is net gain (own outputs − own inputs), not gross.
+ */
+function getWalletTransactionEffect(tx: {
+  received?: number
+  sent?: number
+  type?: Transaction['type']
+}): { amount: number; type: 'receive' | 'send' } {
+  const received = tx.received || 0
+  const sent = tx.sent || 0
+  const net = received - sent
+  if (net > 0) {
+    return { amount: net, type: 'receive' }
+  }
+  if (net < 0) {
+    return { amount: -net, type: 'send' }
+  }
+  return {
+    amount: 0,
+    type: tx.type === 'receive' ? 'receive' : 'send'
+  }
+}
+
+/**
  * Post-tx running wallet balances keyed by txid. Always accumulates oldest →
  * newest so sort direction cannot scramble card totals.
  */
 function getTransactionRunningBalances(
   transactions: Transaction[]
 ): Map<string, number> {
-  // This codebase's sort helper uses inverted names: 'desc' ⇒ oldest first.
-  const chronological = sortTransactions(transactions, 'desc')
+  // Oldest → newest so running balances accumulate correctly.
+  const chronological = sortTransactions(transactions, 'asc', 'date')
   let balance = 0
   const balances = new Map<string, number>()
 
@@ -194,5 +318,6 @@ export {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
   ensureAddressesIncludeSeenOutputs,
-  getTransactionRunningBalances
+  getTransactionRunningBalances,
+  getWalletTransactionEffect
 }

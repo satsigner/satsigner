@@ -27,6 +27,7 @@ import {
   SANKEY_BLOCK_TX_STRIP_MAX_PX,
   type Node
 } from '@/types/ui/sankey'
+import { formatFeeRateSatPerVb } from '@/utils/format'
 import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
@@ -63,6 +64,51 @@ const NODE_TEXT_OVERFLOW_WIDTH = 220
 const NBSP = '\u00A0'
 /** NBSP belongs on the unit run — trailing NBSP on the amount run can drop the first "s". */
 const SATS_UNIT = `${NBSP}sats`
+
+type SankeyTextStyle = {
+  color: ReturnType<typeof Skia.Color>
+  fontFamilies: string[]
+  fontSize: number
+  fontStyle: { weight: number }
+}
+
+type SankeyParagraphBuilder = ReturnType<typeof Skia.ParagraphBuilder.Make>
+
+/**
+ * Keep "to"/"from" and the address/txid on one line with identical font metrics
+ * so Skia baselines align (only color differs).
+ */
+function appendDirectionTarget(
+  para: SankeyParagraphBuilder,
+  baseTextStyle: SankeyTextStyle,
+  direction: 'from' | 'to',
+  target: string
+) {
+  const label =
+    direction === 'from'
+      ? t('common.from').toLowerCase()
+      : t('common.to').toLowerCase()
+
+  para
+    .pushStyle({
+      ...baseTextStyle,
+      color: Skia.Color(gray[500]),
+      fontSize: XS_FONT_SIZE,
+      fontStyle: {
+        weight: 500
+      }
+    })
+    .addText(`${label}${NBSP}`)
+    .pushStyle({
+      ...baseTextStyle,
+      color: Skia.Color(white),
+      fontSize: XS_FONT_SIZE,
+      fontStyle: {
+        weight: 500
+      }
+    })
+    .addText(target)
+}
 
 function formatSatsAmount(value: number | undefined): string {
   return (value ?? 0).toLocaleString('en-US')
@@ -459,7 +505,7 @@ function NodeText({
           color: Skia.Color(feeRateColor),
           fontSize: XS_FONT_SIZE
         })
-        .addText(`${ioData?.feeRate}`)
+        .addText(`${formatFeeRateSatPerVb(ioData?.feeRate ?? 0)}`)
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(satVbLabelColor),
@@ -560,13 +606,11 @@ function NodeText({
           fontSize: XS_FONT_SIZE
         })
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
-        .addText(ioData?.address ? `${t('common.to')} ` : '')
-        .pushStyle({
-          ...baseTextStyle,
-          color: Skia.Color('white'),
-          fontSize: XS_FONT_SIZE
-        })
-        .addText(ioData?.address ? `${ioData?.address}\n` : '')
+      if (ioData?.address) {
+        appendDirectionTarget(para, baseTextStyle, 'to', ioData.address)
+        para.addText('\n')
+      }
+      para
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(isGreenOutput ? mainGreen : mainRed),
@@ -650,19 +694,7 @@ function NodeText({
           })
           .addText(specialTag)
       } else if (hasAddress) {
-        para
-          .pushStyle({
-            ...baseTextStyle,
-            color: Skia.Color(gray[500]),
-            fontSize: XS_FONT_SIZE
-          })
-          .addText(`${t('common.to')} `)
-          .pushStyle({
-            ...baseTextStyle,
-            color: Skia.Color(white),
-            fontSize: XS_FONT_SIZE
-          })
-          .addText(`${ioData.address}`)
+        appendDirectionTarget(para, baseTextStyle, 'to', ioData.address ?? '')
       }
       return para.build()
     }
@@ -672,6 +704,19 @@ function NodeText({
       const hasOutpoint =
         Boolean(ioData?.address) && typeof ioData?.vout === 'number'
       const trimmedLabel = trimNodeLabel(ioData?.label)
+      const isOwnInput = ioData?.isOwnInput
+      const ownershipTag =
+        isOwnInput === true
+          ? t('transaction.details.chartInputOurs')
+          : isOwnInput === false
+            ? t('transaction.details.chartInputCounterparty')
+            : undefined
+      const ownershipTagColor =
+        isOwnInput === true
+          ? mainGreen
+          : isOwnInput === false
+            ? mainRed
+            : gray[300]
       const para = createParagraphBuilder()
       para
         .pushStyle({
@@ -695,19 +740,24 @@ function NodeText({
           .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
       }
       if (hasOutpoint) {
+        appendDirectionTarget(
+          para,
+          baseTextStyle,
+          'from',
+          `${ioData.address}:${ioData.vout}`
+        )
+      }
+      if (ownershipTag) {
         para
           .pushStyle({
             ...baseTextStyle,
-            color: Skia.Color(gray[500]),
-            fontSize: XS_FONT_SIZE
+            color: Skia.Color(ownershipTagColor),
+            fontSize: XS_FONT_SIZE,
+            fontStyle: {
+              weight: 800
+            }
           })
-          .addText(`${t('common.from').toLowerCase()} `)
-          .pushStyle({
-            ...baseTextStyle,
-            color: Skia.Color(white),
-            fontSize: XS_FONT_SIZE
-          })
-          .addText(`${ioData.address}:${ioData.vout}`)
+          .addText(`\n${ownershipTag}`)
       }
       if (trimmedLabel) {
         para
@@ -753,13 +803,11 @@ function NodeText({
           fontSize: XS_FONT_SIZE
         })
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
-        .addText(ioData?.address ? `${t('common.to')} ` : '')
-        .pushStyle({
-          ...baseTextStyle,
-          color: Skia.Color('white'),
-          fontSize: XS_FONT_SIZE
-        })
-        .addText(ioData?.address ? `${ioData.address}\n` : '')
+      if (ioData?.address) {
+        appendDirectionTarget(para, baseTextStyle, 'to', ioData.address)
+        para.addText('\n')
+      }
+      para
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(mainRed),
@@ -831,6 +879,7 @@ function NodeText({
     ioData.label,
     ioData?.specialTag,
     ioData?.vout,
+    ioData?.isOwnInput,
     isHigherMinerFee,
     isFeeValueWarning,
     isChange,

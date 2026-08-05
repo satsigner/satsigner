@@ -71,4 +71,23 @@ describe('feesFromProjectedBlocks', () => {
       none: 1
     })
   })
+
+  it('does not recommend (min+max)/2 when an outlier fee bin is present', () => {
+    // Electrum-style power-of-2 outlier: tiny high-fee dust + bulk at 1 sat/vB.
+    // Old midpoint math → ~8192 sat/vB and multi-million sat fees on small txs.
+    const blocks = projectedBlocksFromHistogram([
+      [16384, 100],
+      [1, 999_900]
+    ])
+
+    expect(blocks[0]?.feeRange[0]).toBe(1)
+    expect(blocks[0]?.feeRange[1]).toBe(16384)
+    expect(blocks[0]?.medianFee).toBeLessThan(10)
+
+    const fees = feesFromProjectedBlocks(blocks, 1)
+    expect(fees).not.toBeNull()
+    expect(fees!.high).toBeLessThanOrEqual(10)
+    expect(fees!.high).toBeGreaterThanOrEqual(1)
+    expect(Math.round(fees!.high * 177)).toBeLessThan(10_000)
+  })
 })

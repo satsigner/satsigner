@@ -273,6 +273,10 @@ DELETE FROM address_utxos WHERE (address, account_id) NOT IN
   (SELECT address, account_id FROM addresses)
 `
 
+const SCHEMA_V8 = `
+ALTER TABLE accounts ADD COLUMN excluded_utxo_outpoints TEXT DEFAULT '[]'
+`
+
 const SCHEMAS = [
   SCHEMA_V1,
   SCHEMA_V2,
@@ -280,7 +284,8 @@ const SCHEMAS = [
   SCHEMA_V4,
   SCHEMA_V5,
   SCHEMA_V6,
-  SCHEMA_V7
+  SCHEMA_V7,
+  SCHEMA_V8
 ]
 const CURRENT_VERSION = SCHEMAS.length
 
@@ -323,7 +328,8 @@ function ensureAccountsColumns(db: NitroSQLiteConnection) {
   const columns: [string, string][] = [
     ['birthday_date', 'TEXT'],
     ['rpc_last_block_hash', 'TEXT'],
-    ['nostr_device_mnemonic', 'TEXT']
+    ['nostr_device_mnemonic', 'TEXT'],
+    ['excluded_utxo_outpoints', "TEXT DEFAULT '[]'"]
   ]
   for (const [column, sqlType] of columns) {
     if (tableHasColumn(db, 'accounts', column)) {

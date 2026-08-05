@@ -6,12 +6,24 @@ import SSHStack from '@/layouts/SSHStack'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
-export default function TransactionLayout() {
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+function resolveParamId(id: string | string[] | undefined): string | undefined {
+  if (Array.isArray(id)) {
+    return id[0]
+  }
+  return id
+}
 
-  const account = useAccountsStore(
-    (state) => state.accounts.find((account) => account.id === id)!
+export default function TransactionLayout() {
+  const params = useLocalSearchParams<AccountSearchParams>()
+  const id = resolveParamId(params.id)
+
+  const account = useAccountsStore((state) =>
+    id ? state.accounts.find((entry) => entry.id === id) : undefined
   )
+
+  if (!account) {
+    return <Slot />
+  }
 
   return (
     <>
@@ -21,9 +33,9 @@ export default function TransactionLayout() {
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
-              {account.policyType === 'watchonly' && (
+              {account.policyType === 'watchonly' ? (
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
-              )}
+              ) : null}
             </SSHStack>
           )
         }}

@@ -41,6 +41,7 @@ import {
 import { type NostrAccount } from '@/types/models/Nostr'
 import { type Transaction } from '@/types/models/Transaction'
 import { dropSeedFromKey } from '@/utils/account'
+import { pruneExcludedOutpoints } from '@/utils/utxoList'
 
 /**
  * Wallet sync and address refresh call updateAccount with { ...account, ... } from
@@ -108,6 +109,8 @@ type AccountsAction = {
     keyIndex: number
   ) => Promise<{ success: boolean; message: string }>
   resetKey: (accountId: Account['id'], keyIndex: number) => void
+  excludeUtxoOutpoints: (accountId: Account['id'], outpoints: string[]) => void
+  includeUtxoOutpoints: (accountId: Account['id'], outpoints: string[]) => void
 }
 
 type ImmerSet = (fn: (state: Draft<AccountsState>) => void) => void
@@ -209,11 +212,65 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
       }
     },
+    excludeUtxoOutpoints: (accountId, outpoints) => {
+      const account = get().accounts.find((entry) => entry.id === accountId)
+      if (!account || outpoints.length === 0) {
+        return
+      }
+
+      const next = account.excludedUtxoOutpoints
+        ? new Set(account.excludedUtxoOutpoints)
+        : new Set<string>()
+      for (const outpoint of outpoints) {
+        next.add(outpoint)
+      }
+      const excludedUtxoOutpoints = pruneExcludedOutpoints(
+        Array.from(next),
+        account.utxos
+      )
+      const updatedAccount: Account = {
+        ...account,
+        excludedUtxoOutpoints
+      }
+      updateFullAccountDb(updatedAccount)
+      set((state) => {
+        const index = state.accounts.findIndex(
+          (entry) => entry.id === accountId
+        )
+        if (index !== -1) {
+          state.accounts[index].excludedUtxoOutpoints = excludedUtxoOutpoints
+        }
+      })
+    },
     getTags: () => get().tags,
     importLabels: (accountId: string, labels: Label[]) => {
       const labelsAdded = importLabelsDb(accountId, labels)
       reloadAccount(set, accountId)
       return labelsAdded
+    },
+    includeUtxoOutpoints: (accountId, outpoints) => {
+      const account = get().accounts.find((entry) => entry.id === accountId)
+      if (!account || outpoints.length === 0) {
+        return
+      }
+
+      const remove = new Set(outpoints)
+      const excludedUtxoOutpoints = (
+        account.excludedUtxoOutpoints ?? []
+      ).filter((outpoint) => !remove.has(outpoint))
+      const updatedAccount: Account = {
+        ...account,
+        excludedUtxoOutpoints
+      }
+      updateFullAccountDb(updatedAccount)
+      set((state) => {
+        const index = state.accounts.findIndex(
+          (entry) => entry.id === accountId
+        )
+        if (index !== -1) {
+          state.accounts[index].excludedUtxoOutpoints = excludedUtxoOutpoints
+        }
+      })
     },
     loadTx: (accountId, tx) => {
       const { accounts } = get()
@@ -359,8 +416,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         account.nostr
       )
 
+      const excludedUtxoOutpoints = pruneExcludedOutpoints(
+        currentAccount.excludedUtxoOutpoints ??
+          account.excludedUtxoOutpoints ??
+          [],
+        account.utxos
+      )
+
       const mergedAccount: Account = {
         ...account,
+        excludedUtxoOutpoints,
         labels: mergedLabels,
         nostr: mergedNostr
       }

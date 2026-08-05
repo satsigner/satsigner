@@ -1,0 +1,41 @@
+appId: ${APP_ID}
+---
+# Open signet Sample (segwit) — load from SAMPLE ACCOUNTS only if missing.
+# Always resets to the account list first (any prior screen is fine).
+# Account name from app code: `Sample (segwit)` (parens escaped for regex).
+
+- runFlow:
+    file: ensure-signet.yaml
+
+# Already imported → open it
+- runFlow:
+    when:
+      visible: 'Sample \(segwit\)'
+    commands:
+      - tapOn: 'Sample \(segwit\)'
+      - extendedWaitUntil:
+          visible:
+            id: account-receive
+          timeout: 30000
+
+# Still on list → import sample once
+- runFlow:
+    when:
+      visible: '(?i)SegWit Singlesig'
+      notVisible:
+        id: account-receive
+    commands:
+      - tapOn: '(?i)SegWit Singlesig'
+      - extendedWaitUntil:
+          visible: 'Sample \(segwit\)'
+          timeout: 90000
+      - tapOn: 'Sample \(segwit\)'
+      - extendedWaitUntil:
+          visible:
+            id: account-receive
+          timeout: 30000
+
+- extendedWaitUntil:
+    visible:
+      id: account-receive
+    timeout: 30000

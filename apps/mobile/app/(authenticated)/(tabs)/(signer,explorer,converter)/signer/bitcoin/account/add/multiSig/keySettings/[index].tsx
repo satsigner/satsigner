@@ -83,6 +83,13 @@ export default function MultiSigKeySettings() {
           )
           break
         }
+        case 'drawing': {
+          router.navigate({
+            params: { index },
+            pathname: '/signer/bitcoin/account/add/entropy/drawing'
+          })
+          break
+        }
         case 'coin': {
           router.navigate({
             params: { index },
