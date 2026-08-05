@@ -1,4 +1,4 @@
-import { DURESS_PIN_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import {
   deleteAllKeySecrets,
@@ -65,5 +65,6 @@ export async function secureWipeAllWalletData(): Promise<void> {
   setDuressPinEnabled(false)
   setSkipPin(false)
 
-  await deleteItem(DURESS_PIN_KEY).catch(() => undefined)
+  await deleteItem(DURESS_PIN_KEY)
+  await deleteItem(SALT_KEY_DURESS)
 }
