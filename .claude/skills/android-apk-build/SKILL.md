@@ -1,80 +1,76 @@
 ---
 name: android-apk-build
-description: Build local Android APKs for satsigner — dev (debug) and production (release). Use when the user wants to build an APK, test on a device, or sideload the app.
-version: 1.1.0
+description: Build local Android APKs for satsigner — standalone release for device testing/sharing, debug for Metro. Use when the user wants to build an APK, test on a device, sideload, or share a build.
+version: 1.2.0
 ---
 
 # Android APK Build (Local)
 
-Build APKs directly on this machine without EAS cloud. All commands run from `apps/mobile/android/`.
+Build APKs on this machine without EAS cloud. Prefer **standalone release** when the user wants to test on a device or send an APK elsewhere (no Metro needed).
+
+## Decision guide
+
+| User intent | Build |
+|---|---|
+| Share / sideload / physical device without laptop | `assembleRelease` + signing (below) |
+| Hot reload while developing | `pnpm variant -- --device` or `assembleDebug` + Metro |
+| Coexisting branch install with unique package id | `pnpm variant` (see below) |
+
+> If Metro / `pnpm variant -- --device` is already running, **do not** run `pnpm variant -- --apk` — it deletes `android/` via `prebuild --clean`. Build with Gradle against the existing tree instead.
+
+---
 
 ## Per-branch / per-PR variants (`pnpm variant`)
 
-Use `pnpm variant` (from `apps/mobile/`) to build coexisting installs, each with a unique Android package id derived from a suffix. Because Android sandboxes storage (MMKV, SQLite, secure store) per package id, each suffix keeps its own isolated, persistent database — so switching git branches never forces a DB reset.
+From `apps/mobile/`:
 
 ```bash
 pnpm variant                                # current git branch -> unique id
 pnpm variant -- --suffix pr453              # explicit suffix
 pnpm variant -- --plain                     # no suffix (default dev id)
-pnpm variant -- --release --device          # standalone prod-mode build
-pnpm variant -- --apk --suffix pr453 --release   # named APK, no install
+pnpm variant -- --release --device          # standalone, install via expo
+pnpm variant -- --apk --suffix pr453 --release   # named APK in dist/apks
 ```
 
 Flags: `--suffix <v>`, `--plain`, `--prod`, `--release`, `--prebuild-only`, `--apk`, `--ios`; anything else (e.g. `--device Pixel_9`) passes through to `expo run:*`.
 
-The script sets `APP_VARIANT_SUFFIX`, runs `expo prebuild --clean` (which rebakes the package id, since it is compiled into `android/`), then builds. `--apk` copies the Gradle output to `dist/apks/satsigner-<dev|prod>-<suffix>-<release|debug>.apk`. Suffix sanitization lives in `utils/variantSuffix.ts` and is covered by unit tests.
+Sets `APP_VARIANT_SUFFIX`, runs `expo prebuild --clean`, then builds. `--apk` copies to `dist/apks/satsigner-<dev|prod>-<suffix>-<release|debug>.apk`.
 
-Changing suffix requires a re-prebuild (handled automatically). To remove a variant: `adb uninstall com.satsigner.satsigner.dev.<segment>`.
+**Signing caveat:** `--apk --release` runs plain `assembleRelease` **without** injected signing props. For a shareable signed APK when `android/` already exists, use the Gradle recipe below instead (or ensure signing is configured in Gradle).
+
+To remove a variant: `adb uninstall com.satsigner.satsigner.dev.<segment>`.
+
+---
 
 ## Standalone vs. Metro-connected builds
 
-This project uses `expo-dev-client`. This matters for how the app runs:
-
 | Build type | Runs standalone? | Notes |
 |---|---|---|
-| `assembleDebug` | **No** — shows Expo dev launcher, needs Metro running | Use only when actively developing with hot reload |
-| `assembleRelease` | **Yes** — JS bundled in, no computer needed | Use for device testing, sharing, sideloading |
-
-> For testing on a physical device without keeping a laptop nearby, always use `assembleRelease`.
+| `assembleDebug` | **No** — Expo dev launcher, needs Metro | Dev / hot reload only |
+| `assembleRelease` | **Yes** — JS bundled in | Device testing, sharing, sideloading |
 
 ---
 
 ## Prerequisites
 
-### 1. Android SDK
-
-The SDK must be at `~/Library/Android/sdk` (standard macOS location). If the build fails with `SDK location not found`:
-
 ```bash
+export ANDROID_HOME="$HOME/Library/Android/sdk"
 echo "sdk.dir=$HOME/Library/Android/sdk" > apps/mobile/android/local.properties
 ```
 
-> `local.properties` is gitignored — safe to create freely.
+`local.properties` is gitignored.
 
-### 2. Native folder must be prebuilt
-
-The `apps/mobile/android/` folder must exist. If it's missing or `app.config.ts` / native plugins changed, run prebuild first:
+Native folder must exist. Only prebuild when missing or config/plugins changed:
 
 ```bash
-# Dev variant (default — different package/name from production)
-cd apps/mobile && pnpm run prebuild:dev
-
-# Production variant
-cd apps/mobile && pnpm run prebuild:prod
+cd apps/mobile && pnpm run prebuild:dev   # or prebuild:prod
 ```
-
-Do NOT run prebuild just to rebuild — only when the native folder is missing or config changed.
 
 ---
 
-## Standalone release APK (recommended for device testing)
+## Standalone release APK (recommended for device / sharing)
 
-### Dev variant — standalone, no Metro needed
-- App name: `satsigner (Dev)`, package: `com.satsigner.satsigner.dev`
-- Installs alongside the production app
-- Requires a signing keystore (any key works for testing)
-
-**Step 1 — Generate a throwaway keystore (one-time setup):**
+### 1. Throwaway keystore (one-time)
 
 ```bash
 keytool -genkey -v \
@@ -84,10 +80,11 @@ keytool -genkey -v \
   -storepass android -keypass android
 ```
 
-**Step 2 — Build:**
+### 2. Build (signed)
 
 ```bash
 cd apps/mobile/android
+export ANDROID_HOME="$HOME/Library/Android/sdk"
 ./gradlew assembleRelease \
   -Pandroid.injected.signing.store.file=$(pwd)/debug-release-key.jks \
   -Pandroid.injected.signing.store.password=android \
@@ -95,44 +92,43 @@ cd apps/mobile/android
   -Pandroid.injected.signing.key.password=android
 ```
 
+Gradle needs unrestricted permissions (network + SDK). Allow ~10–20 minutes on a cold build; retries are usually fast (incremental).
+
 Output: `apps/mobile/android/app/build/outputs/apk/release/app-release.apk`
 
-**Install:**
+### 3. Save a shareable copy
 
 ```bash
-adb install apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+mkdir -p apps/mobile/dist/apks
+cp -f apps/mobile/android/app/build/outputs/apk/release/app-release.apk \
+  apps/mobile/dist/apks/satsigner-dev-<suffix>-release.apk
+# Optional: also copy to Desktop for AirDrop / transfer
+```
+
+### 4. Install
+
+```bash
+adb devices   # pick serial if multiple
+adb -s <serial> install -r path/to.apk
+```
+
+Variant package ids look like `com.satsigner.satsigner.dev.feature_payjoin` (branch suffix sanitized).
+
+---
+
+## Debug APK (Metro-connected)
+
+```bash
+cd apps/mobile/android && ./gradlew assembleDebug
+# then: cd apps/mobile && pnpm start
 ```
 
 ---
 
-## Debug APK (Metro-connected dev mode)
-
-Only useful when you want live reload / dev tools. Requires Metro running on the same machine.
+## Production release APK
 
 ```bash
-cd apps/mobile/android
-./gradlew assembleDebug
-```
-
-Output: `apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk`
-
-Start Metro before launching the app:
-
-```bash
-cd apps/mobile && pnpm start
-```
-
----
-
-## Production release APK (for distribution)
-
-Uses the production variant (`com.satsigner.satsigner`, name `satsigner`). Requires prebuild with production variant first.
-
-```bash
-# 1. Prebuild with production config
 cd apps/mobile && pnpm run prebuild:prod
-
-# 2. Build release (use your real keystore here)
 cd android
 ./gradlew assembleRelease \
   -Pandroid.injected.signing.store.file=/path/to/release-key.jks \
@@ -147,24 +143,31 @@ cd android
 
 | Changed | Re-run prebuild? |
 |---|---|
-| JS/TS source files | No |
-| `app.config.ts` (name, package, scheme) | Yes |
-| Added/removed a native Expo plugin | Yes |
-| `apps/mobile/android/` folder missing | Yes |
-| Just rebuilding APK with same config | No |
+| JS/TS only | No |
+| `app.config.ts` / native plugins | Yes |
+| `android/` missing | Yes |
+| Rebuild same config | No |
 
 ---
 
 ## Troubleshooting
 
-**`SDK location not found`** → write `local.properties` (see Prerequisites)
+**`SDK location not found`** → write `local.properties` (Prerequisites)
 
-**App shows Expo dev launcher instead of app** → you built `assembleDebug`; use `assembleRelease` instead
+**Expo dev launcher instead of app** → used debug; build `assembleRelease`
 
-**`INSTALL_FAILED_UPDATE_INCOMPATIBLE`** → uninstall the existing app first:
+**Maven / `listenablefuture` read timed out** → retry the same `assembleRelease`; caches usually make it succeed
+
+**`:app:packageRelease` IncrementalSplitter failure** → retry; often succeeds once deps are warm
+
+**`INSTALL_FAILED_UPDATE_INCOMPATIBLE` / signature mismatch** → uninstall then install (debug vs release keystores differ):
 ```bash
-adb uninstall com.satsigner.satsigner.dev   # dev variant
-adb uninstall com.satsigner.satsigner       # production variant
+adb -s <serial> uninstall com.satsigner.satsigner.dev.<segment>
+adb -s <serial> install path/to.apk
 ```
 
-**`INSTALL_FAILED_INVALID_APK` or signature mismatch** → uninstall first, then reinstall (different keystore than what was previously installed)
+**`INSTALL_FAILED_INSUFFICIENT_STORAGE`** → free emulator storage or install on a physical device (`adb devices`)
+
+**Multiple devices** → always pass `-s <serial>`; do not assume the first device
+
+**Gradle `./gradlew: no such file`** → confirm `apps/mobile/android/gradlew` exists (run prebuild if not); use `bash ./gradlew` if needed

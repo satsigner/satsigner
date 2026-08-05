@@ -1,3 +1,5 @@
+import * as nodeCrypto from 'node:crypto'
+
 const mockCipherUpdate = jest.fn().mockReturnValue(Buffer.alloc(16))
 const mockCipherFinal = jest.fn().mockReturnValue(Buffer.alloc(0))
 
@@ -10,34 +12,25 @@ const QuickCrypto = {
     final: jest.fn().mockReturnValue(Buffer.alloc(0)),
     update: jest.fn().mockReturnValue(Buffer.alloc(16))
   }),
-  createHash: jest.fn().mockImplementation(() => {
-    let data = ''
+  // Backed by node:crypto so digests are real. Entropy conditioning depends on
+  // actual hash behaviour (avalanche, full digest width), which a stub cannot model.
+  createHash: jest.fn().mockImplementation((algorithm: string) => {
+    const hash = nodeCrypto.createHash(algorithm)
     return {
-      digest: jest.fn().mockImplementation(() => {
-        const buf = Buffer.alloc(32)
-        for (let i = 0; i < 32; i += 1) {
-          buf[i] = data.charCodeAt(i % data.length) ^ (i * 31)
-        }
-        return buf
-      }),
+      digest: jest.fn().mockImplementation(() => hash.digest()),
       update: jest.fn().mockImplementation(function updateHash(
         this: unknown,
         input: string
       ) {
-        data += String(input)
+        hash.update(String(input))
         return this
       })
     }
   }),
   pbkdf2Sync: jest.fn().mockReturnValue(new ArrayBuffer(32)),
-  randomBytes: jest.fn().mockImplementation((size: number) => {
-    const buf = new ArrayBuffer(size)
-    const view = new Uint8Array(buf)
-    for (let i = 0; i < size; i += 1) {
-      view[i] = Math.floor(Math.random() * 256)
-    }
-    return buf
-  })
+  randomBytes: jest
+    .fn()
+    .mockImplementation((size: number) => nodeCrypto.randomBytes(size))
 }
 
 export default QuickCrypto

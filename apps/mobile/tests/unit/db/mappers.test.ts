@@ -23,6 +23,7 @@ function makeAccountRow(overrides: Partial<AccountRow> = {}): AccountRow {
   return {
     balance: 100000,
     created_at: '2024-01-01T00:00:00.000Z',
+    excluded_utxo_outpoints: '[]',
     id: 'acc-1',
     key_count: 1,
     keys: JSON.stringify([
@@ -283,10 +284,19 @@ describe('rowToAccount', () => {
     expect(result.keyCount).toBe(1)
     expect(result.keysRequired).toBe(1)
     expect(result.syncStatus).toBe('synced')
+    expect(result.excludedUtxoOutpoints).toStrictEqual([])
     expect(result.createdAt).toStrictEqual(new Date('2024-01-01T00:00:00.000Z'))
     expect(result.lastSyncedAt).toStrictEqual(
       new Date('2024-06-15T12:00:00.000Z')
     )
+  })
+
+  it('maps excluded utxo outpoints', () => {
+    const row = makeAccountRow({
+      excluded_utxo_outpoints: JSON.stringify(['txid:0'])
+    })
+    const result = rowToAccount(row, [], [], [], {}, [], [], [])
+    expect(result.excludedUtxoOutpoints).toStrictEqual(['txid:0'])
   })
 
   it('maps keys as KeyMeta with empty secret/iv', () => {

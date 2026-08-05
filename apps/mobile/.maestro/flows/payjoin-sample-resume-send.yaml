@@ -1,0 +1,38 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - send
+  - signet
+---
+# Resume Sample sender after Clown finished contributing.
+# Opens the persisted "Waiting for receiver" session card → check → broadcast.
+#
+# Used by pnpm maestro:payjoin:sample-to-clown (step 4/4).
+
+- runFlow:
+    file: shared/launch.yaml
+- runFlow:
+    file: shared/skip-pin-and-warning.yaml
+- runFlow:
+    file: shared/leave-to-account-list.yaml
+- runFlow:
+    file: shared/open-sample-segwit.yaml
+# Session card on account home (sender role).
+- extendedWaitUntil:
+    visible: '(?i)Waiting for receiver'
+    timeout: 30000
+- tapOn: '(?i)Waiting for receiver'
+- extendedWaitUntil:
+    visible: '(?i)Check for Payjoin response'
+    timeout: 30000
+- tapOn: '(?i)Check for Payjoin response'
+- extendedWaitUntil:
+    visible:
+      id: send-broadcast
+    timeout: 120000
+- tapOn:
+    id: send-broadcast
+- extendedWaitUntil:
+    visible: '(?i).*broadcast.*'
+    timeout: 60000
+    optional: true

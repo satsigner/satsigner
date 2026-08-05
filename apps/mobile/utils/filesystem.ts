@@ -3,11 +3,24 @@ import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
 import { Platform } from 'react-native'
 
+import { sanitizeFilenamePart } from '@/utils/safePath'
+
 type ShareFileProps = {
   filename: string
   fileContent: string
   dialogTitle: string
   mimeType: string
+}
+
+function sanitizeExportFilename(filename: string): string {
+  const trimmed = filename.trim()
+  const lastDot = trimmed.lastIndexOf('.')
+  if (lastDot <= 0 || lastDot === trimmed.length - 1) {
+    return sanitizeFilenamePart(trimmed, 'export')
+  }
+  const base = sanitizeFilenamePart(trimmed.slice(0, lastDot), 'export')
+  const ext = sanitizeFilenamePart(trimmed.slice(lastDot + 1), 'txt')
+  return `${base}.${ext}`
 }
 
 export async function shareFile({
@@ -16,7 +29,8 @@ export async function shareFile({
   dialogTitle,
   mimeType
 }: ShareFileProps) {
-  const fileUri = FileSystem.documentDirectory + filename
+  const safeFilename = sanitizeExportFilename(filename)
+  const fileUri = `${FileSystem.documentDirectory}${safeFilename}`
 
   await FileSystem.writeAsStringAsync(fileUri, fileContent)
   await Sharing.shareAsync(fileUri, { dialogTitle, mimeType })
@@ -53,6 +67,7 @@ export async function saveExistingFile({
   dialogTitle,
   mimeType
 }: SaveExistingFileProps) {
+  const safeFilename = sanitizeExportFilename(filename)
   if (Platform.OS === 'android') {
     const permissions =
       await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
@@ -60,7 +75,7 @@ export async function saveExistingFile({
       const destinationUri =
         await FileSystem.StorageAccessFramework.createFileAsync(
           permissions.directoryUri,
-          filename,
+          safeFilename,
           mimeType
         )
       const data = await FileSystem.readAsStringAsync(srcUri, {
@@ -82,6 +97,7 @@ export async function saveFile({
   dialogTitle,
   mimeType
 }: ShareFileProps) {
+  const safeFilename = sanitizeExportFilename(filename)
   if (Platform.OS === 'android') {
     const permissions =
       await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
@@ -89,7 +105,7 @@ export async function saveFile({
       const destinationUri =
         await FileSystem.StorageAccessFramework.createFileAsync(
           permissions.directoryUri,
-          filename,
+          safeFilename,
           mimeType
         )
       await FileSystem.writeAsStringAsync(destinationUri, fileContent, {
@@ -99,7 +115,12 @@ export async function saveFile({
     }
   }
 
-  await shareFile({ dialogTitle, fileContent, filename, mimeType })
+  await shareFile({
+    dialogTitle,
+    fileContent,
+    filename: safeFilename,
+    mimeType
+  })
 }
 
 export type PickFileProps = {

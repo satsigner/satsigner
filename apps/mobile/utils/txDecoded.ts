@@ -110,9 +110,8 @@ export class TxDecoded extends bitcoinjs.Transaction {
   }
 
   getInputHash(index: number): TxDecodedField {
-    const bigEndianHash = this.ins[index].hash
-    const hex = bigEndianHash.toString('hex')
-    const value = Endian(bigEndianHash.toString('hex'))
+    const hex = bytesToHex(this.ins[index].hash)
+    const value = reverseHexEndian(hex)
     const field = TxField.TxInHash
     const placeholders = { input: index }
     return { field, hex, placeholders, value }
@@ -136,7 +135,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
 
   getInputScript(index: number): TxDecodedField {
     const { script } = this.ins[index]
-    const hex = script.toString('hex')
+    const hex = bytesToHex(script)
     const value = hex === '' ? '' : bitcoinjs.script.toASM(script)
     const field = TxField.TxInScript
     const placeholders = { input: index }
@@ -185,7 +184,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
 
   getOutputScript(index: number): TxDecodedField {
     const { script } = this.outs[index]
-    const hex = script.toString('hex')
+    const hex = bytesToHex(script)
     const value = bitcoinjs.script.toASM(script)
     const address = this.generateOutputScriptAddress(index)
     const field = address
@@ -234,7 +233,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
 
   getWitnessItem(index: number, witnessIndex: number): TxDecodedField {
     const witnessItem = this.ins[index].witness[witnessIndex]
-    const hex = witnessItem.toString('hex')
+    const hex = bytesToHex(witnessItem)
     const { field, value } = this.identifyWitnessItem(witnessItem)
     const placeholders = { input: index, witness: witnessIndex }
     return { field, hex, placeholders, value }
@@ -261,23 +260,24 @@ export class TxDecoded extends bitcoinjs.Transaction {
   }
 
   // identifyWitnessItem takes a witness item and returns a description of the item and a decoded value
-  identifyWitnessItem(witnessItem: Buffer) {
-    const hex = witnessItem.toString('hex')
+  identifyWitnessItem(witnessItem: Buffer | Uint8Array) {
+    const bytes = Buffer.from(witnessItem)
+    const hex = bytesToHex(bytes)
     if (hex === '') {
       return { field: TxField.WitnessItemEmpty, value: '' }
     }
 
-    if (bitcoinjs.script.isCanonicalPubKey(witnessItem)) {
+    if (bitcoinjs.script.isCanonicalPubKey(bytes)) {
       return { field: TxField.WitnessItemPubkey, value: hex }
     }
 
-    if (bitcoinjs.script.isCanonicalScriptSignature(witnessItem)) {
+    if (bitcoinjs.script.isCanonicalScriptSignature(bytes)) {
       return { field: TxField.WitnessItemSignature, value: hex }
     }
 
     // if the witness item is a script, decode it
     try {
-      const decodedScript = bitcoinjs.script.toASM(witnessItem)
+      const decodedScript = bitcoinjs.script.toASM(bytes)
       return {
         field: TxField.WitnessItemScript,
         value: decodedScript
@@ -291,35 +291,38 @@ export class TxDecoded extends bitcoinjs.Transaction {
   }
 }
 
+/** Safe hex encoding — RN Uint8Array.toString('hex') is not hex. */
+function bytesToHex(bytes: Buffer | Uint8Array | number[]): string {
+  return Buffer.from(bytes).toString('hex')
+}
+
 function toVarInt(value: number) {
   const varInt = varuint.encode(value)
-  return varInt.toString('hex')
+  return bytesToHex(varInt)
 }
 
 function toUInt8(value: number) {
   const buffer = Buffer.alloc(1)
   buffer.writeUInt8(value)
-  return buffer.toString('hex')
+  return bytesToHex(buffer)
 }
 
 function toUInt32LE(value: number) {
   const buffer = Buffer.alloc(4)
   buffer.writeUInt32LE(value)
-  return buffer.toString('hex')
+  return bytesToHex(buffer)
 }
 
 function toBigUInt64LE(value: number) {
   const buffer = Buffer.alloc(8)
   buffer.writeBigUInt64LE(BigInt(value))
-  return buffer.toString('hex')
+  return bytesToHex(buffer)
 }
 
-function Endian(hexStr: string) {
-  // Validate input
+function reverseHexEndian(hexStr: string) {
   if (hexStr.length % 2 !== 0) {
     throw new Error('Invalid hexadecimal string, length must be even.')
   }
-  // Reverse the byte order
   let result = ''
   for (let i = hexStr.length - 2; i >= 0; i -= 2) {
     result += hexStr.slice(i, i + 2)

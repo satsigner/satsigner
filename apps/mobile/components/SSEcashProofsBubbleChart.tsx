@@ -1,4 +1,4 @@
-import { hierarchy, pack } from 'd3'
+import { hierarchy, pack } from 'd3-hierarchy'
 import { Pressable, StyleSheet, View } from 'react-native'
 import Svg, { Circle, Text as SvgText } from 'react-native-svg'
 

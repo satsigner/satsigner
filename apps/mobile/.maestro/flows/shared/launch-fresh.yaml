@@ -1,0 +1,25 @@
+appId: ${APP_ID}
+---
+# Clear app data, then deep-link into Metro (no launchApp — see launch.yaml).
+
+- clearState
+- stopApp
+
+- openLink: exp+satsigner://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081
+
+- tapOn:
+    text: 'Just once'
+    optional: true
+- tapOn:
+    text: 'Always'
+    optional: true
+
+- runFlow:
+    when:
+      visible: 'Continue'
+    commands:
+      - tapOn: 'Continue'
+
+- extendedWaitUntil:
+    visible: '(?i)Bitcoin|Set pin|Acknowledge|Don.?t trust|Enter your PIN|Add Account|SIGNET|SIGNER'
+    timeout: 120000

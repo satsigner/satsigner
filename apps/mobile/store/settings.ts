@@ -5,9 +5,19 @@ import {
   DEFAULT_FIAT_PRICE_API_URL,
   normalizeFiatPriceApiUrl
 } from '@/constants/fiatPriceApi'
+import {
+  PAYJOIN_DEFAULT_COORDINATION_MODE,
+  PAYJOIN_SESSION_TTL_MS
+} from '@/constants/payjoin'
 import mmkvStorage from '@/storage/mmkv'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import { type PayjoinCoordinationMode } from '@/types/payjoin'
+import {
+  normalizePayjoinCoordinationMode,
+  resolvePayjoinDirectoryUrl
+} from '@/utils/payjoinMode'
+import { normalizePayjoinSessionTtlMs } from '@/utils/payjoinTtl'
 
 type FiatPriceProvider = 'custom' | 'mempool'
 
@@ -18,6 +28,14 @@ type SettingsState = {
   showWarning: boolean
   skipSeedConfirmation: boolean
   privacyMode: boolean
+  /** When true, Payjoin coordination is available at all (master kill switch). */
+  payjoinEnabled: boolean
+  /** Directory (network) vs Manual (offline out-of-band) coordination. */
+  payjoinCoordinationMode: PayjoinCoordinationMode
+  /** Custom Payjoin directory URL (Directory mode only); empty uses the default. */
+  payjoinDirectoryUrl: string
+  /** Receiver/sender session TTL in ms (1 / 5 / 10 minute presets). */
+  payjoinSessionTtlMs: number
   fetchCurrentPrices: boolean
   fetchHistoricalPrices: boolean
   fiatPriceApiUrl: string
@@ -45,6 +63,16 @@ type SettingsAction = {
   ) => void
   setDefaultAutoSelectUtxos: (
     algorithm: SettingsState['defaultAutoSelectUtxos']
+  ) => void
+  setPayjoinEnabled: (payjoinEnabled: SettingsState['payjoinEnabled']) => void
+  setPayjoinCoordinationMode: (
+    payjoinCoordinationMode: SettingsState['payjoinCoordinationMode']
+  ) => void
+  setPayjoinDirectoryUrl: (
+    payjoinDirectoryUrl: SettingsState['payjoinDirectoryUrl']
+  ) => void
+  setPayjoinSessionTtlMs: (
+    payjoinSessionTtlMs: SettingsState['payjoinSessionTtlMs']
   ) => void
   togglePrivacyMode: () => void
 }
@@ -80,6 +108,10 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       fiatPriceApiUrl: '',
       fiatPriceProvider: 'mempool',
       mnemonicWordList: DEFAULT_WORD_LIST,
+      payjoinCoordinationMode: PAYJOIN_DEFAULT_COORDINATION_MODE,
+      payjoinDirectoryUrl: '',
+      payjoinEnabled: true,
+      payjoinSessionTtlMs: PAYJOIN_SESSION_TTL_MS,
       privacyMode: false,
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
@@ -102,6 +134,24 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       setMnemonicWordList: (mnemonicWordList) => {
         set({ mnemonicWordList })
       },
+      setPayjoinCoordinationMode: (payjoinCoordinationMode) => {
+        set({
+          payjoinCoordinationMode: normalizePayjoinCoordinationMode(
+            payjoinCoordinationMode
+          )
+        })
+      },
+      setPayjoinDirectoryUrl: (payjoinDirectoryUrl) => {
+        set({ payjoinDirectoryUrl: payjoinDirectoryUrl.trim() })
+      },
+      setPayjoinEnabled: (payjoinEnabled) => {
+        set({ payjoinEnabled })
+      },
+      setPayjoinSessionTtlMs: (payjoinSessionTtlMs) => {
+        set({
+          payjoinSessionTtlMs: normalizePayjoinSessionTtlMs(payjoinSessionTtlMs)
+        })
+      },
       setShowWarning: (showWarning) => {
         set({ showWarning })
       },
@@ -118,11 +168,20 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       useZeroPadding: false
     }),
     {
-      merge: (persistedState, currentState) =>
-        migrateFiatPriceSettings(
-          persistedState as Partial<SettingsState> | undefined,
-          { ...currentState, ...(persistedState as Partial<SettingsState>) }
-        ),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<SettingsState> | undefined
+        const merged = migrateFiatPriceSettings(persisted, {
+          ...currentState,
+          ...persisted
+        })
+        merged.payjoinSessionTtlMs = normalizePayjoinSessionTtlMs(
+          merged.payjoinSessionTtlMs
+        )
+        merged.payjoinCoordinationMode = normalizePayjoinCoordinationMode(
+          merged.payjoinCoordinationMode
+        )
+        return merged
+      },
       name: 'settings-store',
       storage: createJSONStorage(() => mmkvStorage)
     }
@@ -131,3 +190,27 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
 
 export { migrateFiatPriceSettings, useSettingsStore }
 export type { FiatPriceProvider }
+
+function getPayjoinSessionTtlMs(): number {
+  return normalizePayjoinSessionTtlMs(
+    useSettingsStore.getState().payjoinSessionTtlMs
+  )
+}
+
+function getPayjoinCoordinationMode(): PayjoinCoordinationMode {
+  return normalizePayjoinCoordinationMode(
+    useSettingsStore.getState().payjoinCoordinationMode
+  )
+}
+
+function getResolvedPayjoinDirectoryUrl(): string {
+  return resolvePayjoinDirectoryUrl(
+    useSettingsStore.getState().payjoinDirectoryUrl
+  )
+}
+
+export {
+  getPayjoinCoordinationMode,
+  getPayjoinSessionTtlMs,
+  getResolvedPayjoinDirectoryUrl
+}

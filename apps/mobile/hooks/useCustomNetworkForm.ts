@@ -22,6 +22,7 @@ import {
   type Server
 } from '@/types/settings/blockchain'
 import { trimOnionAddress } from '@/utils/format'
+import { isValidDomainName, isValidIPAddress } from '@/utils/url'
 
 const DEFAULT_PROXY_HOST = 'localhost'
 const DEFAULT_PROXY_PORT = 9050
@@ -59,6 +60,29 @@ type ParsedElectrumUrl = {
   port: string
   protocol: 'ssl' | 'tcp'
 }
+
+type ParsedCustomBackendPaste =
+  | {
+      backend: 'electrum'
+      host: string
+      port: string
+      protocol: 'ssl' | 'tcp'
+    }
+  | {
+      backend: 'esplora'
+      host: string
+      port: string
+    }
+  | {
+      backend: 'rpc'
+      host: string
+      port: string
+      rpcPassword?: string
+      rpcUsername?: string
+    }
+  | {
+      host: string
+    }
 
 function parseElectrumUrl(normalized: string): ParsedElectrumUrl | null {
   const protocolUrlMatch = normalized.match(ELECTRUM_FULL_URL_WITH_MODE_REGEX)
@@ -99,6 +123,64 @@ function parseElectrumUrl(normalized: string): ParsedElectrumUrl | null {
   return null
 }
 
+/**
+ * Parse clipboard / QR text for the custom backend form.
+ * Accepts full Electrum / Esplora / RPC URLs, host:port shorthand,
+ * and bare IP or domain (paste under the host field).
+ */
+function parseCustomBackendPaste(
+  urlString: string
+): ParsedCustomBackendPaste | null {
+  const raw = urlString.trim()
+  if (!raw) {
+    return null
+  }
+  const candidate = raw.replace(TRIM_SURROUNDING_QUOTES_REGEX, '').trim()
+  if (!candidate) {
+    return null
+  }
+
+  const electrumUrl = parseElectrumUrl(candidate)
+
+  if (electrumUrl) {
+    return {
+      backend: 'electrum',
+      host: electrumUrl.host,
+      port: electrumUrl.port,
+      protocol: electrumUrl.protocol
+    }
+  }
+
+  try {
+    const u = new URL(candidate)
+    if (u.protocol === 'http:') {
+      return {
+        backend: 'rpc',
+        host: u.hostname,
+        port: u.port || '',
+        rpcPassword: u.password ? decodeURIComponent(u.password) : undefined,
+        rpcUsername: u.username ? decodeURIComponent(u.username) : undefined
+      }
+    }
+    if (u.protocol === 'https:') {
+      return {
+        backend: 'esplora',
+        host: u.hostname,
+        port: u.port && u.port !== '443' ? u.port : ''
+      }
+    }
+  } catch {
+    // Not an absolute URL — fall through to bare host checks.
+  }
+
+  // Paste under host often has just an IP or hostname (see placeholders).
+  if (isValidIPAddress(candidate) || isValidDomainName(candidate)) {
+    return { host: candidate }
+  }
+
+  return null
+}
+
 function defaultRpcPort(network: Network): number {
   if (network === 'testnet') {
     return RPC_DEFAULT_PORT_TESTNET
@@ -109,7 +191,24 @@ function defaultRpcPort(network: Network): number {
   return RPC_DEFAULT_PORT_MAINNET
 }
 
-export { defaultRpcPort }
+/** Common Electrum/Fulcrum listen ports per network (tcp / ssl). */
+type ElectrumDefaultPorts = {
+  ssl: number
+  tcp: number
+}
+
+function defaultElectrumPorts(network: Network): ElectrumDefaultPorts {
+  if (network === 'testnet') {
+    return { ssl: 51002, tcp: 51001 }
+  }
+  if (network === 'signet') {
+    return { ssl: 60002, tcp: 60001 }
+  }
+  return { ssl: 50002, tcp: 50001 }
+}
+
+export { defaultElectrumPorts, defaultRpcPort, parseCustomBackendPaste }
+export type { ElectrumDefaultPorts, ParsedCustomBackendPaste }
 
 export function useCustomNetworkForm(network: Network = 'bitcoin') {
   const [formData, setFormData] = useState<CustomNetworkFormData>({
@@ -270,59 +369,49 @@ export function useCustomNetworkForm(network: Network = 'bitcoin') {
   }, [])
 
   function applyPastedUrl(urlString: string): boolean {
-    const raw = urlString.trim()
-    if (!raw) {
-      return false
-    }
-    const candidate = raw.replace(TRIM_SURROUNDING_QUOTES_REGEX, '').trim()
-    if (!candidate) {
+    const parsed = parseCustomBackendPaste(urlString)
+    if (!parsed) {
       return false
     }
 
-    const electrumUrl = parseElectrumUrl(candidate)
-
-    if (electrumUrl) {
+    if ('backend' in parsed && parsed.backend === 'electrum') {
       setFormData((prev) => ({
         ...prev,
         backend: 'electrum',
-        host: electrumUrl.host,
-        port: electrumUrl.port,
-        protocol: electrumUrl.protocol
+        host: parsed.host,
+        port: parsed.port,
+        protocol: parsed.protocol
       }))
       return true
     }
-    try {
-      const u = new URL(candidate)
-      if (u.protocol === 'http:') {
-        const port = u.port || ''
-        setFormData((prev) => ({
-          ...prev,
-          backend: 'rpc',
-          host: u.hostname,
-          port,
-          rpcPassword: u.password
-            ? decodeURIComponent(u.password)
-            : prev.rpcPassword,
-          rpcUsername: u.username
-            ? decodeURIComponent(u.username)
-            : prev.rpcUsername
-        }))
-        return true
-      }
-      if (u.protocol !== 'https:') {
-        return false
-      }
-      const port = u.port && u.port !== '443' ? u.port : ''
+
+    if ('backend' in parsed && parsed.backend === 'rpc') {
+      setFormData((prev) => ({
+        ...prev,
+        backend: 'rpc',
+        host: parsed.host,
+        port: parsed.port,
+        rpcPassword: parsed.rpcPassword ?? prev.rpcPassword,
+        rpcUsername: parsed.rpcUsername ?? prev.rpcUsername
+      }))
+      return true
+    }
+
+    if ('backend' in parsed && parsed.backend === 'esplora') {
       setFormData((prev) => ({
         ...prev,
         backend: 'esplora',
-        host: u.hostname,
-        port
+        host: parsed.host,
+        port: parsed.port
       }))
       return true
-    } catch {
-      return false
     }
+
+    setFormData((prev) => ({
+      ...prev,
+      host: parsed.host
+    }))
+    return true
   }
 
   return {

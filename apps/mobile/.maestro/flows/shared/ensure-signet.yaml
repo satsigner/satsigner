@@ -1,0 +1,33 @@
+appId: ${APP_ID}
+---
+# Open Bitcoin account list and select SIGNET tab.
+# If already on the account list (Add Account), skip goto-account-list.
+
+# Already listing accounts → skip full reset
+- runFlow:
+    when:
+      visible: '(?i)Add Account'
+    commands:
+      - evalScript: ${output.onAccountList = true}
+
+# Not on list → reset from whatever screen we were on
+- runFlow:
+    when:
+      notVisible: '(?i)Add Account'
+    commands:
+      - runFlow:
+          file: goto-account-list.yaml
+      - runFlow:
+          when:
+            visible: '(?i)^Bitcoin$'
+          commands:
+            - tapOn: '(?i)^Bitcoin$'
+
+- extendedWaitUntil:
+    visible: '(?i)^SIGNET$'
+    timeout: 30000
+- tapOn: '(?i)^SIGNET$'
+
+- extendedWaitUntil:
+    visible: '(?i)Add Account'
+    timeout: 15000

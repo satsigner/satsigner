@@ -9,15 +9,16 @@ import {
 type SSDiceProps = {
   children: ReactNode
   onPress?: () => void
+  selected?: boolean
   style?: ViewStyle
 }
 
-function SSDice({ children, onPress, style }: SSDiceProps) {
+function SSDice({ children, onPress, selected = false, style }: SSDiceProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={1}
-      style={[styles.wrapper, style]}
+      style={[styles.wrapper, selected && styles.selected, style]}
     >
       <View style={styles.dice}>{children}</View>
     </TouchableOpacity>
@@ -29,6 +30,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     justifyContent: 'center'
+  },
+  selected: {
+    opacity: 1
   },
   wrapper: {
     borderRadius: 12,

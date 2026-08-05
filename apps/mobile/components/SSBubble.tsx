@@ -299,42 +299,35 @@ function SSBubble({
         style="fill"
         antiAlias
       />
-      {utxo.value && customFontManager && (
-        <Group>
-          <Group layer={<Paint opacity={dateAddressOpacity} />}>
-            <Paragraph
-              paragraph={dateParagraph}
-              x={dateX}
-              y={dateY}
-              width={100}
-            />
-          </Group>
+      <Group>
+        <Group layer={<Paint opacity={dateAddressOpacity} />}>
           <Paragraph
-            paragraph={mainParagraph}
-            x={mainX}
-            y={mainY}
-            width={200}
+            paragraph={dateParagraph}
+            x={dateX}
+            y={dateY}
+            width={100}
           />
-          {memoParagraph && (
-            <Group layer={<Paint opacity={descriptionOpacity} />}>
-              <Paragraph
-                paragraph={memoParagraph}
-                x={memoX}
-                y={memoY}
-                width={150}
-              />
-            </Group>
-          )}
-          <Group layer={<Paint opacity={dateAddressOpacity} />}>
+        </Group>
+        <Paragraph paragraph={mainParagraph} x={mainX} y={mainY} width={200} />
+        {memoParagraph ? (
+          <Group layer={<Paint opacity={descriptionOpacity} />}>
             <Paragraph
-              paragraph={fromParagraph}
+              paragraph={memoParagraph}
               x={memoX}
-              y={fromY}
+              y={memoY}
               width={150}
             />
           </Group>
+        ) : null}
+        <Group layer={<Paint opacity={dateAddressOpacity} />}>
+          <Paragraph
+            paragraph={fromParagraph}
+            x={memoX}
+            y={fromY}
+            width={150}
+          />
         </Group>
-      )}
+      </Group>
     </Group>
   )
 }
