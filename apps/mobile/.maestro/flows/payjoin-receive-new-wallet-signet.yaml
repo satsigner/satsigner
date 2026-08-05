@@ -1,0 +1,38 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - receive
+  - signet
+  - fresh
+---
+# Create/open ACCOUNT_NAME and assert Payjoin receive when the wallet can contribute.
+# Fresh empty wallets cannot — use payjoin-receive-empty-wallet-signet.yaml for that.
+# Fund ACCOUNT_NAME on signet (≥1000 sats) before expecting a BIP77 URI.
+#
+#   -e ACCOUNT_NAME=pjre
+#   pnpm maestro:payjoin:receive:new
+
+- runFlow:
+    file: shared/launch.yaml
+- runFlow:
+    file: shared/skip-pin-and-warning.yaml
+- runFlow:
+    file: shared/create-signet-singlesig.yaml
+- tapOn:
+    id: account-receive
+# Branch: empty → messaging; funded → active session + pj= URI.
+- runFlow:
+    when:
+      visible:
+        id: receive-payjoin-empty-wallet
+    commands:
+      - assertVisible: 'Empty wallets cannot use Payjoin'
+      - assertNotVisible:
+          id: receive-payjoin-status
+- runFlow:
+    when:
+      notVisible:
+        id: receive-payjoin-empty-wallet
+    commands:
+      - runFlow:
+          file: shared/assert-payjoin-receive-active.yaml

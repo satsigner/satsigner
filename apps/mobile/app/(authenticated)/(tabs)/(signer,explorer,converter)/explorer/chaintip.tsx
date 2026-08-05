@@ -1,19 +1,28 @@
 import { useFont } from '@shopify/react-native-skia'
-import { useQuery } from '@tanstack/react-query'
-import { Stack } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { router, Stack } from 'expo-router'
+import { useState, type ComponentProps, type ReactElement } from 'react'
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import { CartesianChart, Line } from 'victory-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { MempoolOracle } from '@/api/blockchain'
-import ElectrumClient from '@/api/electrum'
-import Esplora from '@/api/esplora'
-import BitcoinRpc, { type RpcBlock } from '@/api/rpc'
+import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
-import { useFiatData } from '@/hooks/useFiatData'
-import useMempoolOracle from '@/hooks/useMempoolOracle'
+import {
+  PRICE_CHART_DAYS,
+  useChainTipData,
+  useChainTipExternalData,
+  useChainTipMempoolStats,
+  useChainTipPriceHistory
+} from '@/hooks/useChainTipData'
+import type { DataSource } from '@/hooks/useChainTipData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -21,266 +30,46 @@ import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
-import type {
-  Block,
-  MemPoolFees,
-  MempoolStatistics
-} from '@/types/models/Blockchain'
-import type { Network } from '@/types/settings/blockchain'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
-import { formatBytes, formatDate } from '@/utils/format'
-import { time } from '@/utils/time'
+import type { MemPoolFees } from '@/types/models/Blockchain'
+import { formatBytes, formatDate, formatPercentualChange } from '@/utils/format'
+import {
+  MAIN_HORIZONTAL_PAD_RATIO,
+  PRICE_CHART_HEIGHT,
+  PRICE_CHART_LOADER_SIZE,
+  PRICE_CHART_PADDING,
+  PRICE_CHART_TICK_COUNT,
+  type PriceChartDomain,
+  type PriceChartPoint,
+  formatPriceChartXLabel,
+  formatPriceChartYLabel,
+  formatSpotPriceDisplay,
+  priceDomainFromData
+} from '@/utils/priceChart'
 
 const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 
-const SECONDS_PER_DAY = time.days(1) / 1000
-
 const tn = _tn('explorer.chaintip')
 
-type SectionSource = 'backend' | 'mempool'
-type MempoolStats = { count?: number; vsize?: number; total_fee?: number }
-
-type ChainData = {
-  height: number | null
-  hash: string | null
-  block: Partial<Block> | null
-  fees: MemPoolFees | null
-  mempool: MempoolStats | null
-  blockSource: SectionSource
-  feesSource: SectionSource
-  mempoolSource: SectionSource
-}
-
-const DEFAULT_CHAIN_DATA: ChainData = {
-  block: null,
-  blockSource: 'mempool',
-  fees: null,
-  feesSource: 'mempool',
-  hash: null,
-  height: null,
-  mempool: null,
-  mempoolSource: 'mempool'
-}
-
-function safeClose(client: ElectrumClient | null): void {
-  try {
-    client?.close()
-  } catch {
-    /* silently ignored */
+type PriceChartRenderArgs = {
+  points: {
+    price?: ComponentProps<typeof Line>['points']
   }
 }
 
-async function fetchFromEsplora(
-  esplora: Esplora,
-  oracle: MempoolOracle
-): Promise<Partial<ChainData>> {
-  const data: Partial<ChainData> = {}
-
-  await Promise.all([
-    (async () => {
-      try {
-        const [rawHeight, rawHash] = await Promise.all([
-          esplora.getLatestBlockHeight(),
-          esplora.getLatestBlockHash()
-        ])
-        data.height = Number(rawHeight)
-        data.hash = String(rawHash)
-        data.block = await oracle.getBlock(data.hash)
-        data.blockSource = 'backend'
-      } catch {
-        /* silently ignored */
-      }
-    })(),
-    (async () => {
-      try {
-        const info = await esplora.getMempoolInfo()
-        if (info) {
-          data.mempool = {
-            count: info.count,
-            total_fee: info.total_fee,
-            vsize: info.vsize
-          }
-          data.mempoolSource = 'backend'
-        }
-      } catch {
-        /* silently ignored */
-      }
-    })()
-  ])
-
-  return data
-}
-
-async function fetchFromElectrum(
-  url: string,
-  network: Network
-): Promise<Partial<ChainData>> {
-  const data: Partial<ChainData> = {}
-  let client: ElectrumClient | null = null
-
-  try {
-    client = ElectrumClient.fromUrl(url, network)
-    await client.init()
-
-    await Promise.all([
-      (async () => {
-        try {
-          const tip = await client!.subscribeToBlockHeaders()
-          if (tip?.height) {
-            data.height = tip.height
-            const header = await client!.getBlock(data.height)
-            data.hash = header.getId()
-            data.block = { height: data.height, timestamp: header.timestamp }
-            data.blockSource = 'backend'
-          }
-        } catch {
-          /* silently ignored */
-        }
-      })(),
-      (async () => {
-        try {
-          const histogram = await client!.getMempoolFeeHistogram()
-          if (histogram.length > 0) {
-            const vsize = histogram.reduce((sum, [, size]) => sum + size, 0)
-            data.mempool = { vsize }
-            data.mempoolSource = 'backend'
-          }
-        } catch {
-          /* silently ignored */
-        }
-      })()
-    ])
-  } catch {
-    // connection init failed; will fall through to mempool fallback
-  } finally {
-    safeClose(client)
+function renderPriceChartLine({
+  points
+}: PriceChartRenderArgs): ReactElement | null {
+  if (!points.price) {
+    return null
   }
-
-  return data
-}
-
-async function fetchFromRpc(
-  url: string,
-  username: string,
-  password: string
-): Promise<Partial<ChainData>> {
-  const data: Partial<ChainData> = {}
-  const rpc = new BitcoinRpc(url, username, password)
-
-  await Promise.all([
-    (async () => {
-      try {
-        const info = await rpc.getBlockchainInfo()
-        data.height = info.blocks
-        data.hash = info.bestblockhash
-        data.blockSource = 'backend'
-        const rpcBlock: RpcBlock = await rpc.getBlock(info.bestblockhash)
-        data.block = {
-          height: rpcBlock.height,
-          size: rpcBlock.size,
-          timestamp: rpcBlock.time,
-          tx_count: rpcBlock.tx.length,
-          weight: rpcBlock.weight
-        }
-      } catch {
-        /* silently ignored */
-      }
-    })(),
-    (async () => {
-      try {
-        const mempoolInfo = await rpc.getMempoolInfo()
-        data.mempool = {
-          count: mempoolInfo.size,
-          vsize: mempoolInfo.bytes
-        }
-        data.mempoolSource = 'backend'
-      } catch {
-        /* silently ignored */
-      }
-    })(),
-    (async () => {
-      try {
-        const feeResult = await rpc.estimateSmartFee(1)
-        if (feeResult.feerate !== undefined) {
-          // feerate is BTC/kB — convert to sat/vB
-          const satPerVb = Math.round((feeResult.feerate * 1e8) / 1000)
-          data.fees = {
-            high: satPerVb,
-            low: Math.max(1, Math.round(satPerVb * 0.5)),
-            medium: Math.round(satPerVb * 0.75),
-            none: 1
-          }
-          data.feesSource = 'backend'
-        }
-      } catch {
-        /* silently ignored */
-      }
-    })()
-  ])
-
-  return data
-}
-
-async function fetchMempoolFallback(
-  oracle: MempoolOracle,
-  existing: Partial<ChainData>
-): Promise<ChainData> {
-  const data: ChainData = { ...DEFAULT_CHAIN_DATA, ...existing }
-
-  await Promise.all([
-    (async () => {
-      try {
-        const [mHeight, mHash] = await Promise.all([
-          data.height === null ? oracle.getCurrentBlockHeight() : null,
-          data.hash === null ? oracle.getCurrentBlockHash() : null
-        ])
-        if (data.height === null && mHeight !== null) {
-          data.height = mHeight
-          data.blockSource = 'mempool'
-        }
-        if (data.hash === null && mHash !== null) {
-          data.hash = mHash
-        }
-      } catch {
-        /* silently ignored */
-      }
-    })(),
-    (async () => {
-      try {
-        data.fees = await oracle.getMemPoolFees()
-        data.feesSource = 'mempool'
-      } catch {
-        /* silently ignored */
-      }
-    })(),
-    (async () => {
-      if (data.mempool !== null) {
-        return
-      }
-      try {
-        const md = await oracle.getMemPool()
-        data.mempool = {
-          count: md.count,
-          total_fee: md.total_fee,
-          vsize: md.vsize
-        }
-        data.mempoolSource = 'mempool'
-      } catch {
-        /* silently ignored */
-      }
-    })()
-  ])
-
-  if (data.block === null && data.hash !== null) {
-    try {
-      data.block = await oracle.getBlock(data.hash)
-      data.blockSource = 'mempool'
-    } catch {
-      /* silently ignored */
-    }
-  }
-
-  return data
+  return (
+    <Line
+      points={points.price}
+      color={Colors.white}
+      strokeWidth={1.5}
+      curveType="linear"
+    />
+  )
 }
 
 export default function ChainTip() {
@@ -288,118 +77,55 @@ export default function ChainTip() {
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
   const { server } = configs[selectedNetwork]
-  const fallbackOracle = useMempoolOracle(selectedNetwork)
-  const { showCurrentFiat, showHistoricalFiat, fiatPriceApiUrl } = useFiatData()
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
-  const effectiveBtcPrice = showCurrentFiat ? btcPrice : 0
 
-  const [chainData, setChainData] = useState<ChainData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [showExternal, setShowExternal] = useState(false)
+
+  const { data: chainData, isLoading } = useChainTipData()
+  const { data: externalData, isLoading: isLoadingExternal } =
+    useChainTipExternalData(showExternal)
+  const { data: mempoolStatistics } = useChainTipMempoolStats(
+    '2h',
+    showExternal
+  )
+  const { data: priceHistoryResult, isLoading: isLoadingPrice } =
+    useChainTipPriceHistory(fiatCurrency, showExternal)
   const priceChartFont = useFont(chartFont, 10)
 
-  useEffect(() => {
-    async function fetchData() {
-      let partial: Partial<ChainData> = {}
+  const priceChartData =
+    priceHistoryResult?.timestamps?.length && priceHistoryResult?.prices?.length
+      ? priceHistoryResult.timestamps.map((ts, i) => ({
+          price: priceHistoryResult.prices[i] ?? 0,
+          x: ts
+        }))
+      : []
 
-      if (server.backend === 'esplora' && server.url) {
-        const esplora = new Esplora(server.url)
-        const oracle = new MempoolOracle(server.url)
-        partial = await fetchFromEsplora(esplora, oracle)
-      } else if (server.backend === 'electrum' && server.url) {
-        partial = await fetchFromElectrum(server.url, selectedNetwork)
-      } else if (server.backend === 'rpc' && server.url) {
-        partial = await fetchFromRpc(
-          server.url,
-          server.rpcCredentials?.username ?? '',
-          server.rpcCredentials?.password ?? ''
-        )
-      }
+  const priceChartDomain = priceDomainFromData(priceChartData)
+  const chartSpotPrice = priceChartData.at(-1)?.price ?? 0
+  const spotPrice = btcPrice > 0 ? btcPrice : chartSpotPrice
+  const firstChartPrice = priceChartData.find((d) => d.price > 0)?.price
+  const priceChangeLabel =
+    firstChartPrice && chartSpotPrice > 0
+      ? formatPercentualChange(chartSpotPrice, firstChartPrice)
+      : null
 
-      const full = await fetchMempoolFallback(fallbackOracle, partial)
-      setChainData(full)
-      setLoading(false)
-    }
-    fetchData()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const [feeChartTimeRange] = useState<'week' | 'day' | '2hours'>('2hours')
-  const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
-    queryFn: () =>
-      fallbackOracle.getMempoolStatistics(
-        feeChartTimeRange === '2hours'
-          ? '2h'
-          : feeChartTimeRange === 'day'
-            ? '24h'
-            : '1w'
-      ),
-    queryKey: ['chaintip-statistics', feeChartTimeRange],
-    staleTime: time.minutes(5)
-  })
-
-  const PRICE_CHART_DAYS = 7
-  const { data: priceHistoryResult } = useQuery<{
-    timestamps: number[]
-    prices: number[]
-  }>({
-    enabled: showHistoricalFiat,
-    queryFn: async () => {
-      const now = Math.floor(Date.now() / 1000)
-      const timestamps = Array.from(
-        { length: PRICE_CHART_DAYS },
-        (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * SECONDS_PER_DAY
-      )
-      const oracle = new MempoolOracle(getFiatPriceApiUrl())
-      const prices = await oracle.getPricesAt(fiatCurrency, timestamps)
-      return { prices, timestamps }
-    },
-    queryKey: ['chaintip-price-history', fiatCurrency, fiatPriceApiUrl],
-    staleTime: time.minutes(10)
-  })
-
-  const priceChartData = useMemo(() => {
-    if (
-      !priceHistoryResult?.timestamps?.length ||
-      !priceHistoryResult?.prices?.length
-    ) {
-      return []
-    }
-    const { timestamps, prices } = priceHistoryResult
-    return timestamps.map((ts, i) => ({ price: prices[i] ?? 0, x: ts }))
-  }, [priceHistoryResult])
-
-  const priceChartDomain = useMemo(() => {
-    if (priceChartData.length === 0) {
-      return undefined
-    }
-    const prices = priceChartData.map((d) => d.price).filter((p) => p > 0)
-    const xValues = priceChartData.map((d) => d.x)
-    if (prices.length === 0 || xValues.length === 0) {
-      return undefined
-    }
-    const minY = Math.min(...prices)
-    const maxY = Math.max(...prices)
-    const padY = (maxY - minY) * 0.1 || 1
-    const minX = Math.min(...xValues)
-    const maxX = Math.max(...xValues)
-    return {
-      x: [minX, maxX] as [number, number],
-      y: [minY - padY, maxY + padY] as [number, number]
-    }
-  }, [priceChartData])
-
-  function formatPriceChartDate(timestampSeconds: number) {
-    return new Intl.DateTimeFormat(undefined, {
-      day: 'numeric',
-      month: 'short'
-    }).format(new Date(timestampSeconds * 1000))
-  }
-
-  function sourceLabel(src: SectionSource) {
+  function sourceLabel(src: DataSource) {
     return src === 'backend'
       ? `${server.name} (${server.backend})`
       : 'mempool.space'
+  }
+
+  function openTipBlock() {
+    if (typeof chainData?.height !== 'number') {
+      return
+    }
+    router.push(`/explorer/block/${chainData.height}`)
+  }
+
+  function enableExternal() {
+    setShowExternal(true)
   }
 
   return (
@@ -409,8 +135,16 @@ export default function ChainTip() {
           headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SSVStack gap="xl" style={{ paddingBottom: 32, paddingTop: 20 }}>
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <SSLoader size={80} />
+        </View>
+      )}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <SSVStack gap="xl" widthFull style={styles.scrollStack}>
           {/* Latest Block */}
           <SSVStack gap="sm">
             <SectionHeader
@@ -423,11 +157,16 @@ export default function ChainTip() {
               }
             />
             <SSVStack gap="xs">
-              <Row
-                label={tn('height')}
-                value={chainData?.height?.toLocaleString() ?? '--'}
-                loading={loading}
-              />
+              <Pressable
+                onPress={openTipBlock}
+                disabled={typeof chainData?.height !== 'number'}
+              >
+                <Row
+                  label={tn('height')}
+                  value={chainData?.height?.toLocaleString() ?? '--'}
+                  loading={isLoading}
+                />
+              </Pressable>
               <Row
                 label={tn('timestamp')}
                 value={
@@ -435,87 +174,48 @@ export default function ChainTip() {
                     ? formatDate(chainData.block.timestamp * 1000)
                     : '--'
                 }
-                loading={loading}
+                loading={isLoading}
               />
-              {(chainData?.block as Block)?.tx_count !== null &&
-                (chainData?.block as Block)?.tx_count !== undefined && (
-                  <Row
-                    label={tn('transactions')}
-                    value={(
-                      chainData!.block as Block
-                    ).tx_count.toLocaleString()}
-                    loading={loading}
-                  />
-                )}
-              {(chainData?.block as Block)?.size !== null &&
-                (chainData?.block as Block)?.size !== undefined && (
-                  <Row
-                    label={tn('size')}
-                    value={formatBytes((chainData!.block as Block).size)}
-                    loading={loading}
-                  />
-                )}
-              {(chainData?.block as Block)?.weight !== null &&
-                (chainData?.block as Block)?.weight !== undefined && (
-                  <Row
-                    label={tn('weight')}
-                    value={formatBytes((chainData!.block as Block).weight)}
-                    loading={loading}
-                  />
-                )}
+              {chainData?.block?.tx_count !== undefined && (
+                <Row
+                  label={tn('transactions')}
+                  value={chainData.block.tx_count.toLocaleString()}
+                  loading={isLoading}
+                />
+              )}
+              {chainData?.block?.size !== undefined && (
+                <Row
+                  label={tn('size')}
+                  value={formatBytes(chainData.block.size)}
+                  loading={isLoading}
+                />
+              )}
+              {chainData?.block?.weight !== undefined && (
+                <Row
+                  label={tn('weight')}
+                  value={formatBytes(chainData.block.weight)}
+                  loading={isLoading}
+                />
+              )}
               <SSVStack gap="none">
                 <SSText size="xs" style={styles.labelText}>
                   {tn('hash')}
                 </SSText>
                 <SSText size="xs" style={styles.hashText} numberOfLines={2}>
-                  {loading ? '--' : (chainData?.hash ?? '--')}
+                  {isLoading ? '--' : (chainData?.hash ?? '--')}
                 </SSText>
               </SSVStack>
+              {typeof chainData?.height === 'number' ? (
+                <Pressable onPress={openTipBlock}>
+                  <SSText size="xs" style={styles.linkText}>
+                    {tn('viewBlock')}
+                  </SSText>
+                </Pressable>
+              ) : null}
             </SSVStack>
           </SSVStack>
 
-          {/* Fee Rates */}
-          <SSVStack gap="sm">
-            <SectionHeader
-              title={tn('fees')}
-              source={chainData?.feesSource ?? null}
-              sourceLabel={
-                chainData?.feesSource ? sourceLabel(chainData.feesSource) : null
-              }
-            />
-            <SSVStack gap="xs">
-              <Row
-                label={tn('feesHigh')}
-                value={chainData?.fees ? `${chainData.fees.high} sat/vB` : '--'}
-                loading={loading}
-              />
-              <Row
-                label={tn('feesMedium')}
-                value={
-                  chainData?.fees ? `${chainData.fees.medium} sat/vB` : '--'
-                }
-                loading={loading}
-              />
-              <Row
-                label={tn('feesLow')}
-                value={chainData?.fees ? `${chainData.fees.low} sat/vB` : '--'}
-                loading={loading}
-              />
-              <Row
-                label={tn('feesNone')}
-                value={chainData?.fees ? `${chainData.fees.none} sat/vB` : '--'}
-                loading={loading}
-              />
-            </SSVStack>
-            <SSVStack gap="sm" style={{ marginTop: 8 }}>
-              <SSFeeRateChart
-                mempoolStatistics={mempoolStatistics}
-                timeRange={feeChartTimeRange}
-              />
-            </SSVStack>
-          </SSVStack>
-
-          {/* Mempool */}
+          {/* Mempool (from backend if available) */}
           <SSVStack gap="sm">
             <SectionHeader
               title={tn('mempool')}
@@ -531,7 +231,7 @@ export default function ChainTip() {
                 <Row
                   label={tn('mempoolTxs')}
                   value={chainData.mempool.count.toLocaleString()}
-                  loading={loading}
+                  loading={isLoading}
                 />
               )}
               <Row
@@ -541,83 +241,210 @@ export default function ChainTip() {
                     ? formatBytes(chainData.mempool.vsize)
                     : '--'
                 }
-                loading={loading}
+                loading={isLoading}
               />
               {chainData?.mempool?.total_fee !== undefined && (
                 <Row
                   label={tn('mempoolFees')}
                   value={`${chainData.mempool.total_fee.toLocaleString()} sats`}
-                  loading={loading}
+                  loading={isLoading}
                 />
               )}
             </SSVStack>
           </SSVStack>
 
-          {/* Price — always mempool.space */}
-          <SSVStack gap="sm">
-            <SectionHeader
-              title={tn('price')}
-              source="mempool"
-              sourceLabel="mempool.space"
+          {chainData?.feesSource === 'backend' && chainData.fees ? (
+            <FeeRatesSection
+              fees={chainData.fees}
+              source={chainData.feesSource}
+              sourceLabel={sourceLabel(chainData.feesSource)}
+              loading={isLoading}
             />
-            <Row
-              label={`BTC / ${fiatCurrency}`}
-              value={
-                effectiveBtcPrice > 0
-                  ? effectiveBtcPrice.toLocaleString(undefined, {
-                      maximumFractionDigits: 0
-                    })
-                  : '--'
-              }
-              loading={false}
+          ) : null}
+
+          {!showExternal ? (
+            <SSExplorerCapabilityBanner
+              why={tn('externalWhy')}
+              fix={tn('externalNote')}
+              onLoad={enableExternal}
+              loadLabel={tn('loadExternal')}
+              loading={isLoadingExternal}
             />
-            {showHistoricalFiat &&
-            priceChartData.length > 0 &&
-            priceChartDomain ? (
-              <View style={styles.priceChartWrapper}>
-                <SSText
-                  size="xxs"
-                  style={[styles.labelText, { marginBottom: 6 }]}
-                >
-                  {fiatCurrency} / BTC
-                </SSText>
-                <CartesianChart
-                  data={priceChartData}
-                  xKey="x"
-                  yKeys={['price']}
-                  domain={priceChartDomain}
-                  padding={{ bottom: 32, left: 48, right: 16, top: 8 }}
-                  axisOptions={{
-                    axisSide: { x: 'bottom', y: 'left' },
-                    font: priceChartFont ?? undefined,
-                    formatXLabel: (v) => formatPriceChartDate(Number(v)),
-                    formatYLabel: (v) =>
-                      `${Number(v).toLocaleString(undefined, {
-                        maximumFractionDigits: 0
-                      })} ${fiatCurrency}`,
-                    labelColor: { x: '#787878', y: '#ffffff' },
-                    labelOffset: { x: 6, y: 8 },
-                    tickCount: { x: 7, y: 6 }
-                  }}
-                >
-                  {({ points }) =>
-                    points.price ? (
-                      <Line
-                        points={points.price}
-                        color={Colors.mainGreen}
-                        strokeWidth={2}
-                        curveType="natural"
-                        animate={{ type: 'spring' }}
-                      />
-                    ) : null
-                  }
-                </CartesianChart>
-              </View>
-            ) : null}
-          </SSVStack>
+          ) : null}
+
+          {showExternal && (
+            <>
+              {chainData?.feesSource !== 'backend' ? (
+                <FeeRatesSection
+                  fees={externalData?.fees ?? null}
+                  source="mempool"
+                  sourceLabel="mempool.space"
+                  loading={isLoadingExternal}
+                />
+              ) : null}
+              <SSVStack gap="sm" style={{ marginTop: 8 }}>
+                <SSFeeRateChart
+                  mempoolStatistics={mempoolStatistics}
+                  timeRange="2hours"
+                />
+              </SSVStack>
+
+              <PriceSection
+                fiatCurrency={fiatCurrency}
+                spotPrice={spotPrice}
+                priceChangeLabel={priceChangeLabel}
+                priceChartData={priceChartData}
+                priceChartDomain={priceChartDomain}
+                priceChartFont={priceChartFont}
+                loading={isLoadingPrice}
+              />
+            </>
+          )}
         </SSVStack>
       </ScrollView>
     </SSMainLayout>
+  )
+}
+
+function PriceSection({
+  fiatCurrency,
+  spotPrice,
+  priceChangeLabel,
+  priceChartData,
+  priceChartDomain,
+  priceChartFont,
+  loading
+}: {
+  fiatCurrency: string
+  spotPrice: number
+  priceChangeLabel: string | null
+  priceChartData: PriceChartPoint[]
+  priceChartDomain: PriceChartDomain | undefined
+  priceChartFont: ReturnType<typeof useFont>
+  loading: boolean
+}) {
+  const { width: screenWidth } = useWindowDimensions()
+  const chartBleedStyle = {
+    marginLeft: -screenWidth * MAIN_HORIZONTAL_PAD_RATIO,
+    width: screenWidth
+  }
+  const changePositive =
+    priceChangeLabel !== null && priceChangeLabel.startsWith('+')
+  const spotPriceLabel = formatSpotPriceDisplay(loading, spotPrice)
+
+  return (
+    <SSVStack gap="sm" widthFull>
+      <SectionHeader
+        title={tn('price')}
+        source="mempool"
+        sourceLabel="mempool.space"
+      />
+      <SSVStack gap="none" widthFull>
+        <SSHStack gap="sm" style={styles.priceSpotRow}>
+          <SSText size="3xl" type="mono" weight="light">
+            {spotPriceLabel}
+          </SSText>
+          <SSText size="md" color="muted">
+            {fiatCurrency}
+          </SSText>
+        </SSHStack>
+        {priceChangeLabel ? (
+          <SSHStack gap="xs" style={styles.priceChangeRow}>
+            <SSText
+              size="xs"
+              type="mono"
+              style={
+                changePositive ? styles.priceChangeUp : styles.priceChangeDown
+              }
+            >
+              {priceChangeLabel}
+            </SSText>
+            <SSText size="xs" color="muted">
+              {tn('priceChangePeriod', { days: PRICE_CHART_DAYS })}
+            </SSText>
+          </SSHStack>
+        ) : null}
+      </SSVStack>
+      {loading && priceChartData.length === 0 ? (
+        <View style={[styles.priceChartLoading, chartBleedStyle]}>
+          <SSLoader size={PRICE_CHART_LOADER_SIZE} />
+        </View>
+      ) : null}
+      {priceChartData.length > 0 && priceChartDomain ? (
+        <View style={[styles.priceChartWrapper, chartBleedStyle]}>
+          <CartesianChart
+            data={priceChartData}
+            xKey="x"
+            yKeys={['price']}
+            domain={priceChartDomain}
+            padding={PRICE_CHART_PADDING}
+            axisOptions={{
+              axisSide: { x: 'bottom', y: 'right' },
+              font: priceChartFont ?? undefined,
+              formatXLabel: formatPriceChartXLabel,
+              formatYLabel: formatPriceChartYLabel,
+              labelColor: {
+                x: Colors.gray[500],
+                y: Colors.gray[300]
+              },
+              labelOffset: { x: 4, y: 18 },
+              tickCount: PRICE_CHART_TICK_COUNT
+            }}
+          >
+            {renderPriceChartLine}
+          </CartesianChart>
+        </View>
+      ) : null}
+      {!loading && priceChartData.length === 0 ? (
+        <SSText size="sm" color="muted">
+          {tn('priceChartEmpty')}
+        </SSText>
+      ) : null}
+    </SSVStack>
+  )
+}
+
+function FeeRatesSection({
+  fees,
+  source,
+  sourceLabel,
+  loading
+}: {
+  fees: MemPoolFees | null
+  source: DataSource
+  sourceLabel: string
+  loading: boolean
+}) {
+  return (
+    <SSVStack gap="sm">
+      <SectionHeader
+        title={tn('fees')}
+        source={source}
+        sourceLabel={sourceLabel}
+      />
+      <SSVStack gap="xs">
+        <Row
+          label={tn('feesHigh')}
+          value={fees ? `${fees.high} sat/vB` : '--'}
+          loading={loading}
+        />
+        <Row
+          label={tn('feesMedium')}
+          value={fees ? `${fees.medium} sat/vB` : '--'}
+          loading={loading}
+        />
+        <Row
+          label={tn('feesLow')}
+          value={fees ? `${fees.low} sat/vB` : '--'}
+          loading={loading}
+        />
+        <Row
+          label={tn('feesNone')}
+          value={fees ? `${fees.none} sat/vB` : '--'}
+          loading={loading}
+        />
+      </SSVStack>
+    </SSVStack>
   )
 }
 
@@ -627,7 +454,7 @@ function SectionHeader({
   sourceLabel
 }: {
   title: string
-  source: SectionSource | null
+  source: DataSource | null
   sourceLabel: string | null
 }) {
   return (
@@ -681,18 +508,44 @@ const styles = StyleSheet.create({
   labelText: {
     color: Colors.gray['400']
   },
-  priceChartWrapper: {
-    borderColor: Colors.gray[700],
-    borderRadius: 8,
-    borderWidth: 1,
+  linkText: {
+    color: Colors.white,
+    marginTop: 4,
+    textDecorationLine: 'underline'
+  },
+  loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  priceChangeDown: {
+    color: Colors.mainRed
+  },
+  priceChangeRow: {
+    alignItems: 'center',
+    marginTop: -2
+  },
+  priceChangeUp: {
+    color: Colors.mainGreen
+  },
+  priceChartLoading: {
+    alignItems: 'center',
     height: 200,
-    marginTop: 8,
-    overflow: 'hidden',
-    padding: 12
+    justifyContent: 'center'
+  },
+  priceChartWrapper: {
+    height: PRICE_CHART_HEIGHT
+  },
+  priceSpotRow: {
+    alignItems: 'baseline'
   },
   row: {
     alignItems: 'center',
     paddingVertical: 4
+  },
+  scrollContent: {
+    width: '100%'
+  },
+  scrollStack: {
+    paddingBottom: 32,
+    paddingTop: 20,
+    width: '100%'
   },
   sectionTitle: {
     color: Colors.gray['400'],

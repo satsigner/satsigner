@@ -29,6 +29,9 @@ function SSLabelDetails({
   privacyMode = false
 }: SSLabelDetailsProps) {
   const { label, tags } = parseLabel(originalLabel)
+  const hasLabel = !!label
+  const hasTags = !privacyMode && tags.length > 0
+  const showEmptyPlaceholders = !privacyMode && !hasLabel && !hasTags
 
   return (
     <Pressable
@@ -38,33 +41,48 @@ function SSLabelDetails({
       style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
     >
       <SSHStack justifyBetween style={styles.row}>
-        <SSVStack gap="sm" style={styles.content}>
-          <SSText uppercase color="muted">
+        <SSVStack gap="xxs" style={styles.content}>
+          <SSText uppercase color="muted" size="xs">
             {header}
           </SSText>
-          {label ? (
-            <SSText size={getLabelTextSize(label)} weight="light">
-              {privacyMode ? '••••' : label}
-            </SSText>
-          ) : (
-            <SSText color="muted" weight="light">
-              {privacyMode ? '••••' : t('transaction.noLabel')}
-            </SSText>
-          )}
-          {!privacyMode && tags.length > 0 ? (
-            <SSHStack gap="sm">
-              {tags.map((tag) => (
-                <View key={tag} style={styles.tag}>
-                  <SSText size="xs" uppercase={false} style={styles.tagText}>
-                    {tag}
-                  </SSText>
-                </View>
-              ))}
+          {showEmptyPlaceholders ? (
+            <SSHStack gap="sm" style={styles.placeholders}>
+              <SSText size="sm" weight="light" style={styles.placeholder}>
+                {t('transaction.noLabel')}
+              </SSText>
+              <SSText size="sm" weight="light" style={styles.placeholderDot}>
+                ·
+              </SSText>
+              <SSText size="sm" weight="light" style={styles.placeholder}>
+                {t('transaction.noTags')}
+              </SSText>
             </SSHStack>
-          ) : null}
-          {!privacyMode && tags.length === 0 ? (
-            <SSText color="muted">{t('transaction.noTags')}</SSText>
-          ) : null}
+          ) : (
+            <SSHStack gap="sm" style={styles.body}>
+              {hasLabel || privacyMode ? (
+                <SSText size={getLabelTextSize(label || '••••')} weight="light">
+                  {privacyMode ? '••••' : label}
+                </SSText>
+              ) : (
+                <SSText size="sm" weight="light" style={styles.placeholder}>
+                  {t('transaction.noLabel')}
+                </SSText>
+              )}
+              {hasTags
+                ? tags.map((tag) => (
+                    <View key={tag} style={styles.tag}>
+                      <SSText
+                        size="xs"
+                        uppercase={false}
+                        style={styles.tagText}
+                      >
+                        {tag}
+                      </SSText>
+                    </View>
+                  ))
+                : null}
+            </SSHStack>
+          )}
         </SSVStack>
         <SSIconEditPencil height={16} width={16} strokeWidth={0.75} />
       </SSHStack>
@@ -73,9 +91,22 @@ function SSLabelDetails({
 }
 
 const styles = StyleSheet.create({
+  body: {
+    alignItems: 'center',
+    flexWrap: 'wrap'
+  },
   content: {
     flex: 1,
     maxWidth: '80%'
+  },
+  placeholder: {
+    color: Colors.gray[500]
+  },
+  placeholderDot: {
+    color: Colors.gray[600]
+  },
+  placeholders: {
+    alignItems: 'center'
   },
   pressable: {
     width: '100%'
@@ -87,11 +118,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start'
   },
   tag: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     backgroundColor: Colors.gray[700],
+    borderCurve: 'continuous',
     borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4
+    paddingHorizontal: 6,
+    paddingVertical: 2
   },
   tagText: {
     color: Colors.white

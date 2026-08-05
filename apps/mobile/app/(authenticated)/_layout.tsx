@@ -22,6 +22,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
+import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type PageRoute } from '@/types/navigation/page'
@@ -180,6 +181,8 @@ export default function AuthenticatedLayout() {
       } catch {
         // non-critical — cache prune failure should not block startup
       }
+
+      usePayjoinSessionsStore.getState().clearExpiredSessions()
     }
     run()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

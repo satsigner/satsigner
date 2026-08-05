@@ -998,7 +998,7 @@ export default function NodeDetailPage() {
             <SSHStack justifyBetween style={styles.tabSceneToolbar}>
               <SSHStack>
                 <SSIconButton onPress={runRefresh}>
-                  <SSIconRefresh height={18} width={22} />
+                  <SSIconRefresh height={16} width={19} />
                 </SSIconButton>
                 <SSIconButton onPress={() => handleOnExpand(!expand)}>
                   {expand ? (
@@ -1036,7 +1036,7 @@ export default function NodeDetailPage() {
             <SSHStack justifyBetween style={styles.tabSceneToolbar}>
               <SSHStack>
                 <SSIconButton onPress={runRefresh}>
-                  <SSIconRefresh height={18} width={22} />
+                  <SSIconRefresh height={16} width={19} />
                 </SSIconButton>
                 <SSIconButton onPress={() => handleOnExpand(!expand)}>
                   {expand ? (
@@ -1064,7 +1064,7 @@ export default function NodeDetailPage() {
             <SSHStack justifyBetween style={styles.tabSceneToolbar}>
               <SSHStack>
                 <SSIconButton onPress={runRefresh}>
-                  <SSIconRefresh height={18} width={22} />
+                  <SSIconRefresh height={16} width={19} />
                 </SSIconButton>
                 <SSIconButton onPress={() => handleOnExpand(!expand)}>
                   {expand ? (

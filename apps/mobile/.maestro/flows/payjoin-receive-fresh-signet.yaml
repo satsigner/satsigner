@@ -1,0 +1,20 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - receive
+  - signet
+  - fresh
+---
+# Same as payjoin-receive-signet — Sample (segwit) receive (Studio entry).
+# Does not clear state or create wallets.
+
+- runFlow:
+    file: shared/launch.yaml
+- runFlow:
+    file: shared/skip-pin-and-warning.yaml
+- runFlow:
+    file: shared/open-sample-segwit.yaml
+- tapOn:
+    id: account-receive
+- runFlow:
+    file: shared/assert-payjoin-receive-active.yaml

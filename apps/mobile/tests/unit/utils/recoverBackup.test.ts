@@ -19,10 +19,6 @@ jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
   storeKeySecret: jest.fn()
 }))
 
-jest.mock<typeof import('@/store/auth')>('@/store/auth', () => ({
-  useAuthStore: { getState: jest.fn() }
-}))
-
 jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
   useAccountsStore: { getState: jest.fn(), setState: jest.fn() }
 }))
@@ -57,12 +53,12 @@ jest.mock<typeof import('@/store/wallets')>('@/store/wallets', () => ({
 const { getPin } = jest.requireMock('@/utils/crypto') as {
   getPin: jest.Mock
 }
-const { useAuthStore } = jest.requireMock('@/store/auth') as {
-  useAuthStore: { getState: jest.Mock }
-}
 
 function setPin(pin: string | null) {
-  useAuthStore.getState.mockReturnValue({ skipPin: false })
+  if (pin === null) {
+    getPin.mockRejectedValue(new Error('PIN unavailable'))
+    return
+  }
   getPin.mockResolvedValue(pin)
 }
 

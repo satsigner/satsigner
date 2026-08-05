@@ -3,7 +3,6 @@ import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useHeaderHeight } from 'expo-router/react-navigation'
 import { useMemo, type ReactNode } from 'react'
 import {
-  ActivityIndicator,
   Platform,
   StyleSheet,
   TouchableOpacity,
@@ -14,13 +13,14 @@ import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
 import SSButton from '@/components/SSButton'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import { useGestures } from '@/hooks/useGestures'
 import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useLayout } from '@/hooks/useLayout'
 import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
-import { Colors, Layout } from '@/styles'
+import { Layout } from '@/styles'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import {
@@ -45,8 +45,12 @@ type SSMultipleSankeyDiagramProps = {
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
+  /** Confirmed fee override (explorer history); skips feeRate × estimated vsize. */
+  minerFeeSats?: number
   elevatedFeeRateHighlight?: boolean
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  /** Explorer: false so history tip outputs are not wallet-spend red. */
+  walletSpendColors?: boolean
   txLabelsById?: Map<string, string> | Record<string, string>
   outpointLabelsByRef?: Map<string, string> | Record<string, string>
   overlayHeaderHeight?: number
@@ -59,8 +63,10 @@ function SSMultipleSankeyDiagram({
   inputs,
   outputs,
   feeRate,
+  minerFeeSats,
   elevatedFeeRateHighlight = false,
   ownAddresses = new Set(),
+  walletSpendColors = true,
   txLabelsById,
   outpointLabelsByRef,
   overlayHeaderHeight
@@ -73,11 +79,13 @@ function SSMultipleSankeyDiagram({
     elevatedFeeRateHighlight,
     feeRate,
     inputs,
+    minerFeeSats,
     outpointLabelsByRef,
     outputs,
     ownAddresses,
     transactions,
-    txLabelsById
+    txLabelsById,
+    walletSpendColors
   })
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
@@ -293,7 +301,7 @@ function SSMultipleSankeyDiagram({
   if (loading && transactions.size === 0) {
     return centeredMessage(
       <>
-        <ActivityIndicator color={Colors.gray[300]} size="large" />
+        <SSLoader size={80} />
         <SSText color="muted" style={{ marginTop: Layout.vStack.gap.md }}>
           {t('transaction.historyDiagram.loading')}
         </SSText>

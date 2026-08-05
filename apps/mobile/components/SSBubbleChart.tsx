@@ -1,5 +1,5 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
-import { hierarchy, type HierarchyCircularNode, pack } from 'd3'
+import { hierarchy, type HierarchyCircularNode, pack } from 'd3-hierarchy'
 import { useMemo } from 'react'
 import {
   type GestureResponderEvent,
@@ -16,20 +16,12 @@ import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { type Utxo } from '@/types/models/Utxo'
+import { type BubblePackNode, buildBubblePackRoot } from '@/utils/bubblePack'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import { type UtxoGroupMode } from '@/utils/utxoList'
 
 import SSBubble from './SSBubble'
-
-type UtxoListItem = Utxo & {
-  id: string
-  children: []
-}
-
-type UtxoListBubble = Partial<Utxo> & {
-  id: string
-  value: number
-  children: UtxoListBubble[]
-}
+import SSBubbleGroup from './SSBubbleGroup'
 
 type SSBubbleChartProps = {
   canvasSize: {
@@ -41,6 +33,7 @@ type SSBubbleChartProps = {
   onPress: (utxo: Utxo) => void
   showOnlySelected?: boolean
   dimUnselected?: boolean
+  groupMode?: UtxoGroupMode
   style?: StyleProp<ViewStyle>
 }
 
@@ -51,49 +44,58 @@ function SSBubbleChart({
   onPress,
   showOnlySelected = false,
   dimUnselected = false,
+  groupMode = 'none',
   style
 }: SSBubbleChartProps) {
   const { height, width } = canvasSize
   const centerX = width / 2
   const centerY = height / 2
   const customFontManager = useSFProFonts()
-  const utxoList: UtxoListItem[] = utxos.map((utxo) => ({
-    addressTo: utxo.addressTo || '',
-    children: [],
-    id: `${utxo.txid}:${utxo.vout}`,
-    keychain: utxo.keychain,
-    label: utxo.label || '',
-    timestamp: utxo.timestamp,
-    txid: utxo.txid,
-    value: utxo.value,
-    vout: utxo.vout
-  }))
 
-  const utxoPack = useMemo(() => {
-    const utxoHierarchy = () =>
-      hierarchy<UtxoListBubble>({
-        children: utxoList,
-        id: 'root',
-        value: utxoList.reduce((acc, cur) => acc + cur.value, 0)
+  const { leaves, groups } = useMemo(() => {
+    const root = buildBubblePackRoot(utxos, groupMode)
+    const utxoHierarchy = hierarchy<BubblePackNode>(root).sum((d) => d.value)
+    // d3 HierarchyNode.sort — not Array.prototype.sort
+    // oxlint-disable-next-line eslint-plugin-unicorn/no-array-sort
+    utxoHierarchy.sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
+
+    const createPack = pack<BubblePackNode>()
+      .size([width, height])
+      .padding((node) => {
+        // Flat pack: keep the pre-grouping tight spacing.
+        if (groupMode === 'none') {
+          return 4
+        }
+        // Grouped: more space between group circles, tight within a group.
+        return node.depth === 0 ? 10 : 4
       })
-        .sum((d) => d?.value ?? 0)
-        .sort((a, b) => (b?.value ?? 0) - (a?.value ?? 0))
 
-    const createPack = pack<UtxoListBubble>().size([width, height]).padding(4)
-
-    const allLeaves = createPack(utxoHierarchy()).leaves()
+    const packed = createPack(utxoHierarchy)
+    const allLeaves = packed.leaves().flatMap((leaf) => {
+      const { utxo } = leaf.data
+      if (!utxo) {
+        return []
+      }
+      return [{ leaf, utxo }]
+    })
 
     if (showOnlySelected && inputs.length > 0) {
-      const inputOutpoints = new Set(
-        inputs.map((input) => `${input.txid}:${input.vout}`)
-      )
-      return allLeaves.filter((leaf) =>
-        inputOutpoints.has(`${leaf.data.txid}:${leaf.data.vout}`)
-      )
+      const inputOutpoints = new Set(inputs.map(getUtxoOutpoint))
+      return {
+        groups: [] as HierarchyCircularNode<BubblePackNode>[],
+        leaves: allLeaves.filter(({ utxo }) =>
+          inputOutpoints.has(getUtxoOutpoint(utxo))
+        )
+      }
     }
 
-    return allLeaves
-  }, [width, height, utxoList, showOnlySelected, inputs])
+    const groupNodes =
+      groupMode === 'none'
+        ? []
+        : packed.descendants().filter((node) => node.depth === 1)
+
+    return { groups: groupNodes, leaves: allLeaves }
+  }, [width, height, utxos, groupMode, showOnlySelected, inputs])
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform, isZoomedIn, scale } = useGestures(
@@ -111,8 +113,13 @@ function SSBubbleChart({
 
   function handleOnPressCircle(
     event: GestureResponderEvent,
-    packedUtxo: HierarchyCircularNode<UtxoListBubble>
+    packedUtxo: HierarchyCircularNode<BubblePackNode>
   ) {
+    const { utxo } = packedUtxo.data
+    if (!utxo) {
+      return
+    }
+
     const rSquared = packedUtxo.r * packedUtxo.r
     const touchPointX = event.nativeEvent.locationX
     const touchPointY = event.nativeEvent.locationY
@@ -120,15 +127,7 @@ function SSBubbleChart({
       (touchPointX - packedUtxo.r) ** 2 + (touchPointY - packedUtxo.r) ** 2
 
     if (distanceSquared <= rSquared) {
-      onPress({
-        addressTo: packedUtxo.data.addressTo,
-        keychain: packedUtxo.data.keychain!,
-        label: packedUtxo.data.label || '',
-        timestamp: packedUtxo.data.timestamp,
-        txid: packedUtxo.data.txid!,
-        value: packedUtxo.data.value,
-        vout: packedUtxo.data.vout!
-      })
+      onPress(utxo)
     }
   }
 
@@ -137,17 +136,18 @@ function SSBubbleChart({
       <View onLayout={onCanvasLayout}>
         <Canvas style={canvasSize}>
           <Group transform={transform} origin={{ x: centerX, y: centerY }}>
-            {utxoPack.map((packedUtxo, index) => {
-              const utxo: Utxo = {
-                addressTo: packedUtxo.data.addressTo,
-                keychain: packedUtxo.data.keychain!,
-                label: packedUtxo.data.label || '',
-                timestamp: packedUtxo.data.timestamp,
-                txid: packedUtxo.data.txid!,
-                value: packedUtxo.data.value!,
-                vout: packedUtxo.data.vout!
-              }
-
+            {groups.map((groupNode, index) => (
+              <SSBubbleGroup
+                key={groupNode.data.id}
+                title={groupNode.data.title || ''}
+                x={groupNode.x}
+                y={groupNode.y}
+                radius={groupNode.r}
+                customFontManager={customFontManager}
+                animationDelay={index * 30}
+              />
+            ))}
+            {leaves.map(({ leaf, utxo }, index) => {
               const isSelected = inputs.some(
                 (input: Utxo) =>
                   getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
@@ -155,11 +155,11 @@ function SSBubbleChart({
 
               return (
                 <SSBubble
-                  key={packedUtxo.data.id}
+                  key={leaf.data.id}
                   utxo={utxo}
-                  x={packedUtxo.x}
-                  y={packedUtxo.y}
-                  radius={packedUtxo.r}
+                  x={leaf.x}
+                  y={leaf.y}
+                  radius={leaf.r}
                   selected={isSelected}
                   isZoomedIn={isZoomedIn}
                   customFontManager={customFontManager}
@@ -187,44 +187,25 @@ function SSBubbleChart({
             style={[canvasSize, animatedStyle]}
             onLayout={onCanvasLayout}
           >
-            {utxoPack.map((packedUtxo) => {
-              const style = {} as {
-                [key: string]: number
-              }
-              const width = packedUtxo.r * 2
-              const height = packedUtxo.r * 2
-              const left = packedUtxo.x - packedUtxo.r
-              const top = packedUtxo.y - packedUtxo.r
-              const borderRadius = packedUtxo.r
-
-              if (width) {
-                style.width = width
-              }
-              if (height) {
-                style.height = height
-              }
-              if (left) {
-                style.left = left
-              }
-              if (top) {
-                style.top = top
-              }
-              if (borderRadius) {
-                style.borderRadius = borderRadius
+            {leaves.map(({ leaf }) => {
+              const hitStyle = {
+                backgroundColor: 'transparent',
+                borderRadius: leaf.r,
+                height: leaf.r * 2,
+                left: leaf.x - leaf.r,
+                overflow: 'hidden' as const,
+                position: 'absolute' as const,
+                top: leaf.y - leaf.r,
+                width: leaf.r * 2
               }
 
               return (
                 <TouchableOpacity
-                  key={packedUtxo.data.id}
-                  style={{
-                    ...style,
-                    backgroundColor: 'transparent',
-                    overflow: 'hidden',
-                    position: 'absolute'
-                  }}
+                  key={leaf.data.id}
+                  style={hitStyle}
                   delayPressIn={0}
                   delayPressOut={0}
-                  onPress={(event) => handleOnPressCircle(event, packedUtxo)}
+                  onPress={(event) => handleOnPressCircle(event, leaf)}
                 >
                   <Animated.View />
                 </TouchableOpacity>

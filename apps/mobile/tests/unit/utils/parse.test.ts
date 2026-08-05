@@ -1,4 +1,5 @@
 import {
+  normalizeUtxoLabelForDisplay,
   parseDescriptor,
   parseLabel,
   parseLabelTags,
@@ -122,6 +123,22 @@ describe('parse utils', () => {
     it('should return only tags', () => {
       const result = parseLabelTags('', ['endthefed', 'nokyc'])
       expect(result).toBe('#endthefed #nokyc')
+    })
+  })
+
+  describe('normalizeUtxoLabelForDisplay', () => {
+    it('keeps plain labels', () => {
+      expect(normalizeUtxoLabelForDisplay('payjoin')).toBe('payjoin')
+    })
+
+    it('shows tags when there is no label text', () => {
+      expect(normalizeUtxoLabelForDisplay('#alpha #beta')).toBe('#alpha #beta')
+    })
+
+    it('shows label text with tags', () => {
+      expect(normalizeUtxoLabelForDisplay('payjoin #alpha')).toBe(
+        'payjoin #alpha'
+      )
     })
   })
 

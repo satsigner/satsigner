@@ -26,6 +26,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useConnectionTest } from '@/hooks/useConnectionTest'
 import {
+  defaultElectrumPorts,
   defaultRpcPort,
   useCustomNetworkForm
 } from '@/hooks/useCustomNetworkForm'
@@ -451,9 +452,14 @@ export default function CustomNetwork() {
                   placeholder={
                     formData.backend === 'rpc'
                       ? String(defaultRpcPort(networkType))
-                      : t(
-                          `settings.network.server.port.placeholder.${formData.backend}`
-                        )
+                      : formData.backend === 'electrum'
+                        ? t(
+                            'settings.network.server.port.placeholder.electrum',
+                            defaultElectrumPorts(networkType)
+                          )
+                        : t(
+                            `settings.network.server.port.placeholder.${formData.backend}`
+                          )
                   }
                   keyboardType="numeric"
                 />

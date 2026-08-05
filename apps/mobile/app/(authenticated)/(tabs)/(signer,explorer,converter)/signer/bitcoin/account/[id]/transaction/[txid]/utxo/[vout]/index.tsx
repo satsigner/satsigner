@@ -34,6 +34,7 @@ import {
   buildSpendingTxIdsByOutpoint,
   buildTxLabelsById
 } from '@/utils/sankeyInputLabel'
+import { buildOwnedOutpoints } from '@/utils/sankeyInputOwnership'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type UtxoDetailsProps = {
@@ -44,6 +45,7 @@ type UtxoDetailsProps = {
   ownAddresses?: Set<string>
   internalAddresses?: Set<string>
   unspentOutpoints?: Set<string>
+  ownedOutpoints?: ReadonlySet<string>
   txLabelsById?: Map<string, string>
   knownTxIds?: ReadonlySet<string>
   spendingTxIdsByOutpoint?: Map<string, string>
@@ -61,6 +63,7 @@ function UtxoDetails({
   ownAddresses = new Set(),
   internalAddresses = new Set(),
   unspentOutpoints,
+  ownedOutpoints,
   txLabelsById,
   knownTxIds,
   spendingTxIdsByOutpoint,
@@ -220,6 +223,7 @@ function UtxoDetails({
                   ownAddresses={ownAddresses}
                   internalAddresses={internalAddresses}
                   unspentOutpoints={unspentOutpoints}
+                  ownedOutpoints={ownedOutpoints}
                   txLabelsById={txLabelsById}
                   knownTxIds={knownTxIds}
                   spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
@@ -316,6 +320,15 @@ function UtxoDetailsPage() {
     () => buildOutpointLabelsByRef(account ?? {}),
     [account]
   )
+  const ownedOutpoints = useMemo(
+    () =>
+      buildOwnedOutpoints({
+        addresses: account?.addresses,
+        transactions: account?.transactions,
+        utxos: account?.utxos
+      }),
+    [account?.addresses, account?.transactions, account?.utxos]
+  )
   const addInput = useTransactionBuilderStore((state) => state.addInput)
 
   function navigateToTx() {
@@ -360,6 +373,7 @@ function UtxoDetailsPage() {
           ownAddresses={ownAddresses}
           internalAddresses={internalAddresses}
           unspentOutpoints={unspentOutpoints}
+          ownedOutpoints={ownedOutpoints}
           txLabelsById={txLabelsById}
           knownTxIds={knownTxIds}
           spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}

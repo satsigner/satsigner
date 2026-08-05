@@ -18,8 +18,11 @@ import {
   type Backend,
   type Config,
   type Network,
+  NetworkSchema,
   type Server
 } from '@/types/settings/blockchain'
+
+const NETWORKS: Network[] = NetworkSchema.options
 
 type NetworkConfig = {
   server: Server
@@ -42,6 +45,7 @@ type BlockchainAction = {
   updateConfigMempool: (network: Network, url: Server['url']) => void
   addCustomServer: (server: Server) => void
   removeCustomServer: (server: Server) => void
+  stripAllRpcCredentials: () => void
   updateCustomServer: (oldServer: Server, newServer: Server) => void
   getBlockchain: (network?: Network) => BlockchainConfig
   setLastKnownBlockHeight: (height: number) => void
@@ -123,6 +127,19 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         set({ nextBlockFee: fee })
       },
       setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
+      stripAllRpcCredentials: () => {
+        set((state) => {
+          for (const network of NETWORKS) {
+            const { rpcCredentials: _removed, ...rest } =
+              state.configs[network].server
+            state.configs[network].server = rest
+          }
+          state.customServers = state.customServers.map((server) => {
+            const { rpcCredentials: _removed, ...rest } = server
+            return rest
+          })
+        })
+      },
       updateConfig: (network, config) => {
         set((state) => {
           state.configs[network].config = config as Config
