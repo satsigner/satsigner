@@ -1,1 +1,1 @@
-export const ENTROPY_TYPES = ['none', 'coin', 'dice'] as const
+export const ENTROPY_TYPES = ['none', 'drawing', 'coin', 'dice'] as const

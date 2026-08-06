@@ -1,5 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy'
 
+import { assertSafePathSegment } from '@/utils/safePath'
+
 const ARK_DIR = `${FileSystem.documentDirectory}ark/`
 
 function uriToPath(uri: string): string {
@@ -7,7 +9,8 @@ function uriToPath(uri: string): string {
 }
 
 function getArkDatadirUri(accountId: string): string {
-  return `${ARK_DIR}${accountId}/`
+  const safeId = assertSafePathSegment(accountId, 'ark account id')
+  return `${ARK_DIR}${safeId}/`
 }
 
 async function ensureArkDatadir(accountId: string): Promise<string> {

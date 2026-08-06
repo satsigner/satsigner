@@ -378,6 +378,67 @@ function SSMultisigKeyControl({
     )}...${extendedPublicKey.slice(-4)}`
   }
 
+  function renderCompletedKeyActions() {
+    return (
+      <>
+        {hasSeed ? (
+          <SSButton
+            label={t('account.seed.viewSeedWords')}
+            onPress={handleViewSeedWords}
+            variant="secondary"
+          />
+        ) : null}
+        <SSButton
+          label={shareXpubLabel}
+          onPress={() => handleCompletedKeyAction('shareXpub')}
+        />
+        <SSButton
+          label={t('account.seed.shareDescriptor')}
+          onPress={() => handleCompletedKeyAction('shareDescriptor')}
+        />
+        {hasSeed ? (
+          <SSButton
+            label={dropSeedLabel}
+            onPress={() => handleCompletedKeyAction('dropSeed')}
+            variant="outline"
+          />
+        ) : null}
+        <SSButton
+          label={t('account.seed.resetKey')}
+          onPress={() => handleCompletedKeyAction('resetKey')}
+          variant="danger"
+        />
+      </>
+    )
+  }
+
+  function renderIncompleteKeyActions() {
+    return (
+      <>
+        <SSButton
+          label={t('account.generate.newSecretSeed')}
+          disabled={!localKeyName.trim()}
+          onPress={() => handleAction('generateMnemonic')}
+        />
+        <SSButton
+          label={t('account.import.title2')}
+          disabled={!localKeyName.trim()}
+          onPress={() => handleAction('importMnemonic')}
+        />
+        <SSButton
+          label={t('account.import.descriptor')}
+          disabled={!localKeyName.trim()}
+          onPress={() => handleAction('importDescriptor')}
+        />
+        <SSButton
+          label={importExtendedLabel}
+          disabled={!localKeyName.trim()}
+          onPress={() => handleAction('importExtendedPub')}
+        />
+      </>
+    )
+  }
+
   return (
     <View
       style={[
@@ -502,69 +563,9 @@ function SSMultisigKeyControl({
               </SSFormLayout>
             )}
             <SSVStack gap="sm">
-              {isKeyCompleted ? (
-                <>
-                  {hasSeed && (
-                    <SSButton
-                      label={t('account.seed.viewSeedWords')}
-                      onPress={handleViewSeedWords}
-                      variant="secondary"
-                    />
-                  )}
-                  {hasSeed && (
-                    <SSButton
-                      label={dropSeedLabel}
-                      onPress={() => handleCompletedKeyAction('dropSeed')}
-                      style={{
-                        backgroundColor: 'black',
-                        borderColor: 'white',
-                        borderWidth: 1
-                      }}
-                    />
-                  )}
-                  <SSButton
-                    label={shareXpubLabel}
-                    onPress={() => handleCompletedKeyAction('shareXpub')}
-                  />
-                  <SSButton
-                    label={t('account.seed.shareDescriptor')}
-                    onPress={() => handleCompletedKeyAction('shareDescriptor')}
-                  />
-                  <SSButton
-                    label="Reset Key"
-                    onPress={() => handleCompletedKeyAction('resetKey')}
-                    variant="ghost"
-                    style={{
-                      backgroundColor: 'transparent',
-                      borderColor: '#666666',
-                      borderWidth: 1
-                    }}
-                  />
-                </>
-              ) : (
-                <>
-                  <SSButton
-                    label={t('account.generate.newSecretSeed')}
-                    disabled={!localKeyName.trim()}
-                    onPress={() => handleAction('generateMnemonic')}
-                  />
-                  <SSButton
-                    label={t('account.import.title2')}
-                    disabled={!localKeyName.trim()}
-                    onPress={() => handleAction('importMnemonic')}
-                  />
-                  <SSButton
-                    label={t('account.import.descriptor')}
-                    disabled={!localKeyName.trim()}
-                    onPress={() => handleAction('importDescriptor')}
-                  />
-                  <SSButton
-                    label={importExtendedLabel}
-                    disabled={!localKeyName.trim()}
-                    onPress={() => handleAction('importExtendedPub')}
-                  />
-                </>
-              )}
+              {isKeyCompleted
+                ? renderCompletedKeyActions()
+                : renderIncompleteKeyActions()}
             </SSVStack>
           </SSVStack>
         </View>
@@ -591,69 +592,9 @@ function SSMultisigKeyControl({
           )}
 
           <SSVStack gap="sm">
-            {isKeyCompleted ? (
-              <>
-                {hasSeed && (
-                  <SSButton
-                    label={t('account.seed.viewSeedWords')}
-                    onPress={handleViewSeedWords}
-                    variant="secondary"
-                  />
-                )}
-                {hasSeed && (
-                  <SSButton
-                    label={dropSeedLabel}
-                    onPress={() => handleCompletedKeyAction('dropSeed')}
-                    style={{
-                      backgroundColor: 'black',
-                      borderColor: 'white',
-                      borderWidth: 1
-                    }}
-                  />
-                )}
-                <SSButton
-                  label={shareXpubLabel}
-                  onPress={() => handleCompletedKeyAction('shareXpub')}
-                />
-                <SSButton
-                  label={t('account.seed.shareDescriptor')}
-                  onPress={() => handleCompletedKeyAction('shareDescriptor')}
-                />
-                <SSButton
-                  label="Reset Key"
-                  onPress={() => handleCompletedKeyAction('resetKey')}
-                  variant="ghost"
-                  style={{
-                    backgroundColor: 'transparent',
-                    borderColor: '#666666',
-                    borderWidth: 1
-                  }}
-                />
-              </>
-            ) : (
-              <>
-                <SSButton
-                  label={t('account.generate.newSecretSeed')}
-                  disabled={!localKeyName.trim()}
-                  onPress={() => handleAction('generateMnemonic')}
-                />
-                <SSButton
-                  label={t('account.import.title2')}
-                  disabled={!localKeyName.trim()}
-                  onPress={() => handleAction('importMnemonic')}
-                />
-                <SSButton
-                  label={t('account.import.descriptor')}
-                  disabled={!localKeyName.trim()}
-                  onPress={() => handleAction('importDescriptor')}
-                />
-                <SSButton
-                  label={importExtendedLabel}
-                  disabled={!localKeyName.trim()}
-                  onPress={() => handleAction('importExtendedPub')}
-                />
-              </>
-            )}
+            {isKeyCompleted
+              ? renderCompletedKeyActions()
+              : renderIncompleteKeyActions()}
           </SSVStack>
         </SSVStack>
       </Animated.View>
@@ -751,7 +692,7 @@ function SSMultisigKeyControl({
             center
             style={{ color: Colors.black, marginBottom: 4 }}
           >
-            Reset Key
+            {t('account.seed.resetKeyConfirm.title')}
           </SSText>
 
           {/* Message */}
@@ -765,9 +706,7 @@ function SSMultisigKeyControl({
               maxWidth: 260
             }}
           >
-            Are you sure you want to reset this key? This will clear all key
-            data including the seed, name, and settings. This action cannot be
-            undone.
+            {t('account.seed.resetKeyConfirm.message')}
           </SSText>
           <SSHStack gap="sm" style={{ width: '100%' }}>
             <SSButton
@@ -782,7 +721,7 @@ function SSMultisigKeyControl({
               textStyle={{ color: Colors.black }}
             />
             <SSButton
-              label="Reset Key"
+              label={t('account.seed.resetKeyConfirm.confirm')}
               variant="danger"
               onPress={() => {
                 setResetKeyModalVisible(false)

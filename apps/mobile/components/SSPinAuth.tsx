@@ -2,7 +2,6 @@ import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import Animated from 'react-native-reanimated'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
@@ -15,10 +14,8 @@ import {
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import useKdfMigration from '@/hooks/useKdfMigration'
 import SSVStack from '@/layouts/SSVStack'
-import { deleteItem, getItem } from '@/storage/encrypted'
-import { useAccountsStore } from '@/store/accounts'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
-import { useWalletsStore } from '@/store/wallets'
 import { gray } from '@/styles/colors'
 import { getPin } from '@/utils/crypto'
 import { clampPinLength, emptyPin } from '@/utils/pin'
@@ -27,6 +24,7 @@ import {
   getStoredKdfConfig,
   safeEqualHex
 } from '@/utils/pinKdf'
+import { secureWipeAllWalletData } from '@/utils/secureWipe'
 
 type SSPinAuthProps = {
   onFail?: () => void
@@ -46,13 +44,7 @@ function SSPinAuth({
   resetPin,
   ...props
 }: SSPinAuthProps) {
-  const [duressPinEnabled, setDuressPinEnabled] = useAuthStore(
-    useShallow((state) => [state.duressPinEnabled, state.setDuressPinEnabled])
-  )
-  const [deleteAccounts, deleteTags] = useAccountsStore(
-    useShallow((state) => [state.deleteAccounts, state.deleteTags])
-  )
-  const deleteWallets = useWalletsStore((state) => state.deleteWallets)
+  const duressPinEnabled = useAuthStore((state) => state.duressPinEnabled)
   const migrateIfNeeded = useKdfMigration()
   const [pin, setPin] = useState<string[] | null>(null)
   const [tries, setTries] = useState(0)
@@ -91,22 +83,22 @@ function SSPinAuth({
       return
     }
 
-    // DURESS PIN (verified under its own stored KDF config)
+    // DURESS PIN (verified under its own stored KDF config) — wipe
+    // secrets/stores so the duress PIN appears as the real PIN.
     if (duressPinEnabled && hashedDuressPin) {
       const duressKdf = await getStoredKdfConfig(DURESS_KDF_KEY)
       const duressInput = await derivePinDigest(inputPin, salt, duressKdf)
       if (safeEqualHex(duressInput, hashedDuressPin)) {
-        // erase data
-        deleteAccounts()
-        deleteWallets()
-        deleteTags()
-
-        // delete evidence there existed a duress pin in the first place,
-        // acting as if the duress pin was the true pin
-        setDuressPinEnabled(false)
-        await deleteItem(DURESS_PIN_KEY)
-
-        // reset route
+        try {
+          await secureWipeAllWalletData()
+        } catch {
+          // Duress wipe is best-effort; always proceed to unlock the app.
+        }
+        const { setLockTriggered, setJustUnlocked, resetPinTries } =
+          useAuthStore.getState()
+        setLockTriggered(false)
+        setJustUnlocked(true)
+        resetPinTries()
         router.dismissAll()
         router.push('/')
         return

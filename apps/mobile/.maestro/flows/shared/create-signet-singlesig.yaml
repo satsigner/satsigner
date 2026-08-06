@@ -1,0 +1,68 @@
+appId: ${APP_ID}
+---
+# Open ACCOUNT_NAME if it already exists; otherwise create it.
+# Prefer Sample (segwit) via open-sample-segwit for funded send tests.
+#
+# After create, the app often returns to the SIGNER menu (BITCOIN / LIGHTNING / …)
+# rather than the new account home — navigate back and open it.
+
+- runFlow:
+    file: ensure-signet.yaml
+
+- runFlow:
+    when:
+      visible: ${ACCOUNT_NAME}
+    commands:
+      - tapOn: ${ACCOUNT_NAME}
+
+- runFlow:
+    when:
+      notVisible: ${ACCOUNT_NAME}
+    commands:
+      - tapOn: 'Add Account'
+      - extendedWaitUntil:
+          visible: 'Name'
+          timeout: 15000
+      - tapOn: 'Name'
+      # Keep names short — long inputText on Android often truncates.
+      - eraseText
+      - inputText: ${ACCOUNT_NAME}
+      - hideKeyboard
+      # Singlesig is the default policy — do not re-tap (can miss after keyboard).
+      - extendedWaitUntil:
+          visible: 'Continue'
+          timeout: 10000
+      - tapOn: 'Continue'
+      - extendedWaitUntil:
+          visible: 'Generate seed'
+          timeout: 20000
+      - tapOn: 'Generate seed'
+      - extendedWaitUntil:
+          visible: 'Confirm Seed'
+          timeout: 30000
+      - tapOn: 'Confirm Seed'
+      - extendedWaitUntil:
+          visible: 'Skip'
+          timeout: 15000
+      - tapOn: 'Skip'
+      - tapOn: 'Yes'
+      - runFlow:
+          when:
+            visible: 'Acknowledge'
+          commands:
+            - tapOn: 'Acknowledge'
+      # Creation often lands on SIGNER menu — open Bitcoin list + new account
+      - runFlow:
+          file: goto-account-list.yaml
+      - scrollUntilVisible:
+          element:
+            text: ${ACCOUNT_NAME}
+          direction: DOWN
+          timeout: 45000
+          centerElement: true
+      - tapOn: ${ACCOUNT_NAME}
+
+- extendedWaitUntil:
+    visible:
+      id: account-receive
+    timeout: 45000

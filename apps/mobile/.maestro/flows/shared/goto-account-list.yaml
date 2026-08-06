@@ -1,0 +1,185 @@
+appId: ${APP_ID}
+---
+# Reset to the Bitcoin account list (signer home) from wherever we are.
+#
+# Rules:
+# - SIGNER menu (BITCOIN + LIGHTNING) → tap BITCOIN, wait for Add Account
+# - Nested screens (Payjoin, UTXO picker, settings) → back
+# - Already on account list (SIGNET/Sample, no LIGHTNING menu) → scroll for
+#   Add Account — NEVER press back (that returns to the SIGNER menu)
+# - Never press back on the SIGNER menu (exits the app)
+
+- evalScript: ${output.atAccountList = false}
+
+- runFlow:
+    when:
+      visible: '(?i)Add Account'
+    commands:
+      - evalScript: ${output.atAccountList = true}
+
+# Outside the app → deep-link in
+- runFlow:
+    when:
+      true: ${output.atAccountList != true}
+      notVisible: '(?i)SIGNER|EXPLORER|CONVERTER|Add Account|Enter your PIN|Set pin|Acknowledge|Don.?t trust|Payjoin|App Settings|BITCOIN|SIGNET|Sample|LIGHTNING|ARK'
+    commands:
+      - openLink: exp+satsigner://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081
+      - tapOn:
+          text: 'Just once'
+          optional: true
+      - extendedWaitUntil:
+          visible: '(?i)Bitcoin|Set pin|Acknowledge|Don.?t trust|Enter your PIN|Add Account|SIGNET|SIGNER|LIGHTNING'
+          timeout: 120000
+
+- runFlow:
+    when:
+      visible: 'Set pin number to enter the app'
+    commands:
+      - tapOn: 'Set pin later'
+- runFlow:
+    when:
+      visible: "Don't trust, verify"
+    commands:
+      - tapOn: 'Acknowledge'
+- runFlow:
+    when:
+      visible: 'Enter your PIN'
+    commands:
+      - tapOn: '2'
+      - tapOn: '1'
+      - tapOn: '2'
+      - tapOn: '1'
+
+# SIGNER section menu → Bitcoin account list
+- extendedWaitUntil:
+    visible: '(?i)Add Account|LIGHTNING|BITCOIN'
+    timeout: 45000
+    optional: true
+
+- runFlow:
+    when:
+      notVisible: '(?i)Add Account'
+      visible: '(?i)^BITCOIN$'
+    commands:
+      - runFlow:
+          when:
+            visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
+          commands:
+            - tapOn: '(?i)^BITCOIN$'
+            - extendedWaitUntil:
+                visible: '(?i)Add Account|SIGNET|Sample'
+                timeout: 30000
+
+- runFlow:
+    when:
+      visible: '(?i)Add Account'
+    commands:
+      - evalScript: ${output.atAccountList = true}
+
+# Nested screens with tab bar → Signer tab
+- runFlow:
+    when:
+      true: ${output.atAccountList != true}
+      visible: '(?i)^Signer$'
+      notVisible: '(?i)LIGHTNING|ARK|LIQUID|Add Account'
+    commands:
+      - tapOn: '(?i)^Signer$'
+
+- runFlow:
+    when:
+      notVisible: '(?i)Add Account'
+      visible: '(?i)^BITCOIN$'
+    commands:
+      - runFlow:
+          when:
+            visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
+          commands:
+            - tapOn: '(?i)^BITCOIN$'
+            - extendedWaitUntil:
+                visible: '(?i)Add Account|SIGNET|Sample'
+                timeout: 30000
+
+- runFlow:
+    when:
+      visible: '(?i)Add Account'
+    commands:
+      - evalScript: ${output.atAccountList = true}
+
+# Pop only clearly nested flows — never match account-list chrome (SIGNET/Sample)
+- repeat:
+    times: 8
+    while:
+      notVisible: '(?i)Add Account'
+    commands:
+      # SIGNER menu → Bitcoin
+      - runFlow:
+          when:
+            notVisible: '(?i)Add Account'
+            visible: '(?i)^BITCOIN$'
+          commands:
+            - runFlow:
+                when:
+                  visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
+                commands:
+                  - tapOn: '(?i)^BITCOIN$'
+                  - extendedWaitUntil:
+                      visible: '(?i)Add Account|SIGNET|Sample'
+                      timeout: 20000
+      # Already on bitcoin account list (network tabs / sample card) — wait,
+      # never back (back returns to the SIGNER menu and loops forever).
+      # Exclude UTXO picker: header also says SAMPLE (SEGWIT).
+      - runFlow:
+          when:
+            notVisible: '(?i)Add Account|LIGHTNING|ARK|LIQUID|ECASH|SELECT UTXOS TO CONTINUE|Select spendable outputs|USE 1 UTXO|USE ALL UTXOS'
+            visible: '(?i)^SIGNET$|Sample \(segwit\)|TESTNET'
+          commands:
+            - extendedWaitUntil:
+                visible: '(?i)Add Account'
+                timeout: 20000
+      # Nested only (receive payjoin / UTXO picker / send / settings)
+      - runFlow:
+          when:
+            notVisible: '(?i)Add Account|LIGHTNING|ARK|LIQUID|ECASH|^SIGNET$'
+            visible: '(?i)Payjoin ready|Waiting for sender|Expiring in|Checking mailbox|App Settings|SELECT UTXOS TO CONTINUE|Select spendable outputs|USE 1 UTXO|USE ALL UTXOS|Save output|Sign transaction'
+          commands:
+            - back
+      # Left the app
+      - runFlow:
+          when:
+            notVisible: '(?i)Add Account|SIGNER|EXPLORER|CONVERTER|Payjoin|App Settings|Enter your PIN|Set pin|BITCOIN|SIGNET|Sample|LIGHTNING|SELECT UTXOS|spendable outputs'
+          commands:
+            - openLink: exp+satsigner://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081
+            - tapOn:
+                text: 'Just once'
+                optional: true
+            - extendedWaitUntil:
+                visible: '(?i)Bitcoin|Set pin|Add Account|SIGNET|SIGNER|LIGHTNING|Enter your PIN'
+                timeout: 120000
+
+# Final: SIGNER menu → Bitcoin
+- runFlow:
+    when:
+      notVisible: '(?i)Add Account'
+      visible: '(?i)^BITCOIN$'
+    commands:
+      - runFlow:
+          when:
+            visible: '(?i)LIGHTNING|ARK|LIQUID|ECASH'
+          commands:
+            - tapOn: '(?i)^BITCOIN$'
+
+# Final: on list chrome without Add Account → wait for it
+- runFlow:
+    when:
+      notVisible: '(?i)Add Account|SELECT UTXOS TO CONTINUE|Select spendable outputs|LIGHTNING|ARK|LIQUID|ECASH'
+      visible: '(?i)^SIGNET$|Sample \(segwit\)'
+    commands:
+      - extendedWaitUntil:
+          visible: '(?i)Add Account'
+          timeout: 30000
+
+- extendedWaitUntil:
+    visible: '(?i)Add Account'
+    timeout: 60000
+
+- evalScript: ${output.atAccountList = true}

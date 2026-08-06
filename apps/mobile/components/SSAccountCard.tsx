@@ -115,36 +115,40 @@ function SSAccountCard({
         text = t('account.sync.status.synced')
 
         if (date !== undefined) {
-          const diff = nowSeconds - date.getTime() / 1000
+          const syncedMs =
+            date instanceof Date ? date.getTime() : new Date(date).getTime()
+          if (!Number.isNaN(syncedMs)) {
+            const diff = nowSeconds - syncedMs / 1000
 
-          const hours = Math.floor(diff / 3600)
-          const days = Math.floor(hours / 24)
-          const months = Math.floor(days / 30)
-          const years = Math.floor(days / 365)
+            const hours = Math.floor(diff / 3600)
+            const days = Math.floor(hours / 24)
+            const months = Math.floor(days / 30)
+            const years = Math.floor(days / 365)
 
-          if (hours >= 1) {
-            color = Colors.gray[75] // eslint-disable-line prefer-destructuring
-            text = `${t('account.sync.status.synced')} ${t(
-              'account.sync.status.old.hour',
-              { value: hours }
-            )}`
-            if (days >= 1) {
+            if (hours >= 1) {
+              color = Colors.gray[75] // eslint-disable-line prefer-destructuring
               text = `${t('account.sync.status.synced')} ${t(
-                'account.sync.status.old.day',
-                { value: days }
+                'account.sync.status.old.hour',
+                { value: hours }
               )}`
-            }
-            if (months >= 1) {
-              text = `${t('account.sync.status.synced')} ${t(
-                'account.sync.status.old.month',
-                { value: months }
-              )}`
-            }
-            if (years >= 1) {
-              text = `${t('account.sync.status.synced')} ${t(
-                'account.sync.status.old.year',
-                { value: years }
-              )}`
+              if (days >= 1) {
+                text = `${t('account.sync.status.synced')} ${t(
+                  'account.sync.status.old.day',
+                  { value: days }
+                )}`
+              }
+              if (months >= 1) {
+                text = `${t('account.sync.status.synced')} ${t(
+                  'account.sync.status.old.month',
+                  { value: months }
+                )}`
+              }
+              if (years >= 1) {
+                text = `${t('account.sync.status.synced')} ${t(
+                  'account.sync.status.old.year',
+                  { value: years }
+                )}`
+              }
             }
           }
         }

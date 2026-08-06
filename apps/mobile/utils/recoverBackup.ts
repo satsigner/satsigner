@@ -5,7 +5,6 @@ import {
 } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
-import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
@@ -37,6 +36,7 @@ type BackupKey = Key & {
 }
 type BackupAccount = {
   birthdayDate?: string
+  excludedUtxoOutpoints?: string[]
   id: string
   keys: BackupKey[]
   keysRequired?: number
@@ -238,6 +238,7 @@ async function prepareRestore(
       addresses: [],
       birthdayDate: acc.birthdayDate ? new Date(acc.birthdayDate) : undefined,
       createdAt: typeof created === 'string' ? new Date(created) : new Date(),
+      excludedUtxoOutpoints: acc.excludedUtxoOutpoints ?? [],
       id: acc.id,
       keyCount: acc.keys.length,
       keys: accountKeys,
@@ -442,9 +443,10 @@ async function writeKeychain(
 export async function performRecoverOverwrite(
   decrypted: string
 ): Promise<RecoverResult> {
-  const { skipPin } = useAuthStore.getState()
-  const pin = await getPin(skipPin)
-  if (!pin) {
+  let pin: string
+  try {
+    pin = await getPin()
+  } catch {
     return { error: 'PIN unavailable', success: false }
   }
 

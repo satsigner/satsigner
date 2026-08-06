@@ -27,6 +27,7 @@ import {
   buildSpendingTxIdsByOutpoint,
   buildTxLabelsById
 } from '@/utils/sankeyInputLabel'
+import { buildOwnedOutpoints } from '@/utils/sankeyInputOwnership'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 type SSTransactionDetailsProps = {
@@ -88,6 +89,19 @@ function SSTransactionDetails({
   const outpointLabelsByRef = useMemo(
     () => buildOutpointLabelsByRef(matchedAccount ?? {}),
     [matchedAccount]
+  )
+  const ownedOutpoints = useMemo(
+    () =>
+      buildOwnedOutpoints({
+        addresses: matchedAccount?.addresses,
+        transactions: matchedAccount?.transactions,
+        utxos: matchedAccount?.utxos
+      }),
+    [
+      matchedAccount?.addresses,
+      matchedAccount?.transactions,
+      matchedAccount?.utxos
+    ]
   )
 
   if (!txid) {
@@ -169,6 +183,7 @@ function SSTransactionDetails({
                 ownAddresses={ownAddresses}
                 internalAddresses={internalAddresses}
                 unspentOutpoints={unspentOutpoints}
+                ownedOutpoints={ownedOutpoints}
                 txLabelsById={txLabelsById}
                 knownTxIds={knownTxIds}
                 spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
@@ -206,6 +221,7 @@ function SSTransactionDetails({
               ownAddresses={ownAddresses}
               internalAddresses={internalAddresses}
               unspentOutpoints={unspentOutpoints}
+              ownedOutpoints={ownedOutpoints}
               txLabelsById={txLabelsById}
               knownTxIds={knownTxIds}
               outpointLabelsByRef={outpointLabelsByRef}

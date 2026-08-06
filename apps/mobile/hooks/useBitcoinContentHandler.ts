@@ -11,6 +11,7 @@ import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { hasPayjoinParam } from '@/utils/payjoinUri'
 
 type NavigatePath = Parameters<ReturnType<typeof useRouter>['navigate']>[0]
 
@@ -35,7 +36,8 @@ export function useBitcoinContentHandler({
     setRbf,
     setSignedPsbts,
     setPsbt,
-    setAccountId
+    setAccountId,
+    setPayjoinUri
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.clearTransaction,
@@ -45,7 +47,8 @@ export function useBitcoinContentHandler({
       state.setRbf,
       state.setSignedPsbts,
       state.setPsbt,
-      state.setAccountId
+      state.setAccountId,
+      state.setPayjoinUri
     ])
   )
 
@@ -89,6 +92,15 @@ export function useBitcoinContentHandler({
 
       const runProcess = async () => {
         try {
+          const maybePayjoin = [content.raw, content.cleaned].some(
+            (value) =>
+              !!value &&
+              hasPayjoinParam(
+                value.toLowerCase().startsWith('bitcoin:')
+                  ? value
+                  : `bitcoin:${value}`
+              )
+          )
           await processContentByContext(
             content,
             'bitcoin',
@@ -102,6 +114,7 @@ export function useBitcoinContentHandler({
               promptBitcoinUriExceedsBalance,
               setAccountId,
               setFeeRate,
+              setPayjoinUri,
               setPsbt,
               setRbf,
               setSignedPsbts
@@ -109,6 +122,9 @@ export function useBitcoinContentHandler({
             accountId,
             account
           )
+          if (maybePayjoin && content.type === 'bitcoin_uri') {
+            toast.success(t('transaction.build.payjoin.uriDetected'))
+          }
         } catch (error) {
           const reason = error instanceof Error ? error.message : 'unknown'
           toast.error(`${t('bitcoin.error.processFailed')}: ${reason}`)
@@ -136,6 +152,7 @@ export function useBitcoinContentHandler({
       router,
       setAccountId,
       setFeeRate,
+      setPayjoinUri,
       setPsbt,
       setRbf,
       setSignedPsbts
