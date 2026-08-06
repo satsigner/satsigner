@@ -18,14 +18,20 @@ const TRANSFORM_PACKAGES = [
   'react-native-bdk-sdk',
   'react-native-svg',
   'uint8array-tools',
+  'immer',
   '@scure/.*',
   '@cashu/.*',
   '@noble/.*',
-  'bip32'
+  'bip32',
+  'immer'
 ].join('|')
 
 const config = {
   moduleNameMapper: {
+    // The adapter and the package it wraps share one facade contract, so both
+    // resolve to the same mock: tests drive `@/api/payjoin` with no native
+    // module, and keep importing the helpers from 'react-native-payjoin'.
+    '^@/api/payjoinNative$': '<rootDir>/__mocks__/react-native-payjoin.ts',
     '^@secondts/bark-react-native$':
       '<rootDir>/__mocks__/secondts-bark-react-native.ts',
     '^bip-321$': '<rootDir>/__mocks__/bip-321.ts',
@@ -34,10 +40,12 @@ const config = {
     '^react-native-mmkv$': '<rootDir>/__mocks__/react-native-mmkv.ts',
     '^react-native-nitro-sqlite$':
       '<rootDir>/__mocks__/react-native-nitro-sqlite.ts',
+    '^react-native-payjoin$': '<rootDir>/__mocks__/react-native-payjoin.ts',
     '^react-native-quick-crypto$':
       '<rootDir>/__mocks__/react-native-quick-crypto.ts',
     '^react-native-tcp-socket$':
-      '<rootDir>/__mocks__/react-native-tcp-socket.ts'
+      '<rootDir>/__mocks__/react-native-tcp-socket.ts',
+    '^sonner-native$': '<rootDir>/__mocks__/sonner-native.ts'
   },
   preset: 'jest-expo',
   transformIgnorePatterns: [

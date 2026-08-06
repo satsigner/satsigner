@@ -79,6 +79,8 @@ export const AccountSchema = z.object({
   /** User-set wallet birthday. Used as the floor for historical RPC scans. */
   birthdayDate: z.date().optional(),
   createdAt: z.date(),
+  /** Outpoints permanently excluded from coin selection / auto-select. */
+  excludedUtxoOutpoints: z.array(z.string()).optional(),
   id: z.string(),
   isSyncing: z.boolean().optional(),
   keyCount: z.number(),

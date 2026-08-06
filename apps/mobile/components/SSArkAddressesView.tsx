@@ -194,7 +194,7 @@ function SSArkAddressesView({
       <SSHStack justifyBetween style={styles.controls}>
         <SSHStack>
           <SSIconButton onPress={onRefresh}>
-            <SSIconRefresh height={18} width={22} />
+            <SSIconRefresh height={16} width={19} />
           </SSIconButton>
           <SSIconButton onPress={onToggleExpand}>
             {expand ? (
@@ -207,9 +207,9 @@ function SSArkAddressesView({
             onPress={() => setView(view === 'table' ? 'list' : 'table')}
           >
             {view === 'table' ? (
-              <SSIconList height={15} width={15} />
+              <SSIconList height={14} width={14} />
             ) : (
-              <SSIconTable height={15} width={15} />
+              <SSIconTable height={14} width={14} />
             )}
           </SSIconButton>
         </SSHStack>

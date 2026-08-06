@@ -86,5 +86,14 @@ describe('autoSelectUtxos helpers', () => {
         })
       ).toBe(true)
     })
+
+    it('applies efficiency when outputs exist', () => {
+      expect(
+        shouldApplyDefaultAutoSelectFromUri({
+          algorithm: 'efficiency',
+          outputsLength: 1
+        })
+      ).toBe(true)
+    })
   })
 })

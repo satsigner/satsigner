@@ -45,9 +45,16 @@ import {
   buildSpendingTxIdsByOutpoint,
   buildTxLabelsById
 } from '@/utils/sankeyInputLabel'
+import {
+  analyzePossiblePayjoin,
+  buildOwnedOutpoints
+} from '@/utils/sankeyInputOwnership'
 import { bytesToHex } from '@/utils/scripts'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import { annotateTransactionsWithWalletOwnership } from '@/utils/walletOwnership'
+import {
+  annotateTransactionsWithWalletOwnership,
+  getWalletTransactionEffect
+} from '@/utils/walletOwnership'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -67,7 +74,11 @@ export default function TxDetails() {
       return tx
     }
     return (
-      annotateTransactionsWithWalletOwnership([tx], account.addresses)[0] ?? tx
+      annotateTransactionsWithWalletOwnership(
+        account.transactions,
+        account.addresses,
+        account.utxos
+      ).find((annotated) => annotated.id === tx.id) ?? tx
     )
   }, [account, tx])
   const unspentOutpoints = useMemo(
@@ -89,6 +100,19 @@ export default function TxDetails() {
   const outpointLabelsByRef = useMemo(
     () => buildOutpointLabelsByRef(account ?? {}),
     [account]
+  )
+  const ownedOutpoints = useMemo(
+    () =>
+      buildOwnedOutpoints({
+        addresses: account?.addresses,
+        transactions: account?.transactions,
+        utxos: account?.utxos
+      }),
+    [account?.addresses, account?.transactions, account?.utxos]
+  )
+  const payjoinInsight = useMemo(
+    () => analyzePossiblePayjoin(displayTx?.vin, ownedOutpoints),
+    [displayTx?.vin, ownedOutpoints]
   )
 
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -211,7 +235,14 @@ export default function TxDetails() {
         }}
       />
       <SSVStack style={styles.container}>
-        <SSTxDetailsHeader tx={displayTx} />
+        <SSTxDetailsHeader
+          tx={displayTx}
+          contributedSats={
+            payjoinInsight.possiblePayjoin && displayTx?.type === 'receive'
+              ? payjoinInsight.contributedSats
+              : undefined
+          }
+        />
         <SSSeparator color="gradient" />
         <SSLabelDetails
           label={displayTx.label || ''}
@@ -234,6 +265,15 @@ export default function TxDetails() {
                 />
               ) : null}
             </SSHStack>
+            {payjoinInsight.possiblePayjoin ? (
+              <SSText
+                testID="tx-details-possible-payjoin"
+                color="muted"
+                size="sm"
+              >
+                {t('transaction.details.possiblePayjoin')}
+              </SSText>
+            ) : null}
             <SSTransactionChart
               key={txid}
               accountId={accountId}
@@ -241,6 +281,7 @@ export default function TxDetails() {
               ownAddresses={ownAddresses}
               internalAddresses={internalAddresses}
               unspentOutpoints={unspentOutpoints}
+              ownedOutpoints={ownedOutpoints}
               txLabelsById={txLabelsById}
               knownTxIds={knownTxIds}
               spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
@@ -302,9 +343,14 @@ export default function TxDetails() {
 
 type SSTxDetailsHeaderProps = {
   tx: Transaction | undefined
+  /** Own input sats when this receive looks like a Payjoin contribution. */
+  contributedSats?: number
 }
 
-export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
+export function SSTxDetailsHeader({
+  tx,
+  contributedSats
+}: SSTxDetailsHeaderProps) {
   const [fiatCurrency, btcPrice] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.btcPrice])
   )
@@ -323,12 +369,9 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     ])
   )
 
-  const amount = tx
-    ? tx.type === 'receive'
-      ? tx.received
-      : tx.sent - tx.received
-    : 0
-  const type = tx?.type ?? ''
+  const { amount, type } = tx
+    ? getWalletTransactionEffect(tx)
+    : { amount: 0, type: 'receive' as const }
   const inputsCount = tx?.vin?.length ?? 0
   const outputsCount = tx?.vout?.length ?? 0
 
@@ -357,6 +400,13 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
       ? formatPercentualChange(effectiveBtcPrice, historicalBtcPrice)
       : ''
 
+  const contributedLabel =
+    contributedSats && contributedSats > 0
+      ? t('transaction.details.contributed', {
+          amount: privacyMode ? '••••' : formatNumber(contributedSats)
+        })
+      : undefined
+
   return (
     <SSVStack gap="sm" itemsCenter>
       {tx?.timestamp ? <SSTimeAgoText date={new Date(tx.timestamp)} /> : null}
@@ -379,7 +429,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
                     decimals={0}
                     useZeroPadding={useZeroPadding}
                     currency={currencyUnit}
-                    type={tx?.type}
+                    type={type}
                     textSize="4xl"
                     noColor={false}
                     showSign={false}
@@ -396,6 +446,11 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
             </SSText>
           </SSHStack>
         </SSHStack>
+        {contributedLabel ? (
+          <SSText testID="tx-details-contributed" color="muted" size="sm">
+            {contributedLabel}
+          </SSText>
+        ) : null}
         {price || oldPrice ? (
           <SSHStack gap="xs">
             {price ? (

@@ -35,6 +35,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
+import { getBackupFilename } from '@/utils/backupFilename'
 import {
   aesEncrypt,
   generateSalt,
@@ -68,7 +69,7 @@ export default function Developer() {
   >(null)
   const [backupPassphrase, setBackupPassphrase] = useState('')
   async function buildBackupWithSeeds(): Promise<string> {
-    const pin = await getPin(skipPin)
+    const pin = await getPin()
     const keysWithSeeds = async (accountId: string, keys: Key[]) => {
       const result = []
       for (const key of keys) {
@@ -109,6 +110,7 @@ export default function Developer() {
     const accountsWithSeeds = await Promise.all(
       accounts.map(async (account) => ({
         birthdayDate: account.birthdayDate,
+        excludedUtxoOutpoints: account.excludedUtxoOutpoints ?? [],
         id: account.id,
         keys: await keysWithSeeds(account.id, account.keys),
         labels: account.labels,
@@ -217,7 +219,7 @@ export default function Developer() {
       })
       const result = await Share.share({
         message: encryptedPayload,
-        title: t('settings.developer.backupData')
+        title: getBackupFilename()
       })
       if (result.action === Share.sharedAction) {
         toast.success(t('settings.developer.backupSuccess'))
@@ -241,7 +243,7 @@ export default function Developer() {
       toast.error(t('settings.developer.backupPassphraseInvalid'))
       return
     }
-    const filename = `satsigner-backup-${Date.now()}.json`
+    const filename = getBackupFilename()
     try {
       const salt = await generateSalt()
       const key = await pbkdf2Encrypt(backupPassphrase, salt)
@@ -350,16 +352,25 @@ export default function Developer() {
               onPress={() => setClearStorageModalVisible(true)}
             />
           </SSVStack>
+          {__DEV__ ? (
+            <>
+              <SSSeparator color="gradient" />
+              <SSVStack>
+                <SSCheckbox
+                  label={t('settings.developer.skipPin')}
+                  selected={skipPin}
+                  onPress={() => setSkipPin(!skipPin)}
+                />
+              </SSVStack>
+            </>
+          ) : null}
           <SSSeparator color="gradient" />
           <SSVStack>
-            <SSCheckbox
-              label={t('settings.developer.skipPin')}
-              selected={skipPin}
-              onPress={() => setSkipPin(!skipPin)}
+            <SSButton
+              label={t('settings.developer.diagnosis.title')}
+              onPress={() => router.navigate('/settings/developerDiagnosis')}
+              variant="outline"
             />
-          </SSVStack>
-          <SSSeparator color="gradient" />
-          <SSVStack>
             <SSButton
               label={t('settings.developer.design')}
               onPress={() => router.navigate('/settings/design')}

@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+---
+# First launch: skip PIN and acknowledge warning when present.
+- runFlow:
+    when:
+      visible: 'Set pin number to enter the app'
+    commands:
+      - tapOn: 'Set pin later'
+- runFlow:
+    when:
+      visible: "Don't trust, verify"
+    commands:
+      - tapOn: 'Acknowledge'
+- runFlow:
+    when:
+      visible: 'Enter your PIN'
+    commands:
+      # DEFAULT_PIN when "Set pin later" was used
+      - tapOn: '2'
+      - tapOn: '1'
+      - tapOn: '2'
+      - tapOn: '1'

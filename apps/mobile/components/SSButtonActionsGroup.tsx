@@ -44,7 +44,11 @@ function SSButtonActionsGroup(props: SSButtonActionsGroupProps) {
             start={GRADIENT_START}
             style={styles.topBorder}
           />
-          <SSActionButton onPress={props.onSend} style={styles.actionButton}>
+          <SSActionButton
+            testID="account-send"
+            onPress={props.onSend}
+            style={styles.actionButton}
+          >
             <SSText uppercase>Send</SSText>
           </SSActionButton>
         </View>
@@ -66,7 +70,11 @@ function SSButtonActionsGroup(props: SSButtonActionsGroupProps) {
             start={GRADIENT_START}
             style={styles.topBorder}
           />
-          <SSActionButton onPress={props.onReceive} style={styles.actionButton}>
+          <SSActionButton
+            testID="account-receive"
+            onPress={props.onReceive}
+            style={styles.actionButton}
+          >
             <SSText uppercase>Receive</SSText>
           </SSActionButton>
         </View>
@@ -92,7 +100,11 @@ function SSButtonActionsGroup(props: SSButtonActionsGroupProps) {
           start={GRADIENT_START}
           style={styles.topBorder}
         />
-        <SSActionButton onPress={onSend} style={styles.actionButton}>
+        <SSActionButton
+          testID="account-send"
+          onPress={onSend}
+          style={styles.actionButton}
+        >
           <SSText uppercase>Send</SSText>
         </SSActionButton>
       </View>
@@ -140,7 +152,11 @@ function SSButtonActionsGroup(props: SSButtonActionsGroupProps) {
           start={GRADIENT_START}
           style={styles.topBorder}
         />
-        <SSActionButton onPress={onReceive} style={styles.actionButton}>
+        <SSActionButton
+          testID="account-receive"
+          onPress={onReceive}
+          style={styles.actionButton}
+        >
           <SSText uppercase>Receive</SSText>
         </SSActionButton>
       </View>

@@ -2,6 +2,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import Animated, {
+  cancelAnimation,
   Extrapolation,
   interpolate,
   type SharedValue,
@@ -50,7 +51,7 @@ function StaggerItem({
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
-      progress.value,
+      progress.get(),
       [itemStart, itemEnd],
       [0, 1],
       Extrapolation.CLAMP
@@ -58,7 +59,7 @@ function StaggerItem({
     transform: [
       {
         translateY: interpolate(
-          progress.value,
+          progress.get(),
           [itemStart, itemEnd],
           [STAGGER_SLIDE_UP, 0],
           Extrapolation.CLAMP
@@ -77,26 +78,44 @@ export default function Home() {
   const totalItems = 1 + (pages?.length ?? 0)
   const totalDuration = (totalItems - 1) * STAGGER_DELAY + ITEM_DURATION
 
+  // Start visible — opacity-0 + stalled Reanimated left a blank SIGNER screen.
   const containerOpacity = useSharedValue(1)
-  const progress = useSharedValue(0)
+  const progress = useSharedValue(1)
 
   useFocusEffect(
     useCallback(() => {
-      containerOpacity.value = 1
-      progress.value = 0
-      progress.value = withDelay(
-        FADE_OUT_DURATION,
-        withTiming(1, { duration: totalDuration })
+      cancelAnimation(containerOpacity)
+      cancelAnimation(progress)
+      containerOpacity.set(1)
+      progress.set(0)
+      progress.set(
+        withDelay(FADE_OUT_DURATION, withTiming(1, { duration: totalDuration }))
       )
+
+      const fallback = setTimeout(
+        () => {
+          cancelAnimation(progress)
+          cancelAnimation(containerOpacity)
+          progress.set(1)
+          containerOpacity.set(1)
+        },
+        FADE_OUT_DURATION + totalDuration + 100
+      )
+
       return () => {
-        containerOpacity.value = withTiming(0, { duration: FADE_OUT_DURATION })
+        clearTimeout(fallback)
+        cancelAnimation(progress)
+        cancelAnimation(containerOpacity)
+        // Do not fade to 0 on blur — races with remount and can stick invisible.
+        progress.set(1)
+        containerOpacity.set(1)
       }
     }, [totalDuration, containerOpacity, progress])
   )
 
   const containerStyle = useAnimatedStyle(() => ({
     flex: 1,
-    opacity: containerOpacity.value
+    opacity: containerOpacity.get()
   }))
 
   const handlePress = useCallback(

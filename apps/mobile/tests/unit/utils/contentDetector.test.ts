@@ -118,6 +118,15 @@ describe('contentDetector', () => {
         expect(result.type).toBe('bitcoin_uri')
         expect(result.isValid).toBe(true)
       })
+
+      it('should detect payjoin BIP21 URI as bitcoin_uri', async () => {
+        const result = await detectContentByContext(
+          'bitcoin:tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx?amount=0.0001&pjos=0&pj=https://payjo.in/mb#RK1-x',
+          'bitcoin'
+        )
+        expect(result.type).toBe('bitcoin_uri')
+        expect(result.isValid).toBe(true)
+      })
     })
 
     describe('incompatible content in Bitcoin context', () => {

@@ -39,6 +39,24 @@ function formatNumber(
     : formattedInteger
 }
 
+/**
+ * Chart / UI fee-rate label. Sub-1 sat/vB must not round to "0".
+ * Below 1 → two decimals (e.g. 0.39); below 10 with a fraction → one decimal;
+ * otherwise → integer.
+ */
+function formatFeeRateSatPerVb(feeRate: number): string {
+  if (!Number.isFinite(feeRate) || feeRate <= 0) {
+    return '0'
+  }
+  if (feeRate < 1) {
+    return formatNumber(feeRate, 2)
+  }
+  if (feeRate < 10 && feeRate % 1 !== 0) {
+    return formatNumber(feeRate, 1)
+  }
+  return formatNumber(Math.round(feeRate), 0)
+}
+
 function formatTime(date: Date) {
   return new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
@@ -319,6 +337,7 @@ export {
   formatConfirmations,
   formatConfirmationsWithBlock,
   formatDate,
+  formatFeeRateSatPerVb,
   formatFiatPrice,
   formatLargeNumber,
   formatNostrCardDate,

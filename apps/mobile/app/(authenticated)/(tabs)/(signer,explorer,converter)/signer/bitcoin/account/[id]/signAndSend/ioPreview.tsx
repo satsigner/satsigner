@@ -1,5 +1,6 @@
 import type BottomSheet from '@gorhom/bottom-sheet'
 import { useQuery } from '@tanstack/react-query'
+import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
 import {
   Stack,
@@ -14,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconChevronLeft } from '@/components/icons'
+import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSBottomSheet from '@/components/SSBottomSheet'
@@ -44,6 +45,7 @@ import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
+import { useNow } from '@/hooks/useNow'
 import { useTransactionFeeWarnings } from '@/hooks/useTransactionFeeWarnings'
 import { useUriAutoSelectUtxos } from '@/hooks/useUriAutoSelectUtxos'
 import SSHStack from '@/layouts/SSHStack'
@@ -89,6 +91,11 @@ import {
   stripBitcoinPrefix
 } from '@/utils/parse'
 import {
+  formatPayjoinExpiryLabel,
+  parsePayjoinExpiresAtMs
+} from '@/utils/payjoinExpiry'
+import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
+import {
   buildOutpointLabelsByRef,
   buildTxLabelsById
 } from '@/utils/sankeyInputLabel'
@@ -120,6 +127,7 @@ import {
   selectStonewallUtxos,
   splitStonewallOutputValues
 } from '@/utils/utxo'
+import { applyUtxoDenylist } from '@/utils/utxoList'
 
 export default function IOPreview() {
   const router = useRouter()
@@ -159,7 +167,9 @@ export default function IOPreview() {
     setSelectedAutoSelectUtxos,
     stonewallPreview,
     setStonewallPreview,
-    clearStonewallPreview
+    clearStonewallPreview,
+    payjoinUri,
+    setPayjoinUri
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -180,9 +190,28 @@ export default function IOPreview() {
       state.setSelectedAutoSelectUtxos,
       state.stonewallPreview,
       state.setStonewallPreview,
-      state.clearStonewallPreview
+      state.clearStonewallPreview,
+      state.payjoinUri,
+      state.setPayjoinUri
     ])
   )
+
+  // ioPreview only stores the invoice — Payjoin server (OHTTP / directory /
+  // BIP78 endpoint) is contacted later on sign via sendPayjoin.
+  useEffect(() => {
+    const state = useTransactionBuilderStore.getState()
+    const uri = state.payjoinUri
+    const parsed = uri ? parsePayjoinUri(uri) : undefined
+    console.log('[ioPreview] load', {
+      callingPayjoinServer: false,
+      endpointKind: parsed?.endpointKind ?? null,
+      hasPayjoinUri: !!uri,
+      inputs: state.inputs.size,
+      outputs: state.outputs.length,
+      payjoinUri: uri ?? null,
+      pj: parsed?.params?.pj ?? null
+    })
+  }, [])
 
   const mempoolOracle = useMempoolOracle(account?.network || 'bitcoin')
   const wallet = useGetAccountWallet(id!)
@@ -241,11 +270,19 @@ export default function IOPreview() {
   const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] =
     useState<LoadingAutoSelectUtxosAlgorithm>(false)
 
+  // Payjoin invoices always use efficient coin selection — privacy/STONEWALL
+  // would rewrite outputs and break the pj= mailbox payment.
+  const uriAutoSelectAlgorithm =
+    payjoinUri && hasPayjoinParam(payjoinUri)
+      ? 'efficiency'
+      : defaultAutoSelectUtxos
+
   const { markUriAutoSelectPending, uriAutoSelectPending } =
     useUriAutoSelectUtxos({
       autoSelectFromUri,
       decoyAddress,
-      defaultAlgorithm: defaultAutoSelectUtxos,
+      defaultAlgorithm: uriAutoSelectAlgorithm,
+      nextBlockFee,
       onApplyAlgorithm: (type) => applyUtxoSelectionRef.current(type),
       outputsLength: outputs.length
     })
@@ -253,6 +290,49 @@ export default function IOPreview() {
 
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
+  const payjoinDataBottomSheetRef = useRef<BottomSheet>(null)
+  const nowMs = useNow()
+
+  const payjoinInvoice = useMemo(() => {
+    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
+      return undefined
+    }
+    const parsed = parsePayjoinUri(payjoinUri)
+    if (!parsed.isValid || !parsed.params) {
+      return undefined
+    }
+    const amountSats =
+      parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
+        ? Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
+        : undefined
+    return {
+      address: parsed.params.address,
+      amountSats,
+      endpointKind: parsed.endpointKind,
+      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
+      label: parsed.params.label,
+      pj: parsed.params.pj,
+      pjos: parsed.params.pjos,
+      uri: payjoinUri
+    }
+  }, [payjoinUri])
+
+  const payjoinExpiryLabel = formatPayjoinExpiryLabel(
+    payjoinInvoice?.expiresAt,
+    nowMs
+  )
+
+  function handleOpenPayjoinData() {
+    payjoinDataBottomSheetRef.current?.expand()
+  }
+
+  async function handleCopyPayjoinUri() {
+    if (!payjoinInvoice?.uri) {
+      return
+    }
+    await Clipboard.setStringAsync(payjoinInvoice.uri)
+    toast.success(t('common.copiedToClipboard'))
+  }
 
   const utxosValue = (utxos: Utxo[]): number =>
     utxos.reduce((acc, utxo) => acc + utxo.value, 0)
@@ -312,7 +392,7 @@ export default function IOPreview() {
     [utxosSelectedValue, outputs]
   )
 
-  function applyParsedOutput(parsed: ParsedUriParams) {
+  function applyParsedOutput(parsed: ParsedUriParams, rawUri?: string) {
     setOutputTo(parsed.address)
     if (parsed.amount !== undefined && parsed.amount > 0) {
       const amountInSats = Math.round(parsed.amount * SATS_PER_BITCOIN)
@@ -328,6 +408,25 @@ export default function IOPreview() {
       setOutputLabel(parsed.label)
     }
 
+    const uriForPayjoin =
+      rawUri ??
+      (parsed.pj
+        ? `bitcoin:${parsed.address}?${parsed.amount ? `amount=${parsed.amount}&` : ''}${parsed.pjos !== undefined ? `pjos=${parsed.pjos}&` : ''}pj=${parsed.pj}`
+        : undefined)
+    const isPayjoin = !!(uriForPayjoin && hasPayjoinParam(uriForPayjoin))
+    if (isPayjoin && uriForPayjoin) {
+      setPayjoinUri(
+        uriForPayjoin.toLowerCase().startsWith('bitcoin:')
+          ? uriForPayjoin
+          : `bitcoin:${uriForPayjoin}`
+      )
+      toast.success(t('transaction.build.payjoin.uriDetected'))
+    } else {
+      setPayjoinUri(undefined)
+    }
+
+    // Payjoin still needs fee-aware efficiency selection (forced via
+    // uriAutoSelectAlgorithm). Non-payjoin uses the settings default.
     if (shouldAutoSelectUtxosFromParsedAmount(parsed.amount)) {
       markUriAutoSelectPendingRef.current?.()
     }
@@ -337,6 +436,17 @@ export default function IOPreview() {
     let uriToDecode = content
     if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
       uriToDecode = `bitcoin:${uriToDecode}`
+    }
+
+    const payjoinParsed = parsePayjoinUri(uriToDecode)
+    if (payjoinParsed.isValid && payjoinParsed.params) {
+      return {
+        address: payjoinParsed.params.address,
+        amount: payjoinParsed.params.amountBtc || 0,
+        label: payjoinParsed.params.label || '',
+        pj: payjoinParsed.params.pj,
+        pjos: payjoinParsed.params.pjos
+      }
     }
 
     const parsed = parseBitcoinUri(uriToDecode)
@@ -367,10 +477,10 @@ export default function IOPreview() {
   function handlePasteFromClipboard(content: string) {
     const trimmedContent = content.trim()
 
-    // Step 1: Try BIP21 decode
+    // Step 1: Try BIP21 decode (including Payjoin pj=)
     const bip21Result = tryDecodeBip21(trimmedContent)
     if (bip21Result) {
-      applyParsedOutput(bip21Result)
+      applyParsedOutput(bip21Result, trimmedContent)
       return
     }
 
@@ -378,29 +488,33 @@ export default function IOPreview() {
     const processedContent = stripBitcoinPrefix(trimmedContent)
     const uriResult = tryParseUriWithValidation(processedContent)
     if (uriResult && uriResult.amount !== undefined) {
-      applyParsedOutput(uriResult)
+      applyParsedOutput(uriResult, trimmedContent)
       return
     }
 
     // Step 3: Try content detection
     const detectedContent = detectContentByContext(processedContent, 'bitcoin')
     if (detectedContent.isValid) {
-      const success = processContentForOutput(detectedContent, {
+      const { ok, payjoin } = processContentForOutput(detectedContent, {
         onError: () => setOutputTo(processedContent),
         onWarning: () => undefined,
         remainingSats,
         setOutputAmount,
         setOutputLabel,
-        setOutputTo
+        setOutputTo,
+        setPayjoinUri
       })
+      if (ok && payjoin) {
+        toast.success(t('transaction.build.payjoin.uriDetected'))
+      }
       if (
-        success &&
+        ok &&
         detectedContent.type === 'bitcoin_uri' &&
         shouldAutoSelectUtxosFromBitcoinUri(trimmedContent)
       ) {
         markUriAutoSelectPendingRef.current?.()
       }
-      if (success) {
+      if (ok) {
         return
       }
     }
@@ -488,7 +602,7 @@ export default function IOPreview() {
 
   const deferUnderfundedWarning =
     shouldDeferUnderfundedWarning({
-      defaultAutoSelectAlgorithm: defaultAutoSelectUtxos,
+      defaultAutoSelectAlgorithm: uriAutoSelectAlgorithm,
       inputsCount: inputs.size,
       isAutoSelectPending: uriAutoSelectPending,
       isSelectingUtxos: loadingOptimizeAlgorithm !== false,
@@ -610,35 +724,9 @@ export default function IOPreview() {
       return
     }
 
-    const success = processContentForOutput(content, {
-      onError: (message) => {
-        if (message === t('transaction.error.dustOutputBelowLimit')) {
-          setDustErrorOverride(message)
-          setCameraModalVisible(false)
-        } else {
-          toast.error(t('transaction.error.address.invalid'))
-        }
-      },
-      onWarning: () => {
-        toast.warning(t('transaction.error.bip21.insufficientSats'))
-      },
-      remainingSats,
-      setOutputAmount,
-      setOutputLabel,
-      setOutputTo
-    })
-
-    if (
-      success &&
-      content.type === 'bitcoin_uri' &&
-      shouldAutoSelectUtxosFromBitcoinUri(content.cleaned.trim())
-    ) {
-      markUriAutoSelectPendingRef.current?.()
-    }
-
-    if (success) {
-      setCameraModalVisible(false)
-    }
+    // Same Payjoin-aware path as paste (raw keeps bitcoin: + pj=).
+    handlePasteFromClipboard(content.raw?.trim() || content.cleaned.trim())
+    setCameraModalVisible(false)
   }
 
   function resetLocalOutput() {
@@ -857,7 +945,11 @@ export default function IOPreview() {
       outputs
     })
 
-    const pool = filterUtxosByExcludedOutpoints(account.utxos, excluded)
+    const selectableUtxos = applyUtxoDenylist(
+      account.utxos,
+      account.excludedUtxoOutpoints ?? []
+    )
+    const pool = filterUtxosByExcludedOutpoints(selectableUtxos, excluded)
 
     const stonewallResult = selectStonewallUtxos(
       pool,
@@ -999,8 +1091,13 @@ export default function IOPreview() {
 
         setPreviousUserSelectedUtxos(getInputs())
 
+        const selectableUtxos = applyUtxoDenylist(
+          account.utxos,
+          account.excludedUtxoOutpoints ?? []
+        )
+
         const feeFn = (inputCount: number, hasChange: boolean) => {
-          const mockInputs = account.utxos.slice(0, inputCount)
+          const mockInputs = selectableUtxos.slice(0, inputCount)
           const { vsize } = estimateTransactionSize(
             mockInputs,
             outputs,
@@ -1010,7 +1107,7 @@ export default function IOPreview() {
         }
 
         const optimizationResult = selectEfficientUtxos(
-          account.utxos,
+          selectableUtxos,
           userPaymentAmount,
           effectiveFeeRate,
           { feeFn }
@@ -1397,31 +1494,59 @@ export default function IOPreview() {
           }}
         >
           <SSVStack>
-            {!loadHistory && (
-              <TouchableOpacity
-                style={{
-                  marginBottom: Layout.vStack.gap.sm
-                }}
-                onPress={handleLoadHistory}
+            {(!loadHistory || !!payjoinInvoice) && (
+              <SSHStack
+                justifyBetween
+                style={{ marginBottom: Layout.vStack.gap.sm }}
               >
-                <SSHStack gap="xs">
-                  <SSHStack gap="xxs">
-                    <SSIconChevronLeft
-                      height={6}
-                      width={3}
-                      stroke={Colors.gray[300]}
-                    />
-                    <SSIconChevronLeft
-                      height={6}
-                      width={3}
-                      stroke={Colors.gray[300]}
-                    />
-                  </SSHStack>
-                  <SSText style={{ color: Colors.gray[300], fontSize: 12 }}>
-                    {t('transaction.loadHistory').toUpperCase()}
-                  </SSText>
-                </SSHStack>
-              </TouchableOpacity>
+                {!loadHistory ? (
+                  <TouchableOpacity onPress={handleLoadHistory}>
+                    <SSHStack gap="xs">
+                      <SSHStack gap="xxs">
+                        <SSIconChevronLeft
+                          height={6}
+                          width={3}
+                          stroke={Colors.gray[300]}
+                        />
+                        <SSIconChevronLeft
+                          height={6}
+                          width={3}
+                          stroke={Colors.gray[300]}
+                        />
+                      </SSHStack>
+                      <SSText style={{ color: Colors.gray[300], fontSize: 12 }}>
+                        {t('transaction.loadHistory').toUpperCase()}
+                      </SSText>
+                    </SSHStack>
+                  </TouchableOpacity>
+                ) : (
+                  <View />
+                )}
+                {payjoinInvoice ? (
+                  <TouchableOpacity
+                    testID="send-payjoin-data"
+                    onPress={handleOpenPayjoinData}
+                  >
+                    <SSHStack gap="xs">
+                      <SSText style={{ color: Colors.gray[300], fontSize: 12 }}>
+                        {t('transaction.build.payjoin.data.open').toUpperCase()}
+                      </SSText>
+                      <SSHStack gap="xxs">
+                        <SSIconChevronRight
+                          height={6}
+                          width={3}
+                          stroke={Colors.gray[300]}
+                        />
+                        <SSIconChevronRight
+                          height={6}
+                          width={3}
+                          stroke={Colors.gray[300]}
+                        />
+                      </SSHStack>
+                    </SSHStack>
+                  </TouchableOpacity>
+                ) : null}
+              </SSHStack>
             )}
           </SSVStack>
           {hasOrphanedInputs && (
@@ -1479,7 +1604,7 @@ export default function IOPreview() {
                 label={
                   outputs.length === 0
                     ? t('transaction.build.add.output.title')
-                    : t('sign.transaction')
+                    : t('transaction.build.toolbar.preview')
                 }
                 style={{ flex: 1 }}
                 disabled={hasOrphanedInputs}
@@ -1538,6 +1663,7 @@ export default function IOPreview() {
                 </SSVStack>
                 <SSVStack>
                   <SSTextInput
+                    testID="send-output-address"
                     value={outputTo}
                     placeholder={t('transaction.address')}
                     align="left"
@@ -1552,11 +1678,21 @@ export default function IOPreview() {
                       paddingTop: 12,
                       textAlignVertical: 'top'
                     }}
-                    onChangeText={(text) => setOutputTo(text)}
+                    onChangeText={(text) => {
+                      // Long-press paste / Maestro inputText hit onChangeText,
+                      // not the Paste button — still detect Payjoin URIs.
+                      if (hasPayjoinParam(text)) {
+                        handlePasteFromClipboard(text)
+                        return
+                      }
+                      setOutputTo(text)
+                      setPayjoinUri(undefined)
+                    }}
                   />
                   {!isEditingStonewallManagedOutput ? (
                     <SSHStack gap="md">
                       <SSButton
+                        testID="send-paste-output"
                         variant="outline"
                         label={t('common.paste')}
                         style={{ flex: 1 }}
@@ -1572,6 +1708,7 @@ export default function IOPreview() {
                   ) : null}
                 </SSVStack>
                 <SSTextInput
+                  testID="send-output-label"
                   multiline
                   numberOfLines={4}
                   placeholder={t('transaction.build.add.label.title')}
@@ -1726,6 +1863,96 @@ export default function IOPreview() {
             />
           </SSVStack>
         </SSVStack>
+      </SSBottomSheet>
+      <SSBottomSheet
+        ref={payjoinDataBottomSheetRef}
+        title={t('transaction.build.payjoin.data.title')}
+      >
+        {payjoinInvoice ? (
+          <SSVStack gap="md">
+            <SSVStack gap="xs">
+              <SSText color="muted" uppercase size="xs">
+                {t('transaction.build.payjoin.data.address')}
+              </SSText>
+              <SSText selectable>{payjoinInvoice.address}</SSText>
+            </SSVStack>
+            {payjoinInvoice.amountSats !== undefined ? (
+              <SSVStack gap="xs">
+                <SSText color="muted" uppercase size="xs">
+                  {t('transaction.build.payjoin.data.amount')}
+                </SSText>
+                <SSText>
+                  {formatNumber(payjoinInvoice.amountSats)} {t('bitcoin.sats')}
+                </SSText>
+              </SSVStack>
+            ) : null}
+            {payjoinInvoice.label ? (
+              <SSVStack gap="xs">
+                <SSText color="muted" uppercase size="xs">
+                  {t('transaction.build.payjoin.data.label')}
+                </SSText>
+                <SSText>{payjoinInvoice.label}</SSText>
+              </SSVStack>
+            ) : null}
+            {payjoinExpiryLabel ? (
+              <SSVStack gap="xs">
+                <SSText color="muted" uppercase size="xs">
+                  {t('transaction.build.payjoin.data.expires')}
+                </SSText>
+                <SSText testID="send-payjoin-data-expires">
+                  {payjoinExpiryLabel}
+                </SSText>
+              </SSVStack>
+            ) : null}
+            <SSVStack gap="xs">
+              <SSText color="muted" uppercase size="xs">
+                {t('transaction.build.payjoin.data.endpointKind')}
+              </SSText>
+              <SSText>
+                {payjoinInvoice.endpointKind === 'bip77'
+                  ? t('transaction.build.payjoin.data.bip77')
+                  : t('transaction.build.payjoin.data.bip78')}
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="xs">
+              <SSText color="muted" uppercase size="xs">
+                {t('transaction.build.payjoin.data.endpoint')}
+              </SSText>
+              <SSText selectable size="sm">
+                {payjoinInvoice.pj}
+              </SSText>
+            </SSVStack>
+            {payjoinInvoice.pjos !== undefined ? (
+              <SSVStack gap="xs">
+                <SSText color="muted" uppercase size="xs">
+                  {t('transaction.build.payjoin.data.pjos')}
+                </SSText>
+                <SSText>
+                  {payjoinInvoice.pjos === 1 ? t('common.yes') : t('common.no')}
+                </SSText>
+              </SSVStack>
+            ) : null}
+            <SSVStack gap="xs">
+              <SSText color="muted" uppercase size="xs">
+                {t('transaction.build.payjoin.data.uri')}
+              </SSText>
+              <SSText selectable size="sm">
+                {payjoinInvoice.uri}
+              </SSText>
+            </SSVStack>
+            <SSButton
+              variant="outline"
+              label={t('transaction.build.payjoin.data.copyUri')}
+              onPress={handleCopyPayjoinUri}
+              testID="send-payjoin-copy-uri"
+            />
+            <SSButton
+              variant="ghost"
+              label={t('common.close')}
+              onPress={() => payjoinDataBottomSheetRef.current?.close()}
+            />
+          </SSVStack>
+        ) : null}
       </SSBottomSheet>
       <SSBottomSheet
         ref={changeFeeBottomSheetRef}

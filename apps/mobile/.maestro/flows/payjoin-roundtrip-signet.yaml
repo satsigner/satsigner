@@ -1,0 +1,23 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - roundtrip
+  - signet
+  - manual
+---
+# Two-device / two-emulator Payjoin roundtrip on signet.
+#
+# Funded pair: Clown receives, Sample (segwit) sends.
+# Polling only runs while Receive is mounted — use two targets:
+#
+#   # Terminal A — Clown receive (keep screen open)
+#   pnpm maestro:payjoin:receive:clown
+#
+#   # Terminal B — Sample (segwit) send
+#   PAYJOIN_URI="$URI" pnpm maestro:payjoin:send
+#
+# Or: pnpm maestro:payjoin:roundtrip
+#
+# This file is intentionally a no-op marker for the suite (tag: manual).
+
+- assertTrue: ${true}

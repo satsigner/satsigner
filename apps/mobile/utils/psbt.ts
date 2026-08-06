@@ -4,6 +4,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
+import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { getKeyFingerprint } from '@/utils/account'
 import { mnemonicToSeed, validateMnemonic } from '@/utils/bip39'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
@@ -389,31 +390,40 @@ function getSignedPSBTValidationInfo(signedPSBT: string) {
 export function extractTransactionIdFromPSBT(
   psbtBase64: string
 ): string | null {
-  const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   try {
-    const tx = psbt.extractTransaction()
-    return tx.getId()
-  } catch {
-    const { unsignedTx } = psbt.data.globalMap
-    if (unsignedTx) {
+    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+    try {
+      const tx = psbt.extractTransaction()
+      return tx.getId()
+    } catch {
+      const { unsignedTx } = psbt.data.globalMap
+      if (!unsignedTx) {
+        return null
+      }
       const txBuffer = unsignedTx.toBuffer()
       const hash = bitcoinjs.crypto.hash256(txBuffer)
-      return Buffer.from(hash.toReversed()).toString('hex')
+      // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+      return Buffer.from(hash).reverse().toString('hex')
     }
+  } catch {
+    return null
   }
-  return null
 }
 
-export function extractTransactionDataFromPSBTEnhanced(
+/**
+ * Extract inputs/outputs/fee from a PSBT. Values and scripts come from the PSBT
+ * itself (WYSIWYS ground truth), not from app builder state.
+ */
+export function extractTransactionDataFromPSBT(
   psbtBase64: string,
-  account: Account
+  appNetwork: AppNetwork
 ): ExtractedTransactionData | null {
-  if (!psbtBase64 || !account) {
+  if (!psbtBase64) {
     return null
   }
 
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
-  const network = bitcoinjsNetwork(account.network)
+  const network = bitcoinjsNetwork(appNetwork)
 
   const inputs = psbt.data.inputs.map((input, index) => {
     const psbtInput = input as PsbtInput
@@ -498,12 +508,22 @@ export function extractTransactionDataFromPSBTEnhanced(
   return {
     fee,
     inputs,
-    network: (account.network === 'bitcoin' ? 'mainnet' : account.network) as
+    network: (appNetwork === 'bitcoin' ? 'mainnet' : appNetwork) as
       | 'mainnet'
       | 'testnet'
       | 'signet',
     outputs
   }
+}
+
+export function extractTransactionDataFromPSBTEnhanced(
+  psbtBase64: string,
+  account: Account
+): ExtractedTransactionData | null {
+  if (!psbtBase64 || !account) {
+    return null
+  }
+  return extractTransactionDataFromPSBT(psbtBase64, account.network)
 }
 
 // Function to combine multiple base64 PSBTs

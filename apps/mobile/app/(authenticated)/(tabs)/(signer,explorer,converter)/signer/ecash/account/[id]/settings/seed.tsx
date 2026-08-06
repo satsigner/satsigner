@@ -1,8 +1,11 @@
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
+import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -15,19 +18,33 @@ export default function EcashSeedPage() {
   const [mnemonic, setMnemonic] = useState<string | null>(null)
   const [isRevealed, setIsRevealed] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showPinEntry, setShowPinEntry] = useState(false)
 
-  async function handleReveal() {
+  async function revealSeed() {
     if (!id) {
       return
     }
     setIsLoading(true)
     try {
       const storedMnemonic = await getEcashMnemonic(id)
+      if (!storedMnemonic) {
+        toast.error(t('ecash.account.seedDisplayWarning'))
+        return
+      }
       setMnemonic(storedMnemonic)
       setIsRevealed(true)
     } finally {
       setIsLoading(false)
+      setShowPinEntry(false)
     }
+  }
+
+  async function handleSuccessPin() {
+    await revealSeed()
+  }
+
+  function handlePinTriesOver() {
+    router.back()
   }
 
   function handleHide() {
@@ -57,7 +74,7 @@ export default function EcashSeedPage() {
           {!isRevealed ? (
             <SSButton
               label={t('ecash.account.revealSeed')}
-              onPress={handleReveal}
+              onPress={() => setShowPinEntry(true)}
               variant="gradient"
               gradientType="special"
               loading={isLoading}
@@ -83,6 +100,14 @@ export default function EcashSeedPage() {
           )}
         </SSVStack>
       </ScrollView>
+      <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
+        <SSPinAuth
+          title={t('account.enter.pin')}
+          onSuccess={handleSuccessPin}
+          onTriesOver={handlePinTriesOver}
+          maxTries={3}
+        />
+      </SSModal>
     </SSMainLayout>
   )
 }

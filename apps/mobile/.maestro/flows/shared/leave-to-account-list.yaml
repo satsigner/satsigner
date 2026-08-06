@@ -1,0 +1,59 @@
+appId: ${APP_ID}
+---
+# Leave Receive / account home and reach the Bitcoin account list.
+# Prefer tab + BITCOIN over many `back` presses (those can exit the app).
+# If already on the account list, do nothing.
+
+- runFlow:
+    when:
+      visible: '(?i)Add Account'
+    commands:
+      - evalScript: ${output.alreadyOnAccountList = true}
+
+- runFlow:
+    when:
+      visible:
+        id: receive-payjoin-toggle
+      notVisible: '(?i)Add Account'
+    commands:
+      - back
+
+# Stuck on UTXO picker from a prior send attempt
+- runFlow:
+    when:
+      visible: '(?i)SELECT UTXOS TO CONTINUE|Select spendable outputs'
+      notVisible: '(?i)Add Account'
+    commands:
+      - back
+
+- runFlow:
+    when:
+      visible:
+        id: account-receive
+      notVisible: '(?i)Add Account'
+    commands:
+      - back
+
+- runFlow:
+    when:
+      visible: '(?i)^Signer$'
+      notVisible: '(?i)Add Account'
+    commands:
+      - tapOn: '(?i)^Signer$'
+
+- runFlow:
+    when:
+      notVisible: '(?i)Add Account'
+      visible: '(?i)^BITCOIN$'
+    commands:
+      - tapOn: '(?i)^BITCOIN$'
+      - extendedWaitUntil:
+          visible: '(?i)Add Account'
+          timeout: 30000
+
+- runFlow:
+    when:
+      notVisible: '(?i)Add Account'
+    commands:
+      - runFlow:
+          file: goto-account-list.yaml

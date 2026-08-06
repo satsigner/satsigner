@@ -381,18 +381,43 @@ class ElectrumClient extends BaseElectrumClient {
     return this.client.mempool_getFeeHistogram()
   }
 
-  async getBlockTimestamp(height: number) {
+  async getServerVersion(): Promise<[string, string]> {
+    const rawClient = this.client as unknown as {
+      server_version: (
+        clientName: string,
+        protocolVersion: string
+      ) => Promise<[string, string]>
+    }
+    const result = await rawClient.server_version('satsigner', '1.4')
+    return Array.isArray(result) ? result : ['', '']
+  }
+
+  async getServerBanner(): Promise<string> {
+    const rawClient = this.client as unknown as {
+      server_banner: () => Promise<string>
+    }
+    const result = await rawClient.server_banner()
+    return typeof result === 'string' ? result : ''
+  }
+
+  async getBlockTimestamp(height: number): Promise<number> {
     const data = await this.client.blockchainBlock_header(height)
     const blockHeaderRaw = z.string().parse(data)
     const blockHeader = bitcoinjs.Block.fromHex(blockHeaderRaw)
     return blockHeader.timestamp
   }
 
-  async getBlockTimestamps(heights: number[]): Promise<number[]> {
+  async getBlockTimestamps(heights: number[]): Promise<(number | undefined)[]> {
     const heightTimestampDict: Record<number, number> = {}
-    const timestamps: number[] = []
+    const timestamps: (number | undefined)[] = []
     for (const height of heights) {
-      if (!heightTimestampDict[height]) {
+      // Electrum uses 0 for unconfirmed and -1 for txs with unconfirmed parents.
+      // Skip those — genesis (height 0) is never a real confirmation height here.
+      if (height <= 0) {
+        timestamps.push(undefined)
+        continue
+      }
+      if (heightTimestampDict[height] === undefined) {
         heightTimestampDict[height] = await this.getBlockTimestamp(height)
       }
       timestamps.push(heightTimestampDict[height])
@@ -421,7 +446,7 @@ class ElectrumClient extends BaseElectrumClient {
   parseAddressUtxos(
     address: string,
     utxos: ElectrumClientInterface['addressUtxos'],
-    timestamps: number[],
+    timestamps: (number | undefined)[],
     addressKeychain: string
   ) {
     const parsedUtxos: Utxo[] = utxos.map((electrumUtxo, index) => ({
@@ -429,7 +454,10 @@ class ElectrumClient extends BaseElectrumClient {
       keychain: addressKeychain as Utxo['keychain'],
       label: '',
       script: [...bitcoinjs.address.toOutputScript(address, this.network)],
-      timestamp: new Date(timestamps[index] * 1000),
+      timestamp:
+        timestamps[index] !== undefined
+          ? new Date(timestamps[index]! * 1000)
+          : undefined,
       txid: electrumUtxo.tx_hash,
       value: electrumUtxo.value,
       vout: electrumUtxo.tx_pos
@@ -442,7 +470,7 @@ class ElectrumClient extends BaseElectrumClient {
     address: string,
     rawTransactions: string[],
     heights: number[],
-    timestamps: number[]
+    timestamps: (number | undefined)[]
   ): Transaction[] {
     const transactions: Transaction[] = []
     const { network } = this
@@ -453,6 +481,7 @@ class ElectrumClient extends BaseElectrumClient {
 
     for (const [index, rawTx] of rawTransactions.entries()) {
       const parsedTx = TxDecoded.fromHex(rawTx)
+      const timestampSeconds = timestamps[index]
       const tx: Transaction = {
         address,
         blockHeight: heights[index],
@@ -465,7 +494,10 @@ class ElectrumClient extends BaseElectrumClient {
         received: 0,
         sent: 0,
         size: parsedTx.byteLength(),
-        timestamp: new Date(timestamps[index] * 1000),
+        timestamp:
+          timestampSeconds !== undefined
+            ? new Date(timestampSeconds * 1000)
+            : undefined,
         type: 'send',
         version: parsedTx.version,
         vin: [],
@@ -633,6 +665,16 @@ class ElectrumClient extends BaseElectrumClient {
 
   broadcastTransactionHex(rawTxHex: string) {
     return this.client.blockchainTransaction_broadcast(rawTxHex)
+  }
+}
+
+export function closeElectrumClientQuietly(
+  client: ElectrumClient | null | undefined
+): void {
+  try {
+    client?.close()
+  } catch {
+    /* silently ignored */
   }
 }
 
