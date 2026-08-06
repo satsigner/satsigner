@@ -11,7 +11,7 @@ import { getItem, setItem } from '@/storage/encrypted'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 
 // TODO: remove default pin by enforce setting pin
-type PinType = typeof PIN_KEY | typeof DURESS_PIN_KEY | typeof DEFAULT_PIN
+type PinType = typeof PIN_KEY | typeof DURESS_PIN_KEY | typeof DEFAULT_PIN_KEY
 
 async function setPin(pin: string, pinType: PinType = PIN_KEY) {
   const salt = await generateSalt()
@@ -32,6 +32,20 @@ async function getPin(pinType = PIN_KEY): Promise<string> {
     throw new Error('PIN unavailable')
   }
   return pin
+}
+
+async function checkPinEqual(plainPin: string, pinType: PinType = PIN_KEY) {
+  if (pinType === DEFAULT_PIN_KEY) {
+    return plainPin === DEFAULT_PIN
+  }
+  const saltKey =  pinType === DURESS_PIN_KEY ? SALT_KEY_DURESS : SALT_KEY
+  const salt = await getItem(saltKey)
+  if (! salt) {
+    return false
+  }
+  const hashedPin = await pbkdf2Encrypt(plainPin, salt)
+  const storedPin = await getItem(pinType)
+  return (storedPin === hashedPin)
 }
 
 function emptyPin(): string[] {
@@ -68,6 +82,7 @@ function deletePinDigit(pin: string[]): string[] {
 }
 
 export {
+  checkPinEqual,
   deletePinDigit,
   emptyPin,
   fillPinDigit,
