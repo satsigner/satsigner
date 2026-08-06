@@ -390,19 +390,24 @@ function getSignedPSBTValidationInfo(signedPSBT: string) {
 export function extractTransactionIdFromPSBT(
   psbtBase64: string
 ): string | null {
-  const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   try {
-    const tx = psbt.extractTransaction()
-    return tx.getId()
-  } catch {
-    const { unsignedTx } = psbt.data.globalMap
-    if (unsignedTx) {
+    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+    try {
+      const tx = psbt.extractTransaction()
+      return tx.getId()
+    } catch {
+      const { unsignedTx } = psbt.data.globalMap
+      if (!unsignedTx) {
+        return null
+      }
       const txBuffer = unsignedTx.toBuffer()
       const hash = bitcoinjs.crypto.hash256(txBuffer)
-      return Buffer.from(hash.toReversed()).toString('hex')
+      // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+      return Buffer.from(hash).reverse().toString('hex')
     }
+  } catch {
+    return null
   }
-  return null
 }
 
 /**

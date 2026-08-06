@@ -11,25 +11,32 @@ import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 
-import { SSIconPlus, SSIconX } from './icons'
+import { SSIconExclude, SSIconPlus, SSIconX } from './icons'
+import SSIconButton from './SSIconButton'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
 
 type SSUtxoItemProps = {
   utxo: Utxo
-  selected: boolean
+  selected?: boolean
   largestValue: number
-  onToggleSelected(utxo: Utxo): void
+  onToggleSelected?: (utxo: Utxo) => void
+  onToggleExcluded?: (utxo: Utxo) => void
   addressIndex?: number
+  mode?: 'select' | 'readonly'
+  excluded?: boolean
 }
 
 function SSUtxoItem({
   utxo,
-  selected,
+  selected = false,
   largestValue,
   onToggleSelected,
-  addressIndex
+  onToggleExcluded,
+  addressIndex,
+  mode = 'select',
+  excluded = false
 }: SSUtxoItemProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((s) => [s.fiatCurrency, s.satsToFiat])
@@ -38,71 +45,107 @@ function SSUtxoItem({
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
   const label = normalizeUtxoLabelForDisplay(utxo.label || '')
+  const readonly = mode === 'readonly'
+
+  const body = (
+    <SSHStack
+      style={{
+        flex: 1,
+        opacity: excluded ? 0.45 : 1,
+        paddingHorizontal: '5%',
+        paddingVertical: 16
+      }}
+      justifyBetween
+    >
+      <SSHStack>
+        {readonly ? null : (
+          <View
+            style={[
+              styles.selectIconBase,
+              { backgroundColor: selected ? Colors.error : Colors.gray[500] }
+            ]}
+          >
+            {selected ? (
+              <SSIconX height={8} width={8} />
+            ) : (
+              <SSIconPlus height={8} width={8} />
+            )}
+          </View>
+        )}
+        <SSVStack gap="xs">
+          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+            <SSStyledSatText
+              amount={utxo.value}
+              decimals={0}
+              useZeroPadding={useZeroPadding}
+              currency={currencyUnit}
+              textSize="md"
+            />
+            <SSText size="xs" color="muted">
+              {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
+            </SSText>
+          </SSHStack>
+          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+            <SSText color="white">
+              {formatNumber(satsToFiat(utxo.value), 2)}
+            </SSText>
+            <SSText color="muted">{fiatCurrency}</SSText>
+          </SSHStack>
+          <SSText color={label ? 'white' : 'muted'}>
+            {label || t('utxo.noLabel')}
+          </SSText>
+        </SSVStack>
+      </SSHStack>
+      <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>
+        <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+          <SSText>{utxo.addressTo ? formatAddress(utxo.addressTo) : ''}</SSText>
+          {typeof addressIndex === 'number' && (
+            <SSText color="muted" size="sm">
+              ({addressIndex})
+            </SSText>
+          )}
+        </SSHStack>
+        <SSText style={{ alignSelf: 'flex-end', color: Colors.gray[100] }}>
+          {utxo.timestamp ? formatDate(utxo.timestamp) : ''}
+        </SSText>
+      </SSVStack>
+    </SSHStack>
+  )
 
   return (
     <View>
-      <TouchableOpacity onPress={() => onToggleSelected(utxo)}>
-        <SSHStack
-          style={{
-            paddingHorizontal: '5%',
-            paddingVertical: 16
-          }}
-          justifyBetween
-        >
-          <SSHStack>
-            <View
-              style={[
-                styles.selectIconBase,
-                { backgroundColor: selected ? Colors.error : Colors.gray[500] }
-              ]}
-            >
-              {selected ? (
-                <SSIconX height={8} width={8} />
-              ) : (
-                <SSIconPlus height={8} width={8} />
-              )}
-            </View>
-            <SSVStack gap="xs">
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSStyledSatText
-                  amount={utxo.value}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  textSize="md"
-                />
-                <SSText size="xs" color="muted">
-                  {currencyUnit === 'btc'
-                    ? t('bitcoin.btc')
-                    : t('bitcoin.sats')}
-                </SSText>
-              </SSHStack>
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText color="white">
-                  {formatNumber(satsToFiat(utxo.value), 2)}
-                </SSText>
-                <SSText color="muted">{fiatCurrency}</SSText>
-              </SSHStack>
-              <SSText>{label}</SSText>
-            </SSVStack>
-          </SSHStack>
-          <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText>
-                {utxo.addressTo ? formatAddress(utxo.addressTo) : ''}
-              </SSText>
-              {typeof addressIndex === 'number' && (
-                <SSText color="muted" size="sm">
-                  ({addressIndex})
-                </SSText>
-              )}
-            </SSHStack>
-            <SSText style={{ alignSelf: 'flex-end', color: Colors.gray[100] }}>
-              {utxo.timestamp ? formatDate(utxo.timestamp) : ''}
-            </SSText>
-          </SSVStack>
-        </SSHStack>
-      </TouchableOpacity>
+      <SSHStack style={{ alignItems: 'stretch' }}>
+        {readonly || !onToggleSelected ? (
+          body
+        ) : (
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => {
+              if (excluded && !selected) {
+                return
+              }
+              onToggleSelected(utxo)
+            }}
+            onLongPress={
+              onToggleExcluded ? () => onToggleExcluded(utxo) : undefined
+            }
+          >
+            {body}
+          </TouchableOpacity>
+        )}
+        {onToggleExcluded && !readonly ? (
+          <SSIconButton
+            onPress={() => onToggleExcluded(utxo)}
+            style={styles.excludeButton}
+          >
+            <SSIconExclude
+              height={16}
+              width={16}
+              stroke={excluded ? Colors.mainRed : Colors.gray[500]}
+            />
+          </SSIconButton>
+        ) : null}
+      </SSHStack>
       <SSUtxoSizeMeter
         size={utxo.value}
         largestSize={largestValue}
@@ -113,6 +156,10 @@ function SSUtxoItem({
 }
 
 const styles = StyleSheet.create({
+  excludeButton: {
+    justifyContent: 'center',
+    paddingRight: '5%'
+  },
   selectIconBase: {
     alignItems: 'center',
     alignSelf: 'baseline',

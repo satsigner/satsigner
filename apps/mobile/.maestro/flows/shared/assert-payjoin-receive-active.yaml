@@ -1,0 +1,30 @@
+appId: ${APP_ID}
+---
+# Assert Receive is in an active BIP77 session:
+# status waiting/ready/checking, expiring countdown, directory URL / pj=.
+# Requires a funded singlesig (empty wallets cannot contribute).
+#
+# Prefer text selectors — Android RN testIDs are flaky in Maestro hierarchy.
+# Device logs: receiver mailbox ready → poll pending → "Waiting for sender".
+# Full bitcoin:…pj= URI is on the clipboard after COPY (not always on-screen).
+
+- extendedWaitUntil:
+    visible: '(?i)^COPY$'
+    timeout: 20000
+# Enabled toggle label is "No Payjoin" (uppercase → NO PAYJOIN).
+- extendedWaitUntil:
+    visible: '(?i)No Payjoin'
+    timeout: 15000
+# Session starts as initializing → waiting (ready once mailbox is up).
+- extendedWaitUntil:
+    visible: '(?i).*(Waiting for sender|Payjoin ready|Checking mailbox).*'
+    timeout: 60000
+- extendedWaitUntil:
+    visible: '(?i)Expiring in .* min'
+    timeout: 15000
+# Poll URL line (https://PAYJO.IN/…) from receive status stack.
+- extendedWaitUntil:
+    visible: '(?i)https://PAYJO\\.IN/'
+    timeout: 20000
+- tapOn: '(?i)^COPY$'
+# sample-to-clown.sh reads the device clipboard for bitcoin:…pj=

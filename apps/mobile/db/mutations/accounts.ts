@@ -25,13 +25,13 @@ function insertAccount(account: Account) {
         id, name, network, policy_type, keys, key_count, keys_required,
         balance, num_addresses, num_transactions, num_utxos, sats_in_mempool,
         created_at, last_synced_at, sync_status, sync_progress_total, sync_progress_done,
-        birthday_date, rpc_last_block_hash,
+        birthday_date, rpc_last_block_hash, excluded_utxo_outpoints,
         nostr_auto_sync, nostr_common_npub, nostr_common_nsec,
         nostr_device_npub, nostr_device_nsec, nostr_device_mnemonic,
         nostr_device_display_name, nostr_device_picture,
         nostr_last_backup_fingerprint, nostr_last_updated, nostr_sync_start,
         nostr_npub_aliases, nostr_npub_profiles
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         account.id,
         account.name,
@@ -52,6 +52,7 @@ function insertAccount(account: Account) {
         account.syncProgress?.tasksDone ?? null,
         dateToIso(account.birthdayDate),
         account.rpcLastBlockHash ?? null,
+        optionalToJson(account.excludedUtxoOutpoints) ?? '[]',
         boolToInt(account.nostr?.autoSync),
         account.nostr?.commonNpub ?? '',
         // Nostr secrets are PIN-encrypted in SecureStore, never SQLite.
@@ -91,6 +92,7 @@ function updateAccountRow(
       last_synced_at = ?, sync_status = ?,
       sync_progress_total = ?, sync_progress_done = ?,
       birthday_date = ?, rpc_last_block_hash = ?,
+      excluded_utxo_outpoints = ?,
       nostr_auto_sync = ?, nostr_common_npub = ?, nostr_common_nsec = ?,
       nostr_device_npub = ?, nostr_device_nsec = ?, nostr_device_mnemonic = ?,
       nostr_device_display_name = ?, nostr_device_picture = ?,
@@ -115,6 +117,7 @@ function updateAccountRow(
       account.syncProgress?.tasksDone ?? null,
       dateToIso(account.birthdayDate),
       account.rpcLastBlockHash ?? null,
+      optionalToJson(account.excludedUtxoOutpoints) ?? '[]',
       boolToInt(account.nostr?.autoSync),
       account.nostr?.commonNpub ?? '',
       // Nostr secrets are PIN-encrypted in SecureStore, never SQLite.

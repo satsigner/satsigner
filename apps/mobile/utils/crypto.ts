@@ -4,7 +4,8 @@ import uuid from 'react-native-uuid'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 
-const MAX_UINT32 = 0xffffffff // 2^32 - 1
+const UINT32_RANGE = 0x100000000 // 2^32
+const IV_BYTES = 16
 
 function randomKey(length = 16): Promise<string> {
   return Promise.resolve(
@@ -17,12 +18,17 @@ function randomUuid() {
 }
 
 function randomIv() {
-  return uuid.v4().replace(/-/g, '')
+  return Buffer.from(QuickCrypto.randomBytes(IV_BYTES)).toString('hex')
 }
 
+/**
+ * Uniform float in [0, 1). Divides by 2^32 (the size of the output space) rather
+ * than 2^32-1, which would let a maximal draw return exactly 1.0 and push
+ * `Math.floor(randomNum() * n)` one past the end of an n-element array.
+ */
 function randomNum() {
   // global variable from react-native-get-random-values
-  return crypto.getRandomValues(new Uint32Array(1))[0] / MAX_UINT32
+  return crypto.getRandomValues(new Uint32Array(1))[0] / UINT32_RANGE
 }
 
 /**
@@ -48,7 +54,9 @@ function seededRandom(seed: number) {
     state = (state + 0x6d2b79f5) | 0
     let t = Math.imul(state ^ (state >>> 15), 1 | state)
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / MAX_UINT32
+    // Same [0, 1) contract as randomNum: divide by 2^32 so a maximal word
+    // never returns exactly 1.0 (which breaks Fisher–Yates index math).
+    return ((t ^ (t >>> 14)) >>> 0) / UINT32_RANGE
   }
 }
 /* eslint-enable unicorn/prefer-math-trunc, operator-assignment */

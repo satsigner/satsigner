@@ -1,0 +1,23 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - receive
+  - signet
+  - clown
+---
+# BIP77 receive on the funded Clown signet wallet (contribute UTXO required).
+# Pair with Sample (segwit) send — see pnpm maestro:payjoin:sample-to-clown.
+#
+#   -e CLOWN_ACCOUNT_NAME=Clown
+#   -e CLOWN_MNEMONIC='clown believe …'   # only needed to import once
+
+- runFlow:
+    file: shared/launch.yaml
+- runFlow:
+    file: shared/skip-pin-and-warning.yaml
+- runFlow:
+    file: shared/ensure-clown.yaml
+- tapOn:
+    id: account-receive
+- runFlow:
+    file: shared/assert-payjoin-receive-active.yaml

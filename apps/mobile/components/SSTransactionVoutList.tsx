@@ -13,6 +13,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { SAFE_LIMIT_OF_INPUTS_OUTPUTS } from '@/types/ui/sankey'
 import { setClipboard } from '@/utils/clipboard'
 import { formatNumber } from '@/utils/format'
+import { classifySpecialOutput, specialOutputTag } from '@/utils/specialOutput'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
@@ -76,63 +77,79 @@ export function SSTransactionVoutList({
 
   return (
     <SSVStack>
-      {vout.map((output, index) => (
-        <TouchableOpacity
-          key={`${txid}:${index}`}
-          onPress={() => {
-            if (utxoDict[`${txid}:${index}`]) {
-              router.navigate(
-                `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${index}`
-              )
-            }
-          }}
-        >
-          <SSVStack style={{ paddingTop: 50 }}>
-            <SSSeparator color="gradient" />
-            <SSText size="lg">
-              {t('transaction.output.title')} {index}
-            </SSText>
-            <SSVStack gap="none">
-              <SSText color="muted">{t('transaction.value')}</SSText>
+      {vout.map((output, index) => {
+        const specialTag = specialOutputTag(
+          classifySpecialOutput(output.script)
+        )
+
+        return (
+          <TouchableOpacity
+            key={`${txid}:${index}`}
+            onPress={() => {
+              if (utxoDict[`${txid}:${index}`]) {
+                router.navigate(
+                  `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${index}`
+                )
+              }
+            }}
+          >
+            <SSVStack style={{ paddingTop: 50 }}>
+              <SSSeparator color="gradient" />
               <SSText size="lg">
-                {formatNumber(output.value, 0, false, ' ')}
+                {t('transaction.output.title')} {index}
               </SSText>
-            </SSVStack>
-            <TouchableOpacity
-              onPress={() => {
-                if (addressDict[output.address]) {
-                  router.navigate(
-                    `/signer/bitcoin/account/${accountId}/address/${output.address}`
-                  )
-                } else {
-                  setClipboard(output.address)
-                }
-              }}
-            >
+              {specialTag ? (
+                <SSVStack gap="none">
+                  <SSText color="muted">{t('common.type')}</SSText>
+                  <SSText size="lg">{specialTag}</SSText>
+                </SSVStack>
+              ) : null}
               <SSVStack gap="none">
-                <SSText color="muted">{t('bitcoin.address')}</SSText>
-                <SSAddressDisplay
-                  address={output.address}
-                  copyToClipboard={false}
-                  variant="bare"
-                  color="muted"
-                  size="sm"
-                />
+                <SSText color="muted">{t('transaction.value')}</SSText>
+                <SSText size="lg">
+                  {formatNumber(output.value, 0, false, ' ')}
+                </SSText>
               </SSVStack>
-            </TouchableOpacity>
-            {labelsDict[index] && (
-              <SSVStack gap="none">
-                <SSText color="muted">{t('common.label')}</SSText>
-                <SSText size="lg">{labelsDict[index]}</SSText>
+              {output.address ? (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (addressDict[output.address]) {
+                      router.navigate(
+                        `/signer/bitcoin/account/${accountId}/address/${output.address}`
+                      )
+                    } else {
+                      setClipboard(output.address)
+                    }
+                  }}
+                >
+                  <SSVStack gap="none">
+                    <SSText color="muted">{t('bitcoin.address')}</SSText>
+                    <SSAddressDisplay
+                      address={output.address}
+                      copyToClipboard={false}
+                      variant="bare"
+                      color="muted"
+                      size="sm"
+                    />
+                  </SSVStack>
+                </TouchableOpacity>
+              ) : null}
+              {labelsDict[index] ? (
+                <SSVStack gap="none">
+                  <SSText color="muted">{t('common.label')}</SSText>
+                  <SSText size="lg">{labelsDict[index]}</SSText>
+                </SSVStack>
+              ) : null}
+              <SSVStack>
+                <SSText color="muted">
+                  {t('transaction.unlockingScript')}
+                </SSText>
+                <SSScriptDecoded script={output.script || []} />
               </SSVStack>
-            )}
-            <SSVStack>
-              <SSText color="muted">{t('transaction.unlockingScript')}</SSText>
-              <SSScriptDecoded script={output.script || []} />
             </SSVStack>
-          </SSVStack>
-        </TouchableOpacity>
-      ))}
+          </TouchableOpacity>
+        )
+      })}
     </SSVStack>
   )
 }

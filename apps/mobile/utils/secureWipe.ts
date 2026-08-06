@@ -6,22 +6,22 @@ import {
   deleteEcashMnemonic,
   deleteItem
 } from '@/storage/encrypted'
+import { clearNostrFollowCaches } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
+import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
-import { type Network } from '@/types/settings/blockchain'
 import { deleteAllNostrSecretsForWipe } from '@/utils/nostrSecrets'
 import {
   deleteAllRpcCredentialsSafe,
   deleteLndSecretsSafe
 } from '@/utils/serviceSecrets'
-
-const BLOCKCHAIN_NETWORKS: Network[] = ['bitcoin', 'testnet', 'signet']
 
 /**
  * Best-effort wipe of wallet secrets and local account state for duress PIN.
@@ -38,7 +38,9 @@ export async function secureWipeAllWalletData(): Promise<void> {
   await deleteAllRpcCredentialsSafe()
   await Promise.all(
     accounts.map((account) =>
-      deleteAllKeySecrets(account.id, account.keys.length)
+      deleteAllKeySecrets(account.id, account.keys.length).catch(
+        () => undefined
+      )
     )
   )
 
@@ -63,18 +65,13 @@ export async function secureWipeAllWalletData(): Promise<void> {
   useWalletsStore.getState().deleteWallets()
   useEcashStore.getState().clearAllData()
   useArkStore.getState().clearAllData()
+  useTransactionBuilderStore.getState().clearAllData()
   useNostrIdentityStore.getState().clearAll()
+  useNostrStore.getState().clearAllNostrState()
   useLightningStore.getState().clearConfig()
+  clearNostrFollowCaches()
 
-  const { configs, updateServer } = useBlockchainStore.getState()
-  for (const network of BLOCKCHAIN_NETWORKS) {
-    const { server } = configs[network]
-    if (!server.rpcCredentials) {
-      continue
-    }
-    const { rpcCredentials: _removed, ...rest } = server
-    updateServer(network, rest)
-  }
+  useBlockchainStore.getState().stripAllRpcCredentials()
 
   const { setDuressPinEnabled, setSkipPin } = useAuthStore.getState()
   setDuressPinEnabled(false)

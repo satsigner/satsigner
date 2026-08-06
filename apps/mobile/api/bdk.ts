@@ -808,7 +808,8 @@ function getWalletOverview(
 
   const ownedTransactions = annotateTransactionsWithWalletOwnership(
     transactions,
-    addresses
+    addresses,
+    utxos
   )
 
   addresses = parseAccountAddressesDetails({
@@ -1918,7 +1919,8 @@ async function syncWithCoreWallet(
 
   const ownedTransactions = annotateTransactionsWithWalletOwnership(
     transactions,
-    addresses
+    addresses,
+    utxos
   )
 
   const confirmedBalance = utxos

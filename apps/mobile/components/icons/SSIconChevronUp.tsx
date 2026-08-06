@@ -11,7 +11,7 @@ export default function SSIconChevronUp({ width, height }: IconProps) {
         transform="translate(-0.293 -0.657)"
         fill="none"
         stroke="#828282"
-        strokeWidth="1.5"
+        strokeWidth="1"
       />
     </Svg>
   )

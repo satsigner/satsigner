@@ -8,11 +8,19 @@ import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
-export default function SignAndSendLayout() {
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+function resolveParamId(id: string | string[] | undefined): string | undefined {
+  if (Array.isArray(id)) {
+    return id[0]
+  }
+  return id
+}
 
-  const account = useAccountsStore(
-    (state) => state.accounts.find((account) => account.id === id)!
+export default function SignAndSendLayout() {
+  const params = useLocalSearchParams<AccountSearchParams>()
+  const id = resolveParamId(params.id)
+
+  const account = useAccountsStore((state) =>
+    id ? state.accounts.find((entry) => entry.id === id) : undefined
   )
 
   const setAccountId = useTransactionBuilderStore((state) => state.setAccountId)
@@ -23,6 +31,12 @@ export default function SignAndSendLayout() {
     }
   })
 
+  // Navigating away (e.g. Open accounts) can remount this layout with a
+  // missing id before unmount — never unwrap account for the header.
+  if (!account) {
+    return <Slot />
+  }
+
   return (
     <>
       <Stack.Screen
@@ -31,9 +45,9 @@ export default function SignAndSendLayout() {
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
-              {account.policyType === 'watchonly' && (
+              {account.policyType === 'watchonly' ? (
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
-              )}
+              ) : null}
             </SSHStack>
           )
         }}

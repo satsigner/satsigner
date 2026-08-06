@@ -811,7 +811,6 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   multiSigContainer: {
-    backgroundColor: '#131313',
     paddingHorizontal: 0
   },
   multiSigKeyControlCOntainer: {

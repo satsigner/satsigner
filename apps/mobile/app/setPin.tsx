@@ -35,7 +35,9 @@ export default function SetPin() {
     setSkipPin,
     enableDevSkipPin,
     skipPin,
-    validatePin
+    validatePin,
+    requirePinMigration,
+    setRequirePinMigration
   ] = useAuthStore(
     useShallow((state) => [
       state.setPin,
@@ -44,7 +46,9 @@ export default function SetPin() {
       state.setSkipPin,
       state.enableDevSkipPin,
       state.skipPin,
-      state.validatePin
+      state.validatePin,
+      state.requirePinMigration,
+      state.setRequirePinMigration
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
@@ -53,7 +57,7 @@ export default function SetPin() {
 
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>(
-    fromSettings && !skipPin ? 'verify' : 'set'
+    fromSettings && !skipPin && !requirePinMigration ? 'verify' : 'set'
   )
 
   const [currentPinArray, setCurrentPinArray] = useState<string[]>(emptyPin)
@@ -123,6 +127,7 @@ export default function SetPin() {
     setLoading(true)
 
     setSkipPin(false)
+    setRequirePinMigration(false)
 
     const currentPinEncrypted = await getPin()
     await setPin(pinArray.join(''))

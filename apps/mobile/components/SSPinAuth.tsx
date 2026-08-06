@@ -57,7 +57,16 @@ function SSPinAuth({
 
     // DURESS PIN — wipe secrets/stores so the duress PIN appears as the real PIN.
     if (duressPinEnabled && hashedInput === hashedDuressPin) {
-      await secureWipeAllWalletData()
+      try {
+        await secureWipeAllWalletData()
+      } catch {
+        // Duress wipe is best-effort; always proceed to unlock the app.
+      }
+      const { setLockTriggered, setJustUnlocked, resetPinTries } =
+        useAuthStore.getState()
+      setLockTriggered(false)
+      setJustUnlocked(true)
+      resetPinTries()
       router.dismissAll()
       router.push('/')
       return

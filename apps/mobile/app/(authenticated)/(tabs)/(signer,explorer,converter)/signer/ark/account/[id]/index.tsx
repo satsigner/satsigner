@@ -482,7 +482,7 @@ export default function ArkAccountDetailPage() {
       <SSHStack justifyBetween style={styles.movementControls}>
         <SSHStack>
           <SSIconButton onPress={syncAccount}>
-            <SSIconRefresh height={18} width={22} />
+            <SSIconRefresh height={16} width={19} />
           </SSIconButton>
           <SSIconButton onPress={handleToggleExpand}>
             {expand ? (
@@ -506,7 +506,7 @@ export default function ArkAccountDetailPage() {
     return (
       <SSHStack justifyBetween style={styles.refreshesControls}>
         <SSIconButton onPress={syncAccount}>
-          <SSIconRefresh height={18} width={22} />
+          <SSIconRefresh height={16} width={19} />
         </SSIconButton>
         {nextExpiryHeight !== null && (
           <SSText color="muted" size="xs">
@@ -526,13 +526,13 @@ export default function ArkAccountDetailPage() {
     return (
       <SSHStack justifyBetween style={styles.vtxosControls}>
         <SSIconButton onPress={syncAccount}>
-          <SSIconRefresh height={18} width={22} />
+          <SSIconRefresh height={16} width={19} />
         </SSIconButton>
         <SSIconButton onPress={handleToggleVtxosView}>
           {vtxosView === 'list' ? (
-            <SSIconBubbles height={16} width={16} />
+            <SSIconBubbles height={15} width={15} />
           ) : (
-            <SSIconList height={16} width={16} />
+            <SSIconList height={15} width={15} />
           )}
         </SSIconButton>
       </SSHStack>

@@ -79,6 +79,14 @@ export default function Features() {
                   router.navigate('/settings/features/bip39')
                 }}
               />
+              <SSSettingsCards
+                title={t('settings.payjoin.title')}
+                description={t('settings.payjoin.description')}
+                icon={<SSIconBubbles width={24} height={24} />}
+                onPress={() => {
+                  router.navigate('/settings/features/payjoin')
+                }}
+              />
             </SSVStack>
           </SSVStack>
         </ScrollView>
