@@ -8,13 +8,13 @@ import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import { DURESS_PIN_KEY, SALT_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
+import { useSecureWipe } from '@/hooks/useSecureWipe'
 import SSVStack from '@/layouts/SSVStack'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { gray } from '@/styles/colors'
 import { pbkdf2Encrypt } from '@/utils/crypto'
 import { emptyPin, getPin } from '@/utils/pin'
-import { secureWipeAllWalletData } from '@/utils/secureWipe'
 
 type SSPinAuthProps = {
   onFail?: () => void
@@ -46,6 +46,7 @@ function SSPinAuth({
   const [pin, setPin] = useState<string[]>(emptyPin())
   const [tries, setTries] = useState(0)
   const { shakeStyle } = useAnimatedShake()
+  const secureWipe = useSecureWipe()
 
   useEffect(() => {
     if (resetPin === true) {
@@ -72,7 +73,7 @@ function SSPinAuth({
     // DURESS PIN
     if (duressPinEnabled && hashedInputDuress === hashedDuressPin) {
       try {
-        await secureWipeAllWalletData()
+        await secureWipe()
       } catch {
         // Duress wipe is best-effort; always proceed to unlock the app.
       }
