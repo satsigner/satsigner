@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -8,6 +8,7 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
+import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -125,16 +126,16 @@ export default function DescriptorPage() {
     setDescriptorComponents(components)
   }
 
-  useEffect(() => {
+  useAsyncEffect(async () => {
     setIsLoading(true)
     try {
-      getDescriptor()
+      await getDescriptor()
     } catch {
       toast.error('Failed to get descriptor')
     } finally {
       setIsLoading(false)
     }
-  }, [account, keyIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [account, keyIndex])
 
   function exportDescriptor() {
     if (!account) {

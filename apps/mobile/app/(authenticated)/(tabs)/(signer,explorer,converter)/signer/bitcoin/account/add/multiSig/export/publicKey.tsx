@@ -8,6 +8,7 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
+import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -221,16 +222,15 @@ export default function PublicKeyPage() {
     setPublicKey(convertPublicKeyFormat(publicKeyString, selectedFormat))
   }
 
-  useEffect(() => {
+  useAsyncEffect(async () => {
     try {
       setIsLoading(true)
-      getPublicKey()
+      await getPublicKey()
     } catch {
       toast.error('Failed to get public key')
     } finally {
       setIsLoading(false)
     }
-    // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
   }, [keyIndex, network, selectedFormat, convertPublicKeyFormat])
 
   useEffect(() => {

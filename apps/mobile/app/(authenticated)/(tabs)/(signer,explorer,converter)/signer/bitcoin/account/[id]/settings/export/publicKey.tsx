@@ -7,6 +7,7 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
+import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -198,11 +199,11 @@ export default function PublicKeyPage() {
         return publicKey
       }
 
-      // Use the network-aware conversion utility
       return convertKeyFormat(publicKey, targetFormat, network)
     },
     [network]
   )
+
   async function getPublicKey() {
     if (!account || !keyIndex || !key) {
       return
@@ -221,16 +222,16 @@ export default function PublicKeyPage() {
     setPublicKey(convertPublicKeyFormat(publicKey, selectedFormat))
   }
 
-  useEffect(() => {
+  useAsyncEffect(async () => {
     try {
       setIsLoading(true)
-      getPublicKey()
+      await getPublicKey()
     } catch {
       toast.error('Failed to get public key')
     } finally {
       setIsLoading(false)
     }
-  }, [account, keyIndex, key, network, selectedFormat, convertPublicKeyFormat]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [account, keyIndex, key, network, selectedFormat, convertPublicKeyFormat])
 
   useEffect(() => {
     if (rawPublicKey) {
