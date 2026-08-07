@@ -2,8 +2,11 @@ import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
 jest.mock<typeof import('@/utils/crypto')>('@/utils/crypto', () => ({
   aesEncrypt: jest.fn(),
-  getPin: jest.fn(),
   randomIv: jest.fn()
+}))
+
+jest.mock<Partial<typeof import('@/utils/pin')>>('@/utils/pin', () => ({
+  getPin: jest.fn()
 }))
 
 jest.mock<typeof import('@/utils/nostrSyncService')>(
@@ -50,7 +53,7 @@ jest.mock<typeof import('@/store/wallets')>('@/store/wallets', () => ({
   useWalletsStore: { getState: jest.fn(), setState: jest.fn() }
 }))
 
-const { getPin } = jest.requireMock('@/utils/crypto') as {
+const { getPin } = jest.requireMock('@/utils/pin') as {
   getPin: jest.Mock
 }
 
