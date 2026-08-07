@@ -1,12 +1,13 @@
 import NetInfo from '@react-native-community/netinfo'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import { servers } from '@/constants/servers'
+import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import { useBlockchainStore } from '@/store/blockchain'
 import { isConnectionPollSuppressed } from '@/utils/connectionPollSuppression'
 import { trimOnionAddress } from '@/utils/format'
@@ -77,25 +78,19 @@ function useVerifyConnection() {
       refetchOnMount: 'always'
     })
 
-  useEffect(() => {
+  useAsyncEffect(async () => {
     if (config.connectionMode === 'manual') {
       return
     }
 
-    let cancelled = false
+    const state = await NetInfo.fetch()
+    isConnectionAvailable.current =
+      state.isConnected === null ? null : state.isConnected
+    refetch()
 
-    ;(async () => {
-      const state = await NetInfo.fetch()
-      if (cancelled) {
-        return
-      }
-      isConnectionAvailable.current =
-        state.isConnected === null ? null : state.isConnected
-      refetch()
-    })()
-
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const next = state.isConnected === null ? null : state.isConnected
+    return NetInfo.addEventListener((netInfoState) => {
+      const next =
+        netInfoState.isConnected === null ? null : netInfoState.isConnected
       if (isConnectionAvailable.current === next) {
         return
       }
@@ -108,27 +103,13 @@ function useVerifyConnection() {
         refetch()
       }
     })
-
-    return () => {
-      cancelled = true
-      unsubscribe()
-    }
   }, [config.connectionMode, refetch])
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const state = await NetInfo.fetch()
-      if (cancelled) {
-        return
-      }
-      isConnectionAvailable.current =
-        state.isConnected === null ? null : state.isConnected
-      refetch()
-    })()
-    return () => {
-      cancelled = true
-    }
+  useAsyncEffect(async () => {
+    const state = await NetInfo.fetch()
+    isConnectionAvailable.current =
+      state.isConnected === null ? null : state.isConnected
+    refetch()
   }, [server.url, refetch])
 
   const trimmedUrl = trimOnionAddress(server.url)
