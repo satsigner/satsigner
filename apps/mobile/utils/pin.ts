@@ -38,14 +38,14 @@ async function checkPinEqual(plainPin: string, pinType: PinType = PIN_KEY) {
   if (pinType === DEFAULT_PIN_KEY) {
     return plainPin === DEFAULT_PIN
   }
-  const saltKey =  pinType === DURESS_PIN_KEY ? SALT_KEY_DURESS : SALT_KEY
+  const saltKey = pinType === DURESS_PIN_KEY ? SALT_KEY_DURESS : SALT_KEY
   const salt = await getItem(saltKey)
-  if (! salt) {
+  if (!salt) {
     return false
   }
   const hashedPin = await pbkdf2Encrypt(plainPin, salt)
   const storedPin = await getItem(pinType)
-  return (storedPin === hashedPin)
+  return storedPin === hashedPin
 }
 
 function emptyPin(): string[] {
