@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -17,7 +17,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
-import { aesDecrypt, getPin } from '@/utils/crypto'
+import { decryptAccountKeySecret, decryptKeySecret } from '@/utils/decryption'
 
 export default function SeedWordsPage() {
   const { keyIndex } = useLocalSearchParams<{ keyIndex: string }>()
@@ -36,53 +36,30 @@ export default function SeedWordsPage() {
   const accountData = getAccountData()
   const key = accountData?.keys[keyIndexNum]
 
-  const decryptMnemonic = useCallback(async () => {
+  async function decryptMnemonic() {
     if (!accountData || !key) {
       return
     }
-
-    try {
-      // During multisig creation, the secret is stored in plain text
-      // Check if the secret is an object with mnemonic (creation mode)
-      if (typeof key.secret === 'object' && key.secret.mnemonic) {
-        // In creation mode, mnemonic is stored in plain text
-        setMnemonic(key.secret.mnemonic)
-        setShowPinEntry(false)
-        return
-      }
-
-      // For encrypted secrets (settings mode), we need PIN
-      // Always use the stored PIN for decryption, not the default PIN
-      const pin = await getPin()
-
-      // Check if the secret is encrypted (string)
-      if (typeof key.secret === 'string') {
-        // Decrypt the key's secret
-        const decryptedSecretString = await aesDecrypt(key.secret, pin, key.iv)
-        const decryptedSecret = JSON.parse(decryptedSecretString)
-
-        if (decryptedSecret.mnemonic) {
-          setMnemonic(decryptedSecret.mnemonic)
-          setShowPinEntry(false)
-
-          // Clear sensitive data from memory
-          decryptedSecret.mnemonic = ''
-        } else {
-          setNoMnemonicAvailable(true)
-          setShowPinEntry(false)
-        }
-      } else {
-        setNoMnemonicAvailable(true)
-        setShowPinEntry(false)
-      }
-    } catch {
-      toast.error(t('account.seed.unableToDecrypt'))
+    const decryptedSecret = key.secret
+      ? await decryptKeySecret(key)
+      : await decryptAccountKeySecret(accountData.id, key.index)
+    if (decryptedSecret.mnemonic) {
+      setMnemonic(decryptedSecret.mnemonic)
+      setNoMnemonicAvailable(false)
+      decryptedSecret.mnemonic = ''
+    } else {
+      setNoMnemonicAvailable(true)
     }
-  }, [accountData, key])
+  }
 
   async function handleSuccessPin() {
-    await decryptMnemonic()
-    setShowPinEntry(false)
+    try {
+      await decryptMnemonic()
+    } catch {
+      toast.error(t('account.seed.unableToDecrypt'))
+    } finally {
+      setShowPinEntry(false)
+    }
   }
 
   function handlePinTriesOver() {
@@ -104,7 +81,7 @@ export default function SeedWordsPage() {
     } else {
       setIsLoading(false)
     }
-  }, [accountData, key, decryptMnemonic])
+  }, [accountData, key])
 
   if (isLoading) {
     return (

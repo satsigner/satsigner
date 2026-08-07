@@ -14,13 +14,17 @@ jest.mock<Partial<typeof import('@/storage/encrypted')>>(
 )
 
 jest.mock<Partial<typeof import('@/utils/crypto')>>('@/utils/crypto', () => ({
-  aesDecrypt: jest.fn(),
+  aesDecrypt: jest.fn()
+}))
+
+jest.mock<Partial<typeof import('@/utils/pin')>>('@/utils/pin', () => ({
   getPin: jest.fn()
 }))
 
 const { getKeySecret } = jest.requireMock('@/storage/encrypted')
 
-const { aesDecrypt, getPin } = jest.requireMock('@/utils/crypto')
+const { aesDecrypt } = jest.requireMock('@/utils/crypto')
+const { getPin } = jest.requireMock('@/utils/pin')
 
 function makeKey(overrides: Partial<Key> = {}): Key {
   return {

@@ -11,7 +11,8 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { aesEncrypt, getPin, randomIv, randomUuid } from '@/utils/crypto'
+import { aesEncrypt, randomIv, randomUuid } from '@/utils/crypto'
+import { getPin } from '@/utils/pin'
 
 type CreateSinglesigParams = {
   name: string
