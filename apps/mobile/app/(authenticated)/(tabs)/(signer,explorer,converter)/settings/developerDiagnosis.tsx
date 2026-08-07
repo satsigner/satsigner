@@ -11,8 +11,22 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
+import {
+  DIAGNOSTIC_CHECKS,
+  type DiagnosticCheckId,
+  runDiagnosticCheck
+} from '@/utils/diagnostics'
 import { runPayjoinLiveRoundtrip } from '@/utils/payjoinLiveRoundtrip'
 import { buildPayjoinLiveRoundtripEnv } from '@/utils/payjoinLiveRoundtripEnv'
+
+type CheckState =
+  | { kind: 'idle' }
+  | { kind: 'running' }
+  | { kind: 'ok'; lines: string[] }
+  | { kind: 'failed'; lines: string[] }
+
+type CheckResults = Partial<Record<DiagnosticCheckId, CheckState>>
 
 type DiagnosisStatus =
   | { kind: 'idle' }
@@ -47,6 +61,28 @@ export default function DeveloperDiagnosis() {
   const [status, setStatus] = useState<DiagnosisStatus>({ kind: 'idle' })
   const [logLines, setLogLines] = useState<string[]>([])
   const abortRef = useRef<AbortController | null>(null)
+
+  const [checkResults, setCheckResults] = useState<CheckResults>({})
+  const anyCheckRunning = Object.values(checkResults).some(
+    (result) => result?.kind === 'running'
+  )
+
+  async function handleRunCheck(id: DiagnosticCheckId) {
+    setCheckResults((prev) => ({ ...prev, [id]: { kind: 'running' } }))
+    const result = await runDiagnosticCheck(id)
+    setCheckResults((prev) => ({
+      ...prev,
+      [id]: result.ok
+        ? { kind: 'ok', lines: result.lines }
+        : { kind: 'failed', lines: result.lines }
+    }))
+  }
+
+  async function handleRunAllChecks() {
+    for (const { id } of DIAGNOSTIC_CHECKS) {
+      await handleRunCheck(id)
+    }
+  }
 
   const isRunning = status.kind === 'running'
   const canRunRoundtrip = selectedNetwork === 'signet' && !isRunning
@@ -133,6 +169,66 @@ export default function DeveloperDiagnosis() {
             <SSText color="muted">
               {t('settings.developer.diagnosis.description')}
             </SSText>
+
+            <SSVStack gap="sm">
+              <SSText uppercase>
+                {t('settings.developer.diagnosis.quickChecks.title')}
+              </SSText>
+              <SSText color="muted" size="sm">
+                {t('settings.developer.diagnosis.quickChecks.description')}
+              </SSText>
+              {DIAGNOSTIC_CHECKS.map(({ id }) => {
+                const result = checkResults[id]
+                return (
+                  <SSVStack gap="xs" key={id}>
+                    <SSButton
+                      label={t(
+                        `settings.developer.diagnosis.checks.${id}.title`
+                      )}
+                      variant="secondary"
+                      disabled={result?.kind === 'running'}
+                      loading={result?.kind === 'running'}
+                      onPress={() => handleRunCheck(id)}
+                    />
+                    {result?.kind === 'ok' || result?.kind === 'failed' ? (
+                      <>
+                        <SSText
+                          size="sm"
+                          style={{
+                            color:
+                              result.kind === 'ok'
+                                ? Colors.success
+                                : Colors.error
+                          }}
+                        >
+                          {result.kind === 'ok'
+                            ? t('settings.developer.diagnosis.checks.statusOk')
+                            : t(
+                                'settings.developer.diagnosis.checks.statusFailed'
+                              )}
+                        </SSText>
+                        {result.lines.map((line, index) => (
+                          <SSText
+                            key={`${index}-${line}`}
+                            color="muted"
+                            size="xs"
+                            type="mono"
+                          >
+                            {line}
+                          </SSText>
+                        ))}
+                      </>
+                    ) : null}
+                  </SSVStack>
+                )
+              })}
+              <SSButton
+                label={t('settings.developer.diagnosis.checks.runAll')}
+                variant="outline"
+                disabled={anyCheckRunning}
+                onPress={handleRunAllChecks}
+              />
+            </SSVStack>
 
             <SSVStack gap="sm">
               <SSText uppercase>

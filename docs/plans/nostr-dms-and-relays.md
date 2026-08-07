@@ -182,14 +182,14 @@ SQLite:       content  = aesEncrypt(plaintext, MK, per_msg_iv)   ← N rows
 Reuse existing primitives; add chat-shaped wrappers in `api/nostr.ts`:
 
 - `sendNip17Chat(senderNsec | null, peerNpub, text, opts)`:
-  - rumor kind 15, `nip17.wrapEvent`
+  - rumor kind 14 (NIP-17 chat message), `nip17.wrapEvent`
   - publish **only to recipient's kind 10050 inbox relays** (fetch; fallback:
     their kind 10002 read relays; fallback: our DM defaults) + copy to own
     inbox relays for self-history
   - `senderNsec: null` → ephemeral mnemonic-derived keypair (see §6.3)
 - `subscribeToNip17Chat(nsec, npub, cb)`: chat wrapper over existing
   `subscribeToKind1059`, subscribed on **our inbox relay set**, extracting
-  kind-15 text + reply-to tags; dedupe by rumor id
+  kind-14 text + reply-to tags; dedupe by rumor id
 - Max content length enforced **before** unwrap (oversized-wrap DoS guard)
 
 ### 6.2 NIP-04 (legacy interop — phase 2)

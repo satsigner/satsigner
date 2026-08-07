@@ -23,6 +23,7 @@ const TRANSFORM_PACKAGES = [
   '@cashu/.*',
   '@noble/.*',
   'bip32',
+  'nostr-tools',
   'immer'
 ].join('|')
 
