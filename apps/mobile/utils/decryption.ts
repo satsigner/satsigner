@@ -8,7 +8,8 @@ import {
   type Key,
   type Secret
 } from '@/types/models/Account'
-import { aesDecrypt, getPin } from '@/utils/crypto'
+import { aesDecrypt } from '@/utils/crypto'
+import { getPin } from '@/utils/pin'
 
 // TODO: create utils to enhance error handling
 function addContextToError(

@@ -39,13 +39,13 @@ import { getBackupFilename } from '@/utils/backupFilename'
 import {
   aesEncrypt,
   generateSalt,
-  getPin,
   pbkdf2Encrypt,
   randomIv
 } from '@/utils/crypto'
 import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import { saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
+import { getPin } from '@/utils/pin'
 
 export default function Developer() {
   const router = useRouter()
@@ -68,6 +68,7 @@ export default function Developer() {
     string | null
   >(null)
   const [backupPassphrase, setBackupPassphrase] = useState('')
+
   async function buildBackupWithSeeds(): Promise<string> {
     const pin = await getPin()
     const keysWithSeeds = async (accountId: string, keys: Key[]) => {

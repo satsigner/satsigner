@@ -27,8 +27,9 @@ import type {
 import type { LNDConfig } from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
 import type { Config, Network, Server } from '@/types/settings/blockchain'
-import { aesEncrypt, getPin, randomIv } from '@/utils/crypto'
+import { aesEncrypt, randomIv } from '@/utils/crypto'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
+import { getPin } from '@/utils/pin'
 
 type BackupKey = Key & {
   passphrase?: string
@@ -443,7 +444,7 @@ async function writeKeychain(
 export async function performRecoverOverwrite(
   decrypted: string
 ): Promise<RecoverResult> {
-  let pin: string
+  let pin = ''
   try {
     pin = await getPin()
   } catch {
