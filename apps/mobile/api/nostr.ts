@@ -4,6 +4,11 @@ import NDK, { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NetInfo from '@react-native-community/netinfo'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
+import {
+  decrypt as nip04Decrypt,
+  encrypt as nip04Encrypt
+} from 'nostr-tools/nip04'
+import { finalizeEvent } from 'nostr-tools/pure'
 
 import {
   NOSTR_FLUSH_QUEUE_DELAY_MS,
@@ -1058,8 +1063,27 @@ export class NostrAPI {
     return result
   }
 
-  static async fetchEventFromRelays(
-    eventIdHex: string,
+  /**
+   * Fetches the full signed event by id from this instance's relay pool.
+   * Unlike fetchEvent, returns the raw event (sig included) so callers can
+   * run NIP-59 unwrap / signature verification on it. Never cached — used by
+   * diagnostics where retrieval from the relay is exactly what's proven.
+   */
+  async fetchRawEventById(eventIdHex: string): Promise<Event | null> {
+    await this.connectForPublish()
+    if (!this.ndk) {
+      return null
+    }
+
+    const filter = { ids: [eventIdHex], limit: 1 }
+    const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
+    if (!poolEvent) {
+      return null
+    }
+    return (await poolEvent.toNostrEvent()) as Event
+  }
+
+  static async fetchEventFromRelays(    eventIdHex: string,
     relayUrls: string[],
     ownPubkeys: string[] = []
   ): Promise<{
@@ -1336,6 +1360,114 @@ export class NostrAPI {
     })
     const event = new NDKEvent(tempNdk, wrap)
     return event
+  }
+
+  /**
+   * Creates a signed legacy NIP-04 DM (kind 4). Encryption and signature are
+   * done inline, so publishEvent needs no signer. Prefer NIP-17
+   * (createKind1059) for new conversations — kind 4 leaks metadata.
+   */
+  async createKind4(
+    nsec: string,
+    recipientNpub: string,
+    content: string
+  ): Promise<NDKEvent> {
+    const secretNostrKey = getSecretFromNsec(nsec)
+    const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
+    if (!secretNostrKey || !recipientPubKeyHex) {
+      throw new Error('Invalid nsec or recipient npub')
+    }
+
+    const encrypted = await nip04Encrypt(
+      secretNostrKey,
+      recipientPubKeyHex,
+      content
+    )
+    const signed = finalizeEvent(
+      {
+        content: encrypted,
+        created_at: Math.floor(Date.now() / 1000),
+        kind: 4,
+        tags: [['p', recipientPubKeyHex]]
+      },
+      secretNostrKey
+    )
+    const tempNdk = new NDK({
+      autoConnectUserRelays: false,
+      enableOutboxModel: false
+    })
+    return new NDKEvent(tempNdk, signed)
+  }
+
+  /**
+   * Subscribes to legacy NIP-04 DMs involving the given identity — both
+   * addressed to it and authored by it (other-device sends). Decrypts each
+   * event before invoking the callback.
+   */
+  async subscribeToKind4(
+    recipientNsec: string,
+    recipientNpub: string,
+    callback: (message: {
+      content: string
+      createdAt: number
+      direction: 'in' | 'out'
+      id: string
+      peerPubkey: string
+    }) => void,
+    since?: number
+  ): Promise<void> {
+    await this.connect()
+    if (!this.ndk) {
+      throw new Error('Failed to connect to relays')
+    }
+
+    const secretNostrKey = getSecretFromNsec(recipientNsec)
+    const ownPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
+    if (!secretNostrKey || !ownPubKeyHex) {
+      return
+    }
+
+    const filters: NDKFilter[] = [
+      { '#p': [ownPubKeyHex], kinds: [4], ...(since && { since }) },
+      { authors: [ownPubKeyHex], kinds: [4], ...(since && { since }) }
+    ]
+
+    let subscription: NDKSubscription | undefined
+    try {
+      subscription = this.ndk?.subscribe(filters, {
+        closeOnEose: false
+      }) as NDKSubscription | undefined
+    } catch {
+      return
+    }
+    if (subscription) {
+      this.activeSubscriptions.add(subscription)
+    }
+
+    subscription?.on('event', async (event) => {
+      try {
+        const isOwn = event.pubkey === ownPubKeyHex
+        const peerTag = event.tags.find((t) => t[0] === 'p')?.[1]
+        const peerPubkey = isOwn ? (peerTag ?? '') : event.pubkey
+        if (!peerPubkey || !/^[0-9a-f]{64}$/.test(peerPubkey)) {
+          return
+        }
+        const plaintext = await nip04Decrypt(
+          secretNostrKey,
+          peerPubkey,
+          event.content
+        )
+        callback({
+          content: plaintext,
+          createdAt: event.created_at ?? 0,
+          direction: isOwn ? 'out' : 'in',
+          id: event.id,
+          peerPubkey
+        })
+      } catch {
+        // Undecryptable or malformed kind-4 events are ignored by design.
+      }
+    })
   }
 
   // 20 second timeout per relay for publish operations
