@@ -2783,6 +2783,7 @@
     "about.securityReport.nsecKey": "Private key (nsec)",
     "about.securityReport.seedWords": "Seed words",
     "about.securityReport.send": "Send report",
+    "about.securityReport.sendingAs": "Sending as {{name}}. Replies land in this identity's chat with us.",
     "about.securityReport.showBackup": "Show seed words & key",
     "about.securityReport.tapToCopy": "Tap a secret to copy it. Store it somewhere safe — it is discarded when you leave this page.",
     "about.securityReport.throwawayDescription": "This report is sent from a one-time nostr identity. Save its seed words or key if you want to come back and see our reply.",

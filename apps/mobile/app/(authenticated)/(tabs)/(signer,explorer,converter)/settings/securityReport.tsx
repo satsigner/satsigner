@@ -199,6 +199,16 @@ export default function SecurityReport() {
 
               {backupSection}
 
+              {!useAnonymous && identity ? (
+                <SSText size="xs" color="muted">
+                  {t('settings.about.securityReport.sendingAs', {
+                    name:
+                      identity.displayName ??
+                      `${identity.npub.slice(0, 16)}…`
+                  })}
+                </SSText>
+              ) : null}
+
               <SSVStack gap="xs">
                 <SSText uppercase size="xs" color="muted">
                   {t('settings.about.securityReport.relaysTitle')}
