@@ -601,7 +601,8 @@ export default function Energy() {
         'hex'
       )
       const hashBytes = Buffer.from(hash, 'hex')
-      const hashLE = Buffer.from(hashBytes.toReversed())
+      // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+      const hashLE = Buffer.from(hashBytes).reverse()
 
       // For regtest, we just need to check if the hash is less than the target
       const isValid =
@@ -626,7 +627,8 @@ export default function Energy() {
 
     // Convert hash to little-endian for comparison
     const hashBytes = Buffer.from(hash, 'hex')
-    const hashLE = Buffer.from(hashBytes.toReversed())
+    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+    const hashLE = Buffer.from(hashBytes).reverse()
 
     // Compare hash with target
     const isValid = hashLE.compare(target as unknown as Uint8Array) <= 0
@@ -758,7 +760,8 @@ export default function Energy() {
           }
           if (tx.txid) {
             // Convert txid to little-endian for merkle root
-            return Buffer.from(Buffer.from(tx.txid, 'hex').toReversed())
+            // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+            return Buffer.from(tx.txid, 'hex').reverse()
           }
           throw new Error('Invalid transaction format')
         })
@@ -810,9 +813,7 @@ export default function Energy() {
       header.writeUInt32LE(template.version, 0)
 
       // Previous block hash (32 bytes) - little endian
-      const prevHash = Buffer.from(
-        Buffer.from(template.previousblockhash, 'hex').toReversed()
-      )
+      const prevHash = Buffer.from(template.previousblockhash, 'hex').reverse()
       prevHash.copy(header as unknown as Uint8Array, 4)
 
       // Merkle root (32 bytes) - little endian
@@ -1212,7 +1213,8 @@ export default function Energy() {
               // Double SHA256 of header (result is in big-endian)
               const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(header))
               // Convert to little-endian for comparison
-              const hashReversed = Buffer.from(hash.toReversed())
+              // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+              const hashReversed = Buffer.from(hash).reverse()
               const hashHex = hashReversed.toString('hex')
 
               hashes += 1
