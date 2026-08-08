@@ -147,12 +147,7 @@ export default function SecurityReport() {
                 <SSText size="sm">{sentMessage}</SSText>
               </ScrollView>
             </View>
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {backupSection}
-            </ScrollView>
+            {backupSection}
             <SSButton
               label={t('common.close')}
               variant="secondary"
