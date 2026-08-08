@@ -1,32 +1,25 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { nip19 } from 'nostr-tools'
 import { useState } from 'react'
 import { Dimensions, StyleSheet, View } from 'react-native'
 import { TabView } from 'react-native-tab-view'
 
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
-import SSModal from '@/components/SSModal'
 import SSNostrConversationList from '@/components/chat/SSNostrConversationList'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
-import { useNostrContacts } from '@/hooks/useNostrContacts'
 import {
   useNostrChatConversations,
   useNostrChatSubscription
 } from '@/hooks/useNostrChat'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
-import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type NostrChatProtocol } from '@/types/models/Nostr'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
-import { getNostrContactsRelays } from '@/utils/nostrContacts'
 
 type ChatParams = {
   npub: string
@@ -48,15 +41,8 @@ export default function NostrIdentityChat() {
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
-  const [newChatVisible, setNewChatVisible] = useState(false)
-  const [newChatNpub, setNewChatNpub] = useState('')
-  const [newChatError, setNewChatError] = useState('')
-
-  // DM subscriptions live while any chat screen of this identity is focused.
+  // DM pipeline is held while any chat screen of this identity is focused.
   useNostrChatSubscription(identity)
-
-  const contactsRelays = getNostrContactsRelays(identity?.relays)
-  const { contacts } = useNostrContacts(npub, contactsRelays)
 
   const routes: ChatRoute[] = [
     { key: 'nip4', title: t('nostrIdentity.chat.tabNip4') },
@@ -80,17 +66,14 @@ export default function NostrIdentityChat() {
     })
   }
 
-  function handleOpenNewChat(input: string) {
-    const trimmed = input.trim()
-    const hex = getPubKeyHexFromNpub(trimmed)
-    if (!hex) {
-      setNewChatError(t('nostrIdentity.chat.invalidNpub'))
+  function handleNewChat() {
+    if (!npub) {
       return
     }
-    setNewChatVisible(false)
-    setNewChatNpub('')
-    setNewChatError('')
-    handleOpenPeer(trimmed, activeProtocol)
+    router.push({
+      params: { npub, protocol: activeProtocol },
+      pathname: '/signer/nostr/account/[npub]/chat/new'
+    })
   }
 
   const renderScene = ({ route }: { route: ChatRoute }) => {
@@ -114,7 +97,7 @@ export default function NostrIdentityChat() {
           label={t('nostrIdentity.chat.newMessage')}
           variant="secondary"
           disabled={!identity?.nsec}
-          onPress={() => setNewChatVisible(true)}
+          onPress={handleNewChat}
         />
       </SSVStack>
     )
@@ -182,60 +165,6 @@ export default function NostrIdentityChat() {
         initialLayout={{ width: layout.width }}
       />
 
-      <SSModal
-        visible={newChatVisible}
-        onClose={() => setNewChatVisible(false)}
-        label={t('common.cancel')}
-      >
-        <SSVStack gap="md">
-          <SSText size="lg" weight="medium" center>
-            {t('nostrIdentity.chat.newMessage')}
-          </SSText>
-          <SSTextInput
-            value={newChatNpub}
-            onChangeText={(text) => {
-              setNewChatNpub(text)
-              setNewChatError('')
-            }}
-            placeholder={t('nostrIdentity.chat.npubPlaceholder')}
-          />
-          {newChatError ? (
-            <SSText size="sm" style={{ color: Colors.error }}>
-              {newChatError}
-            </SSText>
-          ) : null}
-          <SSButton
-            label={t('nostrIdentity.chat.startChat')}
-            onPress={() => handleOpenNewChat(newChatNpub)}
-            disabled={!newChatNpub.trim()}
-          />
-          {contacts.length > 0 ? (
-            <>
-              <SSText uppercase color="muted" size="sm">
-                {t('nostrIdentity.contacts.title')}
-              </SSText>
-              <SSScrollView style={styles.contactList}>
-                <SSVStack gap="xs">
-                  {contacts.slice(0, 20).map((contact) => {
-                    const contactNpub = nip19.npubEncode(contact.pubkey)
-                    return (
-                      <SSButton
-                        key={contact.pubkey}
-                        label={
-                          contact.profile?.displayName ??
-                          `${contactNpub.slice(0, 16)}…`
-                        }
-                        variant="ghost"
-                        onPress={() => handleOpenNewChat(contactNpub)}
-                      />
-                    )
-                  })}
-                </SSVStack>
-              </SSScrollView>
-            </>
-          ) : null}
-        </SSVStack>
-      </SSModal>
     </SSMainLayout>
   )
 }
@@ -244,9 +173,6 @@ const styles = StyleSheet.create({
   chatScene: {
     flex: 1,
     paddingTop: 12
-  },
-  contactList: {
-    maxHeight: 240
   },
   emptyContainer: {
     paddingVertical: 60
