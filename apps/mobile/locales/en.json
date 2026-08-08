@@ -2975,6 +2975,8 @@
     "developer.diagnosis.cancel": "Cancel",
     "developer.diagnosis.checks.crypto.title": "Crypto roundtrip (AES / PBKDF2)",
     "developer.diagnosis.checks.nip17.title": "NIP-17 gift wrap roundtrip",
+    "developer.diagnosis.checks.nip17Live.hint": "Uses your configured nostr relays; connects, publishes, and verifies retrieval.",
+    "developer.diagnosis.checks.nip17Live.title": "NIP-17 live relay roundtrip",
     "developer.diagnosis.checks.pinKdf.title": "PIN KDF derivation",
     "developer.diagnosis.checks.runAll": "Run all checks",
     "developer.diagnosis.checks.secureStore.title": "Secure store read/write",

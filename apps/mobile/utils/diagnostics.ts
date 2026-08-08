@@ -1,7 +1,10 @@
-import { getPublicKey, nip17, nip59 } from 'nostr-tools'
+import NetInfo from '@react-native-community/netinfo'
+import { getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
 
+import { NostrAPI } from '@/api/nostr'
 import { getDb } from '@/db/connection'
 import { deleteItem, getItem, setItem } from '@/storage/encrypted'
+import type { NostrUnwrappedKind1059Event } from '@/types/models/Nostr'
 import {
   aesDecrypt,
   aesEncrypt,
@@ -23,11 +26,13 @@ export type DiagnosticResult = {
 export type DiagnosticCheckId =
   | 'crypto'
   | 'nip17'
+  | 'nip17Live'
   | 'pinKdf'
   | 'secureStore'
   | 'sqlite'
 
 const SECURE_STORE_PROBE_KEY = 'diagnostic_probe'
+const LIVE_PROBE_TIMEOUT_MS = 30_000
 
 async function runGuarded(
   lines: string[],
@@ -186,22 +191,103 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
   return { lines, ok }
 }
 
-export const DIAGNOSTIC_CHECKS: { id: DiagnosticCheckId }[] = [
+/**
+ * Live NIP-17 roundtrip over real relays, using the app's own NostrAPI
+ * stack: subscribe for gift wraps to a throwaway key, publish a wrap to self,
+ * then wait for the echo and verify it unwraps to the exact payload. Proves
+ * the full security-report path: relay connectivity, publish ACK, retrieval,
+ * and NIP-59 decryption.
+ */
+export async function checkNip17LiveRoundtrip(
+  relayUrls: string[]
+): Promise<DiagnosticResult> {
+  const lines: string[] = []
+  if (relayUrls.length === 0) {
+    return {
+      lines: ['no relays configured — pick relays in nostr settings first'],
+      ok: false
+    }
+  }
+
+  const ok = await runGuarded(lines, async () => {
+    const netState = await NetInfo.fetch()
+    if (netState.isConnected === false) {
+      throw new Error('device is offline')
+    }
+
+    const secretKey = new Uint8Array(Buffer.from(await randomKey(32), 'hex'))
+    const publicKey = getPublicKey(secretKey)
+    const nsec = nip19.nsecEncode(secretKey)
+    const npub = nip19.npubEncode(publicKey)
+    const probe = `satsigner diagnostic ${Date.now()}`
+    lines.push(`ephemeral keypair ${publicKey.slice(0, 12)}…`)
+
+    const api = new NostrAPI(relayUrls)
+    try {
+      let resolveEcho: (event: NostrUnwrappedKind1059Event) => void = () => {}
+      let rejectEcho: (error: Error) => void = () => {}
+      const echoPromise = new Promise<NostrUnwrappedKind1059Event>(
+        (resolve, reject) => {
+          resolveEcho = resolve
+          rejectEcho = reject
+        }
+      )
+      const timeout = setTimeout(() => {
+        rejectEcho(
+          new Error(`no echo within ${LIVE_PROBE_TIMEOUT_MS / 1000}s`)
+        )
+      }, LIVE_PROBE_TIMEOUT_MS)
+
+      // Subscribe before publishing so we cannot race our own echo.
+      await api.subscribeToKind1059(nsec, npub, (messages) => {
+        for (const message of messages) {
+          const rumor = message.content as NostrUnwrappedKind1059Event
+          if (rumor?.content === probe && rumor?.pubkey === publicKey) {
+            resolveEcho(rumor)
+          }
+        }
+      })
+      lines.push(`subscribed for gift wraps on ${relayUrls.length} relay(s)`)
+
+      // nip17.wrapEvent signs internally, so publishEvent needs no signer.
+      const wrapEvent = api.createKind1059(nsec, npub, probe)
+      await api.publishEvent(wrapEvent)
+      lines.push('published gift wrap (kind 1059)')
+
+      const echo = await echoPromise
+      clearTimeout(timeout)
+      lines.push('echo received and unwrapped')
+      lines.push(`content and sender verified (${echo.id.slice(0, 12)}…)`)
+    } finally {
+      api.closeAllSubscriptions()
+    }
+  })
+  return { lines, ok }
+}
+
+export const DIAGNOSTIC_CHECKS: {
+  id: DiagnosticCheckId
+  requiresNetwork?: boolean
+}[] = [
   { id: 'crypto' },
   { id: 'pinKdf' },
   { id: 'secureStore' },
   { id: 'sqlite' },
-  { id: 'nip17' }
+  { id: 'nip17' },
+  { id: 'nip17Live', requiresNetwork: true }
 ]
 
 export function runDiagnosticCheck(
-  id: DiagnosticCheckId
+  id: DiagnosticCheckId,
+  ctx: { relayUrls?: string[] } = {}
 ): Promise<DiagnosticResult> {
   switch (id) {
     case 'crypto':
       return checkCryptoRoundtrip()
     case 'nip17':
       return checkNip17Roundtrip()
+    case 'nip17Live':
+      return checkNip17LiveRoundtrip(ctx.relayUrls ?? [])
     case 'pinKdf':
       return checkPinKdf()
     case 'secureStore':

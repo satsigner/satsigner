@@ -66,6 +66,7 @@ jest.mock('react-native-quick-crypto', () => {
 
 import {
   checkCryptoRoundtrip,
+  checkNip17LiveRoundtrip,
   checkNip17Roundtrip,
   checkPinKdf,
   checkSecureStore,
@@ -100,6 +101,12 @@ describe('diagnostics one-click checks', () => {
     const result = await checkNip17Roundtrip()
     expect(result.ok).toBe(true)
     expect(result.lines.join('\n')).toContain('kind 1059')
+  })
+
+  it('nip-17 live roundtrip fails cleanly with no relays configured', async () => {
+    const result = await checkNip17LiveRoundtrip([])
+    expect(result.ok).toBe(false)
+    expect(result.lines.join('\n')).toContain('no relays configured')
   })
 
   it('every registered check runs and returns a result', async () => {

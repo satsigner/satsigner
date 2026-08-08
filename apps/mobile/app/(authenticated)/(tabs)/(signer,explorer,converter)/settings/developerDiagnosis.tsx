@@ -11,6 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import {
   DIAGNOSTIC_CHECKS,
@@ -56,6 +57,7 @@ function diagnosisStatusLabel(status: DiagnosisStatus): string {
 export default function DeveloperDiagnosis() {
   const router = useRouter()
   const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork)
+  const identityRelays = useNostrIdentityStore((state) => state.relays)
 
   const [confirmVisible, setConfirmVisible] = useState(false)
   const [status, setStatus] = useState<DiagnosisStatus>({ kind: 'idle' })
@@ -69,7 +71,7 @@ export default function DeveloperDiagnosis() {
 
   async function handleRunCheck(id: DiagnosticCheckId) {
     setCheckResults((prev) => ({ ...prev, [id]: { kind: 'running' } }))
-    const result = await runDiagnosticCheck(id)
+    const result = await runDiagnosticCheck(id, { relayUrls: identityRelays })
     setCheckResults((prev) => ({
       ...prev,
       [id]: result.ok
@@ -177,7 +179,7 @@ export default function DeveloperDiagnosis() {
               <SSText color="muted" size="sm">
                 {t('settings.developer.diagnosis.quickChecks.description')}
               </SSText>
-              {DIAGNOSTIC_CHECKS.map(({ id }) => {
+              {DIAGNOSTIC_CHECKS.map(({ id, requiresNetwork }) => {
                 const result = checkResults[id]
                 return (
                   <SSVStack gap="xs" key={id}>
@@ -190,6 +192,13 @@ export default function DeveloperDiagnosis() {
                       loading={result?.kind === 'running'}
                       onPress={() => handleRunCheck(id)}
                     />
+                    {requiresNetwork ? (
+                      <SSText color="muted" size="xs">
+                        {t(
+                          'settings.developer.diagnosis.checks.nip17Live.hint'
+                        )}
+                      </SSText>
+                    ) : null}
                     {result?.kind === 'ok' || result?.kind === 'failed' ? (
                       <>
                         <SSText
