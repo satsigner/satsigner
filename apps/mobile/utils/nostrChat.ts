@@ -27,10 +27,16 @@ function emitChatMessage(message: NostrChatMessage): void {
   }
 }
 
+function chatLog(...args: unknown[]): void {
+  // eslint-disable-next-line no-console
+  console.log('[nostrChat]', ...args)
+}
+
 /** Persists and broadcasts; relay redelivery is deduped by INSERT OR IGNORE. */
 function ingestChatMessage(message: NostrChatMessage): void {
   const inserted = insertChatMessage(message)
   if (inserted) {
+    chatLog('ingested', message.protocol, message.direction, message.id)
     emitChatMessage(message)
   }
 }
@@ -125,7 +131,10 @@ async function subscribeToIdentityChat(
   api: NostrAPI,
   identity: ChatIdentity
 ): Promise<void> {
+  chatLog('subscribing', identity.npub.slice(0, 16), 'relays:', api.getRelays())
+
   await api.subscribeToKind1059(identity.nsec, identity.npub, (messages) => {
+    chatLog('gift wraps in batch:', messages.length)
     for (const message of messages) {
       const rumor = message.content as Nip17Rumor
       if (
@@ -135,6 +144,11 @@ async function subscribeToIdentityChat(
         !rumor.pubkey ||
         rumor.pubkey === getPubKeyHexFromNpub(identity.npub)
       ) {
+        chatLog(
+          'skipped wrap (not a chat rumor):',
+          `kind=${rumor?.kind}`,
+          `hasContent=${typeof rumor?.content === 'string'}`
+        )
         continue
       }
       ingestChatMessage({

@@ -144,6 +144,7 @@ describe('nostrChat', () => {
       | ((messages: { content: unknown; created_at: number }[]) => void)
       | undefined
     const fakeApi = {
+      getRelays: () => ['wss://test.relay'],
       subscribeToKind1059: jest.fn(
         async (
           _nsec: string,

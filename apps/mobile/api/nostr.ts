@@ -1286,8 +1286,11 @@ export class NostrAPI {
           this.eventQueue.push(message)
           this.processQueue()
         }
-      } catch {
-        // TODO: log this error; malformed wrapped events should not crash the subscription
+      } catch (error) {
+        // Malformed wrapped events must not crash the subscription, but a
+        // systematic failure (e.g. a missing table) must be visible in logs.
+        // eslint-disable-next-line no-console
+        console.warn('[nostr] kind1059 event processing failed:', error)
       }
     })
 
@@ -1464,8 +1467,11 @@ export class NostrAPI {
           id: event.id,
           peerPubkey
         })
-      } catch {
-        // Undecryptable or malformed kind-4 events are ignored by design.
+      } catch (error) {
+        // Undecryptable or malformed kind-4 events are ignored by design,
+        // but log so real failures are diagnosable.
+        // eslint-disable-next-line no-console
+        console.warn('[nostr] kind4 event processing failed:', error)
       }
     })
   }
