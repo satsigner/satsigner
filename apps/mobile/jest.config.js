@@ -5,7 +5,6 @@ process.env.EXPO_PUBLIC_USE_RN_FETCH = '1'
 
 const TRANSFORM_PACKAGES = [
   '(jest-)?react-native',
-  '@nostr-dev-kit/.*',
   '@react-native(-community)?',
   'expo(nent)?',
   '@expo(nent)?/.*',

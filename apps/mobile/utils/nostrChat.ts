@@ -1,10 +1,11 @@
-import { type NostrAPI } from '@/api/nostr'
+import { NostrAPI } from '@/api/nostr'
 import {
   insertChatMessage,
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
 import { type NostrChatMessage } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getNostrContactsRelays } from '@/utils/nostrContacts'
 
 type ChatListener = (message: NostrChatMessage) => void
 
@@ -44,6 +45,7 @@ function ingestChatMessage(message: NostrChatMessage): void {
 type ChatIdentity = {
   npub: string
   nsec: string
+  relays?: string[]
 }
 
 async function sendNip17Chat(
@@ -123,6 +125,49 @@ type Nip17Rumor = {
 }
 
 /**
+ * Singleton chat pipeline per identity. Chat screens acquire/release; only
+ * one identity holds live subscriptions at a time — acquiring a different
+ * identity tears the previous one down first, so switching accounts always
+ * produces a clean, fresh subscription set.
+ */
+let activeChatPipeline: { api: NostrAPI; npub: string; refs: number } | null =
+  null
+
+async function acquireChatPipeline(identity: ChatIdentity): Promise<NostrAPI> {
+  if (activeChatPipeline && activeChatPipeline.npub !== identity.npub) {
+    chatLog('identity switched, closing previous pipeline', {
+      from: activeChatPipeline.npub.slice(0, 16),
+      to: identity.npub.slice(0, 16)
+    })
+    activeChatPipeline.api.closeAllSubscriptions()
+    activeChatPipeline = null
+  }
+
+  if (!activeChatPipeline) {
+    const relays = getNostrContactsRelays(identity.relays)
+    const api = new NostrAPI(relays)
+    activeChatPipeline = { api, npub: identity.npub, refs: 0 }
+    await subscribeToIdentityChat(api, identity).catch((error) => {
+      chatLog('subscription failed', error)
+    })
+  }
+  activeChatPipeline.refs += 1
+  return activeChatPipeline.api
+}
+
+function releaseChatPipeline(npub: string): void {
+  if (!activeChatPipeline || activeChatPipeline.npub !== npub) {
+    return
+  }
+  activeChatPipeline.refs -= 1
+  if (activeChatPipeline.refs <= 0) {
+    chatLog('closing pipeline', npub.slice(0, 16))
+    activeChatPipeline.api.closeAllSubscriptions()
+    activeChatPipeline = null
+  }
+}
+
+/**
  * Opens both DM subscriptions for an identity and ingests incoming messages
  * into the chat store. NIP-17 chat rumors are kind 14; other gift wraps
  * (account label sync etc.) target different keys and are ignored here.
@@ -190,8 +235,10 @@ async function subscribeToIdentityChat(
 }
 
 export {
+  acquireChatPipeline,
   addChatListener,
   ingestChatMessage,
+  releaseChatPipeline,
   sendNip04Chat,
   sendNip17Chat,
   subscribeToIdentityChat

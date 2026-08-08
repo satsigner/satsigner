@@ -16,6 +16,10 @@ type SSChatThreadProps = {
   inputValue: string
   onInputChange: (text: string) => void
   emptyText?: string
+  /** Display labels matching the devices group chat author header. */
+  ownAuthorName?: string
+  peerAuthorName?: string
+  peerAuthorNpubShort?: string
 }
 
 function formatMessageTime(timestamp: number): string {
@@ -32,35 +36,60 @@ function formatMessageTime(timestamp: number): string {
   return `${date.toLocaleDateString()} ${time}`
 }
 
-function ChatBubble({ item }: { item: NostrChatMessage }) {
+function ChatBubble({
+  item,
+  ownAuthorName,
+  peerAuthorName,
+  peerAuthorNpubShort
+}: {
+  item: NostrChatMessage
+  ownAuthorName: string
+  peerAuthorName: string
+  peerAuthorNpubShort?: string
+}) {
   const isOwn = item.direction === 'out'
   return (
-    <View
-      style={[styles.bubbleRow, isOwn ? styles.bubbleRowOwn : undefined]}
-    >
-      <View
-        style={[
-          styles.bubble,
-          isOwn ? styles.bubbleOwn : styles.bubblePeer,
-          item.status === 'failed' ? styles.bubbleFailed : undefined
-        ]}
-      >
-        <SSText size="md">{item.content}</SSText>
-        <SSHStack gap="xxs" style={styles.metaRow}>
+    <View style={[styles.message, isOwn && styles.ownMessage]}>
+      <SSHStack gap="xxs" justifyBetween>
+        <SSHStack gap="xxs" style={styles.authorRow}>
+          <View
+            style={[
+              styles.authorIndicator,
+              { backgroundColor: isOwn ? Colors.white : Colors.gray[500] }
+            ]}
+          />
+          <SSText size="sm" style={styles.authorName}>
+            {isOwn ? ownAuthorName : peerAuthorName}
+          </SSText>
+          {isOwn ? (
+            <SSText size="sm" color="muted">
+              {t('nostrIdentity.chat.youSuffix')}
+            </SSText>
+          ) : null}
+          {!isOwn && peerAuthorNpubShort ? (
+            <SSText size="xs" color="muted">
+              {peerAuthorNpubShort}
+            </SSText>
+          ) : null}
+        </SSHStack>
+        <SSHStack gap="xs" style={styles.metaRow}>
           <SSText size="xs" color="muted">
             {formatMessageTime(item.created_at)}
           </SSText>
           {item.status === 'pending' ? (
             <SSText size="xs" color="muted">
-              · {t('nostrIdentity.chat.status.sending')}
+              ({t('nostrIdentity.chat.status.sending')})
             </SSText>
           ) : null}
           {item.status === 'failed' ? (
             <SSText size="xs" style={{ color: Colors.error }}>
-              · {t('nostrIdentity.chat.status.failed')}
+              ({t('nostrIdentity.chat.status.failed')})
             </SSText>
           ) : null}
         </SSHStack>
+      </SSHStack>
+      <View style={styles.messageContentWrap}>
+        <SSText size="md">{item.content}</SSText>
       </View>
     </View>
   )
@@ -76,7 +105,10 @@ export default function SSChatThread({
   sending = false,
   inputValue,
   onInputChange,
-  emptyText
+  emptyText,
+  ownAuthorName,
+  peerAuthorName,
+  peerAuthorNpubShort
 }: SSChatThreadProps) {
   const listRef = useRef<FlatList<NostrChatMessage>>(null)
 
@@ -98,7 +130,14 @@ export default function SSChatThread({
       <FlatList
         ref={listRef}
         data={displayedMessages}
-        renderItem={({ item }) => <ChatBubble item={item} />}
+        renderItem={({ item }) => (
+          <ChatBubble
+            item={item}
+            ownAuthorName={ownAuthorName ?? t('nostrIdentity.chat.you')}
+            peerAuthorName={peerAuthorName ?? t('nostrIdentity.chat.peer')}
+            peerAuthorNpubShort={peerAuthorNpubShort}
+          />
+        )}
         keyExtractor={(item) => item.id}
         inverted
         initialNumToRender={25}
@@ -131,29 +170,18 @@ export default function SSChatThread({
 }
 
 const styles = StyleSheet.create({
-  bubble: {
-    borderRadius: 12,
-    marginTop: 6,
-    maxWidth: '82%',
-    paddingHorizontal: 12,
-    paddingVertical: 8
+  authorIndicator: {
+    borderRadius: 4,
+    height: 8,
+    marginRight: 3,
+    marginTop: 1,
+    width: 8
   },
-  bubbleFailed: {
-    borderColor: Colors.error,
-    borderWidth: 1
+  authorName: {
+    color: Colors.white
   },
-  bubbleOwn: {
-    backgroundColor: Colors.gray[800]
-  },
-  bubblePeer: {
-    backgroundColor: Colors.gray[900]
-  },
-  bubbleRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start'
-  },
-  bubbleRowOwn: {
-    justifyContent: 'flex-end'
+  authorRow: {
+    alignItems: 'center'
   },
   container: {
     flex: 1
@@ -173,9 +201,25 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 8
   },
+  // Mirrors the devices group chat message block.
+  message: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    marginTop: 8,
+    padding: 10,
+    paddingBottom: 15,
+    paddingTop: 5
+  },
+  messageContentWrap: {
+    paddingLeft: 30
+  },
   metaRow: {
-    alignSelf: 'flex-end',
-    marginTop: 2
+    alignItems: 'flex-start',
+    alignSelf: 'flex-start',
+    marginTop: -2
+  },
+  ownMessage: {
+    backgroundColor: Colors.gray[800]
   },
   sendButton: {
     flex: 0.2

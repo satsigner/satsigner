@@ -80,6 +80,9 @@ export default function NostrChatThread() {
         sending={sending}
         inputValue={input}
         onInputChange={setInput}
+        ownAuthorName={identity.displayName ?? t('nostrIdentity.chat.you')}
+        peerAuthorName={peerTitle}
+        peerAuthorNpubShort={peerProfile?.displayName ? undefined : peerTitle}
       />
     </SSMainLayout>
   )

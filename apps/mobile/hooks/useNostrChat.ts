@@ -13,10 +13,11 @@ import {
   type NostrChatProtocol
 } from '@/types/models/Nostr'
 import {
+  acquireChatPipeline,
   addChatListener,
+  releaseChatPipeline,
   sendNip04Chat,
-  sendNip17Chat,
-  subscribeToIdentityChat
+  sendNip17Chat
 } from '@/utils/nostrChat'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 
@@ -27,9 +28,10 @@ type ChatIdentity = {
 }
 
 /**
- * While a chat screen is focused, keep both DM subscriptions (NIP-04 +
- * NIP-17) open for the identity; incoming messages land in SQLite and are
- * pushed to listeners. Blurring tears the subscriptions down.
+ * While a chat screen is focused, the shared chat pipeline (NIP-04 + NIP-17
+ * subscriptions) is held for the identity. Multiple screens acquire/release
+ * the same pipeline; switching identity tears down the old subscriptions and
+ * opens fresh ones, and the pipeline closes when the last screen leaves.
  */
 export function useNostrChatSubscription(identity: ChatIdentity | undefined) {
   useFocusEffect(
@@ -37,16 +39,21 @@ export function useNostrChatSubscription(identity: ChatIdentity | undefined) {
       if (!identity?.nsec) {
         return
       }
-      const relays = getNostrContactsRelays(identity.relays)
-      const api = new NostrAPI(relays)
-      subscribeToIdentityChat(api, {
-        npub: identity.npub,
-        nsec: identity.nsec
-      }).catch(() => {
-        // Relay outages are non-fatal; the screens still render local history.
-      })
+      const nsec = identity.nsec
+      const { npub } = identity
+      const relays = identity.relays
+      let held = false
+      acquireChatPipeline({ npub, nsec, relays })
+        .then(() => {
+          held = true
+        })
+        .catch(() => {
+          // Relay outages are non-fatal; screens still render local history.
+        })
       return () => {
-        api.closeAllSubscriptions()
+        if (held) {
+          releaseChatPipeline(npub)
+        }
       }
     }, [identity?.npub, identity?.nsec]) // eslint-disable-line react-hooks/exhaustive-deps
   )
