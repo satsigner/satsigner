@@ -44,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   identities now connect relays by default and relay resolution falls back to
   the well-known indexing relays when none are configured.
 - Left-aligned the security report message textarea.
+- Receive QR codes no longer emit `amount=0` for zero-satoshi requests, and
+  receive URIs are now round-trip validated against the real BIP-321 parser in
+  tests (plain, amount, label, and payjoin variants).
 - "Follow us" links on About now render as a centered, aligned row.
 
 ### Security
