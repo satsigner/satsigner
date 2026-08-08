@@ -13,7 +13,8 @@ import {
   aesEncrypt,
   pbkdf2Encrypt,
   randomIv,
-  randomKey
+  randomKey,
+  randomUuid
 } from '@/utils/crypto'
 import {
   derivePinDigest,
@@ -28,6 +29,7 @@ export type DiagnosticResult = {
 
 export type DiagnosticCheckId =
   | 'crypto'
+  | 'entropy'
   | 'nip17'
   | 'nip17Live'
   | 'pinKdf'
@@ -38,6 +40,12 @@ const SECURE_STORE_PROBE_KEY = 'diagnostic_probe'
 const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3_000
 const LIVE_RETRIEVE_ATTEMPTS = 4
 const LIVE_RETRIEVE_DELAY_MS = 2_500
+
+// Sized to run in ~1s on-device while still catching weak-RNG classes:
+// any collision among 50k UUIDs (122 random bits each) or 20k IVs (128 bits)
+// indicates a broken CSPRNG — expected collisions are ~2^-98 and ~2^-103.
+const ENTROPY_UUID_SAMPLES = 50_000
+const ENTROPY_IV_SAMPLES = 20_000
 
 async function runGuarded(
   lines: string[],
@@ -196,6 +204,59 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
   return { lines, ok }
 }
 
+/**
+ * Collision test on the device's live CSPRNG output (randomUuid + randomIv).
+ * The CI entropy audit (tests/entropy-audit) validates sources against node
+ * crypto; this check validates the real native RNG on the running device —
+ * a duplicated output here means the RNG is broken (Trust-Wallet-2023 class).
+ */
+export async function checkEntropyCollisions(): Promise<DiagnosticResult> {
+  const lines: string[] = []
+  const ok = await runGuarded(lines, async () => {
+    let started = Date.now()
+    const uuids = new Set<string>()
+    for (let i = 0; i < ENTROPY_UUID_SAMPLES; i += 1) {
+      uuids.add(randomUuid())
+    }
+    const uuidMs = Date.now() - started
+    if (uuids.size !== ENTROPY_UUID_SAMPLES) {
+      throw new Error(
+        `${ENTROPY_UUID_SAMPLES - uuids.size} uuid collisions in ${ENTROPY_UUID_SAMPLES} samples`
+      )
+    }
+    lines.push(
+      `uuid: ${ENTROPY_UUID_SAMPLES.toLocaleString()} unique, 0 collisions (${uuidMs}ms)`
+    )
+
+    started = Date.now()
+    const ivs = new Set<string>()
+    for (let i = 0; i < ENTROPY_IV_SAMPLES; i += 1) {
+      ivs.add(randomIv())
+    }
+    const ivMs = Date.now() - started
+    if (ivs.size !== ENTROPY_IV_SAMPLES) {
+      throw new Error(
+        `${ENTROPY_IV_SAMPLES - ivs.size} iv collisions in ${ENTROPY_IV_SAMPLES} samples`
+      )
+    }
+    lines.push(
+      `iv: ${ENTROPY_IV_SAMPLES.toLocaleString()} unique, 0 collisions (${ivMs}ms)`
+    )
+
+    // Format sanity: a constant or truncated RNG often still "looks random".
+    const sample = randomIv()
+    if (!/^[0-9a-f]{32}$/.test(sample)) {
+      throw new Error('randomIv output malformed')
+    }
+    const key = await randomKey(32)
+    if (!/^[0-9a-f]{64}$/.test(key)) {
+      throw new Error('randomKey output malformed')
+    }
+    lines.push('output format sanity ok')
+  })
+  return { lines, ok }
+}
+
 /** Configured relays when present, otherwise well-known DM-capable ones. */
 export function resolveLiveRoundtripRelays(configured: string[]): string[] {
   return configured.length > 0 ? configured : NOSTR_LIVE_CHECK_FALLBACK_RELAYS
@@ -312,6 +373,7 @@ export const DIAGNOSTIC_CHECKS: {
   requiresNetwork?: boolean
 }[] = [
   { id: 'crypto' },
+  { id: 'entropy' },
   { id: 'pinKdf' },
   { id: 'secureStore' },
   { id: 'sqlite' },
@@ -326,6 +388,8 @@ export function runDiagnosticCheck(
   switch (id) {
     case 'crypto':
       return checkCryptoRoundtrip()
+    case 'entropy':
+      return checkEntropyCollisions()
     case 'nip17':
       return checkNip17Roundtrip()
     case 'nip17Live':

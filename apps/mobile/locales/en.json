@@ -2999,6 +2999,7 @@
     "title": "App Settings",
     "developer.diagnosis.cancel": "Cancel",
     "developer.diagnosis.checks.crypto.title": "Crypto roundtrip (AES / PBKDF2)",
+    "developer.diagnosis.checks.entropy.title": "Entropy collision test (RNG)",
     "developer.diagnosis.checks.nip17.title": "NIP-17 gift wrap roundtrip",
     "developer.diagnosis.checks.nip17Live.hint": "Sends a test gift wrap from a throwaway key to the project security npub over your relays (or well-known defaults), then verifies retrieval and decryption.",
     "developer.diagnosis.checks.nip17Live.title": "NIP-17 live relay roundtrip",

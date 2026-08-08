@@ -66,6 +66,7 @@ jest.mock('react-native-quick-crypto', () => {
 
 import {
   checkCryptoRoundtrip,
+  checkEntropyCollisions,
   checkNip17Roundtrip,
   checkPinKdf,
   checkSecureStore,
@@ -103,6 +104,12 @@ describe('diagnostics one-click checks', () => {
     expect(result.lines.join('\n')).toContain('kind 1059')
   })
 
+  it('entropy collision test passes with real RNG output', async () => {
+    const result = await checkEntropyCollisions()
+    expect(result.lines.join('\n')).toContain('0 collisions')
+    expect(result.ok).toBe(true)
+  })
+
   it('live roundtrip relay resolution prefers configured relays', () => {
     expect(resolveLiveRoundtripRelays(['wss://mine.example'])).toEqual([
       'wss://mine.example'
@@ -116,9 +123,11 @@ describe('diagnostics one-click checks', () => {
 
   it('every registered local check runs and returns a result', async () => {
     const local = DIAGNOSTIC_CHECKS.filter((check) => !check.requiresNetwork)
-    // The live relay roundtrip must stay flagged as network-bound so generic
-    // runners (and this loop) never invoke it without connectivity.
-    expect(local.length).toBe(DIAGNOSTIC_CHECKS.length - 1)
+    // Only nip17Live is network-bound; generic runners (and this loop) must
+    // never invoke it without connectivity.
+    expect(DIAGNOSTIC_CHECKS.filter((c) => c.requiresNetwork)).toEqual([
+      { id: 'nip17Live', requiresNetwork: true }
+    ])
     for (const { id } of local) {
       const result = await runDiagnosticCheck(id)
       expect(typeof result.ok).toBe('boolean')
