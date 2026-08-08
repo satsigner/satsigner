@@ -12,7 +12,9 @@ onlyBuiltDependencies:
   - workerd
 
 overrides:
+  '@expo/dom-webview': 57.0.1
+  '@expo/metro-runtime': 57.0.6
   react: 19.2.3
   react-dom: 19.2.3
-  '@expo/metro-runtime': 57.0.6
-  '@expo/dom-webview': 57.0.1
+patchedDependencies:
+  uniffi-bindgen-react-native@0.31.0-3: patches/uniffi-bindgen-react-native@0.31.0-3.patch
