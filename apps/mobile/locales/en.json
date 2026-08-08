@@ -1926,6 +1926,7 @@
     "viewAllWallets": "View All Wallets"
   },
   "navigation": {
+    "item.about": "About",
     "item.ark": "Ark",
     "item.bitcoin": "Bitcoin",
     "item.block": "Block",
@@ -1940,6 +1941,7 @@
     "item.liquid": "Liquid",
     "item.mempool": "Mempool",
     "item.nostr": "Nostr",
+    "item.settings": "Settings",
     "item.time": "Time",
     "label.converter": "Converter",
     "label.explorer": "Explorer",
