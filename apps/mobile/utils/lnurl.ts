@@ -7,6 +7,32 @@ import type {
   LNURLWithdrawDetails,
   LNURLWithdrawResponse
 } from '@/types/models/Lightning'
+import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
+
+// Per LUD-06 the service must return an invoice for exactly the requested
+// amount. A malicious or compromised LNURL service could otherwise answer a
+// "pay 1,000 sats" request with a 1,000,000 sats invoice that gets paid
+// without any user-visible discrepancy.
+function assertInvoiceMatchesRequest(
+  invoice: string,
+  expectedAmountMillisats: number
+): void {
+  let decoded
+  try {
+    decoded = decodeLightningInvoice(invoice)
+  } catch {
+    throw new Error('LNURL service returned an invalid invoice')
+  }
+  const invoiceMillisats = Number(decoded.num_msat)
+  if (!Number.isFinite(invoiceMillisats) || invoiceMillisats <= 0) {
+    throw new Error('LNURL service returned an invoice without an amount')
+  }
+  if (invoiceMillisats !== expectedAmountMillisats) {
+    throw new Error(
+      'LNURL service returned an invoice for a different amount than requested'
+    )
+  }
+}
 
 export function getLNURLType(input: string) {
   const lowercaseInput = input.toLowerCase()
@@ -187,6 +213,8 @@ export async function requestLNURLPayInvoice(
   if (!data.pr) {
     throw new Error('Invalid response: no payment request received')
   }
+
+  assertInvoiceMatchesRequest(data.pr, amountMillisats)
 
   return data.pr
 }

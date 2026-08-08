@@ -1,6 +1,10 @@
 import { bech32 } from 'bech32'
 
-import { isLnurlWithdrawAmountInRange, resolveLnurlUrl } from '@/utils/lnurl'
+import {
+  isLnurlWithdrawAmountInRange,
+  requestLNURLPayInvoice,
+  resolveLnurlUrl
+} from '@/utils/lnurl'
 
 function encodeLnurl(url: string): string {
   const words = bech32.toWords(Buffer.from(url, 'utf8'))
@@ -65,5 +69,81 @@ describe('isLnurlWithdrawAmountInRange', () => {
     expect(isLnurlWithdrawAmountInRange(3, fixed)).toBe(true)
     expect(isLnurlWithdrawAmountInRange(2, fixed)).toBe(false)
     expect(isLnurlWithdrawAmountInRange(4, fixed)).toBe(false)
+  })
+})
+
+// Synthetic bolt11 invoices (signature is not verified by the decoder):
+// - 1,000 sats   (lnbc10u, 1_000_000 msat)
+// - 100,000 sats (lnbc1m, 100_000_000 msat)
+// - amountless
+const INVOICE_1000_SATS =
+  'lnbc10u1pjeyqyqpp5qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qursdqudahx2gr5dphh2umpdejzqumpw3essp5pyysjzgfpyysjzgfpyysjzgfpyysjzgfpyysjzgfpyysjzgfpyyscqrqqjqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpwuejmr'
+const INVOICE_100000_SATS =
+  'lnbc1m1pjeyqyqpp5qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qursdpgdahx2grgw4hxgun9vss8g6r0w4ekzmnyypekzarnsp5pyysjzgfpyysjzgfpyysjzgfpyysjzgfpyysjzgfpyysjzgfpyyscqrqqjqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgppw8uj0'
+const INVOICE_AMOUNTLESS =
+  'lnbc1pjeyqyqpp5qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qursdqsv9kk7atww3kx2umnsp5pyysjzgfpyysjzgfpyysjzgfpyysjzgfpyysjzgfpyysjzgfpyyscqrqqjqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpnlmy36'
+
+function mockInvoiceResponse(pr: string) {
+  const fetchMock = jest.fn().mockResolvedValue({
+    json: () => Promise.resolve({ pr }),
+    ok: true
+  })
+  global.fetch = fetchMock as unknown as typeof fetch
+  return fetchMock
+}
+
+describe('requestLNURLPayInvoice amount verification', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('returns the invoice when its amount matches the request', async () => {
+    mockInvoiceResponse(INVOICE_1000_SATS)
+
+    await expect(
+      requestLNURLPayInvoice('https://service.example/cb', 1000)
+    ).resolves.toBe(INVOICE_1000_SATS)
+  })
+
+  it('rejects an invoice for a larger amount than requested', async () => {
+    mockInvoiceResponse(INVOICE_100000_SATS)
+
+    await expect(
+      requestLNURLPayInvoice('https://service.example/cb', 1000)
+    ).rejects.toThrow('different amount')
+  })
+
+  it('rejects an invoice for a smaller amount than requested', async () => {
+    mockInvoiceResponse(INVOICE_1000_SATS)
+
+    await expect(
+      requestLNURLPayInvoice('https://service.example/cb', 100_000)
+    ).rejects.toThrow('different amount')
+  })
+
+  it('rejects an amountless invoice', async () => {
+    mockInvoiceResponse(INVOICE_AMOUNTLESS)
+
+    await expect(
+      requestLNURLPayInvoice('https://service.example/cb', 1000)
+    ).rejects.toThrow('without an amount')
+  })
+
+  it('rejects an undecodable invoice', async () => {
+    mockInvoiceResponse('lnbc1notavalidinvoice')
+
+    await expect(
+      requestLNURLPayInvoice('https://service.example/cb', 1000)
+    ).rejects.toThrow('invalid invoice')
+  })
+
+  it('requests the callback with the amount in millisats', async () => {
+    const fetchMock = mockInvoiceResponse(INVOICE_1000_SATS)
+
+    await requestLNURLPayInvoice('https://service.example/cb', 1000)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('amount=1000000')
+    )
   })
 })
