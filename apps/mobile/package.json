@@ -121,7 +121,7 @@
     "react-native-nitro-modules": "^0.35.7",
     "react-native-nitro-sqlite": "^9.6.0",
     "react-native-pager-view": "8.0.2",
-    "react-native-payjoin": "^0.4.0",
+    "react-native-payjoin": "^0.4.1",
     "react-native-qrcode-svg": "^6.3.1",
     "react-native-quick-crypto": "^1.1.5",
     "react-native-reanimated": "4.5.0",
