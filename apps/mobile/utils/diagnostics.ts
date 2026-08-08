@@ -2,9 +2,12 @@ import NetInfo from '@react-native-community/netinfo'
 import { getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
 
 import { NostrAPI } from '@/api/nostr'
+import {
+  NOSTR_LIVE_CHECK_FALLBACK_RELAYS,
+  NOSTR_SECURITY_REPORT_NPUB
+} from '@/constants/nostr'
 import { getDb } from '@/db/connection'
 import { deleteItem, getItem, setItem } from '@/storage/encrypted'
-import type { NostrUnwrappedKind1059Event } from '@/types/models/Nostr'
 import {
   aesDecrypt,
   aesEncrypt,
@@ -32,7 +35,9 @@ export type DiagnosticCheckId =
   | 'sqlite'
 
 const SECURE_STORE_PROBE_KEY = 'diagnostic_probe'
-const LIVE_PROBE_TIMEOUT_MS = 30_000
+const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3_000
+const LIVE_RETRIEVE_ATTEMPTS = 4
+const LIVE_RETRIEVE_DELAY_MS = 2_500
 
 async function runGuarded(
   lines: string[],
@@ -191,23 +196,23 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
   return { lines, ok }
 }
 
+/** Configured relays when present, otherwise well-known DM-capable ones. */
+export function resolveLiveRoundtripRelays(configured: string[]): string[] {
+  return configured.length > 0 ? configured : NOSTR_LIVE_CHECK_FALLBACK_RELAYS
+}
+
 /**
  * Live NIP-17 roundtrip over real relays, using the app's own NostrAPI
- * stack: subscribe for gift wraps to a throwaway key, publish a wrap to self,
- * then wait for the echo and verify it unwraps to the exact payload. Proves
- * the full security-report path: relay connectivity, publish ACK, retrieval,
- * and NIP-59 decryption.
+ * stack. From a throwaway keypair: publishes a gift wrap to the project's
+ * security-report npub (the SECURITY.md channel) plus a self-addressed copy,
+ * then verifies both are retrievable by id and that the retrieved self copy
+ * NIP-59-unwraps to the exact payload. Falls back to well-known relays when
+ * the user has not configured any.
  */
 export async function checkNip17LiveRoundtrip(
-  relayUrls: string[]
+  relayUrls: string[] = []
 ): Promise<DiagnosticResult> {
   const lines: string[] = []
-  if (relayUrls.length === 0) {
-    return {
-      lines: ['no relays configured — pick relays in nostr settings first'],
-      ok: false
-    }
-  }
 
   const ok = await runGuarded(lines, async () => {
     const netState = await NetInfo.fetch()
@@ -215,52 +220,87 @@ export async function checkNip17LiveRoundtrip(
       throw new Error('device is offline')
     }
 
+    const relays = resolveLiveRoundtripRelays(relayUrls)
+    lines.push(
+      relayUrls.length > 0
+        ? `using ${relayUrls.length} configured relay(s)`
+        : 'no relays configured — using well-known defaults'
+    )
+
     const secretKey = new Uint8Array(Buffer.from(await randomKey(32), 'hex'))
     const publicKey = getPublicKey(secretKey)
     const nsec = nip19.nsecEncode(secretKey)
     const npub = nip19.npubEncode(publicKey)
     const probe = `satsigner diagnostic ${Date.now()}`
-    lines.push(`ephemeral keypair ${publicKey.slice(0, 12)}…`)
+    lines.push(`ephemeral sender ${publicKey.slice(0, 12)}…`)
 
-    const api = new NostrAPI(relayUrls)
-    try {
-      let resolveEcho: (event: NostrUnwrappedKind1059Event) => void = () => {}
-      let rejectEcho: (error: Error) => void = () => {}
-      const echoPromise = new Promise<NostrUnwrappedKind1059Event>(
-        (resolve, reject) => {
-          resolveEcho = resolve
-          rejectEcho = reject
-        }
-      )
-      const timeout = setTimeout(() => {
-        rejectEcho(
-          new Error(`no echo within ${LIVE_PROBE_TIMEOUT_MS / 1000}s`)
-        )
-      }, LIVE_PROBE_TIMEOUT_MS)
+    const api = new NostrAPI(relays)
 
-      // Subscribe before publishing so we cannot race our own echo.
-      await api.subscribeToKind1059(nsec, npub, (messages) => {
-        for (const message of messages) {
-          const rumor = message.content as NostrUnwrappedKind1059Event
-          if (rumor?.content === probe && rumor?.pubkey === publicKey) {
-            resolveEcho(rumor)
-          }
-        }
+    // The wrap to the project npub proves the security-report delivery path;
+    // the self wrap is retrievable AND decryptable by us, proving retrieval
+    // and NIP-59 decryption of relay-served bytes.
+    const reportWrap = api.createKind1059(
+      nsec,
+      NOSTR_SECURITY_REPORT_NPUB,
+      probe
+    )
+    const selfWrap = api.createKind1059(nsec, npub, probe)
+
+    // nip17.wrapEvent signs internally, so publishEvent needs no signer.
+    await api.publishEvent(reportWrap)
+    lines.push(
+      `published gift wrap to ${NOSTR_SECURITY_REPORT_NPUB.slice(0, 16)}…`
+    )
+    await api.publishEvent(selfWrap)
+    lines.push('published self-addressed gift wrap')
+
+    // Relays need a moment to index before id-based retrieval.
+    await new Promise((resolve) => {
+      setTimeout(resolve, LIVE_RETRIEVE_INITIAL_WAIT_MS)
+    })
+
+    let fetchedSelf: Awaited<
+      ReturnType<NostrAPI['fetchRawEventById']>
+    > = null
+    for (let attempt = 0; attempt < LIVE_RETRIEVE_ATTEMPTS; attempt += 1) {
+      fetchedSelf = await api.fetchRawEventById(selfWrap.id)
+      if (fetchedSelf) {
+        break
+      }
+      await new Promise((resolve) => {
+        setTimeout(resolve, LIVE_RETRIEVE_DELAY_MS)
       })
-      lines.push(`subscribed for gift wraps on ${relayUrls.length} relay(s)`)
-
-      // nip17.wrapEvent signs internally, so publishEvent needs no signer.
-      const wrapEvent = api.createKind1059(nsec, npub, probe)
-      await api.publishEvent(wrapEvent)
-      lines.push('published gift wrap (kind 1059)')
-
-      const echo = await echoPromise
-      clearTimeout(timeout)
-      lines.push('echo received and unwrapped')
-      lines.push(`content and sender verified (${echo.id.slice(0, 12)}…)`)
-    } finally {
-      api.closeAllSubscriptions()
     }
+    if (!fetchedSelf) {
+      throw new Error('self wrap not retrievable after publish ACK')
+    }
+    lines.push('retrieved self wrap from relay')
+
+    const rumor = nip59.unwrapEvent(fetchedSelf, secretKey) as {
+      content?: string
+      pubkey?: string
+    }
+    if (rumor.content !== probe || rumor.pubkey !== publicKey) {
+      throw new Error('retrieved wrap did not unwrap to the probe payload')
+    }
+    lines.push('retrieved wrap decrypts to exact payload')
+
+    let fetchedReport: Awaited<
+      ReturnType<NostrAPI['fetchRawEventById']>
+    > = null
+    for (let attempt = 0; attempt < LIVE_RETRIEVE_ATTEMPTS; attempt += 1) {
+      fetchedReport = await api.fetchRawEventById(reportWrap.id)
+      if (fetchedReport) {
+        break
+      }
+      await new Promise((resolve) => {
+        setTimeout(resolve, LIVE_RETRIEVE_DELAY_MS)
+      })
+    }
+    if (!fetchedReport) {
+      throw new Error('security-report wrap not retrievable after publish ACK')
+    }
+    lines.push('security-report wrap is retrievable on the relays')
   })
   return { lines, ok }
 }

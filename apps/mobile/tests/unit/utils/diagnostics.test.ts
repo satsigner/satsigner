@@ -66,12 +66,12 @@ jest.mock('react-native-quick-crypto', () => {
 
 import {
   checkCryptoRoundtrip,
-  checkNip17LiveRoundtrip,
   checkNip17Roundtrip,
   checkPinKdf,
   checkSecureStore,
   checkSqlite,
   DIAGNOSTIC_CHECKS,
+  resolveLiveRoundtripRelays,
   runDiagnosticCheck
 } from '@/utils/diagnostics'
 
@@ -103,14 +103,23 @@ describe('diagnostics one-click checks', () => {
     expect(result.lines.join('\n')).toContain('kind 1059')
   })
 
-  it('nip-17 live roundtrip fails cleanly with no relays configured', async () => {
-    const result = await checkNip17LiveRoundtrip([])
-    expect(result.ok).toBe(false)
-    expect(result.lines.join('\n')).toContain('no relays configured')
+  it('live roundtrip relay resolution prefers configured relays', () => {
+    expect(resolveLiveRoundtripRelays(['wss://mine.example'])).toEqual([
+      'wss://mine.example'
+    ])
+    const fallback = resolveLiveRoundtripRelays([])
+    expect(fallback.length).toBeGreaterThanOrEqual(2)
+    for (const url of fallback) {
+      expect(url.startsWith('wss://')).toBe(true)
+    }
   })
 
-  it('every registered check runs and returns a result', async () => {
-    for (const { id } of DIAGNOSTIC_CHECKS) {
+  it('every registered local check runs and returns a result', async () => {
+    const local = DIAGNOSTIC_CHECKS.filter((check) => !check.requiresNetwork)
+    // The live relay roundtrip must stay flagged as network-bound so generic
+    // runners (and this loop) never invoke it without connectivity.
+    expect(local.length).toBe(DIAGNOSTIC_CHECKS.length - 1)
+    for (const { id } of local) {
       const result = await runDiagnosticCheck(id)
       expect(typeof result.ok).toBe('boolean')
       expect(result.lines.length).toBeGreaterThan(0)

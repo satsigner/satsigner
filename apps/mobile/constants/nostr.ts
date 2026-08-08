@@ -62,6 +62,20 @@ export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 
 // RELAYS
 export const NOSTR_RELAY_PROTOCOL_PREFIX = 'wss://'
+
+// Project security-report contact from SECURITY.md — default recipient of the
+// diagnostics live roundtrip so the check exercises the real report channel.
+export const NOSTR_SECURITY_REPORT_NPUB =
+  'npub1ewv0j6l7fplmadqmcmdywkff2snham403sensqlqavymt7fx7jfs58e60d'
+
+// Well-known DM-capable relays (no PoW-gated publishing) used by the
+// diagnostics live roundtrip when the user has not configured relays yet.
+export const NOSTR_LIVE_CHECK_FALLBACK_RELAYS = [
+  'wss://relay.damus.io',
+  'wss://relay.nostr.band',
+  'wss://offchain.pub'
+]
+
 export const NOSTR_RELAYS: NostrRelay[] = [
   { name: '0xchat', url: 'wss://relay.0xchat.com' },
   { name: 'Agora', url: 'wss://relay.agora.social' },
