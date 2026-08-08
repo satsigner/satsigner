@@ -1,4 +1,5 @@
 import '@/utils/polyfills'
+import { installDevErrorReporting } from '@/utils/devErrorReporting'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
 import { DarkTheme, ThemeProvider } from 'expo-router/react-navigation'
@@ -17,6 +18,10 @@ import NfcManager from 'react-native-nfc-manager'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
+
+// Dev-only: crashes/rejections log symbolicated source file:line to the
+// Metro console. Installed before any component code runs.
+installDevErrorReporting()
 
 import SSImageActionsSheet from '@/components/SSImageActionsSheet'
 import { queryClient } from '@/lib/queryClient'
