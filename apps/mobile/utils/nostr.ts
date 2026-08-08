@@ -167,3 +167,28 @@ export function validateNip05(
   }
   return nostrNip05.isValid(pubkeyHex, nip05Address).catch(() => false)
 }
+
+/**
+ * Extracts DM inbox relay urls from relay-list events. Newest kind 10050
+ * (NIP-17, `relay` tags) wins; falls back to newest kind 10002 (NIP-65,
+ * `r` tags). wss-only, deduped, empty when neither kind is present.
+ */
+export function extractInboxRelayUrls(
+  events: { created_at?: number; kind?: number; tags: string[][] }[]
+): string[] {
+  const sorted = [...events].sort(
+    (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
+  )
+  const dmInbox = sorted.find((e) => e.kind === 10050)
+  const relayList = sorted.find((e) => e.kind === 10002)
+  const pick = dmInbox ?? relayList
+  if (!pick) {
+    return []
+  }
+  const tagName = pick.kind === 10050 ? 'relay' : 'r'
+  const urls = pick.tags
+    .filter((tag) => tag[0] === tagName && typeof tag[1] === 'string')
+    .map((tag) => tag[1])
+    .filter((url) => url.startsWith('wss://'))
+  return [...new Set(urls)]
+}

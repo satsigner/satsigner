@@ -33,6 +33,30 @@ function chatLog(...args: unknown[]): void {
   console.log('[nostrChat]', ...args)
 }
 
+/**
+ * Resolves where to publish a DM for a recipient: their announced inbox
+ * relays (kind 10050 / 10002, looked up on the indexing relays) unioned with
+ * the caller's base set. Falls back to the base set when the recipient never
+ * announced or the lookup fails.
+ */
+export async function resolveRecipientRelays(
+  recipientNpub: string,
+  baseRelays: string[]
+): Promise<string[]> {
+  try {
+    const lookup = new NostrAPI(NostrAPI.INDEXING_RELAYS)
+    const inbox = await lookup.fetchInboxRelaysForNpub(recipientNpub)
+    lookup.closeAllSubscriptions()
+    if (inbox.length > 0) {
+      chatLog('recipient inbox relays:', inbox)
+      return [...new Set([...inbox, ...baseRelays])]
+    }
+  } catch {
+    // Offline or no relay list published — base relays only.
+  }
+  return baseRelays
+}
+
 /** Persists and broadcasts; relay redelivery is deduped by INSERT OR IGNORE. */
 function ingestChatMessage(message: NostrChatMessage): void {
   const inserted = insertChatMessage(message)
@@ -73,8 +97,14 @@ async function sendNip17Chat(
   }
   ingestChatMessage(message)
 
+  // Route to the recipient's announced inbox relays when they have any.
+  const baseRelays = api.getRelays()
+  const targetRelays = await resolveRecipientRelays(peerNpub, baseRelays)
+  const publishApi =
+    targetRelays === baseRelays ? api : new NostrAPI(targetRelays)
+
   try {
-    await api.publishEvent(wrap)
+    await publishApi.publishEvent(wrap)
     updateChatMessageStatus(identity.npub, message.id, 'sent')
   } catch (error) {
     updateChatMessageStatus(identity.npub, message.id, 'failed')
@@ -133,6 +163,9 @@ type Nip17Rumor = {
 let activeChatPipeline: { api: NostrAPI; npub: string; refs: number } | null =
   null
 
+/** kind 10050 announcements are once per app session per identity. */
+const announcedDmInboxFor = new Set<string>()
+
 async function acquireChatPipeline(identity: ChatIdentity): Promise<NostrAPI> {
   if (activeChatPipeline && activeChatPipeline.npub !== identity.npub) {
     chatLog('identity switched, closing previous pipeline', {
@@ -150,6 +183,14 @@ async function acquireChatPipeline(identity: ChatIdentity): Promise<NostrAPI> {
     await subscribeToIdentityChat(api, identity).catch((error) => {
       chatLog('subscription failed', error)
     })
+    // Announce our DM inbox relays so senders route wraps where we read them.
+    if (!announcedDmInboxFor.has(identity.npub)) {
+      announcedDmInboxFor.add(identity.npub)
+      api
+        .publishDmInboxRelayList(identity.nsec, relays)
+        .then(() => chatLog('announced DM inbox relays'))
+        .catch((error) => chatLog('DM inbox announce failed', error))
+    }
   }
   activeChatPipeline.refs += 1
   return activeChatPipeline.api

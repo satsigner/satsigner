@@ -3,6 +3,7 @@ import {
   compressMessage,
   decompressMessage,
   deriveNostrKeysFromDescriptor,
+  extractInboxRelayUrls,
   generateColorFromNpub,
   parseNostrTransaction
 } from '@/utils/nostr'
@@ -219,5 +220,43 @@ describe('deriveNostrKeysFromDescriptor', () => {
       descriptors.singlesig.internal
     )
     expect(external.commonNsec).toBe(internal.commonNsec)
+  })
+})
+
+describe('extractInboxRelayUrls', () => {
+  it('prefers the newest kind 10050 relay tags', () => {
+    const urls = extractInboxRelayUrls([
+      { created_at: 100, kind: 10002, tags: [['r', 'wss://old.example']] },
+      {
+        created_at: 200,
+        kind: 10050,
+        tags: [
+          ['relay', 'wss://dm1.example'],
+          ['relay', 'wss://dm2.example'],
+          ['relay', 'wss://dm1.example']
+        ]
+      }
+    ])
+    expect(urls).toEqual(['wss://dm1.example', 'wss://dm2.example'])
+  })
+
+  it('falls back to kind 10002 r tags when no 10050 exists', () => {
+    const urls = extractInboxRelayUrls([
+      { created_at: 100, kind: 10002, tags: [['r', 'wss://nip65.example']] }
+    ])
+    expect(urls).toEqual(['wss://nip65.example'])
+  })
+
+  it('drops non-wss urls and returns empty without relay lists', () => {
+    expect(
+      extractInboxRelayUrls([
+        {
+          created_at: 1,
+          kind: 10050,
+          tags: [['relay', 'http://insecure.example']]
+        }
+      ])
+    ).toEqual([])
+    expect(extractInboxRelayUrls([])).toEqual([])
   })
 })

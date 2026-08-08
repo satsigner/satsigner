@@ -5,7 +5,7 @@ import { NOSTR_SECURITY_REPORT_NPUB } from '@/constants/nostr'
 import { type NostrChatMessage } from '@/types/models/Nostr'
 import { generateMnemonic } from '@/utils/bip39'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
-import { ingestChatMessage } from '@/utils/nostrChat'
+import { ingestChatMessage, resolveRecipientRelays } from '@/utils/nostrChat'
 import { deriveNostrKeysFromMnemonic } from '@/utils/nostrIdentity'
 
 export type ThrowawayIdentity = {
@@ -58,7 +58,16 @@ export async function sendSecurityReport({
     NOSTR_SECURITY_REPORT_NPUB,
     text
   )
-  await api.publishEvent(wrap)
+
+  // Route to the project npub's announced inbox relays when published —
+  // otherwise the report can land on relays the maintainers never read.
+  const targetRelays = await resolveRecipientRelays(
+    NOSTR_SECURITY_REPORT_NPUB,
+    relays
+  )
+  const publishApi =
+    targetRelays === relays ? api : new NostrAPI(targetRelays)
+  await publishApi.publishEvent(wrap)
 
   if (persistCopy) {
     const peerPubkey = getPubKeyHexFromNpub(NOSTR_SECURITY_REPORT_NPUB)

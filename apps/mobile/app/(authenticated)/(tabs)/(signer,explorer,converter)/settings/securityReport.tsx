@@ -9,7 +9,7 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { NOSTR_LIVE_CHECK_FALLBACK_RELAYS } from '@/constants/nostr'
+import { NOSTR_LIVE_CHECK_FALLBACK_RELAYS, NOSTR_SECURITY_REPORT_NPUB } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -40,6 +40,7 @@ export default function SecurityReport() {
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === state.activeIdentityNpub && i.nsec)
   )
+  const addIdentity = useNostrIdentityStore((state) => state.addIdentity)
   const canSendIdentified = Boolean(identity?.nsec)
   const useAnonymous = anonymous || !canSendIdentified
 
@@ -61,9 +62,24 @@ export default function SecurityReport() {
     setSending(true)
     const reportText = message.trim()
     try {
+      if (useAnonymous) {
+        // Register the one-time identity so the report shows in the message
+        // list and replies can arrive. Deleting the identity erases the trail.
+        addIdentity({
+          createdAt: Date.now(),
+          isWatchOnly: false,
+          mnemonic: throwaway.mnemonic,
+          npub: throwaway.npub,
+          nsec: throwaway.nsec,
+          relayConnected: true,
+          relays: [...NOSTR_LIVE_CHECK_FALLBACK_RELAYS]
+        })
+      }
       await sendSecurityReport({
         message: reportText,
-        persistCopy: !useAnonymous,
+        // Anonymous reports persist under the throwaway identity (local only,
+        // unlinkable on relays); identified reports persist under the user's.
+        persistCopy: true,
         relays: publishRelays,
         senderIdentity: useAnonymous
           ? { npub: throwaway.npub, nsec: throwaway.nsec }
@@ -148,6 +164,22 @@ export default function SecurityReport() {
               </ScrollView>
             </View>
             {backupSection}
+            {useAnonymous ? (
+              <SSButton
+                label={t('settings.about.securityReport.viewConversation')}
+                variant="outline"
+                onPress={() =>
+                  router.push({
+                    params: {
+                      npub: throwaway.npub,
+                      peer: NOSTR_SECURITY_REPORT_NPUB,
+                      protocol: 'nip17'
+                    },
+                    pathname: '/signer/nostr/account/[npub]/chat/[peer]'
+                  })
+                }
+              />
+            ) : null}
             <SSButton
               label={t('common.close')}
               variant="secondary"

@@ -40,7 +40,7 @@ import type {
 } from '@/types/models/Nostr'
 import { chunkArray } from '@/utils/chunkArray'
 import { randomKey } from '@/utils/crypto'
-import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
+import { getPubKeyHexFromNpub, getSecretFromNsec, extractInboxRelayUrls } from '@/utils/nostr'
 import {
   extractResponseOptionIds,
   NOSTR_POLL_RESPONSE_KIND
@@ -1068,8 +1068,7 @@ export class NostrAPI {
    * Unlike fetchEvent, returns the raw event (sig included) so callers can
    * run NIP-59 unwrap / signature verification on it. Never cached — used by
    * diagnostics where retrieval from the relay is exactly what's proven.
-   */
-  async fetchRawEventById(eventIdHex: string): Promise<Event | null> {
+   */  async fetchRawEventById(eventIdHex: string): Promise<Event | null> {
     await this.connectForPublish()
     if (!this.ndk) {
       return null
@@ -1081,6 +1080,57 @@ export class NostrAPI {
       return null
     }
     return (await poolEvent.toNostrEvent()) as Event
+  }
+
+  /**
+   * Fetches a pubkey's DM inbox relays: newest kind 10050 (NIP-17) wins,
+   * falling back to its kind 10002 (NIP-65) relay list. Empty when the
+   * pubkey never published either — callers should fall back to defaults.
+   */
+  async fetchInboxRelaysForNpub(npub: string): Promise<string[]> {
+    const hex = getPubKeyHexFromNpub(npub)
+    if (!hex) {
+      return []
+    }
+    await this.connect()
+    if (!this.ndk) {
+      return []
+    }
+
+    const events = await NostrAPI.fetchManyWithTimeout(
+      this.ndk,
+      { authors: [hex], kinds: [10002, 10050], limit: 10 },
+      12_000
+    )
+    return extractInboxRelayUrls([...events])
+  }
+
+  /**
+   * Announces this identity's DM inbox relays (kind 10050, NIP-17) so
+   * senders can route gift wraps where we actually read them.
+   */
+  async publishDmInboxRelayList(
+    nsec: string,
+    relayUrls: string[]
+  ): Promise<void> {
+    const secretKey = getSecretFromNsec(nsec)
+    if (!secretKey || relayUrls.length === 0) {
+      return
+    }
+    const signed = finalizeEvent(
+      {
+        content: '',
+        created_at: Math.floor(Date.now() / 1000),
+        kind: 10050,
+        tags: relayUrls.map((url) => ['relay', url])
+      },
+      secretKey
+    )
+    const tempNdk = new NDK({
+      autoConnectUserRelays: false,
+      enableOutboxModel: false
+    })
+    await this.publishEvent(new NDKEvent(tempNdk, signed))
   }
 
   static async fetchEventFromRelays(    eventIdHex: string,

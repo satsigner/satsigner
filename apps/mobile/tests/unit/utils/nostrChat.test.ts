@@ -50,6 +50,10 @@ const sender = { npub: senderNpub, nsec: senderNsec }
 beforeEach(() => {
   chatStore.clear()
   jest.clearAllMocks()
+  // No recipient inbox relays in tests — skip the indexing-relay lookup.
+  jest
+    .spyOn(NostrAPI.prototype, 'fetchInboxRelaysForNpub')
+    .mockResolvedValue([])
 })
 
 describe('nostrChat', () => {
