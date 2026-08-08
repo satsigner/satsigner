@@ -2052,6 +2052,7 @@
     "chat.invalidNpub": "Invalid npub",
     "chat.messagePlaceholder": "Type a message",
     "chat.newMessage": "New message",
+    "chat.newMessages": "New messages",
     "chat.noConversations": "No conversations yet",
     "chat.noMessages": "No messages yet — say hello",
     "chat.npubPlaceholder": "npub1…",

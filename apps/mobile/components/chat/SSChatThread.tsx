@@ -1,13 +1,14 @@
-import { useMemo, useRef } from 'react'
-import { FlatList, StyleSheet, View } from 'react-native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { FlatList, StyleSheet, TextInput, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type NostrChatMessage } from '@/types/models/Nostr'
+
+const SCROLL_THRESHOLD = 40
 
 type SSChatThreadProps = {
   messages: NostrChatMessage[]
@@ -96,8 +97,9 @@ function ChatBubble({
 }
 
 /**
- * Shared DM thread: inverted message list + composer. Transport-agnostic —
- * screens supply stored messages and an onSend implementation (NIP-04/NIP-17).
+ * Shared DM thread, mirroring the bitcoin devices group chat: inverted list,
+ * author-header message blocks, "new messages" pill when scrolled up, and the
+ * same composer (raw TextInput + send button).
  */
 export default function SSChatThread({
   messages,
@@ -111,11 +113,22 @@ export default function SSChatThread({
   peerAuthorNpubShort
 }: SSChatThreadProps) {
   const listRef = useRef<FlatList<NostrChatMessage>>(null)
+  const isAtBottomRef = useRef(true)
+  const [showNewMessageButton, setShowNewMessageButton] = useState(false)
+  const prevMessageCountRef = useRef(messages.length)
 
   const displayedMessages = useMemo(
     () => [...messages].reverse(),
     [messages]
   )
+
+  useEffect(() => {
+    const prevCount = prevMessageCountRef.current
+    if (messages.length > prevCount && !isAtBottomRef.current) {
+      setShowNewMessageButton(true)
+    }
+    prevMessageCountRef.current = messages.length
+  }, [messages.length])
 
   function handleSend() {
     const text = inputValue.trim()
@@ -125,37 +138,70 @@ export default function SSChatThread({
     onSend(text)
   }
 
+  function handleScrollToBottom() {
+    listRef.current?.scrollToOffset({ animated: true, offset: 0 })
+    isAtBottomRef.current = true
+    setShowNewMessageButton(false)
+  }
+
+  function handleListScroll(e: {
+    nativeEvent: { contentOffset: { y: number } }
+  }) {
+    const atBottom = e.nativeEvent.contentOffset.y <= SCROLL_THRESHOLD
+    if (isAtBottomRef.current !== atBottom) {
+      isAtBottomRef.current = atBottom
+      if (atBottom) {
+        setShowNewMessageButton(false)
+      }
+    }
+  }
+
   return (
     <View style={styles.container}>
-      <FlatList
-        ref={listRef}
-        data={displayedMessages}
-        renderItem={({ item }) => (
-          <ChatBubble
-            item={item}
-            ownAuthorName={ownAuthorName ?? t('nostrIdentity.chat.you')}
-            peerAuthorName={peerAuthorName ?? t('nostrIdentity.chat.peer')}
-            peerAuthorNpubShort={peerAuthorNpubShort}
-          />
+      <View style={styles.messagesContainer}>
+        <FlatList
+          ref={listRef}
+          data={displayedMessages}
+          renderItem={({ item }) => (
+            <ChatBubble
+              item={item}
+              ownAuthorName={ownAuthorName ?? t('nostrIdentity.chat.you')}
+              peerAuthorName={peerAuthorName ?? t('nostrIdentity.chat.peer')}
+              peerAuthorNpubShort={peerAuthorNpubShort}
+            />
+          )}
+          keyExtractor={(item) => item.id}
+          inverted
+          initialNumToRender={25}
+          maxToRenderPerBatch={15}
+          onScroll={handleListScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <SSText center color="muted" style={styles.emptyText}>
+              {emptyText ?? t('nostrIdentity.chat.noMessages')}
+            </SSText>
+          }
+        />
+        {showNewMessageButton && (
+          <View style={styles.newMessageButtonContainer}>
+            <SSButton
+              label={t('nostrIdentity.chat.newMessages')}
+              onPress={handleScrollToBottom}
+              variant="secondary"
+            />
+          </View>
         )}
-        keyExtractor={(item) => item.id}
-        inverted
-        initialNumToRender={25}
-        maxToRenderPerBatch={15}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <SSText center color="muted" style={styles.emptyText}>
-            {emptyText ?? t('nostrIdentity.chat.noMessages')}
-          </SSText>
-        }
-      />
+      </View>
       <SSHStack gap="sm" style={styles.inputContainer}>
-        <SSTextInput
+        <TextInput
+          style={styles.input}
           value={inputValue}
           onChangeText={onInputChange}
           placeholder={t('nostrIdentity.chat.messagePlaceholder')}
+          placeholderTextColor={Colors.gray[500]}
           multiline
-          style={styles.input}
+          maxLength={500}
         />
         <SSButton
           style={styles.sendButton}
@@ -191,12 +237,19 @@ const styles = StyleSheet.create({
     // Inverted list flips content vertically
     transform: [{ scaleY: -1 }]
   },
+  // Mirrors the devices group chat composer exactly.
   input: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    color: Colors.white,
     flex: 0.8,
-    minHeight: 44
+    minHeight: 60,
+    padding: 10,
+    textAlignVertical: 'top'
   },
   inputContainer: {
-    paddingBottom: 8
+    paddingBottom: 16,
+    paddingHorizontal: 0
   },
   listContent: {
     paddingBottom: 8
@@ -213,10 +266,20 @@ const styles = StyleSheet.create({
   messageContentWrap: {
     paddingLeft: 30
   },
+  messagesContainer: {
+    flex: 1,
+    paddingBottom: 8
+  },
   metaRow: {
     alignItems: 'flex-start',
     alignSelf: 'flex-start',
     marginTop: -2
+  },
+  newMessageButtonContainer: {
+    alignSelf: 'center',
+    bottom: 70,
+    position: 'absolute',
+    zIndex: 2
   },
   ownMessage: {
     backgroundColor: Colors.gray[800]
