@@ -82,6 +82,7 @@ export default function SecurityReport() {
             value={message}
             onChangeText={setMessage}
             placeholder={t('settings.about.securityReport.placeholder')}
+            align="left"
             multiline
             style={styles.input}
           />
