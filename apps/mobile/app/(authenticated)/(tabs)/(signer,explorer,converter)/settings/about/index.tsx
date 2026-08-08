@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
-import { TouchableOpacity } from 'react-native'
+import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import {
   SSIconChevronRight,
@@ -67,12 +67,12 @@ export default function About() {
             <SSText size="md" uppercase>
               {t('settings.about.followProject')}
             </SSText>
-            <SSVStack gap="sm">
+            <SSHStack gap="lg">
               <TouchableOpacity
                 activeOpacity={0.5}
                 onPress={() => openUrl(NOSTR_PROFILE_URL)}
               >
-                <SSHStack gap="sm">
+                <SSHStack gap="sm" style={styles.followLink}>
                   <SSIconNostr width={16} height={16} />
                   <SSText>{t('settings.about.nostr')}</SSText>
                 </SSHStack>
@@ -81,15 +81,21 @@ export default function About() {
                 activeOpacity={0.5}
                 onPress={() => openUrl(X_PROFILE_URL)}
               >
-                <SSHStack gap="sm">
+                <SSHStack gap="sm" style={styles.followLink}>
                   <SSIconX width={16} height={16} />
                   <SSText>{t('settings.about.x')}</SSText>
                 </SSHStack>
               </TouchableOpacity>
-            </SSVStack>
+            </SSHStack>
           </SSVStack>
         </SSVStack>
       </SSMainLayout>
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  followLink: {
+    alignItems: 'center'
+  }
+})
