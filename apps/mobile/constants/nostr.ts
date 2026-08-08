@@ -68,7 +68,7 @@ export const NOSTR_RELAY_PROTOCOL_PREFIX = 'wss://'
 export const NOSTR_SECURITY_REPORT_NPUB =
   'npub1ewv0j6l7fplmadqmcmdywkff2snham403sensqlqavymt7fx7jfs58e60d'
 
-// Well-known DM-capable relays (no PoW-gated publishing) used by the
+// Well-known DM-capable relays (no PoW- or pay-gated publishing) used by the
 // security/bug report form and by the diagnostics live roundtrip when the
 // user has not configured relays yet.
 export const NOSTR_LIVE_CHECK_FALLBACK_RELAYS = [
@@ -78,7 +78,13 @@ export const NOSTR_LIVE_CHECK_FALLBACK_RELAYS = [
   'wss://relay.primal.net',
   'wss://premium.primal.net',
   'wss://relay.0xchat.com',
-  'wss://relay.snort.social'
+  'wss://relay.snort.social',
+  'wss://nostr.mom',
+  'wss://relay.nostr.bg',
+  'wss://relay.nostrich.house',
+  'wss://relay.hodlbod.com',
+  'wss://relay.orangepill.dev',
+  'wss://nostr.bitcoiner.social'
 ]
 
 export const NOSTR_RELAYS: NostrRelay[] = [

@@ -1,6 +1,7 @@
+import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Keyboard, ScrollView, StyleSheet, View } from 'react-native'
+import { Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { SSIconCheckCircleThin, SSIconWarning } from '@/components/icons'
@@ -16,7 +17,11 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
-import { sendSecurityReport } from '@/utils/securityReport'
+import {
+  createThrowawayIdentity,
+  sendSecurityReport,
+  type ThrowawayIdentity
+} from '@/utils/securityReport'
 
 export default function SecurityReport() {
   const router = useRouter()
@@ -24,6 +29,13 @@ export default function SecurityReport() {
   const [anonymous, setAnonymous] = useState(true)
   const [sending, setSending] = useState(false)
   const [sentMessage, setSentMessage] = useState<string | null>(null)
+  const [backupRevealed, setBackupRevealed] = useState(false)
+
+  // Generated once per visit so the same identity backs both the form's
+  // backup offer and the post-send success screen.
+  const [throwaway] = useState<ThrowawayIdentity>(() =>
+    createThrowawayIdentity()
+  )
 
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === state.activeIdentityNpub && i.nsec)
@@ -36,6 +48,11 @@ export default function SecurityReport() {
     ? NOSTR_LIVE_CHECK_FALLBACK_RELAYS
     : getNostrContactsRelays(identity?.relays)
 
+  async function handleCopy(text: string) {
+    await Clipboard.setStringAsync(text)
+    toast.success(t('common.copiedToClipboard'))
+  }
+
   async function handleSend() {
     if (!message.trim()) {
       return
@@ -45,11 +62,12 @@ export default function SecurityReport() {
     const reportText = message.trim()
     try {
       await sendSecurityReport({
-        identity: useAnonymous
-          ? undefined
-          : { npub: identity!.npub, nsec: identity!.nsec! },
         message: reportText,
-        relays: publishRelays
+        persistCopy: !useAnonymous,
+        relays: publishRelays,
+        senderIdentity: useAnonymous
+          ? { npub: throwaway.npub, nsec: throwaway.nsec }
+          : { npub: identity!.npub, nsec: identity!.nsec! }
       })
       setSentMessage(reportText)
     } catch {
@@ -58,6 +76,49 @@ export default function SecurityReport() {
       setSending(false)
     }
   }
+
+  const backupSection = useAnonymous ? (
+    <SSVStack gap="sm" style={styles.backupBox}>
+      <SSText uppercase size="xs" color="muted">
+        {t('settings.about.securityReport.throwawayTitle')}
+      </SSText>
+      <SSText size="xs" color="muted">
+        {t('settings.about.securityReport.throwawayDescription')}
+      </SSText>
+      <SSButton
+        label={
+          backupRevealed
+            ? t('settings.about.securityReport.hideBackup')
+            : t('settings.about.securityReport.showBackup')
+        }
+        variant="outline"
+        onPress={() => setBackupRevealed((v) => !v)}
+      />
+      {backupRevealed ? (
+        <SSVStack gap="sm">
+          <SSText uppercase size="xs" color="muted">
+            {t('settings.about.securityReport.seedWords')}
+          </SSText>
+          <Pressable onPress={() => handleCopy(throwaway.mnemonic)}>
+            <SSText size="sm" type="mono" style={styles.secretText}>
+              {throwaway.mnemonic}
+            </SSText>
+          </Pressable>
+          <SSText uppercase size="xs" color="muted">
+            {t('settings.about.securityReport.nsecKey')}
+          </SSText>
+          <Pressable onPress={() => handleCopy(throwaway.nsec)}>
+            <SSText size="sm" type="mono" style={styles.secretText}>
+              {throwaway.nsec}
+            </SSText>
+          </Pressable>
+          <SSText size="xs" color="muted">
+            {t('settings.about.securityReport.tapToCopy')}
+          </SSText>
+        </SSVStack>
+      ) : null}
+    </SSVStack>
+  ) : null
 
   return (
     <>
@@ -86,6 +147,12 @@ export default function SecurityReport() {
                 <SSText size="sm">{sentMessage}</SSText>
               </ScrollView>
             </View>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {backupSection}
+            </ScrollView>
             <SSButton
               label={t('common.close')}
               variant="secondary"
@@ -135,6 +202,8 @@ export default function SecurityReport() {
                 </SSVStack>
               </SSHStack>
 
+              {backupSection}
+
               <SSVStack gap="xs">
                 <SSText uppercase size="xs" color="muted">
                   {t('settings.about.securityReport.relaysTitle')}
@@ -169,7 +238,15 @@ export default function SecurityReport() {
 const styles = StyleSheet.create({
   anonRow: { alignItems: 'center' },
   anonText: { flex: 1 },
+  backupBox: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 12
+  },
   input: { minHeight: 140, textAlignVertical: 'top' },
+  secretText: {
+    color: Colors.white
+  },
   sentBox: {
     backgroundColor: Colors.gray[900],
     borderRadius: 8,

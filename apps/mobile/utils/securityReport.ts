@@ -1,10 +1,28 @@
+import { nip19 } from 'nostr-tools'
+
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_SECURITY_REPORT_NPUB } from '@/constants/nostr'
 import { type NostrChatMessage } from '@/types/models/Nostr'
+import { generateMnemonic } from '@/utils/bip39'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { ingestChatMessage } from '@/utils/nostrChat'
-import { randomKey } from '@/utils/crypto'
-import { getPublicKey, nip19 } from 'nostr-tools'
+import { deriveNostrKeysFromMnemonic } from '@/utils/nostrIdentity'
+
+export type ThrowawayIdentity = {
+  mnemonic: string
+  npub: string
+  nsec: string
+}
+
+/**
+ * A one-time NIP-06 identity for anonymous reports. Mnemonic-derived so the
+ * user can save the seed words / nsec and later re-import to read our reply.
+ */
+export function createThrowawayIdentity(): ThrowawayIdentity {
+  const mnemonic = generateMnemonic(12)
+  const { npub, nsec } = deriveNostrKeysFromMnemonic(mnemonic)
+  return { mnemonic, npub, nsec }
+}
 
 type SecurityReportIdentity = {
   npub: string
@@ -12,46 +30,37 @@ type SecurityReportIdentity = {
 }
 
 /**
- * Sends a security report to the project npub as a NIP-17 gift wrap.
+ * Sends a report to the project npub as a NIP-17 gift wrap.
  *
- * Anonymous mode generates a throwaway keypair per report: nothing about the
- * sender is persisted and there is no reply channel. With an identity, the
- * report is a normal chat message — it lands in the identity's conversation
- * with the project npub, so maintainers can reply.
+ * Anonymous reports (persistCopy: false, typically a throwaway identity)
+ * leave no local trace. Identified reports persist the outgoing message into
+ * the identity's chat thread with the project npub, so replies are visible.
  */
 export async function sendSecurityReport({
   message,
   relays,
-  identity
+  senderIdentity,
+  persistCopy
 }: {
   message: string
   relays: string[]
-  identity?: SecurityReportIdentity
+  senderIdentity: SecurityReportIdentity
+  persistCopy: boolean
 }): Promise<void> {
   const text = message.trim()
   if (!text) {
     throw new Error('empty report')
   }
 
-  let npub: string
-  let nsec: string
-  const anonymous = !identity
-  if (identity) {
-    npub = identity.npub
-    nsec = identity.nsec
-  } else {
-    const secretKey = new Uint8Array(Buffer.from(await randomKey(32), 'hex'))
-    npub = nip19.npubEncode(getPublicKey(secretKey))
-    nsec = nip19.nsecEncode(secretKey)
-  }
-
   const api = new NostrAPI(relays)
-  const wrap = api.createKind1059(nsec, NOSTR_SECURITY_REPORT_NPUB, text)
+  const wrap = api.createKind1059(
+    senderIdentity.nsec,
+    NOSTR_SECURITY_REPORT_NPUB,
+    text
+  )
   await api.publishEvent(wrap)
 
-  // Anonymous reports leave no local trace; identified reports continue in
-  // the identity's chat thread with the project npub.
-  if (!anonymous && identity) {
+  if (persistCopy) {
     const peerPubkey = getPubKeyHexFromNpub(NOSTR_SECURITY_REPORT_NPUB)
     if (peerPubkey) {
       const stored: NostrChatMessage = {
@@ -59,7 +68,7 @@ export async function sendSecurityReport({
         created_at: Math.floor(Date.now() / 1000),
         direction: 'out',
         id: wrap.id ?? `report-${Date.now()}`,
-        identityNpub: identity.npub,
+        identityNpub: senderIdentity.npub,
         peerPubkey,
         protocol: 'nip17',
         read: true,
@@ -69,3 +78,10 @@ export async function sendSecurityReport({
     }
   }
 }
+
+/** npub of the report destination, for display/copy in the UI. */
+export function getSecurityReportNpub(): string {
+  return NOSTR_SECURITY_REPORT_NPUB
+}
+
+export { nip19 }
