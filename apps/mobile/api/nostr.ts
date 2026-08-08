@@ -1687,6 +1687,43 @@ export class NostrAPI {
     }
   }
 
+  /**
+   * Waits until at least one pool relay is connected (deadline-bounded).
+   * NDKRelay.publish rejects queued publishes after ~2.5s, so publishing to
+   * sockets still mid-handshake fails on slow mobile TLS even though they
+   * would have connected a moment later. Once one relay is up, a short grace
+   * period lets more join for redundancy.
+   */
+  private async waitForConnectedRelays(
+    deadlineMs = 8_000,
+    graceMs = 750
+  ): Promise<{ publish: (event: NDKEvent) => Promise<unknown>; url: string }[]> {
+    const pool = this.ndk?.pool
+    if (!pool) {
+      return []
+    }
+    const deadline = Date.now() + deadlineMs
+    let connected = pool.connectedRelays()
+    while (connected.length === 0 && Date.now() < deadline) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250)
+      })
+      connected = pool.connectedRelays()
+    }
+    if (connected.length > 0) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, graceMs)
+      })
+      connected = pool.connectedRelays()
+    }
+    return connected
+  }
+
+  /** Currently connected relay urls (diagnostics/observability). */
+  getConnectedRelayUrls(): string[] {
+    return this.ndk?.pool?.connectedRelays().map((relay) => relay.url) ?? []
+  }
+
   async publishEvent(event: NDKEvent): Promise<void> {
     if (!this.ndk) {
       await this.connect()
@@ -1707,17 +1744,15 @@ export class NostrAPI {
       await event.sign(signer)
     }
 
-    const allRelayUrls = Array.from(this.ndk.pool.relays.keys())
-    if (allRelayUrls.length === 0) {
-      throw new Error('No relays in pool')
+    const connectedRelays = await this.waitForConnectedRelays()
+    if (connectedRelays.length === 0) {
+      const total = this.ndk.pool.relays.size
+      throw new Error(
+        `No relay connections established (0/${total}) — check network or VPN`
+      )
     }
 
-    const publishPromises = allRelayUrls.map(async (url) => {
-      const relay = this.ndk?.pool.relays.get(url)
-      if (!relay) {
-        return { error: 'Relay not found', success: false as const, url }
-      }
-
+    const publishPromises = connectedRelays.map(async (relay) => {
       try {
         const timeoutPromise = new Promise<never>((_resolve, reject) => {
           setTimeout(
@@ -1731,10 +1766,10 @@ export class NostrAPI {
           )
         })
         await Promise.race([relay.publish(event), timeoutPromise])
-        return { success: true as const, url }
+        return { success: true as const, url: relay.url }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error)
-        return { error: errorMsg, success: false as const, url }
+        return { error: errorMsg, success: false as const, url: relay.url }
       }
     })
 

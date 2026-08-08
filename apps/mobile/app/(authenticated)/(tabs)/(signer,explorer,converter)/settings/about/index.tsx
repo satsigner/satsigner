@@ -1,7 +1,12 @@
 import { Stack, useRouter } from 'expo-router'
 import { TouchableOpacity } from 'react-native'
 
-import { SSIconChevronRight, SSIconNostr, SSIconX } from '@/components/icons'
+import {
+  SSIconChevronRight,
+  SSIconNostr,
+  SSIconWarning,
+  SSIconX
+} from '@/components/icons'
 import SSText from '@/components/SSText'
 import { APP_LICENSE, APP_VERSION, BUILD_NUMBER } from '@/constants/version'
 import SSHStack from '@/layouts/SSHStack'
@@ -44,6 +49,20 @@ export default function About() {
             >
               <SSHStack justifyBetween>
                 <SSText uppercase>{t('settings.about.changelog.title')}</SSText>
+                <SSIconChevronRight height={11.6} width={6} />
+              </SSHStack>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.5}
+              onPress={() => router.navigate('/settings/securityReport')}
+            >
+              <SSHStack justifyBetween>
+                <SSHStack gap="sm">
+                  <SSIconWarning height={16} width={16} />
+                  <SSText uppercase>
+                    {t('settings.about.securityReport.title')}
+                  </SSText>
+                </SSHStack>
                 <SSIconChevronRight height={11.6} width={6} />
               </SSHStack>
             </TouchableOpacity>

@@ -248,8 +248,10 @@ export async function checkNip17LiveRoundtrip(
 
     // nip17.wrapEvent signs internally, so publishEvent needs no signer.
     await api.publishEvent(reportWrap)
+    const connected = api.getConnectedRelayUrls()
     lines.push(
-      `published gift wrap to ${NOSTR_SECURITY_REPORT_NPUB.slice(0, 16)}…`
+      `published gift wrap to ${NOSTR_SECURITY_REPORT_NPUB.slice(0, 16)}… ` +
+        `(${connected.length}/${relays.length} relays connected)`
     )
     await api.publishEvent(selfWrap)
     lines.push('published self-addressed gift wrap')
