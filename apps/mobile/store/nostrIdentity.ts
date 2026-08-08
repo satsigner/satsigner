@@ -39,7 +39,9 @@ const useNostrIdentityStore = create<
           }
           const next: NostrIdentity = {
             ...identity,
-            relayConnected: identity.relayConnected ?? false
+            // New identities connect by default: adding one is explicit
+            // intent to use nostr. The landing-page toggle disconnects.
+            relayConnected: identity.relayConnected ?? true
           }
           return { identities: [...state.identities, next] }
         })

@@ -26,6 +26,25 @@ export function getNostrContactsRelays(identityRelays?: string[]): string[] {
   return identityRelays?.length ? identityRelays : NostrAPI.INDEXING_RELAYS
 }
 
+/**
+ * Canonical relay resolution for an identity: its own relay list first, then
+ * the store-wide list, then the well-known indexing relays. Without the
+ * fallback, identities created before relays were configured could never
+ * fetch profiles/DMs (both lists default to empty).
+ */
+export function getNostrIdentityRelays(
+  identityRelays: string[] | undefined,
+  storeRelays: string[]
+): string[] {
+  if (identityRelays?.length) {
+    return identityRelays
+  }
+  if (storeRelays.length) {
+    return storeRelays
+  }
+  return NostrAPI.INDEXING_RELAYS
+}
+
 export function getNostrContactsRelaysKey(contactsRelays: string[]): string {
   return [...contactsRelays].toSorted().join(',')
 }
