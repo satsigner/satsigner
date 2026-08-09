@@ -6,6 +6,7 @@ import SSChatThread from '@/components/chat/SSChatThread'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import {
+  useNostrChatProfiles,
   useNostrChatSubscription,
   useNostrChatThread
 } from '@/hooks/useNostrChat'
@@ -40,6 +41,8 @@ export default function NostrChatThread() {
 
   const peerPubkey = peer ? getPubKeyHexFromNpub(peer) : null
   useNostrChatSubscription(identity)
+  // Fetch the peer's kind 0 so the header shows their name/picture.
+  useNostrChatProfiles(identity?.relays, peer ? [peer] : [])
   const { input, messages, send, sending, setInput } = useNostrChatThread(
     identity,
     protocol,

@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { nip19 } from 'nostr-tools'
+import { useMemo, useState } from 'react'
 import { Dimensions, StyleSheet, View } from 'react-native'
 import { TabView } from 'react-native-tab-view'
 
@@ -10,6 +11,7 @@ import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import {
   useNostrChatConversations,
+  useNostrChatProfiles,
   useNostrChatSubscription
 } from '@/hooks/useNostrChat'
 import SSHStack from '@/layouts/SSHStack'
@@ -55,6 +57,17 @@ export default function NostrIdentityChat() {
 
   const nip17Conversations = useNostrChatConversations(npub, 'nip17')
   const nip04Conversations = useNostrChatConversations(npub, 'nip04')
+
+  // Fetch kind 0 (name/picture) for every DM peer so conversations render
+  // with profiles instead of raw npubs.
+  const peerNpubs = useMemo(
+    () =>
+      [...nip17Conversations, ...nip04Conversations].map((conversation) =>
+        nip19.npubEncode(conversation.peerPubkey)
+      ),
+    [nip17Conversations, nip04Conversations]
+  )
+  useNostrChatProfiles(identity?.relays, peerNpubs)
 
   function handleOpenPeer(peerNpub: string, protocol: NostrChatProtocol) {
     if (!npub) {

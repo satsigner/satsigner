@@ -1,4 +1,4 @@
-import { FlatList, Pressable, StyleSheet, View } from 'react-native'
+import { FlatList, Image, Pressable, StyleSheet, View } from 'react-native'
 import { nip19 } from 'nostr-tools'
 
 import SSText from '@/components/SSText'
@@ -45,6 +45,21 @@ function ConversationRow({
         pressed && styles.rowPressed
       ]}
     >
+      <View style={styles.avatarWrap}>
+        {profile?.picture ? (
+          <Image
+            source={{ uri: profile.picture }}
+            style={styles.avatar}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.avatarFallback}>
+            <SSText size="md" style={styles.avatarFallbackText}>
+              {(displayName ?? shortenNpub(peerNpub)).slice(0, 1).toUpperCase()}
+            </SSText>
+          </View>
+        )}
+      </View>
       <View style={styles.rowContent}>
         <SSText weight="medium" numberOfLines={1}>
           {displayName ?? shortenNpub(peerNpub)}
@@ -101,6 +116,25 @@ export default function SSNostrConversationList({
 }
 
 const styles = StyleSheet.create({
+  avatar: {
+    borderRadius: 20,
+    height: 40,
+    width: 40
+  },
+  avatarFallback: {
+    alignItems: 'center',
+    backgroundColor: Colors.gray[800],
+    borderRadius: 20,
+    height: 40,
+    justifyContent: 'center',
+    width: 40
+  },
+  avatarFallbackText: {
+    color: Colors.gray[300]
+  },
+  avatarWrap: {
+    marginRight: 10
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center'
