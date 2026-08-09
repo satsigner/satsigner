@@ -103,6 +103,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       setDuressPin: async (pin) => {
         await setPin(pin, DURESS_PIN_KEY)
+        set({ duressPinEnabled: true })
       },
       setDuressPinEnabled(duressPinEnabled) {
         set({ duressPinEnabled })
