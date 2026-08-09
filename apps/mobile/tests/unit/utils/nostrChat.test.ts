@@ -80,7 +80,8 @@ describe('nostrChat', () => {
       protocol: 'nip17',
       status: 'pending'
     })
-    expect(publishSpy).toHaveBeenCalledTimes(1)
+    // Two publishes per NIP-17: recipient wrap + sender self copy.
+    expect(publishSpy).toHaveBeenCalledTimes(2)
     expect(updateChatMessageStatus).toHaveBeenCalledWith(
       senderNpub,
       stored[0] && (stored[0] as { id: string }).id,
@@ -196,6 +197,53 @@ describe('nostrChat', () => {
       content: 'hey there',
       id: 'rumor-1',
       protocol: 'nip17'
+    })
+  })
+
+  it('ingests NIP-17 self copies as outgoing messages for the tagged peer', async () => {
+    let rumorCallback:
+      | ((messages: { content: unknown; created_at: number }[]) => void)
+      | undefined
+    const fakeApi = {
+      getRelays: () => ['wss://test.relay'],
+      subscribeToKind1059: jest.fn(
+        async (
+          _nsec: string,
+          _npub: string,
+          cb: (messages: { content: unknown; created_at: number }[]) => void
+        ) => {
+          rumorCallback = cb
+        }
+      ),
+      subscribeToKind4: jest.fn(async () => undefined)
+    }
+
+    await subscribeToIdentityChat(fakeApi as unknown as NostrAPI, sender)
+
+    rumorCallback!([
+      {
+        // Our own self copy: rumor author is us, peer lives in the p tag.
+        content: {
+          content: 'sent from my other device',
+          created_at: 3000,
+          id: 'self-rumor-1',
+          kind: 14,
+          pubkey: senderPubkey,
+          tags: [['p', peerPubkey]]
+        },
+        created_at: 3000,
+        id: 'wrap-self-1',
+        pubkey: 'wrap-author'
+      }
+    ])
+
+    const stored = [...chatStore.values()] as Record<string, unknown>[]
+    expect(stored).toHaveLength(1)
+    expect(stored[0]).toMatchObject({
+      content: 'sent from my other device',
+      direction: 'out',
+      peerPubkey,
+      read: true
     })
   })
 })

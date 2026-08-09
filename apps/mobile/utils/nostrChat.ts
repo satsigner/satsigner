@@ -1,10 +1,12 @@
+import { type Event, nip59 } from 'nostr-tools'
+
 import { NostrAPI } from '@/api/nostr'
 import {
   insertChatMessage,
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
 import { type NostrChatMessage } from '@/types/models/Nostr'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 
 type ChatListener = (message: NostrChatMessage) => void
@@ -82,13 +84,26 @@ async function sendNip17Chat(
   if (!peerPubkey) {
     throw new Error('Invalid peer npub')
   }
+  const senderSecretKey = getSecretFromNsec(identity.nsec)
+  if (!senderSecretKey) {
+    throw new Error('Invalid identity nsec')
+  }
 
+  // NIP-17: gift-wrap to the recipient AND to ourselves — the self copy is
+  // what lets sent messages sync to other devices and reload from relays.
   const wrap = api.createKind1059(identity.nsec, peerNpub, text)
+  const selfWrap = api.createKind1059(identity.nsec, identity.npub, text)
+
+  // Store under the rumor id (deterministic) so the relay echo of our self
+  // copy dedups via INSERT OR IGNORE instead of duplicating.
+  const selfWrapRaw = await selfWrap.toNostrEvent()
+  const rumorId = nip59.unwrapEvent(selfWrapRaw as Event, senderSecretKey).id
+
   const message: NostrChatMessage = {
     content: text,
     created_at: Math.floor(Date.now() / 1000),
     direction: 'out',
-    id: wrap.id ?? `pending-${Date.now()}`,
+    id: rumorId,
     identityNpub: identity.npub,
     peerPubkey,
     protocol: 'nip17',
@@ -105,6 +120,8 @@ async function sendNip17Chat(
 
   try {
     await publishApi.publishEvent(wrap)
+    // Self copy goes to our own read relays (the pipeline's set).
+    await api.publishEvent(selfWrap).catch(() => undefined)
     updateChatMessageStatus(identity.npub, message.id, 'sent')
   } catch (error) {
     updateChatMessageStatus(identity.npub, message.id, 'failed')
@@ -219,6 +236,8 @@ async function subscribeToIdentityChat(
 ): Promise<void> {
   chatLog('subscribing', identity.npub.slice(0, 16), 'relays:', api.getRelays())
 
+  const ownHex = getPubKeyHexFromNpub(identity.npub)
+
   await api.subscribeToKind1059(identity.nsec, identity.npub, (messages) => {
     chatLog('gift wraps in batch:', messages.length)
     for (const message of messages) {
@@ -227,8 +246,7 @@ async function subscribeToIdentityChat(
         rumor?.kind !== 14 ||
         typeof rumor.content !== 'string' ||
         !rumor.id ||
-        !rumor.pubkey ||
-        rumor.pubkey === getPubKeyHexFromNpub(identity.npub)
+        !rumor.pubkey
       ) {
         chatLog(
           'skipped wrap (not a chat rumor):',
@@ -237,15 +255,27 @@ async function subscribeToIdentityChat(
         )
         continue
       }
+
+      // Self copies (NIP-17 wraps to sender) carry the peer in the rumor's
+      // p tag; everyone else's wraps are incoming from the rumor author.
+      const isSelfCopy = rumor.pubkey === ownHex
+      const rumorTags = (rumor as { tags?: string[][] }).tags ?? []
+      const peerFromTag = rumorTags.find((tag) => tag[0] === 'p')?.[1]
+      const peerPubkey = isSelfCopy ? peerFromTag : rumor.pubkey
+      if (!peerPubkey || !/^[0-9a-f]{64}$/.test(peerPubkey)) {
+        chatLog('skipped wrap: no valid peer pubkey')
+        continue
+      }
+
       ingestChatMessage({
         content: rumor.content,
         created_at: rumor.created_at ?? message.created_at ?? 0,
-        direction: 'in',
+        direction: isSelfCopy ? 'out' : 'in',
         id: rumor.id,
         identityNpub: identity.npub,
-        peerPubkey: rumor.pubkey,
+        peerPubkey,
         protocol: 'nip17',
-        read: false,
+        read: isSelfCopy,
         status: 'sent'
       })
     }
