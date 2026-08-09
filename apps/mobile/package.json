@@ -25,6 +25,7 @@
     "storybook-generate": "sb-rn-get-stories",
     "test": "pnpm test:unit && pnpm test:int",
     "test:int": "jest ./tests/int",
+    "test:int:nostr": "node scripts/nostr-roundtrip.mjs",
     "test:int:payjoin": "jest ./tests/int/api/payjoin-signet.test.ts",
     "test:unit": "jest ./tests/unit",
     "maestro:prep": "bash .maestro/scripts/prep-android.sh",
