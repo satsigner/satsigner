@@ -102,7 +102,8 @@ async function openWalletWithOnchain(
         createWithoutServer: false,
         datadir: args.datadir,
         onchain: onchainWallet,
-        runDaemon
+        runDaemon,
+        skipRecovery: false
       }
     )
     walletCache.set(args.accountId, wallet)
@@ -444,7 +445,7 @@ function mapVtxo(vtxo: Vtxo, spendable: boolean): ArkVtxo {
     id: vtxo.id,
     kind: vtxo.kind,
     spendable,
-    state: vtxo.state
+    state: vtxo.state.tag
   }
 }
 

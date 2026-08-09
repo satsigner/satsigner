@@ -68,6 +68,16 @@ function buildFakeWallet(overrides: Partial<FakeWallet> = {}): FakeWallet {
   }
 }
 
+function buildFakeVtxo(id: string, amountSats: bigint, expiryHeight: number) {
+  return {
+    amountSats,
+    expiryHeight,
+    id,
+    kind: 'k',
+    state: { tag: 'Spendable' }
+  }
+}
+
 const provider: ArkWalletProvider = getArkProvider('second')
 
 async function openWallet(
@@ -202,16 +212,11 @@ describe('bark provider', () => {
   })
 
   it('listAllVtxos flags spendable vtxos from the spendable set', async () => {
+    const vtxoA = buildFakeVtxo('a', 100n, 10)
+    const vtxoB = buildFakeVtxo('b', 200n, 20)
     const wallet = buildFakeWallet({
-      allVtxos: jest.fn().mockResolvedValue([
-        { amountSats: 100n, expiryHeight: 10, id: 'a', kind: 'k', state: 's' },
-        { amountSats: 200n, expiryHeight: 20, id: 'b', kind: 'k', state: 's' }
-      ]),
-      spendableVtxos: jest
-        .fn()
-        .mockResolvedValue([
-          { amountSats: 100n, expiryHeight: 10, id: 'a', kind: 'k', state: 's' }
-        ])
+      allVtxos: jest.fn().mockResolvedValue([vtxoA, vtxoB]),
+      spendableVtxos: jest.fn().mockResolvedValue([vtxoA])
     })
     await openWallet('vtxo1', wallet)
     const vtxos = await provider.listAllVtxos('vtxo1')
