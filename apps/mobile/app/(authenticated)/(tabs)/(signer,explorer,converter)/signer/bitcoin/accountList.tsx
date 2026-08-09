@@ -25,7 +25,6 @@ import SSButton from '@/components/SSButton'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN } from '@/config/auth'
 import {
   sampleMultiAddressTether,
   sampleSalvadorAddress,
@@ -66,6 +65,7 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { randomKey } from '@/utils/crypto'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { getPin, setPin } from '@/utils/pin'
 import { time } from '@/utils/time'
@@ -445,13 +445,15 @@ export default function AccountList() {
   }
 
   async function loadSampleWallet(type: SampleWallet) {
+    // Sample wallets need encryption key material. In development only, create a
+    // random ephemeral key when none exists (never a hardcoded PIN).
     try {
       await getPin()
     } catch {
       if (!__DEV__) {
         throw new Error('PIN unavailable')
       }
-      await setPin(DEFAULT_PIN)
+      await setPin(await randomKey(32))
     }
 
     setName(`Sample (${type})`)

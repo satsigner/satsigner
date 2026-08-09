@@ -41,6 +41,12 @@ import {
 import { type NostrAccount } from '@/types/models/Nostr'
 import { type Transaction } from '@/types/models/Transaction'
 import { dropSeedFromKey } from '@/utils/account'
+import {
+  deleteNostrAccountSecretSafe,
+  mergeAccountWithCachedNostrSecrets,
+  persistAccountSecretsSafe,
+  setCachedAccountSecrets
+} from '@/utils/nostrSecrets'
 import { pruneExcludedOutpoints } from '@/utils/utxoList'
 
 /**
@@ -125,19 +131,22 @@ function reloadAccount(set: ImmerSet, accountId: string): Account | undefined {
     return undefined
   }
 
+  const withSecrets = mergeAccountWithCachedNostrSecrets(account)
+
   set((state) => {
     const idx = state.accounts.findIndex((a) => a.id === accountId)
     if (idx !== -1) {
-      state.accounts[idx] = account
+      state.accounts[idx] = withSecrets
     }
   })
-  return account
+  return withSecrets
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
   immer((set, get) => ({
-    accounts: getAccounts(),
+    accounts: getAccounts().map(mergeAccountWithCachedNostrSecrets),
     addAccount: (account) => {
+      void persistAccountSecretsSafe(account.id, account.nostr)
       insertAccountDb(account)
       set((state) => {
         state.accounts.push(account)
@@ -147,6 +156,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       const account = get().accounts.find((a) => a.id === id)
       if (account) {
         deleteAllKeySecrets(account.id, account.keys.length)
+        void deleteNostrAccountSecretSafe(account.id)
       }
       deleteAccountDb(id)
       set((state) => {
@@ -160,6 +170,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       const { accounts } = get()
       for (const account of accounts) {
         deleteAllKeySecrets(account.id, account.keys.length)
+        void deleteNostrAccountSecretSafe(account.id)
       }
       deleteAllAccountsDb()
       set((state) => {
@@ -430,6 +441,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         nostr: mergedNostr
       }
 
+      void persistAccountSecretsSafe(mergedAccount.id, mergedAccount.nostr)
       updateFullAccountDb(mergedAccount)
 
       reloadAccount(set, account.id)
@@ -473,27 +485,42 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       })
     },
     updateAccountNostr: (id, nostr) => {
+      const prev = get().accounts.find((account) => account.id === id)?.nostr
+      const base: NostrAccount = prev ?? {
+        autoSync: false,
+        commonNpub: '',
+        commonNsec: '',
+        dms: [],
+        lastUpdated: new Date(),
+        relays: [],
+        syncStart: new Date(),
+        trustedMemberDevices: []
+      }
+      const nextNostr: NostrAccount = {
+        ...base,
+        ...nostr
+      }
+
+      if (
+        nostr.commonNsec !== undefined ||
+        nostr.deviceNsec !== undefined ||
+        nostr.deviceMnemonic !== undefined
+      ) {
+        setCachedAccountSecrets(id, {
+          commonNsec: nextNostr.commonNsec || '',
+          deviceMnemonic: nextNostr.deviceMnemonic,
+          deviceNsec: nextNostr.deviceNsec
+        })
+        void persistAccountSecretsSafe(id, nextNostr)
+      }
+
       updateAccountNostrDb(id, nostr)
       set((state) => {
         const index = state.accounts.findIndex((account) => account.id === id)
         if (index === -1) {
           return
         }
-        const prev = state.accounts[index].nostr
-        const base: NostrAccount = prev ?? {
-          autoSync: false,
-          commonNpub: '',
-          commonNsec: '',
-          dms: [],
-          lastUpdated: new Date(),
-          relays: [],
-          syncStart: new Date(),
-          trustedMemberDevices: []
-        }
-        state.accounts[index].nostr = {
-          ...base,
-          ...nostr
-        }
+        state.accounts[index].nostr = nextNostr
       })
     },
     updateKeyName: (id, keyIndex, newName) => {

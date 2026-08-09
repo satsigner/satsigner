@@ -10,7 +10,7 @@ import {
 import { getItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
-import { pbkdf2Encrypt } from '@/utils/crypto'
+import { pbkdf2Encrypt, randomKey } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
 import { getPin, setPin } from '@/utils/pin'
 
@@ -43,6 +43,11 @@ type AuthAction = {
   setDuressPin: (pin: string) => Promise<void>
   setSkipPin: (skipPin: boolean) => void
   setDuressPinEnabled: (duressPinEnabled: boolean) => void
+  /**
+   * Dev-only: skip lock screen and ensure encryption key material exists.
+   * Uses a random ephemeral passphrase (never a hardcoded PIN) when none is set.
+   */
+  enableDevSkipPin: () => Promise<void>
   validatePin: (pin: string) => Promise<boolean>
   incrementPinTries: () => number
   resetPinTries: () => void
@@ -63,6 +68,18 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ pageHistory: [] })
       },
       duressPinEnabled: false,
+      enableDevSkipPin: async () => {
+        if (!__DEV__) {
+          return
+        }
+        try {
+          await getPin()
+        } catch {
+          // High-entropy throwaway passphrase; only its PBKDF2 digest is kept.
+          await setPin(await randomKey(32))
+        }
+        set({ skipPin: true })
+      },
       firstTime: true,
       getPagesHistory: () => ['/', ...get().pageHistory],
       incrementPinTries: () => {

@@ -39,6 +39,12 @@ describe('resolveLnurlUrl', () => {
       'https://service.example/w'
     )
   })
+
+  it('rejects cleartext http LNURLs', () => {
+    expect(() =>
+      resolveLnurlUrl(encodeLnurl('http://service.example/withdraw'))
+    ).toThrow(/HTTPS/)
+  })
 })
 
 describe('isLnurlWithdrawAmountInRange', () => {

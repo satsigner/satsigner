@@ -1,7 +1,5 @@
 import {
   PIN_SIZE,
-  DEFAULT_PIN,
-  DEFAULT_PIN_KEY,
   PIN_KEY,
   SALT_KEY,
   DURESS_PIN_KEY,
@@ -10,8 +8,7 @@ import {
 import { getItem, setItem } from '@/storage/encrypted'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 
-// TODO: remove default pin by enforce setting pin
-type PinType = typeof PIN_KEY | typeof DURESS_PIN_KEY | typeof DEFAULT_PIN_KEY
+type PinType = typeof PIN_KEY | typeof DURESS_PIN_KEY
 
 async function setPin(pin: string, pinType: PinType = PIN_KEY) {
   const salt = await generateSalt()
@@ -23,10 +20,23 @@ async function setPin(pin: string, pinType: PinType = PIN_KEY) {
   return hashedPin
 }
 
-async function getPin(pinType = PIN_KEY): Promise<string> {
-  if (pinType === DEFAULT_PIN_KEY) {
-    return DEFAULT_PIN
-  }
+/**
+ * Derive PIN key material without storing it. Lets a PIN change re-encrypt
+ * every secret under the new key before the old digest is overwritten, so a
+ * failure part-way through leaves the existing PIN able to decrypt everything.
+ */
+async function derivePinMaterial(pin: string) {
+  const salt = await generateSalt()
+  const hashedPin = await pbkdf2Encrypt(pin, salt)
+  return { hashedPin, salt }
+}
+
+async function commitPinMaterial(salt: string, hashedPin: string) {
+  await setItem(SALT_KEY, salt)
+  await setItem(PIN_KEY, hashedPin)
+}
+
+async function getPin(pinType: PinType = PIN_KEY): Promise<string> {
   const pin = await getItem(pinType)
   if (pin === null) {
     throw new Error('PIN unavailable')
@@ -35,9 +45,6 @@ async function getPin(pinType = PIN_KEY): Promise<string> {
 }
 
 async function checkPinEqual(plainPin: string, pinType: PinType = PIN_KEY) {
-  if (pinType === DEFAULT_PIN_KEY) {
-    return plainPin === DEFAULT_PIN
-  }
   const saltKey = pinType === DURESS_PIN_KEY ? SALT_KEY_DURESS : SALT_KEY
   const salt = await getItem(saltKey)
   if (!salt) {
@@ -83,7 +90,9 @@ function deletePinDigit(pin: string[]): string[] {
 
 export {
   checkPinEqual,
+  commitPinMaterial,
   deletePinDigit,
+  derivePinMaterial,
   emptyPin,
   fillPinDigit,
   getPin,
