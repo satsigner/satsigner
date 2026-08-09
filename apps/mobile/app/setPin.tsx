@@ -17,6 +17,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
 import {
+  checkPinEqual,
   commitPinMaterial,
   derivePinMaterial,
   emptyPin,
@@ -138,25 +139,37 @@ export default function SetPin() {
     }
     setLoading(true)
 
+    const newPin = pinArray.join('')
     const currentPinEncrypted = await getCurrentPin()
-    const { hashedPin: newPinEncrypted, salt } = await derivePinMaterial(
-      pinArray.join('')
-    )
+    // Compare the plaintext against the stored salt. Digests cannot be compared
+    // directly: derivePinMaterial draws a fresh salt, so an unchanged PIN still
+    // hashes to a different value.
+    const pinUnchanged = currentPinEncrypted
+      ? await checkPinEqual(newPin)
+      : false
 
-    // Re-encrypt under the new key material first. Committing the new PIN
-    // before this succeeds would strand every secret still encrypted with the
-    // old one, with no way to derive it again.
-    if (currentPinEncrypted && currentPinEncrypted !== newPinEncrypted) {
-      try {
-        await reEncryptAccounts(currentPinEncrypted, newPinEncrypted)
-      } catch {
-        setLoading(false)
-        toast.error(t('auth.pinChangeError'))
-        return
+    // The stored digest is the AES key for every secret, so re-deriving it
+    // would strand them all. Leave the existing material in place.
+    if (!pinUnchanged) {
+      const { hashedPin: newPinEncrypted, salt } =
+        await derivePinMaterial(newPin)
+
+      // Re-encrypt under the new key material first. Committing the new PIN
+      // before this succeeds would strand every secret still encrypted with
+      // the old one, with no way to derive it again.
+      if (currentPinEncrypted) {
+        try {
+          await reEncryptAccounts(currentPinEncrypted, newPinEncrypted)
+        } catch {
+          setLoading(false)
+          toast.error(t('auth.pinChangeError'))
+          return
+        }
       }
+
+      await commitPinMaterial(salt, newPinEncrypted)
     }
 
-    await commitPinMaterial(salt, newPinEncrypted)
     setSkipPin(false)
     setRequirePinMigration(false)
 
