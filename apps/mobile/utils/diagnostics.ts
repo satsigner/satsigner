@@ -17,6 +17,10 @@ import {
   randomUuid
 } from '@/utils/crypto'
 import {
+  ENTROPY_IV_SAMPLES,
+  ENTROPY_UUID_SAMPLES
+} from '@/utils/entropySoak'
+import {
   derivePinDigest,
   LEGACY_KDF_CONFIG,
   safeEqualHex
@@ -41,12 +45,6 @@ const SECURE_STORE_PROBE_KEY = 'diagnostic_probe'
 const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3_000
 const LIVE_RETRIEVE_ATTEMPTS = 4
 const LIVE_RETRIEVE_DELAY_MS = 2_500
-
-// Sized to run in ~1s on-device while still catching weak-RNG classes:
-// any collision among 50k UUIDs (122 random bits each) or 20k IVs (128 bits)
-// indicates a broken CSPRNG — expected collisions are ~2^-98 and ~2^-103.
-const ENTROPY_UUID_SAMPLES = 50_000
-const ENTROPY_IV_SAMPLES = 20_000
 
 async function runGuarded(
   lines: string[],

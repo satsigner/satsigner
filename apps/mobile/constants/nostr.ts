@@ -87,6 +87,17 @@ export const NOSTR_LIVE_CHECK_FALLBACK_RELAYS = [
   'wss://nostr.bitcoiner.social'
 ]
 
+// Indexer relays used as the second tier for kind-0 profile fetches when the
+// user's own relays don't have a profile (see utils/nostrProfileFetcher.ts).
+export const NOSTR_INDEXER_RELAYS = [
+  'wss://indexer.coracle.social',
+  'wss://relay.nos.social',
+  'wss://nos.lol',
+  'wss://indexer.nostrarchives.com',
+  'wss://relay.damus.io',
+  'wss://relay.primal.net'
+]
+
 export const NOSTR_RELAYS: NostrRelay[] = [
   { name: '0xchat', url: 'wss://relay.0xchat.com' },
   { name: 'Agora', url: 'wss://relay.agora.social' },

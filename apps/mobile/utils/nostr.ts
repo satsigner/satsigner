@@ -5,6 +5,7 @@ import { getPublicKey, nip05 as nostrNip05, nip19 } from 'nostr-tools'
 import pako from 'pako'
 
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
+import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { base85Decode, base85Encode } from '@/utils/base58'
 import { sha256 } from '@/utils/crypto'
 import { parseDescriptor } from '@/utils/parse'
@@ -191,4 +192,33 @@ export function extractInboxRelayUrls(
     .map((tag) => tag[1])
     .filter((url) => url.startsWith('wss://'))
   return [...new Set(urls)]
+}
+
+/** Parses kind 0 content JSON into a profile; null when nothing usable. */
+export function getProfileFromKind0Content(
+  contentJson: string
+): NostrKind0Profile | null {
+  try {
+    const content = JSON.parse(contentJson) as Record<string, unknown>
+    const displayName =
+      typeof content.name === 'string'
+        ? content.name
+        : typeof content.display_name === 'string'
+          ? content.display_name
+          : typeof content.username === 'string'
+            ? content.username
+            : undefined
+    const picture =
+      typeof content.picture === 'string' ? content.picture : undefined
+    const banner =
+      typeof content.banner === 'string' ? content.banner : undefined
+    const nip05 = typeof content.nip05 === 'string' ? content.nip05 : undefined
+    const lud16 = typeof content.lud16 === 'string' ? content.lud16 : undefined
+    if (!displayName && !picture && !banner && !nip05 && !lud16) {
+      return null
+    }
+    return { banner, displayName, lud16, nip05, picture }
+  } catch {
+    return null
+  }
 }

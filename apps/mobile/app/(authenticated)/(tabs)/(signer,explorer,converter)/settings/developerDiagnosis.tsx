@@ -286,6 +286,24 @@ export default function DeveloperDiagnosis() {
 
             <SSSeparator color="gradient" />
 
+            <SSVStack gap="sm">
+              <SSText uppercase>
+                {t('settings.developer.diagnosis.entropySoak.title')}
+              </SSText>
+              <SSText color="muted" size="sm">
+                {t('settings.developer.diagnosis.entropySoak.description')}
+              </SSText>
+              <SSButton
+                label={t('settings.developer.diagnosis.entropySoak.open')}
+                variant="outline"
+                onPress={() =>
+                  router.navigate('/settings/developerEntropySoak')
+                }
+              />
+            </SSVStack>
+
+            <SSSeparator color="gradient" />
+
             <SSButton
               label={t('common.back')}
               variant="outline"

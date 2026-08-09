@@ -40,76 +40,27 @@ import type {
 } from '@/types/models/Nostr'
 import { chunkArray } from '@/utils/chunkArray'
 import { randomKey } from '@/utils/crypto'
-import { getPubKeyHexFromNpub, getSecretFromNsec, extractInboxRelayUrls } from '@/utils/nostr'
+import { getPubKeyHexFromNpub, getSecretFromNsec, extractInboxRelayUrls, getProfileFromKind0Content } from '@/utils/nostr'
+import {
+  fetchProfileCoalesced,
+  fetchProfilesCoalesced,
+  queueProfileFetches
+} from '@/utils/nostrProfileFetcher'
 import {
   extractResponseOptionIds,
   NOSTR_POLL_RESPONSE_KIND
 } from '@/utils/nostrPoll'
 
-function createMobileNdk(explicitRelayUrls: string[]): NDK {
-  return new NDK({
-    autoConnectUserRelays: false,
-    enableOutboxModel: false,
-    explicitRelayUrls
-  })
-}
+import {
+  createMobileNdk,
+  disconnectNdkPool,
+  getOrCreateNdk,
+  ndkRegistry,
+  resetNdkForRelays
+} from './ndkRegistry'
 
-function disconnectNdkPool(ndk: NDK): void {
-  try {
-    ndk.pool?.removeAllListeners?.()
-    for (const relay of ndk.pool?.relays.values() ?? []) {
-      relay.disconnect()
-    }
-  } catch {
-    // best-effort cleanup
-  }
-}
-
-// One NDK instance per relay set, shared across all NostrAPI callers.
-// Prevents duplicate WebSocket connections when multiple screens use the same relays.
-const ndkRegistry = new Map<string, NDK>()
-
-function getOrCreateNdk(relays: string[]): NDK {
-  const key = [...relays].toSorted().join(',')
-  const existing = ndkRegistry.get(key)
-  if (existing) {
-    return existing
-  }
-  const ndk = createMobileNdk(relays)
-  ndkRegistry.set(key, ndk)
-  return ndk
-}
-
-function resetNdkForRelays(relays: string[]): NDK {
-  const key = [...relays].toSorted().join(',')
-  const existing = ndkRegistry.get(key)
-  if (existing) {
-    for (const relay of existing.pool?.relays.values() ?? []) {
-      try {
-        relay.disconnect()
-      } catch {
-        // best-effort
-      }
-    }
-    ndkRegistry.delete(key)
-  }
-  const ndk = createMobileNdk(relays)
-  ndkRegistry.set(key, ndk)
-  return ndk
-}
-
-export function clearNdkRegistry(): void {
-  for (const ndk of ndkRegistry.values()) {
-    for (const relay of ndk.pool?.relays.values() ?? []) {
-      try {
-        relay.disconnect()
-      } catch {
-        // best-effort
-      }
-    }
-  }
-  ndkRegistry.clear()
-}
+// Re-exported for existing callers (registry now lives in ./ndkRegistry).
+export { clearNdkRegistry } from './ndkRegistry'
 
 function normalizeRelayUrl(url: string): string {
   return url.toLowerCase().replace(/\/$/, '')
@@ -195,34 +146,6 @@ export async function testNostrRelaysReachable(
       url
     })),
     status: 'disconnected'
-  }
-}
-
-function getProfileFromKind0Content(
-  contentJson: string
-): NostrKind0Profile | null {
-  try {
-    const content = JSON.parse(contentJson) as Record<string, unknown>
-    const displayName =
-      typeof content.name === 'string'
-        ? content.name
-        : typeof content.display_name === 'string'
-          ? content.display_name
-          : typeof content.username === 'string'
-            ? content.username
-            : undefined
-    const picture =
-      typeof content.picture === 'string' ? content.picture : undefined
-    const banner =
-      typeof content.banner === 'string' ? content.banner : undefined
-    const nip05 = typeof content.nip05 === 'string' ? content.nip05 : undefined
-    const lud16 = typeof content.lud16 === 'string' ? content.lud16 : undefined
-    if (!displayName && !picture && !banner && !nip05 && !lud16) {
-      return null
-    }
-    return { banner, displayName, lud16, nip05, picture }
-  } catch {
-    return null
   }
 }
 
@@ -322,56 +245,21 @@ export class NostrAPI {
       }
     }
 
-    await this.connect()
-    if (!this.ndk) {
-      return cached
-        ? {
-            banner: cached.banner,
-            displayName: cached.displayName,
-            lud16: cached.lud16,
-            nip05: cached.nip05,
-            picture: cached.picture
-          }
-        : null
-    }
-
-    const filter: NDKFilter = {
-      authors: [pk],
-      kinds: [NDKKind.Metadata],
-      limit: 10
-    }
-    const FETCH_KIND0_TIMEOUT_MS = 15000
-    const events = await NostrAPI.fetchManyWithTimeout(
-      this.ndk,
-      filter,
-      FETCH_KIND0_TIMEOUT_MS
-    )
-
-    const event =
-      events.size === 0
-        ? null
-        : Array.from(events).toSorted(
-            (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
-          )[0]
-
-    if (!event?.content) {
-      return cached
-        ? {
-            banner: cached.banner,
-            displayName: cached.displayName,
-            lud16: cached.lud16,
-            nip05: cached.nip05,
-            picture: cached.picture
-          }
-        : null
-    }
-
-    const profile = getProfileFromKind0Content(event.content)
+    // Coalesced fetcher: dedupes across screens, retries dead pubkeys against
+    // indexer relays, and resolves as soon as relays answer (EOSE-driven).
+    const profile = await fetchProfileCoalesced(pk, this.relays)
     if (profile) {
-      cacheProfile(pk, profile, event.id, event.created_at ?? 0)
+      return profile
     }
-
-    return profile
+    return cached
+      ? {
+          banner: cached.banner,
+          displayName: cached.displayName,
+          lud16: cached.lud16,
+          nip05: cached.nip05,
+          picture: cached.picture
+        }
+      : null
   }
 
   /**
@@ -462,53 +350,14 @@ export class NostrAPI {
       return new Map()
     }
 
-    await this.connectForPublish()
-    if (!this.ndk) {
-      return new Map()
-    }
-
-    const FETCH_KIND0_BATCH_TIMEOUT_MS = 15000
-    const filter: NDKFilter = {
-      authors: validKeys,
-      kinds: [NDKKind.Metadata],
-      limit: validKeys.length
-    }
-    const events = await NostrAPI.fetchManyWithTimeout(
-      this.ndk,
-      filter,
-      FETCH_KIND0_BATCH_TIMEOUT_MS
-    )
-
-    const newestByPubkey = new Map<
-      string,
-      { createdAt: number; event: NDKEvent; profile: NostrKind0Profile }
-    >()
-    for (const event of events) {
-      if (!event.pubkey || !event.content) {
-        continue
-      }
-      const profile = getProfileFromKind0Content(event.content)
-      if (!profile) {
-        continue
-      }
-      const existing = newestByPubkey.get(event.pubkey)
-      const createdAt = event.created_at ?? 0
-      if (!existing || createdAt > existing.createdAt) {
-        newestByPubkey.set(event.pubkey, { createdAt, event, profile })
-      }
-    }
-
-    const result = new Map<string, NostrKind0Profile>()
-    for (const [pk, { event, profile }] of newestByPubkey) {
-      cacheProfile(pk, profile, event.id, event.created_at ?? 0)
-      result.set(pk, profile)
-    }
-    return result
+    // Coalesced fetcher: dedupes in-flight pubkeys across callers, falls back
+    // to indexer relays for misses, resolves on EOSE instead of a fixed 15s.
+    return fetchProfilesCoalesced(validKeys, this.relays)
   }
 
   /**
    * Streams kind 0 profiles for many pubkeys: SQLite cache first, then relay
-   * batches via fetchKind0Batch. Invokes onBatch after each cache/relay chunk.
+   * batches via the coalescing fetcher. Invokes onBatch after each chunk.
    */
   async streamKind0Profiles(
     hexPubkeys: string[],
@@ -545,15 +394,15 @@ export class NostrAPI {
       onBatch(cachedBatch)
     }
 
-    for (const slice of chunkArray(missing, NOSTR_PROFILE_BATCH_SIZE)) {
-      if (signal?.aborted) {
-        return
-      }
-      const batch = await this.fetchKind0Batch(slice)
-      if (batch.size > 0 && !signal?.aborted) {
-        onBatch(batch)
-      }
-    }
+    // Coalesced relay fetches with per-chunk delivery; abort stops delivery.
+    queueProfileFetches(missing, {
+      onBatch: (batch) => {
+        if (!signal?.aborted) {
+          onBatch(batch)
+        }
+      },
+      relays: this.relays
+    })
   }
 
   /**
