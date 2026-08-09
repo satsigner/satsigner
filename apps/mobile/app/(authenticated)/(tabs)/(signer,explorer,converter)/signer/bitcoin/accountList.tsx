@@ -25,7 +25,6 @@ import SSButton from '@/components/SSButton'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import { PIN_KEY, SALT_KEY } from '@/config/auth'
 import {
   sampleMultiAddressTether,
   sampleSalvadorAddress,
@@ -51,7 +50,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { setItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -67,8 +65,9 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { generateSalt, getPin, pbkdf2Encrypt, randomKey } from '@/utils/crypto'
+import { randomKey } from '@/utils/crypto'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { getPin, setPin } from '@/utils/pin'
 import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3
@@ -454,11 +453,7 @@ export default function AccountList() {
       if (!__DEV__) {
         throw new Error('PIN unavailable')
       }
-      const ephemeral = await randomKey(32)
-      const salt = await generateSalt()
-      const encryptedPin = await pbkdf2Encrypt(ephemeral, salt)
-      await setItem(PIN_KEY, encryptedPin)
-      await setItem(SALT_KEY, salt)
+      await setPin(await randomKey(32))
     }
 
     setName(`Sample (${type})`)

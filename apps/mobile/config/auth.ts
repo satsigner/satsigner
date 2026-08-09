@@ -1,6 +1,7 @@
 const PIN_KEY = 'satsigner_pin'
 const DURESS_PIN_KEY = 'satsigner_duress_pin'
 const SALT_KEY = 'satsigner_salt'
+const SALT_KEY_DURESS = 'satsigner_salt_duress'
 
 const PIN_SIZE = 4
 const DEFAULT_PIN_MAX_TRIES = 5
@@ -15,6 +16,7 @@ export {
   PIN_KEY,
   PIN_SIZE,
   SALT_KEY,
+  SALT_KEY_DURESS,
   SETTINGS_PIN_MAX_POSSIBLE_TRIES,
   SETTINGS_PIN_MIN_POSSIBLE_TRIES
 }

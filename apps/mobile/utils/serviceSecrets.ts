@@ -8,7 +8,8 @@ import {
 } from '@/storage/encrypted'
 import type { LNDConfig } from '@/types/models/Lightning'
 import { type Network, type RpcCredentials } from '@/types/settings/blockchain'
-import { aesDecrypt, aesEncrypt, getPin, randomIv } from '@/utils/crypto'
+import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
+import { getPin } from '@/utils/pin'
 
 const BLOCKCHAIN_NETWORKS: Network[] = ['bitcoin', 'testnet', 'signet']
 

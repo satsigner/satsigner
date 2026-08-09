@@ -8,7 +8,8 @@ import {
 } from '@/storage/encrypted'
 import { type Account } from '@/types/models/Account'
 import { type NostrAccount, type NostrIdentity } from '@/types/models/Nostr'
-import { aesDecrypt, aesEncrypt, getPin, randomIv } from '@/utils/crypto'
+import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
+import { getPin } from '@/utils/pin'
 
 export type NostrIdentitySecrets = {
   mnemonic?: string
