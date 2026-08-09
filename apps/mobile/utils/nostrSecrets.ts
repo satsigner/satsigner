@@ -116,7 +116,9 @@ async function loadIdentitySecrets(
   npub: string,
   pin?: string
 ): Promise<NostrIdentitySecrets | null> {
-  const cached = identitySecretsCache.get(npub)
+  // Only the ambient PIN can be served from cache; an explicit key must be
+  // verified against the stored ciphertext rather than trusting memory.
+  const cached = pin ? undefined : identitySecretsCache.get(npub)
   if (cached) {
     return cached
   }
@@ -152,7 +154,9 @@ async function loadAccountNostrSecrets(
   accountId: string,
   pin?: string
 ): Promise<NostrAccountSecrets | null> {
-  const cached = accountSecretsCache.get(accountId)
+  // Only the ambient PIN can be served from cache; an explicit key must be
+  // verified against the stored ciphertext rather than trusting memory.
+  const cached = pin ? undefined : accountSecretsCache.get(accountId)
   if (cached) {
     return cached
   }

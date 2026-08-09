@@ -20,6 +20,22 @@ async function setPin(pin: string, pinType: PinType = PIN_KEY) {
   return hashedPin
 }
 
+/**
+ * Derive PIN key material without storing it. Lets a PIN change re-encrypt
+ * every secret under the new key before the old digest is overwritten, so a
+ * failure part-way through leaves the existing PIN able to decrypt everything.
+ */
+async function derivePinMaterial(pin: string) {
+  const salt = await generateSalt()
+  const hashedPin = await pbkdf2Encrypt(pin, salt)
+  return { hashedPin, salt }
+}
+
+async function commitPinMaterial(salt: string, hashedPin: string) {
+  await setItem(SALT_KEY, salt)
+  await setItem(PIN_KEY, hashedPin)
+}
+
 async function getPin(pinType: PinType = PIN_KEY): Promise<string> {
   const pin = await getItem(pinType)
   if (pin === null) {
@@ -74,7 +90,9 @@ function deletePinDigit(pin: string[]): string[] {
 
 export {
   checkPinEqual,
+  commitPinMaterial,
   deletePinDigit,
+  derivePinMaterial,
   emptyPin,
   fillPinDigit,
   getPin,

@@ -692,6 +692,7 @@
     "confirmPin": "Confirm pin number",
     "enterPinTitle": "Enter your PIN",
     "noPin": "No pin",
+    "pinChangeError": "Could not re-encrypt your data. Your PIN was not changed.",
     "pinMatchDuressPin": "PIN and Duress PIN must be different!",
     "pinsDontMatch": "No pin number match",
     "pinsMatch": "Pin number match",

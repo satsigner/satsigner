@@ -163,19 +163,17 @@ export default function AuthenticatedLayout() {
 
   useEffect(() => {
     async function run() {
-      const {
-        justUnlocked: ju,
-        pendingRecoverData: pending,
-        skipPin: pinSkipped
-      } = useAuthStore.getState()
+      const { justUnlocked: ju, pendingRecoverData: pending } =
+        useAuthStore.getState()
 
-      if (ju || pinSkipped) {
-        try {
-          await migrateAndHydrateNostrSecrets()
-          await migrateAndHydrateServiceSecrets()
-        } catch {
-          // non-critical for boot; secrets may remain unavailable until next unlock
-        }
+      // Not gated on justUnlocked: this effect runs once on mount and may race
+      // the unlock screen setting that flag. Reaching this layout already means
+      // the user is authenticated, and both helpers no-op when no PIN exists.
+      try {
+        await migrateAndHydrateNostrSecrets()
+        await migrateAndHydrateServiceSecrets()
+      } catch {
+        // non-critical for boot; secrets may remain unavailable until next unlock
       }
 
       if (ju && pending) {

@@ -2,6 +2,7 @@ import { type Account } from '@/types/models/Account'
 import { type NostrAccount } from '@/types/models/Nostr'
 import {
   clearNostrSecretsCaches,
+  loadAccountNostrSecrets,
   looksLikePlaintextMnemonic,
   looksLikePlaintextNsec,
   mergeAccountWithCachedNostrSecrets,
@@ -91,5 +92,30 @@ describe('mergeAccountWithCachedNostrSecrets', () => {
       commonNsec: 'nsec1fromcache',
       deviceNsec: 'nsec1device'
     })
+  })
+})
+
+describe('loadAccountNostrSecrets', () => {
+  afterEach(() => {
+    clearNostrSecretsCaches()
+  })
+
+  it('serves the cache when no explicit key is given', async () => {
+    setCachedAccountSecrets('acc-1', { commonNsec: 'nsec1fromcache' })
+
+    await expect(loadAccountNostrSecrets('acc-1')).resolves.toMatchObject({
+      commonNsec: 'nsec1fromcache'
+    })
+  })
+
+  it('bypasses the cache when an explicit key is given', async () => {
+    // After a PIN change the cache still holds secrets decrypted under the old
+    // key. A caller passing a key must hit SecureStore so a mismatch surfaces
+    // instead of being masked by stale plaintext.
+    setCachedAccountSecrets('acc-1', { commonNsec: 'nsec1fromcache' })
+
+    await expect(
+      loadAccountNostrSecrets('acc-1', 'some-other-key')
+    ).resolves.toBeNull()
   })
 })

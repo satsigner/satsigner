@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconCheckCircleThin } from '@/components/icons'
@@ -15,9 +16,23 @@ import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
-import { emptyPin, getPin } from '@/utils/pin'
+import {
+  commitPinMaterial,
+  derivePinMaterial,
+  emptyPin,
+  getPin
+} from '@/utils/pin'
 
 type Stage = 'verify' | 'set' | 're-enter'
+
+/** Returns null on first-time setup, where no PIN exists yet. */
+async function getCurrentPin(): Promise<string | null> {
+  try {
+    return await getPin()
+  } catch {
+    return null
+  }
+}
 
 const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 
@@ -28,7 +43,6 @@ export default function SetPin() {
   const fromSettings = source === 'settings'
 
   const [
-    setPin,
     setFirstTime,
     setRequiresAuth,
     setSkipPin,
@@ -39,7 +53,6 @@ export default function SetPin() {
     setRequirePinMigration
   ] = useAuthStore(
     useShallow((state) => [
-      state.setPin,
       state.setFirstTime,
       state.setRequiresAuth,
       state.setSkipPin,
@@ -125,19 +138,27 @@ export default function SetPin() {
     }
     setLoading(true)
 
+    const currentPinEncrypted = await getCurrentPin()
+    const { hashedPin: newPinEncrypted, salt } = await derivePinMaterial(
+      pinArray.join('')
+    )
+
+    // Re-encrypt under the new key material first. Committing the new PIN
+    // before this succeeds would strand every secret still encrypted with the
+    // old one, with no way to derive it again.
+    if (currentPinEncrypted && currentPinEncrypted !== newPinEncrypted) {
+      try {
+        await reEncryptAccounts(currentPinEncrypted, newPinEncrypted)
+      } catch {
+        setLoading(false)
+        toast.error(t('auth.pinChangeError'))
+        return
+      }
+    }
+
+    await commitPinMaterial(salt, newPinEncrypted)
     setSkipPin(false)
     setRequirePinMigration(false)
-
-    const currentPinEncrypted = await getPin()
-    await setPin(pinArray.join(''))
-    const newPinEncrypted = await getPin()
-    if (
-      currentPinEncrypted &&
-      newPinEncrypted &&
-      currentPinEncrypted !== newPinEncrypted
-    ) {
-      await reEncryptAccounts(currentPinEncrypted, newPinEncrypted)
-    }
 
     setLoading(false)
 
