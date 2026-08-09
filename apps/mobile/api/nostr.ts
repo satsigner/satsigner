@@ -1780,6 +1780,33 @@ export class NostrAPI {
     return this.ndk?.pool?.connectedRelays().map((relay) => relay.url) ?? []
   }
 
+  /**
+   * Liveness probe: opens a short subscription for an impossible filter and
+   * reports whether any relay answered (EOSE) before the deadline. Sockets
+   * can rot silently — "connected" in the pool does not prove liveness.
+   */
+  async probeLiveness(timeoutMs = 8_000): Promise<boolean> {
+    await this.connect()
+    if (!this.ndk) {
+      return false
+    }
+    return new Promise((resolve) => {
+      const sub = this.ndk!.subscribe(
+        { authors: ['0'.repeat(64)], kinds: [0], limit: 1 } as never,
+        { closeOnEose: false }
+      )
+      const timer = setTimeout(() => {
+        sub.stop()
+        resolve(false)
+      }, timeoutMs)
+      sub.on('eose', () => {
+        clearTimeout(timer)
+        sub.stop()
+        resolve(true)
+      })
+    })
+  }
+
   async publishEvent(event: NDKEvent): Promise<void> {
     if (!this.ndk) {
       await this.connect()

@@ -3017,6 +3017,8 @@
     "developer.diagnosis.checks.nip17Live.hint": "Sends a test gift wrap from a throwaway key to the project security npub over your relays (or well-known defaults), then verifies retrieval and decryption.",
     "developer.diagnosis.checks.nip17Live.title": "NIP-17 live relay roundtrip",
     "developer.diagnosis.checks.pinKdf.title": "PIN KDF derivation",
+    "developer.diagnosis.checks.relayPersistence.hint": "Connects, holds 30s, and re-probes liveness — catches sockets that die silently after the handshake.",
+    "developer.diagnosis.checks.relayPersistence.title": "Relay connection persistence (30s)",
     "developer.diagnosis.checks.runAll": "Run all checks",
     "developer.diagnosis.checks.secureStore.title": "Secure store read/write",
     "developer.diagnosis.checks.sqlite.title": "Database integrity",

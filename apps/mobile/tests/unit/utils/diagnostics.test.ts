@@ -123,11 +123,11 @@ describe('diagnostics one-click checks', () => {
 
   it('every registered local check runs and returns a result', async () => {
     const local = DIAGNOSTIC_CHECKS.filter((check) => !check.requiresNetwork)
-    // Only nip17Live is network-bound; generic runners (and this loop) must
-    // never invoke it without connectivity.
-    expect(DIAGNOSTIC_CHECKS.filter((c) => c.requiresNetwork)).toEqual([
-      { id: 'nip17Live', requiresNetwork: true }
-    ])
+    // Network checks must stay flagged so generic runners (and this loop)
+    // never invoke them without connectivity.
+    expect(
+      DIAGNOSTIC_CHECKS.filter((c) => c.requiresNetwork).map((c) => c.id)
+    ).toEqual(['nip17Live', 'relayPersistence'])
     for (const { id } of local) {
       const result = await runDiagnosticCheck(id)
       expect(typeof result.ok).toBe('boolean')

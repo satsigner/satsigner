@@ -194,9 +194,7 @@ export default function DeveloperDiagnosis() {
                     />
                     {requiresNetwork ? (
                       <SSText color="muted" size="xs">
-                        {t(
-                          'settings.developer.diagnosis.checks.nip17Live.hint'
-                        )}
+                        {t(`settings.developer.diagnosis.checks.${id}.hint`)}
                       </SSText>
                     ) : null}
                     {result?.kind === 'ok' || result?.kind === 'failed' ? (

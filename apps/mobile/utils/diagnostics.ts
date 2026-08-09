@@ -33,6 +33,7 @@ export type DiagnosticCheckId =
   | 'nip17'
   | 'nip17Live'
   | 'pinKdf'
+  | 'relayPersistence'
   | 'secureStore'
   | 'sqlite'
 
@@ -257,6 +258,71 @@ export async function checkEntropyCollisions(): Promise<DiagnosticResult> {
   return { lines, ok }
 }
 
+/**
+ * Connection watchdog: connects, then holds for 30s, logging the connected
+ * count every 10s and probing liveness (a subscription that any live relay
+ * answers with EOSE) before and after. Catches sockets that rot silently
+ * after the initial handshake — the failure mode behind "connected but no
+ * messages arrive".
+ */
+export async function checkRelayPersistence(
+  relayUrls: string[] = []
+): Promise<DiagnosticResult> {
+  const lines: string[] = []
+
+  const ok = await runGuarded(lines, async () => {
+    const netState = await NetInfo.fetch()
+    if (netState.isConnected === false) {
+      throw new Error('device is offline')
+    }
+
+    const relays = resolveLiveRoundtripRelays(relayUrls)
+    const api = new NostrAPI(relays)
+    try {
+      await api.connect()
+      const initial = api.getConnectedRelayUrls()
+      if (initial.length === 0) {
+        throw new Error(`no relay connections (0/${relays.length})`)
+      }
+      lines.push(`connected ${initial.length}/${relays.length}`)
+      for (const url of initial) {
+        lines.push(`  ${url}`)
+      }
+
+      const probe0 = await api.probeLiveness()
+      lines.push(`liveness probe: ${probe0 ? 'ok' : 'NO ANSWER'}`)
+      if (!probe0) {
+        throw new Error('connected but no relay answers subscriptions')
+      }
+
+      for (const elapsed of [10, 20, 30]) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 10_000)
+        })
+        const now = api.getConnectedRelayUrls()
+        const dropped = initial.filter((url) => !now.includes(url))
+        lines.push(
+          `t+${elapsed}s: ${now.length}/${relays.length} connected` +
+            (dropped.length ? ` (lost: ${dropped.join(', ')})` : '')
+        )
+      }
+
+      const probe1 = await api.probeLiveness()
+      lines.push(`liveness after 30s: ${probe1 ? 'ok' : 'NO ANSWER'}`)
+      if (!probe1) {
+        throw new Error('relays stopped answering during the hold')
+      }
+      if (api.getConnectedRelayUrls().length === 0) {
+        throw new Error('all relay connections dropped during the hold')
+      }
+      lines.push('connections stable and answering')
+    } finally {
+      api.closeAllSubscriptions()
+    }
+  })
+  return { lines, ok }
+}
+
 /** Configured relays when present, otherwise well-known DM-capable ones. */
 export function resolveLiveRoundtripRelays(configured: string[]): string[] {
   return configured.length > 0 ? configured : NOSTR_LIVE_CHECK_FALLBACK_RELAYS
@@ -378,7 +444,8 @@ export const DIAGNOSTIC_CHECKS: {
   { id: 'secureStore' },
   { id: 'sqlite' },
   { id: 'nip17' },
-  { id: 'nip17Live', requiresNetwork: true }
+  { id: 'nip17Live', requiresNetwork: true },
+  { id: 'relayPersistence', requiresNetwork: true }
 ]
 
 export function runDiagnosticCheck(
@@ -396,6 +463,8 @@ export function runDiagnosticCheck(
       return checkNip17LiveRoundtrip(ctx.relayUrls ?? [])
     case 'pinKdf':
       return checkPinKdf()
+    case 'relayPersistence':
+      return checkRelayPersistence(ctx.relayUrls ?? [])
     case 'secureStore':
       return checkSecureStore()
     case 'sqlite':
