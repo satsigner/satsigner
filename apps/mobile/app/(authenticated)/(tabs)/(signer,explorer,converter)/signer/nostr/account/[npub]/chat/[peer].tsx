@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { StyleSheet } from 'react-native'
 
@@ -26,6 +26,7 @@ type ThreadParams = {
 }
 
 export default function NostrChatThread() {
+  const router = useRouter()
   const { npub, peer, protocol: protocolParam } =
     useLocalSearchParams<ThreadParams>()
   const protocol: NostrChatProtocol =
@@ -83,9 +84,14 @@ export default function NostrChatThread() {
         sending={sending}
         inputValue={input}
         onInputChange={setInput}
-        ownAuthorName={identity.displayName ?? t('nostrIdentity.chat.you')}
-        peerAuthorName={peerTitle}
-        peerAuthorNpubShort={peerProfile?.displayName ? undefined : peerTitle}
+        ownNpub={identity.npub}
+        ownDisplayName={identity.displayName}
+        onAuthorPress={(authorNpub) =>
+          router.push({
+            params: { npub: identity.npub, targetNpub: authorNpub },
+            pathname: '/signer/nostr/account/[npub]/contact/[targetNpub]'
+          })
+        }
       />
     </SSMainLayout>
   )

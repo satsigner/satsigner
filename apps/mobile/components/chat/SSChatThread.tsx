@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, StyleSheet, TextInput, View } from 'react-native'
+import { nip19 } from 'nostr-tools'
 
 import SSButton from '@/components/SSButton'
+import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
+import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
+import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type NostrChatMessage } from '@/types/models/Nostr'
+import {
+  type NostrChatMessage,
+  type NostrDM
+} from '@/types/models/Nostr'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 const SCROLL_THRESHOLD = 40
 
@@ -17,89 +25,41 @@ type SSChatThreadProps = {
   inputValue: string
   onInputChange: (text: string) => void
   emptyText?: string
-  /** Display labels matching the devices group chat author header. */
-  ownAuthorName?: string
-  peerAuthorName?: string
-  peerAuthorNpubShort?: string
+  /** npub of the identity sending from this thread (marks "you"). */
+  ownNpub: string
+  ownDisplayName?: string
+  /** Overrides author-press navigation (default: none in DM context). */
+  onAuthorPress?: (authorNpub: string) => void
 }
 
-function formatMessageTime(timestamp: number): string {
-  const date = new Date(timestamp * 1000)
-  const today = new Date()
-  const isToday = date.toDateString() === today.toDateString()
-  const time = date.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-  if (isToday) {
-    return time
+/** Adapts a DM-store message to the NostrDM shape the shared card expects. */
+function toNostrDM(msg: NostrChatMessage, ownHex: string): NostrDM {
+  const authorHex = msg.direction === 'out' ? ownHex : msg.peerPubkey
+  return {
+    author: authorHex,
+    content: {
+      created_at: msg.created_at,
+      description: msg.content,
+      pubkey: authorHex
+    },
+    created_at: msg.created_at,
+    description: msg.content,
+    event: '',
+    id: msg.id,
+    label: 0,
+    pending: msg.status === 'pending',
+    read: msg.read
   }
-  return `${date.toLocaleDateString()} ${time}`
 }
 
-function ChatBubble({
-  item,
-  ownAuthorName,
-  peerAuthorName,
-  peerAuthorNpubShort
-}: {
-  item: NostrChatMessage
-  ownAuthorName: string
-  peerAuthorName: string
-  peerAuthorNpubShort?: string
-}) {
-  const isOwn = item.direction === 'out'
-  return (
-    <View style={[styles.message, isOwn && styles.ownMessage]}>
-      <SSHStack gap="xxs" justifyBetween>
-        <SSHStack gap="xxs" style={styles.authorRow}>
-          <View
-            style={[
-              styles.authorIndicator,
-              { backgroundColor: isOwn ? Colors.white : Colors.gray[500] }
-            ]}
-          />
-          <SSText size="sm" style={styles.authorName}>
-            {isOwn ? ownAuthorName : peerAuthorName}
-          </SSText>
-          {isOwn ? (
-            <SSText size="sm" color="muted">
-              {t('nostrIdentity.chat.youSuffix')}
-            </SSText>
-          ) : null}
-          {!isOwn && peerAuthorNpubShort ? (
-            <SSText size="xs" color="muted">
-              {peerAuthorNpubShort}
-            </SSText>
-          ) : null}
-        </SSHStack>
-        <SSHStack gap="xs" style={styles.metaRow}>
-          <SSText size="xs" color="muted">
-            {formatMessageTime(item.created_at)}
-          </SSText>
-          {item.status === 'pending' ? (
-            <SSText size="xs" color="muted">
-              ({t('nostrIdentity.chat.status.sending')})
-            </SSText>
-          ) : null}
-          {item.status === 'failed' ? (
-            <SSText size="xs" style={{ color: Colors.error }}>
-              ({t('nostrIdentity.chat.status.failed')})
-            </SSText>
-          ) : null}
-        </SSHStack>
-      </SSHStack>
-      <View style={styles.messageContentWrap}>
-        <SSText size="md">{item.content}</SSText>
-      </View>
-    </View>
-  )
+function shortenNpub(npub: string): string {
+  return `${npub.slice(0, 12)}...${npub.slice(-4)}`
 }
 
 /**
- * Shared DM thread, mirroring the bitcoin devices group chat: inverted list,
- * author-header message blocks, "new messages" pill when scrolled up, and the
- * same composer (raw TextInput + send button).
+ * Shared DM thread: inverted list rendering the SAME message card as the
+ * bitcoin devices group chat (SSNostrMessage), "new messages" pill, and the
+ * group chat's composer.
  */
 export default function SSChatThread({
   messages,
@@ -108,14 +68,48 @@ export default function SSChatThread({
   inputValue,
   onInputChange,
   emptyText,
-  ownAuthorName,
-  peerAuthorName,
-  peerAuthorNpubShort
+  ownNpub,
+  ownDisplayName,
+  onAuthorPress
 }: SSChatThreadProps) {
   const listRef = useRef<FlatList<NostrChatMessage>>(null)
   const isAtBottomRef = useRef(true)
   const [showNewMessageButton, setShowNewMessageButton] = useState(false)
+  const [visibleComponents, setVisibleComponents] = useState(
+    new Map<string, { sankey: boolean; status: boolean }>()
+  )
   const prevMessageCountRef = useRef(messages.length)
+  const profiles = useNostrStore((state) => state.profiles)
+
+  const ownHex = useMemo(() => getPubKeyHexFromNpub(ownNpub) ?? '', [ownNpub])
+
+  // Author display info for the card: us + every peer seen in this thread.
+  const formattedNpubs = useMemo(() => {
+    const map = new Map<string, AuthorDisplayInfo>()
+    if (ownHex) {
+      map.set(ownHex, {
+        color: Colors.white,
+        displayName: ownDisplayName,
+        npubShort: shortenNpub(ownNpub)
+      })
+    }
+    for (const msg of messages) {
+      if (map.has(msg.peerPubkey)) {
+        continue
+      }
+      const peerNpub = getPubKeyHexFromNpub(msg.peerPubkey) ?? msg.peerPubkey
+      const profile = profiles[
+        nip19SafeEncode(msg.peerPubkey)
+      ] as AuthorDisplayInfo | undefined
+      map.set(msg.peerPubkey, {
+        color: Colors.gray[500],
+        displayName: profile?.displayName,
+        npubShort: shortenNpub(peerNpub),
+        picture: profile?.picture
+      })
+    }
+    return map
+  }, [messages, ownHex, ownDisplayName, profiles])
 
   const displayedMessages = useMemo(
     () => [...messages].reverse(),
@@ -156,6 +150,18 @@ export default function SSChatThread({
     }
   }
 
+  function handleToggleVisibility(
+    msgId: string,
+    component: 'sankey' | 'status'
+  ) {
+    setVisibleComponents((prev) => {
+      const next = new Map(prev)
+      const current = next.get(msgId) || { sankey: false, status: false }
+      next.set(msgId, { ...current, [component]: true })
+      return next
+    })
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.messagesContainer}>
@@ -163,11 +169,17 @@ export default function SSChatThread({
           ref={listRef}
           data={displayedMessages}
           renderItem={({ item }) => (
-            <ChatBubble
-              item={item}
-              ownAuthorName={ownAuthorName ?? t('nostrIdentity.chat.you')}
-              peerAuthorName={peerAuthorName ?? t('nostrIdentity.chat.peer')}
-              peerAuthorNpubShort={peerAuthorNpubShort}
+            <SSNostrMessage
+              item={toNostrDM(item, ownHex)}
+              account={undefined}
+              accounts={[]}
+              formattedNpubs={formattedNpubs}
+              visibleComponents={visibleComponents}
+              onToggleVisibility={handleToggleVisibility}
+              onGoToSignFlow={() => undefined}
+              ownNpub={ownNpub}
+              onAuthorPress={onAuthorPress}
+              failed={item.status === 'failed'}
             />
           )}
           keyExtractor={(item) => item.id}
@@ -215,20 +227,15 @@ export default function SSChatThread({
   )
 }
 
+function nip19SafeEncode(hex: string): string {
+  try {
+    return /^[0-9a-f]{64}$/.test(hex) ? nip19.npubEncode(hex) : hex
+  } catch {
+    return hex
+  }
+}
+
 const styles = StyleSheet.create({
-  authorIndicator: {
-    borderRadius: 4,
-    height: 8,
-    marginRight: 3,
-    marginTop: 1,
-    width: 8
-  },
-  authorName: {
-    color: Colors.white
-  },
-  authorRow: {
-    alignItems: 'center'
-  },
   container: {
     flex: 1
   },
@@ -254,35 +261,15 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 8
   },
-  // Mirrors the devices group chat message block.
-  message: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    marginTop: 8,
-    padding: 10,
-    paddingBottom: 15,
-    paddingTop: 5
-  },
-  messageContentWrap: {
-    paddingLeft: 30
-  },
   messagesContainer: {
     flex: 1,
     paddingBottom: 8
-  },
-  metaRow: {
-    alignItems: 'flex-start',
-    alignSelf: 'flex-start',
-    marginTop: -2
   },
   newMessageButtonContainer: {
     alignSelf: 'center',
     bottom: 70,
     position: 'absolute',
     zIndex: 2
-  },
-  ownMessage: {
-    backgroundColor: Colors.gray[800]
   },
   sendButton: {
     flex: 0.2

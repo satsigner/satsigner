@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { nip19 } from 'nostr-tools'
 
 import { NostrAPI } from '@/api/nostr'
+import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import { getCachedProfile } from '@/db/nostrCache'
 import { markChatThreadRead } from '@/db/mutations/nostrChat'
 import {
   listChatConversations,
@@ -87,7 +89,24 @@ export function useNostrChatProfiles(
       return
     }
 
-    const hexes = missing
+    // Cache-first: apply SQLite-cached profiles immediately so known peers
+    // render instantly, and only relay-fetch the ones still missing.
+    const now = Math.floor(Date.now() / 1000)
+    const stillMissing: string[] = []
+    for (const npub of missing) {
+      const hex = getPubKeyHexFromNpub(npub)
+      const cached = hex ? getCachedProfile(hex) : null
+      if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
+        setProfile(npub, {
+          displayName: cached.displayName,
+          picture: cached.picture
+        })
+      } else {
+        stillMissing.push(npub)
+      }
+    }
+
+    const hexes = stillMissing
       .map((npub) => getPubKeyHexFromNpub(npub))
       .filter((hex): hex is string => Boolean(hex))
     if (hexes.length === 0) {
@@ -96,22 +115,40 @@ export function useNostrChatProfiles(
 
     const api = new NostrAPI(getNostrContactsRelays(identityRelays))
     let cancelled = false
-    api
-      .fetchKind0Batch(hexes)
-      .then((batch) => {
+
+    async function load() {
+      // One retry: the first attempt on cold relay connections often loses to
+      // the connect+fetch timeout, which previously left lists stuck forever.
+      for (let attempt = 0; attempt < 2; attempt += 1) {
         if (cancelled) {
           return
         }
-        for (const [hex, profile] of batch) {
-          setProfile(nip19.npubEncode(hex), {
-            displayName: profile.displayName,
-            picture: profile.picture
+        try {
+          const batch = await api.fetchKind0Batch(hexes)
+          if (cancelled) {
+            return
+          }
+          for (const [hex, profile] of batch) {
+            setProfile(nip19.npubEncode(hex), {
+              displayName: profile.displayName,
+              picture: profile.picture
+            })
+          }
+          if (batch.size > 0) {
+            return
+          }
+        } catch {
+          // fall through to the retry
+        }
+        if (attempt === 0) {
+          await new Promise((resolve) => {
+            setTimeout(resolve, 5_000)
           })
         }
-      })
-      .catch(() => {
-        // Relay outages are non-fatal; truncated npub remains as fallback.
-      })
+      }
+    }
+
+    load()
     return () => {
       cancelled = true
     }

@@ -6,6 +6,7 @@ import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -187,7 +188,7 @@ export default function DeveloperDiagnosis() {
                       label={t(
                         `settings.developer.diagnosis.checks.${id}.title`
                       )}
-                      variant="secondary"
+                      variant="outline"
                       disabled={result?.kind === 'running'}
                       loading={result?.kind === 'running'}
                       onPress={() => handleRunCheck(id)}
@@ -237,6 +238,8 @@ export default function DeveloperDiagnosis() {
               />
             </SSVStack>
 
+            <SSSeparator color="gradient" />
+
             <SSVStack gap="sm">
               <SSText uppercase>
                 {t('settings.developer.diagnosis.payjoinRoundtrip.title')}
@@ -261,14 +264,14 @@ export default function DeveloperDiagnosis() {
               ) : null}
               <SSButton
                 label={t('settings.developer.diagnosis.payjoinRoundtrip.run')}
-                variant="secondary"
+                variant="outline"
                 disabled={!canRunRoundtrip}
                 onPress={handleOpenConfirm}
               />
               {isRunning ? (
                 <SSButton
                   label={t('settings.developer.diagnosis.cancel')}
-                  variant="ghost"
+                  variant="outline"
                   onPress={handleCancelRoundtrip}
                 />
               ) : null}
@@ -281,9 +284,11 @@ export default function DeveloperDiagnosis() {
               ) : null}
             </SSVStack>
 
+            <SSSeparator color="gradient" />
+
             <SSButton
               label={t('common.back')}
-              variant="ghost"
+              variant="outline"
               onPress={router.back}
             />
           </SSVStack>
