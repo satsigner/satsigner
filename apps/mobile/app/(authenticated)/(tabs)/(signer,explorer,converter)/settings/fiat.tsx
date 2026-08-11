@@ -1,13 +1,17 @@
-import { Stack } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { type Currency } from '@/types/models/Blockchain'
+
+const tl = tn('settings.fiat')
 
 const CURRENCIES: { value: Currency; label: string }[] = [
   { label: 'USD – US Dollar', value: 'USD' },
@@ -20,6 +24,8 @@ const CURRENCIES: { value: Currency; label: string }[] = [
 ]
 
 export default function FiatCurrency() {
+  const router = useRouter()
+  const { showCurrentFiat } = useFiatData()
   const [fiatCurrency, setFiatCurrency] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.setFiatCurrency])
   )
@@ -35,19 +41,30 @@ export default function FiatCurrency() {
         }}
       />
       <SSMainLayout>
-        <SSVStack>
-          <SSText>{t('settings.fiat.select')}</SSText>
+        {showCurrentFiat ? (
           <SSVStack>
-            {CURRENCIES.map(({ value, label }) => (
-              <SSCheckbox
-                key={value}
-                label={label}
-                selected={fiatCurrency === value}
-                onPress={() => setFiatCurrency(value)}
-              />
-            ))}
+            <SSText>{t('settings.fiat.select')}</SSText>
+            <SSVStack>
+              {CURRENCIES.map(({ value, label }) => (
+                <SSCheckbox
+                  key={value}
+                  label={label}
+                  selected={fiatCurrency === value}
+                  onPress={() => setFiatCurrency(value)}
+                />
+              ))}
+            </SSVStack>
           </SSVStack>
-        </SSVStack>
+        ) : (
+          <SSVStack gap="md">
+            <SSText color="muted">{tl('disabled')}</SSText>
+            <SSButton
+              label={tl('openFiatDataSettings')}
+              variant="outline"
+              onPress={() => router.navigate('/settings/features/fiatData')}
+            />
+          </SSVStack>
+        )}
       </SSMainLayout>
     </>
   )

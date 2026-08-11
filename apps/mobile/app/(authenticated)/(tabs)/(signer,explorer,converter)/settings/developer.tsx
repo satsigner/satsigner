@@ -20,7 +20,7 @@ import {
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { deleteItem, getEcashMnemonic, getKeySecret } from '@/storage/encrypted'
+import { deleteItem, getEcashMnemonic } from '@/storage/encrypted'
 import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
@@ -35,24 +35,29 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
+import { getBackupFilename } from '@/utils/backupFilename'
 import {
-  aesDecrypt,
   aesEncrypt,
   generateSalt,
-  getPinForDecryption,
   pbkdf2Encrypt,
   randomIv
 } from '@/utils/crypto'
+import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import { saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
+import { getPin } from '@/utils/pin'
 
 export default function Developer() {
   const router = useRouter()
   const accounts = useAccountsStore((state) => state.accounts)
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
-  const [skipPin, setSkipPin] = useAuthStore(
-    useShallow((state) => [state.skipPin, state.setSkipPin])
+  const [skipPin, setSkipPin, enableDevSkipPin] = useAuthStore(
+    useShallow((state) => [
+      state.skipPin,
+      state.setSkipPin,
+      state.enableDevSkipPin
+    ])
   )
   const [currencyUnit, useZeroPadding, mnemonicWordList] = useSettingsStore(
     useShallow((s) => [s.currencyUnit, s.useZeroPadding, s.mnemonicWordList])
@@ -67,8 +72,9 @@ export default function Developer() {
     string | null
   >(null)
   const [backupPassphrase, setBackupPassphrase] = useState('')
+
   async function buildBackupWithSeeds(): Promise<string> {
-    const pin = await getPinForDecryption(skipPin)
+    const pin = await getPin()
     const keysWithSeeds = async (accountId: string, keys: Key[]) => {
       const result = []
       for (const key of keys) {
@@ -86,16 +92,13 @@ export default function Developer() {
         let passphrase: string | undefined
         if (pin) {
           try {
-            const stored = await getKeySecret(accountId, key.index)
-            if (stored) {
-              const decrypted = await aesDecrypt(stored.secret, pin, stored.iv)
-              const secret = JSON.parse(decrypted) as {
-                mnemonic?: string
-                passphrase?: string
-              }
-              seedWords = secret.mnemonic
-              passphrase = secret.passphrase
-            }
+            const secret = await decryptAccountKeySecretUsingPin(
+              accountId,
+              key.index,
+              pin
+            )
+            seedWords = secret.mnemonic
+            passphrase = secret.passphrase
           } catch {
             // leave seedWords/passphrase undefined
           }
@@ -111,12 +114,16 @@ export default function Developer() {
 
     const accountsWithSeeds = await Promise.all(
       accounts.map(async (account) => ({
+        birthdayDate: account.birthdayDate,
+        excludedUtxoOutpoints: account.excludedUtxoOutpoints ?? [],
         id: account.id,
         keys: await keysWithSeeds(account.id, account.keys),
+        labels: account.labels,
         name: account.name,
         network: account.network,
         nostr: account.nostr,
         policyType: account.policyType,
+        rpcLastBlockHash: account.rpcLastBlockHash,
         summary: account.summary
       }))
     )
@@ -217,7 +224,7 @@ export default function Developer() {
       })
       const result = await Share.share({
         message: encryptedPayload,
-        title: t('settings.developer.backupData')
+        title: getBackupFilename()
       })
       if (result.action === Share.sharedAction) {
         toast.success(t('settings.developer.backupSuccess'))
@@ -241,7 +248,7 @@ export default function Developer() {
       toast.error(t('settings.developer.backupPassphraseInvalid'))
       return
     }
-    const filename = `satsigner-backup-${Date.now()}.json`
+    const filename = getBackupFilename()
     try {
       const salt = await generateSalt()
       const key = await pbkdf2Encrypt(backupPassphrase, salt)
@@ -350,16 +357,31 @@ export default function Developer() {
               onPress={() => setClearStorageModalVisible(true)}
             />
           </SSVStack>
+          {__DEV__ ? (
+            <>
+              <SSSeparator color="gradient" />
+              <SSVStack>
+                <SSCheckbox
+                  label={t('settings.developer.skipPin')}
+                  selected={skipPin}
+                  onPress={() => {
+                    if (skipPin) {
+                      setSkipPin(false)
+                      return
+                    }
+                    void enableDevSkipPin()
+                  }}
+                />
+              </SSVStack>
+            </>
+          ) : null}
           <SSSeparator color="gradient" />
           <SSVStack>
-            <SSCheckbox
-              label={t('settings.developer.skipPin')}
-              selected={skipPin}
-              onPress={() => setSkipPin(!skipPin)}
+            <SSButton
+              label={t('settings.developer.diagnosis.title')}
+              onPress={() => router.navigate('/settings/developerDiagnosis')}
+              variant="outline"
             />
-          </SSVStack>
-          <SSSeparator color="gradient" />
-          <SSVStack>
             <SSButton
               label={t('settings.developer.design')}
               onPress={() => router.navigate('/settings/design')}

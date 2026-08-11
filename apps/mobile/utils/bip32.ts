@@ -125,7 +125,7 @@ export function getPrivateDescriptorFromSeedWithPath(
   path: string
 ): string {
   const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
-  const accountKey = masterKey.derivePath(`m/${path}`)
+  const accountKey = path ? masterKey.derivePath(`m/${path}`) : masterKey
   const accountXprv = accountKey.toBase58()
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return getDescriptorFromPrivateKey(
@@ -135,6 +135,20 @@ export function getPrivateDescriptorFromSeedWithPath(
     path,
     kind
   )
+}
+
+export function getPublicDescriptorFromSeedWithPath(
+  seed: Uint8Array,
+  scriptVersion: ScriptVersionType,
+  kind: KeychainKind,
+  network: BDKNetwork,
+  path: string
+): string {
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+  const derivedKey = path ? masterKey.derivePath(`m/${path}`) : masterKey
+  const pubkey = derivedKey.neutered().toBase58()
+  const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
+  return getDescriptorFromPubkey(pubkey, scriptVersion, fingerprint, path, kind)
 }
 
 export function getDescriptorFromPubkey(

@@ -155,7 +155,7 @@ describe('esplora tests', () => {
   it('get mempool txids', async () => {
     const resp = await esplora.getMempoolTxIds()
     expect(Array.isArray(resp)).toBe(true)
-  })
+  }, 15000)
 
   it('get last 10 mempool txns', async () => {
     const resp = await esplora.getRecentMempool()

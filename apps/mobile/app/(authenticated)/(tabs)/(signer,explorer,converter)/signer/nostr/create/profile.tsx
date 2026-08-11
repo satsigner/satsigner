@@ -1,12 +1,15 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Image, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { BLOSSOM_DEFAULT_SERVER } from '@/constants/nostr'
+import useBlossomImageUpload from '@/hooks/useBlossomImageUpload'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
@@ -27,6 +30,15 @@ export default function ProfileSetup() {
   const [pictureUrl, setPictureUrl] = useState('')
   const [nip05, setNip05] = useState('')
   const [lud16, setLud16] = useState('')
+  const { isUploading: isPictureUploading, upload: uploadPicture } =
+    useBlossomImageUpload(params.nsec ?? '')
+
+  async function handleUploadPicture() {
+    const url = await uploadPicture(BLOSSOM_DEFAULT_SERVER)
+    if (url) {
+      setPictureUrl(url)
+    }
+  }
 
   function handleSave() {
     if (!params.npub || !params.nsec) {
@@ -59,7 +71,7 @@ export default function ProfileSetup() {
           )
         }}
       />
-      <ScrollView
+      <SSScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -108,6 +120,16 @@ export default function ProfileSetup() {
             <SSText size="xs" color="muted">
               {t('nostrIdentity.profile.pictureHint')}
             </SSText>
+            <SSButton
+              label={
+                isPictureUploading
+                  ? t('nostrIdentity.profile.uploading')
+                  : t('nostrIdentity.profile.uploadImage')
+              }
+              variant="outline"
+              disabled={isPictureUploading}
+              onPress={handleUploadPicture}
+            />
           </SSVStack>
 
           {/* NIP-05 */}
@@ -146,7 +168,7 @@ export default function ProfileSetup() {
             onPress={handleSave}
           />
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }

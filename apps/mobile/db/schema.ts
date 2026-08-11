@@ -1,7 +1,5 @@
 import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
-const CURRENT_VERSION = 3
-
 const SCHEMA_V1 = `
 CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
 
@@ -239,42 +237,125 @@ const SCHEMA_V3 = `
 ALTER TABLE nostr_profile_cache ADD COLUMN banner TEXT
 `
 
+// No foreign key on account_id: ark accounts live in the MMKV-backed ark
+// store, not in the SQLite accounts table.
+const SCHEMA_V4 = `
+CREATE TABLE IF NOT EXISTS ark_labels (
+  ref TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  label TEXT NOT NULL,
+  PRIMARY KEY (ref, account_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ark_labels_account ON ark_labels(account_id);
+`
+
+const SCHEMA_V5 = `
+ALTER TABLE accounts ADD COLUMN birthday_date TEXT;
+ALTER TABLE accounts ADD COLUMN rpc_last_block_hash TEXT
+`
+
+const SCHEMA_V6 = `
+ALTER TABLE accounts ADD COLUMN nostr_device_mnemonic TEXT
+`
+
+// Junction tables are read by (account_id, address) but their primary keys lead
+// with `address`, so those lookups could not use the PK prefix. The orphan
+// deletes clean up rows left behind before clearAccountChildData removed them.
+const SCHEMA_V7 = `
+CREATE INDEX IF NOT EXISTS idx_addr_txs ON address_transactions(account_id, address);
+CREATE INDEX IF NOT EXISTS idx_addr_utxos ON address_utxos(account_id, address);
+
+DELETE FROM address_transactions WHERE (address, account_id) NOT IN
+  (SELECT address, account_id FROM addresses);
+DELETE FROM address_utxos WHERE (address, account_id) NOT IN
+  (SELECT address, account_id FROM addresses)
+`
+
+const SCHEMA_V8 = `
+ALTER TABLE accounts ADD COLUMN excluded_utxo_outpoints TEXT DEFAULT '[]'
+`
+
+const SCHEMAS = [
+  SCHEMA_V1,
+  SCHEMA_V2,
+  SCHEMA_V3,
+  SCHEMA_V4,
+  SCHEMA_V5,
+  SCHEMA_V6,
+  SCHEMA_V7,
+  SCHEMA_V8
+]
+const CURRENT_VERSION = SCHEMAS.length
+
+function isBenignMigrationError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return (
+    /duplicate column name/i.test(message) || /already exists/i.test(message)
+  )
+}
+
+function runSchemaStatements(db: NitroSQLiteConnection, schema: string) {
+  const statements = schema
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  for (const statement of statements) {
+    try {
+      db.execute(statement)
+    } catch (error) {
+      // Replaying ALTERs when schema_version is wrong must not block later
+      // migrations (e.g. V6 after a false V5 re-run).
+      if (!isBenignMigrationError(error)) {
+        throw error
+      }
+    }
+  }
+}
+
+function tableHasColumn(
+  db: NitroSQLiteConnection,
+  table: string,
+  column: string
+): boolean {
+  const { results } = db.execute(`PRAGMA table_info(${table})`)
+  return (results ?? []).some((row) => row.name === column)
+}
+
+/** Additive columns that must exist even if schema_version is ahead/out of sync. */
+function ensureAccountsColumns(db: NitroSQLiteConnection) {
+  const columns: [string, string][] = [
+    ['birthday_date', 'TEXT'],
+    ['rpc_last_block_hash', 'TEXT'],
+    ['nostr_device_mnemonic', 'TEXT'],
+    ['excluded_utxo_outpoints', "TEXT DEFAULT '[]'"]
+  ]
+  for (const [column, sqlType] of columns) {
+    if (tableHasColumn(db, 'accounts', column)) {
+      continue
+    }
+    db.execute(`ALTER TABLE accounts ADD COLUMN ${column} ${sqlType}`)
+  }
+}
+
 function runMigrations(db: NitroSQLiteConnection) {
   const currentVersion = getSchemaVersion(db)
 
-  if (currentVersion >= CURRENT_VERSION) {
-    return
+  if (currentVersion < CURRENT_VERSION) {
+    for (const [index, schema] of SCHEMAS.entries()) {
+      const version = index + 1
+      if (currentVersion >= version) {
+        continue
+      }
+      runSchemaStatements(db, schema)
+      setSchemaVersion(db, version)
+    }
   }
 
-  if (currentVersion < 1) {
-    const statements = SCHEMA_V1.split(';')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    for (const statement of statements) {
-      db.execute(statement)
-    }
-    setSchemaVersion(db, 1)
-  }
-
-  if (currentVersion < 2) {
-    const statements = SCHEMA_V2.split(';')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    for (const statement of statements) {
-      db.execute(statement)
-    }
-    setSchemaVersion(db, 2)
-  }
-
-  if (currentVersion < 3) {
-    const statements = SCHEMA_V3.split(';')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    for (const statement of statements) {
-      db.execute(statement)
-    }
-    setSchemaVersion(db, 3)
-  }
+  // Always verify critical columns — Fast Refresh / version skew can leave
+  // schema_version ahead of the real table shape.
+  ensureAccountsColumns(db)
 }
 
 export { runMigrations }

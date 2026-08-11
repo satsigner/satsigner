@@ -5,7 +5,6 @@ import {
 } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
-import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
@@ -13,6 +12,7 @@ import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
+import type { Label } from '@/types/bips/329'
 import type { Account, Key } from '@/types/models/Account'
 import type { ArkAccount } from '@/types/models/Ark'
 import type {
@@ -27,21 +27,26 @@ import type {
 import type { LNDConfig } from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
 import type { Config, Network, Server } from '@/types/settings/blockchain'
-import { aesEncrypt, getPinForDecryption, randomIv } from '@/utils/crypto'
+import { aesEncrypt, randomIv } from '@/utils/crypto'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
+import { getPin } from '@/utils/pin'
 
 type BackupKey = Key & {
   passphrase?: string
   seedWords?: string
 }
 type BackupAccount = {
+  birthdayDate?: string
+  excludedUtxoOutpoints?: string[]
   id: string
   keys: BackupKey[]
   keysRequired?: number
+  labels?: Record<string, Label>
   name: string
   network: Account['network']
   nostr?: NostrAccount
   policyType: Account['policyType']
+  rpcLastBlockHash?: string
   summary?: Account['summary']
 }
 type BackupData = {
@@ -232,8 +237,10 @@ async function prepareRestore(
     const created = (acc as { createdAt?: string }).createdAt
     accounts.push({
       addresses: [],
+      birthdayDate: acc.birthdayDate ? new Date(acc.birthdayDate) : undefined,
       createdAt: typeof created === 'string' ? new Date(created) : new Date(),
       displayIndex: 1000,
+      excludedUtxoOutpoints: acc.excludedUtxoOutpoints ?? [],
       id: acc.id,
       keyCount: acc.keys.length,
       keys: accountKeys,
@@ -241,12 +248,13 @@ async function prepareRestore(
         acc.policyType === 'singlesig'
           ? 1
           : (acc.keysRequired ?? acc.keys.length),
-      labels: {},
+      labels: acc.labels ?? {},
       lastSyncedAt: new Date(),
       name: acc.name,
       network: acc.network,
       nostr,
       policyType: acc.policyType,
+      rpcLastBlockHash: acc.rpcLastBlockHash,
       summary: {
         balance: 0,
         numberOfAddresses: 0,
@@ -437,9 +445,10 @@ async function writeKeychain(
 export async function performRecoverOverwrite(
   decrypted: string
 ): Promise<RecoverResult> {
-  const { skipPin } = useAuthStore.getState()
-  const pin = await getPinForDecryption(skipPin)
-  if (!pin) {
+  let pin = ''
+  try {
+    pin = await getPin()
+  } catch {
     return { error: 'PIN unavailable', success: false }
   }
 

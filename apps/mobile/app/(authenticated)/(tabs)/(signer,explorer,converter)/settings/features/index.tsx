@@ -1,7 +1,13 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
 
-import { SSIconHistoryChart, SSIconSeed, SSIconZero } from '@/components/icons'
+import {
+  SSIconBubbles,
+  SSIconFiat,
+  SSIconHistoryChart,
+  SSIconSeed,
+  SSIconZero
+} from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
@@ -26,10 +32,8 @@ export default function Features() {
           <SSVStack gap="lg">
             <SSVStack>
               <SSSettingsCards
-                title={t('settings.features.charts.historyChart.title')}
-                description={t(
-                  'settings.features.charts.historyChart.description'
-                )}
+                title={t('settings.features.charts.title')}
+                description={t('settings.features.charts.description')}
                 icon={
                   <SSIconHistoryChart
                     width={24}
@@ -38,7 +42,7 @@ export default function Features() {
                   />
                 }
                 onPress={() => {
-                  router.navigate('/settings/features/historyChart')
+                  router.navigate('/settings/features/charts')
                 }}
               />
               <SSSettingsCards
@@ -52,11 +56,35 @@ export default function Features() {
                 }}
               />
               <SSSettingsCards
+                title={t('settings.features.fiatData.title')}
+                description={t('settings.features.fiatData.description')}
+                icon={<SSIconFiat width={24} height={16} />}
+                onPress={() => {
+                  router.navigate('/settings/features/fiatData')
+                }}
+              />
+              <SSSettingsCards
+                title={t('settings.features.autoSelectUtxos.title')}
+                description={t('settings.features.autoSelectUtxos.description')}
+                icon={<SSIconBubbles width={24} height={24} />}
+                onPress={() => {
+                  router.navigate('/settings/features/autoSelectUtxos')
+                }}
+              />
+              <SSSettingsCards
                 title={t('settings.features.bip39.title')}
                 description={t('settings.features.bip39.description')}
                 icon={<SSIconSeed width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/features/bip39')
+                }}
+              />
+              <SSSettingsCards
+                title={t('settings.payjoin.title')}
+                description={t('settings.payjoin.description')}
+                icon={<SSIconBubbles width={24} height={24} />}
+                onPress={() => {
+                  router.navigate('/settings/features/payjoin')
                 }}
               />
             </SSVStack>

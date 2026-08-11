@@ -10,9 +10,13 @@ import SSText from './SSText'
 
 type SSCollapsibleProps = {
   children: React.ReactNode
+  fadeColor?: string
 }
 
-function SSCollapsible({ children }: SSCollapsibleProps) {
+function SSCollapsible({
+  children,
+  fadeColor = Colors.gray[950]
+}: SSCollapsibleProps) {
   const [open, setOpen] = useState(false)
 
   function handleSetOpen() {
@@ -30,7 +34,7 @@ function SSCollapsible({ children }: SSCollapsibleProps) {
               styles.linearGradientBase,
               open && styles.linearGradientOpen
             ]}
-            colors={[Colors.transparent, 'rgba(0,0,0,1)']}
+            colors={[Colors.transparent, fadeColor]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
           />

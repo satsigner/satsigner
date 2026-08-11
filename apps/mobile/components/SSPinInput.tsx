@@ -4,8 +4,7 @@ import {
   type ReactNode,
   type SetStateAction,
   useEffect,
-  useRef,
-  useState
+  useRef
 } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 import Animated, {
@@ -20,6 +19,13 @@ import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
+import {
+  deletePinDigit,
+  emptyPin,
+  fillPinDigit,
+  getPinCursorIndex,
+  isPinFilled
+} from '@/utils/pin'
 
 import SSKeyboard from './SSKeyboard'
 import SSText from './SSText'
@@ -47,45 +53,34 @@ function SSPinInput({
   withClear = true,
   withDelete = true
 }: SSPinInputProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const currentIndex = getPinCursorIndex(pin)
+
+  const fillEndedFiredRef = useRef(false)
 
   useEffect(() => {
-    if (pin.join('') === '') {
-      setCurrentIndex(0)
-    }
-  }, [pin])
-
-  function handleDelete() {
-    if (currentIndex <= 0) {
+    if (!isPinFilled(pin)) {
+      fillEndedFiredRef.current = false
       return
     }
-    const indexToClear = currentIndex - 1
-    const newPin = [...pin]
-    newPin[indexToClear] = ''
-    setCurrentIndex(indexToClear)
-    setPin(newPin)
+    if (fillEndedFiredRef.current) {
+      return
+    }
+    fillEndedFiredRef.current = true
+    if (onFillEnded) {
+      onFillEnded(pin.join(''))
+    }
+  }, [pin, onFillEnded])
+
+  function handleDelete() {
+    setPin(deletePinDigit)
   }
 
   function handleClear() {
-    setCurrentIndex(0)
-    setPin(Array.from({ length: PIN_SIZE }).map((_) => ''))
+    setPin(emptyPin())
   }
 
   function handlePress(digit: string) {
-    const newPin = [...pin]
-    const lastIndex = PIN_SIZE - 1
-    if (currentIndex > lastIndex) {
-      return
-    }
-
-    newPin[currentIndex] = digit
-    setPin(newPin)
-
-    if (currentIndex === lastIndex && onFillEnded) {
-      onFillEnded(newPin.join(''))
-    }
-
-    setCurrentIndex((currentValue) => currentValue + 1)
+    setPin((prev) => fillPinDigit(prev, digit))
   }
 
   return (

@@ -3,13 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  Keyboard,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { Keyboard, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
@@ -40,6 +34,7 @@ import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
@@ -932,7 +927,9 @@ export default function WatchOnly() {
                     data.wallet!
                   )
                 : await syncAccountWithAddress(data.accountWithEncryptedSecret)
-            updateAccount(updatedAccount)
+            if (updatedAccount) {
+              updateAccount(updatedAccount)
+            }
           } catch {
             /* silently ignored */
           }
@@ -962,7 +959,7 @@ export default function WatchOnly() {
       <Stack.Screen
         options={{ headerTitle: () => <SSText uppercase>{name}</SSText> }}
       />
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <SSScrollView contentContainerStyle={styles.scrollContainer}>
         <SSVStack justifyBetween gap="lg" style={styles.innerScrollContainer}>
           <SSVStack gap="lg">
             <SSVStack gap="lg">
@@ -1157,13 +1154,13 @@ export default function WatchOnly() {
             </SSVStack>
           </SSVStack>
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
       <SSSelectModal
         visible={modalOptionsVisible}
         title={t('watchonly.titleModal').toUpperCase()}
         selectedText={t(`watchonly.${selectedOption}.title`)}
         selectedDescription={
-          <SSCollapsible>
+          <SSCollapsible fadeColor={Colors.black}>
             <SSText color="muted" size="md">
               {t(`watchonly.${selectedOption}.text`)}
             </SSText>

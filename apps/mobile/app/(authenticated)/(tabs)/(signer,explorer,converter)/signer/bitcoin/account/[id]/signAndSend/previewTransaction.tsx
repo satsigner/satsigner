@@ -22,7 +22,7 @@ import Animated, {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { buildTransaction } from '@/api/bdk'
+import { buildPsbt, buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSDustWarningBanner from '@/components/SSDustWarningBanner'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
@@ -35,17 +35,17 @@ import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
-import { PIN_KEY } from '@/config/auth'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
+import { useNow } from '@/hooks/useNow'
 import { usePSBTManagement } from '@/hooks/usePSBTManagement'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
-import { getItem, getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
@@ -68,18 +68,31 @@ import {
   isBBQRFragment
 } from '@/utils/bbqr'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
-import { aesDecrypt } from '@/utils/crypto'
+import { decryptAccountKeySecret } from '@/utils/decryption'
+import { formatAddress, formatNumber } from '@/utils/format'
 import { parseHexToBytes } from '@/utils/parse'
+import {
+  formatPayjoinExpiryLabel,
+  parsePayjoinExpiresAtMs
+} from '@/utils/payjoinExpiry'
+import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   type ExtractedTransactionData,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
+  extractTransactionDataFromPSBT,
   extractTransactionDataFromPSBTEnhanced,
   extractTransactionIdFromPSBT,
   getCollectedSignerPubkeys,
   matchSignedPsbtsToCosigners,
+  signedTransactionMatchesPsbt,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
+import {
+  buildKnownTxIds,
+  buildOutpointLabelsByRef,
+  buildTxLabelsById
+} from '@/utils/sankeyInputLabel'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
   estimateTransactionSize,
@@ -214,6 +227,19 @@ function handlePsbtExtractionError(error: unknown) {
   }
 }
 
+async function decryptKeyOrFallback(
+  accountId: string,
+  keyIndex: number,
+  key: Key
+): Promise<Key> {
+  try {
+    const secret = await decryptAccountKeySecret(accountId, keyIndex)
+    return { ...key, secret }
+  } catch {
+    return key
+  }
+}
+
 function PreviewTransaction() {
   const router = useRouter()
   const { id, psbt } = useLocalSearchParams<PreviewTransactionSearchParams>()
@@ -232,7 +258,8 @@ function PreviewTransaction() {
     setRbf,
     signedPsbtsFromStore,
     clearTransaction,
-    clearPsbt
+    clearPsbt,
+    payjoinUri
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -248,8 +275,36 @@ function PreviewTransaction() {
       state.setRbf,
       state.signedPsbts,
       state.clearTransaction,
-      state.clearPsbt
+      state.clearPsbt,
+      state.payjoinUri
     ])
+  )
+
+  const payjoinInvoice = useMemo(() => {
+    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
+      return undefined
+    }
+    const parsed = parsePayjoinUri(payjoinUri)
+    if (!parsed.isValid || !parsed.params) {
+      return undefined
+    }
+    const amountSats =
+      parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
+        ? Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
+        : undefined
+    return {
+      address: parsed.params.address,
+      amountSats,
+      endpointKind: parsed.endpointKind,
+      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
+      label: parsed.params.label
+    }
+  }, [payjoinUri])
+
+  const nowMs = useNow()
+  const payjoinExpiryLabel = formatPayjoinExpiryLabel(
+    payjoinInvoice?.expiresAt,
+    nowMs
   )
 
   const account = useAccountsStore((state) =>
@@ -259,11 +314,26 @@ function PreviewTransaction() {
     () => new Set(account?.addresses?.map((a) => a.address)),
     [account]
   )
+  const txLabelsById = useMemo(
+    () => buildTxLabelsById(account?.transactions),
+    [account?.transactions]
+  )
+  const knownTxIds = useMemo(
+    () => buildKnownTxIds(account?.transactions),
+    [account?.transactions]
+  )
+  const outpointLabelsByRef = useMemo(
+    () => buildOutpointLabelsByRef(account ?? {}),
+    [account]
+  )
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
+  const { server } = useBlockchainStore(
+    (state) => state.configs[state.selectedNetwork]
+  )
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const [transactionId, setTransactionId] = useState('')
   const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
@@ -379,9 +449,13 @@ function PreviewTransaction() {
   }
 
   function processBasicPsbt(psbtBase64: string) {
+    const extractedData = extractTransactionDataFromPSBT(psbtBase64, network)
+    if (extractedData) {
+      processExtractedPsbtData(extractedData)
+    }
     const txid = generateTransactionId(psbtBase64)
     setTransactionId(txid)
-    const mockResult = createMockPsbt(psbtBase64, txid, 0)
+    const mockResult = createMockPsbt(psbtBase64, txid, extractedData?.fee ?? 0)
     setPsbt(mockResult)
     setIsLoadingPSBT(false)
   }
@@ -591,7 +665,9 @@ function PreviewTransaction() {
   useClipboardPaste({
     onPaste: (content: string) => {
       const processedData = processScannedData(content)
-      updateSignedPsbt(-1, processedData) // -1 for watch-only mode
+      if (processedData !== null) {
+        updateSignedPsbt(-1, processedData) // -1 for watch-only mode
+      }
     }
   })
 
@@ -696,8 +772,11 @@ function PreviewTransaction() {
     })
   }
 
-  // Helper function to convert PSBT to final transaction if needed
-  const processScannedData = (data: string): string => {
+  // Helper function to convert PSBT to final transaction if needed.
+  // Returns null (after showing an error) when the supplied content does not
+  // correspond to the transaction under review — broadcasting it would
+  // execute a different transaction than the one displayed to the user.
+  const processScannedData = (data: string): string | null => {
     try {
       // Strip "bitcoin:" prefix if present (case-insensitive)
       let processedData = data
@@ -705,18 +784,36 @@ function PreviewTransaction() {
         processedData = processedData.substring(8)
       }
 
+      const originalPsbtBase64 = txBuilderResult?.toBase64()
+
       // Check if data is a PSBT and convert to final transaction
       if (processedData.toLowerCase().startsWith('70736274ff')) {
         // Only attempt conversion if we have the original PSBT context
-        if (txBuilderResult?.toBase64()) {
-          const convertedResult = convertPsbtToFinalTransaction(processedData)
-          return convertedResult
+        if (originalPsbtBase64) {
+          return convertPsbtToFinalTransaction(processedData)
         }
         return processedData
       }
+
+      // Raw transaction hex: bind it to the PSBT under review (when there
+      // is one) so a swapped QR/clipboard cannot substitute the broadcast.
+      if (
+        originalPsbtBase64 &&
+        /^[a-fA-F0-9]+$/.test(processedData) &&
+        !signedTransactionMatchesPsbt(originalPsbtBase64, processedData)
+      ) {
+        toast.error(t('common.error.transactionMismatch'))
+        return null
+      }
+
       return processedData
-    } catch {
-      return data
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t('common.error.processScannedData')
+      )
+      return null
     }
   }
 
@@ -924,6 +1021,7 @@ function PreviewTransaction() {
 
     const vout = outputs.map((output: Output) => ({
       address: output.to,
+      kind: output.kind,
       label: output.label || '',
       script: '' as string | number[],
       value: output.amount
@@ -1008,12 +1106,19 @@ function PreviewTransaction() {
         const inputArray = Array.from(inputs.values())
         const outputArray = Array.from(outputs.values())
 
-        const transaction = await buildTransaction(wallet, {
-          fee,
-          inputs: inputArray,
-          options: { rbf },
-          outputs: outputArray
-        })
+        const transaction = account
+          ? await buildPsbt(wallet, server, account, {
+              fee,
+              inputs: inputArray,
+              options: { rbf },
+              outputs: outputArray
+            })
+          : await buildTransaction(wallet, {
+              fee,
+              inputs: inputArray,
+              options: { rbf },
+              outputs: outputArray
+            })
 
         if (cancelled) {
           return
@@ -1338,7 +1443,7 @@ function PreviewTransaction() {
 
     // Handle single QR codes (complete data in one scan)
     if (qrInfo.type === 'single' || qrInfo.total === 1) {
-      let finalContent = qrInfo.content
+      let finalContent: string | null = qrInfo.content
       try {
         // Check if it's a single BBQR QR code
         if (isBBQRFragment(qrInfo.content)) {
@@ -1385,6 +1490,11 @@ function PreviewTransaction() {
         finalContent = processScannedData(finalContent)
       } catch {
         toast.error(t('common.error.processScannedData'))
+      }
+
+      if (finalContent === null) {
+        resetScanProgress()
+        return
       }
 
       // Use hook's updateSignedPsbt function
@@ -1461,6 +1571,11 @@ function PreviewTransaction() {
           // Process the assembled data (convert PSBT to final transaction if needed)
           const finalData = processScannedData(assembledData)
 
+          if (finalData === null) {
+            resetScanProgress()
+            return
+          }
+
           // Use hook's updateSignedPsbt function
           updateSignedPsbt(index ?? -1, finalData)
 
@@ -1499,6 +1614,11 @@ function PreviewTransaction() {
       if (assembledData) {
         // Process the assembled data (convert PSBT to final transaction if needed)
         const finalData = processScannedData(assembledData)
+
+        if (finalData === null) {
+          resetScanProgress()
+          return
+        }
 
         // Use hook's updateSignedPsbt function
         updateSignedPsbt(index ?? -1, finalData)
@@ -1575,6 +1695,10 @@ function PreviewTransaction() {
 
       // Process the pasted data similar to scanned data
       const processedData = processScannedData(text)
+
+      if (processedData === null) {
+        return
+      }
 
       // Use hook's updateSignedPsbt function
       updateSignedPsbt(index, processedData)
@@ -1867,37 +1991,13 @@ function PreviewTransaction() {
         return
       }
 
-      const pin = await getItem(PIN_KEY)
-      if (!pin) {
-        return
-      }
-
-      try {
-        const decryptedKeysData = await Promise.all(
-          account.keys.map(async (key, index) => {
-            const stored = await getKeySecret(account.id, index)
-            if (!stored) {
-              return key
-            }
-
-            const decryptedSecretString = await aesDecrypt(
-              stored.secret,
-              pin,
-              stored.iv
-            )
-            const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-
-            return {
-              ...key,
-              secret: decryptedSecret
-            }
-          })
+      const decryptedKeysData = await Promise.all(
+        account.keys.map((key, index) =>
+          decryptKeyOrFallback(account.id, index, key)
         )
+      )
 
-        setDecryptedKeys(decryptedKeysData)
-      } catch {
-        setDecryptedKeys([])
-      }
+      setDecryptedKeys(decryptedKeysData)
     }
     decryptKeys()
   }, [account])
@@ -2062,6 +2162,31 @@ function PreviewTransaction() {
         <SSVStack justifyBetween>
           <ScrollView>
             <SSVStack>
+              {payjoinInvoice ? (
+                <View style={styles.payjoinNote} testID="preview-payjoin-note">
+                  <SSText size="xs" uppercase color="muted" center>
+                    {t('transaction.build.payjoin.previewNote.title')}
+                  </SSText>
+                  <SSText size="sm" weight="light" center>
+                    {[
+                      payjoinInvoice.endpointKind === 'bip78'
+                        ? t('transaction.build.payjoin.data.bip78')
+                        : t('transaction.build.payjoin.data.bip77'),
+                      payjoinInvoice.amountSats !== undefined
+                        ? `${formatNumber(payjoinInvoice.amountSats)} ${t('bitcoin.sats')}`
+                        : null,
+                      payjoinInvoice.label || null,
+                      formatAddress(payjoinInvoice.address, 6),
+                      payjoinExpiryLabel
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </SSText>
+                  <SSText size="xs" center style={styles.payjoinNoteHint}>
+                    {t('transaction.build.payjoin.previewNote.hint')}
+                  </SSText>
+                </View>
+              ) : null}
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
                   {t('transaction.id')}
@@ -2104,8 +2229,12 @@ function PreviewTransaction() {
                 </SSText>
                 <View style={{ overflow: 'hidden' }}>
                   <SSTransactionChart
+                    accountId={id}
                     transaction={transaction}
                     ownAddresses={ownAddresses}
+                    txLabelsById={txLabelsById}
+                    knownTxIds={knownTxIds}
+                    outpointLabelsByRef={outpointLabelsByRef}
                     scale={0.9}
                     showUnspentLabel={false}
                   />
@@ -2881,6 +3010,13 @@ function PreviewTransaction() {
 const styles = StyleSheet.create({
   mainLayout: { paddingBottom: 20, paddingTop: 0 },
   modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' },
+  payjoinNote: {
+    gap: 4,
+    paddingVertical: 4
+  },
+  payjoinNoteHint: {
+    color: Colors.gray[500]
+  },
   qrFormatSegmentTrack: {
     alignSelf: 'center',
     backgroundColor: Colors.gray[850],

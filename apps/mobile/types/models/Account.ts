@@ -20,8 +20,14 @@ export const SyncStatusSchema = z.enum([
 ])
 
 export const SyncProgressSchema = z.object({
+  /** Approximate unix time of the block currently being scanned. */
+  currentBlockTimeSec: z.number().optional(),
+  /** Approximate unix time of the scan start (birthday / start height). */
+  scanFromTimeSec: z.number().optional(),
   tasksDone: z.number(),
-  totalTasks: z.number()
+  totalTasks: z.number(),
+  /** Wallet tx count observed mid-rescan (Bitcoin Core getwalletinfo.txcount). */
+  transactionsFound: z.number().optional()
 })
 
 export const CreationTypeSchema = z.enum([
@@ -53,6 +59,8 @@ export const KeyMetaSchema = z.object({
 })
 
 export const KeySchema = KeyMetaSchema.extend({
+  /** Set on DB load, stripped on DB write. */
+  accountId: z.string().optional(),
   iv: z.string(),
   secret: z.union([SecretSchema, z.string()])
 })
@@ -61,10 +69,19 @@ export const DecryptedKeySchema = KeySchema.omit({ secret: true }).extend({
   secret: SecretSchema
 })
 
+export const EncryptedKeySecretSchema = z.object({
+  iv: z.string(),
+  secret: z.string()
+})
+
 export const AccountSchema = z.object({
   addresses: z.array(AddressSchema),
+  /** User-set wallet birthday. Used as the floor for historical RPC scans. */
+  birthdayDate: z.date().optional(),
   createdAt: z.date(),
   displayIndex: z.number(),
+  /** Outpoints permanently excluded from coin selection / auto-select. */
+  excludedUtxoOutpoints: z.array(z.string()).optional(),
   id: z.string(),
   isSyncing: z.boolean().optional(),
   keyCount: z.number(),
@@ -76,6 +93,11 @@ export const AccountSchema = z.object({
   network: NetworkSchema,
   nostr: NostrAccountSchema,
   policyType: PolicyTypeSchema,
+  /**
+   * The block hash returned by the last `listsinceblock` call.
+   * Used to make incremental Core wallet syncs fast (only new blocks).
+   */
+  rpcLastBlockHash: z.string().optional(),
   summary: z.object({
     balance: z.number(),
     numberOfAddresses: z.number(),
@@ -99,6 +121,7 @@ export type Account = z.infer<typeof AccountSchema>
 export type CreationType = z.infer<typeof CreationTypeSchema>
 export type DecryptedAccount = z.infer<typeof DecryptedAccountSchema>
 export type DecryptedKey = z.infer<typeof DecryptedKeySchema>
+export type EncryptedKeySecret = z.infer<typeof EncryptedKeySecretSchema>
 export type Key = z.infer<typeof KeySchema>
 export type KeyMeta = z.infer<typeof KeyMetaSchema>
 export type PolicyType = z.infer<typeof PolicyTypeSchema>

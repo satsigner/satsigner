@@ -10,13 +10,13 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
-import useAccountFingerprint from '@/hooks/useAccountFingerprint'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Layout, Sizes } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
@@ -26,24 +26,42 @@ import SSFingerprint from './SSFingerprint'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 
+export type SSAccountCardStat = {
+  label: string
+  value: number
+}
+
 type SSAccountCardProps = {
-  account: Account
   onPress(): void
   onLongPress?: () => void
   delayLongPress?: number
   activeOpacity?: number
   longPressDisabled?: boolean
+  name: string
+  balance: number
+  fingerprint?: string
+  watchOnly?: boolean
+  syncStatus?: Account['syncStatus']
+  lastSyncedAt?: Account['lastSyncedAt']
+  stats?: SSAccountCardStat[]
 }
 
 function SSAccountCard({
-  account,
+  name,
+  balance,
   onPress,
   onLongPress,
   delayLongPress = 250,
   activeOpacity = 0.5,
-  longPressDisabled = false
+  longPressDisabled = false,
+  fingerprint,
+  watchOnly = false,
+  syncStatus,
+  lastSyncedAt,
+  stats
 }: SSAccountCardProps) {
   const platform = Platform.OS
+  const { showCurrentFiat } = useFiatData()
   const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -58,12 +76,11 @@ function SSAccountCard({
       state.privacyMode
     ])
   )
-  const fingerprint = useAccountFingerprint(account)
 
   const rotation = useSharedValue(0)
 
   useEffect(() => {
-    if (account.syncStatus === 'syncing') {
+    if (syncStatus === 'syncing') {
       rotation.set(
         withRepeat(
           withTiming(360, { duration: 1500, easing: Easing.linear }),
@@ -80,7 +97,7 @@ function SSAccountCard({
       cancelAnimation(rotation)
       rotation.set(0)
     }
-  }, [account.syncStatus, rotation])
+  }, [syncStatus, rotation])
 
   const rotateStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }]
@@ -106,36 +123,40 @@ function SSAccountCard({
         text = t('account.sync.status.synced')
 
         if (date !== undefined) {
-          const diff = nowSeconds - date.getTime() / 1000
+          const syncedMs =
+            date instanceof Date ? date.getTime() : new Date(date).getTime()
+          if (!Number.isNaN(syncedMs)) {
+            const diff = nowSeconds - syncedMs / 1000
 
-          const hours = Math.floor(diff / 3600)
-          const days = Math.floor(hours / 24)
-          const months = Math.floor(days / 30)
-          const years = Math.floor(days / 365)
+            const hours = Math.floor(diff / 3600)
+            const days = Math.floor(hours / 24)
+            const months = Math.floor(days / 30)
+            const years = Math.floor(days / 365)
 
-          if (hours >= 1) {
-            color = Colors.gray[75] // eslint-disable-line prefer-destructuring
-            text = `${t('account.sync.status.synced')} ${t(
-              'account.sync.status.old.hour',
-              { value: hours }
-            )}`
-            if (days >= 1) {
+            if (hours >= 1) {
+              color = Colors.gray[75] // eslint-disable-line prefer-destructuring
               text = `${t('account.sync.status.synced')} ${t(
-                'account.sync.status.old.day',
-                { value: days }
+                'account.sync.status.old.hour',
+                { value: hours }
               )}`
-            }
-            if (months >= 1) {
-              text = `${t('account.sync.status.synced')} ${t(
-                'account.sync.status.old.month',
-                { value: months }
-              )}`
-            }
-            if (years >= 1) {
-              text = `${t('account.sync.status.synced')} ${t(
-                'account.sync.status.old.year',
-                { value: years }
-              )}`
+              if (days >= 1) {
+                text = `${t('account.sync.status.synced')} ${t(
+                  'account.sync.status.old.day',
+                  { value: days }
+                )}`
+              }
+              if (months >= 1) {
+                text = `${t('account.sync.status.synced')} ${t(
+                  'account.sync.status.old.month',
+                  { value: months }
+                )}`
+              }
+              if (years >= 1) {
+                text = `${t('account.sync.status.synced')} ${t(
+                  'account.sync.status.old.year',
+                  { value: years }
+                )}`
+              }
             }
           }
         }
@@ -191,96 +212,76 @@ function SSAccountCard({
     >
       <SSHStack justifyBetween style={{ position: 'relative' }}>
         <SSVStack gap={platform === 'android' ? 'none' : 'xxs'}>
-          {account.keys[0].creationType === 'importAddress' ? null : (
-            <SSFingerprint fingerprint={fingerprint} />
-          )}
-          <SSHStack gap="sm">
+          {fingerprint ? <SSFingerprint fingerprint={fingerprint} /> : null}
+          <SSHStack gap="sm" style={{ alignItems: 'center' }}>
             <SSText size="lg" color="muted">
-              {account.name}
+              {name}
             </SSText>
-            {account.policyType === 'watchonly' && (
-              <SSIconEyeOn height={16} width={16} />
-            )}
+            {watchOnly && <SSIconEyeOn height={16} width={16} />}
           </SSHStack>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText
-              size="3xl"
-              color="white"
-              style={{ lineHeight: Sizes.text.fontSize['3xl'] }}
-            >
-              {privacyMode ? (
-                '••••'
-              ) : (
-                <SSStyledSatText
-                  amount={account?.summary.balance || 0}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  textSize="3xl"
-                  weight="light"
-                  letterSpacing={-1}
-                />
-              )}
-            </SSText>
-            <SSText size="xl" color="muted">
-              {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-            </SSText>
-          </SSHStack>
-          <SSHStack
-            gap="xs"
-            style={{
-              alignItems: 'baseline',
-              paddingVertical: platform === 'android' ? 0 : 1
-            }}
-          >
-            <SSText color="muted">
-              {!btcPrice || btcPrice <= 0
-                ? '--'
-                : privacyMode
-                  ? '••••'
-                  : formatNumber(satsToFiat(account.summary.balance || 0), 2)}
-            </SSText>
-            <SSText size="xs" style={{ color: Colors.gray[500] }}>
-              {fiatCurrency}
-            </SSText>
-          </SSHStack>
-          <SSHStack>
-            <SSVStack gap="none">
-              <SSText color="white" size="md">
-                {formatNumber(account.summary.numberOfTransactions)}
+          <SSVStack gap="none">
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText
+                size="3xl"
+                color="white"
+                style={{ lineHeight: Sizes.text.fontSize['3xl'] }}
+              >
+                {privacyMode ? (
+                  '••••'
+                ) : (
+                  <SSStyledSatText
+                    amount={balance}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    textSize="3xl"
+                    weight="light"
+                    letterSpacing={-1}
+                  />
+                )}
               </SSText>
-              <SSText size="xs" color="muted">
-                {t('accounts.totalTransactions')}
+              <SSText size="xl" color="muted">
+                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
               </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText color="white" size="md">
-                {formatNumber(account.summary.numberOfAddresses)}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t('accounts.derivedAddresses')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText color="white" size="md">
-                {formatNumber(account.summary.numberOfUtxos)}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t('accounts.spendableOutputs')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText color="white" size="md">
-                {formatNumber(account.summary.satsInMempool)}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t('accounts.satsInMempool')}
-              </SSText>
-            </SSVStack>
-          </SSHStack>
+            </SSHStack>
+            {showCurrentFiat ? (
+              <SSHStack
+                gap="xs"
+                style={{
+                  alignItems: 'baseline',
+                  marginTop: -Layout.vStack.gap.xs
+                }}
+              >
+                <SSText color="muted">
+                  {!btcPrice || btcPrice <= 0
+                    ? '--'
+                    : privacyMode
+                      ? '••••'
+                      : formatNumber(satsToFiat(balance), 2)}
+                </SSText>
+                <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                  {fiatCurrency}
+                </SSText>
+              </SSHStack>
+            ) : null}
+          </SSVStack>
+          {stats && stats.length > 0 ? (
+            <SSHStack>
+              {stats.map((stat) => (
+                <SSVStack gap="none" key={stat.label}>
+                  <SSText color="white" size="md">
+                    {formatNumber(stat.value)}
+                  </SSText>
+                  <SSText size="xs" color="muted">
+                    {stat.label}
+                  </SSText>
+                </SSVStack>
+              ))}
+            </SSHStack>
+          ) : null}
         </SSVStack>
         <SSIconChevronRight height={11.6} width={6} />
-        {renderSyncStatus(account.syncStatus, account.lastSyncedAt)}
+        {syncStatus ? renderSyncStatus(syncStatus, lastSyncedAt) : null}
       </SSHStack>
     </TouchableOpacity>
   )

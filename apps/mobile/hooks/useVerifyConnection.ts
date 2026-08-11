@@ -1,12 +1,15 @@
 import NetInfo from '@react-native-community/netinfo'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import { servers } from '@/constants/servers'
+import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import { useBlockchainStore } from '@/store/blockchain'
+import { isConnectionPollSuppressed } from '@/utils/connectionPollSuppression'
 import { trimOnionAddress } from '@/utils/format'
 
 export type ConnectionVerifyStatus = 'checking' | 'connected' | 'failed'
@@ -25,7 +28,9 @@ function useVerifyConnection() {
 
   const { data: connectionStatus = 'checking', refetch } =
     useQuery<ConnectionVerifyStatus>({
-      enabled: config.connectionMode !== 'manual',
+      enabled:
+        config.connectionMode !== 'manual' &&
+        !isConnectionPollSuppressed(selectedNetwork),
       gcTime: 0,
       queryFn: async () => {
         if (isConnectionAvailable.current === null) {
@@ -35,14 +40,23 @@ function useVerifyConnection() {
           return 'failed'
         }
         try {
-          const ok =
-            server.backend === 'electrum'
-              ? await ElectrumClient.test(
-                  server.url,
-                  server.network,
-                  config.timeout * 1000
-                )
-              : await Esplora.test(server.url, config.timeout * 1000)
+          let ok: boolean
+          if (server.backend === 'electrum') {
+            ok = await ElectrumClient.test(
+              server.url,
+              server.network,
+              config.timeout * 1000
+            )
+          } else if (server.backend === 'rpc') {
+            ok = await BitcoinRpc.test(
+              server.url,
+              server.rpcCredentials?.username ?? '',
+              server.rpcCredentials?.password ?? '',
+              config.timeout * 1000
+            )
+          } else {
+            ok = await Esplora.test(server.url, config.timeout * 1000)
+          }
           return ok ? 'connected' : 'failed'
         } catch {
           return 'failed'
@@ -55,32 +69,28 @@ function useVerifyConnection() {
         server.backend,
         server.network,
         config.timeout,
-        config.connectionMode
+        config.connectionMode,
+        server.rpcCredentials?.username,
+        server.rpcCredentials?.password
       ],
       refetchInterval: config.connectionTestInterval * 1000,
       refetchIntervalInBackground: true,
       refetchOnMount: 'always'
     })
 
-  useEffect(() => {
+  useAsyncEffect(async () => {
     if (config.connectionMode === 'manual') {
       return
     }
 
-    let cancelled = false
+    const state = await NetInfo.fetch()
+    isConnectionAvailable.current =
+      state.isConnected === null ? null : state.isConnected
+    refetch()
 
-    ;(async () => {
-      const state = await NetInfo.fetch()
-      if (cancelled) {
-        return
-      }
-      isConnectionAvailable.current =
-        state.isConnected === null ? null : state.isConnected
-      refetch()
-    })()
-
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const next = state.isConnected === null ? null : state.isConnected
+    return NetInfo.addEventListener((netInfoState) => {
+      const next =
+        netInfoState.isConnected === null ? null : netInfoState.isConnected
       if (isConnectionAvailable.current === next) {
         return
       }
@@ -93,27 +103,13 @@ function useVerifyConnection() {
         refetch()
       }
     })
-
-    return () => {
-      cancelled = true
-      unsubscribe()
-    }
   }, [config.connectionMode, refetch])
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const state = await NetInfo.fetch()
-      if (cancelled) {
-        return
-      }
-      isConnectionAvailable.current =
-        state.isConnected === null ? null : state.isConnected
-      refetch()
-    })()
-    return () => {
-      cancelled = true
-    }
+  useAsyncEffect(async () => {
+    const state = await NetInfo.fetch()
+    isConnectionAvailable.current =
+      state.isConnected === null ? null : state.isConnected
+    refetch()
   }, [server.url, refetch])
 
   const trimmedUrl = trimOnionAddress(server.url)

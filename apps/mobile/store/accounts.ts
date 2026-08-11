@@ -3,15 +3,6 @@ import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
 import {
-  accountKeys,
-  addressKeys,
-  labelKeys,
-  nostrKeys,
-  tagKeys,
-  transactionKeys,
-  utxoKeys
-} from '@/db/keys'
-import {
   deleteAccount as deleteAccountDb,
   deleteAllAccounts as deleteAllAccountsDb,
   insertAccount as insertAccountDb,
@@ -39,7 +30,6 @@ import {
 } from '@/db/mutations/tags'
 import { upsertSingleTransaction } from '@/db/mutations/transactions'
 import { getAccountById, getAccounts } from '@/db/queries/accounts'
-import { queryClient } from '@/lib/queryClient'
 import { deleteAllKeySecrets, deleteKeySecret } from '@/storage/encrypted'
 import { type Label } from '@/types/bips/329'
 import {
@@ -51,6 +41,13 @@ import {
 import { type NostrAccount } from '@/types/models/Nostr'
 import { type Transaction } from '@/types/models/Transaction'
 import { dropSeedFromKey } from '@/utils/account'
+import {
+  deleteNostrAccountSecretSafe,
+  mergeAccountWithCachedNostrSecrets,
+  persistAccountSecretsSafe,
+  setCachedAccountSecrets
+} from '@/utils/nostrSecrets'
+import { pruneExcludedOutpoints } from '@/utils/utxoList'
 
 /**
  * Wallet sync and address refresh call updateAccount with { ...account, ... } from
@@ -87,6 +84,7 @@ type AccountsAction = {
     nostr: Partial<Account['nostr']>
   ) => void
   markDmsAsRead: (id: Account['id']) => void
+  updateAccountBirthday: (id: Account['id'], date: Date | undefined) => void
   setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
   setSyncProgress: (id: Account['id'], syncProgress: SyncProgress) => void
@@ -118,27 +116,8 @@ type AccountsAction = {
     keyIndex: number
   ) => Promise<{ success: boolean; message: string }>
   resetKey: (accountId: Account['id'], keyIndex: number) => void
-}
-
-/**
- * Invalidate TanStack Query cache after a Zustand mutation.
- * Keeps TQ consumers in sync when mutations go through the store.
- */
-function invalidateAccount(accountId: string) {
-  queryClient.invalidateQueries({ queryKey: accountKeys.detail(accountId) })
-  queryClient.invalidateQueries({ queryKey: transactionKeys.all(accountId) })
-  queryClient.invalidateQueries({ queryKey: utxoKeys.all(accountId) })
-  queryClient.invalidateQueries({ queryKey: addressKeys.all(accountId) })
-  queryClient.invalidateQueries({ queryKey: labelKeys.all(accountId) })
-  queryClient.invalidateQueries({ queryKey: nostrKeys.dms(accountId) })
-}
-
-function invalidateAllAccounts() {
-  queryClient.invalidateQueries({ queryKey: accountKeys.all })
-}
-
-function invalidateTags() {
-  queryClient.invalidateQueries({ queryKey: tagKeys.all })
+  excludeUtxoOutpoints: (accountId: Account['id'], outpoints: string[]) => void
+  includeUtxoOutpoints: (accountId: Account['id'], outpoints: string[]) => void
 }
 
 type ImmerSet = (fn: (state: Draft<AccountsState>) => void) => void
@@ -153,29 +132,32 @@ function reloadAccount(set: ImmerSet, accountId: string): Account | undefined {
     return undefined
   }
 
+  const withSecrets = mergeAccountWithCachedNostrSecrets(account)
+
   set((state) => {
     const idx = state.accounts.findIndex((a) => a.id === accountId)
     if (idx !== -1) {
-      state.accounts[idx] = account
+      state.accounts[idx] = withSecrets
     }
   })
-  return account
+  return withSecrets
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
   immer((set, get) => ({
-    accounts: getAccounts(),
+    accounts: getAccounts().map(mergeAccountWithCachedNostrSecrets),
     addAccount: (account) => {
+      void persistAccountSecretsSafe(account.id, account.nostr)
       insertAccountDb(account)
       set((state) => {
         state.accounts.push(account)
       })
-      invalidateAllAccounts()
     },
     deleteAccount: (id) => {
       const account = get().accounts.find((a) => a.id === id)
       if (account) {
         deleteAllKeySecrets(account.id, account.keys.length)
+        void deleteNostrAccountSecretSafe(account.id)
       }
       deleteAccountDb(id)
       set((state) => {
@@ -184,23 +166,21 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts.splice(index, 1)
         }
       })
-      invalidateAllAccounts()
     },
     deleteAccounts: () => {
       const { accounts } = get()
       for (const account of accounts) {
         deleteAllKeySecrets(account.id, account.keys.length)
+        void deleteNostrAccountSecretSafe(account.id)
       }
       deleteAllAccountsDb()
       set((state) => {
         state.accounts = []
       })
-      invalidateAllAccounts()
     },
     deleteTags: () => {
       deleteTagsDb()
       set({ tags: [] })
-      invalidateTags()
     },
     dropSeedFromKey: async (accountId, keyIndex) => {
       const state = get()
@@ -232,7 +212,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           }
           state.accounts[accountIndex].keys[keyIndex] = newKey
         })
-        invalidateAccount(accountId)
         return {
           message: 'Seed dropped successfully',
           success: true
@@ -245,12 +224,65 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
       }
     },
+    excludeUtxoOutpoints: (accountId, outpoints) => {
+      const account = get().accounts.find((entry) => entry.id === accountId)
+      if (!account || outpoints.length === 0) {
+        return
+      }
+
+      const next = account.excludedUtxoOutpoints
+        ? new Set(account.excludedUtxoOutpoints)
+        : new Set<string>()
+      for (const outpoint of outpoints) {
+        next.add(outpoint)
+      }
+      const excludedUtxoOutpoints = pruneExcludedOutpoints(
+        Array.from(next),
+        account.utxos
+      )
+      const updatedAccount: Account = {
+        ...account,
+        excludedUtxoOutpoints
+      }
+      updateFullAccountDb(updatedAccount)
+      set((state) => {
+        const index = state.accounts.findIndex(
+          (entry) => entry.id === accountId
+        )
+        if (index !== -1) {
+          state.accounts[index].excludedUtxoOutpoints = excludedUtxoOutpoints
+        }
+      })
+    },
     getTags: () => get().tags,
     importLabels: (accountId: string, labels: Label[]) => {
       const labelsAdded = importLabelsDb(accountId, labels)
       reloadAccount(set, accountId)
-      invalidateAccount(accountId)
       return labelsAdded
+    },
+    includeUtxoOutpoints: (accountId, outpoints) => {
+      const account = get().accounts.find((entry) => entry.id === accountId)
+      if (!account || outpoints.length === 0) {
+        return
+      }
+
+      const remove = new Set(outpoints)
+      const excludedUtxoOutpoints = (
+        account.excludedUtxoOutpoints ?? []
+      ).filter((outpoint) => !remove.has(outpoint))
+      const updatedAccount: Account = {
+        ...account,
+        excludedUtxoOutpoints
+      }
+      updateFullAccountDb(updatedAccount)
+      set((state) => {
+        const index = state.accounts.findIndex(
+          (entry) => entry.id === accountId
+        )
+        if (index !== -1) {
+          state.accounts[index].excludedUtxoOutpoints = excludedUtxoOutpoints
+        }
+      })
     },
     loadTx: (accountId, tx) => {
       const { accounts } = get()
@@ -273,7 +305,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       set((state) => {
         state.accounts[accountIndex].transactions[txIndex] = tx
       })
-      invalidateAccount(accountId)
     },
     markDmsAsRead: (id) => {
       markDmsAsReadDb(id)
@@ -286,7 +317,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (dm) => (dm.read === false ? { ...dm, read: true } : dm)
         )
       })
-      invalidateAccount(id)
     },
     resetKey: (accountId, keyIndex) => {
       const resetKeyData: Key = {
@@ -319,7 +349,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
         state.accounts[accountIndex].keys[keyIndex] = resetKeyData
       })
-      invalidateAccount(accountId)
     },
     setAccounts: (accounts) => {
       // TODO: setAccountsDb
@@ -334,7 +363,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       }
 
       cascadeAddrLabel(accountId, addr, label)
-      invalidateAccount(accountId)
       return reloadAccount(set, accountId)
     },
     setLastSyncedAt: (id, date) => {
@@ -345,7 +373,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts[index].lastSyncedAt = date
         }
       })
-      invalidateAccount(id)
     },
     setSyncProgress: (id, syncProgress) => {
       updateSyncProgressDb(id, syncProgress)
@@ -357,7 +384,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           }
         }
       })
-      invalidateAccount(id)
     },
     setSyncStatus: (id, syncStatus) => {
       updateSyncStatusDb(id, syncStatus)
@@ -367,12 +393,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts[index].syncStatus = syncStatus
         }
       })
-      invalidateAccount(id)
     },
     setTags: (tags: string[]) => {
       setTagsDb(tags)
       set({ tags })
-      invalidateTags()
     },
     setTxLabel: (accountId, txid, label) => {
       const account = get().accounts.find((account) => account.id === accountId)
@@ -381,7 +405,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       }
 
       cascadeTxLabel(accountId, txid, label)
-      invalidateAccount(accountId)
       return reloadAccount(set, accountId)
     },
     setUtxoLabel: (accountId, txid, vout, label) => {
@@ -391,7 +414,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       }
 
       cascadeUtxoLabel(accountId, txid, vout, label)
-      invalidateAccount(accountId)
       return reloadAccount(set, accountId)
     },
     tags: getTagsDb(),
@@ -412,16 +434,53 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         account.nostr
       )
 
+      const excludedUtxoOutpoints = pruneExcludedOutpoints(
+        currentAccount.excludedUtxoOutpoints ??
+          account.excludedUtxoOutpoints ??
+          [],
+        account.utxos
+      )
+
       const mergedAccount: Account = {
         ...account,
+        excludedUtxoOutpoints,
         labels: mergedLabels,
         nostr: mergedNostr
       }
 
+      void persistAccountSecretsSafe(mergedAccount.id, mergedAccount.nostr)
       updateFullAccountDb(mergedAccount)
 
       reloadAccount(set, account.id)
-      invalidateAccount(account.id)
+    },
+    updateAccountBirthday: (id, date) => {
+      const account = get().accounts.find((a) => a.id === id)
+      if (!account) {
+        return
+      }
+
+      const prevTime = account.birthdayDate?.getTime()
+      const nextTime = date?.getTime()
+      if (prevTime === nextTime) {
+        return
+      }
+
+      // Clearing the RPC checkpoint forces the next sync to rescan from the
+      // new birthday instead of continuing incrementally from the old range.
+      const updatedAccount: Account = {
+        ...account,
+        birthdayDate: date,
+        rpcLastBlockHash: undefined
+      }
+      updateFullAccountDb(updatedAccount)
+
+      set((state) => {
+        const index = state.accounts.findIndex((a) => a.id === id)
+        if (index !== -1) {
+          state.accounts[index].birthdayDate = date
+          state.accounts[index].rpcLastBlockHash = undefined
+        }
+      })
     },
     updateAccountName: (id, newName) => {
       updateAccountNameDb(id, newName)
@@ -431,32 +490,45 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts[index].name = newName
         }
       })
-      invalidateAccount(id)
     },
     updateAccountNostr: (id, nostr) => {
+      const prev = get().accounts.find((account) => account.id === id)?.nostr
+      const base: NostrAccount = prev ?? {
+        autoSync: false,
+        commonNpub: '',
+        commonNsec: '',
+        dms: [],
+        lastUpdated: new Date(),
+        relays: [],
+        syncStart: new Date(),
+        trustedMemberDevices: []
+      }
+      const nextNostr: NostrAccount = {
+        ...base,
+        ...nostr
+      }
+
+      if (
+        nostr.commonNsec !== undefined ||
+        nostr.deviceNsec !== undefined ||
+        nostr.deviceMnemonic !== undefined
+      ) {
+        setCachedAccountSecrets(id, {
+          commonNsec: nextNostr.commonNsec || '',
+          deviceMnemonic: nextNostr.deviceMnemonic,
+          deviceNsec: nextNostr.deviceNsec
+        })
+        void persistAccountSecretsSafe(id, nextNostr)
+      }
+
       updateAccountNostrDb(id, nostr)
       set((state) => {
         const index = state.accounts.findIndex((account) => account.id === id)
         if (index === -1) {
           return
         }
-        const prev = state.accounts[index].nostr
-        const base: NostrAccount = prev ?? {
-          autoSync: false,
-          commonNpub: '',
-          commonNsec: '',
-          dms: [],
-          lastUpdated: new Date(),
-          relays: [],
-          syncStart: new Date(),
-          trustedMemberDevices: []
-        }
-        state.accounts[index].nostr = {
-          ...base,
-          ...nostr
-        }
+        state.accounts[index].nostr = nextNostr
       })
-      invalidateAccount(id)
     },
     updateKeyName: (id, keyIndex, newName) => {
       const account = get().accounts.find((a) => a.id === id)
@@ -477,7 +549,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
         state.accounts[index].keys[keyIndex].name = newName
       })
-      invalidateAccount(id)
     }
   }))
 )

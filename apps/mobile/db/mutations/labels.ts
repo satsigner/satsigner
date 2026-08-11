@@ -1,44 +1,52 @@
-import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
+import {
+  type NitroSQLiteConnection,
+  type SQLiteValue
+} from 'react-native-nitro-sqlite'
 
 import { Label } from '@/types/bips/329'
 
+import { bulkInsert } from '../bulkInsert'
 import { runTransaction } from '../connection'
 import { dateToIso, optionalToJson } from '../mappers'
 
 type TransactionContext = NitroSQLiteConnection
+
+const LABELS_INSERT = `INSERT OR REPLACE INTO labels (
+  ref, account_id, type, label, fee, fmv, height, heights,
+  keypath, origin, rate, spendable, time, value
+)`
+const LABELS_COLUMNS = 14
 
 function upsertLabels(
   tx: TransactionContext,
   accountId: string,
   labels: Record<string, Label>
 ) {
+  const rows: SQLiteValue[][] = []
+
   for (const [ref, label] of Object.entries(labels)) {
     if (!label || !label.label) {
       continue
     }
-    tx.execute(
-      `INSERT OR REPLACE INTO labels (
-        ref, account_id, type, label, fee, fmv, height, heights,
-        keypath, origin, rate, spendable, time, value
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        ref,
-        accountId,
-        label.type,
-        label.label,
-        label.fee ?? null,
-        optionalToJson(label.fmv),
-        label.height ?? null,
-        optionalToJson(label.heights),
-        label.keypath ?? null,
-        label.origin ?? null,
-        optionalToJson(label.rate),
-        label.spendable !== undefined ? (label.spendable ? 1 : 0) : null,
-        dateToIso(label.time as Date | undefined),
-        label.value ?? null
-      ]
-    )
+    rows.push([
+      ref,
+      accountId,
+      label.type,
+      label.label,
+      label.fee ?? null,
+      optionalToJson(label.fmv),
+      label.height ?? null,
+      optionalToJson(label.heights),
+      label.keypath ?? null,
+      label.origin ?? null,
+      optionalToJson(label.rate),
+      label.spendable !== undefined ? (label.spendable ? 1 : 0) : null,
+      dateToIso(label.time as Date | undefined),
+      label.value ?? null
+    ])
   }
+
+  bulkInsert(tx, LABELS_INSERT, LABELS_COLUMNS, rows)
 }
 
 function importLabels(accountId: string, labels: Label[]): number {

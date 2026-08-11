@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { View } from 'react-native'
 import { type Network as _Network } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
@@ -24,6 +24,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
@@ -710,7 +711,7 @@ export default function ImportDescriptor() {
           )
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20 }}>
           <SSVStack gap="lg">
             <SSVStack gap="sm">
@@ -826,7 +827,7 @@ export default function ImportDescriptor() {
             />
           </SSVStack>
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
 
       <SSModal
         visible={cameraModalVisible}

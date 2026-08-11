@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
@@ -60,7 +60,19 @@ function SSCurrencyInput({
   ref,
   ...props
 }: SSCurrencyInputProps) {
-  const [localValue, setLocalValue] = useState(value || '')
+  const [localValue, setLocalValue] = useState(() =>
+    formatNumberWithCommas(value?.replace(/,/g, '') || '0', decimal)
+  )
+  const prevValueRef = useRef(value)
+
+  if (value !== prevValueRef.current && value !== undefined) {
+    prevValueRef.current = value
+    const formatted =
+      formatNumberWithCommas(value.replace(/,/g, ''), decimal) || ''
+    if (formatted !== localValue) {
+      setLocalValue(formatted)
+    }
+  }
 
   function handleTextChange(text: string) {
     if (text === '') {
@@ -100,13 +112,6 @@ function SSCurrencyInput({
     style
   ]
 
-  useEffect(() => {
-    if (value !== localValue && value !== undefined) {
-      const rawValue = value?.replace(/,/g, '')
-      setLocalValue(formatNumberWithCommas(rawValue, decimal) || '')
-    }
-  }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
     <View style={styles.containerBase}>
       <TextInput
@@ -115,6 +120,7 @@ function SSCurrencyInput({
         onChangeText={handleTextChange}
         keyboardType="numeric"
         placeholderTextColor={Colors.gray[400]}
+        textAlignVertical="center"
         style={textInputStyle}
         {...props}
       />

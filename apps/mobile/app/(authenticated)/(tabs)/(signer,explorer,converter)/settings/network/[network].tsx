@@ -13,7 +13,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ScrollView, TouchableOpacity } from 'react-native'
+import { TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -24,14 +24,16 @@ import SSModal from '@/components/SSModal'
 import SSProxyFormFields from '@/components/SSProxyFormFields'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useConnectionTest } from '@/hooks/useConnectionTest'
 import {
-  type ConnectionTestResult,
-  useConnectionTest
-} from '@/hooks/useConnectionTest'
-import { useCustomNetworkForm } from '@/hooks/useCustomNetworkForm'
+  defaultElectrumPorts,
+  defaultRpcPort,
+  useCustomNetworkForm
+} from '@/hooks/useCustomNetworkForm'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -41,7 +43,12 @@ import {
   type Network,
   type Server
 } from '@/types/settings/blockchain'
-import { formatDate } from '@/utils/date'
+import { suppressConnectionPoll } from '@/utils/connectionPollSuppression'
+import {
+  formatBannerForToast,
+  successProbeDescription,
+  successToastDescription
+} from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
 
 const tnServer = _tn('settings.network.server')
@@ -52,6 +59,7 @@ export default function CustomNetwork() {
     editUrl?: string
   }>()
   const router = useRouter()
+  const networkType = network as Network
   const {
     applyPastedUrl,
     formData,
@@ -60,12 +68,10 @@ export default function CustomNetwork() {
     updateProxyField,
     constructUrl,
     constructTrimmedUrl
-  } = useCustomNetworkForm()
+  } = useCustomNetworkForm(networkType)
   const [scanModalVisible, setScanModalVisible] = useState(false)
   const scanHandledRef = useRef(false)
   const [, requestCameraPermission] = useCameraPermissions()
-
-  const networkType = network as Network
 
   const [
     selectedNetwork,
@@ -101,6 +107,12 @@ export default function CustomNetwork() {
   const [oldServer] = useState<Server>(configs[networkType].server)
   /** Shown under connection status so tip height/time stay visible without relying on toast alone. */
   const [lastProbeLine, setLastProbeLine] = useState<string | null>(null)
+  /** Electrum server.banner text from the last successful probe. */
+  const [lastBanner, setLastBanner] = useState<string | null>(null)
+
+  // Pause auto-polling while this screen is open to avoid flooding the node
+  // with background verify calls on top of the manual test button.
+  useEffect(() => suppressConnectionPoll(networkType), [networkType])
 
   useEffect(() => {
     if (editUrl && customServers.length > 0) {
@@ -113,28 +125,10 @@ export default function CustomNetwork() {
     }
   }, [editUrl, customServers.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const backends: Backend[] = ['electrum', 'esplora']
+  const backends: Backend[] = ['electrum', 'esplora', 'rpc']
   const protocols = ['ssl', 'tcp'] as const
 
   const urlPreview = useMemo(() => constructTrimmedUrl(), [constructTrimmedUrl])
-
-  function successToastDescription(
-    result: Extract<ConnectionTestResult, { success: true }>
-  ): string {
-    const dateSec = result.tipTimestampSec ?? Math.floor(Date.now() / 1000)
-    const dateStr = formatDate(dateSec)
-    if (
-      result.blockHeight !== null &&
-      result.blockHeight !== undefined &&
-      result.blockHeight > 0
-    ) {
-      return tnServer('tester.successDetail', {
-        date: dateStr,
-        height: result.blockHeight.toLocaleString()
-      })
-    }
-    return tnServer('tester.successNoHeight', { date: dateStr })
-  }
 
   async function handlePaste() {
     try {
@@ -203,7 +197,47 @@ export default function CustomNetwork() {
       return false
     }
 
+    if (formData.backend === 'rpc') {
+      if (!formData.rpcUsername.trim()) {
+        toast.warning(t('error.require.rpcUsername'))
+        return false
+      }
+      if (!formData.rpcPassword.trim()) {
+        toast.warning(t('error.require.rpcPassword'))
+        return false
+      }
+    }
+
     return true
+  }
+
+  function buildServer(): Server {
+    const url = constructUrl()
+    const base: Server = {
+      backend: formData.backend,
+      name: formData.name,
+      network: networkType,
+      proxy: formData.proxy.enabled ? formData.proxy : undefined,
+      url
+    }
+    if (formData.backend === 'rpc') {
+      const scanHeight = formData.rpcScanFromHeight.trim()
+        ? parseInt(formData.rpcScanFromHeight.trim(), 10)
+        : undefined
+      return {
+        ...base,
+        rpcCredentials: {
+          password: formData.rpcPassword,
+          username: formData.rpcUsername
+        },
+        rpcScanFromHeight:
+          scanHeight !== undefined && !isNaN(scanHeight)
+            ? scanHeight
+            : undefined,
+        rpcWalletName: formData.rpcWalletName.trim() || undefined
+      }
+    }
+    return base
   }
 
   async function handleTest() {
@@ -212,15 +246,9 @@ export default function CustomNetwork() {
     }
 
     setLastProbeLine(null)
+    setLastBanner(null)
 
-    const url = constructUrl()
-    const server: Server = {
-      backend: formData.backend,
-      name: formData.name,
-      network: networkType,
-      proxy: formData.proxy.enabled ? formData.proxy : undefined,
-      url
-    }
+    const server = buildServer()
 
     await resetTest()
 
@@ -229,7 +257,8 @@ export default function CustomNetwork() {
         server.url,
         server.backend,
         server.network,
-        server.proxy
+        server.proxy,
+        server.rpcCredentials
       )
 
       if (!result.success) {
@@ -242,15 +271,24 @@ export default function CustomNetwork() {
       setSelectedNetwork(networkType)
       updateServer(networkType, server)
 
-      const probeLine = successToastDescription(result)
-      setLastProbeLine(probeLine)
+      setLastProbeLine(successProbeDescription(result))
+      setLastBanner(result.banner?.trim() ? result.banner.trim() : null)
 
       try {
         toast.success(`${server.name} (${trimOnionAddress(server.url)})`, {
-          description: `${tnServer('tester.success')} — ${probeLine}`
+          description: successToastDescription(result)
         })
       } catch {
         // sonner handler can break if a nested modal mounted its own Toaster; root Toaster should recover
+      }
+
+      if (result.blockFilterIndexMissing) {
+        setTimeout(() => {
+          toast.warning(tnServer('rpc.blockFilterIndexMissing.title'), {
+            description: tnServer('rpc.blockFilterIndexMissing.description'),
+            duration: 8000
+          })
+        }, 600)
       }
     } catch (error) {
       const message =
@@ -263,14 +301,7 @@ export default function CustomNetwork() {
 
   function handleSave() {
     if (isValid()) {
-      const url = constructUrl()
-      const server: Server = {
-        backend: formData.backend,
-        name: formData.name,
-        network: networkType,
-        proxy: formData.proxy.enabled ? formData.proxy : undefined,
-        url
-      }
+      const server = buildServer()
 
       if (editingServer) {
         updateCustomServer(editingServer, server)
@@ -303,7 +334,7 @@ export default function CustomNetwork() {
         }}
       />
       <SSVStack gap="lg" justifyBetween>
-        <ScrollView
+        <SSScrollView
           style={{ marginBottom: 24 }}
           showsVerticalScrollIndicator={false}
         >
@@ -320,10 +351,13 @@ export default function CustomNetwork() {
                   <TouchableOpacity onPress={() => updateField('backend', be)}>
                     <SSVStack gap="none" justifyBetween>
                       <SSText
-                        style={{ lineHeight: 18, textTransform: 'capitalize' }}
+                        style={{
+                          lineHeight: 18,
+                          ...(be !== 'rpc' && { textTransform: 'capitalize' })
+                        }}
                         size="md"
                       >
-                        {be}
+                        {be === 'rpc' ? 'RPC' : be}
                       </SSText>
                       <SSText style={{ lineHeight: 14 }} color="muted">
                         {t(`settings.network.server.description.${be}`)}
@@ -402,7 +436,8 @@ export default function CustomNetwork() {
               <SSVStack gap="sm">
                 <SSText uppercase>
                   {t('settings.network.server.portLabel')}
-                  {formData.backend === 'esplora' && (
+                  {(formData.backend === 'esplora' ||
+                    formData.backend === 'rpc') && (
                     <SSText
                       style={{ fontWeight: 'normal', textTransform: 'none' }}
                     >
@@ -414,12 +449,101 @@ export default function CustomNetwork() {
                 <SSTextInput
                   value={formData.port}
                   onChangeText={(value) => updateField('port', value)}
-                  placeholder={t(
-                    `settings.network.server.port.placeholder.${formData.backend}`
-                  )}
+                  placeholder={
+                    formData.backend === 'rpc'
+                      ? String(defaultRpcPort(networkType))
+                      : formData.backend === 'electrum'
+                        ? t(
+                            'settings.network.server.port.placeholder.electrum',
+                            defaultElectrumPorts(networkType)
+                          )
+                        : t(
+                            `settings.network.server.port.placeholder.${formData.backend}`
+                          )
+                  }
                   keyboardType="numeric"
                 />
               </SSVStack>
+              {formData.backend === 'rpc' && (
+                <>
+                  <SSVStack gap="sm">
+                    <SSText uppercase>
+                      {t('settings.network.server.rpcUsernameLabel')}
+                    </SSText>
+                    <SSTextInput
+                      value={formData.rpcUsername}
+                      onChangeText={(value) =>
+                        updateField('rpcUsername', value)
+                      }
+                      placeholder={t(
+                        'settings.network.server.rpcUsername.placeholder'
+                      )}
+                      autoCapitalize="none"
+                    />
+                  </SSVStack>
+                  <SSVStack gap="sm">
+                    <SSText uppercase>
+                      {t('settings.network.server.rpcPasswordLabel')}
+                    </SSText>
+                    <SSTextInput
+                      value={formData.rpcPassword}
+                      onChangeText={(value) =>
+                        updateField('rpcPassword', value)
+                      }
+                      placeholder={t(
+                        'settings.network.server.rpcPassword.placeholder'
+                      )}
+                      secureTextEntry
+                      autoCapitalize="none"
+                    />
+                  </SSVStack>
+                  <SSVStack gap="sm">
+                    <SSText uppercase>
+                      {t('settings.network.server.rpcWalletNameLabel')}
+                      <SSText
+                        style={{ fontWeight: 'normal', textTransform: 'none' }}
+                      >
+                        {' '}
+                        ({t('common.optional')})
+                      </SSText>
+                    </SSText>
+                    <SSTextInput
+                      value={formData.rpcWalletName}
+                      onChangeText={(value) =>
+                        updateField('rpcWalletName', value)
+                      }
+                      placeholder={t(
+                        'settings.network.server.rpcWalletName.placeholder'
+                      )}
+                      autoCapitalize="none"
+                    />
+                  </SSVStack>
+                  <SSVStack gap="sm">
+                    <SSText uppercase>
+                      {t('settings.network.server.rpcScanFromHeightLabel')}
+                      <SSText
+                        style={{ fontWeight: 'normal', textTransform: 'none' }}
+                      >
+                        {' '}
+                        ({t('common.optional')})
+                      </SSText>
+                    </SSText>
+                    <SSTextInput
+                      value={formData.rpcScanFromHeight}
+                      onChangeText={(value) =>
+                        updateField('rpcScanFromHeight', value)
+                      }
+                      placeholder={t(
+                        'settings.network.server.rpcScanFromHeight.placeholder'
+                      )}
+                      keyboardType="numeric"
+                    />
+                    <SSText color="muted" size="xs">
+                      {t('settings.network.server.rpcScanFromHeight.helper')}
+                    </SSText>
+                  </SSVStack>
+                </>
+              )}
               {urlPreview && (
                 <SSVStack gap="sm">
                   <SSText uppercase>
@@ -456,9 +580,21 @@ export default function CustomNetwork() {
                   </SSText>
                 </SSHStack>
                 {lastProbeLine ? (
-                  <SSText center color="muted" size="xs">
-                    {`${tnServer('tester.success')} — ${lastProbeLine}`}
-                  </SSText>
+                  <SSVStack gap="xs">
+                    <SSText center color="muted" size="xs">
+                      {`${tnServer('tester.success')} — ${lastProbeLine}`}
+                    </SSText>
+                    {lastBanner ? (
+                      <SSVStack gap="none">
+                        <SSText center color="muted" size="xxs" uppercase>
+                          {tnServer('tester.banner')}
+                        </SSText>
+                        <SSText center color="muted" size="xs" type="mono">
+                          {formatBannerForToast(lastBanner)}
+                        </SSText>
+                      </SSVStack>
+                    ) : null}
+                  </SSVStack>
                 ) : null}
               </SSVStack>
             </SSVStack>
@@ -484,7 +620,7 @@ export default function CustomNetwork() {
               />
             </SSVStack>
           </SSVStack>
-        </ScrollView>
+        </SSScrollView>
       </SSVStack>
 
       <SSModal

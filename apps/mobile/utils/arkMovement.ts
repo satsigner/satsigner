@@ -1,3 +1,6 @@
+import { t } from '@/locales'
+import { Colors } from '@/styles'
+import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement, ArkMovementKind } from '@/types/models/Ark'
 
 const REFRESH_SUBSYSTEM_KEYWORD = 'refresh'
@@ -26,10 +29,12 @@ function isFeeOnlyMovement(movement: ArkMovement): boolean {
   )
 }
 
+export function isArkRefreshSubsystemName(subsystemName: string): boolean {
+  return subsystemName.toLowerCase().includes(REFRESH_SUBSYSTEM_KEYWORD)
+}
+
 export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
-  if (
-    movement.subsystemName.toLowerCase().includes(REFRESH_SUBSYSTEM_KEYWORD)
-  ) {
+  if (isArkRefreshSubsystemName(movement.subsystemName)) {
     return 'refresh'
   }
   if (movement.effectiveBalanceSats > 0) {
@@ -48,6 +53,32 @@ export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
     return 'send'
   }
   return 'refresh'
+}
+
+export function getArkMovementLabelRef(movement: ArkMovement): string {
+  return `movement:${movement.id}`
+}
+
+export function selectArkTransactions(movements: ArkMovement[]): ArkMovement[] {
+  return movements.filter(
+    (movement) => getArkMovementKind(movement) !== 'refresh'
+  )
+}
+
+export function selectArkRefreshes(movements: ArkMovement[]): ArkMovement[] {
+  return movements.filter(
+    (movement) => getArkMovementKind(movement) === 'refresh'
+  )
+}
+
+export function sortArkMovements(
+  movements: ArkMovement[],
+  direction: Direction
+): ArkMovement[] {
+  return movements.toSorted((a, b) => {
+    const diff = Date.parse(a.createdAt) - Date.parse(b.createdAt)
+    return direction === 'asc' ? diff : -diff
+  })
 }
 
 export function isLightningMovement(movement: ArkMovement): boolean {
@@ -97,6 +128,70 @@ export function truncateArkCounterparty(
     return value
   }
   return `${value.slice(0, chars)}...${value.slice(-chars)}`
+}
+
+export function getArkMovementStatusColor(status: string): string {
+  switch (status) {
+    case 'pending':
+      return Colors.warning
+    case 'successful':
+      return Colors.softBarGreen
+    case 'failed':
+    case 'canceled':
+      return Colors.error
+    default:
+      return Colors.gray[400]
+  }
+}
+
+export function getArkMovementStatusLabel(status: string): string {
+  switch (status) {
+    case 'pending':
+      return t('ark.movement.status.pending')
+    case 'successful':
+      return t('ark.movement.status.successful')
+    case 'failed':
+      return t('ark.movement.status.failed')
+    case 'canceled':
+      return t('ark.movement.status.canceled')
+    default:
+      return status.toUpperCase()
+  }
+}
+
+export function getArkMovementKindLabel(kind: ArkMovementKind): string {
+  switch (kind) {
+    case 'receive':
+      return t('ark.movement.kind.receive')
+    case 'send':
+      return t('ark.movement.kind.send')
+    case 'refresh':
+      return t('ark.movement.kind.refresh')
+    default:
+      return ''
+  }
+}
+
+export function getArkRefreshVtxoCounts(movement: ArkMovement): {
+  inputs: number
+  outputs: number
+} {
+  return {
+    inputs: movement.inputVtxoIds.length,
+    outputs: movement.outputVtxoIds.length
+  }
+}
+
+export function getArkRefreshVtxoLabel(movement: ArkMovement): string {
+  const { inputs, outputs } = getArkRefreshVtxoCounts(movement)
+  if (inputs > 0 && outputs > 0) {
+    return t('ark.refresh.vtxoConsolidation', { inputs, outputs })
+  }
+  const count = Math.max(inputs, outputs)
+  if (count > 0) {
+    return t('ark.refresh.vtxoCount', { count })
+  }
+  return t('ark.movement.refreshLabel')
 }
 
 export function getArkMovementCounterparty(

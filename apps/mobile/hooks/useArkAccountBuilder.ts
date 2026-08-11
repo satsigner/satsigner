@@ -5,19 +5,20 @@ import { createArkWallet } from '@/api/ark'
 import { t } from '@/locales'
 import { deleteArkDatadir, ensureArkDatadir } from '@/storage/arkDatadir'
 import { deleteArkMnemonic, storeArkMnemonic } from '@/storage/encrypted'
+import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useArkAccountBuilderStore } from '@/store/arkAccountBuilder'
+import { useWalletsStore } from '@/store/wallets'
 import type { ArkAccount } from '@/types/models/Ark'
-import { decryptKeySecretFromStore, getPin } from '@/utils/account'
 import { getArkServer } from '@/utils/ark'
+import { decryptAccountKeySecret } from '@/utils/decryption'
 
 import { useCreateSinglesigAccount } from './useCreateSinglesigAccount'
 
 async function resolveMnemonicFromBitcoinAccount(
   accountId: string
 ): Promise<string> {
-  const pin = await getPin()
-  const secret = await decryptKeySecretFromStore(accountId, 0, pin)
+  const secret = await decryptAccountKeySecret(accountId, 0)
   if (!secret.mnemonic) {
     throw new Error('Selected Bitcoin account has no mnemonic')
   }
@@ -56,6 +57,10 @@ export function useArkAccountBuilder() {
   )
 
   const addArkAccount = useArkStore((state) => state.addAccount)
+  const deleteBitcoinAccount = useAccountsStore((state) => state.deleteAccount)
+  const removeAccountWallet = useWalletsStore(
+    (state) => state.removeAccountWallet
+  )
   const { createSinglesigAccount } = useCreateSinglesigAccount()
 
   async function resolveMnemonic(
@@ -106,6 +111,10 @@ export function useArkAccountBuilder() {
     } catch (error) {
       await deleteArkMnemonic(persistedAccount.id).catch(() => undefined)
       await deleteArkDatadir(persistedAccount.id).catch(() => undefined)
+      if (createBitcoinAccount && linkedBitcoinAccountId) {
+        deleteBitcoinAccount(linkedBitcoinAccountId)
+        removeAccountWallet(linkedBitcoinAccountId)
+      }
       throw error
     }
 

@@ -18,8 +18,12 @@ import {
   type Backend,
   type Config,
   type Network,
+  NetworkSchema,
   type Server
 } from '@/types/settings/blockchain'
+import { persistRpcCredentialsSafe } from '@/utils/serviceSecrets'
+
+const NETWORKS: Network[] = NetworkSchema.options
 
 type NetworkConfig = {
   server: Server
@@ -42,6 +46,7 @@ type BlockchainAction = {
   updateConfigMempool: (network: Network, url: Server['url']) => void
   addCustomServer: (server: Server) => void
   removeCustomServer: (server: Server) => void
+  stripAllRpcCredentials: () => void
   updateCustomServer: (oldServer: Server, newServer: Server) => void
   getBlockchain: (network?: Network) => BlockchainConfig
   setLastKnownBlockHeight: (height: number) => void
@@ -123,6 +128,19 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         set({ nextBlockFee: fee })
       },
       setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
+      stripAllRpcCredentials: () => {
+        set((state) => {
+          for (const network of NETWORKS) {
+            const { rpcCredentials: _removed, ...rest } =
+              state.configs[network].server
+            state.configs[network].server = rest
+          }
+          state.customServers = state.customServers.map((server) => {
+            const { rpcCredentials: _removed, ...rest } = server
+            return rest
+          })
+        })
+      },
       updateConfig: (network, config) => {
         set((state) => {
           state.configs[network].config = config as Config
@@ -146,6 +164,9 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         })
       },
       updateServer: (network, server) => {
+        if (server.rpcCredentials) {
+          void persistRpcCredentialsSafe(network, server.rpcCredentials)
+        }
         set((state) => {
           state.configs[network].server = server as Server
         })
@@ -154,7 +175,29 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
     {
       name: 'satsigner-blockchain',
       partialize: (state) => ({
-        configs: state.configs,
+        configs: {
+          bitcoin: {
+            ...state.configs.bitcoin,
+            server: {
+              ...state.configs.bitcoin.server,
+              rpcCredentials: undefined
+            }
+          },
+          signet: {
+            ...state.configs.signet,
+            server: {
+              ...state.configs.signet.server,
+              rpcCredentials: undefined
+            }
+          },
+          testnet: {
+            ...state.configs.testnet,
+            server: {
+              ...state.configs.testnet.server,
+              rpcCredentials: undefined
+            }
+          }
+        },
         configsMempool: state.configsMempool,
         customServers: state.customServers,
         selectedNetwork: state.selectedNetwork

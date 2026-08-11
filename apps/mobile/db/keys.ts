@@ -23,11 +23,18 @@ const labelKeys = {
   all: (accountId: string) => ['labels', accountId] as const
 }
 
+const arkLabelKeys = {
+  all: (accountId: string | null | undefined) =>
+    ['ark', 'labels', accountId] as const
+}
+
 const tagKeys = {
   all: ['tags'] as const
 }
 
 const nostrKeys = {
+  contacts: (npub: string, relaysKey: string) =>
+    ['nostr', 'contacts', npub, relaysKey] as const,
   dms: (accountId: string) => ['nostr', 'dms', accountId] as const,
   relays: (accountId: string) => ['nostr', 'relays', accountId] as const,
   trustedDevices: (accountId: string) =>
@@ -37,6 +44,7 @@ const nostrKeys = {
 export {
   accountKeys,
   addressKeys,
+  arkLabelKeys,
   labelKeys,
   nostrKeys,
   tagKeys,

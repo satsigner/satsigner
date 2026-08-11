@@ -109,6 +109,20 @@ describe('nIP-06 derivation from mnemonic', () => {
   })
 })
 
+describe('generateDeviceNostrKeysFromSeed', () => {
+  it('returns a 12-word mnemonic and matching nsec/npub', () => {
+    const { generateDeviceNostrKeysFromSeed, deriveNostrKeysFromMnemonic } =
+      require('@/utils/nostrIdentity') as typeof import('@/utils/nostrIdentity')
+    const keys = generateDeviceNostrKeysFromSeed()
+    expect(keys.mnemonic.split(' ')).toHaveLength(12)
+    expect(keys.nsec).toMatch(/^nsec1/)
+    expect(keys.npub).toMatch(/^npub1/)
+    const again = deriveNostrKeysFromMnemonic(keys.mnemonic)
+    expect(again.nsec).toBe(keys.nsec)
+    expect(again.npub).toBe(keys.npub)
+  })
+})
+
 describe('decodeNostrContent', () => {
   it('detects npub strings', () => {
     const { decodeNostrContent } = require('@/utils/nostrIdentity')

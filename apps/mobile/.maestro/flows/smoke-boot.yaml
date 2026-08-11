@@ -1,0 +1,15 @@
+appId: ${APP_ID}
+tags:
+  - smoke
+---
+# Smoke: boot Expo Dev Client → known Bitcoin account-list screen.
+# No payjoin / funded wallet required.
+
+- runFlow:
+    file: shared/launch.yaml
+- runFlow:
+    file: shared/skip-pin-and-warning.yaml
+- runFlow:
+    file: shared/goto-account-list.yaml
+- assertVisible: '(?i)Add Account'
+- assertVisible: '(?i)SIGNET|TESTNET|MAINNET|REGTEST'

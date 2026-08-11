@@ -1,0 +1,21 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - receive
+  - signet
+---
+# Assert Receive exposes a BIP77 Payjoin URI (pj=) on funded Sample (segwit).
+# Empty wallets cannot use Payjoin — see payjoin-receive-empty-wallet-signet.yaml.
+#
+#   pnpm maestro:payjoin:receive
+
+- runFlow:
+    file: shared/launch.yaml
+- runFlow:
+    file: shared/skip-pin-and-warning.yaml
+- runFlow:
+    file: shared/open-sample-segwit.yaml
+- tapOn:
+    id: account-receive
+- runFlow:
+    file: shared/assert-payjoin-receive-active.yaml

@@ -12,6 +12,7 @@
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
   "exclude": [
     "__mocks__/**/*",
+    "scripts/**/*",
     "tests/**/*",
     "**/*.test.ts",
     "**/*.test.tsx",

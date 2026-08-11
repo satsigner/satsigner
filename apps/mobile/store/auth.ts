@@ -5,14 +5,14 @@ import {
   DEFAULT_LOCK_DELTA_TIME_SECONDS,
   DEFAULT_PIN_MAX_TRIES,
   DURESS_PIN_KEY,
-  PIN_KEY,
   SALT_KEY
 } from '@/config/auth'
-import { getItem, setItem } from '@/storage/encrypted'
+import { getItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
-import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import { pbkdf2Encrypt, randomKey } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
+import { getPin, setPin } from '@/utils/pin'
 
 type AuthState = {
   firstTime: boolean
@@ -25,6 +25,12 @@ type AuthState = {
   skipPin: boolean
   duressPinEnabled: boolean
   justUnlocked: boolean
+  /**
+   * Set when a legacy production `skipPin` flag is cleared on rehydrate. These
+   * users silently had their PIN set to `DEFAULT_PIN`; they must be routed to
+   * set a real PIN without being asked for a current one they never chose.
+   */
+  requirePinMigration: boolean
   /** Decrypted backup JSON; when set, recovery runs after next unlock. Not persisted. */
   pendingRecoverData: string | null
 }
@@ -37,6 +43,11 @@ type AuthAction = {
   setDuressPin: (pin: string) => Promise<void>
   setSkipPin: (skipPin: boolean) => void
   setDuressPinEnabled: (duressPinEnabled: boolean) => void
+  /**
+   * Dev-only: skip lock screen and ensure encryption key material exists.
+   * Uses a random ephemeral passphrase (never a hardcoded PIN) when none is set.
+   */
+  enableDevSkipPin: () => Promise<void>
   validatePin: (pin: string) => Promise<boolean>
   incrementPinTries: () => number
   resetPinTries: () => void
@@ -47,6 +58,7 @@ type AuthAction = {
   clearPageHistory: () => void
   setJustUnlocked: (justUnlocked: AuthState['justUnlocked']) => void
   setPendingRecoverData: (data: string | null) => void
+  setRequirePinMigration: (requirePinMigration: boolean) => void
 }
 
 const useAuthStore = create<AuthState & AuthAction>()(
@@ -56,6 +68,18 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ pageHistory: [] })
       },
       duressPinEnabled: false,
+      enableDevSkipPin: async () => {
+        if (!__DEV__) {
+          return
+        }
+        try {
+          await getPin()
+        } catch {
+          // High-entropy throwaway passphrase; only its PBKDF2 digest is kept.
+          await setPin(await randomKey(32))
+        }
+        set({ skipPin: true })
+      },
       firstTime: true,
       getPagesHistory: () => ['/', ...get().pageHistory],
       incrementPinTries: () => {
@@ -89,15 +113,14 @@ const useAuthStore = create<AuthState & AuthAction>()(
       pendingRecoverData: null,
       pinMaxTries: DEFAULT_PIN_MAX_TRIES,
       pinTries: 0,
+      requirePinMigration: false,
       requiresAuth: false,
       resetPinTries: () => {
         set({ pinTries: 0 })
       },
       setDuressPin: async (pin) => {
-        const salt = await generateSalt()
-        const encryptedPin = await pbkdf2Encrypt(pin, salt)
-        await setItem(SALT_KEY, salt)
-        await setItem(DURESS_PIN_KEY, encryptedPin)
+        await setPin(pin, DURESS_PIN_KEY)
+        set({ duressPinEnabled: true })
       },
       setDuressPinEnabled(duressPinEnabled) {
         set({ duressPinEnabled })
@@ -118,18 +141,23 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ pendingRecoverData })
       },
       setPin: async (pin) => {
-        const salt = await generateSalt()
-        const encryptedPin = await pbkdf2Encrypt(pin, salt)
-        await setItem(SALT_KEY, salt)
-        await setItem(PIN_KEY, encryptedPin)
+        await setPin(pin)
       },
       setPinMaxTries: (maxTries) => {
         set({ pinMaxTries: maxTries })
+      },
+      setRequirePinMigration: (requirePinMigration) => {
+        set({ requirePinMigration })
       },
       setRequiresAuth: (requiresAuth) => {
         set({ requiresAuth })
       },
       setSkipPin(skipPin) {
+        // Lock-screen bypass is development-only. Production builds ignore it.
+        if (!__DEV__ && skipPin) {
+          set({ skipPin: false })
+          return
+        }
         set({ skipPin })
       },
       skipPin: false,
@@ -139,12 +167,20 @@ const useAuthStore = create<AuthState & AuthAction>()(
           throw new Error('Failed to validate PIN')
         }
         const encrypted = await pbkdf2Encrypt(pin, salt)
-        const savedPin = await getItem(PIN_KEY)
+        const savedPin = await getPin()
         return encrypted === savedPin
       }
     }),
     {
       name: 'satsigner-auth',
+      onRehydrateStorage: () => (state) => {
+        // Persisted skipPin must never unlock production builds.
+        if (!__DEV__ && state?.skipPin) {
+          state.skipPin = false
+          // Legacy skip users are on DEFAULT_PIN; flag them to set a real PIN.
+          state.requirePinMigration = true
+        }
+      },
       partialize: (state) => {
         const { pendingRecoverData: _, ...rest } = state
         return rest

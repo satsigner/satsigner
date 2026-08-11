@@ -1,11 +1,19 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
-import { useMemo } from 'react'
-import { useWindowDimensions, View } from 'react-native'
+import { router } from 'expo-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  InteractionManager,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useLayout } from '@/hooks/useLayout'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
+import { useTransactionOutspends } from '@/hooks/useTransactionOutspends'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { type Transaction } from '@/types/models/Transaction'
@@ -16,12 +24,26 @@ import {
   SANKEY_EQUAL_ROW_MIN_SLOT_PX,
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
 } from '@/types/ui/sankey'
+import { isChangeOutputAddress, normalizeAddressSet } from '@/utils/address'
 import {
   equalizeSankeyColumnsByDepthH,
   minSankeyStackedColumnInnerHeightPx
 } from '@/utils/equalizeSankeyColumnLayout'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
+import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
+import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
+import { isOwnedOutpoint } from '@/utils/sankeyInputOwnership'
+import {
+  resolveChartOutputSpendStatus,
+  type ChartOutputSpendStatus
+} from '@/utils/sankeyOutputLabel'
+import {
+  classifySpecialOutput,
+  specialOutputLayoutValue,
+  specialOutputTag
+} from '@/utils/specialOutput'
+import { classifyChartOutputs } from '@/utils/stonewall'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
@@ -41,24 +63,151 @@ interface Node extends SankeyNodeMinimal<object, object> {
 
 type SSTransactionChartProps = {
   transaction: Transaction
+  /** Account id used to open previous-input / spending-output transaction details. */
+  accountId?: string
+  /** Labels keyed by transaction id — used for input outpoint labels. */
+  txLabelsById?: Map<string, string> | Record<string, string>
+  /** Labels keyed by `txid:vout` for the consumed UTXO. */
+  outpointLabelsByRef?: Map<string, string> | Record<string, string>
+  /** Wallet transaction ids that can be opened from input / spent-output links. */
+  knownTxIds?: ReadonlySet<string>
+  /** Spending tx id keyed by spent outpoint (`txid:vout`). */
+  spendingTxIdsByOutpoint?: Map<string, string> | Record<string, string>
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  /** Wallet change (internal) addresses for identifying change outputs. */
+  internalAddresses?: Set<string>
+  /** Wallet UTXO outpoints (`txid:vout`) still unspent on-chain. */
+  unspentOutpoints?: Set<string>
+  /**
+   * Outpoints this wallet created/holds. Marks Sankey inputs as ours vs
+   * counterparty (Payjoin).
+   */
+  ownedOutpoints?: ReadonlySet<string>
   selectedOutputIndex?: number // Index of the output to highlight (vout)
   dimUnselected?: boolean // Dim non-selected outputs
   scale?: number // Scale factor for the chart (0-1)
   /** When false, hides the “unspent” line on outputs (e.g. preview before broadcast). */
   showUnspentLabel?: boolean
+  /**
+   * When false, output arms/labels stay neutral (no wallet spend red).
+   * Use for explorer; wallet screens leave the default.
+   */
+  walletSpendColors?: boolean
+  /** Called with `false` once the chart (including labels) has painted. */
+  onLoadingChange?: (loading: boolean) => void
 }
 
-function SSTransactionChart({
+function getSpendingTxId(
+  map: Map<string, string> | Record<string, string> | undefined,
+  outpoint: string
+): string | undefined {
+  if (!map) {
+    return undefined
+  }
+  const value = map instanceof Map ? map.get(outpoint) : map[outpoint]
+  return value?.trim() || undefined
+}
+
+const CHART_LOADING_MIN_HEIGHT = 200
+
+type SankeyHitTargetProps = {
+  accountId: string
+  height: number
+  knownTxIds?: ReadonlySet<string>
+  linkedTxId: string
+  width: number
+  x: number
+  y: number
+}
+
+function SankeyHitTarget({
+  accountId,
+  height,
+  knownTxIds,
+  linkedTxId,
+  width,
+  x,
+  y
+}: SankeyHitTargetProps) {
+  function handlePress() {
+    if (knownTxIds && !knownTxIds.has(linkedTxId)) {
+      return
+    }
+    router.push(
+      `/signer/bitcoin/account/${accountId}/transaction/${linkedTxId}`
+    )
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={t('transaction.id')}
+      onPress={handlePress}
+      style={[
+        styles.hitTarget,
+        {
+          height,
+          left: x,
+          top: y,
+          width
+        }
+      ]}
+    />
+  )
+}
+
+function SSTransactionChart(props: SSTransactionChartProps) {
+  const scale = props.scale ?? 1
+  const [mountCanvas, setMountCanvas] = useState(false)
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setMountCanvas(true)
+    })
+    return () => task.cancel()
+  }, [])
+
+  return (
+    <View
+      style={[
+        styles.chartShell,
+        { minHeight: CHART_LOADING_MIN_HEIGHT * scale }
+      ]}
+    >
+      {mountCanvas ? <SSTransactionChartCanvas {...props} /> : null}
+    </View>
+  )
+}
+
+function SSTransactionChartCanvas({
   transaction,
+  accountId,
+  txLabelsById,
+  outpointLabelsByRef,
+  knownTxIds,
+  spendingTxIdsByOutpoint,
   ownAddresses = new Set(),
+  internalAddresses = new Set(),
+  unspentOutpoints,
+  ownedOutpoints,
   selectedOutputIndex,
   dimUnselected = false,
   scale = 1,
-  showUnspentLabel = true
+  showUnspentLabel = true,
+  walletSpendColors = true,
+  onLoadingChange
 }: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+
+  const normalizedOwnAddresses = useMemo(
+    () => normalizeAddressSet(ownAddresses),
+    [ownAddresses]
+  )
+  const normalizedInternalAddresses = useMemo(
+    () => normalizeAddressSet(internalAddresses),
+    [internalAddresses]
   )
 
   const totalOutputValue = transaction.vout.reduce(
@@ -71,32 +220,96 @@ function SSTransactionChart({
   const inputs = transaction.vin.map((input) => ({
     label: input.label || '',
     txid: input.previousOutput.txid,
-    value: input.value || defaultInputValue,
-    valueIsKnown: input.value !== undefined
+    value: input.value ?? defaultInputValue,
+    valueIsKnown: input.value !== undefined,
+    vout: input.previousOutput.vout
   }))
 
   const outputs = transaction.vout.map((output) => ({
     address: output.address,
+    kind: output.kind,
     label: output.label || '',
+    script: output.script,
     value: output.value
   }))
 
-  let minerFee: number | undefined
-  if (inputs.every((input) => input.valueIsKnown)) {
-    const totalInputValue = inputs.reduce(
-      (prevValue, input) => prevValue + input.value,
-      0
-    )
-    minerFee = totalInputValue - totalOutputValue
+  const canDrawStructure =
+    inputs.length > 0 &&
+    outputs.length > 0 &&
+    transaction.vin.length > 0 &&
+    transaction.vout.length > 0
+
+  const onLoadingChangeRef = useRef(onLoadingChange)
+  onLoadingChangeRef.current = onLoadingChange
+
+  const structureNotifiedRef = useRef(false)
+  const [labelsReady, setLabelsReady] = useState(false)
+
+  useEffect(() => {
+    structureNotifiedRef.current = false
+    setLabelsReady(false)
+  }, [transaction.id])
+
+  useEffect(() => {
+    if (structureNotifiedRef.current) {
+      return
+    }
+
+    if (!canDrawStructure) {
+      structureNotifiedRef.current = true
+      onLoadingChangeRef.current?.(false)
+      return
+    }
+
+    if (!labelsReady) {
+      return
+    }
+
+    structureNotifiedRef.current = true
+    onLoadingChangeRef.current?.(false)
+  }, [canDrawStructure, labelsReady, transaction.id])
+
+  const pendingOutspendOutputs: { address: string; vout: number }[] = []
+  if (unspentOutpoints && canDrawStructure) {
+    for (const [index, output] of outputs.entries()) {
+      const outpoint = `${transaction.id}:${index}`
+      const status = resolveChartOutputSpendStatus({
+        outpoint,
+        spendingTxIdsByOutpoint,
+        unspentOutpoints
+      })
+      if (status !== 'pending') {
+        continue
+      }
+      const address = output.address?.trim()
+      if (!address) {
+        continue
+      }
+      pendingOutspendOutputs.push({ address, vout: index })
+    }
   }
+
+  const { data: networkOutspends } = useTransactionOutspends({
+    enabled: labelsReady && pendingOutspendOutputs.length > 0,
+    outputs: pendingOutspendOutputs,
+    txid: transaction.id
+  })
+
+  const rawMinerFee = inputs.every((input) => input.valueIsKnown)
+    ? inputs.reduce((prevValue, input) => prevValue + input.value, 0) -
+      totalOutputValue
+    : undefined
+  // Hide invalid fees (e.g. rounding when prevouts were synthesized).
+  const minerFee =
+    rawMinerFee !== undefined && rawMinerFee >= 0 ? rawMinerFee : undefined
 
   const txSize = transaction.size
   const txVsize = transaction.vsize
 
-  let feeRate: number | undefined
-  if (minerFee !== undefined && txVsize !== undefined && txVsize > 0) {
-    feeRate = minerFee / txVsize
-  }
+  const feeRate =
+    minerFee !== undefined && txVsize !== undefined && txVsize > 0
+      ? minerFee / txVsize
+      : undefined
 
   const { onCanvasLayout } = useLayout()
   const { width } = useWindowDimensions()
@@ -158,20 +371,49 @@ function SSTransactionChart({
       return []
     }
 
-    const inputNodes: TxNode[] = inputs.map((input, index) => ({
-      depthH: 0,
-      id: String(index + 1),
-      ioData: {
-        address: formatAddress(input.txid, 4),
+    function fiatFields(sats: number) {
+      const fiatAmount = satsToFiat(sats)
+      if (fiatAmount <= 0) {
+        return {}
+      }
+      return {
         fiatCurrency,
-        fiatValue: formatNumber(satsToFiat(input.value), 2),
-        label: input.label ?? t('common.noLabel'),
-        text: t('common.from'),
-        value: input.valueIsKnown ? input.value : 0
-      },
-      type: 'text',
-      value: input.value
-    }))
+        fiatValue: formatNumber(fiatAmount, 2)
+      }
+    }
+
+    const inputNodes: TxNode[] = inputs.map((input, index) => {
+      const isOwnInput = walletSpendColors
+        ? isOwnedOutpoint(ownedOutpoints, input.txid, input.vout)
+        : undefined
+
+      return {
+        depthH: 0,
+        id: String(index + 1),
+        ioData: {
+          address: formatTxId(input.txid, 4),
+          // Only attach fiat when prevout value is real — equal-split placeholders
+          // are for layout/labels, not priced amounts.
+          ...(input.valueIsKnown ? fiatFields(input.value) : {}),
+          isInput: true,
+          isOwnInput,
+          label: resolveSankeyInputLabel(
+            input.txid,
+            input.vout,
+            txLabelsById,
+            outpointLabelsByRef
+          ),
+          prevTxId: input.txid,
+          text: t('common.from'),
+          // Always show a sats amount: known prevout, or equal-split placeholder.
+          value: input.value,
+          vout: input.vout
+        },
+        type: 'text',
+        value: input.value,
+        vout: input.vout
+      }
+    })
 
     const blockNode: TxNode[] = [
       {
@@ -187,44 +429,106 @@ function SSTransactionChart({
       }
     ]
 
+    const outputFlags = classifyChartOutputs(
+      outputs.map((output, index) => ({
+        kind: output.kind,
+        label: output.label ?? '',
+        localId: `output-${index}`,
+        to: output.address?.trim() ?? '',
+        value: output.value
+      })),
+      normalizedOwnAddresses,
+      { isWalletSend: transaction.type === 'send' }
+    )
+
     const outputNodes: TxNode[] = outputs.map((output, index) => {
       const nodeId = String(index + 2 + inputs.length)
       const label = output.label ?? ''
-      const isChange =
-        label.includes('Change') || label.includes('[Change for]')
+      const outputAddress = output.address?.trim() ?? ''
+      const specialKind = classifySpecialOutput(output.script)
+      const specialTag = specialOutputTag(specialKind)
+      const layoutValue = specialOutputLayoutValue(output.value, specialKind)
+      const { isChange, isFakeMix, isReceive, isSelfSend } = outputFlags[
+        index
+      ] ?? {
+        isChange: false,
+        isFakeMix: false,
+        isReceive: false,
+        isSelfSend: false
+      }
+      // Sparrow: wallet-owned / change-chain outputs stay green; only external
+      // payments are spends. Equal-amount owned peers of a 4-out stonewall are
+      // fake-mix (not change/self-send) for the chart label + icon.
+      const isChangeOutput =
+        !isFakeMix &&
+        (isChange ||
+          isChangeOutputAddress(outputAddress, normalizedInternalAddresses))
+      const isSelfSendOutput = !isChangeOutput && !isFakeMix && isSelfSend
+      const isReceiveOutput =
+        !isChangeOutput && !isFakeMix && !isSelfSendOutput && isReceive
+      const outpoint = `${transaction.id}:${index}`
+      const localSpendStatus = resolveChartOutputSpendStatus({
+        outpoint,
+        spendingTxIdsByOutpoint,
+        unspentOutpoints
+      })
+      const networkOutspend = networkOutspends?.get(index)
+      const spendStatus: ChartOutputSpendStatus = networkOutspend
+        ? networkOutspend.spent
+          ? 'spent'
+          : 'unspent'
+        : localSpendStatus
+      const isNeutralOutput = !walletSpendColors
+      const isUnspent = !isNeutralOutput && spendStatus === 'unspent'
+      const nextTx =
+        !isNeutralOutput && spendStatus === 'spent'
+          ? (networkOutspend?.spendingTxId ??
+            getSpendingTxId(spendingTxIdsByOutpoint, outpoint))
+          : undefined
 
       return {
         depthH: 2,
         id: nodeId,
         ioData: {
-          address: formatAddress(output.address, 6),
-          fiatCurrency,
-          fiatValue: formatNumber(satsToFiat(output.value), 2),
-          isSelfSend: !!(output.address && ownAddresses.has(output.address)),
-          isUnspent: true,
-          label: label || t('common.noLabel'),
-          text: t('transaction.build.unspent'),
+          address: outputAddress ? formatAddress(outputAddress, 6) : undefined,
+          ...(specialKind && output.value <= 0 ? {} : fiatFields(output.value)),
+          isChange: isNeutralOutput ? false : isChangeOutput,
+          isFakeMix: isNeutralOutput ? false : isFakeMix,
+          isNeutralOutput,
+          isReceive: isNeutralOutput ? false : isReceiveOutput,
+          isSelfSend: isNeutralOutput ? false : isSelfSendOutput,
+          isUnspent,
+          label: label || specialTag || t('common.noLabel'),
+          specialTag,
+          text: isNeutralOutput
+            ? undefined
+            : spendStatus === 'pending'
+              ? '?'
+              : spendStatus === 'unspent'
+                ? t('transaction.build.unspent')
+                : t('transaction.build.spent'),
           value: output.value
         },
-        localId: isChange ? 'remainingBalance' : `output-${index}`,
+        localId: `output-${index}`,
+        nextTx,
         type: 'text',
-        value: output.value
+        value: layoutValue
       }
     })
 
-    const totalOutputValueWithAddresses = outputs
-      .filter((output) => output.address && output.address.trim() !== '')
-      .reduce((sum, output) => sum + output.value, 0)
-
     const higherFee =
-      totalOutputValueWithAddresses > 0
-        ? minerFee !== undefined &&
-          minerFee >= totalOutputValueWithAddresses * 0.1
-        : false
+      minerFee !== undefined &&
+      isHighMinerFee({
+        minerFeeSats: minerFee,
+        totalOutputSats: totalOutputValue
+      })
 
     const feePercentage =
-      totalOutputValueWithAddresses > 0 && minerFee !== undefined
-        ? (minerFee / totalOutputValueWithAddresses) * 100
+      minerFee !== undefined
+        ? getFeePercentage({
+            minerFeeSats: minerFee,
+            totalOutputSats: totalOutputValue
+          })
         : 0
 
     if (minerFee !== undefined) {
@@ -232,10 +536,9 @@ function SSTransactionChart({
         depthH: 2,
         id: String(inputs.length + outputs.length + 2),
         ioData: {
-          feePercentage: Math.round(feePercentage * 100) / 100,
-          feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
-          fiatCurrency,
-          fiatValue: formatNumber(satsToFiat(minerFee), 2),
+          feePercentage: Math.round(feePercentage * 10000) / 100,
+          feeRate,
+          ...fiatFields(minerFee),
           higherFee,
           text: t('transaction.build.minerFee'),
           value: minerFee // round to 2 decimals
@@ -257,7 +560,17 @@ function SSTransactionChart({
     satsToFiat,
     fiatCurrency,
     totalOutputValue,
-    ownAddresses
+    normalizedOwnAddresses,
+    normalizedInternalAddresses,
+    unspentOutpoints,
+    ownedOutpoints,
+    spendingTxIdsByOutpoint,
+    networkOutspends,
+    transaction.id,
+    transaction.type,
+    txLabelsById,
+    outpointLabelsByRef,
+    walletSpendColors
   ])
 
   const sankeyLinks = useMemo(() => {
@@ -272,11 +585,14 @@ function SSTransactionChart({
       y1: 0
     }))
 
-    const blockToOutputLinks = outputs.map((output, index) => ({
-      source: String(inputs.length + 1),
-      target: String(index + inputs.length + 2),
-      value: output.value
-    }))
+    const blockToOutputLinks = outputs.map((output, index) => {
+      const specialKind = classifySpecialOutput(output.script)
+      return {
+        source: String(inputs.length + 1),
+        target: String(index + inputs.length + 2),
+        value: specialOutputLayoutValue(output.value, specialKind)
+      }
+    })
 
     if (minerFee) {
       blockToOutputLinks.push({
@@ -331,10 +647,63 @@ function SSTransactionChart({
     return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
+  const nodeWidth = NODE_WIDTH * scale
+  const hitMinHeight = 52 * scale
+  const hitMinWidth = 160 * scale
+
+  function buildHitTarget(
+    node: Node,
+    linkedTxId: string
+  ): {
+    height: number
+    id: string
+    linkedTxId: string
+    width: number
+    x: number
+    y: number
+  } {
+    const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
+    const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
+    const safeY1 = Number.isNaN(node.y1) ? 0 : (node.y1 ?? 0)
+    return {
+      height: Math.max(safeY1 - safeY0, hitMinHeight),
+      id: node.id,
+      linkedTxId,
+      width: Math.max(nodeWidth, hitMinWidth),
+      x: safeX0,
+      y: safeY0 - 2 * scale
+    }
+  }
+
+  const inputHitTargets = (nodes as Node[]).flatMap((node) => {
+    const prevTxId = node.ioData?.prevTxId
+    if (!node.ioData?.isInput || !prevTxId) {
+      return []
+    }
+    if (knownTxIds && !knownTxIds.has(prevTxId)) {
+      return []
+    }
+    return [buildHitTarget(node, prevTxId)]
+  })
+
+  const outputHitTargets = (nodes as Node[]).flatMap((node) => {
+    const { nextTx } = node
+    if (node.ioData?.isInput || node.ioData?.isUnspent !== false || !nextTx) {
+      return []
+    }
+    if (knownTxIds && !knownTxIds.has(nextTx)) {
+      return []
+    }
+    return [buildHitTarget(node, nextTx)]
+  })
+
   return (
     <View style={{ flex: 1, height: chartCanvasHeight, overflow: 'hidden' }}>
-      <View onLayout={onCanvasLayout}>
-        <Canvas style={{ height: chartCanvasHeight, width: GRAPH_WIDTH }}>
+      <View onLayout={onCanvasLayout} style={styles.chartHost}>
+        <Canvas
+          style={{ height: chartCanvasHeight, width: GRAPH_WIDTH }}
+          pointerEvents="none"
+        >
           <Group
             origin={{
               x: GRAPH_WIDTH / 2,
@@ -365,13 +734,40 @@ function SSTransactionChart({
               }
               dimUnselected={dimUnselected}
               showUnspentLabel={showUnspentLabel}
+              onLabelsReady={setLabelsReady}
             />
           </Group>
         </Canvas>
+        {accountId
+          ? [...inputHitTargets, ...outputHitTargets].map((target) => (
+              <SankeyHitTarget
+                key={target.id}
+                accountId={accountId}
+                knownTxIds={knownTxIds}
+                linkedTxId={target.linkedTxId}
+                height={target.height}
+                width={target.width}
+                x={target.x}
+                y={target.y}
+              />
+            ))
+          : null}
       </View>
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  chartHost: {
+    position: 'relative'
+  },
+  chartShell: {
+    position: 'relative'
+  },
+  hitTarget: {
+    position: 'absolute'
+  }
+})
 
 const thresholdCheck = ({ transaction }: SSTransactionChartProps) =>
   transaction.vin.length + transaction.vout.length >

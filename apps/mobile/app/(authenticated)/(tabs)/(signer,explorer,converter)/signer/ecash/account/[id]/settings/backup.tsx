@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -12,6 +12,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
@@ -117,7 +118,7 @@ export default function EcashBackupPage() {
           )
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack gap="lg">
           <SSVStack gap="md">
             <SSText uppercase>{t('ecash.backup.title')}</SSText>
@@ -232,7 +233,7 @@ export default function EcashBackupPage() {
             </SSVStack>
           )}
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }

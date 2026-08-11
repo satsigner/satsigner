@@ -40,7 +40,7 @@ export default function DescriptorPage() {
     useState<ScriptVersionType>('P2WPKH')
 
   useEffect(() => {
-    function getDescriptor() {
+    async function getDescriptor() {
       if (!keyIndex) {
         return
       }
@@ -70,7 +70,7 @@ export default function DescriptorPage() {
         } else if (secret.internalDescriptor) {
           foundDescriptor = secret.internalDescriptor
         } else if (secret.mnemonic) {
-          foundDescriptor = getPublicDescriptorFromMnemonic(
+          foundDescriptor = await getPublicDescriptorFromMnemonic(
             secret.mnemonic,
             scriptVersion,
             KeychainKind.External,

@@ -77,6 +77,7 @@ export default function ArkPayInvoicePage() {
     Boolean(invoice) &&
     amountSats > 0 &&
     !exceedsBalance &&
+    feeSats !== undefined &&
     networkValid &&
     !payMutation.isPending &&
     !walletQuery.isPending
@@ -227,7 +228,11 @@ export function ArkInvoiceStats({
             {t('ark.send.feeEstimating')}
           </SSText>
         ) : feeEstimateQuery.error ? (
-          <SSText size="xs" style={{ color: Colors.warning }}>
+          <SSText
+            size="xs"
+            style={{ color: Colors.warning }}
+            onPress={() => feeEstimateQuery.refetch()}
+          >
             {t('ark.send.feeUnavailable')}
           </SSText>
         ) : null}

@@ -8,13 +8,14 @@ import SSText from './SSText'
 
 type SSSortDirectionToggleProps = {
   label?: string
-  showArrow?: boolean
+  /** When false, label and arrow are muted (inactive sort field). */
+  active?: boolean
   onDirectionChanged(direction: Direction): void
 }
 
 function SSSortDirectionToggle({
   label,
-  showArrow = true,
+  active = true,
   onDirectionChanged
 }: SSSortDirectionToggleProps) {
   const [direction, setDirection] = useState<Direction>('desc')
@@ -28,23 +29,26 @@ function SSSortDirectionToggle({
 
   return (
     <TouchableOpacity
-      style={[styles.buttonBase, !label && { paddingVertical: 8 }]}
+      style={[
+        styles.buttonBase,
+        !label && { paddingVertical: 8 },
+        !active && styles.muted
+      ]}
       activeOpacity={0.7}
-      onPress={() => handleToggle()}
+      onPress={handleToggle}
     >
-      {label && (
-        <SSText size="sm" color="muted">
+      <View style={styles.arrowContainerBase}>
+        {direction === 'asc' ? (
+          <SSIconChevronUp height={5} width={14} />
+        ) : (
+          <SSIconChevronDown height={5} width={14} />
+        )}
+      </View>
+      {label ? (
+        <SSText size="sm" color={active ? 'white' : 'muted'}>
           {label}
         </SSText>
-      )}
-      <View style={styles.arrowContainerBase}>
-        {showArrow &&
-          (direction === 'asc' ? (
-            <SSIconChevronUp height={5} width={14} />
-          ) : (
-            <SSIconChevronDown height={5} width={14} />
-          ))}
-      </View>
+      ) : null}
     </TouchableOpacity>
   )
 }
@@ -58,7 +62,11 @@ const styles = StyleSheet.create({
   buttonBase: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 4
+    gap: 4,
+    opacity: 1
+  },
+  muted: {
+    opacity: 0.4
   }
 })
 

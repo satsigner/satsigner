@@ -6,7 +6,9 @@ import DraggableFlatList, {
   ScaleDecorator
 } from 'react-native-draggable-flatlist'
 import Animated, {
+  cancelAnimation,
   Easing,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -16,7 +18,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSAccountCard from '@/components/SSAccountCard'
+import SSAccountCard, {
+  type SSAccountCardStat
+} from '@/components/SSAccountCard'
 import SSAccountCardSkeleton from '@/components/SSAccountCardSkeleton'
 import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
@@ -24,7 +28,6 @@ import SSButton from '@/components/SSButton'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
 import {
   sampleMultiAddressTether,
   sampleSalvadorAddress,
@@ -40,6 +43,8 @@ import {
   sampleTestnet4Address
 } from '@/constants/samples'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import useAccountsFingerprints from '@/hooks/useAccountsFingerprints'
+import { useFiatData } from '@/hooks/useFiatData'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
@@ -48,7 +53,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem, setItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -56,7 +60,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { Account } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
 import {
   getExtendedPublicKeyFromMnemonic,
@@ -64,72 +68,177 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import { randomKey } from '@/utils/crypto'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { getPin, setPin } from '@/utils/pin'
 import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3
-
 const STAGGER_DELAY_MS = 70
 const STAGGER_DURATION_MS = 320
+const MAX_STAGGERED_ITEMS = 8
+const SAMPLE_ACCOUNTS_DELAY_MS = 400
 
+function buildAccountCardStats(
+  summary: Account['summary']
+): SSAccountCardStat[] {
+  return [
+    {
+      label: t('accounts.totalTransactions'),
+      value: summary.numberOfTransactions
+    },
+    {
+      label: t('accounts.derivedAddresses'),
+      value: summary.numberOfAddresses
+    },
+    {
+      label: t('accounts.spendableOutputs'),
+      value: summary.numberOfUtxos
+    },
+    {
+      label: t('accounts.satsInMempool'),
+      value: summary.satsInMempool
+    }
+  ]
+}
+
+function runStaggerIn(
+  opacity: SharedValue<number>,
+  translateY: SharedValue<number>,
+  delayMs: number
+) {
+  cancelAnimation(opacity)
+  cancelAnimation(translateY)
+  opacity.set(0)
+  translateY.set(12)
+  opacity.set(
+    withDelay(
+      delayMs,
+      withTiming(1, {
+        duration: STAGGER_DURATION_MS,
+        easing: Easing.out(Easing.ease)
+      })
+    )
+  )
+  translateY.set(
+    withDelay(
+      delayMs,
+      withTiming(0, {
+        duration: STAGGER_DURATION_MS,
+        easing: Easing.out(Easing.ease)
+      })
+    )
+  )
+}
+
+function forceStaggerVisible(
+  opacity: SharedValue<number>,
+  translateY: SharedValue<number>
+) {
+  cancelAnimation(opacity)
+  cancelAnimation(translateY)
+  opacity.set(1)
+  translateY.set(0)
+}
+
+/**
+ * Fade/slide-in that stays reliable with FlashList recycling:
+ * - keyed by itemId so a recycled cell restarts for the new account
+ * - cleanup forces opacity 1 so a mid-animation recycle never leaves a blank cell
+ * - JS timeout fallback if the UI-thread animation is dropped
+ */
 function AccountCardStaggerItem({
   index,
+  itemId,
   children
 }: {
   index: number
+  itemId: string
   children: React.ReactNode
 }) {
-  const opacity = useSharedValue(0)
-  const translateY = useSharedValue(12)
+  const shouldAnimate = index < MAX_STAGGERED_ITEMS
+  const opacity = useSharedValue(shouldAnimate ? 0 : 1)
+  const translateY = useSharedValue(shouldAnimate ? 12 : 0)
 
   useEffect(() => {
-    const delay = index * STAGGER_DELAY_MS
+    if (!shouldAnimate) {
+      forceStaggerVisible(opacity, translateY)
+      return
+    }
+
+    const delayMs = index * STAGGER_DELAY_MS
+    runStaggerIn(opacity, translateY, delayMs)
+
+    const fallback = setTimeout(
+      () => forceStaggerVisible(opacity, translateY),
+      delayMs + STAGGER_DURATION_MS + 50
+    )
+
+    return () => {
+      clearTimeout(fallback)
+      // Dropping a cell mid-fade must never leave the recycled view invisible.
+      forceStaggerVisible(opacity, translateY)
+    }
+  }, [itemId, index, shouldAnimate, opacity, translateY])
+
+  const staggerStyle = useAnimatedStyle(() => ({
+    opacity: opacity.get(),
+    transform: [{ translateY: translateY.get() }]
+  }))
+
+  return <Animated.View style={staggerStyle}>{children}</Animated.View>
+}
+
+function SampleAccountsFadeIn({ children }: { children: React.ReactNode }) {
+  const opacity = useSharedValue(0)
+
+  useEffect(() => {
+    cancelAnimation(opacity)
+    opacity.set(0)
     opacity.set(
       withDelay(
-        delay,
+        SAMPLE_ACCOUNTS_DELAY_MS,
         withTiming(1, {
           duration: STAGGER_DURATION_MS,
           easing: Easing.out(Easing.ease)
         })
       )
     )
-    translateY.set(
-      withDelay(
-        delay,
-        withTiming(0, {
-          duration: STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease)
-        })
-      )
-    )
-  }, [index, opacity, translateY])
 
-  const staggerStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }]
+    const fallback = setTimeout(
+      () => {
+        cancelAnimation(opacity)
+        opacity.set(1)
+      },
+      SAMPLE_ACCOUNTS_DELAY_MS + STAGGER_DURATION_MS + 50
+    )
+
+    return () => {
+      clearTimeout(fallback)
+      cancelAnimation(opacity)
+      opacity.set(1)
+    }
+  }, [opacity])
+
+  const style = useAnimatedStyle(() => ({
+    opacity: opacity.get()
   }))
 
-  return <Animated.View style={staggerStyle}>{children}</Animated.View>
+  return <Animated.View style={style}>{children}</Animated.View>
 }
 
 export default function AccountList() {
   const router = useRouter()
 
-  const [
-    network,
-    setSelectedNetwork,
-    connectionMode,
-    autoConnectDelay,
-    mainnetMempoolUrl
-  ] = useBlockchainStore(
-    useShallow((state) => [
-      state.selectedNetwork,
-      state.setSelectedNetwork,
-      state.configs[state.selectedNetwork].config.connectionMode,
-      state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
-      state.configsMempool['bitcoin']
-    ])
-  )
+  const [network, setSelectedNetwork, connectionMode, autoConnectDelay] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.selectedNetwork,
+        state.setSelectedNetwork,
+        state.configs[state.selectedNetwork].config.connectionMode,
+        state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
+      ])
+    )
   const [accounts, updateAccount, setAccounts] = useAccountsStore(
     useShallow((state) => [
       state.accounts,
@@ -137,6 +246,7 @@ export default function AccountList() {
       state.setAccounts
     ])
   )
+  const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
   const [
     clearAccount,
     getAccountData,
@@ -200,27 +310,6 @@ export default function AccountList() {
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
   // SQLite store initializes synchronously via JSI — always hydrated
   const hasHydrated = true
-  const sampleAccountsOpacity = useSharedValue(0)
-
-  useEffect(() => {
-    if (!hasHydrated) {
-      return
-    }
-    sampleAccountsOpacity.set(0)
-    sampleAccountsOpacity.set(
-      withDelay(
-        400,
-        withTiming(1, {
-          duration: 320,
-          easing: Easing.out(Easing.ease)
-        })
-      )
-    )
-  }, [hasHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const sampleAccountsStyle = useAnimatedStyle(() => ({
-    opacity: sampleAccountsOpacity.value
-  }))
 
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
@@ -237,6 +326,7 @@ export default function AccountList() {
       accounts.filter((acc) => acc.network === tabs[tabIndex].key)
     )
   }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  const fingerprints = useAccountsFingerprints(filteredAccounts)
 
   const totalBalance = useMemo(
     () =>
@@ -279,8 +369,11 @@ export default function AccountList() {
   }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    fetchPrices(mainnetMempoolUrl)
-  }, [fetchPrices, mainnetMempoolUrl])
+    if (!showCurrentFiat) {
+      return
+    }
+    fetchPrices(getFiatPriceApiUrl())
+  }, [fetchPrices, fiatPriceApiUrl, showCurrentFiat])
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
@@ -345,7 +438,9 @@ export default function AccountList() {
 
     for (const account of walletAccounts) {
       const u = await syncAccountWithWallet(account, wallets[account.id]!)
-      updateAccount(u)
+      if (u) {
+        updateAccount(u)
+      }
     }
   }
 
@@ -362,21 +457,15 @@ export default function AccountList() {
   }
 
   async function loadSampleWallet(type: SampleWallet) {
-    // Check if PIN is available, if not set a default one
-    const pin = await getItem(PIN_KEY)
-
-    // TODO: remove DEFAULT_PIN
-    if (!pin) {
-      const salt = await generateSalt()
-      const encryptedPin = await pbkdf2Encrypt(DEFAULT_PIN, salt)
-      await setItem(PIN_KEY, encryptedPin)
-      await setItem(SALT_KEY, salt)
-    }
-
-    // Verify PIN is accessible
-    const verifyPin = await getItem(PIN_KEY)
-    if (!verifyPin) {
-      throw new Error('Failed to set or retrieve PIN')
+    // Sample wallets need encryption key material. In development only, create a
+    // random ephemeral key when none exists (never a hardcoded PIN).
+    try {
+      await getPin()
+    } catch {
+      if (!__DEV__) {
+        throw new Error('PIN unavailable')
+      }
+      await setPin(await randomKey(32))
     }
 
     setName(`Sample (${type})`)
@@ -615,7 +704,9 @@ export default function AccountList() {
             data.wallet!
           )
         : await syncAccountWithAddress(data.accountWithEncryptedSecret)
-      updateAccount(updatedAccount)
+      if (updatedAccount) {
+        updateAccount(updatedAccount)
+      }
     }
     toast.success('Sample wallet created successfully!')
   }
@@ -788,7 +879,7 @@ export default function AccountList() {
         options={{
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('app.name')}
+              {t('bitcoin.network.bitcoin')}
             </SSText>
           )
         }}
@@ -915,18 +1006,25 @@ export default function AccountList() {
                   renderItem={({
                     item,
                     getIndex,
-                    drag,
-                    isActive
                   }: RenderItemParams<Account>) => (
                     <ScaleDecorator activeScale={1.05}>
-                      <AccountCardStaggerItem index={getIndex() || 0}>
+                      <AccountCardStaggerItem
+                        index={getIndex() || 0}
+                        itemId={item.id}
+                      >
                         <SSVStack>
                           <SSAccountCard
-                            onLongPress={drag}
-                            activeOpacity={0.8}
-                            delayLongPress={250}
-                            longPressDisabled={isActive}
-                            account={item}
+                            name={item.name}
+                            balance={item.summary.balance}
+                            fingerprint={
+                              item.keys[0].creationType === 'importAddress'
+                                ? undefined
+                                : fingerprints[item.id]
+                            }
+                            watchOnly={item.policyType === 'watchonly'}
+                            syncStatus={item.syncStatus}
+                            lastSyncedAt={item.lastSyncedAt}
+                            stats={buildAccountCardStats(item.summary)}
                             onPress={() => handleGoToAccount(item.id)}
                           />
                         </SSVStack>
@@ -949,7 +1047,7 @@ export default function AccountList() {
                   }
                   showsVerticalScrollIndicator={false}
                 />
-                <Animated.View style={sampleAccountsStyle}>
+                <Animated.View>
                   {renderSamplewallets()}
                 </Animated.View>
               </Animated.View>

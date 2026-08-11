@@ -1,14 +1,18 @@
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useState } from 'react'
 import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { Colors, Layout, Typography } from '@/styles'
+import { decodeBlockFromHex, looksLikeBlockHex } from '@/utils/blockDecoded'
 import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
+import SSBlockDecoded from './SSBlockDecoded'
 import SSPerformanceWarning from './SSPerformanceWarning'
 import SSText from './SSText'
+
+const tnBlock = _tn('explorer.block')
 
 const tn = _tn('transaction.decoded')
 const TEXT_SIZES = ['xxs', 'xs', 'sm', 'md', 'lg', 'xl'] as const
@@ -171,10 +175,7 @@ function SSTransactionRawPayload({
   ascii,
   txHex
 }: SSTransactionRawPayloadProps) {
-  const displayValue = useMemo(
-    () => (ascii ? hexToAsciiFromHex(txHex) : txHex),
-    [ascii, txHex]
-  )
+  const displayValue = ascii ? hexToAsciiFromHex(txHex) : txHex
 
   return (
     <TextInput
@@ -208,11 +209,29 @@ type SSTransactionDecodedProps = {
   defaultDisplay?: 'list' | 'bytes'
 }
 
+function tryDecodeTransaction(txHex: string) {
+  try {
+    return TxDecoded.decodeFromHex(txHex)
+  } catch {
+    return null
+  }
+}
+
+function tryDecodeBlockHex(txHex: string) {
+  try {
+    return decodeBlockFromHex(txHex)
+  } catch {
+    return null
+  }
+}
+
 function SSTransactionDecoded({
   txHex,
   defaultDisplay = 'bytes'
 }: SSTransactionDecodedProps) {
-  const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
+  const isBlock = looksLikeBlockHex(txHex)
+  const decoded = isBlock ? null : tryDecodeTransaction(txHex)
+  const blockDecoded = isBlock ? tryDecodeBlockHex(txHex) : null
   const [display, setDisplay] = useState<'list' | 'bytes'>(defaultDisplay)
   const [rawFieldOpen, setRawFieldOpen] = useState(false)
   const [rawAscii, setRawAscii] = useState(false)
@@ -222,6 +241,37 @@ function SSTransactionDecoded({
     if (open) {
       setRawAscii(false)
     }
+  }
+
+  if (isBlock) {
+    if (!blockDecoded) {
+      return (
+        <SSText size="xs" color="muted" center>
+          {tnBlock('viewHexDecodeError')}
+        </SSText>
+      )
+    }
+    return (
+      <SSVStack gap="sm">
+        {blockDecoded.truncated ? (
+          <SSText size="xxs" color="muted" center>
+            {tnBlock('viewHexDecodedTruncated', {
+              decoded: String(blockDecoded.txDecoded),
+              total: String(blockDecoded.txTotal)
+            })}
+          </SSText>
+        ) : null}
+        <SSBlockDecoded fields={blockDecoded.fields} />
+      </SSVStack>
+    )
+  }
+
+  if (!decoded) {
+    return (
+      <SSText size="xs" color="muted" center>
+        {tn('hexError')}
+      </SSText>
+    )
   }
 
   return (
@@ -478,6 +528,7 @@ function SSTransactionDecodedWithWarning(props: SSTransactionDecodedProps) {
   if (!dismissed && !showRawHex && thresholdCheck(props)) {
     return (
       <SSPerformanceWarning
+        dismissLabel={tn('btnLoadAnyway')}
         onDismiss={() => setDismissed(true)}
         onSecondaryAction={handleLoadRawHex}
         secondaryActionLoading={loadingRawHex}

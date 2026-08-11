@@ -114,8 +114,9 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
     params.push(nostr.commonNpub)
   }
   if (nostr.commonNsec !== undefined) {
+    // Clear any legacy plaintext; ciphertext lives in SecureStore.
     updates.push('nostr_common_nsec = ?')
-    params.push(nostr.commonNsec)
+    params.push('')
   }
   if (nostr.deviceNpub !== undefined) {
     updates.push('nostr_device_npub = ?')
@@ -123,7 +124,11 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
   }
   if (nostr.deviceNsec !== undefined) {
     updates.push('nostr_device_nsec = ?')
-    params.push(nostr.deviceNsec)
+    params.push(null)
+  }
+  if (nostr.deviceMnemonic !== undefined) {
+    updates.push('nostr_device_mnemonic = ?')
+    params.push(null)
   }
   if (nostr.deviceDisplayName !== undefined) {
     updates.push('nostr_device_display_name = ?')

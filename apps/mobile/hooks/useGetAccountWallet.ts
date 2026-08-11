@@ -6,8 +6,8 @@ import { getWalletData } from '@/api/bdk'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
-import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 
 const useGetAccountWallet = (id: Account['id']) => {
   const [wallet, addAccountWallet] = useWalletsStore(
@@ -42,10 +42,11 @@ const useGetAccountWallet = (id: Account['id']) => {
         return
       }
 
-      addAccountWallet(id, walletData.wallet)
+      addAccountWallet(id, walletData.wallet, walletData.dbPath)
     } catch (error) {
+      const label = account?.name ?? id
       const reason = error instanceof Error ? error.message : 'unknown reason'
-      toast.error(`Failed to load wallet: ${reason}`)
+      toast.error(`${label}: Failed to load wallet: ${reason}`)
     }
   }
 

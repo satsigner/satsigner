@@ -6,16 +6,15 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DURESS_PIN_KEY, PIN_KEY, SALT_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, SALT_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
+import { useSecureWipe } from '@/hooks/useSecureWipe'
 import SSVStack from '@/layouts/SSVStack'
-import { deleteItem, getItem } from '@/storage/encrypted'
-import { useAccountsStore } from '@/store/accounts'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
-import { useWalletsStore } from '@/store/wallets'
 import { gray } from '@/styles/colors'
 import { pbkdf2Encrypt } from '@/utils/crypto'
-import { emptyPin } from '@/utils/pin'
+import { emptyPin, getPin } from '@/utils/pin'
 
 type SSPinAuthProps = {
   onFail?: () => void
@@ -35,16 +34,19 @@ function SSPinAuth({
   resetPin,
   ...props
 }: SSPinAuthProps) {
-  const [duressPinEnabled, setDuressPinEnabled] = useAuthStore(
-    useShallow((state) => [state.duressPinEnabled, state.setDuressPinEnabled])
-  )
-  const [deleteAccounts, deleteTags] = useAccountsStore(
-    useShallow((state) => [state.deleteAccounts, state.deleteTags])
-  )
-  const deleteWallets = useWalletsStore((state) => state.deleteWallets)
+  const [duressPinEnabled, setLockTriggered, setJustUnlocked, resetPinTries] =
+    useAuthStore(
+      useShallow((state) => [
+        state.duressPinEnabled,
+        state.setLockTriggered,
+        state.setJustUnlocked,
+        state.resetPinTries
+      ])
+    )
   const [pin, setPin] = useState<string[]>(emptyPin())
   const [tries, setTries] = useState(0)
   const { shakeStyle } = useAnimatedShake()
+  const secureWipe = useSecureWipe()
 
   useEffect(() => {
     if (resetPin === true) {
@@ -54,52 +56,52 @@ function SSPinAuth({
   }, [resetPin])
 
   async function handleFillEnded(inputPin: string) {
-    const hashedPin = await getItem(PIN_KEY)
+    const hashedPin = await getPin()
     const hashedDuressPin = await getItem(DURESS_PIN_KEY)
     const salt = await getItem(SALT_KEY)
+    const saltDuress = await getItem(SALT_KEY_DURESS)
     if (!hashedPin || !salt) {
       toast.error('Failed to retrieve PIN for authentication')
       return
     }
+
     const hashedInput = await pbkdf2Encrypt(inputPin, salt)
+    const hashedInputDuress = saltDuress
+      ? await pbkdf2Encrypt(inputPin, saltDuress)
+      : ''
 
     // DURESS PIN
-    if (duressPinEnabled && hashedInput === hashedDuressPin) {
-      // erase data
-      deleteAccounts()
-      deleteWallets()
-      deleteTags()
-
-      // delete evidence there existed a duress pin in the first place,
-      // acting as if the duress pin was the true pin
-      setDuressPinEnabled(false)
-      await deleteItem(DURESS_PIN_KEY)
-
-      // reset route
+    if (duressPinEnabled && hashedInputDuress === hashedDuressPin) {
+      try {
+        await secureWipe()
+      } catch {
+        // Duress wipe is best-effort; always proceed to unlock the app.
+      }
+      setLockTriggered(false)
+      setJustUnlocked(true)
+      resetPinTries()
       router.dismissAll()
       router.push('/')
       return
     }
 
-    // Upon failure, the pin reset is already done here
+    // Upon failure, the reset of local pin state is done here
     if (hashedInput !== hashedPin) {
       setPin(emptyPin())
-
-      // max tries logic
       const newTries = tries + 1
       setTries(newTries)
       if (maxTries && newTries >= maxTries && onTriesOver) {
         onTriesOver()
       }
 
-      // The fail callback could be show a warning, dismiss a modal, etc...
+      // the fail callback could be show a warning, dismiss a modal, etc...
       if (onFail) {
         onFail()
       }
       return
     }
 
-    // The success callback could be unlock the app, or view mnemonic, or confirm wallet deletion
+    // the success callback could be unlock the app, or view mnemonic, or confirm wallet deletion
     onSuccess()
   }
 

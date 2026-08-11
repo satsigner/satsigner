@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { testNostrRelaysReachable } from '@/api/nostr'
+import { reconnectNdkForRelays, testNostrRelaysReachable } from '@/api/nostr'
 import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
@@ -59,6 +59,18 @@ export function useNostrLandingRelayReachability({
         return
       }
       setActiveConnectionInfo(info)
+
+      if (info.status === 'disconnected' && info.reason === 'all_failed') {
+        await reconnectNdkForRelays(urls)
+        if (generation !== effectGenerationRef.current) {
+          return
+        }
+        const retryInfo = await testNostrRelaysReachable(urls)
+        if (generation !== effectGenerationRef.current) {
+          return
+        }
+        setActiveConnectionInfo(retryInfo)
+      }
     }
     run()
 

@@ -1,0 +1,32 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - receive
+  - signet
+  - clown
+---
+# Re-open Clown Receive after Sample posted the original PSBT.
+# Expect proposal → finalize → "Payjoin complete" (mailbox J8CV… style path).
+#
+# Used by pnpm maestro:payjoin:sample-to-clown (step 3/4).
+
+- runFlow:
+    file: shared/launch.yaml
+- runFlow:
+    file: shared/skip-pin-and-warning.yaml
+- runFlow:
+    file: shared/leave-to-account-list.yaml
+- runFlow:
+    file: shared/open-clown.yaml
+- tapOn:
+    id: account-receive
+- extendedWaitUntil:
+    visible: '(?i)^COPY$'
+    timeout: 20000
+# Poll / negotiate until contribution is done (or still waiting if sender late).
+- extendedWaitUntil:
+    visible: '(?i).*(Payjoin complete|Negotiating Payjoin|Waiting for sender|Checking mailbox).*'
+    timeout: 30000
+- extendedWaitUntil:
+    visible: '(?i)Payjoin complete'
+    timeout: 180000

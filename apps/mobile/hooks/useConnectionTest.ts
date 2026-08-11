@@ -2,11 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import {
   type Backend,
   type Network,
-  type ProxyConfig
+  type ProxyConfig,
+  type RpcCredentials
 } from '@/types/settings/blockchain'
+import { formatCoreVersion, formatRpcBanner } from '@/utils/rpcBanner'
+import { expectedCoreChain, formatChainMismatchError } from '@/utils/rpcNetwork'
 
 type NodeInfo = {
   version?: string
@@ -25,6 +29,13 @@ export type ConnectionTestResult =
       success: true
       blockHeight?: number
       tipTimestampSec?: number
+      /**
+       * Free-form server banner: Electrum `server.banner`, or for RPC a
+       * Sparrow-style line built from `getnetworkinfo.subversion` (+ status).
+       */
+      banner?: string
+      /** True when blockfilterindex=1 is missing — wallet sync will be slow */
+      blockFilterIndexMissing?: boolean
     }
   | {
       success: false
@@ -56,7 +67,8 @@ export function useConnectionTest() {
     url: string,
     backend: Backend,
     network: Network,
-    proxy?: ProxyConfig
+    proxy?: ProxyConfig,
+    rpcCredentials?: RpcCredentials
   ): Promise<ConnectionTestResult> {
     // Debounce rapid connection attempts to prevent memory issues
     const now = Date.now()
@@ -115,6 +127,17 @@ export function useConnectionTest() {
           }
         }
 
+        // Electrum server.banner — free-form server message (often ASCII art)
+        let banner: string | undefined
+        try {
+          const rawBanner = await client.client.server_banner()
+          if (typeof rawBanner === 'string' && rawBanner.trim()) {
+            banner = rawBanner.trim()
+          }
+        } catch {
+          // optional — not all servers implement banner
+        }
+
         // Try mempool fee histogram for mempool size
         let mempoolSize
         try {
@@ -150,6 +173,7 @@ export function useConnectionTest() {
         }
 
         return {
+          banner,
           blockHeight: blockHeight > 0 ? blockHeight : undefined,
           success: true,
           tipTimestampSec
@@ -203,6 +227,58 @@ export function useConnectionTest() {
           success: true,
           tipTimestampSec
         }
+      } else if (backend === 'rpc') {
+        const rpc = new BitcoinRpc(
+          url,
+          rpcCredentials?.username ?? '',
+          rpcCredentials?.password ?? ''
+        )
+
+        const [chainInfo, networkInfo, mempoolInfo, feeResult, hasFilterIndex] =
+          await Promise.all([
+            rpc.getBlockchainInfo(),
+            rpc.getNetworkInfo().catch(() => null),
+            rpc.getMempoolInfo().catch(() => null),
+            rpc.estimateSmartFee(6).catch(() => null),
+            rpc.hasBlockFilterIndex().catch(() => false)
+          ])
+
+        const blockHeight = chainInfo.blocks
+        const responseTime = Date.now() - startTime
+
+        const expectedChain = expectedCoreChain(network)
+        if (chainInfo.chain !== expectedChain) {
+          throw new Error(
+            formatChainMismatchError(network, chainInfo.chain, url)
+          )
+        }
+
+        const banner = networkInfo
+          ? formatRpcBanner(networkInfo, chainInfo)
+          : undefined
+
+        setNodeInfo({
+          blockHeight,
+          chainWork: chainInfo.chainwork,
+          medianFee: feeResult?.feerate
+            ? Math.round(feeResult.feerate * 1e5)
+            : undefined,
+          mempoolSize: mempoolInfo?.size,
+          network: chainInfo.chain,
+          responseTime,
+          software: networkInfo?.subversion?.trim() || 'Bitcoin Core',
+          version: networkInfo
+            ? formatCoreVersion(networkInfo.version)
+            : undefined
+        })
+
+        return {
+          banner,
+          blockFilterIndexMissing: !hasFilterIndex,
+          blockHeight,
+          success: true,
+          tipTimestampSec: chainInfo.mediantime
+        }
       }
       throw new Error('Unknown backend')
     }
@@ -238,14 +314,24 @@ export function useConnectionTest() {
 
       // Still set basic info even if enhanced info fails
       const responseTime = Date.now() - startTime
+      const softwareLabel =
+        backend === 'electrum'
+          ? 'Electrum'
+          : backend === 'rpc'
+            ? 'Bitcoin Core'
+            : 'Esplora'
       setNodeInfo({
         network: network as string,
         responseTime,
-        software: backend === 'electrum' ? 'Electrum' : 'Esplora'
+        software: softwareLabel
       })
 
+      // Surface the full user-facing message (may be multi-line with tips)
+      const displayMessage =
+        error instanceof Error ? error.message : errorMessage
+
       return {
-        error: errorMessage,
+        error: displayMessage,
         success: false
       }
     } finally {

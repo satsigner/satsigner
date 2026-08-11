@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -10,6 +10,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -48,7 +49,7 @@ export default function ArkSendEntryPage() {
           headerTitle: () => <SSText uppercase>{t('ark.send.title')}</SSText>
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack gap="lg" style={styles.container}>
           <SSVStack gap="xs">
             <SSText color="muted" size="xs" uppercase>
@@ -93,7 +94,7 @@ export default function ArkSendEntryPage() {
             />
           </View>
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
       <SSCameraModal
         visible={cameraVisible}
         onClose={() => setCameraVisible(false)}

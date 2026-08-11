@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { t } from '@/locales'
+import { Colors } from '@/styles'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
@@ -57,7 +58,7 @@ function SSScriptVersionModal({
         `script.${localScriptVersion.toLowerCase()}.name`
       )}`}
       selectedDescription={
-        <SSCollapsible>
+        <SSCollapsible fadeColor={Colors.black}>
           <SSText color="muted" size="md">
             {t(`script.${localScriptVersion.toLowerCase()}.description.1`)}
             <SSLink

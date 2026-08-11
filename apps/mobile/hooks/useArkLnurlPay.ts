@@ -2,12 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { ARK_LNURL_DETAILS_STALE_MS } from '@/constants/ark'
 import type { LNURLPayResponse } from '@/types/models/Lightning'
-import { decodeLNURL, fetchLNURLPayDetails, isLNURL } from '@/utils/lnurl'
-
-function resolveLnurlUrl(raw: string): string {
-  const cleaned = raw.trim().replace(/^lightning:/i, '')
-  return isLNURL(cleaned) ? decodeLNURL(cleaned) : cleaned
-}
+import { fetchLNURLPayDetails, resolveLnurlUrl } from '@/utils/lnurl'
 
 export function useArkLnurlPayDetails(lnurlRaw: string | null | undefined) {
   return useQuery<LNURLPayResponse>({

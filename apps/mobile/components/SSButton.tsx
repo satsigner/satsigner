@@ -14,6 +14,7 @@ import { Colors, Sizes } from '@/styles'
 
 import { SSIconChevronDown } from './icons'
 import SSBackgroundGradient from './SSBackgroundGradient'
+import SSOutlineGlassBorders from './SSOutlineGlassBorders'
 import SSText, { type SSTextProps } from './SSText'
 
 export type SSButtonProps = {
@@ -172,48 +173,7 @@ function SSButton({
           />
         </>
       )}
-      {variant === 'outline' && (
-        <>
-          <LinearGradient
-            pointerEvents={decorationPointerEvents}
-            style={[styles.glassBorder, styles.glassBorderTop]}
-            colors={[
-              'rgba(255,255,255,0.16)',
-              'rgba(255,255,255,0.30)',
-              'rgba(255,255,255,0.18)'
-            ]}
-            locations={[0, 0.45, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          />
-          <LinearGradient
-            pointerEvents={decorationPointerEvents}
-            style={[styles.glassBorder, styles.glassBorderBottom]}
-            colors={[
-              'rgba(255,255,255,0.06)',
-              'rgba(255,255,255,0.20)',
-              'rgba(255,255,255,0.06)'
-            ]}
-            locations={[0, 0.5, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          />
-          <LinearGradient
-            pointerEvents={decorationPointerEvents}
-            style={[styles.glassBorder, styles.glassBorderLeft]}
-            colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.14)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-          />
-          <LinearGradient
-            pointerEvents={decorationPointerEvents}
-            style={[styles.glassBorder, styles.glassBorderRight]}
-            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.13)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-          />
-        </>
-      )}
+      {variant === 'outline' && <SSOutlineGlassBorders />}
       {showDefaultGradient && (
         <SSBackgroundGradient style={styles.buttonGradient} />
       )}
@@ -350,7 +310,8 @@ const styles = StyleSheet.create({
   },
   buttonOutline: {
     backgroundColor: Colors.transparent,
-    borderWidth: 0
+    borderWidth: 0,
+    overflow: 'hidden'
   },
   buttonSecondary: {
     backgroundColor: Colors.white

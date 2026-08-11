@@ -1,0 +1,41 @@
+appId: ${APP_ID}
+tags:
+  - payjoin
+  - receive
+  - signet
+  - empty
+---
+# Fresh singlesig has no UTXOs — Payjoin receive must stay disabled with messaging.
+# ACCOUNT_NAME defaults via -e (keep short; no regex metacharacters).
+#
+#   -e ACCOUNT_NAME=pjre
+#   pnpm maestro:payjoin:receive:empty
+
+- runFlow:
+    file: shared/launch.yaml
+- runFlow:
+    file: shared/skip-pin-and-warning.yaml
+- runFlow:
+    file: shared/create-signet-singlesig.yaml
+- tapOn:
+    id: account-receive
+- extendedWaitUntil:
+    visible:
+      id: receive-payjoin-toggle
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: receive-payjoin-empty-wallet
+    timeout: 20000
+- assertVisible: 'Empty wallets cannot use Payjoin'
+# Tap should toast / keep messaging — must not start a mailbox session.
+- tapOn:
+    id: receive-payjoin-toggle
+- extendedWaitUntil:
+    visible:
+      id: receive-payjoin-empty-wallet
+    timeout: 10000
+- assertNotVisible:
+    id: receive-payjoin-status
+- assertNotVisible:
+    id: receive-payjoin-expiring

@@ -1,9 +1,10 @@
 import { Group, Path, Skia, vec } from '@shopify/react-native-skia'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
-import { error, gray } from '@/styles/colors'
+import { gray, white } from '@/styles/colors'
 import {
   SANKEY_LINK_CURVE_CONTROL_MAX_PX,
+  SANKEY_OUTGOING_UNSPENT_RIBBON_COLOR,
   SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP
 } from '@/types/ui/sankey'
 import {
@@ -11,6 +12,7 @@ import {
   ribbonWidthForLink,
   stackedRibbonOffsetBeforeLink
 } from '@/utils/sankeyFlowWidths'
+import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
 interface Node {
   id: string
@@ -116,9 +118,25 @@ function SSSankeyLinks({
         const ribbonW = ribbonWidthForLink(ribbonPlan, link.source, link.target)
 
         const isUnspent = targetNode.ioData?.isUnspent === true
-        const isSelfSendOutput = targetNode.ioData?.isSelfSend === true
-        const isOwnOrUnspentRibbon = isUnspent || isSelfSendOutput
-        const isRemainingBalance = targetNode.localId === 'remainingBalance'
+        const isNeutralOutput = targetNode.ioData?.isNeutralOutput === true
+        const isFakeMixOutput = targetNode.ioData?.isFakeMix === true
+        const isChangeOutput =
+          targetNode.ioData?.isChange === true ||
+          targetNode.localId === CHART_REMAINING_BALANCE_LOCAL_ID
+        const isSelfSendOutput =
+          targetNode.ioData?.isSelfSend === true &&
+          targetNode.ioData?.isFakeMix !== true &&
+          !isChangeOutput
+        const isReceiveOutput =
+          targetNode.ioData?.isReceive === true &&
+          targetNode.ioData?.isFakeMix !== true &&
+          targetNode.ioData?.isSelfSend !== true &&
+          !isChangeOutput
+        // Solid while unspent/neutral; spent arms (incl. owned receive/self-send) use fade.
+        // Neutral = explorer (no wallet spend red).
+        const isOwnOrUnspentRibbon = isUnspent || isNeutralOutput
+        const isRemainingBalance =
+          targetNode.localId === CHART_REMAINING_BALANCE_LOCAL_ID
         const isCurrentTxMinerFee = targetNode.localId === 'current-minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
         const isCurrentTx =
@@ -182,7 +200,13 @@ function SSSankeyLinks({
         }
         const path1 = generateCustomLink(points)
 
-        if (targetNode.value === 0 && targetNode.depthH === maxDepthH) {
+        // Hide zero-width ordinary outputs, but keep OP_RETURN / special tags
+        // (layout stubs use value 1; still guard real zeros without a tag).
+        if (
+          targetNode.value === 0 &&
+          targetNode.depthH === maxDepthH &&
+          !targetNode.ioData?.specialTag
+        ) {
           return null
         }
 
@@ -198,6 +222,7 @@ function SSSankeyLinks({
             <Path
               path={path1}
               style="fill"
+              antiAlias={false}
               color={isCurrentTx || isOwnOrUnspentRibbon ? 'white' : gray[700]}
               opacity={isCurrentTx || isOwnOrUnspentRibbon ? 1 : 0.5}
             />
@@ -218,14 +243,18 @@ function SSSankeyLinks({
                     midY,
                     gradEndX,
                     midY,
-                    [gray[900], isCurrentInput ? gray[500] : '#FFFFFF'],
-                    [0, 0.7]
+                    [gray[900], isCurrentInput ? gray[200] : white],
+                    [0, isCurrentInput ? 1 : 0.7]
                   )}
                 />
               </>
             ) : isOwnOrUnspentRibbon &&
               !isRemainingBalance &&
-              !isSelfSendOutput ? (
+              !isNeutralOutput &&
+              !isSelfSendOutput &&
+              !isReceiveOutput &&
+              !isFakeMixOutput &&
+              !isChangeOutput ? (
               <Path
                 path={path1}
                 style="fill"
@@ -234,7 +263,11 @@ function SSSankeyLinks({
                   midY,
                   gradEndX,
                   midY,
-                  [error, error, '#FFFFFF'],
+                  [
+                    SANKEY_OUTGOING_UNSPENT_RIBBON_COLOR,
+                    SANKEY_OUTGOING_UNSPENT_RIBBON_COLOR,
+                    white
+                  ],
                   [0, SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP, 1]
                 )}
               />

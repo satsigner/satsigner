@@ -99,6 +99,10 @@ export default function SingleSig() {
           break
         }
         case 'drawing': {
+          router.navigate({
+            params: { index: 0 },
+            pathname: '/signer/bitcoin/account/add/entropy/drawing'
+          })
           break
         }
         case 'coin': {

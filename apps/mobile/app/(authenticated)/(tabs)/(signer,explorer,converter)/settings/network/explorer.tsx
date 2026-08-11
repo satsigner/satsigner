@@ -1,6 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSBitcoinNetworkExplanationLink from '@/components/SSBitcoinNetworkExplanationLink'
@@ -8,6 +7,7 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -42,7 +42,7 @@ export default function NetworkSettings() {
         }}
       />
       <SSVStack gap="lg" justifyBetween>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <SSScrollView showsVerticalScrollIndicator={false}>
           <SSVStack>
             <SSText size="lg">{tn('fullDescription')}</SSText>
             {networks.map((network) => (
@@ -66,7 +66,7 @@ export default function NetworkSettings() {
             ))}
             <SSBitcoinNetworkExplanationLink />
           </SSVStack>
-        </ScrollView>
+        </SSScrollView>
         <SSVStack>
           <SSButton
             variant="secondary"

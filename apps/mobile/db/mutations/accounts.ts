@@ -13,7 +13,9 @@ import { upsertUtxos } from './utxos'
 type TransactionContext = NitroSQLiteConnection
 
 function keysToJson(keys: Key[]): string {
-  return JSON.stringify(keys.map(({ secret: _s, iv: _iv, ...meta }) => meta))
+  return JSON.stringify(
+    keys.map(({ secret: _s, iv: _iv, accountId: _a, ...meta }) => meta)
+  )
 }
 
 function insertAccount(account: Account) {
@@ -23,11 +25,13 @@ function insertAccount(account: Account) {
         id, name, network, policy_type, display_index, keys, key_count, keys_required,
         balance, num_addresses, num_transactions, num_utxos, sats_in_mempool,
         created_at, last_synced_at, sync_status, sync_progress_total, sync_progress_done,
+        birthday_date, rpc_last_block_hash, excluded_utxo_outpoints,
         nostr_auto_sync, nostr_common_npub, nostr_common_nsec,
-        nostr_device_npub, nostr_device_nsec, nostr_device_display_name, nostr_device_picture,
+        nostr_device_npub, nostr_device_nsec, nostr_device_mnemonic,
+        nostr_device_display_name, nostr_device_picture,
         nostr_last_backup_fingerprint, nostr_last_updated, nostr_sync_start,
         nostr_npub_aliases, nostr_npub_profiles
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         account.id,
         account.name,
@@ -47,11 +51,16 @@ function insertAccount(account: Account) {
         account.syncStatus,
         account.syncProgress?.totalTasks ?? null,
         account.syncProgress?.tasksDone ?? null,
+        dateToIso(account.birthdayDate),
+        account.rpcLastBlockHash ?? null,
+        optionalToJson(account.excludedUtxoOutpoints) ?? '[]',
         boolToInt(account.nostr?.autoSync),
         account.nostr?.commonNpub ?? '',
-        account.nostr?.commonNsec ?? '',
+        // Nostr secrets are PIN-encrypted in SecureStore, never SQLite.
+        '',
         account.nostr?.deviceNpub ?? null,
-        account.nostr?.deviceNsec ?? null,
+        null,
+        null,
         account.nostr?.deviceDisplayName ?? null,
         account.nostr?.devicePicture ?? null,
         account.nostr?.lastBackupFingerprint ?? null,
@@ -83,8 +92,10 @@ function updateAccountRow(
       num_utxos = ?, sats_in_mempool = ?,
       last_synced_at = ?, sync_status = ?,
       sync_progress_total = ?, sync_progress_done = ?,
+      birthday_date = ?, rpc_last_block_hash = ?,
+      excluded_utxo_outpoints = ?,
       nostr_auto_sync = ?, nostr_common_npub = ?, nostr_common_nsec = ?,
-      nostr_device_npub = ?, nostr_device_nsec = ?,
+      nostr_device_npub = ?, nostr_device_nsec = ?, nostr_device_mnemonic = ?,
       nostr_device_display_name = ?, nostr_device_picture = ?,
       nostr_last_backup_fingerprint = ?, nostr_last_updated = ?, nostr_sync_start = ?,
       nostr_npub_aliases = ?, nostr_npub_profiles = ?
@@ -106,11 +117,16 @@ function updateAccountRow(
       account.syncStatus,
       account.syncProgress?.totalTasks ?? null,
       account.syncProgress?.tasksDone ?? null,
+      dateToIso(account.birthdayDate),
+      account.rpcLastBlockHash ?? null,
+      optionalToJson(account.excludedUtxoOutpoints) ?? '[]',
       boolToInt(account.nostr?.autoSync),
       account.nostr?.commonNpub ?? '',
-      account.nostr?.commonNsec ?? '',
+      // Nostr secrets are PIN-encrypted in SecureStore, never SQLite.
+      '',
       account.nostr?.deviceNpub ?? null,
-      account.nostr?.deviceNsec ?? null,
+      null,
+      null,
       account.nostr?.deviceDisplayName ?? null,
       account.nostr?.devicePicture ?? null,
       account.nostr?.lastBackupFingerprint ?? null,
@@ -127,6 +143,12 @@ function clearAccountChildData(tx: TransactionContext, accountId: string) {
   tx.execute('DELETE FROM transactions WHERE account_id = ?', [accountId])
   tx.execute('DELETE FROM utxos WHERE account_id = ?', [accountId])
   tx.execute('DELETE FROM addresses WHERE account_id = ?', [accountId])
+  // Junction tables have no FK to addresses, so they need explicit deletes.
+  // Without these, stale address->tx / address->utxo mappings survive a resync.
+  tx.execute('DELETE FROM address_transactions WHERE account_id = ?', [
+    accountId
+  ])
+  tx.execute('DELETE FROM address_utxos WHERE account_id = ?', [accountId])
   clearNostrData(tx, accountId)
 }
 
@@ -160,6 +182,8 @@ function deleteAllAccounts() {
     tx.execute('DELETE FROM transactions')
     tx.execute('DELETE FROM utxos')
     tx.execute('DELETE FROM addresses')
+    tx.execute('DELETE FROM address_transactions')
+    tx.execute('DELETE FROM address_utxos')
   })
 }
 

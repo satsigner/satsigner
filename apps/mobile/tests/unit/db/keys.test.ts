@@ -88,5 +88,14 @@ describe('tanStack Query key factories', () => {
         'acc-1'
       ])
     })
+
+    it('returns contacts key scoped to npub and relays', () => {
+      expect(nostrKeys.contacts('npub1abc', 'wss://a,wss://b')).toStrictEqual([
+        'nostr',
+        'contacts',
+        'npub1abc',
+        'wss://a,wss://b'
+      ])
+    })
   })
 })
