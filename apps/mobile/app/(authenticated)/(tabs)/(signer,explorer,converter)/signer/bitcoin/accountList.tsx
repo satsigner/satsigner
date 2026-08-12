@@ -1005,7 +1005,7 @@ export default function AccountList() {
                   keyExtractor={(item: Account) => item.id}
                   renderItem={({
                     item,
-                    getIndex,
+                    getIndex
                   }: RenderItemParams<Account>) => (
                     <ScaleDecorator activeScale={1.05}>
                       <AccountCardStaggerItem
@@ -1047,9 +1047,9 @@ export default function AccountList() {
                   }
                   showsVerticalScrollIndicator={false}
                 />
-                <Animated.View>
+                <SampleAccountsFadeIn>
                   {renderSamplewallets()}
-                </Animated.View>
+                </SampleAccountsFadeIn>
               </Animated.View>
             )}
           </ScrollView>
