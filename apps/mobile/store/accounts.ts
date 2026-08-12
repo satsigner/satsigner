@@ -8,6 +8,7 @@ import {
   insertAccount as insertAccountDb,
   updateAccountKeys as updateAccountKeysDb,
   updateAccountName as updateAccountNameDb,
+  updateDisplayIndexes as updateDisplayIndexesDb,
   updateFullAccount as updateFullAccountDb,
   updateLastSyncedAt as updateLastSyncedAtDb,
   updateSyncProgress as updateSyncProgressDb,
@@ -351,9 +352,17 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       })
     },
     setAccounts: (accounts) => {
-      // TODO: setAccountsDb
+      const reindexed = accounts.map((account, index) => ({
+        ...account,
+        displayIndex: index
+      }))
+
+      updateDisplayIndexesDb(
+        reindexed.map(({ id, displayIndex }) => ({ id, index: displayIndex }))
+      )
+
       set((state) => {
-        state.accounts = accounts
+        state.accounts = reindexed
       })
     },
     setAddrLabel: (accountId, addr, label) => {

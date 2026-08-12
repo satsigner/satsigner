@@ -231,8 +231,8 @@ function updateDisplayIndexes(indexesData: { id: string; index: number }[]) {
   runTransaction((tx) => {
     for (const { id, index } of indexesData) {
       tx.execute('UPDATE accounts SET display_index = ? WHERE id = ?', [
-        id,
-        index
+        index,
+        id
       ])
     }
   })
