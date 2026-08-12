@@ -1,7 +1,9 @@
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { ScrollView, View, TouchableOpacity } from 'react-native'
-import DraggableFlatList, {
+import { View, TouchableOpacity } from 'react-native'
+import {
+  NestableDraggableFlatList,
+  NestableScrollContainer,
   RenderItemParams,
   ScaleDecorator
 } from 'react-native-draggable-flatlist'
@@ -967,7 +969,7 @@ export default function AccountList() {
             variant="elevated"
           />
           {renderTab()}
-          <ScrollView
+          <NestableScrollContainer
             contentContainerStyle={{ paddingTop: 16 }}
             showsVerticalScrollIndicator={false}
           >
@@ -994,18 +996,19 @@ export default function AccountList() {
                   minHeight: listContainerMinHeight
                 }}
               >
-                <DraggableFlatList
+                <NestableDraggableFlatList
                   data={filteredAccounts}
                   dragItemOverflow
-                  style={{ flex: 1 }}
-                  containerStyle={{ flex: 1, overflow: 'visible' }}
+                  containerStyle={{ overflow: 'visible' }}
                   onDragEnd={({ data }: { data: Account[] }) => {
                     handleReorderAccounts(data)
                   }}
                   keyExtractor={(item: Account) => item.id}
                   renderItem={({
                     item,
-                    getIndex
+                    getIndex,
+                    drag,
+                    isActive
                   }: RenderItemParams<Account>) => (
                     <ScaleDecorator activeScale={1.05}>
                       <AccountCardStaggerItem
@@ -1026,6 +1029,8 @@ export default function AccountList() {
                             lastSyncedAt={item.lastSyncedAt}
                             stats={buildAccountCardStats(item.summary)}
                             onPress={() => handleGoToAccount(item.id)}
+                            onLongPress={drag}
+                            longPressDisabled={isActive}
                           />
                         </SSVStack>
                       </AccountCardStaggerItem>
@@ -1052,7 +1057,7 @@ export default function AccountList() {
                 </SampleAccountsFadeIn>
               </Animated.View>
             )}
-          </ScrollView>
+          </NestableScrollContainer>
         </SafeAreaView>
       </SSMainLayout>
     </>
