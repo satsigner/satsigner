@@ -450,8 +450,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         account.utxos
       )
 
+      // This value is meant to be updated by setAccounts (upon drag reorder), but a race condition
+      // between that function call and a stale caller closure could revert the order.
+      const { displayIndex } = currentAccount
+
       const mergedAccount: Account = {
         ...account,
+        displayIndex,
         excludedUtxoOutpoints,
         labels: mergedLabels,
         nostr: mergedNostr
