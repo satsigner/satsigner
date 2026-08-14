@@ -120,6 +120,12 @@ function AddressDetails() {
     )
   }
 
+  function handleVerifyMessagePress() {
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/address/${addr}/verifyMessage`
+    )
+  }
+
   useEffect(() => {
     if (!address) {
       return
@@ -324,13 +330,18 @@ function AddressDetails() {
                   {t('address.details.key.unavailable')}
                 </SSText>
               )}
-              {account.policyType !== 'watchonly' && (
+              {account.policyType === 'singlesig' && (
                 <SSButton
                   label={t('address.details.signMessage')}
                   variant="subtle"
                   onPress={handleSignMessagePress}
                 />
               )}
+              <SSButton
+                label={t('address.details.verifyMessage')}
+                variant="subtle"
+                onPress={handleVerifyMessagePress}
+              />
             </SSVStack>
           </SSVStack>
         </SSMainLayout>

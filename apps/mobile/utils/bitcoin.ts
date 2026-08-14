@@ -1,10 +1,53 @@
-import { networks } from 'bitcoinjs-lib'
+import ecc from '@bitcoinerlab/secp256k1'
+import { address as bjsAddress, initEccLib, networks } from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 import { Network as BdkNetwork } from 'react-native-bdk-sdk'
 
 import { Account, Key } from '@/types/models/Account'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
+
+initEccLib(ecc)
+
+export type AddressScriptType = 'p2pkh' | 'p2sh' | 'p2tr' | 'p2wpkh' | 'p2wsh'
+
+/**
+ * Classify an address by decoding its output script, rather than trusting
+ * caller-supplied metadata (e.g. an arbitrary address pasted into the
+ * explorer verify-message flow has no known ScriptVersionType).
+ */
+export function getScriptTypeFromAddress(
+  address: string,
+  network: AppNetwork
+): AddressScriptType | null {
+  try {
+    const script = bjsAddress.toOutputScript(address, bitcoinjsNetwork(network))
+    if (
+      script.length === 25 &&
+      script[0] === 0x76 &&
+      script[1] === 0xa9 &&
+      script[23] === 0x88 &&
+      script[24] === 0xac
+    ) {
+      return 'p2pkh'
+    }
+    if (script.length === 23 && script[0] === 0xa9 && script[22] === 0x87) {
+      return 'p2sh'
+    }
+    if (script.length === 22 && script[0] === 0x00 && script[1] === 0x14) {
+      return 'p2wpkh'
+    }
+    if (script.length === 34 && script[0] === 0x00 && script[1] === 0x20) {
+      return 'p2wsh'
+    }
+    if (script.length === 34 && script[0] === 0x51 && script[1] === 0x20) {
+      return 'p2tr'
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
 /** Convert app string network to BDK numeric Network enum */
 export function appNetworkToBdkNetwork(network: AppNetwork): BdkNetwork {

@@ -269,6 +269,26 @@ function stripBitcoinPrefix(text: string): string {
   return text
 }
 
+/** Resolves an explorer `[address]` route param, stripping any `bitcoin:` URI wrapper. */
+function resolveExplorerAddressParam(
+  address: string | string[] | undefined
+): string | null {
+  const raw = Array.isArray(address) ? address[0] : address
+  if (!raw) {
+    return null
+  }
+  try {
+    const decoded = decodeURIComponent(raw).trim()
+    const stripped = stripBitcoinPrefix(decoded)
+    const parsed = parseUriParameters(stripped)
+    return (parsed?.address ?? stripped).trim() || null
+  } catch {
+    const stripped = stripBitcoinPrefix(raw.trim())
+    const parsed = parseUriParameters(stripped)
+    return (parsed?.address ?? stripped).trim() || null
+  }
+}
+
 type ParsedUriParams = {
   address: string
   amount?: number
@@ -343,6 +363,7 @@ export {
   parseLabelTags,
   parseTXOutputs,
   parseUriParameters,
+  resolveExplorerAddressParam,
   stripBitcoinPrefix
 }
 export { normalizeUtxoLabelForDisplay }

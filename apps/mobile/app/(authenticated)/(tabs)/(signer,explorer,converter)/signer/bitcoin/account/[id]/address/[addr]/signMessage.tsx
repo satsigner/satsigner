@@ -1,10 +1,13 @@
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSModal from '@/components/SSModal'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -12,9 +15,16 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-
-type SignMethod = 'bip137' | 'bip322'
+import { getAccountDerivationPath } from '@/utils/bitcoin'
+import { decryptAccountKeySecret } from '@/utils/decryption'
+import { getAddressKeyPair } from '@/utils/key'
+import {
+  getSupportedSignMethod,
+  type MessageSignMethod,
+  signAddressMessage
+} from '@/utils/message'
 
 function AddressSignMessage() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
@@ -30,13 +40,26 @@ function AddressSignMessage() {
 
   const [message, setMessage] = useState('')
   const [isSigning, setIsSigning] = useState(false)
-  const [signMethod, setSignMethod] = useState<SignMethod | null>(null)
+  const [signMethod, setSignMethod] = useState<MessageSignMethod | null>(null)
   const [signature, setSignature] = useState('')
+  const [pendingMethod, setPendingMethod] = useState<MessageSignMethod | null>(
+    null
+  )
 
-  const isTaproot = address?.scriptVersion === 'P2TR'
+  const accountPath = account ? getAccountDerivationPath(account) : ''
+  const fallbackPath = accountPath ? `${accountPath}/${address?.index}` : ''
+  const derivationPath = address?.derivationPath ?? fallbackPath
 
-  async function handleSign(method: SignMethod) {
-    if (!message.trim() || isSigning) {
+  const supportedMethod = getSupportedSignMethod(address?.scriptVersion)
+
+  async function handlePinSuccess() {
+    const method = pendingMethod
+    setPendingMethod(null)
+    if (!account || !address || !addr || !method) {
+      return
+    }
+    const [key] = account.keys
+    if (!key) {
       return
     }
 
@@ -44,22 +67,52 @@ function AddressSignMessage() {
     setIsSigning(true)
     setSignature('')
 
-    // TODO: replace with real BIP-137 / BIP-322 signing, using
-    // getAddressKeyPair to derive the address key material.
-    await new Promise((resolve) => {
-      setTimeout(resolve, 1200)
-    })
-    setSignature(`mock-${method}-signature`)
+    try {
+      const secret = await decryptAccountKeySecret(account.id, key.index)
+      const addressWithDerivationPath: Address = { ...address, derivationPath }
+      const keyPair = getAddressKeyPair(
+        secret,
+        addressWithDerivationPath,
+        account.network
+      )
+      if (!keyPair) {
+        toast.error(t('address.details.key.unavailable'))
+        return
+      }
+      const privateKey = Buffer.from(keyPair.privateKey, 'hex')
+      const result = signAddressMessage(
+        privateKey,
+        addr,
+        message,
+        address.scriptVersion,
+        account.network
+      )
+      privateKey.fill(0)
+      setSignature(result)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown reason'
+      toast.error(`${t('address.details.key.unableToDecrypt')}: ${reason}`)
+    } finally {
+      setIsSigning(false)
+    }
+  }
 
-    setIsSigning(false)
+  function handlePinTriesOver() {
+    setPendingMethod(null)
   }
 
   function handleSignBip137() {
-    handleSign('bip137')
+    if (!message.trim() || isSigning) {
+      return
+    }
+    setPendingMethod('bip137')
   }
 
   function handleSignBip322() {
-    handleSign('bip322')
+    if (!message.trim() || isSigning) {
+      return
+    }
+    setPendingMethod('bip322')
   }
 
   if (!account || !address || !addr) {
@@ -103,22 +156,27 @@ function AddressSignMessage() {
           <SSButton
             label={t('address.signMessage.signBip137')}
             variant="outline"
-            disabled={isTaproot || !message.trim()}
+            disabled={supportedMethod !== 'bip137' || !message.trim()}
             loading={isSigning && signMethod === 'bip137'}
             onPress={handleSignBip137}
           />
-          {isTaproot && (
+          {supportedMethod !== 'bip137' && (
             <SSText color="muted" size="xs">
-              {t('address.signMessage.bip137UnavailableTaproot')}
+              {t('address.signMessage.bip137Unavailable')}
             </SSText>
           )}
           <SSButton
             label={t('address.signMessage.signBip322')}
             variant="outline"
-            disabled={!message.trim()}
+            disabled={supportedMethod !== 'bip322' || !message.trim()}
             loading={isSigning && signMethod === 'bip322'}
             onPress={handleSignBip322}
           />
+          {supportedMethod !== 'bip322' && (
+            <SSText color="muted" size="xs">
+              {t('address.signMessage.bip322Unavailable')}
+            </SSText>
+          )}
         </SSVStack>
         {isSigning && (
           <SSText center color="muted">
@@ -138,6 +196,14 @@ function AddressSignMessage() {
           </SSVStack>
         )}
       </SSVStack>
+      <SSModal visible={!!pendingMethod} onClose={() => setPendingMethod(null)}>
+        <SSPinAuth
+          title={t('account.enter.pin')}
+          onSuccess={handlePinSuccess}
+          onTriesOver={handlePinTriesOver}
+          maxTries={3}
+        />
+      </SSModal>
     </SSScrollView>
   )
 }
