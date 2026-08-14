@@ -3,6 +3,11 @@ import uuid from 'react-native-uuid'
 
 const UINT32_RANGE = 0x100000000 // 2^32
 const IV_BYTES = 16
+const AES_ALGORITHM = 'aes-256-cbc'
+const PBKDF2_ITERATIONS = 10_000
+const PBKDF2_KEY_LENGTH_BYTES = 32
+// Random ID length (bytes) for draft accounts, shared by the Ark/Ecash builders.
+const ACCOUNT_ID_KEY_LENGTH = 12
 
 function randomKey(length = 16): Promise<string> {
   return Promise.resolve(
@@ -109,7 +114,7 @@ function sha256(text: string): Promise<string> {
 
 function aesEncrypt(text: string, key: string, iv: string): Promise<string> {
   const cipher = QuickCrypto.createCipheriv(
-    'aes-256-cbc',
+    AES_ALGORITHM,
     new Uint8Array(Buffer.from(key, 'hex')),
     new Uint8Array(Buffer.from(iv, 'hex'))
   )
@@ -128,7 +133,7 @@ function aesDecrypt(
   iv: string
 ): Promise<string> {
   const decipher = QuickCrypto.createDecipheriv(
-    'aes-256-cbc',
+    AES_ALGORITHM,
     new Uint8Array(Buffer.from(key, 'hex')),
     new Uint8Array(Buffer.from(iv, 'hex'))
   )
@@ -145,7 +150,13 @@ function aesDecrypt(
 
 /** Password-based key derivation */
 function pbkdf2Encrypt(pin: string, salt: string): Promise<string> {
-  const derived = QuickCrypto.pbkdf2Sync(pin, salt, 10_000, 256 / 8, 'sha256')
+  const derived = QuickCrypto.pbkdf2Sync(
+    pin,
+    salt,
+    PBKDF2_ITERATIONS,
+    PBKDF2_KEY_LENGTH_BYTES,
+    'sha256'
+  )
   return Promise.resolve(derived.toString('hex'))
 }
 
@@ -159,6 +170,7 @@ async function doubleShaEncrypt(text: string): Promise<string> {
 }
 
 export {
+  ACCOUNT_ID_KEY_LENGTH,
   aesDecrypt,
   aesEncrypt,
   doubleShaEncrypt,

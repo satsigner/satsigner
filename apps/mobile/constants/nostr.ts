@@ -14,6 +14,7 @@ export const NOSTR_DEFAULT_RETRY_CONFIG = {
 } as const
 
 // NETWORK
+export const NOSTR_DEFAULT_FETCH_TIMEOUT_MS = 15000
 export const NOSTR_DELAY_BETWEEN_PUBLISHES_MS = 400
 export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 48 * 60 * 60
 export const NOSTR_EOSE_TIMEOUT_MS = 15000
@@ -179,6 +180,9 @@ export const NOSTR_EVENT_REF_RE = /nostr:(note1|nevent1)[a-zA-Z0-9]+/g
 export const NOSTR_MENTION_RE =
   /(?:nostr:)?(npub1[a-z0-9]{6,}|nprofile1[a-z0-9]{6,})/gi
 export const NOSTR_EVENT_ID_RE = /^[0-9a-fA-F]{64}$/
+export const NOSTR_EVENT_ID_HEX_LENGTH = 64
+// Shortest plausible bech32 length for npub1/nsec1/note1/nevent1/nprofile1.
+export const NOSTR_BECH32_ID_MIN_LENGTH = 60
 export const NOSTR_NOTE_FILTER_OPTIONS: NostrNoteKindFilterOption[] = [
   {
     id: 'short_text',
@@ -273,6 +277,7 @@ export const BLOSSOM_POPULAR_SERVERS: { name: string; url: string }[] = [
 ]
 
 // ZAP
+export const NOSTR_KIND_ZAP_RECEIPT = 9735
 export const NOSTR_ZAP_DEFAULT_PRESETS = [21, 100, 500, 1000]
 export const NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT = 21
 export const NOSTR_ZAP_INVOICE_TIMEOUT_MS = 15000

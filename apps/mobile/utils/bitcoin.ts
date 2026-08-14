@@ -2,6 +2,16 @@ import { networks } from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 import { Network as BdkNetwork } from 'react-native-bdk-sdk'
 
+import {
+  BIP44_PURPOSE,
+  BIP45_PURPOSE,
+  BIP48_PURPOSE,
+  BIP48_SCRIPT_TYPE_P2SH_P2WSH,
+  BIP48_SCRIPT_TYPE_P2WSH,
+  BIP49_PURPOSE,
+  BIP84_PURPOSE,
+  BIP86_PURPOSE
+} from '@/constants/derivation'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 
@@ -236,21 +246,21 @@ export function getDerivationPathFromScriptVersion(
 
   switch (scriptVersion) {
     case 'P2PKH':
-      return `44'/${coinType}'/0'`
+      return `${BIP44_PURPOSE}'/${coinType}'/0'`
     case 'P2SH-P2WPKH':
-      return `49'/${coinType}'/0'`
+      return `${BIP49_PURPOSE}'/${coinType}'/0'`
     case 'P2WPKH':
-      return `84'/${coinType}'/0'`
+      return `${BIP84_PURPOSE}'/${coinType}'/0'`
     case 'P2TR':
-      return `86'/${coinType}'/0'`
+      return `${BIP86_PURPOSE}'/${coinType}'/0'`
     case 'P2WSH':
-      return `48'/${coinType}'/0'/2'`
+      return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
     case 'P2SH-P2WSH':
-      return `48'/${coinType}'/0'/1'`
+      return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2SH_P2WSH}'`
     case 'P2SH':
-      return `45'/${coinType}'/0'`
+      return `${BIP45_PURPOSE}'/${coinType}'/0'`
     default:
-      return `84'/${coinType}'/0'`
+      return `${BIP84_PURPOSE}'/${coinType}'/0'`
   }
 }
 
@@ -264,27 +274,27 @@ export function getMultisigDerivationPathFromScriptVersion(
   switch (scriptVersion) {
     case 'P2PKH':
       // For multisig P2PKH, use P2SH derivation path (m/45'/0'/0')
-      return `45'/${coinType}'/0'`
+      return `${BIP45_PURPOSE}'/${coinType}'/0'`
     case 'P2SH-P2WPKH':
       // For multisig P2SH-P2WPKH, use P2SH-P2WSH derivation path (m/48'/0'/0'/1')
-      return `48'/${coinType}'/0'/1'`
+      return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2SH_P2WSH}'`
     case 'P2WPKH':
       // For multisig P2WPKH, use P2WSH derivation path (m/48'/0'/0'/2')
-      return `48'/${coinType}'/0'/2'`
+      return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
     case 'P2TR':
       // For multisig P2TR, use P2TR derivation path (m/86'/0'/0')
-      return `86'/${coinType}'/0'`
+      return `${BIP86_PURPOSE}'/${coinType}'/0'`
     case 'P2WSH':
       // Native SegWit multisig (m/48'/0'/0'/2')
-      return `48'/${coinType}'/0'/2'`
+      return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
     case 'P2SH-P2WSH':
       // Wrapped SegWit multisig (m/48'/0'/0'/1')
-      return `48'/${coinType}'/0'/1'`
+      return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2SH_P2WSH}'`
     case 'P2SH':
-      return `45'/${coinType}'/0'`
+      return `${BIP45_PURPOSE}'/${coinType}'/0'`
     default:
       // Default to P2WSH for multisig (m/48'/0'/0'/2')
-      return `48'/${coinType}'/0'/2'`
+      return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
   }
 }
 

@@ -1,3 +1,4 @@
+import { WITNESS_SCALE_FACTOR } from '@/constants/btc'
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
 import type { Output } from '@/types/models/Output'
 import { ScriptVersionType } from '@/types/models/Script'
@@ -39,7 +40,6 @@ export function reconcileTransactions(
 }
 
 const BASE_SIZE = 10
-const WITNESS_SCALE_FACTOR = 4
 // Segwit marker + flag: 2 bytes, witness-discounted (1 weight unit each)
 const SEGWIT_MARKER_FLAG_WEIGHT = 2
 
@@ -153,7 +153,9 @@ export function estimateTransactionSize(
     ? baseSize * WITNESS_SCALE_FACTOR + inputWitness + SEGWIT_MARKER_FLAG_WEIGHT
     : baseSize * WITNESS_SCALE_FACTOR
 
-  const size = hasWitness ? baseSize + inputWitness + 2 : baseSize
+  const size = hasWitness
+    ? baseSize + inputWitness + SEGWIT_MARKER_FLAG_WEIGHT
+    : baseSize
   const vsize = hasWitness ? Math.ceil(weight / WITNESS_SCALE_FACTOR) : size
 
   return { size, vsize }

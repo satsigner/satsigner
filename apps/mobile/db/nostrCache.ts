@@ -3,6 +3,7 @@ import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 import {
   NOSTR_EVENT_CACHE_MAX_ROWS,
   NOSTR_EVENT_CACHE_MAX_AGE,
+  NOSTR_KIND_ZAP_RECEIPT,
   NOSTR_PROFILE_CACHE_MAX_AGE_SECS
 } from '@/constants/nostr'
 import type { NostrKind0Profile } from '@/types/models/Nostr'
@@ -183,7 +184,7 @@ export function getCachedZapReceipts(eventIdHex: string): CachedEvent[] {
   try {
     const { results } = db.execute(
       `SELECT * FROM nostr_event_cache
-       WHERE kind = 9735
+       WHERE kind = ${NOSTR_KIND_ZAP_RECEIPT}
        ORDER BY created_at DESC`,
       []
     )
@@ -213,10 +214,10 @@ export function getCachedZapsByPubkey(
     const pk = pubkey.toLowerCase()
     const sql = until
       ? `SELECT * FROM nostr_event_cache
-         WHERE kind = 9735 AND created_at < ?
+         WHERE kind = ${NOSTR_KIND_ZAP_RECEIPT} AND created_at < ?
          ORDER BY created_at DESC`
       : `SELECT * FROM nostr_event_cache
-         WHERE kind = 9735
+         WHERE kind = ${NOSTR_KIND_ZAP_RECEIPT}
          ORDER BY created_at DESC`
     const params = until ? [until] : []
     const { results } = db.execute(sql, params)
@@ -386,7 +387,7 @@ export function getCacheCounts(ownPubkeyHex: string): CacheCounts {
       0
 
     const ownZapsRes = db.execute(
-      'SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 1 AND kind = 9735',
+      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 1 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`,
       []
     )
     const ownZaps =
@@ -400,7 +401,7 @@ export function getCacheCounts(ownPubkeyHex: string): CacheCounts {
       ((feedRes.results?.[0] as Record<string, unknown>)?.cnt as number) ?? 0
 
     const zapRes = db.execute(
-      'SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 0 AND kind = 9735',
+      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 0 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`,
       []
     )
     const zapReceipts =
@@ -440,7 +441,7 @@ export function clearCacheCategory(
       break
     case 'ownZaps':
       db.execute(
-        'DELETE FROM nostr_event_cache WHERE is_own = 1 AND kind = 9735',
+        `DELETE FROM nostr_event_cache WHERE is_own = 1 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`,
         []
       )
       break
@@ -452,7 +453,7 @@ export function clearCacheCategory(
       break
     case 'zapReceipts':
       db.execute(
-        'DELETE FROM nostr_event_cache WHERE is_own = 0 AND kind = 9735',
+        `DELETE FROM nostr_event_cache WHERE is_own = 0 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`,
         []
       )
       break

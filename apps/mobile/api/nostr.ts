@@ -6,6 +6,7 @@ import NetInfo from '@react-native-community/netinfo'
 import { type Event, nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
 
 import {
+  NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
   NOSTR_FLUSH_QUEUE_DELAY_MS,
   NOSTR_MAX_PROCESSED_RAW_IDS,
   NOSTR_MAX_QUEUE_SIZE,
@@ -13,6 +14,7 @@ import {
   NOSTR_PROCESSING_INTERVAL_MS,
   NOSTR_PROFILE_BATCH_SIZE,
   NOSTR_PROFILE_CACHE_TTL_SECS,
+  NOSTR_PUBLISH_TIMEOUT_MS,
   NOSTR_RELAY_REACHABILITY_TEST_MS
 } from '@/constants/nostr'
 import {
@@ -40,6 +42,13 @@ import {
   extractResponseOptionIds,
   NOSTR_POLL_RESPONSE_KIND
 } from '@/utils/nostrPoll'
+
+// NDK connect timeout (ms) for short-lived, temporary NDK instances used to
+// fetch a single event from an explicit relay list.
+const NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS = 8000
+// Default limit for fetchNotes/fetchFollowingTimelineNotes when the caller
+// doesn't specify one.
+const NOSTR_NOTES_FETCH_DEFAULT_LIMIT = 20
 
 function createMobileNdk(explicitRelayUrls: string[]): NDK {
   return new NDK({
@@ -311,7 +320,7 @@ export class NostrAPI {
    * we do NOT gate on connectedRelays().length here; the per-fetch timeout
    * handles the case where nothing connects in time.
    */
-  async connectForPublish(timeoutMs = 10000): Promise<void> {
+  async connectForPublish(timeoutMs = NOSTR_PUBLISH_TIMEOUT_MS): Promise<void> {
     // Always resolve from the registry so all_failed resets don't leave this
     // instance pinned to an evicted/disconnected NDK.
     this.ndk = getOrCreateNdk(this.relays)
@@ -440,7 +449,7 @@ export class NostrAPI {
         kinds: [31922 as NDKKind],
         limit: 500
       },
-      15000
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     return [...events]
@@ -757,7 +766,7 @@ export class NostrAPI {
 
   async fetchNotes(
     npub: string,
-    limit = 20,
+    limit = NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
     until?: number,
     kinds: number[] = [1]
   ): Promise<
@@ -855,7 +864,7 @@ export class NostrAPI {
    */
   async fetchFollowingTimelineNotes(
     npub: string,
-    limit = 20,
+    limit = NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
     until?: number,
     kinds: number[] = [1]
   ): Promise<
@@ -1027,7 +1036,11 @@ export class NostrAPI {
     }
 
     const filter = { ids: [eventIdHex], limit: 1 }
-    const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
+    const poolEvent = await NostrAPI.fetchWithTimeout(
+      this.ndk,
+      filter,
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
     if (!poolEvent) {
       return null
     }
@@ -1105,10 +1118,14 @@ export class NostrAPI {
 
     const tempNdk = createMobileNdk(relayUrls)
     try {
-      await tempNdk.connect(8000)
+      await tempNdk.connect(NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS)
 
       const filter = { ids: [eventIdHex], limit: 1 }
-      const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
+      const event = await NostrAPI.fetchWithTimeout(
+        tempNdk,
+        filter,
+        NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+      )
       if (!event) {
         return null
       }
@@ -1146,10 +1163,14 @@ export class NostrAPI {
 
     const tempNdk = createMobileNdk(relayUrls)
     try {
-      await tempNdk.connect(8000)
+      await tempNdk.connect(NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS)
 
       const filter = { ids: [eventIdHex], limit: 1 }
-      const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
+      const event = await NostrAPI.fetchWithTimeout(
+        tempNdk,
+        filter,
+        NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+      )
       if (!event) {
         return null
       }
@@ -1489,7 +1510,11 @@ export class NostrAPI {
       kinds: [NOSTR_POLL_RESPONSE_KIND as NDKKind],
       limit: 500
     }
-    const events = await NostrAPI.fetchManyWithTimeout(this.ndk, filter, 15000)
+    const events = await NostrAPI.fetchManyWithTimeout(
+      this.ndk,
+      filter,
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
 
     return [...events].map((event) => ({
       created_at: event.created_at ?? 0,

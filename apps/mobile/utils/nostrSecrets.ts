@@ -24,6 +24,7 @@ export type NostrAccountSecrets = {
 
 const identitySecretsCache = new Map<string, NostrIdentitySecrets>()
 const accountSecretsCache = new Map<string, NostrAccountSecrets>()
+const BIP39_MIN_WORD_COUNT = 12
 
 function looksLikePlaintextNsec(value: string | undefined): boolean {
   return typeof value === 'string' && value.startsWith('nsec1')
@@ -34,7 +35,7 @@ function looksLikePlaintextMnemonic(value: string | undefined): boolean {
     return false
   }
   const words = value.trim().split(/\s+/)
-  return words.length >= 12
+  return words.length >= BIP39_MIN_WORD_COUNT
 }
 
 function hasIdentitySecrets(secrets: NostrIdentitySecrets): boolean {

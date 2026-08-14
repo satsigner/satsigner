@@ -2,6 +2,7 @@ import ecc from '@bitcoinerlab/secp256k1'
 import { getDecodedToken } from '@cashu/cashu-ts'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
+import { NOSTR_BECH32_ID_MIN_LENGTH } from '@/constants/nostr'
 import { isBBQRFragment } from '@/utils/bbqr'
 import {
   isBitcoinUri,
@@ -184,10 +185,10 @@ function detectBitcoinContent(data: string): DetectedContent | null {
 function stripSchemePrefix(data: string): string {
   const lower = data.toLowerCase()
   if (lower.startsWith('web+cashu:')) {
-    return data.slice(10)
+    return data.slice('web+cashu:'.length)
   }
   if (lower.startsWith('lightning:')) {
-    return data.slice(10)
+    return data.slice('lightning:'.length)
   }
   if (lower.startsWith('cashu:')) {
     return data.slice(6)
@@ -408,7 +409,10 @@ function detectNostrContent(data: string): DetectedContent | null {
     }
   }
 
-  if (lower.startsWith('npub1') && trimmed.length >= 60) {
+  if (
+    lower.startsWith('npub1') &&
+    trimmed.length >= NOSTR_BECH32_ID_MIN_LENGTH
+  ) {
     return {
       cleaned: trimmed,
       isValid: true,
@@ -417,7 +421,10 @@ function detectNostrContent(data: string): DetectedContent | null {
     }
   }
 
-  if (lower.startsWith('nsec1') && trimmed.length >= 60) {
+  if (
+    lower.startsWith('nsec1') &&
+    trimmed.length >= NOSTR_BECH32_ID_MIN_LENGTH
+  ) {
     return {
       cleaned: trimmed,
       isValid: true,
@@ -426,7 +433,10 @@ function detectNostrContent(data: string): DetectedContent | null {
     }
   }
 
-  if (lower.startsWith('note1') && trimmed.length >= 60) {
+  if (
+    lower.startsWith('note1') &&
+    trimmed.length >= NOSTR_BECH32_ID_MIN_LENGTH
+  ) {
     return {
       cleaned: trimmed,
       isValid: true,
@@ -435,7 +445,10 @@ function detectNostrContent(data: string): DetectedContent | null {
     }
   }
 
-  if (lower.startsWith('nevent1') && trimmed.length >= 60) {
+  if (
+    lower.startsWith('nevent1') &&
+    trimmed.length >= NOSTR_BECH32_ID_MIN_LENGTH
+  ) {
     return {
       cleaned: trimmed,
       isValid: true,
@@ -444,7 +457,10 @@ function detectNostrContent(data: string): DetectedContent | null {
     }
   }
 
-  if (lower.startsWith('nprofile1') && trimmed.length >= 60) {
+  if (
+    lower.startsWith('nprofile1') &&
+    trimmed.length >= NOSTR_BECH32_ID_MIN_LENGTH
+  ) {
     return {
       cleaned: trimmed,
       isValid: true,

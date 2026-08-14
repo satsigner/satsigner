@@ -16,6 +16,7 @@ import {
   type AddressInfo
 } from 'react-native-bdk-sdk'
 
+import { SATS_PER_BITCOIN, WITNESS_SCALE_FACTOR } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
@@ -901,8 +902,8 @@ function parseTxDetailsToTransaction(
   let weight = 0
   if (raw.length) {
     size = raw.length
-    weight = size * 4
-    vsize = Math.ceil(weight / 3)
+    weight = size * WITNESS_SCALE_FACTOR
+    vsize = Math.ceil(weight / WITNESS_SCALE_FACTOR)
   }
 
   return {
@@ -1049,7 +1050,7 @@ function getLastUnusedAddressFromWallet(wallet: BdkWallet): AddressInfo {
 // rounding to 8 decimal places to avoid binary floating-point drift
 // (e.g. avoids values like 0.1 + 0.2 style representation errors).
 function satsToBtc(sats: number): number {
-  return Number((sats / 1e8).toFixed(8))
+  return Number((sats / SATS_PER_BITCOIN).toFixed(8))
 }
 
 // Resolves the Bitcoin Core wallet name to use for an account. Prefers the
@@ -1525,6 +1526,8 @@ async function syncWithCoreWallet(
 
     // Abort any in-progress Core rescan (e.g. a previous birthday-less scan
     // from genesis) so we can restart from the resolved start height.
+    const RESCAN_STOP_POLL_MAX_ATTEMPTS = 40
+    const RESCAN_STOP_POLL_INTERVAL_MS = 500
     const ensureRescanStopped = async () => {
       try {
         const info = await coreWallet.getWalletInfo()
@@ -1536,7 +1539,7 @@ async function syncWithCoreWallet(
         // ignore — may not be scanning, or older Core without abortrescan
       }
 
-      for (let i = 0; i < 40; i += 1) {
+      for (let i = 0; i < RESCAN_STOP_POLL_MAX_ATTEMPTS; i += 1) {
         if (isCancelled?.()) {
           throw new Error(SYNC_CANCELLED_ERROR)
         }
@@ -1549,7 +1552,7 @@ async function syncWithCoreWallet(
           return
         }
         await new Promise<void>((resolve) => {
-          setTimeout(resolve, 500)
+          setTimeout(resolve, RESCAN_STOP_POLL_INTERVAL_MS)
         })
       }
     }
@@ -1557,13 +1560,15 @@ async function syncWithCoreWallet(
     await ensureRescanStopped()
     emitProgress(startHeight, tipHeight)
 
+    const RESCAN_START_RACE_TIMEOUT_MS = 60_000
+
     try {
       await Promise.race([
         coreWallet.rescanBlockchain(startHeight),
         new Promise<never>((_resolve, reject) => {
           setTimeout(() => {
             reject(new Error('rescan-timeout'))
-          }, 60_000)
+          }, RESCAN_START_RACE_TIMEOUT_MS)
         })
       ])
     } catch (error) {
@@ -1579,7 +1584,7 @@ async function syncWithCoreWallet(
             new Promise<never>((_resolve, reject) => {
               setTimeout(() => {
                 reject(new Error('rescan-timeout'))
-              }, 60_000)
+              }, RESCAN_START_RACE_TIMEOUT_MS)
             })
           ])
         } catch (retryError) {
@@ -1599,6 +1604,7 @@ async function syncWithCoreWallet(
     // Poll getwalletinfo.scanning until done (max ~6 hours)
     const MAX_POLLS = 2160
     const POLL_INTERVAL_MS = 3000
+    const RESCAN_POLL_MAX_CONSECUTIVE_ERRORS = 5
     let consecutiveErrors = 0
 
     for (let i = 0; i < MAX_POLLS; i += 1) {
@@ -1638,7 +1644,7 @@ async function syncWithCoreWallet(
       } catch (error) {
         consecutiveErrors += 1
         const msg = error instanceof Error ? error.message : String(error)
-        if (consecutiveErrors >= 5) {
+        if (consecutiveErrors >= RESCAN_POLL_MAX_CONSECUTIVE_ERRORS) {
           throw new Error(
             `Lost connection during rescan after ${consecutiveErrors} retries: ${msg}`,
             { cause: error }

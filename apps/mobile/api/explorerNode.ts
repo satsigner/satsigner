@@ -24,6 +24,9 @@ export type BitnodesNodeInfo = {
 }
 
 const BITNODES_API = 'https://bitnodes.io/api/v1'
+const BITNODES_SNAPSHOT_NODES_LIMIT = 500
+const BITNODES_TOP_VERSIONS_LIMIT = 10
+const BITNODES_TOP_COUNTRIES_LIMIT = 15
 const EMPTY_SERVER_INFO: BackendServerInfo = {
   banner: '',
   protocolVersion: '',
@@ -197,7 +200,9 @@ async function fetchBitnodesNetworkStatsUnsafe(): Promise<NetworkStats> {
     return EMPTY_NETWORK_STATS
   }
 
-  const nodesRes = await fetch(`${latest.url}?limit=500`)
+  const nodesRes = await fetch(
+    `${latest.url}?limit=${BITNODES_SNAPSHOT_NODES_LIMIT}`
+  )
   if (!nodesRes.ok) {
     return EMPTY_NETWORK_STATS
   }
@@ -242,12 +247,12 @@ async function fetchBitnodesNetworkStatsUnsafe(): Promise<NetworkStats> {
   const versionDistribution = Object.entries(versionMap)
     .map(([version, count]) => ({ count, version }))
     .toSorted((a, b) => b.count - a.count)
-    .slice(0, 10)
+    .slice(0, BITNODES_TOP_VERSIONS_LIMIT)
 
   const countryDistribution = Object.entries(countryMap)
     .map(([country, count]) => ({ count, country }))
     .toSorted((a, b) => b.count - a.count)
-    .slice(0, 15)
+    .slice(0, BITNODES_TOP_COUNTRIES_LIMIT)
 
   return {
     countryDistribution,

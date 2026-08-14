@@ -2,6 +2,8 @@ export const HIGH_FEE_RATIO = 0.1
 export const FEE_RATE_ELEVATED_MULTIPLIER = 2
 const FEE_RATE_SLIDER_FLOOR = 128
 const FEE_RATE_SLIDER_EXTENDED = 1024
+const MIN_ESTIMATED_TARGET_BLOCKS = 2
+const MAX_ESTIMATED_TARGET_BLOCKS = 50
 
 export type FeePercentageParams = {
   minerFeeSats: number
@@ -118,5 +120,8 @@ export function estimateTargetBlocks(
     return 1
   }
 
-  return Math.min(50, Math.max(2, Math.round(recommended / feeRate)))
+  return Math.min(
+    MAX_ESTIMATED_TARGET_BLOCKS,
+    Math.max(MIN_ESTIMATED_TARGET_BLOCKS, Math.round(recommended / feeRate))
+  )
 }

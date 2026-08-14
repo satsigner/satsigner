@@ -46,8 +46,11 @@ function hashToBits(domain: string, input: string, bits: number): string {
     .join('')
 }
 
+// BIP39: every 3 mnemonic words encode 32 bits of entropy (plus checksum bits).
+const BIP39_ENTROPY_BITS_PER_3_WORDS = 32
+
 export function entropyBitsForWordCount(wordCount: MnemonicWordCount): number {
-  return 32 * (wordCount / 3)
+  return BIP39_ENTROPY_BITS_PER_3_WORDS * (wordCount / 3)
 }
 
 /** Number of dice rolls needed to cover `bits` of entropy at log2(6) per roll. */

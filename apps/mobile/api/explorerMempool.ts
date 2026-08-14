@@ -2,6 +2,7 @@ import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import type {
   MemPool,
   MemPoolBlock,
@@ -19,7 +20,16 @@ import {
   normalizeHistogram,
   projectedBlocksFromHistogram
 } from '@/utils/mempoolHistogram'
-import { feesFromBtcPerKb, feesFromSmartFeeTargets } from '@/utils/rpcFees'
+import {
+  feesFromBtcPerKb,
+  feesFromSmartFeeTargets,
+  VBYTES_PER_KB
+} from '@/utils/rpcFees'
+
+// Bitcoin Core `estimatesmartfee` confirmation-target block counts.
+const FEE_ESTIMATE_TARGET_FAST_BLOCKS = 1
+const FEE_ESTIMATE_TARGET_MEDIUM_BLOCKS = 3
+const FEE_ESTIMATE_TARGET_SLOW_BLOCKS = 6
 
 export type MempoolSource = 'backend' | 'mempool'
 
@@ -161,9 +171,9 @@ async function fromRpc(
     )
     const [info, fee1, fee3, fee6] = await Promise.all([
       rpc.getMempoolInfo(),
-      rpc.estimateSmartFee(1).catch(() => null),
-      rpc.estimateSmartFee(3).catch(() => null),
-      rpc.estimateSmartFee(6).catch(() => null)
+      rpc.estimateSmartFee(FEE_ESTIMATE_TARGET_FAST_BLOCKS).catch(() => null),
+      rpc.estimateSmartFee(FEE_ESTIMATE_TARGET_MEDIUM_BLOCKS).catch(() => null),
+      rpc.estimateSmartFee(FEE_ESTIMATE_TARGET_SLOW_BLOCKS).catch(() => null)
     ])
 
     const fees =
@@ -180,7 +190,7 @@ async function fromRpc(
     const minFeeRate =
       fees?.none ??
       (typeof info.mempoolminfee === 'number'
-        ? Math.round(info.mempoolminfee * 1e8) / 1000
+        ? Math.round(info.mempoolminfee * SATS_PER_BITCOIN) / VBYTES_PER_KB
         : null)
 
     return {

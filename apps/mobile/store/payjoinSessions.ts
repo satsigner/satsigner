@@ -9,6 +9,11 @@ import {
   PAYJOIN_TERMINAL_STATUSES
 } from '@/utils/payjoinSessionStatus'
 
+// Cap `seenInputs` growth: once it exceeds SEEN_INPUTS_MAX, trim back down
+// to the most recent SEEN_INPUTS_TRIM_TO entries.
+const SEEN_INPUTS_MAX = 2000
+const SEEN_INPUTS_TRIM_TO = 1500
+
 type PayjoinSessionsState = {
   sessions: PayjoinSession[]
   /** Outpoints seen in prior payjoin proposals (replay protection). */
@@ -126,8 +131,8 @@ const usePayjoinSessionsStore = create<
           }
           const seenInputs = [...state.seenInputs, outpoint]
           // Cap growth
-          if (seenInputs.length > 2000) {
-            return { seenInputs: seenInputs.slice(-1500) }
+          if (seenInputs.length > SEEN_INPUTS_MAX) {
+            return { seenInputs: seenInputs.slice(-SEEN_INPUTS_TRIM_TO) }
           }
           return { seenInputs }
         })

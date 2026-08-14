@@ -1,6 +1,7 @@
 import { HDKey } from '@scure/bip32'
 import { getPublicKey, nip19 } from 'nostr-tools'
 
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { NIP06_DERIVATION_PATH } from '@/constants/nostr'
 import type {
   NostrDecodedContent,
@@ -139,7 +140,7 @@ export function extractPubpayTags(tags: string[][]): PubpayTag[] {
       const msats = parseInt(tag[1], 10)
       if (!isNaN(msats)) {
         results.push({
-          amount: Math.floor(msats / 1000),
+          amount: Math.floor(msats / MILLISATS_PER_SAT),
           currency: 'sats',
           relay: tag[2]
         })
@@ -155,7 +156,9 @@ function parseMsatsTag(tags: string[][], name: string): number | undefined {
     return undefined
   }
   const val = parseInt(tag[1], 10)
-  return isNaN(val) || val <= 0 ? undefined : Math.floor(val / 1000)
+  return isNaN(val) || val <= 0
+    ? undefined
+    : Math.floor(val / MILLISATS_PER_SAT)
 }
 
 export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
@@ -172,7 +175,7 @@ export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
   if (zapGoalRaw?.[1]) {
     const val = parseInt(zapGoalRaw[1], 10)
     if (!isNaN(val) && val > 0) {
-      result.zapGoal = Math.floor(val / 1000)
+      result.zapGoal = Math.floor(val / MILLISATS_PER_SAT)
     }
   }
   if (zapUsesRaw?.[1]) {
@@ -196,13 +199,13 @@ export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
 export function buildEnhancedZapTags(config: NostrEnhancedZapTags): string[][] {
   const tags: string[][] = []
   if (config.zapMin !== undefined && config.zapMin > 0) {
-    tags.push(['zap-min', String(config.zapMin * 1000)])
+    tags.push(['zap-min', String(config.zapMin * MILLISATS_PER_SAT)])
   }
   if (config.zapMax !== undefined && config.zapMax > 0) {
-    tags.push(['zap-max', String(config.zapMax * 1000)])
+    tags.push(['zap-max', String(config.zapMax * MILLISATS_PER_SAT)])
   }
   if (config.zapGoal !== undefined && config.zapGoal > 0) {
-    tags.push(['zap-goal', String(config.zapGoal * 1000)])
+    tags.push(['zap-goal', String(config.zapGoal * MILLISATS_PER_SAT)])
   }
   if (config.zapUses !== undefined && config.zapUses > 0) {
     tags.push(['zap-uses', String(config.zapUses)])

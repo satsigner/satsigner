@@ -21,6 +21,16 @@ export const BBQRFileTypes = {
 // Export type for the FileType values
 type BBQRFileType = (typeof BBQRFileTypes)[keyof typeof BBQRFileTypes]
 
+const BBQR_DEFAULT_MAX_CHUNK_SIZE = 400
+// Hard cap on the number of QR parts a single BBQR sequence may be split into.
+const BBQR_MAX_SPLIT_PARTS = 50
+// bbrq's splitQRs() accepts QR versions 5-40; see utils/bbrq/consts.ts.
+const BBQR_MAX_QR_VERSION = 40
+const BBQR_MIN_QR_VERSION = 5
+// Minimum chunk size for the non-BBQR hex fallback, so tiny maxChunkSize
+// values (meant for QR density, not fallback) don't produce absurd fragment counts.
+const BBQR_FALLBACK_MIN_CHUNK_SIZE = 100
+
 export function isBBQRFragment(part: string): boolean {
   if (part.length < 8 || !part.startsWith('B$')) {
     return false
@@ -65,7 +75,7 @@ export function isBBQRFragment(part: string): boolean {
 export function createBBQRChunks(
   data: Uint8Array,
   fileType: BBQRFileType = BBQRFileTypes.PSBT,
-  maxChunkSize = 400
+  maxChunkSize = BBQR_DEFAULT_MAX_CHUNK_SIZE
 ): string[] {
   // Convert our FileType to the official library's string format
   const officialFileType = fileType as OfficialFileType
@@ -91,7 +101,7 @@ export function createBBQRChunks(
     targetChunks =
       maxChunkSize <= 75 && targetChunks > 12
         ? Math.max(8, Math.min(targetChunks, 15))
-        : Math.min(targetChunks, 50)
+        : Math.min(targetChunks, BBQR_MAX_SPLIT_PARTS)
 
     // Be more strict about honoring the user's QR density choice
     // Only give minimal flexibility to handle QR version constraints
@@ -105,7 +115,7 @@ export function createBBQRChunks(
     }
 
     minSplit = Math.max(1, targetChunks - flexibility)
-    maxSplit = Math.min(50, targetChunks + flexibility)
+    maxSplit = Math.min(BBQR_MAX_SPLIT_PARTS, targetChunks + flexibility)
 
     // For small chunk sizes, ensure we have a reasonable minimum
     if (maxChunkSize <= 75) {
@@ -115,7 +125,7 @@ export function createBBQRChunks(
     // If the flexibility range is too small and might cause "Cannot make it fit",
     // gradually increase the upper bound while keeping the lower bound closer to target
     if (maxSplit - minSplit < 3) {
-      maxSplit = Math.min(50, targetChunks + 5)
+      maxSplit = Math.min(BBQR_MAX_SPLIT_PARTS, targetChunks + 5)
     }
   }
 
@@ -124,9 +134,9 @@ export function createBBQRChunks(
     result = splitQRs(data, officialFileType, {
       encoding: 'Z', // Try compression first (same as original implementation)
       maxSplit,
-      maxVersion: 40 as Version,
+      maxVersion: BBQR_MAX_QR_VERSION as Version,
       minSplit,
-      minVersion: 5 as Version
+      minVersion: BBQR_MIN_QR_VERSION as Version
     })
   } catch {
     /* silently ignored */
@@ -138,7 +148,10 @@ export function createBBQRChunks(
 
   // If strict constraints fail, try with more flexibility
   let fallbackMinSplit = Math.max(1, Math.floor(targetChunks * 0.5))
-  let fallbackMaxSplit = Math.min(50, Math.ceil(targetChunks * 1.5))
+  let fallbackMaxSplit = Math.min(
+    BBQR_MAX_SPLIT_PARTS,
+    Math.ceil(targetChunks * 1.5)
+  )
 
   // For small chunk sizes, ensure we still aim for multiple chunks
   if (maxChunkSize <= 75) {
@@ -150,9 +163,9 @@ export function createBBQRChunks(
     result = splitQRs(data, officialFileType, {
       encoding: 'Z',
       maxSplit: fallbackMaxSplit,
-      maxVersion: 40 as Version,
+      maxVersion: BBQR_MAX_QR_VERSION as Version,
       minSplit: fallbackMinSplit,
-      minVersion: 5 as Version
+      minVersion: BBQR_MIN_QR_VERSION as Version
     })
   } catch {
     /* silently ignored */
@@ -166,10 +179,10 @@ export function createBBQRChunks(
     // let the library decide with minimal constraints
     result = splitQRs(data, officialFileType, {
       encoding: 'Z',
-      maxSplit: Math.min(50, targetChunks * 2),
-      maxVersion: 40 as Version,
+      maxSplit: Math.min(BBQR_MAX_SPLIT_PARTS, targetChunks * 2),
+      maxVersion: BBQR_MAX_QR_VERSION as Version,
       minSplit: 1,
-      minVersion: 5 as Version
+      minVersion: BBQR_MIN_QR_VERSION as Version
     })
   } catch {
     /* silently ignored */
@@ -194,7 +207,7 @@ export function createBBQRChunks(
 
   // As absolute last resort, create a simple non-BBQR fallback
   // This ensures we never return empty and the UI doesn't break
-  const chunkSize = Math.max(100, maxChunkSize)
+  const chunkSize = Math.max(BBQR_FALLBACK_MIN_CHUNK_SIZE, maxChunkSize)
   const chunks: string[] = []
   const dataStr = Array.from(data)
     .map((b) => b.toString(16).padStart(2, '0'))

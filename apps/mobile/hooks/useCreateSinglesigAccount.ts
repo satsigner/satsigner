@@ -5,6 +5,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { MnemonicWordCount } from '@/types/bips/39'
 import type { Account, Key, Secret } from '@/types/models/Account'
 import type { Network } from '@/types/settings/blockchain'
+import { getNextDisplayIndex } from '@/utils/account'
 import {
   generateMnemonic,
   getExtendedPublicKeyFromMnemonic,
@@ -27,6 +28,7 @@ type CreateSinglesigResult = {
 }
 
 export function useCreateSinglesigAccount() {
+  const accounts = useAccountsStore((state) => state.accounts)
   const addAccount = useAccountsStore((state) => state.addAccount)
   const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
 
@@ -70,7 +72,7 @@ export function useCreateSinglesigAccount() {
     const draftAccount: Account = {
       addresses: [],
       createdAt: new Date(),
-      displayIndex: 1000,
+      displayIndex: getNextDisplayIndex(accounts),
       excludedUtxoOutpoints: [],
       id: accountId,
       keyCount: 1,

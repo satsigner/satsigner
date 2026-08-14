@@ -3,6 +3,8 @@ import { type NostrEvent, finalizeEvent, nip57 } from 'nostr-tools'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import {
+  NOSTR_KIND_ZAP_RECEIPT,
+  NOSTR_PROFILE_BATCH_SIZE,
   NOSTR_PROFILE_CACHE_TTL_SECS,
   NOSTR_ZAP_INVOICE_TIMEOUT_MS,
   NOSTR_ZAP_RECEIPT_FETCH_LIMIT
@@ -25,6 +27,18 @@ import {
 } from '@/types/models/Nostr'
 import { fetchLNURLPayDetails } from '@/utils/lnurl'
 import { getSecretFromNsec } from '@/utils/nostr'
+
+// NDK connect timeout (ms) used by the main zap-sending path.
+const NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS = 10000
+// Timeout (ms) for collecting zap receipts via subscribeAndCollect on the
+// main zap-sending path.
+const NOSTR_ZAP_RECEIPT_COLLECT_TIMEOUT_MS = 15000
+// NDK connect timeout (ms) used only when refreshing stale sender/recipient
+// profiles for already-fetched zap receipts.
+const NOSTR_ZAP_PROFILE_REFRESH_CONNECT_TIMEOUT_MS = 8000
+// Timeout (ms) for collecting kind-0 profile events during stale-profile
+// refresh.
+const NOSTR_ZAP_PROFILE_REFRESH_COLLECT_TIMEOUT_MS = 10000
 
 /**
  * Subscribe-based multi-event fetch. Keeps the subscription open so events
@@ -79,7 +93,7 @@ export function zapReceiptEventToRawJson(event: NDKEvent): string {
       content: event.content,
       created_at: event.created_at ?? 0,
       id: event.id,
-      kind: event.kind ?? 9735,
+      kind: event.kind ?? NOSTR_KIND_ZAP_RECEIPT,
       pubkey: event.pubkey,
       sig: event.sig,
       tags
@@ -335,11 +349,11 @@ export async function fetchZapReceipts(
   })
 
   try {
-    await ndk.connect(10000)
+    await ndk.connect(NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS)
 
     const filter: Record<string, unknown> = {
       '#e': [eventIdHex],
-      kinds: [9735 as never],
+      kinds: [NOSTR_KIND_ZAP_RECEIPT as never],
       limit: NOSTR_ZAP_RECEIPT_FETCH_LIMIT
     }
     const newestTs =
@@ -350,7 +364,11 @@ export async function fetchZapReceipts(
       filter.since = newestTs + 1
     }
 
-    const events = await subscribeAndCollect(ndk, filter, 15000)
+    const events = await subscribeAndCollect(
+      ndk,
+      filter,
+      NOSTR_ZAP_RECEIPT_COLLECT_TIMEOUT_MS
+    )
 
     const freshReceipts: ZapReceiptInfo[] = []
     const freshEvents: {
@@ -373,7 +391,7 @@ export async function fetchZapReceipts(
           content: event.content,
           created_at: event.created_at ?? 0,
           id: event.id,
-          kind: event.kind ?? 9735,
+          kind: event.kind ?? NOSTR_KIND_ZAP_RECEIPT,
           pubkey: event.pubkey,
           tags
         })
@@ -475,23 +493,27 @@ export async function fetchZapsByPubkey(
   })
 
   try {
-    await ndk.connect(10000)
+    await ndk.connect(NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS)
 
     const filter: Record<string, unknown> = {
       '#p': [pubkeyHex],
-      kinds: [9735 as never],
+      kinds: [NOSTR_KIND_ZAP_RECEIPT as never],
       limit
     }
     if (until) {
       filter.until = until
     } else {
-      const newestTs = getNewestCachedTimestamp(9735)
+      const newestTs = getNewestCachedTimestamp(NOSTR_KIND_ZAP_RECEIPT)
       if (newestTs) {
         filter.since = newestTs + 1
       }
     }
 
-    const events = await subscribeAndCollect(ndk, filter, 15000)
+    const events = await subscribeAndCollect(
+      ndk,
+      filter,
+      NOSTR_ZAP_RECEIPT_COLLECT_TIMEOUT_MS
+    )
 
     const receipts: ZapReceiptInfo[] = []
     const freshEvents: {
@@ -517,7 +539,7 @@ export async function fetchZapsByPubkey(
           content: event.content,
           created_at: event.created_at ?? 0,
           id: event.id,
-          kind: event.kind ?? 9735,
+          kind: event.kind ?? NOSTR_KIND_ZAP_RECEIPT,
           pubkey: event.pubkey,
           tags
         })
@@ -557,18 +579,22 @@ export async function fetchZapsSentByPubkey(
   })
 
   try {
-    await ndk.connect(10000)
+    await ndk.connect(NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS)
 
     const filter: Record<string, unknown> = {
       authors: [pubkeyHex],
-      kinds: [9735 as never],
+      kinds: [NOSTR_KIND_ZAP_RECEIPT as never],
       limit
     }
     if (until) {
       filter.until = until
     }
 
-    const events = await subscribeAndCollect(ndk, filter, 15000)
+    const events = await subscribeAndCollect(
+      ndk,
+      filter,
+      NOSTR_ZAP_RECEIPT_COLLECT_TIMEOUT_MS
+    )
 
     const receipts: ZapReceiptInfo[] = []
 
@@ -621,7 +647,7 @@ export async function enrichZapReceipts(
         )
       )
     )
-  ].slice(0, 40)
+  ].slice(0, NOSTR_PROFILE_BATCH_SIZE)
 
   const stalePubkeys: string[] = []
   for (const pk of uniquePubkeys) {
@@ -646,7 +672,7 @@ export async function enrichZapReceipts(
     })
 
     try {
-      await ndk.connect(8000)
+      await ndk.connect(NOSTR_ZAP_PROFILE_REFRESH_CONNECT_TIMEOUT_MS)
 
       const events = await subscribeAndCollect(
         ndk,
@@ -655,7 +681,7 @@ export async function enrichZapReceipts(
           kinds: [0 as never],
           limit: stalePubkeys.length
         },
-        10000
+        NOSTR_ZAP_PROFILE_REFRESH_COLLECT_TIMEOUT_MS
       )
 
       for (const event of events) {
@@ -734,16 +760,16 @@ export async function fetchZapReceiptById(
   })
 
   try {
-    await ndk.connect(10000)
+    await ndk.connect(NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS)
 
     const events = await subscribeAndCollect(
       ndk,
       {
         ids: [zapReceiptId],
-        kinds: [9735 as never],
+        kinds: [NOSTR_KIND_ZAP_RECEIPT as never],
         limit: 1
       },
-      15000
+      NOSTR_ZAP_RECEIPT_COLLECT_TIMEOUT_MS
     )
 
     for (const event of events) {

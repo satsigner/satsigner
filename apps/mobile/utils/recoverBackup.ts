@@ -183,7 +183,7 @@ async function prepareRestore(
 ): Promise<PreparedRestore> {
   const accounts: Account[] = []
   const keys: PreparedKey[] = []
-  for (const acc of data.accounts) {
+  for (const [accountDisplayIndex, acc] of data.accounts.entries()) {
     const accountKeys: Key[] = []
     for (const k of acc.keys) {
       const secretObj =
@@ -239,7 +239,7 @@ async function prepareRestore(
       addresses: [],
       birthdayDate: acc.birthdayDate ? new Date(acc.birthdayDate) : undefined,
       createdAt: typeof created === 'string' ? new Date(created) : new Date(),
-      displayIndex: 1000,
+      displayIndex: accountDisplayIndex,
       excludedUtxoOutpoints: acc.excludedUtxoOutpoints ?? [],
       id: acc.id,
       keyCount: acc.keys.length,
