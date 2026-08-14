@@ -95,7 +95,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-build-properties',
       {
         android: {
-          usesCleartextTraffic: true
+          // Production: HTTPS-only. Dev keeps cleartext for local RPC/LND nodes.
+          usesCleartextTraffic: IS_DEV
         },
         ios: {
           deploymentTarget: '16.4'

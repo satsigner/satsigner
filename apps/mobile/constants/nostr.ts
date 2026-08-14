@@ -124,7 +124,6 @@ export const NOSTR_RELAYS: NostrRelay[] = [
 export const NIP01_MAX_NOTE_LENGTH = 5000
 export const NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
 export const NIP46_EVENT_KIND = 24133
-export const NIP46_EVENT_PREVIEW_MAX_LENGTH = 200
 export const NIP46_NOSTR_CONNECT_PREFIX = 'nostrconnect://'
 export const NIP46_REQUEST_TIMEOUT_MS = 60000
 export const NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
@@ -151,6 +150,25 @@ export const NIP46_DEFAULT_PERMISSIONS: Record<
   ping: 'always_allow',
   sign_event: 'ask'
 }
+// Methods that must always prompt for explicit approval, even if an
+// "always allow" permission was previously stored: auto-approving decryption
+// turns the signer into a permanent decryption oracle for the client.
+export const NIP46_NEVER_AUTO_ALLOW_METHODS: Nip46Method[] = [
+  'nip04_decrypt',
+  'nip44_decrypt'
+]
+// Event kinds considered low-risk for auto-approval once the user granted
+// "always allow" for sign_event. Anything else — profile (0), contacts (3),
+// deletion (5), relay/bookmark lists (10002, 10003), unknown kinds — always
+// requires explicit approval, since a stored permission would otherwise let
+// the client silently overwrite the user's identity and lists.
+export const NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS: number[] = [
+  1, // short text note
+  6, // repost
+  7, // reaction
+  16, // generic repost
+  9734 // zap request
+]
 
 // REGEX & FILTERS
 export const NOSTR_POLL_KIND = 1068

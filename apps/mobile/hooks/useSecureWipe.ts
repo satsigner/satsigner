@@ -19,6 +19,11 @@ import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
+import { deleteAllNostrSecretsForWipe } from '@/utils/nostrSecrets'
+import {
+  deleteAllRpcCredentialsSafe,
+  deleteLndSecretsSafe
+} from '@/utils/serviceSecrets'
 
 /**
  * Best-effort wipe of wallet secrets and local account state for duress PIN.
@@ -42,7 +47,9 @@ export function useSecureWipe() {
   const clearTransactionBuilderData = useTransactionBuilderStore(
     (state) => state.clearAllData
   )
-  const clearNostrIdentity = useNostrIdentityStore((state) => state.clearAll)
+  const [identities, clearNostrIdentity] = useNostrIdentityStore(
+    useShallow((state) => [state.identities, state.clearAll])
+  )
   const clearNostrState = useNostrStore((state) => state.clearAllNostrState)
   const clearLightningConfig = useLightningStore((state) => state.clearConfig)
   const stripAllRpcCredentials = useBlockchainStore(
@@ -53,6 +60,13 @@ export function useSecureWipe() {
   )
 
   return async function secureWipe(): Promise<void> {
+    await deleteAllNostrSecretsForWipe(
+      identities.map((identity) => identity.npub),
+      accounts.map((account) => account.id)
+    )
+    await deleteLndSecretsSafe()
+    await deleteAllRpcCredentialsSafe()
+
     await Promise.all(
       accounts.map((account) =>
         deleteAllKeySecrets(account.id, account.keys.length).catch(

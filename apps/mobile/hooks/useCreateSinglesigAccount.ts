@@ -70,6 +70,7 @@ export function useCreateSinglesigAccount() {
     const draftAccount: Account = {
       addresses: [],
       createdAt: new Date(),
+      displayIndex: 1000,
       excludedUtxoOutpoints: [],
       id: accountId,
       keyCount: 1,

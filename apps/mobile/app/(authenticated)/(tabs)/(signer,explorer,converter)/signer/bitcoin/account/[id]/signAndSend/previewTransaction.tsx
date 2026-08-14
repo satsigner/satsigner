@@ -85,6 +85,7 @@ import {
   extractTransactionIdFromPSBT,
   getCollectedSignerPubkeys,
   matchSignedPsbtsToCosigners,
+  signedTransactionMatchesPsbt,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
 import {
@@ -664,7 +665,9 @@ function PreviewTransaction() {
   useClipboardPaste({
     onPaste: (content: string) => {
       const processedData = processScannedData(content)
-      updateSignedPsbt(-1, processedData) // -1 for watch-only mode
+      if (processedData !== null) {
+        updateSignedPsbt(-1, processedData) // -1 for watch-only mode
+      }
     }
   })
 
@@ -769,8 +772,11 @@ function PreviewTransaction() {
     })
   }
 
-  // Helper function to convert PSBT to final transaction if needed
-  const processScannedData = (data: string): string => {
+  // Helper function to convert PSBT to final transaction if needed.
+  // Returns null (after showing an error) when the supplied content does not
+  // correspond to the transaction under review — broadcasting it would
+  // execute a different transaction than the one displayed to the user.
+  const processScannedData = (data: string): string | null => {
     try {
       // Strip "bitcoin:" prefix if present (case-insensitive)
       let processedData = data
@@ -778,18 +784,36 @@ function PreviewTransaction() {
         processedData = processedData.substring(8)
       }
 
+      const originalPsbtBase64 = txBuilderResult?.toBase64()
+
       // Check if data is a PSBT and convert to final transaction
       if (processedData.toLowerCase().startsWith('70736274ff')) {
         // Only attempt conversion if we have the original PSBT context
-        if (txBuilderResult?.toBase64()) {
-          const convertedResult = convertPsbtToFinalTransaction(processedData)
-          return convertedResult
+        if (originalPsbtBase64) {
+          return convertPsbtToFinalTransaction(processedData)
         }
         return processedData
       }
+
+      // Raw transaction hex: bind it to the PSBT under review (when there
+      // is one) so a swapped QR/clipboard cannot substitute the broadcast.
+      if (
+        originalPsbtBase64 &&
+        /^[a-fA-F0-9]+$/.test(processedData) &&
+        !signedTransactionMatchesPsbt(originalPsbtBase64, processedData)
+      ) {
+        toast.error(t('common.error.transactionMismatch'))
+        return null
+      }
+
       return processedData
-    } catch {
-      return data
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t('common.error.processScannedData')
+      )
+      return null
     }
   }
 
@@ -1419,7 +1443,7 @@ function PreviewTransaction() {
 
     // Handle single QR codes (complete data in one scan)
     if (qrInfo.type === 'single' || qrInfo.total === 1) {
-      let finalContent = qrInfo.content
+      let finalContent: string | null = qrInfo.content
       try {
         // Check if it's a single BBQR QR code
         if (isBBQRFragment(qrInfo.content)) {
@@ -1466,6 +1490,11 @@ function PreviewTransaction() {
         finalContent = processScannedData(finalContent)
       } catch {
         toast.error(t('common.error.processScannedData'))
+      }
+
+      if (finalContent === null) {
+        resetScanProgress()
+        return
       }
 
       // Use hook's updateSignedPsbt function
@@ -1542,6 +1571,11 @@ function PreviewTransaction() {
           // Process the assembled data (convert PSBT to final transaction if needed)
           const finalData = processScannedData(assembledData)
 
+          if (finalData === null) {
+            resetScanProgress()
+            return
+          }
+
           // Use hook's updateSignedPsbt function
           updateSignedPsbt(index ?? -1, finalData)
 
@@ -1580,6 +1614,11 @@ function PreviewTransaction() {
       if (assembledData) {
         // Process the assembled data (convert PSBT to final transaction if needed)
         const finalData = processScannedData(assembledData)
+
+        if (finalData === null) {
+          resetScanProgress()
+          return
+        }
 
         // Use hook's updateSignedPsbt function
         updateSignedPsbt(index ?? -1, finalData)
@@ -1656,6 +1695,10 @@ function PreviewTransaction() {
 
       // Process the pasted data similar to scanned data
       const processedData = processScannedData(text)
+
+      if (processedData === null) {
+        return
+      }
 
       // Use hook's updateSignedPsbt function
       updateSignedPsbt(index, processedData)

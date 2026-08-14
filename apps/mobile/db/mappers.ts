@@ -15,6 +15,7 @@ type AccountRow = {
   name: string
   network: string
   policy_type: string
+  display_index: number
   keys: string
   key_count: number
   keys_required: number
@@ -208,6 +209,7 @@ function rowToAccount(
     addresses,
     birthdayDate: row.birthday_date ? new Date(row.birthday_date) : undefined,
     createdAt: new Date(row.created_at),
+    displayIndex: row.display_index,
     excludedUtxoOutpoints: parseJson<string[]>(
       row.excluded_utxo_outpoints ?? '[]',
       []

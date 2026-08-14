@@ -239,6 +239,7 @@ async function prepareRestore(
       addresses: [],
       birthdayDate: acc.birthdayDate ? new Date(acc.birthdayDate) : undefined,
       createdAt: typeof created === 'string' ? new Date(created) : new Date(),
+      displayIndex: 1000,
       excludedUtxoOutpoints: acc.excludedUtxoOutpoints ?? [],
       id: acc.id,
       keyCount: acc.keys.length,
