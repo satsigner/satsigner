@@ -22,7 +22,7 @@ function insertAccount(account: Account) {
   runTransaction((tx) => {
     tx.execute(
       `INSERT INTO accounts (
-        id, name, network, policy_type, keys, key_count, keys_required,
+        id, name, network, policy_type, display_index, keys, key_count, keys_required,
         balance, num_addresses, num_transactions, num_utxos, sats_in_mempool,
         created_at, last_synced_at, sync_status, sync_progress_total, sync_progress_done,
         birthday_date, rpc_last_block_hash, excluded_utxo_outpoints,
@@ -31,12 +31,13 @@ function insertAccount(account: Account) {
         nostr_device_display_name, nostr_device_picture,
         nostr_last_backup_fingerprint, nostr_last_updated, nostr_sync_start,
         nostr_npub_aliases, nostr_npub_profiles
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         account.id,
         account.name,
         account.network,
         account.policyType,
+        account.displayIndex,
         keysToJson(account.keys),
         account.keyCount,
         account.keysRequired,
@@ -85,7 +86,7 @@ function updateAccountRow(
   const dbConnection = connectionContext ?? getDb()
   dbConnection.execute(
     `UPDATE accounts SET
-      name = ?, network = ?, policy_type = ?, keys = ?,
+      name = ?, network = ?, policy_type = ?, display_index = ?, keys = ?,
       key_count = ?, keys_required = ?,
       balance = ?, num_addresses = ?, num_transactions = ?,
       num_utxos = ?, sats_in_mempool = ?,
@@ -103,6 +104,7 @@ function updateAccountRow(
       account.name,
       account.network,
       account.policyType,
+      account.displayIndex,
       keysToJson(account.keys),
       account.keyCount,
       account.keysRequired,
@@ -225,6 +227,17 @@ function updateLastSyncedAt(id: string, date: Date) {
   ])
 }
 
+function updateDisplayIndexes(indexesData: { id: string; index: number }[]) {
+  runTransaction((tx) => {
+    for (const { id, index } of indexesData) {
+      tx.execute('UPDATE accounts SET display_index = ? WHERE id = ?', [
+        index,
+        id
+      ])
+    }
+  })
+}
+
 export {
   deleteAccount,
   deleteAllAccounts,
@@ -235,5 +248,6 @@ export {
   updateFullAccount,
   updateLastSyncedAt,
   updateSyncProgress,
-  updateSyncStatus
+  updateSyncStatus,
+  updateDisplayIndexes
 }

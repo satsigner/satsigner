@@ -18,7 +18,9 @@ import { getLabelsByAccount } from './labels'
 
 function getAccounts(): Account[] {
   const db = getDb()
-  const { results } = db.execute('SELECT * FROM accounts')
+  const { results } = db.execute(
+    'SELECT * FROM accounts ORDER BY display_index ASC'
+  )
   return (results as AccountRow[]).map((row) => hydrateAccount(row))
 }
 

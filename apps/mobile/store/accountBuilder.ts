@@ -11,6 +11,7 @@ type AccountBuilderState = {
   name: Account['name']
   network: Account['network']
   policyType: Account['policyType']
+  displayIndex: Account['displayIndex']
 
   keyName: NonNullable<Key['name']>
   creationType: Key['creationType']
@@ -41,6 +42,7 @@ type AccountBuilderAction = {
   setName: (name: AccountBuilderState['name']) => void
   setNetwork: (network: AccountBuilderState['network']) => void
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
+  setDisplayIndex: (displayIndex: AccountBuilderState['displayIndex']) => void
 
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
   setCreationType: (creationType: Key['creationType']) => void
@@ -99,6 +101,7 @@ type AccountBuilderAction = {
 // Initial state for account builder store
 const initialState: AccountBuilderState = {
   creationType: 'importMnemonic',
+  displayIndex: 1000,
   entropy: 'none',
   extendedPublicKey: undefined,
   externalDescriptor: undefined,
@@ -218,11 +221,20 @@ const useAccountBuilderStore = create<
       }
     },
     getAccountData: () => {
-      const { name, network, policyType, keys, keyCount, keysRequired } = get()
+      const {
+        name,
+        network,
+        policyType,
+        displayIndex,
+        keys,
+        keyCount,
+        keysRequired
+      } = get()
 
       const account: Account = {
         addresses: [],
         createdAt: new Date(),
+        displayIndex,
         id: randomUuid(),
         keyCount,
         keys,
@@ -278,6 +290,9 @@ const useAccountBuilderStore = create<
     },
     setCreationType: (creationType) => {
       set({ creationType })
+    },
+    setDisplayIndex: (displayIndex) => {
+      set({ displayIndex })
     },
     setEntropy: (entropy) => {
       set({ entropy })

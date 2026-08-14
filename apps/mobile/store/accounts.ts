@@ -8,6 +8,7 @@ import {
   insertAccount as insertAccountDb,
   updateAccountKeys as updateAccountKeysDb,
   updateAccountName as updateAccountNameDb,
+  updateDisplayIndexes as updateDisplayIndexesDb,
   updateFullAccount as updateFullAccountDb,
   updateLastSyncedAt as updateLastSyncedAtDb,
   updateSyncProgress as updateSyncProgressDb,
@@ -74,6 +75,7 @@ type AccountsState = {
 }
 
 type AccountsAction = {
+  setAccounts: (accounts: Account[]) => void
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => void
   updateAccountName: (id: Account['id'], newName: string) => void
@@ -349,6 +351,20 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         state.accounts[accountIndex].keys[keyIndex] = resetKeyData
       })
     },
+    setAccounts: (accounts) => {
+      const reindexed = accounts.map((account, index) => ({
+        ...account,
+        displayIndex: index
+      }))
+
+      updateDisplayIndexesDb(
+        reindexed.map(({ id, displayIndex }) => ({ id, index: displayIndex }))
+      )
+
+      set((state) => {
+        state.accounts = reindexed
+      })
+    },
     setAddrLabel: (accountId, addr, label) => {
       const account = get().accounts.find((account) => account.id === accountId)
       if (!account) {
@@ -434,8 +450,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         account.utxos
       )
 
+      // This value is meant to be updated by setAccounts (upon drag reorder), but a race condition
+      // between that function call and a stale caller closure could revert the order.
+      const { displayIndex } = currentAccount
+
       const mergedAccount: Account = {
         ...account,
+        displayIndex,
         excludedUtxoOutpoints,
         labels: mergedLabels,
         nostr: mergedNostr

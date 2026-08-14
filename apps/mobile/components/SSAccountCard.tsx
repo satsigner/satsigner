@@ -32,9 +32,13 @@ export type SSAccountCardStat = {
 }
 
 type SSAccountCardProps = {
+  onPress(): void
+  onLongPress?: () => void
+  delayLongPress?: number
+  activeOpacity?: number
+  longPressDisabled?: boolean
   name: string
   balance: number
-  onPress(): void
   fingerprint?: string
   watchOnly?: boolean
   syncStatus?: Account['syncStatus']
@@ -46,6 +50,10 @@ function SSAccountCard({
   name,
   balance,
   onPress,
+  onLongPress,
+  delayLongPress = 250,
+  activeOpacity = 0.5,
+  longPressDisabled = false,
   fingerprint,
   watchOnly = false,
   syncStatus,
@@ -195,7 +203,13 @@ function SSAccountCard({
   }
 
   return (
-    <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
+    <TouchableOpacity
+      activeOpacity={activeOpacity}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={delayLongPress}
+      disabled={longPressDisabled}
+    >
       <SSHStack justifyBetween style={{ position: 'relative' }}>
         <SSVStack gap={platform === 'android' ? 'none' : 'xxs'}>
           {fingerprint ? <SSFingerprint fingerprint={fingerprint} /> : null}
