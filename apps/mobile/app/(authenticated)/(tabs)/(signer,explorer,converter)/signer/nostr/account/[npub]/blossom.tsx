@@ -10,8 +10,8 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import {
-  BLOSSOM_DEFAULT_SERVER,
-  BLOSSOM_POPULAR_SERVERS
+  NOSTR_BLOSSOM_DEFAULT_SERVER,
+  NOSTR_BLOSSOM_POPULAR_SERVERS
 } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -72,7 +72,7 @@ export default function NostrBlossomServers() {
   const [servers, setServers] = useState<string[]>(
     identity?.blossomServers?.length
       ? identity.blossomServers
-      : [BLOSSOM_DEFAULT_SERVER]
+      : [NOSTR_BLOSSOM_DEFAULT_SERVER]
   )
   const [customInput, setCustomInput] = useState('')
   const [isImporting, setIsImporting] = useState(false)
@@ -143,7 +143,7 @@ export default function NostrBlossomServers() {
     router.back()
   }
 
-  const popularNotAdded = BLOSSOM_POPULAR_SERVERS.filter(
+  const popularNotAdded = NOSTR_BLOSSOM_POPULAR_SERVERS.filter(
     (s) => !servers.includes(s.url)
   )
 

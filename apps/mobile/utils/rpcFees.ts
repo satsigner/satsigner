@@ -1,14 +1,14 @@
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import type { MemPoolFees } from '@/types/models/Blockchain'
 
-const SATS_PER_BTC = 1e8
-const VBYTES_PER_KB = 1000
+export const VBYTES_PER_KB = 1000
 const FEE_MEDIUM_RATIO = 0.75
 const FEE_LOW_RATIO = 0.5
 const FEE_NONE_SAT_PER_VB = 1
 
 /** Convert Bitcoin Core BTC/kB feerate to sat/vB. */
 export function satPerVbFromBtcPerKb(feerateBtcPerKb: number): number {
-  return Math.round((feerateBtcPerKb * SATS_PER_BTC) / VBYTES_PER_KB)
+  return Math.round((feerateBtcPerKb * SATS_PER_BITCOIN) / VBYTES_PER_KB)
 }
 
 /** Convert Bitcoin Core `estimatesmartfee` BTC/kB rate into explorer fee tiers. */

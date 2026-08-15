@@ -16,6 +16,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
+import { getNextDisplayIndex } from '@/utils/account'
 
 export default function Add() {
   const router = useRouter()
@@ -31,7 +32,6 @@ export default function Add() {
       ])
     )
 
-  const sameNetworkAccounts = accounts.filter((a) => a.network === network)
   const [localPolicyType, setLocalPolicyType] =
     useState<NonNullable<Account['policyType']>>('singlesig')
 
@@ -45,7 +45,7 @@ export default function Add() {
   function handleOnPressContinue() {
     setAccountName(localAccountName)
     setAccountPolicyType(localPolicyType)
-    setDisplayIndex(sameNetworkAccounts.length + 1)
+    setDisplayIndex(getNextDisplayIndex(accounts))
 
     if (localPolicyType === 'singlesig') {
       router.navigate('/signer/bitcoin/account/add/singleSig')

@@ -4,6 +4,10 @@ import { t } from '@/locales'
 const WITNESS_COMMITMENT_HEADER = [0xaa, 0x21, 0xa9, 0xed] as const
 const OP_RETURN = 0x6a
 const OP_PUSHBYTES_36 = 0x24
+// Max bytes a script can push with a direct (non-OP_PUSHDATA) opcode.
+const MAX_DIRECT_PUSH_BYTES = 75
+// BIP141: 4-byte header + 32-byte hash + 2-byte OP_RETURN/push opcode pair.
+const WITNESS_COMMITMENT_MIN_LENGTH = 38
 
 export type SpecialOutputKind = 'empty' | 'op_return' | 'witness_commitment'
 
@@ -63,7 +67,7 @@ function asmOpReturnToBytes(asm: string): Uint8Array {
   }
 
   // Minimal push encoding for data length 1–75 (covers witness commitments).
-  if (data.length > 0 && data.length <= 75) {
+  if (data.length > 0 && data.length <= MAX_DIRECT_PUSH_BYTES) {
     const out = new Uint8Array(2 + data.length)
     out[0] = OP_RETURN
     out[1] = data.length
@@ -97,7 +101,7 @@ export function classifySpecialOutput(
 
   // BIP141 witness commitment: OP_RETURN <36 bytes: aa21a9ed || hash>
   if (
-    bytes.length >= 38 &&
+    bytes.length >= WITNESS_COMMITMENT_MIN_LENGTH &&
     bytes[1] === OP_PUSHBYTES_36 &&
     bytes[2] === WITNESS_COMMITMENT_HEADER[0] &&
     bytes[3] === WITNESS_COMMITMENT_HEADER[1] &&

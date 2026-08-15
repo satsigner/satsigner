@@ -1,4 +1,4 @@
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { PSBT_MAGIC_HEX, SATS_PER_BITCOIN } from '@/constants/btc'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
@@ -11,15 +11,20 @@ type ProcessedBitcoinContent = {
   content: string
 }
 
+// Heuristic minimum lengths for a plausible base64/hex-encoded PSBT.
+const PSBT_BASE64_MIN_LENGTH = 50
+const PSBT_HEX_MIN_LENGTH = 100
+
 export function isPSBT(text: string) {
   const trimmed = text.trim()
 
-  const isBase64PSBT = trimmed.startsWith('cHNidP8B') && trimmed.length > 50
+  const isBase64PSBT =
+    trimmed.startsWith('cHNidP8B') && trimmed.length > PSBT_BASE64_MIN_LENGTH
 
   const isHexPSBT =
     /^[0-9a-fA-F]+$/.test(trimmed) &&
-    (trimmed.startsWith('70736274ff') || trimmed.startsWith('70736274FF')) &&
-    trimmed.length > 100
+    trimmed.toLowerCase().startsWith(PSBT_MAGIC_HEX) &&
+    trimmed.length > PSBT_HEX_MIN_LENGTH
 
   return isBase64PSBT || isHexPSBT
 }

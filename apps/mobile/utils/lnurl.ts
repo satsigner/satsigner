@@ -9,6 +9,8 @@ import type {
 } from '@/types/models/Lightning'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
 
+const LNURL_BECH32_MAX_LENGTH = 1023
+
 // Per LUD-06 the service must return an invoice for exactly the requested
 // amount. A malicious or compromised LNURL service could otherwise answer a
 // "pay 1,000 sats" request with a 1,000,000 sats invoice that gets paid
@@ -102,7 +104,7 @@ export function isLNURL(input: string): boolean {
 export function decodeLNURL(input: string): string {
   let cleanInput = input.trim().toLowerCase()
   if (cleanInput.toLowerCase().startsWith('lightning:')) {
-    cleanInput = cleanInput.substring(10)
+    cleanInput = cleanInput.substring('lightning:'.length)
   }
 
   if (!cleanInput.startsWith('lnurl') || cleanInput.length < 6) {
@@ -111,7 +113,7 @@ export function decodeLNURL(input: string): string {
 
   let decoded
   try {
-    decoded = bech32.decode(cleanInput, 1023) // Increase max length
+    decoded = bech32.decode(cleanInput, LNURL_BECH32_MAX_LENGTH) // Increase max length
   } catch {
     throw new Error(`Failed to decode bech32`)
   }
@@ -202,7 +204,7 @@ export async function requestLNURLPayInvoice(
   comment?: string,
   details?: LNURLPayResponse
 ): Promise<string> {
-  const amountMillisats = amount * 1000
+  const amountMillisats = amount * MILLISATS_PER_SAT
 
   assertHttpsUrl(callback)
   const url = new URL(callback)
@@ -243,15 +245,15 @@ export async function handleLNURLPay(
   const isLNURLInput = isLNURL(cleanLnurl)
   const url = isLNURLInput ? decodeLNURL(cleanLnurl) : cleanLnurl
   const details = await fetchLNURLPayDetails(url)
-  const amountMillisats = amount * 1000
+  const amountMillisats = amount * MILLISATS_PER_SAT
 
   if (
     amountMillisats < details.minSendable ||
     amountMillisats > details.maxSendable
   ) {
     throw new Error(
-      `Amount must be between ${details.minSendable / 1000} and ${
-        details.maxSendable / 1000
+      `Amount must be between ${details.minSendable / MILLISATS_PER_SAT} and ${
+        details.maxSendable / MILLISATS_PER_SAT
       } sats`
     )
   }
@@ -306,7 +308,7 @@ export async function requestLNURLWithdrawInvoice(
   pr?: string
 ): Promise<LNURLWithdrawResponse> {
   assertHttpsUrl(callback)
-  const amountSats = Math.floor(amount / 1000)
+  const amountSats = Math.floor(amount / MILLISATS_PER_SAT)
   const url = new URL(callback)
   url.searchParams.append('k1', k1)
   url.searchParams.append('amount', amountSats.toString())

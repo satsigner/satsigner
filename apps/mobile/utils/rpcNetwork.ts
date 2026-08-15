@@ -1,5 +1,9 @@
 import { type Network } from '@/types/settings/blockchain'
 
+const RPC_PORT_MAINNET = 8332
+const RPC_PORT_SIGNET = 38332
+const RPC_PORT_TESTNET = 18332
+
 /** Bitcoin Core `getblockchaininfo.chain` values per app network tab. */
 function expectedCoreChain(network: Network): string {
   switch (network) {
@@ -15,11 +19,11 @@ function expectedCoreChain(network: Network): string {
 function defaultRpcPortForNetwork(network: Network): number {
   switch (network) {
     case 'signet':
-      return 38332
+      return RPC_PORT_SIGNET
     case 'testnet':
-      return 18332
+      return RPC_PORT_TESTNET
     default:
-      return 8332
+      return RPC_PORT_MAINNET
   }
 }
 
@@ -34,9 +38,9 @@ function formatChainMismatchError(
   return (
     `Connected to ${url}, but the node is on "${actualChain}" — this screen expects "${expected}".\n` +
     'Each Bitcoin Core process serves one chain only. Use a separate node (or port) per network:\n' +
-    `• mainnet → port 8332 (bitcoind)\n` +
-    `• signet → port 38332 (bitcoind -signet)\n` +
-    `• testnet → port 18332 (bitcoind -testnet)\n` +
+    `• mainnet → port ${RPC_PORT_MAINNET} (bitcoind)\n` +
+    `• signet → port ${RPC_PORT_SIGNET} (bitcoind -signet)\n` +
+    `• testnet → port ${RPC_PORT_TESTNET} (bitcoind -testnet)\n` +
     `For ${network}, the default RPC port is ${defaultPort}.`
   )
 }

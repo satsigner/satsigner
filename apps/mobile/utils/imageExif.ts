@@ -21,6 +21,8 @@ export type ImageExifData = {
   altitude?: number
 }
 
+const EXIF_FETCH_RANGE_BYTES = 131_072
+
 const TIFF_BYTE = 1
 const TIFF_ASCII = 2
 const TIFF_SHORT = 3
@@ -181,6 +183,13 @@ function parseExifDate(raw: unknown): Date | undefined {
   return isNaN(date.getTime()) ? undefined : date
 }
 
+const IPTC_DATASET_BYLINE = 5
+const IPTC_DATASET_KEYWORDS = 25
+const IPTC_DATASET_HEADLINE = 40
+const IPTC_DATASET_CITY = 55
+const IPTC_DATASET_COUNTRY = 101
+const IPTC_DATASET_COPYRIGHT = 116
+
 type IptcData = {
   byline?: string
   city?: string
@@ -217,22 +226,22 @@ function parseIptc(view: DataView, offset: number, length: number): IptcData {
       .trim()
     pos += dataLen
 
-    if (dataset === 5) {
+    if (dataset === IPTC_DATASET_BYLINE) {
       result.byline = text
     } // By-line (author)
-    else if (dataset === 25) {
+    else if (dataset === IPTC_DATASET_KEYWORDS) {
       keywords.push(text)
     } // Keywords
-    else if (dataset === 40) {
+    else if (dataset === IPTC_DATASET_HEADLINE) {
       result.headline = text
     } // Headline
-    else if (dataset === 55) {
+    else if (dataset === IPTC_DATASET_CITY) {
       result.city = text
     } // City
-    else if (dataset === 101) {
+    else if (dataset === IPTC_DATASET_COUNTRY) {
       result.country = text
     } // Country
-    else if (dataset === 116) {
+    else if (dataset === IPTC_DATASET_COPYRIGHT) {
       result.copyright = text
     } // Copyright notice
   }
@@ -262,7 +271,9 @@ export async function parseImageExif(
   uri: string
 ): Promise<ImageExifData | null> {
   try {
-    const res = await fetch(uri, { headers: { Range: 'bytes=0-131071' } })
+    const res = await fetch(uri, {
+      headers: { Range: `bytes=0-${EXIF_FETCH_RANGE_BYTES - 1}` }
+    })
     const buffer = await res.arrayBuffer()
     const view = new DataView(buffer)
 
