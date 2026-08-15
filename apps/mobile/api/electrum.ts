@@ -5,7 +5,8 @@ import z from 'zod'
 
 import {
   ELECTRUM_CONNECTION_CHECK_INTERVAL,
-  ELECTRUM_CONNECTION_TIMEOUT
+  ELECTRUM_CONNECTION_TIMEOUT,
+  ELECTRUM_TX_CACHE_MAX_ENTRIES
 } from '@/constants/electrum'
 import {
   ElectrumAddressInfo,
@@ -82,8 +83,6 @@ function assertRawTxMatchesTxid(rawTxHex: string, expectedTxid: string): void {
     )
   }
 }
-
-const TX_CACHE_MAX_ENTRIES = 5000
 
 class BaseElectrumClient {
   client: ModifiedClient
@@ -322,7 +321,7 @@ class BaseElectrumClient {
   }
 
   private cacheTransaction(txid: string, rawTxHex: string): void {
-    if (this.txCache.size >= TX_CACHE_MAX_ENTRIES) {
+    if (this.txCache.size >= ELECTRUM_TX_CACHE_MAX_ENTRIES) {
       this.txCache.clear()
     }
     this.txCache.set(txid.toLowerCase(), rawTxHex)

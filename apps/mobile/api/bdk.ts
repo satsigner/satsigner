@@ -16,6 +16,17 @@ import {
   type AddressInfo
 } from 'react-native-bdk-sdk'
 
+import {
+  BDK_PRIVATE_EXTENDED_KEY_PREFIXES,
+  BDK_RESCAN_MAX_POLLS,
+  BDK_RESCAN_POLL_INTERVAL_MS,
+  BDK_RESCAN_POLL_MAX_CONSECUTIVE_ERRORS,
+  BDK_RESCAN_START_RACE_TIMEOUT_MS,
+  BDK_RESCAN_STOP_POLL_INTERVAL_MS,
+  BDK_RESCAN_STOP_POLL_MAX_ATTEMPTS,
+  BDK_RPC_PROGRESS_THROTTLE_MS,
+  BDK_SECONDS_PER_BLOCK
+} from '@/constants/bdk'
 import { SATS_PER_BITCOIN, WITNESS_SCALE_FACTOR } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -553,9 +564,6 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
   return getExtendedKeyFromDescriptor(externalDescriptor)
 }
 
-/** Cap Zustand/UI updates during BDK RPC scans (inspector fires per block). */
-const RPC_PROGRESS_THROTTLE_MS = 250
-
 function createThrottledRpcProgress(
   onRpcProgress: (current: number, tip: number, pct: number) => void
 ): (current: number, tip: number, pct: number) => void {
@@ -589,12 +597,12 @@ function createThrottledRpcProgress(
 
     pending = { current, pct, tip }
     const elapsed = Date.now() - lastEmitMs
-    if (elapsed >= RPC_PROGRESS_THROTTLE_MS) {
+    if (elapsed >= BDK_RPC_PROGRESS_THROTTLE_MS) {
       flush()
       return
     }
     if (!timer) {
-      timer = setTimeout(flush, RPC_PROGRESS_THROTTLE_MS - elapsed)
+      timer = setTimeout(flush, BDK_RPC_PROGRESS_THROTTLE_MS - elapsed)
     }
   }
 }
@@ -1202,22 +1210,11 @@ function broadcastTransaction(
 
 // ─── Bitcoin Core wallet sync (importdescriptors path) ───────────────────────
 
-// Extended-private-key prefixes across mainnet/testnet and SLIP132 script
-// variants (BIP44/49/84/86). Matched case-insensitively against the whole
-// descriptor string to detect private key material before it could be sent
-// to a remote RPC node.
-const PRIVATE_EXTENDED_KEY_PREFIXES = [
-  'xprv',
-  'tprv',
-  'yprv',
-  'uprv',
-  'zprv',
-  'vprv'
-]
-
 function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
   const lower = descriptor.toLowerCase()
-  return PRIVATE_EXTENDED_KEY_PREFIXES.some((prefix) => lower.includes(prefix))
+  return BDK_PRIVATE_EXTENDED_KEY_PREFIXES.some((prefix) =>
+    lower.includes(prefix)
+  )
 }
 
 // Thrown when a descriptor contains private key material that must not be
@@ -1504,9 +1501,8 @@ async function syncWithCoreWallet(
       // fall back to wall clock for date estimates
     }
 
-    const SECONDS_PER_BLOCK = 10 * 60
     const estimateBlockTimeSec = (height: number): number =>
-      tipMediantime - Math.max(0, tipHeight - height) * SECONDS_PER_BLOCK
+      tipMediantime - Math.max(0, tipHeight - height) * BDK_SECONDS_PER_BLOCK
 
     const scanFromTimeSec = account.birthdayDate
       ? Math.floor(account.birthdayDate.getTime() / 1000)
@@ -1526,8 +1522,6 @@ async function syncWithCoreWallet(
 
     // Abort any in-progress Core rescan (e.g. a previous birthday-less scan
     // from genesis) so we can restart from the resolved start height.
-    const RESCAN_STOP_POLL_MAX_ATTEMPTS = 40
-    const RESCAN_STOP_POLL_INTERVAL_MS = 500
     const ensureRescanStopped = async () => {
       try {
         const info = await coreWallet.getWalletInfo()
@@ -1539,7 +1533,7 @@ async function syncWithCoreWallet(
         // ignore — may not be scanning, or older Core without abortrescan
       }
 
-      for (let i = 0; i < RESCAN_STOP_POLL_MAX_ATTEMPTS; i += 1) {
+      for (let i = 0; i < BDK_RESCAN_STOP_POLL_MAX_ATTEMPTS; i += 1) {
         if (isCancelled?.()) {
           throw new Error(SYNC_CANCELLED_ERROR)
         }
@@ -1552,7 +1546,7 @@ async function syncWithCoreWallet(
           return
         }
         await new Promise<void>((resolve) => {
-          setTimeout(resolve, RESCAN_STOP_POLL_INTERVAL_MS)
+          setTimeout(resolve, BDK_RESCAN_STOP_POLL_INTERVAL_MS)
         })
       }
     }
@@ -1560,15 +1554,13 @@ async function syncWithCoreWallet(
     await ensureRescanStopped()
     emitProgress(startHeight, tipHeight)
 
-    const RESCAN_START_RACE_TIMEOUT_MS = 60_000
-
     try {
       await Promise.race([
         coreWallet.rescanBlockchain(startHeight),
         new Promise<never>((_resolve, reject) => {
           setTimeout(() => {
             reject(new Error('rescan-timeout'))
-          }, RESCAN_START_RACE_TIMEOUT_MS)
+          }, BDK_RESCAN_START_RACE_TIMEOUT_MS)
         })
       ])
     } catch (error) {
@@ -1584,7 +1576,7 @@ async function syncWithCoreWallet(
             new Promise<never>((_resolve, reject) => {
               setTimeout(() => {
                 reject(new Error('rescan-timeout'))
-              }, RESCAN_START_RACE_TIMEOUT_MS)
+              }, BDK_RESCAN_START_RACE_TIMEOUT_MS)
             })
           ])
         } catch (retryError) {
@@ -1602,12 +1594,9 @@ async function syncWithCoreWallet(
     }
 
     // Poll getwalletinfo.scanning until done (max ~6 hours)
-    const MAX_POLLS = 2160
-    const POLL_INTERVAL_MS = 3000
-    const RESCAN_POLL_MAX_CONSECUTIVE_ERRORS = 5
     let consecutiveErrors = 0
 
-    for (let i = 0; i < MAX_POLLS; i += 1) {
+    for (let i = 0; i < BDK_RESCAN_MAX_POLLS; i += 1) {
       if (isCancelled?.()) {
         try {
           await coreWallet.abortRescan()
@@ -1644,7 +1633,7 @@ async function syncWithCoreWallet(
       } catch (error) {
         consecutiveErrors += 1
         const msg = error instanceof Error ? error.message : String(error)
-        if (consecutiveErrors >= RESCAN_POLL_MAX_CONSECUTIVE_ERRORS) {
+        if (consecutiveErrors >= BDK_RESCAN_POLL_MAX_CONSECUTIVE_ERRORS) {
           throw new Error(
             `Lost connection during rescan after ${consecutiveErrors} retries: ${msg}`,
             { cause: error }
@@ -1652,7 +1641,7 @@ async function syncWithCoreWallet(
         }
       }
       await new Promise<void>((resolve) => {
-        setTimeout(resolve, POLL_INTERVAL_MS)
+        setTimeout(resolve, BDK_RESCAN_POLL_INTERVAL_MS)
       })
     }
 
