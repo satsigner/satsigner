@@ -2,7 +2,7 @@ import { HDKey } from '@scure/bip32'
 import { getPublicKey, nip19 } from 'nostr-tools'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
-import { NIP06_DERIVATION_PATH } from '@/constants/nostr'
+import { NOSTR_NIP06_DERIVATION_PATH } from '@/constants/nostr'
 import type {
   NostrDecodedContent,
   NostrDerivedKeys,
@@ -16,7 +16,7 @@ export function deriveNostrKeysFromMnemonic(
 ): NostrDerivedKeys {
   const seed = mnemonicToSeed(mnemonic)
   const root = HDKey.fromMasterSeed(seed)
-  const child = root.derive(NIP06_DERIVATION_PATH)
+  const child = root.derive(NOSTR_NIP06_DERIVATION_PATH)
   if (!child.privateKey) {
     throw new Error('Failed to derive private key from mnemonic')
   }

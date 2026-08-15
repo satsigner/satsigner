@@ -3,6 +3,11 @@ import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  FEE_ESTIMATE_TARGET_FAST_BLOCKS,
+  FEE_ESTIMATE_TARGET_MEDIUM_BLOCKS,
+  FEE_ESTIMATE_TARGET_SLOW_BLOCKS
+} from '@/constants/explorer'
 import type {
   MemPool,
   MemPoolBlock,
@@ -25,11 +30,6 @@ import {
   feesFromSmartFeeTargets,
   VBYTES_PER_KB
 } from '@/utils/rpcFees'
-
-// Bitcoin Core `estimatesmartfee` confirmation-target block counts.
-const FEE_ESTIMATE_TARGET_FAST_BLOCKS = 1
-const FEE_ESTIMATE_TARGET_MEDIUM_BLOCKS = 3
-const FEE_ESTIMATE_TARGET_SLOW_BLOCKS = 6
 
 export type MempoolSource = 'backend' | 'mempool'
 

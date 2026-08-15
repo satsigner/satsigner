@@ -17,6 +17,7 @@ import {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
   PAYJOIN_DEFAULT_PJOS,
+  PAYJOIN_FETCH_TIMEOUT_MS,
   PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
   PAYJOIN_QUICK_POLL_DEFAULT_MS,
   PAYJOIN_QUICK_POLL_INTERVAL_MS,
@@ -95,8 +96,6 @@ function endSenderPost(): void {
 function isSenderPostInFlight(): boolean {
   return senderPostDepth > 0
 }
-
-const PAYJOIN_FETCH_TIMEOUT_MS = 90_000
 
 function withTimeoutSignal(
   parent: AbortSignal | undefined,

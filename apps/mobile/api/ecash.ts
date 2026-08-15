@@ -10,6 +10,11 @@ import {
   Wallet
 } from '@cashu/cashu-ts'
 
+import {
+  ECASH_MAX_EMPTY_BATCHES,
+  ECASH_RESTORE_BATCH_SIZE,
+  ECASH_RESTORE_TIMEOUT_MS
+} from '@/constants/ecash'
 import type {
   CounterReservedEvent,
   EcashMeltResult,
@@ -477,10 +482,6 @@ export async function validateEcashToken(
   }
 }
 
-const RESTORE_BATCH_SIZE = 25
-const RESTORE_TIMEOUT_MS = 15000
-const MAX_EMPTY_BATCHES = 2
-
 export async function restoreProofsFromSeed(
   accountId: string,
   mintUrl: string,
@@ -515,8 +516,8 @@ export async function restoreProofsFromSeed(
       await loadKeysForKeyset(wallet, keyset.id)
 
       const result = await withTimeout(
-        wallet.restore(0, RESTORE_BATCH_SIZE, { keysetId: keyset.id }),
-        RESTORE_TIMEOUT_MS
+        wallet.restore(0, ECASH_RESTORE_BATCH_SIZE, { keysetId: keyset.id }),
+        ECASH_RESTORE_TIMEOUT_MS
       )
 
       if (result.proofs.length > 0) {
@@ -529,14 +530,14 @@ export async function restoreProofsFromSeed(
           lastCounter = result.lastCounterWithSignature
         }
 
-        let nextCounter = RESTORE_BATCH_SIZE
+        let nextCounter = ECASH_RESTORE_BATCH_SIZE
         let emptyBatches = 0
-        while (emptyBatches < MAX_EMPTY_BATCHES) {
+        while (emptyBatches < ECASH_MAX_EMPTY_BATCHES) {
           const contResult = await withTimeout(
-            wallet.restore(nextCounter, RESTORE_BATCH_SIZE, {
+            wallet.restore(nextCounter, ECASH_RESTORE_BATCH_SIZE, {
               keysetId: keyset.id
             }),
-            RESTORE_TIMEOUT_MS
+            ECASH_RESTORE_TIMEOUT_MS
           )
           if (contResult.proofs.length > 0) {
             allProofs.push(...contResult.proofs)
@@ -551,7 +552,7 @@ export async function restoreProofsFromSeed(
           } else {
             emptyBatches += 1
           }
-          nextCounter += RESTORE_BATCH_SIZE
+          nextCounter += ECASH_RESTORE_BATCH_SIZE
         }
       }
     } catch {

@@ -25,14 +25,21 @@ export const NOSTR_MAX_PROCESSED_ITEMS = 2000
 export const NOSTR_MAX_PROCESSED_RAW_IDS = 5000
 export const NOSTR_MAX_QUEUE_SIZE = 300
 export const NOSTR_NDK_CONNECT_TIMEOUT_MS = 20000
+// Default limit for fetchNotes/fetchFollowingTimelineNotes when the caller
+// doesn't specify one.
+export const NOSTR_NOTES_FETCH_DEFAULT_LIMIT = 20
 export const NOSTR_PROCESSING_INTERVAL_MS = 350
 export const NOSTR_PROFILE_CACHE_MAX_AGE_SECS = 604800
 export const NOSTR_PROFILE_CACHE_TTL_SECS = 3600
 export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT = 5000
 export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10000
 export const NOSTR_PUBLISH_TIMEOUT_MS = 10000
+export const NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS = 20000
 export const NOSTR_RELAY_REACHABILITY_TEST_MS = 10000
 export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
+// NDK connect timeout (ms) for short-lived, temporary NDK instances used to
+// fetch a single event from an explicit relay list.
+export const NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS = 8000
 export const NOSTR_WS_CONNECT_TIMEOUT_MS = 15000
 
 // UI
@@ -122,13 +129,14 @@ export const NOSTR_RELAYS: NostrRelay[] = [
 ]
 
 // NIPS
-export const NIP01_MAX_NOTE_LENGTH = 5000
-export const NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
-export const NIP46_EVENT_KIND = 24133
-export const NIP46_NOSTR_CONNECT_PREFIX = 'nostrconnect://'
-export const NIP46_REQUEST_TIMEOUT_MS = 60000
-export const NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
-export const NIP46_SUPPORTED_METHODS: Nip46Method[] = [
+export const NOSTR_NIP01_MAX_NOTE_LENGTH = 5000
+export const NOSTR_NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
+export const NOSTR_NIP17_SEAL_KIND = 13
+export const NOSTR_NIP46_EVENT_KIND = 24133
+export const NOSTR_NIP46_CONNECT_PREFIX = 'nostrconnect://'
+export const NOSTR_NIP46_REQUEST_TIMEOUT_MS = 60000
+export const NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
+export const NOSTR_NIP46_SUPPORTED_METHODS: Nip46Method[] = [
   'connect',
   'get_public_key',
   'nip04_decrypt',
@@ -138,7 +146,7 @@ export const NIP46_SUPPORTED_METHODS: Nip46Method[] = [
   'ping',
   'sign_event'
 ]
-export const NIP46_DEFAULT_PERMISSIONS: Record<
+export const NOSTR_NIP46_DEFAULT_PERMISSIONS: Record<
   Nip46Method,
   Nip46PermissionPolicy
 > = {
@@ -154,7 +162,7 @@ export const NIP46_DEFAULT_PERMISSIONS: Record<
 // Methods that must always prompt for explicit approval, even if an
 // "always allow" permission was previously stored: auto-approving decryption
 // turns the signer into a permanent decryption oracle for the client.
-export const NIP46_NEVER_AUTO_ALLOW_METHODS: Nip46Method[] = [
+export const NOSTR_NIP46_NEVER_AUTO_ALLOW_METHODS: Nip46Method[] = [
   'nip04_decrypt',
   'nip44_decrypt'
 ]
@@ -163,7 +171,7 @@ export const NIP46_NEVER_AUTO_ALLOW_METHODS: Nip46Method[] = [
 // deletion (5), relay/bookmark lists (10002, 10003), unknown kinds — always
 // requires explicit approval, since a stored permission would otherwise let
 // the client silently overwrite the user's identity and lists.
-export const NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS: number[] = [
+export const NOSTR_NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS: number[] = [
   1, // short text note
   6, // repost
   7, // reaction
@@ -265,9 +273,14 @@ export const NOSTR_BOOKMARKS_FILTER_IDS = new Set([
 ])
 
 // BLOSSOM
-export const BLOSSOM_DEFAULT_SERVER = 'https://blossom.primal.net'
+export const NOSTR_BLOSSOM_DEFAULT_SERVER = 'https://blossom.primal.net'
+export const NOSTR_NIP94_FILE_KIND = 1063
+export const NOSTR_BLOSSOM_SERVER_LIST_KIND = 10063
+export const NOSTR_FILES_FETCH_TIMEOUT_MS = 8000
+export const NOSTR_BLOSSOM_AUTH_KIND = 24242
+export const NOSTR_BLOSSOM_AUTH_EXPIRY_SECS = 300
 
-export const BLOSSOM_POPULAR_SERVERS: { name: string; url: string }[] = [
+export const NOSTR_BLOSSOM_POPULAR_SERVERS: { name: string; url: string }[] = [
   { name: 'Primal', url: 'https://blossom.primal.net' },
   { name: 'Satellite', url: 'https://cdn.satellite.earth' },
   { name: 'Blossom Band', url: 'https://blossom.band' },

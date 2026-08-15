@@ -1,7 +1,7 @@
 import {
-  NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS,
-  NIP46_NEVER_AUTO_ALLOW_METHODS,
-  NIP46_NOSTR_CONNECT_PREFIX
+  NOSTR_NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS,
+  NOSTR_NIP46_NEVER_AUTO_ALLOW_METHODS,
+  NOSTR_NIP46_CONNECT_PREFIX
 } from '@/constants/nostr'
 import { t } from '@/locales'
 import type { Nip46Method, Nip46ParsedUri } from '@/types/models/Nostr'
@@ -9,7 +9,7 @@ import type { Nip46Method, Nip46ParsedUri } from '@/types/models/Nostr'
 const HEX_PUBKEY_REGEX = /^[0-9a-f]{64}$/
 
 export function isNostrConnectUri(data: string): boolean {
-  return data.trim().toLowerCase().startsWith(NIP46_NOSTR_CONNECT_PREFIX)
+  return data.trim().toLowerCase().startsWith(NOSTR_NIP46_CONNECT_PREFIX)
 }
 
 export function parseNostrConnectUri(uri: string): Nip46ParsedUri | null {
@@ -19,7 +19,7 @@ export function parseNostrConnectUri(uri: string): Nip46ParsedUri | null {
   }
 
   try {
-    const withoutScheme = trimmed.slice(NIP46_NOSTR_CONNECT_PREFIX.length)
+    const withoutScheme = trimmed.slice(NOSTR_NIP46_CONNECT_PREFIX.length)
     const questionMarkIndex = withoutScheme.indexOf('?')
 
     const clientPubkey =
@@ -129,12 +129,14 @@ export function canAutoApproveRequest(
   method: Nip46Method,
   params: string[]
 ): boolean {
-  if (NIP46_NEVER_AUTO_ALLOW_METHODS.includes(method)) {
+  if (NOSTR_NIP46_NEVER_AUTO_ALLOW_METHODS.includes(method)) {
     return false
   }
   if (method === 'sign_event') {
     const kind = getSignEventKind(params)
-    return kind !== null && NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS.includes(kind)
+    return (
+      kind !== null && NOSTR_NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS.includes(kind)
+    )
   }
   return true
 }

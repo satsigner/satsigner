@@ -1,5 +1,12 @@
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import BitcoinRpc from '@/api/rpc'
+import { MAINNET_P2P_PORT } from '@/constants/btc'
+import {
+  BITNODES_API,
+  BITNODES_SNAPSHOT_NODES_LIMIT,
+  BITNODES_TOP_COUNTRIES_LIMIT,
+  BITNODES_TOP_VERSIONS_LIMIT
+} from '@/constants/explorer'
 import type {
   Backend,
   Network,
@@ -23,10 +30,6 @@ export type BitnodesNodeInfo = {
   lastSeen: number
 }
 
-const BITNODES_API = 'https://bitnodes.io/api/v1'
-const BITNODES_SNAPSHOT_NODES_LIMIT = 500
-const BITNODES_TOP_VERSIONS_LIMIT = 10
-const BITNODES_TOP_COUNTRIES_LIMIT = 15
 const EMPTY_SERVER_INFO: BackendServerInfo = {
   banner: '',
   protocolVersion: '',
@@ -105,8 +108,6 @@ export function fetchBackendServerInfo(
   }
   return Promise.resolve(EMPTY_SERVER_INFO)
 }
-
-const MAINNET_P2P_PORT = 8333
 
 function extractHost(url: string): string {
   try {

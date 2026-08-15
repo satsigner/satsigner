@@ -7,6 +7,13 @@ import * as FileSystem from 'expo-file-system/legacy'
 import { finalizeEvent } from 'nostr-tools'
 import QuickCrypto from 'react-native-quick-crypto'
 
+import {
+  NOSTR_BLOSSOM_AUTH_EXPIRY_SECS,
+  NOSTR_BLOSSOM_AUTH_KIND,
+  NOSTR_BLOSSOM_SERVER_LIST_KIND,
+  NOSTR_NIP94_FILE_KIND,
+  NOSTR_FILES_FETCH_TIMEOUT_MS
+} from '@/constants/nostr'
 import { getSecretFromNsec } from '@/utils/nostr'
 
 export type BlobDescriptor = {
@@ -17,12 +24,6 @@ export type BlobDescriptor = {
   uploaded: number
   name?: string
 }
-
-const NIP94_FILE_KIND = 1063
-const BLOSSOM_SERVER_LIST_KIND = 10063
-const NOSTR_FILES_FETCH_TIMEOUT_MS = 8000
-const BLOSSOM_AUTH_KIND = 24242
-const BLOSSOM_AUTH_EXPIRY_SECS = 300
 
 async function parseBlossomList(response: Response): Promise<BlobDescriptor[]> {
   if (response.status === 401 || response.status === 404) {
@@ -134,7 +135,7 @@ export async function fetchNostrFileEvents(
   const results: BlobDescriptor[] = []
   await subscribeOnce(
     ndk,
-    { authors: [pubkeyHex], kinds: [NIP94_FILE_KIND] },
+    { authors: [pubkeyHex], kinds: [NOSTR_NIP94_FILE_KIND] },
     (event) => {
       const blob = ndkEventToBlobDescriptor(event)
       if (blob) {
@@ -158,7 +159,7 @@ export async function fetchKind10063Servers(
   const servers: string[] = []
   await subscribeOnce(
     ndk,
-    { authors: [pubkeyHex], kinds: [BLOSSOM_SERVER_LIST_KIND], limit: 1 },
+    { authors: [pubkeyHex], kinds: [NOSTR_BLOSSOM_SERVER_LIST_KIND], limit: 1 },
     (event) => {
       for (const tag of event.tags) {
         if (tag[0] === 'server' && tag[1]) {
@@ -199,11 +200,11 @@ function buildListAuthHeader(secretKey: Uint8Array, serverUrl: string): string {
     {
       content: 'List blobs',
       created_at: now,
-      kind: BLOSSOM_AUTH_KIND,
+      kind: NOSTR_BLOSSOM_AUTH_KIND,
       tags: [
         ['t', 'list'],
         ['server', serverUrl],
-        ['expiration', String(now + BLOSSOM_AUTH_EXPIRY_SECS)]
+        ['expiration', String(now + NOSTR_BLOSSOM_AUTH_EXPIRY_SECS)]
       ]
     },
     secretKey
@@ -217,10 +218,10 @@ function buildAuthHeader(payloadHash: string, secretKey: Uint8Array): string {
     {
       content: 'Upload image',
       created_at: now,
-      kind: BLOSSOM_AUTH_KIND,
+      kind: NOSTR_BLOSSOM_AUTH_KIND,
       tags: [
         ['t', 'upload'],
-        ['expiration', String(now + BLOSSOM_AUTH_EXPIRY_SECS)],
+        ['expiration', String(now + NOSTR_BLOSSOM_AUTH_EXPIRY_SECS)],
         ['x', payloadHash]
       ]
     },

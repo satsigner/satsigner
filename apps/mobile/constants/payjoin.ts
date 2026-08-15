@@ -33,6 +33,9 @@ const PAYJOIN_SESSION_TTL_PRESETS_MS = [
 /** BIP78 synchronous request timeout. */
 const PAYJOIN_BIP78_TIMEOUT_MS = 30_000
 
+/** Fetch abort timeout applied to every outbound payjoin HTTP request. */
+const PAYJOIN_FETCH_TIMEOUT_MS = 90_000
+
 /** Native (Rust) HTTP POST timeout used by both the OHTTP and direct paths. */
 const PAYJOIN_NATIVE_HTTP_TIMEOUT_MS = 45_000
 
@@ -102,6 +105,7 @@ export {
   PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_DIRECTORY_URL,
+  PAYJOIN_FETCH_TIMEOUT_MS,
   PAYJOIN_LIVE_ROUNDTRIP_FEE_SATS,
   PAYJOIN_LIVE_ROUNDTRIP_PAYMENT_SATS,
   PAYJOIN_MIN_CONTRIBUTE_SATS,
