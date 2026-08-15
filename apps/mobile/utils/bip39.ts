@@ -10,6 +10,15 @@ import {
 } from 'react-native-bdk-sdk'
 
 import {
+  BIP44_PURPOSE,
+  BIP49_PURPOSE,
+  BIP84_PURPOSE,
+  BIP86_PURPOSE
+} from '@/constants/derivation'
+import {
+  BIP39_ENTROPY_STEP_BITS,
+  BIP39_MAX_ENTROPY_BITS,
+  BIP39_MIN_ENTROPY_BITS,
   DEFAULT_WORD_LIST,
   LANGUAGE_MAP,
   MnemonicWordCount,
@@ -193,11 +202,18 @@ export function generateMnemonicFromEntropy(
   entropy: string,
   wordListName = 'english'
 ) {
-  if (entropy.length < 128 || entropy.length > 256) {
-    throw new Error('Invalid Entropy: it must be range of [128, 256]')
+  if (
+    entropy.length < BIP39_MIN_ENTROPY_BITS ||
+    entropy.length > BIP39_MAX_ENTROPY_BITS
+  ) {
+    throw new Error(
+      `Invalid Entropy: it must be range of [${BIP39_MIN_ENTROPY_BITS}, ${BIP39_MAX_ENTROPY_BITS}]`
+    )
   }
-  if (entropy.length % 32 !== 0) {
-    throw new Error('Invalid Entropy: it must be divisible by 32')
+  if (entropy.length % BIP39_ENTROPY_STEP_BITS !== 0) {
+    throw new Error(
+      `Invalid Entropy: it must be divisible by ${BIP39_ENTROPY_STEP_BITS}`
+    )
   }
   const language =
     LANGUAGE_MAP[wordListName as WordListName] ?? Language.English
@@ -398,16 +414,16 @@ function getExtendedPublicKeyFromMnemonicCustom(
     const coinType = networkString === 'mainnet' ? '0' : '1'
     switch (scriptVersion) {
       case 'P2PKH':
-        derivationPath = `m/44'/${coinType}'/0'` // BIP44
+        derivationPath = `m/${BIP44_PURPOSE}'/${coinType}'/0'` // BIP44
         break
       case 'P2SH-P2WPKH':
-        derivationPath = `m/49'/${coinType}'/0'` // BIP49
+        derivationPath = `m/${BIP49_PURPOSE}'/${coinType}'/0'` // BIP49
         break
       case 'P2WPKH':
-        derivationPath = `m/84'/${coinType}'/0'` // BIP84
+        derivationPath = `m/${BIP84_PURPOSE}'/${coinType}'/0'` // BIP84
         break
       case 'P2TR':
-        derivationPath = `m/86'/${coinType}'/0'` // BIP86
+        derivationPath = `m/${BIP86_PURPOSE}'/${coinType}'/0'` // BIP86
         break
       // P2WSH, P2SH-P2WSH, P2SH are typically multisig only
       default:

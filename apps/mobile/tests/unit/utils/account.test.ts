@@ -1,8 +1,10 @@
+import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
 import type { Account, Key, Secret } from '@/types/models/Account'
 import {
   checkWalletNeedsSync,
   dropSeedFromKeyInMemory,
   getAccountFingerprint,
+  getNextDisplayIndex,
   updateAccountObjectLabels
 } from '@/utils/account'
 
@@ -167,6 +169,51 @@ describe('getAccountFingerprint', () => {
       keys: [makeKey({ secret: {} })]
     })
     expect(getAccountFingerprint(account)).toBe('')
+  })
+})
+
+describe('getNextDisplayIndex', () => {
+  it('returns INITIAL_DISPLAY_INDEX when there are no accounts', () => {
+    expect(getNextDisplayIndex([])).toBe(INITIAL_DISPLAY_INDEX)
+  })
+
+  it('returns one past the max displayIndex among existing accounts', () => {
+    const accounts = [
+      makeAccount({ displayIndex: 0, id: 'a' }),
+      makeAccount({ displayIndex: 1, id: 'b' }),
+      makeAccount({ displayIndex: 2, id: 'c' })
+    ]
+    expect(getNextDisplayIndex(accounts)).toBe(3)
+  })
+
+  it('is unaffected by array order, only the max value matters', () => {
+    const accounts = [
+      makeAccount({ displayIndex: 4, id: 'a' }),
+      makeAccount({ displayIndex: 1, id: 'b' }),
+      makeAccount({ displayIndex: 2, id: 'c' })
+    ]
+    expect(getNextDisplayIndex(accounts)).toBe(5)
+  })
+
+  it('does not collide after earlier accounts are deleted (regression)', () => {
+    // 5 accounts created in sequence, never reordered: 0, 1, 2, 3, 4.
+    let accounts = [0, 1, 2, 3, 4].map((displayIndex) =>
+      makeAccount({ displayIndex, id: `acc-${displayIndex}` })
+    )
+
+    // Delete the first two (displayIndex 0 and 1) — remaining: 2, 3, 4.
+    accounts = accounts.filter((a) => a.displayIndex >= 2)
+
+    // A naive `accounts.length + 1` (3 + 1 = 4) would collide with the
+    // existing account at displayIndex 4 and sort the new account before it.
+    const nextIndex = getNextDisplayIndex(accounts)
+    expect(nextIndex).toBe(5)
+    expect(accounts.some((a) => a.displayIndex === nextIndex)).toBe(false)
+  })
+
+  it('handles a single remaining account', () => {
+    const accounts = [makeAccount({ displayIndex: 7, id: 'only' })]
+    expect(getNextDisplayIndex(accounts)).toBe(8)
   })
 })
 

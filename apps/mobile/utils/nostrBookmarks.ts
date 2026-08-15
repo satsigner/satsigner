@@ -3,12 +3,17 @@ import {
   encrypt as nip04Encrypt
 } from 'nostr-tools/nip04'
 
+import { NOSTR_EVENT_ID_HEX_LENGTH } from '@/constants/nostr'
 import { NostrParsedBookmark, NostrBookmarkSource } from '@/types/models/Nostr'
 
 export function parsePublicBookmarks(tags: string[][]): NostrParsedBookmark[] {
   const result: NostrParsedBookmark[] = []
   for (const tag of tags) {
-    if (tag[0] === 'e' && typeof tag[1] === 'string' && tag[1].length === 64) {
+    if (
+      tag[0] === 'e' &&
+      typeof tag[1] === 'string' &&
+      tag[1].length === NOSTR_EVENT_ID_HEX_LENGTH
+    ) {
       result.push({ eventId: tag[1], source: 'public' })
     }
   }
@@ -31,7 +36,7 @@ export function decryptPrivateBookmarks(
       if (
         tag[0] === 'e' &&
         typeof tag[1] === 'string' &&
-        tag[1].length === 64
+        tag[1].length === NOSTR_EVENT_ID_HEX_LENGTH
       ) {
         result.push({ eventId: tag[1], source: 'private' })
       }

@@ -6,8 +6,8 @@ import {
 } from 'nostr-tools/nip44'
 
 import {
-  NIP46_EVENT_KIND,
-  NIP46_SUBSCRIPTION_LOOKBACK_SECONDS,
+  NOSTR_NIP46_EVENT_KIND,
+  NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS,
   NOSTR_PUBLISH_TIMEOUT_MS,
   NOSTR_WS_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
@@ -153,8 +153,10 @@ export class Nip46BunkerService {
 
     const filter = {
       '#p': [signerPubkeyHex],
-      kinds: [NIP46_EVENT_KIND],
-      since: Math.floor(Date.now() / 1000) - NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
+      kinds: [NOSTR_NIP46_EVENT_KIND],
+      since:
+        Math.floor(Date.now() / 1000) -
+        NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
     }
     for (const ws of this.sockets) {
       subscribeOnSocket(ws, this.subId, filter, (event) => {
@@ -206,7 +208,7 @@ export class Nip46BunkerService {
       {
         content: encrypted,
         created_at: Math.floor(Date.now() / 1000),
-        kind: NIP46_EVENT_KIND,
+        kind: NOSTR_NIP46_EVENT_KIND,
         tags: [['p', clientPubkey]]
       },
       signerSecretKey
