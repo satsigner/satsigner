@@ -1,5 +1,5 @@
 import {
-  getSupportedSignMethod,
+  getSupportedSignMethods,
   signAddressMessage,
   verifyAddressMessage
 } from '@/utils/message'
@@ -10,27 +10,36 @@ import { bip322Taproot } from './bip322_samples'
 const [emptyMessageCase] = bip137Vectors.cases
 
 describe('message dispatcher', () => {
-  describe('getSupportedSignMethod', () => {
-    it('returns bip137 for P2PKH, P2WPKH, and P2SH-P2WPKH', () => {
-      expect(getSupportedSignMethod('P2PKH')).toBe('bip137')
-      expect(getSupportedSignMethod('P2WPKH')).toBe('bip137')
-      expect(getSupportedSignMethod('P2SH-P2WPKH')).toBe('bip137')
+  describe('getSupportedSignMethods', () => {
+    it('returns only bip137 for P2PKH', () => {
+      expect(getSupportedSignMethods('P2PKH')).toStrictEqual(['bip137'])
     })
 
-    it('returns bip322 for P2TR', () => {
-      expect(getSupportedSignMethod('P2TR')).toBe('bip322')
+    it('returns both bip137 and bip322 for P2WPKH and P2SH-P2WPKH', () => {
+      expect(getSupportedSignMethods('P2WPKH')).toStrictEqual([
+        'bip137',
+        'bip322'
+      ])
+      expect(getSupportedSignMethods('P2SH-P2WPKH')).toStrictEqual([
+        'bip137',
+        'bip322'
+      ])
     })
 
-    it('returns null for unsupported or missing script versions', () => {
-      expect(getSupportedSignMethod('P2WSH')).toBeNull()
-      expect(getSupportedSignMethod('P2SH-P2WSH')).toBeNull()
-      expect(getSupportedSignMethod('P2SH')).toBeNull()
-      expect(getSupportedSignMethod(undefined)).toBeNull()
+    it('returns only bip322 for P2TR', () => {
+      expect(getSupportedSignMethods('P2TR')).toStrictEqual(['bip322'])
+    })
+
+    it('returns an empty list for unsupported or missing script versions', () => {
+      expect(getSupportedSignMethods('P2WSH')).toStrictEqual([])
+      expect(getSupportedSignMethods('P2SH-P2WSH')).toStrictEqual([])
+      expect(getSupportedSignMethods('P2SH')).toStrictEqual([])
+      expect(getSupportedSignMethods(undefined)).toStrictEqual([])
     })
   })
 
   describe('signAddressMessage', () => {
-    it('routes P2WPKH to BIP-137 and matches the reference signature', () => {
+    it('signs P2WPKH with bip137 and matches the reference signature', () => {
       const privateKey = Buffer.from(bip137Vectors.privateKeyHex, 'hex')
       const { message, p2wpkh } = emptyMessageCase
       const signature = signAddressMessage(
@@ -38,9 +47,45 @@ describe('message dispatcher', () => {
         bip137Vectors.addresses.p2wpkh,
         message,
         'P2WPKH',
-        'bitcoin'
+        'bitcoin',
+        'bip137'
       )
       expect(signature).toBe(p2wpkh)
+    })
+
+    it('also signs P2WPKH with bip322, verifiable via the dispatcher', () => {
+      const privateKey = Buffer.from(bip137Vectors.privateKeyHex, 'hex')
+      const { message } = emptyMessageCase
+      const signature = signAddressMessage(
+        privateKey,
+        bip137Vectors.addresses.p2wpkh,
+        message,
+        'P2WPKH',
+        'bitcoin',
+        'bip322'
+      )
+      expect(
+        verifyAddressMessage(
+          bip137Vectors.addresses.p2wpkh,
+          message,
+          signature,
+          'bitcoin'
+        )
+      ).toStrictEqual({ method: 'bip322', valid: true })
+    })
+
+    it('throws when the method is not supported for the script version', () => {
+      const privateKey = Buffer.from(bip137Vectors.privateKeyHex, 'hex')
+      expect(() =>
+        signAddressMessage(
+          privateKey,
+          bip137Vectors.addresses.p2pkh,
+          'hi',
+          'P2PKH',
+          'bitcoin',
+          'bip322'
+        )
+      ).toThrow('not supported')
     })
 
     it('throws for an unsupported script version', () => {
@@ -51,7 +96,8 @@ describe('message dispatcher', () => {
           bip137Vectors.addresses.p2pkh,
           'hi',
           'P2WSH',
-          'bitcoin'
+          'bitcoin',
+          'bip137'
         )
       ).toThrow('not supported')
     })
@@ -77,6 +123,37 @@ describe('message dispatcher', () => {
         'bitcoin'
       )
       expect(result).toStrictEqual({ method: 'bip137', valid: true })
+    })
+
+    it('routes a P2WPKH bip137-shaped signature to BIP-137', () => {
+      const { message, p2wpkh } = emptyMessageCase
+      const result = verifyAddressMessage(
+        bip137Vectors.addresses.p2wpkh,
+        message,
+        p2wpkh,
+        'bitcoin'
+      )
+      expect(result).toStrictEqual({ method: 'bip137', valid: true })
+    })
+
+    it('routes a P2WPKH bip322-shaped signature to BIP-322', () => {
+      const privateKey = Buffer.from(bip137Vectors.privateKeyHex, 'hex')
+      const { message } = emptyMessageCase
+      const bip322Signature = signAddressMessage(
+        privateKey,
+        bip137Vectors.addresses.p2wpkh,
+        message,
+        'P2WPKH',
+        'bitcoin',
+        'bip322'
+      )
+      const result = verifyAddressMessage(
+        bip137Vectors.addresses.p2wpkh,
+        message,
+        bip322Signature,
+        'bitcoin'
+      )
+      expect(result).toStrictEqual({ method: 'bip322', valid: true })
     })
 
     it('returns method null for an unsupported address type', () => {

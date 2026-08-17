@@ -2,13 +2,11 @@ import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import {
   type Bip137AddressType,
+  isBip137SignatureFormat,
   signMessageBip137,
   verifyMessageBip137
 } from '@/utils/bip137'
-import {
-  signMessageBip322Taproot,
-  verifyMessageBip322Taproot
-} from '@/utils/bip322'
+import { signMessageBip322, verifyMessageBip322 } from '@/utils/bip322'
 import { getScriptTypeFromAddress } from '@/utils/bitcoin'
 
 export type MessageSignMethod = 'bip137' | 'bip322'
@@ -19,24 +17,23 @@ export type MessageVerifyResult = {
 }
 
 /**
- * BIP-137 covers legacy/segwit-v0 single-sig addresses; BIP-322 is only
- * implemented here for Taproot key-path spends, since BIP-137 has no
- * Taproot header range.
+ * P2PKH is BIP-137 only (no witness, so BIP-322 doesn't apply). P2TR is
+ * BIP-322 only (BIP-137 has no Taproot header range). P2WPKH and
+ * P2SH-P2WPKH support both, so the caller/UI picks which to sign with.
  */
-export function getSupportedSignMethod(
+export function getSupportedSignMethods(
   scriptVersion: ScriptVersionType | undefined
-): MessageSignMethod | null {
-  if (
-    scriptVersion === 'P2PKH' ||
-    scriptVersion === 'P2WPKH' ||
-    scriptVersion === 'P2SH-P2WPKH'
-  ) {
-    return 'bip137'
+): MessageSignMethod[] {
+  if (scriptVersion === 'P2PKH') {
+    return ['bip137']
+  }
+  if (scriptVersion === 'P2WPKH' || scriptVersion === 'P2SH-P2WPKH') {
+    return ['bip137', 'bip322']
   }
   if (scriptVersion === 'P2TR') {
-    return 'bip322'
+    return ['bip322']
   }
-  return null
+  return []
 }
 
 export function signAddressMessage(
@@ -44,9 +41,12 @@ export function signAddressMessage(
   address: string,
   message: string,
   scriptVersion: ScriptVersionType | undefined,
-  network: AppNetwork
+  network: AppNetwork,
+  method: MessageSignMethod
 ): string {
-  const method = getSupportedSignMethod(scriptVersion)
+  if (!getSupportedSignMethods(scriptVersion).includes(method)) {
+    throw new Error(`${method} is not supported for ${scriptVersion}`)
+  }
   if (method === 'bip137') {
     let addressType: Bip137AddressType = 'p2pkh'
     if (scriptVersion === 'P2WPKH') {
@@ -56,10 +56,7 @@ export function signAddressMessage(
     }
     return signMessageBip137(privateKey, message, addressType)
   }
-  if (method === 'bip322') {
-    return signMessageBip322Taproot(privateKey, address, message, network)
-  }
-  throw new Error(`Message signing is not supported for ${scriptVersion}`)
+  return signMessageBip322(privateKey, address, message, network)
 }
 
 export function verifyAddressMessage(
@@ -69,26 +66,33 @@ export function verifyAddressMessage(
   network: AppNetwork
 ): MessageVerifyResult {
   const scriptType = getScriptTypeFromAddress(address, network)
-  if (scriptType === 'p2tr') {
-    return {
-      method: 'bip322',
-      valid: verifyMessageBip322Taproot(
-        address,
-        message,
-        signatureBase64,
-        network
-      )
-    }
-  }
-  if (
-    scriptType === 'p2pkh' ||
-    scriptType === 'p2wpkh' ||
-    scriptType === 'p2sh'
-  ) {
+
+  if (scriptType === 'p2pkh') {
     return {
       method: 'bip137',
       valid: verifyMessageBip137(address, message, signatureBase64, network)
     }
   }
+
+  if (scriptType === 'p2tr') {
+    return {
+      method: 'bip322',
+      valid: verifyMessageBip322(address, message, signatureBase64, network)
+    }
+  }
+
+  if (scriptType === 'p2wpkh' || scriptType === 'p2sh') {
+    if (isBip137SignatureFormat(signatureBase64)) {
+      return {
+        method: 'bip137',
+        valid: verifyMessageBip137(address, message, signatureBase64, network)
+      }
+    }
+    return {
+      method: 'bip322',
+      valid: verifyMessageBip322(address, message, signatureBase64, network)
+    }
+  }
+
   return { method: null, valid: false }
 }

@@ -14,6 +14,27 @@
  * address type, used to validate the shared transaction-building helpers.
  */
 
+/**
+ * Official BIP-322 "simple" P2WPKH test vector from
+ * bip-0322/basic-test-vectors.json. `bip322_signatures[0]` there carries
+ * the newer draft `smp` prefix (decodes to a 2-item witness: DER-encoded
+ * ECDSA signature + compressed pubkey), used here as verify-only fixtures
+ * (produced by a different implementation, so not asserted as an exact
+ * sign-output match - ECDSA signatures aren't guaranteed byte-identical
+ * across implementations even when both are valid).
+ */
+export const bip322P2wpkh = {
+  address: 'bc1q9vza2e8x573nczrlzms0wvx3gsqjx7vavgkx0l',
+  // Same key's P2SH-P2WPKH address, for round-trip (non-official-vector) tests.
+  p2shAddress: '37qyp7jQAzqb2rCBpMvVtLDuuzKAUCVnJb',
+  privateKeyWif: 'L3VFeEujGtevx9w18HD1fhRbCH67Az2dpCymeRE1SoPK6XQtaN2k',
+  signatures: {
+    '': 'smpAkcwRAIgM2gBAQqvZX15ZiysmKmQpDrG83avLIT492QBzLnQIxYCIBaTpOaD20qRlEylyxFSeEA2ba9YOixpX8z46TSDtS40ASECx/EgAxlkQpQ9hYjgGu6EBCPMVPwVIVJqO4XCsMvViHI=',
+    'Hello World':
+      'smpAkcwRAIgZRfIY3p7/DoVTty6YZbWS71bc5Vct9p9Fia83eRmw2QCICK/ENGfwLtptFluMGs2KsqoNSk89pO7F29zJLUx9a/sASECx/EgAxlkQpQ9hYjgGu6EBCPMVPwVIVJqO4XCsMvViHI='
+  }
+}
+
 export const bip322Taproot = {
   address: 'bc1pcquvhrqv0q68t4m0hfq6tpn006qrskyc7yrqnp2uyrf2emg3wynsdjyk38',
   message: 'PURVOQ544B6HUATVBJZN5EZJUU',

@@ -33,6 +33,26 @@ function magicHash(message: string): Buffer {
   )
 }
 
+/**
+ * BIP-137 signatures are always exactly 65 bytes with a header byte in the
+ * 27-42 range. P2WPKH/P2SH-P2WPKH addresses can be signed with either
+ * BIP-137 or BIP-322, so this shape check is how a verifier distinguishes
+ * them from a BIP-322 witness-stack signature (which is never 65 bytes for
+ * a single-key spend: 1-byte count + 1-byte length + a 64/DER-encoded sig).
+ */
+export function isBip137SignatureFormat(signatureBase64: string): boolean {
+  try {
+    const signatureBuffer = Buffer.from(signatureBase64, 'base64')
+    if (signatureBuffer.length !== 65) {
+      return false
+    }
+    const flag = signatureBuffer[0] - 27
+    return flag >= 0 && flag <= 15
+  } catch {
+    return false
+  }
+}
+
 /** Sign a message per BIP-137, for a compressed-key single-sig address. */
 export function signMessageBip137(
   privateKey: Buffer,

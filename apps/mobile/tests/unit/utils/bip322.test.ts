@@ -4,12 +4,16 @@ import bs58check from 'bs58check'
 import {
   bip322MessageHash,
   buildToSpendTx,
+  signMessageBip322,
+  signMessageBip322SegwitV0,
   signMessageBip322Taproot,
+  verifyMessageBip322,
+  verifyMessageBip322SegwitV0,
   verifyMessageBip322Taproot
 } from '@/utils/bip322'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
-import { bip322Taproot, bip322TxHashes } from './bip322_samples'
+import { bip322P2wpkh, bip322Taproot, bip322TxHashes } from './bip322_samples'
 
 function privateKeyFromWif(wif: string): Buffer {
   const decoded = bs58check.decode(wif)
@@ -17,7 +21,7 @@ function privateKeyFromWif(wif: string): Buffer {
   return Buffer.from(decoded.slice(1, 33))
 }
 
-describe('bip322 utils (P2TR)', () => {
+describe('bip322 utils - P2TR', () => {
   describe('verifyMessageBip322Taproot', () => {
     it('verifies the official BIP-322 taproot test vector (no-prefix form)', () => {
       expect(
@@ -95,6 +99,23 @@ describe('bip322 utils (P2TR)', () => {
       ).toBe(true)
     })
 
+    it('produces an "smp"-prefixed, 65-byte SIGHASH_ALL signature (matching Sparrow)', () => {
+      const signature = signMessageBip322Taproot(
+        privateKey,
+        bip322Taproot.address,
+        bip322Taproot.message,
+        'bitcoin'
+      )
+      expect(signature.startsWith('smp')).toBe(true)
+      const witnessBytes = Buffer.from(signature.slice(3), 'base64')
+      // varint(1 item) + varint(65-byte item) + 65-byte sig (64-byte
+      // schnorr sig + trailing 0x01 SIGHASH_ALL byte)
+      expect(witnessBytes).toHaveLength(1 + 1 + 65)
+      expect(witnessBytes[0]).toBe(1)
+      expect(witnessBytes[1]).toBe(65)
+      expect(witnessBytes.at(-1)).toBe(1)
+    })
+
     it('produces a signature that fails verification for a different message', () => {
       const signature = signMessageBip322Taproot(
         privateKey,
@@ -139,5 +160,179 @@ describe('bip322 utils (P2TR)', () => {
         expect(toSpendTx.getId()).toBe(vector.toSpendTxHash)
       })
     }
+  })
+})
+
+describe('bip322 utils - P2WPKH / P2SH-P2WPKH', () => {
+  const privateKey = privateKeyFromWif(bip322P2wpkh.privateKeyWif)
+
+  describe('verifyMessageBip322SegwitV0', () => {
+    it('verifies the official P2WPKH test vector (empty message)', () => {
+      expect(
+        verifyMessageBip322SegwitV0(
+          bip322P2wpkh.address,
+          '',
+          bip322P2wpkh.signatures[''],
+          'bitcoin'
+        )
+      ).toBe(true)
+    })
+
+    it('verifies the official P2WPKH test vector ("Hello World")', () => {
+      expect(
+        verifyMessageBip322SegwitV0(
+          bip322P2wpkh.address,
+          'Hello World',
+          bip322P2wpkh.signatures['Hello World'],
+          'bitcoin'
+        )
+      ).toBe(true)
+    })
+
+    it('rejects the vector signature against the wrong message', () => {
+      expect(
+        verifyMessageBip322SegwitV0(
+          bip322P2wpkh.address,
+          'a different message',
+          bip322P2wpkh.signatures[''],
+          'bitcoin'
+        )
+      ).toBe(false)
+    })
+
+    it('rejects a malformed base64 signature', () => {
+      expect(
+        verifyMessageBip322SegwitV0(
+          bip322P2wpkh.address,
+          'test',
+          'not-base64!!',
+          'bitcoin'
+        )
+      ).toBe(false)
+    })
+  })
+
+  describe('sign/verify round trip', () => {
+    it('p2WPKH: a produced signature verifies against the same address/message', () => {
+      const signature = signMessageBip322SegwitV0(
+        privateKey,
+        bip322P2wpkh.address,
+        'satsigner round trip',
+        'bitcoin'
+      )
+      expect(
+        verifyMessageBip322SegwitV0(
+          bip322P2wpkh.address,
+          'satsigner round trip',
+          signature,
+          'bitcoin'
+        )
+      ).toBe(true)
+    })
+
+    it('produces an "smp"-prefixed signature (matching Sparrow)', () => {
+      const signature = signMessageBip322SegwitV0(
+        privateKey,
+        bip322P2wpkh.address,
+        'satsigner round trip',
+        'bitcoin'
+      )
+      expect(signature.startsWith('smp')).toBe(true)
+    })
+
+    it('p2SH-P2WPKH: a produced signature verifies against the same address/message', () => {
+      const signature = signMessageBip322SegwitV0(
+        privateKey,
+        bip322P2wpkh.p2shAddress,
+        'satsigner round trip',
+        'bitcoin'
+      )
+      expect(
+        verifyMessageBip322SegwitV0(
+          bip322P2wpkh.p2shAddress,
+          'satsigner round trip',
+          signature,
+          'bitcoin'
+        )
+      ).toBe(true)
+    })
+
+    it('rejects a P2WPKH signature verified against the wrong address', () => {
+      const signature = signMessageBip322SegwitV0(
+        privateKey,
+        bip322P2wpkh.address,
+        'satsigner round trip',
+        'bitcoin'
+      )
+      expect(
+        verifyMessageBip322SegwitV0(
+          bip322Taproot.address,
+          'satsigner round trip',
+          signature,
+          'bitcoin'
+        )
+      ).toBe(false)
+    })
+  })
+})
+
+describe('bip322 utils - dispatcher', () => {
+  const privateKey = privateKeyFromWif(bip322P2wpkh.privateKeyWif)
+  const taprootPrivateKey = privateKeyFromWif(bip322Taproot.privateKeyWif)
+
+  it('routes P2WPKH sign+verify through the segwit-v0 path', () => {
+    const signature = signMessageBip322(
+      privateKey,
+      bip322P2wpkh.address,
+      'dispatch test',
+      'bitcoin'
+    )
+    expect(
+      verifyMessageBip322(
+        bip322P2wpkh.address,
+        'dispatch test',
+        signature,
+        'bitcoin'
+      )
+    ).toBe(true)
+  })
+
+  it('routes P2TR sign+verify through the taproot path', () => {
+    const signature = signMessageBip322(
+      taprootPrivateKey,
+      bip322Taproot.address,
+      'dispatch test',
+      'bitcoin'
+    )
+    expect(
+      verifyMessageBip322(
+        bip322Taproot.address,
+        'dispatch test',
+        signature,
+        'bitcoin'
+      )
+    ).toBe(true)
+  })
+
+  it('throws when signing for an unsupported address type', () => {
+    expect(() =>
+      signMessageBip322(
+        privateKey,
+        'bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3', // P2WSH
+        'dispatch test',
+        'bitcoin'
+      )
+    ).toThrow('not supported')
+  })
+
+  it('returns false when verifying for an unsupported address type', () => {
+    expect(
+      verifyMessageBip322(
+        'bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3', // P2WSH
+        'dispatch test',
+        bip322P2wpkh.signatures[''],
+        'bitcoin'
+      )
+    ).toBe(false)
   })
 })

@@ -20,7 +20,7 @@ import { getAddressDerivationPath } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { getAddressKeyPair } from '@/utils/key'
 import {
-  getSupportedSignMethod,
+  getSupportedSignMethods,
   type MessageSignMethod,
   signAddressMessage
 } from '@/utils/message'
@@ -45,7 +45,7 @@ function AddressSignMessage() {
   const derivationPath =
     account && address ? getAddressDerivationPath(account, address) : ''
 
-  const supportedMethod = getSupportedSignMethod(address?.scriptVersion)
+  const supportedMethods = getSupportedSignMethods(address?.scriptVersion)
 
   async function handleSign(method: MessageSignMethod) {
     if (!message.trim() || isSigning) {
@@ -81,7 +81,8 @@ function AddressSignMessage() {
         addr,
         message,
         address.scriptVersion,
-        account.network
+        account.network,
+        method
       )
       privateKey.fill(0)
       setSignature(result)
@@ -159,11 +160,11 @@ function AddressSignMessage() {
           <SSButton
             label={t('address.signMessage.signBip137')}
             variant="outline"
-            disabled={supportedMethod !== 'bip137' || !message.trim()}
+            disabled={!supportedMethods.includes('bip137') || !message.trim()}
             loading={isSigning && signMethod === 'bip137'}
             onPress={handleSignBip137}
           />
-          {supportedMethod !== 'bip137' && (
+          {!supportedMethods.includes('bip137') && (
             <SSText color="muted" size="xs">
               {t('address.signMessage.bip137Unavailable')}
             </SSText>
@@ -171,11 +172,11 @@ function AddressSignMessage() {
           <SSButton
             label={t('address.signMessage.signBip322')}
             variant="outline"
-            disabled={supportedMethod !== 'bip322' || !message.trim()}
+            disabled={!supportedMethods.includes('bip322') || !message.trim()}
             loading={isSigning && signMethod === 'bip322'}
             onPress={handleSignBip322}
           />
-          {supportedMethod !== 'bip322' && (
+          {!supportedMethods.includes('bip322') && (
             <SSText color="muted" size="xs">
               {t('address.signMessage.bip322Unavailable')}
             </SSText>
@@ -189,7 +190,9 @@ function AddressSignMessage() {
         {!isSigning && signature && (
           <SSVStack gap="sm">
             <SSText uppercase weight="bold">
-              {t('address.signMessage.signature')}
+              {signMethod === 'bip137'
+                ? t('address.signMessage.signatureBip137')
+                : t('address.signMessage.signatureBip322')}
             </SSText>
             <SSClipboardCopy text={signature}>
               <SSText type="mono" size="sm">
