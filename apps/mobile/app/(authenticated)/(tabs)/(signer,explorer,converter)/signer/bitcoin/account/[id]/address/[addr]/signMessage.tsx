@@ -1,5 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
+import { Share } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -115,6 +116,17 @@ function AddressSignMessage() {
     setPendingMethod('bip322')
   }
 
+  async function handleShareSignature() {
+    if (!signature) {
+      return
+    }
+    try {
+      await Share.share({ message: signature })
+    } catch {
+      toast.error(t('address.signMessage.shareError'))
+    }
+  }
+
   if (!account || !address || !addr) {
     return <Redirect href="/" />
   }
@@ -193,6 +205,18 @@ function AddressSignMessage() {
                 {signature}
               </SSText>
             </SSClipboardCopy>
+            <SSClipboardCopy text={signature}>
+              <SSButton
+                label={t('common.copyToClipboard')}
+                variant="outline"
+                onPress={() => true}
+              />
+            </SSClipboardCopy>
+            <SSButton
+              label={t('common.share')}
+              variant="outline"
+              onPress={handleShareSignature}
+            />
           </SSVStack>
         )}
       </SSVStack>
