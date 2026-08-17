@@ -7,8 +7,6 @@ import { useShallow } from 'zustand/react/shallow'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSModal from '@/components/SSModal'
-import SSPinAuth from '@/components/SSPinAuth'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -43,19 +41,17 @@ function AddressSignMessage() {
   const [isSigning, setIsSigning] = useState(false)
   const [signMethod, setSignMethod] = useState<MessageSignMethod | null>(null)
   const [signature, setSignature] = useState('')
-  const [pendingMethod, setPendingMethod] = useState<MessageSignMethod | null>(
-    null
-  )
 
   const derivationPath =
     account && address ? getAddressDerivationPath(account, address) : ''
 
   const supportedMethod = getSupportedSignMethod(address?.scriptVersion)
 
-  async function handlePinSuccess() {
-    const method = pendingMethod
-    setPendingMethod(null)
-    if (!account || !address || !addr || !method) {
+  async function handleSign(method: MessageSignMethod) {
+    if (!message.trim() || isSigning) {
+      return
+    }
+    if (!account || !address || !addr) {
       return
     }
     const [key] = account.keys
@@ -97,22 +93,12 @@ function AddressSignMessage() {
     }
   }
 
-  function handlePinTriesOver() {
-    setPendingMethod(null)
-  }
-
   function handleSignBip137() {
-    if (!message.trim() || isSigning) {
-      return
-    }
-    setPendingMethod('bip137')
+    handleSign('bip137')
   }
 
   function handleSignBip322() {
-    if (!message.trim() || isSigning) {
-      return
-    }
-    setPendingMethod('bip322')
+    handleSign('bip322')
   }
 
   async function handleShareSignature() {
@@ -219,14 +205,6 @@ function AddressSignMessage() {
           </SSVStack>
         )}
       </SSVStack>
-      <SSModal visible={!!pendingMethod} onClose={() => setPendingMethod(null)}>
-        <SSPinAuth
-          title={t('account.enter.pin')}
-          onSuccess={handlePinSuccess}
-          onTriesOver={handlePinTriesOver}
-          maxTries={3}
-        />
-      </SSModal>
     </SSScrollView>
   )
 }
