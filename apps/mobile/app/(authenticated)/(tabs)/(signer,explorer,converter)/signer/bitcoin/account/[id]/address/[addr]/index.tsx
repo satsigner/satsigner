@@ -32,6 +32,7 @@ import { getAccountFingerprint } from '@/utils/account'
 import {
   bitcoinjsNetwork,
   getAddressDerivationPath,
+  privateKeyHexToWif
 } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { formatNumber } from '@/utils/format'
@@ -82,6 +83,11 @@ function AddressDetails() {
     null
   )
   const [keyUnavailable, setKeyUnavailable] = useState(false)
+
+  const privateKeyWif =
+    addressKeyPair && account
+      ? privateKeyHexToWif(addressKeyPair.privateKey, account.network)
+      : undefined
 
   const key = account?.keys[0]
 
@@ -315,6 +321,11 @@ function AddressDetails() {
                   [
                     t('address.details.key.private'),
                     addressKeyPair?.privateKey,
+                    { copyToClipboard: true, variant: 'mono' }
+                  ],
+                  [
+                    t('address.details.key.privateWif'),
+                    privateKeyWif,
                     { copyToClipboard: true, variant: 'mono' }
                   ]
                 ]}

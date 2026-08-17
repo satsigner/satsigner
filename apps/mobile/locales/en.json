@@ -447,6 +447,7 @@
     "details.history.tx": "Total transactions",
     "details.history.utxo": "Total UTXOs",
     "details.key.private": "Private key",
+    "details.key.privateWif": "Private key (WIF)",
     "details.key.public": "Public key",
     "details.key.reveal": "Reveal keys",
     "details.key.title": "Key information",
