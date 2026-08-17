@@ -3,7 +3,6 @@ import { address as bjsAddress, initEccLib, networks } from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 import { Network as BdkNetwork } from 'react-native-bdk-sdk'
 
-import { Account, Key } from '@/types/models/Account'
 import {
   BIP44_PURPOSE,
   BIP45_PURPOSE,
@@ -14,6 +13,7 @@ import {
   BIP84_PURPOSE,
   BIP86_PURPOSE
 } from '@/constants/derivation'
+import { Account, Key } from '@/types/models/Account'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 

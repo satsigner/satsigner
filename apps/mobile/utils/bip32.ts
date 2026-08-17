@@ -7,7 +7,6 @@ import {
   Network as BDKNetwork
 } from 'react-native-bdk-sdk'
 
-import { type AddressKeyPair } from '@/types/models/Address'
 import {
   BIP44_PURPOSE,
   BIP45_PURPOSE,
@@ -18,6 +17,7 @@ import {
   BIP84_PURPOSE,
   BIP86_PURPOSE
 } from '@/constants/derivation'
+import { type AddressKeyPair } from '@/types/models/Address'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import {
