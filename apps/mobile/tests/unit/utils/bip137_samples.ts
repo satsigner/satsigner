@@ -1,10 +1,12 @@
 /**
  * BIP-137 sign/verify test vectors.
  *
- * Signatures were cross-generated and self-verified with the independent
- * `bip322-js` reference implementation (github.com/ACken2/bip322-js), using
- * deterministic RFC6979 ECDSA signing, so exact-byte comparison is
- * meaningful here.
+ * Signatures are cross-generated and self-verified with the independent
+ * `ecpair` reference implementation (github.com/bitcoinjs/ecpair), signing
+ * with `lowR: true` - the same low-R grinding technique satsigner uses
+ * (see utils/ecdsaLowR.ts), matching Bitcoin Core / LND / bitcoinjs-lib.
+ * Since ECDSA here is RFC6979-deterministic and low-R is fully specified,
+ * exact-byte comparison is meaningful.
  */
 
 export const bip137Vectors = {
@@ -24,22 +26,26 @@ export const bip137Vectors = {
         'KGswcd3b9uL6/EeP3Yy4U3nR2Otlgitg4WPjYstDWG2oYL156b2rIEO6PYNaWss5S41F9UnJE7PEu5/XpIR6wmI='
     },
     {
+      // The unground RFC6979 signature for this message is high-R, so the
+      // grinding loop retries once to find this low-R signature - unlike
+      // the '' case above, which happens to be low-R on the first attempt.
       message: 'Hello World',
       p2pkh:
-        'H+VOaJqYujtXtcPDtZ6W6IgkgfFgy+84R5KKWfTyJ5kTEDWMxs8as6x04VcNL8ONsavGfnixvOGYB2aWfZ14eCw=',
+        'Hzr8fTaRrKgOciIS3SoZ6RUr0z/dSDniOidVz/fZSzxdWddmU6/JteqouK21nOl6JBLkXaJfL53AgBgbjOquxMQ=',
       p2shP2wpkh:
-        'I+VOaJqYujtXtcPDtZ6W6IgkgfFgy+84R5KKWfTyJ5kTEDWMxs8as6x04VcNL8ONsavGfnixvOGYB2aWfZ14eCw=',
+        'Izr8fTaRrKgOciIS3SoZ6RUr0z/dSDniOidVz/fZSzxdWddmU6/JteqouK21nOl6JBLkXaJfL53AgBgbjOquxMQ=',
       p2wpkh:
-        'J+VOaJqYujtXtcPDtZ6W6IgkgfFgy+84R5KKWfTyJ5kTEDWMxs8as6x04VcNL8ONsavGfnixvOGYB2aWfZ14eCw='
+        'Jzr8fTaRrKgOciIS3SoZ6RUr0z/dSDniOidVz/fZSzxdWddmU6/JteqouK21nOl6JBLkXaJfL53AgBgbjOquxMQ='
     },
     {
+      // Also high-R unground; see the 'Hello World' comment above.
       message: 'satsigner BIP-137 test vector',
       p2pkh:
-        'H/N3DLwjTNBTZq4lB6lkqEAFAnDKCyVQssapKdMBuYvDREJKIdgQLuiGkb3wigLw2az8HAQYtm/Ty36UxiV7/QQ=',
+        'Hz/u9+a9xZ7jamvSbeVubiuAFoC1x/M0HGByDAYwIVV5fPav6xXXYC3Y7jogIsfAGc7jA9fDcjx76GU5opeWgWc=',
       p2shP2wpkh:
-        'I/N3DLwjTNBTZq4lB6lkqEAFAnDKCyVQssapKdMBuYvDREJKIdgQLuiGkb3wigLw2az8HAQYtm/Ty36UxiV7/QQ=',
+        'Iz/u9+a9xZ7jamvSbeVubiuAFoC1x/M0HGByDAYwIVV5fPav6xXXYC3Y7jogIsfAGc7jA9fDcjx76GU5opeWgWc=',
       p2wpkh:
-        'J/N3DLwjTNBTZq4lB6lkqEAFAnDKCyVQssapKdMBuYvDREJKIdgQLuiGkb3wigLw2az8HAQYtm/Ty36UxiV7/QQ='
+        'Jz/u9+a9xZ7jamvSbeVubiuAFoC1x/M0HGByDAYwIVV5fPav6xXXYC3Y7jogIsfAGc7jA9fDcjx76GU5opeWgWc='
     }
   ],
   privateKeyHex:

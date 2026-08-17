@@ -12,6 +12,7 @@ import * as varuint from 'varuint-bitcoin'
 
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork, getScriptTypeFromAddress } from '@/utils/bitcoin'
+import { isLowR, lowRExtraEntropy } from '@/utils/ecdsaLowR'
 
 initEccLib(ecc)
 
@@ -225,6 +226,21 @@ export function verifyMessageBip322Taproot(
   }
 }
 
+/**
+ * Signs with RFC6979, grinding for a "low-R" signature (retrying with
+ * incrementing extra entropy until found) so the signature stays a
+ * consistent, compact size - matching Bitcoin Core, LND, and bitcoinjs-lib.
+ */
+function signLowR(hash: Buffer, privateKey: Buffer): Buffer {
+  let signature = ecc.sign(hash, privateKey)
+  let counter = 0
+  while (!isLowR(signature)) {
+    counter += 1
+    signature = ecc.sign(hash, privateKey, lowRExtraEntropy(counter))
+  }
+  return Buffer.from(signature)
+}
+
 /** Sign a message per BIP-322 "simple", P2WPKH / P2SH-P2WPKH key spend. */
 export function signMessageBip322SegwitV0(
   privateKey: Buffer,
@@ -245,7 +261,7 @@ export function signMessageBip322SegwitV0(
   const toSpendTx = buildToSpendTx(scriptPubKey, message)
   const toSignTx = buildToSignTxSkeleton(toSpendTx)
   const sighash = segwitV0Sighash(toSignTx, pubkeyHash)
-  const rawSignature = Buffer.from(ecc.sign(sighash, privateKey))
+  const rawSignature = signLowR(sighash, privateKey)
   const derSignature = bscript.signature.encode(
     rawSignature,
     Transaction.SIGHASH_ALL

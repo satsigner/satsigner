@@ -171,6 +171,41 @@ describe('bip137 utils', () => {
     })
   })
 
+  describe('low-R signing', () => {
+    const LOW_R_MASK = 0x7f
+
+    it('always produces a low-R signature, even when the first RFC6979 attempt is high-R', () => {
+      // A varied set of messages so at least some exercise the grinding
+      // retry loop (an unground RFC6979 signature is high-R about half
+      // the time) rather than only the lucky-first-try case.
+      const messages = [
+        'a',
+        'ab',
+        'abc',
+        'test',
+        'test 1',
+        'test 12',
+        'test 123',
+        'grind me please',
+        ''
+      ]
+      for (const message of messages) {
+        const signature = signMessageBip137(privateKey, message, 'p2wpkh')
+        const decoded = Buffer.from(signature, 'base64')
+        // decoded[0] is the header byte; decoded[1] is r's most significant byte.
+        expect(decoded[1]).toBeLessThanOrEqual(LOW_R_MASK)
+        expect(
+          verifyMessageBip137(
+            bip137Vectors.addresses.p2wpkh,
+            message,
+            signature,
+            'bitcoin'
+          )
+        ).toBe(true)
+      }
+    })
+  })
+
   // Regression: getAddressDerivationPath used to omit the change level,
   // deriving an unrelated key, so a freshly-signed message failed verify.
   describe('sign-then-verify round trip against a real derived key', () => {

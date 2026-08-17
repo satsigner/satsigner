@@ -9,6 +9,7 @@ import * as varuint from 'varuint-bitcoin'
 
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { isLowR, lowRExtraEntropy } from '@/utils/ecdsaLowR'
 
 initEccLib(ecc)
 
@@ -53,6 +54,21 @@ export function isBip137SignatureFormat(signatureBase64: string): boolean {
   }
 }
 
+/**
+ * Signs with RFC6979, grinding for a "low-R" signature (retrying with
+ * incrementing extra entropy until found) so the signature stays a
+ * consistent, compact size - matching Bitcoin Core, LND, and bitcoinjs-lib.
+ */
+function signRecoverableLowR(hash: Buffer, privateKey: Buffer) {
+  let result = ecc.signRecoverable(hash, privateKey)
+  let counter = 0
+  while (!isLowR(result.signature)) {
+    counter += 1
+    result = ecc.signRecoverable(hash, privateKey, lowRExtraEntropy(counter))
+  }
+  return result
+}
+
 /** Sign a message per BIP-137, for a compressed-key single-sig address. */
 export function signMessageBip137(
   privateKey: Buffer,
@@ -60,7 +76,7 @@ export function signMessageBip137(
   addressType: Bip137AddressType
 ): string {
   const hash = magicHash(message)
-  const { signature, recoveryId } = ecc.signRecoverable(hash, privateKey)
+  const { signature, recoveryId } = signRecoverableLowR(hash, privateKey)
   const header = HEADER_OFFSET[addressType] + recoveryId
   return Buffer.concat([
     Buffer.from([header]),

@@ -274,6 +274,48 @@ describe('bip322 utils - P2WPKH / P2SH-P2WPKH', () => {
       ).toBe(false)
     })
   })
+
+  describe('low-R signing', () => {
+    // With low-S already enforced by the underlying curve, a DER signature
+    // (including the 1-byte SIGHASH_ALL suffix) is exactly 71 bytes
+    // (6-byte ASN.1 overhead + 32-byte r + 32-byte s + 1) when r is also
+    // low; a high-R signature needs one extra padding byte (72).
+    const LOW_R_DER_LENGTH = 71
+
+    it('always produces a compact (low-R) DER signature', () => {
+      const messages = [
+        'a',
+        'ab',
+        'abc',
+        'test',
+        'test 1',
+        'test 12',
+        'test 123',
+        'grind me please',
+        ''
+      ]
+      for (const message of messages) {
+        const signature = signMessageBip322SegwitV0(
+          privateKey,
+          bip322P2wpkh.address,
+          message,
+          'bitcoin'
+        )
+        const witnessBytes = Buffer.from(signature.slice(3), 'base64')
+        // varint(2 items) + varint(sig length) + sig + varint(33) + pubkey
+        const [, derLength] = witnessBytes
+        expect(derLength).toBeLessThanOrEqual(LOW_R_DER_LENGTH)
+        expect(
+          verifyMessageBip322SegwitV0(
+            bip322P2wpkh.address,
+            message,
+            signature,
+            'bitcoin'
+          )
+        ).toBe(true)
+      }
+    })
+  })
 })
 
 describe('bip322 utils - dispatcher', () => {
