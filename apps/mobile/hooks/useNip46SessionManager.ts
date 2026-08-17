@@ -1,5 +1,5 @@
 import { Nip46BunkerService } from '@/api/nostrNip446'
-import { NIP46_SUPPORTED_METHODS } from '@/constants/nostr'
+import { NOSTR_NIP46_SUPPORTED_METHODS } from '@/constants/nostr'
 import { useNip46Store } from '@/store/nip46'
 import type {
   Nip46Method,
@@ -32,7 +32,7 @@ async function fireAndForget(promise: Promise<unknown>): Promise<void> {
 }
 
 function isValidMethod(method: string): method is Nip46Method {
-  return NIP46_SUPPORTED_METHODS.includes(method as Nip46Method)
+  return NOSTR_NIP46_SUPPORTED_METHODS.includes(method as Nip46Method)
 }
 
 function getPendingRequestById(requestId: string): Nip46Request | undefined {

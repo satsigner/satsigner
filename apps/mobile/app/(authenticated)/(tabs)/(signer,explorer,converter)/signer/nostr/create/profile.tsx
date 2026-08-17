@@ -6,7 +6,7 @@ import { toast } from 'sonner-native'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { BLOSSOM_DEFAULT_SERVER } from '@/constants/nostr'
+import { NOSTR_BLOSSOM_DEFAULT_SERVER } from '@/constants/nostr'
 import useBlossomImageUpload from '@/hooks/useBlossomImageUpload'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
@@ -34,7 +34,7 @@ export default function ProfileSetup() {
     useBlossomImageUpload(params.nsec ?? '')
 
   async function handleUploadPicture() {
-    const url = await uploadPicture(BLOSSOM_DEFAULT_SERVER)
+    const url = await uploadPicture(NOSTR_BLOSSOM_DEFAULT_SERVER)
     if (url) {
       setPictureUrl(url)
     }

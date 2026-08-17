@@ -4,8 +4,10 @@ import { immer } from 'zustand/middleware/immer'
 
 import {
   type BlockchainConfig,
+  DEFAULT_CONNECTION_TEST_INTERVAL_SECONDS,
   DEFAULT_RETRIES,
   DEFAULT_STOP_GAP,
+  DEFAULT_TIME_DIFF_BEFORE_AUTO_SYNC_MINUTES,
   DEFAULT_TIME_OUT,
   getBlockchainConfig,
   MEMPOOL_MAINNET_URL,
@@ -61,10 +63,10 @@ const createDefaultNetworkConfig = (
 ): NetworkConfig => ({
   config: {
     connectionMode: 'auto',
-    connectionTestInterval: 60,
+    connectionTestInterval: DEFAULT_CONNECTION_TEST_INTERVAL_SECONDS,
     retries: DEFAULT_RETRIES,
     stopGap: DEFAULT_STOP_GAP,
-    timeDiffBeforeAutoSync: 30,
+    timeDiffBeforeAutoSync: DEFAULT_TIME_DIFF_BEFORE_AUTO_SYNC_MINUTES,
     timeout: DEFAULT_TIME_OUT
   },
   server: {

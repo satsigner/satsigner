@@ -1,10 +1,7 @@
 import { Platform } from 'react-native'
 
-import BitcoinRpc, {
-  adjustRpcUrl,
-  BitcoinCoreWallet,
-  RPC_DEFAULT_TIMEOUT_MS
-} from '@/api/rpc'
+import BitcoinRpc, { adjustRpcUrl, BitcoinCoreWallet } from '@/api/rpc'
+import { RPC_DEFAULT_TIMEOUT_MS } from '@/constants/rpc'
 
 jest.mock<typeof import('react-native')>('react-native', () => ({
   Platform: { OS: 'ios' }

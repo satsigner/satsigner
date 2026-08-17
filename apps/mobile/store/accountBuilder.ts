@@ -1,11 +1,14 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
+import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
 import { dropSeedFromKeyInMemory } from '@/utils/account'
 import { randomIv, randomUuid } from '@/utils/crypto'
+
+const DEFAULT_MNEMONIC_WORD_COUNT = 24
 
 type AccountBuilderState = {
   name: Account['name']
@@ -101,7 +104,7 @@ type AccountBuilderAction = {
 // Initial state for account builder store
 const initialState: AccountBuilderState = {
   creationType: 'importMnemonic',
-  displayIndex: 1000,
+  displayIndex: INITIAL_DISPLAY_INDEX,
   entropy: 'none',
   extendedPublicKey: undefined,
   externalDescriptor: undefined,
@@ -112,7 +115,7 @@ const initialState: AccountBuilderState = {
   keys: [],
   keysRequired: 0,
   mnemonic: '',
-  mnemonicWordCount: 24,
+  mnemonicWordCount: DEFAULT_MNEMONIC_WORD_COUNT,
   mnemonicWordList: 'english',
   name: '',
   network: 'signet',
@@ -151,7 +154,7 @@ const useAccountBuilderStore = create<
         keys: [],
         keysRequired,
         mnemonic: '',
-        mnemonicWordCount: 24,
+        mnemonicWordCount: DEFAULT_MNEMONIC_WORD_COUNT,
         name,
         network,
         passphrase: undefined,
@@ -185,7 +188,7 @@ const useAccountBuilderStore = create<
         internalDescriptor,
         keyName: '',
         mnemonic: '',
-        mnemonicWordCount: 24,
+        mnemonicWordCount: DEFAULT_MNEMONIC_WORD_COUNT,
         passphrase: undefined,
         policyType,
         scriptVersion

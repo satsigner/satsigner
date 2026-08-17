@@ -2,6 +2,7 @@ import * as ecc from '@bitcoinerlab/secp256k1'
 import BIP32Factory from 'bip32'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
+import { PSBT_MAGIC_HEX } from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
@@ -850,7 +851,7 @@ export function validateNormalizedPsbt(
 }
 
 export function normalizePsbtToBase64(psbt: string): string {
-  if (psbt.toLowerCase().startsWith('70736274ff')) {
+  if (psbt.toLowerCase().startsWith(PSBT_MAGIC_HEX)) {
     return Buffer.from(psbt, 'hex').toString('base64')
   }
   if (

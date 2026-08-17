@@ -16,7 +16,14 @@ import {
 import {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
-  PAYJOIN_DEFAULT_PJOS
+  PAYJOIN_DEFAULT_PJOS,
+  PAYJOIN_FETCH_TIMEOUT_MS,
+  PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
+  PAYJOIN_QUICK_POLL_DEFAULT_MS,
+  PAYJOIN_QUICK_POLL_INTERVAL_MS,
+  PAYJOIN_QUICK_POLL_MAX_MS,
+  PAYJOIN_RESUME_POLL_DEFAULT_TIMEOUT_MS,
+  PAYJOIN_RESUME_POLL_INTERVAL_MS
 } from '@/constants/payjoin'
 import {
   buildNewSession,
@@ -89,8 +96,6 @@ function endSenderPost(): void {
 function isSenderPostInFlight(): boolean {
   return senderPostDepth > 0
 }
-
-const PAYJOIN_FETCH_TIMEOUT_MS = 90_000
 
 function withTimeoutSignal(
   parent: AbortSignal | undefined,
@@ -235,7 +240,12 @@ async function defaultFetch(
       : (init?.body ?? new Uint8Array())
   const nativeStartedAt = Date.now()
   try {
-    const native = await httpPost(url, contentType, bodyBytes, 45_000)
+    const native = await httpPost(
+      url,
+      contentType,
+      bodyBytes,
+      PAYJOIN_NATIVE_HTTP_TIMEOUT_MS
+    )
     if (init?.signal?.aborted) {
       throw new Error('The operation was aborted')
     }
@@ -696,7 +706,8 @@ async function startBip77SendOnce(
         }
 
         // Short poll in case the receiver is already online.
-        const quickDeadline = Date.now() + (params.quickPollMs ?? 3_000)
+        const quickDeadline =
+          Date.now() + (params.quickPollMs ?? PAYJOIN_QUICK_POLL_DEFAULT_MS)
         let quickPolls = 0
         while (Date.now() < quickDeadline) {
           quickPolls += 1
@@ -739,7 +750,7 @@ async function startBip77SendOnce(
             break
           }
           state = processed.state
-          await sleep(400)
+          await sleep(PAYJOIN_QUICK_POLL_INTERVAL_MS)
         }
 
         const session = buildNewSession({
@@ -833,7 +844,8 @@ async function pollBip77Send(params: {
   const fetchImpl = params.fetchImpl ?? defaultFetch
   let state = params.session.nativeState
   let lastError = 'still waiting for receiver'
-  const deadline = Date.now() + (params.timeoutMs ?? 15_000)
+  const deadline =
+    Date.now() + (params.timeoutMs ?? PAYJOIN_RESUME_POLL_DEFAULT_TIMEOUT_MS)
   const mailbox = mailboxFromEndpoint(params.session.pjEndpoint)
   const startedAt = Date.now()
   let polls = 0
@@ -862,7 +874,7 @@ async function pollBip77Send(params: {
   payjoinLog('sender resume poll', {
     mailbox,
     sessionId: params.session.id,
-    timeoutMs: params.timeoutMs ?? 15_000
+    timeoutMs: params.timeoutMs ?? PAYJOIN_RESUME_POLL_DEFAULT_TIMEOUT_MS
   })
 
   usePayjoinSessionsStore
@@ -950,7 +962,7 @@ async function pollBip77Send(params: {
         break
       }
       state = processed.state
-      await sleep(500)
+      await sleep(PAYJOIN_RESUME_POLL_INTERVAL_MS)
     }
   } catch (error) {
     lastError = error instanceof Error ? error.message : lastError
@@ -1001,7 +1013,7 @@ async function sendBip77(params: {
     outputScriptsHex: params.outputScriptsHex,
     payjoinUri: params.payjoinUri,
     paymentAmountSats: params.paymentAmountSats,
-    quickPollMs: Math.min(params.timeoutMs, 5_000)
+    quickPollMs: Math.min(params.timeoutMs, PAYJOIN_QUICK_POLL_MAX_MS)
   })
 
   if (started.kind === 'proposal') {
