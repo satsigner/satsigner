@@ -14,6 +14,7 @@ import {
   BIP86_PURPOSE
 } from '@/constants/derivation'
 import { Account, Key } from '@/types/models/Account'
+import { type Address } from '@/types/models/Address'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 
@@ -150,6 +151,27 @@ export function bitcoinjsNetwork(network: AppNetwork): networks.Network {
     default:
       return networks['bitcoin']
   }
+}
+
+const WIF_COMPRESSED_FLAG = 0x01
+
+/**
+ * Encode a raw 32-byte private key (hex) as WIF, the standard human-facing
+ * format shown by most wallets and tools (e.g. iancoleman.io/bip39) -
+ * unlike raw hex, WIF embeds the network and a compressed-pubkey flag, so
+ * two encodings of the same key look nothing alike.
+ */
+export function privateKeyHexToWif(
+  privateKeyHex: string,
+  network: AppNetwork
+): string {
+  const { wif } = bitcoinjsNetwork(network)
+  const payload = Buffer.concat([
+    Buffer.from([wif]),
+    Buffer.from(privateKeyHex, 'hex'),
+    Buffer.from([WIF_COMPRESSED_FLAG])
+  ])
+  return bs58check.encode(payload)
 }
 
 // TODO: refactor all vibe code below, which is duplicate of other utils.
@@ -321,6 +343,32 @@ export function getAccountDerivationPath(
   }
   const { network } = account
   return getDerivationPathFromScriptVersion(scriptVersion, network)
+}
+
+/**
+ * Full derivation path for a specific address. Addresses built from BDK's
+ * peekAddress() (see api/bdk.ts#getWalletAddresses) don't carry their own
+ * derivationPath, so this reconstructs it from the account path plus the
+ * change level (0=external, 1=internal) and index. IMPORTANT: the change
+ * level must be included - `${accountPath}/${index}` alone derives a
+ * completely different (wrong) key, since it's missing a whole path level.
+ */
+export function getAddressDerivationPath(
+  account: Account,
+  address: Pick<Address, 'derivationPath' | 'index' | 'keychain'>
+): string {
+  if (address.derivationPath) {
+    return address.derivationPath
+  }
+  if (address.index === undefined || !address.keychain) {
+    return ''
+  }
+  const accountPath = getAccountDerivationPath(account)
+  if (!accountPath) {
+    return ''
+  }
+  const change = address.keychain === 'internal' ? 1 : 0
+  return `${accountPath}/${change}/${address.index}`
 }
 
 export function getMultisigDerivationPathFromScriptVersion(

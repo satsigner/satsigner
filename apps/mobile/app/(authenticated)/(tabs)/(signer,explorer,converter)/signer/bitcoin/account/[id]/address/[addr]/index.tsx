@@ -29,7 +29,10 @@ import { Address, type AddressKeyPair } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { getAccountFingerprint } from '@/utils/account'
-import { bitcoinjsNetwork, getAccountDerivationPath } from '@/utils/bitcoin'
+import {
+  bitcoinjsNetwork,
+  getAddressDerivationPath,
+} from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { formatNumber } from '@/utils/format'
 import { getAddressKeyPair } from '@/utils/key'
@@ -48,10 +51,8 @@ function AddressDetails() {
     ])
   )
 
-  // TODO: update account store to ensure addresses have derivation path
-  const accountPath = account ? getAccountDerivationPath(account) : ''
-  const fallbackPath = accountPath ? `${accountPath}/${address?.index}` : ''
-  const derivationPath = address?.derivationPath ?? fallbackPath
+  const derivationPath =
+    account && address ? getAddressDerivationPath(account, address) : ''
 
   const transactions = account?.transactions.filter((tx) =>
     address?.transactions.includes(tx.id)

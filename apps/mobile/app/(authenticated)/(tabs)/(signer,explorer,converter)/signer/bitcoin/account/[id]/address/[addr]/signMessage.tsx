@@ -18,7 +18,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import { getAccountDerivationPath } from '@/utils/bitcoin'
+import { getAddressDerivationPath } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { getAddressKeyPair } from '@/utils/key'
 import {
@@ -47,9 +47,8 @@ function AddressSignMessage() {
     null
   )
 
-  const accountPath = account ? getAccountDerivationPath(account) : ''
-  const fallbackPath = accountPath ? `${accountPath}/${address?.index}` : ''
-  const derivationPath = address?.derivationPath ?? fallbackPath
+  const derivationPath =
+    account && address ? getAddressDerivationPath(account, address) : ''
 
   const supportedMethod = getSupportedSignMethod(address?.scriptVersion)
 
