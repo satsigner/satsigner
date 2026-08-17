@@ -93,6 +93,12 @@ function AddressSignMessage() {
     }
   }
 
+  function handleChangeMessage(value: string) {
+    setMessage(value)
+    setSignature('')
+    setSignMethod(null)
+  }
+
   function handleSignBip137() {
     handleSign('bip137')
   }
@@ -146,7 +152,7 @@ function AddressSignMessage() {
             placeholder={t('address.signMessage.messagePlaceholder')}
             value={message}
             editable={!isSigning}
-            onChangeText={setMessage}
+            onChangeText={handleChangeMessage}
           />
         </SSVStack>
         <SSVStack gap="sm">
