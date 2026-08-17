@@ -79,9 +79,7 @@ export async function decryptKeySecretUsingPin(
 }
 
 export async function decryptKeySecret(key: Key | EncryptedKeySecret) {
-  console.log('pin ?')
   const pin = await getPin()
-  console.log('pin yes')
   return decryptKeySecretUsingPin(key, pin)
 }
 
