@@ -1,8 +1,8 @@
 import QuickCrypto from 'react-native-quick-crypto'
 import uuid from 'react-native-uuid'
 
-import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
+import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
+import { getItem, setItem } from '@/storage/encrypted'
 
 const UINT32_RANGE = 0x100000000 // 2^32
 const IV_BYTES = 16
@@ -177,10 +177,31 @@ async function getPin(): Promise<string> {
   return pin
 }
 
+/**
+ * Like getPin, but seeds the dev default PIN when none exists. Development
+ * convenience so sample/diagnostic wallets can encrypt their key material
+ * without completing set-PIN; production builds still require a real PIN.
+ */
+async function ensurePin(): Promise<string> {
+  try {
+    return await getPin()
+  } catch {
+    if (!__DEV__) {
+      throw new Error('PIN unavailable')
+    }
+    const salt = await generateSalt()
+    const encryptedPin = await pbkdf2Encrypt(DEFAULT_PIN, salt)
+    await setItem(PIN_KEY, encryptedPin)
+    await setItem(SALT_KEY, salt)
+    return encryptedPin
+  }
+}
+
 export {
   aesDecrypt,
   aesEncrypt,
   doubleShaEncrypt,
+  ensurePin,
   generateSalt,
   getPin,
   pbkdf2Encrypt,

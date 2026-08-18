@@ -25,7 +25,6 @@ import SSButton from '@/components/SSButton'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
 import {
   sampleMultiAddressTether,
   sampleSalvadorAddress,
@@ -51,7 +50,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { setItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -67,7 +65,7 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { generateSalt, getPin, pbkdf2Encrypt } from '@/utils/crypto'
+import { ensurePin } from '@/utils/crypto'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { time } from '@/utils/time'
 
@@ -446,19 +444,9 @@ export default function AccountList() {
   }
 
   async function loadSampleWallet(type: SampleWallet) {
-    // Sample wallets need encryption key material. In development only, seed
-    // DEFAULT_PIN when none exists so demos work without completing set-PIN.
-    try {
-      await getPin()
-    } catch {
-      if (!__DEV__) {
-        throw new Error('PIN unavailable')
-      }
-      const salt = await generateSalt()
-      const encryptedPin = await pbkdf2Encrypt(DEFAULT_PIN, salt)
-      await setItem(PIN_KEY, encryptedPin)
-      await setItem(SALT_KEY, salt)
-    }
+    // Sample wallets need encryption key material. In development only, this
+    // seeds DEFAULT_PIN when none exists so demos work without set-PIN.
+    await ensurePin()
 
     setName(`Sample (${type})`)
     setKeyCount(1)
