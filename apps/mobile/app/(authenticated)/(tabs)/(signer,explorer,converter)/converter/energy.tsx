@@ -813,6 +813,7 @@ export default function Energy() {
       header.writeUInt32LE(template.version, 0)
 
       // Previous block hash (32 bytes) - little endian
+      // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
       const prevHash = Buffer.from(template.previousblockhash, 'hex').reverse()
       prevHash.copy(header as unknown as Uint8Array, 4)
 
