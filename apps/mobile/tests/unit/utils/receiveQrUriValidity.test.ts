@@ -1,6 +1,8 @@
 // Validity probe: receive QR URIs must round-trip through the REAL bip-321
 // parser (the shared mock only checks superficially).
-jest.mock('bip-321', () => jest.requireActual('bip-321'))
+jest.mock<typeof import('bip-321')>('bip-321', () =>
+  jest.requireActual('bip-321')
+)
 
 import { parseBIP321 } from 'bip-321'
 

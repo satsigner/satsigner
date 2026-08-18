@@ -119,6 +119,7 @@ wss-only enforcement.
 ## 5. Message storage
 
 ### 5.1 Schema (new table — do not contort `nostr_dms`; label sync stays
+
 untouched)
 
 ```sql
@@ -219,13 +220,13 @@ differ between the two instances; interaction and rendering are identical.
 
 ### 7.1 Shared kit — `components/chat/`
 
-| Piece | Role |
-|---|---|
-| `SSChatView` | Thread shell: inverted list, windowing, new-message pill, scroll handling. Props: `messages`, `onSend`, `onLoadMore`, `authorInfo(pubkey)`, header slot |
-| `SSChatMessage` | Evolved `SSNostrMessage`, `React.memo`'d; **attachment slot** `renderAttachment?: (msg) => ReactNode` — bitcoin side injects `SSTransactionDetails` + sign-flow CTA; DM side empty (later: media) |
-| `SSChatComposer` | Extract raw `TextInput`+`SSButton` row → styled component (multiline, maxLength, disabled state) |
-| `ChatMessage` type | Normalized: `{ id, authorPubkey, text, createdAt, pending, status, isOwn, attachment? }` |
-| Adapter hooks | `useDevicesChatMessages(accountId)` (existing store) and `useDmChatMessages(identityNpub, peerNpub)` (new table) — same interface, different transport/storage |
+| Piece              | Role                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SSChatView`       | Thread shell: inverted list, windowing, new-message pill, scroll handling. Props: `messages`, `onSend`, `onLoadMore`, `authorInfo(pubkey)`, header slot                                           |
+| `SSChatMessage`    | Evolved `SSNostrMessage`, `React.memo`'d; **attachment slot** `renderAttachment?: (msg) => ReactNode` — bitcoin side injects `SSTransactionDetails` + sign-flow CTA; DM side empty (later: media) |
+| `SSChatComposer`   | Extract raw `TextInput`+`SSButton` row → styled component (multiline, maxLength, disabled state)                                                                                                  |
+| `ChatMessage` type | Normalized: `{ id, authorPubkey, text, createdAt, pending, status, isOwn, attachment? }`                                                                                                          |
+| Adapter hooks      | `useDevicesChatMessages(accountId)` (existing store) and `useDmChatMessages(identityNpub, peerNpub)` (new table) — same interface, different transport/storage                                    |
 
 ### 7.2 Instance-specific (stays out of the kit)
 
@@ -293,27 +294,27 @@ unwrap CPU to discover spam; the DM renderer is wallet attack surface.
 - **WoT gating — rejected.** Every anonymous report is a fresh key with zero
   web-of-trust; gating would bin 100% of legitimate reports
 
-Metadata floor: relays see *that* we received a kind 1059 (sender hidden,
+Metadata floor: relays see _that_ we received a kind 1059 (sender hidden,
 timestamp randomized ±2 days per NIP-59). Acceptable.
 
 ## 9. Relay connectivity hardening
 
-| Today | Improvement |
-|---|---|
-| `publishEvent` races all relays, succeeds on 1 ACK, failure = throw → message lost | **Ack quorum + persistent outbox**: sent = ≥2 write ACKs (DMs: ≥1 recipient-inbox + own-inbox copy); failures → SQLite outbox (`pending/failed`), retried on reconnect; sends survive restarts |
-| NDK registry keyed by whole sorted relay set — divergent lists spawn duplicate pools; list changes kill shared subs | **Role-keyed pools**: `dm-inbox` (long-lived, holds gift-wrap sub), `outbox` (ephemeral publish), `general` (profiles/notes). DM socket survives navigation/settings changes |
-| Subscriptions component-owned; navigation tears them down | **Manager-owned subscriptions**: extend `useNostrSubscriptionManager` (already does per-account EOSE tracking for sync) — one gift-wrap sub per identity, screens attach/detach |
-| NetInfo used only as one-shot pre-flight; no reconnect on regain | **Connection supervisor** (app-scoped): NetInfo listener → reconnect with `createRetryManager` backoff; `AppState` foreground → reconnect + resubscribe + `since`-based catch-up |
-| `relayStatuses` in schema but dead | **Per-relay liveness**: last-event-seen, connected/connecting/disconnected → status dots in relay settings; stale relay → targeted reconnect instead of pool nuke |
-| `connect()` blocks up to 20 s (`NOSTR_NDK_CONNECT_TIMEOUT_MS`) | Short non-blocking connect (NDK routes subs as relays come online — `connectForPublish` already proves this); per-op timeouts |
-| Unbounded relay lists | Cap + dedupe after `normalizeRelayUrl`, wss-only |
+| Today                                                                                                               | Improvement                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `publishEvent` races all relays, succeeds on 1 ACK, failure = throw → message lost                                  | **Ack quorum + persistent outbox**: sent = ≥2 write ACKs (DMs: ≥1 recipient-inbox + own-inbox copy); failures → SQLite outbox (`pending/failed`), retried on reconnect; sends survive restarts |
+| NDK registry keyed by whole sorted relay set — divergent lists spawn duplicate pools; list changes kill shared subs | **Role-keyed pools**: `dm-inbox` (long-lived, holds gift-wrap sub), `outbox` (ephemeral publish), `general` (profiles/notes). DM socket survives navigation/settings changes                   |
+| Subscriptions component-owned; navigation tears them down                                                           | **Manager-owned subscriptions**: extend `useNostrSubscriptionManager` (already does per-account EOSE tracking for sync) — one gift-wrap sub per identity, screens attach/detach                |
+| NetInfo used only as one-shot pre-flight; no reconnect on regain                                                    | **Connection supervisor** (app-scoped): NetInfo listener → reconnect with `createRetryManager` backoff; `AppState` foreground → reconnect + resubscribe + `since`-based catch-up               |
+| `relayStatuses` in schema but dead                                                                                  | **Per-relay liveness**: last-event-seen, connected/connecting/disconnected → status dots in relay settings; stale relay → targeted reconnect instead of pool nuke                              |
+| `connect()` blocks up to 20 s (`NOSTR_NDK_CONNECT_TIMEOUT_MS`)                                                      | Short non-blocking connect (NDK routes subs as relays come online — `connectForPublish` already proves this); per-op timeouts                                                                  |
+| Unbounded relay lists                                                                                               | Cap + dedupe after `normalizeRelayUrl`, wss-only                                                                                                                                               |
 
 ## 10. Security-report flow (the forcing function)
 
 - **"Report a security issue"** entry (Settings → About + nostr section):
   pre-addressed to the project npub, **NIP-17 only**, "send anonymously"
-  toggle (default on → ephemeral key), warning copy: *never include seed
-  words, keys, or PINs*
+  toggle (default on → ephemeral key), warning copy: _never include seed
+  words, keys, or PINs_
 - Receiving side: gift wrap from unknown npub → new conversation in Requests;
   maintainer identities get notified
 - Fulfills the `SECURITY.md` contract (#477): NIP-17 gift wraps to the
