@@ -14,7 +14,6 @@ import {
   PAYJOIN_MIN_CONTRIBUTE_SATS
 } from '@/constants/payjoin'
 import { t } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { type Account } from '@/types/models/Account'
@@ -22,10 +21,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import { type PayjoinRoundtripEnv } from '@/utils/payjoinLiveRoundtrip'
-import {
-  findClownAccount,
-  findSampleAccount
-} from '@/utils/payjoinLiveRoundtripAccounts'
+import { ensureRoundtripAccounts } from '@/utils/payjoinLiveRoundtripCreate'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
 import {
   filterPayjoinContributeUtxos,
@@ -60,10 +56,13 @@ async function loadAccountWallet(account: Account) {
 }
 
 /**
- * Resolve Sample (sender) + Clown (receiver) from the vault and wire BDK
+ * Resolve Sample (sender) + Clown (receiver) — creating and syncing them
+ * from the well-known signet seeds when missing — and wire BDK
  * build/sign/broadcast for `runPayjoinLiveRoundtrip`.
  */
-async function buildPayjoinLiveRoundtripEnv(): Promise<PayjoinRoundtripEnv> {
+async function buildPayjoinLiveRoundtripEnv(
+  onStep?: (message: string) => void
+): Promise<PayjoinRoundtripEnv> {
   if (!isNativeAvailable()) {
     throw new Error(t('settings.developer.diagnosis.error.nativeUnavailable'))
   }
@@ -76,14 +75,7 @@ async function buildPayjoinLiveRoundtripEnv(): Promise<PayjoinRoundtripEnv> {
     throw new Error(t('settings.developer.diagnosis.error.wrongNetwork'))
   }
 
-  const { accounts } = useAccountsStore.getState()
-  const maybeSender = findSampleAccount(accounts)
-  const maybeReceiver = findClownAccount(accounts)
-  if (!maybeSender || !maybeReceiver) {
-    throw new Error(t('settings.developer.diagnosis.error.missingAccounts'))
-  }
-  const sender: Account = maybeSender
-  const receiver: Account = maybeReceiver
+  const { sender, receiver } = await ensureRoundtripAccounts(onStep)
 
   const receiverContribute = filterPayjoinContributeUtxos(
     receiver.utxos,
