@@ -40,16 +40,21 @@ import type {
 } from '@/types/models/Nostr'
 import { chunkArray } from '@/utils/chunkArray'
 import { randomKey } from '@/utils/crypto'
-import { getPubKeyHexFromNpub, getSecretFromNsec, extractInboxRelayUrls, getProfileFromKind0Content } from '@/utils/nostr'
+import {
+  getPubKeyHexFromNpub,
+  getSecretFromNsec,
+  extractInboxRelayUrls,
+  getProfileFromKind0Content
+} from '@/utils/nostr'
+import {
+  extractResponseOptionIds,
+  NOSTR_POLL_RESPONSE_KIND
+} from '@/utils/nostrPoll'
 import {
   fetchProfileCoalesced,
   fetchProfilesCoalesced,
   queueProfileFetches
 } from '@/utils/nostrProfileFetcher'
-import {
-  extractResponseOptionIds,
-  NOSTR_POLL_RESPONSE_KIND
-} from '@/utils/nostrPoll'
 
 import {
   createMobileNdk,
@@ -917,7 +922,7 @@ export class NostrAPI {
    * Unlike fetchEvent, returns the raw event (sig included) so callers can
    * run NIP-59 unwrap / signature verification on it. Never cached — used by
    * diagnostics where retrieval from the relay is exactly what's proven.
-   */  async fetchRawEventById(eventIdHex: string): Promise<Event | null> {
+   */ async fetchRawEventById(eventIdHex: string): Promise<Event | null> {
     await this.connectForPublish()
     if (!this.ndk) {
       return null
@@ -982,7 +987,8 @@ export class NostrAPI {
     await this.publishEvent(new NDKEvent(tempNdk, signed))
   }
 
-  static async fetchEventFromRelays(    eventIdHex: string,
+  static async fetchEventFromRelays(
+    eventIdHex: string,
     relayUrls: string[],
     ownPubkeys: string[] = []
   ): Promise<{
@@ -1602,7 +1608,9 @@ export class NostrAPI {
   private async waitForConnectedRelays(
     deadlineMs = 8_000,
     graceMs = 750
-  ): Promise<{ publish: (event: NDKEvent) => Promise<unknown>; url: string }[]> {
+  ): Promise<
+    { publish: (event: NDKEvent) => Promise<unknown>; url: string }[]
+  > {
     const pool = this.ndk?.pool
     if (!pool) {
       return []

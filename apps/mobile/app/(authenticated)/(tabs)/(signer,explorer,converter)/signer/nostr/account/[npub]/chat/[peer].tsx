@@ -13,8 +13,8 @@ import {
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useNostrStore } from '@/store/nostr'
+import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { type NostrChatProtocol } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
@@ -27,8 +27,11 @@ type ThreadParams = {
 
 export default function NostrChatThread() {
   const router = useRouter()
-  const { npub, peer, protocol: protocolParam } =
-    useLocalSearchParams<ThreadParams>()
+  const {
+    npub,
+    peer,
+    protocol: protocolParam
+  } = useLocalSearchParams<ThreadParams>()
   const protocol: NostrChatProtocol =
     protocolParam === 'nip04' ? 'nip04' : 'nip17'
 

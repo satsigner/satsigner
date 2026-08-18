@@ -1,5 +1,5 @@
-import { FlatList, Image, Pressable, StyleSheet, View } from 'react-native'
 import { nip19 } from 'nostr-tools'
+import { FlatList, Image, Pressable, StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
@@ -40,10 +40,7 @@ function ConversationRow({
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        pressed && styles.rowPressed
-      ]}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
     >
       <View style={styles.avatarWrap}>
         {profile?.picture ? (

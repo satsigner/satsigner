@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -13,7 +13,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
-import { type NostrChatProtocol, type NostrContactItem } from '@/types/models/Nostr'
+import {
+  type NostrChatProtocol,
+  type NostrContactItem
+} from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 
@@ -36,6 +39,8 @@ export default function NostrNewChat() {
   const [npubInput, setNpubInput] = useState('')
   const [inputError, setInputError] = useState('')
 
+  const searchQuery = npubInput.trim().toLowerCase()
+
   const contactsRelays = getNostrContactsRelays(identity?.relays)
   const {
     contacts,
@@ -45,6 +50,23 @@ export default function NostrNewChat() {
     kind3Found,
     relaysQueried
   } = useNostrContacts(npub, contactsRelays)
+
+  // The input doubles as a search over our follows: anything that is not a
+  // valid npub filters the contact list by name, NIP-05 or npub.
+  const filteredContacts = useMemo(() => {
+    if (!searchQuery) {
+      return contacts
+    }
+    return contacts.filter((contact) => {
+      const displayName = contact.profile?.displayName?.toLowerCase() ?? ''
+      const nip05 = contact.profile?.nip05?.toLowerCase() ?? ''
+      return (
+        displayName.includes(searchQuery) ||
+        nip05.includes(searchQuery) ||
+        nip19.npubEncode(contact.pubkey).includes(searchQuery)
+      )
+    })
+  }, [contacts, searchQuery])
 
   function openThread(peerNpub: string) {
     if (!npub) {
@@ -125,9 +147,15 @@ export default function NostrNewChat() {
                 {t('nostrIdentity.contacts.empty')}
               </SSText>
             </SSVStack>
+          ) : filteredContacts.length === 0 ? (
+            <SSVStack itemsCenter style={styles.center}>
+              <SSText color="muted" size="sm" center>
+                {t('nostrIdentity.chat.noMatchingContacts')}
+              </SSText>
+            </SSVStack>
           ) : (
             <SSNostrContactList
-              contacts={contacts}
+              contacts={filteredContacts}
               onPress={handleContactPress}
             />
           )}

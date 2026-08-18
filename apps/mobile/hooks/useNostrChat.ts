@@ -1,15 +1,12 @@
 import { useFocusEffect } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
 import { nip19 } from 'nostr-tools'
+import { useCallback, useEffect, useState } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
-import { getCachedProfile } from '@/db/nostrCache'
 import { markChatThreadRead } from '@/db/mutations/nostrChat'
-import {
-  listChatConversations,
-  listChatThread
-} from '@/db/queries/nostrChat'
+import { getCachedProfile } from '@/db/nostrCache'
+import { listChatConversations, listChatThread } from '@/db/queries/nostrChat'
 import { useNostrStore } from '@/store/nostr'
 import {
   type NostrChatConversation,
@@ -20,6 +17,7 @@ import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   acquireChatPipeline,
   addChatListener,
+  getChatPipelineApi,
   releaseChatPipeline,
   sendNip04Chat,
   sendNip17Chat
@@ -44,9 +42,9 @@ export function useNostrChatSubscription(identity: ChatIdentity | undefined) {
       if (!identity?.nsec) {
         return
       }
-      const nsec = identity.nsec
+      const { nsec } = identity
       const { npub } = identity
-      const relays = identity.relays
+      const { relays } = identity
       let held = false
       acquireChatPipeline({ npub, nsec, relays })
         .then(() => {
@@ -75,7 +73,7 @@ export function useNostrChatProfiles(
 ) {
   const setProfile = useNostrStore((state) => state.setProfile)
   const profiles = useNostrStore((state) => state.profiles)
-  const peersKey = [...peerNpubs].sort().join(',')
+  const peersKey = [...peerNpubs].toSorted().join(',')
 
   useEffect(() => {
     const missing = peersKey
@@ -175,7 +173,10 @@ export function useNostrChatConversations(
   useEffect(() => {
     reload()
     const remove = addChatListener((message) => {
-      if (message.identityNpub === identityNpub && message.protocol === protocol) {
+      if (
+        message.identityNpub === identityNpub &&
+        message.protocol === protocol
+      ) {
         reload()
       }
     })
@@ -200,9 +201,7 @@ export function useNostrChatThread(
       setMessages([])
       return
     }
-    setMessages(
-      listChatThread(identity.npub, protocol, peerPubkey, 200)
-    )
+    setMessages(listChatThread(identity.npub, protocol, peerPubkey, 200))
   }, [identity, protocol, peerPubkey])
 
   // Initial load + mark incoming as read while the thread is open.
@@ -234,9 +233,14 @@ export function useNostrChatThread(
       if (!identity?.nsec || !peerNpub) {
         return
       }
+      // Clear right away so a slow send can't be re-submitted by accident;
+      // the draft is restored if the send fails.
+      setInput('')
       setSending(true)
-      const relays = getNostrContactsRelays(identity.relays)
-      const api = new NostrAPI(relays)
+      // Prefer the warm pipeline (live relay connections) over a fresh API.
+      const pipelineApi = getChatPipelineApi(identity.npub)
+      const api =
+        pipelineApi ?? new NostrAPI(getNostrContactsRelays(identity.relays))
       try {
         if (protocol === 'nip17') {
           await sendNip17Chat(
@@ -253,10 +257,16 @@ export function useNostrChatThread(
             text
           )
         }
-        setInput('')
-        reload()
+      } catch (error) {
+        setInput(text)
+        throw error
       } finally {
+        // Refresh in both outcomes so the card flips to sent/failed at once.
+        reload()
         setSending(false)
+        if (!pipelineApi) {
+          api.closeAllSubscriptions()
+        }
       }
     },
     [identity, protocol, peerNpub, reload]

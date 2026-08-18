@@ -29,9 +29,7 @@ function rowToChatMessage(row: ChatMessageRow): NostrChatMessage {
     protocol: row.protocol === 'nip04' ? 'nip04' : 'nip17',
     read: row.read === 1,
     status:
-      row.status === 'pending' || row.status === 'failed'
-        ? row.status
-        : 'sent'
+      row.status === 'pending' || row.status === 'failed' ? row.status : 'sent'
   }
 }
 
@@ -87,7 +85,7 @@ function listChatThread(
   )
   return (results ?? [])
     .map((row) => rowToChatMessage(row as ChatMessageRow))
-    .reverse()
+    .toReversed()
 }
 
 function getChatMessageById(

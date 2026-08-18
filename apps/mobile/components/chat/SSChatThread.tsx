@@ -1,6 +1,8 @@
+import { useHeaderHeight } from 'expo-router/react-navigation'
+import { nip19 } from 'nostr-tools'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, StyleSheet, TextInput, View } from 'react-native'
-import { nip19 } from 'nostr-tools'
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 
 import SSButton from '@/components/SSButton'
 import SSNostrMessage from '@/components/SSNostrMessage'
@@ -10,10 +12,7 @@ import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import {
-  type NostrChatMessage,
-  type NostrDM
-} from '@/types/models/Nostr'
+import { type NostrChatMessage, type NostrDM } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 const SCROLL_THRESHOLD = 40
@@ -80,6 +79,7 @@ export default function SSChatThread({
   )
   const prevMessageCountRef = useRef(messages.length)
   const profiles = useNostrStore((state) => state.profiles)
+  const headerHeight = useHeaderHeight()
 
   const ownHex = useMemo(() => getPubKeyHexFromNpub(ownNpub) ?? '', [ownNpub])
 
@@ -98,9 +98,9 @@ export default function SSChatThread({
         continue
       }
       const peerNpub = getPubKeyHexFromNpub(msg.peerPubkey) ?? msg.peerPubkey
-      const profile = profiles[
-        nip19SafeEncode(msg.peerPubkey)
-      ] as AuthorDisplayInfo | undefined
+      const profile = profiles[nip19SafeEncode(msg.peerPubkey)] as
+        | AuthorDisplayInfo
+        | undefined
       map.set(msg.peerPubkey, {
         color: Colors.gray[500],
         displayName: profile?.displayName,
@@ -109,10 +109,10 @@ export default function SSChatThread({
       })
     }
     return map
-  }, [messages, ownHex, ownDisplayName, profiles])
+  }, [messages, ownHex, ownNpub, ownDisplayName, profiles])
 
   const displayedMessages = useMemo(
-    () => [...messages].reverse(),
+    () => [...messages].toReversed(),
     [messages]
   )
 
@@ -163,38 +163,47 @@ export default function SSChatThread({
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior="padding"
+      keyboardVerticalOffset={headerHeight}
+      style={styles.container}
+    >
       <View style={styles.messagesContainer}>
-        <FlatList
-          ref={listRef}
-          data={displayedMessages}
-          renderItem={({ item }) => (
-            <SSNostrMessage
-              item={toNostrDM(item, ownHex)}
-              account={undefined}
-              accounts={[]}
-              formattedNpubs={formattedNpubs}
-              visibleComponents={visibleComponents}
-              onToggleVisibility={handleToggleVisibility}
-              onGoToSignFlow={() => undefined}
-              ownNpub={ownNpub}
-              onAuthorPress={onAuthorPress}
-              failed={item.status === 'failed'}
-            />
-          )}
-          keyExtractor={(item) => item.id}
-          inverted
-          initialNumToRender={25}
-          maxToRenderPerBatch={15}
-          onScroll={handleListScroll}
-          scrollEventThrottle={16}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <SSText center color="muted" style={styles.emptyText}>
+        {messages.length === 0 ? (
+          // Rendered outside the inverted list so the empty state is never
+          // flipped by the list's vertical inversion.
+          <View style={styles.emptyContainer}>
+            <SSText center color="muted">
               {emptyText ?? t('nostrIdentity.chat.noMessages')}
             </SSText>
-          }
-        />
+          </View>
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={displayedMessages}
+            renderItem={({ item }) => (
+              <SSNostrMessage
+                item={toNostrDM(item, ownHex)}
+                account={undefined}
+                accounts={[]}
+                formattedNpubs={formattedNpubs}
+                visibleComponents={visibleComponents}
+                onToggleVisibility={handleToggleVisibility}
+                onGoToSignFlow={() => undefined}
+                ownNpub={ownNpub}
+                onAuthorPress={onAuthorPress}
+                failed={item.status === 'failed'}
+              />
+            )}
+            keyExtractor={(item) => item.id}
+            inverted
+            initialNumToRender={25}
+            maxToRenderPerBatch={15}
+            onScroll={handleListScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={styles.listContent}
+          />
+        )}
         {showNewMessageButton && (
           <View style={styles.newMessageButtonContainer}>
             <SSButton
@@ -223,7 +232,7 @@ export default function SSChatThread({
           loading={sending}
         />
       </SSHStack>
-    </View>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -239,10 +248,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1
   },
-  emptyText: {
-    marginTop: 40,
-    // Inverted list flips content vertically
-    transform: [{ scaleY: -1 }]
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: 40
   },
   // Mirrors the devices group chat composer exactly.
   input: {

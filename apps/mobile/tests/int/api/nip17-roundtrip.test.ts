@@ -13,7 +13,9 @@
  */
 // Use the real nostr-tools: the shared manual mock
 // (tests/__mocks__/nostr-tools.js) stubs exactly the behaviour under test.
-jest.mock('nostr-tools', () => jest.requireActual('nostr-tools'))
+jest.mock<typeof import('nostr-tools')>('nostr-tools', () =>
+  jest.requireActual('nostr-tools')
+)
 
 import {
   generateSecretKey,

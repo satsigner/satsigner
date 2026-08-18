@@ -1,3 +1,4 @@
+import NDK, { NDKEvent } from '@nostr-dev-kit/ndk'
 import { type Event, nip59 } from 'nostr-tools'
 
 import { NostrAPI } from '@/api/nostr'
@@ -68,6 +69,91 @@ function ingestChatMessage(message: NostrChatMessage): void {
   }
 }
 
+/**
+ * Session cache of recipient relay unions (base ∪ announced inbox) so repeat
+ * sends skip the indexing-relay lookup entirely.
+ */
+const recipientRelaysCache = new Map<string, string[]>()
+
+/** Test hook: drops cached recipient relay lookups between tests. */
+function clearRecipientRelaysCache(): void {
+  recipientRelaysCache.clear()
+}
+
+/**
+ * Publishes an already-signed event to extra relays without blocking the
+ * sender's flow. Resolves true when at least one relay accepted the event.
+ */
+async function publishEventToRelaysInBackground(
+  rawEvent: Event,
+  relayUrls: string[]
+): Promise<boolean> {
+  if (relayUrls.length === 0) {
+    return false
+  }
+  const api = new NostrAPI(relayUrls)
+  try {
+    const event = new NDKEvent(
+      new NDK({ autoConnectUserRelays: false, enableOutboxModel: false }),
+      rawEvent
+    )
+    await api.publishEvent(event)
+    return true
+  } catch {
+    // Best-effort copy; relay failures must not affect the sender's flow.
+    return false
+  } finally {
+    api.closeAllSubscriptions()
+  }
+}
+
+/**
+ * Routes a copy of the wrap toward the recipient's announced inbox relays.
+ * Results are cached per session so repeat sends skip the lookup. Resolves
+ * true when the wrap reached at least one inbox-only relay.
+ */
+async function routeWrapToRecipientInbox(
+  peerNpub: string,
+  baseRelays: string[],
+  wrapRaw: Event
+): Promise<boolean> {
+  try {
+    const cached = recipientRelaysCache.get(peerNpub)
+    const relays =
+      cached ?? (await resolveRecipientRelays(peerNpub, baseRelays))
+    if (!cached) {
+      recipientRelaysCache.set(peerNpub, relays)
+    }
+    return await publishEventToRelaysInBackground(
+      wrapRaw,
+      relays.filter((url) => !baseRelays.includes(url))
+    )
+  } catch {
+    // Offline or unreachable inbox relays — the base publish may still land.
+    return false
+  }
+}
+
+/**
+ * Resolves true as soon as any task succeeds; false only when every task
+ * failed. Lets a fast base-relay publish win while still falling back to
+ * slower inbox-relay delivery when base relays reject writes.
+ */
+async function anySucceeded(tasks: Promise<boolean>[]): Promise<boolean> {
+  try {
+    await Promise.any(
+      tasks.map(async (task) => {
+        if (!(await task)) {
+          throw new Error('publish failed')
+        }
+      })
+    )
+    return true
+  } catch {
+    return false
+  }
+}
+
 type ChatIdentity = {
   npub: string
   nsec: string
@@ -112,21 +198,38 @@ async function sendNip17Chat(
   }
   ingestChatMessage(message)
 
-  // Route to the recipient's announced inbox relays when they have any.
   const baseRelays = api.getRelays()
-  const targetRelays = await resolveRecipientRelays(peerNpub, baseRelays)
-  const publishApi =
-    targetRelays === baseRelays ? api : new NostrAPI(targetRelays)
+  const wrapRaw = (await wrap.toNostrEvent()) as Event
 
-  try {
-    await publishApi.publishEvent(wrap)
-    // Self copy goes to our own read relays (the pipeline's set).
-    await api.publishEvent(selfWrap).catch(() => undefined)
-    updateChatMessageStatus(identity.npub, message.id, 'sent')
-  } catch (error) {
+  // Race our own relays against the recipient's announced inbox relays: the
+  // first successful publish marks the message sent. Base sets made of
+  // read-only indexing relays reject writes, so the inbox copy must count.
+  const basePublish = (async () => {
+    try {
+      await api.publishEvent(wrap)
+      return true
+    } catch {
+      return false
+    }
+  })()
+  const inboxPublish = routeWrapToRecipientInbox(peerNpub, baseRelays, wrapRaw)
+  // Self copy goes to our own read relays (the pipeline's set); best effort.
+  const selfPublish = (async () => {
+    try {
+      await api.publishEvent(selfWrap)
+    } catch {
+      // Losing the self copy only delays sync to our other devices.
+    }
+  })()
+
+  const delivered = await anySucceeded([basePublish, inboxPublish])
+  await selfPublish
+
+  if (!delivered) {
     updateChatMessageStatus(identity.npub, message.id, 'failed')
-    throw error
+    throw new Error('Failed to publish to any relay')
   }
+  updateChatMessageStatus(identity.npub, message.id, 'sent')
 }
 
 async function sendNip04Chat(
@@ -180,6 +283,14 @@ type Nip17Rumor = {
 let activeChatPipeline: { api: NostrAPI; npub: string; refs: number } | null =
   null
 
+/**
+ * The warm pipeline API for the currently active identity, if any screen
+ * holds it. Reusing its live relay connections avoids reconnecting per send.
+ */
+function getChatPipelineApi(npub: string): NostrAPI | null {
+  return activeChatPipeline?.npub === npub ? activeChatPipeline.api : null
+}
+
 /** kind 10050 announcements are once per app session per identity. */
 const announcedDmInboxFor = new Set<string>()
 
@@ -195,6 +306,13 @@ async function acquireChatPipeline(identity: ChatIdentity): Promise<NostrAPI> {
 
   if (!activeChatPipeline) {
     const relays = getNostrContactsRelays(identity.relays)
+    chatLog(
+      'pipeline relays resolved:',
+      identity.relays?.length
+        ? `identity-pinned (${relays.length})`
+        : `indexer-default (${relays.length})`,
+      relays.join(' ')
+    )
     const api = new NostrAPI(relays)
     activeChatPipeline = { api, npub: identity.npub, refs: 0 }
     await subscribeToIdentityChat(api, identity).catch((error) => {
@@ -205,11 +323,16 @@ async function acquireChatPipeline(identity: ChatIdentity): Promise<NostrAPI> {
       announcedDmInboxFor.add(identity.npub)
       api
         .publishDmInboxRelayList(identity.nsec, relays)
-        .then(() => chatLog('announced DM inbox relays'))
+        .then(() => chatLog('announced DM inbox relays:', relays.join(' ')))
         .catch((error) => chatLog('DM inbox announce failed', error))
     }
   }
   activeChatPipeline.refs += 1
+  chatLog(
+    'pipeline acquired',
+    identity.npub.slice(0, 16),
+    `refs=${activeChatPipeline.refs}`
+  )
   return activeChatPipeline.api
 }
 
@@ -218,6 +341,11 @@ function releaseChatPipeline(npub: string): void {
     return
   }
   activeChatPipeline.refs -= 1
+  chatLog(
+    'pipeline released',
+    npub.slice(0, 16),
+    `refs=${activeChatPipeline.refs}`
+  )
   if (activeChatPipeline.refs <= 0) {
     chatLog('closing pipeline', npub.slice(0, 16))
     activeChatPipeline.api.closeAllSubscriptions()
@@ -308,6 +436,8 @@ async function subscribeToIdentityChat(
 export {
   acquireChatPipeline,
   addChatListener,
+  clearRecipientRelaysCache,
+  getChatPipelineApi,
   ingestChatMessage,
   releaseChatPipeline,
   sendNip04Chat,

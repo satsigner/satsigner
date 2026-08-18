@@ -1,23 +1,28 @@
 // Real nostr-tools for genuine NIP-04/NIP-17 crypto; NDK stays mocked (the
 // manual mock preserves event fields) so no sockets are opened.
-jest.mock('nostr-tools', () => jest.requireActual('nostr-tools'))
+jest.mock<typeof import('nostr-tools')>('nostr-tools', () =>
+  jest.requireActual('nostr-tools')
+)
 jest.mock('@nostr-dev-kit/ndk')
 
 // In-memory chat message store — precise insert/dedup behavior without SQLite.
-jest.mock('@/db/mutations/nostrChat', () => {
-  const store = new Map<string, unknown>()
-  return {
-    __store: store,
-    insertChatMessage: jest.fn((message: { id: string }) => {
-      if (store.has(message.id)) {
-        return false
-      }
-      store.set(message.id, message)
-      return true
-    }),
-    updateChatMessageStatus: jest.fn()
+jest.mock<typeof import('@/db/mutations/nostrChat')>(
+  '@/db/mutations/nostrChat',
+  () => {
+    const store = new Map<string, unknown>()
+    return {
+      __store: store,
+      insertChatMessage: jest.fn((message: { id: string }) => {
+        if (store.has(message.id)) {
+          return false
+        }
+        store.set(message.id, message)
+        return true
+      }),
+      updateChatMessageStatus: jest.fn()
+    }
   }
-})
+)
 
 import { getPublicKey, nip19 } from 'nostr-tools'
 import { decrypt as nip04Decrypt } from 'nostr-tools/nip04'
@@ -30,6 +35,7 @@ import {
 } from '@/db/mutations/nostrChat'
 import {
   addChatListener,
+  clearRecipientRelaysCache,
   ingestChatMessage,
   sendNip04Chat,
   sendNip17Chat,
@@ -47,8 +53,18 @@ const peerNpub = nip19.npubEncode(peerPubkey)
 
 const sender = { npub: senderNpub, nsec: senderNsec }
 
+/** Lets the background inbox-routing promise chain settle. */
+async function flushBackground() {
+  for (let i = 0; i < 5; i += 1) {
+    await new Promise((resolve) => {
+      setImmediate(resolve)
+    })
+  }
+}
+
 beforeEach(() => {
   chatStore.clear()
+  clearRecipientRelaysCache()
   jest.clearAllMocks()
   // No recipient inbox relays in tests — skip the indexing-relay lookup.
   jest
@@ -89,18 +105,76 @@ describe('nostrChat', () => {
     )
   })
 
-  it('sendNip17Chat marks the message failed when publish rejects', async () => {
+  it('sendNip17Chat marks the message failed when all publishes fail', async () => {
     const api = new NostrAPI([])
     jest.spyOn(api, 'publishEvent').mockRejectedValue(new Error('no relays'))
 
-    await expect(
-      sendNip17Chat(api, sender, peerNpub, 'hello')
-    ).rejects.toThrow('no relays')
+    await expect(sendNip17Chat(api, sender, peerNpub, 'hello')).rejects.toThrow(
+      'Failed to publish to any relay'
+    )
     expect(updateChatMessageStatus).toHaveBeenCalledWith(
       senderNpub,
       expect.any(String),
       'failed'
     )
+  })
+
+  it('marks sent when base relays reject but the inbox copy lands', async () => {
+    // Recipient announces an inbox relay; our base set is a read-only relay.
+    jest
+      .spyOn(NostrAPI.prototype, 'fetchInboxRelaysForNpub')
+      .mockResolvedValue(['wss://peer-inbox.relay'])
+    // One prototype mock for all instances: the read-only base relay rejects
+    // every write, while the background copy to the inbox relay lands.
+    jest
+      .spyOn(NostrAPI.prototype, 'publishEvent')
+      .mockImplementation(
+        async function publishExceptReadOnly(this: NostrAPI): Promise<void> {
+          if (this.getRelays().includes('wss://read-only.relay')) {
+            throw new Error('read-only')
+          }
+        }
+      )
+
+    const api = new NostrAPI(['wss://read-only.relay'])
+    await sendNip17Chat(api, sender, peerNpub, 'hello via inbox')
+
+    expect(updateChatMessageStatus).toHaveBeenCalledWith(
+      senderNpub,
+      expect.any(String),
+      'sent'
+    )
+  })
+
+  it('routes a wrap copy to announced inbox relays in the background', async () => {
+    jest
+      .spyOn(NostrAPI.prototype, 'fetchInboxRelaysForNpub')
+      .mockResolvedValue(['wss://peer-inbox.relay'])
+    const publishSpy = jest
+      .spyOn(NostrAPI.prototype, 'publishEvent')
+      .mockResolvedValue(undefined)
+
+    const api = new NostrAPI(['wss://base.relay'])
+    await sendNip17Chat(api, sender, peerNpub, 'background copy')
+    await flushBackground()
+
+    // recipient wrap + self copy on our relays + wrap copy on the inbox relay
+    expect(publishSpy).toHaveBeenCalledTimes(3)
+  })
+
+  it('caches recipient relays so later sends skip the inbox lookup', async () => {
+    const inboxSpy = jest
+      .spyOn(NostrAPI.prototype, 'fetchInboxRelaysForNpub')
+      .mockResolvedValue(['wss://peer-inbox.relay'])
+    jest.spyOn(NostrAPI.prototype, 'publishEvent').mockResolvedValue(undefined)
+
+    const api = new NostrAPI(['wss://base.relay'])
+    await sendNip17Chat(api, sender, peerNpub, 'first')
+    await flushBackground()
+    await sendNip17Chat(api, sender, peerNpub, 'second')
+    await flushBackground()
+
+    expect(inboxSpy).toHaveBeenCalledTimes(1)
   })
 
   it('sendNip04Chat produces a kind-4 event decryptable by the recipient', async () => {

@@ -4,9 +4,9 @@ import { useMemo, useState } from 'react'
 import { Dimensions, StyleSheet, View } from 'react-native'
 import { TabView } from 'react-native-tab-view'
 
+import SSNostrConversationList from '@/components/chat/SSNostrConversationList'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
-import SSNostrConversationList from '@/components/chat/SSNostrConversationList'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import {
@@ -177,7 +177,6 @@ export default function NostrIdentityChat() {
         onIndexChange={setTabIndex}
         initialLayout={{ width: layout.width }}
       />
-
     </SSMainLayout>
   )
 }
