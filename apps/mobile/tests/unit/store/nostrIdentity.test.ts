@@ -1,4 +1,6 @@
-jest.mock('nostr-tools', () => jest.requireActual('nostr-tools'))
+jest.mock<typeof import('nostr-tools')>('nostr-tools', () =>
+  jest.requireActual('nostr-tools')
+)
 
 import { NostrAPI } from '@/api/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
@@ -8,20 +10,20 @@ describe('getNostrIdentityRelays', () => {
   it('prefers the identity relay list', () => {
     expect(
       getNostrIdentityRelays(['wss://identity.relay'], ['wss://store.relay'])
-    ).toEqual(['wss://identity.relay'])
+    ).toStrictEqual(['wss://identity.relay'])
   })
 
   it('falls back to the store list when identity has none', () => {
-    expect(getNostrIdentityRelays([], ['wss://store.relay'])).toEqual([
+    expect(getNostrIdentityRelays([], ['wss://store.relay'])).toStrictEqual([
       'wss://store.relay'
     ])
-    expect(getNostrIdentityRelays(undefined, ['wss://store.relay'])).toEqual([
-      'wss://store.relay'
-    ])
+    expect(
+      getNostrIdentityRelays(undefined, ['wss://store.relay'])
+    ).toStrictEqual(['wss://store.relay'])
   })
 
   it('falls back to indexing relays when both are empty', () => {
-    expect(getNostrIdentityRelays(undefined, [])).toEqual(
+    expect(getNostrIdentityRelays(undefined, [])).toStrictEqual(
       NostrAPI.INDEXING_RELAYS
     )
   })
