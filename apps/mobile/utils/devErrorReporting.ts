@@ -49,9 +49,9 @@ async function symbolicate(error: unknown): Promise<string | null> {
       return null
     }
 
-    const parsed: ParsedFrame[] = (
-      parseErrorStack.default ?? parseErrorStack
-    )(stack)
+    const parsed: ParsedFrame[] = (parseErrorStack.default ?? parseErrorStack)(
+      stack
+    )
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return null
     }
@@ -75,9 +75,7 @@ function report(prefix: string, error: unknown): void {
   const message =
     error instanceof Error ? error.message : String(error ?? 'unknown')
   const rawStack =
-    error instanceof Error && typeof error.stack === 'string'
-      ? error.stack
-      : ''
+    error instanceof Error && typeof error.stack === 'string' ? error.stack : ''
 
   // Log message + raw stack immediately (raw frames name the failing
   // function even before symbolication resolves).

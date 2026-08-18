@@ -15,20 +15,18 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import {
+  type CheckResults,
   DIAGNOSTIC_CHECKS,
   type DiagnosticCheckId,
   runDiagnosticCheck
 } from '@/utils/diagnostics'
+import {
+  buildDiagnosticsReport,
+  type DiagnosticsReportPayload,
+  submitDiagnosticsReport
+} from '@/utils/diagnosticsReport'
 import { runPayjoinLiveRoundtrip } from '@/utils/payjoinLiveRoundtrip'
 import { buildPayjoinLiveRoundtripEnv } from '@/utils/payjoinLiveRoundtripEnv'
-
-type CheckState =
-  | { kind: 'idle' }
-  | { kind: 'running' }
-  | { kind: 'ok'; lines: string[] }
-  | { kind: 'failed'; lines: string[] }
-
-type CheckResults = Partial<Record<DiagnosticCheckId, CheckState>>
 
 type DiagnosisStatus =
   | { kind: 'idle' }
@@ -69,6 +67,13 @@ export default function DeveloperDiagnosis() {
   const anyCheckRunning = Object.values(checkResults).some(
     (result) => result?.kind === 'running'
   )
+  const anyCheckCompleted = Object.values(checkResults).some(
+    (result) => result?.kind === 'ok' || result?.kind === 'failed'
+  )
+
+  const [reportPayload, setReportPayload] =
+    useState<DiagnosticsReportPayload | null>(null)
+  const [reportSending, setReportSending] = useState(false)
 
   async function handleRunCheck(id: DiagnosticCheckId) {
     setCheckResults((prev) => ({ ...prev, [id]: { kind: 'running' } }))
@@ -84,6 +89,32 @@ export default function DeveloperDiagnosis() {
   async function handleRunAllChecks() {
     for (const { id } of DIAGNOSTIC_CHECKS) {
       await handleRunCheck(id)
+    }
+  }
+
+  function handleOpenReport() {
+    setReportPayload(buildDiagnosticsReport(checkResults, selectedNetwork))
+  }
+
+  function handleCloseReport() {
+    if (!reportSending) {
+      setReportPayload(null)
+    }
+  }
+
+  async function handleSendReport() {
+    if (!reportPayload) {
+      return
+    }
+    setReportSending(true)
+    try {
+      await submitDiagnosticsReport(reportPayload, identityRelays)
+      setReportPayload(null)
+      toast.success(t('settings.developer.diagnosis.report.success'))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    } finally {
+      setReportSending(false)
     }
   }
 
@@ -121,7 +152,10 @@ export default function DeveloperDiagnosis() {
     })
 
     try {
-      const env = await buildPayjoinLiveRoundtripEnv()
+      const env = await buildPayjoinLiveRoundtripEnv((message) => {
+        setLogLines((prev) => [...prev, message])
+        setStatus({ kind: 'running', step: message })
+      })
       const result = await runPayjoinLiveRoundtrip({
         env,
         onStep: (message) => {
@@ -236,6 +270,12 @@ export default function DeveloperDiagnosis() {
                 disabled={anyCheckRunning}
                 onPress={handleRunAllChecks}
               />
+              <SSButton
+                label={t('settings.developer.diagnosis.report.submit')}
+                variant="outline"
+                disabled={!anyCheckCompleted || anyCheckRunning}
+                onPress={handleOpenReport}
+              />
             </SSVStack>
 
             <SSSeparator color="gradient" />
@@ -286,24 +326,6 @@ export default function DeveloperDiagnosis() {
 
             <SSSeparator color="gradient" />
 
-            <SSVStack gap="sm">
-              <SSText uppercase>
-                {t('settings.developer.diagnosis.entropySoak.title')}
-              </SSText>
-              <SSText color="muted" size="sm">
-                {t('settings.developer.diagnosis.entropySoak.description')}
-              </SSText>
-              <SSButton
-                label={t('settings.developer.diagnosis.entropySoak.open')}
-                variant="outline"
-                onPress={() =>
-                  router.navigate('/settings/developerEntropySoak')
-                }
-              />
-            </SSVStack>
-
-            <SSSeparator color="gradient" />
-
             <SSButton
               label={t('common.back')}
               variant="outline"
@@ -329,6 +351,32 @@ export default function DeveloperDiagnosis() {
             label={t('settings.developer.diagnosis.confirm.run')}
             variant="danger"
             onPress={handleRunRoundtrip}
+          />
+        </SSVStack>
+      </SSModal>
+
+      <SSModal
+        visible={reportPayload !== null}
+        onClose={handleCloseReport}
+        label={t('common.cancel')}
+      >
+        <SSVStack gap="lg">
+          <SSText size="lg" weight="medium" center>
+            {t('settings.developer.diagnosis.report.title')}
+          </SSText>
+          <SSText color="muted" center>
+            {t('settings.developer.diagnosis.report.message')}
+          </SSText>
+          {reportPayload ? (
+            <SSText type="mono" size="xs">
+              {JSON.stringify(reportPayload, null, 2)}
+            </SSText>
+          ) : null}
+          <SSButton
+            label={t('settings.developer.diagnosis.report.send')}
+            variant="outline"
+            loading={reportSending}
+            onPress={handleSendReport}
           />
         </SSVStack>
       </SSModal>

@@ -17,10 +17,6 @@ import {
   randomUuid
 } from '@/utils/crypto'
 import {
-  ENTROPY_IV_SAMPLES,
-  ENTROPY_UUID_SAMPLES
-} from '@/utils/entropySoak'
-import {
   derivePinDigest,
   LEGACY_KDF_CONFIG,
   safeEqualHex
@@ -30,6 +26,14 @@ export type DiagnosticResult = {
   ok: boolean
   lines: string[]
 }
+
+export type CheckState =
+  | { kind: 'idle' }
+  | { kind: 'running' }
+  | { kind: 'ok'; lines: string[] }
+  | { kind: 'failed'; lines: string[] }
+
+export type CheckResults = Partial<Record<DiagnosticCheckId, CheckState>>
 
 export type DiagnosticCheckId =
   | 'crypto'
@@ -45,6 +49,12 @@ const SECURE_STORE_PROBE_KEY = 'diagnostic_probe'
 const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3_000
 const LIVE_RETRIEVE_ATTEMPTS = 4
 const LIVE_RETRIEVE_DELAY_MS = 2_500
+
+// Sized to run in ~1s on-device while still catching weak-RNG classes:
+// any collision among 50k UUIDs (122 random bits each) or 20k IVs (128 bits)
+// indicates a broken CSPRNG — expected collisions are ~2^-98 and ~2^-103.
+const ENTROPY_UUID_SAMPLES = 50_000
+const ENTROPY_IV_SAMPLES = 20_000
 
 async function runGuarded(
   lines: string[],
@@ -174,9 +184,7 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
   const ok = await runGuarded(lines, async () => {
     // Same generation path as NostrAPI.generateNostrKeys (randomKey), since
     // nostr-tools' react-native build does not export generateSecretKey.
-    const secretKey = new Uint8Array(
-      Buffer.from(await randomKey(32), 'hex')
-    )
+    const secretKey = new Uint8Array(Buffer.from(await randomKey(32), 'hex'))
     const publicKey = getPublicKey(secretKey)
     lines.push(`ephemeral keypair ${publicKey.slice(0, 12)}…`)
 
@@ -386,9 +394,7 @@ export async function checkNip17LiveRoundtrip(
       setTimeout(resolve, LIVE_RETRIEVE_INITIAL_WAIT_MS)
     })
 
-    let fetchedSelf: Awaited<
-      ReturnType<NostrAPI['fetchRawEventById']>
-    > = null
+    let fetchedSelf: Awaited<ReturnType<NostrAPI['fetchRawEventById']>> = null
     for (let attempt = 0; attempt < LIVE_RETRIEVE_ATTEMPTS; attempt += 1) {
       fetchedSelf = await api.fetchRawEventById(selfWrap.id)
       if (fetchedSelf) {
@@ -412,9 +418,7 @@ export async function checkNip17LiveRoundtrip(
     }
     lines.push('retrieved wrap decrypts to exact payload')
 
-    let fetchedReport: Awaited<
-      ReturnType<NostrAPI['fetchRawEventById']>
-    > = null
+    let fetchedReport: Awaited<ReturnType<NostrAPI['fetchRawEventById']>> = null
     for (let attempt = 0; attempt < LIVE_RETRIEVE_ATTEMPTS; attempt += 1) {
       fetchedReport = await api.fetchRawEventById(reportWrap.id)
       if (fetchedReport) {
