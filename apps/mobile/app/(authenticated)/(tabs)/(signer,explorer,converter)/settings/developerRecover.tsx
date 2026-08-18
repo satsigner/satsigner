@@ -14,6 +14,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
+import { BackupJsonSchema } from '@/types/models/Backup'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { pickFile } from '@/utils/filesystem'
@@ -81,20 +82,13 @@ export default function DeveloperRecover() {
       toast.error(t('settings.developer.backupPassphraseInvalid'))
       return
     }
+    const result = BackupJsonSchema.safeParse(raw)
+    if (!result.success) {
+      toast.error(t('settings.developer.recoverDecryptError'))
+      return
+    }
     try {
-      const payload = JSON.parse(raw) as {
-        cipher: string
-        iv: string
-        salt: string
-        v: number
-      }
-      if (
-        typeof payload.cipher !== 'string' ||
-        typeof payload.iv !== 'string' ||
-        typeof payload.salt !== 'string'
-      ) {
-        throw new TypeError('Invalid payload shape')
-      }
+      const payload = result.data
       const key = await pbkdf2Encrypt(recoverPassphrase, payload.salt)
       const plain = await aesDecrypt(payload.cipher, key, payload.iv)
       setRecoverDecrypted(plain)

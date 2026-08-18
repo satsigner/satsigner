@@ -8,6 +8,7 @@ import {
 } from '@/api/bdk'
 import Esplora from '@/api/esplora'
 import { isNativeAvailable } from '@/api/payjoinNative'
+import { DUST_LIMIT } from '@/constants/btc'
 import {
   PAYJOIN_LIVE_ROUNDTRIP_FEE_SATS,
   PAYJOIN_LIVE_ROUNDTRIP_PAYMENT_SATS,
@@ -99,7 +100,7 @@ async function buildPayjoinLiveRoundtripEnv(): Promise<PayjoinRoundtripEnv> {
 
   const paymentAmountSats = PAYJOIN_LIVE_ROUNDTRIP_PAYMENT_SATS
   const feeSats = PAYJOIN_LIVE_ROUNDTRIP_FEE_SATS
-  const fundingNeed = paymentAmountSats + feeSats + 546
+  const fundingNeed = paymentAmountSats + feeSats + DUST_LIMIT
   const maybeFunding = pickFundingUtxo(
     sender.utxos,
     sender.transactions ?? [],
@@ -184,7 +185,7 @@ async function buildPayjoinLiveRoundtripEnv(): Promise<PayjoinRoundtripEnv> {
     amountSats: number
   ): Promise<string> {
     const changeSats = fundingUtxo.value - amountSats - feeSats
-    if (changeSats < 546) {
+    if (changeSats < DUST_LIMIT) {
       throw new Error(
         t('settings.developer.diagnosis.error.insufficientSenderFunds', {
           needSats: fundingNeed

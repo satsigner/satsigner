@@ -3,6 +3,11 @@ import { type Account } from '@/types/models/Account'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { parseLabel } from '@/utils/parse'
 
+const P2WPKH_ADDRESS_MIN_LENGTH = 42
+const P2WPKH_ADDRESS_MAX_LENGTH = 44
+const P2WSH_ADDRESS_MIN_LENGTH = 60
+const P2WSH_ADDRESS_MAX_LENGTH = 62
+
 export function normalizeAddressSet(addresses: Iterable<string>): Set<string> {
   const set = new Set<string>()
   for (const address of addresses) {
@@ -83,10 +88,16 @@ export function getScriptVersionType(
     case 'p':
       return 'P2TR'
     case 'q':
-      if (address.length >= 42 && address.length <= 44) {
+      if (
+        address.length >= P2WPKH_ADDRESS_MIN_LENGTH &&
+        address.length <= P2WPKH_ADDRESS_MAX_LENGTH
+      ) {
         return 'P2WPKH'
       }
-      if (address.length >= 60 && address.length <= 62) {
+      if (
+        address.length >= P2WSH_ADDRESS_MIN_LENGTH &&
+        address.length <= P2WSH_ADDRESS_MAX_LENGTH
+      ) {
         return 'P2WSH'
       }
       break

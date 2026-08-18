@@ -17,8 +17,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { gray } from '@/styles/colors'
-import { getPin } from '@/utils/crypto'
-import { clampPinLength, emptyPin } from '@/utils/pin'
+import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
 import {
   derivePinDigest,
   getStoredKdfConfig,

@@ -1,5 +1,12 @@
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import BitcoinRpc from '@/api/rpc'
+import { MAINNET_P2P_PORT } from '@/constants/btc'
+import {
+  BITNODES_API,
+  BITNODES_SNAPSHOT_NODES_LIMIT,
+  BITNODES_TOP_COUNTRIES_LIMIT,
+  BITNODES_TOP_VERSIONS_LIMIT
+} from '@/constants/explorer'
 import type {
   Backend,
   Network,
@@ -23,7 +30,6 @@ export type BitnodesNodeInfo = {
   lastSeen: number
 }
 
-const BITNODES_API = 'https://bitnodes.io/api/v1'
 const EMPTY_SERVER_INFO: BackendServerInfo = {
   banner: '',
   protocolVersion: '',
@@ -102,8 +108,6 @@ export function fetchBackendServerInfo(
   }
   return Promise.resolve(EMPTY_SERVER_INFO)
 }
-
-const MAINNET_P2P_PORT = 8333
 
 function extractHost(url: string): string {
   try {
@@ -197,7 +201,9 @@ async function fetchBitnodesNetworkStatsUnsafe(): Promise<NetworkStats> {
     return EMPTY_NETWORK_STATS
   }
 
-  const nodesRes = await fetch(`${latest.url}?limit=500`)
+  const nodesRes = await fetch(
+    `${latest.url}?limit=${BITNODES_SNAPSHOT_NODES_LIMIT}`
+  )
   if (!nodesRes.ok) {
     return EMPTY_NETWORK_STATS
   }
@@ -242,12 +248,12 @@ async function fetchBitnodesNetworkStatsUnsafe(): Promise<NetworkStats> {
   const versionDistribution = Object.entries(versionMap)
     .map(([version, count]) => ({ count, version }))
     .toSorted((a, b) => b.count - a.count)
-    .slice(0, 10)
+    .slice(0, BITNODES_TOP_VERSIONS_LIMIT)
 
   const countryDistribution = Object.entries(countryMap)
     .map(([country, count]) => ({ count, country }))
     .toSorted((a, b) => b.count - a.count)
-    .slice(0, 15)
+    .slice(0, BITNODES_TOP_COUNTRIES_LIMIT)
 
   return {
     countryDistribution,

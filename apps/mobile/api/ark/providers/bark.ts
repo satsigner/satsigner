@@ -17,6 +17,13 @@ import {
 } from '@secondts/bark-react-native'
 
 import { registerArkProvider } from '@/api/ark/registry'
+import {
+  ARK_LIGHTNING_SEND_WAIT,
+  ARK_NO_HTLC_VTXOS_LOCKED,
+  ARK_PENDING_RACE_TIMEOUT_MS,
+  ARK_PENDING_TXID,
+  ARK_ROUND_TX_REQUIRED_CONFIRMATIONS
+} from '@/constants/ark'
 import type {
   ArkBalance,
   ArkBolt11Invoice,
@@ -40,8 +47,6 @@ import { isArkRefreshSubsystemName } from '@/utils/arkMovement'
 import { filterCurrentArkVtxos } from '@/utils/arkVtxo'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
 
-const ROUND_TX_REQUIRED_CONFIRMATIONS = 0 // Later allow users to change this on the Ark settings
-const LIGHTNING_SEND_WAIT = false
 const walletCache = new Map<string, WalletLike>()
 const walletArgsCache = new Map<string, ArkWalletArgs>()
 const onchainWalletCache = new Map<string, OnchainWalletLike>()
@@ -66,7 +71,7 @@ function appNetworkToBarkNetwork(network: Network): BarkNetwork {
 function buildConfig(server: ArkServer): Config {
   return Config.create({
     esploraAddress: server.esploraUrl,
-    roundTxRequiredConfirmations: ROUND_TX_REQUIRED_CONFIRMATIONS,
+    roundTxRequiredConfirmations: ARK_ROUND_TX_REQUIRED_CONFIRMATIONS,
     serverAddress: server.arkUrl
   })
 }
@@ -102,7 +107,8 @@ async function openWalletWithOnchain(
         createWithoutServer: false,
         datadir: args.datadir,
         onchain: onchainWallet,
-        runDaemon
+        runDaemon,
+        skipRecovery: false
       }
     )
     walletCache.set(args.accountId, wallet)
@@ -327,8 +333,6 @@ async function fetchMovements(accountId: string): Promise<ArkMovement[]> {
   return movements.map(mapMovement)
 }
 
-const NO_HTLC_VTXOS_LOCKED = 0
-
 function mapLightningSendStatus(
   status: LightningSendStatus,
   fallbackInvoice: string,
@@ -337,7 +341,7 @@ function mapLightningSendStatus(
   if (status.tag === LightningSendStatus_Tags.Paid) {
     return {
       amountSats: fallbackAmountSats,
-      htlcVtxoCount: NO_HTLC_VTXOS_LOCKED,
+      htlcVtxoCount: ARK_NO_HTLC_VTXOS_LOCKED,
       invoice: fallbackInvoice,
       preimage: status.inner.preimage
     }
@@ -352,7 +356,7 @@ function mapLightningSendStatus(
   }
   return {
     amountSats: fallbackAmountSats,
-    htlcVtxoCount: NO_HTLC_VTXOS_LOCKED,
+    htlcVtxoCount: ARK_NO_HTLC_VTXOS_LOCKED,
     invoice: fallbackInvoice
   }
 }
@@ -384,7 +388,7 @@ async function payBolt11(
   const status = await wallet.payLightningInvoice(
     invoice,
     amount,
-    LIGHTNING_SEND_WAIT
+    ARK_LIGHTNING_SEND_WAIT
   )
   return mapLightningSendStatus(
     status,
@@ -404,7 +408,7 @@ async function payLightningAddress(
     address,
     BigInt(amountSats),
     comment,
-    LIGHTNING_SEND_WAIT
+    ARK_LIGHTNING_SEND_WAIT
   )
   return mapLightningSendStatus(status, '', amountSats)
 }
@@ -444,7 +448,7 @@ function mapVtxo(vtxo: Vtxo, spendable: boolean): ArkVtxo {
     id: vtxo.id,
     kind: vtxo.kind,
     spendable,
-    state: vtxo.state
+    state: vtxo.state.tag
   }
 }
 
@@ -478,9 +482,6 @@ async function startExit(accountId: string, vtxoIds?: string[]): Promise<void> {
   await wallet.startExitForVtxos(vtxoIds)
 }
 
-const PENDING_RACE_TIMEOUT_MS = 30_000
-const PENDING_TXID = 'pending'
-
 function raceMovementCreated(
   label: string,
   accountId: string,
@@ -505,7 +506,7 @@ function raceMovementCreated(
       settle(() =>
         reject(new Error(`${label}: no movement created within timeout`))
       )
-    }, PENDING_RACE_TIMEOUT_MS)
+    }, ARK_PENDING_RACE_TIMEOUT_MS)
 
     const unsubscribe = notifications.subscribe((event) => {
       if (event.tag !== WalletNotification_Tags.MovementCreated) {
@@ -514,7 +515,7 @@ function raceMovementCreated(
       if (!matchesMovement(event.inner.movement)) {
         return
       }
-      settle(() => resolve(PENDING_TXID))
+      settle(() => resolve(ARK_PENDING_TXID))
     })
 
     // A failure after the movement notification already resolved this promise

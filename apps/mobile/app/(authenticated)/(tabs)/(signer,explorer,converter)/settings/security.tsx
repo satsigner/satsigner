@@ -44,15 +44,11 @@ export default function Security() {
   const [localPinMaxTries, setLocalPinMaxTries] = useState(pinMaxTries)
   const [localSkipSeedWordConfirmation, setLocalSkipSeedWordConfirmation] =
     useState(skipSeedConfirmation)
-  const [localDuressPinEnabled, setLocalDuressPinEnabled] =
-    useState(duressPinEnabled)
-
   const [duressPinModalVisible, setDuressPinModalVisible] = useState(false)
 
   function handleOnSave() {
     setPinMaxTries(localPinMaxTries)
     setSkipSeedConfirmation(localSkipSeedWordConfirmation)
-    setDuressPinEnabled(localDuressPinEnabled)
     router.back()
   }
 
@@ -100,8 +96,8 @@ export default function Security() {
               <SSText uppercase>{tn('duressPin')}</SSText>
               <SSCheckbox
                 label={tn('duressPinEnabled')}
-                selected={localDuressPinEnabled}
-                onPress={() => setLocalDuressPinEnabled(!localDuressPinEnabled)}
+                selected={duressPinEnabled}
+                onPress={() => setDuressPinEnabled(!duressPinEnabled)}
               />
               <SSButton
                 label={tn('duressPinSet')}

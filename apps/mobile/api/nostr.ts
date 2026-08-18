@@ -3,17 +3,23 @@ import { Buffer } from 'buffer'
 import NDK, { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NetInfo from '@react-native-community/netinfo'
-import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
+import { type Event, nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
 
 import {
+  NOSTR_NIP17_SEAL_KIND,
+  NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
   NOSTR_FLUSH_QUEUE_DELAY_MS,
   NOSTR_MAX_PROCESSED_RAW_IDS,
   NOSTR_MAX_QUEUE_SIZE,
   NOSTR_NDK_CONNECT_TIMEOUT_MS,
+  NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
   NOSTR_PROCESSING_INTERVAL_MS,
   NOSTR_PROFILE_BATCH_SIZE,
   NOSTR_PROFILE_CACHE_TTL_SECS,
-  NOSTR_RELAY_REACHABILITY_TEST_MS
+  NOSTR_PUBLISH_TIMEOUT_MS,
+  NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS,
+  NOSTR_RELAY_REACHABILITY_TEST_MS,
+  NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
 import {
   cacheEvents,
@@ -221,16 +227,44 @@ function getProfileFromKind0Content(
   }
 }
 
+// NIP-17 unwrap with mandatory sender-authenticity checks. nostr-tools'
+// nip59.unwrapEvent only decrypts the two NIP-44 layers and returns the
+// rumor: it never verifies the seal's signature nor that the seal and rumor
+// pubkeys match, so anyone able to address a gift wrap to a victim (e.g. a
+// relay, which learns device npubs from the sync filters) could forge the
+// rumor author and impersonate a trusted device. Both checks are MUSTs in
+// NIP-17, so events failing them are rejected here.
 function unwrapNip59EventOrNull(
   rawEvent: Event,
   secretKey: Uint8Array
 ): NostrUnwrappedKind1059Event | null {
   try {
-    return nip59.unwrapEvent(rawEvent, secretKey) as NostrUnwrappedKind1059Event
+    const sealJson = nip44.v2.decrypt(
+      rawEvent.content,
+      nip44.getConversationKey(secretKey, rawEvent.pubkey)
+    )
+    const seal = JSON.parse(sealJson) as Event
+    if (seal.kind !== NOSTR_NIP17_SEAL_KIND || !verifyEvent(seal)) {
+      return null
+    }
+
+    const rumorJson = nip44.v2.decrypt(
+      seal.content,
+      nip44.getConversationKey(secretKey, seal.pubkey)
+    )
+    const rumor = JSON.parse(rumorJson) as NostrUnwrappedKind1059Event
+    if (rumor.pubkey !== seal.pubkey) {
+      return null
+    }
+
+    return rumor
   } catch {
     return null
   }
 }
+
+// Exported for unit tests
+export { unwrapNip59EventOrNull }
 
 export class NostrAPI {
   private ndk: NDK | null = null
@@ -281,7 +315,7 @@ export class NostrAPI {
    * we do NOT gate on connectedRelays().length here; the per-fetch timeout
    * handles the case where nothing connects in time.
    */
-  async connectForPublish(timeoutMs = 10000): Promise<void> {
+  async connectForPublish(timeoutMs = NOSTR_PUBLISH_TIMEOUT_MS): Promise<void> {
     // Always resolve from the registry so all_failed resets don't leave this
     // instance pinned to an evicted/disconnected NDK.
     this.ndk = getOrCreateNdk(this.relays)
@@ -335,11 +369,10 @@ export class NostrAPI {
       kinds: [NDKKind.Metadata],
       limit: 10
     }
-    const FETCH_KIND0_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_KIND0_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     const event =
@@ -410,7 +443,7 @@ export class NostrAPI {
         kinds: [31922 as NDKKind],
         limit: 500
       },
-      15000
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     return [...events]
@@ -462,7 +495,6 @@ export class NostrAPI {
       return new Map()
     }
 
-    const FETCH_KIND0_BATCH_TIMEOUT_MS = 15000
     const filter: NDKFilter = {
       authors: validKeys,
       kinds: [NDKKind.Metadata],
@@ -471,7 +503,7 @@ export class NostrAPI {
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_KIND0_BATCH_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     const newestByPubkey = new Map<
@@ -574,11 +606,10 @@ export class NostrAPI {
       kinds: [NDKKind.BookmarkList],
       limit: 1
     }
-    const FETCH_BOOKMARKS_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_BOOKMARKS_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     if (events.size === 0) {
@@ -677,11 +708,10 @@ export class NostrAPI {
       kinds: [NDKKind.Contacts],
       limit: 40
     }
-    const FETCH_KIND3_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_KIND3_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     if (events.size === 0) {
@@ -727,7 +757,7 @@ export class NostrAPI {
 
   async fetchNotes(
     npub: string,
-    limit = 20,
+    limit = NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
     until?: number,
     kinds: number[] = [1]
   ): Promise<
@@ -786,11 +816,10 @@ export class NostrAPI {
       }
     }
 
-    const FETCH_NOTES_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_NOTES_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     const fresh = Array.from(events)
@@ -825,7 +854,7 @@ export class NostrAPI {
    */
   async fetchFollowingTimelineNotes(
     npub: string,
-    limit = 20,
+    limit = NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
     until?: number,
     kinds: number[] = [1]
   ): Promise<
@@ -861,11 +890,10 @@ export class NostrAPI {
       filter.until = until
     }
 
-    const FETCH_FEED_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_FEED_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     const results = Array.from(events)
@@ -997,7 +1025,11 @@ export class NostrAPI {
     }
 
     const filter = { ids: [eventIdHex], limit: 1 }
-    const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
+    const poolEvent = await NostrAPI.fetchWithTimeout(
+      this.ndk,
+      filter,
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
     if (!poolEvent) {
       return null
     }
@@ -1030,12 +1062,11 @@ export class NostrAPI {
       return new Map()
     }
 
-    const FETCH_EVENT_BATCH_TIMEOUT_MS = 15000
     const filter: NDKFilter = { ids: validIds, limit: validIds.length }
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_EVENT_BATCH_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     const result = new Map<
@@ -1075,10 +1106,14 @@ export class NostrAPI {
 
     const tempNdk = createMobileNdk(relayUrls)
     try {
-      await tempNdk.connect(8000)
+      await tempNdk.connect(NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS)
 
       const filter = { ids: [eventIdHex], limit: 1 }
-      const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
+      const event = await NostrAPI.fetchWithTimeout(
+        tempNdk,
+        filter,
+        NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+      )
       if (!event) {
         return null
       }
@@ -1116,10 +1151,14 @@ export class NostrAPI {
 
     const tempNdk = createMobileNdk(relayUrls)
     try {
-      await tempNdk.connect(8000)
+      await tempNdk.connect(NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS)
 
       const filter = { ids: [eventIdHex], limit: 1 }
-      const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
+      const event = await NostrAPI.fetchWithTimeout(
+        tempNdk,
+        filter,
+        NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+      )
       if (!event) {
         return null
       }
@@ -1339,8 +1378,6 @@ export class NostrAPI {
   }
 
   // 20 second timeout per relay for publish operations
-  private static readonly PUBLISH_TIMEOUT_MS = 20000
-
   /**
    * Request deletion of events from relays (NIP-09). Sends a kind 5 event.
    * Only events authored by the signer can be deleted by relays.
@@ -1459,7 +1496,11 @@ export class NostrAPI {
       kinds: [NOSTR_POLL_RESPONSE_KIND as NDKKind],
       limit: 500
     }
-    const events = await NostrAPI.fetchManyWithTimeout(this.ndk, filter, 15000)
+    const events = await NostrAPI.fetchManyWithTimeout(
+      this.ndk,
+      filter,
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
 
     return [...events].map((event) => ({
       created_at: event.created_at ?? 0,
@@ -1524,10 +1565,10 @@ export class NostrAPI {
               () =>
                 reject(
                   new Error(
-                    `Publish timeout after ${NostrAPI.PUBLISH_TIMEOUT_MS}ms`
+                    `Publish timeout after ${NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS}ms`
                   )
                 ),
-              NostrAPI.PUBLISH_TIMEOUT_MS
+              NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS
             )
           })
           await Promise.race([relay.publish(event), timeoutPromise])
@@ -1592,10 +1633,10 @@ export class NostrAPI {
             () =>
               reject(
                 new Error(
-                  `Publish timeout after ${NostrAPI.PUBLISH_TIMEOUT_MS}ms`
+                  `Publish timeout after ${NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS}ms`
                 )
               ),
-            NostrAPI.PUBLISH_TIMEOUT_MS
+            NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS
           )
         })
         await Promise.race([relay.publish(event), timeoutPromise])

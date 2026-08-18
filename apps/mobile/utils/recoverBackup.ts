@@ -27,8 +27,9 @@ import type {
 import type { LNDConfig } from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
 import type { Config, Network, Server } from '@/types/settings/blockchain'
-import { aesEncrypt, getPin, randomIv } from '@/utils/crypto'
+import { aesEncrypt, randomIv } from '@/utils/crypto'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
+import { getPin } from '@/utils/pin'
 
 type BackupKey = Key & {
   passphrase?: string
@@ -182,7 +183,7 @@ async function prepareRestore(
 ): Promise<PreparedRestore> {
   const accounts: Account[] = []
   const keys: PreparedKey[] = []
-  for (const acc of data.accounts) {
+  for (const [accountDisplayIndex, acc] of data.accounts.entries()) {
     const accountKeys: Key[] = []
     for (const k of acc.keys) {
       const secretObj =
@@ -238,6 +239,7 @@ async function prepareRestore(
       addresses: [],
       birthdayDate: acc.birthdayDate ? new Date(acc.birthdayDate) : undefined,
       createdAt: typeof created === 'string' ? new Date(created) : new Date(),
+      displayIndex: accountDisplayIndex,
       excludedUtxoOutpoints: acc.excludedUtxoOutpoints ?? [],
       id: acc.id,
       keyCount: acc.keys.length,
@@ -443,7 +445,7 @@ async function writeKeychain(
 export async function performRecoverOverwrite(
   decrypted: string
 ): Promise<RecoverResult> {
-  let pin: string
+  let pin = ''
   try {
     pin = await getPin()
   } catch {

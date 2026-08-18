@@ -6,6 +6,8 @@ const MEMPOOL_TESTNET_URL = 'https://mempool.space/testnet4/api'
 const DEFAULT_TIME_OUT = 15
 const DEFAULT_RETRIES = 5
 const DEFAULT_STOP_GAP = 20
+const DEFAULT_CONNECTION_TEST_INTERVAL_SECONDS = 60
+const DEFAULT_TIME_DIFF_BEFORE_AUTO_SYNC_MINUTES = 30
 
 type CustomBlockchainConfig = {
   retries?: number
@@ -33,8 +35,10 @@ function getBlockchainConfig(
 }
 
 export {
+  DEFAULT_CONNECTION_TEST_INTERVAL_SECONDS,
   DEFAULT_RETRIES,
   DEFAULT_STOP_GAP,
+  DEFAULT_TIME_DIFF_BEFORE_AUTO_SYNC_MINUTES,
   DEFAULT_TIME_OUT,
   getBlockchainConfig,
   MEMPOOL_MAINNET_URL,

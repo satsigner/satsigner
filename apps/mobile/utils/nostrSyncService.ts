@@ -27,8 +27,12 @@ const nostrMessageProcessors = new Map<
   (messages: NostrMessage[]) => void | Promise<void>
 >()
 
+// Raised above Node's default (10) since many concurrent account
+// subscriptions each register their own listeners on this shared emitter.
+const NOSTR_SYNC_EMITTER_MAX_LISTENERS = 50
+
 const emitter = new EventEmitter()
-emitter.setMaxListeners(50)
+emitter.setMaxListeners(NOSTR_SYNC_EMITTER_MAX_LISTENERS)
 
 function emitStatus(
   accountId: string,

@@ -2,6 +2,7 @@ import * as ecc from '@bitcoinerlab/secp256k1'
 import BIP32Factory from 'bip32'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
+import { PSBT_MAGIC_HEX } from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
@@ -542,6 +543,60 @@ export function combinePsbts(psbtBase64s: string[]): string {
   return basePsbt.toBase64()
 }
 
+// Check that a raw (signed) transaction spends exactly the inputs and pays
+// exactly the outputs of the unsigned transaction inside a PSBT — i.e. that
+// broadcasting it executes the transaction the user reviewed, and not a
+// substituted one spending the same UTXOs elsewhere. Signatures/witnesses
+// are intentionally ignored: only the unsigned skeleton is bound.
+export function signedTransactionMatchesPsbt(
+  psbtBase64: string,
+  signedTxHex: string
+): boolean {
+  try {
+    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+    const unsignedTx = bitcoinjs.Transaction.fromBuffer(
+      psbt.data.globalMap.unsignedTx.toBuffer()
+    )
+    const signedTx = bitcoinjs.Transaction.fromHex(signedTxHex)
+
+    if (
+      signedTx.version !== unsignedTx.version ||
+      signedTx.locktime !== unsignedTx.locktime ||
+      signedTx.ins.length !== unsignedTx.ins.length ||
+      signedTx.outs.length !== unsignedTx.outs.length
+    ) {
+      return false
+    }
+
+    for (let i = 0; i < unsignedTx.ins.length; i += 1) {
+      const expected = unsignedTx.ins[i]
+      const actual = signedTx.ins[i]
+      if (
+        !actual.hash.equals(expected.hash) ||
+        actual.index !== expected.index ||
+        actual.sequence !== expected.sequence
+      ) {
+        return false
+      }
+    }
+
+    for (let i = 0; i < unsignedTx.outs.length; i += 1) {
+      const expected = unsignedTx.outs[i]
+      const actual = signedTx.outs[i]
+      if (
+        actual.value !== expected.value ||
+        !actual.script.equals(expected.script)
+      ) {
+        return false
+      }
+    }
+
+    return true
+  } catch {
+    return false
+  }
+}
+
 // Function to reconstruct the original (unsigned) PSBT
 export function extractOriginalPsbt(psbtBase64: string): string {
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
@@ -796,7 +851,7 @@ export function validateNormalizedPsbt(
 }
 
 export function normalizePsbtToBase64(psbt: string): string {
-  if (psbt.toLowerCase().startsWith('70736274ff')) {
+  if (psbt.toLowerCase().startsWith(PSBT_MAGIC_HEX)) {
     return Buffer.from(psbt, 'hex').toString('base64')
   }
   if (

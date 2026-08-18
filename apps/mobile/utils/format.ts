@@ -22,7 +22,7 @@ function formatNumber(
   separator = ' '
 ) {
   const formatted = padding
-    ? (n / 10 ** 8).toFixed(8)
+    ? (n / SATS_PER_BITCOIN).toFixed(8)
     : n.toLocaleString(undefined, {
         maximumFractionDigits: decimals,
         minimumFractionDigits: decimals

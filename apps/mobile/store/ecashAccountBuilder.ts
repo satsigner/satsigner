@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 import type { EcashAccount } from '@/types/models/Ecash'
-import { randomKey } from '@/utils/crypto'
+import { ACCOUNT_ID_KEY_LENGTH, randomKey } from '@/utils/crypto'
 
 type EcashAccountBuilderState = {
   name: string
@@ -30,7 +30,7 @@ export const useEcashAccountBuilderStore = create<
   clearAccount: () => set(initialState),
   getAccountData: async () => {
     const state = get()
-    const id = await randomKey(12)
+    const id = await randomKey(ACCOUNT_ID_KEY_LENGTH)
     return {
       createdAt: new Date().toISOString(),
       hasSeed: state.mnemonic.trim().length > 0,

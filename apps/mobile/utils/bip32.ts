@@ -7,6 +7,16 @@ import {
   Network as BDKNetwork
 } from 'react-native-bdk-sdk'
 
+import {
+  BIP44_PURPOSE,
+  BIP45_PURPOSE,
+  BIP48_PURPOSE,
+  BIP48_SCRIPT_TYPE_P2SH_P2WSH,
+  BIP48_SCRIPT_TYPE_P2WSH,
+  BIP49_PURPOSE,
+  BIP84_PURPOSE,
+  BIP86_PURPOSE
+} from '@/constants/derivation'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import {
@@ -215,19 +225,19 @@ export function getScriptVersionPurpose(
 ): number {
   switch (scriptVersion) {
     case 'P2PKH':
-      return 44 // Legacy
+      return BIP44_PURPOSE // Legacy
     case 'P2SH-P2WPKH':
-      return 49 // Nested SegWit
+      return BIP49_PURPOSE // Nested SegWit
     case 'P2WPKH':
-      return 84 // Native SegWit
+      return BIP84_PURPOSE // Native SegWit
     case 'P2TR':
-      return 86 // Taproot
+      return BIP86_PURPOSE // Taproot
     case 'P2WSH':
     case 'P2SH-P2WSH':
     case 'P2SH':
-      return 44 // Use legacy for these
+      return BIP44_PURPOSE // Use legacy for these
     default:
-      return 84
+      return BIP84_PURPOSE
   }
 }
 
@@ -324,7 +334,7 @@ function getP2SHXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
   const master = HDKey.fromMasterSeed(seed, versions)
 
   // Derive m/45' for P2SH
-  const node = master.deriveChild(0x80000000 + 45)
+  const node = master.deriveChild(0x80000000 + BIP45_PURPOSE)
 
   return node.publicExtendedKey
 }
@@ -342,10 +352,10 @@ function getP2SHP2WSHXpub(
   // Derive m/48'/0'/0'/1' for mainnet, m/48'/1'/0'/1' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 48)
+    .deriveChild(0x80000000 + BIP48_PURPOSE)
     .deriveChild(0x80000000 + coinType)
     .deriveChild(0x80000000)
-    .deriveChild(0x80000000 + 1)
+    .deriveChild(0x80000000 + BIP48_SCRIPT_TYPE_P2SH_P2WSH)
 
   return node.publicExtendedKey
 }
@@ -363,10 +373,10 @@ function getP2WSHXpub(
   // Derive m/48'/0'/0'/2' for mainnet, m/48'/1'/0'/2' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 48)
+    .deriveChild(0x80000000 + BIP48_PURPOSE)
     .deriveChild(0x80000000 + coinType)
     .deriveChild(0x80000000)
-    .deriveChild(0x80000000 + 2)
+    .deriveChild(0x80000000 + BIP48_SCRIPT_TYPE_P2WSH)
 
   return node.publicExtendedKey
 }
@@ -389,7 +399,7 @@ function getP2PKHXpub(
   // Derive m/44'/0'/0' for mainnet, m/44'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 44)
+    .deriveChild(0x80000000 + BIP44_PURPOSE)
     .deriveChild(0x80000000 + coinType)
     .deriveChild(0x80000000)
 
@@ -406,7 +416,7 @@ function getP2SHP2WPKHXpub(
   // Derive m/49'/0'/0' for mainnet, m/49'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 49)
+    .deriveChild(0x80000000 + BIP49_PURPOSE)
     .deriveChild(0x80000000 + coinType)
     .deriveChild(0x80000000)
 
@@ -420,7 +430,7 @@ function getP2TRXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
   // Derive m/86'/0'/0' for mainnet, m/86'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 86)
+    .deriveChild(0x80000000 + BIP86_PURPOSE)
     .deriveChild(0x80000000 + coinType)
     .deriveChild(0x80000000)
 

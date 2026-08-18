@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 import type { ArkAccount, ArkServerId } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
-import { randomKey } from '@/utils/crypto'
+import { ACCOUNT_ID_KEY_LENGTH, randomKey } from '@/utils/crypto'
 
 type ArkAccountBuilderState = {
   name: string
@@ -39,7 +39,7 @@ export const useArkAccountBuilderStore = create<
   clearAccount: () => set(initialState),
   getAccountData: async () => {
     const state = get()
-    const id = await randomKey(12)
+    const id = await randomKey(ACCOUNT_ID_KEY_LENGTH)
     return {
       bitcoinAccountId: state.bitcoinAccountId,
       createdAt: new Date().toISOString(),

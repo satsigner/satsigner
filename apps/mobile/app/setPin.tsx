@@ -9,7 +9,6 @@ import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import {
-  DEFAULT_PIN,
   PIN_LENGTH_KEY,
   PIN_MAX_LENGTH,
   PIN_MIN_LENGTH,
@@ -25,10 +24,18 @@ import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
-import { getPin } from '@/utils/crypto'
-import { clampPinLength, emptyPin } from '@/utils/pin'
+import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
 
 type Stage = 'verify' | 'set' | 're-enter'
+
+/** Returns null on first-time setup, where no PIN exists yet. */
+async function getCurrentPin(): Promise<string | null> {
+  try {
+    return await getPin()
+  } catch {
+    return null
+  }
+}
 
 const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 
@@ -43,6 +50,7 @@ export default function SetPin() {
     setFirstTime,
     setRequiresAuth,
     setSkipPin,
+    enableDevSkipPin,
     skipPin,
     validatePin,
     requirePinMigration,
@@ -53,6 +61,7 @@ export default function SetPin() {
       state.setFirstTime,
       state.setRequiresAuth,
       state.setSkipPin,
+      state.enableDevSkipPin,
       state.skipPin,
       state.validatePin,
       state.requirePinMigration,
@@ -122,19 +131,17 @@ export default function SetPin() {
   }
 
   async function handleSetPinLater() {
-    // DEFAULT_PIN / lock-screen skip is development-only. Production must set a PIN.
+    // Dev-only lock-screen skip. Encryption uses a random ephemeral key, never
+    // a hardcoded PIN like "2121".
     if (!__DEV__) {
       return
     }
+    await enableDevSkipPin()
     if (fromSettings) {
-      setSkipPin(true)
-      await setPin(DEFAULT_PIN)
       router.back()
       return
     }
     setFirstTime(false)
-    setSkipPin(true)
-    await setPin(DEFAULT_PIN)
     if (showWarning) {
       router.replace('./warning')
     } else {
@@ -163,9 +170,9 @@ export default function SetPin() {
     setSkipPin(false)
     setRequirePinMigration(false)
 
-    const currentPinEncrypted = await getPin()
+    const currentPinEncrypted = await getCurrentPin()
     await setPin(pinArray.join(''))
-    const newPinEncrypted = await getPin()
+    const newPinEncrypted = await getCurrentPin()
     if (
       currentPinEncrypted &&
       newPinEncrypted &&

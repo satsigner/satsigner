@@ -9,8 +9,9 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { aesEncrypt, getPin } from '@/utils/crypto'
+import { aesEncrypt } from '@/utils/crypto'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
+import { getPin } from '@/utils/pin'
 
 function useAccountBuilderFinish() {
   const [
