@@ -9,7 +9,10 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { NOSTR_LIVE_CHECK_FALLBACK_RELAYS, NOSTR_SECURITY_REPORT_NPUB } from '@/constants/nostr'
+import {
+  NOSTR_LIVE_CHECK_FALLBACK_RELAYS,
+  NOSTR_SECURITY_REPORT_NPUB
+} from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -142,7 +145,9 @@ export default function SecurityReport() {
         options={{
           headerRight: undefined,
           headerTitle: () => (
-            <SSText uppercase>{t('settings.about.securityReport.title')}</SSText>
+            <SSText uppercase>
+              {t('settings.about.securityReport.title')}
+            </SSText>
           )
         }}
       />
@@ -235,8 +240,7 @@ export default function SecurityReport() {
                 <SSText size="xs" color="muted">
                   {t('settings.about.securityReport.sendingAs', {
                     name:
-                      identity.displayName ??
-                      `${identity.npub.slice(0, 16)}…`
+                      identity.displayName ?? `${identity.npub.slice(0, 16)}…`
                   })}
                 </SSText>
               ) : null}

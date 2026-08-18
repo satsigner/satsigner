@@ -1,5 +1,7 @@
 // Real nostr-tools: the shared manual mock fakes npub/nsec encoding.
-jest.mock('nostr-tools', () => jest.requireActual('nostr-tools'))
+jest.mock<typeof import('nostr-tools')>('nostr-tools', () =>
+  jest.requireActual('nostr-tools')
+)
 
 import { getPublicKey, nip19 } from 'nostr-tools'
 

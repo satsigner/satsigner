@@ -1,10 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient'
+import { useRouter } from 'expo-router'
 import {
   type DrawerContentComponentProps,
   DrawerContentScrollView,
   useDrawerStatus
 } from 'expo-router/build/react-navigation/drawer'
-import { useRouter } from 'expo-router'
 import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import { SSIconAbout, SSIconSettings } from '@/components/icons'
@@ -116,6 +116,19 @@ const styles = StyleSheet.create({
   contentContainer: {
     flexGrow: 1
   },
+  footerLinkRow: {
+    alignItems: 'center'
+  },
+  footerLinkText: {
+    letterSpacing: 1
+  },
+  footerLinks: {
+    marginBottom: 4
+  },
+  footerWrapper: {
+    marginLeft: 30,
+    marginVertical: 40
+  },
   gradientOverlay: {
     boxShadow: '2px 0 3px rgba(0, 0, 0, 0.25)',
     height: '100%',
@@ -137,19 +150,6 @@ const styles = StyleSheet.create({
   },
   versionText: {
     letterSpacing: 2
-  },
-  footerWrapper: {
-    marginLeft: 30,
-    marginVertical: 40
-  },
-  footerLinkRow: {
-    alignItems: 'center'
-  },
-  footerLinks: {
-    marginBottom: 4
-  },
-  footerLinkText: {
-    letterSpacing: 1
   }
 })
 

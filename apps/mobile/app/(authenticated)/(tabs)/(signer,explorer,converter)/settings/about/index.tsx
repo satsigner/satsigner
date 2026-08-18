@@ -1,11 +1,7 @@
 import { Stack, useRouter } from 'expo-router'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
-import {
-  SSIconChevronRight,
-  SSIconNostr,
-  SSIconX
-} from '@/components/icons'
+import { SSIconChevronRight, SSIconNostr, SSIconX } from '@/components/icons'
 import SSText from '@/components/SSText'
 import { APP_LICENSE, APP_VERSION, BUILD_NUMBER } from '@/constants/version'
 import SSHStack from '@/layouts/SSHStack'

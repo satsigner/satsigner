@@ -65,8 +65,7 @@ export async function sendSecurityReport({
     NOSTR_SECURITY_REPORT_NPUB,
     relays
   )
-  const publishApi =
-    targetRelays === relays ? api : new NostrAPI(targetRelays)
+  const publishApi = targetRelays === relays ? api : new NostrAPI(targetRelays)
   await publishApi.publishEvent(wrap)
 
   if (persistCopy) {
