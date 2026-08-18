@@ -237,14 +237,14 @@ describe('extractInboxRelayUrls', () => {
         ]
       }
     ])
-    expect(urls).toEqual(['wss://dm1.example', 'wss://dm2.example'])
+    expect(urls).toStrictEqual(['wss://dm1.example', 'wss://dm2.example'])
   })
 
   it('falls back to kind 10002 r tags when no 10050 exists', () => {
     const urls = extractInboxRelayUrls([
       { created_at: 100, kind: 10002, tags: [['r', 'wss://nip65.example']] }
     ])
-    expect(urls).toEqual(['wss://nip65.example'])
+    expect(urls).toStrictEqual(['wss://nip65.example'])
   })
 
   it('drops non-wss urls and returns empty without relay lists', () => {
@@ -256,7 +256,7 @@ describe('extractInboxRelayUrls', () => {
           tags: [['relay', 'http://insecure.example']]
         }
       ])
-    ).toEqual([])
-    expect(extractInboxRelayUrls([])).toEqual([])
+    ).toStrictEqual([])
+    expect(extractInboxRelayUrls([])).toStrictEqual([])
   })
 })

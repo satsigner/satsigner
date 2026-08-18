@@ -4,7 +4,7 @@
  */
 import { type NDKFilter } from '@nostr-dev-kit/ndk'
 
-jest.mock('@/api/ndkRegistry', () => ({
+jest.mock<typeof import('@/api/ndkRegistry')>('@/api/ndkRegistry', () => ({
   clearNdkRegistry: jest.fn(),
   createEphemeralNdk: jest.fn(),
   createMobileNdk: jest.fn(),
@@ -14,15 +14,12 @@ jest.mock('@/api/ndkRegistry', () => ({
   resetNdkForRelays: jest.fn()
 }))
 
-jest.mock('@/db/nostrCache', () => ({
+jest.mock<typeof import('@/db/nostrCache')>('@/db/nostrCache', () => ({
   cacheProfile: jest.fn(),
   getCachedProfile: jest.fn()
 }))
 
-import {
-  createEphemeralNdk,
-  getOrCreateNdk
-} from '@/api/ndkRegistry'
+import { createEphemeralNdk, getOrCreateNdk } from '@/api/ndkRegistry'
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_INDEXER_RELAYS } from '@/constants/nostr'
 import { cacheProfile, getCachedProfile } from '@/db/nostrCache'
@@ -100,14 +97,14 @@ async function flushNow() {
 beforeEach(() => {
   resetProfileFetcher()
   jest.clearAllMocks()
-  ;(getCachedProfile as jest.Mock).mockReturnValue(undefined)
-  ;(createEphemeralNdk as jest.Mock).mockReturnValue(makeFakeNdk({}))
+  jest.mocked(getCachedProfile).mockReturnValue(undefined)
+  jest.mocked(createEphemeralNdk).mockReturnValue(makeFakeNdk({}))
 })
 
 describe('queue coalescing', () => {
   it('batches multiple queueProfileFetch calls into one relay fetch', async () => {
     const userNdk = makeFakeNdk({})
-    ;(getOrCreateNdk as jest.Mock).mockReturnValue(userNdk)
+    jest.mocked(getOrCreateNdk).mockReturnValue(userNdk)
 
     queueProfileFetch(PK_A, { relays: ['wss://user.relay'] })
     queueProfileFetch(PK_B, { relays: ['wss://user.relay'] })
@@ -115,7 +112,7 @@ describe('queue coalescing', () => {
     await flushNow()
 
     expect(userNdk.subscribe).toHaveBeenCalledTimes(1)
-    expect(userNdk.subscribes[0].authors).toEqual(
+    expect(userNdk.subscribes[0].authors).toStrictEqual(
       expect.arrayContaining([PK_A, PK_B, PK_C])
     )
   })
@@ -124,7 +121,7 @@ describe('queue coalescing', () => {
 describe('in-flight dedupe, attempt cap, exhaustion', () => {
   it('never re-fetches an in-flight or pending pubkey', async () => {
     const userNdk = makeFakeNdk({})
-    ;(getOrCreateNdk as jest.Mock).mockReturnValue(userNdk)
+    jest.mocked(getOrCreateNdk).mockReturnValue(userNdk)
 
     queueProfileFetch(PK_A, { relays: ['wss://user.relay'] })
     queueProfileFetch(PK_A, { relays: ['wss://user.relay'] })
@@ -139,8 +136,8 @@ describe('in-flight dedupe, attempt cap, exhaustion', () => {
   it('exhausts a dead pubkey after 2 attempts; forceProfileFetch re-enables', async () => {
     const userNdk = makeFakeNdk({})
     const indexerNdk = makeFakeNdk({})
-    ;(getOrCreateNdk as jest.Mock).mockReturnValue(userNdk)
-    ;(createEphemeralNdk as jest.Mock).mockReturnValue(indexerNdk)
+    jest.mocked(getOrCreateNdk).mockReturnValue(userNdk)
+    jest.mocked(createEphemeralNdk).mockReturnValue(indexerNdk)
 
     queueProfileFetch(PK_A, { relays: ['wss://user.relay'] })
     await flushNow()
@@ -168,16 +165,17 @@ describe('two-tier relay routing', () => {
     const indexerNdk = makeFakeNdk({
       [PK_B]: [{ content: { name: 'bob' }, created_at: 100 }]
     })
-    ;(getOrCreateNdk as jest.Mock).mockReturnValue(userNdk)
-    ;(createEphemeralNdk as jest.Mock).mockReturnValue(indexerNdk)
+    jest.mocked(getOrCreateNdk).mockReturnValue(userNdk)
+    jest.mocked(createEphemeralNdk).mockReturnValue(indexerNdk)
 
-    const result = await fetchProfilesCoalesced([PK_A, PK_B], [
-      'wss://user.relay'
-    ])
+    const result = await fetchProfilesCoalesced(
+      [PK_A, PK_B],
+      ['wss://user.relay']
+    )
 
     expect(createEphemeralNdk).toHaveBeenCalledWith(NOSTR_INDEXER_RELAYS)
     // Only the missing pubkey goes to the indexer tier.
-    expect(indexerNdk.subscribes[0].authors).toEqual([PK_B])
+    expect(indexerNdk.subscribes[0].authors).toStrictEqual([PK_B])
     expect(result.get(PK_A)?.displayName).toBe('alice')
     expect(result.get(PK_B)?.displayName).toBe('bob')
   })
@@ -191,7 +189,7 @@ describe('newest-wins + cache behavior', () => {
         { content: { name: 'new-name' }, created_at: 200 }
       ]
     })
-    ;(getOrCreateNdk as jest.Mock).mockReturnValue(userNdk)
+    jest.mocked(getOrCreateNdk).mockReturnValue(userNdk)
 
     const profile = await fetchProfileCoalesced(PK_A, ['wss://user.relay'])
     expect(profile?.displayName).toBe('new-name')
@@ -201,7 +199,7 @@ describe('newest-wins + cache behavior', () => {
     const userNdk = makeFakeNdk({
       [PK_A]: [{ content: { name: 'alice' }, created_at: 100 }]
     })
-    ;(getOrCreateNdk as jest.Mock).mockReturnValue(userNdk)
+    jest.mocked(getOrCreateNdk).mockReturnValue(userNdk)
 
     await fetchProfileCoalesced(PK_A, ['wss://user.relay'])
     expect(cacheProfile).toHaveBeenCalledWith(
@@ -214,7 +212,7 @@ describe('newest-wins + cache behavior', () => {
 
   it('skips relay traffic entirely for fresh cached profiles', async () => {
     const now = Math.floor(Date.now() / 1000)
-    ;(getCachedProfile as jest.Mock).mockReturnValue({
+    jest.mocked(getCachedProfile).mockReturnValue({
       cached_at: now,
       displayName: 'cached-alice',
       picture: undefined
@@ -232,7 +230,7 @@ describe('abort signal', () => {
       { [PK_A]: [{ content: { name: 'alice' }, created_at: 100 }] },
       { holdOpen: true }
     )
-    ;(getOrCreateNdk as jest.Mock).mockReturnValue(userNdk)
+    jest.mocked(getOrCreateNdk).mockReturnValue(userNdk)
 
     const api = new NostrAPI(['wss://user.relay'])
     const onBatch = jest.fn()

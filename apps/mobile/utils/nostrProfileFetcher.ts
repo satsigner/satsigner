@@ -148,11 +148,7 @@ async function fetchFromIndexerRelays(
   const ephemeral = createEphemeralNdk(NOSTR_INDEXER_RELAYS)
   try {
     await ephemeral.connect(EPHEMERAL_CONNECT_TIMEOUT_MS)
-    return await fetchKind0Events(
-      ephemeral,
-      hexPubkeys,
-      FETCH_EOSE_TIMEOUT_MS
-    )
+    return await fetchKind0Events(ephemeral, hexPubkeys, FETCH_EOSE_TIMEOUT_MS)
   } finally {
     disconnectNdkPool(ephemeral)
   }
@@ -182,7 +178,8 @@ async function flushChunk(relaySetKey: string, hexes: string[]): Promise<void> {
 
   // Attempt 2: indexer relays, only for still-missing, attempt-capped pubkeys.
   const missing = hexes.filter(
-    (pk) => !fetched.has(pk) && (attempts.get(pk) ?? 0) < MAX_ATTEMPTS_PER_PUBKEY
+    (pk) =>
+      !fetched.has(pk) && (attempts.get(pk) ?? 0) < MAX_ATTEMPTS_PER_PUBKEY
   )
   if (missing.length > 0) {
     const second = await fetchFromIndexerRelays(missing)

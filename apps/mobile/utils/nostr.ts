@@ -177,7 +177,7 @@ export function validateNip05(
 export function extractInboxRelayUrls(
   events: { created_at?: number; kind?: number; tags: string[][] }[]
 ): string[] {
-  const sorted = [...events].sort(
+  const sorted = [...events].toSorted(
     (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
   )
   const dmInbox = sorted.find((e) => e.kind === 10050)

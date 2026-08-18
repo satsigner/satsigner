@@ -39,10 +39,7 @@ export function getNostrIdentityRelays(
   if (identityRelays?.length) {
     return identityRelays
   }
-  if (storeRelays.length) {
-    return storeRelays
-  }
-  return NostrAPI.INDEXING_RELAYS
+  return storeRelays.length ? storeRelays : NostrAPI.INDEXING_RELAYS
 }
 
 export function getNostrContactsRelaysKey(contactsRelays: string[]): string {
