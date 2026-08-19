@@ -14,7 +14,7 @@ const {
   sampleCsvSparrowUtxoExpected,
   sampleJsonl,
   sampleJsonlExpected
-} = require('./bip329_samples')
+} = require('./bip329Samples')
 
 describe('jsonl to labels', () => {
   it('parses JSON to labels', () => {
