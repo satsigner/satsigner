@@ -3,7 +3,13 @@ import * as nodeCrypto from 'node:crypto'
 import { __store as secureStore } from 'expo-secure-store'
 import QuickCrypto from 'react-native-quick-crypto'
 
-import { PIN_KDF_KEY, PIN_KEY, PIN_LENGTH_KEY, SALT_KEY } from '@/config/auth'
+import {
+  DURESS_PIN_KEY,
+  PIN_KDF_KEY,
+  PIN_KEY,
+  PIN_LENGTH_KEY,
+  SALT_KEY
+} from '@/config/auth'
 import { useAuthStore } from '@/store/auth'
 import { parseKdf } from '@/utils/pinKdf'
 
@@ -72,6 +78,25 @@ describe('auth store PIN handling', () => {
     expect(secureStore[sk(SALT_KEY)]).toBe(saltAfterMainPin)
     await expect(useAuthStore.getState().validatePin('1234')).resolves.toBe(
       true
+    )
+  })
+
+  it('setPin reuses the salt so a later PIN change does not invalidate duress', async () => {
+    await useAuthStore.getState().setPin('1234')
+    const saltAfterMainPin = secureStore[sk(SALT_KEY)]
+    await useAuthStore.getState().setDuressPin('4321')
+    const duressDigest = secureStore[sk(DURESS_PIN_KEY)]
+    expect(useAuthStore.getState().duressPinEnabled).toBe(true)
+
+    await useAuthStore.getState().setPin('5678')
+
+    expect(secureStore[sk(SALT_KEY)]).toBe(saltAfterMainPin)
+    expect(secureStore[sk(DURESS_PIN_KEY)]).toBe(duressDigest)
+    await expect(useAuthStore.getState().validatePin('5678')).resolves.toBe(
+      true
+    )
+    await expect(useAuthStore.getState().validatePin('1234')).resolves.toBe(
+      false
     )
   })
 })
