@@ -113,6 +113,16 @@ export default function SSSeedWordsInput({
   const [actionButtonLoading, setActionButtonLoading] = useState(false)
 
   const wordList = getWordList(wordListName)
+  const passphraseStrength =
+    showPassphrase && passphrase.length > 0
+      ? estimatePassphraseStrength(passphrase)
+      : null
+  const passphraseStrengthColor =
+    passphraseStrength?.level === 'strong'
+      ? success
+      : passphraseStrength?.level === 'fair'
+        ? warning
+        : error
   const passphraseRef = useRef<TextInput>(null)
   const clipboardCheckedRef = useRef(false)
   const wordInputRefs = useRef<(TextInput | null)[]>([])
@@ -489,24 +499,14 @@ export default function SSSeedWordsInput({
               onChangeText={handlePassphraseChange}
               value={passphrase}
             />
-            {passphrase.length > 0 &&
-              (() => {
-                const strength = estimatePassphraseStrength(passphrase)
-                const strengthColor =
-                  strength.level === 'strong'
-                    ? success
-                    : strength.level === 'fair'
-                      ? warning
-                      : error
-                return (
-                  <SSText size="xs" style={{ color: strengthColor }}>
-                    {t(`account.passphrase.strength.${strength.level}`)}
-                    {strength.level === 'weak'
-                      ? ` — ${t('account.passphrase.strength.weakHint')}`
-                      : ''}
-                  </SSText>
-                )
-              })()}
+            {passphraseStrength ? (
+              <SSText size="xs" style={{ color: passphraseStrengthColor }}>
+                {t(`account.passphrase.strength.${passphraseStrength.level}`)}
+                {passphraseStrength.level === 'weak'
+                  ? ` — ${t('account.passphrase.strength.weakHint')}`
+                  : ''}
+              </SSText>
+            ) : null}
           </SSFormLayout.Item>
         )}
         {(showChecksum || showFingerprint) && (
