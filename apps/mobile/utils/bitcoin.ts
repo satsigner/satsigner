@@ -334,10 +334,14 @@ export function getAccountDerivationPath(
   account: Account,
   keyIndex: Key['index'] = 0
 ) {
-  if (!account.keys[keyIndex]) {
+  const key = account.keys[keyIndex]
+  if (!key) {
     return null
   }
-  const { scriptVersion } = account.keys[keyIndex]
+  if (key.derivationPath) {
+    return key.derivationPath.replace(/^m\/?/, '')
+  }
+  const { scriptVersion } = key
   if (!scriptVersion) {
     return null
   }

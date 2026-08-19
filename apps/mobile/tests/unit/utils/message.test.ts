@@ -4,8 +4,8 @@ import {
   verifyAddressMessage
 } from '@/utils/message'
 
-import { bip137Vectors } from './bip137_samples'
-import { bip322Taproot } from './bip322_samples'
+import { bip137Vectors } from './bip137Samples'
+import { bip322Taproot } from './bip322Samples'
 
 const [emptyMessageCase] = bip137Vectors.cases
 

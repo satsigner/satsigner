@@ -13,7 +13,7 @@ import {
   type PendingDM
 } from '@/types/nostrMessageHandlers'
 
-import { accountIds, nostrKeys } from '../utils/nostr_samples'
+import { accountIds, nostrKeys } from '../utils/nostrSamples'
 
 jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: {

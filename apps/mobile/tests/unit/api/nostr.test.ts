@@ -1,6 +1,6 @@
 import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
 
-import { relays } from '../utils/nostr_samples'
+import { relays } from '../utils/nostrSamples'
 
 jest.mock('nostr-tools')
 jest.mock('@nostr-dev-kit/ndk')

@@ -4,7 +4,7 @@ import { signMessageBip137, verifyMessageBip137 } from '@/utils/bip137'
 import { getAddressDerivationPath } from '@/utils/bitcoin'
 import { getAddressKeyPair } from '@/utils/key'
 
-import { bip137Vectors } from './bip137_samples'
+import { bip137Vectors } from './bip137Samples'
 
 const privateKey = Buffer.from(bip137Vectors.privateKeyHex, 'hex')
 const [, helloWorldCase] = bip137Vectors.cases

@@ -2,6 +2,7 @@ import { type Account, type Key } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import {
   bip21decode,
+  getAccountDerivationPath,
   getAddressDerivationPath,
   isBip21,
   isBitcoinAddress,
@@ -160,6 +161,39 @@ describe('bitcoin utils', () => {
 
     it('should return undefined for empty string', () => {
       expect(bip21decode('')).toBeUndefined()
+    })
+  })
+
+  describe('getAccountDerivationPath', () => {
+    it('falls back to the scriptVersion-derived path when the key has none', () => {
+      const account = makeAccount()
+      expect(getAccountDerivationPath(account)).toBe("84'/0'/0'")
+    })
+
+    it('uses the key own derivationPath, stripped of the leading m/, when set', () => {
+      const account = makeAccount({
+        keys: [makeKey({ derivationPath: "m/48'/0'/0'/2'" })]
+      })
+      expect(getAccountDerivationPath(account)).toBe("48'/0'/0'/2'")
+    })
+
+    it('returns the key derivationPath unchanged when it has no m/ prefix', () => {
+      const account = makeAccount({
+        keys: [makeKey({ derivationPath: "48'/0'/0'/2'" })]
+      })
+      expect(getAccountDerivationPath(account)).toBe("48'/0'/0'/2'")
+    })
+
+    it('returns null when the key at the given index is missing', () => {
+      const account = makeAccount()
+      expect(getAccountDerivationPath(account, 1)).toBeNull()
+    })
+
+    it('returns null when neither derivationPath nor scriptVersion is set', () => {
+      const account = makeAccount({
+        keys: [makeKey({ scriptVersion: undefined })]
+      })
+      expect(getAccountDerivationPath(account)).toBeNull()
     })
   })
 

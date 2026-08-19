@@ -13,7 +13,7 @@ import {
 } from '@/utils/bip322'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
-import { bip322P2wpkh, bip322Taproot, bip322TxHashes } from './bip322_samples'
+import { bip322P2wpkh, bip322Taproot, bip322TxHashes } from './bip322Samples'
 
 function privateKeyFromWif(wif: string): Buffer {
   const decoded = bs58check.decode(wif)

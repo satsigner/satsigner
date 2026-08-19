@@ -6,7 +6,7 @@ import {
   getExtendedKeyFromDescriptor,
   getExtendedPrivateKeyFromDescriptor
 } from '@/utils/bip32'
-import { mnemonicToSeed } from '@/utils/bip39'
+import { detectElectrumSeed, mnemonicToSeed } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 
 export function isSeedDropped(
@@ -104,6 +104,12 @@ export function getAddressKeyPair(
 
   try {
     if (secret.mnemonic) {
+      // Electrum seeds use a different derivation scheme (mnemonicToSeedElectrum)
+      // than BIP39 mnemonics; deriving them here would silently produce the
+      // wrong key instead of the address's actual one.
+      if (detectElectrumSeed(secret.mnemonic)) {
+        return null
+      }
       const seed = mnemonicToSeed(secret.mnemonic, secret.passphrase)
       return getAddressKeyPairFromSeed(seed, address.derivationPath)
     }
