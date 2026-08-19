@@ -699,6 +699,8 @@
     "pinChangeError": "Could not re-encrypt your data. Your PIN was not changed.",
     "pinLength": "PIN length",
     "pinMatchDuressPin": "PIN and Duress PIN must be different!",
+    "pinMustBeSetBeforeDuress": "Normal PIN must be set before setting Duress PIN",
+    "pinRetrieveFailed": "Failed to retrieve PIN for authentication",
     "pinsDontMatch": "No pin number match",
     "pinsMatch": "Pin number match",
     "reenterDuressPinTitle": "Re-enter your duress\npin number",
