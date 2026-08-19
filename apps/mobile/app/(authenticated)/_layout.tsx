@@ -28,8 +28,10 @@ import type { Account, Key } from '@/types/models/Account'
 import { type PageRoute } from '@/types/navigation/page'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
+import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
+import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
 
 export default function AuthenticatedLayout() {
   const routeParams = useGlobalSearchParams()
@@ -163,6 +165,17 @@ export default function AuthenticatedLayout() {
     async function run() {
       const { justUnlocked: ju, pendingRecoverData: pending } =
         useAuthStore.getState()
+
+      // Not gated on justUnlocked: this effect runs once on mount and may race
+      // the unlock screen setting that flag. Reaching this layout already means
+      // the user is authenticated, and both helpers no-op when no PIN exists.
+      try {
+        await migrateAndHydrateNostrSecrets()
+        await migrateAndHydrateServiceSecrets()
+      } catch {
+        // non-critical for boot; secrets may remain unavailable until next unlock
+      }
+
       if (ju && pending) {
         const { success } = await performRecoverOverwrite(pending)
         setPendingRecoverData(null)

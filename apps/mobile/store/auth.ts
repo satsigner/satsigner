@@ -14,8 +14,9 @@ import {
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
-import { generateSalt, getPin } from '@/utils/crypto'
+import { generateSalt, randomKey } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
+import { getPin } from '@/utils/pin'
 import {
   derivePinDigest,
   getBestAvailableKdf,
@@ -53,6 +54,11 @@ type AuthAction = {
   setDuressPin: (pin: string) => Promise<void>
   setSkipPin: (skipPin: boolean) => void
   setDuressPinEnabled: (duressPinEnabled: boolean) => void
+  /**
+   * Dev-only: skip lock screen and ensure encryption key material exists.
+   * Uses a random ephemeral passphrase (never a hardcoded PIN) when none is set.
+   */
+  enableDevSkipPin: () => Promise<void>
   validatePin: (pin: string) => Promise<boolean>
   incrementPinTries: () => number
   resetPinTries: () => void
@@ -73,6 +79,18 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ pageHistory: [] })
       },
       duressPinEnabled: false,
+      enableDevSkipPin: async () => {
+        if (!__DEV__) {
+          return
+        }
+        try {
+          await getPin()
+        } catch {
+          // High-entropy throwaway passphrase; only its KDF digest is kept.
+          await get().setPin(await randomKey(32))
+        }
+        set({ skipPin: true })
+      },
       firstTime: true,
       getPagesHistory: () => ['/', ...get().pageHistory],
       incrementPinTries: () => {
@@ -123,6 +141,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
         const encryptedPin = await derivePinDigest(pin, salt, kdf)
         await setItem(DURESS_PIN_KEY, encryptedPin)
         await storeKdfConfig(kdf, DURESS_KDF_KEY)
+        set({ duressPinEnabled: true })
       },
       setDuressPinEnabled(duressPinEnabled) {
         set({ duressPinEnabled })

@@ -18,7 +18,8 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { aesEncrypt, ensurePin, randomIv, randomUuid } from '@/utils/crypto'
+import { aesEncrypt, randomIv, randomUuid } from '@/utils/crypto'
+import { ensurePin } from '@/utils/pin'
 import {
   findClownAccount,
   findSampleAccount

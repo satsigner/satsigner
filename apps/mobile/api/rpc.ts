@@ -1,5 +1,11 @@
 import { Platform } from 'react-native'
 
+import {
+  RPC_DEFAULT_TIMEOUT_MS,
+  RPC_LIST_TRANSACTIONS_COUNT,
+  RPC_RESCAN_TIMEOUT_MS
+} from '@/constants/rpc'
+
 let androidIsEmulator: boolean | null = null
 
 async function initRpcUrlAdjustments() {
@@ -110,31 +116,7 @@ function toUserFacingError(err: unknown, url: string): Error {
   return err instanceof Error ? err : new Error(raw)
 }
 
-const RPC_DEFAULT_PORT_MAINNET = 8332
-const RPC_DEFAULT_PORT_SIGNET = 38332
-const RPC_DEFAULT_PORT_TESTNET = 18332
-
-// Default timeout for a single RPC call. A hung/unreachable node must not
-// stall sync or the UI indefinitely — see rescanBlockchain for the one
-// call that legitimately needs a much longer budget.
-const RPC_DEFAULT_TIMEOUT_MS = 30_000
-
-// A synchronous rescanblockchain call blocks until the scan finishes, which
-// can take hours. Give it a budget of its own so the AbortController doesn't
-// cut it off before the caller's shorter race has a chance to poll instead.
-const RPC_RESCAN_TIMEOUT_MS = 6 * 60 * 60 * 1000
-
-// listtransactions defaults to 10; pass a large count to mean "return all".
-const RPC_LIST_TRANSACTIONS_COUNT = 99_999
-
-export {
-  adjustRpcUrl,
-  initRpcUrlAdjustments,
-  RPC_DEFAULT_PORT_MAINNET,
-  RPC_DEFAULT_PORT_SIGNET,
-  RPC_DEFAULT_PORT_TESTNET,
-  RPC_DEFAULT_TIMEOUT_MS
-}
+export { adjustRpcUrl, initRpcUrlAdjustments }
 
 /**
  * fetch() with an AbortController-based timeout. Rejects with an AbortError

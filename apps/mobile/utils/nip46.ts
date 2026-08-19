@@ -1,14 +1,15 @@
 import {
-  NIP46_EVENT_PREVIEW_MAX_LENGTH,
-  NIP46_NOSTR_CONNECT_PREFIX
+  NOSTR_NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS,
+  NOSTR_NIP46_NEVER_AUTO_ALLOW_METHODS,
+  NOSTR_NIP46_CONNECT_PREFIX
 } from '@/constants/nostr'
 import { t } from '@/locales'
-import type { Nip46ParsedUri } from '@/types/models/Nostr'
+import type { Nip46Method, Nip46ParsedUri } from '@/types/models/Nostr'
 
 const HEX_PUBKEY_REGEX = /^[0-9a-f]{64}$/
 
 export function isNostrConnectUri(data: string): boolean {
-  return data.trim().toLowerCase().startsWith(NIP46_NOSTR_CONNECT_PREFIX)
+  return data.trim().toLowerCase().startsWith(NOSTR_NIP46_CONNECT_PREFIX)
 }
 
 export function parseNostrConnectUri(uri: string): Nip46ParsedUri | null {
@@ -18,7 +19,7 @@ export function parseNostrConnectUri(uri: string): Nip46ParsedUri | null {
   }
 
   try {
-    const withoutScheme = trimmed.slice(NIP46_NOSTR_CONNECT_PREFIX.length)
+    const withoutScheme = trimmed.slice(NOSTR_NIP46_CONNECT_PREFIX.length)
     const questionMarkIndex = withoutScheme.indexOf('?')
 
     const clientPubkey =
@@ -84,23 +85,58 @@ export function getMethodLabel(method: string): string {
 
 type Nip46EventPreview = {
   content: string
+  createdAt?: number
   kind: number
+  tags: string[][]
 }
 
+// The approval UI must show the user exactly what is being signed: the full
+// content and every tag. Truncating or omitting fields lets a malicious
+// client hide the real payload behind a benign-looking preview.
 export function getEventPreview(params: string[]): Nip46EventPreview | null {
   try {
     const parsed = JSON.parse(params[0]) as {
       content?: string
+      created_at?: number
       kind?: number
+      tags?: string[][]
     }
     return {
-      content:
-        typeof parsed.content === 'string'
-          ? parsed.content.slice(0, NIP46_EVENT_PREVIEW_MAX_LENGTH)
-          : '',
-      kind: typeof parsed.kind === 'number' ? parsed.kind : 1
+      content: typeof parsed.content === 'string' ? parsed.content : '',
+      createdAt:
+        typeof parsed.created_at === 'number' ? parsed.created_at : undefined,
+      kind: typeof parsed.kind === 'number' ? parsed.kind : 1,
+      tags: Array.isArray(parsed.tags) ? parsed.tags : []
     }
   } catch {
     return null
   }
+}
+
+export function getSignEventKind(params: string[]): number | null {
+  try {
+    const parsed = JSON.parse(params[0]) as { kind?: number }
+    return typeof parsed.kind === 'number' ? parsed.kind : null
+  } catch {
+    return null
+  }
+}
+
+// Whether a stored "always allow" permission may be honored for this request.
+// Decryption methods and signing of sensitive/unknown event kinds always
+// require explicit user approval.
+export function canAutoApproveRequest(
+  method: Nip46Method,
+  params: string[]
+): boolean {
+  if (NOSTR_NIP46_NEVER_AUTO_ALLOW_METHODS.includes(method)) {
+    return false
+  }
+  if (method === 'sign_event') {
+    const kind = getSignEventKind(params)
+    return (
+      kind !== null && NOSTR_NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS.includes(kind)
+    )
+  }
+  return true
 }

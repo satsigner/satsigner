@@ -1,10 +1,24 @@
+import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
 import { getKeySecret, storeKeySecret } from '@/storage/encrypted'
 import type { Account, Key, Secret } from '@/types/models/Account'
-import { aesDecrypt, aesEncrypt, getPin } from '@/utils/crypto'
+import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { decryptKeySecret } from '@/utils/decryption'
+import { getPin } from '@/utils/pin'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 const MAX_DAYS_WITHOUT_SYNCING = 3
+
+/**
+ * Next displayIndex for a new account, derived from the highest index
+ * currently in use rather than accounts.length — length collides with an
+ * existing index whenever an account was deleted before this one was added.
+ */
+export function getNextDisplayIndex(accounts: Account[]): number {
+  if (accounts.length === 0) {
+    return INITIAL_DISPLAY_INDEX
+  }
+  return Math.max(...accounts.map((a) => a.displayIndex)) + 1
+}
 
 // update labels in the field transactions, utxos, and addresses
 // using the field labels.

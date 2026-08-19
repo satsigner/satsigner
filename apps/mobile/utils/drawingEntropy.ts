@@ -1,5 +1,11 @@
 import QuickCrypto from 'react-native-quick-crypto'
 
+import {
+  BIP39_ENTROPY_STEP_BITS,
+  BIP39_MAX_ENTROPY_BITS,
+  BIP39_MIN_ENTROPY_BITS
+} from '@/types/bips/39'
+
 export type DrawingPoint = {
   t: number
   x: number
@@ -49,8 +55,14 @@ export function drawingPointsToBinary(
   points: DrawingPoint[],
   bitLength: number
 ): string {
-  if (bitLength < 128 || bitLength > 256 || bitLength % 32 !== 0) {
-    throw new Error('Invalid Entropy: it must be range of [128, 256]')
+  if (
+    bitLength < BIP39_MIN_ENTROPY_BITS ||
+    bitLength > BIP39_MAX_ENTROPY_BITS ||
+    bitLength % BIP39_ENTROPY_STEP_BITS !== 0
+  ) {
+    throw new Error(
+      `Invalid Entropy: it must be range of [${BIP39_MIN_ENTROPY_BITS}, ${BIP39_MAX_ENTROPY_BITS}]`
+    )
   }
 
   const hash = QuickCrypto.createHash('sha256')

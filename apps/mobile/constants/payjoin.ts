@@ -33,8 +33,29 @@ const PAYJOIN_SESSION_TTL_PRESETS_MS = [
 /** BIP78 synchronous request timeout. */
 const PAYJOIN_BIP78_TIMEOUT_MS = 30_000
 
+/** Fetch abort timeout applied to every outbound payjoin HTTP request. */
+const PAYJOIN_FETCH_TIMEOUT_MS = 90_000
+
+/** Native (Rust) HTTP POST timeout used by both the OHTTP and direct paths. */
+const PAYJOIN_NATIVE_HTTP_TIMEOUT_MS = 45_000
+
 /** BIP77 poll timeout before falling back to a normal transaction. */
 const PAYJOIN_BIP77_SEND_TIMEOUT_MS = 60_000
+
+/** Default deadline for the sender's initial quick-poll loop. */
+const PAYJOIN_QUICK_POLL_DEFAULT_MS = 3_000
+
+/** Delay between quick-poll attempts while awaiting the receiver's response. */
+const PAYJOIN_QUICK_POLL_INTERVAL_MS = 400
+
+/** Upper bound applied to the quick-poll deadline derived from a caller timeout. */
+const PAYJOIN_QUICK_POLL_MAX_MS = 5_000
+
+/** Default timeout for resuming and polling a persisted receiver session. */
+const PAYJOIN_RESUME_POLL_DEFAULT_TIMEOUT_MS = 15_000
+
+/** Delay between poll attempts while resuming a receiver session. */
+const PAYJOIN_RESUME_POLL_INTERVAL_MS = 500
 
 /** Default: do not allow payment output substitution (Bull Bitcoin parity). */
 const PAYJOIN_DEFAULT_PJOS: 0 | 1 = 0
@@ -84,14 +105,21 @@ export {
   PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_DIRECTORY_URL,
+  PAYJOIN_FETCH_TIMEOUT_MS,
   PAYJOIN_LIVE_ROUNDTRIP_FEE_SATS,
   PAYJOIN_LIVE_ROUNDTRIP_PAYMENT_SATS,
   PAYJOIN_MIN_CONTRIBUTE_SATS,
   PAYJOIN_MIN_RECEIVE_SATS,
   PAYJOIN_MIN_SESSION_EXPIRE_SECONDS,
+  PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
   PAYJOIN_NATIVE_PROBE_URI,
   PAYJOIN_OHTTP_KEYS_PROBE_OK,
   PAYJOIN_OHTTP_RELAY_URLS,
+  PAYJOIN_QUICK_POLL_DEFAULT_MS,
+  PAYJOIN_QUICK_POLL_INTERVAL_MS,
+  PAYJOIN_QUICK_POLL_MAX_MS,
+  PAYJOIN_RESUME_POLL_DEFAULT_TIMEOUT_MS,
+  PAYJOIN_RESUME_POLL_INTERVAL_MS,
   PAYJOIN_SESSION_TTL_MS,
   PAYJOIN_SESSION_TTL_PRESETS_MS
 }

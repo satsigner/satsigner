@@ -7,6 +7,11 @@ import type {
   LNDConfig,
   LNDNodeInfo
 } from '@/types/models/Lightning'
+import {
+  deleteLndSecretsSafe,
+  persistLndSecretsSafe,
+  stripLndSecrets
+} from '@/utils/serviceSecrets'
 
 type LightningState = {
   config: LNDConfig | null
@@ -28,17 +33,22 @@ const initialStatus: LNDConnectionStatus = {
 export const useLightningStore = create<LightningState>()(
   persist(
     (set) => ({
-      clearConfig: () =>
+      clearConfig: () => {
+        void deleteLndSecretsSafe()
         set({
           config: null,
           status: initialStatus
-        }),
+        })
+      },
       config: null,
       setChannels: (channels) =>
         set((state) => ({
           status: { ...state.status, channels }
         })),
-      setConfig: (config) => set({ config }),
+      setConfig: (config) => {
+        void persistLndSecretsSafe(config)
+        set({ config })
+      },
       setConnected: (isConnected) =>
         set((state) => ({
           status: { ...state.status, isConnected, isConnecting: false }
@@ -60,7 +70,7 @@ export const useLightningStore = create<LightningState>()(
     {
       name: 'satsigner-lightning',
       partialize: (state) => ({
-        config: state.config,
+        config: state.config ? stripLndSecrets(state.config) : null,
         status: {
           channels: state.status.channels,
           isConnected: state.status.isConnected,

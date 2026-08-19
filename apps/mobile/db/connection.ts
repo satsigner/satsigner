@@ -3,6 +3,8 @@ import { open, type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 import { runMigrations } from './schema'
 
 const DB_NAME = 'satsigner.db'
+// SQLite convention: a negative cache_size is interpreted in KB (not pages).
+const SQLITE_CACHE_SIZE_KB = -8000
 
 declare global {
   // Persisted across Fast Refresh so nitro-sqlite's internal "already open"
@@ -23,7 +25,7 @@ function getDb(): NitroSQLiteConnection {
     // crash / power loss can lose the last commits. Everything stored here is
     // re-syncable chain data — key material lives in expo-secure-store.
     db.execute('PRAGMA synchronous = NORMAL')
-    db.execute('PRAGMA cache_size = -8000')
+    db.execute(`PRAGMA cache_size = ${SQLITE_CACHE_SIZE_KB}`)
     db.execute('PRAGMA temp_store = MEMORY')
     globalThis.__satsignerDb = db
     migratedForModuleLoad = false

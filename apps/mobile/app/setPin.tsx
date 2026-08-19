@@ -9,7 +9,6 @@ import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import {
-  DEFAULT_PIN,
   PIN_LENGTH_KEY,
   PIN_MAX_LENGTH,
   PIN_MIN_LENGTH,
@@ -25,10 +24,18 @@ import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
-import { getPin } from '@/utils/crypto'
-import { clampPinLength, emptyPin } from '@/utils/pin'
+import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
 
 type Stage = 'verify' | 'set' | 're-enter'
+
+/** Returns null on first-time setup, where no PIN exists yet. */
+async function getCurrentPin(): Promise<string | null> {
+  try {
+    return await getPin()
+  } catch {
+    return null
+  }
+}
 
 const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 
@@ -43,6 +50,7 @@ export default function SetPin() {
     setFirstTime,
     setRequiresAuth,
     setSkipPin,
+    enableDevSkipPin,
     skipPin,
     validatePin,
     requirePinMigration,
@@ -53,6 +61,7 @@ export default function SetPin() {
       state.setFirstTime,
       state.setRequiresAuth,
       state.setSkipPin,
+      state.enableDevSkipPin,
       state.skipPin,
       state.validatePin,
       state.requirePinMigration,
@@ -122,19 +131,17 @@ export default function SetPin() {
   }
 
   async function handleSetPinLater() {
-    // DEFAULT_PIN / lock-screen skip is development-only. Production must set a PIN.
+    // Dev-only lock-screen skip. Encryption uses a random ephemeral key, never
+    // a hardcoded PIN like "2121".
     if (!__DEV__) {
       return
     }
+    await enableDevSkipPin()
     if (fromSettings) {
-      setSkipPin(true)
-      await setPin(DEFAULT_PIN)
       router.back()
       return
     }
     setFirstTime(false)
-    setSkipPin(true)
-    await setPin(DEFAULT_PIN)
     if (showWarning) {
       router.replace('./warning')
     } else {
@@ -163,11 +170,11 @@ export default function SetPin() {
     setSkipPin(false)
     setRequirePinMigration(false)
 
-    // First-ever PIN set has no stored digest; getPin() throws there. Only
-    // an existing digest means accounts may need re-encrypting to the new PIN.
-    const currentPinEncrypted = await getPin().catch(() => null)
+    // First-ever PIN set has no stored digest; getCurrentPin() returns null
+    // there. Only an existing digest means accounts may need re-encrypting.
+    const currentPinEncrypted = await getCurrentPin()
     await setPin(pinArray.join(''))
-    const newPinEncrypted = await getPin()
+    const newPinEncrypted = await getCurrentPin()
     if (
       currentPinEncrypted &&
       newPinEncrypted &&
@@ -259,43 +266,48 @@ export default function SetPin() {
             />
           )}
           {stage === 'set' && (
-            <SSVStack gap="md" itemsCenter>
-              <SSHStack gap="sm" style={{ alignItems: 'center' }}>
-                <SSText size="sm" color="muted">
-                  {t('auth.pinLength')}:
-                </SSText>
-                {Array.from(
-                  { length: PIN_MAX_LENGTH - PIN_MIN_LENGTH + 1 },
-                  (_, i) => PIN_MIN_LENGTH + i
-                ).map((length) => (
-                  <Pressable
-                    key={length}
-                    onPress={() => handlePinLengthChange(length)}
-                    style={{
-                      alignItems: 'center',
-                      borderColor:
-                        length === pinLength
-                          ? Colors.gray[200]
-                          : Colors.gray[700],
-                      borderRadius: 4,
-                      borderWidth: 1,
-                      height: 32,
-                      justifyContent: 'center',
-                      width: 32
-                    }}
-                  >
-                    <SSText
-                      size="sm"
-                      color={length === pinLength ? undefined : 'muted'}
-                      weight={length === pinLength ? 'bold' : 'regular'}
-                    >
-                      {String(length)}
-                    </SSText>
-                  </Pressable>
-                ))}
-              </SSHStack>
-              <SSPinInput pin={pinArray} setPin={setPinArray} />
-            </SSVStack>
+            <SSPinInput
+              pin={pinArray}
+              setPin={setPinArray}
+              belowInput={
+                <SSVStack gap="sm" itemsCenter>
+                  <SSText uppercase size="sm" color="muted" center>
+                    {t('auth.pinLength')}
+                  </SSText>
+                  <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+                    {Array.from(
+                      { length: PIN_MAX_LENGTH - PIN_MIN_LENGTH + 1 },
+                      (_, i) => PIN_MIN_LENGTH + i
+                    ).map((length) => (
+                      <Pressable
+                        key={length}
+                        onPress={() => handlePinLengthChange(length)}
+                        style={{
+                          alignItems: 'center',
+                          borderColor:
+                            length === pinLength
+                              ? Colors.gray[200]
+                              : Colors.gray[700],
+                          borderRadius: 4,
+                          borderWidth: 1,
+                          height: 32,
+                          justifyContent: 'center',
+                          width: 32
+                        }}
+                      >
+                        <SSText
+                          size="sm"
+                          color={length === pinLength ? undefined : 'muted'}
+                          weight={length === pinLength ? 'bold' : 'regular'}
+                        >
+                          {String(length)}
+                        </SSText>
+                      </Pressable>
+                    ))}
+                  </SSHStack>
+                </SSVStack>
+              }
+            />
           )}
           {stage === 're-enter' && (
             <SSPinInput

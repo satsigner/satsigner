@@ -1,4 +1,50 @@
-import { PIN_MAX_LENGTH, PIN_MIN_LENGTH, PIN_SIZE } from '@/config/auth'
+import {
+  DURESS_PIN_KEY,
+  PIN_KEY,
+  PIN_MAX_LENGTH,
+  PIN_MIN_LENGTH,
+  PIN_SIZE,
+  SALT_KEY,
+  SALT_KEY_DURESS
+} from '@/config/auth'
+import { getItem, setItem } from '@/storage/encrypted'
+import { generateSalt, pbkdf2Encrypt, randomKey } from '@/utils/crypto'
+
+type PinType = typeof PIN_KEY | typeof DURESS_PIN_KEY
+
+async function setPin(pin: string, pinType: PinType = PIN_KEY) {
+  const salt = await generateSalt()
+  const hashedPin = await pbkdf2Encrypt(pin, salt)
+  const saltKey = pinType === DURESS_PIN_KEY ? SALT_KEY_DURESS : SALT_KEY
+  const pinKey = pinType === DURESS_PIN_KEY ? DURESS_PIN_KEY : PIN_KEY
+  await setItem(saltKey, salt)
+  await setItem(pinKey, hashedPin)
+  return hashedPin
+}
+
+async function getPin(pinType: PinType = PIN_KEY): Promise<string> {
+  const pin = await getItem(pinType)
+  if (pin === null) {
+    throw new Error('PIN unavailable')
+  }
+  return pin
+}
+
+/**
+ * Returns stored PIN-derived key material. In development only, seeds a
+ * random ephemeral key when none exists so sample/diagnostic wallets can
+ * encrypt without completing set-PIN. Never uses a hardcoded PIN.
+ */
+async function ensurePin(): Promise<string> {
+  try {
+    return await getPin()
+  } catch {
+    if (!__DEV__) {
+      throw new Error('PIN unavailable')
+    }
+    return setPin(await randomKey(32))
+  }
+}
 
 function emptyPin(length: number = PIN_SIZE): string[] {
   return Array.from<string>({ length }).fill('')
@@ -44,7 +90,10 @@ export {
   clampPinLength,
   deletePinDigit,
   emptyPin,
+  ensurePin,
   fillPinDigit,
+  getPin,
   getPinCursorIndex,
-  isPinFilled
+  isPinFilled,
+  setPin
 }

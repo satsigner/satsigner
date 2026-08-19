@@ -21,8 +21,7 @@ import { getItem, setItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
-import { getPin } from '@/utils/crypto'
-import { clampPinLength, emptyPin } from '@/utils/pin'
+import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
 import {
   derivePinDigest,
   getBestAvailableKdf,

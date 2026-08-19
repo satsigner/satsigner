@@ -39,21 +39,25 @@ import { getBackupFilename } from '@/utils/backupFilename'
 import {
   aesEncrypt,
   generateSalt,
-  getPin,
   pbkdf2Encrypt,
   randomIv
 } from '@/utils/crypto'
 import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import { saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
+import { getPin } from '@/utils/pin'
 
 export default function Developer() {
   const router = useRouter()
   const accounts = useAccountsStore((state) => state.accounts)
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
-  const [skipPin, setSkipPin] = useAuthStore(
-    useShallow((state) => [state.skipPin, state.setSkipPin])
+  const [skipPin, setSkipPin, enableDevSkipPin] = useAuthStore(
+    useShallow((state) => [
+      state.skipPin,
+      state.setSkipPin,
+      state.enableDevSkipPin
+    ])
   )
   const [currencyUnit, useZeroPadding, mnemonicWordList] = useSettingsStore(
     useShallow((s) => [s.currencyUnit, s.useZeroPadding, s.mnemonicWordList])
@@ -68,6 +72,7 @@ export default function Developer() {
     string | null
   >(null)
   const [backupPassphrase, setBackupPassphrase] = useState('')
+
   async function buildBackupWithSeeds(): Promise<string> {
     const pin = await getPin()
     const keysWithSeeds = async (accountId: string, keys: Key[]) => {
@@ -359,7 +364,13 @@ export default function Developer() {
                 <SSCheckbox
                   label={t('settings.developer.skipPin')}
                   selected={skipPin}
-                  onPress={() => setSkipPin(!skipPin)}
+                  onPress={() => {
+                    if (skipPin) {
+                      setSkipPin(false)
+                      return
+                    }
+                    void enableDevSkipPin()
+                  }}
                 />
               </SSVStack>
             </>

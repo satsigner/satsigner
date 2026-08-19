@@ -2,6 +2,9 @@ import { Buffer } from 'buffer'
 
 import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur'
 
+// Number of UR fragments processed per batch when decoding a multi-part UR.
+const UR_DECODE_BATCH_SIZE = 10
+
 /**
  * Manually create CBOR-encoded crypto-psbt UR data
  * This avoids issues with the @ngraveio/bc-ur library's automatic CBOR encoding
@@ -380,7 +383,7 @@ export async function decodeMultiPartURToPSBT(
 
   // Feed all fragments to the decoder in sequence order
   // Process in smaller batches to reduce memory pressure
-  const batchSize = 10
+  const batchSize = UR_DECODE_BATCH_SIZE
   for (let i = 0; i < sortedFragments.length; i += batchSize) {
     const batch = sortedFragments.slice(i, i + batchSize)
 
@@ -491,7 +494,7 @@ export function decodeMultiPartURGeneric(urFragments: string[]): string {
     return 0
   })
 
-  const batchSize = 10
+  const batchSize = UR_DECODE_BATCH_SIZE
   for (let i = 0; i < sortedFragments.length; i += batchSize) {
     const batch = sortedFragments.slice(i, i + batchSize)
 
