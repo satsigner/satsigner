@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { type MempoolOracle } from '@/api/blockchain'
+import { WITNESS_SCALE_FACTOR } from '@/constants/btc'
 import type { ExplorerBlockVizData } from '@/types/explorer/blockViz'
 
 const PoolSchema = z
@@ -47,7 +48,7 @@ const SampleTxSchema = z.object({
 })
 
 function feeRateFromTx(fee: number, weight: number): number {
-  const vsize = Math.max(weight / 4, 1)
+  const vsize = Math.max(weight / WITNESS_SCALE_FACTOR, 1)
   return fee / vsize
 }
 

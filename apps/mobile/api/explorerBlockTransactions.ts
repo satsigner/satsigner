@@ -1,6 +1,7 @@
 import { MempoolOracle } from '@/api/blockchain'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
+import { WITNESS_SCALE_FACTOR } from '@/constants/btc'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
 
 export type BlockTxidsResult = {
@@ -25,7 +26,7 @@ export async function fetchBlockTxidsFromBackend(
     ])
     return {
       height: block.height,
-      sizes: sampleTxs.map((tx) => Math.ceil(tx.weight / 4)),
+      sizes: sampleTxs.map((tx) => Math.ceil(tx.weight / WITNESS_SCALE_FACTOR)),
       source: 'backend',
       txids
     }
@@ -60,7 +61,7 @@ export async function fetchBlockTxidsFromMempool(
   ])
   return {
     height: block.height,
-    sizes: sampleTxs.map((tx) => Math.ceil(tx.weight / 4)),
+    sizes: sampleTxs.map((tx) => Math.ceil(tx.weight / WITNESS_SCALE_FACTOR)),
     source: 'mempool',
     txids
   }

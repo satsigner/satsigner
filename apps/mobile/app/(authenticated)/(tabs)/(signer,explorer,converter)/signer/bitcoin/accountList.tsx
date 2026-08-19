@@ -1,8 +1,12 @@
-import { FlashList } from '@shopify/flash-list'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { ScrollView, View } from 'react-native'
-import { TouchableOpacity } from 'react-native-gesture-handler'
+import { View, TouchableOpacity } from 'react-native'
+import {
+  NestableDraggableFlatList,
+  NestableScrollContainer,
+  RenderItemParams,
+  ScaleDecorator
+} from 'react-native-draggable-flatlist'
 import Animated, {
   cancelAnimation,
   Easing,
@@ -12,6 +16,7 @@ import Animated, {
   withDelay,
   withTiming
 } from 'react-native-reanimated'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -25,7 +30,6 @@ import SSButton from '@/components/SSButton'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN } from '@/config/auth'
 import {
   sampleMultiAddressTether,
   sampleSalvadorAddress,
@@ -66,6 +70,7 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { randomKey } from '@/utils/crypto'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { getPin, setPin } from '@/utils/pin'
 import { time } from '@/utils/time'
@@ -236,10 +241,14 @@ export default function AccountList() {
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
     )
-  const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
-  const [accounts, updateAccount] = useAccountsStore(
-    useShallow((state) => [state.accounts, state.updateAccount])
+  const [accounts, updateAccount, setAccounts] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts,
+      state.updateAccount,
+      state.setAccounts
+    ])
   )
+  const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
   const [
     clearAccount,
     getAccountData,
@@ -310,10 +319,15 @@ export default function AccountList() {
     return Math.max(index, 0)
   })
 
-  const filteredAccounts = accounts.filter(
-    (acc) => acc.network === tabs[tabIndex].key
+  const [filteredAccounts, setFilteredAccounts] = useState<Account[]>(
+    accounts.filter((acc) => acc.network === tabs[tabIndex].key)
   )
 
+  useEffect(() => {
+    setFilteredAccounts(
+      accounts.filter((acc) => acc.network === tabs[tabIndex].key)
+    )
+  }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
   const fingerprints = useAccountsFingerprints(filteredAccounts)
 
   const totalBalance = useMemo(
@@ -445,13 +459,15 @@ export default function AccountList() {
   }
 
   async function loadSampleWallet(type: SampleWallet) {
+    // Sample wallets need encryption key material. In development only, create a
+    // random ephemeral key when none exists (never a hardcoded PIN).
     try {
       await getPin()
     } catch {
       if (!__DEV__) {
         throw new Error('PIN unavailable')
       }
-      await setPin(DEFAULT_PIN)
+      await setPin(await randomKey(32))
     }
 
     setName(`Sample (${type})`)
@@ -554,7 +570,7 @@ export default function AccountList() {
         const fingerprint1 = getFingerprintFromMnemonic(
           sampleSignetMultisigKey1
         )
-        const extendedPublicKey1 = await getExtendedPublicKeyFromMnemonicCustom(
+        const extendedPublicKey1 = getExtendedPublicKeyFromMnemonicCustom(
           sampleSignetMultisigKey1,
           '',
           bdkNetwork,
@@ -571,7 +587,7 @@ export default function AccountList() {
         const fingerprint2 = getFingerprintFromMnemonic(
           sampleSignetMultisigKey2
         )
-        const extendedPublicKey2 = await getExtendedPublicKeyFromMnemonicCustom(
+        const extendedPublicKey2 = getExtendedPublicKeyFromMnemonicCustom(
           sampleSignetMultisigKey2,
           '',
           bdkNetwork,
@@ -695,6 +711,14 @@ export default function AccountList() {
       }
     }
     toast.success('Sample wallet created successfully!')
+  }
+
+  function handleReorderAccounts(reorderedAccounts: Account[]) {
+    const otherNetworkAccounts = accounts.filter(
+      (a) => a.network !== tabs[tabIndex].key
+    )
+    const newAccounts = [...otherNetworkAccounts, ...reorderedAccounts]
+    setAccounts(newAccounts)
   }
 
   const renderTab = () => (
@@ -863,154 +887,178 @@ export default function AccountList() {
         }}
       />
       <SSMainLayout>
-        <SSVStack gap="none" style={{ alignItems: 'center', marginBottom: 24 }}>
-          <TouchableOpacity
-            onPress={() => router.navigate('/settings/network/server')}
+        <SafeAreaView style={{ flex: 1, overflow: 'visible' }}>
+          <SSVStack
+            gap="none"
+            style={{ alignItems: 'center', marginBottom: 24 }}
           >
-            <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
-              <SSConnectionStatusIndicator
-                isPrivateConnection={isPrivateConnection}
-                status={connectionStatus}
-              />
-              <SSText
-                size="xxs"
-                uppercase
-                style={{
-                  color:
-                    connectionStatus === 'connected'
-                      ? Colors.gray['200']
-                      : Colors.gray['450']
-                }}
-              >
-                {`${connectionParts.network} - ${connectionParts.name}`}
-              </SSText>
-              <SSText
-                size="xxs"
-                uppercase
-                style={{
-                  color: Colors.gray['500'],
-                  marginLeft: 4
-                }}
-              >
-                {connectionParts.url}
-              </SSText>
+            <TouchableOpacity
+              onPress={() => router.navigate('/settings/network/server')}
+            >
+              <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
+                <SSConnectionStatusIndicator
+                  isPrivateConnection={isPrivateConnection}
+                  status={connectionStatus}
+                />
+                <SSText
+                  size="xxs"
+                  uppercase
+                  style={{
+                    color:
+                      connectionStatus === 'connected'
+                        ? Colors.gray['200']
+                        : Colors.gray['450']
+                  }}
+                >
+                  {`${connectionParts.network} - ${connectionParts.name}`}
+                </SSText>
+                <SSText
+                  size="xxs"
+                  uppercase
+                  style={{
+                    color: Colors.gray['500'],
+                    marginLeft: 4
+                  }}
+                >
+                  {connectionParts.url}
+                </SSText>
+              </SSHStack>
+            </TouchableOpacity>
+            <SSBlockFeePriceRow
+              blockHeight={blockHeight}
+              btcPrice={btcPrice}
+              fiatCurrency={fiatCurrency}
+              nextBlockFee={nextBlockFee}
+              blockHeightSource={blockHeightSource}
+            />
+            <SSHStack
+              gap="xxs"
+              style={{ alignItems: 'baseline', justifyContent: 'center' }}
+            >
+              <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+                <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
+                  {t('accounts.totalBalance')}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
+                  {privacyMode
+                    ? '••••'
+                    : totalBalance.toLocaleString(undefined, {
+                        maximumFractionDigits: 0
+                      })}
+                </SSText>
+              </SSHStack>
+              <View style={{ width: 12 }} />
+              <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+                <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
+                  {t('accounts.satsInMempool').replace('\n', ' ')}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
+                  {privacyMode
+                    ? '••••'
+                    : totalSatsInMempoll.toLocaleString(undefined, {
+                        maximumFractionDigits: 0
+                      })}
+                </SSText>
+              </SSHStack>
             </SSHStack>
-          </TouchableOpacity>
-
-          <SSBlockFeePriceRow
-            blockHeight={blockHeight}
-            btcPrice={btcPrice}
-            fiatCurrency={fiatCurrency}
-            nextBlockFee={nextBlockFee}
-            blockHeightSource={blockHeightSource}
+          </SSVStack>
+          <SSButton
+            label={t('account.add')}
+            style={{ marginBottom: 24 }}
+            onPress={handleOnNavigateToAddAccount}
+            variant="elevated"
           />
-          <SSHStack
-            gap="xxs"
-            style={{ alignItems: 'baseline', justifyContent: 'center' }}
+          {renderTab()}
+          <NestableScrollContainer
+            contentContainerStyle={{ paddingTop: 16 }}
+            showsVerticalScrollIndicator={false}
           >
-            <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {t('accounts.totalBalance')}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
-                {privacyMode
-                  ? '••••'
-                  : totalBalance.toLocaleString(undefined, {
-                      maximumFractionDigits: 0
-                    })}
-              </SSText>
-            </SSHStack>
-            <View style={{ width: 12 }} />
-            <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {t('accounts.satsInMempool').replace('\n', ' ')}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
-                {privacyMode
-                  ? '••••'
-                  : totalSatsInMempoll.toLocaleString(undefined, {
-                      maximumFractionDigits: 0
-                    })}
-              </SSText>
-            </SSHStack>
-          </SSHStack>
-        </SSVStack>
-        <SSButton
-          label={t('account.add')}
-          style={{ marginBottom: 24 }}
-          onPress={handleOnNavigateToAddAccount}
-          variant="elevated"
-        />
-        {renderTab()}
-        <ScrollView
-          contentContainerStyle={{ paddingTop: 16 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {!hasHydrated ? (
-            <SSVStack gap="none" style={{ minHeight: listContainerMinHeight }}>
-              {Array.from({ length: ACCOUNT_SKELETON_COUNT }).map((_, i) => (
-                <SSVStack key={i}>
-                  <SSAccountCardSkeleton />
-                  {i < ACCOUNT_SKELETON_COUNT - 1 && (
+            {!hasHydrated ? (
+              <SSVStack
+                gap="none"
+                style={{ minHeight: listContainerMinHeight }}
+              >
+                {Array.from({ length: ACCOUNT_SKELETON_COUNT }).map((_, i) => (
+                  <SSVStack key={i}>
+                    <SSAccountCardSkeleton />
+                    {i < ACCOUNT_SKELETON_COUNT - 1 && (
+                      <SSSeparator
+                        style={{ marginVertical: 16 }}
+                        color="gradient"
+                      />
+                    )}
+                  </SSVStack>
+                ))}
+              </SSVStack>
+            ) : (
+              <Animated.View
+                style={{
+                  minHeight: listContainerMinHeight
+                }}
+              >
+                <NestableDraggableFlatList
+                  data={filteredAccounts}
+                  dragItemOverflow
+                  containerStyle={{ overflow: 'visible' }}
+                  onDragEnd={({ data }: { data: Account[] }) => {
+                    handleReorderAccounts(data)
+                  }}
+                  keyExtractor={(item: Account) => item.id}
+                  renderItem={({
+                    item,
+                    getIndex,
+                    drag,
+                    isActive
+                  }: RenderItemParams<Account>) => (
+                    <ScaleDecorator activeScale={1.05}>
+                      <AccountCardStaggerItem
+                        index={getIndex() || 0}
+                        itemId={item.id}
+                      >
+                        <SSVStack>
+                          <SSAccountCard
+                            name={item.name}
+                            balance={item.summary.balance}
+                            fingerprint={
+                              item.keys[0].creationType === 'importAddress'
+                                ? undefined
+                                : fingerprints[item.id]
+                            }
+                            watchOnly={item.policyType === 'watchonly'}
+                            syncStatus={item.syncStatus}
+                            lastSyncedAt={item.lastSyncedAt}
+                            stats={buildAccountCardStats(item.summary)}
+                            onPress={() => handleGoToAccount(item.id)}
+                            onLongPress={drag}
+                            longPressDisabled={isActive}
+                          />
+                        </SSVStack>
+                      </AccountCardStaggerItem>
+                    </ScaleDecorator>
+                  )}
+                  ItemSeparatorComponent={() => (
                     <SSSeparator
                       style={{ marginVertical: 16 }}
                       color="gradient"
                     />
                   )}
-                </SSVStack>
-              ))}
-            </SSVStack>
-          ) : (
-            <View
-              style={{
-                minHeight: listContainerMinHeight
-              }}
-            >
-              <FlashList
-                data={filteredAccounts}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item, index }) => (
-                  <AccountCardStaggerItem index={index} itemId={item.id}>
-                    <SSVStack>
-                      <SSAccountCard
-                        name={item.name}
-                        balance={item.summary.balance}
-                        fingerprint={
-                          item.keys[0].creationType === 'importAddress'
-                            ? undefined
-                            : fingerprints[item.id]
-                        }
-                        watchOnly={item.policyType === 'watchonly'}
-                        syncStatus={item.syncStatus}
-                        lastSyncedAt={item.lastSyncedAt}
-                        stats={buildAccountCardStats(item.summary)}
-                        onPress={() => handleGoToAccount(item.id)}
-                      />
+                  ListEmptyComponent={
+                    <SSVStack
+                      itemsCenter
+                      style={{ paddingBottom: 32, paddingTop: 32 }}
+                    >
+                      <SSText uppercase>{t('accounts.empty')}</SSText>
                     </SSVStack>
-                  </AccountCardStaggerItem>
-                )}
-                ItemSeparatorComponent={() => (
-                  <SSSeparator
-                    style={{ marginVertical: 16 }}
-                    color="gradient"
-                  />
-                )}
-                ListEmptyComponent={
-                  <SSVStack
-                    itemsCenter
-                    style={{ paddingBottom: 32, paddingTop: 32 }}
-                  >
-                    <SSText uppercase>{t('accounts.empty')}</SSText>
-                  </SSVStack>
-                }
-                showsVerticalScrollIndicator={false}
-              />
-              <SampleAccountsFadeIn>
-                {renderSamplewallets()}
-              </SampleAccountsFadeIn>
-            </View>
-          )}
-        </ScrollView>
+                  }
+                  showsVerticalScrollIndicator={false}
+                />
+                <SampleAccountsFadeIn>
+                  {renderSamplewallets()}
+                </SampleAccountsFadeIn>
+              </Animated.View>
+            )}
+          </NestableScrollContainer>
+        </SafeAreaView>
       </SSMainLayout>
     </>
   )

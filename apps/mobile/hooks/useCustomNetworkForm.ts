@@ -14,7 +14,7 @@ import {
   RPC_DEFAULT_PORT_MAINNET,
   RPC_DEFAULT_PORT_SIGNET,
   RPC_DEFAULT_PORT_TESTNET
-} from '@/api/rpc'
+} from '@/constants/rpc'
 import {
   type Backend,
   type Network,

@@ -76,9 +76,13 @@ export function estimatedDifficultyAdjustmentDate(height: number): Date {
  * Estimate network hash rate from difficulty.
  * Formula: difficulty * 2^32 / TARGET_BLOCK_TIME_SECONDS hashes/sec
  */
+const HASH_RATE_DIFFICULTY_MULTIPLIER = 2 ** 32
+const HASHES_PER_EXAHASH = 1e18
+
 export function estimatedHashRateEHs(difficulty: number): number {
-  const hashesPerSecond = (difficulty * 2 ** 32) / TARGET_BLOCK_TIME_SECONDS
-  return hashesPerSecond / 1e18
+  const hashesPerSecond =
+    (difficulty * HASH_RATE_DIFFICULTY_MULTIPLIER) / TARGET_BLOCK_TIME_SECONDS
+  return hashesPerSecond / HASHES_PER_EXAHASH
 }
 
 /**

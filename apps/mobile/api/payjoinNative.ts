@@ -48,6 +48,7 @@ import {
 
 import {
   PAYJOIN_MIN_SESSION_EXPIRE_SECONDS,
+  PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
   PAYJOIN_NATIVE_PROBE_URI,
   PAYJOIN_OHTTP_KEYS_PROBE_OK
 } from '@/constants/payjoin'
@@ -332,7 +333,7 @@ async function httpPost(
   url: string,
   contentType: string,
   body: Uint8Array,
-  timeoutMs = 45_000
+  timeoutMs = PAYJOIN_NATIVE_HTTP_TIMEOUT_MS
 ): Promise<HttpResponse> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)

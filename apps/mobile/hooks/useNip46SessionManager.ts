@@ -1,12 +1,12 @@
 import { Nip46BunkerService } from '@/api/nostrNip446'
-import { NIP46_SUPPORTED_METHODS } from '@/constants/nostr'
+import { NOSTR_NIP46_SUPPORTED_METHODS } from '@/constants/nostr'
 import { useNip46Store } from '@/store/nip46'
 import type {
   Nip46Method,
   Nip46Request,
   Nip46Session
 } from '@/types/models/Nostr'
-import { buildNip46ResponsePayload } from '@/utils/nip46'
+import { buildNip46ResponsePayload, canAutoApproveRequest } from '@/utils/nip46'
 import {
   handleConnect,
   handleGetPublicKey,
@@ -32,7 +32,7 @@ async function fireAndForget(promise: Promise<unknown>): Promise<void> {
 }
 
 function isValidMethod(method: string): method is Nip46Method {
-  return NIP46_SUPPORTED_METHODS.includes(method as Nip46Method)
+  return NOSTR_NIP46_SUPPORTED_METHODS.includes(method as Nip46Method)
 }
 
 function getPendingRequestById(requestId: string): Nip46Request | undefined {
@@ -171,7 +171,13 @@ export function useNip46SessionManager() {
           const permission = currentSession.permissions[request.method]
           updateSession(session.id, { lastActiveAt: Date.now() })
 
-          if (permission === 'always_allow') {
+          // A stored "always allow" is honored only for requests that are
+          // safe to auto-approve; decryption and sensitive sign_event kinds
+          // always require explicit approval.
+          if (
+            permission === 'always_allow' &&
+            canAutoApproveRequest(request.method, request.params)
+          ) {
             fireAndForget(
               respondToRequest(session.id, {
                 id: request.id,
@@ -243,7 +249,9 @@ export function useNip46SessionManager() {
 
     removePendingRequest(requestId)
 
-    if (alwaysAllow) {
+    // Never persist a blanket permission for requests that must always be
+    // approved explicitly (decryption, sensitive sign_event kinds).
+    if (alwaysAllow && canAutoApproveRequest(request.method, request.params)) {
       updatePermission(request.sessionId, request.method, 'always_allow')
     }
 

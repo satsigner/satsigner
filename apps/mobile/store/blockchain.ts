@@ -4,8 +4,10 @@ import { immer } from 'zustand/middleware/immer'
 
 import {
   type BlockchainConfig,
+  DEFAULT_CONNECTION_TEST_INTERVAL_SECONDS,
   DEFAULT_RETRIES,
   DEFAULT_STOP_GAP,
+  DEFAULT_TIME_DIFF_BEFORE_AUTO_SYNC_MINUTES,
   DEFAULT_TIME_OUT,
   getBlockchainConfig,
   MEMPOOL_MAINNET_URL,
@@ -21,6 +23,7 @@ import {
   NetworkSchema,
   type Server
 } from '@/types/settings/blockchain'
+import { persistRpcCredentialsSafe } from '@/utils/serviceSecrets'
 
 const NETWORKS: Network[] = NetworkSchema.options
 
@@ -60,10 +63,10 @@ const createDefaultNetworkConfig = (
 ): NetworkConfig => ({
   config: {
     connectionMode: 'auto',
-    connectionTestInterval: 60,
+    connectionTestInterval: DEFAULT_CONNECTION_TEST_INTERVAL_SECONDS,
     retries: DEFAULT_RETRIES,
     stopGap: DEFAULT_STOP_GAP,
-    timeDiffBeforeAutoSync: 30,
+    timeDiffBeforeAutoSync: DEFAULT_TIME_DIFF_BEFORE_AUTO_SYNC_MINUTES,
     timeout: DEFAULT_TIME_OUT
   },
   server: {
@@ -163,6 +166,9 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         })
       },
       updateServer: (network, server) => {
+        if (server.rpcCredentials) {
+          void persistRpcCredentialsSafe(network, server.rpcCredentials)
+        }
         set((state) => {
           state.configs[network].server = server as Server
         })
@@ -171,7 +177,29 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
     {
       name: 'satsigner-blockchain',
       partialize: (state) => ({
-        configs: state.configs,
+        configs: {
+          bitcoin: {
+            ...state.configs.bitcoin,
+            server: {
+              ...state.configs.bitcoin.server,
+              rpcCredentials: undefined
+            }
+          },
+          signet: {
+            ...state.configs.signet,
+            server: {
+              ...state.configs.signet.server,
+              rpcCredentials: undefined
+            }
+          },
+          testnet: {
+            ...state.configs.testnet,
+            server: {
+              ...state.configs.testnet.server,
+              rpcCredentials: undefined
+            }
+          }
+        },
         configsMempool: state.configsMempool,
         customServers: state.customServers,
         selectedNetwork: state.selectedNetwork

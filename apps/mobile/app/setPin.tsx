@@ -1,13 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconCheckCircleThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN } from '@/config/auth'
 import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -16,9 +16,24 @@ import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
-import { emptyPin, getPin } from '@/utils/pin'
+import {
+  checkPinEqual,
+  commitPinMaterial,
+  derivePinMaterial,
+  emptyPin,
+  getPin
+} from '@/utils/pin'
 
 type Stage = 'verify' | 'set' | 're-enter'
+
+/** Returns null on first-time setup, where no PIN exists yet. */
+async function getCurrentPin(): Promise<string | null> {
+  try {
+    return await getPin()
+  } catch {
+    return null
+  }
+}
 
 const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 
@@ -29,20 +44,20 @@ export default function SetPin() {
   const fromSettings = source === 'settings'
 
   const [
-    setPin,
     setFirstTime,
     setRequiresAuth,
     setSkipPin,
+    enableDevSkipPin,
     skipPin,
     validatePin,
     requirePinMigration,
     setRequirePinMigration
   ] = useAuthStore(
     useShallow((state) => [
-      state.setPin,
       state.setFirstTime,
       state.setRequiresAuth,
       state.setSkipPin,
+      state.enableDevSkipPin,
       state.skipPin,
       state.validatePin,
       state.requirePinMigration,
@@ -88,19 +103,17 @@ export default function SetPin() {
   }
 
   async function handleSetPinLater() {
-    // DEFAULT_PIN / lock-screen skip is development-only. Production must set a PIN.
+    // Dev-only lock-screen skip. Encryption uses a random ephemeral key, never
+    // a hardcoded PIN like "2121".
     if (!__DEV__) {
       return
     }
+    await enableDevSkipPin()
     if (fromSettings) {
-      setSkipPin(true)
-      await setPin(DEFAULT_PIN)
       router.back()
       return
     }
     setFirstTime(false)
-    setSkipPin(true)
-    await setPin(DEFAULT_PIN)
     if (showWarning) {
       router.replace('./warning')
     } else {
@@ -126,19 +139,39 @@ export default function SetPin() {
     }
     setLoading(true)
 
+    const newPin = pinArray.join('')
+    const currentPinEncrypted = await getCurrentPin()
+    // Compare the plaintext against the stored salt. Digests cannot be compared
+    // directly: derivePinMaterial draws a fresh salt, so an unchanged PIN still
+    // hashes to a different value.
+    const pinUnchanged = currentPinEncrypted
+      ? await checkPinEqual(newPin)
+      : false
+
+    // The stored digest is the AES key for every secret, so re-deriving it
+    // would strand them all. Leave the existing material in place.
+    if (!pinUnchanged) {
+      const { hashedPin: newPinEncrypted, salt } =
+        await derivePinMaterial(newPin)
+
+      // Re-encrypt under the new key material first. Committing the new PIN
+      // before this succeeds would strand every secret still encrypted with
+      // the old one, with no way to derive it again.
+      if (currentPinEncrypted) {
+        try {
+          await reEncryptAccounts(currentPinEncrypted, newPinEncrypted)
+        } catch {
+          setLoading(false)
+          toast.error(t('auth.pinChangeError'))
+          return
+        }
+      }
+
+      await commitPinMaterial(salt, newPinEncrypted)
+    }
+
     setSkipPin(false)
     setRequirePinMigration(false)
-
-    const currentPinEncrypted = await getPin()
-    await setPin(pinArray.join(''))
-    const newPinEncrypted = await getPin()
-    if (
-      currentPinEncrypted &&
-      newPinEncrypted &&
-      currentPinEncrypted !== newPinEncrypted
-    ) {
-      await reEncryptAccounts(currentPinEncrypted, newPinEncrypted)
-    }
 
     setLoading(false)
 

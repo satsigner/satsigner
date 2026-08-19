@@ -1,5 +1,6 @@
 import { decode } from '@gandlaf21/bolt11-decode'
 
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import type {
   Bolt11Decoded,
   Bolt11Section,
@@ -34,7 +35,7 @@ function mapBolt11DecodeToDecodedInvoice(
 
   const amountValue = amountSection?.value || '0'
   const numMsats = parseInt(amountValue.toString(), 10)
-  const numSatoshis = Math.ceil(numMsats / 1000).toString()
+  const numSatoshis = Math.ceil(numMsats / MILLISATS_PER_SAT).toString()
 
   return {
     description: (descriptionSection?.value || '').toString(),

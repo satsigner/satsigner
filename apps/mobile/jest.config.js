@@ -43,12 +43,16 @@ const config = {
     '^react-native-payjoin$': '<rootDir>/__mocks__/react-native-payjoin.ts',
     '^react-native-quick-crypto$':
       '<rootDir>/__mocks__/react-native-quick-crypto.ts',
+    '^react-native-tcp-socket$':
+      '<rootDir>/__mocks__/react-native-tcp-socket.ts',
     '^sonner-native$': '<rootDir>/__mocks__/sonner-native.ts'
   },
   preset: 'jest-expo',
   transformIgnorePatterns: [
-    // Regular node_modules: transform listed packages, but don't ignore .pnpm itself
-    `/node_modules/(?!(\\.pnpm|${TRANSFORM_PACKAGES}))`,
+    // Regular node_modules: transform listed packages (also when nested one
+    // level deep, e.g. nostr-tools/node_modules/@noble/*), but don't ignore
+    // .pnpm itself
+    `/node_modules/(?!(\\.pnpm|${TRANSFORM_PACKAGES}|[^/]+/node_modules/(${TRANSFORM_PACKAGES})))`,
     // pnpm virtual store: transform listed packages inside the nested node_modules
     `/node_modules/\\.pnpm/[^/]+/node_modules/(?!(${TRANSFORM_PACKAGES}))`
   ]

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { NIP46_DEFAULT_PERMISSIONS } from '@/constants/nostr'
+import { NOSTR_NIP46_DEFAULT_PERMISSIONS } from '@/constants/nostr'
 import { useNip46Store } from '@/store/nip46'
 import type { Nip46Session } from '@/types/models/Nostr'
 import { randomUuid } from '@/utils/crypto'
@@ -32,7 +32,7 @@ export function useNip46Connect(signerNpub: string, nsec: string) {
       createdAt: Date.now(),
       id: randomUuid() as string,
       lastActiveAt: Date.now(),
-      permissions: { ...NIP46_DEFAULT_PERMISSIONS },
+      permissions: { ...NOSTR_NIP46_DEFAULT_PERMISSIONS },
       relays: parsed.relays,
       secret: parsed.secret,
       signerNpub
