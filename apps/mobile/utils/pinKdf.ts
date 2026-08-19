@@ -1,7 +1,17 @@
 import QuickCrypto from 'react-native-quick-crypto'
 
-import { PIN_KDF_KEY, PIN_KEY } from '@/config/auth'
+import {
+  DURESS_KDF_KEY,
+  PIN_KDF_KEY,
+  PIN_KEY,
+  PIN_LENGTH_KEY,
+  SALT_KEY,
+  SALT_KEY_DURESS
+} from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
+import { generateSalt } from '@/utils/crypto'
+
+/* oxlint-disable promise/prefer-await-to-callbacks -- QuickCrypto KDF APIs are callback-only */
 
 /**
  * PIN key derivation.
@@ -26,6 +36,13 @@ export type PinKdfConfig =
   | { n: number; name: 'scrypt'; p: number; r: number }
   | { iterations: number; name: 'pbkdf2' }
 
+export type PinMaterial = {
+  digest: string
+  kdf: PinKdfConfig
+  length: number
+  salt: string
+}
+
 const DIGEST_BYTES = 32
 
 // RFC 9106 §4 first-choice: m=64 MiB, t=3, p=4.
@@ -38,6 +55,9 @@ const ARGON2ID_CONFIG: PinKdfConfig = {
 
 // scrypt N=2^15, r=8, p=1 (~32 MiB) — memory-hard fallback.
 const SCRYPT_CONFIG: PinKdfConfig = { n: 32768, name: 'scrypt', p: 1, r: 8 }
+
+// OpenSSL's default maxmem is 32 MiB; N=2^15/r=8 needs ~33.6 MiB.
+const SCRYPT_MAXMEM_BYTES = 64 * 1024 * 1024
 
 // OWASP minimum for PBKDF2-HMAC-SHA256.
 const PBKDF2_CONFIG: PinKdfConfig = { iterations: 600_000, name: 'pbkdf2' }
@@ -54,51 +74,95 @@ const PREFERENCE_ORDER: PinKdfConfig[] = [
   PBKDF2_CONFIG
 ]
 
+function digestToHex(result: ArrayBufferView): string {
+  return Buffer.from(
+    new Uint8Array(result.buffer, result.byteOffset, result.byteLength)
+  ).toString('hex')
+}
+
 function deriveWithConfig(
   pin: string,
   salt: string,
   config: PinKdfConfig
-): string {
+): Promise<string> {
   switch (config.name) {
     case 'argon2id': {
-      const derived = QuickCrypto.argon2Sync('argon2id', {
+      const params = {
         memory: config.memoryKiB,
         message: pin,
         nonce: salt,
         parallelism: config.parallelism,
         passes: config.passes,
         tagLength: DIGEST_BYTES
+      }
+      return new Promise((resolve, reject) => {
+        QuickCrypto.argon2('argon2id', params, (err, result) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(digestToHex(result))
+        })
       })
-      return Buffer.from(derived).toString('hex')
     }
     case 'scrypt': {
-      const derived = QuickCrypto.scryptSync(pin, salt, DIGEST_BYTES, {
+      const options = {
         N: config.n,
+        maxmem: SCRYPT_MAXMEM_BYTES,
         p: config.p,
         r: config.r
+      }
+      return new Promise((resolve, reject) => {
+        QuickCrypto.scrypt(
+          pin,
+          salt,
+          DIGEST_BYTES,
+          options,
+          (err, derivedKey) => {
+            if (err) {
+              reject(err)
+              return
+            }
+            if (!derivedKey) {
+              reject(new Error('KDF returned no result'))
+              return
+            }
+            resolve(digestToHex(derivedKey))
+          }
+        )
       })
-      return Buffer.from(derived).toString('hex')
     }
     case 'pbkdf2': {
-      const derived = QuickCrypto.pbkdf2Sync(
-        pin,
-        salt,
-        config.iterations,
-        DIGEST_BYTES,
-        'sha256'
-      )
-      return Buffer.from(derived).toString('hex')
+      return new Promise((resolve, reject) => {
+        QuickCrypto.pbkdf2(
+          pin,
+          salt,
+          config.iterations,
+          DIGEST_BYTES,
+          'sha256',
+          (err, derivedKey) => {
+            if (err) {
+              reject(err)
+              return
+            }
+            if (!derivedKey) {
+              reject(new Error('KDF returned no result'))
+              return
+            }
+            resolve(digestToHex(derivedKey))
+          }
+        )
+      })
     }
     default: {
-      throw new Error(`Unsupported KDF: ${(config as PinKdfConfig).name}`)
+      const _exhaustive: never = config
+      throw new Error(`Unsupported KDF: ${JSON.stringify(_exhaustive)}`)
     }
   }
 }
 
 const availabilityCache = new Map<string, boolean>()
 
-// Probes with the cheapest legal parameters; native modules that are missing
-// or too constrained throw, and we fall through to the next candidate.
 function isKdfAvailable(config: PinKdfConfig): boolean {
   const cached = availabilityCache.get(config.name)
   if (cached !== undefined) {
@@ -119,16 +183,19 @@ function isKdfAvailable(config: PinKdfConfig): boolean {
         break
       case 'scrypt':
         QuickCrypto.scryptSync('probe', '0123456789abcdef', DIGEST_BYTES, {
-          N: 2,
-          p: 1,
-          r: 1
+          N: config.n,
+          maxmem: SCRYPT_MAXMEM_BYTES,
+          p: config.p,
+          r: config.r
         })
         break
       case 'pbkdf2':
         QuickCrypto.pbkdf2Sync('probe', '0123456789abcdef', 1, 1, 'sha256')
         break
-      default:
-        throw new Error(`Unsupported KDF: ${(config as PinKdfConfig).name}`)
+      default: {
+        const _exhaustive: never = config
+        throw new Error(`Unsupported KDF: ${JSON.stringify(_exhaustive)}`)
+      }
     }
     available = true
   } catch {
@@ -157,8 +224,10 @@ export function serializeKdf(config: PinKdfConfig): string {
       return `scrypt:N=${config.n},r=${config.r},p=${config.p}`
     case 'pbkdf2':
       return `pbkdf2:i=${config.iterations}`
-    default:
-      throw new Error(`Unsupported KDF: ${(config as PinKdfConfig).name}`)
+    default: {
+      const _exhaustive: never = config
+      throw new Error(`Unsupported KDF: ${JSON.stringify(_exhaustive)}`)
+    }
   }
 }
 
@@ -218,7 +287,27 @@ export function derivePinDigest(
   salt: string,
   config: PinKdfConfig
 ): Promise<string> {
-  return Promise.resolve(deriveWithConfig(pin, salt, config))
+  return deriveWithConfig(pin, salt, config)
+}
+
+/**
+ * Derives new PIN material without writing it. Reuses the existing salt so a
+ * PIN change does not invalidate a duress digest bound to the same salt.
+ */
+export async function preparePinMaterial(pin: string): Promise<PinMaterial> {
+  const existingSalt = await getItem(SALT_KEY)
+  const salt = existingSalt ?? (await generateSalt())
+  const kdf = getBestAvailableKdf()
+  const digest = await derivePinDigest(pin, salt, kdf)
+  return { digest, kdf, length: pin.length, salt }
+}
+
+/** Commits PIN material after secrets have been re-encrypted to `digest`. */
+export async function commitPinMaterial(material: PinMaterial): Promise<void> {
+  await setItem(SALT_KEY, material.salt)
+  await setItem(PIN_KEY, material.digest)
+  await storeKdfConfig(material.kdf, PIN_KDF_KEY)
+  await setItem(PIN_LENGTH_KEY, String(material.length))
 }
 
 /** Timing-safe equality for hex digests of arbitrary length. */
@@ -231,6 +320,32 @@ export function safeEqualHex(a: string, b: string): boolean {
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
   }
   return diff === 0
+}
+
+/**
+ * Verifies a candidate against the stored duress digest. Current installs
+ * share SALT_KEY with the main PIN; pre-upgrade duress digests used
+ * SALT_KEY_DURESS and the legacy PBKDF2 config.
+ */
+export async function pinMatchesDuressDigest(
+  pin: string,
+  storedDuressDigest: string
+): Promise<boolean> {
+  const duressKdf = await getStoredKdfConfig(DURESS_KDF_KEY)
+  const sharedSalt = await getItem(SALT_KEY)
+  if (sharedSalt) {
+    const digest = await derivePinDigest(pin, sharedSalt, duressKdf)
+    if (safeEqualHex(digest, storedDuressDigest)) {
+      return true
+    }
+  }
+
+  const legacySalt = await getItem(SALT_KEY_DURESS)
+  if (!legacySalt) {
+    return false
+  }
+  const legacyDigest = await derivePinDigest(pin, legacySalt, LEGACY_KDF_CONFIG)
+  return safeEqualHex(legacyDigest, storedDuressDigest)
 }
 
 /**
