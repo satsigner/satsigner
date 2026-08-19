@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconCheckCircleThin } from '@/components/icons'
@@ -25,6 +26,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
 import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
+import { commitPinMaterial, preparePinMaterial } from '@/utils/pinKdf'
 
 type Stage = 'verify' | 'set' | 're-enter'
 
@@ -46,7 +48,6 @@ export default function SetPin() {
   const fromSettings = source === 'settings'
 
   const [
-    setPin,
     setFirstTime,
     setRequiresAuth,
     setSkipPin,
@@ -57,7 +58,6 @@ export default function SetPin() {
     setRequirePinMigration
   ] = useAuthStore(
     useShallow((state) => [
-      state.setPin,
       state.setFirstTime,
       state.setRequiresAuth,
       state.setSkipPin,
@@ -112,6 +112,10 @@ export default function SetPin() {
     setConfirmationPinArray(emptyPin(length))
   }
 
+  function handleClearCurrentPin() {
+    setCurrentPinArray(emptyPin(currentPinArray.length))
+  }
+
   function handleCurrentPinChange(newPin: React.SetStateAction<string[]>) {
     setCurrentPinArray(newPin)
     if (currentPinWrong) {
@@ -125,7 +129,7 @@ export default function SetPin() {
       setStage('set')
       setCurrentPinWrong(false)
     } else {
-      setCurrentPinArray(emptyPin())
+      setCurrentPinArray(emptyPin(currentPinArray.length))
       setCurrentPinWrong(true)
     }
   }
@@ -171,15 +175,17 @@ export default function SetPin() {
     setRequirePinMigration(false)
 
     const currentPinEncrypted = await getCurrentPin()
-    await setPin(pinArray.join(''))
-    const newPinEncrypted = await getCurrentPin()
-    if (
-      currentPinEncrypted &&
-      newPinEncrypted &&
-      currentPinEncrypted !== newPinEncrypted
-    ) {
-      await reEncryptAccounts(currentPinEncrypted, newPinEncrypted)
+    const material = await preparePinMaterial(pinArray.join(''))
+    if (currentPinEncrypted && currentPinEncrypted !== material.digest) {
+      try {
+        await reEncryptAccounts(currentPinEncrypted, material.digest)
+      } catch {
+        toast.error(t('auth.pinChangeError'))
+        setLoading(false)
+        return
+      }
     }
+    await commitPinMaterial(material)
 
     setLoading(false)
 
@@ -355,7 +361,7 @@ export default function SetPin() {
             <SSButton
               label={t('common.clear')}
               variant="ghost"
-              onPress={() => setCurrentPinArray(emptyPin())}
+              onPress={() => handleClearCurrentPin()}
             />
           )}
           {__DEV__ && stage === 'set' && !pinFilled && !fromSettings ? (
