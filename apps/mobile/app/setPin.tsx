@@ -264,43 +264,48 @@ export default function SetPin() {
             />
           )}
           {stage === 'set' && (
-            <SSVStack gap="md" itemsCenter>
-              <SSHStack gap="sm" style={{ alignItems: 'center' }}>
-                <SSText size="sm" color="muted">
-                  {t('auth.pinLength')}:
-                </SSText>
-                {Array.from(
-                  { length: PIN_MAX_LENGTH - PIN_MIN_LENGTH + 1 },
-                  (_, i) => PIN_MIN_LENGTH + i
-                ).map((length) => (
-                  <Pressable
-                    key={length}
-                    onPress={() => handlePinLengthChange(length)}
-                    style={{
-                      alignItems: 'center',
-                      borderColor:
-                        length === pinLength
-                          ? Colors.gray[200]
-                          : Colors.gray[700],
-                      borderRadius: 4,
-                      borderWidth: 1,
-                      height: 32,
-                      justifyContent: 'center',
-                      width: 32
-                    }}
-                  >
-                    <SSText
-                      size="sm"
-                      color={length === pinLength ? undefined : 'muted'}
-                      weight={length === pinLength ? 'bold' : 'regular'}
-                    >
-                      {String(length)}
-                    </SSText>
-                  </Pressable>
-                ))}
-              </SSHStack>
-              <SSPinInput pin={pinArray} setPin={setPinArray} />
-            </SSVStack>
+            <SSPinInput
+              pin={pinArray}
+              setPin={setPinArray}
+              belowInput={
+                <SSVStack gap="sm" itemsCenter>
+                  <SSText uppercase size="sm" color="muted" center>
+                    {t('auth.pinLength')}
+                  </SSText>
+                  <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+                    {Array.from(
+                      { length: PIN_MAX_LENGTH - PIN_MIN_LENGTH + 1 },
+                      (_, i) => PIN_MIN_LENGTH + i
+                    ).map((length) => (
+                      <Pressable
+                        key={length}
+                        onPress={() => handlePinLengthChange(length)}
+                        style={{
+                          alignItems: 'center',
+                          borderColor:
+                            length === pinLength
+                              ? Colors.gray[200]
+                              : Colors.gray[700],
+                          borderRadius: 4,
+                          borderWidth: 1,
+                          height: 32,
+                          justifyContent: 'center',
+                          width: 32
+                        }}
+                      >
+                        <SSText
+                          size="sm"
+                          color={length === pinLength ? undefined : 'muted'}
+                          weight={length === pinLength ? 'bold' : 'regular'}
+                        >
+                          {String(length)}
+                        </SSText>
+                      </Pressable>
+                    ))}
+                  </SSHStack>
+                </SSVStack>
+              }
+            />
           )}
           {stage === 're-enter' && (
             <SSPinInput
