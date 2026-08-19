@@ -1,4 +1,4 @@
-import { DURESS_PIN_KEY } from '@/config/auth'
+import { DURESS_KDF_KEY, DURESS_PIN_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import {
   deleteAllKeySecrets,
@@ -17,13 +17,21 @@ import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
+import { deleteAllNostrSecretsForWipe } from '@/utils/nostrSecrets'
+import {
+  deleteAllRpcCredentialsSafe,
+  deleteLndSecretsSafe
+} from '@/utils/serviceSecrets'
 
 /**
  * Best-effort wipe of wallet secrets and local account state for duress PIN.
- * Clears SecureStore mnemonics/keys, MMKV identity/LND config, and in-memory stores.
+ * Clears SecureStore mnemonics/keys/nostr/LND/RPC, MMKV identity/LND config,
+ * and in-memory stores.
  */
 export async function secureWipeAllWalletData(): Promise<void> {
   const { accounts } = useAccountsStore.getState()
+  const { identities } = useNostrIdentityStore.getState()
+
   await Promise.all(
     accounts.map((account) =>
       deleteAllKeySecrets(account.id, account.keys.length).catch(
@@ -31,6 +39,14 @@ export async function secureWipeAllWalletData(): Promise<void> {
       )
     )
   )
+
+  await deleteAllNostrSecretsForWipe(
+    identities.map((identity) => identity.npub),
+    accounts.map((account) => account.id)
+  ).catch(() => undefined)
+
+  await deleteLndSecretsSafe()
+  await deleteAllRpcCredentialsSafe()
 
   const { accounts: ecashAccounts } = useEcashStore.getState()
   await Promise.all(
@@ -66,4 +82,6 @@ export async function secureWipeAllWalletData(): Promise<void> {
   setSkipPin(false)
 
   await deleteItem(DURESS_PIN_KEY).catch(() => undefined)
+  await deleteItem(DURESS_KDF_KEY).catch(() => undefined)
+  await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
 }
