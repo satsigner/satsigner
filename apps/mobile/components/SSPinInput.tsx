@@ -422,6 +422,8 @@ const styles = StyleSheet.create({
   },
   pinRow: {
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: PIN_CELL_MAX_SIZE,
     width: '100%'
   }
 })
