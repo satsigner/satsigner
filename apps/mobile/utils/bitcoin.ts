@@ -1,4 +1,5 @@
-import { networks } from 'bitcoinjs-lib'
+import ecc from '@bitcoinerlab/secp256k1'
+import { address as bjsAddress, initEccLib, networks } from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 import { Network as BdkNetwork } from 'react-native-bdk-sdk'
 
@@ -12,8 +13,52 @@ import {
   BIP84_PURPOSE,
   BIP86_PURPOSE
 } from '@/constants/derivation'
+import { Account, Key } from '@/types/models/Account'
+import { type Address } from '@/types/models/Address'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
+
+initEccLib(ecc)
+
+export type AddressScriptType = 'p2pkh' | 'p2sh' | 'p2tr' | 'p2wpkh' | 'p2wsh'
+
+/**
+ * Classify an address by decoding its output script, rather than trusting
+ * caller-supplied metadata (e.g. an arbitrary address pasted into the
+ * explorer verify-message flow has no known ScriptVersionType).
+ */
+export function getScriptTypeFromAddress(
+  address: string,
+  network: AppNetwork
+): AddressScriptType | null {
+  try {
+    const script = bjsAddress.toOutputScript(address, bitcoinjsNetwork(network))
+    if (
+      script.length === 25 &&
+      script[0] === 0x76 &&
+      script[1] === 0xa9 &&
+      script[23] === 0x88 &&
+      script[24] === 0xac
+    ) {
+      return 'p2pkh'
+    }
+    if (script.length === 23 && script[0] === 0xa9 && script[22] === 0x87) {
+      return 'p2sh'
+    }
+    if (script.length === 22 && script[0] === 0x00 && script[1] === 0x14) {
+      return 'p2wpkh'
+    }
+    if (script.length === 34 && script[0] === 0x00 && script[1] === 0x20) {
+      return 'p2wsh'
+    }
+    if (script.length === 34 && script[0] === 0x51 && script[1] === 0x20) {
+      return 'p2tr'
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
 /** Convert app string network to BDK numeric Network enum */
 export function appNetworkToBdkNetwork(network: AppNetwork): BdkNetwork {
@@ -106,6 +151,27 @@ export function bitcoinjsNetwork(network: AppNetwork): networks.Network {
     default:
       return networks['bitcoin']
   }
+}
+
+const WIF_COMPRESSED_FLAG = 0x01
+
+/**
+ * Encode a raw 32-byte private key (hex) as WIF, the standard human-facing
+ * format shown by most wallets and tools (e.g. iancoleman.io/bip39) -
+ * unlike raw hex, WIF embeds the network and a compressed-pubkey flag, so
+ * two encodings of the same key look nothing alike.
+ */
+export function privateKeyHexToWif(
+  privateKeyHex: string,
+  network: AppNetwork
+): string {
+  const { wif } = bitcoinjsNetwork(network)
+  const payload = Buffer.concat([
+    Buffer.from([wif]),
+    Buffer.from(privateKeyHex, 'hex'),
+    Buffer.from([WIF_COMPRESSED_FLAG])
+  ])
+  return bs58check.encode(payload)
 }
 
 // TODO: refactor all vibe code below, which is duplicate of other utils.
@@ -262,6 +328,51 @@ export function getDerivationPathFromScriptVersion(
     default:
       return `${BIP84_PURPOSE}'/${coinType}'/0'`
   }
+}
+
+export function getAccountDerivationPath(
+  account: Account,
+  keyIndex: Key['index'] = 0
+) {
+  const key = account.keys[keyIndex]
+  if (!key) {
+    return null
+  }
+  if (key.derivationPath) {
+    return key.derivationPath.replace(/^m\/?/, '')
+  }
+  const { scriptVersion } = key
+  if (!scriptVersion) {
+    return null
+  }
+  const { network } = account
+  return getDerivationPathFromScriptVersion(scriptVersion, network)
+}
+
+/**
+ * Full derivation path for a specific address. Addresses built from BDK's
+ * peekAddress() (see api/bdk.ts#getWalletAddresses) don't carry their own
+ * derivationPath, so this reconstructs it from the account path plus the
+ * change level (0=external, 1=internal) and index. IMPORTANT: the change
+ * level must be included - `${accountPath}/${index}` alone derives a
+ * completely different (wrong) key, since it's missing a whole path level.
+ */
+export function getAddressDerivationPath(
+  account: Account,
+  address: Pick<Address, 'derivationPath' | 'index' | 'keychain'>
+): string {
+  if (address.derivationPath) {
+    return address.derivationPath
+  }
+  if (address.index === undefined || !address.keychain) {
+    return ''
+  }
+  const accountPath = getAccountDerivationPath(account)
+  if (!accountPath) {
+    return ''
+  }
+  const change = address.keychain === 'internal' ? 1 : 0
+  return `${accountPath}/${change}/${address.index}`
 }
 
 export function getMultisigDerivationPathFromScriptVersion(

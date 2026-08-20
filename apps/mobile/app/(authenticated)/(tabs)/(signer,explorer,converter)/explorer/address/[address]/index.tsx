@@ -12,6 +12,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconBubbles, SSIconList } from '@/components/icons'
 import SSBubbleChart from '@/components/SSBubbleChart'
+import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSDetailsList from '@/components/SSDetailsList'
 import SSExplorerAddressTransactions from '@/components/SSExplorerAddressTransactions'
@@ -32,7 +33,7 @@ import type { ExplorerAddressUtxo } from '@/types/explorer/address'
 import type { Utxo } from '@/types/models/Utxo'
 import { formatExplorerBackendSource } from '@/utils/explorerCapabilities'
 import { formatNumber } from '@/utils/format'
-import { parseUriParameters, stripBitcoinPrefix } from '@/utils/parse'
+import { resolveExplorerAddressParam } from '@/utils/parse'
 
 const tn = _tn('explorer.address')
 
@@ -83,30 +84,11 @@ function UtxoRow({ utxo }: UtxoRowProps) {
   )
 }
 
-function resolveAddressParam(
-  address: string | string[] | undefined
-): string | null {
-  const raw = Array.isArray(address) ? address[0] : address
-  if (!raw) {
-    return null
-  }
-  try {
-    const decoded = decodeURIComponent(raw).trim()
-    const stripped = stripBitcoinPrefix(decoded)
-    const parsed = parseUriParameters(stripped)
-    return (parsed?.address ?? stripped).trim() || null
-  } catch {
-    const stripped = stripBitcoinPrefix(raw.trim())
-    const parsed = parseUriParameters(stripped)
-    return (parsed?.address ?? stripped).trim() || null
-  }
-}
-
 export default function ExplorerAddressDetail() {
   const { address: addressParam } = useLocalSearchParams<{
     address: string
   }>()
-  const resolvedAddress = resolveAddressParam(addressParam)
+  const resolvedAddress = resolveExplorerAddressParam(addressParam)
   const example = getExplorerExampleAddress(resolvedAddress)
   const { width: windowWidth } = useWindowDimensions()
   const [utxoView, setUtxoView] = useState<UtxoView>('bubbles')
@@ -132,6 +114,13 @@ export default function ExplorerAddressDetail() {
 
   function toggleUtxoView() {
     setUtxoView((prev) => (prev === 'list' ? 'bubbles' : 'list'))
+  }
+
+  function handleVerifyMessagePress() {
+    if (!resolvedAddress) {
+      return
+    }
+    router.push(`/explorer/address/${resolvedAddress}/verifyMessage`)
   }
 
   return (
@@ -263,6 +252,11 @@ export default function ExplorerAddressDetail() {
                 >
                   {displaySourceLabel}
                 </SSText>
+                <SSButton
+                  label={t('address.details.verifyMessage')}
+                  variant="subtle"
+                  onPress={handleVerifyMessagePress}
+                />
               </SSVStack>
             </SSHStack>
 
