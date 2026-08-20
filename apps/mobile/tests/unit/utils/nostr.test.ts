@@ -8,7 +8,7 @@ import {
   parseNostrTransaction
 } from '@/utils/nostr'
 
-import { descriptors, nostrKeys, nostrMessages, psbts } from './nostr_samples'
+import { descriptors, nostrKeys, nostrMessages, psbts } from './nostrSamples'
 
 jest.mock('nostr-tools')
 

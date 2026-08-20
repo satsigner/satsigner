@@ -13,7 +13,7 @@ import {
   cashuTokens,
   lightningInvoices,
   lnurls
-} from './bip321_samples'
+} from './bip321Samples'
 
 describe('contentDetector', () => {
   describe('detectContentByContext - Bitcoin context', () => {
