@@ -18,7 +18,7 @@ import {
   bolt12Offers,
   formattingEdgeCases,
   lightningInvoices
-} from './bip321_samples'
+} from './bip321Samples'
 
 describe('bip321 utils', () => {
   describe('isBitcoinUri', () => {

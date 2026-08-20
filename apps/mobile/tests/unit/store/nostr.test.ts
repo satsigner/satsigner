@@ -1,11 +1,6 @@
 import { useNostrStore } from '@/store/nostr'
 
-import {
-  accountIds,
-  nostrKeys,
-  psbts,
-  timestamps
-} from '../utils/nostr_samples'
+import { accountIds, nostrKeys, psbts, timestamps } from '../utils/nostrSamples'
 
 jest.mock<typeof import('@/storage/mmkv')>('@/storage/mmkv', () => {
   const storage: Record<string, string> = {}
