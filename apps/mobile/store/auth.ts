@@ -4,15 +4,26 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   DEFAULT_LOCK_DELTA_TIME_SECONDS,
   DEFAULT_PIN_MAX_TRIES,
+  DURESS_KDF_KEY,
   DURESS_PIN_KEY,
-  SALT_KEY
+  SALT_KEY,
+  SALT_KEY_DURESS
 } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
+import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
-import { pbkdf2Encrypt, randomKey } from '@/utils/crypto'
+import { randomKey } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
-import { getPin, setPin } from '@/utils/pin'
+import { getPin } from '@/utils/pin'
+import {
+  commitPinMaterial,
+  derivePinDigest,
+  getBestAvailableKdf,
+  getStoredKdfConfig,
+  preparePinMaterial,
+  safeEqualHex,
+  storeKdfConfig
+} from '@/utils/pinKdf'
 
 type AuthState = {
   firstTime: boolean
@@ -75,8 +86,8 @@ const useAuthStore = create<AuthState & AuthAction>()(
         try {
           await getPin()
         } catch {
-          // High-entropy throwaway passphrase; only its PBKDF2 digest is kept.
-          await setPin(await randomKey(32))
+          // High-entropy throwaway passphrase; only its KDF digest is kept.
+          await get().setPin(await randomKey(32))
         }
         set({ skipPin: true })
       },
@@ -119,7 +130,17 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ pinTries: 0 })
       },
       setDuressPin: async (pin) => {
-        await setPin(pin, DURESS_PIN_KEY)
+        // Reuse the main PIN salt. setPin also reuses that salt so a later
+        // PIN change does not invalidate this digest.
+        const salt = await getItem(SALT_KEY)
+        if (!salt) {
+          throw new Error('PIN must be set before setting a duress PIN')
+        }
+        const kdf = getBestAvailableKdf()
+        const encryptedPin = await derivePinDigest(pin, salt, kdf)
+        await setItem(DURESS_PIN_KEY, encryptedPin)
+        await storeKdfConfig(kdf, DURESS_KDF_KEY)
+        await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
         set({ duressPinEnabled: true })
       },
       setDuressPinEnabled(duressPinEnabled) {
@@ -141,7 +162,8 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ pendingRecoverData })
       },
       setPin: async (pin) => {
-        await setPin(pin)
+        const material = await preparePinMaterial(pin)
+        await commitPinMaterial(material)
       },
       setPinMaxTries: (maxTries) => {
         set({ pinMaxTries: maxTries })
@@ -166,9 +188,10 @@ const useAuthStore = create<AuthState & AuthAction>()(
         if (!salt) {
           throw new Error('Failed to validate PIN')
         }
-        const encrypted = await pbkdf2Encrypt(pin, salt)
+        const kdf = await getStoredKdfConfig()
+        const encrypted = await derivePinDigest(pin, salt, kdf)
         const savedPin = await getPin()
-        return encrypted === savedPin
+        return safeEqualHex(encrypted, savedPin)
       }
     }),
     {

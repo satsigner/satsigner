@@ -1,4 +1,6 @@
-import { javaSeededRandom } from '@/utils/crypto'
+import QuickCrypto from 'react-native-quick-crypto'
+
+import { javaSeededRandom, randomUuid } from '@/utils/crypto'
 
 const JAVA_RANDOM_MULTIPLIER = 0x5deece66dn
 const JAVA_RANDOM_ADDEND = 0xbn
@@ -80,5 +82,26 @@ describe('javaSeededRandom', () => {
     const random = javaSeededRandom(42)
     expect(() => random.nextInt(0)).toThrow('bound must be positive')
     expect(() => random.nextInt(-5)).toThrow('bound must be positive')
+  })
+})
+
+describe('randomUuid', () => {
+  it('returns a valid RFC 4122 v4 UUID', () => {
+    const id = randomUuid()
+    expect(id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    )
+  })
+
+  it('produces distinct values across a large batch', () => {
+    const ids = new Set(Array.from({ length: 1000 }, () => randomUuid()))
+    expect(ids.size).toBe(1000)
+  })
+
+  it('draws entropy from QuickCrypto, not Math.random', () => {
+    const randomBytesSpy = jest.spyOn(QuickCrypto, 'randomBytes')
+    randomUuid()
+    expect(randomBytesSpy).toHaveBeenCalledWith(16)
+    randomBytesSpy.mockRestore()
   })
 })

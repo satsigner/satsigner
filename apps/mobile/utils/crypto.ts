@@ -15,8 +15,11 @@ function randomKey(length = 16): Promise<string> {
   )
 }
 
+// react-native-uuid's built-in rng() is Math.random-based, which is
+// unacceptable even for non-secret identifiers (account ids, NIP-46 session
+// ids are predictable/enumerable). Feed it CSPRNG bytes instead.
 function randomUuid() {
-  return uuid.v4()
+  return uuid.v4({ random: [...QuickCrypto.randomBytes(16)] })
 }
 
 function randomIv() {

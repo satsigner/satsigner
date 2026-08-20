@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -8,21 +9,24 @@ import { SSIconCheckCircleThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
+import {
+  PIN_LENGTH_KEY,
+  PIN_MAX_LENGTH,
+  PIN_MIN_LENGTH,
+  PIN_SIZE
+} from '@/config/auth'
 import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
-import { Layout, Sizes } from '@/styles'
+import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
-import {
-  checkPinEqual,
-  commitPinMaterial,
-  derivePinMaterial,
-  emptyPin,
-  getPin
-} from '@/utils/pin'
+import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
+import { commitPinMaterial, preparePinMaterial } from '@/utils/pinKdf'
 
 type Stage = 'verify' | 'set' | 're-enter'
 
@@ -78,11 +82,39 @@ export default function SetPin() {
   const [confirmationPinArray, setConfirmationPinArray] =
     useState<string[]>(emptyPin)
   const [currentPinWrong, setCurrentPinWrong] = useState(false)
+  const [pinLength, setPinLength] = useState(PIN_SIZE)
+
+  // The verify stage (changing an existing PIN) must match the stored length.
+  useEffect(() => {
+    if (!(fromSettings && !skipPin)) {
+      return
+    }
+    async function loadPinLength() {
+      const stored = await getItem(PIN_LENGTH_KEY)
+      const length = clampPinLength(stored ? Number(stored) : Number.NaN)
+      setCurrentPinArray(emptyPin(length))
+      // Preselect the current length for the new PIN as well.
+      setPinLength(length)
+      setPinArray(emptyPin(length))
+      setConfirmationPinArray(emptyPin(length))
+    }
+    loadPinLength()
+  }, [fromSettings, skipPin])
 
   const currentPinFilled = !currentPinArray.includes('')
   const pinFilled = !pinArray.includes('')
   const confirmationPinFilled = !confirmationPinArray.includes('')
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
+
+  function handlePinLengthChange(length: number) {
+    setPinLength(length)
+    setPinArray(emptyPin(length))
+    setConfirmationPinArray(emptyPin(length))
+  }
+
+  function handleClearCurrentPin() {
+    setCurrentPinArray(emptyPin(currentPinArray.length))
+  }
 
   function handleCurrentPinChange(newPin: React.SetStateAction<string[]>) {
     setCurrentPinArray(newPin)
@@ -97,7 +129,7 @@ export default function SetPin() {
       setStage('set')
       setCurrentPinWrong(false)
     } else {
-      setCurrentPinArray(emptyPin())
+      setCurrentPinArray(emptyPin(currentPinArray.length))
       setCurrentPinWrong(true)
     }
   }
@@ -126,11 +158,11 @@ export default function SetPin() {
   }
 
   function clearPin() {
-    setPinArray(emptyPin())
+    setPinArray(emptyPin(pinLength))
   }
 
   function clearConfirmationPin() {
-    setConfirmationPinArray(emptyPin())
+    setConfirmationPinArray(emptyPin(pinLength))
   }
 
   async function handleSetPin() {
@@ -139,39 +171,21 @@ export default function SetPin() {
     }
     setLoading(true)
 
-    const newPin = pinArray.join('')
-    const currentPinEncrypted = await getCurrentPin()
-    // Compare the plaintext against the stored salt. Digests cannot be compared
-    // directly: derivePinMaterial draws a fresh salt, so an unchanged PIN still
-    // hashes to a different value.
-    const pinUnchanged = currentPinEncrypted
-      ? await checkPinEqual(newPin)
-      : false
-
-    // The stored digest is the AES key for every secret, so re-deriving it
-    // would strand them all. Leave the existing material in place.
-    if (!pinUnchanged) {
-      const { hashedPin: newPinEncrypted, salt } =
-        await derivePinMaterial(newPin)
-
-      // Re-encrypt under the new key material first. Committing the new PIN
-      // before this succeeds would strand every secret still encrypted with
-      // the old one, with no way to derive it again.
-      if (currentPinEncrypted) {
-        try {
-          await reEncryptAccounts(currentPinEncrypted, newPinEncrypted)
-        } catch {
-          setLoading(false)
-          toast.error(t('auth.pinChangeError'))
-          return
-        }
-      }
-
-      await commitPinMaterial(salt, newPinEncrypted)
-    }
-
     setSkipPin(false)
     setRequirePinMigration(false)
+
+    const currentPinEncrypted = await getCurrentPin()
+    const material = await preparePinMaterial(pinArray.join(''))
+    if (currentPinEncrypted && currentPinEncrypted !== material.digest) {
+      try {
+        await reEncryptAccounts(currentPinEncrypted, material.digest)
+      } catch {
+        toast.error(t('auth.pinChangeError'))
+        setLoading(false)
+        return
+      }
+    }
+    await commitPinMaterial(material)
 
     setLoading(false)
 
@@ -256,7 +270,48 @@ export default function SetPin() {
             />
           )}
           {stage === 'set' && (
-            <SSPinInput pin={pinArray} setPin={setPinArray} />
+            <SSPinInput
+              pin={pinArray}
+              setPin={setPinArray}
+              belowInput={
+                <SSVStack gap="sm" itemsCenter>
+                  <SSText uppercase size="sm" color="muted" center>
+                    {t('auth.pinLength')}
+                  </SSText>
+                  <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+                    {Array.from(
+                      { length: PIN_MAX_LENGTH - PIN_MIN_LENGTH + 1 },
+                      (_, i) => PIN_MIN_LENGTH + i
+                    ).map((length) => (
+                      <Pressable
+                        key={length}
+                        onPress={() => handlePinLengthChange(length)}
+                        style={{
+                          alignItems: 'center',
+                          borderColor:
+                            length === pinLength
+                              ? Colors.gray[200]
+                              : Colors.gray[700],
+                          borderRadius: 4,
+                          borderWidth: 1,
+                          height: 32,
+                          justifyContent: 'center',
+                          width: 32
+                        }}
+                      >
+                        <SSText
+                          size="sm"
+                          color={length === pinLength ? undefined : 'muted'}
+                          weight={length === pinLength ? 'bold' : 'regular'}
+                        >
+                          {String(length)}
+                        </SSText>
+                      </Pressable>
+                    ))}
+                  </SSHStack>
+                </SSVStack>
+              }
+            />
           )}
           {stage === 're-enter' && (
             <SSPinInput
@@ -306,7 +361,7 @@ export default function SetPin() {
             <SSButton
               label={t('common.clear')}
               variant="ghost"
-              onPress={() => setCurrentPinArray(emptyPin())}
+              onPress={() => handleClearCurrentPin()}
             />
           )}
           {__DEV__ && stage === 'set' && !pinFilled && !fromSettings ? (

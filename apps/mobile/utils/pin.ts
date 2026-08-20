@@ -1,8 +1,10 @@
 import {
-  PIN_SIZE,
-  PIN_KEY,
-  SALT_KEY,
   DURESS_PIN_KEY,
+  PIN_KEY,
+  PIN_MAX_LENGTH,
+  PIN_MIN_LENGTH,
+  PIN_SIZE,
+  SALT_KEY,
   SALT_KEY_DURESS
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
@@ -20,22 +22,6 @@ async function setPin(pin: string, pinType: PinType = PIN_KEY) {
   return hashedPin
 }
 
-/**
- * Derive PIN key material without storing it. Lets a PIN change re-encrypt
- * every secret under the new key before the old digest is overwritten, so a
- * failure part-way through leaves the existing PIN able to decrypt everything.
- */
-async function derivePinMaterial(pin: string) {
-  const salt = await generateSalt()
-  const hashedPin = await pbkdf2Encrypt(pin, salt)
-  return { hashedPin, salt }
-}
-
-async function commitPinMaterial(salt: string, hashedPin: string) {
-  await setItem(SALT_KEY, salt)
-  await setItem(PIN_KEY, hashedPin)
-}
-
 async function getPin(pinType: PinType = PIN_KEY): Promise<string> {
   const pin = await getItem(pinType)
   if (pin === null) {
@@ -44,19 +30,15 @@ async function getPin(pinType: PinType = PIN_KEY): Promise<string> {
   return pin
 }
 
-async function checkPinEqual(plainPin: string, pinType: PinType = PIN_KEY) {
-  const saltKey = pinType === DURESS_PIN_KEY ? SALT_KEY_DURESS : SALT_KEY
-  const salt = await getItem(saltKey)
-  if (!salt) {
-    return false
-  }
-  const hashedPin = await pbkdf2Encrypt(plainPin, salt)
-  const storedPin = await getItem(pinType)
-  return storedPin === hashedPin
+function emptyPin(length: number = PIN_SIZE): string[] {
+  return Array.from<string>({ length }).fill('')
 }
 
-function emptyPin(): string[] {
-  return Array.from<string>({ length: PIN_SIZE }).fill('')
+function clampPinLength(length: number): number {
+  if (!Number.isInteger(length)) {
+    return PIN_SIZE
+  }
+  return Math.min(PIN_MAX_LENGTH, Math.max(PIN_MIN_LENGTH, length))
 }
 
 function getPinCursorIndex(pin: string[]): number {
@@ -89,10 +71,8 @@ function deletePinDigit(pin: string[]): string[] {
 }
 
 export {
-  checkPinEqual,
-  commitPinMaterial,
+  clampPinLength,
   deletePinDigit,
-  derivePinMaterial,
   emptyPin,
   fillPinDigit,
   getPin,

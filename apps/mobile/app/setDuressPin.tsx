@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -8,13 +8,20 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
+import { PIN_LENGTH_KEY, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
-import { checkPinEqual, emptyPin } from '@/utils/pin'
+import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
+import {
+  derivePinDigest,
+  getStoredKdfConfig,
+  safeEqualHex
+} from '@/utils/pinKdf'
 
 type Stage = 'set' | 're-enter'
 
@@ -39,13 +46,33 @@ export default function SetPin() {
   const [confirmationPinArray, setConfirmationPinArray] =
     useState<string[]>(emptyPin)
 
+  // The duress PIN must match the main PIN's length.
+  useEffect(() => {
+    async function loadPinLength() {
+      const stored = await getItem(PIN_LENGTH_KEY)
+      const length = clampPinLength(stored ? Number(stored) : Number.NaN)
+      setPinArray(emptyPin(length))
+      setConfirmationPinArray(emptyPin(length))
+    }
+    loadPinLength()
+  }, [])
+
   const pinFilled = !pinArray.includes('')
   const confirmationPinFilled = !confirmationPinArray.includes('')
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
-  async function handleValidateAndSetDuressPin(pin: string) {
-    const duressEqualCurrent = await checkPinEqual(pin)
-    if (duressEqualCurrent) {
+  async function persistDuressPin(pin: string) {
+    const salt = await getItem(SALT_KEY)
+    const encryptedPin = await getPin()
+    if (!salt || !encryptedPin) {
+      toast.error(t('auth.pinMustBeSetBeforeDuress'))
+      return false
+    }
+    // Equality is checked under the main PIN's own KDF config, which may
+    // differ from the config a fresh duress PIN will be stored with.
+    const mainKdf = await getStoredKdfConfig()
+    const duressCandidate = await derivePinDigest(pin, salt, mainKdf)
+    if (safeEqualHex(encryptedPin, duressCandidate)) {
       toast.error(t('auth.pinMatchDuressPin'))
       handleGoBack()
       return false
@@ -67,11 +94,11 @@ export default function SetPin() {
   }
 
   function clearPin() {
-    setPinArray(emptyPin())
+    setPinArray((current) => emptyPin(current.length))
   }
 
   function clearConfirmationPin() {
-    setConfirmationPinArray(emptyPin())
+    setConfirmationPinArray((current) => emptyPin(current.length))
   }
 
   async function handleSetPin() {
@@ -80,7 +107,7 @@ export default function SetPin() {
     }
 
     setLoading(true)
-    const isPinSet = await handleValidateAndSetDuressPin(pinArray.join(''))
+    const isPinSet = await persistDuressPin(pinArray.join(''))
     setLoading(false)
 
     if (!isPinSet) {
