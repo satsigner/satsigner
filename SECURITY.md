@@ -72,10 +72,10 @@ Out of scope:
 Only the latest released version of SatSigner receives security fixes. Fixes
 ship in a new release; we do not backport patches to older versions.
 
-| Version            | Supported |
-| ------------------ | --------- |
-| Latest release     | Yes       |
-| Older releases     | No        |
+| Version        | Supported |
+| -------------- | --------- |
+| Latest release | Yes       |
+| Older releases | No        |
 
 ## Security Model Notes
 
