@@ -8,26 +8,19 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import {
-  DURESS_KDF_KEY,
-  DURESS_PIN_KEY,
-  PIN_LENGTH_KEY,
-  SALT_KEY
-} from '@/config/auth'
+import { PIN_LENGTH_KEY, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem, setItem } from '@/storage/encrypted'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
 import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
 import {
   derivePinDigest,
-  getBestAvailableKdf,
   getStoredKdfConfig,
-  safeEqualHex,
-  storeKdfConfig
+  safeEqualHex
 } from '@/utils/pinKdf'
 
 type Stage = 'set' | 're-enter'
@@ -37,8 +30,12 @@ const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 export default function SetPin() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const [setFirstTime, setRequiresAuth] = useAuthStore(
-    useShallow((state) => [state.setFirstTime, state.setRequiresAuth])
+  const [setFirstTime, setRequiresAuth, setDuressPin] = useAuthStore(
+    useShallow((state) => [
+      state.setFirstTime,
+      state.setRequiresAuth,
+      state.setDuressPin
+    ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
 
@@ -64,11 +61,11 @@ export default function SetPin() {
   const confirmationPinFilled = !confirmationPinArray.includes('')
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
-  async function setPin(pin: string) {
+  async function persistDuressPin(pin: string) {
     const salt = await getItem(SALT_KEY)
     const encryptedPin = await getPin()
     if (!salt || !encryptedPin) {
-      toast.error('Normal PIN must be set before setting Duress PIN')
+      toast.error(t('auth.pinMustBeSetBeforeDuress'))
       return false
     }
     // Equality is checked under the main PIN's own KDF config, which may
@@ -80,10 +77,7 @@ export default function SetPin() {
       handleGoBack()
       return false
     }
-    const duressKdf = getBestAvailableKdf()
-    const encryptedDuressPin = await derivePinDigest(pin, salt, duressKdf)
-    await setItem(DURESS_PIN_KEY, encryptedDuressPin)
-    await storeKdfConfig(duressKdf, DURESS_KDF_KEY)
+    await setDuressPin(pin)
     return true
   }
 
@@ -113,7 +107,7 @@ export default function SetPin() {
     }
 
     setLoading(true)
-    const isPinSet = await setPin(pinArray.join(''))
+    const isPinSet = await persistDuressPin(pinArray.join(''))
     setLoading(false)
 
     if (!isPinSet) {

@@ -5,15 +5,11 @@ import { toast } from 'sonner-native'
 
 import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import {
-  DURESS_KDF_KEY,
-  DURESS_PIN_KEY,
-  PIN_LENGTH_KEY,
-  SALT_KEY
-} from '@/config/auth'
+import { DURESS_PIN_KEY, PIN_LENGTH_KEY, SALT_KEY } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import useKdfMigration from '@/hooks/useKdfMigration'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { gray } from '@/styles/colors'
@@ -21,6 +17,7 @@ import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
 import {
   derivePinDigest,
   getStoredKdfConfig,
+  pinMatchesDuressDigest,
   safeEqualHex
 } from '@/utils/pinKdf'
 import { secureWipeAllWalletData } from '@/utils/secureWipe'
@@ -78,30 +75,31 @@ function SSPinAuth({
     const hashedDuressPin = await getItem(DURESS_PIN_KEY)
     const salt = await getItem(SALT_KEY)
     if (!hashedPin || !salt) {
-      toast.error('Failed to retrieve PIN for authentication')
+      toast.error(t('auth.pinRetrieveFailed'))
       return
     }
 
-    // DURESS PIN (verified under its own stored KDF config) — wipe
-    // secrets/stores so the duress PIN appears as the real PIN.
-    if (duressPinEnabled && hashedDuressPin) {
-      const duressKdf = await getStoredKdfConfig(DURESS_KDF_KEY)
-      const duressInput = await derivePinDigest(inputPin, salt, duressKdf)
-      if (safeEqualHex(duressInput, hashedDuressPin)) {
-        try {
-          await secureWipeAllWalletData()
-        } catch {
-          // Duress wipe is best-effort; always proceed to unlock the app.
-        }
-        const { setLockTriggered, setJustUnlocked, resetPinTries } =
-          useAuthStore.getState()
-        setLockTriggered(false)
-        setJustUnlocked(true)
-        resetPinTries()
-        router.dismissAll()
-        router.push('/')
-        return
+    // DURESS PIN — wipe secrets/stores so the duress PIN appears as the real PIN.
+    // Legacy installs hashed duress against SALT_KEY_DURESS; current installs
+    // share SALT_KEY. pinMatchesDuressDigest checks both.
+    if (
+      duressPinEnabled &&
+      hashedDuressPin &&
+      (await pinMatchesDuressDigest(inputPin, hashedDuressPin))
+    ) {
+      try {
+        await secureWipeAllWalletData()
+      } catch {
+        // Duress wipe is best-effort; always proceed to unlock the app.
       }
+      const { setLockTriggered, setJustUnlocked, resetPinTries } =
+        useAuthStore.getState()
+      setLockTriggered(false)
+      setJustUnlocked(true)
+      resetPinTries()
+      router.dismissAll()
+      router.push('/')
+      return
     }
 
     const mainKdf = await getStoredKdfConfig()

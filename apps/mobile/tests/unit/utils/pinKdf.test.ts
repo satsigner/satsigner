@@ -3,8 +3,15 @@ import * as nodeCrypto from 'node:crypto'
 import { __store as secureStore } from 'expo-secure-store'
 import QuickCrypto from 'react-native-quick-crypto'
 
-import { DURESS_KDF_KEY, PIN_KDF_KEY, PIN_KEY } from '@/config/auth'
 import {
+  DURESS_KDF_KEY,
+  PIN_KDF_KEY,
+  PIN_KEY,
+  SALT_KEY,
+  SALT_KEY_DURESS
+} from '@/config/auth'
+import {
+  commitPinMaterial,
   derivePinDigest,
   getBestAvailableKdf,
   getStoredKdfConfig,
@@ -12,6 +19,8 @@ import {
   LEGACY_KDF_CONFIG,
   migratePinKdfIfNeeded,
   parseKdf,
+  pinMatchesDuressDigest,
+  preparePinMaterial,
   safeEqualHex,
   serializeKdf,
   storeKdfConfig
@@ -111,12 +120,24 @@ describe('pinKdf', () => {
       const expected = nodeCrypto
         .scryptSync(PIN, SALT, 32, {
           N: SCRYPT_CONFIG.n,
-          maxmem: 256 * 1024 * 1024,
+          maxmem: 64 * 1024 * 1024,
           p: SCRYPT_CONFIG.p,
           r: SCRYPT_CONFIG.r
         })
         .toString('hex')
       expect(digest).toBe(expected)
+      expect(QuickCrypto.scrypt).toHaveBeenCalledWith(
+        PIN,
+        SALT,
+        32,
+        expect.objectContaining({
+          N: 32768,
+          maxmem: 64 * 1024 * 1024,
+          p: 1,
+          r: 8
+        }),
+        expect.any(Function)
+      )
     })
 
     it('derives distinct digests per KDF for the same pin and salt', async () => {
@@ -177,14 +198,24 @@ describe('pinKdf', () => {
       expect(pinKdf.getBestAvailableKdf()).toStrictEqual(SCRYPT_CONFIG)
     })
 
-    it('falls back to pbkdf2 600k when argon2 and scrypt are unavailable', () => {
+    it('falls back to pbkdf2 600k when argon2 is missing and production scrypt throws', () => {
       const pinKdf = requirePinKdfWithPatches((qc) => {
         qc.argon2Sync.mockImplementation(() => {
           throw new Error('native module missing')
         })
-        qc.scryptSync.mockImplementation(() => {
-          throw new Error('native module missing')
-        })
+        qc.scryptSync.mockImplementation(
+          (
+            _password: string,
+            _salt: string,
+            _keylen: number,
+            options?: { N?: number }
+          ) => {
+            if (options?.N === 32768) {
+              throw new Error('maxmem')
+            }
+            return Buffer.alloc(32)
+          }
+        )
       })
       expect(pinKdf.getBestAvailableKdf()).toStrictEqual(PBKDF2_600K)
     })
@@ -246,6 +277,37 @@ describe('pinKdf', () => {
       expect(reEncrypt).not.toHaveBeenCalled()
       expect(secureStore[sk(PIN_KEY)]).toBe(legacyDigest)
       expect(secureStore[sk(PIN_KDF_KEY)]).toBeUndefined()
+    })
+  })
+
+  describe('preparePinMaterial / commitPinMaterial', () => {
+    it('does not write until commit, and reuses an existing salt', async () => {
+      secureStore[sk(SALT_KEY)] = SALT
+
+      const material = await preparePinMaterial(PIN)
+      expect(material.salt).toBe(SALT)
+      expect(secureStore[sk(PIN_KEY)]).toBeUndefined()
+
+      await commitPinMaterial(material)
+      expect(secureStore[sk(PIN_KEY)]).toBe(material.digest)
+      expect(secureStore[sk(SALT_KEY)]).toBe(SALT)
+    })
+  })
+
+  describe('pinMatchesDuressDigest', () => {
+    it('accepts a digest derived with the shared salt', async () => {
+      secureStore[sk(SALT_KEY)] = SALT
+      const digest = await derivePinDigest(PIN, SALT, LEGACY_KDF_CONFIG)
+      await expect(pinMatchesDuressDigest(PIN, digest)).resolves.toBe(true)
+      await expect(pinMatchesDuressDigest('0000', digest)).resolves.toBe(false)
+    })
+
+    it('accepts a pre-upgrade digest derived with SALT_KEY_DURESS', async () => {
+      const legacySalt = 'ffeeddccbbaa99887766554433221100'
+      secureStore[sk(SALT_KEY)] = SALT
+      secureStore[sk(SALT_KEY_DURESS)] = legacySalt
+      const digest = await derivePinDigest(PIN, legacySalt, LEGACY_KDF_CONFIG)
+      await expect(pinMatchesDuressDigest(PIN, digest)).resolves.toBe(true)
     })
   })
 })
