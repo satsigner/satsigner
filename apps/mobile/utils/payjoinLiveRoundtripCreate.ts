@@ -13,18 +13,18 @@ import { useWalletsStore } from '@/store/wallets'
 import { type MnemonicWordCount } from '@/types/bips/39'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
+import { getNextDisplayIndex } from '@/utils/account'
 import {
   getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { aesEncrypt, randomIv, randomUuid } from '@/utils/crypto'
-import { getNextDisplayIndex } from '@/utils/account'
-import { ensurePin } from '@/utils/pin'
 import {
   findClownAccount,
   findSampleAccount
 } from '@/utils/payjoinLiveRoundtripAccounts'
+import { ensurePin } from '@/utils/pin'
 
 /** Mirrors the accountBuilder store's getAccountData shape for a singlesig
  * P2WPKH mnemonic import on signet. */
