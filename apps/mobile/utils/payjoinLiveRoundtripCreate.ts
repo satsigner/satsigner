@@ -19,6 +19,7 @@ import {
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { aesEncrypt, randomIv, randomUuid } from '@/utils/crypto'
+import { getNextDisplayIndex } from '@/utils/account'
 import { ensurePin } from '@/utils/pin'
 import {
   findClownAccount,
@@ -50,6 +51,7 @@ function buildSeedAccount(name: string, mnemonic: string): Account {
   return {
     addresses: [],
     createdAt: new Date(),
+    displayIndex: getNextDisplayIndex(useAccountsStore.getState().accounts),
     id: randomUuid(),
     keyCount: 1,
     keys: [key],
