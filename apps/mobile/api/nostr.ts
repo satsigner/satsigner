@@ -1738,29 +1738,67 @@ export class NostrAPI {
       )
     }
 
-    const publishPromises = connectedRelays.map(async (relay) => {
-      try {
-        const timeoutPromise = new Promise<never>((_resolve, reject) => {
-          setTimeout(
-            () =>
-              reject(
-                new Error(
-                  `Publish timeout after ${NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS}ms`
-                )
-              ),
-            NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS
-          )
+    const publishTo = (
+      relays: { publish: (event: NDKEvent) => Promise<unknown>; url: string }[]
+    ) =>
+      Promise.all(
+        relays.map(async (relay) => {
+          try {
+            const timeoutPromise = new Promise<never>((_resolve, reject) => {
+              setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      `Publish timeout after ${NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS}ms`
+                    )
+                  ),
+                NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS
+              )
+            })
+            await Promise.race([relay.publish(event), timeoutPromise])
+            return { success: true as const, url: relay.url }
+          } catch (error) {
+            const errorMsg =
+              error instanceof Error ? error.message : String(error)
+            return { error: errorMsg, success: false as const, url: relay.url }
+          }
         })
-        await Promise.race([relay.publish(event), timeoutPromise])
-        return { success: true as const, url: relay.url }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error)
-        return { error: errorMsg, success: false as const, url: relay.url }
-      }
-    })
+      )
 
-    const results = await Promise.all(publishPromises)
+    let results = await publishTo(connectedRelays)
+    const succeeded = new Set(
+      results.filter((r) => r.success).map((r) => r.url)
+    )
+    const intendedUrls = [...this.ndk.pool.relays.values()].map(
+      (relay) => relay.url
+    )
+    const missed = intendedUrls.filter((url) => !succeeded.has(url))
+    if (missed.length > 0) {
+      const retryConnected = await this.waitForConnectedRelays(4_000, 250)
+      const retryTargets = retryConnected.filter(
+        (relay) => !succeeded.has(relay.url)
+      )
+      if (retryTargets.length > 0) {
+        results = [...results, ...(await publishTo(retryTargets))]
+      }
+    }
+
     const successfulPublishes = results.filter((r) => r.success)
+    const succeededUrls = new Set(successfulPublishes.map((r) => r.url))
+    const failedPublishes = results.filter(
+      (r) => !r.success && !succeededUrls.has(r.url)
+    )
+    const attemptedUrls = new Set(results.map((r) => r.url))
+    const skippedUrls = intendedUrls.filter((url) => !attemptedUrls.has(url))
+
+    if (failedPublishes.length > 0 || skippedUrls.length > 0) {
+      // eslint-disable-next-line no-console
+      console.warn('[nostr] publish incomplete', {
+        failed: failedPublishes.map((r) => `${r.url}: ${r.error}`),
+        ok: successfulPublishes.map((r) => r.url),
+        skipped: skippedUrls
+      })
+    }
 
     if (successfulPublishes.length === 0) {
       const errors = results.map((r) => `${r.url}: ${r.error}`).join('; ')
