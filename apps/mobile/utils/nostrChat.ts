@@ -32,6 +32,9 @@ function emitChatMessage(message: NostrChatMessage): void {
 }
 
 function chatLog(...args: unknown[]): void {
+  if (!__DEV__) {
+    return
+  }
   // eslint-disable-next-line no-console
   console.log('[nostrChat]', ...args)
 }
