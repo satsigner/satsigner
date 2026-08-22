@@ -57,7 +57,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
-import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
@@ -231,7 +230,6 @@ function SampleAccountsFadeIn({ children }: { children: React.ReactNode }) {
 
 export default function AccountList() {
   const router = useRouter()
-  const setPin = useAuthStore((state) => state.setPin)
 
   const [network, setSelectedNetwork, connectionMode, autoConnectDelay] =
     useBlockchainStore(

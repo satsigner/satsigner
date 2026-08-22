@@ -321,10 +321,12 @@ async function acquireChatPipeline(identity: ChatIdentity): Promise<NostrAPI> {
     // Announce our DM inbox relays so senders route wraps where we read them.
     if (!announcedDmInboxFor.has(identity.npub)) {
       announcedDmInboxFor.add(identity.npub)
-      api
-        .publishDmInboxRelayList(identity.nsec, relays)
-        .then(() => chatLog('announced DM inbox relays:', relays.join(' ')))
-        .catch((error) => chatLog('DM inbox announce failed', error))
+      try {
+        await api.publishDmInboxRelayList(identity.nsec, relays)
+        chatLog('announced DM inbox relays:', relays.join(' '))
+      } catch (error) {
+        chatLog('DM inbox announce failed', error)
+      }
     }
   }
   activeChatPipeline.refs += 1

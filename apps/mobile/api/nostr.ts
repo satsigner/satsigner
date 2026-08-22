@@ -19,7 +19,6 @@ import {
   NOSTR_NDK_CONNECT_TIMEOUT_MS,
   NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
   NOSTR_PROCESSING_INTERVAL_MS,
-  NOSTR_PROFILE_BATCH_SIZE,
   NOSTR_PROFILE_CACHE_TTL_SECS,
   NOSTR_PUBLISH_TIMEOUT_MS,
   NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS,
@@ -43,13 +42,11 @@ import type {
   NostrSignedKind1Event,
   NostrUnwrappedKind1059Event
 } from '@/types/models/Nostr'
-import { chunkArray } from '@/utils/chunkArray'
 import { randomKey } from '@/utils/crypto'
 import {
-  getPubKeyHexFromNpub,
-  getSecretFromNsec,
   extractInboxRelayUrls,
-  getProfileFromKind0Content
+  getPubKeyHexFromNpub,
+  getSecretFromNsec
 } from '@/utils/nostr'
 import {
   extractResponseOptionIds,
@@ -378,14 +375,14 @@ export class NostrAPI {
    * Returns a map of hex pubkey → profile; caches each result in SQLite.
    * Pubkeys not found on relays are omitted from the result.
    */
-  async fetchKind0Batch(
+  fetchKind0Batch(
     hexPubkeys: string[]
   ): Promise<Map<string, NostrKind0Profile>> {
     const validKeys = hexPubkeys
       .map((pk) => pk.toLowerCase())
       .filter((pk) => /^[0-9a-f]{64}$/.test(pk))
     if (validKeys.length === 0) {
-      return new Map()
+      return Promise.resolve(new Map())
     }
 
     // Coalesced fetcher: dedupes in-flight pubkeys across callers, falls back
@@ -397,7 +394,7 @@ export class NostrAPI {
    * Streams kind 0 profiles for many pubkeys: SQLite cache first, then relay
    * batches via the coalescing fetcher. Invokes onBatch after each chunk.
    */
-  async streamKind0Profiles(
+  streamKind0Profiles(
     hexPubkeys: string[],
     onBatch: (profiles: Map<string, NostrKind0Profile>) => void,
     signal?: AbortSignal
@@ -406,7 +403,7 @@ export class NostrAPI {
       .map((pk) => pk.toLowerCase())
       .filter((pk) => /^[0-9a-f]{64}$/.test(pk))
     if (validKeys.length === 0 || signal?.aborted) {
-      return
+      return Promise.resolve()
     }
 
     const now = Math.floor(Date.now() / 1000)
@@ -441,6 +438,7 @@ export class NostrAPI {
       },
       relays: this.relays
     })
+    return Promise.resolve()
   }
 
   /**
@@ -1355,7 +1353,7 @@ export class NostrAPI {
   async subscribeToKind4(
     recipientNsec: string,
     recipientNpub: string,
-    callback: (message: {
+    onMessage: (message: {
       content: string
       createdAt: number
       direction: 'in' | 'out'
@@ -1405,7 +1403,7 @@ export class NostrAPI {
           peerPubkey,
           event.content
         )
-        callback({
+        onMessage({
           content: plaintext,
           createdAt: event.created_at ?? 0,
           direction: isOwn ? 'out' : 'in',
@@ -1690,18 +1688,26 @@ export class NostrAPI {
       return false
     }
     return new Promise((resolve) => {
+      let settled = false
+      function finish(value: boolean) {
+        if (settled) {
+          return
+        }
+        settled = true
+        resolve(value)
+      }
       const sub = this.ndk!.subscribe(
         { authors: ['0'.repeat(64)], kinds: [0], limit: 1 } as never,
         { closeOnEose: false }
       )
       const timer = setTimeout(() => {
         sub.stop()
-        resolve(false)
+        finish(false)
       }, timeoutMs)
       sub.on('eose', () => {
         clearTimeout(timer)
         sub.stop()
-        resolve(true)
+        finish(true)
       })
     })
   }

@@ -81,11 +81,14 @@ function report(prefix: string, error: unknown): void {
   // function even before symbolication resolves).
   console.error(`${prefix}: ${message}\n${rawStack}`)
 
-  void symbolicate(error).then((sourceFrames) => {
-    if (sourceFrames) {
-      console.error(`${prefix} source location:\n${sourceFrames}`)
-    }
-  })
+  void logSymbolicated(prefix, error)
+}
+
+async function logSymbolicated(prefix: string, error: unknown) {
+  const sourceFrames = await symbolicate(error)
+  if (sourceFrames) {
+    console.error(`${prefix} source location:\n${sourceFrames}`)
+  }
 }
 
 /**
@@ -108,7 +111,6 @@ export function installDevErrorReporting(): void {
   try {
     require('promise/setimmediate/rejection-tracking').enable({
       allRejections: true,
-      onHandled: () => {},
       onUnhandled: (_id: number, error: unknown) => {
         report('Uncaught (in promise)', error)
       }
@@ -128,10 +130,11 @@ export function installDevErrorReporting(): void {
         }
       | undefined
     const previous = errorUtils?.getGlobalHandler?.()
-    errorUtils?.setGlobalHandler?.((error, fatal) => {
+    const handleGlobalError = (error: unknown, fatal: boolean) => {
       report(fatal ? 'Fatal error' : 'Error', error)
       previous?.(error, fatal)
-    })
+    }
+    errorUtils?.setGlobalHandler?.(handleGlobalError)
   } catch {
     // ErrorUtils unavailable — rejection hook above still covers promises.
   }

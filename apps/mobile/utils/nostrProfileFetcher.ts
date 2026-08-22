@@ -207,9 +207,9 @@ async function flushChunk(relaySetKey: string, hexes: string[]): Promise<void> {
     }
   }
   if (found.size > 0) {
-    for (const callback of callbacks) {
+    for (const onBatch of callbacks) {
       try {
-        callback(found)
+        onBatch(found)
       } catch {
         // A broken UI callback must not break the flush for everyone else.
       }

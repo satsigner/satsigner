@@ -50,14 +50,14 @@ export function buildDiagnosticsReport(
       : undefined
 
   return {
-    v: DIAGNOSTICS_REPORT_VERSION,
     app: Constants.expoConfig?.version ?? 'unknown',
-    platform: Platform.OS,
-    osVersion: String(Platform.Version),
+    checks,
     ...(deviceModel ? { deviceModel } : {}),
     network,
+    osVersion: String(Platform.Version),
+    platform: Platform.OS,
     ts: Date.now(),
-    checks
+    v: DIAGNOSTICS_REPORT_VERSION
   }
 }
 

@@ -62,17 +62,17 @@ async function flushBackground() {
   }
 }
 
-beforeEach(() => {
-  chatStore.clear()
-  clearRecipientRelaysCache()
-  jest.clearAllMocks()
-  // No recipient inbox relays in tests — skip the indexing-relay lookup.
-  jest
-    .spyOn(NostrAPI.prototype, 'fetchInboxRelaysForNpub')
-    .mockResolvedValue([])
-})
-
 describe('nostrChat', () => {
+  beforeEach(() => {
+    chatStore.clear()
+    clearRecipientRelaysCache()
+    jest.clearAllMocks()
+    // No recipient inbox relays in tests — skip the indexing-relay lookup.
+    jest
+      .spyOn(NostrAPI.prototype, 'fetchInboxRelaysForNpub')
+      .mockResolvedValue([])
+  })
+
   it('sendNip17Chat stores an outgoing message then marks it sent', async () => {
     const api = new NostrAPI([])
     const publishSpy = jest

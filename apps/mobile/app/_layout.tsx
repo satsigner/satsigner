@@ -18,12 +18,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { installDevErrorReporting } from '@/utils/devErrorReporting'
-
-// Dev-only: crashes/rejections log symbolicated source file:line to the
-// Metro console. Installed before any component code runs.
-installDevErrorReporting()
-
 import SSImageActionsSheet from '@/components/SSImageActionsSheet'
 import { queryClient } from '@/lib/queryClient'
 import {
@@ -33,6 +27,11 @@ import {
 import { useAuthStore } from '@/store/auth'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { Colors } from '@/styles'
+import { installDevErrorReporting } from '@/utils/devErrorReporting'
+
+// Dev-only: crashes/rejections log symbolicated source file:line to the
+// Metro console. Installed before any component code runs.
+installDevErrorReporting()
 
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])

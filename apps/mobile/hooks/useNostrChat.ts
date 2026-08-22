@@ -46,13 +46,15 @@ export function useNostrChatSubscription(identity: ChatIdentity | undefined) {
       const { npub } = identity
       const { relays } = identity
       let held = false
-      acquireChatPipeline({ npub, nsec, relays })
-        .then(() => {
+      async function startPipeline() {
+        try {
+          await acquireChatPipeline({ npub, nsec, relays })
           held = true
-        })
-        .catch(() => {
+        } catch {
           // Relay outages are non-fatal; screens still render local history.
-        })
+        }
+      }
+      void startPipeline()
       return () => {
         if (held) {
           releaseChatPipeline(npub)
@@ -104,9 +106,13 @@ export function useNostrChatProfiles(
       }
     }
 
-    const hexes = stillMissing
-      .map((npub) => getPubKeyHexFromNpub(npub))
-      .filter((hex): hex is string => Boolean(hex))
+    const hexes: string[] = []
+    for (const npub of stillMissing) {
+      const hex = getPubKeyHexFromNpub(npub)
+      if (hex) {
+        hexes.push(hex)
+      }
+    }
     if (hexes.length === 0) {
       return
     }
@@ -242,21 +248,19 @@ export function useNostrChatThread(
       const api =
         pipelineApi ?? new NostrAPI(getNostrContactsRelays(identity.relays))
       try {
-        if (protocol === 'nip17') {
-          await sendNip17Chat(
-            api,
-            { npub: identity.npub, nsec: identity.nsec },
-            peerNpub,
-            text
-          )
-        } else {
-          await sendNip04Chat(
-            api,
-            { npub: identity.npub, nsec: identity.nsec },
-            peerNpub,
-            text
-          )
-        }
+        await (protocol === 'nip17'
+          ? sendNip17Chat(
+              api,
+              { npub: identity.npub, nsec: identity.nsec },
+              peerNpub,
+              text
+            )
+          : sendNip04Chat(
+              api,
+              { npub: identity.npub, nsec: identity.nsec },
+              peerNpub,
+              text
+            ))
       } catch (error) {
         setInput(text)
         throw error

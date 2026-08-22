@@ -64,6 +64,14 @@ export default function NostrChatThread() {
     )
   }
 
+  async function handleSend(text: string) {
+    try {
+      await send(text)
+    } catch {
+      // send() restores the draft on failure
+    }
+  }
+
   const peerNpub = nip19.npubEncode(peerPubkey)
   const peerTitle =
     peerProfile?.displayName ?? `${peerNpub.slice(0, 12)}…${peerNpub.slice(-4)}`
@@ -81,9 +89,7 @@ export default function NostrChatThread() {
       />
       <SSChatThread
         messages={messages}
-        onSend={(text) => {
-          send(text).catch(() => undefined)
-        }}
+        onSend={handleSend}
         sending={sending}
         inputValue={input}
         onInputChange={setInput}

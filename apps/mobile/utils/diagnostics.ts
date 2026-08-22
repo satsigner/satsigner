@@ -58,7 +58,7 @@ const ENTROPY_IV_SAMPLES = 20_000
 
 async function runGuarded(
   lines: string[],
-  fn: () => Promise<void>
+  fn: () => void | Promise<void>
 ): Promise<boolean> {
   try {
     await fn()
@@ -160,7 +160,7 @@ export async function checkSecureStore(): Promise<DiagnosticResult> {
 /** SQLite: connection opens and PRAGMA integrity_check passes. */
 export async function checkSqlite(): Promise<DiagnosticResult> {
   const lines: string[] = []
-  const ok = await runGuarded(lines, async () => {
+  const ok = await runGuarded(lines, () => {
     const db = getDb()
     lines.push('database connection open')
 
@@ -308,8 +308,7 @@ export async function checkRelayPersistence(
         const now = api.getConnectedRelayUrls()
         const dropped = initial.filter((url) => !now.includes(url))
         lines.push(
-          `t+${elapsed}s: ${now.length}/${relays.length} connected` +
-            (dropped.length ? ` (lost: ${dropped.join(', ')})` : '')
+          `t+${elapsed}s: ${now.length}/${relays.length} connected${dropped.length ? ` (lost: ${dropped.join(', ')})` : ''}`
         )
       }
 
@@ -471,5 +470,9 @@ export function runDiagnosticCheck(
       return checkSecureStore()
     case 'sqlite':
       return checkSqlite()
+    default: {
+      const _exhaustive: never = id
+      throw new Error(`unknown diagnostic check: ${_exhaustive}`)
+    }
   }
 }
