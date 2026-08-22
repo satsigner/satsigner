@@ -39,6 +39,25 @@ function chatLog(...args: unknown[]): void {
   console.log('[nostrChat]', ...args)
 }
 
+const chatStoreListeners = new Set<() => void>()
+
+function addChatStoreListener(listener: () => void): () => void {
+  chatStoreListeners.add(listener)
+  return () => {
+    chatStoreListeners.delete(listener)
+  }
+}
+
+function emitChatStoreChanged(): void {
+  for (const listener of chatStoreListeners) {
+    try {
+      listener()
+    } catch {
+      // A broken listener must not break chat updates for everyone else.
+    }
+  }
+}
+
 /**
  * Resolves where to publish a DM for a recipient: their announced inbox
  * relays (kind 10050 / 10002, looked up on the indexing relays) unioned with
@@ -462,7 +481,9 @@ async function subscribeToIdentityChat(
 export {
   acquireChatPipeline,
   addChatListener,
+  addChatStoreListener,
   clearRecipientRelaysCache,
+  emitChatStoreChanged,
   getChatPipelineApi,
   ingestChatMessage,
   releaseChatPipeline,

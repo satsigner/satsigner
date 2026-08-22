@@ -17,6 +17,8 @@ import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   acquireChatPipeline,
   addChatListener,
+  addChatStoreListener,
+  emitChatStoreChanged,
   getChatPipelineApi,
   releaseChatPipeline,
   sendNip04Chat,
@@ -179,7 +181,7 @@ export function useNostrChatConversations(
 
   useEffect(() => {
     reload()
-    const remove = addChatListener((message) => {
+    const removeMessage = addChatListener((message) => {
       if (
         message.identityNpub === identityNpub &&
         message.protocol === protocol
@@ -187,8 +189,18 @@ export function useNostrChatConversations(
         reload()
       }
     })
-    return remove
+    const removeStore = addChatStoreListener(reload)
+    return () => {
+      removeMessage()
+      removeStore()
+    }
   }, [identityNpub, protocol, reload])
+
+  useFocusEffect(
+    useCallback(() => {
+      reload()
+    }, [reload])
+  )
 
   return conversations
 }
@@ -216,6 +228,7 @@ export function useNostrChatThread(
     reload()
     if (identity && peerPubkey) {
       markChatThreadRead(identity.npub, protocol, peerPubkey)
+      emitChatStoreChanged()
     }
   }, [reload, identity, protocol, peerPubkey])
 
@@ -228,6 +241,7 @@ export function useNostrChatThread(
       ) {
         if (message.direction === 'in' && identity && peerPubkey) {
           markChatThreadRead(identity.npub, protocol, peerPubkey)
+          emitChatStoreChanged()
         }
         reload()
       }
