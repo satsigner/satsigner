@@ -45,20 +45,21 @@ export function useNostrChatSubscription(identity: ChatIdentity | undefined) {
       const { nsec } = identity
       const { npub } = identity
       const { relays } = identity
-      let held = false
+      let cancelled = false
       async function startPipeline() {
         try {
           await acquireChatPipeline({ npub, nsec, relays })
-          held = true
+          if (cancelled) {
+            releaseChatPipeline(npub)
+          }
         } catch {
           // Relay outages are non-fatal; screens still render local history.
         }
       }
       void startPipeline()
       return () => {
-        if (held) {
-          releaseChatPipeline(npub)
-        }
+        cancelled = true
+        releaseChatPipeline(npub)
       }
     }, [identity?.npub, identity?.nsec]) // eslint-disable-line react-hooks/exhaustive-deps
   )

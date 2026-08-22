@@ -307,38 +307,59 @@ async function acquireChatPipeline(identity: ChatIdentity): Promise<NostrAPI> {
     activeChatPipeline = null
   }
 
-  if (!activeChatPipeline) {
-    const relays = getNostrContactsRelays(identity.relays)
+  if (activeChatPipeline) {
+    activeChatPipeline.refs += 1
     chatLog(
-      'pipeline relays resolved:',
-      identity.relays?.length
-        ? `identity-pinned (${relays.length})`
-        : `indexer-default (${relays.length})`,
-      relays.join(' ')
+      'pipeline acquired',
+      identity.npub.slice(0, 16),
+      `refs=${activeChatPipeline.refs}`
     )
-    const api = new NostrAPI(relays)
-    activeChatPipeline = { api, npub: identity.npub, refs: 0 }
-    await subscribeToIdentityChat(api, identity).catch((error) => {
-      chatLog('subscription failed', error)
-    })
-    // Announce our DM inbox relays so senders route wraps where we read them.
-    if (!announcedDmInboxFor.has(identity.npub)) {
-      announcedDmInboxFor.add(identity.npub)
-      try {
-        await api.publishDmInboxRelayList(identity.nsec, relays)
-        chatLog('announced DM inbox relays:', relays.join(' '))
-      } catch (error) {
-        chatLog('DM inbox announce failed', error)
-      }
+    return activeChatPipeline.api
+  }
+
+  const relays = getNostrContactsRelays(identity.relays)
+  chatLog(
+    'pipeline relays resolved:',
+    identity.relays?.length
+      ? `identity-pinned (${relays.length})`
+      : `indexer-default (${relays.length})`,
+    relays.join(' ')
+  )
+  const api = new NostrAPI(relays)
+  const pipeline = { api, npub: identity.npub, refs: 1 }
+  activeChatPipeline = pipeline
+
+  await subscribeToIdentityChat(api, identity).catch((error) => {
+    chatLog('subscription failed', error)
+  })
+
+  if (activeChatPipeline !== pipeline || pipeline.refs <= 0) {
+    api.closeAllSubscriptions()
+    return api
+  }
+
+  // Announce our DM inbox relays so senders route wraps where we read them.
+  if (!announcedDmInboxFor.has(identity.npub)) {
+    announcedDmInboxFor.add(identity.npub)
+    try {
+      await api.publishDmInboxRelayList(identity.nsec, relays)
+      chatLog('announced DM inbox relays:', relays.join(' '))
+    } catch (error) {
+      chatLog('DM inbox announce failed', error)
     }
   }
-  activeChatPipeline.refs += 1
+
+  if (activeChatPipeline !== pipeline || pipeline.refs <= 0) {
+    api.closeAllSubscriptions()
+    return api
+  }
+
   chatLog(
     'pipeline acquired',
     identity.npub.slice(0, 16),
-    `refs=${activeChatPipeline.refs}`
+    `refs=${pipeline.refs}`
   )
-  return activeChatPipeline.api
+  return pipeline.api
 }
 
 function releaseChatPipeline(npub: string): void {

@@ -34,9 +34,12 @@ import {
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
 import {
+  acquireChatPipeline,
   addChatListener,
   clearRecipientRelaysCache,
+  getChatPipelineApi,
   ingestChatMessage,
+  releaseChatPipeline,
   sendNip04Chat,
   sendNip17Chat,
   subscribeToIdentityChat
@@ -71,6 +74,7 @@ describe('nostrChat', () => {
     jest
       .spyOn(NostrAPI.prototype, 'fetchInboxRelaysForNpub')
       .mockResolvedValue([])
+    releaseChatPipeline(senderNpub)
   })
 
   it('sendNip17Chat stores an outgoing message then marks it sent', async () => {
@@ -327,5 +331,32 @@ describe('nostrChat', () => {
     const rumor = nip59.unwrapEvent(wrap.toNostrEvent(), peerSecretKey)
 
     expect(rumor.content).toBe(text)
+  })
+
+  it('does not leak the chat pipeline if released during acquire', async () => {
+    let finishSubscribe: (() => void) | undefined
+    jest.spyOn(NostrAPI.prototype, 'subscribeToKind1059').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishSubscribe = () => resolve(undefined)
+        })
+    )
+    jest
+      .spyOn(NostrAPI.prototype, 'subscribeToKind4')
+      .mockResolvedValue(undefined)
+    jest
+      .spyOn(NostrAPI.prototype, 'publishDmInboxRelayList')
+      .mockResolvedValue(undefined)
+
+    const pending = acquireChatPipeline({
+      npub: senderNpub,
+      nsec: senderNsec,
+      relays: ['wss://test.relay']
+    })
+    releaseChatPipeline(senderNpub)
+    finishSubscribe?.()
+    await pending
+
+    expect(getChatPipelineApi(senderNpub)).toBeNull()
   })
 })
