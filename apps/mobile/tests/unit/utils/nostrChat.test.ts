@@ -24,7 +24,7 @@ jest.mock<typeof import('@/db/mutations/nostrChat')>(
   }
 )
 
-import { getPublicKey, nip19 } from 'nostr-tools'
+import { getPublicKey, nip19, nip59 } from 'nostr-tools'
 import { decrypt as nip04Decrypt } from 'nostr-tools/nip04'
 
 import { NostrAPI } from '@/api/nostr'
@@ -319,5 +319,13 @@ describe('nostrChat', () => {
       peerPubkey,
       read: true
     })
+  })
+
+  it('wraps NIP-17 content as UTF-8 without URI encoding', () => {
+    const text = 'café 你好 🔐'
+    const wrap = new NostrAPI([]).createKind1059(sender.nsec, peerNpub, text)
+    const rumor = nip59.unwrapEvent(wrap.toNostrEvent(), peerSecretKey)
+
+    expect(rumor.content).toBe(text)
   })
 })

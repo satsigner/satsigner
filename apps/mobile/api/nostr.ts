@@ -1293,12 +1293,10 @@ export class NostrAPI {
     if (!secretNostrKey || !recipientPubKeyHex) {
       throw new Error('Invalid nsec or recipient npub')
     }
-    const encodedContent = unescape(encodeURIComponent(content))
-
     const wrap = nip17.wrapEvent(
       secretNostrKey,
       { publicKey: recipientPubKeyHex },
-      encodedContent
+      content
     )
     const tempNdk = new NDK({
       autoConnectUserRelays: false,
