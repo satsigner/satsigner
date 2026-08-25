@@ -5,65 +5,24 @@ jest.mock<typeof import('nostr-tools')>('nostr-tools', () =>
   jest.requireActual('nostr-tools')
 )
 
-// The shared quick-crypto mock stubs pbkdf2Sync with a constant output and
-// cipher/decipher with fixed buffers, which makes real roundtrips impossible.
-// These checks exist to verify *actual* crypto behaviour, so back the module
-// with node:crypto here — mirroring the real-backed parts of the shared mock.
+// The shared quick-crypto mock backs the KDF, hash, and RNG APIs with
+// node:crypto, but stubs cipher/decipher with fixed buffers. These checks
+// verify a real AES roundtrip, so overlay real ciphers on the shared mock.
 jest.mock<typeof import('react-native-quick-crypto')>(
   'react-native-quick-crypto',
   () => {
     const nodeCrypto = jest.requireActual('node:crypto')
+    const shared = jest.requireActual(
+      '../../../__mocks__/react-native-quick-crypto'
+    ).default
     return {
       __esModule: true,
       default: {
-        argon2Sync: (
-          _algorithm: string,
-          params: {
-            memory: number
-            message: string
-            nonce: string
-            parallelism: number
-            passes: number
-            tagLength: number
-          }
-        ) =>
-          nodeCrypto.scryptSync(
-            params.message,
-            `${params.nonce}|argon2id|${params.memory}|${params.passes}|${params.parallelism}`,
-            params.tagLength
-          ),
+        ...shared,
         createCipheriv: (alg: string, key: Uint8Array, iv: Uint8Array) =>
           nodeCrypto.createCipheriv(alg, key, iv),
         createDecipheriv: (alg: string, key: Uint8Array, iv: Uint8Array) =>
-          nodeCrypto.createDecipheriv(alg, key, iv),
-        createHash: (algorithm: string) => {
-          const hash = nodeCrypto.createHash(algorithm)
-          return {
-            digest: () => hash.digest(),
-            update(input: string) {
-              hash.update(String(input))
-              return this
-            }
-          }
-        },
-        pbkdf2Sync: (
-          pin: string,
-          salt: string,
-          iterations: number,
-          keylen: number,
-          digest: string
-        ) => nodeCrypto.pbkdf2Sync(pin, salt, iterations, keylen, digest),
-        randomBytes: (size: number) => nodeCrypto.randomBytes(size),
-        scryptSync: (
-          password: string,
-          salt: string,
-          keylen: number,
-          options?: { N?: number; p?: number; r?: number }
-        ) =>
-          nodeCrypto.scryptSync(password, salt, keylen, {
-            ...options,
-            maxmem: 256 * 1024 * 1024
-          })
+          nodeCrypto.createDecipheriv(alg, key, iv)
       }
     }
   }
