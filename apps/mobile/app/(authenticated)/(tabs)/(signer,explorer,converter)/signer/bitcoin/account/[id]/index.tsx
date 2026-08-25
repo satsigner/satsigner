@@ -582,17 +582,15 @@ function AccountActivityToolbar({
   rightActions: ReactNode
 }) {
   return (
-    <SSHStack style={styles.activityToolbar}>
-      <View style={styles.activityToolbarSide}>{leftActions}</View>
+    <SSHStack justifyBetween style={styles.activityToolbar}>
+      {leftActions}
       <SSHStack gap="xs" style={styles.activityToolbarCenter}>
         {isSyncing ? <SSLoader size={14} /> : null}
         <SSText color="muted" size="xs" center numberOfLines={1}>
           {title}
         </SSText>
       </SSHStack>
-      <View style={[styles.activityToolbarSide, styles.activityToolbarSideEnd]}>
-        {rightActions}
-      </View>
+      {rightActions}
     </SSHStack>
   )
 }
@@ -862,6 +860,8 @@ function TotalTransactions({
         }
         rightActions={
           <SSHStack>
+            {/* Balances the two left icons so sync status sits at true center. */}
+            <View style={styles.activityToolbarIconSpacer} />
             <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
               {showHistoryChart ? (
                 <SSIconMenu width={18} height={18} />
@@ -2583,18 +2583,14 @@ const styles = StyleSheet.create({
   },
   activityToolbarCenter: {
     alignItems: 'center',
-    flexShrink: 1,
-    justifyContent: 'center',
-    maxWidth: '55%',
-    minHeight: 18
-  },
-  activityToolbarSide: {
-    alignItems: 'center',
     flex: 1,
-    flexDirection: 'row'
+    justifyContent: 'center',
+    minHeight: 18,
+    paddingHorizontal: 8
   },
-  activityToolbarSideEnd: {
-    justifyContent: 'flex-end'
+  activityToolbarIconSpacer: {
+    height: 18,
+    width: 18
   },
   controlsActiveDot: {
     backgroundColor: Colors.white,
