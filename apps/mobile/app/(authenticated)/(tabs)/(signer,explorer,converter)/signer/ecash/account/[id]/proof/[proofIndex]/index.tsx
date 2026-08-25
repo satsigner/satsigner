@@ -9,6 +9,7 @@ import { encodeProofsAsToken } from '@/api/ecash'
 import SSButton from '@/components/SSButton'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -526,6 +527,7 @@ export default function EcashProofDetailPage() {
                     style={{ flex: 1 }}
                   />
                 </SSHStack>
+                <SSShareButton content={token ?? ''} />
               </SSVStack>
             )}
           </SSVStack>

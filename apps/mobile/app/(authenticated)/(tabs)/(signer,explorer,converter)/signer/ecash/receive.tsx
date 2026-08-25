@@ -11,6 +11,7 @@ import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
 import SSEcashMintSelector from '@/components/SSEcashMintSelector'
 import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcashReceive } from '@/hooks/useEcashReceive'
@@ -505,6 +506,9 @@ export default function EcashReceivePage() {
                       }}
                       variant="outline"
                     />
+                  )}
+                  {!isLNURLWithdrawMode && (
+                    <SSShareButton content={mintQuote.request} />
                   )}
                   <SSVStack gap="none">
                     <SSText style={{ color: getStatusColor(quoteStatus) }}>

@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -204,6 +205,7 @@ export default function ArkBoardPage() {
                   onPress={handleCopyAddress}
                   variant="outline"
                 />
+                <SSShareButton content={depositAddress} />
                 {linkedAccount && (
                   <SSButton
                     label={t('ark.board.fundFromLinked', {

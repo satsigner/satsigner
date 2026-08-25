@@ -29,6 +29,7 @@ import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
+import SSShareButton from '@/components/SSShareButton'
 import SSSignatureDropdown from '@/components/SSSignatureDropdown'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
@@ -2645,6 +2646,7 @@ function PreviewTransaction() {
                     ? `${getQRValue().slice(0, 100)}...`
                     : getQRValue()}
                 </SSText>
+                <SSShareButton content={txBuilderResult?.toBase64() ?? ''} />
                 <SSHStack
                   justifyEvenly
                   style={{ marginBottom: 20, width: screenWidth * 0.9 }}

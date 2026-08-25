@@ -38,6 +38,7 @@ import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
@@ -1992,6 +1993,7 @@ export default function NostrNotePage() {
               {noteNeventId}
             </SSText>
           </SSClipboardCopy>
+          <SSShareButton content={noteNeventId} />
         </SSVStack>
       </SSModal>
 

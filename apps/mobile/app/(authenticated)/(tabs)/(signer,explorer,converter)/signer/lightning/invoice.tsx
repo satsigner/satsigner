@@ -15,6 +15,7 @@ import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
@@ -568,6 +569,7 @@ export default function InvoicePage() {
                 variant="gradient"
                 gradientType="special"
               />
+              <SSShareButton content={paymentRequest} />
             </SSVStack>
           </SSVStack>
         </ScrollView>

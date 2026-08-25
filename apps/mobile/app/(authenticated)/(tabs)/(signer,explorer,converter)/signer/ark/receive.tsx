@@ -8,6 +8,7 @@ import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT } from '@/constants/btc'
@@ -165,6 +166,7 @@ export default function ArkReceivePage() {
                     onPress={handleCopyAddress}
                     variant="outline"
                   />
+                  <SSShareButton content={addressQuery.data} />
                   <SSButton
                     label={t('ark.receive.generateNewAddress')}
                     onPress={handleGenerateNewAddress}
@@ -229,6 +231,7 @@ export default function ArkReceivePage() {
                     onPress={() => copyToClipboard(invoice.invoice)}
                     variant="outline"
                   />
+                  <SSShareButton content={invoice.invoice} />
                   <SSButton
                     label={t('ark.receive.newInvoice')}
                     onPress={handleResetInvoice}
@@ -272,6 +275,7 @@ export default function ArkReceivePage() {
                     onPress={handleCopyOnchainAddress}
                     variant="outline"
                   />
+                  <SSShareButton content={onchainAddressQuery.data} />
                 </>
               )}
               {autoBoard.minAmountSats !== undefined && (

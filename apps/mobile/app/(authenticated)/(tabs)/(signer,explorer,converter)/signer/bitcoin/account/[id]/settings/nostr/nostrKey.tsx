@@ -19,6 +19,7 @@ import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSSeedQR from '@/components/SSSeedQR'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
@@ -769,6 +770,9 @@ function NostrKeys() {
                   {qrModal.value}
                 </SSText>
               </View>
+              {qrModal.type === 'npub' && (
+                <SSShareButton content={qrModal.value} />
+              )}
             </>
           )}
         </SSVStack>

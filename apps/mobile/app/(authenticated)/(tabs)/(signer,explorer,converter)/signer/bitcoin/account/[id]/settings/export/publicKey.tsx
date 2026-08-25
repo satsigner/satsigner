@@ -6,6 +6,7 @@ import { toast } from 'sonner-native'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import SSHStack from '@/layouts/SSHStack'
@@ -346,6 +347,7 @@ export default function PublicKeyPage() {
               variant="secondary"
               onPress={exportPublicKey}
             />
+            <SSShareButton content={publicKey} />
           </>
         )}
 

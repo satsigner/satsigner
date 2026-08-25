@@ -8,6 +8,7 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
@@ -209,6 +210,7 @@ function SSPsbtTransport({
             <SSText color="muted" size="sm" center>
               {t('common.psbtTransport.qrHint')}
             </SSText>
+            {psbtBase64 && <SSShareButton content={psbtBase64} />}
             <SSButton
               label={t('common.close')}
               variant="ghost"

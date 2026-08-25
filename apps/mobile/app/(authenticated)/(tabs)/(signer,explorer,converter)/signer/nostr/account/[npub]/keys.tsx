@@ -17,6 +17,7 @@ import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSSeedQR from '@/components/SSSeedQR'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import { NOSTR_HIDDEN_KEY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
@@ -408,6 +409,9 @@ export default function NostrIdentityKeys() {
                   style={styles.qrModalDataText}
                 />
               </View>
+              {qrModal.type === 'npub' && (
+                <SSShareButton content={qrModal.value} />
+              )}
             </>
           )}
         </SSVStack>

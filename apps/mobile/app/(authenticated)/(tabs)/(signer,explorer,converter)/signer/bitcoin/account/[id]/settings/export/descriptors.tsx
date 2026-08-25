@@ -11,6 +11,7 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -742,6 +743,9 @@ export default function ExportDescriptors() {
                       {index === 0 ? 'External' : 'Internal'}{' '}
                       {t('common.descriptor')}
                     </SSText>
+                    <View style={{ marginTop: 8, width: '100%' }}>
+                      <SSShareButton content={descriptor} />
+                    </View>
                   </View>
                 ))}
               </SSVStack>
@@ -791,6 +795,7 @@ export default function ExportDescriptors() {
               variant="outline"
               onPress={exportDescriptors}
             />
+            <SSShareButton content={exportContent} />
           </>
         ) : (
           <SSText center color="muted">

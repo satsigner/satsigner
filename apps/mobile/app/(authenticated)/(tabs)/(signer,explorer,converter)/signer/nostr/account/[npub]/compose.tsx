@@ -17,6 +17,7 @@ import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import {
   NOSTR_NIP01_MAX_NOTE_LENGTH,
@@ -658,6 +659,7 @@ export default function NostrComposePage() {
                 backgroundColor={Colors.gray[950]}
                 ecl="H"
               />
+              <SSShareButton content={signedQrPayload} />
             </View>
           ) : null}
         </SSVStack>

@@ -15,6 +15,7 @@ import SSLoader from '@/components/SSLoader'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSPsbtTransport from '@/components/SSPsbtTransport'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -701,6 +702,7 @@ export default function Receive() {
                   style={styles.copyButton}
                   onPress={() => copyToClipboard(localFinalAddressQR)}
                 />
+                <SSShareButton content={localFinalAddressQR} />
                 <SSHStack gap="sm" style={styles.uriActionsRow}>
                   <SSButton
                     label={

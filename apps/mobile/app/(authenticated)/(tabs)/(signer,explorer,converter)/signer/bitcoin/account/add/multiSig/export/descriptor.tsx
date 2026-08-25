@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -248,6 +249,7 @@ export default function DescriptorPage() {
               variant="secondary"
               onPress={exportDescriptor}
             />
+            <SSShareButton content={descriptor} />
           </>
         )}
 

@@ -11,6 +11,7 @@ import {
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import {
   NOSTR_CONTACT_QR_CODE_SIZE,
@@ -99,6 +100,7 @@ function ContactQrItem({ label, value }: ContactQrItemProps) {
           {value}
         </SSText>
       </SSClipboardCopy>
+      <SSShareButton content={value} />
     </SSVStack>
   )
 }

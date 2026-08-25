@@ -13,6 +13,7 @@ import SSEcashMintSelector from '@/components/SSEcashMintSelector'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { ANIMATED_QR_INTERVAL_MS, useEcashSend } from '@/hooks/useEcashSend'
@@ -358,6 +359,7 @@ export default function EcashSendPage() {
                       style={{ flex: 1 }}
                     />
                   </SSHStack>
+                  <SSShareButton content={generatedToken} />
                 </SSVStack>
               )}
             </SSVStack>

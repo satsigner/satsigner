@@ -8,6 +8,7 @@ import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -202,6 +203,7 @@ export default function ExportPubkeys() {
               variant="secondary"
               onPress={exportPubkeys}
             />
+            <SSShareButton content={exportContent} />
           </>
         )}
         <SSButton

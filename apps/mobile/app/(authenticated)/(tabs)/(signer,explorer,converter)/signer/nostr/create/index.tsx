@@ -7,6 +7,7 @@ import { toast } from 'sonner-native'
 import SSButton from '@/components/SSButton'
 import SSQRCode from '@/components/SSQRCode'
 import SSSeedQR from '@/components/SSSeedQR'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import { NOSTR_HIDDEN_KEY_MASK_LONG } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
@@ -205,6 +206,9 @@ export default function CreateNostrIdentity() {
               <SSText size="xs" type="mono" center numberOfLines={3}>
                 {qrModalValue}
               </SSText>
+              {qrModalValue && qrModalValue === keys.npub && (
+                <SSShareButton content={qrModalValue} />
+              )}
               <SSButton
                 label={t('common.close')}
                 variant="ghost"
