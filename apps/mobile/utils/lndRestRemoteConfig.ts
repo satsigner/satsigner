@@ -1,4 +1,12 @@
+import {
+  LNDCONNECT_DEFAULT_REST_PORT,
+  LND_GRPC_LISTEN_PORT
+} from '@/constants/lightning'
 import type { LNDConfig } from '@/types/models/Lightning'
+
+export type ParsedLndConnectionInput =
+  | { kind: 'inline'; config: LNDConfig }
+  | { kind: 'remoteConfigUrl'; url: string }
 
 type JsonRecord = Record<string, unknown>
 
@@ -8,6 +16,43 @@ export function stripJsonBom(text: string): string {
 
 export function normalizeLndRestBaseUrl(url: string): string {
   return url.trim().replace(/\/+$/, '')
+}
+
+function isSupportedLndHttpPairingType(type: string): boolean {
+  const normalized = type.trim().toLowerCase()
+  return (
+    normalized === 'lnd-rest' ||
+    normalized === 'lnd-grpc' ||
+    normalized === 'lnd'
+  )
+}
+
+function assertSupportedLndPairingType(type: string | undefined) {
+  if (!type || isSupportedLndHttpPairingType(type)) {
+    return
+  }
+  throw new Error(`Unsupported connection type: ${type}`)
+}
+
+/**
+ * BTCPay LND RPC/gRPC pairing uses the same macaroon but a gRPC URI.
+ * The app talks LND REST, so rewrite common gRPC hosts/paths to REST.
+ */
+export function restBaseUrlFromPairingUri(rawUrl: string): string {
+  const trimmed = rawUrl.trim()
+  const withScheme = trimmed.replace(/^grpcs?:\/\//i, 'https://')
+  const candidate = /:\/\//.test(withScheme)
+    ? withScheme
+    : `https://${withScheme}`
+  const parsed = new URL(candidate)
+  if (parsed.port === LND_GRPC_LISTEN_PORT) {
+    parsed.port = LNDCONNECT_DEFAULT_REST_PORT
+  }
+  parsed.pathname = parsed.pathname.replace(
+    /\/lnd-grpc(?=\/|$)/gi,
+    '/lnd-rest'
+  )
+  return normalizeLndRestBaseUrl(parsed.toString())
 }
 
 function dequote(value: string): string {
@@ -45,6 +90,103 @@ export function getLndConfigFileUrlFromConnectionInput(
     return urlCandidate
   }
   return null
+}
+
+function compactUri(raw: string): string {
+  return raw.replace(/\s+/g, '')
+}
+
+/**
+ * Zap/lndconnect URI: `lndconnect://host:port?cert=…&macaroon=…`
+ * Host may be a `.onion` address. REST is always treated as HTTPS.
+ */
+export function parseLndConnectUri(raw: string): LNDConfig {
+  const compact = compactUri(raw)
+  if (!/^lndconnect:\/\//i.test(compact)) {
+    throw new Error('Not an lndconnect URI')
+  }
+  const parsed = new URL(compact)
+  const host = parsed.hostname
+  if (!host) {
+    throw new Error('lndconnect URI missing host')
+  }
+  const port = parsed.port || LNDCONNECT_DEFAULT_REST_PORT
+  const macaroonParam =
+    parsed.searchParams.get('macaroon') ||
+    parsed.searchParams.get('macaroon_hex')
+  if (!macaroonParam) {
+    throw new Error('lndconnect URI missing macaroon')
+  }
+  const certParam =
+    parsed.searchParams.get('cert') ||
+    parsed.searchParams.get('certificate') ||
+    ''
+  return {
+    cert: certParam,
+    macaroon: macaroonToLndRestHexHeader(macaroonParam),
+    url: normalizeLndRestBaseUrl(`https://${host}:${port}`)
+  }
+}
+
+export function parseLndConnectionInput(
+  raw: string
+): ParsedLndConnectionInput | null {
+  const trimmed = raw.trim()
+  if (!trimmed) {
+    return null
+  }
+  if (/^lndconnect:\/\//i.test(compactUri(trimmed))) {
+    try {
+      return { kind: 'inline', config: parseLndConnectUri(trimmed) }
+    } catch {
+      return null
+    }
+  }
+  if (
+    /type=lnd-rest/i.test(trimmed) ||
+    /type=lnd-grpc/i.test(trimmed) ||
+    (/server=/i.test(trimmed) &&
+      /macaroon=/i.test(trimmed) &&
+      !trimmed.startsWith('{') &&
+      !trimmed.startsWith('['))
+  ) {
+    try {
+      return {
+        kind: 'inline',
+        config: parseLndRemotePairingConnectionString(trimmed)
+      }
+    } catch {
+      return null
+    }
+  }
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      return {
+        kind: 'inline',
+        config: parseLndRemotePairingFromJsonText(trimmed)
+      }
+    } catch {
+      return null
+    }
+  }
+  const configUrl = getLndConfigFileUrlFromConnectionInput(trimmed)
+  if (configUrl) {
+    return { kind: 'remoteConfigUrl', url: configUrl }
+  }
+  return null
+}
+
+export async function resolveLndConfigFromConnectionInput(
+  raw: string
+): Promise<LNDConfig> {
+  const parsed = parseLndConnectionInput(raw)
+  if (!parsed) {
+    throw new Error('Unrecognized LND connection input')
+  }
+  if (parsed.kind === 'inline') {
+    return parsed.config
+  }
+  return fetchLndConfig(parsed.url)
 }
 
 /**
@@ -163,10 +305,14 @@ function parseLndRemotePairingFromParsedJson(parsed: unknown): LNDConfig {
   if (!url || !macaroonRaw) {
     throw new Error('Config JSON missing REST base URL or macaroon')
   }
+  const pairingType = entry.type
+  assertSupportedLndPairingType(
+    typeof pairingType === 'string' ? pairingType : undefined
+  )
   return {
     cert: pickCert(entry),
     macaroon: macaroonToLndRestHexHeader(macaroonRaw),
-    url: normalizeLndRestBaseUrl(url)
+    url: restBaseUrlFromPairingUri(url)
   }
 }
 
@@ -202,9 +348,7 @@ export function parseLndRemotePairingConnectionString(text: string): LNDConfig {
     map[key] = dequote(part.slice(eq + 1).trim())
   }
   const type = map.type?.toLowerCase()
-  if (type && type !== 'lnd-rest') {
-    throw new Error(`Unsupported connection type: ${map.type}`)
-  }
+  assertSupportedLndPairingType(type)
   const server = map.server || map.resturl || map.endpoint || map.url || map.uri
   const mac =
     map.macaroon ||
@@ -217,7 +361,7 @@ export function parseLndRemotePairingConnectionString(text: string): LNDConfig {
   return {
     cert: map.cert || map.certificate || '',
     macaroon: macaroonToLndRestHexHeader(mac),
-    url: normalizeLndRestBaseUrl(server)
+    url: restBaseUrlFromPairingUri(server)
   }
 }
 
@@ -240,10 +384,13 @@ export function parseLndRemotePairingPayload(rawText: string): LNDConfig {
   const lower = text.toLowerCase()
   if (
     lower.includes('type=lnd-rest') ||
+    lower.includes('type=lnd-grpc') ||
     (lower.includes('server=') &&
       (lower.includes('macaroon=') ||
         lower.includes('macaroon_hex=') ||
-        lower.includes('admin_macaroon_hex=')))
+        lower.includes('admin_macaroon_hex=')) &&
+      !text.startsWith('{') &&
+      !text.startsWith('['))
   ) {
     return parseLndRemotePairingConnectionString(text)
   }

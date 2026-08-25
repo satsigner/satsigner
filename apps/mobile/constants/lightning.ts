@@ -13,6 +13,10 @@ export const LIGHTNING_CHANNEL_THRESHOLD = 1_000_000
 
 export const LND_FORWARDING_MAX_EVENTS = 200
 export const LND_FORWARDING_INDEX_OFFSET = 0
+/** Default LND REST listen port in lndconnect URIs when none is given. */
+export const LNDCONNECT_DEFAULT_REST_PORT = '8080'
+/** Default LND gRPC listen port; pairing JSON is rewritten to REST (8080). */
+export const LND_GRPC_LISTEN_PORT = '10009'
 export const LND_REST = {
   BALANCE_BLOCKCHAIN: '/v1/balance/blockchain',
   BALANCE_CHANNELS: '/v1/balance/channels',
