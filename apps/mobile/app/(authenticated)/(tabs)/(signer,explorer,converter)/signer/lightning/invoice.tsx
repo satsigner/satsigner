@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   ScrollView,
   StyleSheet,
@@ -18,6 +18,7 @@ import SSModal from '@/components/SSModal'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
+import { LND_INVOICE_POLL_MS } from '@/constants/lightning'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
@@ -31,6 +32,11 @@ import { type DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
+  lndInvoiceLookupPath,
+  parseLndInvoiceUiStatus,
+  type LndInvoiceUiStatus
+} from '@/utils/lndInvoiceStatus'
+import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,
   getLNURLType,
@@ -38,19 +44,18 @@ import {
   requestLNURLWithdrawInvoice
 } from '@/utils/lnurl'
 
-type Invoice = {
-  payment_request: string
-  r_hash?: string | undefined
-}
-
-type InvoiceStatus = 'open' | 'settled' | 'canceled'
-
 type InvoiceTab = 'lightning' | 'onchain'
+
+const QR_CODE_HORIZONTAL_PADDING = 40
+const QR_CODE_MAX_SIZE = 300
 
 export default function InvoicePage() {
   const router = useRouter()
   const { width: screenWidth } = useWindowDimensions()
-  const qrCodeSize = Math.min(screenWidth - 40, 300) // Account for modal padding (20px on each side)
+  const qrCodeSize = Math.min(
+    screenWidth - QR_CODE_HORIZONTAL_PADDING,
+    QR_CODE_MAX_SIZE
+  )
   const { config, createInvoice, getNewAddress, makeRequest } = useLND()
   const queryClient = useQueryClient()
   const [fiatCurrency, satsToFiat, btcPrice, fetchPrices] = usePriceStore(
@@ -62,11 +67,10 @@ export default function InvoicePage() {
     ])
   )
   const { fiatPriceApiUrl } = useFiatData()
-
-  // Fetch prices on mount and when currency changes
-  useEffect(() => {
-    fetchPrices(fiatPriceApiUrl)
-  }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
+  useQuery({
+    queryFn: () => fetchPrices(fiatPriceApiUrl),
+    queryKey: ['prices', fiatCurrency, fiatPriceApiUrl]
+  })
 
   const [invoiceAmount, setInvoiceAmount] = useState('')
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
@@ -77,7 +81,7 @@ export default function InvoicePage() {
   const [paymentRequest, setPaymentRequest] = useState('')
   const [currentAmount, setCurrentAmount] = useState('')
   const [currentDescription, setCurrentDescription] = useState('')
-  const [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus>('open')
+  const [invoiceStatus, setInvoiceStatus] = useState<LndInvoiceUiStatus>('open')
   const [rHash, setRHash] = useState<string>('')
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
@@ -95,47 +99,32 @@ export default function InvoicePage() {
   })
   const onchainAddress = addressQuery.data?.address
 
-  // Function to check invoice status
-  const checkInvoiceStatus = useCallback(async () => {
+  async function checkInvoiceStatus() {
     if (!rHash || !qrModalVisible) {
-      return
+      return null
     }
 
     try {
-      // Convert r_hash to hex if it's not already
-      const hexRHash = Buffer.from(rHash, 'base64').toString('hex')
-
       const response = await makeRequest<{ settled: boolean; state: string }>(
-        `/v1/invoice/${hexRHash}`
+        lndInvoiceLookupPath(rHash)
       )
-
-      const newStatus = response.state.toLowerCase() as InvoiceStatus
+      const newStatus = parseLndInvoiceUiStatus(response.state)
       setInvoiceStatus(newStatus)
-
-      // If invoice is settled, show success message
       if (newStatus === 'settled' && invoiceStatus !== 'settled') {
-        toast.success('Payment received!')
+        toast.success(t('lightning.invoice.paymentReceived'))
       }
+      return newStatus
     } catch {
-      // TODO: log error
+      return null
     }
-  }, [rHash, qrModalVisible, makeRequest, invoiceStatus])
+  }
 
-  // Set up polling for invoice status
-  useEffect(() => {
-    if (!qrModalVisible || !rHash) {
-      return
-    }
-
-    // Check immediately
-    checkInvoiceStatus()
-
-    // Then check every 3 seconds
-    const interval = setInterval(checkInvoiceStatus, 3000)
-
-    return () => clearInterval(interval)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qrModalVisible, rHash])
+  useQuery({
+    enabled: qrModalVisible && Boolean(rHash),
+    queryFn: checkInvoiceStatus,
+    queryKey: ['lnd', 'invoice-status', rHash],
+    refetchInterval: LND_INVOICE_POLL_MS
+  })
 
   const handleAmountChange = (text: string) => {
     const numericValue = text.replace(/[^0-9]/g, '')
@@ -185,9 +174,7 @@ export default function InvoicePage() {
     }
 
     if (lnurlType === 'pay') {
-      toast.error(
-        'Invalid LNURL Type: this is a LNURL-pay code. Please use the Send Payment page instead.'
-      )
+      toast.error(t('lightning.invoice.lnurlPayType'))
       return false
     }
 
@@ -214,9 +201,7 @@ export default function InvoicePage() {
 
         return true
       } catch {
-        toast.error(
-          'Invalid LNURL Type: this LNURL appears to be a pay request. Please use the Send Payment page instead.'
-        )
+        toast.error(t('lightning.invoice.lnurlPayType'))
         return false
       }
     }
@@ -242,14 +227,12 @@ export default function InvoicePage() {
 
         return true
       } catch {
-        toast.error('Failed to process LNURL')
+        toast.error(t('lightning.invoice.lnurlFailed'))
         return false
       }
     }
 
-    toast.error(
-      'Invalid LNURL: this LNURL is not a withdraw request. Please use a valid LNURL-withdraw code.'
-    )
+    toast.error(t('lightning.invoice.lnurlNotWithdraw'))
     return false
   }
 
@@ -257,7 +240,7 @@ export default function InvoicePage() {
     try {
       const text = await Clipboard.getStringAsync()
       if (!text) {
-        toast.error('No text found in clipboard')
+        toast.error(t('lightning.invoice.clipboardEmpty'))
         return
       }
 
@@ -270,12 +253,10 @@ export default function InvoicePage() {
       } else if (isLNURL(cleanText)) {
         await handleLNURLInput(cleanText)
       } else {
-        toast.error(
-          'Invalid Input: the clipboard content is not a valid Lightning invoice or LNURL'
-        )
+        toast.error(t('lightning.invoice.invalidClipboard'))
       }
     } catch {
-      toast.error('Failed to read clipboard content')
+      toast.error(t('lightning.invoice.clipboardFailed'))
     }
   }
 
@@ -290,52 +271,41 @@ export default function InvoicePage() {
     } else if (isLNURL(data)) {
       await handleLNURLInput(data)
     } else {
-      toast.error(
-        'Invalid QR Code: the scanned QR code is not a valid LNURL-withdraw or Lightning invoice'
-      )
+      toast.error(t('lightning.invoice.invalidQr'))
     }
   }
 
   const handleCreateInvoice = async () => {
     if (!invoiceAmount || !invoiceDescription) {
-      toast.error('Please fill in all fields')
+      toast.error(t('lightning.invoice.fillFields'))
       return
     }
 
     const amount = parseInt(invoiceAmount, 10)
     if (isNaN(amount) || amount <= 0) {
-      toast.error('Please enter a valid amount')
+      toast.error(t('lightning.invoice.validAmount'))
       return
     }
 
     setIsProcessing(true)
     try {
-      let invoice: Invoice
-
+      const bolt11Invoice = await createInvoice(amount, invoiceDescription)
       if (isLNURLMode && lnurlDetails) {
-        // Validate amount against LNURL limits
         const amountMillisats = amount * 1000
         if (
           amountMillisats < lnurlDetails.minWithdrawable ||
           amountMillisats > lnurlDetails.maxWithdrawable
         ) {
           throw new Error(
-            `Amount must be between ${Math.ceil(
-              lnurlDetails.minWithdrawable / 1000
-            )} and ${Math.floor(lnurlDetails.maxWithdrawable / 1000)} sats`
+            t('lightning.invoice.withdrawRange', {
+              max: Math.floor(lnurlDetails.maxWithdrawable / 1000),
+              min: Math.ceil(lnurlDetails.minWithdrawable / 1000)
+            })
           )
         }
-
-        // First create a bolt11 invoice
-        const bolt11Invoice = (await createInvoice(
-          amount,
-          invoiceDescription
-        )) as Invoice
         if (!bolt11Invoice.payment_request) {
-          throw new Error('Failed to create bolt11 invoice')
+          throw new Error(t('lightning.invoice.bolt11Failed'))
         }
-
-        // Then request withdraw with the bolt11 invoice
         const response = await requestLNURLWithdrawInvoice(
           lnurlDetails.callback,
           amountMillisats,
@@ -343,31 +313,21 @@ export default function InvoicePage() {
           invoiceDescription,
           bolt11Invoice.payment_request
         )
-
         if (response.status === 'ERROR') {
           throw new Error(
-            response.reason || 'Failed to get invoice from LNURL service'
+            response.reason || t('lightning.invoice.lnurlServiceFailed')
           )
         }
-
-        // Use the bolt11 invoice we created
-        invoice = bolt11Invoice
-      } else {
-        const bolt11Invoice = (await createInvoice(
-          amount,
-          invoiceDescription
-        )) as Invoice
-        invoice = bolt11Invoice
       }
 
-      setPaymentRequest(invoice.payment_request)
+      setPaymentRequest(bolt11Invoice.payment_request)
       setCurrentAmount(invoiceAmount)
       setCurrentDescription(invoiceDescription)
-      setRHash(invoice.r_hash || '')
+      setRHash(bolt11Invoice.r_hash || '')
       setInvoiceStatus('open')
       setQrModalVisible(true)
     } catch {
-      toast.error('Failed to create invoice')
+      toast.error(t('lightning.invoice.bolt11Failed'))
     } finally {
       setIsProcessing(false)
     }
@@ -375,7 +335,7 @@ export default function InvoicePage() {
 
   const handleCopyToClipboard = async () => {
     await Clipboard.setStringAsync(paymentRequest)
-    toast.success('Payment request copied to clipboard')
+    toast.success(t('common.copiedToClipboard'))
   }
 
   function handleOpenCamera() {
@@ -454,7 +414,10 @@ export default function InvoicePage() {
               <SSVStack gap="md">
                 <SSVStack gap="xs">
                   <SSText uppercase>
-                    Amount ({amountMode === 'sats' ? 'sats' : fiatCurrency})
+                    {t('lightning.invoice.amountWithUnit', {
+                      unit:
+                        amountMode === 'sats' ? t('common.sats') : fiatCurrency
+                    })}
                   </SSText>
                   {amountMode === 'sats' ? (
                     <TextInput
@@ -465,7 +428,7 @@ export default function InvoicePage() {
                           : ''
                       }
                       onChangeText={handleAmountChange}
-                      placeholder="Enter amount in satoshis"
+                      placeholder={t('lightning.invoice.amountPlaceholderSats')}
                       placeholderTextColor="#666"
                       keyboardType="numeric"
                     />
@@ -474,7 +437,10 @@ export default function InvoicePage() {
                       style={styles.input}
                       value={localFiatAmount}
                       onChangeText={handleFiatAmountChange}
-                      placeholder={`Enter amount in ${fiatCurrency}`}
+                      placeholder={t(
+                        'lightning.invoice.amountPlaceholderFiat',
+                        { currency: fiatCurrency }
+                      )}
                       placeholderTextColor="#666"
                       keyboardType="decimal-pad"
                     />
@@ -517,21 +483,23 @@ export default function InvoicePage() {
                   )}
                   {isLNURLMode && lnurlDetails && (
                     <SSText color="muted" size="sm">
-                      Available:{' '}
-                      {formatNumber(
-                        Math.floor(lnurlDetails.maxWithdrawable / 1000)
-                      )}{' '}
-                      sats
+                      {t('lightning.invoice.availableWithdraw', {
+                        amount: formatNumber(
+                          Math.floor(lnurlDetails.maxWithdrawable / 1000)
+                        )
+                      })}
                     </SSText>
                   )}
                 </SSVStack>
                 <SSVStack style={styles.inputContainer}>
-                  <SSText uppercase>Description</SSText>
+                  <SSText uppercase>
+                    {t('lightning.invoice.description')}
+                  </SSText>
                   <TextInput
                     style={[styles.input, styles.textArea]}
                     value={invoiceDescription}
                     onChangeText={setInvoiceDescription}
-                    placeholder="Enter invoice description"
+                    placeholder={t('lightning.invoice.descriptionPlaceholder')}
                     placeholderTextColor="#666"
                     multiline
                     numberOfLines={3}
@@ -540,20 +508,24 @@ export default function InvoicePage() {
                 <SSVStack style={styles.actions}>
                   <SSHStack gap="sm" style={styles.actionButtons}>
                     <SSButton
-                      label="Paste"
+                      label={t('common.paste')}
                       onPress={handlePasteFromClipboard}
                       variant="outline"
                       style={styles.actionButton}
                     />
                     <SSButton
-                      label="Scan QR"
+                      label={t('lightning.invoice.scanQr')}
                       onPress={handleOpenCamera}
                       variant="outline"
                       style={styles.actionButton}
                     />
                   </SSHStack>
                   <SSButton
-                    label={isLNURLMode ? 'Withdraw' : 'Create Invoice'}
+                    label={
+                      isLNURLMode
+                        ? t('lightning.invoice.withdraw')
+                        : t('lightning.invoice.createInvoice')
+                    }
                     onPress={handleCreateInvoice}
                     variant="secondary"
                     loading={isProcessing}
@@ -561,7 +533,7 @@ export default function InvoicePage() {
                     style={styles.button}
                   />
                   <SSButton
-                    label="Cancel"
+                    label={t('common.cancel')}
                     onPress={handleCancel}
                     variant="ghost"
                     style={styles.button}
@@ -620,13 +592,13 @@ export default function InvoicePage() {
         <ScrollView style={styles.modalScrollView}>
           <SSVStack itemsCenter gap="md" style={styles.modalContent}>
             <SSVStack gap="sm" style={styles.invoiceDetails}>
-              <SSText uppercase>Payment Details</SSText>
+              <SSText uppercase>{t('lightning.invoice.paymentDetails')}</SSText>
 
               <View style={styles.detailsContent}>
                 <View style={styles.detailSection}>
                   <SSHStack gap="xs" style={styles.detailRow}>
                     <SSText color="muted" style={styles.detailLabel}>
-                      Amount
+                      {t('lightning.amount')}
                     </SSText>
                     <SSHStack gap="xs" style={styles.amountContainer}>
                       <SSText weight="medium">
@@ -644,7 +616,7 @@ export default function InvoicePage() {
                   </SSHStack>
                   <SSHStack gap="xs" style={styles.detailRow}>
                     <SSText color="muted" style={styles.detailLabel}>
-                      Description
+                      {t('lightning.invoice.description')}
                     </SSText>
                     <SSText style={styles.detailValue}>
                       {currentDescription}
@@ -652,17 +624,17 @@ export default function InvoicePage() {
                   </SSHStack>
                   <SSHStack gap="xs" style={styles.detailRow}>
                     <SSText color="muted" style={styles.detailLabel}>
-                      Status
+                      {t('lightning.invoice.status')}
                     </SSText>
                     <SSText
                       style={styles.detailValue}
                       color={invoiceStatus === 'settled' ? 'white' : 'muted'}
                     >
                       {invoiceStatus === 'settled'
-                        ? 'Paid'
+                        ? t('lightning.invoice.paid')
                         : invoiceStatus === 'canceled'
-                          ? 'Canceled'
-                          : 'Waiting for payment...'}
+                          ? t('lightning.invoice.canceled')
+                          : t('lightning.invoice.waiting')}
                     </SSText>
                   </SSHStack>
                 </View>
@@ -675,7 +647,7 @@ export default function InvoicePage() {
             </View>
             <SSVStack style={styles.paymentRequestContainer}>
               <SSText color="muted" uppercase>
-                Payment Request
+                {t('lightning.invoice.paymentRequest')}
               </SSText>
               <View style={styles.paymentRequestText}>
                 <SSText type="mono" size="sm">
@@ -686,7 +658,7 @@ export default function InvoicePage() {
 
             <SSVStack style={styles.modalActions}>
               <SSButton
-                label="Copy to Clipboard"
+                label={t('common.copyToClipboard')}
                 onPress={handleCopyToClipboard}
                 variant="gradient"
                 gradientType="special"
@@ -700,7 +672,7 @@ export default function InvoicePage() {
         onClose={handleCloseCamera}
         onContentScanned={handleContentScanned}
         context="lightning"
-        title="Scan Lightning Invoice"
+        title={t('lightning.invoice.scanLightningTitle')}
       />
     </>
   )

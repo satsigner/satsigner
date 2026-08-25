@@ -1,5 +1,5 @@
+import { useQuery } from '@tanstack/react-query'
 import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
-import { useEffect } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -44,19 +44,11 @@ export default function LightningPage() {
   const [privacyMode, togglePrivacyMode] = useSettingsStore(
     useShallow((state) => [state.privacyMode, state.togglePrivacyMode])
   )
-
-  useEffect(() => {
-    if (!config || !isConnected) {
-      return
-    }
-    void (async () => {
-      try {
-        await getChannels()
-      } catch {
-        // ignore
-      }
-    })()
-  }, [config, isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
+  useQuery({
+    enabled: Boolean(config) && isConnected,
+    queryFn: getChannels,
+    queryKey: ['lnd', 'channels', config?.url]
+  })
 
   const handleRCPPress = () => {
     router.navigate({
@@ -409,7 +401,7 @@ export default function LightningPage() {
               }),
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              Lightning
+              {t('lightning.landing.title')}
             </SSText>
           )
         }}
@@ -441,7 +433,7 @@ export default function LightningPage() {
               {t('lightning.landing.createNewNode')}
             </SSText>
             <SSButton
-              label="LDK"
+              label={t('lightning.landing.ldk')}
               onPress={handleLDKPress}
               variant="gradient"
               gradientType="special"

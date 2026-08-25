@@ -33,6 +33,11 @@ export const LNDCONNECT_DEFAULT_REST_PORT = '8080'
 export const LND_GRPC_LISTEN_PORT = '10009'
 /** TLS + HTTP timeout for LND REST (self-signed pairing cert). */
 export const LND_REST_TIMEOUT_MS = 30_000
+export const LND_INVOICE_POLL_MS = 3_000
+export const LND_PAYMENT_POLL_ATTEMPTS = 30
+export const LND_PAYMENT_POLL_MS = 1_000
+export const LND_SUCCESS_NAVIGATE_DELAY_MS = 2_000
+export const LND_SETTINGS_PEERS_MAX = 32
 export const LND_REST = {
   BALANCE_BLOCKCHAIN: '/v1/balance/blockchain',
   BALANCE_CHANNELS: '/v1/balance/channels',

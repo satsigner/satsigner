@@ -2,7 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
 import { lndRestFetch } from '@/api/lndRest'
-import { LND_REST } from '@/constants/lightning'
+import {
+  LND_PAYMENT_POLL_ATTEMPTS,
+  LND_PAYMENT_POLL_MS,
+  LND_REST
+} from '@/constants/lightning'
 import { useLightningStore } from '@/store/lightning'
 import type {
   LNDChanBackupSnapshot,
@@ -16,6 +20,7 @@ import type {
   LNDSendCoinsResponse,
   LNDBlockchainBalanceResponse,
   LNDChannel,
+  LNDInvoice,
   LNDNodeInfo,
   LNDPaymentResponse,
   LNDRequest,
@@ -138,7 +143,7 @@ export const useLND = () => {
   }
 
   const createInvoice = (amount: number, description: string) =>
-    makeRequest('/v1/invoices', {
+    makeRequest<LNDInvoice>('/v1/invoices', {
       body: {
         memo: description,
         value: amount
@@ -159,14 +164,14 @@ export const useLND = () => {
 
     const paymentHash = response.payment_hash
     if (paymentHash) {
-      let attempts = 0
-      const maxAttempts = 30 // Poll for up to 30 seconds
-      const pollInterval = 1000 // Check every second
+      const pollIndexes = Array.from(
+        { length: LND_PAYMENT_POLL_ATTEMPTS },
+        (_, index) => index
+      )
 
-      while (attempts < maxAttempts) {
-        attempts += 1
+      for (const _poll of pollIndexes) {
         await new Promise((resolve) => {
-          setTimeout(resolve, pollInterval)
+          setTimeout(resolve, LND_PAYMENT_POLL_MS)
         })
 
         try {
@@ -176,7 +181,8 @@ export const useLND = () => {
 
           if (statusResponse.status === 'SUCCEEDED') {
             return response
-          } else if (statusResponse.status === 'FAILED') {
+          }
+          if (statusResponse.status === 'FAILED') {
             throw new Error('Payment failed')
           }
         } catch (error) {

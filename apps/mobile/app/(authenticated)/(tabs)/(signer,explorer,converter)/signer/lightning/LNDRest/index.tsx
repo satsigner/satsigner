@@ -9,6 +9,7 @@ import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
+import { LND_SUCCESS_NAVIGATE_DELAY_MS } from '@/constants/lightning'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -67,7 +68,7 @@ export default function LNDRestPage() {
         toast.success(t('lightning.lndRest.connectSuccess'))
         setTimeout(() => {
           router.back()
-        }, 2000)
+        }, LND_SUCCESS_NAVIGATE_DELAY_MS)
       } else {
         const responseText = await response.text()
         const errBody = responseText.replace(/\s+/g, ' ').trim().slice(0, 180)
@@ -124,7 +125,7 @@ export default function LNDRestPage() {
         options={{
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              Lightning
+              {t('lightning.lndRest.title')}
             </SSText>
           )
         }}

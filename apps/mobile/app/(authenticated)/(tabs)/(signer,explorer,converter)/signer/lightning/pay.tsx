@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
 import { useFonts } from 'expo-font'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -18,7 +18,10 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT } from '@/constants/btc'
-import { LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE } from '@/constants/lightning'
+import {
+  LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE,
+  LND_SUCCESS_NAVIGATE_DELAY_MS
+} from '@/constants/lightning'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -48,15 +51,6 @@ import {
   handleLNURLPay,
   isLNURL
 } from '@/utils/lnurl'
-
-type MakeRequest = <T>(
-  path: string,
-  options?: {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-    body?: unknown
-    headers?: Record<string, string>
-  }
-) => Promise<T>
 
 type PayTab = 'lightning' | 'onchain'
 
@@ -88,7 +82,6 @@ export default function PayPage() {
     sendCoins,
     verifyConnection
   } = useLND()
-  const typedMakeRequest = makeRequest as MakeRequest
 
   const [fontsLoaded] = useFonts({
     'SF-NS-Mono': require('@/assets/fonts/SF-NS-Mono.ttf')
@@ -108,10 +101,10 @@ export default function PayPage() {
     ])
   )
   const { fiatPriceApiUrl } = useFiatData()
-
-  useEffect(() => {
-    fetchPrices(fiatPriceApiUrl)
-  }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
+  useQuery({
+    queryFn: () => fetchPrices(fiatPriceApiUrl),
+    queryKey: ['prices', fiatCurrency, fiatPriceApiUrl]
+  })
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
@@ -133,17 +126,12 @@ export default function PayPage() {
   const confirmedSat = Number(balanceQuery.data?.confirmed_balance ?? 0)
   const onchainAmountMax = Math.max(confirmedSat, DUST_LIMIT)
 
-  // Fetch LNURL details and set minimum amount
-  const handleLNURLDetected = useCallback(async (lnurl: string) => {
+  async function handleLNURLDetected(lnurl: string) {
     try {
       setIsFetchingDetails(true)
       const url = isLNURL(lnurl) ? decodeLNURL(lnurl) : lnurl
       const details = await fetchLNURLPayDetails(url)
-
-      // Store LNURL details for display
       setLNURLDetails(details)
-
-      // Convert millisats to sats and set as amount
       const minSats = Math.ceil(details.minSendable / 1000)
       setAmount(minSats.toString())
     } catch {
@@ -151,75 +139,61 @@ export default function PayPage() {
     } finally {
       setIsFetchingDetails(false)
     }
-  }, [])
+  }
 
-  // Decode a bolt11 invoice
-  const decodeInvoice = useCallback(
-    async (invoice: string) => {
-      const response = await typedMakeRequest<LNDDecodedInvoice>(
-        `/v1/payreq/${invoice}`
-      )
+  async function decodeInvoice(invoice: string) {
+    const response = await makeRequest<LNDDecodedInvoice>(
+      `/v1/payreq/${invoice}`
+    )
+    setDecodedInvoice(response)
+    return response
+  }
 
-      // Update state with decoded invoice
-      setDecodedInvoice(response)
+  async function handlePaymentRequestChange(text: string) {
+    setPaymentRequest(text)
+    const isLNURLInput = isLNURL(text)
+    setIsLNURLMode(isLNURLInput)
+    setDecodedInvoice(null)
+    setLNURLDetails(null)
 
-      return response
-    },
-    [typedMakeRequest]
-  )
-
-  // Update LNURL mode and fetch details when payment request changes
-  const handlePaymentRequestChange = useCallback(
-    async (text: string) => {
-      // Clear previous state
-      setPaymentRequest(text)
-      const isLNURLInput = isLNURL(text)
-      setIsLNURLMode(isLNURLInput)
-      setDecodedInvoice(null) // Clear previous decode
-      setLNURLDetails(null) // Clear previous LNURL details
-
-      // Verify LND connection before proceeding
-      if (!isConnected) {
-        const isStillConnected = await verifyConnection()
-        if (!isStillConnected) {
-          toast.error(
-            'Not connected to LND node. Please check your connection and try again.'
-          )
-          return
-        }
+    if (!isConnected) {
+      const isStillConnected = await verifyConnection()
+      if (!isStillConnected) {
+        toast.error(t('lightning.pay.notConnected'))
+        return
       }
+    }
 
-      if (isLNURLInput) {
-        await handleLNURLDetected(text)
-      } else if (text.toLowerCase().startsWith('lnbc')) {
-        try {
-          const decoded = await decodeInvoice(text)
-          if (decoded.num_satoshis) {
-            setAmount(decoded.num_satoshis)
-          }
-        } catch {
-          setDecodedInvoice(null)
+    if (isLNURLInput) {
+      await handleLNURLDetected(text)
+      return
+    }
+    if (text.toLowerCase().startsWith('lnbc')) {
+      try {
+        const decoded = await decodeInvoice(text)
+        if (decoded.num_satoshis) {
+          setAmount(decoded.num_satoshis)
         }
-      } else {
+      } catch {
         setDecodedInvoice(null)
       }
-    },
-    [handleLNURLDetected, decodeInvoice, isConnected, verifyConnection]
-  )
+      return
+    }
+    setDecodedInvoice(null)
+  }
 
-  // Handle amount change and update fiat value
-  const handleAmountChange = useCallback((text: string) => {
+  function handleAmountChange(text: string) {
     setAmount(text)
-  }, [])
+  }
 
   const handleSendPayment = async () => {
     if (!paymentRequest) {
-      toast.error('Please enter a payment request')
+      toast.error(t('lightning.pay.enterPaymentRequestError'))
       return
     }
 
     if (!isLNURLMode && !decodedInvoice) {
-      toast.error('Please wait for the invoice to be decoded')
+      toast.error(t('lightning.pay.waitDecode'))
       return
     }
     await processPayment()
@@ -231,61 +205,53 @@ export default function PayPage() {
     }
 
     if (!isLNURLMode && !decodedInvoice) {
-      toast.error('Please try sending the payment again')
+      toast.error(t('lightning.pay.tryAgain'))
       return
     }
 
     setIsProcessing(true)
     try {
-      let invoice: string
-
-      if (!isLNURLMode) {
-        invoice = paymentRequest
-      } else {
+      if (isLNURLMode) {
         if (!amount) {
-          toast.error('Please enter an amount')
+          toast.error(t('lightning.pay.enterAmount'))
           setIsProcessing(false)
           return
         }
-
         const amountSats = parseInt(amount, 10)
         if (isNaN(amountSats) || amountSats <= 0) {
-          toast.error('Please enter a valid amount')
+          toast.error(t('lightning.pay.validAmount'))
           setIsProcessing(false)
           return
         }
-
-        invoice = await handleLNURLPay(
+        const invoice = await handleLNURLPay(
           paymentRequest,
           amountSats,
           comment || undefined
         )
+        await payInvoice(invoice)
+      } else {
+        await payInvoice(paymentRequest)
       }
-
-      await payInvoice(invoice)
-      toast.success('Payment sent successfully')
+      toast.success(t('lightning.pay.paymentSent'))
       const { pendingZap, setZapResult } = useZapFlowStore.getState()
       if (pendingZap) {
         setZapResult('success')
       }
-      setTimeout(router.back, 2000)
+      setTimeout(router.back, LND_SUCCESS_NAVIGATE_DELAY_MS)
     } catch (error) {
-      let errorMessage = 'Failed to send payment'
-      if (error instanceof Error) {
-        if (
-          error.message.includes('404') ||
-          error.message.includes('Not Found')
-        ) {
-          errorMessage =
-            'Payment request expired or already paid. Please try again.'
-        } else if (error.message.includes('amount')) {
-          errorMessage = error.message
-        } else {
-          errorMessage = error.message
-        }
+      const fallback = t('lightning.pay.paymentFailed')
+      if (!(error instanceof Error)) {
+        toast.error(fallback)
+        return
       }
-
-      toast.error(errorMessage)
+      if (
+        error.message.includes('404') ||
+        error.message.includes('Not Found')
+      ) {
+        toast.error(t('lightning.pay.paymentExpired'))
+        return
+      }
+      toast.error(error.message || fallback)
     } finally {
       setIsProcessing(false)
     }
@@ -307,9 +273,7 @@ export default function PayPage() {
     if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
       handlePaymentRequestChange(cleanText)
     } else {
-      toast.error(
-        'Invalid QR Code: the scanned QR code is not a valid Lightning payment request or LNURL'
-      )
+      toast.error(t('lightning.pay.invalidQr'))
     }
   }
 
@@ -317,7 +281,7 @@ export default function PayPage() {
     try {
       const text = await Clipboard.getStringAsync()
       if (!text) {
-        toast.error('No text found in clipboard')
+        toast.error(t('lightning.pay.clipboardEmpty'))
         return
       }
 
@@ -336,12 +300,10 @@ export default function PayPage() {
       if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
         await handlePaymentRequestChange(cleanText)
       } else {
-        toast.error(
-          'Invalid Payment Request: the clipboard content is not a valid Lightning payment request or LNURL'
-        )
+        toast.error(t('lightning.pay.invalidClipboard'))
       }
     } catch {
-      toast.error('Failed to read clipboard content')
+      toast.error(t('lightning.pay.clipboardFailed'))
     }
   }
 
@@ -395,7 +357,7 @@ export default function PayPage() {
         })
       )
       toast.success(t('lightning.pay.onchainSuccess'))
-      setTimeout(router.back, 2000)
+      setTimeout(router.back, LND_SUCCESS_NAVIGATE_DELAY_MS)
     } catch (error) {
       toast.error(
         `${t('lightning.pay.sendFailed')}: ${getLndErrorMessage(error)}`
@@ -405,27 +367,24 @@ export default function PayPage() {
     }
   }
 
-  useEffect(() => {
-    const paramValue = paymentRequestParam || invoiceParam
-    if (!paramValue) {
-      return
-    }
+  const inboundParam = paymentRequestParam || invoiceParam
+  const inboundValue = Array.isArray(inboundParam)
+    ? inboundParam[0]
+    : inboundParam
+  const inboundClean = inboundValue
+    ? inboundValue.trim().replace(/^lightning:/i, '')
+    : ''
+  const inboundEnabled =
+    inboundClean.toLowerCase().startsWith('lnbc') || isLNURL(inboundClean)
 
-    const paymentRequestValue = Array.isArray(paramValue)
-      ? paramValue[0]
-      : paramValue
-    if (!paymentRequestValue) {
-      return
-    }
-
-    const cleanText = paymentRequestValue.trim().replace(/^lightning:/i, '')
-    if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText)) {
-      return
-    }
-
-    handlePaymentRequestChange(cleanText)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentRequestParam, invoiceParam])
+  useQuery({
+    enabled: inboundEnabled,
+    queryFn: async () => {
+      await handlePaymentRequestChange(inboundClean)
+      return inboundClean
+    },
+    queryKey: ['lnd', 'pay-inbound', inboundClean]
+  })
 
   if (!fontsLoaded) {
     return null
@@ -466,7 +425,7 @@ export default function PayPage() {
                       size="sm"
                       style={styles.fetchingBanner}
                     >
-                      Fetching details...
+                      {t('lightning.pay.fetchingDetails')}
                     </SSText>
                   ) : null}
                   <SSVStack gap="sm">
@@ -480,8 +439,8 @@ export default function PayPage() {
                       onChangeText={handlePaymentRequestChange}
                       placeholder={
                         isLNURLMode
-                          ? 'Enter LNURL'
-                          : 'Enter Lightning payment request'
+                          ? t('lightning.pay.enterLnurl')
+                          : t('lightning.pay.enterPaymentRequest')
                       }
                       placeholderTextColor="#666"
                       multiline
@@ -491,14 +450,14 @@ export default function PayPage() {
 
                     <SSHStack gap="sm" style={styles.actionButtons}>
                       <SSButton
-                        label="Paste"
+                        label={t('common.paste')}
                         onPress={handlePasteFromClipboard}
                         variant="subtle"
                         style={[styles.actionButton, styles.buttonWithIcon]}
                         disabled={isFetchingDetails}
                       />
                       <SSButton
-                        label="Scan QR"
+                        label={t('lightning.invoice.scanQr')}
                         onPress={handleOpenCamera}
                         variant="subtle"
                         style={[styles.actionButton, styles.buttonWithIcon]}
@@ -534,7 +493,7 @@ export default function PayPage() {
                 </SSVStack>
                 <SSVStack style={styles.actions}>
                   <SSButton
-                    label="Send Payment"
+                    label={t('lightning.pay.sendPayment')}
                     onPress={handleSendPayment}
                     variant="secondary"
                     loading={isProcessing || isFetchingDetails}
@@ -547,7 +506,7 @@ export default function PayPage() {
                     style={styles.button}
                   />
                   <SSButton
-                    label="Cancel"
+                    label={t('common.cancel')}
                     onPress={handleCancel}
                     variant="ghost"
                     style={styles.button}
@@ -582,13 +541,13 @@ export default function PayPage() {
                     />
                     <SSHStack gap="sm" style={styles.actionButtons}>
                       <SSButton
-                        label="Paste"
+                        label={t('common.paste')}
                         onPress={handlePasteFromClipboard}
                         variant="subtle"
                         style={styles.actionButton}
                       />
                       <SSButton
-                        label="Scan QR"
+                        label={t('lightning.invoice.scanQr')}
                         onPress={handleOpenCamera}
                         variant="subtle"
                         style={styles.actionButton}
@@ -650,7 +609,7 @@ export default function PayPage() {
         title={
           activeTab === 'onchain'
             ? t('lightning.pay.scanOnchainTitle')
-            : 'Scan Lightning Payment Request'
+            : t('lightning.pay.scanLightningTitle')
         }
       />
     </>
