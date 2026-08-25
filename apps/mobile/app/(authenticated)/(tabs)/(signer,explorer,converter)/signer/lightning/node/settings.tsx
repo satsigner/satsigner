@@ -6,9 +6,11 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
 import SSIconRefresh from '@/components/icons/SSIconRefresh'
+import SSIconWarning from '@/components/icons/SSIconWarning'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSIconButton from '@/components/SSIconButton'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import {
   HEADER_CHROME_EDGE_NUDGE,
@@ -61,6 +63,7 @@ export default function NodeSettingsPage() {
   const [pendingError, setPendingError] = useState<string | null>(null)
   const [peersLoading, setPeersLoading] = useState(false)
   const [backupLoading, setBackupLoading] = useState(false)
+  const [clearConfigVisible, setClearConfigVisible] = useState(false)
 
   const loadPeersAndPending = async () => {
     if (!isConnected) {
@@ -104,26 +107,20 @@ export default function NodeSettingsPage() {
     router.back()
   }
 
-  function handleDelete() {
-    Alert.alert(
-      t('lightning.nodeSettings.clearConfig'),
-      t('lightning.nodeSettings.clearConfigMessage'),
-      [
-        {
-          style: 'cancel',
-          text: t('common.cancel')
-        },
-        {
-          onPress: () => {
-            setIsDeleting(false)
-            clearConfig()
-            router.navigate('/signer/lightning')
-          },
-          style: 'destructive',
-          text: t('lightning.nodeSettings.clearConfig')
-        }
-      ]
-    )
+  function handleOpenClearConfig() {
+    setClearConfigVisible(true)
+  }
+
+  function handleCloseClearConfig() {
+    setClearConfigVisible(false)
+  }
+
+  function handleConfirmClearConfig() {
+    setIsDeleting(true)
+    setClearConfigVisible(false)
+    clearConfig()
+    router.navigate('/signer/lightning')
+    setIsDeleting(false)
   }
 
   async function handleRefresh() {
@@ -548,7 +545,7 @@ export default function NodeSettingsPage() {
               />
               <SSButton
                 label={t('lightning.nodeSettings.clearConfig')}
-                onPress={handleDelete}
+                onPress={handleOpenClearConfig}
                 variant="danger"
                 style={styles.button}
                 loading={isDeleting}
@@ -558,6 +555,36 @@ export default function NodeSettingsPage() {
           </SSVStack>
         </ScrollView>
       </SSMainLayout>
+      <SSModal
+        visible={clearConfigVisible}
+        onClose={handleCloseClearConfig}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={styles.clearConfigModal}>
+          <SSVStack gap="xs" style={styles.clearConfigWarning}>
+            <SSIconWarning
+              height={20}
+              width={20}
+              fill="transparent"
+              stroke={Colors.gray[400]}
+            />
+            <SSText center size="lg" uppercase>
+              {t('lightning.nodeSettings.clearConfig')}
+            </SSText>
+            <SSText center color="muted">
+              {t('lightning.nodeSettings.clearConfigMessage')}
+            </SSText>
+          </SSVStack>
+          <SSButton
+            label={t('lightning.nodeSettings.clearConfigConfirm')}
+            onPress={handleConfirmClearConfig}
+            variant="danger"
+            loading={isDeleting}
+          />
+        </SSVStack>
+      </SSModal>
     </>
   )
 }
@@ -571,6 +598,13 @@ const styles = StyleSheet.create({
   },
   button: {
     minHeight: 40
+  },
+  clearConfigModal: {
+    paddingVertical: 8,
+    width: '100%'
+  },
+  clearConfigWarning: {
+    alignItems: 'center'
   },
   flexShrink: {
     flexShrink: 1,
