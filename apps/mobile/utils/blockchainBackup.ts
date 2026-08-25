@@ -39,22 +39,30 @@ async function serverWithRpcCredentials(server: Server, network: Network) {
   }
 }
 
+async function collectNetworkConfig(
+  state: Pick<BlockchainStoreSlice, 'configs'>,
+  network: Network
+) {
+  const current = state.configs[network]
+  return {
+    config: current.config,
+    server: await serverWithRpcCredentials(current.server, network)
+  }
+}
+
 export async function collectBlockchainBackup(
   state: Pick<
     BlockchainStoreSlice,
     'configs' | 'configsMempool' | 'customServers' | 'selectedNetwork'
   >
 ): Promise<BlockchainBackup> {
-  const configs = {} as BlockchainBackup['configs']
-  for (const network of BLOCKCHAIN_BACKUP_NETWORKS) {
-    const current = state.configs[network]
-    configs[network] = {
-      config: current.config,
-      server: await serverWithRpcCredentials(current.server, network)
-    }
-  }
+  const [bitcoin, testnet, signet] = await Promise.all([
+    collectNetworkConfig(state, 'bitcoin'),
+    collectNetworkConfig(state, 'testnet'),
+    collectNetworkConfig(state, 'signet')
+  ])
   return {
-    configs,
+    configs: { bitcoin, signet, testnet },
     configsMempool: state.configsMempool,
     customServers: state.customServers,
     selectedNetwork: state.selectedNetwork

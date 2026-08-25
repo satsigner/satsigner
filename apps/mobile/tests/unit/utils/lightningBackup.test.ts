@@ -1,7 +1,13 @@
 import {
   buildLightningBackupData,
-  LIGHTNING_BACKUP_VERSION
+  LIGHTNING_BACKUP_VERSION,
+  restoreLightningFromBackup,
+  serializeLightningBackup
 } from '@/utils/lightningBackup'
+
+jest.mock<typeof import('@/store/lightning')>('@/store/lightning', () => ({
+  useLightningStore: { getState: jest.fn() }
+}))
 
 const CONFIG = {
   cert: 'cert',
@@ -24,21 +30,25 @@ const NODE_INFO = {
   version: '0.18'
 }
 
+const INPUT = {
+  channels: [],
+  config: CONFIG,
+  isConnected: true,
+  lastSync: '2026-08-26T00:00:00.000Z',
+  nodeInfo: NODE_INFO
+}
+
+const OPTIONS = {
+  includeChannels: true,
+  includeConnection: true,
+  includeNodeInformation: true
+}
+
 describe('buildLightningBackupData', () => {
   it('puts node data under a lightning section', () => {
     const data = buildLightningBackupData(
-      {
-        channels: [],
-        config: CONFIG,
-        isConnected: true,
-        lastSync: '2026-08-26T00:00:00.000Z',
-        nodeInfo: NODE_INFO
-      },
-      {
-        includeChannels: true,
-        includeConnection: true,
-        includeNodeInformation: true
-      },
+      INPUT,
+      OPTIONS,
       '2026-08-26T00:00:00.000Z'
     )
 
@@ -54,12 +64,7 @@ describe('buildLightningBackupData', () => {
 
   it('omits unchecked fields', () => {
     const data = buildLightningBackupData(
-      {
-        channels: [],
-        config: CONFIG,
-        isConnected: true,
-        nodeInfo: NODE_INFO
-      },
+      INPUT,
       {
         includeChannels: false,
         includeConnection: true,
@@ -71,7 +76,85 @@ describe('buildLightningBackupData', () => {
     expect(data.lightning).toStrictEqual({
       config: CONFIG,
       isConnected: true,
-      lastSync: null
+      lastSync: '2026-08-26T00:00:00.000Z'
     })
+  })
+})
+
+describe('serializeLightningBackup', () => {
+  it('returns pretty-printed json', () => {
+    const json = serializeLightningBackup(
+      INPUT,
+      OPTIONS,
+      '2026-08-26T00:00:00.000Z'
+    )
+
+    expect(JSON.parse(json)).toStrictEqual(
+      buildLightningBackupData(INPUT, OPTIONS, '2026-08-26T00:00:00.000Z')
+    )
+  })
+})
+
+describe('restoreLightningFromBackup', () => {
+  it('restores config, node info, channels, and connection state', () => {
+    const setConfig = jest.fn()
+    const setNodeInfo = jest.fn()
+    const setChannels = jest.fn()
+    const setConnected = jest.fn()
+    const clearConfig = jest.fn()
+
+    restoreLightningFromBackup(
+      {
+        lightning: {
+          channels: [],
+          config: CONFIG,
+          isConnected: true,
+          nodeInfo: NODE_INFO
+        }
+      },
+      { clearConfig, setChannels, setConfig, setConnected, setNodeInfo }
+    )
+
+    expect(setConfig).toHaveBeenCalledWith(CONFIG)
+    expect(setNodeInfo).toHaveBeenCalledWith(NODE_INFO)
+    expect(setChannels).toHaveBeenCalledWith([])
+    expect(setConnected).toHaveBeenCalledWith(true)
+    expect(clearConfig).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the legacy lnd field', () => {
+    const setConfig = jest.fn()
+    const clearConfig = jest.fn()
+
+    restoreLightningFromBackup(
+      { lnd: CONFIG },
+      {
+        clearConfig,
+        setChannels: jest.fn(),
+        setConfig,
+        setConnected: jest.fn(),
+        setNodeInfo: jest.fn()
+      }
+    )
+
+    expect(setConfig).toHaveBeenCalledWith(CONFIG)
+    expect(clearConfig).not.toHaveBeenCalled()
+  })
+
+  it('clears config when lightning config is explicitly null', () => {
+    const clearConfig = jest.fn()
+
+    restoreLightningFromBackup(
+      { lightning: { config: null } },
+      {
+        clearConfig,
+        setChannels: jest.fn(),
+        setConfig: jest.fn(),
+        setConnected: jest.fn(),
+        setNodeInfo: jest.fn()
+      }
+    )
+
+    expect(clearConfig).toHaveBeenCalledTimes(1)
   })
 })

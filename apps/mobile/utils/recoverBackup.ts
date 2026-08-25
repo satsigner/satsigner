@@ -35,6 +35,7 @@ import {
   type BlockchainBackup
 } from '@/utils/blockchainBackup'
 import { aesEncrypt, randomIv } from '@/utils/crypto'
+import { restoreLightningFromBackup } from '@/utils/lightningBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
 
@@ -151,30 +152,6 @@ function errorMessage(err: unknown): string {
     return err
   }
   return 'Unknown error'
-}
-
-function restoreLightningFromBackup(data: BackupData) {
-  const lightning = useLightningStore.getState()
-  const config = data.lightning?.config ?? data.lnd
-  if (config) {
-    lightning.setConfig(config)
-    if (data.lightning?.nodeInfo) {
-      lightning.setNodeInfo(data.lightning.nodeInfo)
-    }
-    if (data.lightning?.channels) {
-      lightning.setChannels(data.lightning.channels)
-    }
-    if (typeof data.lightning?.isConnected === 'boolean') {
-      lightning.setConnected(data.lightning.isConnected)
-    }
-    return
-  }
-  if (
-    ('lightning' in data && data.lightning?.config === null) ||
-    ('lnd' in data && data.lnd === null)
-  ) {
-    lightning.clearConfig()
-  }
 }
 
 function validateBackup(

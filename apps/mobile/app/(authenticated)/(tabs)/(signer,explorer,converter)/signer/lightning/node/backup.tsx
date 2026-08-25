@@ -16,7 +16,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
 import { Colors } from '@/styles'
-import { buildLightningBackupData } from '@/utils/lightningBackup'
+import { serializeLightningBackup } from '@/utils/lightningBackup'
 import { lndNodeCardTitle } from '@/utils/lndNodeCardTitle'
 
 export default function LightningBackupPage() {
@@ -40,22 +40,23 @@ export default function LightningBackupPage() {
   function generateBackupData() {
     setIsGenerating(true)
     try {
-      const data = buildLightningBackupData(
-        {
-          channels: status.channels,
-          config,
-          isConnected: status.isConnected,
-          lastSync: status.lastSync,
-          nodeInfo: status.nodeInfo
-        },
-        {
-          includeChannels,
-          includeConnection,
-          includeNodeInformation
-        },
-        new Date().toISOString()
+      setBackupData(
+        serializeLightningBackup(
+          {
+            channels: status.channels,
+            config,
+            isConnected: status.isConnected,
+            lastSync: status.lastSync,
+            nodeInfo: status.nodeInfo
+          },
+          {
+            includeChannels,
+            includeConnection,
+            includeNodeInformation
+          },
+          new Date().toISOString()
+        )
       )
-      setBackupData(JSON.stringify(data, null, 2))
       setShowBackupData(true)
     } catch {
       toast.error(t('lightning.backup.generationFailed'))
