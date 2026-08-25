@@ -1,0 +1,86 @@
+diff --git a/lib/commonjs/components/NestableDraggableFlatList.js b/lib/commonjs/components/NestableDraggableFlatList.js
+index eef7cac326fc43140b735036fb55fffbcb963ef2..e55a6c728fbe1a534947125c218b4237ebb7b352 100644
+--- a/lib/commonjs/components/NestableDraggableFlatList.js
++++ b/lib/commonjs/components/NestableDraggableFlatList.js
+@@ -1,2 +1,2 @@
+-var _interopRequireDefault=require("@babel/runtime/helpers/interopRequireDefault");Object.defineProperty(exports,"__esModule",{value:true});exports.NestableDraggableFlatList=void 0;var _extends2=_interopRequireDefault(require("@babel/runtime/helpers/extends"));var _asyncToGenerator2=_interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));var _slicedToArray2=_interopRequireDefault(require("@babel/runtime/helpers/slicedToArray"));var _react=_interopRequireWildcard(require("react"));var _reactNative=require("react-native");var _reactNativeReanimated=require("react-native-reanimated");var _DraggableFlatList=_interopRequireDefault(require("../components/DraggableFlatList"));var _nestableScrollContainerContext=require("../context/nestableScrollContainerContext");var _useNestedAutoScroll=require("../hooks/useNestedAutoScroll");var _useStableCallback=require("../hooks/useStableCallback");var _jsxFileName="/Users/danielmerrill/code/oss/react-native-draggable-flatlist/src/components/NestableDraggableFlatList.tsx";function _getRequireWildcardCache(nodeInterop){if(typeof WeakMap!=="function")return null;var cacheBabelInterop=new WeakMap();var cacheNodeInterop=new WeakMap();return(_getRequireWildcardCache=function _getRequireWildcardCache(nodeInterop){return nodeInterop?cacheNodeInterop:cacheBabelInterop;})(nodeInterop);}function _interopRequireWildcard(obj,nodeInterop){if(!nodeInterop&&obj&&obj.__esModule){return obj;}if(obj===null||typeof obj!=="object"&&typeof obj!=="function"){return{default:obj};}var cache=_getRequireWildcardCache(nodeInterop);if(cache&&cache.has(obj)){return cache.get(obj);}var newObj={};var hasPropertyDescriptor=Object.defineProperty&&Object.getOwnPropertyDescriptor;for(var key in obj){if(key!=="default"&&Object.prototype.hasOwnProperty.call(obj,key)){var desc=hasPropertyDescriptor?Object.getOwnPropertyDescriptor(obj,key):null;if(desc&&(desc.get||desc.set)){Object.defineProperty(newObj,key,desc);}else{newObj[key]=obj[key];}}}newObj.default=obj;if(cache){cache.set(obj,newObj);}return newObj;}function NestableDraggableFlatListInner(props,ref){var hasSuppressedWarnings=(0,_react.useRef)(false);if(!hasSuppressedWarnings.current){_reactNative.LogBox.ignoreLogs(["VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing"]);console.reportErrorsAsExceptions=false;hasSuppressedWarnings.current=true;}var _useSafeNestableScrol=(0,_nestableScrollContainerContext.useSafeNestableScrollContainerContext)(),scrollableRef=_useSafeNestableScrol.scrollableRef,outerScrollOffset=_useSafeNestableScrol.outerScrollOffset,setOuterScrollEnabled=_useSafeNestableScrol.setOuterScrollEnabled;var listVerticalOffset=(0,_reactNativeReanimated.useSharedValue)(0);var _useState=(0,_react.useState)({}),_useState2=(0,_slicedToArray2.default)(_useState,2),animVals=_useState2[0],setAnimVals=_useState2[1];var defaultHoverOffset=(0,_reactNativeReanimated.useSharedValue)(0);var _useState3=(0,_react.useState)(defaultHoverOffset),_useState4=(0,_slicedToArray2.default)(_useState3,2),listHoverOffset=_useState4[0],setListHoverOffset=_useState4[1];var hoverOffset=(0,_reactNativeReanimated.useDerivedValue)(function(){var _f=function _f(){return listHoverOffset.value+listVerticalOffset.value;};_f._closure={listHoverOffset:listHoverOffset,listVerticalOffset:listVerticalOffset};_f.asString="function _f(){const{listHoverOffset,listVerticalOffset}=jsThis._closure;{return listHoverOffset.value+listVerticalOffset.value;}}";_f.__workletHash=4066479402801;_f.__location="/Users/danielmerrill/code/oss/react-native-draggable-flatlist/src/components/NestableDraggableFlatList.tsx (41:38)";return _f;}(),[listHoverOffset]);(0,_useNestedAutoScroll.useNestedAutoScroll)(Object.assign({},animVals,{hoverOffset:hoverOffset}));var onListContainerLayout=(0,_useStableCallback.useStableCallback)(function(){var _ref2=(0,_asyncToGenerator2.default)(function*(_ref){var containerRef=_ref.containerRef;var nodeHandle=(0,_reactNative.findNodeHandle)(scrollableRef.current);var onSuccess=function onSuccess(_x,y){listVerticalOffset.value=y;};var onFail=function onFail(){console.log("## nested draggable list measure fail");};containerRef.current.measureLayout(nodeHandle,onSuccess,onFail);});return function(_x2){return _ref2.apply(this,arguments);};}());var onDragBegin=(0,_useStableCallback.useStableCallback)(function(params){setOuterScrollEnabled(false);props.onDragBegin==null?void 0:props.onDragBegin(params);});var onDragEnd=(0,_useStableCallback.useStableCallback)(function(params){setOuterScrollEnabled(true);props.onDragEnd==null?void 0:props.onDragEnd(params);});var onAnimValInit=(0,_useStableCallback.useStableCallback)(function(params){setListHoverOffset(params.hoverOffset);setAnimVals(Object.assign({},params,{hoverOffset:hoverOffset}));props.onAnimValInit==null?void 0:props.onAnimValInit(params);});return _react.default.createElement(_DraggableFlatList.default,(0,_extends2.default)({ref:ref,onContainerLayout:onListContainerLayout,activationDistance:props.activationDistance||20,scrollEnabled:false},props,{outerScrollOffset:outerScrollOffset,onDragBegin:onDragBegin,onDragEnd:onDragEnd,onAnimValInit:onAnimValInit,__self:this,__source:{fileName:_jsxFileName,lineNumber:89,columnNumber:5}}));}var NestableDraggableFlatList=_react.default.forwardRef(NestableDraggableFlatListInner);exports.NestableDraggableFlatList=NestableDraggableFlatList;
++var _interopRequireDefault=require("@babel/runtime/helpers/interopRequireDefault");Object.defineProperty(exports,"__esModule",{value:true});exports.NestableDraggableFlatList=void 0;var _extends2=_interopRequireDefault(require("@babel/runtime/helpers/extends"));var _asyncToGenerator2=_interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));var _slicedToArray2=_interopRequireDefault(require("@babel/runtime/helpers/slicedToArray"));var _react=_interopRequireWildcard(require("react"));var _reactNative=require("react-native");var _reactNativeReanimated=require("react-native-reanimated");var _DraggableFlatList=_interopRequireDefault(require("../components/DraggableFlatList"));var _nestableScrollContainerContext=require("../context/nestableScrollContainerContext");var _useNestedAutoScroll=require("../hooks/useNestedAutoScroll");var _useStableCallback=require("../hooks/useStableCallback");var _jsxFileName="/Users/danielmerrill/code/oss/react-native-draggable-flatlist/src/components/NestableDraggableFlatList.tsx";function _getRequireWildcardCache(nodeInterop){if(typeof WeakMap!=="function")return null;var cacheBabelInterop=new WeakMap();var cacheNodeInterop=new WeakMap();return(_getRequireWildcardCache=function _getRequireWildcardCache(nodeInterop){return nodeInterop?cacheNodeInterop:cacheBabelInterop;})(nodeInterop);}function _interopRequireWildcard(obj,nodeInterop){if(!nodeInterop&&obj&&obj.__esModule){return obj;}if(obj===null||typeof obj!=="object"&&typeof obj!=="function"){return{default:obj};}var cache=_getRequireWildcardCache(nodeInterop);if(cache&&cache.has(obj)){return cache.get(obj);}var newObj={};var hasPropertyDescriptor=Object.defineProperty&&Object.getOwnPropertyDescriptor;for(var key in obj){if(key!=="default"&&Object.prototype.hasOwnProperty.call(obj,key)){var desc=hasPropertyDescriptor?Object.getOwnPropertyDescriptor(obj,key):null;if(desc&&(desc.get||desc.set)){Object.defineProperty(newObj,key,desc);}else{newObj[key]=obj[key];}}}newObj.default=obj;if(cache){cache.set(obj,newObj);}return newObj;}function NestableDraggableFlatListInner(props,ref){var hasSuppressedWarnings=(0,_react.useRef)(false);if(!hasSuppressedWarnings.current){_reactNative.LogBox.ignoreLogs(["VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing"]);console.reportErrorsAsExceptions=false;hasSuppressedWarnings.current=true;}var _useSafeNestableScrol=(0,_nestableScrollContainerContext.useSafeNestableScrollContainerContext)(),scrollableRef=_useSafeNestableScrol.scrollableRef,outerScrollOffset=_useSafeNestableScrol.outerScrollOffset,setOuterScrollEnabled=_useSafeNestableScrol.setOuterScrollEnabled;var listVerticalOffset=(0,_reactNativeReanimated.useSharedValue)(0);var _useState=(0,_react.useState)({}),_useState2=(0,_slicedToArray2.default)(_useState,2),animVals=_useState2[0],setAnimVals=_useState2[1];var defaultHoverOffset=(0,_reactNativeReanimated.useSharedValue)(0);var _useState3=(0,_react.useState)(defaultHoverOffset),_useState4=(0,_slicedToArray2.default)(_useState3,2),listHoverOffset=_useState4[0],setListHoverOffset=_useState4[1];var hoverOffset=(0,_reactNativeReanimated.useDerivedValue)(function(){var _f=function _f(){return listHoverOffset.value+listVerticalOffset.value;};_f._closure={listHoverOffset:listHoverOffset,listVerticalOffset:listVerticalOffset};_f.asString="function _f(){const{listHoverOffset,listVerticalOffset}=jsThis._closure;{return listHoverOffset.value+listVerticalOffset.value;}}";_f.__workletHash=4066479402801;_f.__location="/Users/danielmerrill/code/oss/react-native-draggable-flatlist/src/components/NestableDraggableFlatList.tsx (41:38)";return _f;}(),[listHoverOffset]);(0,_useNestedAutoScroll.useNestedAutoScroll)(Object.assign({},animVals,{hoverOffset:hoverOffset}));var onListContainerLayout=(0,_useStableCallback.useStableCallback)(function(){var _ref2=(0,_asyncToGenerator2.default)(function*(_ref){var containerRef=_ref.containerRef;var scrollNode=scrollableRef.current;var containerNode=containerRef.current;if(!scrollNode||!containerNode){return;}var onSuccess=function onSuccess(_x,y){listVerticalOffset.value=y;};var onFail=function onFail(){console.log("## nested draggable list measure fail");};containerNode.measureLayout(scrollNode,onSuccess,onFail);});return function(_x2){return _ref2.apply(this,arguments);};}());var onDragBegin=(0,_useStableCallback.useStableCallback)(function(params){setOuterScrollEnabled(false);props.onDragBegin==null?void 0:props.onDragBegin(params);});var onDragEnd=(0,_useStableCallback.useStableCallback)(function(params){setOuterScrollEnabled(true);props.onDragEnd==null?void 0:props.onDragEnd(params);});var onAnimValInit=(0,_useStableCallback.useStableCallback)(function(params){setListHoverOffset(params.hoverOffset);setAnimVals(Object.assign({},params,{hoverOffset:hoverOffset}));props.onAnimValInit==null?void 0:props.onAnimValInit(params);});return _react.default.createElement(_DraggableFlatList.default,(0,_extends2.default)({ref:ref,onContainerLayout:onListContainerLayout,activationDistance:props.activationDistance||20,scrollEnabled:false},props,{outerScrollOffset:outerScrollOffset,onDragBegin:onDragBegin,onDragEnd:onDragEnd,onAnimValInit:onAnimValInit,__self:this,__source:{fileName:_jsxFileName,lineNumber:89,columnNumber:5}}));}var NestableDraggableFlatList=_react.default.forwardRef(NestableDraggableFlatListInner);exports.NestableDraggableFlatList=NestableDraggableFlatList;
+ //# sourceMappingURL=NestableDraggableFlatList.js.map
+\ No newline at end of file
+diff --git a/lib/module/components/NestableDraggableFlatList.js b/lib/module/components/NestableDraggableFlatList.js
+index 3bf1f43839a7f63dc3cb378e050b930fd3feddd7..98c3d97c0e88585d1694fcb1b7fe8a52e593c292 100644
+--- a/lib/module/components/NestableDraggableFlatList.js
++++ b/lib/module/components/NestableDraggableFlatList.js
+@@ -1,7 +1,7 @@
+ function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
+ 
+ import React, { useRef, useState } from "react";
+-import { findNodeHandle, LogBox } from "react-native";
++import { LogBox } from "react-native";
+ import { useDerivedValue, useSharedValue } from "react-native-reanimated";
+ import DraggableFlatList from "../components/DraggableFlatList";
+ import { useSafeNestableScrollContainerContext } from "../context/nestableScrollContainerContext";
+@@ -38,7 +38,12 @@ function NestableDraggableFlatListInner(props, ref) {
+     let {
+       containerRef
+     } = _ref;
+-    const nodeHandle = findNodeHandle(scrollableRef.current);
++    const scrollNode = scrollableRef.current;
++    const containerNode = containerRef.current;
++
++    if (!scrollNode || !containerNode) {
++      return;
++    }
+ 
+     const onSuccess = (_x, y) => {
+       listVerticalOffset.value = y;
+@@ -49,7 +54,7 @@ function NestableDraggableFlatListInner(props, ref) {
+     }; //@ts-ignore
+ 
+ 
+-    containerRef.current.measureLayout(nodeHandle, onSuccess, onFail);
++    containerNode.measureLayout(scrollNode, onSuccess, onFail);
+   });
+   const onDragBegin = useStableCallback(params => {
+     var _props$onDragBegin;
+diff --git a/src/components/NestableDraggableFlatList.tsx b/src/components/NestableDraggableFlatList.tsx
+index 155935276d83e232adba7486c3803998c1b90c7b..506d5427074bd91aa60d135488b7e4bd517b92b0 100644
+--- a/src/components/NestableDraggableFlatList.tsx
++++ b/src/components/NestableDraggableFlatList.tsx
+@@ -1,5 +1,5 @@
+ import React, { useRef, useState } from "react";
+-import { findNodeHandle, LogBox } from "react-native";
++import { LogBox } from "react-native";
+ import Animated, {
+   useDerivedValue,
+   useSharedValue,
+@@ -48,17 +48,22 @@ function NestableDraggableFlatListInner<T>(
+   });
+ 
+   const onListContainerLayout = useStableCallback(async ({ containerRef }) => {
+-    const nodeHandle = findNodeHandle(scrollableRef.current);
++    const scrollNode = scrollableRef.current
++    const containerNode = containerRef.current
++
++    if (!scrollNode || !containerNode) {
++      return
++    }
+ 
+     const onSuccess = (_x: number, y: number) => {
+-      listVerticalOffset.value = y;
+-    };
++      listVerticalOffset.value = y
++    }
+     const onFail = () => {
+-      console.log("## nested draggable list measure fail");
+-    };
++      console.log('## nested draggable list measure fail')
++    }
+     //@ts-ignore
+-    containerRef.current.measureLayout(nodeHandle, onSuccess, onFail);
+-  });
++    containerNode.measureLayout(scrollNode, onSuccess, onFail)
++  })
+ 
+   const onDragBegin: DraggableFlatListProps<T>["onDragBegin"] = useStableCallback(
+     (params) => {
