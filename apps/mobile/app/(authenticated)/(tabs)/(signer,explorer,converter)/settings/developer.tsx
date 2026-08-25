@@ -36,6 +36,7 @@ import { Colors } from '@/styles'
 import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
 import { getBackupFilename } from '@/utils/backupFilename'
+import { collectBlockchainBackup } from '@/utils/blockchainBackup'
 import {
   aesEncrypt,
   generateSalt,
@@ -139,7 +140,7 @@ export default function Developer() {
       )
     )
     const arkState = useArkStore.getState()
-    const lightningConfig = useLightningStore.getState().config
+    const lightningState = useLightningStore.getState()
     const nostrIdentityState = useNostrIdentityStore.getState()
     const blockchainState = useBlockchainStore.getState()
 
@@ -159,7 +160,14 @@ export default function Developer() {
         transactions: ecashState.transactions
       },
       exportedAt: new Date().toISOString(),
-      lnd: lightningConfig,
+      lightning: {
+        channels: lightningState.status.channels ?? [],
+        config: lightningState.config,
+        isConnected: lightningState.status.isConnected,
+        lastSync: lightningState.status.lastSync ?? null,
+        nodeInfo: lightningState.status.nodeInfo ?? null
+      },
+      lnd: lightningState.config,
       nostr: {
         lastDataExchangeEOSE: nostrState.lastDataExchangeEOSE,
         lastProtocolEOSE: nostrState.lastProtocolEOSE,
@@ -174,12 +182,7 @@ export default function Developer() {
         identities: nostrIdentityState.identities,
         relays: nostrIdentityState.relays
       },
-      serverSettings: {
-        configs: blockchainState.configs,
-        configsMempool: blockchainState.configsMempool,
-        customServers: blockchainState.customServers,
-        selectedNetwork: blockchainState.selectedNetwork
-      },
+      serverSettings: await collectBlockchainBackup(blockchainState),
       settings: { currencyUnit, mnemonicWordList, useZeroPadding },
       version: 1
     }

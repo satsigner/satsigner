@@ -196,6 +196,10 @@ export default function NodeSettingsPage() {
     }
   }
 
+  function handleOpenNodeBackup() {
+    router.push('/signer/lightning/node/backup')
+  }
+
   function handleExportChannelBackup() {
     Alert.alert(
       t('lightning.nodeSettings.channelBackupTitle'),
@@ -503,6 +507,21 @@ export default function NodeSettingsPage() {
                   </SSText>
                 </SSVStack>
               )}
+            </View>
+
+            <View>
+              <SSText color="muted" size="sm" style={styles.sectionTitle}>
+                {t('lightning.nodeSettings.backupNodeTitle')}
+              </SSText>
+              <SSText color="muted" size="xs" style={styles.backupBlurb}>
+                {t('lightning.nodeSettings.backupNodeBlurb')}
+              </SSText>
+              <SSButton
+                label={t('lightning.nodeSettings.backupNode')}
+                onPress={handleOpenNodeBackup}
+                variant="outline"
+                style={styles.button}
+              />
             </View>
 
             <View>
