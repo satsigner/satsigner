@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
@@ -15,12 +15,18 @@ import { useLightningStore } from '@/store/lightning'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
-  fetchLndConfig,
-  getLndConfigFileUrlFromConnectionInput
+  parseLndConnectionInput,
+  resolveLndConfigFromConnectionInput
 } from '@/utils/lndRestRemoteConfig'
 
 export default function LNDRestPage() {
   const router = useRouter()
+  const protocolParam = useLocalSearchParams<{ protocol?: string | string[] }>()
+    .protocol
+  const protocol = Array.isArray(protocolParam)
+    ? protocolParam[0]
+    : protocolParam
+  const isRpcPairing = protocol === 'rpc'
   const [setConfig, setConnected, setNodeInfo] = useLightningStore(
     useShallow((s) => [s.setConfig, s.setConnected, s.setNodeInfo])
   )
@@ -28,19 +34,19 @@ export default function LNDRestPage() {
   const [connectionString, setConnectionString] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
 
-  const canPressConnect =
-    getLndConfigFileUrlFromConnectionInput(connectionString) !== null
+  const canPressConnect = parseLndConnectionInput(connectionString) !== null
 
   const handleConnect = async () => {
-    const configUrl = getLndConfigFileUrlFromConnectionInput(connectionString)
-    if (!configUrl) {
+    if (!parseLndConnectionInput(connectionString)) {
       toast.error(t('lightning.lndRest.invalidConnectionString'))
       return
     }
 
     setIsConnecting(true)
     try {
-      const config = await fetchLndConfig(configUrl)
+      const config = await resolveLndConfigFromConnectionInput(
+        connectionString
+      )
 
       const baseUrl = config.url.replace(/\/+$/, '')
       const response = await fetch(`${baseUrl}/v1/getinfo`, {
@@ -86,7 +92,7 @@ export default function LNDRestPage() {
 
   const handleContentScanned = (content: DetectedContent) => {
     const scannedData = content.cleaned
-    if (getLndConfigFileUrlFromConnectionInput(scannedData)) {
+    if (parseLndConnectionInput(scannedData)) {
       setConnectionString(scannedData)
       setCameraModalVisible(false)
     } else {
@@ -117,7 +123,19 @@ export default function LNDRestPage() {
       <SSMainLayout style={styles.mainLayout}>
         <SSVStack style={styles.content}>
           <SSText color="muted" style={styles.subtitle}>
-            {t('lightning.lndRest.subtitle')}
+            {isRpcPairing
+              ? t('lightning.lndRest.subtitleRpc')
+              : t('lightning.lndRest.subtitle')}
+          </SSText>
+          <SSText color="muted" size="xs" style={styles.helpText}>
+            {isRpcPairing
+              ? t('lightning.lndRest.helpTextRpc')
+              : t('lightning.lndRest.helpText')}
+          </SSText>
+          <SSText color="muted" size="xs" type="mono" style={styles.helpExample}>
+            {isRpcPairing
+              ? t('lightning.lndRest.helpExampleRpc')
+              : t('lightning.lndRest.helpExample')}
           </SSText>
           <SSVStack style={styles.inputContainer}>
             <TextInput
@@ -189,6 +207,14 @@ const styles = StyleSheet.create({
   },
   headerText: {
     marginBottom: 8
+  },
+  helpExample: {
+    marginBottom: 24,
+    textAlign: 'center'
+  },
+  helpText: {
+    marginBottom: 12,
+    textAlign: 'center'
   },
   inputContainer: {
     gap: 12,
