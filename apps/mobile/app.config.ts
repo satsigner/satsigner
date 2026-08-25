@@ -1,32 +1,22 @@
 import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
+import {
+  APP_VARIANT_PRODUCTION,
+  getVariantAppName,
+  getVariantPackageId,
+  getVariantScheme
+} from './constants/variant.cjs'
+
 const projectId = process.env.EXPO_PROJECT_ID
 
-const IS_DEV = process.env.APP_VARIANT !== 'production'
+const IS_DEV = process.env.APP_VARIANT !== APP_VARIANT_PRODUCTION
+const RAW_SUFFIX = process.env.APP_VARIANT_SUFFIX ?? ''
 
-const getUniqueIdentifier = () => {
-  if (IS_DEV) {
-    return 'com.satsigner.satsigner.dev'
-  }
+const getUniqueIdentifier = () => getVariantPackageId(IS_DEV, RAW_SUFFIX)
 
-  return 'com.satsigner.satsigner'
-}
+const getAppName = () => getVariantAppName(IS_DEV, RAW_SUFFIX)
 
-const getAppName = () => {
-  if (IS_DEV) {
-    return 'satsigner (Dev)'
-  }
-
-  return 'satsigner'
-}
-
-const getScheme = () => {
-  if (IS_DEV) {
-    return 'satsignerdev'
-  }
-
-  return 'satsigner'
-}
+const getScheme = () => getVariantScheme(IS_DEV, RAW_SUFFIX)
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -37,9 +27,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     package: getUniqueIdentifier(),
     permissions: ['NFC']
-  },
-  androidStatusBar: {
-    barStyle: 'light-content'
   },
   assetBundlePatterns: ['**/*'],
   description: 'Privacy-first Bitcoin signer with complete UTXO control',
@@ -59,6 +46,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       NFCReaderUsageDescription:
         'This app uses NFC to read and write data from NFC tags',
+      NSAppTransportSecurity: {
+        NSAllowsLocalNetworking: true
+      },
       UIDesignRequiresCompatibility: true,
       'com.apple.developer.nfc.readersession.formats': ['NDEF', 'TAG']
     },
@@ -104,12 +94,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-build-properties',
       {
+        android: {
+          // Production: HTTPS-only. Dev keeps cleartext for local RPC/LND nodes.
+          usesCleartextTraffic: IS_DEV
+        },
         ios: {
           deploymentTarget: '16.4'
         }
       }
     ],
     'expo-image',
+    [
+      'expo-status-bar',
+      {
+        style: 'light'
+      }
+    ],
     'expo-sharing',
     'expo-web-browser',
     '@secondts/bark-react-native',
@@ -125,7 +125,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: getScheme(),
   slug: 'satsigner',
   userInterfaceStyle: 'dark',
-  version: '0.3.5',
+  version: '0.3.6',
   web: {
     favicon: './assets/favicon.png'
   }

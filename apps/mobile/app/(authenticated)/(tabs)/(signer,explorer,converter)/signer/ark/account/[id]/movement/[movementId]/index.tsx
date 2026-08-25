@@ -2,15 +2,11 @@ import { Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  SSIconIncoming,
-  SSIconIncomingLightning,
-  SSIconOutgoing,
-  SSIconOutgoingLightning,
-  SSIconRefresh
-} from '@/components/icons'
+import SSArkMovementIcon from '@/components/SSArkMovementIcon'
+import SSLabelDetails from '@/components/SSLabelDetails'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import { useArkLabels } from '@/hooks/useArkLabels'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -19,14 +15,14 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import type {
-  ArkMovement,
-  ArkMovementKind,
-  ArkMovementStatus
-} from '@/types/models/Ark'
+import type { ArkMovement } from '@/types/models/Ark'
 import {
   getArkMovementAmountSats,
   getArkMovementKind,
+  getArkMovementKindLabel,
+  getArkMovementLabelRef,
+  getArkMovementStatusColor,
+  getArkMovementStatusLabel,
   isLightningMovement,
   parseArkCounterparty
 } from '@/utils/arkMovement'
@@ -38,66 +34,6 @@ import {
 } from '@/utils/format'
 
 const ICON_SIZE = 28
-
-function getStatusColor(status: ArkMovementStatus | string) {
-  switch (status) {
-    case 'pending':
-      return Colors.warning
-    case 'successful':
-      return Colors.softBarGreen
-    case 'failed':
-    case 'canceled':
-      return Colors.error
-    default:
-      return Colors.gray[400]
-  }
-}
-
-function getStatusLabel(status: ArkMovementStatus | string) {
-  switch (status) {
-    case 'pending':
-      return t('ark.movement.status.pending')
-    case 'successful':
-      return t('ark.movement.status.successful')
-    case 'failed':
-      return t('ark.movement.status.failed')
-    case 'canceled':
-      return t('ark.movement.status.canceled')
-    default:
-      return status.toUpperCase()
-  }
-}
-
-function getKindLabel(kind: ArkMovementKind) {
-  switch (kind) {
-    case 'receive':
-      return t('ark.movement.kind.receive')
-    case 'send':
-      return t('ark.movement.kind.send')
-    case 'refresh':
-      return t('ark.movement.kind.refresh')
-    default:
-      return ''
-  }
-}
-
-function renderDirectionIcon(kind: ArkMovementKind, isLightning: boolean) {
-  if (kind === 'refresh') {
-    return <SSIconRefresh height={ICON_SIZE} width={ICON_SIZE} />
-  }
-  if (kind === 'receive') {
-    return isLightning ? (
-      <SSIconIncomingLightning height={ICON_SIZE} width={ICON_SIZE} />
-    ) : (
-      <SSIconIncoming height={ICON_SIZE} width={ICON_SIZE} />
-    )
-  }
-  return isLightning ? (
-    <SSIconOutgoingLightning height={ICON_SIZE} width={ICON_SIZE} />
-  ) : (
-    <SSIconOutgoing height={ICON_SIZE} width={ICON_SIZE} />
-  )
-}
 
 function formatSignedSats(amount: number) {
   if (amount === 0) {
@@ -173,7 +109,7 @@ function AddressList({ label, values }: AddressListProps) {
   )
 }
 
-function MovementSummary({ movement }: { movement: ArkMovement }) {
+export function MovementSummary({ movement }: { movement: ArkMovement }) {
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
       state.currencyUnit,
@@ -191,7 +127,11 @@ function MovementSummary({ movement }: { movement: ArkMovement }) {
 
   return (
     <SSVStack itemsCenter gap="sm" style={styles.summary}>
-      {renderDirectionIcon(kind, isLightning)}
+      <SSArkMovementIcon
+        kind={kind}
+        isLightning={isLightning}
+        size={ICON_SIZE}
+      />
       <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
         {privacyMode ? (
           <SSText size="4xl" weight="ultralight" style={{ letterSpacing: -1 }}>
@@ -228,9 +168,9 @@ function MovementSummary({ movement }: { movement: ArkMovement }) {
       <SSText
         uppercase
         size="xs"
-        style={{ color: getStatusColor(movement.status) }}
+        style={{ color: getArkMovementStatusColor(movement.status) }}
       >
-        {getStatusLabel(movement.status)}
+        {getArkMovementStatusLabel(movement.status)}
       </SSText>
     </SSVStack>
   )
@@ -242,11 +182,16 @@ export default function ArkMovementDetailPage() {
     movementId: string
   }>()
   const movementsQuery = useArkMovements(id)
+  const labelsQuery = useArkLabels(id)
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const numericMovementId = Number(movementId)
   const movement = movementsQuery.data?.find(
     (item) => item.id === numericMovementId
   )
+  const movementLabel = movement
+    ? (labelsQuery.data?.[getArkMovementLabelRef(movement)]?.label ?? '')
+    : ''
 
   const satsUnit = t('bitcoin.sats')
 
@@ -271,15 +216,23 @@ export default function ArkMovementDetailPage() {
         <ScrollView>
           <SSVStack gap="lg" style={styles.container}>
             <MovementSummary movement={movement} />
+            <SSLabelDetails
+              label={movementLabel}
+              link={`/signer/ark/account/${id}/movement/${movementId}/label`}
+              header={t('transaction.label')}
+              privacyMode={privacyMode}
+            />
             <SSVStack gap="none" style={styles.section}>
               <DetailRow
                 label={t('ark.movement.detail.kind')}
-                value={getKindLabel(getArkMovementKind(movement))}
+                value={getArkMovementKindLabel(getArkMovementKind(movement))}
               />
               <DetailRow
                 label={t('ark.movement.detail.status')}
-                value={getStatusLabel(movement.status)}
-                valueStyle={{ color: getStatusColor(movement.status) }}
+                value={getArkMovementStatusLabel(movement.status)}
+                valueStyle={{
+                  color: getArkMovementStatusColor(movement.status)
+                }}
               />
               <DetailRow
                 label={t('ark.movement.detail.subsystem')}

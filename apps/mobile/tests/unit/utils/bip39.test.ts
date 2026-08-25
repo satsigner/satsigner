@@ -183,11 +183,11 @@ describe('bip39 utils', () => {
     }
   })
 
-  it('gets descriptor from mnemonic', () => {
+  it('gets descriptor from mnemonic', async () => {
     for (const test of descriptorTests) {
       const [[mnemonic, passphrase, network, scriptVersion], actualDescriptor] =
         test
-      const result = getPublicDescriptorFromMnemonic(
+      const result = await getPublicDescriptorFromMnemonic(
         mnemonic,
         scriptVersion as ScriptVersionType,
         KeychainKind.External,
@@ -428,6 +428,21 @@ describe('electrum seed utils', () => {
       expect(Buffer.from(seed).toString('hex')).not.toBe(
         Buffer.from(seedWithPass).toString('hex')
       )
+    })
+  })
+
+  describe('getPublicDescriptorFromMnemonic electrum', () => {
+    it('does not throw InvalidMnemonic for an Electrum segwit seed', async () => {
+      const descriptor = await getPublicDescriptorFromMnemonic(
+        electrumSegwitMnemonic,
+        'P2WPKH',
+        KeychainKind.External,
+        undefined,
+        BdkNetwork.Bitcoin
+      )
+      expect(descriptor).toMatch(/^wpkh\(\[e30a0cd1\/0'\]/)
+      expect(descriptor).toMatch(/[xty]pub/)
+      expect(descriptor).not.toMatch(/xprv|tprv|yprv|zprv/)
     })
   })
 })

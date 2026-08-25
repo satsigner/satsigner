@@ -23,6 +23,7 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
+import { Psbt } from 'react-native-bdk-sdk'
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -40,9 +41,12 @@ import {
   SSIconChartSettings,
   SSIconChatBubble,
   SSIconCollapse,
+  SSIconExclude,
   SSIconExpand,
   SSIconEyeOn,
+  SSIconFilter,
   SSIconHistoryChart,
+  SSIconIncoming,
   SSIconKeys,
   SSIconList,
   SSIconMenu,
@@ -72,16 +76,20 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import SSUtxoListControlsModal from '@/components/SSUtxoListControlsModal'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_HIT_BOX
 } from '@/constants/headerChrome'
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
+import { useFiatData } from '@/hooks/useFiatData'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useNostrSync from '@/hooks/useNostrSync'
+import { useNow } from '@/hooks/useNow'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
@@ -91,33 +99,277 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { useUtxoListControlsStore } from '@/store/utxoListControls'
 import { Colors, Sizes } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type PayjoinSession } from '@/types/payjoin'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatRelativeTime } from '@/utils/date'
+import { getDraftIoCounts } from '@/utils/draftSelection'
+import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import {
+  formatAddress,
+  formatDate,
+  formatFiatPrice,
+  formatNumber
+} from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
-import { compareTimestamp, sortTransactions } from '@/utils/sort'
+import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
+import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
+import { parsePayjoinUri } from '@/utils/payjoinUri'
+import {
+  createScanThroughputTracker,
+  formatBlocksPerSec,
+  formatScanDuration
+} from '@/utils/scanThroughput'
+import { sortTransactions, type TransactionSortField } from '@/utils/sort'
 import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import {
+  DEFAULT_UTXO_LIST_FILTER,
+  isUtxoExcluded,
+  prepareUtxoList,
+  type UtxoKeychainFilter,
+  type UtxoLabelFilter,
+  type UtxoListFilter,
+  type UtxoScriptFilter,
+  type UtxoSortField,
+  type UtxoTagFilter
+} from '@/utils/utxoList'
+import {
+  groupDisplayTitle,
+  UTXO_SORT_FIELDS,
+  utxoSortFieldLabel
+} from '@/utils/utxoListUi'
+import {
+  annotateTransactionsWithWalletOwnership,
+  getTransactionRunningBalances
+} from '@/utils/walletOwnership'
+
+// Render further beyond the viewport so fast scrolls hit fewer blank cells.
+const TX_LIST_DRAW_DISTANCE = 500
 
 const TX_STAGGER_DELAY_MS = 70
 const TX_STAGGER_DURATION_MS = 320
+// Only the first screenful gets the intro fade; rows scrolled into view later
+// (or recycled by FlashList) render instantly instead of waiting out a delay.
+const MAX_STAGGERED_ITEMS = 8
+
+const ACTIVE_PAYJOIN_STATUSES = new Set([
+  'ready',
+  'waiting',
+  'negotiating',
+  'initializing',
+  'proposal_received',
+  'finalizing',
+  // Keep receive cards after proposal POST until the payjoin tx is in the
+  // wallet (mempool/confirmed) or the user discards the session.
+  'completed'
+])
+
+function payjoinSessionAmountSats(session: PayjoinSession): number {
+  if (session.amountSats !== undefined && session.amountSats > 0) {
+    return session.amountSats
+  }
+  const parsed = parsePayjoinUri(session.uri)
+  if (parsed.params?.amountBtc !== undefined && parsed.params.amountBtc > 0) {
+    return Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
+  }
+  return 0
+}
+
+function payjoinSessionStatusLabel(session: PayjoinSession): string {
+  if (session.role === 'sender') {
+    if (session.status === 'negotiating') {
+      return t('receive.payjoin.status.negotiating')
+    }
+    return t('transaction.build.payjoin.waitingReceiver')
+  }
+  if (
+    session.status === 'negotiating' ||
+    session.status === 'proposal_received' ||
+    session.status === 'finalizing'
+  ) {
+    return t('receive.payjoin.status.negotiating')
+  }
+  if (isPayjoinSuccess(session.status)) {
+    return t('receive.payjoin.status.completed')
+  }
+  return t('receive.payjoin.status.waiting')
+}
+
+function PayjoinSessionCard({
+  accountId,
+  session
+}: {
+  accountId: string
+  session: PayjoinSession
+}) {
+  const router = useRouter()
+  const removeSession = usePayjoinSessionsStore((state) => state.removeSession)
+  const [setAccountId, setPayjoinUri, setPsbt] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.setAccountId,
+      state.setPayjoinUri,
+      state.setPsbt
+    ])
+  )
+  const [btcPrice, fiatCurrency] = usePriceStore(
+    useShallow((state) => [state.btcPrice, state.fiatCurrency])
+  )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const { showCurrentFiat } = useFiatData()
+  const nowMs = useNow()
+
+  const amountSats = payjoinSessionAmountSats(session)
+  const pollUrl = session.pjEndpoint
+    ? session.pjEndpoint.split('#')[0]
+    : undefined
+  const currentFiatPrice =
+    showCurrentFiat && btcPrice && btcPrice > 0 && amountSats > 0
+      ? formatFiatPrice(amountSats, btcPrice)
+      : ''
+  const isSender = session.role === 'sender'
+  const expiringLabel = formatPayjoinExpiringLabel(session.expiresAt, nowMs)
+
+  function handleOpenSession() {
+    if (!isSender) {
+      router.navigate(`/signer/bitcoin/account/${accountId}/receive`)
+      return
+    }
+    setAccountId(accountId)
+    if (session.uri) {
+      setPayjoinUri(session.uri)
+    }
+    if (session.originalPsbtBase64) {
+      setPsbt(new Psbt(session.originalPsbtBase64))
+      router.navigate(
+        `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
+      )
+      return
+    }
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview`
+    )
+  }
+
+  function handleDiscardSession() {
+    removeSession(session.id)
+  }
+
+  return (
+    <TouchableOpacity onPress={handleOpenSession} activeOpacity={0.7}>
+      <SSVStack
+        gap="none"
+        style={{
+          opacity: 0.85,
+          paddingBottom: 8,
+          paddingHorizontal: 0,
+          paddingTop: 2
+        }}
+      >
+        <SSHStack justifyBetween style={{ alignItems: 'center' }}>
+          <SSHStack gap="xs" style={{ alignItems: 'center', flexShrink: 1 }}>
+            <SSText color="muted" size="xs">
+              {isSender
+                ? t('transaction.payjoin.send')
+                : t('transaction.payjoin.receive')}
+            </SSText>
+            {expiringLabel ? (
+              <SSText testID="payjoin-session-expiring" size="xs" color="muted">
+                · {expiringLabel}
+              </SSText>
+            ) : null}
+          </SSHStack>
+          <SSText size="xs" style={{ color: Colors.warning }}>
+            {payjoinSessionStatusLabel(session)}
+          </SSText>
+        </SSHStack>
+        <SSVStack gap="none" style={{ marginTop: 2 }}>
+          <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+            {isSender ? (
+              <SSIconOutgoing height={18} width={18} />
+            ) : (
+              <SSIconIncoming height={18} width={18} />
+            )}
+            <SSText
+              size="4xl"
+              weight="light"
+              style={{
+                color: Colors.gray[400],
+                letterSpacing: -0.5,
+                lineHeight: Sizes.text.fontSize['4xl']
+              }}
+            >
+              {privacyMode
+                ? '••••'
+                : amountSats > 0
+                  ? amountSats.toLocaleString()
+                  : '--'}
+            </SSText>
+            <SSText color="muted" size="sm">
+              {t('bitcoin.sats')}
+            </SSText>
+          </SSHStack>
+          {currentFiatPrice !== '' ? (
+            <SSHStack gap="xs" style={{ height: 18, marginTop: 0 }}>
+              <SSText style={{ color: Colors.gray[400] }} size="sm">
+                {privacyMode ? '••••' : currentFiatPrice}
+              </SSText>
+              <SSText style={{ color: Colors.gray[500] }} size="sm">
+                {fiatCurrency}
+              </SSText>
+            </SSHStack>
+          ) : null}
+        </SSVStack>
+        <SSHStack justifyBetween style={{ marginTop: 2 }}>
+          <SSText
+            size="xs"
+            color="muted"
+            style={{ flex: 1, paddingRight: 8 }}
+            numberOfLines={1}
+          >
+            {pollUrl ?? session.address}
+          </SSText>
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation()
+              handleDiscardSession()
+            }}
+            hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
+          >
+            <SSText size="xs" style={{ color: Colors.gray[500] }}>
+              {t('transaction.discard')}
+            </SSText>
+          </TouchableOpacity>
+        </SSHStack>
+      </SSVStack>
+    </TouchableOpacity>
+  )
+}
 
 function DraftTransactionCard({ accountId }: { accountId: string }) {
   const router = useRouter()
   const [drafts, clearTransaction] = useTransactionBuilderStore(
     useShallow((state) => [state.drafts, state.clearTransaction])
   )
+  const [btcPrice, fiatCurrency] = usePriceStore(
+    useShallow((state) => [state.btcPrice, state.fiatCurrency])
+  )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const { showCurrentFiat } = useFiatData()
 
   const draft = drafts[accountId]
-  const inputCount = Object.keys(draft?.inputs ?? {}).length
+  const readyToBroadcast = !!draft?.signedTx
+  const { inputCount, outputCount } = getDraftIoCounts(draft)
   const outputs = draft?.outputs ?? []
   const fee = draft?.fee ?? 0
   const totalOut = outputs.reduce((sum, o) => sum + o.amount, 0)
@@ -126,15 +378,21 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
       ? t('transaction.input.singular')
       : t('transaction.input.plural')
   const outputLabel =
-    outputs.length === 1
+    outputCount === 1
       ? t('transaction.output.singular')
       : t('transaction.output.plural')
+  const currentFiatPrice =
+    showCurrentFiat && btcPrice && btcPrice > 0 && totalOut > 0
+      ? formatFiatPrice(totalOut, btcPrice)
+      : ''
 
   return (
     <TouchableOpacity
       onPress={() =>
         router.navigate(
-          `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview`
+          readyToBroadcast
+            ? `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
+            : `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview`
         )
       }
       activeOpacity={0.7}
@@ -143,9 +401,9 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
         gap="none"
         style={{
           opacity: 0.85,
-          paddingBottom: 12,
+          paddingBottom: 8,
           paddingHorizontal: 0,
-          paddingTop: 4
+          paddingTop: 2
         }}
       >
         <SSHStack justifyBetween>
@@ -153,32 +411,49 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
             {t('transaction.draft')}
           </SSText>
           <SSText size="xs" style={{ color: Colors.warning }}>
-            {t('transaction.unsent')}
+            {readyToBroadcast
+              ? t('transaction.readyToBroadcast')
+              : t('transaction.unsent')}
           </SSText>
         </SSHStack>
-        <SSHStack
-          justifyBetween
-          style={{ alignItems: 'flex-end', marginTop: 5 }}
-        >
+        <SSVStack gap="none" style={{ marginTop: 2 }}>
           <SSHStack gap="sm" style={{ alignItems: 'center' }}>
-            <SSIconOutgoing height={21} width={21} />
+            <SSIconOutgoing height={18} width={18} />
             <SSText
               size="4xl"
               weight="light"
-              style={{ color: Colors.gray[400] }}
+              style={{
+                color: Colors.gray[400],
+                letterSpacing: -0.5,
+                lineHeight: Sizes.text.fontSize['4xl']
+              }}
             >
-              {totalOut > 0 ? totalOut.toLocaleString() : '--'}
+              {privacyMode
+                ? '••••'
+                : totalOut > 0
+                  ? totalOut.toLocaleString()
+                  : '--'}
             </SSText>
             <SSText color="muted" size="sm">
               {t('bitcoin.sats')}
             </SSText>
           </SSHStack>
-        </SSHStack>
+          {currentFiatPrice !== '' ? (
+            <SSHStack gap="xs" style={{ height: 18, marginTop: 0 }}>
+              <SSText style={{ color: Colors.gray[400] }} size="sm">
+                {privacyMode ? '••••' : currentFiatPrice}
+              </SSText>
+              <SSText style={{ color: Colors.gray[500] }} size="sm">
+                {fiatCurrency}
+              </SSText>
+            </SSHStack>
+          ) : null}
+        </SSVStack>
         <SSHStack justifyBetween style={{ marginTop: 2 }}>
           <SSText size="xs" color="muted">
             {inputCount} {inputLabel}
-            {outputs.length > 0 ? `, ${outputs.length} ${outputLabel}` : ''}
-            {fee > 0 ? `, ${fee.toLocaleString()} ${t('transaction.fee')}` : ''}
+            {outputCount > 0 ? `, ${outputCount} ${outputLabel}` : ''}
+            {fee > 0 ? `, ${fee.toLocaleString()} ${t('bitcoin.sats')}` : ''}
           </SSText>
           <TouchableOpacity
             onPress={(e) => {
@@ -204,10 +479,16 @@ function TransactionStaggerItem({
   index: number
   children: React.ReactNode
 }) {
-  const opacity = useSharedValue(0)
-  const translateY = useSharedValue(12)
+  const shouldAnimate = index < MAX_STAGGERED_ITEMS
+  const opacity = useSharedValue(shouldAnimate ? 0 : 1)
+  const translateY = useSharedValue(shouldAnimate ? 12 : 0)
 
   useEffect(() => {
+    if (!shouldAnimate) {
+      opacity.set(1)
+      translateY.set(0)
+      return
+    }
     const delay = index * TX_STAGGER_DELAY_MS
     opacity.set(
       withDelay(
@@ -227,7 +508,7 @@ function TransactionStaggerItem({
         })
       )
     )
-  }, [index, opacity, translateY])
+  }, [shouldAnimate, index, opacity, translateY])
 
   const staggerStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -240,76 +521,297 @@ function TransactionStaggerItem({
 type TotalTransactionsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
+  handleOnForceRescan: () => Promise<void>
   handleOnExpand: (state: boolean) => void
   expand: boolean
-  setSortDirection: Dispatch<React.SetStateAction<Direction>>
   refreshing: boolean
-  sortDirection: Direction
   blockchainHeight: number
+  syncStatus?: Account['syncStatus']
+  tasksDone?: number
+  totalTasks?: number
+  transactionsFound?: number
+  currentBlockTimeSec?: number
+  scanFromTimeSec?: number
+}
+
+function syncProgressLabel(tasksDone?: number, totalTasks?: number): string {
+  if (tasksDone === undefined || totalTasks === undefined || totalTasks === 0) {
+    return t('account.syncing')
+  }
+  const pct = Math.min(100, Math.round((tasksDone / totalTasks) * 100))
+  return t('account.syncProgressBlocks', {
+    current: tasksDone.toLocaleString(),
+    pct,
+    tip: totalTasks.toLocaleString()
+  })
+}
+
+/** Toolbar title when idle — replaces static "Account activity". */
+function lastSyncedLabel(
+  lastSyncedAt: Account['lastSyncedAt'],
+  nowMs: number
+): string {
+  if (!lastSyncedAt) {
+    return t('account.sync.status.unsynced')
+  }
+  const syncedMs =
+    lastSyncedAt instanceof Date
+      ? lastSyncedAt.getTime()
+      : new Date(lastSyncedAt).getTime()
+  if (isNaN(syncedMs) || syncedMs > nowMs + 60_000) {
+    return t('account.sync.status.unsynced')
+  }
+  // formatRelativeTime wraps chart labels in parentheses — strip for prose.
+  const relative = formatRelativeTime(Math.floor(syncedMs / 1000)).replace(
+    /^\(|\)$/g,
+    ''
+  )
+  return t('account.lastSynced', { time: relative })
+}
+
+function SyncScanStats({
+  syncStatus,
+  tasksDone,
+  totalTasks,
+  transactionsFound,
+  currentBlockTimeSec,
+  scanFromTimeSec
+}: {
+  syncStatus?: Account['syncStatus']
+  tasksDone?: number
+  totalTasks?: number
+  transactionsFound?: number
+  currentBlockTimeSec?: number
+  scanFromTimeSec?: number
+}) {
+  const trackerRef = useRef(createScanThroughputTracker())
+  const [throughput, setThroughput] = useState({
+    blocksPerSec: null as number | null,
+    etaSeconds: null as number | null,
+    pct: 0
+  })
+
+  const isSyncing = syncStatus === 'syncing'
+  const hasBlockProgress =
+    tasksDone !== undefined && totalTasks !== undefined && totalTasks > 0
+  // Full-history / first scan emits birthday→tip date metadata. Incremental
+  // catch-ups only get the blocks/% line.
+  const isInitialScan =
+    currentBlockTimeSec !== undefined && scanFromTimeSec !== undefined
+
+  useEffect(() => {
+    setThroughput(
+      trackerRef.current.update(
+        hasBlockProgress ? tasksDone : undefined,
+        hasBlockProgress ? totalTasks : undefined,
+        isSyncing && isInitialScan
+      )
+    )
+  }, [hasBlockProgress, isInitialScan, isSyncing, tasksDone, totalTasks])
+
+  // Primary sync / last-synced copy lives in the toolbar title. This block only
+  // adds initial-scan extras so the list does not jump for normal catch-ups.
+  if (!isSyncing || !isInitialScan) {
+    return null
+  }
+
+  const rateLabel =
+    throughput.blocksPerSec !== null
+      ? t('account.syncBlocksPerSec', {
+          rate: formatBlocksPerSec(throughput.blocksPerSec)
+        })
+      : null
+  const etaLabel =
+    throughput.etaSeconds !== null
+      ? t('account.syncEta', {
+          eta: formatScanDuration(throughput.etaSeconds)
+        })
+      : hasBlockProgress
+        ? t('account.syncEtaCalculating')
+        : null
+
+  const scanRangeLabel = t('account.syncScanRange', {
+    current: formatDate(currentBlockTimeSec * 1000),
+    from: formatDate(scanFromTimeSec * 1000)
+  })
+
+  const txFoundLabel =
+    transactionsFound !== undefined
+      ? t('account.syncTransactionsFound', {
+          count: transactionsFound
+        })
+      : null
+
+  return (
+    <SSVStack gap="xs" style={styles.syncStats}>
+      <SSText center size="xs" color="muted">
+        {scanRangeLabel}
+      </SSText>
+      {rateLabel || etaLabel || txFoundLabel ? (
+        <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+          {txFoundLabel ? (
+            <SSText center size="xs" color="muted">
+              {txFoundLabel}
+            </SSText>
+          ) : null}
+          {txFoundLabel && (rateLabel || etaLabel) ? (
+            <SSText center size="xs" color="muted">
+              ·
+            </SSText>
+          ) : null}
+          {rateLabel ? (
+            <SSText center size="xs" color="muted">
+              {rateLabel}
+            </SSText>
+          ) : null}
+          {rateLabel && etaLabel ? (
+            <SSText center size="xs" color="muted">
+              ·
+            </SSText>
+          ) : null}
+          {etaLabel ? (
+            <SSText center size="xs" color="muted">
+              {etaLabel}
+            </SSText>
+          ) : null}
+        </SSHStack>
+      ) : null}
+      {hasBlockProgress ? (
+        <View style={styles.syncProgressTrack}>
+          <View
+            style={[styles.syncProgressFill, { width: `${throughput.pct}%` }]}
+          />
+        </View>
+      ) : null}
+    </SSVStack>
+  )
 }
 
 function TotalTransactions({
   account,
   handleOnRefresh,
+  handleOnForceRescan,
   handleOnExpand,
   expand,
-  setSortDirection,
   refreshing,
   blockchainHeight,
-  sortDirection
+  syncStatus,
+  tasksDone,
+  totalTasks,
+  transactionsFound,
+  currentBlockTimeSec,
+  scanFromTimeSec
 }: TotalTransactionsProps) {
   const { width } = useWindowDimensions()
   const horizontalPaddingPx = width * 0.06
+  const [sortField, setSortField] = useState<TransactionSortField>('date')
+  const [sortDirection, setSortDirection] = useState<Direction>('desc')
 
   const drafts = useTransactionBuilderStore((state) => state.drafts)
+  const payjoinSessions = usePayjoinSessionsStore((state) => state.sessions)
 
   const savedDraft = drafts[account.id]
   const hasDraft =
     savedDraft !== undefined &&
     (Object.keys(savedDraft.inputs).length > 0 || savedDraft.outputs.length > 0)
+  const activePayjoinSessions = useMemo(() => {
+    const now = Date.now()
+    return payjoinSessions.filter(
+      (session) =>
+        session.accountId === account.id &&
+        session.expiresAt > now &&
+        ACTIVE_PAYJOIN_STATUSES.has(session.status) &&
+        // Sender completed strips nativeState — hide those. Receiver completed
+        // stays visible until mempool sync or discard.
+        (session.role === 'receiver' || !!session.nativeState)
+    )
+  }, [account.id, payjoinSessions])
+
+  // Drop completed receive cards once the payjoin tx shows up in the wallet
+  // (typically after the sender broadcasts and we sync / see mempool).
+  useEffect(() => {
+    const knownTxIds = new Set(account.transactions.map((tx) => tx.id))
+    const { removeSession } = usePayjoinSessionsStore.getState()
+    for (const session of activePayjoinSessions) {
+      if (
+        session.role === 'receiver' &&
+        session.status === 'completed' &&
+        session.txid &&
+        knownTxIds.has(session.txid)
+      ) {
+        removeSession(session.id)
+      }
+    }
+  }, [account.transactions, activePayjoinSessions])
+  // Sender waiting already owns the in-progress send (PSBT + mailbox). Showing
+  // the transaction-builder draft beside it duplicates the same payment.
+  const hasActiveSenderPayjoin = activePayjoinSessions.some(
+    (session) => session.role === 'sender'
+  )
+  const showDraft = hasDraft && !hasActiveSenderPayjoin
+  const hasActivityHeader = showDraft || activePayjoinSessions.length > 0
   const router = useRouter()
 
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
 
+  const annotatedTransactions = useMemo(
+    () =>
+      annotateTransactionsWithWalletOwnership(
+        [...account.transactions],
+        account.addresses,
+        account.utxos
+      ),
+    [account.addresses, account.transactions, account.utxos]
+  )
+
   const sortedTransactions = useMemo(
-    () => sortTransactions([...account.transactions], sortDirection),
-    [account.transactions, sortDirection]
+    () => sortTransactions(annotatedTransactions, sortDirection, sortField),
+    [annotatedTransactions, sortDirection, sortField]
   )
 
   const chartTransactions = useMemo(
-    () => sortTransactions([...account.transactions], 'desc'),
-    [account.transactions]
+    () => sortTransactions(annotatedTransactions, 'asc', 'date'),
+    [annotatedTransactions]
   )
 
-  const transactionBalances = useMemo(() => {
-    let balance = 0
-    const balances = sortedTransactions.map((tx) => {
-      const received = tx.received || 0
-      const sent = tx.sent || 0
-      balance = balance + received - sent
-      return balance
-    })
+  function handleTransactionSortChanged(
+    field: TransactionSortField,
+    direction: Direction
+  ) {
+    setSortField(field)
+    setSortDirection(direction)
+  }
 
-    return balances.toReversed()
-  }, [sortedTransactions])
+  const balanceByTxId = useMemo(
+    () => getTransactionRunningBalances(annotatedTransactions),
+    [annotatedTransactions]
+  )
 
   const maxBalance = useMemo(() => {
-    if (transactionBalances.length === 0) {
+    if (balanceByTxId.size === 0) {
       return 0
     }
-    return Math.max(...transactionBalances)
-  }, [transactionBalances])
+    return Math.max(...balanceByTxId.values())
+  }, [balanceByTxId])
 
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
+  const nowMs = useNow()
+  const isSyncing = syncStatus === 'syncing'
+  const activityTitle = isSyncing
+    ? syncProgressLabel(tasksDone, totalTasks)
+    : lastSyncedLabel(account.lastSyncedAt, nowMs)
 
   return (
     <View style={{ flex: 1, paddingHorizontal: '6%' }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSHStack>
-          <SSIconButton onPress={() => handleOnRefresh()}>
-            <SSIconRefresh height={18} width={22} />
+          <SSIconButton
+            onPress={() => handleOnRefresh()}
+            onLongPress={() => handleOnForceRescan()}
+          >
+            <SSIconRefresh height={16} width={19} />
           </SSIconButton>
           <SSIconButton onPress={() => handleOnExpand(!expand)}>
             {expand ? (
@@ -320,13 +822,26 @@ function TotalTransactions({
           </SSIconButton>
           {showHistoryChart && (
             <SSIconButton
-              onPress={() => router.navigate(`/settings/features/historyChart`)}
+              onPress={() => router.navigate(`/settings/features/charts`)}
             >
               <SSIconChartSettings width={22} height={18} />
             </SSIconButton>
           )}
         </SSHStack>
-        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
+        <SSHStack
+          gap="sm"
+          style={{
+            alignItems: 'center',
+            flexShrink: 1,
+            justifyContent: 'center',
+            minHeight: 18
+          }}
+        >
+          {isSyncing ? <SSLoader size={18} /> : null}
+          <SSText color="muted" size="xs" center numberOfLines={1}>
+            {activityTitle}
+          </SSText>
+        </SSHStack>
         <SSHStack>
           <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
             {showHistoryChart ? (
@@ -335,10 +850,36 @@ function TotalTransactions({
               <SSIconHistoryChart width={18} height={18} />
             )}
           </SSIconButton>
-          <SSSortDirectionToggle
-            onDirectionChanged={(direction) => setSortDirection(direction)}
-          />
         </SSHStack>
+      </SSHStack>
+      <SyncScanStats
+        syncStatus={syncStatus}
+        tasksDone={tasksDone}
+        totalTasks={totalTasks}
+        transactionsFound={transactionsFound}
+        currentBlockTimeSec={currentBlockTimeSec}
+        scanFromTimeSec={scanFromTimeSec}
+      />
+      <SSHStack
+        gap="sm"
+        style={{
+          alignItems: 'center',
+          borderBottomColor: Colors.gray[900],
+          borderBottomWidth: 1,
+          justifyContent: 'flex-end',
+          paddingBottom: 8
+        }}
+      >
+        {UTXO_SORT_FIELDS.map((field) => (
+          <SSSortDirectionToggle
+            key={field}
+            label={utxoSortFieldLabel(field)}
+            active={sortField === field}
+            onDirectionChanged={(direction) =>
+              handleTransactionSortChanged(field, direction)
+            }
+          />
+        ))}
       </SSHStack>
       {showHistoryChart && sortedTransactions.length > 0 ? (
         <View
@@ -358,17 +899,27 @@ function TotalTransactions({
         <SSVStack
           style={{
             flex: 1,
-            height: 400,
             minHeight: 200
           }}
           gap={expand ? 'sm' : 'md'}
         >
           <View style={styles.listWithLoader}>
             <FlashList
-              data={sortedTransactions.toReversed()}
+              data={sortedTransactions}
               ListHeaderComponent={
-                hasDraft ? (
-                  <DraftTransactionCard accountId={account.id} />
+                hasActivityHeader ? (
+                  <SSVStack gap="sm">
+                    {showDraft ? (
+                      <DraftTransactionCard accountId={account.id} />
+                    ) : null}
+                    {activePayjoinSessions.map((session) => (
+                      <PayjoinSessionCard
+                        key={session.id}
+                        accountId={account.id}
+                        session={session}
+                      />
+                    ))}
+                  </SSVStack>
                 ) : null
               }
               renderItem={({ item, index }) => (
@@ -376,7 +927,7 @@ function TotalTransactions({
                   <SSVStack gap="none">
                     <SSBalanceChangeBar
                       transaction={item}
-                      balance={transactionBalances[index]}
+                      balance={balanceByTxId.get(item.id)}
                       maxBalance={maxBalance}
                     />
                     <SSTransactionCard
@@ -384,7 +935,7 @@ function TotalTransactions({
                       fiatCurrency={fiatCurrency}
                       transaction={item}
                       expand={expand}
-                      walletBalance={transactionBalances[index]}
+                      walletBalance={balanceByTxId.get(item.id)}
                       blockHeight={blockchainHeight}
                       link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
                     />
@@ -396,6 +947,7 @@ function TotalTransactions({
                   <SSText color="muted">No transactions</SSText>
                 </SSVStack>
               }
+              drawDistance={TX_LIST_DRAW_DISTANCE}
               keyExtractor={(item) => item.id}
               refreshControl={
                 <RefreshControl
@@ -408,11 +960,11 @@ function TotalTransactions({
                 />
               }
             />
-            {refreshing && (
+            {refreshing && syncStatus !== 'syncing' ? (
               <View style={styles.loaderOverlay} pointerEvents="none">
                 <SSLoader size={32} />
               </View>
-            )}
+            ) : null}
           </View>
         </SSVStack>
       )}
@@ -788,7 +1340,7 @@ function DerivedAddresses({
       <SSHStack justifyBetween style={addressListStyles.header}>
         <SSHStack>
           <SSIconButton onPress={refreshAddresses}>
-            <SSIconRefresh height={18} width={22} />
+            <SSIconRefresh height={16} width={19} />
           </SSIconButton>
           <SSIconButton onPress={() => handleOnExpand(!expand)}>
             {expand ? (
@@ -803,9 +1355,9 @@ function DerivedAddresses({
             }
           >
             {addressView === 'table' ? (
-              <SSIconList height={15} width={15} />
+              <SSIconList height={14} width={14} />
             ) : (
-              <SSIconTable height={15} width={15} />
+              <SSIconTable height={14} width={14} />
             )}
           </SSIconButton>
         </SSHStack>
@@ -895,26 +1447,53 @@ function DerivedAddresses({
 type SpendableOutputsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
+  handleOnForceRescan: () => Promise<void>
   handleOnExpand: (state: boolean) => void
   expand: boolean
-  setSortDirection: Dispatch<React.SetStateAction<Direction>>
   refreshing: boolean
-  sortUtxos: (utxos: Utxo[]) => Utxo[]
+  syncStatus?: Account['syncStatus']
+  tasksDone?: number
+  totalTasks?: number
+  transactionsFound?: number
+  currentBlockTimeSec?: number
+  scanFromTimeSec?: number
 }
+
+type SpendableOutputListRow =
+  | { key: string; type: 'header'; title: string }
+  | { key: string; type: 'utxo'; utxo: Utxo }
 
 function SpendableOutputs({
   account,
   handleOnRefresh,
-  setSortDirection,
+  handleOnForceRescan,
   handleOnExpand,
   expand,
   refreshing,
-  sortUtxos
+  syncStatus,
+  tasksDone,
+  totalTasks,
+  transactionsFound,
+  currentBlockTimeSec,
+  scanFromTimeSec
 }: SpendableOutputsProps) {
   const router = useRouter()
   const { width, height } = useWindowDimensions()
+  const nowMs = useNow()
 
   const [view, setView] = useState('list')
+  const [filter, setFilter] = useState<UtxoListFilter>(DEFAULT_UTXO_LIST_FILTER)
+  const [controlsModalVisible, setControlsModalVisible] = useState(false)
+  const [groupMode, sortField, sortDirection, setGroupMode, setSort] =
+    useUtxoListControlsStore(
+      useShallow((state) => [
+        state.groupMode,
+        state.sortField,
+        state.sortDirection,
+        state.setGroupMode,
+        state.setSort
+      ])
+    )
 
   const halfHeight = height / 2
   // Matches styles/layout.ts mainContainer.paddingHorizontal ('6%')
@@ -922,21 +1501,83 @@ function SpendableOutputs({
   const GRAPH_HEIGHT = halfHeight
   const GRAPH_WIDTH = width
 
-  const totalBalance = useMemo(
-    () => account.utxos.reduce((sum, u) => sum + u.value, 0),
-    [account.utxos]
-  )
+  const totalBalance = account.utxos.reduce((sum, u) => sum + u.value, 0)
+  const excludedOutpoints = account.excludedUtxoOutpoints ?? []
+  const excludedCount = excludedOutpoints.length
+  const isSyncing = syncStatus === 'syncing'
+  const activityTitle = isSyncing
+    ? syncProgressLabel(tasksDone, totalTasks)
+    : lastSyncedLabel(account.lastSyncedAt, nowMs)
+
+  const groups = prepareUtxoList({
+    excludedOutpoints,
+    filter,
+    groupMode,
+    hideExcluded: false,
+    sortDirection,
+    sortField,
+    utxos: account.utxos
+  })
+
+  const listRows: SpendableOutputListRow[] = []
+  for (const group of groups) {
+    if (groupMode !== 'none') {
+      listRows.push({
+        key: `header:${group.key}`,
+        title: groupDisplayTitle(groupMode, group.key, group.title),
+        type: 'header'
+      })
+    }
+    for (const utxo of group.utxos) {
+      listRows.push({
+        key: getUtxoOutpoint(utxo),
+        type: 'utxo',
+        utxo
+      })
+    }
+  }
+
+  const visibleUtxos = groups.flatMap((group) => group.utxos)
+
+  const controlsActive =
+    filter.keychain !== 'all' ||
+    filter.label !== 'all' ||
+    filter.script !== 'all' ||
+    filter.tag !== 'all' ||
+    groupMode !== 'none'
+
+  function handleOnDirectionChanged(
+    field: UtxoSortField,
+    direction: Direction
+  ) {
+    setSort(field, direction)
+  }
+
+  function setKeychainFilter(keychain: UtxoKeychainFilter) {
+    setFilter((prev) => ({ ...prev, keychain }))
+  }
+
+  function setLabelFilter(label: UtxoLabelFilter) {
+    setFilter((prev) => ({ ...prev, label }))
+  }
+
+  function setTagFilter(tag: UtxoTagFilter) {
+    setFilter((prev) => ({ ...prev, tag }))
+  }
+
+  function setScriptFilter(script: UtxoScriptFilter) {
+    setFilter((prev) => ({ ...prev, script }))
+  }
 
   return (
     <View style={{ flex: 1, paddingHorizontal: '6%', paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSHStack>
           <SSIconButton
-            onPress={() => {
-              /* TODO */
-            }}
+            onPress={() => handleOnRefresh()}
+            onLongPress={() => handleOnForceRescan()}
           >
-            <SSIconRefresh height={18} width={22} />
+            <SSIconRefresh height={16} width={19} />
           </SSIconButton>
           <SSIconButton onPress={() => handleOnExpand(!expand)}>
             {expand ? (
@@ -946,70 +1587,167 @@ function SpendableOutputs({
             )}
           </SSIconButton>
         </SSHStack>
-        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
-        <SSHStack>
-          {view === 'list' && (
+        <SSHStack
+          gap="sm"
+          style={{
+            alignItems: 'center',
+            flexShrink: 1,
+            justifyContent: 'center',
+            minHeight: 18
+          }}
+        >
+          {isSyncing ? <SSLoader size={18} /> : null}
+          <SSText color="muted" size="xs" center numberOfLines={1}>
+            {activityTitle}
+          </SSText>
+        </SSHStack>
+        <SSHStack gap="sm">
+          <SSIconButton
+            onPress={() => setControlsModalVisible(true)}
+            style={styles.excludeToolbarButton}
+          >
+            <SSIconFilter height={16} width={16} />
+            {controlsActive ? <View style={styles.controlsActiveDot} /> : null}
+          </SSIconButton>
+          {view === 'list' ? (
             <SSIconButton onPress={() => setView('bubbles')}>
-              <SSIconBubbles height={16} width={16} />
+              <SSIconBubbles height={15} width={15} />
             </SSIconButton>
-          )}
-          {view === 'bubbles' && (
+          ) : (
             <SSIconButton onPress={() => setView('list')}>
-              <SSIconList height={16} width={16} />
+              <SSIconList height={15} width={15} />
             </SSIconButton>
           )}
-          <SSSortDirectionToggle
-            onDirectionChanged={(direction) => setSortDirection(direction)}
-          />
+          <SSIconButton
+            onPress={() =>
+              router.navigate(
+                `/signer/bitcoin/account/${account.id}/signAndSend/excludeUtxos`
+              )
+            }
+            style={styles.excludeToolbarButton}
+          >
+            <SSIconExclude height={16} width={16} />
+            {excludedCount > 0 ? (
+              <View style={styles.excludeToolbarBadge}>
+                <SSText size="xxs" style={styles.excludeToolbarBadgeText}>
+                  {excludedCount}
+                </SSText>
+              </View>
+            ) : null}
+          </SSIconButton>
         </SSHStack>
       </SSHStack>
-      {view === 'list' && (
-        <ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleOnRefresh}
-              colors={[Colors.gray[950]]}
-              progressBackgroundColor={Colors.white}
-            />
-          }
-        >
-          <SSVStack style={{ marginBottom: 16 }}>
-            {sortUtxos([...account.utxos]).map((utxo) => {
+      <SyncScanStats
+        syncStatus={syncStatus}
+        tasksDone={tasksDone}
+        totalTasks={totalTasks}
+        transactionsFound={transactionsFound}
+        currentBlockTimeSec={currentBlockTimeSec}
+        scanFromTimeSec={scanFromTimeSec}
+      />
+      <SSHStack
+        gap="sm"
+        style={{
+          alignItems: 'center',
+          borderBottomColor: Colors.gray[900],
+          borderBottomWidth: 1,
+          justifyContent: 'flex-end',
+          paddingBottom: 8
+        }}
+      >
+        {UTXO_SORT_FIELDS.map((field) => (
+          <SSSortDirectionToggle
+            key={field}
+            label={utxoSortFieldLabel(field)}
+            active={sortField === field}
+            onDirectionChanged={(direction) =>
+              handleOnDirectionChanged(field, direction)
+            }
+          />
+        ))}
+      </SSHStack>
+      {view === 'list' ? (
+        <View style={styles.listWithLoader}>
+          <FlashList
+            data={listRows}
+            keyExtractor={(item) => item.key}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleOnRefresh}
+                tintColor={Colors.transparent}
+                colors={[Colors.transparent]}
+                progressBackgroundColor={Colors.transparent}
+                progressViewOffset={9999}
+              />
+            }
+            renderItem={({ item }) => {
+              if (item.type === 'header') {
+                return (
+                  <View style={styles.groupHeader}>
+                    <SSText size="xs" color="muted" uppercase>
+                      {item.title}
+                    </SSText>
+                  </View>
+                )
+              }
               const idx = account.addresses.findIndex(
                 (a) =>
-                  (a.address || '').trim() === (utxo.addressTo || '').trim()
+                  (a.address || '').trim() ===
+                  (item.utxo.addressTo || '').trim()
               )
               const addressEntry = idx !== -1 ? account.addresses[idx] : null
               const addressIndex =
                 addressEntry !== null ? (addressEntry.index ?? idx) : undefined
               return (
-                <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
+                <SSVStack gap="xs" style={{ paddingVertical: 4 }}>
                   <SSUtxoCard
-                    utxo={utxo}
+                    utxo={item.utxo}
                     totalBalance={totalBalance}
                     addressIndex={addressIndex}
+                    excluded={isUtxoExcluded(item.utxo, excludedOutpoints)}
                   />
                 </SSVStack>
               )
-            })}
-          </SSVStack>
-        </ScrollView>
-      )}
-      <View style={{ flex: 1, marginHorizontal: -horizontalPaddingPx }}>
-        {view === 'bubbles' && (
+            }}
+            contentContainerStyle={{ paddingBottom: 16 }}
+          />
+          {refreshing && syncStatus !== 'syncing' ? (
+            <View style={styles.loaderOverlay} pointerEvents="none">
+              <SSLoader size={32} />
+            </View>
+          ) : null}
+        </View>
+      ) : (
+        <View style={{ flex: 1, marginHorizontal: -horizontalPaddingPx }}>
           <SSBubbleChart
-            utxos={[...account.utxos]}
+            utxos={visibleUtxos}
             canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
             inputs={[]}
+            groupMode={groupMode}
             onPress={({ txid, vout }: Utxo) =>
               router.navigate(
                 `/signer/bitcoin/account/${account.id}/transaction/${txid}/utxo/${vout}`
               )
             }
           />
-        )}
-      </View>
+        </View>
+      )}
+      <SSUtxoListControlsModal
+        visible={controlsModalVisible}
+        filter={filter}
+        groupMode={groupMode}
+        onClose={() => setControlsModalVisible(false)}
+        onReset={() => {
+          setFilter(DEFAULT_UTXO_LIST_FILTER)
+          setGroupMode('none')
+        }}
+        onKeychainChange={setKeychainFilter}
+        onLabelChange={setLabelFilter}
+        onScriptChange={setScriptFilter}
+        onTagChange={setTagFilter}
+        onGroupModeChange={setGroupMode}
+      />
     </View>
   )
 }
@@ -1026,8 +1764,13 @@ function SatsInMempool({
   )
 
   const mempoolTransactions = useMemo(
-    () => account.transactions.filter((tx) => !tx.blockHeight),
-    [account.transactions]
+    () =>
+      annotateTransactionsWithWalletOwnership(
+        account.transactions,
+        account.addresses,
+        account.utxos
+      ).filter((tx) => !tx.blockHeight),
+    [account.addresses, account.transactions, account.utxos]
   )
 
   if (mempoolTransactions.length === 0) {
@@ -1082,16 +1825,24 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [updateAccount, account, syncStatus, tasksDone, totalTasks] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.updateAccount,
-        state.accounts.find((a) => a.id === id),
-        state.accounts.find((a) => a.id === id)?.syncStatus,
-        state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
-        state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks
-      ])
-    )
+  const [updateAccount, account] = useAccountsStore(
+    useShallow((state) => [
+      state.updateAccount,
+      state.accounts.find((a) => a.id === id)
+    ])
+  )
+  const syncStatus = account?.syncStatus
+  const {
+    tasksDone,
+    totalTasks,
+    transactionsFound,
+    currentBlockTimeSec,
+    scanFromTimeSec
+  } = account?.syncProgress ?? {}
+
+  const server = useBlockchainStore(
+    (state) => state.configs[state.selectedNetwork].server
+  )
 
   const hasUnreadMessages = useMemo(
     () => account?.nostr?.dms?.some((dm) => dm.read === false) ?? false,
@@ -1125,26 +1876,22 @@ export default function AccountView() {
       state.btcPrice
     ])
   )
-  const [lastKnownBlockHeight, mempoolUrl, connectionMode, autoConnectDelay] =
+  const { showCurrentFiat } = useFiatData()
+  const [lastKnownBlockHeight, connectionMode, autoConnectDelay] =
     useBlockchainStore(
       useShallow((state) => [
         state.lastKnownBlockHeight,
-        state.configsMempool['bitcoin'],
         state.configs[state.selectedNetwork].config.connectionMode,
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
     )
-  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithWallet, prioritizeSync } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { fetchOnce, startSync, stopSync } = useNostrSync()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
   const [change, setChange] = useState(false)
-  const [sortDirectionTransactions, setSortDirectionTransactions] =
-    useState<Direction>('desc')
-  const [sortDirectionUtxos, setSortDirectionUtxos] =
-    useState<Direction>('desc')
   const [sortDirectionDerivedAddresses, setSortDirectionDerivedAddresses] =
     useState<Direction>('desc')
   const blockchainHeight = lastKnownBlockHeight
@@ -1304,12 +2051,17 @@ export default function AccountView() {
           <TotalTransactions
             account={account}
             handleOnRefresh={handleOnRefresh}
+            handleOnForceRescan={handleOnForceRescan}
             handleOnExpand={handleOnExpand}
             expand={expand}
-            setSortDirection={setSortDirectionTransactions}
             refreshing={refreshing}
-            sortDirection={sortDirectionTransactions}
             blockchainHeight={blockchainHeight}
+            syncStatus={syncStatus}
+            tasksDone={tasksDone}
+            totalTasks={totalTasks}
+            transactionsFound={transactionsFound}
+            currentBlockTimeSec={currentBlockTimeSec}
+            scanFromTimeSec={scanFromTimeSec}
           />
         )
       case 'derivedAddresses':
@@ -1329,11 +2081,16 @@ export default function AccountView() {
           <SpendableOutputs
             account={account}
             handleOnRefresh={handleOnRefresh}
+            handleOnForceRescan={handleOnForceRescan}
             handleOnExpand={handleOnExpand}
             expand={expand}
-            setSortDirection={setSortDirectionUtxos}
             refreshing={refreshing}
-            sortUtxos={sortUtxos}
+            syncStatus={syncStatus}
+            tasksDone={tasksDone}
+            totalTasks={totalTasks}
+            transactionsFound={transactionsFound}
+            currentBlockTimeSec={currentBlockTimeSec}
+            scanFromTimeSec={scanFromTimeSec}
           />
         )
       case 'satsInMempool':
@@ -1357,15 +2114,7 @@ export default function AccountView() {
     )
   }
 
-  function sortUtxos(utxos: Utxo[]) {
-    return utxos.toSorted((utxo1, utxo2) =>
-      sortDirectionUtxos === 'asc'
-        ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
-        : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
-    )
-  }
-
-  async function refreshAccount() {
+  async function refreshAccount(forceFullScan = false) {
     if (!account) {
       return
     }
@@ -1379,11 +2128,21 @@ export default function AccountView() {
       return
     }
 
+    // Cancel all other running syncs so this account gets the full connection.
+    // This is a no-op for Electrum/Esplora (fast enough not to matter) but
+    // makes a real difference for RPC backends where concurrent syncs congest
+    // the node.
+    if (!isImportAddress) {
+      prioritizeSync(account.id)
+    }
+
     try {
       const updatedAccount = !isImportAddress
-        ? await syncAccountWithWallet(account, wallet!)
+        ? await syncAccountWithWallet(account, wallet!, forceFullScan, true)
         : await syncAccountWithAddress(account)
-      updateAccount(updatedAccount)
+      if (updatedAccount) {
+        updateAccount(updatedAccount)
+      }
     } catch (error) {
       toast.error((error as Error).message)
     }
@@ -1399,13 +2158,25 @@ export default function AccountView() {
     }
   }
 
-  async function handleOnRefresh() {
+  async function handleOnRefresh(forceFullScan = false) {
     setRefreshing(true)
-    await fetchPrices(mempoolUrl)
-    await refreshAccount()
+    await fetchPrices(getFiatPriceApiUrl())
+    await refreshAccount(forceFullScan)
     // Fire-and-forget - don't block refresh completion for Nostr sync
     refreshAccountLabels()
     setRefreshing(false)
+  }
+
+  // Long-press the refresh button to force a full rescan. This re-derives
+  // addresses using the current gap limit, so a bumped stopGap can discover
+  // transactions an incremental sync would never reveal.
+  function handleOnForceRescan() {
+    const isImportAddress = account?.keys[0]?.creationType === 'importAddress'
+    if (isImportAddress) {
+      return handleOnRefresh()
+    }
+    toast.info(t('account.sync.fullRescanStarted'))
+    return handleOnRefresh(true)
   }
 
   function handleOnExpand(state: boolean) {
@@ -1645,21 +2416,21 @@ export default function AccountView() {
                       : t('bitcoin.sats')}
                   </SSText>
                 </SSHStack>
-                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                  <SSText color="muted">
-                    {!btcPrice || btcPrice <= 0
-                      ? '--'
-                      : privacyMode
+                {showCurrentFiat ? (
+                  <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                    <SSText color="muted">
+                      {privacyMode
                         ? '••••'
                         : formatNumber(
                             satsToFiat(account.summary.balance || 0),
                             2
                           )}
-                  </SSText>
-                  <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                    {fiatCurrency}
-                  </SSText>
-                </SSHStack>
+                    </SSText>
+                    <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                      {fiatCurrency}
+                    </SSText>
+                  </SSHStack>
+                ) : null}
               </SSVStack>
               <SSVStack gap="none">
                 {account.keys[0].creationType !== 'importAddress' && (
@@ -1691,18 +2462,24 @@ export default function AccountView() {
             </SSVStack>
           </Animated.View>
         )}
-        {account.keys[0].creationType === 'importAddress' &&
-          syncStatus === 'syncing' &&
-          tasksDone !== undefined &&
-          totalTasks !== undefined &&
-          totalTasks > 0 && (
-            <View style={{ marginBottom: -10, marginTop: 10 }}>
-              <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-                <SSLoader size={24} />
-                <SSText center>
-                  {t('account.syncProgress', { tasksDone, totalTasks })}
+        {/* ── Birthday nudge for RPC imported wallets ──────────────── */}
+        {syncStatus !== 'syncing' &&
+          server?.backend === 'rpc' &&
+          account?.keys[0]?.creationType !== 'generateMnemonic' &&
+          account?.keys[0]?.creationType !== 'importAddress' &&
+          !account?.birthdayDate && (
+            <View style={{ marginTop: 4, paddingHorizontal: '6%' }}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.navigate(
+                    `/signer/bitcoin/account/${id}/settings/birthday` as never
+                  )
+                }
+              >
+                <SSText center size="xxs" style={{ color: Colors.warning }}>
+                  {t('account.birthdayDate.nudge')}
                 </SSText>
-              </SSHStack>
+              </TouchableOpacity>
             </View>
           )}
         <View style={{ flex: 1 }}>
@@ -1786,6 +2563,38 @@ export default function AccountView() {
 }
 
 const styles = StyleSheet.create({
+  controlsActiveDot: {
+    backgroundColor: Colors.white,
+    borderRadius: 3,
+    height: 6,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 6
+  },
+  excludeToolbarBadge: {
+    alignItems: 'center',
+    backgroundColor: Colors.error,
+    borderRadius: 7,
+    height: 14,
+    justifyContent: 'center',
+    minWidth: 14,
+    paddingHorizontal: 3,
+    position: 'absolute',
+    right: -4,
+    top: -4
+  },
+  excludeToolbarBadgeText: {
+    color: Colors.white,
+    lineHeight: 12
+  },
+  excludeToolbarButton: {
+    position: 'relative'
+  },
+  groupHeader: {
+    backgroundColor: Colors.gray[900],
+    paddingVertical: 8
+  },
   listWithLoader: {
     flex: 1
   },
@@ -1797,6 +2606,22 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingTop: 16,
     position: 'absolute'
+  },
+  syncProgressFill: {
+    backgroundColor: Colors.white,
+    borderRadius: 1,
+    height: 1
+  },
+  syncProgressTrack: {
+    alignSelf: 'center',
+    backgroundColor: Colors.gray[700],
+    borderRadius: 1,
+    height: 1,
+    overflow: 'hidden',
+    width: '35%'
+  },
+  syncStats: {
+    paddingBottom: 12
   }
 })
 

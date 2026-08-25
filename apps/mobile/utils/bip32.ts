@@ -7,6 +7,17 @@ import {
   Network as BDKNetwork
 } from 'react-native-bdk-sdk'
 
+import {
+  BIP44_PURPOSE,
+  BIP45_PURPOSE,
+  BIP48_PURPOSE,
+  BIP48_SCRIPT_TYPE_P2SH_P2WSH,
+  BIP48_SCRIPT_TYPE_P2WSH,
+  BIP49_PURPOSE,
+  BIP84_PURPOSE,
+  BIP86_PURPOSE
+} from '@/constants/derivation'
+import { type AddressKeyPair } from '@/types/models/Address'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import {
@@ -125,7 +136,7 @@ export function getPrivateDescriptorFromSeedWithPath(
   path: string
 ): string {
   const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
-  const accountKey = masterKey.derivePath(`m/${path}`)
+  const accountKey = path ? masterKey.derivePath(`m/${path}`) : masterKey
   const accountXprv = accountKey.toBase58()
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return getDescriptorFromPrivateKey(
@@ -135,6 +146,20 @@ export function getPrivateDescriptorFromSeedWithPath(
     path,
     kind
   )
+}
+
+export function getPublicDescriptorFromSeedWithPath(
+  seed: Uint8Array,
+  scriptVersion: ScriptVersionType,
+  kind: KeychainKind,
+  network: BDKNetwork,
+  path: string
+): string {
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+  const derivedKey = path ? masterKey.derivePath(`m/${path}`) : masterKey
+  const pubkey = derivedKey.neutered().toBase58()
+  const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
+  return getDescriptorFromPubkey(pubkey, scriptVersion, fingerprint, path, kind)
 }
 
 export function getDescriptorFromPubkey(
@@ -201,19 +226,19 @@ export function getScriptVersionPurpose(
 ): number {
   switch (scriptVersion) {
     case 'P2PKH':
-      return 44 // Legacy
+      return BIP44_PURPOSE // Legacy
     case 'P2SH-P2WPKH':
-      return 49 // Nested SegWit
+      return BIP49_PURPOSE // Nested SegWit
     case 'P2WPKH':
-      return 84 // Native SegWit
+      return BIP84_PURPOSE // Native SegWit
     case 'P2TR':
-      return 86 // Taproot
+      return BIP86_PURPOSE // Taproot
     case 'P2WSH':
     case 'P2SH-P2WSH':
     case 'P2SH':
-      return 44 // Use legacy for these
+      return BIP44_PURPOSE // Use legacy for these
     default:
-      return 84
+      return BIP84_PURPOSE
   }
 }
 
@@ -247,6 +272,49 @@ export function getExtendedPublicKeyFromSeed(
 export function getExtendedKeyFromDescriptor(descriptor: string) {
   const match = descriptor.match(/([xyztuv]pub)[A-Za-z0-9]+/i)
   return match ? match[0] : ''
+}
+
+// TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors
+export function getExtendedPrivateKeyFromDescriptor(descriptor: string) {
+  const match = descriptor.match(/([xyztuv]prv)[A-Za-z0-9]+/i)
+  return match ? match[0] : ''
+}
+
+/**
+ * Derive the raw hex private/public key pair at a full BIP32 path
+ * (e.g. "m/84'/0'/0'/0/3") from a master seed.
+ */
+export function getAddressKeyPairFromSeed(
+  seed: Uint8Array,
+  derivationPath: string
+): AddressKeyPair {
+  const root = bip32.fromSeed(seed)
+  const child = root.derivePath(derivationPath)
+  const privateKey = child.privateKey ? toHex(child.privateKey) : ''
+  const publicKey = toHex(child.publicKey)
+  if (child.privateKey) {
+    child.privateKey.fill(0)
+  }
+  return { privateKey, publicKey }
+}
+
+/**
+ * Derive the raw hex private/public key pair at a path relative to an
+ * account-level extended private key (e.g. "0/3" for change/index).
+ */
+export function getAddressKeyPairFromExtendedKey(
+  extendedKey: string,
+  network: BDKNetwork,
+  relativePath: string
+): AddressKeyPair {
+  const node = bip32.fromBase58(extendedKey, BIP32Networks[network])
+  const child = node.derivePath(relativePath)
+  const privateKey = child.privateKey ? toHex(child.privateKey) : ''
+  const publicKey = toHex(child.publicKey)
+  if (child.privateKey) {
+    child.privateKey.fill(0)
+  }
+  return { privateKey, publicKey }
 }
 
 // TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors
@@ -310,7 +378,7 @@ function getP2SHXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
   const master = HDKey.fromMasterSeed(seed, versions)
 
   // Derive m/45' for P2SH
-  const node = master.deriveChild(0x80000000 + 45)
+  const node = master.deriveChild(0x80000000 + BIP45_PURPOSE)
 
   return node.publicExtendedKey
 }
@@ -328,10 +396,10 @@ function getP2SHP2WSHXpub(
   // Derive m/48'/0'/0'/1' for mainnet, m/48'/1'/0'/1' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 48)
+    .deriveChild(0x80000000 + BIP48_PURPOSE)
     .deriveChild(0x80000000 + coinType)
     .deriveChild(0x80000000)
-    .deriveChild(0x80000000 + 1)
+    .deriveChild(0x80000000 + BIP48_SCRIPT_TYPE_P2SH_P2WSH)
 
   return node.publicExtendedKey
 }
@@ -349,10 +417,10 @@ function getP2WSHXpub(
   // Derive m/48'/0'/0'/2' for mainnet, m/48'/1'/0'/2' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 48)
+    .deriveChild(0x80000000 + BIP48_PURPOSE)
     .deriveChild(0x80000000 + coinType)
     .deriveChild(0x80000000)
-    .deriveChild(0x80000000 + 2)
+    .deriveChild(0x80000000 + BIP48_SCRIPT_TYPE_P2WSH)
 
   return node.publicExtendedKey
 }
@@ -375,7 +443,7 @@ function getP2PKHXpub(
   // Derive m/44'/0'/0' for mainnet, m/44'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 44)
+    .deriveChild(0x80000000 + BIP44_PURPOSE)
     .deriveChild(0x80000000 + coinType)
     .deriveChild(0x80000000)
 
@@ -392,7 +460,7 @@ function getP2SHP2WPKHXpub(
   // Derive m/49'/0'/0' for mainnet, m/49'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 49)
+    .deriveChild(0x80000000 + BIP49_PURPOSE)
     .deriveChild(0x80000000 + coinType)
     .deriveChild(0x80000000)
 
@@ -406,7 +474,7 @@ function getP2TRXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
   // Derive m/86'/0'/0' for mainnet, m/86'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 86)
+    .deriveChild(0x80000000 + BIP86_PURPOSE)
     .deriveChild(0x80000000 + coinType)
     .deriveChild(0x80000000)
 

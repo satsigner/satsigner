@@ -14,6 +14,7 @@ export const NOSTR_DEFAULT_RETRY_CONFIG = {
 } as const
 
 // NETWORK
+export const NOSTR_DEFAULT_FETCH_TIMEOUT_MS = 15000
 export const NOSTR_DELAY_BETWEEN_PUBLISHES_MS = 400
 export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 48 * 60 * 60
 export const NOSTR_EOSE_TIMEOUT_MS = 15000
@@ -24,18 +25,44 @@ export const NOSTR_MAX_PROCESSED_ITEMS = 2000
 export const NOSTR_MAX_PROCESSED_RAW_IDS = 5000
 export const NOSTR_MAX_QUEUE_SIZE = 300
 export const NOSTR_NDK_CONNECT_TIMEOUT_MS = 20000
+// Default limit for fetchNotes/fetchFollowingTimelineNotes when the caller
+// doesn't specify one.
+export const NOSTR_NOTES_FETCH_DEFAULT_LIMIT = 20
 export const NOSTR_PROCESSING_INTERVAL_MS = 350
 export const NOSTR_PROFILE_CACHE_MAX_AGE_SECS = 604800
 export const NOSTR_PROFILE_CACHE_TTL_SECS = 3600
 export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT = 5000
 export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10000
 export const NOSTR_PUBLISH_TIMEOUT_MS = 10000
+export const NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS = 20000
 export const NOSTR_RELAY_REACHABILITY_TEST_MS = 10000
 export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
+// NDK connect timeout (ms) for short-lived, temporary NDK instances used to
+// fetch a single event from an explicit relay list.
+export const NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS = 8000
 export const NOSTR_WS_CONNECT_TIMEOUT_MS = 15000
 
 // UI
+export const NOSTR_ACCOUNT_CARD_ESTIMATED_HEIGHT = 120
+export const NOSTR_EMPTY_STATE_PADDING_VERTICAL = 48
 export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
+export const NOSTR_LIST_ITEM_GAP = 8
+export const NOSTR_LIST_PADDING_VERTICAL = 8
+export const NOSTR_CONTACT_QR_CODE_SIZE = 200
+export const NOSTR_CONTACT_QR_CONTAINER_PADDING = 12
+export const NOSTR_CONTACT_QR_PAGER_DOT_SIZE = 8
+export const NOSTR_CONTACT_QR_SLIDE_KEYS = {
+  LUD16: 'lud16',
+  NPROFILE: 'nprofile',
+  NPUB: 'npub',
+  SILENT_PAYMENT: 'silent-payment'
+} as const
+export const NOSTR_BLOSSOM_FILE_DISPLAY_HASH_LENGTH = 12
+export const NOSTR_BLOSSOM_FILE_PREVIEW_HEIGHT = 280
+export const NOSTR_BLOSSOM_FILE_ROW_HEIGHT = 72
+export const NOSTR_BLOSSOM_FILES_STALE_TIME_MS = 5 * 60_000
+export const NOSTR_BLOSSOM_SERVERS_STALE_TIME_MS = 10 * 60_000
+export const NOSTR_PROFILE_BATCH_SIZE = 40
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
 export const NOSTR_HIDDEN_KEY_MASK_LONG = '••••••••••••••••••••••••••••••••'
 
@@ -44,44 +71,72 @@ export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 // RELAYS
 export const NOSTR_RELAY_PROTOCOL_PREFIX = 'wss://'
 export const NOSTR_RELAYS: NostrRelay[] = [
+  { name: '0xchat', url: 'wss://relay.0xchat.com' },
+  { name: 'Agora', url: 'wss://relay.agora.social' },
   { name: 'Angani', url: 'wss://nostr-1.nbo.angani.co' },
+  { name: 'Azzamo', url: 'wss://relay.azzamo.net' },
   { name: 'Bitcoiner Social', url: 'wss://nostr.bitcoiner.social' },
+  { name: 'Bostr', url: 'wss://bostr.online' },
   { name: 'Btc Library', url: 'wss://nostr.btc-library.com' },
   { name: 'Coracle', url: 'wss://bucket.coracle.social' },
+  { name: 'Creatr', url: 'wss://creatr.nostr.wine' },
   { name: 'Damus', url: 'wss://relay.damus.io' },
   { name: 'Data Haus', url: 'wss://nostr.data.haus' },
   { name: 'Dwadziesciajeden', url: 'wss://relay.dwadziesciajeden.pl' },
   { name: 'Einundzwanzig Space', url: 'wss://nostr.einundzwanzig.space' },
+  { name: 'Flashsoft', url: 'wss://relay.flashsoft.eu' },
+  { name: 'Hodlbod', url: 'wss://relay.hodlbod.com' },
+  { name: 'JB55', url: 'wss://relay.jb55.com' },
+  { name: 'Lume', url: 'wss://relay.lume.nu' },
   { name: 'Mostro', url: 'wss://relay.mostro.network' },
+  { name: 'Mutinywallet', url: 'wss://nostr.mutinywallet.com' },
   { name: 'Nos lol (POW 28 bits required)', url: 'wss://nos.lol' },
   { name: 'Nostr Band', url: 'wss://relay.nostr.band' },
   { name: 'Nostr BG', url: 'wss://relay.nostr.bg' },
+  { name: 'Nostr Land', url: 'wss://relay.nostr.land' },
   { name: 'Nostr Mom', url: 'wss://nostr.mom' },
+  { name: 'Nostr Online', url: 'wss://relay.nostr.online' },
   { name: 'Nostr Wine', url: 'wss://nostr.wine' },
+  { name: 'Nostr World', url: 'wss://relay.nostr.world' },
+  { name: 'Nostrich House', url: 'wss://relay.nostrich.house' },
   { name: 'Nostromo', url: 'wss://relay.nostromo.social' },
   { name: 'Nostrue', url: 'wss://nostrue.com' },
   { name: 'Offchain', url: 'wss://offchain.pub' },
   { name: 'Openhoofd', url: 'wss://strfry.openhoofd.nl' },
+  { name: 'Orangepill', url: 'wss://relay.orangepill.dev' },
+  { name: 'Plebs Town', url: 'wss://relay.plebs.town' },
+  { name: 'Plebstr', url: 'wss://plebstr.com' },
   { name: 'Primal', url: 'wss://relay.primal.net' },
+  { name: 'Primal Premium', url: 'wss://premium.primal.net' },
   { name: 'Purple Relay', url: 'wss://ch.purplerelay.com' },
+  { name: 'Purplepag.es', url: 'wss://purplepag.es' },
   { name: 'Sathoarder', url: 'wss://nostr.sathoarder.com' },
   { name: 'Satlantis', url: 'wss://relay.satlantis.io' },
+  { name: 'Satoshi Stream', url: 'wss://relay.satoshi.stream' },
   { name: 'Schneimi', url: 'wss://nostr.schneimi.de' },
+  { name: 'Siamstr', url: 'wss://siamstr.com' },
   { name: 'Snort', url: 'wss://relay.snort.social' },
+  { name: 'Stacker News', url: 'wss://relay.stacker.news' },
   { name: 'Swiss Enigma', url: 'wss://nostr.swiss-enigma.ch' },
+  { name: 'The Dude', url: 'wss://relay.thedude.cloud' },
+  { name: 'Utxo One', url: 'wss://relay.utxo.one' },
   { name: 'Vulpem', url: 'wss://nostr.vulpem.com' },
-  { name: 'YakiHonne', url: 'wss://nostr-01.yakihonne.com' }
+  { name: 'Wellorder', url: 'wss://wellorder.net' },
+  { name: 'YakiHonne', url: 'wss://nostr-01.yakihonne.com' },
+  { name: 'Yakihonne', url: 'wss://relay.yakihonne.com' },
+  { name: 'Zap Band', url: 'wss://relay.zap.band' },
+  { name: 'Zapstore', url: 'wss://relay.zapstore.dev' }
 ]
 
 // NIPS
-export const NIP01_MAX_NOTE_LENGTH = 5000
-export const NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
-export const NIP46_EVENT_KIND = 24133
-export const NIP46_EVENT_PREVIEW_MAX_LENGTH = 200
-export const NIP46_NOSTR_CONNECT_PREFIX = 'nostrconnect://'
-export const NIP46_REQUEST_TIMEOUT_MS = 60000
-export const NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
-export const NIP46_SUPPORTED_METHODS: Nip46Method[] = [
+export const NOSTR_NIP01_MAX_NOTE_LENGTH = 5000
+export const NOSTR_NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
+export const NOSTR_NIP17_SEAL_KIND = 13
+export const NOSTR_NIP46_EVENT_KIND = 24133
+export const NOSTR_NIP46_CONNECT_PREFIX = 'nostrconnect://'
+export const NOSTR_NIP46_REQUEST_TIMEOUT_MS = 60000
+export const NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
+export const NOSTR_NIP46_SUPPORTED_METHODS: Nip46Method[] = [
   'connect',
   'get_public_key',
   'nip04_decrypt',
@@ -91,7 +146,7 @@ export const NIP46_SUPPORTED_METHODS: Nip46Method[] = [
   'ping',
   'sign_event'
 ]
-export const NIP46_DEFAULT_PERMISSIONS: Record<
+export const NOSTR_NIP46_DEFAULT_PERMISSIONS: Record<
   Nip46Method,
   Nip46PermissionPolicy
 > = {
@@ -104,12 +159,38 @@ export const NIP46_DEFAULT_PERMISSIONS: Record<
   ping: 'always_allow',
   sign_event: 'ask'
 }
+// Methods that must always prompt for explicit approval, even if an
+// "always allow" permission was previously stored: auto-approving decryption
+// turns the signer into a permanent decryption oracle for the client.
+export const NOSTR_NIP46_NEVER_AUTO_ALLOW_METHODS: Nip46Method[] = [
+  'nip04_decrypt',
+  'nip44_decrypt'
+]
+// Event kinds considered low-risk for auto-approval once the user granted
+// "always allow" for sign_event. Anything else — profile (0), contacts (3),
+// deletion (5), relay/bookmark lists (10002, 10003), unknown kinds — always
+// requires explicit approval, since a stored permission would otherwise let
+// the client silently overwrite the user's identity and lists.
+export const NOSTR_NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS: number[] = [
+  1, // short text note
+  6, // repost
+  7, // reaction
+  16, // generic repost
+  9734 // zap request
+]
 
 // REGEX & FILTERS
+export const NOSTR_POLL_KIND = 1068
+export const NOSTR_POLL_RESPONSE_KIND = 1018
+export const NOSTR_KIND_FILTER_HIT_SLOP = 6
+export const NOSTR_KIND_FILTER_TRIGGER_MAX_WIDTH = '72%'
 export const NOSTR_EVENT_REF_RE = /nostr:(note1|nevent1)[a-zA-Z0-9]+/g
 export const NOSTR_MENTION_RE =
   /(?:nostr:)?(npub1[a-z0-9]{6,}|nprofile1[a-z0-9]{6,})/gi
 export const NOSTR_EVENT_ID_RE = /^[0-9a-fA-F]{64}$/
+export const NOSTR_EVENT_ID_HEX_LENGTH = 64
+// Shortest plausible bech32 length for npub1/nsec1/note1/nevent1/nprofile1.
+export const NOSTR_BECH32_ID_MIN_LENGTH = 60
 export const NOSTR_NOTE_FILTER_OPTIONS: NostrNoteKindFilterOption[] = [
   {
     id: 'short_text',
@@ -162,8 +243,13 @@ export const NOSTR_NOTE_FILTER_OPTIONS: NostrNoteKindFilterOption[] = [
     labelKey: 'nostrIdentity.feed.kindFileMetadata'
   },
   {
+    id: 'poll',
+    kinds: [NOSTR_POLL_KIND],
+    labelKey: 'nostrIdentity.feed.kindPoll'
+  },
+  {
     id: 'poll_response',
-    kinds: [1018],
+    kinds: [NOSTR_POLL_RESPONSE_KIND],
     labelKey: 'nostrIdentity.feed.kindPollResponse'
   },
   {
@@ -186,7 +272,25 @@ export const NOSTR_BOOKMARKS_FILTER_IDS = new Set([
   'private_bookmarks'
 ])
 
+// BLOSSOM
+export const NOSTR_BLOSSOM_DEFAULT_SERVER = 'https://blossom.primal.net'
+export const NOSTR_NIP94_FILE_KIND = 1063
+export const NOSTR_BLOSSOM_SERVER_LIST_KIND = 10063
+export const NOSTR_FILES_FETCH_TIMEOUT_MS = 8000
+export const NOSTR_BLOSSOM_AUTH_KIND = 24242
+export const NOSTR_BLOSSOM_AUTH_EXPIRY_SECS = 300
+
+export const NOSTR_BLOSSOM_POPULAR_SERVERS: { name: string; url: string }[] = [
+  { name: 'Primal', url: 'https://blossom.primal.net' },
+  { name: 'Satellite', url: 'https://cdn.satellite.earth' },
+  { name: 'Blossom Band', url: 'https://blossom.band' },
+  { name: 'nostr.download', url: 'https://nostr.download' },
+  { name: 'Media Nostr Band', url: 'https://media.nostr.band' },
+  { name: 'Nostr Build', url: 'https://blossom.nostr.build' }
+]
+
 // ZAP
+export const NOSTR_KIND_ZAP_RECEIPT = 9735
 export const NOSTR_ZAP_DEFAULT_PRESETS = [21, 100, 500, 1000]
 export const NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT = 21
 export const NOSTR_ZAP_INVOICE_TIMEOUT_MS = 15000

@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -11,6 +11,7 @@ import { ARK_SERVERS, ARK_SUPPORTED_NETWORKS } from '@/constants/ark'
 import { useArkAccountBuilder } from '@/hooks/useArkAccountBuilder'
 import { useArkBitcoinAccounts } from '@/hooks/useArkBitcoinAccounts'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -94,7 +95,7 @@ export default function ArkAccountAddPage() {
           )
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <SSScrollView showsVerticalScrollIndicator={false}>
         <SSVStack gap="lg" style={styles.container}>
           <SSVStack gap="sm">
             <SSText uppercase>{t('ark.account.name')}</SSText>
@@ -102,6 +103,7 @@ export default function ArkAccountAddPage() {
               value={name}
               onChangeText={setName}
               placeholder={t('ark.account.namePlaceholder')}
+              editable={!isCreating}
             />
           </SSVStack>
           <SSVStack gap="sm">
@@ -113,6 +115,7 @@ export default function ArkAccountAddPage() {
                   label={arkNetworkLabel(n)}
                   selected={network === n}
                   onPress={() => handleNetworkChange(n)}
+                  disabled={isCreating}
                 />
               ))}
             </SSVStack>
@@ -126,6 +129,7 @@ export default function ArkAccountAddPage() {
                   label={server.name}
                   selected={serverId === server.id}
                   onPress={() => setServerId(server.id)}
+                  disabled={isCreating}
                 />
               ))}
             </SSVStack>
@@ -146,6 +150,7 @@ export default function ArkAccountAddPage() {
                     label={account.name}
                     selected={bitcoinAccountId === account.id}
                     onPress={() => handleSelectBitcoinAccount(account.id)}
+                    disabled={isCreating}
                   />
                 ))}
               </SSVStack>
@@ -161,6 +166,7 @@ export default function ArkAccountAddPage() {
               label={t('ark.account.createBitcoinToggle')}
               selected={createBitcoinAccount}
               onPress={handleSelectAutoCreate}
+              disabled={isCreating}
             />
           </SSVStack>
           <SSVStack gap="sm" style={styles.actions}>
@@ -182,7 +188,7 @@ export default function ArkAccountAddPage() {
             />
           </SSVStack>
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }

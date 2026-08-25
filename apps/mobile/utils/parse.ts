@@ -2,7 +2,7 @@ import { t } from '@/locales'
 import type { Account } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 
-import { getUtxoOutpoint } from './utxo'
+import { getUtxoOutpoint } from './outpoint'
 
 function parseAccountAddressesDetails({
   addresses,
@@ -132,23 +132,24 @@ function parseHexToBytes(hex: string): number[] {
 }
 
 function parseLabel(rawLabel: string) {
-  const matches = rawLabel.match(/#\w[\w\d]+/g)
+  const matches = rawLabel.match(/#\w+/g)
   if (!matches) {
     return { label: rawLabel, tags: [] }
   }
 
-  const tags = matches.map((match) => match.replace('#', ''))
+  const tags = [...new Set(matches.map((match) => match.replace('#', '')))]
   const label = rawLabel.replace(/#.*/, '').trim()
   return { label, tags }
 }
 
 /** Normalizes UTXO label for display; fixes broken "Change for %{txlabel}" interpolation. */
 function normalizeUtxoLabelForDisplay(rawLabel: string): string {
-  const { label } = parseLabel(rawLabel || '')
+  const { label, tags } = parseLabel(rawLabel || '')
   if (label.includes('[missing') && label.includes('txlabel')) {
     return t('sign.changeAddressLabelDefault')
   }
-  return label
+  // Include tags so tag-only labels (e.g. "#alpha") are visible, not "No label".
+  return parseLabelTags(label, tags)
 }
 
 function parseLabelTags(label: string, tags: string[]) {
@@ -231,17 +232,22 @@ function parseMultisigDescriptor(descriptor: string) {
   return { hardenedPath, xpubs }
 }
 
+function normalizePathSegment(segment: string): string {
+  return segment.replace(/['H]/g, 'h')
+}
+
+/**
+ * Singlesig origin: BIP84/86 `[fp/84'/0'/0']` or Electrum `[fp/0']` / `[fp]`.
+ */
 function parseSinglesigDescriptor(descriptor: string) {
-  const match = descriptor.match(/\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/)
+  const match = descriptor.match(/\[([0-9a-fA-F]+)((?:\/[0-9]+[hH']?)*)\]/i)
   if (!match) {
     throw new Error('Invalid singlesig descriptor format')
   }
 
-  const [purpose, coinType, accountIndex] = match.slice(2)
-  const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace(
-    "'",
-    'h'
-  )}/${accountIndex.replace("'", 'h')}`
+  const pathPart = match[2] ?? ''
+  const segments = pathPart.split('/').filter(Boolean).map(normalizePathSegment)
+  const hardenedPath = segments.length === 0 ? 'm' : `m/${segments.join('/')}`
 
   const xpubs = extractSortedDescriptorXpubs(descriptor)
 
@@ -263,10 +269,34 @@ function stripBitcoinPrefix(text: string): string {
   return text
 }
 
+/** Resolves an explorer `[address]` route param, stripping any `bitcoin:` URI wrapper. */
+function resolveExplorerAddressParam(
+  address: string | string[] | undefined
+): string | null {
+  const raw = Array.isArray(address) ? address[0] : address
+  if (!raw) {
+    return null
+  }
+  try {
+    const decoded = decodeURIComponent(raw).trim()
+    const stripped = stripBitcoinPrefix(decoded)
+    const parsed = parseUriParameters(stripped)
+    return (parsed?.address ?? stripped).trim() || null
+  } catch {
+    const stripped = stripBitcoinPrefix(raw.trim())
+    const parsed = parseUriParameters(stripped)
+    return (parsed?.address ?? stripped).trim() || null
+  }
+}
+
 type ParsedUriParams = {
   address: string
   amount?: number
   label?: string
+  /** Payjoin endpoint URL when present (decoded, :// preserved). */
+  pj?: string
+  /** Output substitution flag from BIP78/BIP77. */
+  pjos?: 0 | 1
 }
 
 /**
@@ -285,14 +315,43 @@ function parseUriParameters(content: string): ParsedUriParams | null {
     return { address: addressPart }
   }
 
-  const params = new URLSearchParams(queryString.substring(1))
+  const rawQuery = queryString.substring(1)
+  const params = new URLSearchParams(rawQuery)
   const amountParam = params.get('amount')
   const labelParam = params.get('label')
+
+  // Extract pj without URLSearchParams mutating :// encoding.
+  let pj: string | undefined
+  let pjos: 0 | 1 | undefined
+  for (const part of rawQuery.split('&')) {
+    const eq = part.indexOf('=')
+    if (eq === -1) {
+      continue
+    }
+    const key = part.slice(0, eq).toLowerCase()
+    const value = part.slice(eq + 1)
+    if (key === 'pj' && value) {
+      try {
+        pj = decodeURIComponent(value)
+      } catch {
+        pj = value
+      }
+    }
+    if (key === 'pjos') {
+      if (value === '0') {
+        pjos = 0
+      } else if (value === '1') {
+        pjos = 1
+      }
+    }
+  }
 
   return {
     address: addressPart,
     amount: amountParam ? parseFloat(amountParam) : undefined,
-    label: labelParam ? decodeURIComponent(labelParam) : undefined
+    label: labelParam ? decodeURIComponent(labelParam) : undefined,
+    ...(pj ? { pj } : {}),
+    ...(pjos !== undefined ? { pjos } : {})
   }
 }
 
@@ -304,6 +363,7 @@ export {
   parseLabelTags,
   parseTXOutputs,
   parseUriParameters,
+  resolveExplorerAddressParam,
   stripBitcoinPrefix
 }
 export { normalizeUtxoLabelForDisplay }

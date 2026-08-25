@@ -4,19 +4,34 @@ import {
   type ReactNode,
   type SetStateAction,
   useEffect,
+  useRef,
   useState
 } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
 
-import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Layout, Sizes } from '@/styles'
+import {
+  deletePinDigit,
+  emptyPin,
+  fillPinDigit,
+  getPinCursorIndex,
+  isPinFilled
+} from '@/utils/pin'
 
 import SSKeyboard from './SSKeyboard'
 import SSText from './SSText'
 
 export type SSPinInputProps = {
+  belowInput?: ReactNode
   feedback?: ReactNode
   feedbackColor?: string
   feedbackBold?: boolean
@@ -32,6 +47,7 @@ function SSPinInput({
   pin,
   setPin,
   onFillEnded,
+  belowInput,
   feedback,
   feedbackText,
   feedbackColor = Colors.gray[300],
@@ -39,97 +55,120 @@ function SSPinInput({
   withClear = true,
   withDelete = true
 }: SSPinInputProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const currentIndex = getPinCursorIndex(pin)
+
+  // Cells shrink to fit the content width (which matches the keyboard below) so
+  // longer PINs (up to 8) never clip or grow wider than the keyboard; they never
+  // grow past the max square size.
+  const cellGap = Layout.hStack.gap.xs
+  const [rowWidth, setRowWidth] = useState(0)
+  const cellSize =
+    rowWidth > 0
+      ? Math.min(
+          PIN_CELL_MAX_SIZE,
+          Math.floor((rowWidth - cellGap * (pin.length - 1)) / pin.length)
+        )
+      : PIN_CELL_MAX_SIZE
+  // Filled dot scales with the cell and is centered geometrically (not via
+  // font metrics), so it stays visible and centered at every PIN length.
+  const dotSize = Math.max(5, Math.round(cellSize * 0.18))
+
+  const fillEndedFiredRef = useRef(false)
 
   useEffect(() => {
-    if (pin.join('') === '') {
-      setCurrentIndex(0)
-    }
-  }, [pin])
-
-  function handleDelete() {
-    if (currentIndex <= 0) {
+    if (!isPinFilled(pin)) {
+      fillEndedFiredRef.current = false
       return
     }
-    const indexToClear = currentIndex - 1
-    const newPin = [...pin]
-    newPin[indexToClear] = ''
-    setCurrentIndex(indexToClear)
-    setPin(newPin)
+    if (fillEndedFiredRef.current) {
+      return
+    }
+    fillEndedFiredRef.current = true
+    if (onFillEnded) {
+      onFillEnded(pin.join(''))
+    }
+  }, [pin, onFillEnded])
+
+  function handleDelete() {
+    setPin(deletePinDigit)
   }
 
   function handleClear() {
-    setCurrentIndex(0)
-    setPin(Array.from({ length: PIN_SIZE }).map((_) => ''))
+    setPin(emptyPin(pin.length))
   }
 
   function handlePress(digit: string) {
-    const newPin = [...pin]
-    const lastIndex = PIN_SIZE - 1
-    if (currentIndex > lastIndex) {
-      return
-    }
-
-    newPin[currentIndex] = digit
-    setPin(newPin)
-
-    if (currentIndex === lastIndex && onFillEnded) {
-      onFillEnded(newPin.join(''))
-    }
-
-    setCurrentIndex((currentValue) => currentValue + 1)
+    setPin((prev) => fillPinDigit(prev, digit))
   }
 
   return (
     <SSVStack itemsCenter gap="none" justifyBetween>
       <SSVStack gap="none" itemsCenter widthFull>
-        <SSHStack gap="sm">
-          {Array.from({ length: PIN_SIZE }).map((_, index) => {
-            const isActive = index === currentIndex
-            const isFilled = pin[index] !== ''
-            const rim = getPinFieldLight(index, isActive, isFilled)
+        <View
+          style={styles.pinRow}
+          onLayout={(e) => setRowWidth(e.nativeEvent.layout.width)}
+        >
+          <SSHStack gap="xs">
+            {Array.from({ length: pin.length }).map((_, index) => {
+              const isActive = index === currentIndex
+              const isFilled = pin[index] !== ''
+              const rim = getPinFieldLight(index, isActive, isFilled)
 
-            return (
-              <LinearGradient
-                key={index}
-                colors={rim.colors}
-                end={rim.end}
-                locations={rim.locations}
-                start={rim.start}
-                style={{
-                  borderRadius: PIN_OUTER_RADIUS,
-                  height: Sizes.pinInput.height,
-                  overflow: 'hidden',
-                  padding: PIN_CELL_BORDER,
-                  width: Sizes.pinInput.width
-                }}
-              >
-                <View
+              return (
+                <LinearGradient
+                  key={index}
+                  colors={rim.colors}
+                  end={rim.end}
+                  locations={rim.locations}
+                  start={rim.start}
                   style={{
-                    borderRadius: Sizes.pinInput.borderRadius,
-                    flex: 1,
-                    overflow: 'hidden'
+                    borderRadius: PIN_OUTER_RADIUS,
+                    height: cellSize,
+                    overflow: 'hidden',
+                    padding: PIN_CELL_BORDER,
+                    width: cellSize
                   }}
                 >
-                  <TextInput
-                    style={[
-                      styles.pinInputBase,
-                      isFilled && !isActive && styles.pinInputFilled,
-                      isActive && !isFilled && styles.pinInputActiveEmpty,
-                      isActive && isFilled && styles.pinInputActiveFilled
-                    ]}
-                    value={isFilled ? '•' : ''}
-                    readOnly
-                  />
-                  <PinDigitGlassOverlay
-                    isActive={isActive}
-                    isFilled={isFilled}
-                  />
-                </View>
-              </LinearGradient>
-            )
-          })}
-        </SSHStack>
+                  <View
+                    style={{
+                      borderRadius: Sizes.pinInput.borderRadius,
+                      flex: 1,
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <TextInput
+                      style={[
+                        styles.pinInputBase,
+                        isFilled && !isActive && styles.pinInputFilled,
+                        isActive && !isFilled && styles.pinInputActiveEmpty,
+                        isActive && isFilled && styles.pinInputActiveFilled
+                      ]}
+                      value=""
+                      readOnly
+                    />
+                    {isFilled ? (
+                      <View pointerEvents="none" style={styles.pinDotHost}>
+                        <View
+                          style={{
+                            backgroundColor: Colors.white,
+                            borderRadius: dotSize / 2,
+                            height: dotSize,
+                            width: dotSize
+                          }}
+                        />
+                      </View>
+                    ) : null}
+                    <PinDigitGlassOverlay
+                      isActive={isActive}
+                      isFilled={isFilled}
+                    />
+                    {isActive && <PinCellGlow />}
+                  </View>
+                </LinearGradient>
+              )
+            })}
+          </SSHStack>
+        </View>
         {feedbackText !== undefined ? (
           <View style={styles.feedbackSlot}>
             {feedbackText
@@ -151,9 +190,12 @@ function SSPinInput({
               : null}
           </View>
         ) : null}
+        {feedback ? <View style={styles.feedbackSlot}>{feedback}</View> : null}
+        {belowInput ? (
+          <View style={styles.belowInputSlot}>{belowInput}</View>
+        ) : null}
       </SSVStack>
       <SSVStack gap="md" itemsCenter widthFull>
-        {feedback}
         <SSKeyboard
           onPress={handlePress}
           onClear={handleClear}
@@ -168,6 +210,8 @@ function SSPinInput({
 
 const PIN_CELL_BORDER = Math.max(StyleSheet.hairlineWidth, 1)
 const PIN_OUTER_RADIUS = Sizes.pinInput.borderRadius + PIN_CELL_BORDER
+/** Max square size; smaller than the raw cell so short PINs aren't oversized. */
+const PIN_CELL_MAX_SIZE = 54
 const PIN_FEEDBACK_SLOT_MIN_HEIGHT = 64 /** Keeps keyboard position stable when tries-left / warning copy appears (2 lines). */
 const PIN_LIGHT_SPREAD = 0.28
 const PIN_LIGHT_X_HALF = 0.072
@@ -214,6 +258,31 @@ function PinDigitGlassOverlay({
         style={[styles.pinGlassEdge, styles.pinGlassRight, { width: edge }]}
       />
     </View>
+  )
+}
+
+function PinCellGlow() {
+  const opacity = useSharedValue(0)
+  const started = useRef(false)
+
+  if (!started.current) {
+    started.current = true
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.07, { duration: 500 }),
+        withTiming(0, { duration: 500 })
+      ),
+      -1
+    )
+  }
+
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }))
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[styles.pinCellGlow, animatedStyle]}
+    />
   )
 }
 
@@ -272,6 +341,11 @@ function getPinFieldLight(
 }
 
 const styles = StyleSheet.create({
+  belowInputSlot: {
+    alignItems: 'center',
+    paddingTop: 24,
+    width: '100%'
+  },
   feedbackSlot: {
     alignItems: 'center',
     alignSelf: 'stretch',
@@ -284,6 +358,20 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     textAlign: 'center',
     width: '100%'
+  },
+  pinCellGlow: {
+    backgroundColor: Colors.white,
+    borderRadius: Sizes.pinInput.borderRadius,
+    inset: 0,
+    position: 'absolute',
+    zIndex: 2
+  },
+  pinDotHost: {
+    alignItems: 'center',
+    inset: 0,
+    justifyContent: 'center',
+    position: 'absolute',
+    zIndex: 1
   },
   pinGlassBottom: {
     bottom: 0,
@@ -331,6 +419,12 @@ const styles = StyleSheet.create({
   },
   pinInputFilled: {
     backgroundColor: Colors.gray[800]
+  },
+  pinRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: PIN_CELL_MAX_SIZE,
+    width: '100%'
   }
 })
 

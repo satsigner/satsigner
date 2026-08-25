@@ -1,4 +1,61 @@
+import { t } from '@/locales'
+import { type Account } from '@/types/models/Account'
 import { type ScriptVersionType } from '@/types/models/Script'
+import { parseLabel } from '@/utils/parse'
+
+const P2WPKH_ADDRESS_MIN_LENGTH = 42
+const P2WPKH_ADDRESS_MAX_LENGTH = 44
+const P2WSH_ADDRESS_MIN_LENGTH = 60
+const P2WSH_ADDRESS_MAX_LENGTH = 62
+
+export function normalizeAddressSet(addresses: Iterable<string>): Set<string> {
+  const set = new Set<string>()
+  for (const address of addresses) {
+    const normalized = address.trim()
+    if (normalized) {
+      set.add(normalized)
+    }
+  }
+  return set
+}
+
+export function getAccountAddressSets(accountAddresses: Account['addresses']) {
+  const ownAddresses = new Set<string>()
+  const internalAddresses = new Set<string>()
+
+  for (const entry of accountAddresses) {
+    const normalized = entry.address.trim()
+    if (!normalized) {
+      continue
+    }
+    ownAddresses.add(normalized)
+    if (entry.keychain === 'internal') {
+      internalAddresses.add(normalized)
+    }
+  }
+
+  return { internalAddresses, ownAddresses }
+}
+
+export function isChangeOutputLabel(label: string): boolean {
+  const { label: parsed } = parseLabel(label || '')
+  const lower = parsed.toLowerCase().trim()
+  const defaultChange = t('sign.changeAddressLabelDefault').toLowerCase()
+
+  return (
+    lower === defaultChange ||
+    lower.startsWith('[change]') ||
+    lower.includes('[change for]')
+  )
+}
+
+export function isChangeOutputAddress(
+  address: string,
+  internalAddresses: Set<string>
+): boolean {
+  const normalized = address.trim()
+  return normalized !== '' && internalAddresses.has(normalized)
+}
 
 export function getScriptVersionType(
   address: string
@@ -31,10 +88,16 @@ export function getScriptVersionType(
     case 'p':
       return 'P2TR'
     case 'q':
-      if (address.length >= 42 && address.length <= 44) {
+      if (
+        address.length >= P2WPKH_ADDRESS_MIN_LENGTH &&
+        address.length <= P2WPKH_ADDRESS_MAX_LENGTH
+      ) {
         return 'P2WPKH'
       }
-      if (address.length >= 60 && address.length <= 62) {
+      if (
+        address.length >= P2WSH_ADDRESS_MIN_LENGTH &&
+        address.length <= P2WSH_ADDRESS_MAX_LENGTH
+      ) {
         return 'P2WSH'
       }
       break

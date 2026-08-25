@@ -1,4 +1,5 @@
 import {
+  normalizeUtxoLabelForDisplay,
   parseDescriptor,
   parseLabel,
   parseLabelTags,
@@ -95,6 +96,17 @@ describe('parse utils', () => {
       expect(result.label).toBe('Test label')
       expect(result.tags).toStrictEqual(['kyc', 'satsigner'])
     })
+
+    it('should dedupe repeated tags', () => {
+      const result = parseLabel('Test label #vault #vault #kyc')
+      expect(result.tags).toStrictEqual(['vault', 'kyc'])
+    })
+
+    it('should return label with single-character tags', () => {
+      const result = parseLabel('Test label #k #vault')
+      expect(result.label).toBe('Test label')
+      expect(result.tags).toStrictEqual(['k', 'vault'])
+    })
   })
 
   describe('parseLabelTags', () => {
@@ -111,6 +123,22 @@ describe('parse utils', () => {
     it('should return only tags', () => {
       const result = parseLabelTags('', ['endthefed', 'nokyc'])
       expect(result).toBe('#endthefed #nokyc')
+    })
+  })
+
+  describe('normalizeUtxoLabelForDisplay', () => {
+    it('keeps plain labels', () => {
+      expect(normalizeUtxoLabelForDisplay('payjoin')).toBe('payjoin')
+    })
+
+    it('shows tags when there is no label text', () => {
+      expect(normalizeUtxoLabelForDisplay('#alpha #beta')).toBe('#alpha #beta')
+    })
+
+    it('shows label text with tags', () => {
+      expect(normalizeUtxoLabelForDisplay('payjoin #alpha')).toBe(
+        'payjoin #alpha'
+      )
     })
   })
 
@@ -150,6 +178,14 @@ describe('parse utils', () => {
       expect(parseDescriptor(upper).xpubs.toSorted()).toStrictEqual(
         parseDescriptor(lower).xpubs.toSorted()
       )
+    })
+
+    it("parses Electrum segwit origin [fp/0']", () => {
+      const d =
+        "wpkh([e30a0cd1/0']xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG/0/*)"
+      const { hardenedPath, xpubs } = parseDescriptor(d)
+      expect(hardenedPath).toBe('m/0h')
+      expect(xpubs).toHaveLength(1)
     })
   })
 })

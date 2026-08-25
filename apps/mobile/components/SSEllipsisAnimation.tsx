@@ -12,9 +12,13 @@ import { Colors } from '@/styles'
 
 type SSEllipsisAnimationProps = {
   size?: number
+  delay?: number
 }
 
-function SSEllipsisAnimation({ size = 3 }: SSEllipsisAnimationProps) {
+function SSEllipsisAnimation({
+  size = 3,
+  delay = 750
+}: SSEllipsisAnimationProps) {
   const opacity1 = useSharedValue(0)
   const opacity2 = useSharedValue(0)
   const opacity3 = useSharedValue(0)
@@ -25,13 +29,13 @@ function SSEllipsisAnimation({ size = 3 }: SSEllipsisAnimationProps) {
 
   useEffect(() => {
     opacity1.set(
-      withRepeat(withDelay(0, withTiming(1, { duration: 2250 })), -1)
+      withRepeat(withDelay(0, withTiming(1, { duration: delay * 3 })), -1)
     )
     opacity2.set(
-      withRepeat(withDelay(750, withTiming(1, { duration: 1500 })), -1)
+      withRepeat(withDelay(delay, withTiming(1, { duration: delay * 2 })), -1)
     )
     opacity3.set(
-      withRepeat(withDelay(1500, withTiming(1, { duration: 750 })), -1)
+      withRepeat(withDelay(delay * 2, withTiming(1, { duration: delay })), -1)
     )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

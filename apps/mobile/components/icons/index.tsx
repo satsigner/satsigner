@@ -1,9 +1,13 @@
 import SSIconAbout from './SSIconAbout'
 import SSIconAdd from './SSIconAdd'
+import SSIconArrowLineDown from './SSIconArrowLineDown'
+import SSIconArrowsClockwise from './SSIconArrowsClockwise'
 import SSIconBitcoin from './SSIconBitcoin'
 import SSIconBlackIndicator from './SSIconBlackIndicator'
 import SSIconBlock from './SSIconBlock'
+import SSIconBoardCircle from './SSIconBoardCircle'
 import SSIconBubbles from './SSIconBubbles'
+import SSIconCalendar from './SSIconCalendar'
 import SSIconCamera from './SSIconCamera'
 import SSIconChain from './SSIconChain'
 import SSIconChainTip from './SSIconChainTip'
@@ -21,6 +25,7 @@ import SSIconCircleXThin from './SSIconCircleXThin'
 import SSIconClose from './SSIconClose'
 import SSIconCloseThin from './SSIconCloseThin'
 import SSIconCollapse from './SSIconCollapse'
+import SSIconContacts from './SSIconContacts'
 import SSIconConverter from './SSIconConverter'
 import SSIconConverterActive from './SSIconConverterActive'
 import SSIconCurrency from './SSIconCurrency'
@@ -37,6 +42,7 @@ import SSIconECash from './SSIconECash'
 import SSIconEdit from './SSIconEdit'
 import SSIconEditPencil from './SSIconEditPencil'
 import SSIconEllipsis from './SSIconEllipsis'
+import SSIconExclude from './SSIconExclude'
 import SSIconExpand from './SSIconExpand'
 import SSIconExplorer from './SSIconExplorer'
 import SSIconExplorerActive from './SSIconExplorerActive'
@@ -44,6 +50,8 @@ import SSIconEyeOff from './SSIconEyeOff'
 import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
 import SSIconFiat from './SSIconFiat'
+import SSIconFiles from './SSIconFiles'
+import SSIconFilter from './SSIconFilter'
 import SSIconGreen from './SSIconGreen'
 import SSIconGreenIndicator from './SSIconGreenIndicator'
 import SSIconGreenNoSecret from './SSIconGreenNoSecret'
@@ -88,6 +96,7 @@ import SSIconServerOptions from './SSIconServerOptions'
 import SSIconSettings from './SSIconSettings'
 import SSIconSigner from './SSIconSigner'
 import SSIconSignerActive from './SSIconSignerActive'
+import SSIconSignOut from './SSIconSignOut'
 import SSIconSingleSignature from './SSIconSingleSignature'
 import SSIconSuccess from './SSIconSuccess'
 import SSIconTable from './SSIconTable'
@@ -104,10 +113,14 @@ import SSIconZero from './SSIconZero'
 export {
   SSIconAbout,
   SSIconAdd,
+  SSIconArrowLineDown,
+  SSIconArrowsClockwise,
   SSIconBitcoin,
   SSIconBlackIndicator,
   SSIconBlock,
+  SSIconBoardCircle,
   SSIconBubbles,
+  SSIconCalendar,
   SSIconCamera,
   SSIconChain,
   SSIconChainTip,
@@ -125,6 +138,7 @@ export {
   SSIconClose,
   SSIconCloseThin,
   SSIconCollapse,
+  SSIconContacts,
   SSIconConverter,
   SSIconConverterActive,
   SSIconCurrency,
@@ -141,6 +155,7 @@ export {
   SSIconEdit,
   SSIconEditPencil,
   SSIconEllipsis,
+  SSIconExclude,
   SSIconExpand,
   SSIconExplorer,
   SSIconExplorerActive,
@@ -148,6 +163,8 @@ export {
   SSIconEyeOn,
   SSIconFeature,
   SSIconFiat,
+  SSIconFiles,
+  SSIconFilter,
   SSIconGreen,
   SSIconGreenIndicator,
   SSIconGreenNoSecret,
@@ -192,6 +209,7 @@ export {
   SSIconSettings,
   SSIconSigner,
   SSIconSignerActive,
+  SSIconSignOut,
   SSIconSingleSignature,
   SSIconSuccess,
   SSIconTable,

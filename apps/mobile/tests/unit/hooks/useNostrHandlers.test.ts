@@ -7,12 +7,13 @@ import { labelsHandler } from '@/hooks/useNostrLabelsHandler'
 import { psbtHandler } from '@/hooks/useNostrPsbtHandler'
 import { signMessageHandler } from '@/hooks/useNostrSignMessageHandler'
 import { txHandler } from '@/hooks/useNostrTxHandler'
+import { type Account } from '@/types/models/Account'
 import {
   type MessageHandlerContext,
   type PendingDM
 } from '@/types/nostrMessageHandlers'
 
-import { accountIds, nostrKeys } from '../utils/nostr_samples'
+import { accountIds, nostrKeys } from '../utils/nostrSamples'
 
 jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: {
@@ -27,11 +28,14 @@ const mockImportLabels = jest.fn()
 const mockUpdateAccountNostr = jest.fn()
 const mockAddMember = jest.fn()
 
+// Accounts visible to the store mock; each test (re)sets trust as needed.
+let mockAccounts: Account[] = []
+
 // Mock stores with persistent mock functions
 jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
   useAccountsStore: {
     getState: () => ({
-      accounts: [],
+      accounts: mockAccounts,
       importLabels: mockImportLabels,
       updateAccountNostr: mockUpdateAccountNostr
     })
@@ -67,6 +71,19 @@ const mockToast = toast as jest.Mocked<typeof toast>
 describe('message handlers', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    // Default: the context's sender (bob's key) is a trusted member device —
+    // npubEncode is mocked to `npub1${pubkey.slice(0,8)}...`.
+    mockAccounts = [
+      {
+        id: accountIds.primary,
+        nostr: {
+          deviceNpub: nostrKeys.bob.npub,
+          trustedMemberDevices: [
+            `npub1${nostrKeys.bob.privateKeyHex.slice(0, 8)}...`
+          ]
+        }
+      } as unknown as Account
+    ]
   })
 
   const createMockContext = (
@@ -181,6 +198,30 @@ describe('message handlers', () => {
       await labelsHandler.handle(context)
 
       expect(mockImportLabels).not.toHaveBeenCalled()
+    })
+
+    it('handle rejects labels from an untrusted sender', async () => {
+      mockAccounts = [
+        {
+          id: accountIds.primary,
+          nostr: {
+            deviceNpub: nostrKeys.alice.npub,
+            trustedMemberDevices: []
+          }
+        } as unknown as Account
+      ]
+
+      const context = createMockContext({
+        data: {
+          data: '{"type":"tx","ref":"abc","label":"evil"}',
+          data_type: 'LabelsBip329'
+        }
+      })
+
+      await labelsHandler.handle(context)
+
+      expect(mockImportLabels).not.toHaveBeenCalled()
+      expect(mockToast.success).not.toHaveBeenCalled()
     })
   })
 

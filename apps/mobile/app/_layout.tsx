@@ -12,6 +12,7 @@ import {
   View
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { KeyboardProvider } from 'react-native-keyboard-controller'
 import NfcManager from 'react-native-nfc-manager'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Toaster } from 'sonner-native'
@@ -19,7 +20,6 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSImageActionsSheet from '@/components/SSImageActionsSheet'
 import SSIntroAnimation from '@/components/SSIntroAnimation'
-import { useBarkAccessTokenDeepLink } from '@/hooks/useBarkAccessTokenDeepLink'
 import { queryClient } from '@/lib/queryClient'
 import {
   getLastBackgroundTimestamp,
@@ -27,6 +27,7 @@ import {
 } from '@/storage/mmkv'
 import { useAuthStore } from '@/store/auth'
 import { useIntroStore } from '@/store/intro'
+import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { Colors } from '@/styles'
 
 if (Platform.OS === 'android') {
@@ -39,11 +40,6 @@ const appTheme = {
     ...DarkTheme.colors,
     background: Colors.gray[950]
   }
-}
-
-function BarkAccessTokenDeepLinkBridge() {
-  useBarkAccessTokenDeepLink()
-  return null
 }
 
 export default function RootLayout() {
@@ -120,8 +116,10 @@ export default function RootLayout() {
       // Keep the overlay visible briefly so the /unlock redirect renders
       // before the previous screen becomes visible
       setTimeout(() => setPrivacyScreenVisible(false), 300)
+      usePayjoinSessionsStore.getState().clearExpiredSessions()
     } else if (nextAppState === 'active') {
       setPrivacyScreenVisible(false)
+      usePayjoinSessionsStore.getState().clearExpiredSessions()
     }
 
     appState.current = nextAppState
@@ -130,32 +128,33 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <BarkAccessTokenDeepLinkBridge />
         <GestureHandlerRootView style={styles.root}>
-          <ThemeProvider value={appTheme}>
-            <View style={styles.container}>
-              <Slot />
-            </View>
-          </ThemeProvider>
-          {privacyScreenVisible && <View style={styles.privacyScreen} />}
-          {introVisible && (
-            <SSIntroAnimation
-              firstTime={firstTime || introForceFirstTime}
-              onComplete={hideIntro}
+          <KeyboardProvider>
+            <ThemeProvider value={appTheme}>
+              <View style={styles.container}>
+                <Slot />
+              </View>
+            </ThemeProvider>
+            {privacyScreenVisible && <View style={styles.privacyScreen} />}
+            {introVisible && (
+              <SSIntroAnimation
+                firstTime={firstTime || introForceFirstTime}
+                onComplete={hideIntro}
+              />
+            )}
+            <SSImageActionsSheet />
+            <Toaster
+              theme="dark"
+              position="top-center"
+              style={{
+                backgroundColor: Colors.gray[950],
+                borderColor: Colors.gray[800],
+                borderRadius: 8,
+                borderWidth: 1,
+                zIndex: 999999
+              }}
             />
-          )}
-          <SSImageActionsSheet />
-          <Toaster
-            theme="dark"
-            position="top-center"
-            style={{
-              backgroundColor: Colors.gray[950],
-              borderColor: Colors.gray[800],
-              borderRadius: 8,
-              borderWidth: 1,
-              zIndex: 999999
-            }}
-          />
+          </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </SafeAreaProvider>

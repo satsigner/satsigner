@@ -1,15 +1,24 @@
 import { useFont } from '@shopify/react-native-skia'
-import { Stack } from 'expo-router'
-import { useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { router, Stack } from 'expo-router'
+import { useState, type ComponentProps, type ReactElement } from 'react'
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import { CartesianChart, Line } from 'victory-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSButton from '@/components/SSButton'
+import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import {
+  PRICE_CHART_DAYS,
   useChainTipData,
+  useChainTipExternalData,
   useChainTipMempoolStats,
   useChainTipPriceHistory
 } from '@/hooks/useChainTipData'
@@ -21,11 +30,47 @@ import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
-import { formatBytes, formatDate } from '@/utils/format'
+import type { MemPoolFees } from '@/types/models/Blockchain'
+import { formatBytes, formatDate, formatPercentualChange } from '@/utils/format'
+import {
+  MAIN_HORIZONTAL_PAD_RATIO,
+  PRICE_CHART_HEIGHT,
+  PRICE_CHART_LOADER_SIZE,
+  PRICE_CHART_PADDING,
+  PRICE_CHART_TICK_COUNT,
+  type PriceChartDomain,
+  type PriceChartPoint,
+  formatPriceChartXLabel,
+  formatPriceChartYLabel,
+  formatSpotPriceDisplay,
+  priceDomainFromData
+} from '@/utils/priceChart'
 
 const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 
 const tn = _tn('explorer.chaintip')
+
+type PriceChartRenderArgs = {
+  points: {
+    price?: ComponentProps<typeof Line>['points']
+  }
+}
+
+function renderPriceChartLine({
+  points
+}: PriceChartRenderArgs): ReactElement | null {
+  if (!points.price) {
+    return null
+  }
+  return (
+    <Line
+      points={points.price}
+      color={Colors.white}
+      strokeWidth={1.5}
+      curveType="linear"
+    />
+  )
+}
 
 export default function ChainTip() {
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -39,14 +84,14 @@ export default function ChainTip() {
   const [showExternal, setShowExternal] = useState(false)
 
   const { data: chainData, isLoading } = useChainTipData()
+  const { data: externalData, isLoading: isLoadingExternal } =
+    useChainTipExternalData(showExternal)
   const { data: mempoolStatistics } = useChainTipMempoolStats(
     '2h',
     showExternal
   )
-  const { data: priceHistoryResult } = useChainTipPriceHistory(
-    fiatCurrency,
-    showExternal
-  )
+  const { data: priceHistoryResult, isLoading: isLoadingPrice } =
+    useChainTipPriceHistory(fiatCurrency, showExternal)
   const priceChartFont = useFont(chartFont, 10)
 
   const priceChartData =
@@ -57,23 +102,14 @@ export default function ChainTip() {
         }))
       : []
 
-  const priceChartDomain = (() => {
-    if (priceChartData.length === 0) {
-      return undefined
-    }
-    const prices = priceChartData.map((d) => d.price).filter((p) => p > 0)
-    const xValues = priceChartData.map((d) => d.x)
-    if (prices.length === 0 || xValues.length === 0) {
-      return undefined
-    }
-    const minY = Math.min(...prices)
-    const maxY = Math.max(...prices)
-    const padY = (maxY - minY) * 0.1 || 1
-    return {
-      x: [Math.min(...xValues), Math.max(...xValues)] as [number, number],
-      y: [minY - padY, maxY + padY] as [number, number]
-    }
-  })()
+  const priceChartDomain = priceDomainFromData(priceChartData)
+  const chartSpotPrice = priceChartData.at(-1)?.price ?? 0
+  const spotPrice = btcPrice > 0 ? btcPrice : chartSpotPrice
+  const firstChartPrice = priceChartData.find((d) => d.price > 0)?.price
+  const priceChangeLabel =
+    firstChartPrice && chartSpotPrice > 0
+      ? formatPercentualChange(chartSpotPrice, firstChartPrice)
+      : null
 
   function sourceLabel(src: DataSource) {
     return src === 'backend'
@@ -81,11 +117,15 @@ export default function ChainTip() {
       : 'mempool.space'
   }
 
-  function formatPriceChartDate(timestampSeconds: number) {
-    return new Intl.DateTimeFormat(undefined, {
-      day: 'numeric',
-      month: 'short'
-    }).format(new Date(timestampSeconds * 1000))
+  function openTipBlock() {
+    if (typeof chainData?.height !== 'number') {
+      return
+    }
+    router.push(`/explorer/block/${chainData.height}`)
+  }
+
+  function enableExternal() {
+    setShowExternal(true)
   }
 
   return (
@@ -97,11 +137,14 @@ export default function ChainTip() {
       />
       {isLoading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="white" size="large" />
+          <SSLoader size={80} />
         </View>
       )}
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SSVStack gap="xl" style={{ paddingBottom: 32, paddingTop: 20 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <SSVStack gap="xl" widthFull style={styles.scrollStack}>
           {/* Latest Block */}
           <SSVStack gap="sm">
             <SectionHeader
@@ -114,11 +157,16 @@ export default function ChainTip() {
               }
             />
             <SSVStack gap="xs">
-              <Row
-                label={tn('height')}
-                value={chainData?.height?.toLocaleString() ?? '--'}
-                loading={isLoading}
-              />
+              <Pressable
+                onPress={openTipBlock}
+                disabled={typeof chainData?.height !== 'number'}
+              >
+                <Row
+                  label={tn('height')}
+                  value={chainData?.height?.toLocaleString() ?? '--'}
+                  loading={isLoading}
+                />
+              </Pressable>
               <Row
                 label={tn('timestamp')}
                 value={
@@ -157,6 +205,13 @@ export default function ChainTip() {
                   {isLoading ? '--' : (chainData?.hash ?? '--')}
                 </SSText>
               </SSVStack>
+              {typeof chainData?.height === 'number' ? (
+                <Pressable onPress={openTipBlock}>
+                  <SSText size="xs" style={styles.linkText}>
+                    {tn('viewBlock')}
+                  </SSText>
+                </Pressable>
+              ) : null}
             </SSVStack>
           </SSVStack>
 
@@ -198,136 +253,198 @@ export default function ChainTip() {
             </SSVStack>
           </SSVStack>
 
-          {/* External data opt-in */}
-          {!showExternal && (
-            <SSVStack style={{ alignItems: 'center' }}>
-              <SSButton
-                label={tn('loadExternal')}
-                variant="outline"
-                onPress={() => setShowExternal(true)}
-              />
-              <SSText size="xs" style={styles.privacyNote}>
-                {tn('externalNote')}
-              </SSText>
-            </SSVStack>
-          )}
+          {chainData?.feesSource === 'backend' && chainData.fees ? (
+            <FeeRatesSection
+              fees={chainData.fees}
+              source={chainData.feesSource}
+              sourceLabel={sourceLabel(chainData.feesSource)}
+              loading={isLoading}
+            />
+          ) : null}
+
+          {!showExternal ? (
+            <SSExplorerCapabilityBanner
+              why={tn('externalWhy')}
+              fix={tn('externalNote')}
+              onLoad={enableExternal}
+              loadLabel={tn('loadExternal')}
+              loading={isLoadingExternal}
+            />
+          ) : null}
 
           {showExternal && (
             <>
-              {/* Fee Rates — mempool.space */}
-              <SSVStack gap="sm">
-                <SectionHeader
-                  title={tn('fees')}
-                  source={chainData?.feesSource ?? 'mempool'}
-                  sourceLabel={
-                    chainData?.feesSource
-                      ? sourceLabel(chainData.feesSource)
-                      : 'mempool.space'
-                  }
-                />
-                <SSVStack gap="xs">
-                  <Row
-                    label={tn('feesHigh')}
-                    value={
-                      chainData?.fees ? `${chainData.fees.high} sat/vB` : '--'
-                    }
-                    loading={isLoading}
-                  />
-                  <Row
-                    label={tn('feesMedium')}
-                    value={
-                      chainData?.fees ? `${chainData.fees.medium} sat/vB` : '--'
-                    }
-                    loading={isLoading}
-                  />
-                  <Row
-                    label={tn('feesLow')}
-                    value={
-                      chainData?.fees ? `${chainData.fees.low} sat/vB` : '--'
-                    }
-                    loading={isLoading}
-                  />
-                  <Row
-                    label={tn('feesNone')}
-                    value={
-                      chainData?.fees ? `${chainData.fees.none} sat/vB` : '--'
-                    }
-                    loading={isLoading}
-                  />
-                </SSVStack>
-                <SSVStack gap="sm" style={{ marginTop: 8 }}>
-                  <SSFeeRateChart
-                    mempoolStatistics={mempoolStatistics}
-                    timeRange="2hours"
-                  />
-                </SSVStack>
-              </SSVStack>
-
-              {/* Price — mempool.space */}
-              <SSVStack gap="sm">
-                <SectionHeader
-                  title={tn('price')}
+              {chainData?.feesSource !== 'backend' ? (
+                <FeeRatesSection
+                  fees={externalData?.fees ?? null}
                   source="mempool"
                   sourceLabel="mempool.space"
+                  loading={isLoadingExternal}
                 />
-                <Row
-                  label={`BTC / ${fiatCurrency}`}
-                  value={
-                    btcPrice > 0
-                      ? btcPrice.toLocaleString(undefined, {
-                          maximumFractionDigits: 0
-                        })
-                      : '--'
-                  }
-                  loading={false}
+              ) : null}
+              <SSVStack gap="sm" style={{ marginTop: 8 }}>
+                <SSFeeRateChart
+                  mempoolStatistics={mempoolStatistics}
+                  timeRange="2hours"
                 />
-                {priceChartData.length > 0 && priceChartDomain && (
-                  <View style={styles.priceChartWrapper}>
-                    <SSText
-                      size="xxs"
-                      style={[styles.labelText, { marginBottom: 6 }]}
-                    >
-                      {fiatCurrency} / BTC
-                    </SSText>
-                    <CartesianChart
-                      data={priceChartData}
-                      xKey="x"
-                      yKeys={['price']}
-                      domain={priceChartDomain}
-                      padding={{ bottom: 32, left: 48, right: 16, top: 8 }}
-                      axisOptions={{
-                        axisSide: { x: 'bottom', y: 'left' },
-                        font: priceChartFont ?? undefined,
-                        formatXLabel: (v) => formatPriceChartDate(Number(v)),
-                        formatYLabel: (v) =>
-                          `${Number(v).toLocaleString(undefined, {
-                            maximumFractionDigits: 0
-                          })} ${fiatCurrency}`,
-                        labelColor: { x: '#787878', y: '#ffffff' },
-                        labelOffset: { x: 6, y: 8 },
-                        tickCount: { x: 7, y: 6 }
-                      }}
-                    >
-                      {({ points }) =>
-                        points.price ? (
-                          <Line
-                            points={points.price}
-                            color={Colors.mainGreen}
-                            strokeWidth={2}
-                            curveType="natural"
-                            animate={{ type: 'spring' }}
-                          />
-                        ) : null
-                      }
-                    </CartesianChart>
-                  </View>
-                )}
               </SSVStack>
+
+              <PriceSection
+                fiatCurrency={fiatCurrency}
+                spotPrice={spotPrice}
+                priceChangeLabel={priceChangeLabel}
+                priceChartData={priceChartData}
+                priceChartDomain={priceChartDomain}
+                priceChartFont={priceChartFont}
+                loading={isLoadingPrice}
+              />
             </>
           )}
         </SSVStack>
       </ScrollView>
     </SSMainLayout>
+  )
+}
+
+function PriceSection({
+  fiatCurrency,
+  spotPrice,
+  priceChangeLabel,
+  priceChartData,
+  priceChartDomain,
+  priceChartFont,
+  loading
+}: {
+  fiatCurrency: string
+  spotPrice: number
+  priceChangeLabel: string | null
+  priceChartData: PriceChartPoint[]
+  priceChartDomain: PriceChartDomain | undefined
+  priceChartFont: ReturnType<typeof useFont>
+  loading: boolean
+}) {
+  const { width: screenWidth } = useWindowDimensions()
+  const chartBleedStyle = {
+    marginLeft: -screenWidth * MAIN_HORIZONTAL_PAD_RATIO,
+    width: screenWidth
+  }
+  const changePositive =
+    priceChangeLabel !== null && priceChangeLabel.startsWith('+')
+  const spotPriceLabel = formatSpotPriceDisplay(loading, spotPrice)
+
+  return (
+    <SSVStack gap="sm" widthFull>
+      <SectionHeader
+        title={tn('price')}
+        source="mempool"
+        sourceLabel="mempool.space"
+      />
+      <SSVStack gap="none" widthFull>
+        <SSHStack gap="sm" style={styles.priceSpotRow}>
+          <SSText size="3xl" type="mono" weight="light">
+            {spotPriceLabel}
+          </SSText>
+          <SSText size="md" color="muted">
+            {fiatCurrency}
+          </SSText>
+        </SSHStack>
+        {priceChangeLabel ? (
+          <SSHStack gap="xs" style={styles.priceChangeRow}>
+            <SSText
+              size="xs"
+              type="mono"
+              style={
+                changePositive ? styles.priceChangeUp : styles.priceChangeDown
+              }
+            >
+              {priceChangeLabel}
+            </SSText>
+            <SSText size="xs" color="muted">
+              {tn('priceChangePeriod', { days: PRICE_CHART_DAYS })}
+            </SSText>
+          </SSHStack>
+        ) : null}
+      </SSVStack>
+      {loading && priceChartData.length === 0 ? (
+        <View style={[styles.priceChartLoading, chartBleedStyle]}>
+          <SSLoader size={PRICE_CHART_LOADER_SIZE} />
+        </View>
+      ) : null}
+      {priceChartData.length > 0 && priceChartDomain ? (
+        <View style={[styles.priceChartWrapper, chartBleedStyle]}>
+          <CartesianChart
+            data={priceChartData}
+            xKey="x"
+            yKeys={['price']}
+            domain={priceChartDomain}
+            padding={PRICE_CHART_PADDING}
+            axisOptions={{
+              axisSide: { x: 'bottom', y: 'right' },
+              font: priceChartFont ?? undefined,
+              formatXLabel: formatPriceChartXLabel,
+              formatYLabel: formatPriceChartYLabel,
+              labelColor: {
+                x: Colors.gray[500],
+                y: Colors.gray[300]
+              },
+              labelOffset: { x: 4, y: 18 },
+              tickCount: PRICE_CHART_TICK_COUNT
+            }}
+          >
+            {renderPriceChartLine}
+          </CartesianChart>
+        </View>
+      ) : null}
+      {!loading && priceChartData.length === 0 ? (
+        <SSText size="sm" color="muted">
+          {tn('priceChartEmpty')}
+        </SSText>
+      ) : null}
+    </SSVStack>
+  )
+}
+
+function FeeRatesSection({
+  fees,
+  source,
+  sourceLabel,
+  loading
+}: {
+  fees: MemPoolFees | null
+  source: DataSource
+  sourceLabel: string
+  loading: boolean
+}) {
+  return (
+    <SSVStack gap="sm">
+      <SectionHeader
+        title={tn('fees')}
+        source={source}
+        sourceLabel={sourceLabel}
+      />
+      <SSVStack gap="xs">
+        <Row
+          label={tn('feesHigh')}
+          value={fees ? `${fees.high} sat/vB` : '--'}
+          loading={loading}
+        />
+        <Row
+          label={tn('feesMedium')}
+          value={fees ? `${fees.medium} sat/vB` : '--'}
+          loading={loading}
+        />
+        <Row
+          label={tn('feesLow')}
+          value={fees ? `${fees.low} sat/vB` : '--'}
+          loading={loading}
+        />
+        <Row
+          label={tn('feesNone')}
+          value={fees ? `${fees.none} sat/vB` : '--'}
+          loading={loading}
+        />
+      </SSVStack>
+    </SSVStack>
   )
 }
 
@@ -391,24 +508,44 @@ const styles = StyleSheet.create({
   labelText: {
     color: Colors.gray['400']
   },
-  loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  priceChartWrapper: {
-    borderColor: Colors.gray[700],
-    borderRadius: 8,
-    borderWidth: 1,
-    height: 200,
-    marginTop: 8,
-    overflow: 'hidden',
-    padding: 12
-  },
-  privacyNote: {
-    color: Colors.gray['600'],
+  linkText: {
+    color: Colors.white,
     marginTop: 4,
-    textAlign: 'center'
+    textDecorationLine: 'underline'
+  },
+  loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  priceChangeDown: {
+    color: Colors.mainRed
+  },
+  priceChangeRow: {
+    alignItems: 'center',
+    marginTop: -2
+  },
+  priceChangeUp: {
+    color: Colors.mainGreen
+  },
+  priceChartLoading: {
+    alignItems: 'center',
+    height: 200,
+    justifyContent: 'center'
+  },
+  priceChartWrapper: {
+    height: PRICE_CHART_HEIGHT
+  },
+  priceSpotRow: {
+    alignItems: 'baseline'
   },
   row: {
     alignItems: 'center',
     paddingVertical: 4
+  },
+  scrollContent: {
+    width: '100%'
+  },
+  scrollStack: {
+    paddingBottom: 32,
+    paddingTop: 20,
+    width: '100%'
   },
   sectionTitle: {
     color: Colors.gray['400'],

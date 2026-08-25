@@ -3,20 +3,24 @@ import { type Account } from '@/types/models/Account'
 import { getDb } from '../connection'
 import {
   type AccountRow,
-  type TxInputRow,
-  type TxOutputRow,
+  type TransactionRow,
   rowToAccount,
   rowToAddress,
   rowToNostrDm,
-  rowToTransaction,
   rowToUtxo
 } from '../mappers'
-import { getAddressTxIds, getAddressUtxoRefs } from './addresses'
+import {
+  getAddressTxIdsByAccount,
+  getAddressUtxoRefsByAccount,
+  hydrateTransactionRows
+} from './children'
 import { getLabelsByAccount } from './labels'
 
 function getAccounts(): Account[] {
   const db = getDb()
-  const { results } = db.execute('SELECT * FROM accounts')
+  const { results } = db.execute(
+    'SELECT * FROM accounts ORDER BY display_index ASC'
+  )
   return (results as AccountRow[]).map((row) => hydrateAccount(row))
 }
 
@@ -38,21 +42,10 @@ function hydrateAccount(row: AccountRow): Account {
     'SELECT * FROM transactions WHERE account_id = ?',
     [accountId]
   )
-  const transactions = (txRows ?? []).map((txRow) => {
-    const { results: inputRows } = db.execute(
-      'SELECT * FROM tx_inputs WHERE tx_id = ? AND account_id = ? ORDER BY input_index',
-      [txRow.id as string, accountId]
-    )
-    const { results: outputRows } = db.execute(
-      'SELECT * FROM tx_outputs WHERE tx_id = ? AND account_id = ? ORDER BY output_index',
-      [txRow.id as string, accountId]
-    )
-    return rowToTransaction(
-      txRow as unknown as Parameters<typeof rowToTransaction>[0],
-      (inputRows ?? []) as unknown as TxInputRow[],
-      (outputRows ?? []) as unknown as TxOutputRow[]
-    )
-  })
+  const transactions = hydrateTransactionRows(
+    (txRows ?? []) as TransactionRow[],
+    accountId
+  )
 
   // UTXOs
   const { results: utxoRows } = db.execute(
@@ -68,13 +61,14 @@ function hydrateAccount(row: AccountRow): Account {
     'SELECT * FROM addresses WHERE account_id = ?',
     [accountId]
   )
+  const addressTxIds = getAddressTxIdsByAccount(accountId)
+  const addressUtxoRefs = getAddressUtxoRefsByAccount(accountId)
   const addresses = (addrRows ?? []).map((addrRow) => {
-    const txIds = getAddressTxIds(accountId, addrRow.address as string)
-    const utxoRefs = getAddressUtxoRefs(accountId, addrRow.address as string)
+    const address = addrRow.address as string
     return rowToAddress(
       addrRow as Parameters<typeof rowToAddress>[0],
-      txIds,
-      utxoRefs
+      addressTxIds.get(address) ?? [],
+      addressUtxoRefs.get(address) ?? []
     )
   })
 

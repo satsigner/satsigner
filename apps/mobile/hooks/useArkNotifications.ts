@@ -1,46 +1,60 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
-import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import {
   openArkWallet,
   subscribeArkNotifications,
   syncArkWallet
 } from '@/api/ark'
-import { t } from '@/locales'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
+import { useArkReceiveOverlayStore } from '@/store/arkReceiveOverlay'
 import type {
   ArkAccount,
   ArkMovementEvent,
   ArkNotificationUnsubscribe
 } from '@/types/models/Ark'
-import type { Network } from '@/types/settings/blockchain'
 import { getArkServer } from '@/utils/ark'
-import { formatNumber } from '@/utils/format'
-
-type AccessTokenMap = Partial<Record<Network, string>>
+import { invalidateArkAccountQueries } from '@/utils/arkSync'
 
 const activeSubscriptions = new Map<string, ArkNotificationUnsubscribe>()
 const inflightSubscriptions = new Set<string>()
-const RECEIVE_TOAST_DEDUP_TTL_MS = 60_000
-const recentReceiveToasts = new Map<string, number>()
+const RECEIVE_EVENT_DEDUP_TTL_MS = 60_000
+const recentReceiveEvents = new Map<string, number>()
+const INVALIDATE_DEBOUNCE_MS = 400
+const pendingInvalidations = new Map<string, ReturnType<typeof setTimeout>>()
 
-function shouldSkipDuplicateReceiveToast(key: string): boolean {
+// Rounds/refreshes emit bursts of movement events; coalesce them so each
+// burst costs one refetch batch instead of one per event.
+function scheduleAccountInvalidation(
+  queryClient: QueryClient,
+  accountId: string
+) {
+  const existing = pendingInvalidations.get(accountId)
+  if (existing) {
+    clearTimeout(existing)
+  }
+  const timer = setTimeout(() => {
+    pendingInvalidations.delete(accountId)
+    void invalidateArkAccountQueries(queryClient, accountId)
+  }, INVALIDATE_DEBOUNCE_MS)
+  pendingInvalidations.set(accountId, timer)
+}
+
+function shouldSkipDuplicateReceiveEvent(key: string): boolean {
   const now = Date.now()
-  for (const [existingKey, timestamp] of recentReceiveToasts) {
-    if (now - timestamp > RECEIVE_TOAST_DEDUP_TTL_MS) {
-      recentReceiveToasts.delete(existingKey)
+  for (const [existingKey, timestamp] of recentReceiveEvents) {
+    if (now - timestamp > RECEIVE_EVENT_DEDUP_TTL_MS) {
+      recentReceiveEvents.delete(existingKey)
     }
   }
-  const last = recentReceiveToasts.get(key)
-  if (last !== undefined && now - last < RECEIVE_TOAST_DEDUP_TTL_MS) {
+  const last = recentReceiveEvents.get(key)
+  if (last !== undefined && now - last < RECEIVE_EVENT_DEDUP_TTL_MS) {
     return true
   }
-  recentReceiveToasts.set(key, now)
+  recentReceiveEvents.set(key, now)
   return false
 }
 
@@ -49,20 +63,19 @@ function notifyReceive(account: ArkAccount, event: ArkMovementEvent) {
     return
   }
   const key = `${account.id}:${event.movementId}`
-  if (shouldSkipDuplicateReceiveToast(key)) {
+  if (shouldSkipDuplicateReceiveEvent(key)) {
     return
   }
-  toast.success(
-    t('ark.notifications.received', {
-      amount: formatNumber(event.effectiveBalanceSats),
-      wallet: account.name
-    })
-  )
+  useArkReceiveOverlayStore.getState().enqueueReceive({
+    accountId: account.id,
+    accountName: account.name,
+    amountSats: event.effectiveBalanceSats,
+    movementId: event.movementId
+  })
 }
 
 async function subscribeAccount(
   account: ArkAccount,
-  accessToken: string | undefined,
   queryClient: QueryClient
 ): Promise<void> {
   if (
@@ -86,8 +99,7 @@ async function subscribeAccount(
       accountId: account.id,
       datadir,
       mnemonic,
-      server,
-      serverAccessToken: accessToken
+      server
     })
 
     const accountStillExists = useArkStore
@@ -101,12 +113,7 @@ async function subscribeAccount(
       account.serverId,
       account.id,
       (event) => {
-        queryClient.invalidateQueries({
-          queryKey: ['ark', 'balance', account.id]
-        })
-        queryClient.invalidateQueries({
-          queryKey: ['ark', 'movements', account.id]
-        })
+        scheduleAccountInvalidation(queryClient, account.id)
         notifyReceive(account, event)
       }
     )
@@ -118,21 +125,16 @@ async function subscribeAccount(
 
 async function subscribeAccountSafe(
   account: ArkAccount,
-  accessToken: string | undefined,
   queryClient: QueryClient
 ): Promise<void> {
   try {
-    await subscribeAccount(account, accessToken, queryClient)
+    await subscribeAccount(account, queryClient)
   } catch {
     inflightSubscriptions.delete(account.id)
   }
 }
 
-function syncSubscriptions(
-  accounts: ArkAccount[],
-  accessTokens: AccessTokenMap,
-  queryClient: QueryClient
-) {
+function syncSubscriptions(accounts: ArkAccount[], queryClient: QueryClient) {
   const desiredIds = new Set(accounts.map((a) => a.id))
   for (const [id, unsubscribe] of activeSubscriptions) {
     if (!desiredIds.has(id)) {
@@ -141,11 +143,7 @@ function syncSubscriptions(
     }
   }
   for (const account of accounts) {
-    void subscribeAccountSafe(
-      account,
-      accessTokens[account.network],
-      queryClient
-    )
+    void subscribeAccountSafe(account, queryClient)
   }
 }
 
@@ -165,14 +163,13 @@ async function resyncAccount(
   } catch {
     // best effort — wallet may not be open yet on resume
   }
-  queryClient.invalidateQueries({ queryKey: ['ark', 'balance', account.id] })
-  queryClient.invalidateQueries({ queryKey: ['ark', 'movements', account.id] })
+  await invalidateArkAccountQueries(queryClient, account.id)
 }
 
 function handleAppForeground(queryClient: QueryClient) {
-  const { accounts, serverAccessTokens } = useArkStore.getState()
+  const { accounts } = useArkStore.getState()
   tearDownAllSubscriptions()
-  syncSubscriptions(accounts, serverAccessTokens, queryClient)
+  syncSubscriptions(accounts, queryClient)
   for (const account of accounts) {
     void resyncAccount(account, queryClient)
   }
@@ -180,13 +177,11 @@ function handleAppForeground(queryClient: QueryClient) {
 
 export function useArkNotifications() {
   const queryClient = useQueryClient()
-  const [accounts, serverAccessTokens] = useArkStore(
-    useShallow((state) => [state.accounts, state.serverAccessTokens])
-  )
+  const accounts = useArkStore((state) => state.accounts)
 
   useEffect(() => {
-    syncSubscriptions(accounts, serverAccessTokens, queryClient)
-  }, [accounts, serverAccessTokens, queryClient])
+    syncSubscriptions(accounts, queryClient)
+  }, [accounts, queryClient])
 
   useEffect(() => {
     let lastState: AppStateStatus = AppState.currentState

@@ -160,7 +160,7 @@ export default function NetworkSettings() {
                     <SSNumberInput
                       value={tempConfigs[network].stopGap.toString()}
                       min={1}
-                      max={50}
+                      max={200}
                       onChangeText={(text) =>
                         handleParamChange(network, 'stopGap', Number(text))
                       }

@@ -3,16 +3,23 @@ import { Buffer } from 'buffer'
 import NDK, { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NetInfo from '@react-native-community/netinfo'
-import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
+import { type Event, nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
 
 import {
+  NOSTR_NIP17_SEAL_KIND,
+  NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
   NOSTR_FLUSH_QUEUE_DELAY_MS,
   NOSTR_MAX_PROCESSED_RAW_IDS,
   NOSTR_MAX_QUEUE_SIZE,
-  NOSTR_RELAY_REACHABILITY_TEST_MS,
+  NOSTR_NDK_CONNECT_TIMEOUT_MS,
+  NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
   NOSTR_PROCESSING_INTERVAL_MS,
+  NOSTR_PROFILE_BATCH_SIZE,
   NOSTR_PROFILE_CACHE_TTL_SECS,
-  NOSTR_NDK_CONNECT_TIMEOUT_MS
+  NOSTR_PUBLISH_TIMEOUT_MS,
+  NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS,
+  NOSTR_RELAY_REACHABILITY_TEST_MS,
+  NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
 import {
   cacheEvents,
@@ -22,16 +29,23 @@ import {
   getCachedProfile,
   getNewestCachedTimestamp
 } from '@/db/nostrCache'
+import { setNostrFollowCache } from '@/storage/mmkv'
 import type {
   NostrKeys,
   NostrKind0Profile,
   NostrMessage,
+  NostrPollResponse,
   NostrRelayConnectionInfo,
   NostrSignedKind1Event,
   NostrUnwrappedKind1059Event
 } from '@/types/models/Nostr'
+import { chunkArray } from '@/utils/chunkArray'
 import { randomKey } from '@/utils/crypto'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
+import {
+  extractResponseOptionIds,
+  NOSTR_POLL_RESPONSE_KIND
+} from '@/utils/nostrPoll'
 
 function createMobileNdk(explicitRelayUrls: string[]): NDK {
   return new NDK({
@@ -39,6 +53,89 @@ function createMobileNdk(explicitRelayUrls: string[]): NDK {
     enableOutboxModel: false,
     explicitRelayUrls
   })
+}
+
+function disconnectNdkPool(ndk: NDK): void {
+  try {
+    ndk.pool?.removeAllListeners?.()
+    for (const relay of ndk.pool?.relays.values() ?? []) {
+      relay.disconnect()
+    }
+  } catch {
+    // best-effort cleanup
+  }
+}
+
+// One NDK instance per relay set, shared across all NostrAPI callers.
+// Prevents duplicate WebSocket connections when multiple screens use the same relays.
+const ndkRegistry = new Map<string, NDK>()
+
+function getOrCreateNdk(relays: string[]): NDK {
+  const key = [...relays].toSorted().join(',')
+  const existing = ndkRegistry.get(key)
+  if (existing) {
+    return existing
+  }
+  const ndk = createMobileNdk(relays)
+  ndkRegistry.set(key, ndk)
+  return ndk
+}
+
+function resetNdkForRelays(relays: string[]): NDK {
+  const key = [...relays].toSorted().join(',')
+  const existing = ndkRegistry.get(key)
+  if (existing) {
+    for (const relay of existing.pool?.relays.values() ?? []) {
+      try {
+        relay.disconnect()
+      } catch {
+        // best-effort
+      }
+    }
+    ndkRegistry.delete(key)
+  }
+  const ndk = createMobileNdk(relays)
+  ndkRegistry.set(key, ndk)
+  return ndk
+}
+
+export function clearNdkRegistry(): void {
+  for (const ndk of ndkRegistry.values()) {
+    for (const relay of ndk.pool?.relays.values() ?? []) {
+      try {
+        relay.disconnect()
+      } catch {
+        // best-effort
+      }
+    }
+  }
+  ndkRegistry.clear()
+}
+
+function normalizeRelayUrl(url: string): string {
+  return url.toLowerCase().replace(/\/$/, '')
+}
+
+function buildRelayConnectionInfo(
+  allUrls: string[],
+  connectedUrls: string[]
+): NostrRelayConnectionInfo {
+  const probeUrls = allUrls.slice(0, 3)
+  const connectedNormalized = new Set(connectedUrls.map(normalizeRelayUrl))
+  return {
+    relayDetails: probeUrls.map((url) => ({
+      connected: connectedNormalized.has(normalizeRelayUrl(url)),
+      url
+    })),
+    status: 'connected'
+  }
+}
+
+export async function reconnectNdkForRelays(
+  relayUrls: string[]
+): Promise<void> {
+  const ndk = resetNdkForRelays(relayUrls)
+  await ndk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
 }
 
 export async function testNostrRelaysReachable(
@@ -53,13 +150,33 @@ export async function testNostrRelaysReachable(
     return { reason: 'no_internet', status: 'disconnected' }
   }
 
+  // Check the shared registry NDK first — if it has live connections, trust
+  // its pool state instead of probing with a fresh NDK (which would race
+  // against existing sockets and often report "unreachable" while data flows).
+  const registryKey = [...relayUrls].toSorted().join(',')
+  const registryNdk = ndkRegistry.get(registryKey)
+  if (registryNdk?.pool) {
+    const connected = registryNdk.pool.connectedRelays().map((r) => r.url)
+    if (connected.length > 0) {
+      return buildRelayConnectionInfo(relayUrls, connected)
+    }
+    // Registry NDK exists but all connections are dead — evict the stale
+    // instance and create a fresh one rather than trying to revive it.
+    const freshNdk = resetNdkForRelays(relayUrls)
+    await freshNdk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
+    const reconnected = freshNdk.pool?.connectedRelays().map((r) => r.url) ?? []
+    if (reconnected.length > 0) {
+      return buildRelayConnectionInfo(relayUrls, reconnected)
+    }
+  }
+
+  // No registry entry yet (first probe before any data fetch) — use a throw-away NDK.
   const probeUrls = relayUrls.slice(0, 3)
-  const ndk = createMobileNdk(probeUrls)
+  const probeNdk = createMobileNdk(probeUrls)
+  await probeNdk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
+  const connected = probeNdk.pool?.connectedRelays().map((r) => r.url) ?? []
 
-  await ndk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
-  const connected = ndk.pool?.connectedRelays().map((r) => r.url) ?? []
-
-  for (const relay of ndk.pool?.relays.values() ?? []) {
+  for (const relay of probeNdk.pool?.relays.values() ?? []) {
     try {
       relay.disconnect()
     } catch {
@@ -68,7 +185,7 @@ export async function testNostrRelaysReachable(
   }
 
   if (connected.length > 0) {
-    return { status: 'connected' }
+    return buildRelayConnectionInfo(probeUrls, connected)
   }
 
   return {
@@ -110,16 +227,44 @@ function getProfileFromKind0Content(
   }
 }
 
+// NIP-17 unwrap with mandatory sender-authenticity checks. nostr-tools'
+// nip59.unwrapEvent only decrypts the two NIP-44 layers and returns the
+// rumor: it never verifies the seal's signature nor that the seal and rumor
+// pubkeys match, so anyone able to address a gift wrap to a victim (e.g. a
+// relay, which learns device npubs from the sync filters) could forge the
+// rumor author and impersonate a trusted device. Both checks are MUSTs in
+// NIP-17, so events failing them are rejected here.
 function unwrapNip59EventOrNull(
   rawEvent: Event,
   secretKey: Uint8Array
 ): NostrUnwrappedKind1059Event | null {
   try {
-    return nip59.unwrapEvent(rawEvent, secretKey) as NostrUnwrappedKind1059Event
+    const sealJson = nip44.v2.decrypt(
+      rawEvent.content,
+      nip44.getConversationKey(secretKey, rawEvent.pubkey)
+    )
+    const seal = JSON.parse(sealJson) as Event
+    if (seal.kind !== NOSTR_NIP17_SEAL_KIND || !verifyEvent(seal)) {
+      return null
+    }
+
+    const rumorJson = nip44.v2.decrypt(
+      seal.content,
+      nip44.getConversationKey(secretKey, seal.pubkey)
+    )
+    const rumor = JSON.parse(rumorJson) as NostrUnwrappedKind1059Event
+    if (rumor.pubkey !== seal.pubkey) {
+      return null
+    }
+
+    return rumor
   } catch {
     return null
   }
 }
+
+// Exported for unit tests
+export { unwrapNip59EventOrNull }
 
 export class NostrAPI {
   private ndk: NDK | null = null
@@ -151,9 +296,9 @@ export class NostrAPI {
   }
 
   async connect() {
-    if (!this.ndk) {
-      this.ndk = createMobileNdk(this.relays)
-    }
+    // Always resolve from the registry so all_failed resets don't leave this
+    // instance pinned to an evicted/disconnected NDK.
+    this.ndk = getOrCreateNdk(this.relays)
 
     await this.ndk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
 
@@ -170,10 +315,10 @@ export class NostrAPI {
    * we do NOT gate on connectedRelays().length here; the per-fetch timeout
    * handles the case where nothing connects in time.
    */
-  async connectForPublish(timeoutMs = 10000): Promise<void> {
-    if (!this.ndk) {
-      this.ndk = createMobileNdk(this.relays)
-    }
+  async connectForPublish(timeoutMs = NOSTR_PUBLISH_TIMEOUT_MS): Promise<void> {
+    // Always resolve from the registry so all_failed resets don't leave this
+    // instance pinned to an evicted/disconnected NDK.
+    this.ndk = getOrCreateNdk(this.relays)
 
     await this.ndk.connect(timeoutMs)
 
@@ -224,11 +369,10 @@ export class NostrAPI {
       kinds: [NDKKind.Metadata],
       limit: 10
     }
-    const FETCH_KIND0_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_KIND0_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     const event =
@@ -271,6 +415,66 @@ export class NostrAPI {
     return this.fetchKind0ByPubkeyHex(hexPubkey)
   }
 
+  async fetchCalendarEvents(npub: string): Promise<
+    {
+      description: string
+      end?: number
+      id: string
+      kind: number
+      location?: string
+      start: number
+      title: string
+    }[]
+  > {
+    const hexPubkey = getPubKeyHexFromNpub(npub)
+    if (!hexPubkey) {
+      return []
+    }
+
+    await this.connectForPublish()
+    if (!this.ndk) {
+      return []
+    }
+
+    const events = await NostrAPI.fetchManyWithTimeout(
+      this.ndk,
+      {
+        authors: [hexPubkey],
+        kinds: [31922 as NDKKind],
+        limit: 500
+      },
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
+
+    return [...events]
+      .flatMap((event) => {
+        function getTagValue(name: string): string | undefined {
+          return event.tags.find((tag) => tag[0] === name)?.[1]
+        }
+
+        const start = Number(getTagValue('start'))
+        if (!Number.isFinite(start)) {
+          return []
+        }
+
+        const endValue = Number(getTagValue('end'))
+        const location = getTagValue('location')
+
+        return [
+          {
+            description: event.content,
+            ...(Number.isFinite(endValue) ? { end: endValue } : {}),
+            id: event.id,
+            kind: event.kind ?? 31922,
+            ...(location ? { location } : {}),
+            start,
+            title: getTagValue('title') ?? getTagValue('summary') ?? 'Untitled'
+          }
+        ]
+      })
+      .toSorted((a, b) => a.start - b.start)
+  }
+
   /**
    * Fetches kind 0 (metadata) for multiple pubkeys in a single subscription.
    * Returns a map of hex pubkey → profile; caches each result in SQLite.
@@ -291,7 +495,6 @@ export class NostrAPI {
       return new Map()
     }
 
-    const FETCH_KIND0_BATCH_TIMEOUT_MS = 15000
     const filter: NDKFilter = {
       authors: validKeys,
       kinds: [NDKKind.Metadata],
@@ -300,7 +503,7 @@ export class NostrAPI {
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_KIND0_BATCH_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     const newestByPubkey = new Map<
@@ -331,6 +534,56 @@ export class NostrAPI {
   }
 
   /**
+   * Streams kind 0 profiles for many pubkeys: SQLite cache first, then relay
+   * batches via fetchKind0Batch. Invokes onBatch after each cache/relay chunk.
+   */
+  async streamKind0Profiles(
+    hexPubkeys: string[],
+    onBatch: (profiles: Map<string, NostrKind0Profile>) => void,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const validKeys = hexPubkeys
+      .map((pk) => pk.toLowerCase())
+      .filter((pk) => /^[0-9a-f]{64}$/.test(pk))
+    if (validKeys.length === 0 || signal?.aborted) {
+      return
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    const missing: string[] = []
+    const cachedBatch = new Map<string, NostrKind0Profile>()
+
+    for (const pk of validKeys) {
+      const cached = getCachedProfile(pk)
+      if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
+        cachedBatch.set(pk, {
+          banner: cached.banner,
+          displayName: cached.displayName,
+          lud16: cached.lud16,
+          nip05: cached.nip05,
+          picture: cached.picture
+        })
+      } else {
+        missing.push(pk)
+      }
+    }
+
+    if (cachedBatch.size > 0 && !signal?.aborted) {
+      onBatch(cachedBatch)
+    }
+
+    for (const slice of chunkArray(missing, NOSTR_PROFILE_BATCH_SIZE)) {
+      if (signal?.aborted) {
+        return
+      }
+      const batch = await this.fetchKind0Batch(slice)
+      if (batch.size > 0 && !signal?.aborted) {
+        onBatch(batch)
+      }
+    }
+  }
+
+  /**
    * Latest kind 10003 (NIP-51 bookmark list) for this npub.
    * Returns raw tags (public bookmarks) and encrypted content (private bookmarks).
    */
@@ -353,11 +606,10 @@ export class NostrAPI {
       kinds: [NDKKind.BookmarkList],
       limit: 1
     }
-    const FETCH_BOOKMARKS_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_BOOKMARKS_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     if (events.size === 0) {
@@ -426,31 +678,44 @@ export class NostrAPI {
    * Latest kind 3 (NIP-02 contact list) for this npub; returns followed
    * pubkeys in tag order (64-char hex, lowercase), excluding duplicates and self.
    */
-  async fetchKind3FollowingPubkeys(npub: string): Promise<string[]> {
+  async fetchKind3FollowingPubkeys(npub: string): Promise<{
+    connectedRelayCount: number
+    kind3Found: boolean
+    pubkeys: string[]
+    relaysQueried: string[]
+  }> {
+    const empty = {
+      connectedRelayCount: 0,
+      kind3Found: false,
+      pubkeys: [],
+      relaysQueried: this.relays
+    }
+
     const hexPubkey = getPubKeyHexFromNpub(npub)
     if (!hexPubkey) {
-      return []
+      return empty
     }
 
     await this.connect()
     if (!this.ndk) {
-      return []
+      return empty
     }
+
+    const connectedRelayCount = this.ndk.pool.connectedRelays().length
 
     const filter: NDKFilter = {
       authors: [hexPubkey],
       kinds: [NDKKind.Contacts],
       limit: 40
     }
-    const FETCH_KIND3_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_KIND3_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     if (events.size === 0) {
-      return []
+      return { ...empty, connectedRelayCount }
     }
 
     const sorted = Array.from(events).toSorted(
@@ -458,7 +723,7 @@ export class NostrAPI {
     )
     const [latest] = sorted
     if (!latest) {
-      return []
+      return { ...empty, connectedRelayCount }
     }
 
     const ordered: string[] = []
@@ -478,12 +743,21 @@ export class NostrAPI {
       }
     }
 
-    return ordered
+    if (ordered.length > 0) {
+      setNostrFollowCache(npub, ordered)
+    }
+
+    return {
+      connectedRelayCount,
+      kind3Found: true,
+      pubkeys: ordered,
+      relaysQueried: this.relays
+    }
   }
 
   async fetchNotes(
     npub: string,
-    limit = 20,
+    limit = NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
     until?: number,
     kinds: number[] = [1]
   ): Promise<
@@ -542,11 +816,10 @@ export class NostrAPI {
       }
     }
 
-    const FETCH_NOTES_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_NOTES_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     const fresh = Array.from(events)
@@ -581,7 +854,7 @@ export class NostrAPI {
    */
   async fetchFollowingTimelineNotes(
     npub: string,
-    limit = 20,
+    limit = NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
     until?: number,
     kinds: number[] = [1]
   ): Promise<
@@ -594,7 +867,7 @@ export class NostrAPI {
       created_at: number
     }[]
   > {
-    const following = await this.fetchKind3FollowingPubkeys(npub)
+    const { pubkeys: following } = await this.fetchKind3FollowingPubkeys(npub)
     if (following.length === 0) {
       return []
     }
@@ -617,11 +890,10 @@ export class NostrAPI {
       filter.until = until
     }
 
-    const FETCH_FEED_TIMEOUT_MS = 15000
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_FEED_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     const results = Array.from(events)
@@ -719,12 +991,14 @@ export class NostrAPI {
   }
 
   static readonly INDEXING_RELAYS = [
+    'wss://indexer.coracle.social',
+    'wss://relay.nos.social',
     'wss://relay.nostr.band',
     'wss://relay.primal.net',
     'wss://nos.lol',
     'wss://relay.damus.io',
     'wss://relay.snort.social',
-    'wss://purplepag.es'
+    'wss://indexer.nostrarchives.com'
   ]
 
   async fetchEvent(eventIdHex: string): Promise<{
@@ -751,7 +1025,11 @@ export class NostrAPI {
     }
 
     const filter = { ids: [eventIdHex], limit: 1 }
-    const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
+    const poolEvent = await NostrAPI.fetchWithTimeout(
+      this.ndk,
+      filter,
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
     if (!poolEvent) {
       return null
     }
@@ -784,12 +1062,11 @@ export class NostrAPI {
       return new Map()
     }
 
-    const FETCH_EVENT_BATCH_TIMEOUT_MS = 15000
     const filter: NDKFilter = { ids: validIds, limit: validIds.length }
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
       filter,
-      FETCH_EVENT_BATCH_TIMEOUT_MS
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
     const result = new Map<
@@ -829,10 +1106,14 @@ export class NostrAPI {
 
     const tempNdk = createMobileNdk(relayUrls)
     try {
-      await tempNdk.connect(8000)
+      await tempNdk.connect(NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS)
 
       const filter = { ids: [eventIdHex], limit: 1 }
-      const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
+      const event = await NostrAPI.fetchWithTimeout(
+        tempNdk,
+        filter,
+        NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+      )
       if (!event) {
         return null
       }
@@ -841,14 +1122,7 @@ export class NostrAPI {
       cacheEvents([{ id: event.id, ...formatted }], ownPubkeys)
       return formatted
     } finally {
-      try {
-        tempNdk.pool?.removeAllListeners?.()
-        for (const relay of tempNdk.pool?.relays.values() ?? []) {
-          relay.disconnect()
-        }
-      } catch {
-        // cleanup best-effort
-      }
+      disconnectNdkPool(tempNdk)
     }
   }
 
@@ -877,23 +1151,20 @@ export class NostrAPI {
 
     const tempNdk = createMobileNdk(relayUrls)
     try {
-      await tempNdk.connect(8000)
+      await tempNdk.connect(NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS)
 
       const filter = { ids: [eventIdHex], limit: 1 }
-      const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
+      const event = await NostrAPI.fetchWithTimeout(
+        tempNdk,
+        filter,
+        NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+      )
       if (!event) {
         return null
       }
       return JSON.stringify(NostrAPI.ndkEventToStorableRecord(event), null, 2)
     } finally {
-      try {
-        tempNdk.pool?.removeAllListeners?.()
-        for (const relay of tempNdk.pool?.relays.values() ?? []) {
-          relay.disconnect()
-        }
-      } catch {
-        // cleanup best-effort
-      }
+      disconnectNdkPool(tempNdk)
     }
   }
 
@@ -1063,33 +1334,21 @@ export class NostrAPI {
     this.eventQueue = []
     this.processedRawEventIds.clear()
     this._callback = undefined
-
-    // Disconnect every relay in the pool to release WebSocket connections and
-    // their underlying OS threads. Without this, each startSync/stopSync cycle
-    // leaks an NDK instance with live relay connections, eventually exhausting
-    // the Android thread limit (pthread_create OOM).
-    if (this.ndk) {
-      for (const relay of this.ndk.pool.relays.values()) {
-        try {
-          relay.disconnect()
-        } catch {
-          // relay may already be disconnected or in invalid state
-        }
-      }
-    }
+    // NDK relay connections are kept alive via the registry for reuse.
+    // startSync/stopSync cycles reuse the same NDK instance, so the Android
+    // pthread OOM that previously required explicit relay.disconnect() here
+    // is prevented structurally by the singleton registry instead.
   }
 
   disconnect(): void {
-    if (!this.ndk) {
-      return
-    }
-    for (const relay of this.ndk.pool?.relays.values() ?? []) {
+    for (const sub of this.activeSubscriptions) {
       try {
-        relay.disconnect()
+        sub.stop()
       } catch {
-        // relay may already be disconnected
+        // subscription may already be stopped
       }
     }
+    this.activeSubscriptions.clear()
     this.ndk = null
   }
 
@@ -1119,8 +1378,6 @@ export class NostrAPI {
   }
 
   // 20 second timeout per relay for publish operations
-  private static readonly PUBLISH_TIMEOUT_MS = 20000
-
   /**
    * Request deletion of events from relays (NIP-09). Sends a kind 5 event.
    * Only events authored by the signer can be deleted by relays.
@@ -1226,6 +1483,119 @@ export class NostrAPI {
     return event.id
   }
 
+  async fetchPollResponses(
+    pollEventIdHex: string
+  ): Promise<NostrPollResponse[]> {
+    await this.connectForPublish()
+    if (!this.ndk) {
+      return []
+    }
+
+    const filter: NDKFilter = {
+      '#e': [pollEventIdHex],
+      kinds: [NOSTR_POLL_RESPONSE_KIND as NDKKind],
+      limit: 500
+    }
+    const events = await NostrAPI.fetchManyWithTimeout(
+      this.ndk,
+      filter,
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
+
+    return [...events].map((event) => ({
+      created_at: event.created_at ?? 0,
+      id: event.id,
+      optionIds: extractResponseOptionIds(
+        event.tags.map((tag) =>
+          tag.filter((value): value is string => typeof value === 'string')
+        )
+      ),
+      pubkey: event.pubkey
+    }))
+  }
+
+  async publishPollResponse(
+    nsec: string,
+    pollEventIdHex: string,
+    optionIds: string[],
+    pollRelays: string[] = []
+  ): Promise<string> {
+    const secretKey = getSecretFromNsec(nsec)
+    if (!secretKey) {
+      throw new Error('Invalid nsec')
+    }
+
+    const publishRelays = Array.from(
+      new Set([...this.relays, ...pollRelays].filter(Boolean))
+    )
+    const signer = new NDKPrivateKeySigner(secretKey)
+    const tempNdk = createMobileNdk(
+      publishRelays.length > 0 ? publishRelays : this.relays
+    )
+
+    try {
+      await tempNdk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
+      tempNdk.signer = signer
+
+      const event = new NDKEvent(tempNdk, {
+        content: '',
+        kind: NOSTR_POLL_RESPONSE_KIND,
+        tags: [
+          ['e', pollEventIdHex],
+          ...optionIds.map((optionId) => ['response', optionId])
+        ]
+      })
+
+      await event.sign(signer)
+
+      const allRelayUrls = Array.from(tempNdk.pool?.relays.keys() ?? [])
+      if (allRelayUrls.length === 0) {
+        throw new Error('No relays in pool')
+      }
+
+      const publishPromises = allRelayUrls.map(async (url) => {
+        const relay = tempNdk.pool?.relays.get(url)
+        if (!relay) {
+          return { error: 'Relay not found', success: false as const, url }
+        }
+
+        try {
+          const timeoutPromise = new Promise<never>((_resolve, reject) => {
+            setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `Publish timeout after ${NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS}ms`
+                  )
+                ),
+              NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS
+            )
+          })
+          await Promise.race([relay.publish(event), timeoutPromise])
+          return { success: true as const, url }
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Unknown publish error'
+          return { error: message, success: false as const, url }
+        }
+      })
+
+      const results = await Promise.all(publishPromises)
+      const succeeded = results.filter((result) => result.success)
+      if (succeeded.length === 0) {
+        const errors = results
+          .filter((result) => !result.success)
+          .map((result) => `${result.url}: ${result.error}`)
+          .join('; ')
+        throw new Error(`Failed to publish to any relay: ${errors}`)
+      }
+
+      return event.id
+    } finally {
+      disconnectNdkPool(tempNdk)
+    }
+  }
+
   async publishEvent(event: NDKEvent): Promise<void> {
     if (!this.ndk) {
       await this.connect()
@@ -1263,10 +1633,10 @@ export class NostrAPI {
             () =>
               reject(
                 new Error(
-                  `Publish timeout after ${NostrAPI.PUBLISH_TIMEOUT_MS}ms`
+                  `Publish timeout after ${NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS}ms`
                 )
               ),
-            NostrAPI.PUBLISH_TIMEOUT_MS
+            NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS
           )
         })
         await Promise.race([relay.publish(event), timeoutPromise])

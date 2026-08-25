@@ -7,20 +7,18 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
-import { PIN_KEY } from '@/config/auth'
+import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Network } from '@/types/settings/blockchain'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { convertKeyFormat } from '@/utils/bitcoin'
-import { aesDecrypt } from '@/utils/crypto'
+import { decryptAccountKeySecret } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 
 // Helper function to get the appropriate translation key for key format buttons
@@ -201,64 +199,39 @@ export default function PublicKeyPage() {
         return publicKey
       }
 
-      // Use the network-aware conversion utility
       return convertKeyFormat(publicKey, targetFormat, network)
     },
     [network]
   )
 
-  useEffect(() => {
-    async function getPublicKey() {
-      if (!account || !keyIndex || !key) {
-        return
-      }
-
-      setIsLoading(true)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) {
-        return
-      }
-
-      try {
-        // Decrypt the key's secret
-        let decryptedSecret: Secret
-        if (typeof key.secret === 'string') {
-          const decryptedSecretString = await aesDecrypt(
-            key.secret,
-            pin,
-            key.iv
-          )
-          decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-        } else {
-          decryptedSecret = key.secret as Secret
-        }
-
-        // Get the public key
-        let publicKey = ''
-        if (decryptedSecret.extendedPublicKey) {
-          publicKey = decryptedSecret.extendedPublicKey
-        } else if (decryptedSecret.externalDescriptor) {
-          publicKey = getExtendedKeyFromDescriptor(
-            decryptedSecret.externalDescriptor
-          )
-        }
-
-        if (!publicKey) {
-          toast.error('Could not extract public key')
-          return
-        }
-
-        setRawPublicKey(publicKey)
-        setPublicKey(convertPublicKeyFormat(publicKey, selectedFormat))
-      } catch {
-        toast.error('Failed to get public key')
-      } finally {
-        setIsLoading(false)
-      }
+  async function getPublicKey() {
+    if (!account || !keyIndex || !key) {
+      return
     }
+    const secret = await decryptAccountKeySecret(account.id, key.index)
+    const publicKey =
+      secret.extendedPublicKey ??
+      (secret.externalDescriptor
+        ? getExtendedKeyFromDescriptor(secret.externalDescriptor)
+        : '')
+    if (!publicKey) {
+      toast.error('Could not extract public key')
+      return
+    }
+    setRawPublicKey(publicKey)
+    setPublicKey(convertPublicKeyFormat(publicKey, selectedFormat))
+  }
 
-    getPublicKey()
-  }, [account, keyIndex, key, network, selectedFormat, convertPublicKeyFormat]) // eslint-disable-line react-hooks/exhaustive-deps
+  useAsyncEffect(async () => {
+    try {
+      setIsLoading(true)
+      await getPublicKey()
+    } catch {
+      toast.error('Failed to get public key')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [account, keyIndex, key, network, selectedFormat, convertPublicKeyFormat])
 
   useEffect(() => {
     if (rawPublicKey) {

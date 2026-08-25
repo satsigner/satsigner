@@ -1,3 +1,16 @@
+// The LN payment maximum value depends which channels are connected.
+//
+// Payment Size      Expectation
+// <100K sats        Almost always works
+// 100K – 1M sats    Usually works, minor routing failures
+// 1M – 5M sats      Needs good path, may require splits (MPP)
+// 5M – 20M sats     Direct/wumbo channels or custodials only
+// >20M sats         Very limited paths, likely need on-chain or exchange
+//
+// We are (temporarily) hardcoding the value.
+// TODO: make it possible for users to configure the channel threshold.
+export const LIGHTNING_CHANNEL_THRESHOLD = 1_000_000
+
 export const LND_FORWARDING_MAX_EVENTS = 200
 export const LND_FORWARDING_INDEX_OFFSET = 0
 export const LND_REST = {
@@ -44,5 +57,6 @@ export const LIGHTNING_BUBBLE_CHART_MAX_LOCAL_BUBBLE_PX = 36
 export const LIGHTNING_BUBBLE_CHART_MIN_REMOTE_BUBBLE_PX = 3
 export const LIGHTNING_BUBBLE_CHART_MAX_REMOTE_BUBBLE_PX = 30
 export const LIGHTNING_BUBBLE_CHART_FIT_MARGIN_FRAC = 0.92
+export const LIGHTNING_BUBBLE_CHART_MIN_AVAILABLE_RADIUS_PX = 40
 export const LIGHTNING_BUBBLE_CHART_AMOUNT_ON_BUBBLE_FONT_PX = 9
 export const LIGHTNING_BUBBLE_CHART_PEER_LABEL_FONT_PX = 10 /** LND REST paths and query strings used by the node dashboard. */

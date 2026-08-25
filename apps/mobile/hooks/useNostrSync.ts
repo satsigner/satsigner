@@ -5,8 +5,8 @@ import { getWalletData } from '@/api/bdk'
 import { useNostrStore } from '@/store/nostr'
 import { Label } from '@/types/bips/329'
 import type { Account } from '@/types/models/Account'
-import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import { resolveDescriptorForNostrCommonKeys } from '@/utils/getOutputDescriptorForKey'
 import { deriveNostrKeysFromDescriptor } from '@/utils/nostr'
 import { nostrSyncService } from '@/utils/nostrSyncService'
@@ -116,7 +116,7 @@ function useNostrSync() {
       appNetworkToBdkNetwork(tmpAccount.network)
     )
 
-    const externalDescriptor = resolveDescriptorForNostrCommonKeys(
+    const externalDescriptor = await resolveDescriptorForNostrCommonKeys(
       tmpAccount,
       firstKey,
       secret,

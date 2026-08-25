@@ -1,8 +1,9 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSLoader from '@/components/SSLoader'
 import SSNetworkDots from '@/components/SSNetworkDots'
 import SSText from '@/components/SSText'
 import { useChainData } from '@/hooks/useChainData'
@@ -34,7 +35,7 @@ export default function ExplorerNetwork() {
       />
       {isLoadingChain && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="white" size="large" />
+          <SSLoader size={80} />
         </View>
       )}
       <ScrollView showsVerticalScrollIndicator={false}>

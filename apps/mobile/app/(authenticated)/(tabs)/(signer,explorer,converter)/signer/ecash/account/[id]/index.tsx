@@ -210,9 +210,9 @@ export default function EcashAccountDetailPage() {
                       }
                     >
                       {proofsView === 'list' ? (
-                        <SSIconBubbles height={16} width={16} />
+                        <SSIconBubbles height={15} width={15} />
                       ) : (
-                        <SSIconList height={16} width={16} />
+                        <SSIconList height={15} width={15} />
                       )}
                     </SSIconButton>
                   </SSHStack>

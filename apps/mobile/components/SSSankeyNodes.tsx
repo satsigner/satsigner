@@ -13,7 +13,7 @@ import {
   useSVG,
   vec
 } from '@shopify/react-native-skia'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 
 import { DUST_LIMIT } from '@/constants/btc'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
@@ -27,12 +27,15 @@ import {
   SANKEY_BLOCK_TX_STRIP_MAX_PX,
   type Node
 } from '@/types/ui/sankey'
+import { formatFeeRateSatPerVb } from '@/utils/format'
 import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
 } from '@/utils/sankeyFlowWidths'
+import { getUnspentOutputSatsColor } from '@/utils/sankeyOutputLabel'
+import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
-interface ISSankeyNodes {
+type SSSankeyNodesProps = {
   nodes: Node[]
   ribbonPlan: SankeyRibbonPlan
   sankeyGenerator: { nodeWidth: () => number }
@@ -40,7 +43,12 @@ interface ISSankeyNodes {
   dimUnselected?: boolean
   /** When false, hides the “unspent” line on output cards (e.g. while composing a new tx). */
   showUnspentLabel?: boolean
+  /** Fires once Skia fonts are loaded and label paragraphs can paint. */
+  onLabelsReady?: (ready: boolean) => void
 }
+
+/** Frames after fonts load before labels are considered painted. */
+const LABEL_PAINT_FRAMES = 6
 
 const BASE_FONT_SIZE = 13
 const SM_FONT_SIZE = 10
@@ -50,6 +58,72 @@ const PADDING_LEFT = 8
 const ICON_SIZE = 8
 const RECT_PADDING = 5
 const NODE_MARGIN_LEFT = 1
+/** Extra layout width so amount + unit can paint past the sankey node band. */
+const NODE_TEXT_OVERFLOW_WIDTH = 220
+/** Keeps the sats amount and unit on one line in Skia paragraphs. */
+const NBSP = '\u00A0'
+/** NBSP belongs on the unit run — trailing NBSP on the amount run can drop the first "s". */
+const SATS_UNIT = `${NBSP}sats`
+
+type SankeyTextStyle = {
+  color: ReturnType<typeof Skia.Color>
+  fontFamilies: string[]
+  fontSize: number
+  fontStyle: { weight: number }
+}
+
+type SankeyParagraphBuilder = ReturnType<typeof Skia.ParagraphBuilder.Make>
+
+/**
+ * Keep "to"/"from" and the address/txid on one line with identical font metrics
+ * so Skia baselines align (only color differs).
+ */
+function appendDirectionTarget(
+  para: SankeyParagraphBuilder,
+  baseTextStyle: SankeyTextStyle,
+  direction: 'from' | 'to',
+  target: string
+) {
+  const label =
+    direction === 'from'
+      ? t('common.from').toLowerCase()
+      : t('common.to').toLowerCase()
+
+  para
+    .pushStyle({
+      ...baseTextStyle,
+      color: Skia.Color(gray[500]),
+      fontSize: XS_FONT_SIZE,
+      fontStyle: {
+        weight: 500
+      }
+    })
+    .addText(`${label}${NBSP}`)
+    .pushStyle({
+      ...baseTextStyle,
+      color: Skia.Color(white),
+      fontSize: XS_FONT_SIZE,
+      fontStyle: {
+        weight: 500
+      }
+    })
+    .addText(target)
+}
+
+function formatSatsAmount(value: number | undefined): string {
+  return (value ?? 0).toLocaleString('en-US')
+}
+
+const MAX_NODE_LABEL_LENGTH = 14
+
+function trimNodeLabel(label: string | undefined): string {
+  if (!label) {
+    return ''
+  }
+  return label.length > MAX_NODE_LABEL_LENGTH
+    ? `${label.slice(0, MAX_NODE_LABEL_LENGTH)}…`
+    : label
+}
 
 function SSSankeyNodes({
   nodes,
@@ -57,17 +131,50 @@ function SSSankeyNodes({
   sankeyGenerator,
   selectedOutputNode,
   dimUnselected = false,
-  showUnspentLabel = true
-}: ISSankeyNodes) {
+  showUnspentLabel = true,
+  onLabelsReady
+}: SSSankeyNodesProps) {
   const customFontManager = useSFProFonts()
+  const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
+  const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
+  const fakeMixIconSvg = useSVG(require('@/assets/green-fake-mix.svg'))
+  const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
+
+  const onLabelsReadyRef = useRef(onLabelsReady)
+  onLabelsReadyRef.current = onLabelsReady
+  const labelsNotifiedRef = useRef(false)
+
+  useEffect(() => {
+    if (labelsNotifiedRef.current || !customFontManager) {
+      return
+    }
+
+    let frame = 0
+    let cancelled = false
+    function waitForPaint(remaining: number) {
+      if (cancelled) {
+        return
+      }
+      if (remaining <= 0) {
+        labelsNotifiedRef.current = true
+        onLabelsReadyRef.current?.(true)
+        return
+      }
+      frame = requestAnimationFrame(() => waitForPaint(remaining - 1))
+    }
+    // Wait until NodeText paragraphs have mounted and Skia has painted them.
+    waitForPaint(LABEL_PAINT_FRAMES)
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frame)
+    }
+  }, [customFontManager])
 
   const maxDepth =
     nodes.length === 0 ? 0 : Math.max(...nodes.map((node) => node.depthH))
 
   const renderNode = (node: Node) => {
-    const isHigherCurrentMinerFee =
-      node.localId === 'current-minerFee' && node.ioData?.higherFee
-
     const isSelectedOutput =
       selectedOutputNode !== undefined && node.localId === selectedOutputNode
     const shouldDim =
@@ -139,8 +246,14 @@ function SSSankeyNodes({
               y={y}
               width={BLOCK_WIDTH / 1.5}
               height={txSizeHeight}
-              opacity={0.7}
-              color={isCurrentTxBlockNode ? gray[200] : gray[500]}
+              opacity={isTransactionChart ? 0.6 : 0.7}
+              color={
+                isTransactionChart
+                  ? gray[500]
+                  : isCurrentTxBlockNode
+                    ? gray[100]
+                    : gray[500]
+              }
             />
           </Group>
         )
@@ -151,28 +264,44 @@ function SSSankeyNodes({
     return (
       <Group key={node.id} opacity={shouldDim ? 0.3 : 1}>
         {blockNode()}
-        <NodeText
-          isBlock={node.depthH % 2 !== 0}
-          width={sankeyGenerator.nodeWidth()}
-          x={Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)}
-          y={(Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)) - 1.6}
-          ioData={node.ioData}
-          customFontManager={customFontManager}
-          localId={node?.localId ?? ''}
-          isTransactionChart={isTransactionChart}
-          selectedOutputNode={selectedOutputNode}
-          isHigherCurrentMinerFee={isHigherCurrentMinerFee}
-          isSelfSend={
-            node.ioData?.isSelfSend && !(node?.localId === 'remainingBalance')
-          }
-          showUnspentLabel={showUnspentLabel}
-        />
+        {customFontManager ? (
+          <NodeText
+            isBlock={node.depthH % 2 !== 0}
+            width={sankeyGenerator.nodeWidth()}
+            x={Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)}
+            y={(Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)) - 1.6}
+            ioData={node.ioData}
+            customFontManager={customFontManager}
+            localId={node?.localId ?? ''}
+            isTransactionChart={isTransactionChart}
+            selectedOutputNode={selectedOutputNode}
+            isFakeMix={node.ioData?.isFakeMix === true}
+            isChange={
+              node.ioData?.isChange === true ||
+              node?.localId === CHART_REMAINING_BALANCE_LOCAL_ID
+            }
+            isSelfSend={
+              node.ioData?.isSelfSend === true &&
+              node.ioData?.isChange !== true &&
+              node?.localId !== CHART_REMAINING_BALANCE_LOCAL_ID &&
+              node.ioData?.isFakeMix !== true
+            }
+            isReceive={
+              node.ioData?.isReceive === true &&
+              node.ioData?.isChange !== true &&
+              node.ioData?.isSelfSend !== true &&
+              node.ioData?.isFakeMix !== true &&
+              node?.localId !== CHART_REMAINING_BALANCE_LOCAL_ID
+            }
+            showUnspentLabel={showUnspentLabel}
+            labelIconSvg={labelIconSvg}
+            changeIconSvg={changeIconSvg}
+            fakeMixIconSvg={fakeMixIconSvg}
+            minerFeeIconSvg={minerFeeIconSvg}
+          />
+        ) : null}
       </Group>
     )
-  }
-
-  if (!customFontManager) {
-    return null
   }
 
   return <>{nodes.map(renderNode)}</>
@@ -188,9 +317,15 @@ function NodeText({
   ioData,
   isTransactionChart,
   selectedOutputNode,
-  isHigherCurrentMinerFee,
+  isFakeMix,
+  isChange: isChangeProp,
   isSelfSend,
-  showUnspentLabel = true
+  isReceive,
+  showUnspentLabel = true,
+  labelIconSvg,
+  changeIconSvg,
+  fakeMixIconSvg,
+  minerFeeIconSvg
 }: {
   localId: string
   isBlock: boolean
@@ -201,13 +336,29 @@ function NodeText({
   ioData: TxNode['ioData']
   isTransactionChart: boolean
   selectedOutputNode?: string
-  isHigherCurrentMinerFee?: boolean
+  isFakeMix?: boolean
+  isChange?: boolean
   isSelfSend?: boolean
+  isReceive?: boolean
   showUnspentLabel?: boolean
+  labelIconSvg: ReturnType<typeof useSVG>
+  changeIconSvg: ReturnType<typeof useSVG>
+  fakeMixIconSvg: ReturnType<typeof useSVG>
+  minerFeeIconSvg: ReturnType<typeof useSVG>
 }) {
   const isMiningFee = localId.includes('minerFee')
-  const isChange = localId === 'remainingBalance'
-  const isUnspent = ioData?.isUnspent
+  const isHigherMinerFee = ioData?.higherFee === true
+  const isFeeValueWarning = isHigherMinerFee || ioData?.elevatedFeeRate === true
+  const isChange =
+    isChangeProp === true || localId === CHART_REMAINING_BALANCE_LOCAL_ID
+  const isUnspent = ioData?.isUnspent === true
+  const isNeutralOutput = ioData?.isNeutralOutput === true
+  const isInput = ioData?.isInput === true
+  const isPrivacyOwnedOutput = Boolean(
+    isChange || isSelfSend || isReceive || isFakeMix
+  )
+  const usePrivacyOutputLayout =
+    !isNeutralOutput && (isUnspent || isPrivacyOwnedOutput)
 
   const shadowPaint = useMemo(() => {
     const paint = Skia.Paint()
@@ -225,10 +376,6 @@ function NodeText({
     )
     return paint
   }, [])
-
-  const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
-  const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
-  const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
   const blockNodeParagraph = useMemo(() => {
     if (!customFontManager) {
       return null
@@ -314,7 +461,7 @@ function NodeText({
       Skia.ParagraphBuilder.Make(
         {
           ellipsis: '…',
-          maxLines: isSelfSend ? 6 : 5,
+          maxLines: isSelfSend || isReceive || isFakeMix ? 6 : 5,
           strutStyle: {
             forceStrutHeight: true,
             heightMultiplier: 1,
@@ -332,50 +479,54 @@ function NodeText({
       para
         .pushStyle({
           ...baseTextStyle,
-          fontSize: SM_FONT_SIZE
-        })
-        .addText(`${ioData?.txSize} B`)
-        .pushStyle({
-          ...baseTextStyle,
-          color: Skia.Color('white'),
           fontSize: XS_FONT_SIZE
         })
-        .addText(`\n${Math.ceil(ioData.vSize ?? 0)} vB`)
+        .addText(`${Math.ceil(ioData.vSize ?? 0)} vB`)
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color('rgba(255,255,255,0.6)'),
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(`\n${ioData?.txSize} B`)
         .pop()
 
       return para.build()
     }
 
     const buildMiningFeeParagraph = () => {
+      const feeRateColor = isFeeValueWarning ? warning : 'white'
+      const satsValueColor = isFeeValueWarning ? warning : 'white'
+      const satVbLabelColor = isFeeValueWarning ? warning : Colors.gray[200]
+
       const para = createParagraphBuilder()
       para
         .pushStyle({
           ...baseTextStyle,
+          color: Skia.Color(feeRateColor),
           fontSize: XS_FONT_SIZE
         })
-        .addText(`${ioData?.feeRate}`) // Add optional chaining and nullish coalescing
+        .addText(`${formatFeeRateSatPerVb(ioData?.feeRate ?? 0)}`)
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color(Colors.gray[200]),
+          color: Skia.Color(satVbLabelColor),
           fontSize: XS_FONT_SIZE
         })
-        .addText(` ${t('bitcoin.sats').toLowerCase()}/vB \n`)
+        .addText(`${NBSP}${t('bitcoin.sats').toLowerCase()}/vB \n`)
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color('white'),
+          color: Skia.Color(satsValueColor),
           fontSize: BASE_FONT_SIZE
         })
 
-        .addText(`${ioData?.value?.toLocaleString()} `)
+        .addText(formatSatsAmount(ioData?.value))
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
           fontSize: XS_FONT_SIZE
         })
-        .addText(`sats\n`)
+        .addText(`${SATS_UNIT}\n`)
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .pushStyle({
-          // Style for the icon + text line (red for both current and past miner fee)
           ...baseTextStyle,
           color: Skia.Color(mainRed),
           fontSize: XS_FONT_SIZE,
@@ -383,7 +534,6 @@ function NodeText({
             weight: 800
           }
         })
-        // Add placeholder for the miner svg icon
         .addPlaceholder(
           ICON_SIZE,
           ICON_SIZE,
@@ -391,23 +541,44 @@ function NodeText({
           TextBaseline.Alphabetic,
           0
         )
-        .addText(` ${ioData?.text ?? ''} `) // Add optional chaining and nullish coalescing
-        .addText(
-          isHigherCurrentMinerFee && ioData?.feePercentage
-            ? `${ioData?.feePercentage}%`
-            : ''
-        )
+        .addText(` ${ioData?.text ?? ''}`)
         .pop()
+
+      if (isHigherMinerFee && ioData?.feePercentage) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(warning),
+            fontSize: XS_FONT_SIZE,
+            fontStyle: {
+              weight: 800
+            }
+          })
+          .addText(` ${ioData.feePercentage}%`)
+          .pop()
+      }
 
       return para.build()
     }
 
     const buildUnspentParagraph = () => {
+      const isGreenOutput = Boolean(
+        isChange || isSelfSend || isReceive || isFakeMix
+      )
+      const satsValueColor = getUnspentOutputSatsColor({
+        isChange,
+        isGreenOutput,
+        isMiningFee,
+        maxAllowedSats: ioData?.maxAllowedSats,
+        value: ioData?.value
+      })
+
       const para = createParagraphBuilder()
       if (showUnspentLabel) {
         para
           .pushStyle({
             ...baseTextStyle,
+            color: Skia.Color(isUnspent ? white : gray[500]),
             fontSize: XS_FONT_SIZE
           })
           .addText(ioData?.text ?? '')
@@ -415,42 +586,40 @@ function NodeText({
       para
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color(isChange || isSelfSend ? 'white' : mainRed),
+          color: Skia.Color(satsValueColor),
           fontSize: BASE_FONT_SIZE
         })
         .addText(
           showUnspentLabel
-            ? `\n${ioData?.value?.toLocaleString()} `
-            : `${ioData?.value?.toLocaleString()} `
+            ? `\n${formatSatsAmount(ioData?.value)}`
+            : formatSatsAmount(ioData?.value)
         )
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(gray[200]),
           fontSize: XS_FONT_SIZE
         })
-        .addText(`sats\n`)
+        .addText(`${SATS_UNIT}\n`)
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(gray[300]),
           fontSize: XS_FONT_SIZE
         })
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
-        .addText(ioData?.address ? `${t('common.to')} ` : '')
+      if (ioData?.address) {
+        appendDirectionTarget(para, baseTextStyle, 'to', ioData.address)
+        para.addText('\n')
+      }
+      para
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color('white'),
-          fontSize: XS_FONT_SIZE
-        })
-        .addText(ioData?.address ? `${ioData?.address}\n` : '')
-        .pushStyle({
-          ...baseTextStyle,
-          color: Skia.Color(isChange || isSelfSend ? mainGreen : mainRed),
+          color: Skia.Color(isGreenOutput ? mainGreen : mainRed),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
           }
         })
-        // Single placeholder for icon (change, self-send, or label)
+        // Single placeholder for icon (change, self-send, receive, or label)
         .addPlaceholder(
           ICON_SIZE,
           ICON_SIZE,
@@ -461,9 +630,13 @@ function NodeText({
         .addText(
           isChange
             ? ` ${t('transaction.build.change')}`
-            : isSelfSend
-              ? ` ${t('transaction.build.selfSend')}`
-              : ` ${ioData.label ?? ''}`
+            : isFakeMix
+              ? ` ${t('transaction.build.fakeMix')}`
+              : isSelfSend
+                ? ` ${t('transaction.build.selfSend')}`
+                : isReceive
+                  ? ` ${t('transaction.build.receive')}`
+                  : ` ${trimNodeLabel(ioData.label)}`
         )
         .pushStyle({
           ...baseTextStyle,
@@ -473,48 +646,190 @@ function NodeText({
             weight: 800
           }
         })
-        .addText(isSelfSend && ioData?.label ? ` ${ioData.label}` : '')
+        .addText(
+          (isSelfSend || isReceive || isFakeMix) && ioData?.label
+            ? ` ${trimNodeLabel(ioData.label)}`
+            : ''
+        )
         .pop()
 
       return para.build()
     }
 
-    const buildSpentParagraph = () => {
-      const hasLabel = ioData?.label
+    const buildNeutralOutputParagraph = () => {
+      const hasFiat = Boolean(ioData?.fiatValue && ioData?.fiatCurrency)
+      const hasAddress = Boolean(ioData?.address)
+      const specialTag = ioData?.specialTag?.trim()
       const para = createParagraphBuilder()
       para
         .pushStyle({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE
         })
-        .addText(`${(ioData?.value ?? 0).toLocaleString()}`) // Already has optional chaining and nullish coalescing
+        .addText(formatSatsAmount(ioData?.value))
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
-          fontSize: SM_FONT_SIZE
+          fontSize: XS_FONT_SIZE
         })
-        .addText(` ${t('bitcoin.sats').toLowerCase()}\n`)
+        .addText(`${SATS_UNIT}\n`)
+      if (hasFiat) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(gray[300]),
+            fontSize: XS_FONT_SIZE
+          })
+          .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
+      }
+      if (specialTag) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(Colors.gray[200]),
+            fontSize: XS_FONT_SIZE,
+            fontStyle: {
+              weight: 800
+            }
+          })
+          .addText(specialTag)
+      } else if (hasAddress) {
+        appendDirectionTarget(para, baseTextStyle, 'to', ioData.address ?? '')
+      }
+      return para.build()
+    }
+
+    const buildInputParagraph = () => {
+      const hasFiat = Boolean(ioData?.fiatValue && ioData?.fiatCurrency)
+      const hasOutpoint =
+        Boolean(ioData?.address) && typeof ioData?.vout === 'number'
+      const trimmedLabel = trimNodeLabel(ioData?.label)
+      const isOwnInput = ioData?.isOwnInput
+      const ownershipTag =
+        isOwnInput === true
+          ? t('transaction.details.chartInputOurs')
+          : isOwnInput === false
+            ? t('transaction.details.chartInputCounterparty')
+            : undefined
+      const ownershipTagColor =
+        isOwnInput === true
+          ? mainGreen
+          : isOwnInput === false
+            ? mainRed
+            : gray[300]
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE
+        })
+        .addText(formatSatsAmount(ioData?.value))
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(`${SATS_UNIT}\n`)
+      if (hasFiat) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(gray[300]),
+            fontSize: XS_FONT_SIZE
+          })
+          .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
+      }
+      if (hasOutpoint) {
+        appendDirectionTarget(
+          para,
+          baseTextStyle,
+          'from',
+          `${ioData.address}:${ioData.vout}`
+        )
+      }
+      if (ownershipTag) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(ownershipTagColor),
+            fontSize: XS_FONT_SIZE,
+            fontStyle: {
+              weight: 800
+            }
+          })
+          .addText(`\n${ownershipTag}`)
+      }
+      if (trimmedLabel) {
+        para
+          .pushStyle({
+            ...baseTextStyle,
+            color: Skia.Color(gray[300]),
+            fontSize: XS_FONT_SIZE,
+            fontStyle: {
+              weight: 800
+            }
+          })
+          .addText(`\n${trimmedLabel}`)
+      }
+      para.pop()
+
+      return para.build()
+    }
+
+    const buildSpentParagraph = () => {
+      const hasLabel = Boolean(ioData?.label)
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color(gray[500]),
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(ioData?.text ?? '')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE
+        })
+        .addText(`\n${formatSatsAmount(ioData?.value)}`)
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(`${SATS_UNIT}\n`)
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(gray[300]),
           fontSize: XS_FONT_SIZE
         })
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
-        .addText(`${ioData?.text} `)
+      if (ioData?.address) {
+        appendDirectionTarget(para, baseTextStyle, 'to', ioData.address)
+        para.addText('\n')
+      }
+      para
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color('white'),
-          fontSize: XS_FONT_SIZE
+          color: Skia.Color(mainRed),
+          fontSize: XS_FONT_SIZE,
+          fontStyle: {
+            weight: 800
+          }
         })
-        .addText(`${ioData?.address ?? ''}\n`) // Add nullish coalescing
-        .pushStyle({
-          ...baseTextStyle,
-          color: hasLabel ? Skia.Color('white') : Skia.Color(gray[300]),
-          fontSize: XS_FONT_SIZE
-        })
+        .addPlaceholder(
+          ICON_SIZE,
+          ICON_SIZE,
+          PlaceholderAlignment.Middle,
+          TextBaseline.Alphabetic,
+          0
+        )
         .addText(
-          hasLabel ? `${ioData.label ?? ''}\n` : `${t('common.noLabel')}\n`
-        ) // Add nullish coalescing
+          ioData?.specialTag
+            ? ` ${ioData.specialTag}`
+            : hasLabel
+              ? ` ${trimNodeLabel(ioData.label)}`
+              : ` ${t('common.noLabel')}`
+        )
         .pop()
 
       return para.build()
@@ -525,33 +840,53 @@ function NodeText({
       para = buildBlockParagraph()
     } else if (isMiningFee) {
       para = buildMiningFeeParagraph()
-    } else if (isUnspent) {
+    } else if (isInput) {
+      para = buildInputParagraph()
+    } else if (isNeutralOutput) {
+      para = buildNeutralOutputParagraph()
+    } else if (isUnspent || isPrivacyOwnedOutput) {
+      // Wallet-owned outputs keep green styling if UTXO set has not caught up.
       para = buildUnspentParagraph()
     } else {
       para = buildSpentParagraph()
     }
 
-    para.layout(isBlock ? width * 0.6 : width - PADDING_LEFT)
+    // Wide layout so value + "sats" stay on one line and can overflow the node band.
+    para.layout(
+      isBlock
+        ? width * 0.6
+        : Math.max(width - PADDING_LEFT, NODE_TEXT_OVERFLOW_WIDTH)
+    )
     return para
   }, [
     customFontManager,
     isBlock,
     isMiningFee,
+    isInput,
     isUnspent,
+    isNeutralOutput,
     width,
     ioData?.txSize,
     ioData.vSize,
     ioData?.feeRate,
     ioData?.value,
+    ioData?.maxAllowedSats,
     ioData.fiatValue,
     ioData.fiatCurrency,
     ioData?.text,
     ioData?.feePercentage,
     ioData?.address,
     ioData.label,
-    isHigherCurrentMinerFee,
+    ioData?.specialTag,
+    ioData?.vout,
+    ioData?.isOwnInput,
+    isHigherMinerFee,
+    isFeeValueWarning,
     isChange,
+    isFakeMix,
     isSelfSend,
+    isReceive,
+    isPrivacyOwnedOutput,
     showUnspentLabel
   ])
 
@@ -562,23 +897,27 @@ function NodeText({
     : // ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT
       y
 
-  // Apply additional margin if the node is unspent
-  const groupBaseX = isUnspent ? paragraphX + NODE_MARGIN_LEFT : paragraphX
+  // Apply additional margin when output cards show a leading status icon
+  const isSpentOutput =
+    !isBlock &&
+    !isMiningFee &&
+    !isInput &&
+    !isNeutralOutput &&
+    !isUnspent &&
+    !isPrivacyOwnedOutput
+  const groupBaseX =
+    usePrivacyOutputLayout || isSpentOutput
+      ? paragraphX + NODE_MARGIN_LEFT
+      : paragraphX
 
   // Get placeholder rects if it's a mining fee node
-  const placeholderRectsMinerIcon = useMemo(() => {
-    if (isMiningFee && mainParagraph) {
-      return mainParagraph.getRectsForPlaceholders()
-    }
-    return []
-  }, [mainParagraph, isMiningFee])
+  const placeholderRectsMinerIcon =
+    isMiningFee && mainParagraph ? mainParagraph.getRectsForPlaceholders() : []
 
-  const placeholderRectsUnspentIcon = useMemo(() => {
-    if (isUnspent && mainParagraph) {
-      return mainParagraph.getRectsForPlaceholders()
-    }
-    return []
-  }, [mainParagraph, isUnspent])
+  const placeholderRectsOutputIcon =
+    (usePrivacyOutputLayout || isSpentOutput) && mainParagraph
+      ? mainParagraph.getRectsForPlaceholders()
+      : []
 
   const dustBorderPaint = useMemo(() => {
     const paint = Skia.Paint()
@@ -592,8 +931,25 @@ function NodeText({
     return null
   }
 
-  const paragraphActualWidth = isBlock ? width * 0.6 : width - PADDING_LEFT
+  const paragraphLayoutWidth = isBlock
+    ? width * 0.6
+    : Math.max(width - PADDING_LEFT, NODE_TEXT_OVERFLOW_WIDTH)
+  const paragraphActualWidth = isBlock
+    ? paragraphLayoutWidth
+    : Math.max(width - PADDING_LEFT, mainParagraph.getLongestLine())
   const paragraphActualHeight = mainParagraph.getHeight()
+
+  const outputIconRect = placeholderRectsOutputIcon[0]?.rect
+  const minerIconRect = placeholderRectsMinerIcon[0]?.rect
+  const fallbackIconY = Math.max(0, paragraphActualHeight - ICON_SIZE - 2)
+  const outputIconX = groupBaseX + (outputIconRect?.x ?? 0)
+  const outputIconY = paragraphY + (outputIconRect?.y ?? fallbackIconY)
+  const outputIconW = outputIconRect?.width ?? ICON_SIZE
+  const outputIconH = outputIconRect?.height ?? ICON_SIZE
+  const minerIconX = paragraphX + (minerIconRect?.x ?? 0)
+  const minerIconY = paragraphY + (minerIconRect?.y ?? fallbackIconY)
+  const minerIconW = minerIconRect?.width ?? ICON_SIZE
+  const minerIconH = minerIconRect?.height ?? ICON_SIZE
 
   const isDustOutput =
     isUnspent &&
@@ -639,7 +995,7 @@ function NodeText({
             paragraph={mainParagraph}
             x={groupBaseX}
             y={paragraphY}
-            width={paragraphActualWidth}
+            width={paragraphLayoutWidth}
           />
         </Group>
       ) : (
@@ -647,62 +1003,69 @@ function NodeText({
           paragraph={mainParagraph}
           x={groupBaseX}
           y={paragraphY}
-          width={paragraphActualWidth}
+          width={paragraphLayoutWidth}
         />
       )}
-      {isUnspent &&
-        changeIconSvg &&
-        placeholderRectsUnspentIcon.length > 0 &&
-        placeholderRectsUnspentIcon[0] &&
-        isChange && (
-          <ImageSVG
-            svg={changeIconSvg}
-            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
-            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
-            width={placeholderRectsUnspentIcon[0].rect.width}
-            height={placeholderRectsUnspentIcon[0].rect.height}
-          />
-        )}
-      {isUnspent &&
-        labelIconSvg &&
-        placeholderRectsUnspentIcon.length > 0 &&
-        placeholderRectsUnspentIcon[0] &&
-        !isChange &&
-        !isSelfSend &&
-        ioData?.label && (
-          <ImageSVG
-            svg={labelIconSvg}
-            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
-            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
-            width={placeholderRectsUnspentIcon[0].rect.width}
-            height={placeholderRectsUnspentIcon[0].rect.height}
-          />
-        )}
-      {isUnspent &&
-        changeIconSvg &&
-        placeholderRectsUnspentIcon.length > 0 &&
-        placeholderRectsUnspentIcon[0] &&
-        isSelfSend && (
-          <ImageSVG
-            svg={changeIconSvg}
-            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
-            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
-            width={placeholderRectsUnspentIcon[0].rect.width}
-            height={placeholderRectsUnspentIcon[0].rect.height}
-          />
-        )}
-      {isMiningFee &&
-        minerFeeIconSvg &&
-        placeholderRectsMinerIcon.length > 0 &&
-        placeholderRectsMinerIcon[0] && (
-          <ImageSVG
-            svg={minerFeeIconSvg}
-            x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
-            y={paragraphY + placeholderRectsMinerIcon[0].rect.y}
-            width={placeholderRectsMinerIcon[0].rect.width}
-            height={placeholderRectsMinerIcon[0].rect.height}
-          />
-        )}
+      {usePrivacyOutputLayout && changeIconSvg && isChange ? (
+        <ImageSVG
+          svg={changeIconSvg}
+          x={outputIconX}
+          y={outputIconY}
+          width={outputIconW}
+          height={outputIconH}
+        />
+      ) : null}
+      {usePrivacyOutputLayout && fakeMixIconSvg && isFakeMix ? (
+        <ImageSVG
+          svg={fakeMixIconSvg}
+          x={outputIconX}
+          y={outputIconY}
+          width={outputIconW}
+          height={outputIconH}
+        />
+      ) : null}
+      {usePrivacyOutputLayout &&
+      labelIconSvg &&
+      !isChange &&
+      !isSelfSend &&
+      !isReceive &&
+      !isFakeMix &&
+      ioData?.label ? (
+        <ImageSVG
+          svg={labelIconSvg}
+          x={outputIconX}
+          y={outputIconY}
+          width={outputIconW}
+          height={outputIconH}
+        />
+      ) : null}
+      {usePrivacyOutputLayout && changeIconSvg && (isSelfSend || isReceive) ? (
+        <ImageSVG
+          svg={changeIconSvg}
+          x={outputIconX}
+          y={outputIconY}
+          width={outputIconW}
+          height={outputIconH}
+        />
+      ) : null}
+      {isSpentOutput && labelIconSvg ? (
+        <ImageSVG
+          svg={labelIconSvg}
+          x={outputIconX}
+          y={outputIconY}
+          width={outputIconW}
+          height={outputIconH}
+        />
+      ) : null}
+      {isMiningFee && minerFeeIconSvg ? (
+        <ImageSVG
+          svg={minerFeeIconSvg}
+          x={minerIconX}
+          y={minerIconY}
+          width={minerIconW}
+          height={minerIconH}
+        />
+      ) : null}
     </Group>
   )
 }

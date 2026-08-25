@@ -23,8 +23,17 @@ export type ExplorerBlockSearchParams = {
   block: string
 }
 
+export type ExplorerAddressSearchParams = {
+  address: string
+}
+
 export type AccountSearchParams = {
   id: string
+}
+
+export type IoPreviewSearchParams = AccountSearchParams & {
+  autoSelectFromUri?: string
+  dustWarning?: string
 }
 
 export type PreviewTransactionSearchParams = AccountSearchParams & {

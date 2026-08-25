@@ -1,11 +1,11 @@
 import { getWalletData } from '@/api/bdk'
-import { PIN_KEY } from '@/config/auth'
-import { getItem, storeKeySecret } from '@/storage/encrypted'
+import { storeKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { MnemonicWordCount } from '@/types/bips/39'
 import type { Account, Key, Secret } from '@/types/models/Account'
 import type { Network } from '@/types/settings/blockchain'
+import { getNextDisplayIndex } from '@/utils/account'
 import {
   generateMnemonic,
   getExtendedPublicKeyFromMnemonic,
@@ -13,6 +13,7 @@ import {
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { aesEncrypt, randomIv, randomUuid } from '@/utils/crypto'
+import { getPin } from '@/utils/pin'
 
 type CreateSinglesigParams = {
   name: string
@@ -27,6 +28,7 @@ type CreateSinglesigResult = {
 }
 
 export function useCreateSinglesigAccount() {
+  const accounts = useAccountsStore((state) => state.accounts)
   const addAccount = useAccountsStore((state) => state.addAccount)
   const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
 
@@ -36,11 +38,7 @@ export function useCreateSinglesigAccount() {
     scriptVersion,
     mnemonicWordCount = 12
   }: CreateSinglesigParams): Promise<CreateSinglesigResult> {
-    const pin = await getItem(PIN_KEY)
-    if (!pin) {
-      throw new Error('Missing PIN — cannot encrypt wallet secret')
-    }
-
+    const pin = await getPin()
     const mnemonic = generateMnemonic(mnemonicWordCount)
     const bdkNetwork = appNetworkToBdkNetwork(network)
     const derivedFingerprint = getFingerprintFromMnemonic(mnemonic)
@@ -74,6 +72,8 @@ export function useCreateSinglesigAccount() {
     const draftAccount: Account = {
       addresses: [],
       createdAt: new Date(),
+      displayIndex: getNextDisplayIndex(accounts),
+      excludedUtxoOutpoints: [],
       id: accountId,
       keyCount: 1,
       keys: [draftKey],
@@ -133,7 +133,7 @@ export function useCreateSinglesigAccount() {
     }
 
     addAccount(persistedAccount)
-    addAccountWallet(persistedAccount.id, walletData.wallet)
+    addAccountWallet(persistedAccount.id, walletData.wallet, walletData.dbPath)
 
     return { account: persistedAccount, mnemonic }
   }

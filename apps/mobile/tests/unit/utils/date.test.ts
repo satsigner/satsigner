@@ -1,4 +1,4 @@
-import { formatDate, formatRelativeTime } from '../../../utils/date'
+import { formatDate, formatRelativeTime, isToday } from '../../../utils/date'
 
 // Mock the translation function
 jest.mock<typeof import('@/locales')>('@/locales', () => ({
@@ -162,6 +162,16 @@ describe('date utils', () => {
         const timestamp = 1672531321 // Represents 2023-01-01 00:02:01 UTC
         expect(formatDate(timestamp)).toBe('2023-01-01 00:02:01')
       })
+    })
+  })
+
+  describe('isToday', () => {
+    it('should return true for the current date', () => {
+      expect(isToday(new Date())).toBe(true)
+    })
+
+    it('should return false for a different calendar day', () => {
+      expect(isToday(new Date('2023-12-31T12:00:00Z'))).toBe(false)
     })
   })
 })

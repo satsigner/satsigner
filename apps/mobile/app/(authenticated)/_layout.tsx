@@ -10,22 +10,28 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
+import { initRpcUrlAdjustments } from '@/api/rpc'
+import SSArkReceiveOverlay from '@/components/SSArkReceiveOverlay'
 import SSNavMenu from '@/components/SSNavMenu'
 import { pruneCache } from '@/db/nostrCache'
 import { useArkNotifications } from '@/hooks/useArkNotifications'
+import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
+import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type PageRoute } from '@/types/navigation/page'
-import { decryptAllAccountKeySecrets } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { decryptAccountKeySecrets } from '@/utils/decryption'
+import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
+import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
 
 export default function AuthenticatedLayout() {
   const routeParams = useGlobalSearchParams()
@@ -71,6 +77,11 @@ export default function AuthenticatedLayout() {
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   useArkNotifications()
+  useFetchBitcoinPrice()
+
+  useEffect(() => {
+    void initRpcUrlAdjustments()
+  }, [])
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
 
@@ -97,8 +108,8 @@ export default function AuthenticatedLayout() {
       return
     }
 
-    try {
-      for (const account of accounts) {
+    for (const account of accounts) {
+      try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
         const existsWallet = !isImportAddress
           ? !!wallets[account.id]
@@ -107,7 +118,7 @@ export default function AuthenticatedLayout() {
           continue
         }
 
-        const secrets = await decryptAllAccountKeySecrets(account)
+        const secrets = await decryptAccountKeySecrets(account)
         const tmpAccount: Account = {
           ...account,
           keys: account.keys.map((key, index) => {
@@ -123,7 +134,7 @@ export default function AuthenticatedLayout() {
             )
           : undefined
         if (walletData) {
-          addAccountWallet(account.id, walletData.wallet)
+          addAccountWallet(account.id, walletData.wallet, walletData.dbPath)
         }
 
         if (isImportAddress && typeof tmpAccount.keys[0].secret === 'object') {
@@ -138,19 +149,33 @@ export default function AuthenticatedLayout() {
         const updatedAccount = !isImportAddress
           ? await syncAccountWithWallet(account, walletData!.wallet)
           : await syncAccountWithAddress(account)
-        updateAccount(updatedAccount)
+        if (updatedAccount) {
+          updateAccount(updatedAccount)
+        }
+      } catch (error) {
+        const label = account.name ?? account.id
+        const reason = error instanceof Error ? error.message : String(error)
+        toast.error(`${label}: ${reason}`)
       }
-    } catch (error) {
-      toast.error((error as Error).message)
-    } finally {
-      setJustUnlocked(false)
     }
+    setJustUnlocked(false)
   }
 
   useEffect(() => {
     async function run() {
       const { justUnlocked: ju, pendingRecoverData: pending } =
         useAuthStore.getState()
+
+      // Not gated on justUnlocked: this effect runs once on mount and may race
+      // the unlock screen setting that flag. Reaching this layout already means
+      // the user is authenticated, and both helpers no-op when no PIN exists.
+      try {
+        await migrateAndHydrateNostrSecrets()
+        await migrateAndHydrateServiceSecrets()
+      } catch {
+        // non-critical for boot; secrets may remain unavailable until next unlock
+      }
+
       if (ju && pending) {
         const { success } = await performRecoverOverwrite(pending)
         setPendingRecoverData(null)
@@ -169,6 +194,8 @@ export default function AuthenticatedLayout() {
       } catch {
         // non-critical — cache prune failure should not block startup
       }
+
+      usePayjoinSessionsStore.getState().clearExpiredSessions()
     }
     run()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -206,6 +233,7 @@ export default function AuthenticatedLayout() {
       >
         <Drawer.Screen name="(tabs)" />
       </Drawer>
+      <SSArkReceiveOverlay />
     </GestureHandlerRootView>
   )
 }

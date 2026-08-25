@@ -76,28 +76,32 @@ export function estimatedDifficultyAdjustmentDate(height: number): Date {
  * Estimate network hash rate from difficulty.
  * Formula: difficulty * 2^32 / TARGET_BLOCK_TIME_SECONDS hashes/sec
  */
+const HASH_RATE_DIFFICULTY_MULTIPLIER = 2 ** 32
+const HASHES_PER_EXAHASH = 1e18
+
 export function estimatedHashRateEHs(difficulty: number): number {
-  const hashesPerSecond = (difficulty * 2 ** 32) / TARGET_BLOCK_TIME_SECONDS
-  return hashesPerSecond / 1e18
+  const hashesPerSecond =
+    (difficulty * HASH_RATE_DIFFICULTY_MULTIPLIER) / TARGET_BLOCK_TIME_SECONDS
+  return hashesPerSecond / HASHES_PER_EXAHASH
 }
 
 /**
  * Static historical halvings based on consensus rules and known timestamps.
- * The first two (epochs 0 and 1) were before height-based calculation was relevant.
+ * Includes the first epoch where the subsidy reaches 0 sats.
  */
 export function historicalHalvings(): HistoricalHalving[] {
   const halvings: HistoricalHalving[] = []
   let epoch = 0
   while (true) {
     const subsidySats = Math.floor(INITIAL_SUBSIDY_SATS / 2 ** epoch)
-    if (subsidySats === 0) {
-      break
-    }
     halvings.push({
       epoch,
       height: epoch * HALVING_INTERVAL,
       subsidySats
     })
+    if (subsidySats === 0) {
+      break
+    }
     epoch += 1
   }
   return halvings

@@ -1,72 +1,94 @@
-import { Canvas, Circle, Group } from "@shopify/react-native-skia";
-import { sankey, type SankeyNodeMinimal } from "d3-sankey";
-import { useHeaderHeight } from "expo-router/react-navigation";
-import { useMemo, type ReactNode } from "react";
+import { Canvas, Group } from '@shopify/react-native-skia'
+import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
+import { useHeaderHeight } from 'expo-router/react-navigation'
+import { useMemo, type ReactNode } from 'react'
 import {
-  ActivityIndicator,
   Platform,
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
-  View,
-} from "react-native";
-import { GestureDetector } from "react-native-gesture-handler";
-import Animated from "react-native-reanimated";
+  View
+} from 'react-native'
+import { GestureDetector } from 'react-native-gesture-handler'
+import Animated from 'react-native-reanimated'
 
-import SSButton from "@/components/SSButton";
-import SSText from "@/components/SSText";
-import { useGestures } from "@/hooks/useGestures";
-import { useInputTransactions } from "@/hooks/useInputTransactions";
-import { useLayout } from "@/hooks/useLayout";
-import { useNodesAndLinks } from "@/hooks/useNodesAndLinks";
-import { t } from "@/locales";
-import { Colors, Layout } from "@/styles";
-import { type Output } from "@/types/models/Output";
-import { type Utxo } from "@/types/models/Utxo";
+import SSButton from '@/components/SSButton'
+import SSLoader from '@/components/SSLoader'
+import SSText from '@/components/SSText'
+import { useGestures } from '@/hooks/useGestures'
+import { useInputTransactions } from '@/hooks/useInputTransactions'
+import { useLayout } from '@/hooks/useLayout'
+import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
+import { t } from '@/locales'
+import { Layout } from '@/styles'
+import { type Output } from '@/types/models/Output'
+import { type Utxo } from '@/types/models/Utxo'
 import {
   BLOCK_WIDTH,
+  getSankeyExtentTopPx,
   SANKEY_DIAGRAM_NODE_PADDING_PX,
   type Link,
-  type Node,
-} from "@/types/ui/sankey";
-import { buildSankeyRibbonPlan } from "@/utils/sankeyFlowWidths";
+  type Node
+} from '@/types/ui/sankey'
+import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 
-import SSSankeyLinks from "./SSSankeyLinks";
-import SSSankeyNodes from "./SSSankeyNodes";
+import SSSankeyLinks from './SSSankeyLinks'
+import SSSankeyNodes from './SSSankeyNodes'
 
-const LINK_MAX_WIDTH = 100;
-const NODE_WIDTH = 98;
+const LINK_MAX_WIDTH = 100
+const NODE_WIDTH = 98
 
 type SSMultipleSankeyDiagramProps = {
-  currentOutputLocalId?: string;
-  feeRate: number;
-  inputs: Map<string, Utxo>;
-  onPressOutput?: (localId?: string) => void;
-  outputs: Output[];
-  ownAddresses?: Set<string>;
-};
+  onPressInput?: (outpoint: string) => void
+  onPressOutput?: (localId?: string) => void
+  currentOutputLocalId?: string
+  inputs: Map<string, Utxo>
+  outputs: Output[]
+  feeRate: number
+  /** Confirmed fee override (explorer history); skips feeRate × estimated vsize. */
+  minerFeeSats?: number
+  elevatedFeeRateHighlight?: boolean
+  ownAddresses?: Set<string> // NEW: prop for own addresses
+  /** Explorer: false so history tip outputs are not wallet-spend red. */
+  walletSpendColors?: boolean
+  txLabelsById?: Map<string, string> | Record<string, string>
+  outpointLabelsByRef?: Map<string, string> | Record<string, string>
+  overlayHeaderHeight?: number
+}
 
 function SSMultipleSankeyDiagram({
+  onPressInput,
   onPressOutput,
   currentOutputLocalId,
   inputs,
   outputs,
   feeRate,
+  minerFeeSats,
+  elevatedFeeRateHighlight = false,
   ownAddresses = new Set(),
+  walletSpendColors = true,
+  txLabelsById,
+  outpointLabelsByRef,
+  overlayHeaderHeight
 }: SSMultipleSankeyDiagramProps) {
-  const DEEP_LEVEL = 2; // how deep the tx history
+  const DEEP_LEVEL = 2 // how deep the tx history
   const { error, fetchInputTransactions, loading, transactions } =
-    useInputTransactions(inputs, DEEP_LEVEL);
+    useInputTransactions(inputs, DEEP_LEVEL)
 
   const { nodes: sankeyNodes, links: sankeyLinks } = useNodesAndLinks({
+    elevatedFeeRateHighlight,
     feeRate,
     inputs,
+    minerFeeSats,
+    outpointLabelsByRef,
     outputs,
     ownAddresses,
     transactions,
-  });
+    txLabelsById,
+    walletSpendColors
+  })
 
-  const { width: w, height: h, center, onCanvasLayout } = useLayout();
+  const { width: w, height: h, center, onCanvasLayout } = useLayout()
   // Calculate the maximum depthH value across all nodes
   const maxDepthH = useMemo(
     () =>
@@ -74,151 +96,153 @@ function SSMultipleSankeyDiagram({
         ? 0
         : sankeyNodes.reduce((max, node) => Math.max(max, node.depthH), 0),
     [sankeyNodes]
-  );
+  )
 
   // Calculate the maximum number of nodes at any depthH level
   const maxNodeCountInDepthH = useMemo(() => {
-    const depthCounts = new Map<number, number>();
+    const depthCounts = new Map<number, number>()
 
     for (const node of sankeyNodes) {
-      const count = depthCounts.get(node.depthH) || 0;
-      depthCounts.set(node.depthH, count + 1);
+      const count = depthCounts.get(node.depthH) || 0
+      depthCounts.set(node.depthH, count + 1)
     }
 
     return depthCounts.size > 0
       ? Math.max(...Array.from(depthCounts.values()))
-      : 0;
-  }, [sankeyNodes]);
+      : 0
+  }, [sankeyNodes])
+
+  const sankeyExtentTopPx = getSankeyExtentTopPx(overlayHeaderHeight)
 
   const sankeyGenerator = useMemo(() => {
     const gen = sankey()
       .nodeWidth(NODE_WIDTH)
       .nodePadding(SANKEY_DIAGRAM_NODE_PADDING_PX)
       .extent([
-        [0, 200],
-        [2000 * (maxDepthH / 10), 1000 * (maxNodeCountInDepthH / 9)],
+        [0, sankeyExtentTopPx],
+        [2000 * (maxDepthH / 10), 1000 * (maxNodeCountInDepthH / 9)]
       ])
-      .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id);
+      .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
     gen.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
-      const { depthH } = node as Node;
-      return depthH ?? 0;
-    });
-    return gen;
-  }, [maxDepthH, maxNodeCountInDepthH]);
+      const { depthH } = node as Node
+      return depthH ?? 0
+    })
+    return gen
+  }, [maxDepthH, maxNodeCountInDepthH, sankeyExtentTopPx])
 
   // Run sankey layout with fallback on error
   const { layoutFailed, links, nodes } = useMemo(() => {
     try {
       const layout = sankeyGenerator({
         links: sankeyLinks as Link[],
-        nodes: sankeyNodes,
-      });
+        nodes: sankeyNodes
+      })
       return {
         layoutFailed: false,
         links: layout.links as unknown as Link[],
-        nodes: layout.nodes as unknown as Node[],
-      };
+        nodes: layout.nodes as unknown as Node[]
+      }
     } catch {
-      return { layoutFailed: true, links: [], nodes: [] };
+      return { layoutFailed: true, links: [], nodes: [] }
     }
-  }, [sankeyGenerator, sankeyNodes, sankeyLinks]);
+  }, [sankeyGenerator, sankeyNodes, sankeyLinks])
 
   const transformedLinks = useMemo(
     () =>
       links.map((link) => ({
         source: (link.source as unknown as Node).id,
         target: (link.target as unknown as Node).id,
-        value: link.value,
+        value: link.value
       })),
     [links]
-  );
+  )
 
   const ribbonPlan = buildSankeyRibbonPlan(
     nodes.map((node) => ({
       id: (node as Node).id,
       type: (node as Node).type,
-      value: (node as Node).value,
+      value: (node as Node).value
     })),
     transformedLinks
-  );
+  )
 
   // Calculate the optimal initial x translation to show the last 3 depthH levels
   const initialXTranslation = useMemo(() => {
     // If we have fewer than 3 depthH levels or no nodes, show from the beginning
     if (maxDepthH < 2 || !nodes?.length) {
-      return 0;
+      return 0
     }
 
     // Find the x position of nodes in the last 3 depthH levels
     const lastThreeLevels = new Set(
       [maxDepthH, maxDepthH - 1, maxDepthH - 2].filter((level) => level >= 0)
-    );
+    )
 
     // Find the minimum and maximum x positions among nodes in the last three levels
-    let minX = Infinity;
-    let maxX = -Infinity;
+    let minX = Infinity
+    let maxX = -Infinity
 
     for (const node of nodes) {
-      const typedNode = node as Node;
+      const typedNode = node as Node
       if (
         lastThreeLevels.has(typedNode.depthH) &&
-        typeof typedNode.x0 === "number"
+        typeof typedNode.x0 === 'number'
       ) {
-        minX = Math.min(minX, typedNode.x0);
-        maxX = Math.max(maxX, typedNode.x0);
+        minX = Math.min(minX, typedNode.x0)
+        maxX = Math.max(maxX, typedNode.x0)
       }
     }
 
     // Calculate the width of the last three levels
-    const lastThreeLevelsWidth = maxX - minX + NODE_WIDTH;
+    const lastThreeLevelsWidth = maxX - minX + NODE_WIDTH
 
     // If the width of the last three levels is less than the viewport width,
     // center them in the viewport
     if (lastThreeLevelsWidth < w) {
-      return -(minX - (w - lastThreeLevelsWidth) / 2);
+      return -(minX - (w - lastThreeLevelsWidth) / 2)
     }
 
     // Otherwise, show from the minimum x position with a small offset
-    const translation = -(minX - w / 10);
+    const translation = -(minX - w / 10)
 
     // Calculate the total diagram width (approximation)
-    const diagramWidth = 2000 * (maxDepthH / 11);
+    const diagramWidth = 2000 * (maxDepthH / 11)
 
     // Ensure the translation doesn't move the diagram too far off-screen
     // This prevents extreme translations that might make the diagram invisible
 
-    return Math.max(translation, -(diagramWidth - w / 2)) - 50;
-  }, [maxDepthH, nodes, w]);
+    return Math.max(translation, -(diagramWidth - w / 2)) - 50
+  }, [maxDepthH, nodes, w])
 
   const { animatedStyle, gestures, transform } = useGestures({
     center,
     height: h,
     initialTranslation: {
       x: initialXTranslation,
-      y: 0,
+      y: 0
     },
     isDoubleTapEnabled: true,
-    maxPanPointers: Platform.OS === "ios" ? 2 : 1,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
     maxScale: 20,
     minPanPointers: 1,
     minScale: 0.2,
     shouldResetOnInteractionEnd: false,
-    width: w,
-  });
-  const topHeaderHeight = useHeaderHeight();
-  const { width, height } = useWindowDimensions();
-  const GRAPH_HEIGHT = height - topHeaderHeight;
-  const GRAPH_WIDTH = width;
+    width: w
+  })
+  const topHeaderHeight = useHeaderHeight()
+  const { width, height } = useWindowDimensions()
+  const GRAPH_HEIGHT = height - topHeaderHeight
+  const GRAPH_WIDTH = width
 
   // calculating the sankey node styles to match in skia
   const nodeStyles = useMemo(
     () =>
       nodes.map((node) => {
-        const isBlock = (node as Node).type === "block";
+        const isBlock = (node as Node).type === 'block'
         const blockNodeHeight =
           isBlock && (node as Node).ioData?.txSize
             ? ((node as Node).ioData?.txSize ?? 0) * 0.1
-            : 0;
+            : 0
 
         return {
           height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80,
@@ -226,29 +250,29 @@ function SSMultipleSankeyDiagram({
           width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
           x: isBlock
             ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
-            : node.x0 ?? 0,
-          y: node.y0 ?? 0,
-        };
+            : (node.x0 ?? 0),
+          y: node.y0 ?? 0
+        }
       }),
     [nodes]
-  );
+  )
 
   const centeredMessage = (children: ReactNode) => (
     <View
       style={{
-        alignItems: "center",
+        alignItems: 'center',
         flex: 1,
-        justifyContent: "center",
+        justifyContent: 'center',
         minHeight: GRAPH_HEIGHT,
-        paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+        paddingHorizontal: Layout.mainContainer.paddingHorizontal
       }}
     >
       {children}
     </View>
-  );
+  )
 
   if (inputs.size === 0) {
-    return null;
+    return null
   }
 
   if (error && !loading) {
@@ -258,31 +282,31 @@ function SSMultipleSankeyDiagram({
           color="muted"
           style={{
             marginBottom: Layout.vStack.gap.md,
-            textAlign: "center",
+            textAlign: 'center'
           }}
         >
-          {t("transaction.historyDiagram.error")}
+          {t('transaction.historyDiagram.error')}
         </SSText>
         <SSButton
-          label={t("transaction.historyDiagram.retry")}
+          label={t('transaction.historyDiagram.retry')}
           onPress={() => {
-            void fetchInputTransactions();
+            void fetchInputTransactions()
           }}
           variant="outline"
         />
       </>
-    );
+    )
   }
 
   if (loading && transactions.size === 0) {
     return centeredMessage(
       <>
-        <ActivityIndicator color={Colors.gray[300]} size="large" />
+        <SSLoader size={80} />
         <SSText color="muted" style={{ marginTop: Layout.vStack.gap.md }}>
-          {t("transaction.historyDiagram.loading")}
+          {t('transaction.historyDiagram.loading')}
         </SSText>
       </>
-    );
+    )
   }
 
   if (!loading && !error && transactions.size === 0) {
@@ -292,20 +316,20 @@ function SSMultipleSankeyDiagram({
           color="muted"
           style={{
             marginBottom: Layout.vStack.gap.md,
-            textAlign: "center",
+            textAlign: 'center'
           }}
         >
-          {t("transaction.historyDiagram.empty")}
+          {t('transaction.historyDiagram.empty')}
         </SSText>
         <SSButton
-          label={t("transaction.historyDiagram.retry")}
+          label={t('transaction.historyDiagram.retry')}
           onPress={() => {
-            void fetchInputTransactions();
+            void fetchInputTransactions()
           }}
           variant="outline"
         />
       </>
-    );
+    )
   }
 
   const cannotDrawDiagram =
@@ -315,7 +339,7 @@ function SSMultipleSankeyDiagram({
     (layoutFailed ||
       !nodes?.length ||
       !links?.length ||
-      !transformedLinks.length);
+      !transformedLinks.length)
 
   if (cannotDrawDiagram) {
     return centeredMessage(
@@ -324,20 +348,20 @@ function SSMultipleSankeyDiagram({
           color="muted"
           style={{
             marginBottom: Layout.vStack.gap.md,
-            textAlign: "center",
+            textAlign: 'center'
           }}
         >
-          {t("transaction.historyDiagram.layoutError")}
+          {t('transaction.historyDiagram.layoutError')}
         </SSText>
         <SSButton
-          label={t("transaction.historyDiagram.retry")}
+          label={t('transaction.historyDiagram.retry')}
           onPress={() => {
-            void fetchInputTransactions();
+            void fetchInputTransactions()
           }}
           variant="outline"
         />
       </>
-    );
+    )
   }
 
   return (
@@ -361,27 +385,6 @@ function SSMultipleSankeyDiagram({
               sankeyGenerator={sankeyGenerator}
               selectedOutputNode={currentOutputLocalId}
             />
-            {nodes.map((node, index) => {
-              const typedNode = node as Node;
-              const style = nodeStyles[index]; // Get corresponding style for width/height
-
-              if (typedNode.depthH === maxDepthH) {
-                const cy = style.y + 6.5; // 5px top padding + 1.5px circle center offset
-
-                const circle1Cx = style.x + style.width - 31; // style.x + style.width - 16 (right padding + icon width) + 1.48926 (circle cx in icon)
-                const circle2Cx = style.x + style.width - 35; // style.x + style.width - 16 + 5.48926
-                const circle3Cx = style.x + style.width - 39; // style.x + style.width - 16 + 9.48926
-
-                return (
-                  <Group key={`ellipsis-${typedNode.id}`}>
-                    <Circle cx={circle1Cx} cy={cy} r={1} color="#D9D9D9" />
-                    <Circle cx={circle2Cx} cy={cy} r={1} color="#D9D9D9" />
-                    <Circle cx={circle3Cx} cy={cy} r={1} color="#D9D9D9" />
-                  </Group>
-                );
-              }
-              return null;
-            })}
           </Group>
         </Canvas>
       </View>
@@ -391,35 +394,42 @@ function SSMultipleSankeyDiagram({
             style={[
               styles.sankeyOverlay,
               { height: GRAPH_HEIGHT, width: GRAPH_WIDTH },
-              animatedStyle,
+              animatedStyle
             ]}
             onLayout={onCanvasLayout}
           >
-            {nodeStyles.map((style, index) => (
-              <TouchableOpacity
-                key={style.localId ?? index}
-                style={[
-                  styles.node,
-                  {
-                    height: style.height,
-                    left: style.x,
-                    position: "absolute",
-                    top: style.y,
-                    width: style.width,
-                  },
-                ]}
-                onPress={
-                  (nodes[index] as Node).depthH === maxDepthH && onPressOutput
-                    ? () => onPressOutput(style.localId)
-                    : undefined
-                }
-              />
-            ))}
+            {nodeStyles.map((style, index) => {
+              const node = nodes[index] as Node
+              const { inputOutpoint } = node
+
+              return (
+                <TouchableOpacity
+                  key={style.localId ?? inputOutpoint ?? index}
+                  style={[
+                    styles.node,
+                    {
+                      height: style.height,
+                      left: style.x,
+                      position: 'absolute',
+                      top: style.y,
+                      width: style.width
+                    }
+                  ]}
+                  onPress={
+                    inputOutpoint && onPressInput
+                      ? () => onPressInput(inputOutpoint)
+                      : node.depthH === maxDepthH && onPressOutput
+                        ? () => onPressOutput(style.localId)
+                        : undefined
+                  }
+                />
+              )
+            })}
           </Animated.View>
         </View>
       </GestureDetector>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -427,25 +437,25 @@ const styles = StyleSheet.create({
     bottom: 0,
     flex: 1,
     left: 0,
-    position: "absolute",
+    position: 'absolute',
     right: 0,
-    top: 0,
+    top: 0
   },
   iconContainer: {
     padding: 5,
-    position: "absolute",
+    position: 'absolute',
     right: 5,
-    top: 5,
+    top: 5
   },
   node: {
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
     borderRadius: 0,
-    height: "100%",
-    width: "100%",
+    height: '100%',
+    width: '100%'
   },
   sankeyOverlay: {
-    position: "relative",
-  },
-});
+    position: 'relative'
+  }
+})
 
-export default SSMultipleSankeyDiagram;
+export default SSMultipleSankeyDiagram

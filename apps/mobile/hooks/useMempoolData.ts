@@ -17,8 +17,19 @@ export function useMempoolBasicData() {
 
   return useQuery({
     queryFn: () =>
-      fetchMempoolBasicData(server.url, server.backend, selectedNetwork),
-    queryKey: ['mempool-basic', server.url, server.backend, selectedNetwork],
+      fetchMempoolBasicData(
+        server.url,
+        server.backend,
+        selectedNetwork,
+        server.rpcCredentials
+      ),
+    queryKey: [
+      'mempool-basic',
+      server.url,
+      server.backend,
+      selectedNetwork,
+      server.rpcCredentials?.username
+    ],
     staleTime: time.minutes(2)
   })
 }

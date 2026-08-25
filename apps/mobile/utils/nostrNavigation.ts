@@ -30,16 +30,26 @@ export function nostrNoteHref(npub: string, nostrUri: string): Href {
 export function nostrAccountHref(
   npub: string,
   segment:
+    | 'blossom'
     | 'bunker'
+    | 'cache'
+    | 'calendar'
     | 'chat'
     | 'compose'
+    | 'contacts'
+    | 'files'
     | 'keys'
+    | 'profile'
     | 'relays'
     | 'send'
     | 'settings'
     | 'zapSettings'
 ): Href {
   return `/signer/nostr/account/${npub}/${segment}` as Href
+}
+
+export function nostrFileDetailHref(npub: string, sha256: string): Href {
+  return `/signer/nostr/account/${npub}/files/${sha256}` as Href
 }
 
 export function nostrZapDetailHref(npub: string, zapId: string): Href {

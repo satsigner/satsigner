@@ -4,12 +4,16 @@ import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBubbleChart from '@/components/SSBubbleChart'
+import SSButton from '@/components/SSButton'
 import SSDetailsList from '@/components/SSDetailsList'
 import SSLabelDetails from '@/components/SSLabelDetails'
+import SSModal from '@/components/SSModal'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
@@ -21,11 +25,18 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
+import { Address, type AddressKeyPair } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { getAccountFingerprint } from '@/utils/account'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import {
+  bitcoinjsNetwork,
+  getAddressDerivationPath,
+  privateKeyHexToWif
+} from '@/utils/bitcoin'
+import { decryptAccountKeySecret } from '@/utils/decryption'
 import { formatNumber } from '@/utils/format'
+import { getAddressKeyPair } from '@/utils/key'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 function AddressDetails() {
@@ -41,33 +52,86 @@ function AddressDetails() {
     ])
   )
 
+  const derivationPath =
+    account && address ? getAddressDerivationPath(account, address) : ''
+
   const transactions = account?.transactions.filter((tx) =>
     address?.transactions.includes(tx.id)
   )
-
   const addressUtxos = account?.utxos.filter((utxo) =>
     address?.utxos.includes(getUtxoOutpoint(utxo))
   )
-
   const allAccountUtxos = account?.utxos || []
 
   const privacyMode = useSettingsStore((state) => state.privacyMode)
-
   const addressUtxoInputs = useMemo(() => addressUtxos || [], [addressUtxos])
-
   const blockchainHeight = useBlockchainStore(
     (state) => state.lastKnownBlockHeight
   )
-
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
 
+  // TODO: move graph logic elsewhere
   const { width, height } = useWindowDimensions()
-
   const mainLayoutHorizontalPadding = 12
   const GRAPH_HEIGHT = height * 0.44
   const GRAPH_WIDTH = width * ((100 - mainLayoutHorizontalPadding) / 100)
+
+  const [showKeyPinEntry, setShowKeyPinEntry] = useState(false)
+  const [addressKeyPair, setAddressKeyPair] = useState<AddressKeyPair | null>(
+    null
+  )
+  const [keyUnavailable, setKeyUnavailable] = useState(false)
+
+  const privateKeyWif =
+    addressKeyPair && account
+      ? privateKeyHexToWif(addressKeyPair.privateKey, account.network)
+      : undefined
+
+  const key = account?.keys[0]
+
+  async function handleRevealKeys() {
+    if (!account || !address || !key) {
+      return
+    }
+    try {
+      const secret = await decryptAccountKeySecret(account.id, key.index)
+      const addressWithDerivationPath: Address = { ...address, derivationPath }
+      const pair = getAddressKeyPair(
+        secret,
+        addressWithDerivationPath,
+        account.network
+      )
+      setAddressKeyPair(pair)
+      setKeyUnavailable(!pair)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown reason'
+      toast.error(`${t('address.details.key.unableToDecrypt')}: ${reason}`)
+    } finally {
+      setShowKeyPinEntry(false)
+    }
+  }
+
+  function handleShowKeyPress() {
+    setShowKeyPinEntry(true)
+  }
+
+  function handleKeyPinTriesOver() {
+    setShowKeyPinEntry(false)
+  }
+
+  function handleSignMessagePress() {
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/address/${addr}/signMessage`
+    )
+  }
+
+  function handleVerifyMessagePress() {
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/address/${addr}/verifyMessage`
+    )
+  }
 
   useEffect(() => {
     if (!address) {
@@ -228,7 +292,7 @@ function AddressDetails() {
                 items={[
                   [
                     t('address.details.derivation.path'),
-                    address.derivationPath,
+                    derivationPath,
                     { variant: 'mono' }
                   ],
                   [t('address.details.derivation.index'), address.index],
@@ -249,14 +313,62 @@ function AddressDetails() {
               <SSDetailsList
                 columns={1}
                 items={[
-                  [t('address.details.key.public'), ''],
-                  [t('address.details.key.private'), '']
+                  [
+                    t('address.details.key.public'),
+                    addressKeyPair?.publicKey,
+                    { copyToClipboard: true, variant: 'mono' }
+                  ],
+                  [
+                    t('address.details.key.private'),
+                    addressKeyPair?.privateKey,
+                    { copyToClipboard: true, variant: 'mono' }
+                  ],
+                  [
+                    t('address.details.key.privateWif'),
+                    privateKeyWif,
+                    { copyToClipboard: true, variant: 'mono' }
+                  ]
                 ]}
+              />
+              {!addressKeyPair && !keyUnavailable && (
+                <SSButton
+                  label={t('address.details.key.reveal')}
+                  variant="outline"
+                  onPress={handleShowKeyPress}
+                />
+              )}
+              {keyUnavailable && (
+                <SSText color="muted" size="xs">
+                  {t('address.details.key.unavailable')}
+                </SSText>
+              )}
+              {account.policyType === 'singlesig' && (
+                <SSButton
+                  label={t('address.details.signMessage')}
+                  variant="subtle"
+                  onPress={handleSignMessagePress}
+                />
+              )}
+              <SSButton
+                label={t('address.details.verifyMessage')}
+                variant="subtle"
+                onPress={handleVerifyMessagePress}
               />
             </SSVStack>
           </SSVStack>
         </SSMainLayout>
       </ScrollView>
+      <SSModal
+        visible={showKeyPinEntry}
+        onClose={() => setShowKeyPinEntry(false)}
+      >
+        <SSPinAuth
+          title={t('account.enter.pin')}
+          onSuccess={handleRevealKeys}
+          onTriesOver={handleKeyPinTriesOver}
+          maxTries={3}
+        />
+      </SSModal>
     </>
   )
 }

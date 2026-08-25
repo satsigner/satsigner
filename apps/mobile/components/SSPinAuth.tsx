@@ -2,20 +2,25 @@ import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import Animated from 'react-native-reanimated'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DURESS_PIN_KEY, PIN_KEY, SALT_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, PIN_LENGTH_KEY, SALT_KEY } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
+import useKdfMigration from '@/hooks/useKdfMigration'
 import SSVStack from '@/layouts/SSVStack'
-import { deleteItem, getItem } from '@/storage/encrypted'
-import { useAccountsStore } from '@/store/accounts'
+import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
-import { useWalletsStore } from '@/store/wallets'
 import { gray } from '@/styles/colors'
-import { pbkdf2Encrypt } from '@/utils/crypto'
-import { emptyPin } from '@/utils/pin'
+import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
+import {
+  derivePinDigest,
+  getStoredKdfConfig,
+  pinMatchesDuressDigest,
+  safeEqualHex
+} from '@/utils/pinKdf'
+import { secureWipeAllWalletData } from '@/utils/secureWipe'
 
 type SSPinAuthProps = {
   onFail?: () => void
@@ -35,55 +40,74 @@ function SSPinAuth({
   resetPin,
   ...props
 }: SSPinAuthProps) {
-  const [duressPinEnabled, setDuressPinEnabled] = useAuthStore(
-    useShallow((state) => [state.duressPinEnabled, state.setDuressPinEnabled])
-  )
-  const [deleteAccounts, deleteTags] = useAccountsStore(
-    useShallow((state) => [state.deleteAccounts, state.deleteTags])
-  )
-  const deleteWallets = useWalletsStore((state) => state.deleteWallets)
-  const [pin, setPin] = useState<string[]>(emptyPin())
+  const duressPinEnabled = useAuthStore((state) => state.duressPinEnabled)
+  const migrateIfNeeded = useKdfMigration()
+  const [pin, setPin] = useState<string[] | null>(null)
   const [tries, setTries] = useState(0)
   const { shakeStyle } = useAnimatedShake()
 
+  // PIN length is persisted at set time; fall back to the legacy default.
+  useEffect(() => {
+    let mounted = true
+    async function loadPinLength() {
+      const stored = await getItem(PIN_LENGTH_KEY)
+      if (!mounted) {
+        return
+      }
+      const length = clampPinLength(stored ? Number(stored) : Number.NaN)
+      setPin((current) => current ?? emptyPin(length))
+    }
+    loadPinLength()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   useEffect(() => {
     if (resetPin === true) {
-      setPin(emptyPin())
+      setPin((current) => (current ? emptyPin(current.length) : current))
       setTries(0)
     }
   }, [resetPin])
 
   async function handleFillEnded(inputPin: string) {
-    const hashedPin = await getItem(PIN_KEY)
+    const hashedPin = await getPin()
     const hashedDuressPin = await getItem(DURESS_PIN_KEY)
     const salt = await getItem(SALT_KEY)
     if (!hashedPin || !salt) {
-      toast.error('Failed to retrieve PIN for authentication')
+      toast.error(t('auth.pinRetrieveFailed'))
       return
     }
-    const hashedInput = await pbkdf2Encrypt(inputPin, salt)
 
-    // DURESS PIN
-    if (duressPinEnabled && hashedInput === hashedDuressPin) {
-      // erase data
-      deleteAccounts()
-      deleteWallets()
-      deleteTags()
-
-      // delete evidence there existed a duress pin in the first place,
-      // acting as if the duress pin was the true pin
-      setDuressPinEnabled(false)
-      await deleteItem(DURESS_PIN_KEY)
-
-      // reset route
+    // DURESS PIN — wipe secrets/stores so the duress PIN appears as the real PIN.
+    // Legacy installs hashed duress against SALT_KEY_DURESS; current installs
+    // share SALT_KEY. pinMatchesDuressDigest checks both.
+    if (
+      duressPinEnabled &&
+      hashedDuressPin &&
+      (await pinMatchesDuressDigest(inputPin, hashedDuressPin))
+    ) {
+      try {
+        await secureWipeAllWalletData()
+      } catch {
+        // Duress wipe is best-effort; always proceed to unlock the app.
+      }
+      const { setLockTriggered, setJustUnlocked, resetPinTries } =
+        useAuthStore.getState()
+      setLockTriggered(false)
+      setJustUnlocked(true)
+      resetPinTries()
       router.dismissAll()
       router.push('/')
       return
     }
 
+    const mainKdf = await getStoredKdfConfig()
+    const hashedInput = await derivePinDigest(inputPin, salt, mainKdf)
+
     // Upon failure, the pin reset is already done here
-    if (hashedInput !== hashedPin) {
-      setPin(emptyPin())
+    if (!safeEqualHex(hashedInput, hashedPin)) {
+      setPin((current) => (current ? emptyPin(current.length) : current))
 
       // max tries logic
       const newTries = tries + 1
@@ -97,6 +121,15 @@ function SSPinAuth({
         onFail()
       }
       return
+    }
+
+    // Verified. Upgrade the stored digest to the current best KDF (and
+    // re-encrypt all key secrets to it) when it predates it. A migration
+    // failure must not lock the user out of this session.
+    try {
+      await migrateIfNeeded(inputPin, salt, hashedPin)
+    } catch {
+      /* verified under the old config; migration can retry next unlock */
     }
 
     // The success callback could be unlock the app, or view mnemonic, or confirm wallet deletion
@@ -121,12 +154,22 @@ function SSPinAuth({
         </SSText>
       )}
       <Animated.View style={[{ flex: 1, width: '100%' }, shakeStyle]}>
-        <SSPinInput
-          pin={pin}
-          setPin={setPin}
-          onFillEnded={handleFillEnded}
-          {...props}
-        />
+        {pin !== null && (
+          <SSPinInput
+            pin={pin}
+            setPin={(update) =>
+              setPin((current) =>
+                current === null
+                  ? current
+                  : typeof update === 'function'
+                    ? update(current)
+                    : update
+              )
+            }
+            onFillEnded={handleFillEnded}
+            {...props}
+          />
+        )}
       </Animated.View>
     </SSVStack>
   )

@@ -10,6 +10,15 @@ import {
 } from 'react-native-bdk-sdk'
 
 import {
+  BIP44_PURPOSE,
+  BIP49_PURPOSE,
+  BIP84_PURPOSE,
+  BIP86_PURPOSE
+} from '@/constants/derivation'
+import {
+  BIP39_ENTROPY_STEP_BITS,
+  BIP39_MAX_ENTROPY_BITS,
+  BIP39_MIN_ENTROPY_BITS,
   DEFAULT_WORD_LIST,
   LANGUAGE_MAP,
   MnemonicWordCount,
@@ -27,6 +36,7 @@ import {
   getPrivateDescriptorFromSeed,
   getPrivateDescriptorFromSeedWithPath,
   getPublicDescriptorFromSeed,
+  getPublicDescriptorFromSeedWithPath,
   getVersionsForNetwork,
   getXpubForScriptVersion,
   toHex
@@ -138,6 +148,34 @@ export async function getPrivateDescriptorFromElectrumMnemonic(
   )
 }
 
+export async function getPublicDescriptorFromElectrumMnemonic(
+  mnemonic: string,
+  electrumType: string,
+  kind: KeychainKind,
+  passphrase: string,
+  network: Network
+): Promise<string> {
+  const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
+  const scriptVersion = ELECTRUM_SCRIPT_VERSION[electrumType] ?? 'P2WPKH'
+  const path = getElectrumDerivationPath(electrumType).replace(/^m\/?/, '')
+  return getPublicDescriptorFromSeedWithPath(
+    seed,
+    scriptVersion,
+    kind,
+    network,
+    path
+  )
+}
+
+/**
+ * Generate a new BIP39 mnemonic.
+ *
+ * English uses BDK's native `Mnemonic` constructor (Rust OsRng / getrandom in
+ * the shipped libbdk_ffi). Other wordlists draw entropy via
+ * `crypto.getRandomValues` (react-native-get-random-values) and pass it to
+ * `Mnemonic.fromEntropyIn`. Both are OS CSPRNG-backed; do not replace either
+ * with Math.random or a non-crypto PRNG.
+ */
 export function generateMnemonic(
   wordCount: MnemonicWordCount = 12,
   wordListName = 'english'
@@ -149,7 +187,7 @@ export function generateMnemonic(
   const entropySize = WORD_COUNT_TO_ENTROPY_BYTES[wordCount]
   const entropy = new Uint8Array(entropySize)
   crypto.getRandomValues(entropy)
-  return Mnemonic.fromEntropyIn(Array.from(entropy), language).toString()
+  return Mnemonic.fromEntropyIn(entropy.buffer, language).toString()
 }
 
 function binaryStringToBytes(binary: string): number[] {
@@ -164,16 +202,26 @@ export function generateMnemonicFromEntropy(
   entropy: string,
   wordListName = 'english'
 ) {
-  if (entropy.length < 128 || entropy.length > 256) {
-    throw new Error('Invalid Entropy: it must be range of [128, 256]')
+  if (
+    entropy.length < BIP39_MIN_ENTROPY_BITS ||
+    entropy.length > BIP39_MAX_ENTROPY_BITS
+  ) {
+    throw new Error(
+      `Invalid Entropy: it must be range of [${BIP39_MIN_ENTROPY_BITS}, ${BIP39_MAX_ENTROPY_BITS}]`
+    )
   }
-  if (entropy.length % 32 !== 0) {
-    throw new Error('Invalid Entropy: it must be divisible by 32')
+  if (entropy.length % BIP39_ENTROPY_STEP_BITS !== 0) {
+    throw new Error(
+      `Invalid Entropy: it must be divisible by ${BIP39_ENTROPY_STEP_BITS}`
+    )
   }
   const language =
     LANGUAGE_MAP[wordListName as WordListName] ?? Language.English
   const bytes = binaryStringToBytes(entropy)
-  return Mnemonic.fromEntropyIn(bytes, language).toString()
+  return Mnemonic.fromEntropyIn(
+    new Uint8Array(bytes).buffer,
+    language
+  ).toString()
 }
 
 export function mnemonicToSeed(mnemonic: string, passphrase = ''): Uint8Array {
@@ -182,13 +230,23 @@ export function mnemonicToSeed(mnemonic: string, passphrase = ''): Uint8Array {
   return new Uint8Array(Buffer.from(seedHex, 'hex'))
 }
 
-export function getPublicDescriptorFromMnemonic(
+export async function getPublicDescriptorFromMnemonic(
   mnemonic: string,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
   passphrase: string | undefined,
   network: Network
-): string {
+): Promise<string> {
+  const electrumType = detectElectrumSeed(mnemonic)
+  if (electrumType) {
+    return await getPublicDescriptorFromElectrumMnemonic(
+      mnemonic,
+      electrumType,
+      kind,
+      passphrase ?? '',
+      network
+    )
+  }
   const seed = mnemonicToSeed(mnemonic, passphrase ?? '')
   return getPublicDescriptorFromSeed(seed, scriptVersion, kind, network)
 }
@@ -356,16 +414,16 @@ function getExtendedPublicKeyFromMnemonicCustom(
     const coinType = networkString === 'mainnet' ? '0' : '1'
     switch (scriptVersion) {
       case 'P2PKH':
-        derivationPath = `m/44'/${coinType}'/0'` // BIP44
+        derivationPath = `m/${BIP44_PURPOSE}'/${coinType}'/0'` // BIP44
         break
       case 'P2SH-P2WPKH':
-        derivationPath = `m/49'/${coinType}'/0'` // BIP49
+        derivationPath = `m/${BIP49_PURPOSE}'/${coinType}'/0'` // BIP49
         break
       case 'P2WPKH':
-        derivationPath = `m/84'/${coinType}'/0'` // BIP84
+        derivationPath = `m/${BIP84_PURPOSE}'/${coinType}'/0'` // BIP84
         break
       case 'P2TR':
-        derivationPath = `m/86'/${coinType}'/0'` // BIP86
+        derivationPath = `m/${BIP86_PURPOSE}'/${coinType}'/0'` // BIP86
         break
       // P2WSH, P2SH-P2WSH, P2SH are typically multisig only
       default:

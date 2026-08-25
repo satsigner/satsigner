@@ -1,12 +1,16 @@
 import { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import type { Nip46Request } from '@/types/models/Nostr'
-import { getEventPreview, getMethodLabel } from '@/utils/nip46'
+import {
+  canAutoApproveRequest,
+  getEventPreview,
+  getMethodLabel
+} from '@/utils/nip46'
 
 import SSButton from './SSButton'
 import SSCheckbox from './SSCheckbox'
@@ -26,7 +30,9 @@ export default function SSNip46ApprovalModal({
   request,
   visible
 }: SSNip46ApprovalModalProps) {
-  const [alwaysAllow, setAlwaysAllow] = useState(true)
+  // Default to OFF: a pre-checked "always allow" turns one inattentive tap
+  // into a permanent blanket permission for the client.
+  const [alwaysAllow, setAlwaysAllow] = useState(false)
 
   if (!request) {
     return null
@@ -35,14 +41,24 @@ export default function SSNip46ApprovalModal({
   const methodLabel = getMethodLabel(request.method)
   const eventPreview =
     request.method === 'sign_event' ? getEventPreview(request.params) : null
+  const thirdPartyPubkey =
+    request.method.startsWith('nip04_') || request.method.startsWith('nip44_')
+      ? request.params[0]
+      : null
+  // Requests that must always be approved explicitly do not offer the
+  // "always allow" checkbox at all.
+  const alwaysAllowAvailable = canAutoApproveRequest(
+    request.method,
+    request.params
+  )
 
   function handleApprove() {
-    setAlwaysAllow(true)
+    setAlwaysAllow(false)
     onApprove(request!.id, alwaysAllow)
   }
 
   function handleReject() {
-    setAlwaysAllow(true)
+    setAlwaysAllow(false)
     onReject(request!.id, false)
   }
 
@@ -66,25 +82,52 @@ export default function SSNip46ApprovalModal({
                 </SSText>
                 <SSText size="xs">{String(eventPreview.kind)}</SSText>
               </SSHStack>
-              {eventPreview.content.length > 0 && (
-                <>
-                  <SSText size="xs" color="muted">
-                    {t('nip46.approval.eventContent')}:
-                  </SSText>
-                  <SSText size="xs" numberOfLines={4}>
-                    {eventPreview.content}
-                  </SSText>
-                </>
-              )}
+              <ScrollView style={styles.previewScroll}>
+                {eventPreview.content.length > 0 && (
+                  <>
+                    <SSText size="xs" color="muted">
+                      {t('nip46.approval.eventContent')}:
+                    </SSText>
+                    <SSText size="xs" selectable>
+                      {eventPreview.content}
+                    </SSText>
+                  </>
+                )}
+                {eventPreview.tags.length > 0 && (
+                  <>
+                    <SSText size="xs" color="muted">
+                      {t('nip46.approval.eventTags')}:
+                    </SSText>
+                    {eventPreview.tags.map((tag, index) => (
+                      <SSText key={index} size="xs" selectable>
+                        {JSON.stringify(tag)}
+                      </SSText>
+                    ))}
+                  </>
+                )}
+              </ScrollView>
             </SSVStack>
           )}
 
-          <SSCheckbox
-            selected={alwaysAllow}
-            label={t('nip46.approval.alwaysAllow')}
-            labelProps={{ size: 'sm' }}
-            onPress={() => setAlwaysAllow(!alwaysAllow)}
-          />
+          {thirdPartyPubkey && (
+            <SSVStack gap="xs" style={styles.previewBox}>
+              <SSText size="xs" color="muted">
+                {t('nip46.approval.counterparty')}:
+              </SSText>
+              <SSText size="xs" selectable>
+                {thirdPartyPubkey}
+              </SSText>
+            </SSVStack>
+          )}
+
+          {alwaysAllowAvailable && (
+            <SSCheckbox
+              selected={alwaysAllow}
+              label={t('nip46.approval.alwaysAllow')}
+              labelProps={{ size: 'sm' }}
+              onPress={() => setAlwaysAllow(!alwaysAllow)}
+            />
+          )}
 
           <SSVStack gap="sm" widthFull>
             <SSButton
@@ -117,5 +160,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     padding: 12
+  },
+  previewScroll: {
+    maxHeight: 220
   }
 })

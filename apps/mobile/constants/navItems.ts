@@ -1,6 +1,7 @@
 import {
   SSIconBitcoin,
   SSIconBlock,
+  SSIconBubbles,
   SSIconChain,
   SSIconChainTip,
   SSIconCurrency,
@@ -71,18 +72,18 @@ export const navMenuGroups: NavMenuGroup[] = [
   {
     items: [
       {
-        icon: SSIconChainTip,
-        isSoon: false,
-        platform: PLATFORM.HYBRID,
-        title: t('navigation.item.chaintip'),
-        url: '/explorer/chaintip'
-      },
-      {
         icon: SSIconMempool,
         isSoon: false,
         platform: PLATFORM.HYBRID,
         title: t('navigation.item.mempool'),
         url: '/explorer/mempool'
+      },
+      {
+        icon: SSIconChainTip,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.chaintip'),
+        url: '/explorer/chaintip'
       },
       {
         icon: SSIconBlock,
@@ -97,6 +98,13 @@ export const navMenuGroups: NavMenuGroup[] = [
         platform: PLATFORM.HYBRID,
         title: t('navigation.item.transaction'),
         url: '/explorer/transaction'
+      },
+      {
+        icon: SSIconBubbles,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.address'),
+        url: '/explorer/address'
       },
       {
         icon: SSIconDifficult,

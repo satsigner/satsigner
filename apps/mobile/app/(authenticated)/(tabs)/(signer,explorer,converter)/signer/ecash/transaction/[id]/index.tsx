@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -19,11 +19,12 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
 import { useEcash, useQuotePolling } from '@/hooks/useEcash'
+import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
@@ -58,9 +59,12 @@ export default function EcashTransactionDetailPage() {
       state.fetchPrices
     ])
   )
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool['bitcoin']
-  )
+  const { fiatPriceApiUrl } = useFiatData()
+
+  // Fetch prices on mount and when currency changes
+  useEffect(() => {
+    fetchPrices(fiatPriceApiUrl)
+  }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [qrModalVisible, setQrModalVisible] = useState(false)
@@ -78,11 +82,6 @@ export default function EcashTransactionDetailPage() {
     ? mintQuotes.find((q) => q.quote === transaction.quoteId)
     : null
   const lightningInvoice = mintQuote?.request || null
-
-  // Fetch prices on mount and when currency changes
-  useEffect(() => {
-    fetchPrices(mempoolUrl)
-  }, [fetchPrices, fiatCurrency, mempoolUrl])
 
   // Define all callbacks before any conditional logic
   const handleCopyToken = useCallback(async () => {
@@ -306,7 +305,7 @@ export default function EcashTransactionDetailPage() {
           )
         }}
       />
-      <ScrollView>
+      <SSScrollView>
         <SSVStack gap="lg">
           <SSVStack gap="md" style={styles.headerCard}>
             <SSHStack gap="md" style={{ alignItems: 'center' }}>
@@ -574,7 +573,7 @@ export default function EcashTransactionDetailPage() {
             </SSVStack>
           )}
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
       <SSModal
         visible={qrModalVisible}
         onClose={() => setQrModalVisible(false)}

@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -8,17 +8,15 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
-import { PIN_KEY } from '@/config/auth'
+import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { aesDecrypt } from '@/utils/crypto'
+import { decryptAccountKeySecret } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 import { getOutputDescriptorStringForKey } from '@/utils/getOutputDescriptorForKey'
 
@@ -89,79 +87,55 @@ export default function DescriptorPage() {
     }
   }
 
-  useEffect(() => {
-    async function getDescriptor() {
-      if (!account || !keyIndex) {
-        return
-      }
-
-      setIsLoading(true)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) {
-        return
-      }
-
+  async function getDescriptor() {
+    if (!account || !keyIndex) {
+      return
+    }
+    const keyIndexNum = parseInt(keyIndex, 10)
+    const key = account.keys[keyIndexNum]
+    if (!key) {
+      toast.error('Key not found')
+      return
+    }
+    setKeyName(key.name || `Key ${keyIndexNum + 1}`)
+    setCreationType(key.creationType)
+    setScriptVersion(key.scriptVersion || 'P2PKH')
+    const decryptedSecret = await decryptAccountKeySecret(account.id, key.index)
+    const descriptorString = await getOutputDescriptorStringForKey(
+      key,
+      decryptedSecret,
+      network
+    )
+    if (descriptorString && !descriptorString.includes('#')) {
       try {
-        const keyIndexNum = parseInt(keyIndex, 10)
-        const key = account.keys[keyIndexNum]
-
-        if (!key) {
-          toast.error('Key not found')
-          return
-        }
-
-        setKeyName(key.name || `Key ${keyIndexNum + 1}`)
-        setCreationType(key.creationType)
-        setScriptVersion(key.scriptVersion || 'P2PKH')
-
-        // Decrypt the key's secret
-        let decryptedSecret: Secret
-        if (typeof key.secret === 'string') {
-          const decryptedSecretString = await aesDecrypt(
-            key.secret,
-            pin,
-            key.iv
-          )
-          decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-        } else {
-          decryptedSecret = key.secret as Secret
-        }
-
-        const descriptorString = getOutputDescriptorStringForKey(
-          key,
-          decryptedSecret,
-          network
+        walletNameFromDescriptor(
+          descriptorString,
+          undefined,
+          appNetworkToBdkNetwork(network)
         )
-
-        if (descriptorString && !descriptorString.includes('#')) {
-          try {
-            walletNameFromDescriptor(
-              descriptorString,
-              undefined,
-              appNetworkToBdkNetwork(network)
-            )
-          } catch {
-            // Keep the original descriptor if BDK fails
-          }
-        }
-
-        if (!descriptorString) {
-          toast.error('Could not generate descriptor')
-          return
-        }
-
-        setDescriptor(descriptorString)
-        const components = parseDescriptorComponents(descriptorString)
-        setDescriptorComponents(components)
       } catch {
-        toast.error('Failed to get descriptor')
-      } finally {
-        setIsLoading(false)
+        // Keep the original descriptor if BDK fails
       }
     }
+    if (!descriptorString) {
+      toast.error('Could not generate descriptor')
+      return
+    }
+    setDescriptor(descriptorString)
+    const components = parseDescriptorComponents(descriptorString)
+    setDescriptorComponents(components)
+  }
 
-    getDescriptor()
-  }, [account, keyIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  useAsyncEffect(async () => {
+    setIsLoading(true)
+    try {
+      await getDescriptor()
+    } catch {
+      toast.error('Failed to get descriptor')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [account, keyIndex])
 
   function exportDescriptor() {
     if (!account) {

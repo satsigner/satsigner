@@ -10,6 +10,14 @@ import { boolToInt, dateToIso, optionalToJson } from '../mappers'
 
 type TransactionContext = NitroSQLiteConnection
 
+function clearNostrData(tx: TransactionContext, accountId: string) {
+  tx.execute('DELETE FROM nostr_dms WHERE account_id = ?', [accountId])
+  tx.execute('DELETE FROM nostr_relays WHERE account_id = ?', [accountId])
+  tx.execute('DELETE FROM nostr_trusted_devices WHERE account_id = ?', [
+    accountId
+  ])
+}
+
 function upsertNostrData(
   tx: TransactionContext,
   accountId: string,
@@ -19,8 +27,9 @@ function upsertNostrData(
     return
   }
 
-  // Clear and re-insert DMs
-  tx.execute('DELETE FROM nostr_dms WHERE account_id = ?', [accountId])
+  // Clear then re-insert DMs, relays, trusted devices
+  clearNostrData(tx, accountId)
+
   for (const dm of nostr.dms) {
     tx.execute(
       `INSERT INTO nostr_dms (
@@ -44,8 +53,6 @@ function upsertNostrData(
     )
   }
 
-  // Clear and re-insert relays
-  tx.execute('DELETE FROM nostr_relays WHERE account_id = ?', [accountId])
   for (const url of nostr.relays) {
     tx.execute('INSERT INTO nostr_relays (account_id, url) VALUES (?, ?)', [
       accountId,
@@ -53,10 +60,6 @@ function upsertNostrData(
     ])
   }
 
-  // Clear and re-insert trusted devices
-  tx.execute('DELETE FROM nostr_trusted_devices WHERE account_id = ?', [
-    accountId
-  ])
   for (const npub of nostr.trustedMemberDevices) {
     tx.execute(
       'INSERT INTO nostr_trusted_devices (account_id, device_npub) VALUES (?, ?)',
@@ -111,8 +114,9 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
     params.push(nostr.commonNpub)
   }
   if (nostr.commonNsec !== undefined) {
+    // Clear any legacy plaintext; ciphertext lives in SecureStore.
     updates.push('nostr_common_nsec = ?')
-    params.push(nostr.commonNsec)
+    params.push('')
   }
   if (nostr.deviceNpub !== undefined) {
     updates.push('nostr_device_npub = ?')
@@ -120,7 +124,11 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
   }
   if (nostr.deviceNsec !== undefined) {
     updates.push('nostr_device_nsec = ?')
-    params.push(nostr.deviceNsec)
+    params.push(null)
+  }
+  if (nostr.deviceMnemonic !== undefined) {
+    updates.push('nostr_device_mnemonic = ?')
+    params.push(null)
   }
   if (nostr.deviceDisplayName !== undefined) {
     updates.push('nostr_device_display_name = ?')
@@ -203,6 +211,7 @@ function upsertRelays(accountId: string, relays: string[]) {
 }
 
 export {
+  clearNostrData,
   insertDm,
   markDmsAsRead,
   updateAccountNostr,

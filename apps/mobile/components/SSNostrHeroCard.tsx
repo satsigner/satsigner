@@ -1,6 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient'
+import { useState } from 'react'
 import {
   Image,
+  Pressable,
   type StyleProp,
   StyleSheet,
   View,
@@ -11,6 +13,7 @@ import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
 import SSIconLightning from '@/components/icons/SSIconLightning'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSFullscreenImageViewer from '@/components/SSFullscreenImageViewer'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
@@ -75,6 +78,7 @@ function SSNostrHeroCard({
   style
 }: SSNostrHeroCardProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const [profileImageExpanded, setProfileImageExpanded] = useState(false)
   const nip05Value = identity.nip05?.trim()
   const lud16Value = identity.lud16?.trim()
   const npubColor = generateColorFromNpub(identity.npub)
@@ -112,7 +116,12 @@ function SSNostrHeroCard({
         {privacyMode ? (
           <View style={[styles.avatar, styles.avatarPlaceholder]} />
         ) : identity.picture ? (
-          <Image source={{ uri: identity.picture }} style={styles.avatar} />
+          <Pressable
+            accessibilityRole="imagebutton"
+            onPress={() => setProfileImageExpanded(true)}
+          >
+            <Image source={{ uri: identity.picture }} style={styles.avatar} />
+          </Pressable>
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
             <SSText size="4xl" weight="bold">
@@ -143,15 +152,23 @@ function SSNostrHeroCard({
         ) : nip05Value ? (
           <SSClipboardCopy text={nip05Value}>
             <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+              {nip05Valid === true && (
+                <SSIconCheckCircleThin
+                  width={12}
+                  height={12}
+                  color={Colors.mainGreen}
+                />
+              )}
+              {nip05Valid === false && (
+                <SSIconCircleXThin
+                  width={12}
+                  height={12}
+                  color={Colors.mainRed}
+                />
+              )}
               <SSText size="sm" color="muted">
                 {nip05Value}
               </SSText>
-              {nip05Valid === true && (
-                <SSIconCheckCircleThin width={12} height={12} />
-              )}
-              {nip05Valid === false && (
-                <SSIconCircleXThin width={12} height={12} />
-              )}
             </SSHStack>
           </SSClipboardCopy>
         ) : (
@@ -166,15 +183,15 @@ function SSNostrHeroCard({
         ) : lud16Value ? (
           <SSClipboardCopy text={lud16Value}>
             <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-              <SSText size="sm" color="muted">
-                {lud16Value}
-              </SSText>
               <SSIconLightning
                 width={8}
                 height={10}
                 stroke={Colors.gray[300]}
                 strokeWidth={1.5}
               />
+              <SSText size="sm" color="muted">
+                {lud16Value}
+              </SSText>
             </SSHStack>
           </SSClipboardCopy>
         ) : (
@@ -198,7 +215,7 @@ function SSNostrHeroCard({
             {connectionInfo.status === 'checking'
               ? t('nostrIdentity.account.relayChecking')
               : connectionInfo.status === 'connected'
-                ? t('nostrIdentity.account.relayConnected')
+                ? `${t('nostrIdentity.account.relayConnected')} · ${connectionInfo.relayDetails?.filter((r) => r.connected).length ?? 0}`
                 : buildDisconnectLabel(connectionInfo)}
           </SSText>
         ) : null}
@@ -208,6 +225,11 @@ function SSNostrHeroCard({
           </SSText>
         )}
       </SSVStack>
+      <SSFullscreenImageViewer
+        uri={identity.picture ?? null}
+        visible={profileImageExpanded}
+        onClose={() => setProfileImageExpanded(false)}
+      />
     </View>
   )
 }

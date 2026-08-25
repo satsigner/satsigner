@@ -19,6 +19,8 @@ type SSDetailsListItemProps = {
   uppercase?: boolean
   copyToClipboard?: boolean
   navigateToLink?: Href
+  /** Muted unit shown after the value (e.g. "bytes"). */
+  unit?: string
 }
 
 type commonOptions = Pick<
@@ -27,7 +29,7 @@ type commonOptions = Pick<
 >
 
 type individualOptions = commonOptions &
-  Pick<SSDetailsListItemProps, 'width' | 'navigateToLink'>
+  Pick<SSDetailsListItemProps, 'width' | 'navigateToLink' | 'unit'>
 
 type SSDetailsListProps = {
   columns: 1 | 2 | 3 | 4
@@ -72,7 +74,8 @@ export function SSDetailsListItem({
   variant = 'sans-serif',
   uppercase = true,
   copyToClipboard = false,
-  navigateToLink
+  navigateToLink,
+  unit
 }: SSDetailsListItemProps) {
   const gap = variant === 'mono' ? 'sm' : 'none'
 
@@ -86,9 +89,16 @@ export function SSDetailsListItem({
       <SSText uppercase={uppercase} color="muted" size={headerSize}>
         {header}
       </SSText>
-      <SSText type={variant} size={textSize}>
-        {validText ? text : '-'}
-      </SSText>
+      <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+        <SSText type={variant} size={textSize}>
+          {validText ? text : '-'}
+        </SSText>
+        {validText && unit ? (
+          <SSText color="muted" size={textSize}>
+            {unit}
+          </SSText>
+        ) : null}
+      </SSHStack>
     </SSVStack>
   )
 

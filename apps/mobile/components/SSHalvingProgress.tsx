@@ -9,6 +9,7 @@ import {
 import { useWindowDimensions } from 'react-native'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { t, tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
 import {
   HALVING_INTERVAL,
@@ -16,6 +17,8 @@ import {
   halvingEpoch,
   historicalHalvings
 } from '@/utils/bitcoin/consensus'
+
+const tn = _tn('explorer.halving')
 
 const CANVAS_HEIGHT = 280
 const TRACK_RADIUS = 110
@@ -91,13 +94,16 @@ export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
 
   const nextHalving = (epoch + 1) * HALVING_INTERVAL
   const blocksRemaining = HALVING_INTERVAL - blocksInEpoch
+  const subsidyDecimals = Math.max(0, epoch - 1)
 
-  const centerLabel = `${subsidyBtc} BTC`
-  const epochLabel = `Epoch ${epoch}`
+  const centerLabel = `${subsidyBtc.toFixed(subsidyDecimals)} ${t('bitcoin.btc')}`
+  const epochLabel = tn('epochLabel', { epoch })
   const percentLabel = `${(progress * 100).toFixed(1)}%`
   const currentBlockLabel = height.toLocaleString()
   const targetBlockLabel = `/ ${nextHalving.toLocaleString()}`
-  const blocksToGoLabel = `${blocksRemaining.toLocaleString()} blocks to go`
+  const blocksToGoLabel = tn('blocksToGo', {
+    count: blocksRemaining
+  })
 
   const centerLabelWidth = fontCenter ? fontCenter.getTextWidth(centerLabel) : 0
   const epochLabelWidth = fontSmall ? fontSmall.getTextWidth(epochLabel) : 0
@@ -136,9 +142,10 @@ export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
         />
       )}
 
-      {/* Milestone dots for past halvings on the track */}
+      {/* Milestone dots for past/current halvings spaced around the track */}
       {halvings.slice(0, epoch + 1).map((h) => {
-        const ratio = h.epoch % 1 === 0 && h.epoch > 0 ? 0 : 0
+        const shownCount = epoch + 1
+        const ratio = shownCount > 1 ? h.epoch / shownCount : 0
         const angle = START_ANGLE + ratio * 2 * Math.PI
         const mx = cx + TRACK_RADIUS * Math.cos(angle)
         const my = cy + TRACK_RADIUS * Math.sin(angle)

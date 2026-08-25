@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import BitcoinRpc from '@/api/rpc'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
@@ -28,6 +29,25 @@ export type ExtendedTransaction = Omit<Transaction, 'vin' | 'vout'> & {
   depthH: number
   vin: ExtendedVin[]
   vout: ExtendedVout[] // Use ExtendedVout
+}
+
+type EsploraTxFetchResult =
+  | { kind: 'json'; tx: Awaited<ReturnType<Esplora['getTxInfo']>> }
+  | { kind: 'hex'; hex: string }
+
+async function fetchEsploraTx(
+  client: Esplora,
+  id: string
+): Promise<EsploraTxFetchResult | null> {
+  const json = await client.getTxInfo(id).catch(() => null)
+  if (json) {
+    return { kind: 'json', tx: json }
+  }
+  const hex = await client.getTxHex(id).catch(() => null)
+  if (hex && typeof hex === 'string' && hex.length > 0) {
+    return { hex, kind: 'hex' }
+  }
+  return null
 }
 
 export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
@@ -197,41 +217,41 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
             let tx
             if (server.backend === 'esplora') {
               const esploraClient = new Esplora(server.url)
-              tx = await esploraClient.getTxInfo(txid).catch(() => null)
+              let fetched = await fetchEsploraTx(esploraClient, txid)
               if (
-                !tx &&
+                !fetched &&
                 /^[a-fA-F0-9]{64}$/i.test(txid) &&
                 Buffer.from(txid, 'hex').length === 32
               ) {
                 const reversed =
                   // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
                   Buffer.from(txid, 'hex').reverse().toString('hex')
-                tx = await esploraClient.getTxInfo(reversed).catch(() => null)
+                fetched = await fetchEsploraTx(esploraClient, reversed)
               }
-              // Map EsploraTx to Transaction type structure
 
-              if (tx) {
+              if (fetched?.kind === 'json') {
+                tx = fetched.tx
                 const mappedTx: Transaction = {
-                  address: undefined, // Not directly available in EsploraTx
+                  address: undefined,
                   blockHeight: tx.status.block_height,
                   fee: tx.fee,
                   id: txid,
-                  label: undefined, // TODO: add label
+                  label: undefined,
                   lockTime: tx.locktime,
                   lockTimeEnabled: tx.locktime > 0,
                   prices: {},
-                  raw: undefined, // Not directly available in EsploraTx
-                  received: 0, // Not needed
-                  sent: 0, // Not needed
+                  raw: undefined,
+                  received: 0,
+                  sent: 0,
                   size: tx.size,
                   timestamp: tx.status.block_time
-                    ? new Date(tx.status.block_time)
+                    ? new Date(tx.status.block_time * 1000)
                     : undefined,
-                  type: 'send', // Not needed
+                  type: 'send',
                   version: tx.version,
                   vin: tx.vin.map((input) => ({
                     address: input.prevout?.scriptpubkey_address,
-                    label: undefined, // TODO: add label
+                    label: undefined,
                     previousOutput: {
                       txid: normalizeTxid(input.txid),
                       vout: input.vout
@@ -253,9 +273,9 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     script: output.scriptpubkey
                       ? parseHexToBytes(output.scriptpubkey)
                       : [],
-                    value: output.value // TODO: add label
+                    value: output.value
                   })),
-                  vsize: Math.ceil(tx.size * 0.25), // Calculate vsize as weight/4
+                  vsize: Math.ceil(tx.weight / 4),
                   weight: tx.weight
                 }
                 newTransactions.set(txid, {
@@ -263,22 +283,173 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   depthH: 0
                 })
 
-                // Collect output addresses
                 for (const vout of mappedTx.vout ?? []) {
                   if (vout.address) {
                     allOutputAddresses.add(vout.address)
                   }
                 }
 
-                // Store input addresses
                 const inputAddresses = new Set<string>()
-                // Extract input addresses from the vin array's prevout field
                 for (const vin of tx.vin ?? []) {
                   if (vin.prevout?.scriptpubkey_address) {
                     inputAddresses.add(vin.prevout.scriptpubkey_address)
                   }
                 }
                 transactionInputAddresses.set(txid, inputAddresses)
+              } else if (fetched?.kind === 'hex') {
+                try {
+                  const parsedTx = TxDecoded.fromHex(fetched.hex)
+                  const bjsNetwork =
+                    selectedNetwork === 'bitcoin'
+                      ? bitcoinjs.networks.bitcoin
+                      : bitcoinjs.networks.testnet
+                  const outputScriptToAddress = (script: Buffer): string => {
+                    try {
+                      return bitcoinjs.address.fromOutputScript(
+                        script,
+                        bjsNetwork
+                      )
+                    } catch {
+                      return ''
+                    }
+                  }
+                  const mappedTx: Transaction = {
+                    address: undefined,
+                    blockHeight: undefined,
+                    fee: undefined,
+                    id: txid,
+                    label: undefined,
+                    lockTime: parsedTx.locktime,
+                    lockTimeEnabled: parsedTx.locktime > 0,
+                    prices: {},
+                    raw: Array.from(Buffer.from(fetched.hex, 'hex')),
+                    received: 0,
+                    sent: 0,
+                    size: parsedTx.byteLength(),
+                    timestamp: undefined,
+                    type: 'send',
+                    version: parsedTx.version,
+                    vin: parsedTx.ins.map((input) => ({
+                      address: 'unknown',
+                      label: undefined,
+                      previousOutput: {
+                        txid: outpointHashBytesToTxid(input.hash),
+                        vout: input.index
+                      },
+                      scriptSig: Array.from(input.script),
+                      sequence: input.sequence,
+                      value: undefined,
+                      witness: input.witness.map((w) => Array.from(w))
+                    })),
+                    vout: parsedTx.outs.map((output) => ({
+                      address: output.script
+                        ? outputScriptToAddress(output.script)
+                        : '',
+                      label: undefined,
+                      script: Array.from(output.script),
+                      value: output.value
+                    })),
+                    vsize: parsedTx.virtualSize(),
+                    weight: parsedTx.weight()
+                  }
+                  newTransactions.set(txid, {
+                    ...(mappedTx as ExtendedTransaction),
+                    depthH: 0
+                  })
+                  const inputAddresses = new Set<string>()
+                  for (const vout of mappedTx.vout ?? []) {
+                    if (vout.address) {
+                      allOutputAddresses.add(vout.address)
+                    }
+                  }
+                  transactionInputAddresses.set(txid, inputAddresses)
+                } catch {
+                  /* Failed to parse Esplora hex fallback */
+                }
+              }
+            } else if (server.backend === 'rpc') {
+              try {
+                const rpc = new BitcoinRpc(
+                  server.url,
+                  server.rpcCredentials?.username ?? '',
+                  server.rpcCredentials?.password ?? ''
+                )
+                const rawTx = await rpc
+                  .getRawTransaction(txid)
+                  .catch(() => null)
+                if (rawTx) {
+                  let blockHeight: number | undefined
+                  if (rawTx.confirmations && rawTx.blockhash) {
+                    blockHeight = await rpc
+                      .getBlock(rawTx.blockhash)
+                      .then((block) => block.height)
+                      .catch(() => undefined)
+                  }
+                  const mappedTx: Transaction = {
+                    address: undefined,
+                    blockHeight,
+                    fee: undefined,
+                    id: rawTx.txid,
+                    label: undefined,
+                    lockTime: rawTx.locktime,
+                    lockTimeEnabled: rawTx.locktime > 0,
+                    prices: {},
+                    raw: parseHexToBytes(rawTx.hex),
+                    received: 0,
+                    sent: 0,
+                    size: rawTx.size,
+                    timestamp: rawTx.blocktime
+                      ? new Date(rawTx.blocktime * 1000)
+                      : undefined,
+                    type: 'send',
+                    version: rawTx.version,
+                    vin: rawTx.vin.map((input) => ({
+                      address: 'unknown',
+                      label: undefined,
+                      previousOutput: input.txid
+                        ? {
+                            txid: normalizeTxid(input.txid),
+                            vout: input.vout ?? 0
+                          }
+                        : { txid: '0'.repeat(64), vout: 0 },
+                      scriptSig: [],
+                      sequence: input.sequence,
+                      value: undefined,
+                      witness: input.txinwitness
+                        ? input.txinwitness.map((w) =>
+                            Array.from(Buffer.from(w, 'hex'))
+                          )
+                        : []
+                    })),
+                    vout: rawTx.vout.map((output) => ({
+                      address:
+                        output.scriptPubKey.address ??
+                        output.scriptPubKey.addresses?.[0] ??
+                        '',
+                      label: undefined,
+                      script: parseHexToBytes(output.scriptPubKey.hex),
+                      value: Math.round(output.value * 1e8)
+                    })),
+                    vsize: rawTx.vsize,
+                    weight: rawTx.weight
+                  }
+                  newTransactions.set(txid, {
+                    ...(mappedTx as ExtendedTransaction),
+                    depthH: 0
+                  })
+
+                  const inputAddresses = new Set<string>()
+                  const outputAddresses = new Set<string>()
+                  for (const vout of mappedTx.vout ?? []) {
+                    if (vout.address) {
+                      outputAddresses.add(vout.address)
+                      allOutputAddresses.add(vout.address)
+                    }
+                  }
+                  transactionInputAddresses.set(txid, inputAddresses)
+                }
+              } catch {
+                /* RPC path failed for this txid */
               }
             } else if (server.backend === 'electrum' && electrumClient) {
               // Check if electrumClient is initialized
@@ -475,6 +646,49 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
         currentLevelDeep += 1
       }
 
+      // Backfill input addresses/values by looking up each vin's previous
+      // output against transactions we've already fetched in this walk.
+      // Needed for the RPC backend: getrawtransaction doesn't return prevout
+      // info the way Esplora/Electrum's decoded views do, so RPC-sourced
+      // vins start out as address: 'unknown' with no input Set populated —
+      // without this, the ancestor tx-graph silently degrades to level 1
+      // for RPC accounts (every deeper transaction fails the address-match
+      // filter below).
+      for (const [txid, tx] of newTransactions.entries()) {
+        if (!tx.vin || tx.vin.length === 0) {
+          continue
+        }
+        let inputAddresses = transactionInputAddresses.get(txid)
+        let changed = false
+        const resolvedVin = tx.vin.map((vin) => {
+          if (vin.address && vin.address !== 'unknown') {
+            return vin
+          }
+          const parentTxid = normalizeTxid(vin.previousOutput.txid)
+          const parentTx = newTransactions.get(parentTxid)
+          const parentOut = parentTx?.vout?.[vin.previousOutput.vout]
+          if (!parentOut?.address) {
+            return vin
+          }
+          changed = true
+          if (!inputAddresses) {
+            inputAddresses = new Set<string>()
+          }
+          inputAddresses.add(parentOut.address)
+          return {
+            ...vin,
+            address: parentOut.address,
+            value: vin.value ?? parentOut.value
+          }
+        })
+        if (changed) {
+          newTransactions.set(txid, { ...tx, vin: resolvedVin })
+          if (inputAddresses) {
+            transactionInputAddresses.set(txid, inputAddresses)
+          }
+        }
+      }
+
       // Filter transactions based on input/output address matching
       const filteredTransactions = new Map<string, ExtendedTransaction>()
 
@@ -509,6 +723,33 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
           if (levelOneTxids.has(txid)) {
             filteredTransactions.set(txid, tx)
           }
+        }
+      }
+
+      // Keep ancestors linked by outpoint even when address matching fails
+      // (RPC / hex fallback often lack prevout addresses).
+      const spentByIncluded = new Set<string>()
+      for (const included of filteredTransactions.values()) {
+        for (const vin of included.vin ?? []) {
+          spentByIncluded.add(normalizeTxid(vin.previousOutput.txid))
+        }
+      }
+
+      let expanded = true
+      while (expanded) {
+        expanded = false
+        for (const [txid, tx] of newTransactions.entries()) {
+          if (filteredTransactions.has(txid)) {
+            continue
+          }
+          if (!spentByIncluded.has(txid)) {
+            continue
+          }
+          filteredTransactions.set(txid, tx)
+          for (const vin of tx.vin ?? []) {
+            spentByIncluded.add(normalizeTxid(vin.previousOutput.txid))
+          }
+          expanded = true
         }
       }
 

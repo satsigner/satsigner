@@ -2,13 +2,8 @@ import { type Href, useRouter } from 'expo-router'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  SSIconIncoming,
-  SSIconIncomingLightning,
-  SSIconOutgoing,
-  SSIconOutgoingLightning,
-  SSIconRefresh
-} from '@/components/icons'
+import SSArkMovementIcon from '@/components/SSArkMovementIcon'
+import SSLabelTags from '@/components/SSLabelTags'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
@@ -18,7 +13,7 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import type { ArkMovement, ArkMovementKind } from '@/types/models/Ark'
+import type { ArkMovement } from '@/types/models/Ark'
 import {
   getArkMovementAmountSats,
   getArkMovementCounterparty,
@@ -32,29 +27,16 @@ import { formatFiatPrice, formatNumber } from '@/utils/format'
 type SSArkMovementCardProps = {
   movement: ArkMovement
   link: Href
+  label?: string
 }
 
-const ICON_SIZE = 14
+const ICON_SIZE = 18
 
-function renderDirectionIcon(kind: ArkMovementKind, isLightning: boolean) {
-  if (kind === 'refresh') {
-    return <SSIconRefresh height={ICON_SIZE} width={ICON_SIZE} />
-  }
-  if (kind === 'receive') {
-    return isLightning ? (
-      <SSIconIncomingLightning height={ICON_SIZE} width={ICON_SIZE} />
-    ) : (
-      <SSIconIncoming height={ICON_SIZE} width={ICON_SIZE} />
-    )
-  }
-  return isLightning ? (
-    <SSIconOutgoingLightning height={ICON_SIZE} width={ICON_SIZE} />
-  ) : (
-    <SSIconOutgoing height={ICON_SIZE} width={ICON_SIZE} />
-  )
-}
-
-function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
+function SSArkMovementCard({
+  movement,
+  link,
+  label = ''
+}: SSArkMovementCardProps) {
   const router = useRouter()
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
@@ -99,7 +81,11 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
       <SSHStack justifyBetween style={styles.container} gap="sm">
         <SSVStack gap="xxs" style={styles.leftColumn}>
           <SSHStack gap="sm" style={styles.amountRow}>
-            {renderDirectionIcon(kind, isLightning)}
+            <SSArkMovementIcon
+              kind={kind}
+              isLightning={isLightning}
+              size={ICON_SIZE}
+            />
             <SSHStack gap="xs" style={styles.amountCluster}>
               {privacyMode ? (
                 <SSText
@@ -150,6 +136,7 @@ function SSArkMovementCard({ movement, link }: SSArkMovementCardProps) {
               )}
             </SSText>
           )}
+          <SSLabelTags label={label} size="xs" />
         </SSVStack>
         <SSVStack gap="xxs" style={styles.rightColumn}>
           <SSTimeAgoText date={timestamp} size="xs" />
@@ -177,7 +164,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'flex-start',
     paddingBottom: 10,
-    paddingTop: 10
+    paddingTop: 4
   },
   counterparty: {
     color: Colors.gray[400]

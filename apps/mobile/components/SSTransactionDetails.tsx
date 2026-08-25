@@ -10,6 +10,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
+import { getAccountAddressSets } from '@/utils/address'
 import {
   type AccountMatchResult,
   extractIndividualSignedPsbts,
@@ -20,6 +21,13 @@ import {
   getMultisigInfoFromPsbt,
   type TransactionData
 } from '@/utils/psbt'
+import {
+  buildKnownTxIds,
+  buildOutpointLabelsByRef,
+  buildSpendingTxIdsByOutpoint,
+  buildTxLabelsById
+} from '@/utils/sankeyInputLabel'
+import { buildOwnedOutpoints } from '@/utils/sankeyInputOwnership'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 type SSTransactionDetailsProps = {
@@ -57,9 +65,43 @@ function SSTransactionDetails({
 
   const signedPsbts = extractIndividualSignedPsbts(combinedPsbt, originalPsbt)
   const matchedAccount = accountMatch?.account || account
-  const ownAddresses = useMemo(
-    () => new Set(matchedAccount?.addresses?.map((a) => a.address)),
+  const { ownAddresses, internalAddresses } = useMemo(
+    () => getAccountAddressSets(matchedAccount?.addresses ?? []),
+    [matchedAccount?.addresses]
+  )
+  const unspentOutpoints = useMemo(
+    () =>
+      new Set(matchedAccount?.utxos.map((utxo) => `${utxo.txid}:${utxo.vout}`)),
+    [matchedAccount?.utxos]
+  )
+  const txLabelsById = useMemo(
+    () => buildTxLabelsById(matchedAccount?.transactions),
+    [matchedAccount?.transactions]
+  )
+  const knownTxIds = useMemo(
+    () => buildKnownTxIds(matchedAccount?.transactions),
+    [matchedAccount?.transactions]
+  )
+  const spendingTxIdsByOutpoint = useMemo(
+    () => buildSpendingTxIdsByOutpoint(matchedAccount?.transactions),
+    [matchedAccount?.transactions]
+  )
+  const outpointLabelsByRef = useMemo(
+    () => buildOutpointLabelsByRef(matchedAccount ?? {}),
     [matchedAccount]
+  )
+  const ownedOutpoints = useMemo(
+    () =>
+      buildOwnedOutpoints({
+        addresses: matchedAccount?.addresses,
+        transactions: matchedAccount?.transactions,
+        utxos: matchedAccount?.utxos
+      }),
+    [
+      matchedAccount?.addresses,
+      matchedAccount?.transactions,
+      matchedAccount?.utxos
+    ]
   )
 
   if (!txid) {
@@ -136,8 +178,16 @@ function SSTransactionDetails({
           {visibility?.sankey ? (
             <View style={styles.chatChartContainer}>
               <SSTransactionChart
+                accountId={matchedAccount?.id}
                 transaction={transaction}
                 ownAddresses={ownAddresses}
+                internalAddresses={internalAddresses}
+                unspentOutpoints={unspentOutpoints}
+                ownedOutpoints={ownedOutpoints}
+                txLabelsById={txLabelsById}
+                knownTxIds={knownTxIds}
+                spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
+                outpointLabelsByRef={outpointLabelsByRef}
                 scale={0.75}
               />
             </View>
@@ -166,8 +216,15 @@ function SSTransactionDetails({
         <>
           <View style={styles.chartContainer}>
             <SSTransactionChart
+              accountId={matchedAccount?.id}
               transaction={transaction}
               ownAddresses={ownAddresses}
+              internalAddresses={internalAddresses}
+              unspentOutpoints={unspentOutpoints}
+              ownedOutpoints={ownedOutpoints}
+              txLabelsById={txLabelsById}
+              knownTxIds={knownTxIds}
+              outpointLabelsByRef={outpointLabelsByRef}
             />
           </View>
           {isMultisig && (

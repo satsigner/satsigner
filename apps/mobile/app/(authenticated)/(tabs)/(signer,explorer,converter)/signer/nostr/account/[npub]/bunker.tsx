@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useRef, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -14,6 +14,7 @@ import { useNip46Connect } from '@/hooks/useNip46Connect'
 import { useNip46SessionManager } from '@/hooks/useNip46SessionManager'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNip46Store } from '@/store/nip46'
@@ -146,7 +147,7 @@ export default function NostrBunker() {
           headerTitle: () => <SSText uppercase>{t('nip46.title')}</SSText>
         }}
       />
-      <ScrollView
+      <SSScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -265,7 +266,7 @@ export default function NostrBunker() {
             )}
           </SSVStack>
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
 
       <SSCameraModal
         visible={cameraVisible}

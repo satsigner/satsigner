@@ -19,13 +19,23 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
+import { getAccountAddressSets } from '@/utils/address'
 import { formatDate, formatNumber } from '@/utils/format'
+import {
+  buildKnownTxIds,
+  buildOutpointLabelsByRef,
+  buildSpendingTxIdsByOutpoint,
+  buildTxLabelsById
+} from '@/utils/sankeyInputLabel'
+import { buildOwnedOutpoints } from '@/utils/sankeyInputOwnership'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 type UtxoDetailsProps = {
   accountId: string
@@ -33,6 +43,13 @@ type UtxoDetailsProps = {
   onPressTx: () => void
   onSpendUtxo: () => void
   ownAddresses?: Set<string>
+  internalAddresses?: Set<string>
+  unspentOutpoints?: Set<string>
+  ownedOutpoints?: ReadonlySet<string>
+  txLabelsById?: Map<string, string>
+  knownTxIds?: ReadonlySet<string>
+  spendingTxIdsByOutpoint?: Map<string, string>
+  outpointLabelsByRef?: Map<string, string>
   tx?: Transaction
   utxo?: Utxo
   addressIndex?: number
@@ -44,6 +61,13 @@ function UtxoDetails({
   onPressTx,
   onSpendUtxo,
   ownAddresses = new Set(),
+  internalAddresses = new Set(),
+  unspentOutpoints,
+  ownedOutpoints,
+  txLabelsById,
+  knownTxIds,
+  spendingTxIdsByOutpoint,
+  outpointLabelsByRef,
   tx,
   utxo,
   addressIndex,
@@ -60,6 +84,12 @@ function UtxoDetails({
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const [showTransactionFlowChart, showUtxoFlowChart] = useChartSettingStore(
+    useShallow((state) => [
+      state.showTransactionFlowChart,
+      state.showUtxoFlowChart
+    ])
+  )
 
   const { width, height } = useWindowDimensions()
   const CHART_VERTICAL_PADDING = 40
@@ -106,7 +136,7 @@ function UtxoDetails({
 
   return (
     <ScrollView>
-      {utxo && allAccountUtxos.length > 0 && (
+      {utxo && allAccountUtxos.length > 0 && showUtxoFlowChart && (
         <>
           <View>
             <GestureHandlerRootView style={{ flex: 1 }}>
@@ -180,7 +210,7 @@ function UtxoDetails({
             </SSText>
             <SSAddressDisplay address={txid} />
           </SSVStack>
-          {tx && (
+          {tx && showTransactionFlowChart && (
             <>
               <SSSeparator color="gradient" />
               <SSVStack gap="sm">
@@ -188,8 +218,16 @@ function UtxoDetails({
                   {t('transaction.details.chart')}
                 </SSText>
                 <SSTransactionChart
+                  accountId={accountId}
                   transaction={tx}
                   ownAddresses={ownAddresses}
+                  internalAddresses={internalAddresses}
+                  unspentOutpoints={unspentOutpoints}
+                  ownedOutpoints={ownedOutpoints}
+                  txLabelsById={txLabelsById}
+                  knownTxIds={knownTxIds}
+                  spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
+                  outpointLabelsByRef={outpointLabelsByRef}
                   selectedOutputIndex={utxo?.vout}
                   dimUnselected
                   scale={0.9}
@@ -258,9 +296,38 @@ function UtxoDetailsPage() {
   })()
 
   const allAccountUtxos = account?.utxos || []
-  const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address)),
+  const { ownAddresses, internalAddresses } = useMemo(
+    () => getAccountAddressSets(account?.addresses ?? []),
+    [account?.addresses]
+  )
+  const unspentOutpoints = useMemo(
+    () => new Set(account?.utxos.map(getUtxoOutpoint)),
+    [account?.utxos]
+  )
+  const txLabelsById = useMemo(
+    () => buildTxLabelsById(account?.transactions),
+    [account?.transactions]
+  )
+  const knownTxIds = useMemo(
+    () => buildKnownTxIds(account?.transactions),
+    [account?.transactions]
+  )
+  const spendingTxIdsByOutpoint = useMemo(
+    () => buildSpendingTxIdsByOutpoint(account?.transactions),
+    [account?.transactions]
+  )
+  const outpointLabelsByRef = useMemo(
+    () => buildOutpointLabelsByRef(account ?? {}),
     [account]
+  )
+  const ownedOutpoints = useMemo(
+    () =>
+      buildOwnedOutpoints({
+        addresses: account?.addresses,
+        transactions: account?.transactions,
+        utxos: account?.utxos
+      }),
+    [account?.addresses, account?.transactions, account?.utxos]
   )
   const addInput = useTransactionBuilderStore((state) => state.addInput)
 
@@ -304,6 +371,13 @@ function UtxoDetailsPage() {
           onPressTx={navigateToTx}
           onSpendUtxo={handleSpendUtxo}
           ownAddresses={ownAddresses}
+          internalAddresses={internalAddresses}
+          unspentOutpoints={unspentOutpoints}
+          ownedOutpoints={ownedOutpoints}
+          txLabelsById={txLabelsById}
+          knownTxIds={knownTxIds}
+          spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
+          outpointLabelsByRef={outpointLabelsByRef}
           tx={tx}
           utxo={utxo}
           addressIndex={addressIndex}

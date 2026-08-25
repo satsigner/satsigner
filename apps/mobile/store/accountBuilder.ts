@@ -1,16 +1,20 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
+import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
 import { dropSeedFromKeyInMemory } from '@/utils/account'
 import { randomIv, randomUuid } from '@/utils/crypto'
 
+const DEFAULT_MNEMONIC_WORD_COUNT = 24
+
 type AccountBuilderState = {
   name: Account['name']
   network: Account['network']
   policyType: Account['policyType']
+  displayIndex: Account['displayIndex']
 
   keyName: NonNullable<Key['name']>
   creationType: Key['creationType']
@@ -41,6 +45,7 @@ type AccountBuilderAction = {
   setName: (name: AccountBuilderState['name']) => void
   setNetwork: (network: AccountBuilderState['network']) => void
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
+  setDisplayIndex: (displayIndex: AccountBuilderState['displayIndex']) => void
 
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
   setCreationType: (creationType: Key['creationType']) => void
@@ -99,6 +104,7 @@ type AccountBuilderAction = {
 // Initial state for account builder store
 const initialState: AccountBuilderState = {
   creationType: 'importMnemonic',
+  displayIndex: INITIAL_DISPLAY_INDEX,
   entropy: 'none',
   extendedPublicKey: undefined,
   externalDescriptor: undefined,
@@ -109,7 +115,7 @@ const initialState: AccountBuilderState = {
   keys: [],
   keysRequired: 0,
   mnemonic: '',
-  mnemonicWordCount: 24,
+  mnemonicWordCount: DEFAULT_MNEMONIC_WORD_COUNT,
   mnemonicWordList: 'english',
   name: '',
   network: 'signet',
@@ -148,7 +154,7 @@ const useAccountBuilderStore = create<
         keys: [],
         keysRequired,
         mnemonic: '',
-        mnemonicWordCount: 24,
+        mnemonicWordCount: DEFAULT_MNEMONIC_WORD_COUNT,
         name,
         network,
         passphrase: undefined,
@@ -182,7 +188,7 @@ const useAccountBuilderStore = create<
         internalDescriptor,
         keyName: '',
         mnemonic: '',
-        mnemonicWordCount: 24,
+        mnemonicWordCount: DEFAULT_MNEMONIC_WORD_COUNT,
         passphrase: undefined,
         policyType,
         scriptVersion
@@ -218,11 +224,20 @@ const useAccountBuilderStore = create<
       }
     },
     getAccountData: () => {
-      const { name, network, policyType, keys, keyCount, keysRequired } = get()
+      const {
+        name,
+        network,
+        policyType,
+        displayIndex,
+        keys,
+        keyCount,
+        keysRequired
+      } = get()
 
       const account: Account = {
         addresses: [],
         createdAt: new Date(),
+        displayIndex,
         id: randomUuid(),
         keyCount,
         keys,
@@ -278,6 +293,9 @@ const useAccountBuilderStore = create<
     },
     setCreationType: (creationType) => {
       set({ creationType })
+    },
+    setDisplayIndex: (displayIndex) => {
+      set({ displayIndex })
     },
     setEntropy: (entropy) => {
       set({ entropy })

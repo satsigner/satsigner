@@ -1,19 +1,33 @@
-import { useEffect, useState } from 'react'
+import { router } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
+import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { Sizes } from '@/styles'
+import { getLabelTextSize } from '@/utils/label'
 import { parseLabel, parseLabelTags } from '@/utils/parse'
 
 import SSButton from './SSButton'
-import SSTagInput from './SSTagInput'
+import SSTagInput, { type SSTagInputHandle } from './SSTagInput'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
+
+const LABEL_INPUT_MIN_HEIGHT = Sizes.textInput.height.default * 3
 
 type SSLabelInputProps = {
   label: string
   onUpdateLabel: (label: string) => void
+}
+
+function stripLineBreaks(text: string) {
+  return text.replace(/[\r\n]+/g, '')
+}
+
+function cancelLabelChanges() {
+  router.back()
 }
 
 function SSLabelInput({
@@ -23,21 +37,25 @@ function SSLabelInput({
   const [getTags, setTags] = useAccountsStore(
     useShallow((state) => [state.getTags, state.setTags])
   )
+  const tagInputRef = useRef<SSTagInputHandle>(null)
 
   const [selectedTags, setSelectedTags] = useState([] as string[])
   const [tags, setLocalTags] = useState(() => getTags())
   const [label, setLabel] = useState('')
+  const labelFontSize = Sizes.text.fontSize[getLabelTextSize(label)]
 
   function saveLabel() {
     const newLabel = parseLabelTags(label, selectedTags)
     if (newLabel !== originalLabel) {
       onUpdateLabel(newLabel)
+      return
     }
+    router.back()
   }
 
   useEffect(() => {
     const { label, tags } = parseLabel(originalLabel)
-    setLabel(label)
+    setLabel(stripLineBreaks(label))
     setSelectedTags(tags)
   }, [originalLabel])
 
@@ -57,7 +75,7 @@ function SSLabelInput({
   }
 
   function handleInputEnded() {
-    const matches = label.match(/#\w[\w\d]+/g)
+    const matches = label.match(/#\w+/g)
 
     if (!matches) {
       return
@@ -88,30 +106,32 @@ function SSLabelInput({
     setLabel(label.replace(/#.*/, '').trim())
   }
 
+  function handleLabelSubmit() {
+    handleInputEnded()
+    tagInputRef.current?.focus()
+  }
+
   return (
-    <SSVStack style={{ paddingVertical: 20 }}>
-      <SSText weight="bold" uppercase>
-        {t('common.label')}
-      </SSText>
+    <SSVStack style={styles.container} gap="sm">
+      <SSText uppercase>{t('common.label')}</SSText>
       <SSTextInput
         align="left"
         multiline
-        numberOfLines={3}
+        numberOfLines={4}
+        textAlignVertical="top"
+        // Multiline defaults blurOnSubmit=false (inserts newline). Force submit
+        // so Return moves focus to tags; line breaks are also stripped on change.
         blurOnSubmit
-        style={{
-          height: 'auto',
-          padding: 10,
-          textAlignVertical: 'top'
-        }}
+        returnKeyType="next"
         value={label}
-        onChangeText={setLabel}
+        onChangeText={(text) => setLabel(stripLineBreaks(text))}
         onBlur={handleInputEnded}
-        onSubmitEditing={handleInputEnded}
+        onSubmitEditing={handleLabelSubmit}
+        style={[styles.labelInput, { fontSize: labelFontSize }]}
       />
-      <SSText weight="bold" uppercase>
-        {t('common.tags')}
-      </SSText>
+      <SSText uppercase>{t('common.tags')}</SSText>
       <SSTagInput
+        ref={tagInputRef}
         tags={tags}
         selectedTags={selectedTags}
         onAdd={onAddTag}
@@ -122,8 +142,24 @@ function SSLabelInput({
         label={t('common.save')}
         variant="secondary"
       />
+      <SSButton
+        onPress={cancelLabelChanges}
+        label={t('common.cancel')}
+        variant="ghost"
+      />
     </SSVStack>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 20
+  },
+  labelInput: {
+    fontWeight: '300',
+    height: LABEL_INPUT_MIN_HEIGHT,
+    paddingVertical: 12
+  }
+})
 
 export default SSLabelInput

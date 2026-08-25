@@ -1,10 +1,13 @@
 import QuickCrypto from 'react-native-quick-crypto'
 import uuid from 'react-native-uuid'
 
-import { DEFAULT_PIN, PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
-
-const MAX_UINT32 = 0xffffffff // 2^32 - 1
+const UINT32_RANGE = 0x100000000 // 2^32
+const IV_BYTES = 16
+const AES_ALGORITHM = 'aes-256-cbc'
+const PBKDF2_ITERATIONS = 10_000
+const PBKDF2_KEY_LENGTH_BYTES = 32
+// Random ID length (bytes) for draft accounts, shared by the Ark/Ecash builders.
+const ACCOUNT_ID_KEY_LENGTH = 12
 
 function randomKey(length = 16): Promise<string> {
   return Promise.resolve(
@@ -12,17 +15,98 @@ function randomKey(length = 16): Promise<string> {
   )
 }
 
+// react-native-uuid's built-in rng() is Math.random-based, which is
+// unacceptable even for non-secret identifiers (account ids, NIP-46 session
+// ids are predictable/enumerable). Feed it CSPRNG bytes instead.
 function randomUuid() {
-  return uuid.v4()
+  return uuid.v4({ random: [...QuickCrypto.randomBytes(16)] })
 }
 
 function randomIv() {
-  return uuid.v4().replace(/-/g, '')
+  return Buffer.from(QuickCrypto.randomBytes(IV_BYTES)).toString('hex')
 }
 
+/**
+ * Uniform float in [0, 1). Divides by 2^32 (the size of the output space) rather
+ * than 2^32-1, which would let a maximal draw return exactly 1.0 and push
+ * `Math.floor(randomNum() * n)` one past the end of an n-element array.
+ */
 function randomNum() {
   // global variable from react-native-get-random-values
-  return crypto.getRandomValues(new Uint32Array(1))[0] / MAX_UINT32
+  return crypto.getRandomValues(new Uint32Array(1))[0] / UINT32_RANGE
+}
+
+/**
+ * Deterministic PRNG (mulberry32). Same seed yields the same sequence, so
+ * UTXO selection that relies on shuffling stays reproducible across runs.
+ *
+ * This matches the determinism *intent* of Sparrow's seeded STONEWALL selector
+ * but NOT its numeric output: Sparrow uses java.util.Random (a 48-bit LCG), so
+ * the same seed produces a different shuffle here, and the selected sets will
+ * generally differ from Sparrow (both remain valid selections). Sparrow's
+ * knapsack selector uses an unseeded Random and is therefore not reproducible
+ * at all — it cannot be matched by any seeded generator.
+ *
+ * The bitwise ops are intentional 32-bit integer arithmetic: `>>> 0` coerces to
+ * unsigned 32-bit and `| 0` wraps to signed 32-bit. Math.trunc would change the
+ * result, so prefer-math-trunc/operator-assignment are disabled here.
+ */
+/* eslint-disable unicorn/prefer-math-trunc, operator-assignment */
+function seededRandom(seed: number) {
+  let state = seed >>> 0
+  return function next() {
+    state |= 0
+    state = (state + 0x6d2b79f5) | 0
+    let t = Math.imul(state ^ (state >>> 15), 1 | state)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    // Same [0, 1) contract as randomNum: divide by 2^32 so a maximal word
+    // never returns exactly 1.0 (which breaks Fisher–Yates index math).
+    return ((t ^ (t >>> 14)) >>> 0) / UINT32_RANGE
+  }
+}
+/* eslint-enable unicorn/prefer-math-trunc, operator-assignment */
+
+const JAVA_RANDOM_MULTIPLIER = 0x5deece66dn
+const JAVA_RANDOM_ADDEND = 0xbn
+const JAVA_RANDOM_MASK = (1n << 48n) - 1n
+const JAVA_INTEGER_MAX_VALUE = 0x7fffffff
+
+/**
+ * Deterministic PRNG matching java.util.Random (48-bit LCG). Sparrow's
+ * StonewallUtxoSelector uses new Random(42), so STONEWALL selection must use
+ * this instead of mulberry32 to produce the same shuffle sequence.
+ */
+function javaSeededRandom(seed: number) {
+  let state = (BigInt(seed) ^ JAVA_RANDOM_MULTIPLIER) & JAVA_RANDOM_MASK
+
+  function next(bits: number) {
+    state =
+      (state * JAVA_RANDOM_MULTIPLIER + JAVA_RANDOM_ADDEND) & JAVA_RANDOM_MASK
+    return Number(state >> BigInt(48 - bits))
+  }
+
+  function nextInt(bound: number) {
+    if (bound <= 0) {
+      throw new Error('bound must be positive')
+    }
+
+    if ((bound & (bound - 1)) === 0) {
+      return Number((BigInt(bound) * BigInt(next(31))) >> 31n)
+    }
+
+    let bits: number
+    let val: number
+    do {
+      bits = next(31)
+      val = bits % bound
+      // Java rejects when `bits - val + (bound - 1)` overflows a signed
+      // 32-bit int; JS numbers do not wrap, so test the overflow directly.
+    } while (bits - val + (bound - 1) > JAVA_INTEGER_MAX_VALUE)
+
+    return val
+  }
+
+  return { nextInt }
 }
 
 function sha256(text: string): Promise<string> {
@@ -33,7 +117,7 @@ function sha256(text: string): Promise<string> {
 
 function aesEncrypt(text: string, key: string, iv: string): Promise<string> {
   const cipher = QuickCrypto.createCipheriv(
-    'aes-256-cbc',
+    AES_ALGORITHM,
     new Uint8Array(Buffer.from(key, 'hex')),
     new Uint8Array(Buffer.from(iv, 'hex'))
   )
@@ -52,7 +136,7 @@ function aesDecrypt(
   iv: string
 ): Promise<string> {
   const decipher = QuickCrypto.createDecipheriv(
-    'aes-256-cbc',
+    AES_ALGORITHM,
     new Uint8Array(Buffer.from(key, 'hex')),
     new Uint8Array(Buffer.from(iv, 'hex'))
   )
@@ -69,7 +153,13 @@ function aesDecrypt(
 
 /** Password-based key derivation */
 function pbkdf2Encrypt(pin: string, salt: string): Promise<string> {
-  const derived = QuickCrypto.pbkdf2Sync(pin, salt, 10_000, 256 / 8, 'sha256')
+  const derived = QuickCrypto.pbkdf2Sync(
+    pin,
+    salt,
+    PBKDF2_ITERATIONS,
+    PBKDF2_KEY_LENGTH_BYTES,
+    'sha256'
+  )
   return Promise.resolve(derived.toString('hex'))
 }
 
@@ -82,24 +172,18 @@ async function doubleShaEncrypt(text: string): Promise<string> {
   return sha256(first)
 }
 
-async function getPinForDecryption(skipPin = false): Promise<string | null> {
-  if (skipPin) {
-    return DEFAULT_PIN
-  }
-
-  return await getItem(PIN_KEY)
-}
-
 export {
+  ACCOUNT_ID_KEY_LENGTH,
   aesDecrypt,
   aesEncrypt,
   doubleShaEncrypt,
   generateSalt,
-  getPinForDecryption,
   pbkdf2Encrypt,
   randomIv,
   randomKey,
   randomNum,
   randomUuid,
+  javaSeededRandom,
+  seededRandom,
   sha256
 }

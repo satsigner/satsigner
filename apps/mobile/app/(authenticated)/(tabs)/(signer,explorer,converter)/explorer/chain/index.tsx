@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { Stack } from 'expo-router'
+import { router, Stack } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSButton from '@/components/SSButton'
+import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import { useChainData } from '@/hooks/useChainData'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
@@ -47,6 +48,17 @@ export default function ExplorerChain() {
   const height = chainData?.height ?? null
   const difficulty = chainData?.difficulty ?? null
 
+  function enableExternal() {
+    setShowExternal(true)
+  }
+
+  function openTipBlock() {
+    if (typeof height !== 'number') {
+      return
+    }
+    router.push(`/explorer/block/${height}`)
+  }
+
   const blocksInEpoch = height !== null ? height % 2016 : null
   const blocksUntilAdj =
     height !== null ? blocksUntilDifficultyAdjustment(height) : null
@@ -71,7 +83,7 @@ export default function ExplorerChain() {
       />
       {isLoading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="white" size="large" />
+          <SSLoader size={80} />
         </View>
       )}
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -86,11 +98,16 @@ export default function ExplorerChain() {
               }
             />
             <SSVStack gap="xs">
-              <Row
-                label={tn('height')}
-                value={height?.toLocaleString() ?? '--'}
-                loading={isLoading}
-              />
+              <Pressable
+                onPress={openTipBlock}
+                disabled={typeof height !== 'number'}
+              >
+                <Row
+                  label={tn('height')}
+                  value={height?.toLocaleString() ?? '--'}
+                  loading={isLoading}
+                />
+              </Pressable>
               <Row
                 label={tn('timestamp')}
                 value={
@@ -117,6 +134,13 @@ export default function ExplorerChain() {
                   {isLoading ? '--' : (chainData?.hash ?? '--')}
                 </SSText>
               </SSVStack>
+              {typeof height === 'number' ? (
+                <Pressable onPress={openTipBlock}>
+                  <SSText size="xs" style={styles.linkText}>
+                    {tn('viewBlock')}
+                  </SSText>
+                </Pressable>
+              ) : null}
             </SSVStack>
           </SSVStack>
 
@@ -156,21 +180,17 @@ export default function ExplorerChain() {
             </SSVStack>
           </SSVStack>
 
-          {/* Opt-in external data */}
-          {!showExternal && (
-            <SSVStack style={{ alignItems: 'center' }}>
-              <SSButton
-                label={tn('loadExternal')}
-                variant="outline"
-                onPress={() => setShowExternal(true)}
-              />
-              <SSText size="xs" style={styles.privacyNote}>
-                {tn('externalNote')}
-              </SSText>
-            </SSVStack>
-          )}
+          {!showExternal ? (
+            <SSExplorerCapabilityBanner
+              why={tn('externalWhy')}
+              fix={tn('externalNote')}
+              onLoad={enableExternal}
+              loadLabel={tn('loadExternal')}
+              loading={isLoadingAdj}
+            />
+          ) : null}
 
-          {showExternal && difficultyAdjustment && (
+          {showExternal && difficultyAdjustment ? (
             <SSVStack gap="sm">
               <SectionHeader
                 title={tn('preciseAdjustment')}
@@ -205,7 +225,7 @@ export default function ExplorerChain() {
                 />
               </SSVStack>
             </SSVStack>
-          )}
+          ) : null}
         </SSVStack>
       </ScrollView>
     </SSMainLayout>
@@ -265,12 +285,16 @@ const styles = StyleSheet.create({
   container: { paddingTop: 0 },
   hashText: { color: Colors.gray['100'], fontFamily: 'monospace' },
   labelText: { color: Colors.gray['400'] },
+  linkText: {
+    color: Colors.white,
+    marginTop: 4,
+    textDecorationLine: 'underline'
+  },
   loadingContainer: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center'
   },
-  privacyNote: { color: Colors.gray['600'], marginTop: 4, textAlign: 'center' },
   row: { alignItems: 'center', paddingVertical: 4 },
   sectionTitle: { color: Colors.gray['400'], letterSpacing: 1.5 },
   sourceBackend: { color: Colors.mainGreen, opacity: 0.8 },

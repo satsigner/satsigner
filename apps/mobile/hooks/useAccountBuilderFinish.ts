@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
-import { PIN_KEY } from '@/config/auth'
-import { getItem, storeKeySecret } from '@/storage/encrypted'
+import { storeKeySecret } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -12,6 +11,7 @@ import { type Account } from '@/types/models/Account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { aesEncrypt } from '@/utils/crypto'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
+import { getPin } from '@/utils/pin'
 
 function useAccountBuilderFinish() {
   const [
@@ -51,10 +51,7 @@ function useAccountBuilderFinish() {
         return
       }
 
-      const pin = await getItem(PIN_KEY)
-      if (!pin) {
-        return
-      }
+      const pin = await getPin()
 
       for (const key of account.keys) {
         const stringifiedSecret = JSON.stringify(key.secret)
@@ -102,7 +99,11 @@ function useAccountBuilderFinish() {
 
       addAccount(accountWithEncryptedSecret)
       if (walletData) {
-        addAccountWallet(accountWithEncryptedSecret.id, walletData.wallet)
+        addAccountWallet(
+          accountWithEncryptedSecret.id,
+          walletData.wallet,
+          walletData.dbPath
+        )
       }
 
       if (isImportAddress && typeof account.keys[0].secret === 'object') {

@@ -6,8 +6,8 @@ import {
   estimateArkSendOnchainFee
 } from '@/api/ark'
 import { useArkWallet } from '@/hooks/useArkWallet'
-import { useArkStore } from '@/store/ark'
 import type { ArkFeeEstimate, ArkSendFeeKind } from '@/types/models/Ark'
+import { getArkAccountOrThrow } from '@/utils/ark'
 
 export type UseArkSendFeeEstimateArgs = {
   accountId?: string | null
@@ -15,7 +15,6 @@ export type UseArkSendFeeEstimateArgs = {
   amountSats: number
   bitcoinAddress?: string
 }
-
 export function useArkSendFeeEstimate({
   accountId,
   kind,
@@ -37,11 +36,7 @@ export function useArkSendFeeEstimate({
       if (!accountId || !kind) {
         throw new Error('Ark fee estimate requires accountId and kind')
       }
-      const { accounts } = useArkStore.getState()
-      const account = accounts.find((a) => a.id === accountId)
-      if (!account) {
-        throw new Error('Ark account not found')
-      }
+      const account = getArkAccountOrThrow(accountId)
       if (kind === 'arkoor') {
         return estimateArkArkoorFee(account.serverId, accountId, amountSats)
       }

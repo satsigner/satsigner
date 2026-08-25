@@ -1,12 +1,13 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import { useChainData } from '@/hooks/useChainData'
-import { useBitnodesNodeInfo, useElectrumServerInfo } from '@/hooks/useNodeData'
+import { useBackendServerInfo, useBitnodesNodeInfo } from '@/hooks/useNodeData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -26,11 +27,12 @@ export default function ExplorerNode() {
   const [showExternal, setShowExternal] = useState(false)
 
   const { data: chainData, isLoading: isLoadingChain } = useChainData()
-  const { data: serverInfo, isLoading: isLoadingInfo } = useElectrumServerInfo()
+  const { data: serverInfo, isLoading: isLoadingInfo } = useBackendServerInfo()
   const { data: bitnodesInfo, isLoading: isLoadingBitnodes } =
     useBitnodesNodeInfo(showExternal)
 
-  const isElectrum = server.backend === 'electrum'
+  const showServerInfo =
+    server.backend === 'electrum' || server.backend === 'rpc'
 
   function formatBlockAge(timestampSeconds: number): string {
     const elapsedMs = Date.now() - timestampSeconds * 1000
@@ -54,7 +56,7 @@ export default function ExplorerNode() {
       />
       {(isLoadingChain || isLoadingInfo) && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="white" size="large" />
+          <SSLoader size={80} />
         </View>
       )}
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -129,13 +131,13 @@ export default function ExplorerNode() {
             </SSVStack>
           </SSVStack>
 
-          {/* Electrum server info — from server */}
-          {isElectrum && (
+          {/* Backend server info — Electrum banner / Core subversion */}
+          {showServerInfo && (
             <SSVStack gap="sm">
               <SectionHeader
                 title={tn('serverInfo')}
                 source="backend"
-                sourceLabel={`${server.name} (electrum)`}
+                sourceLabel={`${server.name} (${server.backend})`}
               />
               <SSVStack gap="xs">
                 <Row
@@ -156,7 +158,7 @@ export default function ExplorerNode() {
                     <SSText
                       size="xs"
                       style={styles.bannerText}
-                      numberOfLines={6}
+                      numberOfLines={8}
                     >
                       {serverInfo.banner}
                     </SSText>
@@ -188,9 +190,9 @@ export default function ExplorerNode() {
                 sourceLabel="bitnodes.io"
               />
               {isLoadingBitnodes && (
-                <SSText size="sm" style={styles.labelText}>
-                  {tn('loading')}
-                </SSText>
+                <View style={styles.inlineLoading}>
+                  <SSLoader size={64} />
+                </View>
               )}
               {!isLoadingBitnodes && bitnodesInfo === null && (
                 <SSText size="sm" style={styles.labelText}>
@@ -286,6 +288,10 @@ const styles = StyleSheet.create({
   },
   container: { paddingTop: 0 },
   hashText: { color: Colors.gray['100'], fontFamily: 'monospace' },
+  inlineLoading: {
+    alignItems: 'center',
+    paddingVertical: 24
+  },
   labelText: { color: Colors.gray['400'] },
   loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   privacyNote: { color: Colors.gray['600'], marginTop: 4, textAlign: 'center' },

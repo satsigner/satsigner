@@ -1,9 +1,10 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSButton from '@/components/SSButton'
+import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
+import SSLoader from '@/components/SSLoader'
 import SSMempoolBlocks from '@/components/SSMempoolBlocks'
 import SSText from '@/components/SSText'
 import {
@@ -16,6 +17,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import type { MemPoolFees } from '@/types/models/Blockchain'
 import { formatBytes } from '@/utils/format'
 
 const tn = _tn('explorer.mempool')
@@ -26,7 +28,6 @@ export default function ExplorerMempool() {
   )
   const { server } = configs[selectedNetwork]
   const [showExternal, setShowExternal] = useState(false)
-  const [showVisualization, setShowVisualization] = useState(false)
 
   const { data: basicData, isLoading: isLoadingBasic } = useMempoolBasicData()
   const { data: extendedData, isLoading: isLoadingExtended } =
@@ -34,10 +35,18 @@ export default function ExplorerMempool() {
 
   const feeHistogram = basicData?.feeHistogram ?? []
   const vsizeFromHistogram = basicData?.vsizeFromHistogram ?? 0
+  const backendVsize = basicData?.vsize ?? vsizeFromHistogram
+  const backendFees = basicData?.fees ?? null
+  const backendProjectedBlocks = basicData?.projectedBlocks ?? []
 
   const minFeeRate =
-    feeHistogram.length > 0 ? (feeHistogram.at(-1)?.[0] ?? null) : null
-  const maxFeeRate = feeHistogram.length > 0 ? feeHistogram[0][0] : null
+    basicData?.minFeeRate ??
+    (feeHistogram.length > 0 ? (feeHistogram.at(-1)?.[0] ?? null) : null)
+  const maxFeeRate = feeHistogram.length > 0 ? feeHistogram[0]?.[0] : null
+
+  function enableExternal() {
+    setShowExternal(true)
+  }
 
   function sourceLabel(src: 'backend' | 'mempool') {
     return src === 'backend'
@@ -54,38 +63,60 @@ export default function ExplorerMempool() {
       />
       {isLoadingBasic && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="white" size="large" />
+          <SSLoader size={80} />
         </View>
       )}
       <ScrollView showsVerticalScrollIndicator={false}>
         <SSVStack gap="xl" style={{ paddingBottom: 32, paddingTop: 20 }}>
-          {/* Basic mempool info from Electrum */}
           <SSVStack gap="sm">
             <SectionHeader
-              title={tn('feeHistogram')}
+              title={tn('mempoolStats')}
               source={basicData?.source ?? null}
               sourceLabel={
                 basicData?.source ? sourceLabel(basicData.source) : null
               }
             />
             <SSVStack gap="xs">
+              {basicData?.count !== null && basicData?.count !== undefined ? (
+                <Row
+                  label={tn('pendingTxs')}
+                  value={basicData.count.toLocaleString()}
+                  loading={isLoadingBasic}
+                />
+              ) : null}
               <Row
                 label={tn('mempoolSize')}
                 value={
-                  vsizeFromHistogram > 0
-                    ? formatBytes(vsizeFromHistogram)
+                  backendVsize && backendVsize > 0
+                    ? formatBytes(backendVsize)
+                    : '--'
+                }
+                loading={isLoadingBasic}
+              />
+              {basicData?.totalFee !== null &&
+              basicData?.totalFee !== undefined ? (
+                <Row
+                  label={tn('totalFees')}
+                  value={`${basicData.totalFee.toLocaleString()} sats`}
+                  loading={isLoadingBasic}
+                />
+              ) : null}
+              <Row
+                label={tn('minFeeRate')}
+                value={
+                  minFeeRate !== null
+                    ? `${Math.round(minFeeRate)} sat/vB`
                     : '--'
                 }
                 loading={isLoadingBasic}
               />
               <Row
-                label={tn('minFeeRate')}
-                value={minFeeRate !== null ? `${minFeeRate} sat/vB` : '--'}
-                loading={isLoadingBasic}
-              />
-              <Row
                 label={tn('maxFeeRate')}
-                value={maxFeeRate !== null ? `${maxFeeRate} sat/vB` : '--'}
+                value={
+                  maxFeeRate !== null
+                    ? `${Math.round(maxFeeRate)} sat/vB`
+                    : '--'
+                }
                 loading={isLoadingBasic}
               />
               <Row
@@ -100,105 +131,104 @@ export default function ExplorerMempool() {
             </SSVStack>
           </SSVStack>
 
-          {/* External data opt-in */}
-          {!showExternal && (
-            <SSVStack style={{ alignItems: 'center' }}>
-              <SSButton
-                label={tn('loadExternal')}
-                variant="outline"
-                onPress={() => setShowExternal(true)}
+          {backendFees ? (
+            <SSVStack gap="sm">
+              <SectionHeader
+                title={tn('feeRecommendations')}
+                source="backend"
+                sourceLabel={sourceLabel('backend')}
               />
-              <SSText size="xs" style={styles.privacyNote}>
-                {tn('externalNote')}
-              </SSText>
+              <FeeRows fees={backendFees} loading={isLoadingBasic} />
             </SSVStack>
-          )}
+          ) : null}
 
-          {showExternal && (
+          {!showExternal && backendProjectedBlocks.length > 0 ? (
+            <SSVStack gap="sm">
+              <SectionHeader
+                title={tn('pendingBlocks')}
+                source="backend"
+                sourceLabel={sourceLabel('backend')}
+              />
+              <SSMempoolBlocks blocks={backendProjectedBlocks} approximate />
+            </SSVStack>
+          ) : null}
+
+          {!showExternal ? (
+            <SSExplorerCapabilityBanner
+              why={tn('externalWhy')}
+              fix={tn('externalNote')}
+              onLoad={enableExternal}
+              loadLabel={tn('loadExternal')}
+              loading={isLoadingExtended}
+            />
+          ) : null}
+
+          {showExternal ? (
             <>
               <SSVStack gap="sm">
                 <SectionHeader
-                  title={tn('mempoolStats')}
+                  title={tn('feeRecommendations')}
                   source="mempool"
                   sourceLabel="mempool.space"
                 />
-                <SSVStack gap="xs">
-                  {extendedData?.count !== undefined &&
-                    extendedData.count !== null && (
-                      <Row
-                        label={tn('pendingTxs')}
-                        value={extendedData.count.toLocaleString()}
-                        loading={isLoadingExtended}
-                      />
-                    )}
-                  {extendedData?.vsize ? (
-                    <Row
-                      label={tn('totalVsize')}
-                      value={formatBytes(extendedData.vsize)}
-                      loading={isLoadingExtended}
-                    />
-                  ) : null}
-                  {extendedData?.totalFee !== undefined &&
-                    extendedData.totalFee !== null && (
-                      <Row
-                        label={tn('totalFees')}
-                        value={`${extendedData.totalFee.toLocaleString()} sats`}
-                        loading={isLoadingExtended}
-                      />
-                    )}
-                  {extendedData?.fees && (
-                    <>
-                      <Row
-                        label={tn('feeHigh')}
-                        value={`${extendedData.fees.high} sat/vB`}
-                        loading={isLoadingExtended}
-                      />
-                      <Row
-                        label={tn('feeMedium')}
-                        value={`${extendedData.fees.medium} sat/vB`}
-                        loading={isLoadingExtended}
-                      />
-                      <Row
-                        label={tn('feeLow')}
-                        value={`${extendedData.fees.low} sat/vB`}
-                        loading={isLoadingExtended}
-                      />
-                    </>
-                  )}
-                  {extendedData?.pendingBlocks && (
-                    <Row
-                      label={tn('pendingBlocks')}
-                      value={extendedData.pendingBlocks.length.toLocaleString()}
-                      loading={isLoadingExtended}
-                    />
-                  )}
-                </SSVStack>
+                {isLoadingExtended ? (
+                  <View style={styles.sectionLoading}>
+                    <SSLoader size={48} />
+                  </View>
+                ) : extendedData?.fees ? (
+                  <FeeRows fees={extendedData.fees} loading={false} />
+                ) : (
+                  <SSText size="sm" color="muted">
+                    {tn('feeRecommendationsEmpty')}
+                  </SSText>
+                )}
               </SSVStack>
 
-              {/* Visualization opt-in */}
-              {!showVisualization && extendedData?.pendingBlocks?.length ? (
-                <SSVStack style={{ alignItems: 'center' }}>
-                  <SSButton
-                    label={tn('showVisualization')}
-                    variant="outline"
-                    onPress={() => setShowVisualization(true)}
-                  />
-                </SSVStack>
-              ) : null}
-
-              {showVisualization && extendedData?.pendingBlocks?.length ? (
-                <SSVStack gap="sm">
-                  <SSText uppercase size="md" style={styles.sectionTitle}>
-                    {tn('pendingBlocksViz')}
-                  </SSText>
+              <SSVStack gap="sm">
+                <SectionHeader
+                  title={tn('pendingBlocks')}
+                  source="mempool"
+                  sourceLabel="mempool.space"
+                />
+                {isLoadingExtended ? (
+                  <View style={styles.sectionLoading}>
+                    <SSLoader size={48} />
+                  </View>
+                ) : extendedData?.pendingBlocks?.length ? (
                   <SSMempoolBlocks blocks={extendedData.pendingBlocks} />
-                </SSVStack>
-              ) : null}
+                ) : (
+                  <SSText size="sm" color="muted">
+                    {tn('pendingBlocksEmpty')}
+                  </SSText>
+                )}
+              </SSVStack>
             </>
-          )}
+          ) : null}
         </SSVStack>
       </ScrollView>
     </SSMainLayout>
+  )
+}
+
+function FeeRows({ fees, loading }: { fees: MemPoolFees; loading: boolean }) {
+  return (
+    <SSVStack gap="xs">
+      <Row
+        label={tn('feeHigh')}
+        value={`${Math.round(fees.high)} sat/vB`}
+        loading={loading}
+      />
+      <Row
+        label={tn('feeMedium')}
+        value={`${Math.round(fees.medium)} sat/vB`}
+        loading={loading}
+      />
+      <Row
+        label={tn('feeLow')}
+        value={`${Math.round(fees.low)} sat/vB`}
+        loading={loading}
+      />
+    </SSVStack>
   )
 }
 
@@ -257,6 +287,7 @@ const styles = StyleSheet.create({
   loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   privacyNote: { color: Colors.gray['600'], marginTop: 4, textAlign: 'center' },
   row: { alignItems: 'center', paddingVertical: 4 },
+  sectionLoading: { alignItems: 'center', paddingVertical: 24 },
   sectionTitle: { color: Colors.gray['400'], letterSpacing: 1.5 },
   sourceBackend: { color: Colors.mainGreen, opacity: 0.8 },
   sourceMempool: { color: Colors.gray['500'] },
