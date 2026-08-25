@@ -29,6 +29,7 @@ import {
   liquidityBarSegmentFlexParts,
   readLndChannelSatsField
 } from '@/utils/lndChannelDetail'
+import { lndAliasIsNodeId, lndNodeCardTitle } from '@/utils/lndNodeCardTitle'
 import { showNavigation } from '@/utils/navigation'
 const HEADER_ICON_STROKE = '#828282'
 const CARD_HORIZONTAL_INSET = 18
@@ -81,11 +82,13 @@ export default function LightningPage() {
 
   const handleConfigPress = () => {
     if (config) {
+      const identityPubkey = nodeInfo?.identity_pubkey?.trim() || ''
+      const aliasRaw = nodeInfo?.alias?.trim() || ''
       const aliasParam =
-        nodeInfo?.alias?.trim() || t('lightning.landing.unknownNode')
+        lndNodeCardTitle(aliasRaw, identityPubkey) ||
+        t('lightning.landing.unknownNode')
       const pubkeyParam =
-        nodeInfo?.identity_pubkey?.trim() ||
-        t('lightning.landing.notConnectedPubkey')
+        identityPubkey || t('lightning.landing.notConnectedPubkey')
       router.navigate({
         params: {
           alias: aliasParam,
@@ -102,8 +105,11 @@ export default function LightningPage() {
     }
 
     const aliasRaw = nodeInfo?.alias?.trim() || ''
+    const identityPubkey = nodeInfo?.identity_pubkey?.trim() || ''
+    const titleIsPubkey = lndAliasIsNodeId(aliasRaw, identityPubkey)
     const alias =
-      aliasRaw.length > 0 ? aliasRaw : t('lightning.landing.unknownNode')
+      lndNodeCardTitle(aliasRaw, identityPubkey) ||
+      t('lightning.landing.unknownNode')
     const pubkey =
       nodeInfo?.identity_pubkey?.trim() ||
       t('lightning.landing.notConnectedPubkey')
@@ -167,8 +173,14 @@ export default function LightningPage() {
         <SSVStack style={styles.cardContent}>
           <SSHStack gap="md" justifyBetween style={styles.cardHeader}>
             <SSVStack gap="xs" style={styles.cardTitleCol}>
-              <SSText numberOfLines={2} size="xl" weight="light">
-                {alias}
+              <SSText
+                ellipsizeMode={titleIsPubkey ? 'middle' : 'tail'}
+                numberOfLines={1}
+                size="xl"
+                type={titleIsPubkey ? 'mono' : undefined}
+                weight="light"
+              >
+                {privacyMode && titleIsPubkey ? PRIVACY_MASK : alias}
               </SSText>
               <SSText
                 color="muted"

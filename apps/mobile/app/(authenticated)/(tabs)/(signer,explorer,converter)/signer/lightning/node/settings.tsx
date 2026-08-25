@@ -29,6 +29,7 @@ import type {
   LNDPendingChannelsResponse
 } from '@/types/models/Lightning'
 import { shareFile } from '@/utils/filesystem'
+import { lightningOpenChannelHref } from '@/utils/lightningNavigation'
 import { formatLndChainsForUi } from '@/utils/lndGetInfoChains'
 import { getLndErrorMessage, isLndPermissionError } from '@/utils/lndHttpError'
 import {
@@ -36,6 +37,57 @@ import {
   formatLndVersion,
   getPendingCounts
 } from '@/utils/lndNodeSettings'
+
+type SettingsPeerRowProps = {
+  address: string
+  onOpenChannel: (pubkey: string) => void
+  pubkey: string
+}
+
+function SettingsPeerRow({
+  address,
+  onOpenChannel,
+  pubkey
+}: SettingsPeerRowProps) {
+  function handleOpen() {
+    if (!pubkey) {
+      return
+    }
+    onOpenChannel(pubkey)
+  }
+
+  return (
+    <View style={settingsPeerRowStyles.peerRow}>
+      <SSText color="muted" size="xxs">
+        {t('lightning.nodeSettings.peerAddress')}
+      </SSText>
+      <SSText size="xs" type="mono" numberOfLines={2}>
+        {address || '—'}
+      </SSText>
+      <SSClipboardCopy text={pubkey}>
+        <SSText ellipsizeMode="middle" numberOfLines={1} size="xs" type="mono">
+          {pubkey || '—'}
+        </SSText>
+      </SSClipboardCopy>
+      {pubkey ? (
+        <SSButton
+          label={t('lightning.nodeSettings.openChannel')}
+          onPress={handleOpen}
+          variant="outline"
+        />
+      ) : null}
+    </View>
+  )
+}
+
+const settingsPeerRowStyles = StyleSheet.create({
+  peerRow: {
+    borderBottomColor: Colors.gray[800],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+    paddingVertical: 8
+  }
+})
 
 export default function NodeSettingsPage() {
   const router = useRouter()
@@ -105,6 +157,10 @@ export default function NodeSettingsPage() {
 
   function handleBack() {
     router.back()
+  }
+
+  function handleOpenChannelWithPeer(pubkey: string) {
+    router.push(lightningOpenChannelHref(pubkey))
   }
 
   function handleOpenClearConfig() {
@@ -412,24 +468,12 @@ export default function NodeSettingsPage() {
                   const pk = peer.pub_key ?? ''
                   const addr = peer.address ?? ''
                   return (
-                    <View key={`${pk || 'peer'}-${i}`} style={styles.peerRow}>
-                      <SSText color="muted" size="xxs">
-                        {t('lightning.nodeSettings.peerAddress')}
-                      </SSText>
-                      <SSText size="xs" type="mono" numberOfLines={2}>
-                        {addr || '—'}
-                      </SSText>
-                      <SSClipboardCopy text={pk}>
-                        <SSText
-                          ellipsizeMode="middle"
-                          numberOfLines={1}
-                          size="xs"
-                          type="mono"
-                        >
-                          {pk || '—'}
-                        </SSText>
-                      </SSClipboardCopy>
-                    </View>
+                    <SettingsPeerRow
+                      address={addr}
+                      key={`${pk || 'peer'}-${i}`}
+                      onOpenChannel={handleOpenChannelWithPeer}
+                      pubkey={pk}
+                    />
                   )
                 })
               )}
@@ -627,12 +671,6 @@ const styles = StyleSheet.create({
   mainLayout: {
     flex: 1,
     paddingTop: 10
-  },
-  peerRow: {
-    borderBottomColor: Colors.gray[800],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 4,
-    paddingVertical: 8
   },
   scrollContent: {
     flexGrow: 1,

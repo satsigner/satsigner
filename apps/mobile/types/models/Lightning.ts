@@ -198,6 +198,28 @@ export type LNDRestPeer = {
   pub_key?: string
 }
 
+export type LNDConnectPeerRequest = {
+  addr: {
+    host: string
+    pubkey: string
+  }
+  perm?: boolean
+}
+
+export type LNDOpenChannelRequest = {
+  local_funding_amount: string
+  min_confs: number
+  node_pubkey_string: string
+  private: boolean
+  push_sat: string
+  sat_per_vbyte?: string
+}
+
+export type LNDOpenChannelResponse = {
+  funding_txid_str?: string
+  output_index?: number
+}
+
 export type LNDChannel = {
   active: boolean
   capacity: number

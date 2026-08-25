@@ -11,6 +11,16 @@
 // TODO: make it possible for users to configure the channel threshold.
 export const LIGHTNING_CHANNEL_THRESHOLD = 1_000_000
 
+/** Default LND `--minchansize` (sats) for new channel funding. */
+export const LND_OPEN_CHANNEL_MIN_FUNDING_SAT = 20_000
+export const LND_OPEN_CHANNEL_DEFAULT_MIN_CONFS = 1
+export const LND_OPEN_CHANNEL_MAX_MIN_CONFS = 1_000
+export const LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE = 10_000
+export const LND_NODE_PUBKEY_HEX_LENGTH = 66
+/** Short pubkey shown as a card title when the node has no alias. */
+export const LND_NODE_CARD_PUBKEY_HEAD_CHARS = 4
+export const LND_NODE_CARD_PUBKEY_TAIL_CHARS = 4
+
 export const LND_FORWARDING_MAX_EVENTS = 200
 export const LND_FORWARDING_INDEX_OFFSET = 0
 /** Default LND REST listen port in lndconnect URIs when none is given. */
@@ -24,6 +34,8 @@ export const LND_REST = {
   BALANCE_CHANNELS: '/v1/balance/channels',
   /** ListChannels: peer_alias is omitted unless this flag is set (LND default). */
   CHANNELS: '/v1/channels?peer_alias_lookup=true',
+  /** OpenChannelSync — POST JSON body (see `lndOpenChannel`). */
+  CHANNELS_OPEN: '/v1/channels',
   CHANNELS_PENDING: '/v1/channels/pending',
   /** ExportAllChannelBackups — JSON snapshot; store securely. */
   CHANNEL_BACKUP_ALL: '/v1/channels/backup',

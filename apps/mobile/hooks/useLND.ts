@@ -6,7 +6,10 @@ import { LND_REST } from '@/constants/lightning'
 import { useLightningStore } from '@/store/lightning'
 import type {
   LNDChanBackupSnapshot,
+  LNDConnectPeerRequest,
   LNDListPeersResponse,
+  LNDOpenChannelRequest,
+  LNDOpenChannelResponse,
   LNDPendingChannelsResponse,
   LNDBlockchainBalanceResponse,
   LNDChannel,
@@ -235,6 +238,27 @@ export const useLND = () => {
       disconnectOnError: false
     })
 
+  const connectPeer = (input: { host: string; pubkey: string }) => {
+    const body: LNDConnectPeerRequest = {
+      addr: {
+        host: input.host,
+        pubkey: input.pubkey
+      }
+    }
+    return makeRequest<Record<string, unknown>>(LND_REST.PEERS, {
+      body,
+      disconnectOnError: false,
+      method: 'POST'
+    })
+  }
+
+  const openChannel = (body: LNDOpenChannelRequest) =>
+    makeRequest<LNDOpenChannelResponse>(LND_REST.CHANNELS_OPEN, {
+      body,
+      disconnectOnError: false,
+      method: 'POST'
+    })
+
   const verifyConnection = async () => {
     if (!config) {
       return false
@@ -263,6 +287,7 @@ export const useLND = () => {
     channels,
     closeChannel,
     config,
+    connectPeer,
     createInvoice,
     exportAllChannelBackups,
     exportChannelBackupSingle,
@@ -276,6 +301,7 @@ export const useLND = () => {
     lastSync,
     makeRequest,
     nodeInfo,
+    openChannel,
     payInvoice,
     verifyConnection
   }
