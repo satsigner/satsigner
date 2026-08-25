@@ -13,7 +13,7 @@ import {
 } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
-import { getLndConfigFileUrlFromConnectionInput } from '@/utils/lndRestRemoteConfig'
+import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
@@ -271,7 +271,7 @@ function detectArkContent(data: string): DetectedContent | null {
 function detectLndRestConfigConnectionString(
   data: string
 ): DetectedContent | null {
-  if (!getLndConfigFileUrlFromConnectionInput(data)) {
+  if (!parseLndConnectionInput(data)) {
     return null
   }
   const trimmed = data.trim()

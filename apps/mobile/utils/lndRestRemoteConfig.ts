@@ -96,6 +96,63 @@ function compactUri(raw: string): string {
   return raw.replace(/\s+/g, '')
 }
 
+function decodeLndConnectQueryValue(raw: string): string {
+  try {
+    return decodeURIComponent(raw.replace(/\+/g, '%2B'))
+  } catch {
+    return raw
+  }
+}
+
+function getLndConnectQueryParam(
+  query: string,
+  names: string[]
+): string | null {
+  const wanted = new Set(names.map((n) => n.toLowerCase()))
+  for (const part of query.split('&')) {
+    if (!part) {
+      continue
+    }
+    const eq = part.indexOf('=')
+    const keyRaw = eq === -1 ? part : part.slice(0, eq)
+    const key = decodeLndConnectQueryValue(keyRaw).toLowerCase()
+    if (!wanted.has(key)) {
+      continue
+    }
+    if (eq === -1) {
+      return ''
+    }
+    return decodeLndConnectQueryValue(part.slice(eq + 1))
+  }
+  return null
+}
+
+function parseLndConnectHostPort(hostPort: string): {
+  host: string
+  port: string
+} {
+  if (hostPort.startsWith('[')) {
+    const close = hostPort.indexOf(']')
+    if (close === -1) {
+      throw new Error('lndconnect URI missing host')
+    }
+    const host = hostPort.slice(1, close)
+    const after = hostPort.slice(close + 1)
+    const port = after.startsWith(':')
+      ? after.slice(1)
+      : LNDCONNECT_DEFAULT_REST_PORT
+    return { host, port: port || LNDCONNECT_DEFAULT_REST_PORT }
+  }
+  const colon = hostPort.lastIndexOf(':')
+  if (colon === -1) {
+    return { host: hostPort, port: LNDCONNECT_DEFAULT_REST_PORT }
+  }
+  return {
+    host: hostPort.slice(0, colon),
+    port: hostPort.slice(colon + 1) || LNDCONNECT_DEFAULT_REST_PORT
+  }
+}
+
 /**
  * Zap/lndconnect URI: `lndconnect://host:port?cert=…&macaroon=…`
  * Host may be a `.onion` address. REST is always treated as HTTPS.
@@ -105,22 +162,21 @@ export function parseLndConnectUri(raw: string): LNDConfig {
   if (!/^lndconnect:\/\//i.test(compact)) {
     throw new Error('Not an lndconnect URI')
   }
-  const parsed = new URL(compact)
-  const host = parsed.hostname
+  const rest = compact.replace(/^lndconnect:\/\//i, '')
+  const qIndex = rest.indexOf('?')
+  const hostPort = qIndex === -1 ? rest : rest.slice(0, qIndex)
+  const query = qIndex === -1 ? '' : rest.slice(qIndex + 1)
+  const { host, port } = parseLndConnectHostPort(hostPort)
   if (!host) {
     throw new Error('lndconnect URI missing host')
   }
-  const port = parsed.port || LNDCONNECT_DEFAULT_REST_PORT
   const macaroonParam =
-    parsed.searchParams.get('macaroon') ||
-    parsed.searchParams.get('macaroon_hex')
+    getLndConnectQueryParam(query, ['macaroon', 'macaroon_hex']) || ''
   if (!macaroonParam) {
     throw new Error('lndconnect URI missing macaroon')
   }
   const certParam =
-    parsed.searchParams.get('cert') ||
-    parsed.searchParams.get('certificate') ||
-    ''
+    getLndConnectQueryParam(query, ['cert', 'certificate']) || ''
   return {
     cert: certParam,
     macaroon: macaroonToLndRestHexHeader(macaroonParam),

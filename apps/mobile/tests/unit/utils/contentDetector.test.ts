@@ -315,6 +315,17 @@ describe('contentDetector', () => {
         expect(result.type).toBe('lnd_rest_config')
         expect(result.isValid).toBe(true)
       })
+
+      it('should detect lndconnect URI with onion host', async () => {
+        const macB64 = Buffer.from('cafebabe', 'hex').toString('base64')
+        const payload =
+          'lndconnect://abcdefghijklmnopqrstuvwxyz012345abcdefghijklmnop.onion:8080' +
+          `?cert=LS0tLS1CRUdJTi&macaroon=${macB64}`
+        const result = await detectContentByContext(payload, 'lightning')
+        expect(result.type).toBe('lnd_rest_config')
+        expect(result.isValid).toBe(true)
+        expect(result.cleaned).toBe(payload)
+      })
     })
 
     describe('incompatible content in Lightning context', () => {

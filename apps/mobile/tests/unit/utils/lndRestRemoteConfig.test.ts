@@ -69,6 +69,22 @@ describe('lndRestRemoteConfig', () => {
       const wrapped = `${uri.slice(0, 20)}\n${uri.slice(20)}`
       expect(parseLndConnectUri(wrapped).macaroon).toBe(macHex)
     })
+
+    it('keeps plus signs in standard base64 query values', () => {
+      const macHex = 'fb00'
+      const macB64 = Buffer.from(macHex, 'hex').toString('base64')
+      expect(macB64.includes('+')).toBe(true)
+      const uri = `lndconnect://node.example:8080?macaroon=${macB64}`
+      expect(parseLndConnectUri(uri).macaroon).toBe(macHex)
+    })
+
+    it('rejects lndconnect without a macaroon', () => {
+      expect(() =>
+        parseLndConnectUri(
+          'lndconnect://abcdefghijklmnopqrstuvwxyz012345abcdefghijklmnop.onion:8080?cert=LS0t'
+        )
+      ).toThrow('lndconnect URI missing macaroon')
+    })
   })
 
   describe('parseLndConnectionInput', () => {
