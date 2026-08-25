@@ -4,13 +4,11 @@ import SSButton from '@/components/SSButton'
 import SSFingerprint from '@/components/SSFingerprint'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import { useTourNavigation } from '@/hooks/useTourNavigation'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useTourStore } from '@/store/tour'
 import { Colors } from '@/styles'
 import { Account } from '@/types/models/Account'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
@@ -22,21 +20,8 @@ export default function WalletCreated() {
   )
   const key = account?.keys[0]
 
-  const tourStatus = useTourStore((state) => state.status)
-  const tourCurrentStep = useTourStore((state) => state.currentStep)
-  const setTourAccountId = useTourStore((state) => state.setAccountId)
-  const isTourMode =
-    tourStatus === 'active' && tourCurrentStep === 'account_setup'
-
-  const { advance } = useTourNavigation()
-
   function handleGoToWallet() {
     if (!id) {
-      return
-    }
-    if (isTourMode) {
-      setTourAccountId(id)
-      advance('account_setup', id)
       return
     }
     router.dismissAll()

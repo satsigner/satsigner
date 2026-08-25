@@ -2,27 +2,17 @@ import { Stack } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
-import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import { APP_VERSION, BUILD_NUMBER } from '@/constants/version'
-import { useTourNavigation } from '@/hooks/useTourNavigation'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useIntroStore } from '@/store/intro'
-import { useTourStore } from '@/store/tour'
 import { Colors } from '@/styles'
 
 export default function About() {
-  const { handleRestartTour } = useTourNavigation()
-  const neverAskAgain = useTourStore((state) => state.neverAskAgain)
-  const setTourPrompts = useTourStore((state) => state.setTourPrompts)
   const showIntro = useIntroStore((state) => state.showIntro)
-
-  function handleStartChapter1() {
-    handleRestartTour()
-  }
 
   return (
     <>
@@ -44,54 +34,14 @@ export default function About() {
           <View style={styles.separator} />
 
           <SSText size="xs" color="muted" uppercase style={styles.sectionLabel}>
-            {t('tour.about.sectionTitle')}
+            {t('intro.sectionTitle')}
           </SSText>
 
           <SSHStack justifyBetween style={styles.chapterRow}>
-            <SSText>{t('tour.chapters.one.title')}</SSText>
+            <SSText>{t('intro.replay')}</SSText>
             <SSButton
               variant="secondary"
-              label={t('tour.about.start')}
-              onPress={handleStartChapter1}
-              style={styles.chapterButton}
-            />
-          </SSHStack>
-
-          {(['two', 'three', 'four', 'five', 'six', 'seven'] as const).map(
-            (chapter) => (
-              <SSHStack
-                key={chapter}
-                justifyBetween
-                style={[styles.chapterRow, styles.chapterRowDisabled]}
-              >
-                <SSText color="muted">
-                  {t(`tour.chapters.${chapter}.title`)}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {t('tour.about.comingSoon')}
-                </SSText>
-              </SSHStack>
-            )
-          )}
-
-          <SSCheckbox
-            label={t('tour.about.showPrompts')}
-            selected={!neverAskAgain}
-            onPress={() => setTourPrompts(neverAskAgain)}
-            labelProps={{ size: 'md' }}
-          />
-
-          <View style={styles.separator} />
-
-          <SSText size="xs" color="muted" uppercase style={styles.sectionLabel}>
-            {t('tour.intro.sectionTitle')}
-          </SSText>
-
-          <SSHStack justifyBetween style={styles.chapterRow}>
-            <SSText>{t('tour.intro.replay')}</SSText>
-            <SSButton
-              variant="secondary"
-              label={t('tour.about.start')}
+              label={t('intro.start')}
               onPress={() => showIntro(true)}
               style={styles.chapterButton}
             />
@@ -110,9 +60,6 @@ const styles = StyleSheet.create({
   chapterRow: {
     alignItems: 'center',
     paddingVertical: 4
-  },
-  chapterRowDisabled: {
-    opacity: 0.4
   },
   sectionLabel: {
     letterSpacing: 1,

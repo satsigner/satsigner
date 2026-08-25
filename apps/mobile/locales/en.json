@@ -2817,116 +2817,6 @@
     "number.smaller": "The value must be smaller than %{value}",
     "required": "*required*"
   },
-  "tour": {
-    "banner": {
-      "label": "Signet Tour",
-      "message": "Practice Bitcoin on Signet — no real funds needed.",
-      "start": "Start tour"
-    },
-    "about": {
-      "comingSoon": "Coming soon",
-      "sectionTitle": "Tours",
-      "showPrompts": "Show tour prompts",
-      "start": "Start"
-    },
-    "chapters": {
-      "one": {
-        "title": "Bitcoin Basics — Signet"
-      },
-      "two": {
-        "title": "Multisig & PSBT"
-      },
-      "three": {
-        "title": "Nostr Label Sync"
-      },
-      "four": {
-        "title": "Lightning & eCash"
-      },
-      "five": {
-        "title": "Ark"
-      },
-      "six": {
-        "title": "Explorer & Network"
-      },
-      "seven": {
-        "title": "Nostr & Identity"
-      }
-    },
-    "exit": "Exit tour",
-    "exploreOnMyOwn": "Explore on my own",
-    "fillRandom": "Fill random",
-    "next": "Next",
-    "noUtxos": {
-      "fundLater": "I'll fund it later"
-    },
-    "offer": {
-      "description": "Walk through creating a test wallet and making your first Bitcoin transaction on signet.",
-      "neverAskAgain": "Don't ask again",
-      "later": "Maybe later",
-      "start": "Yes, show me!",
-      "title": "Quick tour?"
-    },
-    "continueStep": {
-      "description": "Tap Continue to move to key generation.",
-      "title": "All set!"
-    },
-    "mnemonicStep": {
-      "description": "Write these down — they're your wallet backup. Tap Confirm Seed when done.",
-      "title": "Your 12 secret words"
-    },
-    "importMnemonicStep": {
-      "description": "Your test seed is ready — tap Import Seed to continue.",
-      "title": "Seed loaded"
-    },
-    "singleSigStep": {
-      "description": "Tap Import Seed to load the pre-funded test wallet.",
-      "title": "Import our test seed"
-    },
-    "selfSendLabel": "Tour self-send",
-    "step": "Step %{current} of %{total}",
-    "steps": {
-      "accountSetup": {
-        "description": "Give it any name — this is your test wallet.",
-        "title": "Name your wallet"
-      },
-      "addAccount": {
-        "description": "Tap Add Account to create a test wallet.",
-        "title": "Add your test wallet"
-      },
-      "broadcastConfirm": {
-        "description": "It's live on signet. You now have more UTXOs than before.",
-        "title": "Transaction sent!"
-      },
-      "exploreWallet": {
-        "description": "Ready to send a transaction? Explore your wallet.",
-        "title": "Your wallet is ready"
-      },
-      "noUtxos": {
-        "description": "First, sync your wallet using the sync button. If coins still don't appear, paste this address into a signet faucet.",
-        "title": "No coins yet"
-      },
-      "previewTx": {
-        "description": "Sending to yourself creates more UTXOs — so you'll always have coins for future practice.",
-        "title": "Review the transaction"
-      },
-      "receive": {
-        "description": "Fund this with signet coins from a faucet. Tap Next when ready.",
-        "title": "Your receive address"
-      },
-      "selectUtxos": {
-        "description": "Tap all your UTXOs, then tap Next to build the transaction.",
-        "title": "Select your coins"
-      },
-      "signTx": {
-        "description": "Tap Sign to authorize and broadcast to signet.",
-        "title": "Sign it"
-      }
-    },
-    "intro": {
-      "replay": "Replay intro animation",
-      "sectionTitle": "Intro"
-    }
-  },
   "wallet": {
     "balance": "wallet balance"
   },
@@ -2976,6 +2866,9 @@
     "warning.syncFailed": "Account created but failed to sync. You can try syncing later."
   },
   "intro": {
+    "replay": "Replay intro animation",
+    "sectionTitle": "Intro",
+    "start": "Start",
     "steps": {
       "sign": {
         "description": "Build transactions with full fee control. Air-gapped signing, multisig, and PSBTs — complete sovereignty over every sat.",

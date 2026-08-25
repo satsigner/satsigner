@@ -13,7 +13,6 @@ import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSUtxoItem from '@/components/SSUtxoItem'
-import { useTourStep } from '@/hooks/useTourStep'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -35,8 +34,6 @@ export default function SelectUtxoList() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const insets = useSafeAreaInsets()
-
-  useTourStep('select_utxos')
 
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!

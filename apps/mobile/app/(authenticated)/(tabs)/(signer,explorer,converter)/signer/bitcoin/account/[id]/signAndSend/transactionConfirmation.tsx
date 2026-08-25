@@ -9,8 +9,6 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
-import { useTourNavigation } from '@/hooks/useTourNavigation'
-import { useTourStep } from '@/hooks/useTourStep'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -26,8 +24,6 @@ export default function TransactionConfirmation() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const { isActive: isTourBroadcastConfirm } = useTourStep('broadcast_confirm')
-  const { handleComplete } = useTourNavigation()
   const [externalWarningModalVisible, setExternalWarningModalVisible] =
     useState(false)
 
@@ -81,10 +77,6 @@ export default function TransactionConfirmation() {
 
   function handleBackToHome() {
     clearTransaction()
-    if (isTourBroadcastConfirm) {
-      handleComplete()
-      return
-    }
     router.dismissAll()
     router.navigate(`/signer/bitcoin/account/${id}`)
   }
