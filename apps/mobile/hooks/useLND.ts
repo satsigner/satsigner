@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
+import { lndRestFetch } from '@/api/lndRest'
 import { LND_REST } from '@/constants/lightning'
 import { useLightningStore } from '@/store/lightning'
 import type {
@@ -43,12 +44,7 @@ export const useLND = () => {
     }
 
     try {
-      const response = await fetch(`${config.url}/v1/getinfo`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Grpc-Metadata-macaroon': config.macaroon
-        }
-      })
+      const response = await lndRestFetch(config, '/v1/getinfo')
 
       if (!response.ok) {
         throw new Error(`Failed to fetch node info: ${response.status}`)
@@ -82,13 +78,9 @@ export const useLND = () => {
     setConnecting(true)
 
     try {
-      const response = await fetch(`${config.url}${endpoint}`, {
+      const response = await lndRestFetch(config, endpoint, {
         body: body ? JSON.stringify(body) : undefined,
-        headers: {
-          'Content-Type': 'application/json',
-          'Grpc-Metadata-macaroon': config.macaroon,
-          ...headers
-        },
+        headers,
         method
       })
 
@@ -213,11 +205,7 @@ export const useLND = () => {
     const url = `${config.url}/v1/channels/${encodeURIComponent(parsed.txid)}/${encodeURIComponent(parsed.vout)}?${qs}`
     setConnecting(true)
     try {
-      const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Grpc-Metadata-macaroon': config.macaroon
-        },
+      const response = await lndRestFetch(config, url, {
         method: 'DELETE'
       })
       const body = await response.text()
