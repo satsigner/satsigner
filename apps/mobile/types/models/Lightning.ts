@@ -220,6 +220,20 @@ export type LNDOpenChannelResponse = {
   output_index?: number
 }
 
+export type LNDNewAddressResponse = {
+  address: string
+}
+
+export type LNDSendCoinsRequest = {
+  addr: string
+  amount: string
+  sat_per_vbyte?: string
+}
+
+export type LNDSendCoinsResponse = {
+  txid: string
+}
+
 export type LNDChannel = {
   active: boolean
   capacity: number

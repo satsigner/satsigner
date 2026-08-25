@@ -8,9 +8,12 @@ import type {
   LNDChanBackupSnapshot,
   LNDConnectPeerRequest,
   LNDListPeersResponse,
+  LNDNewAddressResponse,
   LNDOpenChannelRequest,
   LNDOpenChannelResponse,
   LNDPendingChannelsResponse,
+  LNDSendCoinsRequest,
+  LNDSendCoinsResponse,
   LNDBlockchainBalanceResponse,
   LNDChannel,
   LNDNodeInfo,
@@ -19,6 +22,7 @@ import type {
   LNDRequestOptions
 } from '@/types/models/Lightning'
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
+import { buildNewAddressPath } from '@/utils/lndOnchainWallet'
 
 const HEALTH_CHECK_INTERVAL_MS = 30_000
 
@@ -107,6 +111,18 @@ export const useLND = () => {
 
   const getBalance = (): Promise<LNDBlockchainBalanceResponse> =>
     makeRequest<LNDBlockchainBalanceResponse>('/v1/balance/blockchain')
+
+  const getNewAddress = (fresh = false) =>
+    makeRequest<LNDNewAddressResponse>(buildNewAddressPath(fresh), {
+      disconnectOnError: false
+    })
+
+  const sendCoins = (body: LNDSendCoinsRequest) =>
+    makeRequest<LNDSendCoinsResponse>(LND_REST.SEND_COINS, {
+      body,
+      disconnectOnError: false,
+      method: 'POST'
+    })
 
   const getChannels = async (): Promise<LNDChannel[]> => {
     try {
@@ -294,6 +310,7 @@ export const useLND = () => {
     getBalance,
     getChannels,
     getInfo,
+    getNewAddress,
     getPeers,
     getPendingChannels,
     isConnected,
@@ -303,6 +320,7 @@ export const useLND = () => {
     nodeInfo,
     openChannel,
     payInvoice,
+    sendCoins,
     verifyConnection
   }
 }

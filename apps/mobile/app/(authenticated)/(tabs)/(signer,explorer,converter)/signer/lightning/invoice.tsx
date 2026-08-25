@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -14,6 +15,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
+import SSPairedTabs from '@/components/SSPairedTabs'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import { useFiatData } from '@/hooks/useFiatData'
@@ -21,10 +23,13 @@ import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { Colors } from '@/styles'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
+import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,
@@ -40,11 +45,14 @@ type Invoice = {
 
 type InvoiceStatus = 'open' | 'settled' | 'canceled'
 
+type InvoiceTab = 'lightning' | 'onchain'
+
 export default function InvoicePage() {
   const router = useRouter()
   const { width: screenWidth } = useWindowDimensions()
   const qrCodeSize = Math.min(screenWidth - 40, 300) // Account for modal padding (20px on each side)
-  const { createInvoice, makeRequest } = useLND()
+  const { config, createInvoice, getNewAddress, makeRequest } = useLND()
+  const queryClient = useQueryClient()
   const [fiatCurrency, satsToFiat, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -76,6 +84,16 @@ export default function InvoicePage() {
   const [lnurlDetails, setLnurlDetails] = useState<LNURLWithdrawDetails | null>(
     null
   )
+  const [activeTab, setActiveTab] = useState<InvoiceTab>('lightning')
+  const [isGeneratingAddress, setIsGeneratingAddress] = useState(false)
+
+  const newAddressQueryKey = ['lnd', 'new-address', config?.url]
+  const addressQuery = useQuery({
+    enabled: Boolean(config) && activeTab === 'onchain',
+    queryFn: () => getNewAddress(false),
+    queryKey: newAddressQueryKey
+  })
+  const onchainAddress = addressQuery.data?.address
 
   // Function to check invoice status
   const checkInvoiceStatus = useCallback(async () => {
@@ -360,139 +378,244 @@ export default function InvoicePage() {
     toast.success('Payment request copied to clipboard')
   }
 
+  function handleOpenCamera() {
+    setCameraModalVisible(true)
+  }
+
+  function handleCloseCamera() {
+    setCameraModalVisible(false)
+  }
+
+  function handleCancel() {
+    router.back()
+  }
+
+  function handleCloseQrModal() {
+    setQrModalVisible(false)
+  }
+
+  async function handleCopyOnchainAddress() {
+    if (!onchainAddress) {
+      return
+    }
+    try {
+      await Clipboard.setStringAsync(onchainAddress)
+      toast.success(t('common.copiedToClipboard'))
+    } catch {
+      toast.error(t('lightning.invoice.addressFailed'))
+    }
+  }
+
+  async function handleGenerateNewAddress() {
+    setIsGeneratingAddress(true)
+    try {
+      const result = await getNewAddress(true)
+      queryClient.setQueryData(newAddressQueryKey, result)
+    } catch (error) {
+      toast.error(
+        `${t('lightning.invoice.addressFailed')}: ${getLndErrorMessage(error)}`
+      )
+    } finally {
+      setIsGeneratingAddress(false)
+    }
+  }
+
+  function handleRetryAddress() {
+    void addressQuery.refetch()
+  }
+
   return (
     <>
       <Stack.Screen
         options={{
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              New Invoice
+              {t('lightning.invoice.title')}
             </SSText>
           )
         }}
       />
       <SSMainLayout>
         <SSVStack>
-          <View>
+          <SSPairedTabs<InvoiceTab>
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            primary={{
+              key: 'lightning',
+              label: t('lightning.invoice.lightningTab')
+            }}
+            secondary={{
+              key: 'onchain',
+              label: t('lightning.invoice.onchainTab')
+            }}
+          />
+          {activeTab === 'lightning' ? (
+            <View>
+              <SSVStack gap="md">
+                <SSVStack gap="xs">
+                  <SSText uppercase>
+                    Amount ({amountMode === 'sats' ? 'sats' : fiatCurrency})
+                  </SSText>
+                  {amountMode === 'sats' ? (
+                    <TextInput
+                      style={styles.input}
+                      value={
+                        invoiceAmount
+                          ? formatNumber(parseInt(invoiceAmount, 10)).toString()
+                          : ''
+                      }
+                      onChangeText={handleAmountChange}
+                      placeholder="Enter amount in satoshis"
+                      placeholderTextColor="#666"
+                      keyboardType="numeric"
+                    />
+                  ) : (
+                    <TextInput
+                      style={styles.input}
+                      value={localFiatAmount}
+                      onChangeText={handleFiatAmountChange}
+                      placeholder={`Enter amount in ${fiatCurrency}`}
+                      placeholderTextColor="#666"
+                      keyboardType="decimal-pad"
+                    />
+                  )}
+                  {amountMode === 'sats' ? (
+                    <SSText
+                      color="muted"
+                      size="sm"
+                      onPress={
+                        btcPrice && btcPrice > 0
+                          ? handleSwitchToFiat
+                          : undefined
+                      }
+                      style={
+                        btcPrice && btcPrice > 0
+                          ? styles.switchableAmount
+                          : undefined
+                      }
+                    >
+                      ≈{' '}
+                      {invoiceAmount
+                        ? formatNumber(
+                            satsToFiat(parseInt(invoiceAmount, 10)),
+                            2
+                          )
+                        : '0'}{' '}
+                      {fiatCurrency}
+                    </SSText>
+                  ) : (
+                    <SSText
+                      color="muted"
+                      size="sm"
+                      onPress={handleSwitchToSats}
+                      style={styles.switchableAmount}
+                    >
+                      {invoiceAmount
+                        ? `${formatNumber(parseInt(invoiceAmount, 10))} sats`
+                        : '0 sats'}
+                    </SSText>
+                  )}
+                  {isLNURLMode && lnurlDetails && (
+                    <SSText color="muted" size="sm">
+                      Available:{' '}
+                      {formatNumber(
+                        Math.floor(lnurlDetails.maxWithdrawable / 1000)
+                      )}{' '}
+                      sats
+                    </SSText>
+                  )}
+                </SSVStack>
+                <SSVStack style={styles.inputContainer}>
+                  <SSText uppercase>Description</SSText>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    value={invoiceDescription}
+                    onChangeText={setInvoiceDescription}
+                    placeholder="Enter invoice description"
+                    placeholderTextColor="#666"
+                    multiline
+                    numberOfLines={3}
+                  />
+                </SSVStack>
+                <SSVStack style={styles.actions}>
+                  <SSHStack gap="sm" style={styles.actionButtons}>
+                    <SSButton
+                      label="Paste"
+                      onPress={handlePasteFromClipboard}
+                      variant="outline"
+                      style={styles.actionButton}
+                    />
+                    <SSButton
+                      label="Scan QR"
+                      onPress={handleOpenCamera}
+                      variant="outline"
+                      style={styles.actionButton}
+                    />
+                  </SSHStack>
+                  <SSButton
+                    label={isLNURLMode ? 'Withdraw' : 'Create Invoice'}
+                    onPress={handleCreateInvoice}
+                    variant="secondary"
+                    loading={isProcessing}
+                    disabled={!isFormValid()}
+                    style={styles.button}
+                  />
+                  <SSButton
+                    label="Cancel"
+                    onPress={handleCancel}
+                    variant="ghost"
+                    style={styles.button}
+                  />
+                </SSVStack>
+              </SSVStack>
+            </View>
+          ) : (
             <SSVStack gap="md">
-              <SSVStack gap="xs">
-                <SSText uppercase>
-                  Amount ({amountMode === 'sats' ? 'sats' : fiatCurrency})
+              {addressQuery.isLoading ? (
+                <SSText color="muted" center>
+                  {t('common.loading')}
                 </SSText>
-                {amountMode === 'sats' ? (
-                  <TextInput
-                    style={styles.input}
-                    value={
-                      invoiceAmount
-                        ? formatNumber(parseInt(invoiceAmount, 10)).toString()
-                        : ''
-                    }
-                    onChangeText={handleAmountChange}
-                    placeholder="Enter amount in satoshis"
-                    placeholderTextColor="#666"
-                    keyboardType="numeric"
-                  />
-                ) : (
-                  <TextInput
-                    style={styles.input}
-                    value={localFiatAmount}
-                    onChangeText={handleFiatAmountChange}
-                    placeholder={`Enter amount in ${fiatCurrency}`}
-                    placeholderTextColor="#666"
-                    keyboardType="decimal-pad"
-                  />
-                )}
-                {amountMode === 'sats' ? (
-                  <SSText
-                    color="muted"
-                    size="sm"
-                    onPress={
-                      btcPrice && btcPrice > 0 ? handleSwitchToFiat : undefined
-                    }
-                    style={
-                      btcPrice && btcPrice > 0
-                        ? styles.switchableAmount
-                        : undefined
-                    }
-                  >
-                    ≈{' '}
-                    {invoiceAmount
-                      ? formatNumber(satsToFiat(parseInt(invoiceAmount, 10)), 2)
-                      : '0'}{' '}
-                    {fiatCurrency}
-                  </SSText>
-                ) : (
-                  <SSText
-                    color="muted"
-                    size="sm"
-                    onPress={handleSwitchToSats}
-                    style={styles.switchableAmount}
-                  >
-                    {invoiceAmount
-                      ? `${formatNumber(parseInt(invoiceAmount, 10))} sats`
-                      : '0 sats'}
-                  </SSText>
-                )}
-                {isLNURLMode && lnurlDetails && (
-                  <SSText color="muted" size="sm">
-                    Available:{' '}
-                    {formatNumber(
-                      Math.floor(lnurlDetails.maxWithdrawable / 1000)
-                    )}{' '}
-                    sats
-                  </SSText>
-                )}
-              </SSVStack>
-              <SSVStack style={styles.inputContainer}>
-                <SSText uppercase>Description</SSText>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={invoiceDescription}
-                  onChangeText={setInvoiceDescription}
-                  placeholder="Enter invoice description"
-                  placeholderTextColor="#666"
-                  multiline
-                  numberOfLines={3}
-                />
-              </SSVStack>
-              <SSVStack style={styles.actions}>
-                <SSHStack gap="sm" style={styles.actionButtons}>
+              ) : null}
+              {addressQuery.error && !addressQuery.isLoading ? (
+                <SSText
+                  center
+                  onPress={handleRetryAddress}
+                  style={{ color: Colors.warning }}
+                >
+                  {t('lightning.invoice.addressFailed')}
+                </SSText>
+              ) : null}
+              {onchainAddress ? (
+                <>
+                  <View style={styles.qrContainer}>
+                    <SSQRCode size={qrCodeSize} value={onchainAddress} />
+                  </View>
+                  <View style={styles.addressBox}>
+                    <SSText size="sm" type="mono">
+                      {onchainAddress}
+                    </SSText>
+                  </View>
                   <SSButton
-                    label="Paste"
-                    onPress={handlePasteFromClipboard}
+                    label={t('common.copy')}
+                    onPress={handleCopyOnchainAddress}
                     variant="outline"
-                    style={styles.actionButton}
                   />
                   <SSButton
-                    label="Scan QR"
-                    onPress={() => setCameraModalVisible(true)}
-                    variant="outline"
-                    style={styles.actionButton}
+                    label={t('lightning.invoice.generateNewAddress')}
+                    loading={isGeneratingAddress}
+                    onPress={handleGenerateNewAddress}
+                    variant="subtle"
                   />
-                </SSHStack>
-                <SSButton
-                  label={isLNURLMode ? 'Withdraw' : 'Create Invoice'}
-                  onPress={handleCreateInvoice}
-                  variant="secondary"
-                  loading={isProcessing}
-                  disabled={!isFormValid()}
-                  style={styles.button}
-                />
-                <SSButton
-                  label="Cancel"
-                  onPress={() => router.back()}
-                  variant="ghost"
-                  style={styles.button}
-                />
-              </SSVStack>
+                </>
+              ) : null}
             </SSVStack>
-          </View>
+          )}
         </SSVStack>
       </SSMainLayout>
       <SSModal
         visible={qrModalVisible}
         fullOpacity
-        onClose={() => setQrModalVisible(false)}
+        onClose={handleCloseQrModal}
       >
         <ScrollView style={styles.modalScrollView}>
           <SSVStack itemsCenter gap="md" style={styles.modalContent}>
@@ -574,7 +697,7 @@ export default function InvoicePage() {
       </SSModal>
       <SSCameraModal
         visible={cameraModalVisible}
-        onClose={() => setCameraModalVisible(false)}
+        onClose={handleCloseCamera}
         onContentScanned={handleContentScanned}
         context="lightning"
         title="Scan Lightning Invoice"
@@ -594,6 +717,13 @@ const styles = StyleSheet.create({
   actions: {
     gap: 12,
     marginTop: 8
+  },
+  addressBox: {
+    backgroundColor: Colors.gray[900],
+    borderColor: Colors.gray[800],
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12
   },
   amountContainer: {
     alignItems: 'baseline',
