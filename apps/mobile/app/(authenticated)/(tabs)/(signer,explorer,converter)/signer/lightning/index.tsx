@@ -58,7 +58,10 @@ export default function LightningPage() {
   }, [config, isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRCPPress = () => {
-    // TODO: Implement RCP functionality
+    router.navigate({
+      params: { protocol: 'rpc' },
+      pathname: '/signer/lightning/LNDRest'
+    })
   }
 
   function goToSignerLanding() {
@@ -408,18 +411,17 @@ export default function LightningPage() {
               {t('lightning.landing.connectExistingNode')}
             </SSText>
             <SSButton
-              label="LND Rest"
+              label={t('lightning.landing.lndRest')}
               onPress={handleLNDRestPress}
               variant="gradient"
               gradientType="special"
               style={styles.button}
             />
             <SSButton
-              label="LND RPC"
+              label={t('lightning.landing.lndRpc')}
               onPress={handleRCPPress}
               variant="gradient"
               gradientType="special"
-              disabled
               style={styles.button}
             />
 
