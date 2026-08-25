@@ -52,7 +52,12 @@ export default function About() {
               </SSHStack>
             </TouchableOpacity>
             <SSSeparator />
-            <SSText size="xs" color="muted" uppercase style={styles.sectionLabel}>
+            <SSText
+              size="xs"
+              color="muted"
+              uppercase
+              style={styles.sectionLabel}
+            >
               {t('intro.sectionTitle')}
             </SSText>
             <SSHStack justifyBetween style={styles.chapterRow}>

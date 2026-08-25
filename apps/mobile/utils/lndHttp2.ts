@@ -15,13 +15,13 @@ const FLAG_ACK = 0x01
 const FLAG_END_HEADERS = 0x04
 
 const INDEXED_STATUS: Record<number, number> = {
-  8: 200,
-  9: 204,
   10: 206,
   11: 304,
   12: 400,
   13: 404,
-  14: 500
+  14: 500,
+  8: 200,
+  9: 204
 }
 
 export type Http2Frame = {
@@ -32,12 +32,11 @@ export type Http2Frame = {
 }
 
 function readU32BE(buf: Uint8Array, offset: number): number {
-  return (
-    ((buf[offset] << 24) |
+  return Math.trunc(
+    (buf[offset] << 24) |
       (buf[offset + 1] << 16) |
       (buf[offset + 2] << 8) |
-      buf[offset + 3]) >>>
-    0
+      buf[offset + 3]
   )
 }
 
@@ -65,16 +64,21 @@ export function looksLikeHttp2Session(raw: Buffer): boolean {
       return true
     }
   }
-  const type = raw[3]
+  const type = raw.at(3) ?? -1
   const streamId = readU32BE(raw, 5) & 0x7fffffff
   return (
     streamId === 0 &&
-    (type === FRAME_SETTINGS || type === FRAME_GOAWAY || type === FRAME_WINDOW_UPDATE)
+    (type === FRAME_SETTINGS ||
+      type === FRAME_GOAWAY ||
+      type === FRAME_WINDOW_UPDATE)
   )
 }
 
 export function buildHttp2PrefaceAndSettings(): Buffer {
-  return Buffer.concat([HTTP2_PREFACE, http2Frame(FRAME_SETTINGS, 0, 0, Buffer.alloc(0))])
+  return Buffer.concat([
+    HTTP2_PREFACE,
+    http2Frame(FRAME_SETTINGS, 0, 0, Buffer.alloc(0))
+  ])
 }
 
 export function buildHttp2HeadersEndStream(params: {
@@ -92,12 +96,7 @@ export function buildHttp2HeadersEndStream(params: {
     hpackLiteral('content-type', 'application/json'),
     hpackLiteral('accept', 'application/json')
   ])
-  return http2Frame(
-    FRAME_HEADERS,
-    FLAG_END_HEADERS | FLAG_END_STREAM,
-    1,
-    block
-  )
+  return http2Frame(FRAME_HEADERS, FLAG_END_HEADERS | FLAG_END_STREAM, 1, block)
 }
 
 export function buildHttp2Post(params: {
@@ -130,7 +129,10 @@ export function http2PingAck(payload: Buffer): Buffer {
   return http2Frame(FRAME_PING, FLAG_ACK, 0, payload)
 }
 
-export function takeHttp2Frames(raw: Buffer): { frames: Http2Frame[]; rest: Buffer } {
+export function takeHttp2Frames(raw: Buffer): {
+  frames: Http2Frame[]
+  rest: Buffer
+} {
   const frames: Http2Frame[] = []
   if (raw.length < 9) {
     return { frames, rest: raw }
@@ -169,7 +171,7 @@ function http2Frame(
   payload: Buffer
 ): Buffer {
   const header = Buffer.alloc(9)
-  const length = payload.length
+  const { length } = payload
   header[0] = (length >> 16) & 0xff
   header[1] = (length >> 8) & 0xff
   header[2] = length & 0xff
@@ -258,7 +260,11 @@ function readHpackStatus(payload: Buffer, offset: number): number | null {
   return readHpackStatus(payload, value.next)
 }
 
-function hpackIntLength(payload: Buffer, offset: number, prefixBits: number): number {
+function hpackIntLength(
+  payload: Buffer,
+  offset: number,
+  prefixBits: number
+): number {
   return decodeHpackInt(payload, offset, prefixBits).next - offset
 }
 

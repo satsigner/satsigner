@@ -10,7 +10,7 @@ describe('lndRestFetch', () => {
     const certBody = 'MIIBpjCCAQ+gAwIBAgIRA'
     const encodedCert = Buffer.from(certBody).toString('base64')
     const listeners = new Map<string, Listener[]>()
-    const connectTLS = TcpSocket.connectTLS as unknown as jest.Mock
+    const connectTLS = jest.mocked(TcpSocket.connectTLS)
 
     connectTLS.mockImplementation((options: Record<string, unknown>) => {
       const socket = {
@@ -51,12 +51,14 @@ describe('lndRestFetch', () => {
       '/v1/getinfo'
     )
     expect(response.ok).toBe(true)
-    expect(await response.json()).toEqual({ identity_pubkey: 'pk' })
+    await expect(response.json()).resolves.toStrictEqual({
+      identity_pubkey: 'pk'
+    })
   })
 
   it('retries with HTTP/2 when LND REST is HTTP/2', async () => {
     const encodedCert = Buffer.from('MIIB').toString('base64')
-    const connectTLS = TcpSocket.connectTLS as unknown as jest.Mock
+    const connectTLS = jest.mocked(TcpSocket.connectTLS)
     let connections = 0
 
     connectTLS.mockImplementation(() => {
@@ -123,6 +125,8 @@ describe('lndRestFetch', () => {
     )
     expect(connections).toBe(2)
     expect(response.ok).toBe(true)
-    expect(await response.json()).toEqual({ identity_pubkey: 'pk' })
+    await expect(response.json()).resolves.toStrictEqual({
+      identity_pubkey: 'pk'
+    })
   })
 })

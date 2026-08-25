@@ -48,10 +48,7 @@ export function restBaseUrlFromPairingUri(rawUrl: string): string {
   if (parsed.port === LND_GRPC_LISTEN_PORT) {
     parsed.port = LNDCONNECT_DEFAULT_REST_PORT
   }
-  parsed.pathname = parsed.pathname.replace(
-    /\/lnd-grpc(?=\/|$)/gi,
-    '/lnd-rest'
-  )
+  parsed.pathname = parsed.pathname.replace(/\/lnd-grpc(?=\/|$)/gi, '/lnd-rest')
   return normalizeLndRestBaseUrl(parsed.toString())
 }
 
@@ -193,7 +190,7 @@ export function parseLndConnectionInput(
   }
   if (/^lndconnect:\/\//i.test(compactUri(trimmed))) {
     try {
-      return { kind: 'inline', config: parseLndConnectUri(trimmed) }
+      return { config: parseLndConnectUri(trimmed), kind: 'inline' }
     } catch {
       return null
     }
@@ -208,8 +205,8 @@ export function parseLndConnectionInput(
   ) {
     try {
       return {
-        kind: 'inline',
-        config: parseLndRemotePairingConnectionString(trimmed)
+        config: parseLndRemotePairingConnectionString(trimmed),
+        kind: 'inline'
       }
     } catch {
       return null
@@ -218,8 +215,8 @@ export function parseLndConnectionInput(
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
     try {
       return {
-        kind: 'inline',
-        config: parseLndRemotePairingFromJsonText(trimmed)
+        config: parseLndRemotePairingFromJsonText(trimmed),
+        kind: 'inline'
       }
     } catch {
       return null
@@ -242,7 +239,7 @@ export async function resolveLndConfigFromConnectionInput(
   if (parsed.kind === 'inline') {
     return parsed.config
   }
-  return fetchLndConfig(parsed.url)
+  return await fetchLndConfig(parsed.url)
 }
 
 /**

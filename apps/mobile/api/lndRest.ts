@@ -61,7 +61,7 @@ function hostHeaderFor(parsed: URL): string {
   const hostname = parsed.hostname.includes(':')
     ? `[${parsed.hostname}]`
     : parsed.hostname
-  const port = parsed.port
+  const { port } = parsed
   if (!port || port === '443') {
     return hostname
   }
@@ -138,7 +138,7 @@ function readHttpResponse(
     function handleHttp2Frames(raw: Buffer) {
       http2Pending = Buffer.concat([http2Pending, raw])
       const taken = takeHttp2Frames(http2Pending)
-      http2Pending = taken.rest
+      http2Pending = Buffer.from(taken.rest)
       for (const frame of taken.frames) {
         if (frame.type === 0x04 && (frame.flags & 0x01) === 0) {
           socket.write(http2SettingsAck())
@@ -290,7 +290,7 @@ export async function lndRestFetch(
   const body = init.body ?? ''
   const pathWithQuery = `${parsed.pathname}${parsed.search}`
 
-  async function perform(version: 'http1' | 'http2') {
+  function perform(version: 'http1' | 'http2') {
     const socket = TcpSocket.connectTLS(
       tlsConnectOptions(parsed, config)
     ) as unknown as TlsSocketLike

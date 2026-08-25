@@ -2,12 +2,7 @@ import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Pressable,
-  StyleSheet,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useLayout } from '@/hooks/useLayout'

@@ -1,14 +1,13 @@
-import { pairingCertToPem } from '@/utils/lndTlsCert'
 import { looksLikeHttp2Session } from '@/utils/lndHttp2'
 import {
   buildLndHttp1Request,
   tryParseHttp1Response
 } from '@/utils/lndHttpMessage'
+import { pairingCertToPem } from '@/utils/lndTlsCert'
 
 describe('pairingCertToPem', () => {
   it('passes through an existing PEM block', () => {
-    const pem =
-      '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----'
+    const pem = '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----'
     expect(pairingCertToPem(pem)).toBe(`${pem}\n`)
   })
 
@@ -58,7 +57,7 @@ describe('lndHttpMessage', () => {
     const raw = Buffer.from(
       `HTTP/1.1 200 OK\r\nContent-Length: ${body.length}\r\n\r\n${body}`
     )
-    expect(tryParseHttp1Response(raw)).toEqual({
+    expect(tryParseHttp1Response(raw)).toStrictEqual({
       body: Buffer.from(body),
       status: 200
     })
@@ -81,7 +80,7 @@ describe('lndHttpMessage', () => {
     const raw = Buffer.from(
       `HTTP/1.1 200 OK\nContent-Length: ${body.length}\n\n${body}`
     )
-    expect(tryParseHttp1Response(raw)).toEqual({
+    expect(tryParseHttp1Response(raw)).toStrictEqual({
       body: Buffer.from(body),
       status: 200
     })

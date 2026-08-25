@@ -45,10 +45,20 @@ function skipLeadingNoise(raw: Buffer): number {
   if (raw.length === 0) {
     return 0
   }
-  if (raw.length >= 3 && raw[0] === 0xef && raw[1] === 0xbb && raw[2] === 0xbf) {
+  if (
+    raw.length >= 3 &&
+    raw[0] === 0xef &&
+    raw[1] === 0xbb &&
+    raw[2] === 0xbf
+  ) {
     return 3
   }
-  if (raw[0] === 0x20 || raw[0] === 0x09 || raw[0] === 0x0d || raw[0] === 0x0a) {
+  if (
+    raw[0] === 0x20 ||
+    raw[0] === 0x09 ||
+    raw[0] === 0x0d ||
+    raw[0] === 0x0a
+  ) {
     return 1 + skipLeadingNoise(asBuffer(raw.subarray(1)))
   }
   return 0
@@ -168,7 +178,7 @@ function findHeaderSeparator(
 function throwInvalidHttp1(view: Buffer): never {
   const preview = asBuffer(view.subarray(0, 48))
     .toString('latin1')
-    .replace(/[^\x20-\x7e]/g, '.')
+    .replace(/[^\x20-\x7E]/g, '.')
   throw new Error(
     preview
       ? `Invalid HTTP response from LND (${preview})`
@@ -176,7 +186,11 @@ function throwInvalidHttp1(view: Buffer): never {
   )
 }
 
-function tryDecodeChunkedBody(buf: Buffer, offset = 0, parts: Buffer[] = []): Buffer | null {
+function tryDecodeChunkedBody(
+  buf: Buffer,
+  offset = 0,
+  parts: Buffer[] = []
+): Buffer | null {
   const lineEndCrlf = indexOfBytes(buf, CRLF, offset)
   const lineEndLf = indexOfBytes(buf, LF, offset)
   const useCrlf =

@@ -4,6 +4,7 @@ import { StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { lndRestFetch } from '@/api/lndRest'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSLoader from '@/components/SSLoader'
@@ -13,9 +14,9 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
+import { type LNDNodeInfo } from '@/types/models/Lightning'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { lndRestFetch } from '@/api/lndRest'
 import {
   parseLndConnectionInput,
   resolveLndConfigFromConnectionInput
@@ -48,9 +49,7 @@ export default function LNDRestPage() {
 
     setIsConnecting(true)
     try {
-      const config = await resolveLndConfigFromConnectionInput(
-        connectionString
-      )
+      const config = await resolveLndConfigFromConnectionInput(connectionString)
 
       const baseUrl = config.url.replace(/\/+$/, '')
       const response = await lndRestFetch(
@@ -59,7 +58,7 @@ export default function LNDRestPage() {
       )
 
       if (response.ok) {
-        const nodeInfo = await response.json()
+        const nodeInfo = (await response.json()) as LNDNodeInfo
 
         setConfig({ ...config, url: baseUrl })
         setNodeInfo(nodeInfo)

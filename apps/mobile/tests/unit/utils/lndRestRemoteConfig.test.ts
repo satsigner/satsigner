@@ -73,7 +73,7 @@ describe('lndRestRemoteConfig', () => {
     it('keeps plus signs in standard base64 query values', () => {
       const macHex = 'fb00'
       const macB64 = Buffer.from(macHex, 'hex').toString('base64')
-      expect(macB64.includes('+')).toBe(true)
+      expect(macB64).toContain('+')
       const uri = `lndconnect://node.example:8080?macaroon=${macB64}`
       expect(parseLndConnectUri(uri).macaroon).toBe(macHex)
     })
@@ -93,17 +93,19 @@ describe('lndRestRemoteConfig', () => {
       const parsed = parseLndConnectionInput(
         `lndconnect://h.onion:8080?macaroon=${macB64}`
       )
-      expect(parsed?.kind).toBe('inline')
-      if (parsed?.kind === 'inline') {
-        expect(parsed.config.url).toBe('https://h.onion:8080')
-      }
+      expect(parsed).toStrictEqual({
+        config: expect.objectContaining({
+          url: 'https://h.onion:8080'
+        }),
+        kind: 'inline'
+      })
     })
 
     it('accepts a .config file URL as remote fetch', () => {
       const parsed = parseLndConnectionInput(
         'config=https://h.example/path/lnd.config'
       )
-      expect(parsed).toEqual({
+      expect(parsed).toStrictEqual({
         kind: 'remoteConfigUrl',
         url: 'https://h.example/path/lnd.config'
       })
@@ -123,11 +125,13 @@ describe('lndRestRemoteConfig', () => {
         ]
       })
       const parsed = parseLndConnectionInput(json)
-      expect(parsed?.kind).toBe('inline')
-      if (parsed?.kind === 'inline') {
-        expect(parsed.config.url).toBe('https://example.com/lnd-rest/btc')
-        expect(parsed.config.macaroon).toBe('cafebabe')
-      }
+      expect(parsed).toStrictEqual({
+        config: expect.objectContaining({
+          macaroon: 'cafebabe',
+          url: 'https://example.com/lnd-rest/btc'
+        }),
+        kind: 'inline'
+      })
     })
 
     it('rewrites BTCPay lnd-grpc JSON to the REST URI', () => {
@@ -141,10 +145,12 @@ describe('lndRestRemoteConfig', () => {
         ]
       })
       const parsed = parseLndConnectionInput(json)
-      expect(parsed?.kind).toBe('inline')
-      if (parsed?.kind === 'inline') {
-        expect(parsed.config.url).toBe('https://example.com/lnd-rest/btc')
-      }
+      expect(parsed).toStrictEqual({
+        config: expect.objectContaining({
+          url: 'https://example.com/lnd-rest/btc'
+        }),
+        kind: 'inline'
+      })
     })
 
     it('rejects Core Lightning RPC JSON', () => {
