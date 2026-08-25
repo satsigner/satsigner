@@ -3598,35 +3598,8 @@
         "scriptSig": "Coinbase scriptSig (Times headline)",
         "txHeader": "Tx count, version & input count",
         "version": "Block version"
-      },
-      "roadmap": {
-        "title": "What's Next",
-        "description": "We're building the most complete Bitcoin self-custody experience — one protocol layer at a time."
-      },
-      "saveFollowup": {
-        "description": "You can add a Bitcoin wallet now or finish whenever you are ready.",
-        "optionCreateBitcoin": "Create Bitcoin wallet",
-        "optionLater": "Set up later",
-        "title": "Ready to stack sats?"
-      },
-      "saveSpend": {
-        "description": "Pick what fits you now — you can always change how you use the app later.",
-        "optionSave": "Save",
-        "optionSpend": "Spend",
-        "title": "What brings you here?"
-      },
-      "spendFollowup": {
-        "description": "You can create an ecash wallet now or finish setup when you prefer.",
-        "optionEcashWallet": "Create ecash wallet",
-        "optionLater": "Set up later",
-        "title": "Ready to spend ecash?"
-      },
-      "thanks": {
-        "title": "Built Together",
-        "description": "SatSigner is open source, shaped by contributors and backed by organizations supporting Bitcoin development."
       }
     },
-    "finish": "Finish",
-    "support": "Support"
+    "finish": "Finish"
   }
 }

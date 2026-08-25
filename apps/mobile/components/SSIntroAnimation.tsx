@@ -18,12 +18,7 @@ import SSIntroAnimationExplorerStep from '@/components/SSIntroAnimationExplorerS
 import SSIntroAnimationHexStreamStep from '@/components/SSIntroAnimationHexStreamStep'
 import SSIntroAnimationLayersStep from '@/components/SSIntroAnimationLayersStep'
 import SSIntroAnimationPrivacyStep from '@/components/SSIntroAnimationPrivacyStep'
-import SSIntroAnimationRoadmapStep from '@/components/SSIntroAnimationRoadmapStep'
 import SSIntroAnimationSankeyStep from '@/components/SSIntroAnimationSankeyStep'
-import SSIntroAnimationSaveSpendStep, {
-  SSIntroAnimationSaveSpendFollowUpStep
-} from '@/components/SSIntroAnimationSaveSpendStep'
-import SSIntroAnimationThanksStep from '@/components/SSIntroAnimationThanksStep'
 import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
@@ -37,7 +32,7 @@ const LOGO_FONT_LINE_HEIGHT = 23
 // Step dots / layout
 const DOT_SIZE = 6
 const DOT_GAP = 8
-const STEP_COUNT = 11
+const STEP_COUNT = 7
 const MIN_BOTTOM_PADDING = 24
 
 // Step transition timing (ms / px)
@@ -53,12 +48,6 @@ const LOGO_IN_MS = 400
 const LOGO_OVERLAP_MS = 200
 const LOGO_HOLD_MS = 400
 const FADE_OUT_MS = 400
-
-// Thanks finale timing (ms)
-const THANKS_FINALE_UI_FADE_MS = 350
-const THANKS_FINALE_DURATION_MS = 650
-const THANKS_FINALE_HOLD_MS = 500
-const THANKS_FINALE_OUT_MS = 500
 
 // Returning user timing (ms)
 const RETURNING_CIRCLE_IN = 400
@@ -97,51 +86,8 @@ const STEP_CONFIGS = [
   {
     descriptionKey: 'intro.steps.explorer.description' as const,
     titleKey: 'intro.steps.explorer.title' as const
-  },
-  {
-    descriptionKey: 'intro.steps.roadmap.description' as const,
-    titleKey: 'intro.steps.roadmap.title' as const
-  },
-  {
-    descriptionKey: 'intro.steps.saveSpend.description' as const,
-    titleKey: 'intro.steps.saveSpend.title' as const
-  },
-  {
-    descriptionKey: 'intro.steps.saveFollowup.description' as const,
-    titleKey: 'intro.steps.saveFollowup.title' as const
-  },
-  {
-    descriptionKey: 'intro.steps.thanks.description' as const,
-    titleKey: 'intro.steps.thanks.title' as const
   }
 ]
-
-type IntroStepCopyKeys =
-  | (typeof STEP_CONFIGS)[number]
-  | {
-      descriptionKey: 'intro.steps.spendFollowup.description'
-      titleKey: 'intro.steps.spendFollowup.title'
-    }
-
-function getIntroStepCopyKeys(
-  step: number,
-  saveSpendChoice: 'save' | 'spend' | null
-): IntroStepCopyKeys {
-  if (step === 9) {
-    const branch = saveSpendChoice ?? 'save'
-    if (branch === 'spend') {
-      return {
-        descriptionKey: 'intro.steps.spendFollowup.description' as const,
-        titleKey: 'intro.steps.spendFollowup.title' as const
-      }
-    }
-    return {
-      descriptionKey: 'intro.steps.saveFollowup.description' as const,
-      titleKey: 'intro.steps.saveFollowup.title' as const
-    }
-  }
-  return STEP_CONFIGS[step]
-}
 
 type SSIntroAnimationProps = {
   firstTime: boolean
@@ -154,16 +100,12 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isLogoFinale, setIsLogoFinale] = useState(false)
-  const [saveSpendChoice, setSaveSpendChoice] = useState<
-    'save' | 'spend' | null
-  >(null)
   const stepSwitchingRef = useRef(false)
 
   const containerOpacity = useSharedValue(1)
   const circleScale = useSharedValue(0)
   const logoOpacity = useSharedValue(0)
   const stepTransition = useSharedValue(0)
-  const thanksFinaleProgress = useSharedValue(0)
   const stepOffsetX = useSharedValue(SLIDE_IN_OFFSET)
   const textSlideX = useSharedValue(SLIDE_IN_OFFSET)
   const descSlideX = useSharedValue(SLIDE_IN_OFFSET)
@@ -283,34 +225,6 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
   }, [currentStep]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function startLogoFinale() {
-    if (firstTime) {
-      // Logo is already visible in ThanksStep — fade out UI, scale logo up,
-      // then exit
-      stepTransition.set(withTiming(0, { duration: THANKS_FINALE_UI_FADE_MS }))
-      thanksFinaleProgress.set(
-        withDelay(
-          150,
-          withTiming(1, { duration: THANKS_FINALE_DURATION_MS }, () => {
-            containerOpacity.set(
-              withDelay(
-                THANKS_FINALE_HOLD_MS,
-                withTiming(
-                  0,
-                  { duration: THANKS_FINALE_OUT_MS },
-                  (finished) => {
-                    if (finished) {
-                      runOnJS(onComplete)()
-                    }
-                  }
-                )
-              )
-            )
-          })
-        )
-      )
-      return
-    }
-
     setIsLogoFinale(true)
     circleScale.set(
       withTiming(1, {
@@ -336,8 +250,8 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
     )
   }
 
-  function advanceFromStep(step: number, stepsToAdvance = 1) {
-    const next = step + stepsToAdvance
+  function advanceFromStep(step: number) {
+    const next = step + 1
 
     if (next >= STEP_COUNT) {
       startLogoFinale()
@@ -352,28 +266,23 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
   }
 
   function goBackFromStep(step: number) {
-    const skippedFollowUp = step === 10 && saveSpendChoice === null
-    const prev = skippedFollowUp ? step - 2 : step - 1
+    const prev = step - 1
     stepOffsetX.value = SLIDE_OUT_OFFSET
     textSlideX.value = SLIDE_OUT_OFFSET
     descSlideX.value = SLIDE_OUT_OFFSET
     stepSwitchingRef.current = true
-    if (step === 9) {
-      setSaveSpendChoice(null)
-    }
     setCurrentStep(prev)
   }
 
-  function handleNext(options?: { fromSaveSpendPick?: boolean }) {
+  function handleNext() {
     const step = currentStep
-    const stepsToAdvance = step === 8 && !options?.fromSaveSpendPick ? 2 : 1
     textSlideX.set(withTiming(SLIDE_OUT_OFFSET, { duration: TRANSITION_MS }))
     descSlideX.set(withTiming(SLIDE_OUT_OFFSET, { duration: TRANSITION_MS }))
     stepOffsetX.set(withTiming(SLIDE_OUT_OFFSET, { duration: TRANSITION_MS }))
     stepTransition.set(
       withTiming(0, { duration: TRANSITION_MS }, (finished) => {
         if (finished) {
-          runOnJS(advanceFromStep)(step, stepsToAdvance)
+          runOnJS(advanceFromStep)(step)
         }
       })
     )
@@ -398,17 +307,8 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
     onComplete()
   }
 
-  function handleSaveSpendPick(choice: 'save' | 'spend') {
-    setSaveSpendChoice(choice)
-    handleNext({ fromSaveSpendPick: true })
-  }
-
-  function handleSaveSpendFollowUpPick() {
-    handleNext()
-  }
-
   const isLastStep = currentStep === STEP_COUNT - 1
-  const stepCopyKeys = getIntroStepCopyKeys(currentStep, saveSpendChoice)
+  const stepCopyKeys = STEP_CONFIGS[currentStep]
   const safeBottom = Math.max(bottomInset, MIN_BOTTOM_PADDING)
 
   return (
@@ -452,28 +352,6 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
                 screenHeight={screenHeight}
               />
             )}
-            {currentStep === 7 && (
-              <SSIntroAnimationRoadmapStep
-                screenWidth={screenWidth}
-                screenHeight={screenHeight}
-              />
-            )}
-            {currentStep === 8 && (
-              <SSIntroAnimationSaveSpendStep onPick={handleSaveSpendPick} />
-            )}
-            {currentStep === 9 && saveSpendChoice !== null && (
-              <SSIntroAnimationSaveSpendFollowUpStep
-                branch={saveSpendChoice}
-                onPick={handleSaveSpendFollowUpPick}
-              />
-            )}
-            {currentStep === 10 && (
-              <SSIntroAnimationThanksStep
-                screenWidth={screenWidth}
-                screenHeight={screenHeight}
-                finaleProgress={thanksFinaleProgress}
-              />
-            )}
 
             <LinearGradient
               colors={['transparent', Colors.gray[950]]}
@@ -510,30 +388,11 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
                 />
               ))}
             </View>
-            {isLastStep ? (
-              <View style={styles.bottomRow}>
-                <View style={styles.sideButton}>
-                  <SSButton
-                    variant="outline"
-                    label={t('intro.support')}
-                    onPress={handleSkip}
-                  />
-                </View>
-                <View style={styles.sideButton}>
-                  <SSButton
-                    variant="outline"
-                    label={t('intro.finish')}
-                    onPress={() => handleNext()}
-                  />
-                </View>
-              </View>
-            ) : (
-              <SSButton
-                variant="secondary"
-                label={t('common.next')}
-                onPress={() => handleNext()}
-              />
-            )}
+            <SSButton
+              variant="secondary"
+              label={isLastStep ? t('intro.finish') : t('common.next')}
+              onPress={handleNext}
+            />
             <View style={styles.bottomRow}>
               {currentStep > 0 && (
                 <View style={styles.sideButton}>
@@ -560,7 +419,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
         </>
       )}
 
-      {!firstTime && (
+      {(!firstTime || isLogoFinale) && (
         <Animated.View style={[styles.logoWrapper, circleStyle]}>
           <View style={styles.logoCircle}>
             <Animated.View style={logoStyle}>
