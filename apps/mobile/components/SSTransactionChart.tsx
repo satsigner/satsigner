@@ -3,7 +3,6 @@ import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  InteractionManager,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -161,10 +160,10 @@ function SSTransactionChart(props: SSTransactionChartProps) {
   const [mountCanvas, setMountCanvas] = useState(false)
 
   useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
+    const idleHandle = requestIdleCallback(() => {
       setMountCanvas(true)
     })
-    return () => task.cancel()
+    return () => cancelIdleCallback(idleHandle)
   }, [])
 
   return (

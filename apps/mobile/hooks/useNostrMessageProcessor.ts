@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from 'react'
-import { InteractionManager } from 'react-native'
 
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
@@ -97,10 +96,9 @@ function useNostrMessageProcessor() {
         return
       }
 
-      // Defer until any in-progress interactions (animations, transitions)
-      // have finished so we don't block the UI thread during navigation.
+      // Defer until the JS thread is idle so we don't block navigation/animations.
       await new Promise<void>((resolve) => {
-        InteractionManager.runAfterInteractions(resolve)
+        requestIdleCallback(() => resolve())
       })
 
       // Each batch gets its own local accumulator — no module-level state,

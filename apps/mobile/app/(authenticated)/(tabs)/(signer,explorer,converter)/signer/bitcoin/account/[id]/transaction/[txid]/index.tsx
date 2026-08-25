@@ -1,11 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import {
-  ActivityIndicator,
-  InteractionManager,
-  ScrollView,
-  StyleSheet
-} from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
@@ -144,10 +139,10 @@ export default function TxDetails() {
   const [weight, setWeight] = useState(placeholder)
 
   useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
+    const idleHandle = requestIdleCallback(() => {
       setIsReady(true)
     })
-    return () => task.cancel()
+    return () => cancelIdleCallback(idleHandle)
   }, [])
 
   useEffect(() => {
