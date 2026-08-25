@@ -90,6 +90,7 @@ import SSIconRepost from './SSIconRepost'
 import SSIconScan from './SSIconScan'
 import SSIconScanNFC from './SSIconScanNFC'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
+import SSIconSearch from './SSIconSearch'
 import SSIconSeed from './SSIconSeed'
 import SSIconServer from './SSIconServer'
 import SSIconServerOptions from './SSIconServerOptions'
@@ -201,6 +202,7 @@ export {
   SSIconRemove,
   SSIconRepost,
   SSIconScan,
+  SSIconSearch,
   SSIconScanNFC,
   SSIconScriptsP2pkh,
   SSIconSeed,
