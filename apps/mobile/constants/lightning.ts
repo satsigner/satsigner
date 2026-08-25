@@ -17,6 +17,8 @@ export const LND_FORWARDING_INDEX_OFFSET = 0
 export const LNDCONNECT_DEFAULT_REST_PORT = '8080'
 /** Default LND gRPC listen port; pairing JSON is rewritten to REST (8080). */
 export const LND_GRPC_LISTEN_PORT = '10009'
+/** TLS + HTTP timeout for LND REST (self-signed pairing cert). */
+export const LND_REST_TIMEOUT_MS = 30_000
 export const LND_REST = {
   BALANCE_BLOCKCHAIN: '/v1/balance/blockchain',
   BALANCE_CHANNELS: '/v1/balance/channels',
