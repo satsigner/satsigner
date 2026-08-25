@@ -20,10 +20,7 @@ export default function WalletCreated() {
   )
   const key = account?.keys[0]
 
-  function handleGoToWallet() {
-    if (!id) {
-      return
-    }
+  function handleDissmisAccountAdded() {
     router.dismissAll()
     router.navigate(`/signer/bitcoin/account/${id}`)
   }
@@ -83,7 +80,7 @@ export default function WalletCreated() {
         )}
         <SSButton
           label={t('account.multisig.gotoWallet')}
-          onPress={handleGoToWallet}
+          onPress={handleDissmisAccountAdded}
           variant="secondary"
         />
       </SSVStack>

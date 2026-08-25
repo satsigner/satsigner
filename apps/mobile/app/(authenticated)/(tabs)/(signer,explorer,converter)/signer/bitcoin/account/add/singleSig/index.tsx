@@ -24,7 +24,6 @@ import { generateMnemonic, getFingerprintFromMnemonic } from '@/utils/bip39'
 
 export default function SingleSig() {
   const router = useRouter()
-
   const [
     name,
     setScriptVersion,
@@ -56,11 +55,10 @@ export default function SingleSig() {
   const wordList = useSettingsStore((state) => state.mnemonicWordList)
 
   const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
-  const [localScriptVersion, setLocalScriptVersion] = useState<
-    NonNullable<Key['scriptVersion']>
-  >('P2WPKH')
+  const [localScriptVersion, setLocalScriptVersion] =
+    useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
-    useState<NonNullable<Key['mnemonicWordCount']>>(12)
+    useState<NonNullable<Key['mnemonicWordCount']>>(24)
   const [localMnemonicWordList, setLocalMnemonicWordList] = useState(wordList)
 
   const [entropyModalVisible, setEntropyModalVisible] = useState(false)

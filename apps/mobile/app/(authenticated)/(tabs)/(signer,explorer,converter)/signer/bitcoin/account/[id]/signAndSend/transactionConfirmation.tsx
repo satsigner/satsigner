@@ -60,7 +60,6 @@ const BUTTON_DELAY_MS = 700
 export default function TransactionConfirmation() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
-
   const [externalWarningModalVisible, setExternalWarningModalVisible] =
     useState(false)
 

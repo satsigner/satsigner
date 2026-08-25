@@ -235,7 +235,7 @@ async function fetchBitnodesNetworkStatsUnsafe(): Promise<NetworkStats> {
   const countryMap: Record<string, number> = {}
 
   for (const node of Object.values(nodesData.nodes)) {
-    const userAgent = node[2] ?? ''
+    const userAgent = node[1] ?? ''
     const country = node[7] ?? 'Unknown'
 
     const versionMatch = /\/([^:]+):[\d.]+/.exec(userAgent)
