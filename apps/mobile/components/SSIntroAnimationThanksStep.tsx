@@ -34,8 +34,7 @@ const ORBIT_PERIOD_BASE_MS: readonly number[] = [
   56000, 68000, 80000, 94000, 108000, 124000
 ]
 
-const ORBIT_RING_COLOR_INNER = Colors.gray[300]
-const ORBIT_RING_COLOR_OUTER = Colors.gray[800]
+const { 300: ORBIT_RING_COLOR_INNER, 800: ORBIT_RING_COLOR_OUTER } = Colors.gray
 
 function lerpHex(from: string, to: string, t: number): string {
   const parse = (hex: string) => {
@@ -53,20 +52,16 @@ function lerpHex(from: string, to: string, t: number): string {
   const r = channel(a.r, b.r)
   const g = channel(a.g, b.g)
   const bl = channel(a.b, b.b)
-  return `#${[r, g, bl]
-    .map((v) => v.toString(16).padStart(2, '0'))
-    .join('')}`
+  return `#${[r, g, bl].map((v) => v.toString(16).padStart(2, '0')).join('')}`
 }
 
 function orbitRingColorForBand(band: number): string {
-  const t =
-    ORBIT_BAND_COUNT > 1 ? band / (ORBIT_BAND_COUNT - 1) : 0
+  const t = ORBIT_BAND_COUNT > 1 ? band / (ORBIT_BAND_COUNT - 1) : 0
   return lerpHex(ORBIT_RING_COLOR_INNER, ORBIT_RING_COLOR_OUTER, t)
 }
 
 function orbitRingOpacityForBand(band: number): number {
-  const t =
-    ORBIT_BAND_COUNT > 1 ? band / (ORBIT_BAND_COUNT - 1) : 0
+  const t = ORBIT_BAND_COUNT > 1 ? band / (ORBIT_BAND_COUNT - 1) : 0
   return 0.38 + t * 0.52
 }
 
@@ -75,8 +70,8 @@ function orbitRingOpacityForBand(band: number): number {
  */
 function hash01(seed: string): number {
   let h = 0
-  for (let i = 0; i < seed.length; i++) {
-    h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  for (const ch of seed) {
+    h = (h * 31 + ch.charCodeAt(0)) % 4_294_967_296
   }
   return (h % 10000) / 10000
 }
@@ -131,8 +126,8 @@ const ORBIT_NODE_INPUTS: readonly OrbitNodeInput[] = [
 function buildOrbitNodesWithRandomAngles(
   specs: readonly OrbitNodeInput[]
 ): OrbitNodeSpec[] {
-  const perBandCount = new Array<number>(ORBIT_BAND_COUNT).fill(0)
-  const perBandIndex = new Array<number>(ORBIT_BAND_COUNT).fill(0)
+  const perBandCount = Array.from({ length: ORBIT_BAND_COUNT }, () => 0)
+  const perBandIndex = Array.from({ length: ORBIT_BAND_COUNT }, () => 0)
   const bandPhase = Array.from(
     { length: ORBIT_BAND_COUNT },
     () => Math.random() * 360
@@ -143,7 +138,7 @@ function buildOrbitNodesWithRandomAngles(
   }
 
   return specs.map((spec) => {
-    const band = spec.band
+    const { band } = spec
     const count = perBandCount[band]
     const index = perBandIndex[band]
     perBandIndex[band] += 1
@@ -321,14 +316,7 @@ function SSIntroAnimationThanksStep({
   const orbitR3 = useSharedValue(0)
   const orbitR4 = useSharedValue(0)
   const orbitR5 = useSharedValue(0)
-  const orbitRotations = [
-    orbitR0,
-    orbitR1,
-    orbitR2,
-    orbitR3,
-    orbitR4,
-    orbitR5
-  ]
+  const orbitRotations = [orbitR0, orbitR1, orbitR2, orbitR3, orbitR4, orbitR5]
 
   const orbitNodes = useMemo(
     () => buildOrbitNodesWithRandomAngles(ORBIT_NODE_INPUTS),
@@ -354,8 +342,7 @@ function SSIntroAnimationThanksStep({
     opacity: sunReveal.value,
     transform: [
       {
-        scale:
-          (0.6 + sunReveal.value * 0.4) * (1 + finaleProgress.value * 0.06)
+        scale: (0.6 + sunReveal.value * 0.4) * (1 + finaleProgress.value * 0.06)
       }
     ]
   }))
@@ -402,9 +389,9 @@ function SSIntroAnimationThanksStep({
       )
     )
 
-    for (let b = 0; b < ORBIT_BAND_COUNT; b++) {
+    for (const [b, orbitRotation] of orbitRotations.entries()) {
       const sign = orbitDirectionSign(b)
-      orbitRotations[b].set(
+      orbitRotation.set(
         withRepeat(
           withTiming(sign * 360, {
             duration: orbitPeriodWithJitterMs(b),
@@ -505,7 +492,7 @@ const styles = StyleSheet.create({
     position: 'absolute'
   },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   },
   orbitRing: {
     borderWidth: 1,

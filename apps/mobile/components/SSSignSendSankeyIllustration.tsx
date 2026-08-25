@@ -6,6 +6,8 @@ import { Colors } from '@/styles'
 const VB_W = 360
 const VB_H = 520
 
+const { 950: PAGE_BACKGROUND } = Colors.gray // same overlay bg as intro
+
 /** Center “transaction” column — all inputs meet the left face, all outputs leave the right face. */
 const TX_LEFT = 168
 const TX_RIGHT = 206
@@ -16,9 +18,6 @@ const TX_RECT_TOP = 157
 /** All input ribbons share this left edge; all output ribbons share this right edge. */
 const RIBBON_IN_LEFT_X = 0
 const RIBBON_OUT_RIGHT_X = VB_W
-
-/** Same as `SSIntroAnimation` overlay — input ribbons fade up from this at the outer left. */
-const PAGE_BACKGROUND = Colors.gray[950]
 
 /**
  * Center transaction rect + output ribbons; keep in sync with input gradient end (`NODE_FILL_OPACITY`).
@@ -34,9 +33,21 @@ const INPUT_GRADIENT_STOPS: readonly {
   stopOpacity: number
 }[] = [
   { offset: '0', stopColor: PAGE_BACKGROUND, stopOpacity: 1 },
-  { offset: '0.22', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.25 },
-  { offset: '0.5', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.55 },
-  { offset: '0.78', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.82 },
+  {
+    offset: '0.22',
+    stopColor: '#FFFFFF',
+    stopOpacity: NODE_FILL_OPACITY * 0.25
+  },
+  {
+    offset: '0.5',
+    stopColor: '#FFFFFF',
+    stopOpacity: NODE_FILL_OPACITY * 0.55
+  },
+  {
+    offset: '0.78',
+    stopColor: '#FFFFFF',
+    stopOpacity: NODE_FILL_OPACITY * 0.82
+  },
   { offset: '1', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY }
 ]
 
@@ -46,9 +57,21 @@ const OUTPUT_GRADIENT_STOPS: readonly {
   stopOpacity: number
 }[] = [
   { offset: '0', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY },
-  { offset: '0.22', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.82 },
-  { offset: '0.5', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.55 },
-  { offset: '0.78', stopColor: '#FFFFFF', stopOpacity: NODE_FILL_OPACITY * 0.25 },
+  {
+    offset: '0.22',
+    stopColor: '#FFFFFF',
+    stopOpacity: NODE_FILL_OPACITY * 0.82
+  },
+  {
+    offset: '0.5',
+    stopColor: '#FFFFFF',
+    stopOpacity: NODE_FILL_OPACITY * 0.55
+  },
+  {
+    offset: '0.78',
+    stopColor: '#FFFFFF',
+    stopOpacity: NODE_FILL_OPACITY * 0.25
+  },
   { offset: '1', stopColor: PAGE_BACKGROUND, stopOpacity: 1 }
 ]
 
@@ -56,11 +79,7 @@ const INPUT_RIBBON_GRADIENT_ID = 'ssSignSendInputRibbonGrad'
 const OUTPUT_RIBBON_GRADIENT_ID = 'ssSignSendOutputRibbonGrad'
 
 function sumLaneHeights(hs: readonly number[]): number {
-  let s = 0
-  for (let i = 0; i < hs.length; i++) {
-    s += hs[i]
-  }
-  return s
+  return hs.reduce((s, h) => s + h, 0)
 }
 
 /** Per-lane thickness at the left face (order top → bottom). */
@@ -172,7 +191,6 @@ function SSSignSendSankeyIllustration() {
       <Svg
         height={svgH}
         preserveAspectRatio="xMidYMid meet"
-        shapeRendering="geometricPrecision"
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         width={width}
       >

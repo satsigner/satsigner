@@ -63,7 +63,7 @@ function SSIntroAnimationSankeyStep({
 
 const styles = StyleSheet.create({
   fullScreen: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   }
 })
 

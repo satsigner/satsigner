@@ -58,14 +58,11 @@ function privacyRingPaint(
 ) {
   'worklet'
   const revealEnd = ringCount
-  const revealRaw = Math.min(
-    1,
-    Math.max(0, Math.min(phase, revealEnd) - index)
-  )
+  const revealRaw = Math.min(1, Math.max(0, Math.min(phase, revealEnd) - index))
   const revealProgress = privacySmooth(revealRaw)
   const fadeRaw = Math.min(1, Math.max(0, phase - revealEnd - index))
   const fadeProgress = privacySmooth(fadeRaw)
-  const afterReveal = Math.pow(1 - fadeProgress, PRIVACY_FADE_OUT_OPACITY_EXP)
+  const afterReveal = (1 - fadeProgress) ** PRIVACY_FADE_OUT_OPACITY_EXP
   let alpha = ringOpacity * revealProgress * afterReveal
   if (phase + 1e-4 >= 2 * revealEnd) {
     alpha = 0
@@ -101,15 +98,9 @@ function RingItem({
   const breathe = useSharedValue(1)
   const ringCount = RING_DEFS.length
 
-  const animStyle = useAnimatedStyle(() => {
-    return privacyRingPaint(
-      breathe.value,
-      index,
-      ringPhase.value,
-      ringCount,
-      opacity
-    )
-  })
+  const animStyle = useAnimatedStyle(() =>
+    privacyRingPaint(breathe.value, index, ringPhase.value, ringCount, opacity)
+  )
 
   useEffect(() => {
     const phaseDelay = index * 340
@@ -200,9 +191,7 @@ function ClusterRingItem({
     )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return (
-    <Animated.View style={[styles.ring, animStyle]} pointerEvents="none" />
-  )
+  return <Animated.View style={[styles.ring, animStyle]} pointerEvents="none" />
 }
 
 type PrivacyRainClusterSlotProps = {
@@ -225,9 +214,7 @@ function PrivacyRainClusterSlot({
   const centerY = useSharedValue(screenHeight * 0.42)
 
   const unmountedRef = useRef(false)
-  const firstKickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  )
+  const firstKickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const gapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -397,10 +384,10 @@ function SSIntroAnimationPrivacyStep({
 
 const styles = StyleSheet.create({
   fullScreen: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   },
   privacyRainCluster: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'visible'
   },
   ring: {

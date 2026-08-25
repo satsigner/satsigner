@@ -1,4 +1,4 @@
-import { hierarchy, pack } from 'd3'
+import { hierarchy, pack } from 'd3-hierarchy'
 import { useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
@@ -86,31 +86,36 @@ function computePackedBubbles(
     id: -1,
     value: 0
   })
-    .sum((d) => d.value)
+    .sum((d: BubblePackDatum) => d.value)
     // eslint-disable-next-line unicorn/no-array-sort -- toSorted not supported in Hermes
-    .sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
+    .sort(
+      (a: { value?: number | null }, b: { value?: number | null }) =>
+        (b.value ?? 0) - (a.value ?? 0)
+    )
 
   const packer = pack<BubblePackDatum>()
     .size([packW, packH])
     .padding(UTXO_PACK_PADDING)
   const leaves = packer(root).leaves()
-  const maxR = Math.max(...leaves.map((l) => l.r), 1)
+  const maxR = Math.max(...leaves.map((l: { r: number }) => l.r), 1)
 
-  return leaves.map((leaf) => {
-    const bubble = bubbles.find((b) => b.id === leaf.data.id)!
-    return {
-      color:
-        leaf.r / maxR >= BUBBLE_COLOR_THRESHOLD
-          ? BUBBLE_COLOR_BRIGHT
-          : BUBBLE_COLOR_DARK,
-      cx: leaf.x + offsetX,
-      cy: leaf.y + offsetY,
-      enterDelay: bubble.enterDelay,
-      exiting: bubble.exiting,
-      id: leaf.data.id,
-      r: leaf.r
+  return leaves.map(
+    (leaf: { data: BubblePackDatum; r: number; x: number; y: number }) => {
+      const bubble = bubbles.find((b) => b.id === leaf.data.id)!
+      return {
+        color:
+          leaf.r / maxR >= BUBBLE_COLOR_THRESHOLD
+            ? BUBBLE_COLOR_BRIGHT
+            : BUBBLE_COLOR_DARK,
+        cx: leaf.x + offsetX,
+        cy: leaf.y + offsetY,
+        enterDelay: bubble.enterDelay,
+        exiting: bubble.exiting,
+        id: leaf.data.id,
+        r: leaf.r
+      }
     }
-  })
+  )
 }
 
 type LiveBubbleItemProps = {
@@ -325,7 +330,7 @@ const styles = StyleSheet.create({
     position: 'absolute'
   },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   }
 })
 

@@ -63,18 +63,14 @@ function PhoneLayerBtn({ label, index, highlightWave }: PhoneLayerBtnProps) {
   const borderGlowStyle = useAnimatedStyle(() => {
     const signed = highlightWave.value - index
     const t =
-      signed < 0
-        ? Math.max(0, 1 + signed * 1.4)
-        : Math.max(0, 1 - signed * 0.2)
+      signed < 0 ? Math.max(0, 1 + signed * 1.4) : Math.max(0, 1 - signed * 0.2)
     return { opacity: t * 0.7 }
   })
 
   const textStyle = useAnimatedStyle(() => {
     const signed = highlightWave.value - index
     const t =
-      signed < 0
-        ? Math.max(0, 1 + signed * 1.4)
-        : Math.max(0, 1 - signed * 0.2)
+      signed < 0 ? Math.max(0, 1 + signed * 1.4) : Math.max(0, 1 - signed * 0.2)
     return { opacity: 0.72 + t * 0.28 }
   })
 
@@ -168,9 +164,7 @@ function SSIntroAnimationLayersStep({
 
   return (
     <Animated.View style={[styles.phoneFrame, frameStyle]} pointerEvents="none">
-      <Animated.View
-        style={[StyleSheet.absoluteFillObject, contentFadeStyle]}
-      >
+      <Animated.View style={[StyleSheet.absoluteFill, contentFadeStyle]}>
         <View style={styles.phoneBorder}>
           <PhoneUIElement index={0} uiReveal={uiReveal}>
             <PhoneLayerBtn
@@ -215,7 +209,7 @@ function SSIntroAnimationLayersStep({
 
 const styles = StyleSheet.create({
   phoneBorder: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Colors.gray[950],
     borderColor: 'rgba(255,255,255,0.45)',
     borderRadius: PHONE_FRAME_RADIUS,
@@ -226,7 +220,7 @@ const styles = StyleSheet.create({
     paddingTop: PHONE_HEADER_TOP
   },
   phoneFrame: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Colors.gray[950],
     borderRadius: PHONE_FRAME_RADIUS,
     elevation: 24,
@@ -244,7 +238,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   phoneLayerBtnBorder: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderColor: Colors.white,
     borderRadius: 3,
     borderWidth: 1

@@ -13,10 +13,10 @@ import Animated, {
 } from 'react-native-reanimated'
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg'
 
+import { Colors } from '@/styles'
+
 const AnimatedPath = Animated.createAnimatedComponent(Path)
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
-
-import { Colors } from '@/styles'
 
 const COORDINATION_INITIAL_DELAY_MS = 400
 const COORDINATION_NODE_REVEAL_MS = 600
@@ -42,8 +42,7 @@ const SIGNING_ALICE_EXCHANGE_END_MS =
   SIGNING_ALICE_START_MS + SIGNING_EXCHANGE_MS
 const SIGNING_BOB_START_MS =
   SIGNING_ALICE_EXCHANGE_END_MS + SIGNING_PHASE_GAP_MS
-const SIGNING_BOB_EXCHANGE_END_MS =
-  SIGNING_BOB_START_MS + SIGNING_EXCHANGE_MS
+const SIGNING_BOB_EXCHANGE_END_MS = SIGNING_BOB_START_MS + SIGNING_EXCHANGE_MS
 const SIGNING_CAROL_START_MS =
   SIGNING_BOB_EXCHANGE_END_MS + SIGNING_PHASE_GAP_MS
 const SIGNING_CAROL_EXCHANGE_END_MS =
@@ -194,8 +193,10 @@ function getEdgeEndpoints(
   const by = b.cy * screenHeight
   const dx = bx - ax
   const dy = by - ay
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  if (dist === 0) return { x1: ax, x2: bx, y1: ay, y2: by }
+  const dist = Math.hypot(dx, dy)
+  if (dist === 0) {
+    return { x1: ax, x2: bx, y1: ay, y2: by }
+  }
   const ux = dx / dist
   const uy = dy / dist
   const startOffset = getNodeEdgeDistance(a, ux, uy)
@@ -342,11 +343,11 @@ function CoordinationNode({
     const t =
       (cycleScript.value - SIGNING_INDICATOR_ARRIVAL_MS[0]) /
       SIGNING_INDICATOR_FADE_MS
-    const progress = t <= 0 ? 0 : t >= 1 ? 1 : t
+    const progress = t <= 0 ? 0 : Math.min(1, t)
     const checkT =
       (cycleScript.value - SIGNING_CHECK_REVEAL_START_MS) /
       SIGNING_CHECK_REVEAL_MS
-    const checkProgress = checkT <= 0 ? 0 : checkT >= 1 ? 1 : checkT
+    const checkProgress = checkT <= 0 ? 0 : Math.min(1, checkT)
     return {
       backgroundColor: interpolateColor(
         progress,
@@ -366,11 +367,11 @@ function CoordinationNode({
     const t =
       (cycleScript.value - SIGNING_INDICATOR_ARRIVAL_MS[1]) /
       SIGNING_INDICATOR_FADE_MS
-    const progress = t <= 0 ? 0 : t >= 1 ? 1 : t
+    const progress = t <= 0 ? 0 : Math.min(1, t)
     const checkT =
       (cycleScript.value - SIGNING_CHECK_REVEAL_START_MS) /
       SIGNING_CHECK_REVEAL_MS
-    const checkProgress = checkT <= 0 ? 0 : checkT >= 1 ? 1 : checkT
+    const checkProgress = checkT <= 0 ? 0 : Math.min(1, checkT)
     return {
       backgroundColor: interpolateColor(
         progress,
@@ -390,11 +391,11 @@ function CoordinationNode({
     const t =
       (cycleScript.value - SIGNING_INDICATOR_ARRIVAL_MS[2]) /
       SIGNING_INDICATOR_FADE_MS
-    const progress = t <= 0 ? 0 : t >= 1 ? 1 : t
+    const progress = t <= 0 ? 0 : Math.min(1, t)
     const checkT =
       (cycleScript.value - SIGNING_CHECK_REVEAL_START_MS) /
       SIGNING_CHECK_REVEAL_MS
-    const checkProgress = checkT <= 0 ? 0 : checkT >= 1 ? 1 : checkT
+    const checkProgress = checkT <= 0 ? 0 : Math.min(1, checkT)
     return {
       backgroundColor: interpolateColor(
         progress,
@@ -414,7 +415,7 @@ function CoordinationNode({
     const t =
       (cycleScript.value - SIGNING_CHECK_REVEAL_START_MS) /
       SIGNING_CHECK_REVEAL_MS
-    const progress = t <= 0 ? 0 : t >= 1 ? 1 : t
+    const progress = t <= 0 ? 0 : Math.min(1, t)
     const smooth = progress * progress * (3 - 2 * progress)
     return {
       opacity: smooth,
@@ -690,7 +691,9 @@ function SSIntroAnimationCoordinationStep({
           })}
           {COORDINATION_EDGES.map(([from, to], i) => {
             const phoneNode = COORDINATION_NODES[to]
-            if (phoneNode.signEventStartMs === null) return null
+            if (phoneNode.signEventStartMs === null) {
+              return null
+            }
             const { x1, y1, x2, y2 } = getEdgeEndpoints(
               phoneNode,
               COORDINATION_NODES[from],
@@ -711,31 +714,33 @@ function SSIntroAnimationCoordinationStep({
           })}
           {COORDINATION_EDGES.flatMap(([from, senderIdx], senderEdgeIdx) => {
             const senderNode = COORDINATION_NODES[senderIdx]
-            if (senderNode.signEventStartMs === null) return []
+            if (senderNode.signEventStartMs === null) {
+              return []
+            }
             const responseStartMs =
               senderNode.signEventStartMs + SIGNING_PULSE_TRAVEL_MS
-            return COORDINATION_EDGES.map(
-              ([_, targetIdx], targetEdgeIdx) => {
-                if (targetIdx === senderIdx) return null
-                const { x1, y1, x2, y2 } = getEdgeEndpoints(
-                  COORDINATION_NODES[from],
-                  COORDINATION_NODES[targetIdx],
-                  screenWidth,
-                  screenHeight
-                )
-                return (
-                  <CoordinationPulse
-                    key={`response-${senderEdgeIdx}-${targetEdgeIdx}`}
-                    cycleScript={cycleScript}
-                    eventStartMs={responseStartMs}
-                    x1={x1}
-                    x2={x2}
-                    y1={y1}
-                    y2={y2}
-                  />
-                )
+            return COORDINATION_EDGES.map(([_, targetIdx], targetEdgeIdx) => {
+              if (targetIdx === senderIdx) {
+                return null
               }
-            )
+              const { x1, y1, x2, y2 } = getEdgeEndpoints(
+                COORDINATION_NODES[from],
+                COORDINATION_NODES[targetIdx],
+                screenWidth,
+                screenHeight
+              )
+              return (
+                <CoordinationPulse
+                  key={`response-${senderEdgeIdx}-${targetEdgeIdx}`}
+                  cycleScript={cycleScript}
+                  eventStartMs={responseStartMs}
+                  x1={x1}
+                  x2={x2}
+                  y1={y1}
+                  y2={y2}
+                />
+              )
+            })
           })}
         </Svg>
       </View>
@@ -762,22 +767,6 @@ function SSIntroAnimationCoordinationStep({
 }
 
 const styles = StyleSheet.create({
-  coordinationNode: {
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    elevation: 2,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    position: 'absolute',
-    zIndex: 2
-  },
-  coordinationDescriptorIndicator: {
-    borderRadius: 4,
-    borderWidth: 1,
-    height: 8,
-    marginHorizontal: 2,
-    width: 8
-  },
   coordinationDescriptorCheckWrapper: {
     alignItems: 'center',
     bottom: 0,
@@ -787,13 +776,12 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0
   },
-  coordinationPhone: {
-    backgroundColor: Colors.gray[900],
-    borderColor: Colors.gray[700],
+  coordinationDescriptorIndicator: {
+    borderRadius: 4,
     borderWidth: 1,
-    elevation: 2,
-    position: 'absolute',
-    zIndex: 2
+    height: 8,
+    marginHorizontal: 2,
+    width: 8
   },
   coordinationDescriptorLabel: {
     color: Colors.gray[400],
@@ -803,6 +791,23 @@ const styles = StyleSheet.create({
     lineHeight: PHONE_LABEL_LINE_HEIGHT,
     position: 'absolute',
     textAlign: 'center',
+    zIndex: 2
+  },
+  coordinationNode: {
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    elevation: 2,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    position: 'absolute',
+    zIndex: 2
+  },
+  coordinationPhone: {
+    backgroundColor: Colors.gray[900],
+    borderColor: Colors.gray[700],
+    borderWidth: 1,
+    elevation: 2,
+    position: 'absolute',
     zIndex: 2
   },
   coordinationPhoneLabel: {
@@ -831,7 +836,7 @@ const styles = StyleSheet.create({
     zIndex: 0
   },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   }
 })
 

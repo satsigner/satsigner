@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     letterSpacing: 3
   },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   },
   inner: {
     alignItems: 'stretch',

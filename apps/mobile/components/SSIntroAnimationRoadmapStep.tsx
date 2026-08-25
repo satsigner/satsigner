@@ -119,7 +119,7 @@ function SSIntroAnimationRoadmapStep({
 
 const styles = StyleSheet.create({
   fullScreen: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   },
   roadmapBar: {
     backgroundColor: Colors.white,

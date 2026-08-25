@@ -202,18 +202,12 @@ function SSIntroAnimationExplorerStep({
           const blockLeft = i * (EXPLORER_BLOCK_SIZE + EXPLORER_CONNECTOR_W)
           const blockCenterScreen =
             chainLeft + blockLeft + EXPLORER_BLOCK_SIZE / 2
-          const edgeFadeLeft = Math.min(
-            1,
-            Math.max(0, blockCenterScreen / 120)
-          )
+          const edgeFadeLeft = Math.min(1, Math.max(0, blockCenterScreen / 120))
           const edgeFadeRight = Math.min(
             1,
             Math.max(0, (screenWidth - blockCenterScreen) / 120)
           )
-          const edgeFade = Math.max(
-            0.32,
-            Math.min(edgeFadeLeft, edgeFadeRight)
-          )
+          const edgeFade = Math.max(0.32, Math.min(edgeFadeLeft, edgeFadeRight))
           return (
             <View key={i} style={[styles.explorerItem, { opacity: edgeFade }]}>
               <View
@@ -291,7 +285,7 @@ const styles = StyleSheet.create({
     position: 'absolute'
   },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   }
 })
 

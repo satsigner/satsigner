@@ -127,7 +127,11 @@ const GENESIS_HEX_HIGHLIGHTS = [
     byteStart: 118,
     titleKey: 'intro.steps.genesisHex.coinbaseOutpointIndex'
   },
-  { byteEnd: 199, byteStart: 122, titleKey: 'intro.steps.genesisHex.scriptSig' },
+  {
+    byteEnd: 199,
+    byteStart: 122,
+    titleKey: 'intro.steps.genesisHex.scriptSig'
+  },
   {
     byteEnd: 203,
     byteStart: 200,
@@ -182,7 +186,7 @@ function pushMerged(out: TextPart[], text: string, hl: boolean) {
   if (text.length === 0) {
     return
   }
-  const prev = out[out.length - 1]
+  const prev = out.at(-1)
   if (prev && prev.hl === hl) {
     prev.text += text
   } else {
@@ -267,14 +271,11 @@ function HexRow({ row, index, screenHeight, highlightLead }: HexRowProps) {
 
   return (
     <View style={[styles.hexText, { opacity: HEX_LINE_BASE_OPACITY, top }]}>
-      <Text
-        {...overlayTextProps}
-        style={[styles.hexTextOverlayLine]}
-      >
+      <Text {...overlayTextProps} style={[styles.hexTextOverlayLine]}>
         {row.text}
       </Text>
       {highlightLead ? (
-        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           <Text {...overlayTextProps} style={styles.hexTextOverlayLine}>
             {leadParts.map((part, i) =>
               part.hl ? (
@@ -328,8 +329,7 @@ function SSIntroAnimationHexStreamStep({
     ? GENESIS_HEX_HIGHLIGHTS[leadIndex]
     : null
 
-  const sectionTitle =
-    highlightLead !== null ? t(highlightLead.titleKey) : null
+  const sectionTitle = highlightLead !== null ? t(highlightLead.titleKey) : null
 
   const labelTop = HEX_ROW_TOP_FRAC * screenHeight - 24
 
@@ -359,7 +359,7 @@ function SSIntroAnimationHexStreamStep({
 
 const styles = StyleSheet.create({
   fullScreen: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   },
   hexHlTint: {
     color: Colors.gray[500]

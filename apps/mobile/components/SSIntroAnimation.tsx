@@ -1,11 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, useRef, useState } from 'react'
-import {
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Animated, {
   Easing,
   runOnJS,
@@ -371,8 +366,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
 
   function handleNext(options?: { fromSaveSpendPick?: boolean }) {
     const step = currentStep
-    const stepsToAdvance =
-      step === 8 && !options?.fromSaveSpendPick ? 2 : 1
+    const stepsToAdvance = step === 8 && !options?.fromSaveSpendPick ? 2 : 1
     textSlideX.set(withTiming(SLIDE_OUT_OFFSET, { duration: TRANSITION_MS }))
     descSlideX.set(withTiming(SLIDE_OUT_OFFSET, { duration: TRANSITION_MS }))
     stepOffsetX.set(withTiming(SLIDE_OUT_OFFSET, { duration: TRANSITION_MS }))
@@ -529,7 +523,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
                   <SSButton
                     variant="outline"
                     label={t('intro.finish')}
-                    onPress={handleNext}
+                    onPress={() => handleNext()}
                   />
                 </View>
               </View>
@@ -537,7 +531,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
               <SSButton
                 variant="secondary"
                 label={t('common.next')}
-                onPress={handleNext}
+                onPress={() => handleNext()}
               />
             )}
             <View style={styles.bottomRow}>
@@ -609,7 +603,7 @@ const styles = StyleSheet.create({
     marginBottom: 18
   },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject
+    ...StyleSheet.absoluteFill
   },
   logoCircle: {
     alignItems: 'center',
@@ -629,12 +623,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   logoWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center'
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     backgroundColor: Colors.gray[950],
     justifyContent: 'center',
