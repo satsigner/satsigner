@@ -24,7 +24,26 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
+import { type EcashMint } from '@/types/models/Ecash'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { type MintRoute } from '@/utils/ecashMintRoute'
+
+function describeTokenRoute(
+  route: MintRoute | null,
+  mints: EcashMint[]
+): string | null {
+  if (!route) {
+    return null
+  }
+  if (route.kind === 'single') {
+    const mint = mints.find((item) => item.url === route.mintUrl)
+    return `${t('ecash.send.payingFrom')} ${mint?.name ?? route.mintUrl}`
+  }
+  if (route.kind === 'insufficient') {
+    return t('ecash.error.insufficientOnMint')
+  }
+  return null
+}
 
 export default function EcashSendPage() {
   const { invoice: invoiceParam } = useLocalSearchParams()
@@ -55,7 +74,6 @@ export default function EcashSendPage() {
     lnurlDetails,
     meltTokens,
     memo,
-    mintProofs,
     mints,
     nfcHardwareSupported,
     proofs,
@@ -67,7 +85,9 @@ export default function EcashSendPage() {
     setMemo,
     setSelectedMint,
     setTokenVersion,
+    spendableSats,
     statusMessage,
+    tokenRoute,
     tokenVersion
   } = useEcashSend()
 
@@ -77,6 +97,7 @@ export default function EcashSendPage() {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const { width } = useWindowDimensions()
   const qrSize = Math.floor(width * 0.88)
+  const routeLabel = describeTokenRoute(tokenRoute, mints)
 
   useEffect(() => {
     if (invoiceParam) {
@@ -200,14 +221,16 @@ export default function EcashSendPage() {
                   value={parseInt(amount, 10) || 0}
                   onValueChange={(value) => setAmount(value.toString())}
                   min={0}
-                  max={mintProofs.reduce((acc, proof) => acc + proof.amount, 0)}
-                  remainingSats={mintProofs.reduce(
-                    (acc, proof) => acc + proof.amount,
-                    0
-                  )}
+                  max={spendableSats}
+                  remainingSats={spendableSats}
                   privacyMode={privacyMode}
                 />
               </SSVStack>
+              {routeLabel ? (
+                <SSText color="muted" size="xs">
+                  {routeLabel}
+                </SSText>
+              ) : null}
               <SSVStack gap="xs">
                 <SSText size="xs" uppercase>
                   {t('ecash.send.memo')}

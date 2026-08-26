@@ -401,6 +401,9 @@ export default function EcashProofDetailPage() {
                   variant="gradient"
                   gradientType="special"
                 />
+                <SSText color="muted" size="xs">
+                  {t('ecash.proofDetail.exportStaysInWallet')}
+                </SSText>
               </>
             ) : (
               <SSVStack gap="md">
