@@ -752,7 +752,6 @@ export default function NodeDetailPage() {
           <SSText center color="muted" size="sm">
             {t('lightning.node.channelsEmpty')}
           </SSText>
-          {renderOpenChannelCta()}
         </SSVStack>
       )
     }
@@ -805,7 +804,6 @@ export default function NodeDetailPage() {
 
       return (
         <SSVStack gap="md" itemsCenter style={styles.section} widthFull>
-          {renderOpenChannelCta()}
           <SSLightningChannelsBubbleChart
             height={bubbleSize}
             onChannelPress={(chanId) =>
@@ -828,7 +826,6 @@ export default function NodeDetailPage() {
 
     return (
       <SSVStack gap="md" style={styles.section}>
-        {renderOpenChannelCta()}
         <SSVStack style={styles.channelsList}>
           {channels.map((channel) => {
             if (!channel || typeof channel !== 'object') {
@@ -1103,14 +1100,6 @@ export default function NodeDetailPage() {
                 </SSIconButton>
               </SSHStack>
               <SSHStack gap="sm" style={styles.channelsToolbarRight}>
-                <SSText
-                  color="muted"
-                  onPress={handleNavigateOpenChannel}
-                  size="sm"
-                  style={styles.openChannelToolbarText}
-                >
-                  {t('lightning.openChannel.action')}
-                </SSText>
                 <SSIconButton
                   accessibilityLabel={
                     channelsViewMode === 'list'
@@ -1143,6 +1132,7 @@ export default function NodeDetailPage() {
             >
               {renderChannels()}
             </ScrollView>
+            {renderOpenChannelCta()}
           </View>
         )
       default:
@@ -1492,10 +1482,8 @@ const styles = StyleSheet.create({
     paddingTop: 10
   },
   openChannelButton: {
-    alignSelf: 'stretch'
-  },
-  openChannelToolbarText: {
-    textDecorationLine: 'underline'
+    alignSelf: 'stretch',
+    marginTop: 8
   },
   placeholderText: {
     padding: 24,
