@@ -23,7 +23,6 @@ import { t } from '@/locales'
 import { deleteItem, getEcashMnemonic } from '@/storage/encrypted'
 import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
-import { useArkStore } from '@/store/ark'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
@@ -35,6 +34,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
+import { collectArkBackup } from '@/utils/arkBackup'
 import { getBackupFilename } from '@/utils/backupFilename'
 import { collectBlockchainBackup } from '@/utils/blockchainBackup'
 import {
@@ -139,16 +139,14 @@ export default function Developer() {
         ])
       )
     )
-    const arkState = useArkStore.getState()
+    const arkState = await collectArkBackup()
     const lightningState = useLightningStore.getState()
     const nostrIdentityState = useNostrIdentityStore.getState()
     const blockchainState = useBlockchainStore.getState()
 
     const backupData = {
       accounts: accountsWithSeeds,
-      ark: {
-        accounts: arkState.accounts
-      },
+      ark: arkState,
       ecash: {
         accounts: ecashState.accounts,
         activeAccountId: ecashState.activeAccountId,
