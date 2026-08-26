@@ -27,6 +27,15 @@ describe('lndOpenChannel', () => {
       })
     })
 
+    it('parses an ln:// URI prefix', () => {
+      expect(parseLndPeerUri(`ln://${PUBKEY}@199.84.252.119:9735`)).toStrictEqual(
+        {
+          host: '199.84.252.119:9735',
+          pubkey: PUBKEY
+        }
+      )
+    })
+
     it('parses IPv6 host after the first @', () => {
       expect(parseLndPeerUri(`${PUBKEY}@[::1]:9735`)).toStrictEqual({
         host: '[::1]:9735',
@@ -45,6 +54,12 @@ describe('lndOpenChannel', () => {
     it('returns pubkey@host from a scanned lightning URI', () => {
       expect(peerUriFromScannedText(`lightning:${PUBKEY}@1.2.3.4:9735`)).toBe(
         `${PUBKEY}@1.2.3.4:9735`
+      )
+    })
+
+    it('returns pubkey@host from a bare node URI QR', () => {
+      expect(peerUriFromScannedText(`${PUBKEY}@199.84.252.119:9735`)).toBe(
+        `${PUBKEY}@199.84.252.119:9735`
       )
     })
 

@@ -39,7 +39,7 @@ export type LndOpenChannelValidation =
   | { ok: true; peer: ParsedLndPeer }
   | { ok: false; reason: LndOpenChannelValidationReason }
 
-const LIGHTNING_URI_PREFIX = /^lightning:/i
+const LIGHTNING_URI_PREFIX = /^(lightning:|ln:\/\/)/i
 
 export function parseLndPeerUri(input: string): ParsedLndPeer | null {
   const trimmed = input.trim().replace(LIGHTNING_URI_PREFIX, '').trim()

@@ -291,6 +291,28 @@ describe('contentDetector', () => {
       })
     })
 
+    describe('lightning node URI', () => {
+      const nodePubkey = `02${'ab'.repeat(32)}`
+      const nodeUri = `${nodePubkey}@199.84.252.119:9735`
+
+      it('should detect pubkey@host:port from a node QR', async () => {
+        const result = await detectContentByContext(nodeUri, 'lightning')
+        expect(result.type).toBe('lightning_node')
+        expect(result.isValid).toBe(true)
+        expect(result.cleaned).toBe(nodeUri)
+      })
+
+      it('should detect lightning: prefixed node URI', async () => {
+        const result = await detectContentByContext(
+          `lightning:${nodeUri}`,
+          'lightning'
+        )
+        expect(result.type).toBe('lightning_node')
+        expect(result.isValid).toBe(true)
+        expect(result.cleaned).toBe(nodeUri)
+      })
+    })
+
     describe('lND REST API config connection string', () => {
       it('should detect config= URL ending in .config', async () => {
         const payload =
@@ -577,6 +599,12 @@ describe('contentDetector', () => {
         ).toBe(true)
       })
 
+      it('should support lightning_node', () => {
+        expect(
+          isContentTypeSupportedInContext('lightning_node', 'lightning')
+        ).toBe(true)
+      })
+
       it('should not support bitcoin_address', () => {
         expect(
           isContentTypeSupportedInContext('bitcoin_address', 'lightning')
@@ -665,6 +693,12 @@ describe('contentDetector', () => {
     it('should return correct description for lnd_rest_config', () => {
       expect(getContentTypeDescription('lnd_rest_config')).toBe(
         'LND REST API Config'
+      )
+    })
+
+    it('should describe lightning_node', () => {
+      expect(getContentTypeDescription('lightning_node')).toBe(
+        'Lightning Node URI'
       )
     })
 

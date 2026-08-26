@@ -13,6 +13,10 @@ import {
 } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
+import {
+  formatParsedLndPeer,
+  parseLndPeerUri
+} from '@/utils/lndOpenChannel'
 import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
 import { stripBitcoinPrefix } from '@/utils/parse'
@@ -42,6 +46,7 @@ export type ContentType =
   | 'bitcoin_transaction'
   | 'lightning_invoice'
   | 'lightning_address'
+  | 'lightning_node'
   | 'lnurl'
   | 'lnd_rest_config'
   | 'ark_address'
@@ -338,6 +343,16 @@ function detectLightningContent(data: string): DetectedContent | null {
       isValid: true,
       raw: data,
       type: 'lnurl'
+    }
+  }
+
+  const parsedNode = parseLndPeerUri(data.trim())
+  if (parsedNode?.host) {
+    return {
+      cleaned: formatParsedLndPeer(parsedNode),
+      isValid: true,
+      raw: data,
+      type: 'lightning_node'
     }
   }
 
@@ -674,6 +689,7 @@ export function isContentTypeSupportedInContext(
         'lightning_invoice',
         'lnurl',
         'lightning_address',
+        'lightning_node',
         'lnd_rest_config'
       ].includes(contentType)
     case 'ark':
@@ -722,6 +738,8 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Lightning Network Invoice'
     case 'lightning_address':
       return 'Lightning Address'
+    case 'lightning_node':
+      return 'Lightning Node URI'
     case 'lnurl':
       return 'LNURL Payment Request'
     case 'lnd_rest_config':
