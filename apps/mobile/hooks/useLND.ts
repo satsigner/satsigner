@@ -28,6 +28,7 @@ import type {
 } from '@/types/models/Lightning'
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
 import { buildNewAddressPath } from '@/utils/lndOnchainWallet'
+import { buildLndPayInvoiceBody } from '@/utils/lndPayInvoice'
 
 const HEALTH_CHECK_INTERVAL_MS = 30_000
 
@@ -151,13 +152,11 @@ export const useLND = () => {
       method: 'POST'
     })
 
-  const payInvoice = async (paymentRequest: string) => {
+  const payInvoice = async (paymentRequest: string, amountSat?: number) => {
     const response = await makeRequest<LNDPaymentResponse>(
       '/v1/channels/transactions',
       {
-        body: {
-          payment_request: paymentRequest
-        },
+        body: buildLndPayInvoiceBody(paymentRequest, amountSat),
         method: 'POST'
       }
     )

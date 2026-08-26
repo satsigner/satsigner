@@ -2,8 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
 import { useFonts } from 'expo-font'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { useRef, useState } from 'react'
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -32,12 +38,13 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
-import { Typography } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import type {
   LNDDecodedInvoice,
   LNURLPayResponse
 } from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { isAmountlessBolt11Invoice } from '@/utils/lightningInvoiceDecoder'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
   type LndOnchainSendValidationReason,
@@ -45,6 +52,7 @@ import {
   parseBitcoinUriAddress,
   validateLndOnchainSend
 } from '@/utils/lndOnchainWallet'
+import { parsePositiveSats } from '@/utils/lndPayInvoice'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
@@ -92,6 +100,7 @@ export default function PayPage() {
   const [comment, setComment] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFetchingDetails, setIsFetchingDetails] = useState(false)
+  const detailsRequestId = useRef(0)
   const [fiatCurrency, satsToFiat, fetchPrices, _btcPrice] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -127,26 +136,53 @@ export default function PayPage() {
   const onchainAmountMax = Math.max(confirmedSat, DUST_LIMIT)
 
   async function handleLNURLDetected(lnurl: string) {
+    const requestId = detailsRequestId.current + 1
+    detailsRequestId.current = requestId
+    setIsFetchingDetails(true)
     try {
-      setIsFetchingDetails(true)
       const url = isLNURL(lnurl) ? decodeLNURL(lnurl) : lnurl
       const details = await fetchLNURLPayDetails(url)
+      if (requestId !== detailsRequestId.current) {
+        return
+      }
       setLNURLDetails(details)
       const minSats = Math.ceil(details.minSendable / 1000)
       setAmount(minSats.toString())
     } catch {
+      if (requestId !== detailsRequestId.current) {
+        return
+      }
       setLNURLDetails(null)
     } finally {
-      setIsFetchingDetails(false)
+      if (requestId === detailsRequestId.current) {
+        setIsFetchingDetails(false)
+      }
     }
   }
 
   async function decodeInvoice(invoice: string) {
-    const response = await makeRequest<LNDDecodedInvoice>(
-      `/v1/payreq/${invoice}`
-    )
-    setDecodedInvoice(response)
-    return response
+    const requestId = detailsRequestId.current + 1
+    detailsRequestId.current = requestId
+    setIsFetchingDetails(true)
+    try {
+      const response = await makeRequest<LNDDecodedInvoice>(
+        `/v1/payreq/${invoice}`
+      )
+      if (requestId !== detailsRequestId.current) {
+        return null
+      }
+      setDecodedInvoice(response)
+      return response
+    } catch {
+      if (requestId === detailsRequestId.current) {
+        setDecodedInvoice(null)
+      }
+      return null
+    } finally {
+      if (requestId === detailsRequestId.current) {
+        setIsFetchingDetails(false)
+      }
+    }
   }
 
   async function handlePaymentRequestChange(text: string) {
@@ -169,16 +205,19 @@ export default function PayPage() {
       return
     }
     if (text.toLowerCase().startsWith('lnbc')) {
-      try {
-        const decoded = await decodeInvoice(text)
-        if (decoded.num_satoshis) {
-          setAmount(decoded.num_satoshis)
-        }
-      } catch {
-        setDecodedInvoice(null)
+      const decoded = await decodeInvoice(text)
+      if (!decoded) {
+        return
+      }
+      if (isAmountlessBolt11Invoice(decoded)) {
+        setAmount('')
+      } else {
+        setAmount(decoded.num_satoshis)
       }
       return
     }
+    detailsRequestId.current += 1
+    setIsFetchingDetails(false)
     setDecodedInvoice(null)
   }
 
@@ -212,13 +251,8 @@ export default function PayPage() {
     setIsProcessing(true)
     try {
       if (isLNURLMode) {
-        if (!amount) {
-          toast.error(t('lightning.pay.enterAmount'))
-          setIsProcessing(false)
-          return
-        }
-        const amountSats = parseInt(amount, 10)
-        if (isNaN(amountSats) || amountSats <= 0) {
+        const amountSats = parsePositiveSats(amount)
+        if (amountSats === null) {
           toast.error(t('lightning.pay.validAmount'))
           setIsProcessing(false)
           return
@@ -229,6 +263,14 @@ export default function PayPage() {
           comment || undefined
         )
         await payInvoice(invoice)
+      } else if (decodedInvoice && isAmountlessBolt11Invoice(decodedInvoice)) {
+        const amountSats = parsePositiveSats(amount)
+        if (amountSats === null) {
+          toast.error(t('lightning.pay.validAmount'))
+          setIsProcessing(false)
+          return
+        }
+        await payInvoice(paymentRequest, amountSats)
       } else {
         await payInvoice(paymentRequest)
       }
@@ -367,6 +409,11 @@ export default function PayPage() {
     }
   }
 
+  const isAmountlessInvoice =
+    decodedInvoice !== null &&
+    !isLNURLMode &&
+    isAmountlessBolt11Invoice(decodedInvoice)
+
   const inboundParam = paymentRequestParam || invoiceParam
   const inboundValue = Array.isArray(inboundParam)
     ? inboundParam[0]
@@ -420,13 +467,14 @@ export default function PayPage() {
               <View>
                 <SSVStack>
                   {isFetchingDetails ? (
-                    <SSText
-                      color="muted"
-                      size="sm"
-                      style={styles.fetchingBanner}
-                    >
-                      {t('lightning.pay.fetchingDetails')}
-                    </SSText>
+                    <SSHStack gap="sm" style={styles.fetchingBanner}>
+                      <ActivityIndicator color={Colors.gray[400]} />
+                      <SSText color="muted" size="sm">
+                        {isLNURLMode
+                          ? t('lightning.pay.fetchingDetails')
+                          : t('lightning.pay.decodingInvoice')}
+                      </SSText>
+                    </SSHStack>
                   ) : null}
                   <SSVStack gap="sm">
                     <TextInput
@@ -475,6 +523,36 @@ export default function PayPage() {
                       satsToFiat={satsToFiat}
                     />
                   )}
+                  {isAmountlessInvoice ? (
+                    <SSVStack gap="xs">
+                      <SSText color="muted" size="sm">
+                        {t('lightning.pay.amountlessHint')}
+                      </SSText>
+                      <SSText color="muted">{t('lightning.pay.amount')}</SSText>
+                      <SSTextInput
+                        align="left"
+                        keyboardType="numeric"
+                        onChangeText={handleAmountChange}
+                        placeholder={t(
+                          'lightning.invoice.amountPlaceholderSats'
+                        )}
+                        value={amount}
+                      />
+                      {parsePositiveSats(amount) !== null ? (
+                        <SSText color="muted" size="sm">
+                          {privacyMode
+                            ? `≈ •••• ${fiatCurrency}`
+                            : `≈ ${satsToFiat(Number(amount)).toLocaleString(
+                                'en-US',
+                                {
+                                  maximumFractionDigits: 2,
+                                  minimumFractionDigits: 2
+                                }
+                              )} ${fiatCurrency}`}
+                        </SSText>
+                      ) : null}
+                    </SSVStack>
+                  ) : null}
                   {isLNURLMode && (
                     <SSLNURLDetails
                       lnurlDetails={lnurlDetails}
@@ -499,7 +577,8 @@ export default function PayPage() {
                     loading={isProcessing || isFetchingDetails}
                     disabled={
                       !paymentRequest.trim() ||
-                      (isLNURLMode && !amount) ||
+                      ((isLNURLMode || isAmountlessInvoice) &&
+                        parsePositiveSats(amount) === null) ||
                       (!isLNURLMode && !decodedInvoice) ||
                       isFetchingDetails
                     }
@@ -640,7 +719,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   fetchingBanner: {
-    marginBottom: 8
+    justifyContent: 'center',
+    marginBottom: 8,
+    width: '100%'
   },
   fiatAmount: {
     marginLeft: 4,
