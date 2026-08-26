@@ -28,12 +28,12 @@ describe('lndOpenChannel', () => {
     })
 
     it('parses an ln:// URI prefix', () => {
-      expect(parseLndPeerUri(`ln://${PUBKEY}@199.84.252.119:9735`)).toStrictEqual(
-        {
-          host: '199.84.252.119:9735',
-          pubkey: PUBKEY
-        }
-      )
+      expect(
+        parseLndPeerUri(`ln://${PUBKEY}@199.84.252.119:9735`)
+      ).toStrictEqual({
+        host: '199.84.252.119:9735',
+        pubkey: PUBKEY
+      })
     })
 
     it('parses IPv6 host after the first @', () => {

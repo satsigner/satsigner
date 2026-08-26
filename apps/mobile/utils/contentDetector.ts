@@ -13,10 +13,7 @@ import {
 } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
-import {
-  formatParsedLndPeer,
-  parseLndPeerUri
-} from '@/utils/lndOpenChannel'
+import { formatParsedLndPeer, parseLndPeerUri } from '@/utils/lndOpenChannel'
 import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
 import { stripBitcoinPrefix } from '@/utils/parse'
