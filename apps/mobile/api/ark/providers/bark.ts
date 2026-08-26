@@ -533,6 +533,15 @@ function raceMovementCreated(
   })
 }
 
+async function offboardWalletVtxos(
+  wallet: WalletLike,
+  vtxoIds: string[],
+  bitcoinAddress: string
+): Promise<string> {
+  const result = await wallet.offboardVtxos(vtxoIds, bitcoinAddress)
+  return result.txid
+}
+
 function offboardVtxos(
   accountId: string,
   vtxoIds: string[],
@@ -543,7 +552,7 @@ function offboardVtxos(
     'ark-offboard',
     accountId,
     (movement) => movement.subsystemKind === 'offboard',
-    wallet.offboardVtxos(vtxoIds, bitcoinAddress)
+    offboardWalletVtxos(wallet, vtxoIds, bitcoinAddress)
   )
 }
 

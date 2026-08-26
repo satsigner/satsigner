@@ -330,7 +330,7 @@ describe('bark provider', () => {
 
   it('offboardVtxos resolves with the txid when the wallet finishes first', async () => {
     const wallet = buildFakeWallet({
-      offboardVtxos: jest.fn().mockResolvedValue('txid-offboard')
+      offboardVtxos: jest.fn().mockResolvedValue({ txid: 'txid-offboard' })
     })
     await openWallet('off1', wallet)
     await expect(
@@ -352,7 +352,7 @@ describe('bark provider', () => {
 
   it('offboardVtxos ignores movement notifications of other subsystems', async () => {
     const wallet = buildFakeWallet({
-      offboardVtxos: jest.fn().mockResolvedValue('txid-late')
+      offboardVtxos: jest.fn().mockResolvedValue({ txid: 'txid-late' })
     })
     await openWallet('off3', wallet)
     const pending = provider.offboardVtxos('off3', ['vtxo1'], 'tb1qdest')
