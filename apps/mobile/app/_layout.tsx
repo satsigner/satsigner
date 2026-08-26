@@ -68,6 +68,20 @@ export default function RootLayout() {
 
   const appState = useRef(AppState.currentState)
   const [privacyScreenVisible, setPrivacyScreenVisible] = useState(false)
+  const [authHydrated, setAuthHydrated] = useState(() =>
+    useAuthStore.persist.hasHydrated()
+  )
+  const introOverlayVisible =
+    authHydrated && introVisible && (firstTime || introForceFirstTime)
+
+  useEffect(() => {
+    if (authHydrated) {
+      return
+    }
+    return useAuthStore.persist.onFinishHydration(() => {
+      setAuthHydrated(true)
+    })
+  }, [authHydrated])
 
   useEffect(() => {
     if (!firstTime) {
@@ -141,12 +155,12 @@ export default function RootLayout() {
               </View>
             </ThemeProvider>
             {privacyScreenVisible && <View style={styles.privacyScreen} />}
-            {introVisible && (
+            {introOverlayVisible ? (
               <SSIntroAnimation
                 firstTime={firstTime || introForceFirstTime}
                 onComplete={hideIntro}
               />
-            )}
+            ) : null}
             <SSImageActionsSheet />
             <Toaster
               theme="dark"

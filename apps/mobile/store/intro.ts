@@ -17,4 +17,9 @@ const useIntroStore = create<IntroState & IntroAction>((set) => ({
   visible: true
 }))
 
-export { useIntroStore }
+function shouldShowIntro(firstTime: boolean): boolean {
+  const { forceFirstTime, visible } = useIntroStore.getState()
+  return visible && (firstTime || forceFirstTime)
+}
+
+export { shouldShowIntro, useIntroStore }
