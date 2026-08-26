@@ -72,56 +72,58 @@ function SSUtxoCard({
           }
           onLongPress={handleToggleExcluded}
         >
-          <SSHStack
-            justifyBetween
+          <SSVStack
+            gap="none"
             style={[styles.content, excluded && styles.contentExcluded]}
           >
-            <SSVStack gap="none">
-              <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-                <SSStyledSatText
-                  amount={utxo.value}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  textSize={amountTextSize}
-                />
-                <SSText
-                  size={amountTextSize === '3xl' ? 'md' : 'sm'}
-                  color="muted"
-                >
-                  {currencyUnit === 'btc'
-                    ? t('bitcoin.btc').toLowerCase()
-                    : t('bitcoin.sats').toLowerCase()}
-                </SSText>
-              </SSHStack>
-              <SSHStack>
-                <SSText>{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
-                <SSText style={{ color: Colors.gray[400] }}>
-                  {fiatCurrency}
-                </SSText>
-              </SSHStack>
-              <SSText size="md" color={displayLabel ? 'white' : 'muted'}>
-                {displayLabel || t('utxo.noLabel')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none" style={styles.meta}>
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText>
-                  {utxo.addressTo && formatAddress(utxo.addressTo || '')}
-                </SSText>
-                {typeof addressIndex === 'number' && (
-                  <SSText color="muted" size="sm">
-                    ({addressIndex})
+            <SSHStack justifyBetween>
+              <SSVStack gap="none">
+                <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+                  <SSStyledSatText
+                    amount={utxo.value}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    textSize={amountTextSize}
+                  />
+                  <SSText
+                    size={amountTextSize === '3xl' ? 'md' : 'sm'}
+                    color="muted"
+                  >
+                    {currencyUnit === 'btc'
+                      ? t('bitcoin.btc').toLowerCase()
+                      : t('bitcoin.sats').toLowerCase()}
                   </SSText>
-                )}
-              </SSHStack>
-              <SSText color="muted">
-                {utxo.timestamp && (
-                  <SSTimeAgoText date={new Date(utxo.timestamp)} />
-                )}
-              </SSText>
-            </SSVStack>
-          </SSHStack>
+                </SSHStack>
+                <SSHStack>
+                  <SSText>{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
+                  <SSText style={{ color: Colors.gray[400] }}>
+                    {fiatCurrency}
+                  </SSText>
+                </SSHStack>
+              </SSVStack>
+              <SSVStack gap="none" style={styles.meta}>
+                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                  <SSText>
+                    {utxo.addressTo && formatAddress(utxo.addressTo || '')}
+                  </SSText>
+                  {typeof addressIndex === 'number' && (
+                    <SSText color="muted" size="sm">
+                      ({addressIndex})
+                    </SSText>
+                  )}
+                </SSHStack>
+                <SSText color="muted">
+                  {utxo.timestamp && (
+                    <SSTimeAgoText date={new Date(utxo.timestamp)} />
+                  )}
+                </SSText>
+              </SSVStack>
+            </SSHStack>
+            <SSText size="md" color={displayLabel ? 'white' : 'muted'}>
+              {displayLabel || t('utxo.noLabel')}
+            </SSText>
+          </SSVStack>
         </TouchableOpacity>
         <SSIconButton
           onPress={handleToggleExcluded}
@@ -156,7 +158,8 @@ const styles = StyleSheet.create({
   },
   meta: {
     alignItems: 'flex-end',
-    alignSelf: 'flex-start'
+    alignSelf: 'flex-start',
+    flexShrink: 0
   }
 })
 
