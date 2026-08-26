@@ -14,6 +14,9 @@ patchedDependencies:
   react-native-draggable-flatlist@4.0.3:
     hash: a680a03e3bda86d0c825977a6e9e78704d2b772280cdef8a44ba9b94b2a5d555
     path: patches/react-native-draggable-flatlist@4.0.3.patch
+  uniffi-bindgen-react-native@0.31.0-3:
+    hash: 7ea333c2b43d04615b365838f9ae2300994cf969ee8c3f3c71415676a632ffbb
+    path: patches/uniffi-bindgen-react-native@0.31.0-3.patch
 
 importers:
 
@@ -149,6 +152,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.64.2
         version: 5.96.2(react@19.2.3)
+      '@ubjs/core':
+        specifier: 0.31.0-3
+        version: 0.31.0-3
       assert:
         specifier: ^1.1.1
         version: 1.5.1
@@ -273,7 +279,7 @@ importers:
         specifier: ^11.1.4
         version: 11.1.4
       nostr-tools:
-        specifier: ^2.11.0
+        specifier: ^2.17.2
         version: 2.23.3(typescript@6.0.3)
       pako:
         specifier: ^2.1.0
@@ -11776,7 +11782,9 @@ snapshots:
       metro-runtime: 0.84.4
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.86.0': {}
 
@@ -17256,7 +17264,7 @@ snapshots:
       '@ubjs/core': 0.31.0-3
       react: 19.2.3
       react-native: 0.86.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.86.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3)
-      uniffi-bindgen-react-native: 0.31.0-3
+      uniffi-bindgen-react-native: 0.31.0-3(patch_hash=7ea333c2b43d04615b365838f9ae2300994cf969ee8c3f3c71415676a632ffbb)
 
   react-native-qrcode-svg@6.3.21(react-native-svg@15.15.4(react-native@0.86.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.86.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3))(react-native@0.86.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@6.0.3))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.86.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3):
     dependencies:
@@ -18338,7 +18346,7 @@ snapshots:
 
   uniffi-bindgen-react-native@0.31.0-2: {}
 
-  uniffi-bindgen-react-native@0.31.0-3: {}
+  uniffi-bindgen-react-native@0.31.0-3(patch_hash=7ea333c2b43d04615b365838f9ae2300994cf969ee8c3f3c71415676a632ffbb): {}
 
   unified@11.0.5:
     dependencies:

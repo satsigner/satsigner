@@ -12,7 +12,8 @@
     "**/android",
     "**/ios",
     "**/utils/polyfills.ts",
-    "**/routeTree.gen.ts"
+    "**/routeTree.gen.ts",
+    "**/scripts/**"
   ],
   "rules": {
     "no-use-before-define": "allow",
@@ -97,7 +98,10 @@
         "jest/no-conditional-in-test": "off",
         "jest/no-hooks": "off",
         "promise/prefer-await-to-then": "off",
+        "promise/prefer-await-to-callbacks": "off",
         "no-empty-function": "off",
+        "import/first": "off",
+        "require-await": "off",
         "jest/consistent-test-it": "error",
         "jest/expect-expect": "error",
         "jest/max-expects": ["error", { "max": 10 }],

@@ -50,6 +50,7 @@ export default function NostrIdentityRelays() {
   )
   const globalRelays = useNostrIdentityStore((state) => state.relays)
   const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
+  const addGlobalRelay = useNostrIdentityStore((state) => state.addRelay)
 
   const [selectedRelays, setSelectedRelays] = useState<string[]>(
     identity?.relays ?? globalRelays
@@ -73,6 +74,7 @@ export default function NostrIdentityRelays() {
     if (!selectedRelays.includes(relayUrl)) {
       setSelectedRelays((prev) => [...prev, relayUrl])
     }
+    addGlobalRelay(relayUrl)
     setCustomRelayUrl('')
   }
 
@@ -182,7 +184,7 @@ export default function NostrIdentityRelays() {
               label={t('nostrIdentity.relays.addCustom')}
               variant="outline"
               onPress={handleAddCustomRelay}
-              disabled={!customRelayUrl.match(/^[a-z0-9]+\.[a-z0-9]+/i)}
+              disabled={!customRelayUrl.match(/^[a-z0-9-]+\.[a-z0-9.-]+/i)}
             />
           </SSVStack>
 

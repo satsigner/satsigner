@@ -4,6 +4,11 @@ import NDK, { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NetInfo from '@react-native-community/netinfo'
 import { type Event, nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
+import {
+  decrypt as nip04Decrypt,
+  encrypt as nip04Encrypt
+} from 'nostr-tools/nip04'
+import { finalizeEvent } from 'nostr-tools/pure'
 
 import {
   NOSTR_NIP17_SEAL_KIND,
@@ -14,7 +19,6 @@ import {
   NOSTR_NDK_CONNECT_TIMEOUT_MS,
   NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
   NOSTR_PROCESSING_INTERVAL_MS,
-  NOSTR_PROFILE_BATCH_SIZE,
   NOSTR_PROFILE_CACHE_TTL_SECS,
   NOSTR_PUBLISH_TIMEOUT_MS,
   NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS,
@@ -23,7 +27,6 @@ import {
 } from '@/constants/nostr'
 import {
   cacheEvents,
-  cacheProfile,
   getCachedEvent,
   getCachedNotes,
   getCachedProfile,
@@ -39,78 +42,32 @@ import type {
   NostrSignedKind1Event,
   NostrUnwrappedKind1059Event
 } from '@/types/models/Nostr'
-import { chunkArray } from '@/utils/chunkArray'
 import { randomKey } from '@/utils/crypto'
-import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
+import {
+  extractInboxRelayUrls,
+  getPubKeyHexFromNpub,
+  getSecretFromNsec
+} from '@/utils/nostr'
 import {
   extractResponseOptionIds,
   NOSTR_POLL_RESPONSE_KIND
 } from '@/utils/nostrPoll'
+import {
+  fetchProfileCoalesced,
+  fetchProfilesCoalesced,
+  queueProfileFetches
+} from '@/utils/nostrProfileFetcher'
 
-function createMobileNdk(explicitRelayUrls: string[]): NDK {
-  return new NDK({
-    autoConnectUserRelays: false,
-    enableOutboxModel: false,
-    explicitRelayUrls
-  })
-}
+import {
+  createMobileNdk,
+  disconnectNdkPool,
+  getOrCreateNdk,
+  ndkRegistry,
+  resetNdkForRelays
+} from './ndkRegistry'
 
-function disconnectNdkPool(ndk: NDK): void {
-  try {
-    ndk.pool?.removeAllListeners?.()
-    for (const relay of ndk.pool?.relays.values() ?? []) {
-      relay.disconnect()
-    }
-  } catch {
-    // best-effort cleanup
-  }
-}
-
-// One NDK instance per relay set, shared across all NostrAPI callers.
-// Prevents duplicate WebSocket connections when multiple screens use the same relays.
-const ndkRegistry = new Map<string, NDK>()
-
-function getOrCreateNdk(relays: string[]): NDK {
-  const key = [...relays].toSorted().join(',')
-  const existing = ndkRegistry.get(key)
-  if (existing) {
-    return existing
-  }
-  const ndk = createMobileNdk(relays)
-  ndkRegistry.set(key, ndk)
-  return ndk
-}
-
-function resetNdkForRelays(relays: string[]): NDK {
-  const key = [...relays].toSorted().join(',')
-  const existing = ndkRegistry.get(key)
-  if (existing) {
-    for (const relay of existing.pool?.relays.values() ?? []) {
-      try {
-        relay.disconnect()
-      } catch {
-        // best-effort
-      }
-    }
-    ndkRegistry.delete(key)
-  }
-  const ndk = createMobileNdk(relays)
-  ndkRegistry.set(key, ndk)
-  return ndk
-}
-
-export function clearNdkRegistry(): void {
-  for (const ndk of ndkRegistry.values()) {
-    for (const relay of ndk.pool?.relays.values() ?? []) {
-      try {
-        relay.disconnect()
-      } catch {
-        // best-effort
-      }
-    }
-  }
-  ndkRegistry.clear()
-}
+// Re-exported for existing callers (registry now lives in ./ndkRegistry).
+export { clearNdkRegistry } from './ndkRegistry'
 
 function normalizeRelayUrl(url: string): string {
   return url.toLowerCase().replace(/\/$/, '')
@@ -196,34 +153,6 @@ export async function testNostrRelaysReachable(
       url
     })),
     status: 'disconnected'
-  }
-}
-
-function getProfileFromKind0Content(
-  contentJson: string
-): NostrKind0Profile | null {
-  try {
-    const content = JSON.parse(contentJson) as Record<string, unknown>
-    const displayName =
-      typeof content.name === 'string'
-        ? content.name
-        : typeof content.display_name === 'string'
-          ? content.display_name
-          : typeof content.username === 'string'
-            ? content.username
-            : undefined
-    const picture =
-      typeof content.picture === 'string' ? content.picture : undefined
-    const banner =
-      typeof content.banner === 'string' ? content.banner : undefined
-    const nip05 = typeof content.nip05 === 'string' ? content.nip05 : undefined
-    const lud16 = typeof content.lud16 === 'string' ? content.lud16 : undefined
-    if (!displayName && !picture && !banner && !nip05 && !lud16) {
-      return null
-    }
-    return { banner, displayName, lud16, nip05, picture }
-  } catch {
-    return null
   }
 }
 
@@ -351,55 +280,21 @@ export class NostrAPI {
       }
     }
 
-    await this.connect()
-    if (!this.ndk) {
-      return cached
-        ? {
-            banner: cached.banner,
-            displayName: cached.displayName,
-            lud16: cached.lud16,
-            nip05: cached.nip05,
-            picture: cached.picture
-          }
-        : null
-    }
-
-    const filter: NDKFilter = {
-      authors: [pk],
-      kinds: [NDKKind.Metadata],
-      limit: 10
-    }
-    const events = await NostrAPI.fetchManyWithTimeout(
-      this.ndk,
-      filter,
-      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
-    )
-
-    const event =
-      events.size === 0
-        ? null
-        : Array.from(events).toSorted(
-            (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
-          )[0]
-
-    if (!event?.content) {
-      return cached
-        ? {
-            banner: cached.banner,
-            displayName: cached.displayName,
-            lud16: cached.lud16,
-            nip05: cached.nip05,
-            picture: cached.picture
-          }
-        : null
-    }
-
-    const profile = getProfileFromKind0Content(event.content)
+    // Coalesced fetcher: dedupes across screens, retries dead pubkeys against
+    // indexer relays, and resolves as soon as relays answer (EOSE-driven).
+    const profile = await fetchProfileCoalesced(pk, this.relays)
     if (profile) {
-      cacheProfile(pk, profile, event.id, event.created_at ?? 0)
+      return profile
     }
-
-    return profile
+    return cached
+      ? {
+          banner: cached.banner,
+          displayName: cached.displayName,
+          lud16: cached.lud16,
+          nip05: cached.nip05,
+          picture: cached.picture
+        }
+      : null
   }
 
   /**
@@ -480,64 +375,26 @@ export class NostrAPI {
    * Returns a map of hex pubkey → profile; caches each result in SQLite.
    * Pubkeys not found on relays are omitted from the result.
    */
-  async fetchKind0Batch(
+  fetchKind0Batch(
     hexPubkeys: string[]
   ): Promise<Map<string, NostrKind0Profile>> {
     const validKeys = hexPubkeys
       .map((pk) => pk.toLowerCase())
       .filter((pk) => /^[0-9a-f]{64}$/.test(pk))
     if (validKeys.length === 0) {
-      return new Map()
+      return Promise.resolve(new Map())
     }
 
-    await this.connectForPublish()
-    if (!this.ndk) {
-      return new Map()
-    }
-
-    const filter: NDKFilter = {
-      authors: validKeys,
-      kinds: [NDKKind.Metadata],
-      limit: validKeys.length
-    }
-    const events = await NostrAPI.fetchManyWithTimeout(
-      this.ndk,
-      filter,
-      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
-    )
-
-    const newestByPubkey = new Map<
-      string,
-      { createdAt: number; event: NDKEvent; profile: NostrKind0Profile }
-    >()
-    for (const event of events) {
-      if (!event.pubkey || !event.content) {
-        continue
-      }
-      const profile = getProfileFromKind0Content(event.content)
-      if (!profile) {
-        continue
-      }
-      const existing = newestByPubkey.get(event.pubkey)
-      const createdAt = event.created_at ?? 0
-      if (!existing || createdAt > existing.createdAt) {
-        newestByPubkey.set(event.pubkey, { createdAt, event, profile })
-      }
-    }
-
-    const result = new Map<string, NostrKind0Profile>()
-    for (const [pk, { event, profile }] of newestByPubkey) {
-      cacheProfile(pk, profile, event.id, event.created_at ?? 0)
-      result.set(pk, profile)
-    }
-    return result
+    // Coalesced fetcher: dedupes in-flight pubkeys across callers, falls back
+    // to indexer relays for misses, resolves on EOSE instead of a fixed 15s.
+    return fetchProfilesCoalesced(validKeys, this.relays)
   }
 
   /**
    * Streams kind 0 profiles for many pubkeys: SQLite cache first, then relay
-   * batches via fetchKind0Batch. Invokes onBatch after each cache/relay chunk.
+   * batches via the coalescing fetcher. Invokes onBatch after each chunk.
    */
-  async streamKind0Profiles(
+  streamKind0Profiles(
     hexPubkeys: string[],
     onBatch: (profiles: Map<string, NostrKind0Profile>) => void,
     signal?: AbortSignal
@@ -546,7 +403,7 @@ export class NostrAPI {
       .map((pk) => pk.toLowerCase())
       .filter((pk) => /^[0-9a-f]{64}$/.test(pk))
     if (validKeys.length === 0 || signal?.aborted) {
-      return
+      return Promise.resolve()
     }
 
     const now = Math.floor(Date.now() / 1000)
@@ -572,15 +429,16 @@ export class NostrAPI {
       onBatch(cachedBatch)
     }
 
-    for (const slice of chunkArray(missing, NOSTR_PROFILE_BATCH_SIZE)) {
-      if (signal?.aborted) {
-        return
-      }
-      const batch = await this.fetchKind0Batch(slice)
-      if (batch.size > 0 && !signal?.aborted) {
-        onBatch(batch)
-      }
-    }
+    // Coalesced relay fetches with per-chunk delivery; abort stops delivery.
+    queueProfileFetches(missing, {
+      onBatch: (batch) => {
+        if (!signal?.aborted) {
+          onBatch(batch)
+        }
+      },
+      relays: this.relays
+    })
+    return Promise.resolve()
   }
 
   /**
@@ -1089,6 +947,76 @@ export class NostrAPI {
     return result
   }
 
+  /**
+   * Fetches the full signed event by id from this instance's relay pool.
+   * Unlike fetchEvent, returns the raw event (sig included) so callers can
+   * run NIP-59 unwrap / signature verification on it. Never cached — used by
+   * diagnostics where retrieval from the relay is exactly what's proven.
+   */ async fetchRawEventById(eventIdHex: string): Promise<Event | null> {
+    await this.connectForPublish()
+    if (!this.ndk) {
+      return null
+    }
+
+    const filter = { ids: [eventIdHex], limit: 1 }
+    const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
+    if (!poolEvent) {
+      return null
+    }
+    return (await poolEvent.toNostrEvent()) as Event
+  }
+
+  /**
+   * Fetches a pubkey's DM inbox relays: newest kind 10050 (NIP-17) wins,
+   * falling back to its kind 10002 (NIP-65) relay list. Empty when the
+   * pubkey never published either — callers should fall back to defaults.
+   */
+  async fetchInboxRelaysForNpub(npub: string): Promise<string[]> {
+    const hex = getPubKeyHexFromNpub(npub)
+    if (!hex) {
+      return []
+    }
+    await this.connect()
+    if (!this.ndk) {
+      return []
+    }
+
+    const events = await NostrAPI.fetchManyWithTimeout(
+      this.ndk,
+      { authors: [hex], kinds: [10002, 10050], limit: 10 },
+      12_000
+    )
+    return extractInboxRelayUrls([...events])
+  }
+
+  /**
+   * Announces this identity's DM inbox relays (kind 10050, NIP-17) so
+   * senders can route gift wraps where we actually read them.
+   */
+  async publishDmInboxRelayList(
+    nsec: string,
+    relayUrls: string[]
+  ): Promise<void> {
+    const secretKey = getSecretFromNsec(nsec)
+    if (!secretKey || relayUrls.length === 0) {
+      return
+    }
+    const signed = finalizeEvent(
+      {
+        content: '',
+        created_at: Math.floor(Date.now() / 1000),
+        kind: 10050,
+        tags: relayUrls.map((url) => ['relay', url])
+      },
+      secretKey
+    )
+    const tempNdk = new NDK({
+      autoConnectUserRelays: false,
+      enableOutboxModel: false
+    })
+    await this.publishEvent(new NDKEvent(tempNdk, signed))
+  }
+
   static async fetchEventFromRelays(
     eventIdHex: string,
     relayUrls: string[],
@@ -1301,8 +1229,11 @@ export class NostrAPI {
           this.eventQueue.push(message)
           this.processQueue()
         }
-      } catch {
-        // TODO: log this error; malformed wrapped events should not crash the subscription
+      } catch (error) {
+        // Malformed wrapped events must not crash the subscription, but a
+        // systematic failure (e.g. a missing table) must be visible in logs.
+        // eslint-disable-next-line no-console
+        console.warn('[nostr] kind1059 event processing failed:', error)
       }
     })
 
@@ -1362,12 +1293,10 @@ export class NostrAPI {
     if (!secretNostrKey || !recipientPubKeyHex) {
       throw new Error('Invalid nsec or recipient npub')
     }
-    const encodedContent = unescape(encodeURIComponent(content))
-
     const wrap = nip17.wrapEvent(
       secretNostrKey,
       { publicKey: recipientPubKeyHex },
-      encodedContent
+      content
     )
     const tempNdk = new NDK({
       autoConnectUserRelays: false,
@@ -1375,6 +1304,117 @@ export class NostrAPI {
     })
     const event = new NDKEvent(tempNdk, wrap)
     return event
+  }
+
+  /**
+   * Creates a signed legacy NIP-04 DM (kind 4). Encryption and signature are
+   * done inline, so publishEvent needs no signer. Prefer NIP-17
+   * (createKind1059) for new conversations — kind 4 leaks metadata.
+   */
+  async createKind4(
+    nsec: string,
+    recipientNpub: string,
+    content: string
+  ): Promise<NDKEvent> {
+    const secretNostrKey = getSecretFromNsec(nsec)
+    const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
+    if (!secretNostrKey || !recipientPubKeyHex) {
+      throw new Error('Invalid nsec or recipient npub')
+    }
+
+    const encrypted = await nip04Encrypt(
+      secretNostrKey,
+      recipientPubKeyHex,
+      content
+    )
+    const signed = finalizeEvent(
+      {
+        content: encrypted,
+        created_at: Math.floor(Date.now() / 1000),
+        kind: 4,
+        tags: [['p', recipientPubKeyHex]]
+      },
+      secretNostrKey
+    )
+    const tempNdk = new NDK({
+      autoConnectUserRelays: false,
+      enableOutboxModel: false
+    })
+    return new NDKEvent(tempNdk, signed)
+  }
+
+  /**
+   * Subscribes to legacy NIP-04 DMs involving the given identity — both
+   * addressed to it and authored by it (other-device sends). Decrypts each
+   * event before invoking the callback.
+   */
+  async subscribeToKind4(
+    recipientNsec: string,
+    recipientNpub: string,
+    onMessage: (message: {
+      content: string
+      createdAt: number
+      direction: 'in' | 'out'
+      id: string
+      peerPubkey: string
+    }) => void,
+    since?: number
+  ): Promise<void> {
+    await this.connect()
+    if (!this.ndk) {
+      throw new Error('Failed to connect to relays')
+    }
+
+    const secretNostrKey = getSecretFromNsec(recipientNsec)
+    const ownPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
+    if (!secretNostrKey || !ownPubKeyHex) {
+      return
+    }
+
+    const filters: NDKFilter[] = [
+      { '#p': [ownPubKeyHex], kinds: [4], ...(since && { since }) },
+      { authors: [ownPubKeyHex], kinds: [4], ...(since && { since }) }
+    ]
+
+    let subscription: NDKSubscription | undefined
+    try {
+      subscription = this.ndk?.subscribe(filters, {
+        closeOnEose: false
+      }) as NDKSubscription | undefined
+    } catch {
+      return
+    }
+    if (subscription) {
+      this.activeSubscriptions.add(subscription)
+    }
+
+    subscription?.on('event', async (event) => {
+      try {
+        const isOwn = event.pubkey === ownPubKeyHex
+        const peerTag = event.tags.find((t) => t[0] === 'p')?.[1]
+        const peerPubkey = isOwn ? (peerTag ?? '') : event.pubkey
+        if (!peerPubkey || !/^[0-9a-f]{64}$/.test(peerPubkey)) {
+          return
+        }
+        const plaintext = await nip04Decrypt(
+          secretNostrKey,
+          peerPubkey,
+          event.content
+        )
+        onMessage({
+          content: plaintext,
+          createdAt: event.created_at ?? 0,
+          direction: isOwn ? 'out' : 'in',
+          id: event.id,
+          peerPubkey
+        })
+      } catch (error) {
+        // Undecryptable or malformed kind-4 events are ignored by design,
+        // but log so real failures are diagnosable.
+        // eslint-disable-next-line no-console
+        console.warn('[nostr] kind4 event processing failed:', error)
+      }
+    })
   }
 
   // 20 second timeout per relay for publish operations
@@ -1596,6 +1636,80 @@ export class NostrAPI {
     }
   }
 
+  /**
+   * Waits until at least one pool relay is connected (deadline-bounded).
+   * NDKRelay.publish rejects queued publishes after ~2.5s, so publishing to
+   * sockets still mid-handshake fails on slow mobile TLS even though they
+   * would have connected a moment later. Once one relay is up, a short grace
+   * period lets more join for redundancy.
+   */
+  private async waitForConnectedRelays(
+    deadlineMs = 8_000,
+    graceMs = 750
+  ): Promise<
+    { publish: (event: NDKEvent) => Promise<unknown>; url: string }[]
+  > {
+    const pool = this.ndk?.pool
+    if (!pool) {
+      return []
+    }
+    const deadline = Date.now() + deadlineMs
+    let connected = pool.connectedRelays()
+    while (connected.length === 0 && Date.now() < deadline) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250)
+      })
+      connected = pool.connectedRelays()
+    }
+    if (connected.length > 0) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, graceMs)
+      })
+      connected = pool.connectedRelays()
+    }
+    return connected
+  }
+
+  /** Currently connected relay urls (diagnostics/observability). */
+  getConnectedRelayUrls(): string[] {
+    return this.ndk?.pool?.connectedRelays().map((relay) => relay.url) ?? []
+  }
+
+  /**
+   * Liveness probe: opens a short subscription for an impossible filter and
+   * reports whether any relay answered (EOSE) before the deadline. Sockets
+   * can rot silently — "connected" in the pool does not prove liveness.
+   */
+  async probeLiveness(timeoutMs = 8_000): Promise<boolean> {
+    await this.connect()
+    if (!this.ndk) {
+      return false
+    }
+    return new Promise((resolve) => {
+      let settled = false
+      function finish(value: boolean) {
+        if (settled) {
+          return
+        }
+        settled = true
+        resolve(value)
+      }
+      const sub = this.ndk!.subscribe(
+        { authors: ['0'.repeat(64)], kinds: [0], limit: 1 } as never,
+        { closeOnEose: false }
+      )
+      const timer = setTimeout(() => {
+        sub.stop()
+        finish(false)
+      }, timeoutMs)
+      sub.on('eose', () => {
+        clearTimeout(timer)
+        sub.stop()
+        finish(true)
+      })
+    })
+  }
+
   async publishEvent(event: NDKEvent): Promise<void> {
     if (!this.ndk) {
       await this.connect()
@@ -1616,39 +1730,75 @@ export class NostrAPI {
       await event.sign(signer)
     }
 
-    const allRelayUrls = Array.from(this.ndk.pool.relays.keys())
-    if (allRelayUrls.length === 0) {
-      throw new Error('No relays in pool')
+    const connectedRelays = await this.waitForConnectedRelays()
+    if (connectedRelays.length === 0) {
+      const total = this.ndk.pool.relays.size
+      throw new Error(
+        `No relay connections established (0/${total}) — check network or VPN`
+      )
     }
 
-    const publishPromises = allRelayUrls.map(async (url) => {
-      const relay = this.ndk?.pool.relays.get(url)
-      if (!relay) {
-        return { error: 'Relay not found', success: false as const, url }
-      }
-
-      try {
-        const timeoutPromise = new Promise<never>((_resolve, reject) => {
-          setTimeout(
-            () =>
-              reject(
-                new Error(
-                  `Publish timeout after ${NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS}ms`
-                )
-              ),
-            NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS
-          )
+    const publishTo = (
+      relays: { publish: (event: NDKEvent) => Promise<unknown>; url: string }[]
+    ) =>
+      Promise.all(
+        relays.map(async (relay) => {
+          try {
+            const timeoutPromise = new Promise<never>((_resolve, reject) => {
+              setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      `Publish timeout after ${NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS}ms`
+                    )
+                  ),
+                NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS
+              )
+            })
+            await Promise.race([relay.publish(event), timeoutPromise])
+            return { success: true as const, url: relay.url }
+          } catch (error) {
+            const errorMsg =
+              error instanceof Error ? error.message : String(error)
+            return { error: errorMsg, success: false as const, url: relay.url }
+          }
         })
-        await Promise.race([relay.publish(event), timeoutPromise])
-        return { success: true as const, url }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error)
-        return { error: errorMsg, success: false as const, url }
-      }
-    })
+      )
 
-    const results = await Promise.all(publishPromises)
+    let results = await publishTo(connectedRelays)
+    const succeeded = new Set(
+      results.filter((r) => r.success).map((r) => r.url)
+    )
+    const intendedUrls = [...this.ndk.pool.relays.values()].map(
+      (relay) => relay.url
+    )
+    const missed = intendedUrls.filter((url) => !succeeded.has(url))
+    if (missed.length > 0) {
+      const retryConnected = await this.waitForConnectedRelays(4_000, 250)
+      const retryTargets = retryConnected.filter(
+        (relay) => !succeeded.has(relay.url)
+      )
+      if (retryTargets.length > 0) {
+        results = [...results, ...(await publishTo(retryTargets))]
+      }
+    }
+
     const successfulPublishes = results.filter((r) => r.success)
+    const succeededUrls = new Set(successfulPublishes.map((r) => r.url))
+    const failedPublishes = results.filter(
+      (r) => !r.success && !succeededUrls.has(r.url)
+    )
+    const attemptedUrls = new Set(results.map((r) => r.url))
+    const skippedUrls = intendedUrls.filter((url) => !attemptedUrls.has(url))
+
+    if (failedPublishes.length > 0 || skippedUrls.length > 0) {
+      // eslint-disable-next-line no-console
+      console.warn('[nostr] publish incomplete', {
+        failed: failedPublishes.map((r) => `${r.url}: ${r.error}`),
+        ok: successfulPublishes.map((r) => r.url),
+        skipped: skippedUrls
+      })
+    }
 
     if (successfulPublishes.length === 0) {
       const errors = results.map((r) => `${r.url}: ${r.error}`).join('; ')

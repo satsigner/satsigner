@@ -174,6 +174,8 @@ export default function SetPin() {
     setSkipPin(false)
     setRequirePinMigration(false)
 
+    // First-ever PIN set has no stored digest; getCurrentPin() returns null
+    // there. Only an existing digest means accounts may need re-encrypting.
     const currentPinEncrypted = await getCurrentPin()
     const material = await preparePinMaterial(pinArray.join(''))
     if (currentPinEncrypted && currentPinEncrypted !== material.digest) {

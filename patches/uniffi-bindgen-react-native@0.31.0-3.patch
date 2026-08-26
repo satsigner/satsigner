@@ -1,0 +1,14 @@
+diff --git a/package.json b/package.json
+index 16a7d72113e3564eb5fea6e3c9148aa1cd85202c..c9ce317708d87331bbb6d146724c767a40714edc 100644
+--- a/package.json
++++ b/package.json
+@@ -20,7 +20,8 @@
+       "types": "./typescript/dist/esm/index.d.ts",
+       "import": "./typescript/dist/esm/index.js",
+       "require": "./typescript/dist/cjs/index.js"
+-    }
++    },
++    "./package.json": "./package.json"
+   },
+   "bin": {
+     "ubrn": "./bin/cli.cjs",

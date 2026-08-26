@@ -13,7 +13,8 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import {
   nostrAccountProfileHref,
-  nostrAddIdentityHref
+  nostrAddIdentityHref,
+  nostrGlobalRelaysHref
 } from '@/utils/nostrNavigation'
 
 export default function NostrLanding() {
@@ -50,6 +51,10 @@ export default function NostrLanding() {
 
   function handleAddIdentity() {
     router.navigate(nostrAddIdentityHref())
+  }
+
+  function handleManageRelays() {
+    router.navigate(nostrGlobalRelaysHref())
   }
 
   function handleSelectIdentity(npub: string) {
@@ -136,6 +141,12 @@ export default function NostrLanding() {
             </SSVStack>
           </ScrollView>
           <SSVStack gap="sm" style={styles.buttonRow}>
+            <SSButton
+              label={t('nostrIdentity.landing.relays')}
+              onPress={handleManageRelays}
+              variant="ghost"
+              style={styles.relayToggleButton}
+            />
             <SSButton
               label={
                 anyRelayConnected
