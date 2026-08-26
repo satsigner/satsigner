@@ -8,13 +8,38 @@ import type {
 export type EcashBackupPayload = {
   version: string
   timestamp: string
+  accountId?: string
   proofs?: EcashProof[]
   totalBalance?: number
   mints?: EcashMint[]
   transactions?: Partial<EcashTransaction>[]
 }
 
+export function collectMintUrlsForRestore(
+  mints: Pick<EcashMint, 'url'>[],
+  proofs: Pick<EcashProof, 'mintUrl'>[],
+  extraUrl?: string
+): string[] {
+  const urls = new Set<string>()
+  for (const mint of mints) {
+    if (mint.url.length > 0) {
+      urls.add(mint.url)
+    }
+  }
+  for (const proof of proofs) {
+    if (proof.mintUrl.length > 0) {
+      urls.add(proof.mintUrl)
+    }
+  }
+  const trimmedExtra = extraUrl?.trim()
+  if (trimmedExtra) {
+    urls.add(trimmedExtra)
+  }
+  return [...urls]
+}
+
 export function buildEcashBackupPayload({
+  accountId,
   proofs,
   mints,
   transactions,
@@ -22,6 +47,7 @@ export function buildEcashBackupPayload({
   includeMintInformation,
   includeTransactionHistory
 }: {
+  accountId?: string
   proofs: EcashProof[]
   mints: EcashMint[]
   transactions: EcashTransaction[]
@@ -34,6 +60,30 @@ export function buildEcashBackupPayload({
     version: ECASH_BACKUP_VERSION
   }
 
+  if (accountId) {
+    data.accountId = accountId
+  }
+
+  // Always persist every mint on this account so restore can scan all of them.
+  data.mints = mints.map((mint) =>
+    includeMintInformation
+      ? {
+          balance: mint.balance,
+          isConnected: mint.isConnected,
+          keysets: mint.keysets,
+          lastSync: mint.lastSync,
+          name: mint.name,
+          url: mint.url
+        }
+      : {
+          balance: mint.balance,
+          isConnected: mint.isConnected,
+          keysets: [],
+          name: mint.name,
+          url: mint.url
+        }
+  )
+
   if (includeTokenProofs) {
     data.proofs = proofs.map((proof) => ({
       C: proof.C,
@@ -43,17 +93,6 @@ export function buildEcashBackupPayload({
       secret: proof.secret
     }))
     data.totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
-  }
-
-  if (includeMintInformation) {
-    data.mints = mints.map((mint) => ({
-      balance: mint.balance,
-      isConnected: mint.isConnected,
-      keysets: mint.keysets,
-      lastSync: mint.lastSync,
-      name: mint.name,
-      url: mint.url
-    }))
   }
 
   if (includeTransactionHistory) {

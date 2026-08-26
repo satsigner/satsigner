@@ -38,7 +38,10 @@ import type {
 } from '@/types/models/Ecash'
 import { mnemonicToSeed } from '@/utils/bip39'
 import { randomKey } from '@/utils/crypto'
-import { normalizeRestoredProofs } from '@/utils/ecashBackup'
+import {
+  collectMintUrlsForRestore,
+  normalizeRestoredProofs
+} from '@/utils/ecashBackup'
 import { selectMintRoute } from '@/utils/ecashMintRoute'
 import {
   proofsAfterMelt,
@@ -664,9 +667,18 @@ export function useEcash() {
     }
   }
 
-  async function restoreFromSeedHandler(mintUrl: string): Promise<{
+  function restoreFromSeedHandler(mintUrl: string): Promise<{
     proofsFound: number
     totalAmount: number
+  }> {
+    return restoreFromSeedMintsHandler([mintUrl])
+  }
+
+  async function restoreFromSeedMintsHandler(mintUrls: string[]): Promise<{
+    proofsFound: number
+    totalAmount: number
+    mintsScanned: number
+    mintsFailed: number
   }> {
     if (!activeAccountId || !activeAccount?.hasSeed) {
       throw new Error('Account has no seed for recovery')
@@ -677,44 +689,101 @@ export function useEcash() {
       throw new Error('Could not retrieve seed')
     }
 
-    const counterInit = buildCounterInit(counters)
-    const result = await restoreProofsFromSeed(
-      activeAccountId,
-      mintUrl,
-      seed,
-      counterInit
-    )
-
-    if (result.proofs.length > 0) {
-      addProofsAction(activeAccountId, result.proofs)
-      const totalAmount = result.proofs.reduce((s, p) => s + p.amount, 0)
-      updateMintBalance(
-        activeAccountId,
-        mintUrl,
-        getMintBalance(mintUrl, [...proofs, ...result.proofs])
+    const uniqueUrls = [
+      ...new Set(
+        mintUrls.map((url) => url.trim()).filter((url) => url.length > 0)
       )
+    ]
 
-      if (result.lastCounter !== undefined) {
-        const activeKeyset = mints
-          .find((m) => m.url === mintUrl)
-          ?.keysets.find((ks) => ks.active)
-        if (activeKeyset) {
-          const updatedCounters = [
-            ...counters.filter((c) => c.keysetId !== activeKeyset.id),
-            { counter: result.lastCounter + 1, keysetId: activeKeyset.id }
-          ]
-          updateCountersAction(activeAccountId, updatedCounters)
+    let proofsFound = 0
+    let totalAmount = 0
+    let mintsFailed = 0
+
+    for (const mintUrl of uniqueUrls) {
+      const store = useEcashStore.getState()
+      const accountMints = store.mints[activeAccountId] ?? []
+      const accountCounters = store.counters[activeAccountId] ?? []
+
+      try {
+        const mintAlreadyListed = accountMints.some(
+          (mint) => mint.url === mintUrl
+        )
+        if (!mintAlreadyListed) {
+          const mint = await connectToMint(mintUrl)
+          addMintAction(activeAccountId, mint)
         }
-      }
 
-      toast.success(
-        t('ecash.success.proofsRestored', { count: result.proofs.length })
-      )
-      return { proofsFound: result.proofs.length, totalAmount }
+        const latestCounters =
+          useEcashStore.getState().counters[activeAccountId] ?? accountCounters
+        const result = await restoreProofsFromSeed(
+          activeAccountId,
+          mintUrl,
+          seed,
+          buildCounterInit(latestCounters)
+        )
+
+        if (result.proofs.length === 0) {
+          continue
+        }
+
+        addProofsAction(activeAccountId, result.proofs)
+        proofsFound += result.proofs.length
+        totalAmount += result.proofs.reduce(
+          (sum, proof) => sum + proof.amount,
+          0
+        )
+
+        const latestProofs =
+          useEcashStore.getState().proofs[activeAccountId] ?? []
+        updateMintBalance(
+          activeAccountId,
+          mintUrl,
+          getMintBalance(mintUrl, latestProofs)
+        )
+
+        if (result.lastCounter === undefined) {
+          continue
+        }
+
+        const restoredMint = (
+          useEcashStore.getState().mints[activeAccountId] ?? []
+        ).find((mint) => mint.url === mintUrl)
+        const activeKeyset = restoredMint?.keysets.find((ks) => ks.active)
+        if (!activeKeyset) {
+          continue
+        }
+
+        const countersNow =
+          useEcashStore.getState().counters[activeAccountId] ?? []
+        updateCountersAction(activeAccountId, [
+          ...countersNow.filter((c) => c.keysetId !== activeKeyset.id),
+          { counter: result.lastCounter + 1, keysetId: activeKeyset.id }
+        ])
+      } catch {
+        mintsFailed += 1
+      }
     }
 
-    toast.info(t('ecash.info.noProofsFound'))
-    return { proofsFound: 0, totalAmount: 0 }
+    if (proofsFound > 0) {
+      toast.success(t('ecash.success.proofsRestored', { count: proofsFound }))
+    } else if (mintsFailed === uniqueUrls.length && uniqueUrls.length > 0) {
+      toast.error(t('ecash.recovery.restoreAllFailed'))
+    } else {
+      toast.info(t('ecash.info.noProofsFound'))
+    }
+
+    return {
+      mintsFailed,
+      mintsScanned: uniqueUrls.length,
+      proofsFound,
+      totalAmount
+    }
+  }
+
+  function restoreAllAccountMintsFromSeed(extraUrl?: string) {
+    return restoreFromSeedMintsHandler(
+      collectMintUrlsForRestore(mints, proofs, extraUrl)
+    )
   }
 
   async function validateToken(
@@ -927,6 +996,7 @@ export function useEcash() {
     receiveEcash: receiveEcashHandler,
     removeAccount,
     renameAccount,
+    restoreAllAccountMintsFromSeed,
     restoreFromBackup: restoreFromBackupHandler,
     restoreFromSeed: restoreFromSeedHandler,
     resumePollingForTransaction,

@@ -1,7 +1,7 @@
-import { ECASH_BACKUP_VERSION } from '@/constants/ecash'
 import { type EcashMint, type EcashProof } from '@/types/models/Ecash'
 import {
   buildEcashBackupPayload,
+  collectMintUrlsForRestore,
   normalizeRestoredProofs
 } from '@/utils/ecashBackup'
 
@@ -19,18 +19,42 @@ function mint(url: string): EcashMint {
 }
 
 describe('ecash backup', () => {
-  it('exports mintUrl on every proof', () => {
+  it('always exports every mint on the account', () => {
     const payload = buildEcashBackupPayload({
+      accountId: 'acc-1',
       includeMintInformation: false,
       includeTokenProofs: true,
       includeTransactionHistory: false,
-      mints: [mint('https://a.example')],
-      proofs: [proof('s1', 'https://a.example')],
+      mints: [mint('https://a.example'), mint('https://b.example')],
+      proofs: [
+        proof('s1', 'https://a.example'),
+        proof('s2', 'https://b.example')
+      ],
       transactions: []
     })
 
-    expect(payload.version).toBe(ECASH_BACKUP_VERSION)
+    expect(payload.accountId).toBe('acc-1')
+    expect(payload.mints).toHaveLength(2)
+    expect(payload.mints?.map((item) => item.url)).toStrictEqual([
+      'https://a.example',
+      'https://b.example'
+    ])
     expect(payload.proofs?.[0].mintUrl).toBe('https://a.example')
+    expect(payload.proofs?.[1].mintUrl).toBe('https://b.example')
+  })
+
+  it('collects mint urls from mints, proofs, and an extra url', () => {
+    const urls = collectMintUrlsForRestore(
+      [mint('https://a.example')],
+      [proof('s1', 'https://a.example'), proof('s2', 'https://b.example')],
+      ' https://c.example '
+    )
+
+    expect(urls).toStrictEqual([
+      'https://a.example',
+      'https://b.example',
+      'https://c.example'
+    ])
   })
 
   it('backfills mintUrl from a single mint', () => {

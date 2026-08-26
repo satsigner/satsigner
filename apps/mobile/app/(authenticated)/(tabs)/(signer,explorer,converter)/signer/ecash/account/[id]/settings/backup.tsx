@@ -21,7 +21,7 @@ import { buildEcashBackupPayload } from '@/utils/ecashBackup'
 import { formatNumber } from '@/utils/format'
 
 export default function EcashBackupPage() {
-  const { mints, proofs, transactions } = useEcash()
+  const { activeAccountId, mints, proofs, transactions } = useEcash()
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
@@ -39,6 +39,7 @@ export default function EcashBackupPage() {
     try {
       const jsonData = JSON.stringify(
         buildEcashBackupPayload({
+          accountId: activeAccountId ?? undefined,
           includeMintInformation,
           includeTokenProofs,
           includeTransactionHistory,
