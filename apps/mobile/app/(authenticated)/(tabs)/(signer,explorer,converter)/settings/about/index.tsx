@@ -51,6 +51,17 @@ export default function About() {
                 <SSIconChevronRight height={11.6} width={6} />
               </SSHStack>
             </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.5}
+              onPress={() => router.navigate('/settings/securityReport')}
+            >
+              <SSHStack justifyBetween>
+                <SSText uppercase>
+                  {t('settings.about.securityReport.title')}
+                </SSText>
+                <SSIconChevronRight height={11.6} width={6} />
+              </SSHStack>
+            </TouchableOpacity>
             <SSSeparator />
             <SSText
               size="xs"
@@ -74,12 +85,12 @@ export default function About() {
             <SSText size="md" uppercase>
               {t('settings.about.followProject')}
             </SSText>
-            <SSVStack gap="sm">
+            <SSHStack gap="lg">
               <TouchableOpacity
                 activeOpacity={0.5}
                 onPress={() => openUrl(NOSTR_PROFILE_URL)}
               >
-                <SSHStack gap="sm">
+                <SSHStack gap="sm" style={styles.followLink}>
                   <SSIconNostr width={16} height={16} />
                   <SSText>{t('settings.about.nostr')}</SSText>
                 </SSHStack>
@@ -88,12 +99,12 @@ export default function About() {
                 activeOpacity={0.5}
                 onPress={() => openUrl(X_PROFILE_URL)}
               >
-                <SSHStack gap="sm">
+                <SSHStack gap="sm" style={styles.followLink}>
                   <SSIconX width={16} height={16} />
                   <SSText>{t('settings.about.x')}</SSText>
                 </SSHStack>
               </TouchableOpacity>
-            </SSVStack>
+            </SSHStack>
           </SSVStack>
         </SSVStack>
       </SSMainLayout>
@@ -109,6 +120,9 @@ const styles = StyleSheet.create({
   chapterRow: {
     alignItems: 'center',
     paddingVertical: 4
+  },
+  followLink: {
+    alignItems: 'center'
   },
   sectionLabel: {
     letterSpacing: 1,

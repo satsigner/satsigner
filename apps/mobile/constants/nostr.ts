@@ -70,6 +70,42 @@ export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 
 // RELAYS
 export const NOSTR_RELAY_PROTOCOL_PREFIX = 'wss://'
+
+// Project security-report contact from SECURITY.md — default recipient of the
+// diagnostics live roundtrip so the check exercises the real report channel.
+export const NOSTR_SECURITY_REPORT_NPUB =
+  'npub1ewv0j6l7fplmadqmcmdywkff2snham403sensqlqavymt7fx7jfs58e60d'
+
+// Well-known DM-capable relays (no PoW- or pay-gated publishing) used by the
+// security/bug report form and by the diagnostics live roundtrip when the
+// user has not configured relays yet.
+export const NOSTR_LIVE_CHECK_FALLBACK_RELAYS = [
+  'wss://relay.damus.io',
+  'wss://relay.nostr.band',
+  'wss://offchain.pub',
+  'wss://relay.primal.net',
+  'wss://premium.primal.net',
+  'wss://relay.0xchat.com',
+  'wss://relay.snort.social',
+  'wss://nostr.mom',
+  'wss://relay.nostr.bg',
+  'wss://relay.nostrich.house',
+  'wss://relay.hodlbod.com',
+  'wss://relay.orangepill.dev',
+  'wss://nostr.bitcoiner.social'
+]
+
+// Indexer relays used as the second tier for kind-0 profile fetches when the
+// user's own relays don't have a profile (see utils/nostrProfileFetcher.ts).
+export const NOSTR_INDEXER_RELAYS = [
+  'wss://indexer.coracle.social',
+  'wss://relay.nos.social',
+  'wss://nos.lol',
+  'wss://indexer.nostrarchives.com',
+  'wss://relay.damus.io',
+  'wss://relay.primal.net'
+]
+
 export const NOSTR_RELAYS: NostrRelay[] = [
   { name: '0xchat', url: 'wss://relay.0xchat.com' },
   { name: 'Agora', url: 'wss://relay.agora.social' },

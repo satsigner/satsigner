@@ -28,8 +28,10 @@ export function useNostrContacts(
   const queryKey = nostrKeys.contacts(npub ?? '', relaysKey)
   const hasFollowCache = Boolean(npub && getNostrFollowCache(npub)?.length)
 
+  const enabled = Boolean(npub && contactsRelays.length > 0)
+
   const query = useQuery({
-    enabled: Boolean(npub && contactsRelays.length > 0),
+    enabled,
     placeholderData: npub ? getNostrContactsPlaceholder(npub) : undefined,
     queryFn: ({ signal }) => {
       if (!npub) {

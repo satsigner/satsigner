@@ -134,7 +134,7 @@ export default function NostrRelays() {
                 label={t('nostrIdentity.relays.addCustom')}
                 variant="secondary"
                 onPress={handleAddCustomRelay}
-                disabled={!customRelayUrl.match(/^[a-z0-9]+\.[a-z0-9]+/i)}
+                disabled={!customRelayUrl.match(/^[a-z0-9-]+\.[a-z0-9.-]+/i)}
               />
             </SSVStack>
           </SSVStack>

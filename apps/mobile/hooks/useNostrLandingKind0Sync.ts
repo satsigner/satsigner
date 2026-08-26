@@ -5,6 +5,7 @@ import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
 import { getCachedProfile } from '@/db/nostrCache'
 import { type NostrIdentity } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 
 type UseNostrLandingKind0SyncArgs = {
   identities: NostrIdentity[]
@@ -58,7 +59,7 @@ export function useNostrLandingKind0Sync({
           continue
         }
       }
-      const effectiveRelays = identity.relays ?? relays
+      const effectiveRelays = getNostrIdentityRelays(identity.relays, relays)
       if (effectiveRelays.length > 0) {
         missIdentities.push(identity)
       }
@@ -75,7 +76,7 @@ export function useNostrLandingKind0Sync({
       { groupIdentities: NostrIdentity[]; groupRelays: string[] }
     >()
     for (const identity of missIdentities) {
-      const groupRelays = identity.relays ?? relays
+      const groupRelays = getNostrIdentityRelays(identity.relays, relays)
       const key = JSON.stringify([...groupRelays].toSorted())
       const existing = relayGroups.get(key)
       if (existing) {

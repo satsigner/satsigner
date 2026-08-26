@@ -18,3 +18,4 @@ overrides:
   react-dom: 19.2.3
 patchedDependencies:
   react-native-draggable-flatlist@4.0.3: patches/react-native-draggable-flatlist@4.0.3.patch
+  uniffi-bindgen-react-native@0.31.0-3: patches/uniffi-bindgen-react-native@0.31.0-3.patch

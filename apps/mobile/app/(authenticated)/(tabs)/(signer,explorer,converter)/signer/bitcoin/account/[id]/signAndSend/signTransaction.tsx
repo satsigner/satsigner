@@ -68,7 +68,10 @@ import {
   parsePayjoinUri
 } from '@/utils/payjoinUri'
 import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
-import { extractTransactionDataFromPSBT } from '@/utils/psbt'
+import {
+  extractTransactionDataFromPSBT,
+  extractTransactionIdFromPSBT
+} from '@/utils/psbt'
 import {
   buildKnownTxIds,
   buildOutpointLabelsByRef,
@@ -130,6 +133,19 @@ function buildSignTransactionChartModel(
     ? extractTransactionDataFromPSBT(psbtBase64, appNetwork)
     : null
 
+  // Derive the id from the PSBT bytes (ground truth). The store's psbt may
+  // be a mock or a foreign Psbt implementation — txid() is not guaranteed.
+  if (__DEV__ && typeof psbt.txid !== 'function') {
+    // eslint-disable-next-line no-console
+    console.warn('[signTransaction] psbt without txid():', {
+      keys: Object.keys(psbt),
+      type: typeof psbt
+    })
+  }
+  const txid =
+    (psbtBase64 ? extractTransactionIdFromPSBT(psbtBase64) : '') ||
+    (typeof psbt.txid === 'function' ? psbt.txid() : '')
+
   if (extracted && extracted.inputs.length > 0) {
     const vin = extracted.inputs.map((input) => {
       const storeInput = inputs.get(
@@ -167,7 +183,7 @@ function buildSignTransactionChartModel(
 
     return {
       fee: extracted.fee,
-      id: psbt.txid(),
+      id: txid,
       lockTimeEnabled: false,
       prices: {},
       received: 0,
@@ -198,7 +214,7 @@ function buildSignTransactionChartModel(
   }))
 
   return {
-    id: psbt.txid(),
+    id: txid,
     lockTimeEnabled: false,
     prices: {},
     received: 0,
@@ -355,6 +371,19 @@ export default function SignTransaction() {
         rawTx,
         selectedNetwork
       )
+
+  // The store's psbt may be a mock without txid() — derive from the PSBT
+  // bytes first, same ground-truth rule as the chart model.
+  const displayTxid = (() => {
+    if (!psbt) {
+      return ''
+    }
+    const base64 = typeof psbt.toBase64 === 'function' ? psbt.toBase64() : ''
+    return (
+      (base64 ? extractTransactionIdFromPSBT(base64) : '') ||
+      (typeof psbt.txid === 'function' ? psbt.txid() : '')
+    )
+  })()
 
   function handleBroadcastSingleSig() {
     if (!psbt || !wallet) {
@@ -923,7 +952,7 @@ export default function SignTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {t('transaction.id')}
                 </SSText>
-                <SSTransactionIdFormatted size="lg" value={psbt.txid()} />
+                <SSTransactionIdFormatted size="lg" value={displayTxid} />
               </SSVStack>
 
               <SSVStack gap="xxs">

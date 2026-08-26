@@ -218,7 +218,8 @@ class BaseElectrumClient {
     const { network } = this
     const script = bitcoinjs.address.toOutputScript(address, network)
     const hash = bitcoinjs.crypto.sha256(script)
-    const reversedHash = new Buffer(hash.toReversed())
+    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+    const reversedHash = Buffer.from(hash).reverse()
     const scriptHash = reversedHash.toString('hex')
     return scriptHash
   }

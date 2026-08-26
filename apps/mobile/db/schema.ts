@@ -277,9 +277,32 @@ const SCHEMA_V8 = `
 ALTER TABLE accounts ADD COLUMN excluded_utxo_outpoints TEXT DEFAULT '[]'
 `
 
+// Person-to-person DM history for the nostr identity chat (NIP-04 + NIP-17).
+// Content is stored as local plaintext; the envelope-encrypted variant lands
+// with the chat plan's storage hardening phase.
+const SCHEMA_V9 = `
+CREATE TABLE IF NOT EXISTS nostr_chat_messages (
+  id TEXT NOT NULL,
+  identity_npub TEXT NOT NULL,
+  peer_pubkey TEXT NOT NULL,
+  protocol TEXT NOT NULL,
+  direction TEXT NOT NULL,
+  content TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'sent',
+  read INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (id, identity_npub)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ncm_thread
+  ON nostr_chat_messages(identity_npub, protocol, peer_pubkey, created_at);
+CREATE INDEX IF NOT EXISTS idx_ncm_unread
+  ON nostr_chat_messages(identity_npub, read) WHERE read = 0
+`
+
 // Existing accounts default to 0 so they keep sorting before newly created
 // accounts, which are assigned the 1000 sentinel in the account builder store.
-const SCHEMA_V9 = `
+const SCHEMA_V10 = `
 ALTER TABLE accounts ADD COLUMN display_index INTEGER NOT NULL DEFAULT 0
 `
 
@@ -292,7 +315,8 @@ const SCHEMAS = [
   SCHEMA_V6,
   SCHEMA_V7,
   SCHEMA_V8,
-  SCHEMA_V9
+  SCHEMA_V9,
+  SCHEMA_V10
 ]
 const CURRENT_VERSION = SCHEMAS.length
 
