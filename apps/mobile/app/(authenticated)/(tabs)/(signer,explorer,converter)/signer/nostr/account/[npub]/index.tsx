@@ -26,6 +26,7 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors, Layout } from '@/styles'
 import { type NostrRelayConnectionInfo } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 import {
   nostrAccountHref,
   nostrNoteHref,
@@ -47,9 +48,7 @@ export default function NostrAccountLanding() {
   const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
 
   const effectiveRelays = identity
-    ? identity.relays?.length
-      ? identity.relays
-      : relays
+    ? getNostrIdentityRelays(identity.relays, relays)
     : []
 
   const relayConnected = identity?.relayConnected === true

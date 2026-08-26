@@ -1,9 +1,16 @@
+import { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { ActivityIndicator, StyleSheet } from 'react-native'
+import { useMemo, useState } from 'react'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { toast } from 'sonner-native'
 
+import { NostrAPI } from '@/api/nostr'
+import SSButton from '@/components/SSButton'
 import SSNostrContactList from '@/components/SSNostrContactList'
 import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import { NOSTR_RELAYS } from '@/constants/nostr'
 import { useNostrContacts } from '@/hooks/useNostrContacts'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -11,6 +18,7 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import { type NostrContactItem } from '@/types/models/Nostr'
+import { getSecretFromNsec } from '@/utils/nostr'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 import { nostrContactProfileHref } from '@/utils/nostrNavigation'
 
@@ -26,6 +34,9 @@ export default function NostrContacts() {
     state.identities.find((i) => i.npub === npub)
   )
 
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isPublishing, setIsPublishing] = useState(false)
+
   const contactsRelays = getNostrContactsRelays(identity?.relays)
 
   const {
@@ -37,9 +48,89 @@ export default function NostrContacts() {
     relaysQueried
   } = useNostrContacts(npub, contactsRelays)
 
+  const trimmedQuery = searchQuery.trim().toLowerCase()
+
+  const filteredContacts = useMemo(() => {
+    if (!trimmedQuery) {
+      return contacts
+    }
+    return contacts.filter((contact) => {
+      const displayName = contact.profile?.displayName?.toLowerCase() ?? ''
+      const nip05 = contact.profile?.nip05?.toLowerCase() ?? ''
+      return (
+        displayName.includes(trimmedQuery) ||
+        nip05.includes(trimmedQuery) ||
+        nip19.npubEncode(contact.pubkey).includes(trimmedQuery)
+      )
+    })
+  }, [contacts, trimmedQuery])
+
   function handleContactPress(item: NostrContactItem) {
     const contactNpub = nip19.npubEncode(item.pubkey)
     router.navigate(nostrContactProfileHref(npub, contactNpub))
+  }
+
+  async function handlePublishKind3() {
+    if (!identity?.nsec || !npub) {
+      return
+    }
+
+    const secretKey = getSecretFromNsec(identity.nsec)
+    if (!secretKey) {
+      toast.error(t('nostrIdentity.error.missingKeys'))
+      return
+    }
+
+    const identityRelayUrls = new Set(contactsRelays)
+    const otherRelays = NOSTR_RELAYS.map((r) => r.url).filter(
+      (url) => !identityRelayUrls.has(url)
+    )
+
+    if (otherRelays.length === 0) {
+      toast(t('nostrIdentity.contacts.noOtherRelays'))
+      return
+    }
+
+    setIsPublishing(true)
+    try {
+      const sourceApi = new NostrAPI(contactsRelays)
+      const result = await sourceApi.fetchKind3FollowingPubkeys(npub)
+
+      if (!result.kind3Found || result.pubkeys.length === 0) {
+        toast.error(t('nostrIdentity.contacts.kind3NotFoundNoConn'))
+        return
+      }
+
+      const tags = result.pubkeys.map((pk) => ['p', pk] as string[])
+
+      const targetApi = new NostrAPI(otherRelays)
+      await targetApi.connectForPublish()
+
+      const signer = new NDKPrivateKeySigner(secretKey)
+      const event = new NDKEvent(undefined, {
+        content: '',
+        kind: NDKKind.Contacts,
+        tags
+      })
+      await event.sign(signer)
+
+      await targetApi.publishEvent(event)
+
+      toast.success(
+        t('nostrIdentity.contacts.publishSuccess', {
+          count: result.pubkeys.length,
+          relays: otherRelays.length
+        })
+      )
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t('nostrIdentity.contacts.publishError')
+      )
+    } finally {
+      setIsPublishing(false)
+    }
   }
 
   return (
@@ -51,40 +142,70 @@ export default function NostrContacts() {
           )
         }}
       />
-      {isLoading && contacts.length === 0 ? (
-        <SSVStack itemsCenter style={styles.center}>
-          <ActivityIndicator color={Colors.gray[400]} />
-        </SSVStack>
-      ) : isError ? (
-        <SSVStack itemsCenter gap="sm" style={styles.center}>
-          <SSText color="muted" size="sm">
-            {t('nostrIdentity.account.relayAllFailed')}
-          </SSText>
-          <RelayList relays={contactsRelays} />
-        </SSVStack>
-      ) : !kind3Found ? (
-        <SSVStack itemsCenter gap="sm" style={styles.center}>
-          <SSText color="muted" size="sm">
-            {connectedRelayCount === 0
-              ? t('nostrIdentity.contacts.kind3NotFoundNoConn')
-              : t('nostrIdentity.contacts.kind3NotFound', {
-                  connected: connectedRelayCount,
-                  total: relaysQueried.length
-                })}
-          </SSText>
-          <RelayList
-            relays={relaysQueried.length > 0 ? relaysQueried : contactsRelays}
+      <SSVStack gap="md" style={styles.container}>
+        <SSTextInput
+          placeholder={t('nostrIdentity.contacts.searchPlaceholder')}
+          value={searchQuery}
+          align="left"
+          onChangeText={setSearchQuery}
+        />
+        <View style={styles.listContainer}>
+          {isLoading && contacts.length === 0 ? (
+            <SSVStack itemsCenter style={styles.center}>
+              <ActivityIndicator color={Colors.gray[400]} />
+            </SSVStack>
+          ) : isError ? (
+            <SSVStack itemsCenter gap="sm" style={styles.center}>
+              <SSText color="muted" size="sm">
+                {t('nostrIdentity.account.relayAllFailed')}
+              </SSText>
+              <RelayList relays={contactsRelays} />
+            </SSVStack>
+          ) : !kind3Found ? (
+            <SSVStack itemsCenter gap="sm" style={styles.center}>
+              <SSText color="muted" size="sm">
+                {connectedRelayCount === 0
+                  ? t('nostrIdentity.contacts.kind3NotFoundNoConn')
+                  : t('nostrIdentity.contacts.kind3NotFound', {
+                      connected: connectedRelayCount,
+                      total: relaysQueried.length
+                    })}
+              </SSText>
+              <RelayList
+                relays={
+                  relaysQueried.length > 0 ? relaysQueried : contactsRelays
+                }
+              />
+            </SSVStack>
+          ) : contacts.length === 0 ? (
+            <SSVStack itemsCenter style={styles.center}>
+              <SSText color="muted" size="sm">
+                {t('nostrIdentity.contacts.empty')}
+              </SSText>
+            </SSVStack>
+          ) : filteredContacts.length === 0 ? (
+            <SSVStack itemsCenter style={styles.center}>
+              <SSText color="muted" size="sm" center>
+                {t('nostrIdentity.chat.noMatchingContacts')}
+              </SSText>
+            </SSVStack>
+          ) : (
+            <SSNostrContactList
+              contacts={filteredContacts}
+              onPress={handleContactPress}
+            />
+          )}
+        </View>
+        {kind3Found && contacts.length > 0 && identity?.nsec && (
+          <SSButton
+            label={t('nostrIdentity.contacts.publishToOtherRelays')}
+            variant="outline"
+            onPress={handlePublishKind3}
+            loading={isPublishing}
+            disabled={isPublishing}
           />
-        </SSVStack>
-      ) : contacts.length === 0 ? (
-        <SSVStack itemsCenter style={styles.center}>
-          <SSText color="muted" size="sm">
-            {t('nostrIdentity.contacts.empty')}
-          </SSText>
-        </SSVStack>
-      ) : (
-        <SSNostrContactList contacts={contacts} onPress={handleContactPress} />
-      )}
+        )}
+      </SSVStack>
     </SSMainLayout>
   )
 }
@@ -109,5 +230,11 @@ const styles = StyleSheet.create({
   center: {
     flex: 1,
     justifyContent: 'center'
+  },
+  container: {
+    flex: 1
+  },
+  listContainer: {
+    flex: 1
   }
 })

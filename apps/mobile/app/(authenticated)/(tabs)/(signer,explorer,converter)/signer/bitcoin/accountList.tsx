@@ -57,7 +57,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
-import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
@@ -71,9 +70,8 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { randomKey } from '@/utils/crypto'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
-import { getPin } from '@/utils/pin'
+import { ensurePin } from '@/utils/pin'
 import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3
@@ -232,7 +230,6 @@ function SampleAccountsFadeIn({ children }: { children: React.ReactNode }) {
 
 export default function AccountList() {
   const router = useRouter()
-  const setPin = useAuthStore((state) => state.setPin)
 
   const [network, setSelectedNetwork, connectionMode, autoConnectDelay] =
     useBlockchainStore(
@@ -461,16 +458,9 @@ export default function AccountList() {
   }
 
   async function loadSampleWallet(type: SampleWallet) {
-    // Sample wallets need encryption key material. In development only, create a
-    // random ephemeral key when none exists (never a hardcoded PIN).
-    try {
-      await getPin()
-    } catch {
-      if (!__DEV__) {
-        throw new Error('PIN unavailable')
-      }
-      await setPin(await randomKey(32))
-    }
+    // Sample wallets need encryption key material. In development only, this
+    // seeds a random ephemeral key when none exists (never a hardcoded PIN).
+    await ensurePin()
 
     setName(`Sample (${type})`)
     setKeyCount(1)

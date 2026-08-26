@@ -20,6 +20,10 @@ export function nostrAddIdentityHref(): Href {
   return '/signer/nostr/add' as Href
 }
 
+export function nostrGlobalRelaysHref(): Href {
+  return '/signer/nostr/relays' as Href
+}
+
 /** Expo typed routes omit query params; build href as string then assert once here. */
 export function nostrNoteHref(npub: string, nostrUri: string): Href {
   return `/signer/nostr/account/${npub}/note?nostrUri=${encodeURIComponent(

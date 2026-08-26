@@ -22,6 +22,12 @@ type SSNostrMessageProps = {
   visibleComponents: Map<string, { sankey: boolean; status: boolean }>
   onToggleVisibility: (msgId: string, component: 'sankey' | 'status') => void
   onGoToSignFlow: (messageContent: string) => void
+  /** npub treated as "you" when there is no bitcoin account (DM chats). */
+  ownNpub?: string
+  /** Overrides the default device-page navigation on author press. */
+  onAuthorPress?: (authorNpub: string) => void
+  /** Marks a failed outgoing message (DM send status). */
+  failed?: boolean
 }
 
 function SSNostrMessage({
@@ -31,7 +37,10 @@ function SSNostrMessage({
   formattedNpubs,
   visibleComponents,
   onToggleVisibility,
-  onGoToSignFlow
+  onGoToSignFlow,
+  ownNpub,
+  onAuthorPress,
+  failed
 }: SSNostrMessageProps) {
   const {
     authorNpub,
@@ -42,9 +51,15 @@ function SSNostrMessage({
     hasSignFlow,
     formattedDate,
     error
-  } = useNostrMessage({ account, formattedNpubs, msg })
+  } = useNostrMessage({ account, formattedNpubs, msg, ownNpub })
 
   function handleAuthorPress() {
+    if (onAuthorPress) {
+      if (authorNpub) {
+        onAuthorPress(authorNpub)
+      }
+      return
+    }
     if (!account?.id || !authorNpub) {
       return
     }
@@ -162,10 +177,15 @@ function SSNostrMessage({
               ({t('account.nostrSync.devicesGroupChat.sending')})
             </SSText>
           )}
+          {failed ? (
+            <SSText size="xs" style={{ color: Colors.error }}>
+              ({t('nostrIdentity.chat.status.failed')})
+            </SSText>
+          ) : null}
         </SSHStack>
       </SSHStack>
       <View style={styles.messageContentWrap}>
-        {hasSignFlow && transactionData ? (
+        {hasSignFlow && transactionData && account ? (
           <SSTransactionDetails
             transactionData={transactionData}
             account={account}

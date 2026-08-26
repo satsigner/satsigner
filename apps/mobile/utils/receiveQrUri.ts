@@ -76,7 +76,7 @@ function buildReceiveQrUri(params: {
   }
 
   const queryParts: string[] = []
-  if (params.amountSats !== undefined) {
+  if (params.amountSats !== undefined && params.amountSats > 0) {
     const amountInBtc = params.amountSats / SATS_PER_BITCOIN
     const formattedAmount = amountInBtc.toFixed(8).replace(/\.?0+$/, '')
     queryParts.push(`amount=${encodeURIComponent(formattedAmount)}`)

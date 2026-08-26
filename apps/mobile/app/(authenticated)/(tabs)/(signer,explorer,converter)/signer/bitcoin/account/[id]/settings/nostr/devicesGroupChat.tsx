@@ -4,9 +4,11 @@ import {
   useFocusEffect,
   useLocalSearchParams
 } from 'expo-router'
+import { useHeaderHeight } from 'expo-router/react-navigation'
 import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -73,6 +75,7 @@ const SCROLL_THRESHOLD = 40
 
 export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
+  const headerHeight = useHeaderHeight()
   const flatListRef = useRef<FlatList>(null)
   const { sendDM, sendPSBT } = useNostrPublish()
   const { handleGoToSignFlow } = useNostrSignFlow()
@@ -472,84 +475,90 @@ export default function DevicesGroupChat() {
           )
         }}
       />
-      <SSVStack gap="sm" style={{ flex: 1 }}>
-        <SSVStack gap="sm">
-          <SSVStack gap="xs">
-            <SSText center uppercase color="muted">
-              {t('account.nostrSync.devicesGroupChat.title')}
-              {account.nostr.autoSync
-                ? t('account.nostrSync.devicesGroupChat.syncOn')
-                : t('account.nostrSync.devicesGroupChat.syncOff')}
-            </SSText>
-          </SSVStack>
-        </SSVStack>
-
-        <View style={styles.messagesContainer}>
-          {messages.length === 0 && (
-            <View style={styles.loadingContainer}>
-              <SSText center color="muted">
-                {t('account.nostrSync.devicesGroupChat.loadingMessages')}
+      <KeyboardAvoidingView
+        behavior="padding"
+        keyboardVerticalOffset={headerHeight}
+        style={styles.keyboardAvoiding}
+      >
+        <SSVStack gap="sm" style={styles.chatContent}>
+          <SSVStack gap="sm">
+            <SSVStack gap="xs">
+              <SSText center uppercase color="muted">
+                {t('account.nostrSync.devicesGroupChat.title')}
+                {account.nostr.autoSync
+                  ? t('account.nostrSync.devicesGroupChat.syncOn')
+                  : t('account.nostrSync.devicesGroupChat.syncOff')}
               </SSText>
-            </View>
-          )}
-          <FlatList
-            ref={flatListRef}
-            data={displayedMessages}
-            renderItem={({ item }) => (
-              <SSNostrMessage
-                item={item}
-                account={account}
-                accounts={accounts}
-                formattedNpubs={formattedNpubs}
-                visibleComponents={visibleComponents}
-                onToggleVisibility={handleToggleVisibility}
-                onGoToSignFlow={handleGoToSignFlowClick}
-              />
-            )}
-            keyExtractor={(item) => item.id}
-            ListEmptyComponent={
-              messages.length > 0 ? (
+            </SSVStack>
+          </SSVStack>
+
+          <View style={styles.messagesContainer}>
+            {messages.length === 0 && (
+              <View style={styles.loadingContainer}>
                 <SSText center color="muted">
-                  {t('account.nostrSync.devicesGroupChat.noMessages')}
+                  {t('account.nostrSync.devicesGroupChat.loadingMessages')}
                 </SSText>
-              ) : null
-            }
-            inverted
-            initialNumToRender={25}
-            maxToRenderPerBatch={15}
-            onScroll={handleListScroll}
-            scrollEventThrottle={16}
-          />
-          {showNewMessageButton && (
-            <View style={styles.newMessageButtonContainer}>
-              <SSButton
-                label={t('account.nostrSync.devicesGroupChat.newMessages')}
-                onPress={handleScrollToBottom}
-                variant="secondary"
-              />
-            </View>
-          )}
-        </View>
-        <SSHStack gap="sm" style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={messageInput}
-            onChangeText={setMessageInput}
-            placeholder={t(
-              'account.nostrSync.devicesGroupChat.messagePlaceholder'
+              </View>
             )}
-            placeholderTextColor={Colors.gray[500]}
-            multiline
-            maxLength={500}
-          />
-          <SSButton
-            style={styles.sendButton}
-            label={t('account.nostrSync.devicesGroupChat.sendButton')}
-            onPress={handleSendMessage}
-            disabled={isLoading || !messageInput.trim()}
-          />
-        </SSHStack>
-      </SSVStack>
+            <FlatList
+              ref={flatListRef}
+              data={displayedMessages}
+              renderItem={({ item }) => (
+                <SSNostrMessage
+                  item={item}
+                  account={account}
+                  accounts={accounts}
+                  formattedNpubs={formattedNpubs}
+                  visibleComponents={visibleComponents}
+                  onToggleVisibility={handleToggleVisibility}
+                  onGoToSignFlow={handleGoToSignFlowClick}
+                />
+              )}
+              keyExtractor={(item) => item.id}
+              ListEmptyComponent={
+                messages.length > 0 ? (
+                  <SSText center color="muted">
+                    {t('account.nostrSync.devicesGroupChat.noMessages')}
+                  </SSText>
+                ) : null
+              }
+              inverted
+              initialNumToRender={25}
+              maxToRenderPerBatch={15}
+              onScroll={handleListScroll}
+              scrollEventThrottle={16}
+            />
+            {showNewMessageButton && (
+              <View style={styles.newMessageButtonContainer}>
+                <SSButton
+                  label={t('account.nostrSync.devicesGroupChat.newMessages')}
+                  onPress={handleScrollToBottom}
+                  variant="secondary"
+                />
+              </View>
+            )}
+          </View>
+          <SSHStack gap="sm" style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={messageInput}
+              onChangeText={setMessageInput}
+              placeholder={t(
+                'account.nostrSync.devicesGroupChat.messagePlaceholder'
+              )}
+              placeholderTextColor={Colors.gray[500]}
+              multiline
+              maxLength={500}
+            />
+            <SSButton
+              style={styles.sendButton}
+              label={t('account.nostrSync.devicesGroupChat.sendButton')}
+              onPress={handleSendMessage}
+              disabled={isLoading || !messageInput.trim()}
+            />
+          </SSHStack>
+        </SSVStack>
+      </KeyboardAvoidingView>
       <SSModal
         visible={isShareModalVisible}
         onClose={handleCancelShare}
@@ -602,6 +611,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
     width: 8
   },
+  chatContent: {
+    flex: 1
+  },
   deviceMessage: {
     backgroundColor: Colors.gray[800]
   },
@@ -617,6 +629,9 @@ const styles = StyleSheet.create({
   inputContainer: {
     paddingBottom: 16,
     paddingHorizontal: 0
+  },
+  keyboardAvoiding: {
+    flex: 1
   },
   loadingContainer: {
     alignItems: 'center',

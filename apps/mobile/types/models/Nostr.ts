@@ -497,3 +497,27 @@ export type ZapReceiptInfo = {
   /** Full kind-9735 event JSON (when fetched from relays in this session). */
   rawEventJson?: string
 }
+
+export const NostrChatProtocolSchema = z.enum(['nip04', 'nip17'])
+
+export const NostrChatMessageSchema = z.object({
+  content: z.string(),
+  created_at: z.number(),
+  direction: z.enum(['in', 'out']),
+  id: z.string(),
+  identityNpub: z.string(),
+  peerPubkey: z.string(),
+  protocol: NostrChatProtocolSchema,
+  read: z.boolean(),
+  status: z.enum(['pending', 'sent', 'failed'])
+})
+
+export type NostrChatProtocol = z.infer<typeof NostrChatProtocolSchema>
+export type NostrChatMessage = z.infer<typeof NostrChatMessageSchema>
+
+export type NostrChatConversation = {
+  lastMessageAt: number
+  lastMessagePreview: string
+  peerPubkey: string
+  unreadCount: number
+}
