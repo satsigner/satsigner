@@ -155,6 +155,8 @@ function SSTransactionChart(props: SSTransactionChartProps) {
   const [mountCanvas, setMountCanvas] = useState(false)
 
   useEffect(() => {
+    // requestIdleCallback replaces deprecated InteractionManager.runAfterInteractions.
+    // Frame-tick driven: pauses while backgrounded; does not wait for UI-thread animations.
     const idleHandle = requestIdleCallback(() => {
       setMountCanvas(true)
     })

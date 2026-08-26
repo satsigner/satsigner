@@ -139,6 +139,8 @@ export default function TxDetails() {
   const [weight, setWeight] = useState(placeholder)
 
   useEffect(() => {
+    // requestIdleCallback replaces deprecated InteractionManager.runAfterInteractions.
+    // Frame-tick driven: pauses while backgrounded; does not wait for UI-thread animations.
     const idleHandle = requestIdleCallback(() => {
       setIsReady(true)
     })
