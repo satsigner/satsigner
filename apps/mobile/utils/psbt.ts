@@ -429,7 +429,8 @@ export function extractTransactionDataFromPSBT(
   const inputs = psbt.data.inputs.map((input, index) => {
     const psbtInput = input as PsbtInput
     const txInput = psbt.txInputs[index]
-    const txid = Buffer.from(txInput.hash.toReversed()).toString('hex')
+    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+    const txid = Buffer.from(txInput.hash).reverse().toString('hex')
     const vout = txInput.index
 
     let value = 0
@@ -775,7 +776,8 @@ export function validatePsbt(
   }
 
   for (const [index, txInput] of psbt.txInputs.entries()) {
-    const txid = Buffer.from(txInput.hash.toReversed()).toString('hex')
+    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+    const txid = Buffer.from(txInput.hash).reverse().toString('hex')
     const vout = txInput.index
     const utxoKey = `${txid}:${vout}`
 

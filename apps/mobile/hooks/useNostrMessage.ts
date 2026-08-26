@@ -20,12 +20,15 @@ type UseNostrMessageParams = {
   msg: NostrDM
   account: Account | undefined
   formattedNpubs: Map<string, AuthorDisplayInfo>
+  /** npub treated as "you" when there is no bitcoin account (DM chats). */
+  ownNpub?: string
 }
 
 export function useNostrMessage({
   msg,
   account,
-  formattedNpubs
+  formattedNpubs,
+  ownNpub
 }: UseNostrMessageParams) {
   const data = useMemo(() => {
     try {
@@ -37,7 +40,8 @@ export function useNostrMessage({
         ? msg.author
         : nip19.npubEncode(hexString)
 
-      const isDeviceMessage = msgAuthorNpub === account?.nostr?.deviceNpub
+      const isDeviceMessage =
+        msgAuthorNpub === (account?.nostr?.deviceNpub ?? ownNpub)
       const authorDisplayName = formattedNpubs.get(msg.author) || {
         color: NOSTR_FALLBACK_NPUB_COLOR,
         npubShort: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`
@@ -80,7 +84,7 @@ export function useNostrMessage({
         transactionData: null
       }
     }
-  }, [msg, account, formattedNpubs])
+  }, [msg, account, formattedNpubs, ownNpub])
 
   return data
 }

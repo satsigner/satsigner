@@ -8,7 +8,7 @@ import {
   SALT_KEY_DURESS
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
-import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import { generateSalt, pbkdf2Encrypt, randomKey } from '@/utils/crypto'
 
 type PinType = typeof PIN_KEY | typeof DURESS_PIN_KEY
 
@@ -28,6 +28,22 @@ async function getPin(pinType: PinType = PIN_KEY): Promise<string> {
     throw new Error('PIN unavailable')
   }
   return pin
+}
+
+/**
+ * Returns stored PIN-derived key material. In development only, seeds a
+ * random ephemeral key when none exists so sample/diagnostic wallets can
+ * encrypt without completing set-PIN. Never uses a hardcoded PIN.
+ */
+async function ensurePin(): Promise<string> {
+  try {
+    return await getPin()
+  } catch {
+    if (!__DEV__) {
+      throw new Error('PIN unavailable')
+    }
+    return setPin(await randomKey(32))
+  }
 }
 
 function emptyPin(length: number = PIN_SIZE): string[] {
@@ -74,6 +90,7 @@ export {
   clampPinLength,
   deletePinDigit,
   emptyPin,
+  ensurePin,
   fillPinDigit,
   getPin,
   getPinCursorIndex,
