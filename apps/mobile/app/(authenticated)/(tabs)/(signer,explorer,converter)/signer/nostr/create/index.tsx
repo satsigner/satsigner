@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Modal, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -24,6 +24,7 @@ export default function CreateNostrIdentity() {
   const [showNsec, setShowNsec] = useState(false)
   const [qrModalValue, setQrModalValue] = useState<string | null>(null)
   const [seedQrVisible, setSeedQrVisible] = useState(false)
+  const qrModalRef = useRef<View>(null)
 
   const [mnemonic] = useState(() => generateMnemonic(12))
   const words = mnemonic.split(' ')
@@ -202,12 +203,16 @@ export default function CreateNostrIdentity() {
         <View style={styles.qrOverlay}>
           <View style={styles.qrSheet}>
             <SSVStack itemsCenter gap="md">
-              {qrModalValue && <SSQRCode value={qrModalValue} size={240} />}
+              {qrModalValue && (
+                <View collapsable={false} ref={qrModalRef}>
+                  <SSQRCode value={qrModalValue} size={240} />
+                </View>
+              )}
               <SSText size="xs" type="mono" center numberOfLines={3}>
                 {qrModalValue}
               </SSText>
               {qrModalValue && qrModalValue === keys.npub && (
-                <SSShareButton content={qrModalValue} />
+                <SSShareButton qrRef={qrModalRef} />
               )}
               <SSButton
                 label={t('common.close')}

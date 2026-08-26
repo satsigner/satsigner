@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Keyboard,
   ScrollView,
@@ -75,6 +75,7 @@ export default function NostrComposePage() {
   const [showJson, setShowJson] = useState(false)
   const [signingExport, setSigningExport] = useState(false)
   const [signedQrPayload, setSignedQrPayload] = useState<string | null>(null)
+  const qrRef = useRef<View>(null)
   const [baseTags, setBaseTags] = useState<string[][]>([])
   const [importCameraVisible, setImportCameraVisible] = useState(false)
 
@@ -652,14 +653,16 @@ export default function NostrComposePage() {
           </SSText>
           {signedQrPayload ? (
             <View style={styles.signedQrWrap}>
-              <SSQRCode
-                value={signedQrPayload}
-                size={220}
-                color={Colors.white}
-                backgroundColor={Colors.gray[950]}
-                ecl="H"
-              />
-              <SSShareButton content={signedQrPayload} />
+              <View collapsable={false} ref={qrRef}>
+                <SSQRCode
+                  value={signedQrPayload}
+                  size={220}
+                  color={Colors.white}
+                  backgroundColor={Colors.gray[950]}
+                  ecl="H"
+                />
+              </View>
+              <SSShareButton qrRef={qrRef} />
             </View>
           ) : null}
         </SSVStack>

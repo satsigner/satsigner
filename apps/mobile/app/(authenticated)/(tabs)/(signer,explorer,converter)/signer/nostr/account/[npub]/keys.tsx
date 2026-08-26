@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import {
   Pressable,
   ScrollView,
@@ -126,6 +126,7 @@ export default function NostrIdentityKeys() {
   const [nsecRevealed, setNsecRevealed] = useState(false)
   const [seedWordsRevealed, setSeedWordsRevealed] = useState(false)
   const [qrModal, setQrModal] = useState<QrModalContent | null>(null)
+  const qrModalRef = useRef<View>(null)
   const [seedQrVisible, setSeedQrVisible] = useState(false)
 
   function handleCopyNpub() {
@@ -392,7 +393,11 @@ export default function NostrIdentityKeys() {
                   ? t('nostrIdentity.keys.npub')
                   : t('nostrIdentity.keys.nsec')}
               </SSText>
-              <View style={styles.qrCodeWrapper}>
+              <View
+                collapsable={false}
+                ref={qrModalRef}
+                style={styles.qrCodeWrapper}
+              >
                 <SSQRCode
                   value={qrModal.value}
                   size={220}
@@ -409,9 +414,7 @@ export default function NostrIdentityKeys() {
                   style={styles.qrModalDataText}
                 />
               </View>
-              {qrModal.type === 'npub' && (
-                <SSShareButton content={qrModal.value} />
-              )}
+              {qrModal.type === 'npub' && <SSShareButton qrRef={qrModalRef} />}
             </>
           )}
         </SSVStack>

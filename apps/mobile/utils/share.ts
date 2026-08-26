@@ -1,4 +1,6 @@
-import { Share } from 'react-native'
+import { type RefObject } from 'react'
+import { Share, type View } from 'react-native'
+import { captureRef } from 'react-native-view-shot'
 
 import { shareExistingFile } from '@/utils/filesystem'
 
@@ -34,6 +36,30 @@ export async function shareImage({
 }: ShareImageProps): Promise<void> {
   try {
     await shareExistingFile({ dialogTitle, fileUri: uri, mimeType })
+  } catch {
+    /* sharing cancelled or unavailable — silently ignored */
+  }
+}
+
+type ShareViewAsImageProps = {
+  viewRef: RefObject<View | null>
+  dialogTitle: string
+}
+
+export async function shareViewAsImage({
+  viewRef,
+  dialogTitle
+}: ShareViewAsImageProps): Promise<void> {
+  if (!viewRef.current) {
+    return
+  }
+  const uri = await captureRef(viewRef, { format: 'png', result: 'tmpfile' })
+  try {
+    await shareExistingFile({
+      dialogTitle,
+      fileUri: uri,
+      mimeType: 'image/png'
+    })
   } catch {
     /* sharing cancelled or unavailable — silently ignored */
   }

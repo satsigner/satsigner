@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -33,6 +33,7 @@ export default function PublicKeyPage() {
 
   const [publicKey, setPublicKey] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const qrRef = useRef<View>(null)
   const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
   const [rawPublicKey, setRawPublicKey] = useState('')
   const [scriptVersion, setScriptVersion] = useState('P2WPKH')
@@ -293,6 +294,8 @@ export default function PublicKeyPage() {
             </View>
           ) : publicKey ? (
             <View
+              collapsable={false}
+              ref={qrRef}
               style={{
                 backgroundColor: 'white',
                 borderRadius: 10,
@@ -335,7 +338,7 @@ export default function PublicKeyPage() {
               variant="secondary"
               onPress={exportPublicKey}
             />
-            <SSShareButton content={publicKey} />
+            <SSShareButton qrRef={qrRef} />
           </>
         )}
         <SSButton

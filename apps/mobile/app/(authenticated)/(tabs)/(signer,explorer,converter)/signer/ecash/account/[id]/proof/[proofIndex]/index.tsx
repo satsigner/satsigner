@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { Pressable, StyleSheet, useWindowDimensions } from 'react-native'
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -62,6 +62,7 @@ export default function EcashProofDetailPage() {
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
   const animationRef = useRef<number | null>(null)
+  const qrRef = useRef<View>(null)
   const lastUpdateRef = useRef(0)
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
@@ -450,11 +451,13 @@ export default function EcashProofDetailPage() {
                   </Pressable>
                 </SSHStack>
                 <SSVStack gap="xs" itemsCenter>
-                  <SSQRCode
-                    value={getQRValue()}
-                    size={qrSize}
-                    ecl={animatedQR && isMultiPart ? 'L' : 'H'}
-                  />
+                  <View collapsable={false} ref={qrRef}>
+                    <SSQRCode
+                      value={getQRValue()}
+                      size={qrSize}
+                      ecl={animatedQR && isMultiPart ? 'L' : 'H'}
+                    />
+                  </View>
                   <SSText color="muted" size="xs" style={styles.chunkCounter}>
                     {animatedQR && isMultiPart
                       ? `${currentChunkIndex + 1} / ${totalChunks}`
@@ -527,7 +530,7 @@ export default function EcashProofDetailPage() {
                     style={{ flex: 1 }}
                   />
                 </SSHStack>
-                <SSShareButton content={token ?? ''} />
+                <SSShareButton qrRef={qrRef} />
               </SSVStack>
             )}
           </SSVStack>

@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -54,6 +54,7 @@ export default function ArkBoardPage() {
   const { fundFromLinkedAccount, linkedAccount } = useArkBoardDeposit(account)
 
   const [amountSats, setAmountSats] = useState(0)
+  const qrRef = useRef<View>(null)
 
   const confirmedSats = balanceQuery.data?.confirmedSats ?? 0
   const pendingSats = balanceQuery.data?.pendingSats ?? 0
@@ -192,7 +193,11 @@ export default function ArkBoardPage() {
             )}
             {depositAddress && (
               <SSVStack gap="sm">
-                <View style={styles.qrContainer}>
+                <View
+                  collapsable={false}
+                  ref={qrRef}
+                  style={styles.qrContainer}
+                >
                   <SSQRCode value={depositAddress} size={DEPOSIT_QR_SIZE} />
                 </View>
                 <View style={styles.addressBox}>
@@ -205,7 +210,7 @@ export default function ArkBoardPage() {
                   onPress={handleCopyAddress}
                   variant="outline"
                 />
-                <SSShareButton content={depositAddress} />
+                <SSShareButton qrRef={qrRef} />
                 {linkedAccount && (
                   <SSButton
                     label={t('ark.board.fundFromLinked', {

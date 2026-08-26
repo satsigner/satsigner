@@ -684,6 +684,7 @@ function PreviewTransaction() {
 
   // Animation refs to prevent unnecessary re-renders
   const animationRef = useRef<number | null>(null)
+  const qrRef = useRef<View>(null)
   const lastUpdateRef = useRef<number>(0)
 
   // Multi-part QR scanning state
@@ -2562,6 +2563,8 @@ function PreviewTransaction() {
             ) : qrChunks.length > 0 ? (
               <>
                 <View
+                  collapsable={false}
+                  ref={qrRef}
                   style={{
                     alignItems: 'center',
                     backgroundColor: Colors.white,
@@ -2646,7 +2649,7 @@ function PreviewTransaction() {
                     ? `${getQRValue().slice(0, 100)}...`
                     : getQRValue()}
                 </SSText>
-                <SSShareButton content={txBuilderResult?.toBase64() ?? ''} />
+                <SSShareButton qrRef={qrRef} />
                 <SSHStack
                   justifyEvenly
                   style={{ marginBottom: 20, width: screenWidth * 0.9 }}

@@ -153,6 +153,7 @@ export default function NostrNotePage() {
   const effectiveRelaysRef = useRef(effectiveRelays)
   effectiveRelaysRef.current = effectiveRelays
   const fetchedRef = useRef(false)
+  const qrRef = useRef<View>(null)
   const pendingInvoiceRef = useRef<{
     invoice: string
     zapRequestJson: string
@@ -1973,7 +1974,7 @@ export default function NostrNotePage() {
           <SSText center uppercase>
             {t('nostrIdentity.note.qrTitle')}
           </SSText>
-          <View style={styles.qrContainer}>
+          <View collapsable={false} ref={qrRef} style={styles.qrContainer}>
             <SSQRCode
               value={noteNeventId}
               size={260}
@@ -1993,7 +1994,7 @@ export default function NostrNotePage() {
               {noteNeventId}
             </SSText>
           </SSClipboardCopy>
-          <SSShareButton content={noteNeventId} />
+          <SSShareButton qrRef={qrRef} />
         </SSVStack>
       </SSModal>
 

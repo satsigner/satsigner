@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -37,6 +37,7 @@ export default function PublicKeyPage() {
 
   const [publicKey, setPublicKey] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const qrRef = useRef<View>(null)
   const [rawPublicKey, setRawPublicKey] = useState('')
 
   // Derive scriptVersion and selectedFormat from account data and network
@@ -304,6 +305,8 @@ export default function PublicKeyPage() {
             </View>
           ) : publicKey ? (
             <View
+              collapsable={false}
+              ref={qrRef}
               style={{
                 backgroundColor: 'white',
                 borderRadius: 10,
@@ -347,7 +350,7 @@ export default function PublicKeyPage() {
               variant="secondary"
               onPress={exportPublicKey}
             />
-            <SSShareButton content={publicKey} />
+            <SSShareButton qrRef={qrRef} />
           </>
         )}
 

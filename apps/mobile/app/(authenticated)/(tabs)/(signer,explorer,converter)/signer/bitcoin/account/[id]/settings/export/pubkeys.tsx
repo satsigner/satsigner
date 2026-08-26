@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -33,6 +33,7 @@ export default function ExportPubkeys() {
 
   const [exportContent, setExportContent] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const qrRef = useRef<View>(null)
   const [pubkeyFormat, setPubkeyFormat] = useState<'xpub' | 'zpub' | 'vpub'>(
     'xpub'
   )
@@ -164,6 +165,8 @@ export default function ExportPubkeys() {
             <ActivityIndicator size="large" color={Colors.gray[400]} />
           ) : exportContent ? (
             <View
+              collapsable={false}
+              ref={qrRef}
               style={{
                 backgroundColor: 'white',
                 borderRadius: 10,
@@ -203,7 +206,7 @@ export default function ExportPubkeys() {
               variant="secondary"
               onPress={exportPubkeys}
             />
-            <SSShareButton content={exportContent} />
+            <SSShareButton qrRef={qrRef} />
           </>
         )}
         <SSButton

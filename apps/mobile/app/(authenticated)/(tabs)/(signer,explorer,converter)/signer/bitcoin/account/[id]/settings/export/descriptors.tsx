@@ -69,6 +69,42 @@ function calculateDescriptorChecksum(descriptor: string): string {
   }
 }
 
+type DescriptorQrItemProps = {
+  descriptor: string
+  label: string
+}
+
+function DescriptorQrItem({ descriptor, label }: DescriptorQrItemProps) {
+  const itemQrRef = useRef<View>(null)
+
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <View
+        collapsable={false}
+        ref={itemQrRef}
+        style={{
+          backgroundColor: Colors.white,
+          borderRadius: 2,
+          padding: 16
+        }}
+      >
+        <SSQRCode
+          value={descriptor}
+          size={150}
+          color={Colors.black}
+          backgroundColor={Colors.white}
+        />
+      </View>
+      <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
+        {label}
+      </SSText>
+      <View style={{ marginTop: 8, width: '100%' }}>
+        <SSShareButton qrRef={itemQrRef} />
+      </View>
+    </View>
+  )
+}
+
 export default function ExportDescriptors() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
@@ -724,34 +760,17 @@ export default function ExportDescriptors() {
             {showSeparate ? (
               <SSVStack gap="md">
                 {descriptors.map((descriptor, index) => (
-                  <View key={descriptor} style={{ alignItems: 'center' }}>
-                    <View
-                      style={{
-                        backgroundColor: Colors.white,
-                        borderRadius: 2,
-                        padding: 16
-                      }}
-                    >
-                      <SSQRCode
-                        value={descriptor}
-                        size={150}
-                        color={Colors.black}
-                        backgroundColor={Colors.white}
-                      />
-                    </View>
-                    <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
-                      {index === 0 ? 'External' : 'Internal'}{' '}
-                      {t('common.descriptor')}
-                    </SSText>
-                    <View style={{ marginTop: 8, width: '100%' }}>
-                      <SSShareButton content={descriptor} />
-                    </View>
-                  </View>
+                  <DescriptorQrItem
+                    key={descriptor}
+                    descriptor={descriptor}
+                    label={`${index === 0 ? 'External' : 'Internal'} ${t('common.descriptor')}`}
+                  />
                 ))}
               </SSVStack>
             ) : (
               <View style={{ alignItems: 'center' }}>
                 <View
+                  collapsable={false}
                   ref={qrRef}
                   style={{
                     backgroundColor: Colors.white,
@@ -795,7 +814,7 @@ export default function ExportDescriptors() {
               variant="outline"
               onPress={exportDescriptors}
             />
-            <SSShareButton content={exportContent} />
+            {!showSeparate && <SSShareButton qrRef={qrRef} />}
           </>
         ) : (
           <SSText center color="muted">

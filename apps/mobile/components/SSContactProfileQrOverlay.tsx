@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -59,6 +59,7 @@ function ContactQrPlaceholder({ label }: { label: string }) {
 
 function ContactQrItem({ label, value }: ContactQrItemProps) {
   const [inverted, setInverted] = useState(false)
+  const qrRef = useRef<View>(null)
 
   function handleToggleInvert() {
     setInverted((current) => !current)
@@ -73,7 +74,9 @@ function ContactQrItem({ label, value }: ContactQrItemProps) {
         {label}
       </SSText>
       <Pressable
+        ref={qrRef}
         accessibilityRole="button"
+        collapsable={false}
         onPress={handleToggleInvert}
         style={[
           styles.qrContainer,
@@ -100,7 +103,7 @@ function ContactQrItem({ label, value }: ContactQrItemProps) {
           {value}
         </SSText>
       </SSClipboardCopy>
-      <SSShareButton content={value} />
+      <SSShareButton qrRef={qrRef} />
     </SSVStack>
   )
 }

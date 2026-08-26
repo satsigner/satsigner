@@ -70,6 +70,7 @@ function NostrKeys() {
   )
   const [commonKeysError, setCommonKeysError] = useState<string | null>(null)
   const commonKeysLoadRef = useRef(false)
+  const qrModalRef = useRef<View>(null)
 
   const derivedNpub = useMemo(
     () => deriveNpubFromNsec(deviceNsec.trim()),
@@ -751,7 +752,11 @@ function NostrKeys() {
                   ? t('account.nostrSync.npub')
                   : t('account.nostrSync.nsec')}
               </SSText>
-              <View style={styles.qrCodeWrapper}>
+              <View
+                collapsable={false}
+                ref={qrModalRef}
+                style={styles.qrCodeWrapper}
+              >
                 <SSQRCode
                   value={qrModal.value}
                   size={220}
@@ -770,9 +775,7 @@ function NostrKeys() {
                   {qrModal.value}
                 </SSText>
               </View>
-              {qrModal.type === 'npub' && (
-                <SSShareButton content={qrModal.value} />
-              )}
+              {qrModal.type === 'npub' && <SSShareButton qrRef={qrModalRef} />}
             </>
           )}
         </SSVStack>

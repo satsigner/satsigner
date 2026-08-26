@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { StyleSheet, TextInput } from 'react-native'
+import { StyleSheet, TextInput, View } from 'react-native'
 import { KeychainKind, Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -162,6 +162,7 @@ export default function Receive() {
   // Distinguishes "user turned Payjoin off" from "we auto-disabled while UTXOs
   // were still empty on first paint" so we can re-enable once coins appear.
   const userSetPayjoinRef = useRef(false)
+  const qrRef = useRef<View>(null)
 
   // Master switch is read-only here; per-invoice control is local `includePayjoin`.
   const payjoinEnabled = useSettingsStore((state) => state.payjoinEnabled)
@@ -657,15 +658,17 @@ export default function Receive() {
             ) : (
               localFinalAddressQR && (
                 <SSVStack itemsCenter gap="md">
-                  <SSQRCode
-                    // BIP77 pj= URIs are long — H ecl overflows and yields no QR.
-                    ecl={
-                      localFinalAddressQR.toLowerCase().includes('pj=')
-                        ? 'L'
-                        : 'H'
-                    }
-                    value={localFinalAddressQR}
-                  />
+                  <View collapsable={false} ref={qrRef}>
+                    <SSQRCode
+                      // BIP77 pj= URIs are long — H ecl overflows and yields no QR.
+                      ecl={
+                        localFinalAddressQR.toLowerCase().includes('pj=')
+                          ? 'L'
+                          : 'H'
+                      }
+                      value={localFinalAddressQR}
+                    />
+                  </View>
                   <SSHStack>
                     {nfcHardwareSupported && (
                       <SSButton
@@ -702,7 +705,7 @@ export default function Receive() {
                   style={styles.copyButton}
                   onPress={() => copyToClipboard(localFinalAddressQR)}
                 />
-                <SSShareButton content={localFinalAddressQR} />
+                <SSShareButton qrRef={qrRef} />
                 <SSHStack gap="sm" style={styles.uriActionsRow}>
                   <SSButton
                     label={

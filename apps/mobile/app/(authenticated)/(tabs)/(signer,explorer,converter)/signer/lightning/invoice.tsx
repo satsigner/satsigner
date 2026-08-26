@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ScrollView,
   StyleSheet,
@@ -61,6 +61,7 @@ export default function InvoicePage() {
     fetchPrices(fiatPriceApiUrl)
   }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
 
+  const qrRef = useRef<View>(null)
   const [invoiceAmount, setInvoiceAmount] = useState('')
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
   const [localFiatAmount, setLocalFiatAmount] = useState('')
@@ -546,7 +547,7 @@ export default function InvoicePage() {
                 </View>
               </View>
             </SSVStack>
-            <View style={styles.qrContainer}>
+            <View collapsable={false} ref={qrRef} style={styles.qrContainer}>
               {paymentRequest && (
                 <SSQRCode value={paymentRequest} size={qrCodeSize} />
               )}
@@ -569,7 +570,7 @@ export default function InvoicePage() {
                 variant="gradient"
                 gradientType="special"
               />
-              <SSShareButton content={paymentRequest} />
+              <SSShareButton qrRef={qrRef} />
             </SSVStack>
           </SSVStack>
         </ScrollView>

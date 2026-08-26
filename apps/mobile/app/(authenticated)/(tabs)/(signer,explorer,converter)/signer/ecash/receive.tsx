@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -68,6 +68,7 @@ export default function EcashReceivePage() {
   }>()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
+  const qrRef = useRef<View>(null)
   const [localFiatAmount, setLocalFiatAmount] = useState('')
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
@@ -489,7 +490,11 @@ export default function EcashReceivePage() {
               ) : (
                 <SSVStack gap="md">
                   {!isLNURLWithdrawMode && (
-                    <View style={styles.qrContainer}>
+                    <View
+                      collapsable={false}
+                      ref={qrRef}
+                      style={styles.qrContainer}
+                    >
                       <SSQRCode value={mintQuote.request} size={300} />
                     </View>
                   )}
@@ -507,9 +512,7 @@ export default function EcashReceivePage() {
                       variant="outline"
                     />
                   )}
-                  {!isLNURLWithdrawMode && (
-                    <SSShareButton content={mintQuote.request} />
-                  )}
+                  {!isLNURLWithdrawMode && <SSShareButton qrRef={qrRef} />}
                   <SSVStack gap="none">
                     <SSText style={{ color: getStatusColor(quoteStatus) }}>
                       {getStatusText(quoteStatus)}

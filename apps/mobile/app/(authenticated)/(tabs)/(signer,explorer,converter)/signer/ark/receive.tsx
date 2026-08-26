@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -53,6 +53,9 @@ export default function ArkReceivePage() {
   const [activeTab, setActiveTab] = useState<ReceiveTab>('ark')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
+  const arkQrRef = useRef<View>(null)
+  const lightningQrRef = useRef<View>(null)
+  const onchainQrRef = useRef<View>(null)
 
   const addressQuery = useArkAddress(id)
   const invoiceMutation = useArkBolt11InvoiceMutation(id)
@@ -153,7 +156,11 @@ export default function ArkReceivePage() {
               )}
               {addressQuery.data && (
                 <>
-                  <View style={styles.qrContainer}>
+                  <View
+                    collapsable={false}
+                    ref={arkQrRef}
+                    style={styles.qrContainer}
+                  >
                     <SSQRCode value={addressQuery.data} size={280} />
                   </View>
                   <View style={styles.addressBox}>
@@ -166,7 +173,7 @@ export default function ArkReceivePage() {
                     onPress={handleCopyAddress}
                     variant="outline"
                   />
-                  <SSShareButton content={addressQuery.data} />
+                  <SSShareButton qrRef={arkQrRef} />
                   <SSButton
                     label={t('ark.receive.generateNewAddress')}
                     onPress={handleGenerateNewAddress}
@@ -215,7 +222,11 @@ export default function ArkReceivePage() {
               )}
               {invoice && (
                 <>
-                  <View style={styles.qrContainer}>
+                  <View
+                    collapsable={false}
+                    ref={lightningQrRef}
+                    style={styles.qrContainer}
+                  >
                     <SSQRCode value={invoice.invoice} size={280} />
                   </View>
                   <View style={styles.addressBox}>
@@ -231,7 +242,7 @@ export default function ArkReceivePage() {
                     onPress={() => copyToClipboard(invoice.invoice)}
                     variant="outline"
                   />
-                  <SSShareButton content={invoice.invoice} />
+                  <SSShareButton qrRef={lightningQrRef} />
                   <SSButton
                     label={t('ark.receive.newInvoice')}
                     onPress={handleResetInvoice}
@@ -262,7 +273,11 @@ export default function ArkReceivePage() {
               )}
               {onchainAddressQuery.data && (
                 <>
-                  <View style={styles.qrContainer}>
+                  <View
+                    collapsable={false}
+                    ref={onchainQrRef}
+                    style={styles.qrContainer}
+                  >
                     <SSQRCode value={onchainAddressQuery.data} size={280} />
                   </View>
                   <View style={styles.addressBox}>
@@ -275,7 +290,7 @@ export default function ArkReceivePage() {
                     onPress={handleCopyOnchainAddress}
                     variant="outline"
                   />
-                  <SSShareButton content={onchainAddressQuery.data} />
+                  <SSShareButton qrRef={onchainQrRef} />
                 </>
               )}
               {autoBoard.minAmountSats !== undefined && (

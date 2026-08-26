@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { Pressable, StyleSheet, useWindowDimensions } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -31,6 +31,7 @@ export default function EcashSendPage() {
   const { invoice: invoiceParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const qrRef = useRef<View>(null)
 
   const {
     activeAccount,
@@ -279,11 +280,13 @@ export default function EcashSendPage() {
                     </Pressable>
                   </SSHStack>
                   <SSVStack gap="xs" itemsCenter>
-                    <SSQRCode
-                      value={getQRValue(chunks)}
-                      size={qrSize}
-                      ecl={animatedQR && isMultiPart ? 'M' : 'H'}
-                    />
+                    <View collapsable={false} ref={qrRef}>
+                      <SSQRCode
+                        value={getQRValue(chunks)}
+                        size={qrSize}
+                        ecl={animatedQR && isMultiPart ? 'M' : 'H'}
+                      />
+                    </View>
                     <SSText color="muted" size="xs" style={styles.chunkCounter}>
                       {animatedQR && isMultiPart
                         ? `${currentChunkIndex + 1} / ${totalChunks}`
@@ -359,7 +362,7 @@ export default function EcashSendPage() {
                       style={{ flex: 1 }}
                     />
                   </SSHStack>
-                  <SSShareButton content={generatedToken} />
+                  <SSShareButton qrRef={qrRef} />
                 </SSVStack>
               )}
             </SSVStack>

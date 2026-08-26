@@ -1,26 +1,44 @@
-import { StyleSheet } from 'react-native'
+import { type RefObject } from 'react'
+import { StyleSheet, type View } from 'react-native'
+import { toast } from 'sonner-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
-import { shareImage, shareText } from '@/utils/share'
+import { shareImage, shareText, shareViewAsImage } from '@/utils/share'
 
 import { SSIconShare } from './icons'
 import SSButton, { type SSButtonProps } from './SSButton'
 import SSText from './SSText'
 
-export type SSShareButtonProps = {
-  content: string
-  type?: 'text' | 'image'
+type SSShareButtonBaseProps = {
   dialogTitle?: string
 } & Omit<SSButtonProps, 'label' | 'icon' | 'variant' | 'onPress'>
+
+export type SSShareButtonProps = SSShareButtonBaseProps &
+  (
+    | { content: string; type?: 'text' | 'image'; qrRef?: undefined }
+    | { qrRef: RefObject<View | null>; content?: undefined; type?: undefined }
+  )
 
 function SSShareButton({
   content,
   type = 'text',
+  qrRef,
   dialogTitle,
   ...props
 }: SSShareButtonProps) {
   async function handleShare() {
+    if (qrRef) {
+      try {
+        await shareViewAsImage({
+          dialogTitle: dialogTitle ?? t('common.share'),
+          viewRef: qrRef
+        })
+      } catch {
+        toast.error(t('common.shareError'))
+      }
+      return
+    }
     if (type === 'image') {
       await shareImage({
         dialogTitle: dialogTitle ?? t('common.share'),

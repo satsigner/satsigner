@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -33,6 +33,7 @@ export default function DescriptorPage() {
 
   const [descriptor, setDescriptor] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const qrRef = useRef<View>(null)
   const [keyName, setKeyName] = useState('')
   const [creationType, setCreationType] = useState('')
   const [scriptVersion, setScriptVersion] = useState<string>('P2PKH')
@@ -199,6 +200,8 @@ export default function DescriptorPage() {
             </View>
           ) : descriptor ? (
             <View
+              collapsable={false}
+              ref={qrRef}
               style={{
                 backgroundColor: 'white',
                 borderRadius: 10,
@@ -242,7 +245,7 @@ export default function DescriptorPage() {
               variant="secondary"
               onPress={exportDescriptor}
             />
-            <SSShareButton content={descriptor} />
+            <SSShareButton qrRef={qrRef} />
           </>
         )}
 

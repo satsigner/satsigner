@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Dimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -49,6 +49,7 @@ function SSPsbtTransport({
   const [cameraVisible, setCameraVisible] = useState(false)
   const [nfcVisible, setNfcVisible] = useState(false)
   const [chunkIndex, setChunkIndex] = useState(0)
+  const qrRef = useRef<View>(null)
 
   const { isHardwareSupported: nfcWriteSupported } = useNFCEmitter()
   const { isHardwareSupported: nfcReadSupported } = useNFCReader()
@@ -182,6 +183,8 @@ function SSPsbtTransport({
             <SSText uppercase>{t('common.psbtTransport.qrTitle')}</SSText>
             {qrValue ? (
               <View
+                collapsable={false}
+                ref={qrRef}
                 style={{
                   alignItems: 'center',
                   backgroundColor: Colors.white,
@@ -210,7 +213,7 @@ function SSPsbtTransport({
             <SSText color="muted" size="sm" center>
               {t('common.psbtTransport.qrHint')}
             </SSText>
-            {psbtBase64 && <SSShareButton content={psbtBase64} />}
+            {qrValue && <SSShareButton qrRef={qrRef} />}
             <SSButton
               label={t('common.close')}
               variant="ghost"
