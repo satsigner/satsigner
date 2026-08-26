@@ -1,5 +1,7 @@
 import {
+  deleteArkMnemonic,
   deleteEcashMnemonic,
+  storeArkMnemonic,
   storeEcashMnemonic,
   storeKeySecret
 } from '@/storage/encrypted'
@@ -14,7 +16,6 @@ import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import type { Label } from '@/types/bips/329'
 import type { Account, Key } from '@/types/models/Account'
-import type { ArkAccount } from '@/types/models/Ark'
 import type {
   EcashAccount,
   EcashKeysetCounter,
@@ -30,6 +31,13 @@ import type {
   LNDNodeInfo
 } from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
+import {
+  prepareArkMnemonics,
+  restoreArkDatadirsFromBackup,
+  restoreArkLabelsFromBackup,
+  restoreArkStoreFromBackup,
+  type ArkBackupSection
+} from '@/utils/arkBackup'
 import {
   restoreBlockchainFromBackup,
   type BlockchainBackup
@@ -59,9 +67,7 @@ type BackupAccount = {
 }
 type BackupData = {
   accounts: BackupAccount[]
-  ark?: {
-    accounts: ArkAccount[]
-  }
+  ark?: ArkBackupSection
   ecash?: {
     accounts?: EcashAccount[]
     activeAccountId?: string | null
@@ -110,14 +116,15 @@ type PreparedKey = {
   secret: string
 }
 
-type PreparedEcashMnemonic = {
+type PreparedMnemonic = {
   accountId: string
   mnemonic: string
 }
 
 type PreparedRestore = {
   accounts: Account[]
-  ecashMnemonics: PreparedEcashMnemonic[]
+  arkMnemonics: PreparedMnemonic[]
+  ecashMnemonics: PreparedMnemonic[]
   keys: PreparedKey[]
 }
 
@@ -274,12 +281,13 @@ async function prepareRestore(
       utxos: []
     })
   }
-  const ecashMnemonics: PreparedEcashMnemonic[] = data.ecash?.mnemonics
+  const ecashMnemonics: PreparedMnemonic[] = data.ecash?.mnemonics
     ? Object.entries(data.ecash.mnemonics)
         .filter((entry): entry is [string, string] => Boolean(entry[1]))
         .map(([accountId, mnemonic]) => ({ accountId, mnemonic }))
     : []
-  return { accounts, ecashMnemonics, keys }
+  const arkMnemonics = prepareArkMnemonics(data.ark?.mnemonics)
+  return { accounts, arkMnemonics, ecashMnemonics, keys }
 }
 
 function snapshotStores(): StoreSnapshot {
@@ -310,7 +318,8 @@ function rollbackStores(snap: StoreSnapshot): void {
 
 function applyStoreRestore(
   data: BackupData,
-  restoredAccounts: Account[]
+  restoredAccounts: Account[],
+  leftoverArkAccountIds: string[]
 ): void {
   resetNostrSync()
   useNostrStore.getState().clearAllNostrState()
@@ -380,12 +389,13 @@ function applyStoreRestore(
       .setActiveIdentity(data.nostrIdentities.activeIdentityNpub)
     useNostrIdentityStore.getState().setRelays(data.nostrIdentities.relays)
   }
-  useArkStore.getState().clearAllData()
-  if (data.ark) {
-    for (const account of data.ark.accounts) {
-      useArkStore.getState().addAccount(account)
-    }
-  }
+  restoreArkStoreFromBackup(data.ark)
+  const restoredArkIds = data.ark?.accounts.map((account) => account.id) ?? []
+  restoreArkLabelsFromBackup(
+    data.ark?.labels,
+    leftoverArkAccountIds,
+    restoredArkIds
+  )
   if (data.serverSettings) {
     restoreBlockchainFromBackup(data.serverSettings)
   }
@@ -393,7 +403,8 @@ function applyStoreRestore(
 
 async function writeKeychain(
   prepared: PreparedRestore,
-  existingEcashAccountIds: string[]
+  existingEcashAccountIds: string[],
+  leftoverArkAccountIds: string[]
 ): Promise<void> {
   for (const k of prepared.keys) {
     await storeKeySecret(k.accountId, k.index, k.secret, k.iv)
@@ -410,6 +421,14 @@ async function writeKeychain(
     (id) => !restoredEcashIds.has(id)
   )
   await Promise.all(toDelete.map((id) => deleteEcashMnemonic(id)))
+  await Promise.all(
+    prepared.arkMnemonics.map((m) => storeArkMnemonic(m.accountId, m.mnemonic))
+  )
+  await Promise.all(
+    leftoverArkAccountIds.map((id) =>
+      deleteArkMnemonic(id).catch(() => undefined)
+    )
+  )
 }
 
 /**
@@ -447,17 +466,33 @@ export async function performRecoverOverwrite(
   const existingEcashAccountIds = useEcashStore
     .getState()
     .accounts.map((a) => a.id)
+  const existingArkAccountIds = useArkStore.getState().accounts.map((a) => a.id)
+  const restoredArkIds = new Set(
+    data.ark?.accounts.map((account) => account.id)
+  )
+  const leftoverArkAccountIds = existingArkAccountIds.filter(
+    (id) => !restoredArkIds.has(id)
+  )
   const snapshot = snapshotStores()
 
   try {
-    applyStoreRestore(data, prepared.accounts)
+    applyStoreRestore(data, prepared.accounts, leftoverArkAccountIds)
   } catch (error) {
     rollbackStores(snapshot)
     return { error: errorMessage(error), success: false }
   }
 
   try {
-    await writeKeychain(prepared, existingEcashAccountIds)
+    await writeKeychain(
+      prepared,
+      existingEcashAccountIds,
+      leftoverArkAccountIds
+    )
+    await restoreArkDatadirsFromBackup(
+      data.ark?.datadirs,
+      leftoverArkAccountIds,
+      data.ark?.accounts.map((account) => account.id) ?? []
+    )
   } catch (error) {
     rollbackStores(snapshot)
     return { error: errorMessage(error), success: false }

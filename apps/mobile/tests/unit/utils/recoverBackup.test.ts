@@ -17,9 +17,27 @@ jest.mock<typeof import('@/utils/nostrSyncService')>(
 )
 
 jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
-  deleteEcashMnemonic: jest.fn(),
-  storeEcashMnemonic: jest.fn(),
-  storeKeySecret: jest.fn()
+  deleteArkMnemonic: jest.fn().mockResolvedValue(undefined),
+  deleteEcashMnemonic: jest.fn().mockResolvedValue(undefined),
+  storeArkMnemonic: jest.fn().mockResolvedValue(undefined),
+  storeEcashMnemonic: jest.fn().mockResolvedValue(undefined),
+  storeKeySecret: jest.fn().mockResolvedValue(undefined)
+}))
+
+jest.mock<typeof import('@/utils/arkBackup')>('@/utils/arkBackup', () => ({
+  prepareArkMnemonics: (
+    mnemonics: Record<string, string | null> | undefined
+  ) => {
+    if (!mnemonics) {
+      return []
+    }
+    return Object.entries(mnemonics)
+      .filter((entry): entry is [string, string] => Boolean(entry[1]))
+      .map(([accountId, mnemonic]) => ({ accountId, mnemonic }))
+  },
+  restoreArkDatadirsFromBackup: jest.fn().mockResolvedValue(undefined),
+  restoreArkLabelsFromBackup: jest.fn(),
+  restoreArkStoreFromBackup: jest.fn()
 }))
 
 jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
@@ -223,6 +241,7 @@ describe('performRecoverOverwrite restore', () => {
       deleteAccounts
     })
     useArkStore.getState.mockReturnValue({
+      accounts: [],
       addAccount: jest.fn(),
       clearAllData: clearAllDataArk
     })
@@ -534,5 +553,148 @@ describe('performRecoverOverwrite restore', () => {
     expect(setNodeInfo).toHaveBeenCalledWith(nodeInfo)
     expect(setChannels).toHaveBeenCalledWith([])
     expect(setConnected).toHaveBeenCalledWith(true)
+  })
+
+  it('restores ark mnemonics, labels, store, and datadirs', async () => {
+    const { storeArkMnemonic, deleteArkMnemonic } = jest.requireMock(
+      '@/storage/encrypted'
+    ) as {
+      deleteArkMnemonic: jest.Mock
+      storeArkMnemonic: jest.Mock
+    }
+    const {
+      restoreArkStoreFromBackup,
+      restoreArkLabelsFromBackup,
+      restoreArkDatadirsFromBackup
+    } = jest.requireMock('@/utils/arkBackup') as {
+      restoreArkDatadirsFromBackup: jest.Mock
+      restoreArkLabelsFromBackup: jest.Mock
+      restoreArkStoreFromBackup: jest.Mock
+    }
+    const { useArkStore } = jest.requireMock('@/store/ark') as {
+      useArkStore: { getState: jest.Mock }
+    }
+    useArkStore.getState.mockReturnValue({
+      accounts: [{ id: 'old-ark' }],
+      addAccount: jest.fn(),
+      clearAllData: clearAllDataArk
+    })
+
+    const arkAccount = {
+      bitcoinAccountId: 'acc-1',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      id: 'ark-1',
+      name: 'Ark',
+      network: 'signet',
+      serverId: 'second'
+    }
+    const labels = {
+      'ark-1': {
+        'movement:7': { label: 'coffee', ref: 'movement:7', type: 'tx' }
+      }
+    }
+    const datadirs = {
+      'ark-1': { files: [{ base64: 'ZGI=', filename: 'bark.db' }] }
+    }
+
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [
+          {
+            id: 'acc-1',
+            keys: [{ index: 0, name: 'k1', seedWords: 'abandon abandon' }],
+            name: 'Wallet',
+            network: 'bitcoin',
+            policyType: 'singlesig'
+          }
+        ],
+        ark: {
+          accounts: [arkAccount],
+          datadirs,
+          labels,
+          mnemonics: { 'ark-1': 'ark seed words' }
+        },
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    expect(restoreArkStoreFromBackup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accounts: [arkAccount],
+        labels,
+        mnemonics: { 'ark-1': 'ark seed words' }
+      })
+    )
+    expect(restoreArkLabelsFromBackup).toHaveBeenCalledWith(
+      labels,
+      ['old-ark'],
+      ['ark-1']
+    )
+    expect(storeArkMnemonic).toHaveBeenCalledWith('ark-1', 'ark seed words')
+    expect(deleteArkMnemonic).toHaveBeenCalledWith('old-ark')
+    expect(restoreArkDatadirsFromBackup).toHaveBeenCalledWith(
+      datadirs,
+      ['old-ark'],
+      ['ark-1']
+    )
+  })
+
+  it('restores ark account metadata from old backups without mnemonics or datadirs', async () => {
+    const { storeArkMnemonic } = jest.requireMock('@/storage/encrypted') as {
+      storeArkMnemonic: jest.Mock
+    }
+    const {
+      restoreArkStoreFromBackup,
+      restoreArkLabelsFromBackup,
+      restoreArkDatadirsFromBackup
+    } = jest.requireMock('@/utils/arkBackup') as {
+      restoreArkDatadirsFromBackup: jest.Mock
+      restoreArkLabelsFromBackup: jest.Mock
+      restoreArkStoreFromBackup: jest.Mock
+    }
+
+    const arkAccount = {
+      bitcoinAccountId: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      id: 'ark-1',
+      name: 'Ark',
+      network: 'signet',
+      serverId: 'second'
+    }
+
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [],
+        ark: { accounts: [arkAccount] },
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    expect(restoreArkStoreFromBackup).toHaveBeenCalledWith({
+      accounts: [arkAccount]
+    })
+    expect(restoreArkLabelsFromBackup).toHaveBeenCalledWith(
+      undefined,
+      [],
+      ['ark-1']
+    )
+    expect(storeArkMnemonic).not.toHaveBeenCalled()
+    expect(restoreArkDatadirsFromBackup).toHaveBeenCalledWith(
+      undefined,
+      [],
+      ['ark-1']
+    )
   })
 })
