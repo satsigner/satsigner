@@ -138,9 +138,7 @@ const COORDINATION_EDGES = [
   [0, 5]
 ] as const
 
-type CoordinationNodeShape = 'circle' | 'phone'
-
-type CoordinationNodeProps = {
+type CoordinationRevealNodeProps = {
   cx: number
   cy: number
   cycleScript: SharedValue<number>
@@ -151,9 +149,14 @@ type CoordinationNodeProps = {
   revealProgress: SharedValue<number>
   screenHeight: number
   screenWidth: number
-  shape: CoordinationNodeShape
   signEventStartMs: number | null
   size: number
+}
+
+function smoothReveal(progress: number, index: number) {
+  'worklet'
+  const raw = Math.min(1, Math.max(0, progress - index))
+  return raw * raw * (3 - 2 * raw)
 }
 
 const PHONE_WIDTH_RATIO = 0.58
@@ -270,30 +273,49 @@ function CoordinationPulse({
   )
 }
 
-function CoordinationNode({
-  cx,
-  cy,
-  size,
-  shape,
-  label,
-  npub,
-  opacity,
-  index,
-  revealProgress,
-  cycleScript,
-  signEventStartMs,
-  screenWidth,
-  screenHeight
-}: CoordinationNodeProps) {
+function useNodeBreathe(index: number) {
   const breathe = useSharedValue(1)
-  const eventDuration =
-    shape === 'circle' ? SIGNING_DESCRIPTOR_POP_MS : SIGNING_FLASH_MS
-  const eventScalePeak = shape === 'circle' ? 0.2 : 0.15
 
+  useEffect(() => {
+    breathe.set(
+      withDelay(
+        index * 420,
+        withRepeat(
+          withTiming(1.06, {
+            duration: 2800 + index * 90,
+            easing: Easing.inOut(Easing.sin)
+          }),
+          -1,
+          true
+        )
+      )
+    )
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return breathe
+}
+
+function useNodeRevealStyles({
+  breathe,
+  cycleScript,
+  eventDuration,
+  eventScalePeak,
+  index,
+  opacity,
+  revealProgress,
+  signEventStartMs
+}: {
+  breathe: SharedValue<number>
+  cycleScript: SharedValue<number>
+  eventDuration: number
+  eventScalePeak: number
+  index: number
+  opacity: number
+  revealProgress: SharedValue<number>
+  signEventStartMs: number | null
+}) {
   const animStyle = useAnimatedStyle(() => {
-    const raw = Math.min(1, Math.max(0, revealProgress.value - index))
-    const smooth = raw * raw * (3 - 2 * raw)
-
+    const smooth = smoothReveal(revealProgress.value, index)
     let eventScaleBoost = 0
     if (signEventStartMs !== null) {
       const t = (cycleScript.value - signEventStartMs) / eventDuration
@@ -312,8 +334,72 @@ function CoordinationNode({
     }
   })
 
+  const labelStyle = useAnimatedStyle(() => ({
+    opacity: 0.7 * smoothReveal(revealProgress.value, index)
+  }))
+
+  const npubStyle = useAnimatedStyle(() => ({
+    opacity: 0.4 * smoothReveal(revealProgress.value, index)
+  }))
+
+  return { animStyle, labelStyle, npubStyle }
+}
+
+function useSigningIndicatorStyle(
+  cycleScript: SharedValue<number>,
+  arrivalMs: number
+) {
+  return useAnimatedStyle(() => {
+    const t = (cycleScript.value - arrivalMs) / SIGNING_INDICATOR_FADE_MS
+    const progress = t <= 0 ? 0 : Math.min(1, t)
+    const checkT =
+      (cycleScript.value - SIGNING_CHECK_REVEAL_START_MS) /
+      SIGNING_CHECK_REVEAL_MS
+    const checkProgress = checkT <= 0 ? 0 : Math.min(1, checkT)
+    return {
+      backgroundColor: interpolateColor(
+        progress,
+        [0, 1],
+        [Colors.white, Colors.black]
+      ),
+      borderColor: interpolateColor(
+        progress,
+        [0, 1],
+        [Colors.gray[75], Colors.black]
+      ),
+      opacity: 1 - checkProgress
+    }
+  })
+}
+
+function PhoneNode({
+  cx,
+  cy,
+  cycleScript,
+  index,
+  label,
+  npub,
+  opacity,
+  revealProgress,
+  screenHeight,
+  screenWidth,
+  signEventStartMs,
+  size
+}: CoordinationRevealNodeProps) {
+  const breathe = useNodeBreathe(index)
+  const { animStyle, labelStyle, npubStyle } = useNodeRevealStyles({
+    breathe,
+    cycleScript,
+    eventDuration: SIGNING_FLASH_MS,
+    eventScalePeak: 0.15,
+    index,
+    opacity,
+    revealProgress,
+    signEventStartMs
+  })
+
   const borderStyle = useAnimatedStyle(() => {
-    if (signEventStartMs === null || shape !== 'phone') {
+    if (signEventStartMs === null) {
       return { borderColor: Colors.gray[700] }
     }
     const t = (cycleScript.value - signEventStartMs) / SIGNING_FLASH_MS
@@ -327,90 +413,99 @@ function CoordinationNode({
     }
   })
 
-  const labelStyle = useAnimatedStyle(() => {
-    const raw = Math.min(1, Math.max(0, revealProgress.value - index))
-    const smooth = raw * raw * (3 - 2 * raw)
-    return { opacity: 0.7 * smooth }
-  })
+  const phoneHeight = size
+  const phoneWidth = Math.max(8, size * PHONE_WIDTH_RATIO)
+  const cornerRadius = Math.max(1, size * PHONE_CORNER_RATIO)
+  const labelTop = cy * screenHeight + phoneHeight / 2 + PHONE_LABEL_GAP
+  const npubTop = labelTop + PHONE_LABEL_LINE_HEIGHT + PHONE_NPUB_GAP
 
-  const npubStyle = useAnimatedStyle(() => {
-    const raw = Math.min(1, Math.max(0, revealProgress.value - index))
-    const smooth = raw * raw * (3 - 2 * raw)
-    return { opacity: 0.4 * smooth }
-  })
+  return (
+    <>
+      <Animated.View
+        style={[
+          styles.coordinationPhone,
+          animStyle,
+          borderStyle,
+          {
+            borderRadius: cornerRadius,
+            height: phoneHeight,
+            left: cx * screenWidth - phoneWidth / 2,
+            top: cy * screenHeight - phoneHeight / 2,
+            width: phoneWidth
+          }
+        ]}
+      />
+      {label !== null ? (
+        <Animated.Text
+          style={[
+            styles.coordinationPhoneLabel,
+            labelStyle,
+            {
+              left: cx * screenWidth - PHONE_LABEL_WIDTH / 2,
+              top: labelTop,
+              width: PHONE_LABEL_WIDTH
+            }
+          ]}
+        >
+          {label}
+        </Animated.Text>
+      ) : null}
+      {npub !== null ? (
+        <Animated.Text
+          style={[
+            styles.coordinationPhoneNpub,
+            npubStyle,
+            {
+              left: cx * screenWidth - PHONE_LABEL_WIDTH / 2,
+              top: npubTop,
+              width: PHONE_LABEL_WIDTH
+            }
+          ]}
+        >
+          {npub}
+        </Animated.Text>
+      ) : null}
+    </>
+  )
+}
 
-  const indicator0Style = useAnimatedStyle(() => {
-    const t =
-      (cycleScript.value - SIGNING_INDICATOR_ARRIVAL_MS[0]) /
-      SIGNING_INDICATOR_FADE_MS
-    const progress = t <= 0 ? 0 : Math.min(1, t)
-    const checkT =
-      (cycleScript.value - SIGNING_CHECK_REVEAL_START_MS) /
-      SIGNING_CHECK_REVEAL_MS
-    const checkProgress = checkT <= 0 ? 0 : Math.min(1, checkT)
-    return {
-      backgroundColor: interpolateColor(
-        progress,
-        [0, 1],
-        [Colors.white, Colors.black]
-      ),
-      borderColor: interpolateColor(
-        progress,
-        [0, 1],
-        [Colors.gray[75], Colors.black]
-      ),
-      opacity: 1 - checkProgress
-    }
+function DescriptorNode({
+  cx,
+  cy,
+  cycleScript,
+  index,
+  label,
+  npub,
+  opacity,
+  revealProgress,
+  screenHeight,
+  screenWidth,
+  signEventStartMs,
+  size
+}: CoordinationRevealNodeProps) {
+  const breathe = useNodeBreathe(index)
+  const { animStyle, labelStyle, npubStyle } = useNodeRevealStyles({
+    breathe,
+    cycleScript,
+    eventDuration: SIGNING_DESCRIPTOR_POP_MS,
+    eventScalePeak: 0.2,
+    index,
+    opacity,
+    revealProgress,
+    signEventStartMs
   })
-
-  const indicator1Style = useAnimatedStyle(() => {
-    const t =
-      (cycleScript.value - SIGNING_INDICATOR_ARRIVAL_MS[1]) /
-      SIGNING_INDICATOR_FADE_MS
-    const progress = t <= 0 ? 0 : Math.min(1, t)
-    const checkT =
-      (cycleScript.value - SIGNING_CHECK_REVEAL_START_MS) /
-      SIGNING_CHECK_REVEAL_MS
-    const checkProgress = checkT <= 0 ? 0 : Math.min(1, checkT)
-    return {
-      backgroundColor: interpolateColor(
-        progress,
-        [0, 1],
-        [Colors.white, Colors.black]
-      ),
-      borderColor: interpolateColor(
-        progress,
-        [0, 1],
-        [Colors.gray[75], Colors.black]
-      ),
-      opacity: 1 - checkProgress
-    }
-  })
-
-  const indicator2Style = useAnimatedStyle(() => {
-    const t =
-      (cycleScript.value - SIGNING_INDICATOR_ARRIVAL_MS[2]) /
-      SIGNING_INDICATOR_FADE_MS
-    const progress = t <= 0 ? 0 : Math.min(1, t)
-    const checkT =
-      (cycleScript.value - SIGNING_CHECK_REVEAL_START_MS) /
-      SIGNING_CHECK_REVEAL_MS
-    const checkProgress = checkT <= 0 ? 0 : Math.min(1, checkT)
-    return {
-      backgroundColor: interpolateColor(
-        progress,
-        [0, 1],
-        [Colors.white, Colors.black]
-      ),
-      borderColor: interpolateColor(
-        progress,
-        [0, 1],
-        [Colors.gray[75], Colors.black]
-      ),
-      opacity: 1 - checkProgress
-    }
-  })
-
+  const indicator0Style = useSigningIndicatorStyle(
+    cycleScript,
+    SIGNING_INDICATOR_ARRIVAL_MS[0]
+  )
+  const indicator1Style = useSigningIndicatorStyle(
+    cycleScript,
+    SIGNING_INDICATOR_ARRIVAL_MS[1]
+  )
+  const indicator2Style = useSigningIndicatorStyle(
+    cycleScript,
+    SIGNING_INDICATOR_ARRIVAL_MS[2]
+  )
   const checkStyle = useAnimatedStyle(() => {
     const t =
       (cycleScript.value - SIGNING_CHECK_REVEAL_START_MS) /
@@ -422,79 +517,6 @@ function CoordinationNode({
       transform: [{ scale: 0.4 + smooth * 0.6 }]
     }
   })
-
-  useEffect(() => {
-    breathe.set(
-      withDelay(
-        index * 420,
-        withRepeat(
-          withTiming(1.06, {
-            duration: 2800 + index * 90,
-            easing: Easing.inOut(Easing.sin)
-          }),
-          -1,
-          true
-        )
-      )
-    )
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (shape === 'phone') {
-    const phoneHeight = size
-    const phoneWidth = Math.max(8, size * PHONE_WIDTH_RATIO)
-    const cornerRadius = Math.max(1, size * PHONE_CORNER_RATIO)
-    const labelTop = cy * screenHeight + phoneHeight / 2 + PHONE_LABEL_GAP
-    const npubTop = labelTop + PHONE_LABEL_LINE_HEIGHT + PHONE_NPUB_GAP
-
-    return (
-      <>
-        <Animated.View
-          style={[
-            styles.coordinationPhone,
-            animStyle,
-            borderStyle,
-            {
-              borderRadius: cornerRadius,
-              height: phoneHeight,
-              left: cx * screenWidth - phoneWidth / 2,
-              top: cy * screenHeight - phoneHeight / 2,
-              width: phoneWidth
-            }
-          ]}
-        />
-        {label !== null && (
-          <Animated.Text
-            style={[
-              styles.coordinationPhoneLabel,
-              labelStyle,
-              {
-                left: cx * screenWidth - PHONE_LABEL_WIDTH / 2,
-                top: labelTop,
-                width: PHONE_LABEL_WIDTH
-              }
-            ]}
-          >
-            {label}
-          </Animated.Text>
-        )}
-        {npub !== null && (
-          <Animated.Text
-            style={[
-              styles.coordinationPhoneNpub,
-              npubStyle,
-              {
-                left: cx * screenWidth - PHONE_LABEL_WIDTH / 2,
-                top: npubTop,
-                width: PHONE_LABEL_WIDTH
-              }
-            ]}
-          >
-            {npub}
-          </Animated.Text>
-        )}
-      </>
-    )
-  }
 
   const circleLabelTop = cy * screenHeight + size / 2 + PHONE_LABEL_GAP
   const circleNpubTop =
@@ -547,7 +569,7 @@ function CoordinationNode({
           </Svg>
         </Animated.View>
       </Animated.View>
-      {label !== null && (
+      {label !== null ? (
         <Animated.Text
           style={[
             styles.coordinationDescriptorLabel,
@@ -561,8 +583,8 @@ function CoordinationNode({
         >
           {label}
         </Animated.Text>
-      )}
-      {npub !== null && (
+      ) : null}
+      {npub !== null ? (
         <Animated.Text
           style={[
             styles.coordinationPhoneNpub,
@@ -576,7 +598,7 @@ function CoordinationNode({
         >
           {npub}
         </Animated.Text>
-      )}
+      ) : null}
     </>
   )
 }
@@ -744,24 +766,41 @@ function SSIntroAnimationCoordinationStep({
           })}
         </Svg>
       </View>
-      {COORDINATION_NODES.map((node, i) => (
-        <CoordinationNode
-          key={i}
-          index={i}
-          cx={node.cx}
-          cy={node.cy}
-          size={node.size}
-          shape={node.shape}
-          label={node.label}
-          npub={node.npub}
-          opacity={node.opacity}
-          revealProgress={revealProgress}
-          cycleScript={cycleScript}
-          signEventStartMs={node.signEventStartMs}
-          screenWidth={screenWidth}
-          screenHeight={screenHeight}
-        />
-      ))}
+      {COORDINATION_NODES.map((node, i) =>
+        node.shape === 'phone' ? (
+          <PhoneNode
+            key={i}
+            index={i}
+            cx={node.cx}
+            cy={node.cy}
+            size={node.size}
+            label={node.label}
+            npub={node.npub}
+            opacity={node.opacity}
+            revealProgress={revealProgress}
+            cycleScript={cycleScript}
+            signEventStartMs={node.signEventStartMs}
+            screenWidth={screenWidth}
+            screenHeight={screenHeight}
+          />
+        ) : (
+          <DescriptorNode
+            key={i}
+            index={i}
+            cx={node.cx}
+            cy={node.cy}
+            size={node.size}
+            label={node.label}
+            npub={node.npub}
+            opacity={node.opacity}
+            revealProgress={revealProgress}
+            cycleScript={cycleScript}
+            signEventStartMs={node.signEventStartMs}
+            screenWidth={screenWidth}
+            screenHeight={screenHeight}
+          />
+        )
+      )}
     </View>
   )
 }
