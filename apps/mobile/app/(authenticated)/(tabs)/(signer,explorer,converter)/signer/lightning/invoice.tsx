@@ -3,6 +3,7 @@ import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
+  Keyboard,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -503,6 +504,9 @@ export default function InvoicePage() {
                     placeholderTextColor="#666"
                     multiline
                     numberOfLines={3}
+                    blurOnSubmit
+                    returnKeyType="done"
+                    onSubmitEditing={Keyboard.dismiss}
                   />
                 </SSVStack>
                 <SSVStack style={styles.actions}>
