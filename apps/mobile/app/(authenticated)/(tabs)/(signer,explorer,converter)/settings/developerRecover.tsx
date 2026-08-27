@@ -175,6 +175,7 @@ export default function DeveloperRecover() {
                   placeholder={t(
                     'settings.developer.recoverPassphrasePlaceholder'
                   )}
+                  placeholderTextColor={Colors.gray[400]}
                   secureTextEntry
                   style={styles.passphraseInput}
                   value={recoverPassphrase}

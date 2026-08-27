@@ -500,6 +500,7 @@ export default function Developer() {
                 placeholder={t(
                   'settings.developer.backupPassphrasePlaceholder'
                 )}
+                placeholderTextColor={Colors.gray[400]}
                 secureTextEntry
                 style={styles.passphraseInput}
                 value={backupPassphrase}
