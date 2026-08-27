@@ -9,6 +9,7 @@ import {
 import { useFocusEffect } from 'expo-router/react-navigation'
 import {
   type Dispatch,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -569,6 +570,31 @@ function lastSyncedLabel(
   return t('account.lastSynced', { time: relative })
 }
 
+function AccountActivityToolbar({
+  isSyncing,
+  title,
+  leftActions,
+  rightActions
+}: {
+  isSyncing: boolean
+  title: string
+  leftActions: ReactNode
+  rightActions: ReactNode
+}) {
+  return (
+    <SSHStack justifyBetween style={styles.activityToolbar}>
+      {leftActions}
+      <SSHStack gap="xs" style={styles.activityToolbarCenter}>
+        {isSyncing ? <SSLoader size={14} /> : null}
+        <SSText color="muted" size="xs" center numberOfLines={1}>
+          {title}
+        </SSText>
+      </SSHStack>
+      {rightActions}
+    </SSHStack>
+  )
+}
+
 function SyncScanStats({
   syncStatus,
   tasksDone,
@@ -805,53 +831,47 @@ function TotalTransactions({
 
   return (
     <View style={{ flex: 1, paddingHorizontal: '6%' }}>
-      <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
-        <SSHStack>
-          <SSIconButton
-            onPress={() => handleOnRefresh()}
-            onLongPress={() => handleOnForceRescan()}
-          >
-            <SSIconRefresh height={16} width={19} />
-          </SSIconButton>
-          <SSIconButton onPress={() => handleOnExpand(!expand)}>
-            {expand ? (
-              <SSIconCollapse height={15} width={15} />
-            ) : (
-              <SSIconExpand height={15} width={16} />
-            )}
-          </SSIconButton>
-          {showHistoryChart && (
+      <AccountActivityToolbar
+        isSyncing={isSyncing}
+        title={activityTitle}
+        leftActions={
+          <SSHStack>
             <SSIconButton
-              onPress={() => router.navigate(`/settings/features/charts`)}
+              onPress={() => handleOnRefresh()}
+              onLongPress={() => handleOnForceRescan()}
             >
-              <SSIconChartSettings width={22} height={18} />
+              <SSIconRefresh height={16} width={19} />
             </SSIconButton>
-          )}
-        </SSHStack>
-        <SSHStack
-          gap="sm"
-          style={{
-            alignItems: 'center',
-            flexShrink: 1,
-            justifyContent: 'center',
-            minHeight: 18
-          }}
-        >
-          {isSyncing ? <SSLoader size={18} /> : null}
-          <SSText color="muted" size="xs" center numberOfLines={1}>
-            {activityTitle}
-          </SSText>
-        </SSHStack>
-        <SSHStack>
-          <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
-            {showHistoryChart ? (
-              <SSIconMenu width={18} height={18} />
-            ) : (
-              <SSIconHistoryChart width={18} height={18} />
+            <SSIconButton onPress={() => handleOnExpand(!expand)}>
+              {expand ? (
+                <SSIconCollapse height={15} width={15} />
+              ) : (
+                <SSIconExpand height={15} width={16} />
+              )}
+            </SSIconButton>
+            {showHistoryChart && (
+              <SSIconButton
+                onPress={() => router.navigate(`/settings/features/charts`)}
+              >
+                <SSIconChartSettings width={22} height={18} />
+              </SSIconButton>
             )}
-          </SSIconButton>
-        </SSHStack>
-      </SSHStack>
+          </SSHStack>
+        }
+        rightActions={
+          <SSHStack>
+            {/* Balances the two left icons so sync status sits at true center. */}
+            <View style={styles.activityToolbarIconSpacer} />
+            <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
+              {showHistoryChart ? (
+                <SSIconMenu width={18} height={18} />
+              ) : (
+                <SSIconHistoryChart width={18} height={18} />
+              )}
+            </SSIconButton>
+          </SSHStack>
+        }
+      />
       <SyncScanStats
         syncStatus={syncStatus}
         tasksDone={tasksDone}
@@ -1571,72 +1591,66 @@ function SpendableOutputs({
 
   return (
     <View style={{ flex: 1, paddingHorizontal: '6%', paddingTop: 0 }}>
-      <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
-        <SSHStack>
-          <SSIconButton
-            onPress={() => handleOnRefresh()}
-            onLongPress={() => handleOnForceRescan()}
-          >
-            <SSIconRefresh height={16} width={19} />
-          </SSIconButton>
-          <SSIconButton onPress={() => handleOnExpand(!expand)}>
-            {expand ? (
-              <SSIconCollapse height={15} width={15} />
+      <AccountActivityToolbar
+        isSyncing={isSyncing}
+        title={activityTitle}
+        leftActions={
+          <SSHStack>
+            <SSIconButton
+              onPress={() => handleOnRefresh()}
+              onLongPress={() => handleOnForceRescan()}
+            >
+              <SSIconRefresh height={16} width={19} />
+            </SSIconButton>
+            <SSIconButton onPress={() => handleOnExpand(!expand)}>
+              {expand ? (
+                <SSIconCollapse height={15} width={15} />
+              ) : (
+                <SSIconExpand height={15} width={16} />
+              )}
+            </SSIconButton>
+          </SSHStack>
+        }
+        rightActions={
+          <SSHStack gap="sm">
+            <SSIconButton
+              onPress={() => setControlsModalVisible(true)}
+              style={styles.excludeToolbarButton}
+            >
+              <SSIconFilter height={16} width={16} />
+              {controlsActive ? (
+                <View style={styles.controlsActiveDot} />
+              ) : null}
+            </SSIconButton>
+            {view === 'list' ? (
+              <SSIconButton onPress={() => setView('bubbles')}>
+                <SSIconBubbles height={15} width={15} />
+              </SSIconButton>
             ) : (
-              <SSIconExpand height={15} width={16} />
+              <SSIconButton onPress={() => setView('list')}>
+                <SSIconList height={15} width={15} />
+              </SSIconButton>
             )}
-          </SSIconButton>
-        </SSHStack>
-        <SSHStack
-          gap="sm"
-          style={{
-            alignItems: 'center',
-            flexShrink: 1,
-            justifyContent: 'center',
-            minHeight: 18
-          }}
-        >
-          {isSyncing ? <SSLoader size={18} /> : null}
-          <SSText color="muted" size="xs" center numberOfLines={1}>
-            {activityTitle}
-          </SSText>
-        </SSHStack>
-        <SSHStack gap="sm">
-          <SSIconButton
-            onPress={() => setControlsModalVisible(true)}
-            style={styles.excludeToolbarButton}
-          >
-            <SSIconFilter height={16} width={16} />
-            {controlsActive ? <View style={styles.controlsActiveDot} /> : null}
-          </SSIconButton>
-          {view === 'list' ? (
-            <SSIconButton onPress={() => setView('bubbles')}>
-              <SSIconBubbles height={15} width={15} />
+            <SSIconButton
+              onPress={() =>
+                router.navigate(
+                  `/signer/bitcoin/account/${account.id}/signAndSend/excludeUtxos`
+                )
+              }
+              style={styles.excludeToolbarButton}
+            >
+              <SSIconExclude height={16} width={16} />
+              {excludedCount > 0 ? (
+                <View style={styles.excludeToolbarBadge}>
+                  <SSText size="xxs" style={styles.excludeToolbarBadgeText}>
+                    {excludedCount}
+                  </SSText>
+                </View>
+              ) : null}
             </SSIconButton>
-          ) : (
-            <SSIconButton onPress={() => setView('list')}>
-              <SSIconList height={15} width={15} />
-            </SSIconButton>
-          )}
-          <SSIconButton
-            onPress={() =>
-              router.navigate(
-                `/signer/bitcoin/account/${account.id}/signAndSend/excludeUtxos`
-              )
-            }
-            style={styles.excludeToolbarButton}
-          >
-            <SSIconExclude height={16} width={16} />
-            {excludedCount > 0 ? (
-              <View style={styles.excludeToolbarBadge}>
-                <SSText size="xxs" style={styles.excludeToolbarBadgeText}>
-                  {excludedCount}
-                </SSText>
-              </View>
-            ) : null}
-          </SSIconButton>
-        </SSHStack>
-      </SSHStack>
+          </SSHStack>
+        }
+      />
       <SyncScanStats
         syncStatus={syncStatus}
         tasksDone={tasksDone}
@@ -2563,6 +2577,21 @@ export default function AccountView() {
 }
 
 const styles = StyleSheet.create({
+  activityToolbar: {
+    paddingVertical: 16,
+    width: '100%'
+  },
+  activityToolbarCenter: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 18,
+    paddingHorizontal: 8
+  },
+  activityToolbarIconSpacer: {
+    height: 18,
+    width: 18
+  },
   controlsActiveDot: {
     backgroundColor: Colors.white,
     borderRadius: 3,
