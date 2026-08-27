@@ -99,9 +99,20 @@ const PAYJOIN_OHTTP_KEYS_PROBE_OK = 'ohttp-keys-ok'
 const PAYJOIN_NATIVE_PROBE_URI =
   'bitcoin:tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx?pj=https://payjo.in'
 
+/**
+ * Raised when a board payjoin proposal's txid could change once the sender
+ * signs (legacy or P2SH-wrapped inputs). Bark registers the pending board
+ * under the unsigned proposal's txid and watches the chain for it, so an
+ * unstable txid would leave the board funds unclaimable without manual
+ * recovery. Matched as a terminal error by the receiver hook.
+ */
+const PAYJOIN_BOARD_TXID_UNSTABLE_ERROR =
+  'board payjoin requires segwit sender inputs (proposal txid not stable)'
+
 export {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
+  PAYJOIN_BOARD_TXID_UNSTABLE_ERROR,
   PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_DIRECTORY_URL,

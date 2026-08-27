@@ -11,10 +11,12 @@ import {
   estimateArkBoardFee,
   fetchArkOnchainBalance,
   fetchArkServerInfo,
+  getArkBoardFundingAddress,
   listArkPendingBoards,
   newArkOnchainAddress
 } from '@/api/ark'
 import type {
+  ArkBoardFundingInfo,
   ArkFeeEstimate,
   ArkOnchainBalance,
   ArkPendingBoard,
@@ -75,6 +77,30 @@ export function useArkOnchainAddress(accountId: string | null | undefined) {
       return newArkOnchainAddress(account.serverId, accountId)
     },
     queryKey: ['ark', 'onchain-address', accountId],
+    staleTime: Infinity
+  })
+}
+
+/**
+ * Board funding destination for externally funded boards (payjoin receive).
+ * The address is only spendable through the boardPsbt cosign path, so callers
+ * must never expose it as a plain scannable address — see useArkBoardPayjoin.
+ */
+export function useArkBoardFundingInfo(
+  accountId: string | null | undefined,
+  enabled: boolean
+) {
+  const { data: walletReady } = useArkWallet(accountId)
+  return useQuery<ArkBoardFundingInfo, Error>({
+    enabled: Boolean(walletReady && accountId) && enabled,
+    queryFn: () => {
+      if (!accountId) {
+        throw new Error('Ark account id is required')
+      }
+      const account = getArkAccountOrThrow(accountId)
+      return getArkBoardFundingAddress(account.serverId, accountId)
+    },
+    queryKey: ['ark', 'board-funding-address', accountId],
     staleTime: Infinity
   })
 }

@@ -26,6 +26,7 @@ import {
 } from '@/constants/ark'
 import type {
   ArkBalance,
+  ArkBoardFundingInfo,
   ArkBolt11Invoice,
   ArkDerivedAddress,
   ArkFeeEstimate,
@@ -668,6 +669,33 @@ async function board(
   return mapPendingBoard(pendingBoard)
 }
 
+async function boardFundingAddress(
+  accountId: string
+): Promise<ArkBoardFundingInfo> {
+  const wallet = getCachedWallet(accountId)
+  const info = await wallet.boardFundingAddress()
+  return {
+    address: info.address,
+    expiryHeight: info.expiryHeight,
+    keypairIndex: info.keypairIndex
+  }
+}
+
+async function boardPsbt(
+  accountId: string,
+  psbtBase64: string,
+  keypairIndex: number,
+  expiryHeight: number
+): Promise<ArkPendingBoard> {
+  const wallet = getCachedWallet(accountId)
+  const pendingBoard = await wallet.boardPsbt(
+    psbtBase64,
+    keypairIndex,
+    expiryHeight
+  )
+  return mapPendingBoard(pendingBoard)
+}
+
 async function estimateBoardFee(
   accountId: string,
   amountSats: number
@@ -717,6 +745,8 @@ async function fetchBalance(accountId: string): Promise<ArkBalance> {
 
 const barkProvider: ArkWalletProvider = {
   board,
+  boardFundingAddress,
+  boardPsbt,
   createBolt11Invoice,
   createWallet,
   deriveAddresses,

@@ -208,6 +208,41 @@ async function receiverContributeAndFinalize(
   }
 }
 
+/**
+ * Zero-input board finalize: the receiver adds nothing, so the proposal is
+ * the sender's original PSBT posted straight back to the mailbox.
+ */
+async function receiverFinalizeWithoutInputs(
+  state: string,
+  _checks?: {
+    isOutpointOwned: (outpoint: string) => boolean
+    isOutpointSeen: (outpoint: string) => boolean
+  }
+): Promise<{
+  request: PayjoinNativeRequest
+  state: string
+  psbtBase64: string
+}> {
+  const data = decodeState(state)
+  const mailboxId = String(data.mailboxId)
+  const mailbox = mailboxes.get(mailboxId) ?? {}
+  if (!mailbox.originalPsbtBase64) {
+    throw new Error('no original proposal to finalize; poll first')
+  }
+  const psbtBase64 = mailbox.originalPsbtBase64
+  mailbox.proposalPsbtBase64 = psbtBase64
+  mailboxes.set(mailboxId, mailbox)
+  return {
+    psbtBase64,
+    request: {
+      body: textEncoder(psbtBase64),
+      contentType: 'message/ohttp-req',
+      url: 'https://ohttp.example/mock'
+    },
+    state: encodeState({ ...data, phase: 'completed' })
+  }
+}
+
 async function receiverManualContribute(
   originalPsbtBase64: string,
   _receiveAddress: string,
@@ -379,6 +414,7 @@ export {
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
+  receiverFinalizeWithoutInputs,
   receiverManualContribute,
   receiverManualFinalize,
   receiverProcessResponse,

@@ -47,6 +47,7 @@ import {
 } from 'react-native-payjoin'
 
 import {
+  PAYJOIN_BOARD_TXID_UNSTABLE_ERROR,
   PAYJOIN_MIN_SESSION_EXPIRE_SECONDS,
   PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
   PAYJOIN_NATIVE_PROBE_URI,
@@ -688,23 +689,21 @@ function finalizeReceiver(
   return { psbtBase64, request: adaptRequest(request), state: nextState }
 }
 
-function contributeReceiver(
-  id: string,
-  entry: ReceiverEntry,
-  input: ReceiverInput,
+/**
+ * Runs the receiver checks against the sender's original payload and commits
+ * the receiver outputs, advancing the typestate to WantsInputs. Shared by the
+ * contributing path and the zero-input board path.
+ */
+function advanceReceiverToWantsInputs(
+  receiver: UncheckedOriginalPayloadLike,
+  receiveScriptHex: string,
+  persister: ReturnType<typeof createPersister>,
   checks?: ReceiverWalletChecks
-): { request: PayjoinNativeRequest; state: string; psbtBase64: string } {
-  if (entry.live.kind !== 'unchecked') {
-    throw new Error('no original proposal to contribute to; poll first')
-  }
-  const persister = createPersister()
-  const { receiveScriptHex } = entry
+) {
   const isOutpointOwned = checks?.isOutpointOwned ?? (() => false)
   const isOutpointSeen = checks?.isOutpointSeen ?? (() => false)
 
-  const maybeOwned = entry.live.receiver
-    .assumeInteractiveReceiver()
-    .save(persister)
+  const maybeOwned = receiver.assumeInteractiveReceiver().save(persister)
   const maybeSeen = maybeOwned
     .checkInputsNotOwned({
       callback: (outpoint: { txid: string; vout: number }) =>
@@ -724,7 +723,25 @@ function contributeReceiver(
     })
     .save(persister)
 
-  const wantsInputs = wantsOutputs.commitOutputs().save(persister)
+  return wantsOutputs.commitOutputs().save(persister)
+}
+
+function contributeReceiver(
+  id: string,
+  entry: ReceiverEntry,
+  input: ReceiverInput,
+  checks?: ReceiverWalletChecks
+): { request: PayjoinNativeRequest; state: string; psbtBase64: string } {
+  if (entry.live.kind !== 'unchecked') {
+    throw new Error('no original proposal to contribute to; poll first')
+  }
+  const persister = createPersister()
+  const wantsInputs = advanceReceiverToWantsInputs(
+    entry.live.receiver,
+    entry.receiveScriptHex,
+    persister,
+    checks
+  )
   const wantsFeeRange = wantsInputs
     .contributeInputs([buildInputPair(input)])
     .commitInputs()
@@ -740,6 +757,65 @@ function contributeReceiver(
     psbtBase64: provisional.psbtToSign(),
     request: EMPTY_REQUEST,
     state: encodeReceiverState(id, entry)
+  }
+}
+
+/**
+ * Zero-input receiver finalize for board payjoins: runs the receiver checks,
+ * commits the outputs with no input contribution, finalizes the proposal
+ * (the receiver has nothing to sign) and builds the directory POST in one
+ * pass. Refuses senders whose final signatures would change the txid — bark
+ * registers the pending board under the unsigned proposal's txid, so an
+ * unstable txid would strand the board funds.
+ */
+async function receiverFinalizeWithoutInputs(
+  state: string,
+  checks?: ReceiverWalletChecks
+): Promise<{
+  request: PayjoinNativeRequest
+  state: string
+  psbtBase64: string
+}> {
+  try {
+    const { id, entry } = ensureReceiver(state)
+    if (entry.live.kind !== 'unchecked') {
+      throw new Error('no original proposal to finalize; poll first')
+    }
+    const persister = createPersister()
+    const wantsInputs = advanceReceiverToWantsInputs(
+      entry.live.receiver,
+      entry.receiveScriptHex,
+      persister,
+      checks
+    )
+    if (!wantsInputs.proposalTxidIsStable()) {
+      throw new Error(PAYJOIN_BOARD_TXID_UNSTABLE_ERROR)
+    }
+    const wantsFeeRange = wantsInputs.commitInputs().save(persister)
+    const provisional = wantsFeeRange
+      .applyFeeRange(undefined, undefined)
+      .save(persister)
+    const proposal: PayjoinProposalLike = provisional
+      .finalizeProposal({
+        callback(cleared: string) {
+          return cleared
+        }
+      })
+      .save(persister)
+    entry.events.push(...persister.drain())
+
+    const psbtBase64 = proposal.psbt()
+    const { request } = proposal.createPostRequest(entry.ohttpRelay)
+    // Proposal is consumed into the directory POST; the caller must deliver
+    // the request before treating the board receive as complete.
+    receivers.delete(id)
+    return {
+      psbtBase64,
+      request: adaptRequest(request),
+      state: encodeReceiverState(id, entry)
+    }
+  } catch (error) {
+    throw toError(error)
   }
 }
 
@@ -972,6 +1048,7 @@ export {
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
+  receiverFinalizeWithoutInputs,
   receiverManualContribute,
   receiverManualFinalize,
   receiverProcessResponse,

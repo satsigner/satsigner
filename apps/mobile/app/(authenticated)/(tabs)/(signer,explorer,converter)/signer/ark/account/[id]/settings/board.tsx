@@ -18,6 +18,7 @@ import {
   useArkServerInfo
 } from '@/hooks/useArkBoard'
 import { useArkBoardDeposit } from '@/hooks/useArkBoardDeposit'
+import { useArkBoardPayjoin } from '@/hooks/useArkBoardPayjoin'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -51,6 +52,7 @@ export default function ArkBoardPage() {
   const serverInfoQuery = useArkServerInfo(id)
   const boardMutation = useArkBoardMutation(id)
   const { fundFromLinkedAccount, linkedAccount } = useArkBoardDeposit(account)
+  const boardPayjoin = useArkBoardPayjoin(account)
 
   const [amountSats, setAmountSats] = useState(0)
 
@@ -84,6 +86,14 @@ export default function ArkBoardPage() {
       return
     }
     await setClipboard(depositAddress)
+    toast.success(t('common.copiedToClipboard'))
+  }
+
+  async function handleCopyPayjoinUri() {
+    if (!boardPayjoin.payjoinUri) {
+      return
+    }
+    await setClipboard(boardPayjoin.payjoinUri)
     toast.success(t('common.copiedToClipboard'))
   }
 
@@ -216,6 +226,49 @@ export default function ArkBoardPage() {
               </SSVStack>
             )}
           </SSVStack>
+
+          {boardPayjoin.available && (
+            <SSVStack gap="xs">
+              <SSText color="muted" size="xs" uppercase>
+                {t('ark.board.payjoinTitle')}
+              </SSText>
+              <SSText color="muted" size="xs">
+                {t('ark.board.payjoinDescription')}
+              </SSText>
+              {/* Only the live payjoin URI is ever shown — the funding address
+                  alone is not spendable without the ark cosign, so a plain
+                  send to it would strand the funds. */}
+              {boardPayjoin.payjoinUri && (
+                <SSVStack gap="sm">
+                  <View style={styles.qrContainer}>
+                    <SSQRCode
+                      value={boardPayjoin.payjoinUri}
+                      size={DEPOSIT_QR_SIZE}
+                    />
+                  </View>
+                  <SSButton
+                    label={t('common.copy')}
+                    onPress={handleCopyPayjoinUri}
+                    variant="outline"
+                  />
+                </SSVStack>
+              )}
+              {boardPayjoin.statusLabelKey && (
+                <SSText color="muted" size="xs">
+                  {t(boardPayjoin.statusLabelKey)}
+                </SSText>
+              )}
+              {boardPayjoin.fundingError && (
+                <SSText
+                  size="xs"
+                  style={{ color: Colors.warning }}
+                  onPress={() => boardPayjoin.retryFundingInfo()}
+                >
+                  {t('ark.board.payjoinError')}
+                </SSText>
+              )}
+            </SSVStack>
+          )}
 
           <SSVStack gap="xs">
             <SSText color="muted" size="xs" uppercase>

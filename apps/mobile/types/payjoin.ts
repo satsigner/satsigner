@@ -1,3 +1,5 @@
+import { type ArkServerId } from '@/types/models/Ark'
+
 type PayjoinProtocolVersion = 'v1' | 'v2'
 
 type PayjoinEndpointKind = 'bip78' | 'bip77'
@@ -21,6 +23,19 @@ type PayjoinUriParams = {
 }
 
 type PayjoinSessionRole = 'sender' | 'receiver'
+
+/**
+ * Marks a receiver session whose destination is an Ark board funding address.
+ * The receiver contributes no inputs; the finalized proposal PSBT is cosigned
+ * with the ark server (boardPsbt) before it is posted back to the directory.
+ * keypairIndex and expiryHeight come from boardFundingAddress and must reach
+ * boardPsbt unchanged — the funding script commits to both.
+ */
+type PayjoinBoardDestination = {
+  serverId: ArkServerId
+  keypairIndex: number
+  expiryHeight: number
+}
 
 type PayjoinSessionStatus =
   | 'idle'
@@ -49,6 +64,8 @@ type PayjoinSession = {
   pjos: 0 | 1
   amountSats?: number
   label?: string
+  /** Present on receiver sessions that fund an Ark board via payjoin. */
+  board?: PayjoinBoardDestination
   /** Opaque PDK/native session blob for resume. */
   nativeState?: string
   originalPsbtBase64?: string
@@ -157,6 +174,7 @@ export type {
   HttpResponse,
   PayjoinBip78Error,
   PayjoinBip78ErrorCode,
+  PayjoinBoardDestination,
   PayjoinCoordinationMode,
   PayjoinEndpointKind,
   PayjoinNativeRequest,
