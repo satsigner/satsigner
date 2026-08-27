@@ -19,6 +19,7 @@ import {
   SALT_KEY
 } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { deleteItem, getEcashMnemonic } from '@/storage/encrypted'
@@ -262,18 +263,26 @@ export default function Developer() {
         salt,
         v: 1
       })
-      await saveFile({
+      const didSave = await saveFile({
         dialogTitle: t('settings.developer.backupData'),
         fileContent: encryptedPayload,
         filename,
         mimeType: 'application/json'
       })
+      if (!didSave) {
+        return
+      }
       toast.success(t('settings.developer.backupSuccess'))
       setBackupPreviewVisible(false)
       setBackupPreviewPayload(null)
       setBackupPassphrase('')
-    } catch {
-      toast.error(t('settings.developer.backupError'))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined
+      toast.error(
+        message
+          ? `${t('settings.developer.backupError')}: ${message}`
+          : t('settings.developer.backupError')
+      )
     }
   }
 
@@ -469,57 +478,68 @@ export default function Developer() {
         closeButtonVariant="ghost"
         fullOpacity
       >
-        <SSVStack gap="lg" widthFull style={styles.backupPreviewModal}>
-          <SSText center size="lg" uppercase>
-            {t('settings.developer.backupModalTitle')}
-          </SSText>
-          <SSText center color="muted" size="sm">
-            {t('settings.developer.backupPreviewWarning')}
-          </SSText>
-          {backupPreviewPayload ? (
-            <SSBackupPayloadSummary payload={backupPreviewPayload} />
-          ) : null}
-          <SSVStack gap="xs" widthFull>
-            <SSText color="muted" size="sm">
-              {t('settings.developer.backupPassphraseLabel')}
+        <SSScrollView
+          style={styles.backupPreviewScroll}
+          contentContainerStyle={styles.backupPreviewScrollContent}
+        >
+          <SSVStack gap="md" widthFull>
+            <SSText center size="lg" uppercase>
+              {t('settings.developer.backupModalTitle')}
             </SSText>
-            <TextInput
-              placeholder={t('settings.developer.backupPassphrasePlaceholder')}
-              secureTextEntry
-              style={styles.passphraseInput}
-              value={backupPassphrase}
-              onChangeText={setBackupPassphrase}
-            />
+            <SSText center color="muted" size="sm">
+              {t('settings.developer.backupPreviewWarning')}
+            </SSText>
+            {backupPreviewPayload ? (
+              <SSBackupPayloadSummary payload={backupPreviewPayload} />
+            ) : null}
+            <SSVStack gap="xs" widthFull>
+              <SSText color="muted" size="sm">
+                {t('settings.developer.backupPassphraseLabel')}
+              </SSText>
+              <TextInput
+                placeholder={t(
+                  'settings.developer.backupPassphrasePlaceholder'
+                )}
+                secureTextEntry
+                style={styles.passphraseInput}
+                value={backupPassphrase}
+                onChangeText={setBackupPassphrase}
+              />
+              <SSText color="muted" size="xs">
+                {t('settings.developer.backupPassphraseAllowed')}
+              </SSText>
+            </SSVStack>
             <SSText color="muted" size="xs">
-              {t('settings.developer.backupPassphraseAllowed')}
+              {t('settings.developer.backupEncryptionNote')}
             </SSText>
+            <SSVStack gap="sm" widthFull>
+              <SSButton
+                label={t('settings.developer.backupEncryptShare')}
+                onPress={handleEncryptAndShare}
+                variant="default"
+              />
+              <SSButton
+                label={t('settings.developer.backupEncryptSaveFile')}
+                onPress={handleEncryptAndSaveFile}
+                variant="secondary"
+              />
+            </SSVStack>
           </SSVStack>
-          <SSText color="muted" size="xs">
-            {t('settings.developer.backupEncryptionNote')}
-          </SSText>
-          <SSVStack gap="sm" widthFull>
-            <SSButton
-              label={t('settings.developer.backupEncryptShare')}
-              onPress={handleEncryptAndShare}
-              variant="default"
-            />
-            <SSButton
-              label={t('settings.developer.backupEncryptSaveFile')}
-              onPress={handleEncryptAndSaveFile}
-              variant="secondary"
-            />
-          </SSVStack>
-        </SSVStack>
+        </SSScrollView>
       </SSModal>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  backupPreviewModal: {
-    maxHeight: '80%',
-    paddingVertical: 8,
+  backupPreviewScroll: {
+    alignSelf: 'stretch',
+    flex: 1,
     width: '100%'
+  },
+  backupPreviewScrollContent: {
+    flexGrow: 1,
+    paddingVertical: 8
   },
   passphraseInput: {
     alignSelf: 'stretch',
