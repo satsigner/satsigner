@@ -1,10 +1,7 @@
-import { openArkWallet, syncArkWallet } from '@/api/ark'
 import { deleteArkLabelsByAccount, setArkLabel } from '@/db/mutations/arkLabels'
 import { getArkLabelsByAccount } from '@/db/queries/arkLabels'
 import {
   deleteArkDatadir,
-  ensureArkDatadir,
-  readArkDatadirFiles,
   writeArkDatadirFiles,
   type ArkDatadirFile
 } from '@/storage/arkDatadir'
@@ -16,7 +13,6 @@ import type {
   ArkAccountStats,
   ArkBalance
 } from '@/types/models/Ark'
-import { getArkServer } from '@/utils/ark'
 
 export type ArkDatadirBackup = {
   files: ArkDatadirFile[]
@@ -29,32 +25,6 @@ export type ArkBackupSection = {
   labels?: Record<string, Record<string, Label>>
   mnemonics?: Record<string, string | null>
   stats?: Record<string, ArkAccountStats | undefined>
-}
-
-async function collectArkDatadirBestEffort(
-  account: ArkAccount
-): Promise<ArkDatadirFile[]> {
-  try {
-    const mnemonic = await getArkMnemonic(account.id)
-    const server = getArkServer(account.network, account.serverId)
-    if (mnemonic && server) {
-      const datadir = await ensureArkDatadir(account.id)
-      await openArkWallet({
-        accountId: account.id,
-        datadir,
-        mnemonic,
-        server
-      })
-      await syncArkWallet(account.serverId, account.id)
-    }
-  } catch {
-    // Read whatever is already on disk.
-  }
-  try {
-    return await readArkDatadirFiles(account.id)
-  } catch {
-    return []
-  }
 }
 
 export async function collectArkBackup(): Promise<ArkBackupSection> {
@@ -70,17 +40,9 @@ export async function collectArkBackup(): Promise<ArkBackupSection> {
   const labels = Object.fromEntries(
     accounts.map((account) => [account.id, getArkLabelsByAccount(account.id)])
   )
-  const datadirs: Record<string, ArkDatadirBackup> = {}
-  for (const account of accounts) {
-    const files = await collectArkDatadirBestEffort(account)
-    if (files.length > 0) {
-      datadirs[account.id] = { files }
-    }
-  }
   return {
     accounts,
     balances,
-    datadirs,
     labels,
     mnemonics,
     stats

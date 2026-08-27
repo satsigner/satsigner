@@ -7,11 +7,6 @@ import {
   restoreArkStoreFromBackup
 } from '@/utils/arkBackup'
 
-jest.mock<typeof import('@/api/ark')>('@/api/ark', () => ({
-  openArkWallet: jest.fn(),
-  syncArkWallet: jest.fn()
-}))
-
 jest.mock<typeof import('@/db/mutations/arkLabels')>(
   '@/db/mutations/arkLabels',
   () => ({
@@ -31,8 +26,6 @@ jest.mock<typeof import('@/storage/arkDatadir')>(
   '@/storage/arkDatadir',
   () => ({
     deleteArkDatadir: jest.fn(),
-    ensureArkDatadir: jest.fn(),
-    readArkDatadirFiles: jest.fn(),
     writeArkDatadirFiles: jest.fn()
   })
 )
@@ -43,10 +36,6 @@ jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
 
 jest.mock<typeof import('@/store/ark')>('@/store/ark', () => ({
   useArkStore: { getState: jest.fn() }
-}))
-
-jest.mock<typeof import('@/utils/ark')>('@/utils/ark', () => ({
-  getArkServer: jest.fn()
 }))
 
 const ACCOUNT: ArkAccount = {
@@ -120,29 +109,9 @@ describe('collectArkBackup', () => {
       '@/db/queries/arkLabels'
     ) as { getArkLabelsByAccount: jest.Mock }
     getArkLabelsByAccount.mockReturnValue({ 'movement:7': LABEL })
-    const { getArkServer } = jest.requireMock('@/utils/ark') as {
-      getArkServer: jest.Mock
-    }
-    getArkServer.mockReturnValue({
-      arkUrl: 'https://ark.example',
-      esploraUrl: 'https://esplora.example',
-      id: 'second',
-      name: 'Second',
-      network: 'signet'
-    })
-    const { ensureArkDatadir, readArkDatadirFiles } = jest.requireMock(
-      '@/storage/arkDatadir'
-    ) as {
-      ensureArkDatadir: jest.Mock
-      readArkDatadirFiles: jest.Mock
-    }
-    ensureArkDatadir.mockResolvedValue('/tmp/ark-1')
-    readArkDatadirFiles.mockResolvedValue([
-      { base64: 'ZGI=', filename: 'bark.db' }
-    ])
   })
 
-  it('includes mnemonics, labels, store cache, and datadir files', async () => {
+  it('includes mnemonics, labels, and store cache without datadirs', async () => {
     const { getArkMnemonic } = jest.requireMock('@/storage/encrypted') as {
       getArkMnemonic: jest.Mock
     }
@@ -157,42 +126,19 @@ describe('collectArkBackup', () => {
     })
     expect(backup.balances?.['ark-1']?.spendableSats).toBe(100)
     expect(backup.stats?.['ark-1']?.numberOfVtxos).toBe(3)
-    expect(backup.datadirs).toStrictEqual({
-      'ark-1': { files: [{ base64: 'ZGI=', filename: 'bark.db' }] }
-    })
+    expect(backup.datadirs).toBeUndefined()
   })
 
-  it('keeps null mnemonics and omits empty datadirs', async () => {
+  it('keeps null mnemonics', async () => {
     const { getArkMnemonic } = jest.requireMock('@/storage/encrypted') as {
       getArkMnemonic: jest.Mock
     }
     getArkMnemonic.mockResolvedValue(null)
-    const { readArkDatadirFiles } = jest.requireMock(
-      '@/storage/arkDatadir'
-    ) as { readArkDatadirFiles: jest.Mock }
-    readArkDatadirFiles.mockResolvedValue([])
 
     const backup = await collectArkBackup()
 
     expect(backup.mnemonics).toStrictEqual({ 'ark-1': null })
-    expect(backup.datadirs).toStrictEqual({})
-  })
-
-  it('still reads the datadir when sync fails', async () => {
-    const { getArkMnemonic } = jest.requireMock('@/storage/encrypted') as {
-      getArkMnemonic: jest.Mock
-    }
-    getArkMnemonic.mockResolvedValue('seed')
-    const { syncArkWallet } = jest.requireMock('@/api/ark') as {
-      syncArkWallet: jest.Mock
-    }
-    syncArkWallet.mockRejectedValue(new Error('offline'))
-
-    const backup = await collectArkBackup()
-
-    expect(backup.datadirs?.['ark-1']?.files).toStrictEqual([
-      { base64: 'ZGI=', filename: 'bark.db' }
-    ])
+    expect(backup.datadirs).toBeUndefined()
   })
 })
 
