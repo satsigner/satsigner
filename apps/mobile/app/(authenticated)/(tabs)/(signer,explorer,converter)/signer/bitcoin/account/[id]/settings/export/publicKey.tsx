@@ -5,7 +5,7 @@ import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import { useAsyncEffect } from '@/hooks/useAsyncEffect'
@@ -304,22 +304,19 @@ export default function PublicKeyPage() {
               </SSText>
             </View>
           ) : publicKey ? (
-            <View
-              collapsable={false}
-              ref={qrRef}
-              style={{
+            <SSShareableQR
+              qrRef={qrRef}
+              value={publicKey}
+              size={250}
+              color="black"
+              backgroundColor="white"
+              containerStyle={{
                 backgroundColor: 'white',
                 borderRadius: 10,
                 padding: 20
               }}
-            >
-              <SSQRCode
-                value={publicKey}
-                size={250}
-                color="black"
-                backgroundColor="white"
-              />
-            </View>
+              hideShareButton
+            />
           ) : null}
         </View>
 

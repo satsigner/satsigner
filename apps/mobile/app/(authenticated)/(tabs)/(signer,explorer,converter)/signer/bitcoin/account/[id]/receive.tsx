@@ -14,7 +14,7 @@ import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSLoader from '@/components/SSLoader'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSPsbtTransport from '@/components/SSPsbtTransport'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
@@ -658,17 +658,17 @@ export default function Receive() {
             ) : (
               localFinalAddressQR && (
                 <SSVStack itemsCenter gap="md">
-                  <View collapsable={false} ref={qrRef}>
-                    <SSQRCode
-                      // BIP77 pj= URIs are long — H ecl overflows and yields no QR.
-                      ecl={
-                        localFinalAddressQR.toLowerCase().includes('pj=')
-                          ? 'L'
-                          : 'H'
-                      }
-                      value={localFinalAddressQR}
-                    />
-                  </View>
+                  <SSShareableQR
+                    qrRef={qrRef}
+                    // BIP77 pj= URIs are long — H ecl overflows and yields no QR.
+                    ecl={
+                      localFinalAddressQR.toLowerCase().includes('pj=')
+                        ? 'L'
+                        : 'H'
+                    }
+                    value={localFinalAddressQR}
+                    hideShareButton
+                  />
                   <SSHStack>
                     {nfcHardwareSupported && (
                       <SSButton

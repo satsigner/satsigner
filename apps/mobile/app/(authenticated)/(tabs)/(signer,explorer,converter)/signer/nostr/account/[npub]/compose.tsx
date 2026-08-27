@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import {
   Keyboard,
   ScrollView,
@@ -16,8 +16,7 @@ import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
-import SSQRCode from '@/components/SSQRCode'
-import SSShareButton from '@/components/SSShareButton'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import {
   NOSTR_NIP01_MAX_NOTE_LENGTH,
@@ -75,7 +74,6 @@ export default function NostrComposePage() {
   const [showJson, setShowJson] = useState(false)
   const [signingExport, setSigningExport] = useState(false)
   const [signedQrPayload, setSignedQrPayload] = useState<string | null>(null)
-  const qrRef = useRef<View>(null)
   const [baseTags, setBaseTags] = useState<string[][]>([])
   const [importCameraVisible, setImportCameraVisible] = useState(false)
 
@@ -653,16 +651,13 @@ export default function NostrComposePage() {
           </SSText>
           {signedQrPayload ? (
             <View style={styles.signedQrWrap}>
-              <View collapsable={false} ref={qrRef}>
-                <SSQRCode
-                  value={signedQrPayload}
-                  size={220}
-                  color={Colors.white}
-                  backgroundColor={Colors.gray[950]}
-                  ecl="H"
-                />
-              </View>
-              <SSShareButton qrRef={qrRef} />
+              <SSShareableQR
+                value={signedQrPayload}
+                size={220}
+                color={Colors.white}
+                backgroundColor={Colors.gray[950]}
+                ecl="H"
+              />
             </View>
           ) : null}
         </SSVStack>

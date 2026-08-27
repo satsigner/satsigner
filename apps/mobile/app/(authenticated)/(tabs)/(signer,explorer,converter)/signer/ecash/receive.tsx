@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -10,8 +10,7 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
 import SSEcashMintSelector from '@/components/SSEcashMintSelector'
 import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
-import SSQRCode from '@/components/SSQRCode'
-import SSShareButton from '@/components/SSShareButton'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcashReceive } from '@/hooks/useEcashReceive'
@@ -68,7 +67,6 @@ export default function EcashReceivePage() {
   }>()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
-  const qrRef = useRef<View>(null)
   const [localFiatAmount, setLocalFiatAmount] = useState('')
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
@@ -490,29 +488,25 @@ export default function EcashReceivePage() {
               ) : (
                 <SSVStack gap="md">
                   {!isLNURLWithdrawMode && (
-                    <View
-                      collapsable={false}
-                      ref={qrRef}
-                      style={styles.qrContainer}
+                    <SSShareableQR
+                      value={mintQuote.request}
+                      size={300}
+                      containerStyle={styles.qrContainer}
                     >
-                      <SSQRCode value={mintQuote.request} size={300} />
-                    </View>
+                      <SSButton
+                        label={t('common.copy')}
+                        onPress={async () => {
+                          try {
+                            await Clipboard.setStringAsync(mintQuote.request)
+                            toast.success(t('common.copiedToClipboard'))
+                          } catch {
+                            toast.error(t('ecash.error.failedToCopy'))
+                          }
+                        }}
+                        variant="outline"
+                      />
+                    </SSShareableQR>
                   )}
-                  {!isLNURLWithdrawMode && (
-                    <SSButton
-                      label={t('common.copy')}
-                      onPress={async () => {
-                        try {
-                          await Clipboard.setStringAsync(mintQuote.request)
-                          toast.success(t('common.copiedToClipboard'))
-                        } catch {
-                          toast.error(t('ecash.error.failedToCopy'))
-                        }
-                      }}
-                      variant="outline"
-                    />
-                  )}
-                  {!isLNURLWithdrawMode && <SSShareButton qrRef={qrRef} />}
                   <SSVStack gap="none">
                     <SSText style={{ color: getStatusColor(quoteStatus) }}>
                       {getStatusText(quoteStatus)}

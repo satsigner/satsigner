@@ -7,8 +7,7 @@ import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
 import SSNFCModal from '@/components/SSNFCModal'
-import SSQRCode from '@/components/SSQRCode'
-import SSShareButton from '@/components/SSShareButton'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
@@ -182,38 +181,42 @@ function SSPsbtTransport({
           <SSVStack gap="md" style={{ alignItems: 'center' }}>
             <SSText uppercase>{t('common.psbtTransport.qrTitle')}</SSText>
             {qrValue ? (
-              <View
-                collapsable={false}
-                ref={qrRef}
-                style={{
+              <SSShareableQR
+                qrRef={qrRef}
+                value={qrValue}
+                size={QR_SIZE}
+                color={Colors.black}
+                backgroundColor={Colors.white}
+                hideShareButton={qrChunks.length > 1}
+                containerStyle={{
                   alignItems: 'center',
                   backgroundColor: Colors.white,
                   borderRadius: 2,
                   padding: 8
                 }}
               >
-                <SSQRCode
-                  value={qrValue}
-                  size={QR_SIZE}
-                  color={Colors.black}
-                  backgroundColor={Colors.white}
-                />
-              </View>
+                {qrChunks.length > 1 ? (
+                  <SSText color="muted" size="sm" center>
+                    {t('common.psbtTransport.qrPart', {
+                      current: (chunkIndex % qrChunks.length) + 1,
+                      total: qrChunks.length
+                    })}
+                  </SSText>
+                ) : null}
+                <SSText color="muted" size="sm" center>
+                  {t('common.psbtTransport.qrHint')}
+                </SSText>
+              </SSShareableQR>
             ) : (
-              <SSText color="muted">{t('common.psbtTransport.qrError')}</SSText>
+              <>
+                <SSText color="muted">
+                  {t('common.psbtTransport.qrError')}
+                </SSText>
+                <SSText color="muted" size="sm" center>
+                  {t('common.psbtTransport.qrHint')}
+                </SSText>
+              </>
             )}
-            {qrChunks.length > 1 ? (
-              <SSText color="muted" size="sm" center>
-                {t('common.psbtTransport.qrPart', {
-                  current: (chunkIndex % qrChunks.length) + 1,
-                  total: qrChunks.length
-                })}
-              </SSText>
-            ) : null}
-            <SSText color="muted" size="sm" center>
-              {t('common.psbtTransport.qrHint')}
-            </SSText>
-            {qrValue && <SSShareButton qrRef={qrRef} />}
             <SSButton
               label={t('common.close')}
               variant="ghost"

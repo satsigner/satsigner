@@ -12,7 +12,7 @@ import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
 import SSEcashMintSelector from '@/components/SSEcashMintSelector'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -280,13 +280,13 @@ export default function EcashSendPage() {
                     </Pressable>
                   </SSHStack>
                   <SSVStack gap="xs" itemsCenter>
-                    <View collapsable={false} ref={qrRef}>
-                      <SSQRCode
-                        value={getQRValue(chunks)}
-                        size={qrSize}
-                        ecl={animatedQR && isMultiPart ? 'M' : 'H'}
-                      />
-                    </View>
+                    <SSShareableQR
+                      qrRef={qrRef}
+                      value={getQRValue(chunks)}
+                      size={qrSize}
+                      ecl={animatedQR && isMultiPart ? 'M' : 'H'}
+                      hideShareButton
+                    />
                     <SSText color="muted" size="xs" style={styles.chunkCounter}>
                       {animatedQR && isMultiPart
                         ? `${currentChunkIndex + 1} / ${totalChunks}`
@@ -362,7 +362,9 @@ export default function EcashSendPage() {
                       style={{ flex: 1 }}
                     />
                   </SSHStack>
-                  <SSShareButton qrRef={qrRef} />
+                  {!(animatedQR && isMultiPart) && (
+                    <SSShareButton qrRef={qrRef} />
+                  )}
                 </SSVStack>
               )}
             </SSVStack>

@@ -7,7 +7,7 @@ import { getWalletData } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -164,22 +164,19 @@ export default function ExportPubkeys() {
           {isLoading ? (
             <ActivityIndicator size="large" color={Colors.gray[400]} />
           ) : exportContent ? (
-            <View
-              collapsable={false}
-              ref={qrRef}
-              style={{
+            <SSShareableQR
+              qrRef={qrRef}
+              value={exportContent}
+              size={250}
+              color="black"
+              backgroundColor="white"
+              containerStyle={{
                 backgroundColor: 'white',
                 borderRadius: 10,
                 padding: 20
               }}
-            >
-              <SSQRCode
-                value={exportContent}
-                size={250}
-                color="black"
-                backgroundColor="white"
-              />
-            </View>
+              hideShareButton
+            />
           ) : null}
         </View>
         {!isLoading && exportContent && (

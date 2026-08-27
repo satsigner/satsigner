@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   ScrollView,
   StyleSheet,
@@ -14,8 +14,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
-import SSQRCode from '@/components/SSQRCode'
-import SSShareButton from '@/components/SSShareButton'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
@@ -61,7 +60,6 @@ export default function InvoicePage() {
     fetchPrices(fiatPriceApiUrl)
   }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
 
-  const qrRef = useRef<View>(null)
   const [invoiceAmount, setInvoiceAmount] = useState('')
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
   const [localFiatAmount, setLocalFiatAmount] = useState('')
@@ -547,31 +545,33 @@ export default function InvoicePage() {
                 </View>
               </View>
             </SSVStack>
-            <View collapsable={false} ref={qrRef} style={styles.qrContainer}>
-              {paymentRequest && (
-                <SSQRCode value={paymentRequest} size={qrCodeSize} />
-              )}
-            </View>
-            <SSVStack style={styles.paymentRequestContainer}>
-              <SSText color="muted" uppercase>
-                Payment Request
-              </SSText>
-              <View style={styles.paymentRequestText}>
-                <SSText type="mono" size="sm">
-                  {paymentRequest}
-                </SSText>
-              </View>
-            </SSVStack>
+            {paymentRequest ? (
+              <SSShareableQR
+                value={paymentRequest}
+                size={qrCodeSize}
+                containerStyle={styles.qrContainer}
+              >
+                <SSVStack style={styles.paymentRequestContainer}>
+                  <SSText color="muted" uppercase>
+                    Payment Request
+                  </SSText>
+                  <View style={styles.paymentRequestText}>
+                    <SSText type="mono" size="sm">
+                      {paymentRequest}
+                    </SSText>
+                  </View>
+                </SSVStack>
 
-            <SSVStack style={styles.modalActions}>
-              <SSButton
-                label="Copy to Clipboard"
-                onPress={handleCopyToClipboard}
-                variant="gradient"
-                gradientType="special"
-              />
-              <SSShareButton qrRef={qrRef} />
-            </SSVStack>
+                <SSVStack style={styles.modalActions}>
+                  <SSButton
+                    label="Copy to Clipboard"
+                    onPress={handleCopyToClipboard}
+                    variant="gradient"
+                    gradientType="special"
+                  />
+                </SSVStack>
+              </SSShareableQR>
+            ) : null}
           </SSVStack>
         </ScrollView>
       </SSModal>

@@ -27,9 +27,8 @@ import SSButton from '@/components/SSButton'
 import SSDustWarningBanner from '@/components/SSDustWarningBanner'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSModal from '@/components/SSModal'
-import SSQRCode from '@/components/SSQRCode'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
-import SSShareButton from '@/components/SSShareButton'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSSignatureDropdown from '@/components/SSSignatureDropdown'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
@@ -1367,25 +1366,28 @@ function PreviewTransaction() {
     }
   }, [getPsbtString, txBuilderResult, qrComplexity, createRawPsbtChunks])
 
+  // Whether the current display mode is cycling through more than one chunk
+  function isMultiPartQR() {
+    switch (displayMode) {
+      case QRDisplayMode.RAW:
+        return rawPsbtChunks.length > 1
+      case QRDisplayMode.UR:
+        return urChunks.length > 1
+      case QRDisplayMode.BBQR:
+        return qrChunks.length > 1
+      default:
+        return false
+    }
+  }
+
   // High-performance animation using requestAnimationFrame
   useEffect(() => {
     // Don't animate when complexity is 12 (static mode) - but only for single chunks
-    if (qrComplexity === 12) {
-      // Check if we actually have a single chunk or multiple chunks
-      const hasMultipleChunks =
-        (displayMode === QRDisplayMode.RAW && rawPsbtChunks.length > 1) ||
-        (displayMode === QRDisplayMode.BBQR && qrChunks.length > 1) ||
-        (displayMode === QRDisplayMode.UR && urChunks.length > 1)
-
-      if (!hasMultipleChunks) {
-        return // Don't animate if we have a single chunk
-      }
+    if (qrComplexity === 12 && !isMultiPartQR()) {
+      return // Don't animate if we have a single chunk
     }
 
-    const shouldAnimate =
-      (displayMode === QRDisplayMode.RAW && rawPsbtChunks.length > 1) ||
-      (displayMode === QRDisplayMode.BBQR && qrChunks.length > 1) ||
-      (displayMode === QRDisplayMode.UR && urChunks.length > 1)
+    const shouldAnimate = isMultiPartQR()
 
     if (shouldAnimate) {
       // Calculate animation interval based on speed (1 = slowest, 12 = fastest)
@@ -1422,6 +1424,7 @@ function PreviewTransaction() {
         }
       }
     }
+    // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
   }, [
     displayMode,
     qrChunks.length,
@@ -2561,26 +2564,22 @@ function PreviewTransaction() {
                 {qrError}
               </SSText>
             ) : qrChunks.length > 0 ? (
-              <>
-                <View
-                  collapsable={false}
-                  ref={qrRef}
-                  style={{
-                    alignItems: 'center',
-                    backgroundColor: Colors.white,
-                    borderRadius: 2,
-                    marginBottom: 0,
-                    padding: 5,
-                    width: qrSize + 10
-                  }}
-                >
-                  <SSQRCode
-                    value={getQRValue()}
-                    color={Colors.black}
-                    backgroundColor={Colors.white}
-                    size={qrSize}
-                  />
-                </View>
+              <SSShareableQR
+                qrRef={qrRef}
+                value={getQRValue()}
+                color={Colors.black}
+                backgroundColor={Colors.white}
+                size={qrSize}
+                hideShareButton={isMultiPartQR()}
+                containerStyle={{
+                  alignItems: 'center',
+                  backgroundColor: Colors.white,
+                  borderRadius: 2,
+                  marginBottom: 0,
+                  padding: 5,
+                  width: qrSize + 10
+                }}
+              >
                 <View
                   style={[
                     styles.qrFormatSegmentTrack,
@@ -2649,72 +2648,73 @@ function PreviewTransaction() {
                     ? `${getQRValue().slice(0, 100)}...`
                     : getQRValue()}
                 </SSText>
-                <SSShareButton qrRef={qrRef} />
-                <SSHStack
-                  justifyEvenly
-                  style={{ marginBottom: 20, width: screenWidth * 0.9 }}
-                >
-                  <SSVStack gap="xs">
-                    <SSText color="white" size="sm" center>
-                      QR density: {qrComplexity}/12
-                    </SSText>
-                    <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-                      <SSButton
-                        variant="outline"
-                        label="-"
-                        onPress={() =>
-                          setQrComplexity(Math.max(1, qrComplexity - 1))
+              </SSShareableQR>
+            ) : null}
+            {qrChunks.length > 0 ? (
+              <SSHStack
+                justifyEvenly
+                style={{ marginBottom: 20, width: screenWidth * 0.9 }}
+              >
+                <SSVStack gap="xs">
+                  <SSText color="white" size="sm" center>
+                    QR density: {qrComplexity}/12
+                  </SSText>
+                  <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+                    <SSButton
+                      variant="outline"
+                      label="-"
+                      onPress={() =>
+                        setQrComplexity(Math.max(1, qrComplexity - 1))
+                      }
+                      style={{ height: 50, width: 50 }}
+                    />
+                    <SSButton
+                      variant={
+                        qrComplexity === 11 && isDataTooLargeForSingleQR()
+                          ? 'ghost'
+                          : 'outline'
+                      }
+                      label="+"
+                      onPress={() => {
+                        const newComplexity = qrComplexity + 1
+                        // Check if the new complexity would create data too large for QR codes
+                        if (
+                          newComplexity === 12 &&
+                          isDataTooLargeForSingleQR()
+                        ) {
+                          toast.error(t('common.error.dataTooLarge'))
+                          return
                         }
-                        style={{ height: 50, width: 50 }}
-                      />
-                      <SSButton
-                        variant={
-                          qrComplexity === 11 && isDataTooLargeForSingleQR()
-                            ? 'ghost'
-                            : 'outline'
-                        }
-                        label="+"
-                        onPress={() => {
-                          const newComplexity = qrComplexity + 1
-                          // Check if the new complexity would create data too large for QR codes
-                          if (
-                            newComplexity === 12 &&
-                            isDataTooLargeForSingleQR()
-                          ) {
-                            toast.error(t('common.error.dataTooLarge'))
-                            return
-                          }
-                          setQrComplexity(Math.min(12, newComplexity))
-                        }}
-                        style={{ height: 50, width: 50 }}
-                      />
-                    </SSHStack>
-                  </SSVStack>
-                  <SSVStack gap="xs">
-                    <SSText color="white" size="sm" center>
-                      {t('common.speed')}: {animationSpeed}/12
-                    </SSText>
-                    <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-                      <SSButton
-                        variant="outline"
-                        label="-"
-                        onPress={() =>
-                          setAnimationSpeed(Math.max(1, animationSpeed - 1))
-                        }
-                        style={{ height: 50, width: 50 }}
-                      />
-                      <SSButton
-                        variant="outline"
-                        label="+"
-                        onPress={() =>
-                          setAnimationSpeed(Math.min(12, animationSpeed + 1))
-                        }
-                        style={{ height: 50, width: 50 }}
-                      />
-                    </SSHStack>
-                  </SSVStack>
-                </SSHStack>
-              </>
+                        setQrComplexity(Math.min(12, newComplexity))
+                      }}
+                      style={{ height: 50, width: 50 }}
+                    />
+                  </SSHStack>
+                </SSVStack>
+                <SSVStack gap="xs">
+                  <SSText color="white" size="sm" center>
+                    {t('common.speed')}: {animationSpeed}/12
+                  </SSText>
+                  <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+                    <SSButton
+                      variant="outline"
+                      label="-"
+                      onPress={() =>
+                        setAnimationSpeed(Math.max(1, animationSpeed - 1))
+                      }
+                      style={{ height: 50, width: 50 }}
+                    />
+                    <SSButton
+                      variant="outline"
+                      label="+"
+                      onPress={() =>
+                        setAnimationSpeed(Math.min(12, animationSpeed + 1))
+                      }
+                      style={{ height: 50, width: 50 }}
+                    />
+                  </SSHStack>
+                </SSVStack>
+              </SSHStack>
             ) : (
               <SSText color="white" size="sm" style={{ marginTop: 16 }}>
                 {t('common.loading')}

@@ -8,7 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { encodeProofsAsToken } from '@/api/ecash'
 import SSButton from '@/components/SSButton'
 import SSNFCModal from '@/components/SSNFCModal'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
@@ -451,13 +451,13 @@ export default function EcashProofDetailPage() {
                   </Pressable>
                 </SSHStack>
                 <SSVStack gap="xs" itemsCenter>
-                  <View collapsable={false} ref={qrRef}>
-                    <SSQRCode
-                      value={getQRValue()}
-                      size={qrSize}
-                      ecl={animatedQR && isMultiPart ? 'L' : 'H'}
-                    />
-                  </View>
+                  <SSShareableQR
+                    qrRef={qrRef}
+                    value={getQRValue()}
+                    size={qrSize}
+                    ecl={animatedQR && isMultiPart ? 'L' : 'H'}
+                    hideShareButton
+                  />
                   <SSText color="muted" size="xs" style={styles.chunkCounter}>
                     {animatedQR && isMultiPart
                       ? `${currentChunkIndex + 1} / ${totalChunks}`
@@ -530,7 +530,9 @@ export default function EcashProofDetailPage() {
                     style={{ flex: 1 }}
                   />
                 </SSHStack>
-                <SSShareButton qrRef={qrRef} />
+                {!(animatedQR && isMultiPart) && (
+                  <SSShareButton qrRef={qrRef} />
+                )}
               </SSVStack>
             )}
           </SSVStack>

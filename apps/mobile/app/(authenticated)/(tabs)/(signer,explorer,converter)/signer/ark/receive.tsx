@@ -1,14 +1,13 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSPairedTabs from '@/components/SSPairedTabs'
-import SSQRCode from '@/components/SSQRCode'
-import SSShareButton from '@/components/SSShareButton'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT } from '@/constants/btc'
@@ -53,9 +52,6 @@ export default function ArkReceivePage() {
   const [activeTab, setActiveTab] = useState<ReceiveTab>('ark')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
-  const arkQrRef = useRef<View>(null)
-  const lightningQrRef = useRef<View>(null)
-  const onchainQrRef = useRef<View>(null)
 
   const addressQuery = useArkAddress(id)
   const invoiceMutation = useArkBolt11InvoiceMutation(id)
@@ -156,24 +152,22 @@ export default function ArkReceivePage() {
               )}
               {addressQuery.data && (
                 <>
-                  <View
-                    collapsable={false}
-                    ref={arkQrRef}
-                    style={styles.qrContainer}
+                  <SSShareableQR
+                    value={addressQuery.data}
+                    size={280}
+                    containerStyle={styles.qrContainer}
                   >
-                    <SSQRCode value={addressQuery.data} size={280} />
-                  </View>
-                  <View style={styles.addressBox}>
-                    <SSText size="sm" style={styles.monospace}>
-                      {addressQuery.data}
-                    </SSText>
-                  </View>
-                  <SSButton
-                    label={t('common.copy')}
-                    onPress={handleCopyAddress}
-                    variant="outline"
-                  />
-                  <SSShareButton qrRef={arkQrRef} />
+                    <View style={styles.addressBox}>
+                      <SSText size="sm" style={styles.monospace}>
+                        {addressQuery.data}
+                      </SSText>
+                    </View>
+                    <SSButton
+                      label={t('common.copy')}
+                      onPress={handleCopyAddress}
+                      variant="outline"
+                    />
+                  </SSShareableQR>
                   <SSButton
                     label={t('ark.receive.generateNewAddress')}
                     onPress={handleGenerateNewAddress}
@@ -222,27 +216,25 @@ export default function ArkReceivePage() {
               )}
               {invoice && (
                 <>
-                  <View
-                    collapsable={false}
-                    ref={lightningQrRef}
-                    style={styles.qrContainer}
+                  <SSShareableQR
+                    value={invoice.invoice}
+                    size={280}
+                    containerStyle={styles.qrContainer}
                   >
-                    <SSQRCode value={invoice.invoice} size={280} />
-                  </View>
-                  <View style={styles.addressBox}>
-                    <SSText size="sm" style={styles.monospace}>
-                      {invoice.invoice}
+                    <View style={styles.addressBox}>
+                      <SSText size="sm" style={styles.monospace}>
+                        {invoice.invoice}
+                      </SSText>
+                    </View>
+                    <SSText color="muted" size="sm" center>
+                      {formatNumber(invoice.amountSats)} {t('bitcoin.sats')}
                     </SSText>
-                  </View>
-                  <SSText color="muted" size="sm" center>
-                    {formatNumber(invoice.amountSats)} {t('bitcoin.sats')}
-                  </SSText>
-                  <SSButton
-                    label={t('common.copy')}
-                    onPress={() => copyToClipboard(invoice.invoice)}
-                    variant="outline"
-                  />
-                  <SSShareButton qrRef={lightningQrRef} />
+                    <SSButton
+                      label={t('common.copy')}
+                      onPress={() => copyToClipboard(invoice.invoice)}
+                      variant="outline"
+                    />
+                  </SSShareableQR>
                   <SSButton
                     label={t('ark.receive.newInvoice')}
                     onPress={handleResetInvoice}
@@ -273,24 +265,22 @@ export default function ArkReceivePage() {
               )}
               {onchainAddressQuery.data && (
                 <>
-                  <View
-                    collapsable={false}
-                    ref={onchainQrRef}
-                    style={styles.qrContainer}
+                  <SSShareableQR
+                    value={onchainAddressQuery.data}
+                    size={280}
+                    containerStyle={styles.qrContainer}
                   >
-                    <SSQRCode value={onchainAddressQuery.data} size={280} />
-                  </View>
-                  <View style={styles.addressBox}>
-                    <SSText size="sm" style={styles.monospace}>
-                      {onchainAddressQuery.data}
-                    </SSText>
-                  </View>
-                  <SSButton
-                    label={t('common.copy')}
-                    onPress={handleCopyOnchainAddress}
-                    variant="outline"
-                  />
-                  <SSShareButton qrRef={onchainQrRef} />
+                    <View style={styles.addressBox}>
+                      <SSText size="sm" style={styles.monospace}>
+                        {onchainAddressQuery.data}
+                      </SSText>
+                    </View>
+                    <SSButton
+                      label={t('common.copy')}
+                      onPress={handleCopyOnchainAddress}
+                      variant="outline"
+                    />
+                  </SSShareableQR>
                 </>
               )}
               {autoBoard.minAmountSats !== undefined && (

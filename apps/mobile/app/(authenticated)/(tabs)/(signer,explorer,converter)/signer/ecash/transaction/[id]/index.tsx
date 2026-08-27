@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -13,8 +13,7 @@ import {
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
-import SSQRCode from '@/components/SSQRCode'
-import SSShareButton from '@/components/SSShareButton'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -69,7 +68,6 @@ export default function EcashTransactionDetailPage() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [qrModalVisible, setQrModalVisible] = useState(false)
-  const qrRef = useRef<View>(null)
 
   // Polling hook for pending transactions
   const { startPolling, stopPolling, isPolling } = useQuotePolling()
@@ -587,10 +585,7 @@ export default function EcashTransactionDetailPage() {
           </SSText>
           {lightningInvoice && (
             <>
-              <View collapsable={false} ref={qrRef}>
-                <SSQRCode value={lightningInvoice} size={250} />
-              </View>
-              <SSShareButton qrRef={qrRef} />
+              <SSShareableQR value={lightningInvoice} size={250} />
             </>
           )}
         </SSVStack>

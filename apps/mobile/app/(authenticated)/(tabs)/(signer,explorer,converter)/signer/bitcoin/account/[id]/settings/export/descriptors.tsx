@@ -9,8 +9,8 @@ import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSQRCode from '@/components/SSQRCode'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -75,32 +75,27 @@ type DescriptorQrItemProps = {
 }
 
 function DescriptorQrItem({ descriptor, label }: DescriptorQrItemProps) {
-  const itemQrRef = useRef<View>(null)
-
   return (
     <View style={{ alignItems: 'center' }}>
-      <View
-        collapsable={false}
-        ref={itemQrRef}
-        style={{
+      <SSShareableQR
+        value={descriptor}
+        size={150}
+        color={Colors.black}
+        backgroundColor={Colors.white}
+        containerStyle={{
           backgroundColor: Colors.white,
           borderRadius: 2,
           padding: 16
         }}
       >
-        <SSQRCode
-          value={descriptor}
-          size={150}
-          color={Colors.black}
-          backgroundColor={Colors.white}
-        />
-      </View>
-      <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
-        {label}
-      </SSText>
-      <View style={{ marginTop: 8, width: '100%' }}>
-        <SSShareButton qrRef={itemQrRef} />
-      </View>
+        <SSText
+          color="muted"
+          size="sm"
+          style={{ marginBottom: 8, marginTop: 8 }}
+        >
+          {label}
+        </SSText>
+      </SSShareableQR>
     </View>
   )
 }
@@ -769,22 +764,19 @@ export default function ExportDescriptors() {
               </SSVStack>
             ) : (
               <View style={{ alignItems: 'center' }}>
-                <View
-                  collapsable={false}
-                  ref={qrRef}
-                  style={{
+                <SSShareableQR
+                  qrRef={qrRef}
+                  value={exportContent}
+                  size={250}
+                  color={Colors.black}
+                  backgroundColor={Colors.white}
+                  containerStyle={{
                     backgroundColor: Colors.white,
                     borderRadius: 2,
                     padding: 16
                   }}
-                >
-                  <SSQRCode
-                    value={exportContent}
-                    size={250}
-                    color={Colors.black}
-                    backgroundColor={Colors.white}
-                  />
-                </View>
+                  hideShareButton
+                />
               </View>
             )}
             <View

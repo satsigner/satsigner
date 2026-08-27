@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import {
   Pressable,
   ScrollView,
@@ -15,9 +15,8 @@ import { toast } from 'sonner-native'
 import SSIconEyeOff from '@/components/icons/SSIconEyeOff'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
-import SSQRCode from '@/components/SSQRCode'
 import SSSeedQR from '@/components/SSSeedQR'
-import SSShareButton from '@/components/SSShareButton'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import { NOSTR_HIDDEN_KEY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
@@ -126,7 +125,6 @@ export default function NostrIdentityKeys() {
   const [nsecRevealed, setNsecRevealed] = useState(false)
   const [seedWordsRevealed, setSeedWordsRevealed] = useState(false)
   const [qrModal, setQrModal] = useState<QrModalContent | null>(null)
-  const qrModalRef = useRef<View>(null)
   const [seedQrVisible, setSeedQrVisible] = useState(false)
 
   function handleCopyNpub() {
@@ -393,28 +391,24 @@ export default function NostrIdentityKeys() {
                   ? t('nostrIdentity.keys.npub')
                   : t('nostrIdentity.keys.nsec')}
               </SSText>
-              <View
-                collapsable={false}
-                ref={qrModalRef}
-                style={styles.qrCodeWrapper}
+              <SSShareableQR
+                value={qrModal.value}
+                size={220}
+                color={Colors.white}
+                backgroundColor={Colors.gray[950]}
+                ecl="H"
+                containerStyle={styles.qrCodeWrapper}
+                hideShareButton={qrModal.type !== 'npub'}
               >
-                <SSQRCode
-                  value={qrModal.value}
-                  size={220}
-                  color={Colors.white}
-                  backgroundColor={Colors.gray[950]}
-                  ecl="H"
-                />
-              </View>
-              <View style={styles.qrModalDataBox}>
-                <ShadedNostrKeyText
-                  value={qrModal.value}
-                  size="sm"
-                  lineBreakEvery={NOSTR_KEY_LINE_BREAK_EVERY}
-                  style={styles.qrModalDataText}
-                />
-              </View>
-              {qrModal.type === 'npub' && <SSShareButton qrRef={qrModalRef} />}
+                <View style={styles.qrModalDataBox}>
+                  <ShadedNostrKeyText
+                    value={qrModal.value}
+                    size="sm"
+                    lineBreakEvery={NOSTR_KEY_LINE_BREAK_EVERY}
+                    style={styles.qrModalDataText}
+                  />
+                </View>
+              </SSShareableQR>
             </>
           )}
         </SSVStack>

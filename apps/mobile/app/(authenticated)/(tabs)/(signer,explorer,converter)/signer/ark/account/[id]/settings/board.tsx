@@ -6,8 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
-import SSQRCode from '@/components/SSQRCode'
-import SSShareButton from '@/components/SSShareButton'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -193,24 +192,23 @@ export default function ArkBoardPage() {
             )}
             {depositAddress && (
               <SSVStack gap="sm">
-                <View
-                  collapsable={false}
-                  ref={qrRef}
-                  style={styles.qrContainer}
+                <SSShareableQR
+                  qrRef={qrRef}
+                  value={depositAddress}
+                  size={DEPOSIT_QR_SIZE}
+                  containerStyle={styles.qrContainer}
                 >
-                  <SSQRCode value={depositAddress} size={DEPOSIT_QR_SIZE} />
-                </View>
-                <View style={styles.addressBox}>
-                  <SSText size="sm" style={styles.monospace}>
-                    {depositAddress}
-                  </SSText>
-                </View>
-                <SSButton
-                  label={t('common.copy')}
-                  onPress={handleCopyAddress}
-                  variant="outline"
-                />
-                <SSShareButton qrRef={qrRef} />
+                  <View style={styles.addressBox}>
+                    <SSText size="sm" style={styles.monospace}>
+                      {depositAddress}
+                    </SSText>
+                  </View>
+                  <SSButton
+                    label={t('common.copy')}
+                    onPress={handleCopyAddress}
+                    variant="outline"
+                  />
+                </SSShareableQR>
                 {linkedAccount && (
                   <SSButton
                     label={t('ark.board.fundFromLinked', {
