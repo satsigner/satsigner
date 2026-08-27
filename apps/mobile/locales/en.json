@@ -3622,5 +3622,55 @@
     "success.qrScanned": "QR code scanned successfully",
     "titleModal": "Watch-only wallet",
     "warning.syncFailed": "Account created but failed to sync. You can try syncing later."
+  },
+  "intro": {
+    "replay": "Replay intro animation",
+    "sectionTitle": "Intro",
+    "start": "Start",
+    "steps": {
+      "sign": {
+        "description": "Build transactions with full fee control. Air-gapped signing, multisig, and PSBTs — complete sovereignty over every sat.",
+        "title": "Sign & Send, Your Way"
+      },
+      "transactions": {
+        "description": "Hex-level access to raw Bitcoin transactions. Verify inputs, outputs, and scripts yourself — no trust required.",
+        "title": "Inspect Every Transaction"
+      },
+      "utxos": {
+        "description": "Each coin is a bubble. See size, age, and labels at a glance — then choose exactly which ones to spend.",
+        "title": "Visualize Your UTXOs"
+      },
+      "layers": {
+        "description": "From the base chain to Lightning and beyond — interact natively with every Bitcoin protocol layer in one place.",
+        "title": "Every Layer of Bitcoin"
+      },
+      "privacy": {
+        "description": "Full coin control, UTXO labeling, and address management give you the tools to minimize your on-chain footprint.",
+        "title": "Privacy by Design"
+      },
+      "coordination": {
+        "description": "Pass PSBTs, messages, and labels between your devices \nand co-signers encrypted over Nostr relays (NIP-17 group).",
+        "title": "Seamless Coordination"
+      },
+      "explorer": {
+        "description": "Inspect any block, transaction, or address without leaving the app or trusting a third-party server.",
+        "title": "Built-In Block Explorer"
+      },
+      "genesisHex": {
+        "coinbaseOutpointIndex": "Coinbase prevout index (0xffffffff)",
+        "coinbasePrevTxid": "Coinbase previous txid (all zeros)",
+        "headerTimeBitsNonce": "Timestamp · bits · nonce",
+        "inputSequence": "Input sequence",
+        "locktime": "Locktime",
+        "merkleRoot": "Merkle root",
+        "outputCountAndValue": "Output count & 50 BTC value",
+        "previousBlockHash": "Previous block hash",
+        "scriptPubKey": "ScriptPubKey (P2PK)",
+        "scriptSig": "Coinbase scriptSig (Times headline)",
+        "txHeader": "Tx count, version & input count",
+        "version": "Block version"
+      }
+    },
+    "finish": "Finish"
   }
 }

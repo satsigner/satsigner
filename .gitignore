@@ -1,4 +1,5 @@
 node_modules
+.pnpm-store
 
 # pnpm workspace — npm lockfiles are accidental if created under a package
 package-lock.json
