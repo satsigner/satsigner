@@ -96,7 +96,9 @@ function useNostrMessageProcessor() {
         return
       }
 
-      // Defer until the JS thread is idle so we don't block navigation/animations.
+      // requestIdleCallback replaces deprecated InteractionManager.runAfterInteractions.
+      // It is frame-tick driven: it pauses while the app is backgrounded and does
+      // not wait for UI-thread animations to finish.
       await new Promise<void>((resolve) => {
         requestIdleCallback(() => resolve())
       })
