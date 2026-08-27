@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSBackupPayloadSummary from '@/components/SSBackupPayloadSummary'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSText from '@/components/SSText'
@@ -194,19 +195,7 @@ export default function DeveloperRecover() {
                 <SSText color="muted" size="sm">
                   {t('settings.developer.recoverDecryptedLabel')}
                 </SSText>
-                <ScrollView
-                  nestedScrollEnabled
-                  style={styles.decryptedScroll}
-                  contentContainerStyle={styles.decryptedScrollContent}
-                >
-                  <TextInput
-                    editable={false}
-                    multiline
-                    scrollEnabled={false}
-                    style={styles.decryptedText}
-                    value={recoverDecrypted}
-                  />
-                </ScrollView>
+                <SSBackupPayloadSummary payload={recoverDecrypted} />
               </SSVStack>
               <SSVStack widthFull>
                 <SSButton
@@ -247,23 +236,6 @@ const styles = StyleSheet.create({
   actionRowButton: {
     flex: 1,
     minWidth: 0
-  },
-  decryptedScroll: {
-    alignSelf: 'stretch',
-    borderColor: Colors.gray[500],
-    borderRadius: 3,
-    borderWidth: 1,
-    maxHeight: 320,
-    width: '100%'
-  },
-  decryptedScrollContent: {
-    paddingBottom: 16
-  },
-  decryptedText: {
-    color: Colors.gray['200'],
-    fontFamily: 'monospace',
-    fontSize: 11,
-    padding: 8
   },
   encryptedInput: {
     alignSelf: 'stretch',

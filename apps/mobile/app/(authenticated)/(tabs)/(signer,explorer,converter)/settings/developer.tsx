@@ -1,10 +1,11 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, Share, StyleSheet, TextInput } from 'react-native'
+import { Share, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSIconWarning from '@/components/icons/SSIconWarning'
+import SSBackupPayloadSummary from '@/components/SSBackupPayloadSummary'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
@@ -475,17 +476,9 @@ export default function Developer() {
           <SSText center color="muted" size="sm">
             {t('settings.developer.backupPreviewWarning')}
           </SSText>
-          <ScrollView
-            style={styles.modalTextAreaScroll}
-            contentContainerStyle={styles.modalTextAreaScrollContent}
-          >
-            <TextInput
-              editable={false}
-              multiline
-              style={styles.backupPreviewText}
-              value={backupPreviewPayload ?? ''}
-            />
-          </ScrollView>
+          {backupPreviewPayload ? (
+            <SSBackupPayloadSummary payload={backupPreviewPayload} />
+          ) : null}
           <SSVStack gap="xs" widthFull>
             <SSText color="muted" size="sm">
               {t('settings.developer.backupPassphraseLabel')}
@@ -527,23 +520,6 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     paddingVertical: 8,
     width: '100%'
-  },
-  backupPreviewText: {
-    color: Colors.gray['200'],
-    fontFamily: 'monospace',
-    fontSize: 11,
-    padding: 8
-  },
-  modalTextAreaScroll: {
-    alignSelf: 'stretch',
-    borderColor: Colors.gray[500],
-    borderRadius: 4,
-    borderWidth: 1,
-    maxHeight: 320,
-    width: '100%'
-  },
-  modalTextAreaScrollContent: {
-    paddingBottom: 16
   },
   passphraseInput: {
     alignSelf: 'stretch',
