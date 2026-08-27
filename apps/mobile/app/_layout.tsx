@@ -19,12 +19,14 @@ import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSImageActionsSheet from '@/components/SSImageActionsSheet'
+import SSIntroAnimation from '@/components/SSIntroAnimation'
 import { queryClient } from '@/lib/queryClient'
 import {
   getLastBackgroundTimestamp,
   setLastBackgroundTimestamp
 } from '@/storage/mmkv'
 import { useAuthStore } from '@/store/auth'
+import { useIntroStore } from '@/store/intro'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { Colors } from '@/styles'
 import { installDevErrorReporting } from '@/utils/devErrorReporting'
@@ -56,8 +58,30 @@ export default function RootLayout() {
       ])
     )
 
+  const [introVisible, introForceFirstTime, hideIntro] = useIntroStore(
+    useShallow((state) => [
+      state.visible,
+      state.forceFirstTime,
+      state.hideIntro
+    ])
+  )
+
   const appState = useRef(AppState.currentState)
   const [privacyScreenVisible, setPrivacyScreenVisible] = useState(false)
+  const [authHydrated, setAuthHydrated] = useState(() =>
+    useAuthStore.persist.hasHydrated()
+  )
+  const introOverlayVisible =
+    authHydrated && introVisible && (firstTime || introForceFirstTime)
+
+  useEffect(() => {
+    if (authHydrated) {
+      return
+    }
+    return useAuthStore.persist.onFinishHydration(() => {
+      setAuthHydrated(true)
+    })
+  }, [authHydrated])
 
   useEffect(() => {
     if (!firstTime) {
@@ -131,6 +155,12 @@ export default function RootLayout() {
               </View>
             </ThemeProvider>
             {privacyScreenVisible && <View style={styles.privacyScreen} />}
+            {introOverlayVisible ? (
+              <SSIntroAnimation
+                firstTime={firstTime || introForceFirstTime}
+                onComplete={hideIntro}
+              />
+            ) : null}
             <SSImageActionsSheet />
             <Toaster
               theme="dark"

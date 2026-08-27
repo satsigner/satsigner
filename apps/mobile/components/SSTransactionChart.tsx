@@ -2,13 +2,7 @@ import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  InteractionManager,
-  Pressable,
-  StyleSheet,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useLayout } from '@/hooks/useLayout'
@@ -161,10 +155,12 @@ function SSTransactionChart(props: SSTransactionChartProps) {
   const [mountCanvas, setMountCanvas] = useState(false)
 
   useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
+    // requestIdleCallback replaces deprecated InteractionManager.runAfterInteractions.
+    // Frame-tick driven: pauses while backgrounded; does not wait for UI-thread animations.
+    const idleHandle = requestIdleCallback(() => {
       setMountCanvas(true)
     })
-    return () => task.cancel()
+    return () => cancelIdleCallback(idleHandle)
   }, [])
 
   return (
