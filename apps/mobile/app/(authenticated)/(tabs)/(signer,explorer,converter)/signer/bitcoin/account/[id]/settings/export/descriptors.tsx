@@ -9,8 +9,9 @@ import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSQRCode from '@/components/SSQRCode'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSShareableQR from '@/components/SSShareableQR'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -66,6 +67,37 @@ function calculateDescriptorChecksum(descriptor: string): string {
   } catch {
     return ''
   }
+}
+
+type DescriptorQrItemProps = {
+  descriptor: string
+  label: string
+}
+
+function DescriptorQrItem({ descriptor, label }: DescriptorQrItemProps) {
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <SSShareableQR
+        value={descriptor}
+        size={150}
+        color={Colors.black}
+        backgroundColor={Colors.white}
+        containerStyle={{
+          backgroundColor: Colors.white,
+          borderRadius: 2,
+          padding: 16
+        }}
+      >
+        <SSText
+          color="muted"
+          size="sm"
+          style={{ marginBottom: 8, marginTop: 8 }}
+        >
+          {label}
+        </SSText>
+      </SSShareableQR>
+    </View>
+  )
 }
 
 export default function ExportDescriptors() {
@@ -723,45 +755,28 @@ export default function ExportDescriptors() {
             {showSeparate ? (
               <SSVStack gap="md">
                 {descriptors.map((descriptor, index) => (
-                  <View key={descriptor} style={{ alignItems: 'center' }}>
-                    <View
-                      style={{
-                        backgroundColor: Colors.white,
-                        borderRadius: 2,
-                        padding: 16
-                      }}
-                    >
-                      <SSQRCode
-                        value={descriptor}
-                        size={150}
-                        color={Colors.black}
-                        backgroundColor={Colors.white}
-                      />
-                    </View>
-                    <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
-                      {index === 0 ? 'External' : 'Internal'}{' '}
-                      {t('common.descriptor')}
-                    </SSText>
-                  </View>
+                  <DescriptorQrItem
+                    key={descriptor}
+                    descriptor={descriptor}
+                    label={`${index === 0 ? 'External' : 'Internal'} ${t('common.descriptor')}`}
+                  />
                 ))}
               </SSVStack>
             ) : (
               <View style={{ alignItems: 'center' }}>
-                <View
-                  ref={qrRef}
-                  style={{
+                <SSShareableQR
+                  qrRef={qrRef}
+                  value={exportContent}
+                  size={250}
+                  color={Colors.black}
+                  backgroundColor={Colors.white}
+                  containerStyle={{
                     backgroundColor: Colors.white,
                     borderRadius: 2,
                     padding: 16
                   }}
-                >
-                  <SSQRCode
-                    value={exportContent}
-                    size={250}
-                    color={Colors.black}
-                    backgroundColor={Colors.white}
-                  />
-                </View>
+                  hideShareButton
+                />
               </View>
             )}
             <View
@@ -791,6 +806,7 @@ export default function ExportDescriptors() {
               variant="outline"
               onPress={exportDescriptors}
             />
+            {!showSeparate && <SSShareButton qrRef={qrRef} />}
           </>
         ) : (
           <SSText center color="muted">

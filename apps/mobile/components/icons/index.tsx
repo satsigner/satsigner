@@ -94,6 +94,7 @@ import SSIconSeed from './SSIconSeed'
 import SSIconServer from './SSIconServer'
 import SSIconServerOptions from './SSIconServerOptions'
 import SSIconSettings from './SSIconSettings'
+import SSIconShare from './SSIconShare'
 import SSIconSigner from './SSIconSigner'
 import SSIconSignerActive from './SSIconSignerActive'
 import SSIconSignOut from './SSIconSignOut'
@@ -207,6 +208,7 @@ export {
   SSIconServer,
   SSIconServerOptions,
   SSIconSettings,
+  SSIconShare,
   SSIconSigner,
   SSIconSignerActive,
   SSIconSignOut,
