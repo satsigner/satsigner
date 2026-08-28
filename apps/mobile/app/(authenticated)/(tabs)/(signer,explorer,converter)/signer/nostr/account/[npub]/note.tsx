@@ -37,7 +37,7 @@ import SSNostrPollOptions from '@/components/SSNostrPollOptions'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
@@ -1972,26 +1972,26 @@ export default function NostrNotePage() {
           <SSText center uppercase>
             {t('nostrIdentity.note.qrTitle')}
           </SSText>
-          <View style={styles.qrContainer}>
-            <SSQRCode
-              value={noteNeventId}
-              size={260}
-              color={Colors.black}
-              backgroundColor={Colors.white}
-            />
-          </View>
-          <SSClipboardCopy text={noteNeventId}>
-            <SSText
-              center
-              size="xxs"
-              type="mono"
-              color="muted"
-              numberOfLines={2}
-              ellipsizeMode="middle"
-            >
-              {noteNeventId}
-            </SSText>
-          </SSClipboardCopy>
+          <SSShareableQR
+            value={noteNeventId}
+            size={260}
+            color={Colors.black}
+            backgroundColor={Colors.white}
+            containerStyle={styles.qrContainer}
+          >
+            <SSClipboardCopy text={noteNeventId}>
+              <SSText
+                center
+                size="xxs"
+                type="mono"
+                color="muted"
+                numberOfLines={2}
+                ellipsizeMode="middle"
+              >
+                {noteNeventId}
+              </SSText>
+            </SSClipboardCopy>
+          </SSShareableQR>
         </SSVStack>
       </SSModal>
 

@@ -7,7 +7,7 @@ import { toast } from 'sonner-native'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSPairedTabs from '@/components/SSPairedTabs'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT } from '@/constants/btc'
@@ -152,19 +152,22 @@ export default function ArkReceivePage() {
               )}
               {addressQuery.data && (
                 <>
-                  <View style={styles.qrContainer}>
-                    <SSQRCode value={addressQuery.data} size={280} />
-                  </View>
-                  <View style={styles.addressBox}>
-                    <SSText size="sm" style={styles.monospace}>
-                      {addressQuery.data}
-                    </SSText>
-                  </View>
-                  <SSButton
-                    label={t('common.copy')}
-                    onPress={handleCopyAddress}
-                    variant="outline"
-                  />
+                  <SSShareableQR
+                    value={addressQuery.data}
+                    size={280}
+                    containerStyle={styles.qrContainer}
+                  >
+                    <View style={styles.addressBox}>
+                      <SSText size="sm" style={styles.monospace}>
+                        {addressQuery.data}
+                      </SSText>
+                    </View>
+                    <SSButton
+                      label={t('common.copy')}
+                      onPress={handleCopyAddress}
+                      variant="outline"
+                    />
+                  </SSShareableQR>
                   <SSButton
                     label={t('ark.receive.generateNewAddress')}
                     onPress={handleGenerateNewAddress}
@@ -213,22 +216,25 @@ export default function ArkReceivePage() {
               )}
               {invoice && (
                 <>
-                  <View style={styles.qrContainer}>
-                    <SSQRCode value={invoice.invoice} size={280} />
-                  </View>
-                  <View style={styles.addressBox}>
-                    <SSText size="sm" style={styles.monospace}>
-                      {invoice.invoice}
+                  <SSShareableQR
+                    value={invoice.invoice}
+                    size={280}
+                    containerStyle={styles.qrContainer}
+                  >
+                    <View style={styles.addressBox}>
+                      <SSText size="sm" style={styles.monospace}>
+                        {invoice.invoice}
+                      </SSText>
+                    </View>
+                    <SSText color="muted" size="sm" center>
+                      {formatNumber(invoice.amountSats)} {t('bitcoin.sats')}
                     </SSText>
-                  </View>
-                  <SSText color="muted" size="sm" center>
-                    {formatNumber(invoice.amountSats)} {t('bitcoin.sats')}
-                  </SSText>
-                  <SSButton
-                    label={t('common.copy')}
-                    onPress={() => copyToClipboard(invoice.invoice)}
-                    variant="outline"
-                  />
+                    <SSButton
+                      label={t('common.copy')}
+                      onPress={() => copyToClipboard(invoice.invoice)}
+                      variant="outline"
+                    />
+                  </SSShareableQR>
                   <SSButton
                     label={t('ark.receive.newInvoice')}
                     onPress={handleResetInvoice}
@@ -259,19 +265,22 @@ export default function ArkReceivePage() {
               )}
               {onchainAddressQuery.data && (
                 <>
-                  <View style={styles.qrContainer}>
-                    <SSQRCode value={onchainAddressQuery.data} size={280} />
-                  </View>
-                  <View style={styles.addressBox}>
-                    <SSText size="sm" style={styles.monospace}>
-                      {onchainAddressQuery.data}
-                    </SSText>
-                  </View>
-                  <SSButton
-                    label={t('common.copy')}
-                    onPress={handleCopyOnchainAddress}
-                    variant="outline"
-                  />
+                  <SSShareableQR
+                    value={onchainAddressQuery.data}
+                    size={280}
+                    containerStyle={styles.qrContainer}
+                  >
+                    <View style={styles.addressBox}>
+                      <SSText size="sm" style={styles.monospace}>
+                        {onchainAddressQuery.data}
+                      </SSText>
+                    </View>
+                    <SSButton
+                      label={t('common.copy')}
+                      onPress={handleCopyOnchainAddress}
+                      variant="outline"
+                    />
+                  </SSShareableQR>
                 </>
               )}
               {autoBoard.minAmountSats !== undefined && (

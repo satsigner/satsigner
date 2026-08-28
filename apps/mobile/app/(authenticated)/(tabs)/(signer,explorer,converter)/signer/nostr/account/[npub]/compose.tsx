@@ -16,7 +16,7 @@ import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import {
   NOSTR_NIP01_MAX_NOTE_LENGTH,
@@ -651,7 +651,7 @@ export default function NostrComposePage() {
           </SSText>
           {signedQrPayload ? (
             <View style={styles.signedQrWrap}>
-              <SSQRCode
+              <SSShareableQR
                 value={signedQrPayload}
                 size={220}
                 color={Colors.white}

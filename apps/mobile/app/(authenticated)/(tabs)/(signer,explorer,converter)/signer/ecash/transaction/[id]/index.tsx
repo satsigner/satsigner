@@ -13,7 +13,7 @@ import {
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -583,7 +583,11 @@ export default function EcashTransactionDetailPage() {
           <SSText size="lg" weight="medium" style={{ textAlign: 'center' }}>
             {t('ecash.transactionDetail.lightningInvoice')}
           </SSText>
-          {lightningInvoice && <SSQRCode value={lightningInvoice} size={250} />}
+          {lightningInvoice && (
+            <>
+              <SSShareableQR value={lightningInvoice} size={250} />
+            </>
+          )}
         </SSVStack>
       </SSModal>
     </SSMainLayout>

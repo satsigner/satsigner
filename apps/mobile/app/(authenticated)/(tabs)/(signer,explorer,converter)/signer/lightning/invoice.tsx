@@ -14,7 +14,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
@@ -545,30 +545,33 @@ export default function InvoicePage() {
                 </View>
               </View>
             </SSVStack>
-            <View style={styles.qrContainer}>
-              {paymentRequest && (
-                <SSQRCode value={paymentRequest} size={qrCodeSize} />
-              )}
-            </View>
-            <SSVStack style={styles.paymentRequestContainer}>
-              <SSText color="muted" uppercase>
-                Payment Request
-              </SSText>
-              <View style={styles.paymentRequestText}>
-                <SSText type="mono" size="sm">
-                  {paymentRequest}
-                </SSText>
-              </View>
-            </SSVStack>
+            {paymentRequest ? (
+              <SSShareableQR
+                value={paymentRequest}
+                size={qrCodeSize}
+                containerStyle={styles.qrContainer}
+              >
+                <SSVStack style={styles.paymentRequestContainer}>
+                  <SSText color="muted" uppercase>
+                    Payment Request
+                  </SSText>
+                  <View style={styles.paymentRequestText}>
+                    <SSText type="mono" size="sm">
+                      {paymentRequest}
+                    </SSText>
+                  </View>
+                </SSVStack>
 
-            <SSVStack style={styles.modalActions}>
-              <SSButton
-                label="Copy to Clipboard"
-                onPress={handleCopyToClipboard}
-                variant="gradient"
-                gradientType="special"
-              />
-            </SSVStack>
+                <SSVStack style={styles.modalActions}>
+                  <SSButton
+                    label="Copy to Clipboard"
+                    onPress={handleCopyToClipboard}
+                    variant="gradient"
+                    gradientType="special"
+                  />
+                </SSVStack>
+              </SSShareableQR>
+            ) : null}
           </SSVStack>
         </ScrollView>
       </SSModal>
