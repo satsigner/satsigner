@@ -245,12 +245,11 @@ export default function ArkBoardPage() {
                   send to it would strand the funds. */}
               {boardPayjoin.payjoinUri && (
                 <SSVStack gap="sm">
-                  <View style={styles.qrContainer}>
-                    <SSQRCode
-                      value={boardPayjoin.payjoinUri}
-                      size={DEPOSIT_QR_SIZE}
-                    />
-                  </View>
+                  <SSShareableQR
+                    containerStyle={styles.qrContainer}
+                    size={DEPOSIT_QR_SIZE}
+                    value={boardPayjoin.payjoinUri}
+                  />
                   <SSButton
                     label={t('common.copy')}
                     onPress={handleCopyPayjoinUri}
