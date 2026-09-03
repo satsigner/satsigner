@@ -24,10 +24,18 @@ import type {
   MeltQuote,
   MintQuote
 } from '@/types/models/Ecash'
-import type { LNDConfig } from '@/types/models/Lightning'
+import type {
+  LNDChannel,
+  LNDConfig,
+  LNDNodeInfo
+} from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
-import type { Config, Network, Server } from '@/types/settings/blockchain'
+import {
+  restoreBlockchainFromBackup,
+  type BlockchainBackup
+} from '@/utils/blockchainBackup'
 import { aesEncrypt, randomIv } from '@/utils/crypto'
+import { restoreLightningFromBackup } from '@/utils/lightningBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
 
@@ -64,6 +72,13 @@ type BackupData = {
     quotes?: Record<string, { melt: MeltQuote[]; mint: MintQuote[] }>
     transactions?: Record<string, EcashTransaction[]>
   }
+  lightning?: {
+    channels?: LNDChannel[]
+    config?: LNDConfig | null
+    isConnected?: boolean
+    lastSync?: string | null
+    nodeInfo?: LNDNodeInfo | null
+  }
   lnd?: LNDConfig | null
   nostr?: {
     lastDataExchangeEOSE?: Record<string, number>
@@ -79,12 +94,7 @@ type BackupData = {
     identities: NostrIdentity[]
     relays: string[]
   }
-  serverSettings?: {
-    configs: Record<Network, { config: Config; server: Server }>
-    configsMempool: Record<Network, string>
-    customServers: Server[]
-    selectedNetwork: Network
-  }
+  serverSettings?: BlockchainBackup
   settings: {
     currencyUnit: string
     mnemonicWordList: string
@@ -142,10 +152,6 @@ function errorMessage(err: unknown): string {
     return err
   }
   return 'Unknown error'
-}
-
-function isNetwork(value: string): value is Network {
-  return value === 'bitcoin' || value === 'testnet' || value === 'signet'
 }
 
 function validateBackup(
@@ -363,11 +369,7 @@ function applyStoreRestore(
       cur.setUseZeroPadding(data.settings.useZeroPadding)
     }
   }
-  if (data.lnd) {
-    useLightningStore.getState().setConfig(data.lnd)
-  } else if ('lnd' in data && data.lnd === null) {
-    useLightningStore.getState().clearConfig()
-  }
+  restoreLightningFromBackup(data)
   useNostrIdentityStore.getState().clearAll()
   if (data.nostrIdentities) {
     for (const identity of data.nostrIdentities.identities) {
@@ -385,30 +387,7 @@ function applyStoreRestore(
     }
   }
   if (data.serverSettings) {
-    const bs = useBlockchainStore.getState()
-    bs.setSelectedNetwork(data.serverSettings.selectedNetwork)
-    for (const [rawNetwork, nc] of Object.entries(
-      data.serverSettings.configs
-    )) {
-      if (isNetwork(rawNetwork)) {
-        bs.updateServer(rawNetwork, nc.server)
-        bs.updateConfig(rawNetwork, nc.config)
-      }
-    }
-    for (const [rawNetwork, mempool] of Object.entries(
-      data.serverSettings.configsMempool
-    )) {
-      if (isNetwork(rawNetwork)) {
-        bs.updateConfigMempool(rawNetwork, mempool)
-      }
-    }
-    const existingServers = bs.customServers.slice()
-    for (const old of existingServers) {
-      bs.removeCustomServer(old)
-    }
-    for (const s of data.serverSettings.customServers) {
-      bs.addCustomServer(s)
-    }
+    restoreBlockchainFromBackup(data.serverSettings)
   }
 }
 

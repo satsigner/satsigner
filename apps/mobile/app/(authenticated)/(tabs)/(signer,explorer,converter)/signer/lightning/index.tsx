@@ -1,5 +1,5 @@
+import { useQuery } from '@tanstack/react-query'
 import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
-import { useEffect } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -29,6 +29,7 @@ import {
   liquidityBarSegmentFlexParts,
   readLndChannelSatsField
 } from '@/utils/lndChannelDetail'
+import { lndAliasIsNodeId, lndNodeCardTitle } from '@/utils/lndNodeCardTitle'
 import { showNavigation } from '@/utils/navigation'
 const HEADER_ICON_STROKE = '#828282'
 const CARD_HORIZONTAL_INSET = 18
@@ -43,22 +44,17 @@ export default function LightningPage() {
   const [privacyMode, togglePrivacyMode] = useSettingsStore(
     useShallow((state) => [state.privacyMode, state.togglePrivacyMode])
   )
-
-  useEffect(() => {
-    if (!config || !isConnected) {
-      return
-    }
-    void (async () => {
-      try {
-        await getChannels()
-      } catch {
-        // ignore
-      }
-    })()
-  }, [config, isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
+  useQuery({
+    enabled: Boolean(config) && isConnected,
+    queryFn: getChannels,
+    queryKey: ['lnd', 'channels', config?.url]
+  })
 
   const handleRCPPress = () => {
-    // TODO: Implement RCP functionality
+    router.navigate({
+      params: { protocol: 'rpc' },
+      pathname: '/signer/lightning/LNDRest'
+    })
   }
 
   function goToSignerLanding() {
@@ -78,11 +74,13 @@ export default function LightningPage() {
 
   const handleConfigPress = () => {
     if (config) {
+      const identityPubkey = nodeInfo?.identity_pubkey?.trim() || ''
+      const aliasRaw = nodeInfo?.alias?.trim() || ''
       const aliasParam =
-        nodeInfo?.alias?.trim() || t('lightning.landing.unknownNode')
+        lndNodeCardTitle(aliasRaw, identityPubkey) ||
+        t('lightning.landing.unknownNode')
       const pubkeyParam =
-        nodeInfo?.identity_pubkey?.trim() ||
-        t('lightning.landing.notConnectedPubkey')
+        identityPubkey || t('lightning.landing.notConnectedPubkey')
       router.navigate({
         params: {
           alias: aliasParam,
@@ -99,8 +97,11 @@ export default function LightningPage() {
     }
 
     const aliasRaw = nodeInfo?.alias?.trim() || ''
+    const identityPubkey = nodeInfo?.identity_pubkey?.trim() || ''
+    const titleIsPubkey = lndAliasIsNodeId(aliasRaw, identityPubkey)
     const alias =
-      aliasRaw.length > 0 ? aliasRaw : t('lightning.landing.unknownNode')
+      lndNodeCardTitle(aliasRaw, identityPubkey) ||
+      t('lightning.landing.unknownNode')
     const pubkey =
       nodeInfo?.identity_pubkey?.trim() ||
       t('lightning.landing.notConnectedPubkey')
@@ -164,8 +165,14 @@ export default function LightningPage() {
         <SSVStack style={styles.cardContent}>
           <SSHStack gap="md" justifyBetween style={styles.cardHeader}>
             <SSVStack gap="xs" style={styles.cardTitleCol}>
-              <SSText numberOfLines={2} size="xl" weight="light">
-                {alias}
+              <SSText
+                ellipsizeMode={titleIsPubkey ? 'middle' : 'tail'}
+                numberOfLines={1}
+                size="xl"
+                type={titleIsPubkey ? 'mono' : undefined}
+                weight="light"
+              >
+                {privacyMode && titleIsPubkey ? PRIVACY_MASK : alias}
               </SSText>
               <SSText
                 color="muted"
@@ -394,7 +401,7 @@ export default function LightningPage() {
               }),
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              Lightning
+              {t('lightning.landing.title')}
             </SSText>
           )
         }}
@@ -408,18 +415,17 @@ export default function LightningPage() {
               {t('lightning.landing.connectExistingNode')}
             </SSText>
             <SSButton
-              label="LND Rest"
+              label={t('lightning.landing.lndRest')}
               onPress={handleLNDRestPress}
               variant="gradient"
               gradientType="special"
               style={styles.button}
             />
             <SSButton
-              label="LND RPC"
+              label={t('lightning.landing.lndRpc')}
               onPress={handleRCPPress}
               variant="gradient"
               gradientType="special"
-              disabled
               style={styles.button}
             />
 
@@ -427,7 +433,7 @@ export default function LightningPage() {
               {t('lightning.landing.createNewNode')}
             </SSText>
             <SSButton
-              label="LDK"
+              label={t('lightning.landing.ldk')}
               onPress={handleLDKPress}
               variant="gradient"
               gradientType="special"

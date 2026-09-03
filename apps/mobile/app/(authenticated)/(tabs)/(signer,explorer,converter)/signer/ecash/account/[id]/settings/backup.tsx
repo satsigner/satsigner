@@ -17,11 +17,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
+import { buildEcashBackupPayload } from '@/utils/ecashBackup'
 import { formatNumber } from '@/utils/format'
 
 export default function EcashBackupPage() {
-  const { mints, proofs, transactions } = useEcash()
-  const activeMint = mints[0] ?? null
+  const { activeAccountId, mints, proofs, transactions } = useEcash()
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
@@ -37,54 +37,19 @@ export default function EcashBackupPage() {
   function generateBackupData() {
     setIsGenerating(true)
     try {
-      const data: Record<string, unknown> = {
-        timestamp: new Date().toISOString(),
-        version: '1.0'
-      }
-
-      if (includeTokenProofs) {
-        data.proofs = proofs.map((proof) => ({
-          C: proof.C,
-          amount: proof.amount,
-          id: proof.id,
-          secret: proof.secret
-        }))
-        data.totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
-      }
-
-      if (includeMintInformation) {
-        data.mints = mints.map((mint) => ({
-          balance: mint.balance,
-          isConnected: mint.isConnected,
-          keysets: mint.keysets,
-          lastSync: mint.lastSync,
-          name: mint.name,
-          url: mint.url
-        }))
-        data.activeMint = activeMint
-          ? {
-              name: activeMint.name,
-              url: activeMint.url
-            }
-          : null
-      }
-
-      if (includeTransactionHistory) {
-        data.transactions = transactions.map((transaction) => ({
-          amount: transaction.amount,
-          id: transaction.id,
-          invoice: transaction.invoice,
-          memo: transaction.memo,
-          mintUrl: transaction.mintUrl,
-          quoteId: transaction.quoteId,
-          timestamp: transaction.timestamp,
-          token: transaction.token,
-          tokenStatus: transaction.tokenStatus,
-          type: transaction.type
-        }))
-      }
-
-      const jsonData = JSON.stringify(data, null, 2)
+      const jsonData = JSON.stringify(
+        buildEcashBackupPayload({
+          accountId: activeAccountId ?? undefined,
+          includeMintInformation,
+          includeTokenProofs,
+          includeTransactionHistory,
+          mints,
+          proofs,
+          transactions
+        }),
+        null,
+        2
+      )
       setBackupData(jsonData)
       setShowBackupData(true)
     } catch {
@@ -99,7 +64,7 @@ export default function EcashBackupPage() {
       await Clipboard.setStringAsync(backupData)
       toast.success(t('common.copiedToClipboard'))
     } catch {
-      toast.error('Failed to copy to clipboard')
+      toast.error(t('ecash.error.failedToCopy'))
     }
   }
 
@@ -154,16 +119,6 @@ export default function EcashBackupPage() {
                 </SSText>
                 <SSText weight="medium">{proofs.length}</SSText>
               </SSHStack>
-              {activeMint && (
-                <SSHStack>
-                  <SSText color="muted" style={{ flex: 1 }}>
-                    {t('ecash.backup.activeMint')}:
-                  </SSText>
-                  <SSText weight="medium" numberOfLines={1}>
-                    {activeMint.name || activeMint.url}
-                  </SSText>
-                </SSHStack>
-              )}
             </SSVStack>
           </SSVStack>
           <SSVStack gap="md">

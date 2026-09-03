@@ -228,6 +228,21 @@ describe('performRecoverOverwrite restore', () => {
     })
     useBlockchainStore.getState.mockReturnValue({
       addCustomServer,
+      configs: {
+        bitcoin: {
+          config: {},
+          server: { backend: 'esplora', network: 'bitcoin', url: '' }
+        },
+        signet: {
+          config: {},
+          server: { backend: 'electrum', network: 'signet', url: '' }
+        },
+        testnet: {
+          config: {},
+          server: { backend: 'esplora', network: 'testnet', url: '' }
+        }
+      },
+      configsMempool: { bitcoin: '', signet: '', testnet: '' },
       customServers: [],
       removeCustomServer,
       setSelectedNetwork,
@@ -241,7 +256,10 @@ describe('performRecoverOverwrite restore', () => {
     })
     useLightningStore.getState.mockReturnValue({
       clearConfig: jest.fn(),
-      setConfig: jest.fn()
+      setChannels: jest.fn(),
+      setConfig: jest.fn(),
+      setConnected: jest.fn(),
+      setNodeInfo: jest.fn()
     })
     useNostrStore.getState.mockReturnValue({
       clearAllNostrState
@@ -346,13 +364,22 @@ describe('performRecoverOverwrite restore', () => {
       }
     }
     expect(restored.labels).toStrictEqual(labels)
-    expect(restored.nostr.commonNsec).toBe('nsec1common')
-    expect(restored.nostr.deviceNsec).toBe('nsec1device')
-    expect(restored.nostr.deviceMnemonic).toBe(
-      'abandon ability able about above absent absorb abstract absurd abuse access accident'
+    expect(restored.nostr).toStrictEqual(
+      expect.objectContaining({
+        commonNsec: 'nsec1common',
+        deviceMnemonic:
+          'abandon ability able about above absent absorb abstract absurd abuse access accident',
+        deviceNsec: 'nsec1device',
+        relays: ['wss://relay.example']
+      })
     )
-    expect(restored.nostr.relays).toStrictEqual(['wss://relay.example'])
     expect(setSelectedNetwork).toHaveBeenCalledWith('bitcoin')
+    expect(updateServer).toHaveBeenCalledWith(
+      'bitcoin',
+      expect.objectContaining({
+        url: 'ssl://default.example:50002'
+      })
+    )
     expect(addCustomServer).toHaveBeenCalledWith(customServer)
     expect(setRelays).toHaveBeenCalledWith(['wss://identity-relay.example'])
   })
@@ -381,5 +408,131 @@ describe('performRecoverOverwrite restore', () => {
     expect(result).toStrictEqual({ success: true })
     const restored = addAccount.mock.calls[0][0] as { labels: object }
     expect(restored.labels).toStrictEqual({})
+  })
+
+  it('restores bitcoin backend data from serverSettings', async () => {
+    const bitcoinServer = {
+      backend: 'rpc' as const,
+      name: 'Core',
+      network: 'bitcoin' as const,
+      rpcCredentials: { password: 'p', username: 'u' },
+      url: 'http://127.0.0.1:8332'
+    }
+    const bitcoinConfig = {
+      connectionMode: 'manual' as const,
+      connectionTestInterval: 10,
+      retries: 3,
+      stopGap: 20,
+      timeDiffBeforeAutoSync: 5,
+      timeout: 8
+    }
+
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [],
+        serverSettings: {
+          configs: {
+            bitcoin: { config: bitcoinConfig, server: bitcoinServer },
+            signet: {
+              config: {},
+              server: { backend: 'electrum', network: 'signet', url: '' }
+            },
+            testnet: {
+              config: {},
+              server: { backend: 'esplora', network: 'testnet', url: '' }
+            }
+          },
+          configsMempool: {
+            bitcoin: 'https://mempool.example',
+            signet: '',
+            testnet: ''
+          },
+          customServers: [],
+          selectedNetwork: 'bitcoin'
+        },
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    expect(setSelectedNetwork).toHaveBeenCalledWith('bitcoin')
+    expect(updateServer).toHaveBeenCalledWith(
+      'bitcoin',
+      expect.objectContaining(bitcoinServer)
+    )
+    expect(updateConfig).toHaveBeenCalledWith(
+      'bitcoin',
+      expect.objectContaining(bitcoinConfig)
+    )
+    expect(updateConfigMempool).toHaveBeenCalledWith(
+      'bitcoin',
+      'https://mempool.example'
+    )
+  })
+
+  it('restores lightning node data from the lightning section', async () => {
+    const { useLightningStore } = jest.requireMock('@/store/lightning') as {
+      useLightningStore: { getState: jest.Mock }
+    }
+    const setConfig = jest.fn()
+    const setChannels = jest.fn()
+    const setConnected = jest.fn()
+    const setNodeInfo = jest.fn()
+    useLightningStore.getState.mockReturnValue({
+      clearConfig: jest.fn(),
+      setChannels,
+      setConfig,
+      setConnected,
+      setNodeInfo
+    })
+
+    const config = {
+      cert: 'cert',
+      macaroon: 'mac',
+      url: 'https://lnd.example:8080'
+    }
+    const nodeInfo = {
+      alias: 'satsigner',
+      best_header_timestamp: '1',
+      block_hash: 'h',
+      block_height: 1,
+      chains: [{ chain: 'bitcoin', network: 'mainnet' }],
+      commit_hash: 'abc',
+      identity_pubkey: '02ab',
+      num_active_channels: 0,
+      num_peers: 0,
+      synced_to_chain: true,
+      uris: [],
+      version: '0.18'
+    }
+
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [],
+        lightning: {
+          channels: [],
+          config,
+          isConnected: true,
+          nodeInfo
+        },
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    expect(setConfig).toHaveBeenCalledWith(config)
+    expect(setNodeInfo).toHaveBeenCalledWith(nodeInfo)
+    expect(setChannels).toHaveBeenCalledWith([])
+    expect(setConnected).toHaveBeenCalledWith(true)
   })
 })

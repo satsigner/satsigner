@@ -329,10 +329,14 @@ export const useEcashStore = create<EcashState & EcashAction>()(
             transactions?: EcashTransaction[]
           }
 
+          const restoredMints = data.mints ?? []
+          const existingMints = getAccountArray(state.mints, accountId)
+
           return {
             mints: {
               ...state.mints,
-              [accountId]: data.mints ?? []
+              [accountId]:
+                restoredMints.length > 0 ? restoredMints : existingMints
             },
             proofs: {
               ...state.proofs,
