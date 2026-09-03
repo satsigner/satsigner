@@ -18,6 +18,7 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import { LND_INVOICE_POLL_MS } from '@/constants/lightning'
 import { useFiatData } from '@/hooks/useFiatData'
@@ -644,30 +645,33 @@ export default function InvoicePage() {
                 </View>
               </View>
             </SSVStack>
-            <View style={styles.qrContainer}>
-              {paymentRequest && (
-                <SSQRCode value={paymentRequest} size={qrCodeSize} />
-              )}
-            </View>
-            <SSVStack style={styles.paymentRequestContainer}>
-              <SSText color="muted" uppercase>
-                {t('lightning.invoice.paymentRequest')}
-              </SSText>
-              <View style={styles.paymentRequestText}>
-                <SSText type="mono" size="sm">
-                  {paymentRequest}
-                </SSText>
-              </View>
-            </SSVStack>
+            {paymentRequest ? (
+              <SSShareableQR
+                value={paymentRequest}
+                size={qrCodeSize}
+                containerStyle={styles.qrContainer}
+              >
+                <SSVStack style={styles.paymentRequestContainer}>
+                  <SSText color="muted" uppercase>
+                    {t('lightning.invoice.paymentRequest')}
+                  </SSText>
+                  <View style={styles.paymentRequestText}>
+                    <SSText type="mono" size="sm">
+                      {paymentRequest}
+                    </SSText>
+                  </View>
+                </SSVStack>
 
-            <SSVStack style={styles.modalActions}>
-              <SSButton
-                label={t('common.copyToClipboard')}
-                onPress={handleCopyToClipboard}
-                variant="gradient"
-                gradientType="special"
-              />
-            </SSVStack>
+                <SSVStack style={styles.modalActions}>
+                  <SSButton
+                    label={t('common.copyToClipboard')}
+                    onPress={handleCopyToClipboard}
+                    variant="gradient"
+                    gradientType="special"
+                  />
+                </SSVStack>
+              </SSShareableQR>
+            ) : null}
           </SSVStack>
         </ScrollView>
       </SSModal>

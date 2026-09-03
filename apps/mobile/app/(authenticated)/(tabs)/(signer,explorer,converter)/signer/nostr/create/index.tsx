@@ -5,8 +5,8 @@ import { Modal, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
-import SSQRCode from '@/components/SSQRCode'
 import SSSeedQR from '@/components/SSSeedQR'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import { NOSTR_HIDDEN_KEY_MASK_LONG } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
@@ -201,10 +201,17 @@ export default function CreateNostrIdentity() {
         <View style={styles.qrOverlay}>
           <View style={styles.qrSheet}>
             <SSVStack itemsCenter gap="md">
-              {qrModalValue && <SSQRCode value={qrModalValue} size={240} />}
-              <SSText size="xs" type="mono" center numberOfLines={3}>
-                {qrModalValue}
-              </SSText>
+              {qrModalValue && (
+                <SSShareableQR
+                  value={qrModalValue}
+                  size={240}
+                  hideShareButton={qrModalValue !== keys.npub}
+                >
+                  <SSText size="xs" type="mono" center numberOfLines={3}>
+                    {qrModalValue}
+                  </SSText>
+                </SSShareableQR>
+              )}
               <SSButton
                 label={t('common.close')}
                 variant="ghost"

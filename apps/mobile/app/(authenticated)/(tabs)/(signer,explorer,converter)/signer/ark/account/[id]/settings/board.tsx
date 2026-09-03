@@ -1,12 +1,12 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -53,6 +53,7 @@ export default function ArkBoardPage() {
   const { fundFromLinkedAccount, linkedAccount } = useArkBoardDeposit(account)
 
   const [amountSats, setAmountSats] = useState(0)
+  const qrRef = useRef<View>(null)
 
   const confirmedSats = balanceQuery.data?.confirmedSats ?? 0
   const pendingSats = balanceQuery.data?.pendingSats ?? 0
@@ -191,19 +192,23 @@ export default function ArkBoardPage() {
             )}
             {depositAddress && (
               <SSVStack gap="sm">
-                <View style={styles.qrContainer}>
-                  <SSQRCode value={depositAddress} size={DEPOSIT_QR_SIZE} />
-                </View>
-                <View style={styles.addressBox}>
-                  <SSText size="sm" style={styles.monospace}>
-                    {depositAddress}
-                  </SSText>
-                </View>
-                <SSButton
-                  label={t('common.copy')}
-                  onPress={handleCopyAddress}
-                  variant="outline"
-                />
+                <SSShareableQR
+                  qrRef={qrRef}
+                  value={depositAddress}
+                  size={DEPOSIT_QR_SIZE}
+                  containerStyle={styles.qrContainer}
+                >
+                  <View style={styles.addressBox}>
+                    <SSText size="sm" style={styles.monospace}>
+                      {depositAddress}
+                    </SSText>
+                  </View>
+                  <SSButton
+                    label={t('common.copy')}
+                    onPress={handleCopyAddress}
+                    variant="outline"
+                  />
+                </SSShareableQR>
                 {linkedAccount && (
                   <SSButton
                     label={t('ark.board.fundFromLinked', {

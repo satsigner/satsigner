@@ -10,7 +10,7 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
 import SSEcashMintSelector from '@/components/SSEcashMintSelector'
 import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcashReceive } from '@/hooks/useEcashReceive'
@@ -488,23 +488,24 @@ export default function EcashReceivePage() {
               ) : (
                 <SSVStack gap="md">
                   {!isLNURLWithdrawMode && (
-                    <View style={styles.qrContainer}>
-                      <SSQRCode value={mintQuote.request} size={300} />
-                    </View>
-                  )}
-                  {!isLNURLWithdrawMode && (
-                    <SSButton
-                      label={t('common.copy')}
-                      onPress={async () => {
-                        try {
-                          await Clipboard.setStringAsync(mintQuote.request)
-                          toast.success(t('common.copiedToClipboard'))
-                        } catch {
-                          toast.error(t('ecash.error.failedToCopy'))
-                        }
-                      }}
-                      variant="outline"
-                    />
+                    <SSShareableQR
+                      value={mintQuote.request}
+                      size={300}
+                      containerStyle={styles.qrContainer}
+                    >
+                      <SSButton
+                        label={t('common.copy')}
+                        onPress={async () => {
+                          try {
+                            await Clipboard.setStringAsync(mintQuote.request)
+                            toast.success(t('common.copiedToClipboard'))
+                          } catch {
+                            toast.error(t('ecash.error.failedToCopy'))
+                          }
+                        }}
+                        variant="outline"
+                      />
+                    </SSShareableQR>
                   )}
                   <SSVStack gap="none">
                     <SSText style={{ color: getStatusColor(quoteStatus) }}>

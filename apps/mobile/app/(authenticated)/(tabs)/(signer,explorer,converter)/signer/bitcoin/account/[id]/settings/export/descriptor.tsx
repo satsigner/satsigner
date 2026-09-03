@@ -1,12 +1,13 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import SSVStack from '@/layouts/SSVStack'
@@ -32,6 +33,7 @@ export default function DescriptorPage() {
 
   const [descriptor, setDescriptor] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const qrRef = useRef<View>(null)
   const [keyName, setKeyName] = useState('')
   const [creationType, setCreationType] = useState('')
   const [scriptVersion, setScriptVersion] = useState<string>('P2PKH')
@@ -197,20 +199,19 @@ export default function DescriptorPage() {
               </SSText>
             </View>
           ) : descriptor ? (
-            <View
-              style={{
+            <SSShareableQR
+              qrRef={qrRef}
+              value={descriptor}
+              size={250}
+              color="black"
+              backgroundColor="white"
+              containerStyle={{
                 backgroundColor: 'white',
                 borderRadius: 10,
                 padding: 20
               }}
-            >
-              <SSQRCode
-                value={descriptor}
-                size={250}
-                color="black"
-                backgroundColor="white"
-              />
-            </View>
+              hideShareButton
+            />
           ) : null}
         </View>
 
@@ -241,6 +242,7 @@ export default function DescriptorPage() {
               variant="secondary"
               onPress={exportDescriptor}
             />
+            <SSShareButton qrRef={qrRef} />
           </>
         )}
 
