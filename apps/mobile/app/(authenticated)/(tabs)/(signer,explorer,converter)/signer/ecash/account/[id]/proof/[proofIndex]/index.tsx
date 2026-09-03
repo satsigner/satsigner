@@ -1,14 +1,15 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { Pressable, StyleSheet, useWindowDimensions } from 'react-native'
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { encodeProofsAsToken } from '@/api/ecash'
 import SSButton from '@/components/SSButton'
 import SSNFCModal from '@/components/SSNFCModal'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
+import SSShareButton from '@/components/SSShareButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -61,6 +62,7 @@ export default function EcashProofDetailPage() {
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
   const animationRef = useRef<number | null>(null)
+  const qrRef = useRef<View>(null)
   const lastUpdateRef = useRef(0)
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
@@ -452,10 +454,12 @@ export default function EcashProofDetailPage() {
                   </Pressable>
                 </SSHStack>
                 <SSVStack gap="xs" itemsCenter>
-                  <SSQRCode
+                  <SSShareableQR
+                    qrRef={qrRef}
                     value={getQRValue()}
                     size={qrSize}
                     ecl={animatedQR && isMultiPart ? 'L' : 'H'}
+                    hideShareButton
                   />
                   <SSText color="muted" size="xs" style={styles.chunkCounter}>
                     {animatedQR && isMultiPart
@@ -529,6 +533,9 @@ export default function EcashProofDetailPage() {
                     style={{ flex: 1 }}
                   />
                 </SSHStack>
+                {!(animatedQR && isMultiPart) && (
+                  <SSShareButton qrRef={qrRef} />
+                )}
               </SSVStack>
             )}
           </SSVStack>

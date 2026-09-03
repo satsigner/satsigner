@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { Pressable, StyleSheet, useWindowDimensions } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -12,7 +12,8 @@ import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
 import SSEcashMintSelector from '@/components/SSEcashMintSelector'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { ANIMATED_QR_INTERVAL_MS, useEcashSend } from '@/hooks/useEcashSend'
@@ -49,6 +50,7 @@ export default function EcashSendPage() {
   const { invoice: invoiceParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const qrRef = useRef<View>(null)
 
   const {
     activeAccount,
@@ -301,10 +303,12 @@ export default function EcashSendPage() {
                     </Pressable>
                   </SSHStack>
                   <SSVStack gap="xs" itemsCenter>
-                    <SSQRCode
+                    <SSShareableQR
+                      qrRef={qrRef}
                       value={getQRValue(chunks)}
                       size={qrSize}
                       ecl={animatedQR && isMultiPart ? 'M' : 'H'}
+                      hideShareButton
                     />
                     <SSText color="muted" size="xs" style={styles.chunkCounter}>
                       {animatedQR && isMultiPart
@@ -381,6 +385,9 @@ export default function EcashSendPage() {
                       style={{ flex: 1 }}
                     />
                   </SSHStack>
+                  {!(animatedQR && isMultiPart) && (
+                    <SSShareButton qrRef={qrRef} />
+                  )}
                 </SSVStack>
               )}
             </SSVStack>

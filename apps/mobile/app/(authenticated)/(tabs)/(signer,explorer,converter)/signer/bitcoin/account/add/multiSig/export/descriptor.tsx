@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { KeychainKind, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -7,7 +7,8 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSQRCode from '@/components/SSQRCode'
+import SSShareableQR from '@/components/SSShareableQR'
+import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -34,6 +35,7 @@ export default function DescriptorPage() {
 
   const [isLoading, setIsLoading] = useState(true)
   const [descriptor, setDescriptor] = useState('')
+  const qrRef = useRef<View>(null)
   const [keyName, setKeyName] = useState('')
   const [creationType, setCreationType] = useState<CreationType | null>()
   const [scriptVersion, setScriptVersion] =
@@ -204,20 +206,19 @@ export default function DescriptorPage() {
               </SSText>
             </View>
           ) : descriptor ? (
-            <View
-              style={{
+            <SSShareableQR
+              qrRef={qrRef}
+              value={descriptor}
+              size={250}
+              color="black"
+              backgroundColor="white"
+              containerStyle={{
                 backgroundColor: 'white',
                 borderRadius: 10,
                 padding: 20
               }}
-            >
-              <SSQRCode
-                value={descriptor}
-                size={250}
-                color="black"
-                backgroundColor="white"
-              />
-            </View>
+              hideShareButton
+            />
           ) : null}
         </View>
 
@@ -248,6 +249,7 @@ export default function DescriptorPage() {
               variant="secondary"
               onPress={exportDescriptor}
             />
+            <SSShareButton qrRef={qrRef} />
           </>
         )}
 

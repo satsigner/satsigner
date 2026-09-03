@@ -17,8 +17,8 @@ import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
-import SSQRCode from '@/components/SSQRCode'
 import SSSeedQR from '@/components/SSSeedQR'
+import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
@@ -750,25 +750,26 @@ function NostrKeys() {
                   ? t('account.nostrSync.npub')
                   : t('account.nostrSync.nsec')}
               </SSText>
-              <View style={styles.qrCodeWrapper}>
-                <SSQRCode
-                  value={qrModal.value}
-                  size={220}
-                  color={Colors.white}
-                  backgroundColor={Colors.gray[950]}
-                  ecl="H"
-                />
-              </View>
-              <View style={styles.qrModalDataBox}>
-                <SSText
-                  type="mono"
-                  size="sm"
-                  selectable
-                  style={styles.qrModalDataText}
-                >
-                  {qrModal.value}
-                </SSText>
-              </View>
+              <SSShareableQR
+                value={qrModal.value}
+                size={220}
+                color={Colors.white}
+                backgroundColor={Colors.gray[950]}
+                ecl="H"
+                containerStyle={styles.qrCodeWrapper}
+                hideShareButton={qrModal.type !== 'npub'}
+              >
+                <View style={styles.qrModalDataBox}>
+                  <SSText
+                    type="mono"
+                    size="sm"
+                    selectable
+                    style={styles.qrModalDataText}
+                  >
+                    {qrModal.value}
+                  </SSText>
+                </View>
+              </SSShareableQR>
             </>
           )}
         </SSVStack>
