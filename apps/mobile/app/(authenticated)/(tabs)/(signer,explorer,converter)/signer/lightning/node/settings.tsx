@@ -1,32 +1,33 @@
+import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
 import SSIconRefresh from '@/components/icons/SSIconRefresh'
+import SSIconWarning from '@/components/icons/SSIconWarning'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSIconButton from '@/components/SSIconButton'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_HIT_BOX,
   HEADER_CHROME_ICON_SIZE
 } from '@/constants/headerChrome'
+import { LND_SETTINGS_PEERS_MAX } from '@/constants/lightning'
 import { useLND } from '@/hooks/useLND'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
 import { Colors, Layout } from '@/styles'
-import type {
-  LNDChanBackupSnapshot,
-  LNDListPeersResponse,
-  LNDPendingChannelsResponse
-} from '@/types/models/Lightning'
+import type { LNDChanBackupSnapshot } from '@/types/models/Lightning'
 import { shareFile } from '@/utils/filesystem'
+import { lightningOpenChannelHref } from '@/utils/lightningNavigation'
 import { formatLndChainsForUi } from '@/utils/lndGetInfoChains'
 import { getLndErrorMessage, isLndPermissionError } from '@/utils/lndHttpError'
 import {
@@ -34,6 +35,57 @@ import {
   formatLndVersion,
   getPendingCounts
 } from '@/utils/lndNodeSettings'
+
+type SettingsPeerRowProps = {
+  address: string
+  onOpenChannel: (pubkey: string) => void
+  pubkey: string
+}
+
+function SettingsPeerRow({
+  address,
+  onOpenChannel,
+  pubkey
+}: SettingsPeerRowProps) {
+  function handleOpen() {
+    if (!pubkey) {
+      return
+    }
+    onOpenChannel(pubkey)
+  }
+
+  return (
+    <View style={settingsPeerRowStyles.peerRow}>
+      <SSText color="muted" size="xxs">
+        {t('lightning.nodeSettings.peerAddress')}
+      </SSText>
+      <SSText size="xs" type="mono" numberOfLines={2}>
+        {address || '—'}
+      </SSText>
+      <SSClipboardCopy text={pubkey}>
+        <SSText ellipsizeMode="middle" numberOfLines={1} size="xs" type="mono">
+          {pubkey || '—'}
+        </SSText>
+      </SSClipboardCopy>
+      {pubkey ? (
+        <SSButton
+          label={t('lightning.nodeSettings.openChannel')}
+          onPress={handleOpen}
+          variant="outline"
+        />
+      ) : null}
+    </View>
+  )
+}
+
+const settingsPeerRowStyles = StyleSheet.create({
+  peerRow: {
+    borderBottomColor: Colors.gray[800],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+    paddingVertical: 8
+  }
+})
 
 export default function NodeSettingsPage() {
   const router = useRouter()
@@ -53,45 +105,29 @@ export default function NodeSettingsPage() {
   } = useLND()
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [peers, setPeers] = useState<LNDListPeersResponse | null>(null)
-  const [pending, setPending] = useState<LNDPendingChannelsResponse | null>(
-    null
-  )
-  const [peersError, setPeersError] = useState<string | null>(null)
-  const [pendingError, setPendingError] = useState<string | null>(null)
-  const [peersLoading, setPeersLoading] = useState(false)
   const [backupLoading, setBackupLoading] = useState(false)
+  const [clearConfigVisible, setClearConfigVisible] = useState(false)
 
-  const loadPeersAndPending = async () => {
-    if (!isConnected) {
-      setPeers(null)
-      setPending(null)
-      setPeersError(null)
-      setPendingError(null)
-      setPeersLoading(false)
-      return
-    }
-    setPeersLoading(true)
-    setPeersError(null)
-    setPendingError(null)
-    try {
-      setPeers(await getPeers())
-    } catch (error) {
-      setPeers(null)
-      setPeersError(getLndErrorMessage(error))
-    }
-    try {
-      setPending(await getPendingChannels())
-    } catch (error) {
-      setPending(null)
-      setPendingError(getLndErrorMessage(error))
-    }
-    setPeersLoading(false)
-  }
+  const peersQuery = useQuery({
+    enabled: isConnected,
+    queryFn: getPeers,
+    queryKey: ['lnd', 'peers', config?.url]
+  })
+  const pendingQuery = useQuery({
+    enabled: isConnected,
+    queryFn: getPendingChannels,
+    queryKey: ['lnd', 'pending-channels', config?.url]
+  })
 
-  useEffect(() => {
-    void loadPeersAndPending()
-  }, [isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
+  const peers = peersQuery.data ?? null
+  const pending = pendingQuery.data ?? null
+  const peersError = peersQuery.error
+    ? getLndErrorMessage(peersQuery.error)
+    : null
+  const pendingError = pendingQuery.error
+    ? getLndErrorMessage(pendingQuery.error)
+    : null
+  const peersLoading = peersQuery.isFetching || pendingQuery.isFetching
 
   function handleDisconnect() {
     setIsLoading(true)
@@ -104,26 +140,24 @@ export default function NodeSettingsPage() {
     router.back()
   }
 
-  function handleDelete() {
-    Alert.alert(
-      t('lightning.nodeSettings.clearConfig'),
-      t('lightning.nodeSettings.clearConfigMessage'),
-      [
-        {
-          style: 'cancel',
-          text: t('common.cancel')
-        },
-        {
-          onPress: () => {
-            setIsDeleting(false)
-            clearConfig()
-            router.navigate('/signer/lightning')
-          },
-          style: 'destructive',
-          text: t('lightning.nodeSettings.clearConfig')
-        }
-      ]
-    )
+  function handleOpenChannelWithPeer(pubkey: string) {
+    router.push(lightningOpenChannelHref(pubkey))
+  }
+
+  function handleOpenClearConfig() {
+    setClearConfigVisible(true)
+  }
+
+  function handleCloseClearConfig() {
+    setClearConfigVisible(false)
+  }
+
+  function handleConfirmClearConfig() {
+    setIsDeleting(true)
+    setClearConfigVisible(false)
+    clearConfig()
+    router.navigate('/signer/lightning')
+    setIsDeleting(false)
   }
 
   async function handleRefresh() {
@@ -132,8 +166,38 @@ export default function NodeSettingsPage() {
     }
     setIsLoading(true)
     await getInfo()
-    await loadPeersAndPending()
+    await Promise.all([peersQuery.refetch(), pendingQuery.refetch()])
     setIsLoading(false)
+  }
+
+  async function handleExportChannelBackupConfirm() {
+    setBackupLoading(true)
+    try {
+      const snap: LNDChanBackupSnapshot = await exportAllChannelBackups()
+      const multi = snap?.multi_chan_backup?.multi_chan_backup
+      const hasSingle =
+        snap?.single_chan_backups !== null &&
+        snap?.single_chan_backups !== undefined &&
+        typeof snap.single_chan_backups === 'object'
+      if (!multi && !hasSingle) {
+        toast.error(t('lightning.nodeSettings.exportBackupNoData'))
+        return
+      }
+      await shareFile({
+        dialogTitle: t('lightning.nodeSettings.channelBackupTitle'),
+        fileContent: JSON.stringify(snap, null, 2),
+        filename: `lnd-channel-backup-${Date.now()}.json`,
+        mimeType: 'application/json'
+      })
+    } catch {
+      toast.error(t('lightning.nodeSettings.exportBackupFailed'))
+    } finally {
+      setBackupLoading(false)
+    }
+  }
+
+  function handleOpenNodeBackup() {
+    router.push('/signer/lightning/node/backup')
   }
 
   function handleExportChannelBackup() {
@@ -144,32 +208,7 @@ export default function NodeSettingsPage() {
         { style: 'cancel', text: t('common.cancel') },
         {
           onPress: () => {
-            void (async () => {
-              setBackupLoading(true)
-              try {
-                const snap: LNDChanBackupSnapshot =
-                  await exportAllChannelBackups()
-                const multi = snap?.multi_chan_backup?.multi_chan_backup
-                const hasSingle =
-                  snap?.single_chan_backups !== null &&
-                  snap?.single_chan_backups !== undefined &&
-                  typeof snap.single_chan_backups === 'object'
-                if (!multi && !hasSingle) {
-                  toast.error(t('lightning.nodeSettings.exportBackupNoData'))
-                  return
-                }
-                await shareFile({
-                  dialogTitle: t('lightning.nodeSettings.channelBackupTitle'),
-                  fileContent: JSON.stringify(snap, null, 2),
-                  filename: `lnd-channel-backup-${Date.now()}.json`,
-                  mimeType: 'application/json'
-                })
-              } catch {
-                toast.error(t('lightning.nodeSettings.exportBackupFailed'))
-              } finally {
-                setBackupLoading(false)
-              }
-            })()
+            void handleExportChannelBackupConfirm()
           },
           text: t('lightning.nodeSettings.exportChannelBackup')
         }
@@ -217,7 +256,7 @@ export default function NodeSettingsPage() {
           ),
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              {params.alias} Settings
+              {t('lightning.nodeSettings.title', { alias: params.alias })}
             </SSText>
           )
         }}
@@ -411,28 +450,16 @@ export default function NodeSettingsPage() {
                   {t('lightning.nodeSettings.peersEmpty')}
                 </SSText>
               ) : (
-                peerRows.slice(0, 32).map((peer, i) => {
+                peerRows.slice(0, LND_SETTINGS_PEERS_MAX).map((peer, i) => {
                   const pk = peer.pub_key ?? ''
                   const addr = peer.address ?? ''
                   return (
-                    <View key={`${pk || 'peer'}-${i}`} style={styles.peerRow}>
-                      <SSText color="muted" size="xxs">
-                        {t('lightning.nodeSettings.peerAddress')}
-                      </SSText>
-                      <SSText size="xs" type="mono" numberOfLines={2}>
-                        {addr || '—'}
-                      </SSText>
-                      <SSClipboardCopy text={pk}>
-                        <SSText
-                          ellipsizeMode="middle"
-                          numberOfLines={1}
-                          size="xs"
-                          type="mono"
-                        >
-                          {pk || '—'}
-                        </SSText>
-                      </SSClipboardCopy>
-                    </View>
+                    <SettingsPeerRow
+                      address={addr}
+                      key={`${pk || 'peer'}-${i}`}
+                      onOpenChannel={handleOpenChannelWithPeer}
+                      pubkey={pk}
+                    />
                   )
                 })
               )}
@@ -480,6 +507,21 @@ export default function NodeSettingsPage() {
                   </SSText>
                 </SSVStack>
               )}
+            </View>
+
+            <View>
+              <SSText color="muted" size="sm" style={styles.sectionTitle}>
+                {t('lightning.nodeSettings.backupNodeTitle')}
+              </SSText>
+              <SSText color="muted" size="xs" style={styles.backupBlurb}>
+                {t('lightning.nodeSettings.backupNodeBlurb')}
+              </SSText>
+              <SSButton
+                label={t('lightning.nodeSettings.backupNode')}
+                onPress={handleOpenNodeBackup}
+                variant="outline"
+                style={styles.button}
+              />
             </View>
 
             <View>
@@ -548,7 +590,7 @@ export default function NodeSettingsPage() {
               />
               <SSButton
                 label={t('lightning.nodeSettings.clearConfig')}
-                onPress={handleDelete}
+                onPress={handleOpenClearConfig}
                 variant="danger"
                 style={styles.button}
                 loading={isDeleting}
@@ -558,6 +600,36 @@ export default function NodeSettingsPage() {
           </SSVStack>
         </ScrollView>
       </SSMainLayout>
+      <SSModal
+        visible={clearConfigVisible}
+        onClose={handleCloseClearConfig}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={styles.clearConfigModal}>
+          <SSVStack gap="xs" style={styles.clearConfigWarning}>
+            <SSIconWarning
+              height={20}
+              width={20}
+              fill="transparent"
+              stroke={Colors.gray[400]}
+            />
+            <SSText center size="lg" uppercase>
+              {t('lightning.nodeSettings.clearConfig')}
+            </SSText>
+            <SSText center color="muted">
+              {t('lightning.nodeSettings.clearConfigMessage')}
+            </SSText>
+          </SSVStack>
+          <SSButton
+            label={t('lightning.nodeSettings.clearConfigConfirm')}
+            onPress={handleConfirmClearConfig}
+            variant="danger"
+            loading={isDeleting}
+          />
+        </SSVStack>
+      </SSModal>
     </>
   )
 }
@@ -571,6 +643,13 @@ const styles = StyleSheet.create({
   },
   button: {
     minHeight: 40
+  },
+  clearConfigModal: {
+    paddingVertical: 8,
+    width: '100%'
+  },
+  clearConfigWarning: {
+    alignItems: 'center'
   },
   flexShrink: {
     flexShrink: 1,
@@ -593,12 +672,6 @@ const styles = StyleSheet.create({
   mainLayout: {
     flex: 1,
     paddingTop: 10
-  },
-  peerRow: {
-    borderBottomColor: Colors.gray[800],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 4,
-    paddingVertical: 8
   },
   scrollContent: {
     flexGrow: 1,

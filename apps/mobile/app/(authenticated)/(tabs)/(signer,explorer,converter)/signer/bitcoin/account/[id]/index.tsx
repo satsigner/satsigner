@@ -53,6 +53,7 @@ import {
   SSIconMenu,
   SSIconOutgoing,
   SSIconRefresh,
+  SSIconSearch,
   SSIconTable
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
@@ -860,8 +861,9 @@ function TotalTransactions({
         }
         rightActions={
           <SSHStack>
-            {/* Balances the two left icons so sync status sits at true center. */}
-            <View style={styles.activityToolbarIconSpacer} />
+            <SSIconButton disabled style={styles.disabledIconButton}>
+              <SSIconSearch height={18} width={18} />
+            </SSIconButton>
             <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
               {showHistoryChart ? (
                 <SSIconMenu width={18} height={18} />
@@ -1369,17 +1371,6 @@ function DerivedAddresses({
               <SSIconExpand height={15} width={15} />
             )}
           </SSIconButton>
-          <SSIconButton
-            onPress={() =>
-              setAddressView(addressView === 'table' ? 'list' : 'table')
-            }
-          >
-            {addressView === 'table' ? (
-              <SSIconList height={14} width={14} />
-            ) : (
-              <SSIconTable height={14} width={14} />
-            )}
-          </SSIconButton>
         </SSHStack>
         {!isMultiAddressWatchOnly && (
           <SSHStack gap="sm">
@@ -1389,7 +1380,18 @@ function DerivedAddresses({
             <SSText>{addressPath}</SSText>
           </SSHStack>
         )}
-        <SSHStack gap="sm" style={{ justifyContent: 'flex-end', width: 40 }}>
+        <SSHStack>
+          <SSIconButton
+            onPress={() =>
+              setAddressView(addressView === 'table' ? 'list' : 'table')
+            }
+          >
+            {addressView === 'table' ? (
+              <SSIconList height={10} width={16} />
+            ) : (
+              <SSIconTable height={18} width={18} />
+            )}
+          </SSIconButton>
           <SSSortDirectionToggle
             onDirectionChanged={(direction) => setSortDirection(direction)}
           />
@@ -2588,10 +2590,6 @@ const styles = StyleSheet.create({
     minHeight: 18,
     paddingHorizontal: 8
   },
-  activityToolbarIconSpacer: {
-    height: 18,
-    width: 18
-  },
   controlsActiveDot: {
     backgroundColor: Colors.white,
     borderRadius: 3,
@@ -2600,6 +2598,9 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     width: 6
+  },
+  disabledIconButton: {
+    opacity: 0.3
   },
   excludeToolbarBadge: {
     alignItems: 'center',
@@ -2692,7 +2693,6 @@ const addressListStyles = StyleSheet.create({
   },
   headerRow: {
     alignItems: 'center',
-    backgroundColor: '#111',
     borderBottomWidth: 1,
     borderColor: '#333',
     justifyContent: 'space-between',

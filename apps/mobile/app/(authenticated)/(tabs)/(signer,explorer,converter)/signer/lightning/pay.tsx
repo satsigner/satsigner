@@ -1,30 +1,58 @@
+import { useQuery } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
 import { useFonts } from 'expo-font'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { useRef, useState } from 'react'
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
+import SSNumberInput from '@/components/SSNumberInput'
+import SSPairedTabs from '@/components/SSPairedTabs'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
+import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import { DUST_LIMIT } from '@/constants/btc'
+import {
+  LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE,
+  LND_SUCCESS_NAVIGATE_DELAY_MS
+} from '@/constants/lightning'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
+import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
-import { Typography } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import type {
   LNDDecodedInvoice,
   LNURLPayResponse
 } from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { isAmountlessBolt11Invoice } from '@/utils/lightningInvoiceDecoder'
+import { getLndErrorMessage } from '@/utils/lndHttpError'
+import {
+  type LndOnchainSendValidationReason,
+  buildSendCoinsBody,
+  parseBitcoinUriAddress,
+  validateLndOnchainSend
+} from '@/utils/lndOnchainWallet'
+import { parsePositiveSats } from '@/utils/lndPayInvoice'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
@@ -32,21 +60,36 @@ import {
   isLNURL
 } from '@/utils/lnurl'
 
-type MakeRequest = <T>(
-  path: string,
-  options?: {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-    body?: unknown
-    headers?: Record<string, string>
+type PayTab = 'lightning' | 'onchain'
+
+function onchainValidationMessage(
+  reason: LndOnchainSendValidationReason
+): string {
+  if (reason === 'address') {
+    return t('lightning.pay.invalidAddress')
   }
-) => Promise<T>
+  if (reason === 'amount') {
+    return t('lightning.pay.invalidAmount')
+  }
+  if (reason === 'balance') {
+    return t('lightning.pay.invalidBalance')
+  }
+  return t('lightning.pay.invalidFee')
+}
 
 export default function PayPage() {
   const router = useRouter()
   const { paymentRequest: paymentRequestParam, invoice: invoiceParam } =
     useLocalSearchParams()
-  const { payInvoice, makeRequest, isConnected, verifyConnection } = useLND()
-  const typedMakeRequest = makeRequest as MakeRequest
+  const {
+    config,
+    getBalance,
+    isConnected,
+    makeRequest,
+    payInvoice,
+    sendCoins,
+    verifyConnection
+  } = useLND()
 
   const [fontsLoaded] = useFonts({
     'SF-NS-Mono': require('@/assets/fonts/SF-NS-Mono.ttf')
@@ -57,6 +100,7 @@ export default function PayPage() {
   const [comment, setComment] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFetchingDetails, setIsFetchingDetails] = useState(false)
+  const detailsRequestId = useRef(0)
   const [fiatCurrency, satsToFiat, fetchPrices, _btcPrice] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -66,10 +110,10 @@ export default function PayPage() {
     ])
   )
   const { fiatPriceApiUrl } = useFiatData()
-
-  useEffect(() => {
-    fetchPrices(fiatPriceApiUrl)
-  }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
+  useQuery({
+    queryFn: () => fetchPrices(fiatPriceApiUrl),
+    queryKey: ['prices', fiatCurrency, fiatPriceApiUrl]
+  })
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
@@ -78,94 +122,117 @@ export default function PayPage() {
   )
   const [decodedInvoice, setDecodedInvoice] =
     useState<LNDDecodedInvoice | null>(null)
+  const [activeTab, setActiveTab] = useState<PayTab>('lightning')
+  const [onchainAddress, setOnchainAddress] = useState('')
+  const [onchainAmountSat, setOnchainAmountSat] = useState(0)
+  const [satPerVbyteText, setSatPerVbyteText] = useState('')
 
-  // Fetch LNURL details and set minimum amount
-  const handleLNURLDetected = useCallback(async (lnurl: string) => {
+  const balanceQuery = useQuery({
+    enabled: Boolean(config) && activeTab === 'onchain',
+    queryFn: getBalance,
+    queryKey: ['lnd', 'onchain-balance', config?.url]
+  })
+  const confirmedSat = Number(balanceQuery.data?.confirmed_balance ?? 0)
+  const onchainAmountMax = Math.max(confirmedSat, DUST_LIMIT)
+
+  async function handleLNURLDetected(lnurl: string) {
+    const requestId = detailsRequestId.current + 1
+    detailsRequestId.current = requestId
+    setIsFetchingDetails(true)
     try {
-      setIsFetchingDetails(true)
       const url = isLNURL(lnurl) ? decodeLNURL(lnurl) : lnurl
       const details = await fetchLNURLPayDetails(url)
-
-      // Store LNURL details for display
+      if (requestId !== detailsRequestId.current) {
+        return
+      }
       setLNURLDetails(details)
-
-      // Convert millisats to sats and set as amount
       const minSats = Math.ceil(details.minSendable / 1000)
       setAmount(minSats.toString())
     } catch {
+      if (requestId !== detailsRequestId.current) {
+        return
+      }
       setLNURLDetails(null)
     } finally {
-      setIsFetchingDetails(false)
+      if (requestId === detailsRequestId.current) {
+        setIsFetchingDetails(false)
+      }
     }
-  }, [])
+  }
 
-  // Decode a bolt11 invoice
-  const decodeInvoice = useCallback(
-    async (invoice: string) => {
-      const response = await typedMakeRequest<LNDDecodedInvoice>(
+  async function decodeInvoice(invoice: string) {
+    const requestId = detailsRequestId.current + 1
+    detailsRequestId.current = requestId
+    setIsFetchingDetails(true)
+    try {
+      const response = await makeRequest<LNDDecodedInvoice>(
         `/v1/payreq/${invoice}`
       )
-
-      // Update state with decoded invoice
-      setDecodedInvoice(response)
-
-      return response
-    },
-    [typedMakeRequest]
-  )
-
-  // Update LNURL mode and fetch details when payment request changes
-  const handlePaymentRequestChange = useCallback(
-    async (text: string) => {
-      // Clear previous state
-      setPaymentRequest(text)
-      const isLNURLInput = isLNURL(text)
-      setIsLNURLMode(isLNURLInput)
-      setDecodedInvoice(null) // Clear previous decode
-      setLNURLDetails(null) // Clear previous LNURL details
-
-      // Verify LND connection before proceeding
-      if (!isConnected) {
-        const isStillConnected = await verifyConnection()
-        if (!isStillConnected) {
-          toast.error(
-            'Not connected to LND node. Please check your connection and try again.'
-          )
-          return
-        }
+      if (requestId !== detailsRequestId.current) {
+        return null
       }
-
-      if (isLNURLInput) {
-        await handleLNURLDetected(text)
-      } else if (text.toLowerCase().startsWith('lnbc')) {
-        try {
-          const decoded = await decodeInvoice(text)
-          if (decoded.num_satoshis) {
-            setAmount(decoded.num_satoshis)
-          }
-        } catch {
-          setDecodedInvoice(null)
-        }
-      } else {
+      setDecodedInvoice(response)
+      return response
+    } catch {
+      if (requestId === detailsRequestId.current) {
         setDecodedInvoice(null)
       }
-    },
-    [handleLNURLDetected, decodeInvoice, isConnected, verifyConnection]
-  )
+      return null
+    } finally {
+      if (requestId === detailsRequestId.current) {
+        setIsFetchingDetails(false)
+      }
+    }
+  }
 
-  // Handle amount change and update fiat value
-  const handleAmountChange = useCallback((text: string) => {
+  async function handlePaymentRequestChange(text: string) {
+    setPaymentRequest(text)
+    const isLNURLInput = isLNURL(text)
+    setIsLNURLMode(isLNURLInput)
+    setDecodedInvoice(null)
+    setLNURLDetails(null)
+
+    if (!isConnected) {
+      const isStillConnected = await verifyConnection()
+      if (!isStillConnected) {
+        toast.error(t('lightning.pay.notConnected'))
+        return
+      }
+    }
+
+    if (isLNURLInput) {
+      await handleLNURLDetected(text)
+      return
+    }
+    if (text.toLowerCase().startsWith('lnbc')) {
+      const decoded = await decodeInvoice(text)
+      if (!decoded) {
+        return
+      }
+      if (isAmountlessBolt11Invoice(decoded)) {
+        setAmount('')
+      } else {
+        setAmount(decoded.num_satoshis)
+      }
+      return
+    }
+    detailsRequestId.current += 1
+    setIsFetchingDetails(false)
+    setDecodedInvoice(null)
+  }
+
+  function handleAmountChange(text: string) {
     setAmount(text)
-  }, [])
+  }
 
   const handleSendPayment = async () => {
     if (!paymentRequest) {
-      toast.error('Please enter a payment request')
+      toast.error(t('lightning.pay.enterPaymentRequestError'))
       return
     }
 
     if (!isLNURLMode && !decodedInvoice) {
-      toast.error('Please wait for the invoice to be decoded')
+      toast.error(t('lightning.pay.waitDecode'))
       return
     }
     await processPayment()
@@ -177,61 +244,56 @@ export default function PayPage() {
     }
 
     if (!isLNURLMode && !decodedInvoice) {
-      toast.error('Please try sending the payment again')
+      toast.error(t('lightning.pay.tryAgain'))
       return
     }
 
     setIsProcessing(true)
     try {
-      let invoice: string
-
-      if (!isLNURLMode) {
-        invoice = paymentRequest
-      } else {
-        if (!amount) {
-          toast.error('Please enter an amount')
+      if (isLNURLMode) {
+        const amountSats = parsePositiveSats(amount)
+        if (amountSats === null) {
+          toast.error(t('lightning.pay.validAmount'))
           setIsProcessing(false)
           return
         }
-
-        const amountSats = parseInt(amount, 10)
-        if (isNaN(amountSats) || amountSats <= 0) {
-          toast.error('Please enter a valid amount')
-          setIsProcessing(false)
-          return
-        }
-
-        invoice = await handleLNURLPay(
+        const invoice = await handleLNURLPay(
           paymentRequest,
           amountSats,
           comment || undefined
         )
+        await payInvoice(invoice)
+      } else if (decodedInvoice && isAmountlessBolt11Invoice(decodedInvoice)) {
+        const amountSats = parsePositiveSats(amount)
+        if (amountSats === null) {
+          toast.error(t('lightning.pay.validAmount'))
+          setIsProcessing(false)
+          return
+        }
+        await payInvoice(paymentRequest, amountSats)
+      } else {
+        await payInvoice(paymentRequest)
       }
-
-      await payInvoice(invoice)
-      toast.success('Payment sent successfully')
+      toast.success(t('lightning.pay.paymentSent'))
       const { pendingZap, setZapResult } = useZapFlowStore.getState()
       if (pendingZap) {
         setZapResult('success')
       }
-      setTimeout(router.back, 2000)
+      setTimeout(router.back, LND_SUCCESS_NAVIGATE_DELAY_MS)
     } catch (error) {
-      let errorMessage = 'Failed to send payment'
-      if (error instanceof Error) {
-        if (
-          error.message.includes('404') ||
-          error.message.includes('Not Found')
-        ) {
-          errorMessage =
-            'Payment request expired or already paid. Please try again.'
-        } else if (error.message.includes('amount')) {
-          errorMessage = error.message
-        } else {
-          errorMessage = error.message
-        }
+      const fallback = t('lightning.pay.paymentFailed')
+      if (!(error instanceof Error)) {
+        toast.error(fallback)
+        return
       }
-
-      toast.error(errorMessage)
+      if (
+        error.message.includes('404') ||
+        error.message.includes('Not Found')
+      ) {
+        toast.error(t('lightning.pay.paymentExpired'))
+        return
+      }
+      toast.error(error.message || fallback)
     } finally {
       setIsProcessing(false)
     }
@@ -239,14 +301,21 @@ export default function PayPage() {
 
   const handleContentScanned = (content: DetectedContent) => {
     setCameraModalVisible(false)
+    if (activeTab === 'onchain') {
+      const address = parseBitcoinUriAddress(content.cleaned)
+      if (!address) {
+        toast.error(t('lightning.pay.invalidAddress'))
+        return
+      }
+      setOnchainAddress(address)
+      return
+    }
     const cleanText = content.cleaned.replace(/^lightning:/i, '')
 
     if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
       handlePaymentRequestChange(cleanText)
     } else {
-      toast.error(
-        'Invalid QR Code: the scanned QR code is not a valid Lightning payment request or LNURL'
-      )
+      toast.error(t('lightning.pay.invalidQr'))
     }
   }
 
@@ -254,45 +323,115 @@ export default function PayPage() {
     try {
       const text = await Clipboard.getStringAsync()
       if (!text) {
-        toast.error('No text found in clipboard')
+        toast.error(t('lightning.pay.clipboardEmpty'))
         return
       }
 
       const cleanText = text.trim()
 
+      if (activeTab === 'onchain') {
+        const address = parseBitcoinUriAddress(cleanText)
+        if (!address) {
+          toast.error(t('lightning.pay.invalidAddress'))
+          return
+        }
+        setOnchainAddress(address)
+        return
+      }
+
       if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
         await handlePaymentRequestChange(cleanText)
       } else {
-        toast.error(
-          'Invalid Payment Request: the clipboard content is not a valid Lightning payment request or LNURL'
-        )
+        toast.error(t('lightning.pay.invalidClipboard'))
       }
     } catch {
-      toast.error('Failed to read clipboard content')
+      toast.error(t('lightning.pay.clipboardFailed'))
     }
   }
 
-  useEffect(() => {
-    const paramValue = paymentRequestParam || invoiceParam
-    if (!paramValue) {
+  function handleOpenCamera() {
+    setCameraModalVisible(true)
+  }
+
+  function handleCloseCamera() {
+    setCameraModalVisible(false)
+  }
+
+  function handleOnchainAddressChange(text: string) {
+    setOnchainAddress(text)
+  }
+
+  function handleOnchainAmountChange(value: number) {
+    setOnchainAmountSat(value)
+  }
+
+  function handleFeeChange(text: string) {
+    setSatPerVbyteText(text)
+  }
+
+  function handleCancel() {
+    router.back()
+  }
+
+  async function handleSendOnchain() {
+    const validation = validateLndOnchainSend({
+      address: onchainAddress,
+      amountText: String(onchainAmountSat),
+      confirmedBalanceSat: confirmedSat,
+      satPerVbyteText
+    })
+    if (!validation.ok) {
+      toast.error(onchainValidationMessage(validation.reason))
       return
     }
-
-    const paymentRequestValue = Array.isArray(paramValue)
-      ? paramValue[0]
-      : paramValue
-    if (!paymentRequestValue) {
+    const addr = parseBitcoinUriAddress(onchainAddress)
+    if (!addr) {
+      toast.error(t('lightning.pay.invalidAddress'))
       return
     }
-
-    const cleanText = paymentRequestValue.trim().replace(/^lightning:/i, '')
-    if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText)) {
-      return
+    setIsProcessing(true)
+    try {
+      await sendCoins(
+        buildSendCoinsBody({
+          addr,
+          amountSat: validation.amountSat,
+          satPerVbyte: validation.satPerVbyte
+        })
+      )
+      toast.success(t('lightning.pay.onchainSuccess'))
+      setTimeout(router.back, LND_SUCCESS_NAVIGATE_DELAY_MS)
+    } catch (error) {
+      toast.error(
+        `${t('lightning.pay.sendFailed')}: ${getLndErrorMessage(error)}`
+      )
+    } finally {
+      setIsProcessing(false)
     }
+  }
 
-    handlePaymentRequestChange(cleanText)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentRequestParam, invoiceParam])
+  const isAmountlessInvoice =
+    decodedInvoice !== null &&
+    !isLNURLMode &&
+    isAmountlessBolt11Invoice(decodedInvoice)
+
+  const inboundParam = paymentRequestParam || invoiceParam
+  const inboundValue = Array.isArray(inboundParam)
+    ? inboundParam[0]
+    : inboundParam
+  const inboundClean = inboundValue
+    ? inboundValue.trim().replace(/^lightning:/i, '')
+    : ''
+  const inboundEnabled =
+    inboundClean.toLowerCase().startsWith('lnbc') || isLNURL(inboundClean)
+
+  useQuery({
+    enabled: inboundEnabled,
+    queryFn: async () => {
+      await handlePaymentRequestChange(inboundClean)
+      return inboundClean
+    },
+    queryKey: ['lnd', 'pay-inbound', inboundClean]
+  })
 
   if (!fontsLoaded) {
     return null
@@ -304,116 +443,253 @@ export default function PayPage() {
         options={{
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              Send Payment
+              {t('lightning.pay.title')}
             </SSText>
           )
         }}
       />
       <SSMainLayout>
         <ScrollView>
-          <SSVStack>
-            <View>
-              <SSVStack>
-                {isFetchingDetails ? (
-                  <SSText color="muted" size="sm" style={styles.fetchingBanner}>
-                    Fetching details...
-                  </SSText>
-                ) : null}
-                <SSVStack gap="sm">
-                  <TextInput
-                    style={[
-                      styles.input,
-                      styles.textArea,
-                      styles.monospaceInput
-                    ]}
-                    value={paymentRequest}
-                    onChangeText={handlePaymentRequestChange}
-                    placeholder={
-                      isLNURLMode
-                        ? 'Enter LNURL'
-                        : 'Enter Lightning payment request'
-                    }
-                    placeholderTextColor="#666"
-                    multiline
-                    numberOfLines={6}
-                    editable={!isFetchingDetails}
-                  />
+          <SSVStack gap="md">
+            <SSPairedTabs<PayTab>
+              activeTab={activeTab}
+              onChange={setActiveTab}
+              primary={{
+                key: 'lightning',
+                label: t('lightning.pay.lightningTab')
+              }}
+              secondary={{
+                key: 'onchain',
+                label: t('lightning.pay.onchainTab')
+              }}
+            />
+            {activeTab === 'lightning' ? (
+              <View>
+                <SSVStack>
+                  {isFetchingDetails ? (
+                    <SSHStack gap="sm" style={styles.fetchingBanner}>
+                      <ActivityIndicator color={Colors.gray[400]} />
+                      <SSText color="muted" size="sm">
+                        {isLNURLMode
+                          ? t('lightning.pay.fetchingDetails')
+                          : t('lightning.pay.decodingInvoice')}
+                      </SSText>
+                    </SSHStack>
+                  ) : null}
+                  <SSVStack gap="sm">
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.textArea,
+                        styles.monospaceInput
+                      ]}
+                      value={paymentRequest}
+                      onChangeText={handlePaymentRequestChange}
+                      placeholder={
+                        isLNURLMode
+                          ? t('lightning.pay.enterLnurl')
+                          : t('lightning.pay.enterPaymentRequest')
+                      }
+                      placeholderTextColor="#666"
+                      multiline
+                      numberOfLines={6}
+                      editable={!isFetchingDetails}
+                    />
 
-                  <SSHStack gap="sm" style={styles.actionButtons}>
-                    <SSButton
-                      label="Paste"
-                      onPress={handlePasteFromClipboard}
-                      variant="subtle"
-                      style={[styles.actionButton, styles.buttonWithIcon]}
-                      disabled={isFetchingDetails}
+                    <SSHStack gap="sm" style={styles.actionButtons}>
+                      <SSButton
+                        label={t('common.paste')}
+                        onPress={handlePasteFromClipboard}
+                        variant="subtle"
+                        style={[styles.actionButton, styles.buttonWithIcon]}
+                        disabled={isFetchingDetails}
+                      />
+                      <SSButton
+                        label={t('lightning.invoice.scanQr')}
+                        onPress={handleOpenCamera}
+                        variant="subtle"
+                        style={[styles.actionButton, styles.buttonWithIcon]}
+                        disabled={isFetchingDetails}
+                      />
+                    </SSHStack>
+                  </SSVStack>
+                  {decodedInvoice && !isLNURLMode && (
+                    <SSPaymentDetails
+                      decodedInvoice={decodedInvoice}
+                      showCreated
+                      showPaymentHash
+                      fiatCurrency={fiatCurrency}
+                      privacyMode={privacyMode}
+                      satsToFiat={satsToFiat}
                     />
-                    <SSButton
-                      label="Scan QR"
-                      onPress={() => setCameraModalVisible(true)}
-                      variant="subtle"
-                      style={[styles.actionButton, styles.buttonWithIcon]}
-                      disabled={isFetchingDetails}
+                  )}
+                  {isAmountlessInvoice ? (
+                    <SSVStack gap="xs">
+                      <SSText color="muted" size="sm">
+                        {t('lightning.pay.amountlessHint')}
+                      </SSText>
+                      <SSText color="muted">{t('lightning.pay.amount')}</SSText>
+                      <SSTextInput
+                        align="left"
+                        keyboardType="numeric"
+                        onChangeText={handleAmountChange}
+                        placeholder={t(
+                          'lightning.invoice.amountPlaceholderSats'
+                        )}
+                        value={amount}
+                      />
+                      {parsePositiveSats(amount) !== null ? (
+                        <SSText color="muted" size="sm">
+                          {privacyMode
+                            ? `≈ •••• ${fiatCurrency}`
+                            : `≈ ${satsToFiat(Number(amount)).toLocaleString(
+                                'en-US',
+                                {
+                                  maximumFractionDigits: 2,
+                                  minimumFractionDigits: 2
+                                }
+                              )} ${fiatCurrency}`}
+                        </SSText>
+                      ) : null}
+                    </SSVStack>
+                  ) : null}
+                  {isLNURLMode && (
+                    <SSLNURLDetails
+                      lnurlDetails={lnurlDetails}
+                      isFetching={isFetchingDetails}
+                      showCommentInfo
+                      amount={amount}
+                      onAmountChange={handleAmountChange}
+                      comment={comment}
+                      onCommentChange={setComment}
+                      inputStyles={styles.input}
+                      fiatCurrency={fiatCurrency}
+                      privacyMode={privacyMode}
+                      satsToFiat={satsToFiat}
                     />
-                  </SSHStack>
+                  )}
                 </SSVStack>
-                {decodedInvoice && !isLNURLMode && (
-                  <SSPaymentDetails
-                    decodedInvoice={decodedInvoice}
-                    showCreated
-                    showPaymentHash
-                    fiatCurrency={fiatCurrency}
-                    privacyMode={privacyMode}
-                    satsToFiat={satsToFiat}
+                <SSVStack style={styles.actions}>
+                  <SSButton
+                    label={t('lightning.pay.sendPayment')}
+                    onPress={handleSendPayment}
+                    variant="secondary"
+                    loading={isProcessing || isFetchingDetails}
+                    disabled={
+                      !paymentRequest.trim() ||
+                      ((isLNURLMode || isAmountlessInvoice) &&
+                        parsePositiveSats(amount) === null) ||
+                      (!isLNURLMode && !decodedInvoice) ||
+                      isFetchingDetails
+                    }
+                    style={styles.button}
                   />
-                )}
-                {isLNURLMode && (
-                  <SSLNURLDetails
-                    lnurlDetails={lnurlDetails}
-                    isFetching={isFetchingDetails}
-                    showCommentInfo
-                    amount={amount}
-                    onAmountChange={handleAmountChange}
-                    comment={comment}
-                    onCommentChange={setComment}
-                    inputStyles={styles.input}
-                    fiatCurrency={fiatCurrency}
-                    privacyMode={privacyMode}
-                    satsToFiat={satsToFiat}
+                  <SSButton
+                    label={t('common.cancel')}
+                    onPress={handleCancel}
+                    variant="ghost"
+                    style={styles.button}
+                    disabled={isFetchingDetails}
                   />
-                )}
+                </SSVStack>
+              </View>
+            ) : (
+              <SSVStack gap="md">
+                <SSVStack gap="xs">
+                  <SSText color="muted" size="sm">
+                    {t('lightning.pay.confirmedBalance')}
+                  </SSText>
+                  {balanceQuery.isLoading ? (
+                    <SSText color="muted">{t('common.loading')}</SSText>
+                  ) : (
+                    <SSStyledSatText
+                      amount={confirmedSat}
+                      noColor
+                      showSign={false}
+                      textSize="xl"
+                    />
+                  )}
+                </SSVStack>
+                <SSFormLayout>
+                  <SSFormLayout.Item>
+                    <SSTextInput
+                      align="left"
+                      onChangeText={handleOnchainAddressChange}
+                      placeholder={t('lightning.pay.addressPlaceholder')}
+                      value={onchainAddress}
+                    />
+                    <SSHStack gap="sm" style={styles.actionButtons}>
+                      <SSButton
+                        label={t('common.paste')}
+                        onPress={handlePasteFromClipboard}
+                        variant="subtle"
+                        style={styles.actionButton}
+                      />
+                      <SSButton
+                        label={t('lightning.invoice.scanQr')}
+                        onPress={handleOpenCamera}
+                        variant="subtle"
+                        style={styles.actionButton}
+                      />
+                    </SSHStack>
+                  </SSFormLayout.Item>
+                  <SSFormLayout.Item>
+                    <SSFormLayout.Label
+                      center={false}
+                      label={t('lightning.pay.amount')}
+                    />
+                    <SSAmountInput
+                      max={onchainAmountMax}
+                      min={DUST_LIMIT}
+                      onValueChange={handleOnchainAmountChange}
+                      remainingSats={confirmedSat}
+                      value={onchainAmountSat}
+                    />
+                  </SSFormLayout.Item>
+                  <SSFormLayout.Item>
+                    <SSFormLayout.Label
+                      center={false}
+                      label={t('lightning.pay.feeRate')}
+                    />
+                    <SSNumberInput
+                      allowValidEmpty
+                      max={LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE}
+                      min={1}
+                      onChangeText={handleFeeChange}
+                      value={satPerVbyteText}
+                    />
+                  </SSFormLayout.Item>
+                </SSFormLayout>
+                <SSVStack style={styles.actions}>
+                  <SSButton
+                    label={t('lightning.pay.onchainSend')}
+                    loading={isProcessing}
+                    onPress={handleSendOnchain}
+                    variant="secondary"
+                    style={styles.button}
+                  />
+                  <SSButton
+                    label={t('common.cancel')}
+                    onPress={handleCancel}
+                    variant="ghost"
+                    style={styles.button}
+                  />
+                </SSVStack>
               </SSVStack>
-              <SSVStack style={styles.actions}>
-                <SSButton
-                  label="Send Payment"
-                  onPress={handleSendPayment}
-                  variant="secondary"
-                  loading={isProcessing || isFetchingDetails}
-                  disabled={
-                    !paymentRequest.trim() ||
-                    (isLNURLMode && !amount) ||
-                    (!isLNURLMode && !decodedInvoice) ||
-                    isFetchingDetails
-                  }
-                  style={styles.button}
-                />
-                <SSButton
-                  label="Cancel"
-                  onPress={() => router.back()}
-                  variant="ghost"
-                  style={styles.button}
-                  disabled={isFetchingDetails}
-                />
-              </SSVStack>
-            </View>
+            )}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>
       <SSCameraModal
         visible={cameraModalVisible}
-        onClose={() => setCameraModalVisible(false)}
+        onClose={handleCloseCamera}
         onContentScanned={handleContentScanned}
-        context="lightning"
-        title="Scan Lightning Payment Request"
+        context={activeTab === 'onchain' ? 'bitcoin' : 'lightning'}
+        title={
+          activeTab === 'onchain'
+            ? t('lightning.pay.scanOnchainTitle')
+            : t('lightning.pay.scanLightningTitle')
+        }
       />
     </>
   )
@@ -443,7 +719,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   fetchingBanner: {
-    marginBottom: 8
+    justifyContent: 'center',
+    marginBottom: 8,
+    width: '100%'
   },
   fiatAmount: {
     marginLeft: 4,

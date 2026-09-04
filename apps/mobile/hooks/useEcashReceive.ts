@@ -61,11 +61,14 @@ export function useEcashReceive() {
   const [isAddingMint, setIsAddingMint] = useState(false)
   const [selectedMintUrlForLightning, setSelectedMintUrlForLightning] =
     useState<string | null>(null)
-  const selectedMintForLightning =
-    mints.find((m) => m.url === selectedMintUrlForLightning) ?? mints[0] ?? null
+  const selectedMintForLightning = selectedMintUrlForLightning
+    ? (mints.find((m) => m.url === selectedMintUrlForLightning) ?? null)
+    : mints.length === 1
+      ? mints[0]
+      : null
 
-  function setSelectedMintForLightning(mint: EcashMint) {
-    setSelectedMintUrlForLightning(mint.url)
+  function setSelectedMintForLightning(mint: EcashMint | null) {
+    setSelectedMintUrlForLightning(mint?.url ?? null)
   }
   const { isPolling, startPolling, stopPolling } = useQuotePolling()
 
@@ -236,7 +239,9 @@ export function useEcashReceive() {
       return
     }
 
-    if (!selectedMintForLightning) {
+    const mintUrl = selectedMintUrlForLightning ?? mints[0]?.url
+
+    if (!mintUrl) {
       toast.error(t('ecash.error.noMintConnected'))
       return
     }
@@ -266,7 +271,6 @@ export function useEcashReceive() {
         }
       }
 
-      const mintUrl = selectedMintForLightning.url
       const quote = await createMintQuote(mintUrl, amountSats, memo)
       setMintQuote(quote)
       setQuoteStatus('PENDING')

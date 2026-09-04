@@ -37,7 +37,9 @@ import SSText from '@/components/SSText'
 import {
   LIGHTNING_BUBBLE_CHART_BLEED_MARGIN_FRAC,
   LIGHTNING_BUBBLE_CHART_LAYOUT_MAX_SIZE_PX,
-  LIGHTNING_BUBBLE_CHART_LAYOUT_MIN_SIZE_PX
+  LIGHTNING_BUBBLE_CHART_LAYOUT_MIN_SIZE_PX,
+  LND_NODE_CARD_PUBKEY_HEAD_CHARS,
+  LND_NODE_CARD_PUBKEY_TAIL_CHARS
 } from '@/constants/lightning'
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
@@ -54,7 +56,10 @@ import { Colors, Sizes } from '@/styles'
 import { type LNDCombinedTransaction } from '@/types/models/Lightning'
 import { formatNumber, formatShortPubkey } from '@/utils/format'
 import { type LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
-import { lightningChannelHref } from '@/utils/lightningNavigation'
+import {
+  lightningChannelHref,
+  lightningOpenChannelHref
+} from '@/utils/lightningNavigation'
 import {
   getLndChannelPeerAlias,
   getLndChannelRemotePubkey,
@@ -219,6 +224,21 @@ export default function NodeDetailPage() {
 
   const handleLoadMoreOnchain = () => {
     setOnchainListPage((prev) => prev + 1)
+  }
+
+  const handleNavigateOpenChannel = () => {
+    router.push(lightningOpenChannelHref())
+  }
+
+  function renderOpenChannelCta() {
+    return (
+      <SSButton
+        label={t('lightning.openChannel.action')}
+        onPress={handleNavigateOpenChannel}
+        style={styles.openChannelButton}
+        variant="default"
+      />
+    )
   }
 
   const showBalanceSkeleton =
@@ -728,8 +748,8 @@ export default function NodeDetailPage() {
   function renderChannels() {
     if (!channels?.length) {
       return (
-        <SSVStack itemsCenter gap="none" style={{ paddingVertical: 16 }}>
-          <SSText color="muted" size="sm">
+        <SSVStack gap="md" widthFull style={{ paddingVertical: 16 }}>
+          <SSText center color="muted" size="sm">
             {t('lightning.node.channelsEmpty')}
           </SSText>
         </SSVStack>
@@ -754,7 +774,9 @@ export default function NodeDetailPage() {
           (privacyMode
             ? PRIVACY_MASK
             : formatShortPubkey(
-                typeof remote_pubkey === 'string' ? remote_pubkey : ''
+                typeof remote_pubkey === 'string' ? remote_pubkey : '',
+                LND_NODE_CARD_PUBKEY_HEAD_CHARS,
+                LND_NODE_CARD_PUBKEY_TAIL_CHARS
               ))
         rows.push({
           chanId: chan_id,
@@ -781,7 +803,7 @@ export default function NodeDetailPage() {
       )
 
       return (
-        <SSVStack gap="none" itemsCenter style={styles.section} widthFull>
+        <SSVStack gap="md" itemsCenter style={styles.section} widthFull>
           <SSLightningChannelsBubbleChart
             height={bubbleSize}
             onChannelPress={(chanId) =>
@@ -803,7 +825,7 @@ export default function NodeDetailPage() {
     }, 0)
 
     return (
-      <SSVStack style={styles.section}>
+      <SSVStack gap="md" style={styles.section}>
         <SSVStack style={styles.channelsList}>
           {channels.map((channel) => {
             if (!channel || typeof channel !== 'object') {
@@ -854,6 +876,7 @@ export default function NodeDetailPage() {
                         </SSText>
                       ) : (
                         <SSText
+                          ellipsizeMode="middle"
                           numberOfLines={1}
                           size="lg"
                           type="mono"
@@ -864,7 +887,9 @@ export default function NodeDetailPage() {
                             : formatShortPubkey(
                                 typeof remote_pubkey === 'string'
                                   ? remote_pubkey
-                                  : ''
+                                  : '',
+                                LND_NODE_CARD_PUBKEY_HEAD_CHARS,
+                                LND_NODE_CARD_PUBKEY_TAIL_CHARS
                               )}
                         </SSText>
                       )}
@@ -1074,26 +1099,30 @@ export default function NodeDetailPage() {
                   )}
                 </SSIconButton>
               </SSHStack>
-              <SSIconButton
-                accessibilityLabel={
-                  channelsViewMode === 'list'
-                    ? t('lightning.node.channelsToggleBubbleA11y')
-                    : t('lightning.node.channelsToggleListA11y')
-                }
-                accessibilityRole="switch"
-                accessibilityState={{ checked: channelsViewMode === 'bubbles' }}
-                onPress={() =>
-                  setChannelsViewMode((m) =>
-                    m === 'list' ? 'bubbles' : 'list'
-                  )
-                }
-              >
-                {channelsViewMode === 'list' ? (
-                  <SSIconBubbles height={18} width={20} />
-                ) : (
-                  <SSIconList height={18} width={20} />
-                )}
-              </SSIconButton>
+              <SSHStack gap="sm" style={styles.channelsToolbarRight}>
+                <SSIconButton
+                  accessibilityLabel={
+                    channelsViewMode === 'list'
+                      ? t('lightning.node.channelsToggleBubbleA11y')
+                      : t('lightning.node.channelsToggleListA11y')
+                  }
+                  accessibilityRole="switch"
+                  accessibilityState={{
+                    checked: channelsViewMode === 'bubbles'
+                  }}
+                  onPress={() =>
+                    setChannelsViewMode((m) =>
+                      m === 'list' ? 'bubbles' : 'list'
+                    )
+                  }
+                >
+                  {channelsViewMode === 'list' ? (
+                    <SSIconBubbles height={18} width={20} />
+                  ) : (
+                    <SSIconList height={18} width={20} />
+                  )}
+                </SSIconButton>
+              </SSHStack>
             </SSHStack>
             <ScrollView
               style={styles.scrollView}
@@ -1103,6 +1132,7 @@ export default function NodeDetailPage() {
             >
               {renderChannels()}
             </ScrollView>
+            {renderOpenChannelCta()}
           </View>
         )
       default:
@@ -1395,6 +1425,9 @@ const styles = StyleSheet.create({
   channelsList: {
     gap: 12
   },
+  channelsToolbarRight: {
+    alignItems: 'center'
+  },
   dashboardRefreshingOverlay: {
     alignItems: 'center',
     inset: 0,
@@ -1447,6 +1480,10 @@ const styles = StyleSheet.create({
   mainLayout: {
     flex: 1,
     paddingTop: 10
+  },
+  openChannelButton: {
+    alignSelf: 'stretch',
+    marginTop: 8
   },
   placeholderText: {
     padding: 24,

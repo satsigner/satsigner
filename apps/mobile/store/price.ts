@@ -42,22 +42,30 @@ const usePriceStore = create<PriceState & PriceAction>()(
         if (!fetchHistoricalPrices) {
           return
         }
-        const { fiatCurrency } = get()
-        const oracle = new MempoolOracle(mempoolUrl)
-        const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
-        const btcPrice = prices[fiatCurrency] ?? 0
-        set({ btcPrice, prices })
+        try {
+          const { fiatCurrency } = get()
+          const oracle = new MempoolOracle(mempoolUrl)
+          const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
+          const btcPrice = prices[fiatCurrency] ?? 0
+          set({ btcPrice, prices })
+        } catch {
+          // Keep last known prices when the API drops the connection.
+        }
       },
       fetchPrices: async (mempoolUrl: string) => {
         const { fetchCurrentPrices } = useSettingsStore.getState()
         if (!fetchCurrentPrices) {
           return
         }
-        const oracle = new MempoolOracle(mempoolUrl)
-        const prices = await oracle.getPrices()
-        const { fiatCurrency } = get()
-        const btcPrice = prices[fiatCurrency] ?? 0
-        set({ btcPrice, prices })
+        try {
+          const oracle = new MempoolOracle(mempoolUrl)
+          const prices = await oracle.getPrices()
+          const { fiatCurrency } = get()
+          const btcPrice = prices[fiatCurrency] ?? 0
+          set({ btcPrice, prices })
+        } catch {
+          // Keep last known prices when the API drops the connection.
+        }
       },
       fiatCurrency: 'USD',
       prices: { ...EMPTY_PRICES },

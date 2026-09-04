@@ -1,0 +1,6 @@
+{
+  "android": {
+    "modules": ["expo.modules.safsave.SafSaveModule"]
+  },
+  "platforms": ["android"]
+}
