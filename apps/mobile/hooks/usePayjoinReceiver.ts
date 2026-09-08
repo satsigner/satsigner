@@ -4,6 +4,7 @@ import { AppState, type AppStateStatus } from 'react-native'
 import {
   clearReceiverSessionsForAccount,
   createReceivePayjoinSession,
+  finalizeBoardReceiverPayjoin,
   finalizeReceiverPayjoin,
   isSenderPostInFlight,
   pollReceiverSession,
@@ -15,7 +16,10 @@ import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { getPayjoinSessionTtlMs, useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
-import { type PayjoinSession } from '@/types/payjoin'
+import {
+  type PayjoinBoardDestination,
+  type PayjoinSession
+} from '@/types/payjoin'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import {
   compactError,
@@ -42,6 +46,13 @@ type UsePayjoinReceiverParams = {
   account?: Account
   address?: string
   amountSats?: number
+  /**
+   * When set, this receive funds an Ark board: the receiver contributes no
+   * inputs and the finalized proposal is cosigned with the ark server before
+   * posting, so the onchain-wallet gating (singlesig + spendable utxos) does
+   * not apply.
+   */
+  board?: PayjoinBoardDestination
   label?: string
   utxos: Utxo[]
   signPsbt?: (psbtBase64: string) => Promise<string> | string
@@ -72,6 +83,16 @@ function shouldReplaceMailbox(message: string): boolean {
   return isMailboxExpiredError(message)
 }
 
+/**
+ * Errors that no amount of re-polling or re-finalizing can fix: the session
+ * stays in `error` and the user must start a new receive.
+ */
+function isTerminalFinalizeError(message: string): boolean {
+  return /no utxos to contribute|missing proposal state|missing directory post|missing board destination|proposal txid not stable|board cosign failed|board proposal txid changed/i.test(
+    message
+  )
+}
+
 function sessionNeedsFinalize(session: PayjoinSession): boolean {
   if (
     !!session.originalPsbtBase64 &&
@@ -93,6 +114,7 @@ function usePayjoinReceiver({
   account,
   address,
   amountSats,
+  board,
   label,
   utxos,
   signPsbt
@@ -124,6 +146,7 @@ function usePayjoinReceiver({
     accountId,
     address,
     amountSats,
+    board,
     canUsePayjoin: false,
     label,
     networkName,
@@ -137,19 +160,21 @@ function usePayjoinReceiver({
   )
   // Directory mailbox path only. Manual (offline) coordination uses a separate
   // import/export UI and must not mint or poll directory sessions.
+  // Board receives contribute no inputs, so the onchain-wallet gating
+  // (singlesig policy + spendable utxos) does not apply to them.
   const canUsePayjoin =
     payjoinEnabled &&
     payjoinCoordinationMode === 'directory' &&
     isNativeAvailable() &&
     !!address &&
-    account?.policyType === 'singlesig' &&
-    canContribute
+    (board ? true : account?.policyType === 'singlesig' && canContribute)
 
   paramsRef.current = {
     account,
     accountId,
     address,
     amountSats,
+    board,
     canUsePayjoin,
     label,
     networkName,
@@ -210,6 +235,7 @@ function usePayjoinReceiver({
       accountId: id,
       address: receiveAddress,
       amountSats: paramsRef.current.amountSats,
+      board: paramsRef.current.board,
       label: paramsRef.current.label,
       ttlMs: getPayjoinSessionTtlMs()
     })
@@ -312,25 +338,23 @@ function usePayjoinReceiver({
     setNegotiating(true)
     try {
       payjoinLog('receiver finalize', {
+        board: !!target.board,
         mailbox: mailboxFromEndpoint(target.pjEndpoint),
         sessionId: target.id,
         status: target.status
       })
-      const finalized = await finalizeReceiverPayjoin({
-        callbacks: buildCallbacks(),
-        session: target
-      })
-      if (
-        finalized.status === 'error' &&
-        finalized.originalPsbtBase64 &&
-        finalized.nativeState
-      ) {
+      const finalized = target.board
+        ? await finalizeBoardReceiverPayjoin({ session: target })
+        : await finalizeReceiverPayjoin({
+            callbacks: buildCallbacks(),
+            session: target
+          })
+      if (finalized.status === 'error' && finalized.originalPsbtBase64) {
         const message = finalized.error ?? 'unknown'
-        if (
-          /no utxos to contribute|missing proposal state|missing directory post/i.test(
-            message
-          )
-        ) {
+        // Without a native handle the proposal is gone; nothing to retry with.
+        const retryable =
+          !!finalized.nativeState && !isTerminalFinalizeError(message)
+        if (!retryable) {
           payjoinWarn('receiver finalize terminal error', {
             error: compactError(message),
             mailbox: mailboxFromEndpoint(target.pjEndpoint),
@@ -362,6 +386,24 @@ function usePayjoinReceiver({
       setReceiverSession(persistSession(finalized))
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      // Thrown terminal errors (e.g. a board proposal whose txid is not
+      // stable) can never succeed on retry — surface them instead of looping.
+      if (isTerminalFinalizeError(message)) {
+        payjoinWarn('receiver finalize terminal error', {
+          error: compactError(message),
+          mailbox: mailboxFromEndpoint(target.pjEndpoint),
+          sessionId: target.id
+        })
+        setReceiverSession(
+          persistSession({
+            ...target,
+            error: message,
+            status: 'error',
+            updatedAt: Date.now()
+          })
+        )
+        return
+      }
       payjoinWarn('receiver finalize failed, will retry', {
         error: compactError(message),
         mailbox: mailboxFromEndpoint(target.pjEndpoint),

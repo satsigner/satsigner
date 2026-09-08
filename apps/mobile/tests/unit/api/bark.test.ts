@@ -211,6 +211,43 @@ describe('bark provider', () => {
     expect(wallet.estimateArkoorPaymentFee).toHaveBeenCalledWith(1000n)
   })
 
+  it('boardFundingAddress maps the native funding info', async () => {
+    const wallet = buildFakeWallet({
+      boardFundingAddress: jest.fn().mockResolvedValue({
+        address: 'bc1pboard',
+        expiryHeight: 900_000,
+        keypairIndex: 3
+      })
+    })
+    await openWallet('boardaddr1', wallet)
+    await expect(
+      provider.boardFundingAddress('boardaddr1')
+    ).resolves.toStrictEqual({
+      address: 'bc1pboard',
+      expiryHeight: 900_000,
+      keypairIndex: 3
+    })
+  })
+
+  it('boardPsbt passes the keypair index and expiry height through unchanged', async () => {
+    const wallet = buildFakeWallet({
+      boardPsbt: jest.fn().mockResolvedValue({
+        amountSats: 50_000n,
+        txid: 'txid-board-psbt',
+        vtxoId: 'vtxo-board'
+      })
+    })
+    await openWallet('boardpsbt1', wallet)
+    await expect(
+      provider.boardPsbt('boardpsbt1', 'psbt-base64', 3, 900_000)
+    ).resolves.toStrictEqual({
+      amountSats: 50_000,
+      txid: 'txid-board-psbt',
+      vtxoId: 'vtxo-board'
+    })
+    expect(wallet.boardPsbt).toHaveBeenCalledWith('psbt-base64', 3, 900_000)
+  })
+
   it('listAllVtxos flags spendable vtxos from the spendable set', async () => {
     const vtxoA = buildFakeVtxo('a', 100n, 10)
     const vtxoB = buildFakeVtxo('b', 200n, 20)
@@ -330,7 +367,7 @@ describe('bark provider', () => {
 
   it('offboardVtxos resolves with the txid when the wallet finishes first', async () => {
     const wallet = buildFakeWallet({
-      offboardVtxos: jest.fn().mockResolvedValue('txid-offboard')
+      offboardVtxos: jest.fn().mockResolvedValue({ txid: 'txid-offboard' })
     })
     await openWallet('off1', wallet)
     await expect(
@@ -352,7 +389,7 @@ describe('bark provider', () => {
 
   it('offboardVtxos ignores movement notifications of other subsystems', async () => {
     const wallet = buildFakeWallet({
-      offboardVtxos: jest.fn().mockResolvedValue('txid-late')
+      offboardVtxos: jest.fn().mockResolvedValue({ txid: 'txid-late' })
     })
     await openWallet('off3', wallet)
     const pending = provider.offboardVtxos('off3', ['vtxo1'], 'tb1qdest')

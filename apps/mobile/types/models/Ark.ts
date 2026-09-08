@@ -65,6 +65,15 @@ export type ArkPendingBoard = {
   txid: string
 }
 
+// Destination for an externally funded board (e.g. a payjoin receive). The
+// funding script commits to keypairIndex and expiryHeight, so both must be
+// passed back unchanged to boardPsbt once the funding PSBT is available.
+export type ArkBoardFundingInfo = {
+  address: string
+  expiryHeight: number
+  keypairIndex: number
+}
+
 export type ArkServerInfo = {
   minBoardAmountSats: number
   requiredBoardConfirmations: number
@@ -249,6 +258,13 @@ export interface ArkWalletProvider {
   fetchOnchainBalance: (accountId: string) => Promise<ArkOnchainBalance>
   newOnchainAddress: (accountId: string) => Promise<string>
   board: (accountId: string, amountSats?: number) => Promise<ArkPendingBoard>
+  boardFundingAddress: (accountId: string) => Promise<ArkBoardFundingInfo>
+  boardPsbt: (
+    accountId: string,
+    psbtBase64: string,
+    keypairIndex: number,
+    expiryHeight: number
+  ) => Promise<ArkPendingBoard>
   estimateBoardFee: (
     accountId: string,
     amountSats: number

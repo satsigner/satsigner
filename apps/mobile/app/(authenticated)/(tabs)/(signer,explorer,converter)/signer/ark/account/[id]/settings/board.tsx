@@ -6,7 +6,10 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
+import SSLoader from '@/components/SSLoader'
+import SSPairedTabs from '@/components/SSPairedTabs'
 import SSShareableQR from '@/components/SSShareableQR'
+import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -18,6 +21,7 @@ import {
   useArkServerInfo
 } from '@/hooks/useArkBoard'
 import { useArkBoardDeposit } from '@/hooks/useArkBoardDeposit'
+import { useArkBoardPayjoin } from '@/hooks/useArkBoardPayjoin'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -31,6 +35,10 @@ import { formatAddress, formatNumber } from '@/utils/format'
 
 const DEPOSIT_QR_SIZE = 200
 const TXID_TRUNCATE_CHARS = 8
+const PAYJOIN_LOADER_SIZE = 18
+const PAYJOIN_SUCCESS_SIZE = 120
+
+type FundTab = 'address' | 'payjoin'
 
 const VALIDATION_ERROR_KEYS: Record<ArkBoardValidationReason, string> = {
   belowMinimum: 'ark.board.error.belowMinimum',
@@ -51,9 +59,12 @@ export default function ArkBoardPage() {
   const serverInfoQuery = useArkServerInfo(id)
   const boardMutation = useArkBoardMutation(id)
   const { fundFromLinkedAccount, linkedAccount } = useArkBoardDeposit(account)
+  const boardPayjoin = useArkBoardPayjoin(account)
 
   const [amountSats, setAmountSats] = useState(0)
+  const [fundTab, setFundTab] = useState<FundTab>('address')
   const qrRef = useRef<View>(null)
+  const showPayjoin = boardPayjoin.available && fundTab === 'payjoin'
 
   const confirmedSats = balanceQuery.data?.confirmedSats ?? 0
   const pendingSats = balanceQuery.data?.pendingSats ?? 0
@@ -86,6 +97,18 @@ export default function ArkBoardPage() {
     }
     await setClipboard(depositAddress)
     toast.success(t('common.copiedToClipboard'))
+  }
+
+  async function handleCopyPayjoinUri() {
+    if (!boardPayjoin.payjoinUri) {
+      return
+    }
+    await setClipboard(boardPayjoin.payjoinUri)
+    toast.success(t('common.copiedToClipboard'))
+  }
+
+  function handleRestartPayjoin() {
+    boardPayjoin.restart()
   }
 
   function handleFundFromLinkedAccount() {
@@ -170,53 +193,137 @@ export default function ArkBoardPage() {
           </SSVStack>
 
           <SSVStack gap="xs">
-            <SSText color="muted" size="xs" uppercase>
-              {t('ark.board.depositTitle')}
-            </SSText>
-            <SSText color="muted" size="xs">
-              {t('ark.board.depositDescription')}
-            </SSText>
-            {addressQuery.isLoading && (
-              <SSText color="muted" size="sm">
-                {t('common.loading')}
+            {boardPayjoin.available ? (
+              <SSPairedTabs<FundTab>
+                activeTab={fundTab}
+                primary={{ key: 'address', label: t('ark.board.addressTab') }}
+                secondary={{
+                  key: 'payjoin',
+                  label: t('ark.board.payjoinTab')
+                }}
+                onChange={setFundTab}
+              />
+            ) : (
+              <SSText color="muted" size="xs" uppercase>
+                {t('ark.board.depositTitle')}
               </SSText>
             )}
-            {addressQuery.error && !addressQuery.isLoading && (
-              <SSText
-                size="sm"
-                style={{ color: Colors.warning }}
-                onPress={() => addressQuery.refetch()}
-              >
-                {t('ark.board.error.loadAddress')}
-              </SSText>
-            )}
-            {depositAddress && (
+            {showPayjoin ? (
               <SSVStack gap="sm">
-                <SSShareableQR
-                  qrRef={qrRef}
-                  value={depositAddress}
-                  size={DEPOSIT_QR_SIZE}
-                  containerStyle={styles.qrContainer}
-                >
-                  <View style={styles.addressBox}>
-                    <SSText size="sm" style={styles.monospace}>
-                      {depositAddress}
+                <SSText color="muted" size="xs">
+                  {t('ark.board.payjoinDescription')}
+                </SSText>
+                {boardPayjoin.completed ? (
+                  <SSVStack gap="md" itemsCenter style={styles.qrContainer}>
+                    <SSSuccessCheckAnimation width={PAYJOIN_SUCCESS_SIZE} />
+                    <SSText size="md" uppercase weight="light" center>
+                      {t('ark.board.success')}
                     </SSText>
-                  </View>
-                  <SSButton
-                    label={t('common.copy')}
-                    onPress={handleCopyAddress}
-                    variant="outline"
-                  />
-                </SSShareableQR>
-                {linkedAccount && (
-                  <SSButton
-                    label={t('ark.board.fundFromLinked', {
-                      name: linkedAccount.name
-                    })}
-                    onPress={handleFundFromLinkedAccount}
-                    variant="subtle"
-                  />
+                    {boardPayjoin.txid && (
+                      <SSText color="muted" size="xs" style={styles.monospace}>
+                        {formatAddress(boardPayjoin.txid, TXID_TRUNCATE_CHARS)}
+                      </SSText>
+                    )}
+                    <SSText color="muted" size="xs" center>
+                      {t('ark.board.payjoinCompletedHint')}
+                    </SSText>
+                    <SSButton
+                      label={t('ark.board.payjoinNewQr')}
+                      onPress={handleRestartPayjoin}
+                      variant="outline"
+                    />
+                  </SSVStack>
+                ) : boardPayjoin.error ? (
+                  <SSVStack gap="sm" itemsCenter style={styles.qrContainer}>
+                    <SSText size="sm" center style={{ color: Colors.warning }}>
+                      {t('ark.board.payjoinError')}
+                    </SSText>
+                    <SSText color="muted" size="xs" center>
+                      {boardPayjoin.error}
+                    </SSText>
+                    <SSButton
+                      label={t('ark.board.payjoinNewQr')}
+                      onPress={handleRestartPayjoin}
+                      variant="outline"
+                    />
+                  </SSVStack>
+                ) : (
+                  <SSVStack gap="sm">
+                    {boardPayjoin.payjoinUri && (
+                      <SSShareableQR
+                        containerStyle={styles.qrContainer}
+                        ecl="L"
+                        size={DEPOSIT_QR_SIZE}
+                        value={boardPayjoin.payjoinUri}
+                      >
+                        <SSButton
+                          label={t('common.copy')}
+                          onPress={handleCopyPayjoinUri}
+                          variant="outline"
+                        />
+                      </SSShareableQR>
+                    )}
+                    {boardPayjoin.statusLabelKey && (
+                      <SSHStack gap="sm" style={styles.statusRow}>
+                        {boardPayjoin.busy && (
+                          <SSLoader size={PAYJOIN_LOADER_SIZE} />
+                        )}
+                        <SSText color="muted" size="sm" center>
+                          {t(boardPayjoin.statusLabelKey)}
+                        </SSText>
+                      </SSHStack>
+                    )}
+                  </SSVStack>
+                )}
+              </SSVStack>
+            ) : (
+              <SSVStack gap="xs">
+                <SSText color="muted" size="xs">
+                  {t('ark.board.depositDescription')}
+                </SSText>
+                {addressQuery.isLoading && (
+                  <SSText color="muted" size="sm">
+                    {t('common.loading')}
+                  </SSText>
+                )}
+                {addressQuery.error && !addressQuery.isLoading && (
+                  <SSText
+                    size="sm"
+                    style={{ color: Colors.warning }}
+                    onPress={() => addressQuery.refetch()}
+                  >
+                    {t('ark.board.error.loadAddress')}
+                  </SSText>
+                )}
+                {depositAddress && (
+                  <SSVStack gap="sm">
+                    <SSShareableQR
+                      qrRef={qrRef}
+                      value={depositAddress}
+                      size={DEPOSIT_QR_SIZE}
+                      containerStyle={styles.qrContainer}
+                    >
+                      <View style={styles.addressBox}>
+                        <SSText size="sm" style={styles.monospace}>
+                          {depositAddress}
+                        </SSText>
+                      </View>
+                      <SSButton
+                        label={t('common.copy')}
+                        onPress={handleCopyAddress}
+                        variant="outline"
+                      />
+                    </SSShareableQR>
+                    {linkedAccount && (
+                      <SSButton
+                        label={t('ark.board.fundFromLinked', {
+                          name: linkedAccount.name
+                        })}
+                        onPress={handleFundFromLinkedAccount}
+                        variant="subtle"
+                      />
+                    )}
+                  </SSVStack>
                 )}
               </SSVStack>
             )}
@@ -363,5 +470,9 @@ const styles = StyleSheet.create({
   qrContainer: {
     alignItems: 'center',
     paddingVertical: 12
+  },
+  statusRow: {
+    alignItems: 'center',
+    justifyContent: 'center'
   }
 })
