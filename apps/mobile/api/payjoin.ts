@@ -18,6 +18,8 @@ import {
 import {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
+  PAYJOIN_BOARD_COSIGN_FAILED_ERROR,
+  PAYJOIN_BOARD_TXID_MISMATCH_ERROR,
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_FETCH_TIMEOUT_MS,
   PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
@@ -1614,96 +1616,163 @@ async function finalizeBoardReceiverPayjoin(params: {
   session: PayjoinSession
   fetchImpl?: FetchLike
 }): Promise<PayjoinSession> {
-  const { board } = params.session
+  const { session } = params
+  const { board } = session
   const store = usePayjoinSessionsStore.getState()
-  if (!params.session.nativeState || !params.session.originalPsbtBase64) {
-    const updated = {
-      ...params.session,
-      error: 'missing proposal state',
-      status: 'error' as const
-    }
-    store.upsertSession(updated)
-    return updated
+  if (!session.nativeState || !session.originalPsbtBase64) {
+    return failBoardSession(session, 'missing proposal state')
   }
   if (!board) {
-    const updated = {
-      ...params.session,
-      error: 'missing board destination',
-      status: 'error' as const
-    }
-    store.upsertSession(updated)
-    return updated
+    return failBoardSession(session, 'missing board destination')
   }
 
   payjoinLog('board receiver finalize', {
-    mailbox: mailboxFromEndpoint(params.session.pjEndpoint),
-    sessionId: params.session.id
+    mailbox: mailboxFromEndpoint(session.pjEndpoint),
+    registered: !!session.txid,
+    sessionId: session.id
   })
 
   // The ark account owns no onchain outpoints; the replay check still guards
   // against a sender probing with an input it already used in a past session.
-  const prepared = await receiverFinalizeWithoutInputs(
-    params.session.nativeState,
-    {
-      isOutpointOwned: () => false,
-      isOutpointSeen: (outpoint) => store.hasSeenInput(outpoint)
-    }
-  )
+  const prepared = await receiverFinalizeWithoutInputs(session.nativeState, {
+    isOutpointOwned: () => false,
+    isOutpointSeen: (outpoint) => store.hasSeenInput(outpoint)
+  })
 
   if (!prepared.request.url) {
-    const updated = {
-      ...params.session,
-      error: 'missing directory post after finalize',
+    return failBoardSession(session, 'missing directory post after finalize', {
       nativeState: prepared.state,
       payjoinPsbtBase64: prepared.psbtBase64,
-      proposalPsbtBase64: prepared.psbtBase64,
-      status: 'error' as const,
-      updatedAt: Date.now()
-    }
-    store.upsertSession(updated)
-    return updated
+      proposalPsbtBase64: prepared.psbtBase64
+    })
   }
 
-  const pendingBoard = await boardArkPsbt(
-    board.serverId,
-    params.session.accountId,
-    prepared.psbtBase64,
-    board.keypairIndex,
-    board.expiryHeight
-  )
-  payjoinLog('board cosigned', {
-    sessionId: params.session.id,
-    txid: pendingBoard.txid,
-    vtxoId: pendingBoard.vtxoId
-  })
+  // A retry after a failed directory post must not register the board twice.
+  const cosign = session.txid
+    ? reuseRegisteredBoard(session, prepared.psbtBase64)
+    : await cosignBoard(session, board, prepared.psbtBase64)
+  if ('failed' in cosign) {
+    return cosign.failed
+  }
 
   const fetchImpl = params.fetchImpl ?? defaultFetch
-  const res = await fetchImpl(prepared.request.url, {
-    body: prepared.request.body,
-    headers: { 'Content-Type': prepared.request.contentType },
-    method: 'POST'
-  })
-  assertPayjoinHttpOk(res, 'bip77 board receiver proposal post')
+  try {
+    const res = await fetchImpl(prepared.request.url, {
+      body: prepared.request.body,
+      headers: { 'Content-Type': prepared.request.contentType },
+      method: 'POST'
+    })
+    assertPayjoinHttpOk(res, 'bip77 board receiver proposal post')
+  } catch (error) {
+    // Keep the pre-finalize native handle so the poll loop re-derives the same
+    // proposal and only repeats the post.
+    return failBoardSession(session, compactError(error), {
+      payjoinPsbtBase64: prepared.psbtBase64,
+      proposalPsbtBase64: prepared.psbtBase64,
+      txid: cosign.txid
+    })
+  }
 
   const now = Date.now()
   const updated: PayjoinSession = {
-    ...params.session,
+    ...session,
     error: undefined,
-    expiresAt: Math.max(
-      params.session.expiresAt,
-      now + getPayjoinSessionTtlMs()
-    ),
+    expiresAt: Math.max(session.expiresAt, now + getPayjoinSessionTtlMs()),
     // Drop native handle after the proposal is posted — the pending board is
     // registered with bark, which now owns confirmation tracking.
     nativeState: undefined,
     payjoinPsbtBase64: prepared.psbtBase64,
     proposalPsbtBase64: prepared.psbtBase64,
     status: 'completed',
-    txid: pendingBoard.txid,
+    txid: cosign.txid,
     updatedAt: now
   }
   store.upsertSession(updated)
   return updated
+}
+
+type BoardCosignResult = { txid: string } | { failed: PayjoinSession }
+
+function failBoardSession(
+  session: PayjoinSession,
+  error: string,
+  patch: Partial<PayjoinSession> = {}
+): PayjoinSession {
+  const updated: PayjoinSession = {
+    ...session,
+    ...patch,
+    error,
+    status: 'error',
+    updatedAt: Date.now()
+  }
+  usePayjoinSessionsStore.getState().upsertSession(updated)
+  return updated
+}
+
+/**
+ * Cosigns the board with the ark server. The native proposal is already
+ * consumed by the time this runs, so a rejection drops the native handle: the
+ * session ends in a terminal error and the user mints a fresh QR.
+ */
+async function cosignBoard(
+  session: PayjoinSession,
+  board: PayjoinBoardDestination,
+  psbtBase64: string
+): Promise<BoardCosignResult> {
+  try {
+    const pendingBoard = await boardArkPsbt(
+      board.serverId,
+      session.accountId,
+      psbtBase64,
+      board.keypairIndex,
+      board.expiryHeight
+    )
+    payjoinLog('board cosigned', {
+      sessionId: session.id,
+      txid: pendingBoard.txid,
+      vtxoId: pendingBoard.vtxoId
+    })
+    return { txid: pendingBoard.txid }
+  } catch (error) {
+    payjoinWarn('board cosign failed', {
+      error: compactError(error),
+      sessionId: session.id
+    })
+    return {
+      failed: failBoardSession(
+        session,
+        `${PAYJOIN_BOARD_COSIGN_FAILED_ERROR}: ${compactError(error)}`,
+        {
+          nativeState: undefined,
+          payjoinPsbtBase64: psbtBase64,
+          proposalPsbtBase64: psbtBase64
+        }
+      )
+    }
+  }
+}
+
+/**
+ * Bark already registered this board under the txid of the proposal we
+ * cosigned. The re-derived proposal must have the same txid or the sender
+ * would broadcast a transaction bark is not watching.
+ */
+function reuseRegisteredBoard(
+  session: PayjoinSession,
+  psbtBase64: string
+): BoardCosignResult {
+  const registeredTxid = session.proposalPsbtBase64
+    ? extractTransactionIdFromPSBT(session.proposalPsbtBase64)
+    : null
+  const replayedTxid = extractTransactionIdFromPSBT(psbtBase64)
+  if (!session.txid || !registeredTxid || registeredTxid !== replayedTxid) {
+    return {
+      failed: failBoardSession(session, PAYJOIN_BOARD_TXID_MISMATCH_ERROR, {
+        nativeState: undefined
+      })
+    }
+  }
+  return { txid: session.txid }
 }
 
 /**

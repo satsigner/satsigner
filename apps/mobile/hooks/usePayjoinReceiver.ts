@@ -88,7 +88,7 @@ function shouldReplaceMailbox(message: string): boolean {
  * stays in `error` and the user must start a new receive.
  */
 function isTerminalFinalizeError(message: string): boolean {
-  return /no utxos to contribute|missing proposal state|missing directory post|missing board destination|proposal txid not stable/i.test(
+  return /no utxos to contribute|missing proposal state|missing directory post|missing board destination|proposal txid not stable|board cosign failed|board proposal txid changed/i.test(
     message
   )
 }
@@ -349,13 +349,12 @@ function usePayjoinReceiver({
             callbacks: buildCallbacks(),
             session: target
           })
-      if (
-        finalized.status === 'error' &&
-        finalized.originalPsbtBase64 &&
-        finalized.nativeState
-      ) {
+      if (finalized.status === 'error' && finalized.originalPsbtBase64) {
         const message = finalized.error ?? 'unknown'
-        if (isTerminalFinalizeError(message)) {
+        // Without a native handle the proposal is gone; nothing to retry with.
+        const retryable =
+          !!finalized.nativeState && !isTerminalFinalizeError(message)
+        if (!retryable) {
           payjoinWarn('receiver finalize terminal error', {
             error: compactError(message),
             mailbox: mailboxFromEndpoint(target.pjEndpoint),

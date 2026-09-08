@@ -10,6 +10,7 @@ import {
 } from '@/api/payjoin'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import { resolveReceiverPollMode } from '@/utils/payjoinReceiverPoll'
 
 jest.mock<typeof import('@/api/ark')>('@/api/ark', () => ({
   boardArkPsbt: jest.fn()
@@ -33,7 +34,7 @@ const TXID_A = 'aa'.repeat(32)
 const boardScript = Buffer.from(`0014${'22'.repeat(20)}`, 'hex')
 const changeScript = Buffer.from(`0014${'33'.repeat(20)}`, 'hex')
 
-function buildOriginalPsbt(): string {
+function buildOriginalPsbt(boardSats = 50_000): string {
   const psbt = new bitcoinjs.Psbt({ network: bitcoinjs.networks.testnet })
   psbt.addInput({
     hash: TXID_A,
@@ -44,9 +45,19 @@ function buildOriginalPsbt(): string {
       value: 100_000
     }
   })
-  psbt.addOutput({ script: boardScript, value: 50_000 })
+  psbt.addOutput({ script: boardScript, value: boardSats })
   psbt.addOutput({ script: changeScript, value: 49_000 })
   return psbt.toBase64()
+}
+
+function failingOnceFetch(calls: string[]): FetchLike {
+  return (url) => {
+    calls.push(url)
+    if (calls.length === 1) {
+      return Promise.reject(new Error('directory unreachable'))
+    }
+    return Promise.resolve({ body: '', bytes: new Uint8Array(), status: 200 })
+  }
 }
 
 const callbacks: PayjoinWalletCallbacks = {
@@ -143,17 +154,78 @@ describe('payjoin ark boarding (zero-input receiver)', () => {
     expect(order[1]).toMatch(/^post:/)
   })
 
-  it('does not post the proposal when the board cosign fails', async () => {
+  it('ends the session when the board cosign fails and never retries the cosign', async () => {
     const session = await createBoardSessionWithOriginal()
     boardArkPsbtMock.mockRejectedValue(new Error('server rejected board'))
     const postCalls: string[] = []
 
-    await expect(
-      finalizeBoardReceiverPayjoin({
-        fetchImpl: trackingFetch(postCalls),
-        session
-      })
-    ).rejects.toThrow('server rejected board')
+    const failed = await finalizeBoardReceiverPayjoin({
+      fetchImpl: trackingFetch(postCalls),
+      session
+    })
+
+    expect(failed.status).toBe('error')
+    expect(failed.error).toBe('board cosign failed: server rejected board')
+    expect(failed.nativeState).toBeUndefined()
+    expect(failed.txid).toBeUndefined()
+    expect(postCalls).toHaveLength(0)
+    // No native handle left: the poll loop stops instead of re-finalizing.
+    expect(
+      resolveReceiverPollMode({ canUsePayjoin: true, session: failed })
+    ).toStrictEqual({ kind: 'off' })
+
+    const retried = await finalizeBoardReceiverPayjoin({
+      fetchImpl: trackingFetch(postCalls),
+      session: failed
+    })
+    expect(retried.status).toBe('error')
+    expect(retried.error).toBe('missing proposal state')
+    expect(boardArkPsbtMock).toHaveBeenCalledTimes(1)
+    expect(postCalls).toHaveLength(0)
+  })
+
+  it('re-posts without a second cosign when the directory post fails', async () => {
+    const session = await createBoardSessionWithOriginal()
+    const postCalls: string[] = []
+    const fetchImpl = failingOnceFetch(postCalls)
+
+    const failed = await finalizeBoardReceiverPayjoin({ fetchImpl, session })
+    expect(failed.status).toBe('error')
+    expect(failed.error).toBe('directory unreachable')
+    expect(failed.txid).toBe(PENDING_BOARD.txid)
+    expect(failed.nativeState).toBe(session.nativeState)
+    expect(failed.proposalPsbtBase64).toBeDefined()
+    expect(
+      resolveReceiverPollMode({ canUsePayjoin: true, session: failed })
+    ).toStrictEqual({ kind: 'retry_poll', sessionId: failed.id })
+
+    const completed = await finalizeBoardReceiverPayjoin({
+      fetchImpl,
+      session: { ...failed, error: undefined, status: 'proposal_received' }
+    })
+    expect(completed.status).toBe('completed')
+    expect(completed.txid).toBe(PENDING_BOARD.txid)
+    expect(boardArkPsbtMock).toHaveBeenCalledTimes(1)
+    expect(postCalls).toHaveLength(2)
+  })
+
+  it('refuses to post when a retry derives a proposal with a different txid', async () => {
+    const session = await createBoardSessionWithOriginal()
+    const postCalls: string[] = []
+
+    const stopped = await finalizeBoardReceiverPayjoin({
+      fetchImpl: trackingFetch(postCalls),
+      session: {
+        ...session,
+        proposalPsbtBase64: buildOriginalPsbt(40_000),
+        txid: PENDING_BOARD.txid
+      }
+    })
+
+    expect(stopped.status).toBe('error')
+    expect(stopped.error).toBe('board proposal txid changed on retry')
+    expect(stopped.nativeState).toBeUndefined()
+    expect(boardArkPsbtMock).not.toHaveBeenCalled()
     expect(postCalls).toHaveLength(0)
   })
 

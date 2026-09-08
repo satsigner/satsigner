@@ -35,7 +35,7 @@ import { useArkWallet } from './useArkWallet'
 const ONCHAIN_BALANCE_REFETCH_INTERVAL_MS = 15_000
 const FEE_ESTIMATE_STALE_TIME_MS = 30_000
 
-function invalidateArkBoardQueries(
+export function invalidateArkBoardQueries(
   queryClient: QueryClient,
   accountId: string
 ): Promise<void> {

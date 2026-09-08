@@ -109,9 +109,23 @@ const PAYJOIN_NATIVE_PROBE_URI =
 const PAYJOIN_BOARD_TXID_UNSTABLE_ERROR =
   'board payjoin requires segwit sender inputs (proposal txid not stable)'
 
+/**
+ * Bark refused to cosign the board. The native proposal is consumed by then,
+ * so the receiver hook treats this as terminal and the user mints a new QR.
+ */
+const PAYJOIN_BOARD_COSIGN_FAILED_ERROR = 'board cosign failed'
+
+/**
+ * A retry re-derived a proposal whose txid differs from the one bark already
+ * registered. Posting it would fund an untracked board, so the retry stops.
+ */
+const PAYJOIN_BOARD_TXID_MISMATCH_ERROR = 'board proposal txid changed on retry'
+
 export {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
+  PAYJOIN_BOARD_COSIGN_FAILED_ERROR,
+  PAYJOIN_BOARD_TXID_MISMATCH_ERROR,
   PAYJOIN_BOARD_TXID_UNSTABLE_ERROR,
   PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_DEFAULT_PJOS,
