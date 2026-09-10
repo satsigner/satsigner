@@ -1,3 +1,5 @@
+import { t } from '@/locales'
+
 export type MintSpendBalance = {
   mintUrl: string
   balance: number
@@ -90,4 +92,21 @@ export function selectMintRoute({
   }
 
   return { kind: 'mpp', slices }
+}
+
+export function describeTokenRoute(
+  route: MintRoute | null,
+  mints: { name?: string; url: string }[]
+): string | null {
+  if (!route) {
+    return null
+  }
+  if (route.kind === 'single') {
+    const mint = mints.find((item) => item.url === route.mintUrl)
+    return `${t('ecash.send.payingFrom')} ${mint?.name ?? route.mintUrl}`
+  }
+  if (route.kind === 'insufficient') {
+    return t('ecash.error.insufficientOnMint')
+  }
+  return null
 }

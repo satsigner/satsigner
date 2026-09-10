@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { useEcash, useQuotePolling } from '@/hooks/useEcash'
 import { t } from '@/locales'
 import type { EcashMint, EcashToken } from '@/types/models/Ecash'
@@ -239,6 +240,11 @@ export function useEcashReceive() {
       return
     }
 
+    if (!selectedMintUrlForLightning && mints.length > 1) {
+      toast.error(t('ecash.mint.noMintSelected'))
+      return
+    }
+
     const mintUrl = selectedMintUrlForLightning ?? mints[0]?.url
 
     if (!mintUrl) {
@@ -251,7 +257,7 @@ export function useEcashReceive() {
       const amountSats = parseInt(amount, 10)
 
       if (isLNURLWithdrawMode && lnurlWithdrawDetails) {
-        const amountMillisats = amountSats * 1000
+        const amountMillisats = amountSats * MILLISATS_PER_SAT
         if (
           amountMillisats < lnurlWithdrawDetails.minWithdrawable ||
           amountMillisats > lnurlWithdrawDetails.maxWithdrawable
@@ -259,10 +265,10 @@ export function useEcashReceive() {
           toast.error(
             t('ecash.error.amountOutOfRange', {
               max: Math.floor(
-                lnurlWithdrawDetails.maxWithdrawable / 1000
+                lnurlWithdrawDetails.maxWithdrawable / MILLISATS_PER_SAT
               ).toString(),
               min: Math.ceil(
-                lnurlWithdrawDetails.minWithdrawable / 1000
+                lnurlWithdrawDetails.minWithdrawable / MILLISATS_PER_SAT
               ).toString()
             })
           )
@@ -280,7 +286,7 @@ export function useEcashReceive() {
         try {
           await requestLNURLWithdrawInvoice(
             lnurlWithdrawDetails.callback,
-            amountSats * 1000,
+            amountSats * MILLISATS_PER_SAT,
             lnurlWithdrawDetails.k1,
             memo || lnurlWithdrawDetails.defaultDescription,
             quote.request

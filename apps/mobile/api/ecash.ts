@@ -363,6 +363,8 @@ async function validateProofs(
   for (const [index, state] of proofStates.entries()) {
     if (state.state === CheckStateEnum.UNSPENT) {
       validProofs.push(proofs[index])
+    } else if (state.state === CheckStateEnum.PENDING) {
+      validProofs.push(proofs[index])
     } else if (state.state === CheckStateEnum.SPENT) {
       spentProofs.push(proofs[index])
     }
