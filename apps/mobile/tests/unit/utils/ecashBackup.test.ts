@@ -2,7 +2,9 @@ import { type EcashMint, type EcashProof } from '@/types/models/Ecash'
 import {
   buildEcashBackupPayload,
   collectMintUrlsForRestore,
-  normalizeRestoredProofs
+  EcashBackupValidationError,
+  normalizeRestoredProofs,
+  parseEcashBackupPayload
 } from '@/utils/ecashBackup'
 
 function proof(secret: string, mintUrl: string): EcashProof {
@@ -78,5 +80,33 @@ describe('ecash backup', () => {
     expect(restored).toHaveLength(1)
     expect(restored[0].secret).toBe('s2')
     expect(restored[0].mintUrl).toBe('https://b.example')
+  })
+
+  it('refuses backups that omit proofs', () => {
+    expect(() =>
+      parseEcashBackupPayload({
+        mints: [mint('https://a.example')],
+        version: '1'
+      })
+    ).toThrow(EcashBackupValidationError)
+  })
+
+  it('refuses backups whose mints field is not an array', () => {
+    expect(() =>
+      parseEcashBackupPayload({
+        mints: 'abc',
+        proofs: [proof('s1', 'https://a.example')]
+      })
+    ).toThrow(EcashBackupValidationError)
+  })
+
+  it('parses a valid backup payload', () => {
+    const parsed = parseEcashBackupPayload({
+      mints: [mint('https://a.example')],
+      proofs: [proof('s1', 'https://a.example')],
+      transactions: []
+    })
+    expect(parsed.proofs).toHaveLength(1)
+    expect(parsed.mints[0].url).toBe('https://a.example')
   })
 })

@@ -1127,6 +1127,8 @@
     "error.backupDecryptionFailed": "Failed to decrypt backup",
     "error.backupEncryptionFailed": "Failed to encrypt backup",
     "error.backupGenerationFailed": "Failed to generate backup",
+    "error.backupInvalidSchema": "Backup data is not a valid ecash backup",
+    "error.backupProofsRequired": "This backup has no proofs. Restore was refused to avoid wiping live tokens.",
     "error.backupRestore": "Failed to restore backup",
     "error.connectionError": "Connection Error",
     "error.failedToCheckStatus": "Failed to check token status",

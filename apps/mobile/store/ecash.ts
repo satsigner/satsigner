@@ -11,6 +11,7 @@ import type {
   MeltQuote,
   MintQuote
 } from '@/types/models/Ecash'
+import { mergeByKey, type ParsedEcashBackup } from '@/utils/ecashBackup'
 
 const LEGACY_ACCOUNT_ID = 'legacy'
 
@@ -59,7 +60,7 @@ type EcashAction = {
   ) => void
   clearTransactions: (accountId: string) => void
   updateCounters: (accountId: string, counters: EcashKeysetCounter[]) => void
-  restoreFromBackup: (accountId: string, backupData: unknown) => void
+  restoreFromBackup: (accountId: string, backupData: ParsedEcashBackup) => void
   clearAllData: () => void
   clearAccountData: (accountId: string) => void
   addCheckingTransaction: (transactionId: string) => void
@@ -319,36 +320,37 @@ export const useEcashStore = create<EcashState & EcashAction>()(
         })),
       restoreFromBackup: (accountId, backupData) =>
         set((state) => {
-          if (!backupData || typeof backupData !== 'object') {
-            throw new Error('Invalid backup data format')
-          }
-
-          const data = backupData as {
-            mints?: EcashMint[]
-            proofs?: EcashProof[]
-            transactions?: EcashTransaction[]
-          }
-
-          const restoredMints = data.mints ?? []
           const existingMints = getAccountArray(state.mints, accountId)
+          const existingProofs = getAccountArray(state.proofs, accountId)
+          const existingTransactions = getAccountArray(
+            state.transactions,
+            accountId
+          )
 
           return {
             mints: {
               ...state.mints,
-              [accountId]:
-                restoredMints.length > 0 ? restoredMints : existingMints
+              [accountId]: mergeByKey(
+                existingMints,
+                backupData.mints,
+                (mint) => mint.url
+              )
             },
             proofs: {
               ...state.proofs,
-              [accountId]: data.proofs ?? []
-            },
-            quotes: {
-              ...state.quotes,
-              [accountId]: { melt: [], mint: [] }
+              [accountId]: mergeByKey(
+                existingProofs,
+                backupData.proofs,
+                (proof) => proof.secret
+              )
             },
             transactions: {
               ...state.transactions,
-              [accountId]: data.transactions ?? []
+              [accountId]: mergeByKey(
+                existingTransactions,
+                backupData.transactions,
+                (transaction) => transaction.id
+              )
             }
           }
         }),

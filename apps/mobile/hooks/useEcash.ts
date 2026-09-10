@@ -40,7 +40,8 @@ import { mnemonicToSeed } from '@/utils/bip39'
 import { randomKey } from '@/utils/crypto'
 import {
   collectMintUrlsForRestore,
-  normalizeRestoredProofs
+  EcashBackupValidationError,
+  parseEcashBackupPayload
 } from '@/utils/ecashBackup'
 import { selectMintRoute } from '@/utils/ecashMintRoute'
 import {
@@ -578,15 +579,25 @@ export function useEcash() {
       return
     }
 
-    for (const slice of route.slices) {
-      const quote = await createMppMeltQuote(
-        activeAccountId,
-        slice.mintUrl,
-        invoice,
-        slice.amountSats,
-        options
+    const quotes = await Promise.all(
+      route.slices.map((slice) =>
+        createMppMeltQuote(
+          activeAccountId,
+          slice.mintUrl,
+          invoice,
+          slice.amountSats,
+          options
+        )
       )
+    )
+    for (const quote of quotes) {
       addMeltQuoteAction(activeAccountId, quote)
+    }
+    for (const [index, slice] of route.slices.entries()) {
+      const quote = quotes[index]
+      if (!quote) {
+        throw new Error(t('ecash.error.insufficientProofs'))
+      }
       const latestProofs =
         useEcashStore.getState().proofs[activeAccountId] ?? []
       const mintProofsList = latestProofs.filter(
@@ -829,20 +840,19 @@ export function useEcash() {
     if (!activeAccountId) {
       return
     }
-    if (!backupData || typeof backupData !== 'object') {
-      toast.error(t('ecash.error.backupRestore'))
-      return
+    try {
+      restoreFromBackup(activeAccountId, parseEcashBackupPayload(backupData))
+      toast.success(t('ecash.success.backupRestored'))
+    } catch (error) {
+      if (
+        error instanceof EcashBackupValidationError &&
+        error.reason === 'proofs_missing'
+      ) {
+        toast.error(t('ecash.error.backupProofsRequired'))
+        return
+      }
+      toast.error(t('ecash.error.backupInvalidSchema'))
     }
-    const data = backupData as {
-      mints?: EcashMint[]
-      proofs?: EcashProof[]
-      transactions?: EcashTransaction[]
-    }
-    restoreFromBackup(activeAccountId, {
-      ...data,
-      proofs: normalizeRestoredProofs(data.proofs, data.mints)
-    })
-    toast.success(t('ecash.success.backupRestored'))
   }
 
   function clearAllDataHandler() {
