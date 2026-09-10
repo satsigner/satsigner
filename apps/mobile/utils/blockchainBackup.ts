@@ -12,18 +12,19 @@ export type BlockchainBackup = {
   selectedNetwork: Network
 }
 
-type BlockchainStoreSlice = {
-  addCustomServer: (server: Server) => void
-  configs: Record<Network, { config: Config; server: Server }>
-  configsMempool: Record<Network, string>
-  customServers: Server[]
-  removeCustomServer: (server: Server) => void
-  selectedNetwork: Network
-  setSelectedNetwork: (network: Network) => void
-  updateConfig: (network: Network, config: Partial<Config>) => void
-  updateConfigMempool: (network: Network, url: string) => void
-  updateServer: (network: Network, server: Partial<Server>) => void
-}
+type BlockchainStoreSlice = Pick<
+  ReturnType<typeof useBlockchainStore.getState>,
+  | 'addCustomServer'
+  | 'configs'
+  | 'configsMempool'
+  | 'customServers'
+  | 'removeCustomServer'
+  | 'selectedNetwork'
+  | 'setSelectedNetwork'
+  | 'updateConfig'
+  | 'updateConfigMempool'
+  | 'updateServer'
+>
 
 async function serverWithRpcCredentials(server: Server, network: Network) {
   if (server.rpcCredentials?.username || server.rpcCredentials?.password) {
