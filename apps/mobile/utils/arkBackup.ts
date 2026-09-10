@@ -1,5 +1,7 @@
+import { releaseArkWallet } from '@/api/ark'
 import { deleteArkLabelsByAccount, setArkLabel } from '@/db/mutations/arkLabels'
 import { getArkLabelsByAccount } from '@/db/queries/arkLabels'
+import { queryClient } from '@/lib/queryClient'
 import {
   deleteArkDatadir,
   writeArkDatadirFiles,
@@ -13,6 +15,7 @@ import type {
   ArkAccountStats,
   ArkBalance
 } from '@/types/models/Ark'
+import { clearArkDerivedAddresses } from '@/utils/arkAddress'
 
 export type ArkDatadirBackup = {
   files: ArkDatadirFile[]
@@ -107,6 +110,19 @@ export function prepareArkMnemonics(
     .map(([accountId, mnemonic]) => ({ accountId, mnemonic }))
 }
 
+export function releaseArkWalletsForRestore(
+  accounts: Pick<ArkAccount, 'id' | 'serverId'>[]
+): void {
+  for (const account of accounts) {
+    releaseArkWallet(account.serverId, account.id)
+    clearArkDerivedAddresses(account.id)
+    queryClient.removeQueries({
+      predicate: (query) =>
+        query.queryKey[0] === 'ark' && query.queryKey.includes(account.id)
+    })
+  }
+}
+
 export async function restoreArkDatadirsFromBackup(
   datadirs: Record<string, ArkDatadirBackup> | undefined,
   leftoverAccountIds: string[],
@@ -118,7 +134,10 @@ export async function restoreArkDatadirsFromBackup(
     )
   )
   for (const accountId of restoredAccountIds) {
-    const files = datadirs?.[accountId]?.files ?? []
+    const files = datadirs?.[accountId]?.files
+    if (!files || files.length === 0) {
+      continue
+    }
     await writeArkDatadirFiles(accountId, files)
   }
 }

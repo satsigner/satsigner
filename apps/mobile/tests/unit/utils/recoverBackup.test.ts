@@ -35,6 +35,7 @@ jest.mock<typeof import('@/utils/arkBackup')>('@/utils/arkBackup', () => ({
       .filter((entry): entry is [string, string] => Boolean(entry[1]))
       .map(([accountId, mnemonic]) => ({ accountId, mnemonic }))
   },
+  releaseArkWalletsForRestore: jest.fn(),
   restoreArkDatadirsFromBackup: jest.fn().mockResolvedValue(undefined),
   restoreArkLabelsFromBackup: jest.fn(),
   restoreArkStoreFromBackup: jest.fn()
@@ -563,10 +564,12 @@ describe('performRecoverOverwrite restore', () => {
       storeArkMnemonic: jest.Mock
     }
     const {
-      restoreArkStoreFromBackup,
+      releaseArkWalletsForRestore,
+      restoreArkDatadirsFromBackup,
       restoreArkLabelsFromBackup,
-      restoreArkDatadirsFromBackup
+      restoreArkStoreFromBackup
     } = jest.requireMock('@/utils/arkBackup') as {
+      releaseArkWalletsForRestore: jest.Mock
       restoreArkDatadirsFromBackup: jest.Mock
       restoreArkLabelsFromBackup: jest.Mock
       restoreArkStoreFromBackup: jest.Mock
@@ -575,7 +578,7 @@ describe('performRecoverOverwrite restore', () => {
       useArkStore: { getState: jest.Mock }
     }
     useArkStore.getState.mockReturnValue({
-      accounts: [{ id: 'old-ark' }],
+      accounts: [{ id: 'old-ark', serverId: 'second' }],
       addAccount: jest.fn(),
       clearAllData: clearAllDataArk
     })
@@ -638,6 +641,9 @@ describe('performRecoverOverwrite restore', () => {
     )
     expect(storeArkMnemonic).toHaveBeenCalledWith('ark-1', 'ark seed words')
     expect(deleteArkMnemonic).toHaveBeenCalledWith('old-ark')
+    expect(releaseArkWalletsForRestore).toHaveBeenCalledWith([
+      { id: 'old-ark', serverId: 'second' }
+    ])
     expect(restoreArkDatadirsFromBackup).toHaveBeenCalledWith(
       datadirs,
       ['old-ark'],
@@ -695,6 +701,57 @@ describe('performRecoverOverwrite restore', () => {
       undefined,
       [],
       ['ark-1']
+    )
+  })
+
+  it('restores when ark is present without an accounts array', async () => {
+    const { useArkStore } = jest.requireMock('@/store/ark') as {
+      useArkStore: { getState: jest.Mock }
+    }
+    useArkStore.getState.mockReturnValue({
+      accounts: [{ id: 'old-ark', serverId: 'second' }],
+      addAccount: jest.fn(),
+      clearAllData: clearAllDataArk
+    })
+    const {
+      releaseArkWalletsForRestore,
+      restoreArkDatadirsFromBackup,
+      restoreArkLabelsFromBackup,
+      restoreArkStoreFromBackup
+    } = jest.requireMock('@/utils/arkBackup') as {
+      releaseArkWalletsForRestore: jest.Mock
+      restoreArkDatadirsFromBackup: jest.Mock
+      restoreArkLabelsFromBackup: jest.Mock
+      restoreArkStoreFromBackup: jest.Mock
+    }
+
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [],
+        ark: {},
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    expect(restoreArkStoreFromBackup).toHaveBeenCalledWith({})
+    expect(releaseArkWalletsForRestore).toHaveBeenCalledWith([
+      { id: 'old-ark', serverId: 'second' }
+    ])
+    expect(restoreArkLabelsFromBackup).toHaveBeenCalledWith(
+      undefined,
+      ['old-ark'],
+      []
+    )
+    expect(restoreArkDatadirsFromBackup).toHaveBeenCalledWith(
+      undefined,
+      ['old-ark'],
+      []
     )
   })
 })

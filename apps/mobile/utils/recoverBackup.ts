@@ -33,6 +33,7 @@ import type {
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
 import {
   prepareArkMnemonics,
+  releaseArkWalletsForRestore,
   restoreArkDatadirsFromBackup,
   restoreArkLabelsFromBackup,
   restoreArkStoreFromBackup,
@@ -316,10 +317,13 @@ function rollbackStores(snap: StoreSnapshot): void {
   useWalletsStore.setState(snap.wallets, true)
 }
 
+function arkAccountIdsFromBackup(data: BackupData): string[] {
+  return data.ark?.accounts?.map((account) => account.id) ?? []
+}
+
 function applyStoreRestore(
   data: BackupData,
-  restoredAccounts: Account[],
-  leftoverArkAccountIds: string[]
+  restoredAccounts: Account[]
 ): void {
   resetNostrSync()
   useNostrStore.getState().clearAllNostrState()
@@ -390,12 +394,6 @@ function applyStoreRestore(
     useNostrIdentityStore.getState().setRelays(data.nostrIdentities.relays)
   }
   restoreArkStoreFromBackup(data.ark)
-  const restoredArkIds = data.ark?.accounts.map((account) => account.id) ?? []
-  restoreArkLabelsFromBackup(
-    data.ark?.labels,
-    leftoverArkAccountIds,
-    restoredArkIds
-  )
   if (data.serverSettings) {
     restoreBlockchainFromBackup(data.serverSettings)
   }
@@ -436,9 +434,10 @@ async function writeKeychain(
  * pendingRecoverData is set. Uses stored PIN from secure storage.
  *
  * Order is: validate → encrypt secrets in memory → snapshot stores → apply
- * store changes → write keychain. Any failure during apply rolls back stores
- * to their pre-restore state. Keychain writes happen last; rollback for those
- * is best-effort since secure-storage reads are PIN-bound.
+ * store changes → write keychain → release open Ark wallets → restore Ark
+ * datadirs and labels. Any failure during apply rolls back stores to their
+ * pre-restore state. Keychain writes happen last; rollback for those is
+ * best-effort since secure-storage reads are PIN-bound.
  */
 export async function performRecoverOverwrite(
   decrypted: string
@@ -466,17 +465,21 @@ export async function performRecoverOverwrite(
   const existingEcashAccountIds = useEcashStore
     .getState()
     .accounts.map((a) => a.id)
-  const existingArkAccountIds = useArkStore.getState().accounts.map((a) => a.id)
-  const restoredArkIds = new Set(
-    data.ark?.accounts.map((account) => account.id)
-  )
-  const leftoverArkAccountIds = existingArkAccountIds.filter(
-    (id) => !restoredArkIds.has(id)
+  const existingArkAccounts = useArkStore.getState().accounts
+  const restoredArkAccountIds = arkAccountIdsFromBackup(data)
+  const restoredArkIds = new Set(restoredArkAccountIds)
+  const leftoverArkAccountIds = existingArkAccounts
+    .map((account) => account.id)
+    .filter((id) => !restoredArkIds.has(id))
+  const arkAccountsToRelease = existingArkAccounts.filter(
+    (account) =>
+      leftoverArkAccountIds.includes(account.id) ||
+      restoredArkIds.has(account.id)
   )
   const snapshot = snapshotStores()
 
   try {
-    applyStoreRestore(data, prepared.accounts, leftoverArkAccountIds)
+    applyStoreRestore(data, prepared.accounts)
   } catch (error) {
     rollbackStores(snapshot)
     return { error: errorMessage(error), success: false }
@@ -488,10 +491,16 @@ export async function performRecoverOverwrite(
       existingEcashAccountIds,
       leftoverArkAccountIds
     )
+    releaseArkWalletsForRestore(arkAccountsToRelease)
     await restoreArkDatadirsFromBackup(
       data.ark?.datadirs,
       leftoverArkAccountIds,
-      data.ark?.accounts.map((account) => account.id) ?? []
+      restoredArkAccountIds
+    )
+    restoreArkLabelsFromBackup(
+      data.ark?.labels,
+      leftoverArkAccountIds,
+      restoredArkAccountIds
     )
   } catch (error) {
     rollbackStores(snapshot)

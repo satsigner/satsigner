@@ -2,10 +2,23 @@ import type { ArkAccount } from '@/types/models/Ark'
 import {
   collectArkBackup,
   prepareArkMnemonics,
+  releaseArkWalletsForRestore,
   restoreArkDatadirsFromBackup,
   restoreArkLabelsFromBackup,
   restoreArkStoreFromBackup
 } from '@/utils/arkBackup'
+
+jest.mock<typeof import('@/api/ark')>('@/api/ark', () => ({
+  releaseArkWallet: jest.fn()
+}))
+
+jest.mock<typeof import('@/lib/queryClient')>('@/lib/queryClient', () => ({
+  queryClient: { removeQueries: jest.fn() }
+}))
+
+jest.mock<typeof import('@/utils/arkAddress')>('@/utils/arkAddress', () => ({
+  clearArkDerivedAddresses: jest.fn()
+}))
 
 jest.mock<typeof import('@/db/mutations/arkLabels')>(
   '@/db/mutations/arkLabels',
@@ -264,13 +277,42 @@ describe('restoreArkDatadirsFromBackup', () => {
     expect(writeArkDatadirFiles).toHaveBeenCalledWith('ark-1', files)
   })
 
-  it('writes an empty file list when a restored account has no datadir blob', async () => {
-    const { writeArkDatadirFiles } = jest.requireMock(
+  it('leaves local sqlite files in place when a restored account has no datadir blob', async () => {
+    const { deleteArkDatadir, writeArkDatadirFiles } = jest.requireMock(
       '@/storage/arkDatadir'
-    ) as { writeArkDatadirFiles: jest.Mock }
+    ) as {
+      deleteArkDatadir: jest.Mock
+      writeArkDatadirFiles: jest.Mock
+    }
 
     await restoreArkDatadirsFromBackup(undefined, [], ['ark-1'])
 
-    expect(writeArkDatadirFiles).toHaveBeenCalledWith('ark-1', [])
+    expect(deleteArkDatadir).not.toHaveBeenCalled()
+    expect(writeArkDatadirFiles).not.toHaveBeenCalled()
+  })
+})
+
+describe('releaseArkWalletsForRestore', () => {
+  it('releases open wallets and drops ark queries for each account', () => {
+    const { releaseArkWallet } = jest.requireMock('@/api/ark') as {
+      releaseArkWallet: jest.Mock
+    }
+    const { queryClient } = jest.requireMock('@/lib/queryClient') as {
+      queryClient: { removeQueries: jest.Mock }
+    }
+    const { clearArkDerivedAddresses } = jest.requireMock(
+      '@/utils/arkAddress'
+    ) as { clearArkDerivedAddresses: jest.Mock }
+
+    releaseArkWalletsForRestore([
+      { id: 'ark-1', serverId: 'second' },
+      { id: 'old-ark', serverId: 'second' }
+    ])
+
+    expect(releaseArkWallet).toHaveBeenCalledWith('second', 'ark-1')
+    expect(releaseArkWallet).toHaveBeenCalledWith('second', 'old-ark')
+    expect(clearArkDerivedAddresses).toHaveBeenCalledWith('ark-1')
+    expect(clearArkDerivedAddresses).toHaveBeenCalledWith('old-ark')
+    expect(queryClient.removeQueries).toHaveBeenCalledTimes(2)
   })
 })
