@@ -33,10 +33,10 @@ class SafSaveModule : Module() {
         type = mimeType
         putExtra(Intent.EXTRA_TITLE, filename)
       }
+      appContext.throwingActivity.startActivityForResult(intent, REQUEST_CODE)
       pendingContents = contents
       pendingBase64 = encoding == "base64"
       pendingPromise = promise
-      appContext.throwingActivity.startActivityForResult(intent, REQUEST_CODE)
     }
 
     OnActivityResult { _, payload ->
@@ -66,20 +66,22 @@ class SafSaveModule : Module() {
         promise.reject(CodedException("React context lost"))
         return@OnActivityResult
       }
-      try {
-        val bytes =
-          if (isBase64) {
-            Base64.decode(contents, Base64.DEFAULT)
-          } else {
-            contents.toByteArray(StandardCharsets.UTF_8)
-          }
-        resolver.openOutputStream(uri, "wt")?.use { output ->
-          output.write(bytes)
-        } ?: throw IOException("Unable to open the selected file")
-        promise.resolve(true)
-      } catch (error: Throwable) {
-        promise.reject(error.toCodedException())
-      }
+      Thread {
+        try {
+          val bytes =
+            if (isBase64) {
+              Base64.decode(contents, Base64.DEFAULT)
+            } else {
+              contents.toByteArray(StandardCharsets.UTF_8)
+            }
+          resolver.openOutputStream(uri, "wt")?.use { output ->
+            output.write(bytes)
+          } ?: throw IOException("Unable to open the selected file")
+          promise.resolve(true)
+        } catch (error: Throwable) {
+          promise.reject(error.toCodedException())
+        }
+      }.start()
     }
   }
 }
