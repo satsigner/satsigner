@@ -50,7 +50,7 @@ function countNestedArrays(value: unknown): number {
   if (!isRecord(value)) {
     return 0
   }
-  return Object.values(value).reduce(
+  return Object.values(value).reduce<number>(
     (total, nested) => total + countArray(nested),
     0
   )
@@ -60,7 +60,7 @@ function countNestedRecords(value: unknown): number {
   if (!isRecord(value)) {
     return 0
   }
-  return Object.values(value).reduce(
+  return Object.values(value).reduce<number>(
     (total, nested) => total + countKeys(nested),
     0
   )
@@ -77,7 +77,7 @@ function countBitcoinLabels(accounts: unknown): number {
   if (!Array.isArray(accounts)) {
     return 0
   }
-  return accounts.reduce((total, account) => {
+  return accounts.reduce<number>((total, account) => {
     if (!isRecord(account)) {
       return total
     }
@@ -89,7 +89,7 @@ function countBitcoinSecrets(accounts: unknown): number {
   if (!Array.isArray(accounts)) {
     return 0
   }
-  return accounts.reduce((total, account) => {
+  return accounts.reduce<number>((total, account) => {
     if (!isRecord(account) || !Array.isArray(account.keys)) {
       return total
     }
