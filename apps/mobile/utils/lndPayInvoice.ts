@@ -18,3 +18,16 @@ export function buildLndPayInvoiceBody(
     payment_request: paymentRequest
   }
 }
+
+export function assertLndPaymentSucceeded(response: {
+  payment_error?: string
+  status?: string
+}) {
+  const paymentError = response.payment_error?.trim()
+  if (paymentError) {
+    throw new Error(paymentError)
+  }
+  if (response.status?.toUpperCase() === 'FAILED') {
+    throw new Error('Payment failed')
+  }
+}

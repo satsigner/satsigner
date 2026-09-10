@@ -4,6 +4,7 @@ import {
   isAmountlessBolt11Invoice
 } from '@/utils/lightningInvoiceDecoder'
 import {
+  assertLndPaymentSucceeded,
   buildLndPayInvoiceBody,
   parsePositiveSats
 } from '@/utils/lndPayInvoice'
@@ -52,5 +53,22 @@ describe('bolt11AmountSats', () => {
     ).toBe(2)
     expect(bolt11AmountSats({ value: '50' })).toBe(50)
     expect(isAmountlessBolt11Invoice({ num_satoshis: '100' })).toBe(false)
+  })
+})
+
+describe('assertLndPaymentSucceeded', () => {
+  it('throws when LND returns payment_error with HTTP 200', () => {
+    expect(() =>
+      assertLndPaymentSucceeded({ payment_error: 'unable to find a path' })
+    ).toThrow('unable to find a path')
+  })
+
+  it('allows a successful sync payment', () => {
+    expect(() =>
+      assertLndPaymentSucceeded({
+        payment_error: '',
+        status: 'SUCCEEDED'
+      })
+    ).not.toThrow()
   })
 })
