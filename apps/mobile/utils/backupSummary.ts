@@ -50,22 +50,20 @@ function countNestedArrays(value: unknown): number {
   if (!isRecord(value)) {
     return 0
   }
-  let total = 0
-  for (const nested of Object.values(value)) {
-    total += countArray(nested)
-  }
-  return total
+  return Object.values(value).reduce(
+    (total, nested) => total + countArray(nested),
+    0
+  )
 }
 
 function countNestedRecords(value: unknown): number {
   if (!isRecord(value)) {
     return 0
   }
-  let total = 0
-  for (const nested of Object.values(value)) {
-    total += countKeys(nested)
-  }
-  return total
+  return Object.values(value).reduce(
+    (total, nested) => total + countKeys(nested),
+    0
+  )
 }
 
 function countNonEmptyStringsInRecord(value: unknown): number {
@@ -79,51 +77,40 @@ function countBitcoinLabels(accounts: unknown): number {
   if (!Array.isArray(accounts)) {
     return 0
   }
-  let total = 0
-  for (const account of accounts) {
+  return accounts.reduce((total, account) => {
     if (!isRecord(account)) {
-      continue
+      return total
     }
-    total += countKeys(account.labels)
-  }
-  return total
+    return total + countKeys(account.labels)
+  }, 0)
 }
 
 function countBitcoinSecrets(accounts: unknown): number {
   if (!Array.isArray(accounts)) {
     return 0
   }
-  let total = 0
-  for (const account of accounts) {
+  return accounts.reduce((total, account) => {
     if (!isRecord(account) || !Array.isArray(account.keys)) {
-      continue
+      return total
     }
-    for (const key of account.keys) {
-      if (isRecord(key) && isNonEmptyString(key.seedWords)) {
-        total += 1
-      }
-    }
-  }
-  return total
+    return (
+      total +
+      account.keys.filter(
+        (key) => isRecord(key) && isNonEmptyString(key.seedWords)
+      ).length
+    )
+  }, 0)
 }
 
 function countNostrSecrets(identities: unknown): number {
   if (!Array.isArray(identities)) {
     return 0
   }
-  let total = 0
-  for (const identity of identities) {
-    if (!isRecord(identity)) {
-      continue
-    }
-    if (
-      isNonEmptyString(identity.nsec) ||
-      isNonEmptyString(identity.mnemonic)
-    ) {
-      total += 1
-    }
-  }
-  return total
+  return identities.filter(
+    (identity) =>
+      isRecord(identity) &&
+      (isNonEmptyString(identity.nsec) || isNonEmptyString(identity.mnemonic))
+  ).length
 }
 
 function emptySummary(bytes: number, parseable: boolean): BackupPayloadSummary {
@@ -147,55 +134,49 @@ function emptySummary(bytes: number, parseable: boolean): BackupPayloadSummary {
 export function summarizeBackupPayload(payload: string): BackupPayloadSummary {
   const bytes = new TextEncoder().encode(payload).length
   try {
-    const data = JSON.parse(payload) as {
-      accounts?: unknown
-      ark?: {
-        accounts?: unknown
-        datadirs?: unknown
-        labels?: unknown
-        mnemonics?: unknown
-      }
-      ecash?: {
-        accounts?: unknown
-        mints?: unknown
-        mnemonics?: unknown
-        proofs?: unknown
-        transactions?: unknown
-      }
-      lightning?: { channels?: unknown; config?: unknown }
-      nostrIdentities?: { identities?: unknown; relays?: unknown }
+    const parsed: unknown = JSON.parse(payload)
+    if (!isRecord(parsed)) {
+      return emptySummary(bytes, true)
     }
-    const identities = data.nostrIdentities?.identities
+    const identities = isRecord(parsed.nostrIdentities)
+      ? parsed.nostrIdentities.identities
+      : undefined
+    const ark = isRecord(parsed.ark) ? parsed.ark : undefined
+    const ecash = isRecord(parsed.ecash) ? parsed.ecash : undefined
+    const lightning = isRecord(parsed.lightning) ? parsed.lightning : undefined
+    const nostrIdentities = isRecord(parsed.nostrIdentities)
+      ? parsed.nostrIdentities
+      : undefined
     return {
       ark: {
-        accounts: countArray(data.ark?.accounts),
-        datadirs: countKeys(data.ark?.datadirs),
-        labels: countNestedRecords(data.ark?.labels),
-        secrets: countNonEmptyStringsInRecord(data.ark?.mnemonics)
+        accounts: countArray(ark?.accounts),
+        datadirs: countKeys(ark?.datadirs),
+        labels: countNestedRecords(ark?.labels),
+        secrets: countNonEmptyStringsInRecord(ark?.mnemonics)
       },
       bitcoin: {
-        accounts: countArray(data.accounts),
-        labels: countBitcoinLabels(data.accounts),
-        secrets: countBitcoinSecrets(data.accounts)
+        accounts: countArray(parsed.accounts),
+        labels: countBitcoinLabels(parsed.accounts),
+        secrets: countBitcoinSecrets(parsed.accounts)
       },
       bytes,
       ecash: {
-        accounts: countArray(data.ecash?.accounts),
-        mints: countNestedArrays(data.ecash?.mints),
-        proofs: countNestedArrays(data.ecash?.proofs),
-        secrets: countNonEmptyStringsInRecord(data.ecash?.mnemonics),
-        transactions: countNestedArrays(data.ecash?.transactions)
+        accounts: countArray(ecash?.accounts),
+        mints: countNestedArrays(ecash?.mints),
+        proofs: countNestedArrays(ecash?.proofs),
+        secrets: countNonEmptyStringsInRecord(ecash?.mnemonics),
+        transactions: countNestedArrays(ecash?.transactions)
       },
       lightning: {
-        channels: countArray(data.lightning?.channels),
+        channels: countArray(lightning?.channels),
         hasConfig:
-          data.lightning?.config !== null &&
-          data.lightning?.config !== undefined &&
-          typeof data.lightning.config === 'object'
+          lightning?.config !== null &&
+          lightning?.config !== undefined &&
+          typeof lightning.config === 'object'
       },
       nostr: {
         accounts: countArray(identities),
-        relays: countArray(data.nostrIdentities?.relays),
+        relays: countArray(nostrIdentities?.relays),
         secrets: countNostrSecrets(identities)
       },
       parseable: true
