@@ -6,7 +6,7 @@ import { loadRpcCredentials } from '@/utils/serviceSecrets'
 export const BLOCKCHAIN_BACKUP_NETWORKS: Network[] = NetworkSchema.options
 
 export type BlockchainBackup = {
-  configs: Record<Network, { config: Config; server: Server }>
+  configs: Partial<Record<Network, { config: Config; server: Server }>>
   configsMempool: Record<Network, string>
   customServers: Server[]
   selectedNetwork: Network
@@ -45,6 +45,9 @@ async function collectNetworkConfig(
   network: Network
 ) {
   const current = state.configs[network]
+  if (!current?.config || !current.server) {
+    return null
+  }
   return {
     config: current.config,
     server: await serverWithRpcCredentials(current.server, network)
@@ -63,7 +66,11 @@ export async function collectBlockchainBackup(
     collectNetworkConfig(state, 'signet')
   ])
   return {
-    configs: { bitcoin, signet, testnet },
+    configs: {
+      bitcoin: bitcoin ?? undefined,
+      signet: signet ?? undefined,
+      testnet: testnet ?? undefined
+    },
     configsMempool: state.configsMempool,
     customServers: state.customServers,
     selectedNetwork: state.selectedNetwork
@@ -81,6 +88,9 @@ export function restoreBlockchainFromBackup(
       continue
     }
     const current = store.configs[network]
+    if (!current?.server || !current.config) {
+      continue
+    }
     store.updateServer(network, {
       ...current.server,
       ...incoming.server

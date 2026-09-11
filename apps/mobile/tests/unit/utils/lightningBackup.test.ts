@@ -157,4 +157,27 @@ describe('restoreLightningFromBackup', () => {
 
     expect(clearConfig).toHaveBeenCalledTimes(1)
   })
+
+  it('restores channels when connection credentials are omitted', () => {
+    const setChannels = jest.fn()
+    const setConfig = jest.fn()
+
+    restoreLightningFromBackup(
+      {
+        lightning: {
+          channels: INPUT.channels
+        }
+      },
+      {
+        clearConfig: jest.fn(),
+        setChannels,
+        setConfig,
+        setConnected: jest.fn(),
+        setNodeInfo: jest.fn()
+      }
+    )
+
+    expect(setChannels).toHaveBeenCalledWith([])
+    expect(setConfig).not.toHaveBeenCalled()
+  })
 })

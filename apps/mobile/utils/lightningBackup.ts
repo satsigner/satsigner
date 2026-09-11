@@ -98,21 +98,20 @@ export function restoreLightningFromBackup(
   const config = data.lightning?.config ?? data.lnd
   if (config) {
     store.setConfig(config)
-    if (data.lightning?.nodeInfo) {
-      store.setNodeInfo(data.lightning.nodeInfo)
-    }
-    if (data.lightning?.channels) {
-      store.setChannels(data.lightning.channels)
-    }
-    if (typeof data.lightning?.isConnected === 'boolean') {
-      store.setConnected(data.lightning.isConnected)
-    }
-    return
-  }
-  if (
+  } else if (
     ('lightning' in data && data.lightning?.config === null) ||
     ('lnd' in data && data.lnd === null)
   ) {
     store.clearConfig()
+  }
+
+  if (data.lightning?.nodeInfo) {
+    store.setNodeInfo(data.lightning.nodeInfo)
+  }
+  if (data.lightning?.channels) {
+    store.setChannels(data.lightning.channels)
+  }
+  if (typeof data.lightning?.isConnected === 'boolean') {
+    store.setConnected(data.lightning.isConnected)
   }
 }

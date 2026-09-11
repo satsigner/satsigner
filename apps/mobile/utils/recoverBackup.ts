@@ -180,7 +180,51 @@ function validateBackup(
       }
     }
   }
+  if (data.lnd !== undefined && data.lnd !== null && !isLndConfig(data.lnd)) {
+    return { error: 'Backup lightning config is invalid', ok: false }
+  }
+  if (
+    data.lightning?.config !== undefined &&
+    data.lightning.config !== null &&
+    !isLndConfig(data.lightning.config)
+  ) {
+    return { error: 'Backup lightning config is invalid', ok: false }
+  }
+  if (data.serverSettings && !isBlockchainBackup(data.serverSettings)) {
+    return { error: 'Backup server settings are invalid', ok: false }
+  }
   return { ok: true, value: parsed as BackupData }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isLndConfig(value: unknown): value is LNDConfig {
+  return (
+    isRecord(value) &&
+    typeof value.cert === 'string' &&
+    typeof value.macaroon === 'string' &&
+    typeof value.url === 'string'
+  )
+}
+
+function isBlockchainBackup(value: unknown): value is BlockchainBackup {
+  if (!isRecord(value) || !isRecord(value.configs)) {
+    return false
+  }
+  if (
+    typeof value.selectedNetwork !== 'string' ||
+    (value.selectedNetwork !== 'bitcoin' &&
+      value.selectedNetwork !== 'testnet' &&
+      value.selectedNetwork !== 'signet')
+  ) {
+    return false
+  }
+  if (!Array.isArray(value.customServers)) {
+    return false
+  }
+  return true
 }
 
 async function prepareRestore(
