@@ -240,12 +240,12 @@ export function useEcashReceive() {
       return
     }
 
-    if (!selectedMintUrlForLightning && mints.length > 1) {
+    if (mints.length > 1 && !selectedMintForLightning) {
       toast.error(t('ecash.mint.noMintSelected'))
       return
     }
 
-    const mintUrl = selectedMintUrlForLightning ?? mints[0]?.url
+    const mintUrl = selectedMintForLightning?.url ?? mints[0]?.url
 
     if (!mintUrl) {
       toast.error(t('ecash.error.noMintConnected'))
