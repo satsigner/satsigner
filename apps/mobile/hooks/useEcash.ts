@@ -710,8 +710,7 @@ export function useEcash() {
         return
       }
       try {
-        const latestProofs =
-          useEcashStore.getState().proofs[accountId] ?? []
+        const latestProofs = useEcashStore.getState().proofs[accountId] ?? []
         const mintProofsList = latestProofs.filter(
           (proof) => proof.mintUrl === item.mintUrl
         )
