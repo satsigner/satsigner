@@ -43,7 +43,11 @@ import {
   EcashBackupValidationError,
   parseEcashBackupPayload
 } from '@/utils/ecashBackup'
-import { selectMintRoute } from '@/utils/ecashMintRoute'
+import {
+  coveringMintUrls,
+  mintCoversMeltQuote,
+  sliceAmountAfterFeeMiss
+} from '@/utils/ecashMintRoute'
 import {
   proofsAfterMelt,
   proofsAfterSend,
@@ -52,6 +56,7 @@ import {
 
 const POLL_INTERVAL = 1500
 const MAX_POLL_ATTEMPTS = 120
+const MAX_MPP_FEE_SLICE_ATTEMPTS = 3
 
 type TokenValidationResult = {
   isValid: boolean
@@ -404,7 +409,8 @@ export function useEcash() {
   async function meltProofsHandler(
     mintUrl: string,
     quote: MeltQuote,
-    proofsToMelt: EcashProof[]
+    proofsToMelt: EcashProof[],
+    meltOptions?: { silent?: boolean }
   ): Promise<EcashMeltResult> {
     if (!activeAccountId) {
       throw new Error('No active account')
@@ -422,7 +428,7 @@ export function useEcash() {
         useEcashStore.getState().proofs[activeAccountId] ?? []
       const remaining = proofsAfterMelt(
         currentProofs,
-        mintUrl,
+        proofsToMelt,
         result.keep ?? [],
         result.change ?? []
       )
@@ -449,7 +455,9 @@ export function useEcash() {
         type: 'melt'
       })
 
-      toast.success(t('ecash.success.tokensMelted'))
+      if (!meltOptions?.silent) {
+        toast.success(t('ecash.success.tokensMelted'))
+      }
       return result
     } catch (error) {
       if (error instanceof EcashSpentProofsError) {
@@ -493,7 +501,11 @@ export function useEcash() {
       )
       const currentProofs =
         useEcashStore.getState().proofs[activeAccountId] ?? []
-      const remaining = proofsAfterSend(currentProofs, mintUrl, result.keep)
+      const remaining = proofsAfterSend(
+        currentProofs,
+        mintProofsList,
+        result.keep
+      )
       setProofsAction(activeAccountId, remaining)
       updateMintBalance(
         activeAccountId,
@@ -545,66 +557,186 @@ export function useEcash() {
     if (!activeAccountId) {
       throw new Error('No active account')
     }
+    const accountId = activeAccountId
     const options = await getWalletOptions()
-    const currentProofs = useEcashStore.getState().proofs[activeAccountId] ?? []
+    const currentProofs = useEcashStore.getState().proofs[accountId] ?? []
     const mintBalances = await Promise.all(
-      mints.map(async (mint) => ({
-        balance: getMintBalance(mint.url, currentProofs),
-        mintUrl: mint.url,
-        supportsMpp: await mintSupportsBolt11Mpp(
-          activeAccountId,
-          mint.url,
-          options
-        )
-      }))
+      mints.map(async (mint) => {
+        try {
+          return {
+            balance: getMintBalance(mint.url, currentProofs),
+            mintUrl: mint.url,
+            supportsMpp: await mintSupportsBolt11Mpp(
+              accountId,
+              mint.url,
+              options
+            )
+          }
+        } catch {
+          return {
+            balance: getMintBalance(mint.url, currentProofs),
+            mintUrl: mint.url,
+            supportsMpp: false
+          }
+        }
+      })
     )
-    const route = selectMintRoute({
-      allowMpp: true,
-      amountSats,
-      mints: mintBalances,
-      selectedMintUrl
-    })
-    if (route.kind === 'insufficient') {
+    const totalBalance = mintBalances.reduce(
+      (sum, mint) => sum + mint.balance,
+      0
+    )
+    if (totalBalance < amountSats) {
       throw new Error(t('ecash.error.insufficientProofs'))
     }
-    if (route.kind === 'no_mpp') {
-      throw new Error(t('ecash.error.mintsLackMpp'))
+
+    const coveringUrls = coveringMintUrls(
+      amountSats,
+      mintBalances,
+      selectedMintUrl
+    )
+
+    async function payWithCoveringMint(index: number): Promise<boolean> {
+      const mintUrl = coveringUrls[index]
+      if (!mintUrl) {
+        return false
+      }
+      const quote = await createMeltQuoteHandler(mintUrl, invoice)
+      const balance =
+        mintBalances.find((mint) => mint.mintUrl === mintUrl)?.balance ?? 0
+      if (mintCoversMeltQuote(balance, quote)) {
+        const mintProofsList = currentProofs.filter(
+          (proof) => proof.mintUrl === mintUrl
+        )
+        await meltProofsHandler(mintUrl, quote, mintProofsList, {
+          silent: true
+        })
+        return true
+      }
+      removeMeltQuoteAction(accountId, quote.quote)
+      return payWithCoveringMint(index + 1)
     }
-    if (route.kind === 'single') {
-      const quote = await createMeltQuoteHandler(route.mintUrl, invoice)
-      const mintProofsList = currentProofs.filter(
-        (proof) => proof.mintUrl === route.mintUrl
-      )
-      await meltProofsHandler(route.mintUrl, quote, mintProofsList)
+
+    if (await payWithCoveringMint(0)) {
       return
     }
 
-    const quotes = await Promise.all(
-      route.slices.map((slice) =>
-        createMppMeltQuote(
-          activeAccountId,
-          slice.mintUrl,
-          invoice,
-          slice.amountSats,
-          options
+    const mppMints = mintBalances
+      .filter((mint) => mint.supportsMpp && mint.balance > 0)
+      .toSorted((a, b) => b.balance - a.balance)
+
+    if (mppMints.length === 0) {
+      throw new Error(
+        t(
+          coveringUrls.length > 0
+            ? 'ecash.error.insufficientForFees'
+            : 'ecash.error.mintsLackMpp'
         )
       )
-    )
-    for (const quote of quotes) {
-      addMeltQuoteAction(activeAccountId, quote)
     }
-    for (const [index, slice] of route.slices.entries()) {
-      const quote = quotes[index]
-      if (!quote) {
-        throw new Error(t('ecash.error.insufficientProofs'))
+
+    async function quoteCoveredSlice(
+      mint: (typeof mppMints)[number],
+      remainingSats: number,
+      take: number,
+      attemptsLeft: number
+    ): Promise<MeltQuote | null> {
+      if (take <= 0 || attemptsLeft <= 0) {
+        return null
       }
-      const latestProofs =
-        useEcashStore.getState().proofs[activeAccountId] ?? []
-      const mintProofsList = latestProofs.filter(
-        (proof) => proof.mintUrl === slice.mintUrl
+      const quote = await createMppMeltQuote(
+        accountId,
+        mint.mintUrl,
+        invoice,
+        take,
+        options
       )
-      await meltProofsHandler(slice.mintUrl, quote, mintProofsList)
+      if (mintCoversMeltQuote(mint.balance, quote)) {
+        return quote
+      }
+      const nextTake = sliceAmountAfterFeeMiss(
+        mint.balance,
+        remainingSats,
+        quote.fee_reserve
+      )
+      if (nextTake <= 0 || nextTake >= take) {
+        return null
+      }
+      return quoteCoveredSlice(mint, remainingSats, nextTake, attemptsLeft - 1)
     }
+
+    async function planMppQuotes(
+      mintsLeft: typeof mppMints,
+      remainingSats: number,
+      planned: { mintUrl: string; quote: MeltQuote }[]
+    ): Promise<{ mintUrl: string; quote: MeltQuote }[]> {
+      if (remainingSats <= 0) {
+        return planned
+      }
+      const [mint, ...rest] = mintsLeft
+      if (!mint) {
+        return planned
+      }
+      const quote = await quoteCoveredSlice(
+        mint,
+        remainingSats,
+        Math.min(mint.balance, remainingSats),
+        MAX_MPP_FEE_SLICE_ATTEMPTS
+      )
+      if (!quote) {
+        return planMppQuotes(rest, remainingSats, planned)
+      }
+      return planMppQuotes(rest, remainingSats - quote.amount, [
+        ...planned,
+        { mintUrl: mint.mintUrl, quote }
+      ])
+    }
+
+    const plannedQuotes = await planMppQuotes(mppMints, amountSats, [])
+    const plannedAmount = plannedQuotes.reduce(
+      (sum, item) => sum + item.quote.amount,
+      0
+    )
+    if (plannedQuotes.length === 0 || plannedAmount < amountSats) {
+      throw new Error(t('ecash.error.insufficientForFees'))
+    }
+
+    for (const item of plannedQuotes) {
+      addMeltQuoteAction(accountId, item.quote)
+    }
+
+    async function meltPlannedQuotes(index: number): Promise<void> {
+      const item = plannedQuotes[index]
+      if (!item) {
+        return
+      }
+      try {
+        const latestProofs =
+          useEcashStore.getState().proofs[accountId] ?? []
+        const mintProofsList = latestProofs.filter(
+          (proof) => proof.mintUrl === item.mintUrl
+        )
+        await meltProofsHandler(item.mintUrl, item.quote, mintProofsList, {
+          silent: true
+        })
+        await meltPlannedQuotes(index + 1)
+      } catch (error) {
+        for (const unused of plannedQuotes.slice(index + 1)) {
+          removeMeltQuoteAction(accountId, unused.quote.quote)
+        }
+        if (index > 0) {
+          throw new Error(
+            t('ecash.error.mppPartialPayment', {
+              settled: index,
+              total: plannedQuotes.length
+            }),
+            { cause: error }
+          )
+        }
+        throw error
+      }
+    }
+
+    await meltPlannedQuotes(0)
   }
 
   async function receiveEcashHandler(

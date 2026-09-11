@@ -94,6 +94,46 @@ export function selectMintRoute({
   return { kind: 'mpp', slices }
 }
 
+export function meltSatsNeeded(quote: {
+  amount: number
+  fee_reserve: number
+}): number {
+  return quote.amount + quote.fee_reserve
+}
+
+export function mintCoversMeltQuote(
+  balance: number,
+  quote: { amount: number; fee_reserve: number }
+): boolean {
+  return balance >= meltSatsNeeded(quote)
+}
+
+export function coveringMintUrls(
+  amountSats: number,
+  mints: MintSpendBalance[],
+  selectedMintUrl: string | null
+): string[] {
+  const covering = mints
+    .filter((mint) => mint.balance >= amountSats)
+    .toSorted((a, b) => b.balance - a.balance)
+    .map((mint) => mint.mintUrl)
+  if (!selectedMintUrl || !covering.includes(selectedMintUrl)) {
+    return covering
+  }
+  return [
+    selectedMintUrl,
+    ...covering.filter((mintUrl) => mintUrl !== selectedMintUrl)
+  ]
+}
+
+export function sliceAmountAfterFeeMiss(
+  balance: number,
+  remainingSats: number,
+  feeReserve: number
+): number {
+  return Math.min(remainingSats, Math.max(0, balance - feeReserve))
+}
+
 export function describeTokenRoute(
   route: MintRoute | null,
   mints: { name?: string; url: string }[]

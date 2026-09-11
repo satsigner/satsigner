@@ -1,7 +1,11 @@
 import {
   allocateMppSlices,
+  coveringMintUrls,
+  meltSatsNeeded,
+  mintCoversMeltQuote,
   type MintSpendBalance,
-  selectMintRoute
+  selectMintRoute,
+  sliceAmountAfterFeeMiss
 } from '@/utils/ecashMintRoute'
 
 function mint(
@@ -92,5 +96,29 @@ describe('ecash mint route', () => {
     })
 
     expect(route.kind).toBe('no_mpp')
+  })
+
+  it('includes melt fee reserve when checking a quote', () => {
+    expect(meltSatsNeeded({ amount: 100, fee_reserve: 7 })).toBe(107)
+    expect(mintCoversMeltQuote(106, { amount: 100, fee_reserve: 7 })).toBe(
+      false
+    )
+    expect(mintCoversMeltQuote(107, { amount: 100, fee_reserve: 7 })).toBe(true)
+  })
+
+  it('prefers the selected covering mint then other covering mints', () => {
+    expect(
+      coveringMintUrls(
+        80,
+        [mint('a', 50, true), mint('b', 90, true), mint('c', 200, true)],
+        'b'
+      )
+    ).toStrictEqual(['b', 'c'])
+  })
+
+  it('shrinks an MPP slice so amount plus fee reserve still fits', () => {
+    expect(sliceAmountAfterFeeMiss(100, 90, 15)).toBe(85)
+    expect(sliceAmountAfterFeeMiss(100, 50, 15)).toBe(50)
+    expect(sliceAmountAfterFeeMiss(10, 50, 15)).toBe(0)
   })
 })
