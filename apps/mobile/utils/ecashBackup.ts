@@ -1,5 +1,6 @@
 import { ECASH_BACKUP_VERSION } from '@/constants/ecash'
 import type {
+  EcashKeyset,
   EcashMint,
   EcashProof,
   EcashTransaction
@@ -157,7 +158,7 @@ export function normalizeRestoredProofs(
     }))
   }
 
-  return withMintUrl
+  throw new EcashBackupValidationError('invalid')
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -170,10 +171,14 @@ function parseRestoredProof(value: unknown): EcashProof | null {
   }
   if (
     typeof value.C !== 'string' ||
+    value.C.length === 0 ||
     typeof value.id !== 'string' ||
+    value.id.length === 0 ||
     typeof value.secret !== 'string' ||
+    value.secret.length === 0 ||
     typeof value.amount !== 'number' ||
-    !Number.isFinite(value.amount)
+    !Number.isSafeInteger(value.amount) ||
+    value.amount <= 0
   ) {
     return null
   }
@@ -194,15 +199,41 @@ function parseRestoredMint(value: unknown): EcashMint | null {
   if (typeof value.url !== 'string' || value.url.length === 0) {
     return null
   }
+  const keysets =
+    value.keysets === undefined ? [] : parseRestoredKeysets(value.keysets)
+  if (keysets === null) {
+    return null
+  }
   return {
     balance: typeof value.balance === 'number' ? value.balance : 0,
     isConnected:
       typeof value.isConnected === 'boolean' ? value.isConnected : true,
-    keysets: [],
+    keysets,
     lastSync: typeof value.lastSync === 'string' ? value.lastSync : undefined,
     name: typeof value.name === 'string' ? value.name : undefined,
     url: value.url
   }
+}
+
+function parseRestoredKeysets(value: unknown): EcashKeyset[] | null {
+  if (!Array.isArray(value)) {
+    return null
+  }
+  const keysets: EcashKeyset[] = []
+  for (const item of value) {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== 'string' ||
+      item.id.length === 0
+    ) {
+      return null
+    }
+    if (item.unit !== 'sat' || typeof item.active !== 'boolean') {
+      return null
+    }
+    keysets.push({ active: item.active, id: item.id, unit: 'sat' })
+  }
+  return keysets
 }
 
 function parseRestoredTransaction(value: unknown): EcashTransaction | null {
@@ -291,7 +322,10 @@ export function mergeByKey<T>(
 ): T[] {
   const merged = new Map(existing.map((item) => [keyOf(item), item]))
   for (const item of incoming) {
-    merged.set(keyOf(item), item)
+    const key = keyOf(item)
+    if (!merged.has(key)) {
+      merged.set(key, item)
+    }
   }
   return [...merged.values()]
 }

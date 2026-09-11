@@ -69,17 +69,30 @@ describe('ecash backup', () => {
   })
 
   it('does not assign mints[0] when several mints and mintUrl is missing', () => {
-    const restored = normalizeRestoredProofs(
-      [
-        { C: 'C', amount: 1, id: 'ks', mintUrl: '', secret: 's1' },
-        proof('s2', 'https://b.example')
-      ],
-      [mint('https://a.example'), mint('https://b.example')]
-    )
+    expect(() =>
+      normalizeRestoredProofs(
+        [
+          { C: 'C', amount: 1, id: 'ks', mintUrl: '', secret: 's1' },
+          proof('s2', 'https://b.example')
+        ],
+        [mint('https://a.example'), mint('https://b.example')]
+      )
+    ).toThrow(EcashBackupValidationError)
+  })
 
-    expect(restored).toHaveLength(1)
-    expect(restored[0].secret).toBe('s2')
-    expect(restored[0].mintUrl).toBe('https://b.example')
+  it('restores mint keysets from the backup', () => {
+    const parsed = parseEcashBackupPayload({
+      mints: [
+        {
+          ...mint('https://a.example'),
+          keysets: [{ active: true, id: 'ks1', unit: 'sat' }]
+        }
+      ],
+      proofs: [proof('s1', 'https://a.example')]
+    })
+    expect(parsed.mints[0].keysets).toStrictEqual([
+      { active: true, id: 'ks1', unit: 'sat' }
+    ])
   })
 
   it('refuses backups that omit proofs', () => {
