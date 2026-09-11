@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { queryClient } from '@/lib/queryClient'
 import mmkvStorage from '@/storage/mmkv'
 import type {
   LNDChannel,
@@ -35,6 +36,7 @@ export const useLightningStore = create<LightningState>()(
     (set) => ({
       clearConfig: () => {
         void deleteLndSecretsSafe()
+        queryClient.removeQueries({ queryKey: ['lnd'] })
         set({
           config: null,
           status: initialStatus
