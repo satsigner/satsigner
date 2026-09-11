@@ -35,6 +35,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
+import { type LNDConfig } from '@/types/models/Lightning'
 import { getBackupFilename } from '@/utils/backupFilename'
 import { collectBlockchainBackup } from '@/utils/blockchainBackup'
 import {
@@ -47,6 +48,47 @@ import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import { saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
+import { stripLndSecrets } from '@/utils/serviceSecrets'
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function lndConfigFromUnknown(
+  value: Record<string, unknown>
+): LNDConfig | null {
+  if (
+    typeof value.cert !== 'string' ||
+    typeof value.macaroon !== 'string' ||
+    typeof value.url !== 'string'
+  ) {
+    return null
+  }
+  return { cert: value.cert, macaroon: value.macaroon, url: value.url }
+}
+
+function previewWithoutLndSecrets(payload: string): string {
+  const parsed: unknown = JSON.parse(payload)
+  if (!isRecord(parsed)) {
+    return payload
+  }
+  if (isRecord(parsed.lightning) && isRecord(parsed.lightning.config)) {
+    const config = lndConfigFromUnknown(parsed.lightning.config)
+    if (config) {
+      parsed.lightning = {
+        ...parsed.lightning,
+        config: stripLndSecrets(config)
+      }
+    }
+  }
+  if (isRecord(parsed.lnd)) {
+    const config = lndConfigFromUnknown(parsed.lnd)
+    if (config) {
+      parsed.lnd = stripLndSecrets(config)
+    }
+  }
+  return JSON.stringify(parsed, null, 2)
+}
 
 export default function Developer() {
   const router = useRouter()
@@ -485,7 +527,11 @@ export default function Developer() {
               editable={false}
               multiline
               style={styles.backupPreviewText}
-              value={backupPreviewPayload ?? ''}
+              value={
+                backupPreviewPayload
+                  ? previewWithoutLndSecrets(backupPreviewPayload)
+                  : ''
+              }
             />
           </ScrollView>
           <SSVStack gap="xs" widthFull>
