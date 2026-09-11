@@ -1,6 +1,10 @@
 export function parsePositiveSats(amountText: string) {
-  const amountSats = parseInt(amountText, 10)
-  if (Number.isNaN(amountSats) || amountSats <= 0) {
+  const normalizedAmount = amountText.trim()
+  if (!/^\d+$/.test(normalizedAmount)) {
+    return null
+  }
+  const amountSats = Number(normalizedAmount)
+  if (!Number.isSafeInteger(amountSats) || amountSats <= 0) {
     return null
   }
   return amountSats

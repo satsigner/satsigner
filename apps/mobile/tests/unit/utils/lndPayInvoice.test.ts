@@ -15,6 +15,9 @@ describe('parsePositiveSats', () => {
     expect(parsePositiveSats('0')).toBeNull()
     expect(parsePositiveSats('-1')).toBeNull()
     expect(parsePositiveSats('abc')).toBeNull()
+    expect(parsePositiveSats('1.5')).toBeNull()
+    expect(parsePositiveSats('21abc')).toBeNull()
+    expect(parsePositiveSats(' 21 ')).toBe(21)
   })
 
   it('parses a positive sat amount', () => {
