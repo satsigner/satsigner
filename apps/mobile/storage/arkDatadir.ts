@@ -92,25 +92,51 @@ async function readArkDatadirFiles(
   return files
 }
 
-async function writeArkDatadirFiles(
-  accountId: string,
-  files: ArkDatadirFile[]
-): Promise<void> {
-  await deleteArkDatadir(accountId)
-  if (files.length === 0) {
-    await ensureArkDatadir(accountId)
-    return
-  }
-  const dirUri = getArkDatadirUri(accountId)
-  await ensureArkDatadir(accountId)
-  for (const file of files) {
+function getArkStagingDatadirUri(accountId: string): string {
+  const safeId = assertSafePathSegment(accountId, 'ark account id')
+  return `${ARK_DIR}${safeId}.staging/`
+}
+
+function validatedDatadirFiles(files: ArkDatadirFile[]): ArkDatadirFile[] {
+  return files.map((file) => {
     const filename = assertSafePathSegment(file.filename, 'ark datadir file')
     if (!isDatadirBackupFile(filename)) {
       throw new Error(`Invalid ark datadir file: ${filename}`)
     }
-    await FileSystem.writeAsStringAsync(`${dirUri}${filename}`, file.base64, {
-      encoding: FileSystem.EncodingType.Base64
-    })
+    return { base64: file.base64, filename }
+  })
+}
+
+async function writeArkDatadirFiles(
+  accountId: string,
+  files: ArkDatadirFile[]
+): Promise<void> {
+  const safeFiles = validatedDatadirFiles(files)
+  if (safeFiles.length === 0) {
+    await ensureArkDatadir(accountId)
+    return
+  }
+  const targetUri = getArkDatadirUri(accountId)
+  const stagingUri = getArkStagingDatadirUri(accountId)
+  await FileSystem.deleteAsync(stagingUri, { idempotent: true })
+  await FileSystem.makeDirectoryAsync(stagingUri, { intermediates: true })
+  try {
+    for (const file of safeFiles) {
+      await FileSystem.writeAsStringAsync(
+        `${stagingUri}${file.filename}`,
+        file.base64,
+        { encoding: FileSystem.EncodingType.Base64 }
+      )
+    }
+    await FileSystem.deleteAsync(targetUri, { idempotent: true })
+    await FileSystem.moveAsync({ from: stagingUri, to: targetUri })
+  } catch (error) {
+    try {
+      await FileSystem.deleteAsync(stagingUri, { idempotent: true })
+    } catch {
+      // Staging cleanup is best-effort after a failed replace.
+    }
+    throw error
   }
 }
 

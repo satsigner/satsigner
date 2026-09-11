@@ -14,6 +14,7 @@ jest.mock<typeof import('expo-file-system/legacy')>(
     documentDirectory: 'file:///doc/',
     getInfoAsync: jest.fn(),
     makeDirectoryAsync: jest.fn(),
+    moveAsync: jest.fn(),
     readAsStringAsync: jest.fn(),
     readDirectoryAsync: jest.fn(),
     writeAsStringAsync: jest.fn()
@@ -25,6 +26,8 @@ const mockReadDir = jest.mocked(FileSystem.readDirectoryAsync)
 const mockReadAsString = jest.mocked(FileSystem.readAsStringAsync)
 const mockWriteAsString = jest.mocked(FileSystem.writeAsStringAsync)
 const mockMkdir = jest.mocked(FileSystem.makeDirectoryAsync)
+const mockDelete = jest.mocked(FileSystem.deleteAsync)
+const mockMove = jest.mocked(FileSystem.moveAsync)
 
 describe('findArkDbFile', () => {
   beforeEach(() => {
@@ -143,6 +146,10 @@ describe('writeArkDatadirFiles', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockGetInfo.mockResolvedValue({ exists: false })
+    mockDelete.mockResolvedValue(undefined)
+    mockMove.mockResolvedValue(undefined)
+    mockMkdir.mockResolvedValue(undefined)
+    mockWriteAsString.mockResolvedValue(undefined)
   })
 
   it('creates an empty datadir when there are no files', async () => {
@@ -154,7 +161,7 @@ describe('writeArkDatadirFiles', () => {
     expect(mockWriteAsString).not.toHaveBeenCalled()
   })
 
-  it('writes sqlite files into a fresh datadir', async () => {
+  it('writes sqlite files into a staging datadir then replaces the target', async () => {
     mockGetInfo.mockResolvedValue({ exists: false })
 
     await writeArkDatadirFiles('acc-1', [
@@ -162,17 +169,23 @@ describe('writeArkDatadirFiles', () => {
     ])
 
     expect(mockWriteAsString).toHaveBeenCalledWith(
-      'file:///doc/ark/acc-1/bark.db',
+      'file:///doc/ark/acc-1.staging/bark.db',
       'ZGItbWFpbg==',
       { encoding: 'base64' }
     )
+    expect(mockMove).toHaveBeenCalledWith({
+      from: 'file:///doc/ark/acc-1.staging/',
+      to: 'file:///doc/ark/acc-1/'
+    })
   })
 
-  it('rejects unsafe filenames', async () => {
+  it('rejects unsafe filenames without deleting the existing datadir', async () => {
     await expect(
       writeArkDatadirFiles('acc-1', [
         { base64: 'eA==', filename: '../escape.db' }
       ])
     ).rejects.toThrow('Invalid ark datadir file')
+    expect(mockDelete).not.toHaveBeenCalled()
+    expect(mockWriteAsString).not.toHaveBeenCalled()
   })
 })
