@@ -49,6 +49,7 @@ import {
 import {
   PAYJOIN_BOARD_TXID_UNSTABLE_ERROR,
   PAYJOIN_MIN_SESSION_EXPIRE_SECONDS,
+  PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR,
   PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
   PAYJOIN_NATIVE_PROBE_URI,
   PAYJOIN_OHTTP_KEYS_PROBE_OK
@@ -401,6 +402,9 @@ async function createReceiverSession(
   init: ReceiverSessionInit
 ): Promise<ReceiverSessionHandle> {
   try {
+    if (!init.receiveScriptHex) {
+      throw new Error(PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR)
+    }
     const ohttpKeys = await nativeFetchOhttpKeys(
       init.ohttpRelayUrl,
       init.directoryUrl
@@ -424,7 +428,7 @@ async function createReceiverSession(
       live: { kind: 'initialized', receiver },
       ohttpRelay: init.ohttpRelayUrl,
       pjUri,
-      receiveScriptHex: ''
+      receiveScriptHex: init.receiveScriptHex
     }
     receivers.set(id, entry)
     return { id, pjUri, state: encodeReceiverState(id, entry) }
@@ -700,6 +704,12 @@ function advanceReceiverToWantsInputs(
   persister: ReturnType<typeof createPersister>,
   checks?: ReceiverWalletChecks
 ) {
+  // A session persisted before the receive script was recorded can never match
+  // an output and would loop on PDK's "Missing payment." forever. Fail with a
+  // terminal error instead so the caller mints a fresh mailbox.
+  if (!receiveScriptHex) {
+    throw new Error(PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR)
+  }
   const isOutpointOwned = checks?.isOutpointOwned ?? (() => false)
   const isOutpointSeen = checks?.isOutpointSeen ?? (() => false)
 

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { toast } from 'sonner-native'
 
 import { isNativeAvailable } from '@/api/payjoinNative'
+import { PAYJOIN_BOARD_SESSION_TTL_MS } from '@/constants/payjoin'
 import {
   invalidateArkBoardQueries,
   useArkBoardFundingInfo
@@ -53,6 +54,9 @@ export function useArkBoardPayjoin(account: ArkAccount | undefined) {
             serverId: account.serverId
           }
         : undefined,
+    // A board QR is paid from another wallet — scan, build, review, sign — so
+    // the general receive TTL expires mid-flow and kills the mailbox.
+    ttlMs: PAYJOIN_BOARD_SESSION_TTL_MS,
     utxos: []
   })
 

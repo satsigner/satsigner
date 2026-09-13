@@ -22,6 +22,7 @@ import {
   PAYJOIN_BOARD_TXID_MISMATCH_ERROR,
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_FETCH_TIMEOUT_MS,
+  PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR,
   PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
   PAYJOIN_QUICK_POLL_DEFAULT_MS,
   PAYJOIN_QUICK_POLL_INTERVAL_MS,
@@ -29,6 +30,7 @@ import {
   PAYJOIN_RESUME_POLL_DEFAULT_TIMEOUT_MS,
   PAYJOIN_RESUME_POLL_INTERVAL_MS
 } from '@/constants/payjoin'
+import { useBlockchainStore } from '@/store/blockchain'
 import {
   buildNewSession,
   usePayjoinSessionsStore
@@ -44,6 +46,8 @@ import {
   type PayjoinSession,
   type PayjoinWalletCallbacks
 } from '@/types/payjoin'
+import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import {
   compactError,
   mailboxFromEndpoint,
@@ -69,6 +73,7 @@ import {
   parseBip78ErrorBody,
   validatePayjoinProposal
 } from '@/utils/payjoinValidate'
+import { addressScriptHex } from '@/utils/payjoinWallet'
 import { extractTransactionIdFromPSBT } from '@/utils/psbt'
 
 type HttpResponse = {
@@ -1241,8 +1246,22 @@ async function createReceivePayjoinSession(params: {
   amountSats?: number
   board?: PayjoinBoardDestination
   label?: string
+  network?: AppNetwork
   ttlMs?: number
 }): Promise<PayjoinSession> {
+  // PDK matches the sender's outputs against this script to find the payment.
+  // Without it every proposal is rejected with "Missing payment.", so refuse to
+  // mint a mailbox that could never complete.
+  const network =
+    params.network ?? useBlockchainStore.getState().selectedNetwork
+  const receiveScriptHex = addressScriptHex(
+    params.address,
+    bitcoinjsNetwork(network)
+  )
+  if (!receiveScriptHex) {
+    throw new Error(PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR)
+  }
+
   const relays = getShuffledOhttpRelays()
   const directoryUrl = getResolvedPayjoinDirectoryUrl()
   const expireSeconds = Math.floor(
@@ -1267,7 +1286,8 @@ async function createReceivePayjoinSession(params: {
           address: params.address,
           directoryUrl,
           expireSeconds,
-          ohttpRelayUrl: relay
+          ohttpRelayUrl: relay,
+          receiveScriptHex
         })
         pjUri = appendParamsToPayjoinUri(handle.pjUri, {
           amountSats: params.amountSats,

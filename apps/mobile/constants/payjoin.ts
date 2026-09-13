@@ -23,6 +23,15 @@ const PAYJOIN_OHTTP_RELAY_URLS = [
 /** Default receiver session TTL (5 minutes). */
 const PAYJOIN_SESSION_TTL_MS = 5 * 60 * 1000
 
+/**
+ * Receiver session TTL for ark board payjoins (30 minutes).
+ *
+ * A board QR is paid from a different wallet — scan, build, review, sign — so
+ * the general receive TTL runs out mid-flow and the mailbox dies before the
+ * sender ever posts. Matches the 30 minutes shhark allows for the same flow.
+ */
+const PAYJOIN_BOARD_SESSION_TTL_MS = 30 * 60 * 1000
+
 /** Allowed session TTL presets for settings (1 / 5 / 10 minutes). */
 const PAYJOIN_SESSION_TTL_PRESETS_MS = [
   1 * 60 * 1000,
@@ -121,10 +130,25 @@ const PAYJOIN_BOARD_COSIGN_FAILED_ERROR = 'board cosign failed'
  */
 const PAYJOIN_BOARD_TXID_MISMATCH_ERROR = 'board proposal txid changed on retry'
 
+/**
+ * The receiver session has no scriptPubKey to match the sender's outputs
+ * against, so PDK can never identify the payment. Terminal: the mailbox is
+ * unusable and a new one must be created.
+ */
+const PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR =
+  'payjoin session missing receive script'
+
+/**
+ * PDK rejected the sender's original PSBT because no output pays the receive
+ * address. Retrying re-derives the same proposal, so this is terminal.
+ */
+const PAYJOIN_MISSING_PAYMENT_ERROR = 'missing payment'
+
 export {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
   PAYJOIN_BOARD_COSIGN_FAILED_ERROR,
+  PAYJOIN_BOARD_SESSION_TTL_MS,
   PAYJOIN_BOARD_TXID_MISMATCH_ERROR,
   PAYJOIN_BOARD_TXID_UNSTABLE_ERROR,
   PAYJOIN_DEFAULT_COORDINATION_MODE,
@@ -136,6 +160,8 @@ export {
   PAYJOIN_MIN_CONTRIBUTE_SATS,
   PAYJOIN_MIN_RECEIVE_SATS,
   PAYJOIN_MIN_SESSION_EXPIRE_SECONDS,
+  PAYJOIN_MISSING_PAYMENT_ERROR,
+  PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR,
   PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
   PAYJOIN_NATIVE_PROBE_URI,
   PAYJOIN_OHTTP_KEYS_PROBE_OK,

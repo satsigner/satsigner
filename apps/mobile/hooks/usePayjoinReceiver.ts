@@ -54,6 +54,8 @@ type UsePayjoinReceiverParams = {
    */
   board?: PayjoinBoardDestination
   label?: string
+  /** Mailbox lifetime. Defaults to the user's payjoin session TTL setting. */
+  ttlMs?: number
   utxos: Utxo[]
   signPsbt?: (psbtBase64: string) => Promise<string> | string
 }
@@ -88,7 +90,7 @@ function shouldReplaceMailbox(message: string): boolean {
  * stays in `error` and the user must start a new receive.
  */
 function isTerminalFinalizeError(message: string): boolean {
-  return /no utxos to contribute|missing proposal state|missing directory post|missing board destination|proposal txid not stable|board cosign failed|board proposal txid changed/i.test(
+  return /no utxos to contribute|missing proposal state|missing directory post|missing board destination|proposal txid not stable|board cosign failed|board proposal txid changed|missing payment|missing receive script/i.test(
     message
   )
 }
@@ -116,6 +118,7 @@ function usePayjoinReceiver({
   amountSats,
   board,
   label,
+  ttlMs,
   utxos,
   signPsbt
 }: UsePayjoinReceiverParams) {
@@ -151,6 +154,7 @@ function usePayjoinReceiver({
     label,
     networkName,
     signPsbt,
+    ttlMs,
     utxos
   })
 
@@ -179,6 +183,7 @@ function usePayjoinReceiver({
     label,
     networkName,
     signPsbt,
+    ttlMs,
     utxos
   }
 
@@ -226,7 +231,11 @@ function usePayjoinReceiver({
   }
 
   async function createFreshSession() {
-    const { accountId: id, address: receiveAddress } = paramsRef.current
+    const {
+      accountId: id,
+      address: receiveAddress,
+      networkName: currentNetwork
+    } = paramsRef.current
     if (!receiveAddress) {
       return null
     }
@@ -237,7 +246,8 @@ function usePayjoinReceiver({
       amountSats: paramsRef.current.amountSats,
       board: paramsRef.current.board,
       label: paramsRef.current.label,
-      ttlMs: getPayjoinSessionTtlMs()
+      network: currentNetwork,
+      ttlMs: paramsRef.current.ttlMs ?? getPayjoinSessionTtlMs()
     })
     setReceiverSession(created)
     return created

@@ -136,6 +136,14 @@ type HttpResponse = {
 
 type ReceiverSessionInit = {
   address: string
+  /**
+   * scriptPubKey of `address`, hex encoded. PDK asks the receiver to identify
+   * which outputs of the sender's original PSBT pay it; without this the
+   * receiver claims none of them and PDK rejects the proposal outright
+   * ("Missing payment."). Derived by the caller so this module stays free of
+   * network/address parsing.
+   */
+  receiveScriptHex: string
   directoryUrl: string
   ohttpRelayUrl: string
   expireSeconds: number

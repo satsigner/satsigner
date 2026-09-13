@@ -8,6 +8,7 @@ import { type PayjoinNativeRequest } from '@/types/payjoin'
 
 type ReceiverSessionInit = {
   address: string
+  receiveScriptHex: string
   directoryUrl: string
   ohttpRelayUrl: string
   expireSeconds: number
@@ -95,6 +96,11 @@ async function httpPost(
 async function createReceiverSession(
   init: ReceiverSessionInit
 ): Promise<ReceiverSessionHandle> {
+  // Mirrors the native guard: a session with no receive script can never
+  // identify the sender's payment output.
+  if (!init.receiveScriptHex) {
+    throw new Error('payjoin session missing receive script')
+  }
   const id = nextId('recv')
   const mailboxId = nextId('mb')
   mailboxes.set(mailboxId, {})
@@ -105,6 +111,7 @@ async function createReceiverSession(
     id,
     mailboxId,
     phase: 'ready',
+    receiveScriptHex: init.receiveScriptHex,
     role: 'receiver'
   })
   return { id, pjUri, state }
