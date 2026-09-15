@@ -64,6 +64,10 @@ import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { ensurePin } from '@/utils/pin'
 import { time } from '@/utils/time'
 
+function accountShowsFingerprint(account: Account) {
+  return account.keys[0]?.creationType !== 'importAddress'
+}
+
 function buildAccountCardStats(
   summary: Account['summary']
 ): SSAccountCardStat[] {
@@ -845,11 +849,8 @@ export default function AccountList() {
                       <SSAccountCard
                         name={item.name}
                         balance={getAccountTotalBalance(item.summary)}
-                        fingerprint={
-                          item.keys[0].creationType === 'importAddress'
-                            ? undefined
-                            : fingerprints[item.id]
-                        }
+                        fingerprint={fingerprints[item.id]}
+                        showFingerprint={accountShowsFingerprint(item)}
                         watchOnly={item.policyType === 'watchonly'}
                         syncStatus={item.syncStatus}
                         lastSyncedAt={item.lastSyncedAt}
