@@ -53,6 +53,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
+import { getAccountTotalBalance } from '@/utils/account'
 import {
   getExtendedPublicKeyFromMnemonic,
   getExtendedPublicKeyFromMnemonicCustom,
@@ -188,7 +189,7 @@ export default function AccountList() {
   const totalBalance = useMemo(
     () =>
       filteredAccounts.reduce(
-        (value, account) => value + account.summary.balance,
+        (value, account) => value + getAccountTotalBalance(account.summary),
         0
       ),
     [filteredAccounts]
@@ -843,7 +844,7 @@ export default function AccountList() {
                     <SSVStack>
                       <SSAccountCard
                         name={item.name}
-                        balance={item.summary.balance}
+                        balance={getAccountTotalBalance(item.summary)}
                         fingerprint={
                           item.keys[0].creationType === 'importAddress'
                             ? undefined

@@ -112,6 +112,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
+import { getAccountTotalBalance } from '@/utils/account'
 import { getDraftIoCounts } from '@/utils/draftSelection'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import {
@@ -1996,10 +1997,9 @@ export default function AccountView() {
     return <Redirect href="/" />
   }
 
+  const accountTotalBalance = getAccountTotalBalance(account.summary)
   const balanceTextSize =
-    account.summary.balance > 1_000_000_000
-      ? ('4xl' as const)
-      : ('6xl' as const)
+    accountTotalBalance > 1_000_000_000 ? ('4xl' as const) : ('6xl' as const)
 
   const renderScene = ({
     route
@@ -2245,7 +2245,7 @@ export default function AccountView() {
             >
               <SSVStack gap="none">
                 <SSText center size="lg">
-                  {account.summary.satsInMempool}
+                  {formatNumber(account.summary.satsInMempool, 0, false, ',')}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
                   {t('accounts.satsInMempool')}
@@ -2359,7 +2359,7 @@ export default function AccountView() {
                       '••••'
                     ) : (
                       <SSStyledSatText
-                        amount={account?.summary.balance || 0}
+                        amount={accountTotalBalance}
                         decimals={0}
                         useZeroPadding={useZeroPadding}
                         currency={currencyUnit}
@@ -2381,7 +2381,7 @@ export default function AccountView() {
                       {privacyMode
                         ? '••••'
                         : formatNumber(
-                            satsToFiat(account.summary.balance || 0),
+                            satsToFiat(accountTotalBalance),
                             2
                           )}
                     </SSText>

@@ -4,6 +4,7 @@ import {
   checkWalletNeedsSync,
   dropSeedFromKeyInMemory,
   getAccountFingerprint,
+  getAccountTotalBalance,
   getNextDisplayIndex,
   updateAccountObjectLabels
 } from '@/utils/account'
@@ -53,6 +54,32 @@ function makeAccount(overrides: Partial<Account> = {}): Account {
     ...overrides
   }
 }
+
+describe('getAccountTotalBalance', () => {
+  it('includes mempool sats with confirmed balance', () => {
+    expect(
+      getAccountTotalBalance({
+        balance: 0,
+        numberOfAddresses: 1,
+        numberOfTransactions: 1,
+        numberOfUtxos: 1,
+        satsInMempool: 21_000
+      })
+    ).toBe(21_000)
+  })
+
+  it('sums confirmed and unconfirmed amounts', () => {
+    expect(
+      getAccountTotalBalance({
+        balance: 50_000,
+        numberOfAddresses: 1,
+        numberOfTransactions: 2,
+        numberOfUtxos: 2,
+        satsInMempool: 10_000
+      })
+    ).toBe(60_000)
+  })
+})
 
 describe('dropSeedFromKeyInMemory', () => {
   it('strips mnemonic and passphrase from secret', () => {
