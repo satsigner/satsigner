@@ -56,21 +56,31 @@ function buildReceiveQrUri(params: {
       : undefined
 
   if (sessionUri) {
-    let uri = sessionUri
     try {
-      uri = appendParamsToPayjoinUri(sessionUri, {
+      const uri = appendParamsToPayjoinUri(sessionUri, {
         amountSats: params.amountSats,
         label: params.includeLabel ? params.label : undefined
       })
+      if (!params.includeBitcoinPrefix) {
+        return stripBitcoinPrefix(uri)
+      }
+      return uri
     } catch {
-      uri = sessionUri
+      // Fall through to a local BIP21 so amount/label still track the form
+      // while Payjoin is initializing or the session URI is not yet rewriteable.
     }
-    if (!params.includeBitcoinPrefix) {
-      return stripBitcoinPrefix(uri)
-    }
-    return uri
   }
 
+  return buildPlainBip21Uri(params)
+}
+
+function buildPlainBip21Uri(params: {
+  amountSats?: number
+  includeBitcoinPrefix: boolean
+  includeLabel: boolean
+  label?: string
+  localAddressQR?: string
+}): string {
   if (!params.localAddressQR) {
     return ''
   }

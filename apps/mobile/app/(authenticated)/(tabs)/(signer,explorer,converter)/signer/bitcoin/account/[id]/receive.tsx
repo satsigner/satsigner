@@ -696,6 +696,7 @@ export default function Receive() {
                         : 'H'
                     }
                     value={localFinalAddressQR}
+                    key={localFinalAddressQR}
                     hideShareButton
                   />
                   <SSHStack>
@@ -721,6 +722,7 @@ export default function Receive() {
                 <TextInput
                   testID="receive-bitcoin-uri"
                   value={localFinalAddressQR}
+                  key={localFinalAddressQR}
                   editable={false}
                   selectTextOnFocus
                   showSoftInputOnFocus={false}
@@ -911,7 +913,7 @@ export default function Receive() {
                   {amountMode === 'sats' ? (
                     <>
                       <SSNumberInput
-                        min={DUST_LIMIT}
+                        min={0}
                         max={2_100_000_000_000_000}
                         value={localCustomAmount}
                         placeholder={t('receive.placeholder.sats')}

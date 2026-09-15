@@ -29,6 +29,9 @@ function SSNumberInput({
   value,
   onChangeText,
   onValidate,
+  onBlur,
+  onEndEditing,
+  onFocus,
   showFeedback,
   allowDecimal = false,
   allowValidEmpty = false,
@@ -40,6 +43,7 @@ function SSNumberInput({
   const NUMBER_REGEX = allowDecimal ? /^\d*\.?\d{0,8}$/ : /^[0-9]*$/
 
   const [invalid, setInvalid] = useState(false)
+  const [focused, setFocused] = useState(false)
 
   const variantStyle =
     variant === 'default' ? styles.variantDefault : styles.variantOutline
@@ -57,10 +61,13 @@ function SSNumberInput({
   const [localValue, setLocalValue] = useState(value || '')
 
   useEffect(() => {
+    if (focused) {
+      return
+    }
     if (value !== localValue) {
       setLocalValue(value || '')
     }
-  }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focused, value]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (value === undefined || value === '') {
@@ -74,48 +81,52 @@ function SSNumberInput({
       return
     }
     const numericVal = Number(value)
-    const invalid = numericVal < min || numericVal > max
-    setInvalid(invalid)
+    const nextInvalid = numericVal < min || numericVal > max
+    setInvalid(nextInvalid)
     if (onValidate) {
-      onValidate(!invalid)
+      onValidate(!nextInvalid)
     }
   }, [min, max]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleTextChange(text: string) {
-    if (alwaysTriggerOnChange && onChangeText) {
-      onChangeText(text)
+  function emitChange(text: string, numericVal: number | null) {
+    if (!onChangeText) {
+      return
     }
+    if (alwaysTriggerOnChange) {
+      onChangeText(text)
+      return
+    }
+    if (numericVal === null) {
+      return
+    }
+    if (numericVal >= min && numericVal <= max) {
+      onChangeText(numericVal.toString())
+    }
+  }
 
+  function handleTextChange(text: string) {
     if (!text.match(NUMBER_REGEX)) {
       return
     }
 
+    setLocalValue(text)
+
     if (text === '') {
-      setLocalValue('')
       setInvalid(!allowValidEmpty)
       if (onValidate) {
-        onValidate(false)
+        onValidate(allowValidEmpty)
       }
+      emitChange('', null)
       return
     }
 
     const numericVal = Number(text)
-    if (numericVal < min || numericVal > max) {
-      setInvalid(true)
-      if (onValidate) {
-        onValidate(false)
-      }
-    } else {
-      setInvalid(false)
-      if (onValidate) {
-        onValidate(true)
-      }
-      if (onChangeText) {
-        onChangeText(numericVal.toString())
-      }
+    const outOfRange = numericVal < min || numericVal > max
+    setInvalid(outOfRange)
+    if (onValidate) {
+      onValidate(!outOfRange)
     }
-
-    setLocalValue(text)
+    emitChange(text, numericVal)
   }
 
   function handleSubmitText() {
@@ -131,6 +142,7 @@ function SSNumberInput({
       if (onValidate) {
         onValidate(true)
       }
+      setLocalValue(numericVal.toString())
       if (onChangeText) {
         onChangeText(numericVal.toString())
       }
@@ -148,6 +160,15 @@ function SSNumberInput({
         placeholderTextColor={Colors.gray[400]}
         style={textInputStyle}
         {...props}
+        onFocus={(event) => {
+          setFocused(true)
+          onFocus?.(event)
+        }}
+        onBlur={(event) => {
+          setFocused(false)
+          onBlur?.(event)
+        }}
+        onEndEditing={onEndEditing}
       />
       {showFeedback && invalid && (
         <SSText>

@@ -652,7 +652,10 @@ function usePayjoinReceiver({
     if (armKey === 'disarmed') {
       return
     }
-    void startSession()
+    const start = setTimeout(() => {
+      void startSession()
+    }, 0)
+    return () => clearTimeout(start)
   }, [armKey])
 
   // Poll + foreground resume while a live mailbox exists.
