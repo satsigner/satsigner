@@ -880,33 +880,34 @@ function TotalTransactions({
         currentBlockTimeSec={currentBlockTimeSec}
         scanFromTimeSec={scanFromTimeSec}
       />
-      <SSHStack
-        gap="sm"
-        style={{
-          alignItems: 'center',
-          borderBottomColor: Colors.gray[900],
-          borderBottomWidth: 1,
-          justifyContent: 'flex-end',
-          paddingBottom: 8
-        }}
-      >
-        {UTXO_SORT_FIELDS.map((field) => (
-          <SSSortDirectionToggle
-            key={field}
-            label={utxoSortFieldLabel(field)}
-            active={sortField === field}
-            onDirectionChanged={(direction) =>
-              handleTransactionSortChanged(field, direction)
-            }
-          />
-        ))}
-      </SSHStack>
+      {showHistoryChart ? null : (
+        <SSHStack
+          gap="sm"
+          style={{
+            alignItems: 'center',
+            borderBottomColor: Colors.gray[900],
+            borderBottomWidth: 1,
+            justifyContent: 'flex-end',
+            paddingBottom: 8
+          }}
+        >
+          {UTXO_SORT_FIELDS.map((field) => (
+            <SSSortDirectionToggle
+              key={field}
+              label={utxoSortFieldLabel(field)}
+              active={sortField === field}
+              onDirectionChanged={(direction) =>
+                handleTransactionSortChanged(field, direction)
+              }
+            />
+          ))}
+        </SSHStack>
+      )}
       {showHistoryChart && sortedTransactions.length > 0 ? (
         <View
           style={{
             flex: 1,
-            marginHorizontal: -horizontalPaddingPx,
-            zIndex: -1
+            marginHorizontal: -horizontalPaddingPx
           }}
         >
           <SSHistoryChart
