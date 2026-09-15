@@ -22,6 +22,10 @@ import {
 } from '@/types/payjoin'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import {
+  isAlreadyHasProposalError,
+  isMailboxExpiredError
+} from '@/utils/payjoinErrors'
+import {
   compactError,
   mailboxFromEndpoint,
   payjoinLog,
@@ -62,14 +66,6 @@ type UsePayjoinReceiverParams = {
 
 const RECEIVER_POLL_INTERVAL_MS = 8_000
 const START_SESSION_LOCK_MS = 45_000
-
-function isMailboxExpiredError(message: string): boolean {
-  const lower = message.toLowerCase()
-  return (
-    lower.includes('session expired') ||
-    (lower.includes('protocol error') && lower.includes('expired'))
-  )
-}
 
 function isNativeSessionMissingError(message: string): boolean {
   const lower = message.toLowerCase()
@@ -336,10 +332,24 @@ function usePayjoinReceiver({
   }
 
   async function finalizeOnce(target: PayjoinSession) {
-    if (!target.originalPsbtBase64 || !target.nativeState) {
+    if (!target.nativeState) {
       payjoinWarn('receiver finalize skipped — missing state', {
-        hasNative: !!target.nativeState,
+        hasNative: false,
         hasOriginal: !!target.originalPsbtBase64,
+        mailbox: mailboxFromEndpoint(target.pjEndpoint),
+        sessionId: target.id
+      })
+      return
+    }
+    if (
+      !target.originalPsbtBase64 &&
+      target.status !== 'proposal_received' &&
+      target.status !== 'negotiating' &&
+      target.status !== 'finalizing'
+    ) {
+      payjoinWarn('receiver finalize skipped — missing state', {
+        hasNative: true,
+        hasOriginal: false,
         mailbox: mailboxFromEndpoint(target.pjEndpoint),
         sessionId: target.id
       })
@@ -359,7 +369,7 @@ function usePayjoinReceiver({
             callbacks: buildCallbacks(),
             session: target
           })
-      if (finalized.status === 'error' && finalized.originalPsbtBase64) {
+      if (finalized.status === 'error') {
         const message = finalized.error ?? 'unknown'
         // Without a native handle the proposal is gone; nothing to retry with.
         const retryable =
@@ -489,6 +499,17 @@ function usePayjoinReceiver({
           await replaceDeadSession(updated, message)
           return
         }
+        if (isAlreadyHasProposalError(message) && current.nativeState) {
+          const withProposal = persistSession({
+            ...current,
+            nativeState: updated.nativeState ?? current.nativeState,
+            status: 'proposal_received',
+            updatedAt: Date.now()
+          })
+          setReceiverSession(withProposal)
+          await finalizeOnce(withProposal)
+          return
+        }
         if (isNativeSessionMissingError(message)) {
           payjoinWarn('receiver native handle missing — try resume', {
             error: compactError(message),
@@ -531,7 +552,7 @@ function usePayjoinReceiver({
       }
 
       const synced = persistSession(updated)
-      if (originalPsbtBase64 && synced.status === 'proposal_received') {
+      if (synced.status === 'proposal_received') {
         setReceiverSession(synced)
         await finalizeOnce(synced)
         return
@@ -545,11 +566,7 @@ function usePayjoinReceiver({
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       setLastPolledAt(Date.now())
-      const lower = message.toLowerCase()
-      if (
-        lower.includes('already has a proposal') ||
-        lower.includes('finalize instead of polling')
-      ) {
+      if (isAlreadyHasProposalError(message)) {
         const withProposal = persistSession({
           ...current,
           status: 'proposal_received',
@@ -689,18 +706,19 @@ function usePayjoinReceiver({
           ? 'receive.payjoin.status.expired'
           : session?.status === 'error'
             ? 'receive.payjoin.status.unavailable'
-            : negotiating ||
-                session?.status === 'negotiating' ||
-                session?.status === 'proposal_received' ||
-                session?.status === 'finalizing'
-              ? 'receive.payjoin.status.negotiating'
-              : starting || !livePayjoinUri
-                ? 'receive.payjoin.status.initializing'
-                : session?.error
-                  ? 'receive.payjoin.status.polling'
-                  : session?.status === 'waiting'
-                    ? 'receive.payjoin.status.waiting'
-                    : 'receive.payjoin.status.ready'
+            : session?.status === 'proposal_received'
+              ? 'receive.payjoin.status.receivedOriginal'
+              : negotiating ||
+                  session?.status === 'negotiating' ||
+                  session?.status === 'finalizing'
+                ? 'receive.payjoin.status.contributing'
+                : starting || !livePayjoinUri
+                  ? 'receive.payjoin.status.initializing'
+                  : session?.error
+                    ? 'receive.payjoin.status.polling'
+                    : session?.status === 'waiting'
+                      ? 'receive.payjoin.status.waiting'
+                      : 'receive.payjoin.status.ready'
 
   return {
     canContribute,

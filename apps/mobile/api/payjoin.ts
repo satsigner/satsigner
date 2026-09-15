@@ -1431,7 +1431,10 @@ async function pollReceiverSession(params: {
     const now = Date.now()
     // Never downgrade a session that already holds the sender original —
     // overwriting proposal_received → waiting made the UI poll forever.
-    if (params.session.originalPsbtBase64) {
+    if (
+      params.session.status === 'proposal_received' ||
+      params.session.originalPsbtBase64
+    ) {
       const updated = {
         ...params.session,
         expiresAt: Math.max(
@@ -1450,11 +1453,6 @@ async function pollReceiverSession(params: {
     }
     const updated = {
       ...params.session,
-      // Keep the mailbox alive in the app while the user is still polling.
-      expiresAt: Math.max(
-        params.session.expiresAt,
-        now + getPayjoinSessionTtlMs()
-      ),
       nativeState: processed.state,
       status: 'waiting' as const,
       updatedAt: now
@@ -1464,15 +1462,16 @@ async function pollReceiverSession(params: {
   }
 
   if (processed.kind === 'proposal') {
+    const originalPsbtBase64 = processed.psbtBase64 || undefined
     const updated = {
       ...params.session,
       nativeState: processed.state,
-      originalPsbtBase64: processed.psbtBase64,
+      originalPsbtBase64,
       status: 'proposal_received' as const,
       updatedAt: Date.now()
     }
     usePayjoinSessionsStore.getState().upsertSession(updated)
-    return { originalPsbtBase64: processed.psbtBase64, session: updated }
+    return { originalPsbtBase64, session: updated }
   }
 
   if (processed.kind === 'error') {
@@ -1489,12 +1488,26 @@ async function pollReceiverSession(params: {
   return { session: params.session }
 }
 
+function canFinalizePayjoinProposal(session: PayjoinSession): boolean {
+  if (!session.nativeState) {
+    return false
+  }
+  if (session.originalPsbtBase64) {
+    return true
+  }
+  return (
+    session.status === 'proposal_received' ||
+    session.status === 'negotiating' ||
+    session.status === 'finalizing'
+  )
+}
+
 async function finalizeReceiverPayjoin(params: {
   session: PayjoinSession
   callbacks: PayjoinWalletCallbacks
   fetchImpl?: FetchLike
 }): Promise<PayjoinSession> {
-  if (!params.session.nativeState || !params.session.originalPsbtBase64) {
+  if (!canFinalizePayjoinProposal(params.session)) {
     return {
       ...params.session,
       error: 'missing proposal state',
@@ -1639,7 +1652,7 @@ async function finalizeBoardReceiverPayjoin(params: {
   const { session } = params
   const { board } = session
   const store = usePayjoinSessionsStore.getState()
-  if (!session.nativeState || !session.originalPsbtBase64) {
+  if (!canFinalizePayjoinProposal(session)) {
     return failBoardSession(session, 'missing proposal state')
   }
   if (!board) {

@@ -140,6 +140,27 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
     expect(polled.originalPsbtBase64).toBe(original.toBase64())
   })
 
+  it('pending poll does not downgrade proposal_received without original psbt', async () => {
+    const session = await createReceivePayjoinSession({
+      accountId: 'a1',
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      amountSats: 50_000
+    })
+
+    const withProposal = {
+      ...session,
+      status: 'proposal_received' as const
+    }
+
+    const polled = await pollReceiverSession({
+      callbacks,
+      fetchImpl: noopFetch,
+      session: withProposal
+    })
+
+    expect(polled.session.status).toBe('proposal_received')
+  })
+
   it('receiver finalizes after directory-bridged BIP78 original', async () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',

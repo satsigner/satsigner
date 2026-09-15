@@ -183,16 +183,18 @@ function payjoinSessionAmountSats(session: PayjoinSession): number {
 function payjoinSessionStatusLabel(session: PayjoinSession): string {
   if (session.role === 'sender') {
     if (session.status === 'negotiating') {
-      return t('receive.payjoin.status.negotiating')
+      return t('transaction.build.payjoin.stage.checkingProposal')
     }
     return t('transaction.build.payjoin.waitingReceiver')
   }
   if (
-    session.status === 'negotiating' ||
     session.status === 'proposal_received' ||
     session.status === 'finalizing'
   ) {
-    return t('receive.payjoin.status.negotiating')
+    return t('receive.payjoin.status.contributing')
+  }
+  if (session.status === 'negotiating') {
+    return t('receive.payjoin.status.polling')
   }
   if (isPayjoinSuccess(session.status)) {
     return t('receive.payjoin.status.completed')

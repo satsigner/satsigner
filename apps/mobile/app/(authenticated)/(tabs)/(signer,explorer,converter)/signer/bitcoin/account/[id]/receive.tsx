@@ -91,6 +91,32 @@ function labelFromPayjoinSession(
   return parsePayjoinUri(session.uri).params?.label
 }
 
+const PAYJOIN_PENDING_STATUS_KEYS = new Set([
+  'receive.payjoin.status.contributing',
+  'receive.payjoin.status.initializing',
+  'receive.payjoin.status.negotiating',
+  'receive.payjoin.status.polling',
+  'receive.payjoin.status.receivedOriginal',
+  'receive.payjoin.status.waiting'
+])
+
+function payjoinReceiveHintKey(statusLabelKey: string): string | null {
+  if (statusLabelKey === 'receive.payjoin.status.waiting') {
+    return 'receive.payjoin.status.waitingHint'
+  }
+  if (statusLabelKey === 'receive.payjoin.status.polling') {
+    return 'receive.payjoin.status.pollingHint'
+  }
+  if (
+    statusLabelKey === 'receive.payjoin.status.receivedOriginal' ||
+    statusLabelKey === 'receive.payjoin.status.contributing' ||
+    statusLabelKey === 'receive.payjoin.status.negotiating'
+  ) {
+    return 'receive.payjoin.status.contributingHint'
+  }
+  return null
+}
+
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
@@ -247,6 +273,9 @@ export default function Receive() {
     signPsbt: signPayjoinPsbt,
     utxos: accountUtxos
   })
+  const payjoinHintKey = statusLabelKey
+    ? payjoinReceiveHintKey(statusLabelKey)
+    : null
 
   async function handleImportManualOriginal(originalPsbtBase64: string) {
     if (!account || !localAddress || !wallet) {
@@ -820,14 +849,7 @@ export default function Receive() {
                             }}
                           >
                             {payjoinNegotiating ||
-                            statusLabelKey ===
-                              'receive.payjoin.status.negotiating' ||
-                            statusLabelKey ===
-                              'receive.payjoin.status.waiting' ||
-                            statusLabelKey ===
-                              'receive.payjoin.status.initializing' ||
-                            statusLabelKey ===
-                              'receive.payjoin.status.polling' ? (
+                            PAYJOIN_PENDING_STATUS_KEYS.has(statusLabelKey) ? (
                               <SSLoader size={18} />
                             ) : null}
                             <SSText
@@ -836,11 +858,19 @@ export default function Receive() {
                               size="sm"
                               center
                             >
-                              {payjoinNegotiating
-                                ? t('receive.payjoin.status.negotiating')
-                                : t(statusLabelKey)}
+                              {t(statusLabelKey)}
                             </SSText>
                           </SSHStack>
+                          {payjoinHintKey ? (
+                            <SSText
+                              testID="receive-payjoin-status-hint"
+                              color="muted"
+                              size="xs"
+                              center
+                            >
+                              {t(payjoinHintKey)}
+                            </SSText>
+                          ) : null}
                           {payjoinExpiringLabel ? (
                             <SSText
                               testID="receive-payjoin-expiring"

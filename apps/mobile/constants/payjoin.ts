@@ -20,8 +20,8 @@ const PAYJOIN_OHTTP_RELAY_URLS = [
   // native HTTP/1.1 as well — leave it out so sessions are not bound to a dead relay.
 ] as const
 
-/** Default receiver session TTL (5 minutes). */
-const PAYJOIN_SESSION_TTL_MS = 5 * 60 * 1000
+/** Default receiver session TTL (10 minutes). */
+const PAYJOIN_SESSION_TTL_MS = 10 * 60 * 1000
 
 /**
  * Receiver session TTL for ark board payjoins (30 minutes).

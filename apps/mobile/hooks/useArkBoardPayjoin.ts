@@ -16,9 +16,11 @@ import { type ArkAccount } from '@/types/models/Ark'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 
 const PENDING_STATUS_LABEL_KEYS = new Set([
+  'receive.payjoin.status.contributing',
   'receive.payjoin.status.initializing',
   'receive.payjoin.status.negotiating',
   'receive.payjoin.status.polling',
+  'receive.payjoin.status.receivedOriginal',
   'receive.payjoin.status.waiting'
 ])
 
