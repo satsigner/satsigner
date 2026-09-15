@@ -6,8 +6,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { useAuthHydrated } from '@/hooks/useAuthHydrated'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
+import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
 
-const AuthenticatedSession = lazy(() => import('./_session'))
+const AuthenticatedSession = lazy(loadAuthenticatedSession)
 
 const authSplash = (
   <View style={{ backgroundColor: Colors.gray[950], flex: 1 }} />
@@ -27,6 +28,7 @@ export default function AuthenticatedLayout() {
     )
 
   if (lockTriggered && skipPin) {
+    void loadAuthenticatedSession()
     setLockTriggered(false)
   }
 

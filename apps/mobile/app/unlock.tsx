@@ -10,6 +10,9 @@ import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors, Layout } from '@/styles'
 import { error, gray, warning } from '@/styles/colors'
+import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
+
+void loadAuthenticatedSession()
 
 export default function Unlock() {
   const router = useRouter()
@@ -68,7 +71,8 @@ export default function Unlock() {
     return text
   }
 
-  function handleSuccess() {
+  async function handleSuccess() {
+    await loadAuthenticatedSession()
     setLockTriggered(false)
     setJustUnlocked(true)
     resetPinTries()

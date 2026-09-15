@@ -12,6 +12,7 @@ import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { gray } from '@/styles/colors'
+import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
 import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
 import {
   derivePinDigest,
@@ -24,7 +25,7 @@ import { secureWipeAllWalletData } from '@/utils/secureWipe'
 
 type SSPinAuthProps = {
   onFail?: () => void
-  onSuccess: () => void
+  onSuccess: () => void | Promise<void>
   onTriesOver?: () => void
   maxTries?: number
   resetPin?: boolean
@@ -109,6 +110,7 @@ function SSPinAuth({
       } catch {
         // Duress wipe is best-effort; always proceed to unlock the app.
       }
+      await loadAuthenticatedSession()
       const { setLockTriggered, setJustUnlocked, resetPinTries } =
         useAuthStore.getState()
       setLockTriggered(false)
@@ -139,7 +141,7 @@ function SSPinAuth({
     }
 
     await bindSessionPinDigest(inputPin, salt, hashedPin)
-    onSuccess()
+    await onSuccess()
   }
 
   return (
