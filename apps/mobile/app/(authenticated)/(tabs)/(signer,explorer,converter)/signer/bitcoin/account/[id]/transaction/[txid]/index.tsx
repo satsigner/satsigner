@@ -28,6 +28,7 @@ import { Colors, Sizes } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
 import { getAccountAddressSets } from '@/utils/address'
+import { getConfirmationsColorStyle } from '@/utils/confirmations'
 import {
   formatConfirmations,
   formatFiatPrice,
@@ -376,6 +377,7 @@ export function SSTxDetailsHeader({
     tx?.blockHeight && lastKnownBlockHeight > 0
       ? lastKnownBlockHeight - tx.blockHeight + 1
       : 0
+  const confirmationColorStyle = getConfirmationsColorStyle(confirmations)
 
   const historicalBtcPrice = showHistoricalFiat
     ? tx?.prices?.[fiatCurrency]
@@ -479,38 +481,27 @@ export function SSTxDetailsHeader({
           </SSHStack>
         ) : null}
       </SSVStack>
-      <SSHStack gap="sm">
+      <SSHStack gap="sm" style={styles.metaRow}>
         <SSText
           weight="light"
-          style={{
-            color:
-              confirmations < 1
-                ? Colors.error
-                : confirmations < 6
-                  ? Colors.warning
-                  : Colors.mainGreen
-          }}
+          style={[styles.metaText, confirmationColorStyle]}
         >
           {formatConfirmations(confirmations)}
         </SSText>
-        <SSHStack gap="xs">
-          <SSText color="muted">{t('common.from').toLowerCase()}</SSText>
-          <SSText>
-            {inputsCount || '?'}{' '}
-            {inputsCount === 1
-              ? t('transaction.input.singular').toLowerCase()
-              : t('transaction.input.plural').toLowerCase()}
-          </SSText>
-        </SSHStack>
-        <SSHStack gap="xs">
-          <SSText color="muted">{t('common.to').toLowerCase()}</SSText>
-          <SSText>
-            {outputsCount || '?'}{' '}
-            {outputsCount === 1
-              ? t('transaction.output.singular').toLowerCase()
-              : t('transaction.output.plural').toLowerCase()}
-          </SSText>
-        </SSHStack>
+        <SSText style={styles.metaText}>
+          <SSText color="muted">{t('common.from').toLowerCase()} </SSText>
+          {inputsCount || '?'}{' '}
+          {inputsCount === 1
+            ? t('transaction.input.singular').toLowerCase()
+            : t('transaction.input.plural').toLowerCase()}
+        </SSText>
+        <SSText style={styles.metaText}>
+          <SSText color="muted">{t('common.to').toLowerCase()} </SSText>
+          {outputsCount || '?'}{' '}
+          {outputsCount === 1
+            ? t('transaction.output.singular').toLowerCase()
+            : t('transaction.output.plural').toLowerCase()}
+        </SSText>
       </SSHStack>
     </SSVStack>
   )
@@ -522,5 +513,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'space-between',
     padding: 20
+  },
+  metaRow: {
+    alignItems: 'baseline'
+  },
+  metaText: {
+    includeFontPadding: false
   }
 })
