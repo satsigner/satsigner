@@ -230,7 +230,11 @@ export default function SeedWordsPage() {
           )}
         </SSVStack>
       </ScrollView>
-      <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
+      <SSModal
+        visible={showPinEntry}
+        fullOpacity
+        onClose={() => setShowPinEntry(false)}
+      >
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleSuccessPin}
