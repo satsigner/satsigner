@@ -747,6 +747,7 @@
     "triesLeft": "Tries left",
     "tryLeft": "Try left",
     "unlock": "Unlock Satsigner",
+    "unlocking": "Unlocking…",
     "verifyPinTitle": "Enter current pin number",
     "warningKeysErase": "Too many wrong attempts\n will erase all keys",
     "wrongPin": "Wrong pin number"

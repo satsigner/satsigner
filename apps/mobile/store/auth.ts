@@ -24,6 +24,7 @@ import {
   safeEqualHex,
   storeKdfConfig
 } from '@/utils/pinKdf'
+import { setSessionPinDigest } from '@/utils/pinSession'
 
 type AuthState = {
   firstTime: boolean
@@ -44,6 +45,16 @@ type AuthState = {
   requirePinMigration: boolean
   /** Decrypted backup JSON; when set, recovery runs after next unlock. Not persisted. */
   pendingRecoverData: string | null
+}
+
+function applyColdStartLock(state: {
+  lockTriggered: boolean
+  requiresAuth: boolean
+  skipPin: boolean
+}) {
+  if (state.requiresAuth && !state.skipPin) {
+    state.lockTriggered = true
+  }
 }
 
 type AuthAction = {
@@ -156,6 +167,9 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ lockDeltaTime: deltaTime })
       },
       setLockTriggered: (lockTriggered) => {
+        if (lockTriggered) {
+          setSessionPinDigest(null)
+        }
         set({ lockTriggered })
       },
       setPendingRecoverData(pendingRecoverData) {
@@ -197,12 +211,18 @@ const useAuthStore = create<AuthState & AuthAction>()(
     {
       name: 'satsigner-auth',
       onRehydrateStorage: () => (state) => {
+        if (!state) {
+          return
+        }
         // Persisted skipPin must never unlock production builds.
-        if (!__DEV__ && state?.skipPin) {
+        if (!__DEV__ && state.skipPin) {
           state.skipPin = false
           // Legacy skip users are on DEFAULT_PIN; flag them to set a real PIN.
           state.requirePinMigration = true
         }
+        // Always lock on launch so wallet/Ark/BDK work cannot start behind
+        // the PIN screen (that freezes digit entry and the first unlocked frame).
+        applyColdStartLock(state)
       },
       partialize: (state) => {
         const { pendingRecoverData: _, ...rest } = state
@@ -213,4 +233,4 @@ const useAuthStore = create<AuthState & AuthAction>()(
   )
 )
 
-export { useAuthStore }
+export { applyColdStartLock, useAuthStore }

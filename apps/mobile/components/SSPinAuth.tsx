@@ -1,5 +1,5 @@
 import { router } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
 import Animated from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 
@@ -7,7 +7,6 @@ import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import { DURESS_PIN_KEY, PIN_LENGTH_KEY, SALT_KEY } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
-import useKdfMigration from '@/hooks/useKdfMigration'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
@@ -20,6 +19,7 @@ import {
   pinMatchesDuressDigest,
   safeEqualHex
 } from '@/utils/pinKdf'
+import { bindSessionPinDigest } from '@/utils/pinUnlock'
 import { secureWipeAllWalletData } from '@/utils/secureWipe'
 
 type SSPinAuthProps = {
@@ -31,6 +31,21 @@ type SSPinAuthProps = {
   title?: string
 } & Pick<SSPinInputProps, 'feedbackBold' | 'feedbackColor' | 'feedbackText'>
 
+function applyPinUpdate(
+  update: SetStateAction<string[]>,
+  setPin: Dispatch<SetStateAction<string[] | null>>
+) {
+  setPin((current) => {
+    if (current === null) {
+      return current
+    }
+    if (typeof update === 'function') {
+      return update(current)
+    }
+    return update
+  })
+}
+
 function SSPinAuth({
   title,
   onFail,
@@ -41,17 +56,16 @@ function SSPinAuth({
   ...props
 }: SSPinAuthProps) {
   const duressPinEnabled = useAuthStore((state) => state.duressPinEnabled)
-  const migrateIfNeeded = useKdfMigration()
   const [pin, setPin] = useState<string[] | null>(null)
   const [tries, setTries] = useState(0)
+  const [verifying, setVerifying] = useState(false)
   const { shakeStyle } = useAnimatedShake()
 
-  // PIN length is persisted at set time; fall back to the legacy default.
   useEffect(() => {
-    let mounted = true
+    const load = { cancelled: false }
     async function loadPinLength() {
       const stored = await getItem(PIN_LENGTH_KEY)
-      if (!mounted) {
+      if (load.cancelled) {
         return
       }
       const length = clampPinLength(stored ? Number(stored) : Number.NaN)
@@ -59,7 +73,7 @@ function SSPinAuth({
     }
     loadPinLength()
     return () => {
-      mounted = false
+      load.cancelled = true
     }
   }, [])
 
@@ -71,17 +85,20 @@ function SSPinAuth({
   }, [resetPin])
 
   async function handleFillEnded(inputPin: string) {
+    setVerifying(true)
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0)
+    })
+
     const hashedPin = await getPin()
     const hashedDuressPin = await getItem(DURESS_PIN_KEY)
     const salt = await getItem(SALT_KEY)
     if (!hashedPin || !salt) {
+      setVerifying(false)
       toast.error(t('auth.pinRetrieveFailed'))
       return
     }
 
-    // DURESS PIN — wipe secrets/stores so the duress PIN appears as the real PIN.
-    // Legacy installs hashed duress against SALT_KEY_DURESS; current installs
-    // share SALT_KEY. pinMatchesDuressDigest checks both.
     if (
       duressPinEnabled &&
       hashedDuressPin &&
@@ -98,41 +115,30 @@ function SSPinAuth({
       setJustUnlocked(true)
       resetPinTries()
       router.dismissAll()
-      router.push('/')
+      router.replace('/')
       return
     }
 
     const mainKdf = await getStoredKdfConfig()
     const hashedInput = await derivePinDigest(inputPin, salt, mainKdf)
 
-    // Upon failure, the pin reset is already done here
     if (!safeEqualHex(hashedInput, hashedPin)) {
+      setVerifying(false)
       setPin((current) => (current ? emptyPin(current.length) : current))
 
-      // max tries logic
       const newTries = tries + 1
       setTries(newTries)
       if (maxTries && newTries >= maxTries && onTriesOver) {
         onTriesOver()
       }
 
-      // The fail callback could be show a warning, dismiss a modal, etc...
       if (onFail) {
         onFail()
       }
       return
     }
 
-    // Verified. Upgrade the stored digest to the current best KDF (and
-    // re-encrypt all key secrets to it) when it predates it. A migration
-    // failure must not lock the user out of this session.
-    try {
-      await migrateIfNeeded(inputPin, salt, hashedPin)
-    } catch {
-      /* verified under the old config; migration can retry next unlock */
-    }
-
-    // The success callback could be unlock the app, or view mnemonic, or confirm wallet deletion
+    await bindSessionPinDigest(inputPin, salt, hashedPin)
     onSuccess()
   }
 
@@ -150,22 +156,14 @@ function SSPinAuth({
           center
           style={{ color: gray[300] }}
         >
-          {title}
+          {verifying ? t('auth.unlocking') : title}
         </SSText>
       )}
       <Animated.View style={[{ flex: 1, width: '100%' }, shakeStyle]}>
         {pin !== null && (
           <SSPinInput
             pin={pin}
-            setPin={(update) =>
-              setPin((current) =>
-                current === null
-                  ? current
-                  : typeof update === 'function'
-                    ? update(current)
-                    : update
-              )
-            }
+            setPin={(update) => applyPinUpdate(update, setPin)}
             onFillEnded={handleFillEnded}
             {...props}
           />

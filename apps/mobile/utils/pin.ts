@@ -9,6 +9,7 @@ import {
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
 import { generateSalt, pbkdf2Encrypt, randomKey } from '@/utils/crypto'
+import { getSessionPinDigest } from '@/utils/pinSession'
 
 type PinType = typeof PIN_KEY | typeof DURESS_PIN_KEY
 
@@ -23,6 +24,12 @@ async function setPin(pin: string, pinType: PinType = PIN_KEY) {
 }
 
 async function getPin(pinType: PinType = PIN_KEY): Promise<string> {
+  if (pinType === PIN_KEY) {
+    const sessionDigest = getSessionPinDigest()
+    if (sessionDigest) {
+      return sessionDigest
+    }
+  }
   const pin = await getItem(pinType)
   if (pin === null) {
     throw new Error('PIN unavailable')

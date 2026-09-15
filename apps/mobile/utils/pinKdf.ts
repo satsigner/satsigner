@@ -9,7 +9,9 @@ import {
   SALT_KEY_DURESS
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
+import { type EncryptedKeySecret } from '@/types/models/Account'
 import { generateSalt } from '@/utils/crypto'
+import { pinDigestOpensSecret } from '@/utils/decryption'
 
 /* oxlint-disable promise/prefer-await-to-callbacks -- QuickCrypto KDF APIs are callback-only */
 
@@ -18,12 +20,11 @@ import { generateSalt } from '@/utils/crypto'
  *
  * The stored PIN digest doubles as the AES-256 key for every key secret in
  * the app, so its cost directly bounds offline brute-force difficulty if the
- * device keystore is ever extracted. The legacy configuration (PBKDF2-SHA256,
- * 10k iterations) is weak against GPU attacks; new digests use Argon2id
- * (memory-hard, RFC 9106 first-choice parameters) when the native module is
- * available, falling back to scrypt and then to PBKDF2 with 600k iterations
- * (OWASP). The configuration used for each digest is persisted next to it so
- * verification stays possible across upgrades and migrations are explicit.
+ * device keystore is ever extracted. New digests use OWASP interactive
+ * Argon2id when the native module is available, falling back to scrypt and
+ * then to PBKDF2 with 600k iterations. The configuration used for each digest
+ * is persisted next to it so verification stays possible across upgrades and
+ * migrations are explicit.
  */
 
 export type PinKdfConfig =
@@ -45,16 +46,23 @@ export type PinMaterial = {
 
 const DIGEST_BYTES = 32
 
-// RFC 9106 §4 first-choice: m=64 MiB, t=3, p=4.
+// OWASP interactive Argon2id (m=19 MiB, t=2, p=1). RFC 9106 first-choice
+// (64 MiB, t=3, p=4) is a backend hash; on phones it stalls unlock for
+// tens of seconds with no error. Verify still uses whatever config is stored.
 const ARGON2ID_CONFIG: PinKdfConfig = {
-  memoryKiB: 65536,
+  memoryKiB: 19_456,
   name: 'argon2id',
-  parallelism: 4,
-  passes: 3
+  parallelism: 1,
+  passes: 2
 }
 
 // scrypt N=2^15, r=8, p=1 (~32 MiB) — memory-hard fallback.
 const SCRYPT_CONFIG: PinKdfConfig = { n: 32768, name: 'scrypt', p: 1, r: 8 }
+
+// Cheap availability probes — never run production cost just to see if
+// the native API exists.
+const ARGON2_PROBE_MEMORY_KIB = 8
+const SCRYPT_PROBE_N = 16
 
 // OpenSSL's default maxmem is 32 MiB; N=2^15/r=8 needs ~33.6 MiB.
 const SCRYPT_MAXMEM_BYTES = 64 * 1024 * 1024
@@ -168,12 +176,11 @@ function isKdfAvailable(config: PinKdfConfig): boolean {
   if (cached !== undefined) {
     return cached
   }
-  let available: boolean
   try {
     switch (config.name) {
       case 'argon2id':
         QuickCrypto.argon2Sync('argon2id', {
-          memory: 8,
+          memory: ARGON2_PROBE_MEMORY_KIB,
           message: 'probe',
           nonce: '0123456789abcdef',
           parallelism: 1,
@@ -183,10 +190,10 @@ function isKdfAvailable(config: PinKdfConfig): boolean {
         break
       case 'scrypt':
         QuickCrypto.scryptSync('probe', '0123456789abcdef', DIGEST_BYTES, {
-          N: config.n,
+          N: SCRYPT_PROBE_N,
           maxmem: SCRYPT_MAXMEM_BYTES,
-          p: config.p,
-          r: config.r
+          p: SCRYPT_CONFIG.p,
+          r: SCRYPT_CONFIG.r
         })
         break
       case 'pbkdf2':
@@ -197,12 +204,12 @@ function isKdfAvailable(config: PinKdfConfig): boolean {
         throw new Error(`Unsupported KDF: ${JSON.stringify(_exhaustive)}`)
       }
     }
-    available = true
+    availabilityCache.set(config.name, true)
+    return true
   } catch {
-    available = false
+    availabilityCache.set(config.name, false)
+    return false
   }
-  availabilityCache.set(config.name, available)
-  return available
 }
 
 /** Strongest KDF usable in this environment. */
@@ -382,4 +389,34 @@ export async function migratePinKdfIfNeeded(
   await setItem(PIN_KEY, newDigest)
   await storeKdfConfig(currentConfig)
   return newDigest
+}
+
+/**
+ * If a previous KDF upgrade re-encrypted secrets and then crashed before
+ * swapping PIN_KEY, storedDigest no longer opens them. Probe the upgraded
+ * digest and, when it works, commit it so this session can decrypt.
+ */
+export async function recoverWorkingPinDigest(
+  pin: string,
+  salt: string,
+  storedDigest: string,
+  probe: EncryptedKeySecret | null
+): Promise<string> {
+  if (!probe) {
+    return storedDigest
+  }
+  if (await pinDigestOpensSecret(storedDigest, probe)) {
+    return storedDigest
+  }
+  const currentConfig = getBestAvailableKdf()
+  const upgradedDigest = await derivePinDigest(pin, salt, currentConfig)
+  if (safeEqualHex(upgradedDigest, storedDigest)) {
+    return storedDigest
+  }
+  if (!(await pinDigestOpensSecret(upgradedDigest, probe))) {
+    return storedDigest
+  }
+  await setItem(PIN_KEY, upgradedDigest)
+  await storeKdfConfig(currentConfig)
+  return upgradedDigest
 }

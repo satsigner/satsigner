@@ -81,7 +81,7 @@ export default function Unlock() {
     // for (const page of pages) {
     //   router.push(page as any)
     // }
-    router.push(showWarning ? './warning' : '/')
+    router.replace(showWarning ? './warning' : '/')
   }
 
   function handleFailure() {
