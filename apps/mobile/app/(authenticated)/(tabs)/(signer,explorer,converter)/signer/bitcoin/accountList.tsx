@@ -16,7 +16,6 @@ import Animated, {
   withDelay,
   withTiming
 } from 'react-native-reanimated'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -878,8 +877,8 @@ export default function AccountList() {
           )
         }}
       />
-      <SSMainLayout>
-        <SafeAreaView style={{ flex: 1, overflow: 'visible' }}>
+      <SSMainLayout style={{ paddingTop: 0 }}>
+        <View style={{ flex: 1, overflow: 'visible' }}>
           <SSVStack
             gap="none"
             style={{ alignItems: 'center', marginBottom: 24 }}
@@ -1050,7 +1049,7 @@ export default function AccountList() {
               </Animated.View>
             )}
           </NestableScrollContainer>
-        </SafeAreaView>
+        </View>
       </SSMainLayout>
     </>
   )
