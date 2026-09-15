@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { signTransaction } from '@/api/bdk'
 import { processManualOriginalPsbt } from '@/api/payjoin'
+import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSLoader from '@/components/SSLoader'
@@ -16,7 +17,6 @@ import SSNumberInput from '@/components/SSNumberInput'
 import SSPsbtTransport from '@/components/SSPsbtTransport'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
-import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
@@ -661,7 +661,7 @@ export default function Receive() {
             </SSVStack>
             {payjoinCompleted ? (
               <SSVStack itemsCenter gap="md" style={styles.sectionSpacing}>
-                <SSSuccessCheckAnimation width={160} />
+                <SSIconSuccess width={159} height={159} variant="outline" />
                 <SSText
                   testID="receive-payjoin-completed"
                   size="md"
