@@ -1515,6 +1515,15 @@ async function finalizeReceiverPayjoin(params: {
     }
   }
 
+  const nativeState = params.session.nativeState
+  if (!nativeState) {
+    return {
+      ...params.session,
+      error: 'missing proposal state',
+      status: 'error'
+    }
+  }
+
   const candidates = await params.callbacks.listCandidateOutpoints()
   const store = usePayjoinSessionsStore.getState()
 
@@ -1569,7 +1578,7 @@ async function finalizeReceiverPayjoin(params: {
     }
   }
   const prepared = await receiverContributeAndFinalize(
-    params.session.nativeState,
+    nativeState,
     chosen,
     '',
     walletChecks
@@ -1655,6 +1664,10 @@ async function finalizeBoardReceiverPayjoin(params: {
   if (!canFinalizePayjoinProposal(session)) {
     return failBoardSession(session, 'missing proposal state')
   }
+  const nativeState = session.nativeState
+  if (!nativeState) {
+    return failBoardSession(session, 'missing proposal state')
+  }
   if (!board) {
     return failBoardSession(session, 'missing board destination')
   }
@@ -1667,7 +1680,7 @@ async function finalizeBoardReceiverPayjoin(params: {
 
   // The ark account owns no onchain outpoints; the replay check still guards
   // against a sender probing with an input it already used in a past session.
-  const prepared = await receiverFinalizeWithoutInputs(session.nativeState, {
+  const prepared = await receiverFinalizeWithoutInputs(nativeState, {
     isOutpointOwned: () => false,
     isOutpointSeen: (outpoint) => store.hasSeenInput(outpoint)
   })

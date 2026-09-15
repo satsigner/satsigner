@@ -2,6 +2,7 @@ import * as barkModule from '@secondts/bark-react-native'
 
 import '@/api/ark/providers/bark'
 import { getArkProvider } from '@/api/ark/registry'
+import { ARK_BOARD_PAYJOIN_NATIVE_MISSING } from '@/constants/ark'
 import type { ArkServer, ArkWalletProvider } from '@/types/models/Ark'
 
 // jest.config.js maps @secondts/bark-react-native to the manual mock in
@@ -217,7 +218,8 @@ describe('bark provider', () => {
         address: 'bc1pboard',
         expiryHeight: 900_000,
         keypairIndex: 3
-      })
+      }),
+      boardPsbt: jest.fn()
     })
     await openWallet('boardaddr1', wallet)
     await expect(
@@ -229,8 +231,17 @@ describe('bark provider', () => {
     })
   })
 
+  it('boardFundingAddress errors when the native method is missing', async () => {
+    const wallet = buildFakeWallet()
+    await openWallet('boardaddr-missing', wallet)
+    await expect(
+      provider.boardFundingAddress('boardaddr-missing')
+    ).rejects.toThrow(ARK_BOARD_PAYJOIN_NATIVE_MISSING)
+  })
+
   it('boardPsbt passes the keypair index and expiry height through unchanged', async () => {
     const wallet = buildFakeWallet({
+      boardFundingAddress: jest.fn(),
       boardPsbt: jest.fn().mockResolvedValue({
         amountSats: 50_000n,
         txid: 'txid-board-psbt',

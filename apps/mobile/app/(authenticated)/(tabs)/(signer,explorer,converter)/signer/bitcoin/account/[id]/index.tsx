@@ -110,9 +110,9 @@ import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
+import { getAccountTotalBalance } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
-import { getAccountTotalBalance } from '@/utils/account'
 import { getDraftIoCounts } from '@/utils/draftSelection'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import {
@@ -2382,10 +2382,7 @@ export default function AccountView() {
                     <SSText color="muted">
                       {privacyMode
                         ? '••••'
-                        : formatNumber(
-                            satsToFiat(accountTotalBalance),
-                            2
-                          )}
+                        : formatNumber(satsToFiat(accountTotalBalance), 2)}
                     </SSText>
                     <SSText size="xs" style={{ color: Colors.gray[500] }}>
                       {fiatCurrency}

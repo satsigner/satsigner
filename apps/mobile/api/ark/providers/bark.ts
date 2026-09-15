@@ -18,6 +18,7 @@ import {
 
 import { registerArkProvider } from '@/api/ark/registry'
 import {
+  ARK_BOARD_PAYJOIN_NATIVE_MISSING,
   ARK_LIGHTNING_SEND_WAIT,
   ARK_NO_HTLC_VTXOS_LOCKED,
   ARK_PENDING_RACE_TIMEOUT_MS,
@@ -75,6 +76,31 @@ function buildConfig(server: ArkServer): Config {
     roundTxRequiredConfirmations: ARK_ROUND_TX_REQUIRED_CONFIRMATIONS,
     serverAddress: server.arkUrl
   })
+}
+
+type BarkBoardPayjoinWallet = {
+  boardFundingAddress: () => Promise<{
+    address: string
+    expiryHeight: number
+    keypairIndex: number
+  }>
+  boardPsbt: (
+    psbtBase64: string,
+    keypairIndex: number,
+    expiryHeight: number
+  ) => Promise<PendingBoard>
+}
+
+function getBoardPayjoinWallet(accountId: string): BarkBoardPayjoinWallet {
+  const wallet = getCachedWallet(accountId) as WalletLike &
+    Partial<BarkBoardPayjoinWallet>
+  if (
+    typeof wallet.boardFundingAddress !== 'function' ||
+    typeof wallet.boardPsbt !== 'function'
+  ) {
+    throw new Error(ARK_BOARD_PAYJOIN_NATIVE_MISSING)
+  }
+  return wallet
 }
 
 function getCachedWallet(accountId: string): WalletLike {
@@ -672,7 +698,7 @@ async function board(
 async function boardFundingAddress(
   accountId: string
 ): Promise<ArkBoardFundingInfo> {
-  const wallet = getCachedWallet(accountId)
+  const wallet = getBoardPayjoinWallet(accountId)
   const info = await wallet.boardFundingAddress()
   return {
     address: info.address,
@@ -687,7 +713,7 @@ async function boardPsbt(
   keypairIndex: number,
   expiryHeight: number
 ): Promise<ArkPendingBoard> {
-  const wallet = getCachedWallet(accountId)
+  const wallet = getBoardPayjoinWallet(accountId)
   const pendingBoard = await wallet.boardPsbt(
     psbtBase64,
     keypairIndex,

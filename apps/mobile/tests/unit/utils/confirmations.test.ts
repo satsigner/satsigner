@@ -20,7 +20,9 @@ describe('confirmations utils', () => {
     })
 
     it('uses grey once the transaction has six or more confirmations', () => {
-      expect(getConfirmationsColor(FULLY_CONFIRMED_COUNT)).toBe(Colors.gray[300])
+      expect(getConfirmationsColor(FULLY_CONFIRMED_COUNT)).toBe(
+        Colors.gray[300]
+      )
       expect(getConfirmationsColor(FULLY_CONFIRMED_COUNT + 10)).toBe(
         Colors.gray[300]
       )

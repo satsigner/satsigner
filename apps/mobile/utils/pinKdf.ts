@@ -57,7 +57,7 @@ const ARGON2ID_CONFIG: PinKdfConfig = {
 }
 
 // scrypt N=2^15, r=8, p=1 (~32 MiB) — memory-hard fallback.
-const SCRYPT_CONFIG: PinKdfConfig = { n: 32768, name: 'scrypt', p: 1, r: 8 }
+const SCRYPT_CONFIG = { n: 32768, name: 'scrypt', p: 1, r: 8 } as const
 
 // Cheap availability probes — never run production cost just to see if
 // the native API exists.

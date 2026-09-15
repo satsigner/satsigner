@@ -96,13 +96,10 @@ export default function Home() {
       progress.set(0)
       progress.set(withTiming(1, { duration: totalDuration }))
 
-      const fallback = setTimeout(
-        () => {
-          cancelAnimation(progress)
-          progress.set(1)
-        },
-        totalDuration + 100
-      )
+      const fallback = setTimeout(() => {
+        cancelAnimation(progress)
+        progress.set(1)
+      }, totalDuration + 100)
 
       return () => {
         clearTimeout(fallback)

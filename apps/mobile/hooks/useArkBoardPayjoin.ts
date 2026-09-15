@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { toast } from 'sonner-native'
 
 import { isNativeAvailable } from '@/api/payjoinNative'
+import { ARK_BOARD_PAYJOIN_NATIVE_MISSING } from '@/constants/ark'
 import { PAYJOIN_BOARD_SESSION_TTL_MS } from '@/constants/payjoin'
 import {
   invalidateArkBoardQueries,
@@ -23,6 +24,16 @@ const PENDING_STATUS_LABEL_KEYS = new Set([
   'receive.payjoin.status.receivedOriginal',
   'receive.payjoin.status.waiting'
 ])
+
+function displayBoardPayjoinError(error: string | undefined) {
+  if (!error) {
+    return undefined
+  }
+  if (error === ARK_BOARD_PAYJOIN_NATIVE_MISSING) {
+    return t('ark.board.error.payjoinNative')
+  }
+  return error
+}
 
 /**
  * Payjoin boarding: a BIP77 receiver session whose destination is the ark
@@ -66,7 +77,9 @@ export function useArkBoardPayjoin(account: ArkAccount | undefined) {
   const accountId = account?.id
   const completed = !!session && isPayjoinSuccess(session.status)
   const sessionError = session?.status === 'error' ? session.error : undefined
-  const error = fundingInfoQuery.error?.message ?? sessionError
+  const error = displayBoardPayjoinError(
+    fundingInfoQuery.error?.message ?? sessionError
+  )
   const statusLabelKey =
     receiver.statusLabelKey ??
     (fundingInfoQuery.isLoading ? 'receive.payjoin.status.initializing' : null)

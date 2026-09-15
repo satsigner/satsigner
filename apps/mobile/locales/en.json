@@ -538,6 +538,7 @@
     "board.error.invalidAmount": "Enter a valid amount",
     "board.error.loadAddress": "Failed to generate deposit address",
     "board.error.loadBalance": "Failed to load boarding wallet balance",
+    "board.error.payjoinNative": "This Bark build cannot create a board funding address. Rebuild the app with bark-react-native 0.21 or newer.",
     "board.fee": "Board fee",
     "board.feeEstimating": "Estimating…",
     "board.feeUnavailable": "Fee unavailable — tap to retry",

@@ -24,9 +24,9 @@ describe('extractPayjoinOriginalPsbt', () => {
 
   it('finds a byte-array PSBT', () => {
     const bytes = [...Buffer.from(SAMPLE_BASE64, 'base64')]
-    expect(
-      extractPayjoinOriginalPsbt([JSON.stringify({ psbt: bytes })])
-    ).toBe(SAMPLE_BASE64)
+    expect(extractPayjoinOriginalPsbt([JSON.stringify({ psbt: bytes })])).toBe(
+      SAMPLE_BASE64
+    )
   })
 
   it('returns undefined when no PSBT is present', () => {
