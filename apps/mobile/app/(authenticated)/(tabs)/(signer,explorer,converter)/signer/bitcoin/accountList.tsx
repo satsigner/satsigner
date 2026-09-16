@@ -7,23 +7,12 @@ import {
   RenderItemParams,
   ScaleDecorator
 } from 'react-native-draggable-flatlist'
-import Animated, {
-  cancelAnimation,
-  Easing,
-  type SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming
-} from 'react-native-reanimated'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAccountCard, {
   type SSAccountCardStat
 } from '@/components/SSAccountCard'
-import SSAccountCardSkeleton from '@/components/SSAccountCardSkeleton'
 import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSButton from '@/components/SSButton'
@@ -64,6 +53,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
+import { getAccountTotalBalance } from '@/utils/account'
 import {
   getExtendedPublicKeyFromMnemonic,
   getExtendedPublicKeyFromMnemonicCustom,
@@ -74,11 +64,9 @@ import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { ensurePin } from '@/utils/pin'
 import { time } from '@/utils/time'
 
-const ACCOUNT_SKELETON_COUNT = 3
-const STAGGER_DELAY_MS = 70
-const STAGGER_DURATION_MS = 320
-const MAX_STAGGERED_ITEMS = 8
-const SAMPLE_ACCOUNTS_DELAY_MS = 400
+function accountShowsFingerprint(account: Account) {
+  return account.keys[0]?.creationType !== 'importAddress'
+}
 
 function buildAccountCardStats(
   summary: Account['summary']
@@ -101,131 +89,6 @@ function buildAccountCardStats(
       value: summary.satsInMempool
     }
   ]
-}
-
-function runStaggerIn(
-  opacity: SharedValue<number>,
-  translateY: SharedValue<number>,
-  delayMs: number
-) {
-  cancelAnimation(opacity)
-  cancelAnimation(translateY)
-  opacity.set(0)
-  translateY.set(12)
-  opacity.set(
-    withDelay(
-      delayMs,
-      withTiming(1, {
-        duration: STAGGER_DURATION_MS,
-        easing: Easing.out(Easing.ease)
-      })
-    )
-  )
-  translateY.set(
-    withDelay(
-      delayMs,
-      withTiming(0, {
-        duration: STAGGER_DURATION_MS,
-        easing: Easing.out(Easing.ease)
-      })
-    )
-  )
-}
-
-function forceStaggerVisible(
-  opacity: SharedValue<number>,
-  translateY: SharedValue<number>
-) {
-  cancelAnimation(opacity)
-  cancelAnimation(translateY)
-  opacity.set(1)
-  translateY.set(0)
-}
-
-/**
- * Fade/slide-in that stays reliable with FlashList recycling:
- * - keyed by itemId so a recycled cell restarts for the new account
- * - cleanup forces opacity 1 so a mid-animation recycle never leaves a blank cell
- * - JS timeout fallback if the UI-thread animation is dropped
- */
-function AccountCardStaggerItem({
-  index,
-  itemId,
-  children
-}: {
-  index: number
-  itemId: string
-  children: React.ReactNode
-}) {
-  const shouldAnimate = index < MAX_STAGGERED_ITEMS
-  const opacity = useSharedValue(shouldAnimate ? 0 : 1)
-  const translateY = useSharedValue(shouldAnimate ? 12 : 0)
-
-  useEffect(() => {
-    if (!shouldAnimate) {
-      forceStaggerVisible(opacity, translateY)
-      return
-    }
-
-    const delayMs = index * STAGGER_DELAY_MS
-    runStaggerIn(opacity, translateY, delayMs)
-
-    const fallback = setTimeout(
-      () => forceStaggerVisible(opacity, translateY),
-      delayMs + STAGGER_DURATION_MS + 50
-    )
-
-    return () => {
-      clearTimeout(fallback)
-      // Dropping a cell mid-fade must never leave the recycled view invisible.
-      forceStaggerVisible(opacity, translateY)
-    }
-  }, [itemId, index, shouldAnimate, opacity, translateY])
-
-  const staggerStyle = useAnimatedStyle(() => ({
-    opacity: opacity.get(),
-    transform: [{ translateY: translateY.get() }]
-  }))
-
-  return <Animated.View style={staggerStyle}>{children}</Animated.View>
-}
-
-function SampleAccountsFadeIn({ children }: { children: React.ReactNode }) {
-  const opacity = useSharedValue(0)
-
-  useEffect(() => {
-    cancelAnimation(opacity)
-    opacity.set(0)
-    opacity.set(
-      withDelay(
-        SAMPLE_ACCOUNTS_DELAY_MS,
-        withTiming(1, {
-          duration: STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease)
-        })
-      )
-    )
-
-    const fallback = setTimeout(
-      () => {
-        cancelAnimation(opacity)
-        opacity.set(1)
-      },
-      SAMPLE_ACCOUNTS_DELAY_MS + STAGGER_DURATION_MS + 50
-    )
-
-    return () => {
-      clearTimeout(fallback)
-      cancelAnimation(opacity)
-      opacity.set(1)
-    }
-  }, [opacity])
-
-  const style = useAnimatedStyle(() => ({
-    opacity: opacity.get()
-  }))
-
-  return <Animated.View style={style}>{children}</Animated.View>
 }
 
 export default function AccountList() {
@@ -309,8 +172,6 @@ export default function AccountList() {
     | 'watchonlyTether'
     | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
-  // SQLite store initializes synchronously via JSI — always hydrated
-  const hasHydrated = true
 
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
@@ -332,7 +193,7 @@ export default function AccountList() {
   const totalBalance = useMemo(
     () =>
       filteredAccounts.reduce(
-        (value, account) => value + account.summary.balance,
+        (value, account) => value + getAccountTotalBalance(account.summary),
         0
       ),
     [filteredAccounts]
@@ -349,7 +210,7 @@ export default function AccountList() {
 
   const ACCOUNT_CARD_HEIGHT = 160
   const SEPARATOR_VERTICAL = 32
-  const listItemCount = hasHydrated ? Math.max(filteredAccounts.length, 1) : 3
+  const listItemCount = Math.max(filteredAccounts.length, 1)
   const listContainerMinHeight =
     listItemCount * ACCOUNT_CARD_HEIGHT +
     (listItemCount - 1) * SEPARATOR_VERTICAL
@@ -878,8 +739,8 @@ export default function AccountList() {
           )
         }}
       />
-      <SSMainLayout>
-        <SafeAreaView style={{ flex: 1, overflow: 'visible' }}>
+      <SSMainLayout style={{ paddingTop: 0 }}>
+        <View style={{ flex: 1, overflow: 'visible' }}>
           <SSVStack
             gap="none"
             style={{ alignItems: 'center', marginBottom: 24 }}
@@ -965,92 +826,62 @@ export default function AccountList() {
             contentContainerStyle={{ paddingTop: 16 }}
             showsVerticalScrollIndicator={false}
           >
-            {!hasHydrated ? (
-              <SSVStack
-                gap="none"
-                style={{ minHeight: listContainerMinHeight }}
-              >
-                {Array.from({ length: ACCOUNT_SKELETON_COUNT }).map((_, i) => (
-                  <SSVStack key={i}>
-                    <SSAccountCardSkeleton />
-                    {i < ACCOUNT_SKELETON_COUNT - 1 && (
-                      <SSSeparator
-                        style={{ marginVertical: 16 }}
-                        color="gradient"
-                      />
-                    )}
-                  </SSVStack>
-                ))}
-              </SSVStack>
-            ) : (
-              <Animated.View
-                style={{
-                  minHeight: listContainerMinHeight
+            <View
+              style={{
+                minHeight: listContainerMinHeight
+              }}
+            >
+              <NestableDraggableFlatList
+                data={filteredAccounts}
+                dragItemOverflow
+                containerStyle={{ overflow: 'visible' }}
+                onDragEnd={({ data }: { data: Account[] }) => {
+                  handleReorderAccounts(data)
                 }}
-              >
-                <NestableDraggableFlatList
-                  data={filteredAccounts}
-                  dragItemOverflow
-                  containerStyle={{ overflow: 'visible' }}
-                  onDragEnd={({ data }: { data: Account[] }) => {
-                    handleReorderAccounts(data)
-                  }}
-                  keyExtractor={(item: Account) => item.id}
-                  renderItem={({
-                    item,
-                    getIndex,
-                    drag,
-                    isActive
-                  }: RenderItemParams<Account>) => (
-                    <ScaleDecorator activeScale={1.05}>
-                      <AccountCardStaggerItem
-                        index={getIndex() || 0}
-                        itemId={item.id}
-                      >
-                        <SSVStack>
-                          <SSAccountCard
-                            name={item.name}
-                            balance={item.summary.balance}
-                            fingerprint={
-                              item.keys[0].creationType === 'importAddress'
-                                ? undefined
-                                : fingerprints[item.id]
-                            }
-                            watchOnly={item.policyType === 'watchonly'}
-                            syncStatus={item.syncStatus}
-                            lastSyncedAt={item.lastSyncedAt}
-                            stats={buildAccountCardStats(item.summary)}
-                            onPress={() => handleGoToAccount(item.id)}
-                            onLongPress={drag}
-                            longPressDisabled={isActive}
-                          />
-                        </SSVStack>
-                      </AccountCardStaggerItem>
-                    </ScaleDecorator>
-                  )}
-                  ItemSeparatorComponent={() => (
-                    <SSSeparator
-                      style={{ marginVertical: 16 }}
-                      color="gradient"
-                    />
-                  )}
-                  ListEmptyComponent={
-                    <SSVStack
-                      itemsCenter
-                      style={{ paddingBottom: 32, paddingTop: 32 }}
-                    >
-                      <SSText uppercase>{t('accounts.empty')}</SSText>
+                keyExtractor={(item: Account) => item.id}
+                renderItem={({
+                  item,
+                  drag,
+                  isActive
+                }: RenderItemParams<Account>) => (
+                  <ScaleDecorator activeScale={1.05}>
+                    <SSVStack>
+                      <SSAccountCard
+                        name={item.name}
+                        balance={getAccountTotalBalance(item.summary)}
+                        fingerprint={fingerprints[item.id]}
+                        showFingerprint={accountShowsFingerprint(item)}
+                        watchOnly={item.policyType === 'watchonly'}
+                        syncStatus={item.syncStatus}
+                        lastSyncedAt={item.lastSyncedAt}
+                        stats={buildAccountCardStats(item.summary)}
+                        onPress={() => handleGoToAccount(item.id)}
+                        onLongPress={drag}
+                        longPressDisabled={isActive}
+                      />
                     </SSVStack>
-                  }
-                  showsVerticalScrollIndicator={false}
-                />
-                <SampleAccountsFadeIn>
-                  {renderSamplewallets()}
-                </SampleAccountsFadeIn>
-              </Animated.View>
-            )}
+                  </ScaleDecorator>
+                )}
+                ItemSeparatorComponent={() => (
+                  <SSSeparator
+                    style={{ marginVertical: 16 }}
+                    color="gradient"
+                  />
+                )}
+                ListEmptyComponent={
+                  <SSVStack
+                    itemsCenter
+                    style={{ paddingBottom: 32, paddingTop: 32 }}
+                  >
+                    <SSText uppercase>{t('accounts.empty')}</SSText>
+                  </SSVStack>
+                }
+                showsVerticalScrollIndicator={false}
+              />
+              {renderSamplewallets()}
+            </View>
           </NestableScrollContainer>
-        </SafeAreaView>
+        </View>
       </SSMainLayout>
     </>
   )

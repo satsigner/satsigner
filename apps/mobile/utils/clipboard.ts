@@ -2,11 +2,12 @@ import * as Clipboard from 'expo-clipboard'
 
 import { isValidBitcoinContent } from './bitcoinContent'
 
-export async function setClipboard(value: string): Promise<void> {
+export async function setClipboard(value: string): Promise<boolean> {
   try {
     await Clipboard.setStringAsync(value)
+    return true
   } catch {
-    /* silently ignored */
+    return false
   }
 }
 

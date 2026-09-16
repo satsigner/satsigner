@@ -4,6 +4,7 @@ import {
   getArkMovementCounterparty,
   getArkMovementKind,
   getArkMovementLabelRef,
+  getArkMovementTxids,
   getArkRefreshVtxoCounts,
   getArkRefreshVtxoLabel,
   isArkRefreshSubsystemName,
@@ -209,6 +210,46 @@ describe('arkMovement utils', () => {
     it('does not mutate the input array', () => {
       sortArkMovements(movements, 'asc')
       expect(movements.map((m) => m.id)).toStrictEqual([1, 2, 3])
+    })
+  })
+
+  describe('getArkMovementTxids', () => {
+    const SAMPLE_TXID =
+      '83f01d4bf021cc73973e4cd5c3696bbd4ab320eaacde380a95f1f1dfa5649bfc'
+    const OTHER_TXID =
+      'fec211dc829c15b7fb8c32eabe77d342fc8d1148bbd8f1f4155154bc8ddd3e10'
+
+    it('reads chain_anchor outpoints from board metadata', () => {
+      const movement = buildMovement({
+        metadataJson: JSON.stringify({
+          chain_anchor: `${SAMPLE_TXID}:0`,
+          onchain_fee_sat: 772
+        }),
+        subsystemKind: 'board',
+        subsystemName: 'bark.board'
+      })
+      expect(getArkMovementTxids(movement)).toStrictEqual([SAMPLE_TXID])
+    })
+
+    it('reads funding_txid from round metadata', () => {
+      const movement = buildMovement({
+        metadataJson: JSON.stringify({ funding_txid: OTHER_TXID }),
+        subsystemKind: 'refresh',
+        subsystemName: 'bark.round'
+      })
+      expect(getArkMovementTxids(movement)).toStrictEqual([OTHER_TXID])
+    })
+
+    it('falls back to vtxo outpoint ids', () => {
+      const movement = buildMovement({
+        outputVtxoIds: [`${SAMPLE_TXID}:0`]
+      })
+      expect(getArkMovementTxids(movement)).toStrictEqual([SAMPLE_TXID])
+    })
+
+    it('returns an empty list when no on-chain txid is present', () => {
+      const movement = buildMovement({ outputVtxoIds: ['vtxo-board'] })
+      expect(getArkMovementTxids(movement)).toStrictEqual([])
     })
   })
 

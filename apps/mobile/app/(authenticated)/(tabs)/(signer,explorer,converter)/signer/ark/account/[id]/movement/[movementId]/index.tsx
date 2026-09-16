@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSArkMovementIcon from '@/components/SSArkMovementIcon'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSStyledSatText from '@/components/SSStyledSatText'
@@ -24,6 +25,7 @@ import {
   getArkMovementSatTextType,
   getArkMovementStatusColor,
   getArkMovementStatusLabel,
+  getArkMovementTxids,
   isLightningMovement,
   parseArkCounterparty
 } from '@/utils/arkMovement'
@@ -88,6 +90,22 @@ function DetailRow({ label, value, valueStyle }: DetailRowProps) {
 type AddressListProps = {
   label: string
   values: string[]
+}
+
+function TxidList({ txids }: { txids: string[] }) {
+  if (txids.length === 0) {
+    return null
+  }
+  return (
+    <SSVStack style={styles.section} gap="xs">
+      <SSText color="muted" size="sm">
+        {t('ark.movement.detail.txid')}
+      </SSText>
+      {txids.map((txid) => (
+        <SSAddressDisplay key={txid} address={txid} variant="outline" />
+      ))}
+    </SSVStack>
+  )
 }
 
 function AddressList({ label, values }: AddressListProps) {
@@ -224,6 +242,7 @@ export default function ArkMovementDetailPage() {
               header={t('transaction.label')}
               privacyMode={privacyMode}
             />
+            <TxidList txids={getArkMovementTxids(movement)} />
             <SSVStack gap="none" style={styles.section}>
               <DetailRow
                 label={t('ark.movement.detail.kind')}

@@ -20,6 +20,63 @@ const STALE_EXIT_SUBSYSTEM_KIND = 'start'
 
 const MUTED_STATUSES = new Set(['failed', 'canceled'])
 
+const BITCOIN_TXID_HEX = /^[0-9a-fA-F]{64}$/
+const BITCOIN_OUTPOINT = /^([0-9a-fA-F]{64}):\d+$/
+
+const METADATA_TXID_KEYS = [
+  'chain_anchor',
+  'funding_txid',
+  'offboard_txid',
+  'txid'
+] as const
+
+function txidFromHexOrOutpoint(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+  if (BITCOIN_TXID_HEX.test(value)) {
+    return value.toLowerCase()
+  }
+  const match = BITCOIN_OUTPOINT.exec(value)
+  if (!match) {
+    return null
+  }
+  return match[1].toLowerCase()
+}
+
+function collectTxidsFromRecord(
+  record: Record<string, unknown>,
+  into: Set<string>
+) {
+  for (const key of METADATA_TXID_KEYS) {
+    const txid = txidFromHexOrOutpoint(record[key])
+    if (txid) {
+      into.add(txid)
+    }
+  }
+  for (const value of Object.values(record)) {
+    const txid = txidFromHexOrOutpoint(value)
+    if (txid) {
+      into.add(txid)
+    }
+  }
+}
+
+function parseMetadataRecord(raw: string): Record<string, unknown> | null {
+  if (!raw) {
+    return null
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!isRecord(parsed)) {
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -114,6 +171,25 @@ export function isMutedArkMovement(movement: ArkMovement): boolean {
     return true
   }
   return MUTED_STATUSES.has(movement.status)
+}
+
+export function getArkMovementTxids(movement: ArkMovement): string[] {
+  const txids = new Set<string>()
+  const metadata = parseMetadataRecord(movement.metadataJson)
+  if (metadata) {
+    collectTxidsFromRecord(metadata, txids)
+  }
+  for (const vtxoId of [
+    ...movement.outputVtxoIds,
+    ...movement.inputVtxoIds,
+    ...movement.exitedVtxoIds
+  ]) {
+    const txid = txidFromHexOrOutpoint(vtxoId)
+    if (txid) {
+      txids.add(txid)
+    }
+  }
+  return [...txids]
 }
 
 export function getArkMovementAmountSats(movement: ArkMovement): number {

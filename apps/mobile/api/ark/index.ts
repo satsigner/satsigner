@@ -1,6 +1,7 @@
 import { getArkProvider } from '@/api/ark/registry'
 import type {
   ArkBalance,
+  ArkBoardFundingInfo,
   ArkBolt11Invoice,
   ArkDerivedAddress,
   ArkFeeEstimate,
@@ -245,6 +246,28 @@ export function boardArk(
   amountSats?: number
 ): Promise<ArkPendingBoard> {
   return getArkProvider(serverId).board(accountId, amountSats)
+}
+
+export function getArkBoardFundingAddress(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkBoardFundingInfo> {
+  return getArkProvider(serverId).boardFundingAddress(accountId)
+}
+
+export function boardArkPsbt(
+  serverId: ArkServerId,
+  accountId: string,
+  psbtBase64: string,
+  keypairIndex: number,
+  expiryHeight: number
+): Promise<ArkPendingBoard> {
+  return getArkProvider(serverId).boardPsbt(
+    accountId,
+    psbtBase64,
+    keypairIndex,
+    expiryHeight
+  )
 }
 
 export function estimateArkBoardFee(

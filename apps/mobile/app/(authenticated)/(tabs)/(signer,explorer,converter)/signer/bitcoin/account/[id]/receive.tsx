@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { signTransaction } from '@/api/bdk'
 import { processManualOriginalPsbt } from '@/api/payjoin'
+import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSLoader from '@/components/SSLoader'
@@ -16,7 +17,6 @@ import SSNumberInput from '@/components/SSNumberInput'
 import SSPsbtTransport from '@/components/SSPsbtTransport'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
-import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
@@ -89,6 +89,32 @@ function labelFromPayjoinSession(
     return session.label
   }
   return parsePayjoinUri(session.uri).params?.label
+}
+
+const PAYJOIN_PENDING_STATUS_KEYS = new Set([
+  'receive.payjoin.status.contributing',
+  'receive.payjoin.status.initializing',
+  'receive.payjoin.status.negotiating',
+  'receive.payjoin.status.polling',
+  'receive.payjoin.status.receivedOriginal',
+  'receive.payjoin.status.waiting'
+])
+
+function payjoinReceiveHintKey(statusLabelKey: string): string | null {
+  if (statusLabelKey === 'receive.payjoin.status.waiting') {
+    return 'receive.payjoin.status.waitingHint'
+  }
+  if (statusLabelKey === 'receive.payjoin.status.polling') {
+    return 'receive.payjoin.status.pollingHint'
+  }
+  if (
+    statusLabelKey === 'receive.payjoin.status.receivedOriginal' ||
+    statusLabelKey === 'receive.payjoin.status.contributing' ||
+    statusLabelKey === 'receive.payjoin.status.negotiating'
+  ) {
+    return 'receive.payjoin.status.contributingHint'
+  }
+  return null
 }
 
 export default function Receive() {
@@ -247,6 +273,9 @@ export default function Receive() {
     signPsbt: signPayjoinPsbt,
     utxos: accountUtxos
   })
+  const payjoinHintKey = statusLabelKey
+    ? payjoinReceiveHintKey(statusLabelKey)
+    : null
 
   async function handleImportManualOriginal(originalPsbtBase64: string) {
     if (!account || !localAddress || !wallet) {
@@ -632,7 +661,7 @@ export default function Receive() {
             </SSVStack>
             {payjoinCompleted ? (
               <SSVStack itemsCenter gap="md" style={styles.sectionSpacing}>
-                <SSSuccessCheckAnimation width={160} />
+                <SSIconSuccess width={159} height={159} variant="outline" />
                 <SSText
                   testID="receive-payjoin-completed"
                   size="md"
@@ -667,6 +696,7 @@ export default function Receive() {
                         : 'H'
                     }
                     value={localFinalAddressQR}
+                    key={localFinalAddressQR}
                     hideShareButton
                   />
                   <SSHStack>
@@ -692,6 +722,7 @@ export default function Receive() {
                 <TextInput
                   testID="receive-bitcoin-uri"
                   value={localFinalAddressQR}
+                  key={localFinalAddressQR}
                   editable={false}
                   selectTextOnFocus
                   showSoftInputOnFocus={false}
@@ -820,14 +851,7 @@ export default function Receive() {
                             }}
                           >
                             {payjoinNegotiating ||
-                            statusLabelKey ===
-                              'receive.payjoin.status.negotiating' ||
-                            statusLabelKey ===
-                              'receive.payjoin.status.waiting' ||
-                            statusLabelKey ===
-                              'receive.payjoin.status.initializing' ||
-                            statusLabelKey ===
-                              'receive.payjoin.status.polling' ? (
+                            PAYJOIN_PENDING_STATUS_KEYS.has(statusLabelKey) ? (
                               <SSLoader size={18} />
                             ) : null}
                             <SSText
@@ -836,11 +860,19 @@ export default function Receive() {
                               size="sm"
                               center
                             >
-                              {payjoinNegotiating
-                                ? t('receive.payjoin.status.negotiating')
-                                : t(statusLabelKey)}
+                              {t(statusLabelKey)}
                             </SSText>
                           </SSHStack>
+                          {payjoinHintKey ? (
+                            <SSText
+                              testID="receive-payjoin-status-hint"
+                              color="muted"
+                              size="xs"
+                              center
+                            >
+                              {t(payjoinHintKey)}
+                            </SSText>
+                          ) : null}
                           {payjoinExpiringLabel ? (
                             <SSText
                               testID="receive-payjoin-expiring"
@@ -881,7 +913,7 @@ export default function Receive() {
                   {amountMode === 'sats' ? (
                     <>
                       <SSNumberInput
-                        min={DUST_LIMIT}
+                        min={0}
                         max={2_100_000_000_000_000}
                         value={localCustomAmount}
                         placeholder={t('receive.placeholder.sats')}

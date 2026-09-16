@@ -180,7 +180,11 @@ export function useArkNotifications() {
   const accounts = useArkStore((state) => state.accounts)
 
   useEffect(() => {
-    syncSubscriptions(accounts, queryClient)
+    // Defer native wallet open until after the first unlocked frame.
+    const id = setTimeout(() => {
+      syncSubscriptions(accounts, queryClient)
+    }, 0)
+    return () => clearTimeout(id)
   }, [accounts, queryClient])
 
   useEffect(() => {

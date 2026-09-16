@@ -31,10 +31,7 @@ import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
-import {
-  PAYJOIN_DEFAULT_PJOS,
-  PAYJOIN_DIRECTORY_URL
-} from '@/constants/payjoin'
+import { PAYJOIN_DEFAULT_PJOS } from '@/constants/payjoin'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
@@ -42,6 +39,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
@@ -53,6 +51,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { isArkBoardPayjoinSend } from '@/utils/arkBoardDeposit'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import {
@@ -62,6 +61,7 @@ import {
   payjoinWarn
 } from '@/utils/payjoinLog'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
+import { shouldSuppressPayjoinTransactionChart } from '@/utils/payjoinSignPreview'
 import {
   detectEndpointKind,
   hasPayjoinParam,
@@ -84,6 +84,23 @@ import {
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 const tn = _tn('transaction.build.sign')
+
+function senderPayjoinHintKey(params: {
+  checking: boolean
+  manual: boolean
+  waiting: boolean
+}): string {
+  if (params.checking) {
+    return 'transaction.build.payjoin.stage.checkingProposalHint'
+  }
+  if (params.waiting) {
+    return 'transaction.build.payjoin.waitingReceiverHint'
+  }
+  if (params.manual) {
+    return 'transaction.build.payjoin.manual.hint'
+  }
+  return 'transaction.build.payjoin.stage.postingOriginalHint'
+}
 
 function buildSignTransactionChartModel(
   psbt: PsbtLike | null,
@@ -355,12 +372,13 @@ export default function SignTransaction() {
     }
   }
 
-  // Payjoin keeps two wallets + OHTTP state hot on 2GB AVDs. Remounting Skia
-  // after the proposal is signed (waiting → signed), and again right after
-  // setBroadcasted(true) before navigate, was spiking RSS into LMK.
-  // Keep the chart off during directory wait or Manual handoff.
-  const suppressTransactionChart =
-    waitingForReceiver || !!payjoinStatus || !!manualOriginalPsbt
+  // Keep Skia unmounted while the directory wait / Manual handoff is open
+  // (2GB AVDs). Once the proposal is signed, show the Payjoin transaction so
+  // the sender can review it before broadcast.
+  const suppressTransactionChart = shouldSuppressPayjoinTransactionChart({
+    negotiating: waitingForReceiver || !!payjoinStatus || !!manualOriginalPsbt,
+    signed
+  })
 
   const transaction = suppressTransactionChart
     ? null
@@ -480,6 +498,17 @@ export default function SignTransaction() {
           }
         }
       }
+      const builder = useTransactionBuilderStore.getState()
+      if (isArkBoardPayjoinSend(builder.outputs, builder.payjoinUri)) {
+        const arkAccountId = useArkStore
+          .getState()
+          .accounts.find((arkAccount) => arkAccount.bitcoinAccountId === id)?.id
+        if (arkAccountId) {
+          toast.success(t('ark.board.payjoinBroadcasted'))
+          router.replace(`/signer/ark/account/${arkAccountId}`)
+          return
+        }
+      }
       router.navigate(
         `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
       )
@@ -519,21 +548,6 @@ export default function SignTransaction() {
       ),
     [outputs]
   )
-
-  const payjoinPollUrl = useMemo(() => {
-    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
-      return null
-    }
-    const fromSession = id
-      ? usePayjoinSessionsStore.getState().getActiveSenderSession(id)
-          ?.pjEndpoint
-      : undefined
-    const raw =
-      fromSession ||
-      parsePayjoinUri(payjoinUri).params?.pj ||
-      PAYJOIN_DIRECTORY_URL
-    return raw.split('#')[0] || PAYJOIN_DIRECTORY_URL
-  }, [id, payjoinUri])
 
   function buildCallbacks() {
     if (!wallet || !account) {
@@ -606,7 +620,7 @@ export default function SignTransaction() {
     }
     payjoinBusyRef.current = true
     setCheckingPayjoin(true)
-    setPayjoinStatus(t('transaction.build.payjoin.negotiating'))
+    setPayjoinStatus(t('transaction.build.payjoin.stage.checkingProposal'))
     try {
       const parsed = parsePayjoinUri(session.uri || payjoinUri || '')
       const disableOutputSubstitution =
@@ -756,7 +770,7 @@ export default function SignTransaction() {
     }
 
     payjoinBusyRef.current = true
-    setPayjoinStatus(t('transaction.build.payjoin.negotiating'))
+    setPayjoinStatus(t('transaction.build.payjoin.stage.postingOriginal'))
     try {
       const originalBase64 = psbt.toBase64()
       const callbacks = buildCallbacks()
@@ -867,6 +881,13 @@ export default function SignTransaction() {
     router.replace('/signer/bitcoin/accountList')
   }
 
+  const showPayjoinWait = !signed && !!payjoinStatus && !manualOriginalPsbt
+  const senderHintKey = senderPayjoinHintKey({
+    checking: checkingPayjoin,
+    manual: !!manualOriginalPsbt,
+    waiting: waitingForReceiver
+  })
+
   if (!account || !psbt) {
     return <Redirect href="/" />
   }
@@ -877,8 +898,33 @@ export default function SignTransaction() {
         <ScrollView>
           <SSVStack justifyBetween style={{ minHeight: '100%' }}>
             <SSVStack itemsCenter>
-              {!signed && payjoinStatus ? (
-                <SSVStack gap="xxs" itemsCenter>
+              {showPayjoinWait ? (
+                <SSVStack gap="lg" itemsCenter>
+                  <SSText size="md" uppercase weight="light">
+                    {t('transaction.payjoin.send')}
+                  </SSText>
+                  <SSLoader size={160} />
+                  <SSVStack gap="sm" itemsCenter>
+                    <SSText testID="send-payjoin-status" size="md" center>
+                      {payjoinStatus}
+                    </SSText>
+                    <SSText color="muted" size="sm" center>
+                      {t(senderHintKey)}
+                    </SSText>
+                    {payjoinExpiringLabel ? (
+                      <SSText
+                        testID="send-payjoin-expiring"
+                        color="muted"
+                        size="xs"
+                        center
+                      >
+                        {payjoinExpiringLabel}
+                      </SSText>
+                    ) : null}
+                  </SSVStack>
+                </SSVStack>
+              ) : !signed && payjoinStatus ? (
+                <SSVStack gap="sm" itemsCenter>
                   <SSHStack
                     gap="sm"
                     style={{ alignItems: 'center', justifyContent: 'center' }}
@@ -893,35 +939,9 @@ export default function SignTransaction() {
                       {payjoinStatus}
                     </SSText>
                   </SSHStack>
-                  {waitingForReceiver ? (
-                    <SSText
-                      color="muted"
-                      size="sm"
-                      style={{ textAlign: 'center' }}
-                    >
-                      {t('transaction.build.payjoin.waitingReceiverHint')}
-                    </SSText>
-                  ) : null}
-                  {payjoinExpiringLabel ? (
-                    <SSText
-                      testID="send-payjoin-expiring"
-                      color="muted"
-                      size="xs"
-                      center
-                    >
-                      {payjoinExpiringLabel}
-                    </SSText>
-                  ) : null}
-                  {payjoinPollUrl ? (
-                    <SSText
-                      testID="send-payjoin-poll-url"
-                      color="muted"
-                      size="xs"
-                      center
-                    >
-                      {payjoinPollUrl}
-                    </SSText>
-                  ) : null}
+                  <SSText color="muted" size="sm" center>
+                    {t(senderHintKey)}
+                  </SSText>
                 </SSVStack>
               ) : (
                 <SSText
@@ -941,90 +961,112 @@ export default function SignTransaction() {
               {signed && !broadcasted && (
                 <SSIconSuccess width={159} height={159} variant="outline" />
               )}
+              {signed && !broadcasted && payjoinStatus ? (
+                <SSVStack gap="xs" itemsCenter>
+                  <SSText
+                    testID="send-payjoin-ready"
+                    color="muted"
+                    size="sm"
+                    center
+                  >
+                    {payjoinStatus}
+                  </SSText>
+                  <SSText
+                    testID="send-payjoin-review-hint"
+                    color="muted"
+                    size="sm"
+                    center
+                  >
+                    {t('transaction.build.payjoin.reviewHint')}
+                  </SSText>
+                </SSVStack>
+              ) : null}
               {!signed && !broadcasted && !payjoinStatus ? (
                 <SSLoader size={160} />
               ) : null}
               {broadcasted && <SSSuccessCheckAnimation />}
             </SSVStack>
 
-            <SSVStack>
-              <SSVStack gap="xxs">
-                <SSText color="muted" size="sm" uppercase>
-                  {t('transaction.id')}
-                </SSText>
-                <SSTransactionIdFormatted size="lg" value={displayTxid} />
+            {showPayjoinWait ? null : (
+              <SSVStack>
+                <SSVStack gap="xxs">
+                  <SSText color="muted" size="sm" uppercase>
+                    {t('transaction.id')}
+                  </SSText>
+                  <SSTransactionIdFormatted size="lg" value={displayTxid} />
+                </SSVStack>
+
+                <SSVStack gap="xxs">
+                  <SSText color="muted" size="sm" uppercase>
+                    {t('transaction.build.preview.contents')}
+                  </SSText>
+                  {transaction ? (
+                    <View style={{ overflow: 'hidden', width: '100%' }}>
+                      <SSTransactionChart
+                        accountId={id}
+                        transaction={transaction}
+                        ownAddresses={ownAddresses}
+                        txLabelsById={txLabelsById}
+                        knownTxIds={knownTxIds}
+                        outpointLabelsByRef={outpointLabelsByRef}
+                        scale={0.9}
+                        showUnspentLabel={false}
+                      />
+                    </View>
+                  ) : null}
+                </SSVStack>
+                <SSVStack gap="xxs">
+                  <SSText color="muted" size="sm" uppercase>
+                    {tn('transaction')}
+                  </SSText>
+                  {rawTx !== '' && !suppressTransactionChart ? (
+                    <>
+                      {(() => {
+                        const isValidHex =
+                          /^[a-fA-F0-9]+$/.test(rawTx) && rawTx.length >= 8
+
+                        if (!isValidHex) {
+                          return (
+                            <SSText color="muted" size="sm">
+                              Invalid transaction format:{' '}
+                              {rawTx.substring(0, 100)}
+                              ...
+                            </SSText>
+                          )
+                        }
+
+                        // Check if this might be PSBT data (starts with specific PSBT magic bytes)
+                        const isPossiblyPSBT = rawTx
+                          .toLowerCase()
+                          .startsWith('70736274')
+
+                        if (isPossiblyPSBT) {
+                          return (
+                            <SSText color="muted" size="sm">
+                              PSBT format detected - Cannot display raw
+                              transaction view. Transaction will be processed
+                              for broadcasting.
+                            </SSText>
+                          )
+                        }
+
+                        // Try to decode as raw transaction
+                        try {
+                          return <SSTransactionDecoded txHex={rawTx} />
+                        } catch {
+                          return (
+                            <SSText color="muted" size="sm">
+                              Unable to decode transaction format. Data will be
+                              processed for broadcasting.
+                            </SSText>
+                          )
+                        }
+                      })()}
+                    </>
+                  ) : null}
+                </SSVStack>
               </SSVStack>
-
-              <SSVStack gap="xxs">
-                <SSText color="muted" size="sm" uppercase>
-                  {t('transaction.build.preview.contents')}
-                </SSText>
-                {transaction ? (
-                  <View style={{ overflow: 'hidden', width: '100%' }}>
-                    <SSTransactionChart
-                      accountId={id}
-                      transaction={transaction}
-                      ownAddresses={ownAddresses}
-                      txLabelsById={txLabelsById}
-                      knownTxIds={knownTxIds}
-                      outpointLabelsByRef={outpointLabelsByRef}
-                      scale={0.9}
-                      showUnspentLabel={false}
-                    />
-                  </View>
-                ) : null}
-              </SSVStack>
-              <SSVStack gap="xxs">
-                <SSText color="muted" size="sm" uppercase>
-                  {tn('transaction')}
-                </SSText>
-                {rawTx !== '' && !suppressTransactionChart ? (
-                  <>
-                    {(() => {
-                      const isValidHex =
-                        /^[a-fA-F0-9]+$/.test(rawTx) && rawTx.length >= 8
-
-                      if (!isValidHex) {
-                        return (
-                          <SSText color="muted" size="sm">
-                            Invalid transaction format:{' '}
-                            {rawTx.substring(0, 100)}
-                            ...
-                          </SSText>
-                        )
-                      }
-
-                      // Check if this might be PSBT data (starts with specific PSBT magic bytes)
-                      const isPossiblyPSBT = rawTx
-                        .toLowerCase()
-                        .startsWith('70736274')
-
-                      if (isPossiblyPSBT) {
-                        return (
-                          <SSText color="muted" size="sm">
-                            PSBT format detected - Cannot display raw
-                            transaction view. Transaction will be processed for
-                            broadcasting.
-                          </SSText>
-                        )
-                      }
-
-                      // Try to decode as raw transaction
-                      try {
-                        return <SSTransactionDecoded txHex={rawTx} />
-                      } catch {
-                        return (
-                          <SSText color="muted" size="sm">
-                            Unable to decode transaction format. Data will be
-                            processed for broadcasting.
-                          </SSText>
-                        )
-                      }
-                    })()}
-                  </>
-                ) : null}
-              </SSVStack>
-            </SSVStack>
+            )}
 
             {manualOriginalPsbt && !signed ? (
               <SSVStack>
@@ -1059,7 +1101,7 @@ export default function SignTransaction() {
                   onPress={skipPayjoinAndSign}
                 />
               </SSVStack>
-            ) : waitingForReceiver && !signed ? (
+            ) : showPayjoinWait ? (
               <SSVStack>
                 <SSButton
                   testID="send-payjoin-open-accounts"
@@ -1072,6 +1114,7 @@ export default function SignTransaction() {
                   testID="send-payjoin-check"
                   variant="ghost"
                   label={t('transaction.build.payjoin.checkResponse')}
+                  disabled={!waitingForReceiver}
                   loading={checkingPayjoin}
                   onPress={handleCheckPayjoinResponse}
                 />
@@ -1083,13 +1126,6 @@ export default function SignTransaction() {
                   onPress={skipPayjoinAndSign}
                 />
               </SSVStack>
-            ) : !signed && payjoinStatus ? (
-              <SSButton
-                testID="send-payjoin-open-accounts"
-                variant="secondary"
-                label={t('transaction.build.payjoin.openAccounts')}
-                onPress={handleOpenAccounts}
-              />
             ) : (
               <SSButton
                 testID="send-broadcast"

@@ -20,7 +20,7 @@ describe('payjoinTtl', () => {
     expect(normalizePayjoinSessionTtlMs(undefined)).toBe(PAYJOIN_SESSION_TTL_MS)
   })
 
-  it('defaults to five minutes', () => {
-    expect(PAYJOIN_SESSION_TTL_MS).toBe(5 * 60 * 1000)
+  it('defaults to ten minutes', () => {
+    expect(PAYJOIN_SESSION_TTL_MS).toBe(10 * 60 * 1000)
   })
 })

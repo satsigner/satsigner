@@ -2,6 +2,9 @@ import type { ArkSendKind, ArkServer } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 
 export const ARK_ADDRESS_MAX_SCAN = 1000
+/** Thrown when JS calls boardFundingAddress/boardPsbt on a Bark build that lacks them. */
+export const ARK_BOARD_PAYJOIN_NATIVE_MISSING =
+  'Bark native module is missing boardFundingAddress. Rebuild with @secondts/bark-react-native 0.21 or newer.'
 export const ARK_ADDRESS_SCAN_BATCH_SIZE = 20
 export const ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
 export const ARK_EXIT_TX_VBYTES_PER_LEVEL = 200

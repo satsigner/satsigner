@@ -19,12 +19,13 @@ import {
   getArkMovementCounterparty,
   getArkMovementKind,
   getArkMovementSatTextType,
+  getArkMovementTxids,
   isLightningMovement,
   isMutedArkMovement,
   isOutgoingArkMovementKind,
   truncateArkCounterparty
 } from '@/utils/arkMovement'
-import { formatFiatPrice, formatNumber } from '@/utils/format'
+import { formatFiatPrice, formatNumber, formatTxId } from '@/utils/format'
 
 type SSArkMovementCardProps = {
   movement: ArkMovement
@@ -60,6 +61,7 @@ function SSArkMovementCard({
   const fee = movement.offchainFeeSats
   const timestamp = new Date(movement.createdAt)
   const counterparty = getArkMovementCounterparty(movement)
+  const [txid] = getArkMovementTxids(movement)
 
   const satTextType = getArkMovementSatTextType(kind)
   const showFee = fee > 0
@@ -140,6 +142,11 @@ function SSArkMovementCard({
               )}
             </SSText>
           )}
+          {txid ? (
+            <SSText size="xxs" style={styles.counterparty}>
+              {privacyMode ? '••••' : formatTxId(txid)}
+            </SSText>
+          ) : null}
           <SSLabelTags label={label} size="xs" />
         </SSVStack>
         <SSVStack gap="xxs" style={styles.rightColumn}>

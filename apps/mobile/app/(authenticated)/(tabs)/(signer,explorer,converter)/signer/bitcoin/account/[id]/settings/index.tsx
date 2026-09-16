@@ -714,7 +714,11 @@ export default function AccountSettings() {
           setMnemonicModalVisible(true)
         }}
       />
-      <SSModal visible={pinEntryModalVisible} onClose={handleClosePinEntry}>
+      <SSModal
+        visible={pinEntryModalVisible}
+        fullOpacity
+        onClose={handleClosePinEntry}
+      >
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleSuccessPin}
