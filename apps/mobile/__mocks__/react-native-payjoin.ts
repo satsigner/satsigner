@@ -56,6 +56,12 @@ function encodeState(data: Record<string, unknown>): string {
   return Buffer.from(JSON.stringify(data), 'utf8').toString('base64')
 }
 
+function assertReceiverNotCompleted(data: Record<string, unknown>) {
+  if (data.phase === 'completed') {
+    throw new Error('receiver session already completed')
+  }
+}
+
 function decodeState(state: string): Record<string, unknown> {
   return JSON.parse(Buffer.from(state, 'base64').toString('utf8')) as Record<
     string,
@@ -121,6 +127,7 @@ async function resumeReceiverSession(
   state: string
 ): Promise<ReceiverSessionHandle> {
   const data = decodeState(state)
+  assertReceiverNotCompleted(data)
   const mailboxId = String(data.mailboxId)
   const address = String(data.address)
   const pjEndpoint = `https://payjo.in/${mailboxId}#RK1-mock`
@@ -231,6 +238,7 @@ async function receiverFinalizeWithoutInputs(
   psbtBase64: string
 }> {
   const data = decodeState(state)
+  assertReceiverNotCompleted(data)
   const mailboxId = String(data.mailboxId)
   const mailbox = mailboxes.get(mailboxId) ?? {}
   if (!mailbox.originalPsbtBase64) {

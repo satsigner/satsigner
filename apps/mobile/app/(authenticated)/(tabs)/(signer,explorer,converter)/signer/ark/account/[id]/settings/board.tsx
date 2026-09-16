@@ -140,16 +140,24 @@ export default function ArkBoardPage() {
     if (!depositAddress) {
       return
     }
-    await setClipboard(depositAddress)
-    toast.success(t('common.copiedToClipboard'))
+    const copied = await setClipboard(depositAddress)
+    if (copied) {
+      toast.success(t('common.copiedToClipboard'))
+      return
+    }
+    toast.error(t('common.copyFailed'))
   }
 
   async function handleCopyPayjoinUri() {
     if (!boardPayjoin.payjoinUri) {
       return
     }
-    await setClipboard(boardPayjoin.payjoinUri)
-    toast.success(t('common.copiedToClipboard'))
+    const copied = await setClipboard(boardPayjoin.payjoinUri)
+    if (copied) {
+      toast.success(t('common.copiedToClipboard'))
+      return
+    }
+    toast.error(t('common.copyFailed'))
   }
 
   function handleRestartPayjoin() {

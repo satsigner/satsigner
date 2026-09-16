@@ -839,6 +839,7 @@
     "connected": "Connected",
     "continue": "Continue",
     "copiedToClipboard": "Copied to clipboard",
+    "copyFailed": "Failed to copy to clipboard",
     "copy": "Copy",
     "copyToClipboard": "Copy to clipboard",
     "create": "Create",

@@ -1702,6 +1702,15 @@ async function finalizeBoardReceiverPayjoin(params: {
   }
 
   const fetchImpl = params.fetchImpl ?? defaultFetch
+  if (!session.txid) {
+    store.upsertSession({
+      ...session,
+      payjoinPsbtBase64: prepared.psbtBase64,
+      proposalPsbtBase64: prepared.psbtBase64,
+      txid: cosign.txid,
+      updatedAt: Date.now()
+    })
+  }
   try {
     const res = await fetchImpl(prepared.request.url, {
       body: prepared.request.body,
