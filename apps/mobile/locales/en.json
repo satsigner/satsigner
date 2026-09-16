@@ -608,6 +608,8 @@
     "movement.error.load": "Failed to load movements",
     "movement.feeLabel": "fee %{amount} %{unit}",
     "movement.fromLabel": "from %{value}",
+    "movement.kind.board": "Board",
+    "movement.kind.offboard": "Offboard",
     "movement.kind.receive": "Receive",
     "movement.kind.refresh": "Refresh",
     "movement.kind.send": "Send",

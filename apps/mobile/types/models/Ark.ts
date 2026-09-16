@@ -37,7 +37,12 @@ export type ArkBalance = {
 
 export type ArkMovementStatus = 'pending' | 'successful' | 'failed' | 'canceled'
 
-export type ArkMovementKind = 'receive' | 'send' | 'refresh'
+export type ArkMovementKind =
+  | 'board'
+  | 'offboard'
+  | 'receive'
+  | 'refresh'
+  | 'send'
 
 export type ArkLightningSendResult = {
   invoice: string

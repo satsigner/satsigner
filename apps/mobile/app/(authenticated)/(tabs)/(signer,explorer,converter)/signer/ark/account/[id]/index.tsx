@@ -12,12 +12,12 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  SSIconArrowLineDown,
   SSIconArrowsClockwise,
   SSIconBubbles,
   SSIconCollapse,
   SSIconExpand,
   SSIconList,
+  SSIconOffboardCircle,
   SSIconRefresh,
   SSIconSignOut,
   SSIconTriangle
@@ -775,7 +775,7 @@ export default function ArkAccountDetailPage() {
           },
           {
             icon: (
-              <SSIconArrowLineDown
+              <SSIconOffboardCircle
                 width={SELECTION_ICON_SIZE}
                 height={SELECTION_ICON_SIZE}
                 stroke={Colors.white}
