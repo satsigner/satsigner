@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -27,10 +27,13 @@ export default function AuthenticatedLayout() {
       ])
     )
 
-  if (lockTriggered && skipPin) {
+  useEffect(() => {
+    if (!hydrated || !(lockTriggered && skipPin)) {
+      return
+    }
     void loadAuthenticatedSession()
     setLockTriggered(false)
-  }
+  }, [hydrated, lockTriggered, skipPin, setLockTriggered])
 
   if (!hydrated) {
     return authSplash

@@ -66,9 +66,7 @@ function AuthenticatedSession() {
       state.setPendingRecoverData
     ])
   )
-  const [accounts, updateAccount] = useAccountsStore(
-    useShallow((state) => [state.accounts, state.updateAccount])
-  )
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [wallets, addresses, addAccountWallet, addAccountAddress] =
     useWalletsStore(
       useShallow((state) => [
@@ -98,7 +96,7 @@ function AuthenticatedSession() {
       return
     }
 
-    for (const account of accounts) {
+    for (const account of useAccountsStore.getState().accounts) {
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
         const existsWallet = !isImportAddress
@@ -153,7 +151,7 @@ function AuthenticatedSession() {
     }
     const { wallets: currentWallets, addresses: currentAddresses } =
       useWalletsStore.getState()
-    for (const account of accounts) {
+    for (const account of useAccountsStore.getState().accounts) {
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
         if (isImportAddress) {
