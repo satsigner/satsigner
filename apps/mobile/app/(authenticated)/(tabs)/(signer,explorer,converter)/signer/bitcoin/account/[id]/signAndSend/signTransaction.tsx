@@ -87,6 +87,7 @@ const tn = _tn('transaction.build.sign')
 
 function senderPayjoinHintKey(params: {
   checking: boolean
+  manual: boolean
   waiting: boolean
 }): string {
   if (params.checking) {
@@ -94,6 +95,9 @@ function senderPayjoinHintKey(params: {
   }
   if (params.waiting) {
     return 'transaction.build.payjoin.waitingReceiverHint'
+  }
+  if (params.manual) {
+    return 'transaction.build.payjoin.manual.hint'
   }
   return 'transaction.build.payjoin.stage.postingOriginalHint'
 }
@@ -880,6 +884,7 @@ export default function SignTransaction() {
   const showPayjoinWait = !signed && !!payjoinStatus && !manualOriginalPsbt
   const senderHintKey = senderPayjoinHintKey({
     checking: checkingPayjoin,
+    manual: !!manualOriginalPsbt,
     waiting: waitingForReceiver
   })
 
