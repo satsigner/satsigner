@@ -13,6 +13,13 @@ import { sortTransactions } from '@/utils/sort'
 
 const MAX_OWNERSHIP_ADDRESS_SCAN = 1000
 
+function ownershipScanLimit(coreMaxIndex = -1): number {
+  if (coreMaxIndex < 0) {
+    return MAX_OWNERSHIP_ADDRESS_SCAN
+  }
+  return Math.max(MAX_OWNERSHIP_ADDRESS_SCAN, coreMaxIndex + 1)
+}
+
 function makeAddressEntry(
   address: string,
   index: number,
@@ -55,7 +62,8 @@ function ensureAddressesIncludeSeenOutputs(
   wallet: BdkWallet,
   network: Address['network'],
   addresses: Account['addresses'],
-  seenOutputAddresses: Set<string>
+  seenOutputAddresses: Set<string>,
+  scanLimit = MAX_OWNERSHIP_ADDRESS_SCAN
 ): Account['addresses'] {
   const tracked = new Set(
     addresses.map((entry) => entry.address.trim()).filter(Boolean)
@@ -70,11 +78,7 @@ function ensureAddressesIncludeSeenOutputs(
   const missingSet = new Set(missing)
   const next = [...addresses]
 
-  for (
-    let index = 0;
-    index < MAX_OWNERSHIP_ADDRESS_SCAN && missingSet.size > 0;
-    index += 1
-  ) {
+  for (let index = 0; index < scanLimit && missingSet.size > 0; index += 1) {
     const external = wallet.peekAddress(KeychainKind.External, index)?.address
     if (external && missingSet.has(external)) {
       next.push(makeAddressEntry(external, index, 'external', network))
@@ -319,5 +323,7 @@ export {
   collectTransactionOutputAddresses,
   ensureAddressesIncludeSeenOutputs,
   getTransactionRunningBalances,
-  getWalletTransactionEffect
+  getWalletTransactionEffect,
+  MAX_OWNERSHIP_ADDRESS_SCAN,
+  ownershipScanLimit
 }

@@ -3,7 +3,9 @@ import { type Transaction } from '@/types/models/Transaction'
 import {
   annotateTransactionsWithWalletOwnership,
   getTransactionRunningBalances,
-  getWalletTransactionEffect
+  getWalletTransactionEffect,
+  MAX_OWNERSHIP_ADDRESS_SCAN,
+  ownershipScanLimit
 } from '@/utils/walletOwnership'
 
 function makeAddress(
@@ -258,5 +260,15 @@ describe('getTransactionRunningBalances', () => {
     expect(balances.get('recv')).toBe(100_000)
     // 100_000 - (100_000 - 59_000) = 59_000 after stonewall send
     expect(balances.get('send')).toBe(59_000)
+  })
+})
+
+describe('ownershipScanLimit', () => {
+  it('keeps the 999 peek when Core has no higher index', () => {
+    expect(ownershipScanLimit(-1)).toBe(MAX_OWNERSHIP_ADDRESS_SCAN)
+  })
+
+  it('extends past 999 when Core range is higher', () => {
+    expect(ownershipScanLimit(1500)).toBe(1501)
   })
 })
