@@ -220,6 +220,23 @@ describe('pinKdf', () => {
       })
       expect(pinKdf.getBestAvailableKdf()).toStrictEqual(PBKDF2_600K)
     })
+
+    it('retries the next KDF when production argon2id derivation fails', async () => {
+      const pinKdf = requirePinKdfWithPatches((qc) => {
+        qc.argon2.mockImplementation(
+          (
+            _algorithm: string,
+            _params: unknown,
+            callback: (err: Error | null, result?: Buffer) => void
+          ) => {
+            callback(new Error('production argon2id failed'))
+          }
+        )
+      })
+      secureStore[sk(SALT_KEY)] = SALT
+      const material = await pinKdf.preparePinMaterial(PIN)
+      expect(material.kdf).toStrictEqual(SCRYPT_CONFIG)
+    })
   })
 
   describe('migratePinKdfIfNeeded', () => {

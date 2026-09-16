@@ -172,6 +172,10 @@ function deriveWithConfig(
 
 const availabilityCache = new Map<string, boolean>()
 
+function markKdfUnavailable(config: PinKdfConfig) {
+  availabilityCache.set(config.name, false)
+}
+
 function isKdfAvailable(config: PinKdfConfig): boolean {
   const cached = availabilityCache.get(config.name)
   if (cached !== undefined) {
@@ -213,7 +217,7 @@ function isKdfAvailable(config: PinKdfConfig): boolean {
   }
 }
 
-/** Strongest KDF usable in this environment. */
+/** Strongest KDF usable in this environment. Cheap probes only — not production cost. */
 export function getBestAvailableKdf(): PinKdfConfig {
   for (const config of PREFERENCE_ORDER) {
     if (isKdfAvailable(config)) {
@@ -222,6 +226,28 @@ export function getBestAvailableKdf(): PinKdfConfig {
   }
   // pbkdf2 has shipped in every supported runtime; unreachable in practice.
   return PBKDF2_CONFIG
+}
+
+/**
+ * Derive with production Argon2id/scrypt params. If that cost fails, mark the
+ * KDF unusable and try the next one. Cheap probes stay off this path.
+ */
+async function deriveWithBestProductionKdf(
+  pin: string,
+  salt: string
+): Promise<{ digest: string; kdf: PinKdfConfig }> {
+  for (const config of PREFERENCE_ORDER) {
+    if (!isKdfAvailable(config)) {
+      continue
+    }
+    try {
+      const digest = await deriveWithConfig(pin, salt, config)
+      return { digest, kdf: config }
+    } catch {
+      markKdfUnavailable(config)
+    }
+  }
+  throw new Error('No usable PIN KDF')
 }
 
 export function serializeKdf(config: PinKdfConfig): string {
@@ -363,8 +389,7 @@ export function derivePinDigest(
 export async function preparePinMaterial(pin: string): Promise<PinMaterial> {
   const existingSalt = await getItem(SALT_KEY)
   const salt = existingSalt ?? (await generateSalt())
-  const kdf = getBestAvailableKdf()
-  const digest = await derivePinDigest(pin, salt, kdf)
+  const { digest, kdf } = await deriveWithBestProductionKdf(pin, salt)
   return { digest, kdf, length: pin.length, salt }
 }
 
@@ -431,8 +456,8 @@ export async function migratePinKdfIfNeeded(
   reEncryptSecrets: (oldDigest: string, newDigest: string) => Promise<void>
 ): Promise<string | null> {
   const storedConfig = await getStoredKdfConfig()
-  const currentConfig = getBestAvailableKdf()
-  if (kdfConfigsEqual(storedConfig, currentConfig)) {
+  const preferred = getBestAvailableKdf()
+  if (kdfConfigsEqual(storedConfig, preferred)) {
     return null
   }
 
@@ -442,7 +467,12 @@ export async function migratePinKdfIfNeeded(
     return null
   }
 
-  const newDigest = await derivePinDigest(pin, salt, currentConfig)
+  const { digest: newDigest, kdf: currentConfig } =
+    await deriveWithBestProductionKdf(pin, salt)
+  if (kdfConfigsEqual(storedConfig, currentConfig)) {
+    return null
+  }
+
   await reEncryptSecrets(oldDigest, newDigest)
   await persistPinDigestAndKdf(newDigest, currentConfig)
   return newDigest
