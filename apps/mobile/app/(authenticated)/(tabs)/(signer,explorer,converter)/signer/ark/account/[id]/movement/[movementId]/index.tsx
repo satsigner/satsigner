@@ -21,6 +21,7 @@ import {
   getArkMovementKind,
   getArkMovementKindLabel,
   getArkMovementLabelRef,
+  getArkMovementSatTextType,
   getArkMovementStatusColor,
   getArkMovementStatusLabel,
   isLightningMovement,
@@ -147,8 +148,9 @@ export function MovementSummary({ movement }: { movement: ArkMovement }) {
             decimals={0}
             useZeroPadding={useZeroPadding}
             currency={currencyUnit}
-            type={kind === 'receive' ? 'receive' : 'send'}
+            type={getArkMovementSatTextType(kind)}
             noColor={kind === 'refresh'}
+            showSign={false}
             textSize="4xl"
             weight="ultralight"
             letterSpacing={-1}

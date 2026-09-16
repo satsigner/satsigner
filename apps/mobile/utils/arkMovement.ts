@@ -3,6 +3,8 @@ import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement, ArkMovementKind } from '@/types/models/Ark'
 
+const BOARD_SUBSYSTEM_KEYWORD = 'board'
+const OFFBOARD_SUBSYSTEM_KEYWORD = 'offboard'
 const REFRESH_SUBSYSTEM_KEYWORD = 'refresh'
 
 const LIGHTNING_SUBSYSTEM_KINDS = new Set([
@@ -33,7 +35,20 @@ export function isArkRefreshSubsystemName(subsystemName: string): boolean {
   return subsystemName.toLowerCase().includes(REFRESH_SUBSYSTEM_KEYWORD)
 }
 
+function matchesArkSubsystem(movement: ArkMovement, keyword: string): boolean {
+  return (
+    movement.subsystemKind.toLowerCase() === keyword ||
+    movement.subsystemName.toLowerCase().includes(keyword)
+  )
+}
+
 export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
+  if (matchesArkSubsystem(movement, OFFBOARD_SUBSYSTEM_KEYWORD)) {
+    return 'offboard'
+  }
+  if (matchesArkSubsystem(movement, BOARD_SUBSYSTEM_KEYWORD)) {
+    return 'board'
+  }
   if (isArkRefreshSubsystemName(movement.subsystemName)) {
     return 'refresh'
   }
@@ -161,6 +176,10 @@ export function getArkMovementStatusLabel(status: string): string {
 
 export function getArkMovementKindLabel(kind: ArkMovementKind): string {
   switch (kind) {
+    case 'board':
+      return t('ark.movement.kind.board')
+    case 'offboard':
+      return t('ark.movement.kind.offboard')
     case 'receive':
       return t('ark.movement.kind.receive')
     case 'send':
@@ -170,6 +189,19 @@ export function getArkMovementKindLabel(kind: ArkMovementKind): string {
     default:
       return ''
   }
+}
+
+export function getArkMovementSatTextType(
+  kind: ArkMovementKind
+): 'receive' | 'send' {
+  if (kind === 'receive' || kind === 'board') {
+    return 'receive'
+  }
+  return 'send'
+}
+
+export function isOutgoingArkMovementKind(kind: ArkMovementKind): boolean {
+  return kind === 'send' || kind === 'offboard'
 }
 
 export function getArkRefreshVtxoCounts(movement: ArkMovement): {
@@ -201,8 +233,9 @@ export function getArkMovementCounterparty(
   if (kind === 'refresh') {
     return null
   }
-  const list =
-    kind === 'send' ? movement.sentToAddresses : movement.receivedOnAddresses
+  const list = isOutgoingArkMovementKind(kind)
+    ? movement.sentToAddresses
+    : movement.receivedOnAddresses
   const [first] = list
   if (!first) {
     return null

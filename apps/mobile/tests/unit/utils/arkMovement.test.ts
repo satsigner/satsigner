@@ -59,6 +59,24 @@ describe('arkMovement utils', () => {
       expect(getArkMovementKind(movement)).toBe('send')
     })
 
+    it('returns board for boarding movements even with positive balance', () => {
+      const movement = buildMovement({
+        effectiveBalanceSats: 1000,
+        subsystemKind: 'board',
+        subsystemName: 'bark.board'
+      })
+      expect(getArkMovementKind(movement)).toBe('board')
+    })
+
+    it('returns offboard instead of send for offboarding movements', () => {
+      const movement = buildMovement({
+        effectiveBalanceSats: -1000,
+        subsystemKind: 'offboard',
+        subsystemName: 'bark.offboard'
+      })
+      expect(getArkMovementKind(movement)).toBe('offboard')
+    })
+
     it('returns refresh when only a fee was paid (balance + fee == 0)', () => {
       const movement = buildMovement({
         effectiveBalanceSats: -100,

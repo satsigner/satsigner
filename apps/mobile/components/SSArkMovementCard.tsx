@@ -18,8 +18,10 @@ import {
   getArkMovementAmountSats,
   getArkMovementCounterparty,
   getArkMovementKind,
+  getArkMovementSatTextType,
   isLightningMovement,
   isMutedArkMovement,
+  isOutgoingArkMovementKind,
   truncateArkCounterparty
 } from '@/utils/arkMovement'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
@@ -31,6 +33,7 @@ type SSArkMovementCardProps = {
 }
 
 const ICON_SIZE = 18
+const AMOUNT_CLUSTER_OFFSET_Y = 3
 
 function SSArkMovementCard({
   movement,
@@ -58,7 +61,7 @@ function SSArkMovementCard({
   const timestamp = new Date(movement.createdAt)
   const counterparty = getArkMovementCounterparty(movement)
 
-  const satTextType = kind === 'receive' ? 'receive' : 'send'
+  const satTextType = getArkMovementSatTextType(kind)
   const showFee = fee > 0
   const showFiat = btcPrice > 0 && kind !== 'refresh' && amountSats > 0
   const muteAmountColor = kind === 'refresh' || isMuted
@@ -108,12 +111,13 @@ function SSArkMovementCard({
                   type={satTextType}
                   textSize="xl"
                   noColor={muteAmountColor}
+                  showSign={false}
                   weight="light"
                   letterSpacing={-0.5}
                 />
               )}
               {!showRefreshLabel && (
-                <SSText color="muted" size="sm" style={styles.unit}>
+                <SSText color="muted" size="sm">
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
                     : t('bitcoin.sats')}
@@ -129,7 +133,7 @@ function SSArkMovementCard({
           {counterparty && (
             <SSText size="xxs" style={styles.counterparty}>
               {t(
-                kind === 'send'
+                isOutgoingArkMovementKind(kind)
                   ? 'ark.movement.toLabel'
                   : 'ark.movement.fromLabel',
                 { value: truncateArkCounterparty(counterparty) }
@@ -156,7 +160,8 @@ function SSArkMovementCard({
 
 const styles = StyleSheet.create({
   amountCluster: {
-    alignItems: 'flex-end'
+    alignItems: 'baseline',
+    transform: [{ translateY: AMOUNT_CLUSTER_OFFSET_Y }]
   },
   amountRow: {
     alignItems: 'center'
@@ -184,9 +189,6 @@ const styles = StyleSheet.create({
   },
   rightColumn: {
     alignItems: 'flex-end'
-  },
-  unit: {
-    marginBottom: -2
   }
 })
 
