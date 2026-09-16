@@ -1,6 +1,6 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { PAYJOIN_MIN_RECEIVE_SATS } from '@/constants/payjoin'
-import { appendParamsToPayjoinUri } from '@/utils/payjoinUri'
+import { appendParamsToPayjoinUri, parsePayjoinUri } from '@/utils/payjoinUri'
 
 function stripBitcoinPrefix(uri: string): string {
   if (uri.toLowerCase().startsWith('bitcoin:')) {
@@ -66,8 +66,14 @@ function buildReceiveQrUri(params: {
       }
       return uri
     } catch {
-      // Fall through to a local BIP21 so amount/label still track the form
-      // while Payjoin is initializing or the session URI is not yet rewriteable.
+      const parsed = parsePayjoinUri(sessionUri)
+      if (!parsed.isValid) {
+        return ''
+      }
+      if (!params.includeBitcoinPrefix) {
+        return stripBitcoinPrefix(sessionUri)
+      }
+      return sessionUri
     }
   }
 
