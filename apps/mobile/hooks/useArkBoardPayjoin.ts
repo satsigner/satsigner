@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query'
-import * as Haptics from 'expo-haptics'
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner-native'
 
@@ -76,30 +75,34 @@ export function useArkBoardPayjoin(account: ArkAccount | undefined) {
   const { session } = receiver
   const accountId = account?.id
   const completed = !!session && isPayjoinSuccess(session.status)
+  const expired = session?.status === 'expired'
   const sessionError = session?.status === 'error' ? session.error : undefined
   const error = displayBoardPayjoinError(
     fundingInfoQuery.error?.message ?? sessionError
   )
-  const statusLabelKey =
-    receiver.statusLabelKey ??
-    (fundingInfoQuery.isLoading ? 'receive.payjoin.status.initializing' : null)
+  const statusLabelKey = completed
+    ? 'ark.board.payjoinWaitingBroadcast'
+    : expired
+      ? 'ark.board.payjoinExpired'
+      : (receiver.statusLabelKey ??
+        (fundingInfoQuery.isLoading
+          ? 'receive.payjoin.status.initializing'
+          : null))
   const busy =
     receiver.negotiating ||
     (!!statusLabelKey && PENDING_STATUS_LABEL_KEYS.has(statusLabelKey))
 
-  // Completion toast/haptics/query refresh are external side effects — keep a
-  // narrow effect, fired once per session.
-  const celebratedSessionIdRef = useRef<string | null>(null)
+  // Handshake complete is not a broadcast. Tell the sender to finish sending.
+  const notifiedSessionIdRef = useRef<string | null>(null)
   useEffect(() => {
     if (!completed || !session?.id || !accountId) {
       return
     }
-    if (celebratedSessionIdRef.current === session.id) {
+    if (notifiedSessionIdRef.current === session.id) {
       return
     }
-    celebratedSessionIdRef.current = session.id
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    toast.success(t('ark.board.success'))
+    notifiedSessionIdRef.current = session.id
+    toast.info(t('ark.board.payjoinWaitingBroadcast'))
     void invalidateArkBoardQueries(queryClient, accountId)
   }, [accountId, completed, queryClient, session?.id])
 
@@ -116,6 +119,7 @@ export function useArkBoardPayjoin(account: ArkAccount | undefined) {
     busy,
     completed,
     error,
+    expired,
     payjoinUri: receiver.payjoinUri,
     restart,
     statusLabelKey,

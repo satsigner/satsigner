@@ -41,10 +41,19 @@ export function invalidateArkBoardQueries(
 ): Promise<void> {
   return Promise.all([
     queryClient.invalidateQueries({
+      queryKey: ['ark', 'balance', accountId]
+    }),
+    queryClient.invalidateQueries({
+      queryKey: ['ark', 'movements', accountId]
+    }),
+    queryClient.invalidateQueries({
       queryKey: ['ark', 'onchain-balance', accountId]
     }),
     queryClient.invalidateQueries({
       queryKey: ['ark', 'pending-boards', accountId]
+    }),
+    queryClient.invalidateQueries({
+      queryKey: ['ark', 'vtxos', accountId]
     })
   ]).then(() => undefined)
 }

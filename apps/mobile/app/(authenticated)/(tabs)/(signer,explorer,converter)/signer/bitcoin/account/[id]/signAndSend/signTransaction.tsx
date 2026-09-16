@@ -39,6 +39,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
@@ -50,6 +51,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { isArkBoardPayjoinSend } from '@/utils/arkBoardDeposit'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import {
@@ -490,6 +492,17 @@ export default function SignTransaction() {
           if (session.accountId === id && session.role === 'sender') {
             store.updateSessionStatus(session.id, 'completed')
           }
+        }
+      }
+      const builder = useTransactionBuilderStore.getState()
+      if (isArkBoardPayjoinSend(builder.outputs, builder.payjoinUri)) {
+        const arkAccountId = useArkStore
+          .getState()
+          .accounts.find((arkAccount) => arkAccount.bitcoinAccountId === id)?.id
+        if (arkAccountId) {
+          toast.success(t('ark.board.payjoinBroadcasted'))
+          router.replace(`/signer/ark/account/${arkAccountId}`)
+          return
         }
       }
       router.navigate(

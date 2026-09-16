@@ -98,7 +98,7 @@ function getBoardPayjoinWallet(accountId: string): BarkBoardPayjoinWallet {
     typeof wallet.boardFundingAddress !== 'function' ||
     typeof wallet.boardPsbt !== 'function'
   ) {
-    throw new Error(ARK_BOARD_PAYJOIN_NATIVE_MISSING)
+    throw new TypeError(ARK_BOARD_PAYJOIN_NATIVE_MISSING)
   }
   return wallet
 }

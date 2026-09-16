@@ -1515,7 +1515,7 @@ async function finalizeReceiverPayjoin(params: {
     }
   }
 
-  const nativeState = params.session.nativeState
+  const { nativeState } = params.session
   if (!nativeState) {
     return {
       ...params.session,
@@ -1664,7 +1664,7 @@ async function finalizeBoardReceiverPayjoin(params: {
   if (!canFinalizePayjoinProposal(session)) {
     return failBoardSession(session, 'missing proposal state')
   }
-  const nativeState = session.nativeState
+  const { nativeState } = session
   if (!nativeState) {
     return failBoardSession(session, 'missing proposal state')
   }
