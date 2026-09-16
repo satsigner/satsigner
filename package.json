@@ -22,7 +22,8 @@
   },
   "scripts": {
     "check": "ultracite check",
-    "fix": "ultracite fix"
+    "fix": "ultracite fix",
+    "prices:update": "node btc_prices/update.mjs"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
