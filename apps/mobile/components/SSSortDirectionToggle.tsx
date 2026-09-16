@@ -4,7 +4,6 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import { type Direction } from '@/types/logic/sort'
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
-import SSIconButton from './SSIconButton'
 import SSText from './SSText'
 
 const LABELED_ARROW_HEIGHT = 5
@@ -47,7 +46,15 @@ function SSSortDirectionToggle({
     )
 
   if (!label) {
-    return <SSIconButton onPress={handleToggle}>{arrow}</SSIconButton>
+    return (
+      <TouchableOpacity
+        style={[styles.unlabeledButton, !active && styles.muted]}
+        activeOpacity={0.7}
+        onPress={handleToggle}
+      >
+        {arrow}
+      </TouchableOpacity>
+    )
   }
 
   return (
@@ -78,6 +85,9 @@ const styles = StyleSheet.create({
   },
   muted: {
     opacity: 0.4
+  },
+  unlabeledButton: {
+    paddingVertical: 8
   }
 })
 

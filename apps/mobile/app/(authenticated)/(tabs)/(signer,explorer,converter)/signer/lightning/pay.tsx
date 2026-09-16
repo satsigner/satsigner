@@ -653,6 +653,7 @@ export default function PayPage() {
                     />
                     <SSNumberInput
                       allowValidEmpty
+                      alwaysTriggerOnChange
                       max={LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE}
                       min={1}
                       onChangeText={handleFeeChange}

@@ -393,6 +393,7 @@ export default function OpenChannelPage() {
                     />
                     <SSNumberInput
                       allowValidEmpty
+                      alwaysTriggerOnChange
                       max={localFundingSat}
                       min={0}
                       onChangeText={handlePushChange}
@@ -411,6 +412,7 @@ export default function OpenChannelPage() {
                     />
                     <SSNumberInput
                       allowValidEmpty
+                      alwaysTriggerOnChange
                       max={LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE}
                       min={1}
                       onChangeText={handleFeeChange}

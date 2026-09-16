@@ -2,11 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
 import { lndRestFetch } from '@/api/lndRest'
-import {
-  LND_PAYMENT_POLL_ATTEMPTS,
-  LND_PAYMENT_POLL_MS,
-  LND_REST
-} from '@/constants/lightning'
+import { LND_REST } from '@/constants/lightning'
 import { useLightningStore } from '@/store/lightning'
 import type {
   LNDChanBackupSnapshot,
@@ -27,8 +23,12 @@ import type {
   LNDRequestOptions
 } from '@/types/models/Lightning'
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
+import { parseLndNodeInfo } from '@/utils/lndNodeInfo'
 import { buildNewAddressPath } from '@/utils/lndOnchainWallet'
-import { buildLndPayInvoiceBody } from '@/utils/lndPayInvoice'
+import {
+  assertLndPaymentSucceeded,
+  buildLndPayInvoiceBody
+} from '@/utils/lndPayInvoice'
 
 const HEALTH_CHECK_INTERVAL_MS = 30_000
 
@@ -63,7 +63,10 @@ export const useLND = () => {
         throw new Error(`Failed to fetch node info: ${response.status}`)
       }
 
-      const info = (await response.json()) as LNDNodeInfo
+      const info = parseLndNodeInfo(await response.json())
+      if (!info) {
+        throw new Error(`Failed to fetch node info: ${response.status}`)
+      }
       setNodeInfo(info)
       setConnected(true)
       updateLastSync()
@@ -160,38 +163,7 @@ export const useLND = () => {
         method: 'POST'
       }
     )
-
-    const paymentHash = response.payment_hash
-    if (paymentHash) {
-      const pollIndexes = Array.from(
-        { length: LND_PAYMENT_POLL_ATTEMPTS },
-        (_, index) => index
-      )
-
-      for (const _poll of pollIndexes) {
-        await new Promise((resolve) => {
-          setTimeout(resolve, LND_PAYMENT_POLL_MS)
-        })
-
-        try {
-          const statusResponse = await makeRequest<{ status: string }>(
-            `/v1/payments/${paymentHash}`
-          )
-
-          if (statusResponse.status === 'SUCCEEDED') {
-            return response
-          }
-          if (statusResponse.status === 'FAILED') {
-            throw new Error('Payment failed')
-          }
-        } catch (error) {
-          if (error instanceof Error && error.message.includes('404')) {
-            return response
-          }
-        }
-      }
-    }
-
+    assertLndPaymentSucceeded(response)
     return response
   }
 

@@ -159,16 +159,30 @@ function readHttpResponse(
         if (frame.type === 0x00) {
           dataParts.push(frame.payload)
           if ((frame.flags & 0x01) === 0x01) {
+            if (http2Status === null) {
+              finish(
+                new Error('LND HTTP/2 response has no readable status'),
+                null
+              )
+              return
+            }
             finish(null, {
               body: Buffer.concat(dataParts),
-              status: http2Status ?? 200
+              status: http2Status
             })
           }
         }
         if (frame.type === 0x01 && (frame.flags & 0x01) === 0x01) {
+          if (http2Status === null) {
+            finish(
+              new Error('LND HTTP/2 response has no readable status'),
+              null
+            )
+            return
+          }
           finish(null, {
             body: Buffer.concat(dataParts),
-            status: http2Status ?? 200
+            status: http2Status
           })
         }
       }

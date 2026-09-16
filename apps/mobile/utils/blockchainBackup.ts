@@ -6,24 +6,25 @@ import { loadRpcCredentials } from '@/utils/serviceSecrets'
 export const BLOCKCHAIN_BACKUP_NETWORKS: Network[] = NetworkSchema.options
 
 export type BlockchainBackup = {
-  configs: Record<Network, { config: Config; server: Server }>
+  configs: Partial<Record<Network, { config: Config; server: Server }>>
   configsMempool: Record<Network, string>
   customServers: Server[]
   selectedNetwork: Network
 }
 
-type BlockchainStoreSlice = {
-  addCustomServer: (server: Server) => void
-  configs: Record<Network, { config: Config; server: Server }>
-  configsMempool: Record<Network, string>
-  customServers: Server[]
-  removeCustomServer: (server: Server) => void
-  selectedNetwork: Network
-  setSelectedNetwork: (network: Network) => void
-  updateConfig: (network: Network, config: Partial<Config>) => void
-  updateConfigMempool: (network: Network, url: string) => void
-  updateServer: (network: Network, server: Partial<Server>) => void
-}
+type BlockchainStoreSlice = Pick<
+  ReturnType<typeof useBlockchainStore.getState>,
+  | 'addCustomServer'
+  | 'configs'
+  | 'configsMempool'
+  | 'customServers'
+  | 'removeCustomServer'
+  | 'selectedNetwork'
+  | 'setSelectedNetwork'
+  | 'updateConfig'
+  | 'updateConfigMempool'
+  | 'updateServer'
+>
 
 async function serverWithRpcCredentials(server: Server, network: Network) {
   if (server.rpcCredentials?.username || server.rpcCredentials?.password) {
@@ -44,6 +45,9 @@ async function collectNetworkConfig(
   network: Network
 ) {
   const current = state.configs[network]
+  if (!current?.config || !current.server) {
+    return null
+  }
   return {
     config: current.config,
     server: await serverWithRpcCredentials(current.server, network)
@@ -62,7 +66,11 @@ export async function collectBlockchainBackup(
     collectNetworkConfig(state, 'signet')
   ])
   return {
-    configs: { bitcoin, signet, testnet },
+    configs: {
+      bitcoin: bitcoin ?? undefined,
+      signet: signet ?? undefined,
+      testnet: testnet ?? undefined
+    },
     configsMempool: state.configsMempool,
     customServers: state.customServers,
     selectedNetwork: state.selectedNetwork
@@ -75,11 +83,18 @@ export function restoreBlockchainFromBackup(
 ): void {
   store.setSelectedNetwork(backup.selectedNetwork)
   for (const network of BLOCKCHAIN_BACKUP_NETWORKS) {
+    const mempool = backup.configsMempool?.[network]
+    if (typeof mempool === 'string') {
+      store.updateConfigMempool(network, mempool)
+    }
     const incoming = backup.configs[network]
     if (!incoming) {
       continue
     }
     const current = store.configs[network]
+    if (!current?.server || !current.config) {
+      continue
+    }
     store.updateServer(network, {
       ...current.server,
       ...incoming.server
@@ -88,10 +103,6 @@ export function restoreBlockchainFromBackup(
       ...current.config,
       ...incoming.config
     })
-    const mempool = backup.configsMempool[network]
-    if (typeof mempool === 'string') {
-      store.updateConfigMempool(network, mempool)
-    }
   }
   const existingServers = store.customServers.slice()
   for (const old of existingServers) {
