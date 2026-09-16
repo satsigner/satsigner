@@ -47,7 +47,9 @@ import {
 } from 'react-native-payjoin'
 
 import {
+  PAYJOIN_BOARD_TXID_UNSTABLE_ERROR,
   PAYJOIN_MIN_SESSION_EXPIRE_SECONDS,
+  PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR,
   PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
   PAYJOIN_NATIVE_PROBE_URI,
   PAYJOIN_OHTTP_KEYS_PROBE_OK
@@ -61,6 +63,13 @@ import type {
   SenderSessionHandle,
   SenderSessionInit
 } from '@/types/payjoin'
+import { payjoinWarn } from '@/utils/payjoinLog'
+import { extractPayjoinOriginalPsbt } from '@/utils/payjoinOriginalPsbt'
+import {
+  unwrapInitializedTransition,
+  unwrapPollingProposalPsbt,
+  unwrapPollingStasis
+} from '@/utils/payjoinTransition'
 
 type ReceiverLive =
   | { kind: 'initialized'; receiver: InitializedLike }
@@ -400,6 +409,9 @@ async function createReceiverSession(
   init: ReceiverSessionInit
 ): Promise<ReceiverSessionHandle> {
   try {
+    if (!init.receiveScriptHex) {
+      throw new Error(PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR)
+    }
     const ohttpKeys = await nativeFetchOhttpKeys(
       init.ohttpRelayUrl,
       init.directoryUrl
@@ -423,7 +435,7 @@ async function createReceiverSession(
       live: { kind: 'initialized', receiver },
       ohttpRelay: init.ohttpRelayUrl,
       pjUri,
-      receiveScriptHex: ''
+      receiveScriptHex: init.receiveScriptHex
     }
     receivers.set(id, entry)
     return { id, pjUri, state: encodeReceiverState(id, entry) }
@@ -496,22 +508,34 @@ async function receiverProcessResponse(
       .save(persister)
     entry.events.push(...persister.drain())
 
-    const next = unwrapOptionalTransition(outcome)
-    if (!next) {
-      entry.live = { kind: 'initialized', receiver: initialized }
+    const next = unwrapInitializedTransition(outcome)
+    if (next.kind !== 'progress') {
+      // Stasis consumes the previous handle; only the returned Initialized
+      // object is valid for the next poll.
+      entry.live = {
+        kind: 'initialized',
+        receiver:
+          next.kind === 'stasis' && next.value
+            ? (next.value as InitializedLike)
+            : initialized
+      }
       return {
         kind: 'pending',
         state: encodeReceiverState(id, entry)
       }
     }
 
-    entry.live = { kind: 'unchecked', receiver: next }
-    const psbtBase64 = originalPsbtFromEvents(entry.events)
+    entry.live = {
+      kind: 'unchecked',
+      receiver: next.value as UncheckedOriginalPayloadLike
+    }
+    // PDK may persist the original as hex or a byte array, not `cHNidP`
+    // base64. Finalize uses the live Unchecked handle; the string is optional.
+    const psbtBase64 = extractPayjoinOriginalPsbt(entry.events) ?? ''
     if (!psbtBase64) {
-      return {
-        kind: 'error',
-        message: 'original psbt missing from receiver event log'
-      }
+      payjoinWarn('receiver original not in event log — using native handle', {
+        eventCount: entry.events.length
+      })
     }
     return {
       kind: 'proposal',
@@ -523,71 +547,6 @@ async function receiverProcessResponse(
     entry.pendingOhttp = undefined
     return { kind: 'error', message: toError(error).message }
   }
-}
-
-/**
- * `processResponse` returns a progress/stasis union: stasis means the mailbox
- * was empty and the same session should keep polling.
- */
-function unwrapOptionalTransition(
-  outcome: unknown
-): UncheckedOriginalPayloadLike | undefined {
-  if (!outcome || typeof outcome !== 'object') {
-    return undefined
-  }
-  if ('tag' in outcome && 'inner' in outcome) {
-    const tag = String((outcome as { tag: unknown }).tag)
-    if (tag.toLowerCase().includes('stasis')) {
-      return undefined
-    }
-    const [value] = (outcome as { inner: [unknown] }).inner
-    return value as UncheckedOriginalPayloadLike
-  }
-  return outcome as UncheckedOriginalPayloadLike
-}
-
-/** The sender's original PSBT is recorded in the receiver event log. */
-function originalPsbtFromEvents(events: string[]): string | undefined {
-  for (const raw of [...events].toReversed()) {
-    const found = findPsbtInEvent(raw)
-    if (found) {
-      return found
-    }
-  }
-  return undefined
-}
-
-function findPsbtInEvent(raw: string): string | undefined {
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    return searchForPsbt(parsed)
-  } catch {
-    return undefined
-  }
-}
-
-function searchForPsbt(value: unknown): string | undefined {
-  if (typeof value === 'string') {
-    return value.startsWith('cHNidP') ? value : undefined
-  }
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = searchForPsbt(item)
-      if (found) {
-        return found
-      }
-    }
-    return undefined
-  }
-  if (value && typeof value === 'object') {
-    for (const item of Object.values(value)) {
-      const found = searchForPsbt(item)
-      if (found) {
-        return found
-      }
-    }
-  }
-  return undefined
 }
 
 type ReceiverInput = {
@@ -688,23 +647,27 @@ function finalizeReceiver(
   return { psbtBase64, request: adaptRequest(request), state: nextState }
 }
 
-function contributeReceiver(
-  id: string,
-  entry: ReceiverEntry,
-  input: ReceiverInput,
+/**
+ * Runs the receiver checks against the sender's original payload and commits
+ * the receiver outputs, advancing the typestate to WantsInputs. Shared by the
+ * contributing path and the zero-input board path.
+ */
+function advanceReceiverToWantsInputs(
+  receiver: UncheckedOriginalPayloadLike,
+  receiveScriptHex: string,
+  persister: ReturnType<typeof createPersister>,
   checks?: ReceiverWalletChecks
-): { request: PayjoinNativeRequest; state: string; psbtBase64: string } {
-  if (entry.live.kind !== 'unchecked') {
-    throw new Error('no original proposal to contribute to; poll first')
+) {
+  // A session persisted before the receive script was recorded can never match
+  // an output and would loop on PDK's "Missing payment." forever. Fail with a
+  // terminal error instead so the caller mints a fresh mailbox.
+  if (!receiveScriptHex) {
+    throw new Error(PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR)
   }
-  const persister = createPersister()
-  const { receiveScriptHex } = entry
   const isOutpointOwned = checks?.isOutpointOwned ?? (() => false)
   const isOutpointSeen = checks?.isOutpointSeen ?? (() => false)
 
-  const maybeOwned = entry.live.receiver
-    .assumeInteractiveReceiver()
-    .save(persister)
+  const maybeOwned = receiver.assumeInteractiveReceiver().save(persister)
   const maybeSeen = maybeOwned
     .checkInputsNotOwned({
       callback: (outpoint: { txid: string; vout: number }) =>
@@ -724,7 +687,25 @@ function contributeReceiver(
     })
     .save(persister)
 
-  const wantsInputs = wantsOutputs.commitOutputs().save(persister)
+  return wantsOutputs.commitOutputs().save(persister)
+}
+
+function contributeReceiver(
+  id: string,
+  entry: ReceiverEntry,
+  input: ReceiverInput,
+  checks?: ReceiverWalletChecks
+): { request: PayjoinNativeRequest; state: string; psbtBase64: string } {
+  if (entry.live.kind !== 'unchecked') {
+    throw new Error('no original proposal to contribute to; poll first')
+  }
+  const persister = createPersister()
+  const wantsInputs = advanceReceiverToWantsInputs(
+    entry.live.receiver,
+    entry.receiveScriptHex,
+    persister,
+    checks
+  )
   const wantsFeeRange = wantsInputs
     .contributeInputs([buildInputPair(input)])
     .commitInputs()
@@ -740,6 +721,65 @@ function contributeReceiver(
     psbtBase64: provisional.psbtToSign(),
     request: EMPTY_REQUEST,
     state: encodeReceiverState(id, entry)
+  }
+}
+
+/**
+ * Zero-input receiver finalize for board payjoins: runs the receiver checks,
+ * commits the outputs with no input contribution, finalizes the proposal
+ * (the receiver has nothing to sign) and builds the directory POST in one
+ * pass. Refuses senders whose final signatures would change the txid — bark
+ * registers the pending board under the unsigned proposal's txid, so an
+ * unstable txid would strand the board funds.
+ */
+async function receiverFinalizeWithoutInputs(
+  state: string,
+  checks?: ReceiverWalletChecks
+): Promise<{
+  request: PayjoinNativeRequest
+  state: string
+  psbtBase64: string
+}> {
+  try {
+    const { id, entry } = ensureReceiver(state)
+    if (entry.live.kind !== 'unchecked') {
+      throw new Error('no original proposal to finalize; poll first')
+    }
+    const persister = createPersister()
+    const wantsInputs = advanceReceiverToWantsInputs(
+      entry.live.receiver,
+      entry.receiveScriptHex,
+      persister,
+      checks
+    )
+    if (!wantsInputs.proposalTxidIsStable()) {
+      throw new Error(PAYJOIN_BOARD_TXID_UNSTABLE_ERROR)
+    }
+    const wantsFeeRange = wantsInputs.commitInputs().save(persister)
+    const provisional = wantsFeeRange
+      .applyFeeRange(undefined, undefined)
+      .save(persister)
+    const proposal: PayjoinProposalLike = provisional
+      .finalizeProposal({
+        callback(cleared: string) {
+          return cleared
+        }
+      })
+      .save(persister)
+    entry.events.push(...persister.drain())
+
+    const psbtBase64 = proposal.psbt()
+    const { request } = proposal.createPostRequest(entry.ohttpRelay)
+    // Proposal is consumed into the directory POST; the caller must deliver
+    // the request before treating the board receive as complete.
+    receivers.delete(id)
+    return {
+      psbtBase64,
+      request: adaptRequest(request),
+      state: encodeReceiverState(id, entry)
+    }
+  } catch (error) {
+    throw toError(error)
   }
 }
 
@@ -932,7 +972,7 @@ async function senderProcessResponse(
       .save(persister)
     entry.events.push(...persister.drain())
 
-    const psbtBase64 = proposalPsbtFromOutcome(outcome)
+    const psbtBase64 = unwrapPollingProposalPsbt(outcome)
     if (psbtBase64) {
       return {
         kind: 'proposal',
@@ -940,28 +980,17 @@ async function senderProcessResponse(
         state: encodeSenderState(id, entry)
       }
     }
+    const nextPoller = unwrapPollingStasis(outcome)
+    if (nextPoller) {
+      entry.live = {
+        kind: 'polling',
+        sender: nextPoller as PollingForProposalLike
+      }
+    }
     return { kind: 'pending', state: encodeSenderState(id, entry) }
   } catch (error) {
     return { kind: 'error', message: toError(error).message }
   }
-}
-
-function proposalPsbtFromOutcome(outcome: unknown): string | undefined {
-  if (typeof outcome === 'string') {
-    return outcome
-  }
-  if (!outcome || typeof outcome !== 'object') {
-    return undefined
-  }
-  if ('tag' in outcome && 'inner' in outcome) {
-    const tag = String((outcome as { tag: unknown }).tag)
-    if (tag.toLowerCase().includes('stasis')) {
-      return undefined
-    }
-    const [value] = (outcome as { inner: [unknown] }).inner
-    return typeof value === 'string' ? value : undefined
-  }
-  return undefined
 }
 
 export {
@@ -972,6 +1001,7 @@ export {
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
+  receiverFinalizeWithoutInputs,
   receiverManualContribute,
   receiverManualFinalize,
   receiverProcessResponse,

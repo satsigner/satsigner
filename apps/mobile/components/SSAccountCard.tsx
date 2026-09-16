@@ -40,6 +40,7 @@ type SSAccountCardProps = {
   name: string
   balance: number
   fingerprint?: string
+  showFingerprint?: boolean
   watchOnly?: boolean
   syncStatus?: Account['syncStatus']
   lastSyncedAt?: Account['lastSyncedAt']
@@ -55,6 +56,7 @@ function SSAccountCard({
   activeOpacity = 0.5,
   longPressDisabled = false,
   fingerprint,
+  showFingerprint = false,
   watchOnly = false,
   syncStatus,
   lastSyncedAt,
@@ -212,7 +214,7 @@ function SSAccountCard({
     >
       <SSHStack justifyBetween style={{ position: 'relative' }}>
         <SSVStack gap={platform === 'android' ? 'none' : 'xxs'}>
-          {fingerprint ? <SSFingerprint fingerprint={fingerprint} /> : null}
+          {showFingerprint ? <SSFingerprint fingerprint={fingerprint} /> : null}
           <SSHStack gap="sm" style={{ alignItems: 'center' }}>
             <SSText size="lg" color="muted">
               {name}

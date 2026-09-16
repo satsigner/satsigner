@@ -24,6 +24,19 @@ function addContextToError(
   )
 }
 
+export async function pinDigestOpensSecret(
+  digest: string,
+  stored: EncryptedKeySecret
+): Promise<boolean> {
+  try {
+    const plaintext = await aesDecrypt(stored.secret, digest, stored.iv)
+    JSON.parse(plaintext)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function decryptAccountKeySecretUsingPin(
   accountId: Account['id'],
   keyIndex: Key['index'],

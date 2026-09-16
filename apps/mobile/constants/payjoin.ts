@@ -20,8 +20,17 @@ const PAYJOIN_OHTTP_RELAY_URLS = [
   // native HTTP/1.1 as well — leave it out so sessions are not bound to a dead relay.
 ] as const
 
-/** Default receiver session TTL (5 minutes). */
-const PAYJOIN_SESSION_TTL_MS = 5 * 60 * 1000
+/** Default receiver session TTL (10 minutes). */
+const PAYJOIN_SESSION_TTL_MS = 10 * 60 * 1000
+
+/**
+ * Receiver session TTL for ark board payjoins (30 minutes).
+ *
+ * A board QR is paid from a different wallet — scan, build, review, sign — so
+ * the general receive TTL runs out mid-flow and the mailbox dies before the
+ * sender ever posts. Matches the 30 minutes shhark allows for the same flow.
+ */
+const PAYJOIN_BOARD_SESSION_TTL_MS = 30 * 60 * 1000
 
 /** Allowed session TTL presets for settings (1 / 5 / 10 minutes). */
 const PAYJOIN_SESSION_TTL_PRESETS_MS = [
@@ -99,9 +108,49 @@ const PAYJOIN_OHTTP_KEYS_PROBE_OK = 'ohttp-keys-ok'
 const PAYJOIN_NATIVE_PROBE_URI =
   'bitcoin:tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx?pj=https://payjo.in'
 
+/**
+ * Raised when a board payjoin proposal's txid could change once the sender
+ * signs (legacy or P2SH-wrapped inputs). Bark registers the pending board
+ * under the unsigned proposal's txid and watches the chain for it, so an
+ * unstable txid would leave the board funds unclaimable without manual
+ * recovery. Matched as a terminal error by the receiver hook.
+ */
+const PAYJOIN_BOARD_TXID_UNSTABLE_ERROR =
+  'board payjoin requires segwit sender inputs (proposal txid not stable)'
+
+/**
+ * Bark refused to cosign the board. The native proposal is consumed by then,
+ * so the receiver hook treats this as terminal and the user mints a new QR.
+ */
+const PAYJOIN_BOARD_COSIGN_FAILED_ERROR = 'board cosign failed'
+
+/**
+ * A retry re-derived a proposal whose txid differs from the one bark already
+ * registered. Posting it would fund an untracked board, so the retry stops.
+ */
+const PAYJOIN_BOARD_TXID_MISMATCH_ERROR = 'board proposal txid changed on retry'
+
+/**
+ * The receiver session has no scriptPubKey to match the sender's outputs
+ * against, so PDK can never identify the payment. Terminal: the mailbox is
+ * unusable and a new one must be created.
+ */
+const PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR =
+  'payjoin session missing receive script'
+
+/**
+ * PDK rejected the sender's original PSBT because no output pays the receive
+ * address. Retrying re-derives the same proposal, so this is terminal.
+ */
+const PAYJOIN_MISSING_PAYMENT_ERROR = 'missing payment'
+
 export {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
+  PAYJOIN_BOARD_COSIGN_FAILED_ERROR,
+  PAYJOIN_BOARD_SESSION_TTL_MS,
+  PAYJOIN_BOARD_TXID_MISMATCH_ERROR,
+  PAYJOIN_BOARD_TXID_UNSTABLE_ERROR,
   PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_DIRECTORY_URL,
@@ -111,6 +160,8 @@ export {
   PAYJOIN_MIN_CONTRIBUTE_SATS,
   PAYJOIN_MIN_RECEIVE_SATS,
   PAYJOIN_MIN_SESSION_EXPIRE_SECONDS,
+  PAYJOIN_MISSING_PAYMENT_ERROR,
+  PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR,
   PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
   PAYJOIN_NATIVE_PROBE_URI,
   PAYJOIN_OHTTP_KEYS_PROBE_OK,

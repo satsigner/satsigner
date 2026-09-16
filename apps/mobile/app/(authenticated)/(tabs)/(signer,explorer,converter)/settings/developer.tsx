@@ -14,6 +14,7 @@ import {
   DEFAULT_LOCK_DELTA_TIME_SECONDS,
   DEFAULT_PIN_MAX_TRIES,
   DURESS_PIN_KEY,
+  PIN_KDF_COMMIT_KEY,
   PIN_KEY,
   SALT_KEY
 } from '@/config/auth'
@@ -334,6 +335,7 @@ export default function Developer() {
       clearAllStorage()
       await Promise.all([
         deleteItem(PIN_KEY),
+        deleteItem(PIN_KDF_COMMIT_KEY),
         deleteItem(SALT_KEY),
         deleteItem(DURESS_PIN_KEY)
       ])

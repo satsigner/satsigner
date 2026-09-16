@@ -8,6 +8,7 @@ import { type PayjoinNativeRequest } from '@/types/payjoin'
 
 type ReceiverSessionInit = {
   address: string
+  receiveScriptHex: string
   directoryUrl: string
   ohttpRelayUrl: string
   expireSeconds: number
@@ -55,6 +56,12 @@ function encodeState(data: Record<string, unknown>): string {
   return Buffer.from(JSON.stringify(data), 'utf8').toString('base64')
 }
 
+function assertReceiverNotCompleted(data: Record<string, unknown>) {
+  if (data.phase === 'completed') {
+    throw new Error('receiver session already completed')
+  }
+}
+
 function decodeState(state: string): Record<string, unknown> {
   return JSON.parse(Buffer.from(state, 'base64').toString('utf8')) as Record<
     string,
@@ -95,6 +102,11 @@ async function httpPost(
 async function createReceiverSession(
   init: ReceiverSessionInit
 ): Promise<ReceiverSessionHandle> {
+  // Mirrors the native guard: a session with no receive script can never
+  // identify the sender's payment output.
+  if (!init.receiveScriptHex) {
+    throw new Error('payjoin session missing receive script')
+  }
   const id = nextId('recv')
   const mailboxId = nextId('mb')
   mailboxes.set(mailboxId, {})
@@ -105,6 +117,7 @@ async function createReceiverSession(
     id,
     mailboxId,
     phase: 'ready',
+    receiveScriptHex: init.receiveScriptHex,
     role: 'receiver'
   })
   return { id, pjUri, state }
@@ -114,6 +127,7 @@ async function resumeReceiverSession(
   state: string
 ): Promise<ReceiverSessionHandle> {
   const data = decodeState(state)
+  assertReceiverNotCompleted(data)
   const mailboxId = String(data.mailboxId)
   const address = String(data.address)
   const pjEndpoint = `https://payjo.in/${mailboxId}#RK1-mock`
@@ -201,6 +215,42 @@ async function receiverContributeAndFinalize(
     psbtBase64: signedPsbtBase64,
     request: {
       body: textEncoder(signedPsbtBase64),
+      contentType: 'message/ohttp-req',
+      url: 'https://ohttp.example/mock'
+    },
+    state: encodeState({ ...data, phase: 'completed' })
+  }
+}
+
+/**
+ * Zero-input board finalize: the receiver adds nothing, so the proposal is
+ * the sender's original PSBT posted straight back to the mailbox.
+ */
+async function receiverFinalizeWithoutInputs(
+  state: string,
+  _checks?: {
+    isOutpointOwned: (outpoint: string) => boolean
+    isOutpointSeen: (outpoint: string) => boolean
+  }
+): Promise<{
+  request: PayjoinNativeRequest
+  state: string
+  psbtBase64: string
+}> {
+  const data = decodeState(state)
+  assertReceiverNotCompleted(data)
+  const mailboxId = String(data.mailboxId)
+  const mailbox = mailboxes.get(mailboxId) ?? {}
+  if (!mailbox.originalPsbtBase64) {
+    throw new Error('no original proposal to finalize; poll first')
+  }
+  const psbtBase64 = mailbox.originalPsbtBase64
+  mailbox.proposalPsbtBase64 = psbtBase64
+  mailboxes.set(mailboxId, mailbox)
+  return {
+    psbtBase64,
+    request: {
+      body: textEncoder(psbtBase64),
       contentType: 'message/ohttp-req',
       url: 'https://ohttp.example/mock'
     },
@@ -379,6 +429,7 @@ export {
   isNativeAvailable,
   receiverContributeAndFinalize,
   receiverExtractRequest,
+  receiverFinalizeWithoutInputs,
   receiverManualContribute,
   receiverManualFinalize,
   receiverProcessResponse,

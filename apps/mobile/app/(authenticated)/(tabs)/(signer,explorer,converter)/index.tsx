@@ -8,7 +8,6 @@ import Animated, {
   type SharedValue,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withTiming
 } from 'react-native-reanimated'
 
@@ -24,7 +23,6 @@ import { type NavMenuItem } from '@/types/navigation/navMenu'
 const STAGGER_DELAY = 60
 const ITEM_DURATION = 150
 const STAGGER_SLIDE_UP = 24
-const FADE_OUT_DURATION = 120
 
 const BUTTON_ICON_SIZE = 16
 const BUTTON_ICON_OPACITY = 0.4
@@ -68,7 +66,16 @@ function StaggerItem({
     ]
   }))
 
-  return <Animated.View style={animatedStyle}>{children}</Animated.View>
+  return (
+    <Animated.View
+      style={[
+        { opacity: 0, transform: [{ translateY: STAGGER_SLIDE_UP }] },
+        animatedStyle
+      ]}
+    >
+      {children}
+    </Animated.View>
+  )
 }
 
 export default function Home() {
@@ -78,9 +85,8 @@ export default function Home() {
   const totalItems = 1 + (pages?.length ?? 0)
   const totalDuration = (totalItems - 1) * STAGGER_DELAY + ITEM_DURATION
 
-  // Start visible — opacity-0 + stalled Reanimated left a blank SIGNER screen.
   const containerOpacity = useSharedValue(1)
-  const progress = useSharedValue(1)
+  const progress = useSharedValue(0)
 
   useFocusEffect(
     useCallback(() => {
@@ -88,27 +94,17 @@ export default function Home() {
       cancelAnimation(progress)
       containerOpacity.set(1)
       progress.set(0)
-      progress.set(
-        withDelay(FADE_OUT_DURATION, withTiming(1, { duration: totalDuration }))
-      )
+      progress.set(withTiming(1, { duration: totalDuration }))
 
-      const fallback = setTimeout(
-        () => {
-          cancelAnimation(progress)
-          cancelAnimation(containerOpacity)
-          progress.set(1)
-          containerOpacity.set(1)
-        },
-        FADE_OUT_DURATION + totalDuration + 100
-      )
+      const fallback = setTimeout(() => {
+        cancelAnimation(progress)
+        progress.set(1)
+      }, totalDuration + 100)
 
       return () => {
         clearTimeout(fallback)
         cancelAnimation(progress)
         cancelAnimation(containerOpacity)
-        // Do not fade to 0 on blur — races with remount and can stick invisible.
-        progress.set(1)
-        containerOpacity.set(1)
       }
     }, [totalDuration, containerOpacity, progress])
   )

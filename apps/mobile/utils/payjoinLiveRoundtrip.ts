@@ -194,7 +194,8 @@ async function runPayjoinLiveRoundtrip(params: {
     const receiverSession = await createReceivePayjoinSession({
       accountId: env.receiverAccountId,
       address: env.receiverAddress,
-      amountSats: env.paymentAmountSats
+      amountSats: env.paymentAmountSats,
+      network: env.network
     })
     if (receiverSession.error || !receiverSession.nativeState) {
       return {

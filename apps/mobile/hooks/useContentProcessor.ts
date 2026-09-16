@@ -76,7 +76,7 @@ function extractPayjoinUriFromContent(
   return undefined
 }
 
-function autoSelectUtxos(
+export function autoSelectUtxos(
   account: Account,
   targetAmount: number,
   actions: Pick<ProcessorActions, 'addInput' | 'setFeeRate'>
@@ -124,7 +124,7 @@ function autoSelectUtxos(
   }
 }
 
-function commitBitcoinUriToIoPreview(
+export function commitBitcoinUriToIoPreview(
   actions: ProcessorActions,
   accountId: string,
   account: Account | undefined,

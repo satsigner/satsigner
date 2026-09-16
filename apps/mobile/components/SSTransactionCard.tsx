@@ -16,6 +16,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
+import { getConfirmationsColorStyle } from '@/utils/confirmations'
 import {
   formatConfirmationsWithBlock,
   formatFiatPrice,
@@ -64,12 +65,7 @@ function SSTransactionCard({
     ? blockHeight - transaction.blockHeight + 1
     : 0
 
-  const confirmationColor =
-    confirmations < 0
-      ? styles.unconfirmed
-      : confirmations < 6
-        ? styles.confirmedFew
-        : styles.confirmedEnough
+  const confirmationColor = getConfirmationsColorStyle(confirmations)
 
   const { amount, type } = getWalletTransactionEffect(transaction)
   const { label, tags } = parseLabel(transaction.label || '')
@@ -156,14 +152,7 @@ function SSTransactionCard({
           )}
           <SSHStack gap="none" style={{ flexShrink: 0 }}>
             {hasConfirmation ? (
-              <SSText
-                size="xs"
-                style={
-                  confirmations >= 0
-                    ? confirmationColor
-                    : styles.confirmedEnough
-                }
-              >
+              <SSText size="xs" style={confirmationColor}>
                 {confirmations <= 0
                   ? `${t('bitcoin.confirmations.unconfirmed')} • ${confirmedAtBlockHeight.toLocaleString('en-US')}`
                   : formatConfirmationsWithBlock(
@@ -404,12 +393,6 @@ function SSTransactionCard({
 }
 
 const styles = StyleSheet.create({
-  confirmedEnough: {
-    color: Colors.gray[400]
-  },
-  confirmedFew: {
-    color: Colors.warning
-  },
   label: {
     flex: 1,
     marginRight: Layout.hStack.gap.sm,
@@ -426,9 +409,6 @@ const styles = StyleSheet.create({
   tagEmpty: {
     backgroundColor: Colors.gray[950],
     color: Colors.gray[500]
-  },
-  unconfirmed: {
-    color: Colors.error
   }
 })
 
