@@ -60,7 +60,7 @@ export const useLightningStore = create<LightningState>()(
         set((state) => ({
           status: { ...state.status, isConnecting }
         })),
-      setLastSync: function (lastSync) {
+      setLastSync: function setLastSync(lastSync) {
         set((state) => ({
           status: { ...state.status, lastSync }
         }))
