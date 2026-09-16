@@ -116,7 +116,11 @@ function SSNumberInput({
       if (onValidate) {
         onValidate(allowValidEmpty)
       }
-      emitChange('', null)
+      if (allowValidEmpty && onChangeText) {
+        onChangeText('')
+      } else {
+        emitChange('', null)
+      }
       return
     }
 
