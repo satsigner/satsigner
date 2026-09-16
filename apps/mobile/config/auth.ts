@@ -2,6 +2,7 @@ const PIN_KEY = 'satsigner_pin'
 const DURESS_PIN_KEY = 'satsigner_duress_pin'
 const SALT_KEY = 'satsigner_salt'
 const PIN_KDF_KEY = 'satsigner_pin_kdf'
+const PIN_KDF_COMMIT_KEY = 'satsigner_pin_kdf_commit'
 const DURESS_KDF_KEY = 'satsigner_duress_kdf'
 const PIN_LENGTH_KEY = 'satsigner_pin_length'
 const SALT_KEY_DURESS = 'satsigner_salt_duress'
@@ -19,6 +20,7 @@ export {
   DEFAULT_PIN_MAX_TRIES,
   DURESS_KDF_KEY,
   DURESS_PIN_KEY,
+  PIN_KDF_COMMIT_KEY,
   PIN_KDF_KEY,
   PIN_KEY,
   PIN_LENGTH_KEY,

@@ -2,13 +2,14 @@ import QuickCrypto from 'react-native-quick-crypto'
 
 import {
   DURESS_KDF_KEY,
+  PIN_KDF_COMMIT_KEY,
   PIN_KDF_KEY,
   PIN_KEY,
   PIN_LENGTH_KEY,
   SALT_KEY,
   SALT_KEY_DURESS
 } from '@/config/auth'
-import { getItem, setItem } from '@/storage/encrypted'
+import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import { type EncryptedKeySecret } from '@/types/models/Account'
 import { generateSalt } from '@/utils/crypto'
 import { pinDigestOpensSecret } from '@/utils/decryption'
@@ -268,6 +269,9 @@ export function parseKdf(serialized: string): PinKdfConfig | null {
 export async function getStoredKdfConfig(
   key: string = PIN_KDF_KEY
 ): Promise<PinKdfConfig> {
+  if (key === PIN_KDF_KEY) {
+    await applyPendingPinKdfCommit()
+  }
   const stored = await getItem(key)
   if (stored) {
     const parsed = parseKdf(stored)
@@ -283,6 +287,61 @@ export async function storeKdfConfig(
   key: string = PIN_KDF_KEY
 ): Promise<void> {
   await setItem(key, serializeKdf(config))
+}
+
+type PinKdfCommit = {
+  digest: string
+  kdf: string
+}
+
+function parsePinKdfCommit(raw: string): PinKdfCommit | null {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') {
+      return null
+    }
+    const digest = 'digest' in parsed ? parsed.digest : undefined
+    const kdf = 'kdf' in parsed ? parsed.kdf : undefined
+    if (typeof digest !== 'string' || typeof kdf !== 'string') {
+      return null
+    }
+    if (!parseKdf(kdf) || digest.length === 0) {
+      return null
+    }
+    return { digest, kdf }
+  } catch {
+    return null
+  }
+}
+
+/** Finish a digest/KDF write that was interrupted after the journal was stored. */
+export async function applyPendingPinKdfCommit(): Promise<void> {
+  const raw = await getItem(PIN_KDF_COMMIT_KEY)
+  if (!raw) {
+    return
+  }
+  const commit = parsePinKdfCommit(raw)
+  if (!commit) {
+    await deleteItem(PIN_KDF_COMMIT_KEY)
+    return
+  }
+  await setItem(PIN_KEY, commit.digest)
+  await setItem(PIN_KDF_KEY, commit.kdf)
+  await deleteItem(PIN_KDF_COMMIT_KEY)
+}
+
+export async function persistPinDigestAndKdf(
+  digest: string,
+  config: PinKdfConfig
+): Promise<void> {
+  const payload = JSON.stringify({
+    digest,
+    kdf: serializeKdf(config)
+  })
+  await setItem(PIN_KDF_COMMIT_KEY, payload)
+  await setItem(PIN_KEY, digest)
+  await storeKdfConfig(config)
+  await deleteItem(PIN_KDF_COMMIT_KEY)
 }
 
 export function kdfConfigsEqual(a: PinKdfConfig, b: PinKdfConfig): boolean {
@@ -312,8 +371,7 @@ export async function preparePinMaterial(pin: string): Promise<PinMaterial> {
 /** Commits PIN material after secrets have been re-encrypted to `digest`. */
 export async function commitPinMaterial(material: PinMaterial): Promise<void> {
   await setItem(SALT_KEY, material.salt)
-  await setItem(PIN_KEY, material.digest)
-  await storeKdfConfig(material.kdf, PIN_KDF_KEY)
+  await persistPinDigestAndKdf(material.digest, material.kdf)
   await setItem(PIN_LENGTH_KEY, String(material.length))
 }
 
@@ -386,8 +444,7 @@ export async function migratePinKdfIfNeeded(
 
   const newDigest = await derivePinDigest(pin, salt, currentConfig)
   await reEncryptSecrets(oldDigest, newDigest)
-  await setItem(PIN_KEY, newDigest)
-  await storeKdfConfig(currentConfig)
+  await persistPinDigestAndKdf(newDigest, currentConfig)
   return newDigest
 }
 
@@ -405,6 +462,7 @@ export async function recoverWorkingPinDigest(
   if (!probe) {
     return storedDigest
   }
+  await applyPendingPinKdfCommit()
   if (await pinDigestOpensSecret(storedDigest, probe)) {
     return storedDigest
   }
@@ -416,7 +474,6 @@ export async function recoverWorkingPinDigest(
   if (!(await pinDigestOpensSecret(upgradedDigest, probe))) {
     return storedDigest
   }
-  await setItem(PIN_KEY, upgradedDigest)
-  await storeKdfConfig(currentConfig)
+  await persistPinDigestAndKdf(upgradedDigest, currentConfig)
   return upgradedDigest
 }

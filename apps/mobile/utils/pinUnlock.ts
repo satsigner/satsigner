@@ -29,4 +29,18 @@ async function bindSessionPinDigest(
   setSessionPinDigest(digest)
 }
 
-export { bindSessionPinDigest, getFirstEncryptedKeyProbe }
+async function finalizePinAuthSuccess(
+  pin: string,
+  salt: string,
+  storedDigest: string,
+  onSuccess: () => void | Promise<void>
+): Promise<void> {
+  await bindSessionPinDigest(pin, salt, storedDigest)
+  await onSuccess()
+}
+
+export {
+  bindSessionPinDigest,
+  finalizePinAuthSuccess,
+  getFirstEncryptedKeyProbe
+}

@@ -15,12 +15,13 @@ import { gray } from '@/styles/colors'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
 import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
 import {
+  applyPendingPinKdfCommit,
   derivePinDigest,
   getStoredKdfConfig,
   pinMatchesDuressDigest,
   safeEqualHex
 } from '@/utils/pinKdf'
-import { bindSessionPinDigest } from '@/utils/pinUnlock'
+import { finalizePinAuthSuccess } from '@/utils/pinUnlock'
 import { secureWipeAllWalletData } from '@/utils/secureWipe'
 
 type SSPinAuthProps = {
@@ -91,6 +92,7 @@ function SSPinAuth({
       setTimeout(resolve, 0)
     })
 
+    await applyPendingPinKdfCommit()
     const hashedPin = await getPin()
     const hashedDuressPin = await getItem(DURESS_PIN_KEY)
     const salt = await getItem(SALT_KEY)
@@ -140,8 +142,12 @@ function SSPinAuth({
       return
     }
 
-    await bindSessionPinDigest(inputPin, salt, hashedPin)
-    await onSuccess()
+    try {
+      await finalizePinAuthSuccess(inputPin, salt, hashedPin, onSuccess)
+    } catch {
+      setVerifying(false)
+      toast.error(t('auth.pinRetrieveFailed'))
+    }
   }
 
   return (

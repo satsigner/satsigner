@@ -5,6 +5,7 @@ import QuickCrypto from 'react-native-quick-crypto'
 
 import {
   DURESS_KDF_KEY,
+  PIN_KDF_COMMIT_KEY,
   PIN_KDF_KEY,
   PIN_KEY,
   SALT_KEY,
@@ -12,6 +13,7 @@ import {
 } from '@/config/auth'
 import { pinDigestOpensSecret } from '@/utils/decryption'
 import {
+  applyPendingPinKdfCommit,
   commitPinMaterial,
   derivePinDigest,
   getBestAvailableKdf,
@@ -342,6 +344,27 @@ describe('pinKdf', () => {
       expect(parseKdf(secureStore[sk(PIN_KDF_KEY)])).toStrictEqual(
         ARGON2_CONFIG
       )
+    })
+  })
+
+  describe('applyPendingPinKdfCommit', () => {
+    it('aligns PIN_KEY and KDF after an interrupted digest write', async () => {
+      const oldDigest = realPbkdf2(PIN, SALT, 10_000)
+      const newDigest = realPbkdf2(PIN, SALT, 600_000)
+      const newKdf = serializeKdf(PBKDF2_600K)
+      secureStore[sk(PIN_KEY)] = newDigest
+      secureStore[sk(PIN_KDF_KEY)] = serializeKdf(LEGACY_KDF_CONFIG)
+      secureStore[sk(PIN_KDF_COMMIT_KEY)] = JSON.stringify({
+        digest: newDigest,
+        kdf: newKdf
+      })
+
+      await applyPendingPinKdfCommit()
+
+      expect(secureStore[sk(PIN_KEY)]).toBe(newDigest)
+      expect(secureStore[sk(PIN_KDF_KEY)]).toBe(newKdf)
+      expect(secureStore[sk(PIN_KDF_COMMIT_KEY)]).toBeUndefined()
+      expect(oldDigest).not.toBe(newDigest)
     })
   })
 })
