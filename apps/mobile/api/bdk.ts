@@ -62,7 +62,8 @@ import {
 import {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
-  ensureAddressesIncludeSeenOutputs
+  ensureAddressesIncludeSeenOutputs,
+  ownershipScanLimit
 } from '@/utils/walletOwnership'
 
 import AppElectrumClient from './electrum'
@@ -697,6 +698,53 @@ function lastUsedIndexForKeychain(
   }, -1)
 }
 
+type CoreDescriptorIndex = {
+  internal: boolean
+  next_index: number
+  range: [number, number]
+}
+
+type CoreKeychainMaxIndex = {
+  external?: number
+  internal?: number
+}
+
+/**
+ * Highest derivation index Bitcoin Core has in the keypool for a keychain.
+ * Uses both next_index and range end so a Core-extended range past the app
+ * stop gap / 999 ownership peek is not dropped on the next BDK sync.
+ */
+function maxCoreKeychainIndex(
+  descriptors: CoreDescriptorIndex[],
+  internal: boolean
+): number {
+  return descriptors.reduce((maxIndex, entry) => {
+    if (entry.internal !== internal) {
+      return maxIndex
+    }
+    const candidate = Math.max(entry.next_index - 1, entry.range[1])
+    if (candidate > maxIndex) {
+      return candidate
+    }
+    return maxIndex
+  }, -1)
+}
+
+function lastIndexToReveal(
+  addresses: Account['addresses'],
+  keychain: 'external' | 'internal',
+  coreMaxIndex?: number
+): number {
+  const fromAccount = lastUsedIndexForKeychain(addresses, keychain)
+  if (coreMaxIndex === undefined || coreMaxIndex < 0) {
+    return fromAccount
+  }
+  if (fromAccount > coreMaxIndex) {
+    return fromAccount
+  }
+  return coreMaxIndex
+}
+
 type RevealWallet = Pick<
   BdkWallet,
   'nextDerivationIndex' | 'persist' | 'revealNextAddress'
@@ -718,26 +766,61 @@ function revealKeychainThroughStopGap(
   }
 }
 
+function appendAddressAtIndex(
+  wallet: BdkWallet,
+  addresses: Account['addresses'],
+  keychain: 'external' | 'internal',
+  index: number,
+  network: Account['addresses'][number]['network']
+): Account['addresses'] {
+  if (index < 0) {
+    return addresses
+  }
+  const alreadyTracked = addresses.some(
+    (address) => address.keychain === keychain && address.index === index
+  )
+  if (alreadyTracked) {
+    return addresses
+  }
+  const kind =
+    keychain === 'external' ? KeychainKind.External : KeychainKind.Internal
+  return [
+    ...addresses,
+    {
+      address: wallet.peekAddress(kind, index).address,
+      index,
+      keychain,
+      label: '',
+      network,
+      summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
+      transactions: [],
+      utxos: []
+    }
+  ]
+}
+
 /**
  * Reveal scripts BDK already should know from stored account indices, plus
- * the current stop gap. Used before incremental Electrum/Esplora sync after
- * RPC (or any path that skipped BDK keychain updates).
+ * the current stop gap. Optional Core maxima cover descriptor ranges past
+ * stopGap and the 999 ownership peek. Used before incremental Electrum/Esplora
+ * sync after RPC (or any path that skipped BDK keychain updates).
  */
 function revealKnownAddresses(
   wallet: RevealWallet,
   account: Pick<Account, 'addresses'>,
-  stopGap: number
+  stopGap: number,
+  coreMaxIndex?: CoreKeychainMaxIndex
 ) {
   revealKeychainThroughStopGap(
     wallet,
     KeychainKind.External,
-    lastUsedIndexForKeychain(account.addresses, 'external'),
+    lastIndexToReveal(account.addresses, 'external', coreMaxIndex?.external),
     stopGap
   )
   revealKeychainThroughStopGap(
     wallet,
     KeychainKind.Internal,
-    lastUsedIndexForKeychain(account.addresses, 'internal'),
+    lastIndexToReveal(account.addresses, 'internal', coreMaxIndex?.internal),
     stopGap
   )
   wallet.persist()
@@ -1716,10 +1799,19 @@ async function syncWithCoreWallet(
   const priorHash = account.rpcLastBlockHash ?? ''
   const isIncremental = priorHash.length === 64
 
-  const [sinceResult, unspent] = await Promise.all([
+  const [sinceResult, unspent, listedDescriptors] = await Promise.all([
     coreWallet.listSinceBlock(priorHash),
-    coreWallet.listUnspent()
+    coreWallet.listUnspent(),
+    coreWallet.listDescriptors().catch(() => ({ descriptors: [] }))
   ])
+  const coreMaxExternal = maxCoreKeychainIndex(
+    listedDescriptors.descriptors,
+    false
+  )
+  const coreMaxInternal = maxCoreKeychainIndex(
+    listedDescriptors.descriptors,
+    true
+  )
 
   // Populate BDK's internal wallet DB with the current UTXOs so that
   // buildTransaction / sign can locate the outpoints without a BDK sync.
@@ -1969,12 +2061,33 @@ async function syncWithCoreWallet(
     }
   }
 
+  addresses = appendAddressAtIndex(
+    wallet,
+    addresses,
+    'external',
+    coreMaxExternal,
+    appNetwork
+  )
+  addresses = appendAddressAtIndex(
+    wallet,
+    addresses,
+    'internal',
+    coreMaxInternal,
+    appNetwork
+  )
+
   addresses = ensureAddressesIncludeSeenOutputs(
     wallet,
     appNetwork,
     addresses,
-    collectTransactionOutputAddresses(transactions)
+    collectTransactionOutputAddresses(transactions),
+    ownershipScanLimit(Math.max(coreMaxExternal, coreMaxInternal))
   )
+
+  revealKnownAddresses(wallet, { addresses }, stopGap, {
+    external: coreMaxExternal,
+    internal: coreMaxInternal
+  })
 
   const ownedTransactions = annotateTransactionsWithWalletOwnership(
     transactions,
@@ -2044,6 +2157,7 @@ export {
   getWalletAddresses,
   getWalletData,
   getWalletOverview,
+  maxCoreKeychainIndex,
   parseDescriptor,
   revealKnownAddresses,
   resolveRpcWalletName,
