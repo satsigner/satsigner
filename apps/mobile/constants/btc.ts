@@ -1,4 +1,6 @@
 export const SATS_PER_BITCOIN = 100_000_000
+// Typical payment finality: 6 confirmations.
+export const FULLY_CONFIRMED_COUNT = 6
 // Default Bitcoin P2P protocol port on mainnet.
 export const MAINNET_P2P_PORT = 8333
 export const MILLISATS_PER_SAT = 1000

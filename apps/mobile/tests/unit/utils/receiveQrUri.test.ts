@@ -73,4 +73,21 @@ describe('buildReceiveQrUri', () => {
 
     expect(uri).toBe('bitcoin:tb1qabc?amount=0.0005&label=tip')
   })
+
+  it('does not fall back to local bip21 when a payjoin URI cannot be rewritten', () => {
+    const uri = buildReceiveQrUri({
+      amountSats: 12_345,
+      includeBitcoinPrefix: true,
+      includeLabel: false,
+      includePayjoin: true,
+      localAddress: 'tb1qabc',
+      localAddressQR: 'bitcoin:tb1qabc',
+      payjoinEnabled: true,
+      payjoinSessionAddress: 'tb1qabc',
+      payjoinSessionStatus: 'waiting',
+      payjoinSessionUri: 'not-a-payjoin-uri'
+    })
+
+    expect(uri).toBe('')
+  })
 })

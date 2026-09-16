@@ -9,6 +9,14 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 const MAX_DAYS_WITHOUT_SYNCING = 3
 
 /**
+ * Confirmed UTXOs plus unconfirmed (mempool) value.
+ * Use for display; spendability still depends on confirmed coins.
+ */
+export function getAccountTotalBalance(summary: Account['summary']): number {
+  return summary.balance + summary.satsInMempool
+}
+
+/**
  * Next displayIndex for a new account, derived from the highest index
  * currently in use rather than accounts.length — length collides with an
  * existing index whenever an account was deleted before this one was added.

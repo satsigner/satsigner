@@ -27,9 +27,7 @@ import {
 import { Psbt } from 'react-native-bdk-sdk'
 import Animated, {
   Easing,
-  useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withTiming
 } from 'react-native-reanimated'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
@@ -112,6 +110,7 @@ import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
+import { getAccountTotalBalance } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import { getDraftIoCounts } from '@/utils/draftSelection'
@@ -158,12 +157,6 @@ import {
 // Render further beyond the viewport so fast scrolls hit fewer blank cells.
 const TX_LIST_DRAW_DISTANCE = 500
 
-const TX_STAGGER_DELAY_MS = 70
-const TX_STAGGER_DURATION_MS = 320
-// Only the first screenful gets the intro fade; rows scrolled into view later
-// (or recycled by FlashList) render instantly instead of waiting out a delay.
-const MAX_STAGGERED_ITEMS = 8
-
 const ACTIVE_PAYJOIN_STATUSES = new Set([
   'ready',
   'waiting',
@@ -190,16 +183,18 @@ function payjoinSessionAmountSats(session: PayjoinSession): number {
 function payjoinSessionStatusLabel(session: PayjoinSession): string {
   if (session.role === 'sender') {
     if (session.status === 'negotiating') {
-      return t('receive.payjoin.status.negotiating')
+      return t('transaction.build.payjoin.stage.checkingProposal')
     }
     return t('transaction.build.payjoin.waitingReceiver')
   }
   if (
-    session.status === 'negotiating' ||
     session.status === 'proposal_received' ||
     session.status === 'finalizing'
   ) {
-    return t('receive.payjoin.status.negotiating')
+    return t('receive.payjoin.status.contributing')
+  }
+  if (session.status === 'negotiating') {
+    return t('receive.payjoin.status.polling')
   }
   if (isPayjoinSuccess(session.status)) {
     return t('receive.payjoin.status.completed')
@@ -471,52 +466,6 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
       </SSVStack>
     </TouchableOpacity>
   )
-}
-
-function TransactionStaggerItem({
-  index,
-  children
-}: {
-  index: number
-  children: React.ReactNode
-}) {
-  const shouldAnimate = index < MAX_STAGGERED_ITEMS
-  const opacity = useSharedValue(shouldAnimate ? 0 : 1)
-  const translateY = useSharedValue(shouldAnimate ? 12 : 0)
-
-  useEffect(() => {
-    if (!shouldAnimate) {
-      opacity.set(1)
-      translateY.set(0)
-      return
-    }
-    const delay = index * TX_STAGGER_DELAY_MS
-    opacity.set(
-      withDelay(
-        delay,
-        withTiming(1, {
-          duration: TX_STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease)
-        })
-      )
-    )
-    translateY.set(
-      withDelay(
-        delay,
-        withTiming(0, {
-          duration: TX_STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease)
-        })
-      )
-    )
-  }, [shouldAnimate, index, opacity, translateY])
-
-  const staggerStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }]
-  }))
-
-  return <Animated.View style={staggerStyle}>{children}</Animated.View>
 }
 
 type TotalTransactionsProps = {
@@ -880,33 +829,34 @@ function TotalTransactions({
         currentBlockTimeSec={currentBlockTimeSec}
         scanFromTimeSec={scanFromTimeSec}
       />
-      <SSHStack
-        gap="sm"
-        style={{
-          alignItems: 'center',
-          borderBottomColor: Colors.gray[900],
-          borderBottomWidth: 1,
-          justifyContent: 'flex-end',
-          paddingBottom: 8
-        }}
-      >
-        {UTXO_SORT_FIELDS.map((field) => (
-          <SSSortDirectionToggle
-            key={field}
-            label={utxoSortFieldLabel(field)}
-            active={sortField === field}
-            onDirectionChanged={(direction) =>
-              handleTransactionSortChanged(field, direction)
-            }
-          />
-        ))}
-      </SSHStack>
+      {showHistoryChart ? null : (
+        <SSHStack
+          gap="sm"
+          style={{
+            alignItems: 'center',
+            borderBottomColor: Colors.gray[900],
+            borderBottomWidth: 1,
+            justifyContent: 'flex-end',
+            paddingBottom: 8
+          }}
+        >
+          {UTXO_SORT_FIELDS.map((field) => (
+            <SSSortDirectionToggle
+              key={field}
+              label={utxoSortFieldLabel(field)}
+              active={sortField === field}
+              onDirectionChanged={(direction) =>
+                handleTransactionSortChanged(field, direction)
+              }
+            />
+          ))}
+        </SSHStack>
+      )}
       {showHistoryChart && sortedTransactions.length > 0 ? (
         <View
           style={{
             flex: 1,
-            marginHorizontal: -horizontalPaddingPx,
-            zIndex: -1
+            marginHorizontal: -horizontalPaddingPx
           }}
         >
           <SSHistoryChart
@@ -942,25 +892,23 @@ function TotalTransactions({
                   </SSVStack>
                 ) : null
               }
-              renderItem={({ item, index }) => (
-                <TransactionStaggerItem index={index}>
-                  <SSVStack gap="none">
-                    <SSBalanceChangeBar
-                      transaction={item}
-                      balance={balanceByTxId.get(item.id)}
-                      maxBalance={maxBalance}
-                    />
-                    <SSTransactionCard
-                      btcPrice={btcPrice}
-                      fiatCurrency={fiatCurrency}
-                      transaction={item}
-                      expand={expand}
-                      walletBalance={balanceByTxId.get(item.id)}
-                      blockHeight={blockchainHeight}
-                      link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
-                    />
-                  </SSVStack>
-                </TransactionStaggerItem>
+              renderItem={({ item }) => (
+                <SSVStack gap="none">
+                  <SSBalanceChangeBar
+                    transaction={item}
+                    balance={balanceByTxId.get(item.id)}
+                    maxBalance={maxBalance}
+                  />
+                  <SSTransactionCard
+                    btcPrice={btcPrice}
+                    fiatCurrency={fiatCurrency}
+                    transaction={item}
+                    expand={expand}
+                    walletBalance={balanceByTxId.get(item.id)}
+                    blockHeight={blockchainHeight}
+                    link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
+                  />
+                </SSVStack>
               )}
               ListEmptyComponent={
                 <SSVStack style={{ alignItems: 'center', paddingTop: 50 }}>
@@ -2051,10 +1999,9 @@ export default function AccountView() {
     return <Redirect href="/" />
   }
 
+  const accountTotalBalance = getAccountTotalBalance(account.summary)
   const balanceTextSize =
-    account.summary.balance > 1_000_000_000
-      ? ('4xl' as const)
-      : ('6xl' as const)
+    accountTotalBalance > 1_000_000_000 ? ('4xl' as const) : ('6xl' as const)
 
   const renderScene = ({
     route
@@ -2300,7 +2247,7 @@ export default function AccountView() {
             >
               <SSVStack gap="none">
                 <SSText center size="lg">
-                  {account.summary.satsInMempool}
+                  {formatNumber(account.summary.satsInMempool, 0, false, ',')}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
                   {t('accounts.satsInMempool')}
@@ -2414,7 +2361,7 @@ export default function AccountView() {
                       '••••'
                     ) : (
                       <SSStyledSatText
-                        amount={account?.summary.balance || 0}
+                        amount={accountTotalBalance}
                         decimals={0}
                         useZeroPadding={useZeroPadding}
                         currency={currencyUnit}
@@ -2435,10 +2382,7 @@ export default function AccountView() {
                     <SSText color="muted">
                       {privacyMode
                         ? '••••'
-                        : formatNumber(
-                            satsToFiat(account.summary.balance || 0),
-                            2
-                          )}
+                        : formatNumber(satsToFiat(accountTotalBalance), 2)}
                     </SSText>
                     <SSText size="xs" style={{ color: Colors.gray[500] }}>
                       {fiatCurrency}

@@ -4,6 +4,7 @@ import { AppState, type AppStateStatus } from 'react-native'
 import {
   clearReceiverSessionsForAccount,
   createReceivePayjoinSession,
+  finalizeBoardReceiverPayjoin,
   finalizeReceiverPayjoin,
   isSenderPostInFlight,
   pollReceiverSession,
@@ -15,8 +16,15 @@ import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { getPayjoinSessionTtlMs, useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
-import { type PayjoinSession } from '@/types/payjoin'
+import {
+  type PayjoinBoardDestination,
+  type PayjoinSession
+} from '@/types/payjoin'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import {
+  isAlreadyHasProposalError,
+  isMailboxExpiredError
+} from '@/utils/payjoinErrors'
 import {
   compactError,
   mailboxFromEndpoint,
@@ -42,21 +50,22 @@ type UsePayjoinReceiverParams = {
   account?: Account
   address?: string
   amountSats?: number
+  /**
+   * When set, this receive funds an Ark board: the receiver contributes no
+   * inputs and the finalized proposal is cosigned with the ark server before
+   * posting, so the onchain-wallet gating (singlesig + spendable utxos) does
+   * not apply.
+   */
+  board?: PayjoinBoardDestination
   label?: string
+  /** Mailbox lifetime. Defaults to the user's payjoin session TTL setting. */
+  ttlMs?: number
   utxos: Utxo[]
   signPsbt?: (psbtBase64: string) => Promise<string> | string
 }
 
 const RECEIVER_POLL_INTERVAL_MS = 8_000
 const START_SESSION_LOCK_MS = 45_000
-
-function isMailboxExpiredError(message: string): boolean {
-  const lower = message.toLowerCase()
-  return (
-    lower.includes('session expired') ||
-    (lower.includes('protocol error') && lower.includes('expired'))
-  )
-}
 
 function isNativeSessionMissingError(message: string): boolean {
   const lower = message.toLowerCase()
@@ -70,6 +79,16 @@ function isNativeSessionMissingError(message: string): boolean {
 
 function shouldReplaceMailbox(message: string): boolean {
   return isMailboxExpiredError(message)
+}
+
+/**
+ * Errors that no amount of re-polling or re-finalizing can fix: the session
+ * stays in `error` and the user must start a new receive.
+ */
+function isTerminalFinalizeError(message: string): boolean {
+  return /no utxos to contribute|missing proposal state|missing directory post|missing board destination|proposal txid not stable|board cosign failed|board proposal txid changed|missing payment|missing receive script/i.test(
+    message
+  )
 }
 
 function sessionNeedsFinalize(session: PayjoinSession): boolean {
@@ -93,7 +112,9 @@ function usePayjoinReceiver({
   account,
   address,
   amountSats,
+  board,
   label,
+  ttlMs,
   utxos,
   signPsbt
 }: UsePayjoinReceiverParams) {
@@ -124,10 +145,12 @@ function usePayjoinReceiver({
     accountId,
     address,
     amountSats,
+    board,
     canUsePayjoin: false,
     label,
     networkName,
     signPsbt,
+    ttlMs,
     utxos
   })
 
@@ -137,23 +160,26 @@ function usePayjoinReceiver({
   )
   // Directory mailbox path only. Manual (offline) coordination uses a separate
   // import/export UI and must not mint or poll directory sessions.
+  // Board receives contribute no inputs, so the onchain-wallet gating
+  // (singlesig policy + spendable utxos) does not apply to them.
   const canUsePayjoin =
     payjoinEnabled &&
     payjoinCoordinationMode === 'directory' &&
     isNativeAvailable() &&
     !!address &&
-    account?.policyType === 'singlesig' &&
-    canContribute
+    (board ? true : account?.policyType === 'singlesig' && canContribute)
 
   paramsRef.current = {
     account,
     accountId,
     address,
     amountSats,
+    board,
     canUsePayjoin,
     label,
     networkName,
     signPsbt,
+    ttlMs,
     utxos
   }
 
@@ -201,7 +227,11 @@ function usePayjoinReceiver({
   }
 
   async function createFreshSession() {
-    const { accountId: id, address: receiveAddress } = paramsRef.current
+    const {
+      accountId: id,
+      address: receiveAddress,
+      networkName: currentNetwork
+    } = paramsRef.current
     if (!receiveAddress) {
       return null
     }
@@ -210,8 +240,10 @@ function usePayjoinReceiver({
       accountId: id,
       address: receiveAddress,
       amountSats: paramsRef.current.amountSats,
+      board: paramsRef.current.board,
       label: paramsRef.current.label,
-      ttlMs: getPayjoinSessionTtlMs()
+      network: currentNetwork,
+      ttlMs: paramsRef.current.ttlMs ?? getPayjoinSessionTtlMs()
     })
     setReceiverSession(created)
     return created
@@ -300,10 +332,24 @@ function usePayjoinReceiver({
   }
 
   async function finalizeOnce(target: PayjoinSession) {
-    if (!target.originalPsbtBase64 || !target.nativeState) {
+    if (!target.nativeState) {
       payjoinWarn('receiver finalize skipped — missing state', {
-        hasNative: !!target.nativeState,
+        hasNative: false,
         hasOriginal: !!target.originalPsbtBase64,
+        mailbox: mailboxFromEndpoint(target.pjEndpoint),
+        sessionId: target.id
+      })
+      return
+    }
+    if (
+      !target.originalPsbtBase64 &&
+      target.status !== 'proposal_received' &&
+      target.status !== 'negotiating' &&
+      target.status !== 'finalizing'
+    ) {
+      payjoinWarn('receiver finalize skipped — missing state', {
+        hasNative: true,
+        hasOriginal: false,
         mailbox: mailboxFromEndpoint(target.pjEndpoint),
         sessionId: target.id
       })
@@ -312,25 +358,23 @@ function usePayjoinReceiver({
     setNegotiating(true)
     try {
       payjoinLog('receiver finalize', {
+        board: !!target.board,
         mailbox: mailboxFromEndpoint(target.pjEndpoint),
         sessionId: target.id,
         status: target.status
       })
-      const finalized = await finalizeReceiverPayjoin({
-        callbacks: buildCallbacks(),
-        session: target
-      })
-      if (
-        finalized.status === 'error' &&
-        finalized.originalPsbtBase64 &&
-        finalized.nativeState
-      ) {
+      const finalized = target.board
+        ? await finalizeBoardReceiverPayjoin({ session: target })
+        : await finalizeReceiverPayjoin({
+            callbacks: buildCallbacks(),
+            session: target
+          })
+      if (finalized.status === 'error') {
         const message = finalized.error ?? 'unknown'
-        if (
-          /no utxos to contribute|missing proposal state|missing directory post/i.test(
-            message
-          )
-        ) {
+        // Without a native handle the proposal is gone; nothing to retry with.
+        const retryable =
+          !!finalized.nativeState && !isTerminalFinalizeError(message)
+        if (!retryable) {
           payjoinWarn('receiver finalize terminal error', {
             error: compactError(message),
             mailbox: mailboxFromEndpoint(target.pjEndpoint),
@@ -362,6 +406,24 @@ function usePayjoinReceiver({
       setReceiverSession(persistSession(finalized))
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      // Thrown terminal errors (e.g. a board proposal whose txid is not
+      // stable) can never succeed on retry — surface them instead of looping.
+      if (isTerminalFinalizeError(message)) {
+        payjoinWarn('receiver finalize terminal error', {
+          error: compactError(message),
+          mailbox: mailboxFromEndpoint(target.pjEndpoint),
+          sessionId: target.id
+        })
+        setReceiverSession(
+          persistSession({
+            ...target,
+            error: message,
+            status: 'error',
+            updatedAt: Date.now()
+          })
+        )
+        return
+      }
       payjoinWarn('receiver finalize failed, will retry', {
         error: compactError(message),
         mailbox: mailboxFromEndpoint(target.pjEndpoint),
@@ -437,6 +499,17 @@ function usePayjoinReceiver({
           await replaceDeadSession(updated, message)
           return
         }
+        if (isAlreadyHasProposalError(message) && current.nativeState) {
+          const withProposal = persistSession({
+            ...current,
+            nativeState: updated.nativeState ?? current.nativeState,
+            status: 'proposal_received',
+            updatedAt: Date.now()
+          })
+          setReceiverSession(withProposal)
+          await finalizeOnce(withProposal)
+          return
+        }
         if (isNativeSessionMissingError(message)) {
           payjoinWarn('receiver native handle missing — try resume', {
             error: compactError(message),
@@ -479,7 +552,7 @@ function usePayjoinReceiver({
       }
 
       const synced = persistSession(updated)
-      if (originalPsbtBase64 && synced.status === 'proposal_received') {
+      if (synced.status === 'proposal_received') {
         setReceiverSession(synced)
         await finalizeOnce(synced)
         return
@@ -493,11 +566,7 @@ function usePayjoinReceiver({
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       setLastPolledAt(Date.now())
-      const lower = message.toLowerCase()
-      if (
-        lower.includes('already has a proposal') ||
-        lower.includes('finalize instead of polling')
-      ) {
+      if (isAlreadyHasProposalError(message)) {
         const withProposal = persistSession({
           ...current,
           status: 'proposal_received',
@@ -583,7 +652,10 @@ function usePayjoinReceiver({
     if (armKey === 'disarmed') {
       return
     }
-    void startSession()
+    const start = setTimeout(() => {
+      void startSession()
+    }, 0)
+    return () => clearTimeout(start)
   }, [armKey])
 
   // Poll + foreground resume while a live mailbox exists.
@@ -637,18 +709,19 @@ function usePayjoinReceiver({
           ? 'receive.payjoin.status.expired'
           : session?.status === 'error'
             ? 'receive.payjoin.status.unavailable'
-            : negotiating ||
-                session?.status === 'negotiating' ||
-                session?.status === 'proposal_received' ||
-                session?.status === 'finalizing'
-              ? 'receive.payjoin.status.negotiating'
-              : starting || !livePayjoinUri
-                ? 'receive.payjoin.status.initializing'
-                : session?.error
-                  ? 'receive.payjoin.status.polling'
-                  : session?.status === 'waiting'
-                    ? 'receive.payjoin.status.waiting'
-                    : 'receive.payjoin.status.ready'
+            : session?.status === 'proposal_received'
+              ? 'receive.payjoin.status.receivedOriginal'
+              : negotiating ||
+                  session?.status === 'negotiating' ||
+                  session?.status === 'finalizing'
+                ? 'receive.payjoin.status.contributing'
+                : starting || !livePayjoinUri
+                  ? 'receive.payjoin.status.initializing'
+                  : session?.error
+                    ? 'receive.payjoin.status.polling'
+                    : session?.status === 'waiting'
+                      ? 'receive.payjoin.status.waiting'
+                      : 'receive.payjoin.status.ready'
 
   return {
     canContribute,

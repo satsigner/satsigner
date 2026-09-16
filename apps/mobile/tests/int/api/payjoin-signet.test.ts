@@ -326,7 +326,8 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       address: wallet.receiveAddress,
       directoryUrl: 'https://payjo.in',
       expireSeconds: 600,
-      ohttpRelayUrl: 'https://pj.bobspacebkk.com'
+      ohttpRelayUrl: 'https://pj.bobspacebkk.com',
+      receiveScriptHex: wallet.receiveScript.toString('hex')
     })
 
     const original = buildOriginalPsbt({

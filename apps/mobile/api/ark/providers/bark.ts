@@ -18,6 +18,7 @@ import {
 
 import { registerArkProvider } from '@/api/ark/registry'
 import {
+  ARK_BOARD_PAYJOIN_NATIVE_MISSING,
   ARK_LIGHTNING_SEND_WAIT,
   ARK_NO_HTLC_VTXOS_LOCKED,
   ARK_PENDING_RACE_TIMEOUT_MS,
@@ -26,6 +27,7 @@ import {
 } from '@/constants/ark'
 import type {
   ArkBalance,
+  ArkBoardFundingInfo,
   ArkBolt11Invoice,
   ArkDerivedAddress,
   ArkFeeEstimate,
@@ -74,6 +76,31 @@ function buildConfig(server: ArkServer): Config {
     roundTxRequiredConfirmations: ARK_ROUND_TX_REQUIRED_CONFIRMATIONS,
     serverAddress: server.arkUrl
   })
+}
+
+type BarkBoardPayjoinWallet = {
+  boardFundingAddress: () => Promise<{
+    address: string
+    expiryHeight: number
+    keypairIndex: number
+  }>
+  boardPsbt: (
+    psbtBase64: string,
+    keypairIndex: number,
+    expiryHeight: number
+  ) => Promise<PendingBoard>
+}
+
+function getBoardPayjoinWallet(accountId: string): BarkBoardPayjoinWallet {
+  const wallet = getCachedWallet(accountId) as WalletLike &
+    Partial<BarkBoardPayjoinWallet>
+  if (
+    typeof wallet.boardFundingAddress !== 'function' ||
+    typeof wallet.boardPsbt !== 'function'
+  ) {
+    throw new TypeError(ARK_BOARD_PAYJOIN_NATIVE_MISSING)
+  }
+  return wallet
 }
 
 function getCachedWallet(accountId: string): WalletLike {
@@ -533,6 +560,15 @@ function raceMovementCreated(
   })
 }
 
+async function offboardWalletVtxos(
+  wallet: WalletLike,
+  vtxoIds: string[],
+  bitcoinAddress: string
+): Promise<string> {
+  const result = await wallet.offboardVtxos(vtxoIds, bitcoinAddress)
+  return result.txid
+}
+
 function offboardVtxos(
   accountId: string,
   vtxoIds: string[],
@@ -543,7 +579,7 @@ function offboardVtxos(
     'ark-offboard',
     accountId,
     (movement) => movement.subsystemKind === 'offboard',
-    wallet.offboardVtxos(vtxoIds, bitcoinAddress)
+    offboardWalletVtxos(wallet, vtxoIds, bitcoinAddress)
   )
 }
 
@@ -659,6 +695,33 @@ async function board(
   return mapPendingBoard(pendingBoard)
 }
 
+async function boardFundingAddress(
+  accountId: string
+): Promise<ArkBoardFundingInfo> {
+  const wallet = getBoardPayjoinWallet(accountId)
+  const info = await wallet.boardFundingAddress()
+  return {
+    address: info.address,
+    expiryHeight: info.expiryHeight,
+    keypairIndex: info.keypairIndex
+  }
+}
+
+async function boardPsbt(
+  accountId: string,
+  psbtBase64: string,
+  keypairIndex: number,
+  expiryHeight: number
+): Promise<ArkPendingBoard> {
+  const wallet = getBoardPayjoinWallet(accountId)
+  const pendingBoard = await wallet.boardPsbt(
+    psbtBase64,
+    keypairIndex,
+    expiryHeight
+  )
+  return mapPendingBoard(pendingBoard)
+}
+
 async function estimateBoardFee(
   accountId: string,
   amountSats: number
@@ -708,6 +771,8 @@ async function fetchBalance(accountId: string): Promise<ArkBalance> {
 
 const barkProvider: ArkWalletProvider = {
   board,
+  boardFundingAddress,
+  boardPsbt,
   createBolt11Invoice,
   createWallet,
   deriveAddresses,

@@ -1,6 +1,6 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { PAYJOIN_MIN_RECEIVE_SATS } from '@/constants/payjoin'
-import { appendParamsToPayjoinUri } from '@/utils/payjoinUri'
+import { appendParamsToPayjoinUri, parsePayjoinUri } from '@/utils/payjoinUri'
 
 function stripBitcoinPrefix(uri: string): string {
   if (uri.toLowerCase().startsWith('bitcoin:')) {
@@ -56,21 +56,37 @@ function buildReceiveQrUri(params: {
       : undefined
 
   if (sessionUri) {
-    let uri = sessionUri
     try {
-      uri = appendParamsToPayjoinUri(sessionUri, {
+      const uri = appendParamsToPayjoinUri(sessionUri, {
         amountSats: params.amountSats,
         label: params.includeLabel ? params.label : undefined
       })
+      if (!params.includeBitcoinPrefix) {
+        return stripBitcoinPrefix(uri)
+      }
+      return uri
     } catch {
-      uri = sessionUri
+      const parsed = parsePayjoinUri(sessionUri)
+      if (!parsed.isValid) {
+        return ''
+      }
+      if (!params.includeBitcoinPrefix) {
+        return stripBitcoinPrefix(sessionUri)
+      }
+      return sessionUri
     }
-    if (!params.includeBitcoinPrefix) {
-      return stripBitcoinPrefix(uri)
-    }
-    return uri
   }
 
+  return buildPlainBip21Uri(params)
+}
+
+function buildPlainBip21Uri(params: {
+  amountSats?: number
+  includeBitcoinPrefix: boolean
+  includeLabel: boolean
+  label?: string
+  localAddressQR?: string
+}): string {
   if (!params.localAddressQR) {
     return ''
   }

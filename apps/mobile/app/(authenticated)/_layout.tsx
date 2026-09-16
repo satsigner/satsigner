@@ -1,216 +1,43 @@
-import { Redirect, useGlobalSearchParams } from 'expo-router'
-import Drawer from 'expo-router/drawer'
-import {
-  getFocusedRouteNameFromRoute,
-  useRoute
-} from 'expo-router/react-navigation'
-import { useEffect } from 'react'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { toast } from 'sonner-native'
+import { Redirect } from 'expo-router'
+import { lazy, Suspense, useEffect } from 'react'
+import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getWalletData } from '@/api/bdk'
-import { initRpcUrlAdjustments } from '@/api/rpc'
-import SSArkReceiveOverlay from '@/components/SSArkReceiveOverlay'
-import SSNavMenu from '@/components/SSNavMenu'
-import { pruneCache } from '@/db/nostrCache'
-import { useArkNotifications } from '@/hooks/useArkNotifications'
-import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
-import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
-import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
-import { t } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
+import { useAuthHydrated } from '@/hooks/useAuthHydrated'
 import { useAuthStore } from '@/store/auth'
-import { useBlockchainStore } from '@/store/blockchain'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
-import { useWalletsStore } from '@/store/wallets'
-import type { Account, Key } from '@/types/models/Account'
-import { type PageRoute } from '@/types/navigation/page'
-import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { decryptAccountKeySecrets } from '@/utils/decryption'
-import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
-import { parseAddressDescriptorToAddress } from '@/utils/parse'
-import { performRecoverOverwrite } from '@/utils/recoverBackup'
-import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
+import { Colors } from '@/styles'
+import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
+
+const AuthenticatedSession = lazy(loadAuthenticatedSession)
+
+const authSplash = (
+  <View style={{ backgroundColor: Colors.gray[950], flex: 1 }} />
+)
 
 export default function AuthenticatedLayout() {
-  const routeParams = useGlobalSearchParams()
-  const [
-    firstTime,
-    requiresAuth,
-    lockTriggered,
-    skipPin,
-    justUnlocked,
-    setLockTriggered,
-    markPageVisited,
-    setJustUnlocked,
-    setPendingRecoverData
-  ] = useAuthStore(
-    useShallow((state) => [
-      state.firstTime,
-      state.requiresAuth,
-      state.lockTriggered,
-      state.skipPin,
-      state.justUnlocked,
-      state.setLockTriggered,
-      state.markPageVisited,
-      state.setJustUnlocked,
-      state.setPendingRecoverData
-    ])
-  )
-  const [accounts, updateAccount] = useAccountsStore(
-    useShallow((state) => [state.accounts, state.updateAccount])
-  )
-  const [wallets, addresses, addAccountWallet, addAccountAddress] =
-    useWalletsStore(
+  const hydrated = useAuthHydrated()
+  const [firstTime, requiresAuth, lockTriggered, skipPin, setLockTriggered] =
+    useAuthStore(
       useShallow((state) => [
-        state.wallets,
-        state.addresses,
-        state.addAccountWallet,
-        state.addAccountAddress
+        state.firstTime,
+        state.requiresAuth,
+        state.lockTriggered,
+        state.skipPin,
+        state.setLockTriggered
       ])
     )
-  const connectionMode = useBlockchainStore(
-    (state) => state.configs[state.selectedNetwork].config.connectionMode
-  )
-  const { syncAccountWithWallet } = useSyncAccountWithWallet()
-  const { syncAccountWithAddress } = useSyncAccountWithAddress()
-
-  useArkNotifications()
-  useFetchBitcoinPrice()
 
   useEffect(() => {
-    void initRpcUrlAdjustments()
-  }, [])
-
-  const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
-
-  // Nostr subscriptions are now managed by:
-  // 1. NostrSyncService singleton with automatic retry and lifecycle management
-  // 2. Screen-level useFocusEffect hooks (e.g., devicesGroupChat)
-  // This removes the global polling and app state management from the layout
-
-  useEffect(() => {
-    if (lockTriggered && skipPin) {
-      setLockTriggered(false)
-      // const pages = getPagesHistory()
-      // clearPageHistory()
-      // setImmediate(() => {
-      //   for (const page of pages) {
-      //     router.push(page as any)
-      //   }
-      // })
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function loadWallets() {
-    if (!(justUnlocked || skipPin)) {
+    if (!hydrated || !(lockTriggered && skipPin)) {
       return
     }
+    void loadAuthenticatedSession()
+    setLockTriggered(false)
+  }, [hydrated, lockTriggered, skipPin, setLockTriggered])
 
-    for (const account of accounts) {
-      try {
-        const isImportAddress = account.keys[0].creationType === 'importAddress'
-        const existsWallet = !isImportAddress
-          ? !!wallets[account.id]
-          : !!addresses[account.id]
-        if (existsWallet) {
-          continue
-        }
-
-        const secrets = await decryptAccountKeySecrets(account)
-        const tmpAccount: Account = {
-          ...account,
-          keys: account.keys.map((key, index) => {
-            const decryptedKey: Key = { ...key, secret: secrets[index] }
-            return decryptedKey
-          })
-        }
-
-        const walletData = !isImportAddress
-          ? await getWalletData(
-              tmpAccount,
-              appNetworkToBdkNetwork(account.network)
-            )
-          : undefined
-        if (walletData) {
-          addAccountWallet(account.id, walletData.wallet, walletData.dbPath)
-        }
-
-        if (isImportAddress && typeof tmpAccount.keys[0].secret === 'object') {
-          addAccountAddress(
-            account.id,
-            parseAddressDescriptorToAddress(
-              tmpAccount.keys[0].secret.externalDescriptor!
-            )
-          )
-        }
-
-        const updatedAccount = !isImportAddress
-          ? await syncAccountWithWallet(account, walletData!.wallet)
-          : await syncAccountWithAddress(account)
-        if (updatedAccount) {
-          updateAccount(updatedAccount)
-        }
-      } catch (error) {
-        const label = account.name ?? account.id
-        const reason = error instanceof Error ? error.message : String(error)
-        toast.error(`${label}: ${reason}`)
-      }
-    }
-    setJustUnlocked(false)
+  if (!hydrated) {
+    return authSplash
   }
-
-  useEffect(() => {
-    async function run() {
-      const { justUnlocked: ju, pendingRecoverData: pending } =
-        useAuthStore.getState()
-
-      // Not gated on justUnlocked: this effect runs once on mount and may race
-      // the unlock screen setting that flag. Reaching this layout already means
-      // the user is authenticated, and both helpers no-op when no PIN exists.
-      try {
-        await migrateAndHydrateNostrSecrets()
-        await migrateAndHydrateServiceSecrets()
-      } catch {
-        // non-critical for boot; secrets may remain unavailable until next unlock
-      }
-
-      if (ju && pending) {
-        const { success } = await performRecoverOverwrite(pending)
-        setPendingRecoverData(null)
-        if (success) {
-          toast.success(t('settings.developer.backupSuccess'))
-        } else {
-          toast.error(t('settings.developer.recoverOverwriteError'))
-        }
-      }
-      if (connectionMode === 'auto') {
-        await loadWallets()
-      }
-
-      try {
-        pruneCache()
-      } catch {
-        // non-critical — cache prune failure should not block startup
-      }
-
-      usePayjoinSessionsStore.getState().clearExpiredSessions()
-    }
-    run()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Do not push index route
-  useEffect(() => {
-    if (routeName !== '' && routeName !== 'index') {
-      const { ...filteredRouteParams } = routeParams
-
-      markPageVisited({
-        params: filteredRouteParams,
-        path: routeName
-      } as PageRoute)
-    }
-  }, [routeName, routeParams, markPageVisited])
 
   if (firstTime) {
     return <Redirect href="/setPin" />
@@ -221,19 +48,8 @@ export default function AuthenticatedLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Drawer
-        drawerContent={(props) => <SSNavMenu {...props} />}
-        screenOptions={{
-          drawerPosition: 'left',
-          drawerStyle: { width: 300 },
-          drawerType: 'slide',
-          headerShown: false
-        }}
-      >
-        <Drawer.Screen name="(tabs)" />
-      </Drawer>
-      <SSArkReceiveOverlay />
-    </GestureHandlerRootView>
+    <Suspense fallback={authSplash}>
+      <AuthenticatedSession />
+    </Suspense>
   )
 }

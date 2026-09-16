@@ -10,7 +10,7 @@ import {
   PIN_LENGTH_KEY,
   SALT_KEY
 } from '@/config/auth'
-import { useAuthStore } from '@/store/auth'
+import { applyColdStartLock, useAuthStore } from '@/store/auth'
 import { parseKdf } from '@/utils/pinKdf'
 
 const sk = (key: string) => `1_${key}`
@@ -98,5 +98,31 @@ describe('auth store PIN handling', () => {
     await expect(useAuthStore.getState().validatePin('1234')).resolves.toBe(
       false
     )
+  })
+
+  it('applyColdStartLock locks when auth is required and PIN is not skipped', () => {
+    const locked = {
+      lockTriggered: false,
+      requiresAuth: true,
+      skipPin: false
+    }
+    applyColdStartLock(locked)
+    expect(locked.lockTriggered).toBe(true)
+
+    const skipped = {
+      lockTriggered: false,
+      requiresAuth: true,
+      skipPin: true
+    }
+    applyColdStartLock(skipped)
+    expect(skipped.lockTriggered).toBe(false)
+
+    const noAuth = {
+      lockTriggered: false,
+      requiresAuth: false,
+      skipPin: false
+    }
+    applyColdStartLock(noAuth)
+    expect(noAuth.lockTriggered).toBe(false)
   })
 })

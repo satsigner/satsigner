@@ -5,12 +5,15 @@ import QuickCrypto from 'react-native-quick-crypto'
 
 import {
   DURESS_KDF_KEY,
+  PIN_KDF_COMMIT_KEY,
   PIN_KDF_KEY,
   PIN_KEY,
   SALT_KEY,
   SALT_KEY_DURESS
 } from '@/config/auth'
+import { pinDigestOpensSecret } from '@/utils/decryption'
 import {
+  applyPendingPinKdfCommit,
   commitPinMaterial,
   derivePinDigest,
   getBestAvailableKdf,
@@ -21,16 +24,24 @@ import {
   parseKdf,
   pinMatchesDuressDigest,
   preparePinMaterial,
+  recoverWorkingPinDigest,
   safeEqualHex,
   serializeKdf,
   storeKdfConfig
 } from '@/utils/pinKdf'
 
+jest.mock<Partial<typeof import('@/utils/decryption')>>(
+  '@/utils/decryption',
+  () => ({
+    pinDigestOpensSecret: jest.fn()
+  })
+)
+
 const ARGON2_CONFIG = {
-  memoryKiB: 65536,
+  memoryKiB: 19_456,
   name: 'argon2id',
-  parallelism: 4,
-  passes: 3
+  parallelism: 1,
+  passes: 2
 } as const
 const SCRYPT_CONFIG = { n: 32768, name: 'scrypt', p: 1, r: 8 } as const
 const PBKDF2_600K = { iterations: 600_000, name: 'pbkdf2' } as const
@@ -203,21 +214,28 @@ describe('pinKdf', () => {
         qc.argon2Sync.mockImplementation(() => {
           throw new Error('native module missing')
         })
-        qc.scryptSync.mockImplementation(
+        qc.scryptSync.mockImplementation(() => {
+          throw new Error('maxmem')
+        })
+      })
+      expect(pinKdf.getBestAvailableKdf()).toStrictEqual(PBKDF2_600K)
+    })
+
+    it('retries the next KDF when production argon2id derivation fails', async () => {
+      const pinKdf = requirePinKdfWithPatches((qc) => {
+        qc.argon2.mockImplementation(
           (
-            _password: string,
-            _salt: string,
-            _keylen: number,
-            options?: { N?: number }
+            _algorithm: string,
+            _params: unknown,
+            callback: (err: Error | null, result?: Buffer) => void
           ) => {
-            if (options?.N === 32768) {
-              throw new Error('maxmem')
-            }
-            return Buffer.alloc(32)
+            callback(new Error('production argon2id failed'))
           }
         )
       })
-      expect(pinKdf.getBestAvailableKdf()).toStrictEqual(PBKDF2_600K)
+      secureStore[sk(SALT_KEY)] = SALT
+      const material = await pinKdf.preparePinMaterial(PIN)
+      expect(material.kdf).toStrictEqual(SCRYPT_CONFIG)
     })
   })
 
@@ -308,6 +326,62 @@ describe('pinKdf', () => {
       secureStore[sk(SALT_KEY_DURESS)] = legacySalt
       const digest = await derivePinDigest(PIN, legacySalt, LEGACY_KDF_CONFIG)
       await expect(pinMatchesDuressDigest(PIN, digest)).resolves.toBe(true)
+    })
+  })
+
+  describe('recoverWorkingPinDigest', () => {
+    const probe = { iv: 'iv', secret: 'ciphertext' }
+
+    beforeEach(() => {
+      jest.mocked(pinDigestOpensSecret).mockReset()
+    })
+
+    it('keeps the stored digest when it still opens secrets', async () => {
+      const stored = realPbkdf2(PIN, SALT, 10_000)
+      jest.mocked(pinDigestOpensSecret).mockResolvedValue(true)
+
+      await expect(
+        recoverWorkingPinDigest(PIN, SALT, stored, probe)
+      ).resolves.toBe(stored)
+      expect(secureStore[sk(PIN_KEY)]).toBeUndefined()
+    })
+
+    it('commits the upgraded digest when only that key opens secrets', async () => {
+      const stored = realPbkdf2(PIN, SALT, 10_000)
+      jest
+        .mocked(pinDigestOpensSecret)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true)
+
+      const recovered = await recoverWorkingPinDigest(PIN, SALT, stored, probe)
+
+      expect(recovered).not.toBe(stored)
+      expect(recovered).toHaveLength(64)
+      expect(secureStore[sk(PIN_KEY)]).toBe(recovered)
+      expect(parseKdf(secureStore[sk(PIN_KDF_KEY)])).toStrictEqual(
+        ARGON2_CONFIG
+      )
+    })
+  })
+
+  describe('applyPendingPinKdfCommit', () => {
+    it('aligns PIN_KEY and KDF after an interrupted digest write', async () => {
+      const oldDigest = realPbkdf2(PIN, SALT, 10_000)
+      const newDigest = realPbkdf2(PIN, SALT, 600_000)
+      const newKdf = serializeKdf(PBKDF2_600K)
+      secureStore[sk(PIN_KEY)] = newDigest
+      secureStore[sk(PIN_KDF_KEY)] = serializeKdf(LEGACY_KDF_CONFIG)
+      secureStore[sk(PIN_KDF_COMMIT_KEY)] = JSON.stringify({
+        digest: newDigest,
+        kdf: newKdf
+      })
+
+      await applyPendingPinKdfCommit()
+
+      expect(secureStore[sk(PIN_KEY)]).toBe(newDigest)
+      expect(secureStore[sk(PIN_KDF_KEY)]).toBe(newKdf)
+      expect(secureStore[sk(PIN_KDF_COMMIT_KEY)]).toBeUndefined()
+      expect(oldDigest).not.toBe(newDigest)
     })
   })
 })

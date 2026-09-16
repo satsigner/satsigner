@@ -3,7 +3,8 @@ import {
   decryptAccountKeySecretUsingPin,
   decryptKeySecretAt,
   decryptKeySecretUsingPin,
-  getAccountWithDecryptedKeys
+  getAccountWithDecryptedKeys,
+  pinDigestOpensSecret
 } from '@/utils/decryption'
 
 jest.mock<Partial<typeof import('@/storage/encrypted')>>(
@@ -232,5 +233,25 @@ describe('getAccountWithDecryptedKeys', () => {
     await expect(getAccountWithDecryptedKeys(account)).rejects.toThrow(
       /account Test/
     )
+  })
+})
+
+describe('pinDigestOpensSecret', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('returns true when AES decrypt yields JSON', async () => {
+    aesDecrypt.mockResolvedValue('{"mnemonic":"w"}')
+    await expect(
+      pinDigestOpensSecret('digest', { iv: 'iv', secret: 'enc' })
+    ).resolves.toBe(true)
+  })
+
+  it('returns false when AES decrypt throws', async () => {
+    aesDecrypt.mockRejectedValue(new Error('bad key'))
+    await expect(
+      pinDigestOpensSecret('digest', { iv: 'iv', secret: 'enc' })
+    ).resolves.toBe(false)
   })
 })
