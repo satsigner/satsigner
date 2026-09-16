@@ -3,7 +3,12 @@ import { type BdkWallet } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getWalletOverview, syncWallet, syncWithCoreWallet } from '@/api/bdk'
+import {
+  getWalletOverview,
+  revealKnownAddresses,
+  syncWallet,
+  syncWithCoreWallet
+} from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
 import BitcoinRpc from '@/api/rpc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
@@ -13,6 +18,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { updateAccountObjectLabels } from '@/utils/account'
+import { shouldFullScan } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatTimestamp } from '@/utils/format'
@@ -119,21 +125,13 @@ function useSyncAccountWithWallet() {
       setSyncStatus(latest.id, 'syncing')
 
       const checkpoint = wallet.latestCheckpoint()
-      // Treat checkpoints near genesis (< 10,000) as a full scan —
-      // a checkpoint at e.g. block 1052 means history was never actually scanned.
-      //
-      // Also force a full scan when switching FROM RPC to a BDK-based backend
-      // (Electrum/Esplora). The RPC sync path bypasses BDK's keychain index,
-      // so the BDK checkpoint reflects where BDK last stopped scanning, not
-      // where all transactions were found. Without a full scan, BDK would only
-      // pick up recent transactions and lose the older RPC-discovered history.
       const switchingFromRpc =
         server.backend !== 'rpc' && !!latest.rpcLastBlockHash
-      const isFullScan =
-        forceFullScan ||
-        !checkpoint ||
-        checkpoint.height < 10_000 ||
-        switchingFromRpc
+      const isFullScan = shouldFullScan({
+        account: latest,
+        checkpoint,
+        forceFullScan
+      })
       const isGeneratedWallet =
         latest.keys[0]?.creationType === 'generateMnemonic'
 
@@ -199,6 +197,9 @@ function useSyncAccountWithWallet() {
         walletSummary = coreResult
         newRpcLastBlockHash = coreResult.rpcLastBlockHash
       } else {
+        if (!isFullScan) {
+          revealKnownAddresses(wallet, latest, config.stopGap)
+        }
         await syncWallet(
           wallet,
           server.backend,
@@ -311,8 +312,8 @@ function useSyncAccountWithWallet() {
       updatedAccount.syncStatus = 'synced'
       updatedAccount.lastSyncedAt = new Date()
 
-      // After a successful full BDK sync (Electrum/Esplora), clear
-      // rpcLastBlockHash so future syncs are incremental again.
+      // After a successful Electrum/Esplora sync, clear rpcLastBlockHash
+      // so returning to RPC can still use listsinceblock from a fresh tip.
       if (switchingFromRpc) {
         updatedAccount.rpcLastBlockHash = undefined
       }
