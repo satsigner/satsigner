@@ -176,20 +176,23 @@
     "node": ">=22.4.0"
   },
   "expo": {
-    "install": {
-      "exclude": [
-        "react-native-worklets"
-      ]
+    "autolinking": {
+      "nativeModulesDir": "./modules"
     },
     "doctor": {
       "reactNativeDirectoryCheck": {
-        "listUnknownPackages": false,
         "exclude": [
           "react-native-bouncy-checkbox",
           "react-native-nfc-manager",
           "react-native-tcp-socket"
-        ]
+        ],
+        "listUnknownPackages": false
       }
+    },
+    "install": {
+      "exclude": [
+        "react-native-worklets"
+      ]
     }
   }
 }

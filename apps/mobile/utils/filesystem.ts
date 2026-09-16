@@ -3,7 +3,10 @@ import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
 import { Platform } from 'react-native'
 
+import { saveDocument } from '@/modules/saf-save'
 import { sanitizeFilenamePart } from '@/utils/safePath'
+
+const ENCODING_BASE64 = 'base64'
 
 type ShareFileProps = {
   filename: string
@@ -66,29 +69,17 @@ export async function saveExistingFile({
   filename,
   dialogTitle,
   mimeType
-}: SaveExistingFileProps) {
+}: SaveExistingFileProps): Promise<boolean> {
   const safeFilename = sanitizeExportFilename(filename)
   if (Platform.OS === 'android') {
-    const permissions =
-      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
-    if (permissions.granted && permissions.directoryUri) {
-      const destinationUri =
-        await FileSystem.StorageAccessFramework.createFileAsync(
-          permissions.directoryUri,
-          safeFilename,
-          mimeType
-        )
-      const data = await FileSystem.readAsStringAsync(srcUri, {
-        encoding: FileSystem.EncodingType.Base64
-      })
-      await FileSystem.writeAsStringAsync(destinationUri, data, {
-        encoding: FileSystem.EncodingType.Base64
-      })
-      return
-    }
+    const data = await FileSystem.readAsStringAsync(srcUri, {
+      encoding: FileSystem.EncodingType.Base64
+    })
+    return saveDocument(safeFilename, mimeType, data, ENCODING_BASE64)
   }
 
   await shareExistingFile({ dialogTitle, fileUri: srcUri, mimeType })
+  return true
 }
 
 export async function saveFile({
@@ -96,23 +87,10 @@ export async function saveFile({
   fileContent,
   dialogTitle,
   mimeType
-}: ShareFileProps) {
+}: ShareFileProps): Promise<boolean> {
   const safeFilename = sanitizeExportFilename(filename)
   if (Platform.OS === 'android') {
-    const permissions =
-      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
-    if (permissions.granted && permissions.directoryUri) {
-      const destinationUri =
-        await FileSystem.StorageAccessFramework.createFileAsync(
-          permissions.directoryUri,
-          safeFilename,
-          mimeType
-        )
-      await FileSystem.writeAsStringAsync(destinationUri, fileContent, {
-        encoding: FileSystem.EncodingType.UTF8
-      })
-      return
-    }
+    return saveDocument(safeFilename, mimeType, fileContent, 'utf8')
   }
 
   await shareFile({
@@ -121,6 +99,7 @@ export async function saveFile({
     filename: safeFilename,
     mimeType
   })
+  return true
 }
 
 export type PickFileProps = {

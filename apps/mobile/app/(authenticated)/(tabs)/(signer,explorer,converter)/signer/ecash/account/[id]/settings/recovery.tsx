@@ -12,48 +12,68 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { collectMintUrlsForRestore } from '@/utils/ecashBackup'
 
 export default function EcashAccountRecoveryPage() {
-  const { activeAccount, mints, restoreFromSeed } = useEcash()
+  const {
+    activeAccount,
+    mints,
+    proofs,
+    restoreAllAccountMintsFromSeed,
+    restoreFromBackup
+  } = useEcash()
   const [mintUrl, setMintUrl] = useState('')
+  const [backupJson, setBackupJson] = useState('')
   const [isRestoring, setIsRestoring] = useState(false)
+  const [isRestoringBackup, setIsRestoringBackup] = useState(false)
   const [result, setResult] = useState<{
     proofsFound: number
     totalAmount: number
+    mintsScanned: number
+    mintsFailed: number
   } | null>(null)
 
-  async function handleRestore() {
-    const urlToRestore = mintUrl.trim()
-    if (!urlToRestore) {
-      toast.error(t('ecash.mint.enterUrl'))
+  const mintUrlsToRestore = collectMintUrlsForRestore(mints, proofs, mintUrl)
+  const hasSeed = activeAccount?.hasSeed === true
+
+  async function handleRestoreAll() {
+    if (mintUrlsToRestore.length === 0) {
+      toast.error(t('ecash.recovery.noMintsToRestore'))
       return
     }
 
     setIsRestoring(true)
     setResult(null)
     try {
-      const restoreResult = await restoreFromSeed(urlToRestore)
+      const restoreResult = await restoreAllAccountMintsFromSeed(mintUrl)
       setResult(restoreResult)
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`${t('ecash.error.networkError')}: ${reason}`)
+      toast.error(t('ecash.recovery.restoreFailed', { error: reason }))
     } finally {
       setIsRestoring(false)
     }
   }
 
-  function handleSelectMint(url: string) {
-    setMintUrl(url)
+  function handleRestoreBackup() {
+    setIsRestoringBackup(true)
+    try {
+      const parsed: unknown = JSON.parse(backupJson)
+      restoreFromBackup(parsed)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown'
+      toast.error(t('ecash.recovery.restoreFailed', { error: reason }))
+    } finally {
+      setIsRestoringBackup(false)
+    }
   }
-
-  const hasSeed = activeAccount?.hasSeed === true
 
   return (
     <SSMainLayout>
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t('ecash.recovery.seedRecovery')}</SSText>
+            <SSText uppercase>{t('ecash.recovery.title')}</SSText>
           )
         }}
       />
@@ -68,10 +88,24 @@ export default function EcashAccountRecoveryPage() {
           ) : (
             <>
               <SSVStack gap="sm">
+                <SSText uppercase>{t('ecash.recovery.seedRecovery')}</SSText>
                 <SSText color="muted" size="sm">
                   {t('ecash.recovery.seedRecoveryDescription')}
                 </SSText>
               </SSVStack>
+
+              {mints.length > 0 ? (
+                <SSVStack gap="xs">
+                  <SSText color="muted" size="sm">
+                    {t('ecash.backup.connectedMints')}: {mints.length}
+                  </SSText>
+                  {mints.map((mint) => (
+                    <SSText key={mint.url} size="sm">
+                      {mint.name || mint.url}
+                    </SSText>
+                  ))}
+                </SSVStack>
+              ) : null}
 
               <SSVStack gap="xs">
                 <SSText uppercase>{t('ecash.mint.url')}</SSText>
@@ -83,35 +117,23 @@ export default function EcashAccountRecoveryPage() {
                 />
               </SSVStack>
 
-              {mints.length > 0 && (
-                <SSVStack gap="xs">
-                  <SSText color="muted" size="sm">
-                    {t('ecash.recovery.selectConnectedMint')}
-                  </SSText>
-                  {mints.map((mint) => (
-                    <SSButton
-                      key={mint.url}
-                      label={mint.name || mint.url}
-                      onPress={() => handleSelectMint(mint.url)}
-                      variant="subtle"
-                      style={styles.mintButton}
-                    />
-                  ))}
-                </SSVStack>
-              )}
-
               <SSButton
-                label={t('ecash.recovery.restoreProofs')}
-                onPress={handleRestore}
+                label={t('ecash.recovery.restoreAllMints')}
+                onPress={handleRestoreAll}
                 variant="gradient"
                 gradientType="special"
                 loading={isRestoring}
-                disabled={!mintUrl.trim()}
+                disabled={mintUrlsToRestore.length === 0}
               />
 
-              {result && (
+              {result ? (
                 <SSVStack gap="sm" style={styles.resultContainer}>
                   <SSText uppercase>{t('ecash.recovery.result')}</SSText>
+                  <SSText>
+                    {t('ecash.recovery.mintsScanned', {
+                      count: result.mintsScanned
+                    })}
+                  </SSText>
                   <SSText>
                     {t('ecash.recovery.proofsFound', {
                       count: result.proofsFound
@@ -122,10 +144,38 @@ export default function EcashAccountRecoveryPage() {
                       amount: result.totalAmount
                     })}
                   </SSText>
+                  {result.mintsFailed > 0 ? (
+                    <SSText>
+                      {t('ecash.recovery.mintsFailed', {
+                        count: result.mintsFailed
+                      })}
+                    </SSText>
+                  ) : null}
                 </SSVStack>
-              )}
+              ) : null}
             </>
           )}
+
+          <SSVStack gap="sm">
+            <SSText uppercase>{t('ecash.recovery.backupTab')}</SSText>
+            <SSText color="muted" size="sm">
+              {t('ecash.recovery.backupInstructions')}
+            </SSText>
+            <SSTextInput
+              value={backupJson}
+              onChangeText={setBackupJson}
+              placeholder={t('ecash.recovery.backupPlaceholder')}
+              multiline
+              style={styles.backupInput}
+            />
+            <SSButton
+              label={t('ecash.recovery.validateAndRestore')}
+              onPress={handleRestoreBackup}
+              variant="outline"
+              loading={isRestoringBackup}
+              disabled={!backupJson.trim()}
+            />
+          </SSVStack>
         </SSVStack>
       </SSScrollView>
     </SSMainLayout>
@@ -133,13 +183,19 @@ export default function EcashAccountRecoveryPage() {
 }
 
 const styles = StyleSheet.create({
+  backupInput: {
+    fontFamily: 'monospace',
+    fontSize: 12,
+    height: 'auto',
+    minHeight: 160,
+    padding: 10,
+    textAlign: 'left',
+    textAlignVertical: 'top',
+    width: '100%'
+  },
   container: {
     paddingBottom: 60,
     paddingTop: 20
-  },
-  mintButton: {
-    marginBottom: 2,
-    opacity: 0.7
   },
   resultContainer: {
     backgroundColor: Colors.gray[900],

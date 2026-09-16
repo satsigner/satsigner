@@ -9,7 +9,7 @@ import type { EcashMint, EcashProof } from '@/types/models/Ecash'
 type Props = {
   mints: EcashMint[]
   selectedMint: EcashMint | null
-  onSelect: (mint: EcashMint) => void
+  onSelect: (mint: EcashMint | null) => void
   proofs: EcashProof[]
 }
 
@@ -17,6 +17,8 @@ function SSEcashMintSelector({ mints, selectedMint, onSelect, proofs }: Props) {
   if (mints.length <= 1) {
     return null
   }
+
+  const autoSelected = selectedMint === null
 
   return (
     <SSVStack gap="xs">
@@ -28,6 +30,35 @@ function SSEcashMintSelector({ mints, selectedMint, onSelect, proofs }: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        <Pressable
+          onPress={() => onSelect(null)}
+          style={[
+            styles.pill,
+            autoSelected ? styles.pillSelected : styles.pillUnselected
+          ]}
+          accessibilityRole="radio"
+          accessibilityState={{ checked: autoSelected }}
+        >
+          <SSText
+            size="xs"
+            numberOfLines={1}
+            style={[
+              styles.pillLabel,
+              { color: autoSelected ? Colors.white : Colors.gray[50] }
+            ]}
+          >
+            {t('ecash.mint.autoSelect')}
+          </SSText>
+          <SSText
+            size="xs"
+            style={{
+              color: autoSelected ? Colors.gray[200] : Colors.gray[500]
+            }}
+          >
+            {proofs.reduce((sum, proof) => sum + proof.amount, 0)}{' '}
+            {t('bitcoin.sats')}
+          </SSText>
+        </Pressable>
         {mints.map((mint) => {
           const balance = proofs
             .filter((p) => p.mintUrl === mint.url)

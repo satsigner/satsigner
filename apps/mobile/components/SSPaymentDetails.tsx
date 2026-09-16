@@ -6,6 +6,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Typography } from '@/styles'
+import { bolt11AmountSats } from '@/utils/lightningInvoiceDecoder'
 
 type DecodedInvoice = {
   payment_request: string
@@ -95,22 +96,6 @@ function formatExpiresRelative(expiresMs: number, nowMs: number): string {
   })
 }
 
-function decodedInvoiceAmountSats(invoice: DecodedInvoice): number {
-  const fromSatField = parseInt(invoice.num_satoshis, 10)
-  if (!Number.isNaN(fromSatField) && fromSatField > 0) {
-    return fromSatField
-  }
-  const msat = parseInt(invoice.num_msat, 10)
-  if (!Number.isNaN(msat) && msat > 0) {
-    return Math.ceil(msat / 1000)
-  }
-  const fromValue = parseInt(invoice.value, 10)
-  if (!Number.isNaN(fromValue) && fromValue > 0) {
-    return fromValue
-  }
-  return 0
-}
-
 function SSPaymentDetails({
   decodedInvoice,
   fiatCurrency,
@@ -119,7 +104,7 @@ function SSPaymentDetails({
   showCreated = true,
   showPaymentHash = true
 }: SSPaymentDetailsProps) {
-  const amountSats = decodedInvoiceAmountSats(decodedInvoice)
+  const amountSats = bolt11AmountSats(decodedInvoice)
   const nowMs = Date.now()
   const createdAt = new Date(Number(decodedInvoice.timestamp) * 1000)
   const expiresAt = new Date(
@@ -139,21 +124,23 @@ function SSPaymentDetails({
             widthFull
             style={styles.amountDescriptionBlock}
           >
-            <SSHStack gap="xs" style={styles.amountFiatRow}>
-              <SSText center weight="medium" size="2xl">
-                {privacyMode
-                  ? '•••• sats'
-                  : `${amountSats.toLocaleString('en-US')} sats`}
-              </SSText>
-              <SSText center color="muted" size="lg">
-                {privacyMode
-                  ? `≈ •••• ${fiatCurrency}`
-                  : `≈ ${satsToFiat(amountSats).toLocaleString('en-US', {
-                      maximumFractionDigits: 2,
-                      minimumFractionDigits: 2
-                    })} ${fiatCurrency}`}
-              </SSText>
-            </SSHStack>
+            {amountSats > 0 ? (
+              <SSHStack gap="xs" style={styles.amountFiatRow}>
+                <SSText center weight="medium" size="2xl">
+                  {privacyMode
+                    ? '•••• sats'
+                    : `${amountSats.toLocaleString('en-US')} sats`}
+                </SSText>
+                <SSText center color="muted" size="lg">
+                  {privacyMode
+                    ? `≈ •••• ${fiatCurrency}`
+                    : `≈ ${satsToFiat(amountSats).toLocaleString('en-US', {
+                        maximumFractionDigits: 2,
+                        minimumFractionDigits: 2
+                      })} ${fiatCurrency}`}
+                </SSText>
+              </SSHStack>
+            ) : null}
             {decodedInvoice.description ? (
               <SSText center size="lg" style={styles.description}>
                 {decodedInvoice.description}

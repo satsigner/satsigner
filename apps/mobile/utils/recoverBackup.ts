@@ -1,5 +1,7 @@
 import {
+  deleteArkMnemonic,
   deleteEcashMnemonic,
+  storeArkMnemonic,
   storeEcashMnemonic,
   storeKeySecret
 } from '@/storage/encrypted'
@@ -14,7 +16,6 @@ import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import type { Label } from '@/types/bips/329'
 import type { Account, Key } from '@/types/models/Account'
-import type { ArkAccount } from '@/types/models/Ark'
 import type {
   EcashAccount,
   EcashKeysetCounter,
@@ -24,10 +25,26 @@ import type {
   MeltQuote,
   MintQuote
 } from '@/types/models/Ecash'
-import type { LNDConfig } from '@/types/models/Lightning'
+import type {
+  LNDChannel,
+  LNDConfig,
+  LNDNodeInfo
+} from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
-import type { Config, Network, Server } from '@/types/settings/blockchain'
+import {
+  prepareArkMnemonics,
+  releaseArkWalletsForRestore,
+  restoreArkDatadirsFromBackup,
+  restoreArkLabelsFromBackup,
+  restoreArkStoreFromBackup,
+  type ArkBackupSection
+} from '@/utils/arkBackup'
+import {
+  restoreBlockchainFromBackup,
+  type BlockchainBackup
+} from '@/utils/blockchainBackup'
 import { aesEncrypt, randomIv } from '@/utils/crypto'
+import { restoreLightningFromBackup } from '@/utils/lightningBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
 
@@ -51,9 +68,7 @@ type BackupAccount = {
 }
 type BackupData = {
   accounts: BackupAccount[]
-  ark?: {
-    accounts: ArkAccount[]
-  }
+  ark?: ArkBackupSection
   ecash?: {
     accounts?: EcashAccount[]
     activeAccountId?: string | null
@@ -63,6 +78,13 @@ type BackupData = {
     proofs?: Record<string, EcashProof[]>
     quotes?: Record<string, { melt: MeltQuote[]; mint: MintQuote[] }>
     transactions?: Record<string, EcashTransaction[]>
+  }
+  lightning?: {
+    channels?: LNDChannel[]
+    config?: LNDConfig | null
+    isConnected?: boolean
+    lastSync?: string | null
+    nodeInfo?: LNDNodeInfo | null
   }
   lnd?: LNDConfig | null
   nostr?: {
@@ -79,12 +101,7 @@ type BackupData = {
     identities: NostrIdentity[]
     relays: string[]
   }
-  serverSettings?: {
-    configs: Record<Network, { config: Config; server: Server }>
-    configsMempool: Record<Network, string>
-    customServers: Server[]
-    selectedNetwork: Network
-  }
+  serverSettings?: BlockchainBackup
   settings: {
     currencyUnit: string
     mnemonicWordList: string
@@ -100,14 +117,15 @@ type PreparedKey = {
   secret: string
 }
 
-type PreparedEcashMnemonic = {
+type PreparedMnemonic = {
   accountId: string
   mnemonic: string
 }
 
 type PreparedRestore = {
   accounts: Account[]
-  ecashMnemonics: PreparedEcashMnemonic[]
+  arkMnemonics: PreparedMnemonic[]
+  ecashMnemonics: PreparedMnemonic[]
   keys: PreparedKey[]
 }
 
@@ -142,10 +160,6 @@ function errorMessage(err: unknown): string {
     return err
   }
   return 'Unknown error'
-}
-
-function isNetwork(value: string): value is Network {
-  return value === 'bitcoin' || value === 'testnet' || value === 'signet'
 }
 
 function validateBackup(
@@ -268,12 +282,13 @@ async function prepareRestore(
       utxos: []
     })
   }
-  const ecashMnemonics: PreparedEcashMnemonic[] = data.ecash?.mnemonics
+  const ecashMnemonics: PreparedMnemonic[] = data.ecash?.mnemonics
     ? Object.entries(data.ecash.mnemonics)
         .filter((entry): entry is [string, string] => Boolean(entry[1]))
         .map(([accountId, mnemonic]) => ({ accountId, mnemonic }))
     : []
-  return { accounts, ecashMnemonics, keys }
+  const arkMnemonics = prepareArkMnemonics(data.ark?.mnemonics)
+  return { accounts, arkMnemonics, ecashMnemonics, keys }
 }
 
 function snapshotStores(): StoreSnapshot {
@@ -300,6 +315,10 @@ function rollbackStores(snap: StoreSnapshot): void {
   useNostrIdentityStore.setState(snap.nostrIdentity, true)
   useSettingsStore.setState(snap.settings, true)
   useWalletsStore.setState(snap.wallets, true)
+}
+
+function arkAccountIdsFromBackup(data: BackupData): string[] {
+  return data.ark?.accounts?.map((account) => account.id) ?? []
 }
 
 function applyStoreRestore(
@@ -363,11 +382,7 @@ function applyStoreRestore(
       cur.setUseZeroPadding(data.settings.useZeroPadding)
     }
   }
-  if (data.lnd) {
-    useLightningStore.getState().setConfig(data.lnd)
-  } else if ('lnd' in data && data.lnd === null) {
-    useLightningStore.getState().clearConfig()
-  }
+  restoreLightningFromBackup(data)
   useNostrIdentityStore.getState().clearAll()
   if (data.nostrIdentities) {
     for (const identity of data.nostrIdentities.identities) {
@@ -378,43 +393,16 @@ function applyStoreRestore(
       .setActiveIdentity(data.nostrIdentities.activeIdentityNpub)
     useNostrIdentityStore.getState().setRelays(data.nostrIdentities.relays)
   }
-  useArkStore.getState().clearAllData()
-  if (data.ark) {
-    for (const account of data.ark.accounts) {
-      useArkStore.getState().addAccount(account)
-    }
-  }
+  restoreArkStoreFromBackup(data.ark)
   if (data.serverSettings) {
-    const bs = useBlockchainStore.getState()
-    bs.setSelectedNetwork(data.serverSettings.selectedNetwork)
-    for (const [rawNetwork, nc] of Object.entries(
-      data.serverSettings.configs
-    )) {
-      if (isNetwork(rawNetwork)) {
-        bs.updateServer(rawNetwork, nc.server)
-        bs.updateConfig(rawNetwork, nc.config)
-      }
-    }
-    for (const [rawNetwork, mempool] of Object.entries(
-      data.serverSettings.configsMempool
-    )) {
-      if (isNetwork(rawNetwork)) {
-        bs.updateConfigMempool(rawNetwork, mempool)
-      }
-    }
-    const existingServers = bs.customServers.slice()
-    for (const old of existingServers) {
-      bs.removeCustomServer(old)
-    }
-    for (const s of data.serverSettings.customServers) {
-      bs.addCustomServer(s)
-    }
+    restoreBlockchainFromBackup(data.serverSettings)
   }
 }
 
 async function writeKeychain(
   prepared: PreparedRestore,
-  existingEcashAccountIds: string[]
+  existingEcashAccountIds: string[],
+  leftoverArkAccountIds: string[]
 ): Promise<void> {
   for (const k of prepared.keys) {
     await storeKeySecret(k.accountId, k.index, k.secret, k.iv)
@@ -431,6 +419,14 @@ async function writeKeychain(
     (id) => !restoredEcashIds.has(id)
   )
   await Promise.all(toDelete.map((id) => deleteEcashMnemonic(id)))
+  await Promise.all(
+    prepared.arkMnemonics.map((m) => storeArkMnemonic(m.accountId, m.mnemonic))
+  )
+  await Promise.all(
+    leftoverArkAccountIds.map((id) =>
+      deleteArkMnemonic(id).catch(() => undefined)
+    )
+  )
 }
 
 /**
@@ -438,9 +434,10 @@ async function writeKeychain(
  * pendingRecoverData is set. Uses stored PIN from secure storage.
  *
  * Order is: validate → encrypt secrets in memory → snapshot stores → apply
- * store changes → write keychain. Any failure during apply rolls back stores
- * to their pre-restore state. Keychain writes happen last; rollback for those
- * is best-effort since secure-storage reads are PIN-bound.
+ * store changes → write keychain → release open Ark wallets → restore Ark
+ * datadirs and labels. Any failure during apply rolls back stores to their
+ * pre-restore state. Keychain writes happen last; rollback for those is
+ * best-effort since secure-storage reads are PIN-bound.
  */
 export async function performRecoverOverwrite(
   decrypted: string
@@ -468,6 +465,17 @@ export async function performRecoverOverwrite(
   const existingEcashAccountIds = useEcashStore
     .getState()
     .accounts.map((a) => a.id)
+  const existingArkAccounts = useArkStore.getState().accounts
+  const restoredArkAccountIds = arkAccountIdsFromBackup(data)
+  const restoredArkIds = new Set(restoredArkAccountIds)
+  const leftoverArkAccountIds = existingArkAccounts
+    .map((account) => account.id)
+    .filter((id) => !restoredArkIds.has(id))
+  const arkAccountsToRelease = existingArkAccounts.filter(
+    (account) =>
+      leftoverArkAccountIds.includes(account.id) ||
+      restoredArkIds.has(account.id)
+  )
   const snapshot = snapshotStores()
 
   try {
@@ -478,7 +486,22 @@ export async function performRecoverOverwrite(
   }
 
   try {
-    await writeKeychain(prepared, existingEcashAccountIds)
+    await writeKeychain(
+      prepared,
+      existingEcashAccountIds,
+      leftoverArkAccountIds
+    )
+    releaseArkWalletsForRestore(arkAccountsToRelease)
+    await restoreArkDatadirsFromBackup(
+      data.ark?.datadirs,
+      leftoverArkAccountIds,
+      restoredArkAccountIds
+    )
+    restoreArkLabelsFromBackup(
+      data.ark?.labels,
+      leftoverArkAccountIds,
+      restoredArkAccountIds
+    )
   } catch (error) {
     rollbackStores(snapshot)
     return { error: errorMessage(error), success: false }

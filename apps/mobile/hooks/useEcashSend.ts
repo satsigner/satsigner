@@ -2,16 +2,18 @@ import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
+import { getMintBalance } from '@/api/ecash'
 import { useEcash } from '@/hooks/useEcash'
 import { useLND } from '@/hooks/useLND'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { t } from '@/locales'
 import { useZapFlowStore } from '@/store/zapFlow'
-import type { EcashMint } from '@/types/models/Ecash'
+import { type EcashMint } from '@/types/models/Ecash'
 import type {
   LNDDecodedInvoice,
   LNURLPayResponse
 } from '@/types/models/Lightning'
+import { selectMintRoute } from '@/utils/ecashMintRoute'
 import {
   decodeLightningInvoice,
   isLightningInvoice
@@ -54,21 +56,23 @@ export function useEcashSend() {
   const animationRef = useRef<number | null>(null)
   const lastUpdateRef = useRef<number>(0)
 
-  const {
-    activeAccount,
-    mints,
-    sendEcash,
-    createMeltQuote,
-    meltProofs,
-    proofs
-  } = useEcash()
+  const { activeAccount, mints, payLightningInvoice, proofs, sendEcash } =
+    useEcash()
   const [selectedMintUrl, setSelectedMintUrl] = useState<string | null>(null)
-  const selectedMint =
-    mints.find((m) => m.url === selectedMintUrl) ?? mints[0] ?? null
-  const mintProofs = proofs.filter((p) => p.mintUrl === selectedMint?.url)
+  const selectedMint = selectedMintUrl
+    ? (mints.find((m) => m.url === selectedMintUrl) ?? null)
+    : mints.length === 1
+      ? mints[0]
+      : null
+  const spendableSats = selectedMintUrl
+    ? getMintBalance(selectedMintUrl, proofs)
+    : proofs.reduce((sum, proof) => sum + proof.amount, 0)
+  const mintProofs = selectedMintUrl
+    ? proofs.filter((p) => p.mintUrl === selectedMintUrl)
+    : proofs
 
-  function setSelectedMint(mint: EcashMint) {
-    setSelectedMintUrl(mint.url)
+  function setSelectedMint(mint: EcashMint | null) {
+    setSelectedMintUrl(mint?.url ?? null)
   }
   const { makeRequest, isConnected } = useLND()
   const {
@@ -89,13 +93,29 @@ export function useEcashSend() {
       return
     }
 
-    if (!selectedMint) {
+    if (mints.length === 0) {
       toast.error(t('ecash.error.noMintConnected'))
       return
     }
 
-    if (mintProofs.length === 0) {
+    if (proofs.length === 0) {
       toast.error(t('ecash.error.noTokensToSend'))
+      return
+    }
+
+    const mintBalances = mints.map((mint) => ({
+      balance: getMintBalance(mint.url, proofs),
+      mintUrl: mint.url,
+      supportsMpp: false
+    }))
+    const route = selectMintRoute({
+      allowMpp: false,
+      amountSats: amountNum,
+      mints: mintBalances,
+      selectedMintUrl: mints.length === 1 ? mints[0].url : selectedMintUrl
+    })
+    if (route.kind !== 'single') {
+      toast.error(t('ecash.error.insufficientOnMint'))
       return
     }
 
@@ -103,7 +123,7 @@ export function useEcashSend() {
     setGeneratedTokenV4('')
     setGeneratedTokenV3('')
     try {
-      const result = await sendEcash(selectedMint.url, amountNum, memo)
+      const result = await sendEcash(route.mintUrl, amountNum, memo)
       setGeneratedTokenV4(result.token)
       setGeneratedTokenV3(result.tokenV3)
     } catch {
@@ -123,15 +143,22 @@ export function useEcashSend() {
       return
     }
 
-    if (!selectedMint) {
+    if (mints.length === 0) {
       toast.error(t('ecash.error.noMintConnected'))
       setStatusMessage(`Error: ${t('ecash.error.noMintConnected')}`)
       return
     }
 
-    if (mintProofs.length === 0) {
+    if (proofs.length === 0) {
       toast.error(t('ecash.error.noTokensToMelt'))
       setStatusMessage(`Error: ${t('ecash.error.noTokensAvailable')}`)
+      return
+    }
+
+    const amountSats = parseInt(amount, 10)
+    if (isNaN(amountSats) || amountSats <= 0) {
+      toast.error(t('ecash.error.pleaseEnterValidAmount'))
+      setStatusMessage(`Error: ${t('ecash.error.pleaseEnterValidAmount')}`)
       return
     }
 
@@ -144,10 +171,11 @@ export function useEcashSend() {
       }
 
       setStatusMessage(t('ecash.status.creatingMeltQuote'))
-      const quote = await createMeltQuote(selectedMint.url, bolt11Invoice)
-      setStatusMessage(t('ecash.status.meltQuoteCreated'))
-
-      await meltProofs(selectedMint.url, quote, mintProofs)
+      await payLightningInvoice(
+        bolt11Invoice,
+        amountSats,
+        mints.length === 1 ? mints[0].url : selectedMintUrl
+      )
       setStatusMessage(t('ecash.status.tokensMeltedSuccessfully'))
 
       setInvoice('')
@@ -352,6 +380,22 @@ export function useEcashSend() {
     return generatedToken
   }
 
+  const amountNum = parseInt(amount, 10)
+  const mintBalances = mints.map((mint) => ({
+    balance: getMintBalance(mint.url, proofs),
+    mintUrl: mint.url,
+    supportsMpp: false
+  }))
+  const tokenRoute =
+    !isNaN(amountNum) && amountNum > 0
+      ? selectMintRoute({
+          allowMpp: false,
+          amountSats: amountNum,
+          mints: mintBalances,
+          selectedMintUrl: mints.length === 1 ? mints[0].url : selectedMintUrl
+        })
+      : null
+
   return {
     activeAccount,
     amount,
@@ -390,7 +434,9 @@ export function useEcashSend() {
     setShowQRCode,
     setTokenVersion,
     showQRCode,
+    spendableSats,
     statusMessage,
+    tokenRoute,
     tokenVersion
   }
 }

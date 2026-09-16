@@ -13,7 +13,8 @@ import {
 } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
-import { getLndConfigFileUrlFromConnectionInput } from '@/utils/lndRestRemoteConfig'
+import { formatParsedLndPeer, parseLndPeerUri } from '@/utils/lndOpenChannel'
+import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
@@ -42,6 +43,7 @@ export type ContentType =
   | 'bitcoin_transaction'
   | 'lightning_invoice'
   | 'lightning_address'
+  | 'lightning_node'
   | 'lnurl'
   | 'lnd_rest_config'
   | 'ark_address'
@@ -271,7 +273,7 @@ function detectArkContent(data: string): DetectedContent | null {
 function detectLndRestConfigConnectionString(
   data: string
 ): DetectedContent | null {
-  if (!getLndConfigFileUrlFromConnectionInput(data)) {
+  if (!parseLndConnectionInput(data)) {
     return null
   }
   const trimmed = data.trim()
@@ -338,6 +340,16 @@ function detectLightningContent(data: string): DetectedContent | null {
       isValid: true,
       raw: data,
       type: 'lnurl'
+    }
+  }
+
+  const parsedNode = parseLndPeerUri(data.trim())
+  if (parsedNode?.host) {
+    return {
+      cleaned: formatParsedLndPeer(parsedNode),
+      isValid: true,
+      raw: data,
+      type: 'lightning_node'
     }
   }
 
@@ -674,6 +686,7 @@ export function isContentTypeSupportedInContext(
         'lightning_invoice',
         'lnurl',
         'lightning_address',
+        'lightning_node',
         'lnd_rest_config'
       ].includes(contentType)
     case 'ark':
@@ -722,6 +735,8 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Lightning Network Invoice'
     case 'lightning_address':
       return 'Lightning Address'
+    case 'lightning_node':
+      return 'Lightning Node URI'
     case 'lnurl':
       return 'LNURL Payment Request'
     case 'lnd_rest_config':

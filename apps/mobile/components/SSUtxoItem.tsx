@@ -48,68 +48,67 @@ function SSUtxoItem({
   const readonly = mode === 'readonly'
 
   const body = (
-    <SSHStack
-      style={{
-        flex: 1,
-        opacity: excluded ? 0.45 : 1,
-        paddingHorizontal: '5%',
-        paddingVertical: 16
-      }}
-      justifyBetween
+    <SSVStack
+      gap="xs"
+      style={[styles.body, excluded ? styles.bodyExcluded : undefined]}
     >
-      <SSHStack>
-        {readonly ? null : (
-          <View
-            style={[
-              styles.selectIconBase,
-              { backgroundColor: selected ? Colors.error : Colors.gray[500] }
-            ]}
-          >
-            {selected ? (
-              <SSIconX height={8} width={8} />
-            ) : (
-              <SSIconPlus height={8} width={8} />
+      <SSHStack justifyBetween>
+        <SSHStack style={styles.details}>
+          {readonly ? null : (
+            <View
+              style={[
+                styles.selectIconBase,
+                { backgroundColor: selected ? Colors.error : Colors.gray[500] }
+              ]}
+            >
+              {selected ? (
+                <SSIconX height={8} width={8} />
+              ) : (
+                <SSIconPlus height={8} width={8} />
+              )}
+            </View>
+          )}
+          <SSVStack gap="xs">
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSStyledSatText
+                amount={utxo.value}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                currency={currencyUnit}
+                textSize="md"
+              />
+              <SSText size="xs" color="muted">
+                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
+              </SSText>
+            </SSHStack>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText color="white">
+                {formatNumber(satsToFiat(utxo.value), 2)}
+              </SSText>
+              <SSText color="muted">{fiatCurrency}</SSText>
+            </SSHStack>
+          </SSVStack>
+        </SSHStack>
+        <SSVStack gap="xs" style={styles.meta}>
+          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+            <SSText>
+              {utxo.addressTo ? formatAddress(utxo.addressTo) : ''}
+            </SSText>
+            {typeof addressIndex === 'number' && (
+              <SSText color="muted" size="sm">
+                ({addressIndex})
+              </SSText>
             )}
-          </View>
-        )}
-        <SSVStack gap="xs">
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSStyledSatText
-              amount={utxo.value}
-              decimals={0}
-              useZeroPadding={useZeroPadding}
-              currency={currencyUnit}
-              textSize="md"
-            />
-            <SSText size="xs" color="muted">
-              {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-            </SSText>
           </SSHStack>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText color="white">
-              {formatNumber(satsToFiat(utxo.value), 2)}
-            </SSText>
-            <SSText color="muted">{fiatCurrency}</SSText>
-          </SSHStack>
-          <SSText color={label ? 'white' : 'muted'}>
-            {label || t('utxo.noLabel')}
+          <SSText style={{ alignSelf: 'flex-end', color: Colors.gray[100] }}>
+            {utxo.timestamp ? formatDate(utxo.timestamp) : ''}
           </SSText>
         </SSVStack>
       </SSHStack>
-      <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>
-        <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-          <SSText>{utxo.addressTo ? formatAddress(utxo.addressTo) : ''}</SSText>
-          {typeof addressIndex === 'number' && (
-            <SSText color="muted" size="sm">
-              ({addressIndex})
-            </SSText>
-          )}
-        </SSHStack>
-        <SSText style={{ alignSelf: 'flex-end', color: Colors.gray[100] }}>
-          {utxo.timestamp ? formatDate(utxo.timestamp) : ''}
-        </SSText>
-      </SSVStack>
-    </SSHStack>
+      <SSText color={label ? 'white' : 'muted'}>
+        {label || t('utxo.noLabel')}
+      </SSText>
+    </SSVStack>
   )
 
   return (
@@ -119,7 +118,7 @@ function SSUtxoItem({
           body
         ) : (
           <TouchableOpacity
-            style={{ flex: 1 }}
+            style={styles.pressable}
             onPress={() => {
               if (excluded && !selected) {
                 return
@@ -156,9 +155,28 @@ function SSUtxoItem({
 }
 
 const styles = StyleSheet.create({
+  body: {
+    flex: 1,
+    paddingHorizontal: '5%',
+    paddingVertical: 16
+  },
+  bodyExcluded: {
+    opacity: 0.45
+  },
+  details: {
+    flexShrink: 1
+  },
   excludeButton: {
     justifyContent: 'center',
     paddingRight: '5%'
+  },
+  meta: {
+    alignSelf: 'flex-start',
+    flexShrink: 0
+  },
+  pressable: {
+    flex: 1,
+    minWidth: 0
   },
   selectIconBase: {
     alignItems: 'center',

@@ -1,20 +1,34 @@
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
-import { LND_REST } from '@/constants/lightning'
+import { lndRestFetch } from '@/api/lndRest'
+import {
+  LND_PAYMENT_POLL_ATTEMPTS,
+  LND_PAYMENT_POLL_MS,
+  LND_REST
+} from '@/constants/lightning'
 import { useLightningStore } from '@/store/lightning'
 import type {
   LNDChanBackupSnapshot,
+  LNDConnectPeerRequest,
   LNDListPeersResponse,
+  LNDNewAddressResponse,
+  LNDOpenChannelRequest,
+  LNDOpenChannelResponse,
   LNDPendingChannelsResponse,
+  LNDSendCoinsRequest,
+  LNDSendCoinsResponse,
   LNDBlockchainBalanceResponse,
   LNDChannel,
+  LNDInvoice,
   LNDNodeInfo,
   LNDPaymentResponse,
   LNDRequest,
   LNDRequestOptions
 } from '@/types/models/Lightning'
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
+import { buildNewAddressPath } from '@/utils/lndOnchainWallet'
+import { buildLndPayInvoiceBody } from '@/utils/lndPayInvoice'
 
 const HEALTH_CHECK_INTERVAL_MS = 30_000
 
@@ -43,12 +57,7 @@ export const useLND = () => {
     }
 
     try {
-      const response = await fetch(`${config.url}/v1/getinfo`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Grpc-Metadata-macaroon': config.macaroon
-        }
-      })
+      const response = await lndRestFetch(config, '/v1/getinfo')
 
       if (!response.ok) {
         throw new Error(`Failed to fetch node info: ${response.status}`)
@@ -82,13 +91,9 @@ export const useLND = () => {
     setConnecting(true)
 
     try {
-      const response = await fetch(`${config.url}${endpoint}`, {
+      const response = await lndRestFetch(config, endpoint, {
         body: body ? JSON.stringify(body) : undefined,
-        headers: {
-          'Content-Type': 'application/json',
-          'Grpc-Metadata-macaroon': config.macaroon,
-          ...headers
-        },
+        headers,
         method
       })
 
@@ -113,6 +118,18 @@ export const useLND = () => {
   const getBalance = (): Promise<LNDBlockchainBalanceResponse> =>
     makeRequest<LNDBlockchainBalanceResponse>('/v1/balance/blockchain')
 
+  const getNewAddress = (fresh = false) =>
+    makeRequest<LNDNewAddressResponse>(buildNewAddressPath(fresh), {
+      disconnectOnError: false
+    })
+
+  const sendCoins = (body: LNDSendCoinsRequest) =>
+    makeRequest<LNDSendCoinsResponse>(LND_REST.SEND_COINS, {
+      body,
+      disconnectOnError: false,
+      method: 'POST'
+    })
+
   const getChannels = async (): Promise<LNDChannel[]> => {
     try {
       const response = await makeRequest<{ channels: LNDChannel[] }>(
@@ -127,7 +144,7 @@ export const useLND = () => {
   }
 
   const createInvoice = (amount: number, description: string) =>
-    makeRequest('/v1/invoices', {
+    makeRequest<LNDInvoice>('/v1/invoices', {
       body: {
         memo: description,
         value: amount
@@ -135,27 +152,25 @@ export const useLND = () => {
       method: 'POST'
     })
 
-  const payInvoice = async (paymentRequest: string) => {
+  const payInvoice = async (paymentRequest: string, amountSat?: number) => {
     const response = await makeRequest<LNDPaymentResponse>(
       '/v1/channels/transactions',
       {
-        body: {
-          payment_request: paymentRequest
-        },
+        body: buildLndPayInvoiceBody(paymentRequest, amountSat),
         method: 'POST'
       }
     )
 
     const paymentHash = response.payment_hash
     if (paymentHash) {
-      let attempts = 0
-      const maxAttempts = 30 // Poll for up to 30 seconds
-      const pollInterval = 1000 // Check every second
+      const pollIndexes = Array.from(
+        { length: LND_PAYMENT_POLL_ATTEMPTS },
+        (_, index) => index
+      )
 
-      while (attempts < maxAttempts) {
-        attempts += 1
+      for (const _poll of pollIndexes) {
         await new Promise((resolve) => {
-          setTimeout(resolve, pollInterval)
+          setTimeout(resolve, LND_PAYMENT_POLL_MS)
         })
 
         try {
@@ -165,7 +180,8 @@ export const useLND = () => {
 
           if (statusResponse.status === 'SUCCEEDED') {
             return response
-          } else if (statusResponse.status === 'FAILED') {
+          }
+          if (statusResponse.status === 'FAILED') {
             throw new Error('Payment failed')
           }
         } catch (error) {
@@ -213,11 +229,7 @@ export const useLND = () => {
     const url = `${config.url}/v1/channels/${encodeURIComponent(parsed.txid)}/${encodeURIComponent(parsed.vout)}?${qs}`
     setConnecting(true)
     try {
-      const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Grpc-Metadata-macaroon': config.macaroon
-        },
+      const response = await lndRestFetch(config, url, {
         method: 'DELETE'
       })
       const body = await response.text()
@@ -245,6 +257,27 @@ export const useLND = () => {
   const getPeers = () =>
     makeRequest<LNDListPeersResponse>(LND_REST.PEERS, {
       disconnectOnError: false
+    })
+
+  const connectPeer = (input: { host: string; pubkey: string }) => {
+    const body: LNDConnectPeerRequest = {
+      addr: {
+        host: input.host,
+        pubkey: input.pubkey
+      }
+    }
+    return makeRequest<Record<string, unknown>>(LND_REST.PEERS, {
+      body,
+      disconnectOnError: false,
+      method: 'POST'
+    })
+  }
+
+  const openChannel = (body: LNDOpenChannelRequest) =>
+    makeRequest<LNDOpenChannelResponse>(LND_REST.CHANNELS_OPEN, {
+      body,
+      disconnectOnError: false,
+      method: 'POST'
     })
 
   const verifyConnection = async () => {
@@ -275,12 +308,14 @@ export const useLND = () => {
     channels,
     closeChannel,
     config,
+    connectPeer,
     createInvoice,
     exportAllChannelBackups,
     exportChannelBackupSingle,
     getBalance,
     getChannels,
     getInfo,
+    getNewAddress,
     getPeers,
     getPendingChannels,
     isConnected,
@@ -288,7 +323,9 @@ export const useLND = () => {
     lastSync,
     makeRequest,
     nodeInfo,
+    openChannel,
     payInvoice,
+    sendCoins,
     verifyConnection
   }
 }

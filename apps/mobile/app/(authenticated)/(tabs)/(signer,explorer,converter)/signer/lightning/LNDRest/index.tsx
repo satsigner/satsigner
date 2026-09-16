@@ -1,26 +1,38 @@
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { lndRestFetch } from '@/api/lndRest'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
+import { LND_SUCCESS_NAVIGATE_DELAY_MS } from '@/constants/lightning'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
+import { type LNDNodeInfo } from '@/types/models/Lightning'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
-  fetchLndConfig,
-  getLndConfigFileUrlFromConnectionInput
+  parseLndConnectionInput,
+  resolveLndConfigFromConnectionInput
 } from '@/utils/lndRestRemoteConfig'
+
+const CONNECTING_LOADER_SIZE = 80
 
 export default function LNDRestPage() {
   const router = useRouter()
+  const protocolParam = useLocalSearchParams<{ protocol?: string | string[] }>()
+    .protocol
+  const protocol = Array.isArray(protocolParam)
+    ? protocolParam[0]
+    : protocolParam
+  const isRpcPairing = protocol === 'rpc'
   const [setConfig, setConnected, setNodeInfo] = useLightningStore(
     useShallow((s) => [s.setConfig, s.setConnected, s.setNodeInfo])
   )
@@ -28,30 +40,26 @@ export default function LNDRestPage() {
   const [connectionString, setConnectionString] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
 
-  const canPressConnect =
-    getLndConfigFileUrlFromConnectionInput(connectionString) !== null
+  const canPressConnect = parseLndConnectionInput(connectionString) !== null
 
   const handleConnect = async () => {
-    const configUrl = getLndConfigFileUrlFromConnectionInput(connectionString)
-    if (!configUrl) {
+    if (!parseLndConnectionInput(connectionString)) {
       toast.error(t('lightning.lndRest.invalidConnectionString'))
       return
     }
 
     setIsConnecting(true)
     try {
-      const config = await fetchLndConfig(configUrl)
+      const config = await resolveLndConfigFromConnectionInput(connectionString)
 
       const baseUrl = config.url.replace(/\/+$/, '')
-      const response = await fetch(`${baseUrl}/v1/getinfo`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Grpc-Metadata-macaroon': config.macaroon
-        }
-      })
+      const response = await lndRestFetch(
+        { ...config, url: baseUrl },
+        '/v1/getinfo'
+      )
 
       if (response.ok) {
-        const nodeInfo = await response.json()
+        const nodeInfo = (await response.json()) as LNDNodeInfo
 
         setConfig({ ...config, url: baseUrl })
         setNodeInfo(nodeInfo)
@@ -60,7 +68,7 @@ export default function LNDRestPage() {
         toast.success(t('lightning.lndRest.connectSuccess'))
         setTimeout(() => {
           router.back()
-        }, 2000)
+        }, LND_SUCCESS_NAVIGATE_DELAY_MS)
       } else {
         const responseText = await response.text()
         const errBody = responseText.replace(/\s+/g, ' ').trim().slice(0, 180)
@@ -86,7 +94,7 @@ export default function LNDRestPage() {
 
   const handleContentScanned = (content: DetectedContent) => {
     const scannedData = content.cleaned
-    if (getLndConfigFileUrlFromConnectionInput(scannedData)) {
+    if (parseLndConnectionInput(scannedData)) {
       setConnectionString(scannedData)
       setCameraModalVisible(false)
     } else {
@@ -103,66 +111,104 @@ export default function LNDRestPage() {
     setConnectionString(text)
   }
 
+  function handleOpenCamera() {
+    setCameraModalVisible(true)
+  }
+
+  function handleCloseCamera() {
+    setCameraModalVisible(false)
+  }
+
   return (
     <>
       <Stack.Screen
         options={{
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              Lightning
+              {t('lightning.lndRest.title')}
             </SSText>
           )
         }}
       />
       <SSMainLayout style={styles.mainLayout}>
-        <SSVStack style={styles.content}>
-          <SSText color="muted" style={styles.subtitle}>
-            {t('lightning.lndRest.subtitle')}
-          </SSText>
-          <SSVStack style={styles.inputContainer}>
-            <TextInput
-              style={styles.textArea}
-              multiline
-              numberOfLines={4}
-              value={connectionString}
-              onChangeText={handleTextChange}
-              placeholder={t('lightning.lndRest.inputPlaceholder')}
-              placeholderTextColor="#666"
-            />
-            <SSHStack style={styles.buttonRow}>
-              <SSButton
-                label={t('lightning.lndRest.pasteButton')}
-                onPress={handlePasteFromClipboard}
-                variant="subtle"
-                uppercase
-                style={styles.buttonRowItem}
-              />
-              <SSButton
-                label={t('lightning.lndRest.scanQrButton')}
-                onPress={() => setCameraModalVisible(true)}
-                variant="subtle"
-                uppercase
-                style={styles.buttonRowItem}
-              />
-            </SSHStack>
+        {isConnecting ? (
+          <SSVStack
+            gap="md"
+            itemsCenter
+            widthFull
+            style={styles.connectingState}
+          >
+            <SSLoader size={CONNECTING_LOADER_SIZE} />
+            <SSText center uppercase>
+              {t('lightning.lndRest.connectingButton')}
+            </SSText>
+            <SSText center color="muted" size="xs">
+              {t('lightning.lndRest.connectingHint')}
+            </SSText>
           </SSVStack>
-          <SSButton
-            label={
-              isConnecting
-                ? t('lightning.lndRest.connectingButton')
-                : t('lightning.lndRest.connectButton')
-            }
-            onPress={handleConnect}
-            variant="secondary"
-            uppercase
-            disabled={!canPressConnect || isConnecting}
-          />
-        </SSVStack>
+        ) : (
+          <SSVStack style={styles.content}>
+            <SSText color="muted" style={styles.subtitle}>
+              {isRpcPairing
+                ? t('lightning.lndRest.subtitleRpc')
+                : t('lightning.lndRest.subtitle')}
+            </SSText>
+            <SSText color="muted" size="xs" style={styles.helpText}>
+              {isRpcPairing
+                ? t('lightning.lndRest.helpTextRpc')
+                : t('lightning.lndRest.helpText')}
+            </SSText>
+            <SSText
+              color="muted"
+              size="xs"
+              type="mono"
+              style={styles.helpExample}
+            >
+              {isRpcPairing
+                ? t('lightning.lndRest.helpExampleRpc')
+                : t('lightning.lndRest.helpExample')}
+            </SSText>
+            <SSVStack style={styles.inputContainer}>
+              <TextInput
+                style={styles.textArea}
+                multiline
+                numberOfLines={4}
+                value={connectionString}
+                onChangeText={handleTextChange}
+                placeholder={t('lightning.lndRest.inputPlaceholder')}
+                placeholderTextColor="#666"
+              />
+              <SSHStack style={styles.buttonRow}>
+                <SSButton
+                  label={t('lightning.lndRest.pasteButton')}
+                  onPress={handlePasteFromClipboard}
+                  variant="subtle"
+                  uppercase
+                  style={styles.buttonRowItem}
+                />
+                <SSButton
+                  label={t('lightning.lndRest.scanQrButton')}
+                  onPress={handleOpenCamera}
+                  variant="subtle"
+                  uppercase
+                  style={styles.buttonRowItem}
+                />
+              </SSHStack>
+            </SSVStack>
+            <SSButton
+              label={t('lightning.lndRest.connectButton')}
+              onPress={handleConnect}
+              variant="secondary"
+              uppercase
+              disabled={!canPressConnect}
+            />
+          </SSVStack>
+        )}
       </SSMainLayout>
 
       <SSCameraModal
         visible={cameraModalVisible}
-        onClose={() => setCameraModalVisible(false)}
+        onClose={handleCloseCamera}
         onContentScanned={handleContentScanned}
         context="lightning"
         title={t('lightning.lndRest.scanModalTitle')}
@@ -183,12 +229,24 @@ const styles = StyleSheet.create({
   buttonRowItem: {
     flex: 1
   },
+  connectingState: {
+    flex: 1,
+    justifyContent: 'center'
+  },
   content: {
     alignItems: 'center',
     flex: 1
   },
   headerText: {
     marginBottom: 8
+  },
+  helpExample: {
+    marginBottom: 24,
+    textAlign: 'center'
+  },
+  helpText: {
+    marginBottom: 12,
+    textAlign: 'center'
   },
   inputContainer: {
     gap: 12,

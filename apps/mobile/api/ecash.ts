@@ -11,9 +11,13 @@ import {
 } from '@cashu/cashu-ts'
 
 import {
+  BOLT11_METHOD,
   ECASH_MAX_EMPTY_BATCHES,
   ECASH_RESTORE_BATCH_SIZE,
-  ECASH_RESTORE_TIMEOUT_MS
+  ECASH_RESTORE_TIMEOUT_MS,
+  NUT15_MPP,
+  MSATS_PER_SAT,
+  SAT_UNIT
 } from '@/constants/ecash'
 import type {
   CounterReservedEvent,
@@ -233,6 +237,29 @@ export async function createMeltQuote(
 ): Promise<MeltQuote> {
   const wallet = getWallet(accountId, mintUrl, options)
   const quote = await wallet.createMeltQuote(invoice)
+  return mapMeltQuote(quote, mintUrl)
+}
+
+export async function createMppMeltQuote(
+  accountId: string,
+  mintUrl: string,
+  invoice: string,
+  amountSats: number,
+  options?: WalletOptions
+): Promise<MeltQuote> {
+  const wallet = getWallet(accountId, mintUrl, options)
+  await wallet.loadMint()
+  const quote = await wallet.createMultiPathMeltQuote(
+    invoice,
+    amountSats * MSATS_PER_SAT
+  )
+  return mapMeltQuote(quote, mintUrl)
+}
+
+function mapMeltQuote(
+  quote: MeltQuoteBolt11Response,
+  mintUrl: string
+): MeltQuote {
   return {
     amount: quote.amount,
     expiry: quote.expiry,
@@ -241,6 +268,22 @@ export async function createMeltQuote(
     paid: false,
     quote: quote.quote
   }
+}
+
+export async function mintSupportsBolt11Mpp(
+  accountId: string,
+  mintUrl: string,
+  options?: WalletOptions
+): Promise<boolean> {
+  const wallet = getWallet(accountId, mintUrl, options)
+  await wallet.loadMint()
+  const nut15 = wallet.getMintInfo().isSupported(NUT15_MPP)
+  if (!nut15.supported || !nut15.params) {
+    return false
+  }
+  return nut15.params.some(
+    (method) => method.method === BOLT11_METHOD && method.unit === SAT_UNIT
+  )
 }
 
 export class EcashSpentProofsError extends Error {
@@ -271,6 +314,9 @@ export async function meltProofs(
     proofs,
     options
   )
+  if (spentProofs.length > 0) {
+    throw new EcashSpentProofsError(spentProofs.map((proof) => proof.secret))
+  }
   if (validProofs.length === 0) {
     throw new Error('No valid proofs available to melt')
   }
@@ -285,13 +331,18 @@ export async function meltProofs(
     state: 'UNPAID',
     unit: 'sat'
   }
-  const result = await wallet.meltProofs(cashuQuote, validProofs)
+
+  const needed = quote.amount + quote.fee_reserve
+  const { keep, send } = await wallet.send(needed, validProofs, {
+    includeFees: true
+  })
+  const result = await wallet.meltProofs(cashuQuote, send)
 
   return {
     change: result.change?.map((p) => ({ ...p, mintUrl })),
+    keep: keep.map((p) => ({ ...p, mintUrl })),
     paid: true,
-    preimage: result.quote.payment_preimage ?? undefined,
-    spentProofs: spentProofs.length > 0 ? spentProofs : undefined
+    preimage: result.quote.payment_preimage ?? undefined
   }
 }
 
@@ -310,9 +361,9 @@ async function validateProofs(
   const spentProofs: EcashProof[] = []
 
   for (const [index, state] of proofStates.entries()) {
-    if (state.state === 'UNSPENT' || state.state === 'PENDING') {
+    if (state.state === CheckStateEnum.UNSPENT) {
       validProofs.push(proofs[index])
-    } else if (state.state === 'SPENT') {
+    } else if (state.state === CheckStateEnum.SPENT) {
       spentProofs.push(proofs[index])
     }
   }
@@ -340,9 +391,7 @@ export async function sendEcash(
   )
 
   if (spentProofs.length > 0) {
-    throw new Error(
-      `Token already spent. ${spentProofs.length} proof(s) have been spent.`
-    )
+    throw new EcashSpentProofsError(spentProofs.map((proof) => proof.secret))
   }
 
   if (validProofs.length === 0) {
@@ -442,12 +491,14 @@ export async function validateEcashToken(
 
     const proofStates = await wallet.checkProofsStates(proofs)
 
-    const spentProofs = proofStates.filter((state) => state.state === 'SPENT')
+    const spentProofs = proofStates.filter(
+      (state) => state.state === CheckStateEnum.SPENT
+    )
     const unspentProofs = proofStates.filter(
-      (state) => state.state === 'UNSPENT'
+      (state) => state.state === CheckStateEnum.UNSPENT
     )
     const pendingProofs = proofStates.filter(
-      (state) => state.state === 'PENDING'
+      (state) => state.state === CheckStateEnum.PENDING
     )
 
     if (spentProofs.length === proofs.length) {
