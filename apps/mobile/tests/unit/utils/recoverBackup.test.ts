@@ -145,7 +145,7 @@ describe('performRecoverOverwrite validation', () => {
     })
   })
 
-  it('fails when a key is missing both seedWords and passphrase', async () => {
+  it('fails when a key is missing both seedWords and passphrase', async function () {
     setPin('1234')
     const result = await performRecoverOverwrite(
       JSON.stringify({
