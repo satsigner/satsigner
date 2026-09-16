@@ -191,4 +191,29 @@ describe('restoreBlockchainFromBackup', () => {
       })
     )
   })
+
+  it('restores mempool urls when a network config is omitted', () => {
+    const store = storeSlice()
+
+    restoreBlockchainFromBackup(
+      {
+        configs: {},
+        configsMempool: {
+          bitcoin: 'https://mempool.example',
+          signet: '',
+          testnet: ''
+        },
+        customServers: [],
+        selectedNetwork: 'bitcoin'
+      },
+      store
+    )
+
+    expect(store.updateConfigMempool).toHaveBeenCalledWith(
+      'bitcoin',
+      'https://mempool.example'
+    )
+    expect(store.updateServer).not.toHaveBeenCalled()
+    expect(store.updateConfig).not.toHaveBeenCalled()
+  })
 })

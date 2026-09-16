@@ -145,6 +145,24 @@ describe('performRecoverOverwrite validation', () => {
     })
   })
 
+  it('fails when serverSettings omit configsMempool', async () => {
+    setPin('1234')
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [],
+        serverSettings: {
+          configs: {},
+          customServers: [],
+          selectedNetwork: 'bitcoin'
+        }
+      })
+    )
+    expect(result).toStrictEqual({
+      error: 'Backup server settings are invalid',
+      success: false
+    })
+  })
+
   it('does not invoke encryption or store mutations on validation failure', async () => {
     setPin('1234')
     const { aesEncrypt } = jest.requireMock('@/utils/crypto') as {
@@ -259,6 +277,7 @@ describe('performRecoverOverwrite restore', () => {
       setChannels: jest.fn(),
       setConfig: jest.fn(),
       setConnected: jest.fn(),
+      setLastSync: jest.fn(),
       setNodeInfo: jest.fn()
     })
     useNostrStore.getState.mockReturnValue({
@@ -483,11 +502,13 @@ describe('performRecoverOverwrite restore', () => {
     const setChannels = jest.fn()
     const setConnected = jest.fn()
     const setNodeInfo = jest.fn()
+    const setLastSync = jest.fn()
     useLightningStore.getState.mockReturnValue({
       clearConfig: jest.fn(),
       setChannels,
       setConfig,
       setConnected,
+      setLastSync,
       setNodeInfo
     })
 

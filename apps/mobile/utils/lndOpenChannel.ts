@@ -1,6 +1,7 @@
 import {
   LND_NODE_PUBKEY_HEX_LENGTH,
   LND_OPEN_CHANNEL_MAX_MIN_CONFS,
+  LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE,
   LND_OPEN_CHANNEL_MIN_FUNDING_SAT
 } from '@/constants/lightning'
 import type {
@@ -9,8 +10,9 @@ import type {
 } from '@/types/models/Lightning'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 
+const COMPRESSED_PUBKEY_BODY_LENGTH = LND_NODE_PUBKEY_HEX_LENGTH - 2
 const PUBKEY_HEX_REGEX = new RegExp(
-  `^[0-9a-fA-F]{${LND_NODE_PUBKEY_HEX_LENGTH}}$`
+  `^(?:02|03)[0-9a-fA-F]{${COMPRESSED_PUBKEY_BODY_LENGTH}}$`
 )
 const ALREADY_CONNECTED_PATTERN = /already connected/i
 
@@ -130,7 +132,11 @@ export function validateLndOpenChannelInput(input: {
   const feeText = input.satPerVbyteText.trim()
   if (feeText) {
     const fee = Number(feeText)
-    if (!Number.isInteger(fee) || fee < 1) {
+    if (
+      !Number.isInteger(fee) ||
+      fee < 1 ||
+      fee > LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE
+    ) {
       return { ok: false, reason: 'fee' }
     }
   }

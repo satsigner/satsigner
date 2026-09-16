@@ -38,6 +38,7 @@ export type LightningRestoreInput = {
     channels?: LNDChannel[]
     config?: LNDConfig | null
     isConnected?: boolean
+    lastSync?: string | null
     nodeInfo?: LNDNodeInfo | null
   }
   lnd?: LNDConfig | null
@@ -48,6 +49,7 @@ type LightningStoreSlice = {
   setChannels: (channels: LNDChannel[]) => void
   setConfig: (config: LNDConfig) => void
   setConnected: (isConnected: boolean) => void
+  setLastSync: (lastSync: string | undefined) => void
   setNodeInfo: (info: LNDNodeInfo) => void
 }
 
@@ -113,5 +115,9 @@ export function restoreLightningFromBackup(
   }
   if (typeof data.lightning?.isConnected === 'boolean') {
     store.setConnected(data.lightning.isConnected)
+  }
+  if (data.lightning && 'lastSync' in data.lightning) {
+    const { lastSync } = data.lightning
+    store.setLastSync(typeof lastSync === 'string' ? lastSync : undefined)
   }
 }

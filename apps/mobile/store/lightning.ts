@@ -23,6 +23,7 @@ type LightningState = {
   setConnected: (isConnected: boolean) => void
   setNodeInfo: (info: LNDNodeInfo) => void
   setChannels: (channels: LNDChannel[]) => void
+  setLastSync: (lastSync: string | undefined) => void
   updateLastSync: () => void
 }
 
@@ -58,6 +59,10 @@ export const useLightningStore = create<LightningState>()(
       setConnecting: (isConnecting) =>
         set((state) => ({
           status: { ...state.status, isConnecting }
+        })),
+      setLastSync: (lastSync) =>
+        set((state) => ({
+          status: { ...state.status, lastSync }
         })),
       setNodeInfo: (nodeInfo) =>
         set((state) => ({

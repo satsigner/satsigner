@@ -472,6 +472,16 @@ export function getMintBalance(mintUrl: string, proofs: EcashProof[]): number {
     .reduce((sum, proof) => sum + proof.amount, 0)
 }
 
+export function getLargestMintBalance(
+  mintUrls: string[],
+  proofs: EcashProof[]
+): number {
+  if (mintUrls.length === 0) {
+    return 0
+  }
+  return Math.max(...mintUrls.map((url) => getMintBalance(url, proofs)))
+}
+
 export async function validateEcashToken(
   token: string,
   accountId: string,

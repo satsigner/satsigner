@@ -31,6 +31,7 @@ import type {
 } from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
 import {
+  BLOCKCHAIN_BACKUP_NETWORKS,
   restoreBlockchainFromBackup,
   type BlockchainBackup
 } from '@/utils/blockchainBackup'
@@ -213,6 +214,9 @@ function isBlockchainBackup(value: unknown): value is BlockchainBackup {
   if (!isRecord(value) || !isRecord(value.configs)) {
     return false
   }
+  if (!isRecord(value.configsMempool)) {
+    return false
+  }
   if (
     typeof value.selectedNetwork !== 'string' ||
     (value.selectedNetwork !== 'bitcoin' &&
@@ -223,6 +227,12 @@ function isBlockchainBackup(value: unknown): value is BlockchainBackup {
   }
   if (!Array.isArray(value.customServers)) {
     return false
+  }
+  for (const network of BLOCKCHAIN_BACKUP_NETWORKS) {
+    const mempool = value.configsMempool[network]
+    if (mempool !== undefined && typeof mempool !== 'string') {
+      return false
+    }
   }
   return true
 }

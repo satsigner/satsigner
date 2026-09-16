@@ -83,6 +83,10 @@ export function restoreBlockchainFromBackup(
 ): void {
   store.setSelectedNetwork(backup.selectedNetwork)
   for (const network of BLOCKCHAIN_BACKUP_NETWORKS) {
+    const mempool = backup.configsMempool?.[network]
+    if (typeof mempool === 'string') {
+      store.updateConfigMempool(network, mempool)
+    }
     const incoming = backup.configs[network]
     if (!incoming) {
       continue
@@ -99,10 +103,6 @@ export function restoreBlockchainFromBackup(
       ...current.config,
       ...incoming.config
     })
-    const mempool = backup.configsMempool[network]
-    if (typeof mempool === 'string') {
-      store.updateConfigMempool(network, mempool)
-    }
   }
   const existingServers = store.customServers.slice()
   for (const old of existingServers) {
