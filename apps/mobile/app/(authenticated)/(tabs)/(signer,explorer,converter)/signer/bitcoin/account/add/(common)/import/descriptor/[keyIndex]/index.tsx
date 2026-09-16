@@ -1,9 +1,6 @@
-import { URDecoder } from '@ngraveio/bc-ur'
-import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
 import { type Network as _Network } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
@@ -18,11 +15,11 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
-import SSModal from '@/components/SSModal'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useNFCReader } from '@/hooks/useNFCReader'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
@@ -32,12 +29,12 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
-import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
-import { decodeURToPSBT } from '@/utils/ur'
+import { type DetectedContent } from '@/utils/contentDetector'
+import { DescriptorUtils } from '@/utils/descriptorUtils'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -54,7 +51,6 @@ export default function ImportDescriptor() {
   const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
     useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [permission, requestPermission] = useCameraPermissions()
 
   // State for import data
   const [externalDescriptor, setExternalDescriptor] = useState('')
@@ -66,20 +62,6 @@ export default function ImportDescriptor() {
   const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
   const [externalDescriptorError, setExternalDescriptorError] = useState('')
   const [internalDescriptorError, setInternalDescriptorError] = useState('')
-
-  // Multipart QR scanning state
-  const urDecoderRef = useRef<URDecoder>(new URDecoder())
-  const [scanProgress, setScanProgress] = useState<{
-    type: 'raw' | 'ur' | 'bbqr' | null
-    total: number
-    scanned: Set<number>
-    chunks: Map<number, string>
-  }>({
-    chunks: new Map(),
-    scanned: new Set(),
-    total: 0,
-    type: null
-  })
 
   const pulseAnim = useSharedValue(0)
   const scaleAnim = useSharedValue(1)
@@ -272,80 +254,6 @@ export default function ImportDescriptor() {
     }
   }
 
-  const detectQRType = (data: string) => {
-    // Check for RAW format (pXofY header)
-    if (/^p\d+of\d+\s/.test(data)) {
-      const match = data.match(/^p(\d+)of(\d+)\s/)
-      if (match) {
-        return {
-          content: data.substring(match[0].length),
-          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
-          total: parseInt(match[2], 10),
-          type: 'raw' as const
-        }
-      }
-    }
-
-    // Check for BBQR format
-    if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36)
-      const current = parseInt(data.slice(6, 8), 36)
-      return {
-        content: data,
-        current,
-        total,
-        type: 'bbqr' as const
-      }
-    }
-
-    // Check for UR format (crypto-account, crypto-psbt, etc.)
-    if (data.toLowerCase().startsWith('ur:crypto-')) {
-      // UR format: ur:crypto-*/[sequence]/[data] for multi-part
-      // or ur:crypto-*/[data] for single part
-      const urMatch = data.match(/^ur:crypto-[^/]+\/(?:(\d+)-(\d+)\/)?(.+)$/i)
-      if (urMatch) {
-        const [, currentStr, totalStr] = urMatch
-
-        if (currentStr && totalStr) {
-          // Multi-part UR
-          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
-          const total = parseInt(totalStr, 10)
-          return {
-            content: data,
-            current,
-            total,
-            type: 'ur' as const
-          }
-        }
-        // Single-part UR
-        return {
-          content: data,
-          current: 0,
-          total: 1,
-          type: 'ur' as const
-        }
-      }
-    }
-
-    // Default to raw data
-    return {
-      content: data,
-      current: 0,
-      total: 1,
-      type: 'raw' as const
-    }
-  }
-
-  function resetScanProgress() {
-    setScanProgress({
-      chunks: new Map(),
-      scanned: new Set(),
-      total: 0,
-      type: null
-    })
-    urDecoderRef.current = new URDecoder()
-  }
-
   function handleConfirm() {
     try {
       // Extract fingerprint from the descriptor if possible
@@ -368,9 +276,7 @@ export default function ImportDescriptor() {
 
       // Set the extracted information in the store
       setExtendedPublicKey(extendedPublicKey)
-      if (fingerprint) {
-        setFingerprint(fingerprint)
-      }
+      setFingerprint(fingerprint || UNKNOWN_MASTER_FINGERPRINT)
 
       // Set the key data
       setKey(Number(keyIndex))
@@ -383,10 +289,7 @@ export default function ImportDescriptor() {
   }
 
   function extractFingerprintFromDescriptor(descriptor: string) {
-    // Use the same regex pattern as BDK API's parseDescriptor function
-    // This handles both h notation (84h) and ' notation (84') in derivation paths
-    const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
-    return fingerprintMatch ? fingerprintMatch[1] : ''
+    return DescriptorUtils.extractFingerprint(descriptor)
   }
 
   function extractDescriptorInfo(descriptor: string) {
@@ -576,116 +479,14 @@ export default function ImportDescriptor() {
     }
   }
 
-  function handleQRCodeScanned(scanningResult: unknown) {
-    const data = (scanningResult as { data?: string })?.data
-    if (!data) {
-      toast.error(t('watchonly.read.qrError'))
-      return
-    }
-
-    // Detect QR code type and format
-    const qrInfo = detectQRType(data)
-
-    // Handle single QR codes (complete data in one scan)
-    if (qrInfo.total === 1) {
-      let finalContent = qrInfo.content
-
-      // Try to parse as UR format
-      if (qrInfo.type === 'ur') {
-        try {
-          const urData = decodeURToPSBT(qrInfo.content)
-          if (urData) {
-            finalContent = String(urData)
-          }
-        } catch {
-          // If UR parsing fails, use raw content
-        }
-      }
-
-      // Try to parse as BBQR format
-      if (qrInfo.type === 'bbqr') {
-        try {
-          const bbqrData = decodeBBQRChunks([qrInfo.content])
-          if (bbqrData) {
-            finalContent = String(bbqrData)
-          }
-        } catch {
-          // If BBQR parsing fails, use raw content
-        }
-      }
-
-      // Handle combined descriptors with smart validation
-      if (isCombinedDescriptor(finalContent)) {
-        handleCombinedDescriptorImport(finalContent)
+  function handleContentScanned(content: DetectedContent) {
+    if (content.type === 'bitcoin_descriptor') {
+      if (content.metadata?.isCombined) {
+        handleCombinedDescriptorImport(content.cleaned)
       } else {
-        updateExternalDescriptor(finalContent)
+        updateExternalDescriptor(content.cleaned)
       }
-
-      setCameraModalVisible(false)
       toast.success(t('watchonly.success.qrScanned'))
-      return
-    }
-
-    // Handle multi-part QR codes
-    if (qrInfo.total > 1) {
-      const { current, total, content } = qrInfo
-      const newChunks = new Map(scanProgress.chunks)
-      newChunks.set(current, content)
-
-      const newScanned = new Set(scanProgress.scanned)
-      newScanned.add(current)
-
-      setScanProgress({
-        chunks: newChunks,
-        scanned: newScanned,
-        total,
-        type: qrInfo.type
-      })
-
-      // Check if we have all chunks
-      if (newScanned.size === total) {
-        const assembledData = assembleMultiPartQR(qrInfo.type, newChunks)
-        if (assembledData) {
-          // Handle combined descriptors with smart validation
-          if (isCombinedDescriptor(assembledData)) {
-            handleCombinedDescriptorImport(assembledData)
-          } else {
-            updateExternalDescriptor(assembledData)
-          }
-
-          setCameraModalVisible(false)
-          toast.success(t('watchonly.success.qrScanned'))
-        }
-        resetScanProgress()
-      }
-    }
-  }
-
-  const assembleMultiPartQR = (
-    type: 'raw' | 'ur' | 'bbqr',
-    chunks: Map<number, string>
-  ): string | null => {
-    try {
-      const sortedChunks = Array.from(chunks.entries())
-        .toSorted(([a], [b]) => a - b)
-        .map(([, content]) => content)
-
-      const combinedData = sortedChunks.join('')
-
-      switch (type) {
-        case 'ur': {
-          const urResult = decodeURToPSBT(combinedData)
-          return urResult ? String(urResult) : combinedData
-        }
-        case 'bbqr': {
-          const bbqrResult = decodeBBQRChunks([combinedData])
-          return bbqrResult ? String(bbqrResult) : combinedData
-        }
-        default:
-          return combinedData
-      }
-    } catch {
-      return null
     }
   }
 
@@ -795,23 +596,6 @@ export default function ImportDescriptor() {
                 />
               </Animated.View>
             </SSVStack>
-
-            {/* Multi-part QR Scanning Progress */}
-            {scanProgress.type && scanProgress.total > 1 && (
-              <SSVStack gap="sm">
-                <SSText center size="sm" color="muted">
-                  {scanProgress.type.toUpperCase()} QR Code Scan Progress
-                </SSText>
-                <SSText center size="md">
-                  {scanProgress.scanned.size} / {scanProgress.total} parts
-                </SSText>
-                <SSButton
-                  label="Reset Scan"
-                  variant="ghost"
-                  onPress={resetScanProgress}
-                />
-              </SSVStack>
-            )}
           </SSVStack>
           <SSVStack gap="sm">
             <SSButton
@@ -829,120 +613,12 @@ export default function ImportDescriptor() {
         </SSVStack>
       </SSScrollView>
 
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
-        onClose={() => {
-          setCameraModalVisible(false)
-          resetScanProgress()
-        }}
-      >
-        <SSVStack itemsCenter gap="md">
-          <SSText color="muted" uppercase>
-            {scanProgress.type
-              ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-              : t('transaction.build.options.importOutputs.qrcode')}
-          </SSText>
-
-          <CameraView
-            onBarcodeScanned={(res) => {
-              handleQRCodeScanned(res.raw)
-            }}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ height: 340, width: 340 }}
-          />
-
-          {/* Show progress if scanning multi-part QR */}
-          {scanProgress.type && scanProgress.total > 1 && (
-            <SSVStack gap="sm">
-              {(() => {
-                const displayTarget =
-                  scanProgress.type === 'ur' ? 10 : scanProgress.total
-                return scanProgress.type === 'ur' ? (
-                  <>
-                    <SSText color="white" center>
-                      {`UR fountain encoding: ${scanProgress.scanned.size}/${displayTarget} fragments`}
-                    </SSText>
-                    <View
-                      style={{
-                        backgroundColor: Colors.gray[700],
-                        borderRadius: 2,
-                        height: 4,
-                        width: 300
-                      }}
-                    >
-                      <View
-                        style={{
-                          backgroundColor: Colors.white,
-                          borderRadius: 2,
-                          height: 4,
-                          maxWidth: 300,
-                          width:
-                            (scanProgress.scanned.size / displayTarget) * 300
-                        }}
-                      />
-                    </View>
-                  </>
-                ) : (
-                  // For RAW and BBQR, show normal progress
-                  <>
-                    <SSText color="white" center>
-                      {`Progress: ${scanProgress.scanned.size}/${scanProgress.total} chunks`}
-                    </SSText>
-                    <View
-                      style={{
-                        backgroundColor: Colors.gray[700],
-                        borderRadius: 2,
-                        height: 4,
-                        width: 300
-                      }}
-                    >
-                      <View
-                        style={{
-                          backgroundColor: Colors.white,
-                          borderRadius: 2,
-                          height: 4,
-                          maxWidth: 300,
-                          width:
-                            (scanProgress.scanned.size / scanProgress.total) *
-                            300
-                        }}
-                      />
-                    </View>
-                    <SSText color="muted" size="sm" center>
-                      {`Scanned parts: ${Array.from(scanProgress.scanned)
-                        .toSorted((a, b) => a - b)
-                        .map((n) => n + 1)
-                        .join(', ')}`}
-                    </SSText>
-                  </>
-                )
-              })()}
-            </SSVStack>
-          )}
-
-          <SSHStack>
-            {!permission?.granted && (
-              <SSButton
-                label={t('camera.enableCameraAccess')}
-                onPress={requestPermission}
-              />
-            )}
-          </SSHStack>
-
-          {/* Reset button for multi-part scans */}
-          {scanProgress.type && (
-            <SSHStack>
-              <SSButton
-                label="Reset Scan"
-                variant="outline"
-                onPress={resetScanProgress}
-                style={{ marginTop: 10, width: 200 }}
-              />
-            </SSHStack>
-          )}
-        </SSVStack>
-      </SSModal>
+        onClose={() => setCameraModalVisible(false)}
+        onContentScanned={handleContentScanned}
+        context="bitcoin"
+      />
     </SSMainLayout>
   )
 }

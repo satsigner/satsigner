@@ -1,4 +1,3 @@
-import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -8,9 +7,10 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
-import SSModal from '@/components/SSModal'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
@@ -26,6 +26,8 @@ import {
   appNetworkToBdkNetwork,
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
+import { type DetectedContent } from '@/utils/contentDetector'
+import { DescriptorUtils } from '@/utils/descriptorUtils'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -74,7 +76,6 @@ export default function UnifiedImport() {
   const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
     useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [permission, requestPermission] = useCameraPermissions()
   const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
   const [xpub, setXpub] = useState('')
@@ -98,36 +99,46 @@ export default function UnifiedImport() {
   }, [setPolicyType])
 
   function updateMasterFingerprint(fingerprint: string) {
-    const validMasterFingerprint = validateFingerprint(fingerprint)
-    setValidMasterFingerprint(!fingerprint || validMasterFingerprint)
+    const validMasterFingerprint =
+      !fingerprint || validateFingerprint(fingerprint)
+    setValidMasterFingerprint(validMasterFingerprint)
     if (importType === 'extendedPub') {
-      setDisabled(!validXpub || !fingerprint)
+      setDisabled(!validXpub || !validMasterFingerprint)
     }
     setLocalFingerprint(fingerprint)
-    if (validMasterFingerprint) {
+    if (fingerprint && validateFingerprint(fingerprint)) {
       setFingerprint(fingerprint)
     }
   }
 
-  function updateXpub(xpub: string) {
-    const validXpub = validateExtendedKey(xpub, network)
-    setValidXpub(!xpub || validXpub)
+  function updateXpub(raw: string) {
+    const parsed = DescriptorUtils.parseXpubInput(raw)
+    const nextXpub = parsed.xpub
+    const validXpub = validateExtendedKey(nextXpub, network)
+    const nextFingerprint = parsed.fingerprint || localFingerprint
+    const validFingerprint =
+      !nextFingerprint || validateFingerprint(nextFingerprint)
+    setValidXpub(!nextXpub || validXpub)
     if (importType === 'extendedPub') {
-      setDisabled(!validXpub || !localFingerprint)
+      setDisabled(!validXpub || !validFingerprint)
     }
-    setXpub(xpub)
+    setXpub(nextXpub)
 
-    // For multisig accounts, use the script version from the store instead of auto-detecting
-    // The script type should be determined by the multisig configuration, not the xpub prefix
-    if (validXpub && localFingerprint) {
-      // Use the script version from the store to determine the correct derivation path
+    if (parsed.fingerprint) {
+      setLocalFingerprint(parsed.fingerprint)
+      setFingerprint(parsed.fingerprint)
+      setValidMasterFingerprint(true)
+    }
+
+    const fingerprintForDescriptor =
+      nextFingerprint || UNKNOWN_MASTER_FINGERPRINT
+    if (validXpub) {
       const derivationPath = getDerivationPathFromScriptVersion(
         scriptVersion,
         network
       )
-      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
+      const formattedXpub = `[${fingerprintForDescriptor}/${derivationPath}]${nextXpub}/0/*`
       setExtendedPublicKey(formattedXpub)
-      // Don't change the script version - keep the one from the store
     }
   }
 
@@ -254,6 +265,9 @@ export default function UnifiedImport() {
 
       setCreationType(creationType)
       setNetwork(network)
+      if (importType === 'extendedPub') {
+        setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
+      }
 
       // Set the key data
       const keyIndex = parseInt(index!, 10)
@@ -484,79 +498,36 @@ export default function UnifiedImport() {
     }
   }
 
-  function handleQRCodeScanned(scanningResult: { data?: string }) {
-    const data = scanningResult?.data
-    if (!data) {
-      return
-    }
-
-    // Handle fingerprint scanning
-    if (scanningFor === 'fingerprint') {
-      updateMasterFingerprint(data)
-      setCameraModalVisible(false)
+  function handleContentScanned(content: DetectedContent) {
+    if (
+      scanningFor === 'fingerprint' ||
+      content.type === 'master_fingerprint'
+    ) {
+      updateMasterFingerprint(content.cleaned)
       toast.success(t('watchonly.success.qrScanned'))
       return
     }
-
-    // Handle regular QR codes
-    if (importType === 'descriptor') {
-      let externalDescriptor = data
-      let internalDescriptor = ''
-      let originalDescriptor = ''
-
-      // Try to parse as JSON first
-      try {
-        const jsonData = JSON.parse(data)
-        if (jsonData.descriptor) {
-          originalDescriptor = jsonData.descriptor
-          externalDescriptor = originalDescriptor
-          const descriptorWithoutChecksum = originalDescriptor.replace(
-            /#[a-z0-9]+$/,
-            ''
-          )
-          internalDescriptor = descriptorWithoutChecksum.replace(
-            /\/0\/\*/g,
-            '/1/*'
-          )
-        }
-      } catch {
-        // Handle legacy formats
-        if (data.includes('\n')) {
-          ;[externalDescriptor, internalDescriptor] = data.split('\n')
-        }
-      }
-
-      // Check if the descriptor is combined (contains <0;1> or <0,1>)
-      if (isCombinedDescriptor(data)) {
-        // Validate the combined descriptor and get separated descriptors
+    if (importType === 'descriptor' && content.type === 'bitcoin_descriptor') {
+      if (content.metadata?.isCombined) {
         const combinedValidation = validateCombinedDescriptor(
-          data,
+          content.cleaned,
           scriptVersion,
           network as string
         )
-
         if (combinedValidation.isValid) {
-          // Set both descriptors and mark them as valid
           setLocalExternalDescriptor(combinedValidation.externalDescriptor)
           setLocalInternalDescriptor(combinedValidation.internalDescriptor)
           setValidExternalDescriptor(true)
           setValidInternalDescriptor(true)
-
-          // Store the descriptors in the store
           setExternalDescriptor(combinedValidation.externalDescriptor)
           setInternalDescriptor(combinedValidation.internalDescriptor)
-
-          // Clear any error messages
           setExternalDescriptorError('')
           setInternalDescriptorError('')
         } else {
-          // Set the separated descriptors but mark them as invalid
           setLocalExternalDescriptor(combinedValidation.externalDescriptor)
           setLocalInternalDescriptor(combinedValidation.internalDescriptor)
           setValidExternalDescriptor(false)
           setValidInternalDescriptor(false)
-
-          // Show the error message for both fields
           const errorMessage = combinedValidation.error
             ? t(`account.import.error.${combinedValidation.error}`)
             : t('account.import.error.descriptorFormat')
@@ -564,23 +535,19 @@ export default function UnifiedImport() {
           setInternalDescriptorError(errorMessage)
         }
       } else {
-        // Handle non-combined descriptors with existing logic
-        if (externalDescriptor) {
-          // For JSON descriptors, use the original descriptor for validation
-          const descriptorToValidate = originalDescriptor || externalDescriptor
-          updateExternalDescriptor(descriptorToValidate)
-        }
-        if (internalDescriptor) {
-          updateInternalDescriptor(internalDescriptor)
-        }
+        updateExternalDescriptor(content.cleaned)
       }
+      toast.success(t('watchonly.success.qrScanned'))
+      return
     }
-
-    if (importType === 'extendedPub') {
-      updateXpub(data)
+    if (
+      importType === 'extendedPub' &&
+      (content.type === 'extended_public_key' ||
+        content.type === 'bitcoin_descriptor')
+    ) {
+      updateXpub(content.cleaned)
+      toast.success(t('watchonly.success.qrScanned'))
     }
-
-    setCameraModalVisible(false)
   }
 
   function getImportLabel() {
@@ -768,64 +735,20 @@ export default function UnifiedImport() {
         </SSVStack>
       </SSScrollView>
 
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
         onClose={() => {
           setCameraModalVisible(false)
           setScanningFor('main')
         }}
-      >
-        <SSVStack style={styles.cameraContainer}>
-          <SSHStack justifyBetween style={styles.cameraHeader}>
-            <SSText weight="bold">{t('watchonly.read.computerVision')}</SSText>
-            <SSButton
-              label={t('common.close')}
-              variant="ghost"
-              onPress={() => {
-                setCameraModalVisible(false)
-                setScanningFor('main')
-              }}
-            />
-          </SSHStack>
-          {permission?.granted ? (
-            <CameraView
-              style={styles.camera}
-              onBarcodeScanned={handleQRCodeScanned}
-            />
-          ) : (
-            <SSVStack style={styles.cameraPlaceholder}>
-              <SSText center>{t('watchonly.read.cameraPermission')}</SSText>
-              <SSButton
-                label={t('common.request')}
-                onPress={requestPermission}
-              />
-            </SSVStack>
-          )}
-        </SSVStack>
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="bitcoin"
+      />
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  camera: {
-    flex: 1
-  },
-  cameraContainer: {
-    backgroundColor: Colors.black,
-    flex: 1
-  },
-  cameraHeader: {
-    borderBottomColor: Colors.gray[600],
-    borderBottomWidth: 1,
-    padding: 16
-  },
-  cameraPlaceholder: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 16
-  },
   container: {
     flex: 1
   }

@@ -34,35 +34,39 @@ export const DescriptorUtils = {
   },
 
   extractCleanXpub(xpubWithPrefix: string): string {
-    const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})$/)
+    const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})/)
     return xpubMatch ? xpubMatch[1] : xpubWithPrefix
   },
 
+  extractDerivationFromOrigin(text: string) {
+    const originMatch = text.match(/^\[([0-9a-fA-F]{8})\/([^\]]+)\]/)
+    if (!originMatch) {
+      return null
+    }
+    const derivation = originMatch.at(2)
+    if (!derivation) {
+      return null
+    }
+    return derivation.startsWith('m/') ? derivation : `m/${derivation}`
+  },
+
   extractFingerprint(descriptor: string): string {
-    const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
+    const fingerprintMatch = descriptor.match(
+      /\[([0-9a-fA-F]{8})(?:\/|[0-9'/h])/
+    )
     return fingerprintMatch ? fingerprintMatch[1] : ''
   },
 
   extractFingerprintFromXpub(xpubWithPrefix: string) {
-    // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
-    const fingerprintMatch1 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})\//)
-    if (fingerprintMatch1) {
-      return fingerprintMatch1[1]
+    const originMatch = xpubWithPrefix.match(
+      /\[([0-9a-fA-F]{8})(?:\/|[0-9'/h])/
+    )
+    if (originMatch) {
+      return originMatch[1]
     }
 
-    // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
-    const fingerprintMatch2 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
-    if (fingerprintMatch2) {
-      return fingerprintMatch2[1]
-    }
-
-    // Pattern 3: [fingerprint...]xpub (any length hex - fallback)
-    const fingerprintMatch3 = xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
-    if (fingerprintMatch3) {
-      return fingerprintMatch3[1]
-    }
-
-    return null
+    const fallbackMatch = xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
+    return fallbackMatch ? fallbackMatch[1] : null
   },
 
   getScriptVersionFromDerivation(derivationPath: string): ScriptVersionType {
@@ -108,6 +112,18 @@ export const DescriptorUtils = {
     return {
       external: lines[0],
       internal: lines[1]
+    }
+  },
+
+  parseXpubInput(text: string) {
+    const trimmed = text.trim()
+    const fingerprint = DescriptorUtils.extractFingerprintFromXpub(trimmed)
+    const xpub = DescriptorUtils.extractCleanXpub(trimmed)
+    const derivationPath = DescriptorUtils.extractDerivationFromOrigin(trimmed)
+    return {
+      derivationPath,
+      fingerprint,
+      xpub
     }
   },
 

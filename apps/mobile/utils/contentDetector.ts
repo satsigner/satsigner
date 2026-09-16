@@ -13,6 +13,7 @@ import {
 } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
+import { DescriptorUtils } from '@/utils/descriptorUtils'
 import { formatParsedLndPeer, parseLndPeerUri } from '@/utils/lndOpenChannel'
 import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
@@ -54,6 +55,7 @@ export type ContentType =
   | 'ur'
   | 'bitcoin_descriptor'
   | 'extended_public_key'
+  | 'master_fingerprint'
   | 'nostr_npub'
   | 'nostr_nsec'
   | 'nostr_note'
@@ -81,7 +83,12 @@ export type DetectedContent = {
 }
 
 function isExtendedPublicKey(data: string): boolean {
-  return validateExtendedKey(data)
+  const parsed = DescriptorUtils.parseXpubInput(data)
+  return validateExtendedKey(parsed.xpub)
+}
+
+function isMasterFingerprint(data: string): boolean {
+  return /^[0-9a-fA-F]{8}$/.test(data.trim())
 }
 
 function detectBitcoinContent(data: string): DetectedContent | null {
@@ -126,6 +133,15 @@ function detectBitcoinContent(data: string): DetectedContent | null {
       isValid: true,
       raw: data,
       type: 'extended_public_key'
+    }
+  }
+
+  if (isMasterFingerprint(trimmed)) {
+    return {
+      cleaned: trimmed,
+      isValid: true,
+      raw: data,
+      type: 'master_fingerprint'
     }
   }
 
@@ -679,7 +695,8 @@ export function isContentTypeSupportedInContext(
         'bitcoin_uri',
         'psbt',
         'bitcoin_descriptor',
-        'extended_public_key'
+        'extended_public_key',
+        'master_fingerprint'
       ].includes(contentType)
     case 'lightning':
       return [
@@ -729,6 +746,8 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Bitcoin Descriptor'
     case 'extended_public_key':
       return 'Extended Public Key'
+    case 'master_fingerprint':
+      return 'Master Fingerprint'
     case 'incompatible':
       return 'Incompatible Content'
     case 'lightning_invoice':

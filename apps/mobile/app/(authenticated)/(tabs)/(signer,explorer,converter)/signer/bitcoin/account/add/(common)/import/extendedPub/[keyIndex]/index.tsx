@@ -1,10 +1,7 @@
-import { URDecoder } from '@ngraveio/bc-ur'
-import * as CBOR from 'cbor-js'
-import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
-import { Keyboard, StyleSheet, View } from 'react-native'
+import { useEffect, useState } from 'react'
+import { Keyboard, StyleSheet } from 'react-native'
 import Animated, {
   cancelAnimation,
   interpolate,
@@ -19,9 +16,10 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
-import SSModal from '@/components/SSModal'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -31,12 +29,13 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
   convertKeyFormat,
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
+import { type DetectedContent } from '@/utils/contentDetector'
+import { DescriptorUtils } from '@/utils/descriptorUtils'
 import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
 type ImportExtendedPubSearchParams = {
@@ -73,7 +72,6 @@ export default function ImportExtendedPub() {
   const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
     useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [permission, requestPermission] = useCameraPermissions()
   const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
   // State for import data
@@ -85,20 +83,6 @@ export default function ImportExtendedPub() {
   const [validXpub, setValidXpub] = useState(true)
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
   const [xpubError, setXpubError] = useState('')
-
-  // Multipart QR scanning state
-  const urDecoderRef = useRef<URDecoder>(new URDecoder())
-  const [scanProgress, setScanProgress] = useState<{
-    type: 'raw' | 'ur' | 'bbqr' | null
-    total: number
-    scanned: Set<number>
-    chunks: Map<number, string>
-  }>({
-    chunks: new Map(),
-    scanned: new Set(),
-    total: 0,
-    type: null
-  })
 
   const pulseAnim = useSharedValue(0)
   const scaleAnim = useSharedValue(1)
@@ -139,41 +123,48 @@ export default function ImportExtendedPub() {
   }))
 
   function updateMasterFingerprint(fingerprint: string) {
-    const validFingerprint = validateFingerprint(fingerprint)
-    setValidMasterFingerprint(!fingerprint || validFingerprint)
-    setDisabled(!validXpub || !validFingerprint)
+    const validFingerprint = !fingerprint || validateFingerprint(fingerprint)
+    setValidMasterFingerprint(validFingerprint)
     setLocalFingerprint(fingerprint)
-    if (validFingerprint) {
+    setDisabled(!validXpub || !validFingerprint)
+    if (fingerprint && validateFingerprint(fingerprint)) {
       setFingerprint(fingerprint)
       Keyboard.dismiss()
     }
   }
 
-  function updateXpub(xpub: string) {
-    const validXpub = validateExtendedKey(xpub, network)
-    setValidXpub(!xpub || validXpub)
-    setXpub(xpub)
+  function updateXpub(raw: string) {
+    const parsed = DescriptorUtils.parseXpubInput(raw)
+    const nextXpub = parsed.xpub
+    const validXpub = validateExtendedKey(nextXpub, network)
+    const nextFingerprint = parsed.fingerprint || localFingerprint
+    const validFingerprint =
+      !nextFingerprint || validateFingerprint(nextFingerprint)
 
-    // For multisig accounts, use the script version from the store instead of auto-detecting
-    // The script type should be determined by the multisig configuration, not the xpub prefix
-    if (validXpub && localFingerprint) {
-      // Use the script version from the store to determine the correct derivation path
+    setValidXpub(!nextXpub || validXpub)
+    setXpub(nextXpub)
+
+    if (parsed.fingerprint) {
+      setLocalFingerprint(parsed.fingerprint)
+      setFingerprint(parsed.fingerprint)
+      setValidMasterFingerprint(true)
+    }
+
+    const fingerprintForDescriptor =
+      nextFingerprint || UNKNOWN_MASTER_FINGERPRINT
+    if (validXpub) {
       const derivationPath = getDerivationPathFromScriptVersion(
         scriptVersion,
         network
       )
-      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
+      const formattedXpub = `[${fingerprintForDescriptor}/${derivationPath}]${nextXpub}/0/*`
       setExtendedPublicKey(formattedXpub)
-      // Don't change the script version - keep the one from the store
     }
 
-    setDisabled(!validXpub || !localFingerprint)
-
-    // Clear previous error first
+    setDisabled(!validXpub || !validFingerprint)
     setXpubError('')
 
-    // Show error message if validation fails
-    if (xpub && !validXpub) {
+    if (nextXpub && !validXpub) {
       const errorMessage = t('account.import.error.descriptorFormat')
       setXpubError(errorMessage)
       toast.error(errorMessage)
@@ -188,124 +179,6 @@ export default function ImportExtendedPub() {
 
     // Use the network-aware conversion utility
     return convertKeyFormat(vpub, 'tpub', network)
-  }
-
-  // Helper functions for QR code detection and parsing
-  const detectQRType = (data: string) => {
-    // Check for RAW format (pXofY header)
-    if (/^p\d+of\d+\s/.test(data)) {
-      const match = data.match(/^p(\d+)of(\d+)\s/)
-      if (match) {
-        return {
-          content: data.substring(match[0].length),
-          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
-          total: parseInt(match[2], 10),
-          type: 'raw' as const
-        }
-      }
-    }
-
-    // Check for BBQR format
-    if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36)
-      const current = parseInt(data.slice(6, 8), 36)
-      return {
-        content: data,
-        current,
-        total,
-        type: 'bbqr' as const
-      }
-    }
-
-    // Check for UR format (crypto-account, crypto-psbt, etc.)
-    if (data.toLowerCase().startsWith('ur:crypto-')) {
-      // UR format: ur:crypto-*/[sequence]/[data] for multi-part
-      // or ur:crypto-*/[data] for single part
-      const urMatch = data.match(/^ur:crypto-[^/]+\/(?:(\d+)-(\d+)\/)?(.+)$/i)
-      if (urMatch) {
-        const [, currentStr, totalStr] = urMatch
-
-        if (currentStr && totalStr) {
-          // Multi-part UR
-          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
-          const total = parseInt(totalStr, 10)
-          return {
-            content: data,
-            current,
-            total,
-            type: 'ur' as const
-          }
-        }
-        // Single-part UR
-        return {
-          content: data,
-          current: 0,
-          total: 1,
-          type: 'ur' as const
-        }
-      }
-    }
-
-    // Single QR code (no multi-part format detected)
-    return {
-      content: data,
-      current: 0,
-      total: 1,
-      type: 'single' as const
-    }
-  }
-
-  function resetScanProgress() {
-    setScanProgress({
-      chunks: new Map(),
-      scanned: new Set(),
-      total: 0,
-      type: null
-    })
-    urDecoderRef.current = new URDecoder()
-  }
-
-  function decodeURCryptoAccount(urData: Uint8Array): { xpub?: string } | null {
-    try {
-      const decoded = CBOR.decode(new Uint8Array(urData.buffer))
-      return decoded as { xpub?: string }
-    } catch {
-      return null
-    }
-  }
-
-  const assembleMultiPartQR = (
-    type: 'raw' | 'ur' | 'bbqr',
-    chunks: Map<number, string>
-  ): string | null => {
-    try {
-      if (type === 'raw') {
-        // For RAW format, just concatenate the chunks in order
-        const sortedChunks = Array.from(chunks.entries())
-          .toSorted(([a], [b]) => a - b)
-          .map(([, content]) => content)
-        return sortedChunks.join('')
-      } else if (type === 'bbqr') {
-        // For BBQR, decode the assembled chunks
-        const sortedChunks = Array.from(chunks.entries())
-          .toSorted(([a], [b]) => a - b)
-          .map(([, content]) => content)
-        const decoded = decodeBBQRChunks(sortedChunks)
-        if (decoded) {
-          return Buffer.from(decoded).toString('hex')
-        }
-        return null
-      } else if (type === 'ur' && urDecoderRef.current.isComplete()) {
-        // For UR, the decoder should have assembled everything
-        const result = urDecoderRef.current.resultUR()
-        if (result && result.cbor) {
-          return result.cbor.toString('hex')
-        }
-      }
-      return null
-    } catch {
-      return null
-    }
   }
 
   function handleConfirm() {
@@ -355,9 +228,7 @@ export default function ImportExtendedPub() {
 
       // Set the data in the store
       setExtendedPublicKey(convertedXpub)
-      if (localFingerprint) {
-        setFingerprint(localFingerprint)
-      }
+      setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
 
       // Create the key
       setKey(Number(keyIndex))
@@ -441,245 +312,21 @@ export default function ImportExtendedPub() {
     }
   }
 
-  function handleQRCodeScanned(data: string | undefined) {
-    if (!data) {
-      toast.error(t('watchonly.read.qrError'))
-      return
-    }
-
-    // Handle fingerprint scanning
-    if (scanningFor === 'fingerprint') {
-      updateMasterFingerprint(data)
-      setCameraModalVisible(false)
+  function handleContentScanned(content: DetectedContent) {
+    if (
+      scanningFor === 'fingerprint' ||
+      content.type === 'master_fingerprint'
+    ) {
+      updateMasterFingerprint(content.cleaned)
       toast.success(t('watchonly.success.qrScanned'))
       return
     }
-
-    // Detect QR code type and format
-    const qrInfo = detectQRType(data)
-
-    // Handle single QR codes (complete data in one scan)
-    if (qrInfo.type === 'single' || qrInfo.total === 1) {
-      let finalContent = qrInfo.content
-
-      // Check if the scanned data is a valid fingerprint (8 bytes hex)
-      const fingerprintRegex = /^[0-9a-fA-F]{8}$/
-      if (fingerprintRegex.test(qrInfo.content)) {
-        updateMasterFingerprint(qrInfo.content)
-        setCameraModalVisible(false)
-        return
-      }
-
-      try {
-        // Check if it's a single BBQR QR code
-        if (isBBQRFragment(qrInfo.content)) {
-          const decoded = decodeBBQRChunks([qrInfo.content])
-
-          if (decoded) {
-            // Try to convert binary data to string first (for descriptors)
-            try {
-              const stringResult = Buffer.from(decoded).toString('utf8')
-              finalContent = stringResult
-            } catch {
-              // Fallback to hex if string conversion fails
-              const hexResult = Buffer.from(decoded).toString('hex')
-              finalContent = hexResult
-            }
-          } else {
-            toast.error('Failed to decode BBQR QR code')
-            return
-          }
-        }
-        // Check if it looks like base64 PSBT (starts with cHNidP)
-        else if (qrInfo.content.startsWith('cHNidP')) {
-          const hexResult = Buffer.from(qrInfo.content, 'base64').toString(
-            'hex'
-          )
-          finalContent = hexResult
-        }
-        // Check if it's a single UR QR code
-        else if (qrInfo.content.toLowerCase().startsWith('ur:crypto-')) {
-          try {
-            const success = urDecoderRef.current.receivePart(qrInfo.content)
-            if (success && urDecoderRef.current.isComplete()) {
-              const result = urDecoderRef.current.resultUR()
-
-              if (result && result.cbor) {
-                const decodedAccount = decodeURCryptoAccount(
-                  new Uint8Array(result.cbor)
-                )
-
-                if (decodedAccount && decodedAccount.xpub) {
-                  // Extract the fingerprint and xpub separately
-                  const xpubWithPrefix = decodedAccount.xpub
-
-                  // Extract fingerprint from the prefix [fingerprint/derivation]xpub
-                  // Try multiple patterns to extract fingerprint
-                  let extractedFingerprint = null
-
-                  // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
-                  const fingerprintMatch1 = xpubWithPrefix.match(
-                    /^\[([0-9a-fA-F]{8})\//
-                  )
-                  if (fingerprintMatch1) {
-                    ;[, extractedFingerprint] = fingerprintMatch1
-                  }
-
-                  // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
-                  if (!extractedFingerprint) {
-                    const fingerprintMatch2 =
-                      xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
-                    if (fingerprintMatch2) {
-                      ;[, extractedFingerprint] = fingerprintMatch2
-                    }
-                  }
-
-                  // Pattern 3: [fingerprint...]xpub (any length hex - fallback)
-                  if (!extractedFingerprint) {
-                    const fingerprintMatch3 =
-                      xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
-                    if (fingerprintMatch3) {
-                      ;[, extractedFingerprint] = fingerprintMatch3
-                    }
-                  }
-
-                  if (extractedFingerprint) {
-                    updateMasterFingerprint(extractedFingerprint)
-                  }
-
-                  // Extract just the xpub part (remove the [fingerprint/derivation] prefix)
-                  const xpubMatch = xpubWithPrefix.match(
-                    /\]([txyzuv]pub[a-zA-Z0-9]{107})$/
-                  )
-                  if (xpubMatch) {
-                    const [, extractedXpub] = xpubMatch
-                    updateXpub(extractedXpub)
-                  } else {
-                    // Fallback: use the full string if parsing fails
-                    updateXpub(xpubWithPrefix)
-                  }
-
-                  toast.success('Crypto account imported successfully')
-                  setCameraModalVisible(false)
-                  return
-                }
-                toast.error('No extended public key found in crypto account')
-                return
-              }
-            }
-          } catch {
-            toast.error('Failed to decode UR crypto account')
-            return
-          }
-        }
-
-        // Process the final content
-        updateXpub(finalContent)
-        setCameraModalVisible(false)
-        toast.success(t('watchonly.success.qrScanned'))
-      } catch {
-        toast.error(t('watchonly.read.qrError'))
-      }
-    } else {
-      // Handle multi-part QR codes
-      const { type, current, total, content } = qrInfo
-      const newScanned = new Set(scanProgress.scanned)
-      const newChunks = new Map(scanProgress.chunks)
-
-      newScanned.add(current)
-      newChunks.set(current, content)
-
-      setScanProgress({
-        chunks: newChunks,
-        scanned: newScanned,
-        total,
-        type
-      })
-
-      // For UR fountain encoding, we can assemble as we go
-      if (type === 'ur') {
-        try {
-          const success = urDecoderRef.current.receivePart(content)
-          if (success && urDecoderRef.current.isComplete()) {
-            // All parts received, process the result
-            const result = urDecoderRef.current.resultUR()
-
-            if (result && result.cbor) {
-              const decodedAccount = decodeURCryptoAccount(
-                new Uint8Array(result.cbor)
-              )
-
-              if (decodedAccount && decodedAccount.xpub) {
-                // Extract the fingerprint and xpub separately
-                const xpubWithPrefix = decodedAccount.xpub
-
-                // Extract fingerprint from the prefix [fingerprint/derivation]xpub
-                let extractedFingerprint = null
-                const fingerprintMatch1 = xpubWithPrefix.match(
-                  /^\[([0-9a-fA-F]{8})\//
-                )
-                if (fingerprintMatch1) {
-                  ;[, extractedFingerprint] = fingerprintMatch1
-                }
-
-                if (!extractedFingerprint) {
-                  const fingerprintMatch2 =
-                    xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
-                  if (fingerprintMatch2) {
-                    ;[, extractedFingerprint] = fingerprintMatch2
-                  }
-                }
-
-                if (!extractedFingerprint) {
-                  const fingerprintMatch3 =
-                    xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
-                  if (fingerprintMatch3) {
-                    ;[, extractedFingerprint] = fingerprintMatch3
-                  }
-                }
-
-                if (extractedFingerprint) {
-                  updateMasterFingerprint(extractedFingerprint)
-                }
-
-                // Extract just the xpub part
-                const xpubMatch = xpubWithPrefix.match(
-                  /\]([txyzuv]pub[a-zA-Z0-9]{107})$/
-                )
-                if (xpubMatch) {
-                  updateXpub(xpubMatch[1])
-                } else {
-                  updateXpub(xpubWithPrefix)
-                }
-
-                toast.success('Crypto account imported successfully')
-                setCameraModalVisible(false)
-                resetScanProgress()
-              } else {
-                toast.error('No extended public key found in crypto account')
-              }
-            }
-          }
-        } catch {
-          toast.error('Failed to decode UR crypto account')
-        }
-      } else if (newScanned.size === total) {
-        // For RAW and BBQR, wait for all chunks
-        // All chunks collected, assemble the final result
-        const assembledData = assembleMultiPartQR(type, newChunks)
-
-        if (assembledData) {
-          setCameraModalVisible(false)
-          resetScanProgress()
-
-          // Process the assembled data
-          updateXpub(assembledData)
-          toast.success(t('watchonly.success.qrScanned'))
-        } else {
-          toast.error('Failed to assemble multi-part QR code')
-          resetScanProgress()
-        }
-      }
+    if (
+      content.type === 'extended_public_key' ||
+      content.type === 'bitcoin_descriptor'
+    ) {
+      updateXpub(content.cleaned)
+      toast.success(t('watchonly.success.qrScanned'))
     }
   }
 
@@ -699,6 +346,9 @@ export default function ImportExtendedPub() {
               <SSVStack gap="sm">
                 <SSVStack gap="xxs">
                   <SSText center>{t('common.extendedPublicKey')}</SSText>
+                  <SSText center color="muted" size="sm">
+                    {t('account.import.xpub.steps')}
+                  </SSText>
                   <SSTextInput
                     value={xpub}
                     style={validXpub ? styles.valid : styles.invalid}
@@ -750,51 +400,13 @@ export default function ImportExtendedPub() {
                   </Animated.View>
                 </SSVStack>
               </SSVStack>
-              {/* Multi-part QR Scanning Progress */}
-              {scanProgress.type && scanProgress.total > 1 && (
-                <SSVStack gap="sm">
-                  <SSText center size="sm" color="muted">
-                    {scanProgress.type.toUpperCase()} QR Code Scan Progress
-                  </SSText>
-                  <SSText center size="md">
-                    {scanProgress.scanned.size} / {scanProgress.total} parts
-                  </SSText>
-                  <View
-                    style={{
-                      backgroundColor: Colors.gray[700],
-                      borderRadius: 2,
-                      height: 4,
-                      width: '100%'
-                    }}
-                  >
-                    <View
-                      style={{
-                        backgroundColor: Colors.white,
-                        borderRadius: 2,
-                        height: 4,
-                        width: `${
-                          (scanProgress.scanned.size / scanProgress.total) * 100
-                        }%`
-                      }}
-                    />
-                  </View>
-                  <SSText color="muted" size="sm" center>
-                    {`Scanned parts: ${Array.from(scanProgress.scanned)
-                      .toSorted((a, b) => a - b)
-                      .map((n) => n + 1)
-                      .join(', ')}`}
-                  </SSText>
-                  <SSButton
-                    label="Reset Scan"
-                    variant="ghost"
-                    onPress={resetScanProgress}
-                  />
-                </SSVStack>
-              )}
             </SSVStack>
             <SSVStack gap="lg">
               <SSVStack gap="sm">
                 <SSText center>{t('common.fingerprint')}</SSText>
+                <SSText center color="muted" size="sm">
+                  {t('account.import.xpub.fingerprintHelper')}
+                </SSText>
                 <SSTextInput
                   value={localFingerprint}
                   onChangeText={updateMasterFingerprint}
@@ -834,137 +446,15 @@ export default function ImportExtendedPub() {
           </SSVStack>
         </SSVStack>
       </SSScrollView>
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
         onClose={() => {
           setCameraModalVisible(false)
           setScanningFor('main')
-          resetScanProgress()
         }}
-      >
-        <SSVStack itemsCenter gap="md">
-          <SSText color="muted" uppercase>
-            {scanningFor === 'fingerprint'
-              ? t('watchonly.fingerprint.scanQR')
-              : scanProgress.type
-                ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-                : t('transaction.build.options.importOutputs.qrcode')}
-          </SSText>
-
-          <CameraView
-            onBarcodeScanned={(res) => {
-              handleQRCodeScanned(res.raw)
-            }}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ height: 340, width: 340 }}
-          />
-
-          {/* Show progress if scanning multi-part QR */}
-          {scanProgress.type && scanProgress.total > 1 && (
-            <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
-              {scanProgress.type === 'ur' ? (
-                // For UR fountain encoding, show the actual target
-                <>
-                  {(() => {
-                    const maxFragment = Math.max(...scanProgress.scanned)
-                    const actualTotal = maxFragment + 1
-                    const conservativeTarget = Math.ceil(actualTotal * 1.1)
-                    const theoreticalTarget = Math.ceil(
-                      scanProgress.total * 1.5
-                    )
-                    const displayTarget = Math.min(
-                      conservativeTarget,
-                      theoreticalTarget
-                    )
-
-                    return (
-                      <>
-                        <SSText color="white" center>
-                          {`UR fountain encoding: ${scanProgress.scanned.size}/${displayTarget} fragments`}
-                        </SSText>
-                        <View
-                          style={{
-                            backgroundColor: Colors.gray[700],
-                            borderRadius: 2,
-                            height: 4,
-                            width: 300
-                          }}
-                        >
-                          <View
-                            style={{
-                              backgroundColor: Colors.white,
-                              borderRadius: 2,
-                              height: 4,
-                              maxWidth: 300,
-                              width:
-                                (scanProgress.scanned.size / displayTarget) *
-                                300
-                            }}
-                          />
-                        </View>
-                      </>
-                    )
-                  })()}
-                </>
-              ) : (
-                // For RAW and BBQR, show normal progress
-                <>
-                  <SSText color="white" center>
-                    {`Progress: ${scanProgress.scanned.size}/${scanProgress.total} chunks`}
-                  </SSText>
-                  <View
-                    style={{
-                      backgroundColor: Colors.gray[700],
-                      borderRadius: 2,
-                      height: 4,
-                      width: 300
-                    }}
-                  >
-                    <View
-                      style={{
-                        backgroundColor: Colors.white,
-                        borderRadius: 2,
-                        height: 4,
-                        maxWidth: scanProgress.total * 300,
-                        width:
-                          (scanProgress.scanned.size / scanProgress.total) * 300
-                      }}
-                    />
-                  </View>
-                  <SSText color="muted" size="sm" center>
-                    {`Scanned parts: ${Array.from(scanProgress.scanned)
-                      .toSorted((a, b) => a - b)
-                      .map((n) => n + 1)
-                      .join(', ')}`}
-                  </SSText>
-                </>
-              )}
-            </SSVStack>
-          )}
-
-          <SSHStack>
-            {!permission?.granted && (
-              <SSButton
-                label={t('camera.enableCameraAccess')}
-                onPress={requestPermission}
-              />
-            )}
-          </SSHStack>
-
-          {/* Reset button for multi-part scans */}
-          {scanProgress.type && (
-            <SSHStack>
-              <SSButton
-                label="Reset Scan"
-                variant="outline"
-                onPress={resetScanProgress}
-                style={{ marginTop: 10, width: 200 }}
-              />
-            </SSHStack>
-          )}
-        </SSVStack>
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="bitcoin"
+      />
     </SSMainLayout>
   )
 }
