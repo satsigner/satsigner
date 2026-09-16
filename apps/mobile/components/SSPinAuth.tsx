@@ -92,7 +92,14 @@ function SSPinAuth({
       setTimeout(resolve, 0)
     })
 
-    await applyPendingPinKdfCommit()
+    try {
+      await applyPendingPinKdfCommit()
+    } catch {
+      setVerifying(false)
+      toast.error(t('auth.pinRetrieveFailed'))
+      return
+    }
+
     const hashedPin = await getPin()
     const hashedDuressPin = await getItem(DURESS_PIN_KEY)
     const salt = await getItem(SALT_KEY)
