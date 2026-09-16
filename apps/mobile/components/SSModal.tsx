@@ -8,6 +8,8 @@ import { Colors, Layout } from '@/styles'
 
 import SSButton, { type SSButtonProps } from './SSButton'
 
+const TOAST_LAYER_Z_INDEX = 999999
+
 type SSModalProps = {
   visible: boolean
   fullOpacity?: boolean
@@ -38,7 +40,6 @@ function SSModal({
           { paddingBottom: insets.bottom, paddingTop: insets.top }
         ]}
       >
-        <Toaster />
         <View style={styles.container}>
           <SSVStack justifyBetween itemsCenter style={styles.innerContainer}>
             {children}
@@ -50,6 +51,9 @@ function SSModal({
               />
             )}
           </SSVStack>
+        </View>
+        <View pointerEvents="box-none" style={styles.toastLayer}>
+          <Toaster position="top-center" style={styles.toaster} theme="dark" />
         </View>
       </View>
     </Modal>
@@ -75,6 +79,19 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1
+  },
+  toastLayer: {
+    elevation: TOAST_LAYER_Z_INDEX,
+    inset: 0,
+    position: 'absolute',
+    zIndex: TOAST_LAYER_Z_INDEX
+  },
+  toaster: {
+    backgroundColor: Colors.gray[950],
+    borderColor: Colors.gray[800],
+    borderRadius: 8,
+    borderWidth: 1,
+    zIndex: TOAST_LAYER_Z_INDEX
   }
 })
 

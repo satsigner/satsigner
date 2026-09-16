@@ -17,7 +17,6 @@ import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
 import SSPairedTabs from '@/components/SSPairedTabs'
-import SSQRCode from '@/components/SSQRCode'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import { MILLISATS_PER_SAT } from '@/constants/btc'
@@ -572,19 +571,22 @@ export default function InvoicePage() {
               ) : null}
               {onchainAddress ? (
                 <>
-                  <View style={styles.qrContainer}>
-                    <SSQRCode size={qrCodeSize} value={onchainAddress} />
-                  </View>
-                  <View style={styles.addressBox}>
-                    <SSText size="sm" type="mono">
-                      {onchainAddress}
-                    </SSText>
-                  </View>
-                  <SSButton
-                    label={t('common.copy')}
-                    onPress={handleCopyOnchainAddress}
-                    variant="outline"
-                  />
+                  <SSShareableQR
+                    value={onchainAddress}
+                    size={qrCodeSize}
+                    containerStyle={styles.qrContainer}
+                  >
+                    <View style={styles.addressBox}>
+                      <SSText size="sm" type="mono">
+                        {onchainAddress}
+                      </SSText>
+                    </View>
+                    <SSButton
+                      label={t('common.copy')}
+                      onPress={handleCopyOnchainAddress}
+                      variant="outline"
+                    />
+                  </SSShareableQR>
                   <SSButton
                     label={t('lightning.invoice.generateNewAddress')}
                     loading={isGeneratingAddress}

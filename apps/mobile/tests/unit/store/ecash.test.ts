@@ -265,6 +265,45 @@ describe('ecash store', () => {
       expect(migrated.activeAccountId).toBe('acc-1')
     })
   })
+
+  describe('restoreFromBackup', () => {
+    it('keeps proofs and transactions when those fields are omitted', () => {
+      useEcashStore.getState().addAccount(makeAccount('acc-1'))
+      const mint = makeMint('https://mint.example')
+      const proof = makeProof('p1', 100, mint.url)
+      useEcashStore.getState().addMint('acc-1', mint)
+      useEcashStore.getState().addProofs('acc-1', [proof])
+
+      useEcashStore.getState().restoreFromBackup('acc-1', {
+        mints: [makeMint('https://other-mint.example')]
+      })
+
+      const state = useEcashStore.getState()
+      expect(state.mints['acc-1'].map((mint) => mint.url)).toEqual([
+        mint.url,
+        'https://other-mint.example'
+      ])
+      expect(state.proofs['acc-1']).toStrictEqual([proof])
+      expect(state.transactions['acc-1']).toStrictEqual([])
+      expect(state.quotes['acc-1']).toEqual({ melt: [], mint: [] })
+    })
+
+    it('merges proofs when the backup includes them', () => {
+      useEcashStore.getState().addAccount(makeAccount('acc-1'))
+      const existing = makeProof('p1', 100, 'https://mint.example')
+      useEcashStore.getState().addProofs('acc-1', [existing])
+
+      const restored = makeProof('p2', 50, 'https://mint.example')
+      useEcashStore.getState().restoreFromBackup('acc-1', {
+        proofs: [restored]
+      })
+
+      expect(useEcashStore.getState().proofs['acc-1']).toEqual([
+        existing,
+        restored
+      ])
+    })
+  })
 })
 
 /**

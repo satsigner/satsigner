@@ -1,10 +1,11 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, Share, StyleSheet, TextInput } from 'react-native'
+import { Share, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSIconWarning from '@/components/icons/SSIconWarning'
+import SSBackupPayloadSummary from '@/components/SSBackupPayloadSummary'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
@@ -19,12 +20,12 @@ import {
   SALT_KEY
 } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { deleteItem, getEcashMnemonic } from '@/storage/encrypted'
 import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
-import { useArkStore } from '@/store/ark'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
@@ -36,7 +37,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
-import { type LNDConfig } from '@/types/models/Lightning'
+import { collectArkBackup } from '@/utils/arkBackup'
 import { getBackupFilename } from '@/utils/backupFilename'
 import { collectBlockchainBackup } from '@/utils/blockchainBackup'
 import {
@@ -49,47 +50,6 @@ import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import { saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
-import { stripLndSecrets } from '@/utils/serviceSecrets'
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function lndConfigFromUnknown(
-  value: Record<string, unknown>
-): LNDConfig | null {
-  if (
-    typeof value.cert !== 'string' ||
-    typeof value.macaroon !== 'string' ||
-    typeof value.url !== 'string'
-  ) {
-    return null
-  }
-  return { cert: value.cert, macaroon: value.macaroon, url: value.url }
-}
-
-function previewWithoutLndSecrets(payload: string): string {
-  const parsed: unknown = JSON.parse(payload)
-  if (!isRecord(parsed)) {
-    return payload
-  }
-  if (isRecord(parsed.lightning) && isRecord(parsed.lightning.config)) {
-    const config = lndConfigFromUnknown(parsed.lightning.config)
-    if (config) {
-      parsed.lightning = {
-        ...parsed.lightning,
-        config: stripLndSecrets(config)
-      }
-    }
-  }
-  if (isRecord(parsed.lnd)) {
-    const config = lndConfigFromUnknown(parsed.lnd)
-    if (config) {
-      parsed.lnd = stripLndSecrets(config)
-    }
-  }
-  return JSON.stringify(parsed, null, 2)
-}
 
 export default function Developer() {
   const router = useRouter()
@@ -182,16 +142,14 @@ export default function Developer() {
         ])
       )
     )
-    const arkState = useArkStore.getState()
+    const arkState = await collectArkBackup()
     const lightningState = useLightningStore.getState()
     const nostrIdentityState = useNostrIdentityStore.getState()
     const blockchainState = useBlockchainStore.getState()
 
     const backupData = {
       accounts: accountsWithSeeds,
-      ark: {
-        accounts: arkState.accounts
-      },
+      ark: arkState,
       ecash: {
         accounts: ecashState.accounts,
         activeAccountId: ecashState.activeAccountId,
@@ -306,18 +264,26 @@ export default function Developer() {
         salt,
         v: 1
       })
-      await saveFile({
+      const didSave = await saveFile({
         dialogTitle: t('settings.developer.backupData'),
         fileContent: encryptedPayload,
         filename,
         mimeType: 'application/json'
       })
+      if (!didSave) {
+        return
+      }
       toast.success(t('settings.developer.backupSuccess'))
       setBackupPreviewVisible(false)
       setBackupPreviewPayload(null)
       setBackupPassphrase('')
-    } catch {
-      toast.error(t('settings.developer.backupError'))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined
+      toast.error(
+        message
+          ? `${t('settings.developer.backupError')}: ${message}`
+          : t('settings.developer.backupError')
+      )
     }
   }
 
@@ -514,86 +480,69 @@ export default function Developer() {
         closeButtonVariant="ghost"
         fullOpacity
       >
-        <SSVStack gap="lg" widthFull style={styles.backupPreviewModal}>
-          <SSText center size="lg" uppercase>
-            {t('settings.developer.backupModalTitle')}
-          </SSText>
-          <SSText center color="muted" size="sm">
-            {t('settings.developer.backupPreviewWarning')}
-          </SSText>
-          <ScrollView
-            style={styles.modalTextAreaScroll}
-            contentContainerStyle={styles.modalTextAreaScrollContent}
-          >
-            <TextInput
-              editable={false}
-              multiline
-              style={styles.backupPreviewText}
-              value={
-                backupPreviewPayload
-                  ? previewWithoutLndSecrets(backupPreviewPayload)
-                  : ''
-              }
-            />
-          </ScrollView>
-          <SSVStack gap="xs" widthFull>
-            <SSText color="muted" size="sm">
-              {t('settings.developer.backupPassphraseLabel')}
+        <SSScrollView
+          style={styles.backupPreviewScroll}
+          contentContainerStyle={styles.backupPreviewScrollContent}
+        >
+          <SSVStack gap="md" widthFull>
+            <SSText center size="lg" uppercase>
+              {t('settings.developer.backupModalTitle')}
             </SSText>
-            <TextInput
-              placeholder={t('settings.developer.backupPassphrasePlaceholder')}
-              secureTextEntry
-              style={styles.passphraseInput}
-              value={backupPassphrase}
-              onChangeText={setBackupPassphrase}
-            />
+            <SSText center color="muted" size="sm">
+              {t('settings.developer.backupPreviewWarning')}
+            </SSText>
+            {backupPreviewPayload ? (
+              <SSBackupPayloadSummary payload={backupPreviewPayload} />
+            ) : null}
+            <SSVStack gap="xs" widthFull>
+              <SSText color="muted" size="sm">
+                {t('settings.developer.backupPassphraseLabel')}
+              </SSText>
+              <TextInput
+                placeholder={t(
+                  'settings.developer.backupPassphrasePlaceholder'
+                )}
+                placeholderTextColor={Colors.gray[400]}
+                secureTextEntry
+                style={styles.passphraseInput}
+                value={backupPassphrase}
+                onChangeText={setBackupPassphrase}
+              />
+              <SSText color="muted" size="xs">
+                {t('settings.developer.backupPassphraseAllowed')}
+              </SSText>
+            </SSVStack>
             <SSText color="muted" size="xs">
-              {t('settings.developer.backupPassphraseAllowed')}
+              {t('settings.developer.backupEncryptionNote')}
             </SSText>
+            <SSVStack gap="sm" widthFull>
+              <SSButton
+                label={t('settings.developer.backupEncryptShare')}
+                onPress={handleEncryptAndShare}
+                variant="default"
+              />
+              <SSButton
+                label={t('settings.developer.backupEncryptSaveFile')}
+                onPress={handleEncryptAndSaveFile}
+                variant="secondary"
+              />
+            </SSVStack>
           </SSVStack>
-          <SSText color="muted" size="xs">
-            {t('settings.developer.backupEncryptionNote')}
-          </SSText>
-          <SSVStack gap="sm" widthFull>
-            <SSButton
-              label={t('settings.developer.backupEncryptShare')}
-              onPress={handleEncryptAndShare}
-              variant="default"
-            />
-            <SSButton
-              label={t('settings.developer.backupEncryptSaveFile')}
-              onPress={handleEncryptAndSaveFile}
-              variant="secondary"
-            />
-          </SSVStack>
-        </SSVStack>
+        </SSScrollView>
       </SSModal>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  backupPreviewModal: {
-    maxHeight: '80%',
-    paddingVertical: 8,
-    width: '100%'
-  },
-  backupPreviewText: {
-    color: Colors.gray['200'],
-    fontFamily: 'monospace',
-    fontSize: 11,
-    padding: 8
-  },
-  modalTextAreaScroll: {
+  backupPreviewScroll: {
     alignSelf: 'stretch',
-    borderColor: Colors.gray[500],
-    borderRadius: 4,
-    borderWidth: 1,
-    maxHeight: 320,
+    flex: 1,
     width: '100%'
   },
-  modalTextAreaScrollContent: {
-    paddingBottom: 16
+  backupPreviewScrollContent: {
+    flexGrow: 1,
+    paddingVertical: 8
   },
   passphraseInput: {
     alignSelf: 'stretch',

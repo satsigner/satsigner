@@ -332,7 +332,7 @@ export const useEcashStore = create<EcashState & EcashAction>()(
               ...state.mints,
               [accountId]: mergeByKey(
                 existingMints,
-                backupData.mints,
+                backupData.mints ?? [],
                 (mint) => mint.url
               )
             },
@@ -340,15 +340,19 @@ export const useEcashStore = create<EcashState & EcashAction>()(
               ...state.proofs,
               [accountId]: mergeByKey(
                 existingProofs,
-                backupData.proofs,
+                backupData.proofs ?? [],
                 (proof) => proof.secret
               )
+            },
+            quotes: {
+              ...state.quotes,
+              [accountId]: { melt: [], mint: [] }
             },
             transactions: {
               ...state.transactions,
               [accountId]: mergeByKey(
                 existingTransactions,
-                backupData.transactions,
+                backupData.transactions ?? [],
                 (transaction) => transaction.id
               )
             }
