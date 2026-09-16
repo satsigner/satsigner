@@ -279,13 +279,13 @@ describe('ecash store', () => {
       })
 
       const state = useEcashStore.getState()
-      expect(state.mints['acc-1'].map((mint) => mint.url)).toEqual([
+      expect(state.mints['acc-1'].map((mint) => mint.url)).toStrictEqual([
         mint.url,
         'https://other-mint.example'
       ])
       expect(state.proofs['acc-1']).toStrictEqual([proof])
       expect(state.transactions['acc-1']).toStrictEqual([])
-      expect(state.quotes['acc-1']).toEqual({ melt: [], mint: [] })
+      expect(state.quotes['acc-1']).toStrictEqual({ melt: [], mint: [] })
     })
 
     it('merges proofs when the backup includes them', () => {
@@ -298,7 +298,7 @@ describe('ecash store', () => {
         proofs: [restored]
       })
 
-      expect(useEcashStore.getState().proofs['acc-1']).toEqual([
+      expect(useEcashStore.getState().proofs['acc-1']).toStrictEqual([
         existing,
         restored
       ])
