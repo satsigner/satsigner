@@ -4,19 +4,19 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletOverview, syncWallet, syncWithCoreWallet } from '@/api/bdk'
-import { MempoolOracle } from '@/api/blockchain'
 import BitcoinRpc from '@/api/rpc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { updateAccountObjectLabels } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
+import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
 import { reconcileTransactions } from '@/utils/transaction'
 
 // Module-level sync state shared across all hook instances.
@@ -276,23 +276,20 @@ function useSyncAccountWithWallet() {
       if (unpricedTimestamps.length > 0) {
         const { fetchHistoricalPrices } = useSettingsStore.getState()
         if (fetchHistoricalPrices) {
+          const { fiatCurrency } = usePriceStore.getState()
           const uniqueTimestamps = [...new Set(unpricedTimestamps)]
-          const oracle = new MempoolOracle(getFiatPriceApiUrl())
           try {
-            const fetchedPrices = await oracle.getPricesAt(
-              'USD',
+            const priceMap = await resolveHistoricalPrices(
+              fiatCurrency,
               uniqueTimestamps
             )
-            const priceMap: Record<number, number> = {}
-            for (const [i, ts] of uniqueTimestamps.entries()) {
-              priceMap[ts] = fetchedPrices[i]
-            }
             for (const tx of updatedAccount.transactions) {
-              if (!tx.prices?.USD && tx.timestamp) {
-                const price = priceMap[formatTimestamp(tx.timestamp)]
-                if (price !== undefined) {
-                  tx.prices = { USD: price }
-                }
+              if (tx.prices?.[fiatCurrency] !== undefined || !tx.timestamp) {
+                continue
+              }
+              const price = priceMap[formatTimestamp(tx.timestamp)]
+              if (price !== undefined) {
+                tx.prices = { ...tx.prices, [fiatCurrency]: price }
               }
             }
           } catch {

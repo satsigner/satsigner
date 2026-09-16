@@ -3,12 +3,12 @@ import { useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
@@ -17,9 +17,9 @@ import { type Network } from '@/types/settings/blockchain'
 import { updateAccountObjectLabels } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
+import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type AddressInfo = {
@@ -613,34 +613,19 @@ function useSyncAccountWithAddress() {
       // Remove duplicates
       const uniqueTimestamps = [...new Set(timestamps)]
 
-      // Fetch historical prices
       const { fetchHistoricalPrices } = useSettingsStore.getState()
-      const oracle = new MempoolOracle(getFiatPriceApiUrl())
-      let prices: number[] = []
+      const { fiatCurrency } = usePriceStore.getState()
+      const emptyPrices: Record<number, number> = {}
+      const priceTimestamps =
+        fetchHistoricalPrices && uniqueTimestamps.length > 0
+          ? await resolveHistoricalPrices(fiatCurrency, uniqueTimestamps).catch(
+              () => {
+                toast.error(t('account.sync.historicalPricesFailed'))
+                return emptyPrices
+              }
+            )
+          : emptyPrices
 
-      if (fetchHistoricalPrices && uniqueTimestamps.length > 0) {
-        try {
-          const historicalPrices = await oracle.getPricesAt(
-            'USD',
-            uniqueTimestamps
-          )
-          prices = [...prices, ...historicalPrices]
-        } catch {
-          toast.error(t('account.sync.historicalPricesFailed'))
-        }
-      }
-
-      // Create price mapping
-      const priceTimestamps: Record<number, number> = {}
-      for (
-        let i = 0;
-        i < uniqueTimestamps.length && i < prices.length;
-        i += 1
-      ) {
-        priceTimestamps[uniqueTimestamps[i]] = prices[i]
-      }
-
-      // Assign prices to transactions
       for (let i = 0; i < updatedAccount.transactions.length; i += 1) {
         const transaction = updatedAccount.transactions[i]
         if (
@@ -657,24 +642,19 @@ function useSyncAccountWithAddress() {
           continue
         }
 
-        // Assign price to transaction (create new objects to avoid frozen object issues)
-        const newPrices = { USD: price }
         const newTransaction = {
           ...updatedAccount.transactions[i],
-          prices: newPrices
+          prices: { ...transaction.prices, [fiatCurrency]: price }
         }
 
-        // Create a new transactions array with the updated transaction
         const newTransactions = [...updatedAccount.transactions]
         newTransactions[i] = newTransaction
 
-        // Create a completely new account object
         const newAccount = {
           ...updatedAccount,
           transactions: newTransactions
         }
 
-        // Replace the entire updatedAccount
         Object.assign(updatedAccount, newAccount)
       }
 

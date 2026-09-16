@@ -1,11 +1,10 @@
-import { MempoolOracle } from '@/api/blockchain'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatTimestamp } from '@/utils/format'
+import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
 
 function txNeedsHistoricalPrice(
   tx: Transaction,
@@ -23,9 +22,8 @@ function txNeedsHistoricalPrice(
 }
 
 /**
- * Fetch and persist historical fiat prices for transactions that are missing
- * them. Used when the user enables "fetch historical prices" after accounts
- * were already synced.
+ * Resolve and persist historical fiat prices for transactions that are missing
+ * them. Uses bundled prices; network only if the user opted in.
  */
 async function backfillHistoricalPrices(): Promise<void> {
   if (!useSettingsStore.getState().fetchHistoricalPrices) {
@@ -52,15 +50,10 @@ async function backfillHistoricalPrices(): Promise<void> {
     return
   }
 
-  const oracle = new MempoolOracle(getFiatPriceApiUrl())
-  const fetchedPrices = await oracle.getPricesAt(fiatCurrency, uniqueTimestamps)
-  const priceByTimestamp: Record<number, number> = {}
-  for (const [i, ts] of uniqueTimestamps.entries()) {
-    const price = fetchedPrices[i]
-    if (price !== undefined) {
-      priceByTimestamp[ts] = price
-    }
-  }
+  const priceByTimestamp = await resolveHistoricalPrices(
+    fiatCurrency,
+    uniqueTimestamps
+  )
 
   for (const account of accounts) {
     let changed = false
