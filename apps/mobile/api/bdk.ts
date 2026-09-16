@@ -679,6 +679,70 @@ async function syncWallet(
   wallet.persist()
 }
 
+function lastUsedIndexForKeychain(
+  addresses: Account['addresses'],
+  keychain: 'external' | 'internal'
+): number {
+  return addresses.reduce((lastUsed, address) => {
+    if (address.keychain !== keychain) {
+      return lastUsed
+    }
+    if (address.index === undefined) {
+      return lastUsed
+    }
+    if (address.index > lastUsed) {
+      return address.index
+    }
+    return lastUsed
+  }, -1)
+}
+
+type RevealWallet = Pick<
+  BdkWallet,
+  'nextDerivationIndex' | 'persist' | 'revealNextAddress'
+>
+
+function revealKeychainThroughStopGap(
+  wallet: RevealWallet,
+  keychainKind: KeychainKind,
+  lastUsedIndex: number,
+  stopGap: number
+) {
+  if (lastUsedIndex < 0) {
+    return
+  }
+
+  const targetNextIndex = lastUsedIndex + stopGap + 1
+  while (wallet.nextDerivationIndex(keychainKind) < targetNextIndex) {
+    wallet.revealNextAddress(keychainKind)
+  }
+}
+
+/**
+ * Reveal scripts BDK already should know from stored account indices, plus
+ * the current stop gap. Used before incremental Electrum/Esplora sync after
+ * RPC (or any path that skipped BDK keychain updates).
+ */
+function revealKnownAddresses(
+  wallet: RevealWallet,
+  account: Pick<Account, 'addresses'>,
+  stopGap: number
+) {
+  revealKeychainThroughStopGap(
+    wallet,
+    KeychainKind.External,
+    lastUsedIndexForKeychain(account.addresses, 'external'),
+    stopGap
+  )
+  revealKeychainThroughStopGap(
+    wallet,
+    KeychainKind.Internal,
+    lastUsedIndexForKeychain(account.addresses, 'internal'),
+    stopGap
+  )
+  wallet.persist()
+}
+
 function getWalletAddresses(
   wallet: BdkWallet,
   network: Network,
@@ -1981,6 +2045,7 @@ export {
   getWalletData,
   getWalletOverview,
   parseDescriptor,
+  revealKnownAddresses,
   resolveRpcWalletName,
   signTransaction,
   syncWallet,
