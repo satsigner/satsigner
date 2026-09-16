@@ -19,8 +19,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: Refresh price CSVs and app JSON
-        run: node btc_prices/update.mjs
+      - name: Refresh bundled price JSON
+        run: node apps/mobile/scripts/update-btc-prices.mjs
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
@@ -31,7 +31,6 @@ jobs:
           body: |
             Weekly refresh of mempool historical BTC prices.
 
-            Updates `btc_prices/*.csv` and `apps/mobile/assets/prices/`.
+            Updates `apps/mobile/assets/prices/`.
           add-paths: |
-            btc_prices/*.csv
             apps/mobile/assets/prices/**

@@ -13,8 +13,7 @@
     "**/ios",
     "**/utils/polyfills.ts",
     "**/routeTree.gen.ts",
-    "**/scripts/**",
-    "btc_prices/**"
+    "**/scripts/**"
   ],
   "rules": {
     "no-use-before-define": "allow",

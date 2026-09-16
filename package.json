@@ -23,7 +23,7 @@
   "scripts": {
     "check": "ultracite check",
     "fix": "ultracite fix",
-    "prices:update": "node btc_prices/update.mjs"
+    "prices:update": "node apps/mobile/scripts/update-btc-prices.mjs"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
