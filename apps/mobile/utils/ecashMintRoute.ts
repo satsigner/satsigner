@@ -1,3 +1,5 @@
+import { t } from '@/locales'
+
 export type MintSpendBalance = {
   mintUrl: string
   balance: number
@@ -90,4 +92,61 @@ export function selectMintRoute({
   }
 
   return { kind: 'mpp', slices }
+}
+
+export function meltSatsNeeded(quote: {
+  amount: number
+  fee_reserve: number
+}): number {
+  return quote.amount + quote.fee_reserve
+}
+
+export function mintCoversMeltQuote(
+  balance: number,
+  quote: { amount: number; fee_reserve: number }
+): boolean {
+  return balance >= meltSatsNeeded(quote)
+}
+
+export function coveringMintUrls(
+  amountSats: number,
+  mints: MintSpendBalance[],
+  selectedMintUrl: string | null
+): string[] {
+  const covering = mints
+    .filter((mint) => mint.balance >= amountSats)
+    .toSorted((a, b) => b.balance - a.balance)
+    .map((mint) => mint.mintUrl)
+  if (!selectedMintUrl || !covering.includes(selectedMintUrl)) {
+    return covering
+  }
+  return [
+    selectedMintUrl,
+    ...covering.filter((mintUrl) => mintUrl !== selectedMintUrl)
+  ]
+}
+
+export function sliceAmountAfterFeeMiss(
+  balance: number,
+  remainingSats: number,
+  feeReserve: number
+): number {
+  return Math.min(remainingSats, Math.max(0, balance - feeReserve))
+}
+
+export function describeTokenRoute(
+  route: MintRoute | null,
+  mints: { name?: string; url: string }[]
+): string | null {
+  if (!route) {
+    return null
+  }
+  if (route.kind === 'single') {
+    const mint = mints.find((item) => item.url === route.mintUrl)
+    return `${t('ecash.send.payingFrom')} ${mint?.name ?? route.mintUrl}`
+  }
+  if (route.kind === 'insufficient') {
+    return t('ecash.error.insufficientOnMint')
+  }
+  return null
 }

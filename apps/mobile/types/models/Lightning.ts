@@ -327,6 +327,7 @@ export type LNDNodeInfo = {
 }
 
 export type LNDPaymentResponse = {
+  payment_error?: string
   payment_hash: string
   payment_preimage: string
   status: string

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { queryClient } from '@/lib/queryClient'
 import mmkvStorage from '@/storage/mmkv'
 import type {
   LNDChannel,
@@ -22,6 +23,7 @@ type LightningState = {
   setConnected: (isConnected: boolean) => void
   setNodeInfo: (info: LNDNodeInfo) => void
   setChannels: (channels: LNDChannel[]) => void
+  setLastSync: (lastSync: string | undefined) => void
   updateLastSync: () => void
 }
 
@@ -35,6 +37,7 @@ export const useLightningStore = create<LightningState>()(
     (set) => ({
       clearConfig: () => {
         void deleteLndSecretsSafe()
+        queryClient.removeQueries({ queryKey: ['lnd'] })
         set({
           config: null,
           status: initialStatus
@@ -57,6 +60,11 @@ export const useLightningStore = create<LightningState>()(
         set((state) => ({
           status: { ...state.status, isConnecting }
         })),
+      setLastSync: function setLastSync(lastSync) {
+        set((state) => ({
+          status: { ...state.status, lastSync }
+        }))
+      },
       setNodeInfo: (nodeInfo) =>
         set((state) => ({
           status: { ...state.status, nodeInfo }

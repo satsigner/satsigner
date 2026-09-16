@@ -109,10 +109,18 @@ describe('restoreLightningFromBackup', () => {
           channels: [],
           config: CONFIG,
           isConnected: true,
+          lastSync: '2026-08-26T00:00:00.000Z',
           nodeInfo: NODE_INFO
         }
       },
-      { clearConfig, setChannels, setConfig, setConnected, setNodeInfo }
+      {
+        clearConfig,
+        setChannels,
+        setConfig,
+        setConnected,
+        setLastSync: jest.fn(),
+        setNodeInfo
+      }
     )
 
     expect(setConfig).toHaveBeenCalledWith(CONFIG)
@@ -120,6 +128,40 @@ describe('restoreLightningFromBackup', () => {
     expect(setChannels).toHaveBeenCalledWith([])
     expect(setConnected).toHaveBeenCalledWith(true)
     expect(clearConfig).not.toHaveBeenCalled()
+  })
+
+  it('restores lastSync and clears it when the backup value is null', () => {
+    const setLastSync = jest.fn()
+
+    restoreLightningFromBackup(
+      {
+        lightning: {
+          lastSync: '2026-08-26T00:00:00.000Z'
+        }
+      },
+      {
+        clearConfig: jest.fn(),
+        setChannels: jest.fn(),
+        setConfig: jest.fn(),
+        setConnected: jest.fn(),
+        setLastSync,
+        setNodeInfo: jest.fn()
+      }
+    )
+    expect(setLastSync).toHaveBeenCalledWith('2026-08-26T00:00:00.000Z')
+
+    restoreLightningFromBackup(
+      { lightning: { lastSync: null } },
+      {
+        clearConfig: jest.fn(),
+        setChannels: jest.fn(),
+        setConfig: jest.fn(),
+        setConnected: jest.fn(),
+        setLastSync,
+        setNodeInfo: jest.fn()
+      }
+    )
+    expect(setLastSync).toHaveBeenCalledWith(undefined)
   })
 
   it('falls back to the legacy lnd field', () => {
@@ -133,6 +175,7 @@ describe('restoreLightningFromBackup', () => {
         setChannels: jest.fn(),
         setConfig,
         setConnected: jest.fn(),
+        setLastSync: jest.fn(),
         setNodeInfo: jest.fn()
       }
     )
@@ -151,10 +194,35 @@ describe('restoreLightningFromBackup', () => {
         setChannels: jest.fn(),
         setConfig: jest.fn(),
         setConnected: jest.fn(),
+        setLastSync: jest.fn(),
         setNodeInfo: jest.fn()
       }
     )
 
     expect(clearConfig).toHaveBeenCalledTimes(1)
+  })
+
+  it('restores channels when connection credentials are omitted', () => {
+    const setChannels = jest.fn()
+    const setConfig = jest.fn()
+
+    restoreLightningFromBackup(
+      {
+        lightning: {
+          channels: INPUT.channels
+        }
+      },
+      {
+        clearConfig: jest.fn(),
+        setChannels,
+        setConfig,
+        setConnected: jest.fn(),
+        setLastSync: jest.fn(),
+        setNodeInfo: jest.fn()
+      }
+    )
+
+    expect(setChannels).toHaveBeenCalledWith([])
+    expect(setConfig).not.toHaveBeenCalled()
   })
 })

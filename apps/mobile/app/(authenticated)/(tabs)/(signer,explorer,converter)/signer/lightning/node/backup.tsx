@@ -1,4 +1,3 @@
-import * as Clipboard from 'expo-clipboard'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet } from 'react-native'
@@ -16,6 +15,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
 import { Colors } from '@/styles'
+import { shareFile } from '@/utils/filesystem'
 import { serializeLightningBackup } from '@/utils/lightningBackup'
 import { lndNodeCardTitle } from '@/utils/lndNodeCardTitle'
 
@@ -25,7 +25,7 @@ export default function LightningBackupPage() {
   )
   const [showBackupData, setShowBackupData] = useState(false)
   const [backupData, setBackupData] = useState('')
-  const [includeConnection, setIncludeConnection] = useState(true)
+  const [includeConnection, setIncludeConnection] = useState(false)
   const [includeNodeInformation, setIncludeNodeInformation] = useState(true)
   const [includeChannels, setIncludeChannels] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -65,10 +65,14 @@ export default function LightningBackupPage() {
     }
   }
 
-  async function handleCopyBackup() {
+  async function handleShareBackup() {
     try {
-      await Clipboard.setStringAsync(backupData)
-      toast.success(t('common.copiedToClipboard'))
+      await shareFile({
+        dialogTitle: t('lightning.backup.title'),
+        fileContent: backupData,
+        filename: `lnd-node-backup-${Date.now()}.json`,
+        mimeType: 'application/json'
+      })
     } catch {
       toast.error(t('lightning.backup.copyFailed'))
     }
@@ -190,8 +194,8 @@ export default function LightningBackupPage() {
               />
               <SSHStack gap="sm">
                 <SSButton
-                  label={t('common.copy')}
-                  onPress={handleCopyBackup}
+                  label={t('common.share')}
+                  onPress={handleShareBackup}
                   variant="outline"
                   style={{ flex: 1 }}
                 />

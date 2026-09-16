@@ -351,24 +351,31 @@ async function validateProofs(
   mintUrl: string,
   proofs: EcashProof[],
   options?: WalletOptions
-): Promise<{ validProofs: EcashProof[]; spentProofs: EcashProof[] }> {
+): Promise<{
+  pendingProofs: EcashProof[]
+  spentProofs: EcashProof[]
+  validProofs: EcashProof[]
+}> {
   const wallet = getWallet(accountId, mintUrl, options)
   await wallet.loadMint()
 
   const proofStates = await wallet.checkProofsStates(proofs)
 
-  const validProofs: EcashProof[] = []
+  const pendingProofs: EcashProof[] = []
   const spentProofs: EcashProof[] = []
+  const validProofs: EcashProof[] = []
 
   for (const [index, state] of proofStates.entries()) {
     if (state.state === CheckStateEnum.UNSPENT) {
       validProofs.push(proofs[index])
+    } else if (state.state === CheckStateEnum.PENDING) {
+      pendingProofs.push(proofs[index])
     } else if (state.state === CheckStateEnum.SPENT) {
       spentProofs.push(proofs[index])
     }
   }
 
-  return { spentProofs, validProofs }
+  return { pendingProofs, spentProofs, validProofs }
 }
 
 export async function sendEcash(
@@ -468,6 +475,16 @@ export function getMintBalance(mintUrl: string, proofs: EcashProof[]): number {
   return proofs
     .filter((p) => p.mintUrl === mintUrl)
     .reduce((sum, proof) => sum + proof.amount, 0)
+}
+
+export function getLargestMintBalance(
+  mintUrls: string[],
+  proofs: EcashProof[]
+): number {
+  if (mintUrls.length === 0) {
+    return 0
+  }
+  return Math.max(...mintUrls.map((url) => getMintBalance(url, proofs)))
 }
 
 export async function validateEcashToken(

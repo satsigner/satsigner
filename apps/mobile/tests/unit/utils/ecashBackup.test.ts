@@ -2,7 +2,9 @@ import { type EcashMint, type EcashProof } from '@/types/models/Ecash'
 import {
   buildEcashBackupPayload,
   collectMintUrlsForRestore,
-  normalizeRestoredProofs
+  EcashBackupValidationError,
+  normalizeRestoredProofs,
+  parseEcashBackupPayload
 } from '@/utils/ecashBackup'
 
 function proof(secret: string, mintUrl: string): EcashProof {
@@ -67,16 +69,83 @@ describe('ecash backup', () => {
   })
 
   it('does not assign mints[0] when several mints and mintUrl is missing', () => {
-    const restored = normalizeRestoredProofs(
-      [
-        { C: 'C', amount: 1, id: 'ks', mintUrl: '', secret: 's1' },
-        proof('s2', 'https://b.example')
-      ],
-      [mint('https://a.example'), mint('https://b.example')]
-    )
+    expect(() =>
+      normalizeRestoredProofs(
+        [
+          { C: 'C', amount: 1, id: 'ks', mintUrl: '', secret: 's1' },
+          proof('s2', 'https://b.example')
+        ],
+        [mint('https://a.example'), mint('https://b.example')]
+      )
+    ).toThrow(EcashBackupValidationError)
+  })
 
-    expect(restored).toHaveLength(1)
-    expect(restored[0].secret).toBe('s2')
-    expect(restored[0].mintUrl).toBe('https://b.example')
+  it('restores mint keysets from the backup', () => {
+    const parsed = parseEcashBackupPayload({
+      mints: [
+        {
+          ...mint('https://a.example'),
+          keysets: [{ active: true, id: 'ks1', unit: 'sat' }]
+        }
+      ],
+      proofs: [proof('s1', 'https://a.example')]
+    })
+    expect(parsed.mints[0].keysets).toStrictEqual([
+      { active: true, id: 'ks1', unit: 'sat' }
+    ])
+  })
+
+  it('refuses backups that omit proofs', () => {
+    expect(() =>
+      parseEcashBackupPayload({
+        mints: [mint('https://a.example')],
+        version: '1'
+      })
+    ).toThrow(EcashBackupValidationError)
+  })
+
+  it('refuses backups whose mints field is not an array', () => {
+    expect(() =>
+      parseEcashBackupPayload({
+        mints: 'abc',
+        proofs: [proof('s1', 'https://a.example')]
+      })
+    ).toThrow(EcashBackupValidationError)
+  })
+
+  it('parses a valid backup payload', () => {
+    const parsed = parseEcashBackupPayload({
+      mints: [mint('https://a.example')],
+      proofs: [proof('s1', 'https://a.example')],
+      transactions: []
+    })
+    expect(parsed.proofs).toHaveLength(1)
+    expect(parsed.mints[0].url).toBe('https://a.example')
+  })
+
+  it('refuses proofs whose mint is missing from the backup', () => {
+    expect(() =>
+      parseEcashBackupPayload({
+        proofs: [proof('s1', 'https://a.example')]
+      })
+    ).toThrow(EcashBackupValidationError)
+  })
+
+  it('refuses transactions with an empty id', () => {
+    expect(() =>
+      parseEcashBackupPayload({
+        mints: [mint('https://a.example')],
+        proofs: [proof('s1', 'https://a.example')],
+        transactions: [
+          {
+            amount: 1,
+            id: '',
+            mintUrl: 'https://a.example',
+            timestamp: '2024-01-01T00:00:00.000Z',
+            type: 'receive'
+          }
+        ]
+      })
+    ).toThrow(EcashBackupValidationError)
   })
 })

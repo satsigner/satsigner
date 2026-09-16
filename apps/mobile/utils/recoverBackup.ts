@@ -31,6 +31,7 @@ import type {
   LNDNodeInfo
 } from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
+import { ConfigSchema, ServerSchema } from '@/types/settings/blockchain'
 import {
   prepareArkMnemonics,
   releaseArkWalletsForRestore,
@@ -40,6 +41,7 @@ import {
   type ArkBackupSection
 } from '@/utils/arkBackup'
 import {
+  BLOCKCHAIN_BACKUP_NETWORKS,
   restoreBlockchainFromBackup,
   type BlockchainBackup
 } from '@/utils/blockchainBackup'
@@ -188,7 +190,78 @@ function validateBackup(
       }
     }
   }
+  if (data.lnd !== undefined && data.lnd !== null && !isLndConfig(data.lnd)) {
+    return { error: 'Backup lightning config is invalid', ok: false }
+  }
+  if (
+    data.lightning?.config !== undefined &&
+    data.lightning.config !== null &&
+    !isLndConfig(data.lightning.config)
+  ) {
+    return { error: 'Backup lightning config is invalid', ok: false }
+  }
+  if (data.serverSettings && !isBlockchainBackup(data.serverSettings)) {
+    return { error: 'Backup server settings are invalid', ok: false }
+  }
   return { ok: true, value: parsed as BackupData }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isLndConfig(value: unknown): value is LNDConfig {
+  return (
+    isRecord(value) &&
+    typeof value.cert === 'string' &&
+    typeof value.macaroon === 'string' &&
+    typeof value.url === 'string'
+  )
+}
+
+function isBlockchainBackup(value: unknown): value is BlockchainBackup {
+  if (!isRecord(value) || !isRecord(value.configs)) {
+    return false
+  }
+  if (!isRecord(value.configsMempool)) {
+    return false
+  }
+  if (
+    typeof value.selectedNetwork !== 'string' ||
+    (value.selectedNetwork !== 'bitcoin' &&
+      value.selectedNetwork !== 'testnet' &&
+      value.selectedNetwork !== 'signet')
+  ) {
+    return false
+  }
+  if (!Array.isArray(value.customServers)) {
+    return false
+  }
+  for (const network of BLOCKCHAIN_BACKUP_NETWORKS) {
+    const mempool = value.configsMempool[network]
+    if (mempool !== undefined && typeof mempool !== 'string') {
+      return false
+    }
+    const entry = value.configs[network]
+    if (entry === undefined) {
+      continue
+    }
+    if (!isRecord(entry)) {
+      return false
+    }
+    if (!ConfigSchema.safeParse(entry.config).success) {
+      return false
+    }
+    if (!ServerSchema.safeParse(entry.server).success) {
+      return false
+    }
+  }
+  for (const server of value.customServers) {
+    if (!ServerSchema.safeParse(server).success) {
+      return false
+    }
+  }
+  return true
 }
 
 async function prepareRestore(

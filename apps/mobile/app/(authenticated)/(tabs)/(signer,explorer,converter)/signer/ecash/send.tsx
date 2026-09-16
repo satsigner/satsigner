@@ -25,26 +25,8 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
-import { type EcashMint } from '@/types/models/Ecash'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { type MintRoute } from '@/utils/ecashMintRoute'
-
-function describeTokenRoute(
-  route: MintRoute | null,
-  mints: EcashMint[]
-): string | null {
-  if (!route) {
-    return null
-  }
-  if (route.kind === 'single') {
-    const mint = mints.find((item) => item.url === route.mintUrl)
-    return `${t('ecash.send.payingFrom')} ${mint?.name ?? route.mintUrl}`
-  }
-  if (route.kind === 'insufficient') {
-    return t('ecash.error.insufficientOnMint')
-  }
-  return null
-}
+import { describeTokenRoute } from '@/utils/ecashMintRoute'
 
 export default function EcashSendPage() {
   const { invoice: invoiceParam } = useLocalSearchParams()

@@ -1,31 +1,32 @@
 import type { EcashProof } from '@/types/models/Ecash'
 
-export function replaceMintProofs(
-  allProofs: EcashProof[],
-  mintUrl: string,
-  nextMintProofs: EcashProof[]
-): EcashProof[] {
-  return [
-    ...allProofs.filter((proof) => proof.mintUrl !== mintUrl),
-    ...nextMintProofs
-  ]
-}
-
 export function proofsAfterSend(
   allProofs: EcashProof[],
-  mintUrl: string,
+  consumedProofs: EcashProof[],
   keep: EcashProof[]
 ): EcashProof[] {
-  return replaceMintProofs(allProofs, mintUrl, keep)
+  return replaceConsumedProofs(allProofs, consumedProofs, keep)
 }
 
 export function proofsAfterMelt(
   allProofs: EcashProof[],
-  mintUrl: string,
+  consumedProofs: EcashProof[],
   keep: EcashProof[],
   change: EcashProof[]
 ): EcashProof[] {
-  return replaceMintProofs(allProofs, mintUrl, [...keep, ...change])
+  return replaceConsumedProofs(allProofs, consumedProofs, [...keep, ...change])
+}
+
+function replaceConsumedProofs(
+  allProofs: EcashProof[],
+  consumedProofs: EcashProof[],
+  nextProofs: EcashProof[]
+): EcashProof[] {
+  const consumed = new Set(consumedProofs.map((proof) => proof.secret))
+  return [
+    ...allProofs.filter((proof) => !consumed.has(proof.secret)),
+    ...nextProofs
+  ]
 }
 
 export function removeSpentSecrets(
