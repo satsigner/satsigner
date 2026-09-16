@@ -146,19 +146,31 @@ export function normalizeRestoredProofs(
   )
   const missingMintUrl = proofs.length - withMintUrl.length
 
-  if (missingMintUrl === 0) {
-    return proofs
-  }
-
-  if (mintList.length === 1) {
+  if (missingMintUrl !== 0) {
+    if (mintList.length !== 1) {
+      throw new EcashBackupValidationError('invalid')
+    }
     const onlyMintUrl = mintList[0].url
-    return proofs.map((proof) => ({
-      ...proof,
-      mintUrl: proof.mintUrl || onlyMintUrl
-    }))
+    return proofsWithKnownMints(
+      proofs.map((proof) => ({
+        ...proof,
+        mintUrl: proof.mintUrl || onlyMintUrl
+      })),
+      mintList
+    )
   }
 
-  throw new EcashBackupValidationError('invalid')
+  return proofsWithKnownMints(proofs, mintList)
+}
+
+function proofsWithKnownMints(proofs: EcashProof[], mints: EcashMint[]) {
+  const mintUrls = new Set(mints.map((mint) => mint.url))
+  for (const proof of proofs) {
+    if (!mintUrls.has(proof.mintUrl)) {
+      throw new EcashBackupValidationError('invalid')
+    }
+  }
+  return proofs
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -242,6 +254,7 @@ function parseRestoredTransaction(value: unknown): EcashTransaction | null {
   }
   if (
     typeof value.id !== 'string' ||
+    value.id.length === 0 ||
     typeof value.amount !== 'number' ||
     typeof value.timestamp !== 'string' ||
     typeof value.mintUrl !== 'string' ||

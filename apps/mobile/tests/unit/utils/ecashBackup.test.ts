@@ -122,4 +122,30 @@ describe('ecash backup', () => {
     expect(parsed.proofs).toHaveLength(1)
     expect(parsed.mints[0].url).toBe('https://a.example')
   })
+
+  it('refuses proofs whose mint is missing from the backup', () => {
+    expect(() =>
+      parseEcashBackupPayload({
+        proofs: [proof('s1', 'https://a.example')]
+      })
+    ).toThrow(EcashBackupValidationError)
+  })
+
+  it('refuses transactions with an empty id', () => {
+    expect(() =>
+      parseEcashBackupPayload({
+        mints: [mint('https://a.example')],
+        proofs: [proof('s1', 'https://a.example')],
+        transactions: [
+          {
+            amount: 1,
+            id: '',
+            mintUrl: 'https://a.example',
+            timestamp: '2024-01-01T00:00:00.000Z',
+            type: 'receive'
+          }
+        ]
+      })
+    ).toThrow(EcashBackupValidationError)
+  })
 })

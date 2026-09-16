@@ -255,6 +255,10 @@ export function useEcashReceive() {
     setIsCreatingQuote(true)
     try {
       const amountSats = parseInt(amount, 10)
+      if (!Number.isSafeInteger(amountSats) || amountSats <= 0) {
+        toast.error(t('ecash.error.invalidAmount'))
+        return
+      }
 
       if (isLNURLWithdrawMode && lnurlWithdrawDetails) {
         const amountMillisats = amountSats * MILLISATS_PER_SAT

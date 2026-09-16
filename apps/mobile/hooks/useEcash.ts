@@ -58,6 +58,13 @@ const POLL_INTERVAL = 1500
 const MAX_POLL_ATTEMPTS = 120
 const MAX_MPP_FEE_SLICE_ATTEMPTS = 3
 
+function toError(error: unknown) {
+  if (error instanceof Error) {
+    return error
+  }
+  return new Error(String(error))
+}
+
 type TokenValidationResult = {
   isValid: boolean
   isSpent?: boolean
@@ -595,25 +602,39 @@ export function useEcash() {
       selectedMintUrl
     )
 
+    let lastQuoteCreationError: Error | undefined
+
     async function payWithCoveringMint(index: number): Promise<boolean> {
       const mintUrl = coveringUrls[index]
       if (!mintUrl) {
         return false
       }
-      const quote = await createMeltQuoteHandler(mintUrl, invoice)
+      const quoteResult = await createMeltQuoteHandler(mintUrl, invoice).then(
+        function onQuote(quote) {
+          return { ok: true as const, quote }
+        },
+        function onQuoteError(error: unknown) {
+          return { error, ok: false as const }
+        }
+      )
+      if (!quoteResult.ok) {
+        lastQuoteCreationError = toError(quoteResult.error)
+        return payWithCoveringMint(index + 1)
+      }
+      const { quote } = quoteResult
       const balance =
         mintBalances.find((mint) => mint.mintUrl === mintUrl)?.balance ?? 0
-      if (mintCoversMeltQuote(balance, quote)) {
-        const mintProofsList = currentProofs.filter(
-          (proof) => proof.mintUrl === mintUrl
-        )
-        await meltProofsHandler(mintUrl, quote, mintProofsList, {
-          silent: true
-        })
-        return true
+      if (!mintCoversMeltQuote(balance, quote)) {
+        removeMeltQuoteAction(accountId, quote.quote)
+        return payWithCoveringMint(index + 1)
       }
-      removeMeltQuoteAction(accountId, quote.quote)
-      return payWithCoveringMint(index + 1)
+      const mintProofsList = currentProofs.filter(
+        (proof) => proof.mintUrl === mintUrl
+      )
+      await meltProofsHandler(mintUrl, quote, mintProofsList, {
+        silent: true
+      })
+      return true
     }
 
     if (await payWithCoveringMint(0)) {
@@ -625,6 +646,11 @@ export function useEcash() {
       .toSorted((a, b) => b.balance - a.balance)
 
     if (mppMints.length === 0) {
+      if (lastQuoteCreationError) {
+        throw new Error(lastQuoteCreationError.message, {
+          cause: lastQuoteCreationError
+        })
+      }
       throw new Error(
         t(
           coveringUrls.length > 0
@@ -643,13 +669,25 @@ export function useEcash() {
       if (take <= 0 || attemptsLeft <= 0) {
         return null
       }
-      const quote = await createMppMeltQuote(
+      const quoteResult = await createMppMeltQuote(
         accountId,
         mint.mintUrl,
         invoice,
         take,
         options
+      ).then(
+        function onQuote(quote) {
+          return { ok: true as const, quote }
+        },
+        function onQuoteError(error: unknown) {
+          return { error, ok: false as const }
+        }
       )
+      if (!quoteResult.ok) {
+        lastQuoteCreationError = toError(quoteResult.error)
+        return null
+      }
+      const { quote } = quoteResult
       if (mintCoversMeltQuote(mint.balance, quote)) {
         return quote
       }
@@ -697,6 +735,11 @@ export function useEcash() {
       0
     )
     if (plannedQuotes.length === 0 || plannedAmount < amountSats) {
+      if (plannedQuotes.length === 0 && lastQuoteCreationError) {
+        throw new Error(lastQuoteCreationError.message, {
+          cause: lastQuoteCreationError
+        })
+      }
       throw new Error(t('ecash.error.insufficientForFees'))
     }
 

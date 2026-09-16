@@ -31,6 +31,7 @@ import type {
   LNDNodeInfo
 } from '@/types/models/Lightning'
 import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
+import { ConfigSchema, ServerSchema } from '@/types/settings/blockchain'
 import {
   prepareArkMnemonics,
   releaseArkWalletsForRestore,
@@ -239,6 +240,24 @@ function isBlockchainBackup(value: unknown): value is BlockchainBackup {
   for (const network of BLOCKCHAIN_BACKUP_NETWORKS) {
     const mempool = value.configsMempool[network]
     if (mempool !== undefined && typeof mempool !== 'string') {
+      return false
+    }
+    const entry = value.configs[network]
+    if (entry === undefined) {
+      continue
+    }
+    if (!isRecord(entry)) {
+      return false
+    }
+    if (!ConfigSchema.safeParse(entry.config).success) {
+      return false
+    }
+    if (!ServerSchema.safeParse(entry.server).success) {
+      return false
+    }
+  }
+  for (const server of value.customServers) {
+    if (!ServerSchema.safeParse(server).success) {
       return false
     }
   }
