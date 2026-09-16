@@ -18,12 +18,17 @@ export function getFiatPriceApiUrl() {
 }
 
 export function getFiatDataSettings() {
-  const { fetchCurrentPrices, fetchHistoricalPrices, fiatPriceProvider } =
-    useSettingsStore.getState()
+  const {
+    fetchCurrentPrices,
+    fetchHistoricalPrices,
+    fetchHistoricalPricesFromNetwork,
+    fiatPriceProvider
+  } = useSettingsStore.getState()
 
   return {
     fetchCurrentPrices,
     fetchHistoricalPrices,
+    fetchHistoricalPricesFromNetwork,
     fiatPriceApiUrl: getFiatPriceApiUrl(),
     fiatPriceProvider
   }

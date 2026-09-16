@@ -32,10 +32,12 @@ export default function FiatData() {
     customFiatPriceApiUrl,
     fetchCurrentPrices,
     fetchHistoricalPrices,
+    fetchHistoricalPricesFromNetwork,
     fiatPriceProvider,
     setCustomFiatPriceApiUrl,
     setFetchCurrentPrices,
     setFetchHistoricalPrices,
+    setFetchHistoricalPricesFromNetwork,
     setFiatPriceProvider
   } = useFiatData()
 
@@ -53,6 +55,10 @@ export default function FiatData() {
 
   function toggleFetchHistoricalPrices() {
     setFetchHistoricalPrices(!fetchHistoricalPrices)
+  }
+
+  function toggleFetchHistoricalPricesFromNetwork() {
+    setFetchHistoricalPricesFromNetwork(!fetchHistoricalPricesFromNetwork)
   }
 
   const isMempool = fiatPriceProvider === 'mempool'
@@ -84,6 +90,18 @@ export default function FiatData() {
                 selected={fetchHistoricalPrices}
                 onPress={toggleFetchHistoricalPrices}
               />
+              {fetchHistoricalPrices ? (
+                <SSVStack gap="xs" style={styles.networkOptIn}>
+                  <SSCheckbox
+                    label={tl('fetchHistoricalPricesFromNetwork')}
+                    onPress={toggleFetchHistoricalPricesFromNetwork}
+                    selected={fetchHistoricalPricesFromNetwork}
+                  />
+                  <SSText color="muted" size="xs">
+                    {tl('fetchHistoricalPricesFromNetworkWarning')}
+                  </SSText>
+                </SSVStack>
+              ) : null}
               <SSText color="muted" size="sm">
                 {tl('disclaimer')}
               </SSText>
@@ -176,6 +194,9 @@ const styles = StyleSheet.create({
   customProvider: {
     paddingLeft: 8,
     width: '100%'
+  },
+  networkOptIn: {
+    paddingLeft: 8
   },
   providerUrl: {
     paddingLeft: 8

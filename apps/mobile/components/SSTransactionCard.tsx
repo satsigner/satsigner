@@ -1,4 +1,5 @@
 import { useRouter, type Href } from 'expo-router'
+import { useState } from 'react'
 import {
   type StyleProp,
   StyleSheet,
@@ -27,9 +28,56 @@ import { parseLabel } from '@/utils/parse'
 import { getWalletTransactionEffect } from '@/utils/walletOwnership'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'
+import SSButton from './SSButton'
+import SSIconButton from './SSIconButton'
+import SSModal from './SSModal'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
+
+function HistoricalFiatUnavailable() {
+  const [visible, setVisible] = useState(false)
+  const router = useRouter()
+
+  function closeModal() {
+    setVisible(false)
+  }
+
+  function openModal() {
+    setVisible(true)
+  }
+
+  function goToFiatDataSettings() {
+    setVisible(false)
+    router.navigate('/settings/features/fiatData')
+  }
+
+  return (
+    <>
+      <SSIconButton hitSlop={8} onPress={openModal}>
+        <SSText color="muted" size="sm">
+          ?
+        </SSText>
+      </SSIconButton>
+      <SSModal onClose={closeModal} visible={visible}>
+        <SSVStack gap="md" itemsCenter>
+          <SSText size="lg" weight="medium">
+            {t('settings.features.fiatData.historicalUnavailable.title')}
+          </SSText>
+          <SSText color="muted" size="sm">
+            {t('settings.features.fiatData.historicalUnavailable.body')}
+          </SSText>
+          <SSButton
+            label={t(
+              'settings.features.fiatData.historicalUnavailable.goToSettings'
+            )}
+            onPress={goToFiatDataSettings}
+          />
+        </SSVStack>
+      </SSModal>
+    </>
+  )
+}
 
 type SSTransactionCardProps = {
   transaction: Transaction
@@ -112,7 +160,10 @@ function SSTransactionCard({
     walletBalance !== previousBalance
       ? formatPercentualChange(walletBalance, previousBalance)
       : ''
-  const hasPriceDisplay = currentFiatPrice !== '' || historicalFiatPrice !== ''
+  const hasPriceDisplay =
+    currentFiatPrice !== '' ||
+    historicalFiatPrice !== '' ||
+    (showHistoricalFiat && Boolean(transaction.timestamp))
 
   const router = useRouter()
 
@@ -264,6 +315,8 @@ function SSTransactionCard({
                         >
                           ({historicalFiatPrice})
                         </SSText>
+                      ) : showHistoricalFiat && transaction.timestamp ? (
+                        <HistoricalFiatUnavailable />
                       ) : null}
                       {!privacyMode && percentChange !== '' ? (
                         <SSText
