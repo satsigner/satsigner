@@ -33,4 +33,17 @@ describe('extractPayjoinOriginalPsbt', () => {
     expect(extractPayjoinOriginalPsbt(['{"Created":{}}'])).toBeUndefined()
     expect(extractPayjoinOriginalPsbt([])).toBeUndefined()
   })
+
+  it('rejects hex that is not the full psbt\\xff magic', () => {
+    expect(extractPayjoinOriginalPsbt(['70736274f0'])).toBeUndefined()
+  })
+
+  it('skips an invalid newer event and keeps an older valid PSBT', () => {
+    expect(
+      extractPayjoinOriginalPsbt([
+        JSON.stringify({ RetrievedOriginalPayload: { psbt: SAMPLE_BASE64 } }),
+        '70736274f0'
+      ])
+    ).toBe(SAMPLE_BASE64)
+  })
 })

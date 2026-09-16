@@ -1,15 +1,14 @@
-const PSBT_MAGIC_BASE64 = 'cHNidP'
-const PSBT_MAGIC_HEX = '70736274'
-const PSBT_MAGIC_BYTES = [0x70, 0x73, 0x62, 0x74] as const
+const PSBT_MAGIC_BYTES = [0x70, 0x73, 0x62, 0x74, 0xff] as const
 const HEX_STRING_PATTERN = /^(?:0x)?[0-9a-fA-F]+$/
 
 function bytesLookLikePsbt(bytes: Uint8Array): boolean {
   return (
-    bytes.length >= 5 &&
+    bytes.length >= PSBT_MAGIC_BYTES.length &&
     bytes[0] === PSBT_MAGIC_BYTES[0] &&
     bytes[1] === PSBT_MAGIC_BYTES[1] &&
     bytes[2] === PSBT_MAGIC_BYTES[2] &&
-    bytes[3] === PSBT_MAGIC_BYTES[3]
+    bytes[3] === PSBT_MAGIC_BYTES[3] &&
+    bytes[4] === PSBT_MAGIC_BYTES[4]
   )
 }
 
@@ -17,9 +16,6 @@ function hexToPsbtBase64(hex: string): string | undefined {
   const clean =
     hex.startsWith('0x') || hex.startsWith('0X') ? hex.slice(2) : hex
   if (clean.length < 10 || clean.length % 2 !== 0) {
-    return undefined
-  }
-  if (!clean.toLowerCase().startsWith(PSBT_MAGIC_HEX)) {
     return undefined
   }
   if (!HEX_STRING_PATTERN.test(clean)) {
@@ -30,6 +26,18 @@ function hexToPsbtBase64(hex: string): string | undefined {
     return undefined
   }
   return bytes.toString('base64')
+}
+
+function base64ToPsbt(value: string): string | undefined {
+  try {
+    const bytes = Buffer.from(value, 'base64')
+    if (!bytesLookLikePsbt(bytes)) {
+      return undefined
+    }
+    return bytes.toString('base64')
+  } catch {
+    return undefined
+  }
 }
 
 function numbersToPsbtBase64(values: unknown[]): string | undefined {
@@ -51,8 +59,9 @@ function numbersToPsbtBase64(values: unknown[]): string | undefined {
 
 function psbtFromUnknown(value: unknown): string | undefined {
   if (typeof value === 'string') {
-    if (value.startsWith(PSBT_MAGIC_BASE64)) {
-      return value
+    const fromBase64 = base64ToPsbt(value)
+    if (fromBase64) {
+      return fromBase64
     }
     const fromHex = hexToPsbtBase64(value)
     if (fromHex) {
