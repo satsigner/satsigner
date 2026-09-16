@@ -1,10 +1,13 @@
 import {
+  SSIconBoardCircle,
   SSIconIncoming,
   SSIconIncomingLightning,
+  SSIconOffboardCircle,
   SSIconOutgoing,
   SSIconOutgoingLightning,
   SSIconRefresh
 } from '@/components/icons'
+import { Colors } from '@/styles'
 import type { ArkMovementKind } from '@/types/models/Ark'
 
 type SSArkMovementIconProps = {
@@ -20,6 +23,20 @@ function SSArkMovementIcon({
 }: SSArkMovementIconProps) {
   if (kind === 'refresh') {
     return <SSIconRefresh height={size} width={size} />
+  }
+  if (kind === 'board') {
+    return (
+      <SSIconBoardCircle height={size} width={size} stroke={Colors.mainGreen} />
+    )
+  }
+  if (kind === 'offboard') {
+    return (
+      <SSIconOffboardCircle
+        height={size}
+        width={size}
+        stroke={Colors.mainRed}
+      />
+    )
   }
   if (kind === 'receive') {
     return isLightning ? (
