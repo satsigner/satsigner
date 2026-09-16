@@ -15,9 +15,9 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
-import { type LNDNodeInfo } from '@/types/models/Lightning'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { parseLndNodeInfo } from '@/utils/lndNodeInfo'
 import {
   parseLndConnectionInput,
   resolveLndConfigFromConnectionInput
@@ -59,7 +59,10 @@ export default function LNDRestPage() {
       )
 
       if (response.ok) {
-        const nodeInfo = (await response.json()) as LNDNodeInfo
+        const nodeInfo = parseLndNodeInfo(await response.json())
+        if (!nodeInfo) {
+          throw new Error(`getinfo failed (${response.status})`)
+        }
 
         setConfig({ ...config, url: baseUrl })
         setNodeInfo(nodeInfo)

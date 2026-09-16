@@ -279,24 +279,29 @@ describe('ecash store', () => {
       })
 
       const state = useEcashStore.getState()
-      expect(state.mints['acc-1']).toHaveLength(1)
-      expect(state.mints['acc-1'][0].url).toBe('https://other-mint.example')
+      expect(state.mints['acc-1'].map((mint) => mint.url)).toStrictEqual([
+        mint.url,
+        'https://other-mint.example'
+      ])
       expect(state.proofs['acc-1']).toStrictEqual([proof])
       expect(state.transactions['acc-1']).toStrictEqual([])
+      expect(state.quotes['acc-1']).toStrictEqual({ melt: [], mint: [] })
     })
 
-    it('replaces proofs when the backup includes them', () => {
+    it('merges proofs when the backup includes them', () => {
       useEcashStore.getState().addAccount(makeAccount('acc-1'))
-      useEcashStore
-        .getState()
-        .addProofs('acc-1', [makeProof('p1', 100, 'https://mint.example')])
+      const existing = makeProof('p1', 100, 'https://mint.example')
+      useEcashStore.getState().addProofs('acc-1', [existing])
 
       const restored = makeProof('p2', 50, 'https://mint.example')
       useEcashStore.getState().restoreFromBackup('acc-1', {
         proofs: [restored]
       })
 
-      expect(useEcashStore.getState().proofs['acc-1']).toStrictEqual([restored])
+      expect(useEcashStore.getState().proofs['acc-1']).toStrictEqual([
+        existing,
+        restored
+      ])
     })
   })
 })

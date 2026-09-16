@@ -145,7 +145,7 @@ describe('performRecoverOverwrite validation', () => {
     })
   })
 
-  it('fails when a key is missing both seedWords and passphrase', async () => {
+  it('fails when a key is missing both seedWords and passphrase', async function failsWhenKeyMissingSeedData() {
     setPin('1234')
     const result = await performRecoverOverwrite(
       JSON.stringify({
@@ -160,6 +160,48 @@ describe('performRecoverOverwrite validation', () => {
     )
     expect(result).toStrictEqual({
       error: 'Backup key missing seed data',
+      success: false
+    })
+  })
+
+  it('fails when serverSettings omit configsMempool', async () => {
+    setPin('1234')
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [],
+        serverSettings: {
+          configs: {},
+          customServers: [],
+          selectedNetwork: 'bitcoin'
+        }
+      })
+    )
+    expect(result).toStrictEqual({
+      error: 'Backup server settings are invalid',
+      success: false
+    })
+  })
+
+  it('fails when serverSettings configs fail schema validation', async () => {
+    setPin('1234')
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [],
+        serverSettings: {
+          configs: {
+            bitcoin: {
+              config: {},
+              server: { network: 'bitcoin', url: 'ssl://example:50002' }
+            }
+          },
+          configsMempool: { bitcoin: '', signet: '', testnet: '' },
+          customServers: [],
+          selectedNetwork: 'bitcoin'
+        }
+      })
+    )
+    expect(result).toStrictEqual({
+      error: 'Backup server settings are invalid',
       success: false
     })
   })
@@ -279,6 +321,7 @@ describe('performRecoverOverwrite restore', () => {
       setChannels: jest.fn(),
       setConfig: jest.fn(),
       setConnected: jest.fn(),
+      setLastSync: jest.fn(),
       setNodeInfo: jest.fn()
     })
     useNostrStore.getState.mockReturnValue({
@@ -323,9 +366,24 @@ describe('performRecoverOverwrite restore', () => {
       trustedMemberDevices: []
     }
     const customServer = {
+      backend: 'electrum' as const,
       name: 'My Electrum',
       network: 'bitcoin' as const,
       url: 'ssl://electrum.example:50002'
+    }
+    const bitcoinServer = {
+      backend: 'esplora' as const,
+      name: 'Default',
+      network: 'bitcoin' as const,
+      url: 'ssl://default.example:50002'
+    }
+    const bitcoinConfig = {
+      connectionMode: 'auto' as const,
+      connectionTestInterval: 60,
+      retries: 1,
+      stopGap: 20,
+      timeDiffBeforeAutoSync: 5,
+      timeout: 8
     }
 
     const result = await performRecoverOverwrite(
@@ -348,12 +406,7 @@ describe('performRecoverOverwrite restore', () => {
         },
         serverSettings: {
           configs: {
-            bitcoin: {
-              config: {},
-              server: { network: 'bitcoin', url: 'ssl://default.example:50002' }
-            },
-            signet: { config: {}, server: { network: 'signet', url: '' } },
-            testnet: { config: {}, server: { network: 'testnet', url: '' } }
+            bitcoin: { config: bitcoinConfig, server: bitcoinServer }
           },
           configsMempool: {
             bitcoin: 'https://mempool.example',
@@ -452,15 +505,7 @@ describe('performRecoverOverwrite restore', () => {
         accounts: [],
         serverSettings: {
           configs: {
-            bitcoin: { config: bitcoinConfig, server: bitcoinServer },
-            signet: {
-              config: {},
-              server: { backend: 'electrum', network: 'signet', url: '' }
-            },
-            testnet: {
-              config: {},
-              server: { backend: 'esplora', network: 'testnet', url: '' }
-            }
+            bitcoin: { config: bitcoinConfig, server: bitcoinServer }
           },
           configsMempool: {
             bitcoin: 'https://mempool.example',
@@ -503,11 +548,13 @@ describe('performRecoverOverwrite restore', () => {
     const setChannels = jest.fn()
     const setConnected = jest.fn()
     const setNodeInfo = jest.fn()
+    const setLastSync = jest.fn()
     useLightningStore.getState.mockReturnValue({
       clearConfig: jest.fn(),
       setChannels,
       setConfig,
       setConnected,
+      setLastSync,
       setNodeInfo
     })
 

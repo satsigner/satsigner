@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
-import { getMintBalance } from '@/api/ecash'
+import { getLargestMintBalance, getMintBalance } from '@/api/ecash'
 import { useEcash } from '@/hooks/useEcash'
 import { useLND } from '@/hooks/useLND'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
@@ -66,7 +66,10 @@ export function useEcashSend() {
       : null
   const spendableSats = selectedMintUrl
     ? getMintBalance(selectedMintUrl, proofs)
-    : proofs.reduce((sum, proof) => sum + proof.amount, 0)
+    : getLargestMintBalance(
+        mints.map((mint) => mint.url),
+        proofs
+      )
   const mintProofs = selectedMintUrl
     ? proofs.filter((p) => p.mintUrl === selectedMintUrl)
     : proofs

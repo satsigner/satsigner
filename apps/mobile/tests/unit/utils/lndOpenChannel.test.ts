@@ -1,4 +1,7 @@
-import { LND_OPEN_CHANNEL_MIN_FUNDING_SAT } from '@/constants/lightning'
+import {
+  LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE,
+  LND_OPEN_CHANNEL_MIN_FUNDING_SAT
+} from '@/constants/lightning'
 import {
   buildLndOpenChannelBody,
   formatLndPeerUri,
@@ -47,6 +50,10 @@ describe('lndOpenChannel', () => {
       expect(parseLndPeerUri('')).toBeNull()
       expect(parseLndPeerUri('02aa')).toBeNull()
       expect(parseLndPeerUri(`${PUBKEY}@`)).toBeNull()
+    })
+
+    it('rejects an uncompressed-looking prefix', () => {
+      expect(parseLndPeerUri(`ff${'ab'.repeat(32)}`)).toBeNull()
     })
   })
 
@@ -173,6 +180,15 @@ describe('lndOpenChannel', () => {
     it('rejects invalid fee text', () => {
       expect(
         validateLndOpenChannelInput({ ...base, satPerVbyteText: '0' })
+      ).toStrictEqual({ ok: false, reason: 'fee' })
+    })
+
+    it('rejects a fee above the configured maximum', () => {
+      expect(
+        validateLndOpenChannelInput({
+          ...base,
+          satPerVbyteText: String(LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE + 1)
+        })
       ).toStrictEqual({ ok: false, reason: 'fee' })
     })
   })

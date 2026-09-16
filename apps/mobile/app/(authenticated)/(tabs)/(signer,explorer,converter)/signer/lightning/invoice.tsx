@@ -19,6 +19,7 @@ import SSModal from '@/components/SSModal'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { LND_INVOICE_POLL_MS } from '@/constants/lightning'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
@@ -288,22 +289,27 @@ export default function InvoicePage() {
       return
     }
 
+    if (isLNURLMode && lnurlDetails) {
+      const amountMillisats = amount * MILLISATS_PER_SAT
+      if (
+        amountMillisats < lnurlDetails.minWithdrawable ||
+        amountMillisats > lnurlDetails.maxWithdrawable
+      ) {
+        toast.error(
+          t('lightning.invoice.withdrawRange', {
+            max: Math.floor(lnurlDetails.maxWithdrawable / MILLISATS_PER_SAT),
+            min: Math.ceil(lnurlDetails.minWithdrawable / MILLISATS_PER_SAT)
+          })
+        )
+        return
+      }
+    }
+
     setIsProcessing(true)
     try {
       const bolt11Invoice = await createInvoice(amount, invoiceDescription)
       if (isLNURLMode && lnurlDetails) {
-        const amountMillisats = amount * 1000
-        if (
-          amountMillisats < lnurlDetails.minWithdrawable ||
-          amountMillisats > lnurlDetails.maxWithdrawable
-        ) {
-          throw new Error(
-            t('lightning.invoice.withdrawRange', {
-              max: Math.floor(lnurlDetails.maxWithdrawable / 1000),
-              min: Math.ceil(lnurlDetails.minWithdrawable / 1000)
-            })
-          )
-        }
+        const amountMillisats = amount * MILLISATS_PER_SAT
         if (!bolt11Invoice.payment_request) {
           throw new Error(t('lightning.invoice.bolt11Failed'))
         }
@@ -327,8 +333,10 @@ export default function InvoicePage() {
       setRHash(bolt11Invoice.r_hash || '')
       setInvoiceStatus('open')
       setQrModalVisible(true)
-    } catch {
-      toast.error(t('lightning.invoice.bolt11Failed'))
+    } catch (error) {
+      toast.error(
+        getLndErrorMessage(error) || t('lightning.invoice.bolt11Failed')
+      )
     } finally {
       setIsProcessing(false)
     }

@@ -16,7 +16,11 @@ describe('ecash proof accounting', () => {
     const allProofs = [proof('in-8', 8, mintA), proof('other', 4, mintB)]
     const keep = [proof('keep-3', 3, mintA)]
 
-    const remaining = proofsAfterSend(allProofs, mintA, keep)
+    const remaining = proofsAfterSend(
+      allProofs,
+      [proof('in-8', 8, mintA)],
+      keep
+    )
 
     expect(remaining).toStrictEqual([proof('other', 4, mintB), ...keep])
   })
@@ -25,7 +29,7 @@ describe('ecash proof accounting', () => {
     const mintA = 'https://mint-a.example'
     const allProofs = [proof('a', 4, mintA), proof('b', 1, mintA)]
 
-    const remaining = proofsAfterSend(allProofs, mintA, [])
+    const remaining = proofsAfterSend(allProofs, allProofs, [])
 
     expect(remaining).toStrictEqual([])
   })
@@ -36,7 +40,12 @@ describe('ecash proof accounting', () => {
     const keep = [proof('keep-3', 3, mintA)]
     const change = [proof('chg-1', 1, mintA)]
 
-    const remaining = proofsAfterMelt(allProofs, mintA, keep, change)
+    const remaining = proofsAfterMelt(
+      allProofs,
+      [proof('in-8', 8, mintA)],
+      keep,
+      change
+    )
 
     expect(remaining.map((p) => p.secret).toSorted()).toStrictEqual([
       'chg-1',
@@ -51,5 +60,19 @@ describe('ecash proof accounting', () => {
     const remaining = removeSpentSecrets(allProofs, ['spent'])
 
     expect(remaining).toStrictEqual([proof('live', 3, mintA)])
+  })
+
+  it('preserves proofs added while a send is pending', () => {
+    const mintA = 'https://mint-a.example'
+    const remaining = proofsAfterSend(
+      [proof('in', 8, mintA), proof('new', 1, mintA)],
+      [proof('in', 8, mintA)],
+      [proof('keep', 3, mintA)]
+    )
+
+    expect(remaining.map((item) => item.secret).toSorted()).toStrictEqual([
+      'keep',
+      'new'
+    ])
   })
 })
