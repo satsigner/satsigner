@@ -7,8 +7,7 @@
     "**/android",
     "**/ios",
     "**/routeTree.gen.ts",
-    "apps/mobile/assets/prices/**",
-    "btc_prices/*.csv"
+    "apps/mobile/assets/prices/**"
   ],
   "arrowParens": "always",
   "bracketSameLine": false,
