@@ -584,11 +584,13 @@ function useSyncAccountWithAddress() {
       // label update
       updatedAccount = updateAccountObjectLabels(updatedAccount)
 
+      const { fiatCurrency } = usePriceStore.getState()
+
       // Convert timestamps to Date objects and collect unix timestamps
       // Skip transactions that already have a cached price — they are immutable
       const timestamps: number[] = []
       for (const transaction of updatedAccount.transactions) {
-        if (transaction.prices?.USD !== undefined) {
+        if (transaction.prices?.[fiatCurrency] !== undefined) {
           continue
         }
         if (transaction.timestamp) {
@@ -614,7 +616,6 @@ function useSyncAccountWithAddress() {
       const uniqueTimestamps = [...new Set(timestamps)]
 
       const { fetchHistoricalPrices } = useSettingsStore.getState()
-      const { fiatCurrency } = usePriceStore.getState()
       const emptyPrices: Record<number, number> = {}
       const priceTimestamps =
         fetchHistoricalPrices && uniqueTimestamps.length > 0

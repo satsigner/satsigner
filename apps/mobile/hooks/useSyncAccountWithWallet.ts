@@ -12,6 +12,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
+import { type Prices } from '@/types/models/Blockchain'
 import { updateAccountObjectLabels } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
@@ -242,10 +243,10 @@ function useSyncAccountWithWallet() {
       }
 
       // Capture cached prices before overwriting transactions with fresh BDK data
-      const cachedPrices: Record<string, number | undefined> = {}
+      const cachedPrices: Record<string, Prices> = {}
       for (const tx of latest.transactions) {
-        if (tx.prices?.USD !== undefined) {
-          cachedPrices[tx.id] = tx.prices.USD
+        if (tx.prices && Object.keys(tx.prices).length > 0) {
+          cachedPrices[tx.id] = tx.prices
         }
       }
 
@@ -262,21 +263,24 @@ function useSyncAccountWithWallet() {
       updatedAccount.addresses = parseAccountAddressesDetails(updatedAccount)
       updatedAccount = updateAccountObjectLabels(updatedAccount)
 
+      const { fiatCurrency } = usePriceStore.getState()
+
       // Apply cached prices and collect timestamps only for unpriced transactions
       const unpricedTimestamps: number[] = []
       for (const tx of updatedAccount.transactions) {
-        const cachedPrice = cachedPrices[tx.id]
-        if (cachedPrice !== undefined) {
-          tx.prices = { USD: cachedPrice }
-        } else if (tx.timestamp) {
-          unpricedTimestamps.push(formatTimestamp(tx.timestamp))
+        const cached = cachedPrices[tx.id]
+        if (cached !== undefined) {
+          tx.prices = { ...cached }
         }
+        if (tx.prices?.[fiatCurrency] !== undefined || !tx.timestamp) {
+          continue
+        }
+        unpricedTimestamps.push(formatTimestamp(tx.timestamp))
       }
 
       if (unpricedTimestamps.length > 0) {
         const { fetchHistoricalPrices } = useSettingsStore.getState()
         if (fetchHistoricalPrices) {
-          const { fiatCurrency } = usePriceStore.getState()
           const uniqueTimestamps = [...new Set(unpricedTimestamps)]
           try {
             const priceMap = await resolveHistoricalPrices(
