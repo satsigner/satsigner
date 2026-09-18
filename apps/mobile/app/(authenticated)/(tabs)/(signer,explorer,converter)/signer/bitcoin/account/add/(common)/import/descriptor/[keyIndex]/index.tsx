@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
+import { StyleSheet } from 'react-native'
 import { type Network as _Network } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
@@ -20,6 +21,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useNFCReader } from '@/hooks/useNFCReader'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
@@ -63,6 +65,10 @@ export default function ImportDescriptor() {
   const [externalDescriptorError, setExternalDescriptorError] = useState('')
   const [internalDescriptorError, setInternalDescriptorError] = useState('')
 
+  function openCamera() {
+    setCameraModalVisible(true)
+  }
+
   const pulseAnim = useSharedValue(0)
   const scaleAnim = useSharedValue(1)
 
@@ -84,9 +90,8 @@ export default function ImportDescriptor() {
   }, [isReading, pulseAnim])
 
   const nfcButtonStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
-    overflow: 'hidden' as const,
-    transform: [{ scale: scaleAnim.value }]
+    opacity: interpolate(pulseAnim.get(), [0, 1], [1, 0.7]),
+    transform: [{ scale: scaleAnim.get() }]
   }))
 
   const [
@@ -587,16 +592,18 @@ export default function ImportDescriptor() {
                 )}
               </SSVStack>
             </SSVStack>
-            <SSVStack>
+            <SSHStack gap="sm">
               <SSButton
-                label={t('watchonly.read.clipboard')}
+                label={t('common.paste')}
                 onPress={pasteFromClipboard}
+                style={styles.actionButton}
               />
               <SSButton
-                label={t('watchonly.read.qrcode')}
-                onPress={() => setCameraModalVisible(true)}
+                label={t('common.scanQR')}
+                onPress={openCamera}
+                style={styles.actionButton}
               />
-              <Animated.View style={nfcButtonStyle}>
+              <Animated.View style={[styles.actionButton, nfcButtonStyle]}>
                 <SSButton
                   label={
                     isReading
@@ -607,7 +614,7 @@ export default function ImportDescriptor() {
                   disabled={!isHardwareSupported}
                 />
               </Animated.View>
-            </SSVStack>
+            </SSHStack>
           </SSVStack>
           <SSVStack gap="sm">
             <SSButton
@@ -634,3 +641,9 @@ export default function ImportDescriptor() {
     </SSMainLayout>
   )
 }
+
+const styles = StyleSheet.create({
+  actionButton: {
+    flex: 1
+  }
+})

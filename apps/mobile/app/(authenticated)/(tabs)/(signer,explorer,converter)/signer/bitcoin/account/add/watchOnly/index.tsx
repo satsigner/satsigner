@@ -200,10 +200,19 @@ export default function WatchOnly() {
   }, [isReading, pulseAnim, scaleAnim])
 
   const nfcButtonStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
-    overflow: 'hidden',
-    transform: [{ scale: scaleAnim.value }]
+    opacity: interpolate(pulseAnim.get(), [0, 1], [1, 0.7]),
+    transform: [{ scale: scaleAnim.get() }]
   }))
+
+  function openMainCamera() {
+    setScanningFor('main')
+    setCameraModalVisible(true)
+  }
+
+  function openFingerprintCamera() {
+    setScanningFor('fingerprint')
+    setCameraModalVisible(true)
+  }
 
   const updateDescriptorValidationState = useCallback(() => {
     const hasValidExternal = externalDescriptor && isValidExternalDescriptor
@@ -256,6 +265,10 @@ export default function WatchOnly() {
     const processedAddress = stripBitcoinPrefix(address)
     setAddresses([...addresses, processedAddress])
     setAddressInput('')
+  }
+
+  function handleAddAddress() {
+    addAddress(addressInput)
   }
 
   function deleteAddress(address: string) {
@@ -478,7 +491,7 @@ export default function WatchOnly() {
         return
       }
       if (parsed.combined) {
-        void handleCombinedDescriptor(parsed.combined, parsed.combined)
+        void handleCombinedDescriptor(parsed.combined)
       } else {
         void updateExternalDescriptor(parsed.external, parsed.derivedExternal)
         if (parsed.internal) {
@@ -527,7 +540,7 @@ export default function WatchOnly() {
       // Try to parse as JSON first
       const jsonResult = DescriptorUtils.parseJsonDescriptor(text)
       if (jsonResult) {
-        await handleJsonDescriptor(jsonResult, text)
+        await handleJsonDescriptor(jsonResult)
         return
       }
 
@@ -559,14 +572,15 @@ export default function WatchOnly() {
     }
   }
 
-  async function handleJsonDescriptor(
-    result: { external: string; internal: string; original: string },
-    originalText: string
-  ) {
+  async function handleJsonDescriptor(result: {
+    external: string
+    internal: string
+    original: string
+  }) {
     const { external, internal, original } = result
 
     if (isCombinedDescriptor(original)) {
-      await handleCombinedDescriptor(original, originalText)
+      await handleCombinedDescriptor(original)
     } else {
       // For JSON descriptors, use the original descriptor for validation
       await updateExternalDescriptor(original)
@@ -584,7 +598,7 @@ export default function WatchOnly() {
     const { external, internal } = result
 
     if (isCombinedDescriptor(external)) {
-      await handleCombinedDescriptor(external, external)
+      await handleCombinedDescriptor(external)
       return
     }
 
@@ -598,17 +612,14 @@ export default function WatchOnly() {
 
   async function handleSingleDescriptor(descriptor: string) {
     if (isCombinedDescriptor(descriptor)) {
-      await handleCombinedDescriptor(descriptor, descriptor)
+      await handleCombinedDescriptor(descriptor)
     } else {
       await updateExternalDescriptor(descriptor)
       extractAndSetFingerprint(descriptor)
     }
   }
 
-  async function handleCombinedDescriptor(
-    descriptor: string,
-    originalText: string
-  ) {
+  async function handleCombinedDescriptor(descriptor: string) {
     const result = await DescriptorUtils.processCombinedDescriptor(
       descriptor,
       scriptVersion as ScriptVersionType
@@ -621,23 +632,19 @@ export default function WatchOnly() {
       setIsValidExternalDescriptor(true)
       setIsValidInternalDescriptor(true)
 
-      // Store the FULL combined descriptor in the store for validation during account creation
-      setExternalDescriptor(originalText)
-      setInternalDescriptor('')
-
-      // Extract and set fingerprint
-      if (!localFingerprint && result.fingerprint) {
-        setLocalFingerprint(result.fingerprint)
-        setFingerprint(result.fingerprint)
-      }
-
-      // Remove checksums from separated descriptors for format validation
       const externalWithoutChecksum = DescriptorUtils.removeChecksum(
         result.external
       )
       const internalWithoutChecksum = DescriptorUtils.removeChecksum(
         result.internal
       )
+      setExternalDescriptor(externalWithoutChecksum)
+      setInternalDescriptor(internalWithoutChecksum)
+
+      if (!localFingerprint && result.fingerprint) {
+        setLocalFingerprint(result.fingerprint)
+        setFingerprint(result.fingerprint)
+      }
 
       await updateExternalDescriptor(externalWithoutChecksum, true)
       await updateInternalDescriptor(internalWithoutChecksum, true)
@@ -700,21 +707,11 @@ export default function WatchOnly() {
             )
 
           if (combinedValidation.success) {
-            // Set both descriptors and mark them as valid
             setLocalExternalDescriptor(combinedValidation.external)
             setLocalInternalDescriptor(combinedValidation.internal)
             setIsValidExternalDescriptor(true)
             setIsValidInternalDescriptor(true)
 
-            // IMPORTANT: Store the FULL combined descriptor in the store for validation during account creation
-            // The separated descriptors are only for display purposes
-            setExternalDescriptor(text) // Store the original combined descriptor
-            setInternalDescriptor('') // No internal descriptor for combined descriptors
-
-            extractAndSetFingerprint(combinedValidation.external)
-
-            // IMPORTANT: For combined descriptors, we need to remove the checksum from the separated descriptors
-            // because the checksums are only valid for the full combined descriptor
             const externalWithoutChecksum = combinedValidation.external.replace(
               /#[a-z0-9]+$/,
               ''
@@ -723,8 +720,11 @@ export default function WatchOnly() {
               /#[a-z0-9]+$/,
               ''
             )
+            setExternalDescriptor(externalWithoutChecksum)
+            setInternalDescriptor(internalWithoutChecksum)
 
-            // Use format-only validation for the separated descriptors (without checksums)
+            extractAndSetFingerprint(combinedValidation.external)
+
             await updateExternalDescriptor(externalWithoutChecksum, true)
             await updateInternalDescriptor(internalWithoutChecksum, true)
           } else {
@@ -922,11 +922,6 @@ export default function WatchOnly() {
                         onChangeText={updateAddress}
                         multiline
                       />
-                      <SSButton
-                        label={t('common.add')}
-                        disabled={!addressInput || !isValidAddress}
-                        onPress={() => addAddress(addressInput)}
-                      />
                     </>
                   )}
                 </SSVStack>
@@ -936,29 +931,36 @@ export default function WatchOnly() {
                       label={t('common.paste')}
                       variant="gradient"
                       onPress={pasteFromClipboard}
-                      style={{ flex: 1 }}
+                      style={styles.actionButton}
                     />
                     <SSButton
                       label={t('common.scanQR')}
                       variant="gradient"
-                      onPress={() => {
-                        setScanningFor('main')
-                        setCameraModalVisible(true)
-                      }}
-                      style={{ flex: 1 }}
+                      onPress={openMainCamera}
+                      style={styles.actionButton}
                     />
+                    <Animated.View
+                      style={[styles.actionButton, nfcButtonStyle]}
+                    >
+                      <SSButton
+                        label={
+                          isReading
+                            ? t('watchonly.read.scanning')
+                            : t('watchonly.read.nfc')
+                        }
+                        variant="gradient"
+                        onPress={handleNFCRead}
+                        disabled={!isHardwareSupported}
+                      />
+                    </Animated.View>
                   </SSHStack>
-                  <Animated.View style={nfcButtonStyle}>
+                  {selectedOption === 'importAddress' && (
                     <SSButton
-                      label={
-                        isReading
-                          ? t('watchonly.read.scanning')
-                          : t('watchonly.read.nfc')
-                      }
-                      onPress={handleNFCRead}
-                      disabled={!isHardwareSupported}
+                      label={t('common.add')}
+                      disabled={!addressInput || !isValidAddress}
+                      onPress={handleAddAddress}
                     />
-                  </Animated.View>
+                  )}
                 </SSVStack>
               </SSVStack>
               {selectedOption === 'importExtendedPub' && (
@@ -1013,16 +1015,13 @@ export default function WatchOnly() {
                     label={t('common.paste')}
                     variant="gradient"
                     onPress={pasteFingerprintFromClipboard}
-                    style={{ flex: 1 }}
+                    style={styles.actionButton}
                   />
                   <SSButton
                     label={t('common.scanQR')}
                     variant="gradient"
-                    onPress={() => {
-                      setScanningFor('fingerprint')
-                      setCameraModalVisible(true)
-                    }}
-                    style={{ flex: 1 }}
+                    onPress={openFingerprintCamera}
+                    style={styles.actionButton}
                   />
                 </SSHStack>
               </SSVStack>
@@ -1094,6 +1093,9 @@ export default function WatchOnly() {
 }
 
 const styles = StyleSheet.create({
+  actionButton: {
+    flex: 1
+  },
   innerScrollContainer: {
     flex: 1,
     paddingBottom: 20

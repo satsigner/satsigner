@@ -98,6 +98,16 @@ export default function UnifiedImport() {
     setPolicyType('multisig' as PolicyType)
   }, [setPolicyType])
 
+  function openMainCamera() {
+    setScanningFor('main')
+    setCameraModalVisible(true)
+  }
+
+  function openFingerprintCamera() {
+    setScanningFor('fingerprint')
+    setCameraModalVisible(true)
+  }
+
   function updateMasterFingerprint(fingerprint: string) {
     const validMasterFingerprint =
       !fingerprint || validateFingerprint(fingerprint)
@@ -635,19 +645,16 @@ export default function UnifiedImport() {
                     />
                     <SSHStack gap="sm" style={{ marginTop: 8 }}>
                       <SSButton
-                        label={t('watchonly.read.clipboard')}
+                        label={t('common.paste')}
                         variant="subtle"
                         onPress={pasteFingerprintFromClipboard}
-                        style={{ flex: 1 }}
+                        style={styles.actionButton}
                       />
                       <SSButton
-                        label={t('watchonly.read.qrcode')}
+                        label={t('common.scanQR')}
                         variant="subtle"
-                        onPress={() => {
-                          setScanningFor('fingerprint')
-                          setCameraModalVisible(true)
-                        }}
-                        style={{ flex: 1 }}
+                        onPress={openFingerprintCamera}
+                        style={styles.actionButton}
                       />
                     </SSHStack>
                   </SSFormLayout.Item>
@@ -712,27 +719,32 @@ export default function UnifiedImport() {
           </SSVStack>
 
           <SSVStack>
-            <SSButton
-              label={t('watchonly.read.clipboard')}
-              variant="subtle"
-              onPress={pasteFromClipboard}
-            />
-            <SSButton
-              label={t('watchonly.read.computerVision')}
-              variant="subtle"
-              onPress={() => {
-                setScanningFor('main')
-                setCameraModalVisible(true)
-              }}
-            />
-            {isHardwareSupported && (
+            <SSHStack gap="sm">
               <SSButton
-                label={t('watchonly.read.nfc')}
-                variant="ghost"
+                label={t('common.paste')}
+                variant="subtle"
+                onPress={pasteFromClipboard}
+                style={styles.actionButton}
+              />
+              <SSButton
+                label={t('common.scanQR')}
+                variant="subtle"
+                onPress={openMainCamera}
+                style={styles.actionButton}
+              />
+              <SSButton
+                label={
+                  isReading
+                    ? t('watchonly.read.scanning')
+                    : t('watchonly.read.nfc')
+                }
+                variant="subtle"
                 onPress={handleNFCRead}
                 loading={isReading}
+                disabled={!isHardwareSupported}
+                style={styles.actionButton}
               />
-            )}
+            </SSHStack>
             <SSButton
               label={t('common.confirm')}
               variant="secondary"
@@ -763,6 +775,9 @@ export default function UnifiedImport() {
 }
 
 const styles = StyleSheet.create({
+  actionButton: {
+    flex: 1
+  },
   container: {
     flex: 1
   }
