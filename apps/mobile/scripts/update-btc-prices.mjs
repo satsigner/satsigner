@@ -20,6 +20,12 @@ const MEMPOOL_HISTORICAL_URL =
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
 const ASSET_DIR = path.resolve(SCRIPT_DIR, '../assets/prices')
 
+const DAY_SECONDS = 86_400
+const WEEK_SECONDS = 7 * DAY_SECONDS
+const MAX_AGE_DAYS = 8
+// mempool stored weekly closes until this UTC day, then daily
+const DAILY_FROM = Date.UTC(2022, 1, 28) / 1000
+
 function jsonPath(currency) {
   return path.join(ASSET_DIR, `${currency.toLowerCase()}.json`)
 }
@@ -28,10 +34,65 @@ function dateFromUnix(unixSeconds) {
   return new Date(unixSeconds * 1000).toISOString().slice(0, 10)
 }
 
-function sortedSeries(byTime) {
-  const times = [...byTime.keys()].toSorted((a, b) => a - b)
-  const prices = times.map((time) => byTime.get(time))
+function utcDayStart(unixSeconds) {
+  return Math.floor(unixSeconds / DAY_SECONDS) * DAY_SECONDS
+}
+
+function toDailyCloses(rows, currency) {
+  const byDay = new Map()
+  // API is newest-first; keep the first sample per UTC day (latest close)
+  for (const row of rows) {
+    const time = row.time
+    const price = row[currency]
+    if (typeof time !== 'number') {
+      continue
+    }
+    const day = utcDayStart(time)
+    if (byDay.has(day)) {
+      continue
+    }
+    if (price === -1 || price === null) {
+      byDay.set(day, null)
+      continue
+    }
+    if (typeof price !== 'number' || !Number.isFinite(price) || price < 0) {
+      continue
+    }
+    byDay.set(day, price)
+  }
+  return byDay
+}
+
+function downsample(byDay) {
+  const days = [...byDay.keys()].toSorted((a, b) => a - b)
+  const times = []
+  const prices = []
+  let lastWeekly
+  for (const day of days) {
+    if (day < DAILY_FROM) {
+      if (lastWeekly !== undefined && day - lastWeekly < WEEK_SECONDS) {
+        continue
+      }
+      lastWeekly = day
+    }
+    times.push(day)
+    prices.push(byDay.get(day) ?? null)
+  }
   return { prices, times }
+}
+
+function assertSeriesFresh(currency, times, generatedAt) {
+  const last = times.at(-1)
+  if (last === undefined) {
+    throw new Error(`No timestamps for ${currency}`)
+  }
+  const generatedUnix = Date.parse(`${generatedAt}T00:00:00Z`) / 1000
+  const ageDays = (generatedUnix - last) / DAY_SECONDS
+  if (ageDays > MAX_AGE_DAYS) {
+    throw new Error(
+      `${currency} series is stale: last ${dateFromUnix(last)}, run date ${generatedAt}, age ${Math.floor(ageDays)}d (max ${MAX_AGE_DAYS}d)`
+    )
+  }
 }
 
 async function fetchCurrency(currency) {
@@ -44,21 +105,11 @@ async function fetchCurrency(currency) {
     throw new Error(`Missing prices array for ${currency}`)
   }
 
-  const byTime = new Map()
-  for (const row of data.prices) {
-    const time = row.time
-    const price = row[currency]
-    if (typeof time !== 'number' || typeof price !== 'number') {
-      continue
-    }
-    byTime.set(time, price)
-  }
-
-  if (byTime.size === 0) {
+  const series = downsample(toDailyCloses(data.prices, currency))
+  if (series.times.length === 0) {
     throw new Error(`No price rows for ${currency}`)
   }
-
-  return sortedSeries(byTime)
+  return series
 }
 
 async function writeOutputs(currency, times, prices, generatedAt) {
@@ -79,18 +130,22 @@ async function main() {
 
   await mkdir(ASSET_DIR, { recursive: true })
 
-  const lastTimes = {}
-  const counts = {}
-
+  const accepted = []
   for (const currency of CURRENCIES) {
     const series = await fetchCurrency(currency)
+    assertSeriesFresh(currency, series.times, generatedAt)
+    accepted.push({ currency, series })
+    console.log(
+      `${currency}: ${series.times.length} rows, last ${dateFromUnix(series.times[series.times.length - 1])}`
+    )
+  }
 
+  const lastTimes = {}
+  const counts = {}
+  for (const { currency, series } of accepted) {
     await writeOutputs(currency, series.times, series.prices, generatedAt)
     lastTimes[currency] = series.times[series.times.length - 1]
     counts[currency] = series.times.length
-    console.log(
-      `${currency}: ${series.times.length} rows, last ${dateFromUnix(lastTimes[currency])}`
-    )
   }
 
   await writeFile(
