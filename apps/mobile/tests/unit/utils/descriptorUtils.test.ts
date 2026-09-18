@@ -1,4 +1,5 @@
 import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { DescriptorUtils } from '@/utils/descriptorUtils'
 
 const SPARROW_ORIGIN_XPUB =
@@ -34,8 +35,14 @@ describe('descriptor origin extraction', () => {
   })
 
   it('uses 00000000 when fingerprint is omitted', () => {
-    const fingerprint = ''
-    const resolved = fingerprint || UNKNOWN_MASTER_FINGERPRINT
-    expect(resolved).toBe('00000000')
+    const store = useAccountBuilderStore.getState()
+    store.clearAccount()
+    store.setCreationType('importExtendedPub')
+    store.setExtendedPublicKey(
+      'xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG'
+    )
+    const key = store.setKey(0)
+    expect(key.fingerprint).toBe(UNKNOWN_MASTER_FINGERPRINT)
+    store.clearAccount()
   })
 })
