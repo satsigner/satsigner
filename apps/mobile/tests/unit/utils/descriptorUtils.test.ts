@@ -27,6 +27,15 @@ describe('descriptor origin extraction', () => {
     )
   })
 
+  it('extracts fingerprint from an origin with no derivation path', () => {
+    expect(DescriptorUtils.extractFingerprint('wpkh([deadbeef]xpubABC)')).toBe(
+      'deadbeef'
+    )
+    expect(
+      DescriptorUtils.extractFingerprintFromXpub('[deadbeef]xpubABC')
+    ).toBe('deadbeef')
+  })
+
   it('parses xpub, fingerprint, and derivation from origin', () => {
     const parsed = DescriptorUtils.parseXpubInput(SPARROW_ORIGIN_XPUB)
     expect(parsed.fingerprint).toBe('d34db33f')

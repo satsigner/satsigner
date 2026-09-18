@@ -8,6 +8,8 @@ import {
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
 
+const KEY_ORIGIN_FINGERPRINT_PATTERN = /\[([0-9a-fA-F]{8})(?:\/|\]|[0-9'/h])/
+
 export const DescriptorUtils = {
   createDescriptorFromXpub(
     xpubWithPrefix: string,
@@ -55,16 +57,12 @@ export const DescriptorUtils = {
   },
 
   extractFingerprint(descriptor: string): string {
-    const fingerprintMatch = descriptor.match(
-      /\[([0-9a-fA-F]{8})(?:\/|[0-9'/h])/
-    )
+    const fingerprintMatch = descriptor.match(KEY_ORIGIN_FINGERPRINT_PATTERN)
     return fingerprintMatch ? fingerprintMatch[1] : ''
   },
 
   extractFingerprintFromXpub(xpubWithPrefix: string) {
-    const originMatch = xpubWithPrefix.match(
-      /\[([0-9a-fA-F]{8})(?:\/|[0-9'/h])/
-    )
+    const originMatch = xpubWithPrefix.match(KEY_ORIGIN_FINGERPRINT_PATTERN)
     if (originMatch) {
       return originMatch[1]
     }
