@@ -1,0 +1,36 @@
+name: Update BTC price data
+
+on:
+  schedule:
+    - cron: '0 6 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Refresh bundled price JSON
+        run: node apps/mobile/scripts/update-btc-prices.mjs
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/update-btc-prices
+          commit-message: 'chore: update BTC price history [skip ci]'
+          title: 'chore: update BTC price history'
+          body: |
+            Weekly refresh of mempool historical BTC prices.
+
+            Updates `apps/mobile/assets/prices/`.
+          add-paths: |
+            apps/mobile/assets/prices/**

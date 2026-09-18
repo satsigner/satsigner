@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { MempoolOracle } from '@/api/blockchain'
+import { getLocalLatestPrices, getLocalPriceAt } from '@/api/localPrices'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import mmkvStorage from '@/storage/mmkv'
 import { useSettingsStore } from '@/store/settings'
@@ -38,12 +39,21 @@ const usePriceStore = create<PriceState & PriceAction>()(
     (set, get) => ({
       btcPrice: 0,
       fetchFullPriceAt: async (mempoolUrl: string, timestamp: number) => {
-        const { fetchHistoricalPrices } = useSettingsStore.getState()
+        const { fetchHistoricalPrices, fetchHistoricalPricesFromNetwork } =
+          useSettingsStore.getState()
         if (!fetchHistoricalPrices) {
           return
         }
+        const { fiatCurrency } = get()
+        const localPrice = getLocalPriceAt(fiatCurrency, timestamp)
+        if (localPrice !== null) {
+          set({ btcPrice: localPrice })
+          return
+        }
+        if (!fetchHistoricalPricesFromNetwork) {
+          return
+        }
         try {
-          const { fiatCurrency } = get()
           const oracle = new MempoolOracle(mempoolUrl)
           const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
           const btcPrice = prices[fiatCurrency] ?? 0
@@ -64,7 +74,19 @@ const usePriceStore = create<PriceState & PriceAction>()(
           const btcPrice = prices[fiatCurrency] ?? 0
           set({ btcPrice, prices })
         } catch {
-          // Keep last known prices when the API drops the connection.
+          if (get().btcPrice > 0) {
+            return
+          }
+          const localPrices = getLocalLatestPrices()
+          const { fiatCurrency } = get()
+          const btcPrice = localPrices[fiatCurrency]
+          if (btcPrice === undefined) {
+            return
+          }
+          set({
+            btcPrice,
+            prices: { ...EMPTY_PRICES, ...localPrices }
+          })
         }
       },
       fiatCurrency: 'USD',
@@ -114,16 +136,26 @@ useSettingsStore.subscribe((state, prevState) => {
   }
 
   if (!prevState.fetchHistoricalPrices && state.fetchHistoricalPrices) {
-    void (async () => {
-      try {
-        const { backfillHistoricalPrices } =
-          await import('@/utils/historicalPrices')
-        await backfillHistoricalPrices()
-      } catch {
-        // Non-fatal — user can pull-to-refresh to retry via sync.
-      }
-    })()
+    void backfillFromSettings()
+  }
+
+  if (
+    !prevState.fetchHistoricalPricesFromNetwork &&
+    state.fetchHistoricalPricesFromNetwork &&
+    state.fetchHistoricalPrices
+  ) {
+    void backfillFromSettings()
   }
 })
+
+async function backfillFromSettings() {
+  try {
+    const { backfillHistoricalPrices } =
+      await import('@/utils/historicalPrices')
+    await backfillHistoricalPrices()
+  } catch {
+    // Non-fatal — user can pull-to-refresh to retry via sync.
+  }
+}
 
 export { usePriceStore }

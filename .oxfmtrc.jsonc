@@ -6,7 +6,8 @@
     ".cursor",
     "**/android",
     "**/ios",
-    "**/routeTree.gen.ts"
+    "**/routeTree.gen.ts",
+    "apps/mobile/assets/prices/**"
   ],
   "arrowParens": "always",
   "bracketSameLine": false,
