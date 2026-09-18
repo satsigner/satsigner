@@ -126,7 +126,7 @@ export default function ImportExtendedPub() {
     const validFingerprint = !fingerprint || validateFingerprint(fingerprint)
     setValidMasterFingerprint(validFingerprint)
     setLocalFingerprint(fingerprint)
-    setDisabled(!validXpub || !validFingerprint)
+    setDisabled(!xpub || !validXpub || !validFingerprint)
     if (fingerprint && validateFingerprint(fingerprint)) {
       setFingerprint(fingerprint)
       Keyboard.dismiss()
@@ -161,7 +161,7 @@ export default function ImportExtendedPub() {
       setExtendedPublicKey(formattedXpub)
     }
 
-    setDisabled(!validXpub || !validFingerprint)
+    setDisabled(!nextXpub || !validXpub || !validFingerprint)
     setXpubError('')
 
     if (nextXpub && !validXpub) {
@@ -347,7 +347,7 @@ export default function ImportExtendedPub() {
                 <SSVStack gap="xxs">
                   <SSText center>{t('common.extendedPublicKey')}</SSText>
                   <SSText center color="muted" size="sm">
-                    {t('account.import.xpub.steps')}
+                    {t('account.import.xpubSteps')}
                   </SSText>
                   <SSTextInput
                     value={xpub}
@@ -405,7 +405,7 @@ export default function ImportExtendedPub() {
               <SSVStack gap="sm">
                 <SSText center>{t('common.fingerprint')}</SSText>
                 <SSText center color="muted" size="sm">
-                  {t('account.import.xpub.fingerprintHelper')}
+                  {t('account.import.xpubFingerprintHelper')}
                 </SSText>
                 <SSTextInput
                   value={localFingerprint}

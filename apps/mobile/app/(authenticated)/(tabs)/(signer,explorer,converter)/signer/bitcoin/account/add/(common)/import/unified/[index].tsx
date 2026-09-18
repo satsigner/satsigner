@@ -503,6 +503,10 @@ export default function UnifiedImport() {
       scanningFor === 'fingerprint' ||
       content.type === 'master_fingerprint'
     ) {
+      if (!validateFingerprint(content.cleaned)) {
+        toast.error(t('account.import.error.fingerprintFormat'))
+        return
+      }
       updateMasterFingerprint(content.cleaned)
       toast.success(t('watchonly.success.qrScanned'))
       return

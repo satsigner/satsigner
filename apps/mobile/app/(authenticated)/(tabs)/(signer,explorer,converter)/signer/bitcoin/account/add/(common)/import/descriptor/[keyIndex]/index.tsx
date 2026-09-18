@@ -487,7 +487,9 @@ export default function ImportDescriptor() {
         updateExternalDescriptor(content.cleaned)
       }
       toast.success(t('watchonly.success.qrScanned'))
+      return
     }
+    toast.error(t('account.import.error.descriptorFormat'))
   }
 
   function getDefaultDerivationPath(): string {
