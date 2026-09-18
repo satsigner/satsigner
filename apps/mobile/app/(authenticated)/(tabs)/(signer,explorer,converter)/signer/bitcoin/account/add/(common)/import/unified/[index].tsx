@@ -559,6 +559,12 @@ export default function UnifiedImport() {
         updateExternalDescriptor(parsed.external, parsed.derivedExternal)
         if (parsed.internal) {
           updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+        } else {
+          setLocalInternalDescriptor('')
+          setInternalDescriptor('')
+          setValidInternalDescriptor(true)
+          setInternalDescriptorError('')
+          updateDescriptorValidationState()
         }
       }
       toast.success(t('watchonly.success.qrScanned'))

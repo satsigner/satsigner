@@ -496,6 +496,10 @@ export default function WatchOnly() {
         void updateExternalDescriptor(parsed.external, parsed.derivedExternal)
         if (parsed.internal) {
           void updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+        } else {
+          setLocalInternalDescriptor('')
+          setInternalDescriptor('')
+          setIsValidInternalDescriptor(true)
         }
         extractAndSetFingerprint(parsed.external)
       }

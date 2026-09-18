@@ -499,6 +499,11 @@ export default function ImportDescriptor() {
         updateExternalDescriptor(parsed.external, parsed.derivedExternal)
         if (parsed.internal) {
           updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+        } else {
+          setInternalDescriptor('')
+          setStoreInternalDescriptor('')
+          setValidInternalDescriptor(true)
+          setInternalDescriptorError('')
         }
       }
       toast.success(t('watchonly.success.qrScanned'))
