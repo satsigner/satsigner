@@ -12,6 +12,12 @@ const DESCRIPTOR =
   "wpkh([d34db33f/84'/0'/0']xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG/0/*)"
 
 describe('wallet QR payload', () => {
+  it('treats trimmed bitcoin addresses as wallet text', () => {
+    expect(
+      looksLikeWalletText('  bc1q8d968eg8ua3dk8mkql9d0vj35nzplsd4zmulus  ')
+    ).toBe(true)
+  })
+
   it('treats descriptor strings as wallet text, not hex', () => {
     expect(looksLikeWalletText(DESCRIPTOR)).toBe(true)
     const utf8 = interpretBinaryWalletPayload(Buffer.from(DESCRIPTOR, 'utf8'))

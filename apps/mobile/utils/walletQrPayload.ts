@@ -1,6 +1,7 @@
 import { Buffer } from 'buffer'
 
 import { decodeBBQRChunks } from '@/utils/bbqr'
+import { isBitcoinAddress } from '@/utils/bitcoin'
 
 const PSBT_MAGIC_HEX = '70736274'
 const PSBT_MAGIC_BASE64 = 'cHNidP'
@@ -16,26 +17,10 @@ export function looksLikeWalletText(value: string): boolean {
   if (trimmed.startsWith('{') && trimmed.includes('"descriptor"')) {
     return true
   }
+  if (isBitcoinAddress(trimmed)) {
+    return true
+  }
   return WALLET_TEXT_PATTERN.test(trimmed)
-}
-
-function isMostlyPrintableUtf8(value: string): boolean {
-  if (!value) {
-    return false
-  }
-  let printable = 0
-  for (const char of value) {
-    const code = char.charCodeAt(0)
-    if (
-      code === 9 ||
-      code === 10 ||
-      code === 13 ||
-      (code >= 32 && code <= 126)
-    ) {
-      printable += 1
-    }
-  }
-  return printable / value.length >= 0.85
 }
 
 export function interpretBinaryWalletPayload(bytes: Uint8Array): string {
@@ -51,10 +36,6 @@ export function interpretBinaryWalletPayload(bytes: Uint8Array): string {
 
   if (utf8.startsWith(PSBT_MAGIC_BASE64)) {
     return Buffer.from(utf8, 'base64').toString('hex')
-  }
-
-  if (isMostlyPrintableUtf8(utf8) && looksLikeWalletText(utf8)) {
-    return utf8.trim()
   }
 
   return hex
