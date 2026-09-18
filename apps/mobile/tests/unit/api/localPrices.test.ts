@@ -31,4 +31,12 @@ describe('findClosestPrice', () => {
   it('returns the last close on the last timestamp', () => {
     expect(findClosestPrice(times, prices, 300)).toBe(3)
   })
+
+  it('returns null when the closest bundled close is missing', () => {
+    expect(findClosestPrice([100, 200, 300], [1, null, 3], 250)).toBeNull()
+  })
+
+  it('returns null for a negative sentinel close', () => {
+    expect(findClosestPrice([100, 200], [-1, 2], 100)).toBeNull()
+  })
 })

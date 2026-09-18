@@ -15,7 +15,7 @@ const FIAT_CURRENCIES: Currency[] = [
 const PriceBundleSchema = z.object({
   currency: CurrencySchema,
   generatedAt: z.string(),
-  prices: z.array(z.number()),
+  prices: z.array(z.number().nullable()),
   times: z.array(z.number())
 })
 
@@ -51,9 +51,13 @@ function loadPriceBundle(currency: Currency): PriceBundle {
  * Returns null if the timestamp is before the first row or after the last
  * (newer than the dataset — do not clamp to last close).
  */
+function isUsablePrice(price: number | null | undefined): price is number {
+  return typeof price === 'number' && Number.isFinite(price) && price >= 0
+}
+
 function findClosestPrice(
   times: number[],
-  prices: number[],
+  prices: (number | null)[],
   timestamp: number
 ): number | null {
   if (times.length === 0 || prices.length !== times.length) {
@@ -74,7 +78,8 @@ function findClosestPrice(
     const mid = (low + high) >> 1
     const midTime = times[mid]
     if (midTime === timestamp) {
-      return prices[mid]
+      const exact = prices[mid]
+      return isUsablePrice(exact) ? exact : null
     }
     if (midTime < timestamp) {
       low = mid + 1
@@ -86,7 +91,8 @@ function findClosestPrice(
   if (high < 0) {
     return null
   }
-  return prices[high]
+  const closest = prices[high]
+  return isUsablePrice(closest) ? closest : null
 }
 
 function getLocalPriceAt(currency: Currency, timestamp: number): number | null {
@@ -98,19 +104,25 @@ function getLocalPriceSeries(
   currency: Currency
 ): { price: number; time: number }[] {
   const bundle = loadPriceBundle(currency)
-  return bundle.times.map((time, index) => ({
-    price: bundle.prices[index],
-    time
-  }))
+  const series: { price: number; time: number }[] = []
+  for (const [index, time] of bundle.times.entries()) {
+    const price = bundle.prices[index]
+    if (isUsablePrice(price)) {
+      series.push({ price, time })
+    }
+  }
+  return series
 }
 
 function getLocalLatestPrice(currency: Currency): number | null {
   const bundle = loadPriceBundle(currency)
-  if (bundle.prices.length === 0) {
-    return null
+  for (let index = bundle.prices.length - 1; index >= 0; index -= 1) {
+    const price = bundle.prices[index]
+    if (isUsablePrice(price)) {
+      return price
+    }
   }
-  const price = bundle.prices.at(-1)
-  return price === undefined ? null : price
+  return null
 }
 
 function getLocalLatestPrices(): Partial<Record<Currency, number>> {
@@ -139,5 +151,6 @@ export {
   getLocalLatestPrice,
   getLocalLatestPrices,
   getLocalPriceAt,
-  getLocalPriceSeries
+  getLocalPriceSeries,
+  isUsablePrice
 }

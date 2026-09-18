@@ -1,5 +1,5 @@
 import { MempoolOracle } from '@/api/blockchain'
-import { getLocalPriceAt } from '@/api/localPrices'
+import { getLocalPriceAt, isUsablePrice } from '@/api/localPrices'
 import { useSettingsStore } from '@/store/settings'
 import { type Currency } from '@/types/models/Blockchain'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
@@ -14,7 +14,7 @@ async function resolveHistoricalPrices(
 
   for (const timestamp of uniqueTimestamps) {
     const local = getLocalPriceAt(currency, timestamp)
-    if (local === null) {
+    if (!isUsablePrice(local)) {
       missing.push(timestamp)
       continue
     }

@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
-import { getLocalPriceSeries } from '@/api/localPrices'
+import { getLocalPriceSeries, isUsablePrice } from '@/api/localPrices'
 import BitcoinRpc from '@/api/rpc'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -271,7 +271,9 @@ const SECONDS_PER_DAY = 86_400
 function windowPriceHistory(series: { price: number; time: number }[]) {
   const cutoff =
     Math.floor(Date.now() / 1000) - PRICE_CHART_DAYS * SECONDS_PER_DAY
-  const window = series.filter((point) => point.time >= cutoff)
+  const window = series.filter(
+    (point) => point.time >= cutoff && isUsablePrice(point.price)
+  )
   return {
     prices: window.map((point) => point.price),
     timestamps: window.map((point) => point.time)
@@ -296,7 +298,11 @@ export function useChainTipPriceHistory(
         if (!parsed.success) {
           throw new Error(`Unknown fiat currency ${fiatCurrency}`)
         }
-        return windowPriceHistory(getLocalPriceSeries(parsed.data))
+        return windowPriceHistory(
+          getLocalPriceSeries(parsed.data).filter((point) =>
+            isUsablePrice(point.price)
+          )
+        )
       }
     },
     queryKey: [

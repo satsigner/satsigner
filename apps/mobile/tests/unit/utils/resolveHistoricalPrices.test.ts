@@ -4,7 +4,9 @@ import { useSettingsStore } from '@/store/settings'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
 
 jest.mock<typeof import('@/api/localPrices')>('@/api/localPrices', () => ({
-  getLocalPriceAt: jest.fn()
+  getLocalPriceAt: jest.fn(),
+  isUsablePrice: (price) =>
+    typeof price === 'number' && Number.isFinite(price) && price >= 0
 }))
 
 const getLocalPriceAtMock = jest.mocked(getLocalPriceAt)
