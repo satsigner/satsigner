@@ -1,8 +1,14 @@
-import { ScriptVersionType } from '@/types/models/Script'
-import { validateCombinedDescriptor } from '@/utils/validation'
+import { type ScriptVersionType } from '@/types/models/Script'
+import {
+  isCombinedDescriptor,
+  validateCombinedDescriptor,
+  validateDescriptorFormat
+} from '@/utils/validation'
 
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
+
+const KEY_ORIGIN_FINGERPRINT_PATTERN = /\[([0-9a-fA-F]{8})(?:\/|\]|[0-9'/h])/
 
 export const DescriptorUtils = {
   createDescriptorFromXpub(
@@ -38,31 +44,31 @@ export const DescriptorUtils = {
     return xpubMatch ? xpubMatch[1] : xpubWithPrefix
   },
 
+  extractDerivationFromOrigin(text: string) {
+    const originMatch = text.match(/^\[([0-9a-fA-F]{8})\/([^\]]+)\]/)
+    if (!originMatch) {
+      return null
+    }
+    const derivation = originMatch.at(2)
+    if (!derivation) {
+      return null
+    }
+    return derivation.startsWith('m/') ? derivation : `m/${derivation}`
+  },
+
   extractFingerprint(descriptor: string): string {
-    const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
+    const fingerprintMatch = descriptor.match(KEY_ORIGIN_FINGERPRINT_PATTERN)
     return fingerprintMatch ? fingerprintMatch[1] : ''
   },
 
   extractFingerprintFromXpub(xpubWithPrefix: string) {
-    // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
-    const fingerprintMatch1 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})\//)
-    if (fingerprintMatch1) {
-      return fingerprintMatch1[1]
+    const originMatch = xpubWithPrefix.match(KEY_ORIGIN_FINGERPRINT_PATTERN)
+    if (originMatch) {
+      return originMatch[1]
     }
 
-    // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
-    const fingerprintMatch2 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
-    if (fingerprintMatch2) {
-      return fingerprintMatch2[1]
-    }
-
-    // Pattern 3: [fingerprint...]xpub (any length hex - fallback)
-    const fingerprintMatch3 = xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
-    if (fingerprintMatch3) {
-      return fingerprintMatch3[1]
-    }
-
-    return null
+    const fallbackMatch = xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
+    return fallbackMatch ? fallbackMatch[1] : null
   },
 
   getScriptVersionFromDerivation(derivationPath: string): ScriptVersionType {
@@ -76,6 +82,91 @@ export const DescriptorUtils = {
       return 'P2PKH'
     }
     return 'P2WPKH' // Default fallback
+  },
+
+  parseImportedDescriptorPayload(text: string) {
+    const trimmed = text.trim()
+    if (!trimmed) {
+      return null
+    }
+
+    const jsonResult = DescriptorUtils.parseJsonDescriptor(trimmed)
+    if (jsonResult) {
+      if (isCombinedDescriptor(jsonResult.original)) {
+        const withoutChecksum = DescriptorUtils.removeChecksum(
+          jsonResult.original
+        )
+        return {
+          combined: jsonResult.original,
+          derivedExternal: true,
+          derivedInternal: true,
+          external: withoutChecksum.replace(/<0[,;]1>/, '0'),
+          internal: withoutChecksum.replace(/<0[,;]1>/, '1')
+        }
+      }
+      return {
+        derivedExternal: false,
+        derivedInternal: jsonResult.internal !== jsonResult.external,
+        external: jsonResult.external,
+        internal: jsonResult.internal
+      }
+    }
+
+    if (isCombinedDescriptor(trimmed)) {
+      const withoutChecksum = DescriptorUtils.removeChecksum(trimmed)
+      return {
+        combined: trimmed,
+        derivedExternal: true,
+        derivedInternal: true,
+        external: withoutChecksum.replace(/<0[,;]1>/, '0'),
+        internal: withoutChecksum.replace(/<0[,;]1>/, '1')
+      }
+    }
+
+    const legacyResult = DescriptorUtils.parseLegacyDescriptor(trimmed)
+    if (
+      legacyResult?.external &&
+      legacyResult.internal &&
+      validateDescriptorFormat(legacyResult.external.trim()) &&
+      validateDescriptorFormat(legacyResult.internal.trim())
+    ) {
+      return {
+        derivedExternal: false,
+        derivedInternal: false,
+        external: legacyResult.external.trim(),
+        internal: legacyResult.internal.trim()
+      }
+    }
+
+    if (!validateDescriptorFormat(trimmed)) {
+      return null
+    }
+
+    const hasExternalChain = trimmed.includes('/0/*')
+    const hasInternalChain = trimmed.includes('/1/*')
+    if (hasInternalChain && !hasExternalChain) {
+      return {
+        derivedExternal: true,
+        derivedInternal: false,
+        external: DescriptorUtils.swapDescriptorChain(trimmed, 1, 0),
+        internal: trimmed
+      }
+    }
+    if (hasExternalChain && !hasInternalChain) {
+      return {
+        derivedExternal: false,
+        derivedInternal: true,
+        external: trimmed,
+        internal: DescriptorUtils.swapDescriptorChain(trimmed, 0, 1)
+      }
+    }
+
+    return {
+      derivedExternal: false,
+      derivedInternal: false,
+      external: trimmed,
+      internal: ''
+    }
   },
 
   parseJsonDescriptor(text: string) {
@@ -111,6 +202,18 @@ export const DescriptorUtils = {
     }
   },
 
+  parseXpubInput(text: string) {
+    const trimmed = text.trim()
+    const fingerprint = DescriptorUtils.extractFingerprintFromXpub(trimmed)
+    const xpub = DescriptorUtils.extractCleanXpub(trimmed)
+    const derivationPath = DescriptorUtils.extractDerivationFromOrigin(trimmed)
+    return {
+      derivationPath,
+      fingerprint,
+      xpub
+    }
+  },
+
   async processCombinedDescriptor(
     descriptor: string,
     scriptVersion: ScriptVersionType
@@ -143,5 +246,10 @@ export const DescriptorUtils = {
 
   removeChecksum(descriptor: string): string {
     return descriptor.replace(/#[a-z0-9]+$/, '')
+  },
+
+  swapDescriptorChain(descriptor: string, fromChain: 0 | 1, toChain: 0 | 1) {
+    const withoutChecksum = DescriptorUtils.removeChecksum(descriptor)
+    return withoutChecksum.replaceAll(`/${fromChain}/*`, `/${toChain}/*`)
   }
 }
