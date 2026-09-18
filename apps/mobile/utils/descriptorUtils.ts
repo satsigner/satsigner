@@ -1,5 +1,9 @@
-import { ScriptVersionType } from '@/types/models/Script'
-import { validateCombinedDescriptor } from '@/utils/validation'
+import { type ScriptVersionType } from '@/types/models/Script'
+import {
+  isCombinedDescriptor,
+  validateCombinedDescriptor,
+  validateDescriptorFormat
+} from '@/utils/validation'
 
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
@@ -82,6 +86,91 @@ export const DescriptorUtils = {
     return 'P2WPKH' // Default fallback
   },
 
+  parseImportedDescriptorPayload(text: string) {
+    const trimmed = text.trim()
+    if (!trimmed) {
+      return null
+    }
+
+    const jsonResult = DescriptorUtils.parseJsonDescriptor(trimmed)
+    if (jsonResult) {
+      if (isCombinedDescriptor(jsonResult.original)) {
+        const withoutChecksum = DescriptorUtils.removeChecksum(
+          jsonResult.original
+        )
+        return {
+          combined: jsonResult.original,
+          derivedExternal: true,
+          derivedInternal: true,
+          external: withoutChecksum.replace(/<0[,;]1>/, '0'),
+          internal: withoutChecksum.replace(/<0[,;]1>/, '1')
+        }
+      }
+      return {
+        derivedExternal: false,
+        derivedInternal: jsonResult.internal !== jsonResult.external,
+        external: jsonResult.external,
+        internal: jsonResult.internal
+      }
+    }
+
+    if (isCombinedDescriptor(trimmed)) {
+      const withoutChecksum = DescriptorUtils.removeChecksum(trimmed)
+      return {
+        combined: trimmed,
+        derivedExternal: true,
+        derivedInternal: true,
+        external: withoutChecksum.replace(/<0[,;]1>/, '0'),
+        internal: withoutChecksum.replace(/<0[,;]1>/, '1')
+      }
+    }
+
+    const legacyResult = DescriptorUtils.parseLegacyDescriptor(trimmed)
+    if (
+      legacyResult?.external &&
+      legacyResult.internal &&
+      validateDescriptorFormat(legacyResult.external.trim()) &&
+      validateDescriptorFormat(legacyResult.internal.trim())
+    ) {
+      return {
+        derivedExternal: false,
+        derivedInternal: false,
+        external: legacyResult.external.trim(),
+        internal: legacyResult.internal.trim()
+      }
+    }
+
+    if (!validateDescriptorFormat(trimmed)) {
+      return null
+    }
+
+    const hasExternalChain = trimmed.includes('/0/*')
+    const hasInternalChain = trimmed.includes('/1/*')
+    if (hasInternalChain && !hasExternalChain) {
+      return {
+        derivedExternal: true,
+        derivedInternal: false,
+        external: DescriptorUtils.swapDescriptorChain(trimmed, 1, 0),
+        internal: trimmed
+      }
+    }
+    if (hasExternalChain && !hasInternalChain) {
+      return {
+        derivedExternal: false,
+        derivedInternal: true,
+        external: trimmed,
+        internal: DescriptorUtils.swapDescriptorChain(trimmed, 0, 1)
+      }
+    }
+
+    return {
+      derivedExternal: false,
+      derivedInternal: false,
+      external: trimmed,
+      internal: ''
+    }
+  },
+
   parseJsonDescriptor(text: string) {
     try {
       const jsonData = JSON.parse(text)
@@ -159,5 +248,10 @@ export const DescriptorUtils = {
 
   removeChecksum(descriptor: string): string {
     return descriptor.replace(/#[a-z0-9]+$/, '')
+  },
+
+  swapDescriptorChain(descriptor: string, fromChain: 0 | 1, toChain: 0 | 1) {
+    const withoutChecksum = DescriptorUtils.removeChecksum(descriptor)
+    return withoutChecksum.replaceAll(`/${fromChain}/*`, `/${toChain}/*`)
   }
 }

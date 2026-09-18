@@ -481,10 +481,20 @@ export default function ImportDescriptor() {
 
   function handleContentScanned(content: DetectedContent) {
     if (content.type === 'bitcoin_descriptor') {
-      if (content.metadata?.isCombined) {
-        handleCombinedDescriptorImport(content.cleaned)
+      const parsed = DescriptorUtils.parseImportedDescriptorPayload(
+        content.cleaned
+      )
+      if (!parsed) {
+        toast.error(t('account.import.error.descriptorFormat'))
+        return
+      }
+      if (parsed.combined) {
+        handleCombinedDescriptorImport(parsed.combined)
       } else {
-        updateExternalDescriptor(content.cleaned)
+        updateExternalDescriptor(parsed.external, parsed.derivedExternal)
+        if (parsed.internal) {
+          updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+        }
       }
       toast.success(t('watchonly.success.qrScanned'))
       return

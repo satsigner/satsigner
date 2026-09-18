@@ -19,11 +19,7 @@ import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
-import {
-  isCombinedDescriptor,
-  validateDescriptorFormat,
-  validateExtendedKey
-} from '@/utils/validation'
+import { validateExtendedKey } from '@/utils/validation'
 
 bitcoinjs.initEccLib(ecc)
 
@@ -94,13 +90,18 @@ function isMasterFingerprint(data: string): boolean {
 function detectBitcoinContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
-  const descriptorValidation = validateDescriptorFormat(trimmed)
-  if (descriptorValidation) {
+  const imported = DescriptorUtils.parseImportedDescriptorPayload(trimmed)
+  if (imported) {
     return {
       cleaned: trimmed,
       isValid: true,
       metadata: {
-        isCombined: isCombinedDescriptor(trimmed)
+        combined: imported.combined,
+        derivedExternal: imported.derivedExternal,
+        derivedInternal: imported.derivedInternal,
+        external: imported.external,
+        internal: imported.internal,
+        isCombined: Boolean(imported.combined)
       },
       raw: data,
       type: 'bitcoin_descriptor'

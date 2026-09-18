@@ -470,11 +470,21 @@ export default function WatchOnly() {
       return
     }
     if (content.type === 'bitcoin_descriptor') {
-      if (content.metadata?.isCombined) {
-        void handleCombinedDescriptor(content.cleaned, content.cleaned)
+      const parsed = DescriptorUtils.parseImportedDescriptorPayload(
+        content.cleaned
+      )
+      if (!parsed) {
+        toast.error(t('account.import.error.descriptorFormat'))
+        return
+      }
+      if (parsed.combined) {
+        void handleCombinedDescriptor(parsed.combined, parsed.combined)
       } else {
-        void updateExternalDescriptor(content.cleaned)
-        extractAndSetFingerprint(content.cleaned)
+        void updateExternalDescriptor(parsed.external, parsed.derivedExternal)
+        if (parsed.internal) {
+          void updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+        }
+        extractAndSetFingerprint(parsed.external)
       }
       toast.success(t('watchonly.success.qrScanned'))
     }

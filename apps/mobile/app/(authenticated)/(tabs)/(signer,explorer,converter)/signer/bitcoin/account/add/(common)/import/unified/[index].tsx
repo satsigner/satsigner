@@ -512,9 +512,16 @@ export default function UnifiedImport() {
       return
     }
     if (importType === 'descriptor' && content.type === 'bitcoin_descriptor') {
-      if (content.metadata?.isCombined) {
+      const parsed = DescriptorUtils.parseImportedDescriptorPayload(
+        content.cleaned
+      )
+      if (!parsed) {
+        toast.error(t('account.import.error.descriptorFormat'))
+        return
+      }
+      if (parsed.combined) {
         const combinedValidation = validateCombinedDescriptor(
-          content.cleaned,
+          parsed.combined,
           scriptVersion,
           network as string
         )
@@ -539,7 +546,10 @@ export default function UnifiedImport() {
           setInternalDescriptorError(errorMessage)
         }
       } else {
-        updateExternalDescriptor(content.cleaned)
+        updateExternalDescriptor(parsed.external, parsed.derivedExternal)
+        if (parsed.internal) {
+          updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+        }
       }
       toast.success(t('watchonly.success.qrScanned'))
       return

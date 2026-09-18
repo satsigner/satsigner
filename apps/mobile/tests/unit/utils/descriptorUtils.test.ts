@@ -53,3 +53,39 @@ describe('descriptor origin extraction', () => {
     store.clearAccount()
   })
 })
+
+describe('parseImportedDescriptorPayload', () => {
+  const internal = SPARROW_DESCRIPTOR.replace('/0/*', '/1/*')
+
+  it('derives internal from a receive /0/* descriptor', () => {
+    const parsed =
+      DescriptorUtils.parseImportedDescriptorPayload(SPARROW_DESCRIPTOR)
+    expect(parsed?.external).toBe(SPARROW_DESCRIPTOR)
+    expect(parsed?.internal).toBe(internal)
+    expect(parsed?.derivedInternal).toBe(true)
+  })
+
+  it('derives receive from a change /1/* descriptor', () => {
+    const parsed = DescriptorUtils.parseImportedDescriptorPayload(internal)
+    expect(parsed?.internal).toBe(internal)
+    expect(parsed?.external).toBe(SPARROW_DESCRIPTOR)
+    expect(parsed?.derivedExternal).toBe(true)
+  })
+
+  it('splits a combined <0;1> descriptor', () => {
+    const combined = SPARROW_DESCRIPTOR.replace('/0/*', '/<0;1>/*')
+    const parsed = DescriptorUtils.parseImportedDescriptorPayload(combined)
+    expect(parsed?.combined).toBe(combined)
+    expect(parsed?.external).toContain('/0/*')
+    expect(parsed?.internal).toContain('/1/*')
+  })
+
+  it('reads two newline-separated descriptors', () => {
+    const parsed = DescriptorUtils.parseImportedDescriptorPayload(
+      `${SPARROW_DESCRIPTOR}\n${internal}`
+    )
+    expect(parsed?.external).toBe(SPARROW_DESCRIPTOR)
+    expect(parsed?.internal).toBe(internal)
+    expect(parsed?.derivedExternal).toBe(false)
+  })
+})
