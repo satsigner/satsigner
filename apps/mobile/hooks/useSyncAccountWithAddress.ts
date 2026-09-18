@@ -9,7 +9,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -615,10 +614,9 @@ function useSyncAccountWithAddress() {
       // Remove duplicates
       const uniqueTimestamps = [...new Set(timestamps)]
 
-      const { fetchHistoricalPrices } = useSettingsStore.getState()
       const emptyPrices: Record<number, number> = {}
       const priceTimestamps =
-        fetchHistoricalPrices && uniqueTimestamps.length > 0
+        uniqueTimestamps.length > 0
           ? await resolveHistoricalPrices(fiatCurrency, uniqueTimestamps).catch(
               () => {
                 toast.error(t('account.sync.historicalPricesFailed'))

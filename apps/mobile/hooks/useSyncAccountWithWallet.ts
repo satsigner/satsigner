@@ -10,7 +10,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { type Prices } from '@/types/models/Blockchain'
 import { updateAccountObjectLabels } from '@/utils/account'
@@ -279,26 +278,23 @@ function useSyncAccountWithWallet() {
       }
 
       if (unpricedTimestamps.length > 0) {
-        const { fetchHistoricalPrices } = useSettingsStore.getState()
-        if (fetchHistoricalPrices) {
-          const uniqueTimestamps = [...new Set(unpricedTimestamps)]
-          try {
-            const priceMap = await resolveHistoricalPrices(
-              fiatCurrency,
-              uniqueTimestamps
-            )
-            for (const tx of updatedAccount.transactions) {
-              if (tx.prices?.[fiatCurrency] !== undefined || !tx.timestamp) {
-                continue
-              }
-              const price = priceMap[formatTimestamp(tx.timestamp)]
-              if (price !== undefined) {
-                tx.prices = { ...tx.prices, [fiatCurrency]: price }
-              }
+        const uniqueTimestamps = [...new Set(unpricedTimestamps)]
+        try {
+          const priceMap = await resolveHistoricalPrices(
+            fiatCurrency,
+            uniqueTimestamps
+          )
+          for (const tx of updatedAccount.transactions) {
+            if (tx.prices?.[fiatCurrency] !== undefined || !tx.timestamp) {
+              continue
             }
-          } catch {
-            toast.error(t('account.sync.historicalPricesFailed'))
+            const price = priceMap[formatTimestamp(tx.timestamp)]
+            if (price !== undefined) {
+              tx.prices = { ...tx.prices, [fiatCurrency]: price }
+            }
           }
+        } catch {
+          toast.error(t('account.sync.historicalPricesFailed'))
         }
       }
 
