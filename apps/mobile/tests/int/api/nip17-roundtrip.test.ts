@@ -51,25 +51,29 @@ function isConnectionFailure(reason: unknown): boolean {
   )
 }
 
-async function publishAndCollectAcks(
+type PublishOutcome =
+  | { kind: 'ack'; url: string }
+  | { kind: 'connection_failure' }
+  | { error: unknown; kind: 'rejected' }
+
+async function publishAndCollectOutcomes(
   pool: SimplePool,
   event: Event
-): Promise<string[]> {
-  const outcomes = await Promise.all(
+): Promise<PublishOutcome[]> {
+  return Promise.all(
     RELAYS.map(async (url) => {
       const [pending] = pool.publish([url], event)
       try {
         const reason = await pending
         if (isConnectionFailure(reason)) {
-          return null
+          return { kind: 'connection_failure' }
         }
-        return url
-      } catch {
-        return null
+        return { kind: 'ack', url }
+      } catch (error) {
+        return { error, kind: 'rejected' }
       }
     })
   )
-  return outcomes.filter((url) => url !== null)
 }
 
 function waitForEventById(
@@ -125,12 +129,30 @@ describe('nip-17 live relay roundtrip', () => {
     const abort = new AbortController()
 
     try {
-      const ackedRelays = await publishAndCollectAcks(pool, wrap)
+      const outcomes = await publishAndCollectOutcomes(pool, wrap)
+      const ackedRelays = outcomes.flatMap((outcome) =>
+        outcome.kind === 'ack' ? [outcome.url] : []
+      )
 
       if (ackedRelays.length === 0) {
-        // eslint-disable-next-line no-console
-        console.warn(`all relays unreachable (${RELAYS.join(', ')}) — skipping`)
-        return
+        const allUnreachable = outcomes.every(
+          (outcome) => outcome.kind === 'connection_failure'
+        )
+        if (allUnreachable) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `all relays unreachable (${RELAYS.join(', ')}) — skipping`
+          )
+          return
+        }
+        const rejection = outcomes.find(
+          (outcome): outcome is Extract<PublishOutcome, { kind: 'rejected' }> =>
+            outcome.kind === 'rejected'
+        )
+        if (rejection) {
+          throw rejection.error
+        }
+        throw new Error('all reachable relays rejected the wrap')
       }
 
       const retrieved = await waitForEventById(
