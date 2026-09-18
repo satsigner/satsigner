@@ -6,6 +6,7 @@ const TAG_COIN_INFO = 305
 const TAG_ECKEY = 306
 const TAG_ADDRESS = 307
 const TAG_CRYPTO_OUTPUT = 308
+const TAG_CRYPTO_ACCOUNT = 311
 const TAG_SCRIPT_HASH = 400
 const TAG_WITNESS_SCRIPT_HASH = 401
 const TAG_PUBLIC_KEY = 402
@@ -17,6 +18,9 @@ const TAG_SORTED_MULTISIG = 407
 const TAG_RAW = 408
 const TAG_TAPROOT = 409
 const TAG_COSIGNER = 410
+const TAG_HDKEY_V2 = 40303
+const TAG_ECKEY_V2 = 40306
+const TAG_ADDRESS_V2 = 40307
 const TAG_OUTPUT_DESCRIPTOR_V3 = 40308
 
 const MAINNET_VERSIONS = { private: 0x0488ade4, public: 0x0488b21e }
@@ -235,14 +239,30 @@ function parsePathComponents(items: CborValue[]): string {
     }
     if (
       Array.isArray(item) &&
+      item.length === 4 &&
+      typeof item[0] === 'number' &&
+      typeof item[2] === 'number'
+    ) {
+      parts.push(
+        `<${formatPathComponent(item[0], item[1] === true)};${formatPathComponent(item[2], item[3] === true)}>`
+      )
+      index += 1
+      continue
+    }
+    if (
+      Array.isArray(item) &&
       item.length === 2 &&
       typeof item[0] === 'number' &&
       typeof item[1] === 'number'
     ) {
       const hardened = items[index + 1] === true
-      parts.push(
-        `${formatPathComponent(item[0], hardened)}-${formatPathComponent(item[1], hardened)}`
-      )
+      if (item[0] === 0 && item[1] === 1) {
+        parts.push(hardened ? "<0';1'>" : '<0;1>')
+      } else {
+        parts.push(
+          `${formatPathComponent(item[0], hardened)}-${formatPathComponent(item[1], hardened)}`
+        )
+      }
       index += 2
       continue
     }
@@ -256,7 +276,9 @@ function parsePathComponents(items: CborValue[]): string {
       const externalIndex = asNumber(unwrap(external[0]))
       const internalIndex = asNumber(unwrap(internal[0]))
       if (externalIndex !== undefined && internalIndex !== undefined) {
-        parts.push(`<${externalIndex};${internalIndex}>`)
+        parts.push(
+          `<${formatPathComponent(externalIndex, external[1] === true)};${formatPathComponent(internalIndex, internal[1] === true)}>`
+        )
       }
       index += 1
       continue
@@ -336,7 +358,8 @@ function encodeExtendedKey(hdkey: CborMap) {
       : origin?.fingerprint
         ? `[${fingerprintHex(origin.fingerprint)}]`
         : ''
-  const childrenSuffix = children?.path ? `/${children.path}` : ''
+  const childrenPath = children?.path || (origin?.path ? '<0;1>/*' : '')
+  const childrenSuffix = childrenPath ? `/${childrenPath}` : ''
   return `${originPrefix}${extended}${childrenSuffix}`
 }
 
@@ -359,15 +382,50 @@ function encodeKeyExp(value: CborValue): string | null {
     }
     return null
   }
-  if (value.tag === TAG_HDKEY) {
+  if (value.tag === TAG_HDKEY || value.tag === TAG_HDKEY_V2) {
     const map = asMap(value.value)
     return map ? encodeExtendedKey(map) : null
   }
-  if (value.tag === TAG_ECKEY) {
+  if (value.tag === TAG_ECKEY || value.tag === TAG_ECKEY_V2) {
     const map = asMap(value.value)
     return map ? encodeEcKey(map) : null
   }
   return encodeKeyExp(unwrap(value))
+}
+
+function encodeOutputDescriptorV3(value: CborValue) {
+  const map = asMap(value)
+  if (!map) {
+    return null
+  }
+  const source = asString(mapGet(map, 1))
+  if (!source) {
+    return null
+  }
+  const keys = asArray(mapGet(map, 2))
+  if (!keys || keys.length === 0) {
+    return source
+  }
+  const descriptor = source.replace(/@(\d+)/g, (_match, indexStr: string) => {
+    const key = keys[Number(indexStr)]
+    return key ? (encodeKeyExp(key) ?? '') : ''
+  })
+  if (!descriptor || descriptor.includes('@')) {
+    return null
+  }
+  return descriptor
+}
+
+function encodeCryptoAccount(value: CborValue) {
+  const map = asMap(value)
+  if (!map) {
+    return null
+  }
+  const outputs = asArray(mapGet(map, 2))
+  if (!outputs || outputs.length === 0) {
+    return null
+  }
+  return encodeScriptExp(outputs[0])
 }
 
 function encodeMultisig(value: CborValue, fnName: string) {
@@ -395,9 +453,11 @@ function encodeScriptExp(value: CborValue): string | null {
   if (value.tag === TAG_CRYPTO_OUTPUT) {
     return encodeScriptExp(value.value)
   }
+  if (value.tag === TAG_CRYPTO_ACCOUNT) {
+    return encodeCryptoAccount(value.value)
+  }
   if (value.tag === TAG_OUTPUT_DESCRIPTOR_V3) {
-    const map = asMap(value.value)
-    return map ? (asString(mapGet(map, 1)) ?? null) : null
+    return encodeOutputDescriptorV3(value.value)
   }
   if (value.tag === TAG_SCRIPT_HASH) {
     const inner = encodeScriptExp(value.value)
@@ -441,10 +501,14 @@ function encodeScriptExp(value: CborValue): string | null {
     const bytes = asBytes(value.value)
     return bytes ? `raw(${Buffer.from(bytes).toString('hex')})` : null
   }
-  if (value.tag === TAG_ADDRESS) {
-    return encodeKeyExp(value)
-  }
-  if (value.tag === TAG_HDKEY || value.tag === TAG_ECKEY) {
+  if (
+    value.tag === TAG_ADDRESS ||
+    value.tag === TAG_ADDRESS_V2 ||
+    value.tag === TAG_HDKEY ||
+    value.tag === TAG_HDKEY_V2 ||
+    value.tag === TAG_ECKEY ||
+    value.tag === TAG_ECKEY_V2
+  ) {
     return encodeKeyExp(value)
   }
   if (value.tag === TAG_KEYPATH || value.tag === TAG_COIN_INFO) {
@@ -460,7 +524,9 @@ export function looksLikeCryptoOutputCbor(bytes: Uint8Array) {
   const tag = (bytes[1] << 8) | bytes[2]
   return (
     tag === TAG_CRYPTO_OUTPUT ||
+    tag === TAG_CRYPTO_ACCOUNT ||
     tag === TAG_OUTPUT_DESCRIPTOR_V3 ||
+    tag === TAG_HDKEY_V2 ||
     (tag >= TAG_SCRIPT_HASH && tag <= TAG_COSIGNER)
   )
 }
