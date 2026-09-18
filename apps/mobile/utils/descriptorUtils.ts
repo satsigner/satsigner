@@ -34,7 +34,7 @@ export const DescriptorUtils = {
   },
 
   extractCleanXpub(xpubWithPrefix: string): string {
-    const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})/)
+    const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})$/)
     return xpubMatch ? xpubMatch[1] : xpubWithPrefix
   },
 

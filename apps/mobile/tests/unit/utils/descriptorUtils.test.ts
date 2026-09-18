@@ -31,7 +31,14 @@ describe('descriptor origin extraction', () => {
     const parsed = DescriptorUtils.parseXpubInput(SPARROW_ORIGIN_XPUB)
     expect(parsed.fingerprint).toBe('d34db33f')
     expect(parsed.derivationPath).toBe("m/84'/0'/0'")
-    expect(parsed.xpub.startsWith('xpub')).toBe(true)
+    expect(parsed.xpub).toBe(
+      'xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG'
+    )
+  })
+
+  it('does not strip trailing characters from an origin-prefixed xpub', () => {
+    const parsed = DescriptorUtils.parseXpubInput(`${SPARROW_ORIGIN_XPUB}junk`)
+    expect(parsed.xpub).toBe(`${SPARROW_ORIGIN_XPUB}junk`)
   })
 
   it('uses 00000000 when fingerprint is omitted', () => {
