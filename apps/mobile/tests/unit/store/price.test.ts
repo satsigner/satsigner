@@ -55,4 +55,14 @@ describe('price store fetchPrices', () => {
     expect(usePriceStore.getState().btcPrice).toBe(100_000)
     expect(usePriceStore.getState().prices.USD).toBe(100_000)
   })
+
+  it('falls back to the last bundled close when there is no live price yet', async () => {
+    jest
+      .spyOn(MempoolOracle.prototype, 'getPrices')
+      .mockRejectedValue(new Error('network down'))
+
+    await usePriceStore.getState().fetchPrices(MEMPOOL_URL)
+
+    expect(usePriceStore.getState().btcPrice).toBeGreaterThan(0)
+  })
 })

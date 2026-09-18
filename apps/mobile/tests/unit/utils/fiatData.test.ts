@@ -68,6 +68,7 @@ describe('fiat data helpers', () => {
       expect(getFiatDataSettings()).toStrictEqual({
         fetchCurrentPrices: true,
         fetchHistoricalPrices: false,
+        fetchHistoricalPricesFromNetwork: false,
         fiatPriceApiUrl: 'https://custom.example.com',
         fiatPriceProvider: 'custom'
       })

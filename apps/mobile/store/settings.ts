@@ -38,6 +38,7 @@ type SettingsState = {
   payjoinSessionTtlMs: number
   fetchCurrentPrices: boolean
   fetchHistoricalPrices: boolean
+  fetchHistoricalPricesFromNetwork: boolean
   fiatPriceApiUrl: string
   fiatPriceProvider: FiatPriceProvider
   defaultAutoSelectUtxos: AutoSelectUtxosAlgorithm
@@ -54,6 +55,9 @@ type SettingsAction = {
   ) => void
   setFetchHistoricalPrices: (
     fetchHistoricalPrices: SettingsState['fetchHistoricalPrices']
+  ) => void
+  setFetchHistoricalPricesFromNetwork: (
+    fetchHistoricalPricesFromNetwork: SettingsState['fetchHistoricalPricesFromNetwork']
   ) => void
   setFiatPriceApiUrl: (
     fiatPriceApiUrl: SettingsState['fiatPriceApiUrl']
@@ -105,6 +109,7 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       defaultAutoSelectUtxos: 'privacy',
       fetchCurrentPrices: true,
       fetchHistoricalPrices: false,
+      fetchHistoricalPricesFromNetwork: false,
       fiatPriceApiUrl: '',
       fiatPriceProvider: 'mempool',
       mnemonicWordList: DEFAULT_WORD_LIST,
@@ -123,7 +128,19 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
         set({ fetchCurrentPrices })
       },
       setFetchHistoricalPrices: (fetchHistoricalPrices) => {
-        set({ fetchHistoricalPrices })
+        set(
+          fetchHistoricalPrices
+            ? { fetchHistoricalPrices }
+            : {
+                fetchHistoricalPrices: false,
+                fetchHistoricalPricesFromNetwork: false
+              }
+        )
+      },
+      setFetchHistoricalPricesFromNetwork: (
+        fetchHistoricalPricesFromNetwork
+      ) => {
+        set({ fetchHistoricalPricesFromNetwork })
       },
       setFiatPriceApiUrl: (fiatPriceApiUrl) => {
         set({ fiatPriceApiUrl: normalizeFiatPriceApiUrl(fiatPriceApiUrl) })

@@ -3,10 +3,12 @@ import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import { getLocalPriceSeries, isUsablePrice } from '@/api/localPrices'
 import BitcoinRpc from '@/api/rpc'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Block, MemPoolFees } from '@/types/models/Blockchain'
+import { CurrencySchema } from '@/types/models/Blockchain'
 import type {
   Backend,
   Network,
@@ -266,6 +268,18 @@ export function useChainTipMempoolStats(
 
 const SECONDS_PER_DAY = 86_400
 
+function windowPriceHistory(series: { price: number; time: number }[]) {
+  const cutoff =
+    Math.floor(Date.now() / 1000) - PRICE_CHART_DAYS * SECONDS_PER_DAY
+  const window = series.filter(
+    (point) => point.time >= cutoff && isUsablePrice(point.price)
+  )
+  return {
+    prices: window.map((point) => point.price),
+    timestamps: window.map((point) => point.time)
+  }
+}
+
 export function useChainTipPriceHistory(
   fiatCurrency: string,
   enabled: boolean
@@ -276,13 +290,19 @@ export function useChainTipPriceHistory(
   return useQuery({
     enabled,
     queryFn: async () => {
-      const series = await oracle.getHistoricalPriceSeries(fiatCurrency)
-      const cutoff =
-        Math.floor(Date.now() / 1000) - PRICE_CHART_DAYS * SECONDS_PER_DAY
-      const window = series.filter((point) => point.time >= cutoff)
-      return {
-        prices: window.map((point) => point.price),
-        timestamps: window.map((point) => point.time)
+      try {
+        const series = await oracle.getHistoricalPriceSeries(fiatCurrency)
+        return windowPriceHistory(series)
+      } catch {
+        const parsed = CurrencySchema.safeParse(fiatCurrency)
+        if (!parsed.success) {
+          throw new Error(`Unknown fiat currency ${fiatCurrency}`)
+        }
+        return windowPriceHistory(
+          getLocalPriceSeries(parsed.data).filter((point) =>
+            isUsablePrice(point.price)
+          )
+        )
       }
     },
     queryKey: [
