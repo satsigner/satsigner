@@ -89,6 +89,18 @@ describe('parseImportedDescriptorPayload', () => {
     expect(parsed?.internal).toContain('/1/*')
   })
 
+  it('replaces every combined-chain marker in a multipath descriptor', () => {
+    const combined =
+      "wsh(sortedmulti(2,[aa/48'/0'/0'/2']xpubA/<0;1>/*,[bb/48'/0'/0'/2']xpubB/<0;1>/*))"
+    const parsed = DescriptorUtils.parseImportedDescriptorPayload(combined)
+    expect(parsed?.external).toBe(
+      "wsh(sortedmulti(2,[aa/48'/0'/0'/2']xpubA/0/*,[bb/48'/0'/0'/2']xpubB/0/*))"
+    )
+    expect(parsed?.internal).toBe(
+      "wsh(sortedmulti(2,[aa/48'/0'/0'/2']xpubA/1/*,[bb/48'/0'/0'/2']xpubB/1/*))"
+    )
+  })
+
   it('reads two newline-separated descriptors', () => {
     const parsed = DescriptorUtils.parseImportedDescriptorPayload(
       `${SPARROW_DESCRIPTOR}\n${internal}`

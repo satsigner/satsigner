@@ -100,8 +100,8 @@ export const DescriptorUtils = {
           combined: jsonResult.original,
           derivedExternal: true,
           derivedInternal: true,
-          external: withoutChecksum.replace(/<0[,;]1>/, '0'),
-          internal: withoutChecksum.replace(/<0[,;]1>/, '1')
+          external: withoutChecksum.replace(/<0[,;]1>/g, '0'),
+          internal: withoutChecksum.replace(/<0[,;]1>/g, '1')
         }
       }
       return {
@@ -118,8 +118,8 @@ export const DescriptorUtils = {
         combined: trimmed,
         derivedExternal: true,
         derivedInternal: true,
-        external: withoutChecksum.replace(/<0[,;]1>/, '0'),
-        internal: withoutChecksum.replace(/<0[,;]1>/, '1')
+        external: withoutChecksum.replace(/<0[,;]1>/g, '0'),
+        internal: withoutChecksum.replace(/<0[,;]1>/g, '1')
       }
     }
 
