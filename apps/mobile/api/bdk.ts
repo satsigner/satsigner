@@ -529,10 +529,15 @@ function parseDescriptor(descriptorString: string) {
   if (!descriptorString) {
     return { derivationPath: '', fingerprint: '' }
   }
-  const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]+)\]/)
-  return match
-    ? { derivationPath: `m${match[2]}`, fingerprint: match[1] }
-    : { derivationPath: '', fingerprint: '' }
+  const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]*)\]/)
+  if (!match) {
+    return { derivationPath: '', fingerprint: '' }
+  }
+  const [, fingerprint, derivationSuffix] = match
+  return {
+    derivationPath: derivationSuffix ? `m${derivationSuffix}` : '',
+    fingerprint
+  }
 }
 
 function normalizeWalletDescriptor(descriptor: string) {
