@@ -9,7 +9,6 @@ import {
   syncWallet,
   syncWithCoreWallet
 } from '@/api/bdk'
-import { MempoolOracle } from '@/api/blockchain'
 import BitcoinRpc from '@/api/rpc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { t } from '@/locales'
