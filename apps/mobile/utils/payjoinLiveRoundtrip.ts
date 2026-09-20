@@ -293,8 +293,4 @@ export {
   runPayjoinLiveRoundtrip
 }
 
-export type {
-  PayjoinRoundtripEnv,
-  PayjoinRoundtripResult,
-  PayjoinRoundtripStep
-}
+export type { PayjoinRoundtripEnv }

@@ -7,7 +7,7 @@ const FEE_LOW_RATIO = 0.5
 const FEE_NONE_SAT_PER_VB = 1
 
 /** Convert Bitcoin Core BTC/kB feerate to sat/vB. */
-export function satPerVbFromBtcPerKb(feerateBtcPerKb: number): number {
+function satPerVbFromBtcPerKb(feerateBtcPerKb: number): number {
   return Math.round((feerateBtcPerKb * SATS_PER_BITCOIN) / VBYTES_PER_KB)
 }
 

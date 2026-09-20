@@ -11,7 +11,6 @@ import {
   NOSTR_BLOSSOM_AUTH_EXPIRY_SECS,
   NOSTR_BLOSSOM_AUTH_KIND,
   NOSTR_BLOSSOM_SERVER_LIST_KIND,
-  NOSTR_NIP94_FILE_KIND,
   NOSTR_FILES_FETCH_TIMEOUT_MS
 } from '@/constants/nostr'
 import { getSecretFromNsec } from '@/utils/nostr'
@@ -62,23 +61,6 @@ export async function listBlossomFiles(
   return parseBlossomList(response)
 }
 
-function ndkEventToBlobDescriptor(event: NDKEvent): BlobDescriptor | null {
-  const tagMap = Object.fromEntries(event.tags.map(([k, v]) => [k, v ?? '']))
-  const { url } = tagMap
-  const sha256 = tagMap['x']
-  if (!url || !sha256) {
-    return null
-  }
-  return {
-    name: tagMap['name'] || undefined,
-    sha256,
-    size: Number(tagMap['size'] ?? 0),
-    type: tagMap['m'] || undefined,
-    uploaded: event.created_at ?? 0,
-    url
-  }
-}
-
 function disconnectNdkPool(ndk: NDK): void {
   try {
     for (const relay of ndk.pool?.relays.values() ?? []) {
@@ -121,30 +103,6 @@ function subscribeOnce(
     })
     setTimeout(finish, timeoutMs)
   })
-}
-
-export async function fetchNostrFileEvents(
-  pubkeyHex: string,
-  relays: string[]
-): Promise<BlobDescriptor[]> {
-  const ndk = new NDK({
-    autoConnectUserRelays: false,
-    enableOutboxModel: false,
-    explicitRelayUrls: relays
-  })
-  const results: BlobDescriptor[] = []
-  await subscribeOnce(
-    ndk,
-    { authors: [pubkeyHex], kinds: [NOSTR_NIP94_FILE_KIND] },
-    (event) => {
-      const blob = ndkEventToBlobDescriptor(event)
-      if (blob) {
-        results.push(blob)
-      }
-    },
-    NOSTR_FILES_FETCH_TIMEOUT_MS
-  )
-  return results
 }
 
 export async function fetchKind10063Servers(

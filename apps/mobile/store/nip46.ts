@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { NOSTR_NIP46_DEFAULT_PERMISSIONS } from '@/constants/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import type {
   Nip46Method,
@@ -130,4 +129,4 @@ const useNip46Store = create<Nip46State & Nip46Actions>()(
   )
 )
 
-export { NOSTR_NIP46_DEFAULT_PERMISSIONS, useNip46Store }
+export { useNip46Store }

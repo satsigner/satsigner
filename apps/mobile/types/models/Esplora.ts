@@ -65,5 +65,3 @@ export const EsploraTxOutspendsSchema = z.array(
 )
 
 export type EsploraTx = z.infer<typeof EsploraTxSchema>
-export type EsploraUtxo = z.infer<typeof EsploraUtxoSchema>
-export type EsploraTxOutspends = z.infer<typeof EsploraTxOutspendsSchema>

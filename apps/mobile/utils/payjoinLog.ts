@@ -64,5 +64,3 @@ export {
   payjoinWarn,
   urlHost
 }
-
-export type { PayjoinLogFields }

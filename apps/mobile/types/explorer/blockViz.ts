@@ -1,4 +1,4 @@
-export type ExplorerBlockPool = {
+type ExplorerBlockPool = {
   id: number | null
   name: string | null
   slug: string | null

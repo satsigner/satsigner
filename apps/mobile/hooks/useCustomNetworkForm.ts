@@ -208,7 +208,7 @@ function defaultElectrumPorts(network: Network): ElectrumDefaultPorts {
 }
 
 export { defaultElectrumPorts, defaultRpcPort, parseCustomBackendPaste }
-export type { ElectrumDefaultPorts, ParsedCustomBackendPaste }
+export type { ParsedCustomBackendPaste }
 
 export function useCustomNetworkForm(network: Network = 'bitcoin') {
   const [formData, setFormData] = useState<CustomNetworkFormData>({

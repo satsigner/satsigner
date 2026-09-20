@@ -5,7 +5,7 @@ import { SSIconX } from '@/components/icons'
 import SSText from '@/components/SSText'
 import { Colors } from '@/styles'
 
-export type SSSelectionAction = {
+type SSSelectionAction = {
   label: string
   icon?: ReactNode
   onPress: () => void

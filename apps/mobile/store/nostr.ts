@@ -488,4 +488,3 @@ const useNostrStore = create<NostrState & NostrAction>()(
 )
 
 export { useNostrStore }
-export type { NostrSyncStatus, SyncStatus }

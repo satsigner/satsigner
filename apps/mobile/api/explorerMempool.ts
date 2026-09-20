@@ -31,7 +31,7 @@ import {
   VBYTES_PER_KB
 } from '@/utils/rpcFees'
 
-export type MempoolSource = 'backend' | 'mempool'
+type MempoolSource = 'backend' | 'mempool'
 
 export type MempoolBasicData = {
   feeHistogram: FeeHistogramBand[]

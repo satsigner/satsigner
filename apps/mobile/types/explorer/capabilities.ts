@@ -1,4 +1,4 @@
-export const EXPLORER_FEATURES = [
+const EXPLORER_FEATURES = [
   'addressHistory',
   'blockTxList',
   'difficultyAdjustment',

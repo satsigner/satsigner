@@ -199,22 +199,4 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
   }
 }
 
-function upsertRelays(accountId: string, relays: string[]) {
-  const db = getDb()
-  db.execute('DELETE FROM nostr_relays WHERE account_id = ?', [accountId])
-  for (const url of relays) {
-    db.execute('INSERT INTO nostr_relays (account_id, url) VALUES (?, ?)', [
-      accountId,
-      url
-    ])
-  }
-}
-
-export {
-  clearNostrData,
-  insertDm,
-  markDmsAsRead,
-  updateAccountNostr,
-  upsertNostrData,
-  upsertRelays
-}
+export { clearNostrData, markDmsAsRead, updateAccountNostr, upsertNostrData }

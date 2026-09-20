@@ -39,8 +39,4 @@ async function finalizePinAuthSuccess(
   await onSuccess()
 }
 
-export {
-  bindSessionPinDigest,
-  finalizePinAuthSuccess,
-  getFirstEncryptedKeyProbe
-}
+export { finalizePinAuthSuccess, getFirstEncryptedKeyProbe }

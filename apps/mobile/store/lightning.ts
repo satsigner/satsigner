@@ -90,7 +90,7 @@ export const useLightningStore = create<LightningState>()(
     }
   )
 )
-export type LNDConnectionStatus = {
+type LNDConnectionStatus = {
   isConnected: boolean
   isConnecting: boolean
   nodeInfo?: LNDNodeInfo

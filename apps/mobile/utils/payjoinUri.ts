@@ -1,18 +1,9 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
-import {
-  PAYJOIN_DEFAULT_PJOS,
-  PAYJOIN_DIRECTORY_URL
-} from '@/constants/payjoin'
+import { PAYJOIN_DEFAULT_PJOS } from '@/constants/payjoin'
 import {
   type PayjoinEndpointKind,
   type PayjoinUriParams
 } from '@/types/payjoin'
-
-/**
- * BIP77 fragment delimiter: final BIP uses `-`; older PDK / Bull used `+`.
- * Accept both when parsing; prefer `-` when normalizing for final BIP77.
- */
-const BIP77_FRAGMENT_DELIMITERS = ['-', '+'] as const
 
 type ParsePayjoinUriResult = {
   isValid: boolean
@@ -296,50 +287,11 @@ function appendParamsToPayjoinUri(
   })
 }
 
-function isDirectoryEndpoint(pjUrl: string): boolean {
-  try {
-    const url = new URL(normalizeBip77FragmentDelimiters(pjUrl))
-    return (
-      url.hostname.toLowerCase() === 'payjo.in' ||
-      url.hostname.toLowerCase().endsWith('.payjo.in') ||
-      url.origin === new URL(PAYJOIN_DIRECTORY_URL).origin
-    )
-  } catch {
-    return false
-  }
-}
-
-function acceptsFragmentDelimiter(
-  pjUrl: string,
-  delimiter: '+' | '-'
-): boolean {
-  const hashIndex = pjUrl.indexOf('#')
-  if (hashIndex === -1) {
-    return false
-  }
-  const fragment = pjUrl.slice(hashIndex + 1)
-  if (delimiter === '+') {
-    return fragment.includes('+')
-  }
-  // `-` as fragment param separator (not inside base64url tokens alone is hard);
-  // treat presence of `-` between params as acceptance after normalizing.
-  return /[A-Za-z0-9]=/.test(fragment) && fragment.includes('-')
-}
-
 export {
-  BIP77_FRAGMENT_DELIMITERS,
   appendParamsToPayjoinUri,
-  acceptsFragmentDelimiter,
   buildPayjoinUri,
-  decodePjParam,
   detectEndpointKind,
-  encodePjEndpointForQuery,
   hasPayjoinParam,
-  isDirectoryEndpoint,
-  isHttpPjEndpoint,
   normalizeBip77FragmentDelimiters,
-  normalizePjEndpoint,
   parsePayjoinUri
 }
-
-export type { ParsePayjoinUriResult }

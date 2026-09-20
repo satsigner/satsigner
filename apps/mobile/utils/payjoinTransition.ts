@@ -79,4 +79,3 @@ export {
   unwrapPollingProposalPsbt,
   unwrapPollingStasis
 }
-export type { InitializedTransitionResult }

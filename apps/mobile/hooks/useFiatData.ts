@@ -48,5 +48,3 @@ export function useFiatData() {
     useCustomFiatPriceProvider: fiatPriceProvider === 'custom'
   }
 }
-
-export { getFiatDataSettings, getFiatPriceApiUrl } from '@/utils/fiatData'

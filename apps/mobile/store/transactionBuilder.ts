@@ -452,4 +452,3 @@ const useTransactionBuilderStore = create<
 )
 
 export { useTransactionBuilderStore }
-export type { SavedDraft, StonewallPreviewState }

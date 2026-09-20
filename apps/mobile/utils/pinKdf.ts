@@ -356,7 +356,7 @@ export async function applyPendingPinKdfCommit(): Promise<void> {
   await deleteItem(PIN_KDF_COMMIT_KEY)
 }
 
-export async function persistPinDigestAndKdf(
+async function persistPinDigestAndKdf(
   digest: string,
   config: PinKdfConfig
 ): Promise<void> {

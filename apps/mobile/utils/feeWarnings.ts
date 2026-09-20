@@ -1,5 +1,5 @@
-export const HIGH_FEE_RATIO = 0.1
-export const FEE_RATE_ELEVATED_MULTIPLIER = 2
+const HIGH_FEE_RATIO = 0.1
+const FEE_RATE_ELEVATED_MULTIPLIER = 2
 const FEE_RATE_SLIDER_FLOOR = 128
 const FEE_RATE_SLIDER_EXTENDED = 1024
 const MIN_ESTIMATED_TARGET_BLOCKS = 2
@@ -11,7 +11,7 @@ export type FeePercentageParams = {
   totalOutputSats?: number
 }
 
-export function getTotalOutputValueSats(params: FeePercentageParams): number {
+function getTotalOutputValueSats(params: FeePercentageParams): number {
   const { minerFeeSats, totalInputSats, totalOutputSats } = params
 
   if (typeof totalOutputSats === 'number' && totalOutputSats > 0) {

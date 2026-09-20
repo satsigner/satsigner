@@ -148,7 +148,7 @@ export async function getPrivateDescriptorFromElectrumMnemonic(
   )
 }
 
-export async function getPublicDescriptorFromElectrumMnemonic(
+async function getPublicDescriptorFromElectrumMnemonic(
   mnemonic: string,
   electrumType: string,
   kind: KeychainKind,

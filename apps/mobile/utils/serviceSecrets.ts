@@ -216,7 +216,6 @@ async function reEncryptServiceSecrets(
 export {
   deleteAllRpcCredentialsSafe,
   deleteLndSecretsSafe,
-  loadLndSecrets,
   loadRpcCredentials,
   migrateAndHydrateServiceSecrets,
   persistLndSecretsSafe,

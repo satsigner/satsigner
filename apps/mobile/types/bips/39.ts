@@ -19,15 +19,7 @@ export const MnemonicWordCountSchema = z.union([
   z.literal(24)
 ])
 
-export const MnemonicEntropyBitsSchema = z.union([
-  z.literal(128),
-  z.literal(160),
-  z.literal(192),
-  z.literal(224),
-  z.literal(256)
-])
-
-// Bounds/step for the entropy-bit-length union above, exposed separately so
+// Bounds/step for valid BIP39 entropy bit lengths, exposed separately so
 // range checks (e.g. generateMnemonicFromEntropy) don't repeat the literals.
 export const BIP39_MIN_ENTROPY_BITS = 128
 export const BIP39_MAX_ENTROPY_BITS = 256
@@ -92,6 +84,5 @@ export const WORD_COUNT_TO_ENTROPY_BYTES: Record<MnemonicWordCount, number> = {
   24: 32
 }
 
-export type MnemonicEntropyBits = z.infer<typeof MnemonicEntropyBitsSchema>
 export type MnemonicWordCount = z.infer<typeof MnemonicWordCountSchema>
 export type WordListName = (typeof WORDLIST_LIST)[number]

@@ -59,4 +59,3 @@ function useNostrDeviceAnnouncement() {
 }
 
 export { useNostrDeviceAnnouncement }
-export default useNostrDeviceAnnouncement

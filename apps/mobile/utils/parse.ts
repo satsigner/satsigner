@@ -185,7 +185,7 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
 /** Same tail as `getExtendedKeyFromDescriptor` in bip32.ts — base58 can omit 0/O/I/l but BDK may emit other encodings. */
 const EXTENDED_PUBKEY_BODY = '[A-Za-z0-9]+'
 
-export function normalizeDescriptorForParsing(descriptor: string): string {
+function normalizeDescriptorForParsing(descriptor: string): string {
   return descriptor
     .normalize('NFC')
     .replace(/[\u200B-\u200D\uFEFF]/g, '')

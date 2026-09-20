@@ -14,7 +14,7 @@ import {
 const FILE_SIZE_UNITS = ['B', 'KB', 'MB', 'GB'] as const
 const BYTES_PER_KIB = 1024
 
-export const BLOSSOM_FILE_TYPE_FILTERS: BlossomFileCategory[] = [
+const BLOSSOM_FILE_TYPE_FILTERS: BlossomFileCategory[] = [
   'image',
   'video',
   'audio',
@@ -51,7 +51,7 @@ export function formatBlossomUploadDate(unixTs: number): string {
   })
 }
 
-export function formatBlossomUploadDateTime(unixTs: number): string {
+function formatBlossomUploadDateTime(unixTs: number): string {
   const date = new Date(unixTs * 1000)
   return date.toLocaleString(undefined, {
     day: 'numeric',
@@ -85,9 +85,7 @@ export function isBlossomImageMime(mime?: string): boolean {
   return mime?.startsWith('image/') === true
 }
 
-export function getBlossomFileCategoryLabel(
-  category: BlossomFileCategory
-): string {
+function getBlossomFileCategoryLabel(category: BlossomFileCategory): string {
   return t(`nostrIdentity.files.category.${category}`)
 }
 

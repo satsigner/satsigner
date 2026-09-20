@@ -20,7 +20,7 @@ type UseKeyValidationReturn = {
  * Custom hook for key validation logic that was duplicated across components
  * Consolidates validation patterns from SSMultisigKeyControl and SSSignatureDropdown
  */
-export function useKeyValidation({
+function useKeyValidation({
   keyDetails,
   seedDropped,
   decryptedKey,

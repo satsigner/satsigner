@@ -70,6 +70,5 @@ function computeRpcScanStartHeight(options: {
 export {
   computeRpcScanStartHeight,
   estimateBirthHeight,
-  estimateDateFromHeight,
-  RPC_SCAN_BUFFER_BLOCKS
+  estimateDateFromHeight
 }
