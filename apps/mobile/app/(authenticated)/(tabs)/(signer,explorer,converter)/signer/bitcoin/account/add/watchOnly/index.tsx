@@ -49,7 +49,15 @@ import {
   convertKeyFormat
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { DescriptorUtils } from '@/utils/descriptorUtils'
+import {
+  extractFingerprint,
+  parseImportedDescriptorPayload,
+  parseJsonDescriptor,
+  parseLegacyDescriptor,
+  parseXpubInput,
+  processCombinedDescriptor,
+  removeChecksum
+} from '@/utils/descriptor'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 import {
@@ -293,7 +301,7 @@ export default function WatchOnly() {
   }
 
   function updateXpub(raw: string) {
-    const parsed = DescriptorUtils.parseXpubInput(raw)
+    const parsed = parseXpubInput(raw)
     const nextXpub = parsed.xpub
     const validXpub = validateExtendedKey(nextXpub)
     const validForNetwork = validateExtendedKey(nextXpub, network)
@@ -441,7 +449,7 @@ export default function WatchOnly() {
     if (localFingerprint) {
       return
     }
-    const extractedFingerprint = DescriptorUtils.extractFingerprint(descriptor)
+    const extractedFingerprint = extractFingerprint(descriptor)
     if (!extractedFingerprint) {
       return
     }
@@ -483,9 +491,7 @@ export default function WatchOnly() {
       return
     }
     if (content.type === 'bitcoin_descriptor') {
-      const parsed = DescriptorUtils.parseImportedDescriptorPayload(
-        content.cleaned
-      )
+      const parsed = parseImportedDescriptorPayload(content.cleaned)
       if (!parsed) {
         toast.error(t('account.import.error.descriptorFormat'))
         return
@@ -542,14 +548,14 @@ export default function WatchOnly() {
 
     if (selectedOption === 'importDescriptor') {
       // Try to parse as JSON first
-      const jsonResult = DescriptorUtils.parseJsonDescriptor(text)
+      const jsonResult = parseJsonDescriptor(text)
       if (jsonResult) {
         await handleJsonDescriptor(jsonResult)
         return
       }
 
       // Try to parse as legacy multi-line format
-      const legacyResult = DescriptorUtils.parseLegacyDescriptor(text)
+      const legacyResult = parseLegacyDescriptor(text)
       if (legacyResult) {
         await handleLegacyDescriptor(legacyResult)
         return
@@ -624,7 +630,7 @@ export default function WatchOnly() {
   }
 
   async function handleCombinedDescriptor(descriptor: string) {
-    const result = await DescriptorUtils.processCombinedDescriptor(
+    const result = await processCombinedDescriptor(
       descriptor,
       scriptVersion as ScriptVersionType
     )
@@ -636,12 +642,8 @@ export default function WatchOnly() {
       setIsValidExternalDescriptor(true)
       setIsValidInternalDescriptor(true)
 
-      const externalWithoutChecksum = DescriptorUtils.removeChecksum(
-        result.external
-      )
-      const internalWithoutChecksum = DescriptorUtils.removeChecksum(
-        result.internal
-      )
+      const externalWithoutChecksum = removeChecksum(result.external)
+      const internalWithoutChecksum = removeChecksum(result.internal)
       setExternalDescriptor(externalWithoutChecksum)
       setInternalDescriptor(internalWithoutChecksum)
 
@@ -704,11 +706,10 @@ export default function WatchOnly() {
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
         if (isCombinedDescriptor(text)) {
           // Validate the combined descriptor and get separated descriptors
-          const combinedValidation =
-            await DescriptorUtils.processCombinedDescriptor(
-              text,
-              scriptVersion as ScriptVersionType
-            )
+          const combinedValidation = await processCombinedDescriptor(
+            text,
+            scriptVersion as ScriptVersionType
+          )
 
           if (combinedValidation.success) {
             setLocalExternalDescriptor(combinedValidation.external)
@@ -789,11 +790,10 @@ export default function WatchOnly() {
 
           // Check if we have a combined descriptor and validate it
           if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
-            const combinedValidation =
-              await DescriptorUtils.processCombinedDescriptor(
-                externalDescriptor,
-                scriptVersion as ScriptVersionType
-              )
+            const combinedValidation = await processCombinedDescriptor(
+              externalDescriptor,
+              scriptVersion as ScriptVersionType
+            )
 
             if (!combinedValidation.success) {
               toast.error('Invalid combined descriptor')

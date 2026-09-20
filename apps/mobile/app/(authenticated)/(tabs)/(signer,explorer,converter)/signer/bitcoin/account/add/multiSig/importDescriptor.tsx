@@ -18,6 +18,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
+import { extractFingerprintFromXpub } from '@/utils/descriptor'
 import {
   validateDescriptor,
   validateDescriptorScriptVersion
@@ -186,26 +188,29 @@ export default function ImportDescriptor() {
 
       // Extract key information from each key
       const keyData = keys.map((key, index) => {
-        // Extract fingerprint and derivation path: [7af70d19/48h/1h/0h/2h]tpub...
-        // Use a more flexible approach to handle longer extended public keys
+        // Key shape: [7af70d19/48h/1h/0h/2h]tpub.../<0;1>/*
         const bracketMatch = key.match(/^\[([^\]]+)\](.+)$/)
         if (!bracketMatch) {
           throw new Error(`Invalid key format at index ${index}`)
         }
 
         const [, bracketContent, afterBracket] = bracketMatch
-        const [fingerprint, ...restParts] = bracketContent.split('/')
+        const [, ...restParts] = bracketContent.split('/')
         const derivationPath = restParts.join('/')
 
-        // Extract extended public key and address path
-        const xpubMatch = afterBracket.match(/^([a-zA-Z0-9]+)(.*)$/)
-        if (!xpubMatch) {
+        const fingerprint = extractFingerprintFromXpub(key)
+        if (!fingerprint) {
+          throw new Error(`Invalid key format at index ${index}`)
+        }
+
+        const extendedPublicKey = getExtendedKeyFromDescriptor(afterBracket)
+        if (!extendedPublicKey) {
           throw new Error(
             `Invalid extended public key format at index ${index}`
           )
         }
 
-        const [, extendedPublicKey, addressPath] = xpubMatch
+        const addressPath = afterBracket.slice(extendedPublicKey.length)
         return {
           addressPath: addressPath || '/<0;1>/*',
           derivationPath,

@@ -54,6 +54,10 @@ import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
+import {
+  extractDerivationPathFromDescriptor,
+  extractFingerprint
+} from '@/utils/descriptor'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import {
   computeRpcScanStartHeight,
@@ -530,14 +534,9 @@ function parseDescriptor(descriptorString: string) {
   if (!descriptorString) {
     return { derivationPath: '', fingerprint: '' }
   }
-  const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]*)\]/)
-  if (!match) {
-    return { derivationPath: '', fingerprint: '' }
-  }
-  const [, fingerprint, derivationSuffix] = match
   return {
-    derivationPath: derivationSuffix ? `m${derivationSuffix}` : '',
-    fingerprint
+    derivationPath: extractDerivationPathFromDescriptor(descriptorString),
+    fingerprint: extractFingerprint(descriptorString)
   }
 }
 

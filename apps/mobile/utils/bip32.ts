@@ -24,6 +24,7 @@ import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
+import { EXTENDED_PUBKEY_PATTERN } from '@/utils/descriptor'
 
 // HD key versions for different networks
 const VERSIONS = {
@@ -270,7 +271,7 @@ export function getExtendedPublicKeyFromSeed(
 
 // TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors
 export function getExtendedKeyFromDescriptor(descriptor: string) {
-  const match = descriptor.match(/([xyztuv]pub)[A-Za-z0-9]+/i)
+  const match = descriptor.match(new RegExp(EXTENDED_PUBKEY_PATTERN, 'i'))
   return match ? match[0] : ''
 }
 

@@ -1,6 +1,11 @@
 import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { DescriptorUtils } from '@/utils/descriptorUtils'
+import {
+  extractFingerprint,
+  extractFingerprintFromXpub,
+  parseImportedDescriptorPayload,
+  parseXpubInput
+} from '@/utils/descriptor'
 
 const SPARROW_ORIGIN_XPUB =
   "[d34db33f/84'/0'/0']xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG"
@@ -13,31 +18,21 @@ const H_NOTATION_DESCRIPTOR =
 
 describe('descriptor origin extraction', () => {
   it("extracts fingerprint from Sparrow [fp/84'/0'/0']xpub", () => {
-    expect(
-      DescriptorUtils.extractFingerprintFromXpub(SPARROW_ORIGIN_XPUB)
-    ).toBe('d34db33f')
-    expect(DescriptorUtils.extractFingerprint(SPARROW_DESCRIPTOR)).toBe(
-      'd34db33f'
-    )
+    expect(extractFingerprintFromXpub(SPARROW_ORIGIN_XPUB)).toBe('d34db33f')
+    expect(extractFingerprint(SPARROW_DESCRIPTOR)).toBe('d34db33f')
   })
 
   it('extracts fingerprint from h-notation origin', () => {
-    expect(DescriptorUtils.extractFingerprint(H_NOTATION_DESCRIPTOR)).toBe(
-      'deadbeef'
-    )
+    expect(extractFingerprint(H_NOTATION_DESCRIPTOR)).toBe('deadbeef')
   })
 
   it('extracts fingerprint from an origin with no derivation path', () => {
-    expect(DescriptorUtils.extractFingerprint('wpkh([deadbeef]xpubABC)')).toBe(
-      'deadbeef'
-    )
-    expect(
-      DescriptorUtils.extractFingerprintFromXpub('[deadbeef]xpubABC')
-    ).toBe('deadbeef')
+    expect(extractFingerprint('wpkh([deadbeef]xpubABC)')).toBe('deadbeef')
+    expect(extractFingerprintFromXpub('[deadbeef]xpubABC')).toBe('deadbeef')
   })
 
   it('parses xpub, fingerprint, and derivation from origin', () => {
-    const parsed = DescriptorUtils.parseXpubInput(SPARROW_ORIGIN_XPUB)
+    const parsed = parseXpubInput(SPARROW_ORIGIN_XPUB)
     expect(parsed.fingerprint).toBe('d34db33f')
     expect(parsed.derivationPath).toBe("m/84'/0'/0'")
     expect(parsed.xpub).toBe(
@@ -46,7 +41,7 @@ describe('descriptor origin extraction', () => {
   })
 
   it('does not strip trailing characters from an origin-prefixed xpub', () => {
-    const parsed = DescriptorUtils.parseXpubInput(`${SPARROW_ORIGIN_XPUB}junk`)
+    const parsed = parseXpubInput(`${SPARROW_ORIGIN_XPUB}junk`)
     expect(parsed.xpub).toBe(`${SPARROW_ORIGIN_XPUB}junk`)
   })
 
@@ -67,15 +62,14 @@ describe('parseImportedDescriptorPayload', () => {
   const internal = SPARROW_DESCRIPTOR.replace('/0/*', '/1/*')
 
   it('derives internal from a receive /0/* descriptor', () => {
-    const parsed =
-      DescriptorUtils.parseImportedDescriptorPayload(SPARROW_DESCRIPTOR)
+    const parsed = parseImportedDescriptorPayload(SPARROW_DESCRIPTOR)
     expect(parsed?.external).toBe(SPARROW_DESCRIPTOR)
     expect(parsed?.internal).toBe(internal)
     expect(parsed?.derivedInternal).toBe(true)
   })
 
   it('derives receive from a change /1/* descriptor', () => {
-    const parsed = DescriptorUtils.parseImportedDescriptorPayload(internal)
+    const parsed = parseImportedDescriptorPayload(internal)
     expect(parsed?.internal).toBe(internal)
     expect(parsed?.external).toBe(SPARROW_DESCRIPTOR)
     expect(parsed?.derivedExternal).toBe(true)
@@ -83,7 +77,7 @@ describe('parseImportedDescriptorPayload', () => {
 
   it('splits a combined <0;1> descriptor', () => {
     const combined = SPARROW_DESCRIPTOR.replace('/0/*', '/<0;1>/*')
-    const parsed = DescriptorUtils.parseImportedDescriptorPayload(combined)
+    const parsed = parseImportedDescriptorPayload(combined)
     expect(parsed?.combined).toBe(combined)
     expect(parsed?.external).toContain('/0/*')
     expect(parsed?.internal).toContain('/1/*')
@@ -92,7 +86,7 @@ describe('parseImportedDescriptorPayload', () => {
   it('replaces every combined-chain marker in a multipath descriptor', () => {
     const combined =
       "wsh(sortedmulti(2,[aa/48'/0'/0'/2']xpubA/<0;1>/*,[bb/48'/0'/0'/2']xpubB/<0;1>/*))"
-    const parsed = DescriptorUtils.parseImportedDescriptorPayload(combined)
+    const parsed = parseImportedDescriptorPayload(combined)
     expect(parsed?.external).toBe(
       "wsh(sortedmulti(2,[aa/48'/0'/0'/2']xpubA/0/*,[bb/48'/0'/0'/2']xpubB/0/*))"
     )
@@ -102,7 +96,7 @@ describe('parseImportedDescriptorPayload', () => {
   })
 
   it('reads two newline-separated descriptors', () => {
-    const parsed = DescriptorUtils.parseImportedDescriptorPayload(
+    const parsed = parseImportedDescriptorPayload(
       `${SPARROW_DESCRIPTOR}\n${internal}`
     )
     expect(parsed?.external).toBe(SPARROW_DESCRIPTOR)

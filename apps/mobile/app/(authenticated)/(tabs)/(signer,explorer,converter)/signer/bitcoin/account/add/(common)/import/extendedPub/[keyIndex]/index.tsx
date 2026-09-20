@@ -35,7 +35,7 @@ import {
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { DescriptorUtils } from '@/utils/descriptorUtils'
+import { parseXpubInput } from '@/utils/descriptor'
 import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
 type ImportExtendedPubSearchParams = {
@@ -134,7 +134,7 @@ export default function ImportExtendedPub() {
   }
 
   function updateXpub(raw: string) {
-    const parsed = DescriptorUtils.parseXpubInput(raw)
+    const parsed = parseXpubInput(raw)
     const nextXpub = parsed.xpub
     const validXpub = validateExtendedKey(nextXpub, network)
     const nextFingerprint = parsed.fingerprint || localFingerprint

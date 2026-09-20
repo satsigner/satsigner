@@ -37,57 +37,6 @@ export default function DescriptorPage() {
   const [keyName, setKeyName] = useState('')
   const [creationType, setCreationType] = useState('')
   const [scriptVersion, setScriptVersion] = useState<string>('P2PKH')
-  const [_descriptorComponents, setDescriptorComponents] = useState<{
-    scriptFunction: string
-    fingerprint: string
-    derivationPath: string
-    publicKey: string
-    checksum: string
-  } | null>(null)
-
-  // Parse descriptor components for display
-  function parseDescriptorComponents(descriptor: string) {
-    try {
-      // Extract script function (e.g., pkh, sh, wpkh, tr)
-      const scriptMatch = descriptor.match(/^([a-z]+)\(/)
-      const scriptFunction = scriptMatch ? scriptMatch[1] : ''
-
-      // Extract fingerprint and derivation path
-      const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})\/?/)
-      const fingerprint = fingerprintMatch ? fingerprintMatch[1] : ''
-
-      // Extract derivation path - handle both with and without fingerprint
-      let derivationPath = ''
-      const pathMatch = descriptor.match(/\[[0-9a-fA-F]{8}\/([0-9'/]+)\]/)
-      if (pathMatch) {
-        derivationPath = `m/${pathMatch[1]}`
-      } else {
-        // Try to extract path without fingerprint
-        const simplePathMatch = descriptor.match(/([0-9'/]+)\/[0-9]+\/\*/)
-        if (simplePathMatch) {
-          derivationPath = `m/${simplePathMatch[1]}`
-        }
-      }
-
-      // Extract public key (xpub, ypub, zpub, vpub, etc.)
-      const pubKeyMatch = descriptor.match(/([a-z]pub[a-zA-Z0-9]{107})/)
-      const publicKey = pubKeyMatch ? pubKeyMatch[1] : ''
-
-      // Extract checksum
-      const checksumMatch = descriptor.match(/#([a-z0-9]+)$/)
-      const checksum = checksumMatch ? checksumMatch[1] : ''
-
-      return {
-        checksum,
-        derivationPath,
-        fingerprint,
-        publicKey,
-        scriptFunction
-      }
-    } catch {
-      return null
-    }
-  }
 
   async function getDescriptor() {
     if (!account || !keyIndex) {
@@ -124,8 +73,6 @@ export default function DescriptorPage() {
       return
     }
     setDescriptor(descriptorString)
-    const components = parseDescriptorComponents(descriptorString)
-    setDescriptorComponents(components)
   }
 
   useAsyncEffect(async () => {
