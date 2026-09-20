@@ -2,6 +2,11 @@ import { Buffer } from 'buffer'
 
 import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur'
 
+import {
+  decodeCryptoOutputCbor,
+  looksLikeCryptoOutputCbor
+} from '@/utils/cryptoOutput'
+
 // Number of UR fragments processed per batch when decoding a multi-part UR.
 const UR_DECODE_BATCH_SIZE = 10
 
@@ -465,9 +470,21 @@ function processURGenericResult(result: UR) {
   }
 
   const cborData = new Uint8Array(result.cbor)
+  const urType = result.type?.toLowerCase()
 
-  if (result.type === 'bytes') {
+  if (urType === 'bytes') {
     return processURGenericBytes(cborData)
+  }
+
+  if (
+    urType === 'crypto-output' ||
+    urType === 'output-descriptor' ||
+    looksLikeCryptoOutputCbor(cborData)
+  ) {
+    const descriptor = decodeCryptoOutputCbor(cborData)
+    if (descriptor) {
+      return descriptor
+    }
   }
 
   if (isCBORByteStringLike(cborData)) {

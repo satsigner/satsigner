@@ -17,7 +17,7 @@ import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
+import { isBBQRFragment } from '@/utils/bbqr'
 import {
   type ContentContext,
   detectContentByContext,
@@ -31,6 +31,10 @@ import {
   decodeURToPSBT,
   type URStreamDecoder
 } from '@/utils/ur'
+import {
+  decodeBBQRWalletPayload,
+  interpretAssembledBitcoinPayload
+} from '@/utils/walletQrPayload'
 
 type SSCameraModalProps = {
   visible: boolean
@@ -135,27 +139,18 @@ function assembleRawMultiPart(
   if (type === 'raw') {
     const assembled = sortedChunks.join('')
     // p1ofN-style payloads for ecash/lightning/nostr are plain text joins
-    // (e.g. Cashu token, BOLT11). Base64→hex is for bitcoin PSBT splits only.
+    // (e.g. Cashu token, BOLT11). Bitcoin may be a descriptor/xpub or a PSBT.
     if (context !== 'bitcoin') {
       return assembled
     }
-    try {
-      return Buffer.from(assembled, 'base64').toString('hex')
-    } catch {
-      return assembled
-    }
+    return interpretAssembledBitcoinPayload(assembled)
   }
 
-  // bbqr
   try {
-    const decoded = decodeBBQRChunks(sortedChunks)
-    if (decoded) {
-      return Buffer.from(decoded).toString('hex')
-    }
+    return decodeBBQRWalletPayload(sortedChunks)
   } catch {
-    /* fallthrough */
+    return null
   }
-  return null
 }
 
 function waitForNextFrame(): Promise<void> {
@@ -283,9 +278,9 @@ function SSCameraModal({
 
       try {
         if (isBBQRFragment(data)) {
-          const decoded = decodeBBQRChunks([data])
+          const decoded = decodeBBQRWalletPayload([data])
           if (decoded) {
-            finalContent = Buffer.from(decoded).toString('hex')
+            finalContent = decoded
           } else {
             setIsFinalizing(false)
             toast.error(t('camera.error.bbqrDecodeFailed'))

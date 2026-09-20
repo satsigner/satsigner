@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
 import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
+import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
@@ -327,12 +328,18 @@ const useAccountBuilderStore = create<
         extendedPublicKey
       } = get()
 
-      // For watch-only accounts with addresses, skip fingerprint requirement
       const isWatchOnlyAddress =
         creationType === 'importAddress' && externalDescriptor
 
-      // Validate that the key has either a fingerprint or is a watch-only address
-      if (!fingerprint && !isWatchOnlyAddress) {
+      const isImportedPublicKey =
+        creationType === 'importExtendedPub' ||
+        creationType === 'importDescriptor'
+
+      const resolvedFingerprint =
+        fingerprint ||
+        (isImportedPublicKey ? UNKNOWN_MASTER_FINGERPRINT : undefined)
+
+      if (!resolvedFingerprint && !isWatchOnlyAddress) {
         throw new Error(
           'Fingerprint is required for all keys except watch-only addresses'
         )
@@ -348,6 +355,7 @@ const useAccountBuilderStore = create<
 
       const key: Key = {
         creationType,
+        fingerprint: resolvedFingerprint,
         index,
         iv: randomIv(),
         mnemonicWordCount,
@@ -360,7 +368,7 @@ const useAccountBuilderStore = create<
           ...(externalDescriptor && { externalDescriptor }),
           ...(internalDescriptor && { internalDescriptor }),
           ...(extendedPublicKey && { extendedPublicKey }),
-          ...(fingerprint && { fingerprint })
+          ...(resolvedFingerprint && { fingerprint: resolvedFingerprint })
         }
       }
 
