@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
+import { getLocalPriceAt } from '@/api/localPrices'
 import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
 import SSDetailsList from '@/components/SSDetailsList'
 import SSIconButton from '@/components/SSIconButton'
@@ -597,7 +598,12 @@ export default function LndTransactionDetailPage() {
         : t('lightning.node.txDetail.type.onchain')
 
   const privacyMode = useSettingsStore(useShallow((s) => s.privacyMode))
-  const { showCurrentFiat, showHistoricalFiat, fiatPriceApiUrl } = useFiatData()
+  const {
+    fetchHistoricalPricesFromNetwork,
+    fiatPriceApiUrl,
+    showCurrentFiat,
+    showHistoricalFiat
+  } = useFiatData()
   const { makeRequest } = useLND()
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((s) => [s.btcPrice, s.fiatCurrency])
@@ -607,15 +613,24 @@ export default function LndTransactionDetailPage() {
   const { data: historicalBtcPrice } = useQuery({
     enabled: showHistoricalFiat && !!tx?.timestamp,
     queryFn: async () => {
+      const { timestamp } = tx!
+      const local = getLocalPriceAt(fiatCurrency, timestamp)
+      if (local !== null) {
+        return local
+      }
+      if (!fetchHistoricalPricesFromNetwork) {
+        return null
+      }
       const oracle = new MempoolOracle(getFiatPriceApiUrl())
-      const prices = await oracle.getFullPriceAt(fiatCurrency, tx!.timestamp)
-      return prices[fiatCurrency] ?? 0
+      const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
+      return prices[fiatCurrency] ?? null
     },
     queryKey: [
       'btcHistoricalPrice',
       fiatCurrency,
       tx?.timestamp,
-      fiatPriceApiUrl
+      fiatPriceApiUrl,
+      fetchHistoricalPricesFromNetwork
     ],
     staleTime: Infinity
   })

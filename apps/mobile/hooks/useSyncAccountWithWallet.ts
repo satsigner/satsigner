@@ -15,14 +15,15 @@ import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useSettingsStore } from '@/store/settings'
+import { usePriceStore } from '@/store/price'
 import { type Account } from '@/types/models/Account'
+import { type Prices } from '@/types/models/Blockchain'
 import { updateAccountObjectLabels } from '@/utils/account'
 import { shouldFullScan } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
+import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
 import { reconcileTransactions } from '@/utils/transaction'
 
 // Module-level sync state shared across all hook instances.
@@ -243,10 +244,10 @@ function useSyncAccountWithWallet() {
       }
 
       // Capture cached prices before overwriting transactions with fresh BDK data
-      const cachedPrices: Record<string, number | undefined> = {}
+      const cachedPrices: Record<string, Prices> = {}
       for (const tx of latest.transactions) {
-        if (tx.prices?.USD !== undefined) {
-          cachedPrices[tx.id] = tx.prices.USD
+        if (tx.prices && Object.keys(tx.prices).length > 0) {
+          cachedPrices[tx.id] = tx.prices
         }
       }
 
@@ -263,42 +264,39 @@ function useSyncAccountWithWallet() {
       updatedAccount.addresses = parseAccountAddressesDetails(updatedAccount)
       updatedAccount = updateAccountObjectLabels(updatedAccount)
 
+      const { fiatCurrency } = usePriceStore.getState()
+
       // Apply cached prices and collect timestamps only for unpriced transactions
       const unpricedTimestamps: number[] = []
       for (const tx of updatedAccount.transactions) {
-        const cachedPrice = cachedPrices[tx.id]
-        if (cachedPrice !== undefined) {
-          tx.prices = { USD: cachedPrice }
-        } else if (tx.timestamp) {
-          unpricedTimestamps.push(formatTimestamp(tx.timestamp))
+        const cached = cachedPrices[tx.id]
+        if (cached !== undefined) {
+          tx.prices = { ...cached }
         }
+        if (tx.prices?.[fiatCurrency] !== undefined || !tx.timestamp) {
+          continue
+        }
+        unpricedTimestamps.push(formatTimestamp(tx.timestamp))
       }
 
       if (unpricedTimestamps.length > 0) {
-        const { fetchHistoricalPrices } = useSettingsStore.getState()
-        if (fetchHistoricalPrices) {
-          const uniqueTimestamps = [...new Set(unpricedTimestamps)]
-          const oracle = new MempoolOracle(getFiatPriceApiUrl())
-          try {
-            const fetchedPrices = await oracle.getPricesAt(
-              'USD',
-              uniqueTimestamps
-            )
-            const priceMap: Record<number, number> = {}
-            for (const [i, ts] of uniqueTimestamps.entries()) {
-              priceMap[ts] = fetchedPrices[i]
+        const uniqueTimestamps = [...new Set(unpricedTimestamps)]
+        try {
+          const priceMap = await resolveHistoricalPrices(
+            fiatCurrency,
+            uniqueTimestamps
+          )
+          for (const tx of updatedAccount.transactions) {
+            if (tx.prices?.[fiatCurrency] !== undefined || !tx.timestamp) {
+              continue
             }
-            for (const tx of updatedAccount.transactions) {
-              if (!tx.prices?.USD && tx.timestamp) {
-                const price = priceMap[formatTimestamp(tx.timestamp)]
-                if (price !== undefined) {
-                  tx.prices = { USD: price }
-                }
-              }
+            const price = priceMap[formatTimestamp(tx.timestamp)]
+            if (price !== undefined) {
+              tx.prices = { ...tx.prices, [fiatCurrency]: price }
             }
-          } catch {
-            toast.error(t('account.sync.historicalPricesFailed'))
           }
+        } catch {
+          toast.error(t('account.sync.historicalPricesFailed'))
         }
       }
 
