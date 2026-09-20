@@ -189,17 +189,26 @@ export default function UnifiedImport() {
       }
     }
 
-    const validExternalDescriptor = basicValidation && networkValidation.isValid
+    const isValid = basicValidation && networkValidation.isValid
+    const nextValidExternalDescriptor = !descriptor || isValid
 
-    setValidExternalDescriptor(!descriptor || validExternalDescriptor)
+    setValidExternalDescriptor(nextValidExternalDescriptor)
     setLocalExternalDescriptor(descriptor)
-    if (validExternalDescriptor) {
+    if (isValid) {
       setExternalDescriptor(descriptor)
       setExternalDescriptorError('') // Clear error when valid
     }
 
     // Update disabled state based on both external and internal descriptors
-    updateDescriptorValidationState()
+    updateDescriptorValidationState({
+      externalDescriptor: isValid ? descriptor : externalDescriptor,
+      validExternalDescriptor: nextValidExternalDescriptor
+    })
+
+    return {
+      externalDescriptor: isValid ? descriptor : externalDescriptor,
+      validExternalDescriptor: nextValidExternalDescriptor
+    }
   }
 
   function updateInternalDescriptor(
@@ -238,23 +247,47 @@ export default function UnifiedImport() {
       }
     }
 
-    const validInternalDescriptor = basicValidation && networkValidation.isValid
-    setValidInternalDescriptor(!descriptor || validInternalDescriptor)
+    const isValid = basicValidation && networkValidation.isValid
+    const nextValidInternalDescriptor = !descriptor || isValid
+    setValidInternalDescriptor(nextValidInternalDescriptor)
     setLocalInternalDescriptor(descriptor)
-    if (validInternalDescriptor) {
+    if (isValid) {
       setInternalDescriptor(descriptor)
       setInternalDescriptorError('') // Clear error when valid
     }
 
     // Update disabled state based on both external and internal descriptors
-    updateDescriptorValidationState()
+    updateDescriptorValidationState({
+      internalDescriptor: isValid ? descriptor : internalDescriptor,
+      validInternalDescriptor: nextValidInternalDescriptor
+    })
+
+    return {
+      internalDescriptor: isValid ? descriptor : internalDescriptor,
+      validInternalDescriptor: nextValidInternalDescriptor
+    }
   }
 
-  function updateDescriptorValidationState() {
-    // Allow import if either external or internal descriptor is valid
-    // At least one descriptor must be provided and valid
-    const hasValidExternal = externalDescriptor && validExternalDescriptor
-    const hasValidInternal = internalDescriptor && validInternalDescriptor
+  function updateDescriptorValidationState(overrides?: {
+    externalDescriptor?: string
+    internalDescriptor?: string
+    validExternalDescriptor?: boolean
+    validInternalDescriptor?: boolean
+  }) {
+    // Allow import if either external or internal descriptor is valid.
+    // Prefer overrides so callers (e.g. QR scan) are not blocked by stale state.
+    const nextExternalDescriptor =
+      overrides?.externalDescriptor ?? externalDescriptor
+    const nextInternalDescriptor =
+      overrides?.internalDescriptor ?? internalDescriptor
+    const nextValidExternalDescriptor =
+      overrides?.validExternalDescriptor ?? validExternalDescriptor
+    const nextValidInternalDescriptor =
+      overrides?.validInternalDescriptor ?? validInternalDescriptor
+    const hasValidExternal =
+      nextExternalDescriptor && nextValidExternalDescriptor
+    const hasValidInternal =
+      nextInternalDescriptor && nextValidInternalDescriptor
     const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
 
     if (importType === 'descriptor') {
@@ -544,6 +577,12 @@ export default function UnifiedImport() {
           setInternalDescriptor(combinedValidation.internalDescriptor)
           setExternalDescriptorError('')
           setInternalDescriptorError('')
+          updateDescriptorValidationState({
+            externalDescriptor: combinedValidation.externalDescriptor,
+            internalDescriptor: combinedValidation.internalDescriptor,
+            validExternalDescriptor: true,
+            validInternalDescriptor: true
+          })
         } else {
           setLocalExternalDescriptor(combinedValidation.externalDescriptor)
           setLocalInternalDescriptor(combinedValidation.internalDescriptor)
@@ -554,17 +593,35 @@ export default function UnifiedImport() {
             : t('account.import.error.descriptorFormat')
           setExternalDescriptorError(errorMessage)
           setInternalDescriptorError(errorMessage)
+          updateDescriptorValidationState({
+            validExternalDescriptor: false,
+            validInternalDescriptor: false
+          })
         }
       } else {
-        updateExternalDescriptor(parsed.external, parsed.derivedExternal)
+        const externalValidation = updateExternalDescriptor(
+          parsed.external,
+          parsed.derivedExternal
+        )
         if (parsed.internal) {
-          updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+          const internalValidation = updateInternalDescriptor(
+            parsed.internal,
+            parsed.derivedInternal
+          )
+          updateDescriptorValidationState({
+            ...externalValidation,
+            ...internalValidation
+          })
         } else {
           setLocalInternalDescriptor('')
           setInternalDescriptor('')
           setValidInternalDescriptor(true)
           setInternalDescriptorError('')
-          updateDescriptorValidationState()
+          updateDescriptorValidationState({
+            ...externalValidation,
+            internalDescriptor: '',
+            validInternalDescriptor: true
+          })
         }
       }
       toast.success(t('watchonly.success.qrScanned'))
