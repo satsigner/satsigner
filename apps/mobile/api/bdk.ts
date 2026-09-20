@@ -59,6 +59,7 @@ import {
   computeRpcScanStartHeight,
   estimateBirthHeight
 } from '@/utils/rpcScanStartHeight'
+import { isCombinedDescriptor } from '@/utils/validation'
 import {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
@@ -528,10 +529,36 @@ function parseDescriptor(descriptorString: string) {
   if (!descriptorString) {
     return { derivationPath: '', fingerprint: '' }
   }
-  const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]+)\]/)
-  return match
-    ? { derivationPath: `m${match[2]}`, fingerprint: match[1] }
-    : { derivationPath: '', fingerprint: '' }
+  const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]*)\]/)
+  if (!match) {
+    return { derivationPath: '', fingerprint: '' }
+  }
+  const [, fingerprint, derivationSuffix] = match
+  return {
+    derivationPath: derivationSuffix ? `m${derivationSuffix}` : '',
+    fingerprint
+  }
+}
+
+function normalizeWalletDescriptor(descriptor: string) {
+  return descriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
+}
+
+function splitCombinedWalletDescriptors(
+  externalDescriptor: string,
+  internalDescriptor: string | undefined
+) {
+  const ext = normalizeWalletDescriptor(externalDescriptor)
+  const int = internalDescriptor
+    ? normalizeWalletDescriptor(internalDescriptor)
+    : undefined
+  if (!isCombinedDescriptor(ext)) {
+    return { ext, int }
+  }
+  return {
+    ext: ext.replace(/<0[,;]1>/g, '0'),
+    int: ext.replace(/<0[,;]1>/g, '1')
+  }
 }
 
 async function getWalletFromDescriptor(
@@ -539,8 +566,10 @@ async function getWalletFromDescriptor(
   internalDescriptor: string | undefined,
   network: Network
 ): Promise<{ wallet: BdkWallet; dbPath: string }> {
-  const ext = externalDescriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
-  const int = internalDescriptor?.replace(/#\w+$/, '').replace(/'/g, 'h')
+  const { ext, int } = splitCombinedWalletDescriptors(
+    externalDescriptor,
+    internalDescriptor
+  )
   const dbPath = await getWalletDbPath(ext, int, network)
   return { dbPath, wallet: new BdkWallet(ext, int, network, dbPath) }
 }

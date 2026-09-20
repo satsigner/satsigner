@@ -1,9 +1,7 @@
-import { URDecoder } from '@ngraveio/bc-ur'
-import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Keyboard, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { Keyboard, StyleSheet, TouchableOpacity } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
@@ -20,13 +18,14 @@ import { useShallow } from 'zustand/react/shallow'
 import { SSIconTrash } from '@/components/icons'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSCollapsible from '@/components/SSCollapsible'
-import SSModal from '@/components/SSModal'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
@@ -44,12 +43,12 @@ import { Colors } from '@/styles'
 import { type CreationType } from '@/types/models/Account'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
-import { isBBQRFragment } from '@/utils/bbqr'
 import {
   appNetworkToBdkNetwork,
   bitcoinjsNetwork,
   convertKeyFormat
 } from '@/utils/bitcoin'
+import { type DetectedContent } from '@/utils/contentDetector'
 import { DescriptorUtils } from '@/utils/descriptorUtils'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
@@ -117,7 +116,6 @@ export default function WatchOnly() {
     useNFCReader()
 
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [permission, requestPermission] = useCameraPermissions()
   const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
   const [selectedOption, setSelectedOption] = useState<CreationType>(
     params.descriptor
@@ -167,20 +165,6 @@ export default function WatchOnly() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.descriptor, params.extendedPublicKey, setCreationType])
 
-  // Multipart QR scanning state
-  const urDecoderRef = useRef<URDecoder>(new URDecoder())
-  const [scanProgress, setScanProgress] = useState<{
-    type: 'raw' | 'ur' | 'bbqr' | null
-    total: number
-    scanned: Set<number>
-    chunks: Map<number, string>
-  }>({
-    chunks: new Map(),
-    scanned: new Set(),
-    total: 0,
-    type: null
-  })
-
   const pulseAnim = useSharedValue(0)
   const scaleAnim = useSharedValue(1)
 
@@ -216,10 +200,19 @@ export default function WatchOnly() {
   }, [isReading, pulseAnim, scaleAnim])
 
   const nfcButtonStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
-    overflow: 'hidden',
-    transform: [{ scale: scaleAnim.value }]
+    opacity: interpolate(pulseAnim.get(), [0, 1], [1, 0.7]),
+    transform: [{ scale: scaleAnim.get() }]
   }))
+
+  function openMainCamera() {
+    setScanningFor('main')
+    setCameraModalVisible(true)
+  }
+
+  function openFingerprintCamera() {
+    setScanningFor('fingerprint')
+    setCameraModalVisible(true)
+  }
 
   const updateDescriptorValidationState = useCallback(() => {
     const hasValidExternal = externalDescriptor && isValidExternalDescriptor
@@ -274,14 +267,18 @@ export default function WatchOnly() {
     setAddressInput('')
   }
 
+  function handleAddAddress() {
+    addAddress(addressInput)
+  }
+
   function deleteAddress(address: string) {
     setAddresses(addresses.filter((a) => a !== address))
   }
 
   function updateMasterFingerprint(fingerprint: string) {
-    const validFingerprint = validateFingerprint(fingerprint)
+    const validFingerprint = !fingerprint || validateFingerprint(fingerprint)
 
-    setIsValidMasterFingerprint(!fingerprint || validFingerprint)
+    setIsValidMasterFingerprint(validFingerprint)
 
     if (selectedOption === 'importExtendedPub') {
       setIsDisabled(!isValidXpub || !validFingerprint)
@@ -289,29 +286,36 @@ export default function WatchOnly() {
 
     setLocalFingerprint(fingerprint)
 
-    if (validFingerprint) {
+    if (fingerprint && validateFingerprint(fingerprint)) {
       setFingerprint(fingerprint)
       Keyboard.dismiss()
     }
   }
 
-  function updateXpub(xpub: string) {
-    const validXpub = validateExtendedKey(xpub)
-    const validForNetwork = validateExtendedKey(xpub, network)
+  function updateXpub(raw: string) {
+    const parsed = DescriptorUtils.parseXpubInput(raw)
+    const nextXpub = parsed.xpub
+    const validXpub = validateExtendedKey(nextXpub)
+    const validForNetwork = validateExtendedKey(nextXpub, network)
 
     if (!validForNetwork && validXpub) {
       toast.error(t('watchonly.error.networkMismatch'))
     }
 
-    setIsValidXpub(!xpub || validXpub)
+    setIsValidXpub(!nextXpub || validXpub)
 
-    extractAndSetFingerprint(xpub)
-
-    if (selectedOption === 'importExtendedPub') {
-      setIsDisabled(!validXpub || !localFingerprint)
+    if (parsed.fingerprint) {
+      setLocalFingerprint(parsed.fingerprint)
+      setFingerprint(parsed.fingerprint)
+    } else {
+      extractAndSetFingerprint(nextXpub)
     }
 
-    setXpub(xpub)
+    if (selectedOption === 'importExtendedPub') {
+      setIsDisabled(!validXpub)
+    }
+
+    setXpub(nextXpub)
   }
 
   async function updateExternalDescriptor(
@@ -445,142 +449,62 @@ export default function WatchOnly() {
     setFingerprint(extractedFingerprint)
   }
 
-  function detectQRType(data: string) {
-    // Check for RAW format (pXofY header)
-    if (/^p\d+of\d+\s/.test(data)) {
-      const match = data.match(/^p(\d+)of(\d+)\s/)
-      if (match) {
-        return {
-          content: data.substring(match[0].length),
-          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
-          total: parseInt(match[2], 10),
-          type: 'raw' as const
-        }
+  function handleContentScanned(content: DetectedContent) {
+    if (
+      scanningFor === 'fingerprint' ||
+      content.type === 'master_fingerprint'
+    ) {
+      if (!validateFingerprint(content.cleaned)) {
+        toast.error(t('account.import.error.fingerprintFormat'))
+        return
       }
-    }
-
-    // Check for BBQR format
-    if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36)
-      const current = parseInt(data.slice(6, 8), 36)
-      return {
-        content: data,
-        current,
-        total,
-        type: 'bbqr' as const
-      }
-    }
-
-    // Check for UR format (crypto-account, crypto-psbt, etc.)
-    if (data.toLowerCase().startsWith('ur:crypto-')) {
-      // UR format: ur:crypto-*/[sequence]/[data] for multi-part
-      // or ur:crypto-*/[data] for single part
-      const urMatch = data.match(/^ur:crypto-[^/]+\/(?:(\d+)-(\d+)\/)?(.+)$/i)
-      if (urMatch) {
-        const [, currentStr, totalStr] = urMatch
-
-        if (currentStr && totalStr) {
-          // Multi-part UR
-          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
-          const total = parseInt(totalStr, 10)
-          return {
-            content: data,
-            current,
-            total,
-            type: 'ur' as const
-          }
-        }
-        // Single-part UR
-        return {
-          content: data,
-          current: 0,
-          total: 1,
-          type: 'ur' as const
-        }
-      }
-    }
-
-    return {
-      content: data,
-      current: 0,
-      total: 1,
-      type: 'single' as const
-    }
-  }
-
-  function resetScanProgress() {
-    setScanProgress({
-      chunks: new Map(),
-      scanned: new Set(),
-      total: 0,
-      type: null
-    })
-    urDecoderRef.current = new URDecoder()
-  }
-
-  async function handleQRCodeScanned(data: string | undefined) {
-    if (!data) {
-      toast.error(t('watchonly.read.qrError'))
-      return
-    }
-
-    if (scanningFor === 'fingerprint') {
-      updateMasterFingerprint(data)
-      setCameraModalVisible(false)
+      updateMasterFingerprint(content.cleaned)
       toast.success(t('watchonly.success.qrScanned'))
       return
     }
-
-    const qrInfo = detectQRType(data)
-
-    await (qrInfo.type === 'single' || qrInfo.total === 1
-      ? handleSingleQRCode(qrInfo.content)
-      : handleMultiPartQRCode(qrInfo))
-  }
-
-  async function handleSingleQRCode(data: string) {
     if (selectedOption === 'importExtendedPub') {
-      updateXpub(data.trim())
-      setCameraModalVisible(false)
+      if (
+        content.type === 'extended_public_key' ||
+        content.type === 'bitcoin_descriptor'
+      ) {
+        updateXpub(content.cleaned)
+        toast.success(t('watchonly.success.qrScanned'))
+      }
       return
     }
-
     if (selectedOption === 'importAddress') {
-      updateAddress(data.trim())
-      setCameraModalVisible(false)
+      if (
+        content.type === 'bitcoin_address' ||
+        content.type === 'bitcoin_uri'
+      ) {
+        updateAddress(content.cleaned)
+        toast.success(t('watchonly.success.qrScanned'))
+      }
       return
     }
-
-    if (isCombinedDescriptor(data)) {
-      await handleCombinedDescriptor(data, data)
-      return
+    if (content.type === 'bitcoin_descriptor') {
+      const parsed = DescriptorUtils.parseImportedDescriptorPayload(
+        content.cleaned
+      )
+      if (!parsed) {
+        toast.error(t('account.import.error.descriptorFormat'))
+        return
+      }
+      if (parsed.combined) {
+        void handleCombinedDescriptor(parsed.combined)
+      } else {
+        void updateExternalDescriptor(parsed.external, parsed.derivedExternal)
+        if (parsed.internal) {
+          void updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+        } else {
+          setLocalInternalDescriptor('')
+          setInternalDescriptor('')
+          setIsValidInternalDescriptor(true)
+        }
+        extractAndSetFingerprint(parsed.external)
+      }
+      toast.success(t('watchonly.success.qrScanned'))
     }
-
-    await updateExternalDescriptor(data)
-    extractAndSetFingerprint(data)
-  }
-
-  async function handleMultiPartQRCode(qrInfo: {
-    type: 'ur' | 'bbqr' | 'raw'
-    current: number
-    total: number
-    content: string
-  }) {
-    const { current, total, content } = qrInfo
-
-    if (current >= total) {
-      toast.error(t('watchonly.read.qrError'))
-      return
-    }
-
-    // Add the scanned chunk to the set
-    setScanProgress((prev) => ({
-      ...prev,
-      scanned: new Set([...prev.scanned, current])
-    }))
-
-    // For now, handle as single QR code to avoid complex UR decoding issues
-    await handleSingleQRCode(content)
   }
 
   async function pasteFromClipboard() {
@@ -620,7 +544,7 @@ export default function WatchOnly() {
       // Try to parse as JSON first
       const jsonResult = DescriptorUtils.parseJsonDescriptor(text)
       if (jsonResult) {
-        await handleJsonDescriptor(jsonResult, text)
+        await handleJsonDescriptor(jsonResult)
         return
       }
 
@@ -652,14 +576,15 @@ export default function WatchOnly() {
     }
   }
 
-  async function handleJsonDescriptor(
-    result: { external: string; internal: string; original: string },
-    originalText: string
-  ) {
+  async function handleJsonDescriptor(result: {
+    external: string
+    internal: string
+    original: string
+  }) {
     const { external, internal, original } = result
 
     if (isCombinedDescriptor(original)) {
-      await handleCombinedDescriptor(original, originalText)
+      await handleCombinedDescriptor(original)
     } else {
       // For JSON descriptors, use the original descriptor for validation
       await updateExternalDescriptor(original)
@@ -677,7 +602,7 @@ export default function WatchOnly() {
     const { external, internal } = result
 
     if (isCombinedDescriptor(external)) {
-      await handleCombinedDescriptor(external, external)
+      await handleCombinedDescriptor(external)
       return
     }
 
@@ -691,17 +616,14 @@ export default function WatchOnly() {
 
   async function handleSingleDescriptor(descriptor: string) {
     if (isCombinedDescriptor(descriptor)) {
-      await handleCombinedDescriptor(descriptor, descriptor)
+      await handleCombinedDescriptor(descriptor)
     } else {
       await updateExternalDescriptor(descriptor)
       extractAndSetFingerprint(descriptor)
     }
   }
 
-  async function handleCombinedDescriptor(
-    descriptor: string,
-    originalText: string
-  ) {
+  async function handleCombinedDescriptor(descriptor: string) {
     const result = await DescriptorUtils.processCombinedDescriptor(
       descriptor,
       scriptVersion as ScriptVersionType
@@ -714,23 +636,19 @@ export default function WatchOnly() {
       setIsValidExternalDescriptor(true)
       setIsValidInternalDescriptor(true)
 
-      // Store the FULL combined descriptor in the store for validation during account creation
-      setExternalDescriptor(originalText)
-      setInternalDescriptor('')
-
-      // Extract and set fingerprint
-      if (!localFingerprint && result.fingerprint) {
-        setLocalFingerprint(result.fingerprint)
-        setFingerprint(result.fingerprint)
-      }
-
-      // Remove checksums from separated descriptors for format validation
       const externalWithoutChecksum = DescriptorUtils.removeChecksum(
         result.external
       )
       const internalWithoutChecksum = DescriptorUtils.removeChecksum(
         result.internal
       )
+      setExternalDescriptor(externalWithoutChecksum)
+      setInternalDescriptor(internalWithoutChecksum)
+
+      if (!localFingerprint && result.fingerprint) {
+        setLocalFingerprint(result.fingerprint)
+        setFingerprint(result.fingerprint)
+      }
 
       await updateExternalDescriptor(externalWithoutChecksum, true)
       await updateInternalDescriptor(internalWithoutChecksum, true)
@@ -793,21 +711,11 @@ export default function WatchOnly() {
             )
 
           if (combinedValidation.success) {
-            // Set both descriptors and mark them as valid
             setLocalExternalDescriptor(combinedValidation.external)
             setLocalInternalDescriptor(combinedValidation.internal)
             setIsValidExternalDescriptor(true)
             setIsValidInternalDescriptor(true)
 
-            // IMPORTANT: Store the FULL combined descriptor in the store for validation during account creation
-            // The separated descriptors are only for display purposes
-            setExternalDescriptor(text) // Store the original combined descriptor
-            setInternalDescriptor('') // No internal descriptor for combined descriptors
-
-            extractAndSetFingerprint(combinedValidation.external)
-
-            // IMPORTANT: For combined descriptors, we need to remove the checksum from the separated descriptors
-            // because the checksums are only valid for the full combined descriptor
             const externalWithoutChecksum = combinedValidation.external.replace(
               /#[a-z0-9]+$/,
               ''
@@ -816,8 +724,11 @@ export default function WatchOnly() {
               /#[a-z0-9]+$/,
               ''
             )
+            setExternalDescriptor(externalWithoutChecksum)
+            setInternalDescriptor(internalWithoutChecksum)
 
-            // Use format-only validation for the separated descriptors (without checksums)
+            extractAndSetFingerprint(combinedValidation.external)
+
             await updateExternalDescriptor(externalWithoutChecksum, true)
             await updateInternalDescriptor(internalWithoutChecksum, true)
           } else {
@@ -859,13 +770,13 @@ export default function WatchOnly() {
       setIsLoadingWallet(true)
       try {
         if (selectedOption === 'importExtendedPub') {
-          if (!xpub || !localFingerprint || !scriptVersion) {
+          if (!xpub || !scriptVersion) {
             toast.error(t('watchonly.error.missingFields'))
             return
           }
           const normalizedXpub = convertKeyFormat(xpub, 'xpub', network)
           setExtendedPublicKey(normalizedXpub)
-          setFingerprint(localFingerprint)
+          setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
           setScriptVersion(scriptVersion)
         } else if (selectedOption === 'importAddress') {
           for (let index = 0; index < addresses.length; index += 1) {
@@ -892,11 +803,7 @@ export default function WatchOnly() {
 
           extractAndSetFingerprint(externalDescriptor)
 
-          // Ensure we have a fingerprint for descriptor import
-          if (!localFingerprint) {
-            toast.error(t('watchonly.error.missingFields'))
-            return
-          }
+          setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
         }
 
         setNetwork(network)
@@ -1019,11 +926,6 @@ export default function WatchOnly() {
                         onChangeText={updateAddress}
                         multiline
                       />
-                      <SSButton
-                        label={t('common.add')}
-                        disabled={!addressInput || !isValidAddress}
-                        onPress={() => addAddress(addressInput)}
-                      />
                     </>
                   )}
                 </SSVStack>
@@ -1033,29 +935,36 @@ export default function WatchOnly() {
                       label={t('common.paste')}
                       variant="gradient"
                       onPress={pasteFromClipboard}
-                      style={{ flex: 1 }}
+                      style={styles.actionButton}
                     />
                     <SSButton
                       label={t('common.scanQR')}
                       variant="gradient"
-                      onPress={() => {
-                        setScanningFor('main')
-                        setCameraModalVisible(true)
-                      }}
-                      style={{ flex: 1 }}
+                      onPress={openMainCamera}
+                      style={styles.actionButton}
                     />
+                    <Animated.View
+                      style={[styles.actionButton, nfcButtonStyle]}
+                    >
+                      <SSButton
+                        label={
+                          isReading
+                            ? t('watchonly.read.scanning')
+                            : t('watchonly.read.nfc')
+                        }
+                        variant="gradient"
+                        onPress={handleNFCRead}
+                        disabled={!isHardwareSupported}
+                      />
+                    </Animated.View>
                   </SSHStack>
-                  <Animated.View style={nfcButtonStyle}>
+                  {selectedOption === 'importAddress' && (
                     <SSButton
-                      label={
-                        isReading
-                          ? t('watchonly.read.scanning')
-                          : t('watchonly.read.nfc')
-                      }
-                      onPress={handleNFCRead}
-                      disabled={!isHardwareSupported}
+                      label={t('common.add')}
+                      disabled={!addressInput || !isValidAddress}
+                      onPress={handleAddAddress}
                     />
-                  </Animated.View>
+                  )}
                 </SSVStack>
               </SSVStack>
               {selectedOption === 'importExtendedPub' && (
@@ -1090,28 +999,14 @@ export default function WatchOnly() {
                 </>
               )}
             </SSVStack>
-            {/* Multi-part QR Scanning Progress */}
-            {scanProgress.type && scanProgress.total > 1 && (
-              <SSVStack gap="sm">
-                <SSText center size="sm" color="muted">
-                  {scanProgress.type.toUpperCase()} {t('qrcode.scan.progress')}
-                </SSText>
-                <SSText center size="md">
-                  {scanProgress.scanned.size} / {scanProgress.total}{' '}
-                  {t('common.parts')}
-                </SSText>
-                <SSButton
-                  label={t('qrcode.scan.reset')}
-                  variant="ghost"
-                  onPress={resetScanProgress}
-                />
-              </SSVStack>
-            )}
           </SSVStack>
           <SSVStack gap="lg">
             {selectedOption === 'importExtendedPub' && (
               <SSVStack gap="sm">
                 <SSText center>{t('watchonly.fingerprint.label')}</SSText>
+                <SSText center color="muted" size="sm">
+                  {t('watchonly.fingerprint.optionalHelper')}
+                </SSText>
                 <SSTextInput
                   value={localFingerprint}
                   onChangeText={updateMasterFingerprint}
@@ -1124,16 +1019,13 @@ export default function WatchOnly() {
                     label={t('common.paste')}
                     variant="gradient"
                     onPress={pasteFingerprintFromClipboard}
-                    style={{ flex: 1 }}
+                    style={styles.actionButton}
                   />
                   <SSButton
                     label={t('common.scanQR')}
                     variant="gradient"
-                    onPress={() => {
-                      setScanningFor('fingerprint')
-                      setCameraModalVisible(true)
-                    }}
-                    style={{ flex: 1 }}
+                    onPress={openFingerprintCamera}
+                    style={styles.actionButton}
                   />
                 </SSHStack>
               </SSVStack>
@@ -1191,124 +1083,22 @@ export default function WatchOnly() {
           extractAndSetFingerprint(externalDescriptor)
         }}
       />
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
         onClose={() => {
           setCameraModalVisible(false)
           setScanningFor('main')
-          resetScanProgress()
         }}
-      >
-        <SSVStack itemsCenter gap="md">
-          <SSText color="muted" uppercase>
-            {scanningFor === 'fingerprint'
-              ? t('watchonly.fingerprint.scanQR')
-              : scanProgress.type
-                ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-                : t('transaction.build.options.importOutputs.qrcode')}
-          </SSText>
-          <CameraView
-            onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={styles.cameraView}
-          />
-          {/* Show progress if scanning multi-part QR */}
-          {scanProgress.type && scanProgress.total > 1 && (
-            <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
-              {scanProgress.type === 'ur' ? (
-                // For UR fountain encoding, show the actual target
-                <>
-                  {(() => {
-                    const maxFragment = Math.max(...scanProgress.scanned)
-                    const actualTotal = maxFragment + 1
-                    const conservativeTarget = Math.ceil(actualTotal * 1.1)
-                    const theoreticalTarget = Math.ceil(
-                      scanProgress.total * 1.5
-                    )
-                    const displayTarget = Math.min(
-                      conservativeTarget,
-                      theoreticalTarget
-                    )
-
-                    return (
-                      <>
-                        <SSText color="white" center>
-                          {`UR fountain encoding: ${scanProgress.scanned.size}/${displayTarget} fragments`}
-                        </SSText>
-                        <View style={styles.progressBarOuter}>
-                          <View
-                            style={[
-                              styles.progressBarInner,
-                              {
-                                width:
-                                  (scanProgress.scanned.size / displayTarget) *
-                                  300
-                              }
-                            ]}
-                          />
-                        </View>
-                      </>
-                    )
-                  })()}
-                </>
-              ) : (
-                // For RAW and BBQR, show normal progress
-                <>
-                  <SSText color="white" center>
-                    {`Progress: ${scanProgress.scanned.size}/${scanProgress.total} chunks`}
-                  </SSText>
-                  <View style={styles.progressBarOuter}>
-                    <View
-                      style={[
-                        styles.progressBarInner,
-                        {
-                          width:
-                            (scanProgress.scanned.size / scanProgress.total) *
-                            300
-                        }
-                      ]}
-                    />
-                  </View>
-                  <SSText color="muted" size="sm" center>
-                    {`Scanned parts: ${Array.from(scanProgress.scanned)
-                      .toSorted((a, b) => a - b)
-                      .map((n) => n + 1)
-                      .join(', ')}`}
-                  </SSText>
-                </>
-              )}
-            </SSVStack>
-          )}
-          <SSHStack>
-            {!permission?.granted && (
-              <SSButton
-                label={t('camera.enableCameraAccess')}
-                onPress={requestPermission}
-              />
-            )}
-          </SSHStack>
-          {/* Reset button for multi-part scans */}
-          {scanProgress.type && (
-            <SSHStack>
-              <SSButton
-                label="Reset Scan"
-                variant="outline"
-                onPress={resetScanProgress}
-                style={{ marginTop: 10, width: 200 }}
-              />
-            </SSHStack>
-          )}
-        </SSVStack>
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="bitcoin"
+      />
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  cameraView: {
-    height: 340,
-    width: 340
+  actionButton: {
+    flex: 1
   },
   innerScrollContainer: {
     flex: 1,
@@ -1323,18 +1113,6 @@ const styles = StyleSheet.create({
   mainContainer: {
     paddingBottom: 10,
     paddingTop: 0
-  },
-  progressBarInner: {
-    backgroundColor: Colors.white,
-    borderRadius: 2,
-    height: 4,
-    maxWidth: 300
-  },
-  progressBarOuter: {
-    backgroundColor: Colors.gray[700],
-    borderRadius: 2,
-    height: 4,
-    width: 300
   },
   scrollContainer: {
     minHeight: '100%'
