@@ -173,7 +173,6 @@ export default function Energy() {
   const templateUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const previousNetworkRef = useRef<string | null>(null)
 
-  // Add useEffect to watch for network changes
   useEffect(() => {
     if (
       blockchainInfo?.chain &&
@@ -449,7 +448,6 @@ export default function Energy() {
     let intervalId: NodeJS.Timeout
 
     if (isConnected) {
-      // Initial fetch
       fetchBlockchainInfo()
 
       // Set up interval for auto-refresh
@@ -479,7 +477,6 @@ export default function Energy() {
   }, [blockchainInfo])
 
   useEffect(() => {
-    // Initial fetch
     fetchNetworkHashRate()
     // Set up interval for auto-refresh
     const intervalId = setInterval(fetchNetworkHashRate, 60000) // Update every minute
@@ -489,7 +486,6 @@ export default function Energy() {
   // Set up template refresh interval
   useEffect(() => {
     if (isConnected) {
-      // Initial fetch
       fetchBlockTemplate()
 
       // Set up interval for auto-refresh (every 2 minutes)
@@ -1115,7 +1111,6 @@ export default function Energy() {
           })
         }
 
-        // SEARCH
         toast.info(
           `Running BitcoinMiner with ${
             blockTemplate?.transactions?.length || 0
@@ -1240,7 +1235,6 @@ export default function Energy() {
                   setTotalSats((prev) =>
                     (Number(prev) + blockTemplate.coinbasevalue).toString()
                   )
-                  // Show success toast
                   toast.success('Block found and submitted successfully!')
                   // Force immediate stats update
                   updateMiningStats()

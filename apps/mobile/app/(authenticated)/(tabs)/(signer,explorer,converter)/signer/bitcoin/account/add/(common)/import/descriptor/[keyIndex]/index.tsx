@@ -58,7 +58,6 @@ export default function ImportDescriptor() {
   const [externalDescriptor, setExternalDescriptor] = useState('')
   const [internalDescriptor, setInternalDescriptor] = useState('')
 
-  // Validation state
   const [disabled, setDisabled] = useState(true)
   const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
   const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
@@ -148,7 +147,6 @@ export default function ImportDescriptor() {
     descriptor: string,
     skipChecksumValidation = false
   ) {
-    // Basic descriptor validation
     const descriptorValidation = skipChecksumValidation
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)
@@ -203,7 +201,6 @@ export default function ImportDescriptor() {
     descriptor: string,
     skipChecksumValidation = false
   ) {
-    // Basic descriptor validation
     const descriptorValidation = skipChecksumValidation
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)

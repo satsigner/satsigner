@@ -63,7 +63,6 @@ export default function PublicKeyPage() {
 
   const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
 
-  // Update selected format when script version or network changes
   useEffect(() => {
     const newFormat = getDefaultFormat(scriptVersion, network)
     setSelectedFormat(newFormat)

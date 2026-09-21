@@ -348,7 +348,6 @@ export default function IOPreview() {
     const { size, vsize } = estimateTransactionSize(
       Array.from(inputs.values()),
       outputs
-      // add hasChange
     )
     return { size, vsize }
   }, [inputs, outputs])
@@ -358,7 +357,6 @@ export default function IOPreview() {
     [localFeeRate, baseTransactionSize.vsize]
   )
 
-  // Calculate if we'll have change
   const totalOutputValue = useMemo(
     () => outputs.reduce((sum, output) => sum + output.amount, 0),
     [outputs]

@@ -74,7 +74,6 @@ export default function ImportDescriptor() {
     setIsValidating(true)
     setDescriptorError('')
 
-    // Basic descriptor validation
     const descriptorValidation = await validateDescriptor(descriptorText)
 
     if (!descriptorValidation) {
@@ -250,7 +249,6 @@ export default function ImportDescriptor() {
       setKeyCount(parsedData.keyCount)
       setKeysRequired(parsedData.keysRequired)
 
-      // Set the descriptors
       setExternalDescriptor(descriptor)
 
       // Create internal descriptor by replacing /0/* with /1/*
@@ -261,7 +259,6 @@ export default function ImportDescriptor() {
       for (let i = 0; i < parsedData.keyData.length; i += 1) {
         const keyData = parsedData.keyData[i]
 
-        // Set key properties
         setKeyName(`Key ${i + 1}`)
         setCreationType('importDescriptor')
         setFingerprint(keyData.fingerprint)

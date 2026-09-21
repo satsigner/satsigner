@@ -73,7 +73,6 @@ export default function DescriptorPage() {
       const pubKeyMatch = descriptor.match(/([a-z]pub[a-zA-Z0-9]{107})/)
       const publicKey = pubKeyMatch ? pubKeyMatch[1] : ''
 
-      // Extract checksum
       const checksumMatch = descriptor.match(/#([a-z0-9]+)$/)
       const checksum = checksumMatch ? checksumMatch[1] : ''
 

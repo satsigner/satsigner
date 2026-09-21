@@ -217,7 +217,6 @@ export default function ExportDescriptors() {
                     singleSigDescriptor = `wpkh(${keyPart}/0/*)`
                 }
 
-                // Add checksum
                 const checksum =
                   calculateDescriptorChecksum(singleSigDescriptor)
                 descriptorString = checksum
@@ -486,7 +485,6 @@ export default function ExportDescriptors() {
                     descriptor = `wpkh(${keyPart}/0/*)`
                 }
 
-                // Add checksum
                 const checksum = calculateDescriptorChecksum(descriptor)
                 descriptorString = checksum
                   ? `${descriptor}#${checksum}`

@@ -780,7 +780,6 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
         // Assign index to vins and vouts
         const transactionsWithIOIndex = assignIOIndex(transactionsWithDepthH)
 
-        // Update state
         setTransactions(transactionsWithIOIndex)
       } else {
         setTransactions(new Map())

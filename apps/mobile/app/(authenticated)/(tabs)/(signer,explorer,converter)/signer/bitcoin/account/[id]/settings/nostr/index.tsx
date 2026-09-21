@@ -115,7 +115,6 @@ export default function NostrSync() {
 
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
 
-  // Nostr store actions
   const clearNostrState = useNostrStore((state) => state.clearNostrState)
   const clearProcessedMessageIds = useNostrStore(
     (state) => state.clearProcessedMessageIds
@@ -158,7 +157,6 @@ export default function NostrSync() {
       )
   }, [rawMembers])
 
-  // Nostr sync hooks
   const {
     clearStoredDMs,
     generateCommonNostrKeys,
@@ -169,7 +167,6 @@ export default function NostrSync() {
     stopSync
   } = useNostrSync()
 
-  // State management
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -644,7 +641,6 @@ export default function NostrSync() {
     }
   }
 
-  // Navigation functions
   const goToSelectRelaysPage = () => {
     if (!accountId) {
       return

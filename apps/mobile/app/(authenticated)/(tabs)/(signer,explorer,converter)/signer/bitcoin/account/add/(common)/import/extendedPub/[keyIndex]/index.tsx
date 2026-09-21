@@ -78,7 +78,6 @@ export default function ImportExtendedPub() {
   const [xpub, setXpub] = useState('')
   const [localFingerprint, setLocalFingerprint] = useState('')
 
-  // Validation state
   const [disabled, setDisabled] = useState(true)
   const [validXpub, setValidXpub] = useState(true)
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)

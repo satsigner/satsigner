@@ -345,7 +345,6 @@ export function useConnectionTest() {
     setNodeInfo(null)
   }
 
-  // Cleanup on unmount
   useEffect(
     () => () => {
       cleanupPreviousConnection()

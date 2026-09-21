@@ -281,7 +281,6 @@ function useNostrDMStorage() {
       const existing = pendingDmsRef.current.get(account.id) || []
       pendingDmsRef.current.set(account.id, [...existing, ...pendingDms])
 
-      // Cancel existing timer
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
       }

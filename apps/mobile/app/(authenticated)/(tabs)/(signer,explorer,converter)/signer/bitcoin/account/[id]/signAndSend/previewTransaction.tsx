@@ -402,7 +402,6 @@ function PreviewTransaction() {
     width: 200
   }))
 
-  // PSBT Management Hook
   const psbtManagement = usePSBTManagement({
     account,
     decryptedKeys,
@@ -633,7 +632,6 @@ function PreviewTransaction() {
     detectSignatures()
   }, [psbt, account, decryptedKeys, updateSignedPsbt, signedPsbts])
 
-  // Calculate validation results for each cosigner
   const validationResults = useMemo(() => {
     const results = new Map<number, boolean>()
 
@@ -661,7 +659,6 @@ function PreviewTransaction() {
     return results
   }, [signedPsbts, account, decryptedKeys])
 
-  // Clipboard paste hook
   useClipboardPaste({
     onPaste: (content: string) => {
       const processedData = processScannedData(content)
@@ -1356,7 +1353,6 @@ function PreviewTransaction() {
 
     updateQrChunks()
 
-    // Cleanup function
     return () => {
       isMounted = false
       if (psbtBuffer) {
@@ -1953,7 +1949,6 @@ function PreviewTransaction() {
     }
   }, [signedPsbt, setSignedTx])
 
-  // NFC pulsating animation effect
   useEffect(() => {
     if (nfcModalVisible || nfcScanModalVisible) {
       nfcPulseAnim.set(
@@ -1973,7 +1968,6 @@ function PreviewTransaction() {
     }
   }, [nfcModalVisible, nfcScanModalVisible, nfcPulseAnim])
 
-  // Cleanup effect when component unmounts
   useEffect(
     () => () => {
       // Cancel any running animations

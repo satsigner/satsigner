@@ -68,7 +68,6 @@ export function useClipboardPaste({
         toast.success(t('watchonly.success.clipboardPasted'))
       }
 
-      // Call success callback
       onSuccess?.(finalContent)
     } catch {
       const errorMessage = t('watchonly.error.clipboardPaste')
@@ -119,7 +118,6 @@ export function useClipboardPaste({
           toast.success(t('watchonly.success.clipboardPasted'))
         }
 
-        // Call success callback
         onSuccess?.(finalContent)
       } catch {
         const errorMessage = t('watchonly.error.clipboardPaste')

@@ -142,7 +142,6 @@ export default function TransactionConfirmation() {
 
         const vout = i
 
-        // output label
         const outputRef = `${txid}:${vout}`
         labels.push({
           label: output.label,

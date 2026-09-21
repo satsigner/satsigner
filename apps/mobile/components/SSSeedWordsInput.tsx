@@ -142,7 +142,6 @@ export default function SSSeedWordsInput({
     }).fill(null)
   }, [wordCount])
 
-  // Cleanup timeout on unmount
   useEffect(
     () => () => {
       if (autoAdvanceTimeoutRef.current) {
