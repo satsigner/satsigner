@@ -1036,7 +1036,6 @@ export default function SignTransaction() {
                           )
                         }
 
-                        // Check if this might be PSBT data (starts with specific PSBT magic bytes)
                         const isPossiblyPSBT = rawTx
                           .toLowerCase()
                           .startsWith('70736274')

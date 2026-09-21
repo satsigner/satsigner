@@ -108,7 +108,6 @@ export default function GenerateMnemonic() {
       )
       derivationPath = `m/${rawDerivationPath}`
 
-      // Generate extended public key first using the same method as import flow
       const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
         mnemonic,
         passphrase || '',
@@ -134,7 +133,6 @@ export default function GenerateMnemonic() {
         }
       }
     } else {
-      // For single-sig accounts, try to extract from BDK descriptor first
       try {
         const externalDescriptor = await getDescriptorString(
           mnemonic,

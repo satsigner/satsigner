@@ -129,12 +129,10 @@ export default function NostrSync() {
     accountId ? state.lastProtocolEOSE[accountId] : undefined
   )
 
-  // Members management - subscribe to raw members array for reactivity
   const rawMembers = useNostrStore((state) =>
     accountId ? state.members[accountId] : undefined
   )
 
-  // Normalize members in a separate memo to avoid selector complexity
   const members = useMemo(() => {
     if (!rawMembers) {
       return []

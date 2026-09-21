@@ -315,7 +315,6 @@ export function validateCombinedDescriptor(
   const { external: externalDesc, internal: internalDesc } =
     separateCombinedDescriptor(combinedDescriptor)
 
-  // Network validation - check if descriptor is compatible with selected network
   let networkValidation: { isValid: boolean; error?: string } = {
     isValid: true
   }

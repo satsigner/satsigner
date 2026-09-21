@@ -163,14 +163,12 @@ function SSMultipleSankeyDiagram({
     transformedLinks
   )
 
-  // Calculate the optimal initial x translation to show the last 3 depthH levels
   const initialXTranslation = useMemo(() => {
     // If we have fewer than 3 depthH levels or no nodes, show from the beginning
     if (maxDepthH < 2 || !nodes?.length) {
       return 0
     }
 
-    // Find the x position of nodes in the last 3 depthH levels
     const lastThreeLevels = new Set(
       [maxDepthH, maxDepthH - 1, maxDepthH - 2].filter((level) => level >= 0)
     )
@@ -197,7 +195,6 @@ function SSMultipleSankeyDiagram({
       return -(minX - (w - lastThreeLevelsWidth) / 2)
     }
 
-    // Otherwise, show from the minimum x position with a small offset
     const translation = -(minX - w / 10)
 
     const diagramWidth = 2000 * (maxDepthH / 11)

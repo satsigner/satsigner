@@ -197,16 +197,13 @@ export default function ImportExtendedPub() {
       let derivationPath = ''
 
       if (policyType === 'multisig') {
-        // For multisig accounts, always use our multisig derivation path logic
         const rawDerivationPath = getMultisigDerivationPathFromScriptVersion(
           scriptVersion,
           builderNetwork
         )
         derivationPath = `m/${rawDerivationPath}`
       } else {
-        // For single-sig accounts, try to extract from descriptor first
         try {
-          // Create a descriptor from the extended public key to extract derivation path
           const descriptorString = `pkh(${convertedXpub})`
           const parsedDescriptor = parseDescriptor(descriptorString)
           derivationPath = parsedDescriptor.derivationPath

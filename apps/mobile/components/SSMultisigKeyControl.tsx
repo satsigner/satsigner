@@ -142,7 +142,6 @@ function SSMultisigKeyControl({
 
   useEffect(() => {
     if (keyDetails && typeof keyDetails.secret === 'object') {
-      // If the key has a mnemonic, reset seedDropped to false
       if (keyDetails.secret.mnemonic) {
         setSeedDropped(false)
       } else {
@@ -340,13 +339,11 @@ function SSMultisigKeyControl({
     return null
   }
 
-  // Extract fingerprint and extendedPublicKey for display, with null checks
   const fingerprint =
     (typeof keyDetails?.secret === 'object' && keyDetails.secret.fingerprint) ||
     keyDetails?.fingerprint ||
     ''
 
-  // Use the extracted public key from state, or fall back to direct access
   const extendedPublicKey =
     extractedPublicKey ||
     (typeof keyDetails?.secret === 'object' &&

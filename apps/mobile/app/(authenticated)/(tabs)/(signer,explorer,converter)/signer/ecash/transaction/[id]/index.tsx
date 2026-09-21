@@ -75,7 +75,6 @@ export default function EcashTransactionDetailPage() {
     ? mints.find((m) => m.url === transaction.mintUrl)
     : null
 
-  // Get Lightning invoice from mint quote for pending mint transactions
   const mintQuote = transaction?.quoteId
     ? mintQuotes.find((q) => q.quote === transaction.quoteId)
     : null

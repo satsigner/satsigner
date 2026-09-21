@@ -35,7 +35,6 @@ import {
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 
-// Function to calculate checksum for descriptor using a simpler approach
 function calculateDescriptorChecksum(descriptor: string): string {
   try {
     // Simple checksum calculation for React Native
@@ -186,7 +185,6 @@ export default function ExportDescriptors() {
                 const scriptVersion = key.scriptVersion || 'P2WPKH'
                 const derivationPath = key.derivationPath || ''
 
-                // Remove leading 'm' or 'M' from derivationPath if present
                 const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
 
                 const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}`
@@ -220,7 +218,6 @@ export default function ExportDescriptors() {
               }
             }
           } else if (temporaryAccount.policyType === 'multisig') {
-            // For multisig accounts, create proper descriptor with policy-based derivation paths and checksum
             if (!temporaryAccount.keys || temporaryAccount.keys.length === 0) {
               descriptorString = 'No keys available for multisig account'
             } else {
@@ -239,13 +236,11 @@ export default function ExportDescriptors() {
                   let extendedPublicKey = ''
                   let fingerprint = ''
 
-                  // Get fingerprint from secret or key (same pattern as SSMultisigKeyControl)
                   fingerprint =
                     (typeof secret === 'object' && secret.fingerprint) ||
                     key.fingerprint ||
                     ''
 
-                  // Get extended public key from various possible sources (same pattern as SSMultisigKeyControl)
                   if (typeof secret === 'object') {
                     if (secret.extendedPublicKey) {
                       ;({ extendedPublicKey } = secret)
@@ -322,7 +317,6 @@ export default function ExportDescriptors() {
                       )
                     : getDerivationPathFromScriptVersion(scriptVersion, network)
 
-                // Remove leading 'm' or 'M' from derivationPath if present
                 const cleanPolicyPath = policyDerivationPath.replace(
                   /^m\/?/i,
                   ''
@@ -436,7 +430,6 @@ export default function ExportDescriptors() {
                 const scriptVersion = key.scriptVersion || 'P2WPKH'
                 const derivationPath = key.derivationPath || ''
 
-                // Remove leading 'm' or 'M' from derivationPath if present
                 const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
 
                 const keyPart = `[${secret.fingerprint}/${cleanDerivationPath}]${secret.extendedPublicKey}`
@@ -508,7 +501,6 @@ export default function ExportDescriptors() {
           }
         }
 
-        // Compose export content - ensure it's always a string
         const exportString = descriptorString || 'No descriptor available'
         setExportContent(exportString)
       } catch (error) {

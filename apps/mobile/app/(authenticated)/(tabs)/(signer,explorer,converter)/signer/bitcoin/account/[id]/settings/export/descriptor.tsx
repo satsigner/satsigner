@@ -53,7 +53,6 @@ export default function DescriptorPage() {
       const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})\/?/)
       const fingerprint = fingerprintMatch ? fingerprintMatch[1] : ''
 
-      // Extract derivation path - handle both with and without fingerprint
       let derivationPath = ''
       const pathMatch = descriptor.match(/\[[0-9a-fA-F]{8}\/([0-9'/]+)\]/)
       if (pathMatch) {

@@ -157,7 +157,6 @@ export default function ImportDescriptor() {
     try {
       const cleanDescriptor = descriptorText.replace(/#[a-z0-9]{8}$/, '')
 
-      // Extract the inner multisig descriptor (remove outer wsh/sh wrapper)
       let innerDescriptor = cleanDescriptor
       if (cleanDescriptor.startsWith('wsh(') && cleanDescriptor.endsWith(')')) {
         innerDescriptor = cleanDescriptor.slice(4, -1)
@@ -249,7 +248,6 @@ export default function ImportDescriptor() {
       const internalDescriptor = descriptor.replace(/\/0\/\*/g, '/1/*')
       setInternalDescriptor(internalDescriptor)
 
-      // Set up each key in the account builder store
       for (let i = 0; i < parsedData.keyData.length; i += 1) {
         const keyData = parsedData.keyData[i]
 

@@ -87,7 +87,6 @@ function toAppNetwork(network: Network): BlockchainNetwork {
   }
 }
 
-// Convert hex string to number array for compatibility with existing Transaction type
 function hexToBytes(hex: string): number[] {
   const bytes: number[] = []
   for (let i = 0; i < hex.length; i += 2) {

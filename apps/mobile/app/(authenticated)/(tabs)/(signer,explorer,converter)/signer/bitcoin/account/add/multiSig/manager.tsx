@@ -32,7 +32,6 @@ export default function MultiSigManager() {
       return false
     }
 
-    // Check that each key has both fingerprint and public key/descriptor
     const keyValidation = keys.map((key) => {
       if (!key) {
         return false
@@ -46,7 +45,6 @@ export default function MultiSigManager() {
         return false
       }
 
-      // Check if key has either public key, descriptor, or mnemonic
       const hasPublicKey =
         (typeof key.secret === 'object' && key.secret.extendedPublicKey) ||
         (typeof key.secret === 'object' && key.secret.externalDescriptor) ||

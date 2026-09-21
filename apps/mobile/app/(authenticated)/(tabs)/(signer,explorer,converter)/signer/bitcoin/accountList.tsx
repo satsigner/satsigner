@@ -333,7 +333,6 @@ export default function AccountList() {
 
     setNetwork(currentNetwork)
 
-    // Also ensure the global blockchain network is set correctly
     if (currentNetwork !== network) {
       setSelectedNetwork(currentNetwork)
     }

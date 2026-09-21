@@ -238,7 +238,6 @@ function SSIntroAnimationBubbleStep({
 }: SSIntroAnimationBubbleStepProps) {
   const initialBubbles = useRef<LiveUtxoBubble[] | null>(null)
   if (!initialBubbles.current) {
-    // Sort descending so largest bubble appears first, smaller ones follow
     const picked = [...UTXO_VALUE_POOL]
       // eslint-disable-next-line unicorn/no-array-sort -- toSorted not supported in Hermes
       .sort(() => Math.random() - 0.5)

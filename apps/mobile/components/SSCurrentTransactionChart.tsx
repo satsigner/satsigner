@@ -418,7 +418,6 @@ function SSCurrentTransactionChart({
     return [...inputToBlockLinks, ...blockToOutputLinks]
   }, [inputArray, outputArray, minerFee])
 
-  // Validate data before passing to sankey generator to prevent NaN values
   const validSankeyNodes = sankeyNodes.filter(
     (node) =>
       node &&

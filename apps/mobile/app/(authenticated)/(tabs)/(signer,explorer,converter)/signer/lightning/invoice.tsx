@@ -180,13 +180,11 @@ export default function InvoicePage() {
       return false
     }
 
-    // If we can't determine the type from the URL, try to fetch details
     if (!lnurlType) {
       try {
         const url = decodeLNURL(lnurl)
         const details = await fetchLNURLWithdrawDetails(url)
 
-        // If we get here, it's a valid withdraw LNURL
         setLnurlDetails(details)
         setIsLNURLMode(true)
 

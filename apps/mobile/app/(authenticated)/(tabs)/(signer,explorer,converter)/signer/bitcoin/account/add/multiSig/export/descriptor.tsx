@@ -79,7 +79,6 @@ export default function DescriptorPage() {
             appNetworkToBdkNetwork(network)
           )
         } else if (secret.extendedPublicKey && secret.fingerprint) {
-          // Generate descriptor from available data (fingerprint, script version, and public key)
           try {
             const descriptors = getDescriptorsFromKey(
               secret.extendedPublicKey,

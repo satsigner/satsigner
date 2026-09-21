@@ -553,7 +553,6 @@ function PreviewTransaction() {
         return
       }
 
-      // Extract original PSBT - if this fails, the PSBT structure is invalid
       let originalPsbtBase64: string
       try {
         originalPsbtBase64 = extractOriginalPsbt(combinedPsbtBase64)
@@ -766,7 +765,6 @@ function PreviewTransaction() {
       const originalPsbtBase64 = txBuilderResult?.toBase64()
 
       if (processedData.toLowerCase().startsWith('70736274ff')) {
-        // Only attempt conversion if we have the original PSBT context
         if (originalPsbtBase64) {
           return convertPsbtToFinalTransaction(processedData)
         }
@@ -854,7 +852,6 @@ function PreviewTransaction() {
           if (result.toLowerCase().startsWith('70736274ff')) {
             const convertedResult = convertPsbtToFinalTransaction(result)
 
-            // Check if conversion returned a finalized transaction, PSBT hex, or PSBT base64
             if (
               convertedResult.toLowerCase().startsWith('70736274ff') ||
               convertedResult.startsWith('cHNidP')
@@ -1413,9 +1410,7 @@ function PreviewTransaction() {
           }
           const hexResult = Buffer.from(decoded).toString('hex')
           finalContent = hexResult
-        }
-        // Check if it looks like base64 PSBT (starts with cHNidP)
-        else if (qrInfo.content.startsWith('cHNidP')) {
+        } else if (qrInfo.content.startsWith('cHNidP')) {
           const hexResult = Buffer.from(qrInfo.content, 'base64').toString(
             'hex'
           )

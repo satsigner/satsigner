@@ -65,7 +65,6 @@ export default function PublicKeyPage() {
     setSelectedFormat(newFormat)
   }, [scriptVersion, network])
 
-  // Get format button data based on script version and network
   function getFormatButtons(scriptVersion: string) {
     const formatButtons: {
       format: PublicKeyFormat
@@ -178,7 +177,6 @@ export default function PublicKeyPage() {
 
   const convertPublicKeyFormat = useCallback(
     (publicKey: string, targetFormat: PublicKeyFormat): string => {
-      // Check if the public key is in a valid format
       const validPrefixes = [
         'xpub',
         'ypub',
