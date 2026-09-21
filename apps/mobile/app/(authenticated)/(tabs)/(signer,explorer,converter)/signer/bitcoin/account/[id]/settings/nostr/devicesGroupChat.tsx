@@ -391,12 +391,13 @@ export default function DevicesGroupChat() {
         try {
           const api = new NostrAPI(relays)
           const result = await api.fetchKind0(npub)
-          if (result?.displayName || result?.picture) {
-            setProfile(npub, {
-              displayName: result.displayName,
-              picture: result.picture
-            })
+          if (!result?.displayName && !result?.picture) {
+            continue
           }
+          setProfile(npub, {
+            displayName: result.displayName,
+            picture: result.picture
+          })
         } catch {
           // ignore fetch errors — truncated npub remains as fallback
         }

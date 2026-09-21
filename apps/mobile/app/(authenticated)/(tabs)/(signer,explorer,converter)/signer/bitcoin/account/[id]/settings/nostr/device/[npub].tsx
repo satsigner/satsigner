@@ -122,27 +122,27 @@ export default function DeviceAliasPage() {
     try {
       const api = new NostrAPI(relays)
       const profile = await api.fetchKind0(npub)
-      if (profile && (profile.displayName || profile.picture)) {
-        const updated = {
-          ...(account.nostr.npubProfiles || {}),
-          [npub]: {
-            displayName: profile.displayName,
-            picture: profile.picture
-          }
-        }
-        const payload: Parameters<typeof updateAccountNostr>[1] = {
-          lastUpdated: new Date(),
-          npubProfiles: updated
-        }
-        if (npub === account.nostr.deviceNpub) {
-          payload.deviceDisplayName = profile.displayName
-          payload.devicePicture = profile.picture
-        }
-        updateAccountNostr(accountId, payload)
-        toast.success(t('account.nostrSync.fetchKind0Success'))
-      } else {
+      if (!profile || (!profile.displayName && !profile.picture)) {
         toast.info(t('account.nostrSync.fetchKind0NotFound'))
+        return
       }
+      const updated = {
+        ...(account.nostr.npubProfiles || {}),
+        [npub]: {
+          displayName: profile.displayName,
+          picture: profile.picture
+        }
+      }
+      const payload: Parameters<typeof updateAccountNostr>[1] = {
+        lastUpdated: new Date(),
+        npubProfiles: updated
+      }
+      if (npub === account.nostr.deviceNpub) {
+        payload.deviceDisplayName = profile.displayName
+        payload.devicePicture = profile.picture
+      }
+      updateAccountNostr(accountId, payload)
+      toast.success(t('account.nostrSync.fetchKind0Success'))
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       const isNoRelay =
