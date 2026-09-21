@@ -134,12 +134,14 @@ export function useNostrSignFlow() {
       for (const [key, psbt] of Object.entries(derivedSignedPsbts)) {
         const index = parseInt(key, 10)
         const signerPubkey = signerPubkeys[index]
-        if (signerPubkey) {
-          const cosignerIndex = pubkeyToCosignerIndexMap.get(signerPubkey)
-          if (cosignerIndex !== undefined) {
-            remappedPsbts[cosignerIndex] = psbt
-          }
+        if (!signerPubkey) {
+          continue
         }
+        const cosignerIndex = pubkeyToCosignerIndexMap.get(signerPubkey)
+        if (cosignerIndex === undefined) {
+          continue
+        }
+        remappedPsbts[cosignerIndex] = psbt
       }
       finalSignedPsbts = remappedPsbts
     }

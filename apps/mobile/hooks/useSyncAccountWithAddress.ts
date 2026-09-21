@@ -592,22 +592,23 @@ function useSyncAccountWithAddress() {
         if (transaction.prices?.[fiatCurrency] !== undefined) {
           continue
         }
-        if (transaction.timestamp) {
-          let date: Date
-          if (typeof transaction.timestamp === 'string') {
-            date = new Date(transaction.timestamp)
-          } else if (transaction.timestamp instanceof Date) {
-            date = transaction.timestamp
-          } else {
-            continue
-          }
+        if (!transaction.timestamp) {
+          continue
+        }
+        let date: Date
+        if (typeof transaction.timestamp === 'string') {
+          date = new Date(transaction.timestamp)
+        } else if (transaction.timestamp instanceof Date) {
+          date = transaction.timestamp
+        } else {
+          continue
+        }
 
-          if (!isNaN(date.getTime())) {
-            transaction.timestamp = date
-            timestamps.push(formatTimestamp(date))
-          } else {
-            transaction.timestamp = undefined
-          }
+        if (!isNaN(date.getTime())) {
+          transaction.timestamp = date
+          timestamps.push(formatTimestamp(date))
+        } else {
+          transaction.timestamp = undefined
         }
       }
 

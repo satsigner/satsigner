@@ -472,21 +472,22 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                               : bitcoinjs.networks.testnet
                           )
                         : null
-                      if (address) {
-                        // Get transaction history for this address
-                        const history =
-                          await electrumClient.client.blockchainScripthash_getHistory(
-                            electrumClient.addressToScriptHash(address)
-                          )
-                        // Look for our transaction in the history
-                        const txEntry = history.find(
-                          (entry: { tx_hash: string; height: number }) =>
-                            normalizeTxid(entry.tx_hash) === txid
+                      if (!address) {
+                        continue
+                      }
+                      // Get transaction history for this address
+                      const history =
+                        await electrumClient.client.blockchainScripthash_getHistory(
+                          electrumClient.addressToScriptHash(address)
                         )
-                        if (txEntry && txEntry.height) {
-                          blockHeight = txEntry.height
-                          break // Found the height, no need to check other addresses
-                        }
+                      // Look for our transaction in the history
+                      const txEntry = history.find(
+                        (entry: { tx_hash: string; height: number }) =>
+                          normalizeTxid(entry.tx_hash) === txid
+                      )
+                      if (txEntry && txEntry.height) {
+                        blockHeight = txEntry.height
+                        break // Found the height, no need to check other addresses
                       }
                     } catch {
                       /* silently ignored */
