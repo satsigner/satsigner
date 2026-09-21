@@ -233,14 +233,15 @@ export function JSONLtoLabels(JSONLines: string): Label[] {
     const obj = JSON.parse(line)
     for (const key of Object.keys(obj)) {
       const aliasKey = key.toLowerCase()
-      if (bip329Alias[aliasKey] !== undefined) {
-        const field = bip329Alias[aliasKey]
-        if (field === key) {
-          continue
-        }
-        const value = obj[key]
-        obj[field] = value
+      if (bip329Alias[aliasKey] === undefined) {
+        delete obj[key]
+        continue
       }
+      const field = bip329Alias[aliasKey]
+      if (field === key) {
+        continue
+      }
+      obj[field] = obj[key]
       delete obj[key]
     }
     labels.push(obj as Label)
