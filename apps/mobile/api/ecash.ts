@@ -588,40 +588,42 @@ export async function restoreProofsFromSeed(
         ECASH_RESTORE_TIMEOUT_MS
       )
 
-      if (result.proofs.length > 0) {
-        allProofs.push(...result.proofs)
-        if (
-          result.lastCounterWithSignature !== undefined &&
-          (lastCounter === undefined ||
-            result.lastCounterWithSignature > lastCounter)
-        ) {
-          lastCounter = result.lastCounterWithSignature
-        }
+      if (result.proofs.length === 0) {
+        continue
+      }
 
-        let nextCounter = ECASH_RESTORE_BATCH_SIZE
-        let emptyBatches = 0
-        while (emptyBatches < ECASH_MAX_EMPTY_BATCHES) {
-          const contResult = await withTimeout(
-            wallet.restore(nextCounter, ECASH_RESTORE_BATCH_SIZE, {
-              keysetId: keyset.id
-            }),
-            ECASH_RESTORE_TIMEOUT_MS
-          )
-          if (contResult.proofs.length > 0) {
-            allProofs.push(...contResult.proofs)
-            emptyBatches = 0
-            if (
-              contResult.lastCounterWithSignature !== undefined &&
-              (lastCounter === undefined ||
-                contResult.lastCounterWithSignature > lastCounter)
-            ) {
-              lastCounter = contResult.lastCounterWithSignature
-            }
-          } else {
-            emptyBatches += 1
+      allProofs.push(...result.proofs)
+      if (
+        result.lastCounterWithSignature !== undefined &&
+        (lastCounter === undefined ||
+          result.lastCounterWithSignature > lastCounter)
+      ) {
+        lastCounter = result.lastCounterWithSignature
+      }
+
+      let nextCounter = ECASH_RESTORE_BATCH_SIZE
+      let emptyBatches = 0
+      while (emptyBatches < ECASH_MAX_EMPTY_BATCHES) {
+        const contResult = await withTimeout(
+          wallet.restore(nextCounter, ECASH_RESTORE_BATCH_SIZE, {
+            keysetId: keyset.id
+          }),
+          ECASH_RESTORE_TIMEOUT_MS
+        )
+        if (contResult.proofs.length > 0) {
+          allProofs.push(...contResult.proofs)
+          emptyBatches = 0
+          if (
+            contResult.lastCounterWithSignature !== undefined &&
+            (lastCounter === undefined ||
+              contResult.lastCounterWithSignature > lastCounter)
+          ) {
+            lastCounter = contResult.lastCounterWithSignature
           }
-          nextCounter += ECASH_RESTORE_BATCH_SIZE
+        } else {
+          emptyBatches += 1
         }
+        nextCounter += ECASH_RESTORE_BATCH_SIZE
       }
     } catch {
       // Continue to next keyset on failure
