@@ -224,12 +224,12 @@ describe('getNextDisplayIndex', () => {
 
   it('does not collide after earlier accounts are deleted (regression)', () => {
     // 5 accounts created in sequence, never reordered: 0, 1, 2, 3, 4.
-    let accounts = [0, 1, 2, 3, 4].map((displayIndex) =>
+    const created = [0, 1, 2, 3, 4].map((displayIndex) =>
       makeAccount({ displayIndex, id: `acc-${displayIndex}` })
     )
 
     // Delete the first two (displayIndex 0 and 1) — remaining: 2, 3, 4.
-    accounts = accounts.filter((a) => a.displayIndex >= 2)
+    const accounts = created.filter((a) => a.displayIndex >= 2)
 
     // A naive `accounts.length + 1` (3 + 1 = 4) would collide with the
     // existing account at displayIndex 4 and sort the new account before it.

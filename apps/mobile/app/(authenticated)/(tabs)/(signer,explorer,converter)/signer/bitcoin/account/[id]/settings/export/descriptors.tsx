@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
-import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -21,31 +20,27 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import {
-  getExtendedKeyFromDescriptor,
-  getFingerprintFromExtendedPublicKey
-} from '@/utils/bip32'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
-  getMultisigScriptTypeFromScriptVersion,
-  appNetworkToBdkNetwork
+  getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
+import { resolveKeyMaterial } from '@/utils/getOutputDescriptorForKey'
 
 // Function to calculate checksum for descriptor using a simpler approach
 function calculateDescriptorChecksum(descriptor: string): string {
   try {
     // Simple checksum calculation for React Native
     // This is a simplified version that creates a basic checksum
-    let hash = 0
-    for (let i = 0; i < descriptor.length; i += 1) {
-      const char = descriptor.charCodeAt(i)
-      hash = (hash << 5) - hash + char
-      hash &= hash // Convert to 32-bit integer
-    }
+    const hash = Array.from({ length: descriptor.length }, (_, i) =>
+      descriptor.charCodeAt(i)
+    ).reduce((acc, char) => {
+      const next = (acc << 5) - acc + char
+      return next & next
+    }, 0)
 
     // Convert to base58-like string
     const base58Chars =
@@ -137,55 +132,8 @@ export default function ExportDescriptors() {
                 'No key data available for single signature account'
             } else {
               const { secret } = key
-              let extendedPublicKey = ''
-              let fingerprint = ''
-
-              // Get fingerprint from secret or key
-              fingerprint =
-                (typeof secret === 'object' && secret.fingerprint) ||
-                key.fingerprint ||
-                ''
-
-              // Get extended public key from various possible sources
-              if (typeof secret === 'object') {
-                if (secret.extendedPublicKey) {
-                  ;({ extendedPublicKey } = secret)
-                } else if (secret.externalDescriptor) {
-                  extendedPublicKey = getExtendedKeyFromDescriptor(
-                    secret.externalDescriptor
-                  )
-                } else if (secret.mnemonic) {
-                  try {
-                    const extendedKey =
-                      await getExtendedPublicKeyFromAccountKey(
-                        {
-                          ...key,
-                          secret: {
-                            mnemonic: secret.mnemonic,
-                            passphrase: secret.passphrase
-                          }
-                        },
-                        appNetworkToBdkNetwork(network)
-                      )
-                    if (extendedKey) {
-                      extendedPublicKey = extendedKey
-                    }
-                  } catch {
-                    // Failed to generate extended public key from mnemonic
-                  }
-                }
-              }
-
-              // If we still don't have a fingerprint, try to extract it from the extended public key
-              if (!fingerprint && extendedPublicKey) {
-                fingerprint =
-                  getFingerprintFromExtendedPublicKey(extendedPublicKey)
-              }
-
-              // If we still don't have a fingerprint, try to get it from the key's fingerprint property
-              if (!fingerprint && key.fingerprint) {
-                ;({ fingerprint } = key)
-              }
+              const { extendedPublicKey, fingerprint } =
+                await resolveKeyMaterial(key, secret, network)
 
               if (fingerprint && extendedPublicKey) {
                 // Get the correct derivation path for the script version
@@ -245,70 +193,8 @@ export default function ExportDescriptors() {
                     return { extendedPublicKey: '', fingerprint: '', index }
                   }
 
-                  const secret = key.secret as Secret
-                  let extendedPublicKey = ''
-                  let fingerprint = ''
-
-                  // Get fingerprint from secret or key (same pattern as SSMultisigKeyControl)
-                  fingerprint =
-                    (typeof secret === 'object' && secret.fingerprint) ||
-                    key.fingerprint ||
-                    ''
-
-                  // Get extended public key from various possible sources (same pattern as SSMultisigKeyControl)
-                  if (typeof secret === 'object') {
-                    // First, try to get from extendedPublicKey directly
-                    if (secret.extendedPublicKey) {
-                      ;({ extendedPublicKey } = secret)
-                    } else if (secret.externalDescriptor) {
-                      extendedPublicKey = getExtendedKeyFromDescriptor(
-                        secret.externalDescriptor
-                      )
-                    } else if (secret.mnemonic) {
-                      // If we have a mnemonic, generate the extended public key
-                      try {
-                        const extendedKey =
-                          await getExtendedPublicKeyFromAccountKey(
-                            {
-                              ...key,
-                              secret: {
-                                mnemonic: secret.mnemonic,
-                                passphrase: secret.passphrase
-                              }
-                            },
-                            appNetworkToBdkNetwork(network)
-                          )
-                        if (extendedKey) {
-                          extendedPublicKey = extendedKey
-                        }
-                      } catch {
-                        // Failed to generate extended public key from mnemonic for key ${index}
-                      }
-                    }
-                  }
-
-                  // If we still don't have a fingerprint, try to extract it from the extended public key
-                  if (!fingerprint && extendedPublicKey) {
-                    fingerprint =
-                      getFingerprintFromExtendedPublicKey(extendedPublicKey)
-                  }
-
-                  // If we still don't have a fingerprint, try to get it from the key's fingerprint property
-                  if (!fingerprint && key.fingerprint) {
-                    ;({ fingerprint } = key)
-                  }
-
-                  // If we still don't have an extended public key, try to get it from the key's secret
-                  if (
-                    !extendedPublicKey &&
-                    typeof secret === 'object' &&
-                    secret.externalDescriptor
-                  ) {
-                    // Try to extract from externalDescriptor if available
-                    extendedPublicKey = getExtendedKeyFromDescriptor(
-                      secret.externalDescriptor
-                    )
-                  }
+                  const { extendedPublicKey, fingerprint } =
+                    await resolveKeyMaterial(key, key.secret, network)
 
                   return { extendedPublicKey, fingerprint, index }
                 })

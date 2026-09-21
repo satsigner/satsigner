@@ -46,18 +46,16 @@ describe('pin utils', () => {
       // applied to a stale pin snapshot, leaving gaps like ['1', '', '1', '1'].
       // Chaining each press on the previous result models how React resolves
       // queued functional updaters within a single batch.
-      let pin = emptyPin()
-      for (const digit of ['1', '1', '1', '1']) {
-        pin = fillPinDigit(pin, digit)
-      }
+      const pin = ['1', '1', '1', '1'].reduce(
+        (acc, digit) => fillPinDigit(acc, digit),
+        emptyPin()
+      )
       expect(pin).toStrictEqual(['1', '1', '1', '1'])
       expect(pin.join('')).toBe('1111')
     })
 
     it('keeps digits contiguous regardless of press count', () => {
-      let pin = emptyPin()
-      pin = fillPinDigit(pin, '1')
-      pin = fillPinDigit(pin, '2')
+      const pin = fillPinDigit(fillPinDigit(emptyPin(), '1'), '2')
       expect(pin).toStrictEqual(['1', '2', '', ''])
       expect(getPinCursorIndex(pin)).toBe(2)
     })

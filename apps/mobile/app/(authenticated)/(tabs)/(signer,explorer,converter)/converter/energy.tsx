@@ -85,6 +85,22 @@ const getNetworkFromAddress = (address: string) => {
   return networks.mainnet
 }
 
+const BLOCKCHAIN_INFO_REFRESH_MS = 30_000
+
+const HASH_RATE_ENDPOINTS: Record<string, string> = {
+  main: 'https://mempool.space/api/v1/mining/hashrate/1m',
+  signet: 'https://mempool.space/signet/api/v1/mining/hashrate/1m',
+  test: 'https://mempool.space/testnet4/api/v1/mining/hashrate/1m'
+}
+
+const RPC_ERROR_MESSAGES: Record<number, string> = {
+  [-32601]:
+    'getblocktemplate RPC method not found. Make sure your node supports mining.',
+  [-32602]:
+    'Invalid parameters. Check if your node supports the requested rules.',
+  [-32603]: 'Node is not ready for mining. Check if your node is fully synced.'
+}
+
 // Add this helper function after bitsToTarget
 const encodeScriptNum = (num: number): Buffer => {
   if (num === 0) {
@@ -336,17 +352,9 @@ export default function Energy() {
       }
 
       if (data.error) {
-        let errorMessage = `RPC Error: ${data.error.message}`
-        if (data.error.code === -32601) {
-          errorMessage =
-            'getblocktemplate RPC method not found. Make sure your node supports mining.'
-        } else if (data.error.code === -32603) {
-          errorMessage =
-            'Node is not ready for mining. Check if your node is fully synced.'
-        } else if (data.error.code === -32602) {
-          errorMessage =
-            'Invalid parameters. Check if your node supports the requested rules.'
-        }
+        const errorMessage =
+          RPC_ERROR_MESSAGES[data.error.code] ??
+          `RPC Error: ${data.error.message}`
         throw new Error(errorMessage)
       }
 
@@ -421,14 +429,8 @@ export default function Energy() {
     }
 
     try {
-      let endpoint = 'https://mempool.space/api/v1/mining/hashrate/1m'
-
-      // Set endpoint based on network type
-      if (blockchainInfo.chain === 'signet') {
-        endpoint = 'https://mempool.space/signet/api/v1/mining/hashrate/1m'
-      } else if (blockchainInfo.chain === 'test') {
-        endpoint = 'https://mempool.space/testnet4/api/v1/mining/hashrate/1m'
-      }
+      const endpoint =
+        HASH_RATE_ENDPOINTS[blockchainInfo.chain] ?? HASH_RATE_ENDPOINTS.main
 
       const response = await fetch(endpoint)
       if (!response.ok) {
@@ -446,23 +448,17 @@ export default function Energy() {
   }, [blockchainInfo])
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout
-
-    if (isConnected) {
-      // Initial fetch
-      fetchBlockchainInfo()
-
-      // Set up interval for auto-refresh
-      intervalId = setInterval(() => {
-        fetchBlockchainInfo()
-      }, 30000) // 30 seconds
+    if (!isConnected) {
+      return
     }
 
-    // Cleanup interval on unmount or when disconnected
+    fetchBlockchainInfo()
+    const intervalId = setInterval(() => {
+      fetchBlockchainInfo()
+    }, BLOCKCHAIN_INFO_REFRESH_MS)
+
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId)
-      }
+      clearInterval(intervalId)
     }
   }, [isConnected, fetchBlockchainInfo]) // Dependencies for the effect
 
@@ -616,13 +612,13 @@ export default function Energy() {
     const exponent = bitsNum >>> 24
     const mantissa = bitsNum & 0xffffff
     const target = Buffer.alloc(32, 0)
-    let mantissaBuf = Buffer.alloc(4)
-    mantissaBuf.writeUInt32BE(mantissa, 0)
+    const mantissaBytes = Buffer.alloc(4)
+    mantissaBytes.writeUInt32BE(mantissa, 0)
     if (exponent <= 3) {
-      mantissaBuf = mantissaBuf.slice(4 - exponent)
-      mantissaBuf.copy(target as unknown as Uint8Array, 32 - mantissaBuf.length)
+      const truncated = mantissaBytes.slice(4 - exponent)
+      truncated.copy(target as unknown as Uint8Array, 32 - truncated.length)
     } else {
-      mantissaBuf.copy(target as unknown as Uint8Array, 32 - exponent)
+      mantissaBytes.copy(target as unknown as Uint8Array, 32 - exponent)
     }
 
     // Convert hash to little-endian for comparison
@@ -689,23 +685,16 @@ export default function Energy() {
       const heightScript = encodeScriptNum(template.height)
 
       // Create coinbase script with optional extra nonce
-      let coinbaseScript: Buffer
-      if (useExtraNonce) {
-        // Only add extra nonce when explicitly requested
+      const encodeExtraNonce = () => {
         const extraNonceBytes = Buffer.alloc(8)
         extraNonceBytes.writeBigUInt64LE(BigInt(extraNonce), 0)
-        coinbaseScript = bitcoin.script.compile([
-          heightScript,
-          extraNonceBytes,
-          Buffer.from(`Satsigner ${Date.now()}`)
-        ])
-      } else {
-        // Basic coinbase script with just height and miner identifier
-        coinbaseScript = bitcoin.script.compile([
-          heightScript,
-          Buffer.from(`Satsigner ${Date.now()}`)
-        ])
+        return extraNonceBytes
       }
+      const coinbaseScript = bitcoin.script.compile([
+        heightScript,
+        ...(useExtraNonce ? [encodeExtraNonce()] : []),
+        Buffer.from(`Satsigner ${Date.now()}`)
+      ])
 
       tx.addInput(
         Buffer.alloc(32), // Previous txid (32 bytes of zeros for coinbase)

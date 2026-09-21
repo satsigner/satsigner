@@ -1,7 +1,9 @@
-import type { Key, Secret } from '@/types/models/Account'
+import type { DecryptedKey, Key, Secret } from '@/types/models/Account'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
   getOutputDescriptorStringForKey,
-  resolveDescriptorForNostrCommonKeys
+  resolveDescriptorForNostrCommonKeys,
+  resolveKeyMaterial
 } from '@/utils/getOutputDescriptorForKey'
 import { deriveNostrKeysFromDescriptor } from '@/utils/nostr'
 
@@ -120,5 +122,73 @@ describe('resolveDescriptorForNostrCommonKeys', () => {
     const keys = await deriveNostrKeysFromDescriptor(descriptor)
     expect(keys.commonNsec).toMatch(/^nsec1/)
     expect(keys.commonNpub).toMatch(/^npub1/)
+  })
+})
+
+describe('resolveKeyMaterial', () => {
+  const XPUB = getExtendedKeyFromDescriptor(DESCRIPTOR)
+
+  function decryptedKey(overrides: Partial<DecryptedKey> = {}): DecryptedKey {
+    return {
+      creationType: 'importDescriptor',
+      index: 0,
+      iv: '',
+      secret: {},
+      ...overrides
+    }
+  }
+
+  it('takes the extended public key from the secret when present', async () => {
+    const key = decryptedKey()
+    const secret: Secret = { extendedPublicKey: XPUB }
+
+    const { extendedPublicKey } = await resolveKeyMaterial(
+      key,
+      secret,
+      'testnet'
+    )
+    expect(extendedPublicKey).toBe(XPUB)
+  })
+
+  it('falls back to the external descriptor for the extended public key', async () => {
+    const key = decryptedKey()
+    const secret: Secret = { externalDescriptor: DESCRIPTOR }
+
+    const { extendedPublicKey } = await resolveKeyMaterial(
+      key,
+      secret,
+      'testnet'
+    )
+    expect(extendedPublicKey).toBe(XPUB)
+  })
+
+  it('prefers the secret fingerprint over the key fingerprint', async () => {
+    const key = decryptedKey({ fingerprint: 'bbbbbbbb' })
+    const secret: Secret = { extendedPublicKey: XPUB, fingerprint: 'aaaaaaaa' }
+
+    const { fingerprint } = await resolveKeyMaterial(key, secret, 'testnet')
+    expect(fingerprint).toBe('aaaaaaaa')
+  })
+
+  it('prefers the key fingerprint over one derived from the xpub', async () => {
+    const key = decryptedKey({ fingerprint: 'bbbbbbbb' })
+    const secret: Secret = { extendedPublicKey: XPUB }
+
+    const { fingerprint } = await resolveKeyMaterial(key, secret, 'testnet')
+    expect(fingerprint).toBe('bbbbbbbb')
+  })
+
+  it('yields an empty fingerprint rather than throwing when the xpub cannot be parsed', async () => {
+    const key = decryptedKey()
+    const secret: Secret = { extendedPublicKey: XPUB }
+
+    const { fingerprint } = await resolveKeyMaterial(key, secret, 'testnet')
+    expect(fingerprint).toBe('')
+  })
+
+  it('returns empty strings when nothing can be resolved', async () => {
+    await expect(
+      resolveKeyMaterial(decryptedKey(), {}, 'testnet')
+    ).resolves.toStrictEqual({ extendedPublicKey: '', fingerprint: '' })
   })
 })

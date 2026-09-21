@@ -25,12 +25,10 @@ const COIN_KAT_128 =
 const WORD_COUNTS = [12, 15, 18, 21, 24] as const
 
 function shannonEntropy(counts: Map<string, number>, total: number): number {
-  let h = 0
-  for (const count of counts.values()) {
+  return [...counts.values()].reduce((acc, count) => {
     const p = count / total
-    h -= p * Math.log2(p)
-  }
-  return h
+    return acc - p * Math.log2(p)
+  }, 0)
 }
 
 function tally(values: string[]): Map<string, number> {
@@ -218,14 +216,9 @@ describe('entropyFromDiceRolls distribution', () => {
   })
 
   it('never forces leading zero bits', () => {
-    let sawLeadingOne = false
-    for (let i = 0; i < 200; i += 1) {
-      const entropy = entropyFromDiceRolls(rollsFor(128, randomDiceRoll), 128)
-      if (entropy.startsWith('1')) {
-        sawLeadingOne = true
-        break
-      }
-    }
+    const sawLeadingOne = Array.from({ length: 200 }).some(() =>
+      entropyFromDiceRolls(rollsFor(128, randomDiceRoll), 128).startsWith('1')
+    )
     expect(sawLeadingOne).toBe(true)
   })
 
@@ -242,17 +235,11 @@ describe('entropyFromDiceRolls distribution', () => {
   })
 
   it('yields balanced bits overall', () => {
-    let ones = 0
-    let total = 0
-    for (let i = 0; i < 400; i += 1) {
-      const entropy = entropyFromDiceRolls(rollsFor(128, randomDiceRoll), 128)
-      for (const bit of entropy) {
-        total += 1
-        if (bit === '1') {
-          ones += 1
-        }
-      }
-    }
+    const bits = Array.from({ length: 400 }, () =>
+      entropyFromDiceRolls(rollsFor(128, randomDiceRoll), 128)
+    ).join('')
+    const total = bits.length
+    const ones = [...bits].filter((bit) => bit === '1').length
     expect(ones / total).toBeGreaterThan(0.47)
     expect(ones / total).toBeLessThan(0.53)
   })
@@ -274,12 +261,7 @@ describe('entropyFromDiceRolls distribution', () => {
     mutated[0] = 4
     const b = entropyFromDiceRolls(mutated, 256)
 
-    let differing = 0
-    for (let i = 0; i < a.length; i += 1) {
-      if (a[i] !== b[i]) {
-        differing += 1
-      }
-    }
+    const differing = [...a].filter((bit, i) => bit !== b[i]).length
     expect(differing).toBeGreaterThan(a.length * 0.3)
     expect(differing).toBeLessThan(a.length * 0.7)
   })
@@ -374,19 +356,14 @@ describe('entropyFromCoinFlips', () => {
   })
 
   it('yields balanced output bits from biased input', () => {
-    let ones = 0
-    let total = 0
-    for (let i = 0; i < 400; i += 1) {
-      const flips = Array.from({ length: 128 }, () =>
-        Math.random() < 0.8 ? '0' : '1'
+    const bits = Array.from({ length: 400 }, () =>
+      entropyFromCoinFlips(
+        Array.from({ length: 128 }, () => (Math.random() < 0.8 ? '0' : '1')),
+        128
       )
-      for (const bit of entropyFromCoinFlips(flips, 128)) {
-        total += 1
-        if (bit === '1') {
-          ones += 1
-        }
-      }
-    }
+    ).join('')
+    const total = bits.length
+    const ones = [...bits].filter((bit) => bit === '1').length
     expect(ones / total).toBeGreaterThan(0.47)
     expect(ones / total).toBeLessThan(0.53)
   })
@@ -548,13 +525,10 @@ describe('randomCoinFlip', () => {
   })
 
   it('is close to balanced', () => {
-    let ones = 0
     const draws = 20_000
-    for (let i = 0; i < draws; i += 1) {
-      if (randomCoinFlip() === '1') {
-        ones += 1
-      }
-    }
+    const ones = Array.from({ length: draws }).filter(
+      () => randomCoinFlip() === '1'
+    ).length
     expect(ones / draws).toBeGreaterThan(0.48)
     expect(ones / draws).toBeLessThan(0.52)
   })

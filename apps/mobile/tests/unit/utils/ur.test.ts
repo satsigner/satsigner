@@ -37,13 +37,12 @@ describe('createURStreamDecoder', () => {
     expect(fragments.length).toBeGreaterThan(1)
 
     const decoder = createURStreamDecoder()
-    let completeAt = -1
-    for (let i = 0; i < fragments.length; i += 1) {
-      decoder.receivePart(fragments[i])
-      if (decoder.isComplete() && completeAt === -1) {
-        completeAt = i
-      }
-    }
+    const completeAt = fragments
+      .map((fragment) => {
+        decoder.receivePart(fragment)
+        return decoder.isComplete()
+      })
+      .indexOf(true)
 
     expect(decoder.isComplete()).toBe(true)
     expect(decoder.result()).toBe(SAMPLE_CASHU_V3)

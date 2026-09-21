@@ -1,9 +1,14 @@
 import { KeychainKind } from 'react-native-bdk-sdk'
 
-import type { Account, Key, Secret } from '@/types/models/Account'
+import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
+import type { Account, DecryptedKey, Key, Secret } from '@/types/models/Account'
 import type { ScriptVersionType } from '@/types/models/Script'
 import type { Network as AppNetwork } from '@/types/settings/blockchain'
-import { getDescriptorsFromKey } from '@/utils/bip32'
+import {
+  getDescriptorsFromKey,
+  getExtendedKeyFromDescriptor,
+  getFingerprintFromExtendedPublicKey
+} from '@/utils/bip32'
 import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
 import {
   appNetworkToBdkNetwork,
@@ -97,23 +102,20 @@ export async function getOutputDescriptorStringForKey(
   }
 
   if (key.creationType === 'importDescriptor') {
-    let descriptorString = secret.externalDescriptor?.trim() || ''
-    if (!descriptorString && secret.extendedPublicKey) {
-      const fingerprint = secret.fingerprint || ''
-      const derivationPath = getDerivationPathFromScriptVersion(
-        key.scriptVersion || 'P2WPKH',
-        appNetwork
-      )
-      const keyPart =
-        fingerprint && derivationPath
-          ? `[${fingerprint}/${derivationPath}]${secret.extendedPublicKey}/0/*`
-          : `${secret.extendedPublicKey}/0/*`
-      descriptorString = singlesigDescriptorFromKeyPart(
-        keyPart,
-        key.scriptVersion
-      )
+    const stored = secret.externalDescriptor?.trim() || ''
+    if (stored || !secret.extendedPublicKey) {
+      return stored
     }
-    return descriptorString
+    const fingerprint = secret.fingerprint || ''
+    const derivationPath = getDerivationPathFromScriptVersion(
+      key.scriptVersion || 'P2WPKH',
+      appNetwork
+    )
+    const keyPart =
+      fingerprint && derivationPath
+        ? `[${fingerprint}/${derivationPath}]${secret.extendedPublicKey}/0/*`
+        : `${secret.extendedPublicKey}/0/*`
+    return singlesigDescriptorFromKeyPart(keyPart, key.scriptVersion)
   }
 
   if (key.creationType === 'importExtendedPub' && secret.extendedPublicKey) {
@@ -142,4 +144,75 @@ export async function getOutputDescriptorStringForKey(
   }
 
   return ''
+}
+
+export type KeyMaterial = {
+  extendedPublicKey: string
+  fingerprint: string
+}
+
+async function resolveExtendedPublicKey(
+  key: DecryptedKey,
+  secret: Secret,
+  appNetwork: AppNetwork
+): Promise<string> {
+  if (typeof secret !== 'object') {
+    return ''
+  }
+  if (secret.extendedPublicKey) {
+    return secret.extendedPublicKey
+  }
+  if (secret.externalDescriptor) {
+    return getExtendedKeyFromDescriptor(secret.externalDescriptor)
+  }
+  if (!secret.mnemonic) {
+    return ''
+  }
+  try {
+    const extendedKey = await getExtendedPublicKeyFromAccountKey(
+      {
+        ...key,
+        secret: { mnemonic: secret.mnemonic, passphrase: secret.passphrase }
+      },
+      appNetworkToBdkNetwork(appNetwork)
+    )
+    return extendedKey || ''
+  } catch {
+    return ''
+  }
+}
+
+function fingerprintFromExtendedPublicKey(extendedPublicKey: string): string {
+  if (!extendedPublicKey) {
+    return ''
+  }
+  try {
+    return getFingerprintFromExtendedPublicKey(extendedPublicKey)
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Fingerprint and extended public key for a decrypted account key, trying each
+ * source the key may carry. Shared by the singlesig and multisig branches of
+ * Export Descriptors; returns empty strings for whatever cannot be resolved.
+ */
+export async function resolveKeyMaterial(
+  key: DecryptedKey,
+  secret: Secret,
+  appNetwork: AppNetwork
+): Promise<KeyMaterial> {
+  const extendedPublicKey = await resolveExtendedPublicKey(
+    key,
+    secret,
+    appNetwork
+  )
+
+  const fingerprint =
+    (typeof secret === 'object' && secret.fingerprint) ||
+    key.fingerprint ||
+    fingerprintFromExtendedPublicKey(extendedPublicKey)
+
+  return { extendedPublicKey, fingerprint }
 }
