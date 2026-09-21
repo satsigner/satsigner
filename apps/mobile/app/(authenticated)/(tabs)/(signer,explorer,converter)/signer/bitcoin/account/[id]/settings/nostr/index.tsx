@@ -512,52 +512,56 @@ export default function NostrSync() {
         if (accountId) {
           setSyncing(accountId, false)
         }
-      } else {
-        // Turn sync ON – set syncStart so DMs from this session are distinguished; caller must set before subscribe to avoid effect loops
-        updateAccountNostr(accountId, {
-          autoSync: true,
-          lastUpdated: new Date(),
-          syncStart: new Date()
-        })
+        return
+      }
 
-        const updatedAccount = useAccountsStore
-          .getState()
-          .accounts.find((a) => a.id === accountId)
+      // Turn sync ON – set syncStart so DMs from this session are distinguished; caller must set before subscribe to avoid effect loops
+      updateAccountNostr(accountId, {
+        autoSync: true,
+        lastUpdated: new Date(),
+        syncStart: new Date()
+      })
 
-        if (
-          updatedAccount?.nostr?.relays &&
-          updatedAccount.nostr.relays.length > 0
-        ) {
-          if (
-            !updatedAccount.nostr.deviceNsec ||
-            !updatedAccount.nostr.deviceNpub
-          ) {
-            toast.error('Missing required Nostr configuration')
-          } else {
-            setIsSyncing(true)
+      const updatedAccount = useAccountsStore
+        .getState()
+        .accounts.find((a) => a.id === accountId)
+
+      if (
+        !updatedAccount?.nostr?.relays ||
+        updatedAccount.nostr.relays.length === 0
+      ) {
+        return
+      }
+
+      if (
+        !updatedAccount.nostr.deviceNsec ||
+        !updatedAccount.nostr.deviceNpub
+      ) {
+        toast.error('Missing required Nostr configuration')
+        return
+      }
+
+      setIsSyncing(true)
+      if (accountId) {
+        setSyncing(accountId, true)
+      }
+      try {
+        await testRelaySync(updatedAccount.nostr.relays)
+        deviceAnnouncement(updatedAccount)
+        await nostrSyncSubscriptions(updatedAccount, (loading) => {
+          requestAnimationFrame(() => {
+            setIsSyncing(loading)
             if (accountId) {
-              setSyncing(accountId, true)
+              setSyncing(accountId, loading)
             }
-            try {
-              await testRelaySync(updatedAccount.nostr.relays)
-              deviceAnnouncement(updatedAccount)
-              await nostrSyncSubscriptions(updatedAccount, (loading) => {
-                requestAnimationFrame(() => {
-                  setIsSyncing(loading)
-                  if (accountId) {
-                    setSyncing(accountId, loading)
-                  }
-                })
-              })
-            } catch {
-              toast.error('Failed to setup sync')
-            } finally {
-              setIsSyncing(false)
-              if (accountId) {
-                setSyncing(accountId, false)
-              }
-            }
-          }
+          })
+        })
+      } catch {
+        toast.error('Failed to setup sync')
+      } finally {
+        setIsSyncing(false)
+        if (accountId) {
+          setSyncing(accountId, false)
         }
       }
     } catch {

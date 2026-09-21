@@ -89,14 +89,16 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     for (const tx of esploraTxs) {
-      if (existingTxs[tx.txid] === undefined) {
-        newTxsCount += 1
+      if (existingTxs[tx.txid] !== undefined) {
+        continue
       }
+      newTxsCount += 1
     }
     for (const utxo of esploraUtxos) {
-      if (existingUtxos[`${utxo.txid}:${utxo.vout}`] === undefined) {
-        newUtxosCount += 1
+      if (existingUtxos[`${utxo.txid}:${utxo.vout}`] !== undefined) {
+        continue
       }
+      newUtxosCount += 1
     }
 
     // update account summary with new transactions and utxos
@@ -112,9 +114,10 @@ function useSyncAccountWithAddress() {
 
     // compute how much more requests are needed
     for (const tx of esploraTxs) {
-      if (existingTxs[tx.txid] === undefined) {
-        account.syncProgress.totalTasks += 1
+      if (existingTxs[tx.txid] !== undefined) {
+        continue
       }
+      account.syncProgress.totalTasks += 1
     }
     setSyncProgress(account.id, account.syncProgress)
 
@@ -327,14 +330,16 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     for (const t of addressTxs) {
-      if (existingTx[t.tx_hash] === undefined) {
-        newTxsCount += 1
+      if (existingTx[t.tx_hash] !== undefined) {
+        continue
       }
+      newTxsCount += 1
     }
     for (const u of addressUtxos) {
-      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined) {
-        newUtxosCount += 1
+      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] !== undefined) {
+        continue
       }
+      newUtxosCount += 1
     }
 
     // update summary
@@ -592,22 +597,23 @@ function useSyncAccountWithAddress() {
         if (transaction.prices?.[fiatCurrency] !== undefined) {
           continue
         }
-        if (transaction.timestamp) {
-          let date: Date
-          if (typeof transaction.timestamp === 'string') {
-            date = new Date(transaction.timestamp)
-          } else if (transaction.timestamp instanceof Date) {
-            date = transaction.timestamp
-          } else {
-            continue
-          }
+        if (!transaction.timestamp) {
+          continue
+        }
+        let date: Date
+        if (typeof transaction.timestamp === 'string') {
+          date = new Date(transaction.timestamp)
+        } else if (transaction.timestamp instanceof Date) {
+          date = transaction.timestamp
+        } else {
+          continue
+        }
 
-          if (!isNaN(date.getTime())) {
-            transaction.timestamp = date
-            timestamps.push(formatTimestamp(date))
-          } else {
-            transaction.timestamp = undefined
-          }
+        if (!isNaN(date.getTime())) {
+          transaction.timestamp = date
+          timestamps.push(formatTimestamp(date))
+        } else {
+          transaction.timestamp = undefined
         }
       }
 

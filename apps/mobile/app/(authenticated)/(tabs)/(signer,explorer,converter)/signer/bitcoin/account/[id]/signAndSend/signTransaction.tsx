@@ -493,9 +493,10 @@ export default function SignTransaction() {
       if (id) {
         const store = usePayjoinSessionsStore.getState()
         for (const session of store.sessions) {
-          if (session.accountId === id && session.role === 'sender') {
-            store.updateSessionStatus(session.id, 'completed')
+          if (session.accountId !== id || session.role !== 'sender') {
+            continue
           }
+          store.updateSessionStatus(session.id, 'completed')
         }
       }
       const builder = useTransactionBuilderStore.getState()

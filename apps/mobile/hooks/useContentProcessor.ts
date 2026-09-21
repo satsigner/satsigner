@@ -233,26 +233,20 @@ async function processBitcoinContent(
 
               const pubkeyToCosignerIndex = new Map<string, number>()
               for (const input of combinedPsbt.data.inputs) {
-                if (input.bip32Derivation) {
-                  for (const derivation of input.bip32Derivation) {
-                    const fingerprint =
-                      derivation.masterFingerprint.toString('hex')
-                    const pubkey = derivation.pubkey.toString('hex')
-                    const cosignerIndex =
-                      keyFingerprintToCosignerIndex.get(fingerprint)
-
-                    if (cosignerIndex !== undefined) {
-                      pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
-                    }
-                  }
+                if (!input.bip32Derivation) {
+                  continue
                 }
-                if (input.partialSig) {
-                  for (const sig of input.partialSig) {
-                    bitcoinjs.crypto
-                      .hash160(sig.pubkey)
-                      .slice(0, 4)
-                      .toString('hex')
+                for (const derivation of input.bip32Derivation) {
+                  const fingerprint =
+                    derivation.masterFingerprint.toString('hex')
+                  const pubkey = derivation.pubkey.toString('hex')
+                  const cosignerIndex =
+                    keyFingerprintToCosignerIndex.get(fingerprint)
+
+                  if (cosignerIndex === undefined) {
+                    continue
                   }
+                  pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
                 }
               }
 
@@ -265,18 +259,21 @@ async function processBitcoinContent(
 
               for (const psbtStr of Object.values(individualSignedPsbts)) {
                 const pubkeys = getCollectedSignerPubkeys(psbtStr)
-                if (pubkeys.size > 0) {
-                  const pubkey = pubkeys.values().next().value
-                  if (pubkey) {
-                    const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
-                    if (cosignerIndex !== undefined) {
-                      if (!psbtsByCosigner.has(cosignerIndex)) {
-                        psbtsByCosigner.set(cosignerIndex, [])
-                      }
-                      psbtsByCosigner.get(cosignerIndex)!.push(psbtStr)
-                    }
-                  }
+                if (pubkeys.size === 0) {
+                  continue
                 }
+                const pubkey = pubkeys.values().next().value
+                if (!pubkey) {
+                  continue
+                }
+                const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
+                if (cosignerIndex === undefined) {
+                  continue
+                }
+                if (!psbtsByCosigner.has(cosignerIndex)) {
+                  psbtsByCosigner.set(cosignerIndex, [])
+                }
+                psbtsByCosigner.get(cosignerIndex)!.push(psbtStr)
               }
 
               for (const [cosignerIndex, psbts] of psbtsByCosigner.entries()) {
