@@ -259,18 +259,16 @@ export function useEcash() {
               result.proofs.reduce((s, p) => s + p.amount, 0)
             )
 
-            if (result.lastCounter !== undefined) {
-              const activeKeyset = mint.keysets.find((ks) => ks.active)
-              if (activeKeyset) {
-                const updatedCounters = [
-                  ...counters.filter((c) => c.keysetId !== activeKeyset.id),
-                  {
-                    counter: result.lastCounter + 1,
-                    keysetId: activeKeyset.id
-                  }
-                ]
-                updateCountersAction(activeAccountId, updatedCounters)
-              }
+            const activeKeyset = mint.keysets.find((ks) => ks.active)
+            if (result.lastCounter !== undefined && activeKeyset) {
+              const updatedCounters = [
+                ...counters.filter((c) => c.keysetId !== activeKeyset.id),
+                {
+                  counter: result.lastCounter + 1,
+                  keysetId: activeKeyset.id
+                }
+              ]
+              updateCountersAction(activeAccountId, updatedCounters)
             }
 
             toast.success(

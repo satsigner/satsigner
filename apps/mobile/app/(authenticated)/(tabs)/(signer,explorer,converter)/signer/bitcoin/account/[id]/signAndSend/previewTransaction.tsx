@@ -1449,14 +1449,13 @@ function PreviewTransaction() {
         // Check if it's a single BBQR QR code
         if (isBBQRFragment(qrInfo.content)) {
           const decoded = decodeBBQRChunks([qrInfo.content])
-          if (decoded) {
-            // Convert binary PSBT to hex for consistency
-            const hexResult = Buffer.from(decoded).toString('hex')
-            finalContent = hexResult
-          } else {
+          if (!decoded) {
             toast.error(t('camera.error.bbqrDecodeFailed'))
             return
           }
+          // Convert binary PSBT to hex for consistency
+          const hexResult = Buffer.from(decoded).toString('hex')
+          finalContent = hexResult
         }
         // Check if it looks like base64 PSBT (starts with cHNidP)
         else if (qrInfo.content.startsWith('cHNidP')) {
@@ -1468,12 +1467,11 @@ function PreviewTransaction() {
         // Check if it's a single UR QR code
         else if (qrInfo.content.toLowerCase().startsWith('ur:crypto-psbt/')) {
           const decoded = decodeURToPSBT(qrInfo.content)
-          if (decoded) {
-            finalContent = decoded
-          } else {
+          if (!decoded) {
             toast.error(t('camera.error.urDecodeFailed'))
             return
           }
+          finalContent = decoded
         }
         // Check if it's a seed QR code (for dropped seeds)
         else if (index !== undefined) {

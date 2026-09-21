@@ -471,31 +471,32 @@ export default function ImportDescriptor() {
   }
 
   function handleContentScanned(content: DetectedContent) {
-    if (content.type === 'bitcoin_descriptor') {
-      const parsed = DescriptorUtils.parseImportedDescriptorPayload(
-        content.cleaned
-      )
-      if (!parsed) {
-        toast.error(t('account.import.error.descriptorFormat'))
-        return
-      }
-      if (parsed.combined) {
-        handleCombinedDescriptorImport(parsed.combined)
-      } else {
-        updateExternalDescriptor(parsed.external, parsed.derivedExternal)
-        if (parsed.internal) {
-          updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
-        } else {
-          setInternalDescriptor('')
-          setStoreInternalDescriptor('')
-          setValidInternalDescriptor(true)
-          setInternalDescriptorError('')
-        }
-      }
-      toast.success(t('watchonly.success.qrScanned'))
+    if (content.type !== 'bitcoin_descriptor') {
+      toast.error(t('account.import.error.descriptorFormat'))
       return
     }
-    toast.error(t('account.import.error.descriptorFormat'))
+
+    const parsed = DescriptorUtils.parseImportedDescriptorPayload(
+      content.cleaned
+    )
+    if (!parsed) {
+      toast.error(t('account.import.error.descriptorFormat'))
+      return
+    }
+    if (parsed.combined) {
+      handleCombinedDescriptorImport(parsed.combined)
+    } else {
+      updateExternalDescriptor(parsed.external, parsed.derivedExternal)
+      if (parsed.internal) {
+        updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+      } else {
+        setInternalDescriptor('')
+        setStoreInternalDescriptor('')
+        setValidInternalDescriptor(true)
+        setInternalDescriptorError('')
+      }
+    }
+    toast.success(t('watchonly.success.qrScanned'))
   }
 
   function getDefaultDerivationPath(): string {

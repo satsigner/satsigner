@@ -481,29 +481,30 @@ export default function WatchOnly() {
       }
       return
     }
-    if (content.type === 'bitcoin_descriptor') {
-      const parsed = DescriptorUtils.parseImportedDescriptorPayload(
-        content.cleaned
-      )
-      if (!parsed) {
-        toast.error(t('account.import.error.descriptorFormat'))
-        return
-      }
-      if (parsed.combined) {
-        void handleCombinedDescriptor(parsed.combined)
-      } else {
-        void updateExternalDescriptor(parsed.external, parsed.derivedExternal)
-        if (parsed.internal) {
-          void updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
-        } else {
-          setLocalInternalDescriptor('')
-          setInternalDescriptor('')
-          setIsValidInternalDescriptor(true)
-        }
-        extractAndSetFingerprint(parsed.external)
-      }
-      toast.success(t('watchonly.success.qrScanned'))
+    if (content.type !== 'bitcoin_descriptor') {
+      return
     }
+    const parsed = DescriptorUtils.parseImportedDescriptorPayload(
+      content.cleaned
+    )
+    if (!parsed) {
+      toast.error(t('account.import.error.descriptorFormat'))
+      return
+    }
+    if (parsed.combined) {
+      void handleCombinedDescriptor(parsed.combined)
+    } else {
+      void updateExternalDescriptor(parsed.external, parsed.derivedExternal)
+      if (parsed.internal) {
+        void updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+      } else {
+        setLocalInternalDescriptor('')
+        setInternalDescriptor('')
+        setIsValidInternalDescriptor(true)
+      }
+      extractAndSetFingerprint(parsed.external)
+    }
+    toast.success(t('watchonly.success.qrScanned'))
   }
 
   async function pasteFromClipboard() {
