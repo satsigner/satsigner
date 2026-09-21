@@ -27,7 +27,6 @@ function upsertNostrData(
     return
   }
 
-  // Clear then re-insert DMs, relays, trusted devices
   clearNostrData(tx, accountId)
 
   for (const dm of nostr.dms) {

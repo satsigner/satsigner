@@ -348,7 +348,6 @@ export const useNodesAndLinks = ({
             return []
           }
 
-          // Calculate total input and output values for *this* transaction
           const totalInputValue = tx.vin.reduce(
             (sum, input) => sum + (input.value ?? 0),
             0
@@ -361,7 +360,6 @@ export const useNodesAndLinks = ({
           const minerFee = totalInputValue - totalOutputValue
 
           const allInputNodes = tx.vin.reduce((nodes, input) => {
-            // Only process inputs that pass the filter condition
             if (
               outputAddresses.includes(input.address) &&
               outputValues.includes(input.value ?? 0)
@@ -370,7 +368,6 @@ export const useNodesAndLinks = ({
             }
 
             const depthH = tx.depthH - 1
-            // Get current index for this depth and increment it
             const currentIndex = depthIndices.get(depthH) || 0
             depthIndices.set(depthH, currentIndex + 1)
 
@@ -438,7 +435,6 @@ export const useNodesAndLinks = ({
           const outputNodes = tx.vout.map((output, idx) => {
             const outputDepth = tx.depthH + 1
 
-            // Find transactions that use this output as an input
             const nextTx =
               incomingAndOutgoingVinTxId.find(
                 (vinTx) =>

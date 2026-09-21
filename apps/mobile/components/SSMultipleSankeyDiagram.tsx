@@ -225,7 +225,6 @@ function SSMultipleSankeyDiagram({
   const GRAPH_HEIGHT = height - topHeaderHeight
   const GRAPH_WIDTH = width
 
-  // calculating the sankey node styles to match in skia
   const nodeStyles = useMemo(
     () =>
       nodes.map((node) => {

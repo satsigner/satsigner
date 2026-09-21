@@ -90,7 +90,6 @@ export const useGestures = ({
   // JS-only (see onInteractionEnded); not a worklet so reset stays in closure.
   const moveIntoView = () => {
     if (scale.value > 1) {
-      // Only apply boundary constraints if shouldResetOnInteractionEnd is true
       if (shouldResetOnInteractionEnd) {
         const rightLimit = limits.right(width, scale)
         const leftLimit = -rightLimit
@@ -341,7 +340,6 @@ export const useGestures = ({
         isZoomedIn.value = true
         runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_IN)
         scale.value = withTiming(doubleTapScale)
-        // Always calculate focal point based on tap location
         const focalX = (center.x - event.x) * (doubleTapScale - 1)
         const focalY = (center.y - event.y) * (doubleTapScale - 1)
 
@@ -359,7 +357,6 @@ export const useGestures = ({
       } else {
         isZoomedIn.value = false
         runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_OUT)
-        // Always reset to initialTranslation when zooming out
         reset()
       }
     })

@@ -168,7 +168,6 @@ export default function SSSeedWordsInput({
         setCurrentWordText('')
         setSeedWordsInfo(newSeedWordsInfo)
 
-        // Auto-advance to next word if current word is valid
         if (currentWordIndex < wordCount - 1) {
           setCurrentWordIndex((prev) => prev + 1)
           wordInputRefs.current[currentWordIndex + 1]?.focus()
@@ -231,7 +230,6 @@ export default function SSSeedWordsInput({
     })
   }, [keyboardWordSelectorVisible, currentWordText, onWordSelectorStateChange])
 
-  // Check if clipboard contains valid seed (BIP39 or Electrum)
   const checkClipboardForSeed = useCallback(
     (text: string): string[] => {
       if (!text || text === '') {
@@ -361,7 +359,6 @@ export default function SSSeedWordsInput({
     setCurrentWordText(value.trim())
     setCurrentWordIndex(index)
 
-    // Check if word is in BIP39 word list
     const trimmedValue = value.trim()
     if (wordList.includes(trimmedValue)) {
       seedWord.valid = true
@@ -430,7 +427,6 @@ export default function SSSeedWordsInput({
   const handlePassphraseChange = async (text: string) => {
     setPassphrase(text)
 
-    // Re-validate mnemonic with new passphrase if mnemonic is complete
     const mnemonic = seedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0) {
       if (checksumValid) {

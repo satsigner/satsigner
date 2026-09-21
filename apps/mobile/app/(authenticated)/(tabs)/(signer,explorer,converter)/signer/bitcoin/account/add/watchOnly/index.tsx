@@ -256,7 +256,6 @@ export default function WatchOnly() {
       setIsDisabled(!isValidAddress)
     }
 
-    // Keep original address in input field (user can see "bitcoin:" prefix)
     setAddressInput(address)
   }
 

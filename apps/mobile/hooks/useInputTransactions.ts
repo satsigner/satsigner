@@ -696,7 +696,6 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
           break
         }
 
-        // Include all level 1 transactions (directly selected UTXOs)
         const isLevel1 = levelOneTxids.has(txid)
 
         if (hasMatchingAddress || isLevel1) {

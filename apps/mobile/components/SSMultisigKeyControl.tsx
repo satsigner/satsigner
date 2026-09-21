@@ -350,7 +350,6 @@ function SSMultisigKeyControl({
       keyDetails.secret.extendedPublicKey) ||
     ''
 
-  // Format public key for display: first 7, last 4 chars
   let formattedPubKey = extendedPublicKey
   if (extendedPublicKey && extendedPublicKey.length > 12) {
     formattedPubKey = `${extendedPublicKey.slice(

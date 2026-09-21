@@ -119,7 +119,6 @@ const initialState: AccountBuilderState = {
   scriptVersion: 'P2WPKH'
 }
 
-// Account builder store using Zustand with Immer for immutable updates
 const useAccountBuilderStore = create<
   AccountBuilderState & AccountBuilderAction
 >()(

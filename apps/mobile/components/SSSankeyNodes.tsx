@@ -203,7 +203,6 @@ function SSSankeyNodes({
       if (node.type === 'block') {
         const isCurrentTxBlockNode = node.depthH === maxDepth - 1
 
-        // Safely handle NaN values from sankey generator
         const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
         const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
 
@@ -887,14 +886,12 @@ function NodeText({
     showUnspentLabel
   ])
 
-  // Calculate position for the paragraph and potentially the icon
   const paragraphX = isBlock ? x + width * 0.2 : x + PADDING_LEFT
   const paragraphY = isBlock
     ? y + 4
     : // ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT
       y
 
-  // Apply additional margin when output cards show a leading status icon
   const isSpentOutput =
     !isBlock &&
     !isMiningFee &&
@@ -907,7 +904,6 @@ function NodeText({
       ? paragraphX + NODE_MARGIN_LEFT
       : paragraphX
 
-  // Get placeholder rects if it's a mining fee node
   const placeholderRectsMinerIcon =
     isMiningFee && mainParagraph ? mainParagraph.getRectsForPlaceholders() : []
 

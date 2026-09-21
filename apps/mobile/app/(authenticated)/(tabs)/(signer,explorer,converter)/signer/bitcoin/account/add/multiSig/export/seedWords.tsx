@@ -71,7 +71,6 @@ export default function SeedWordsPage() {
       setIsLoading(false)
 
       if (typeof key.secret === 'object' && key.secret.mnemonic) {
-        // In creation mode, no PIN needed - directly show mnemonic
         setMnemonic(key.secret.mnemonic)
         setShowPinEntry(false)
       } else {

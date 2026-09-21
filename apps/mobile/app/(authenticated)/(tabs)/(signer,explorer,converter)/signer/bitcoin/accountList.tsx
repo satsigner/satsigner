@@ -413,7 +413,6 @@ export default function AccountList() {
         setKeyCount(3)
         setKeysRequired(2)
 
-        // Key 1: Mnemonic
         setMnemonic(sampleSignetMultisigKey1)
         setMnemonicWordCount(12)
         setCreationType('importMnemonic')
@@ -430,7 +429,6 @@ export default function AccountList() {
         setExtendedPublicKey(extendedPublicKey1)
         setKey(0)
 
-        // Key 2: Mnemonic
         setMnemonic(sampleSignetMultisigKey2)
         setMnemonicWordCount(12)
         setCreationType('importMnemonic')
@@ -447,7 +445,6 @@ export default function AccountList() {
         setExtendedPublicKey(extendedPublicKey2)
         setKey(1)
 
-        // Key 3: Extended Public Key
         setCreationType('importExtendedPub')
         setExtendedPublicKey(sampleSignetMultisigKey3Xpub)
         setFingerprint(sampleSignetMultisigKey3Fingerprint)

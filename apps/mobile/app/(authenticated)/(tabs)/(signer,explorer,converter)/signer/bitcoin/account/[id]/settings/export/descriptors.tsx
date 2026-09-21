@@ -170,13 +170,11 @@ export default function ExportDescriptors() {
                 }
               }
 
-              // If we still don't have a fingerprint, try to extract it from the extended public key
               if (!fingerprint && extendedPublicKey) {
                 fingerprint =
                   getFingerprintFromExtendedPublicKey(extendedPublicKey)
               }
 
-              // If we still don't have a fingerprint, try to get it from the key's fingerprint property
               if (!fingerprint && key.fingerprint) {
                 ;({ fingerprint } = key)
               }
@@ -270,18 +268,15 @@ export default function ExportDescriptors() {
                     }
                   }
 
-                  // If we still don't have a fingerprint, try to extract it from the extended public key
                   if (!fingerprint && extendedPublicKey) {
                     fingerprint =
                       getFingerprintFromExtendedPublicKey(extendedPublicKey)
                   }
 
-                  // If we still don't have a fingerprint, try to get it from the key's fingerprint property
                   if (!fingerprint && key.fingerprint) {
                     ;({ fingerprint } = key)
                   }
 
-                  // If we still don't have an extended public key, try to get it from the key's secret
                   if (
                     !extendedPublicKey &&
                     typeof secret === 'object' &&
@@ -393,7 +388,6 @@ export default function ExportDescriptors() {
                 ) {
                   descriptorString = finalDescriptor
                 } else {
-                  // Always calculate checksum manually for multisig descriptors
                   const checksum = calculateDescriptorChecksum(finalDescriptor)
                   descriptorString = checksum
                     ? `${finalDescriptor}#${checksum}`

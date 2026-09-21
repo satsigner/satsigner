@@ -71,7 +71,6 @@ export default function PublicKeyPage() {
       label: string
     }[] = []
 
-    // Handle multisig script types specifically
     if (scriptVersion === 'P2SH') {
       // P2SH: Only show xpub/tpub
       formatButtons.push({

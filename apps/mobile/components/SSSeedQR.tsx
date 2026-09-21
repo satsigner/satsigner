@@ -26,7 +26,6 @@ export default function SSSeedQR({
   onClose,
   title
 }: SSSeedQRProps) {
-  // Format mnemonic by trimming whitespace and ensuring single spaces between words
   const formattedMnemonic = mnemonic.trim().replace(/\s+/g, ' ')
   const wordList = getWordList(mnemonicWordList)
 

@@ -70,7 +70,6 @@ export function useConnectionTest() {
     proxy?: ProxyConfig,
     rpcCredentials?: RpcCredentials
   ): Promise<ConnectionTestResult> {
-    // Debounce rapid connection attempts to prevent memory issues
     const now = Date.now()
     if (now - lastTestTime < 2000) {
       return {

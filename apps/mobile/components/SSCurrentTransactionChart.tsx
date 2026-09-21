@@ -451,7 +451,6 @@ function SSCurrentTransactionChart({
 
   const { links, nodes } = layoutResult
 
-  // calculating the sankey node styles to match in skia
   const nodeStyles = useMemo(
     () =>
       nodes.map((node) => {
@@ -461,7 +460,6 @@ function SSCurrentTransactionChart({
             ? ((node as Node).ioData?.txSize ?? 0) * 0.1
             : 0
 
-        // Safely handle NaN values from sankey generator
         const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
         const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
         const safeY1 = Number.isNaN(node.y1) ? 0 : (node.y1 ?? 0)

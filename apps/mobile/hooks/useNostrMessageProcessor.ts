@@ -65,7 +65,6 @@ function initializeHandlers(): void {
   registerHandler(deviceAnnouncementHandler)
 }
 
-// Initialize handlers immediately when module is imported
 initializeHandlers()
 
 // Yields to the JS event loop without creating a timer.

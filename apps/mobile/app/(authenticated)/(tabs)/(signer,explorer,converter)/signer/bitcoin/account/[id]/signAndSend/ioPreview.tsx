@@ -474,14 +474,12 @@ export default function IOPreview() {
   function handlePasteFromClipboard(content: string) {
     const trimmedContent = content.trim()
 
-    // Step 1: Try BIP21 decode (including Payjoin pj=)
     const bip21Result = tryDecodeBip21(trimmedContent)
     if (bip21Result) {
       applyParsedOutput(bip21Result, trimmedContent)
       return
     }
 
-    // Step 2: Try manual URI parsing with validation
     const processedContent = stripBitcoinPrefix(trimmedContent)
     const uriResult = tryParseUriWithValidation(processedContent)
     if (uriResult && uriResult.amount !== undefined) {
@@ -515,7 +513,6 @@ export default function IOPreview() {
       }
     }
 
-    // Step 4: Fallback - set as plain address
     setOutputTo(processedContent)
   }
 

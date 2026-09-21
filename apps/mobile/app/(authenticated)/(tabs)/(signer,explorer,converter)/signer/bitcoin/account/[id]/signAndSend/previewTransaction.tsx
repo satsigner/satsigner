@@ -714,7 +714,6 @@ function PreviewTransaction() {
         const [, currentStr, totalStr] = urMatch
 
         if (currentStr && totalStr) {
-          // Multi-part UR
           const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
           const total = parseInt(totalStr, 10)
           return {
@@ -724,7 +723,6 @@ function PreviewTransaction() {
             type: 'ur' as const
           }
         }
-        // Single-part UR
         return {
           content: data,
           current: 0,
@@ -837,7 +835,6 @@ function PreviewTransaction() {
           if (sortedChunks.length === 1) {
             result = decodeURToPSBT(sortedChunks[0])
           } else {
-            // Multi-part UR
             try {
               result = await decodeMultiPartURToPSBT(sortedChunks)
             } catch {
@@ -874,7 +871,6 @@ function PreviewTransaction() {
 
   const createRawPsbtChunks = useCallback(
     (base64Psbt: string, complexity: number): string[] => {
-      // Special case: complexity 12 = single static QR with all data
       if (complexity === 12) {
         if (base64Psbt.length > 1500) {
           const baseChunkSize = 100
@@ -1136,7 +1132,6 @@ function PreviewTransaction() {
 
     for (const output of outputs) {
       if (!output.to || output.to.trim() === '') {
-        // Don't show error for empty addresses during editing
         continue
       }
 
@@ -1169,7 +1164,6 @@ function PreviewTransaction() {
       const psbtHex = psbtBuffer.toString('hex')
       setSerializedPsbt(psbtHex)
 
-      // Clear the buffer to help garbage collection
       psbtBuffer.fill(0)
 
       return psbtHex
@@ -1238,7 +1232,6 @@ function PreviewTransaction() {
             return
           }
 
-          // Clear the buffer to help garbage collection
           psbtBuffer.fill(0)
           psbtBuffer = null
 
@@ -1351,7 +1344,6 @@ function PreviewTransaction() {
       const interval =
         maxInterval - ((animationSpeed - 1) * (maxInterval - minInterval)) / 11
 
-      // Cap minimum interval to prevent excessive updates
       const safeInterval = Math.max(interval, 100)
 
       const animate = (timestamp: number) => {
@@ -1793,7 +1785,6 @@ function PreviewTransaction() {
         return null
       }
 
-      // Step 1: Parse the original PSBT
       const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
 
       const combinedPsbt = originalPsbt
@@ -1810,8 +1801,6 @@ function PreviewTransaction() {
           return null
         }
       }
-
-      // Step 3: Finalize the combined PSBT
 
       const allInputsReady = combinedPsbt.data.inputs.every(hasEnoughSignatures)
 
@@ -1836,7 +1825,6 @@ function PreviewTransaction() {
         return null
       }
 
-      // Step 4: Extract the final transaction
       try {
         const finalTransaction = combinedPsbt.extractTransaction()
         const transactionHex = finalTransaction.toHex()
@@ -1913,7 +1901,6 @@ function PreviewTransaction() {
   const getQRValue = () => {
     switch (displayMode) {
       case QRDisplayMode.RAW: {
-        // Always use chunks for RAW mode to ensure animation
         if (rawPsbtChunks.length > 0) {
           if (currentRawChunk >= rawPsbtChunks.length) {
             return 'NO_CHUNKS'
@@ -1986,7 +1973,6 @@ function PreviewTransaction() {
         break
     }
 
-    // Use a more conservative limit to prevent QR code crashes
     const limit = 1500 // Reduced to prevent crashes
 
     return maxChunkSize > limit
@@ -1996,7 +1982,6 @@ function PreviewTransaction() {
     switch (displayMode) {
       case QRDisplayMode.RAW:
         if (rawPsbtChunks.length > 0) {
-          // Only show "Static QR" if we actually have a single chunk at complexity 12
           if (qrComplexity === 12 && rawPsbtChunks.length === 1) {
             return 'Static QR - Complete PSBT in single code'
           }
@@ -2018,7 +2003,6 @@ function PreviewTransaction() {
         if (!urChunks.length) {
           return t('error.psbt.notAvailable')
         }
-        // Only show "Static QR" if we actually have a single chunk at complexity 12
         if (qrComplexity === 12 && urChunks.length === 1) {
           return 'Static QR - Complete UR in single code'
         }
@@ -2032,7 +2016,6 @@ function PreviewTransaction() {
         if (!qrChunks.length) {
           return 'Loading BBQR chunks...'
         }
-        // Only show "Static QR" if we actually have a single chunk at complexity 12
         if (qrComplexity === 12 && qrChunks.length === 1) {
           return 'Static QR - Complete BBQR in single code'
         }

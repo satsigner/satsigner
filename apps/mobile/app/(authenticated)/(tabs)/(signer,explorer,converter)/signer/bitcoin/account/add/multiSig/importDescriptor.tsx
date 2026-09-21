@@ -244,7 +244,6 @@ export default function ImportDescriptor() {
 
       setExternalDescriptor(descriptor)
 
-      // Create internal descriptor by replacing /0/* with /1/*
       const internalDescriptor = descriptor.replace(/\/0\/\*/g, '/1/*')
       setInternalDescriptor(internalDescriptor)
 
