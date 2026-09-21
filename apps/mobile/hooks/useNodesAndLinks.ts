@@ -136,19 +136,16 @@ export const useNodesAndLinks = ({
           : Math.round(feeRate * vsize)
       const displayFeeRate = vsize > 0 ? minerFee / vsize : feeRate
 
-      // Calculate total input value
       const totalInputValue = Array.from(inputs.values()).reduce(
         (sum, input) => sum + input.value,
         0
       )
 
-      // Calculate total output value
       const totalOutputValue = outputs.reduce(
         (sum, output) => sum + output.amount,
         0
       )
 
-      // Create output nodes
       let outputNodes: TxNode[] = []
 
       const outputFlags = classifyChartOutputs(outputs, ownAddresses, {
@@ -216,7 +213,6 @@ export const useNodesAndLinks = ({
         })
       }
 
-      // Add mining fee node
       const totalOutputValueForFee = totalInputValue - minerFee
 
       const higherFeeForCurrentTx = isHighMinerFee({
@@ -378,10 +374,6 @@ export const useNodesAndLinks = ({
             const currentIndex = depthIndices.get(depthH) || 0
             depthIndices.set(depthH, currentIndex + 1)
 
-            // // Set the indexV property if not already set
-            // if (input.indexV === undefined) {
-            //   input.indexV = currentIndex
-            // }
             const node = {
               depthH,
               id: `vin-${depthH}-${currentIndex}`,

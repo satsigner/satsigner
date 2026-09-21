@@ -230,7 +230,6 @@ export default function WatchOnly() {
     selectedOption
   ])
 
-  // Initialize validation state when selected option changes
   useEffect(() => {
     if (selectedOption === 'importDescriptor') {
       updateDescriptorValidationState()
@@ -555,7 +554,6 @@ export default function WatchOnly() {
         return
       }
 
-      // Handle as single descriptor
       await handleSingleDescriptor(text)
     }
   }

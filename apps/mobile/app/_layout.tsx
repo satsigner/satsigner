@@ -103,14 +103,7 @@ export default function RootLayout() {
       try {
         await NfcManager.start()
       } catch {
-        // Show a toast notification only in development
-        // turn this off for now, too annoying!!
-        // if (__DEV__) {
-        //   toast.error('NFC initialization failed', {
-        //     description:
-        //       'This is expected in emulators and devices without NFC support'
-        //   })
-        // }
+        // NFC init fails on emulators / devices without NFC — safe to ignore
       }
     }
     initNfc()

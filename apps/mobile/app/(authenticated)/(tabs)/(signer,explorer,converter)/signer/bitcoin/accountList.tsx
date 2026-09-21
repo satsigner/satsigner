@@ -410,7 +410,6 @@ export default function AccountList() {
         }
         break
       case 'multisig': {
-        // Set up multisig configuration
         setPolicyType('multisig')
         setScriptVersion('P2WSH')
         setKeyCount(3)

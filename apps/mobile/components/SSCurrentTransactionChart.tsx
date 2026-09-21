@@ -123,7 +123,6 @@ function SSCurrentTransactionChart({
 
   const baseFee = Math.round(feeRateProp * baseSize.vsize)
 
-  // Check if we'll have change
   const hasChange = totalInputValue > totalOutputValue + baseFee
 
   // Now calculate final size including change if needed
@@ -507,7 +506,6 @@ function SSCurrentTransactionChart({
     return null
   }
 
-  // Check for invalid fee rate
   if (Number.isNaN(feeRateProp) || feeRateProp < 0) {
     return null
   }

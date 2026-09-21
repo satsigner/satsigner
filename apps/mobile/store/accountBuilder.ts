@@ -345,7 +345,6 @@ const useAccountBuilderStore = create<
         )
       }
 
-      // Check if we have either a public key or descriptor
       const hasPublicKey = extendedPublicKey || externalDescriptor || mnemonic
       if (!hasPublicKey) {
         throw new Error(

@@ -176,7 +176,6 @@ export function privateKeyHexToWif(
 
 // TODO: refactor all vibe code below, which is duplicate of other utils.
 
-// Define version bytes for different key formats and networks
 const KEY_VERSION_BYTES = {
   tpub: new Uint8Array([0x04, 0x35, 0x87, 0xcf]),
   upub: new Uint8Array([0x04, 0x4a, 0x52, 0x62]),
@@ -187,7 +186,6 @@ const KEY_VERSION_BYTES = {
   zpub: new Uint8Array([0x04, 0xb2, 0x47, 0x46])
 }
 
-// Define key format mappings for each network
 const NETWORK_KEY_FORMATS: Record<AppNetwork, Record<string, string>> = {
   bitcoin: {
     vpub: 'vpub', // P2TR
@@ -252,7 +250,6 @@ export function convertKeyFormat(
         return key
     }
 
-    // Create new decoded data with the target version
     const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
     return bs58check.encode(newDecoded)
   } catch {

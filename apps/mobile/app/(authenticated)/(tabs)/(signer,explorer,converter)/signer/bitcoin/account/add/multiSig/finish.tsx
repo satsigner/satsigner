@@ -54,7 +54,6 @@ export default function ConfirmScreen() {
 
   function handleGoToWallet() {
     if (accountId) {
-      // Clear the navigation stack and navigate to the account
       router.dismissAll()
       router.navigate(`/signer/bitcoin/account/${accountId}`)
     }

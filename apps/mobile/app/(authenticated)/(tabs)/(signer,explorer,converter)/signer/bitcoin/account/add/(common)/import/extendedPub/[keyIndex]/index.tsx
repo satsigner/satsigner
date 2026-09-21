@@ -226,14 +226,11 @@ export default function ImportExtendedPub() {
         }
       }
 
-      // Set the data in the store
       setExtendedPublicKey(convertedXpub)
       setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
 
-      // Create the key
       setKey(Number(keyIndex))
 
-      // Set the derivation path for this key
       setKeyDerivationPath(Number(keyIndex), derivationPath)
 
       clearKeyState()

@@ -143,7 +143,6 @@ export default function DescriptorPage() {
         }
       }
 
-      // Check if we found a descriptor
       if (foundDescriptor) {
         setDescriptor(foundDescriptor)
       } else {

@@ -11,7 +11,6 @@ import {
 
 import { accountIds, nostrKeys, nostrMessages } from '../utils/nostrSamples'
 
-// Mock dependencies
 jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
   useAccountsStore: {
     getState: jest.fn(() => ({

@@ -93,7 +93,6 @@ export default function UnifiedImport() {
 
   const [loadingWallet, setLoadingWallet] = useState(false)
 
-  // Set policy type to multisig when component mounts
   useEffect(() => {
     setPolicyType('multisig' as PolicyType)
   }, [setPolicyType])
@@ -312,7 +311,6 @@ export default function UnifiedImport() {
         setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
       }
 
-      // Set the key data
       const keyIndex = parseInt(index!, 10)
       setKey(keyIndex)
 
@@ -383,11 +381,9 @@ export default function UnifiedImport() {
           setValidExternalDescriptor(true)
           setValidInternalDescriptor(true)
 
-          // Store the descriptors in the store
           setExternalDescriptor(combinedValidation.externalDescriptor)
           setInternalDescriptor(combinedValidation.internalDescriptor)
 
-          // Clear any error messages
           setExternalDescriptorError('')
           setInternalDescriptorError('')
         } else {
@@ -405,7 +401,6 @@ export default function UnifiedImport() {
           setInternalDescriptorError(errorMessage)
         }
       } else {
-        // Handle non-combined descriptors with existing logic
         if (externalDescriptor) {
           // For JSON descriptors, use the original descriptor for validation
           const descriptorToValidate = originalDescriptor || externalDescriptor
@@ -495,11 +490,9 @@ export default function UnifiedImport() {
             setValidExternalDescriptor(true)
             setValidInternalDescriptor(true)
 
-            // Store the descriptors in the store
             setExternalDescriptor(combinedValidation.externalDescriptor)
             setInternalDescriptor(combinedValidation.internalDescriptor)
 
-            // Clear any error messages
             setExternalDescriptorError('')
             setInternalDescriptorError('')
           } else {
@@ -517,7 +510,6 @@ export default function UnifiedImport() {
             setInternalDescriptorError(errorMessage)
           }
         } else {
-          // Handle non-combined descriptors with existing logic
           if (externalDescriptor) {
             // For JSON descriptors, use the original descriptor for validation
             const descriptorToValidate =
@@ -641,7 +633,6 @@ export default function UnifiedImport() {
     if (importType === 'descriptor') {
       return t('watchonly.importDescriptor.title')
     }
-    // Return the appropriate label based on script version
     switch (scriptVersion) {
       case 'P2PKH':
         return t('account.import.xpub')

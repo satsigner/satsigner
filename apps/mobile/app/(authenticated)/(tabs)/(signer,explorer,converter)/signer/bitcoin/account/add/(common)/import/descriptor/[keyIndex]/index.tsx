@@ -134,7 +134,6 @@ export default function ImportDescriptor() {
     validInternalDescriptor
   ])
 
-  // Initialize validation state when descriptors change
   useEffect(() => {
     updateDescriptorValidationState()
   }, [
@@ -176,7 +175,6 @@ export default function ImportDescriptor() {
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setExternalDescriptor(descriptor)
 
-    // Clear previous error first
     setExternalDescriptorError('')
 
     // Show error message if validation fails
@@ -232,7 +230,6 @@ export default function ImportDescriptor() {
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
     setInternalDescriptor(descriptor)
 
-    // Clear previous error first
     setInternalDescriptorError('')
 
     // Show error message if validation fails
@@ -273,17 +270,14 @@ export default function ImportDescriptor() {
         return
       }
 
-      // Set the descriptors in the store
       setStoreExternalDescriptor(externalDescriptor)
       if (internalDescriptor.trim()) {
         setStoreInternalDescriptor(internalDescriptor)
       }
 
-      // Set the extracted information in the store
       setExtendedPublicKey(extendedPublicKey)
       setFingerprint(fingerprint || UNKNOWN_MASTER_FINGERPRINT)
 
-      // Set the key data
       setKey(Number(keyIndex))
       setKeyDerivationPath(Number(keyIndex), derivationPath)
       clearKeyState()
@@ -322,7 +316,6 @@ export default function ImportDescriptor() {
         .replace(/^\[[0-9a-fA-F]{8}\//, '') // Remove [fingerprint/
         .replace(/\]$/, '') // Remove closing ]
 
-      // Add 'm/' prefix if not present
       if (!derivationPath.startsWith('m/')) {
         return `m/${derivationPath}`
       }
@@ -415,11 +408,9 @@ export default function ImportDescriptor() {
       }
     }
 
-    // Handle combined descriptors with smart validation
     if (isCombinedDescriptor(text)) {
       handleCombinedDescriptorImport(text)
     } else {
-      // Handle non-combined descriptors with existing logic
       if (externalDescriptor) {
         // For JSON descriptors, use the original descriptor for validation
         const descriptorToValidate = originalDescriptor || externalDescriptor
@@ -465,11 +456,9 @@ export default function ImportDescriptor() {
         ;[externalDescriptor, internalDescriptor] = text.split('\n')
       }
 
-      // Handle combined descriptors with smart validation
       if (isCombinedDescriptor(text)) {
         handleCombinedDescriptorImport(text)
       } else {
-        // Handle non-combined descriptors with existing logic
         if (externalDescriptor) {
           updateExternalDescriptor(externalDescriptor)
         }

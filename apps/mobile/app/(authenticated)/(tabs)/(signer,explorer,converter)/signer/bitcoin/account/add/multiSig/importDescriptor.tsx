@@ -243,7 +243,6 @@ export default function ImportDescriptor() {
     }
 
     try {
-      // Parse the multisig descriptor
       const parsedData = parseMultisigDescriptor(descriptor)
 
       // Update account builder store with parsed data

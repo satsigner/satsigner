@@ -89,7 +89,6 @@ function SSMultipleSankeyDiagram({
   })
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
-  // Calculate the maximum depthH value across all nodes
   const maxDepthH = useMemo(
     () =>
       sankeyNodes.length === 0
@@ -98,7 +97,6 @@ function SSMultipleSankeyDiagram({
     [sankeyNodes]
   )
 
-  // Calculate the maximum number of nodes at any depthH level
   const maxNodeCountInDepthH = useMemo(() => {
     const depthCounts = new Map<number, number>()
 
@@ -178,7 +176,6 @@ function SSMultipleSankeyDiagram({
       [maxDepthH, maxDepthH - 1, maxDepthH - 2].filter((level) => level >= 0)
     )
 
-    // Find the minimum and maximum x positions among nodes in the last three levels
     let minX = Infinity
     let maxX = -Infinity
 
@@ -193,7 +190,6 @@ function SSMultipleSankeyDiagram({
       }
     }
 
-    // Calculate the width of the last three levels
     const lastThreeLevelsWidth = maxX - minX + NODE_WIDTH
 
     // If the width of the last three levels is less than the viewport width,

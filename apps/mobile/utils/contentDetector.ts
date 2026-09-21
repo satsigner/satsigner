@@ -117,7 +117,6 @@ function detectBitcoinContent(data: string): DetectedContent | null {
     }
   }
 
-  // Check for transaction
   const transactionData = stripBitcoinPrefix(trimmed)
   if (isBitcoinTransaction(transactionData)) {
     return {

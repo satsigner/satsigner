@@ -181,7 +181,6 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
   // Build a dependency graph: txid -> [list of txids it depends on]
   const dependencyGraph = new Map<string, Set<string>>()
 
-  // Initialize the graph with empty dependency sets
   for (const txid of updatedTransactions.keys()) {
     dependencyGraph.set(txid, new Set<string>())
   }

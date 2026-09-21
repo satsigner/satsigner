@@ -214,7 +214,6 @@ function SSMultisigKeyControl({
   function handleCompletedKeyAction(
     action: 'dropSeed' | 'shareXpub' | 'shareDescriptor' | 'resetKey'
   ) {
-    // Handle actions for completed keys
     switch (action) {
       case 'dropSeed':
         setDropSeedModalVisible(true)

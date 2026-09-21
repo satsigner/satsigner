@@ -54,7 +54,6 @@ const BASE_FONT_SIZE = 13
 const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
-// const Y_OFFSET_BLOCK_NODE_TEXT = 12
 const ICON_SIZE = 8
 const RECT_PADDING = 5
 const NODE_MARGIN_LEFT = 1

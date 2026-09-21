@@ -130,7 +130,6 @@ export default function SSSeedWordsInput({
   const handleWordSelectedRef =
     useRef<(word?: string) => Promise<void>>(undefined)
 
-  // Initialize seed words info
   useEffect(() => {
     const initialSeedWordsInfo = Array.from({ length: wordCount }, () => ({
       dirty: false,
@@ -138,7 +137,6 @@ export default function SSSeedWordsInput({
       value: ''
     }))
     setSeedWordsInfo(initialSeedWordsInfo)
-    // Initialize refs array
     wordInputRefs.current = Array.from<TextInput | null>({
       length: wordCount
     }).fill(null)
@@ -154,7 +152,6 @@ export default function SSSeedWordsInput({
     []
   )
 
-  // Handle word selection from keyboard selector
   const handleWordSelected = useCallback(
     async (word?: string) => {
       if (!word) {
@@ -348,7 +345,6 @@ export default function SSSeedWordsInput({
     [wordCount, fillOutSeedWords]
   )
 
-  // Handle seed word input change
   const handleSeedWordChange = async (index: number, value: string) => {
     const newSeedWordsInfo = [...seedWordsInfo]
     const seedWord = newSeedWordsInfo[index]
@@ -378,7 +374,6 @@ export default function SSSeedWordsInput({
       seedWord.valid = true
       setKeyboardWordSelectorVisible(false)
 
-      // Clear any existing timeout
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current)
       }
