@@ -5,9 +5,9 @@ import {
   registerHandler
 } from '@/hooks/useNostrHandlersRegistry'
 import {
-  type MessageHandler,
-  type MessageHandlerContext
-} from '@/types/nostrMessageHandlers'
+  type NostrMsgHandler,
+  type NostrMsgHandlerContext
+} from '@/types/models/Nostr'
 
 import { accountIds, nostrKeys, nostrMessages } from '../utils/nostrSamples'
 
@@ -44,8 +44,8 @@ describe('handler registry', () => {
   })
 
   const createMockContext = (
-    overrides: Partial<MessageHandlerContext> = {}
-  ): MessageHandlerContext => ({
+    overrides: Partial<NostrMsgHandlerContext> = {}
+  ): NostrMsgHandlerContext => ({
     account: {
       addresses: [],
       createdAt: new Date(),
@@ -97,7 +97,7 @@ describe('handler registry', () => {
 
   describe('registerHandler', () => {
     it('registers a handler', () => {
-      const mockHandler: MessageHandler = {
+      const mockHandler: NostrMsgHandler = {
         canHandle: () => true,
         handle: jest.fn()
       }
@@ -109,15 +109,15 @@ describe('handler registry', () => {
     })
 
     it('registers multiple handlers in order', () => {
-      const handler1: MessageHandler = {
+      const handler1: NostrMsgHandler = {
         canHandle: () => false,
         handle: jest.fn()
       }
-      const handler2: MessageHandler = {
+      const handler2: NostrMsgHandler = {
         canHandle: () => true,
         handle: jest.fn()
       }
-      const handler3: MessageHandler = {
+      const handler3: NostrMsgHandler = {
         canHandle: () => true,
         handle: jest.fn()
       }
@@ -155,7 +155,7 @@ describe('handler registry', () => {
     })
 
     it('returns false when no handler can handle the message', async () => {
-      const handler: MessageHandler = {
+      const handler: NostrMsgHandler = {
         canHandle: () => false,
         handle: jest.fn()
       }
@@ -169,15 +169,15 @@ describe('handler registry', () => {
     })
 
     it('calls handle on first matching handler and returns true', async () => {
-      const handler1: MessageHandler = {
+      const handler1: NostrMsgHandler = {
         canHandle: () => false,
         handle: jest.fn()
       }
-      const handler2: MessageHandler = {
+      const handler2: NostrMsgHandler = {
         canHandle: () => true,
         handle: jest.fn()
       }
-      const handler3: MessageHandler = {
+      const handler3: NostrMsgHandler = {
         canHandle: () => true,
         handle: jest.fn()
       }
@@ -197,7 +197,7 @@ describe('handler registry', () => {
 
     it('passes context to canHandle', async () => {
       const canHandleMock = jest.fn().mockReturnValue(true)
-      const handler: MessageHandler = {
+      const handler: NostrMsgHandler = {
         canHandle: canHandleMock,
         handle: jest.fn()
       }
@@ -211,7 +211,7 @@ describe('handler registry', () => {
 
     it('handles async handle functions', async () => {
       let handlerCompleted = false
-      const handler: MessageHandler = {
+      const handler: NostrMsgHandler = {
         canHandle: () => true,
         handle: async () => {
           await new Promise((resolve) => {
@@ -231,7 +231,7 @@ describe('handler registry', () => {
 
   describe('getHandlers', () => {
     it('returns a copy of handlers array', () => {
-      const handler: MessageHandler = {
+      const handler: NostrMsgHandler = {
         canHandle: () => true,
         handle: jest.fn()
       }
@@ -245,7 +245,7 @@ describe('handler registry', () => {
     })
 
     it('modifications to returned array do not affect registry', () => {
-      const handler: MessageHandler = {
+      const handler: NostrMsgHandler = {
         canHandle: () => true,
         handle: jest.fn()
       }
