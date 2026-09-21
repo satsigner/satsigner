@@ -22,7 +22,6 @@ import { convertKeyFormat } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 
-// Helper function to get the appropriate translation key for key format buttons
 type PublicKeyFormat = 'xpub' | 'ypub' | 'zpub' | 'vpub' | 'tpub' | 'upub'
 
 export default function PublicKeyPage() {
@@ -40,12 +39,10 @@ export default function PublicKeyPage() {
   const qrRef = useRef<View>(null)
   const [rawPublicKey, setRawPublicKey] = useState('')
 
-  // Derive scriptVersion and selectedFormat from account data and network
   const keyIndexNum = account && keyIndex ? Number(keyIndex) : null
   const key = keyIndexNum !== null ? account?.keys[keyIndexNum] : null
   const scriptVersion = key?.scriptVersion || 'P2PKH'
 
-  // Derive the default format based on network and script version
   const getDefaultFormat = (
     scriptVersion: string,
     network: Network

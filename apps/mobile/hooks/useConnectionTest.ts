@@ -136,7 +136,6 @@ export function useConnectionTest() {
           // optional — not all servers implement banner
         }
 
-        // Try mempool fee histogram for mempool size
         let mempoolSize
         try {
           const mempoolInfo = await (
@@ -177,7 +176,6 @@ export function useConnectionTest() {
           tipTimestampSec
         }
       } else if (backend === 'esplora') {
-        // Test Esplora connection and get server info
         const client = new Esplora(url)
 
         setCurrentClient(client)
@@ -308,7 +306,6 @@ export function useConnectionTest() {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown connection error'
 
-      // Still set basic info even if enhanced info fails
       const responseTime = Date.now() - startTime
       const softwareLabel =
         backend === 'electrum'

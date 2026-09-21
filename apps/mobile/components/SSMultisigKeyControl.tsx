@@ -113,7 +113,6 @@ function SSMultisigKeyControl({
     overflow: 'hidden' as const
   }))
 
-  // Extract public key from descriptor when key details change
   useEffect(() => {
     function extractPublicKey() {
       if (!keyDetails || typeof keyDetails.secret !== 'object') {
@@ -123,13 +122,11 @@ function SSMultisigKeyControl({
 
       const secret = keyDetails.secret as Secret
 
-      // If we already have an extended public key, use it
       if (secret.extendedPublicKey) {
         setExtractedPublicKey(secret.extendedPublicKey)
         return
       }
 
-      // If we have a descriptor, extract the public key from it
       if (secret.externalDescriptor) {
         const publicKey = getExtendedKeyFromDescriptor(
           secret.externalDescriptor
@@ -163,7 +160,6 @@ function SSMultisigKeyControl({
     }
   }, [keyDetails?.name])
 
-  // Use custom hooks for label generation and validation
   const { sourceLabel, importExtendedLabel, dropSeedLabel, shareXpubLabel } =
     useKeySourceLabel({
       keyDetails,
@@ -271,12 +267,10 @@ function SSMultisigKeyControl({
 
   function handleShareXpub() {
     if (accountId) {
-      // In settings mode, use the existing account
       router.navigate(
         `/signer/bitcoin/account/${accountId}/settings/export/publicKey?keyIndex=${index}`
       )
     } else {
-      // In creation mode, use account builder store data
       const accountData = getAccountData()
       const key = accountData.keys[index]
 
@@ -285,7 +279,6 @@ function SSMultisigKeyControl({
         return
       }
 
-      // Navigate to a temporary export page that works with account builder data
       router.navigate(
         `/signer/bitcoin/account/add/multiSig/export/publicKey?keyIndex=${index}`
       )
@@ -294,12 +287,10 @@ function SSMultisigKeyControl({
 
   function handleShareDescriptor() {
     if (accountId) {
-      // In settings mode, use the existing account
       router.navigate(
         `/signer/bitcoin/account/${accountId}/settings/export/descriptor?keyIndex=${index}`
       )
     } else {
-      // In creation mode, use account builder store data
       const accountData = getAccountData()
       const key = accountData.keys[index]
 
@@ -308,7 +299,6 @@ function SSMultisigKeyControl({
         return
       }
 
-      // Navigate to a temporary export page that works with account builder data
       router.navigate(
         `/signer/bitcoin/account/add/multiSig/export/descriptor?keyIndex=${index}`
       )
@@ -317,12 +307,10 @@ function SSMultisigKeyControl({
 
   function handleViewSeedWords() {
     if (accountId) {
-      // In settings mode, use the existing account
       router.navigate(
         `/signer/bitcoin/account/${accountId}/settings/export/seedWords?keyIndex=${index}`
       )
     } else {
-      // In creation mode, use account builder store data
       const accountData = getAccountData()
       const key = accountData.keys[index]
 
@@ -331,7 +319,6 @@ function SSMultisigKeyControl({
         return
       }
 
-      // Navigate to a temporary export page that works with account builder data
       router.navigate(
         `/signer/bitcoin/account/add/multiSig/export/seedWords?keyIndex=${index}`
       )

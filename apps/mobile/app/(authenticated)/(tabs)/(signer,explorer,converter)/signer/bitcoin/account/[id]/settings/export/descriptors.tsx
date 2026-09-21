@@ -128,7 +128,6 @@ export default function ExportDescriptors() {
           descriptorString = 'No keys available for account'
         } else if (!isImportAddress) {
           if (temporaryAccount.policyType === 'singlesig') {
-            // For single signature accounts, generate single key descriptor
             const [key] = temporaryAccount.keys
             if (!key) {
               descriptorString =
@@ -143,7 +142,6 @@ export default function ExportDescriptors() {
                 key.fingerprint ||
                 ''
 
-              // Get extended public key from various possible sources
               if (typeof secret === 'object') {
                 if (secret.extendedPublicKey) {
                   ;({ extendedPublicKey } = secret)
@@ -185,17 +183,14 @@ export default function ExportDescriptors() {
               }
 
               if (fingerprint && extendedPublicKey) {
-                // Get the correct derivation path for the script version
                 const scriptVersion = key.scriptVersion || 'P2WPKH'
                 const derivationPath = key.derivationPath || ''
 
                 // Remove leading 'm' or 'M' from derivationPath if present
                 const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
 
-                // Build the key part with fingerprint and derivation path
                 const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}`
 
-                // Create single signature descriptor based on script version
                 let singleSigDescriptor = ''
                 switch (scriptVersion) {
                   case 'P2PKH':
@@ -234,7 +229,6 @@ export default function ExportDescriptors() {
               const keyCount = temporaryAccount.keys.length
               const keysRequired = temporaryAccount.keysRequired || keyCount
 
-              // Extract fingerprints and extended public keys for each key
               const keyData = await Promise.all(
                 temporaryAccount.keys.map(async (key, index) => {
                   if (!key) {
@@ -253,7 +247,6 @@ export default function ExportDescriptors() {
 
                   // Get extended public key from various possible sources (same pattern as SSMultisigKeyControl)
                   if (typeof secret === 'object') {
-                    // First, try to get from extendedPublicKey directly
                     if (secret.extendedPublicKey) {
                       ;({ extendedPublicKey } = secret)
                     } else if (secret.externalDescriptor) {
@@ -261,7 +254,6 @@ export default function ExportDescriptors() {
                         secret.externalDescriptor
                       )
                     } else if (secret.mnemonic) {
-                      // If we have a mnemonic, generate the extended public key
                       try {
                         const extendedKey =
                           await getExtendedPublicKeyFromAccountKey(
@@ -300,7 +292,6 @@ export default function ExportDescriptors() {
                     typeof secret === 'object' &&
                     secret.externalDescriptor
                   ) {
-                    // Try to extract from externalDescriptor if available
                     extendedPublicKey = getExtendedKeyFromDescriptor(
                       secret.externalDescriptor
                     )
@@ -310,7 +301,6 @@ export default function ExportDescriptors() {
                 })
               )
 
-              // Filter out keys that don't have both fingerprint and extended public key
               const validKeyData = keyData.filter(
                 (kd) => kd.fingerprint && kd.extendedPublicKey
               )
@@ -321,11 +311,9 @@ export default function ExportDescriptors() {
                 descriptorString =
                   'No descriptors available - missing fingerprint or extended public key for some keys'
               } else {
-                // Get the correct multisig script type for descriptor generation
                 const multisigScriptType =
                   getMultisigScriptTypeFromScriptVersion(scriptVersion)
 
-                // Get the policy-based derivation path according to the account type
                 const policyDerivationPath =
                   temporaryAccount.policyType === 'multisig'
                     ? getMultisigDerivationPathFromScriptVersion(
@@ -345,7 +333,6 @@ export default function ExportDescriptors() {
                   a.extendedPublicKey.localeCompare(b.extendedPublicKey)
                 )
 
-                // Build key section with policy-based derivation paths
                 const keySection = sortedKeyData
                   .map(
                     ({ fingerprint, extendedPublicKey }) =>
@@ -421,7 +408,6 @@ export default function ExportDescriptors() {
               }
             }
           } else {
-            // For watchonly accounts, handle different creation types
             const [key] = temporaryAccount.keys
             if (!key) {
               descriptorString = 'No key data available for watch-only account'
@@ -432,7 +418,6 @@ export default function ExportDescriptors() {
                 key.creationType === 'importDescriptor' &&
                 secret.externalDescriptor
               ) {
-                // For watch-only accounts with imported descriptors, use the existing descriptor
                 const descriptor = secret.externalDescriptor
 
                 if (!descriptor.includes('#')) {
@@ -448,14 +433,12 @@ export default function ExportDescriptors() {
                 secret.extendedPublicKey &&
                 secret.fingerprint
               ) {
-                // For watch-only accounts with imported extended public keys, generate descriptor
                 const scriptVersion = key.scriptVersion || 'P2WPKH'
                 const derivationPath = key.derivationPath || ''
 
                 // Remove leading 'm' or 'M' from derivationPath if present
                 const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
 
-                // Build the key part with fingerprint and derivation path
                 const keyPart = `[${secret.fingerprint}/${cleanDerivationPath}]${secret.extendedPublicKey}`
 
                 let descriptor = ''
@@ -484,7 +467,6 @@ export default function ExportDescriptors() {
                 key.creationType === 'importAddress' &&
                 secret.externalDescriptor
               ) {
-                // For watch-only accounts with imported addresses, use the address descriptor
                 const descriptor = secret.externalDescriptor
 
                 if (!descriptor.includes('#')) {

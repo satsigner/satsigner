@@ -232,12 +232,10 @@ export const useGestures = ({
       savedTranslate.y.value = translate.y.value // Save the current y translation
     })
     .onUpdate((event) => {
-      // Update the translation values based on the pan movement
       translate.x.value = savedTranslate.x.value + event.translationX
       translate.y.value = savedTranslate.y.value + event.translationY
     })
     .onEnd((event, success) => {
-      // Calculate the limits for translation based on the current scale
       const rightLimit = limits.right(width, scale)
       const leftLimit = -rightLimit
       const bottomLimit = limits.bottom(height, scale)
@@ -312,11 +310,9 @@ export const useGestures = ({
     .enabled(isPinchEnabled) // Enable pinch gesture based on isPinchEnabled flag
     .onStart((event) => {
       runOnJS(onPinchStarted)(event) // Trigger the pinch start event
-      // Save the initial scale and focal points
       savedScale.value = scale.value
       savedFocal.x.value = focal.x.value
       savedFocal.y.value = focal.y.value
-      // Record the initial focal points from the event
       initialFocal.x.value = event.focalX
       initialFocal.y.value = event.focalY
     })
@@ -328,7 +324,6 @@ export const useGestures = ({
         savedFocal.x.value + translate.x.value + center.x - initialFocal.x.value
       const centerOffsetY =
         savedFocal.y.value + translate.y.value + center.y - initialFocal.y.value
-      // Adjust focal points based on the scale change
       focal.x.value = centerOffsetX * scaleChangeScale + savedFocal.x.value
       focal.y.value = centerOffsetY * scaleChangeScale + savedFocal.y.value
     })
@@ -354,7 +349,6 @@ export const useGestures = ({
           focal.x.value = withTiming(focalX)
           focal.y.value = withTiming(focalY)
         } else {
-          // Adjust focal point based on current position
           focal.x.value = withTiming(
             focalX + translate.x.value * (doubleTapScale - 1)
           )

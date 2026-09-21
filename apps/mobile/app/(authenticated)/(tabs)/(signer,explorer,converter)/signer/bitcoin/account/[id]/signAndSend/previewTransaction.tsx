@@ -546,7 +546,6 @@ function PreviewTransaction() {
         return
       }
 
-      // Check if PSBT has any partial signatures
       const psbtHasSignatures = psbtObj.data.inputs.some(
         (input) => input.partialSig && input.partialSig.length > 0
       )
@@ -562,7 +561,6 @@ function PreviewTransaction() {
         return
       }
 
-      // Build a map of fingerprint to cosigner index
       const keyFingerprintToCosignerIndex = new Map<string, number>()
       await Promise.all(
         currentAccount.keys.map(async (key, index) => {
@@ -573,7 +571,6 @@ function PreviewTransaction() {
         })
       )
 
-      // Build a map of pubkey to cosigner index from BIP32 derivations
       const pubkeyToCosignerIndex = new Map<string, number>()
       for (const input of psbtObj.data.inputs) {
         if (!input.bip32Derivation) {
@@ -590,13 +587,11 @@ function PreviewTransaction() {
         }
       }
 
-      // Get all pubkeys that have signatures in the PSBT
       const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
       if (signerPubkeys.size === 0) {
         return
       }
 
-      // Split combined PSBT into per-signer PSBTs (by pubkey)
       const bySigner = extractIndividualSignedPsbts(
         combinedPsbtBase64,
         originalPsbtBase64
@@ -605,7 +600,6 @@ function PreviewTransaction() {
         return
       }
 
-      // Match signed PSBTs to cosigners using the utility function
       const matches = matchSignedPsbtsToCosigners(
         bySigner,
         pubkeyToCosignerIndex,
@@ -689,7 +683,6 @@ function PreviewTransaction() {
     type: null
   })
 
-  // Helper functions for QR code detection and parsing
   const detectQRType = (data: string) => {
     if (/^p\d+of\d+\s/.test(data)) {
       const match = data.match(/^p(\d+)of(\d+)\s/)
@@ -742,7 +735,6 @@ function PreviewTransaction() {
       }
     }
 
-    // Single QR code (no multi-part format detected)
     return {
       content: data,
       current: 0,
@@ -773,7 +765,6 @@ function PreviewTransaction() {
 
       const originalPsbtBase64 = txBuilderResult?.toBase64()
 
-      // Check if data is a PSBT and convert to final transaction
       if (processedData.toLowerCase().startsWith('70736274ff')) {
         // Only attempt conversion if we have the original PSBT context
         if (originalPsbtBase64) {
@@ -832,7 +823,6 @@ function PreviewTransaction() {
           const decoded = decodeBBQRChunks(sortedChunks)
 
           if (decoded) {
-            // Convert binary PSBT to hex for consistency with RAW format
             const hexResult = Buffer.from(decoded).toString('hex')
             return hexResult
           }
@@ -841,7 +831,6 @@ function PreviewTransaction() {
         }
 
         case 'ur': {
-          // UR format assembly using proper UR decoder
           const sortedChunks = Array.from(chunks.entries())
             .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
@@ -862,7 +851,6 @@ function PreviewTransaction() {
             return null
           }
 
-          // Check if result is a PSBT and convert to final transaction
           if (result.toLowerCase().startsWith('70736274ff')) {
             const convertedResult = convertPsbtToFinalTransaction(result)
 
@@ -887,12 +875,10 @@ function PreviewTransaction() {
     }
   }
 
-  // Function to split raw PSBT into chunks for animated display
   const createRawPsbtChunks = useCallback(
     (base64Psbt: string, complexity: number): string[] => {
       // Special case: complexity 12 = single static QR with all data
       if (complexity === 12) {
-        // Check if the data would be too large for a single QR code
         if (base64Psbt.length > 1500) {
           // Fall back to the most dense possible configuration
           const baseChunkSize = 100
@@ -923,13 +909,11 @@ function PreviewTransaction() {
 
       const chunks: string[] = []
 
-      // First pass: split the data into chunks
       const dataChunks: string[] = []
       for (let i = 0; i < base64Psbt.length; i += chunkSize) {
         dataChunks.push(base64Psbt.slice(i, i + chunkSize))
       }
 
-      // Second pass: add headers to each chunk
       const totalChunks = dataChunks.length
       for (let i = 0; i < totalChunks; i += 1) {
         const header = `p${i + 1}of${totalChunks}`
@@ -1155,7 +1139,6 @@ function PreviewTransaction() {
     const network = bitcoinjsNetwork(account.network)
 
     for (const output of outputs) {
-      // Check if address is empty or invalid
       if (!output.to || output.to.trim() === '') {
         // Don't show error for empty addresses during editing
         continue
@@ -1187,7 +1170,6 @@ function PreviewTransaction() {
       const base64 = txBuilderResult.toBase64()
       const psbtBuffer = Buffer.from(base64, 'base64')
 
-      // Store the hex representation for other uses
       const psbtHex = psbtBuffer.toString('hex')
       setSerializedPsbt(psbtHex)
 
@@ -1269,7 +1251,6 @@ function PreviewTransaction() {
             throw new Error('PSBT data not available')
           }
 
-          // Generate raw PSBT chunks using complexity setting
           const rawChunks = createRawPsbtChunks(
             txBuilderResult.toBase64(),
             qrComplexity
@@ -1424,18 +1405,15 @@ function PreviewTransaction() {
 
     const qrInfo = detectQRType(data)
 
-    // Handle single QR codes (complete data in one scan)
     if (qrInfo.type === 'single' || qrInfo.total === 1) {
       let finalContent: string | null = qrInfo.content
       try {
-        // Check if it's a single BBQR QR code
         if (isBBQRFragment(qrInfo.content)) {
           const decoded = decodeBBQRChunks([qrInfo.content])
           if (!decoded) {
             toast.error(t('camera.error.bbqrDecodeFailed'))
             return
           }
-          // Convert binary PSBT to hex for consistency
           const hexResult = Buffer.from(decoded).toString('hex')
           finalContent = hexResult
         }
@@ -1445,21 +1423,16 @@ function PreviewTransaction() {
             'hex'
           )
           finalContent = hexResult
-        }
-        // Check if it's a single UR QR code
-        else if (qrInfo.content.toLowerCase().startsWith('ur:crypto-psbt/')) {
+        } else if (qrInfo.content.toLowerCase().startsWith('ur:crypto-psbt/')) {
           const decoded = decodeURToPSBT(qrInfo.content)
           if (!decoded) {
             toast.error(t('camera.error.urDecodeFailed'))
             return
           }
           finalContent = decoded
-        }
-        // Check if it's a seed QR code (for dropped seeds)
-        else if (index !== undefined) {
+        } else if (index !== undefined) {
           const decodedMnemonic = detectAndDecodeSeedQR(qrInfo.content)
           if (decodedMnemonic) {
-            // Sign the PSBT with the scanned seed
             handleSignWithSeedQR(index, decodedMnemonic)
             setCameraModalVisible(false)
             resetScanProgress()
@@ -1467,7 +1440,6 @@ function PreviewTransaction() {
           }
         }
 
-        // Process the data (convert PSBT to final transaction if needed)
         finalContent = processScannedData(finalContent)
       } catch {
         toast.error(t('common.error.processScannedData'))
@@ -1488,7 +1460,6 @@ function PreviewTransaction() {
 
     const { type, current, total, content } = qrInfo
 
-    // Check if this is the start of a new scan session or continuation
     if (
       scanProgress.type === null ||
       scanProgress.type !== type ||
@@ -1544,7 +1515,6 @@ function PreviewTransaction() {
         const assembledData = await assembleMultiPartQR(type, newChunks)
 
         if (assembledData) {
-          // Process the assembled data (convert PSBT to final transaction if needed)
           const finalData = processScannedData(assembledData)
 
           if (finalData === null) {
@@ -1557,7 +1527,6 @@ function PreviewTransaction() {
           setCameraModalVisible(false)
           resetScanProgress()
 
-          // Check if the result is still a PSBT (not finalized)
           if (
             finalData.toLowerCase().startsWith('70736274ff') ||
             finalData.startsWith('cHNidP')
@@ -1582,11 +1551,9 @@ function PreviewTransaction() {
         `UR: Collected ${newScanned.size} fragments (need ~${targetForDisplay})`
       )
     } else if (newScanned.size === total) {
-      // All chunks collected, assemble the final result
       const assembledData = await assembleMultiPartQR(type, newChunks)
 
       if (assembledData) {
-        // Process the assembled data (convert PSBT to final transaction if needed)
         const finalData = processScannedData(assembledData)
 
         if (finalData === null) {
@@ -1599,7 +1566,6 @@ function PreviewTransaction() {
         setCameraModalVisible(false)
         resetScanProgress()
 
-        // Check if the result is still a PSBT (not finalized)
         if (
           finalData.toLowerCase().startsWith('70736274ff') ||
           finalData.startsWith('cHNidP')
@@ -1657,7 +1623,6 @@ function PreviewTransaction() {
     }
   }
 
-  // Create a wrapper function for cosigner-specific paste
   const handlePasteFromClipboard = async (index: number) => {
     try {
       const text = await Clipboard.getStringAsync()
@@ -1666,7 +1631,6 @@ function PreviewTransaction() {
         return
       }
 
-      // Process the pasted data similar to scanned data
       const processedData = processScannedData(text)
 
       if (processedData === null) {
@@ -1733,7 +1697,6 @@ function PreviewTransaction() {
 
   const handleCosignerCameraScan = (index: number) => {
     setCameraModalVisible(true)
-    // Store the current cosigner index for QR scanning
     setCurrentCosignerIndex(index)
   }
 
@@ -1741,13 +1704,11 @@ function PreviewTransaction() {
     handleNFCScan(index)
   }
 
-  // Handle seed QR scanning for dropped seeds
   const handleSeedQRScanned = (index: number) => {
     setCameraModalVisible(true)
     setCurrentCosignerIndex(index)
   }
 
-  // Handle seed words modal for dropped seeds
   const handleSeedWordsScanned = (index: number) => {
     setCurrentCosignerIndex(index)
     setWordCountModalVisible(true)
@@ -1781,7 +1742,6 @@ function PreviewTransaction() {
     setCurrentCosignerIndex(null)
   }
 
-  // Wrapper functions for watch-only section (no parameters needed)
   const handleWatchOnlyPasteFromClipboard = () => {
     handlePasteFromClipboard(-1) // Use -1 to indicate watch-only
   }
@@ -1845,7 +1805,6 @@ function PreviewTransaction() {
       // Step 1: Parse the original PSBT
       const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
 
-      // Step 2: Combine all signed PSBTs with the original
       const combinedPsbt = originalPsbt
 
       for (let i = 0; i < collectedSignedPsbts.length; i += 1) {
@@ -1854,7 +1813,6 @@ function PreviewTransaction() {
         try {
           const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
 
-          // Combine this signed PSBT with the accumulated result
           combinedPsbt.combine(signedPsbt)
         } catch {
           toast.error(`Error combining signed PSBT ${i + 1}`)
@@ -1864,7 +1822,6 @@ function PreviewTransaction() {
 
       // Step 3: Finalize the combined PSBT
 
-      // Check if all inputs have enough signatures before attempting finalization
       const allInputsReady = combinedPsbt.data.inputs.every(hasEnoughSignatures)
 
       if (!allInputsReady) {
@@ -1938,7 +1895,6 @@ function PreviewTransaction() {
         cancelAnimationFrame(animationRef.current)
         animationRef.current = null
       }
-      // Clear all QR-related state to free memory
       setQrChunks([])
       setUrChunks([])
       setRawPsbtChunks([])
@@ -1946,7 +1902,6 @@ function PreviewTransaction() {
     []
   )
 
-  // Decrypt keys to check for seed existence
   useEffect(() => {
     async function decryptKeys() {
       if (!account || !account.keys || account.keys.length === 0) {
@@ -1979,7 +1934,6 @@ function PreviewTransaction() {
           }
           return value
         }
-        // Fallback to full base64 PSBT if chunks not ready
         const base64Psbt = txBuilderResult?.toBase64()
         if (base64Psbt && base64Psbt.length > 1500) {
           return 'DATA_TOO_LARGE'
@@ -2013,14 +1967,12 @@ function PreviewTransaction() {
     }
   }
 
-  // Helper function to check if data would be too large for single QR code
   const isDataTooLargeForSingleQR = () => {
     const base64Psbt = txBuilderResult?.toBase64()
     if (!base64Psbt) {
       return false
     }
 
-    // Check the actual chunk sizes for the current display mode
     let maxChunkSize = 0
 
     switch (displayMode) {
@@ -2313,7 +2265,6 @@ function PreviewTransaction() {
                         : t('sign.transaction')
                     }
                     onPress={() => {
-                      // For multisig accounts, combine and finalize PSBTs first
                       if (account?.policyType === 'multisig') {
                         const finalTransactionHex =
                           combineAndFinalizeMultisigPSBTs()
@@ -2626,7 +2577,6 @@ function PreviewTransaction() {
                       label="+"
                       onPress={() => {
                         const newComplexity = qrComplexity + 1
-                        // Check if the new complexity would create data too large for QR codes
                         if (
                           newComplexity === 12 &&
                           isDataTooLargeForSingleQR()
@@ -2710,7 +2660,6 @@ function PreviewTransaction() {
             {scanProgress.type && scanProgress.total > 1 && (
               <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
                 {scanProgress.type === 'ur' ? (
-                  // For UR fountain encoding, show the actual target
                   <>
                     {(() => {
                       const maxFragment = Math.max(
@@ -2756,7 +2705,6 @@ function PreviewTransaction() {
                     })()}
                   </>
                 ) : (
-                  // For RAW and BBQR, show normal progress
                   <>
                     <SSText color="white" center>
                       {`${t('common.progress')}: ${scanProgress.scanned.size}/${

@@ -83,7 +83,6 @@ function useSyncAccountWithAddress() {
     account.syncProgress.tasksDone += 2
     setSyncProgress(account.id, account.syncProgress)
 
-    // compute new tx count and new utxo count
     let newTxsCount = 0
     let newUtxosCount = 0
     for (const tx of esploraTxs) {
@@ -99,7 +98,6 @@ function useSyncAccountWithAddress() {
       newUtxosCount += 1
     }
 
-    // update account summary with new transactions and utxos
     account.summary = {
       ...account.summary,
       numberOfTransactions: account.summary.numberOfTransactions + newTxsCount,
@@ -110,7 +108,6 @@ function useSyncAccountWithAddress() {
     // because we update the whole account at once, spread is necessary
     account.syncProgress = { ...account.syncProgress }
 
-    // compute how much more requests are needed
     for (const tx of esploraTxs) {
       if (existingTxs[tx.txid] !== undefined) {
         continue
@@ -121,7 +118,6 @@ function useSyncAccountWithAddress() {
 
     const txDictionary: Record<string, number> = {}
 
-    // Collect new transactions that need hex fetching
     const newTxEntries = esploraTxs
       .map((t, index) => ({ index, t }))
       .filter(({ t }) => existingTxs[t.txid] === undefined)
@@ -363,7 +359,6 @@ function useSyncAccountWithAddress() {
     // prevent modifying object just updated in store
     account.syncProgress = { ...account.syncProgress }
 
-    // transactions and utxos not known by the wallet
     const pendingTx = addressTxs.filter(
       (t) => existingTx[t.tx_hash] === undefined
     )
@@ -680,7 +675,6 @@ function useSyncAccountWithAddress() {
     }
     setSyncProgress(updatedAccount.id, updatedAccount.syncProgress)
 
-    // reset account summary confirmed and unconfirmed balance
     updatedAccount.summary = {
       ...updatedAccount.summary,
       balance: 0,
@@ -708,7 +702,6 @@ function useSyncAccountWithAddress() {
       }
     }
 
-    // make sure the final summary is right
     updatedAccount.summary = {
       ...updatedAccount.summary,
       numberOfTransactions: updatedAccount.transactions.length,

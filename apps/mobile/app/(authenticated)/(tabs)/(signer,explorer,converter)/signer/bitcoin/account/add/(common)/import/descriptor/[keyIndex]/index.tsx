@@ -234,7 +234,6 @@ export default function ImportDescriptor() {
           : t('account.import.error.networkIncompatible')
         setInternalDescriptorError(errorMessage)
       } else if (basicValidation && !scriptVersionValidation) {
-        // Show error for script version validation failures
         const errorMessage = t('account.import.error.descriptorIncompatible')
         setInternalDescriptorError(errorMessage)
       }
@@ -247,10 +246,8 @@ export default function ImportDescriptor() {
 
   function handleConfirm() {
     try {
-      // Extract fingerprint from the descriptor if possible
       const fingerprint = extractFingerprintFromDescriptor(externalDescriptor)
 
-      // Extract extended public key and derivation path
       const { extendedPublicKey, derivationPath } =
         extractDescriptorInfo(externalDescriptor)
 
@@ -297,7 +294,6 @@ export default function ImportDescriptor() {
     )
 
     if (bracketMatch) {
-      // Extract the full derivation path by removing fingerprint and brackets
       const [fullBracket] = bracketMatch
       const derivationPath = fullBracket
         .replace(/^\[[0-9a-fA-F]{8}\//, '') // Remove [fingerprint/
@@ -320,7 +316,6 @@ export default function ImportDescriptor() {
 
   function handleCombinedDescriptorImport(combinedDescriptor: string) {
     try {
-      // Validate the combined descriptor and get separated descriptors
       const combinedValidation = validateCombinedDescriptor(
         combinedDescriptor,
         scriptVersion as ScriptVersionType,
@@ -333,13 +328,11 @@ export default function ImportDescriptor() {
         updateExternalDescriptor(combinedValidation.externalDescriptor, true)
         updateInternalDescriptor(combinedValidation.internalDescriptor, true)
       } else {
-        // Set the separated descriptors but mark them as invalid
         setExternalDescriptor(combinedValidation.externalDescriptor)
         setInternalDescriptor(combinedValidation.internalDescriptor)
         setValidExternalDescriptor(false)
         setValidInternalDescriptor(false)
 
-        // Show the error message for both fields
         const errorMessage = combinedValidation.error
           ? t(`account.import.error.${combinedValidation.error}`)
           : t('account.import.error.descriptorFormat')
@@ -379,7 +372,6 @@ export default function ImportDescriptor() {
           /\/0\/\*/g,
           '/1/*'
         )
-        // Add back the checksum to internal descriptor
         const checksum = originalDescriptor.match(/#[a-z0-9]+$/)
         if (checksum) {
           internalDescriptor += checksum[0]
@@ -395,7 +387,6 @@ export default function ImportDescriptor() {
       handleCombinedDescriptorImport(text)
     } else {
       if (externalDescriptor) {
-        // For JSON descriptors, use the original descriptor for validation
         const descriptorToValidate = originalDescriptor || externalDescriptor
         updateExternalDescriptor(descriptorToValidate)
       }
@@ -486,7 +477,6 @@ export default function ImportDescriptor() {
   }
 
   function getDefaultDerivationPath(): string {
-    // Check if we're in multisig mode to use the correct derivation path function
     const rawDerivationPath =
       policyType === 'multisig'
         ? getMultisigDerivationPathFromScriptVersion(

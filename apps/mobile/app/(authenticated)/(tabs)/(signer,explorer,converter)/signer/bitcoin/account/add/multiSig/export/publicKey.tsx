@@ -47,7 +47,6 @@ export default function PublicKeyPage() {
         setScriptVersion(key.scriptVersion)
       }
 
-      // Set the correct default format based on network and script version
       if (key?.scriptVersion === 'P2SH-P2WSH') {
         // For P2SH-P2WSH, default to ypub/upub (more specific)
         setSelectedFormat(network === 'bitcoin' ? 'ypub' : 'upub')

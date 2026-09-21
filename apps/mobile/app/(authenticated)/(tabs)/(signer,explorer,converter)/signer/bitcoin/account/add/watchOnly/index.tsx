@@ -391,7 +391,6 @@ export default function WatchOnly() {
 
     if (basicValidation && descriptor) {
       try {
-        // Try to validate descriptor with BDK to check network compatibility
         walletNameFromDescriptor(
           descriptor,
           undefined,
@@ -544,7 +543,6 @@ export default function WatchOnly() {
         return
       }
 
-      // Try to parse as legacy multi-line format
       const legacyResult = DescriptorUtils.parseLegacyDescriptor(text)
       if (legacyResult) {
         await handleLegacyDescriptor(legacyResult)
@@ -581,7 +579,6 @@ export default function WatchOnly() {
     if (isCombinedDescriptor(original)) {
       await handleCombinedDescriptor(original)
     } else {
-      // For JSON descriptors, use the original descriptor for validation
       await updateExternalDescriptor(original)
       if (internal) {
         await updateInternalDescriptor(internal)
@@ -625,7 +622,6 @@ export default function WatchOnly() {
     )
 
     if (result.success) {
-      // Set both descriptors and mark them as valid
       setLocalExternalDescriptor(result.external)
       setLocalInternalDescriptor(result.internal)
       setIsValidExternalDescriptor(true)
@@ -648,7 +644,6 @@ export default function WatchOnly() {
       await updateExternalDescriptor(externalWithoutChecksum, true)
       await updateInternalDescriptor(internalWithoutChecksum, true)
     } else {
-      // Set the separated descriptors but mark them as invalid
       setLocalExternalDescriptor(result.external)
       setLocalInternalDescriptor(result.internal)
       setIsValidExternalDescriptor(false)
@@ -698,7 +693,6 @@ export default function WatchOnly() {
 
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
         if (isCombinedDescriptor(text)) {
-          // Validate the combined descriptor and get separated descriptors
           const combinedValidation =
             await DescriptorUtils.processCombinedDescriptor(
               text,
@@ -727,7 +721,6 @@ export default function WatchOnly() {
             await updateExternalDescriptor(externalWithoutChecksum, true)
             await updateInternalDescriptor(internalWithoutChecksum, true)
           } else {
-            // Set the separated descriptors but mark them as invalid
             setLocalExternalDescriptor(combinedValidation.external)
             setLocalInternalDescriptor(combinedValidation.internal)
             setIsValidExternalDescriptor(false)
@@ -779,9 +772,6 @@ export default function WatchOnly() {
             setKey(index)
           }
         } else if (selectedOption === 'importDescriptor') {
-          // Extract fingerprint from descriptor if not already set
-
-          // Check if we have a combined descriptor and validate it
           if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
             const combinedValidation =
               await DescriptorUtils.processCombinedDescriptor(
@@ -818,7 +808,6 @@ export default function WatchOnly() {
           `/signer/bitcoin/account/${data.accountWithEncryptedSecret.id}`
         )
 
-        // Start sync in background if auto mode is enabled
         if (connectionMode === 'auto') {
           try {
             const updatedAccount =

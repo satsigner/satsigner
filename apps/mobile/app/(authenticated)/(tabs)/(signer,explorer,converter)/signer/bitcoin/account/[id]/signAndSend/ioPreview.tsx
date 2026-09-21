@@ -1176,7 +1176,6 @@ export default function IOPreview() {
 
     // Add change output if there's enough remaining (above dust limit)
     if (remainingBalance >= DUST_LIMIT) {
-      // Validate that changeAddress is available before adding change output
       if (!changeAddress) {
         toast.error(t('transaction.error.ChangeAddressNotAvailable'))
         return

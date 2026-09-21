@@ -195,7 +195,6 @@ export function usePSBTManagement({
         scriptVersion
       ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
 
-      // Sign the PSBT with the scanned seed
       const signingResult = signPSBTWithSeed(
         originalPsbtBase64,
         mnemonic,

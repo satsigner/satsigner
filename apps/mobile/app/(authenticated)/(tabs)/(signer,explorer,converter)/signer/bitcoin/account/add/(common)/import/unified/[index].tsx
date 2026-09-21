@@ -167,7 +167,6 @@ export default function UnifiedImport() {
     }
     if (basicValidation && descriptor) {
       try {
-        // Try to validate descriptor with BDK to check network compatibility
         walletNameFromDescriptor(
           descriptor,
           undefined,
@@ -198,7 +197,6 @@ export default function UnifiedImport() {
       setExternalDescriptorError('') // Clear error when valid
     }
 
-    // Update disabled state based on both external and internal descriptors
     updateDescriptorValidationState({
       externalDescriptor: isValid ? descriptor : externalDescriptor,
       validExternalDescriptor: nextValidExternalDescriptor
@@ -225,7 +223,6 @@ export default function UnifiedImport() {
     }
     if (basicValidation && descriptor) {
       try {
-        // Try to validate descriptor with BDK to check network compatibility
         walletNameFromDescriptor(
           descriptor,
           undefined,
@@ -255,7 +252,6 @@ export default function UnifiedImport() {
       setInternalDescriptorError('') // Clear error when valid
     }
 
-    // Update disabled state based on both external and internal descriptors
     updateDescriptorValidationState({
       internalDescriptor: isValid ? descriptor : internalDescriptor,
       validInternalDescriptor: nextValidInternalDescriptor
@@ -365,7 +361,6 @@ export default function UnifiedImport() {
 
       // Check if the descriptor is combined (contains <0;1> or <0,1>)
       if (isCombinedDescriptor(text)) {
-        // Validate the combined descriptor and get separated descriptors
         const combinedValidation = validateCombinedDescriptor(
           text,
           scriptVersion,
@@ -373,7 +368,6 @@ export default function UnifiedImport() {
         )
 
         if (combinedValidation.isValid) {
-          // Set both descriptors and mark them as valid
           setLocalExternalDescriptor(combinedValidation.externalDescriptor)
           setLocalInternalDescriptor(combinedValidation.internalDescriptor)
           setValidExternalDescriptor(true)
@@ -385,13 +379,11 @@ export default function UnifiedImport() {
           setExternalDescriptorError('')
           setInternalDescriptorError('')
         } else {
-          // Set the separated descriptors but mark them as invalid
           setLocalExternalDescriptor(combinedValidation.externalDescriptor)
           setLocalInternalDescriptor(combinedValidation.internalDescriptor)
           setValidExternalDescriptor(false)
           setValidInternalDescriptor(false)
 
-          // Show the error message for both fields
           const errorMessage = combinedValidation.error
             ? t(`account.import.error.${combinedValidation.error}`)
             : t('account.import.error.descriptorFormat')
@@ -400,7 +392,6 @@ export default function UnifiedImport() {
         }
       } else {
         if (externalDescriptor) {
-          // For JSON descriptors, use the original descriptor for validation
           const descriptorToValidate = originalDescriptor || externalDescriptor
           updateExternalDescriptor(descriptorToValidate)
         }
@@ -474,7 +465,6 @@ export default function UnifiedImport() {
 
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
         if (isCombinedDescriptor(text)) {
-          // Validate the combined descriptor and get separated descriptors
           const combinedValidation = validateCombinedDescriptor(
             text,
             scriptVersion,
@@ -482,7 +472,6 @@ export default function UnifiedImport() {
           )
 
           if (combinedValidation.isValid) {
-            // Set both descriptors and mark them as valid
             setLocalExternalDescriptor(combinedValidation.externalDescriptor)
             setLocalInternalDescriptor(combinedValidation.internalDescriptor)
             setValidExternalDescriptor(true)
@@ -494,13 +483,11 @@ export default function UnifiedImport() {
             setExternalDescriptorError('')
             setInternalDescriptorError('')
           } else {
-            // Set the separated descriptors but mark them as invalid
             setLocalExternalDescriptor(combinedValidation.externalDescriptor)
             setLocalInternalDescriptor(combinedValidation.internalDescriptor)
             setValidExternalDescriptor(false)
             setValidInternalDescriptor(false)
 
-            // Show the error message for both fields
             const errorMessage = combinedValidation.error
               ? t(`account.import.error.${combinedValidation.error}`)
               : t('account.import.error.descriptorFormat')
@@ -509,7 +496,6 @@ export default function UnifiedImport() {
           }
         } else {
           if (externalDescriptor) {
-            // For JSON descriptors, use the original descriptor for validation
             const descriptorToValidate =
               originalDescriptor || externalDescriptor
             updateExternalDescriptor(descriptorToValidate)

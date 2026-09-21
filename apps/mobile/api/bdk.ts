@@ -76,7 +76,6 @@ import BitcoinRpc, {
   type ImportDescriptorRequest
 } from './rpc'
 
-// Map BDK Network enum to app's string network type
 function toAppNetwork(network: Network): BlockchainNetwork {
   switch (network) {
     case 0:
@@ -200,7 +199,6 @@ async function getWalletData(
       const multisigScriptType =
         getMultisigScriptTypeFromScriptVersion(scriptVersion)
 
-      // Extract key data with proper derivation paths and fingerprints
       const keyData = await Promise.all(
         account.keys.map((key, keyIndex) => {
           let extendedPublicKey = ''
@@ -1879,7 +1877,6 @@ async function syncWithCoreWallet(
       ]
     : sinceResult.transactions
 
-  // Group list entries by txid and aggregate sent/received amounts
   const txMap = new Map<
     string,
     {

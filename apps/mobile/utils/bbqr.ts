@@ -36,7 +36,6 @@ export function isBBQRFragment(part: string): boolean {
     return false
   }
 
-  // Check if the header format is valid
   const encoding = part.slice(2, 3)
   const fileType = part.slice(3, 4)
   const seqTotal = part.slice(4, 6)
@@ -77,7 +76,6 @@ export function createBBQRChunks(
   fileType: BBQRFileType = BBQRFileTypes.PSBT,
   maxChunkSize = BBQR_DEFAULT_MAX_CHUNK_SIZE
 ): string[] {
-  // Convert our FileType to the official library's string format
   const officialFileType = fileType as OfficialFileType
 
   // Calculate the target number of chunks based on maxChunkSize
@@ -93,7 +91,6 @@ export function createBBQRChunks(
     minSplit = 1
     maxSplit = 1
   } else {
-    // Calculate target chunks based on data size and desired chunk size
     targetChunks = Math.ceil(data.length / maxChunkSize)
 
     // For very small chunk sizes (which should create many simple QR codes),

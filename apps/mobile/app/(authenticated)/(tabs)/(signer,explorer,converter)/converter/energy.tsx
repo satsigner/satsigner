@@ -50,7 +50,6 @@ const networks = {
   testnet: bitcoin.networks.testnet
 }
 
-// Add this helper function at the top level
 const getAdjustedRpcUrl = (url: string) => {
   if (Platform.OS === 'android') {
     try {
@@ -71,7 +70,6 @@ const getAdjustedRpcUrl = (url: string) => {
   return url
 }
 
-// Add this helper function at the top level
 const getNetworkFromAddress = (address: string) => {
   if (address.startsWith('bcrt1') || address.startsWith('bcrt')) {
     return networks.regtest
@@ -398,7 +396,6 @@ export default function Energy() {
       }
 
       setBlockchainInfo(data.result)
-      // Fetch block template after successful blockchain info
       fetchBlockTemplate()
     } catch {
       setConnectionError('Failed to fetch blockchain info')
@@ -434,7 +431,6 @@ export default function Energy() {
         throw new Error('Failed to fetch network hash rate')
       }
       const data = await response.json()
-      // Get the latest hash rate from the hashrates array
       const latestHashRate = data.hashrates.at(-1)!.avgHashrate
       // Convert to exahashes per second (1 EH/s = 10^18 hashes per second)
       const hashRateInEH = (latestHashRate / 1e18).toFixed(2)
@@ -456,7 +452,6 @@ export default function Energy() {
       }, 30000) // 30 seconds
     }
 
-    // Cleanup interval on unmount or when disconnected
     return () => {
       if (intervalId) {
         clearInterval(intervalId)
@@ -681,10 +676,8 @@ export default function Energy() {
       // Use BIP34 compliant height encoding
       const heightScript = encodeScriptNum(template.height)
 
-      // Create coinbase script with optional extra nonce
       let coinbaseScript: Buffer
       if (useExtraNonce) {
-        // Only add extra nonce when explicitly requested
         const extraNonceBytes = Buffer.alloc(8)
         extraNonceBytes.writeBigUInt64LE(BigInt(extraNonce), 0)
         coinbaseScript = bitcoin.script.compile([
@@ -901,7 +894,6 @@ export default function Energy() {
         const freshAllTransactions = [freshCoinbaseTx, ...freshMempoolTxs]
         const freshMerkleRoot = createMerkleRoot(freshAllTransactions)
 
-        // Create fresh header with updated merkle root
         const freshHeader = createBlockHeader(
           freshTemplate,
           freshMerkleRoot,
@@ -920,7 +912,6 @@ export default function Energy() {
         const txCount = Buffer.alloc(1)
         txCount.writeUInt8(rawTransactions.length, 0)
 
-        // Create block data with header and all transactions
         const blockData = Buffer.concat([
           freshHeader as unknown as Uint8Array,
           txCount as unknown as Uint8Array,
@@ -992,7 +983,6 @@ export default function Energy() {
     }
 
     try {
-      // Validate network and address first - only once at start
       const networkResponse = await fetchRpc({
         id: '1',
         jsonrpc: '1.0',
@@ -1016,7 +1006,6 @@ export default function Energy() {
         throw new Error('Could not determine node network type')
       }
 
-      // Validate address for network - only once at start
       if (nodeNetwork === 'regtest') {
         const isValidRegtest =
           miningAddress.startsWith('bcrt1') || miningAddress.startsWith('bcrt')
@@ -1061,12 +1050,10 @@ export default function Energy() {
         let hashes = 0
         let lastStatsUpdate = startTime
 
-        // Cache for coinbase transaction and merkle root
         let cachedCoinbaseTx: BlockTemplateTransaction | null = null
         let cachedMerkleRoot: string | null = null
         let cachedMempoolTxs: BlockTemplateTransaction[] | null = null
 
-        // Create initial coinbase transaction without extra nonce
         if (blockTemplate) {
           cachedCoinbaseTx = createCoinbaseTransaction(blockTemplate, 0, false)
           if (cachedCoinbaseTx) {
@@ -1170,7 +1157,6 @@ export default function Energy() {
                     }
                   }
                 } else {
-                  // Just update extra nonce in existing coinbase
                   extraNonce += 1
                   if (blockTemplate && cachedCoinbaseTx) {
                     cachedCoinbaseTx = createCoinbaseTransaction(
@@ -1285,7 +1271,6 @@ export default function Energy() {
     setIsStopping(true)
     setIsMining(false)
 
-    // Immediately set ref to false to stop mining loop
     isMiningRef.current = false
 
     // Clear interval immediately
