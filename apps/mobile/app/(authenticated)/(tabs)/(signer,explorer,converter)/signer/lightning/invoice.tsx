@@ -190,7 +190,6 @@ export default function InvoicePage() {
         setLnurlDetails(details)
         setIsLNURLMode(true)
 
-        // Pre-populate amount with max withdrawable if available
         if (details.maxWithdrawable) {
           const maxSats = Math.floor(details.maxWithdrawable / 1000)
           setInvoiceAmount(maxSats.toString())
@@ -215,7 +214,6 @@ export default function InvoicePage() {
         setLnurlDetails(details)
         setIsLNURLMode(true)
 
-        // Pre-populate amount with max withdrawable if available
         if (details.maxWithdrawable) {
           const maxSats = Math.floor(details.maxWithdrawable / 1000)
           setInvoiceAmount(maxSats.toString())

@@ -223,7 +223,6 @@ export default function SSSeedWordsInput({
     handleWordSelectedRef.current = handleWordSelected
   }, [handleWordSelected])
 
-  // Notify parent about word selector state changes
   useEffect(() => {
     onWordSelectorStateChange?.({
       onWordSelected: (word?: string) => handleWordSelectedRef.current?.(word),
@@ -350,7 +349,6 @@ export default function SSSeedWordsInput({
       seedWord.dirty = true
       setSeedWordsInfo(newSeedWordsInfo)
 
-      // Clear auto-advance timeout if invalid characters are entered
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current)
         autoAdvanceTimeoutRef.current = null
@@ -373,7 +371,6 @@ export default function SSSeedWordsInput({
         clearTimeout(autoAdvanceTimeoutRef.current)
       }
 
-      // Auto-advance to next input when word is valid
       if (index < wordCount - 1) {
         const isPrefix = isPrefixWord(trimmedValue, wordList)
         const delay = isPrefix ? PREFIX_WORD_DELAY_MS : 100
@@ -388,7 +385,6 @@ export default function SSSeedWordsInput({
         trimmedValue.length >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
       setKeyboardWordSelectorVisible(shouldShow)
 
-      // Clear auto-advance timeout if current word becomes invalid
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current)
         autoAdvanceTimeoutRef.current = null

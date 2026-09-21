@@ -192,7 +192,6 @@ export default function ImportDescriptor() {
         const [fingerprint, ...restParts] = bracketContent.split('/')
         const derivationPath = restParts.join('/')
 
-        // Extract extended public key and address path
         const xpubMatch = afterBracket.match(/^([a-zA-Z0-9]+)(.*)$/)
         if (!xpubMatch) {
           throw new Error(
@@ -240,7 +239,6 @@ export default function ImportDescriptor() {
     try {
       const parsedData = parseMultisigDescriptor(descriptor)
 
-      // Update account builder store with parsed data
       setScriptVersion(parsedData.scriptVersion)
       setKeyCount(parsedData.keyCount)
       setKeysRequired(parsedData.keysRequired)
@@ -264,7 +262,6 @@ export default function ImportDescriptor() {
       }
 
       toast.success(t('account.import.success'))
-      // Navigate to finish page to complete account creation
       router.navigate('/signer/bitcoin/account/add/multiSig/finish')
     } catch (error) {
       toast.error(`Import failed: ${(error as Error).message}`)

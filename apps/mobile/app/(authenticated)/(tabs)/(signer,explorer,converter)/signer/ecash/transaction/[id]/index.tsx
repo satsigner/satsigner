@@ -61,7 +61,6 @@ export default function EcashTransactionDetailPage() {
   )
   const { fiatPriceApiUrl } = useFiatData()
 
-  // Fetch prices on mount and when currency changes
   useEffect(() => {
     fetchPrices(fiatPriceApiUrl)
   }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
@@ -82,7 +81,6 @@ export default function EcashTransactionDetailPage() {
     : null
   const lightningInvoice = mintQuote?.request || null
 
-  // Define all callbacks before any conditional logic
   const handleCopyToken = useCallback(async () => {
     if (!transaction?.token) {
       return
@@ -162,7 +160,6 @@ export default function EcashTransactionDetailPage() {
 
     try {
       await receiveEcash(transaction.mintUrl, transaction.token)
-      // Update transaction status to indicate it's been redeemed
       updateTransaction(transaction.id, { tokenStatus: 'spent' })
       router.back()
     } catch {
@@ -213,7 +210,6 @@ export default function EcashTransactionDetailPage() {
       }
     })
 
-    // Cleanup polling when component unmounts or transaction changes
     return () => {
       stopPolling()
     }

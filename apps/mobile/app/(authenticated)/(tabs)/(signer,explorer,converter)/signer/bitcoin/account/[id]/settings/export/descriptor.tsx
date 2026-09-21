@@ -47,7 +47,6 @@ export default function DescriptorPage() {
 
   function parseDescriptorComponents(descriptor: string) {
     try {
-      // Extract script function (e.g., pkh, sh, wpkh, tr)
       const scriptMatch = descriptor.match(/^([a-z]+)\(/)
       const scriptFunction = scriptMatch ? scriptMatch[1] : ''
 
@@ -66,7 +65,6 @@ export default function DescriptorPage() {
         }
       }
 
-      // Extract public key (xpub, ypub, zpub, vpub, etc.)
       const pubKeyMatch = descriptor.match(/([a-z]pub[a-zA-Z0-9]{107})/)
       const publicKey = pubKeyMatch ? pubKeyMatch[1] : ''
 

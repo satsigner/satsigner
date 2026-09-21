@@ -340,7 +340,6 @@ export default function AccountList() {
 
     switch (type) {
       case 'segwit': {
-        // Generate fingerprint and extended public key from mnemonic
         const fingerprint = getFingerprintFromMnemonic(sampleSignetWalletSeed)
         const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
           sampleSignetWalletSeed,
@@ -503,7 +502,6 @@ export default function AccountList() {
       if (account.keyCount !== 3 || account.keysRequired !== 2) {
         throw new Error('Multisig configuration invalid')
       }
-      // Validate that first two keys have mnemonic secrets
       for (let i = 0; i < 2; i += 1) {
         const key = account.keys[i]
         if (
@@ -514,7 +512,6 @@ export default function AccountList() {
           throw new Error(`Mnemonic not properly set in key ${i + 1}`)
         }
       }
-      // Validate that third key has extended public key
       const [key3] = account.keys.slice(2)
       if (
         !key3.secret ||

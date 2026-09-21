@@ -224,7 +224,6 @@ function SSSpiralBlocks({
     [spiralBlocks, canvasHeight, canvasWidth]
   )
 
-  // Pre-calculate week circles outside of the render function
   const weekCircles = useMemo(
     () =>
       RADIUS_WEEKS.map((r, index) => {
@@ -265,7 +264,6 @@ function SSSpiralBlocks({
     [spiralBlocks, invisibleOverlayBlocks, data, onBlockPress]
   )
 
-  // If still loading data, show branded white-circle loader
   if (loading) {
     return (
       <View

@@ -38,7 +38,6 @@ export default function MultiSigManager() {
         return false
       }
 
-      // Check for fingerprint in secret or key property
       const hasFingerprint =
         (typeof key.secret === 'object' && key.secret.fingerprint) ||
         key.fingerprint

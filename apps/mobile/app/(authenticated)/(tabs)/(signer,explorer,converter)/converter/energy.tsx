@@ -32,7 +32,6 @@ type RpcRequestBody = {
   [key: string]: Scalar | Scalar[] | RpcRequestBody | RpcRequestBody[]
 }
 
-// Configure networks
 const networks = {
   mainnet: bitcoin.networks.bitcoin,
   regtest: {
@@ -83,7 +82,6 @@ const getNetworkFromAddress = (address: string) => {
   return networks.mainnet
 }
 
-// Add this helper function after bitsToTarget
 const encodeScriptNum = (num: number): Buffer => {
   if (num === 0) {
     return Buffer.alloc(0)
@@ -419,7 +417,6 @@ export default function Energy() {
     try {
       let endpoint = 'https://mempool.space/api/v1/mining/hashrate/1m'
 
-      // Set endpoint based on network type
       if (blockchainInfo.chain === 'signet') {
         endpoint = 'https://mempool.space/signet/api/v1/mining/hashrate/1m'
       } else if (blockchainInfo.chain === 'test') {
@@ -446,7 +443,6 @@ export default function Energy() {
     if (isConnected) {
       fetchBlockchainInfo()
 
-      // Set up interval for auto-refresh
       intervalId = setInterval(() => {
         fetchBlockchainInfo()
       }, 30000) // 30 seconds
@@ -473,17 +469,14 @@ export default function Energy() {
 
   useEffect(() => {
     fetchNetworkHashRate()
-    // Set up interval for auto-refresh
     const intervalId = setInterval(fetchNetworkHashRate, 60000) // Update every minute
     return () => clearInterval(intervalId)
   }, [fetchNetworkHashRate])
 
-  // Set up template refresh interval
   useEffect(() => {
     if (isConnected) {
       fetchBlockTemplate()
 
-      // Set up interval for auto-refresh (every 2 minutes)
       templateUpdateIntervalRef.current = setInterval(() => {
         fetchBlockTemplate()
       }, 120000)
@@ -497,7 +490,6 @@ export default function Energy() {
     }
   }, [isConnected, fetchBlockTemplate])
 
-  // Clean up on unmount
   useEffect(
     () => () => {
       if (templateUpdateIntervalRef.current) {
@@ -508,7 +500,6 @@ export default function Energy() {
     []
   )
 
-  // Add useEffect for initial address validation
   useEffect(() => {
     if (miningAddress) {
       const isValid =
@@ -628,7 +619,6 @@ export default function Energy() {
   }
 
   const validateBlockTemplate = (template: BlockTemplate) => {
-    // Validate required fields
     if (
       !template.version ||
       !template.previousblockhash ||
@@ -638,7 +628,6 @@ export default function Energy() {
       throw new Error('Block template missing required fields')
     }
 
-    // Validate time constraints
     if (template.curtime < template.mintime) {
       throw new Error(
         `Invalid block time: ${template.curtime} (must be after ${template.mintime})`
@@ -717,7 +706,6 @@ export default function Energy() {
         tx.addOutput(script, 0)
       }
 
-      // Verify transaction is valid
       if (!tx.isCoinbase()) {
         throw new Error('Generated transaction is not a valid coinbase')
       }
@@ -823,7 +811,6 @@ export default function Energy() {
       try {
         // Always get fresh chain data and template before submission
 
-        // First get fresh blockchain info
         const networkResponse = await fetchRpc({
           id: '1',
           jsonrpc: '1.0',
@@ -842,10 +829,8 @@ export default function Energy() {
           )
         }
 
-        // Update blockchain info
         setBlockchainInfo(networkData.result)
 
-        // Then get fresh template
         const templateResponse = await fetchRpc({
           id: '1',
           jsonrpc: '1.0',
@@ -864,13 +849,11 @@ export default function Energy() {
           )
         }
 
-        // Update template
         const freshTemplate = templateData.result
         setBlockTemplate(freshTemplate)
         setTemplateData(formatTemplateData(freshTemplate))
         lastTemplateUpdateRef.current = Date.now()
 
-        // Log template freshness
         const templateAge = Math.floor(
           (Date.now() - lastTemplateUpdateRef.current) / 1000
         )
@@ -880,13 +863,11 @@ export default function Energy() {
           return false
         }
 
-        // Recreate coinbase with fresh template
         const freshCoinbaseTx = createCoinbaseTransaction(freshTemplate)
         if (!freshCoinbaseTx) {
           throw new Error('Failed to create fresh coinbase transaction')
         }
 
-        // Recalculate merkle root with fresh template
         const freshMempoolTxs =
           freshTemplate.transactions?.filter(
             (tx: BlockTemplateTransaction) => tx.txid !== freshCoinbaseTx.txid
@@ -908,7 +889,6 @@ export default function Energy() {
             .filter(Boolean) // Filter out any undefined/null data
         ]
 
-        // Create varint for transaction count
         const txCount = Buffer.alloc(1)
         txCount.writeUInt8(rawTransactions.length, 0)
 
@@ -933,7 +913,6 @@ export default function Energy() {
           throw new Error(`Block submission rejected: ${data.error}`)
         }
 
-        // Handle different result cases
         if (data.result === 'high-hash') {
           return false // Return false but don't throw error to continue mining
         }
@@ -1036,7 +1015,6 @@ export default function Energy() {
         return
       }
 
-      // Validate template once at start
       validateBlockTemplate(blockTemplate)
 
       setIsMining(true)
@@ -1137,7 +1115,6 @@ export default function Energy() {
                   // Only recreate coinbase and merkle root when we need to start using extra nonce
                   useExtraNonce = true
 
-                  // Recreate coinbase with extra nonce
                   if (blockTemplate) {
                     cachedCoinbaseTx = createCoinbaseTransaction(
                       blockTemplate,
@@ -1174,7 +1151,6 @@ export default function Energy() {
                 }
               }
 
-              // Use cached values if available
               if (!cachedCoinbaseTx || !cachedMerkleRoot || !cachedMempoolTxs) {
                 continue
               }
@@ -1196,9 +1172,7 @@ export default function Energy() {
               hashes += 1
 
               if (hashes % miningIntensity === 0 || miningIntensity === 10) {
-                // Update current header for UI
                 currentHeaderRef.current = header
-                // Update last hash for UI
                 lastHashRef.current = hashHex
 
                 await new Promise((resolve) => {
@@ -1207,19 +1181,15 @@ export default function Energy() {
               }
 
               if (checkDifficulty(hashHex, blockTemplate.bits)) {
-                // Submit block with fresh data
                 const success = await submitBlock(header)
 
                 if (success) {
-                  // Update total sats earned
                   setTotalSats((prev) =>
                     (Number(prev) + blockTemplate.coinbasevalue).toString()
                   )
                   toast.success('Block found and submitted successfully!')
-                  // Force immediate stats update
                   updateMiningStats()
                 }
-                // Continue mining in both cases
                 break
               }
             }
@@ -1235,7 +1205,6 @@ export default function Energy() {
 
         miningIntervalRef.current = miningInterval
 
-        // Initial stats update
         updateMiningStats()
       } catch (error) {
         isMiningRef.current = false
@@ -1267,19 +1236,16 @@ export default function Energy() {
   ])
 
   const stopMining = useCallback(() => {
-    // Set loading state immediately
     setIsStopping(true)
     setIsMining(false)
 
     isMiningRef.current = false
 
-    // Clear interval immediately
     if (miningIntervalRef.current) {
       clearInterval(miningIntervalRef.current)
       miningIntervalRef.current = null
     }
 
-    // Reset mining values immediately
     requestAnimationFrame(() => {
       setEnergyRate('0')
       setMiningStats({
@@ -1325,7 +1291,6 @@ export default function Energy() {
         throw new Error('No transaction data received')
       }
 
-      // Add transaction to template
       if (blockTemplate) {
         const newTemplate = {
           ...blockTemplate,

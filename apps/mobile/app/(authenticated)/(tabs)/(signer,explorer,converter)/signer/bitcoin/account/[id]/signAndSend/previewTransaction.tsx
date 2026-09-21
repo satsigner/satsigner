@@ -880,7 +880,6 @@ function PreviewTransaction() {
       // Special case: complexity 12 = single static QR with all data
       if (complexity === 12) {
         if (base64Psbt.length > 1500) {
-          // Fall back to the most dense possible configuration
           const baseChunkSize = 100
           const chunkSize = Math.max(100, baseChunkSize * 8) // Use maximum density (900 characters per chunk)
 
@@ -1210,7 +1209,6 @@ function PreviewTransaction() {
               // Check if the data would be too large for a single QR code
               const estimatedBBQRSize = psbtBuffer.length * 1.5 // BBQR encoding adds overhead
               if (estimatedBBQRSize > 1500) {
-                // Fall back to the most dense possible configuration
                 const bbqrChunkSize = Math.max(100, 30 * 12) // Use maximum density (460 characters per chunk)
                 bbqrChunks = createBBQRChunks(
                   new Uint8Array(psbtBuffer),
@@ -1263,7 +1261,6 @@ function PreviewTransaction() {
             // Check if the data would be too large for a single QR code
             const estimatedURSize = txBuilderResult.toBase64().length * 1.5 // UR encoding adds overhead
             if (estimatedURSize > 1500) {
-              // Fall back to the most dense possible configuration
               const urFragmentSize = Math.max(50, 15 * 12) // Use maximum density (180 characters per fragment)
               urFragments = getURFragmentsFromPSBT(
                 txBuilderResult.toBase64(),
@@ -1493,7 +1490,6 @@ function PreviewTransaction() {
       type
     })
 
-    // For UR format, use fountain encoding logic
     if (type === 'ur') {
       // For fountain encoding, we need to find the highest fragment number to determine the actual range
       const maxFragmentNumber = Math.max(...Array.from(newScanned))

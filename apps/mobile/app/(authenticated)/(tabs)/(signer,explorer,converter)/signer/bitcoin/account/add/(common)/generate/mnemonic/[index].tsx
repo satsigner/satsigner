@@ -126,7 +126,6 @@ export default function GenerateMnemonic() {
             policyType === 'multisig' // Pass multisig flag
           )
 
-          // Set global state values so setKey includes them
           setExtendedPublicKey(extendedPublicKey)
           setExternalDescriptor(descriptors.externalDescriptor)
           setInternalDescriptor(descriptors.internalDescriptor)
@@ -147,7 +146,6 @@ export default function GenerateMnemonic() {
         const parsedDescriptor = parseDescriptor(externalDescriptor)
         derivationPath = parsedDescriptor.derivationPath
       } catch {
-        // Use default derivation path if extraction fails
         const rawDerivationPath = getDerivationPathFromScriptVersion(
           scriptVersion,
           network

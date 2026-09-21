@@ -124,7 +124,6 @@ function SSCurrentTransactionChart({
 
   const hasChange = totalInputValue > totalOutputValue + baseFee
 
-  // Now calculate final size including change if needed
   const { size: txSize, vsize: txVsize } = estimateTransactionSize(
     Array.from(inputMap.values()),
     outputArray.map((o) => ({ ...o, to: o.to || '' })),
@@ -143,7 +142,6 @@ function SSCurrentTransactionChart({
       return effectiveMinerFeeSats
     }
 
-    // Ensure feeRateProp and safeTxVsize are valid numbers
     if (
       Number.isNaN(feeRateProp) ||
       Number.isNaN(safeTxVsize) ||

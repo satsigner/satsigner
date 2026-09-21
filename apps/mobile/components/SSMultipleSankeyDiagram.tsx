@@ -128,7 +128,6 @@ function SSMultipleSankeyDiagram({
     return gen
   }, [maxDepthH, maxNodeCountInDepthH, sankeyExtentTopPx])
 
-  // Run sankey layout with fallback on error
   const { layoutFailed, links, nodes } = useMemo(() => {
     try {
       const layout = sankeyGenerator({

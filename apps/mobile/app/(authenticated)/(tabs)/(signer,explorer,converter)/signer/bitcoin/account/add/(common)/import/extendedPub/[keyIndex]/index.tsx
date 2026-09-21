@@ -170,7 +170,6 @@ export default function ImportExtendedPub() {
   }
 
   function convertVpubToTpub(vpub: string): string {
-    // If it's not a vpub, return as is
     if (!vpub.startsWith('vpub')) {
       return vpub
     }
@@ -195,7 +194,6 @@ export default function ImportExtendedPub() {
         )
       }
 
-      // Extract derivation path from extended public key
       let derivationPath = ''
 
       if (policyType === 'multisig') {
@@ -213,7 +211,6 @@ export default function ImportExtendedPub() {
           const parsedDescriptor = parseDescriptor(descriptorString)
           derivationPath = parsedDescriptor.derivationPath
         } catch {
-          // Use default derivation path if extraction fails
           const rawDerivationPath = getDerivationPathFromScriptVersion(
             scriptVersion,
             builderNetwork

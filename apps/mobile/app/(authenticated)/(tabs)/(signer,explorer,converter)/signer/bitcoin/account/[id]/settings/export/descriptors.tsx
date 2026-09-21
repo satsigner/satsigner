@@ -551,7 +551,6 @@ export default function ExportDescriptors() {
     }
 
     try {
-      // Capture QR code as image using react-native-view-shot
       let qrDataURL = ''
       if (qrRef.current) {
         qrDataURL = await captureRef(qrRef.current, {

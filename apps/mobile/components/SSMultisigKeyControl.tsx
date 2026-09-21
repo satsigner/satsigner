@@ -140,7 +140,6 @@ function SSMultisigKeyControl({
     extractPublicKey()
   }, [keyDetails])
 
-  // Reset seedDropped when keyDetails changes (for settings mode)
   useEffect(() => {
     if (keyDetails && typeof keyDetails.secret === 'object') {
       // If the key has a mnemonic, reset seedDropped to false
@@ -152,7 +151,6 @@ function SSMultisigKeyControl({
     }
   }, [keyDetails])
 
-  // Reset localKeyName and hasUnsavedChanges when keyDetails change
   useEffect(() => {
     if (keyDetails?.name !== undefined) {
       setLocalKeyName(keyDetails.name)
