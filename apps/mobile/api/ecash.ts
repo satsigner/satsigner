@@ -671,9 +671,10 @@ export function clearWalletCache(accountId?: string, mintUrl?: string): void {
   } else if (accountId) {
     const prefix = `${accountId}:`
     for (const key of walletCache.keys()) {
-      if (key.startsWith(prefix)) {
-        walletCache.delete(key)
+      if (!key.startsWith(prefix)) {
+        continue
       }
+      walletCache.delete(key)
     }
   } else {
     walletCache.clear()

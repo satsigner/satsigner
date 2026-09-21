@@ -101,19 +101,22 @@ export function formatAccountLabels(account: Account): Label[] {
   // Also include labels from transaction/utxo/address objects
   // (in case they have labels not in the dictionary)
   for (const label of formatTransactionLabels(account.transactions)) {
-    if (!labelsByRef.has(label.ref)) {
-      labelsByRef.set(label.ref, label)
+    if (labelsByRef.has(label.ref)) {
+      continue
     }
+    labelsByRef.set(label.ref, label)
   }
   for (const label of formatUtxoLabels(account.utxos)) {
-    if (!labelsByRef.has(label.ref)) {
-      labelsByRef.set(label.ref, label)
+    if (labelsByRef.has(label.ref)) {
+      continue
     }
+    labelsByRef.set(label.ref, label)
   }
   for (const label of formatAddressLabels(account.addresses)) {
-    if (!labelsByRef.has(label.ref)) {
-      labelsByRef.set(label.ref, label)
+    if (labelsByRef.has(label.ref)) {
+      continue
     }
+    labelsByRef.set(label.ref, label)
   }
 
   return Array.from(labelsByRef.values())

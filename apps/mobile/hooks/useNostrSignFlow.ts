@@ -126,9 +126,10 @@ export function useNostrSignFlow() {
 
       const pubkeyToCosignerIndexMap = new Map<string, number>()
       for (const [index, pubkey] of cosignerPubkeys.entries()) {
-        if (pubkey) {
-          pubkeyToCosignerIndexMap.set(pubkey, index)
+        if (!pubkey) {
+          continue
         }
+        pubkeyToCosignerIndexMap.set(pubkey, index)
       }
 
       for (const [key, psbt] of Object.entries(derivedSignedPsbts)) {

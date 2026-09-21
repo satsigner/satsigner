@@ -284,16 +284,18 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                 })
 
                 for (const vout of mappedTx.vout ?? []) {
-                  if (vout.address) {
-                    allOutputAddresses.add(vout.address)
+                  if (!vout.address) {
+                    continue
                   }
+                  allOutputAddresses.add(vout.address)
                 }
 
                 const inputAddresses = new Set<string>()
                 for (const vin of tx.vin ?? []) {
-                  if (vin.prevout?.scriptpubkey_address) {
-                    inputAddresses.add(vin.prevout.scriptpubkey_address)
+                  if (!vin.prevout?.scriptpubkey_address) {
+                    continue
                   }
+                  inputAddresses.add(vin.prevout.scriptpubkey_address)
                 }
                 transactionInputAddresses.set(txid, inputAddresses)
               } else if (fetched?.kind === 'hex') {
@@ -358,9 +360,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   })
                   const inputAddresses = new Set<string>()
                   for (const vout of mappedTx.vout ?? []) {
-                    if (vout.address) {
-                      allOutputAddresses.add(vout.address)
+                    if (!vout.address) {
+                      continue
                     }
+                    allOutputAddresses.add(vout.address)
                   }
                   transactionInputAddresses.set(txid, inputAddresses)
                 } catch {
@@ -441,10 +444,11 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   const inputAddresses = new Set<string>()
                   const outputAddresses = new Set<string>()
                   for (const vout of mappedTx.vout ?? []) {
-                    if (vout.address) {
-                      outputAddresses.add(vout.address)
-                      allOutputAddresses.add(vout.address)
+                    if (!vout.address) {
+                      continue
                     }
+                    outputAddresses.add(vout.address)
+                    allOutputAddresses.add(vout.address)
                   }
                   transactionInputAddresses.set(txid, inputAddresses)
                 }
@@ -609,9 +613,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     }
                   }
                   for (const vout of mappedTx.vout ?? []) {
-                    if (vout.address) {
-                      allOutputAddresses.add(vout.address)
+                    if (!vout.address) {
+                      continue
                     }
+                    allOutputAddresses.add(vout.address)
                   }
                   transactionInputAddresses.set(txid, inputAddresses)
                 }
@@ -701,10 +706,11 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
         // Check if any input address matches with output addresses from other transactions
         let hasMatchingAddress = false
         for (const inputAddr of inputAddresses) {
-          if (allOutputAddresses.has(inputAddr)) {
-            hasMatchingAddress = true
-            break
+          if (!allOutputAddresses.has(inputAddr)) {
+            continue
           }
+          hasMatchingAddress = true
+          break
         }
 
         // Include all level 1 transactions (directly selected UTXOs)
@@ -721,9 +727,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
         // If no transactions passed the filter but we have raw transactions,
         // use at least the direct transactions (level 1)
         for (const [txid, tx] of newTransactions.entries()) {
-          if (levelOneTxids.has(txid)) {
-            filteredTransactions.set(txid, tx)
+          if (!levelOneTxids.has(txid)) {
+            continue
           }
+          filteredTransactions.set(txid, tx)
         }
       }
 
