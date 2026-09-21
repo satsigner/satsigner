@@ -115,7 +115,6 @@ function SSCurrentTransactionChart({
     [outputArray]
   )
 
-  // First calculate without change output
   const baseSize = estimateTransactionSize(
     Array.from(inputMap.values()),
     outputArray.map((o) => ({ ...o, to: o.to || '' }))
@@ -132,7 +131,6 @@ function SSCurrentTransactionChart({
     hasChange
   )
 
-  // Ensure transaction size values are valid
   const safeTxSize = Number.isNaN(txSize) ? 0 : txSize
   const safeTxVsize = Number.isNaN(txVsize) ? 0 : txVsize
 

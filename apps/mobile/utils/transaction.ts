@@ -185,7 +185,6 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
     dependencyGraph.set(txid, new Set<string>())
   }
 
-  // Populate the dependency graph
   for (const [txid, tx] of updatedTransactions.entries()) {
     for (const input of tx.vin) {
       const inputTxid = input.previousOutput.txid
@@ -196,31 +195,26 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
     }
   }
 
-  // Track which transactions have been processed
   const processed = new Set<string>()
   let maxCalculatedDepthH = 1 // Track the maximum calculated depthH
 
   // Process transactions in topological order (dependencies first)
   function processTransaction(txid: string, visited = new Set<string>()): void {
-    // Check for circular dependencies
     if (visited.has(txid)) {
       return
     }
 
-    // Skip if already processed
     if (processed.has(txid)) {
       return
     }
 
     visited.add(txid)
 
-    // Process dependencies first
     const dependencies = dependencyGraph.get(txid) || new Set()
     for (const depTxid of dependencies) {
       processTransaction(depTxid, new Set(visited))
     }
 
-    // Calculate depthH based on dependencies
     const tx = updatedTransactions.get(txid)
     if (tx) {
       if (dependencies.size === 0) {

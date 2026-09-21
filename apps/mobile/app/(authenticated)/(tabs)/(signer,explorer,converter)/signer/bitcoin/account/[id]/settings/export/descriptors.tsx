@@ -47,7 +47,6 @@ function calculateDescriptorChecksum(descriptor: string): string {
       hash &= hash // Convert to 32-bit integer
     }
 
-    // Convert to base58-like string
     const base58Chars =
       '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     let num = Math.abs(hash)
@@ -58,7 +57,6 @@ function calculateDescriptorChecksum(descriptor: string): string {
       num = Math.floor(num / 58)
     }
 
-    // Pad with leading '1's if needed
     while (result.length < 8) {
       result = `1${result}`
     }
@@ -140,7 +138,6 @@ export default function ExportDescriptors() {
               let extendedPublicKey = ''
               let fingerprint = ''
 
-              // Get fingerprint from secret or key
               fingerprint =
                 (typeof secret === 'object' && secret.fingerprint) ||
                 key.fingerprint ||
@@ -356,10 +353,8 @@ export default function ExportDescriptors() {
                   )
                   .join(',')
 
-                // Create descriptor based on account type
                 let finalDescriptor = ''
                 if (temporaryAccount.policyType === 'multisig') {
-                  // Create multisig descriptor using sortedmulti
                   switch (multisigScriptType) {
                     case 'P2SH':
                       finalDescriptor = `sh(sortedmulti(${keysRequired},${keySection}))`
@@ -377,7 +372,6 @@ export default function ExportDescriptors() {
                       finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
                   }
                 } else {
-                  // For single-sig accounts, create simple descriptor
                   const [singleKey] = keySection.split(',') // Use first (and only) key
                   switch (scriptVersion) {
                     case 'P2PKH':
@@ -412,7 +406,6 @@ export default function ExportDescriptors() {
                   }
                 }
 
-                // Validate descriptor format before adding checksum
                 if (
                   !finalDescriptor ||
                   keySection.split(',').length !== keyCount
@@ -442,7 +435,6 @@ export default function ExportDescriptors() {
                 // For watch-only accounts with imported descriptors, use the existing descriptor
                 const descriptor = secret.externalDescriptor
 
-                // Add checksum if not present
                 if (!descriptor.includes('#')) {
                   const checksum = calculateDescriptorChecksum(descriptor)
                   descriptorString = checksum
@@ -466,7 +458,6 @@ export default function ExportDescriptors() {
                 // Build the key part with fingerprint and derivation path
                 const keyPart = `[${secret.fingerprint}/${cleanDerivationPath}]${secret.extendedPublicKey}`
 
-                // Create descriptor based on script version
                 let descriptor = ''
                 switch (scriptVersion) {
                   case 'P2PKH':
@@ -496,7 +487,6 @@ export default function ExportDescriptors() {
                 // For watch-only accounts with imported addresses, use the address descriptor
                 const descriptor = secret.externalDescriptor
 
-                // Add checksum if not present
                 if (!descriptor.includes('#')) {
                   const checksum = calculateDescriptorChecksum(descriptor)
                   descriptorString = checksum
@@ -512,7 +502,6 @@ export default function ExportDescriptors() {
             }
           }
         } else {
-          // For importAddress, handle address-based accounts
           const [key] = temporaryAccount.keys
           if (!key) {
             descriptorString = 'No key data available for imported address'
@@ -520,10 +509,8 @@ export default function ExportDescriptors() {
             const secret = key.secret as Secret
 
             if (secret.externalDescriptor) {
-              // Use the existing address descriptor
               const descriptor = secret.externalDescriptor
 
-              // Add checksum if not present
               if (!descriptor.includes('#')) {
                 const checksum = calculateDescriptorChecksum(descriptor)
                 descriptorString = checksum
@@ -594,7 +581,6 @@ export default function ExportDescriptors() {
 
       await createPDFWithQR(qrDataURL)
     } catch {
-      // Fallback without QR code
       await createPDFWithQR('')
     }
   }
@@ -692,7 +678,7 @@ export default function ExportDescriptors() {
         })
       }
     } catch {
-      // Handle error silently
+      // user cancelling the print/share sheet is not an error worth surfacing
     }
   }
 

@@ -149,7 +149,6 @@ export default function TransactionConfirmation() {
           type: 'output'
         })
 
-        // output's address label
         labels.push({
           label: output.label,
           ref: output.to,
@@ -310,7 +309,6 @@ export default function TransactionConfirmation() {
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Redirect if transaction hasn't been broadcasted
   useEffect(() => {
     if (!broadcasted && account && psbt) {
       router.replace(

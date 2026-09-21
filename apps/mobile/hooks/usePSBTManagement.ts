@@ -69,7 +69,6 @@ export function usePSBTManagement({
         return psbtHex
       }
 
-      // Check if inputs are already finalized
       let needsFinalization = false
       const inputDetails = []
       for (let i = 0; i < psbt.data.inputs.length; i += 1) {
@@ -120,7 +119,6 @@ export function usePSBTManagement({
       // Watch-only mode - use the old behavior
       setSignedPsbt(psbt)
     } else {
-      // Update the specific cosigner's signed PSBT
       setSignedPsbts((prev) => {
         const newMap = new Map(prev)
         newMap.set(index, psbt)
@@ -178,7 +176,6 @@ export function usePSBTManagement({
 
   const handleSignWithSeedQR = useCallback(
     (index: number, mnemonic: string) => {
-      // Get the cosigner's key details
       const cosignerKey = account?.keys?.[index]
       if (!cosignerKey) {
         toast.error('No key found for this cosigner')

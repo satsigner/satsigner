@@ -25,14 +25,12 @@ type AccountBuilderState = {
   mnemonic: NonNullable<Secret['mnemonic']>
   passphrase?: Secret['passphrase']
 
-  // Descriptor and key data
   externalDescriptor?: Secret['externalDescriptor']
   internalDescriptor?: Secret['internalDescriptor']
   extendedPublicKey?: Secret['extendedPublicKey']
   fingerprint?: Key['fingerprint']
   scriptVersion: NonNullable<Key['scriptVersion']>
 
-  // Multi-signature configuration
   keys: Account['keys']
   keyCount: Account['keyCount']
   keysRequired: Account['keysRequired']
@@ -42,7 +40,6 @@ type AccountBuilderState = {
  * Actions interface for account builder store
  */
 type AccountBuilderAction = {
-  // Account configuration setters
   setName: (name: AccountBuilderState['name']) => void
   setNetwork: (network: AccountBuilderState['network']) => void
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
@@ -86,11 +83,9 @@ type AccountBuilderAction = {
     derivationPath: NonNullable<Key['derivationPath']>
   ) => void
 
-  // Multi-signature configuration
   setKeyCount: (keyCount: AccountBuilderState['keyCount']) => void
   setKeysRequired: (keysRequired: AccountBuilderState['keysRequired']) => void
 
-  // Utility functions
   getAccountData: () => Account
   clearKeyState: () => void
   clearAccount: () => void
@@ -102,7 +97,6 @@ type AccountBuilderAction = {
   resetKey: (index: Key['index']) => void
 }
 
-// Initial state for account builder store
 const initialState: AccountBuilderState = {
   creationType: 'importMnemonic',
   displayIndex: INITIAL_DISPLAY_INDEX,

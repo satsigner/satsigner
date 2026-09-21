@@ -201,7 +201,6 @@ function SSMultipleSankeyDiagram({
     // Otherwise, show from the minimum x position with a small offset
     const translation = -(minX - w / 10)
 
-    // Calculate the total diagram width (approximation)
     const diagramWidth = 2000 * (maxDepthH / 11)
 
     // Ensure the translation doesn't move the diagram too far off-screen

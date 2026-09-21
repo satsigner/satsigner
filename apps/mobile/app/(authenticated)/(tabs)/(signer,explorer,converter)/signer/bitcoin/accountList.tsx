@@ -466,7 +466,6 @@ export default function AccountList() {
 
     const account = getAccountData()
 
-    // Validate account data structure
     if (
       !account.name ||
       !account.network ||
@@ -483,7 +482,6 @@ export default function AccountList() {
       throw new Error('Mnemonic secret not properly set')
     }
 
-    // Additional validation for mnemonic-based wallets
     if (['segwit', 'legacy'].includes(type)) {
       const [key] = account.keys
       if (
@@ -498,7 +496,6 @@ export default function AccountList() {
       }
     }
 
-    // Additional validation for multisig wallets
     if (type === 'multisig') {
       if (account.keys.length !== 3) {
         throw new Error('Multisig account must have exactly 3 keys')
@@ -528,7 +525,6 @@ export default function AccountList() {
       }
     }
 
-    // Add timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_resolve, reject) => {
       setTimeout(
         () => reject(new Error('Wallet creation timed out after 30 seconds')),

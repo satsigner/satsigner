@@ -58,7 +58,6 @@ export default function ImportDescriptor() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
 
-  // State for descriptor input
   const [descriptor, setDescriptor] = useState('')
   const [isValidDescriptor, setIsValidDescriptor] = useState(true)
   const [descriptorError, setDescriptorError] = useState('')
@@ -82,7 +81,6 @@ export default function ImportDescriptor() {
       return
     }
 
-    // Script version validation for multisig
     if (scriptVersion) {
       // For multisig descriptors, we need to be more flexible with script version validation
       // because the default script version might not be set correctly yet
@@ -157,7 +155,6 @@ export default function ImportDescriptor() {
 
   function parseMultisigDescriptor(descriptorText: string) {
     try {
-      // Remove checksum if present
       const cleanDescriptor = descriptorText.replace(/#[a-z0-9]{8}$/, '')
 
       // Extract the inner multisig descriptor (remove outer wsh/sh wrapper)
@@ -183,7 +180,6 @@ export default function ImportDescriptor() {
       const keysRequired = parseInt(requiredStr, 10)
       const keys = keysStr.split(',').map((key) => key.trim())
 
-      // Extract key information from each key
       const keyData = keys.map((key, index) => {
         // Extract fingerprint and derivation path: [7af70d19/48h/1h/0h/2h]tpub...
         // Use a more flexible approach to handle longer extended public keys
@@ -264,7 +260,6 @@ export default function ImportDescriptor() {
         setFingerprint(keyData.fingerprint)
         setExtendedPublicKey(keyData.extendedPublicKey)
 
-        // Set the individual key
         setKey(i)
       }
 

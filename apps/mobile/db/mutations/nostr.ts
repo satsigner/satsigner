@@ -166,7 +166,6 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
   params.push(accountId)
   db.execute(`UPDATE accounts SET ${updates.join(', ')} WHERE id = ?`, params)
 
-  // Handle relays if provided
   if (nostr.relays !== undefined) {
     db.execute('DELETE FROM nostr_relays WHERE account_id = ?', [accountId])
     for (const url of nostr.relays) {
@@ -177,7 +176,6 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
     }
   }
 
-  // Handle trusted devices if provided
   if (nostr.trustedMemberDevices !== undefined) {
     db.execute('DELETE FROM nostr_trusted_devices WHERE account_id = ?', [
       accountId
@@ -190,7 +188,6 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
     }
   }
 
-  // Handle DMs if provided
   if (nostr.dms !== undefined) {
     db.execute('DELETE FROM nostr_dms WHERE account_id = ?', [accountId])
     for (const dm of nostr.dms) {

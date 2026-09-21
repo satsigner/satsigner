@@ -69,7 +69,6 @@ export default function EcashTransactionDetailPage() {
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [qrModalVisible, setQrModalVisible] = useState(false)
 
-  // Polling hook for pending transactions
   const { startPolling, stopPolling, isPolling } = useQuotePolling()
 
   const transaction = transactions.find((t) => t.id === id)
@@ -165,7 +164,6 @@ export default function EcashTransactionDetailPage() {
       await receiveEcash(transaction.mintUrl, transaction.token)
       // Update transaction status to indicate it's been redeemed
       updateTransaction(transaction.id, { tokenStatus: 'spent' })
-      // Navigate back to ecash main page
       router.back()
     } catch {
       // Error handling is done in the hook
@@ -181,7 +179,6 @@ export default function EcashTransactionDetailPage() {
     router
   ])
 
-  // Start polling for pending transactions
   useEffect(() => {
     if (
       !transaction ||
@@ -192,24 +189,19 @@ export default function EcashTransactionDetailPage() {
       return
     }
 
-    // Start polling for payment status
     startPolling(async () => {
       try {
         const status = await checkMintQuote(mint.url, transaction.quoteId!)
 
         if (status === 'PAID' || status === 'ISSUED') {
-          // Payment detected, mint the proofs
           await mintProofs(mint.url, transaction.amount, transaction.quoteId!)
 
-          // Update transaction status to completed
           updateTransaction(transaction.id, { status: 'completed' })
 
-          // Hide QR modal if it's open
           setQrModalVisible(false)
 
           return true // Stop polling
         } else if (status === 'EXPIRED' || status === 'CANCELLED') {
-          // Payment failed or expired
           updateTransaction(transaction.id, { status: 'failed' })
           return true // Stop polling
         }
@@ -217,7 +209,6 @@ export default function EcashTransactionDetailPage() {
         // Continue polling for PENDING, UNPAID, and unknown statuses
         return false
       } catch {
-        // Continue polling on network errors
         return false
       }
     })

@@ -45,14 +45,12 @@ export default function DescriptorPage() {
     checksum: string
   } | null>(null)
 
-  // Parse descriptor components for display
   function parseDescriptorComponents(descriptor: string) {
     try {
       // Extract script function (e.g., pkh, sh, wpkh, tr)
       const scriptMatch = descriptor.match(/^([a-z]+)\(/)
       const scriptFunction = scriptMatch ? scriptMatch[1] : ''
 
-      // Extract fingerprint and derivation path
       const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})\/?/)
       const fingerprint = fingerprintMatch ? fingerprintMatch[1] : ''
 
@@ -62,7 +60,6 @@ export default function DescriptorPage() {
       if (pathMatch) {
         derivationPath = `m/${pathMatch[1]}`
       } else {
-        // Try to extract path without fingerprint
         const simplePathMatch = descriptor.match(/([0-9'/]+)\/[0-9]+\/\*/)
         if (simplePathMatch) {
           derivationPath = `m/${simplePathMatch[1]}`

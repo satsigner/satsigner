@@ -97,7 +97,6 @@ export default function GenerateMnemonic() {
   }
 
   async function handleOnPressConfirm() {
-    // Extract derivation path from mnemonic
     let derivationPath = ''
 
     if (policyType === 'multisig') {
@@ -117,7 +116,6 @@ export default function GenerateMnemonic() {
         scriptVersion
       )
 
-      // Generate descriptors from the key data
       if (extendedPublicKey && fingerprint) {
         try {
           const descriptors = getDescriptorsFromKey(
@@ -133,7 +131,6 @@ export default function GenerateMnemonic() {
           setExternalDescriptor(descriptors.externalDescriptor)
           setInternalDescriptor(descriptors.internalDescriptor)
         } catch {
-          // Continue without descriptors if generation fails
           setExtendedPublicKey(extendedPublicKey)
         }
       }

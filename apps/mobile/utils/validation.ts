@@ -92,7 +92,6 @@ function validateDescriptorInternal(
   const checksumRegex = new RegExp(`#[a-zA-Z0-9]{1,8}$`)
   const nestedKindRegex = new RegExp(`^${nestedKind}\\(`)
 
-  // main regex to parse the descriptor
   const singleKeyRegex = new RegExp(singleKey, 'gm')
   const multiKeyRegex = new RegExp(multiKey, 'gm')
   const nestedRegex = new RegExp(nestedDescriptor, 'gm')
@@ -110,7 +109,6 @@ function validateDescriptorInternal(
   // Because we remove it, we also do not need to check it again.
   let currentItem = descriptor.replace(checksumRegex, '')
 
-  // Check for proper closing parenthesis
   if (!currentItem.endsWith(')')) {
     return false
   }
@@ -123,7 +121,6 @@ function validateDescriptorInternal(
       return true
     }
 
-    // extract it
     currentItem = currentItem.replace(nestedKindRegex, '').replace(/\)$/, '')
   }
 
@@ -133,7 +130,6 @@ function validateDescriptorInternal(
   )
   if (derivationPathMatch) {
     const [derivationPath] = derivationPathMatch
-    // Validate fingerprint if present
     const fingerprintMatch = derivationPath.match(/\[([a-fA-F0-9]{8})/)
     if (
       fingerprintMatch &&
@@ -143,7 +139,6 @@ function validateDescriptorInternal(
       return false
     }
 
-    // Validate derivation path components
     const pathComponents = derivationPath.match(/[0-9]+[h']?/g)
     if (pathComponents) {
       for (const component of pathComponents) {
@@ -217,7 +212,6 @@ function validateDescriptorInternal(
       }
     }
 
-    // Check for specific issues
     if (currentItem.includes('[') && !currentItem.includes(']')) {
       return false
     }
@@ -330,7 +324,6 @@ export function validateCombinedDescriptor(
     }
   }
 
-  // Separate the combined descriptor first
   const { external: externalDesc, internal: internalDesc } =
     separateCombinedDescriptor(combinedDescriptor)
 

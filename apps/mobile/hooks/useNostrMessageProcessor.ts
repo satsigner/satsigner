@@ -57,7 +57,6 @@ function initializeHandlers(): void {
   }
   setInitialized(true)
 
-  // Register handlers in priority order
   registerHandler(labelsHandler)
   registerHandler(txHandler)
   registerHandler(psbtHandler)

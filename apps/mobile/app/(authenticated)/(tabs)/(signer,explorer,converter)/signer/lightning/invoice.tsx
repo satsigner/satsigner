@@ -196,7 +196,6 @@ export default function InvoicePage() {
           setInvoiceAmount(maxSats.toString())
         }
 
-        // Pre-populate description if available
         if (details.defaultDescription) {
           setInvoiceDescription(details.defaultDescription)
         }
@@ -222,7 +221,6 @@ export default function InvoicePage() {
           setInvoiceAmount(maxSats.toString())
         }
 
-        // Pre-populate description if available
         if (details.defaultDescription) {
           setInvoiceDescription(details.defaultDescription)
         }
@@ -246,7 +244,6 @@ export default function InvoicePage() {
         return
       }
 
-      // Clean the text (remove any whitespace)
       const cleanText = text.trim()
 
       if (cleanText.toLowerCase().startsWith('lnbc')) {
@@ -267,7 +264,6 @@ export default function InvoicePage() {
     const data = content.cleaned
 
     if (data.toLowerCase().startsWith('lnbc')) {
-      // Handle bolt11 invoice
       setPaymentRequest(data)
       setQrModalVisible(true)
     } else if (isLNURL(data)) {

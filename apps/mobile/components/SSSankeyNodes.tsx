@@ -182,8 +182,6 @@ function SSSankeyNodes({
       !isSelectedOutput &&
       node.depthH === 2
 
-    // Calculate dynamic height for block nodes
-
     const getBlockNodeHeight = () => {
       if (node?.ioData?.txSize && node?.type === 'block') {
         return node?.ioData?.txSize * 0.1
@@ -974,9 +972,7 @@ function NodeText({
         <Paragraph
           paragraph={blockNodeParagraph}
           x={x + 6}
-          // y={paragraphY - blockNodeMaxHeight}
           y={paragraphY - 62}
-          // y={y}
           width={87}
         />
       ) : null}

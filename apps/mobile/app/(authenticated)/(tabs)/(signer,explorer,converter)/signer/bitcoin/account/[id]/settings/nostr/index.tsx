@@ -104,7 +104,6 @@ function MemberNameBlock({
 }
 
 export default function NostrSync() {
-  // Account and store hooks
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
@@ -475,7 +474,6 @@ export default function NostrSync() {
       }
 
       if (account.nostr.autoSync) {
-        // Turn sync OFF
         setIsSyncing(true)
         if (accountId) {
           setSyncing(accountId, true)

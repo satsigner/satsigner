@@ -123,7 +123,6 @@ export default function SingleSig() {
           break
       }
     } else if (type === 'importMnemonic') {
-      // For import, navigate to mnemonic input
       router.navigate('/signer/bitcoin/account/add/import/mnemonic/0')
     }
   }

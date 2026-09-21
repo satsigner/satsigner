@@ -75,7 +75,6 @@ export const useGestures = ({
       'worklet'
       // Reactor function: runs on UI thread if currentData is different from previousData.
       if (currentData) {
-        // Update translate and savedTranslate shared values
         translate.x.value = currentData.x
         translate.y.value = currentData.y
         savedTranslate.x.value = currentData.x
@@ -223,7 +222,6 @@ export const useGestures = ({
     onInteractionEnded()
   }
 
-  // Define the pan gesture configuration
   const panGesture = Gesture.Pan()
     .enabled(isPanEnabled) // Enable or disable the pan gesture based on isPanEnabled
     .minPointers(minPanPointers) // Set the minimum number of pointers required to recognize the gesture
@@ -247,7 +245,6 @@ export const useGestures = ({
 
       // When shouldResetOnInteractionEnd is false, apply decay regardless of scale
       if (!shouldResetOnInteractionEnd || scale.value > 1) {
-        // For X translation
         translate.x.value =
           shouldResetOnInteractionEnd && scale.value > 1
             ? withDecay(
@@ -277,7 +274,6 @@ export const useGestures = ({
                 }
               )
 
-        // For Y translation
         translate.y.value =
           shouldResetOnInteractionEnd && scale.value > 1
             ? withDecay(
@@ -312,7 +308,6 @@ export const useGestures = ({
       }
     })
 
-  // Define the pinch gesture handler
   const pinchGesture = Gesture.Pinch()
     .enabled(isPinchEnabled) // Enable pinch gesture based on isPinchEnabled flag
     .onStart((event) => {
@@ -326,12 +321,9 @@ export const useGestures = ({
       initialFocal.y.value = event.focalY
     })
     .onUpdate((event) => {
-      // Update the scale within allowed limits
       scale.value = clamp(savedScale.value * event.scale, minScale, maxScale)
-      // Calculate the scale change ratio
       const scaleChangeScale =
         (scale.value - savedScale.value) / savedScale.value
-      // Compute the offsets for focal points
       const centerOffsetX =
         savedFocal.x.value + translate.x.value + center.x - initialFocal.x.value
       const centerOffsetY =

@@ -338,7 +338,6 @@ export default function UnifiedImport() {
       let externalDescriptor = text
       let internalDescriptor = ''
 
-      // Try to parse as JSON first
       let originalDescriptor = ''
       try {
         const jsonData = JSON.parse(text)
@@ -359,7 +358,6 @@ export default function UnifiedImport() {
           )
         }
       } catch {
-        // Handle legacy formats
         if (text.includes('\n')) {
           ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }

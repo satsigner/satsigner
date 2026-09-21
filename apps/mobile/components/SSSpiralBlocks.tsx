@@ -196,7 +196,6 @@ function SSSpiralBlocks({
           return [rotatedX, rotatedY]
         })
 
-        // Build path with fewer operations
         path.moveTo(rotatedPoints[0][0], rotatedPoints[0][1])
         path.lineTo(rotatedPoints[1][0], rotatedPoints[1][1])
         path.lineTo(rotatedPoints[2][0], rotatedPoints[2][1])
@@ -431,7 +430,6 @@ const styles = StyleSheet.create({
   }
 })
 
-// Use React.memo to prevent unnecessary re-renders
 export default memo(
   SSSpiralBlocks,
   (prevProps, nextProps) =>

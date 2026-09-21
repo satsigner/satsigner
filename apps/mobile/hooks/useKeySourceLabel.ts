@@ -38,7 +38,6 @@ export function useKeySourceLabel({
     }
 
     if (keyDetails.creationType === 'generateMnemonic') {
-      // Check if seed has been dropped
       const hasSeed =
         !seedDropped &&
         ((decryptedKey?.secret &&
@@ -57,7 +56,6 @@ export function useKeySourceLabel({
     }
 
     if (keyDetails.creationType === 'importMnemonic') {
-      // Check if seed has been dropped
       const hasSeed =
         !seedDropped &&
         ((decryptedKey?.secret &&
@@ -139,7 +137,6 @@ export function useKeySourceLabel({
       return t('account.seed.dropAndKeep.vpub')
     }
 
-    // Fallback for other script types
     const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
     return t(`account.seed.dropAndKeep.${keyFormat}`)
   }, [scriptVersion, network])
@@ -190,7 +187,6 @@ export function useKeySourceLabel({
       return t('account.seed.shareVpub')
     }
 
-    // Fallback for other script types
     const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
     return t(
       `account.seed.share${

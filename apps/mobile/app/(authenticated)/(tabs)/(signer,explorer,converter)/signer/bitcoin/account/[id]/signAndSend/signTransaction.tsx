@@ -1051,7 +1051,6 @@ export default function SignTransaction() {
                           )
                         }
 
-                        // Try to decode as raw transaction
                         try {
                           return <SSTransactionDecoded txHex={rawTx} />
                         } catch {

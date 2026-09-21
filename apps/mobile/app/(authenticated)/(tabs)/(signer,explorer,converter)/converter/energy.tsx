@@ -663,9 +663,6 @@ export default function Energy() {
         return null
       }
 
-      // Validate template first
-      //validateBlockTemplate(template)
-
       // Validate coinbase value is within safe bounds
       if (
         template.coinbasevalue <= 0 ||
@@ -796,9 +793,6 @@ export default function Energy() {
 
   const createBlockHeader = useCallback(
     (template: BlockTemplate, merkleRoot: string, nonce: number) => {
-      // Validate template first
-      //validateBlockTemplate(template)
-
       // For regtest, we should use the template's curtime
       const blockTime = template.curtime
 

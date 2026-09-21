@@ -54,7 +54,6 @@ export default function ImportDescriptor() {
     useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
-  // State for import data
   const [externalDescriptor, setExternalDescriptor] = useState('')
   const [internalDescriptor, setInternalDescriptor] = useState('')
 
@@ -159,7 +158,6 @@ export default function ImportDescriptor() {
       isValid: true
     }
 
-    // Script version validation for multisig
     let scriptVersionValidation = true
     if (basicValidation && scriptVersion) {
       scriptVersionValidation = validateDescriptorScriptVersion(
@@ -175,13 +173,11 @@ export default function ImportDescriptor() {
 
     setExternalDescriptorError('')
 
-    // Show error message if validation fails
     if (descriptor) {
       if (!basicValidation) {
         const errorMessage = t('account.import.error.descriptorFormat')
         setExternalDescriptorError(errorMessage)
       } else if (basicValidation && !networkValidation.isValid) {
-        // Show error for network validation failures
         const errorMessage = networkValidation.error
           ? t(`account.import.error.${networkValidation.error}`)
           : t('account.import.error.networkIncompatible')
@@ -212,7 +208,6 @@ export default function ImportDescriptor() {
       isValid: true
     }
 
-    // Script version validation for multisig
     let scriptVersionValidation = true
     if (basicValidation && scriptVersion) {
       scriptVersionValidation = validateDescriptorScriptVersion(
@@ -229,14 +224,11 @@ export default function ImportDescriptor() {
 
     setInternalDescriptorError('')
 
-    // Show error message if validation fails
     if (descriptor) {
       if (!basicValidation) {
-        // Show error for basic validation failures
         const errorMessage = t('account.import.error.descriptorFormat')
         setInternalDescriptorError(errorMessage)
       } else if (basicValidation && !networkValidation.isValid) {
-        // Show error for network validation failures
         const errorMessage = networkValidation.error
           ? t(`account.import.error.${networkValidation.error}`)
           : t('account.import.error.networkIncompatible')
@@ -289,11 +281,9 @@ export default function ImportDescriptor() {
   }
 
   function extractDescriptorInfo(descriptor: string) {
-    // Extract extended public key using regex
     const xpubMatch = descriptor.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
     const extendedPublicKey = xpubMatch ? xpubMatch[0] : ''
 
-    // Extract derivation path with improved logic
     const derivationPath = extractDerivationPathFromDescriptor(descriptor)
 
     return { derivationPath, extendedPublicKey }
@@ -320,13 +310,11 @@ export default function ImportDescriptor() {
       return derivationPath
     }
 
-    // Secondary method: Extract from /derivation/* pattern
     const pathMatch = descriptor.match(/\/([0-9]+[h']?\/)*[0-9]+[h']?\/\*/)
     if (pathMatch) {
       return `m/${pathMatch[0].replace(/\/\*$/, '')}`
     }
 
-    // Fallback: Use default derivation path
     return getDefaultDerivationPath()
   }
 
@@ -373,7 +361,6 @@ export default function ImportDescriptor() {
     let externalDescriptor = text
     let internalDescriptor = ''
 
-    // Try to parse as JSON first
     let originalDescriptor = ''
     try {
       const jsonData = JSON.parse(text)
@@ -399,7 +386,6 @@ export default function ImportDescriptor() {
         }
       }
     } catch {
-      // Handle legacy formats
       if (text.includes('\n')) {
         ;[externalDescriptor, internalDescriptor] = text.split('\n')
       }

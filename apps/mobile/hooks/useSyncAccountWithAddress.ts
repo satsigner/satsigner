@@ -64,7 +64,6 @@ function useSyncAccountWithAddress() {
       existingUtxos[getUtxoOutpoint(u)] = index
     }
 
-    // update sync progress
     account.syncProgress = {
       tasksDone: account.syncProgress?.tasksDone || 0,
       totalTasks: account.syncProgress?.totalTasks || 0
@@ -81,7 +80,6 @@ function useSyncAccountWithAddress() {
     )
     const esploraUtxos = await esploraClient.getAddressUtxos(address)
 
-    // update sync progress
     account.syncProgress.tasksDone += 2
     setSyncProgress(account.id, account.syncProgress)
 
@@ -141,7 +139,6 @@ function useSyncAccountWithAddress() {
       }
     }
 
-    // Build transaction objects using pre-fetched hex
     for (const { t, index } of newTxEntries) {
       const vin: Transaction['vin'] = []
       const vout: Transaction['vout'] = []
@@ -257,14 +254,12 @@ function useSyncAccountWithAddress() {
     )
     account.utxos = [...utxosFromOtherAddresses, ...freshUtxos]
 
-    // update account
     account.summary = {
       ...account.summary,
       balance: account.summary.balance + confirmed,
       satsInMempool: account.summary.satsInMempool + unconfirmed
     }
 
-    // update address
     account.addresses = [
       ...account.addresses.filter((a) => a.address !== address),
       {
@@ -308,16 +303,13 @@ function useSyncAccountWithAddress() {
     account.syncProgress.totalTasks += 3
     setSyncProgress(account.id, account.syncProgress)
 
-    // make the requests
     const addressUtxos = await electrumClient.getAddressUtxos(address)
     const addressTxs = await electrumClient.getAddressTransactions(address)
     const balance = await electrumClient.getAddressBalance(address)
 
-    // update progress
     account.syncProgress.tasksDone += 3
     setSyncProgress(account.id, account.syncProgress)
 
-    // track transactions and utxos already known
     const existingTx: Record<string, number> = {}
     const existingUtxo: Record<string, number> = {}
     for (const [index, tx] of account.transactions.entries()) {
@@ -342,7 +334,6 @@ function useSyncAccountWithAddress() {
       newUtxosCount += 1
     }
 
-    // update summary
     account.summary = {
       ...account.summary,
       balance: account.summary.balance + balance.confirmed,
@@ -351,7 +342,6 @@ function useSyncAccountWithAddress() {
       satsInMempool: account.summary.satsInMempool + balance.unconfirmed
     }
 
-    // update address
     account.addresses = [
       ...account.addresses.filter((a) => a.address !== address),
       {
@@ -381,7 +371,6 @@ function useSyncAccountWithAddress() {
       (u) => existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined
     )
 
-    // update progress
     const estimatedRequests = pendingTx.length * 2 + pendingUtxos.length
     account.syncProgress.totalTasks += estimatedRequests
     setSyncProgress(account.id, account.syncProgress)
@@ -395,15 +384,12 @@ function useSyncAccountWithAddress() {
       const txid = tx.tx_hash
       const { height } = tx
 
-      // fetch raw transaction
       const rawTx = await electrumClient.getTransactionRaw(txid)
       rawTransactions.push(rawTx)
 
-      // update progress
       account.syncProgress.tasksDone += 1
       setSyncProgress(account.id, account.syncProgress)
 
-      // fetch timestamp
       if (!timestampByHeight[height]) {
         timestampByHeight[height] =
           await electrumClient.getBlockTimestamp(height)
@@ -411,7 +397,6 @@ function useSyncAccountWithAddress() {
       const timestamp = timestampByHeight[height]
       txTimestamps.push(timestamp)
 
-      // update progress
       account.syncProgress.tasksDone += 1
       setSyncProgress(account.id, account.syncProgress)
 
@@ -480,14 +465,12 @@ function useSyncAccountWithAddress() {
     ]
     updateAccount(account)
 
-    // prevent modifying store object just updated
     account.syncProgress = { ...account.syncProgress }
 
     // hard-coded keychain but we can safely assume it is correct.
     // Who would setup watch-only for a change address?
     const addressKeychain = 'external'
 
-    // fetch timestamps for new utxos
     for (const electrumUtxo of pendingUtxos) {
       const { height } = electrumUtxo
 
@@ -498,11 +481,9 @@ function useSyncAccountWithAddress() {
 
       const timestamp = timestampByHeight[height]
 
-      // update progress
       account.syncProgress.tasksDone += 1
       setSyncProgress(account.id, account.syncProgress)
 
-      // construct utxo
       const utxo: Utxo = {
         addressTo: address,
         keychain: addressKeychain,
@@ -519,7 +500,6 @@ function useSyncAccountWithAddress() {
         vout: electrumUtxo.tx_pos
       }
 
-      // update account utxos
       account.utxos = [...account.utxos, utxo]
       updateAccount(account)
 
@@ -555,7 +535,6 @@ function useSyncAccountWithAddress() {
     }
 
     try {
-      // Extract address from descriptor
       const address = parseAddressDescriptorToAddress(addressDescriptor)
 
       let addrInfo: AddressInfo | undefined
@@ -585,7 +564,6 @@ function useSyncAccountWithAddress() {
       updatedAccount.transactions = addrInfo.transactions
       updatedAccount.utxos = addrInfo.utxos
 
-      // label update
       updatedAccount = updateAccountObjectLabels(updatedAccount)
 
       const { fiatCurrency } = usePriceStore.getState()
@@ -617,7 +595,6 @@ function useSyncAccountWithAddress() {
         }
       }
 
-      // Remove duplicates
       const uniqueTimestamps = [...new Set(timestamps)]
 
       const emptyPrices: Record<number, number> = {}
@@ -663,7 +640,6 @@ function useSyncAccountWithAddress() {
         Object.assign(updatedAccount, newAccount)
       }
 
-      // Update sync status
       updatedAccount.syncStatus = 'synced'
       updatedAccount.lastSyncedAt = new Date()
 
@@ -698,7 +674,6 @@ function useSyncAccountWithAddress() {
     const addressDescriptors = await decryptAccountAddressDescriptors(latest)
     let updatedAccount: Account = { ...latest }
 
-    // reset account sync progress
     updatedAccount.syncProgress = {
       tasksDone: 0,
       totalTasks: 0
@@ -720,7 +695,6 @@ function useSyncAccountWithAddress() {
         addressDescriptor
       )
 
-      // update summary
       const newSummary = updatedData.summary as Account['summary']
 
       // Merge account data while preserving the transactions with prices

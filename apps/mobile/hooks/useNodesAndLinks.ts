@@ -505,7 +505,6 @@ export const useNodesAndLinks = ({
             return node
           })
 
-          // Create miner fee node if applicable
           const feeNode: TxNode[] = []
           if (minerFee > 0) {
             const feeOutputDepth = tx.depthH + 1

@@ -105,7 +105,6 @@ export default function ImportLabels() {
     }
     setImportContent(fileContent)
 
-    // Validate the content
     try {
       bip329parser[importType](fileContent)
       setInvalidContent(false)
@@ -123,7 +122,6 @@ export default function ImportLabels() {
     }
     setImportContent(text)
 
-    // try guessing import type
     let foundValidType = false
     for (const type of bip329FileTypes) {
       try {

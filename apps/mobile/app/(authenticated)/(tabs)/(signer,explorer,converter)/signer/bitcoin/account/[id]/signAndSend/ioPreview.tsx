@@ -343,7 +343,6 @@ export default function IOPreview() {
   )
   const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
 
-  // First calculate without change output
   const baseTransactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
       Array.from(inputs.values()),
@@ -490,7 +489,6 @@ export default function IOPreview() {
       return
     }
 
-    // Step 3: Try content detection
     const detectedContent = detectContentByContext(processedContent, 'bitcoin')
     if (detectedContent.isValid) {
       const { ok, payjoin } = processContentForOutput(detectedContent, {
@@ -1216,7 +1214,6 @@ export default function IOPreview() {
 
   function handleDustToOutputs() {
     setDustChangeModalVisible(false)
-    // Distribute dust evenly across existing outputs
     const perOutput = Math.floor(pendingDustAmount / outputs.length)
     const remainder = pendingDustAmount - perOutput * outputs.length
 

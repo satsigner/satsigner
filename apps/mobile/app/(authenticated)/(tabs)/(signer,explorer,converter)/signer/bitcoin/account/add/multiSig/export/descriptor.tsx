@@ -62,7 +62,6 @@ export default function DescriptorPage() {
       setCreationType(key.creationType)
       setScriptVersion(key.scriptVersion || 'P2WPKH')
 
-      // Get descriptor from the key data
       let foundDescriptor = ''
       if (typeof key.secret === 'object') {
         const secret = key.secret as Secret
@@ -126,7 +125,6 @@ export default function DescriptorPage() {
                 externalDescriptor = `wpkh(${keyPart})`
             }
 
-            // Validate descriptor with BDK
             try {
               walletNameFromDescriptor(
                 externalDescriptor,

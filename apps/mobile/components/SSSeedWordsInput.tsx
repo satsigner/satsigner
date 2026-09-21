@@ -178,7 +178,6 @@ export default function SSSeedWordsInput({
         setSeedWordsInfo(newSeedWordsInfo)
       }
 
-      // Validate mnemonic after word selection
       const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
       if (mnemonic.trim().length > 0) {
         const checksumValid = validateMnemonic(mnemonic, wordListName)
@@ -220,7 +219,6 @@ export default function SSSeedWordsInput({
     ]
   )
 
-  // Keep ref updated with latest function
   useEffect(() => {
     handleWordSelectedRef.current = handleWordSelected
   }, [handleWordSelected])
@@ -257,7 +255,6 @@ export default function SSSeedWordsInput({
     [wordCount, wordList]
   )
 
-  // Fill out seed words from clipboard
   const fillOutSeedWords = useCallback(
     async (seed: string[]) => {
       const newSeedWordsInfo = seed.map((value) => ({
@@ -348,7 +345,6 @@ export default function SSSeedWordsInput({
     const newSeedWordsInfo = [...seedWordsInfo]
     const seedWord = newSeedWordsInfo[index]
 
-    // Check for invalid characters
     if (!value.match(/^[a-z]*$/)) {
       seedWord.valid = false
       seedWord.dirty = true
@@ -401,7 +397,6 @@ export default function SSSeedWordsInput({
 
     setSeedWordsInfo(newSeedWordsInfo)
 
-    // Validate complete mnemonic
     const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0) {
       const checksumValid = validateMnemonic(mnemonic, wordListName)

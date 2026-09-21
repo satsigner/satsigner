@@ -74,7 +74,6 @@ export default function ImportExtendedPub() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
-  // State for import data
   const [xpub, setXpub] = useState('')
   const [localFingerprint, setLocalFingerprint] = useState('')
 
@@ -176,7 +175,6 @@ export default function ImportExtendedPub() {
       return vpub
     }
 
-    // Use the network-aware conversion utility
     return convertKeyFormat(vpub, 'tpub', network)
   }
 
@@ -187,7 +185,6 @@ export default function ImportExtendedPub() {
     }
 
     try {
-      // Convert vpub to tpub if needed
       const convertedXpub = convertVpubToTpub(xpub)
       if (xpub !== convertedXpub) {
         toast.info(

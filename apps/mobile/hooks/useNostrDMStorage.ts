@@ -277,7 +277,6 @@ function useNostrDMStorage() {
         return
       }
 
-      // Accumulate DMs for this account
       const existing = pendingDmsRef.current.get(account.id) || []
       pendingDmsRef.current.set(account.id, [...existing, ...pendingDms])
 
@@ -285,7 +284,6 @@ function useNostrDMStorage() {
         clearTimeout(debounceTimerRef.current)
       }
 
-      // Set new debounced flush
       debounceTimerRef.current = setTimeout(() => {
         debounceTimerRef.current = null
         // Flush all accounts that have pending DMs

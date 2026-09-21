@@ -328,7 +328,6 @@ export default function WatchOnly() {
       return
     }
 
-    // Regular validation for standalone descriptors
     await handleFullDescriptorValidation(descriptor, 'external')
   }
 
@@ -343,7 +342,6 @@ export default function WatchOnly() {
       return
     }
 
-    // Regular validation for standalone descriptors
     await handleFullDescriptorValidation(descriptor, 'internal')
   }
 
@@ -526,7 +524,6 @@ export default function WatchOnly() {
         return
       }
 
-      // handle pasting multiple addresses at once
       const lines = text.split('\n').filter((line) => line !== '')
       const hasAddresses = lines.every((line) =>
         validateAddress(stripBitcoinPrefix(line), bitcoinjsNetwork(network))
@@ -541,7 +538,6 @@ export default function WatchOnly() {
     }
 
     if (selectedOption === 'importDescriptor') {
-      // Try to parse as JSON first
       const jsonResult = DescriptorUtils.parseJsonDescriptor(text)
       if (jsonResult) {
         await handleJsonDescriptor(jsonResult)
@@ -738,7 +734,6 @@ export default function WatchOnly() {
             setIsValidInternalDescriptor(false)
           }
         } else {
-          // Handle non-combined descriptors with existing logic
           if (externalDescriptor) {
             updateExternalDescriptor(externalDescriptor)
           }

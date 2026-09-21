@@ -353,7 +353,6 @@ function PreviewTransaction() {
     number | null
   >(null)
 
-  // Seed words modal state
   const [seedWordsModalVisible, setSeedWordsModalVisible] = useState(false)
   const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
   const [selectedWordCount, setSelectedWordCount] =
@@ -386,7 +385,6 @@ function PreviewTransaction() {
   const [nfcError, setNfcError] = useState<string | null>(null)
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
 
-  // Animation for NFC pulsating effect
   const nfcPulseAnim = useSharedValue(0)
 
   const nfcPulseStyle = useAnimatedStyle(() => ({
@@ -408,7 +406,6 @@ function PreviewTransaction() {
     psbt: txBuilderResult
   })
 
-  // Destructure hook values for easier access
   const {
     signedPsbt,
     signedPsbts,
@@ -542,7 +539,6 @@ function PreviewTransaction() {
 
       const combinedPsbtBase64: string = currentPsbt
 
-      // Check if PSBT can be parsed
       let psbtObj: bitcoinjs.Psbt
       try {
         psbtObj = bitcoinjs.Psbt.fromBase64(combinedPsbtBase64)
@@ -618,7 +614,6 @@ function PreviewTransaction() {
         signedPsbts
       )
 
-      // Apply matches and show notifications
       for (const match of matches) {
         updateSignedPsbt(match.cosignerIndex, match.signedPsbtBase64)
         toast.success(
@@ -678,12 +673,10 @@ function PreviewTransaction() {
   const [qrComplexity, setQrComplexity] = useState(8) // 1-12 scale, 8 is default (higher = simpler/larger QR codes)
   const [animationSpeed, setAnimationSpeed] = useState(6) // 1-12 scale for animation speed
 
-  // Animation refs to prevent unnecessary re-renders
   const animationRef = useRef<number | null>(null)
   const qrRef = useRef<View>(null)
   const lastUpdateRef = useRef<number>(0)
 
-  // Multi-part QR scanning state
   const [scanProgress, setScanProgress] = useState<{
     type: 'raw' | 'ur' | 'bbqr' | null
     total: number
@@ -698,7 +691,6 @@ function PreviewTransaction() {
 
   // Helper functions for QR code detection and parsing
   const detectQRType = (data: string) => {
-    // Check for RAW format (pXofY header)
     if (/^p\d+of\d+\s/.test(data)) {
       const match = data.match(/^p(\d+)of(\d+)\s/)
       if (match) {
@@ -711,7 +703,6 @@ function PreviewTransaction() {
       }
     }
 
-    // Check for BBQR format
     if (isBBQRFragment(data)) {
       const total = parseInt(data.slice(4, 6), 36)
       const current = parseInt(data.slice(6, 8), 36)
@@ -723,7 +714,6 @@ function PreviewTransaction() {
       }
     }
 
-    // Check for UR format
     if (data.toLowerCase().startsWith('ur:crypto-psbt/')) {
       // UR format: ur:crypto-psbt/[sequence]/[data] for multi-part
       // or ur:crypto-psbt/[data] for single part
@@ -776,7 +766,6 @@ function PreviewTransaction() {
   // execute a different transaction than the one displayed to the user.
   const processScannedData = (data: string): string | null => {
     try {
-      // Strip "bitcoin:" prefix if present (case-insensitive)
       let processedData = data
       if (processedData.toLowerCase().startsWith('bitcoin:')) {
         processedData = processedData.substring(8)
@@ -836,7 +825,6 @@ function PreviewTransaction() {
         }
 
         case 'bbqr': {
-          // Assemble BBQR format chunks
           const sortedChunks = Array.from(chunks.entries())
             .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
@@ -860,7 +848,6 @@ function PreviewTransaction() {
 
           let result: string
           if (sortedChunks.length === 1) {
-            // Single UR chunk
             result = decodeURToPSBT(sortedChunks[0])
           } else {
             // Multi-part UR
@@ -1183,7 +1170,6 @@ function PreviewTransaction() {
           continue // Skip validation for very short addresses (likely incomplete)
         }
 
-        // Show error toast for invalid address
         toast.error(
           `Invalid address format: ${output.to}. Please check your transaction configuration.`
         )
@@ -1233,7 +1219,6 @@ function PreviewTransaction() {
         }
 
         try {
-          // Create BBQR chunks using complexity setting
           psbtBuffer = Buffer.from(psbtHex, 'hex')
           let bbqrChunks: string[]
 
@@ -1290,7 +1275,6 @@ function PreviewTransaction() {
             qrComplexity
           )
 
-          // Generate UR fragments using complexity setting
           let urFragments: string[]
 
           if (qrComplexity === 12) {
@@ -1376,7 +1360,6 @@ function PreviewTransaction() {
     }
   }
 
-  // High-performance animation using requestAnimationFrame
   useEffect(() => {
     // Don't animate when complexity is 12 (static mode) - but only for single chunks
     if (qrComplexity === 12 && !isMultiPartQR()) {
@@ -1439,7 +1422,6 @@ function PreviewTransaction() {
       return
     }
 
-    // Detect QR code type and format
     const qrInfo = detectQRType(data)
 
     // Handle single QR codes (complete data in one scan)
@@ -1496,7 +1478,6 @@ function PreviewTransaction() {
         return
       }
 
-      // Use hook's updateSignedPsbt function
       updateSignedPsbt(index ?? -1, finalContent)
 
       setCameraModalVisible(false)
@@ -1505,7 +1486,6 @@ function PreviewTransaction() {
       return
     }
 
-    // Handle multi-part QR codes
     const { type, current, total, content } = qrInfo
 
     // Check if this is the start of a new scan session or continuation
@@ -1514,7 +1494,6 @@ function PreviewTransaction() {
       scanProgress.type !== type ||
       scanProgress.total !== total
     ) {
-      // Start new scan session
       const newScanned = new Set([current])
       const newChunks = new Map([[current, content]])
 
@@ -1528,13 +1507,11 @@ function PreviewTransaction() {
       return
     }
 
-    // Continue existing scan session
     if (scanProgress.scanned.has(current)) {
       toast.info(`Part ${current + 1} already scanned`)
       return
     }
 
-    // Add new chunk
     const newScanned = new Set(scanProgress.scanned).add(current)
     const newChunks = new Map(scanProgress.chunks).set(current, content)
 
@@ -1575,7 +1552,6 @@ function PreviewTransaction() {
             return
           }
 
-          // Use hook's updateSignedPsbt function
           updateSignedPsbt(index ?? -1, finalData)
 
           setCameraModalVisible(false)
@@ -1598,7 +1574,6 @@ function PreviewTransaction() {
         }
       }
 
-      // Continue scanning for fountain encoding
       const targetForDisplay = Math.min(
         Math.ceil(actualTotal * 1.1),
         Math.ceil(total * 1.5)
@@ -1619,7 +1594,6 @@ function PreviewTransaction() {
           return
         }
 
-        // Use hook's updateSignedPsbt function
         updateSignedPsbt(index ?? -1, finalData)
 
         setCameraModalVisible(false)
@@ -1699,7 +1673,6 @@ function PreviewTransaction() {
         return
       }
 
-      // Use hook's updateSignedPsbt function
       updateSignedPsbt(index, processedData)
 
       toast.success(t('common.success.dataPasted'))
@@ -1734,12 +1707,10 @@ function PreviewTransaction() {
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
 
-        // Use hook's updateSignedPsbt function
         updateSignedPsbt(index, txHex)
 
         toast.success(t('transaction.preview.nfcImported'))
       } else if (result.txId) {
-        // Use hook's updateSignedPsbt function
         updateSignedPsbt(index, result.txId || '')
 
         toast.success(t('transaction.preview.nfcImported'))
@@ -1756,7 +1727,6 @@ function PreviewTransaction() {
     }
   }
 
-  // Wrapper functions for cosigner-specific actions
   const handleCosignerPasteFromClipboard = (index: number) => {
     handlePasteFromClipboard(index)
   }
@@ -1783,7 +1753,6 @@ function PreviewTransaction() {
     setWordCountModalVisible(true)
   }
 
-  // Handle word count selection
   const handleWordCountSelect = (wordCount: MnemonicWordCount) => {
     setSelectedWordCount(wordCount)
     setWordCountModalVisible(false)
@@ -1799,7 +1768,6 @@ function PreviewTransaction() {
     setCurrentMnemonic('')
   }
 
-  // Handle seed words form submission
   const handleSeedWordsSubmit = () => {
     if (!currentMnemonic || currentCosignerIndex === null) {
       toast.error(t('common.error.validMnemonic'))
@@ -1808,7 +1776,6 @@ function PreviewTransaction() {
 
     handleSignWithSeedQR(currentCosignerIndex, currentMnemonic)
 
-    // Clear the form and close modals
     setSeedWordsModalVisible(false)
     setCurrentMnemonic('')
     setCurrentCosignerIndex(null)
@@ -1866,7 +1833,6 @@ function PreviewTransaction() {
         return null
       }
 
-      // Get all collected signed PSBTs
       const collectedSignedPsbts = Array.from(signedPsbts.values()).filter(
         (psbt) => psbt && psbt.trim().length > 0
       )
@@ -1968,7 +1934,6 @@ function PreviewTransaction() {
 
   useEffect(
     () => () => {
-      // Cancel any running animations
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
         animationRef.current = null
@@ -2004,13 +1969,11 @@ function PreviewTransaction() {
       case QRDisplayMode.RAW: {
         // Always use chunks for RAW mode to ensure animation
         if (rawPsbtChunks.length > 0) {
-          // Safety check for out-of-bounds access
           if (currentRawChunk >= rawPsbtChunks.length) {
             return 'NO_CHUNKS'
           }
 
           const value = rawPsbtChunks[currentRawChunk] || 'NO_CHUNKS'
-          // Runtime safety check to prevent crashes
           if (value.length > 1500) {
             return 'DATA_TOO_LARGE_FOR_QR'
           }
@@ -2024,26 +1987,22 @@ function PreviewTransaction() {
         return base64Psbt || 'NO_DATA'
       }
       case QRDisplayMode.UR: {
-        // Safety check for out-of-bounds access
         if (currentUrChunk >= urChunks.length) {
           return 'NO_CHUNKS'
         }
 
         const urValue = urChunks[currentUrChunk]
-        // Runtime safety check to prevent crashes
         if (urValue && urValue.length > 1500) {
           return 'DATA_TOO_LARGE_FOR_QR'
         }
         return urValue || 'NO_CHUNKS'
       }
       case QRDisplayMode.BBQR: {
-        // Safety check for out-of-bounds access
         if (currentChunk >= qrChunks.length) {
           return 'NO_CHUNKS'
         }
 
         const bbqrValue = qrChunks?.[currentChunk]
-        // Runtime safety check to prevent crashes
         if (bbqrValue && bbqrValue.length > 1500) {
           return 'DATA_TOO_LARGE_FOR_QR'
         }
@@ -2149,7 +2108,6 @@ function PreviewTransaction() {
     return <Redirect href="/" />
   }
 
-  // Calculate responsive dimensions
   const qrSize = Math.min(screenWidth * 0.9, screenHeight * 0.5, 700) // 80% of screen width, max 500px
   const containerPadding = screenWidth * 0.05 // 5% of screen width
 
@@ -2366,7 +2324,6 @@ function PreviewTransaction() {
                           )
                         }
                       } else {
-                        // For non-multisig accounts, navigate directly
                         router.navigate(
                           `/signer/bitcoin/account/${id}/signAndSend/signTransaction`
                         )
