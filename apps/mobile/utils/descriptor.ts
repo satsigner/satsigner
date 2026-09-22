@@ -59,9 +59,7 @@ export function getOriginDerivation(text: string) {
 }
 
 /** Same as getOriginDerivation but the origin bracket need not be at the start (e.g. wpkh([fp/84h/0h/0h]xpub.../0/*)). */
-export function getDescriptorDerivationPath(
-  descriptor: string
-): string {
+export function getDescriptorDerivationPath(descriptor: string): string {
   const bracketMatch = descriptor.match(
     /\[[0-9a-fA-F]{8}\/((?:[0-9]+[hH']?\/)*[0-9]+[hH']?)\]/
   )

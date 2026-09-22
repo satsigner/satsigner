@@ -69,9 +69,7 @@ describe('descriptor origin extraction', () => {
 
 describe('getDescriptorDerivationPath', () => {
   it('extracts the path from a mid-descriptor origin bracket', () => {
-    expect(getDescriptorDerivationPath(SPARROW_DESCRIPTOR)).toBe(
-      "m/84'/0'/0'"
-    )
+    expect(getDescriptorDerivationPath(SPARROW_DESCRIPTOR)).toBe("m/84'/0'/0'")
   })
 
   it('handles h-notation hardened markers', () => {

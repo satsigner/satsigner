@@ -54,10 +54,7 @@ import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
-import {
-  getDescriptorDerivationPath,
-  getFingerprint
-} from '@/utils/descriptor'
+import { getDescriptorDerivationPath, getFingerprint } from '@/utils/descriptor'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import {
   computeRpcScanStartHeight,
