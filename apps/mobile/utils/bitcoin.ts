@@ -220,7 +220,6 @@ export function convertKeyFormat(
     const decoded = bs58check.decode(key)
     let version: Uint8Array
 
-    // Determine the appropriate version bytes based on target format and network
     switch (targetFormat) {
       case 'xpub':
         version =
@@ -304,7 +303,6 @@ export function getDerivationPathFromScriptVersion(
   scriptVersion: string,
   network: AppNetwork
 ): string {
-  // Determine coin type based on network
   const coinType = network === 'bitcoin' ? '0' : '1'
 
   switch (scriptVersion) {
@@ -376,7 +374,6 @@ export function getMultisigDerivationPathFromScriptVersion(
   scriptVersion: string,
   network: AppNetwork
 ): string {
-  // Determine coin type based on network
   const coinType = network === 'bitcoin' ? '0' : '1'
 
   switch (scriptVersion) {
@@ -411,27 +408,20 @@ export function getMultisigScriptTypeFromScriptVersion(
 ): string {
   switch (scriptVersion) {
     case 'P2PKH':
-      // For multisig P2PKH, use P2SH descriptor
       return 'P2SH'
     case 'P2SH-P2WPKH':
-      // For multisig P2SH-P2WPKH, use P2SH-P2WSH descriptor
       return 'P2SH-P2WSH'
     case 'P2WPKH':
-      // For multisig P2WPKH, use P2WSH descriptor
       return 'P2WSH'
     case 'P2TR':
-      // For multisig P2TR, use P2TR descriptor
       return 'P2TR'
     case 'P2WSH':
-      // Native SegWit multisig
       return 'P2WSH'
     case 'P2SH-P2WSH':
-      // Wrapped SegWit multisig
       return 'P2SH-P2WSH'
     case 'P2SH':
       return 'P2SH'
     default:
-      // Default to P2WSH for multisig
       return 'P2WSH'
   }
 }

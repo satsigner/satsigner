@@ -86,10 +86,8 @@ function formatUtxoLabels(utxos: Utxo[]): Label[] {
 }
 
 export function formatAccountLabels(account: Account): Label[] {
-  // Start with labels from the dictionary (source of truth)
   const labelsByRef = new Map<string, Label>()
 
-  // Add all labels from the account.labels dictionary
   if (account.labels) {
     for (const [ref, label] of Object.entries(account.labels)) {
       if (label && label.label) {

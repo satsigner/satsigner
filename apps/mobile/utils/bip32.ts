@@ -25,7 +25,6 @@ import {
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 
-// HD key versions for different networks
 const VERSIONS = {
   mainnet: { private: 0x0488ade4, public: 0x0488b21e },
   testnet: { private: 0x04358394, public: 0x043587cf }
@@ -331,7 +330,6 @@ export function getDescriptorsFromKey(
   let externalDescriptor = ''
   let internalDescriptor = ''
 
-  // Generate descriptors based on script version
   switch (scriptVersion) {
     case 'P2PKH':
       externalDescriptor = `pkh(${keyPart}/0/*)`
@@ -517,7 +515,6 @@ export function getXpubForScriptVersion(
   scriptVersion: ScriptVersionType,
   network: 'mainnet' | 'testnet'
 ): string {
-  // Validate that the script version is supported for multisig
   const supportedMultisigVersions: ScriptVersionType[] = [
     'P2SH',
     'P2SH-P2WSH',
@@ -539,7 +536,6 @@ export function getXpubForScriptVersion(
     Buffer.from(Mnemonic.fromString(mnemonic).toSeedHex(passphrase), 'hex')
   )
 
-  // Map script versions to their corresponding xpub functions
   const xpubFunctions: Record<
     ScriptVersionType,
     (seed: Uint8Array, network: 'mainnet' | 'testnet') => string

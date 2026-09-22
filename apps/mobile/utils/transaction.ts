@@ -175,7 +175,6 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
   transactions: Map<string, T>,
   selectedInputs?: Map<string, { value: number; scriptpubkey_address: string }>
 ): Map<string, T> {
-  // Create a copy of the transactions map to avoid modifying the original
   const updatedTransactions = new Map(transactions)
 
   // Build a dependency graph: txid -> [list of txids it depends on]
@@ -188,7 +187,6 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
   for (const [txid, tx] of updatedTransactions.entries()) {
     for (const input of tx.vin) {
       const inputTxid = input.previousOutput.txid
-      // Only add dependencies for transactions in our set
       if (updatedTransactions.has(inputTxid)) {
         dependencyGraph.get(txid)?.add(inputTxid)
       }
@@ -198,7 +196,6 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
   const processed = new Set<string>()
   let maxCalculatedDepthH = 1 // Track the maximum calculated depthH
 
-  // Process transactions in topological order (dependencies first)
   function processTransaction(txid: string, visited = new Set<string>()): void {
     if (visited.has(txid)) {
       return
