@@ -7,7 +7,7 @@ import {
 
 import { ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
-import { EXTENDED_PUBKEY_PATTERN } from '@/utils/descriptor'
+import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 
 bitcoinjs.initEccLib(ecc)
 

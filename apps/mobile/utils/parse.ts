@@ -1,7 +1,7 @@
 import { t } from '@/locales'
 import type { Account } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
-import { EXTENDED_PUBKEY_PATTERN } from '@/utils/descriptor'
+import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 
 import { getUtxoOutpoint } from './outpoint'
 

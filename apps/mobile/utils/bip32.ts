@@ -24,7 +24,7 @@ import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
-import { EXTENDED_PUBKEY_PATTERN } from '@/utils/descriptor'
+import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 
 const VERSIONS = {
   mainnet: { private: 0x0488ade4, public: 0x0488b21e },

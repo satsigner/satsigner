@@ -1,3 +1,4 @@
+import { KEY_ORIGIN_FINGERPRINT_PATTERN } from '@/constants/descriptor'
 import { type ScriptVersionType } from '@/types/models/Script'
 import {
   isCombinedDescriptor,
@@ -7,11 +8,6 @@ import {
 
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
-
-const KEY_ORIGIN_FINGERPRINT_PATTERN = /\[([0-9a-fA-F]{8})[/\]]/
-
-/** Base58 tail can omit 0/O/I/l but BDK may emit other encodings, so match broadly. */
-export const EXTENDED_PUBKEY_PATTERN = '([xyztuv]pub)[A-Za-z0-9]+'
 
 export function createDescriptorFromXpub(
   xpubWithPrefix: string,
