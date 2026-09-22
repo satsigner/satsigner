@@ -54,7 +54,6 @@ const BASE_FONT_SIZE = 13
 const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
-// const Y_OFFSET_BLOCK_NODE_TEXT = 12
 const ICON_SIZE = 8
 const RECT_PADDING = 5
 const NODE_MARGIN_LEFT = 1
@@ -183,8 +182,6 @@ function SSSankeyNodes({
       !isSelectedOutput &&
       node.depthH === 2
 
-    // Calculate dynamic height for block nodes
-
     const getBlockNodeHeight = () => {
       if (node?.ioData?.txSize && node?.type === 'block') {
         return node?.ioData?.txSize * 0.1
@@ -206,7 +203,6 @@ function SSSankeyNodes({
       if (node.type === 'block') {
         const isCurrentTxBlockNode = node.depthH === maxDepth - 1
 
-        // Safely handle NaN values from sankey generator
         const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
         const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
 
@@ -890,14 +886,12 @@ function NodeText({
     showUnspentLabel
   ])
 
-  // Calculate position for the paragraph and potentially the icon
   const paragraphX = isBlock ? x + width * 0.2 : x + PADDING_LEFT
   const paragraphY = isBlock
     ? y + 4
     : // ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT
       y
 
-  // Apply additional margin when output cards show a leading status icon
   const isSpentOutput =
     !isBlock &&
     !isMiningFee &&
@@ -910,7 +904,6 @@ function NodeText({
       ? paragraphX + NODE_MARGIN_LEFT
       : paragraphX
 
-  // Get placeholder rects if it's a mining fee node
   const placeholderRectsMinerIcon =
     isMiningFee && mainParagraph ? mainParagraph.getRectsForPlaceholders() : []
 
@@ -975,9 +968,7 @@ function NodeText({
         <Paragraph
           paragraph={blockNodeParagraph}
           x={x + 6}
-          // y={paragraphY - blockNodeMaxHeight}
           y={paragraphY - 62}
-          // y={y}
           width={87}
         />
       ) : null}

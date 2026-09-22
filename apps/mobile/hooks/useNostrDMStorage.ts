@@ -81,11 +81,9 @@ function buildNewMessage(
   }
 }
 
-// Debounce delay for batching DM storage writes
 const DM_STORAGE_DEBOUNCE_MS = 500
 
 function useNostrDMStorage() {
-  // Accumulator for pending DMs across multiple storeBatch calls
   const pendingDmsRef = useRef<Map<string, NostrPendingDM[]>>(new Map())
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -110,7 +108,6 @@ function useNostrDMStorage() {
         return
       }
 
-      // Validate sender before showing toast or storing message
       if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) {
         return
       }
@@ -139,7 +136,6 @@ function useNostrDMStorage() {
 
       let currentDms = currentAccount.nostr.dms || []
 
-      // Check if message with same ID already exists
       const messageExists = currentDms.some((m) => m.id === newMessage.id)
       if (messageExists) {
         return
@@ -186,14 +182,12 @@ function useNostrDMStorage() {
     []
   )
 
-  // Flush all accumulated pending DMs to storage (the actual expensive operation)
   const flushPendingDms = useCallback((accountId: string) => {
     const pendingDms = pendingDmsRef.current.get(accountId) || []
     if (pendingDms.length === 0) {
       return
     }
 
-    // Clear the accumulated DMs for this account
     pendingDmsRef.current.delete(accountId)
 
     const currentAccount = useAccountsStore
@@ -270,26 +264,21 @@ function useNostrDMStorage() {
       .updateAccountNostr(accountId, { dms: updatedDms })
   }, [])
 
-  // Debounced storeBatch - accumulates DMs and writes to storage after delay
   const storeBatch = useCallback(
     (account: Account, pendingDms: NostrPendingDM[]) => {
       if (pendingDms.length === 0) {
         return
       }
 
-      // Accumulate DMs for this account
       const existing = pendingDmsRef.current.get(account.id) || []
       pendingDmsRef.current.set(account.id, [...existing, ...pendingDms])
 
-      // Cancel existing timer
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
       }
 
-      // Set new debounced flush
       debounceTimerRef.current = setTimeout(() => {
         debounceTimerRef.current = null
-        // Flush all accounts that have pending DMs
         for (const accountId of pendingDmsRef.current.keys()) {
           flushPendingDms(accountId)
         }

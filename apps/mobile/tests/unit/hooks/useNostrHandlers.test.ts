@@ -31,7 +31,6 @@ const mockAddMember = jest.fn()
 // Accounts visible to the store mock; each test (re)sets trust as needed.
 let mockAccounts: Account[] = []
 
-// Mock stores with persistent mock functions
 jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
   useAccountsStore: {
     getState: () => ({
@@ -50,14 +49,12 @@ jest.mock<typeof import('@/store/nostr')>('@/store/nostr', () => ({
   }
 }))
 
-// Mock nostr-tools
 jest.mock<typeof import('nostr-tools')>('nostr-tools', () => ({
   nip19: {
     npubEncode: jest.fn((pubkey: string) => `npub1${pubkey.slice(0, 8)}...`)
   }
 }))
 
-// Mock bip329
 jest.mock<typeof import('@/utils/bip329')>('@/utils/bip329', () => ({
   JSONLtoLabels: jest.fn((jsonl: string) => {
     const lines = jsonl.split('\n').filter((l: string) => l.trim())
@@ -65,7 +62,6 @@ jest.mock<typeof import('@/utils/bip329')>('@/utils/bip329', () => ({
   })
 }))
 
-// Get mocked toast for assertions
 const mockToast = toast as jest.Mocked<typeof toast>
 
 describe('message handlers', () => {

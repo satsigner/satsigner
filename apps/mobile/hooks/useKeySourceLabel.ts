@@ -38,7 +38,6 @@ export function useKeySourceLabel({
     }
 
     if (keyDetails.creationType === 'generateMnemonic') {
-      // Check if seed has been dropped
       const hasSeed =
         !seedDropped &&
         ((decryptedKey?.secret &&
@@ -57,7 +56,6 @@ export function useKeySourceLabel({
     }
 
     if (keyDetails.creationType === 'importMnemonic') {
-      // Check if seed has been dropped
       const hasSeed =
         !seedDropped &&
         ((decryptedKey?.secret &&
@@ -80,7 +78,6 @@ export function useKeySourceLabel({
     }
 
     if (keyDetails.creationType === 'importExtendedPub') {
-      // Show the correct label according to the script version and network
       const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
       return t(`account.import.${keyFormat}`)
     }
@@ -94,7 +91,6 @@ export function useKeySourceLabel({
   }, [scriptVersion, network])
 
   const dropSeedLabel = useMemo(() => {
-    // For multisig, generate dynamic labels based on script type and network
     if (scriptVersion === 'P2SH') {
       return network === 'bitcoin'
         ? t('account.seed.dropAndKeep.xpub')
@@ -139,13 +135,11 @@ export function useKeySourceLabel({
       return t('account.seed.dropAndKeep.vpub')
     }
 
-    // Fallback for other script types
     const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
     return t(`account.seed.dropAndKeep.${keyFormat}`)
   }, [scriptVersion, network])
 
   const shareXpubLabel = useMemo(() => {
-    // For multisig, generate dynamic labels based on script type and network
     if (scriptVersion === 'P2SH') {
       return network === 'bitcoin'
         ? t('account.seed.shareXpub')
@@ -190,7 +184,6 @@ export function useKeySourceLabel({
       return t('account.seed.shareVpub')
     }
 
-    // Fallback for other script types
     const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
     return t(
       `account.seed.share${

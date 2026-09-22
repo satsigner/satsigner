@@ -58,7 +58,6 @@ export default function ImportDescriptor() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
 
-  // State for descriptor input
   const [descriptor, setDescriptor] = useState('')
   const [isValidDescriptor, setIsValidDescriptor] = useState(true)
   const [descriptorError, setDescriptorError] = useState('')
@@ -74,7 +73,6 @@ export default function ImportDescriptor() {
     setIsValidating(true)
     setDescriptorError('')
 
-    // Basic descriptor validation
     const descriptorValidation = await validateDescriptor(descriptorText)
 
     if (!descriptorValidation) {
@@ -83,7 +81,6 @@ export default function ImportDescriptor() {
       return
     }
 
-    // Script version validation for multisig
     if (scriptVersion) {
       // For multisig descriptors, we need to be more flexible with script version validation
       // because the default script version might not be set correctly yet
@@ -158,10 +155,8 @@ export default function ImportDescriptor() {
 
   function parseMultisigDescriptor(descriptorText: string) {
     try {
-      // Remove checksum if present
       const cleanDescriptor = descriptorText.replace(/#[a-z0-9]{8}$/, '')
 
-      // Extract the inner multisig descriptor (remove outer wsh/sh wrapper)
       let innerDescriptor = cleanDescriptor
       if (cleanDescriptor.startsWith('wsh(') && cleanDescriptor.endsWith(')')) {
         innerDescriptor = cleanDescriptor.slice(4, -1)
@@ -184,7 +179,6 @@ export default function ImportDescriptor() {
       const keysRequired = parseInt(requiredStr, 10)
       const keys = keysStr.split(',').map((key) => key.trim())
 
-      // Extract key information from each key
       const keyData = keys.map((key, index) => {
         // Extract fingerprint and derivation path: [7af70d19/48h/1h/0h/2h]tpub...
         // Use a more flexible approach to handle longer extended public keys
@@ -197,7 +191,6 @@ export default function ImportDescriptor() {
         const [fingerprint, ...restParts] = bracketContent.split('/')
         const derivationPath = restParts.join('/')
 
-        // Extract extended public key and address path
         const xpubMatch = afterBracket.match(/^([a-zA-Z0-9]+)(.*)$/)
         if (!xpubMatch) {
           throw new Error(
@@ -243,37 +236,29 @@ export default function ImportDescriptor() {
     }
 
     try {
-      // Parse the multisig descriptor
       const parsedData = parseMultisigDescriptor(descriptor)
 
-      // Update account builder store with parsed data
       setScriptVersion(parsedData.scriptVersion)
       setKeyCount(parsedData.keyCount)
       setKeysRequired(parsedData.keysRequired)
 
-      // Set the descriptors
       setExternalDescriptor(descriptor)
 
-      // Create internal descriptor by replacing /0/* with /1/*
       const internalDescriptor = descriptor.replace(/\/0\/\*/g, '/1/*')
       setInternalDescriptor(internalDescriptor)
 
-      // Set up each key in the account builder store
       for (let i = 0; i < parsedData.keyData.length; i += 1) {
         const keyData = parsedData.keyData[i]
 
-        // Set key properties
         setKeyName(`Key ${i + 1}`)
         setCreationType('importDescriptor')
         setFingerprint(keyData.fingerprint)
         setExtendedPublicKey(keyData.extendedPublicKey)
 
-        // Set the individual key
         setKey(i)
       }
 
       toast.success(t('account.import.success'))
-      // Navigate to finish page to complete account creation
       router.navigate('/signer/bitcoin/account/add/multiSig/finish')
     } catch (error) {
       toast.error(`Import failed: ${(error as Error).message}`)

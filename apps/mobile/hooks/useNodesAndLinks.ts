@@ -136,19 +136,16 @@ export const useNodesAndLinks = ({
           : Math.round(feeRate * vsize)
       const displayFeeRate = vsize > 0 ? minerFee / vsize : feeRate
 
-      // Calculate total input value
       const totalInputValue = Array.from(inputs.values()).reduce(
         (sum, input) => sum + input.value,
         0
       )
 
-      // Calculate total output value
       const totalOutputValue = outputs.reduce(
         (sum, output) => sum + output.amount,
         0
       )
 
-      // Create output nodes
       let outputNodes: TxNode[] = []
 
       const outputFlags = classifyChartOutputs(outputs, ownAddresses, {
@@ -216,7 +213,6 @@ export const useNodesAndLinks = ({
         })
       }
 
-      // Add mining fee node
       const totalOutputValueForFee = totalInputValue - minerFee
 
       const higherFeeForCurrentTx = isHighMinerFee({
@@ -352,7 +348,6 @@ export const useNodesAndLinks = ({
             return []
           }
 
-          // Calculate total input and output values for *this* transaction
           const totalInputValue = tx.vin.reduce(
             (sum, input) => sum + (input.value ?? 0),
             0
@@ -365,7 +360,6 @@ export const useNodesAndLinks = ({
           const minerFee = totalInputValue - totalOutputValue
 
           const allInputNodes = tx.vin.reduce((nodes, input) => {
-            // Only process inputs that pass the filter condition
             if (
               outputAddresses.includes(input.address) &&
               outputValues.includes(input.value ?? 0)
@@ -374,14 +368,9 @@ export const useNodesAndLinks = ({
             }
 
             const depthH = tx.depthH - 1
-            // Get current index for this depth and increment it
             const currentIndex = depthIndices.get(depthH) || 0
             depthIndices.set(depthH, currentIndex + 1)
 
-            // // Set the indexV property if not already set
-            // if (input.indexV === undefined) {
-            //   input.indexV = currentIndex
-            // }
             const node = {
               depthH,
               id: `vin-${depthH}-${currentIndex}`,
@@ -446,7 +435,6 @@ export const useNodesAndLinks = ({
           const outputNodes = tx.vout.map((output, idx) => {
             const outputDepth = tx.depthH + 1
 
-            // Find transactions that use this output as an input
             const nextTx =
               incomingAndOutgoingVinTxId.find(
                 (vinTx) =>
@@ -513,7 +501,6 @@ export const useNodesAndLinks = ({
             return node
           })
 
-          // Create miner fee node if applicable
           const feeNode: TxNode[] = []
           if (minerFee > 0) {
             const feeOutputDepth = tx.depthH + 1

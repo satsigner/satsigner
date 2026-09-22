@@ -38,7 +38,6 @@ export default function PublicKeyPage() {
   const [rawPublicKey, setRawPublicKey] = useState('')
   const [scriptVersion, setScriptVersion] = useState('P2WPKH')
 
-  // Initialize selectedFormat and scriptVersion based on network and account data
   useEffect(() => {
     const accountData = getAccountData()
     if (accountData) {
@@ -48,7 +47,6 @@ export default function PublicKeyPage() {
         setScriptVersion(key.scriptVersion)
       }
 
-      // Set the correct default format based on network and script version
       if (key?.scriptVersion === 'P2SH-P2WSH') {
         // For P2SH-P2WSH, default to ypub/upub (more specific)
         setSelectedFormat(network === 'bitcoin' ? 'ypub' : 'upub')
@@ -62,14 +60,12 @@ export default function PublicKeyPage() {
     }
   }, [getAccountData, network, keyIndex])
 
-  // Get format button data based on script version and network
   function getFormatButtons(scriptVersion: string) {
     const formatButtons: {
       format: PublicKeyFormat
       label: string
     }[] = []
 
-    // Handle multisig script types specifically
     if (scriptVersion === 'P2SH') {
       // P2SH: Only show xpub/tpub
       formatButtons.push({

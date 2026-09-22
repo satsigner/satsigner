@@ -240,7 +240,6 @@ export default function AccountSettings() {
     }
   }, [account])
 
-  // Update script version when account changes
   useEffect(() => {
     const accountKeys = account?.keys
     const scriptVersion = accountKeys?.[0]?.scriptVersion

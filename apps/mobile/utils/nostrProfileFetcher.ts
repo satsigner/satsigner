@@ -37,8 +37,6 @@ type PendingEntry = {
   waiters: ProfileWaiter[]
 }
 
-// STATE
-
 const pending = new Map<string, PendingEntry>()
 const inFlight = new Set<string>()
 const attempts = new Map<string, number>()

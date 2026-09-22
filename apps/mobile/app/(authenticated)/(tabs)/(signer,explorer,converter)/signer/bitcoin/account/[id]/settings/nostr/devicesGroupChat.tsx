@@ -378,7 +378,6 @@ export default function DevicesGroupChat() {
         } catch {
           continue
         }
-        // Skip if we already have profile data or are already fetching this run
         if (
           profiles[npub]?.displayName ||
           profiles[npub]?.picture ||

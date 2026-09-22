@@ -343,12 +343,10 @@ export default function IOPreview() {
   )
   const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
 
-  // First calculate without change output
   const baseTransactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
       Array.from(inputs.values()),
       outputs
-      // add hasChange
     )
     return { size, vsize }
   }, [inputs, outputs])
@@ -358,7 +356,6 @@ export default function IOPreview() {
     [localFeeRate, baseTransactionSize.vsize]
   )
 
-  // Calculate if we'll have change
   const totalOutputValue = useMemo(
     () => outputs.reduce((sum, output) => sum + output.amount, 0),
     [outputs]
@@ -477,14 +474,12 @@ export default function IOPreview() {
   function handlePasteFromClipboard(content: string) {
     const trimmedContent = content.trim()
 
-    // Step 1: Try BIP21 decode (including Payjoin pj=)
     const bip21Result = tryDecodeBip21(trimmedContent)
     if (bip21Result) {
       applyParsedOutput(bip21Result, trimmedContent)
       return
     }
 
-    // Step 2: Try manual URI parsing with validation
     const processedContent = stripBitcoinPrefix(trimmedContent)
     const uriResult = tryParseUriWithValidation(processedContent)
     if (uriResult && uriResult.amount !== undefined) {
@@ -492,7 +487,6 @@ export default function IOPreview() {
       return
     }
 
-    // Step 3: Try content detection
     const detectedContent = detectContentByContext(processedContent, 'bitcoin')
     if (detectedContent.isValid) {
       const { ok, payjoin } = processContentForOutput(detectedContent, {
@@ -519,7 +513,6 @@ export default function IOPreview() {
       }
     }
 
-    // Step 4: Fallback - set as plain address
     setOutputTo(processedContent)
   }
 
@@ -1178,9 +1171,7 @@ export default function IOPreview() {
       return
     }
 
-    // Add change output if there's enough remaining (above dust limit)
     if (remainingBalance >= DUST_LIMIT) {
-      // Validate that changeAddress is available before adding change output
       if (!changeAddress) {
         toast.error(t('transaction.error.ChangeAddressNotAvailable'))
         return
@@ -1218,7 +1209,6 @@ export default function IOPreview() {
 
   function handleDustToOutputs() {
     setDustChangeModalVisible(false)
-    // Distribute dust evenly across existing outputs
     const perOutput = Math.floor(pendingDustAmount / outputs.length)
     const remainder = pendingDustAmount - perOutput * outputs.length
 

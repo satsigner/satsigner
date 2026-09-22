@@ -37,7 +37,6 @@ function hydrateAccount(row: AccountRow): Account {
   const db = getDb()
   const accountId = row.id
 
-  // Transactions with vin/vout
   const { results: txRows } = db.execute(
     'SELECT * FROM transactions WHERE account_id = ?',
     [accountId]
@@ -47,7 +46,6 @@ function hydrateAccount(row: AccountRow): Account {
     accountId
   )
 
-  // UTXOs
   const { results: utxoRows } = db.execute(
     'SELECT * FROM utxos WHERE account_id = ?',
     [accountId]
@@ -56,7 +54,6 @@ function hydrateAccount(row: AccountRow): Account {
     rowToUtxo(row as unknown as Parameters<typeof rowToUtxo>[0])
   )
 
-  // Addresses
   const { results: addrRows } = db.execute(
     'SELECT * FROM addresses WHERE account_id = ?',
     [accountId]
@@ -72,10 +69,8 @@ function hydrateAccount(row: AccountRow): Account {
     )
   })
 
-  // Labels
   const labels = getLabelsByAccount(accountId)
 
-  // Nostr DMs
   const { results: dmRows } = db.execute(
     'SELECT * FROM nostr_dms WHERE account_id = ? ORDER BY created_at DESC',
     [accountId]
@@ -84,14 +79,12 @@ function hydrateAccount(row: AccountRow): Account {
     rowToNostrDm(row as unknown as Parameters<typeof rowToNostrDm>[0])
   )
 
-  // Nostr relays
   const { results: relayRows } = db.execute(
     'SELECT url FROM nostr_relays WHERE account_id = ?',
     [accountId]
   )
   const relays = (relayRows ?? []).map((r) => r.url as string)
 
-  // Nostr trusted devices
   const { results: deviceRows } = db.execute(
     'SELECT device_npub FROM nostr_trusted_devices WHERE account_id = ?',
     [accountId]

@@ -98,7 +98,6 @@ function SSBubble({
 
   const label = normalizeUtxoLabelForDisplay(utxo.label || '')
 
-  // Utxo value
   const mainParagraph = useMemo(() => {
     if (!customFontManager) {
       return null
@@ -137,7 +136,6 @@ function SSBubble({
   const mainTextheight = mainParagraph?.getHeight() || 0
   const mainY = y - (mainTextheight / 2 || 0)
 
-  // Utxo date
   const dateText = new Date(utxo?.timestamp || '').toLocaleDateString('en-US', {
     day: 'numeric',
     month: 'short',
@@ -182,7 +180,6 @@ function SSBubble({
     return para
   }, [customFontManager, descriptionFontSize, dateText])
 
-  // Utxo Memo
   const memoY = useMemo(() => {
     // spacing based on radius because Skia is not consistent for now
     if (radius > 10) {
@@ -232,7 +229,6 @@ function SSBubble({
     return para
   }, [customFontManager, label, descriptionFontSize])
 
-  // Utxo from address
   const fromY = useMemo(() => {
     if (!label) {
       return memoY

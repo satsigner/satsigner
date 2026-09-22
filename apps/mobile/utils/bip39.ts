@@ -383,10 +383,8 @@ function getExtendedPublicKeyFromMnemonicCustom(
   path?: string,
   isMultisig = false
 ) {
-  // Convert BDK Network to string for deriveXpubFromMnemonic
   const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'
 
-  // If script version is specified and it's a multisig type, use the specific function
   if (
     scriptVersion &&
     isMultisig &&
@@ -408,7 +406,6 @@ function getExtendedPublicKeyFromMnemonicCustom(
     )
   }
 
-  // For singlesig accounts, use the correct BIP derivation paths
   let derivationPath = path
   if (!path && !isMultisig) {
     const coinType = networkString === 'mainnet' ? '0' : '1'
@@ -431,7 +428,6 @@ function getExtendedPublicKeyFromMnemonicCustom(
     }
   }
 
-  // Otherwise, use the default deriveXpubFromMnemonic function
   const result = deriveXpubFromMnemonic(mnemonic, passphrase, {
     network: networkString,
     path: derivationPath

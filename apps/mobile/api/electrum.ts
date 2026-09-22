@@ -525,7 +525,6 @@ class ElectrumClient extends BaseElectrumClient {
 
         transactions[i].vout.push({ address: addr, script, value })
 
-        // Compute received value by checking if tx outputs match address
         if (addr !== address) {
           continue
         }
@@ -556,7 +555,6 @@ class ElectrumClient extends BaseElectrumClient {
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, network)
 
-        // Compute sent value by checking if tx inputs match address
         if (addr !== address) {
           continue
         }
@@ -617,7 +615,6 @@ class ElectrumClient extends BaseElectrumClient {
 
         transactions[i].vout.push({ address: addr, script, value })
 
-        // Compute received value by checking if tx outputs match address
         if (addr !== address) {
           continue
         }
@@ -648,7 +645,6 @@ class ElectrumClient extends BaseElectrumClient {
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, this.network)
 
-        // Compute sent value by checking if tx inputs match address
         if (addr !== address) {
           continue
         }

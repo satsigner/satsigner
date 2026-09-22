@@ -115,7 +115,6 @@ function SSCurrentTransactionChart({
     [outputArray]
   )
 
-  // First calculate without change output
   const baseSize = estimateTransactionSize(
     Array.from(inputMap.values()),
     outputArray.map((o) => ({ ...o, to: o.to || '' }))
@@ -123,17 +122,14 @@ function SSCurrentTransactionChart({
 
   const baseFee = Math.round(feeRateProp * baseSize.vsize)
 
-  // Check if we'll have change
   const hasChange = totalInputValue > totalOutputValue + baseFee
 
-  // Now calculate final size including change if needed
   const { size: txSize, vsize: txVsize } = estimateTransactionSize(
     Array.from(inputMap.values()),
     outputArray.map((o) => ({ ...o, to: o.to || '' })),
     hasChange
   )
 
-  // Ensure transaction size values are valid
   const safeTxSize = Number.isNaN(txSize) ? 0 : txSize
   const safeTxVsize = Number.isNaN(txVsize) ? 0 : txVsize
 
@@ -146,7 +142,6 @@ function SSCurrentTransactionChart({
       return effectiveMinerFeeSats
     }
 
-    // Ensure feeRateProp and safeTxVsize are valid numbers
     if (
       Number.isNaN(feeRateProp) ||
       Number.isNaN(safeTxVsize) ||
@@ -423,7 +418,6 @@ function SSCurrentTransactionChart({
     return [...inputToBlockLinks, ...blockToOutputLinks]
   }, [inputArray, outputArray, minerFee])
 
-  // Validate data before passing to sankey generator to prevent NaN values
   const validSankeyNodes = sankeyNodes.filter(
     (node) =>
       node &&
@@ -457,7 +451,6 @@ function SSCurrentTransactionChart({
 
   const { links, nodes } = layoutResult
 
-  // calculating the sankey node styles to match in skia
   const nodeStyles = useMemo(
     () =>
       nodes.map((node) => {
@@ -467,7 +460,6 @@ function SSCurrentTransactionChart({
             ? ((node as Node).ioData?.txSize ?? 0) * 0.1
             : 0
 
-        // Safely handle NaN values from sankey generator
         const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
         const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
         const safeY1 = Number.isNaN(node.y1) ? 0 : (node.y1 ?? 0)
@@ -507,7 +499,6 @@ function SSCurrentTransactionChart({
     return null
   }
 
-  // Check for invalid fee rate
   if (Number.isNaN(feeRateProp) || feeRateProp < 0) {
     return null
   }

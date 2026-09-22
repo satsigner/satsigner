@@ -39,7 +39,6 @@ function decodeStandardSeedQR(seedQR: string): string {
   const wordList = getWordList()
   const words: string[] = []
 
-  // Split into 4-digit chunks
   for (let i = 0; i < seedQR.length; i += 4) {
     const chunk = seedQR.slice(i, i + 4)
     const index = parseInt(chunk, 10)
@@ -56,7 +55,6 @@ function decodeCompactSeedQR(seedQR: string): string {
   const wordList = getWordList()
   const words: string[] = []
 
-  // Calculate number of words based on length
   const wordCount = Math.floor(seedQR.length / 11)
 
   for (let i = 0; i < wordCount; i += 1) {
@@ -74,17 +72,14 @@ function decodeCompactSeedQR(seedQR: string): string {
 }
 
 export function detectAndDecodeSeedQR(data: string): string | null {
-  // Check if it's a standard seed QR (all digits, length divisible by 4)
   if (/^\d+$/.test(data) && data.length % 4 === 0) {
     return decodeStandardSeedQR(data)
   }
 
-  // Check if it's a compact seed QR (all 0s and 1s, length divisible by 11)
   if (/^[01]+$/.test(data) && data.length % 11 === 0) {
     return decodeCompactSeedQR(data)
   }
 
-  // Check if it's a plain mnemonic phrase (space-separated words)
   if (/^[a-z\s]+$/.test(data) && data.split(' ').length >= 12) {
     return data
   }

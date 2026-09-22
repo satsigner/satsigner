@@ -18,7 +18,6 @@ export const BBQRFileTypes = {
   UNICODE: 'U' as const
 } as const
 
-// Export type for the FileType values
 type BBQRFileType = (typeof BBQRFileTypes)[keyof typeof BBQRFileTypes]
 
 const BBQR_DEFAULT_MAX_CHUNK_SIZE = 400
@@ -36,7 +35,6 @@ export function isBBQRFragment(part: string): boolean {
     return false
   }
 
-  // Check if the header format is valid
   const encoding = part.slice(2, 3)
   const fileType = part.slice(3, 4)
   const seqTotal = part.slice(4, 6)
@@ -50,7 +48,6 @@ export function isBBQRFragment(part: string): boolean {
     return false
   }
 
-  // Validate sequence numbers are valid base36
   let totalParts: number | undefined
   let partNumber: number | undefined
   try {
@@ -77,7 +74,6 @@ export function createBBQRChunks(
   fileType: BBQRFileType = BBQRFileTypes.PSBT,
   maxChunkSize = BBQR_DEFAULT_MAX_CHUNK_SIZE
 ): string[] {
-  // Convert our FileType to the official library's string format
   const officialFileType = fileType as OfficialFileType
 
   // Calculate the target number of chunks based on maxChunkSize
@@ -93,7 +89,6 @@ export function createBBQRChunks(
     minSplit = 1
     maxSplit = 1
   } else {
-    // Calculate target chunks based on data size and desired chunk size
     targetChunks = Math.ceil(data.length / maxChunkSize)
 
     // For very small chunk sizes (which should create many simple QR codes),
@@ -130,7 +125,6 @@ export function createBBQRChunks(
   }
 
   try {
-    // Try to split with the calculated constraints
     result = splitQRs(data, officialFileType, {
       encoding: 'Z', // Try compression first (same as original implementation)
       maxSplit,
@@ -146,7 +140,6 @@ export function createBBQRChunks(
     return result.parts
   }
 
-  // If strict constraints fail, try with more flexibility
   let fallbackMinSplit = Math.max(1, Math.floor(targetChunks * 0.5))
   let fallbackMaxSplit = Math.min(
     BBQR_MAX_SPLIT_PARTS,
@@ -193,7 +186,6 @@ export function createBBQRChunks(
   }
 
   try {
-    // Ultimate fallback: let the library use its default settings
     result = splitQRs(data, officialFileType, {
       encoding: 'Z' // Let library choose all other defaults
     })

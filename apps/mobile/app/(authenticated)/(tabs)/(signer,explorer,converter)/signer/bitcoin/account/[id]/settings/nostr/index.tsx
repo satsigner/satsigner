@@ -104,7 +104,6 @@ function MemberNameBlock({
 }
 
 export default function NostrSync() {
-  // Account and store hooks
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
@@ -115,7 +114,6 @@ export default function NostrSync() {
 
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
 
-  // Nostr store actions
   const clearNostrState = useNostrStore((state) => state.clearNostrState)
   const clearProcessedMessageIds = useNostrStore(
     (state) => state.clearProcessedMessageIds
@@ -131,12 +129,10 @@ export default function NostrSync() {
     accountId ? state.lastProtocolEOSE[accountId] : undefined
   )
 
-  // Members management - subscribe to raw members array for reactivity
   const rawMembers = useNostrStore((state) =>
     accountId ? state.members[accountId] : undefined
   )
 
-  // Normalize members in a separate memo to avoid selector complexity
   const members = useMemo(() => {
     if (!rawMembers) {
       return []
@@ -158,7 +154,6 @@ export default function NostrSync() {
       )
   }, [rawMembers])
 
-  // Nostr sync hooks
   const {
     clearStoredDMs,
     generateCommonNostrKeys,
@@ -169,7 +164,6 @@ export default function NostrSync() {
     stopSync
   } = useNostrSync()
 
-  // State management
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -478,7 +472,6 @@ export default function NostrSync() {
       }
 
       if (account.nostr.autoSync) {
-        // Turn sync OFF
         setIsSyncing(true)
         if (accountId) {
           setSyncing(accountId, true)
@@ -648,7 +641,6 @@ export default function NostrSync() {
     }
   }
 
-  // Navigation functions
   const goToSelectRelaysPage = () => {
     if (!accountId) {
       return

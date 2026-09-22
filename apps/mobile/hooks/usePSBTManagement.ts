@@ -69,7 +69,6 @@ export function usePSBTManagement({
         return psbtHex
       }
 
-      // Check if inputs are already finalized
       let needsFinalization = false
       const inputDetails = []
       for (let i = 0; i < psbt.data.inputs.length; i += 1) {
@@ -95,7 +94,6 @@ export function usePSBTManagement({
         }
       }
 
-      // Try to finalize all inputs if needed
       if (needsFinalization) {
         try {
           psbt.finalizeAllInputs()
@@ -117,10 +115,8 @@ export function usePSBTManagement({
 
   const updateSignedPsbt = useCallback((index: number, psbt: string) => {
     if (index === -1) {
-      // Watch-only mode - use the old behavior
       setSignedPsbt(psbt)
     } else {
-      // Update the specific cosigner's signed PSBT
       setSignedPsbts((prev) => {
         const newMap = new Map(prev)
         newMap.set(index, psbt)
@@ -137,27 +133,23 @@ export function usePSBTManagement({
         return
       }
 
-      // Check if the key has a mnemonic
       const secret = cosignerKey.secret as Secret
       if (!secret.mnemonic) {
         toast.error('No mnemonic found for this cosigner')
         return
       }
 
-      // Get the original PSBT from transaction builder result
       const originalPsbtBase64 = txBuilderPsbt?.toBase64()
       if (!originalPsbtBase64) {
         toast.error('No original PSBT found')
         return
       }
 
-      // Get the script type from the cosigner's key
       const scriptVersion = cosignerKey.scriptVersion || 'P2WSH'
       const scriptType = getMultisigScriptTypeFromScriptVersion(
         scriptVersion
       ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
 
-      // Sign the PSBT with the cosigner's seed
       const signingResult = signPSBTWithSeed(
         originalPsbtBase64,
         secret.mnemonic,
@@ -165,7 +157,6 @@ export function usePSBTManagement({
       )
 
       if (signingResult.success && signingResult.signedPSBT) {
-        // Update the signed PSBT for this cosigner
         updateSignedPsbt(index, signingResult.signedPSBT)
 
         toast.success(`PSBT signed successfully for cosigner ${index + 1}`)
@@ -178,27 +169,23 @@ export function usePSBTManagement({
 
   const handleSignWithSeedQR = useCallback(
     (index: number, mnemonic: string) => {
-      // Get the cosigner's key details
       const cosignerKey = account?.keys?.[index]
       if (!cosignerKey) {
         toast.error('No key found for this cosigner')
         return
       }
 
-      // Get the original PSBT from transaction builder result
       const originalPsbtBase64 = txBuilderPsbt?.toBase64()
       if (!originalPsbtBase64) {
         toast.error('No original PSBT found')
         return
       }
 
-      // Get the script type from the cosigner's key
       const scriptVersion = cosignerKey.scriptVersion || 'P2WSH'
       const scriptType = getMultisigScriptTypeFromScriptVersion(
         scriptVersion
       ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
 
-      // Sign the PSBT with the scanned seed
       const signingResult = signPSBTWithSeed(
         originalPsbtBase64,
         mnemonic,
@@ -206,7 +193,6 @@ export function usePSBTManagement({
       )
 
       if (signingResult.success && signingResult.signedPSBT) {
-        // Update the signed PSBT for this cosigner
         updateSignedPsbt(index, signingResult.signedPSBT)
 
         toast.success(
