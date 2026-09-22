@@ -27,7 +27,10 @@ import {
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { DescriptorUtils } from '@/utils/descriptorUtils'
+import {
+  parseImportedDescriptorPayload,
+  parseXpubInput
+} from '@/utils/descriptor'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -121,7 +124,7 @@ export default function UnifiedImport() {
   }
 
   function updateXpub(raw: string) {
-    const parsed = DescriptorUtils.parseXpubInput(raw)
+    const parsed = parseXpubInput(raw)
     const nextXpub = parsed.xpub
     const validXpub = validateExtendedKey(nextXpub, network)
     const nextFingerprint = parsed.fingerprint || localFingerprint
@@ -527,9 +530,7 @@ export default function UnifiedImport() {
       return
     }
     if (importType === 'descriptor' && content.type === 'bitcoin_descriptor') {
-      const parsed = DescriptorUtils.parseImportedDescriptorPayload(
-        content.cleaned
-      )
+      const parsed = parseImportedDescriptorPayload(content.cleaned)
       if (!parsed) {
         toast.error(t('account.import.error.descriptorFormat'))
         return

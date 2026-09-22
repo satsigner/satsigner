@@ -31,12 +31,17 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { DescriptorUtils } from '@/utils/descriptorUtils'
+import {
+  getDescriptorDerivationPath,
+  getFingerprint,
+  parseImportedDescriptorPayload
+} from '@/utils/descriptor'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -246,7 +251,8 @@ export default function ImportDescriptor() {
 
   function handleConfirm() {
     try {
-      const fingerprint = extractFingerprintFromDescriptor(externalDescriptor)
+      // Extract fingerprint from the descriptor if possible
+      const fingerprint = getFingerprint(externalDescriptor)
 
       const { extendedPublicKey, derivationPath } =
         extractDescriptorInfo(externalDescriptor)
@@ -273,37 +279,17 @@ export default function ImportDescriptor() {
     }
   }
 
-  function extractFingerprintFromDescriptor(descriptor: string) {
-    return DescriptorUtils.extractFingerprint(descriptor)
-  }
-
   function extractDescriptorInfo(descriptor: string) {
-    const xpubMatch = descriptor.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
-    const extendedPublicKey = xpubMatch ? xpubMatch[0] : ''
-
-    const derivationPath = extractDerivationPathFromDescriptor(descriptor)
+    const extendedPublicKey = getExtendedKeyFromDescriptor(descriptor)
+    const derivationPath = resolveDerivationPath(descriptor)
 
     return { derivationPath, extendedPublicKey }
   }
 
-  function extractDerivationPathFromDescriptor(descriptor: string) {
-    // Primary method: Extract from [fingerprint/derivation] pattern
-    // Look for the pattern: [fingerprint/derivation] where derivation contains slashes
-    const bracketMatch = descriptor.match(
-      /\[([0-9a-fA-F]{8})\/([0-9]+[h']?\/)*[0-9]+[h']?\]/
-    )
-
-    if (bracketMatch) {
-      const [fullBracket] = bracketMatch
-      const derivationPath = fullBracket
-        .replace(/^\[[0-9a-fA-F]{8}\//, '') // Remove [fingerprint/
-        .replace(/\]$/, '') // Remove closing ]
-
-      if (!derivationPath.startsWith('m/')) {
-        return `m/${derivationPath}`
-      }
-
-      return derivationPath
+  function resolveDerivationPath(descriptor: string) {
+    const bracketPath = getDescriptorDerivationPath(descriptor)
+    if (bracketPath) {
+      return bracketPath
     }
 
     const pathMatch = descriptor.match(/\/([0-9]+[h']?\/)*[0-9]+[h']?\/\*/)
@@ -448,32 +434,29 @@ export default function ImportDescriptor() {
   }
 
   function handleContentScanned(content: DetectedContent) {
-    if (content.type !== 'bitcoin_descriptor') {
-      toast.error(t('account.import.error.descriptorFormat'))
-      return
-    }
-
-    const parsed = DescriptorUtils.parseImportedDescriptorPayload(
-      content.cleaned
-    )
-    if (!parsed) {
-      toast.error(t('account.import.error.descriptorFormat'))
-      return
-    }
-    if (parsed.combined) {
-      handleCombinedDescriptorImport(parsed.combined)
-    } else {
-      updateExternalDescriptor(parsed.external, parsed.derivedExternal)
-      if (parsed.internal) {
-        updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
-      } else {
-        setInternalDescriptor('')
-        setStoreInternalDescriptor('')
-        setValidInternalDescriptor(true)
-        setInternalDescriptorError('')
+    if (content.type === 'bitcoin_descriptor') {
+      const parsed = parseImportedDescriptorPayload(content.cleaned)
+      if (!parsed) {
+        toast.error(t('account.import.error.descriptorFormat'))
+        return
       }
+      if (parsed.combined) {
+        handleCombinedDescriptorImport(parsed.combined)
+      } else {
+        updateExternalDescriptor(parsed.external, parsed.derivedExternal)
+        if (parsed.internal) {
+          updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+        } else {
+          setInternalDescriptor('')
+          setStoreInternalDescriptor('')
+          setValidInternalDescriptor(true)
+          setInternalDescriptorError('')
+        }
+      }
+      toast.success(t('watchonly.success.qrScanned'))
+      return
     }
-    toast.success(t('watchonly.success.qrScanned'))
+    toast.error(t('account.import.error.descriptorFormat'))
   }
 
   function getDefaultDerivationPath(): string {
