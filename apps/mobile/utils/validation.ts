@@ -7,6 +7,7 @@ import {
 
 import { ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { EXTENDED_PUBKEY_PATTERN } from '@/utils/descriptor'
 
 bitcoinjs.initEccLib(ecc)
 
@@ -210,7 +211,7 @@ function validateDescriptorInternal(
       }
       // Also accept if it contains tpub/xpub patterns (common extended key formats)
       const extendedKeyPatterns = currentItem.match(
-        /(tpub|xpub|ypub|zpub|upub|vpub)[a-zA-Z0-9]+/g
+        new RegExp(EXTENDED_PUBKEY_PATTERN, 'g')
       )
       if (extendedKeyPatterns && extendedKeyPatterns.length >= 2) {
         return true
