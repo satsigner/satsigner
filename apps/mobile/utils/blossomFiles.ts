@@ -10,9 +10,7 @@ import {
   type BlossomFileCategory,
   type BlossomFileTypeFilter
 } from '@/types/models/Blossom'
-
-const FILE_SIZE_UNITS = ['B', 'KB', 'MB', 'GB'] as const
-const BYTES_PER_KIB = 1024
+import { formatFileSize } from '@/utils/format'
 
 export const BLOSSOM_FILE_TYPE_FILTERS: BlossomFileCategory[] = [
   'image',
@@ -26,21 +24,7 @@ type BlossomFileDetailItem =
   | [string, string | number | undefined]
   | [string, string | number | undefined, { copyToClipboard?: boolean }]
 
-export function formatBlossomFileSize(bytes: number): string {
-  const maxUnitIndex = FILE_SIZE_UNITS.length - 1
-  const scaled = Array.from({ length: maxUnitIndex + 1 }, (_, unitIndex) => ({
-    unitIndex,
-    value: bytes / BYTES_PER_KIB ** unitIndex
-  }))
-  const selected =
-    scaled.find((entry) => entry.value < BYTES_PER_KIB) ?? scaled[maxUnitIndex]
-  const rounded =
-    selected.unitIndex === 0
-      ? selected.value
-      : Math.round(selected.value * 10) / 10
-
-  return `${rounded} ${FILE_SIZE_UNITS[selected.unitIndex]}`
-}
+export const formatBlossomFileSize = formatFileSize
 
 export function formatBlossomUploadDate(unixTs: number): string {
   const date = new Date(unixTs * 1000)

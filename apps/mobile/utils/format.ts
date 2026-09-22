@@ -251,6 +251,29 @@ function formatBytes(bytes: number) {
   return `${bytes} B`
 }
 
+const FILE_SIZE_UNITS = ['B', 'KB', 'MB', 'GB'] as const
+const BYTES_PER_KIB = 1024
+
+/**
+ * Human-readable binary file size (B/KB/MB/GB, 1024-based). Bytes stay whole,
+ * larger units round to one decimal with trailing zeros stripped ("2 KB").
+ */
+function formatFileSize(bytes: number): string {
+  const maxUnitIndex = FILE_SIZE_UNITS.length - 1
+  const scaled = Array.from({ length: maxUnitIndex + 1 }, (_, unitIndex) => ({
+    unitIndex,
+    value: bytes / BYTES_PER_KIB ** unitIndex
+  }))
+  const selected =
+    scaled.find((entry) => entry.value < BYTES_PER_KIB) ?? scaled[maxUnitIndex]
+  const rounded =
+    selected.unitIndex === 0
+      ? selected.value
+      : Math.round(selected.value * 10) / 10
+
+  return `${rounded} ${FILE_SIZE_UNITS[selected.unitIndex]}`
+}
+
 const QUADRILLION = 1e15
 const BILLIARD = 1e15
 const TRILLION_LONG = 1e18
@@ -337,6 +360,7 @@ export {
   formatDate,
   formatFeeRateSatPerVb,
   formatFiatPrice,
+  formatFileSize,
   formatLargeNumber,
   formatNostrCardDate,
   formatNumber,

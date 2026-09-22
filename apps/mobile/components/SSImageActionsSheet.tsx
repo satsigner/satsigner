@@ -32,6 +32,7 @@ import {
 } from '@/store/imageActions'
 import { Colors, Layout } from '@/styles'
 import { setClipboard } from '@/utils/clipboard'
+import { formatFileSize } from '@/utils/format'
 import { type ImageExifData } from '@/utils/imageExif'
 
 const DISMISS_DRAG_THRESHOLD = 80
@@ -42,16 +43,6 @@ async function saveImage(uri: string): Promise<void> {
   const localUri = `${FileSystem.cacheDirectory}${filename}`
   await FileSystem.downloadAsync(uri, localUri)
   await Sharing.shareAsync(localUri)
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function formatExposure(seconds: number): string {
@@ -104,7 +95,7 @@ function HttpMetaSection({ image }: { image: SelectedImageMeta }) {
       {image.fileSize !== undefined ? (
         <MetaRow
           label={t('nostrIdentity.note.imageMetadataFileSize')}
-          value={formatBytes(image.fileSize)}
+          value={formatFileSize(image.fileSize)}
         />
       ) : null}
       {image.contentType ? (

@@ -1,4 +1,3 @@
-import { nip19 } from 'nostr-tools'
 import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -7,6 +6,7 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import type { Nip46ParsedUri } from '@/types/models/Nostr'
 import { getMethodLabel } from '@/utils/nip46'
+import { safeNpubEncode } from '@/utils/nostr'
 
 import SSButton from './SSButton'
 import SSModal from './SSModal'
@@ -29,7 +29,7 @@ export default function SSNip46ConnectionModal({
     return null
   }
 
-  const npub = abbreviate(formatNpub(parsedUri.clientPubkey))
+  const npub = abbreviate(safeNpubEncode(parsedUri.clientPubkey))
   const requestedMethods = parsedUri.perms
     ? parseRequestedMethods(parsedUri.perms)
     : []
@@ -94,14 +94,6 @@ export default function SSNip46ConnectionModal({
       </View>
     </SSModal>
   )
-}
-
-function formatNpub(hex: string): string {
-  try {
-    return nip19.npubEncode(hex)
-  } catch {
-    return hex
-  }
 }
 
 function abbreviate(value: string, chars = 16): string {
