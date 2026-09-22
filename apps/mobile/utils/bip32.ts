@@ -17,6 +17,7 @@ import {
   BIP84_PURPOSE,
   BIP86_PURPOSE
 } from '@/constants/derivation'
+import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { type AddressKeyPair } from '@/types/models/Address'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
@@ -24,7 +25,6 @@ import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
-import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 
 const VERSIONS = {
   mainnet: { private: 0x0488ade4, public: 0x0488b21e },
