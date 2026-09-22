@@ -1,4 +1,13 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  BILLIARD,
+  BYTES_PER_KIB,
+  COMPACT_LONG_OPTS,
+  FILE_SIZE_UNITS,
+  QUADRILLION,
+  TRILLIARD,
+  TRILLION_LONG
+} from '@/constants/format'
 import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -251,9 +260,6 @@ function formatBytes(bytes: number) {
   return `${bytes} B`
 }
 
-const FILE_SIZE_UNITS = ['B', 'KB', 'MB', 'GB'] as const
-const BYTES_PER_KIB = 1024
-
 /**
  * Human-readable binary file size (B/KB/MB/GB, 1024-based). Bytes stay whole,
  * larger units round to one decimal with trailing zeros stripped ("2 KB").
@@ -272,16 +278,6 @@ function formatFileSize(bytes: number): string {
       : Math.round(selected.value * 10) / 10
 
   return `${rounded} ${FILE_SIZE_UNITS[selected.unitIndex]}`
-}
-
-const QUADRILLION = 1e15
-const BILLIARD = 1e15
-const TRILLION_LONG = 1e18
-const TRILLIARD = 1e21
-
-const COMPACT_LONG_OPTS: Intl.NumberFormatOptions = {
-  compactDisplay: 'long',
-  notation: 'compact'
 }
 
 function formatScaledWord(
