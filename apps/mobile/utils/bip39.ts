@@ -38,9 +38,9 @@ import {
   getPublicDescriptorFromSeed,
   getPublicDescriptorFromSeedWithPath,
   getVersionsForNetwork,
-  getXpubForScriptVersion,
-  toHex
+  getXpubForScriptVersion
 } from '@/utils/bip32'
+import { bytesToHex } from '@/utils/hex'
 
 export function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
   return WORDLISTS[name]
@@ -336,7 +336,7 @@ function deriveXpubFromMnemonic(
   const master = HDKey.fromMasterSeed(seed, versions)
 
   // ensure publicKey is not null
-  const masterPubkeyHex = toHex(master.publicKey || new Uint8Array())
+  const masterPubkeyHex = bytesToHex(master.publicKey || new Uint8Array())
   const masterFingerprintHex = fingerprintToHex(master.fingerprint)
 
   // 3) derive path

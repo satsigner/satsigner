@@ -1,6 +1,6 @@
 import { type EsploraTx } from '@/types/models/Esplora'
 import { type Transaction } from '@/types/models/Transaction'
-import { parseHexToBytes } from '@/utils/parse'
+import { hexToBytes } from '@/utils/hex'
 
 function mapEsploraTxToAddressTransaction(
   tx: EsploraTx,
@@ -11,15 +11,15 @@ function mapEsploraTxToAddressTransaction(
       txid: input.txid,
       vout: input.vout
     },
-    scriptSig: parseHexToBytes(input.scriptsig ?? ''),
+    scriptSig: hexToBytes(input.scriptsig ?? ''),
     sequence: input.sequence,
     value: input.prevout?.value,
-    witness: input.witness ? input.witness.map(parseHexToBytes) : []
+    witness: input.witness ? input.witness.map(hexToBytes) : []
   }))
 
   const vout: Transaction['vout'] = tx.vout.map((output) => ({
     address: output.scriptpubkey_address || '',
-    script: output.scriptpubkey ? parseHexToBytes(output.scriptpubkey) : [],
+    script: output.scriptpubkey ? hexToBytes(output.scriptpubkey) : [],
     value: output.value
   }))
 

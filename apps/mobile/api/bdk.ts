@@ -54,6 +54,7 @@ import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
+import { hexToBytes } from '@/utils/hex'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import {
   computeRpcScanStartHeight,
@@ -85,14 +86,6 @@ function toAppNetwork(network: Network): BlockchainNetwork {
     default:
       return 'testnet'
   }
-}
-
-function hexToBytes(hex: string): number[] {
-  const bytes: number[] = []
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes.push(parseInt(hex.slice(i, i + 2), 16))
-  }
-  return bytes
 }
 
 const WALLETS_DIR = `${FileSystem.documentDirectory}wallets/`

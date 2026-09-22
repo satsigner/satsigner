@@ -17,8 +17,7 @@ import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import type { Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
-import { parseHexToBytes } from '@/utils/parse'
-import { bytesToHex } from '@/utils/scripts'
+import { bytesToHex, hexToBytes } from '@/utils/hex'
 import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 import { isValidDomainName, isValidIPAddress } from '@/utils/url'
@@ -490,7 +489,7 @@ class ElectrumClient extends BaseElectrumClient {
         lockTime: parsedTx.locktime,
         lockTimeEnabled: parsedTx.locktime > 0,
         prices: {},
-        raw: parseHexToBytes(rawTx),
+        raw: hexToBytes(rawTx),
         received: 0,
         sent: 0,
         size: parsedTx.byteLength(),

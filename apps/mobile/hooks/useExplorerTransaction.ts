@@ -14,6 +14,7 @@ import type {
   ExplorerTxOutput
 } from '@/types/models/ExplorerTransaction'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
+import { bytesToHex } from '@/utils/hex'
 import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 
@@ -35,10 +36,6 @@ function withTimeout<T>(promise: Promise<T>, url: string): Promise<T> {
       clearTimeout(timeoutId)
     }
   })
-}
-
-function bytesToHex(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString('hex')
 }
 
 /** Wire-order outpoint hash → explorer txid (Hermes: no TypedArray#toReversed). */

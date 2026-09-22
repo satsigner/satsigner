@@ -2,6 +2,8 @@ import ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import varuint from 'varuint-bitcoin'
 
+import { bytesToHex } from '@/utils/hex'
+
 bitcoinjs.initEccLib(ecc)
 
 export enum TxField {
@@ -289,11 +291,6 @@ export class TxDecoded extends bitcoinjs.Transaction {
     // TODO: identify taproot witness items
     return { field: TxField.WitnessItem, value: hex }
   }
-}
-
-/** Safe hex encoding — RN Uint8Array.toString('hex') is not hex. */
-function bytesToHex(bytes: Buffer | Uint8Array | number[]): string {
-  return Buffer.from(bytes).toString('hex')
 }
 
 function toVarInt(value: number) {

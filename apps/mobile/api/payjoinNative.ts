@@ -63,6 +63,7 @@ import type {
   SenderSessionHandle,
   SenderSessionInit
 } from '@/types/payjoin'
+import { bytesToHex, hexToBytes } from '@/utils/hex'
 import { payjoinWarn } from '@/utils/payjoinLog'
 import { extractPayjoinOriginalPsbt } from '@/utils/payjoinOriginalPsbt'
 import {
@@ -557,7 +558,9 @@ type ReceiverInput = {
 }
 
 function buildInputPair(input: ReceiverInput): InputPairLike {
-  const scriptPubkey = toArrayBuffer(hexToBytes(input.scriptHex))
+  const scriptPubkey = toArrayBuffer(
+    Uint8Array.from(hexToBytes(input.scriptHex))
+  )
   return new InputPair(
     {
       previousOutput: { txid: input.txid, vout: input.vout },
@@ -568,15 +571,6 @@ function buildInputPair(input: ReceiverInput): InputPairLike {
     { witnessUtxo: { scriptPubkey, valueSat: BigInt(input.value) } },
     undefined
   )
-}
-
-function hexToBytes(hex: string): Uint8Array {
-  const clean = hex.startsWith('0x') ? hex.slice(2) : hex
-  const bytes = new Uint8Array(clean.length / 2)
-  for (let i = 0; i < bytes.length; i += 1) {
-    bytes[i] = Number.parseInt(clean.slice(i * 2, i * 2 + 2), 16)
-  }
-  return bytes
 }
 
 /**
@@ -781,12 +775,6 @@ async function receiverFinalizeWithoutInputs(
   } catch (error) {
     throw toError(error)
   }
-}
-
-function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
 }
 
 /**

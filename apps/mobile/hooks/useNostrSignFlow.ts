@@ -8,7 +8,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { getKeyFingerprint } from '@/utils/account'
-import { parseHexToBytes } from '@/utils/parse'
+import { hexToBytes } from '@/utils/hex'
 import {
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
@@ -78,7 +78,7 @@ export function useNostrSignFlow() {
       addInput({
         ...input,
         keychain: input.keychain || 'external',
-        script: parseHexToBytes(input.script)
+        script: hexToBytes(input.script)
       })
     }
 

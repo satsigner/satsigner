@@ -17,7 +17,8 @@ import { updateAccountObjectLabels } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { formatTimestamp } from '@/utils/format'
-import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
+import { hexToBytes } from '@/utils/hex'
+import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -147,9 +148,9 @@ function useSyncAccountWithAddress() {
             txid: input.txid,
             vout: input.vout
           },
-          scriptSig: parseHexToBytes(input.scriptsig ?? ''),
+          scriptSig: hexToBytes(input.scriptsig ?? ''),
           sequence: input.sequence,
-          witness: input.witness ? input.witness.map(parseHexToBytes) : []
+          witness: input.witness ? input.witness.map(hexToBytes) : []
         })
         if (input.prevout?.scriptpubkey_address === address) {
           sent += input.prevout?.value
@@ -159,7 +160,7 @@ function useSyncAccountWithAddress() {
       for (const out of t.vout) {
         vout.push({
           address: out.scriptpubkey_address || '',
-          script: out.scriptpubkey ? parseHexToBytes(out.scriptpubkey) : [],
+          script: out.scriptpubkey ? hexToBytes(out.scriptpubkey) : [],
           value: out.value
         })
         if (out.scriptpubkey_address === address) {
@@ -176,7 +177,7 @@ function useSyncAccountWithAddress() {
         lockTime: t.locktime,
         lockTimeEnabled: t.locktime > 0,
         prices: {},
-        raw: parseHexToBytes(rawHexMap[t.txid]),
+        raw: hexToBytes(rawHexMap[t.txid]),
         received,
         sent,
         size: t.size,
@@ -228,7 +229,7 @@ function useSyncAccountWithAddress() {
         const txIndex = txDictionary[u.txid]
         const tx = esploraTxs[txIndex]
         const { scriptpubkey } = tx.vout[u.vout]
-        script = scriptpubkey ? parseHexToBytes(scriptpubkey) : []
+        script = scriptpubkey ? hexToBytes(scriptpubkey) : []
       }
 
       return {
@@ -423,7 +424,7 @@ function useSyncAccountWithAddress() {
         lockTime: rawTxParsed.locktime,
         lockTimeEnabled: rawTxParsed.locktime > 0,
         prices: {},
-        raw: parseHexToBytes(rawTx),
+        raw: hexToBytes(rawTx),
         received,
         sent: 0, // THIS HAS TO BE COMPUTED LATER
         size: rawTxParsed.byteLength(),

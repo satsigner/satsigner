@@ -7,16 +7,10 @@
 import { base32 } from '@scure/base'
 import pako from 'pako'
 
+import { hexToBytes } from '@/utils/hex'
+
 import { QR_DATA_CAPACITY } from './consts'
 import type { Encoding, SplitOptions, Version } from './types'
-
-export function hexToBytes(hex: string) {
-  // convert a hex string to a Uint8Array
-
-  const match = hex.match(/.{1,2}/g) ?? []
-
-  return Uint8Array.from(match.map((byte) => parseInt(byte, 16)))
-}
 
 export function base64ToBytes(base64: string) {
   // convert a base64 string to a Uint8Array
@@ -166,7 +160,7 @@ export function decodeData(parts: string[], encoding: Encoding) {
   // decode the parts back into a Uint8Array
 
   if (encoding === 'H') {
-    return joinByteParts(parts.map((p) => hexToBytes(p)))
+    return joinByteParts(parts.map((p) => Uint8Array.from(hexToBytes(p))))
   }
 
   const bytes = joinByteParts(

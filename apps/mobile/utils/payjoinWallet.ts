@@ -4,11 +4,8 @@ import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import { bytesToHex } from '@/utils/hex'
 import { filterPayjoinContributeUtxos } from '@/utils/payjoinUtxos'
-
-function bytesToHex(bytes: number[] | Uint8Array): string {
-  return Buffer.from(bytes).toString('hex')
-}
 
 function utxoScriptHex(utxo: Utxo): string {
   if (!utxo.script) {

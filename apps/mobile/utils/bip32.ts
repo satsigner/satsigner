@@ -24,6 +24,7 @@ import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
+import { bytesToHex } from '@/utils/hex'
 
 const VERSIONS = {
   mainnet: { private: 0x0488ade4, public: 0x0488b21e },
@@ -289,8 +290,8 @@ export function getAddressKeyPairFromSeed(
 ): AddressKeyPair {
   const root = bip32.fromSeed(seed)
   const child = root.derivePath(derivationPath)
-  const privateKey = child.privateKey ? toHex(child.privateKey) : ''
-  const publicKey = toHex(child.publicKey)
+  const privateKey = child.privateKey ? bytesToHex(child.privateKey) : ''
+  const publicKey = bytesToHex(child.publicKey)
   if (child.privateKey) {
     child.privateKey.fill(0)
   }
@@ -308,8 +309,8 @@ export function getAddressKeyPairFromExtendedKey(
 ): AddressKeyPair {
   const node = bip32.fromBase58(extendedKey, BIP32Networks[network])
   const child = node.derivePath(relativePath)
-  const privateKey = child.privateKey ? toHex(child.privateKey) : ''
-  const publicKey = toHex(child.publicKey)
+  const privateKey = child.privateKey ? bytesToHex(child.privateKey) : ''
+  const publicKey = bytesToHex(child.publicKey)
   if (child.privateKey) {
     child.privateKey.fill(0)
   }
@@ -480,15 +481,6 @@ function getP2TRXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
 }
 
 /**
- * Convert a Uint8Array to hex string
- */
-export function toHex(u8: Uint8Array | undefined): string {
-  return Array.from(u8 || [])
-    .map((b: number) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
-
-/**
  * Convert a number to a zero-padded 4-byte hex string
  */
 export function fingerprintToHex(fpNum: number): string {
@@ -496,7 +488,7 @@ export function fingerprintToHex(fpNum: number): string {
   const dv = new DataView(buf.buffer)
   // eslint-disable-next-line unicorn/prefer-math-trunc -- >>> 0 coerces to Uint32, Math.trunc does not
   dv.setUint32(0, fpNum >>> 0)
-  return toHex(buf)
+  return bytesToHex(buf)
 }
 
 /**

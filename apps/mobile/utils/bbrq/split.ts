@@ -4,6 +4,8 @@
  * Splitting of data and encoding as BBQr QR codes.
  */
 
+import { hexToBytes } from '@/utils/hex'
+
 import { ENCODING_SPLIT_MOD, HEADER_LEN } from './consts'
 import {
   type Encoding,
@@ -16,7 +18,6 @@ import {
   base64ToBytes,
   encodeData,
   fileToBytes,
-  hexToBytes,
   intToBase36,
   looksLikePsbt,
   validateSplitOptions,
@@ -169,12 +170,12 @@ export async function detectFileType(
 
   if (/^70736274ff[0-9A-Fa-f]+$/.test(trimmed)) {
     // PSBT in hex format
-    return { fileType: 'P', raw: hexToBytes(trimmed) }
+    return { fileType: 'P', raw: Uint8Array.from(hexToBytes(trimmed)) }
   }
 
   if (/^0[1,2]000000[0-9A-Fa-f]+$/.test(trimmed)) {
     // Transaction in hex format
-    return { fileType: 'T', raw: hexToBytes(trimmed) }
+    return { fileType: 'T', raw: Uint8Array.from(hexToBytes(trimmed)) }
   }
 
   if (/^[A-Za-z0-9+/=]+$/.test(trimmed)) {

@@ -2,6 +2,7 @@ import ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import varuint from 'varuint-bitcoin'
 
+import { bytesToHex } from '@/utils/hex'
 import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
 bitcoinjs.initEccLib(ecc)
@@ -44,10 +45,6 @@ const TX_PROBE_MAX_HEX_CHARS = 100_000
 
 function normalizeHex(hex: string): string {
   return hex.trim().toLowerCase().replace(/^0x/, '').replace(/\s+/g, '')
-}
-
-function bytesToHex(bytes: Buffer | Uint8Array): string {
-  return Buffer.from(bytes).toString('hex')
 }
 
 /** Display-order (big-endian) hex without mutating the source buffer. */

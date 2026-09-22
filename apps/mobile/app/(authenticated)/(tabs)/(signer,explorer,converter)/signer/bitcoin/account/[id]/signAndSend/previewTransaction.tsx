@@ -70,7 +70,7 @@ import {
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { formatAddress, formatNumber } from '@/utils/format'
-import { parseHexToBytes } from '@/utils/parse'
+import { hexToBytes } from '@/utils/hex'
 import {
   formatPayjoinExpiryLabel,
   parsePayjoinExpiresAtMs
@@ -936,7 +936,7 @@ function PreviewTransaction() {
         continue
       }
 
-      const hashBuffer = Buffer.from(parseHexToBytes(input.txid))
+      const hashBuffer = Buffer.from(hexToBytes(input.txid))
       if (hashBuffer.length !== 32) {
         continue
       }

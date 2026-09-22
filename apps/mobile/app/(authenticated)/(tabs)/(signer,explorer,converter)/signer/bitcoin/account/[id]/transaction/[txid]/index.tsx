@@ -35,6 +35,7 @@ import {
   formatNumber,
   formatPercentualChange
 } from '@/utils/format'
+import { bytesToHex } from '@/utils/hex'
 import {
   buildKnownTxIds,
   buildOutpointLabelsByRef,
@@ -45,7 +46,6 @@ import {
   analyzePossiblePayjoin,
   buildOwnedOutpoints
 } from '@/utils/sankeyInputOwnership'
-import { bytesToHex } from '@/utils/scripts'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import {
   annotateTransactionsWithWalletOwnership,
