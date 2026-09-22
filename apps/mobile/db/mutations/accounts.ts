@@ -154,10 +154,8 @@ function clearAccountChildData(tx: TransactionContext, accountId: string) {
 
 function updateFullAccount(account: Account) {
   runTransaction((tx) => {
-    // Update account row
     updateAccountRow(account, tx)
 
-    // Replace child data
     clearAccountChildData(tx, account.id)
     upsertTransactions(tx, account.id, account.transactions)
     upsertUtxos(tx, account.id, account.utxos)
@@ -178,7 +176,6 @@ function deleteAllAccounts() {
   runTransaction((tx) => {
     tx.execute('DELETE FROM accounts')
 
-    // Delete child data of all accounts
     tx.execute('DELETE FROM transactions')
     tx.execute('DELETE FROM utxos')
     tx.execute('DELETE FROM addresses')

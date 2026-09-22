@@ -38,11 +38,9 @@ function useNostrSync() {
    */
   const startSync = useCallback(
     (account: Account, onLoadingChange?: (loading: boolean) => void) => {
-      // Register the message processor for this account
       nostrSyncService.setMessageProcessor(account.id, (msgs) =>
         messages.processEventBatch(account, msgs)
       )
-      // Fire-and-forget - returns immediately
       nostrSyncService.startSync(account, onLoadingChange)
     },
     [messages]
@@ -54,11 +52,9 @@ function useNostrSync() {
    */
   const fetchOnce = useCallback(
     (account: Account, onLoadingChange?: (loading: boolean) => void) => {
-      // Register the message processor for this account
       nostrSyncService.setMessageProcessor(account.id, (msgs) =>
         messages.processEventBatch(account, msgs)
       )
-      // Fire-and-forget - returns immediately
       nostrSyncService.fetchOnce(account, onLoadingChange)
     },
     [messages]

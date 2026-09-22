@@ -176,7 +176,6 @@ export function privateKeyHexToWif(
 
 // TODO: refactor all vibe code below, which is duplicate of other utils.
 
-// Define version bytes for different key formats and networks
 const KEY_VERSION_BYTES = {
   tpub: new Uint8Array([0x04, 0x35, 0x87, 0xcf]),
   upub: new Uint8Array([0x04, 0x4a, 0x52, 0x62]),
@@ -187,7 +186,6 @@ const KEY_VERSION_BYTES = {
   zpub: new Uint8Array([0x04, 0xb2, 0x47, 0x46])
 }
 
-// Define key format mappings for each network
 const NETWORK_KEY_FORMATS: Record<AppNetwork, Record<string, string>> = {
   bitcoin: {
     vpub: 'vpub', // P2TR
@@ -222,7 +220,6 @@ export function convertKeyFormat(
     const decoded = bs58check.decode(key)
     let version: Uint8Array
 
-    // Determine the appropriate version bytes based on target format and network
     switch (targetFormat) {
       case 'xpub':
         version =
@@ -252,7 +249,6 @@ export function convertKeyFormat(
         return key
     }
 
-    // Create new decoded data with the target version
     const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
     return bs58check.encode(newDecoded)
   } catch {
@@ -307,7 +303,6 @@ export function getDerivationPathFromScriptVersion(
   scriptVersion: string,
   network: AppNetwork
 ): string {
-  // Determine coin type based on network
   const coinType = network === 'bitcoin' ? '0' : '1'
 
   switch (scriptVersion) {
@@ -379,7 +374,6 @@ export function getMultisigDerivationPathFromScriptVersion(
   scriptVersion: string,
   network: AppNetwork
 ): string {
-  // Determine coin type based on network
   const coinType = network === 'bitcoin' ? '0' : '1'
 
   switch (scriptVersion) {
@@ -414,27 +408,20 @@ export function getMultisigScriptTypeFromScriptVersion(
 ): string {
   switch (scriptVersion) {
     case 'P2PKH':
-      // For multisig P2PKH, use P2SH descriptor
       return 'P2SH'
     case 'P2SH-P2WPKH':
-      // For multisig P2SH-P2WPKH, use P2SH-P2WSH descriptor
       return 'P2SH-P2WSH'
     case 'P2WPKH':
-      // For multisig P2WPKH, use P2WSH descriptor
       return 'P2WSH'
     case 'P2TR':
-      // For multisig P2TR, use P2TR descriptor
       return 'P2TR'
     case 'P2WSH':
-      // Native SegWit multisig
       return 'P2WSH'
     case 'P2SH-P2WSH':
-      // Wrapped SegWit multisig
       return 'P2SH-P2WSH'
     case 'P2SH':
       return 'P2SH'
     default:
-      // Default to P2WSH for multisig
       return 'P2WSH'
   }
 }

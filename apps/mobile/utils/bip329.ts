@@ -86,10 +86,8 @@ function formatUtxoLabels(utxos: Utxo[]): Label[] {
 }
 
 export function formatAccountLabels(account: Account): Label[] {
-  // Start with labels from the dictionary (source of truth)
   const labelsByRef = new Map<string, Label>()
 
-  // Add all labels from the account.labels dictionary
   if (account.labels) {
     for (const [ref, label] of Object.entries(account.labels)) {
       if (label && label.label) {
@@ -101,19 +99,22 @@ export function formatAccountLabels(account: Account): Label[] {
   // Also include labels from transaction/utxo/address objects
   // (in case they have labels not in the dictionary)
   for (const label of formatTransactionLabels(account.transactions)) {
-    if (!labelsByRef.has(label.ref)) {
-      labelsByRef.set(label.ref, label)
+    if (labelsByRef.has(label.ref)) {
+      continue
     }
+    labelsByRef.set(label.ref, label)
   }
   for (const label of formatUtxoLabels(account.utxos)) {
-    if (!labelsByRef.has(label.ref)) {
-      labelsByRef.set(label.ref, label)
+    if (labelsByRef.has(label.ref)) {
+      continue
     }
+    labelsByRef.set(label.ref, label)
   }
   for (const label of formatAddressLabels(account.addresses)) {
-    if (!labelsByRef.has(label.ref)) {
-      labelsByRef.set(label.ref, label)
+    if (labelsByRef.has(label.ref)) {
+      continue
     }
+    labelsByRef.set(label.ref, label)
   }
 
   return Array.from(labelsByRef.values())
@@ -233,14 +234,15 @@ export function JSONLtoLabels(JSONLines: string): Label[] {
     const obj = JSON.parse(line)
     for (const key of Object.keys(obj)) {
       const aliasKey = key.toLowerCase()
-      if (bip329Alias[aliasKey] !== undefined) {
-        const field = bip329Alias[aliasKey]
-        if (field === key) {
-          continue
-        }
-        const value = obj[key]
-        obj[field] = value
+      if (bip329Alias[aliasKey] === undefined) {
+        delete obj[key]
+        continue
       }
+      const field = bip329Alias[aliasKey]
+      if (field === key) {
+        continue
+      }
+      obj[field] = obj[key]
       delete obj[key]
     }
     labels.push(obj as Label)

@@ -74,11 +74,9 @@ export default function ImportExtendedPub() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
-  // State for import data
   const [xpub, setXpub] = useState('')
   const [localFingerprint, setLocalFingerprint] = useState('')
 
-  // Validation state
   const [disabled, setDisabled] = useState(true)
   const [validXpub, setValidXpub] = useState(true)
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
@@ -172,12 +170,10 @@ export default function ImportExtendedPub() {
   }
 
   function convertVpubToTpub(vpub: string): string {
-    // If it's not a vpub, return as is
     if (!vpub.startsWith('vpub')) {
       return vpub
     }
 
-    // Use the network-aware conversion utility
     return convertKeyFormat(vpub, 'tpub', network)
   }
 
@@ -188,7 +184,6 @@ export default function ImportExtendedPub() {
     }
 
     try {
-      // Convert vpub to tpub if needed
       const convertedXpub = convertVpubToTpub(xpub)
       if (xpub !== convertedXpub) {
         toast.info(
@@ -199,25 +194,20 @@ export default function ImportExtendedPub() {
         )
       }
 
-      // Extract derivation path from extended public key
       let derivationPath = ''
 
       if (policyType === 'multisig') {
-        // For multisig accounts, always use our multisig derivation path logic
         const rawDerivationPath = getMultisigDerivationPathFromScriptVersion(
           scriptVersion,
           builderNetwork
         )
         derivationPath = `m/${rawDerivationPath}`
       } else {
-        // For single-sig accounts, try to extract from descriptor first
         try {
-          // Create a descriptor from the extended public key to extract derivation path
           const descriptorString = `pkh(${convertedXpub})`
           const parsedDescriptor = parseDescriptor(descriptorString)
           derivationPath = parsedDescriptor.derivationPath
         } catch {
-          // Use default derivation path if extraction fails
           const rawDerivationPath = getDerivationPathFromScriptVersion(
             scriptVersion,
             builderNetwork
@@ -226,14 +216,11 @@ export default function ImportExtendedPub() {
         }
       }
 
-      // Set the data in the store
       setExtendedPublicKey(convertedXpub)
       setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
 
-      // Create the key
       setKey(Number(keyIndex))
 
-      // Set the derivation path for this key
       setKeyDerivationPath(Number(keyIndex), derivationPath)
 
       clearKeyState()

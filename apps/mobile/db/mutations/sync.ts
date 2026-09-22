@@ -20,7 +20,6 @@ function syncAccountData(
   }
 ) {
   runTransaction((tx) => {
-    // Replace transactions, utxos, addresses
     tx.execute('DELETE FROM transactions WHERE account_id = ?', [accountId])
     tx.execute('DELETE FROM utxos WHERE account_id = ?', [accountId])
     tx.execute('DELETE FROM addresses WHERE account_id = ?', [accountId])
@@ -34,7 +33,6 @@ function syncAccountData(
     upsertAddresses(tx, accountId, data.addresses)
     upsertLabels(tx, accountId, data.labels)
 
-    // Update account summary
     tx.execute(
       `UPDATE accounts SET
         balance = ?, num_addresses = ?, num_transactions = ?,

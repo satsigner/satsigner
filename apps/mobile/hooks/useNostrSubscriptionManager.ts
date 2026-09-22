@@ -158,7 +158,6 @@ function useNostrSubscriptionManager() {
           return
         }
 
-        // Process any pending events before cleanup
         for (const api of existingApis) {
           await api.flushQueue?.()
         }

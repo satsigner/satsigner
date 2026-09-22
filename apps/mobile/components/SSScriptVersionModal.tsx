@@ -41,7 +41,6 @@ function SSScriptVersionModal({
 }: SSScriptVersionModalProps) {
   const [localScriptVersion, setLocalScriptVersion] = useState(scriptVersion)
 
-  // Choose script versions based on policy type
   const scriptVersions =
     policyType === 'multisig' ? multiSigScriptVersions : singleSigScriptVersions
 

@@ -100,29 +100,38 @@ export function collectUnresolvedEventIds(
   for (const note of notes) {
     if (note.kind === 6 || note.kind === 16) {
       const parsed = parseRepostOriginalEvent(note.content)
-      if (!parsed) {
-        const fallbackId = getRepostETagEventId(note.tags)
-        if (fallbackId && !alreadyResolved.has(fallbackId)) {
-          ids.add(fallbackId)
-        }
+      if (parsed) {
+        continue
       }
-    } else if (note.kind === 1) {
-      const qIds = getQuoteTagEventIds(note.tags)
-      if (qIds.length > 0) {
-        for (const qId of qIds) {
-          if (!alreadyResolved.has(qId)) {
-            ids.add(qId)
-          }
-        }
-      } else {
-        const matches = note.content.match(NOSTR_EVENT_REF_RE) ?? []
-        for (const ref of matches) {
-          const id = decodeNostrEventRef(ref)
-          if (id && !alreadyResolved.has(id)) {
-            ids.add(id)
-          }
-        }
+      const fallbackId = getRepostETagEventId(note.tags)
+      if (fallbackId && !alreadyResolved.has(fallbackId)) {
+        ids.add(fallbackId)
       }
+      continue
+    }
+
+    if (note.kind !== 1) {
+      continue
+    }
+
+    const qIds = getQuoteTagEventIds(note.tags)
+    if (qIds.length > 0) {
+      for (const qId of qIds) {
+        if (alreadyResolved.has(qId)) {
+          continue
+        }
+        ids.add(qId)
+      }
+      continue
+    }
+
+    const matches = note.content.match(NOSTR_EVENT_REF_RE) ?? []
+    for (const ref of matches) {
+      const id = decodeNostrEventRef(ref)
+      if (!id || alreadyResolved.has(id)) {
+        continue
+      }
+      ids.add(id)
     }
   }
 

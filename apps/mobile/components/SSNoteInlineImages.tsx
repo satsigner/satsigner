@@ -86,13 +86,11 @@ function SSNoteInlineImages({ uris, style }: SSNoteInlineImagesProps) {
   }
 
   async function handleLongPress(uri: string, dimensions: ImageDimensions) {
-    // Show drawer immediately with what we know
     setSelectedImage({
       height: dimensions.height,
       uri,
       width: dimensions.width
     })
-    // Fetch HTTP headers and EXIF in parallel
     const [meta, exif] = await Promise.all([
       fetchImageMeta(uri),
       parseImageExif(uri)

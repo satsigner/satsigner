@@ -111,7 +111,6 @@ function detectBitcoinContent(data: string): DetectedContent | null {
     }
   }
 
-  // Check for transaction
   const transactionData = stripBitcoinPrefix(trimmed)
   if (isBitcoinTransaction(transactionData)) {
     return {
@@ -330,7 +329,6 @@ function detectLightningContent(data: string): DetectedContent | null {
     }
   }
 
-  // Check for BOLT12 offers (lno prefix)
   if (lowerTrimmed.startsWith('lno')) {
     const validation = validateBolt12(lowerTrimmed)
     return {

@@ -378,7 +378,6 @@ export default function DevicesGroupChat() {
         } catch {
           continue
         }
-        // Skip if we already have profile data or are already fetching this run
         if (
           profiles[npub]?.displayName ||
           profiles[npub]?.picture ||
@@ -391,12 +390,13 @@ export default function DevicesGroupChat() {
         try {
           const api = new NostrAPI(relays)
           const result = await api.fetchKind0(npub)
-          if (result?.displayName || result?.picture) {
-            setProfile(npub, {
-              displayName: result.displayName,
-              picture: result.picture
-            })
+          if (!result?.displayName && !result?.picture) {
+            continue
           }
+          setProfile(npub, {
+            displayName: result.displayName,
+            picture: result.picture
+          })
         } catch {
           // ignore fetch errors — truncated npub remains as fallback
         }

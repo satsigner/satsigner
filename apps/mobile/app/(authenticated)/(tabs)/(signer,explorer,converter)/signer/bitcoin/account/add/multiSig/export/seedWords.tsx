@@ -70,9 +70,7 @@ export default function SeedWordsPage() {
     if (accountData && key) {
       setIsLoading(false)
 
-      // Check if we're in creation mode (plain text mnemonic)
       if (typeof key.secret === 'object' && key.secret.mnemonic) {
-        // In creation mode, no PIN needed - directly show mnemonic
         setMnemonic(key.secret.mnemonic)
         setShowPinEntry(false)
       } else {

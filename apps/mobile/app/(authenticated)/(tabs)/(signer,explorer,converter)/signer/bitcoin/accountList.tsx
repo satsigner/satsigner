@@ -333,14 +333,12 @@ export default function AccountList() {
 
     setNetwork(currentNetwork)
 
-    // Also ensure the global blockchain network is set correctly
     if (currentNetwork !== network) {
       setSelectedNetwork(currentNetwork)
     }
 
     switch (type) {
       case 'segwit': {
-        // Generate fingerprint and extended public key from mnemonic
         const fingerprint = getFingerprintFromMnemonic(sampleSignetWalletSeed)
         const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
           sampleSignetWalletSeed,
@@ -410,13 +408,11 @@ export default function AccountList() {
         }
         break
       case 'multisig': {
-        // Set up multisig configuration
         setPolicyType('multisig')
         setScriptVersion('P2WSH')
         setKeyCount(3)
         setKeysRequired(2)
 
-        // Key 1: Mnemonic
         setMnemonic(sampleSignetMultisigKey1)
         setMnemonicWordCount(12)
         setCreationType('importMnemonic')
@@ -433,7 +429,6 @@ export default function AccountList() {
         setExtendedPublicKey(extendedPublicKey1)
         setKey(0)
 
-        // Key 2: Mnemonic
         setMnemonic(sampleSignetMultisigKey2)
         setMnemonicWordCount(12)
         setCreationType('importMnemonic')
@@ -450,7 +445,6 @@ export default function AccountList() {
         setExtendedPublicKey(extendedPublicKey2)
         setKey(1)
 
-        // Key 3: Extended Public Key
         setCreationType('importExtendedPub')
         setExtendedPublicKey(sampleSignetMultisigKey3Xpub)
         setFingerprint(sampleSignetMultisigKey3Fingerprint)
@@ -467,7 +461,6 @@ export default function AccountList() {
 
     const account = getAccountData()
 
-    // Validate account data structure
     if (
       !account.name ||
       !account.network ||
@@ -484,7 +477,6 @@ export default function AccountList() {
       throw new Error('Mnemonic secret not properly set')
     }
 
-    // Additional validation for mnemonic-based wallets
     if (['segwit', 'legacy'].includes(type)) {
       const [key] = account.keys
       if (
@@ -499,7 +491,6 @@ export default function AccountList() {
       }
     }
 
-    // Additional validation for multisig wallets
     if (type === 'multisig') {
       if (account.keys.length !== 3) {
         throw new Error('Multisig account must have exactly 3 keys')
@@ -507,7 +498,6 @@ export default function AccountList() {
       if (account.keyCount !== 3 || account.keysRequired !== 2) {
         throw new Error('Multisig configuration invalid')
       }
-      // Validate that first two keys have mnemonic secrets
       for (let i = 0; i < 2; i += 1) {
         const key = account.keys[i]
         if (
@@ -518,7 +508,6 @@ export default function AccountList() {
           throw new Error(`Mnemonic not properly set in key ${i + 1}`)
         }
       }
-      // Validate that third key has extended public key
       const [key3] = account.keys.slice(2)
       if (
         !key3.secret ||
@@ -529,7 +518,6 @@ export default function AccountList() {
       }
     }
 
-    // Add timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_resolve, reject) => {
       setTimeout(
         () => reject(new Error('Wallet creation timed out after 30 seconds')),

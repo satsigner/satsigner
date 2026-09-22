@@ -180,23 +180,19 @@ export default function InvoicePage() {
       return false
     }
 
-    // If we can't determine the type from the URL, try to fetch details
     if (!lnurlType) {
       try {
         const url = decodeLNURL(lnurl)
         const details = await fetchLNURLWithdrawDetails(url)
 
-        // If we get here, it's a valid withdraw LNURL
         setLnurlDetails(details)
         setIsLNURLMode(true)
 
-        // Pre-populate amount with max withdrawable if available
         if (details.maxWithdrawable) {
           const maxSats = Math.floor(details.maxWithdrawable / 1000)
           setInvoiceAmount(maxSats.toString())
         }
 
-        // Pre-populate description if available
         if (details.defaultDescription) {
           setInvoiceDescription(details.defaultDescription)
         }
@@ -216,13 +212,11 @@ export default function InvoicePage() {
         setLnurlDetails(details)
         setIsLNURLMode(true)
 
-        // Pre-populate amount with max withdrawable if available
         if (details.maxWithdrawable) {
           const maxSats = Math.floor(details.maxWithdrawable / 1000)
           setInvoiceAmount(maxSats.toString())
         }
 
-        // Pre-populate description if available
         if (details.defaultDescription) {
           setInvoiceDescription(details.defaultDescription)
         }
@@ -246,7 +240,6 @@ export default function InvoicePage() {
         return
       }
 
-      // Clean the text (remove any whitespace)
       const cleanText = text.trim()
 
       if (cleanText.toLowerCase().startsWith('lnbc')) {
@@ -267,7 +260,6 @@ export default function InvoicePage() {
     const data = content.cleaned
 
     if (data.toLowerCase().startsWith('lnbc')) {
-      // Handle bolt11 invoice
       setPaymentRequest(data)
       setQrModalVisible(true)
     } else if (isLNURL(data)) {

@@ -62,7 +62,6 @@ export default function DescriptorPage() {
       setCreationType(key.creationType)
       setScriptVersion(key.scriptVersion || 'P2WPKH')
 
-      // Get descriptor from the key data
       let foundDescriptor = ''
       if (typeof key.secret === 'object') {
         const secret = key.secret as Secret
@@ -80,7 +79,6 @@ export default function DescriptorPage() {
             appNetworkToBdkNetwork(network)
           )
         } else if (secret.extendedPublicKey && secret.fingerprint) {
-          // Generate descriptor from available data (fingerprint, script version, and public key)
           try {
             const descriptors = getDescriptorsFromKey(
               secret.extendedPublicKey,
@@ -126,7 +124,6 @@ export default function DescriptorPage() {
                 externalDescriptor = `wpkh(${keyPart})`
             }
 
-            // Validate descriptor with BDK
             try {
               walletNameFromDescriptor(
                 externalDescriptor,
@@ -143,7 +140,6 @@ export default function DescriptorPage() {
         }
       }
 
-      // Check if we found a descriptor
       if (foundDescriptor) {
         setDescriptor(foundDescriptor)
       } else {

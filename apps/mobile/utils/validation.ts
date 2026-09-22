@@ -11,7 +11,6 @@ import { EXTENDED_PUBKEY_PATTERN } from '@/utils/descriptor'
 
 bitcoinjs.initEccLib(ecc)
 
-// Define valid key prefixes for each network
 const NETWORK_KEY_PREFIXES: Record<AppNetwork, string[]> = {
   bitcoin: ['xpub', 'ypub', 'zpub', 'vpub'],
   signet: ['tpub', 'upub', 'vpub'],
@@ -43,7 +42,6 @@ export function validateFingerprint(fingerprint: string) {
   return fingerprint.match(new RegExp('^[a-fA-F0-9]{8}$')) !== null
 }
 
-// Function to validate descriptor checksum using BDK
 function validateDescriptorChecksum(descriptor: string) {
   // Try the descriptor as-is first (works for h-notation with valid checksum)
   if (
@@ -93,7 +91,6 @@ function validateDescriptorInternal(
   const checksumRegex = new RegExp(`#[a-zA-Z0-9]{1,8}$`)
   const nestedKindRegex = new RegExp(`^${nestedKind}\\(`)
 
-  // main regex to parse the descriptor
   const singleKeyRegex = new RegExp(singleKey, 'gm')
   const multiKeyRegex = new RegExp(multiKey, 'gm')
   const nestedRegex = new RegExp(nestedDescriptor, 'gm')
@@ -111,7 +108,6 @@ function validateDescriptorInternal(
   // Because we remove it, we also do not need to check it again.
   let currentItem = descriptor.replace(checksumRegex, '')
 
-  // Check for proper closing parenthesis
   if (!currentItem.endsWith(')')) {
     return false
   }
@@ -124,17 +120,14 @@ function validateDescriptorInternal(
       return true
     }
 
-    // extract it
     currentItem = currentItem.replace(nestedKindRegex, '').replace(/\)$/, '')
   }
 
-  // Check for derivation path format in the current item
   const derivationPathMatch = currentItem.match(
     /\[([a-fA-F0-9]{8})?([0-9]+[h']?\/)*[0-9]+[h']?\]/
   )
   if (derivationPathMatch) {
     const [derivationPath] = derivationPathMatch
-    // Validate fingerprint if present
     const fingerprintMatch = derivationPath.match(/\[([a-fA-F0-9]{8})/)
     if (
       fingerprintMatch &&
@@ -144,7 +137,6 @@ function validateDescriptorInternal(
       return false
     }
 
-    // Validate derivation path components
     const pathComponents = derivationPath.match(/[0-9]+[h']?/g)
     if (pathComponents) {
       for (const component of pathComponents) {
@@ -155,7 +147,6 @@ function validateDescriptorInternal(
     }
   }
 
-  // Check if it's a combined descriptor first (special case)
   if (isCombinedDescriptor(currentItem)) {
     // For combined descriptors, use the exact pattern that works
     const combinedPattern = new RegExp(
@@ -176,13 +167,11 @@ function validateDescriptorInternal(
     }
   }
 
-  // It must be either single key or multi key
   const result =
     singleKeyRegex.test(currentItem) || multiKeyRegex.test(currentItem)
 
   // If the regex validation fails, try a more lenient approach for extended public keys
   if (!result) {
-    // Check if it's a basic descriptor with extended public key
     const basicDescriptorPattern = new RegExp(
       `^${kind}\\(\\[([a-fA-F0-9]{8})?([0-9]+[h']?/)*[0-9]+[h']?\\][a-zA-Z0-9]+(/[0-9*]|<0[,;]1>)*\\)$`
     )
@@ -190,7 +179,6 @@ function validateDescriptorInternal(
       return true
     }
 
-    // Check if it's a multi descriptor with public keys
     const multiPublicKeyPattern = new RegExp(
       `^${multiKind}\\([1-9][0-9]*,([0-9]{2}[a-fA-F0-9]{64},)*[0-9]{2}[a-fA-F0-9]{64}\\)$`
     )
@@ -198,7 +186,6 @@ function validateDescriptorInternal(
       return true
     }
 
-    // Check if it's a multi descriptor with extended public keys
     const multiExtendedKeyPattern = new RegExp(
       `^${multiKind}\\([1-9][0-9]*,.*\\)$`
     )
@@ -218,7 +205,6 @@ function validateDescriptorInternal(
       }
     }
 
-    // Check for specific issues
     if (currentItem.includes('[') && !currentItem.includes(']')) {
       return false
     }
@@ -282,7 +268,6 @@ export function isCombinedDescriptor(descriptor: string): boolean {
   return /<0[,;]1>/.test(descriptor)
 }
 
-// Function to separate a combined descriptor into external and internal descriptors
 function separateCombinedDescriptor(combinedDescriptor: string) {
   const external = combinedDescriptor.replace(/<0[,;]1>/, '0')
   const internal = combinedDescriptor.replace(/<0[,;]1>/, '1')
@@ -294,11 +279,9 @@ export function validateCombinedDescriptor(
   scriptVersion?: ScriptVersionType,
   networkType?: string
 ) {
-  // Validate the full combined descriptor including checksum
   const combinedValidation = validateDescriptor(combinedDescriptor)
 
   if (!combinedValidation) {
-    // If combined descriptor is invalid, return the error
     const { external, internal } =
       separateCombinedDescriptor(combinedDescriptor)
 
@@ -310,7 +293,6 @@ export function validateCombinedDescriptor(
     }
   }
 
-  // Validate script function against selected script version
   let scriptVersionValidation = false
   if (scriptVersion) {
     scriptVersionValidation = validateDescriptorScriptVersion(
@@ -331,17 +313,14 @@ export function validateCombinedDescriptor(
     }
   }
 
-  // Separate the combined descriptor first
   const { external: externalDesc, internal: internalDesc } =
     separateCombinedDescriptor(combinedDescriptor)
 
-  // Network validation - check if descriptor is compatible with selected network
   let networkValidation: { isValid: boolean; error?: string } = {
     isValid: true
   }
 
   if (networkType && combinedDescriptor) {
-    // Map networkType string to BDK Network enum
     let bdkNetwork = Network.Bitcoin
     if (networkType === 'testnet') {
       bdkNetwork = Network.Testnet

@@ -97,7 +97,6 @@ export default function GenerateMnemonic() {
   }
 
   async function handleOnPressConfirm() {
-    // Extract derivation path from mnemonic
     let derivationPath = ''
 
     if (policyType === 'multisig') {
@@ -109,7 +108,6 @@ export default function GenerateMnemonic() {
       )
       derivationPath = `m/${rawDerivationPath}`
 
-      // Generate extended public key first using the same method as import flow
       const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
         mnemonic,
         passphrase || '',
@@ -117,7 +115,6 @@ export default function GenerateMnemonic() {
         scriptVersion
       )
 
-      // Generate descriptors from the key data
       if (extendedPublicKey && fingerprint) {
         try {
           const descriptors = getDescriptorsFromKey(
@@ -128,17 +125,14 @@ export default function GenerateMnemonic() {
             policyType === 'multisig' // Pass multisig flag
           )
 
-          // Set global state values so setKey includes them
           setExtendedPublicKey(extendedPublicKey)
           setExternalDescriptor(descriptors.externalDescriptor)
           setInternalDescriptor(descriptors.internalDescriptor)
         } catch {
-          // Continue without descriptors if generation fails
           setExtendedPublicKey(extendedPublicKey)
         }
       }
     } else {
-      // For single-sig accounts, try to extract from BDK descriptor first
       try {
         const externalDescriptor = await getDescriptorString(
           mnemonic,
@@ -150,7 +144,6 @@ export default function GenerateMnemonic() {
         const parsedDescriptor = parseDescriptor(externalDescriptor)
         derivationPath = parsedDescriptor.derivationPath
       } catch {
-        // Use default derivation path if extraction fails
         const rawDerivationPath = getDerivationPathFromScriptVersion(
           scriptVersion,
           network

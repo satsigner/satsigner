@@ -13,7 +13,6 @@ function useNostrStatus(accountId: string) {
   const [status, setStatus] = useState<NostrSyncStatus>(storeStatus)
 
   useEffect(() => {
-    // Update local state when store changes
     setStatus(storeStatus)
   }, [storeStatus])
 
