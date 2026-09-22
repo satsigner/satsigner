@@ -38,8 +38,8 @@ import {
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
-  extractDerivationPathFromDescriptor,
-  extractFingerprint,
+  getDescriptorDerivationPath,
+  getFingerprint,
   parseImportedDescriptorPayload
 } from '@/utils/descriptor'
 import {
@@ -267,7 +267,7 @@ export default function ImportDescriptor() {
   function handleConfirm() {
     try {
       // Extract fingerprint from the descriptor if possible
-      const fingerprint = extractFingerprint(externalDescriptor)
+      const fingerprint = getFingerprint(externalDescriptor)
 
       // Extract extended public key and derivation path
       const { extendedPublicKey, derivationPath } =
@@ -306,7 +306,7 @@ export default function ImportDescriptor() {
   }
 
   function resolveDerivationPath(descriptor: string) {
-    const bracketPath = extractDerivationPathFromDescriptor(descriptor)
+    const bracketPath = getDescriptorDerivationPath(descriptor)
     if (bracketPath) {
       return bracketPath
     }

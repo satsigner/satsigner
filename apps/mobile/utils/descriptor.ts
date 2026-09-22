@@ -41,12 +41,12 @@ export function createDescriptorFromXpub(
   }
 }
 
-export function extractCleanXpub(xpubWithPrefix: string): string {
+export function getCleanXpub(xpubWithPrefix: string): string {
   const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})$/)
   return xpubMatch ? xpubMatch[1] : xpubWithPrefix
 }
 
-export function extractDerivationFromOrigin(text: string) {
+export function getOriginDerivation(text: string) {
   const originMatch = text.match(/^\[([0-9a-fA-F]{8})\/([^\]]+)\]/)
   if (!originMatch) {
     return null
@@ -58,8 +58,8 @@ export function extractDerivationFromOrigin(text: string) {
   return derivation.startsWith('m/') ? derivation : `m/${derivation}`
 }
 
-/** Same as extractDerivationFromOrigin but the origin bracket need not be at the start (e.g. wpkh([fp/84h/0h/0h]xpub.../0/*)). */
-export function extractDerivationPathFromDescriptor(
+/** Same as getOriginDerivation but the origin bracket need not be at the start (e.g. wpkh([fp/84h/0h/0h]xpub.../0/*)). */
+export function getDescriptorDerivationPath(
   descriptor: string
 ): string {
   const bracketMatch = descriptor.match(
@@ -68,12 +68,12 @@ export function extractDerivationPathFromDescriptor(
   return bracketMatch ? `m/${bracketMatch[1]}` : ''
 }
 
-export function extractFingerprint(descriptor: string): string {
+export function getFingerprint(descriptor: string): string {
   const fingerprintMatch = descriptor.match(KEY_ORIGIN_FINGERPRINT_PATTERN)
   return fingerprintMatch ? fingerprintMatch[1] : ''
 }
 
-export function extractFingerprintFromXpub(xpubWithPrefix: string) {
+export function getXpubFingerprint(xpubWithPrefix: string) {
   const originMatch = xpubWithPrefix.match(KEY_ORIGIN_FINGERPRINT_PATTERN)
   return originMatch ? originMatch[1] : null
 }
@@ -141,9 +141,9 @@ export function parseLegacyDescriptor(text: string) {
 
 export function parseXpubInput(text: string) {
   const trimmed = text.trim()
-  const fingerprint = extractFingerprintFromXpub(trimmed)
-  const xpub = extractCleanXpub(trimmed)
-  const derivationPath = extractDerivationFromOrigin(trimmed)
+  const fingerprint = getXpubFingerprint(trimmed)
+  const xpub = getCleanXpub(trimmed)
+  const derivationPath = getOriginDerivation(trimmed)
   return {
     derivationPath,
     fingerprint,
@@ -263,7 +263,7 @@ export async function processCombinedDescriptor(
     }
   }
 
-  const fingerprint = extractFingerprint(validation.externalDescriptor)
+  const fingerprint = getFingerprint(validation.externalDescriptor)
 
   return {
     external: validation.externalDescriptor,

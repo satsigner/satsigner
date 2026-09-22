@@ -19,7 +19,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
-import { extractFingerprintFromXpub } from '@/utils/descriptor'
+import { getXpubFingerprint } from '@/utils/descriptor'
 import {
   validateDescriptor,
   validateDescriptorScriptVersion
@@ -198,7 +198,7 @@ export default function ImportDescriptor() {
         const [, ...restParts] = bracketContent.split('/')
         const derivationPath = restParts.join('/')
 
-        const fingerprint = extractFingerprintFromXpub(key)
+        const fingerprint = getXpubFingerprint(key)
         if (!fingerprint) {
           throw new Error(`Invalid key format at index ${index}`)
         }

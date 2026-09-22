@@ -55,8 +55,8 @@ import {
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
 import {
-  extractDerivationPathFromDescriptor,
-  extractFingerprint
+  getDescriptorDerivationPath,
+  getFingerprint
 } from '@/utils/descriptor'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import {
@@ -535,8 +535,8 @@ function parseDescriptor(descriptorString: string) {
     return { derivationPath: '', fingerprint: '' }
   }
   return {
-    derivationPath: extractDerivationPathFromDescriptor(descriptorString),
-    fingerprint: extractFingerprint(descriptorString)
+    derivationPath: getDescriptorDerivationPath(descriptorString),
+    fingerprint: getFingerprint(descriptorString)
   }
 }
 

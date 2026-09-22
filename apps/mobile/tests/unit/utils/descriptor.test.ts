@@ -1,9 +1,9 @@
 import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import {
-  extractDerivationPathFromDescriptor,
-  extractFingerprint,
-  extractFingerprintFromXpub,
+  getDescriptorDerivationPath,
+  getFingerprint,
+  getXpubFingerprint,
   parseImportedDescriptorPayload,
   parseXpubInput
 } from '@/utils/descriptor'
@@ -19,25 +19,25 @@ const H_NOTATION_DESCRIPTOR =
 
 describe('descriptor origin extraction', () => {
   it("extracts fingerprint from Sparrow [fp/84'/0'/0']xpub", () => {
-    expect(extractFingerprintFromXpub(SPARROW_ORIGIN_XPUB)).toBe('d34db33f')
-    expect(extractFingerprint(SPARROW_DESCRIPTOR)).toBe('d34db33f')
+    expect(getXpubFingerprint(SPARROW_ORIGIN_XPUB)).toBe('d34db33f')
+    expect(getFingerprint(SPARROW_DESCRIPTOR)).toBe('d34db33f')
   })
 
   it('extracts fingerprint from h-notation origin', () => {
-    expect(extractFingerprint(H_NOTATION_DESCRIPTOR)).toBe('deadbeef')
+    expect(getFingerprint(H_NOTATION_DESCRIPTOR)).toBe('deadbeef')
   })
 
   it('extracts fingerprint from an origin with no derivation path', () => {
-    expect(extractFingerprint('wpkh([deadbeef]xpubABC)')).toBe('deadbeef')
-    expect(extractFingerprintFromXpub('[deadbeef]xpubABC')).toBe('deadbeef')
+    expect(getFingerprint('wpkh([deadbeef]xpubABC)')).toBe('deadbeef')
+    expect(getXpubFingerprint('[deadbeef]xpubABC')).toBe('deadbeef')
   })
 
   it('requires exactly eight hex chars followed by / or ]', () => {
-    expect(extractFingerprintFromXpub('[deadbee/84h]xpub')).toBeNull()
-    expect(extractFingerprintFromXpub('[deadbeeff/84h]xpub')).toBeNull()
-    expect(extractFingerprintFromXpub('[deadbeeg]xpub')).toBeNull()
-    expect(extractFingerprintFromXpub('[deadbeef/84h]xpub')).toBe('deadbeef')
-    expect(extractFingerprint('[deadbee/84h]xpub')).toBe('')
+    expect(getXpubFingerprint('[deadbee/84h]xpub')).toBeNull()
+    expect(getXpubFingerprint('[deadbeeff/84h]xpub')).toBeNull()
+    expect(getXpubFingerprint('[deadbeeg]xpub')).toBeNull()
+    expect(getXpubFingerprint('[deadbeef/84h]xpub')).toBe('deadbeef')
+    expect(getFingerprint('[deadbee/84h]xpub')).toBe('')
   })
 
   it('parses xpub, fingerprint, and derivation from origin', () => {
@@ -67,21 +67,21 @@ describe('descriptor origin extraction', () => {
   })
 })
 
-describe('extractDerivationPathFromDescriptor', () => {
+describe('getDescriptorDerivationPath', () => {
   it('extracts the path from a mid-descriptor origin bracket', () => {
-    expect(extractDerivationPathFromDescriptor(SPARROW_DESCRIPTOR)).toBe(
+    expect(getDescriptorDerivationPath(SPARROW_DESCRIPTOR)).toBe(
       "m/84'/0'/0'"
     )
   })
 
   it('handles h-notation hardened markers', () => {
-    expect(extractDerivationPathFromDescriptor(H_NOTATION_DESCRIPTOR)).toBe(
+    expect(getDescriptorDerivationPath(H_NOTATION_DESCRIPTOR)).toBe(
       'm/84h/0h/0h'
     )
   })
 
   it('returns empty string when there is no origin bracket', () => {
-    expect(extractDerivationPathFromDescriptor('wpkh(xpubABC/0/*)')).toBe('')
+    expect(getDescriptorDerivationPath('wpkh(xpubABC/0/*)')).toBe('')
   })
 })
 

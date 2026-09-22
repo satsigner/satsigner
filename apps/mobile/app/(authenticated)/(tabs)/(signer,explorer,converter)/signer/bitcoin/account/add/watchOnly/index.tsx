@@ -50,7 +50,7 @@ import {
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
-  extractFingerprint,
+  getFingerprint,
   parseImportedDescriptorPayload,
   parseJsonDescriptor,
   parseLegacyDescriptor,
@@ -449,7 +449,7 @@ export default function WatchOnly() {
     if (localFingerprint) {
       return
     }
-    const extractedFingerprint = extractFingerprint(descriptor)
+    const extractedFingerprint = getFingerprint(descriptor)
     if (!extractedFingerprint) {
       return
     }
