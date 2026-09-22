@@ -1,6 +1,7 @@
 import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import {
+  extractDerivationPathFromDescriptor,
   extractFingerprint,
   extractFingerprintFromXpub,
   parseImportedDescriptorPayload,
@@ -63,6 +64,24 @@ describe('descriptor origin extraction', () => {
     const key = store.setKey(0)
     expect(key.fingerprint).toBe(UNKNOWN_MASTER_FINGERPRINT)
     store.clearAccount()
+  })
+})
+
+describe('extractDerivationPathFromDescriptor', () => {
+  it('extracts the path from a mid-descriptor origin bracket', () => {
+    expect(extractDerivationPathFromDescriptor(SPARROW_DESCRIPTOR)).toBe(
+      "m/84'/0'/0'"
+    )
+  })
+
+  it('handles h-notation hardened markers', () => {
+    expect(extractDerivationPathFromDescriptor(H_NOTATION_DESCRIPTOR)).toBe(
+      'm/84h/0h/0h'
+    )
+  })
+
+  it('returns empty string when there is no origin bracket', () => {
+    expect(extractDerivationPathFromDescriptor('wpkh(xpubABC/0/*)')).toBe('')
   })
 })
 
