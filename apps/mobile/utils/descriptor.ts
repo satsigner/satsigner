@@ -8,7 +8,7 @@ import {
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
 
-const KEY_ORIGIN_FINGERPRINT_PATTERN = /\[([0-9a-fA-F]{8})(?:\/|\]|[0-9'/h])/
+const KEY_ORIGIN_FINGERPRINT_PATTERN = /\[([0-9a-fA-F]{8})[/\]]/
 
 /** Base58 tail can omit 0/O/I/l but BDK may emit other encodings, so match broadly. */
 export const EXTENDED_PUBKEY_PATTERN = '([xyztuv]pub)[A-Za-z0-9]+'
@@ -75,12 +75,7 @@ export function extractFingerprint(descriptor: string): string {
 
 export function extractFingerprintFromXpub(xpubWithPrefix: string) {
   const originMatch = xpubWithPrefix.match(KEY_ORIGIN_FINGERPRINT_PATTERN)
-  if (originMatch) {
-    return originMatch[1]
-  }
-
-  const fallbackMatch = xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
-  return fallbackMatch ? fallbackMatch[1] : null
+  return originMatch ? originMatch[1] : null
 }
 
 export function getScriptVersionFromDerivation(

@@ -31,6 +31,14 @@ describe('descriptor origin extraction', () => {
     expect(extractFingerprintFromXpub('[deadbeef]xpubABC')).toBe('deadbeef')
   })
 
+  it('requires exactly eight hex chars followed by / or ]', () => {
+    expect(extractFingerprintFromXpub('[deadbee/84h]xpub')).toBeNull()
+    expect(extractFingerprintFromXpub('[deadbeeff/84h]xpub')).toBeNull()
+    expect(extractFingerprintFromXpub('[deadbeeg]xpub')).toBeNull()
+    expect(extractFingerprintFromXpub('[deadbeef/84h]xpub')).toBe('deadbeef')
+    expect(extractFingerprint('[deadbee/84h]xpub')).toBe('')
+  })
+
   it('parses xpub, fingerprint, and derivation from origin', () => {
     const parsed = parseXpubInput(SPARROW_ORIGIN_XPUB)
     expect(parsed.fingerprint).toBe('d34db33f')
