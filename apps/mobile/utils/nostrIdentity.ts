@@ -9,6 +9,7 @@ import type {
   NostrEnhancedZapTags
 } from '@/types/models/Nostr'
 import { generateMnemonic, mnemonicToSeed } from '@/utils/bip39'
+import { formatShortPubkey } from '@/utils/format'
 import { deriveNpubFromNsec } from '@/utils/nostr'
 
 export function deriveNostrKeysFromMnemonic(
@@ -224,8 +225,5 @@ export function npubFromNsec(nsec: string): string | null {
 }
 
 export function truncateNpub(npub: string, chars = 8): string {
-  if (npub.length <= chars * 2 + 3) {
-    return npub
-  }
-  return `${npub.slice(0, chars)}...${npub.slice(-chars)}`
+  return formatShortPubkey(npub, chars, chars)
 }

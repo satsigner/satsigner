@@ -17,16 +17,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { formatAddress } from '@/utils/format'
 import { parseUriParameters, stripBitcoinPrefix } from '@/utils/parse'
 
 const tn = _tn('explorer.address')
-
-function formatExampleAddress(address: string): string {
-  if (address.length <= 20) {
-    return address
-  }
-  return `${address.slice(0, 10)}...${address.slice(-8)}`
-}
 
 function resolveExplorerAddressInput(raw: string): string {
   const stripped = stripBitcoinPrefix(raw.trim())
@@ -158,7 +152,7 @@ export default function ExplorerAddress() {
                       {ex.description}
                     </SSText>
                     <SSText type="mono" size="xxs" color="muted">
-                      {formatExampleAddress(ex.address)}
+                      {formatAddress(ex.address, 10, 8)}
                     </SSText>
                   </SSVStack>
                   <SSIconChevronRight

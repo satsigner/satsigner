@@ -25,6 +25,7 @@ import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
+import { formatTxId } from '@/utils/format'
 
 const tn = _tn('explorer.transaction')
 
@@ -254,7 +255,7 @@ export default function ExplorerTransaction() {
                       {ex.description}
                     </SSText>
                     <SSText type="mono" size="xxs" color="muted">
-                      {ex.txid.slice(0, 8)}...{ex.txid.slice(-8)}
+                      {formatTxId(ex.txid, 8)}
                     </SSText>
                   </SSVStack>
                   <SSIconChevronRight

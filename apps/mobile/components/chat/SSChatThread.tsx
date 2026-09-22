@@ -13,6 +13,7 @@ import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type NostrChatMessage, type NostrDM } from '@/types/models/Nostr'
+import { formatShortPubkey } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 const SCROLL_THRESHOLD = 40
@@ -51,10 +52,6 @@ function toNostrDM(msg: NostrChatMessage, ownHex: string): NostrDM {
   }
 }
 
-function shortenNpub(npub: string): string {
-  return `${npub.slice(0, 12)}...${npub.slice(-4)}`
-}
-
 /**
  * Shared DM thread: inverted list rendering the SAME message card as the
  * bitcoin devices group chat (SSNostrMessage), "new messages" pill, and the
@@ -90,7 +87,7 @@ export default function SSChatThread({
       map.set(ownHex, {
         color: Colors.white,
         displayName: ownDisplayName,
-        npubShort: shortenNpub(ownNpub)
+        npubShort: formatShortPubkey(ownNpub, 12, 4)
       })
     }
     for (const msg of messages) {
@@ -104,7 +101,7 @@ export default function SSChatThread({
       map.set(msg.peerPubkey, {
         color: Colors.gray[500],
         displayName: profile?.displayName,
-        npubShort: shortenNpub(peerNpub),
+        npubShort: formatShortPubkey(peerNpub, 12, 4),
         picture: profile?.picture
       })
     }

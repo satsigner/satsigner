@@ -7,6 +7,7 @@ import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type NostrChatConversation } from '@/types/models/Nostr'
+import { formatShortPubkey } from '@/utils/format'
 
 type SSNostrConversationListProps = {
   conversations: NostrChatConversation[]
@@ -20,10 +21,6 @@ function formatConversationTime(timestamp: number): string {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
   return date.toLocaleDateString()
-}
-
-function shortenNpub(npub: string): string {
-  return `${npub.slice(0, 12)}…${npub.slice(-4)}`
 }
 
 function ConversationRow({
@@ -52,18 +49,20 @@ function ConversationRow({
         ) : (
           <View style={styles.avatarFallback}>
             <SSText size="md" style={styles.avatarFallbackText}>
-              {(displayName ?? shortenNpub(peerNpub)).slice(0, 1).toUpperCase()}
+              {(displayName ?? formatShortPubkey(peerNpub, 12, 4))
+                .slice(0, 1)
+                .toUpperCase()}
             </SSText>
           </View>
         )}
       </View>
       <View style={styles.rowContent}>
         <SSText weight="medium" numberOfLines={1}>
-          {displayName ?? shortenNpub(peerNpub)}
+          {displayName ?? formatShortPubkey(peerNpub, 12, 4)}
         </SSText>
         {displayName ? (
           <SSText size="xs" color="muted">
-            {shortenNpub(peerNpub)}
+            {formatShortPubkey(peerNpub, 12, 4)}
           </SSText>
         ) : null}
         <SSText size="sm" color="muted" numberOfLines={1}>

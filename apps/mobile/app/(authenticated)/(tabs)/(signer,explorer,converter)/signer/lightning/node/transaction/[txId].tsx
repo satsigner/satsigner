@@ -32,7 +32,11 @@ import type {
   LNDGraphNodeInfo
 } from '@/types/models/Lightning'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
-import { formatFiatPrice, formatNumber } from '@/utils/format'
+import {
+  formatFiatPrice,
+  formatNumber,
+  formatShortPubkey
+} from '@/utils/format'
 import { formatLightningTxTimeAgo } from '@/utils/lndTransactionDisplay'
 
 function formatUnixTimestamp(unixSeconds: number): string {
@@ -111,7 +115,7 @@ function shortPubkey(pk: string): string {
   if (!pk) {
     return '—'
   }
-  return `${pk.slice(0, 8)}…${pk.slice(-6)}`
+  return formatShortPubkey(pk, 8, 6)
 }
 
 function HopDiagram({

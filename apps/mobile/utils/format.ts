@@ -5,14 +5,12 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
 import { bytes as _bytes } from '@/utils/bytes'
 
-function formatAddress(address: string, character = 8) {
+function formatAddress(address: string, headChars = 8, tailChars = headChars) {
   if (address.length <= 16) {
     return address
   }
 
-  const beginning = address.substring(0, character)
-  const end = address.substring(address.length - character, address.length)
-  return `${beginning}...${end}`
+  return `${address.slice(0, headChars)}...${address.slice(-tailChars)}`
 }
 
 function formatNumber(
