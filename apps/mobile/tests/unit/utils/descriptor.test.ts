@@ -103,4 +103,40 @@ describe('parseImportedDescriptorPayload', () => {
     expect(parsed?.internal).toBe(internal)
     expect(parsed?.derivedExternal).toBe(false)
   })
+
+  it('parses a valid JSON single descriptor and keeps its fields', () => {
+    const parsed = parseImportedDescriptorPayload(
+      JSON.stringify({ descriptor: SPARROW_DESCRIPTOR })
+    )
+    expect(parsed?.external).toBe(SPARROW_DESCRIPTOR)
+    expect(parsed?.internal).toBe(internal)
+    expect(parsed?.derivedExternal).toBe(false)
+    expect(parsed?.derivedInternal).toBe(true)
+  })
+
+  it('parses a valid JSON combined descriptor and keeps its fields', () => {
+    const combined = SPARROW_DESCRIPTOR.replace('/0/*', '/<0;1>/*')
+    const parsed = parseImportedDescriptorPayload(
+      JSON.stringify({ descriptor: combined })
+    )
+    expect(parsed?.combined).toBe(combined)
+    expect(parsed?.external).toContain('/0/*')
+    expect(parsed?.internal).toContain('/1/*')
+  })
+
+  it('rejects garbage JSON descriptor even with a chain marker', () => {
+    expect(
+      parseImportedDescriptorPayload(
+        JSON.stringify({ descriptor: 'not a descriptor /0/*' })
+      )
+    ).toBeNull()
+  })
+
+  it('rejects garbage JSON combined descriptor with a chain marker', () => {
+    expect(
+      parseImportedDescriptorPayload(
+        JSON.stringify({ descriptor: 'not a descriptor /<0;1>/*' })
+      )
+    ).toBeNull()
+  })
 })

@@ -166,13 +166,27 @@ export function parseImportedDescriptorPayload(text: string) {
   if (jsonResult) {
     if (isCombinedDescriptor(jsonResult.original)) {
       const withoutChecksum = removeChecksum(jsonResult.original)
+      const external = withoutChecksum.replace(/<0[,;]1>/g, '0')
+      const internal = withoutChecksum.replace(/<0[,;]1>/g, '1')
+      if (
+        !validateDescriptorFormat(external.trim()) ||
+        !validateDescriptorFormat(internal.trim())
+      ) {
+        return null
+      }
       return {
         combined: jsonResult.original,
         derivedExternal: true,
         derivedInternal: true,
-        external: withoutChecksum.replace(/<0[,;]1>/g, '0'),
-        internal: withoutChecksum.replace(/<0[,;]1>/g, '1')
+        external,
+        internal
       }
+    }
+    if (
+      !validateDescriptorFormat(jsonResult.external.trim()) ||
+      !validateDescriptorFormat(jsonResult.internal.trim())
+    ) {
+      return null
     }
     return {
       derivedExternal: false,
