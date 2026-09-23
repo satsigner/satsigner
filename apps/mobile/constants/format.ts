@@ -1,6 +1,10 @@
 // Units and thresholds used by the formatters in `@/utils/format`.
 
 export const FILE_SIZE_UNITS = ['B', 'KB', 'MB', 'GB'] as const
+// Decimal places per unit in FILE_SIZE_UNITS; trailing zeros are stripped.
+export const BYTE_UNIT_DECIMALS = [0, 1, 2, 2]
+// Bases for byte formatting: SI (1000) and binary (1024).
+export const BYTES_PER_KB = 1000
 export const BYTES_PER_KIB = 1024
 
 // Short-scale threshold: above it, `formatLargeNumber` spells the word out

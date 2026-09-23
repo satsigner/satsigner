@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import { BYTES_PER_KIB } from '@/constants/format'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import {
@@ -32,7 +33,7 @@ import {
 } from '@/store/imageActions'
 import { Colors, Layout } from '@/styles'
 import { setClipboard } from '@/utils/clipboard'
-import { formatFileSize } from '@/utils/format'
+import { formatBytes } from '@/utils/format'
 import { type ImageExifData } from '@/utils/imageExif'
 
 const DISMISS_DRAG_THRESHOLD = 80
@@ -95,7 +96,7 @@ function HttpMetaSection({ image }: { image: SelectedImageMeta }) {
       {image.fileSize !== undefined ? (
         <MetaRow
           label={t('nostrIdentity.note.imageMetadataFileSize')}
-          value={formatFileSize(image.fileSize)}
+          value={formatBytes(image.fileSize, BYTES_PER_KIB)}
         />
       ) : null}
       {image.contentType ? (

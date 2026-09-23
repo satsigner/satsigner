@@ -1,7 +1,8 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import {
   BILLIARD,
-  BYTES_PER_KIB,
+  BYTE_UNIT_DECIMALS,
+  BYTES_PER_KB,
   COMPACT_LONG_OPTS,
   FILE_SIZE_UNITS,
   QUADRILLION,
@@ -12,7 +13,6 @@ import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
-import { bytes as _bytes } from '@/utils/bytes'
 
 function formatAddress(address: string, headChars = 8, tailChars = headChars) {
   if (address.length <= 16) {
@@ -250,34 +250,21 @@ function formatTxOutputToUtxo(
   }
 }
 
-function formatBytes(bytes: number) {
-  if (bytes >= 1_000_000) {
-    return `${_bytes.toMega(bytes).toFixed(2)} MB`
-  }
-  if (bytes >= 1_000) {
-    return `${_bytes.toKilo(bytes).toFixed(1)} KB`
-  }
-  return `${bytes} B`
-}
-
 /**
- * Human-readable binary file size (B/KB/MB/GB, 1024-based). Bytes stay whole,
- * larger units round to one decimal with trailing zeros stripped ("2 KB").
+ * Human-readable byte size (B/KB/MB/GB). `base` selects SI (1000, default) or
+ * binary (1024) units. Bytes stay whole, larger units keep per-unit decimals
+ * with trailing zeros stripped ("2 KB", "1.5 MB").
  */
-function formatFileSize(bytes: number): string {
+function formatBytes(bytes: number, base: number = BYTES_PER_KB): string {
   const maxUnitIndex = FILE_SIZE_UNITS.length - 1
-  const scaled = Array.from({ length: maxUnitIndex + 1 }, (_, unitIndex) => ({
-    unitIndex,
-    value: bytes / BYTES_PER_KIB ** unitIndex
-  }))
-  const selected =
-    scaled.find((entry) => entry.value < BYTES_PER_KIB) ?? scaled[maxUnitIndex]
-  const rounded =
-    selected.unitIndex === 0
-      ? selected.value
-      : Math.round(selected.value * 10) / 10
+  const unitIndex =
+    bytes < base
+      ? 0
+      : Math.min(maxUnitIndex, Math.floor(Math.log(bytes) / Math.log(base)))
+  const value = bytes / base ** unitIndex
+  const rounded = Number(value.toFixed(BYTE_UNIT_DECIMALS[unitIndex]))
 
-  return `${rounded} ${FILE_SIZE_UNITS[selected.unitIndex]}`
+  return `${rounded} ${FILE_SIZE_UNITS[unitIndex]}`
 }
 
 function formatScaledWord(
@@ -356,7 +343,6 @@ export {
   formatDate,
   formatFeeRateSatPerVb,
   formatFiatPrice,
-  formatFileSize,
   formatLargeNumber,
   formatNostrCardDate,
   formatNumber,

@@ -4,13 +4,14 @@ import {
   type BlobDescriptor
 } from '@/api/blossom'
 import { NostrAPI } from '@/api/nostr'
+import { BYTES_PER_KIB } from '@/constants/format'
 import { NOSTR_BLOSSOM_FILE_DISPLAY_HASH_LENGTH } from '@/constants/nostr'
 import { t } from '@/locales'
 import {
   type BlossomFileCategory,
   type BlossomFileTypeFilter
 } from '@/types/models/Blossom'
-import { formatFileSize } from '@/utils/format'
+import { formatBytes } from '@/utils/format'
 
 export const BLOSSOM_FILE_TYPE_FILTERS: BlossomFileCategory[] = [
   'image',
@@ -24,7 +25,8 @@ type BlossomFileDetailItem =
   | [string, string | number | undefined]
   | [string, string | number | undefined, { copyToClipboard?: boolean }]
 
-export const formatBlossomFileSize = formatFileSize
+export const formatBlossomFileSize = (bytes: number) =>
+  formatBytes(bytes, BYTES_PER_KIB)
 
 export function formatBlossomUploadDate(unixTs: number): string {
   const date = new Date(unixTs * 1000)
