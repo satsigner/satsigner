@@ -7,7 +7,7 @@ import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type NostrChatConversation } from '@/types/models/Nostr'
-import { formatShortPubkey } from '@/utils/format'
+import { formatNpub } from '@/utils/format'
 
 type SSNostrConversationListProps = {
   conversations: NostrChatConversation[]
@@ -49,20 +49,18 @@ function ConversationRow({
         ) : (
           <View style={styles.avatarFallback}>
             <SSText size="md" style={styles.avatarFallbackText}>
-              {(displayName ?? formatShortPubkey(peerNpub, 12, 4))
-                .slice(0, 1)
-                .toUpperCase()}
+              {(displayName ?? formatNpub(peerNpub)).slice(0, 1).toUpperCase()}
             </SSText>
           </View>
         )}
       </View>
       <View style={styles.rowContent}>
         <SSText weight="medium" numberOfLines={1}>
-          {displayName ?? formatShortPubkey(peerNpub, 12, 4)}
+          {displayName ?? formatNpub(peerNpub)}
         </SSText>
         {displayName ? (
           <SSText size="xs" color="muted">
-            {formatShortPubkey(peerNpub, 12, 4)}
+            {formatNpub(peerNpub)}
           </SSText>
         ) : null}
         <SSText size="sm" color="muted" numberOfLines={1}>

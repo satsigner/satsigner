@@ -9,6 +9,10 @@ import {
   TRILLIARD,
   TRILLION_LONG
 } from '@/constants/format'
+import {
+  NOSTR_NPUB_SHORT_HEAD_CHARS,
+  NOSTR_NPUB_SHORT_TAIL_CHARS
+} from '@/constants/nostr'
 import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -229,6 +233,14 @@ function formatShortPubkey(pubkey: string, headChars = 5, tailChars = 6) {
   return `${s.slice(0, headChars)}...${s.slice(-tailChars)}`
 }
 
+function formatNpub(npub: string) {
+  return formatShortPubkey(
+    npub,
+    NOSTR_NPUB_SHORT_HEAD_CHARS,
+    NOSTR_NPUB_SHORT_TAIL_CHARS
+  )
+}
+
 function formatTxOutputToUtxo(
   tx: Transaction | undefined,
   vout: number,
@@ -345,6 +357,7 @@ export {
   formatFiatPrice,
   formatLargeNumber,
   formatNostrCardDate,
+  formatNpub,
   formatNumber,
   formatPageUrl,
   formatPercentualChange,

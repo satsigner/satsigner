@@ -13,7 +13,7 @@ import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type NostrChatMessage, type NostrDM } from '@/types/models/Nostr'
-import { formatShortPubkey } from '@/utils/format'
+import { formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 const SCROLL_THRESHOLD = 40
@@ -87,7 +87,7 @@ export default function SSChatThread({
       map.set(ownHex, {
         color: Colors.white,
         displayName: ownDisplayName,
-        npubShort: formatShortPubkey(ownNpub, 12, 4)
+        npubShort: formatNpub(ownNpub)
       })
     }
     for (const msg of messages) {
@@ -101,7 +101,7 @@ export default function SSChatThread({
       map.set(msg.peerPubkey, {
         color: Colors.gray[500],
         displayName: profile?.displayName,
-        npubShort: formatShortPubkey(peerNpub, 12, 4),
+        npubShort: formatNpub(peerNpub),
         picture: profile?.picture
       })
     }

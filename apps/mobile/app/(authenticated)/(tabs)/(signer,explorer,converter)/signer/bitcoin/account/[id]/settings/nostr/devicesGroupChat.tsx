@@ -31,7 +31,7 @@ import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatShortPubkey } from '@/utils/format'
+import { formatNpub } from '@/utils/format'
 import { parseNostrTransaction, safeNpubEncode } from '@/utils/nostr'
 import { type TransactionData } from '@/utils/psbt'
 
@@ -63,7 +63,7 @@ function getAuthorColor(
 
 function formatNpubText(pubkey: string): string {
   const npub = safeNpubEncode(pubkey, '')
-  return npub ? formatShortPubkey(npub, 12, 4) : pubkey.slice(0, 8)
+  return npub ? formatNpub(npub) : pubkey.slice(0, 8)
 }
 
 const INITIAL_PAGE_SIZE = 50

@@ -6,7 +6,7 @@ import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
 import { formatDateShort } from '@/utils/date'
-import { formatShortPubkey } from '@/utils/format'
+import { formatNpub } from '@/utils/format'
 import { parseNostrTransaction } from '@/utils/nostr'
 
 export type AuthorDisplayInfo = {
@@ -45,7 +45,7 @@ export function useNostrMessage({
         msgAuthorNpub === (account?.nostr?.deviceNpub ?? ownNpub)
       const authorDisplayName = formattedNpubs.get(msg.author) || {
         color: NOSTR_FALLBACK_NPUB_COLOR,
-        npubShort: formatShortPubkey(msgAuthorNpub, 12, 4)
+        npubShort: formatNpub(msgAuthorNpub)
       }
 
       const messageContent =
