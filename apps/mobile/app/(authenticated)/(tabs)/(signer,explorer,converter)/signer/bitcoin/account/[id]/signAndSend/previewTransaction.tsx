@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
@@ -70,7 +71,6 @@ import {
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { formatAddress, formatNumber } from '@/utils/format'
-import { hexToBytes } from '@/utils/hex'
 import {
   formatPayjoinExpiryLabel,
   parsePayjoinExpiresAtMs
@@ -936,7 +936,7 @@ function PreviewTransaction() {
         continue
       }
 
-      const hashBuffer = Buffer.from(hexToBytes(input.txid))
+      const hashBuffer = Buffer.from(hex.decode(input.txid))
       if (hashBuffer.length !== 32) {
         continue
       }
@@ -956,12 +956,12 @@ function PreviewTransaction() {
       }
     }
 
-    const hex = transaction.toHex()
+    const txHex = transaction.toHex()
 
     transaction.ins = []
     transaction.outs = []
 
-    return hex
+    return txHex
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {

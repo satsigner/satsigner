@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -14,7 +15,6 @@ import type {
   ExplorerTxOutput
 } from '@/types/models/ExplorerTransaction'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
-import { bytesToHex } from '@/utils/hex'
 import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 
@@ -44,26 +44,26 @@ function outpointHashBytesToTxid(hash: Uint8Array): string {
   return Buffer.from(hash).reverse().toString('hex')
 }
 
-function explorerTxFromHex(hex: string): ExplorerTransaction {
-  const tx = TxDecoded.fromHex(hex.trim())
+function explorerTxFromHex(rawHex: string): ExplorerTransaction {
+  const tx = TxDecoded.fromHex(rawHex.trim())
 
   const inputs: ExplorerTxInput[] = tx.ins.map((inp) => ({
     isCoinbase: tx.isCoinbase(),
     prevTxid: outpointHashBytesToTxid(inp.hash),
     prevVout: inp.index,
-    scriptSig: bytesToHex(inp.script),
+    scriptSig: hex.encode(inp.script),
     sequence: inp.sequence,
-    witness: inp.witness.map(bytesToHex)
+    witness: inp.witness.map((w) => hex.encode(w))
   }))
 
   const outputs: ExplorerTxOutput[] = tx.outs.map((out, i) => ({
     index: i,
-    script: bytesToHex(out.script),
+    script: hex.encode(out.script),
     value: out.value
   }))
 
   return {
-    hex: hex.trim(),
+    hex: rawHex.trim(),
     inputs,
     isCoinbase: tx.isCoinbase(),
     isSegwit: tx.hasWitnesses(),

@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
@@ -35,7 +36,6 @@ import {
   formatNumber,
   formatPercentualChange
 } from '@/utils/format'
-import { bytesToHex } from '@/utils/hex'
 import {
   buildKnownTxIds,
   buildOutpointLabelsByRef,
@@ -198,7 +198,7 @@ export default function TxDetails() {
     }
 
     if (tx.raw) {
-      setRaw(bytesToHex(tx.raw))
+      setRaw(hex.encode(Uint8Array.from(tx.raw)))
     }
 
     if (tx.vin.some((input) => input.value === undefined)) {

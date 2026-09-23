@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import * as FileSystem from 'expo-file-system/legacy'
 import {
   addressFromScript,
@@ -54,7 +55,6 @@ import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
-import { hexToBytes } from '@/utils/hex'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import {
   computeRpcScanStartHeight,
@@ -1053,21 +1053,21 @@ function parseTxDetailsToTransaction(
   } = txDetails
 
   const txHex = wallet.getTx(txid)
-  const raw = txHex ? hexToBytes(txHex) : []
+  const raw = txHex ? Array.from(hex.decode(txHex)) : []
 
   const vin: Transaction['vin'] = inputs.map((input) => ({
     previousOutput: {
       txid: input.previousTxid,
       vout: input.previousVout
     },
-    scriptSig: hexToBytes(input.scriptSigHex),
+    scriptSig: Array.from(hex.decode(input.scriptSigHex)),
     sequence: input.sequence,
-    witness: input.witness.map((w) => hexToBytes(w))
+    witness: input.witness.map((w) => Array.from(hex.decode(w)))
   }))
 
   const vout: Transaction['vout'] = outputs.map((output) => ({
     address: output.address || '',
-    script: hexToBytes(output.scriptPubkeyHex),
+    script: Array.from(hex.decode(output.scriptPubkeyHex)),
     value: output.value
   }))
 
@@ -1118,7 +1118,7 @@ function parseLocalOutputToUtxo(
   }
   const transactionId = localOutput.outpoint.txid
   const txDetails = txDetailsList.find((td) => td.txid === transactionId)
-  const script = hexToBytes(localOutput.txout.scriptPubkeyHex)
+  const script = Array.from(hex.decode(localOutput.txout.scriptPubkeyHex))
 
   return {
     addressTo,

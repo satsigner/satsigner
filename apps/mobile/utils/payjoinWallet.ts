@@ -1,10 +1,10 @@
+import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
-import { bytesToHex } from '@/utils/hex'
 import { filterPayjoinContributeUtxos } from '@/utils/payjoinUtxos'
 
 function utxoScriptHex(utxo: Utxo): string {
@@ -14,7 +14,7 @@ function utxoScriptHex(utxo: Utxo): string {
   if (typeof utxo.script === 'string') {
     return utxo.script
   }
-  return bytesToHex(utxo.script)
+  return hex.encode(Uint8Array.from(utxo.script))
 }
 
 function addressScriptHex(
@@ -22,7 +22,7 @@ function addressScriptHex(
   network: bitcoinjs.Network
 ): string | undefined {
   try {
-    return bytesToHex(bitcoinjs.address.toOutputScript(address, network))
+    return hex.encode(bitcoinjs.address.toOutputScript(address, network))
   } catch {
     return undefined
   }

@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import z from 'zod'
 
 import {
@@ -10,7 +11,6 @@ import {
   EsploraTxSchema,
   EsploraUtxoSchema
 } from '@/types/models/Esplora'
-import { hexToBytes } from '@/utils/hex'
 
 const parseBlocks = z.array(BlockSchema).parse
 const parseTxs = z.array(EsploraTxSchema).parse
@@ -88,10 +88,10 @@ export default class Esplora {
         txid: input.txid,
         vout: input.vout
       },
-      scriptSig: hexToBytes(input.scriptsig ?? ''),
+      scriptSig: Array.from(hex.decode(input.scriptsig ?? '')),
       sequence: input.sequence,
       value: input.prevout?.value,
-      witness: input.witness?.map(hexToBytes)
+      witness: input.witness?.map((w) => Array.from(hex.decode(w)))
     }))
   }
 

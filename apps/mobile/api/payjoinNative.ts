@@ -17,6 +17,7 @@
 /* eslint-disable require-await -- the upstream typestate calls are synchronous, but `@/api/payjoin` consumes this facade as async */
 import { Buffer } from 'buffer'
 
+import { hex } from '@scure/base'
 import {
   InputPair,
   type InputPairLike,
@@ -63,7 +64,6 @@ import type {
   SenderSessionHandle,
   SenderSessionInit
 } from '@/types/payjoin'
-import { bytesToHex, hexToBytes } from '@/utils/hex'
 import { payjoinWarn } from '@/utils/payjoinLog'
 import { extractPayjoinOriginalPsbt } from '@/utils/payjoinOriginalPsbt'
 import {
@@ -558,9 +558,7 @@ type ReceiverInput = {
 }
 
 function buildInputPair(input: ReceiverInput): InputPairLike {
-  const scriptPubkey = toArrayBuffer(
-    Uint8Array.from(hexToBytes(input.scriptHex))
-  )
+  const scriptPubkey = toArrayBuffer(hex.decode(input.scriptHex))
   return new InputPair(
     {
       previousOutput: { txid: input.txid, vout: input.vout },
@@ -677,7 +675,7 @@ function advanceReceiverToWantsInputs(
   const wantsOutputs = outputsUnknown
     .identifyReceiverOutputs({
       callback: (script: ArrayBuffer) =>
-        bytesToHex(new Uint8Array(script)) === receiveScriptHex
+        hex.encode(new Uint8Array(script)) === receiveScriptHex
     })
     .save(persister)
 

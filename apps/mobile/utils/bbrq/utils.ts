@@ -4,10 +4,8 @@
  * Helper/utility functions.
  */
 
-import { base32 } from '@scure/base'
+import { base32, hex } from '@scure/base'
 import pako from 'pako'
-
-import { hexToBytes } from '@/utils/hex'
 
 import { QR_DATA_CAPACITY } from './consts'
 import type { Encoding, SplitOptions, Version } from './types'
@@ -160,7 +158,7 @@ export function decodeData(parts: string[], encoding: Encoding) {
   // decode the parts back into a Uint8Array
 
   if (encoding === 'H') {
-    return joinByteParts(parts.map((p) => Uint8Array.from(hexToBytes(p))))
+    return joinByteParts(parts.map((p) => hex.decode(p)))
   }
 
   const bytes = joinByteParts(

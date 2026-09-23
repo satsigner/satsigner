@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useRouter } from 'expo-router'
 import { type PsbtLike } from 'react-native-bdk-sdk'
@@ -8,7 +9,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { getKeyFingerprint } from '@/utils/account'
-import { hexToBytes } from '@/utils/hex'
 import {
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
@@ -78,7 +78,7 @@ export function useNostrSignFlow() {
       addInput({
         ...input,
         keychain: input.keychain || 'external',
-        script: hexToBytes(input.script)
+        script: Array.from(hex.decode(input.script))
       })
     }
 

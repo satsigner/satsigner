@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib' // Added for network definitions
 import { useCallback, useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -8,7 +9,6 @@ import BitcoinRpc from '@/api/rpc'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
-import { hexToBytes } from '@/utils/hex'
 import { recalculateDepthH } from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
 
@@ -262,7 +262,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     address: output?.scriptpubkey_address || '',
                     label: undefined,
                     script: output.scriptpubkey
-                      ? hexToBytes(output.scriptpubkey)
+                      ? Array.from(hex.decode(output.scriptpubkey))
                       : [],
                     value: output.value
                   })),
@@ -388,7 +388,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     lockTime: rawTx.locktime,
                     lockTimeEnabled: rawTx.locktime > 0,
                     prices: {},
-                    raw: hexToBytes(rawTx.hex),
+                    raw: Array.from(hex.decode(rawTx.hex)),
                     received: 0,
                     sent: 0,
                     size: rawTx.size,
@@ -421,7 +421,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                         output.scriptPubKey.addresses?.[0] ??
                         '',
                       label: undefined,
-                      script: hexToBytes(output.scriptPubKey.hex),
+                      script: Array.from(hex.decode(output.scriptPubKey.hex)),
                       value: Math.round(output.value * 1e8)
                     })),
                     vsize: rawTx.vsize,

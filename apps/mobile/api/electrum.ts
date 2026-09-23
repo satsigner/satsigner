@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
@@ -17,7 +18,6 @@ import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import type { Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
-import { bytesToHex, hexToBytes } from '@/utils/hex'
 import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 import { isValidDomainName, isValidIPAddress } from '@/utils/url'
@@ -489,7 +489,7 @@ class ElectrumClient extends BaseElectrumClient {
         lockTime: parsedTx.locktime,
         lockTimeEnabled: parsedTx.locktime > 0,
         prices: {},
-        raw: hexToBytes(rawTx),
+        raw: Array.from(hex.decode(rawTx)),
         received: 0,
         sent: 0,
         size: parsedTx.byteLength(),
@@ -581,7 +581,7 @@ class ElectrumClient extends BaseElectrumClient {
       if (!raw) {
         continue
       }
-      const txHex = bytesToHex(raw)
+      const txHex = hex.encode(Uint8Array.from(raw))
       txidToParsedTxIndex[id] = parsedTransactions.length
       parsedTransactions.push(TxDecoded.fromHex(txHex))
     }
