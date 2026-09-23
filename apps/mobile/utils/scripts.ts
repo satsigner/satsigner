@@ -35,10 +35,6 @@ export function getOpcodeDetails(word: string): OP_CODE {
   return opcodeDetails
 }
 
-export function bytesToHex(bytes: number[]) {
-  return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
-}
-
 /**
  * Get user-friendly display names for script versions
  */
