@@ -10,6 +10,10 @@ import {
   TRILLION_LONG
 } from '@/constants/format'
 import {
+  LN_KEY_SHORT_HEAD_CHARS,
+  LN_KEY_SHORT_TAIL_CHARS
+} from '@/constants/lightning'
+import {
   NOSTR_NPUB_SHORT_HEAD_CHARS,
   NOSTR_NPUB_SHORT_TAIL_CHARS
 } from '@/constants/nostr'
@@ -241,6 +245,14 @@ function formatNpub(npub: string) {
   )
 }
 
+function formatLnKey(pubkey: string) {
+  return formatShortPubkey(
+    pubkey,
+    LN_KEY_SHORT_HEAD_CHARS,
+    LN_KEY_SHORT_TAIL_CHARS
+  )
+}
+
 function formatTxOutputToUtxo(
   tx: Transaction | undefined,
   vout: number,
@@ -356,6 +368,7 @@ export {
   formatFeeRateSatPerVb,
   formatFiatPrice,
   formatLargeNumber,
+  formatLnKey,
   formatNostrCardDate,
   formatNpub,
   formatNumber,
