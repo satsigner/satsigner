@@ -197,7 +197,7 @@ export default function SetPin() {
     }
 
     if (showWarning) {
-      router.push('./warning')
+      router.replace('./warning')
     } else {
       router.replace('/')
     }

@@ -91,7 +91,7 @@ export default function Warning() {
           <SSButton
             variant="ghost"
             label={t('common.dismiss')}
-            onPress={() => router.push('/')}
+            onPress={() => router.replace('/')}
           />
         </SSVStack>
       </SSVStack>
