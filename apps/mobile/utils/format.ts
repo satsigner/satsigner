@@ -23,11 +23,15 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
 
 function formatAddress(address: string, headChars = 8, tailChars = headChars) {
-  if (address.length <= 16) {
+  // Truncating would show every character (plus misleading dots) or overlap
+  // the head and tail slices, so just return the whole address.
+  if (address.length <= headChars + tailChars) {
     return address
   }
 
-  return `${address.slice(0, headChars)}...${address.slice(-tailChars)}`
+  // slice(-0) returns the whole string, so guard against an empty tail.
+  const tail = tailChars > 0 ? address.slice(-tailChars) : ''
+  return `${address.slice(0, headChars)}...${tail}`
 }
 
 function formatNumber(

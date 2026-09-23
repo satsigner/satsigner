@@ -34,6 +34,18 @@ describe('format utils', () => {
         '11111111...114oLvT2'
       )
     })
+
+    it('should return the whole address when head + tail equals its length', () => {
+      expect(formatAddress('abcdefghij', 6, 4)).toBe('abcdefghij')
+    })
+
+    it('should return the whole address when head + tail exceeds its length', () => {
+      expect(formatAddress('abcdefghij', 8, 8)).toBe('abcdefghij')
+    })
+
+    it('should not leak the whole address when tail is zero', () => {
+      expect(formatAddress('abcdefghijklmnop', 4, 0)).toBe('abcd...')
+    })
   })
 
   describe('formatNumber', () => {
