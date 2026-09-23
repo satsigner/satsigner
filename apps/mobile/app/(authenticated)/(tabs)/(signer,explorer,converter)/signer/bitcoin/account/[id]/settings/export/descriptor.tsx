@@ -37,50 +37,6 @@ export default function DescriptorPage() {
   const [keyName, setKeyName] = useState('')
   const [creationType, setCreationType] = useState('')
   const [scriptVersion, setScriptVersion] = useState<string>('P2PKH')
-  const [_descriptorComponents, setDescriptorComponents] = useState<{
-    scriptFunction: string
-    fingerprint: string
-    derivationPath: string
-    publicKey: string
-    checksum: string
-  } | null>(null)
-
-  function parseDescriptorComponents(descriptor: string) {
-    try {
-      const scriptMatch = descriptor.match(/^([a-z]+)\(/)
-      const scriptFunction = scriptMatch ? scriptMatch[1] : ''
-
-      const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})\/?/)
-      const fingerprint = fingerprintMatch ? fingerprintMatch[1] : ''
-
-      let derivationPath = ''
-      const pathMatch = descriptor.match(/\[[0-9a-fA-F]{8}\/([0-9'/]+)\]/)
-      if (pathMatch) {
-        derivationPath = `m/${pathMatch[1]}`
-      } else {
-        const simplePathMatch = descriptor.match(/([0-9'/]+)\/[0-9]+\/\*/)
-        if (simplePathMatch) {
-          derivationPath = `m/${simplePathMatch[1]}`
-        }
-      }
-
-      const pubKeyMatch = descriptor.match(/([a-z]pub[a-zA-Z0-9]{107})/)
-      const publicKey = pubKeyMatch ? pubKeyMatch[1] : ''
-
-      const checksumMatch = descriptor.match(/#([a-z0-9]+)$/)
-      const checksum = checksumMatch ? checksumMatch[1] : ''
-
-      return {
-        checksum,
-        derivationPath,
-        fingerprint,
-        publicKey,
-        scriptFunction
-      }
-    } catch {
-      return null
-    }
-  }
 
   async function getDescriptor() {
     if (!account || !keyIndex) {
@@ -117,8 +73,6 @@ export default function DescriptorPage() {
       return
     }
     setDescriptor(descriptorString)
-    const components = parseDescriptorComponents(descriptorString)
-    setDescriptorComponents(components)
   }
 
   useAsyncEffect(async () => {

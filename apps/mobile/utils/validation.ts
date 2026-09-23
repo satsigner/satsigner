@@ -5,6 +5,7 @@ import {
   validateDescriptor as bdkValidateDescriptor
 } from 'react-native-bdk-sdk'
 
+import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 
@@ -197,7 +198,7 @@ function validateDescriptorInternal(
       }
       // Also accept if it contains tpub/xpub patterns (common extended key formats)
       const extendedKeyPatterns = currentItem.match(
-        /(tpub|xpub|ypub|zpub|upub|vpub)[a-zA-Z0-9]+/g
+        new RegExp(EXTENDED_PUBKEY_PATTERN, 'g')
       )
       if (extendedKeyPatterns && extendedKeyPatterns.length >= 2) {
         return true
