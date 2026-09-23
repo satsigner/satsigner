@@ -22,7 +22,7 @@ type YScale = ScaleLinear<number, number>
 
 type BalanceHistory = Map<number, Map<string, Utxo>>
 
-type UtxoRectangle = {
+export type UtxoRectangle = {
   x1: number
   x2: number
   y1: number
@@ -31,7 +31,7 @@ type UtxoRectangle = {
   gradientType: number
 }
 
-type UtxoLabel = {
+export type UtxoLabel = {
   x1: number
   x2: number
   y1: number
@@ -39,7 +39,7 @@ type UtxoLabel = {
   utxo: Utxo
 }
 
-type TxXAxisLabel = {
+export type TxXAxisLabel = {
   textColor: string
   x: number
   index: number
@@ -53,7 +53,7 @@ type TxXAxisLabel = {
   label?: string
 }
 
-type TxInfoLabel = {
+export type TxInfoLabel = {
   x: number
   y: number
   memo?: string

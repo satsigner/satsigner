@@ -25,13 +25,16 @@ import {
 } from 'd3-scale'
 import { area, curveStepAfter, line } from 'd3-shape'
 import { timeFormat } from 'd3-time-format'
-import { useLocalSearchParams, useRouter } from 'expo-router'
-import { Fragment, memo, useCallback, useMemo, useRef, useState } from 'react'
-import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
-import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import { Fragment, memo, useMemo, useRef } from 'react'
+import { StyleSheet, View } from 'react-native'
+import { GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useFiatData } from '@/hooks/useFiatData'
+import {
+  useHistoryChartGestures,
+  useHistoryChartViewport
+} from '@/hooks/useHistoryChart'
 import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
@@ -39,7 +42,6 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Rectangle } from '@/types/ui/geometry'
 import {
   formatFiatPrice,
@@ -72,8 +74,6 @@ function SSHistoryChart({
   utxos,
   blockchainHeight
 }: SSHistoryChartProps) {
-  const router = useRouter()
-
   const [
     showLabel,
     showAmount,
@@ -111,9 +111,18 @@ function SSHistoryChart({
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
 
-  const { id } = useLocalSearchParams<AccountSearchParams>()
   const currentDate = useRef<Date>(new Date())
   const labelRectRef = useRef<{ rect: Rectangle; id: string }[]>([])
+  const viewport = useHistoryChartViewport(currentDate)
+  const {
+    containerSize,
+    cursorX,
+    cursorY,
+    endDate,
+    handleLayout,
+    scale,
+    startY
+  } = viewport
 
   const walletAddresses = useMemo(
     () => buildWalletAddresses(transactions, utxos),
@@ -132,31 +141,6 @@ function SSHistoryChart({
         ) - chartData[0].date.getTime()
       : 0
   const margin = { bottom: 80, left: 40, right: 10, top: 30 }
-  const [containerSize, setContainersize] = useState({ height: 0, width: 0 })
-  const prevScale = useRef<number>(1)
-  const scaleRef = useRef<number>(1)
-  const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
-  const [cursorY, setCursorY] = useState<number | undefined>(undefined)
-  const [{ endDate, scale }, setLocationState] = useState<{
-    endDate: Date
-    scale: number
-  }>({
-    endDate: new Date(
-      new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
-    ),
-    scale: 1
-  })
-  const endDateRef = useRef<Date>(
-    new Date(
-      new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
-    )
-  )
-  const prevEndDate = useRef<Date>(new Date(currentDate.current))
-  const [startY, setStartY] = useState<number>(0)
-  const startYRef = useRef<number>(0)
-  const prevStartY = useRef<number>(0)
-  const gestureUpdateAnimationFrameRef = useRef<number | null>(null)
-  const isGestureActiveRef = useRef<boolean>(false)
 
   const startDate = useMemo<Date>(
     () => new Date(endDate.getTime() - timeOffset / scale),
@@ -230,158 +214,23 @@ function SSHistoryChart({
     [balanceHistory, xScale, yScale]
   )
 
-  const updateLocationState = useCallback(() => {
-    if (gestureUpdateAnimationFrameRef.current) {
-      cancelAnimationFrame(gestureUpdateAnimationFrameRef.current)
-    }
-    gestureUpdateAnimationFrameRef.current = requestAnimationFrame(() => {
-      setLocationState((prev) => ({
-        ...prev,
-        endDate: endDateRef.current,
-        scale: scaleRef.current
-      }))
-      gestureUpdateAnimationFrameRef.current = null
-    })
-  }, [])
-
-  const panGesture = Gesture.Pan()
-    .minDistance(1)
-    .maxPointers(1)
-    .onStart(() => {
-      isGestureActiveRef.current = true
-      prevEndDate.current = endDate
-      prevStartY.current = startY
-    })
-    .onUpdate((event) => {
-      endDateRef.current = new Date(
-        Math.max(
-          Math.min(
-            prevEndDate.current.getTime() -
-              ((timeOffset / scale) * event.translationX) / chartWidth,
-            new Date(
-              currentDate.current.getTime() + timeOffset / scale
-            ).getTime()
-          ),
-          new Date(transactions[0]?.timestamp ?? 0).getTime()
-        )
-      )
-      if (!lockZoomToXAxis) {
-        startYRef.current = Math.max(
-          Math.min(
-            prevStartY.current +
-              (((maxBalance * 1.2) / scale) * event.translationY) / chartHeight,
-            maxBalance * 1.2 - (maxBalance * 1.2) / scale
-          ),
-          0
-        )
-        setStartY(startYRef.current)
-      }
-      updateLocationState()
-    })
-    .onEnd(() => {
-      isGestureActiveRef.current = false
-      prevEndDate.current = endDate
-      prevStartY.current = startY
-      if (gestureUpdateAnimationFrameRef.current) {
-        cancelAnimationFrame(gestureUpdateAnimationFrameRef.current)
-        gestureUpdateAnimationFrameRef.current = null
-      }
-      setLocationState((prev) => ({
-        ...prev,
-        endDate: endDateRef.current
-      }))
-    })
-    .runOnJS(true)
-
-  const pinchGesture = Gesture.Pinch()
-    .onStart(() => {
-      isGestureActiveRef.current = true
-    })
-    .onUpdate((event) => {
-      const cScale = Math.max(prevScale.current * event.scale, 1)
-      const middleDate =
-        endDateRef.current.getTime() - timeOffset / scaleRef.current / 2
-      endDateRef.current = new Date(middleDate + timeOffset / cScale / 2)
-      scaleRef.current = cScale
-      updateLocationState()
-    })
-    .onEnd(() => {
-      isGestureActiveRef.current = false
-      prevScale.current = scale
-      if (gestureUpdateAnimationFrameRef.current) {
-        cancelAnimationFrame(gestureUpdateAnimationFrameRef.current)
-        gestureUpdateAnimationFrameRef.current = null
-      }
-      setLocationState((prev) => ({
-        ...prev,
-        endDate: endDateRef.current,
-        scale: scaleRef.current
-      }))
-    })
-    .runOnJS(true)
-
-  const longPressGesture = Gesture.LongPress()
-    .minDuration(300)
-    .onEnd((e, success) => {
-      if (success) {
-        const locationX = e.x
-        const x = locationX - margin.left
-        if (x >= 0 && x <= chartWidth) {
-          const selectedDate = xScale.invert(x)
-          setCursorX(selectedDate)
-          const index = validChartData.findLastIndex(
-            (d) => d.date <= selectedDate
-          )
-          if (index !== -1) {
-            setCursorY(validChartData[index].balance)
-          }
-        }
-      }
-    })
-    .runOnJS(true)
-
-  const pressGesture = Gesture.Tap()
-    .maxDuration(100)
-    .onEnd((e, success) => {
-      if (success) {
-        const locationX = e.x
-        const locationY = e.y
-        const x = locationX - margin.left
-        const y = locationY - margin.top
-        if (x >= 0 && x <= chartWidth && y >= 0 && y <= chartHeight) {
-          const tappedRect = utxoRectangleData.find(
-            (value) =>
-              x >= value.x1 && x <= value.x2 && y >= value.y2 && y <= value.y1
-          )
-          if (tappedRect !== undefined && showOutputField) {
-            router.navigate(
-              `/signer/bitcoin/account/${id}/transaction/${tappedRect.utxo.txid}/utxo/${tappedRect.utxo.vout}`
-            )
-            return
-          }
-          const tapLabelRect = labelRectRef.current.find(
-            ({ rect }) =>
-              x >= rect.left &&
-              x <= rect.right &&
-              y <= rect.bottom &&
-              y >= rect.top
-          )
-          if (tapLabelRect !== undefined && showTransactionInfo) {
-            router.navigate(
-              `/signer/bitcoin/account/${id}/transaction/${tapLabelRect.id}`
-            )
-          }
-        }
-      }
-    })
-    .runOnJS(true)
-
-  const combinedGesture = Gesture.Simultaneous(
-    pinchGesture,
-    panGesture,
-    pressGesture,
-    longPressGesture
-  )
+  const combinedGesture = useHistoryChartGestures({
+    chartHeight,
+    chartWidth,
+    currentDate,
+    labelRectRef,
+    lockZoomToXAxis,
+    margin,
+    maxBalance,
+    showOutputField,
+    showTransactionInfo,
+    timeOffset,
+    transactions,
+    utxoRectangleData,
+    validChartData,
+    viewport,
+    xScale
+  })
 
   const lineGenerator = useMemo(
     () =>
@@ -412,11 +261,6 @@ function SSHistoryChart({
   )
 
   const yAxisFormatter = useMemo(() => format('.3s'), [])
-
-  const handleLayout = useCallback((event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout
-    setContainersize({ height, width })
-  }, [])
 
   const txXAxisLabels = useMemo(
     () =>
