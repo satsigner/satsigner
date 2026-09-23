@@ -1,13 +1,33 @@
+import { Skia, type SkParagraph, TextAlign } from '@shopify/react-native-skia'
 import { type ScaleTime } from 'd3-scale'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { type MutableRefObject, useCallback, useRef, useState } from 'react'
+import {
+  type MutableRefObject,
+  useCallback,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { type LayoutChangeEvent } from 'react-native'
 import { Gesture } from 'react-native-gesture-handler'
 
+import { useSFProFonts } from '@/hooks/useSFProFonts'
+import { Colors } from '@/styles'
+import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Rectangle } from '@/types/ui/geometry'
-import { type HistoryChartData, type UtxoRectangle } from '@/utils/historyChart'
+import {
+  formatFiatPrice,
+  formatNumber,
+  formatPercentualChange
+} from '@/utils/format'
+import {
+  type HistoryChartData,
+  hexToRgba,
+  type TxInfoLabel,
+  type UtxoRectangle
+} from '@/utils/historyChart'
 
 const DAYS_AHEAD = 5
 
@@ -276,4 +296,237 @@ export function useHistoryChartGestures({
     pressGesture,
     longPressGesture
   )
+}
+
+const LABEL_FONT = ['SF Pro Text']
+const LABEL_BASE_FONT_SIZE = 10
+const LABEL_FIAT_FONT_SIZE = 8
+
+type UseHistoryChartLabelsParams = {
+  customFontManager: ReturnType<typeof useSFProFonts>
+  txInfoLabels: TxInfoLabel[]
+  transactionsMap: Map<string, Transaction>
+  chartWidth: number
+  zeroPadding: boolean
+  showLabel: boolean
+  showAmount: boolean
+  showFiatOnChart: boolean
+  showFiatAtTxTime: boolean
+  showFiatPercentageChange: boolean
+  showHistoricalFiat: boolean
+  effectiveBtcPrice: number
+  fiatCurrency: Currency
+}
+
+// Builds the Skia paragraph objects drawn as transaction-info labels. Kept as a
+// hook because it depends on the Skia font manager and must re-run when the
+// chart's fiat/label settings change.
+export function useHistoryChartLabels({
+  customFontManager,
+  txInfoLabels,
+  transactionsMap,
+  chartWidth,
+  zeroPadding,
+  showLabel,
+  showAmount,
+  showFiatOnChart,
+  showFiatAtTxTime,
+  showFiatPercentageChange,
+  showHistoricalFiat,
+  effectiveBtcPrice,
+  fiatCurrency
+}: UseHistoryChartLabelsParams) {
+  return useMemo(() => {
+    if (!customFontManager) {
+      return new Map<string, SkParagraph>()
+    }
+    const paragraphs = new Map<string, SkParagraph>()
+
+    for (const label of txInfoLabels) {
+      if (label.type === 'end') {
+        continue
+      }
+      const { x } = label
+      if (x < 0 || x > chartWidth) {
+        continue
+      }
+
+      const baseColor = label.type === 'receive' ? '#A7FFAF' : '#FF7171'
+      const baseStyle = {
+        color: Skia.Color(baseColor),
+        fontFamilies: LABEL_FONT,
+        fontSize: LABEL_BASE_FONT_SIZE
+      }
+
+      const transaction = transactionsMap.get(label.id)
+      const historicalPrice =
+        showHistoricalFiat &&
+        transaction?.prices &&
+        transaction.prices[fiatCurrency]
+          ? transaction.prices[fiatCurrency]
+          : undefined
+      const hasHistoricalPrice =
+        showHistoricalFiat && historicalPrice && effectiveBtcPrice > 0
+      const needsSecondLine =
+        (showFiatOnChart && label.fiatValue !== undefined) ||
+        (showFiatPercentageChange && hasHistoricalPrice)
+
+      const para = Skia.ParagraphBuilder.Make(
+        {
+          maxLines: needsSecondLine ? 2 : 1,
+          textAlign: TextAlign.Left
+        },
+        customFontManager
+      )
+
+      if (showLabel && label.memo) {
+        para.pushStyle(baseStyle).addText(label.memo).pop()
+      } else if (showAmount && label.amount !== undefined) {
+        const amountString = `${label.amount >= 0 ? '+' : ''}${formatNumber(
+          label.amount,
+          0,
+          zeroPadding
+        )}`
+        const sign =
+          amountString.startsWith('+') || amountString.startsWith('-')
+            ? amountString[0]
+            : ''
+        const numberPart = sign ? amountString.substring(1) : amountString
+
+        if (sign) {
+          para.pushStyle(baseStyle).addText(sign).pop()
+        }
+
+        const firstNonZeroIndex = numberPart.search(/[1-9]/)
+        if (firstNonZeroIndex === -1) {
+          para
+            .pushStyle({
+              ...baseStyle,
+              color: Skia.Color(baseColor)
+            })
+            .addText(numberPart)
+            .pop()
+        } else {
+          const leadingZeros = numberPart.substring(0, firstNonZeroIndex)
+          const significantDigits = numberPart.substring(firstNonZeroIndex)
+          if (leadingZeros.length > 0) {
+            const baseColorRgb = baseColor.match(
+              /#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i
+            )
+            const opacityColor = baseColorRgb
+              ? Skia.Color(
+                  `rgba(${parseInt(baseColorRgb[1], 16)}, ${parseInt(baseColorRgb[2], 16)}, ${parseInt(baseColorRgb[3], 16)}, 0.4)`
+                )
+              : Skia.Color('#999999')
+            para
+              .pushStyle({
+                ...baseStyle,
+                color: opacityColor
+              })
+              .addText(leadingZeros)
+              .pop()
+          }
+          if (significantDigits.length > 0) {
+            para
+              .pushStyle({
+                ...baseStyle,
+                color: Skia.Color(baseColor)
+              })
+              .addText(significantDigits)
+              .pop()
+          }
+        }
+      }
+
+      if (
+        showFiatOnChart &&
+        effectiveBtcPrice > 0 &&
+        label.fiatValue !== undefined &&
+        label.amount !== undefined
+      ) {
+        const currentPriceText = `≈ ${formatFiatPrice(label.amount, effectiveBtcPrice)} ${fiatCurrency}`
+        const historicalPriceText =
+          showFiatAtTxTime &&
+          showHistoricalFiat &&
+          historicalPrice &&
+          label.amount !== undefined
+            ? ` (${formatFiatPrice(label.amount, historicalPrice)} ${fiatCurrency})`
+            : ''
+        const percentageChangeText =
+          showFiatPercentageChange &&
+          showHistoricalFiat &&
+          historicalPrice &&
+          effectiveBtcPrice > 0
+            ? formatPercentualChange(effectiveBtcPrice, historicalPrice)
+            : ''
+
+        para
+          .pushStyle({
+            color: Skia.Color('#666666'),
+            fontFamilies: LABEL_FONT,
+            fontSize: LABEL_FIAT_FONT_SIZE
+          })
+          .addText(`\n${currentPriceText}${historicalPriceText}`)
+          .pop()
+
+        if (percentageChangeText) {
+          const isPositive = percentageChangeText[0] === '+'
+          const baseColor = isPositive ? Colors.mainGreen : Colors.mainRed
+          const percentageColor = hexToRgba(baseColor, 0.7)
+
+          para
+            .pushStyle({
+              color: Skia.Color(percentageColor),
+              fontFamilies: LABEL_FONT,
+              fontSize: LABEL_FIAT_FONT_SIZE
+            })
+            .addText(` ${percentageChangeText}`)
+            .pop()
+        }
+      } else if (
+        showFiatPercentageChange &&
+        showHistoricalFiat &&
+        historicalPrice &&
+        effectiveBtcPrice > 0 &&
+        label.amount !== undefined
+      ) {
+        const percentageChangeText = formatPercentualChange(
+          effectiveBtcPrice,
+          historicalPrice
+        )
+        const isPositive = percentageChangeText[0] === '+'
+        const baseColor = isPositive ? Colors.mainGreen : Colors.mainRed
+        const percentageColor = hexToRgba(baseColor, 0.7)
+
+        para
+          .pushStyle({
+            color: Skia.Color(percentageColor),
+            fontFamilies: LABEL_FONT,
+            fontSize: LABEL_FIAT_FONT_SIZE
+          })
+          .addText(`\n ${percentageChangeText}`)
+          .pop()
+      }
+
+      const builtPara = para.build()
+      builtPara.layout(10000)
+      paragraphs.set(label.index, builtPara)
+    }
+
+    return paragraphs
+  }, [
+    txInfoLabels,
+    customFontManager,
+    showLabel,
+    showAmount,
+    zeroPadding,
+    chartWidth,
+    showFiatOnChart,
+    showFiatAtTxTime,
+    showFiatPercentageChange,
+    showHistoricalFiat,
+    effectiveBtcPrice,
+    fiatCurrency,
+    transactionsMap
+  ])
 }

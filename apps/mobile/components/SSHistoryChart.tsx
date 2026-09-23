@@ -1,12 +1,4 @@
-import {
-  Canvas,
-  Group,
-  Path,
-  rect,
-  Skia,
-  type SkParagraph,
-  TextAlign
-} from '@shopify/react-native-skia'
+import { Canvas, Group, Path, rect } from '@shopify/react-native-skia'
 import { format } from 'd3-format'
 import { scaleLinear, scaleTime } from 'd3-scale'
 import { area, curveStepAfter, line } from 'd3-shape'
@@ -27,21 +19,16 @@ import {
 import { useFiatData } from '@/hooks/useFiatData'
 import {
   useHistoryChartGestures,
+  useHistoryChartLabels,
   useHistoryChartViewport
 } from '@/hooks/useHistoryChart'
 import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
-import {
-  formatFiatPrice,
-  formatNumber,
-  formatPercentualChange
-} from '@/utils/format'
 import {
   buildBalanceHistory,
   buildChartData,
@@ -52,7 +39,6 @@ import {
   buildUtxoRectangles,
   buildWalletAddresses,
   computeValidChartData,
-  hexToRgba,
   type HistoryChartData
 } from '@/utils/historyChart'
 
@@ -328,199 +314,21 @@ function SSHistoryChart({
     fontSize: 10
   } as const
 
-  const labelParagraphs = useMemo(() => {
-    if (!customFontManager) {
-      return new Map<string, SkParagraph>()
-    }
-    const paragraphs = new Map<string, SkParagraph>()
-
-    for (const label of txInfoLabels) {
-      if (label.type === 'end') {
-        continue
-      }
-      const { x } = label
-      if (x < 0 || x > chartWidth) {
-        continue
-      }
-
-      const baseColor = label.type === 'receive' ? '#A7FFAF' : '#FF7171'
-      const baseStyle = {
-        color: Skia.Color(baseColor),
-        fontFamilies: ['SF Pro Text'],
-        fontSize: 10
-      }
-
-      const transaction = transactionsMap.get(label.id)
-      const historicalPrice =
-        showHistoricalFiat &&
-        transaction?.prices &&
-        transaction.prices[fiatCurrency]
-          ? transaction.prices[fiatCurrency]
-          : undefined
-      const hasHistoricalPrice =
-        showHistoricalFiat && historicalPrice && effectiveBtcPrice > 0
-      const needsSecondLine =
-        (showFiatOnChart && label.fiatValue !== undefined) ||
-        (showFiatPercentageChange && hasHistoricalPrice)
-
-      const para = Skia.ParagraphBuilder.Make(
-        {
-          maxLines: needsSecondLine ? 2 : 1,
-          textAlign: TextAlign.Left
-        },
-        customFontManager
-      )
-
-      if (showLabel && label.memo) {
-        para.pushStyle(baseStyle).addText(label.memo).pop()
-      } else if (showAmount && label.amount !== undefined) {
-        const amountString = `${label.amount >= 0 ? '+' : ''}${formatNumber(
-          label.amount,
-          0,
-          zeroPadding
-        )}`
-        const sign =
-          amountString.startsWith('+') || amountString.startsWith('-')
-            ? amountString[0]
-            : ''
-        const numberPart = sign ? amountString.substring(1) : amountString
-
-        if (sign) {
-          para.pushStyle(baseStyle).addText(sign).pop()
-        }
-
-        const firstNonZeroIndex = numberPart.search(/[1-9]/)
-        if (firstNonZeroIndex === -1) {
-          para
-            .pushStyle({
-              ...baseStyle,
-              color: Skia.Color(baseColor)
-            })
-            .addText(numberPart)
-            .pop()
-        } else {
-          const leadingZeros = numberPart.substring(0, firstNonZeroIndex)
-          const significantDigits = numberPart.substring(firstNonZeroIndex)
-          if (leadingZeros.length > 0) {
-            const baseColorRgb = baseColor.match(
-              /#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i
-            )
-            const opacityColor = baseColorRgb
-              ? Skia.Color(
-                  `rgba(${parseInt(baseColorRgb[1], 16)}, ${parseInt(baseColorRgb[2], 16)}, ${parseInt(baseColorRgb[3], 16)}, 0.4)`
-                )
-              : Skia.Color('#999999')
-            para
-              .pushStyle({
-                ...baseStyle,
-                color: opacityColor
-              })
-              .addText(leadingZeros)
-              .pop()
-          }
-          if (significantDigits.length > 0) {
-            para
-              .pushStyle({
-                ...baseStyle,
-                color: Skia.Color(baseColor)
-              })
-              .addText(significantDigits)
-              .pop()
-          }
-        }
-      }
-
-      if (
-        showFiatOnChart &&
-        effectiveBtcPrice > 0 &&
-        label.fiatValue !== undefined &&
-        label.amount !== undefined
-      ) {
-        const currentPriceText = `≈ ${formatFiatPrice(label.amount, effectiveBtcPrice)} ${fiatCurrency}`
-        const historicalPriceText =
-          showFiatAtTxTime &&
-          showHistoricalFiat &&
-          historicalPrice &&
-          label.amount !== undefined
-            ? ` (${formatFiatPrice(label.amount, historicalPrice)} ${fiatCurrency})`
-            : ''
-        const percentageChangeText =
-          showFiatPercentageChange &&
-          showHistoricalFiat &&
-          historicalPrice &&
-          effectiveBtcPrice > 0
-            ? formatPercentualChange(effectiveBtcPrice, historicalPrice)
-            : ''
-
-        para
-          .pushStyle({
-            color: Skia.Color('#666666'),
-            fontFamilies: ['SF Pro Text'],
-            fontSize: 8
-          })
-          .addText(`\n${currentPriceText}${historicalPriceText}`)
-          .pop()
-
-        if (percentageChangeText) {
-          const isPositive = percentageChangeText[0] === '+'
-          const baseColor = isPositive ? Colors.mainGreen : Colors.mainRed
-          const percentageColor = hexToRgba(baseColor, 0.7)
-
-          para
-            .pushStyle({
-              color: Skia.Color(percentageColor),
-              fontFamilies: ['SF Pro Text'],
-              fontSize: 8
-            })
-            .addText(` ${percentageChangeText}`)
-            .pop()
-        }
-      } else if (
-        showFiatPercentageChange &&
-        showHistoricalFiat &&
-        historicalPrice &&
-        effectiveBtcPrice > 0 &&
-        label.amount !== undefined
-      ) {
-        const percentageChangeText = formatPercentualChange(
-          effectiveBtcPrice,
-          historicalPrice
-        )
-        const isPositive = percentageChangeText[0] === '+'
-        const baseColor = isPositive ? Colors.mainGreen : Colors.mainRed
-        const percentageColor = hexToRgba(baseColor, 0.7)
-
-        para
-          .pushStyle({
-            color: Skia.Color(percentageColor),
-            fontFamilies: ['SF Pro Text'],
-            fontSize: 8
-          })
-          .addText(`\n ${percentageChangeText}`)
-          .pop()
-      }
-
-      const builtPara = para.build()
-      builtPara.layout(10000)
-      paragraphs.set(label.index, builtPara)
-    }
-
-    return paragraphs
-  }, [
-    txInfoLabels,
-    customFontManager,
-    showLabel,
-    showAmount,
-    zeroPadding,
+  const labelParagraphs = useHistoryChartLabels({
     chartWidth,
-    showFiatOnChart,
-    showFiatAtTxTime,
-    showFiatPercentageChange,
-    showHistoricalFiat,
+    customFontManager,
     effectiveBtcPrice,
     fiatCurrency,
-    transactionsMap
-  ])
+    showAmount,
+    showFiatAtTxTime,
+    showFiatOnChart,
+    showFiatPercentageChange,
+    showHistoricalFiat,
+    showLabel,
+    transactionsMap,
+    txInfoLabels,
+    zeroPadding
+  })
 
   const clipPathRect = rect(0, 0, chartWidth, chartHeight)
 
