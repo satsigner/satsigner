@@ -17,6 +17,7 @@ import {
   BIP84_PURPOSE,
   BIP86_PURPOSE
 } from '@/constants/derivation'
+import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { type AddressKeyPair } from '@/types/models/Address'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
@@ -269,7 +270,7 @@ export function getExtendedPublicKeyFromSeed(
 
 // TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors
 export function getExtendedKeyFromDescriptor(descriptor: string) {
-  const match = descriptor.match(/([xyztuv]pub)[A-Za-z0-9]+/i)
+  const match = descriptor.match(new RegExp(EXTENDED_PUBKEY_PATTERN, 'i'))
   return match ? match[0] : ''
 }
 

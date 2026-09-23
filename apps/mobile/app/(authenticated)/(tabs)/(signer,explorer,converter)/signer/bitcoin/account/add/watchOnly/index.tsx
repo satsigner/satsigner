@@ -49,7 +49,15 @@ import {
   convertKeyFormat
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { DescriptorUtils } from '@/utils/descriptorUtils'
+import {
+  getFingerprint,
+  parseImportedDescriptorPayload,
+  parseJsonDescriptor,
+  parseLegacyDescriptor,
+  parseXpubInput,
+  processCombinedDescriptor,
+  removeChecksum
+} from '@/utils/descriptor'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 import {
@@ -291,7 +299,7 @@ export default function WatchOnly() {
   }
 
   function updateXpub(raw: string) {
-    const parsed = DescriptorUtils.parseXpubInput(raw)
+    const parsed = parseXpubInput(raw)
     const nextXpub = parsed.xpub
     const validXpub = validateExtendedKey(nextXpub)
     const validForNetwork = validateExtendedKey(nextXpub, network)
@@ -435,7 +443,7 @@ export default function WatchOnly() {
     if (localFingerprint) {
       return
     }
-    const extractedFingerprint = DescriptorUtils.extractFingerprint(descriptor)
+    const extractedFingerprint = getFingerprint(descriptor)
     if (!extractedFingerprint) {
       return
     }
@@ -476,30 +484,27 @@ export default function WatchOnly() {
       }
       return
     }
-    if (content.type !== 'bitcoin_descriptor') {
-      return
-    }
-    const parsed = DescriptorUtils.parseImportedDescriptorPayload(
-      content.cleaned
-    )
-    if (!parsed) {
-      toast.error(t('account.import.error.descriptorFormat'))
-      return
-    }
-    if (parsed.combined) {
-      void handleCombinedDescriptor(parsed.combined)
-    } else {
-      void updateExternalDescriptor(parsed.external, parsed.derivedExternal)
-      if (parsed.internal) {
-        void updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
-      } else {
-        setLocalInternalDescriptor('')
-        setInternalDescriptor('')
-        setIsValidInternalDescriptor(true)
+    if (content.type === 'bitcoin_descriptor') {
+      const parsed = parseImportedDescriptorPayload(content.cleaned)
+      if (!parsed) {
+        toast.error(t('account.import.error.descriptorFormat'))
+        return
       }
-      extractAndSetFingerprint(parsed.external)
+      if (parsed.combined) {
+        void handleCombinedDescriptor(parsed.combined)
+      } else {
+        void updateExternalDescriptor(parsed.external, parsed.derivedExternal)
+        if (parsed.internal) {
+          void updateInternalDescriptor(parsed.internal, parsed.derivedInternal)
+        } else {
+          setLocalInternalDescriptor('')
+          setInternalDescriptor('')
+          setIsValidInternalDescriptor(true)
+        }
+        extractAndSetFingerprint(parsed.external)
+      }
+      toast.success(t('watchonly.success.qrScanned'))
     }
-    toast.success(t('watchonly.success.qrScanned'))
   }
 
   async function pasteFromClipboard() {
@@ -535,13 +540,15 @@ export default function WatchOnly() {
     }
 
     if (selectedOption === 'importDescriptor') {
-      const jsonResult = DescriptorUtils.parseJsonDescriptor(text)
+      // Try to parse as JSON first
+      const jsonResult = parseJsonDescriptor(text)
       if (jsonResult) {
         await handleJsonDescriptor(jsonResult)
         return
       }
 
-      const legacyResult = DescriptorUtils.parseLegacyDescriptor(text)
+      // Try to parse as legacy multi-line format
+      const legacyResult = parseLegacyDescriptor(text)
       if (legacyResult) {
         await handleLegacyDescriptor(legacyResult)
         return
@@ -614,7 +621,7 @@ export default function WatchOnly() {
   }
 
   async function handleCombinedDescriptor(descriptor: string) {
-    const result = await DescriptorUtils.processCombinedDescriptor(
+    const result = await processCombinedDescriptor(
       descriptor,
       scriptVersion as ScriptVersionType
     )
@@ -625,12 +632,8 @@ export default function WatchOnly() {
       setIsValidExternalDescriptor(true)
       setIsValidInternalDescriptor(true)
 
-      const externalWithoutChecksum = DescriptorUtils.removeChecksum(
-        result.external
-      )
-      const internalWithoutChecksum = DescriptorUtils.removeChecksum(
-        result.internal
-      )
+      const externalWithoutChecksum = removeChecksum(result.external)
+      const internalWithoutChecksum = removeChecksum(result.internal)
       setExternalDescriptor(externalWithoutChecksum)
       setInternalDescriptor(internalWithoutChecksum)
 
@@ -690,11 +693,11 @@ export default function WatchOnly() {
         }
 
         if (isCombinedDescriptor(text)) {
-          const combinedValidation =
-            await DescriptorUtils.processCombinedDescriptor(
-              text,
-              scriptVersion as ScriptVersionType
-            )
+          // Validate the combined descriptor and get separated descriptors
+          const combinedValidation = await processCombinedDescriptor(
+            text,
+            scriptVersion as ScriptVersionType
+          )
 
           if (combinedValidation.success) {
             setLocalExternalDescriptor(combinedValidation.external)
@@ -770,11 +773,10 @@ export default function WatchOnly() {
           }
         } else if (selectedOption === 'importDescriptor') {
           if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
-            const combinedValidation =
-              await DescriptorUtils.processCombinedDescriptor(
-                externalDescriptor,
-                scriptVersion as ScriptVersionType
-              )
+            const combinedValidation = await processCombinedDescriptor(
+              externalDescriptor,
+              scriptVersion as ScriptVersionType
+            )
 
             if (!combinedValidation.success) {
               toast.error('Invalid combined descriptor')

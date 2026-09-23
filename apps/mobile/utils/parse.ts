@@ -1,3 +1,4 @@
+import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { t } from '@/locales'
 import type { Account } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
@@ -181,9 +182,6 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
   })
 }
 
-/** Same tail as `getExtendedKeyFromDescriptor` in bip32.ts — base58 can omit 0/O/I/l but BDK may emit other encodings. */
-const EXTENDED_PUBKEY_BODY = '[A-Za-z0-9]+'
-
 export function normalizeDescriptorForParsing(descriptor: string): string {
   return descriptor
     .normalize('NFC')
@@ -200,7 +198,7 @@ function isSortedMultiDescriptor(descriptor: string): boolean {
 
 /** BIP32 / slip132-style extended public keys (case-insensitive prefix). */
 function extractSortedDescriptorXpubs(descriptor: string): string[] {
-  const re = new RegExp(`([xyztuv]pub)${EXTENDED_PUBKEY_BODY}`, 'gi')
+  const re = new RegExp(EXTENDED_PUBKEY_PATTERN, 'gi')
   const found = [...descriptor.matchAll(re)].map((m) => m[0])
   return [...new Set(found)].toSorted()
 }
