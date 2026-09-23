@@ -7,6 +7,7 @@ import { Colors } from '@/styles'
 import type { Nip46ParsedUri } from '@/types/models/Nostr'
 import { getMethodLabel } from '@/utils/nip46'
 import { safeNpubEncode } from '@/utils/nostr'
+import { truncateNpub } from '@/utils/nostrIdentity'
 
 import SSButton from './SSButton'
 import SSModal from './SSModal'
@@ -29,7 +30,7 @@ export default function SSNip46ConnectionModal({
     return null
   }
 
-  const npub = abbreviate(safeNpubEncode(parsedUri.clientPubkey))
+  const npub = truncateNpub(safeNpubEncode(parsedUri.clientPubkey), 16)
   const requestedMethods = parsedUri.perms
     ? parseRequestedMethods(parsedUri.perms)
     : []
@@ -94,13 +95,6 @@ export default function SSNip46ConnectionModal({
       </View>
     </SSModal>
   )
-}
-
-function abbreviate(value: string, chars = 16): string {
-  if (value.length <= chars * 2 + 3) {
-    return value
-  }
-  return `${value.slice(0, chars)}...${value.slice(-chars)}`
 }
 
 function parseRequestedMethods(perms: string): string[] {
