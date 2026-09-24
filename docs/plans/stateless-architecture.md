@@ -201,6 +201,13 @@ An optional, additive mode: an independent vault on a user-held USB stick
 that takes precedence when plugged in; the current device-storage UX is the
 untouched default. Large enough to deserve its own section — see §6.
 
+### WS6 — Stateless session account
+
+A Bitcoin account that exists only in memory for the current foreground
+session. The user imports a spendable secret, uses the account like any other
+single-sig account, and the app destroys it when the process quits or leaves
+the foreground. See §7.
+
 ## 6. USB vault mode — the paper's "trusted stick", literally
 
 The paper's centerpiece is a trusted stick that holds all user data (encrypted
@@ -414,7 +421,61 @@ Every row above is a named integration test case; the mock vault layer
 - SAF write latency on cheap sticks; keep vault writes small (precious state
   only — another reason chain cache stays off the stick).
 
-## 7. Sequencing
+## 7. Stateless session account
+
+A session-only Bitcoin account. It is the paper's disposable execution
+context applied to a signer: the secret is present only while the user is
+looking at the app, and it is gone the moment they are not.
+
+### 7.1 Entry
+
+**Signer → Bitcoin → Add account → Stateless → input.**
+
+The user supplies a spendable secret, then the account is usable immediately:
+
+- Typed BIP39 mnemonic.
+- SeedQR scan, decoded with `detectAndDecodeSeedQR` in
+  `apps/mobile/utils/seedqr.ts`.
+- Any other spendable secret the existing add-account flow already accepts
+  (extended private key). Watch-only material is out of this mode.
+
+While the app stays in the foreground, the account behaves like a normal
+single-sig account: sync, balance, send, and sign. It is never written to
+SecureStore, SQLite, MMKV, or a BDK wallet file. Chain data for the session
+lives in memory only.
+
+### 7.2 Wipe
+
+The session account is destroyed when the app **quits** or **leaves the
+foreground**. `AppState` `background` or `inactive` both count: home, the app
+switcher, another app, the notification shade, and a backgrounded camera.
+Leaving focus is a wipe. Do not soften that later.
+
+On wipe:
+
+1. Overwrite buffers the app owns (mnemonic bytes, derived key material,
+   in-memory wallet buffers), then drop every reference.
+2. Drop the in-memory wallet, mnemonic, and derived keys.
+3. Remove the account from the in-memory account list so the next launch has
+   no account, no secret, and no wallet file.
+
+JavaScript strings are not reliably zeroizable (same limit as the WS2
+lock-scope note). Overwrite the buffers we control, drop every reference, and
+treat garbage collection as the remaining residue. Byte-level certainty over
+JS strings is out of scope.
+
+Labels, transaction drafts, and signed PSBTs created for this account die
+with it. Nothing from the session is merged into a persisted account or into
+the backup.
+
+### 7.3 Proof
+
+Integration test: import a mnemonic (typed and SeedQR) → sync and sign while
+the app is focused → send the app to the background, and separately kill the
+process → relaunch → the account list has no session account, no secret
+remains in memory stores, and no wallet file was written.
+
+## 8. Sequencing
 
 1. **WS0** registry + lint test (unblocks everything, zero risk)
 2. **WS1** unified wipe (small, high security value, needs registry)
@@ -424,11 +485,15 @@ Every row above is a named integration test case; the mock vault layer
 5. **WS4** backup proof (depends on WS0; can start any time after)
 6. **WS5** USB vault mode (depends on WS0 registry, WS1 wipe for enrollment,
    WS2 authenticated encryption, WS4 vault=backup format)
+7. **WS6** stateless session account (after WS1, so it can reuse the wipe
+   helpers; independent of USB vault)
 
 WS1 and WS2 can ship in one PR; WS3 and WS4 are separate PRs. WS5 is its own
 PR train: native module → vault adapter → enrollment flow → unlock branch.
+WS6 is its own PR: memory-only account path, foreground lifetime, wipe on
+background and quit.
 
-## 8. Risks & open questions
+## 9. Risks & open questions
 
 - **Lazy hydration perf**: some screens assume the full account graph is
   resident. Mitigation: per-account TanStack Query hooks (aligns with the
@@ -442,7 +507,7 @@ PR train: native module → vault adapter → enrollment flow → unlock branch.
 - **Scope discipline**: the paper tempts grand redesigns. Resist. The win is
   classification + one wipe + honest lifetimes, not a new architecture.
 
-## 9. Success criteria
+## 10. Success criteria
 
 - One command (`wipeAppState`) demonstrably leaves zero residue; all entry
   points use it.
@@ -456,3 +521,5 @@ PR train: native module → vault adapter → enrollment flow → unlock branch.
 - USB vault mode: stick attached + valid vault → session loads from the stick
   and device storage is untouched; stick absent → device UX identical to
   today; an automated test proves no state crosses between the two worlds.
+- Stateless session account: import → use while focused → background or kill
+  → relaunch shows no account, no secret, and no wallet file.
