@@ -123,14 +123,6 @@ function parseAddressDescriptorToAddress(descriptor: string) {
   return match[1]
 }
 
-function parseHexToBytes(hex: string): number[] {
-  const bytes = []
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes.push(parseInt(hex.substring(i, i + 2), 16))
-  }
-  return bytes
-}
-
 function parseLabel(rawLabel: string) {
   const matches = rawLabel.match(/#\w+/g)
   if (!matches) {
@@ -355,7 +347,6 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 export {
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
-  parseHexToBytes,
   parseLabel,
   parseLabelTags,
   parseTXOutputs,

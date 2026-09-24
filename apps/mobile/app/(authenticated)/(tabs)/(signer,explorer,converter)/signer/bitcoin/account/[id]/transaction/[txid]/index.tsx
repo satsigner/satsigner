@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
@@ -45,7 +46,6 @@ import {
   analyzePossiblePayjoin,
   buildOwnedOutpoints
 } from '@/utils/sankeyInputOwnership'
-import { bytesToHex } from '@/utils/scripts'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import {
   annotateTransactionsWithWalletOwnership,
@@ -198,7 +198,7 @@ export default function TxDetails() {
     }
 
     if (tx.raw) {
-      setRaw(bytesToHex(tx.raw))
+      setRaw(hex.encode(Uint8Array.from(tx.raw)))
     }
 
     if (tx.vin.some((input) => input.value === undefined)) {

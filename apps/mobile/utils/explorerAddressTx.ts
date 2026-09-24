@@ -1,6 +1,7 @@
+import { hex } from '@scure/base'
+
 import { type EsploraTx } from '@/types/models/Esplora'
 import { type Transaction } from '@/types/models/Transaction'
-import { parseHexToBytes } from '@/utils/parse'
 
 function mapEsploraTxToAddressTransaction(
   tx: EsploraTx,
@@ -11,15 +12,19 @@ function mapEsploraTxToAddressTransaction(
       txid: input.txid,
       vout: input.vout
     },
-    scriptSig: parseHexToBytes(input.scriptsig ?? ''),
+    scriptSig: Array.from(hex.decode(input.scriptsig ?? '')),
     sequence: input.sequence,
     value: input.prevout?.value,
-    witness: input.witness ? input.witness.map(parseHexToBytes) : []
+    witness: input.witness
+      ? input.witness.map((w) => Array.from(hex.decode(w)))
+      : []
   }))
 
   const vout: Transaction['vout'] = tx.vout.map((output) => ({
     address: output.scriptpubkey_address || '',
-    script: output.scriptpubkey ? parseHexToBytes(output.scriptpubkey) : [],
+    script: output.scriptpubkey
+      ? Array.from(hex.decode(output.scriptpubkey))
+      : [],
     value: output.value
   }))
 
