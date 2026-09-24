@@ -22,10 +22,10 @@ import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashProofCard from '@/components/SSEcashProofCard'
-import SSEcashProofsBubbleChart from '@/components/SSEcashProofsBubbleChart'
 import SSEcashTransactionCard from '@/components/SSEcashTransactionCard'
 import SSIconButton from '@/components/SSIconButton'
 import SSNFCModal from '@/components/SSNFCModal'
+import SSPackedBubbleChart from '@/components/SSPackedBubbleChart'
 import SSPaste from '@/components/SSPaste'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
@@ -45,6 +45,7 @@ import { useEcashStore } from '@/store/ecash'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
+import { ecashProofsToBubbleData } from '@/utils/ecashProofs'
 import { formatFiatPrice } from '@/utils/format'
 
 const { '500': ECASH_BALANCE_LABEL_COLOR } = Colors.gray
@@ -79,6 +80,10 @@ export default function EcashAccountDetailPage() {
     router.navigate(`/signer/ecash/account/${id}/settings`)
   const handleConnectMintPress = () =>
     router.navigate(`/signer/ecash/account/${id}/settings/mint`)
+  const handleProofBubblePress = (bubbleId: string) =>
+    router.navigate(
+      `/signer/ecash/account/${id}/proof/${bubbleId.split('-').pop()}`
+    )
 
   const ecashContentHandler = useEcashContentHandler()
 
@@ -217,16 +222,12 @@ export default function EcashAccountDetailPage() {
                     </SSIconButton>
                   </SSHStack>
                   {proofsView === 'bubbles' ? (
-                    <SSEcashProofsBubbleChart
-                      proofs={proofs}
-                      privacyMode={privacyMode}
+                    <SSPackedBubbleChart
+                      data={ecashProofsToBubbleData(proofs, privacyMode)}
+                      emptyText={t('ecash.accountDetail.noProofs')}
                       width={width}
                       height={width * 0.8}
-                      onProofPress={(proofIndex) =>
-                        router.navigate(
-                          `/signer/ecash/account/${id}/proof/${proofIndex}`
-                        )
-                      }
+                      onPress={handleProofBubblePress}
                     />
                   ) : (
                     proofs.map((proof, index) => (

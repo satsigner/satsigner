@@ -28,13 +28,13 @@ import SSArkAddressesView from '@/components/SSArkAddressesView'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSArkRefreshCard from '@/components/SSArkRefreshCard'
 import SSArkVtxoCard from '@/components/SSArkVtxoCard'
-import SSArkVtxosBubbleChart from '@/components/SSArkVtxosBubbleChart'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSIconButton from '@/components/SSIconButton'
 import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
+import SSPackedBubbleChart from '@/components/SSPackedBubbleChart'
 import SSSelectionActionBar from '@/components/SSSelectionActionBar'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
@@ -78,6 +78,7 @@ import {
 } from '@/utils/arkMovement'
 import {
   type ArkVtxoListItem,
+  arkVtxosToBubbleData,
   buildArkVtxoSections,
   filterSelectableVtxoIds,
   getArkNextExpiryHeight
@@ -546,13 +547,16 @@ export default function ArkAccountDetailPage() {
       return renderListWithLoader(
         <>
           {renderVtxosControls()}
-          <SSArkVtxosBubbleChart
-            vtxos={vtxos}
-            selectedIds={selectedSpendableIds}
-            privacyMode={privacyMode}
+          <SSPackedBubbleChart
+            data={arkVtxosToBubbleData(
+              vtxos,
+              selectedSpendableIds,
+              privacyMode
+            )}
+            emptyText={t('ark.vtxo.empty')}
             width={width}
             height={width * 0.8}
-            onVtxoPress={handleVtxoBubblePress}
+            onPress={handleVtxoBubblePress}
           />
         </>,
         refreshing
