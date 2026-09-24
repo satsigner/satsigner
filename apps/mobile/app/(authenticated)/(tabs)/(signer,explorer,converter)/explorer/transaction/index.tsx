@@ -255,7 +255,7 @@ export default function ExplorerTransaction() {
                       {ex.description}
                     </SSText>
                     <SSText type="mono" size="xxs" color="muted">
-                      {formatTxId(ex.txid, 8)}
+                      {formatTxId(ex.txid, 'wide')}
                     </SSText>
                   </SSVStack>
                   <SSIconChevronRight

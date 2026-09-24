@@ -1690,7 +1690,7 @@ function UtxoLabelRenderer({
               key={getUtxoOutpoint(data.utxo) + index}
               x={data.x1 + 2}
               y={data.y2 + 10}
-              text={`${formatTxId(data.utxo.txid, 3)}:${data.utxo.vout}`}
+              text={`${formatTxId(data.utxo.txid, 'tiny')}:${data.utxo.vout}`}
               font={font}
               color="white"
             />

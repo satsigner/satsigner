@@ -5,9 +5,9 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import type { Nip46ParsedUri } from '@/types/models/Nostr'
+import { formatNpub } from '@/utils/format'
 import { getMethodLabel } from '@/utils/nip46'
 import { safeNpubEncode } from '@/utils/nostr'
-import { truncateNpub } from '@/utils/nostrIdentity'
 
 import SSButton from './SSButton'
 import SSModal from './SSModal'
@@ -30,7 +30,7 @@ export default function SSNip46ConnectionModal({
     return null
   }
 
-  const npub = truncateNpub(safeNpubEncode(parsedUri.clientPubkey), 16)
+  const npub = formatNpub(safeNpubEncode(parsedUri.clientPubkey), 'xl')
   const requestedMethods = parsedUri.perms
     ? parseRequestedMethods(parsedUri.perms)
     : []

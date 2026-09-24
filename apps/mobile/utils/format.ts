@@ -1,13 +1,22 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import {
+  ADDRESS_TRUNCATE_CHARS,
+  ADDRESS_TRUNCATE_CHARS_COMPACT,
+  ADDRESS_TRUNCATE_CHARS_DEFAULT,
   BILLIARD,
   BYTE_UNIT_DECIMALS,
   BYTES_PER_KB,
   COMPACT_LONG_OPTS,
   FILE_SIZE_UNITS,
+  PUBKEY_SHORT_HEAD_CHARS,
+  PUBKEY_SHORT_TAIL_CHARS,
   QUADRILLION,
   TRILLIARD,
-  TRILLION_LONG
+  TRILLION_LONG,
+  TXID_TRUNCATE_CHARS,
+  TXID_TRUNCATE_CHARS_COMPACT,
+  TXID_TRUNCATE_CHARS_TINY,
+  TXID_TRUNCATE_CHARS_WIDE
 } from '@/constants/format'
 import {
   LN_KEY_SHORT_HEAD_CHARS,
@@ -15,23 +24,55 @@ import {
 } from '@/constants/lightning'
 import {
   NOSTR_NPUB_SHORT_HEAD_CHARS,
-  NOSTR_NPUB_SHORT_TAIL_CHARS
+  NOSTR_NPUB_SHORT_TAIL_CHARS,
+  NPUB_TRUNCATE_CHARS_LG,
+  NPUB_TRUNCATE_CHARS_MD,
+  NPUB_TRUNCATE_CHARS_SM,
+  NPUB_TRUNCATE_CHARS_XL,
+  NPUB_TRUNCATE_CHARS_XS
 } from '@/constants/nostr'
 import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
+import {
+  type AddressSize,
+  type NpubSize,
+  type TxIdSize
+} from '@/types/ui/format'
 
-function formatAddress(address: string, headChars = 8, tailChars = headChars) {
+/**
+ * Middle-truncate a string to `headChars` leading and `tailChars` trailing
+ * characters joined by an ellipsis (e.g. "abcd...wxyz"). `tailChars` defaults
+ * to `headChars`. `formatAddress`, `formatShortPubkey`, `formatNpub` and
+ * `formatLnKey` are thin aliases that pass their conventional widths.
+ */
+function truncate(value: string, headChars: number, tailChars = headChars) {
   // Truncating would show every character (plus misleading dots) or overlap
-  // the head and tail slices, so just return the whole address.
-  if (address.length <= headChars + tailChars) {
-    return address
+  // the head and tail slices, so just return the whole value.
+  if (value.length <= headChars + tailChars) {
+    return value
   }
 
   // slice(-0) returns the whole string, so guard against an empty tail.
-  const tail = tailChars > 0 ? address.slice(-tailChars) : ''
-  return `${address.slice(0, headChars)}...${tail}`
+  const tail = tailChars > 0 ? value.slice(-tailChars) : ''
+  return `${value.slice(0, headChars)}...${tail}`
+}
+
+/**
+ * Truncate an address. Without `size` it keeps the standard 8-char form;
+ * 'default' is the narrower 6-char variant and 'compact' the 4-char one used
+ * in dense charts.
+ */
+function formatAddress(address: string, size?: AddressSize) {
+  switch (size) {
+    case 'compact':
+      return truncate(address, ADDRESS_TRUNCATE_CHARS_COMPACT)
+    case 'default':
+      return truncate(address, ADDRESS_TRUNCATE_CHARS)
+    default:
+      return truncate(address, ADDRESS_TRUNCATE_CHARS_DEFAULT)
+  }
 }
 
 function formatNumber(
@@ -217,10 +258,24 @@ function formatTimeFromNow(milliseconds: number): TimeFromNow {
   return [seconds, 'second']
 }
 
-function formatTxId(txid: string, character = 6) {
+function txIdTruncateChars(size: TxIdSize): number {
+  switch (size) {
+    case 'tiny':
+      return TXID_TRUNCATE_CHARS_TINY
+    case 'compact':
+      return TXID_TRUNCATE_CHARS_COMPACT
+    case 'wide':
+      return TXID_TRUNCATE_CHARS_WIDE
+    default:
+      return TXID_TRUNCATE_CHARS
+  }
+}
+
+function formatTxId(txid: string, size: TxIdSize = 'default') {
   if (!txid) {
     return ''
   }
+  const character = txIdTruncateChars(size)
   if (txid.includes('...') || txid.length <= character * 2 + 3) {
     return txid
   }
@@ -230,31 +285,37 @@ function formatTxId(txid: string, character = 6) {
   return `${beginning}...${end}`
 }
 
-function formatShortPubkey(pubkey: string, headChars = 5, tailChars = 6) {
-  const s = pubkey.trim()
-  if (!s) {
-    return ''
-  }
-  if (s.length <= headChars + tailChars + 3) {
-    return s
-  }
-  return `${s.slice(0, headChars)}...${s.slice(-tailChars)}`
+function formatShortPubkey(pubkey: string) {
+  return truncate(pubkey, PUBKEY_SHORT_HEAD_CHARS, PUBKEY_SHORT_TAIL_CHARS)
 }
 
-function formatNpub(npub: string) {
-  return formatShortPubkey(
-    npub,
-    NOSTR_NPUB_SHORT_HEAD_CHARS,
-    NOSTR_NPUB_SHORT_TAIL_CHARS
-  )
+/**
+ * Truncate an npub. Without `size` it keeps the conventional 12/4 short form;
+ * with `size` it middle-truncates to the matching symmetric NPUB tier.
+ */
+function formatNpub(npub: string, size?: NpubSize) {
+  switch (size) {
+    case 'xs':
+      return truncate(npub, NPUB_TRUNCATE_CHARS_XS)
+    case 'sm':
+      return truncate(npub, NPUB_TRUNCATE_CHARS_SM)
+    case 'md':
+      return truncate(npub, NPUB_TRUNCATE_CHARS_MD)
+    case 'lg':
+      return truncate(npub, NPUB_TRUNCATE_CHARS_LG)
+    case 'xl':
+      return truncate(npub, NPUB_TRUNCATE_CHARS_XL)
+    default:
+      return truncate(
+        npub,
+        NOSTR_NPUB_SHORT_HEAD_CHARS,
+        NOSTR_NPUB_SHORT_TAIL_CHARS
+      )
+  }
 }
 
 function formatLnKey(pubkey: string) {
-  return formatShortPubkey(
-    pubkey,
-    LN_KEY_SHORT_HEAD_CHARS,
-    LN_KEY_SHORT_TAIL_CHARS
-  )
+  return truncate(pubkey, LN_KEY_SHORT_HEAD_CHARS, LN_KEY_SHORT_TAIL_CHARS)
 }
 
 function formatTxOutputToUtxo(
@@ -384,5 +445,6 @@ export {
   formatTimestamp,
   formatTxId,
   formatTxOutputToUtxo,
-  trimOnionAddress
+  trimOnionAddress,
+  truncate
 }

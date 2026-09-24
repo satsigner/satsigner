@@ -60,6 +60,14 @@ export const NOSTR_CONTACT_QR_SLIDE_KEYS = {
 export const NOSTR_BLOSSOM_FILE_DISPLAY_HASH_LENGTH = 12
 export const NOSTR_NPUB_SHORT_HEAD_CHARS = 12
 export const NOSTR_NPUB_SHORT_TAIL_CHARS = 4
+
+// Symmetric head/tail widths for truncating an npub in the UI, tiered by how
+// much horizontal space the surface has.
+export const NPUB_TRUNCATE_CHARS_XS = 8
+export const NPUB_TRUNCATE_CHARS_SM = 10
+export const NPUB_TRUNCATE_CHARS_MD = 12
+export const NPUB_TRUNCATE_CHARS_LG = 14
+export const NPUB_TRUNCATE_CHARS_XL = 16
 export const NOSTR_BLOSSOM_FILE_PREVIEW_HEIGHT = 280
 export const NOSTR_BLOSSOM_FILE_ROW_HEIGHT = 72
 export const NOSTR_BLOSSOM_FILES_STALE_TIME_MS = 5 * 60_000

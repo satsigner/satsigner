@@ -20,3 +20,25 @@ export const COMPACT_LONG_OPTS: Intl.NumberFormatOptions = {
   compactDisplay: 'long',
   notation: 'compact'
 }
+
+// Head/tail character counts for truncating txids/addresses in the UI, tiered
+// by how much horizontal space the surface has. Passing a single width to
+// truncate/formatTxId makes head === tail.
+export const ADDRESS_TRUNCATE_CHARS_DEFAULT = 8 // formatAddress() default
+export const PUBKEY_SHORT_HEAD_CHARS = 5 // formatShortPubkey() default
+export const PUBKEY_SHORT_TAIL_CHARS = 6
+
+export const TXID_TRUNCATE_CHARS_TINY = 3 // history chart labels
+export const TXID_TRUNCATE_CHARS_COMPACT = 4 // dense cards & flow-diagram nodes
+export const TXID_TRUNCATE_CHARS = 6 // flow-diagram block node
+export const TXID_TRUNCATE_CHARS_WIDE = 8 // explorer & ark detail rows
+
+export const ADDRESS_TRUNCATE_CHARS_COMPACT = 4 // flow-diagram output nodes
+export const ADDRESS_TRUNCATE_CHARS = 6 // cards & detail rows
+
+// Vtxo ids get their own width so it can diverge from txids later.
+export const VTXO_ID_TRUNCATE_CHARS = 8
+
+// Explorer address row shows an asymmetric head/tail.
+export const EXPLORER_ADDRESS_HEAD_CHARS = 10
+export const EXPLORER_ADDRESS_TAIL_CHARS = 8

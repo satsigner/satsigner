@@ -157,7 +157,7 @@ export const useNodesAndLinks = ({
         id: `vout-${blockDepth + 1}-${index + 1}`,
         indexV: index,
         ioData: {
-          address: formatAddress(output.to, 4),
+          address: formatAddress(output.to, 'compact'),
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.amount), 2),
           ...(walletSpendColors
@@ -375,7 +375,7 @@ export const useNodesAndLinks = ({
               depthH,
               id: `vin-${depthH}-${currentIndex}`,
               ioData: {
-                address: formatTxId(input.previousOutput.txid, 4),
+                address: formatTxId(input.previousOutput.txid, 'compact'),
                 fiatCurrency,
                 fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
                 isInput: true,
@@ -422,7 +422,7 @@ export const useNodesAndLinks = ({
                 blockHeight,
                 blockRelativeTime,
                 blockTime,
-                txId: formatTxId(tx?.id, 6),
+                txId: formatTxId(tx?.id, 'default'),
                 txSize: tx.size,
                 vSize: vsize
               },
@@ -475,7 +475,7 @@ export const useNodesAndLinks = ({
                 ? getUtxoOutpoint(matchingInput)
                 : undefined,
               ioData: {
-                address: formatAddress(output.address, 4),
+                address: formatAddress(output.address, 'compact'),
                 fiatCurrency,
                 fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
                 isNeutralOutput: !walletSpendColors,

@@ -39,10 +39,9 @@ import {
   txidFromSignedDraft
 } from '@/utils/arkBoardDeposit'
 import { setClipboard } from '@/utils/clipboard'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatNumber, formatTxId } from '@/utils/format'
 
 const DEPOSIT_QR_SIZE = 200
-const TXID_TRUNCATE_CHARS = 8
 const PAYJOIN_LOADER_SIZE = 18
 
 type FundTab = 'address' | 'payjoin'
@@ -364,7 +363,7 @@ export default function ArkBoardPage() {
                     </SSText>
                     {boardPayjoin.txid ? (
                       <SSText color="muted" size="xs" style={styles.monospace}>
-                        {formatAddress(boardPayjoin.txid, TXID_TRUNCATE_CHARS)}
+                        {formatTxId(boardPayjoin.txid, 'wide')}
                       </SSText>
                     ) : null}
                     {showResumeBroadcast && linkedAccount ? (
@@ -571,7 +570,7 @@ export default function ArkBoardPage() {
                     {formatNumber(pendingBoard.amountSats)} {t('bitcoin.sats')}
                   </SSText>
                   <SSText color="muted" size="xs" style={styles.monospace}>
-                    {formatAddress(pendingBoard.txid, TXID_TRUNCATE_CHARS)}
+                    {formatTxId(pendingBoard.txid, 'wide')}
                   </SSText>
                 </SSHStack>
               ))}
