@@ -1,6 +1,7 @@
 import { hmac } from '@noble/hashes/hmac'
 import { pbkdf2Async } from '@noble/hashes/pbkdf2'
 import { sha512 } from '@noble/hashes/sha512'
+import { hex } from '@scure/base'
 import { HDKey } from '@scure/bip32'
 import {
   type KeychainKind,
@@ -38,8 +39,7 @@ import {
   getPublicDescriptorFromSeed,
   getPublicDescriptorFromSeedWithPath,
   getVersionsForNetwork,
-  getXpubForScriptVersion,
-  toHex
+  getXpubForScriptVersion
 } from '@/utils/bip32'
 
 export function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
@@ -336,7 +336,7 @@ function deriveXpubFromMnemonic(
   const master = HDKey.fromMasterSeed(seed, versions)
 
   // ensure publicKey is not null
-  const masterPubkeyHex = toHex(master.publicKey || new Uint8Array())
+  const masterPubkeyHex = hex.encode(master.publicKey || new Uint8Array())
   const masterFingerprintHex = fingerprintToHex(master.fingerprint)
 
   // 3) derive path
