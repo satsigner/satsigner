@@ -1,4 +1,5 @@
 import ecc from '@bitcoinerlab/secp256k1'
+import { hex } from '@scure/base'
 import { HDKey } from '@scure/bip32' // TODO: remove @scure
 import { BIP32Factory, type BIP32Interface } from 'bip32'
 import {
@@ -17,6 +18,7 @@ import {
   BIP84_PURPOSE,
   BIP86_PURPOSE
 } from '@/constants/derivation'
+import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { type AddressKeyPair } from '@/types/models/Address'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
@@ -269,7 +271,7 @@ export function getExtendedPublicKeyFromSeed(
 
 // TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors
 export function getExtendedKeyFromDescriptor(descriptor: string) {
-  const match = descriptor.match(/([xyztuv]pub)[A-Za-z0-9]+/i)
+  const match = descriptor.match(new RegExp(EXTENDED_PUBKEY_PATTERN, 'i'))
   return match ? match[0] : ''
 }
 
@@ -289,8 +291,8 @@ export function getAddressKeyPairFromSeed(
 ): AddressKeyPair {
   const root = bip32.fromSeed(seed)
   const child = root.derivePath(derivationPath)
-  const privateKey = child.privateKey ? toHex(child.privateKey) : ''
-  const publicKey = toHex(child.publicKey)
+  const privateKey = child.privateKey ? hex.encode(child.privateKey) : ''
+  const publicKey = hex.encode(child.publicKey)
   if (child.privateKey) {
     child.privateKey.fill(0)
   }
@@ -308,8 +310,8 @@ export function getAddressKeyPairFromExtendedKey(
 ): AddressKeyPair {
   const node = bip32.fromBase58(extendedKey, BIP32Networks[network])
   const child = node.derivePath(relativePath)
-  const privateKey = child.privateKey ? toHex(child.privateKey) : ''
-  const publicKey = toHex(child.publicKey)
+  const privateKey = child.privateKey ? hex.encode(child.privateKey) : ''
+  const publicKey = hex.encode(child.publicKey)
   if (child.privateKey) {
     child.privateKey.fill(0)
   }
@@ -480,15 +482,6 @@ function getP2TRXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
 }
 
 /**
- * Convert a Uint8Array to hex string
- */
-export function toHex(u8: Uint8Array | undefined): string {
-  return Array.from(u8 || [])
-    .map((b: number) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
-
-/**
  * Convert a number to a zero-padded 4-byte hex string
  */
 export function fingerprintToHex(fpNum: number): string {
@@ -496,7 +489,7 @@ export function fingerprintToHex(fpNum: number): string {
   const dv = new DataView(buf.buffer)
   // eslint-disable-next-line unicorn/prefer-math-trunc -- >>> 0 coerces to Uint32, Math.trunc does not
   dv.setUint32(0, fpNum >>> 0)
-  return toHex(buf)
+  return hex.encode(buf)
 }
 
 /**
