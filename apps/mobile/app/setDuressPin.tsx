@@ -14,7 +14,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
-import { useSettingsStore } from '@/store/settings'
 import { Layout, Sizes } from '@/styles'
 import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
 import {
@@ -37,7 +36,6 @@ export default function SetPin() {
       state.setDuressPin
     ])
   )
-  const showWarning = useSettingsStore((state) => state.showWarning)
 
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>('set')
@@ -82,11 +80,7 @@ export default function SetPin() {
   }
 
   function handleSetPinLater() {
-    if (showWarning) {
-      router.push('./warning')
-    } else {
-      router.replace('/')
-    }
+    router.back()
   }
 
   function handleConfirmPin() {
@@ -114,11 +108,7 @@ export default function SetPin() {
       return
     }
 
-    if (showWarning) {
-      router.push('./warning')
-    } else {
-      router.replace('/')
-    }
+    router.back()
 
     setFirstTime(false)
     setRequiresAuth(true)
