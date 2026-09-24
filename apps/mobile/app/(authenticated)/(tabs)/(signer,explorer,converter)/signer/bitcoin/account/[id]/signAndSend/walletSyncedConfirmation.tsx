@@ -31,7 +31,6 @@ export default function WalletSyncedConfirmation() {
   const goToNextStep = () => {
     // TODO: add internal change address as an output
 
-    // finally, go to the next page
     router.replace(`/signer/bitcoin/account/${id}/signAndSend/ioPreview`)
   }
 

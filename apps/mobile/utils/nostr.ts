@@ -11,7 +11,6 @@ import { sha256 } from '@/utils/crypto'
 import { parseDescriptor } from '@/utils/parse'
 import { type TransactionData } from '@/utils/psbt'
 
-// Initialize ECC library
 bitcoinjs.initEccLib(ecc)
 
 export function generateColorFromNpub(npub: string): string {

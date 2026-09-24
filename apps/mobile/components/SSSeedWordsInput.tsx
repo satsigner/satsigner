@@ -130,7 +130,6 @@ export default function SSSeedWordsInput({
   const handleWordSelectedRef =
     useRef<(word?: string) => Promise<void>>(undefined)
 
-  // Initialize seed words info
   useEffect(() => {
     const initialSeedWordsInfo = Array.from({ length: wordCount }, () => ({
       dirty: false,
@@ -138,13 +137,11 @@ export default function SSSeedWordsInput({
       value: ''
     }))
     setSeedWordsInfo(initialSeedWordsInfo)
-    // Initialize refs array
     wordInputRefs.current = Array.from<TextInput | null>({
       length: wordCount
     }).fill(null)
   }, [wordCount])
 
-  // Cleanup timeout on unmount
   useEffect(
     () => () => {
       if (autoAdvanceTimeoutRef.current) {
@@ -154,7 +151,6 @@ export default function SSSeedWordsInput({
     []
   )
 
-  // Handle word selection from keyboard selector
   const handleWordSelected = useCallback(
     async (word?: string) => {
       if (!word) {
@@ -172,7 +168,6 @@ export default function SSSeedWordsInput({
         setCurrentWordText('')
         setSeedWordsInfo(newSeedWordsInfo)
 
-        // Auto-advance to next word if current word is valid
         if (currentWordIndex < wordCount - 1) {
           setCurrentWordIndex((prev) => prev + 1)
           wordInputRefs.current[currentWordIndex + 1]?.focus()
@@ -182,7 +177,6 @@ export default function SSSeedWordsInput({
         setSeedWordsInfo(newSeedWordsInfo)
       }
 
-      // Validate mnemonic after word selection
       const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
       if (mnemonic.trim().length > 0) {
         const checksumValid = validateMnemonic(mnemonic, wordListName)
@@ -224,12 +218,10 @@ export default function SSSeedWordsInput({
     ]
   )
 
-  // Keep ref updated with latest function
   useEffect(() => {
     handleWordSelectedRef.current = handleWordSelected
   }, [handleWordSelected])
 
-  // Notify parent about word selector state changes
   useEffect(() => {
     onWordSelectorStateChange?.({
       onWordSelected: (word?: string) => handleWordSelectedRef.current?.(word),
@@ -238,7 +230,6 @@ export default function SSSeedWordsInput({
     })
   }, [keyboardWordSelectorVisible, currentWordText, onWordSelectorStateChange])
 
-  // Check if clipboard contains valid seed (BIP39 or Electrum)
   const checkClipboardForSeed = useCallback(
     (text: string): string[] => {
       if (!text || text === '') {
@@ -261,7 +252,6 @@ export default function SSSeedWordsInput({
     [wordCount, wordList]
   )
 
-  // Fill out seed words from clipboard
   const fillOutSeedWords = useCallback(
     async (seed: string[]) => {
       const newSeedWordsInfo = seed.map((value) => ({
@@ -348,18 +338,15 @@ export default function SSSeedWordsInput({
     [wordCount, fillOutSeedWords]
   )
 
-  // Handle seed word input change
   const handleSeedWordChange = async (index: number, value: string) => {
     const newSeedWordsInfo = [...seedWordsInfo]
     const seedWord = newSeedWordsInfo[index]
 
-    // Check for invalid characters
     if (!value.match(/^[a-z]*$/)) {
       seedWord.valid = false
       seedWord.dirty = true
       setSeedWordsInfo(newSeedWordsInfo)
 
-      // Clear auto-advance timeout if invalid characters are entered
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current)
         autoAdvanceTimeoutRef.current = null
@@ -372,18 +359,15 @@ export default function SSSeedWordsInput({
     setCurrentWordText(value.trim())
     setCurrentWordIndex(index)
 
-    // Check if word is in BIP39 word list
     const trimmedValue = value.trim()
     if (wordList.includes(trimmedValue)) {
       seedWord.valid = true
       setKeyboardWordSelectorVisible(false)
 
-      // Clear any existing timeout
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current)
       }
 
-      // Auto-advance to next input when word is valid
       if (index < wordCount - 1) {
         const isPrefix = isPrefixWord(trimmedValue, wordList)
         const delay = isPrefix ? PREFIX_WORD_DELAY_MS : 100
@@ -398,7 +382,6 @@ export default function SSSeedWordsInput({
         trimmedValue.length >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
       setKeyboardWordSelectorVisible(shouldShow)
 
-      // Clear auto-advance timeout if current word becomes invalid
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current)
         autoAdvanceTimeoutRef.current = null
@@ -407,7 +390,6 @@ export default function SSSeedWordsInput({
 
     setSeedWordsInfo(newSeedWordsInfo)
 
-    // Validate complete mnemonic
     const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0) {
       const checksumValid = validateMnemonic(mnemonic, wordListName)
@@ -445,7 +427,6 @@ export default function SSSeedWordsInput({
   const handlePassphraseChange = async (text: string) => {
     setPassphrase(text)
 
-    // Re-validate mnemonic with new passphrase if mnemonic is complete
     const mnemonic = seedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0) {
       if (checksumValid) {

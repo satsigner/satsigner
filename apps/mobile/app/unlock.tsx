@@ -76,15 +76,6 @@ export default function Unlock() {
     setLockTriggered(false)
     setJustUnlocked(true)
     resetPinTries()
-    // INFO: Deactivated this for now
-    // Note: Take into account that we don't persist account build
-    // We had a problem with pages = ["/", "/account/add/", "/account/add/(common)/confirm/0/word/11"]
-    // This pushes the previous page history (before screen was unlocked)
-    // const pages = getPagesHistory()
-    // clearPageHistory()
-    // for (const page of pages) {
-    //   router.push(page as any)
-    // }
     router.replace(showWarning ? './warning' : '/')
   }
 

@@ -89,7 +89,6 @@ function SSMultipleSankeyDiagram({
   })
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
-  // Calculate the maximum depthH value across all nodes
   const maxDepthH = useMemo(
     () =>
       sankeyNodes.length === 0
@@ -98,7 +97,6 @@ function SSMultipleSankeyDiagram({
     [sankeyNodes]
   )
 
-  // Calculate the maximum number of nodes at any depthH level
   const maxNodeCountInDepthH = useMemo(() => {
     const depthCounts = new Map<number, number>()
 
@@ -130,7 +128,6 @@ function SSMultipleSankeyDiagram({
     return gen
   }, [maxDepthH, maxNodeCountInDepthH, sankeyExtentTopPx])
 
-  // Run sankey layout with fallback on error
   const { layoutFailed, links, nodes } = useMemo(() => {
     try {
       const layout = sankeyGenerator({
@@ -166,19 +163,16 @@ function SSMultipleSankeyDiagram({
     transformedLinks
   )
 
-  // Calculate the optimal initial x translation to show the last 3 depthH levels
   const initialXTranslation = useMemo(() => {
     // If we have fewer than 3 depthH levels or no nodes, show from the beginning
     if (maxDepthH < 2 || !nodes?.length) {
       return 0
     }
 
-    // Find the x position of nodes in the last 3 depthH levels
     const lastThreeLevels = new Set(
       [maxDepthH, maxDepthH - 1, maxDepthH - 2].filter((level) => level >= 0)
     )
 
-    // Find the minimum and maximum x positions among nodes in the last three levels
     let minX = Infinity
     let maxX = -Infinity
 
@@ -193,7 +187,6 @@ function SSMultipleSankeyDiagram({
       }
     }
 
-    // Calculate the width of the last three levels
     const lastThreeLevelsWidth = maxX - minX + NODE_WIDTH
 
     // If the width of the last three levels is less than the viewport width,
@@ -202,10 +195,8 @@ function SSMultipleSankeyDiagram({
       return -(minX - (w - lastThreeLevelsWidth) / 2)
     }
 
-    // Otherwise, show from the minimum x position with a small offset
     const translation = -(minX - w / 10)
 
-    // Calculate the total diagram width (approximation)
     const diagramWidth = 2000 * (maxDepthH / 11)
 
     // Ensure the translation doesn't move the diagram too far off-screen
@@ -234,7 +225,6 @@ function SSMultipleSankeyDiagram({
   const GRAPH_HEIGHT = height - topHeaderHeight
   const GRAPH_WIDTH = width
 
-  // calculating the sankey node styles to match in skia
   const nodeStyles = useMemo(
     () =>
       nodes.map((node) => {

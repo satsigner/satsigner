@@ -78,7 +78,6 @@ function SSSpiralBlocks({
 
   const fontSize = 12
 
-  // Memoize the text style to prevent recreating it on each render
   const TextStyleWeeks = useMemo(
     () => ({
       color: Skia.Color(Colors.gray[100]),
@@ -91,7 +90,6 @@ function SSSpiralBlocks({
     [fontSize]
   )
 
-  // Memoize the paragraph creation function to avoid recreating it on each render
   const createParagraph = useCallback(
     (text: string) => {
       if (!customFontManager) {
@@ -124,7 +122,6 @@ function SSSpiralBlocks({
 
   const pWeek4 = useMemo(() => createParagraph('4 WEEKS'), [createParagraph])
 
-  // Memoize the newtonRaphson function to avoid recalculating it
   const memoizedNewtonRaphson = useCallback(
     (L: number, k: number, initialGuess: number) =>
       newtonRaphson(L, k, initialGuess),
@@ -177,12 +174,10 @@ function SSSpiralBlocks({
     return blocks
   }, [data, maxBlocksPerSpiral, memoizedNewtonRaphson])
 
-  // Pre-calculate common values for path creation
   const halfSize = BLOCK_SIZE / 2
   const centerX = canvasWidth / 2
   const centerY = canvasHeight / 2
 
-  // Optimize path creation by caching calculations
   const paths = useMemo(
     () =>
       spiralBlocks.map((block) => {
@@ -190,7 +185,6 @@ function SSSpiralBlocks({
         const cosTheta = Math.cos(block.rotation)
         const sinTheta = Math.sin(block.rotation)
 
-        // Pre-calculate rotated points
         const rotatedPoints = [
           [-halfSize, -halfSize],
           [halfSize, -halfSize],
@@ -202,7 +196,6 @@ function SSSpiralBlocks({
           return [rotatedX, rotatedY]
         })
 
-        // Build path with fewer operations
         path.moveTo(rotatedPoints[0][0], rotatedPoints[0][1])
         path.lineTo(rotatedPoints[1][0], rotatedPoints[1][1])
         path.lineTo(rotatedPoints[2][0], rotatedPoints[2][1])
@@ -214,7 +207,6 @@ function SSSpiralBlocks({
     [spiralBlocks, centerX, centerY, halfSize]
   )
 
-  // Optimize touchable overlay styles creation
   const invisibleOverlayBlocks = useMemo(
     () =>
       spiralBlocks.map((block) => {
@@ -232,7 +224,6 @@ function SSSpiralBlocks({
     [spiralBlocks, canvasHeight, canvasWidth]
   )
 
-  // Pre-calculate week circles outside of the render function
   const weekCircles = useMemo(
     () =>
       RADIUS_WEEKS.map((r, index) => {
@@ -256,7 +247,6 @@ function SSSpiralBlocks({
     [centerX, centerY]
   )
 
-  // Pre-calculate touchable blocks with their handlers
   const touchableBlocks = useMemo(
     () =>
       spiralBlocks.map((_, index) => (
@@ -274,7 +264,6 @@ function SSSpiralBlocks({
     [spiralBlocks, invisibleOverlayBlocks, data, onBlockPress]
   )
 
-  // If still loading data, show branded white-circle loader
   if (loading) {
     return (
       <View
@@ -439,7 +428,6 @@ const styles = StyleSheet.create({
   }
 })
 
-// Use React.memo to prevent unnecessary re-renders
 export default memo(
   SSSpiralBlocks,
   (prevProps, nextProps) =>

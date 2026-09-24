@@ -127,7 +127,6 @@ function SSSignatureRequiredDisplay({
               const isCollected = count < collectedSignatures.length
               const isRequired = count + 1 <= requiredNumber
 
-              // Get validation result for this position
               const cosignerIndex = collectedSignatures[count]
               const isValid = validationResults?.get(cosignerIndex)
 

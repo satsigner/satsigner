@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
@@ -17,8 +18,6 @@ import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import type { Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
-import { parseHexToBytes } from '@/utils/parse'
-import { bytesToHex } from '@/utils/scripts'
 import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 import { isValidDomainName, isValidIPAddress } from '@/utils/url'
@@ -490,7 +489,7 @@ class ElectrumClient extends BaseElectrumClient {
         lockTime: parsedTx.locktime,
         lockTimeEnabled: parsedTx.locktime > 0,
         prices: {},
-        raw: parseHexToBytes(rawTx),
+        raw: Array.from(hex.decode(rawTx)),
         received: 0,
         sent: 0,
         size: parsedTx.byteLength(),
@@ -525,7 +524,6 @@ class ElectrumClient extends BaseElectrumClient {
 
         transactions[i].vout.push({ address: addr, script, value })
 
-        // Compute received value by checking if tx outputs match address
         if (addr !== address) {
           continue
         }
@@ -556,7 +554,6 @@ class ElectrumClient extends BaseElectrumClient {
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, network)
 
-        // Compute sent value by checking if tx inputs match address
         if (addr !== address) {
           continue
         }
@@ -584,7 +581,7 @@ class ElectrumClient extends BaseElectrumClient {
       if (!raw) {
         continue
       }
-      const txHex = bytesToHex(raw)
+      const txHex = hex.encode(Uint8Array.from(raw))
       txidToParsedTxIndex[id] = parsedTransactions.length
       parsedTransactions.push(TxDecoded.fromHex(txHex))
     }
@@ -617,7 +614,6 @@ class ElectrumClient extends BaseElectrumClient {
 
         transactions[i].vout.push({ address: addr, script, value })
 
-        // Compute received value by checking if tx outputs match address
         if (addr !== address) {
           continue
         }
@@ -648,7 +644,6 @@ class ElectrumClient extends BaseElectrumClient {
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, this.network)
 
-        // Compute sent value by checking if tx inputs match address
         if (addr !== address) {
           continue
         }

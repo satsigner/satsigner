@@ -235,7 +235,6 @@ export function checkWalletNeedsSync(
     if (lastSyncedAtValue instanceof Date) {
       lastSync = lastSyncedAtValue
     } else {
-      // If it's a string or number, try to create a Date
       lastSync = new Date(lastSyncedAtValue)
 
       if (isNaN(lastSync.getTime())) {

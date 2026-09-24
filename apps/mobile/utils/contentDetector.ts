@@ -13,13 +13,16 @@ import {
 } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
-import { DescriptorUtils } from '@/utils/descriptorUtils'
+import {
+  parseImportedDescriptorPayload,
+  parseXpubInput
+} from '@/utils/descriptor'
 import { formatParsedLndPeer, parseLndPeerUri } from '@/utils/lndOpenChannel'
 import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
-import { validateExtendedKey } from '@/utils/validation'
+import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
 bitcoinjs.initEccLib(ecc)
 
@@ -78,19 +81,10 @@ export type DetectedContent = {
   isValid: boolean
 }
 
-function isExtendedPublicKey(data: string): boolean {
-  const parsed = DescriptorUtils.parseXpubInput(data)
-  return validateExtendedKey(parsed.xpub)
-}
-
-function isMasterFingerprint(data: string): boolean {
-  return /^[0-9a-fA-F]{8}$/.test(data.trim())
-}
-
 function detectBitcoinContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
-  const imported = DescriptorUtils.parseImportedDescriptorPayload(trimmed)
+  const imported = parseImportedDescriptorPayload(trimmed)
   if (imported) {
     return {
       cleaned: trimmed,
@@ -117,7 +111,6 @@ function detectBitcoinContent(data: string): DetectedContent | null {
     }
   }
 
-  // Check for transaction
   const transactionData = stripBitcoinPrefix(trimmed)
   if (isBitcoinTransaction(transactionData)) {
     return {
@@ -128,7 +121,7 @@ function detectBitcoinContent(data: string): DetectedContent | null {
     }
   }
 
-  if (isExtendedPublicKey(trimmed)) {
+  if (validateExtendedKey(parseXpubInput(trimmed).xpub)) {
     return {
       cleaned: trimmed,
       isValid: true,
@@ -137,7 +130,7 @@ function detectBitcoinContent(data: string): DetectedContent | null {
     }
   }
 
-  if (isMasterFingerprint(trimmed)) {
+  if (validateFingerprint(trimmed)) {
     return {
       cleaned: trimmed,
       isValid: true,
@@ -336,7 +329,6 @@ function detectLightningContent(data: string): DetectedContent | null {
     }
   }
 
-  // Check for BOLT12 offers (lno prefix)
   if (lowerTrimmed.startsWith('lno')) {
     const validation = validateBolt12(lowerTrimmed)
     return {

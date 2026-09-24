@@ -32,12 +32,10 @@ function useNostrLabelSync() {
     // applied the new label), so formatAccountLabels includes the latest label.
     const labels: Label[] = formatAccountLabels(account)
 
-    // Always check fingerprint for both single and bulk cases
     const message = labelsToJSONL(labels)
     const hash = await sha256(message)
     const fingerprint = hash.slice(0, 8)
 
-    // Only skip if it's not a single label and fingerprint matches
     if (!singleLabel && fingerprint === account.nostr.lastBackupFingerprint) {
       return
     }

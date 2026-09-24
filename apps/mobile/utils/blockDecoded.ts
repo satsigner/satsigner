@@ -1,4 +1,5 @@
 import ecc from '@bitcoinerlab/secp256k1'
+import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import varuint from 'varuint-bitcoin'
 
@@ -46,10 +47,6 @@ function normalizeHex(hex: string): string {
   return hex.trim().toLowerCase().replace(/^0x/, '').replace(/\s+/g, '')
 }
 
-function bytesToHex(bytes: Buffer | Uint8Array): string {
-  return Buffer.from(bytes).toString('hex')
-}
-
 /** Display-order (big-endian) hex without mutating the source buffer. */
 function reverseBytesDisplayHex(bytes: Buffer | Uint8Array): string {
   const { length } = bytes
@@ -63,7 +60,7 @@ function reverseBytesDisplayHex(bytes: Buffer | Uint8Array): string {
 function toUInt32LEHex(value: number): string {
   const buffer = Buffer.alloc(4)
   buffer.writeUInt32LE(value)
-  return bytesToHex(buffer)
+  return hex.encode(buffer)
 }
 
 function asTxDecoded(tx: bitcoinjs.Transaction): TxDecoded {
@@ -124,10 +121,10 @@ export function looksLikeBlockHex(hex: string): boolean {
  * Stops once the cumulative hex length reaches maxHexChars.
  */
 export function decodeBlockFromHex(
-  hex: string,
+  blockHex: string,
   maxHexChars = BLOCK_DECODE_PREVIEW_CHARS
 ): DecodeBlockResult {
-  const clean = normalizeHex(hex)
+  const clean = normalizeHex(blockHex)
   const maxParseBytes = Math.ceil(maxHexChars / 2) + PARSE_HEADROOM_BYTES
   const maxParseChars = maxParseBytes * 2
   const parseHex =
@@ -150,21 +147,21 @@ export function decodeBlockFromHex(
   const version = buffer.readUInt32LE(0)
   push({
     field: BlockField.Version,
-    hex: bytesToHex(buffer.subarray(0, 4)),
+    hex: hex.encode(buffer.subarray(0, 4)),
     value: version
   })
 
   const prevHashBytes = buffer.subarray(4, 36)
   push({
     field: BlockField.PrevHash,
-    hex: bytesToHex(prevHashBytes),
+    hex: hex.encode(prevHashBytes),
     value: reverseBytesDisplayHex(prevHashBytes)
   })
 
   const merkleRootBytes = buffer.subarray(36, 68)
   push({
     field: BlockField.MerkleRoot,
-    hex: bytesToHex(merkleRootBytes),
+    hex: hex.encode(merkleRootBytes),
     value: reverseBytesDisplayHex(merkleRootBytes)
   })
 
@@ -198,7 +195,7 @@ export function decodeBlockFromHex(
   const txCountLen = varuint.encodingLength(txTotal)
   push({
     field: BlockField.TxCount,
-    hex: bytesToHex(buffer.subarray(offset, offset + txCountLen)),
+    hex: hex.encode(buffer.subarray(offset, offset + txCountLen)),
     value: txTotal
   })
   offset += txCountLen

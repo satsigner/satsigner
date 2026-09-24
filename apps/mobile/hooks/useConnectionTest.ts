@@ -70,7 +70,6 @@ export function useConnectionTest() {
     proxy?: ProxyConfig,
     rpcCredentials?: RpcCredentials
   ): Promise<ConnectionTestResult> {
-    // Debounce rapid connection attempts to prevent memory issues
     const now = Date.now()
     if (now - lastTestTime < 2000) {
       return {
@@ -91,7 +90,6 @@ export function useConnectionTest() {
       if (backend === 'electrum') {
         const client = ElectrumClient.fromUrl(url, network)
 
-        // Store current client for cleanup
         setCurrentClient(client)
 
         const serverInfo = await client.client.initElectrum(
@@ -101,7 +99,6 @@ export function useConnectionTest() {
 
         const responseTime = Date.now() - startTime
 
-        // Try block height via headers subscribe
         let blockHeight = 0
         try {
           const tip = await (
@@ -138,7 +135,6 @@ export function useConnectionTest() {
           // optional — not all servers implement banner
         }
 
-        // Try mempool fee histogram for mempool size
         let mempoolSize
         try {
           const mempoolInfo = await (
@@ -179,10 +175,8 @@ export function useConnectionTest() {
           tipTimestampSec
         }
       } else if (backend === 'esplora') {
-        // Test Esplora connection and get server info
         const client = new Esplora(url)
 
-        // Store current client for cleanup
         setCurrentClient(client)
 
         const rawHeight = await client.getLatestBlockHeight()
@@ -308,11 +302,9 @@ export function useConnectionTest() {
         success: false
       }
     } catch (error) {
-      // Failed to get node info
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown connection error'
 
-      // Still set basic info even if enhanced info fails
       const responseTime = Date.now() - startTime
       const softwareLabel =
         backend === 'electrum'
@@ -345,7 +337,6 @@ export function useConnectionTest() {
     setNodeInfo(null)
   }
 
-  // Cleanup on unmount
   useEffect(
     () => () => {
       cleanupPreviousConnection()

@@ -35,7 +35,6 @@ import {
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 
-// Function to calculate checksum for descriptor using a simpler approach
 function calculateDescriptorChecksum(descriptor: string): string {
   try {
     // Simple checksum calculation for React Native
@@ -47,7 +46,6 @@ function calculateDescriptorChecksum(descriptor: string): string {
       hash &= hash // Convert to 32-bit integer
     }
 
-    // Convert to base58-like string
     const base58Chars =
       '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     let num = Math.abs(hash)
@@ -58,7 +56,6 @@ function calculateDescriptorChecksum(descriptor: string): string {
       num = Math.floor(num / 58)
     }
 
-    // Pad with leading '1's if needed
     while (result.length < 8) {
       result = `1${result}`
     }
@@ -130,7 +127,6 @@ export default function ExportDescriptors() {
           descriptorString = 'No keys available for account'
         } else if (!isImportAddress) {
           if (temporaryAccount.policyType === 'singlesig') {
-            // For single signature accounts, generate single key descriptor
             const [key] = temporaryAccount.keys
             if (!key) {
               descriptorString =
@@ -140,13 +136,11 @@ export default function ExportDescriptors() {
               let extendedPublicKey = ''
               let fingerprint = ''
 
-              // Get fingerprint from secret or key
               fingerprint =
                 (typeof secret === 'object' && secret.fingerprint) ||
                 key.fingerprint ||
                 ''
 
-              // Get extended public key from various possible sources
               if (typeof secret === 'object') {
                 if (secret.extendedPublicKey) {
                   ;({ extendedPublicKey } = secret)
@@ -176,29 +170,23 @@ export default function ExportDescriptors() {
                 }
               }
 
-              // If we still don't have a fingerprint, try to extract it from the extended public key
               if (!fingerprint && extendedPublicKey) {
                 fingerprint =
                   getFingerprintFromExtendedPublicKey(extendedPublicKey)
               }
 
-              // If we still don't have a fingerprint, try to get it from the key's fingerprint property
               if (!fingerprint && key.fingerprint) {
                 ;({ fingerprint } = key)
               }
 
               if (fingerprint && extendedPublicKey) {
-                // Get the correct derivation path for the script version
                 const scriptVersion = key.scriptVersion || 'P2WPKH'
                 const derivationPath = key.derivationPath || ''
 
-                // Remove leading 'm' or 'M' from derivationPath if present
                 const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
 
-                // Build the key part with fingerprint and derivation path
                 const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}`
 
-                // Create single signature descriptor based on script version
                 let singleSigDescriptor = ''
                 switch (scriptVersion) {
                   case 'P2PKH':
@@ -217,7 +205,6 @@ export default function ExportDescriptors() {
                     singleSigDescriptor = `wpkh(${keyPart}/0/*)`
                 }
 
-                // Add checksum
                 const checksum =
                   calculateDescriptorChecksum(singleSigDescriptor)
                 descriptorString = checksum
@@ -229,7 +216,6 @@ export default function ExportDescriptors() {
               }
             }
           } else if (temporaryAccount.policyType === 'multisig') {
-            // For multisig accounts, create proper descriptor with policy-based derivation paths and checksum
             if (!temporaryAccount.keys || temporaryAccount.keys.length === 0) {
               descriptorString = 'No keys available for multisig account'
             } else {
@@ -238,7 +224,6 @@ export default function ExportDescriptors() {
               const keyCount = temporaryAccount.keys.length
               const keysRequired = temporaryAccount.keysRequired || keyCount
 
-              // Extract fingerprints and extended public keys for each key
               const keyData = await Promise.all(
                 temporaryAccount.keys.map(async (key, index) => {
                   if (!key) {
@@ -249,15 +234,12 @@ export default function ExportDescriptors() {
                   let extendedPublicKey = ''
                   let fingerprint = ''
 
-                  // Get fingerprint from secret or key (same pattern as SSMultisigKeyControl)
                   fingerprint =
                     (typeof secret === 'object' && secret.fingerprint) ||
                     key.fingerprint ||
                     ''
 
-                  // Get extended public key from various possible sources (same pattern as SSMultisigKeyControl)
                   if (typeof secret === 'object') {
-                    // First, try to get from extendedPublicKey directly
                     if (secret.extendedPublicKey) {
                       ;({ extendedPublicKey } = secret)
                     } else if (secret.externalDescriptor) {
@@ -265,7 +247,6 @@ export default function ExportDescriptors() {
                         secret.externalDescriptor
                       )
                     } else if (secret.mnemonic) {
-                      // If we have a mnemonic, generate the extended public key
                       try {
                         const extendedKey =
                           await getExtendedPublicKeyFromAccountKey(
@@ -287,24 +268,20 @@ export default function ExportDescriptors() {
                     }
                   }
 
-                  // If we still don't have a fingerprint, try to extract it from the extended public key
                   if (!fingerprint && extendedPublicKey) {
                     fingerprint =
                       getFingerprintFromExtendedPublicKey(extendedPublicKey)
                   }
 
-                  // If we still don't have a fingerprint, try to get it from the key's fingerprint property
                   if (!fingerprint && key.fingerprint) {
                     ;({ fingerprint } = key)
                   }
 
-                  // If we still don't have an extended public key, try to get it from the key's secret
                   if (
                     !extendedPublicKey &&
                     typeof secret === 'object' &&
                     secret.externalDescriptor
                   ) {
-                    // Try to extract from externalDescriptor if available
                     extendedPublicKey = getExtendedKeyFromDescriptor(
                       secret.externalDescriptor
                     )
@@ -314,7 +291,6 @@ export default function ExportDescriptors() {
                 })
               )
 
-              // Filter out keys that don't have both fingerprint and extended public key
               const validKeyData = keyData.filter(
                 (kd) => kd.fingerprint && kd.extendedPublicKey
               )
@@ -325,11 +301,9 @@ export default function ExportDescriptors() {
                 descriptorString =
                   'No descriptors available - missing fingerprint or extended public key for some keys'
               } else {
-                // Get the correct multisig script type for descriptor generation
                 const multisigScriptType =
                   getMultisigScriptTypeFromScriptVersion(scriptVersion)
 
-                // Get the policy-based derivation path according to the account type
                 const policyDerivationPath =
                   temporaryAccount.policyType === 'multisig'
                     ? getMultisigDerivationPathFromScriptVersion(
@@ -338,7 +312,6 @@ export default function ExportDescriptors() {
                       )
                     : getDerivationPathFromScriptVersion(scriptVersion, network)
 
-                // Remove leading 'm' or 'M' from derivationPath if present
                 const cleanPolicyPath = policyDerivationPath.replace(
                   /^m\/?/i,
                   ''
@@ -349,7 +322,6 @@ export default function ExportDescriptors() {
                   a.extendedPublicKey.localeCompare(b.extendedPublicKey)
                 )
 
-                // Build key section with policy-based derivation paths
                 const keySection = sortedKeyData
                   .map(
                     ({ fingerprint, extendedPublicKey }) =>
@@ -357,10 +329,8 @@ export default function ExportDescriptors() {
                   )
                   .join(',')
 
-                // Create descriptor based on account type
                 let finalDescriptor = ''
                 if (temporaryAccount.policyType === 'multisig') {
-                  // Create multisig descriptor using sortedmulti
                   switch (multisigScriptType) {
                     case 'P2SH':
                       finalDescriptor = `sh(sortedmulti(${keysRequired},${keySection}))`
@@ -378,7 +348,6 @@ export default function ExportDescriptors() {
                       finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
                   }
                 } else {
-                  // For single-sig accounts, create simple descriptor
                   const [singleKey] = keySection.split(',') // Use first (and only) key
                   switch (scriptVersion) {
                     case 'P2PKH':
@@ -413,14 +382,12 @@ export default function ExportDescriptors() {
                   }
                 }
 
-                // Validate descriptor format before adding checksum
                 if (
                   !finalDescriptor ||
                   keySection.split(',').length !== keyCount
                 ) {
                   descriptorString = finalDescriptor
                 } else {
-                  // Always calculate checksum manually for multisig descriptors
                   const checksum = calculateDescriptorChecksum(finalDescriptor)
                   descriptorString = checksum
                     ? `${finalDescriptor}#${checksum}`
@@ -429,7 +396,6 @@ export default function ExportDescriptors() {
               }
             }
           } else {
-            // For watchonly accounts, handle different creation types
             const [key] = temporaryAccount.keys
             if (!key) {
               descriptorString = 'No key data available for watch-only account'
@@ -440,10 +406,8 @@ export default function ExportDescriptors() {
                 key.creationType === 'importDescriptor' &&
                 secret.externalDescriptor
               ) {
-                // For watch-only accounts with imported descriptors, use the existing descriptor
                 const descriptor = secret.externalDescriptor
 
-                // Add checksum if not present
                 if (!descriptor.includes('#')) {
                   const checksum = calculateDescriptorChecksum(descriptor)
                   descriptorString = checksum
@@ -457,17 +421,13 @@ export default function ExportDescriptors() {
                 secret.extendedPublicKey &&
                 secret.fingerprint
               ) {
-                // For watch-only accounts with imported extended public keys, generate descriptor
                 const scriptVersion = key.scriptVersion || 'P2WPKH'
                 const derivationPath = key.derivationPath || ''
 
-                // Remove leading 'm' or 'M' from derivationPath if present
                 const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
 
-                // Build the key part with fingerprint and derivation path
                 const keyPart = `[${secret.fingerprint}/${cleanDerivationPath}]${secret.extendedPublicKey}`
 
-                // Create descriptor based on script version
                 let descriptor = ''
                 switch (scriptVersion) {
                   case 'P2PKH':
@@ -486,7 +446,6 @@ export default function ExportDescriptors() {
                     descriptor = `wpkh(${keyPart}/0/*)`
                 }
 
-                // Add checksum
                 const checksum = calculateDescriptorChecksum(descriptor)
                 descriptorString = checksum
                   ? `${descriptor}#${checksum}`
@@ -495,10 +454,8 @@ export default function ExportDescriptors() {
                 key.creationType === 'importAddress' &&
                 secret.externalDescriptor
               ) {
-                // For watch-only accounts with imported addresses, use the address descriptor
                 const descriptor = secret.externalDescriptor
 
-                // Add checksum if not present
                 if (!descriptor.includes('#')) {
                   const checksum = calculateDescriptorChecksum(descriptor)
                   descriptorString = checksum
@@ -514,7 +471,6 @@ export default function ExportDescriptors() {
             }
           }
         } else {
-          // For importAddress, handle address-based accounts
           const [key] = temporaryAccount.keys
           if (!key) {
             descriptorString = 'No key data available for imported address'
@@ -522,10 +478,8 @@ export default function ExportDescriptors() {
             const secret = key.secret as Secret
 
             if (secret.externalDescriptor) {
-              // Use the existing address descriptor
               const descriptor = secret.externalDescriptor
 
-              // Add checksum if not present
               if (!descriptor.includes('#')) {
                 const checksum = calculateDescriptorChecksum(descriptor)
                 descriptorString = checksum
@@ -541,7 +495,6 @@ export default function ExportDescriptors() {
           }
         }
 
-        // Compose export content - ensure it's always a string
         const exportString = descriptorString || 'No descriptor available'
         setExportContent(exportString)
       } catch (error) {
@@ -584,7 +537,6 @@ export default function ExportDescriptors() {
     }
 
     try {
-      // Capture QR code as image using react-native-view-shot
       let qrDataURL = ''
       if (qrRef.current) {
         qrDataURL = await captureRef(qrRef.current, {
@@ -596,7 +548,6 @@ export default function ExportDescriptors() {
 
       await createPDFWithQR(qrDataURL)
     } catch {
-      // Fallback without QR code
       await createPDFWithQR('')
     }
   }
@@ -694,7 +645,7 @@ export default function ExportDescriptors() {
         })
       }
     } catch {
-      // Handle error silently
+      // user cancelling the print/share sheet is not an error worth surfacing
     }
   }
 

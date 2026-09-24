@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import * as FileSystem from 'expo-file-system/legacy'
 import {
   addressFromScript,
@@ -54,6 +55,7 @@ import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
+import { getDescriptorDerivationPath, getFingerprint } from '@/utils/descriptor'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import {
   computeRpcScanStartHeight,
@@ -76,7 +78,6 @@ import BitcoinRpc, {
   type ImportDescriptorRequest
 } from './rpc'
 
-// Map BDK Network enum to app's string network type
 function toAppNetwork(network: Network): BlockchainNetwork {
   switch (network) {
     case 0:
@@ -86,15 +87,6 @@ function toAppNetwork(network: Network): BlockchainNetwork {
     default:
       return 'testnet'
   }
-}
-
-// Convert hex string to number array for compatibility with existing Transaction type
-function hexToBytes(hex: string): number[] {
-  const bytes: number[] = []
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes.push(parseInt(hex.slice(i, i + 2), 16))
-  }
-  return bytes
 }
 
 const WALLETS_DIR = `${FileSystem.documentDirectory}wallets/`
@@ -200,7 +192,6 @@ async function getWalletData(
       const multisigScriptType =
         getMultisigScriptTypeFromScriptVersion(scriptVersion)
 
-      // Extract key data with proper derivation paths and fingerprints
       const keyData = await Promise.all(
         account.keys.map((key, keyIndex) => {
           let extendedPublicKey = ''
@@ -530,14 +521,9 @@ function parseDescriptor(descriptorString: string) {
   if (!descriptorString) {
     return { derivationPath: '', fingerprint: '' }
   }
-  const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]*)\]/)
-  if (!match) {
-    return { derivationPath: '', fingerprint: '' }
-  }
-  const [, fingerprint, derivationSuffix] = match
   return {
-    derivationPath: derivationSuffix ? `m${derivationSuffix}` : '',
-    fingerprint
+    derivationPath: getDescriptorDerivationPath(descriptorString),
+    fingerprint: getFingerprint(descriptorString)
   }
 }
 
@@ -1063,21 +1049,21 @@ function parseTxDetailsToTransaction(
   } = txDetails
 
   const txHex = wallet.getTx(txid)
-  const raw = txHex ? hexToBytes(txHex) : []
+  const raw = txHex ? Array.from(hex.decode(txHex)) : []
 
   const vin: Transaction['vin'] = inputs.map((input) => ({
     previousOutput: {
       txid: input.previousTxid,
       vout: input.previousVout
     },
-    scriptSig: hexToBytes(input.scriptSigHex),
+    scriptSig: Array.from(hex.decode(input.scriptSigHex)),
     sequence: input.sequence,
-    witness: input.witness.map((w) => hexToBytes(w))
+    witness: input.witness.map((w) => Array.from(hex.decode(w)))
   }))
 
   const vout: Transaction['vout'] = outputs.map((output) => ({
     address: output.address || '',
-    script: hexToBytes(output.scriptPubkeyHex),
+    script: Array.from(hex.decode(output.scriptPubkeyHex)),
     value: output.value
   }))
 
@@ -1128,7 +1114,7 @@ function parseLocalOutputToUtxo(
   }
   const transactionId = localOutput.outpoint.txid
   const txDetails = txDetailsList.find((td) => td.txid === transactionId)
-  const script = hexToBytes(localOutput.txout.scriptPubkeyHex)
+  const script = Array.from(hex.decode(localOutput.txout.scriptPubkeyHex))
 
   return {
     addressTo,
@@ -1879,7 +1865,6 @@ async function syncWithCoreWallet(
       ]
     : sinceResult.transactions
 
-  // Group list entries by txid and aggregate sent/received amounts
   const txMap = new Map<
     string,
     {

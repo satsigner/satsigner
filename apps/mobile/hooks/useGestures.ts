@@ -75,7 +75,6 @@ export const useGestures = ({
       'worklet'
       // Reactor function: runs on UI thread if currentData is different from previousData.
       if (currentData) {
-        // Update translate and savedTranslate shared values
         translate.x.value = currentData.x
         translate.y.value = currentData.y
         savedTranslate.x.value = currentData.x
@@ -91,7 +90,6 @@ export const useGestures = ({
   // JS-only (see onInteractionEnded); not a worklet so reset stays in closure.
   const moveIntoView = () => {
     if (scale.value > 1) {
-      // Only apply boundary constraints if shouldResetOnInteractionEnd is true
       if (shouldResetOnInteractionEnd) {
         const rightLimit = limits.right(width, scale)
         const leftLimit = -rightLimit
@@ -223,7 +221,6 @@ export const useGestures = ({
     onInteractionEnded()
   }
 
-  // Define the pan gesture configuration
   const panGesture = Gesture.Pan()
     .enabled(isPanEnabled) // Enable or disable the pan gesture based on isPanEnabled
     .minPointers(minPanPointers) // Set the minimum number of pointers required to recognize the gesture
@@ -234,12 +231,10 @@ export const useGestures = ({
       savedTranslate.y.value = translate.y.value // Save the current y translation
     })
     .onUpdate((event) => {
-      // Update the translation values based on the pan movement
       translate.x.value = savedTranslate.x.value + event.translationX
       translate.y.value = savedTranslate.y.value + event.translationY
     })
     .onEnd((event, success) => {
-      // Calculate the limits for translation based on the current scale
       const rightLimit = limits.right(width, scale)
       const leftLimit = -rightLimit
       const bottomLimit = limits.bottom(height, scale)
@@ -247,7 +242,6 @@ export const useGestures = ({
 
       // When shouldResetOnInteractionEnd is false, apply decay regardless of scale
       if (!shouldResetOnInteractionEnd || scale.value > 1) {
-        // For X translation
         translate.x.value =
           shouldResetOnInteractionEnd && scale.value > 1
             ? withDecay(
@@ -277,7 +271,6 @@ export const useGestures = ({
                 }
               )
 
-        // For Y translation
         translate.y.value =
           shouldResetOnInteractionEnd && scale.value > 1
             ? withDecay(
@@ -312,31 +305,24 @@ export const useGestures = ({
       }
     })
 
-  // Define the pinch gesture handler
   const pinchGesture = Gesture.Pinch()
     .enabled(isPinchEnabled) // Enable pinch gesture based on isPinchEnabled flag
     .onStart((event) => {
       runOnJS(onPinchStarted)(event) // Trigger the pinch start event
-      // Save the initial scale and focal points
       savedScale.value = scale.value
       savedFocal.x.value = focal.x.value
       savedFocal.y.value = focal.y.value
-      // Record the initial focal points from the event
       initialFocal.x.value = event.focalX
       initialFocal.y.value = event.focalY
     })
     .onUpdate((event) => {
-      // Update the scale within allowed limits
       scale.value = clamp(savedScale.value * event.scale, minScale, maxScale)
-      // Calculate the scale change ratio
       const scaleChangeScale =
         (scale.value - savedScale.value) / savedScale.value
-      // Compute the offsets for focal points
       const centerOffsetX =
         savedFocal.x.value + translate.x.value + center.x - initialFocal.x.value
       const centerOffsetY =
         savedFocal.y.value + translate.y.value + center.y - initialFocal.y.value
-      // Adjust focal points based on the scale change
       focal.x.value = centerOffsetX * scaleChangeScale + savedFocal.x.value
       focal.y.value = centerOffsetY * scaleChangeScale + savedFocal.y.value
     })
@@ -354,7 +340,6 @@ export const useGestures = ({
         isZoomedIn.value = true
         runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_IN)
         scale.value = withTiming(doubleTapScale)
-        // Always calculate focal point based on tap location
         const focalX = (center.x - event.x) * (doubleTapScale - 1)
         const focalY = (center.y - event.y) * (doubleTapScale - 1)
 
@@ -362,7 +347,6 @@ export const useGestures = ({
           focal.x.value = withTiming(focalX)
           focal.y.value = withTiming(focalY)
         } else {
-          // Adjust focal point based on current position
           focal.x.value = withTiming(
             focalX + translate.x.value * (doubleTapScale - 1)
           )
@@ -373,7 +357,6 @@ export const useGestures = ({
       } else {
         isZoomedIn.value = false
         runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_OUT)
-        // Always reset to initialTranslation when zooming out
         reset()
       }
     })

@@ -1,4 +1,5 @@
 import ecc from '@bitcoinerlab/secp256k1'
+import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import varuint from 'varuint-bitcoin'
 
@@ -110,11 +111,11 @@ export class TxDecoded extends bitcoinjs.Transaction {
   }
 
   getInputHash(index: number): TxDecodedField {
-    const hex = bytesToHex(this.ins[index].hash)
-    const value = reverseHexEndian(hex)
+    const hashHex = hex.encode(this.ins[index].hash)
+    const value = reverseHexEndian(hashHex)
     const field = TxField.TxInHash
     const placeholders = { input: index }
-    return { field, hex, placeholders, value }
+    return { field, hex: hashHex, placeholders, value }
   }
 
   getInputIndex(index: number): TxDecodedField {
@@ -135,11 +136,11 @@ export class TxDecoded extends bitcoinjs.Transaction {
 
   getInputScript(index: number): TxDecodedField {
     const { script } = this.ins[index]
-    const hex = bytesToHex(script)
-    const value = hex === '' ? '' : bitcoinjs.script.toASM(script)
+    const scriptHex = hex.encode(script)
+    const value = scriptHex === '' ? '' : bitcoinjs.script.toASM(script)
     const field = TxField.TxInScript
     const placeholders = { input: index }
-    return { field, hex, placeholders, value }
+    return { field, hex: scriptHex, placeholders, value }
   }
 
   getInputSequence(index: number): TxDecodedField {
@@ -184,14 +185,14 @@ export class TxDecoded extends bitcoinjs.Transaction {
 
   getOutputScript(index: number): TxDecodedField {
     const { script } = this.outs[index]
-    const hex = bytesToHex(script)
+    const scriptHex = hex.encode(script)
     const value = bitcoinjs.script.toASM(script)
     const address = this.generateOutputScriptAddress(index)
     const field = address
       ? TxField.TxOutScriptStandard
       : TxField.TxOutScriptNonStandard
     const placeholders = { address, output: index }
-    return { field, hex, placeholders, value }
+    return { field, hex: scriptHex, placeholders, value }
   }
 
   getOutputsScripts(): TxDecodedField[] {
@@ -233,10 +234,10 @@ export class TxDecoded extends bitcoinjs.Transaction {
 
   getWitnessItem(index: number, witnessIndex: number): TxDecodedField {
     const witnessItem = this.ins[index].witness[witnessIndex]
-    const hex = bytesToHex(witnessItem)
+    const witnessHex = hex.encode(witnessItem)
     const { field, value } = this.identifyWitnessItem(witnessItem)
     const placeholders = { input: index, witness: witnessIndex }
-    return { field, hex, placeholders, value }
+    return { field, hex: witnessHex, placeholders, value }
   }
 
   getLocktime(): TxDecodedField {
@@ -262,17 +263,17 @@ export class TxDecoded extends bitcoinjs.Transaction {
   // identifyWitnessItem takes a witness item and returns a description of the item and a decoded value
   identifyWitnessItem(witnessItem: Buffer | Uint8Array) {
     const bytes = Buffer.from(witnessItem)
-    const hex = bytesToHex(bytes)
-    if (hex === '') {
+    const itemHex = hex.encode(bytes)
+    if (itemHex === '') {
       return { field: TxField.WitnessItemEmpty, value: '' }
     }
 
     if (bitcoinjs.script.isCanonicalPubKey(bytes)) {
-      return { field: TxField.WitnessItemPubkey, value: hex }
+      return { field: TxField.WitnessItemPubkey, value: itemHex }
     }
 
     if (bitcoinjs.script.isCanonicalScriptSignature(bytes)) {
-      return { field: TxField.WitnessItemSignature, value: hex }
+      return { field: TxField.WitnessItemSignature, value: itemHex }
     }
 
     // if the witness item is a script, decode it
@@ -287,36 +288,31 @@ export class TxDecoded extends bitcoinjs.Transaction {
     }
 
     // TODO: identify taproot witness items
-    return { field: TxField.WitnessItem, value: hex }
+    return { field: TxField.WitnessItem, value: itemHex }
   }
-}
-
-/** Safe hex encoding — RN Uint8Array.toString('hex') is not hex. */
-function bytesToHex(bytes: Buffer | Uint8Array | number[]): string {
-  return Buffer.from(bytes).toString('hex')
 }
 
 function toVarInt(value: number) {
   const varInt = varuint.encode(value)
-  return bytesToHex(varInt)
+  return hex.encode(varInt)
 }
 
 function toUInt8(value: number) {
   const buffer = Buffer.alloc(1)
   buffer.writeUInt8(value)
-  return bytesToHex(buffer)
+  return hex.encode(buffer)
 }
 
 function toUInt32LE(value: number) {
   const buffer = Buffer.alloc(4)
   buffer.writeUInt32LE(value)
-  return bytesToHex(buffer)
+  return hex.encode(buffer)
 }
 
 function toBigUInt64LE(value: number) {
   const buffer = Buffer.alloc(8)
   buffer.writeBigUInt64LE(BigInt(value))
-  return bytesToHex(buffer)
+  return hex.encode(buffer)
 }
 
 function reverseHexEndian(hexStr: string) {

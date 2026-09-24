@@ -2,7 +2,6 @@ import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 import { nostrSyncService, resetInstance } from '@/utils/nostrSyncService'
 
-// Mock dependencies
 jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
   NostrAPI: jest.fn().mockReturnValue({
     closeAllSubscriptions: jest.fn().mockResolvedValue(undefined),

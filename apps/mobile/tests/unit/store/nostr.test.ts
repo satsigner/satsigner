@@ -417,7 +417,6 @@ describe('nostr store', () => {
     it('resets all state for account', async () => {
       const store = useNostrStore.getState()
 
-      // Set up state
       await store.addMember(accountIds.primary, nostrKeys.alice.npub)
       store.addProcessedMessageId(accountIds.primary, 'msg-1')
       store.addProcessedEvent(accountIds.primary, 'evt-1')

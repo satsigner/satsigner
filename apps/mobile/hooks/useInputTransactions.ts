@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib' // Added for network definitions
 import { useCallback, useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -8,23 +9,19 @@ import BitcoinRpc from '@/api/rpc'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
-import { parseHexToBytes } from '@/utils/parse'
 import { recalculateDepthH } from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
 
-// Define the extended Vin type
 type ExtendedVin = Transaction['vin'][number] & {
   address: string
   index?: number // Add optional index
 }
 
-// Define the ExtendedVout type with optional index and vout
 type ExtendedVout = Transaction['vout'][number] & {
   index?: number
   vout?: number // Add optional vout index
 }
 
-// Define the ExtendedTransaction type using Omit and intersection
 export type ExtendedTransaction = Omit<Transaction, 'vin' | 'vout'> & {
   depthH: number
   vin: ExtendedVin[]
@@ -68,11 +65,9 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
       return transactions
     }
 
-    // Group vins and vouts by depthH
     const vinsByDepth = new Map<number, { txid: string; index: number }[]>()
     const voutsByDepth = new Map<number, { txid: string; index: number }[]>()
 
-    // First pass: group by depthH
     for (const [txid, tx] of transactions.entries()) {
       if (tx.vin) {
         for (const [index] of tx.vin.entries()) {
@@ -93,7 +88,6 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
       }
     }
 
-    // Second pass: assign index
     for (const [_depthH, vins] of vinsByDepth.entries()) {
       let currentIndex = 0
       for (const { txid, index } of vins) {
@@ -156,9 +150,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
     const processed = new Set<string>()
     let currentLevelDeep = 0
 
-    // Store all output addresses from all transactions
     const allOutputAddresses = new Set<string>()
-    // Store transactions with their input addresses
     const transactionInputAddresses = new Map<string, Set<string>>()
 
     let electrumClient: ElectrumClient | null = null // Declare client variable
@@ -191,7 +183,6 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
     }
 
     try {
-      // Initialize client once if backend is Electrum
       if (server.backend === 'electrum') {
         electrumClient = ElectrumClient.fromUrl(server.url, server.network)
         await electrumClient.init()
@@ -271,7 +262,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     address: output?.scriptpubkey_address || '',
                     label: undefined,
                     script: output.scriptpubkey
-                      ? parseHexToBytes(output.scriptpubkey)
+                      ? Array.from(hex.decode(output.scriptpubkey))
                       : [],
                     value: output.value
                   })),
@@ -284,16 +275,18 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                 })
 
                 for (const vout of mappedTx.vout ?? []) {
-                  if (vout.address) {
-                    allOutputAddresses.add(vout.address)
+                  if (!vout.address) {
+                    continue
                   }
+                  allOutputAddresses.add(vout.address)
                 }
 
                 const inputAddresses = new Set<string>()
                 for (const vin of tx.vin ?? []) {
-                  if (vin.prevout?.scriptpubkey_address) {
-                    inputAddresses.add(vin.prevout.scriptpubkey_address)
+                  if (!vin.prevout?.scriptpubkey_address) {
+                    continue
                   }
+                  inputAddresses.add(vin.prevout.scriptpubkey_address)
                 }
                 transactionInputAddresses.set(txid, inputAddresses)
               } else if (fetched?.kind === 'hex') {
@@ -358,9 +351,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   })
                   const inputAddresses = new Set<string>()
                   for (const vout of mappedTx.vout ?? []) {
-                    if (vout.address) {
-                      allOutputAddresses.add(vout.address)
+                    if (!vout.address) {
+                      continue
                     }
+                    allOutputAddresses.add(vout.address)
                   }
                   transactionInputAddresses.set(txid, inputAddresses)
                 } catch {
@@ -394,7 +388,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     lockTime: rawTx.locktime,
                     lockTimeEnabled: rawTx.locktime > 0,
                     prices: {},
-                    raw: parseHexToBytes(rawTx.hex),
+                    raw: Array.from(hex.decode(rawTx.hex)),
                     received: 0,
                     sent: 0,
                     size: rawTx.size,
@@ -427,7 +421,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                         output.scriptPubKey.addresses?.[0] ??
                         '',
                       label: undefined,
-                      script: parseHexToBytes(output.scriptPubKey.hex),
+                      script: Array.from(hex.decode(output.scriptPubKey.hex)),
                       value: Math.round(output.value * 1e8)
                     })),
                     vsize: rawTx.vsize,
@@ -441,10 +435,11 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   const inputAddresses = new Set<string>()
                   const outputAddresses = new Set<string>()
                   for (const vout of mappedTx.vout ?? []) {
-                    if (vout.address) {
-                      outputAddresses.add(vout.address)
-                      allOutputAddresses.add(vout.address)
+                    if (!vout.address) {
+                      continue
                     }
+                    outputAddresses.add(vout.address)
+                    allOutputAddresses.add(vout.address)
                   }
                   transactionInputAddresses.set(txid, inputAddresses)
                 }
@@ -452,7 +447,6 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                 /* RPC path failed for this txid */
               }
             } else if (server.backend === 'electrum' && electrumClient) {
-              // Check if electrumClient is initialized
               try {
                 let blockHeight: number | undefined = undefined
                 let timestamp: Date | undefined = undefined
@@ -472,21 +466,20 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                               : bitcoinjs.networks.testnet
                           )
                         : null
-                      if (address) {
-                        // Get transaction history for this address
-                        const history =
-                          await electrumClient.client.blockchainScripthash_getHistory(
-                            electrumClient.addressToScriptHash(address)
-                          )
-                        // Look for our transaction in the history
-                        const txEntry = history.find(
-                          (entry: { tx_hash: string; height: number }) =>
-                            normalizeTxid(entry.tx_hash) === txid
+                      if (!address) {
+                        continue
+                      }
+                      const history =
+                        await electrumClient.client.blockchainScripthash_getHistory(
+                          electrumClient.addressToScriptHash(address)
                         )
-                        if (txEntry && txEntry.height) {
-                          blockHeight = txEntry.height
-                          break // Found the height, no need to check other addresses
-                        }
+                      const txEntry = history.find(
+                        (entry: { tx_hash: string; height: number }) =>
+                          normalizeTxid(entry.tx_hash) === txid
+                      )
+                      if (txEntry && txEntry.height) {
+                        blockHeight = txEntry.height
+                        break // Found the height, no need to check other addresses
                       }
                     } catch {
                       /* silently ignored */
@@ -497,7 +490,6 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       await electrumClient.getBlockTimestamp(blockHeight)
                     )
                   }
-                  // Collect previous transaction IDs needed for input values
                   const prevTxOutputs = parsedTx.ins.map((input) => ({
                     txid: outpointHashBytesToTxid(input.hash),
                     vout: input.index
@@ -537,7 +529,6 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     }
                   }
 
-                  // Map parsed Electrum transaction to Transaction type structure
                   const mappedTx: Transaction = {
                     address: undefined, // Not directly available in raw tx
                     blockHeight,
@@ -608,9 +599,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     }
                   }
                   for (const vout of mappedTx.vout ?? []) {
-                    if (vout.address) {
-                      allOutputAddresses.add(vout.address)
+                    if (!vout.address) {
+                      continue
                     }
+                    allOutputAddresses.add(vout.address)
                   }
                   transactionInputAddresses.set(txid, inputAddresses)
                 }
@@ -689,40 +681,36 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
         }
       }
 
-      // Filter transactions based on input/output address matching
       const filteredTransactions = new Map<string, ExtendedTransaction>()
 
-      // First, collect all valid transactions
       for (const [txid, tx] of newTransactions.entries()) {
         const inputAddresses =
           transactionInputAddresses.get(txid) ?? new Set<string>()
 
-        // Check if any input address matches with output addresses from other transactions
         let hasMatchingAddress = false
         for (const inputAddr of inputAddresses) {
-          if (allOutputAddresses.has(inputAddr)) {
-            hasMatchingAddress = true
-            break
+          if (!allOutputAddresses.has(inputAddr)) {
+            continue
           }
+          hasMatchingAddress = true
+          break
         }
 
-        // Include all level 1 transactions (directly selected UTXOs)
         const isLevel1 = levelOneTxids.has(txid)
 
-        // Only include transactions that have matching addresses or are level 1
         if (hasMatchingAddress || isLevel1) {
           filteredTransactions.set(txid, tx)
         }
       }
 
-      // Handle case when few transactions are found
       if (filteredTransactions.size === 0 && newTransactions.size > 0) {
         // If no transactions passed the filter but we have raw transactions,
         // use at least the direct transactions (level 1)
         for (const [txid, tx] of newTransactions.entries()) {
-          if (levelOneTxids.has(txid)) {
-            filteredTransactions.set(txid, tx)
+          if (!levelOneTxids.has(txid)) {
+            continue
           }
+          filteredTransactions.set(txid, tx)
         }
       }
 
@@ -753,14 +741,11 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
         }
       }
 
-      // Now calculate depthH based on dependencies
       if (filteredTransactions.size > 0) {
-        // Initialize depthH to 0 for all transactions
         for (const [txid, tx] of filteredTransactions.entries()) {
           filteredTransactions.set(txid, { ...tx, depthH: 0 })
         }
 
-        // Map inputs to the format expected by recalculateDepthH
         const mappedInputs = new Map(
           Array.from(inputs.entries()).map(([key, utxo]) => [
             key,
@@ -771,16 +756,13 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
           ])
         )
 
-        // Use recalculateDepthH to calculate actual dependency-based depths
         const transactionsWithDepthH = recalculateDepthH(
           filteredTransactions,
           mappedInputs
         )
 
-        // Assign index to vins and vouts
         const transactionsWithIOIndex = assignIOIndex(transactionsWithDepthH)
 
-        // Update state
         setTransactions(transactionsWithIOIndex)
       } else {
         setTransactions(new Map())
@@ -791,7 +773,6 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
       setError(error instanceof Error ? error : new Error(String(error)))
       setLoading(false)
     } finally {
-      // Ensure client is closed if it was initialized
       if (electrumClient) {
         electrumClient.close()
       }

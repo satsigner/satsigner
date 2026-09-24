@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useRouter } from 'expo-router'
 import { type PsbtLike } from 'react-native-bdk-sdk'
@@ -8,7 +9,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { getKeyFingerprint } from '@/utils/account'
-import { parseHexToBytes } from '@/utils/parse'
 import {
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
@@ -78,7 +78,7 @@ export function useNostrSignFlow() {
       addInput({
         ...input,
         keychain: input.keychain || 'external',
-        script: parseHexToBytes(input.script)
+        script: Array.from(hex.decode(input.script))
       })
     }
 
@@ -126,20 +126,23 @@ export function useNostrSignFlow() {
 
       const pubkeyToCosignerIndexMap = new Map<string, number>()
       for (const [index, pubkey] of cosignerPubkeys.entries()) {
-        if (pubkey) {
-          pubkeyToCosignerIndexMap.set(pubkey, index)
+        if (!pubkey) {
+          continue
         }
+        pubkeyToCosignerIndexMap.set(pubkey, index)
       }
 
       for (const [key, psbt] of Object.entries(derivedSignedPsbts)) {
         const index = parseInt(key, 10)
         const signerPubkey = signerPubkeys[index]
-        if (signerPubkey) {
-          const cosignerIndex = pubkeyToCosignerIndexMap.get(signerPubkey)
-          if (cosignerIndex !== undefined) {
-            remappedPsbts[cosignerIndex] = psbt
-          }
+        if (!signerPubkey) {
+          continue
         }
+        const cosignerIndex = pubkeyToCosignerIndexMap.get(signerPubkey)
+        if (cosignerIndex === undefined) {
+          continue
+        }
+        remappedPsbts[cosignerIndex] = psbt
       }
       finalSignedPsbts = remappedPsbts
     }

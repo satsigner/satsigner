@@ -67,7 +67,6 @@ export function getURFragmentsFromPSBT(
   // Create manual CBOR structure to avoid @ngraveio/bc-ur library encoding issues
   const cborData = createCryptoPsbtCBOR(psbtBytes)
 
-  // Create UR directly with the manually crafted CBOR data
   const ur = new UR(Buffer.from(Array.from(cborData)), 'crypto-psbt')
 
   // Use appropriate fragment size for reliable camera scanning
@@ -147,7 +146,6 @@ export function getURBytesFragments(
 }
 
 export function decodeURToPSBT(ur: string): string {
-  // Try using URDecoder for proper UR parsing
   const decoder = new URDecoder()
   decoder.receivePart(ur)
 
@@ -367,7 +365,6 @@ export function createURStreamDecoder(): URStreamDecoder {
 export async function decodeMultiPartURToPSBT(
   urFragments: string[]
 ): Promise<string> {
-  // Use URDecoder for proper multi-part UR parsing
   const decoder = new URDecoder()
 
   // Sort fragments by sequence number first (following Java implementation pattern)
@@ -583,7 +580,6 @@ function parseCBORByteString(cborData: Uint8Array): Uint8Array {
     return result
   }
 
-  // Handle other CBOR types that might contain the PSBT
   throw new Error(
     `Unsupported CBOR major type: ${
       (firstByte & 0xe0) >> 5

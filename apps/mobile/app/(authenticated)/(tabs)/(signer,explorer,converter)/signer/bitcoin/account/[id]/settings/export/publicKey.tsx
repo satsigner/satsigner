@@ -22,7 +22,6 @@ import { convertKeyFormat } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 
-// Helper function to get the appropriate translation key for key format buttons
 type PublicKeyFormat = 'xpub' | 'ypub' | 'zpub' | 'vpub' | 'tpub' | 'upub'
 
 export default function PublicKeyPage() {
@@ -40,12 +39,10 @@ export default function PublicKeyPage() {
   const qrRef = useRef<View>(null)
   const [rawPublicKey, setRawPublicKey] = useState('')
 
-  // Derive scriptVersion and selectedFormat from account data and network
   const keyIndexNum = account && keyIndex ? Number(keyIndex) : null
   const key = keyIndexNum !== null ? account?.keys[keyIndexNum] : null
   const scriptVersion = key?.scriptVersion || 'P2PKH'
 
-  // Derive the default format based on network and script version
   const getDefaultFormat = (
     scriptVersion: string,
     network: Network
@@ -63,20 +60,17 @@ export default function PublicKeyPage() {
 
   const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
 
-  // Update selected format when script version or network changes
   useEffect(() => {
     const newFormat = getDefaultFormat(scriptVersion, network)
     setSelectedFormat(newFormat)
   }, [scriptVersion, network])
 
-  // Get format button data based on script version and network
   function getFormatButtons(scriptVersion: string) {
     const formatButtons: {
       format: PublicKeyFormat
       label: string
     }[] = []
 
-    // Handle multisig script types specifically
     if (scriptVersion === 'P2SH') {
       // P2SH: Only show xpub/tpub
       formatButtons.push({
@@ -182,7 +176,6 @@ export default function PublicKeyPage() {
 
   const convertPublicKeyFormat = useCallback(
     (publicKey: string, targetFormat: PublicKeyFormat): string => {
-      // Check if the public key is in a valid format
       const validPrefixes = [
         'xpub',
         'ypub',

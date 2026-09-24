@@ -79,7 +79,6 @@ function importLabels(accountId: string, labels: Label[]): number {
         ]
       )
 
-      // Update denormalized label on entity tables
       if (labelObj.type === 'tx') {
         const { rowsAffected } = tx.execute(
           'UPDATE transactions SET label = ? WHERE id = ? AND account_id = ?',
@@ -233,7 +232,6 @@ function cascadeTxLabel(accountId: string, txid: string, label: string) {
          )`,
       [accountId, label, txid, accountId, accountId]
     )
-    // Update UTXO objects for those outputs
     tx.execute(
       `UPDATE utxos SET label = ?
        WHERE account_id = ? AND txid = ?
@@ -245,7 +243,6 @@ function cascadeTxLabel(accountId: string, txid: string, label: string) {
          )`,
       [label, accountId, txid, accountId, label]
     )
-    // Update tx_outputs label
     tx.execute(
       `UPDATE tx_outputs SET label = ?
        WHERE tx_id = ? AND account_id = ?
@@ -297,7 +294,6 @@ function cascadeTxLabel(accountId: string, txid: string, label: string) {
          )`,
       [accountId, label, txid, accountId, accountId]
     )
-    // Update vout objects on referenced transactions
     tx.execute(
       `UPDATE tx_outputs SET label = ?
        WHERE account_id = ?
@@ -384,7 +380,6 @@ function cascadeUtxoLabel(
          )`,
       [label, txid, accountId, txid, accountId, label]
     )
-    // Update vout label on transaction
     tx.execute(
       `UPDATE tx_outputs SET label = ?
        WHERE tx_id = ? AND output_index = ? AND account_id = ?`,

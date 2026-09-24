@@ -191,7 +191,6 @@ export function signPSBTWithSeed(
     throw new Error('Invalid mnemonic')
   }
 
-  // Derive seed and root key
   const seed = mnemonicToSeed(mnemonic)
   const root = bip32.fromSeed(seed)
 
@@ -199,7 +198,6 @@ export function signPSBTWithSeed(
     root.fingerprint || Buffer.alloc(4)
   ).toString('hex')
 
-  // Find BIP32 derivations in PSBT
   const derivations: {
     inputIndex: number
     pubkey: string
@@ -349,7 +347,6 @@ function getSignedPSBTValidationInfo(signedPSBT: string) {
     warnings: [] as string[]
   }
 
-  // Check each input for signatures
   for (const [inputIndex, input] of psbt.data.inputs.entries()) {
     const inputInfo = {
       hasBip32Derivation: !!input.bip32Derivation,
@@ -363,7 +360,6 @@ function getSignedPSBTValidationInfo(signedPSBT: string) {
       }[]
     }
 
-    // Check for partial signatures
     if (input.partialSig && input.partialSig.length > 0) {
       inputInfo.hasPartialSigs = true
       for (const sig of input.partialSig) {
@@ -527,7 +523,6 @@ export function extractTransactionDataFromPSBTEnhanced(
   return extractTransactionDataFromPSBT(psbtBase64, account.network)
 }
 
-// Function to combine multiple base64 PSBTs
 export function combinePsbts(psbtBase64s: string[]): string {
   if (psbtBase64s.length === 0) {
     throw new Error('No PSBTs provided to combine.')
@@ -597,7 +592,6 @@ export function signedTransactionMatchesPsbt(
   }
 }
 
-// Function to reconstruct the original (unsigned) PSBT
 export function extractOriginalPsbt(psbtBase64: string): string {
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   const tx = bitcoinjs.Transaction.fromBuffer(
@@ -689,7 +683,6 @@ export function getCollectedSignerPubkeys(psbtBase64: string) {
   return signerPubkeys
 }
 
-// Function to extract individual signed PSBTs from a combined PSBT
 export function extractIndividualSignedPsbts(
   combinedPsbtBase64: string,
   originalPsbtBase64: string
@@ -774,7 +767,6 @@ function validateSignedPSBT(psbtBase64: string, account: Account): boolean {
     return false
   }
 
-  // Early returns for basic structure validation
   if (!hasValidStructure(psbt)) {
     return false
   }
@@ -783,7 +775,6 @@ function validateSignedPSBT(psbtBase64: string, account: Account): boolean {
     return false
   }
 
-  // Route to appropriate validation based on account type
   return account.policyType === 'multisig'
     ? validateMultisigPSBT(psbt)
     : validateSinglesigPSBT(psbt)

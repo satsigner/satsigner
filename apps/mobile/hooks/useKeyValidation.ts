@@ -98,7 +98,6 @@ export function useMultisigKeyValidation({
 }: UseKeyValidationParams) {
   const baseValidation = useKeyValidation({ keyDetails, seedDropped })
 
-  // Override hasSeed logic to properly handle watch-only keys
   const hasSeed = useMemo(() => {
     // Watch-only keys (tpub/xpub, descriptor) should never have seeds
     if (
@@ -108,7 +107,6 @@ export function useMultisigKeyValidation({
       return false
     }
 
-    // For other key types, use the base validation logic
     return baseValidation.hasSeed
   }, [keyDetails?.creationType, baseValidation.hasSeed])
 

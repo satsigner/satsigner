@@ -606,20 +606,21 @@ export default function NostrNotePage() {
         setReplyParentKind0Pending(true)
         try {
           const profile = await profileApi.fetchKind0(authorNpub)
-          if (!cancelled && profile) {
-            setReplyParent((prev) => {
-              if (!prev || prev.pubkey !== event.pubkey) {
-                return prev
-              }
-              return {
-                ...prev,
-                authorLud16: profile.lud16,
-                authorName: profile.displayName,
-                authorNip05: profile.nip05,
-                authorPicture: profile.picture
-              }
-            })
+          if (cancelled || !profile) {
+            return
           }
+          setReplyParent((prev) => {
+            if (!prev || prev.pubkey !== event.pubkey) {
+              return prev
+            }
+            return {
+              ...prev,
+              authorLud16: profile.lud16,
+              authorName: profile.displayName,
+              authorNip05: profile.nip05,
+              authorPicture: profile.picture
+            }
+          })
         } catch {
           // non-critical
         } finally {

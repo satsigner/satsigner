@@ -46,7 +46,6 @@ export function useClipboardPaste({
         ? clipboardContent.trim()
         : clipboardContent
 
-      // Validate content if validator provided
       if (validateContent) {
         const validation = validateContent(finalContent)
         if (!validation.isValid) {
@@ -60,15 +59,12 @@ export function useClipboardPaste({
         }
       }
 
-      // Call the paste handler
       onPaste?.(finalContent)
 
-      // Show success toast if enabled
       if (showToast) {
         toast.success(t('watchonly.success.clipboardPasted'))
       }
 
-      // Call success callback
       onSuccess?.(finalContent)
     } catch {
       const errorMessage = t('watchonly.error.clipboardPaste')
@@ -99,7 +95,6 @@ export function useClipboardPaste({
           ? clipboardContent.trim()
           : clipboardContent
 
-        // Validate content with provided validator
         const validation = validator(finalContent)
         if (!validation.isValid) {
           const errorMessage =
@@ -111,15 +106,12 @@ export function useClipboardPaste({
           return
         }
 
-        // Call the paste handler
         onPaste?.(finalContent)
 
-        // Show success toast if enabled
         if (showToast) {
           toast.success(t('watchonly.success.clipboardPasted'))
         }
 
-        // Call success callback
         onSuccess?.(finalContent)
       } catch {
         const errorMessage = t('watchonly.error.clipboardPaste')

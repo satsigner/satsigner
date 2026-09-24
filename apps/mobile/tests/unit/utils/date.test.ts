@@ -1,6 +1,5 @@
 import { formatDate, formatRelativeTime, isToday } from '../../../utils/date'
 
-// Mock the translation function
 jest.mock<typeof import('@/locales')>('@/locales', () => ({
   t: jest.fn((key, params) => {
     if (params) {

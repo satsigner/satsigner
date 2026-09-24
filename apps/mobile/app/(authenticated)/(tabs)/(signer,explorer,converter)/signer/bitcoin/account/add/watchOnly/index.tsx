@@ -49,7 +49,15 @@ import {
   convertKeyFormat
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { DescriptorUtils } from '@/utils/descriptorUtils'
+import {
+  getFingerprint,
+  parseImportedDescriptorPayload,
+  parseJsonDescriptor,
+  parseLegacyDescriptor,
+  parseXpubInput,
+  processCombinedDescriptor,
+  removeChecksum
+} from '@/utils/descriptor'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 import {
@@ -230,7 +238,6 @@ export default function WatchOnly() {
     selectedOption
   ])
 
-  // Initialize validation state when selected option changes
   useEffect(() => {
     if (selectedOption === 'importDescriptor') {
       updateDescriptorValidationState()
@@ -257,7 +264,6 @@ export default function WatchOnly() {
       setIsDisabled(!isValidAddress)
     }
 
-    // Keep original address in input field (user can see "bitcoin:" prefix)
     setAddressInput(address)
   }
 
@@ -293,7 +299,7 @@ export default function WatchOnly() {
   }
 
   function updateXpub(raw: string) {
-    const parsed = DescriptorUtils.parseXpubInput(raw)
+    const parsed = parseXpubInput(raw)
     const nextXpub = parsed.xpub
     const validXpub = validateExtendedKey(nextXpub)
     const validForNetwork = validateExtendedKey(nextXpub, network)
@@ -329,7 +335,6 @@ export default function WatchOnly() {
       return
     }
 
-    // Regular validation for standalone descriptors
     await handleFullDescriptorValidation(descriptor, 'external')
   }
 
@@ -344,7 +349,6 @@ export default function WatchOnly() {
       return
     }
 
-    // Regular validation for standalone descriptors
     await handleFullDescriptorValidation(descriptor, 'internal')
   }
 
@@ -387,14 +391,12 @@ export default function WatchOnly() {
     const basicValidation =
       descriptorValidation && !descriptor.match(/[txyz]priv/)
 
-    // Network validation - check if descriptor is compatible with selected network
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
     }
 
     if (basicValidation && descriptor) {
       try {
-        // Try to validate descriptor with BDK to check network compatibility
         walletNameFromDescriptor(
           descriptor,
           undefined,
@@ -441,7 +443,7 @@ export default function WatchOnly() {
     if (localFingerprint) {
       return
     }
-    const extractedFingerprint = DescriptorUtils.extractFingerprint(descriptor)
+    const extractedFingerprint = getFingerprint(descriptor)
     if (!extractedFingerprint) {
       return
     }
@@ -483,9 +485,7 @@ export default function WatchOnly() {
       return
     }
     if (content.type === 'bitcoin_descriptor') {
-      const parsed = DescriptorUtils.parseImportedDescriptorPayload(
-        content.cleaned
-      )
+      const parsed = parseImportedDescriptorPayload(content.cleaned)
       if (!parsed) {
         toast.error(t('account.import.error.descriptorFormat'))
         return
@@ -526,7 +526,6 @@ export default function WatchOnly() {
         return
       }
 
-      // handle pasting multiple addresses at once
       const lines = text.split('\n').filter((line) => line !== '')
       const hasAddresses = lines.every((line) =>
         validateAddress(stripBitcoinPrefix(line), bitcoinjsNetwork(network))
@@ -542,20 +541,19 @@ export default function WatchOnly() {
 
     if (selectedOption === 'importDescriptor') {
       // Try to parse as JSON first
-      const jsonResult = DescriptorUtils.parseJsonDescriptor(text)
+      const jsonResult = parseJsonDescriptor(text)
       if (jsonResult) {
         await handleJsonDescriptor(jsonResult)
         return
       }
 
       // Try to parse as legacy multi-line format
-      const legacyResult = DescriptorUtils.parseLegacyDescriptor(text)
+      const legacyResult = parseLegacyDescriptor(text)
       if (legacyResult) {
         await handleLegacyDescriptor(legacyResult)
         return
       }
 
-      // Handle as single descriptor
       await handleSingleDescriptor(text)
     }
   }
@@ -586,7 +584,6 @@ export default function WatchOnly() {
     if (isCombinedDescriptor(original)) {
       await handleCombinedDescriptor(original)
     } else {
-      // For JSON descriptors, use the original descriptor for validation
       await updateExternalDescriptor(original)
       if (internal) {
         await updateInternalDescriptor(internal)
@@ -624,24 +621,19 @@ export default function WatchOnly() {
   }
 
   async function handleCombinedDescriptor(descriptor: string) {
-    const result = await DescriptorUtils.processCombinedDescriptor(
+    const result = await processCombinedDescriptor(
       descriptor,
       scriptVersion as ScriptVersionType
     )
 
     if (result.success) {
-      // Set both descriptors and mark them as valid
       setLocalExternalDescriptor(result.external)
       setLocalInternalDescriptor(result.internal)
       setIsValidExternalDescriptor(true)
       setIsValidInternalDescriptor(true)
 
-      const externalWithoutChecksum = DescriptorUtils.removeChecksum(
-        result.external
-      )
-      const internalWithoutChecksum = DescriptorUtils.removeChecksum(
-        result.internal
-      )
+      const externalWithoutChecksum = removeChecksum(result.external)
+      const internalWithoutChecksum = removeChecksum(result.internal)
       setExternalDescriptor(externalWithoutChecksum)
       setInternalDescriptor(internalWithoutChecksum)
 
@@ -653,7 +645,6 @@ export default function WatchOnly() {
       await updateExternalDescriptor(externalWithoutChecksum, true)
       await updateInternalDescriptor(internalWithoutChecksum, true)
     } else {
-      // Set the separated descriptors but mark them as invalid
       setLocalExternalDescriptor(result.external)
       setLocalInternalDescriptor(result.internal)
       setIsValidExternalDescriptor(false)
@@ -701,14 +692,12 @@ export default function WatchOnly() {
           ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }
 
-        // Check if the descriptor is combined (contains <0;1> or <0,1>)
         if (isCombinedDescriptor(text)) {
           // Validate the combined descriptor and get separated descriptors
-          const combinedValidation =
-            await DescriptorUtils.processCombinedDescriptor(
-              text,
-              scriptVersion as ScriptVersionType
-            )
+          const combinedValidation = await processCombinedDescriptor(
+            text,
+            scriptVersion as ScriptVersionType
+          )
 
           if (combinedValidation.success) {
             setLocalExternalDescriptor(combinedValidation.external)
@@ -732,14 +721,12 @@ export default function WatchOnly() {
             await updateExternalDescriptor(externalWithoutChecksum, true)
             await updateInternalDescriptor(internalWithoutChecksum, true)
           } else {
-            // Set the separated descriptors but mark them as invalid
             setLocalExternalDescriptor(combinedValidation.external)
             setLocalInternalDescriptor(combinedValidation.internal)
             setIsValidExternalDescriptor(false)
             setIsValidInternalDescriptor(false)
           }
         } else {
-          // Handle non-combined descriptors with existing logic
           if (externalDescriptor) {
             updateExternalDescriptor(externalDescriptor)
           }
@@ -785,15 +772,11 @@ export default function WatchOnly() {
             setKey(index)
           }
         } else if (selectedOption === 'importDescriptor') {
-          // Extract fingerprint from descriptor if not already set
-
-          // Check if we have a combined descriptor and validate it
           if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
-            const combinedValidation =
-              await DescriptorUtils.processCombinedDescriptor(
-                externalDescriptor,
-                scriptVersion as ScriptVersionType
-              )
+            const combinedValidation = await processCombinedDescriptor(
+              externalDescriptor,
+              scriptVersion as ScriptVersionType
+            )
 
             if (!combinedValidation.success) {
               toast.error('Invalid combined descriptor')
@@ -824,7 +807,6 @@ export default function WatchOnly() {
           `/signer/bitcoin/account/${data.accountWithEncryptedSecret.id}`
         )
 
-        // Start sync in background if auto mode is enabled
         if (connectionMode === 'auto') {
           try {
             const updatedAccount =

@@ -1,6 +1,7 @@
 import { hmac } from '@noble/hashes/hmac'
 import { pbkdf2Async } from '@noble/hashes/pbkdf2'
 import { sha512 } from '@noble/hashes/sha512'
+import { hex } from '@scure/base'
 import { HDKey } from '@scure/bip32'
 import {
   type KeychainKind,
@@ -38,8 +39,7 @@ import {
   getPublicDescriptorFromSeed,
   getPublicDescriptorFromSeedWithPath,
   getVersionsForNetwork,
-  getXpubForScriptVersion,
-  toHex
+  getXpubForScriptVersion
 } from '@/utils/bip32'
 
 export function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
@@ -336,7 +336,7 @@ function deriveXpubFromMnemonic(
   const master = HDKey.fromMasterSeed(seed, versions)
 
   // ensure publicKey is not null
-  const masterPubkeyHex = toHex(master.publicKey || new Uint8Array())
+  const masterPubkeyHex = hex.encode(master.publicKey || new Uint8Array())
   const masterFingerprintHex = fingerprintToHex(master.fingerprint)
 
   // 3) derive path
@@ -383,10 +383,8 @@ function getExtendedPublicKeyFromMnemonicCustom(
   path?: string,
   isMultisig = false
 ) {
-  // Convert BDK Network to string for deriveXpubFromMnemonic
   const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'
 
-  // If script version is specified and it's a multisig type, use the specific function
   if (
     scriptVersion &&
     isMultisig &&
@@ -408,7 +406,6 @@ function getExtendedPublicKeyFromMnemonicCustom(
     )
   }
 
-  // For singlesig accounts, use the correct BIP derivation paths
   let derivationPath = path
   if (!path && !isMultisig) {
     const coinType = networkString === 'mainnet' ? '0' : '1'
@@ -431,7 +428,6 @@ function getExtendedPublicKeyFromMnemonicCustom(
     }
   }
 
-  // Otherwise, use the default deriveXpubFromMnemonic function
   const result = deriveXpubFromMnemonic(mnemonic, passphrase, {
     network: networkString,
     path: derivationPath

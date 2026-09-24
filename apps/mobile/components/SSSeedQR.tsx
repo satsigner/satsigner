@@ -26,18 +26,15 @@ export default function SSSeedQR({
   onClose,
   title
 }: SSSeedQRProps) {
-  // Format mnemonic by trimming whitespace and ensuring single spaces between words
   const formattedMnemonic = mnemonic.trim().replace(/\s+/g, ' ')
   const wordList = getWordList(mnemonicWordList)
 
-  // Only encode if we have a valid mnemonic
   const qrValue = formattedMnemonic
     ? encodeStandardSeedQR(formattedMnemonic, wordList)
     : ''
 
   const qrSize = formattedMnemonic.split(' ').length === 12 ? 250 : 300
 
-  // Format QR value into groups of 4 characters
   const formattedQRValue = qrValue.match(/.{1,4}/g)?.join(' ') || qrValue
 
   const handleCopy = () => {
