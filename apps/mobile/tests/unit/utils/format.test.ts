@@ -4,10 +4,12 @@ import {
   formatFeeRateSatPerVb,
   formatLargeNumber,
   formatNostrCardDate,
+  formatNpub,
   formatNumber,
   formatShortPubkey,
   formatTime,
-  formatTxId
+  formatTxId,
+  truncate
 } from '@/utils/format'
 
 jest.mock<typeof import('@/locales')>('@/locales', () => ({
@@ -25,14 +27,52 @@ jest.mock<typeof import('@/locales')>('@/locales', () => ({
 
 describe('format utils', () => {
   describe('formatAddress', () => {
+    const address = '1111111111111111111114oLvT2'
+
     it('should return an address with 16 or less characters', () => {
       expect(formatAddress('hi@satsigner.com')).toBe('hi@satsigner.com')
     })
 
-    it('should return first and last eight characters of the address', () => {
-      expect(formatAddress('1111111111111111111114oLvT2')).toBe(
-        '11111111...114oLvT2'
-      )
+    it('should keep 8 head and tail characters by default', () => {
+      expect(formatAddress(address)).toBe('11111111...114oLvT2')
+    })
+
+    it('should use 6 characters for the default size', () => {
+      expect(formatAddress(address, 'default')).toBe('111111...4oLvT2')
+    })
+
+    it('should use 4 characters for the compact size', () => {
+      expect(formatAddress(address, 'compact')).toBe('1111...LvT2')
+    })
+  })
+
+  describe('truncate', () => {
+    it('should return the whole value when head + tail equals its length', () => {
+      expect(truncate('abcdefghij', 6, 4)).toBe('abcdefghij')
+    })
+
+    it('should return the whole value when head + tail exceeds its length', () => {
+      expect(truncate('abcdefghij', 8, 8)).toBe('abcdefghij')
+    })
+
+    it('should default the tail width to the head width', () => {
+      expect(truncate('abcdefghijklmnop', 4)).toBe('abcd...mnop')
+    })
+
+    it('should not leak the whole value when tail is zero', () => {
+      expect(truncate('abcdefghijklmnop', 4, 0)).toBe('abcd...')
+    })
+  })
+
+  describe('formatNpub', () => {
+    const npub = 'npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8'
+
+    it('should keep 12 head and 4 tail characters by default', () => {
+      expect(formatNpub(npub)).toBe('npub10elfcs4...dma8')
+    })
+
+    it('should middle-truncate symmetrically for a size', () => {
+      expect(formatNpub(npub, 'xs')).toBe('npub10el...5mp4dma8')
     })
   })
 
@@ -108,8 +148,22 @@ describe('format utils', () => {
   })
 
   describe('formatTxId', () => {
-    it('should return first and last six characters of the address', () => {
-      expect(formatTxId('1111111111111111111114oLvT2')).toBe('111111...4oLvT2')
+    const txid = '1111111111111111111114oLvT2'
+
+    it('should return first and last six characters by default', () => {
+      expect(formatTxId(txid)).toBe('111111...4oLvT2')
+    })
+
+    it('should use 3 characters for the tiny size', () => {
+      expect(formatTxId(txid, 'tiny')).toBe('111...vT2')
+    })
+
+    it('should use 4 characters for the compact size', () => {
+      expect(formatTxId(txid, 'compact')).toBe('1111...LvT2')
+    })
+
+    it('should use 8 characters for the wide size', () => {
+      expect(formatTxId(txid, 'wide')).toBe('11111111...114oLvT2')
     })
   })
 

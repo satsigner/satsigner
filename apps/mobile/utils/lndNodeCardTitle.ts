@@ -3,7 +3,7 @@ import {
   LND_NODE_CARD_PUBKEY_TAIL_CHARS,
   LND_NODE_PUBKEY_HEX_LENGTH
 } from '@/constants/lightning'
-import { formatShortPubkey } from '@/utils/format'
+import { truncate } from '@/utils/format'
 
 const PUBKEY_HEX_REGEX = new RegExp(
   `^[0-9a-fA-F]{${LND_NODE_PUBKEY_HEX_LENGTH}}$`
@@ -37,7 +37,7 @@ export function lndNodeCardTitle(
   if (!source) {
     return ''
   }
-  return formatShortPubkey(
+  return truncate(
     source,
     LND_NODE_CARD_PUBKEY_HEAD_CHARS,
     LND_NODE_CARD_PUBKEY_TAIL_CHARS

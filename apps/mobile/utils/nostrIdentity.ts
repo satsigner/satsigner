@@ -222,10 +222,3 @@ export function buildEnhancedZapTags(config: NostrEnhancedZapTags): string[][] {
 export function npubFromNsec(nsec: string): string | null {
   return deriveNpubFromNsec(nsec)
 }
-
-export function truncateNpub(npub: string, chars = 8): string {
-  if (npub.length <= chars * 2 + 3) {
-    return npub
-  }
-  return `${npub.slice(0, chars)}...${npub.slice(-chars)}`
-}

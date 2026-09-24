@@ -387,7 +387,7 @@ function SSTransactionChartCanvas({
         depthH: 0,
         id: String(index + 1),
         ioData: {
-          address: formatTxId(input.txid, 4),
+          address: formatTxId(input.txid, 'compact'),
           // Only attach fiat when prevout value is real — equal-split placeholders
           // are for layout/labels, not priced amounts.
           ...(input.valueIsKnown ? fiatFields(input.value) : {}),
@@ -486,7 +486,9 @@ function SSTransactionChartCanvas({
         depthH: 2,
         id: nodeId,
         ioData: {
-          address: outputAddress ? formatAddress(outputAddress, 6) : undefined,
+          address: outputAddress
+            ? formatAddress(outputAddress, 'default')
+            : undefined,
           ...(specialKind && output.value <= 0 ? {} : fiatFields(output.value)),
           isChange: isNeutralOutput ? false : isChangeOutput,
           isFakeMix: isNeutralOutput ? false : isFakeMix,

@@ -11,6 +11,7 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSPaste from '@/components/SSPaste'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { VTXO_ID_TRUNCATE_CHARS } from '@/constants/format'
 import { useArkOffboard } from '@/hooks/useArkOffboard'
 import { useArkOffboardFeeEstimate } from '@/hooks/useArkOffboardFeeEstimate'
 import { useArkSpendableVtxos } from '@/hooks/useArkSpendableVtxos'
@@ -24,11 +25,10 @@ import { Colors } from '@/styles'
 import type { ArkVtxo } from '@/types/models/Ark'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { formatAddress, formatFiatPrice, formatNumber } from '@/utils/format'
+import { formatFiatPrice, formatNumber, truncate } from '@/utils/format'
 import { validateAddress } from '@/utils/validation'
 
 const OFFBOARD_CONTEXT = 'bitcoin' as const
-const VTXO_ID_TRUNCATE_CHARS = 8
 
 function sumVtxoSats(vtxos: ArkVtxo[], selected: Set<string>): number {
   return vtxos.reduce(
@@ -247,10 +247,7 @@ export default function ArkSendOffboardPage() {
               data={vtxos}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => {
-                const truncatedId = formatAddress(
-                  item.id,
-                  VTXO_ID_TRUNCATE_CHARS
-                )
+                const truncatedId = truncate(item.id, VTXO_ID_TRUNCATE_CHARS)
                 const description =
                   btcPrice > 0
                     ? `${formatFiatPrice(item.amountSats, btcPrice)} ${fiatCurrency}`

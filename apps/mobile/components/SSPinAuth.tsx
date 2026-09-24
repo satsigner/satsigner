@@ -175,7 +175,7 @@ function SSPinAuth({
         </SSText>
       )}
       <Animated.View style={[{ flex: 1, width: '100%' }, shakeStyle]}>
-        {pin !== null && (
+        {pin !== null && !verifying && (
           <SSPinInput
             pin={pin}
             setPin={(update) => applyPinUpdate(update, setPin)}
