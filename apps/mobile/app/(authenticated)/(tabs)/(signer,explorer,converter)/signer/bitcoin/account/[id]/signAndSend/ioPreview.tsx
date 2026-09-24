@@ -84,7 +84,7 @@ import {
   getFeeRateSliderMax,
   shouldHighlightElevatedFeeRate
 } from '@/utils/feeWarnings'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatNumber, formatTxId } from '@/utils/format'
 import {
   type ParsedUriParams,
   parseUriParameters,
@@ -1755,7 +1755,8 @@ export default function IOPreview() {
                     {inputToRemove.label || t('common.noLabel')}
                   </SSText>
                   <SSText center>
-                    {formatAddress(inputToRemove.txid, 8)}:{inputToRemove.vout}
+                    {formatTxId(inputToRemove.txid, 'wide')}:
+                    {inputToRemove.vout}
                   </SSText>
                   <SSText center>
                     {formatNumber(inputToRemove.value, 0, zeroPadding)} sats

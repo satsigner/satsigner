@@ -173,14 +173,3 @@ describe('extractPubpayTags', () => {
     expect(extractPubpayTags(tags)).toHaveLength(0)
   })
 })
-
-describe('truncateNpub', () => {
-  it('truncates long npubs with ellipsis', () => {
-    const { truncateNpub } = require('@/utils/nostrIdentity')
-    const npub =
-      'npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8qzvjptg'
-    const result = truncateNpub(npub)
-    expect(result).toBe('npub10el...8qzvjptg')
-    expect(result.length).toBeLessThan(npub.length)
-  })
-})

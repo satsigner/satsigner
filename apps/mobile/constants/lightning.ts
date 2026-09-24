@@ -24,6 +24,9 @@ export const LND_NODE_PUBKEY_HEX_LENGTH = 66
 /** Short pubkey shown as a card title when the node has no alias. */
 export const LND_NODE_CARD_PUBKEY_HEAD_CHARS = 4
 export const LND_NODE_CARD_PUBKEY_TAIL_CHARS = 4
+/** Short pubkey shown in route hop diagrams. */
+export const LN_KEY_SHORT_HEAD_CHARS = 8
+export const LN_KEY_SHORT_TAIL_CHARS = 6
 
 export const LND_FORWARDING_MAX_EVENTS = 200
 export const LND_FORWARDING_INDEX_OFFSET = 0
