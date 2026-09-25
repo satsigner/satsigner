@@ -68,13 +68,12 @@ import type {
   ZapSortField
 } from '@/types/models/Nostr'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
-import { formatNostrCardDate } from '@/utils/format'
+import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
   decodeNostrContent,
   extractEnhancedZapTags,
-  extractPubpayTags,
-  truncateNpub
+  extractPubpayTags
 } from '@/utils/nostrIdentity'
 import { isLongFormNostrKind } from '@/utils/nostrLongForm'
 import {
@@ -1063,7 +1062,7 @@ export default function NostrNotePage() {
                       type="mono"
                       style={{ lineHeight: 16 }}
                     >
-                      {truncateNpub(nip19.npubEncode(fetched.pubkey), 12)}
+                      {formatNpub(nip19.npubEncode(fetched.pubkey), 'md')}
                     </SSText>
                     {fetched.authorNip05 && !privacyMode && (
                       <SSHStack gap="xs" style={{ alignItems: 'center' }}>
@@ -1756,9 +1755,9 @@ export default function NostrNotePage() {
                             {privacyMode
                               ? NOSTR_PRIVACY_MASK
                               : receipt.senderName ||
-                                truncateNpub(
+                                formatNpub(
                                   nip19.npubEncode(receipt.senderPubkey),
-                                  8
+                                  'xs'
                                 )}
                           </SSText>
                           {!privacyMode && receipt.comment ? (
@@ -1802,7 +1801,7 @@ export default function NostrNotePage() {
                   {t('nostrIdentity.note.notFoundOnYourRelays')}
                 </SSText>
                 <SSText size="xs" type="mono" color="muted">
-                  {truncateNpub(decoded.raw, 16)}
+                  {formatNpub(decoded.raw, 'xl')}
                 </SSText>
 
                 {relayHints && relayHints.length > 0 && !triedHints && (

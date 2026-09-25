@@ -74,6 +74,15 @@ export function deriveNpubFromNsec(nsec: string): string | null {
   }
 }
 
+/** npubEncode a hex pubkey, returning `fallback` (the hex itself by default) when encoding fails. */
+export function safeNpubEncode(hex: string, fallback = hex): string {
+  try {
+    return nip19.npubEncode(hex)
+  } catch {
+    return fallback
+  }
+}
+
 export function getPubKeyHexFromNpub(npub: string): string | null {
   try {
     const decoded = nip19.decode(npub)
