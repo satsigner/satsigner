@@ -2,7 +2,7 @@ import type { ArkVtxo } from '@/types/models/Ark'
 
 const ARK_VTXO_HISTORICAL_STATES = new Set(['spent', 'exited'])
 
-export type ArkVtxoGroup = 'spendable' | 'locked'
+type ArkVtxoGroup = 'spendable' | 'locked'
 
 export function filterCurrentArkVtxos(vtxos: ArkVtxo[]): ArkVtxo[] {
   return vtxos.filter(

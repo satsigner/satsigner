@@ -84,7 +84,7 @@ function getPPubkeysFromTags(tags: string[][]): string[] {
     .map((tag) => tag[1])
 }
 
-export function zapReceiptEventToRawJson(event: NDKEvent): string {
+function zapReceiptEventToRawJson(event: NDKEvent): string {
   const tags = event.tags.map((tag) =>
     tag.filter((v): v is string => typeof v === 'string')
   )
@@ -106,7 +106,7 @@ export function zapReceiptEventToRawJson(event: NDKEvent): string {
 /**
  * Parses a kind 9735 zap receipt from normalized tags (e.g. after JSON fetch).
  */
-export function parseZapReceiptFromTags(
+function parseZapReceiptFromTags(
   id: string,
   createdAt: number,
   tags: string[][],
@@ -180,7 +180,7 @@ export function parseZapReceiptFromTags(
  * incoming (others zapped this profile) vs outgoing (this profile zapped).
  * With `profileHex` null, direction is always incoming (e.g. note zaps list).
  */
-export function parseZapReceiptFromEvent(
+function parseZapReceiptFromEvent(
   event: NDKEvent,
   profileHex: string | null
 ): ZapReceiptInfo | null {
@@ -219,7 +219,7 @@ export function mergeZapReceiptsById(
  * Resolves a Lightning Address (lud16) to an LNURL-pay callback URL.
  * Returns the full LNURLPayResponse with callback, min/max, and nostr support.
  */
-export function resolveZapEndpoint(lud16: string): Promise<LNURLPayResponse> {
+function resolveZapEndpoint(lud16: string): Promise<LNURLPayResponse> {
   const [name, domain] = lud16.split('@')
   if (!name || !domain) {
     throw new Error('Invalid Lightning Address format')
@@ -233,7 +233,7 @@ export function resolveZapEndpoint(lud16: string): Promise<LNURLPayResponse> {
  * Builds and signs a NIP-57 kind 9734 zap request event.
  * Returns the signed event as a JSON string (ready for the nostr= callback param).
  */
-export function buildZapRequest(params: {
+function buildZapRequest(params: {
   senderNsec: string
   recipientPubkeyHex: string
   amountSats: number
@@ -280,7 +280,7 @@ export function buildZapRequest(params: {
  * Requests a BOLT11 invoice from the LNURL callback, including the
  * NIP-57 nostr= query parameter with the signed zap request.
  */
-export async function requestZapInvoice(
+async function requestZapInvoice(
   callback: string,
   amountSats: number,
   zapRequestJson: string,

@@ -15,7 +15,6 @@ import {
   BIP48_SCRIPT_TYPE_P2SH_P2WSH,
   BIP48_SCRIPT_TYPE_P2WSH,
   BIP49_PURPOSE,
-  BIP84_PURPOSE,
   BIP86_PURPOSE
 } from '@/constants/derivation'
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
@@ -163,7 +162,7 @@ export function getPublicDescriptorFromSeedWithPath(
   return getDescriptorFromPubkey(pubkey, scriptVersion, fingerprint, path, kind)
 }
 
-export function getDescriptorFromPubkey(
+function getDescriptorFromPubkey(
   pubkey: string,
   scriptVersion: ScriptVersionType,
   fingerprint: string,
@@ -219,27 +218,6 @@ function getDescriptorFromPrivateKey(
       return `sh(pk(${innerPart}))`
     default:
       throw new Error(`Unsupported script version: ${scriptVersion}`)
-  }
-}
-
-export function getScriptVersionPurpose(
-  scriptVersion: ScriptVersionType
-): number {
-  switch (scriptVersion) {
-    case 'P2PKH':
-      return BIP44_PURPOSE // Legacy
-    case 'P2SH-P2WPKH':
-      return BIP49_PURPOSE // Nested SegWit
-    case 'P2WPKH':
-      return BIP84_PURPOSE // Native SegWit
-    case 'P2TR':
-      return BIP86_PURPOSE // Taproot
-    case 'P2WSH':
-    case 'P2SH-P2WSH':
-    case 'P2SH':
-      return BIP44_PURPOSE // Use legacy for these
-    default:
-      return BIP84_PURPOSE
   }
 }
 
@@ -543,20 +521,4 @@ export function getXpubForScriptVersion(
   }
 
   return xpubFunctions[scriptVersion](seed, network)
-}
-
-export function getAllXpubs(
-  mnemonic: string,
-  passphrase: string,
-  network: 'mainnet' | 'testnet'
-) {
-  const seed = new Uint8Array(
-    Buffer.from(Mnemonic.fromString(mnemonic).toSeedHex(passphrase), 'hex')
-  )
-
-  return {
-    p2sh: getP2SHXpub(seed, network),
-    p2sh_p2wsh: getP2SHP2WSHXpub(seed, network),
-    p2wsh: getP2WSHXpub(seed, network)
-  }
 }

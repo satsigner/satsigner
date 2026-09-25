@@ -39,14 +39,6 @@ function getDb(): NitroSQLiteConnection {
   return globalThis.__satsignerDb
 }
 
-function closeDb() {
-  if (globalThis.__satsignerDb) {
-    globalThis.__satsignerDb.close()
-    globalThis.__satsignerDb = undefined
-  }
-  migratedForModuleLoad = false
-}
-
 /**
  * Run multiple SQL statements in a synchronous transaction.
  * Uses manual BEGIN/COMMIT with sync JSI execute calls.
@@ -64,4 +56,4 @@ function runTransaction(fn: (db: NitroSQLiteConnection) => void) {
   }
 }
 
-export { closeDb, getDb, runTransaction }
+export { getDb, runTransaction }

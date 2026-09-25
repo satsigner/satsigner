@@ -13,7 +13,7 @@ type SSTransactionVinListProps = {
   vin?: Transaction['vin']
 }
 
-export function SSTransactionVinList({ vin }: SSTransactionVinListProps) {
+function SSTransactionVinList({ vin }: SSTransactionVinListProps) {
   return (
     <SSVStack>
       {(vin || []).map((input, index) => (

@@ -4,7 +4,6 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { PSBT_MAGIC_HEX } from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { type Utxo } from '@/types/models/Utxo'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { getKeyFingerprint } from '@/utils/account'
 import { mnemonicToSeed, validateMnemonic } from '@/utils/bip39'
@@ -718,109 +717,6 @@ export function extractIndividualSignedPsbts(
   return individualSignedPsbts
 }
 
-export function validatePsbt(
-  psbtBase64: string,
-  utxos: Utxo[],
-  accountKeyFingerprints: string[]
-) {
-  const errors: string[] = []
-  const warnings: string[] = []
-
-  const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
-
-  // 1. Validate all inputs are valid
-  const invalidInputs: number[] = []
-  for (const [index, input] of psbt.data.inputs.entries()) {
-    if (!input.witnessUtxo && !input.nonWitnessUtxo) {
-      invalidInputs.push(index)
-    } else if (input.witnessUtxo) {
-      if (
-        !input.witnessUtxo.script ||
-        input.witnessUtxo.value === undefined ||
-        input.witnessUtxo.value <= 0
-      ) {
-        invalidInputs.push(index)
-      }
-    } else if (input.nonWitnessUtxo) {
-      try {
-        const prevTx = bitcoinjs.Transaction.fromBuffer(input.nonWitnessUtxo)
-        const txInput = psbt.txInputs[index]
-        const prevOut = prevTx.outs[txInput.index]
-        if (!prevOut || prevOut.value <= 0) {
-          invalidInputs.push(index)
-        }
-      } catch {
-        invalidInputs.push(index)
-      }
-    }
-  }
-
-  if (invalidInputs.length > 0) {
-    errors.push(
-      `Invalid inputs detected at indices: ${invalidInputs.join(', ')}`
-    )
-  }
-
-  // 2. Check if UTXOs are spendable (exist in wallet)
-  const unspendableUtxos: string[] = []
-  const utxoMap = new Map<string, Utxo>()
-  for (const utxo of utxos) {
-    utxoMap.set(`${utxo.txid}:${utxo.vout}`, utxo)
-  }
-
-  for (const [index, txInput] of psbt.txInputs.entries()) {
-    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
-    const txid = Buffer.from(txInput.hash).reverse().toString('hex')
-    const vout = txInput.index
-    const utxoKey = `${txid}:${vout}`
-
-    if (!utxoMap.has(utxoKey)) {
-      unspendableUtxos.push(
-        `Input ${index + 1} (${txid.substring(0, 8)}...:${vout})`
-      )
-    }
-  }
-
-  if (unspendableUtxos.length > 0) {
-    warnings.push(
-      `Some UTXOs are not spendable or not found in wallet: ${unspendableUtxos
-        .slice(0, 3)
-        .join(', ')}${unspendableUtxos.length > 3 ? '...' : ''}`
-    )
-  }
-
-  // 3. Check if PSBT is associated with this policy/account
-  const derivations = extractPSBTDerivations(psbtBase64)
-  if (derivations.length === 0) {
-    warnings.push(
-      'PSBT does not contain BIP32 derivation paths. Cannot verify account association.'
-    )
-  } else {
-    const psbtFingerprints = [...new Set(derivations.map((d) => d.fingerprint))]
-    const allFingerprintsMatch = psbtFingerprints.every((psbtFp) =>
-      accountKeyFingerprints.includes(psbtFp)
-    )
-
-    if (!allFingerprintsMatch) {
-      const someFingerprintsMatch = psbtFingerprints.some((psbtFp) =>
-        accountKeyFingerprints.includes(psbtFp)
-      )
-
-      if (!someFingerprintsMatch) {
-        errors.push(
-          'PSBT does not match this account. Fingerprints in PSBT do not match account keys.'
-        )
-      } else {
-        warnings.push(
-          'PSBT may not be fully associated with this account. Please verify before signing.'
-        )
-      }
-    }
-  }
-
-  return { errors, warnings }
-}
-
 export function validateNormalizedPsbt(
   signedPsbt: string,
   account: Account,
@@ -863,10 +759,7 @@ export function normalizePsbtToBase64(psbt: string): string {
   return psbt
 }
 
-export function validateSignedPSBT(
-  psbtBase64: string,
-  account: Account
-): boolean {
+function validateSignedPSBT(psbtBase64: string, account: Account): boolean {
   let psbt: bitcoinjs.Psbt | undefined
   try {
     psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)

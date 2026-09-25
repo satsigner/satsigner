@@ -492,62 +492,6 @@ function processURGenericResult(result: UR) {
   return Buffer.from(Array.from(cborData)).toString('hex')
 }
 
-export function decodeMultiPartURGeneric(urFragments: string[]): string {
-  const decoder = new URDecoder()
-
-  const sortedFragments = urFragments.toSorted((a, b) => {
-    const aMatch = a.match(/ur:([^/]+)\/(\d+)-(\d+)\//i)
-    const bMatch = b.match(/ur:([^/]+)\/(\d+)-(\d+)\//i)
-
-    if (aMatch && bMatch) {
-      const aSeq = parseInt(aMatch[2], 10)
-      const bSeq = parseInt(bMatch[2], 10)
-      return aSeq - bSeq
-    }
-
-    return 0
-  })
-
-  const batchSize = UR_DECODE_BATCH_SIZE
-  for (let i = 0; i < sortedFragments.length; i += batchSize) {
-    const batch = sortedFragments.slice(i, i + batchSize)
-
-    for (const fragment of batch) {
-      decoder.receivePart(fragment)
-    }
-  }
-
-  const isDecoderComplete = decoder.isComplete()
-  const progress = decoder.estimatedPercentComplete()
-
-  const shouldTryDecoding =
-    isDecoderComplete === true ||
-    (isDecoderComplete === undefined && progress > 0.9) ||
-    progress >= 1
-
-  if (shouldTryDecoding) {
-    const result = decoder.resultUR()
-    return processURGenericResult(result)
-  }
-
-  if (progress < 0.3) {
-    throw new Error(
-      `UR decoder needs more fragments: ${Math.round(progress * 100)}% complete`
-    )
-  }
-
-  if (progress < 0.8) {
-    throw new Error(
-      `UR decoder needs more fragments: ${Math.round(
-        progress * 100
-      )}% complete (fountain encoding requires more fragments)`
-    )
-  }
-
-  const result = decoder.resultUR()
-  return processURGenericResult(result)
-}
-
 /**
  * Parse CBOR byte string to extract the raw PSBT bytes
  * This reverses the manual CBOR encoding we do in createCryptoPsbtCBOR

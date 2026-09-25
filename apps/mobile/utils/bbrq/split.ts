@@ -4,22 +4,16 @@
  * Splitting of data and encoding as BBQr QR codes.
  */
 
-import { hex } from '@scure/base'
-
 import { ENCODING_SPLIT_MOD, HEADER_LEN } from './consts'
 import {
   type Encoding,
-  type FileType,
   type SplitOptions,
   type SplitResult,
   type Version
 } from './types'
 import {
-  base64ToBytes,
   encodeData,
-  fileToBytes,
   intToBase36,
-  looksLikePsbt,
   validateSplitOptions,
   versionToChars
 } from './utils'
@@ -121,86 +115,6 @@ export function splitQRs(
   }
 
   return { encoding: actualEncoding, parts, version }
-}
-
-/**
- * Takes a given given input (Uint8Array, File, or string) and detects its FileType.
- * PSBTs and Bitcoin transactions are supported in raw binary, Base64, or hex format.
- *
- * @param input - The input to detect the FileType of.
- * @returns A Promise that resolves to an object containing the FileType and raw data.
- */
-export async function detectFileType(
-  input: File | Uint8Array | string
-): Promise<{ fileType: FileType; raw: Uint8Array }> {
-  // keep references to both raw and decoded versions of the input to run checks on
-  let raw: Uint8Array | undefined = undefined
-  let decoded: string | undefined = undefined
-
-  // convert a File to Uint8Array so we have access to the raw bytes
-  const data: Uint8Array | string =
-    input instanceof File ? await fileToBytes(input) : input
-
-  if (data instanceof Uint8Array) {
-    // we got binary, see if we recognize it
-    raw = data
-
-    if (looksLikePsbt(data)) {
-      return { fileType: 'P', raw }
-    }
-
-    if (raw[0] === 0x01 || raw[0] === 0x02) {
-      return { fileType: 'T', raw }
-    }
-
-    // otherwise, try to decode as text (could be contents of a file)
-    try {
-      decoded = new TextDecoder('utf-8', { fatal: true }).decode(raw)
-    } catch {
-      // not text, so fall back to generic binary
-      return { fileType: 'B', raw }
-    }
-  } else if (typeof data === 'string') {
-    decoded = data
-  } else {
-    throw new TypeError('Invalid input - must be a File, Uint8Array or string')
-  }
-
-  const trimmed = decoded.trim()
-
-  if (/^70736274ff[0-9A-Fa-f]+$/.test(trimmed)) {
-    // PSBT in hex format
-    return { fileType: 'P', raw: hex.decode(trimmed) }
-  }
-
-  if (/^0[1,2]000000[0-9A-Fa-f]+$/.test(trimmed)) {
-    // Transaction in hex format
-    return { fileType: 'T', raw: hex.decode(trimmed) }
-  }
-
-  if (/^[A-Za-z0-9+/=]+$/.test(trimmed)) {
-    // looks like base64 - could be PSBT or transaction
-    const bytes = base64ToBytes(decoded)
-
-    if (looksLikePsbt(bytes)) {
-      return { fileType: 'P', raw: bytes }
-    }
-
-    if (bytes[0] === 0x01 || bytes[0] === 0x02) {
-      return { fileType: 'T', raw: bytes }
-    }
-  }
-
-  // ensure we have raw bytes for the next step
-  raw = raw ?? new TextEncoder().encode(decoded)
-
-  try {
-    JSON.parse(decoded)
-    return { fileType: 'J', raw }
-  } catch {
-    // not JSON - fall back to generic Unicode
-    return { fileType: 'U', raw }
-  }
 }
 
 // EOF

@@ -204,23 +204,20 @@ export const MempoolStatisticsSchema = z.object({
   vsizes: z.array(z.number())
 })
 
-export type Satoshi = z.infer<typeof SatoshiSchema>
+type Satoshi = z.infer<typeof SatoshiSchema>
 export type PriceValue = z.infer<typeof PriceValueSchema>
 export type Currency = z.infer<typeof CurrencySchema>
 export type Prices = z.infer<typeof PricesSchema>
-export type BlockStatus = z.infer<typeof BlockStatusSchema>
+type BlockStatus = z.infer<typeof BlockStatusSchema>
 export type Block = z.infer<typeof BlockSchema>
 export type BlockDifficulty = z.infer<typeof BlockDifficultySchema>
 export type TxPriority = z.infer<typeof TxPrioritySchema>
-export type Tx = z.infer<typeof TxSchema>
-export type TxOut = z.infer<typeof TxOutSchema>
-export type TxIn = z.infer<typeof TxInSchema>
+type Tx = z.infer<typeof TxSchema>
 export type TxStatus = z.infer<typeof TxStatusSchema>
 export type TxOutspend = z.infer<typeof TxOutspendSchema>
-export type UTXO = z.infer<typeof UTXOSchema>
+type UTXO = z.infer<typeof UTXOSchema>
 export type MemPool = z.infer<typeof MemPoolSchema>
 export type MemPoolFees = z.infer<typeof MemPoolFeesSchema>
 export type MemPoolBlock = z.infer<typeof MemPoolBlockSchema>
 export type DifficultyAdjustment = z.infer<typeof DifficultyAdjustmentSchema>
-export type BlockFeeRates = z.infer<typeof BlockFeeRatesSchema>
 export type MempoolStatistics = z.infer<typeof MempoolStatisticsSchema>

@@ -1,10 +1,6 @@
 import { decode } from 'bitcoin-decoder'
 
-import type {
-  ArkDestinationDraft,
-  ArkDestinationParseResult,
-  ArkSendKind
-} from '@/types/models/Ark'
+import type { ArkDestinationParseResult } from '@/types/models/Ark'
 
 export async function parseArkDestination(
   raw: string
@@ -58,10 +54,4 @@ export async function parseArkDestination(
     default:
       return { ok: false, reason: 'unsupported' }
   }
-}
-
-export function destinationKindFromDraft(
-  draft: ArkDestinationDraft
-): ArkSendKind {
-  return draft.kind
 }

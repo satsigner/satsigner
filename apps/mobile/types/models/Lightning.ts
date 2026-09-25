@@ -269,7 +269,7 @@ export type LNDChannel = {
   uptime: number
 }
 
-export type LNDChannelConstraints = {
+type LNDChannelConstraints = {
   chan_reserve_sat: number
   csv_delay: number
   dust_limit_sat: number

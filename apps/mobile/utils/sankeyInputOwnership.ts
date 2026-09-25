@@ -117,9 +117,4 @@ function analyzePossiblePayjoin(
   }
 }
 
-export {
-  analyzePossiblePayjoin,
-  buildOwnedOutpoints,
-  isOwnedOutpoint,
-  type PossiblePayjoinInsight
-}
+export { analyzePossiblePayjoin, buildOwnedOutpoints, isOwnedOutpoint }

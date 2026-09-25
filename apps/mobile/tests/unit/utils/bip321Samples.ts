@@ -216,29 +216,3 @@ export const formattingEdgeCases = {
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001  '
   }
 }
-
-export const networkDetection = {
-  mainnet: {
-    addresses: [
-      'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
-      '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
-      '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy'
-    ],
-    lightningPrefix: 'lnbc'
-  },
-  regtest: {
-    addresses: ['bcrt1q6rhpng9evdsfnn833a4f4vej0asu6dk5srld6x'],
-    lightningPrefix: 'lnbcrt'
-  },
-  signet: {
-    lightningPrefix: 'lntbs'
-  },
-  testnet: {
-    addresses: [
-      'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
-      'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn',
-      '2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc'
-    ],
-    lightningPrefix: 'lntb'
-  }
-}

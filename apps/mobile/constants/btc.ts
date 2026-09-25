@@ -6,7 +6,6 @@ export const MAINNET_P2P_PORT = 8333
 export const UNKNOWN_MASTER_FINGERPRINT = '00000000'
 export const MILLISATS_PER_SAT = 1000
 export const DUST_LIMIT = 546
-export const RECOMMENDED_BASE_FEE = 256
 export const UNUSED_INTERNAL_ADDRESSES_NEEDED = 3
 
 // BIP141: 1 non-witness byte = 4 weight units, 1 witness byte = 1 weight unit.

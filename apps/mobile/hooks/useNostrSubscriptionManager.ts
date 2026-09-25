@@ -207,4 +207,3 @@ function useNostrSubscriptionManager() {
 }
 
 export { useNostrSubscriptionManager }
-export default useNostrSubscriptionManager

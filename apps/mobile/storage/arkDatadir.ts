@@ -35,10 +35,6 @@ async function deleteArkDatadir(accountId: string): Promise<void> {
   }
 }
 
-function getArkDatadirPath(accountId: string): string {
-  return uriToPath(getArkDatadirUri(accountId))
-}
-
 const SQLITE_SIDECAR_SUFFIXES = ['-wal', '-shm', '-journal']
 const SAFE_DATADIR_FILENAME = /^[A-Za-z0-9._-]+$/
 
@@ -144,7 +140,6 @@ export {
   deleteArkDatadir,
   ensureArkDatadir,
   findArkDbFile,
-  getArkDatadirPath,
   readArkDatadirFiles,
   writeArkDatadirFiles
 }

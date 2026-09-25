@@ -398,4 +398,3 @@ export {
   queueProfileFetches,
   resetProfileFetcher
 }
-export type { ProfileBatch }

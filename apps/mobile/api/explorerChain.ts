@@ -10,7 +10,7 @@ import type {
 } from '@/types/settings/blockchain'
 import { getDifficultyFromBits } from '@/utils/bitcoin/difficulty'
 
-export type ChainSource = 'backend' | 'mempool'
+type ChainSource = 'backend' | 'mempool'
 
 export type ChainData = {
   height: number | null

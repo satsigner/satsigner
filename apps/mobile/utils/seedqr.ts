@@ -16,25 +16,6 @@ export function encodeStandardSeedQR(
     .join('')
 }
 
-export function encodeCompactSeedQR(
-  mnemonic: string,
-  wordList: string[]
-): string {
-  const words = mnemonic.split(' ')
-  const binaryString = words
-    .map((word) => {
-      const index = wordList.indexOf(word)
-      if (index === -1) {
-        throw new Error(`Invalid mnemonic word: ${word}`)
-      }
-      return index.toString(2).padStart(11, '0')
-    })
-    .join('')
-
-  // Remove last 4 checksum bits for 12-word seeds
-  return words.length === 12 ? binaryString.slice(0, -4) : binaryString
-}
-
 function decodeStandardSeedQR(seedQR: string): string {
   const wordList = getWordList()
   const words: string[] = []

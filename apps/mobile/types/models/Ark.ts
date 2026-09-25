@@ -164,7 +164,7 @@ export type ArkBolt11Invoice = {
   amountSats: number
 }
 
-export type ArkMovementEventType = 'created' | 'updated'
+type ArkMovementEventType = 'created' | 'updated'
 
 export type ArkMovementEvent = {
   type: ArkMovementEventType

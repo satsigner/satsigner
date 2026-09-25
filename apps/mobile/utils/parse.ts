@@ -174,7 +174,7 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
   })
 }
 
-export function normalizeDescriptorForParsing(descriptor: string): string {
+function normalizeDescriptorForParsing(descriptor: string): string {
   return descriptor
     .normalize('NFC')
     .replace(/[\u200B-\u200D\uFEFF]/g, '')

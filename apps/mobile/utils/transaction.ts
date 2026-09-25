@@ -82,7 +82,7 @@ export function getUtxoScriptType(utxo: Utxo): ScriptVersionType {
     : 'P2PKH'
 }
 
-export function getInputWeightUnits(scriptType: ScriptVersionType): number {
+function getInputWeightUnits(scriptType: ScriptVersionType): number {
   const size = INPUT_SIZES[scriptType]
   return size.base * WITNESS_SCALE_FACTOR + size.witness
 }

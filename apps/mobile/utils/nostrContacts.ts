@@ -58,7 +58,7 @@ export function contactToIdentity(contact: NostrContactItem): NostrIdentity {
   }
 }
 
-export function profileFromCache(pubkey: string): NostrKind0Profile | null {
+function profileFromCache(pubkey: string): NostrKind0Profile | null {
   const cached = getCachedProfile(pubkey)
   if (!cached) {
     return null
@@ -76,7 +76,7 @@ export function profileFromCache(pubkey: string): NostrKind0Profile | null {
   }
 }
 
-export function contactsFromPubkeys(pubkeys: string[]): NostrContactItem[] {
+function contactsFromPubkeys(pubkeys: string[]): NostrContactItem[] {
   return pubkeys.map((pubkey) => ({
     profile: profileFromCache(pubkey),
     pubkey

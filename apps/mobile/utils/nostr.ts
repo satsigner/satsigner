@@ -119,9 +119,7 @@ export function parseNostrTransaction(message: string): TransactionData | null {
   return parseNostrTransactionMessage(message)
 }
 
-export function parseNostrTransactionMessage(
-  message: string
-): TransactionData | null {
+function parseNostrTransactionMessage(message: string): TransactionData | null {
   if (message.trim().startsWith('cHNidP')) {
     const transactionData: TransactionData = {
       combinedPsbt: message.trim()

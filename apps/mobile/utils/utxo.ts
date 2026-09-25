@@ -960,11 +960,3 @@ export {
   sortUtxosForSparrowSelection,
   splitStonewallOutputValues
 }
-export type {
-  SelectionResult,
-  SelectionStrategy,
-  StonewallChangeOutput,
-  StonewallOutput,
-  StonewallResult,
-  UtxoSelectionOptions
-}
