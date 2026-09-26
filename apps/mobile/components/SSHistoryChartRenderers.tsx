@@ -615,7 +615,7 @@ function TransactionInfoRenderer({
           const xPos = label.type === 'receive' ? label.x - textWidth : label.x
           const clampedX = Math.max(0, xPos)
           return (
-            <Fragment key={label.id}>
+            <Fragment key={label.index}>
               <Paragraph
                 paragraph={paragraph}
                 x={clampedX}
@@ -629,7 +629,7 @@ function TransactionInfoRenderer({
         const xPos = label.type === 'receive' ? label.x - textWidth : label.x
         const clampedX = Math.max(0, xPos)
         return (
-          <Fragment key={label.id}>
+          <Fragment key={label.index}>
             <Text
               x={clampedX}
               y={label.y}
