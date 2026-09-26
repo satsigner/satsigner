@@ -182,18 +182,6 @@ export const DifficultyAdjustmentSchema = z.object({
   timeOffset: z.number()
 })
 
-export const BlockFeeRatesSchema = z.object({
-  avgFee_0: z.number(),
-  avgFee_10: z.number(),
-  avgFee_100: z.number(),
-  avgFee_25: z.number(),
-  avgFee_50: z.number(),
-  avgFee_75: z.number(),
-  avgFee_90: z.number(),
-  avgHeight: z.number(),
-  timestamp: z.number()
-})
-
 export const MempoolStatisticsSchema = z.object({
   added: z.number(),
   count: z.number(),

@@ -51,4 +51,16 @@ function markChatThreadRead(
   )
 }
 
-export { insertChatMessage, markChatThreadRead, updateChatMessageStatus }
+function deleteChatMessagesForIdentity(identityNpub: string) {
+  const db = getDb()
+  db.execute('DELETE FROM nostr_chat_messages WHERE identity_npub = ?', [
+    identityNpub
+  ])
+}
+
+export {
+  deleteChatMessagesForIdentity,
+  insertChatMessage,
+  markChatThreadRead,
+  updateChatMessageStatus
+}

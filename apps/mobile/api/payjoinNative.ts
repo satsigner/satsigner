@@ -897,21 +897,6 @@ async function createSenderSession(
   }
 }
 
-async function resumeSenderSession(
-  state: string
-): Promise<SenderSessionHandle> {
-  try {
-    const { id, entry } = ensureSender(state)
-    return {
-      id,
-      protocol: entry.protocol,
-      state: encodeSenderState(id, entry)
-    }
-  } catch (error) {
-    throw toError(error)
-  }
-}
-
 async function senderExtractRequest(
   state: string
 ): Promise<{ request: PayjoinNativeRequest; state: string }> {
@@ -992,7 +977,6 @@ export {
   receiverManualFinalize,
   receiverProcessResponse,
   resumeReceiverSession,
-  resumeSenderSession,
   senderExtractRequest,
   senderProcessResponse
 }

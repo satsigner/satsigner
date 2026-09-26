@@ -1068,34 +1068,6 @@ export class NostrAPI {
     }
   }
 
-  /** Pretty-printed JSON for a single event by id (e.g. kind 9735 zap receipt). */
-  static async fetchEventJsonFromRelays(
-    eventIdHex: string,
-    relayUrls: string[]
-  ): Promise<string | null> {
-    if (relayUrls.length === 0) {
-      return null
-    }
-
-    const tempNdk = createMobileNdk(relayUrls)
-    try {
-      await tempNdk.connect(NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS)
-
-      const filter = { ids: [eventIdHex], limit: 1 }
-      const event = await NostrAPI.fetchWithTimeout(
-        tempNdk,
-        filter,
-        NOSTR_DEFAULT_FETCH_TIMEOUT_MS
-      )
-      if (!event) {
-        return null
-      }
-      return JSON.stringify(NostrAPI.ndkEventToStorableRecord(event), null, 2)
-    } finally {
-      disconnectNdkPool(tempNdk)
-    }
-  }
-
   static async generateNostrKeys(): Promise<NostrKeys> {
     const randomHex = await randomKey(32)
     const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
