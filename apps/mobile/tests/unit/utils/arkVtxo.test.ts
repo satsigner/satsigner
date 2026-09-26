@@ -1,11 +1,14 @@
+import { PRIVACY_MASK } from '@/constants/privacy'
 import type { ArkVtxo } from '@/types/models/Ark'
 import {
+  arkVtxosToBubbleData,
   buildArkVtxoSections,
   filterCurrentArkVtxos,
   filterSelectableVtxoIds,
   getArkNextExpiryHeight,
   sumArkVtxoSats
 } from '@/utils/arkVtxo'
+import { formatNumber } from '@/utils/format'
 
 function buildVtxo(overrides: Partial<ArkVtxo> = {}): ArkVtxo {
   return {
@@ -129,5 +132,41 @@ describe('sumArkVtxoSats', () => {
       buildVtxo({ amountSats: 999, id: 'c' })
     ]
     expect(sumArkVtxoSats(vtxos, new Set(['a', 'b']))).toBe(350)
+  })
+})
+
+describe('arkVtxosToBubbleData', () => {
+  it('maps vtxos to bubble data, marking locked and selected', () => {
+    const vtxos = [
+      buildVtxo({ amountSats: 1000, id: 'a', spendable: true }),
+      buildVtxo({ amountSats: 500, id: 'b', spendable: false })
+    ]
+
+    expect(arkVtxosToBubbleData(vtxos, ['a'], false)).toStrictEqual([
+      {
+        id: 'a',
+        label: formatNumber(1000),
+        locked: false,
+        selected: true,
+        value: 1000
+      },
+      {
+        id: 'b',
+        label: formatNumber(500),
+        locked: true,
+        selected: false,
+        value: 500
+      }
+    ])
+  })
+
+  it('masks labels in privacy mode', () => {
+    const data = arkVtxosToBubbleData(
+      [buildVtxo({ amountSats: 1000, id: 'a' })],
+      [],
+      true
+    )
+    expect(data[0].label).toBe(PRIVACY_MASK)
+    expect(data[0].value).toBe(1000)
   })
 })

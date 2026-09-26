@@ -15,13 +15,17 @@ describe('buildPackedBubbleLayout', () => {
 
     expect(chartSize).toBe(240)
     expect(leaves).toHaveLength(3)
-    expect(leaves.map((leaf) => leaf.id).toSorted()).toStrictEqual([
+    expect(leaves.map((leaf) => leaf.datum.id).toSorted()).toStrictEqual([
       'a',
       'b',
       'c'
     ])
-    expect(leaves.find((leaf) => leaf.id === 'b')?.datum.locked).toBe(true)
-    expect(leaves.find((leaf) => leaf.id === 'c')?.datum.selected).toBe(true)
+    expect(leaves.find((leaf) => leaf.datum.id === 'b')?.datum.locked).toBe(
+      true
+    )
+    expect(leaves.find((leaf) => leaf.datum.id === 'c')?.datum.selected).toBe(
+      true
+    )
   })
 
   it('enforces a minimum radius so tiny values stay tappable', () => {
@@ -34,7 +38,7 @@ describe('buildPackedBubbleLayout', () => {
       300
     )
 
-    const tiny = leaves.find((leaf) => leaf.id === 'tiny')
+    const tiny = leaves.find((leaf) => leaf.datum.id === 'tiny')
     expect(tiny?.r).toBeGreaterThanOrEqual(16)
   })
 

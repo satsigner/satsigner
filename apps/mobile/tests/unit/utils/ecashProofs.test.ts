@@ -1,9 +1,12 @@
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { type EcashProof } from '@/types/models/Ecash'
 import {
+  ecashProofsToBubbleData,
   proofsAfterMelt,
   proofsAfterSend,
   removeSpentSecrets
 } from '@/utils/ecashProofs'
+import { formatNumber } from '@/utils/format'
 
 function proof(secret: string, amount: number, mintUrl: string): EcashProof {
   return { C: `C-${secret}`, amount, id: 'ks', mintUrl, secret }
@@ -74,5 +77,28 @@ describe('ecash proof accounting', () => {
       'keep',
       'new'
     ])
+  })
+})
+
+describe('ecashProofsToBubbleData', () => {
+  const mint = 'https://mint.example'
+
+  it('maps each proof to its index, amount and formatted label', () => {
+    const proofs = [proof('a', 1000, mint), proof('b', 42, mint)]
+
+    expect(ecashProofsToBubbleData(proofs, false)).toStrictEqual([
+      { id: '0', label: formatNumber(1000), value: 1000 },
+      { id: '1', label: formatNumber(42), value: 42 }
+    ])
+  })
+
+  it('masks labels in privacy mode but keeps the value', () => {
+    const data = ecashProofsToBubbleData([proof('a', 1000, mint)], true)
+
+    expect(data[0]).toStrictEqual({
+      id: '0',
+      label: PRIVACY_MASK,
+      value: 1000
+    })
   })
 })

@@ -81,9 +81,7 @@ export default function EcashAccountDetailPage() {
   const handleConnectMintPress = () =>
     router.navigate(`/signer/ecash/account/${id}/settings/mint`)
   const handleProofBubblePress = (bubbleId: string) =>
-    router.navigate(
-      `/signer/ecash/account/${id}/proof/${bubbleId.split('-').pop()}`
-    )
+    router.navigate(`/signer/ecash/account/${id}/proof/${bubbleId}`)
 
   const ecashContentHandler = useEcashContentHandler()
 

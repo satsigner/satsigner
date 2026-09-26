@@ -1,6 +1,5 @@
-import { PRIVACY_MASK } from '@/constants/privacy'
 import type { EcashProof } from '@/types/models/Ecash'
-import { formatNumber } from '@/utils/format'
+import { formatMaskedNumber } from '@/utils/format'
 import type { PackedBubbleDatum } from '@/utils/packedBubbleLayout'
 
 export function ecashProofsToBubbleData(
@@ -8,8 +7,8 @@ export function ecashProofsToBubbleData(
   privacyMode: boolean
 ): PackedBubbleDatum[] {
   return proofs.map((proof, index) => ({
-    id: `${proof.id}-${index}`,
-    label: privacyMode ? PRIVACY_MASK : formatNumber(Math.round(proof.amount)),
+    id: String(index),
+    label: formatMaskedNumber(proof.amount, privacyMode),
     value: proof.amount
   }))
 }

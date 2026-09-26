@@ -1,4 +1,5 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -37,6 +38,11 @@ function formatNumber(
   return decimalPart !== undefined
     ? `${formattedInteger}.${decimalPart}`
     : formattedInteger
+}
+
+// Rounded amount label that hides the value when privacy mode is on.
+function formatMaskedNumber(n: number, privacyMode: boolean) {
+  return privacyMode ? PRIVACY_MASK : formatNumber(Math.round(n))
 }
 
 /**
@@ -340,6 +346,7 @@ export {
   formatFeeRateSatPerVb,
   formatFiatPrice,
   formatLargeNumber,
+  formatMaskedNumber,
   formatNostrCardDate,
   formatNumber,
   formatPageUrl,

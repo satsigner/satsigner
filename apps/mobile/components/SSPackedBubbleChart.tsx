@@ -11,7 +11,7 @@ import {
 
 type SSPackedBubbleChartProps = {
   data: PackedBubbleDatum[]
-  emptyText?: string
+  emptyText: string
   height: number
   onPress?: (id: string) => void
   width: number
@@ -59,7 +59,7 @@ function SSPackedBubbleChart({
       <Svg height={chartSize} width={chartSize}>
         {leaves.map((leaf) => (
           <Circle
-            key={leaf.id}
+            key={leaf.datum.id}
             cx={leaf.cx}
             cy={leaf.cy}
             fill={bubbleFill(leaf.datum)}
@@ -72,7 +72,7 @@ function SSPackedBubbleChart({
         ))}
         {leaves.map((leaf) => (
           <SvgText
-            key={`text-${leaf.id}`}
+            key={`text-${leaf.datum.id}`}
             fill={leaf.datum.locked ? LOCKED_BUBBLE_TEXT : Colors.white}
             fontSize={leaf.fontSize}
             textAnchor="middle"
@@ -86,8 +86,8 @@ function SSPackedBubbleChart({
       {onPress &&
         leaves.map((leaf) => (
           <Pressable
-            key={`hit-${leaf.id}`}
-            onPress={() => onPress(leaf.id)}
+            key={`hit-${leaf.datum.id}`}
+            onPress={() => onPress(leaf.datum.id)}
             style={[
               styles.hit,
               {
