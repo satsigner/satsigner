@@ -1,15 +1,41 @@
 import { bech32 } from 'bech32'
+import z from 'zod'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import type {
-  LNURLPayInvoiceResponse,
   LNURLPayResponse,
   LNURLWithdrawDetails,
   LNURLWithdrawResponse
 } from '@/types/models/Lightning'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
+import { isRecord } from '@/utils/object'
+import { optionalLenient } from '@/utils/schema'
 
 const LNURL_BECH32_MAX_LENGTH = 1023
+
+/**
+ * A count or amount the LUDs send as a number; some services send it as a
+ * whole-number string, which is converted.
+ */
+const WholeNumberSchema = z.union([
+  z.number(),
+  z.string().regex(/^\d+$/).transform(Number)
+])
+
+/** Positive millisatoshi amount (LUD-06 min/maxSendable). */
+const MilliSatoshiSchema = WholeNumberSchema.pipe(z.number().positive())
+
+/** LUD-06 payRequest as the pay flow reads it; required fields are non-empty. */
+const LNURLPayResponseSchema = z.object({
+  allowsNostr: optionalLenient(z.boolean()),
+  callback: z.string().min(1),
+  commentAllowed: optionalLenient(WholeNumberSchema),
+  maxSendable: MilliSatoshiSchema,
+  metadata: z.string().min(1),
+  minSendable: MilliSatoshiSchema,
+  nostrPubkey: optionalLenient(z.string()),
+  tag: z.literal('payRequest')
+})
 
 // Per LUD-06 the service must return an invoice for exactly the requested
 // amount. A malicious or compromised LNURL service could otherwise answer a
@@ -180,22 +206,18 @@ export async function fetchLNURLPayDetails(
     throw new Error(`HTTP error! Status: ${response.status}`)
   }
 
-  const data = await response.json()
+  const data: unknown = await response.json()
 
-  if (data.tag !== 'payRequest') {
+  if (!isRecord(data) || data.tag !== 'payRequest') {
     throw new Error('Invalid LNURL response: not a pay request')
   }
 
-  if (
-    !data.callback ||
-    !data.maxSendable ||
-    !data.minSendable ||
-    !data.metadata
-  ) {
+  const details = LNURLPayResponseSchema.safeParse(data)
+  if (!details.success) {
     throw new Error('Invalid LNURL response: missing required fields')
   }
 
-  return data as LNURLPayResponse
+  return details.data
 }
 
 export async function requestLNURLPayInvoice(
@@ -225,9 +247,9 @@ export async function requestLNURLPayInvoice(
     throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`)
   }
 
-  const data = (await response.json()) as LNURLPayInvoiceResponse
+  const data: unknown = await response.json()
 
-  if (!data.pr) {
+  if (!isRecord(data) || typeof data.pr !== 'string' || !data.pr) {
     throw new Error('Invalid response: no payment request received')
   }
 

@@ -18,6 +18,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { getXpubFingerprint } from '@/utils/descriptor'
 import {
@@ -213,21 +214,25 @@ export default function ImportDescriptor() {
         }
       })
 
+      const scriptVersion: ScriptVersionType = cleanDescriptor.startsWith(
+        'wsh('
+      )
+        ? 'P2WSH'
+        : cleanDescriptor.startsWith('sh(')
+          ? 'P2SH'
+          : 'P2WSH'
+
       return {
         keyCount: keys.length,
         keyData,
         keysRequired,
-        scriptVersion: (cleanDescriptor.startsWith('wsh(')
-          ? 'P2WSH'
-          : cleanDescriptor.startsWith('sh(')
-            ? 'P2SH'
-            : 'P2WSH') as 'P2WSH' | 'P2SH'
+        scriptVersion
       }
     } catch (error) {
-      throw new Error(
-        `Failed to parse multisig descriptor: ${(error as Error).message}`,
-        { cause: error }
-      )
+      const reason = error instanceof Error ? error.message : String(error)
+      throw new Error(`Failed to parse multisig descriptor: ${reason}`, {
+        cause: error
+      })
     }
   }
 
@@ -267,7 +272,8 @@ export default function ImportDescriptor() {
       toast.success(t('account.import.success'))
       router.navigate('/signer/bitcoin/account/add/multiSig/finish')
     } catch (error) {
-      toast.error(`Import failed: ${(error as Error).message}`)
+      const reason = error instanceof Error ? error.message : String(error)
+      toast.error(`Import failed: ${reason}`)
     }
   }
 

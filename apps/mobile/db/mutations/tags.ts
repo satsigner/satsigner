@@ -2,8 +2,8 @@ import { getDb, runTransaction } from '../connection'
 
 function getTags(): string[] {
   const db = getDb()
-  const { results } = db.execute('SELECT tag FROM tags')
-  return (results ?? []).map((r) => r.tag as string)
+  const { rows } = db.execute<{ tag: string }>('SELECT tag FROM tags')
+  return rows._array.map((r) => r.tag)
 }
 
 function setTags(tags: string[]) {

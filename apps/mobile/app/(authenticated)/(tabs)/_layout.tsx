@@ -24,6 +24,7 @@ import { Colors } from '@/styles'
 import { text } from '@/styles/sizes'
 import { TAB_SEGMENTS, type TabSegment } from '@/types/navigation/tabs'
 import { showNavigation } from '@/utils/navigation'
+import { isTabSegment } from '@/utils/tabSegment'
 
 const TAB_BAR_PADDING_Y = 8
 const TAB_BAR_ITEM_HEIGHT = 54
@@ -179,7 +180,7 @@ function TabBarButton({
 export default function TabLayout() {
   const currentPath = usePathname()
   const router = useRouter()
-  const segments = useSegments() as string[]
+  const segments: string[] = useSegments()
   const { bottom } = useSafeAreaInsets()
   const isShowTab = showNavigation(currentPath, segments.length)
 
@@ -206,13 +207,7 @@ export default function TabLayout() {
           headerShown: false,
           tabBarActiveTintColor: 'white',
           tabBarBackground: () => (
-            <TabBarBackground
-              activeSegment={
-                segments.find((s) => TAB_SEGMENTS.includes(s as TabSegment)) as
-                  | TabSegment
-                  | undefined
-              }
-            />
+            <TabBarBackground activeSegment={segments.find(isTabSegment)} />
           ),
           tabBarLabelStyle: styles.tabBarLabel,
           tabBarStyle: [

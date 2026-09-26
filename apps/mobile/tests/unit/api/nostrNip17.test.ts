@@ -73,6 +73,36 @@ describe('unwrapNip59EventOrNull (NIP-17 sender verification)', () => {
     expect(unwrapped?.content).toBe('hello')
   })
 
+  it('keeps the rumor kind and tags for downstream handlers', () => {
+    const senderSecret = nextSecretKey()
+    const tags = [['p', recipientPubkey]]
+    const rumor = nip59.createRumor(
+      { content: 'hello', created_at: nowSeconds(), kind: 14, tags },
+      senderSecret
+    )
+    const wrap = buildGiftWrap(rumor, senderSecret)
+
+    expect(unwrapNip59EventOrNull(wrap, recipientSecret)).toMatchObject({
+      id: rumor.id,
+      kind: 14,
+      tags
+    })
+  })
+
+  it('rejects a rumor that is not an event', () => {
+    const senderSecret = nextSecretKey()
+    const rumorWithoutId = {
+      content: 'hello',
+      created_at: nowSeconds(),
+      kind: 14,
+      pubkey: getPublicKey(senderSecret),
+      tags: []
+    }
+    const wrap = buildGiftWrap(rumorWithoutId, senderSecret)
+
+    expect(unwrapNip59EventOrNull(wrap, recipientSecret)).toBeNull()
+  })
+
   it('rejects a rumor whose pubkey does not match the seal signer', () => {
     // Attacker seals with their own key but forges the rumor author to look
     // like one of the victim's trusted devices.

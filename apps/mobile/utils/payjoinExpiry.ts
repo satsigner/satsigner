@@ -107,7 +107,7 @@ function parsePayjoinExpiresAtMs(pjOrUri: string): number | undefined {
     }
     // Bitcoin consensus encoding of u32 is little-endian.
     const unixSeconds =
-      (bytes[0]! | (bytes[1]! << 8) | (bytes[2]! << 16) | (bytes[3]! << 24)) >>> // eslint-disable-line unicorn/prefer-math-trunc -- >>> 0 is unsigned u32 coercion
+      (bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24)) >>> // eslint-disable-line unicorn/prefer-math-trunc -- >>> 0 is unsigned u32 coercion
       0
     // Guard against mock / garbage EX values.
     if (unixSeconds < 1_000_000_000) {

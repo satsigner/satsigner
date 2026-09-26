@@ -1,20 +1,30 @@
-import { Label } from '@/types/bips/329'
+import { type Label, type LabelType } from '@/types/bips/329'
 import {
   type Account,
   type Key,
   type KeyMeta,
-  type SyncProgress
+  type PolicyType,
+  type SyncProgress,
+  type SyncStatus
 } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
-import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
+import { type Prices, PricesSchema } from '@/types/models/Blockchain'
+import {
+  type NostrAccount,
+  NostrAccountSchema,
+  type NostrDM
+} from '@/types/models/Nostr'
+import { type ScriptVersionType } from '@/types/models/Script'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
+import { type Network } from '@/types/settings/blockchain'
+import { isNumberArray, isStringArray } from '@/utils/array'
 
 type AccountRow = {
   id: string
   name: string
-  network: string
-  policy_type: string
+  network: Network
+  policy_type: PolicyType
   display_index: number
   keys: string
   key_count: number
@@ -26,7 +36,7 @@ type AccountRow = {
   sats_in_mempool: number
   created_at: string
   last_synced_at: string | null
-  sync_status: string
+  sync_status: SyncStatus
   sync_progress_total: number | null
   sync_progress_done: number | null
   birthday_date: string | null
@@ -50,7 +60,7 @@ type AccountRow = {
 type TransactionRow = {
   id: string
   account_id: string
-  type: string
+  type: Transaction['type']
   sent: number
   received: number
   timestamp: string | null
@@ -95,7 +105,7 @@ type UtxoRow = {
   timestamp: string | null
   label: string | null
   address_to: string | null
-  keychain: string
+  keychain: Utxo['keychain']
   script: string | null
 }
 
@@ -105,9 +115,9 @@ type AddressRow = {
   label: string | null
   derivation_path: string | null
   addr_index: number | null
-  keychain: string | null
-  network: string | null
-  script_version: string | null
+  keychain: NonNullable<Address['keychain']> | null
+  network: Network | null
+  script_version: ScriptVersionType | null
   utxo_count: number
   tx_count: number
   balance: number
@@ -117,7 +127,7 @@ type AddressRow = {
 type LabelRow = {
   ref: string
   account_id: string
-  type: string
+  type: LabelType
   label: string
   fee: number | null
   fmv: string | null
@@ -134,7 +144,7 @@ type LabelRow = {
 type ArkLabelRow = {
   ref: string
   account_id: string
-  type: string
+  type: LabelType
   label: string
 }
 
@@ -153,15 +163,61 @@ type NostrDmRow = {
   read: number | null
 }
 
-function parseJson<T>(json: string | null, fallback: T): T {
+/**
+ * Reads a JSON column, returning undefined when it is empty, malformed or its
+ * value fails `isValid`. Callers apply the column's fallback with `??`.
+ */
+function parseJson<T>(
+  json: string | null,
+  isValid: (value: unknown) => value is T
+): T | undefined {
   if (!json) {
-    return fallback
+    return undefined
+  }
+  try {
+    const value: unknown = JSON.parse(json)
+    return isValid(value) ? value : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Reads a JSON column whose stored values the domain types do not fully
+ * describe, so validating them would drop real data. Returns undefined only
+ * when the column is empty or malformed. Used for key metadata (slots cleared
+ * by resetKey have no creationType) and the BIP-329 fmv/rate/heights fields,
+ * which label imports store as given.
+ */
+function parseUncheckedJson<T>(json: string | null): T | undefined {
+  if (!json) {
+    return undefined
   }
   try {
     return JSON.parse(json) as T
   } catch {
-    return fallback
+    return undefined
   }
+}
+
+function isScript(value: unknown): value is number[] | string {
+  return typeof value === 'string' || isNumberArray(value)
+}
+
+function isWitness(value: unknown): value is number[][] {
+  return Array.isArray(value) && value.every(isNumberArray)
+}
+
+function isPrices(value: unknown): value is Prices {
+  return PricesSchema.safeParse(value).success
+}
+
+function isNpubAliases(value: unknown): value is NostrAccount['npubAliases'] {
+  return NostrAccountSchema.shape.npubAliases.safeParse(value).success
+}
+
+function isNpubProfiles(value: unknown): value is NostrAccount['npubProfiles'] {
+  return NostrAccountSchema.shape.npubProfiles.safeParse(value).success
 }
 
 function rowToAccount(
@@ -196,8 +252,8 @@ function rowToAccount(
     lastUpdated: row.nostr_last_updated
       ? new Date(row.nostr_last_updated)
       : new Date(),
-    npubAliases: parseJson(row.nostr_npub_aliases, {}),
-    npubProfiles: parseJson(row.nostr_npub_profiles, {}),
+    npubAliases: parseJson(row.nostr_npub_aliases, isNpubAliases) ?? {},
+    npubProfiles: parseJson(row.nostr_npub_profiles, isNpubProfiles) ?? {},
     relays: nostrRelays,
     syncStart: row.nostr_sync_start
       ? new Date(row.nostr_sync_start)
@@ -210,22 +266,20 @@ function rowToAccount(
     birthdayDate: row.birthday_date ? new Date(row.birthday_date) : undefined,
     createdAt: new Date(row.created_at),
     displayIndex: row.display_index,
-    excludedUtxoOutpoints: parseJson<string[]>(
-      row.excluded_utxo_outpoints ?? '[]',
-      []
-    ),
+    excludedUtxoOutpoints:
+      parseJson(row.excluded_utxo_outpoints, isStringArray) ?? [],
     id: row.id,
     keyCount: row.key_count,
-    keys: parseJson<KeyMeta[]>(row.keys, []).map(
+    keys: (parseUncheckedJson<KeyMeta[]>(row.keys) ?? []).map(
       (meta): Key => ({ ...meta, accountId: row.id, iv: '', secret: '' })
     ),
     keysRequired: row.keys_required,
     labels,
     lastSyncedAt: row.last_synced_at ? new Date(row.last_synced_at) : undefined,
     name: row.name,
-    network: row.network as Account['network'],
+    network: row.network,
     nostr,
-    policyType: row.policy_type as Account['policyType'],
+    policyType: row.policy_type,
     rpcLastBlockHash: row.rpc_last_block_hash ?? undefined,
     summary: {
       balance: row.balance,
@@ -235,7 +289,7 @@ function rowToAccount(
       satsInMempool: row.sats_in_mempool
     },
     syncProgress,
-    syncStatus: row.sync_status as Account['syncStatus'],
+    syncStatus: row.sync_status,
     transactions,
     utxos
   }
@@ -254,13 +308,13 @@ function rowToTransaction(
     label: row.label ?? '',
     lockTime: row.lock_time ?? undefined,
     lockTimeEnabled: row.lock_time_enabled === 1,
-    prices: parseJson(row.prices, {}),
-    raw: parseJson<number[] | undefined>(row.raw, undefined),
+    prices: parseJson(row.prices, isPrices) ?? {},
+    raw: parseJson(row.raw, isNumberArray),
     received: row.received,
     sent: row.sent,
     size: row.size ?? undefined,
     timestamp: row.timestamp ? new Date(row.timestamp) : undefined,
-    type: row.type as Transaction['type'],
+    type: row.type,
     version: row.version ?? undefined,
     vin: inputs.map((input) => ({
       label: input.label ?? undefined,
@@ -268,15 +322,15 @@ function rowToTransaction(
         txid: input.prev_txid,
         vout: input.prev_vout
       },
-      scriptSig: parseJson<number[] | string>(input.script_sig, ''),
+      scriptSig: parseJson(input.script_sig, isScript) ?? '',
       sequence: input.sequence,
       value: input.value ?? undefined,
-      witness: parseJson<number[][]>(input.witness, [])
+      witness: parseJson(input.witness, isWitness) ?? []
     })),
     vout: outputs.map((output) => ({
       address: output.address,
       label: output.label ?? undefined,
-      script: parseJson<number[] | string>(output.script, ''),
+      script: parseJson(output.script, isScript) ?? '',
       value: output.value
     })),
     vsize: row.vsize ?? undefined,
@@ -287,9 +341,9 @@ function rowToTransaction(
 function rowToUtxo(row: UtxoRow): Utxo {
   return {
     addressTo: row.address_to ?? undefined,
-    keychain: row.keychain as Utxo['keychain'],
+    keychain: row.keychain,
     label: row.label ?? '',
-    script: parseJson<number[] | string | undefined>(row.script, undefined),
+    script: parseJson(row.script, isScript),
     timestamp: row.timestamp ? new Date(row.timestamp) : undefined,
     txid: row.txid,
     value: row.value,
@@ -306,11 +360,10 @@ function rowToAddress(
     address: row.address,
     derivationPath: row.derivation_path ?? undefined,
     index: row.addr_index ?? undefined,
-    keychain: (row.keychain as Address['keychain']) ?? undefined,
+    keychain: row.keychain ?? undefined,
     label: row.label ?? '',
-    network: (row.network as Address['network']) ?? undefined,
-    scriptVersion:
-      (row.script_version as Address['scriptVersion']) ?? undefined,
+    network: row.network ?? undefined,
+    scriptVersion: row.script_version ?? undefined,
     summary: {
       balance: row.balance,
       satsInMempool: row.sats_in_mempool,
@@ -325,17 +378,17 @@ function rowToAddress(
 function rowToLabel(row: LabelRow): Label {
   return {
     fee: row.fee ?? undefined,
-    fmv: parseJson(row.fmv, undefined),
+    fmv: parseUncheckedJson<Label['fmv']>(row.fmv),
     height: row.height ?? undefined,
-    heights: parseJson(row.heights, undefined),
+    heights: parseUncheckedJson<Label['heights']>(row.heights),
     keypath: row.keypath ?? undefined,
     label: row.label,
     origin: row.origin ?? undefined,
-    rate: parseJson(row.rate, undefined),
+    rate: parseUncheckedJson<Label['rate']>(row.rate),
     ref: row.ref,
     spendable: row.spendable !== null ? row.spendable === 1 : undefined,
     time: row.time ? new Date(row.time) : undefined,
-    type: row.type as Label['type'],
+    type: row.type,
     value: row.value ?? undefined
   }
 }
@@ -344,7 +397,7 @@ function rowToArkLabel(row: ArkLabelRow): Label {
   return {
     label: row.label,
     ref: row.ref,
-    type: row.type as Label['type']
+    type: row.type
   }
 }
 
@@ -366,8 +419,13 @@ function rowToNostrDm(row: NostrDmRow): NostrDM {
   }
 }
 
+/**
+ * Serialises a date column. Anything that is not a valid Date at runtime (for
+ * example an unrevived ISO string from JSON) is stored as null instead of
+ * failing the whole write.
+ */
 function dateToIso(date: Date | undefined | null): string | null {
-  if (!date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
     return null
   }
   return date.toISOString()
@@ -389,6 +447,7 @@ export {
   dateToIso,
   optionalToJson,
   parseJson,
+  parseUncheckedJson,
   rowToAccount,
   rowToAddress,
   rowToArkLabel,

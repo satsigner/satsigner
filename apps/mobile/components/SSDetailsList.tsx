@@ -43,7 +43,7 @@ export default function SSDetailsList({
   gap = 8,
   ...commonOptions
 }: SSDetailsListProps) {
-  const width = `${Math.floor(100 / columns)}%` as DimensionValue
+  const width: DimensionValue = `${Math.floor(100 / columns)}%`
   return (
     <SSHStack
       style={{

@@ -214,7 +214,7 @@ export default function IOPreview() {
   }, [])
 
   const mempoolOracle = useMempoolOracle(account?.network || 'bitcoin')
-  const wallet = useGetAccountWallet(id!)
+  const wallet = useGetAccountWallet(id)
   const { changeAddress, secondChangeAddress, decoyAddress } =
     getUnusedInternalAddresses(account, wallet)
   const stonewallChangeValues = stonewallPreview.changeValues

@@ -43,12 +43,12 @@ export function detectConflcits(
   currentLabels: Label[],
   incomingLabels: Label[]
 ) {
-  const currentLabelsDict = currentLabels.reduce(
+  const currentLabelsDict = currentLabels.reduce<Record<Label['ref'], Label>>(
     (dict, label) => {
       dict[label.ref] = label
       return dict
     },
-    {} as Record<Label['ref'], Label>
+    {}
   )
 
   const conflicts: Conflict[] = []

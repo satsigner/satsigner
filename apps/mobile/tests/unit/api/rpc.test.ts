@@ -160,6 +160,13 @@ describe('bitcoinRpc', () => {
     )
   })
 
+  it('rejects responses that are not a JSON-RPC envelope', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse([42]))
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toThrow(/expected object/i)
+  })
+
   it('maps HTTP 401 to an authentication error message', async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({}, 401))
     const rpc = new BitcoinRpc(NODE_URL, USER, PASS)

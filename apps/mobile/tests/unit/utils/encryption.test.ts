@@ -3,6 +3,7 @@ import QuickCrypto from 'react-native-quick-crypto'
 import {
   aesDecrypt,
   aesEncrypt,
+  aesReEncrypt,
   doubleShaEncrypt,
   pbkdf2Encrypt,
   sha256
@@ -42,6 +43,32 @@ describe('encryption utils', () => {
         expect.any(Uint8Array)
       )
       expect(typeof result).toBe('string')
+    })
+  })
+
+  describe('aesReEncrypt', () => {
+    it('decrypts with the old key and encrypts with the new key and a fresh iv', async () => {
+      const oldKey = '0'.repeat(64)
+      const newKey = '1'.repeat(64)
+      const stored = {
+        iv: '7361747369676e65725f5f69766b6579',
+        secret: 'abcdef0123456789'
+      }
+
+      const moved = await aesReEncrypt(stored, oldKey, newKey)
+
+      expect(QuickCrypto.createDecipheriv).toHaveBeenCalledWith(
+        'aes-256-cbc',
+        new Uint8Array(Buffer.from(oldKey, 'hex')),
+        new Uint8Array(Buffer.from(stored.iv, 'hex'))
+      )
+      expect(QuickCrypto.createCipheriv).toHaveBeenCalledWith(
+        'aes-256-cbc',
+        new Uint8Array(Buffer.from(newKey, 'hex')),
+        new Uint8Array(Buffer.from(moved.iv, 'hex'))
+      )
+      expect(moved.iv).not.toBe(stored.iv)
+      expect(typeof moved.secret).toBe('string')
     })
   })
 

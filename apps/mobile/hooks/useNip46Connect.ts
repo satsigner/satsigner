@@ -30,7 +30,7 @@ export function useNip46Connect(signerNpub: string, nsec: string) {
       clientName: parsed.name,
       clientPubkey: parsed.clientPubkey,
       createdAt: Date.now(),
-      id: randomUuid() as string,
+      id: randomUuid(),
       lastActiveAt: Date.now(),
       permissions: { ...NOSTR_NIP46_DEFAULT_PERMISSIONS },
       relays: parsed.relays,

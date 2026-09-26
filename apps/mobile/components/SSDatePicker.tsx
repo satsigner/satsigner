@@ -40,7 +40,7 @@ type DateBlockProps = {
   textColor?: string
   markColor?: string
   markHeight?: number
-  markWidth?: number | string
+  markWidth?: DimensionValue
   fadeColor?: string
   formatter?: (value: number) => string
   renderItem?: (
@@ -55,14 +55,14 @@ type DateBlockProps = {
 type SSDatePickerProps = {
   value: Date | null | undefined
   height?: number
-  width?: number | string
+  width?: DimensionValue
   fontSize?: number
   textColor?: string
   startYear?: number
   endYear?: number
   markColor?: string
   markHeight?: number
-  markWidth?: number | string
+  markWidth?: DimensionValue
   fadeColor?: string
   format?: string
 
@@ -109,7 +109,7 @@ function SSDatePicker({
   })
 
   const pickerHeight: number = Math.round(height || windowHeight / 3.5)
-  const pickerWidth: number | string = width || '100%'
+  const pickerWidth: DimensionValue = width || '100%'
 
   const unexpectedDate: Date = new Date(years[0], 0, 1)
   const date = new Date(value || unexpectedDate)
@@ -224,12 +224,7 @@ function SSDatePicker({
   }
 
   return (
-    <View
-      style={[
-        styles.picker,
-        { height: pickerHeight, width: pickerWidth as DimensionValue }
-      ]}
-    >
+    <View style={[styles.picker, { height: pickerHeight, width: pickerWidth }]}>
       {getOrder().map((el, index) => (
         <DateBlock
           digits={el.digits}
@@ -272,7 +267,7 @@ function DateBlock({
   const dHeight: number = Math.round(height / 4)
 
   const mHeight: number = markHeight || Math.min(dHeight, 65)
-  const mWidth: number | string = markWidth || '70%'
+  const mWidth: DimensionValue = markWidth || '70%'
 
   const offsets = digits.map((_: number, index: number) => index * dHeight)
 
@@ -310,7 +305,7 @@ function DateBlock({
             backgroundColor: markColor || 'rgba(0, 0, 0, 0.05)',
             height: mHeight,
             top: (height - mHeight) / 2,
-            width: mWidth as DimensionValue
+            width: mWidth
           }
         ]}
       />

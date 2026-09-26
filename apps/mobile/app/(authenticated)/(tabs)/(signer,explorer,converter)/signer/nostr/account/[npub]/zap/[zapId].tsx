@@ -64,7 +64,7 @@ export default function NostrZapDetail() {
       !!profileHex &&
       effectiveRelays.length > 0,
     queryFn: async () => {
-      const r = await fetchZapReceiptById(zapId, profileHex!, effectiveRelays)
+      const r = await fetchZapReceiptById(zapId, profileHex, effectiveRelays)
       if (!r) {
         throw new Error('Zap receipt not found')
       }
@@ -94,7 +94,7 @@ export default function NostrZapDetail() {
       if (!content.trim() && imageCount === 0 && videoCount === 0) {
         return null
       }
-      return { content, tags } as ReferencedNotePreview
+      return { content, tags } satisfies ReferencedNotePreview
     },
     queryKey: ['nostr', 'zap-referenced-note', receipt?.zappedEventId]
   })

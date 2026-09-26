@@ -2,6 +2,8 @@ import { getDb } from '@/db/connection'
 import { deleteArkLabelsByAccount, setArkLabel } from '@/db/mutations/arkLabels'
 import { getArkLabelsByAccount } from '@/db/queries/arkLabels'
 
+import { mockQueryResult } from './queryResult'
+
 const execute = jest.mocked(getDb().execute)
 
 describe('ark labels db', () => {
@@ -9,7 +11,7 @@ describe('ark labels db', () => {
     // Migrations run on first getDb(); clear so assertions only see label SQL.
     getDb()
     execute.mockClear()
-    execute.mockReturnValue({ results: [] })
+    execute.mockReturnValue(mockQueryResult())
   })
 
   describe('setArkLabel', () => {
@@ -61,8 +63,8 @@ describe('ark labels db', () => {
 
   describe('getArkLabelsByAccount', () => {
     it('maps rows into a record keyed by ref', () => {
-      execute.mockReturnValue({
-        results: [
+      execute.mockReturnValue(
+        mockQueryResult([
           {
             account_id: 'account1',
             label: 'Coffee purchase #expense',
@@ -75,8 +77,8 @@ describe('ark labels db', () => {
             ref: 'vtxoid:1',
             type: 'output'
           }
-        ]
-      })
+        ])
+      )
 
       const labels = getArkLabelsByAccount('account1')
 

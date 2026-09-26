@@ -148,6 +148,20 @@ describe('decodeNostrContent', () => {
     })
     const result = decodeNostrContent(jsonNote)
     expect(result.kind).toBe('json_note')
+    expect(result.data).toBe('abc123')
+  })
+
+  it('uses an empty id for JSON notes whose id is not a string', () => {
+    const { decodeNostrContent } = require('@/utils/nostrIdentity')
+    const jsonNote = JSON.stringify({
+      content: 'hello world',
+      id: 42,
+      kind: 1,
+      tags: []
+    })
+    const result = decodeNostrContent(jsonNote)
+    expect(result.kind).toBe('json_note')
+    expect(result.data).toBe('')
   })
 })
 

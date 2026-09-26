@@ -1,7 +1,7 @@
 import { type Href } from 'expo-router'
 
 export function nostrAccountProfileHref(npub: string): Href {
-  return `/signer/nostr/account/${npub}` as Href
+  return { params: { npub }, pathname: '/signer/nostr/account/[npub]' }
 }
 
 /** View `targetNpub`'s profile in the context of identity `ownerNpub`. */
@@ -9,26 +9,33 @@ export function nostrContactProfileHref(
   ownerNpub: string,
   targetNpub: string
 ): Href {
-  return `/signer/nostr/account/${ownerNpub}/contact/${targetNpub}` as Href
+  return {
+    params: { npub: ownerNpub, targetNpub },
+    pathname: '/signer/nostr/account/[npub]/contact/[targetNpub]'
+  }
 }
 
 export function nostrIndexHref(): Href {
-  return '/signer/nostr' as Href
+  return '/signer/nostr'
 }
 
 export function nostrAddIdentityHref(): Href {
-  return '/signer/nostr/add' as Href
+  return '/signer/nostr/add'
 }
 
 export function nostrGlobalRelaysHref(): Href {
-  return '/signer/nostr/relays' as Href
+  return '/signer/nostr/relays'
 }
 
-/** Expo typed routes omit query params; build href as string then assert once here. */
+/**
+ * Note screen for `nostrUri` (a `nostr:` URI or bech32 such as note1/nevent1),
+ * viewed as identity `npub`.
+ */
 export function nostrNoteHref(npub: string, nostrUri: string): Href {
-  return `/signer/nostr/account/${npub}/note?nostrUri=${encodeURIComponent(
-    nostrUri
-  )}` as Href
+  return {
+    params: { nostrUri, npub },
+    pathname: '/signer/nostr/account/[npub]/note'
+  }
 }
 
 export function nostrAccountHref(
@@ -49,13 +56,30 @@ export function nostrAccountHref(
     | 'settings'
     | 'zapSettings'
 ): Href {
-  return `/signer/nostr/account/${npub}/${segment}` as Href
+  return {
+    params: { npub },
+    pathname: `/signer/nostr/account/[npub]/${segment}`
+  }
+}
+
+/** Bunker screen of `npub`, previewing a scanned `nostrconnect://` URI. */
+export function nostrBunkerConnectHref(npub: string, connectUri: string): Href {
+  return {
+    params: { connectUri, npub },
+    pathname: '/signer/nostr/account/[npub]/bunker'
+  }
 }
 
 export function nostrFileDetailHref(npub: string, sha256: string): Href {
-  return `/signer/nostr/account/${npub}/files/${sha256}` as Href
+  return {
+    params: { npub, sha256 },
+    pathname: '/signer/nostr/account/[npub]/files/[sha256]'
+  }
 }
 
 export function nostrZapDetailHref(npub: string, zapId: string): Href {
-  return `/signer/nostr/account/${npub}/zap/${zapId}` as Href
+  return {
+    params: { npub, zapId },
+    pathname: '/signer/nostr/account/[npub]/zap/[zapId]'
+  }
 }

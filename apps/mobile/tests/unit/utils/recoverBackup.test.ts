@@ -1,3 +1,4 @@
+import { useSettingsStore } from '@/store/settings'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
 jest.mock<typeof import('@/utils/crypto')>('@/utils/crypto', () => ({
@@ -217,6 +218,33 @@ describe('performRecoverOverwrite validation', () => {
     await performRecoverOverwrite('{not json')
     expect(aesEncrypt).not.toHaveBeenCalled()
     expect(storeKeySecret).not.toHaveBeenCalled()
+  })
+
+  it('fails when a key entry is not an object', async () => {
+    setPin('1234')
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [{ id: 'x', keys: [null], name: 'A' }]
+      })
+    )
+    expect(result).toStrictEqual({
+      error: 'Backup key missing seed data',
+      success: false
+    })
+  })
+
+  it('fails when the lightning section carries an invalid config', async () => {
+    setPin('1234')
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [],
+        lightning: { config: { url: 'https://node.example' } }
+      })
+    )
+    expect(result).toStrictEqual({
+      error: 'Backup lightning config is invalid',
+      success: false
+    })
   })
 })
 
@@ -457,6 +485,51 @@ describe('performRecoverOverwrite restore', () => {
     expect(setRelays).toHaveBeenCalledWith(['wss://identity-relay.example'])
   })
 
+  it('restores label times, which the backup holds as strings, as dates', async () => {
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [
+          {
+            id: 'acc-1',
+            keys: [{ index: 0, name: 'k1', seedWords: 'abandon abandon' }],
+            labels: {
+              'txid:0': {
+                label: 'coffee',
+                ref: 'txid:0',
+                time: '2024-01-01T00:00:00.000Z',
+                type: 'output'
+              },
+              'txid:1': { ref: 'txid:1', type: 'output' }
+            },
+            name: 'Wallet',
+            network: 'bitcoin',
+            policyType: 'singlesig'
+          }
+        ],
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    expect(addAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        labels: {
+          'txid:0': {
+            label: 'coffee',
+            ref: 'txid:0',
+            time: new Date('2024-01-01T00:00:00.000Z'),
+            type: 'output'
+          }
+        }
+      })
+    )
+  })
+
   it('defaults missing labels to an empty record', async () => {
     const result = await performRecoverOverwrite(
       JSON.stringify({
@@ -481,6 +554,62 @@ describe('performRecoverOverwrite restore', () => {
     expect(result).toStrictEqual({ success: true })
     const restored = addAccount.mock.calls[0][0] as { labels: object }
     expect(restored.labels).toStrictEqual({})
+  })
+
+  it('restores the account creation date when the backup has one', async () => {
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [
+          {
+            createdAt: '2025-06-01T00:00:00.000Z',
+            id: 'acc-1',
+            keys: [{ index: 0, name: 'k1', seedWords: 'abandon abandon' }],
+            name: 'Wallet',
+            network: 'bitcoin',
+            policyType: 'singlesig'
+          }
+        ],
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    expect(addAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createdAt: new Date('2025-06-01T00:00:00.000Z')
+      })
+    )
+  })
+
+  it('applies a known mnemonic word list and ignores an unknown one', async () => {
+    const { setMnemonicWordList } = useSettingsStore.getState()
+
+    function backupWithWordList(mnemonicWordList: string) {
+      return JSON.stringify({
+        accounts: [],
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList,
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    }
+
+    await expect(
+      performRecoverOverwrite(backupWithWordList('klingon'))
+    ).resolves.toStrictEqual({ success: true })
+    expect(setMnemonicWordList).not.toHaveBeenCalled()
+
+    await expect(
+      performRecoverOverwrite(backupWithWordList('spanish'))
+    ).resolves.toStrictEqual({ success: true })
+    expect(setMnemonicWordList).toHaveBeenCalledWith('spanish')
   })
 
   it('restores bitcoin backend data from serverSettings', async () => {

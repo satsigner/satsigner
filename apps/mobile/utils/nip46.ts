@@ -1,12 +1,28 @@
+import { z } from 'zod'
+
 import {
   NOSTR_NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS,
   NOSTR_NIP46_NEVER_AUTO_ALLOW_METHODS,
   NOSTR_NIP46_CONNECT_PREFIX
 } from '@/constants/nostr'
 import { t } from '@/locales'
-import type { Nip46Method, Nip46ParsedUri } from '@/types/models/Nostr'
+import type {
+  Nip46IncomingRequest,
+  Nip46Method,
+  Nip46ParsedUri
+} from '@/types/models/Nostr'
+import { isNostrTags } from '@/utils/nostrEvent'
+import { isRecord } from '@/utils/object'
 
 const HEX_PUBKEY_REGEX = /^[0-9a-f]{64}$/
+
+const Nip46RequestPayloadSchema = z.object({
+  id: z.string().min(1),
+  method: z.string().min(1),
+  params: z.unknown().optional()
+})
+
+const Nip46ParamsSchema = z.array(z.unknown())
 
 export function isNostrConnectUri(data: string): boolean {
   return data.trim().toLowerCase().startsWith(NOSTR_NIP46_CONNECT_PREFIX)
@@ -48,6 +64,26 @@ export function parseNostrConnectUri(uri: string): Nip46ParsedUri | null {
     return { clientPubkey, name, perms, relays, secret }
   } catch {
     return null
+  }
+}
+
+/**
+ * Parses a decrypted NIP-46 request payload. Null when the id or method is
+ * missing. Params keep their positions: a non-list is treated as empty and
+ * entries that are not strings become ''.
+ */
+export function parseNip46Request(value: unknown): Nip46IncomingRequest | null {
+  const payload = Nip46RequestPayloadSchema.safeParse(value)
+  if (!payload.success) {
+    return null
+  }
+  const params = Nip46ParamsSchema.safeParse(payload.data.params)
+  return {
+    id: payload.data.id,
+    method: payload.data.method,
+    params: params.success
+      ? params.data.map((param) => (typeof param === 'string' ? param : ''))
+      : []
   }
 }
 
@@ -95,18 +131,16 @@ type Nip46EventPreview = {
 // client hide the real payload behind a benign-looking preview.
 export function getEventPreview(params: string[]): Nip46EventPreview | null {
   try {
-    const parsed = JSON.parse(params[0]) as {
-      content?: string
-      created_at?: number
-      kind?: number
-      tags?: string[][]
+    const parsed: unknown = JSON.parse(params[0])
+    if (!isRecord(parsed)) {
+      return null
     }
     return {
       content: typeof parsed.content === 'string' ? parsed.content : '',
       createdAt:
         typeof parsed.created_at === 'number' ? parsed.created_at : undefined,
       kind: typeof parsed.kind === 'number' ? parsed.kind : 1,
-      tags: Array.isArray(parsed.tags) ? parsed.tags : []
+      tags: isNostrTags(parsed.tags) ? parsed.tags : []
     }
   } catch {
     return null
@@ -115,8 +149,10 @@ export function getEventPreview(params: string[]): Nip46EventPreview | null {
 
 export function getSignEventKind(params: string[]): number | null {
   try {
-    const parsed = JSON.parse(params[0]) as { kind?: number }
-    return typeof parsed.kind === 'number' ? parsed.kind : null
+    const parsed: unknown = JSON.parse(params[0])
+    return isRecord(parsed) && typeof parsed.kind === 'number'
+      ? parsed.kind
+      : null
   } catch {
     return null
   }

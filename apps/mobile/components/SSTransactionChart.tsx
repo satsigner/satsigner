@@ -1,5 +1,5 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
-import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
+import { sankey } from 'd3-sankey'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
@@ -14,6 +14,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import {
   BLOCK_WIDTH,
   NODE_WIDTH,
+  type Node,
   SANKEY_DIAGRAM_NODE_PADDING_PX,
   SANKEY_EQUAL_ROW_MIN_SLOT_PX,
   SAFE_LIMIT_OF_INPUTS_OUTPUTS
@@ -28,6 +29,7 @@ import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
 import { isOwnedOutpoint } from '@/utils/sankeyInputOwnership'
+import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
 import {
   resolveChartOutputSpendStatus,
   type ChartOutputSpendStatus
@@ -43,20 +45,23 @@ import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
-interface Node extends SankeyNodeMinimal<object, object> {
-  id: string
-  depth?: number
-  depthH: number
-  address?: string
-  type: string
-  value?: number
-  txId?: string
-  ioData: TxNode['ioData']
-  nextTx?: string
+type TransactionInput = Transaction['vin'][number]
+type TransactionOutput = Transaction['vout'][number]
+
+/**
+ * The transaction fields the chart reads. A full `Transaction` fits; partial
+ * sources (e.g. a decoded PSBT) can omit the rest.
+ */
+type ChartTransaction = Pick<Transaction, 'id' | 'size' | 'vsize'> & {
+  type?: Transaction['type']
+  vin: Pick<TransactionInput, 'label' | 'previousOutput' | 'value'>[]
+  vout: (Pick<TransactionOutput, 'address' | 'kind' | 'label' | 'value'> & {
+    script?: TransactionOutput['script']
+  })[]
 }
 
 type SSTransactionChartProps = {
-  transaction: Transaction
+  transaction: ChartTransaction
   /** Account id used to open previous-input / spending-output transaction details. */
   accountId?: string
   /** Labels keyed by transaction id — used for input outpoint labels. */
@@ -348,19 +353,16 @@ function SSTransactionChartCanvas({
   const chartBottomBleedPx = 6 * scale
   const chartCanvasHeight = sankeyExtentBottom + chartBottomBleedPx
 
-  const sankeyGenerator = sankey()
+  const sankeyGenerator = sankey<TxNode, object>()
     .nodeWidth(NODE_WIDTH * scale)
     .nodePadding(gapScaled)
     .extent([
       [0, sankeyExtentTop],
       [GRAPH_WIDTH * 0.9, sankeyExtentBottom]
     ])
-    .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
+    .nodeId((node) => node.id)
 
-  sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
-    const { depthH } = node as Node
-    return depthH ?? 0
-  })
+  sankeyGenerator.nodeAlign((node) => node.depthH)
 
   const sankeyNodes = useMemo(() => {
     if (inputs.length === 0 || outputs.length === 0) {
@@ -547,7 +549,7 @@ function SSTransactionChartCanvas({
       })
     }
 
-    return [...inputNodes, ...blockNode, ...outputNodes] as Node[]
+    return [...inputNodes, ...blockNode, ...outputNodes]
   }, [
     inputs,
     outputs,
@@ -617,7 +619,7 @@ function SSTransactionChartCanvas({
   })
 
   equalizeSankeyColumnsByDepthH(
-    layoutResult.nodes as Node[],
+    layoutResult.nodes,
     sankeyExtentTop,
     sankeyExtentBottom,
     gapScaled,
@@ -627,16 +629,16 @@ function SSTransactionChartCanvas({
   const { links, nodes } = layoutResult
 
   const transformedLinks = links.map((link) => ({
-    source: (link.source as Node).id,
-    target: (link.target as Node).id,
+    source: getSankeyLinkEndId(link.source),
+    target: getSankeyLinkEndId(link.target),
     value: link.value
   }))
 
   const ribbonPlan = buildSankeyRibbonPlan(
     nodes.map((node) => ({
-      id: (node as Node).id,
-      type: (node as Node).type,
-      value: (node as Node).value
+      id: node.id,
+      type: node.type,
+      value: node.value
     })),
     transformedLinks
   )
@@ -673,7 +675,7 @@ function SSTransactionChartCanvas({
     }
   }
 
-  const inputHitTargets = (nodes as Node[]).flatMap((node) => {
+  const inputHitTargets = nodes.flatMap((node) => {
     const prevTxId = node.ioData?.prevTxId
     if (!node.ioData?.isInput || !prevTxId) {
       return []
@@ -684,7 +686,7 @@ function SSTransactionChartCanvas({
     return [buildHitTarget(node, prevTxId)]
   })
 
-  const outputHitTargets = (nodes as Node[]).flatMap((node) => {
+  const outputHitTargets = nodes.flatMap((node) => {
     const { nextTx } = node
     if (node.ioData?.isInput || node.ioData?.isUnspent !== false || !nextTx) {
       return []
@@ -710,7 +712,7 @@ function SSTransactionChartCanvas({
           >
             <SSSankeyLinks
               links={transformedLinks}
-              nodes={nodes as Node[]}
+              nodes={nodes}
               ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               BLOCK_WIDTH={BLOCK_WIDTH}
@@ -722,7 +724,7 @@ function SSTransactionChartCanvas({
               dimUnselected={dimUnselected}
             />
             <SSSankeyNodes
-              nodes={nodes as Node[]}
+              nodes={nodes}
               ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               selectedOutputNode={

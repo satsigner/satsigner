@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router'
+import { type Href, useRouter } from 'expo-router'
 import { toast } from 'sonner-native'
 
 import { processContentByContext } from '@/hooks/useContentProcessor'
@@ -8,15 +8,19 @@ import { type DetectedContent } from '@/utils/contentDetector'
 
 type NavigatePath = Parameters<ReturnType<typeof useRouter>['navigate']>[0]
 
+type EcashAccountPathname =
+  | '/signer/ecash/account/[id]/send'
+  | '/signer/ecash/account/[id]/receive'
+
 export function useEcashContentHandler() {
   const router = useRouter()
   const activeAccountId = useEcashStore((state) => state.activeAccountId)
 
-  function getAccountPath(subpath: string): string {
+  function getAccountHref(pathname: EcashAccountPathname): Href {
     if (!activeAccountId) {
-      return `/signer/ecash`
+      return '/signer/ecash'
     }
-    return `/signer/ecash/account/${activeAccountId}/${subpath}`
+    return { params: { id: activeAccountId }, pathname }
   }
 
   function handleContentScanned(content: DetectedContent) {
@@ -38,11 +42,11 @@ export function useEcashContentHandler() {
   }
 
   function handleSend() {
-    router.push(getAccountPath('send') as NavigatePath)
+    router.push(getAccountHref('/signer/ecash/account/[id]/send'))
   }
 
   function handleReceive() {
-    router.push(getAccountPath('receive') as NavigatePath)
+    router.push(getAccountHref('/signer/ecash/account/[id]/receive'))
   }
 
   return {

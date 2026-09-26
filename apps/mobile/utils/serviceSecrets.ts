@@ -1,3 +1,5 @@
+import z from 'zod'
+
 import {
   deleteLndConfigSecret,
   deleteRpcCredentialsSecret,
@@ -7,16 +9,27 @@ import {
   storeRpcCredentialsSecret
 } from '@/storage/encrypted'
 import type { LNDConfig } from '@/types/models/Lightning'
-import { type Network, type RpcCredentials } from '@/types/settings/blockchain'
-import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
+import {
+  type Network,
+  type RpcCredentials,
+  RpcCredentialsSchema
+} from '@/types/settings/blockchain'
+import { aesDecrypt, aesEncrypt, aesReEncrypt, randomIv } from '@/utils/crypto'
 import { getPin } from '@/utils/pin'
+import { withFallback } from '@/utils/schema'
 
 const BLOCKCHAIN_NETWORKS: Network[] = ['bitcoin', 'testnet', 'signet']
 
-type LndSecretPayload = {
-  cert: string
-  macaroon: string
-}
+/**
+ * Encrypted LND pairing secrets. Older BTCPay-style pairings stored no cert;
+ * those load with an empty cert, which falls back to system TLS trust.
+ */
+const LndSecretPayloadSchema = z.object({
+  cert: withFallback(z.string(), ''),
+  macaroon: z.string()
+})
+
+type LndSecretPayload = z.infer<typeof LndSecretPayloadSchema>
 
 function stripLndSecrets(config: LNDConfig): LNDConfig {
   return {
@@ -51,7 +64,8 @@ async function loadLndSecrets(pin?: string): Promise<LndSecretPayload | null> {
   }
   const key = pin ?? (await getPin())
   const decrypted = await aesDecrypt(stored.secret, key, stored.iv)
-  return JSON.parse(decrypted) as LndSecretPayload
+  const payload = LndSecretPayloadSchema.safeParse(JSON.parse(decrypted))
+  return payload.success ? payload.data : null
 }
 
 async function encryptAndStoreRpcCredentials(
@@ -79,7 +93,8 @@ async function loadRpcCredentials(
   }
   const key = pin ?? (await getPin())
   const decrypted = await aesDecrypt(stored.secret, key, stored.iv)
-  return JSON.parse(decrypted) as RpcCredentials
+  const credentials = RpcCredentialsSchema.safeParse(JSON.parse(decrypted))
+  return credentials.success ? credentials.data : null
 }
 
 async function persistLndSecretsSafe(config: LNDConfig): Promise<void> {
@@ -180,22 +195,23 @@ async function migrateAndHydrateServiceSecrets(): Promise<void> {
   }
 }
 
+/**
+ * PIN change step: moves the stored LND and RPC secrets to the new PIN digest.
+ * Records are re-encrypted as stored, so their content can never make a PIN
+ * change stop halfway.
+ */
 async function reEncryptServiceSecrets(
   oldPinEncrypted: string,
   newPinEncrypted: string
 ): Promise<void> {
   const lndStored = await getLndConfigSecret()
   if (lndStored) {
-    const decrypted = await aesDecrypt(
-      lndStored.secret,
+    const { iv, secret } = await aesReEncrypt(
+      lndStored,
       oldPinEncrypted,
-      lndStored.iv
-    )
-    const payload = JSON.parse(decrypted) as LndSecretPayload
-    await encryptAndStoreLndSecrets(
-      { cert: payload.cert, macaroon: payload.macaroon, url: '' },
       newPinEncrypted
     )
+    await storeLndConfigSecret(secret, iv)
   }
 
   for (const network of BLOCKCHAIN_NETWORKS) {
@@ -203,13 +219,12 @@ async function reEncryptServiceSecrets(
     if (!stored) {
       continue
     }
-    const decrypted = await aesDecrypt(
-      stored.secret,
+    const { iv, secret } = await aesReEncrypt(
+      stored,
       oldPinEncrypted,
-      stored.iv
+      newPinEncrypted
     )
-    const credentials = JSON.parse(decrypted) as RpcCredentials
-    await encryptAndStoreRpcCredentials(network, credentials, newPinEncrypted)
+    await storeRpcCredentialsSecret(network, secret, iv)
   }
 }
 

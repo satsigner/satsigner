@@ -20,11 +20,11 @@ export default function WalletSyncedConfirmation() {
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
-      state.accounts.find((_account) => _account.id === id!),
+      state.accounts.find((_account) => _account.id === id),
       state.updateAccount
     ])
   )
-  const wallet = useGetAccountWallet(id!)
+  const wallet = useGetAccountWallet(id)
 
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
 

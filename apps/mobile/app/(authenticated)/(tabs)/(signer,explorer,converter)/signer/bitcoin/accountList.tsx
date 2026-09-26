@@ -173,7 +173,11 @@ export default function AccountList() {
     | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
 
-  const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
+  const tabs: { key: Network }[] = [
+    { key: 'bitcoin' },
+    { key: 'testnet' },
+    { key: 'signet' }
+  ]
   const [tabIndex, setTabIndex] = useState(() => {
     const index = tabs.findIndex((tab) => tab.key === network)
     return Math.max(index, 0)
@@ -220,7 +224,7 @@ export default function AccountList() {
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
   useEffect(() => {
-    const currentNetwork = tabs[tabIndex].key as Network
+    const currentNetwork = tabs[tabIndex].key
     if (currentNetwork !== network) {
       setSelectedNetwork(currentNetwork)
     }
@@ -327,7 +331,7 @@ export default function AccountList() {
     setKeyCount(1)
     setKeysRequired(1)
 
-    const currentNetwork = tabs[tabIndex].key as Network
+    const currentNetwork = tabs[tabIndex].key
 
     const bdkNetwork = appNetworkToBdkNetwork(currentNetwork)
 

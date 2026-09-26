@@ -63,11 +63,6 @@ function toUInt32LEHex(value: number): string {
   return hex.encode(buffer)
 }
 
-function asTxDecoded(tx: bitcoinjs.Transaction): TxDecoded {
-  Object.setPrototypeOf(tx, TxDecoded.prototype)
-  return tx as TxDecoded
-}
-
 function parsePrefixBuffer(clean: string, maxBytes: number): Buffer {
   const maxChars = maxBytes * 2
   const parseHex = clean.length > maxChars ? clean.slice(0, maxChars) : clean
@@ -226,7 +221,7 @@ export function decodeBlockFromHex(
     }
 
     try {
-      const txFields = asTxDecoded(tx).decode()
+      const txFields = TxDecoded.fromTransaction(tx).decode()
       for (const item of txFields) {
         if (usedChars + item.hex.length > maxHexChars && fields.length > 7) {
           truncated = true

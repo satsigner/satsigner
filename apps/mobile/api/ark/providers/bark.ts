@@ -78,22 +78,13 @@ function buildConfig(server: ArkServer): Config {
   })
 }
 
-type BarkBoardPayjoinWallet = {
-  boardFundingAddress: () => Promise<{
-    address: string
-    expiryHeight: number
-    keypairIndex: number
-  }>
-  boardPsbt: (
-    psbtBase64: string,
-    keypairIndex: number,
-    expiryHeight: number
-  ) => Promise<PendingBoard>
-}
+type BarkBoardPayjoinWallet = Pick<
+  WalletLike,
+  'boardFundingAddress' | 'boardPsbt'
+>
 
 function getBoardPayjoinWallet(accountId: string): BarkBoardPayjoinWallet {
-  const wallet = getCachedWallet(accountId) as WalletLike &
-    Partial<BarkBoardPayjoinWallet>
+  const wallet = getCachedWallet(accountId)
   if (
     typeof wallet.boardFundingAddress !== 'function' ||
     typeof wallet.boardPsbt !== 'function'

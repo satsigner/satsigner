@@ -10,6 +10,7 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type NostrDecodedContent } from '@/types/models/Nostr'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
+import { getDecodedContentTags } from '@/utils/nostrDecodedContent'
 import { extractPubpayTags } from '@/utils/nostrIdentity'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
@@ -90,10 +91,7 @@ function AuthorRow({
 }
 
 function SSNostrNoteTemplate({ content, onPay }: SSNostrNoteTemplateProps) {
-  const tags =
-    content.metadata && Array.isArray(content.metadata.tags)
-      ? (content.metadata.tags as string[][])
-      : []
+  const tags = getDecodedContentTags(content)
 
   if (content.kind === 'npub' || content.kind === 'nprofile') {
     return (

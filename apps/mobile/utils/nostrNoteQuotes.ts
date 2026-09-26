@@ -2,6 +2,7 @@ import { nip19 } from 'nostr-tools'
 
 import { NOSTR_EVENT_REF_RE } from '@/constants/nostr'
 import type { NostrFeedNoteLike } from '@/types/models/Nostr'
+import { isRecord } from '@/utils/object'
 
 type RawEvent = {
   content: string
@@ -13,17 +14,16 @@ type RawEvent = {
 }
 
 function isRawEvent(value: unknown): value is RawEvent {
-  if (!value || typeof value !== 'object') {
+  if (!isRecord(value)) {
     return false
   }
-  const record = value as Record<string, unknown>
   return (
-    typeof record.id === 'string' &&
-    typeof record.content === 'string' &&
-    typeof record.pubkey === 'string' &&
-    typeof record.kind === 'number' &&
-    typeof record.created_at === 'number' &&
-    Array.isArray(record.tags)
+    typeof value.id === 'string' &&
+    typeof value.content === 'string' &&
+    typeof value.pubkey === 'string' &&
+    typeof value.kind === 'number' &&
+    typeof value.created_at === 'number' &&
+    Array.isArray(value.tags)
   )
 }
 

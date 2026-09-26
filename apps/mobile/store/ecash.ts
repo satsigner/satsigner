@@ -12,6 +12,7 @@ import type {
   MintQuote
 } from '@/types/models/Ecash'
 import { mergeByKey, type ParsedEcashBackup } from '@/utils/ecashBackup'
+import { isRecord } from '@/utils/object'
 
 const LEGACY_ACCOUNT_ID = 'legacy'
 
@@ -87,8 +88,18 @@ type LegacyState = {
   quotes?: { mint: MintQuote[]; melt: MeltQuote[] }
 }
 
-function migrateLegacyState(persisted: unknown): EcashState & EcashAction {
-  const legacy = persisted as LegacyState & EcashState & EcashAction
+/**
+ * Brings the persisted blob up to the per-account layout for `merge`. The blob
+ * only ever comes from this store (`partialize`, or the flat pre-accounts
+ * store), so past the object check its fields are trusted as written rather
+ * than re-validated: a stricter check that dropped proofs would lose funds.
+ * Nothing persisted yet (fresh install) merges as an empty object.
+ */
+function migrateLegacyState(persisted: unknown): Partial<EcashState> {
+  if (!isRecord(persisted)) {
+    return {}
+  }
+  const legacy = persisted as Partial<EcashState> & LegacyState
 
   if (legacy.accounts) {
     return legacy

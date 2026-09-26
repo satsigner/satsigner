@@ -53,12 +53,10 @@ import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Sizes, Typography } from '@/styles'
 import type { MnemonicWordCount } from '@/types/bips/39'
-import { type Key, type Secret } from '@/types/models/Account'
+import { type Key } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
-import {
-  type MockPsbt,
-  type PsbtInputWithSignatures
-} from '@/types/models/Psbt'
+import { type PsbtInputWithSignatures } from '@/types/models/Psbt'
+import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
 import { getKeyFingerprint } from '@/utils/account'
@@ -77,6 +75,7 @@ import {
 } from '@/utils/payjoinExpiry'
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
+  createMockPsbt,
   type ExtractedTransactionData,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
@@ -105,6 +104,8 @@ import {
 } from '@/utils/ur'
 
 const tn = _tn('transaction.build.preview')
+
+const SEED_WORD_COUNT_OPTIONS: MnemonicWordCount[] = [12, 15, 18, 21, 24]
 
 enum QRDisplayMode {
   RAW = 'RAW',
@@ -166,21 +167,6 @@ function hasEnoughSignatures(input: PsbtInputWithSignatures) {
   } catch {
     toast.error(t('common.error.checkingInputSignatures'))
     return false
-  }
-}
-
-function createMockPsbt(
-  psbtBase64: string,
-  txid: string,
-  txFee: number
-): MockPsbt {
-  return {
-    extractTxHex: () => '',
-    feeAmount: () => BigInt(txFee),
-    feeRate: () => undefined,
-    getUtxoFor: () => undefined,
-    toBase64: () => psbtBase64,
-    txid: () => txid
   }
 }
 
@@ -329,7 +315,7 @@ function PreviewTransaction() {
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
-  const wallet = useGetAccountWallet(id!)
+  const wallet = useGetAccountWallet(id)
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const { server } = useBlockchainStore(
     (state) => state.configs[state.selectedNetwork]
@@ -594,7 +580,7 @@ function PreviewTransaction() {
       const bySigner = extractIndividualSignedPsbts(
         combinedPsbtBase64,
         originalPsbtBase64
-      ) as Record<number, string>
+      )
       if (Object.keys(bySigner).length === 0) {
         return
       }
@@ -971,20 +957,22 @@ function PreviewTransaction() {
         ? estimateTransactionSize(inputArray, outputs)
         : legacyEstimateTransactionSize(inputs.size, outputs.length)
 
-    const vin = Array.from(inputs.values()).map((input: Utxo) => ({
-      label: input.label || '',
-      previousOutput: { txid: input.txid, vout: input.vout },
-      scriptSig: '' as string | number[],
-      sequence: 0,
-      value: input.value,
-      witness: [] as number[][]
-    }))
+    const vin: Transaction['vin'] = Array.from(inputs.values()).map(
+      (input: Utxo) => ({
+        label: input.label || '',
+        previousOutput: { txid: input.txid, vout: input.vout },
+        scriptSig: '',
+        sequence: 0,
+        value: input.value,
+        witness: []
+      })
+    )
 
-    const vout = outputs.map((output: Output) => ({
+    const vout: Transaction['vout'] = outputs.map((output: Output) => ({
       address: output.to,
       kind: output.kind,
       label: output.label || '',
-      script: '' as string | number[],
+      script: '',
       value: output.amount
     }))
 
@@ -1624,7 +1612,7 @@ function PreviewTransaction() {
 
       toast.success(t('common.success.dataPasted'))
     } catch (error) {
-      const errorMessage = (error as Error).message
+      const errorMessage = error instanceof Error ? error.message : ''
       if (errorMessage) {
         toast.error(errorMessage)
       } else {
@@ -1650,7 +1638,7 @@ function PreviewTransaction() {
       }
 
       if (result.txData) {
-        const txHex = Array.from(result.txData as Uint8Array)
+        const txHex = Array.from(result.txData)
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
 
@@ -1665,7 +1653,7 @@ function PreviewTransaction() {
         toast.error(t('watchonly.read.nfcErrorNoData'))
       }
     } catch (error) {
-      const errorMessage = (error as Error).message
+      const errorMessage = error instanceof Error ? error.message : ''
       if (errorMessage) {
         toast.error(errorMessage)
       }
@@ -2170,7 +2158,7 @@ function PreviewTransaction() {
                           totalKeys={account.keys?.length || 0}
                           keyDetails={key}
                           transactionId={transactionId}
-                          txBuilderResult={txBuilderResult!}
+                          txBuilderResult={txBuilderResult}
                           serializedPsbt={serializedPsbt}
                           signedPsbt={signedPsbts.get(index) || ''}
                           setSignedPsbt={(psbt: string) =>
@@ -2615,7 +2603,7 @@ function PreviewTransaction() {
                         secret &&
                         typeof secret === 'object' &&
                         'mnemonic' in secret &&
-                        (secret as Secret)?.mnemonic
+                        secret?.mnemonic
                       )
                     })()
                   ? 'Scan Seed QR Code'
@@ -2802,16 +2790,14 @@ function PreviewTransaction() {
             </SSText>
 
             <SSVStack gap="sm">
-              {[12, 15, 18, 21, 24].map((wordCount) => (
+              {SEED_WORD_COUNT_OPTIONS.map((wordCount) => (
                 <SSButton
                   key={wordCount}
                   label={`${wordCount} words`}
                   variant={
                     selectedWordCount === wordCount ? 'outline' : 'ghost'
                   }
-                  onPress={() =>
-                    setSelectedWordCount(wordCount as MnemonicWordCount)
-                  }
+                  onPress={() => setSelectedWordCount(wordCount)}
                 />
               ))}
             </SSVStack>

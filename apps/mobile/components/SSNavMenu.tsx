@@ -14,7 +14,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { PLATFORM } from '@/types/navigation/navMenu'
+import { type NavMenuGroup, PLATFORM } from '@/types/navigation/navMenu'
 
 import SSNavMenuGroup from './SSNavMenuGroup'
 import SSText from './SSText'
@@ -24,8 +24,11 @@ type SSNavMenuProps = DrawerContentComponentProps
 function SSNavMenu(props: SSNavMenuProps) {
   const drawerStatus = useDrawerStatus()
   const router = useRouter()
-  const currentPlatform: PLATFORM = Platform.OS as PLATFORM
-  const filteredNavMenuGroups = navMenuGroups.reduce(
+  const currentPlatform = Platform.select({
+    android: PLATFORM.ANDROID,
+    ios: PLATFORM.IOS
+  })
+  const filteredNavMenuGroups = navMenuGroups.reduce<NavMenuGroup[]>(
     (acc, group) => {
       if (group.items && Array.isArray(group.items)) {
         const filteredItems = group.items.filter(
@@ -39,7 +42,7 @@ function SSNavMenu(props: SSNavMenuProps) {
       }
       return acc
     },
-    [] as typeof navMenuGroups
+    []
   )
 
   return (

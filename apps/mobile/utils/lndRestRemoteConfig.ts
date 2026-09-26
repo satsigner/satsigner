@@ -3,6 +3,7 @@ import {
   LND_GRPC_LISTEN_PORT
 } from '@/constants/lightning'
 import type { LNDConfig } from '@/types/models/Lightning'
+import { isRecord } from '@/utils/object'
 
 export type ParsedLndConnectionInput =
   | { kind: 'inline'; config: LNDConfig }
@@ -321,27 +322,23 @@ function pickRestUrl(entry: JsonRecord): string | null {
 function extractLndRestEntry(parsed: unknown): JsonRecord | null {
   if (Array.isArray(parsed) && parsed.length > 0) {
     const [first] = parsed
-    if (first && typeof first === 'object') {
-      return first as JsonRecord
-    }
+    return isRecord(first) ? first : null
+  }
+  if (!isRecord(parsed)) {
     return null
   }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return null
-  }
-  const json = parsed as JsonRecord
-  const { configurations } = json
+  const { configuration, configurations } = parsed
   if (Array.isArray(configurations) && configurations.length > 0) {
     const [first] = configurations
-    if (first && typeof first === 'object') {
-      return first as JsonRecord
+    if (isRecord(first)) {
+      return first
     }
   }
-  if (json.configuration && typeof json.configuration === 'object') {
-    return json.configuration as JsonRecord
+  if (isRecord(configuration)) {
+    return configuration
   }
-  if (pickRestUrl(json) && pickMacaroon(json)) {
-    return json
+  if (pickRestUrl(parsed) && pickMacaroon(parsed)) {
+    return parsed
   }
   return null
 }

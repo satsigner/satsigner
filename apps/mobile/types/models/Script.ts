@@ -11,3 +11,9 @@ export const ScriptVersionTypeSchema = z.enum([
 ])
 
 export type ScriptVersionType = z.infer<typeof ScriptVersionTypeSchema>
+
+/** Script type of a multisig policy, as derived from a key's script version. */
+export type MultisigScriptType = Extract<
+  ScriptVersionType,
+  'P2SH' | 'P2SH-P2WSH' | 'P2WSH' | 'P2TR'
+>

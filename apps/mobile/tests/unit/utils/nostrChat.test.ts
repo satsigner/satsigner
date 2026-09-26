@@ -325,6 +325,51 @@ describe('nostrChat', () => {
     })
   })
 
+  it('ingests incoming chat rumors whose tags are malformed', async () => {
+    let rumorCallback:
+      | ((messages: { content: unknown; created_at: number }[]) => void)
+      | undefined
+    const fakeApi = {
+      getRelays: () => ['wss://test.relay'],
+      subscribeToKind1059: jest.fn(
+        async (
+          _nsec: string,
+          _npub: string,
+          cb: (messages: { content: unknown; created_at: number }[]) => void
+        ) => {
+          rumorCallback = cb
+        }
+      ),
+      subscribeToKind4: jest.fn(async () => undefined)
+    }
+
+    await subscribeToIdentityChat(fakeApi as unknown as NostrAPI, sender)
+
+    rumorCallback!([
+      {
+        content: {
+          content: 'hello despite bad tags',
+          created_at: 4000,
+          id: 'rumor-bad-tags',
+          kind: 14,
+          pubkey: peerPubkey,
+          tags: [null]
+        },
+        created_at: 4000,
+        id: 'wrap-bad-tags',
+        pubkey: 'wrap-author'
+      }
+    ])
+
+    const stored = [...chatStore.values()] as Record<string, unknown>[]
+    expect(stored).toHaveLength(1)
+    expect(stored[0]).toMatchObject({
+      content: 'hello despite bad tags',
+      direction: 'in',
+      peerPubkey
+    })
+  })
+
   it('wraps NIP-17 content as UTF-8 without URI encoding', () => {
     const text = 'café 你好 🔐'
     const wrap = new NostrAPI([]).createKind1059(sender.nsec, peerNpub, text)

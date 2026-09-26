@@ -19,12 +19,14 @@ import { Buffer } from 'buffer'
 
 import { hex } from '@scure/base'
 import {
+  Initialized,
   InputPair,
   type InputPairLike,
   type JsonReceiverSessionPersister,
   type JsonSenderSessionPersister,
   type PayjoinProposalLike,
   type PjUriLike,
+  PollingForProposal,
   type PollingForProposalLike,
   ReceiveSession_Tags,
   ReceiverBuilder,
@@ -38,6 +40,7 @@ import {
   type Request,
   type SendSession,
   type ReceiveSession,
+  UncheckedOriginalPayload,
   type UncheckedOriginalPayloadLike,
   type WithReplyKeyLike,
   fetchOhttpKeys as nativeFetchOhttpKeys,
@@ -64,6 +67,8 @@ import type {
   SenderSessionHandle,
   SenderSessionInit
 } from '@/types/payjoin'
+import { isStringArray } from '@/utils/array'
+import { isRecord } from '@/utils/object'
 import { payjoinWarn } from '@/utils/payjoinLog'
 import { extractPayjoinOriginalPsbt } from '@/utils/payjoinOriginalPsbt'
 import {
@@ -186,16 +191,15 @@ function encodeReceiverState(id: string, entry: ReceiverEntry): string {
 }
 
 function decodeReceiverState(state: string): ReceiverStatePayload {
-  const parsed: unknown = JSON.parse(decodeBase64(state))
-  if (!parsed || typeof parsed !== 'object') {
+  const value: unknown = JSON.parse(decodeBase64(state))
+  if (!isRecord(value)) {
     throw new Error('invalid state encoding')
   }
-  const value = parsed as Partial<ReceiverStatePayload>
   if (typeof value.id !== 'string') {
     throw new TypeError('state missing id')
   }
   return {
-    events: Array.isArray(value.events) ? value.events : [],
+    events: isStringArray(value.events) ? value.events : [],
     id: value.id,
     ohttp_relay: typeof value.ohttp_relay === 'string' ? value.ohttp_relay : '',
     pj_uri: typeof value.pj_uri === 'string' ? value.pj_uri : '',
@@ -228,16 +232,15 @@ function encodeSenderState(id: string, entry: SenderEntry): string {
 }
 
 function decodeSenderState(state: string): SenderStatePayload {
-  const parsed: unknown = JSON.parse(decodeBase64(state))
-  if (!parsed || typeof parsed !== 'object') {
+  const value: unknown = JSON.parse(decodeBase64(state))
+  if (!isRecord(value)) {
     throw new Error('invalid state encoding')
   }
-  const value = parsed as Partial<SenderStatePayload>
   if (typeof value.id !== 'string') {
     throw new TypeError('state missing id')
   }
   return {
-    events: Array.isArray(value.events) ? value.events : [],
+    events: isStringArray(value.events) ? value.events : [],
     id: value.id,
     ohttp_relay: typeof value.ohttp_relay === 'string' ? value.ohttp_relay : '',
     protocol: value.protocol === 'v1' ? 'v1' : 'v2',
@@ -253,10 +256,7 @@ function toUint8Array(body: ArrayBuffer | Uint8Array): Uint8Array {
 }
 
 function toArrayBuffer(body: Uint8Array): ArrayBuffer {
-  return body.buffer.slice(
-    body.byteOffset,
-    body.byteOffset + body.byteLength
-  ) as ArrayBuffer
+  return new Uint8Array(body).buffer
 }
 
 function adaptRequest(request: Request): PayjoinNativeRequest {
@@ -279,7 +279,7 @@ function toError(error: unknown): Error {
     return error
   }
   if (error && typeof error === 'object' && 'inner' in error) {
-    const { inner } = error as { inner: unknown }
+    const { inner } = error
     if (Array.isArray(inner) && typeof inner[0] === 'string') {
       return new Error(inner[0])
     }
@@ -361,6 +361,25 @@ async function httpPost(
   } finally {
     clearTimeout(timer)
   }
+}
+
+/**
+ * Transition outcomes arrive untyped from `@/utils/payjoinTransition`; these
+ * confirm the unwrapped value is the live UniFFI typestate object before the
+ * registry holds on to it.
+ */
+function isInitialized(value: unknown): value is Initialized {
+  return isRecord(value) && Initialized.instanceOf(value)
+}
+
+function isUncheckedOriginalPayload(
+  value: unknown
+): value is UncheckedOriginalPayload {
+  return isRecord(value) && UncheckedOriginalPayload.instanceOf(value)
+}
+
+function isPollingForProposal(value: unknown): value is PollingForProposal {
+  return isRecord(value) && PollingForProposal.instanceOf(value)
 }
 
 /**
@@ -516,8 +535,8 @@ async function receiverProcessResponse(
       entry.live = {
         kind: 'initialized',
         receiver:
-          next.kind === 'stasis' && next.value
-            ? (next.value as InitializedLike)
+          next.kind === 'stasis' && isInitialized(next.value)
+            ? next.value
             : initialized
       }
       return {
@@ -526,10 +545,10 @@ async function receiverProcessResponse(
       }
     }
 
-    entry.live = {
-      kind: 'unchecked',
-      receiver: next.value as UncheckedOriginalPayloadLike
+    if (!isUncheckedOriginalPayload(next.value)) {
+      throw new Error('receiver progressed without an original proposal')
     }
+    entry.live = { kind: 'unchecked', receiver: next.value }
     // PDK may persist the original as hex or a byte array, not `cHNidP`
     // base64. Finalize uses the live Unchecked handle; the string is optional.
     const psbtBase64 = extractPayjoinOriginalPsbt(entry.events) ?? ''
@@ -967,11 +986,8 @@ async function senderProcessResponse(
       }
     }
     const nextPoller = unwrapPollingStasis(outcome)
-    if (nextPoller) {
-      entry.live = {
-        kind: 'polling',
-        sender: nextPoller as PollingForProposalLike
-      }
+    if (isPollingForProposal(nextPoller)) {
+      entry.live = { kind: 'polling', sender: nextPoller }
     }
     return { kind: 'pending', state: encodeSenderState(id, entry) }
   } catch (error) {

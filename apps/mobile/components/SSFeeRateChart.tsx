@@ -238,10 +238,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
                       ) {
                         return null
                       }
-                      const last = pts.at(-1) as {
-                        x: number
-                        y: number
-                      }
+                      const last = pts.at(-1)
                       const y = last?.y ?? 0
                       return { key, top: y - LABEL_FONT_SIZE }
                     })

@@ -67,6 +67,14 @@ export function hasMultisigDuplicateXpubs(
   return new Set(xpubs).size !== xpubs.length
 }
 
+/**
+ * Whether a key holds an encrypted (string) secret. A reset key slot keeps an
+ * empty string, which does not count, so the slot can be filled again.
+ */
+export function hasEncryptedSecret(key: Key | undefined): boolean {
+  return typeof key?.secret === 'string' && key.secret !== ''
+}
+
 export function extractPublicKeyFromKey(
   keyDetails: Key | null,
   decryptedKey?: Key

@@ -27,20 +27,20 @@ function groupChildRowsByTxId<T extends TxChildRow>(
 
 function getTxInputsByAccount(accountId: string) {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows } = db.execute<TxInputRow & TxChildRow>(
     'SELECT * FROM tx_inputs WHERE account_id = ? ORDER BY tx_id, input_index',
     [accountId]
   )
-  return groupChildRowsByTxId((results ?? []) as (TxInputRow & TxChildRow)[])
+  return groupChildRowsByTxId(rows._array)
 }
 
 function getTxOutputsByAccount(accountId: string) {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows } = db.execute<TxOutputRow & TxChildRow>(
     'SELECT * FROM tx_outputs WHERE account_id = ? ORDER BY tx_id, output_index',
     [accountId]
   )
-  return groupChildRowsByTxId((results ?? []) as (TxOutputRow & TxChildRow)[])
+  return groupChildRowsByTxId(rows._array)
 }
 
 /**
@@ -71,14 +71,11 @@ function getAddressJunctions(
   refColumn: 'tx_id' | 'utxo_ref'
 ): Map<string, string[]> {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows: junctionRows } = db.execute<AddressJunctionRow>(
     `SELECT address, ${refColumn} AS ref FROM ${table} WHERE account_id = ?`,
     [accountId]
   )
-  const grouped = groupBy(
-    (results ?? []) as AddressJunctionRow[],
-    (row) => row.address
-  )
+  const grouped = groupBy(junctionRows._array, (row) => row.address)
   const refsByAddress = new Map<string, string[]>()
   for (const [address, rows] of grouped) {
     refsByAddress.set(

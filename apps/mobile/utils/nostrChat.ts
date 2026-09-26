@@ -1,5 +1,9 @@
-import NDK, { NDKEvent } from '@nostr-dev-kit/ndk'
-import { type Event, nip59 } from 'nostr-tools'
+import NDK, {
+  NDKEvent,
+  type NostrEvent as NDKNostrEvent
+} from '@nostr-dev-kit/ndk'
+import { nip59 } from 'nostr-tools'
+import { z } from 'zod'
 
 import { NostrAPI } from '@/api/nostr'
 import {
@@ -9,6 +13,20 @@ import {
 import { type NostrChatMessage } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
+import { isNostrTags, isSignedNdkEvent } from '@/utils/nostrEvent'
+import { isRecord } from '@/utils/object'
+
+const NOSTR_CHAT_RUMOR_KIND = 14
+
+/** Kind 14 (NIP-17 chat message) rumor fields the chat pipeline reads. */
+const Nip17ChatRumorSchema = z.object({
+  content: z.string(),
+  created_at: z.number().optional(),
+  id: z.string().min(1),
+  kind: z.literal(NOSTR_CHAT_RUMOR_KIND),
+  pubkey: z.string().min(1),
+  tags: z.unknown().optional()
+})
 
 type ChatListener = (message: NostrChatMessage) => void
 
@@ -107,7 +125,7 @@ function clearRecipientRelaysCache(): void {
  * sender's flow. Resolves true when at least one relay accepted the event.
  */
 async function publishEventToRelaysInBackground(
-  rawEvent: Event,
+  rawEvent: NDKNostrEvent,
   relayUrls: string[]
 ): Promise<boolean> {
   if (relayUrls.length === 0) {
@@ -137,7 +155,7 @@ async function publishEventToRelaysInBackground(
 async function routeWrapToRecipientInbox(
   peerNpub: string,
   baseRelays: string[],
-  wrapRaw: Event
+  wrapRaw: NDKNostrEvent
 ): Promise<boolean> {
   try {
     const cached = recipientRelaysCache.get(peerNpub)
@@ -205,7 +223,10 @@ async function sendNip17Chat(
   // Store under the rumor id (deterministic) so the relay echo of our self
   // copy dedups via INSERT OR IGNORE instead of duplicating.
   const selfWrapRaw = await selfWrap.toNostrEvent()
-  const rumorId = nip59.unwrapEvent(selfWrapRaw as Event, senderSecretKey).id
+  if (!isSignedNdkEvent(selfWrapRaw)) {
+    throw new Error('Gift wrap is not signed')
+  }
+  const rumorId = nip59.unwrapEvent(selfWrapRaw, senderSecretKey).id
 
   const message: NostrChatMessage = {
     content: text,
@@ -221,7 +242,7 @@ async function sendNip17Chat(
   ingestChatMessage(message)
 
   const baseRelays = api.getRelays()
-  const wrapRaw = (await wrap.toNostrEvent()) as Event
+  const wrapRaw = await wrap.toNostrEvent()
 
   // Race our own relays against the recipient's announced inbox relays: the
   // first successful publish marks the message sent. Base sets made of
@@ -286,14 +307,6 @@ async function sendNip04Chat(
     updateChatMessageStatus(identity.npub, message.id, 'failed')
     throw error
   }
-}
-
-type Nip17Rumor = {
-  content?: unknown
-  created_at?: number
-  id?: string
-  kind?: number
-  pubkey?: string
 }
 
 /**
@@ -414,25 +427,24 @@ async function subscribeToIdentityChat(
   await api.subscribeToKind1059(identity.nsec, identity.npub, (messages) => {
     chatLog('gift wraps in batch:', messages.length)
     for (const message of messages) {
-      const rumor = message.content as Nip17Rumor
-      if (
-        rumor?.kind !== 14 ||
-        typeof rumor.content !== 'string' ||
-        !rumor.id ||
-        !rumor.pubkey
-      ) {
+      const parsedRumor = Nip17ChatRumorSchema.safeParse(message.content)
+      if (!parsedRumor.success) {
+        const raw: Record<string, unknown> = isRecord(message.content)
+          ? message.content
+          : {}
         chatLog(
           'skipped wrap (not a chat rumor):',
-          `kind=${rumor?.kind}`,
-          `hasContent=${typeof rumor?.content === 'string'}`
+          `kind=${String(raw.kind)}`,
+          `hasContent=${typeof raw.content === 'string'}`
         )
         continue
       }
+      const rumor = parsedRumor.data
 
       // Self copies (NIP-17 wraps to sender) carry the peer in the rumor's
       // p tag; everyone else's wraps are incoming from the rumor author.
       const isSelfCopy = rumor.pubkey === ownHex
-      const rumorTags = (rumor as { tags?: string[][] }).tags ?? []
+      const rumorTags = isNostrTags(rumor.tags) ? rumor.tags : []
       const peerFromTag = rumorTags.find((tag) => tag[0] === 'p')?.[1]
       const peerPubkey = isSelfCopy ? peerFromTag : rumor.pubkey
       if (!peerPubkey || !/^[0-9a-f]{64}$/.test(peerPubkey)) {

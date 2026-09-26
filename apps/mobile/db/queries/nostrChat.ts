@@ -18,6 +18,12 @@ type ChatMessageRow = {
   created_at: number
 }
 
+type ChatConversationRow = {
+  peer_pubkey: string
+  last_message_at: number
+  unread_count: number | null
+}
+
 function rowToChatMessage(row: ChatMessageRow): NostrChatMessage {
   return {
     content: row.content,
@@ -38,7 +44,7 @@ function listChatConversations(
   protocol: NostrChatProtocol
 ): NostrChatConversation[] {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows } = db.execute<ChatConversationRow>(
     `SELECT peer_pubkey,
             MAX(created_at) AS last_message_at,
             SUM(CASE WHEN read = 0 AND direction = 'in' THEN 1 ELSE 0 END)
@@ -50,18 +56,18 @@ function listChatConversations(
     [identityNpub, protocol]
   )
 
-  return (results ?? []).map((row) => {
-    const { results: previewRows } = db.execute(
+  return rows._array.map((row) => {
+    const { rows: previewRows } = db.execute<{ content: string }>(
       `SELECT content FROM nostr_chat_messages
         WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ?
         ORDER BY created_at DESC LIMIT 1`,
       [identityNpub, protocol, row.peer_pubkey]
     )
     return {
-      lastMessageAt: row.last_message_at as number,
-      lastMessagePreview: (previewRows?.[0]?.content as string) ?? '',
-      peerPubkey: row.peer_pubkey as string,
-      unreadCount: (row.unread_count as number) ?? 0
+      lastMessageAt: row.last_message_at,
+      lastMessagePreview: previewRows.item(0)?.content ?? '',
+      peerPubkey: row.peer_pubkey,
+      unreadCount: row.unread_count ?? 0
     }
   })
 }
@@ -74,7 +80,7 @@ function listChatThread(
   before?: number
 ): NostrChatMessage[] {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows } = db.execute<ChatMessageRow>(
     `SELECT * FROM nostr_chat_messages
       WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ?
         ${before ? 'AND created_at < ?' : ''}
@@ -83,9 +89,7 @@ function listChatThread(
       ? [identityNpub, protocol, peerPubkey, before, limit]
       : [identityNpub, protocol, peerPubkey, limit]
   )
-  return (results ?? [])
-    .map((row) => rowToChatMessage(row as ChatMessageRow))
-    .toReversed()
+  return rows._array.map((row) => rowToChatMessage(row)).toReversed()
 }
 
 function getChatMessageById(
@@ -93,11 +97,12 @@ function getChatMessageById(
   id: string
 ): NostrChatMessage | null {
   const db = getDb()
-  const { results } = db.execute(
-    'SELECT * FROM nostr_chat_messages WHERE identity_npub = ? AND id = ?',
-    [identityNpub, id]
-  )
-  const row = results?.[0] as ChatMessageRow | undefined
+  const row = db
+    .execute<ChatMessageRow>(
+      'SELECT * FROM nostr_chat_messages WHERE identity_npub = ? AND id = ?',
+      [identityNpub, id]
+    )
+    .rows.item(0)
   return row ? rowToChatMessage(row) : null
 }
 
