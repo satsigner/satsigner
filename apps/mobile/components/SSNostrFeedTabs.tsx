@@ -43,14 +43,13 @@ import type {
   ZapReceiptInfo,
   ZapSortField
 } from '@/types/models/Nostr'
-import { formatNostrCardDate } from '@/utils/format'
+import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 import {
   decryptPrivateBookmarks,
   mergeBookmarks,
   parsePublicBookmarks
 } from '@/utils/nostrBookmarks'
-import { truncateNpub } from '@/utils/nostrIdentity'
 import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
 import {
   collectUnresolvedEventIds,
@@ -948,10 +947,10 @@ function SSNostrFeedTabs({
               const displayName = isOutgoing
                 ? receipt.recipientPubkey
                   ? receipt.recipientName ||
-                    truncateNpub(nip19.npubEncode(receipt.recipientPubkey), 8)
+                    formatNpub(nip19.npubEncode(receipt.recipientPubkey), 'xs')
                   : '?'
                 : receipt.senderName ||
-                  truncateNpub(nip19.npubEncode(receipt.senderPubkey), 8)
+                  formatNpub(nip19.npubEncode(receipt.senderPubkey), 'xs')
               const placeholderLetter = isOutgoing
                 ? receipt.recipientName?.[0]?.toUpperCase() ||
                   receipt.recipientPubkey?.slice(2, 3)?.toUpperCase()

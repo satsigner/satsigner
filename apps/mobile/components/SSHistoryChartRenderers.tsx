@@ -20,7 +20,7 @@ import { Fragment, memo, useMemo } from 'react'
 import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
-import { formatNumber } from '@/utils/format'
+import { formatNumber, formatTxId } from '@/utils/format'
 import {
   hexToRgba,
   type UtxoLabel,
@@ -529,7 +529,7 @@ function UtxoLabelRenderer({
               key={getUtxoOutpoint(data.utxo) + index}
               x={data.x1 + 2}
               y={data.y2 + 10}
-              text={`${data.utxo.txid.slice(0, 3)}...${data.utxo.txid.slice(-3)}:${data.utxo.vout}`}
+              text={`${formatTxId(data.utxo.txid, 'tiny')}:${data.utxo.vout}`}
               font={font}
               color="white"
             />

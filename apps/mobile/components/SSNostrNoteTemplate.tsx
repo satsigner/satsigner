@@ -9,8 +9,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type NostrDecodedContent } from '@/types/models/Nostr'
-import { formatNostrCardDate } from '@/utils/format'
-import { extractPubpayTags, truncateNpub } from '@/utils/nostrIdentity'
+import { formatNostrCardDate, formatNpub } from '@/utils/format'
+import { extractPubpayTags } from '@/utils/nostrIdentity'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 
@@ -81,7 +81,7 @@ function AuthorRow({
         {name && <SSText size="sm">{name}</SSText>}
         {pubkey && (
           <SSText size="xs" color="muted" type="mono">
-            {truncateNpub(pubkey, 10)}
+            {formatNpub(pubkey, 'sm')}
           </SSText>
         )}
       </SSVStack>
@@ -102,7 +102,7 @@ function SSNostrNoteTemplate({ content, onPay }: SSNostrNoteTemplateProps) {
           Profile
         </SSText>
         <SSText type="mono" size="sm">
-          {truncateNpub(content.raw, 16)}
+          {formatNpub(content.raw, 'xl')}
         </SSText>
       </SSVStack>
     )
@@ -162,7 +162,7 @@ function SSNostrNoteTemplate({ content, onPay }: SSNostrNoteTemplateProps) {
             <SSNoteInlineVideos embeds={inlineVideos} />
           ) : null}
           <SSText type="mono" size="xs" color="muted">
-            {truncateNpub(content.raw, 12)}
+            {formatNpub(content.raw, 'md')}
           </SSText>
           <PubpayRows tags={fetched.tags} onPay={onPay} />
         </SSVStack>
@@ -175,7 +175,7 @@ function SSNostrNoteTemplate({ content, onPay }: SSNostrNoteTemplateProps) {
           Note
         </SSText>
         <SSText type="mono" size="xs" color="muted">
-          {truncateNpub(content.raw, 16)}
+          {formatNpub(content.raw, 'xl')}
         </SSText>
         <PubpayRows tags={tags} onPay={onPay} />
       </SSVStack>
