@@ -111,19 +111,22 @@ const bip329FieldReaders: Record<keyof Label, z.ZodType> = {
   value: Bip329NumberSchema
 }
 
+/** A label record whose label may be missing, checked before it is kept. */
+const LabelRecordSchema = LabelSchema.partial({ label: true })
+
 /**
  * Turns one imported record, keyed by Label field, into a Label. Optional
  * fields that cannot be read are dropped so the rest of the record still
  * imports. Returns null for a record to ignore: a type BIP-329 does not
- * define, or no label to store. Throws when type or ref is missing or
- * invalid.
+ * define, or no label text to store (so an empty label never overwrites an
+ * existing one). Throws when type or ref is missing or invalid.
  */
 function toLabel(record: Record<string, unknown>): Label | null {
   const hasUnknownType =
     typeof record.type === 'string' &&
     record.type !== '' &&
     !LabelTypeSchema.safeParse(record.type).success
-  if (hasUnknownType || typeof record.label !== 'string') {
+  if (hasUnknownType) {
     return null
   }
   const readable: Record<string, unknown> = {}
@@ -133,7 +136,11 @@ function toLabel(record: Record<string, unknown>): Label | null {
       readable[field] = result.data
     }
   }
-  return LabelSchema.parse(readable)
+  const labelRecord = LabelRecordSchema.parse(readable)
+  if (!labelRecord.label) {
+    return null
+  }
+  return { ...labelRecord, label: labelRecord.label }
 }
 
 /**
@@ -220,14 +227,25 @@ export function formatAccountLabels(account: Account): Label[] {
   return Array.from(labelsByRef.values())
 }
 
+/** Cell text the importer would otherwise misread: commas, quotes, breaks. */
+const CSV_CELL_NEEDS_QUOTES_PATTERN = /[",\r\n]|^'|'$/
+
+/** Writes one CSV cell, quoting it (`""` escapes a quote) when needed. */
+function toCsvCell(value: string | boolean | undefined): string {
+  const text = value === undefined ? '' : String(value)
+  return CSV_CELL_NEEDS_QUOTES_PATTERN.test(text)
+    ? `"${text.replaceAll('"', '""')}"`
+    : text
+}
+
 function labelsToCSV(labels: Label[]) {
-  const CsvHeaderItems: (keyof Label)[] = ['type', 'ref', 'spendable', 'label']
+  const CsvHeaderItems = ['type', 'ref', 'spendable', 'label'] as const
   const CsvHeader = CsvHeaderItems.join(',')
   const CsvRows: string[] = []
   for (const label of labels) {
     const row = []
     for (const column of CsvHeaderItems) {
-      row.push(label[column])
+      row.push(toCsvCell(label[column]))
     }
     CsvRows.push(row.join(','))
   }
@@ -239,15 +257,18 @@ function removeQuotes(str: string) {
   return str.replace(/^['"]/, '').replace(/['"]$/, '')
 }
 
-/** One CSV cell: double-quoted (commas allowed, `""` escapes a quote) or plain. */
-const CSV_CELL_PATTERN = /(?:^|,)(?:"((?:[^"]|"")*)"|([^,]*))/g
+/**
+ * One CSV cell, matched after its leading comma: double-quoted (commas
+ * allowed, `""` escapes a quote, must end the cell) or plain text.
+ */
+const CSV_CELL_PATTERN = /,(?:"((?:[^"]|"")*)"(?=,|$)|([^,]*))/g
 
 /** Line breaks in exported files, which may use Windows (CRLF) endings. */
 const LINE_BREAK_PATTERN = /\r?\n/
 
 /** Splits a CSV row into cells, keeping commas inside double-quoted cells. */
 function splitCsvRow(row: string): string[] {
-  return Array.from(row.matchAll(CSV_CELL_PATTERN), ([, quoted, plain]) =>
+  return Array.from(`,${row}`.matchAll(CSV_CELL_PATTERN), ([, quoted, plain]) =>
     quoted === undefined ? removeQuotes(plain) : quoted.replaceAll('""', '"')
   )
 }

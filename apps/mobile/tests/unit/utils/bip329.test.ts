@@ -199,6 +199,11 @@ describe('json to labels', () => {
     expect(() => bip329parser.JSON('["coffee"]')).toThrow(ZodError)
   })
 
+  it('rejects records without a type or ref, even without a label', () => {
+    expect(() => bip329parser.JSON('[{}]')).toThrow(ZodError)
+    expect(() => bip329parser.JSON('[{"ref":"x"}]')).toThrow(ZodError)
+  })
+
   it('ignores records whose type BIP-329 does not define', () => {
     const json = JSON.stringify([
       { label: 'coffee', ref: TXID, type: 'utxo' },
@@ -245,10 +250,25 @@ describe('csv to labels', () => {
   })
 
   it('reads spendable cells as booleans', () => {
-    const csv = `type,ref,spendable,label\noutput,${TXID}:0,false,frozen\noutput,${TXID}:1,true,`
+    const csv = `type,ref,spendable,label\noutput,${TXID}:0,false,frozen\noutput,${TXID}:1,true,change`
     expect(CSVtoLabels(csv)).toStrictEqual([
       { label: 'frozen', ref: `${TXID}:0`, spendable: false, type: 'output' },
-      { label: '', ref: `${TXID}:1`, spendable: true, type: 'output' }
+      { label: 'change', ref: `${TXID}:1`, spendable: true, type: 'output' }
+    ])
+  })
+
+  it('skips rows without label text so they never clear existing labels', () => {
+    const csv = `type,ref,label\ntx,${TXID},\ntx,${TXID},rent`
+    expect(CSVtoLabels(csv)).toStrictEqual([
+      { label: 'rent', ref: TXID, type: 'tx' }
+    ])
+  })
+
+  it('keeps columns aligned when the first cell is empty', () => {
+    const csv = `Date (UTC),Label,Txid\n,rent,${TXID}\n,"a, b",${TXID}`
+    expect(CSVtoLabels(csv)).toStrictEqual([
+      { label: 'rent', ref: TXID, type: 'tx' },
+      { label: 'a, b', ref: TXID, type: 'tx' }
     ])
   })
 
@@ -261,7 +281,10 @@ describe('csv to labels', () => {
 
   it('reads its own CSV export back', () => {
     const labels = [
-      { label: 'coffee', ref: TXID, spendable: true, type: 'tx' as const }
+      { label: 'coffee', ref: TXID, spendable: true, type: 'tx' as const },
+      { label: 'rent, March', ref: TXID, type: 'tx' as const },
+      { label: '"Quoted" note', ref: TXID, type: 'tx' as const },
+      { label: "'single'", ref: TXID, type: 'tx' as const }
     ]
     expect(bip329parser.CSV(bip329export.CSV(labels))).toStrictEqual(labels)
   })

@@ -19,13 +19,17 @@ const DifficultyEpochBlockSchema = z.tuple(
   z.unknown()
 )
 
+const DifficultyEpochFileSchema = z.tuple(
+  [z.array(DifficultyEpochBlockSchema)],
+  z.unknown()
+)
+
 /**
  * Validates a pvxg.net difficulty epoch file, whose first entry holds the
  * epoch's block rows. Throws when the file does not match.
  */
-const parseDifficultyEpochFile = z.tuple(
-  [z.array(DifficultyEpochBlockSchema)],
-  z.unknown()
-).parse
+function parseDifficultyEpochFile(file: unknown) {
+  return DifficultyEpochFileSchema.parse(file)
+}
 
 export { parseDifficultyEpochFile }

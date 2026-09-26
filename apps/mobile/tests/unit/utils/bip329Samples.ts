@@ -149,22 +149,6 @@ const sampleCsvSparrowTxExpected = [
       value: 6764
     },
     {
-      fee: 141,
-      label: '',
-      ref: '0d239e8f60568bb7d8b1c6973ecd5dad9234f49bd589995d3c322eca9a8f23aa',
-      time: new Date('2025-01-04T01:13:09.000Z'),
-      type: 'tx',
-      value: -3141
-    },
-    {
-      fee: 141,
-      label: '',
-      ref: '681477bfd5ee6cb07bc64fb0451f268bd59f4c207067e78059100d5447935e92',
-      time: new Date('2025-01-04T01:13:09.000Z'),
-      type: 'tx',
-      value: -9000
-    },
-    {
       fee: 2516,
       label: 'to carlos',
       ref: '269b53e16d96425eb7d2183841e29552eab6a553cac098c76d0c75062ef48856',
@@ -188,72 +172,11 @@ const sampleCsvSparrowTxExpected = [
       value: -49718
     },
     {
-      fee: 5052,
-      label: '',
-      ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654',
-      time: new Date('2025-01-21T01:38:06.000Z'),
-      type: 'tx',
-      value: -40516
-    },
-    {
-      fee: 2966,
-      label: '',
-      ref: 'd8bf446e1db334c436ca65e2cd545f298b42229207c43285cbe5a4eb67aa7f6f',
-      time: new Date('2025-01-29T10:32:13.000Z'),
-      type: 'tx',
-      value: -25186
-    },
-    {
       label: 'more hunicus',
       ref: '7b01cbe040782b04821eede9f9038a72263464def5d0a801b4c65eda72619ce7',
       time: new Date('2025-01-31T16:06:38.000Z'),
       type: 'tx',
       value: 83501
-    },
-    {
-      label: '',
-      ref: '51ea0a6ffff52665d5211fe3e2de99e2d19abccb1f1a7fa1e6bc22caae47abce',
-      time: new Date('2025-01-31T18:53:38.000Z'),
-      type: 'tx',
-      value: 15501
-    },
-    {
-      label: '',
-      ref: 'a7289ed0cffab33d48436313e8ab226ed056640672c5b59fd70ec4de044a65bf',
-      time: new Date('2025-02-04T16:34:59.000Z'),
-      type: 'tx',
-      value: 9101
-    },
-    {
-      fee: 519,
-      label: '',
-      ref: '8179a57b9a600d4b7c7dba30ec8d38810a360f13ad9c68a0c466ad7900173529',
-      time: new Date('2025-02-04T22:31:00.000Z'),
-      type: 'tx',
-      value: -15501
-    },
-    {
-      fee: 413,
-      label: '',
-      ref: 'a7f48862afb292ccfea2f0e6781949f7754683b466285c201559599714197c45',
-      time: new Date('2025-02-05T01:15:24.000Z'),
-      type: 'tx',
-      value: -56214
-    },
-    {
-      label: '',
-      ref: 'ccb69fdf971f40a04fd5f7c91666549cb62177967d8e3105296e38b1925b63de',
-      time: new Date('2025-02-13T01:10:22.000Z'),
-      type: 'tx',
-      value: 9791
-    },
-    {
-      fee: 153,
-      label: '',
-      ref: '7fcf752578020878413c3d3dcf248746e2ad6d5e13eeaf143cf2cc66128b240a',
-      time: new Date('2025-02-13T01:10:22.000Z'),
-      type: 'tx',
-      value: -10153
     },
     {
       fee: 454,
@@ -327,22 +250,6 @@ const sampleCsvSparrowTxExpected = [
       value: 6764
     },
     {
-      fee: 141,
-      label: '',
-      ref: '0d239e8f60568bb7d8b1c6973ecd5dad9234f49bd589995d3c322eca9a8f23aa',
-      time: new Date('2025-01-04T01:13:09.000Z'),
-      type: 'tx',
-      value: -3141
-    },
-    {
-      fee: 141,
-      label: '',
-      ref: '681477bfd5ee6cb07bc64fb0451f268bd59f4c207067e78059100d5447935e92',
-      time: new Date('2025-01-04T01:13:09.000Z'),
-      type: 'tx',
-      value: -9000
-    },
-    {
       fee: 2516,
       label: 'to carlos',
       ref: '269b53e16d96425eb7d2183841e29552eab6a553cac098c76d0c75062ef48856',
@@ -366,72 +273,11 @@ const sampleCsvSparrowTxExpected = [
       value: -49718
     },
     {
-      fee: 5052,
-      label: '',
-      ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654',
-      time: new Date('2025-01-21T01:38:06.000Z'),
-      type: 'tx',
-      value: -40516
-    },
-    {
-      fee: 2966,
-      label: '',
-      ref: 'd8bf446e1db334c436ca65e2cd545f298b42229207c43285cbe5a4eb67aa7f6f',
-      time: new Date('2025-01-29T10:32:13.000Z'),
-      type: 'tx',
-      value: -25186
-    },
-    {
       label: 'more hunicus',
       ref: '7b01cbe040782b04821eede9f9038a72263464def5d0a801b4c65eda72619ce7',
       time: new Date('2025-01-31T16:06:38.000Z'),
       type: 'tx',
       value: 83501
-    },
-    {
-      label: '',
-      ref: '51ea0a6ffff52665d5211fe3e2de99e2d19abccb1f1a7fa1e6bc22caae47abce',
-      time: new Date('2025-01-31T18:53:38.000Z'),
-      type: 'tx',
-      value: 15501
-    },
-    {
-      label: '',
-      ref: 'a7289ed0cffab33d48436313e8ab226ed056640672c5b59fd70ec4de044a65bf',
-      time: new Date('2025-02-04T16:34:59.000Z'),
-      type: 'tx',
-      value: 9101
-    },
-    {
-      fee: 519,
-      label: '',
-      ref: '8179a57b9a600d4b7c7dba30ec8d38810a360f13ad9c68a0c466ad7900173529',
-      time: new Date('2025-02-04T22:31:00.000Z'),
-      type: 'tx',
-      value: -15501
-    },
-    {
-      fee: 413,
-      label: '',
-      ref: 'a7f48862afb292ccfea2f0e6781949f7754683b466285c201559599714197c45',
-      time: new Date('2025-02-05T01:15:24.000Z'),
-      type: 'tx',
-      value: -56214
-    },
-    {
-      label: '',
-      ref: 'ccb69fdf971f40a04fd5f7c91666549cb62177967d8e3105296e38b1925b63de',
-      time: new Date('2025-02-13T01:10:22.000Z'),
-      type: 'tx',
-      value: 9791
-    },
-    {
-      fee: 153,
-      label: '',
-      ref: '7fcf752578020878413c3d3dcf248746e2ad6d5e13eeaf143cf2cc66128b240a',
-      time: new Date('2025-02-13T01:10:22.000Z'),
-      type: 'tx',
-      value: -10153
     },
     {
       fee: 454,
@@ -516,34 +362,6 @@ const sampleCsvSparrowUtxoExpected = [
     value: 5000
   },
   {
-    label: '',
-    ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654:3',
-    time: new Date('2025-01-21T01:38:06.000Z'),
-    type: 'output',
-    value: 19451
-  },
-  {
-    label: '',
-    ref: 'd8bf446e1db334c436ca65e2cd545f298b42229207c43285cbe5a4eb67aa7f6f:1',
-    time: new Date('2025-01-29T10:32:13.000Z'),
-    type: 'output',
-    value: 26297
-  },
-  {
-    label: '',
-    ref: 'a7f48862afb292ccfea2f0e6781949f7754683b466285c201559599714197c45:1',
-    time: new Date('2025-02-05T01:15:24.000Z'),
-    type: 'output',
-    value: 27287
-  },
-  {
-    label: '',
-    ref: 'ccb69fdf971f40a04fd5f7c91666549cb62177967d8e3105296e38b1925b63de:0',
-    time: new Date('2025-02-13T01:10:22.000Z'),
-    type: 'output',
-    value: 9791
-  },
-  {
     label: 'Multi (received)',
     ref: 'ad64250ef6f24a7a8832e55cd2926758ee16da9d6e159049e7b432664a303629:0',
     time: new Date('2025-03-02T02:19:12.000Z'),
@@ -589,188 +407,12 @@ const sampleCsvNonchukTxExpected = [
     value: -15381
   },
   {
-    fee: 238,
-    height: 228764,
-    label: '',
-    ref: '659a13373d6fad4adcfc74aa6fd331fe16d783ebb77f89e57edda61a58a85022',
-    type: 'tx',
-    value: -72099
-  },
-  {
-    fee: 0,
-    height: 228753,
-    label: '',
-    ref: 'd948cbe2d084d1abcf7d34fa4b31a6f264b3f055388be43002f23c4e370a6791',
-    type: 'tx',
-    value: 200000
-  },
-  {
-    fee: 0,
-    height: 228778,
-    label: '',
-    ref: 'bb1749d04d08010aed39a72af83313657e2c09175175777075800d313f2bfc3d',
-    type: 'tx',
-    value: 149872
-  },
-  {
-    fee: 0,
-    height: 229065,
-    label: '',
-    ref: '74d45e932fa71a5e5a6d9138dd5da245393d69daa12b897c140adace4f05aadf',
-    type: 'tx',
-    value: 6764
-  },
-  {
-    fee: 141,
-    height: 229282,
-    label: '',
-    ref: '0d239e8f60568bb7d8b1c6973ecd5dad9234f49bd589995d3c322eca9a8f23aa',
-    type: 'tx',
-    value: -3000
-  },
-  {
-    fee: 2516,
-    height: 230084,
-    label: '',
-    ref: '269b53e16d96425eb7d2183841e29552eab6a553cac098c76d0c75062ef48856',
-    type: 'tx',
-    value: -50000
-  },
-  {
-    fee: 0,
-    height: 230085,
-    label: '',
-    ref: '4686cb1251dcf23e42faceb994d2176d4030e07731500d45d2a150f95044d8cd',
-    type: 'tx',
-    value: 5000
-  },
-  {
-    fee: 141,
-    height: 229282,
-    label: '',
-    ref: '681477bfd5ee6cb07bc64fb0451f268bd59f4c207067e78059100d5447935e92',
-    type: 'tx',
-    value: -8859
-  },
-  {
-    fee: 0,
-    height: 228763,
-    label: '',
-    ref: '23926eadace17518ea2c297fb4b0782e028153a1d0ef99bec12cbc144c2453ff',
-    type: 'tx',
-    value: 7030
-  },
-  {
-    fee: 5052,
-    height: 231855,
-    label: '',
-    ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654',
-    type: 'tx',
-    value: -35464
-  },
-  {
-    fee: 2966,
-    height: 233116,
-    label: '',
-    ref: 'd8bf446e1db334c436ca65e2cd545f298b42229207c43285cbe5a4eb67aa7f6f',
-    type: 'tx',
-    value: -22220
-  },
-  {
-    fee: 0,
-    height: 233409,
-    label: '',
-    ref: '7b01cbe040782b04821eede9f9038a72263464def5d0a801b4c65eda72619ce7',
-    type: 'tx',
-    value: 83501
-  },
-  {
-    fee: 413,
-    height: 234029,
-    label: '',
-    ref: 'a7f48862afb292ccfea2f0e6781949f7754683b466285c201559599714197c45',
-    type: 'tx',
-    value: -55801
-  },
-  {
-    fee: 0,
-    height: 233425,
-    label: '',
-    ref: '51ea0a6ffff52665d5211fe3e2de99e2d19abccb1f1a7fa1e6bc22caae47abce',
-    type: 'tx',
-    value: 15501
-  },
-  {
-    fee: 519,
-    height: 234018,
-    label: '',
-    ref: '8179a57b9a600d4b7c7dba30ec8d38810a360f13ad9c68a0c466ad7900173529',
-    type: 'tx',
-    value: -14982
-  },
-  {
-    fee: 1476,
-    height: 230085,
-    label: '',
-    ref: 'ae3d3ec185eb197fcc8bf4f533a45099875ffbe4d2b9abaceb059c3439d2dff7',
-    type: 'tx',
-    value: -48242
-  },
-  {
-    fee: 0,
-    height: 233988,
-    label: '',
-    ref: 'a7289ed0cffab33d48436313e8ab226ed056640672c5b59fd70ec4de044a65bf',
-    type: 'tx',
-    value: 9101
-  },
-  {
     fee: 209,
     height: 235125,
     label: 'Recieved money',
     ref: 'ccb69fdf971f40a04fd5f7c91666549cb62177967d8e3105296e38b1925b63de',
     type: 'tx',
     value: 9791
-  },
-  {
-    fee: 153,
-    height: 235125,
-    label: '',
-    ref: '7fcf752578020878413c3d3dcf248746e2ad6d5e13eeaf143cf2cc66128b240a',
-    type: 'tx',
-    value: -10000
-  },
-  {
-    fee: 454,
-    height: 237505,
-    label: '',
-    ref: 'dd31e2071659d1bc385426843ea60b4c4c0d5ab61030582b146fcb745ca28161',
-    type: 'tx',
-    value: -33739
-  },
-  {
-    fee: 454,
-    height: 237505,
-    label: '',
-    ref: 'ad64250ef6f24a7a8832e55cd2926758ee16da9d6e159049e7b432664a303629',
-    type: 'tx',
-    value: 0
-  },
-  {
-    fee: 380,
-    height: 237616,
-    label: '',
-    ref: 'b48a73173fed37c1c268b4a079caf777424917c8223c5556c0cc0435213030c5',
-    type: 'tx',
-    value: -12331
-  },
-  {
-    fee: 480,
-    height: 237880,
-    label: '',
-    ref: 'bbede7bf7c52a098e21f97dd5116c19f544323b2cfe6accb1fc0a67144c30d57',
-    type: 'tx',
-    value: -21701
   },
   {
     fee: 209,
@@ -787,29 +429,7 @@ const sampleCsvNonchukUtxo = `txid,vout,amount,height,memo
 a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654,3,19451,231855,""
 bbede7bf7c52a098e21f97dd5116c19f544323b2cfe6accb1fc0a67144c30d57,1,36666,237880,""`
 
-const sampleCsvNonchukUtxoExpected = [
-  {
-    height: 230085,
-    label: '',
-    ref: '4686cb1251dcf23e42faceb994d2176d4030e07731500d45d2a150f95044d8cd:0',
-    type: 'addr',
-    value: 5000
-  },
-  {
-    height: 231855,
-    label: '',
-    ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654:3',
-    type: 'addr',
-    value: 19451
-  },
-  {
-    height: 237880,
-    label: '',
-    ref: 'bbede7bf7c52a098e21f97dd5116c19f544323b2cfe6accb1fc0a67144c30d57:1',
-    type: 'addr',
-    value: 36666
-  }
-]
+const sampleCsvNonchukUtxoExpected = []
 
 module.exports = {
   sampleCsvNonchukTx,

@@ -51,29 +51,37 @@ function rpcResponseSchema<T extends z.ZodType>(result: T) {
 type EnergyBlockchainInfo = z.infer<typeof EnergyBlockchainInfoSchema>
 type EnergyBlockTemplate = z.infer<typeof EnergyBlockTemplateSchema>
 
+const ChainInfoResponseSchema = rpcResponseSchema(
+  BlockchainInfoSchema.pick({ chain: true })
+)
+const BlockchainInfoResponseSchema = rpcResponseSchema(
+  EnergyBlockchainInfoSchema
+)
+const BlockTemplateResponseSchema = rpcResponseSchema(EnergyBlockTemplateSchema)
+
 /**
  * Validates a `getblockchaininfo` JSON-RPC body when only the chain name is
  * needed. Throws when the body does not match.
  */
-const parseChainInfoResponse = rpcResponseSchema(
-  BlockchainInfoSchema.pick({ chain: true })
-).parse
+function parseChainInfoResponse(body: unknown) {
+  return ChainInfoResponseSchema.parse(body)
+}
 
 /**
  * Validates a `getblockchaininfo` JSON-RPC body. Throws when the body does not
  * match.
  */
-const parseBlockchainInfoResponse = rpcResponseSchema(
-  EnergyBlockchainInfoSchema
-).parse
+function parseBlockchainInfoResponse(body: unknown) {
+  return BlockchainInfoResponseSchema.parse(body)
+}
 
 /**
  * Validates a `getblocktemplate` JSON-RPC body. Throws when the body does not
  * match.
  */
-const parseBlockTemplateResponse = rpcResponseSchema(
-  EnergyBlockTemplateSchema
-).parse
+function parseBlockTemplateResponse(body: unknown) {
+  return BlockTemplateResponseSchema.parse(body)
+}
 
 export {
   type EnergyBlockchainInfo,
