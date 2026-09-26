@@ -221,7 +221,7 @@ export function useHistoryChartGestures({
     })
     .onEnd(() => {
       isGestureActiveRef.current = false
-      prevScale.current = scale
+      prevScale.current = scaleRef.current
       if (gestureUpdateAnimationFrameRef.current) {
         cancelAnimationFrame(gestureUpdateAnimationFrameRef.current)
         gestureUpdateAnimationFrameRef.current = null
