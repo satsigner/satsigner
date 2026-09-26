@@ -11,6 +11,14 @@
  * same internal modules LogBox uses.
  */
 
+import { isRecord } from '@/utils/object'
+
+declare global {
+  // Set once the dev error hooks are installed, so repeat calls stay no-ops.
+  // eslint-disable-next-line no-var
+  var __satsignerDevErrorReporting__: boolean | undefined
+}
+
 type ParsedFrame = {
   column?: number
   file?: string
@@ -44,7 +52,7 @@ async function symbolicate(error: unknown): Promise<string | null> {
     const parseErrorStack = require('react-native/Libraries/Core/Devtools/parseErrorStack')
     const symbolicateStackTrace = require('react-native/Libraries/Core/Devtools/symbolicateStackTrace')
 
-    const stack: unknown = (error as { stack?: unknown })?.stack
+    const stack = isRecord(error) ? error.stack : undefined
     if (typeof stack !== 'string' || !stack) {
       return null
     }
@@ -99,12 +107,10 @@ export function installDevErrorReporting(): void {
   if (!__DEV__) {
     return
   }
-  const marker = '__satsignerDevErrorReporting__'
-  const globalAny = globalThis as Record<string, unknown>
-  if (globalAny[marker]) {
+  if (globalThis.__satsignerDevErrorReporting__) {
     return
   }
-  globalAny[marker] = true
+  globalThis.__satsignerDevErrorReporting__ = true
 
   // Unhandled promise rejections (the "[Error: Uncaught (in promise, id: N)]"
   // messages that currently print no location).
@@ -121,20 +127,12 @@ export function installDevErrorReporting(): void {
 
   // Fatal/synchronous errors (component crashes, render throws).
   try {
-    const errorUtils = globalAny.ErrorUtils as
-      | {
-          getGlobalHandler?: () => (error: unknown, fatal: boolean) => void
-          setGlobalHandler?: (
-            handler: (error: unknown, fatal: boolean) => void
-          ) => void
-        }
-      | undefined
-    const previous = errorUtils?.getGlobalHandler?.()
-    const handleGlobalError = (error: unknown, fatal: boolean) => {
+    const previous = ErrorUtils.getGlobalHandler()
+    const handleGlobalError = (error: unknown, fatal?: boolean) => {
       report(fatal ? 'Fatal error' : 'Error', error)
-      previous?.(error, fatal)
+      previous(error, fatal)
     }
-    errorUtils?.setGlobalHandler?.(handleGlobalError)
+    ErrorUtils.setGlobalHandler(handleGlobalError)
   } catch {
     // ErrorUtils unavailable — rejection hook above still covers promises.
   }

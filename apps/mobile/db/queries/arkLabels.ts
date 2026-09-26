@@ -5,13 +5,13 @@ import { type ArkLabelRow, rowToArkLabel } from '../mappers'
 
 function getArkLabelsByAccount(accountId: string): Record<string, Label> {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows } = db.execute<ArkLabelRow>(
     'SELECT * FROM ark_labels WHERE account_id = ?',
     [accountId]
   )
   const labels: Record<string, Label> = {}
-  for (const row of results ?? []) {
-    const label = rowToArkLabel(row as ArkLabelRow)
+  for (const row of rows._array) {
+    const label = rowToArkLabel(row)
     labels[label.ref] = label
   }
   return labels

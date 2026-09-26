@@ -15,7 +15,9 @@ type runPromiseProps = {
   errorMessage?: string
 }
 
-export function usePromiseStatuses(promiseNames: string[] = []) {
+export function usePromiseStatuses(
+  promiseNames: string[] = []
+): [PromiseStatuses, (args: runPromiseProps) => Promise<void>] {
   const [statuses, setStatuses] = useState<PromiseStatuses>(
     initPromiseStatuses(promiseNames)
   )
@@ -50,8 +52,5 @@ export function usePromiseStatuses(promiseNames: string[] = []) {
     }
   }
 
-  return [statuses, runPromise] as [
-    PromiseStatuses,
-    (args: runPromiseProps) => Promise<void>
-  ]
+  return [statuses, runPromise]
 }

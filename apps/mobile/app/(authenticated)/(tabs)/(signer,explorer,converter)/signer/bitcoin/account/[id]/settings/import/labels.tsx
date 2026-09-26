@@ -63,7 +63,7 @@ export default function ImportLabels() {
   }
 
   function importLabels(labels: Label[]) {
-    const importCount = importLabelsToAccount(accountId!, labels)
+    const importCount = importLabelsToAccount(accountId, labels)
     setImportCount(importCount)
     setImportCountTotal(labels.length)
     setSuccessMsgVisible(true)

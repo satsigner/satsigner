@@ -29,11 +29,11 @@ function AddressLabel() {
   )
 
   function updateLabel(label: string) {
-    const updatedAccount = setAddrLabel(accountId!, addr!, label)
+    const updatedAccount = setAddrLabel(accountId, addr, label)
 
     const singleLabelData: Label = {
       label,
-      ref: addr!,
+      ref: addr,
       spendable: true,
       type: 'addr'
     }

@@ -25,6 +25,7 @@ import {
   type BlockDifficulty,
   type DifficultyAdjustment
 } from '@/types/models/Blockchain'
+import { parseDifficultyEpochFile } from '@/utils/difficultyEpochFile'
 import {
   formatExplorerBackendSource,
   getExplorerCapability
@@ -39,25 +40,12 @@ const BLOCKS_PER_EPOCH = 2016
 const DATA_LINK = 'https://pvxg.net/bitcoin_data/difficulty_epochs/'
 const MAX_EPOCH = 426
 
-type DifficultyEpochsData = [
-  { height: number },
-  { time: number },
-  { nTx: number },
-  { chainwork: string },
-  { nonce: number },
-  { size: number },
-  { weight: number },
-  { block_in_cycle: number },
-  { time_difference: number }
-]
-
 async function fetchDifficultyEpoch(epoch: number): Promise<BlockDifficulty[]> {
   const fileName = `rcp_bitcoin_block_data_${(epoch * BLOCKS_PER_EPOCH)
     .toString()
     .padStart(7, '0')}.json`
   const response = await fetch(DATA_LINK + fileName)
-  const rawData = (await response.json()) as DifficultyEpochsData[][]
-  const [items] = rawData
+  const [items] = parseDifficultyEpochFile(await response.json())
   return items.map((value) => ({
     chainWork: value[3].chainwork,
     cycleHeight: value[7].block_in_cycle,

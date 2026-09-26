@@ -127,7 +127,7 @@ export default function Receive() {
       state.setAddrLabel
     ])
   )
-  const wallet = useGetAccountWallet(id!)
+  const wallet = useGetAccountWallet(id)
   const { sendLabelsToNostr } = useNostrSync()
   const existingPayjoinSession = id
     ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
@@ -260,7 +260,7 @@ export default function Receive() {
     negotiating: payjoinNegotiating
   } = usePayjoinReceiver({
     account,
-    accountId: id!,
+    accountId: id,
     address:
       !isManualPayjoin &&
       includePayjoin &&
@@ -504,7 +504,7 @@ export default function Receive() {
 
     saveLabelTimeoutRef.current = setTimeout(() => {
       if (localAddress && text.trim()) {
-        const updatedAccount = setAddrLabel(id!, localAddress, text.trim())
+        const updatedAccount = setAddrLabel(id, localAddress, text.trim())
         if (updatedAccount?.nostr?.autoSync) {
           const singleLabelData: Label = {
             label: text.trim(),

@@ -8,6 +8,7 @@ import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { base85Decode, base85Encode } from '@/utils/base58'
 import { sha256 } from '@/utils/crypto'
+import { isRecord } from '@/utils/object'
 import { parseDescriptor } from '@/utils/parse'
 import { type TransactionData } from '@/utils/psbt'
 
@@ -67,7 +68,7 @@ export function deriveNpubFromNsec(nsec: string): string | null {
     if (!decoded || decoded.type !== 'nsec') {
       return null
     }
-    const publicKey = getPublicKey(decoded.data as Uint8Array)
+    const publicKey = getPublicKey(decoded.data)
     return nip19.npubEncode(publicKey)
   } catch {
     return null
@@ -89,11 +90,7 @@ export function getPubKeyHexFromNpub(npub: string): string | null {
     if (!decoded || decoded.type !== 'npub' || !decoded.data) {
       return null
     }
-    const rawHex =
-      typeof decoded.data === 'string'
-        ? decoded.data
-        : Buffer.from(decoded.data as Uint8Array).toString('hex')
-    const hex = (rawHex ?? '').toLowerCase().replace(/^0x/, '')
+    const hex = decoded.data.toLowerCase().replace(/^0x/, '')
     if (hex.length !== 64 || !/^[0-9a-f]+$/.test(hex)) {
       return null
     }
@@ -109,7 +106,7 @@ export function getSecretFromNsec(nsec: string): Uint8Array | null {
     if (!decoded || decoded.type !== 'nsec' || !decoded.data) {
       return null
     }
-    return decoded.data as Uint8Array
+    return decoded.data
   } catch {
     return null
   }
@@ -146,7 +143,7 @@ export function decompressMessage(compressedString: string): unknown {
     cborBytes.byteOffset,
     cborBytes.byteOffset + cborBytes.byteLength
   )
-  return CBOR.decode(bufferSlice as unknown as Uint8Array)
+  return CBOR.decode(bufferSlice)
 }
 
 export async function deriveNostrKeysFromDescriptor(
@@ -207,7 +204,10 @@ export function getProfileFromKind0Content(
   contentJson: string
 ): NostrKind0Profile | null {
   try {
-    const content = JSON.parse(contentJson) as Record<string, unknown>
+    const content: unknown = JSON.parse(contentJson)
+    if (!isRecord(content)) {
+      return null
+    }
     const displayName =
       typeof content.name === 'string'
         ? content.name

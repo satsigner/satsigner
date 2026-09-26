@@ -104,420 +104,358 @@ const sampleCsvSparrowTx = [
 const sampleCsvSparrowTxExpected = [
   [
     {
-      fee: '',
       label: 'Hunicus send',
-      rate: '186.60',
       ref: 'd948cbe2d084d1abcf7d34fa4b31a6f264b3f055388be43002f23c4e370a6791',
-      time: '2024-12-31 12:33:02',
+      time: new Date('2024-12-31T12:33:02.000Z'),
       type: 'tx',
-      value: '200000'
+      value: 200000
     },
     {
-      fee: '',
       label: 'back from carlo A',
-      rate: '6.56',
       ref: '23926eadace17518ea2c297fb4b0782e028153a1d0ef99bec12cbc144c2453ff',
-      time: '2024-12-31 14:46:58',
+      time: new Date('2024-12-31T14:46:58.000Z'),
       type: 'tx',
-      value: '7030'
+      value: 7030
     },
     {
-      fee: '191418',
-      label: 'Testing to PSYCARLO 2',
-      rate: '231',
-      ref: '-14.57',
-      time: '2024-12-31 14:46:58',
+      fee: 231,
+      label: 'Testing to PSYCARLO 2, Testing to PSYCARLO 1',
+      ref: '7718a523c3ff3ef344e5860e9cb0b7e463631f21a55d583c0ffac211bcffec90',
+      time: new Date('2024-12-31T14:46:58.000Z'),
       type: 'tx',
-      value: ' Testing to PSYCARLO 1'
+      value: -15612
     },
     {
-      fee: ' Large to Carlo C',
-      label: 'Large to Carlo D',
-      rate: '-72337',
-      ref: '119081',
-      time: '2024-12-31 14:59:59',
+      fee: 238,
+      label:
+        'Large to Carlo D, Large to Carlo A, Large to Carlo B, Large to Carlo C',
+      ref: '659a13373d6fad4adcfc74aa6fd331fe16d783ebb77f89e57edda61a58a85022',
+      time: new Date('2024-12-31T14:59:59.000Z'),
       type: 'tx',
-      value: ' Large to Carlo A'
+      value: -72337
     },
     {
-      fee: '',
       label: 'Hunicus send',
-      rate: '139.83',
       ref: 'bb1749d04d08010aed39a72af83313657e2c09175175777075800d313f2bfc3d',
-      time: '2024-12-31 17:06:32',
+      time: new Date('2024-12-31T17:06:32.000Z'),
       type: 'tx',
-      value: '149872'
+      value: 149872
     },
     {
-      fee: '',
       label: 'Hunicus send',
-      rate: '6.55',
       ref: '74d45e932fa71a5e5a6d9138dd5da245393d69daa12b897c140adace4f05aadf',
-      time: '2025-01-02 15:12:54',
+      time: new Date('2025-01-02T15:12:54.000Z'),
       type: 'tx',
-      value: '6764'
+      value: 6764
     },
     {
-      fee: '141',
+      fee: 141,
       label: '',
-      rate: '-3.09',
       ref: '0d239e8f60568bb7d8b1c6973ecd5dad9234f49bd589995d3c322eca9a8f23aa',
-      time: '2025-01-04 01:13:09',
+      time: new Date('2025-01-04T01:13:09.000Z'),
       type: 'tx',
-      value: '-3141'
+      value: -3141
     },
     {
-      fee: '141',
+      fee: 141,
       label: '',
-      rate: '-8.85',
       ref: '681477bfd5ee6cb07bc64fb0451f268bd59f4c207067e78059100d5447935e92',
-      time: '2025-01-04 01:13:09',
+      time: new Date('2025-01-04T01:13:09.000Z'),
       type: 'tx',
-      value: '-9000'
+      value: -9000
     },
     {
-      fee: '2516',
+      fee: 2516,
       label: 'to carlos',
-      rate: '-48.55',
       ref: '269b53e16d96425eb7d2183841e29552eab6a553cac098c76d0c75062ef48856',
-      time: '2025-01-09 14:50:30',
+      time: new Date('2025-01-09T14:50:30.000Z'),
       type: 'tx',
-      value: '-52516'
+      value: -52516
     },
     {
-      fee: '',
       label: 'Hunicus send',
-      rate: '4.62',
       ref: '4686cb1251dcf23e42faceb994d2176d4030e07731500d45d2a150f95044d8cd',
-      time: '2025-01-09 14:56:08',
+      time: new Date('2025-01-09T14:56:08.000Z'),
       type: 'tx',
-      value: '5000'
+      value: 5000
     },
     {
-      fee: '-49718',
-      label: 'calros 1',
-      rate: '166342',
-      ref: '1476',
-      time: '2025-01-09 14:56:08',
+      fee: 1476,
+      label: 'calros 1, carlos 2, carlos reuse',
+      ref: 'ae3d3ec185eb197fcc8bf4f533a45099875ffbe4d2b9abaceb059c3439d2dff7',
+      time: new Date('2025-01-09T14:56:08.000Z'),
       type: 'tx',
-      value: ' carlos 2'
+      value: -49718
     },
     {
-      fee: '5052',
+      fee: 5052,
       label: '',
-      rate: '-42.95',
       ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654',
-      time: '2025-01-21 01:38:06',
+      time: new Date('2025-01-21T01:38:06.000Z'),
       type: 'tx',
-      value: '-40516'
+      value: -40516
     },
     {
-      fee: '2966',
+      fee: 2966,
       label: '',
-      rate: '-26.07',
       ref: 'd8bf446e1db334c436ca65e2cd545f298b42229207c43285cbe5a4eb67aa7f6f',
-      time: '2025-01-29 10:32:13',
+      time: new Date('2025-01-29T10:32:13.000Z'),
       type: 'tx',
-      value: '-25186'
+      value: -25186
     },
     {
-      fee: '',
       label: 'more hunicus',
-      rate: '85.36',
       ref: '7b01cbe040782b04821eede9f9038a72263464def5d0a801b4c65eda72619ce7',
-      time: '2025-01-31 16:06:38',
+      time: new Date('2025-01-31T16:06:38.000Z'),
       type: 'tx',
-      value: '83501'
+      value: 83501
     },
     {
-      fee: '',
       label: '',
-      rate: '15.85',
       ref: '51ea0a6ffff52665d5211fe3e2de99e2d19abccb1f1a7fa1e6bc22caae47abce',
-      time: '2025-01-31 18:53:38',
+      time: new Date('2025-01-31T18:53:38.000Z'),
       type: 'tx',
-      value: '15501'
+      value: 15501
     },
     {
-      fee: '',
       label: '',
-      rate: '8.89',
       ref: 'a7289ed0cffab33d48436313e8ab226ed056640672c5b59fd70ec4de044a65bf',
-      time: '2025-02-04 16:34:59',
+      time: new Date('2025-02-04T16:34:59.000Z'),
       type: 'tx',
-      value: '9101'
+      value: 9101
     },
     {
-      fee: '519',
+      fee: 519,
       label: '',
-      rate: '-15.14',
       ref: '8179a57b9a600d4b7c7dba30ec8d38810a360f13ad9c68a0c466ad7900173529',
-      time: '2025-02-04 22:31:00',
+      time: new Date('2025-02-04T22:31:00.000Z'),
       type: 'tx',
-      value: '-15501'
+      value: -15501
     },
     {
-      fee: '413',
+      fee: 413,
       label: '',
-      rate: '-54.21',
       ref: 'a7f48862afb292ccfea2f0e6781949f7754683b466285c201559599714197c45',
-      time: '2025-02-05 01:15:24',
+      time: new Date('2025-02-05T01:15:24.000Z'),
       type: 'tx',
-      value: '-56214'
+      value: -56214
     },
     {
-      fee: '',
       label: '',
-      rate: '9.44',
       ref: 'ccb69fdf971f40a04fd5f7c91666549cb62177967d8e3105296e38b1925b63de',
-      time: '2025-02-13 01:10:22',
+      time: new Date('2025-02-13T01:10:22.000Z'),
       type: 'tx',
-      value: '9791'
+      value: 9791
     },
     {
-      fee: '153',
+      fee: 153,
       label: '',
-      rate: '-9.78',
       ref: '7fcf752578020878413c3d3dcf248746e2ad6d5e13eeaf143cf2cc66128b240a',
-      time: '2025-02-13 01:10:22',
+      time: new Date('2025-02-13T01:10:22.000Z'),
       type: 'tx',
-      value: '-10153'
+      value: -10153
     },
     {
-      fee: '454',
+      fee: 454,
       label: 'Multi',
-      rate: '-0.43',
       ref: 'ad64250ef6f24a7a8832e55cd2926758ee16da9d6e159049e7b432664a303629',
-      time: '2025-03-02 02:19:12',
+      time: new Date('2025-03-02T02:19:12.000Z'),
       type: 'tx',
-      value: '-454'
+      value: -454
     },
     {
-      fee: '454',
+      fee: 454,
       label: 'multi sig',
-      rate: '-32.14',
       ref: 'dd31e2071659d1bc385426843ea60b4c4c0d5ab61030582b146fcb745ca28161',
-      time: '2025-03-02 02:19:12',
+      time: new Date('2025-03-02T02:19:12.000Z'),
       type: 'tx',
-      value: '-34193'
+      value: -34193
     },
     {
-      fee: '380',
+      fee: 380,
       label: 'to multi',
-      rate: '-11.95',
       ref: 'b48a73173fed37c1c268b4a079caf777424917c8223c5556c0cc0435213030c5',
-      time: '2025-03-02 22:48:42',
+      time: new Date('2025-03-02T22:48:42.000Z'),
       type: 'tx',
-      value: '-12711'
+      value: -12711
     }
   ],
   [
     {
-      fee: '',
       label: 'Hunicus send',
-      rate: '186.60',
       ref: 'd948cbe2d084d1abcf7d34fa4b31a6f264b3f055388be43002f23c4e370a6791',
-      time: '2024-12-31 12:33:02',
+      time: new Date('2024-12-31T12:33:02.000Z'),
       type: 'tx',
-      value: '200000'
+      value: 200000
     },
     {
-      fee: '',
       label: 'back from carlo A',
-      rate: '6.56',
       ref: '23926eadace17518ea2c297fb4b0782e028153a1d0ef99bec12cbc144c2453ff',
-      time: '2024-12-31 14:46:58',
+      time: new Date('2024-12-31T14:46:58.000Z'),
       type: 'tx',
-      value: '7030'
+      value: 7030
     },
     {
-      fee: '191418',
-      label: 'Testing to PSYCARLO 2',
-      rate: '231',
-      ref: '-14.57',
-      time: '2024-12-31 14:46:58',
+      fee: 231,
+      label: 'Testing to PSYCARLO 2, Testing to PSYCARLO 1',
+      ref: '7718a523c3ff3ef344e5860e9cb0b7e463631f21a55d583c0ffac211bcffec90',
+      time: new Date('2024-12-31T14:46:58.000Z'),
       type: 'tx',
-      value: ' Testing to PSYCARLO 1'
+      value: -15612
     },
     {
-      fee: ' Large to Carlo C',
-      label: 'Large to Carlo D',
-      rate: '-72337',
-      ref: '119081',
-      time: '2024-12-31 14:59:59',
+      fee: 238,
+      label:
+        'Large to Carlo D, Large to Carlo A, Large to Carlo B, Large to Carlo C',
+      ref: '659a13373d6fad4adcfc74aa6fd331fe16d783ebb77f89e57edda61a58a85022',
+      time: new Date('2024-12-31T14:59:59.000Z'),
       type: 'tx',
-      value: ' Large to Carlo A'
+      value: -72337
     },
     {
-      fee: '',
       label: 'Hunicus send',
-      rate: '139.83',
       ref: 'bb1749d04d08010aed39a72af83313657e2c09175175777075800d313f2bfc3d',
-      time: '2024-12-31 17:06:32',
+      time: new Date('2024-12-31T17:06:32.000Z'),
       type: 'tx',
-      value: '149872'
+      value: 149872
     },
     {
-      fee: '',
       label: 'Hunicus send',
-      rate: '6.55',
       ref: '74d45e932fa71a5e5a6d9138dd5da245393d69daa12b897c140adace4f05aadf',
-      time: '2025-01-02 15:12:54',
+      time: new Date('2025-01-02T15:12:54.000Z'),
       type: 'tx',
-      value: '6764'
+      value: 6764
     },
     {
-      fee: '141',
+      fee: 141,
       label: '',
-      rate: '-3.09',
       ref: '0d239e8f60568bb7d8b1c6973ecd5dad9234f49bd589995d3c322eca9a8f23aa',
-      time: '2025-01-04 01:13:09',
+      time: new Date('2025-01-04T01:13:09.000Z'),
       type: 'tx',
-      value: '-3141'
+      value: -3141
     },
     {
-      fee: '141',
+      fee: 141,
       label: '',
-      rate: '-8.85',
       ref: '681477bfd5ee6cb07bc64fb0451f268bd59f4c207067e78059100d5447935e92',
-      time: '2025-01-04 01:13:09',
+      time: new Date('2025-01-04T01:13:09.000Z'),
       type: 'tx',
-      value: '-9000'
+      value: -9000
     },
     {
-      fee: '2516',
+      fee: 2516,
       label: 'to carlos',
-      rate: '-48.55',
       ref: '269b53e16d96425eb7d2183841e29552eab6a553cac098c76d0c75062ef48856',
-      time: '2025-01-09 14:50:30',
+      time: new Date('2025-01-09T14:50:30.000Z'),
       type: 'tx',
-      value: '-52516'
+      value: -52516
     },
     {
-      fee: '',
       label: 'Hunicus send',
-      rate: '4.62',
       ref: '4686cb1251dcf23e42faceb994d2176d4030e07731500d45d2a150f95044d8cd',
-      time: '2025-01-09 14:56:08',
+      time: new Date('2025-01-09T14:56:08.000Z'),
       type: 'tx',
-      value: '5000'
+      value: 5000
     },
     {
-      fee: '-49718',
-      label: 'calros 1',
-      rate: '166342',
-      ref: '1476',
-      time: '2025-01-09 14:56:08',
+      fee: 1476,
+      label: 'calros 1, carlos 2, carlos reuse',
+      ref: 'ae3d3ec185eb197fcc8bf4f533a45099875ffbe4d2b9abaceb059c3439d2dff7',
+      time: new Date('2025-01-09T14:56:08.000Z'),
       type: 'tx',
-      value: ' carlos 2'
+      value: -49718
     },
     {
-      fee: '5052',
+      fee: 5052,
       label: '',
-      rate: '-42.95',
       ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654',
-      time: '2025-01-21 01:38:06',
+      time: new Date('2025-01-21T01:38:06.000Z'),
       type: 'tx',
-      value: '-40516'
+      value: -40516
     },
     {
-      fee: '2966',
+      fee: 2966,
       label: '',
-      rate: '-26.07',
       ref: 'd8bf446e1db334c436ca65e2cd545f298b42229207c43285cbe5a4eb67aa7f6f',
-      time: '2025-01-29 10:32:13',
+      time: new Date('2025-01-29T10:32:13.000Z'),
       type: 'tx',
-      value: '-25186'
+      value: -25186
     },
     {
-      fee: '',
       label: 'more hunicus',
-      rate: '85.36',
       ref: '7b01cbe040782b04821eede9f9038a72263464def5d0a801b4c65eda72619ce7',
-      time: '2025-01-31 16:06:38',
+      time: new Date('2025-01-31T16:06:38.000Z'),
       type: 'tx',
-      value: '83501'
+      value: 83501
     },
     {
-      fee: '',
       label: '',
-      rate: '15.85',
       ref: '51ea0a6ffff52665d5211fe3e2de99e2d19abccb1f1a7fa1e6bc22caae47abce',
-      time: '2025-01-31 18:53:38',
+      time: new Date('2025-01-31T18:53:38.000Z'),
       type: 'tx',
-      value: '15501'
+      value: 15501
     },
     {
-      fee: '',
       label: '',
-      rate: '8.89',
       ref: 'a7289ed0cffab33d48436313e8ab226ed056640672c5b59fd70ec4de044a65bf',
-      time: '2025-02-04 16:34:59',
+      time: new Date('2025-02-04T16:34:59.000Z'),
       type: 'tx',
-      value: '9101'
+      value: 9101
     },
     {
-      fee: '519',
+      fee: 519,
       label: '',
-      rate: '-15.14',
       ref: '8179a57b9a600d4b7c7dba30ec8d38810a360f13ad9c68a0c466ad7900173529',
-      time: '2025-02-04 22:31:00',
+      time: new Date('2025-02-04T22:31:00.000Z'),
       type: 'tx',
-      value: '-15501'
+      value: -15501
     },
     {
-      fee: '413',
+      fee: 413,
       label: '',
-      rate: '-54.21',
       ref: 'a7f48862afb292ccfea2f0e6781949f7754683b466285c201559599714197c45',
-      time: '2025-02-05 01:15:24',
+      time: new Date('2025-02-05T01:15:24.000Z'),
       type: 'tx',
-      value: '-56214'
+      value: -56214
     },
     {
-      fee: '',
       label: '',
-      rate: '9.44',
       ref: 'ccb69fdf971f40a04fd5f7c91666549cb62177967d8e3105296e38b1925b63de',
-      time: '2025-02-13 01:10:22',
+      time: new Date('2025-02-13T01:10:22.000Z'),
       type: 'tx',
-      value: '9791'
+      value: 9791
     },
     {
-      fee: '153',
+      fee: 153,
       label: '',
-      rate: '-9.78',
       ref: '7fcf752578020878413c3d3dcf248746e2ad6d5e13eeaf143cf2cc66128b240a',
-      time: '2025-02-13 01:10:22',
+      time: new Date('2025-02-13T01:10:22.000Z'),
       type: 'tx',
-      value: '-10153'
+      value: -10153
     },
     {
-      fee: '454',
+      fee: 454,
       label: 'Multi',
-      rate: '-0.43',
       ref: 'ad64250ef6f24a7a8832e55cd2926758ee16da9d6e159049e7b432664a303629',
-      time: '2025-03-02 02:19:12',
+      time: new Date('2025-03-02T02:19:12.000Z'),
       type: 'tx',
-      value: '-454'
+      value: -454
     },
     {
-      fee: '454',
+      fee: 454,
       label: 'multi sig',
-      rate: '-32.14',
       ref: 'dd31e2071659d1bc385426843ea60b4c4c0d5ab61030582b146fcb745ca28161',
-      time: '2025-03-02 02:19:12',
+      time: new Date('2025-03-02T02:19:12.000Z'),
       type: 'tx',
-      value: '-34193'
+      value: -34193
     },
     {
-      fee: '380',
+      fee: 380,
       label: 'to multi',
-      rate: '-11.95',
       ref: 'b48a73173fed37c1c268b4a079caf777424917c8223c5556c0cc0435213030c5',
-      time: '2025-03-02 22:48:42',
+      time: new Date('2025-03-02T22:48:42.000Z'),
       type: 'tx',
-      value: '-12711'
+      value: -12711
     }
   ]
 ]
@@ -560,205 +498,6 @@ const sampleCsvSparrowAddr = [
 `
 ]
 
-const sampleCsvSparrowAddrExpected = [
-  [
-    {
-      keypath: '0',
-      label: 'Hunicus send',
-      origin: "m/84'/1'/0'/0/0",
-      ref: 'tb1qzfrh7avv5d9v2yzx75d7wlqy39mz0quxgfqddy'
-    },
-    {
-      keypath: '1',
-      label: 'back from carlo C',
-      origin: "m/84'/1'/0'/0/1",
-      ref: 'tb1qksxdnyn84e3mt69dv987vqhwhvx2v4c2epmsxy'
-    },
-    {
-      keypath: '2',
-      label: 'back from carlo B',
-      origin: "m/84'/1'/0'/0/2",
-      ref: 'tb1qu88gwtmtgp4plm809zzp7v6sdg0829hqfhex8l'
-    },
-    {
-      keypath: '3',
-      label: 'back from carlo A',
-      origin: "m/84'/1'/0'/0/3",
-      ref: 'tb1qaurrgazm3az2r7v5nlgzxvua5v69y9f6k3axgq'
-    },
-    {
-      keypath: '4',
-      label: 'more hunicus',
-      origin: "m/84'/1'/0'/0/4",
-      ref: 'tb1q5xlt0szku06dudd8nwt4ruhulakg5zyhtslvws'
-    },
-    {
-      keypath: '5',
-      label: '',
-      origin: "m/84'/1'/0'/0/5",
-      ref: 'tb1qcf9anayaz4rt5m7kwf3xtt2u6csft3xsh2ttfm'
-    },
-    {
-      keypath: '6',
-      label: '',
-      origin: "m/84'/1'/0'/0/6",
-      ref: 'tb1qpplr04wwzru29nx9pcqlc5x4rp0cm08csyhlvq'
-    },
-    {
-      keypath: '7',
-      label: '',
-      origin: "m/84'/1'/0'/0/7",
-      ref: 'tb1qsjuw5jn3j8hgutjf73880qnpkqls4zm3scwu6h'
-    },
-    {
-      keypath: '8',
-      label: 'Multi',
-      origin: "m/84'/1'/0'/0/8",
-      ref: 'tb1qemrk7veyy4tls399acl7jxa3k8d65a8zsy3trf'
-    },
-    {
-      keypath: '9',
-      label: '',
-      origin: "m/84'/1'/0'/0/9",
-      ref: 'tb1qj39dhvsjyvpxz4qqx9hyle0dy2u7v5n89t5auu'
-    },
-    {
-      keypath: '10',
-      label: '',
-      origin: "m/84'/1'/0'/0/10",
-      ref: 'tb1q65sp5guzhrtw6fy2juy80ztv6zrfcqzu9um4rh'
-    }
-  ],
-  [
-    {
-      keypath: '0',
-      label: 'Testing to PSYCARLO 2',
-      origin: "m/84'/1'/0'/1/0",
-      ref: 'tb1q57xg0vm530r54xezz47y6jpe67zclv47yxrd2d'
-    },
-    {
-      keypath: '1',
-      label: 'Large to Carlo D',
-      origin: "m/84'/1'/0'/1/1",
-      ref: 'tb1qnthw6a03rqw5ryx98nk35hz7udnwxvtycaadyn'
-    },
-    {
-      keypath: '2',
-      label: '',
-      origin: "m/84'/1'/0'/1/2",
-      ref: 'tb1qwed3dd8z3ags6jtu2vyj7swtqpe2rsxnkmu5qu'
-    },
-    {
-      keypath: '3',
-      label: '',
-      origin: "m/84'/1'/0'/1/3",
-      ref: 'tb1qt5uc0er3rrqh0yuwp9ld0sdznrwdm5n56jshg9'
-    },
-    {
-      keypath: '4',
-      label: 'to carlos',
-      origin: "m/84'/1'/0'/1/4",
-      ref: 'tb1qrvfdzcf2p28nc26ht46ly7l5558ndug2d6nhmt'
-    },
-    {
-      keypath: '5',
-      label: 'to carlos',
-      origin: "m/84'/1'/0'/1/5",
-      ref: 'tb1q5nex94veyljfw9mdzrkugq5yfp0upay75tpca7'
-    },
-    {
-      keypath: '6',
-      label: 'to carlos',
-      origin: "m/84'/1'/0'/1/6",
-      ref: 'tb1q20m0xyfunjwlla2rl6tcg562cgx9a5rdxtxenv'
-    },
-    {
-      keypath: '7',
-      label: 'calros 1',
-      origin: "m/84'/1'/0'/1/7",
-      ref: 'tb1qdn95tphamcudzd6yqe9057dsn99z7mzkpklfmx'
-    },
-    {
-      keypath: '8',
-      label: '',
-      origin: "m/84'/1'/0'/1/8",
-      ref: 'tb1q3cykhy944c099zrhld409had39jcvpdmlkv03w'
-    },
-    {
-      keypath: '9',
-      label: '',
-      origin: "m/84'/1'/0'/1/9",
-      ref: 'tb1qf6nft8hxu2ycdhxk778a2h582eeldjwgyzwug3'
-    },
-    {
-      keypath: '10',
-      label: '',
-      origin: "m/84'/1'/0'/1/10",
-      ref: 'tb1q844ldzdplfmeqjemr6c0gx4nankp368a0djw2h'
-    },
-    {
-      keypath: '11',
-      label: '',
-      origin: "m/84'/1'/0'/1/11",
-      ref: 'tb1qljmuktl8c96whwh5f0wrd0hcru33u0zvctxczh'
-    },
-    {
-      keypath: '12',
-      label: '',
-      origin: "m/84'/1'/0'/1/12",
-      ref: 'tb1qq2ca93pg5pmzy383tav69wscvunutqerxg59mn'
-    },
-    {
-      keypath: '13',
-      label: '',
-      origin: "m/84'/1'/0'/1/13",
-      ref: 'tb1qtn62uggathhfp0dgzxwr87nkesnr4q9z3w7l30'
-    },
-    {
-      keypath: '14',
-      label: '',
-      origin: "m/84'/1'/0'/1/14",
-      ref: 'tb1qdmjxw7asrw7zr4xh8g65qq7lgu42fetdvkrklc'
-    },
-    {
-      keypath: '15',
-      label: '',
-      origin: "m/84'/1'/0'/1/15",
-      ref: 'tb1quvs7tmquj6r2ewtfcrcvz6aa5qyuc79m09grk3'
-    },
-    {
-      keypath: '16',
-      label: 'multi sig',
-      origin: "m/84'/1'/0'/1/16",
-      ref: 'tb1qy6rpzdfdekzk42255qc7e42ex20vlh8jatdmxm'
-    },
-    {
-      keypath: '17',
-      label: '',
-      origin: "m/84'/1'/0'/1/17",
-      ref: 'tb1q96p9wfdt5esw7vgdzyrvwh6u0ta6qzspsajes3'
-    },
-    {
-      keypath: '18',
-      label: '',
-      origin: "m/84'/1'/0'/1/18",
-      ref: 'tb1qgydwrwraqez83qc234s3pxcses53gxluxfw50h'
-    },
-    {
-      keypath: '19',
-      label: '',
-      origin: "m/84'/1'/0'/1/19",
-      ref: 'tb1q25p2n7qz9pn0fc97kdzqjum9ufmjqfyvlp9z86'
-    },
-    {
-      keypath: '20',
-      label: '',
-      origin: "m/84'/1'/0'/1/20",
-      ref: 'tb1q85mk3deprzh4yfjlsux2shxrpm2xfj5up2gdq0'
-    }
-  ]
-]
-
 const sampleCsvSparrowUtxo = `Date (UTC),Output,Address,Label,Value
 2025-01-09 14:56:08,4686cb1251dcf23e42faceb994d2176d4030e07731500d45d2a150f95044d8cd:0,tb1qzfrh7avv5d9v2yzx75d7wlqy39mz0quxgfqddy,Hunicus send (received),5000
 2025-01-21 01:38:06,a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654:3,tb1qf6nft8hxu2ycdhxk778a2h582eeldjwgyzwug3,,19451
@@ -772,44 +511,44 @@ const sampleCsvSparrowUtxoExpected = [
   {
     label: 'Hunicus send (received)',
     ref: '4686cb1251dcf23e42faceb994d2176d4030e07731500d45d2a150f95044d8cd:0',
-    time: '2025-01-09 14:56:08',
+    time: new Date('2025-01-09T14:56:08.000Z'),
     type: 'output',
-    value: '5000'
+    value: 5000
   },
   {
     label: '',
     ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654:3',
-    time: '2025-01-21 01:38:06',
+    time: new Date('2025-01-21T01:38:06.000Z'),
     type: 'output',
-    value: '19451'
+    value: 19451
   },
   {
     label: '',
     ref: 'd8bf446e1db334c436ca65e2cd545f298b42229207c43285cbe5a4eb67aa7f6f:1',
-    time: '2025-01-29 10:32:13',
+    time: new Date('2025-01-29T10:32:13.000Z'),
     type: 'output',
-    value: '26297'
+    value: 26297
   },
   {
     label: '',
     ref: 'a7f48862afb292ccfea2f0e6781949f7754683b466285c201559599714197c45:1',
-    time: '2025-02-05 01:15:24',
+    time: new Date('2025-02-05T01:15:24.000Z'),
     type: 'output',
-    value: '27287'
+    value: 27287
   },
   {
     label: '',
     ref: 'ccb69fdf971f40a04fd5f7c91666549cb62177967d8e3105296e38b1925b63de:0',
-    time: '2025-02-13 01:10:22',
+    time: new Date('2025-02-13T01:10:22.000Z'),
     type: 'output',
-    value: '9791'
+    value: 9791
   },
   {
     label: 'Multi (received)',
     ref: 'ad64250ef6f24a7a8832e55cd2926758ee16da9d6e159049e7b432664a303629:0',
-    time: '2025-03-02 02:19:12',
+    time: new Date('2025-03-02T02:19:12.000Z'),
     type: 'output',
-    value: '1482'
+    value: 1482
   }
 ]
 
@@ -842,204 +581,204 @@ bbede7bf7c52a098e21f97dd5116c19f544323b2cfe6accb1fc0a67144c30d57,480,-21701,2378
 
 const sampleCsvNonchukTxExpected = [
   {
-    fee: '231',
-    height: '228763',
+    fee: 231,
+    height: 228763,
     label: 'Multiple addresses',
     ref: '7718a523c3ff3ef344e5860e9cb0b7e463631f21a55d583c0ffac211bcffec90',
     type: 'tx',
-    value: '-15381'
+    value: -15381
   },
   {
-    fee: '238',
-    height: '228764',
+    fee: 238,
+    height: 228764,
     label: '',
     ref: '659a13373d6fad4adcfc74aa6fd331fe16d783ebb77f89e57edda61a58a85022',
     type: 'tx',
-    value: '-72099'
+    value: -72099
   },
   {
-    fee: '0',
-    height: '228753',
+    fee: 0,
+    height: 228753,
     label: '',
     ref: 'd948cbe2d084d1abcf7d34fa4b31a6f264b3f055388be43002f23c4e370a6791',
     type: 'tx',
-    value: '200000'
+    value: 200000
   },
   {
-    fee: '0',
-    height: '228778',
+    fee: 0,
+    height: 228778,
     label: '',
     ref: 'bb1749d04d08010aed39a72af83313657e2c09175175777075800d313f2bfc3d',
     type: 'tx',
-    value: '149872'
+    value: 149872
   },
   {
-    fee: '0',
-    height: '229065',
+    fee: 0,
+    height: 229065,
     label: '',
     ref: '74d45e932fa71a5e5a6d9138dd5da245393d69daa12b897c140adace4f05aadf',
     type: 'tx',
-    value: '6764'
+    value: 6764
   },
   {
-    fee: '141',
-    height: '229282',
+    fee: 141,
+    height: 229282,
     label: '',
     ref: '0d239e8f60568bb7d8b1c6973ecd5dad9234f49bd589995d3c322eca9a8f23aa',
     type: 'tx',
-    value: '-3000'
+    value: -3000
   },
   {
-    fee: '2516',
-    height: '230084',
+    fee: 2516,
+    height: 230084,
     label: '',
     ref: '269b53e16d96425eb7d2183841e29552eab6a553cac098c76d0c75062ef48856',
     type: 'tx',
-    value: '-50000'
+    value: -50000
   },
   {
-    fee: '0',
-    height: '230085',
+    fee: 0,
+    height: 230085,
     label: '',
     ref: '4686cb1251dcf23e42faceb994d2176d4030e07731500d45d2a150f95044d8cd',
     type: 'tx',
-    value: '5000'
+    value: 5000
   },
   {
-    fee: '141',
-    height: '229282',
+    fee: 141,
+    height: 229282,
     label: '',
     ref: '681477bfd5ee6cb07bc64fb0451f268bd59f4c207067e78059100d5447935e92',
     type: 'tx',
-    value: '-8859'
+    value: -8859
   },
   {
-    fee: '0',
-    height: '228763',
+    fee: 0,
+    height: 228763,
     label: '',
     ref: '23926eadace17518ea2c297fb4b0782e028153a1d0ef99bec12cbc144c2453ff',
     type: 'tx',
-    value: '7030'
+    value: 7030
   },
   {
-    fee: '5052',
-    height: '231855',
+    fee: 5052,
+    height: 231855,
     label: '',
     ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654',
     type: 'tx',
-    value: '-35464'
+    value: -35464
   },
   {
-    fee: '2966',
-    height: '233116',
+    fee: 2966,
+    height: 233116,
     label: '',
     ref: 'd8bf446e1db334c436ca65e2cd545f298b42229207c43285cbe5a4eb67aa7f6f',
     type: 'tx',
-    value: '-22220'
+    value: -22220
   },
   {
-    fee: '0',
-    height: '233409',
+    fee: 0,
+    height: 233409,
     label: '',
     ref: '7b01cbe040782b04821eede9f9038a72263464def5d0a801b4c65eda72619ce7',
     type: 'tx',
-    value: '83501'
+    value: 83501
   },
   {
-    fee: '413',
-    height: '234029',
+    fee: 413,
+    height: 234029,
     label: '',
     ref: 'a7f48862afb292ccfea2f0e6781949f7754683b466285c201559599714197c45',
     type: 'tx',
-    value: '-55801'
+    value: -55801
   },
   {
-    fee: '0',
-    height: '233425',
+    fee: 0,
+    height: 233425,
     label: '',
     ref: '51ea0a6ffff52665d5211fe3e2de99e2d19abccb1f1a7fa1e6bc22caae47abce',
     type: 'tx',
-    value: '15501'
+    value: 15501
   },
   {
-    fee: '519',
-    height: '234018',
+    fee: 519,
+    height: 234018,
     label: '',
     ref: '8179a57b9a600d4b7c7dba30ec8d38810a360f13ad9c68a0c466ad7900173529',
     type: 'tx',
-    value: '-14982'
+    value: -14982
   },
   {
-    fee: '1476',
-    height: '230085',
+    fee: 1476,
+    height: 230085,
     label: '',
     ref: 'ae3d3ec185eb197fcc8bf4f533a45099875ffbe4d2b9abaceb059c3439d2dff7',
     type: 'tx',
-    value: '-48242'
+    value: -48242
   },
   {
-    fee: '0',
-    height: '233988',
+    fee: 0,
+    height: 233988,
     label: '',
     ref: 'a7289ed0cffab33d48436313e8ab226ed056640672c5b59fd70ec4de044a65bf',
     type: 'tx',
-    value: '9101'
+    value: 9101
   },
   {
-    fee: '209',
-    height: '235125',
+    fee: 209,
+    height: 235125,
     label: 'Recieved money',
     ref: 'ccb69fdf971f40a04fd5f7c91666549cb62177967d8e3105296e38b1925b63de',
     type: 'tx',
-    value: '9791'
+    value: 9791
   },
   {
-    fee: '153',
-    height: '235125',
+    fee: 153,
+    height: 235125,
     label: '',
     ref: '7fcf752578020878413c3d3dcf248746e2ad6d5e13eeaf143cf2cc66128b240a',
     type: 'tx',
-    value: '-10000'
+    value: -10000
   },
   {
-    fee: '454',
-    height: '237505',
+    fee: 454,
+    height: 237505,
     label: '',
     ref: 'dd31e2071659d1bc385426843ea60b4c4c0d5ab61030582b146fcb745ca28161',
     type: 'tx',
-    value: '-33739'
+    value: -33739
   },
   {
-    fee: '454',
-    height: '237505',
+    fee: 454,
+    height: 237505,
     label: '',
     ref: 'ad64250ef6f24a7a8832e55cd2926758ee16da9d6e159049e7b432664a303629',
     type: 'tx',
-    value: '0'
+    value: 0
   },
   {
-    fee: '380',
-    height: '237616',
+    fee: 380,
+    height: 237616,
     label: '',
     ref: 'b48a73173fed37c1c268b4a079caf777424917c8223c5556c0cc0435213030c5',
     type: 'tx',
-    value: '-12331'
+    value: -12331
   },
   {
-    fee: '480',
-    height: '237880',
+    fee: 480,
+    height: 237880,
     label: '',
     ref: 'bbede7bf7c52a098e21f97dd5116c19f544323b2cfe6accb1fc0a67144c30d57',
     type: 'tx',
-    value: '-21701'
+    value: -21701
   },
   {
-    fee: '209',
-    height: '237735',
+    fee: 209,
+    height: 237735,
     label: 'four dollars going out #red',
     ref: '98dbad2760355b45aa046c3689108394ef9f741baf63840724802f4280e27a91',
     type: 'tx',
-    value: '-5801'
+    value: -5801
   }
 ]
 
@@ -1050,25 +789,25 @@ bbede7bf7c52a098e21f97dd5116c19f544323b2cfe6accb1fc0a67144c30d57,1,36666,237880,
 
 const sampleCsvNonchukUtxoExpected = [
   {
-    height: '230085',
+    height: 230085,
     label: '',
     ref: '4686cb1251dcf23e42faceb994d2176d4030e07731500d45d2a150f95044d8cd:0',
     type: 'addr',
-    value: '5000'
+    value: 5000
   },
   {
-    height: '231855',
+    height: 231855,
     label: '',
     ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654:3',
     type: 'addr',
-    value: '19451'
+    value: 19451
   },
   {
-    height: '237880',
+    height: 237880,
     label: '',
     ref: 'bbede7bf7c52a098e21f97dd5116c19f544323b2cfe6accb1fc0a67144c30d57:1',
     type: 'addr',
-    value: '36666'
+    value: 36666
   }
 ]
 
@@ -1078,7 +817,6 @@ module.exports = {
   sampleCsvNonchukUtxo,
   sampleCsvNonchukUtxoExpected,
   sampleCsvSparrowAddr,
-  sampleCsvSparrowAddrExpected,
   sampleCsvSparrowTx,
   sampleCsvSparrowTxExpected,
   sampleCsvSparrowUtxo,

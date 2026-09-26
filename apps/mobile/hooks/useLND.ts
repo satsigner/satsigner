@@ -29,6 +29,7 @@ import {
   assertLndPaymentSucceeded,
   buildLndPayInvoiceBody
 } from '@/utils/lndPayInvoice'
+import { isRecord } from '@/utils/object'
 
 const HEALTH_CHECK_INTERVAL_MS = 30_000
 
@@ -77,6 +78,10 @@ export const useLND = () => {
     }
   }
 
+  /**
+   * Calls LND REST and hands back the JSON body as the caller's `T` without
+   * validating it: each caller owns the shape it asks for.
+   */
   const makeRequest: LNDRequest = async <T>(
     endpoint: string,
     options: LNDRequestOptions = {}
@@ -212,7 +217,8 @@ export const useLND = () => {
         return {}
       }
       try {
-        return JSON.parse(body) as Record<string, unknown>
+        const parsed: unknown = JSON.parse(body)
+        return isRecord(parsed) ? parsed : {}
       } catch {
         return {}
       }

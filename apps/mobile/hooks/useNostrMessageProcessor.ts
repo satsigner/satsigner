@@ -3,12 +3,14 @@ import { useCallback, useMemo } from 'react'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 import {
+  NostrMessageDataSchema,
   type NostrMsgHandlerContext,
-  type NostrMessageData,
   type NostrPendingDM,
-  type NostrUnwrappedEvent
+  type NostrUnwrappedEvent,
+  NostrUnwrappedEventSchema
 } from '@/types/models/Nostr'
 import { decompressMessage } from '@/utils/nostr'
+import { isRecord } from '@/utils/object'
 
 import { deviceAnnouncementHandler } from './useNostrDeviceAnnouncementHandler'
 import { dmHandler } from './useNostrDMHandler'
@@ -28,23 +30,30 @@ function getEventContent(
   unwrappedEvent: NostrUnwrappedEvent
 ): Record<string, unknown> {
   try {
-    return JSON.parse(unwrappedEvent.content)
+    const parsed: unknown = JSON.parse(unwrappedEvent.content)
+    if (isRecord(parsed)) {
+      return parsed
+    }
   } catch {
     // JSON parse failed, try decompression
   }
   try {
     const decoded = decompressMessage(unwrappedEvent.content)
-    if (
-      decoded !== null &&
-      typeof decoded === 'object' &&
-      !Array.isArray(decoded)
-    ) {
-      return decoded as Record<string, unknown>
+    if (isRecord(decoded)) {
+      return decoded
     }
   } catch {
     // Decompression failed, fall through to safe fallback
   }
   return { raw: unwrappedEvent.content }
+}
+
+/**
+ * Subscription messages carry the unwrapped rumor as untyped content; only
+ * rumors matching the unwrapped event schema are processed.
+ */
+function isUnwrappedEvent(value: unknown): value is NostrUnwrappedEvent {
+  return NostrUnwrappedEventSchema.safeParse(value).success
 }
 
 // Initialize handlers once at module level.
@@ -115,7 +124,10 @@ function useNostrMessageProcessor() {
 
         const chunk = messages.slice(i, i + CHUNK_SIZE)
         for (const msg of chunk) {
-          const unwrappedEvent = msg.content as NostrUnwrappedEvent
+          if (!isUnwrappedEvent(msg.content)) {
+            continue
+          }
+          const unwrappedEvent = msg.content
 
           // Re-read processedEvents each chunk so deduplication stays accurate
           // across concurrent batches that may have added events since we started.
@@ -128,11 +140,16 @@ function useNostrMessageProcessor() {
           addProcessedEvent(account.id, unwrappedEvent.id)
 
           const eventContent = getEventContent(unwrappedEvent)
-          const data = eventContent.data as NostrMessageData | undefined
+          const messageData = NostrMessageDataSchema.safeParse(
+            eventContent.data
+          )
+          if (eventContent.data && !messageData.success) {
+            continue
+          }
 
           const context: NostrMsgHandlerContext = {
             account,
-            data,
+            data: messageData.data,
             eventContent,
             lastDataExchangeEOSE,
             onPendingDM: (dm) => pendingDms.push(dm),

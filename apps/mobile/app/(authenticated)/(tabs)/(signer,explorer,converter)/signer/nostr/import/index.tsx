@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
-import { type Network } from 'react-native-bdk-sdk'
+import { Network } from 'react-native-bdk-sdk'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 
@@ -212,7 +212,7 @@ export default function ImportNostrIdentity() {
             <SSSeedWordsInput
               wordCount={12}
               wordListName="english"
-              network={'testnet' as unknown as Network}
+              network={Network.Testnet}
               onMnemonicValid={handleMnemonicValid}
               onMnemonicInvalid={handleMnemonicInvalid}
               showPasteButton

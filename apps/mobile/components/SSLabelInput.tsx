@@ -39,7 +39,7 @@ function SSLabelInput({
   )
   const tagInputRef = useRef<SSTagInputHandle>(null)
 
-  const [selectedTags, setSelectedTags] = useState([] as string[])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tags, setLocalTags] = useState(() => getTags())
   const [label, setLabel] = useState('')
   const labelFontSize = Sizes.text.fontSize[getLabelTextSize(label)]
@@ -81,8 +81,8 @@ function SSLabelInput({
       return
     }
 
-    const newTags = [] as string[]
-    const newSelectedTags = [] as string[]
+    const newTags: string[] = []
+    const newSelectedTags: string[] = []
 
     for (const tag of matches.map((match) => match.replace('#', ''))) {
       if (!tags.includes(tag)) {

@@ -5,6 +5,7 @@ import type {
   EcashProof,
   EcashTransaction
 } from '@/types/models/Ecash'
+import { isRecord } from '@/utils/object'
 
 export type EcashBackupValidationReason = 'invalid' | 'proofs_missing'
 
@@ -171,10 +172,6 @@ function proofsWithKnownMints(proofs: EcashProof[], mints: EcashMint[]) {
     }
   }
   return proofs
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function parseRestoredProof(value: unknown): EcashProof | null {

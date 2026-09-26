@@ -164,17 +164,17 @@ function buildSignTransactionChartModel(
     (typeof psbt.txid === 'function' ? psbt.txid() : '')
 
   if (extracted && extracted.inputs.length > 0) {
-    const vin = extracted.inputs.map((input) => {
+    const vin: Transaction['vin'] = extracted.inputs.map((input) => {
       const storeInput = inputs.get(
         getUtxoOutpoint({ txid: input.txid, vout: input.vout })
       )
       return {
         label: storeInput?.label || input.label || '',
         previousOutput: { txid: input.txid, vout: input.vout },
-        scriptSig: '' as string | number[],
+        scriptSig: '',
         sequence: 0,
         value: input.value,
-        witness: [] as number[][]
+        witness: []
       }
     })
 
@@ -213,20 +213,22 @@ function buildSignTransactionChartModel(
     }
   }
 
-  const vin = Array.from(inputs.values()).map((input: Utxo) => ({
-    label: input.label || '',
-    previousOutput: { txid: input.txid, vout: input.vout },
-    scriptSig: '' as string | number[],
-    sequence: 0,
-    value: input.value,
-    witness: [] as number[][]
-  }))
+  const vin: Transaction['vin'] = Array.from(inputs.values()).map(
+    (input: Utxo) => ({
+      label: input.label || '',
+      previousOutput: { txid: input.txid, vout: input.vout },
+      scriptSig: '',
+      sequence: 0,
+      value: input.value,
+      witness: []
+    })
+  )
 
-  const vout = outputs.map((output: Output) => ({
+  const vout: Transaction['vout'] = outputs.map((output: Output) => ({
     address: output.to,
     kind: output.kind,
     label: output.label || '',
-    script: '' as string | number[],
+    script: '',
     value: output.amount
   }))
 
@@ -248,12 +250,11 @@ function getBdkInnerMessage(error: unknown): string | undefined {
   if (!(error instanceof Error) || !('inner' in error)) {
     return undefined
   }
-  const record = error as { inner?: unknown }
-  const { inner } = record
+  const { inner } = error
   if (!inner || typeof inner !== 'object' || !('message' in inner)) {
     return undefined
   }
-  const msg = (inner as { message: unknown }).message
+  const msg = inner.message
   if (typeof msg !== 'string' || msg.length === 0) {
     return undefined
   }
@@ -340,7 +341,7 @@ export default function SignTransaction() {
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
-  const wallet = useGetAccountWallet(id!)
+  const wallet = useGetAccountWallet(id)
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
   )

@@ -1,5 +1,5 @@
-import NDK, { type NDKEvent } from '@nostr-dev-kit/ndk'
-import { type NostrEvent, finalizeEvent, nip57 } from 'nostr-tools'
+import NDK, { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
+import { finalizeEvent, nip57 } from 'nostr-tools'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import {
@@ -27,6 +27,8 @@ import {
 } from '@/types/models/Nostr'
 import { fetchLNURLPayDetails } from '@/utils/lnurl'
 import { getSecretFromNsec } from '@/utils/nostr'
+import { isNostrTags } from '@/utils/nostrEvent'
+import { isRecord } from '@/utils/object'
 
 // NDK connect timeout (ms) used by the main zap-sending path.
 const NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS = 10000
@@ -46,13 +48,13 @@ const NOSTR_ZAP_PROFILE_REFRESH_COLLECT_TIMEOUT_MS = 10000
  */
 function subscribeAndCollect(
   ndk: NDK,
-  filter: Record<string, unknown>,
+  filter: NDKFilter,
   timeoutMs: number
 ): Promise<Set<NDKEvent>> {
   return new Promise((resolve) => {
     let settled = false
     const collected = new Set<NDKEvent>()
-    const sub = ndk.subscribe(filter as never, { closeOnEose: false })
+    const sub = ndk.subscribe(filter, { closeOnEose: false })
 
     const finish = () => {
       if (settled) {
@@ -125,18 +127,19 @@ export function parseZapReceiptFromTags(
   }
 
   try {
-    const zapRequest = JSON.parse(descTag[1]) as {
-      pubkey?: string
-      content?: string
-      tags?: string[][]
-    }
+    const zapRequest: unknown = JSON.parse(descTag[1])
 
-    if (!zapRequest.pubkey) {
+    if (
+      !isRecord(zapRequest) ||
+      typeof zapRequest.pubkey !== 'string' ||
+      !zapRequest.pubkey
+    ) {
       return null
     }
 
     if (amountSats === 0) {
-      const amountTag = zapRequest.tags?.find((tag) => tag[0] === 'amount')
+      const zapRequestTags = isNostrTags(zapRequest.tags) ? zapRequest.tags : []
+      const amountTag = zapRequestTags.find((tag) => tag[0] === 'amount')
       if (amountTag?.[1]) {
         amountSats = Math.floor(parseInt(amountTag[1], 10) / MILLISATS_PER_SAT)
       }
@@ -162,7 +165,10 @@ export function parseZapReceiptFromTags(
 
     return {
       amountSats,
-      comment: zapRequest.content || undefined,
+      comment:
+        typeof zapRequest.content === 'string' && zapRequest.content
+          ? zapRequest.content
+          : undefined,
       createdAt,
       direction,
       id,
@@ -262,7 +268,7 @@ export function buildZapRequest(params: {
           pubkey: params.recipientPubkeyHex,
           sig: '',
           tags: params.eventTags ?? []
-        } as NostrEvent,
+        },
         relays: params.relays
       })
     : nip57.makeZapRequest({
@@ -311,8 +317,8 @@ export async function requestZapInvoice(
     throw new Error(`Invoice request failed: ${response.status} ${errorText}`)
   }
 
-  const data = (await response.json()) as { pr?: string }
-  if (!data.pr) {
+  const data: unknown = await response.json()
+  if (!isRecord(data) || typeof data.pr !== 'string' || !data.pr) {
     throw new Error('No invoice returned from LNURL callback')
   }
 
@@ -351,9 +357,9 @@ export async function fetchZapReceipts(
   try {
     await ndk.connect(NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS)
 
-    const filter: Record<string, unknown> = {
+    const filter: NDKFilter = {
       '#e': [eventIdHex],
-      kinds: [NOSTR_KIND_ZAP_RECEIPT as never],
+      kinds: [NOSTR_KIND_ZAP_RECEIPT],
       limit: NOSTR_ZAP_RECEIPT_FETCH_LIMIT
     }
     const newestTs =
@@ -495,9 +501,9 @@ export async function fetchZapsByPubkey(
   try {
     await ndk.connect(NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS)
 
-    const filter: Record<string, unknown> = {
+    const filter: NDKFilter = {
       '#p': [pubkeyHex],
-      kinds: [NOSTR_KIND_ZAP_RECEIPT as never],
+      kinds: [NOSTR_KIND_ZAP_RECEIPT],
       limit
     }
     if (until) {
@@ -581,9 +587,9 @@ export async function fetchZapsSentByPubkey(
   try {
     await ndk.connect(NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS)
 
-    const filter: Record<string, unknown> = {
+    const filter: NDKFilter = {
       authors: [pubkeyHex],
-      kinds: [NOSTR_KIND_ZAP_RECEIPT as never],
+      kinds: [NOSTR_KIND_ZAP_RECEIPT],
       limit
     }
     if (until) {
@@ -678,7 +684,7 @@ export async function enrichZapReceipts(
         ndk,
         {
           authors: stalePubkeys,
-          kinds: [0 as never],
+          kinds: [0],
           limit: stalePubkeys.length
         },
         NOSTR_ZAP_PROFILE_REFRESH_COLLECT_TIMEOUT_MS
@@ -686,7 +692,10 @@ export async function enrichZapReceipts(
 
       for (const event of events) {
         try {
-          const content = JSON.parse(event.content) as Record<string, unknown>
+          const content: unknown = JSON.parse(event.content)
+          if (!isRecord(content)) {
+            continue
+          }
           const name =
             typeof content.name === 'string'
               ? content.name
@@ -766,7 +775,7 @@ export async function fetchZapReceiptById(
       ndk,
       {
         ids: [zapReceiptId],
-        kinds: [NOSTR_KIND_ZAP_RECEIPT as never],
+        kinds: [NOSTR_KIND_ZAP_RECEIPT],
         limit: 1
       },
       NOSTR_ZAP_RECEIPT_COLLECT_TIMEOUT_MS

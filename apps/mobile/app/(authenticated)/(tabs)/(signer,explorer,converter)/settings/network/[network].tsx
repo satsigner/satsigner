@@ -54,12 +54,11 @@ import { trimOnionAddress } from '@/utils/format'
 const tnServer = _tn('settings.network.server')
 
 export default function CustomNetwork() {
-  const { network, editUrl } = useLocalSearchParams<{
-    network: string
+  const { network: networkType, editUrl } = useLocalSearchParams<{
+    network: Network
     editUrl?: string
   }>()
   const router = useRouter()
-  const networkType = network as Network
   const {
     applyPastedUrl,
     formData,

@@ -52,3 +52,19 @@ export function groupBy<T, K>(items: T[], getKey: (item: T) => K): Map<K, T[]> {
   }
   return groups
 }
+
+/**
+ * Narrows untyped input (parsed JSON, native payloads) to an array of numbers,
+ * such as serialized script or transaction bytes.
+ */
+export function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'number')
+}
+
+/**
+ * Narrows untyped input (parsed JSON, native payloads) to an array of strings,
+ * such as a cached list of pubkeys or a nostr tag.
+ */
+export function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}

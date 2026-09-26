@@ -1,4 +1,4 @@
-import { type NostrEvent, finalizeEvent } from 'nostr-tools'
+import { finalizeEvent } from 'nostr-tools'
 import {
   decrypt as nip04Decrypt,
   encrypt as nip04Encrypt
@@ -8,6 +8,8 @@ import {
   encrypt as nip44Encrypt,
   getConversationKey
 } from 'nostr-tools/nip44'
+
+import { parseNostrEventTemplate } from '@/utils/nostrEvent'
 
 export function handlePing(): string {
   return 'pong'
@@ -32,10 +34,10 @@ export function handleSignEvent(
   eventJson: string,
   signerSecretKey: Uint8Array
 ): string {
-  const eventTemplate = JSON.parse(eventJson) as Omit<
-    NostrEvent,
-    'id' | 'pubkey' | 'sig'
-  >
+  const eventTemplate = parseNostrEventTemplate(JSON.parse(eventJson))
+  if (!eventTemplate) {
+    throw new Error('Invalid event template')
+  }
   const signedEvent = finalizeEvent(eventTemplate, signerSecretKey)
   return JSON.stringify(signedEvent)
 }

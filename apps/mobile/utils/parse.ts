@@ -1,9 +1,17 @@
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { t } from '@/locales'
-import type { Account } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
 import { type Output } from '@/types/models/Output'
 
 import { getUtxoOutpoint } from './outpoint'
+
+type AccountAddressesSource = Pick<
+  Account,
+  'addresses' | 'transactions' | 'utxos'
+> & {
+  keys: Pick<Key, 'scriptVersion'>[]
+}
 
 function parseAccountAddressesDetails({
   addresses,
@@ -12,25 +20,27 @@ function parseAccountAddressesDetails({
   keys: {
     0: { scriptVersion }
   }
-}: Account): Account['addresses'] {
+}: AccountAddressesSource): Account['addresses'] {
   const labelsBackup: Record<string, string> = {}
 
   for (const addr of addresses) {
     labelsBackup[addr.address] = addr.label
   }
 
-  const addressesDetailed = addresses.map((addr) => ({
-    ...addr,
-    scriptVersion,
-    summary: {
-      balance: 0,
-      satsInMempool: 0,
-      transactions: 0,
-      utxos: 0
-    },
-    transactions: [] as string[],
-    utxos: [] as string[]
-  }))
+  const addressesDetailed = addresses.map(
+    (addr): Address => ({
+      ...addr,
+      scriptVersion,
+      summary: {
+        balance: 0,
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
+      },
+      transactions: [],
+      utxos: []
+    })
+  )
 
   const addrDictionary: Record<string, number> = {}
 

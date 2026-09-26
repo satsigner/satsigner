@@ -10,9 +10,8 @@ import { storeKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
-import { type MnemonicWordCount } from '@/types/bips/39'
+import { MnemonicWordCountSchema } from '@/types/bips/39'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { type NostrDM } from '@/types/models/Nostr'
 import { getNextDisplayIndex } from '@/utils/account'
 import {
   getExtendedPublicKeyFromMnemonic,
@@ -43,7 +42,9 @@ function buildSeedAccount(name: string, mnemonic: string): Account {
     fingerprint,
     index: 0,
     iv: randomIv(),
-    mnemonicWordCount: mnemonic.trim().split(/\s+/).length as MnemonicWordCount,
+    mnemonicWordCount: MnemonicWordCountSchema.parse(
+      mnemonic.trim().split(/\s+/).length
+    ),
     scriptVersion: 'P2WPKH',
     secret
   }
@@ -66,7 +67,7 @@ function buildSeedAccount(name: string, mnemonic: string): Account {
       commonNsec: '',
       deviceNpub: '',
       deviceNsec: '',
-      dms: [] as NostrDM[],
+      dms: [],
       lastUpdated: new Date(),
       relays: [],
       syncStart: new Date(),

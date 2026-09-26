@@ -6,6 +6,7 @@ import * as DocumentPicker from 'expo-document-picker'
 import * as FileSystem from 'expo-file-system/legacy'
 import { finalizeEvent } from 'nostr-tools'
 import QuickCrypto from 'react-native-quick-crypto'
+import { z } from 'zod'
 
 import {
   NOSTR_BLOSSOM_AUTH_EXPIRY_SECS,
@@ -15,14 +16,35 @@ import {
   NOSTR_FILES_FETCH_TIMEOUT_MS
 } from '@/constants/nostr'
 import { getSecretFromNsec } from '@/utils/nostr'
+import { isRecord } from '@/utils/object'
+import { optionalLenient, withFallback } from '@/utils/schema'
 
-export type BlobDescriptor = {
-  url: string
-  sha256: string
-  size: number
-  type?: string
-  uploaded: number
-  name?: string
+/**
+ * BUD-02 blob descriptor as the file list reads it. Only url and sha256 are
+ * required: servers omit `uploaded` (older BUD-02 drafts) or send null type
+ * and name, so unreadable optional values are dropped instead of hiding the
+ * file.
+ */
+const BlobDescriptorSchema = z.object({
+  name: optionalLenient(z.string()),
+  sha256: z.string(),
+  size: withFallback(z.number(), 0),
+  type: optionalLenient(z.string()),
+  uploaded: optionalLenient(z.number()),
+  url: z.string()
+})
+
+export type BlobDescriptor = z.infer<typeof BlobDescriptorSchema>
+
+/** Keeps the entries of a BUD-02 list response that are valid blob descriptors. */
+function toBlobDescriptors(value: unknown): BlobDescriptor[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.flatMap((item) => {
+    const result = BlobDescriptorSchema.safeParse(item)
+    return result.success ? [result.data] : []
+  })
 }
 
 async function parseBlossomList(response: Response): Promise<BlobDescriptor[]> {
@@ -34,8 +56,7 @@ async function parseBlossomList(response: Response): Promise<BlobDescriptor[]> {
   }
   const text = await response.text()
   try {
-    const parsed = JSON.parse(text) as unknown
-    return Array.isArray(parsed) ? (parsed as BlobDescriptor[]) : []
+    return toBlobDescriptors(JSON.parse(text))
   } catch {
     return []
   }
@@ -273,7 +294,7 @@ export async function uploadToBlossom(params: UploadParams): Promise<string> {
 
   const payloadHash = QuickCrypto.createHash('sha256')
     .update(fileBytes)
-    .digest('hex') as string
+    .digest('hex')
 
   const uploadUrl = `${serverUrl.replace(/\/$/, '')}/upload`
   const authHeader = buildAuthHeader(payloadHash, secretKey)
@@ -288,14 +309,14 @@ export async function uploadToBlossom(params: UploadParams): Promise<string> {
     authHeader
   )
 
-  let data: { url?: string }
+  let data: unknown
   try {
-    data = JSON.parse(responseText) as { url?: string }
+    data = JSON.parse(responseText)
   } catch {
     throw new Error('Blossom server returned invalid JSON')
   }
 
-  if (!data.url) {
+  if (!isRecord(data) || typeof data.url !== 'string' || !data.url) {
     throw new Error('Blossom server response missing URL field')
   }
 

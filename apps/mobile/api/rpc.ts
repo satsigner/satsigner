@@ -1,4 +1,5 @@
 import { Platform } from 'react-native'
+import z from 'zod'
 
 import {
   RPC_DEFAULT_TIMEOUT_MS,
@@ -144,17 +145,18 @@ type RpcRequest = {
   params: unknown[]
 }
 
-type RpcResponse<T> = {
-  error: { code: number; message: string } | null
-  id: string
-  result: T
-}
+const RpcResponseSchema = z.object({
+  error: z.object({ code: z.number(), message: z.string() }).nullish(),
+  result: z.unknown()
+})
 
 /**
  * Single source of truth for a JSON-RPC POST: builds the request body, adds
  * Basic auth, applies the timeout, and normalizes HTTP/RPC errors into
  * user-facing messages. Both the node-level and wallet-level clients delegate
  * here so the request/error handling never drifts between the two.
+ * The JSON-RPC envelope is validated; `result` is returned as the
+ * caller-declared `T` without per-method validation.
  */
 async function rpcFetch<T>(
   url: string,
@@ -198,13 +200,13 @@ async function rpcFetch<T>(
     throw new Error(`Node returned HTTP ${response.status}`)
   }
 
-  const data = (await response.json()) as RpcResponse<T>
+  const data = RpcResponseSchema.parse(await response.json())
 
   if (data.error) {
     throw new Error(`RPC error ${data.error.code}: ${data.error.message}`)
   }
 
-  return data.result
+  return data.result as T
 }
 
 export type BlockchainInfo = {

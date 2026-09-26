@@ -1,5 +1,10 @@
 import { type Key } from '@/types/models/Account'
-import { extractPublicKeyFromKey, isSeedDropped } from '@/utils/key'
+import { createResetKey } from '@/utils/account'
+import {
+  extractPublicKeyFromKey,
+  hasEncryptedSecret,
+  isSeedDropped
+} from '@/utils/key'
 
 jest.mock<typeof import('@/utils/bip32')>('@/utils/bip32', () => ({
   getExtendedKeyFromDescriptor: (descriptor: string) => {
@@ -54,6 +59,21 @@ describe('isSeedDropped', () => {
     const keyDetails = makeKey({ mnemonic: 'word1 word2' })
     const decryptedKey = makeKey({ extendedPublicKey: 'xpub...' })
     expect(isSeedDropped(keyDetails, decryptedKey)).toBe(true)
+  })
+})
+
+describe('hasEncryptedSecret', () => {
+  it('is true for a key with an encrypted secret', () => {
+    expect(hasEncryptedSecret(makeKey('encrypted-secret'))).toBe(true)
+  })
+
+  it('is false for a reset key slot, so it can be filled again', () => {
+    expect(hasEncryptedSecret(createResetKey(0))).toBe(false)
+  })
+
+  it('is false for a decrypted secret or a missing key', () => {
+    expect(hasEncryptedSecret(makeKey({ mnemonic: 'abandon' }))).toBe(false)
+    expect(hasEncryptedSecret(undefined)).toBe(false)
   })
 })
 

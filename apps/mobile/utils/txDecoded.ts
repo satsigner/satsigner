@@ -40,9 +40,12 @@ export type TxDecodedField = {
 
 export class TxDecoded extends bitcoinjs.Transaction {
   static fromHex(hex: string): TxDecoded {
-    const tx = super.fromHex(hex)
-    Object.setPrototypeOf(tx, TxDecoded.prototype)
-    return tx as TxDecoded
+    return TxDecoded.fromTransaction(super.fromHex(hex))
+  }
+
+  /** Wraps an already parsed transaction, e.g. one read out of a block. */
+  static fromTransaction(tx: bitcoinjs.Transaction): TxDecoded {
+    return Object.assign(new TxDecoded(), tx)
   }
 
   static decodeFromHex(hex: string): TxDecodedField[] {

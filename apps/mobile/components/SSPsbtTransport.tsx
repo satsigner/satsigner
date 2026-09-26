@@ -56,7 +56,7 @@ function SSPsbtTransport({
 
   const qrChunks = useMemo(() => {
     if (!psbtBase64) {
-      return [] as string[]
+      return []
     }
     try {
       const bytes = Buffer.from(psbtBase64, 'base64')
@@ -66,7 +66,7 @@ function SSPsbtTransport({
         BBQR_CHUNK_SIZE
       )
     } catch {
-      return [] as string[]
+      return []
     }
   }, [psbtBase64])
 

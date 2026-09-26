@@ -160,6 +160,17 @@ function assertPayjoinHttpOk(res: HttpResponse, context: string): void {
   }
 }
 
+/**
+ * Adapts a request body for `fetch`, which only takes byte views backed by a
+ * plain ArrayBuffer; the bytes are copied into one.
+ */
+function toFetchBody(body: Uint8Array | string | undefined) {
+  if (body === undefined || typeof body === 'string') {
+    return body
+  }
+  return new Uint8Array(body)
+}
+
 async function defaultFetch(
   url: string,
   init?: {
@@ -184,7 +195,7 @@ async function defaultFetch(
   // polls are long-lived and aborting them is normal; retry on the next tick.
   try {
     const response = await fetch(url, {
-      body: init?.body as BodyInit | undefined,
+      body: toFetchBody(init?.body),
       headers: init?.headers,
       method: init?.method ?? 'GET',
       signal: timed.signal

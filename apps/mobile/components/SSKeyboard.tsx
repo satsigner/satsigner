@@ -276,9 +276,14 @@ function getKeyBorderLight(
     KEY_LIGHT_MIN_INTENSITY,
     1 - rowBlock * KEY_LIGHT_INTENSITY_DROP_PER_ROW
   )
-  const colors = KEY_LIGHT_ALPHAS.map(
-    (a) => `rgba(255,255,255,${Math.min(0.24, a * intensity).toFixed(3)})`
-  ) as [string, string, string]
+  const toLightColor = (alpha: number) =>
+    `rgba(255,255,255,${Math.min(0.24, alpha * intensity).toFixed(3)})`
+  const [startAlpha, midAlpha, endAlpha] = KEY_LIGHT_ALPHAS
+  const colors: [string, string, string] = [
+    toLightColor(startAlpha),
+    toLightColor(midAlpha),
+    toLightColor(endAlpha)
+  ]
 
   const cx = 0.5 + Math.sin(index * 0.65) * KEY_LIGHT_CENTER_WOBBLE * 0.45
 

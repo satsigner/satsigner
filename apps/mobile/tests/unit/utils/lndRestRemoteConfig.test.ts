@@ -249,6 +249,24 @@ describe('lndRestRemoteConfig', () => {
       expect(cfg.url).toBe('https://x.dev/tor')
       expect(cfg.macaroon).toBe('ab01')
     })
+
+    it('parses a single configuration object', () => {
+      const json = JSON.stringify({
+        configuration: { macaroon: 'ab02', uri: 'https://single.example/' }
+      })
+      const cfg = parseLndRemotePairingFromJsonText(json)
+      expect(cfg.url).toBe('https://single.example')
+      expect(cfg.macaroon).toBe('ab02')
+    })
+
+    it('rejects entries that are not JSON objects', () => {
+      expect(() =>
+        parseLndRemotePairingFromJsonText(JSON.stringify([['ab03']]))
+      ).toThrow('Unrecognized LND config JSON')
+      expect(() => parseLndRemotePairingFromJsonText('null')).toThrow(
+        'Unrecognized LND config JSON'
+      )
+    })
   })
 
   describe('parseLndRemotePairingConnectionString', () => {

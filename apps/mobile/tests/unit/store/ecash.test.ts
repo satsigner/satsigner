@@ -266,6 +266,34 @@ describe('ecash store', () => {
     })
   })
 
+  describe('persisted state merge', () => {
+    it('keeps the current state when nothing was persisted', () => {
+      const { merge } = useEcashStore.persist.getOptions()
+      const current = useEcashStore.getState()
+
+      expect(merge?.(undefined, current)).toStrictEqual(current)
+    })
+
+    it('moves a flat legacy blob into the legacy account', () => {
+      const { merge } = useEcashStore.persist.getOptions()
+      const legacyMint = makeMint('https://legacy-mint.example')
+
+      const merged = merge?.(
+        {
+          activeMint: legacyMint,
+          mints: [legacyMint],
+          proofs: [{ C: 'C-1', amount: 21, id: 'lp-1', secret: 's1' }],
+          transactions: []
+        },
+        useEcashStore.getState()
+      )
+
+      expect(merged?.activeAccountId).toBe('legacy')
+      expect(merged?.mints.legacy).toStrictEqual([legacyMint])
+      expect(merged?.proofs.legacy?.[0]?.mintUrl).toBe(legacyMint.url)
+    })
+  })
+
   describe('restoreFromBackup', () => {
     it('keeps proofs and transactions when those fields are omitted', () => {
       useEcashStore.getState().addAccount(makeAccount('acc-1'))

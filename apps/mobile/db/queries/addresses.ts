@@ -9,32 +9,32 @@ import {
 
 function getAddressesByAccount(accountId: string): Address[] {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows } = db.execute<AddressRow>(
     'SELECT * FROM addresses WHERE account_id = ?',
     [accountId]
   )
   const txIdsByAddress = getAddressTxIdsByAccount(accountId)
   const utxoRefsByAddress = getAddressUtxoRefsByAccount(accountId)
-  return (results ?? []).map((row) => {
-    const addr = row as AddressRow
-    return rowToAddress(
+  return rows._array.map((addr) =>
+    rowToAddress(
       addr,
       txIdsByAddress.get(addr.address) ?? [],
       utxoRefsByAddress.get(addr.address) ?? []
     )
-  })
+  )
 }
 
 function getAddress(accountId: string, address: string): Address | undefined {
   const db = getDb()
-  const { results } = db.execute(
-    'SELECT * FROM addresses WHERE account_id = ? AND address = ?',
-    [accountId, address]
-  )
-  if (!results || results.length === 0) {
+  const row = db
+    .execute<AddressRow>(
+      'SELECT * FROM addresses WHERE account_id = ? AND address = ?',
+      [accountId, address]
+    )
+    .rows.item(0)
+  if (!row) {
     return undefined
   }
-  const row = results[0] as AddressRow
   const txIds = getAddressTxIds(accountId, address)
   const utxoRefs = getAddressUtxoRefs(accountId, address)
   return rowToAddress(row, txIds, utxoRefs)
@@ -42,20 +42,20 @@ function getAddress(accountId: string, address: string): Address | undefined {
 
 function getAddressTxIds(accountId: string, address: string): string[] {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows } = db.execute<{ tx_id: string }>(
     'SELECT tx_id FROM address_transactions WHERE account_id = ? AND address = ?',
     [accountId, address]
   )
-  return (results ?? []).map((r) => r.tx_id as string)
+  return rows._array.map((r) => r.tx_id)
 }
 
 function getAddressUtxoRefs(accountId: string, address: string): string[] {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows } = db.execute<{ utxo_ref: string }>(
     'SELECT utxo_ref FROM address_utxos WHERE account_id = ? AND address = ?',
     [accountId, address]
   )
-  return (results ?? []).map((r) => r.utxo_ref as string)
+  return rows._array.map((r) => r.utxo_ref)
 }
 
 export {

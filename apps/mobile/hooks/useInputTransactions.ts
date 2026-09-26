@@ -222,9 +222,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
 
               if (fetched?.kind === 'json') {
                 tx = fetched.tx
-                const mappedTx: Transaction = {
+                const mappedTx: ExtendedTransaction = {
                   address: undefined,
                   blockHeight: tx.status.block_height,
+                  depthH: 0,
                   fee: tx.fee,
                   id: txid,
                   label: undefined,
@@ -241,7 +242,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   type: 'send',
                   version: tx.version,
                   vin: tx.vin.map((input) => ({
-                    address: input.prevout?.scriptpubkey_address,
+                    address: input.prevout?.scriptpubkey_address ?? 'unknown',
                     label: undefined,
                     previousOutput: {
                       txid: normalizeTxid(input.txid),
@@ -269,10 +270,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   vsize: Math.ceil(tx.weight / 4),
                   weight: tx.weight
                 }
-                newTransactions.set(txid, {
-                  ...(mappedTx as ExtendedTransaction),
-                  depthH: 0
-                })
+                newTransactions.set(txid, mappedTx)
 
                 for (const vout of mappedTx.vout ?? []) {
                   if (!vout.address) {
@@ -306,9 +304,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       return ''
                     }
                   }
-                  const mappedTx: Transaction = {
+                  const mappedTx: ExtendedTransaction = {
                     address: undefined,
                     blockHeight: undefined,
+                    depthH: 0,
                     fee: undefined,
                     id: txid,
                     label: undefined,
@@ -345,10 +344,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     vsize: parsedTx.virtualSize(),
                     weight: parsedTx.weight()
                   }
-                  newTransactions.set(txid, {
-                    ...(mappedTx as ExtendedTransaction),
-                    depthH: 0
-                  })
+                  newTransactions.set(txid, mappedTx)
                   const inputAddresses = new Set<string>()
                   for (const vout of mappedTx.vout ?? []) {
                     if (!vout.address) {
@@ -379,9 +375,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       .then((block) => block.height)
                       .catch(() => undefined)
                   }
-                  const mappedTx: Transaction = {
+                  const mappedTx: ExtendedTransaction = {
                     address: undefined,
                     blockHeight,
+                    depthH: 0,
                     fee: undefined,
                     id: rawTx.txid,
                     label: undefined,
@@ -427,10 +424,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     vsize: rawTx.vsize,
                     weight: rawTx.weight
                   }
-                  newTransactions.set(txid, {
-                    ...(mappedTx as ExtendedTransaction),
-                    depthH: 0
-                  })
+                  newTransactions.set(txid, mappedTx)
 
                   const inputAddresses = new Set<string>()
                   const outputAddresses = new Set<string>()
@@ -529,9 +523,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     }
                   }
 
-                  const mappedTx: Transaction = {
+                  const mappedTx: ExtendedTransaction = {
                     address: undefined, // Not directly available in raw tx
                     blockHeight,
+                    depthH: 0,
                     fee: undefined, // Not directly available in raw tx
                     id: txid,
                     label: undefined, // TODO: add label
@@ -587,13 +582,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     weight: parsedTx.weight()
                   }
 
-                  newTransactions.set(txid, {
-                    ...(mappedTx as ExtendedTransaction),
-                    depthH: 0
-                  })
+                  newTransactions.set(txid, mappedTx)
 
                   const inputAddresses = new Set<string>()
-                  for (const vin of mappedTx.vin as ExtendedVin[]) {
+                  for (const vin of mappedTx.vin) {
                     if (vin.address && vin.address !== 'unknown') {
                       inputAddresses.add(vin.address)
                     }

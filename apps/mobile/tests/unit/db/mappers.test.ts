@@ -3,6 +3,7 @@ import {
   dateToIso,
   optionalToJson,
   parseJson,
+  parseUncheckedJson,
   rowToAccount,
   rowToAddress,
   rowToLabel,
@@ -18,11 +19,15 @@ import {
   type TxOutputRow,
   type UtxoRow
 } from '@/db/mappers'
+import { isNumberArray } from '@/utils/array'
+import { isRecord } from '@/utils/object'
 
 function makeAccountRow(overrides: Partial<AccountRow> = {}): AccountRow {
   return {
     balance: 100000,
+    birthday_date: null,
     created_at: '2024-01-01T00:00:00.000Z',
+    display_index: 0,
     excluded_utxo_outpoints: '[]',
     id: 'acc-1',
     key_count: 1,
@@ -54,6 +59,7 @@ function makeAccountRow(overrides: Partial<AccountRow> = {}): AccountRow {
     num_transactions: 3,
     num_utxos: 4,
     policy_type: 'singlesig',
+    rpc_last_block_hash: null,
     sats_in_mempool: 0,
     sync_progress_done: null,
     sync_progress_total: null,
@@ -189,27 +195,49 @@ function makeNostrDmRow(overrides: Partial<NostrDmRow> = {}): NostrDmRow {
 
 describe('parseJson', () => {
   it('parses valid JSON', () => {
-    expect(parseJson('{"a":1}', {})).toStrictEqual({ a: 1 })
+    expect(parseJson('{"a":1}', isRecord)).toStrictEqual({ a: 1 })
   })
 
-  it('returns fallback for null', () => {
-    expect(parseJson(null, [])).toStrictEqual([])
+  it('returns undefined for null', () => {
+    expect(parseJson(null, isNumberArray)).toBeUndefined()
   })
 
-  it('returns fallback for empty string', () => {
-    expect(parseJson('', 'default')).toBe('default')
+  it('returns undefined for empty string', () => {
+    expect(parseJson('', isNumberArray)).toBeUndefined()
   })
 
-  it('returns fallback for invalid JSON', () => {
-    expect(parseJson('{broken', 42)).toBe(42)
+  it('returns undefined for invalid JSON', () => {
+    expect(parseJson('{broken', isRecord)).toBeUndefined()
   })
 
   it('parses arrays', () => {
-    expect(parseJson('[1,2,3]', [])).toStrictEqual([1, 2, 3])
+    expect(parseJson('[1,2,3]', isNumberArray)).toStrictEqual([1, 2, 3])
   })
 
   it('parses nested objects', () => {
-    expect(parseJson('{"a":{"b":true}}', {})).toStrictEqual({ a: { b: true } })
+    expect(parseJson('{"a":{"b":true}}', isRecord)).toStrictEqual({
+      a: { b: true }
+    })
+  })
+
+  it('returns undefined when the parsed value fails the guard', () => {
+    expect(parseJson('{"0":1}', isNumberArray)).toBeUndefined()
+    expect(parseJson('[1,2,3]', isRecord)).toBeUndefined()
+  })
+})
+
+describe('parseUncheckedJson', () => {
+  it('returns the parsed value as stored', () => {
+    expect(parseUncheckedJson('"1.10"')).toBe('1.10')
+    expect(parseUncheckedJson('[{"index":1,"name":""}]')).toStrictEqual([
+      { index: 1, name: '' }
+    ])
+  })
+
+  it('returns undefined for empty or malformed columns', () => {
+    expect(parseUncheckedJson(null)).toBeUndefined()
+    expect(parseUncheckedJson('')).toBeUndefined()
+    expect(parseUncheckedJson('{broken')).toBeUndefined()
   })
 })
 
@@ -225,6 +253,10 @@ describe('dateToIso', () => {
 
   it('returns null for null', () => {
     expect(dateToIso(null)).toBeNull()
+  })
+
+  it('returns null for an invalid date instead of throwing', () => {
+    expect(dateToIso(new Date('not a date'))).toBeNull()
   })
 })
 
@@ -297,6 +329,33 @@ describe('rowToAccount', () => {
     })
     const result = rowToAccount(row, [], [], [], {}, [], [], [])
     expect(result.excludedUtxoOutpoints).toStrictEqual(['txid:0'])
+  })
+
+  it('falls back to no excluded outpoints when the column is null or malformed', () => {
+    const nullRow = makeAccountRow({ excluded_utxo_outpoints: null })
+    const numbersRow = makeAccountRow({ excluded_utxo_outpoints: '[1, 2]' })
+
+    expect(
+      rowToAccount(nullRow, [], [], [], {}, [], [], []).excludedUtxoOutpoints
+    ).toStrictEqual([])
+    expect(
+      rowToAccount(numbersRow, [], [], [], {}, [], [], []).excludedUtxoOutpoints
+    ).toStrictEqual([])
+  })
+
+  it('keeps key slots cleared by resetKey, which have no creationType', () => {
+    const row = makeAccountRow({
+      key_count: 2,
+      keys: JSON.stringify([
+        { creationType: 'importMnemonic', fingerprint: 'abcdef12', index: 0 },
+        { index: 1, name: '' }
+      ])
+    })
+    const result = rowToAccount(row, [], [], [], {}, [], [], [])
+
+    expect(result.keys).toHaveLength(2)
+    expect(result.keys[1].index).toBe(1)
+    expect(result.keys[1].creationType).toBeUndefined()
   })
 
   it('maps keys as KeyMeta with empty secret/iv', () => {
@@ -429,6 +488,17 @@ describe('rowToAccount', () => {
       npub1: { displayName: 'Alice' }
     })
   })
+
+  it('falls back to empty nostr aliases and profiles when malformed', () => {
+    const row = makeAccountRow({
+      nostr_npub_aliases: '{"npub1":1}',
+      nostr_npub_profiles: '{"npub1":"Alice"}'
+    })
+    const result = rowToAccount(row, [], [], [], {}, [], [], [])
+
+    expect(result.nostr.npubAliases).toStrictEqual({})
+    expect(result.nostr.npubProfiles).toStrictEqual({})
+  })
 })
 
 describe('rowToTransaction', () => {
@@ -519,6 +589,32 @@ describe('rowToTransaction', () => {
     expect(result.vin[0].scriptSig).toBe('')
   })
 
+  it('keeps scripts stored as hex strings', () => {
+    const input = makeTxInputRow({ script_sig: JSON.stringify('160014ab') })
+    const output = makeTxOutputRow({ script: JSON.stringify('0014ab') })
+    const result = rowToTransaction(makeTransactionRow(), [input], [output])
+
+    expect(result.vin[0].scriptSig).toBe('160014ab')
+    expect(result.vout[0].script).toBe('0014ab')
+  })
+
+  it('falls back when byte columns do not hold bytes', () => {
+    const row = makeTransactionRow({ raw: '{"0":1,"1":0}' })
+    const input = makeTxInputRow({ script_sig: '{}', witness: '[["ab"]]' })
+    const output = makeTxOutputRow({ script: 'true' })
+    const result = rowToTransaction(row, [input], [output])
+
+    expect(result.raw).toBeUndefined()
+    expect(result.vin[0].scriptSig).toBe('')
+    expect(result.vin[0].witness).toStrictEqual([])
+    expect(result.vout[0].script).toBe('')
+  })
+
+  it('falls back to empty prices when a price is not a number', () => {
+    const row = makeTransactionRow({ prices: '{"USD":null}' })
+    expect(rowToTransaction(row, [], []).prices).toStrictEqual({})
+  })
+
   it('handles lock_time_enabled as boolean', () => {
     const enabled = makeTransactionRow({ lock_time_enabled: 1 })
     const disabled = makeTransactionRow({ lock_time_enabled: 0 })
@@ -561,6 +657,11 @@ describe('rowToUtxo', () => {
   it('handles internal keychain', () => {
     const row = makeUtxoRow({ keychain: 'internal' })
     expect(rowToUtxo(row).keychain).toBe('internal')
+  })
+
+  it('drops a script that does not hold bytes', () => {
+    const row = makeUtxoRow({ script: '{"0":0}' })
+    expect(rowToUtxo(row).script).toBeUndefined()
   })
 })
 
@@ -688,6 +789,11 @@ describe('rowToLabel', () => {
   it('handles invalid fmv JSON gracefully', () => {
     const row = makeLabelRow({ fmv: '{broken' })
     expect(rowToLabel(row).fmv).toBeUndefined()
+  })
+
+  it('keeps imported rate values as stored so exports round-trip them', () => {
+    const row = makeLabelRow({ rate: JSON.stringify('105620.00') })
+    expect(rowToLabel(row).rate).toBe('105620.00')
   })
 })
 

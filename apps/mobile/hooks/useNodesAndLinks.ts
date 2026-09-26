@@ -78,7 +78,7 @@ export type TxNode = {
 type Link = {
   source: string
   target: string
-  value: number | undefined
+  value: number
 }
 
 type UseNodesAndLinksProps = {
@@ -121,7 +121,7 @@ export const useNodesAndLinks = ({
     transactions.size > 0
       ? Math.max(...Array.from(transactions.values()).map((tx) => tx.depthH))
       : 0
-  const outputNodesCurrentTransaction = useMemo(() => {
+  const outputNodesCurrentTransaction: TxNode[] = useMemo(() => {
     if (inputs.size > 0 && transactions.size > 0) {
       const blockDepth = maxExistingDepth + 2
 
@@ -265,7 +265,7 @@ export const useNodesAndLinks = ({
           localId: undefined,
           type: 'block',
           value: totalOutputValue
-        } as TxNode,
+        },
         ...outputNodes
       ]
     }
@@ -359,7 +359,7 @@ export const useNodesAndLinks = ({
 
           const minerFee = totalInputValue - totalOutputValue
 
-          const allInputNodes = tx.vin.reduce((nodes, input) => {
+          const allInputNodes = tx.vin.reduce<TxNode[]>((nodes, input) => {
             if (
               outputAddresses.includes(input.address) &&
               outputValues.includes(input.value ?? 0)
@@ -401,7 +401,7 @@ export const useNodesAndLinks = ({
 
             nodes.push(node)
             return nodes
-          }, [] as TxNode[])
+          }, [])
 
           const vsize = Math.ceil((tx?.weight ?? 0) * 0.25)
           const blockDepth = tx.depthH
@@ -572,14 +572,13 @@ export const useNodesAndLinks = ({
   const links = useMemo(() => {
     function generateSankeyLinks(nodes: TxNode[]) {
       const links: Link[] = []
-      const depthMap = new Map()
+      const depthMap = new Map<number, TxNode[]>()
 
       for (const node of nodes) {
-        const depth = (node as TxNode).depthH
-        if (!depthMap.has(depth)) {
-          depthMap.set(depth, [])
-        }
-        depthMap.get(depth).push(node)
+        const depth = node.depthH
+        const depthNodes = depthMap.get(depth) ?? []
+        depthNodes.push(node)
+        depthMap.set(depth, depthNodes)
       }
 
       for (const node of nodes) {
@@ -603,7 +602,7 @@ export const useNodesAndLinks = ({
             (n: TxNode) => n.type === 'text' && n.txId === node.txId
           )
 
-          for (const vout of vouts as TxNode[]) {
+          for (const vout of vouts) {
             links.push({ source: node.id, target: vout.id, value: vout.value })
           }
         } else if (node.type === 'text' && node.nextTx) {
@@ -646,11 +645,13 @@ export const useNodesAndLinks = ({
           const targetBlock = nextDepthNodes.find(
             (n: TxNode) => n.type === 'block' && n.txId === node.txId
           )
-          links.push({
-            source: node.id,
-            target: targetBlock,
-            value: node.value
-          })
+          if (targetBlock) {
+            links.push({
+              source: node.id,
+              target: targetBlock.id,
+              value: node.value
+            })
+          }
         }
       }
 
