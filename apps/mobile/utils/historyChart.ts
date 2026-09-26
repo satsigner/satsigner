@@ -295,7 +295,7 @@ export function buildUtxoRectangles({
           ? currentDate
           : new Date(transactions.at(index + 1)?.timestamp ?? currentDate)
       )
-      if (x2 < 0 && x1 >= chartWidth) {
+      if (x2 < 0 || x1 >= chartWidth) {
         return []
       }
       let totalBalance = 0
@@ -353,7 +353,7 @@ export function buildUtxoLabels({
         ? currentDate
         : new Date(transactions.at(index + 1)?.timestamp ?? currentDate)
     )
-    if (x2 < 0 && x1 >= chartWidth) {
+    if (x2 < 0 || x1 >= chartWidth) {
       continue
     }
     let totalBalance = 0
