@@ -20,6 +20,7 @@ import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { MAX_SUPPLY_SATS } from '@/constants/consensus'
 import {
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_MIN_RECEIVE_SATS
@@ -234,7 +235,7 @@ export default function Receive() {
     includeAmount &&
     localCustomAmount &&
     Number(localCustomAmount) > 0 &&
-    Number(localCustomAmount) <= 2_100_000_000_000_000
+    Number(localCustomAmount) <= MAX_SUPPLY_SATS
       ? Number(localCustomAmount)
       : undefined
 
@@ -914,7 +915,7 @@ export default function Receive() {
                     <>
                       <SSNumberInput
                         min={0}
-                        max={2_100_000_000_000_000}
+                        max={MAX_SUPPLY_SATS}
                         value={localCustomAmount}
                         placeholder={t('receive.placeholder.sats')}
                         align="center"
