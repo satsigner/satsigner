@@ -69,6 +69,8 @@ type SSNostrFeedTabsProps = {
   npub: string
   onNotePress?: (payload: { id: string; kind: number; pubkey: string }) => void
   onZapPress?: (receipt: ZapReceiptInfo) => void
+  /** Called with the author npub when an author row is pressed. */
+  onAuthorPress?: (authorNpub: string) => void
   /** When viewing another profile, pass the signed-in identity npub so author taps open `/account/{this}/contact/{author}`. */
   profileLinkContextNpub?: string
   relayConnected: boolean
@@ -108,6 +110,7 @@ function SSNostrFeedTabs({
   npub,
   onNotePress,
   onZapPress,
+  onAuthorPress,
   profileLinkContextNpub,
   relayConnected,
   relays
@@ -614,7 +617,11 @@ function SSNostrFeedTabs({
 
     return (
       <SSNostrFeedAuthorRow
-        contextNpub={authorNavNpub}
+        onPress={
+          authorNavNpub && onAuthorPress
+            ? () => onAuthorPress(npubBech)
+            : undefined
+        }
         loading={loading}
         npubBech={npubBech}
         displayName={displayName}

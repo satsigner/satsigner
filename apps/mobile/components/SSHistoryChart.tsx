@@ -25,7 +25,6 @@ import {
 } from 'd3-scale'
 import { area, curveStepAfter, line } from 'd3-shape'
 import { timeFormat } from 'd3-time-format'
-import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Fragment, memo, useCallback, useMemo, useRef, useState } from 'react'
 import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
@@ -39,7 +38,6 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Rectangle } from '@/types/ui/geometry'
 import {
   formatFiatPrice,
@@ -63,15 +61,19 @@ type SSHistoryChartProps = {
   transactions: Transaction[]
   utxos: Utxo[]
   blockchainHeight?: number
+  /** Called with the tapped UTXO's txid and vout to open its details. */
+  onOpenUtxo: (txid: string, vout: number) => void
+  /** Called with a transaction id to open its details. */
+  onOpenTransaction: (txid: string) => void
 }
 
 function SSHistoryChart({
   transactions,
   utxos,
-  blockchainHeight
+  blockchainHeight,
+  onOpenUtxo,
+  onOpenTransaction
 }: SSHistoryChartProps) {
-  const router = useRouter()
-
   const [
     showLabel,
     showAmount,
@@ -109,7 +111,6 @@ function SSHistoryChart({
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
 
-  const { id } = useLocalSearchParams<AccountSearchParams>()
   const currentDate = useRef<Date>(new Date())
   const labelRectRef = useRef<{ rect: Rectangle; id: string }[]>([])
 
@@ -564,9 +565,7 @@ function SSHistoryChart({
               x >= value.x1 && x <= value.x2 && y >= value.y2 && y <= value.y1
           )
           if (tappedRect !== undefined && showOutputField) {
-            router.navigate(
-              `/signer/bitcoin/account/${id}/transaction/${tappedRect.utxo.txid}/utxo/${tappedRect.utxo.vout}`
-            )
+            onOpenUtxo(tappedRect.utxo.txid, tappedRect.utxo.vout)
             return
           }
           const tapLabelRect = labelRectRef.current.find(
@@ -577,9 +576,7 @@ function SSHistoryChart({
               y >= rect.top
           )
           if (tapLabelRect !== undefined && showTransactionInfo) {
-            router.navigate(
-              `/signer/bitcoin/account/${id}/transaction/${tapLabelRect.id}`
-            )
+            onOpenTransaction(tapLabelRect.id)
           }
         }
       }

@@ -1,6 +1,5 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
-import { router } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -89,6 +88,8 @@ type SSTransactionChartProps = {
   walletSpendColors?: boolean
   /** Called with `false` once the chart (including labels) has painted. */
   onLoadingChange?: (loading: boolean) => void
+  /** Called with a linked transaction id when its input/output link is pressed. */
+  onOpenLinkedTx?: (txId: string) => void
 }
 
 function getSpendingTxId(
@@ -105,20 +106,20 @@ function getSpendingTxId(
 const CHART_LOADING_MIN_HEIGHT = 200
 
 type SankeyHitTargetProps = {
-  accountId: string
   height: number
   knownTxIds?: ReadonlySet<string>
   linkedTxId: string
+  onOpenLinkedTx: (txId: string) => void
   width: number
   x: number
   y: number
 }
 
 function SankeyHitTarget({
-  accountId,
   height,
   knownTxIds,
   linkedTxId,
+  onOpenLinkedTx,
   width,
   x,
   y
@@ -127,9 +128,7 @@ function SankeyHitTarget({
     if (knownTxIds && !knownTxIds.has(linkedTxId)) {
       return
     }
-    router.push(
-      `/signer/bitcoin/account/${accountId}/transaction/${linkedTxId}`
-    )
+    onOpenLinkedTx(linkedTxId)
   }
 
   return (
@@ -191,7 +190,8 @@ function SSTransactionChartCanvas({
   scale = 1,
   showUnspentLabel = true,
   walletSpendColors = true,
-  onLoadingChange
+  onLoadingChange,
+  onOpenLinkedTx
 }: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -736,13 +736,13 @@ function SSTransactionChartCanvas({
             />
           </Group>
         </Canvas>
-        {accountId
+        {accountId && onOpenLinkedTx
           ? [...inputHitTargets, ...outputHitTargets].map((target) => (
               <SankeyHitTarget
                 key={target.id}
-                accountId={accountId}
                 knownTxIds={knownTxIds}
                 linkedTxId={target.linkedTxId}
+                onOpenLinkedTx={onOpenLinkedTx}
                 height={target.height}
                 width={target.width}
                 x={target.x}

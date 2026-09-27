@@ -1,6 +1,7 @@
 import { Redirect, Stack, useRouter } from 'expo-router'
 import { useMemo } from 'react'
 import { ScrollView } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -120,6 +121,53 @@ export default function MultiSigManager() {
                 index={index}
                 keyCount={keyCount}
                 keyDetails={keys[index]}
+                onImportMnemonic={() =>
+                  router.navigate(
+                    `/signer/bitcoin/account/add/import/mnemonic/${index}`
+                  )
+                }
+                onGenerateMnemonic={() =>
+                  router.navigate(
+                    `/signer/bitcoin/account/add/multiSig/keySettings/${index}`
+                  )
+                }
+                onImportDescriptor={() =>
+                  router.navigate(
+                    `/signer/bitcoin/account/add/(common)/import/descriptor/${index}`
+                  )
+                }
+                onImportExtendedPub={() =>
+                  router.navigate(
+                    `/signer/bitcoin/account/add/(common)/import/extendedPub/${index}`
+                  )
+                }
+                onShareXpub={() => {
+                  if (!keys[index]) {
+                    toast.error('Key not found')
+                    return
+                  }
+                  router.navigate(
+                    `/signer/bitcoin/account/add/multiSig/export/publicKey?keyIndex=${index}`
+                  )
+                }}
+                onShareDescriptor={() => {
+                  if (!keys[index]) {
+                    toast.error('Key not found')
+                    return
+                  }
+                  router.navigate(
+                    `/signer/bitcoin/account/add/multiSig/export/descriptor?keyIndex=${index}`
+                  )
+                }}
+                onViewSeedWords={() => {
+                  if (!keys[index]) {
+                    toast.error('Key not found')
+                    return
+                  }
+                  router.navigate(
+                    `/signer/bitcoin/account/add/multiSig/export/seedWords?keyIndex=${index}`
+                  )
+                }}
               />
             ))}
           </SSVStack>

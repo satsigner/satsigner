@@ -64,7 +64,9 @@ export default function NetworkSettings() {
                 />
               </SSVStack>
             ))}
-            <SSBitcoinNetworkExplanationLink />
+            <SSBitcoinNetworkExplanationLink
+              onPress={() => router.navigate('/settings/network/comparison')}
+            />
           </SSVStack>
         </SSScrollView>
         <SSVStack>

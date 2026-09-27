@@ -1,4 +1,3 @@
-import { router, type Href } from 'expo-router'
 import { type DimensionValue, TouchableOpacity, View } from 'react-native'
 
 import SSText, { type SSTextProps } from '@/components/SSText'
@@ -18,7 +17,7 @@ type SSDetailsListItemProps = {
   width?: DimensionValue
   uppercase?: boolean
   copyToClipboard?: boolean
-  navigateToLink?: Href
+  onPress?: () => void
   /** Muted unit shown after the value (e.g. "bytes"). */
   unit?: string
 }
@@ -29,7 +28,7 @@ type commonOptions = Pick<
 >
 
 type individualOptions = commonOptions &
-  Pick<SSDetailsListItemProps, 'width' | 'navigateToLink' | 'unit'>
+  Pick<SSDetailsListItemProps, 'width' | 'onPress' | 'unit'>
 
 type SSDetailsListProps = {
   columns: 1 | 2 | 3 | 4
@@ -74,7 +73,7 @@ export function SSDetailsListItem({
   variant = 'sans-serif',
   uppercase = true,
   copyToClipboard = false,
-  navigateToLink,
+  onPress,
   unit
 }: SSDetailsListItemProps) {
   const gap = variant === 'mono' ? 'sm' : 'none'
@@ -110,12 +109,9 @@ export function SSDetailsListItem({
     )
   }
 
-  if (navigateToLink) {
+  if (onPress) {
     return (
-      <TouchableOpacity
-        onPress={() => router.navigate(navigateToLink)}
-        style={{ width }}
-      >
+      <TouchableOpacity onPress={onPress} style={{ width }}>
         {listItemComponent}
       </TouchableOpacity>
     )

@@ -115,6 +115,7 @@ import { getAccountTotalBalance } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import { getDraftIoCounts } from '@/utils/draftSelection'
+import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import {
   formatAddress,
@@ -865,6 +866,16 @@ function TotalTransactions({
             transactions={chartTransactions}
             utxos={account.utxos}
             blockchainHeight={blockchainHeight}
+            onOpenUtxo={(txid, vout) =>
+              router.navigate(
+                `/signer/bitcoin/account/${account.id}/transaction/${txid}/utxo/${vout}`
+              )
+            }
+            onOpenTransaction={(txid) =>
+              router.navigate(
+                `/signer/bitcoin/account/${account.id}/transaction/${txid}`
+              )
+            }
           />
         </View>
       ) : (
@@ -908,7 +919,14 @@ function TotalTransactions({
                     expand={expand}
                     walletBalance={balanceByTxId.get(item.id)}
                     blockHeight={blockchainHeight}
-                    link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
+                    onPress={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/${account.id}/transaction/${item.id}`
+                      )
+                    }
+                    onOpenFiatSettings={() =>
+                      router.navigate('/settings/features/fiatData')
+                    }
                   />
                 </SSVStack>
               )}
@@ -1670,6 +1688,14 @@ function SpendableOutputs({
                     totalBalance={totalBalance}
                     addressIndex={addressIndex}
                     excluded={isUtxoExcluded(item.utxo, excludedOutpoints)}
+                    onPress={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/${account.id}/transaction/${item.utxo.txid}/utxo/${item.utxo.vout}`
+                      )
+                    }
+                    onToggleExcluded={() =>
+                      toggleUtxoExcluded(account.id, item.utxo)
+                    }
                   />
                 </SSVStack>
               )
@@ -1723,6 +1749,7 @@ function SatsInMempool({
   account: Account
   blockchainHeight: number
 }) {
+  const router = useRouter()
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
@@ -1760,7 +1787,14 @@ function SatsInMempool({
               btcPrice={btcPrice}
               fiatCurrency={fiatCurrency}
               expand={false}
-              link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
+              onPress={() =>
+                router.navigate(
+                  `/signer/bitcoin/account/${account.id}/transaction/${item.id}`
+                )
+              }
+              onOpenFiatSettings={() =>
+                router.navigate('/settings/features/fiatData')
+              }
             />
             <SSHStack gap="sm">
               <SSButton
@@ -2344,6 +2378,7 @@ export default function AccountView() {
             fiatCurrency={fiatCurrency}
             nextBlockFee={nextBlockFee}
             blockHeightSource={blockHeightSource}
+            onPress={() => router.navigate('/explorer/chaintip')}
           />
         </SSVStack>
         {!expand && (

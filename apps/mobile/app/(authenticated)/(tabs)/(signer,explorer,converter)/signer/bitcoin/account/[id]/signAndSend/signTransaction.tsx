@@ -1012,6 +1012,11 @@ export default function SignTransaction() {
                         outpointLabelsByRef={outpointLabelsByRef}
                         scale={0.9}
                         showUnspentLabel={false}
+                        onOpenLinkedTx={(linkedTxId) =>
+                          router.push(
+                            `/signer/bitcoin/account/${id}/transaction/${linkedTxId}`
+                          )
+                        }
                       />
                     </View>
                   ) : null}

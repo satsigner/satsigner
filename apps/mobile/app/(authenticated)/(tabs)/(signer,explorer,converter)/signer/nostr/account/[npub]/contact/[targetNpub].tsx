@@ -32,7 +32,11 @@ import {
   encodeContactNprofile,
   getContactShareProfileName
 } from '@/utils/nostrContactProfile'
-import { nostrZapDetailHref } from '@/utils/nostrNavigation'
+import {
+  nostrAccountProfileHref,
+  nostrContactProfileHref,
+  nostrZapDetailHref
+} from '@/utils/nostrNavigation'
 import { initiateZap } from '@/utils/nostrZap'
 import { buildPaymentMethods } from '@/utils/paymentMethods'
 
@@ -370,6 +374,13 @@ export default function NostrContactProfile() {
               onZapPress={(receipt) => {
                 if (npub) {
                   router.navigate(nostrZapDetailHref(npub, receipt.id))
+                }
+              }}
+              onAuthorPress={(authorNpub) => {
+                if (authorNpub === npub) {
+                  router.navigate(nostrAccountProfileHref(authorNpub))
+                } else {
+                  router.navigate(nostrContactProfileHref(npub, authorNpub))
                 }
               }}
             />

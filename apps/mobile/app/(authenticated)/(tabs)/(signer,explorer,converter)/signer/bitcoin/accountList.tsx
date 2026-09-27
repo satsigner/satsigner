@@ -771,6 +771,7 @@ export default function AccountList() {
               fiatCurrency={fiatCurrency}
               nextBlockFee={nextBlockFee}
               blockHeightSource={blockHeightSource}
+              onPress={() => router.navigate('/explorer/chaintip')}
             />
             <SSHStack
               gap="xxs"

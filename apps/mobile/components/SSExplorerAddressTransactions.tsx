@@ -1,4 +1,3 @@
-import { router } from 'expo-router'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -21,19 +20,12 @@ const LOADER_SIZE = 48
 
 type TxRowProps = {
   txid: string
+  onPress: () => void
 }
 
-function navigateToExplorerTx(txid: string) {
-  router.push(`/explorer/transaction/${txid}`)
-}
-
-function TxRow({ txid }: TxRowProps) {
-  function openTx() {
-    navigateToExplorerTx(txid)
-  }
-
+function TxRow({ txid, onPress }: TxRowProps) {
   return (
-    <Pressable onPress={openTx} style={styles.listItem}>
+    <Pressable onPress={onPress} style={styles.listItem}>
       <SSText type="mono" size="xs">
         {txid}
       </SSText>
@@ -46,13 +38,17 @@ type SSExplorerAddressTransactionsProps = {
   txids: string[]
   heightByTxid?: Record<string, number>
   preferMempool?: boolean
+  onOpenTransaction: (txid: string) => void
+  onOpenFiatSettings: () => void
 }
 
 function SSExplorerAddressTransactions({
   address,
   txids,
   heightByTxid,
-  preferMempool = false
+  preferMempool = false,
+  onOpenTransaction,
+  onOpenFiatSettings
 }: SSExplorerAddressTransactionsProps) {
   const blockchainHeight = useBlockchainStore(
     (state) => state.lastKnownBlockHeight
@@ -141,7 +137,8 @@ function SSExplorerAddressTransactions({
               blockHeight={blockchainHeight}
               fiatCurrency={fiatCurrency}
               btcPrice={btcPrice}
-              link={`/explorer/transaction/${transaction.id}`}
+              onPress={() => onOpenTransaction(transaction.id)}
+              onOpenFiatSettings={onOpenFiatSettings}
               expand
               style={{
                 borderColor: Colors.gray[700],
@@ -157,7 +154,11 @@ function SSExplorerAddressTransactions({
       {!requested && txids.length > 0 && !isFetching ? (
         <SSVStack gap="none">
           {txids.map((txid) => (
-            <TxRow key={txid} txid={txid} />
+            <TxRow
+              key={txid}
+              txid={txid}
+              onPress={() => onOpenTransaction(txid)}
+            />
           ))}
         </SSVStack>
       ) : null}

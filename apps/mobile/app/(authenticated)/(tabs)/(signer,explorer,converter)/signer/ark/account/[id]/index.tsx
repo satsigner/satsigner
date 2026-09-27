@@ -358,7 +358,9 @@ export default function ArkAccountDetailPage() {
     return (
       <SSArkMovementCard
         movement={item}
-        link={`/signer/ark/account/${id}/movement/${item.id}`}
+        onPress={() =>
+          router.navigate(`/signer/ark/account/${id}/movement/${item.id}`)
+        }
         label={labels[getArkMovementLabelRef(item)]?.label ?? ''}
       />
     )
@@ -368,7 +370,9 @@ export default function ArkAccountDetailPage() {
     return (
       <SSArkRefreshCard
         movement={item}
-        link={`/signer/ark/account/${id}/movement/${item.id}`}
+        onPress={() =>
+          router.navigate(`/signer/ark/account/${id}/movement/${item.id}`)
+        }
         label={labels[getArkMovementLabelRef(item)]?.label ?? ''}
       />
     )

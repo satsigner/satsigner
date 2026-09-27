@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router'
 import { Pressable, StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
@@ -26,6 +25,7 @@ type SSExploreBlockProps = {
   block: Block | null
   sourceLabel?: string
   canViewTransactions?: boolean
+  onOpenTransactions?: () => void
 }
 
 /** Consensus weight limit (BIP141). */
@@ -110,9 +110,9 @@ function CapacityRow({ label, hint, value }: CapacityRowProps) {
 function SSExploreBlock({
   block,
   sourceLabel,
-  canViewTransactions = false
+  canViewTransactions = false,
+  onOpenTransactions
 }: SSExploreBlockProps) {
-  const router = useRouter()
   const weight = block?.weight || 0
   const size = block?.size || 0
   const vsize = blockVirtualSize(weight)
@@ -131,7 +131,7 @@ function SSExploreBlock({
     if (!canOpenTransactions || !block?.id) {
       return
     }
-    router.push(`/explorer/block/${block.id}/transactions`)
+    onOpenTransactions?.()
   }
 
   return (

@@ -1,4 +1,3 @@
-import { useLocalSearchParams, useRouter } from 'expo-router'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,8 +8,6 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 import { utxoAmountTextSize } from '@/utils/utxoAmountTextSize'
@@ -27,13 +24,17 @@ type SSUtxoCardProps = {
   totalBalance?: number
   addressIndex?: number
   excluded?: boolean
+  onPress: () => void
+  onToggleExcluded: () => void
 }
 
 function SSUtxoCard({
   utxo,
   totalBalance,
   addressIndex,
-  excluded = false
+  excluded = false,
+  onPress,
+  onToggleExcluded
 }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -41,18 +42,6 @@ function SSUtxoCard({
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
-
-  const router = useRouter()
-
-  const { id } = useLocalSearchParams<AccountSearchParams>()
-  const { txid, vout } = utxo
-
-  function handleToggleExcluded() {
-    if (!id) {
-      return
-    }
-    toggleUtxoExcluded(id, utxo)
-  }
 
   const amountTextSize = utxoAmountTextSize(utxo.value)
   const displayLabel = normalizeUtxoLabelForDisplay(utxo.label || '')
@@ -65,12 +54,8 @@ function SSUtxoCard({
       <SSHStack style={{ alignItems: 'stretch' }}>
         <TouchableOpacity
           style={styles.body}
-          onPress={() =>
-            router.navigate(
-              `/signer/bitcoin/account/${id}/transaction/${txid}/utxo/${vout}`
-            )
-          }
-          onLongPress={handleToggleExcluded}
+          onPress={onPress}
+          onLongPress={onToggleExcluded}
         >
           <SSVStack
             gap="none"
@@ -125,10 +110,7 @@ function SSUtxoCard({
             </SSText>
           </SSVStack>
         </TouchableOpacity>
-        <SSIconButton
-          onPress={handleToggleExcluded}
-          style={styles.excludeButton}
-        >
+        <SSIconButton onPress={onToggleExcluded} style={styles.excludeButton}>
           <SSIconExclude
             height={16}
             width={16}

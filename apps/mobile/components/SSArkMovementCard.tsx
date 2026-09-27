@@ -1,4 +1,3 @@
-import { type Href, useRouter } from 'expo-router'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -29,7 +28,7 @@ import { formatFiatPrice, formatNumber, formatTxId } from '@/utils/format'
 
 type SSArkMovementCardProps = {
   movement: ArkMovement
-  link: Href
+  onPress: () => void
   label?: string
 }
 
@@ -38,11 +37,9 @@ const AMOUNT_CLUSTER_OFFSET_Y = 3
 
 function SSArkMovementCard({
   movement,
-  link,
+  onPress,
   label = ''
 }: SSArkMovementCardProps) {
-  const router = useRouter()
-
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
       state.currencyUnit,
@@ -79,7 +76,7 @@ function SSArkMovementCard({
 
   return (
     <TouchableOpacity
-      onPress={() => router.navigate(link)}
+      onPress={onPress}
       activeOpacity={0.7}
       style={isMuted ? styles.mutedContainer : undefined}
     >

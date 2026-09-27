@@ -1,4 +1,3 @@
-import { useRouter, type Href } from 'expo-router'
 import { useState } from 'react'
 import {
   type StyleProp,
@@ -35,9 +34,14 @@ import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 
-function HistoricalFiatUnavailable() {
+type HistoricalFiatUnavailableProps = {
+  onOpenFiatSettings: () => void
+}
+
+function HistoricalFiatUnavailable({
+  onOpenFiatSettings
+}: HistoricalFiatUnavailableProps) {
   const [visible, setVisible] = useState(false)
-  const router = useRouter()
 
   function closeModal() {
     setVisible(false)
@@ -49,7 +53,7 @@ function HistoricalFiatUnavailable() {
 
   function goToFiatDataSettings() {
     setVisible(false)
-    router.navigate('/settings/features/fiatData')
+    onOpenFiatSettings()
   }
 
   return (
@@ -85,7 +89,8 @@ type SSTransactionCardProps = {
   fiatCurrency: Currency
   btcPrice: number
   walletBalance?: number
-  link: Href
+  onPress: () => void
+  onOpenFiatSettings: () => void
   expand: boolean
   style?: StyleProp<ViewStyle>
 }
@@ -98,7 +103,8 @@ function SSTransactionCard({
   fiatCurrency,
   btcPrice,
   walletBalance,
-  link,
+  onPress,
+  onOpenFiatSettings,
   expand,
   style = DEFAULT_STYLE
 }: SSTransactionCardProps) {
@@ -165,12 +171,10 @@ function SSTransactionCard({
     historicalFiatPrice !== '' ||
     (showHistoricalFiat && Boolean(transaction.timestamp))
 
-  const router = useRouter()
-
   const smallView = expand || `${amount}`.length > 10
 
   return (
-    <TouchableOpacity onPress={() => router.navigate(link)}>
+    <TouchableOpacity onPress={onPress}>
       <SSVStack
         style={[
           {
@@ -316,7 +320,9 @@ function SSTransactionCard({
                           ({historicalFiatPrice})
                         </SSText>
                       ) : showHistoricalFiat && transaction.timestamp ? (
-                        <HistoricalFiatUnavailable />
+                        <HistoricalFiatUnavailable
+                          onOpenFiatSettings={onOpenFiatSettings}
+                        />
                       ) : null}
                       {!privacyMode && percentChange !== '' ? (
                         <SSText
