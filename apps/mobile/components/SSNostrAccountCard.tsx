@@ -16,12 +16,12 @@ import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
 } from '@/types/models/Nostr'
+import { formatNpub } from '@/utils/format'
 import {
   generateColorFromNpub,
   getPubKeyHexFromNpub,
   validateNip05
 } from '@/utils/nostr'
-import { truncateNpub } from '@/utils/nostrIdentity'
 
 import { SSIconChevronRight } from './icons'
 
@@ -189,7 +189,7 @@ function SSNostrAccountCard({
                 style={[styles.npubColorDot, { backgroundColor: npubColor }]}
               />
               <SSText size="xs" type="mono" color="muted" numberOfLines={1}>
-                {truncateNpub(identity.npub)}
+                {formatNpub(identity.npub, 'xs')}
               </SSText>
             </SSHStack>
             <View style={styles.reservedMetaRow}>

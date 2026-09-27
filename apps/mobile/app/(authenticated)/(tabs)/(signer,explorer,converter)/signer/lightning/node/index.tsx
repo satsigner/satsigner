@@ -54,7 +54,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import { type LNDCombinedTransaction } from '@/types/models/Lightning'
-import { formatNumber, formatShortPubkey } from '@/utils/format'
+import { formatNumber, truncate } from '@/utils/format'
 import { type LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
 import {
   lightningChannelHref,
@@ -773,7 +773,7 @@ export default function NodeDetailPage() {
           peerAlias ||
           (privacyMode
             ? PRIVACY_MASK
-            : formatShortPubkey(
+            : truncate(
                 typeof remote_pubkey === 'string' ? remote_pubkey : '',
                 LND_NODE_CARD_PUBKEY_HEAD_CHARS,
                 LND_NODE_CARD_PUBKEY_TAIL_CHARS
@@ -884,7 +884,7 @@ export default function NodeDetailPage() {
                         >
                           {privacyMode
                             ? PRIVACY_MASK
-                            : formatShortPubkey(
+                            : truncate(
                                 typeof remote_pubkey === 'string'
                                   ? remote_pubkey
                                   : '',

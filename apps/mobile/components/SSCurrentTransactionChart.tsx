@@ -253,7 +253,7 @@ function SSCurrentTransactionChart({
       id: String(index + 1),
       inputOutpoint: getUtxoOutpoint(input),
       ioData: {
-        address: formatTxId(input.txid, 4),
+        address: formatTxId(input.txid, 'compact'),
         fiatCurrency,
         fiatValue: formatNumber(satsToFiat(input.value), 2),
         isInput: true,
@@ -314,7 +314,7 @@ function SSCurrentTransactionChart({
         depthH: 2,
         id: String(index + 2 + inputArray.length),
         ioData: {
-          address: output?.to ? formatAddress(output?.to, 6) : '',
+          address: output?.to ? formatAddress(output?.to, 'default') : '',
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(output.amount), 2),
           ...(outputFlags[index] ?? {

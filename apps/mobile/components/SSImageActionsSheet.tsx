@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import { BYTES_PER_KIB } from '@/constants/format'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import {
@@ -32,6 +33,7 @@ import {
 } from '@/store/imageActions'
 import { Colors, Layout } from '@/styles'
 import { setClipboard } from '@/utils/clipboard'
+import { formatBytes } from '@/utils/format'
 import { type ImageExifData } from '@/utils/imageExif'
 
 const DISMISS_DRAG_THRESHOLD = 80
@@ -42,16 +44,6 @@ async function saveImage(uri: string): Promise<void> {
   const localUri = `${FileSystem.cacheDirectory}${filename}`
   await FileSystem.downloadAsync(uri, localUri)
   await Sharing.shareAsync(localUri)
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function formatExposure(seconds: number): string {
@@ -104,7 +96,7 @@ function HttpMetaSection({ image }: { image: SelectedImageMeta }) {
       {image.fileSize !== undefined ? (
         <MetaRow
           label={t('nostrIdentity.note.imageMetadataFileSize')}
-          value={formatBytes(image.fileSize)}
+          value={formatBytes(image.fileSize, BYTES_PER_KIB)}
         />
       ) : null}
       {image.contentType ? (

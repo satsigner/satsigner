@@ -28,11 +28,9 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatNumber, formatTxId } from '@/utils/format'
 
 type ReceiveTab = 'ark' | 'lightning' | 'onchain'
-
-const TXID_TRUNCATE_CHARS = 8
 
 async function copyToClipboard(value: string) {
   try {
@@ -353,7 +351,7 @@ export default function ArkReceivePage() {
                         {t('bitcoin.sats')}
                       </SSText>
                       <SSText color="muted" size="xs" style={styles.monospace}>
-                        {formatAddress(pendingBoard.txid, TXID_TRUNCATE_CHARS)}
+                        {formatTxId(pendingBoard.txid, 'wide')}
                       </SSText>
                     </SSHStack>
                   ))}

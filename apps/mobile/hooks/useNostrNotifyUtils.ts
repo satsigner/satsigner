@@ -1,6 +1,7 @@
 import { nip19 } from 'nostr-tools'
 
 import { useNostrStore } from '@/store/nostr'
+import { formatNpub } from '@/utils/format'
 
 export const TOAST_DURATION = 8000
 export const TOAST_CONTENT_MAX = 200
@@ -21,7 +22,7 @@ export function isChatActive(accountId: string): boolean {
 export function getAuthorDisplayName(pubkeyHex: string): string {
   try {
     const npub = nip19.npubEncode(pubkeyHex)
-    const truncated = `${npub.slice(0, 12)}...${npub.slice(-4)}`
+    const truncated = formatNpub(npub)
     const profile = useNostrStore.getState().profiles[npub]
     if (profile?.displayName) {
       return `${profile.displayName} (${truncated})`

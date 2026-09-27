@@ -25,8 +25,8 @@ import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
 } from '@/types/models/Nostr'
+import { formatNpub } from '@/utils/format'
 import { generateColorFromNpub } from '@/utils/nostr'
-import { truncateNpub } from '@/utils/nostrIdentity'
 
 function disconnectReasonLabel(
   reason?: NostrRelayConnectionInfo['reason']
@@ -141,7 +141,7 @@ function SSNostrHeroCard({
               style={[styles.npubColorDot, { backgroundColor: npubColor }]}
             />
             <SSText size="xs" type="mono" color="muted">
-              {truncateNpub(identity.npub, 12)}
+              {formatNpub(identity.npub, 'md')}
             </SSText>
           </SSHStack>
         </SSClipboardCopy>

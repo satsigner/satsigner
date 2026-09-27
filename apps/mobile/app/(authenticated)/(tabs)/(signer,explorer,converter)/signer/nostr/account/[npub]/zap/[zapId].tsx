@@ -25,9 +25,8 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type ZapReceiptInfo } from '@/types/models/Nostr'
-import { formatNostrCardDate } from '@/utils/format'
+import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
-import { truncateNpub } from '@/utils/nostrIdentity'
 import { nostrContactProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
@@ -259,7 +258,7 @@ export default function NostrZapDetail() {
                         ) : (
                           <SSClipboardCopy text={counterpartyNpub}>
                             <SSText size="xs" type="mono" color="muted">
-                              {truncateNpub(counterpartyNpub, 14)}
+                              {formatNpub(counterpartyNpub, 'lg')}
                             </SSText>
                           </SSClipboardCopy>
                         )}

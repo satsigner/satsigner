@@ -188,7 +188,7 @@ function SSTransactionCard({
               date={new Date(transaction.timestamp)}
               size="xs"
               live={false}
-              suffix={formatTxId(transaction.id, 4)}
+              suffix={formatTxId(transaction.id, 'compact')}
               style={{ flex: 1, marginRight: Layout.hStack.gap.sm }}
             />
           ) : (
@@ -198,7 +198,7 @@ function SSTransactionCard({
               numberOfLines={1}
               style={{ flex: 1, marginRight: Layout.hStack.gap.sm }}
             >
-              {formatTxId(transaction.id, 4)}
+              {formatTxId(transaction.id, 'compact')}
             </SSText>
           )}
           <SSHStack gap="none" style={{ flexShrink: 0 }}>

@@ -11,6 +11,7 @@ import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { getAccountAddressSets } from '@/utils/address'
+import { formatTxId } from '@/utils/format'
 import {
   type AccountMatchResult,
   extractIndividualSignedPsbts,
@@ -170,7 +171,7 @@ function SSTransactionDetails({
           type="mono"
           color="muted"
         >
-          {`${txid.slice(0, 6)}...${txid.slice(-6)}`}
+          {formatTxId(txid)}
         </SSText>
       </SSHStack>
       {onToggleVisibility ? (

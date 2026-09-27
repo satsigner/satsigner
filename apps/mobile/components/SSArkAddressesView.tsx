@@ -33,7 +33,6 @@ import { parseLabel } from '@/utils/parse'
 const TABLE_WIDTH_RATIO = 1.2
 const TABLE_BODY_HEIGHT_RATIO = 0.32
 const TABLE_BODY_HEIGHT_RATIO_EXPANDED = 0.62
-const ADDRESS_TRUNCATE_CHARS = 6
 const LABEL_TRUNCATE_CHARS = 14
 
 type SSArkAddressesViewProps = {
@@ -94,7 +93,7 @@ function SSArkAddressesView({
             type="mono"
             style={[styles.addressText, styles.columnAddress]}
           >
-            {formatAddress(address.address, ADDRESS_TRUNCATE_CHARS)}
+            {formatAddress(address.address, 'default')}
           </SSText>
           <SSText
             style={[

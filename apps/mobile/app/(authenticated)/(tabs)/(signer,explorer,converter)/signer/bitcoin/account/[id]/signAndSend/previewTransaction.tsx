@@ -2057,7 +2057,7 @@ function PreviewTransaction() {
                         ? `${formatNumber(payjoinInvoice.amountSats)} ${t('bitcoin.sats')}`
                         : null,
                       payjoinInvoice.label || null,
-                      formatAddress(payjoinInvoice.address, 6),
+                      formatAddress(payjoinInvoice.address, 'default'),
                       payjoinExpiryLabel
                     ]
                       .filter(Boolean)

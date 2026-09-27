@@ -1265,7 +1265,7 @@ function DerivedAddresses({
               addressListStyles.columnAddress
             ]}
           >
-            {formatAddress(item.address, 6)}
+            {formatAddress(item.address, 'default')}
           </SSText>
           <SSText
             style={[

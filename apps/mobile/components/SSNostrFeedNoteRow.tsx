@@ -14,8 +14,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { NostrFeedNoteLike, type NostrKind0Profile } from '@/types/models/Nostr'
-import { formatNostrCardDate } from '@/utils/format'
-import { truncateNpub } from '@/utils/nostrIdentity'
+import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import {
   nostrAccountProfileHref,
   nostrContactProfileHref
@@ -104,7 +103,7 @@ function SSNostrFeedAuthorRow({
             numberOfLines={1}
             ellipsizeMode="middle"
           >
-            {truncateNpub(npubBech, 14)}
+            {formatNpub(npubBech, 'lg')}
           </SSText>
           <View style={styles.skeletonLineMd} />
         </SSVStack>
@@ -145,7 +144,7 @@ function SSNostrFeedAuthorRow({
           ellipsizeMode="middle"
           style={styles.authorNpub}
         >
-          {truncateNpub(npubBech, 14)}
+          {formatNpub(npubBech, 'lg')}
         </SSText>
         {nip05 ? (
           <SSHStack gap="xs" style={styles.nip05Row}>
@@ -248,7 +247,7 @@ function NoteQuoteCard({
               ellipsizeMode="middle"
               style={styles.quoteCardAuthorNpub}
             >
-              {truncateNpub(authorNpub, 12)}
+              {formatNpub(authorNpub, 'md')}
             </SSText>
             <SSText size="xxs" color="muted">
               ·
@@ -383,7 +382,7 @@ function SSNostrFeedNoteRow({
                 numberOfLines={1}
                 ellipsizeMode="middle"
               >
-                {truncateNpub(eventNip19, 16)}
+                {formatNpub(eventNip19, 'xl')}
               </SSText>
               <SSText
                 size="xxs"
@@ -392,7 +391,7 @@ function SSNostrFeedNoteRow({
                 numberOfLines={1}
                 ellipsizeMode="middle"
               >
-                {truncateNpub(authorNpub, 14)}
+                {formatNpub(authorNpub, 'lg')}
               </SSText>
             </SSVStack>
           ) : null}
