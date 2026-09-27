@@ -76,6 +76,23 @@ describe('parseZapReceiptFromTags', () => {
     ).toBeNull()
   })
 
+  it('reads the amount when another zap request tag is malformed', () => {
+    const receipt = parseZapReceiptFromTags(
+      RECEIPT_ID,
+      CREATED_AT,
+      receiptTags({
+        pubkey: ZAPPER,
+        tags: [
+          ['relays', 'wss://relay.example', null],
+          ['amount', '21000']
+        ]
+      }),
+      null
+    )
+
+    expect(receipt?.amountSats).toBe(21)
+  })
+
   it('tolerates malformed optional zap request fields', () => {
     const receipt = parseZapReceiptFromTags(
       RECEIPT_ID,

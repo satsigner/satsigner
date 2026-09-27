@@ -13,7 +13,7 @@ import {
 import { type NostrChatMessage } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
-import { isNostrTags, isSignedNdkEvent } from '@/utils/nostrEvent'
+import { getNostrTagValue, isSignedNdkEvent } from '@/utils/nostrEvent'
 import { isRecord } from '@/utils/object'
 
 const NOSTR_CHAT_RUMOR_KIND = 14
@@ -444,9 +444,9 @@ async function subscribeToIdentityChat(
       // Self copies (NIP-17 wraps to sender) carry the peer in the rumor's
       // p tag; everyone else's wraps are incoming from the rumor author.
       const isSelfCopy = rumor.pubkey === ownHex
-      const rumorTags = isNostrTags(rumor.tags) ? rumor.tags : []
-      const peerFromTag = rumorTags.find((tag) => tag[0] === 'p')?.[1]
-      const peerPubkey = isSelfCopy ? peerFromTag : rumor.pubkey
+      const peerPubkey = isSelfCopy
+        ? getNostrTagValue(rumor.tags, 'p')
+        : rumor.pubkey
       if (!peerPubkey || !/^[0-9a-f]{64}$/.test(peerPubkey)) {
         chatLog('skipped wrap: no valid peer pubkey')
         continue

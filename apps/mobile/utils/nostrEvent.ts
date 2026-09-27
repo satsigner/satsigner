@@ -32,6 +32,26 @@ export function isNostrTags(value: unknown): value is string[][] {
 }
 
 /**
+ * Value of the first `name` tag in untrusted tags, such as a rumor's or a zap
+ * request's. Tags are read one by one, so a malformed tag elsewhere (e.g. a
+ * relay hint serialised as null) never hides this one. Undefined when there is
+ * no such tag or its value is not a string.
+ */
+export function getNostrTagValue(
+  tags: unknown,
+  name: string
+): string | undefined {
+  if (!Array.isArray(tags)) {
+    return undefined
+  }
+  const tag: unknown = tags.find(
+    (item: unknown) => Array.isArray(item) && item[0] === name
+  )
+  const value: unknown = Array.isArray(tag) ? tag[1] : undefined
+  return typeof value === 'string' ? value : undefined
+}
+
+/**
  * Parses untrusted data (e.g. a NIP-46 `sign_event` payload) into an event
  * template ready for signing. Unknown fields are dropped; null when a field is
  * missing or has the wrong type.

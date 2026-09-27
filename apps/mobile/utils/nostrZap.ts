@@ -27,7 +27,7 @@ import {
 } from '@/types/models/Nostr'
 import { fetchLNURLPayDetails } from '@/utils/lnurl'
 import { getSecretFromNsec } from '@/utils/nostr'
-import { isNostrTags } from '@/utils/nostrEvent'
+import { getNostrTagValue } from '@/utils/nostrEvent'
 import { isRecord } from '@/utils/object'
 
 // NDK connect timeout (ms) used by the main zap-sending path.
@@ -138,10 +138,11 @@ export function parseZapReceiptFromTags(
     }
 
     if (amountSats === 0) {
-      const zapRequestTags = isNostrTags(zapRequest.tags) ? zapRequest.tags : []
-      const amountTag = zapRequestTags.find((tag) => tag[0] === 'amount')
-      if (amountTag?.[1]) {
-        amountSats = Math.floor(parseInt(amountTag[1], 10) / MILLISATS_PER_SAT)
+      const amountMillisats = getNostrTagValue(zapRequest.tags, 'amount')
+      if (amountMillisats) {
+        amountSats = Math.floor(
+          parseInt(amountMillisats, 10) / MILLISATS_PER_SAT
+        )
       }
     }
 

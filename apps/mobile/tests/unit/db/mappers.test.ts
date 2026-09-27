@@ -343,6 +343,15 @@ describe('rowToAccount', () => {
     ).toStrictEqual([])
   })
 
+  it('keeps the other excluded outpoints when one entry is malformed', () => {
+    const row = makeAccountRow({
+      excluded_utxo_outpoints: '["txid:0", 1, null, "txid:1"]'
+    })
+    expect(
+      rowToAccount(row, [], [], [], {}, [], [], []).excludedUtxoOutpoints
+    ).toStrictEqual(['txid:0', 'txid:1'])
+  })
+
   it('keeps key slots cleared by resetKey, which have no creationType', () => {
     const row = makeAccountRow({
       key_count: 2,

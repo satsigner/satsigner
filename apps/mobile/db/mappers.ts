@@ -18,7 +18,7 @@ import { type ScriptVersionType } from '@/types/models/Script'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network } from '@/types/settings/blockchain'
-import { isNumberArray, isStringArray } from '@/utils/array'
+import { isNumberArray } from '@/utils/array'
 
 type AccountRow = {
   id: string
@@ -220,6 +220,20 @@ function isNpubProfiles(value: unknown): value is NostrAccount['npubProfiles'] {
   return NostrAccountSchema.shape.npubProfiles.safeParse(value).success
 }
 
+function isUnknownArray(value: unknown): value is unknown[] {
+  return Array.isArray(value)
+}
+
+/**
+ * Reads the excluded (frozen) outpoints column entry by entry: a malformed
+ * entry is dropped on its own, so it never unfreezes the other outpoints when
+ * the account is written back.
+ */
+function parseExcludedOutpoints(json: string | null): string[] {
+  const outpoints = parseJson(json, isUnknownArray) ?? []
+  return outpoints.filter((outpoint) => typeof outpoint === 'string')
+}
+
 function rowToAccount(
   row: AccountRow,
   transactions: Transaction[],
@@ -266,8 +280,7 @@ function rowToAccount(
     birthdayDate: row.birthday_date ? new Date(row.birthday_date) : undefined,
     createdAt: new Date(row.created_at),
     displayIndex: row.display_index,
-    excludedUtxoOutpoints:
-      parseJson(row.excluded_utxo_outpoints, isStringArray) ?? [],
+    excludedUtxoOutpoints: parseExcludedOutpoints(row.excluded_utxo_outpoints),
     id: row.id,
     keyCount: row.key_count,
     keys: (parseUncheckedJson<KeyMeta[]>(row.keys) ?? []).map(

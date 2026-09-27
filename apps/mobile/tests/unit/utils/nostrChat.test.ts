@@ -312,16 +312,39 @@ describe('nostrChat', () => {
         created_at: 3000,
         id: 'wrap-self-1',
         pubkey: 'wrap-author'
+      },
+      {
+        // Another client's self copy: a relay hint serialised as null and a
+        // malformed tag must not hide the peer.
+        content: {
+          content: 'sent from another client',
+          created_at: 3001,
+          id: 'self-rumor-2',
+          kind: 14,
+          pubkey: senderPubkey,
+          tags: [
+            ['p', peerPubkey, null],
+            ['subject', 5]
+          ]
+        },
+        created_at: 3001,
+        id: 'wrap-self-2',
+        pubkey: 'wrap-author'
       }
     ])
 
     const stored = [...chatStore.values()] as Record<string, unknown>[]
-    expect(stored).toHaveLength(1)
+    expect(stored).toHaveLength(2)
     expect(stored[0]).toMatchObject({
       content: 'sent from my other device',
       direction: 'out',
       peerPubkey,
       read: true
+    })
+    expect(stored[1]).toMatchObject({
+      content: 'sent from another client',
+      direction: 'out',
+      peerPubkey
     })
   })
 

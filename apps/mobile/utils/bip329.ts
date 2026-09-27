@@ -114,21 +114,23 @@ const bip329FieldReaders: Record<keyof Label, z.ZodType> = {
 /** A label record whose label may be missing, checked before it is kept. */
 const LabelRecordSchema = LabelSchema.partial({ label: true })
 
-/**
- * Turns one imported record, keyed by Label field, into a Label. Optional
- * fields that cannot be read are dropped so the rest of the record still
- * imports. Returns null for a record to ignore: a type BIP-329 does not
- * define, or no label text to store (so an empty label never overwrites an
- * existing one). Throws when type or ref is missing or invalid.
- */
-function toLabel(record: Record<string, unknown>): Label | null {
-  const hasUnknownType =
+type LabelRecord = z.infer<typeof LabelRecordSchema>
+
+/** A record whose type BIP-329 does not define; such records are ignored. */
+function hasUnknownType(record: Record<string, unknown>): boolean {
+  return (
     typeof record.type === 'string' &&
     record.type !== '' &&
     !LabelTypeSchema.safeParse(record.type).success
-  if (hasUnknownType) {
-    return null
-  }
+  )
+}
+
+/**
+ * Reads one imported record, keyed by Label field. Optional fields that
+ * cannot be read are dropped so the rest of the record still imports; the
+ * read fails when type or ref is missing or invalid.
+ */
+function readLabelRecord(record: Record<string, unknown>) {
   const readable: Record<string, unknown> = {}
   for (const [field, reader] of Object.entries(bip329FieldReaders)) {
     const result = reader.safeParse(record[field])
@@ -136,11 +138,35 @@ function toLabel(record: Record<string, unknown>): Label | null {
       readable[field] = result.data
     }
   }
-  const labelRecord = LabelRecordSchema.parse(readable)
-  if (!labelRecord.label) {
-    return null
+  return LabelRecordSchema.safeParse(readable)
+}
+
+/**
+ * The Label for a read record. Null when it has no label text to store, so an
+ * empty label never overwrites an existing one.
+ */
+function toLabel(record: LabelRecord): Label | null {
+  return record.label ? { ...record, label: record.label } : null
+}
+
+/**
+ * Turns imported records into Labels. Records with a type BIP-329 does not
+ * define, without label text, or without a valid type and ref are skipped, so
+ * one malformed record never blocks the rest. Throws the read error when no
+ * record has a valid type and ref: the text is then not a label export, which
+ * is how pasted text is matched to its format.
+ */
+function toLabels(records: Record<string, unknown>[]): Label[] {
+  const reads = records
+    .filter((record) => !hasUnknownType(record))
+    .map(readLabelRecord)
+  const failedRead = reads.find((read) => !read.success)
+  if (failedRead && reads.every((read) => !read.success)) {
+    throw failedRead.error
   }
-  return { ...labelRecord, label: labelRecord.label }
+  return reads
+    .map((read) => (read.success ? toLabel(read.data) : null))
+    .filter((label) => label !== null)
 }
 
 /**
@@ -149,14 +175,11 @@ function toLabel(record: Record<string, unknown>): Label | null {
  * usable label; never throws.
  */
 export function parseLabelRecord(value: unknown): Label | null {
-  if (!isRecord(value)) {
+  if (!isRecord(value) || hasUnknownType(value)) {
     return null
   }
-  try {
-    return toLabel(value)
-  } catch {
-    return null
-  }
+  const read = readLabelRecord(value)
+  return read.success ? toLabel(read.data) : null
 }
 
 function formatAddressLabels(addresses: Address[]): Label[] {
@@ -284,7 +307,7 @@ export function CSVtoLabels(CsvText: string): Label[] {
     throw new Error('Invalid CSV header')
   }
   const rows = lines.slice(1)
-  const labels: Label[] = []
+  const records: Record<string, unknown>[] = []
   const columns = header.split(',')
   for (const row of rows) {
     // INFO: SPARROW WALLET uses non-standard CSV files, with empty lines and
@@ -338,12 +361,9 @@ export function CSVtoLabels(CsvText: string): Label[] {
 
       record[field] = value
     }
-    const label = toLabel(record)
-    if (label) {
-      labels.push(label)
-    }
+    records.push(record)
   }
-  return labels
+  return toLabels(records)
 }
 
 function labelsToJSON(labels: Label[]): string {
@@ -351,11 +371,9 @@ function labelsToJSON(labels: Label[]): string {
 }
 
 function JSONtoLabels(JSONtext: string): Label[] {
-  return z
-    .array(z.record(z.string(), z.unknown()))
-    .parse(JSON.parse(JSONtext))
-    .map((record) => toLabel(record))
-    .filter((label) => label !== null)
+  return toLabels(
+    z.array(z.record(z.string(), z.unknown())).parse(JSON.parse(JSONtext))
+  )
 }
 
 export function labelsToJSONL(labels: Label[]): string {
@@ -388,16 +406,8 @@ function normalizeAliasKeys(record: Record<string, unknown>) {
 }
 
 export function JSONLtoLabels(JSONLines: string): Label[] {
-  const lines = JSONLines.split(LINE_BREAK_PATTERN)
-  const labels: Label[] = []
-  for (const line of lines) {
-    if (line === '') {
-      continue
-    }
-    const label = toLabel(normalizeAliasKeys(parseJsonlRecord(line)))
-    if (label) {
-      labels.push(label)
-    }
-  }
-  return labels
+  const records = JSONLines.split(LINE_BREAK_PATTERN)
+    .filter((line) => line !== '')
+    .map((line) => normalizeAliasKeys(parseJsonlRecord(line)))
+  return toLabels(records)
 }

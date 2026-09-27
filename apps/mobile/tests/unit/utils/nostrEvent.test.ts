@@ -1,4 +1,5 @@
 import {
+  getNostrTagValue,
   isNostrTags,
   isSignedNdkEvent,
   parseNostrEvent,
@@ -32,6 +33,30 @@ describe('nostrEvent', () => {
       expect(isNostrTags([null])).toBe(false)
       expect(isNostrTags({})).toBe(false)
       expect(isNostrTags(undefined)).toBe(false)
+    })
+  })
+
+  describe('getNostrTagValue', () => {
+    it('returns the value of the first tag with the name', () => {
+      const tags = [
+        ['e', EVENT_ID],
+        ['p', PUBKEY],
+        ['p', 'second']
+      ]
+      expect(getNostrTagValue(tags, 'p')).toBe(PUBKEY)
+    })
+
+    it('reads a tag when other tags are malformed', () => {
+      const tags = [null, 'e', ['relays', 'wss://a', null], ['p', PUBKEY, null]]
+      expect(getNostrTagValue(tags, 'p')).toBe(PUBKEY)
+    })
+
+    it('returns undefined without a string value for the tag', () => {
+      expect(getNostrTagValue([['amount', 21000]], 'amount')).toBeUndefined()
+      expect(getNostrTagValue([['p']], 'p')).toBeUndefined()
+      expect(getNostrTagValue([['e', EVENT_ID]], 'p')).toBeUndefined()
+      expect(getNostrTagValue(undefined, 'p')).toBeUndefined()
+      expect(getNostrTagValue({ p: PUBKEY }, 'p')).toBeUndefined()
     })
   })
 

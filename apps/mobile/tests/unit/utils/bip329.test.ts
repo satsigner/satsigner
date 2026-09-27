@@ -117,6 +117,19 @@ describe('jsonl to labels', () => {
     ).toThrow(ZodError)
   })
 
+  it('skips records without a valid type or ref and keeps the rest', () => {
+    // e.g. a label sync payload from a device that stored an untyped import
+    const lines = [
+      JSON.stringify({ label: 'blank type', ref: TXID, type: '' }),
+      JSON.stringify({ label: 'numeric type', ref: TXID, type: 1 }),
+      JSON.stringify({ label: 'numeric ref', ref: 12, type: 'tx' }),
+      JSON.stringify({ label: 'rent', ref: TXID, type: 'tx' })
+    ].join('\n')
+    expect(JSONLtoLabels(lines)).toStrictEqual([
+      { label: 'rent', ref: TXID, type: 'tx' }
+    ])
+  })
+
   it('ignores records without a label to store', () => {
     const lines = [
       JSON.stringify({ ref: TXID, spendable: false, type: 'output' }),
@@ -204,6 +217,17 @@ describe('json to labels', () => {
     expect(() => bip329parser.JSON('[{"ref":"x"}]')).toThrow(ZodError)
   })
 
+  it('skips records without a type or ref and keeps the rest', () => {
+    const json = JSON.stringify([
+      {},
+      { label: 'coffee', ref: 5, type: 'tx' },
+      { label: 'rent', ref: TXID, type: 'tx' }
+    ])
+    expect(bip329parser.JSON(json)).toStrictEqual([
+      { label: 'rent', ref: TXID, type: 'tx' }
+    ])
+  })
+
   it('ignores records whose type BIP-329 does not define', () => {
     const json = JSON.stringify([
       { label: 'coffee', ref: TXID, type: 'utxo' },
@@ -254,6 +278,13 @@ describe('csv to labels', () => {
     expect(CSVtoLabels(csv)).toStrictEqual([
       { label: 'frozen', ref: `${TXID}:0`, spendable: false, type: 'output' },
       { label: 'change', ref: `${TXID}:1`, spendable: true, type: 'output' }
+    ])
+  })
+
+  it('skips rows without a type and keeps the rest', () => {
+    const csv = `type,ref,label\n,${TXID},rent\ntx,${TXID},coffee`
+    expect(CSVtoLabels(csv)).toStrictEqual([
+      { label: 'coffee', ref: TXID, type: 'tx' }
     ])
   })
 
