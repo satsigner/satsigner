@@ -29,6 +29,7 @@ import { useSettingsStore } from '@/store/settings'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
+import { type HistoryChartData } from '@/types/ui/historyChart'
 import {
   buildBalanceHistory,
   buildChartData,
@@ -38,8 +39,7 @@ import {
   buildUtxoLabels,
   buildUtxoRectangles,
   buildWalletAddresses,
-  computeValidChartData,
-  type HistoryChartData
+  computeValidChartData
 } from '@/utils/historyChart'
 
 type SSHistoryChartProps = {

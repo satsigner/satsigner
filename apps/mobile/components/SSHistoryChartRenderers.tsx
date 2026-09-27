@@ -20,12 +20,9 @@ import { Fragment, memo, useMemo } from 'react'
 import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
+import { type UtxoLabel, type UtxoRectangle } from '@/types/ui/historyChart'
 import { formatNumber, formatTxId } from '@/utils/format'
-import {
-  hexToRgba,
-  type UtxoLabel,
-  type UtxoRectangle
-} from '@/utils/historyChart'
+import { hexToRgba } from '@/utils/historyChart'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type YScaleRendererProps = {
@@ -35,6 +32,107 @@ type YScaleRendererProps = {
   chartHeight: number
   chartWidth: number
   yAxisFormatter: (value: number) => string
+}
+
+type XScaleRendererProps = {
+  customFontManager: ReturnType<typeof useSFProFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  showTransactionInfo: boolean
+  txXAxisLabels: {
+    textColor: string
+    x: number
+    index: number
+    amountString: string
+    type: 'send' | 'receive'
+    numberOfOutput: number
+    numberOfInput: number
+    hasChange: boolean
+    fee?: number
+    confirmations?: string
+    label?: string
+  }[]
+  chartHeight: number
+  zeroPadding: boolean
+}
+
+type XAxisRendererProps = {
+  customFontManager: ReturnType<typeof useSFProFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  xScale: ScaleTime<number, number>
+  chartHeight: number
+  showTransactionInfo: boolean
+}
+
+type AreaPathRendererProps = {
+  areaPath: string | null
+}
+
+type UtxoRectRendererProps = {
+  utxoRectangleData: {
+    x1: number
+    x2: number
+    y1: number
+    y2: number
+    utxo: Utxo
+    gradientType: number
+  }[]
+  showOutputField: boolean
+}
+
+type UtxoLabelRendererProps = {
+  customFontManager: ReturnType<typeof useSFProFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  utxoLabels: {
+    x1: number
+    x2: number
+    y1: number
+    y2: number
+    utxo: Utxo
+  }[]
+  showOutputField: boolean
+}
+
+type TransactionInfoRendererProps = {
+  customFontManager: ReturnType<typeof useSFProFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  txInfoLabels: {
+    x: number
+    y: number
+    memo?: string
+    amount?: number
+    type: string
+    boundBox?: Rectangle
+    index: string
+    id: string
+  }[]
+  labelParagraphs: Map<string, SkParagraph>
+  showLabel: boolean
+  showAmount: boolean
+  zeroPadding: boolean
+  labelRectRef: React.MutableRefObject<{ rect: Rectangle; id: string }[]>
+}
+
+type CursorRendererProps = {
+  customFontManager: ReturnType<typeof useSFProFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  cursorX: Date | undefined
+  cursorY: number | undefined
+  xScale: ScaleTime<number, number>
+  chartHeight: number
+  zeroPadding: boolean
+}
+
+type HistoryChartUtxoSeriesProps = {
+  customFontManager: ReturnType<typeof useSFProFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  utxoRectangleData: UtxoRectangle[]
+  utxoLabels: UtxoLabel[]
+  showOutputField: boolean
+}
+
+type HistoryChartAreaSeriesProps = {
+  areaPath: string | null
+  showOutputField: boolean
 }
 
 function YScaleRenderer({
@@ -82,120 +180,6 @@ function YScaleRenderer({
 }
 
 export const MemoizedYScaleRenderer = memo(YScaleRenderer)
-
-type XScaleRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
-  fontStyle: { fontFamily: string; fontSize: number }
-  showTransactionInfo: boolean
-  txXAxisLabels: {
-    textColor: string
-    x: number
-    index: number
-    amountString: string
-    type: 'send' | 'receive'
-    numberOfOutput: number
-    numberOfInput: number
-    hasChange: boolean
-    fee?: number
-    confirmations?: string
-    label?: string
-  }[]
-  chartHeight: number
-  zeroPadding: boolean
-}
-
-function formatAmountWithLeadingZeros(
-  amountString: string,
-  font: ReturnType<typeof matchFont>,
-  baseColor = '#666666'
-): { text: string; color: string; x: number }[] {
-  if (!amountString) {
-    return []
-  }
-
-  const parts = amountString.split(' | ')
-  const segments: { text: string; color: string; x: number }[] = []
-  let currentX = 0
-
-  for (const [partIndex, part] of parts.entries()) {
-    if (partIndex > 0) {
-      segments.push({
-        color: '#666666',
-        text: ' | ',
-        x: currentX
-      })
-      currentX += font.measureText(' | ').width
-    }
-
-    if (part.startsWith('Fee: ')) {
-      const feePart = part.substring(5)
-      segments.push({ color: '#666666', text: 'Fee: ', x: currentX })
-      currentX += font.measureText('Fee: ').width
-
-      const firstNonZeroIndex = feePart.search(/[1-9]/)
-      if (firstNonZeroIndex === -1) {
-        segments.push({ color: '#666666', text: feePart, x: currentX })
-        currentX += font.measureText(feePart).width
-      } else {
-        if (firstNonZeroIndex > 0) {
-          segments.push({
-            color: '#666666',
-            text: feePart.substring(0, firstNonZeroIndex),
-            x: currentX
-          })
-          currentX += font.measureText(
-            feePart.substring(0, firstNonZeroIndex)
-          ).width
-        }
-        segments.push({
-          color: '#999999',
-          text: feePart.substring(firstNonZeroIndex),
-          x: currentX
-        })
-        currentX += font.measureText(feePart.substring(firstNonZeroIndex)).width
-      }
-    } else {
-      const sign = part.startsWith('+') || part.startsWith('-') ? part[0] : ''
-      const numberPart = sign ? part.substring(1) : part
-
-      if (sign) {
-        segments.push({ color: baseColor, text: sign, x: currentX })
-        currentX += font.measureText(sign).width
-      }
-
-      const firstNonZeroIndex = numberPart.search(/[1-9]/)
-      if (firstNonZeroIndex === -1) {
-        segments.push({
-          color: hexToRgba(baseColor, 0.4),
-          text: numberPart,
-          x: currentX
-        })
-        currentX += font.measureText(numberPart).width
-      } else {
-        if (firstNonZeroIndex > 0) {
-          segments.push({
-            color: hexToRgba(baseColor, 0.4),
-            text: numberPart.substring(0, firstNonZeroIndex),
-            x: currentX
-          })
-          currentX += font.measureText(
-            numberPart.substring(0, firstNonZeroIndex)
-          ).width
-        }
-        segments.push({
-          color: baseColor,
-          text: numberPart.substring(firstNonZeroIndex),
-          x: currentX
-        })
-        currentX += font.measureText(
-          numberPart.substring(firstNonZeroIndex)
-        ).width
-      }
-    }
-  }
-
-  return segments
-}
 
 function XScaleRenderer({
   customFontManager,
@@ -340,14 +324,6 @@ function XScaleRenderer({
 
 export const MemoizedXScaleRenderer = memo(XScaleRenderer)
 
-type XAxisRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
-  fontStyle: { fontFamily: string; fontSize: number }
-  xScale: ScaleTime<number, number>
-  chartHeight: number
-  showTransactionInfo: boolean
-}
-
 function XAxisRenderer({
   customFontManager,
   fontStyle,
@@ -385,10 +361,6 @@ function XAxisRenderer({
 
 export const MemoizedXAxisRenderer = memo(XAxisRenderer)
 
-type AreaPathRendererProps = {
-  areaPath: string | null
-}
-
 function AreaPathRenderer({ areaPath }: AreaPathRendererProps) {
   const path = useMemo(() => {
     if (areaPath === null) {
@@ -417,18 +389,6 @@ function AreaPathRenderer({ areaPath }: AreaPathRendererProps) {
 }
 
 export const MemoizedAreaPathRenderer = memo(AreaPathRenderer)
-
-type UtxoRectRendererProps = {
-  utxoRectangleData: {
-    x1: number
-    x2: number
-    y1: number
-    y2: number
-    utxo: Utxo
-    gradientType: number
-  }[]
-  showOutputField: boolean
-}
 
 function UtxoRectRenderer({
   utxoRectangleData,
@@ -497,19 +457,6 @@ function UtxoRectRenderer({
 
 export const MemoizedUtxoRectRenderer = memo(UtxoRectRenderer)
 
-type UtxoLabelRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
-  fontStyle: { fontFamily: string; fontSize: number }
-  utxoLabels: {
-    x1: number
-    x2: number
-    y1: number
-    y2: number
-    utxo: Utxo
-  }[]
-  showOutputField: boolean
-}
-
 function UtxoLabelRenderer({
   customFontManager,
   fontStyle,
@@ -542,26 +489,6 @@ function UtxoLabelRenderer({
 }
 
 export const MemoizedUtxoLabelRenderer = memo(UtxoLabelRenderer)
-
-type TransactionInfoRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
-  fontStyle: { fontFamily: string; fontSize: number }
-  txInfoLabels: {
-    x: number
-    y: number
-    memo?: string
-    amount?: number
-    type: string
-    boundBox?: Rectangle
-    index: string
-    id: string
-  }[]
-  labelParagraphs: Map<string, SkParagraph>
-  showLabel: boolean
-  showAmount: boolean
-  zeroPadding: boolean
-  labelRectRef: React.MutableRefObject<{ rect: Rectangle; id: string }[]>
-}
 
 function TransactionInfoRenderer({
   customFontManager,
@@ -646,16 +573,6 @@ function TransactionInfoRenderer({
 
 export const MemoizedTransactionInfoRenderer = memo(TransactionInfoRenderer)
 
-type CursorRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
-  fontStyle: { fontFamily: string; fontSize: number }
-  cursorX: Date | undefined
-  cursorY: number | undefined
-  xScale: ScaleTime<number, number>
-  chartHeight: number
-  zeroPadding: boolean
-}
-
 function CursorRenderer({
   customFontManager,
   fontStyle,
@@ -698,14 +615,6 @@ function CursorRenderer({
 
 export const MemoizedCursorRenderer = memo(CursorRenderer)
 
-type HistoryChartUtxoSeriesProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
-  fontStyle: { fontFamily: string; fontSize: number }
-  utxoRectangleData: UtxoRectangle[]
-  utxoLabels: UtxoLabel[]
-  showOutputField: boolean
-}
-
 // Histogram view: stacked per-UTXO rectangles with their labels.
 function HistoryChartUtxoSeries({
   customFontManager,
@@ -735,11 +644,6 @@ function HistoryChartUtxoSeries({
 
 export const MemoizedHistoryChartUtxoSeries = memo(HistoryChartUtxoSeries)
 
-type HistoryChartAreaSeriesProps = {
-  areaPath: string | null
-  showOutputField: boolean
-}
-
 // Graph view: filled gradient area under the balance line.
 function HistoryChartAreaSeries({
   areaPath,
@@ -752,3 +656,96 @@ function HistoryChartAreaSeries({
 }
 
 export const MemoizedHistoryChartAreaSeries = memo(HistoryChartAreaSeries)
+
+function formatAmountWithLeadingZeros(
+  amountString: string,
+  font: ReturnType<typeof matchFont>,
+  baseColor = '#666666'
+): { text: string; color: string; x: number }[] {
+  if (!amountString) {
+    return []
+  }
+
+  const parts = amountString.split(' | ')
+  const segments: { text: string; color: string; x: number }[] = []
+  let currentX = 0
+
+  for (const [partIndex, part] of parts.entries()) {
+    if (partIndex > 0) {
+      segments.push({
+        color: '#666666',
+        text: ' | ',
+        x: currentX
+      })
+      currentX += font.measureText(' | ').width
+    }
+
+    if (part.startsWith('Fee: ')) {
+      const feePart = part.substring(5)
+      segments.push({ color: '#666666', text: 'Fee: ', x: currentX })
+      currentX += font.measureText('Fee: ').width
+
+      const firstNonZeroIndex = feePart.search(/[1-9]/)
+      if (firstNonZeroIndex === -1) {
+        segments.push({ color: '#666666', text: feePart, x: currentX })
+        currentX += font.measureText(feePart).width
+      } else {
+        if (firstNonZeroIndex > 0) {
+          segments.push({
+            color: '#666666',
+            text: feePart.substring(0, firstNonZeroIndex),
+            x: currentX
+          })
+          currentX += font.measureText(
+            feePart.substring(0, firstNonZeroIndex)
+          ).width
+        }
+        segments.push({
+          color: '#999999',
+          text: feePart.substring(firstNonZeroIndex),
+          x: currentX
+        })
+        currentX += font.measureText(feePart.substring(firstNonZeroIndex)).width
+      }
+    } else {
+      const sign = part.startsWith('+') || part.startsWith('-') ? part[0] : ''
+      const numberPart = sign ? part.substring(1) : part
+
+      if (sign) {
+        segments.push({ color: baseColor, text: sign, x: currentX })
+        currentX += font.measureText(sign).width
+      }
+
+      const firstNonZeroIndex = numberPart.search(/[1-9]/)
+      if (firstNonZeroIndex === -1) {
+        segments.push({
+          color: hexToRgba(baseColor, 0.4),
+          text: numberPart,
+          x: currentX
+        })
+        currentX += font.measureText(numberPart).width
+      } else {
+        if (firstNonZeroIndex > 0) {
+          segments.push({
+            color: hexToRgba(baseColor, 0.4),
+            text: numberPart.substring(0, firstNonZeroIndex),
+            x: currentX
+          })
+          currentX += font.measureText(
+            numberPart.substring(0, firstNonZeroIndex)
+          ).width
+        }
+        segments.push({
+          color: baseColor,
+          text: numberPart.substring(firstNonZeroIndex),
+          x: currentX
+        })
+        currentX += font.measureText(
+          numberPart.substring(firstNonZeroIndex)
+        ).width
+      }
+    }
+  }
+
+  return segments
+}

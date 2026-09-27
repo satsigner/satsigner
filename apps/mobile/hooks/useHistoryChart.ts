@@ -18,21 +18,57 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Rectangle } from '@/types/ui/geometry'
 import {
+  type HistoryChartData,
+  type TxInfoLabel,
+  type UtxoRectangle
+} from '@/types/ui/historyChart'
+import { futureDate } from '@/utils/date'
+import {
   formatFiatPrice,
   formatNumber,
   formatPercentualChange
 } from '@/utils/format'
-import {
-  type HistoryChartData,
-  hexToRgba,
-  type TxInfoLabel,
-  type UtxoRectangle
-} from '@/utils/historyChart'
+import { hexToRgba } from '@/utils/historyChart'
 
 const DAYS_AHEAD = 5
+const LABEL_FONT = ['SF Pro Text']
+const LABEL_BASE_FONT_SIZE = 10
+const LABEL_FIAT_FONT_SIZE = 8
 
-function futureDate(from: Date, days: number): Date {
-  return new Date(new Date(from).setDate(from.getDate() + days))
+type HistoryChartViewport = ReturnType<typeof useHistoryChartViewport>
+
+type UseHistoryChartGesturesParams = {
+  viewport: HistoryChartViewport
+  currentDate: MutableRefObject<Date>
+  labelRectRef: MutableRefObject<{ rect: Rectangle; id: string }[]>
+  transactions: Transaction[]
+  timeOffset: number
+  chartWidth: number
+  chartHeight: number
+  maxBalance: number
+  lockZoomToXAxis: boolean
+  xScale: ScaleTime<number, number>
+  validChartData: HistoryChartData[]
+  utxoRectangleData: UtxoRectangle[]
+  margin: { bottom: number; left: number; right: number; top: number }
+  showOutputField: boolean
+  showTransactionInfo: boolean
+}
+
+type UseHistoryChartLabelsParams = {
+  customFontManager: ReturnType<typeof useSFProFonts>
+  txInfoLabels: TxInfoLabel[]
+  transactionsMap: Map<string, Transaction>
+  chartWidth: number
+  zeroPadding: boolean
+  showLabel: boolean
+  showAmount: boolean
+  showFiatOnChart: boolean
+  showFiatAtTxTime: boolean
+  showFiatPercentageChange: boolean
+  showHistoricalFiat: boolean
+  effectiveBtcPrice: number
+  fiatCurrency: Currency
 }
 
 export function useHistoryChartViewport(currentDate: MutableRefObject<Date>) {
@@ -98,26 +134,6 @@ export function useHistoryChartViewport(currentDate: MutableRefObject<Date>) {
     startYRef,
     updateLocationState
   }
-}
-
-type HistoryChartViewport = ReturnType<typeof useHistoryChartViewport>
-
-type UseHistoryChartGesturesParams = {
-  viewport: HistoryChartViewport
-  currentDate: MutableRefObject<Date>
-  labelRectRef: MutableRefObject<{ rect: Rectangle; id: string }[]>
-  transactions: Transaction[]
-  timeOffset: number
-  chartWidth: number
-  chartHeight: number
-  maxBalance: number
-  lockZoomToXAxis: boolean
-  xScale: ScaleTime<number, number>
-  validChartData: HistoryChartData[]
-  utxoRectangleData: UtxoRectangle[]
-  margin: { bottom: number; left: number; right: number; top: number }
-  showOutputField: boolean
-  showTransactionInfo: boolean
 }
 
 export function useHistoryChartGestures({
@@ -296,26 +312,6 @@ export function useHistoryChartGestures({
     pressGesture,
     longPressGesture
   )
-}
-
-const LABEL_FONT = ['SF Pro Text']
-const LABEL_BASE_FONT_SIZE = 10
-const LABEL_FIAT_FONT_SIZE = 8
-
-type UseHistoryChartLabelsParams = {
-  customFontManager: ReturnType<typeof useSFProFonts>
-  txInfoLabels: TxInfoLabel[]
-  transactionsMap: Map<string, Transaction>
-  chartWidth: number
-  zeroPadding: boolean
-  showLabel: boolean
-  showAmount: boolean
-  showFiatOnChart: boolean
-  showFiatAtTxTime: boolean
-  showFiatPercentageChange: boolean
-  showHistoricalFiat: boolean
-  effectiveBtcPrice: number
-  fiatCurrency: Currency
 }
 
 // Builds the Skia paragraph objects drawn as transaction-info labels. Kept as a

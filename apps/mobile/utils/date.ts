@@ -122,3 +122,7 @@ export function formatAccountCreationDate(
 export function isToday(date: Date): boolean {
   return date.toDateString() === new Date().toDateString()
 }
+
+export function futureDate(from: Date, days: number): Date {
+  return new Date(new Date(from).setDate(from.getDate() + days))
+}
