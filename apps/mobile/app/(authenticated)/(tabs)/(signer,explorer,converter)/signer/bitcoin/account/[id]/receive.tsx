@@ -552,7 +552,7 @@ export default function Receive() {
     if (!btcPrice || btcPrice <= 0) {
       return null
     }
-    return Math.round((Number(fiat) / btcPrice) * 1e8)
+    return Math.round((Number(fiat) / btcPrice) * SATS_PER_BITCOIN)
   }
 
   function getSatsDisplay(fiat: string): string {

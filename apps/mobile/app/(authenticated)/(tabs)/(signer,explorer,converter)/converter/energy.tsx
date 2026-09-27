@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -1523,7 +1524,9 @@ export default function Energy() {
                 <SSVStack style={{ alignItems: 'center' }} gap="xxs">
                   <SSText size="xl">
                     {blockTemplate?.coinbasevalue
-                      ? (blockTemplate.coinbasevalue / 100000000).toFixed(4)
+                      ? (
+                          blockTemplate.coinbasevalue / SATS_PER_BITCOIN
+                        ).toFixed(4)
                       : '0.0000'}{' '}
                     {BTC_UNIT}
                   </SSText>
