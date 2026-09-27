@@ -49,6 +49,11 @@ import {
   getSecretFromNsec
 } from '@/utils/nostr'
 import {
+  isSignedNdkEvent,
+  parseNostrEvent,
+  parseNostrRumor
+} from '@/utils/nostrEvent'
+import {
   extractResponseOptionIds,
   NOSTR_POLL_RESPONSE_KIND
 } from '@/utils/nostrPoll'
@@ -164,7 +169,7 @@ export async function testNostrRelaysReachable(
 // rumor author and impersonate a trusted device. Both checks are MUSTs in
 // NIP-17, so events failing them are rejected here.
 function unwrapNip59EventOrNull(
-  rawEvent: Event,
+  rawEvent: Pick<Event, 'content' | 'pubkey'>,
   secretKey: Uint8Array
 ): NostrUnwrappedKind1059Event | null {
   try {
@@ -172,8 +177,8 @@ function unwrapNip59EventOrNull(
       rawEvent.content,
       nip44.getConversationKey(secretKey, rawEvent.pubkey)
     )
-    const seal = JSON.parse(sealJson) as Event
-    if (seal.kind !== NOSTR_NIP17_SEAL_KIND || !verifyEvent(seal)) {
+    const seal = parseNostrEvent(JSON.parse(sealJson))
+    if (!seal || seal.kind !== NOSTR_NIP17_SEAL_KIND || !verifyEvent(seal)) {
       return null
     }
 
@@ -181,8 +186,8 @@ function unwrapNip59EventOrNull(
       seal.content,
       nip44.getConversationKey(secretKey, seal.pubkey)
     )
-    const rumor = JSON.parse(rumorJson) as NostrUnwrappedKind1059Event
-    if (rumor.pubkey !== seal.pubkey) {
+    const rumor = parseNostrRumor(JSON.parse(rumorJson))
+    if (!rumor || rumor.pubkey !== seal.pubkey) {
       return null
     }
 
@@ -335,7 +340,7 @@ export class NostrAPI {
       this.ndk,
       {
         authors: [hexPubkey],
-        kinds: [31922 as NDKKind],
+        kinds: [31922],
         limit: 500
       },
       NOSTR_DEFAULT_FETCH_TIMEOUT_MS
@@ -662,7 +667,7 @@ export class NostrAPI {
     const kindList = kinds.length > 0 ? kinds : [1]
     const filter: NDKFilter = {
       authors: [hexPubkey],
-      kinds: kindList as NDKKind[],
+      kinds: kindList,
       limit
     }
     if (until) {
@@ -741,7 +746,7 @@ export class NostrAPI {
     const kindList = kinds.length > 0 ? kinds : [1]
     const filter: NDKFilter = {
       authors,
-      kinds: kindList as NDKKind[],
+      kinds: kindList,
       limit
     }
     if (until) {
@@ -787,12 +792,12 @@ export class NostrAPI {
    */
   private static fetchWithTimeout(
     ndk: NDK,
-    filter: Record<string, unknown>,
+    filter: NDKFilter,
     timeoutMs: number
   ): Promise<NDKEvent | null> {
     return new Promise((resolve) => {
       let settled = false
-      const sub = ndk.subscribe(filter as never, { closeOnEose: false })
+      const sub = ndk.subscribe(filter, { closeOnEose: false })
 
       const finish = (result: NDKEvent | null) => {
         if (settled) {
@@ -819,7 +824,7 @@ export class NostrAPI {
    */
   private static fetchManyWithTimeout(
     ndk: NDK,
-    filter: NDKFilter,
+    filter: NDKFilter<number>,
     timeoutMs: number
   ): Promise<Set<NDKEvent>> {
     return new Promise((resolve) => {
@@ -963,7 +968,8 @@ export class NostrAPI {
     if (!poolEvent) {
       return null
     }
-    return (await poolEvent.toNostrEvent()) as Event
+    const rawEvent = await poolEvent.toNostrEvent()
+    return isSignedNdkEvent(rawEvent) ? rawEvent : null
   }
 
   /**
@@ -1180,7 +1186,7 @@ export class NostrAPI {
     try {
       subscription = this.ndk?.subscribe(subscriptionQuery, {
         closeOnEose: false
-      }) as NDKSubscription | undefined
+      })
     } catch {
       this.setLoading(false)
       return
@@ -1192,14 +1198,14 @@ export class NostrAPI {
     subscription?.on('event', async (event) => {
       try {
         const rawEvent = await event.toNostrEvent()
-        const rawId = (rawEvent as { id?: string }).id
+        const rawId = rawEvent.id
 
         if (rawId && this.processedRawEventIds.has(rawId)) {
           return
         }
 
         const unwrappedEvent = unwrapNip59EventOrNull(
-          rawEvent as unknown as Event,
+          rawEvent,
           recipientSecretNostrKey
         )
         if (!unwrappedEvent) {
@@ -1380,7 +1386,7 @@ export class NostrAPI {
     try {
       subscription = this.ndk?.subscribe(filters, {
         closeOnEose: false
-      }) as NDKSubscription | undefined
+      })
     } catch {
       return
     }
@@ -1531,9 +1537,9 @@ export class NostrAPI {
       return []
     }
 
-    const filter: NDKFilter = {
+    const filter: NDKFilter<number> = {
       '#e': [pollEventIdHex],
-      kinds: [NOSTR_POLL_RESPONSE_KIND as NDKKind],
+      kinds: [NOSTR_POLL_RESPONSE_KIND],
       limit: 500
     }
     const events = await NostrAPI.fetchManyWithTimeout(
@@ -1695,7 +1701,7 @@ export class NostrAPI {
         resolve(value)
       }
       const sub = this.ndk!.subscribe(
-        { authors: ['0'.repeat(64)], kinds: [0], limit: 1 } as never,
+        { authors: ['0'.repeat(64)], kinds: [0], limit: 1 },
         { closeOnEose: false }
       )
       const timer = setTimeout(() => {

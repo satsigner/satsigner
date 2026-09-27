@@ -345,30 +345,7 @@ async function getWalletData(
           throw new Error('Invalid account information')
         }
 
-        let template: DescriptorTemplate
-        switch (key.scriptVersion) {
-          case 'P2PKH':
-            template = DescriptorTemplate.Bip44
-            break
-          case 'P2SH-P2WPKH':
-            template = DescriptorTemplate.Bip49
-            break
-          case 'P2WPKH':
-            template = DescriptorTemplate.Bip84
-            break
-          case 'P2TR':
-            template = DescriptorTemplate.Bip86
-            break
-          case 'P2WSH':
-          case 'P2SH-P2WSH':
-          case 'P2SH':
-            throw new Error(
-              `Manual descriptor creation required for ${key.scriptVersion}`
-            )
-          default:
-            template = DescriptorTemplate.Bip84
-            break
-        }
+        const template = getDescriptorTemplate(key.scriptVersion)
 
         const externalDescriptor = createPublicDescriptor(
           key.secret.extendedPublicKey,
@@ -406,6 +383,34 @@ async function getWalletData(
     }
     default:
       break
+  }
+}
+
+/**
+ * Maps a single-sig script version to the BIP template used to build public
+ * descriptors from an extended public key. Multisig script versions have no
+ * template and throw, since their descriptors must be built manually.
+ */
+function getDescriptorTemplate(
+  scriptVersion: NonNullable<Key['scriptVersion']>
+): DescriptorTemplate {
+  switch (scriptVersion) {
+    case 'P2PKH':
+      return DescriptorTemplate.Bip44
+    case 'P2SH-P2WPKH':
+      return DescriptorTemplate.Bip49
+    case 'P2WPKH':
+      return DescriptorTemplate.Bip84
+    case 'P2TR':
+      return DescriptorTemplate.Bip86
+    case 'P2WSH':
+    case 'P2SH-P2WSH':
+    case 'P2SH':
+      throw new Error(
+        `Manual descriptor creation required for ${scriptVersion}`
+      )
+    default:
+      return DescriptorTemplate.Bip84
   }
 }
 
@@ -988,7 +993,7 @@ function getWalletOverview(
     keys: [{ scriptVersion: undefined }],
     transactions: ownedTransactions,
     utxos
-  } as Account)
+  })
 
   const seenAddress: Record<string, boolean> = {}
   for (const tx of ownedTransactions) {
@@ -1439,7 +1444,7 @@ function getPublicDescriptorsForAccount(
       ) {
         return null
       }
-      const template = key.scriptVersion as unknown as DescriptorTemplate
+      const template = getDescriptorTemplate(key.scriptVersion)
       const external = createPublicDescriptor(
         key.secret.extendedPublicKey,
         template,
@@ -1855,7 +1860,7 @@ async function syncWithCoreWallet(
           blocktime: tx.timestamp
             ? Math.floor(tx.timestamp.getTime() / 1000)
             : undefined,
-          category: tx.type as 'send' | 'receive',
+          category: tx.type,
           confirmations: 0,
           time: tx.timestamp ? Math.floor(tx.timestamp.getTime() / 1000) : 0,
           timereceived: 0,

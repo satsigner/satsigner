@@ -1,26 +1,13 @@
-import type { SankeyLinkMinimal, SankeyNodeMinimal } from 'd3-sankey'
+import type { SankeyNode } from 'd3-sankey'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 
-export interface Link extends SankeyLinkMinimal<object, object> {
-  source: string
-  target: string
-  value: number
-}
-
-export interface Node extends SankeyNodeMinimal<object, object> {
-  inputOutpoint?: string
-  localId?: string
-  id: string
-  depth?: number
-  depthH: number
-  address?: string
-  type: string
-  ioData: TxNode['ioData']
-  value?: number
-  txId?: string
-  nextTx?: string
-}
+/**
+ * Chart node after d3-sankey layout: the `TxNode` it was built from plus the
+ * computed position (x0/x1/y0/y1). Build layouts with `sankey<TxNode, object>()`
+ * (links carry no extra fields) to get these nodes back.
+ */
+export type Node = SankeyNode<TxNode, object>
 
 export const LINK_MAX_WIDTH = 60
 export const BLOCK_WIDTH = 50

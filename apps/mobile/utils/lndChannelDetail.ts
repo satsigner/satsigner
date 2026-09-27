@@ -1,4 +1,5 @@
 import { type LNDChannel } from '@/types/models/Lightning'
+import { isRecord } from '@/utils/object'
 
 /**
  * LND grpc-gateway JSON uses lowerCamelCase; some layers use snake_case.
@@ -8,15 +9,14 @@ export function readLndChannelStringField(
   channel: unknown,
   keys: readonly string[]
 ): string {
-  if (!channel || typeof channel !== 'object') {
+  if (!isRecord(channel)) {
     return ''
   }
-  const c = channel as Record<string, unknown>
   for (const key of keys) {
-    if (!Object.hasOwn(c, key)) {
+    if (!Object.hasOwn(channel, key)) {
       continue
     }
-    const v = c[key]
+    const v = channel[key]
     if (typeof v === 'string' && v.trim().length > 0) {
       return v.trim()
     }
@@ -53,15 +53,14 @@ export function readLndChannelSatsField(
   channel: unknown,
   keys: readonly string[]
 ): number {
-  if (!channel || typeof channel !== 'object') {
+  if (!isRecord(channel)) {
     return 0
   }
-  const c = channel as Record<string, unknown>
   for (const key of keys) {
-    if (!Object.hasOwn(c, key)) {
+    if (!Object.hasOwn(channel, key)) {
       continue
     }
-    const raw = c[key]
+    const raw = channel[key]
     if (raw === undefined || raw === null) {
       continue
     }

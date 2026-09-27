@@ -21,7 +21,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type CreationType, type PolicyType } from '@/types/models/Account'
+import { type CreationType } from '@/types/models/Account'
 import {
   appNetworkToBdkNetwork,
   getDerivationPathFromScriptVersion
@@ -97,7 +97,7 @@ export default function UnifiedImport() {
   const [loadingWallet, setLoadingWallet] = useState(false)
 
   useEffect(() => {
-    setPolicyType('multisig' as PolicyType)
+    setPolicyType('multisig')
   }, [setPolicyType])
 
   function openMainCamera() {
@@ -308,13 +308,13 @@ export default function UnifiedImport() {
         setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
       }
 
-      const keyIndex = parseInt(index!, 10)
+      const keyIndex = parseInt(index, 10)
       setKey(keyIndex)
 
       toast.success(t('account.import.success'))
       router.back()
     } catch (error) {
-      const errorMessage = (error as Error).message
+      const errorMessage = error instanceof Error ? error.message : ''
       if (errorMessage) {
         toast.error(errorMessage)
       } else {
@@ -364,7 +364,7 @@ export default function UnifiedImport() {
         const combinedValidation = validateCombinedDescriptor(
           text,
           scriptVersion,
-          network as string
+          network
         )
 
         if (combinedValidation.isValid) {
@@ -467,7 +467,7 @@ export default function UnifiedImport() {
           const combinedValidation = validateCombinedDescriptor(
             text,
             scriptVersion,
-            network as string
+            network
           )
 
           if (combinedValidation.isValid) {
@@ -509,7 +509,7 @@ export default function UnifiedImport() {
         updateXpub(text)
       }
     } catch (error) {
-      const errorMessage = (error as Error).message
+      const errorMessage = error instanceof Error ? error.message : ''
       if (errorMessage) {
         toast.error(errorMessage)
       }
@@ -539,7 +539,7 @@ export default function UnifiedImport() {
         const combinedValidation = validateCombinedDescriptor(
           parsed.combined,
           scriptVersion,
-          network as string
+          network
         )
         if (combinedValidation.isValid) {
           setLocalExternalDescriptor(combinedValidation.externalDescriptor)

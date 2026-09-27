@@ -133,5 +133,12 @@ describe('fiat data helpers', () => {
       expect(result.fiatPriceProvider).toBe('mempool')
       expect(result.fiatPriceApiUrl).toBe('')
     })
+
+    it('migrates a legacy url that is not a string to the mempool provider', () => {
+      const merged = makeMerged()
+      const result = migrateFiatPriceSettings({ fiatPriceApiUrl: 42 }, merged)
+      expect(result.fiatPriceProvider).toBe('mempool')
+      expect(result.fiatPriceApiUrl).toBe('')
+    })
   })
 })

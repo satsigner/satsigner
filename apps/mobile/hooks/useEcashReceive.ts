@@ -9,6 +9,7 @@ import { t } from '@/locales'
 import type { EcashMint, EcashToken } from '@/types/models/Ecash'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
 import { prepareEcashTokenInput } from '@/utils/contentDetector'
+import { toEcashToken } from '@/utils/ecashToken'
 import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,
@@ -140,8 +141,7 @@ export function useEcashReceive() {
       return
     }
     try {
-      const decoded = getDecodedToken(normalized)
-      setDecodedToken(decoded as EcashToken)
+      setDecodedToken(toEcashToken(getDecodedToken(normalized)))
     } catch {
       setDecodedToken(null)
     }

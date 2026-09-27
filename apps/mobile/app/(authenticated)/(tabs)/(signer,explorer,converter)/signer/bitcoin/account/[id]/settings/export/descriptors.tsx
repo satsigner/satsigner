@@ -19,7 +19,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   getExtendedKeyFromDescriptor,
@@ -230,7 +229,7 @@ export default function ExportDescriptors() {
                     return { extendedPublicKey: '', fingerprint: '', index }
                   }
 
-                  const secret = key.secret as Secret
+                  const { secret } = key
                   let extendedPublicKey = ''
                   let fingerprint = ''
 
@@ -400,7 +399,7 @@ export default function ExportDescriptors() {
             if (!key) {
               descriptorString = 'No key data available for watch-only account'
             } else {
-              const secret = key.secret as Secret
+              const { secret } = key
 
               if (
                 key.creationType === 'importDescriptor' &&
@@ -475,7 +474,7 @@ export default function ExportDescriptors() {
           if (!key) {
             descriptorString = 'No key data available for imported address'
           } else {
-            const secret = key.secret as Secret
+            const { secret } = key
 
             if (secret.externalDescriptor) {
               const descriptor = secret.externalDescriptor

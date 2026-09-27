@@ -14,6 +14,7 @@ import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
+import { WordListNameSchema } from '@/types/bips/39'
 import type { Label } from '@/types/bips/329'
 import type { Account, Key } from '@/types/models/Account'
 import type {
@@ -30,7 +31,7 @@ import type {
   LNDConfig,
   LNDNodeInfo
 } from '@/types/models/Lightning'
-import type { NostrAccount, NostrDM, NostrIdentity } from '@/types/models/Nostr'
+import type { NostrAccount, NostrIdentity } from '@/types/models/Nostr'
 import { ConfigSchema, ServerSchema } from '@/types/settings/blockchain'
 import {
   prepareArkMnemonics,
@@ -40,6 +41,7 @@ import {
   restoreArkStoreFromBackup,
   type ArkBackupSection
 } from '@/utils/arkBackup'
+import { parseLabelRecord } from '@/utils/bip329'
 import {
   BLOCKCHAIN_BACKUP_NETWORKS,
   restoreBlockchainFromBackup,
@@ -48,6 +50,7 @@ import {
 import { aesEncrypt, randomIv } from '@/utils/crypto'
 import { restoreLightningFromBackup } from '@/utils/lightningBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
+import { isRecord } from '@/utils/object'
 import { getPin } from '@/utils/pin'
 
 type BackupKey = Key & {
@@ -56,6 +59,7 @@ type BackupKey = Key & {
 }
 type BackupAccount = {
   birthdayDate?: string
+  createdAt?: string
   excludedUtxoOutpoints?: string[]
   id: string
   keys: BackupKey[]
@@ -151,7 +155,25 @@ function parseBackupDate(v: string | number | Date | null | undefined): Date {
   if (v === null || v === undefined) {
     return new Date()
   }
-  return new Date(v as string | number | Date)
+  return new Date(v)
+}
+
+/**
+ * Account labels from a backup, keyed by ref. JSON turned each `time` into a
+ * string, so labels are read back into Labels before the restore writes
+ * anything; labels that cannot be read are dropped.
+ */
+function restoreBackupLabels(
+  labels: Record<string, unknown> | undefined
+): Record<string, Label> {
+  const restored: Record<string, Label> = {}
+  for (const value of Object.values(labels ?? {})) {
+    const label = parseLabelRecord(value)
+    if (label) {
+      restored[label.ref] = label
+    }
+  }
+  return restored
 }
 
 function errorMessage(err: unknown): string {
@@ -167,47 +189,58 @@ function errorMessage(err: unknown): string {
 function validateBackup(
   decrypted: string
 ): { ok: false; error: string } | { ok: true; value: BackupData } {
-  let parsed: unknown
   try {
-    parsed = JSON.parse(decrypted)
+    const parsed: unknown = JSON.parse(decrypted)
+    assertBackupData(parsed)
+    return { ok: true, value: parsed }
   } catch (error) {
     return { error: errorMessage(error), ok: false }
   }
-  if (!parsed || typeof parsed !== 'object') {
-    return { error: 'Backup payload is not an object', ok: false }
-  }
-  const data = parsed as Partial<BackupData>
-  if (!data.accounts || !Array.isArray(data.accounts)) {
-    return { error: 'Backup missing accounts array', ok: false }
-  }
-  for (const acc of data.accounts) {
-    if (!acc || !Array.isArray(acc.keys)) {
-      return { error: 'Backup account missing keys array', ok: false }
-    }
-    for (const k of acc.keys) {
-      if (k.seedWords === undefined && k.passphrase === undefined) {
-        return { error: 'Backup key missing seed data', ok: false }
-      }
-    }
-  }
-  if (data.lnd !== undefined && data.lnd !== null && !isLndConfig(data.lnd)) {
-    return { error: 'Backup lightning config is invalid', ok: false }
-  }
-  if (
-    data.lightning?.config !== undefined &&
-    data.lightning.config !== null &&
-    !isLndConfig(data.lightning.config)
-  ) {
-    return { error: 'Backup lightning config is invalid', ok: false }
-  }
-  if (data.serverSettings && !isBlockchainBackup(data.serverSettings)) {
-    return { error: 'Backup server settings are invalid', ok: false }
-  }
-  return { ok: true, value: parsed as BackupData }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+/**
+ * Throws with the reason a parsed backup payload cannot be restored. Restore
+ * needs every account to carry a keys array whose keys hold seed data, and
+ * the lightning and server settings to be valid when present.
+ */
+function assertBackupData(value: unknown): asserts value is BackupData {
+  if (!isRecord(value)) {
+    throw new Error('Backup payload is not an object')
+  }
+  if (!Array.isArray(value.accounts)) {
+    throw new TypeError('Backup missing accounts array')
+  }
+  for (const acc of value.accounts) {
+    if (!isRecord(acc) || !Array.isArray(acc.keys)) {
+      throw new Error('Backup account missing keys array')
+    }
+    if (!acc.keys.every(hasSeedData)) {
+      throw new Error('Backup key missing seed data')
+    }
+  }
+  const lightningConfig = isRecord(value.lightning)
+    ? value.lightning.config
+    : undefined
+  if (
+    !isOptionalLndConfig(value.lnd) ||
+    !isOptionalLndConfig(lightningConfig)
+  ) {
+    throw new Error('Backup lightning config is invalid')
+  }
+  if (value.serverSettings && !isBlockchainBackup(value.serverSettings)) {
+    throw new Error('Backup server settings are invalid')
+  }
+}
+
+function hasSeedData(key: unknown): boolean {
+  return (
+    isRecord(key) &&
+    (key.seedWords !== undefined || key.passphrase !== undefined)
+  )
+}
+
+function isOptionalLndConfig(value: unknown): boolean {
+  return value === undefined || value === null || isLndConfig(value)
 }
 
 function isLndConfig(value: unknown): value is LNDConfig {
@@ -307,7 +340,7 @@ async function prepareRestore(
       commonNsec: '',
       deviceNpub: '',
       deviceNsec: '',
-      dms: [] as NostrDM[],
+      dms: [],
       lastUpdated: new Date(),
       relays: [],
       syncStart: new Date(),
@@ -321,11 +354,13 @@ async function prepareRestore(
           syncStart: parseBackupDate(acc.nostr.syncStart)
         }
       : defaultNostr
-    const created = (acc as { createdAt?: string }).createdAt
     accounts.push({
       addresses: [],
       birthdayDate: acc.birthdayDate ? new Date(acc.birthdayDate) : undefined,
-      createdAt: typeof created === 'string' ? new Date(created) : new Date(),
+      createdAt:
+        typeof acc.createdAt === 'string'
+          ? new Date(acc.createdAt)
+          : new Date(),
       displayIndex: accountDisplayIndex,
       excludedUtxoOutpoints: acc.excludedUtxoOutpoints ?? [],
       id: acc.id,
@@ -335,7 +370,7 @@ async function prepareRestore(
         acc.policyType === 'singlesig'
           ? 1
           : (acc.keysRequired ?? acc.keys.length),
-      labels: acc.labels ?? {},
+      labels: restoreBackupLabels(acc.labels),
       lastSyncedAt: new Date(),
       name: acc.name,
       network: acc.network,
@@ -441,15 +476,11 @@ function applyStoreRestore(
     ) {
       cur.setCurrencyUnit(data.settings.currencyUnit)
     }
-    if (
-      data.settings.mnemonicWordList !== null &&
-      data.settings.mnemonicWordList !== undefined
-    ) {
-      cur.setMnemonicWordList(
-        data.settings.mnemonicWordList as Parameters<
-          typeof cur.setMnemonicWordList
-        >[0]
-      )
+    const mnemonicWordList = WordListNameSchema.safeParse(
+      data.settings.mnemonicWordList
+    )
+    if (mnemonicWordList.success) {
+      cur.setMnemonicWordList(mnemonicWordList.data)
     }
     if (typeof data.settings.useZeroPadding === 'boolean') {
       cur.setUseZeroPadding(data.settings.useZeroPadding)

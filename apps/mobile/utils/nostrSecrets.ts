@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 import {
   deleteNostrAccountSecret,
   deleteNostrIdentitySecret,
@@ -8,19 +10,23 @@ import {
 } from '@/storage/encrypted'
 import { type Account } from '@/types/models/Account'
 import { type NostrAccount, type NostrIdentity } from '@/types/models/Nostr'
-import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
+import { aesDecrypt, aesEncrypt, aesReEncrypt, randomIv } from '@/utils/crypto'
 import { getPin } from '@/utils/pin'
 
-export type NostrIdentitySecrets = {
-  mnemonic?: string
-  nsec?: string
-}
+const NostrIdentitySecretsSchema = z.object({
+  mnemonic: z.string().optional(),
+  nsec: z.string().optional()
+})
 
-export type NostrAccountSecrets = {
-  commonNsec: string
-  deviceMnemonic?: string
-  deviceNsec?: string
-}
+const NostrAccountSecretsSchema = z.object({
+  commonNsec: z.string(),
+  deviceMnemonic: z.string().optional(),
+  deviceNsec: z.string().optional()
+})
+
+export type NostrIdentitySecrets = z.infer<typeof NostrIdentitySecretsSchema>
+
+export type NostrAccountSecrets = z.infer<typeof NostrAccountSecretsSchema>
 
 const identitySecretsCache = new Map<string, NostrIdentitySecrets>()
 const accountSecretsCache = new Map<string, NostrAccountSecrets>()
@@ -129,9 +135,12 @@ async function loadIdentitySecrets(
   }
   const key = pin ?? (await getPin())
   const decrypted = await aesDecrypt(stored.secret, key, stored.iv)
-  const secrets = JSON.parse(decrypted) as NostrIdentitySecrets
-  setCachedIdentitySecrets(npub, secrets)
-  return secrets
+  const secrets = NostrIdentitySecretsSchema.safeParse(JSON.parse(decrypted))
+  if (!secrets.success) {
+    return null
+  }
+  setCachedIdentitySecrets(npub, secrets.data)
+  return secrets.data
 }
 
 async function encryptAndStoreAccountNostrSecrets(
@@ -167,9 +176,12 @@ async function loadAccountNostrSecrets(
   }
   const key = pin ?? (await getPin())
   const decrypted = await aesDecrypt(stored.secret, key, stored.iv)
-  const secrets = JSON.parse(decrypted) as NostrAccountSecrets
-  setCachedAccountSecrets(accountId, secrets)
-  return secrets
+  const secrets = NostrAccountSecretsSchema.safeParse(JSON.parse(decrypted))
+  if (!secrets.success) {
+    return null
+  }
+  setCachedAccountSecrets(accountId, secrets.data)
+  return secrets.data
 }
 
 function mergeAccountWithCachedNostrSecrets(account: Account): Account {
@@ -346,6 +358,11 @@ async function migrateAndHydrateNostrSecrets(): Promise<void> {
   }
 }
 
+/**
+ * PIN change step: moves every stored nostr secret to the new PIN digest.
+ * Records are re-encrypted as stored, so their content can never make a PIN
+ * change stop halfway.
+ */
 async function reEncryptNostrSecrets(
   oldPinEncrypted: string,
   newPinEncrypted: string
@@ -359,17 +376,12 @@ async function reEncryptNostrSecrets(
     if (!stored) {
       continue
     }
-    const decrypted = await aesDecrypt(
-      stored.secret,
+    const { iv, secret } = await aesReEncrypt(
+      stored,
       oldPinEncrypted,
-      stored.iv
-    )
-    const secrets = JSON.parse(decrypted) as NostrIdentitySecrets
-    await encryptAndStoreIdentitySecrets(
-      identity.npub,
-      secrets,
       newPinEncrypted
     )
+    await storeNostrIdentitySecret(identity.npub, secret, iv)
   }
 
   const { accounts } = useAccountsStore.getState()
@@ -378,17 +390,12 @@ async function reEncryptNostrSecrets(
     if (!stored) {
       continue
     }
-    const decrypted = await aesDecrypt(
-      stored.secret,
+    const { iv, secret } = await aesReEncrypt(
+      stored,
       oldPinEncrypted,
-      stored.iv
-    )
-    const secrets = JSON.parse(decrypted) as NostrAccountSecrets
-    await encryptAndStoreAccountNostrSecrets(
-      account.id,
-      secrets,
       newPinEncrypted
     )
+    await storeNostrAccountSecret(account.id, secret, iv)
   }
 }
 

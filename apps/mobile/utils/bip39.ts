@@ -46,8 +46,11 @@ export function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
   return WORDLISTS[name]
 }
 
-export function validateMnemonic(mnemonic: string, wordListName = 'english') {
-  const language = LANGUAGE_MAP[wordListName as WordListName]
+export function validateMnemonic(
+  mnemonic: string,
+  wordListName: WordListName = DEFAULT_WORD_LIST
+) {
+  const language = LANGUAGE_MAP[wordListName]
   if (!language && language !== 0) {
     return false
   }
@@ -178,12 +181,12 @@ export async function getPublicDescriptorFromElectrumMnemonic(
  */
 export function generateMnemonic(
   wordCount: MnemonicWordCount = 12,
-  wordListName = 'english'
+  wordListName: WordListName = DEFAULT_WORD_LIST
 ) {
   if (wordListName === 'english') {
     return new Mnemonic(WORD_COUNT_MAP[wordCount]).toString()
   }
-  const language = LANGUAGE_MAP[wordListName as WordListName]
+  const language = LANGUAGE_MAP[wordListName]
   const entropySize = WORD_COUNT_TO_ENTROPY_BYTES[wordCount]
   const entropy = new Uint8Array(entropySize)
   crypto.getRandomValues(entropy)
@@ -200,7 +203,7 @@ function binaryStringToBytes(binary: string): number[] {
 
 export function generateMnemonicFromEntropy(
   entropy: string,
-  wordListName = 'english'
+  wordListName: WordListName = DEFAULT_WORD_LIST
 ) {
   if (
     entropy.length < BIP39_MIN_ENTROPY_BITS ||
@@ -215,8 +218,7 @@ export function generateMnemonicFromEntropy(
       `Invalid Entropy: it must be divisible by ${BIP39_ENTROPY_STEP_BITS}`
     )
   }
-  const language =
-    LANGUAGE_MAP[wordListName as WordListName] ?? Language.English
+  const language = LANGUAGE_MAP[wordListName] ?? Language.English
   const bytes = binaryStringToBytes(entropy)
   return Mnemonic.fromEntropyIn(
     new Uint8Array(bytes).buffer,

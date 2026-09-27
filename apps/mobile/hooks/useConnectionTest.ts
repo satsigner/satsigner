@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import ElectrumClient from '@/api/electrum'
+import ElectrumClient, { ElectrumServerVersionSchema } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import {
@@ -101,15 +101,9 @@ export function useConnectionTest() {
 
         let blockHeight = 0
         try {
-          const tip = await (
-            client.client as unknown as {
-              blockchainHeaders_subscribe: () => Promise<{
-                height: number
-              } | null>
-            }
-          ).blockchainHeaders_subscribe()
+          const tip = await client.client.blockchainHeaders_subscribe()
           if (tip?.height) {
-            blockHeight = tip.height as number
+            blockHeight = tip.height
           }
         } catch {
           // optional — not all servers support headers subscribe
@@ -135,31 +129,14 @@ export function useConnectionTest() {
           // optional — not all servers implement banner
         }
 
-        let mempoolSize
-        try {
-          const mempoolInfo = await (
-            client.client as unknown as {
-              mempool_get_fee_histogram?: () => Promise<[number, number][]>
-            }
-          ).mempool_get_fee_histogram?.()
-          if (mempoolInfo && Array.isArray(mempoolInfo)) {
-            mempoolSize = mempoolInfo.reduce(
-              (sum: number, item: [number, number]) =>
-                sum + (Array.isArray(item) && item[1] ? item[1] : 0),
-              0
-            )
-          }
-        } catch {
-          // optional
-        }
+        const serverVersion = ElectrumServerVersionSchema.safeParse(serverInfo)
 
         setNodeInfo({
           blockHeight,
-          mempoolSize,
-          network: network as string,
+          network,
           responseTime,
-          software: (serverInfo as unknown as string[])?.[0] || 'Electrum',
-          version: (serverInfo as unknown as string[])?.[1] || 'Unknown'
+          software: serverVersion.data?.[0] || 'Electrum',
+          version: serverVersion.data?.[1] || 'Unknown'
         })
 
         try {
@@ -193,15 +170,9 @@ export function useConnectionTest() {
         let tipTimestampSec: number | undefined
         if (Number.isFinite(blockHeight) && blockHeight > 0) {
           try {
-            const tipHash = (await client.getBlockAtHeight(
-              blockHeight
-            )) as string
-            const blockJson = (await client.getBlockInfo(tipHash)) as {
-              timestamp?: number
-            }
-            if (typeof blockJson?.timestamp === 'number') {
-              tipTimestampSec = blockJson.timestamp
-            }
+            const tipHash = await client.getBlockAtHeight(blockHeight)
+            const block = await client.getBlockInfo(tipHash)
+            tipTimestampSec = block.timestamp
           } catch {
             // optional
           }
@@ -211,7 +182,7 @@ export function useConnectionTest() {
           blockHeight,
           medianFee,
           mempoolSize,
-          network: network as string,
+          network,
           responseTime,
           software: 'Esplora'
         })
@@ -313,7 +284,7 @@ export function useConnectionTest() {
             ? 'Bitcoin Core'
             : 'Esplora'
       setNodeInfo({
-        network: network as string,
+        network,
         responseTime,
         software: softwareLabel
       })

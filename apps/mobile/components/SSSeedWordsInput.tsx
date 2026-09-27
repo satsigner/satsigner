@@ -305,7 +305,8 @@ export default function SSSeedWordsInput({
         toast.error('No valid seed found in clipboard')
       }
     } catch (error) {
-      toast.error(`Failed to read clipboard, ${(error as Error).message}`)
+      const reason = error instanceof Error ? error.message : String(error)
+      toast.error(`Failed to read clipboard, ${reason}`)
     }
   }, [checkClipboardForSeed, fillOutSeedWords])
 
@@ -318,10 +319,14 @@ export default function SSSeedWordsInput({
 
   const handleSeedQRScanned = useCallback(
     (content: DetectedContent) => {
-      if (content.type !== 'seed_qr' || !content.metadata?.mnemonic) {
+      const mnemonic = content.metadata?.mnemonic
+      if (
+        content.type !== 'seed_qr' ||
+        typeof mnemonic !== 'string' ||
+        !mnemonic
+      ) {
         return
       }
-      const mnemonic = content.metadata.mnemonic as string
       const seed = mnemonic.trim().split(/\s+/)
       if (seed.length !== wordCount) {
         toast.error(

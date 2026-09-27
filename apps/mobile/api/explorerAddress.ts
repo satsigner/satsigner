@@ -16,11 +16,14 @@ import type {
   RpcCredentials
 } from '@/types/settings/blockchain'
 import { mapEsploraTxToAddressTransaction } from '@/utils/explorerAddressTx'
+import { isRecord } from '@/utils/object'
 
-type AddressStats = {
-  funded_txo_sum: number
-  spent_txo_sum: number
-}
+const AddressStatsSchema = z.object({
+  funded_txo_sum: z.number(),
+  spent_txo_sum: z.number()
+})
+
+type AddressStats = z.infer<typeof AddressStatsSchema>
 
 function emptyAddress(address: string): ExplorerAddressData {
   return {
@@ -40,30 +43,22 @@ function balanceFromStats(stats: AddressStats | undefined): number {
   return Math.max(0, stats.funded_txo_sum - stats.spent_txo_sum)
 }
 
+function parseAddressStats(raw: unknown): AddressStats | undefined {
+  const stats = AddressStatsSchema.safeParse(raw)
+  return stats.success ? stats.data : undefined
+}
+
 function parseAddressBalances(raw: unknown): {
   confirmed: number
   unconfirmed: number
 } {
-  if (!raw || typeof raw !== 'object') {
+  if (!isRecord(raw)) {
     return { confirmed: 0, unconfirmed: 0 }
   }
 
-  const chain =
-    'chain_stats' in raw &&
-    raw.chain_stats &&
-    typeof raw.chain_stats === 'object'
-      ? (raw.chain_stats as AddressStats)
-      : undefined
-  const mempool =
-    'mempool_stats' in raw &&
-    raw.mempool_stats &&
-    typeof raw.mempool_stats === 'object'
-      ? (raw.mempool_stats as AddressStats)
-      : undefined
-
   return {
-    confirmed: balanceFromStats(chain),
-    unconfirmed: balanceFromStats(mempool)
+    confirmed: balanceFromStats(parseAddressStats(raw.chain_stats)),
+    unconfirmed: balanceFromStats(parseAddressStats(raw.mempool_stats))
   }
 }
 
@@ -163,7 +158,7 @@ async function fromEsplora(
 ): Promise<ExplorerAddressData> {
   const [balances, txids, utxos] = await Promise.all([
     fetchAddressSummary(url, address),
-    fetchRecentTxids(url, address).catch(() => [] as string[]),
+    fetchRecentTxids(url, address).catch((): string[] => []),
     fetchUtxosBestEffort(url, address)
   ])
 
@@ -200,7 +195,7 @@ export async function fetchExplorerAddressFromMempool(
   const url = oracle.baseUrl
   const [balances, txids, utxos] = await Promise.all([
     fetchAddressSummary(url, address),
-    fetchRecentTxids(url, address).catch(() => [] as string[]),
+    fetchRecentTxids(url, address).catch((): string[] => []),
     fetchUtxosBestEffort(url, address)
   ])
 

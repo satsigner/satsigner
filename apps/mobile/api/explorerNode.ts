@@ -1,3 +1,5 @@
+import z from 'zod'
+
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import BitcoinRpc from '@/api/rpc'
 import { MAINNET_P2P_PORT } from '@/constants/btc'
@@ -35,6 +37,22 @@ const EMPTY_SERVER_INFO: BackendServerInfo = {
   protocolVersion: '',
   serverSoftware: ''
 }
+
+const BitnodesNodeSchema = z.object({
+  height: z.number(),
+  last_seen: z.number(),
+  user_agent: z.string()
+})
+
+const BitnodesSnapshotListSchema = z.object({
+  results: z.array(z.object({ total_nodes: z.number(), url: z.string() }))
+})
+
+/** Snapshot node rows are positional arrays (user agent at 1, country at 7). */
+const BitnodesSnapshotSchema = z.object({
+  nodes: z.record(z.string(), z.array(z.unknown())).nullish(),
+  total_nodes: z.number().optional()
+})
 
 export async function fetchElectrumServerInfo(
   serverUrl: string,
@@ -150,11 +168,7 @@ export async function fetchBitnodesNodeInfo(
       return null
     }
 
-    const node = (await nodeRes.json()) as {
-      user_agent: string
-      height: number
-      last_seen: number
-    }
+    const node = BitnodesNodeSchema.parse(await nodeRes.json())
 
     return {
       address: host,
@@ -192,11 +206,9 @@ async function fetchBitnodesNetworkStatsUnsafe(): Promise<NetworkStats> {
   if (!snapshotRes.ok) {
     return EMPTY_NETWORK_STATS
   }
-  const snapshot = (await snapshotRes.json()) as {
-    results: { url: string; total_nodes: number }[]
-  }
+  const snapshot = BitnodesSnapshotListSchema.parse(await snapshotRes.json())
 
-  const latest = snapshot.results?.[0]
+  const [latest] = snapshot.results
   if (!latest) {
     return EMPTY_NETWORK_STATS
   }
@@ -207,27 +219,9 @@ async function fetchBitnodesNetworkStatsUnsafe(): Promise<NetworkStats> {
   if (!nodesRes.ok) {
     return EMPTY_NETWORK_STATS
   }
-  const nodesData = (await nodesRes.json()) as {
-    total_nodes: number
-    nodes: Record<
-      string,
-      [
-        number,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        number,
-        string,
-        string
-      ]
-    >
-  }
+  const nodesData = BitnodesSnapshotSchema.parse(await nodesRes.json())
 
-  if (!nodesData.nodes || typeof nodesData.nodes !== 'object') {
+  if (!nodesData.nodes) {
     return { ...EMPTY_NETWORK_STATS, totalNodes: nodesData.total_nodes ?? 0 }
   }
 
@@ -235,8 +229,8 @@ async function fetchBitnodesNetworkStatsUnsafe(): Promise<NetworkStats> {
   const countryMap: Record<string, number> = {}
 
   for (const node of Object.values(nodesData.nodes)) {
-    const userAgent = node[1] ?? ''
-    const country = node[7] ?? 'Unknown'
+    const userAgent = typeof node[1] === 'string' ? node[1] : ''
+    const country = typeof node[7] === 'string' ? node[7] : 'Unknown'
 
     const versionMatch = /\/([^:]+):[\d.]+/.exec(userAgent)
     const version = versionMatch ? `${versionMatch[1]}` : userAgent.slice(0, 20)

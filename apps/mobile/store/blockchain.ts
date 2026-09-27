@@ -43,8 +43,8 @@ type BlockchainState = {
 
 type BlockchainAction = {
   setSelectedNetwork: (network: Network) => void
-  updateServer: (network: Network, server: Partial<Server>) => void
-  updateConfig: (network: Network, config: Partial<Config>) => void
+  updateServer: (network: Network, server: Server) => void
+  updateConfig: (network: Network, config: Config) => void
   updateConfigMempool: (network: Network, url: Server['url']) => void
   addCustomServer: (server: Server) => void
   removeCustomServer: (server: Server) => void
@@ -145,7 +145,7 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       },
       updateConfig: (network, config) => {
         set((state) => {
-          state.configs[network].config = config as Config
+          state.configs[network].config = config
         })
       },
       updateConfigMempool: (network, config) => {
@@ -170,7 +170,7 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
           void persistRpcCredentialsSafe(network, server.rpcCredentials)
         }
         set((state) => {
-          state.configs[network].server = server as Server
+          state.configs[network].server = server
         })
       }
     })),

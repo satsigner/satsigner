@@ -31,12 +31,12 @@ export class MempoolOracle implements BlockchainOracle {
     this.baseUrl = baseUrl
   }
 
-  get(endpoint: string) {
+  get(endpoint: string): Promise<unknown> {
     return fetch(this.baseUrl + endpoint).then((response: Response) => {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
-      return response.json() as Promise<unknown>
+      return response.json()
     })
   }
 
@@ -80,10 +80,8 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async getBlockAt(timestamp: number) {
-    const data = (await this.get(
-      `/v1/mining/blocks/timestamp/${timestamp}`
-    )) as { hash: string }
-    const blockId = data.hash
+    const data = await this.get(`/v1/mining/blocks/timestamp/${timestamp}`)
+    const { hash: blockId } = z.object({ hash: z.string() }).parse(data)
     const block = await this.getBlock(blockId)
     return block
   }
@@ -202,11 +200,13 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async getPriceAt(currency: string, timestamp: number) {
-    const data = (await this.get(
+    const data = await this.get(
       `/v1/historical-price?currency=${currency}&timestamp=${timestamp}`
-    )) as { prices: Record<string, number>[] }
-    const { prices } = data
-    return prices[0][currency] as number
+    )
+    const { prices } = z
+      .object({ prices: z.array(z.record(z.string(), z.number())) })
+      .parse(data)
+    return prices[0][currency]
   }
 
   /**

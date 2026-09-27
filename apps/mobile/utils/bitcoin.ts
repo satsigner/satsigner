@@ -15,6 +15,7 @@ import {
 } from '@/constants/derivation'
 import { Account, Key } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
+import { type MultisigScriptType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 
@@ -405,7 +406,7 @@ export function getMultisigDerivationPathFromScriptVersion(
 
 export function getMultisigScriptTypeFromScriptVersion(
   scriptVersion: string
-): string {
+): MultisigScriptType {
   switch (scriptVersion) {
     case 'P2PKH':
       return 'P2SH'

@@ -109,14 +109,12 @@ function ImportDescriptorFromAccount() {
     )
     setExtendedPublicKey(extendedPublicKey)
     setKey(Number(keyIndex))
-    updateKeyFingerprint(
-      Number(keyIndex),
-      chosenAccount.keys[0].fingerprint as string
-    )
-    setKeyDerivationPath(
-      Number(keyIndex),
-      chosenAccount.keys[0].derivationPath as string
-    )
+    if (firstKey.fingerprint) {
+      updateKeyFingerprint(Number(keyIndex), firstKey.fingerprint)
+    }
+    if (firstKey.derivationPath) {
+      setKeyDerivationPath(Number(keyIndex), firstKey.derivationPath)
+    }
     setKey(Number(keyIndex))
     clearKeyState()
     router.dismiss(3)

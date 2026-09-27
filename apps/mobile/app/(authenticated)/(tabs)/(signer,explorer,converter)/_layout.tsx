@@ -221,8 +221,8 @@ export default function StackLayout(params: { segment?: string }) {
         ),
         headerLeft: () => <HeaderLeft isShowNav={isShowNav} />,
         headerRight: () => <HeaderRight />,
-        // Native stack accepts height; Expo's Stack typings only allow backgroundColor.
-        headerStyle: stackHeaderStyle as { backgroundColor?: string },
+        // Native stack also applies the height; Expo's Stack typings only list backgroundColor.
+        headerStyle: stackHeaderStyle,
         headerTintColor: Colors.gray[200],
         headerTitle: () => (
           <SSText uppercase style={{ letterSpacing: 1 }}>

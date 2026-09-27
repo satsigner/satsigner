@@ -4,6 +4,8 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { PSBT_MAGIC_HEX } from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
+import { type MockPsbt } from '@/types/models/Psbt'
+import { type MultisigScriptType } from '@/types/models/Script'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { getKeyFingerprint } from '@/utils/account'
@@ -26,6 +28,23 @@ export type AccountMatchResult = {
   publicKey: string
 }
 
+type PsbtInputValidation = {
+  index: number
+  hasPartialSigs: boolean
+  partialSigs: { pubkey: string; signature: string }[]
+  hasWitnessUtxo: boolean
+  hasNonWitnessUtxo: boolean
+  hasBip32Derivation: boolean
+}
+
+type PsbtValidation = {
+  isValid: boolean
+  inputs: PsbtInputValidation[]
+  signatures: { inputIndex: number; pubkey: string; signature: string }[]
+  warnings: string[]
+  errors: string[]
+}
+
 type SigningResult = {
   success: boolean
   originalPSBT?: string
@@ -38,29 +57,8 @@ type SigningResult = {
   path?: string
   signature?: string
   signedInputsCount?: number
-  validation?: {
-    isValid: boolean
-    inputs: {
-      index: number
-      hasPartialSigs: boolean
-      partialSigs: { pubkey: string; signature: string }[]
-      hasWitnessUtxo: boolean
-      hasNonWitnessUtxo: boolean
-      hasBip32Derivation: boolean
-    }[]
-    signatures: { inputIndex: number; pubkey: string; signature: string }[]
-    warnings: string[]
-    errors: string[]
-  }
+  validation?: PsbtValidation
   error?: string
-}
-
-type PsbtInput = {
-  witnessUtxo?: {
-    script: Buffer
-    value: number
-  }
-  nonWitnessUtxo?: Buffer
 }
 
 export type ExtractedTransactionData = {
@@ -183,7 +181,7 @@ export async function findMatchingAccount(
 export function signPSBTWithSeed(
   psbtBase64: string,
   seedWords: string,
-  scriptType: 'P2WSH' | 'P2SH' | 'P2SH-P2WSH' = 'P2WSH'
+  scriptType: MultisigScriptType = 'P2WSH'
 ): SigningResult {
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
 
@@ -326,39 +324,22 @@ export function signPSBTWithSeed(
 
 function getSignedPSBTValidationInfo(signedPSBT: string) {
   const psbt = bitcoinjs.Psbt.fromBase64(signedPSBT)
-  const validation = {
-    errors: [] as string[],
-    inputs: [] as {
-      index: number
-      hasPartialSigs: boolean
-      partialSigs: {
-        pubkey: string
-        signature: string
-      }[]
-      hasWitnessUtxo: boolean
-      hasNonWitnessUtxo: boolean
-      hasBip32Derivation: boolean
-    }[],
+  const validation: PsbtValidation = {
+    errors: [],
+    inputs: [],
     isValid: true,
-    signatures: [] as {
-      inputIndex: number
-      pubkey: string
-      signature: string
-    }[],
-    warnings: [] as string[]
+    signatures: [],
+    warnings: []
   }
 
   for (const [inputIndex, input] of psbt.data.inputs.entries()) {
-    const inputInfo = {
+    const inputInfo: PsbtInputValidation = {
       hasBip32Derivation: !!input.bip32Derivation,
       hasNonWitnessUtxo: !!input.nonWitnessUtxo,
       hasPartialSigs: false,
       hasWitnessUtxo: !!input.witnessUtxo,
       index: inputIndex,
-      partialSigs: [] as {
-        pubkey: string
-        signature: string
-      }[]
+      partialSigs: []
     }
 
     if (input.partialSig && input.partialSig.length > 0) {
@@ -382,6 +363,26 @@ function getSignedPSBTValidationInfo(signedPSBT: string) {
   }
 
   return validation
+}
+
+/**
+ * Stand-in PSBT for flows that only hold the base64 PSBT (pasted, scanned or
+ * received over Nostr): exposes its txid and fee for review screens, but
+ * cannot extract the transaction or look up its inputs.
+ */
+export function createMockPsbt(
+  psbtBase64: string,
+  txid: string,
+  fee: number
+): MockPsbt {
+  return {
+    extractTxHex: () => '',
+    feeAmount: () => BigInt(fee),
+    feeRate: () => undefined,
+    getUtxoFor: () => undefined,
+    toBase64: () => psbtBase64,
+    txid: () => txid
+  }
 }
 
 export function extractTransactionIdFromPSBT(
@@ -423,7 +424,6 @@ export function extractTransactionDataFromPSBT(
   const network = bitcoinjsNetwork(appNetwork)
 
   const inputs = psbt.data.inputs.map((input, index) => {
-    const psbtInput = input as PsbtInput
     const txInput = psbt.txInputs[index]
     // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
     const txid = Buffer.from(txInput.hash).reverse().toString('hex')
@@ -433,14 +433,12 @@ export function extractTransactionDataFromPSBT(
     let script = ''
     let address = ''
 
-    if (psbtInput.witnessUtxo) {
-      ;({ value } = psbtInput.witnessUtxo)
-      script = psbtInput.witnessUtxo.script?.toString('hex') || ''
-    } else if (psbtInput.nonWitnessUtxo) {
+    if (input.witnessUtxo) {
+      ;({ value } = input.witnessUtxo)
+      script = input.witnessUtxo.script?.toString('hex') || ''
+    } else if (input.nonWitnessUtxo) {
       try {
-        const prevTx = bitcoinjs.Transaction.fromBuffer(
-          psbtInput.nonWitnessUtxo
-        )
+        const prevTx = bitcoinjs.Transaction.fromBuffer(input.nonWitnessUtxo)
         const prevOut = prevTx.outs[vout]
         value = prevOut?.value || 0
         script = prevOut?.script?.toString('hex') || ''
@@ -506,10 +504,7 @@ export function extractTransactionDataFromPSBT(
   return {
     fee,
     inputs,
-    network: (appNetwork === 'bitcoin' ? 'mainnet' : appNetwork) as
-      | 'mainnet'
-      | 'testnet'
-      | 'signet',
+    network: appNetwork === 'bitcoin' ? 'mainnet' : appNetwork,
     outputs
   }
 }
@@ -1043,18 +1038,18 @@ function parseWitnessScript(witnessScript: Buffer) {
   }
 
   const [op] = script
-  if (!isValidOpCode(op)) {
+  if (typeof op !== 'number' || !isValidOpCode(op)) {
     return null
   }
 
-  const threshold = (op as number) - 80
+  const threshold = op - 80
   const totalKeys = countPublicKeysInScript(script)
 
   return { threshold, totalKeys }
 }
 
-function isValidOpCode(op: number | Buffer): boolean {
-  return typeof op === 'number' && op >= 81 && op <= 96
+function isValidOpCode(op: number): boolean {
+  return op >= 81 && op <= 96
 }
 
 function countPublicKeysInScript(script: (number | Buffer)[]): number {
@@ -1137,7 +1132,7 @@ function extractCosignerPublicKey(
   }
 
   if (typeof cosignerKey.secret === 'object') {
-    return extractPublicKeyFromDecryptedKey(psbt, cosignerKey)
+    return extractPublicKeyFromDecryptedKey(psbt, cosignerKey.secret)
   }
 
   return ''
@@ -1157,9 +1152,9 @@ function extractPublicKeyFromEncryptedKey(
 
 function extractPublicKeyFromDecryptedKey(
   psbt: bitcoinjs.Psbt,
-  cosignerKey: Key
+  secret: Secret
 ) {
-  const innerFingerprint = (cosignerKey.secret as Secret).fingerprint
+  const innerFingerprint = secret.fingerprint
   if (!innerFingerprint) {
     return ''
   }

@@ -11,11 +11,11 @@ import { hydrateTransactionRows } from './children'
 
 function getTransactionsByAccount(accountId: string): Transaction[] {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows } = db.execute<TransactionRow>(
     'SELECT * FROM transactions WHERE account_id = ?',
     [accountId]
   )
-  return hydrateTransactionRows((results ?? []) as TransactionRow[], accountId)
+  return hydrateTransactionRows(rows._array, accountId)
 }
 
 function getTransactionById(
@@ -23,14 +23,16 @@ function getTransactionById(
   txid: string
 ): Transaction | undefined {
   const db = getDb()
-  const { results } = db.execute(
-    'SELECT * FROM transactions WHERE id = ? AND account_id = ?',
-    [txid, accountId]
-  )
-  if (!results || results.length === 0) {
+  const row = db
+    .execute<TransactionRow>(
+      'SELECT * FROM transactions WHERE id = ? AND account_id = ?',
+      [txid, accountId]
+    )
+    .rows.item(0)
+  if (!row) {
     return undefined
   }
-  return hydrateTransaction(results[0] as TransactionRow, accountId)
+  return hydrateTransaction(row, accountId)
 }
 
 function hydrateTransaction(
@@ -38,19 +40,15 @@ function hydrateTransaction(
   accountId: string
 ): Transaction {
   const db = getDb()
-  const { results: inputRows } = db.execute(
+  const { rows: inputRows } = db.execute<TxInputRow>(
     'SELECT * FROM tx_inputs WHERE tx_id = ? AND account_id = ? ORDER BY input_index',
     [row.id, accountId]
   )
-  const { results: outputRows } = db.execute(
+  const { rows: outputRows } = db.execute<TxOutputRow>(
     'SELECT * FROM tx_outputs WHERE tx_id = ? AND account_id = ? ORDER BY output_index',
     [row.id, accountId]
   )
-  return rowToTransaction(
-    row,
-    (inputRows ?? []) as TxInputRow[],
-    (outputRows ?? []) as TxOutputRow[]
-  )
+  return rowToTransaction(row, inputRows._array, outputRows._array)
 }
 
 export { getTransactionById, getTransactionsByAccount }

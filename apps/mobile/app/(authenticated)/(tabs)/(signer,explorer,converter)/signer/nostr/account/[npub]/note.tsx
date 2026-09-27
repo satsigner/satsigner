@@ -71,6 +71,10 @@ import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
+  getDecodedContentRelays,
+  getDecodedContentTags
+} from '@/utils/nostrDecodedContent'
+import {
   decodeNostrContent,
   extractEnhancedZapTags,
   extractPubpayTags
@@ -208,8 +212,8 @@ export default function NostrNotePage() {
   )
 
   const ownPubkeyHex = getPubKeyHexFromNpub(npub ?? '') ?? ''
-  const [ownPubkeys] = useState(() =>
-    ownPubkeyHex ? [ownPubkeyHex] : ([] as string[])
+  const [ownPubkeys] = useState<string[]>(() =>
+    ownPubkeyHex ? [ownPubkeyHex] : []
   )
   const ownPubkeysRef = useRef(ownPubkeys)
   ownPubkeysRef.current = ownPubkeys
@@ -232,11 +236,7 @@ export default function NostrNotePage() {
   }
 
   const relayHints =
-    decoded?.kind === 'nevent' &&
-    Array.isArray(decoded.metadata?.relays) &&
-    (decoded.metadata.relays as string[]).length > 0
-      ? (decoded.metadata.relays as string[])
-      : undefined
+    decoded?.kind === 'nevent' ? getDecodedContentRelays(decoded) : undefined
 
   async function loadQuotedNote(quotedEventId: string) {
     const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
@@ -383,9 +383,7 @@ export default function NostrNotePage() {
         kind:
           typeof decoded.metadata.kind === 'number' ? decoded.metadata.kind : 1,
         pubkey: '',
-        tags: Array.isArray(decoded.metadata.tags)
-          ? (decoded.metadata.tags as string[][])
-          : []
+        tags: getDecodedContentTags(decoded)
       })
       setIsLoading(false)
       setProfileLoading(false)

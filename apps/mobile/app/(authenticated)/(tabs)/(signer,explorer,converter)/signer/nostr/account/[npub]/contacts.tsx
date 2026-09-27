@@ -101,7 +101,7 @@ export default function NostrContacts() {
         return
       }
 
-      const tags = result.pubkeys.map((pk) => ['p', pk] as string[])
+      const tags = result.pubkeys.map((pk) => ['p', pk])
 
       const targetApi = new NostrAPI(otherRelays)
       await targetApi.connectForPublish()

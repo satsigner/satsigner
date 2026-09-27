@@ -69,6 +69,12 @@ describe('explorerNode api', () => {
       const result = await fetchBitnodesNodeInfo('node.example', 'bitcoin')
       expect(result).toBeNull()
     })
+
+    it('returns null when the node payload is missing its fields', async () => {
+      mockFetchOnce({ data: [70_016, '/Satoshi:31.1.0/'], found: true })
+      const result = await fetchBitnodesNodeInfo('node.example', 'bitcoin')
+      expect(result).toBeNull()
+    })
   })
 
   describe('fetchBitnodesNetworkStats', () => {
@@ -113,6 +119,21 @@ describe('explorerNode api', () => {
         version: 'Satoshi'
       })
       expect(result.countryDistribution).toHaveLength(2)
+    })
+
+    it('counts node rows without a country as unknown', async () => {
+      mockFetchOnce({
+        results: [{ total_nodes: 1, url: 'https://bitnodes.io/api/v1/snap/1/' }]
+      })
+      mockFetchOnce({
+        nodes: { 'a:8333': [70_016, '/Satoshi:31.1.0/', 1, 3081, 968_710] },
+        total_nodes: 1
+      })
+
+      const result = await fetchBitnodesNetworkStats()
+      expect(result.countryDistribution).toStrictEqual([
+        { count: 1, country: 'Unknown' }
+      ])
     })
   })
 })

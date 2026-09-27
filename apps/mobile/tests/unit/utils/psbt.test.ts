@@ -1,9 +1,24 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import {
+  extractTransactionDataFromPSBT,
   normalizePsbtToBase64,
   signedTransactionMatchesPsbt
 } from '@/utils/psbt'
+
+const TEST_PUBKEY_HEX =
+  '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'
+
+function testP2wpkhAddress(network: bitcoinjs.Network): string {
+  const { address } = bitcoinjs.payments.p2wpkh({
+    network,
+    pubkey: Buffer.from(TEST_PUBKEY_HEX, 'hex')
+  })
+  if (!address) {
+    throw new Error('Expected a P2WPKH address for the test pubkey')
+  }
+  return address
+}
 
 describe('normalizePsbtToBase64', () => {
   const PSBT_MAGIC_HEX = '70736274ff'
@@ -48,13 +63,7 @@ describe('normalizePsbtToBase64', () => {
 
 describe('signedTransactionMatchesPsbt', () => {
   const network = bitcoinjs.networks.bitcoin
-  const address = bitcoinjs.payments.p2wpkh({
-    network,
-    pubkey: Buffer.from(
-      '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
-      'hex'
-    )
-  }).address as string
+  const address = testP2wpkhAddress(network)
   const script = bitcoinjs.address.toOutputScript(address, network)
 
   function buildPsbt() {
@@ -124,5 +133,42 @@ describe('signedTransactionMatchesPsbt', () => {
     expect(
       signedTransactionMatchesPsbt('not-a-psbt', unsignedTxHexOf(psbt))
     ).toBe(false)
+  })
+})
+
+describe('extractTransactionDataFromPSBT', () => {
+  const network = bitcoinjs.networks.bitcoin
+  const address = testP2wpkhAddress(network)
+  const script = bitcoinjs.address.toOutputScript(address, network)
+
+  it('reads input values from witness and non-witness UTXOs', () => {
+    const prevTx = new bitcoinjs.Transaction()
+    prevTx.addInput(Buffer.alloc(32, 0x22), 0)
+    prevTx.addOutput(script, 50_000)
+
+    const psbt = new bitcoinjs.Psbt({ network })
+    psbt.addInput({
+      hash: Buffer.alloc(32, 0x11),
+      index: 0,
+      witnessUtxo: { script, value: 100_000 }
+    })
+    psbt.addInput({
+      hash: prevTx.getHash(),
+      index: 0,
+      nonWitnessUtxo: prevTx.toBuffer()
+    })
+    psbt.addOutput({ address, value: 140_000 })
+
+    const data = extractTransactionDataFromPSBT(psbt.toBase64(), 'bitcoin')
+
+    expect(data?.inputs.map((input) => input.value)).toStrictEqual([
+      100_000, 50_000
+    ])
+    expect(data?.inputs.map((input) => input.address)).toStrictEqual([
+      address,
+      address
+    ])
+    expect(data?.fee).toBe(10_000)
+    expect(data?.network).toBe('mainnet')
   })
 })

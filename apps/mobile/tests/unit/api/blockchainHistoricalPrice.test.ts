@@ -40,3 +40,27 @@ describe('mempoolOracle.getHistoricalPriceSeries', () => {
     )
   })
 })
+
+describe('mempoolOracle.getPriceAt', () => {
+  const oracle = new MempoolOracle('https://mempool.example')
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('returns the requested currency price at the timestamp', async () => {
+    jest.spyOn(oracle, 'get').mockResolvedValue({
+      exchangeRates: { USDEUR: 0.88 },
+      prices: [{ EUR: 1964, USD: 2254.9, time: 1_499_904_000 }]
+    })
+
+    await expect(oracle.getPriceAt('EUR', 1_500_000_000)).resolves.toBe(1964)
+  })
+
+  it('rejects malformed payloads', async () => {
+    jest.spyOn(oracle, 'get').mockResolvedValue({ prices: [{ EUR: 'bad' }] })
+    await expect(oracle.getPriceAt('EUR', 1_500_000_000)).rejects.toThrow(
+      /expected number|Invalid input|ZodError/i
+    )
+  })
+})

@@ -75,6 +75,19 @@ describe('nostrBookmarks', () => {
         []
       )
     })
+
+    it('returns empty array when the decrypted JSON is not a list', () => {
+      expect(
+        decryptPrivateBookmarks(JSON.stringify({ e: EVENT_A }), SECRET, PUBKEY)
+      ).toStrictEqual([])
+    })
+
+    it('skips entries that are not tags', () => {
+      const ciphertext = JSON.stringify([null, EVENT_B, ['e', EVENT_A, null]])
+      expect(decryptPrivateBookmarks(ciphertext, SECRET, PUBKEY)).toStrictEqual(
+        [{ eventId: EVENT_A, source: 'private' }]
+      )
+    })
   })
 
   describe('mergeBookmarks', () => {

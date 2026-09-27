@@ -21,16 +21,16 @@ import {
 
 const PENDING_MATCH_CREATED_AT_TOLERANCE_SEC = 10
 
+/**
+ * Sync start in unix seconds. `new Date` also accepts a sync start that was
+ * rehydrated as an ISO string.
+ */
 function getSyncStartSeconds(account: Account): number {
   const syncStart = account.nostr?.syncStart
   if (!syncStart) {
     return 0
   }
-  const ms =
-    syncStart instanceof Date
-      ? syncStart.getTime()
-      : new Date(syncStart as string).getTime()
-  return Math.floor(ms / 1000)
+  return Math.floor(new Date(syncStart).getTime() / 1000)
 }
 
 function getDevicePubkeyHex(
@@ -60,12 +60,20 @@ function isSenderAllowed(account: Account, senderPubkeyHex: string): boolean {
   }
 }
 
+/**
+ * Builds the stored DM for a decrypted event. Returns null when the content
+ * has no numeric `created_at`, so callers skip the malformed event.
+ */
 function buildNewMessage(
   unwrappedEvent: NostrUnwrappedEvent,
   eventContent: Record<string, unknown>
-): NostrDM {
-  const created_at = eventContent.created_at as number
-  const description = (eventContent.description as string) ?? ''
+): NostrDM | null {
+  const { created_at } = eventContent
+  if (typeof created_at !== 'number') {
+    return null
+  }
+  const description =
+    typeof eventContent.description === 'string' ? eventContent.description : ''
   return {
     author: unwrappedEvent.pubkey,
     content: {
@@ -93,12 +101,14 @@ function useNostrDMStorage() {
       unwrappedEvent: NostrUnwrappedEvent,
       eventContent: Record<string, unknown>
     ) => {
-      const created_at = eventContent.created_at as number
+      const newMessage = buildNewMessage(unwrappedEvent, eventContent)
+      if (!newMessage) {
+        return
+      }
+      const { created_at } = newMessage
       if (created_at > Date.now() / 1000 + NOSTR_DM_FUTURE_TOLERANCE_SEC) {
         return
       }
-
-      const newMessage = buildNewMessage(unwrappedEvent, eventContent)
 
       // Read latest accounts from store to avoid stale closure
       const currentAccount = useAccountsStore
@@ -207,12 +217,15 @@ function useNostrDMStorage() {
         continue
       }
 
-      const created_at = eventContent.created_at as number
+      const newMessage = buildNewMessage(unwrappedEvent, eventContent)
+      if (!newMessage) {
+        continue
+      }
+      const { created_at, description } = newMessage
       if (created_at > Date.now() / 1000 + NOSTR_DM_FUTURE_TOLERANCE_SEC) {
         continue
       }
 
-      const newMessage = buildNewMessage(unwrappedEvent, eventContent)
       if (existingIds.has(newMessage.id)) {
         continue
       }
@@ -238,7 +251,6 @@ function useNostrDMStorage() {
         currentDms.push({ ...newMessage, read: false })
       }
 
-      const description = (eventContent.description as string) ?? ''
       if (
         !skipToast &&
         !isChatActive(currentAccount.id) &&

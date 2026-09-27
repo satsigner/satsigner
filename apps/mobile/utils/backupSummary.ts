@@ -1,3 +1,5 @@
+import { isRecord } from '@/utils/object'
+
 export type BackupPayloadSummary = {
   ark: {
     accounts: number
@@ -32,10 +34,6 @@ export type BackupPayloadSummary = {
 
 function countArray(value: unknown): number {
   return Array.isArray(value) ? value.length : 0
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 function countKeys(value: unknown): number {

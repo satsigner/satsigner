@@ -661,10 +661,7 @@ export default function LndTransactionDetailPage() {
           }
         })
       )
-      return Object.fromEntries(entries) as Record<
-        string,
-        LNDGraphNodeInfo | null
-      >
+      return Object.fromEntries(entries)
     },
     queryKey: ['lnd', 'nodeInfo', ...hopPubkeys],
     staleTime: 5 * 60 * 1000

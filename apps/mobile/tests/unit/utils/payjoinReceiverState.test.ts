@@ -9,6 +9,13 @@ describe('receiverNativeStateIsDurable', () => {
     expect(receiverNativeStateIsDurable(legacy)).toBe(false)
   })
 
+  it('rejects blobs that are not JSON objects', () => {
+    for (const payload of ['null', '[["Created"]]', '"events"']) {
+      const blob = Buffer.from(payload).toString('base64')
+      expect(receiverNativeStateIsDurable(blob)).toBe(false)
+    }
+  })
+
   it('accepts blobs that embed a non-empty events log', () => {
     const durable = Buffer.from(
       JSON.stringify({

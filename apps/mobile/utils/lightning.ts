@@ -1,5 +1,3 @@
-import type { Href } from 'expo-router'
-
 import {
   LND_FORWARDING_INDEX_OFFSET,
   LND_FORWARDING_MAX_EVENTS,
@@ -16,9 +14,6 @@ import type {
 
 import { parseLndSats } from './lndChannelDetail'
 
-export function lightningChannelHref(chanId: string): Href {
-  return `/signer/lightning/node/channel/${encodeURIComponent(chanId)}` as Href
-}
 function forwardingEventKey(ev: LNDForwardingEvent): string {
   return [
     ev.timestamp_ns ?? '',

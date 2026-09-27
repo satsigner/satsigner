@@ -22,6 +22,12 @@ import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 import { isValidDomainName, isValidIPAddress } from '@/utils/url'
 
+// TLSSocketOptions omits rejectUnauthorized from its types, but both native
+// implementations (Android/iOS) honor it.
+type VerifyingTLSSocketOptions = ConstructorParameters<
+  typeof TcpSocket.TLSSocket
+>[1] & { rejectUnauthorized: boolean }
+
 // The library hardcodes `{ rejectUnauthorized: false }` when wrapping the
 // TCP socket with TLS (client.js `initSocket`), silently disabling
 // certificate verification on every ssl:// Electrum connection and exposing
@@ -30,13 +36,16 @@ import { isValidDomainName, isValidIPAddress } from '@/utils/url'
 // on Android and kCFStreamSSLPeerName + system trust evaluation on iOS.
 class VerifyingTLSSocket extends TcpSocket.TLSSocket {
   constructor(socket: InstanceType<typeof TcpSocket.Socket>) {
-    // TLSSocketOptions omits rejectUnauthorized from its types, but both
-    // native implementations (Android/iOS) honor it.
-    super(socket, {
-      rejectUnauthorized: true
-    } as unknown as ConstructorParameters<typeof TcpSocket.TLSSocket>[1])
+    const options: VerifyingTLSSocketOptions = { rejectUnauthorized: true }
+    super(socket, options)
   }
 }
+
+/**
+ * Validates the untrusted `server.version` response:
+ * [server software version, protocol version].
+ */
+export const ElectrumServerVersionSchema = z.tuple([z.string(), z.string()])
 
 class ModifiedClient extends BlueWalletElectrumClient {
   keepAlive() {
@@ -81,6 +90,12 @@ function assertRawTxMatchesTxid(rawTxHex: string, expectedTxid: string): void {
       'Electrum server returned a transaction that does not match the requested txid'
     )
   }
+}
+
+/** Converts an input's outpoint hash (wire byte order) into its txid. */
+function outpointHashToTxid(hash: Uint8Array): string {
+  // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+  return Buffer.from(hash).reverse().toString('hex')
 }
 
 class BaseElectrumClient {
@@ -144,9 +159,7 @@ class BaseElectrumClient {
       // of inactivity. On physical devices over WiFi the TLS handshake can
       // take longer, so we disable the library's timer entirely and rely on
       // our outer JS timeout instead.
-      const { conn } = client.client as unknown as {
-        conn?: { setTimeout?: (ms: number) => void }
-      }
+      const { conn } = client.client
       if (conn && typeof conn.setTimeout === 'function') {
         conn.setTimeout(0)
       }
@@ -193,9 +206,7 @@ class BaseElectrumClient {
     // Disable the library's 5s socket inactivity timer — on physical devices
     // over WiFi the TLS handshake can exceed 5s, and letting the timer fire
     // silently (or worse, destroying the socket) causes spurious failures.
-    const { conn } = this.client as unknown as {
-      conn?: { setTimeout?: (ms: number) => void }
-    }
+    const { conn } = this.client
     if (conn && typeof conn.setTimeout === 'function') {
       conn.setTimeout(0)
     }
@@ -381,21 +392,13 @@ class ElectrumClient extends BaseElectrumClient {
   }
 
   async getServerVersion(): Promise<[string, string]> {
-    const rawClient = this.client as unknown as {
-      server_version: (
-        clientName: string,
-        protocolVersion: string
-      ) => Promise<[string, string]>
-    }
-    const result = await rawClient.server_version('satsigner', '1.4')
-    return Array.isArray(result) ? result : ['', '']
+    const result = await this.client.server_version('satsigner', '1.4')
+    const version = ElectrumServerVersionSchema.safeParse(result)
+    return version.success ? version.data : ['', '']
   }
 
   async getServerBanner(): Promise<string> {
-    const rawClient = this.client as unknown as {
-      server_banner: () => Promise<string>
-    }
-    const result = await rawClient.server_banner()
+    const result = await this.client.server_banner()
     return typeof result === 'string' ? result : ''
   }
 
@@ -446,16 +449,16 @@ class ElectrumClient extends BaseElectrumClient {
     address: string,
     utxos: ElectrumClientInterface['addressUtxos'],
     timestamps: (number | undefined)[],
-    addressKeychain: string
+    addressKeychain: Utxo['keychain']
   ) {
     const parsedUtxos: Utxo[] = utxos.map((electrumUtxo, index) => ({
       addressTo: address,
-      keychain: addressKeychain as Utxo['keychain'],
+      keychain: addressKeychain,
       label: '',
       script: [...bitcoinjs.address.toOutputScript(address, this.network)],
       timestamp:
         timestamps[index] !== undefined
-          ? new Date(timestamps[index]! * 1000)
+          ? new Date(timestamps[index] * 1000)
           : undefined,
       txid: electrumUtxo.tx_hash,
       value: electrumUtxo.value,
@@ -531,7 +534,7 @@ class ElectrumClient extends BaseElectrumClient {
       }
 
       for (let j = 0; j < inputCount; j += 1) {
-        const prevTxId = currentTx.getInputHash(j).value as string
+        const prevTxId = outpointHashToTxid(currentTx.ins[j].hash)
         const vout = Number(currentTx.getInputIndex(j).value)
         const { sequence } = currentTx.ins[j]
         const witness = currentTx.ins[j].witness.map((w) => [...w])
@@ -621,7 +624,7 @@ class ElectrumClient extends BaseElectrumClient {
       }
 
       for (let j = 0; j < inputCount; j += 1) {
-        const prevTxId = currentTx.getInputHash(j).value as string
+        const prevTxId = outpointHashToTxid(currentTx.ins[j].hash)
         const vout = Number(currentTx.getInputIndex(j).value)
         const { sequence } = currentTx.ins[j]
         const witness = currentTx.ins[j].witness.map((w) => [...w])

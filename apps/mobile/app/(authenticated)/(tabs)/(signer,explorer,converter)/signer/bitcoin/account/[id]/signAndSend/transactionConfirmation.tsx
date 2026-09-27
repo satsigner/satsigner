@@ -184,7 +184,7 @@ export default function TransactionConfirmation() {
         })
       }
 
-      importLabels(id!, labels)
+      importLabels(id, labels)
     }
   }, [id, psbt, outputs, importLabels, defaultChangeAddressLabel, txLabelText])
 

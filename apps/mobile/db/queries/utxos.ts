@@ -5,10 +5,11 @@ import { type UtxoRow, rowToUtxo } from '../mappers'
 
 function getUtxosByAccount(accountId: string): Utxo[] {
   const db = getDb()
-  const { results } = db.execute('SELECT * FROM utxos WHERE account_id = ?', [
-    accountId
-  ])
-  return (results ?? []).map((row) => rowToUtxo(row as UtxoRow))
+  const { rows } = db.execute<UtxoRow>(
+    'SELECT * FROM utxos WHERE account_id = ?',
+    [accountId]
+  )
+  return rows._array.map((row) => rowToUtxo(row))
 }
 
 function getUtxo(
@@ -17,23 +18,25 @@ function getUtxo(
   vout: number
 ): Utxo | undefined {
   const db = getDb()
-  const { results } = db.execute(
-    'SELECT * FROM utxos WHERE account_id = ? AND txid = ? AND vout = ?',
-    [accountId, txid, vout]
-  )
-  if (!results || results.length === 0) {
+  const row = db
+    .execute<UtxoRow>(
+      'SELECT * FROM utxos WHERE account_id = ? AND txid = ? AND vout = ?',
+      [accountId, txid, vout]
+    )
+    .rows.item(0)
+  if (!row) {
     return undefined
   }
-  return rowToUtxo(results[0] as UtxoRow)
+  return rowToUtxo(row)
 }
 
 function getUtxosByAddress(accountId: string, address: string): Utxo[] {
   const db = getDb()
-  const { results } = db.execute(
+  const { rows } = db.execute<UtxoRow>(
     'SELECT * FROM utxos WHERE account_id = ? AND address_to = ?',
     [accountId, address]
   )
-  return (results ?? []).map((row) => rowToUtxo(row as UtxoRow))
+  return rows._array.map((row) => rowToUtxo(row))
 }
 
 export { getUtxo, getUtxosByAccount, getUtxosByAddress }

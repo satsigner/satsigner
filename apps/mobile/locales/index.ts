@@ -1,5 +1,7 @@
 import { I18n, type TranslateOptions } from 'i18n-js'
 
+import { isRecord } from '@/utils/object'
+
 import en from './en.json'
 
 function generateJson(j: Record<string, unknown>): Record<string, unknown> {
@@ -7,8 +9,8 @@ function generateJson(j: Record<string, unknown>): Record<string, unknown> {
     const nestedObj: Record<string, unknown> = {}
 
     for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === 'object' && value !== null) {
-        nestedObj[key] = nestKeys(value as Record<string, unknown>)
+      if (isRecord(value)) {
+        nestedObj[key] = nestKeys(value)
       } else {
         const keys = key.split('.')
         let current = nestedObj
@@ -17,7 +19,11 @@ function generateJson(j: Record<string, unknown>): Record<string, unknown> {
           if (!current[k]) {
             current[k] = index === keys.length - 1 ? value : {}
           }
-          current = current[k] as Record<string, unknown>
+          const next = current[k]
+          if (!isRecord(next)) {
+            break
+          }
+          current = next
         }
       }
     }

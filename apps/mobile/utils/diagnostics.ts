@@ -164,8 +164,9 @@ export async function checkSqlite(): Promise<DiagnosticResult> {
     const db = getDb()
     lines.push('database connection open')
 
-    const { results } = db.execute('PRAGMA integrity_check')
-    const first = results?.[0] as { integrity_check?: string } | undefined
+    const first = db
+      .execute<{ integrity_check: string }>('PRAGMA integrity_check')
+      .rows.item(0)
     // The jest mock returns no rows; on device a healthy db says 'ok'.
     if (first?.integrity_check && first.integrity_check !== 'ok') {
       throw new Error(`integrity_check: ${first.integrity_check}`)
@@ -195,11 +196,7 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
     }
     lines.push('gift wrap created (kind 1059)')
 
-    const unwrapped = nip59.unwrapEvent(wrap, secretKey) as {
-      content?: string
-      pubkey?: string
-      kind?: number
-    }
+    const unwrapped = nip59.unwrapEvent(wrap, secretKey)
     if (unwrapped.content !== content) {
       throw new Error('unwrap content mismatch')
     }
@@ -408,10 +405,7 @@ export async function checkNip17LiveRoundtrip(
     }
     lines.push('retrieved self wrap from relay')
 
-    const rumor = nip59.unwrapEvent(fetchedSelf, secretKey) as {
-      content?: string
-      pubkey?: string
-    }
+    const rumor = nip59.unwrapEvent(fetchedSelf, secretKey)
     if (rumor.content !== probe || rumor.pubkey !== publicKey) {
       throw new Error('retrieved wrap did not unwrap to the probe payload')
     }

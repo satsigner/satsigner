@@ -9,7 +9,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
 import { getAccountAddressSets } from '@/utils/address'
 import { formatTxId } from '@/utils/format'
 import {
@@ -153,7 +152,7 @@ function SSTransactionDetails({
     vin,
     vout,
     vsize
-  } as unknown as Transaction
+  }
 
   const textSize = onToggleVisibility ? 'lg' : 'md'
 
