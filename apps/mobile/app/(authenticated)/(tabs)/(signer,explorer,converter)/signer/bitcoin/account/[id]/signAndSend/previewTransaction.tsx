@@ -53,7 +53,7 @@ import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Sizes, Typography } from '@/styles'
 import type { MnemonicWordCount } from '@/types/bips/39'
-import { type Key, type Secret } from '@/types/models/Account'
+import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import {
   type MockPsbt,
@@ -104,6 +104,10 @@ import {
   getURFragmentsFromPSBT
 } from '@/utils/ur'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
 const tn = _tn('transaction.build.preview')
 
 enum QRDisplayMode {
@@ -112,200 +116,66 @@ enum QRDisplayMode {
   BBQR = 'BBQR'
 }
 
+const styles = StyleSheet.create({
+  mainLayout: { paddingBottom: 20, paddingTop: 0 },
+  modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' },
+  payjoinNote: {
+    gap: 4,
+    paddingVertical: 4
+  },
+  payjoinNoteHint: {
+    color: Colors.gray[500]
+  },
+  qrFormatSegmentTrack: {
+    alignSelf: 'center',
+    backgroundColor: Colors.gray[850],
+    borderRadius: Sizes.button.borderRadius,
+    flexDirection: 'row',
+    gap: 3,
+    marginBottom: 10,
+    padding: 3
+  },
+  seedWordsModalBody: {
+    flex: 1,
+    maxWidth: 400,
+    position: 'relative',
+    width: '100%'
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
 type QrFormatModeTabProps = {
   label: string
   onPress: () => void
   selected: boolean
 }
 
-function QrFormatModeTab({ label, onPress, selected }: QrFormatModeTabProps) {
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        alignItems: 'center',
-        backgroundColor: selected ? Colors.white : 'transparent',
-        borderRadius: Sizes.button.borderRadius,
-        flex: 1,
-        height: Sizes.button.height - 6,
-        justifyContent: 'center',
-        opacity: pressed ? 0.88 : 1
-      })}
-    >
-      <SSText center color={selected ? 'black' : 'white'} size="sm" uppercase>
-        {label}
-      </SSText>
-    </Pressable>
-  )
-}
+type PsbtManagement = ReturnType<typeof usePSBTManagement>
+type ProcessScannedData = (data: string) => string | null
 
-function hasEnoughSignatures(input: PsbtInputWithSignatures) {
-  if (!input.witnessScript) {
-    return true
-  }
-
-  try {
-    const script = bitcoinjs.script.decompile(input.witnessScript)
-
-    if (!script || script.length < 3) {
-      return false
-    }
-
-    const [op] = script
-
-    if (typeof op !== 'number' || op < 81 || op > 96) {
-      return false
-    }
-
-    const threshold = op - 80
-    const signatureCount = input.partialSig ? input.partialSig.length : 0
-
-    return signatureCount >= threshold
-  } catch {
-    toast.error(t('common.error.checkingInputSignatures'))
-    return false
-  }
-}
-
-function createMockPsbt(
-  psbtBase64: string,
-  txid: string,
-  txFee: number
-): MockPsbt {
-  return {
-    extractTxHex: () => '',
-    feeAmount: () => BigInt(txFee),
-    feeRate: () => undefined,
-    getUtxoFor: () => undefined,
-    toBase64: () => psbtBase64,
-    txid: () => txid
-  }
-}
-
-function generateTransactionId(psbtBase64: string): string {
-  const extractedTxid = extractTransactionIdFromPSBT(psbtBase64)
-  return extractedTxid || `PSBT-${Date.now().toString(36)}`
-}
-
-function mapBuildTransactionError(error: unknown): {
-  message: string
-  isDust: boolean
-} {
-  const errorMessage = error instanceof Error ? error.message : String(error)
-  const lower = errorMessage.toLowerCase()
-  if (lower.includes('dust')) {
-    return {
-      isDust: true,
-      message: t('transaction.error.previewBuildFailedDust')
-    }
-  }
-  return { isDust: false, message: errorMessage }
-}
-
-function handlePsbtExtractionError(error: unknown) {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-  if (
-    errorMessage.includes('fingerprint') ||
-    errorMessage.includes('derivation') ||
-    errorMessage.includes('not match')
-  ) {
-    toast.warning(
-      'This PSBT does not match the current account. Using basic processing.'
-    )
-  } else if (
-    errorMessage.includes('Invalid PSBT') ||
-    errorMessage.includes('malformed')
-  ) {
-    toast.error('Invalid PSBT format. Please check the PSBT data.')
-  } else {
-    toast.warning(
-      'Failed to process PSBT with enhanced features. Using basic processing.'
-    )
-  }
-}
-
-async function decryptKeyOrFallback(
-  accountId: string,
-  keyIndex: number,
-  key: Key
-): Promise<Key> {
-  try {
-    const secret = await decryptAccountKeySecret(accountId, keyIndex)
-    return { ...key, secret }
-  } catch {
-    return key
-  }
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────────────────────
 
 function PreviewTransaction() {
   const router = useRouter()
   const { id, psbt } = useLocalSearchParams<PreviewTransactionSearchParams>()
 
-  const [
-    inputs,
-    outputs,
-    fee,
-    rbf,
-    setPsbt,
-    txBuilderResult,
-    setSignedTx,
-    addInput,
-    addOutput,
-    setFee,
-    setRbf,
-    signedPsbtsFromStore,
-    clearTransaction,
-    clearPsbt,
-    payjoinUri
-  ] = useTransactionBuilderStore(
-    useShallow((state) => [
-      state.inputs,
-      state.outputs,
-      state.fee,
-      state.rbf,
-      state.setPsbt,
-      state.psbt,
-      state.setSignedTx,
-      state.addInput,
-      state.addOutput,
-      state.setFee,
-      state.setRbf,
-      state.signedPsbts,
-      state.clearTransaction,
-      state.clearPsbt,
-      state.payjoinUri
-    ])
-  )
+  const [inputs, outputs, txBuilderResult, setSignedTx, signedPsbtsFromStore] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.inputs,
+        state.outputs,
+        state.psbt,
+        state.setSignedTx,
+        state.signedPsbts
+      ])
+    )
 
-  const payjoinInvoice = useMemo(() => {
-    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
-      return undefined
-    }
-    const parsed = parsePayjoinUri(payjoinUri)
-    if (!parsed.isValid || !parsed.params) {
-      return undefined
-    }
-    const amountSats =
-      parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
-        ? Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
-        : undefined
-    return {
-      address: parsed.params.address,
-      amountSats,
-      endpointKind: parsed.endpointKind,
-      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
-      label: parsed.params.label
-    }
-  }, [payjoinUri])
-
-  const nowMs = useNow()
-  const payjoinExpiryLabel = formatPayjoinExpiryLabel(
-    payjoinInvoice?.expiresAt,
-    nowMs
-  )
+  const { payjoinInvoice, payjoinExpiryLabel } = usePayjoinInvoice()
 
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
@@ -326,85 +196,16 @@ function PreviewTransaction() {
     () => buildOutpointLabelsByRef(account ?? {}),
     [account]
   )
-  const setTransactionToShare = useNostrStore(
-    (state) => state.setTransactionToShare
-  )
-  const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
-  const { server } = useBlockchainStore(
-    (state) => state.configs[state.selectedNetwork]
-  )
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
-  const [transactionId, setTransactionId] = useState('')
-  const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
-  const [psbtBuildStatus, setPsbtBuildStatus] = useState<
-    'building' | 'error' | 'idle'
-  >('idle')
-  const [psbtBuildErrorMessage, setPsbtBuildErrorMessage] = useState('')
-  const [isDustError, setIsDustError] = useState(false)
-
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
-  const [currentChunk, setCurrentChunk] = useState(0)
-  const [displayMode, setDisplayMode] = useState<QRDisplayMode>(
-    QRDisplayMode.RAW
-  )
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [currentCosignerIndex, setCurrentCosignerIndex] = useState<
     number | null
   >(null)
-
-  const [seedWordsModalVisible, setSeedWordsModalVisible] = useState(false)
-  const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
-  const [selectedWordCount, setSelectedWordCount] =
-    useState<MnemonicWordCount>(24)
-  const [currentMnemonic, setCurrentMnemonic] = useState('')
-
-  const [wordSelectorState, setWordSelectorState] = useState({
-    onWordSelected: () => {
-      // noop
-    },
-    visible: false,
-    wordStart: ''
-  })
-
   const [permission, requestPermission] = useCameraPermissions()
 
-  const {
-    isHardwareSupported: nfcHardwareSupported,
-    isReading,
-    readNFCTag,
-    cancelNFCScan
-  } = useNFCReader()
-  const {
-    isEmitting,
-    emitNFCTag,
-    cancelNFCScan: cancelNFCEmitterScan
-  } = useNFCEmitter()
-  const [nfcModalVisible, setNfcModalVisible] = useState(false)
-  const [nfcScanModalVisible, setNfcScanModalVisible] = useState(false)
-  const [nfcError, setNfcError] = useState<string | null>(null)
-  const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
-
-  const nfcPulseAnim = useSharedValue(0)
-
-  const nfcPulseStyle = useAnimatedStyle(() => ({
-    alignItems: 'center' as const,
-    backgroundColor: interpolateColor(
-      nfcPulseAnim.value,
-      [0, 1],
-      [Colors.gray[800], Colors.gray[400]]
-    ),
-    borderRadius: 100,
-    height: 200,
-    justifyContent: 'center' as const,
-    width: 200
-  }))
-
-  const psbtManagement = usePSBTManagement({
-    account,
-    decryptedKeys,
-    psbt: txBuilderResult
-  })
+  const decryptedKeys = useDecryptedKeys(account)
 
   const {
     signedPsbt,
@@ -414,508 +215,116 @@ function PreviewTransaction() {
     convertPsbtToFinalTransaction,
     handleSignWithLocalKey,
     handleSignWithSeedQR
-  } = psbtManagement
-
-  function processExtractedPsbtData(extractedData: ExtractedTransactionData) {
-    for (const input of extractedData.inputs) {
-      addInput({
-        addressTo: input.address,
-        keychain: input.keychain || 'external',
-        label: input.label,
-        script: Buffer.from(input.script, 'hex').toJSON().data,
-        txid: input.txid,
-        value: input.value,
-        vout: input.vout
-      })
-    }
-
-    for (const output of extractedData.outputs) {
-      addOutput({
-        amount: output.value,
-        label: output.label || '',
-        to: output.address
-      })
-    }
-
-    if (extractedData.fee) {
-      setFee(extractedData.fee)
-    }
-
-    setRbf(true)
-  }
-
-  function processBasicPsbt(psbtBase64: string) {
-    const extractedData = extractTransactionDataFromPSBT(psbtBase64, network)
-    if (extractedData) {
-      processExtractedPsbtData(extractedData)
-    }
-    const txid = generateTransactionId(psbtBase64)
-    setTransactionId(txid)
-    const mockResult = createMockPsbt(psbtBase64, txid, extractedData?.fee ?? 0)
-    setPsbt(mockResult)
-    setIsLoadingPSBT(false)
-  }
-
-  function processPsbtWithAccount(
-    psbtBase64: string,
-    accountData: NonNullable<typeof account>
-  ) {
-    try {
-      const extractedData = extractTransactionDataFromPSBTEnhanced(
-        psbtBase64,
-        accountData
-      )
-
-      if (!extractedData) {
-        throw new Error(
-          'Failed to extract transaction data from PSBT. This PSBT may not match the current account.'
-        )
-      }
-
-      processExtractedPsbtData(extractedData)
-
-      const txid = generateTransactionId(psbtBase64)
-      setTransactionId(txid)
-      const mockResult = createMockPsbt(psbtBase64, txid, extractedData.fee)
-      setPsbt(mockResult)
-      setIsLoadingPSBT(false)
-    } catch (error) {
-      handlePsbtExtractionError(error)
-
-      try {
-        processBasicPsbt(psbtBase64)
-        toast.info(
-          'PSBT loaded with basic processing. Some features may be limited.'
-        )
-      } catch {
-        setIsLoadingPSBT(false)
-        toast.error(t('common.error.processPSBT'))
-        setTransactionId(`PSBT-ERROR-${Date.now().toString(36)}`)
-      }
-    }
-  }
-
-  function processPsbtWithoutAccount(psbtBase64: string) {
-    try {
-      processBasicPsbt(psbtBase64)
-      toast.info('PSBT loaded. Some features may be limited.')
-    } catch {
-      setIsLoadingPSBT(false)
-      toast.error(t('common.error.processPSBT'))
-      setTransactionId(`PSBT-ERROR-${Date.now().toString(36)}`)
-    }
-  }
-
-  useEffect(() => {
-    if (!psbt) {
-      return
-    }
-
-    setIsLoadingPSBT(true)
-    clearTransaction()
-    setSignedTx('')
-
-    if (account) {
-      processPsbtWithAccount(psbt, account)
-    } else {
-      processPsbtWithoutAccount(psbt)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [psbt, account])
-
-  // Separate effect to detect existing signatures - runs when both PSBT and decryptedKeys are ready
-  useEffect(() => {
-    if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) {
-      return
-    }
-
-    const currentAccount = account
-    const currentPsbt = psbt
-
-    async function detectSignatures() {
-      if (!currentAccount || !currentAccount.keys || !currentPsbt) {
-        return
-      }
-
-      const combinedPsbtBase64: string = currentPsbt
-
-      let psbtObj: bitcoinjs.Psbt
-      try {
-        psbtObj = bitcoinjs.Psbt.fromBase64(combinedPsbtBase64)
-      } catch {
-        return
-      }
-
-      const psbtHasSignatures = psbtObj.data.inputs.some(
-        (input) => input.partialSig && input.partialSig.length > 0
-      )
-      if (!psbtHasSignatures) {
-        return
-      }
-
-      let originalPsbtBase64: string
-      try {
-        originalPsbtBase64 = extractOriginalPsbt(combinedPsbtBase64)
-      } catch {
-        return
-      }
-
-      const keyFingerprintToCosignerIndex = new Map<string, number>()
-      await Promise.all(
-        currentAccount.keys.map(async (key, index) => {
-          const fp = await getKeyFingerprint(key)
-          if (fp) {
-            keyFingerprintToCosignerIndex.set(fp, index)
-          }
-        })
-      )
-
-      const pubkeyToCosignerIndex = new Map<string, number>()
-      for (const input of psbtObj.data.inputs) {
-        if (!input.bip32Derivation) {
-          continue
-        }
-        for (const derivation of input.bip32Derivation) {
-          const fingerprint = derivation.masterFingerprint.toString('hex')
-          const pubkey = derivation.pubkey.toString('hex')
-          const cosignerIndex = keyFingerprintToCosignerIndex.get(fingerprint)
-          if (cosignerIndex === undefined) {
-            continue
-          }
-          pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
-        }
-      }
-
-      const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
-      if (signerPubkeys.size === 0) {
-        return
-      }
-
-      const bySigner = extractIndividualSignedPsbts(
-        combinedPsbtBase64,
-        originalPsbtBase64
-      ) as Record<number, string>
-      if (Object.keys(bySigner).length === 0) {
-        return
-      }
-
-      const matches = matchSignedPsbtsToCosigners(
-        bySigner,
-        pubkeyToCosignerIndex,
-        currentAccount,
-        decryptedKeys,
-        signedPsbts
-      )
-
-      for (const match of matches) {
-        updateSignedPsbt(match.cosignerIndex, match.signedPsbtBase64)
-        toast.success(
-          t('transaction.build.preview.detectedSignature', {
-            cosigner: match.cosignerIndex + 1
-          })
-        )
-      }
-    }
-
-    detectSignatures()
-  }, [psbt, account, decryptedKeys, updateSignedPsbt, signedPsbts])
-
-  const validationResults = useMemo(() => {
-    const results = new Map<number, boolean>()
-
-    if (!account) {
-      return results
-    }
-
-    for (const [cosignerIndex, signedPsbt] of signedPsbts.entries()) {
-      if (signedPsbt && signedPsbt.trim()) {
-        try {
-          const isValid = validateSignedPSBTForCosigner(
-            signedPsbt,
-            account,
-            cosignerIndex,
-            decryptedKeys[cosignerIndex]
-          )
-          results.set(cosignerIndex, isValid)
-        } catch {
-          toast.error(t('common.error.validatingCosignerSignature'))
-          results.set(cosignerIndex, false)
-        }
-      }
-    }
-
-    return results
-  }, [signedPsbts, account, decryptedKeys])
-
-  useClipboardPaste({
-    onPaste: (content: string) => {
-      const processedData = processScannedData(content)
-      if (processedData !== null) {
-        updateSignedPsbt(-1, processedData) // -1 for watch-only mode
-      }
-    }
+  } = usePSBTManagement({
+    account,
+    decryptedKeys,
+    psbt: txBuilderResult
   })
 
-  const [qrChunks, setQrChunks] = useState<string[]>([])
-  const [qrError, setQrError] = useState<string | null>(null)
-  const [serializedPsbt, setSerializedPsbt] = useState<string>('')
-  const [urChunks, setUrChunks] = useState<string[]>([])
-  const [currentUrChunk, setCurrentUrChunk] = useState(0)
-  const [rawPsbtChunks, setRawPsbtChunks] = useState<string[]>([])
-  const [currentRawChunk, setCurrentRawChunk] = useState(0)
-  const [qrComplexity, setQrComplexity] = useState(8) // 1-12 scale, 8 is default (higher = simpler/larger QR codes)
-  const [animationSpeed, setAnimationSpeed] = useState(6) // 1-12 scale for animation speed
-
-  const animationRef = useRef<number | null>(null)
-  const qrRef = useRef<View>(null)
-  const lastUpdateRef = useRef<number>(0)
-
-  const [scanProgress, setScanProgress] = useState<{
-    type: 'raw' | 'ur' | 'bbqr' | null
-    total: number
-    scanned: Set<number>
-    chunks: Map<number, string>
-  }>({
-    chunks: new Map(),
-    scanned: new Set(),
-    total: 0,
-    type: null
+  const processScannedData = useScannedDataProcessor({
+    convertPsbtToFinalTransaction
   })
 
-  const detectQRType = (data: string) => {
-    if (/^p\d+of\d+\s/.test(data)) {
-      const match = data.match(/^p(\d+)of(\d+)\s/)
-      if (match) {
-        return {
-          content: data.substring(match[0].length),
-          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
-          total: parseInt(match[2], 10),
-          type: 'raw' as const
-        }
-      }
+  const {
+    getPsbtString,
+    isDustError,
+    isLoadingPSBT,
+    psbtBuildErrorMessage,
+    psbtBuildStatus,
+    serializedPsbt,
+    transactionId
+  } = usePsbtPreview({ account, id, psbt })
+
+  const {
+    animationSpeed,
+    displayMode,
+    getDisplayModeDescription,
+    getQRValue,
+    isDataTooLargeForSingleQR,
+    isMultiPartQR,
+    qrChunks,
+    qrComplexity,
+    qrError,
+    qrRef,
+    setAnimationSpeed,
+    setCurrentChunk,
+    setCurrentRawChunk,
+    setCurrentUrChunk,
+    setDisplayMode,
+    setQrComplexity
+  } = useQrExport({ getPsbtString, serializedPsbt })
+
+  const validationResults = useSignatureValidation({
+    account,
+    decryptedKeys,
+    signedPsbts
+  })
+
+  useSignatureDetection({
+    account,
+    decryptedKeys,
+    psbt,
+    signedPsbts,
+    updateSignedPsbt
+  })
+
+  const { combineAndFinalizeMultisigPSBTs, hasAllRequiredSignatures } =
+    useMultisigFinalization({ account, signedPsbts, validationResults })
+
+  const {
+    cancelNFCEmitterScan,
+    cancelNFCScan,
+    handleNFCExport,
+    handleNFCScan,
+    isEmitting,
+    isReading,
+    nfcError,
+    nfcHardwareSupported,
+    nfcModalVisible,
+    nfcPulseStyle,
+    nfcScanModalVisible,
+    setNfcError,
+    setNfcModalVisible,
+    setNfcScanModalVisible
+  } = useNfcTransfer({ serializedPsbt, updateSignedPsbt })
+
+  const handleShareWithNostrGroup = useNostrShare({ account, id })
+
+  const { handlePasteFromClipboard } = useClipboardImport({
+    processScannedData,
+    updateSignedPsbt
+  })
+
+  const { handleQRCodeScanned, resetScanProgress, scanProgress } = useQrScanner(
+    {
+      closeCamera: () => setCameraModalVisible(false),
+      convertPsbtToFinalTransaction,
+      handleSignWithSeedQR,
+      processScannedData,
+      updateSignedPsbt
     }
-
-    if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36)
-      const current = parseInt(data.slice(6, 8), 36)
-      return {
-        content: data,
-        current,
-        total,
-        type: 'bbqr' as const
-      }
-    }
-
-    if (data.toLowerCase().startsWith('ur:crypto-psbt/')) {
-      // UR format: ur:crypto-psbt/[sequence]/[data] for multi-part
-      // or ur:crypto-psbt/[data] for single part
-      const urMatch = data.match(/^ur:crypto-psbt\/(?:(\d+)-(\d+)\/)?(.+)$/i)
-      if (urMatch) {
-        const [, currentStr, totalStr] = urMatch
-
-        if (currentStr && totalStr) {
-          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
-          const total = parseInt(totalStr, 10)
-          return {
-            content: data,
-            current,
-            total,
-            type: 'ur' as const
-          }
-        }
-        return {
-          content: data,
-          current: 0,
-          total: 1,
-          type: 'ur' as const
-        }
-      }
-    }
-
-    return {
-      content: data,
-      current: 0,
-      total: 1,
-      type: 'single' as const
-    }
-  }
-
-  const resetScanProgress = () => {
-    setScanProgress({
-      chunks: new Map(),
-      scanned: new Set(),
-      total: 0,
-      type: null
-    })
-  }
-
-  // Helper function to convert PSBT to final transaction if needed.
-  // Returns null (after showing an error) when the supplied content does not
-  // correspond to the transaction under review — broadcasting it would
-  // execute a different transaction than the one displayed to the user.
-  const processScannedData = (data: string): string | null => {
-    try {
-      let processedData = data
-      if (processedData.toLowerCase().startsWith('bitcoin:')) {
-        processedData = processedData.substring(8)
-      }
-
-      const originalPsbtBase64 = txBuilderResult?.toBase64()
-
-      if (processedData.toLowerCase().startsWith('70736274ff')) {
-        if (originalPsbtBase64) {
-          return convertPsbtToFinalTransaction(processedData)
-        }
-        return processedData
-      }
-
-      // Raw transaction hex: bind it to the PSBT under review (when there
-      // is one) so a swapped QR/clipboard cannot substitute the broadcast.
-      if (
-        originalPsbtBase64 &&
-        /^[a-fA-F0-9]+$/.test(processedData) &&
-        !signedTransactionMatchesPsbt(originalPsbtBase64, processedData)
-      ) {
-        toast.error(t('common.error.transactionMismatch'))
-        return null
-      }
-
-      return processedData
-    } catch (error) {
-      toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : t('common.error.processScannedData')
-      )
-      return null
-    }
-  }
-
-  const assembleMultiPartQR = async (
-    type: 'raw' | 'ur' | 'bbqr',
-    chunks: Map<number, string>
-  ) => {
-    try {
-      switch (type) {
-        case 'raw': {
-          const sortedChunks = Array.from(chunks.entries())
-            .toSorted(([a], [b]) => a - b)
-            .map(([, content]) => content)
-          const assembled = sortedChunks.join('')
-
-          try {
-            const hexResult = Buffer.from(assembled, 'base64').toString('hex')
-            return hexResult
-          } catch {
-            return assembled
-          }
-        }
-
-        case 'bbqr': {
-          const sortedChunks = Array.from(chunks.entries())
-            .toSorted(([a], [b]) => a - b)
-            .map(([, content]) => content)
-
-          const decoded = decodeBBQRChunks(sortedChunks)
-
-          if (decoded) {
-            const hexResult = Buffer.from(decoded).toString('hex')
-            return hexResult
-          }
-
-          return null
-        }
-
-        case 'ur': {
-          const sortedChunks = Array.from(chunks.entries())
-            .toSorted(([a], [b]) => a - b)
-            .map(([, content]) => content)
-
-          let result: string
-          if (sortedChunks.length === 1) {
-            result = decodeURToPSBT(sortedChunks[0])
-          } else {
-            try {
-              result = await decodeMultiPartURToPSBT(sortedChunks)
-            } catch {
-              return null
-            }
-          }
-
-          if (!result) {
-            return null
-          }
-
-          if (result.toLowerCase().startsWith('70736274ff')) {
-            const convertedResult = convertPsbtToFinalTransaction(result)
-
-            if (
-              convertedResult.toLowerCase().startsWith('70736274ff') ||
-              convertedResult.startsWith('cHNidP')
-            ) {
-              return convertedResult
-            }
-            return convertedResult
-          }
-          return result
-        }
-
-        default:
-          return null
-      }
-    } catch (error) {
-      toast.error(String(error))
-      return null
-    }
-  }
-
-  const createRawPsbtChunks = useCallback(
-    (base64Psbt: string, complexity: number): string[] => {
-      if (complexity === 12) {
-        if (base64Psbt.length > 1500) {
-          const baseChunkSize = 100
-          const chunkSize = Math.max(100, baseChunkSize * 8) // Use maximum density (900 characters per chunk)
-
-          const chunks: string[] = []
-          const dataChunks: string[] = []
-          for (let i = 0; i < base64Psbt.length; i += chunkSize) {
-            dataChunks.push(base64Psbt.slice(i, i + chunkSize))
-          }
-
-          const totalChunks = dataChunks.length
-          for (let i = 0; i < totalChunks; i += 1) {
-            const header = `p${i + 1}of${totalChunks}`
-            chunks.push(`${header} ${dataChunks[i]}`)
-          }
-
-          return chunks
-        }
-        return [base64Psbt] // No chunking, no header, just the full data
-      }
-
-      // Calculate chunk size based on complexity (higher complexity = larger chunks)
-      // Invert the scale: complexity 1 = smallest chunks, complexity 11 = large chunks
-      // Increase base chunk size significantly - QR codes can handle much more data
-      const baseChunkSize = 100
-      const chunkSize = Math.max(100, baseChunkSize * Math.min(complexity, 8)) // Cap at 8 to avoid too large chunks
-
-      const chunks: string[] = []
-
-      const dataChunks: string[] = []
-      for (let i = 0; i < base64Psbt.length; i += chunkSize) {
-        dataChunks.push(base64Psbt.slice(i, i + chunkSize))
-      }
-
-      const totalChunks = dataChunks.length
-      for (let i = 0; i < totalChunks; i += 1) {
-        const header = `p${i + 1}of${totalChunks}`
-        chunks.push(`${header} ${dataChunks[i]}`)
-      }
-
-      return chunks
-    },
-    [] // Remove qrComplexity dependency to prevent unnecessary re-creation
   )
+
+  const {
+    handleMnemonicInvalid,
+    handleMnemonicValid,
+    handleSeedWordsScanned,
+    handleSeedWordsSubmit,
+    handleWordCountSelect,
+    selectedWordCount,
+    seedWordsModalVisible,
+    setCurrentMnemonic,
+    setSeedWordsModalVisible,
+    setSelectedWordCount,
+    setWordCountModalVisible,
+    setWordSelectorState,
+    wordCountModalVisible,
+    wordSelectorState
+  } = useSeedSigning({
+    currentCosignerIndex,
+    handleSignWithSeedQR,
+    setCurrentCosignerIndex
+  })
 
   const transactionHex = useMemo(() => {
     if (!account) {
@@ -1020,660 +429,6 @@ function PreviewTransaction() {
     }
   }, [signedPsbtsFromStore, setSignedPsbts])
 
-  useEffect(() => {
-    if (psbt) {
-      setPsbtBuildStatus('idle')
-      setPsbtBuildErrorMessage('')
-      if (txBuilderResult?.txid()) {
-        setTransactionId(txBuilderResult.txid())
-      }
-      return
-    }
-
-    let cancelled = false
-
-    async function getTransaction() {
-      clearPsbt()
-      setTransactionId('')
-      setPsbtBuildStatus('building')
-      setPsbtBuildErrorMessage('')
-
-      if (!wallet) {
-        if (!cancelled) {
-          setPsbtBuildStatus('error')
-          setPsbtBuildErrorMessage(t('transaction.error.previewMissingWallet'))
-          toast.error(t('error.notFound.wallet'))
-        }
-        return
-      }
-
-      if (inputs.size === 0) {
-        if (!cancelled) {
-          setPsbtBuildStatus('error')
-          setPsbtBuildErrorMessage(t('transaction.error.previewMissingInputs'))
-        }
-        return
-      }
-
-      if (outputs.length === 0) {
-        if (!cancelled) {
-          setPsbtBuildStatus('error')
-          setPsbtBuildErrorMessage(t('transaction.error.previewMissingOutputs'))
-        }
-        return
-      }
-
-      try {
-        const inputArray = Array.from(inputs.values())
-        const outputArray = Array.from(outputs.values())
-
-        const transaction = account
-          ? await buildPsbt(wallet, server, account, {
-              fee,
-              inputs: inputArray,
-              options: { rbf },
-              outputs: outputArray
-            })
-          : await buildTransaction(wallet, {
-              fee,
-              inputs: inputArray,
-              options: { rbf },
-              outputs: outputArray
-            })
-
-        if (cancelled) {
-          return
-        }
-
-        setTransactionId(transaction.txid())
-        setPsbt(transaction)
-        setPsbtBuildStatus('idle')
-        setPsbtBuildErrorMessage('')
-        setIsDustError(false)
-      } catch (error) {
-        if (cancelled) {
-          return
-        }
-
-        const { message, isDust } = mapBuildTransactionError(error)
-        setPsbtBuildStatus('error')
-        setPsbtBuildErrorMessage(message)
-        setIsDustError(isDust)
-
-        if (isDust) {
-          return
-        }
-
-        if (String(error).includes('UTXO not found')) {
-          toast.error(
-            'UTXO not found in wallet database. Please sync your wallet or check your inputs.'
-          )
-        } else {
-          toast.error(message)
-        }
-      }
-    }
-
-    void getTransaction()
-
-    return () => {
-      cancelled = true
-    }
-  }, [wallet, inputs, outputs, fee, rbf, network, setPsbt, clearPsbt, psbt]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Separate effect to validate addresses and show errors
-  // Only validate when we have a complete transaction (not during editing)
-  useEffect(() => {
-    if (!account || !outputs.length || !txBuilderResult) {
-      return
-    }
-
-    const network = bitcoinjsNetwork(account.network)
-
-    for (const output of outputs) {
-      if (!output.to || output.to.trim() === '') {
-        continue
-      }
-
-      try {
-        bitcoinjs.address.toOutputScript(output.to, network)
-      } catch {
-        // Only show error for clearly invalid addresses, not during editing
-        // Check if the address looks like it might be incomplete (too short)
-        if (output.to.length < 10) {
-          continue // Skip validation for very short addresses (likely incomplete)
-        }
-
-        toast.error(
-          `Invalid address format: ${output.to}. Please check your transaction configuration.`
-        )
-        break // Only show one error at a time
-      }
-    }
-  }, [account, outputs, txBuilderResult])
-
-  const getPsbtString = useCallback(() => {
-    if (!txBuilderResult) {
-      return null
-    }
-
-    try {
-      const base64 = txBuilderResult.toBase64()
-      const psbtBuffer = Buffer.from(base64, 'base64')
-
-      const psbtHex = psbtBuffer.toString('hex')
-      setSerializedPsbt(psbtHex)
-
-      psbtBuffer.fill(0)
-
-      return psbtHex
-    } catch {
-      toast.error(t('error.psbt.serialization'))
-      return null
-    }
-  }, [txBuilderResult])
-
-  useEffect(() => {
-    let isMounted = true
-    let psbtBuffer: Buffer | null = null
-
-    const updateQrChunks = () => {
-      try {
-        const psbtHex = getPsbtString()
-        if (!psbtHex || !isMounted) {
-          if (isMounted) {
-            setQrError(t('error.psbt.notAvailable'))
-            setQrChunks([])
-            setUrChunks([])
-            setRawPsbtChunks([])
-          }
-          return
-        }
-
-        try {
-          psbtBuffer = Buffer.from(psbtHex, 'hex')
-          let bbqrChunks: string[]
-
-          try {
-            if (qrComplexity === 12) {
-              // Complexity 12: Create single static BBQR chunk
-              // Check if the data would be too large for a single QR code
-              const estimatedBBQRSize = psbtBuffer.length * 1.5 // BBQR encoding adds overhead
-              if (estimatedBBQRSize > 1500) {
-                const bbqrChunkSize = Math.max(100, 30 * 12) // Use maximum density (460 characters per chunk)
-                bbqrChunks = createBBQRChunks(
-                  new Uint8Array(psbtBuffer),
-                  BBQRFileTypes.PSBT,
-                  bbqrChunkSize
-                )
-              } else {
-                bbqrChunks = createBBQRChunks(
-                  new Uint8Array(psbtBuffer),
-                  BBQRFileTypes.PSBT,
-                  psbtBuffer.length * 10
-                )
-              }
-            } else {
-              // Complexity 1-11: Create multiple chunks (higher = larger chunks)
-              // Increase chunk size significantly - BBQR can handle much more data
-              const bbqrChunkSize = Math.max(100, 30 * qrComplexity)
-
-              bbqrChunks = createBBQRChunks(
-                new Uint8Array(psbtBuffer),
-                BBQRFileTypes.PSBT,
-                bbqrChunkSize
-              )
-            }
-          } catch {
-            bbqrChunks = []
-          }
-
-          if (!isMounted) {
-            return
-          }
-
-          psbtBuffer.fill(0)
-          psbtBuffer = null
-
-          if (!txBuilderResult?.toBase64()) {
-            throw new Error('PSBT data not available')
-          }
-
-          const rawChunks = createRawPsbtChunks(
-            txBuilderResult.toBase64(),
-            qrComplexity
-          )
-
-          let urFragments: string[]
-
-          if (qrComplexity === 12) {
-            // Complexity 12: Create single static UR fragment
-            // Check if the data would be too large for a single QR code
-            const estimatedURSize = txBuilderResult.toBase64().length * 1.5 // UR encoding adds overhead
-            if (estimatedURSize > 1500) {
-              const urFragmentSize = Math.max(50, 15 * 12) // Use maximum density (180 characters per fragment)
-              urFragments = getURFragmentsFromPSBT(
-                txBuilderResult.toBase64(),
-                'base64',
-                urFragmentSize
-              )
-            } else {
-              urFragments = getURFragmentsFromPSBT(
-                txBuilderResult.toBase64(),
-                'base64',
-                txBuilderResult.toBase64().length // Use full length for single fragment
-              )
-            }
-          } else {
-            // Complexity 1-11: Create multiple fragments (higher = larger fragments)
-            // Increase the fragment size significantly - UR can handle much more data
-            const urFragmentSize = Math.max(50, 15 * qrComplexity)
-            urFragments = getURFragmentsFromPSBT(
-              txBuilderResult.toBase64(),
-              'base64',
-              urFragmentSize
-            )
-          }
-
-          if (!isMounted) {
-            return
-          }
-
-          setQrChunks(bbqrChunks)
-          setUrChunks(urFragments)
-          setRawPsbtChunks(rawChunks)
-          setCurrentRawChunk(0)
-          setCurrentUrChunk(0)
-          setQrError(null)
-        } catch {
-          if (isMounted) {
-            setQrError(t('error.qr.generation'))
-            setQrChunks([])
-            setUrChunks([])
-            setRawPsbtChunks([])
-          }
-        }
-      } catch {
-        if (isMounted) {
-          setQrError(t('error.psbt.notAvailable'))
-          setQrChunks([])
-          setUrChunks([])
-          setRawPsbtChunks([])
-        }
-      }
-    }
-
-    updateQrChunks()
-
-    return () => {
-      isMounted = false
-      if (psbtBuffer) {
-        psbtBuffer.fill(0)
-        psbtBuffer = null
-      }
-    }
-  }, [getPsbtString, txBuilderResult, qrComplexity, createRawPsbtChunks])
-
-  // Whether the current display mode is cycling through more than one chunk
-  function isMultiPartQR() {
-    switch (displayMode) {
-      case QRDisplayMode.RAW:
-        return rawPsbtChunks.length > 1
-      case QRDisplayMode.UR:
-        return urChunks.length > 1
-      case QRDisplayMode.BBQR:
-        return qrChunks.length > 1
-      default:
-        return false
-    }
-  }
-
-  useEffect(() => {
-    // Don't animate when complexity is 12 (static mode) - but only for single chunks
-    if (qrComplexity === 12 && !isMultiPartQR()) {
-      return // Don't animate if we have a single chunk
-    }
-
-    const shouldAnimate = isMultiPartQR()
-
-    if (shouldAnimate) {
-      // Calculate animation interval based on speed (1 = slowest, 12 = fastest)
-      // Speed 1 = 2000ms, Speed 12 = 100ms
-      const maxInterval = 2000
-      const minInterval = 200
-      const interval =
-        maxInterval - ((animationSpeed - 1) * (maxInterval - minInterval)) / 11
-
-      const safeInterval = Math.max(interval, 100)
-
-      const animate = (timestamp: number) => {
-        if (timestamp - lastUpdateRef.current >= safeInterval) {
-          if (displayMode === QRDisplayMode.RAW) {
-            setCurrentRawChunk((prev) => (prev + 1) % rawPsbtChunks.length)
-          } else if (displayMode === QRDisplayMode.UR) {
-            setCurrentUrChunk((prev) => (prev + 1) % urChunks.length)
-          } else {
-            setCurrentChunk((prev) => (prev + 1) % qrChunks.length)
-          }
-          lastUpdateRef.current = timestamp
-        }
-
-        animationRef.current = requestAnimationFrame(animate)
-      }
-
-      animationRef.current = requestAnimationFrame(animate)
-
-      return () => {
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current)
-          animationRef.current = null
-        }
-      }
-    }
-    // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
-  }, [
-    displayMode,
-    qrChunks.length,
-    urChunks.length,
-    rawPsbtChunks.length,
-    qrComplexity,
-    animationSpeed
-  ])
-
-  const handleQRCodeScanned = async (
-    data: string | undefined,
-    index?: number
-  ) => {
-    if (!data) {
-      toast.error(t('common.error.scanQRCode'))
-      return
-    }
-
-    const qrInfo = detectQRType(data)
-
-    if (qrInfo.type === 'single' || qrInfo.total === 1) {
-      let finalContent: string | null = qrInfo.content
-      try {
-        if (isBBQRFragment(qrInfo.content)) {
-          const decoded = decodeBBQRChunks([qrInfo.content])
-          if (!decoded) {
-            toast.error(t('camera.error.bbqrDecodeFailed'))
-            return
-          }
-          const hexResult = Buffer.from(decoded).toString('hex')
-          finalContent = hexResult
-        } else if (qrInfo.content.startsWith('cHNidP')) {
-          const hexResult = Buffer.from(qrInfo.content, 'base64').toString(
-            'hex'
-          )
-          finalContent = hexResult
-        } else if (qrInfo.content.toLowerCase().startsWith('ur:crypto-psbt/')) {
-          const decoded = decodeURToPSBT(qrInfo.content)
-          if (!decoded) {
-            toast.error(t('camera.error.urDecodeFailed'))
-            return
-          }
-          finalContent = decoded
-        } else if (index !== undefined) {
-          const decodedMnemonic = detectAndDecodeSeedQR(qrInfo.content)
-          if (decodedMnemonic) {
-            handleSignWithSeedQR(index, decodedMnemonic)
-            setCameraModalVisible(false)
-            resetScanProgress()
-            return
-          }
-        }
-
-        finalContent = processScannedData(finalContent)
-      } catch {
-        toast.error(t('common.error.processScannedData'))
-      }
-
-      if (finalContent === null) {
-        resetScanProgress()
-        return
-      }
-
-      updateSignedPsbt(index ?? -1, finalContent)
-
-      setCameraModalVisible(false)
-      resetScanProgress()
-      toast.success(t('common.success.qrScanned'))
-      return
-    }
-
-    const { type, current, total, content } = qrInfo
-
-    if (
-      scanProgress.type === null ||
-      scanProgress.type !== type ||
-      scanProgress.total !== total
-    ) {
-      const newScanned = new Set([current])
-      const newChunks = new Map([[current, content]])
-
-      setScanProgress({
-        chunks: newChunks,
-        scanned: newScanned,
-        total,
-        type
-      })
-
-      return
-    }
-
-    if (scanProgress.scanned.has(current)) {
-      toast.info(`Part ${current + 1} already scanned`)
-      return
-    }
-
-    const newScanned = new Set(scanProgress.scanned).add(current)
-    const newChunks = new Map(scanProgress.chunks).set(current, content)
-
-    setScanProgress({
-      chunks: newChunks,
-      scanned: newScanned,
-      total,
-      type
-    })
-
-    if (type === 'ur') {
-      // For fountain encoding, we need to find the highest fragment number to determine the actual range
-      const maxFragmentNumber = Math.max(...Array.from(newScanned))
-      const actualTotal = maxFragmentNumber + 1 // Convert from 0-based to 1-based
-
-      // For fountain encoding, try assembly after collecting enough fragments
-      // Be more aggressive - try when we have enough fragments to potentially succeed
-      // Use either 1.1x the actual range or the theoretical minimum, whichever is lower
-      const conservativeTarget = Math.ceil(actualTotal * 1.1)
-      const theoreticalTarget = Math.ceil(total * 1.5)
-      const assemblyTarget = Math.min(conservativeTarget, theoreticalTarget)
-
-      // Also try assembly if we have most of the available fragments (80% of actual range)
-      const fallbackTarget = Math.ceil(actualTotal * 0.8)
-      const shouldTryAssembly =
-        newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
-
-      if (shouldTryAssembly) {
-        const assembledData = await assembleMultiPartQR(type, newChunks)
-
-        if (assembledData) {
-          const finalData = processScannedData(assembledData)
-
-          if (finalData === null) {
-            resetScanProgress()
-            return
-          }
-
-          updateSignedPsbt(index ?? -1, finalData)
-
-          setCameraModalVisible(false)
-          resetScanProgress()
-
-          if (
-            finalData.toLowerCase().startsWith('70736274ff') ||
-            finalData.startsWith('cHNidP')
-          ) {
-            toast.success(
-              `PSBT assembled successfully (${newScanned.size} fragments). Note: PSBT may need additional signatures to finalize.`
-            )
-          } else {
-            toast.success(
-              `Successfully assembled final transaction from ${newScanned.size} fragments`
-            )
-          }
-          return
-        }
-      }
-
-      const targetForDisplay = Math.min(
-        Math.ceil(actualTotal * 1.1),
-        Math.ceil(total * 1.5)
-      )
-      toast.success(
-        `UR: Collected ${newScanned.size} fragments (need ~${targetForDisplay})`
-      )
-    } else if (newScanned.size === total) {
-      const assembledData = await assembleMultiPartQR(type, newChunks)
-
-      if (assembledData) {
-        const finalData = processScannedData(assembledData)
-
-        if (finalData === null) {
-          resetScanProgress()
-          return
-        }
-
-        updateSignedPsbt(index ?? -1, finalData)
-
-        setCameraModalVisible(false)
-        resetScanProgress()
-
-        if (
-          finalData.toLowerCase().startsWith('70736274ff') ||
-          finalData.startsWith('cHNidP')
-        ) {
-          toast.success(
-            `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
-          )
-        } else {
-          toast.success(
-            `Successfully assembled final transaction from ${total} parts`
-          )
-        }
-      } else {
-        toast.error(t('camera.error.assembleFailed'))
-        resetScanProgress()
-      }
-    } else {
-      toast.success(
-        `Scanned part ${current + 1} of ${total} (${
-          newScanned.size
-        }/${total} complete)`
-      )
-    }
-  }
-
-  async function handleNFCExport() {
-    if (isEmitting) {
-      await cancelNFCEmitterScan()
-      setNfcModalVisible(false)
-      setNfcError(null)
-      return
-    }
-
-    if (!serializedPsbt) {
-      toast.error(t('error.psbt.notAvailable'))
-      return
-    }
-
-    setNfcModalVisible(true)
-    setNfcError(null)
-    try {
-      await emitNFCTag(serializedPsbt)
-      toast.success(t('transaction.preview.nfcExported'))
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
-      if (errorMessage) {
-        setNfcError(errorMessage)
-        toast.error(errorMessage)
-      }
-    } finally {
-      if (!nfcError) {
-        setNfcModalVisible(false)
-      }
-    }
-  }
-
-  const handlePasteFromClipboard = async (index: number) => {
-    try {
-      const text = await Clipboard.getStringAsync()
-      if (!text) {
-        toast.error(t('common.error.noClipboardData'))
-        return
-      }
-
-      const processedData = processScannedData(text)
-
-      if (processedData === null) {
-        return
-      }
-
-      updateSignedPsbt(index, processedData)
-
-      toast.success(t('common.success.dataPasted'))
-    } catch (error) {
-      const errorMessage = (error as Error).message
-      if (errorMessage) {
-        toast.error(errorMessage)
-      } else {
-        toast.error(t('common.error.pasteFromClipboard'))
-      }
-    }
-  }
-
-  async function handleNFCScan(index: number) {
-    if (isReading) {
-      await cancelNFCScan()
-      setNfcScanModalVisible(false)
-      return
-    }
-
-    setNfcScanModalVisible(true)
-    try {
-      const result = await readNFCTag()
-
-      if (!result) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
-
-      if (result.txData) {
-        const txHex = Array.from(result.txData as Uint8Array)
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('')
-
-        updateSignedPsbt(index, txHex)
-
-        toast.success(t('transaction.preview.nfcImported'))
-      } else if (result.txId) {
-        updateSignedPsbt(index, result.txId || '')
-
-        toast.success(t('transaction.preview.nfcImported'))
-      } else {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-      }
-    } catch (error) {
-      const errorMessage = (error as Error).message
-      if (errorMessage) {
-        toast.error(errorMessage)
-      }
-    } finally {
-      setNfcScanModalVisible(false)
-    }
-  }
-
   const handleCosignerPasteFromClipboard = (index: number) => {
     handlePasteFromClipboard(index)
   }
@@ -1692,39 +447,6 @@ function PreviewTransaction() {
     setCurrentCosignerIndex(index)
   }
 
-  const handleSeedWordsScanned = (index: number) => {
-    setCurrentCosignerIndex(index)
-    setWordCountModalVisible(true)
-  }
-
-  const handleWordCountSelect = (wordCount: MnemonicWordCount) => {
-    setSelectedWordCount(wordCount)
-    setWordCountModalVisible(false)
-    setSeedWordsModalVisible(true)
-  }
-
-  // eslint-disable-next-line
-  const handleMnemonicValid = (mnemonic: string, _fingerprint: string) => {
-    setCurrentMnemonic(mnemonic)
-  }
-
-  const handleMnemonicInvalid = () => {
-    setCurrentMnemonic('')
-  }
-
-  const handleSeedWordsSubmit = () => {
-    if (!currentMnemonic || currentCosignerIndex === null) {
-      toast.error(t('common.error.validMnemonic'))
-      return
-    }
-
-    handleSignWithSeedQR(currentCosignerIndex, currentMnemonic)
-
-    setSeedWordsModalVisible(false)
-    setCurrentMnemonic('')
-    setCurrentCosignerIndex(null)
-  }
-
   const handleWatchOnlyPasteFromClipboard = () => {
     handlePasteFromClipboard(-1) // Use -1 to indicate watch-only
   }
@@ -1733,302 +455,11 @@ function PreviewTransaction() {
     handleNFCScan(-1) // Use -1 to indicate watch-only
   }
 
-  const handleShareWithNostrGroup = () => {
-    if (!account?.nostr?.autoSync) {
-      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
-      return
-    }
-    const base64 = txBuilderResult?.toBase64()
-    if (!base64) {
-      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
-      return
-    }
-    setTransactionToShare({
-      transaction: base64,
-      transactionData: { combinedPsbt: base64 }
-    })
-    router.push({
-      params: { id },
-      pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
-    })
-  }
-
-  const hasAllRequiredSignatures = () => {
-    if (!account || account.policyType !== 'multisig' || !account.keys) {
-      return false
-    }
-
-    const requiredSignatures = account.keysRequired || account.keys.length
-
-    const validSignatures = Array.from(validationResults.values()).filter(
-      (isValid) => isValid === true
-    ).length
-
-    const hasEnough = validSignatures >= requiredSignatures
-    return hasEnough
-  }
-
-  const combineAndFinalizeMultisigPSBTs = () => {
-    try {
-      const originalPsbtBase64 = txBuilderResult?.toBase64()
-      if (!originalPsbtBase64) {
-        toast.error(t('common.error.noOriginalPSBT'))
-        return null
-      }
-
-      const collectedSignedPsbts = Array.from(signedPsbts.values()).filter(
-        (psbt) => psbt && psbt.trim().length > 0
-      )
-
-      if (collectedSignedPsbts.length === 0) {
-        toast.error(t('common.error.noSignedPSBTs'))
-        return null
-      }
-
-      const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
-
-      const combinedPsbt = originalPsbt
-
-      for (let i = 0; i < collectedSignedPsbts.length; i += 1) {
-        const signedPsbtBase64 = collectedSignedPsbts[i]
-
-        try {
-          const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
-
-          combinedPsbt.combine(signedPsbt)
-        } catch {
-          toast.error(`Error combining signed PSBT ${i + 1}`)
-          return null
-        }
-      }
-
-      const allInputsReady = combinedPsbt.data.inputs.every(hasEnoughSignatures)
-
-      if (!allInputsReady) {
-        toast.error(
-          'Not all inputs have enough signatures to finalize the transaction'
-        )
-        return null
-      }
-      try {
-        combinedPsbt.finalizeAllInputs()
-      } catch {
-        for (let i = 0; i < combinedPsbt.data.inputs.length; i += 1) {
-          try {
-            combinedPsbt.finalizeInput(i)
-          } catch {
-            toast.error(t('common.error.finalizeInput'))
-          }
-        }
-
-        toast.error(t('common.error.finalizeTransaction'))
-        return null
-      }
-
-      try {
-        const finalTransaction = combinedPsbt.extractTransaction()
-        const transactionHex = finalTransaction.toHex()
-
-        setSignedTx(transactionHex)
-
-        toast.success(t('transaction.finalizedSuccessfully'))
-        return transactionHex
-      } catch {
-        toast.error(t('common.error.extractTransaction'))
-        return null
-      }
-    } catch {
-      toast.error(t('common.error.combinePSBTs'))
-      return null
-    }
-  }
-
   useEffect(() => {
     if (signedPsbt) {
       setSignedTx(signedPsbt)
     }
   }, [signedPsbt, setSignedTx])
-
-  useEffect(() => {
-    if (nfcModalVisible || nfcScanModalVisible) {
-      nfcPulseAnim.set(
-        withRepeat(
-          withSequence(
-            withTiming(1, { duration: 1000 }),
-            withTiming(0, { duration: 1000 })
-          ),
-          -1
-        )
-      )
-
-      return () => {
-        cancelAnimation(nfcPulseAnim)
-        nfcPulseAnim.set(0)
-      }
-    }
-  }, [nfcModalVisible, nfcScanModalVisible, nfcPulseAnim])
-
-  useEffect(
-    () => () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = null
-      }
-      setQrChunks([])
-      setUrChunks([])
-      setRawPsbtChunks([])
-    },
-    []
-  )
-
-  useEffect(() => {
-    async function decryptKeys() {
-      if (!account || !account.keys || account.keys.length === 0) {
-        return
-      }
-
-      const decryptedKeysData = await Promise.all(
-        account.keys.map((key, index) =>
-          decryptKeyOrFallback(account.id, index, key)
-        )
-      )
-
-      setDecryptedKeys(decryptedKeysData)
-    }
-    decryptKeys()
-  }, [account])
-
-  const getQRValue = () => {
-    switch (displayMode) {
-      case QRDisplayMode.RAW: {
-        if (rawPsbtChunks.length > 0) {
-          if (currentRawChunk >= rawPsbtChunks.length) {
-            return 'NO_CHUNKS'
-          }
-
-          const value = rawPsbtChunks[currentRawChunk] || 'NO_CHUNKS'
-          if (value.length > 1500) {
-            return 'DATA_TOO_LARGE_FOR_QR'
-          }
-          return value
-        }
-        const base64Psbt = txBuilderResult?.toBase64()
-        if (base64Psbt && base64Psbt.length > 1500) {
-          return 'DATA_TOO_LARGE'
-        }
-        return base64Psbt || 'NO_DATA'
-      }
-      case QRDisplayMode.UR: {
-        if (currentUrChunk >= urChunks.length) {
-          return 'NO_CHUNKS'
-        }
-
-        const urValue = urChunks[currentUrChunk]
-        if (urValue && urValue.length > 1500) {
-          return 'DATA_TOO_LARGE_FOR_QR'
-        }
-        return urValue || 'NO_CHUNKS'
-      }
-      case QRDisplayMode.BBQR: {
-        if (currentChunk >= qrChunks.length) {
-          return 'NO_CHUNKS'
-        }
-
-        const bbqrValue = qrChunks?.[currentChunk]
-        if (bbqrValue && bbqrValue.length > 1500) {
-          return 'DATA_TOO_LARGE_FOR_QR'
-        }
-        return bbqrValue || 'NO_CHUNKS'
-      }
-      default:
-        return 'NO_DATA'
-    }
-  }
-
-  const isDataTooLargeForSingleQR = () => {
-    const base64Psbt = txBuilderResult?.toBase64()
-    if (!base64Psbt) {
-      return false
-    }
-
-    let maxChunkSize = 0
-
-    switch (displayMode) {
-      case QRDisplayMode.RAW:
-        if (rawPsbtChunks.length > 0) {
-          maxChunkSize = Math.max(...rawPsbtChunks.map((c) => c.length))
-        }
-        break
-      case QRDisplayMode.UR:
-        if (urChunks.length > 0) {
-          maxChunkSize = Math.max(...urChunks.map((c) => c.length))
-        }
-        break
-      case QRDisplayMode.BBQR:
-        if (qrChunks.length > 0) {
-          maxChunkSize = Math.max(...qrChunks.map((c) => c.length))
-        }
-        break
-      default:
-        break
-    }
-
-    const limit = 1500 // Reduced to prevent crashes
-
-    return maxChunkSize > limit
-  }
-
-  const getDisplayModeDescription = () => {
-    switch (displayMode) {
-      case QRDisplayMode.RAW:
-        if (rawPsbtChunks.length > 0) {
-          if (qrComplexity === 12 && rawPsbtChunks.length === 1) {
-            return 'Static QR - Complete PSBT in single code'
-          }
-          return rawPsbtChunks.length > 1
-            ? t('transaction.preview.scanAllChunks', {
-                current: currentRawChunk + 1,
-                total: rawPsbtChunks.length
-              })
-            : t('transaction.preview.singleChunk')
-        }
-        if (serializedPsbt.length > 1500) {
-          return t('error.qr.dataTooLarge')
-        }
-        if (!serializedPsbt) {
-          return t('error.psbt.notAvailable')
-        }
-        return t('transaction.preview.rawPSBT')
-      case QRDisplayMode.UR:
-        if (!urChunks.length) {
-          return t('error.psbt.notAvailable')
-        }
-        if (qrComplexity === 12 && urChunks.length === 1) {
-          return 'Static QR - Complete UR in single code'
-        }
-        return urChunks.length > 1
-          ? t('transaction.preview.scanAllChunks', {
-              current: currentUrChunk + 1,
-              total: urChunks.length
-            })
-          : t('transaction.preview.singleChunk')
-      case QRDisplayMode.BBQR:
-        if (!qrChunks.length) {
-          return 'Loading BBQR chunks...'
-        }
-        if (qrComplexity === 12 && qrChunks.length === 1) {
-          return 'Static QR - Complete BBQR in single code'
-        }
-        return qrChunks.length > 1
-          ? t('transaction.preview.scanAllChunks', {
-              current: currentChunk + 1,
-              total: qrChunks.length
-            })
-          : t('transaction.preview.singleChunk')
-      default:
-        return ''
-    }
-  }
 
   if (!id || !account) {
     return <Redirect href="/" />
@@ -2883,31 +1314,1938 @@ function PreviewTransaction() {
   )
 }
 
-const styles = StyleSheet.create({
-  mainLayout: { paddingBottom: 20, paddingTop: 0 },
-  modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' },
-  payjoinNote: {
-    gap: 4,
-    paddingVertical: 4
-  },
-  payjoinNoteHint: {
-    color: Colors.gray[500]
-  },
-  qrFormatSegmentTrack: {
-    alignSelf: 'center',
-    backgroundColor: Colors.gray[850],
-    borderRadius: Sizes.button.borderRadius,
-    flexDirection: 'row',
-    gap: 3,
-    marginBottom: 10,
-    padding: 3
-  },
-  seedWordsModalBody: {
-    flex: 1,
-    maxWidth: 400,
-    position: 'relative',
-    width: '100%'
+// ─────────────────────────────────────────────────────────────────────────────
+// Components
+// ─────────────────────────────────────────────────────────────────────────────
+
+function QrFormatModeTab({ label, onPress, selected }: QrFormatModeTabProps) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        alignItems: 'center',
+        backgroundColor: selected ? Colors.white : 'transparent',
+        borderRadius: Sizes.button.borderRadius,
+        flex: 1,
+        height: Sizes.button.height - 6,
+        justifyContent: 'center',
+        opacity: pressed ? 0.88 : 1
+      })}
+    >
+      <SSText center color={selected ? 'black' : 'white'} size="sm" uppercase>
+        {label}
+      </SSText>
+    </Pressable>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hooks
+// ─────────────────────────────────────────────────────────────────────────────
+
+function usePayjoinInvoice() {
+  const payjoinUri = useTransactionBuilderStore((state) => state.payjoinUri)
+
+  const payjoinInvoice = useMemo(() => {
+    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
+      return undefined
+    }
+    const parsed = parsePayjoinUri(payjoinUri)
+    if (!parsed.isValid || !parsed.params) {
+      return undefined
+    }
+    const amountSats =
+      parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
+        ? Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
+        : undefined
+    return {
+      address: parsed.params.address,
+      amountSats,
+      endpointKind: parsed.endpointKind,
+      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
+      label: parsed.params.label
+    }
+  }, [payjoinUri])
+
+  const nowMs = useNow()
+  const payjoinExpiryLabel = formatPayjoinExpiryLabel(
+    payjoinInvoice?.expiresAt,
+    nowMs
+  )
+
+  return { payjoinInvoice, payjoinExpiryLabel }
+}
+
+function useDecryptedKeys(account: Account | undefined) {
+  const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
+
+  useEffect(() => {
+    async function decryptKeys() {
+      if (!account || !account.keys || account.keys.length === 0) {
+        return
+      }
+
+      const decryptedKeysData = await Promise.all(
+        account.keys.map((key, index) =>
+          decryptKeyOrFallback(account.id, index, key)
+        )
+      )
+
+      setDecryptedKeys(decryptedKeysData)
+    }
+    decryptKeys()
+  }, [account])
+
+  return decryptedKeys
+}
+
+function usePsbtPreview({
+  psbt,
+  id,
+  account
+}: {
+  psbt: string | undefined
+  id: string
+  account: Account | undefined
+}) {
+  const [
+    inputs,
+    outputs,
+    fee,
+    rbf,
+    setPsbt,
+    txBuilderResult,
+    setSignedTx,
+    addInput,
+    addOutput,
+    setFee,
+    setRbf,
+    clearTransaction,
+    clearPsbt
+  ] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.inputs,
+      state.outputs,
+      state.fee,
+      state.rbf,
+      state.setPsbt,
+      state.psbt,
+      state.setSignedTx,
+      state.addInput,
+      state.addOutput,
+      state.setFee,
+      state.setRbf,
+      state.clearTransaction,
+      state.clearPsbt
+    ])
+  )
+  const wallet = useGetAccountWallet(id!)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const { server } = useBlockchainStore(
+    (state) => state.configs[state.selectedNetwork]
+  )
+
+  const [transactionId, setTransactionId] = useState('')
+  const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
+  const [psbtBuildStatus, setPsbtBuildStatus] = useState<
+    'building' | 'error' | 'idle'
+  >('idle')
+  const [psbtBuildErrorMessage, setPsbtBuildErrorMessage] = useState('')
+  const [isDustError, setIsDustError] = useState(false)
+  const [serializedPsbt, setSerializedPsbt] = useState<string>('')
+
+  function processExtractedPsbtData(extractedData: ExtractedTransactionData) {
+    for (const input of extractedData.inputs) {
+      addInput({
+        addressTo: input.address,
+        keychain: input.keychain || 'external',
+        label: input.label,
+        script: Buffer.from(input.script, 'hex').toJSON().data,
+        txid: input.txid,
+        value: input.value,
+        vout: input.vout
+      })
+    }
+
+    for (const output of extractedData.outputs) {
+      addOutput({
+        amount: output.value,
+        label: output.label || '',
+        to: output.address
+      })
+    }
+
+    if (extractedData.fee) {
+      setFee(extractedData.fee)
+    }
+
+    setRbf(true)
   }
-})
+
+  function processBasicPsbt(psbtBase64: string) {
+    const extractedData = extractTransactionDataFromPSBT(psbtBase64, network)
+    if (extractedData) {
+      processExtractedPsbtData(extractedData)
+    }
+    const txid = generateTransactionId(psbtBase64)
+    setTransactionId(txid)
+    const mockResult = createMockPsbt(psbtBase64, txid, extractedData?.fee ?? 0)
+    setPsbt(mockResult)
+    setIsLoadingPSBT(false)
+  }
+
+  function processPsbtWithAccount(
+    psbtBase64: string,
+    accountData: NonNullable<typeof account>
+  ) {
+    try {
+      const extractedData = extractTransactionDataFromPSBTEnhanced(
+        psbtBase64,
+        accountData
+      )
+
+      if (!extractedData) {
+        throw new Error(
+          'Failed to extract transaction data from PSBT. This PSBT may not match the current account.'
+        )
+      }
+
+      processExtractedPsbtData(extractedData)
+
+      const txid = generateTransactionId(psbtBase64)
+      setTransactionId(txid)
+      const mockResult = createMockPsbt(psbtBase64, txid, extractedData.fee)
+      setPsbt(mockResult)
+      setIsLoadingPSBT(false)
+    } catch (error) {
+      handlePsbtExtractionError(error)
+
+      try {
+        processBasicPsbt(psbtBase64)
+        toast.info(
+          'PSBT loaded with basic processing. Some features may be limited.'
+        )
+      } catch {
+        setIsLoadingPSBT(false)
+        toast.error(t('common.error.processPSBT'))
+        setTransactionId(`PSBT-ERROR-${Date.now().toString(36)}`)
+      }
+    }
+  }
+
+  function processPsbtWithoutAccount(psbtBase64: string) {
+    try {
+      processBasicPsbt(psbtBase64)
+      toast.info('PSBT loaded. Some features may be limited.')
+    } catch {
+      setIsLoadingPSBT(false)
+      toast.error(t('common.error.processPSBT'))
+      setTransactionId(`PSBT-ERROR-${Date.now().toString(36)}`)
+    }
+  }
+
+  useEffect(() => {
+    if (!psbt) {
+      return
+    }
+
+    setIsLoadingPSBT(true)
+    clearTransaction()
+    setSignedTx('')
+
+    if (account) {
+      processPsbtWithAccount(psbt, account)
+    } else {
+      processPsbtWithoutAccount(psbt)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [psbt, account])
+
+  useEffect(() => {
+    if (psbt) {
+      setPsbtBuildStatus('idle')
+      setPsbtBuildErrorMessage('')
+      if (txBuilderResult?.txid()) {
+        setTransactionId(txBuilderResult.txid())
+      }
+      return
+    }
+
+    let cancelled = false
+
+    async function getTransaction() {
+      clearPsbt()
+      setTransactionId('')
+      setPsbtBuildStatus('building')
+      setPsbtBuildErrorMessage('')
+
+      if (!wallet) {
+        if (!cancelled) {
+          setPsbtBuildStatus('error')
+          setPsbtBuildErrorMessage(t('transaction.error.previewMissingWallet'))
+          toast.error(t('error.notFound.wallet'))
+        }
+        return
+      }
+
+      if (inputs.size === 0) {
+        if (!cancelled) {
+          setPsbtBuildStatus('error')
+          setPsbtBuildErrorMessage(t('transaction.error.previewMissingInputs'))
+        }
+        return
+      }
+
+      if (outputs.length === 0) {
+        if (!cancelled) {
+          setPsbtBuildStatus('error')
+          setPsbtBuildErrorMessage(t('transaction.error.previewMissingOutputs'))
+        }
+        return
+      }
+
+      try {
+        const inputArray = Array.from(inputs.values())
+        const outputArray = Array.from(outputs.values())
+
+        const transaction = account
+          ? await buildPsbt(wallet, server, account, {
+              fee,
+              inputs: inputArray,
+              options: { rbf },
+              outputs: outputArray
+            })
+          : await buildTransaction(wallet, {
+              fee,
+              inputs: inputArray,
+              options: { rbf },
+              outputs: outputArray
+            })
+
+        if (cancelled) {
+          return
+        }
+
+        setTransactionId(transaction.txid())
+        setPsbt(transaction)
+        setPsbtBuildStatus('idle')
+        setPsbtBuildErrorMessage('')
+        setIsDustError(false)
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+
+        const { message, isDust } = mapBuildTransactionError(error)
+        setPsbtBuildStatus('error')
+        setPsbtBuildErrorMessage(message)
+        setIsDustError(isDust)
+
+        if (isDust) {
+          return
+        }
+
+        if (String(error).includes('UTXO not found')) {
+          toast.error(
+            'UTXO not found in wallet database. Please sync your wallet or check your inputs.'
+          )
+        } else {
+          toast.error(message)
+        }
+      }
+    }
+
+    void getTransaction()
+
+    return () => {
+      cancelled = true
+    }
+  }, [wallet, inputs, outputs, fee, rbf, network, setPsbt, clearPsbt, psbt]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Separate effect to validate addresses and show errors
+  // Only validate when we have a complete transaction (not during editing)
+  useEffect(() => {
+    if (!account || !outputs.length || !txBuilderResult) {
+      return
+    }
+
+    const network = bitcoinjsNetwork(account.network)
+
+    for (const output of outputs) {
+      if (!output.to || output.to.trim() === '') {
+        continue
+      }
+
+      try {
+        bitcoinjs.address.toOutputScript(output.to, network)
+      } catch {
+        // Only show error for clearly invalid addresses, not during editing
+        // Check if the address looks like it might be incomplete (too short)
+        if (output.to.length < 10) {
+          continue // Skip validation for very short addresses (likely incomplete)
+        }
+
+        toast.error(
+          `Invalid address format: ${output.to}. Please check your transaction configuration.`
+        )
+        break // Only show one error at a time
+      }
+    }
+  }, [account, outputs, txBuilderResult])
+
+  const getPsbtString = useCallback(() => {
+    if (!txBuilderResult) {
+      return null
+    }
+
+    try {
+      const base64 = txBuilderResult.toBase64()
+      const psbtBuffer = Buffer.from(base64, 'base64')
+
+      const psbtHex = psbtBuffer.toString('hex')
+      setSerializedPsbt(psbtHex)
+
+      psbtBuffer.fill(0)
+
+      return psbtHex
+    } catch {
+      toast.error(t('error.psbt.serialization'))
+      return null
+    }
+  }, [txBuilderResult])
+
+  return {
+    getPsbtString,
+    isDustError,
+    isLoadingPSBT,
+    psbtBuildErrorMessage,
+    psbtBuildStatus,
+    serializedPsbt,
+    transactionId
+  }
+}
+
+function useQrExport({
+  getPsbtString,
+  serializedPsbt
+}: {
+  getPsbtString: () => string | null
+  serializedPsbt: string
+}) {
+  const txBuilderResult = useTransactionBuilderStore((state) => state.psbt)
+
+  const [currentChunk, setCurrentChunk] = useState(0)
+  const [displayMode, setDisplayMode] = useState<QRDisplayMode>(
+    QRDisplayMode.RAW
+  )
+  const [qrChunks, setQrChunks] = useState<string[]>([])
+  const [qrError, setQrError] = useState<string | null>(null)
+  const [urChunks, setUrChunks] = useState<string[]>([])
+  const [currentUrChunk, setCurrentUrChunk] = useState(0)
+  const [rawPsbtChunks, setRawPsbtChunks] = useState<string[]>([])
+  const [currentRawChunk, setCurrentRawChunk] = useState(0)
+  const [qrComplexity, setQrComplexity] = useState(8) // 1-12 scale, 8 is default (higher = simpler/larger QR codes)
+  const [animationSpeed, setAnimationSpeed] = useState(6) // 1-12 scale for animation speed
+
+  const animationRef = useRef<number | null>(null)
+  const qrRef = useRef<View>(null)
+  const lastUpdateRef = useRef<number>(0)
+
+  const createRawPsbtChunks = useCallback(
+    (base64Psbt: string, complexity: number): string[] => {
+      if (complexity === 12) {
+        if (base64Psbt.length > 1500) {
+          const baseChunkSize = 100
+          const chunkSize = Math.max(100, baseChunkSize * 8) // Use maximum density (900 characters per chunk)
+
+          const chunks: string[] = []
+          const dataChunks: string[] = []
+          for (let i = 0; i < base64Psbt.length; i += chunkSize) {
+            dataChunks.push(base64Psbt.slice(i, i + chunkSize))
+          }
+
+          const totalChunks = dataChunks.length
+          for (let i = 0; i < totalChunks; i += 1) {
+            const header = `p${i + 1}of${totalChunks}`
+            chunks.push(`${header} ${dataChunks[i]}`)
+          }
+
+          return chunks
+        }
+        return [base64Psbt] // No chunking, no header, just the full data
+      }
+
+      // Calculate chunk size based on complexity (higher complexity = larger chunks)
+      // Invert the scale: complexity 1 = smallest chunks, complexity 11 = large chunks
+      // Increase base chunk size significantly - QR codes can handle much more data
+      const baseChunkSize = 100
+      const chunkSize = Math.max(100, baseChunkSize * Math.min(complexity, 8)) // Cap at 8 to avoid too large chunks
+
+      const chunks: string[] = []
+
+      const dataChunks: string[] = []
+      for (let i = 0; i < base64Psbt.length; i += chunkSize) {
+        dataChunks.push(base64Psbt.slice(i, i + chunkSize))
+      }
+
+      const totalChunks = dataChunks.length
+      for (let i = 0; i < totalChunks; i += 1) {
+        const header = `p${i + 1}of${totalChunks}`
+        chunks.push(`${header} ${dataChunks[i]}`)
+      }
+
+      return chunks
+    },
+    [] // Remove qrComplexity dependency to prevent unnecessary re-creation
+  )
+
+  useEffect(() => {
+    let isMounted = true
+    let psbtBuffer: Buffer | null = null
+
+    const updateQrChunks = () => {
+      try {
+        const psbtHex = getPsbtString()
+        if (!psbtHex || !isMounted) {
+          if (isMounted) {
+            setQrError(t('error.psbt.notAvailable'))
+            setQrChunks([])
+            setUrChunks([])
+            setRawPsbtChunks([])
+          }
+          return
+        }
+
+        try {
+          psbtBuffer = Buffer.from(psbtHex, 'hex')
+          let bbqrChunks: string[]
+
+          try {
+            if (qrComplexity === 12) {
+              // Complexity 12: Create single static BBQR chunk
+              // Check if the data would be too large for a single QR code
+              const estimatedBBQRSize = psbtBuffer.length * 1.5 // BBQR encoding adds overhead
+              if (estimatedBBQRSize > 1500) {
+                const bbqrChunkSize = Math.max(100, 30 * 12) // Use maximum density (460 characters per chunk)
+                bbqrChunks = createBBQRChunks(
+                  new Uint8Array(psbtBuffer),
+                  BBQRFileTypes.PSBT,
+                  bbqrChunkSize
+                )
+              } else {
+                bbqrChunks = createBBQRChunks(
+                  new Uint8Array(psbtBuffer),
+                  BBQRFileTypes.PSBT,
+                  psbtBuffer.length * 10
+                )
+              }
+            } else {
+              // Complexity 1-11: Create multiple chunks (higher = larger chunks)
+              // Increase chunk size significantly - BBQR can handle much more data
+              const bbqrChunkSize = Math.max(100, 30 * qrComplexity)
+
+              bbqrChunks = createBBQRChunks(
+                new Uint8Array(psbtBuffer),
+                BBQRFileTypes.PSBT,
+                bbqrChunkSize
+              )
+            }
+          } catch {
+            bbqrChunks = []
+          }
+
+          if (!isMounted) {
+            return
+          }
+
+          psbtBuffer.fill(0)
+          psbtBuffer = null
+
+          if (!txBuilderResult?.toBase64()) {
+            throw new Error('PSBT data not available')
+          }
+
+          const rawChunks = createRawPsbtChunks(
+            txBuilderResult.toBase64(),
+            qrComplexity
+          )
+
+          let urFragments: string[]
+
+          if (qrComplexity === 12) {
+            // Complexity 12: Create single static UR fragment
+            // Check if the data would be too large for a single QR code
+            const estimatedURSize = txBuilderResult.toBase64().length * 1.5 // UR encoding adds overhead
+            if (estimatedURSize > 1500) {
+              const urFragmentSize = Math.max(50, 15 * 12) // Use maximum density (180 characters per fragment)
+              urFragments = getURFragmentsFromPSBT(
+                txBuilderResult.toBase64(),
+                'base64',
+                urFragmentSize
+              )
+            } else {
+              urFragments = getURFragmentsFromPSBT(
+                txBuilderResult.toBase64(),
+                'base64',
+                txBuilderResult.toBase64().length // Use full length for single fragment
+              )
+            }
+          } else {
+            // Complexity 1-11: Create multiple fragments (higher = larger fragments)
+            // Increase the fragment size significantly - UR can handle much more data
+            const urFragmentSize = Math.max(50, 15 * qrComplexity)
+            urFragments = getURFragmentsFromPSBT(
+              txBuilderResult.toBase64(),
+              'base64',
+              urFragmentSize
+            )
+          }
+
+          if (!isMounted) {
+            return
+          }
+
+          setQrChunks(bbqrChunks)
+          setUrChunks(urFragments)
+          setRawPsbtChunks(rawChunks)
+          setCurrentRawChunk(0)
+          setCurrentUrChunk(0)
+          setQrError(null)
+        } catch {
+          if (isMounted) {
+            setQrError(t('error.qr.generation'))
+            setQrChunks([])
+            setUrChunks([])
+            setRawPsbtChunks([])
+          }
+        }
+      } catch {
+        if (isMounted) {
+          setQrError(t('error.psbt.notAvailable'))
+          setQrChunks([])
+          setUrChunks([])
+          setRawPsbtChunks([])
+        }
+      }
+    }
+
+    updateQrChunks()
+
+    return () => {
+      isMounted = false
+      if (psbtBuffer) {
+        psbtBuffer.fill(0)
+        psbtBuffer = null
+      }
+    }
+  }, [getPsbtString, txBuilderResult, qrComplexity, createRawPsbtChunks])
+
+  // Whether the current display mode is cycling through more than one chunk
+  function isMultiPartQR() {
+    switch (displayMode) {
+      case QRDisplayMode.RAW:
+        return rawPsbtChunks.length > 1
+      case QRDisplayMode.UR:
+        return urChunks.length > 1
+      case QRDisplayMode.BBQR:
+        return qrChunks.length > 1
+      default:
+        return false
+    }
+  }
+
+  useEffect(() => {
+    // Don't animate when complexity is 12 (static mode) - but only for single chunks
+    if (qrComplexity === 12 && !isMultiPartQR()) {
+      return // Don't animate if we have a single chunk
+    }
+
+    const shouldAnimate = isMultiPartQR()
+
+    if (shouldAnimate) {
+      // Calculate animation interval based on speed (1 = slowest, 12 = fastest)
+      // Speed 1 = 2000ms, Speed 12 = 100ms
+      const maxInterval = 2000
+      const minInterval = 200
+      const interval =
+        maxInterval - ((animationSpeed - 1) * (maxInterval - minInterval)) / 11
+
+      const safeInterval = Math.max(interval, 100)
+
+      const animate = (timestamp: number) => {
+        if (timestamp - lastUpdateRef.current >= safeInterval) {
+          if (displayMode === QRDisplayMode.RAW) {
+            setCurrentRawChunk((prev) => (prev + 1) % rawPsbtChunks.length)
+          } else if (displayMode === QRDisplayMode.UR) {
+            setCurrentUrChunk((prev) => (prev + 1) % urChunks.length)
+          } else {
+            setCurrentChunk((prev) => (prev + 1) % qrChunks.length)
+          }
+          lastUpdateRef.current = timestamp
+        }
+
+        animationRef.current = requestAnimationFrame(animate)
+      }
+
+      animationRef.current = requestAnimationFrame(animate)
+
+      return () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current)
+          animationRef.current = null
+        }
+      }
+    }
+    // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
+  }, [
+    displayMode,
+    qrChunks.length,
+    urChunks.length,
+    rawPsbtChunks.length,
+    qrComplexity,
+    animationSpeed
+  ])
+
+  useEffect(
+    () => () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+        animationRef.current = null
+      }
+      setQrChunks([])
+      setUrChunks([])
+      setRawPsbtChunks([])
+    },
+    []
+  )
+
+  const getQRValue = () => {
+    switch (displayMode) {
+      case QRDisplayMode.RAW: {
+        if (rawPsbtChunks.length > 0) {
+          if (currentRawChunk >= rawPsbtChunks.length) {
+            return 'NO_CHUNKS'
+          }
+
+          const value = rawPsbtChunks[currentRawChunk] || 'NO_CHUNKS'
+          if (value.length > 1500) {
+            return 'DATA_TOO_LARGE_FOR_QR'
+          }
+          return value
+        }
+        const base64Psbt = txBuilderResult?.toBase64()
+        if (base64Psbt && base64Psbt.length > 1500) {
+          return 'DATA_TOO_LARGE'
+        }
+        return base64Psbt || 'NO_DATA'
+      }
+      case QRDisplayMode.UR: {
+        if (currentUrChunk >= urChunks.length) {
+          return 'NO_CHUNKS'
+        }
+
+        const urValue = urChunks[currentUrChunk]
+        if (urValue && urValue.length > 1500) {
+          return 'DATA_TOO_LARGE_FOR_QR'
+        }
+        return urValue || 'NO_CHUNKS'
+      }
+      case QRDisplayMode.BBQR: {
+        if (currentChunk >= qrChunks.length) {
+          return 'NO_CHUNKS'
+        }
+
+        const bbqrValue = qrChunks?.[currentChunk]
+        if (bbqrValue && bbqrValue.length > 1500) {
+          return 'DATA_TOO_LARGE_FOR_QR'
+        }
+        return bbqrValue || 'NO_CHUNKS'
+      }
+      default:
+        return 'NO_DATA'
+    }
+  }
+
+  const isDataTooLargeForSingleQR = () => {
+    const base64Psbt = txBuilderResult?.toBase64()
+    if (!base64Psbt) {
+      return false
+    }
+
+    let maxChunkSize = 0
+
+    switch (displayMode) {
+      case QRDisplayMode.RAW:
+        if (rawPsbtChunks.length > 0) {
+          maxChunkSize = Math.max(...rawPsbtChunks.map((c) => c.length))
+        }
+        break
+      case QRDisplayMode.UR:
+        if (urChunks.length > 0) {
+          maxChunkSize = Math.max(...urChunks.map((c) => c.length))
+        }
+        break
+      case QRDisplayMode.BBQR:
+        if (qrChunks.length > 0) {
+          maxChunkSize = Math.max(...qrChunks.map((c) => c.length))
+        }
+        break
+      default:
+        break
+    }
+
+    const limit = 1500 // Reduced to prevent crashes
+
+    return maxChunkSize > limit
+  }
+
+  const getDisplayModeDescription = () => {
+    switch (displayMode) {
+      case QRDisplayMode.RAW:
+        if (rawPsbtChunks.length > 0) {
+          if (qrComplexity === 12 && rawPsbtChunks.length === 1) {
+            return 'Static QR - Complete PSBT in single code'
+          }
+          return rawPsbtChunks.length > 1
+            ? t('transaction.preview.scanAllChunks', {
+                current: currentRawChunk + 1,
+                total: rawPsbtChunks.length
+              })
+            : t('transaction.preview.singleChunk')
+        }
+        if (serializedPsbt.length > 1500) {
+          return t('error.qr.dataTooLarge')
+        }
+        if (!serializedPsbt) {
+          return t('error.psbt.notAvailable')
+        }
+        return t('transaction.preview.rawPSBT')
+      case QRDisplayMode.UR:
+        if (!urChunks.length) {
+          return t('error.psbt.notAvailable')
+        }
+        if (qrComplexity === 12 && urChunks.length === 1) {
+          return 'Static QR - Complete UR in single code'
+        }
+        return urChunks.length > 1
+          ? t('transaction.preview.scanAllChunks', {
+              current: currentUrChunk + 1,
+              total: urChunks.length
+            })
+          : t('transaction.preview.singleChunk')
+      case QRDisplayMode.BBQR:
+        if (!qrChunks.length) {
+          return 'Loading BBQR chunks...'
+        }
+        if (qrComplexity === 12 && qrChunks.length === 1) {
+          return 'Static QR - Complete BBQR in single code'
+        }
+        return qrChunks.length > 1
+          ? t('transaction.preview.scanAllChunks', {
+              current: currentChunk + 1,
+              total: qrChunks.length
+            })
+          : t('transaction.preview.singleChunk')
+      default:
+        return ''
+    }
+  }
+
+  return {
+    animationSpeed,
+    displayMode,
+    getDisplayModeDescription,
+    getQRValue,
+    isDataTooLargeForSingleQR,
+    isMultiPartQR,
+    qrChunks,
+    qrComplexity,
+    qrError,
+    qrRef,
+    setAnimationSpeed,
+    setCurrentChunk,
+    setCurrentRawChunk,
+    setCurrentUrChunk,
+    setDisplayMode,
+    setQrComplexity
+  }
+}
+
+function useScannedDataProcessor({
+  convertPsbtToFinalTransaction
+}: {
+  convertPsbtToFinalTransaction: PsbtManagement['convertPsbtToFinalTransaction']
+}): ProcessScannedData {
+  const txBuilderResult = useTransactionBuilderStore((state) => state.psbt)
+
+  // Helper function to convert PSBT to final transaction if needed.
+  // Returns null (after showing an error) when the supplied content does not
+  // correspond to the transaction under review — broadcasting it would
+  // execute a different transaction than the one displayed to the user.
+  return (data: string): string | null => {
+    try {
+      let processedData = data
+      if (processedData.toLowerCase().startsWith('bitcoin:')) {
+        processedData = processedData.substring(8)
+      }
+
+      const originalPsbtBase64 = txBuilderResult?.toBase64()
+
+      if (processedData.toLowerCase().startsWith('70736274ff')) {
+        if (originalPsbtBase64) {
+          return convertPsbtToFinalTransaction(processedData)
+        }
+        return processedData
+      }
+
+      // Raw transaction hex: bind it to the PSBT under review (when there
+      // is one) so a swapped QR/clipboard cannot substitute the broadcast.
+      if (
+        originalPsbtBase64 &&
+        /^[a-fA-F0-9]+$/.test(processedData) &&
+        !signedTransactionMatchesPsbt(originalPsbtBase64, processedData)
+      ) {
+        toast.error(t('common.error.transactionMismatch'))
+        return null
+      }
+
+      return processedData
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t('common.error.processScannedData')
+      )
+      return null
+    }
+  }
+}
+
+function useQrScanner({
+  processScannedData,
+  updateSignedPsbt,
+  handleSignWithSeedQR,
+  convertPsbtToFinalTransaction,
+  closeCamera
+}: {
+  processScannedData: ProcessScannedData
+  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
+  convertPsbtToFinalTransaction: PsbtManagement['convertPsbtToFinalTransaction']
+  closeCamera: () => void
+}) {
+  const [scanProgress, setScanProgress] = useState<{
+    type: 'raw' | 'ur' | 'bbqr' | null
+    total: number
+    scanned: Set<number>
+    chunks: Map<number, string>
+  }>({
+    chunks: new Map(),
+    scanned: new Set(),
+    total: 0,
+    type: null
+  })
+
+  const detectQRType = (data: string) => {
+    if (/^p\d+of\d+\s/.test(data)) {
+      const match = data.match(/^p(\d+)of(\d+)\s/)
+      if (match) {
+        return {
+          content: data.substring(match[0].length),
+          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
+          total: parseInt(match[2], 10),
+          type: 'raw' as const
+        }
+      }
+    }
+
+    if (isBBQRFragment(data)) {
+      const total = parseInt(data.slice(4, 6), 36)
+      const current = parseInt(data.slice(6, 8), 36)
+      return {
+        content: data,
+        current,
+        total,
+        type: 'bbqr' as const
+      }
+    }
+
+    if (data.toLowerCase().startsWith('ur:crypto-psbt/')) {
+      // UR format: ur:crypto-psbt/[sequence]/[data] for multi-part
+      // or ur:crypto-psbt/[data] for single part
+      const urMatch = data.match(/^ur:crypto-psbt\/(?:(\d+)-(\d+)\/)?(.+)$/i)
+      if (urMatch) {
+        const [, currentStr, totalStr] = urMatch
+
+        if (currentStr && totalStr) {
+          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
+          const total = parseInt(totalStr, 10)
+          return {
+            content: data,
+            current,
+            total,
+            type: 'ur' as const
+          }
+        }
+        return {
+          content: data,
+          current: 0,
+          total: 1,
+          type: 'ur' as const
+        }
+      }
+    }
+
+    return {
+      content: data,
+      current: 0,
+      total: 1,
+      type: 'single' as const
+    }
+  }
+
+  const resetScanProgress = () => {
+    setScanProgress({
+      chunks: new Map(),
+      scanned: new Set(),
+      total: 0,
+      type: null
+    })
+  }
+
+  const assembleMultiPartQR = async (
+    type: 'raw' | 'ur' | 'bbqr',
+    chunks: Map<number, string>
+  ) => {
+    try {
+      switch (type) {
+        case 'raw': {
+          const sortedChunks = Array.from(chunks.entries())
+            .toSorted(([a], [b]) => a - b)
+            .map(([, content]) => content)
+          const assembled = sortedChunks.join('')
+
+          try {
+            const hexResult = Buffer.from(assembled, 'base64').toString('hex')
+            return hexResult
+          } catch {
+            return assembled
+          }
+        }
+
+        case 'bbqr': {
+          const sortedChunks = Array.from(chunks.entries())
+            .toSorted(([a], [b]) => a - b)
+            .map(([, content]) => content)
+
+          const decoded = decodeBBQRChunks(sortedChunks)
+
+          if (decoded) {
+            const hexResult = Buffer.from(decoded).toString('hex')
+            return hexResult
+          }
+
+          return null
+        }
+
+        case 'ur': {
+          const sortedChunks = Array.from(chunks.entries())
+            .toSorted(([a], [b]) => a - b)
+            .map(([, content]) => content)
+
+          let result: string
+          if (sortedChunks.length === 1) {
+            result = decodeURToPSBT(sortedChunks[0])
+          } else {
+            try {
+              result = await decodeMultiPartURToPSBT(sortedChunks)
+            } catch {
+              return null
+            }
+          }
+
+          if (!result) {
+            return null
+          }
+
+          if (result.toLowerCase().startsWith('70736274ff')) {
+            const convertedResult = convertPsbtToFinalTransaction(result)
+
+            if (
+              convertedResult.toLowerCase().startsWith('70736274ff') ||
+              convertedResult.startsWith('cHNidP')
+            ) {
+              return convertedResult
+            }
+            return convertedResult
+          }
+          return result
+        }
+
+        default:
+          return null
+      }
+    } catch (error) {
+      toast.error(String(error))
+      return null
+    }
+  }
+
+  const handleQRCodeScanned = async (
+    data: string | undefined,
+    index?: number
+  ) => {
+    if (!data) {
+      toast.error(t('common.error.scanQRCode'))
+      return
+    }
+
+    const qrInfo = detectQRType(data)
+
+    if (qrInfo.type === 'single' || qrInfo.total === 1) {
+      let finalContent: string | null = qrInfo.content
+      try {
+        if (isBBQRFragment(qrInfo.content)) {
+          const decoded = decodeBBQRChunks([qrInfo.content])
+          if (!decoded) {
+            toast.error(t('camera.error.bbqrDecodeFailed'))
+            return
+          }
+          const hexResult = Buffer.from(decoded).toString('hex')
+          finalContent = hexResult
+        } else if (qrInfo.content.startsWith('cHNidP')) {
+          const hexResult = Buffer.from(qrInfo.content, 'base64').toString(
+            'hex'
+          )
+          finalContent = hexResult
+        } else if (qrInfo.content.toLowerCase().startsWith('ur:crypto-psbt/')) {
+          const decoded = decodeURToPSBT(qrInfo.content)
+          if (!decoded) {
+            toast.error(t('camera.error.urDecodeFailed'))
+            return
+          }
+          finalContent = decoded
+        } else if (index !== undefined) {
+          const decodedMnemonic = detectAndDecodeSeedQR(qrInfo.content)
+          if (decodedMnemonic) {
+            handleSignWithSeedQR(index, decodedMnemonic)
+            closeCamera()
+            resetScanProgress()
+            return
+          }
+        }
+
+        finalContent = processScannedData(finalContent)
+      } catch {
+        toast.error(t('common.error.processScannedData'))
+      }
+
+      if (finalContent === null) {
+        resetScanProgress()
+        return
+      }
+
+      updateSignedPsbt(index ?? -1, finalContent)
+
+      closeCamera()
+      resetScanProgress()
+      toast.success(t('common.success.qrScanned'))
+      return
+    }
+
+    const { type, current, total, content } = qrInfo
+
+    if (
+      scanProgress.type === null ||
+      scanProgress.type !== type ||
+      scanProgress.total !== total
+    ) {
+      const newScanned = new Set([current])
+      const newChunks = new Map([[current, content]])
+
+      setScanProgress({
+        chunks: newChunks,
+        scanned: newScanned,
+        total,
+        type
+      })
+
+      return
+    }
+
+    if (scanProgress.scanned.has(current)) {
+      toast.info(`Part ${current + 1} already scanned`)
+      return
+    }
+
+    const newScanned = new Set(scanProgress.scanned).add(current)
+    const newChunks = new Map(scanProgress.chunks).set(current, content)
+
+    setScanProgress({
+      chunks: newChunks,
+      scanned: newScanned,
+      total,
+      type
+    })
+
+    if (type === 'ur') {
+      // For fountain encoding, we need to find the highest fragment number to determine the actual range
+      const maxFragmentNumber = Math.max(...Array.from(newScanned))
+      const actualTotal = maxFragmentNumber + 1 // Convert from 0-based to 1-based
+
+      // For fountain encoding, try assembly after collecting enough fragments
+      // Be more aggressive - try when we have enough fragments to potentially succeed
+      // Use either 1.1x the actual range or the theoretical minimum, whichever is lower
+      const conservativeTarget = Math.ceil(actualTotal * 1.1)
+      const theoreticalTarget = Math.ceil(total * 1.5)
+      const assemblyTarget = Math.min(conservativeTarget, theoreticalTarget)
+
+      // Also try assembly if we have most of the available fragments (80% of actual range)
+      const fallbackTarget = Math.ceil(actualTotal * 0.8)
+      const shouldTryAssembly =
+        newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
+
+      if (shouldTryAssembly) {
+        const assembledData = await assembleMultiPartQR(type, newChunks)
+
+        if (assembledData) {
+          const finalData = processScannedData(assembledData)
+
+          if (finalData === null) {
+            resetScanProgress()
+            return
+          }
+
+          updateSignedPsbt(index ?? -1, finalData)
+
+          closeCamera()
+          resetScanProgress()
+
+          if (
+            finalData.toLowerCase().startsWith('70736274ff') ||
+            finalData.startsWith('cHNidP')
+          ) {
+            toast.success(
+              `PSBT assembled successfully (${newScanned.size} fragments). Note: PSBT may need additional signatures to finalize.`
+            )
+          } else {
+            toast.success(
+              `Successfully assembled final transaction from ${newScanned.size} fragments`
+            )
+          }
+          return
+        }
+      }
+
+      const targetForDisplay = Math.min(
+        Math.ceil(actualTotal * 1.1),
+        Math.ceil(total * 1.5)
+      )
+      toast.success(
+        `UR: Collected ${newScanned.size} fragments (need ~${targetForDisplay})`
+      )
+    } else if (newScanned.size === total) {
+      const assembledData = await assembleMultiPartQR(type, newChunks)
+
+      if (assembledData) {
+        const finalData = processScannedData(assembledData)
+
+        if (finalData === null) {
+          resetScanProgress()
+          return
+        }
+
+        updateSignedPsbt(index ?? -1, finalData)
+
+        closeCamera()
+        resetScanProgress()
+
+        if (
+          finalData.toLowerCase().startsWith('70736274ff') ||
+          finalData.startsWith('cHNidP')
+        ) {
+          toast.success(
+            `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
+          )
+        } else {
+          toast.success(
+            `Successfully assembled final transaction from ${total} parts`
+          )
+        }
+      } else {
+        toast.error(t('camera.error.assembleFailed'))
+        resetScanProgress()
+      }
+    } else {
+      toast.success(
+        `Scanned part ${current + 1} of ${total} (${
+          newScanned.size
+        }/${total} complete)`
+      )
+    }
+  }
+
+  return { handleQRCodeScanned, resetScanProgress, scanProgress }
+}
+
+function useSignatureDetection({
+  psbt,
+  account,
+  decryptedKeys,
+  signedPsbts,
+  updateSignedPsbt
+}: {
+  psbt: string | undefined
+  account: Account | undefined
+  decryptedKeys: Key[]
+  signedPsbts: PsbtManagement['signedPsbts']
+  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+}) {
+  // Separate effect to detect existing signatures - runs when both PSBT and decryptedKeys are ready
+  useEffect(() => {
+    if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) {
+      return
+    }
+
+    const currentAccount = account
+    const currentPsbt = psbt
+
+    async function detectSignatures() {
+      if (!currentAccount || !currentAccount.keys || !currentPsbt) {
+        return
+      }
+
+      const combinedPsbtBase64: string = currentPsbt
+
+      let psbtObj: bitcoinjs.Psbt
+      try {
+        psbtObj = bitcoinjs.Psbt.fromBase64(combinedPsbtBase64)
+      } catch {
+        return
+      }
+
+      const psbtHasSignatures = psbtObj.data.inputs.some(
+        (input) => input.partialSig && input.partialSig.length > 0
+      )
+      if (!psbtHasSignatures) {
+        return
+      }
+
+      let originalPsbtBase64: string
+      try {
+        originalPsbtBase64 = extractOriginalPsbt(combinedPsbtBase64)
+      } catch {
+        return
+      }
+
+      const keyFingerprintToCosignerIndex = new Map<string, number>()
+      await Promise.all(
+        currentAccount.keys.map(async (key, index) => {
+          const fp = await getKeyFingerprint(key)
+          if (fp) {
+            keyFingerprintToCosignerIndex.set(fp, index)
+          }
+        })
+      )
+
+      const pubkeyToCosignerIndex = new Map<string, number>()
+      for (const input of psbtObj.data.inputs) {
+        if (!input.bip32Derivation) {
+          continue
+        }
+        for (const derivation of input.bip32Derivation) {
+          const fingerprint = derivation.masterFingerprint.toString('hex')
+          const pubkey = derivation.pubkey.toString('hex')
+          const cosignerIndex = keyFingerprintToCosignerIndex.get(fingerprint)
+          if (cosignerIndex === undefined) {
+            continue
+          }
+          pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
+        }
+      }
+
+      const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
+      if (signerPubkeys.size === 0) {
+        return
+      }
+
+      const bySigner = extractIndividualSignedPsbts(
+        combinedPsbtBase64,
+        originalPsbtBase64
+      ) as Record<number, string>
+      if (Object.keys(bySigner).length === 0) {
+        return
+      }
+
+      const matches = matchSignedPsbtsToCosigners(
+        bySigner,
+        pubkeyToCosignerIndex,
+        currentAccount,
+        decryptedKeys,
+        signedPsbts
+      )
+
+      for (const match of matches) {
+        updateSignedPsbt(match.cosignerIndex, match.signedPsbtBase64)
+        toast.success(
+          t('transaction.build.preview.detectedSignature', {
+            cosigner: match.cosignerIndex + 1
+          })
+        )
+      }
+    }
+
+    detectSignatures()
+  }, [psbt, account, decryptedKeys, updateSignedPsbt, signedPsbts])
+}
+
+function useSignatureValidation({
+  account,
+  signedPsbts,
+  decryptedKeys
+}: {
+  account: Account | undefined
+  signedPsbts: PsbtManagement['signedPsbts']
+  decryptedKeys: Key[]
+}) {
+  return useMemo(() => {
+    const results = new Map<number, boolean>()
+
+    if (!account) {
+      return results
+    }
+
+    for (const [cosignerIndex, signedPsbt] of signedPsbts.entries()) {
+      if (signedPsbt && signedPsbt.trim()) {
+        try {
+          const isValid = validateSignedPSBTForCosigner(
+            signedPsbt,
+            account,
+            cosignerIndex,
+            decryptedKeys[cosignerIndex]
+          )
+          results.set(cosignerIndex, isValid)
+        } catch {
+          toast.error(t('common.error.validatingCosignerSignature'))
+          results.set(cosignerIndex, false)
+        }
+      }
+    }
+
+    return results
+  }, [signedPsbts, account, decryptedKeys])
+}
+
+function useMultisigFinalization({
+  account,
+  signedPsbts,
+  validationResults
+}: {
+  account: Account | undefined
+  signedPsbts: PsbtManagement['signedPsbts']
+  validationResults: Map<number, boolean>
+}) {
+  const [txBuilderResult, setSignedTx] = useTransactionBuilderStore(
+    useShallow((state) => [state.psbt, state.setSignedTx])
+  )
+
+  const hasAllRequiredSignatures = () => {
+    if (!account || account.policyType !== 'multisig' || !account.keys) {
+      return false
+    }
+
+    const requiredSignatures = account.keysRequired || account.keys.length
+
+    const validSignatures = Array.from(validationResults.values()).filter(
+      (isValid) => isValid === true
+    ).length
+
+    const hasEnough = validSignatures >= requiredSignatures
+    return hasEnough
+  }
+
+  const combineAndFinalizeMultisigPSBTs = () => {
+    try {
+      const originalPsbtBase64 = txBuilderResult?.toBase64()
+      if (!originalPsbtBase64) {
+        toast.error(t('common.error.noOriginalPSBT'))
+        return null
+      }
+
+      const collectedSignedPsbts = Array.from(signedPsbts.values()).filter(
+        (psbt) => psbt && psbt.trim().length > 0
+      )
+
+      if (collectedSignedPsbts.length === 0) {
+        toast.error(t('common.error.noSignedPSBTs'))
+        return null
+      }
+
+      const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
+
+      const combinedPsbt = originalPsbt
+
+      for (let i = 0; i < collectedSignedPsbts.length; i += 1) {
+        const signedPsbtBase64 = collectedSignedPsbts[i]
+
+        try {
+          const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
+
+          combinedPsbt.combine(signedPsbt)
+        } catch {
+          toast.error(`Error combining signed PSBT ${i + 1}`)
+          return null
+        }
+      }
+
+      const allInputsReady = combinedPsbt.data.inputs.every(hasEnoughSignatures)
+
+      if (!allInputsReady) {
+        toast.error(
+          'Not all inputs have enough signatures to finalize the transaction'
+        )
+        return null
+      }
+      try {
+        combinedPsbt.finalizeAllInputs()
+      } catch {
+        for (let i = 0; i < combinedPsbt.data.inputs.length; i += 1) {
+          try {
+            combinedPsbt.finalizeInput(i)
+          } catch {
+            toast.error(t('common.error.finalizeInput'))
+          }
+        }
+
+        toast.error(t('common.error.finalizeTransaction'))
+        return null
+      }
+
+      try {
+        const finalTransaction = combinedPsbt.extractTransaction()
+        const transactionHex = finalTransaction.toHex()
+
+        setSignedTx(transactionHex)
+
+        toast.success(t('transaction.finalizedSuccessfully'))
+        return transactionHex
+      } catch {
+        toast.error(t('common.error.extractTransaction'))
+        return null
+      }
+    } catch {
+      toast.error(t('common.error.combinePSBTs'))
+      return null
+    }
+  }
+
+  return { combineAndFinalizeMultisigPSBTs, hasAllRequiredSignatures }
+}
+
+function useNfcTransfer({
+  serializedPsbt,
+  updateSignedPsbt
+}: {
+  serializedPsbt: string
+  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+}) {
+  const {
+    isHardwareSupported: nfcHardwareSupported,
+    isReading,
+    readNFCTag,
+    cancelNFCScan
+  } = useNFCReader()
+  const {
+    isEmitting,
+    emitNFCTag,
+    cancelNFCScan: cancelNFCEmitterScan
+  } = useNFCEmitter()
+  const [nfcModalVisible, setNfcModalVisible] = useState(false)
+  const [nfcScanModalVisible, setNfcScanModalVisible] = useState(false)
+  const [nfcError, setNfcError] = useState<string | null>(null)
+
+  const nfcPulseAnim = useSharedValue(0)
+
+  const nfcPulseStyle = useAnimatedStyle(() => ({
+    alignItems: 'center' as const,
+    backgroundColor: interpolateColor(
+      nfcPulseAnim.value,
+      [0, 1],
+      [Colors.gray[800], Colors.gray[400]]
+    ),
+    borderRadius: 100,
+    height: 200,
+    justifyContent: 'center' as const,
+    width: 200
+  }))
+
+  async function handleNFCExport() {
+    if (isEmitting) {
+      await cancelNFCEmitterScan()
+      setNfcModalVisible(false)
+      setNfcError(null)
+      return
+    }
+
+    if (!serializedPsbt) {
+      toast.error(t('error.psbt.notAvailable'))
+      return
+    }
+
+    setNfcModalVisible(true)
+    setNfcError(null)
+    try {
+      await emitNFCTag(serializedPsbt)
+      toast.success(t('transaction.preview.nfcExported'))
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      if (errorMessage) {
+        setNfcError(errorMessage)
+        toast.error(errorMessage)
+      }
+    } finally {
+      if (!nfcError) {
+        setNfcModalVisible(false)
+      }
+    }
+  }
+
+  async function handleNFCScan(index: number) {
+    if (isReading) {
+      await cancelNFCScan()
+      setNfcScanModalVisible(false)
+      return
+    }
+
+    setNfcScanModalVisible(true)
+    try {
+      const result = await readNFCTag()
+
+      if (!result) {
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
+      }
+
+      if (result.txData) {
+        const txHex = Array.from(result.txData as Uint8Array)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('')
+
+        updateSignedPsbt(index, txHex)
+
+        toast.success(t('transaction.preview.nfcImported'))
+      } else if (result.txId) {
+        updateSignedPsbt(index, result.txId || '')
+
+        toast.success(t('transaction.preview.nfcImported'))
+      } else {
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+      }
+    } catch (error) {
+      const errorMessage = (error as Error).message
+      if (errorMessage) {
+        toast.error(errorMessage)
+      }
+    } finally {
+      setNfcScanModalVisible(false)
+    }
+  }
+
+  useEffect(() => {
+    if (nfcModalVisible || nfcScanModalVisible) {
+      nfcPulseAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(1, { duration: 1000 }),
+            withTiming(0, { duration: 1000 })
+          ),
+          -1
+        )
+      )
+
+      return () => {
+        cancelAnimation(nfcPulseAnim)
+        nfcPulseAnim.set(0)
+      }
+    }
+  }, [nfcModalVisible, nfcScanModalVisible, nfcPulseAnim])
+
+  return {
+    cancelNFCEmitterScan,
+    cancelNFCScan,
+    handleNFCExport,
+    handleNFCScan,
+    isEmitting,
+    isReading,
+    nfcError,
+    nfcHardwareSupported,
+    nfcModalVisible,
+    nfcPulseStyle,
+    nfcScanModalVisible,
+    setNfcError,
+    setNfcModalVisible,
+    setNfcScanModalVisible
+  }
+}
+
+function useNostrShare({
+  account,
+  id
+}: {
+  account: Account | undefined
+  id: string
+}) {
+  const router = useRouter()
+  const txBuilderResult = useTransactionBuilderStore((state) => state.psbt)
+  const setTransactionToShare = useNostrStore(
+    (state) => state.setTransactionToShare
+  )
+
+  return () => {
+    if (!account?.nostr?.autoSync) {
+      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
+      return
+    }
+    const base64 = txBuilderResult?.toBase64()
+    if (!base64) {
+      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
+      return
+    }
+    setTransactionToShare({
+      transaction: base64,
+      transactionData: { combinedPsbt: base64 }
+    })
+    router.push({
+      params: { id },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
+    })
+  }
+}
+
+function useClipboardImport({
+  processScannedData,
+  updateSignedPsbt
+}: {
+  processScannedData: ProcessScannedData
+  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+}) {
+  useClipboardPaste({
+    onPaste: (content: string) => {
+      const processedData = processScannedData(content)
+      if (processedData !== null) {
+        updateSignedPsbt(-1, processedData) // -1 for watch-only mode
+      }
+    }
+  })
+
+  const handlePasteFromClipboard = async (index: number) => {
+    try {
+      const text = await Clipboard.getStringAsync()
+      if (!text) {
+        toast.error(t('common.error.noClipboardData'))
+        return
+      }
+
+      const processedData = processScannedData(text)
+
+      if (processedData === null) {
+        return
+      }
+
+      updateSignedPsbt(index, processedData)
+
+      toast.success(t('common.success.dataPasted'))
+    } catch (error) {
+      const errorMessage = (error as Error).message
+      if (errorMessage) {
+        toast.error(errorMessage)
+      } else {
+        toast.error(t('common.error.pasteFromClipboard'))
+      }
+    }
+  }
+
+  return { handlePasteFromClipboard }
+}
+
+function useSeedSigning({
+  handleSignWithSeedQR,
+  currentCosignerIndex,
+  setCurrentCosignerIndex
+}: {
+  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
+  currentCosignerIndex: number | null
+  setCurrentCosignerIndex: (index: number | null) => void
+}) {
+  const [seedWordsModalVisible, setSeedWordsModalVisible] = useState(false)
+  const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
+  const [selectedWordCount, setSelectedWordCount] =
+    useState<MnemonicWordCount>(24)
+  const [currentMnemonic, setCurrentMnemonic] = useState('')
+
+  const [wordSelectorState, setWordSelectorState] = useState({
+    onWordSelected: () => {
+      // noop
+    },
+    visible: false,
+    wordStart: ''
+  })
+
+  const handleSeedWordsScanned = (index: number) => {
+    setCurrentCosignerIndex(index)
+    setWordCountModalVisible(true)
+  }
+
+  const handleWordCountSelect = (wordCount: MnemonicWordCount) => {
+    setSelectedWordCount(wordCount)
+    setWordCountModalVisible(false)
+    setSeedWordsModalVisible(true)
+  }
+
+  // eslint-disable-next-line
+  const handleMnemonicValid = (mnemonic: string, _fingerprint: string) => {
+    setCurrentMnemonic(mnemonic)
+  }
+
+  const handleMnemonicInvalid = () => {
+    setCurrentMnemonic('')
+  }
+
+  const handleSeedWordsSubmit = () => {
+    if (!currentMnemonic || currentCosignerIndex === null) {
+      toast.error(t('common.error.validMnemonic'))
+      return
+    }
+
+    handleSignWithSeedQR(currentCosignerIndex, currentMnemonic)
+
+    setSeedWordsModalVisible(false)
+    setCurrentMnemonic('')
+    setCurrentCosignerIndex(null)
+  }
+
+  return {
+    handleMnemonicInvalid,
+    handleMnemonicValid,
+    handleSeedWordsScanned,
+    handleSeedWordsSubmit,
+    handleWordCountSelect,
+    selectedWordCount,
+    seedWordsModalVisible,
+    setCurrentMnemonic,
+    setSeedWordsModalVisible,
+    setSelectedWordCount,
+    setWordCountModalVisible,
+    setWordSelectorState,
+    wordCountModalVisible,
+    wordSelectorState
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function hasEnoughSignatures(input: PsbtInputWithSignatures) {
+  if (!input.witnessScript) {
+    return true
+  }
+
+  try {
+    const script = bitcoinjs.script.decompile(input.witnessScript)
+
+    if (!script || script.length < 3) {
+      return false
+    }
+
+    const [op] = script
+
+    if (typeof op !== 'number' || op < 81 || op > 96) {
+      return false
+    }
+
+    const threshold = op - 80
+    const signatureCount = input.partialSig ? input.partialSig.length : 0
+
+    return signatureCount >= threshold
+  } catch {
+    toast.error(t('common.error.checkingInputSignatures'))
+    return false
+  }
+}
+
+function createMockPsbt(
+  psbtBase64: string,
+  txid: string,
+  txFee: number
+): MockPsbt {
+  return {
+    extractTxHex: () => '',
+    feeAmount: () => BigInt(txFee),
+    feeRate: () => undefined,
+    getUtxoFor: () => undefined,
+    toBase64: () => psbtBase64,
+    txid: () => txid
+  }
+}
+
+function generateTransactionId(psbtBase64: string): string {
+  const extractedTxid = extractTransactionIdFromPSBT(psbtBase64)
+  return extractedTxid || `PSBT-${Date.now().toString(36)}`
+}
+
+function mapBuildTransactionError(error: unknown): {
+  message: string
+  isDust: boolean
+} {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  const lower = errorMessage.toLowerCase()
+  if (lower.includes('dust')) {
+    return {
+      isDust: true,
+      message: t('transaction.error.previewBuildFailedDust')
+    }
+  }
+  return { isDust: false, message: errorMessage }
+}
+
+function handlePsbtExtractionError(error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+  if (
+    errorMessage.includes('fingerprint') ||
+    errorMessage.includes('derivation') ||
+    errorMessage.includes('not match')
+  ) {
+    toast.warning(
+      'This PSBT does not match the current account. Using basic processing.'
+    )
+  } else if (
+    errorMessage.includes('Invalid PSBT') ||
+    errorMessage.includes('malformed')
+  ) {
+    toast.error('Invalid PSBT format. Please check the PSBT data.')
+  } else {
+    toast.warning(
+      'Failed to process PSBT with enhanced features. Using basic processing.'
+    )
+  }
+}
+
+async function decryptKeyOrFallback(
+  accountId: string,
+  keyIndex: number,
+  key: Key
+): Promise<Key> {
+  try {
+    const secret = await decryptAccountKeySecret(accountId, keyIndex)
+    return { ...key, secret }
+  } catch {
+    return key
+  }
+}
 
 export default PreviewTransaction
