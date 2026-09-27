@@ -188,7 +188,7 @@ export default function ArkBoardPage() {
         },
         onSuccess: () => {
           toast.success(t('ark.board.success'))
-          router.replace({
+          router.dismissTo({
             params: { id },
             pathname: '/signer/ark/account/[id]'
           })

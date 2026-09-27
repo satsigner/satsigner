@@ -163,7 +163,7 @@ export default function ArkSendConfirmPage() {
       },
       onSuccess: (outcome) => {
         toast.success(t(successToastKey(outcome)))
-        router.replace({
+        router.dismissTo({
           params: { id },
           pathname: '/signer/ark/account/[id]'
         })
