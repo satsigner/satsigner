@@ -1252,7 +1252,7 @@ function PreviewTransaction() {
         >
           <SSVStack itemsCenter gap="lg">
             <SSText center style={{ maxWidth: 300 }}>
-              {nfcError ? t('common.error') : t('transaction.preview.nfcTip')}
+              {nfcError ? t('common.errorTitle') : t('transaction.preview.nfcTip')}
             </SSText>
             {nfcError ? (
               <SSVStack itemsCenter gap="md">
@@ -1279,7 +1279,7 @@ function PreviewTransaction() {
         >
           <SSVStack itemsCenter gap="lg">
             <SSText center style={{ maxWidth: 300 }}>
-              {nfcError ? t('common.error') : t('transaction.preview.nfcTip')}
+              {nfcError ? t('common.errorTitle') : t('transaction.preview.nfcTip')}
             </SSText>
             <Animated.View style={nfcPulseStyle}>
               <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
