@@ -20,6 +20,7 @@ import Animated, {
   withSequence,
   withTiming
 } from 'react-native-reanimated'
+import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -289,25 +290,6 @@ function PreviewTransaction() {
     transactionId
   } = usePsbtPreview({ account, id, psbt })
 
-  const {
-    animationSpeed,
-    displayMode,
-    getDisplayModeDescription,
-    getQRValue,
-    isDataTooLargeForSingleQR,
-    isMultiPartQR,
-    qrChunks,
-    qrComplexity,
-    qrError,
-    qrRef,
-    setAnimationSpeed,
-    setCurrentChunk,
-    setCurrentRawChunk,
-    setCurrentUrChunk,
-    setDisplayMode,
-    setQrComplexity
-  } = useQrExport({ getPsbtString, serializedPsbt })
-
   const validationResults = useSignatureValidation({
     account,
     decryptedKeys,
@@ -348,16 +330,6 @@ function PreviewTransaction() {
     processScannedData,
     updateSignedPsbt
   })
-
-  const { handleQRCodeScanned, resetScanProgress, scanProgress } = useQrScanner(
-    {
-      closeCamera: () => setCameraModalVisible(false),
-      convertPsbtToFinalTransaction,
-      handleSignWithSeedQR,
-      processScannedData,
-      updateSignedPsbt
-    }
-  )
 
   const {
     handleMnemonicInvalid,
@@ -619,626 +591,83 @@ function PreviewTransaction() {
                 )}
               </SSVStack>
 
-              {/* Multisig Signature Required Display */}
-              {account.policyType === 'multisig' &&
-                account.keys &&
-                account.keys.length > 0 &&
-                txBuilderResult && (
-                  <SSVStack gap="md" style={{ marginTop: 16 }}>
-                    <SSText center color="muted" size="sm" uppercase>
-                      {t('transaction.preview.multisigSignatureRequired')}
-                    </SSText>
+              <PreviewTransactionMultisigSection
+                account={account}
+                accountId={id}
+                transactionId={transactionId}
+                txBuilderResult={txBuilderResult}
+                serializedPsbt={serializedPsbt}
+                signedPsbts={signedPsbts}
+                validationResults={validationResults}
+                decryptedKeys={decryptedKeys}
+                nfcHardwareSupported={nfcHardwareSupported}
+                isEmitting={isEmitting}
+                isReading={isReading}
+                updateSignedPsbt={updateSignedPsbt}
+                handleNFCExport={handleNFCExport}
+                handleCosignerPasteFromClipboard={
+                  handleCosignerPasteFromClipboard
+                }
+                handleCosignerCameraScan={handleCosignerCameraScan}
+                handleCosignerNFCScan={handleCosignerNFCScan}
+                handleSignWithLocalKey={handleSignWithLocalKey}
+                handleSeedQRScanned={handleSeedQRScanned}
+                handleSeedWordsScanned={handleSeedWordsScanned}
+                setNoKeyModalVisible={setNoKeyModalVisible}
+              />
 
-                    {/* N of M Component */}
-                    <SSText
-                      style={{
-                        alignSelf: 'center',
-                        fontSize: 55,
-                        textTransform: 'lowercase'
-                      }}
-                    >
-                      {account.keysRequired || 1} {t('common.of')}{' '}
-                      {account.keyCount || 1}
-                    </SSText>
-
-                    <SSSignatureRequiredDisplay
-                      requiredNumber={account.keysRequired || 1}
-                      totalNumber={account.keyCount || 1}
-                      collectedSignatures={Array.from(signedPsbts.entries())
-                        .filter(([, psbt]) => psbt && psbt.trim().length > 0)
-                        .map(([index]) => index)}
-                      validationResults={validationResults}
-                    />
-
-                    {/* Individual Signature Buttons - Dynamic based on number of cosigners */}
-                    <SSVStack gap="none">
-                      {account.keys?.map((key, index) => (
-                        <SSSignatureDropdown
-                          key={key.fingerprint ?? index}
-                          index={index}
-                          totalKeys={account.keys?.length || 0}
-                          keyDetails={key}
-                          transactionId={transactionId}
-                          txBuilderResult={txBuilderResult!}
-                          serializedPsbt={serializedPsbt}
-                          signedPsbt={signedPsbts.get(index) || ''}
-                          setSignedPsbt={(psbt: string) =>
-                            updateSignedPsbt(index, psbt)
-                          }
-                          isAvailable={nfcHardwareSupported}
-                          isEmitting={isEmitting}
-                          isReading={isReading}
-                          decryptedKey={decryptedKeys[index]}
-                          account={account}
-                          accountId={id}
-                          signedPsbts={signedPsbts}
-                          onShowQR={() => setNoKeyModalVisible(true)}
-                          onNFCExport={handleNFCExport}
-                          onPasteFromClipboard={
-                            handleCosignerPasteFromClipboard
-                          }
-                          onCameraScan={handleCosignerCameraScan}
-                          onNFCScan={handleCosignerNFCScan}
-                          onSignWithLocalKey={() =>
-                            handleSignWithLocalKey(index)
-                          }
-                          onSignWithSeedQR={() => handleSeedQRScanned(index)}
-                          onSignWithSeedWords={() =>
-                            handleSeedWordsScanned(index)
-                          }
-                          validationResult={validationResults.get(index)}
-                        />
-                      ))}
-                    </SSVStack>
-                  </SSVStack>
-                )}
-
-              {account.policyType !== 'watchonly' &&
-              account.keys &&
-              account.keys.length > 0 ? (
-                <>
-                  {account.policyType === 'multisig' && (
-                    <SSText
-                      center
-                      color="muted"
-                      size="sm"
-                      style={{ marginBottom: 8 }}
-                    >
-                      {t('transaction.preview.signaturesCollected')}:{' '}
-                      {
-                        Array.from(signedPsbts.values()).filter(
-                          (psbt) => psbt && psbt.trim().length > 0
-                        ).length
-                      }{' '}
-                      / {account.keysRequired || account.keys.length}
-                    </SSText>
-                  )}
-                  <SSButton
-                    variant="secondary"
-                    disabled={
-                      !transactionId ||
-                      psbtBuildStatus === 'building' ||
-                      psbtBuildStatus === 'error' ||
-                      (account.policyType === 'multisig' &&
-                        !hasAllRequiredSignatures())
-                    }
-                    label={
-                      account.policyType === 'multisig'
-                        ? t('transaction.preview.checkAllSignatures')
-                        : t('sign.transaction')
-                    }
-                    onPress={() => {
-                      if (account?.policyType === 'multisig') {
-                        const finalTransactionHex =
-                          combineAndFinalizeMultisigPSBTs()
-
-                        if (finalTransactionHex) {
-                          router.navigate(
-                            `/signer/bitcoin/account/${id}/signAndSend/signTransaction`
-                          )
-                        }
-                      } else {
-                        router.navigate(
-                          `/signer/bitcoin/account/${id}/signAndSend/signTransaction`
-                        )
-                      }
-                    }}
-                  />
-                  {account?.nostr?.autoSync && txBuilderResult?.toBase64() && (
-                    <SSButton
-                      variant="ghost"
-                      label={t('account.nostrSync.shareWithGroup')}
-                      onPress={handleShareWithNostrGroup}
-                    />
-                  )}
-                </>
-              ) : (
-                account.keys &&
-                account.keys.length > 0 &&
-                (account.keys[0].creationType === 'importDescriptor' ||
-                  account.keys[0].creationType === 'importExtendedPub') && (
-                  <>
-                    <SSText
-                      center
-                      color="muted"
-                      size="sm"
-                      uppercase
-                      style={{ marginTop: 16 }}
-                    >
-                      {t('transaction.preview.exportUnsigned')}
-                    </SSText>
-                    <SSHStack gap="xxs" justifyBetween>
-                      <SSButton
-                        variant="outline"
-                        disabled={!transactionId}
-                        label={t('common.copy')}
-                        style={{ width: '48%' }}
-                        onPress={() => {
-                          if (txBuilderResult?.toBase64()) {
-                            Clipboard.setStringAsync(txBuilderResult.toBase64())
-                            toast(t('common.copiedToClipboard'))
-                          }
-                        }}
-                      />
-                      <SSButton
-                        variant="outline"
-                        disabled={!transactionId}
-                        label={t('transaction.preview.showQR')}
-                        style={{ width: '48%' }}
-                        onPress={() => {
-                          setNoKeyModalVisible(true)
-                        }}
-                      />
-                    </SSHStack>
-                    <SSHStack gap="xxs" justifyBetween>
-                      <SSButton
-                        label={t('transaction.preview.usb')}
-                        style={{ width: '48%' }}
-                        variant="outline"
-                        disabled
-                      />
-
-                      <SSButton
-                        label={
-                          isEmitting
-                            ? t('watchonly.read.scanning')
-                            : t('transaction.preview.exportNFC')
-                        }
-                        style={{ width: '48%' }}
-                        variant="outline"
-                        disabled={!nfcHardwareSupported || !serializedPsbt}
-                        onPress={handleNFCExport}
-                      />
-                    </SSHStack>
-                    <SSText
-                      center
-                      color="muted"
-                      size="sm"
-                      uppercase
-                      style={{ marginTop: 16 }}
-                    >
-                      {signedPsbt &&
-                      (signedPsbt.toLowerCase().startsWith('70736274ff') ||
-                        signedPsbt.startsWith('cHNidP'))
-                        ? t('transaction.preview.importedPsbt')
-                        : t('transaction.preview.importSigned')}
-                    </SSText>
-                    <View
-                      style={{
-                        backgroundColor: Colors.gray[900],
-                        borderColor: Colors.gray[700],
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        maxHeight: 600,
-                        minHeight: 200,
-                        paddingBottom: 12,
-                        paddingHorizontal: 12,
-                        paddingTop: 12
-                      }}
-                    >
-                      <ScrollView
-                        style={{ flex: 1 }}
-                        showsVerticalScrollIndicator
-                        nestedScrollEnabled
-                      >
-                        <SSText
-                          style={{
-                            color: Colors.white,
-                            fontFamily: Typography.sfProMono,
-                            fontSize: 12,
-                            lineHeight: 18
-                          }}
-                        >
-                          {signedPsbt || t('transaction.preview.signedPsbt')}
-                        </SSText>
-                      </ScrollView>
-                    </View>
-                    <SSHStack gap="xxs" justifyBetween>
-                      <SSButton
-                        label={t('common.paste')}
-                        style={{ width: '48%' }}
-                        variant="outline"
-                        onPress={handleWatchOnlyPasteFromClipboard}
-                      />
-                      <SSButton
-                        label={t('transaction.preview.scanQR')}
-                        style={{ width: '48%' }}
-                        variant="outline"
-                        onPress={() => setCameraModalVisible(true)}
-                      />
-                    </SSHStack>
-                    <SSHStack gap="xxs" justifyBetween>
-                      <SSButton
-                        label={t('transaction.preview.usb')}
-                        style={{ width: '48%' }}
-                        variant="outline"
-                        disabled
-                      />
-                      <SSButton
-                        label={
-                          isReading
-                            ? t('watchonly.read.scanning')
-                            : t('watchonly.read.nfc')
-                        }
-                        style={{ width: '48%' }}
-                        variant="outline"
-                        disabled={!nfcHardwareSupported}
-                        onPress={handleWatchOnlyNFCScan}
-                      />
-                    </SSHStack>
-                    <SSButton
-                      label={t('transaction.preview.checkSignature')}
-                      style={{ marginTop: 26 }}
-                      variant="secondary"
-                      disabled={!signedPsbt}
-                      onPress={() =>
-                        router.navigate(
-                          `/signer/bitcoin/account/${id}/signAndSend/signTransaction`
-                        )
-                      }
-                    />
-                  </>
-                )
-              )}
+              <PreviewTransactionActions
+                account={account}
+                accountId={id}
+                router={router}
+                transactionId={transactionId}
+                psbtBuildStatus={psbtBuildStatus}
+                txBuilderResult={txBuilderResult}
+                serializedPsbt={serializedPsbt}
+                signedPsbt={signedPsbt}
+                signedPsbts={signedPsbts}
+                nfcHardwareSupported={nfcHardwareSupported}
+                isEmitting={isEmitting}
+                isReading={isReading}
+                hasAllRequiredSignatures={hasAllRequiredSignatures}
+                combineAndFinalizeMultisigPSBTs={combineAndFinalizeMultisigPSBTs}
+                handleShareWithNostrGroup={handleShareWithNostrGroup}
+                handleNFCExport={handleNFCExport}
+                handleWatchOnlyPasteFromClipboard={
+                  handleWatchOnlyPasteFromClipboard
+                }
+                handleWatchOnlyNFCScan={handleWatchOnlyNFCScan}
+                setNoKeyModalVisible={setNoKeyModalVisible}
+                setCameraModalVisible={setCameraModalVisible}
+              />
             </SSVStack>
           </ScrollView>
         </SSVStack>
-        <SSModal
+        <PreviewTransactionQrExportModal
           visible={noKeyModalVisible}
-          fullOpacity
-          onClose={() => {
-            setNoKeyModalVisible(false)
-          }}
-        >
-          <SSVStack
-            gap="xs"
-            style={{
-              alignItems: 'center',
-              flex: 1,
-              justifyContent: 'center',
-              padding: containerPadding
-            }}
-          >
-            <SSText color="white" uppercase style={{ marginBottom: 5 }}>
-              {t('transaction.preview.PSBT')}
-            </SSText>
-            {qrError ? (
-              <SSText color="white" size="sm" style={{ marginTop: 16 }}>
-                {qrError}
-              </SSText>
-            ) : qrChunks.length > 0 ? (
-              <SSShareableQR
-                qrRef={qrRef}
-                value={getQRValue()}
-                color={Colors.black}
-                backgroundColor={Colors.white}
-                size={qrSize}
-                hideShareButton={isMultiPartQR()}
-                containerStyle={{
-                  alignItems: 'center',
-                  backgroundColor: Colors.white,
-                  borderRadius: 2,
-                  marginBottom: 0,
-                  padding: 5,
-                  width: qrSize + 10
-                }}
-              >
-                <View
-                  style={[
-                    styles.qrFormatSegmentTrack,
-                    { width: screenWidth * QR_TRACK_WIDTH_RATIO }
-                  ]}
-                >
-                  <QrFormatModeTab
-                    label="RAW"
-                    onPress={() => {
-                      setDisplayMode(QRDisplayMode.RAW)
-                      setCurrentRawChunk(0)
-                    }}
-                    selected={displayMode === QRDisplayMode.RAW}
-                  />
-                  <QrFormatModeTab
-                    label="UR"
-                    onPress={() => {
-                      setDisplayMode(QRDisplayMode.UR)
-                      setCurrentUrChunk(0)
-                    }}
-                    selected={displayMode === QRDisplayMode.UR}
-                  />
-                  <QrFormatModeTab
-                    label="BBQR"
-                    onPress={() => {
-                      setDisplayMode(QRDisplayMode.BBQR)
-                      setCurrentChunk(0)
-                    }}
-                    selected={displayMode === QRDisplayMode.BBQR}
-                  />
-                </View>
-                <SSText
-                  center
-                  color="white"
-                  size="sm"
-                  style={{ maxWidth: screenWidth * QR_SIZE_WIDTH_RATIO }}
-                >
-                  {getDisplayModeDescription()}
-                </SSText>
-                {isDataTooLargeForSingleQR() && qrComplexity >= QR_COMPLEXITY_MAX - 1 && (
-                  <SSText
-                    center
-                    color="muted"
-                    size="xs"
-                    style={{ marginTop: 5 }}
-                  >
-                    {t('transaction.preview.maxDensityLimited')}
-                  </SSText>
-                )}
-                <SSText
-                  center
-                  color="white"
-                  size="sm"
-                  type="mono"
-                  style={{
-                    backgroundColor: Colors.gray[900],
-                    borderRadius: 2,
-                    height: 80,
-                    padding: 5,
-                    paddingHorizontal: 20,
-                    textAlignVertical: 'center',
-                    width: screenWidth * QR_TRACK_WIDTH_RATIO
-                  }}
-                >
-                  {getQRValue().length > QR_VALUE_PREVIEW_LENGTH
-                    ? `${getQRValue().slice(0, QR_VALUE_PREVIEW_LENGTH)}...`
-                    : getQRValue()}
-                </SSText>
-              </SSShareableQR>
-            ) : null}
-            {qrChunks.length > 0 ? (
-              <SSHStack
-                justifyEvenly
-                style={{ marginBottom: 20, width: screenWidth * QR_SIZE_WIDTH_RATIO }}
-              >
-                <SSVStack gap="xs">
-                  <SSText color="white" size="sm" center>
-                    {t('transaction.preview.qrDensity', {
-                      max: QR_COMPLEXITY_MAX,
-                      value: qrComplexity
-                    })}
-                  </SSText>
-                  <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-                    <SSButton
-                      variant="outline"
-                      label="-"
-                      onPress={() =>
-                        setQrComplexity(Math.max(QR_COMPLEXITY_MIN, qrComplexity - 1))
-                      }
-                      style={{ height: 50, width: 50 }}
-                    />
-                    <SSButton
-                      variant={
-                        qrComplexity === QR_COMPLEXITY_MAX - 1 && isDataTooLargeForSingleQR()
-                          ? 'ghost'
-                          : 'outline'
-                      }
-                      label="+"
-                      onPress={() => {
-                        const newComplexity = qrComplexity + 1
-                        if (
-                          newComplexity === QR_COMPLEXITY_MAX &&
-                          isDataTooLargeForSingleQR()
-                        ) {
-                          toast.error(t('common.error.dataTooLarge'))
-                          return
-                        }
-                        setQrComplexity(Math.min(QR_COMPLEXITY_MAX, newComplexity))
-                      }}
-                      style={{ height: 50, width: 50 }}
-                    />
-                  </SSHStack>
-                </SSVStack>
-                <SSVStack gap="xs">
-                  <SSText color="white" size="sm" center>
-                    {t('transaction.preview.speedValue', {
-                      max: ANIMATION_SPEED_MAX,
-                      value: animationSpeed
-                    })}
-                  </SSText>
-                  <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-                    <SSButton
-                      variant="outline"
-                      label="-"
-                      onPress={() =>
-                        setAnimationSpeed(Math.max(ANIMATION_SPEED_MIN, animationSpeed - 1))
-                      }
-                      style={{ height: 50, width: 50 }}
-                    />
-                    <SSButton
-                      variant="outline"
-                      label="+"
-                      onPress={() =>
-                        setAnimationSpeed(Math.min(ANIMATION_SPEED_MAX, animationSpeed + 1))
-                      }
-                      style={{ height: 50, width: 50 }}
-                    />
-                  </SSHStack>
-                </SSVStack>
-              </SSHStack>
-            ) : (
-              <SSText color="white" size="sm" style={{ marginTop: 16 }}>
-                {t('common.loading')}
-              </SSText>
-            )}
-          </SSVStack>
-        </SSModal>
-        <SSModal
+          onClose={() => setNoKeyModalVisible(false)}
+          getPsbtString={getPsbtString}
+          serializedPsbt={serializedPsbt}
+          qrSize={qrSize}
+          screenWidth={screenWidth}
+          containerPadding={containerPadding}
+        />
+        <PreviewTransactionCameraModal
           visible={cameraModalVisible}
-          fullOpacity
           onClose={() => {
             setCameraModalVisible(false)
-            resetScanProgress()
             setCurrentCosignerIndex(null)
           }}
-        >
-          <SSVStack itemsCenter gap="md">
-            <SSText color="muted" uppercase>
-              {scanProgress.type
-                ? t('transaction.preview.scanningQR', {
-                    type: scanProgress.type.toUpperCase()
-                  })
-                : currentCosignerIndex !== null &&
-                    (() => {
-                      const secret = decryptedKeys[currentCosignerIndex]?.secret
-                      return !(
-                        secret &&
-                        typeof secret === 'object' &&
-                        'mnemonic' in secret &&
-                        (secret as Secret)?.mnemonic
-                      )
-                    })()
-                  ? t('transaction.preview.scanSeedQR')
-                  : t('camera.scanQRCode')}
-            </SSText>
-
-            <CameraView
-              onBarcodeScanned={(res) => {
-                handleQRCodeScanned(res.raw, currentCosignerIndex ?? undefined)
-              }}
-              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-              style={{ height: CAMERA_VIEW_SIZE, width: CAMERA_VIEW_SIZE }}
-            />
-
-            {/* Show progress if scanning multi-part QR */}
-            {scanProgress.type && scanProgress.total > 1 && (
-              <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
-                {scanProgress.type === 'ur' ? (
-                  <>
-                    {(() => {
-                      const maxFragment = Math.max(
-                        ...Array.from(scanProgress.scanned)
-                      )
-                      const actualTotal = maxFragment + 1
-                      const conservativeTarget = Math.ceil(actualTotal * UR_ASSEMBLY_CONSERVATIVE_FACTOR)
-                      const theoreticalTarget = Math.ceil(
-                        scanProgress.total * UR_ASSEMBLY_THEORETICAL_FACTOR
-                      )
-                      const displayTarget = Math.min(
-                        conservativeTarget,
-                        theoreticalTarget
-                      )
-
-                      return (
-                        <>
-                          <SSText color="white" center>
-                            {t('transaction.preview.urFountainProgress', {
-                              scanned: scanProgress.scanned.size,
-                              target: displayTarget
-                            })}
-                          </SSText>
-                          <View
-                            style={{
-                              backgroundColor: Colors.gray[700],
-                              borderRadius: 2,
-                              height: 4,
-                              width: 300
-                            }}
-                          >
-                            <View
-                              style={{
-                                backgroundColor: Colors.white,
-                                borderRadius: 2,
-                                height: 4,
-                                maxWidth: 300,
-                                width:
-                                  (scanProgress.scanned.size / displayTarget) *
-                                  300
-                              }}
-                            />
-                          </View>
-                        </>
-                      )
-                    })()}
-                  </>
-                ) : (
-                  <>
-                    <SSText color="white" center>
-                      {t('transaction.preview.chunksProgress', {
-                        scanned: scanProgress.scanned.size,
-                        total: scanProgress.total
-                      })}
-                    </SSText>
-                    <View
-                      style={{
-                        backgroundColor: Colors.gray[700],
-                        borderRadius: 2,
-                        height: 4,
-                        width: 300
-                      }}
-                    >
-                      <View
-                        style={{
-                          backgroundColor: Colors.white,
-                          borderRadius: 2,
-                          height: 4,
-                          maxWidth: scanProgress.total * 300,
-                          width:
-                            (scanProgress.scanned.size / scanProgress.total) *
-                            300
-                        }}
-                      />
-                    </View>
-                    <SSText color="muted" size="sm" center>
-                      {t('transaction.preview.scannedParts', {
-                        parts: Array.from(scanProgress.scanned)
-                          .toSorted((a, b) => a - b)
-                          .map((n) => n + 1)
-                          .join(', ')
-                      })}
-                    </SSText>
-                  </>
-                )}
-              </SSVStack>
-            )}
-
-            {!permission?.granted && (
-              <SSButton
-                label={t('camera.enableCameraAccess')}
-                onPress={requestPermission}
-              />
-            )}
-
-            {/* Reset button for multi-part scans */}
-            {scanProgress.type && (
-              <SSHStack>
-                <SSButton
-                  label={t('transaction.preview.resetScan')}
-                  variant="outline"
-                  onPress={resetScanProgress}
-                  style={{ marginTop: 10, width: 200 }}
-                />
-              </SSHStack>
-            )}
-          </SSVStack>
-        </SSModal>
+          closeCamera={() => setCameraModalVisible(false)}
+          currentCosignerIndex={currentCosignerIndex}
+          decryptedKeys={decryptedKeys}
+          permission={permission}
+          requestPermission={requestPermission}
+          processScannedData={processScannedData}
+          updateSignedPsbt={updateSignedPsbt}
+          handleSignWithSeedQR={handleSignWithSeedQR}
+          convertPsbtToFinalTransaction={convertPsbtToFinalTransaction}
+        />
         <SSModal
           visible={nfcModalVisible}
           fullOpacity
@@ -1287,102 +716,32 @@ function PreviewTransaction() {
           </SSVStack>
         </SSModal>
 
-        {/* Word Count Selection Modal */}
-        <SSModal
+        <PreviewTransactionWordCountModal
           visible={wordCountModalVisible}
-          fullOpacity
           onClose={() => {
             setWordCountModalVisible(false)
             setCurrentCosignerIndex(null)
           }}
-        >
-          <SSVStack gap="lg">
-            <SSText center uppercase>
-              {t('transaction.preview.selectSeedWordCount')}
-            </SSText>
-            <SSText center color="muted" size="sm">
-              {t('transaction.preview.selectSeedWordCountHint')}
-            </SSText>
+          selectedWordCount={selectedWordCount}
+          setSelectedWordCount={setSelectedWordCount}
+          onContinue={() => handleWordCountSelect(selectedWordCount)}
+        />
 
-            <SSVStack gap="sm">
-              {MNEMONIC_WORD_COUNTS.map((wordCount) => (
-                <SSButton
-                  key={wordCount}
-                  label={t('transaction.preview.wordsCount', { count: wordCount })}
-                  variant={
-                    selectedWordCount === wordCount ? 'outline' : 'ghost'
-                  }
-                  onPress={() =>
-                    setSelectedWordCount(wordCount)
-                  }
-                />
-              ))}
-            </SSVStack>
-          </SSVStack>
-          <SSHStack gap="sm">
-            <SSButton
-              label={t('common.continue')}
-              variant="secondary"
-              onPress={() => handleWordCountSelect(selectedWordCount)}
-            />
-          </SSHStack>
-        </SSModal>
-
-        {/* Seed Words Input Modal */}
-        <SSModal
+        <PreviewTransactionSeedWordsModal
           visible={seedWordsModalVisible}
-          fullOpacity
           onClose={() => {
             setSeedWordsModalVisible(false)
             setCurrentMnemonic('')
             setCurrentCosignerIndex(null)
           }}
-        >
-          <View style={styles.seedWordsModalBody}>
-            <ScrollView
-              style={{ maxHeight: 600, maxWidth: 400, width: '100%' }}
-            >
-              <View style={{ paddingHorizontal: 16 }}>
-                <SSVStack gap="lg">
-                  <SSText center uppercase>
-                    {t('transaction.preview.enterSeedWords')}
-                  </SSText>
-                  <SSText center color="muted" size="sm">
-                    {t('transaction.preview.enterSeedWordsHint', {
-                      count: selectedWordCount
-                    })}
-                  </SSText>
-                </SSVStack>
-                <SSSeedWordsInput
-                  wordCount={selectedWordCount}
-                  wordListName="english"
-                  network={appNetworkToBdkNetwork(network)}
-                  onMnemonicValid={handleMnemonicValid}
-                  onMnemonicInvalid={handleMnemonicInvalid}
-                  showPassphrase
-                  showChecksum
-                  showFingerprint
-                  showPasteButton
-                  showScanSeedQRButton
-                  showActionButton
-                  actionButtonLabel={t('transaction.signWithSeedWords')}
-                  actionButtonVariant="secondary"
-                  onActionButtonPress={handleSeedWordsSubmit}
-                  actionButtonDisabled={false}
-                  showCancelButton={false}
-                  autoCheckClipboard
-                  onWordSelectorStateChange={setWordSelectorState}
-                />
-              </View>
-            </ScrollView>
-            <SSKeyboardWordSelector
-              visible={wordSelectorState.visible}
-              wordStart={wordSelectorState.wordStart}
-              wordListName="english"
-              onWordSelected={wordSelectorState.onWordSelected}
-            />
-          </View>
-        </SSModal>
+          selectedWordCount={selectedWordCount}
+          network={network}
+          wordSelectorState={wordSelectorState}
+          setWordSelectorState={setWordSelectorState}
+          handleMnemonicValid={handleMnemonicValid}
+          handleMnemonicInvalid={handleMnemonicInvalid}
+          handleSeedWordsSubmit={handleSeedWordsSubmit}
+        />
       </SSMainLayout>
     </>
   )
@@ -1412,6 +771,894 @@ function QrFormatModeTab({ label, onPress, selected }: QrFormatModeTabProps) {
         {label}
       </SSText>
     </Pressable>
+  )
+}
+
+function PreviewTransactionMultisigSection({
+  account,
+  accountId,
+  transactionId,
+  txBuilderResult,
+  serializedPsbt,
+  signedPsbts,
+  validationResults,
+  decryptedKeys,
+  nfcHardwareSupported,
+  isEmitting,
+  isReading,
+  updateSignedPsbt,
+  handleNFCExport,
+  handleCosignerPasteFromClipboard,
+  handleCosignerCameraScan,
+  handleCosignerNFCScan,
+  handleSignWithLocalKey,
+  handleSeedQRScanned,
+  handleSeedWordsScanned,
+  setNoKeyModalVisible
+}: {
+  account: Account
+  accountId: string
+  transactionId: string
+  txBuilderResult: PsbtLike | undefined
+  serializedPsbt: string
+  signedPsbts: PsbtManagement['signedPsbts']
+  validationResults: Map<number, boolean>
+  decryptedKeys: Key[]
+  nfcHardwareSupported: boolean
+  isEmitting: boolean
+  isReading: boolean
+  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+  handleNFCExport: () => void
+  handleCosignerPasteFromClipboard: (index: number) => void
+  handleCosignerCameraScan: (index: number) => void
+  handleCosignerNFCScan: (index: number) => void
+  handleSignWithLocalKey: PsbtManagement['handleSignWithLocalKey']
+  handleSeedQRScanned: (index: number) => void
+  handleSeedWordsScanned: (index: number) => void
+  setNoKeyModalVisible: (visible: boolean) => void
+}) {
+  if (
+    account.policyType !== 'multisig' ||
+    !account.keys ||
+    account.keys.length === 0 ||
+    !txBuilderResult
+  ) {
+    return null
+  }
+
+  return (
+    <SSVStack gap="md" style={{ marginTop: 16 }}>
+      <SSText center color="muted" size="sm" uppercase>
+        {t('transaction.preview.multisigSignatureRequired')}
+      </SSText>
+
+      {/* N of M Component */}
+      <SSText
+        style={{
+          alignSelf: 'center',
+          fontSize: 55,
+          textTransform: 'lowercase'
+        }}
+      >
+        {account.keysRequired || 1} {t('common.of')}{' '}
+        {account.keyCount || 1}
+      </SSText>
+
+      <SSSignatureRequiredDisplay
+        requiredNumber={account.keysRequired || 1}
+        totalNumber={account.keyCount || 1}
+        collectedSignatures={Array.from(signedPsbts.entries())
+          .filter(([, psbt]) => psbt && psbt.trim().length > 0)
+          .map(([index]) => index)}
+        validationResults={validationResults}
+      />
+
+      {/* Individual Signature Buttons - Dynamic based on number of cosigners */}
+      <SSVStack gap="none">
+        {account.keys?.map((key, index) => (
+          <SSSignatureDropdown
+            key={key.fingerprint ?? index}
+            index={index}
+            totalKeys={account.keys?.length || 0}
+            keyDetails={key}
+            transactionId={transactionId}
+            txBuilderResult={txBuilderResult!}
+            serializedPsbt={serializedPsbt}
+            signedPsbt={signedPsbts.get(index) || ''}
+            setSignedPsbt={(psbt: string) => updateSignedPsbt(index, psbt)}
+            isAvailable={nfcHardwareSupported}
+            isEmitting={isEmitting}
+            isReading={isReading}
+            decryptedKey={decryptedKeys[index]}
+            account={account}
+            accountId={accountId}
+            signedPsbts={signedPsbts}
+            onShowQR={() => setNoKeyModalVisible(true)}
+            onNFCExport={handleNFCExport}
+            onPasteFromClipboard={handleCosignerPasteFromClipboard}
+            onCameraScan={handleCosignerCameraScan}
+            onNFCScan={handleCosignerNFCScan}
+            onSignWithLocalKey={() => handleSignWithLocalKey(index)}
+            onSignWithSeedQR={() => handleSeedQRScanned(index)}
+            onSignWithSeedWords={() => handleSeedWordsScanned(index)}
+            validationResult={validationResults.get(index)}
+          />
+        ))}
+      </SSVStack>
+    </SSVStack>
+  )
+}
+
+function PreviewTransactionActions({
+  account,
+  accountId,
+  router,
+  transactionId,
+  psbtBuildStatus,
+  txBuilderResult,
+  serializedPsbt,
+  signedPsbt,
+  signedPsbts,
+  nfcHardwareSupported,
+  isEmitting,
+  isReading,
+  hasAllRequiredSignatures,
+  combineAndFinalizeMultisigPSBTs,
+  handleShareWithNostrGroup,
+  handleNFCExport,
+  handleWatchOnlyPasteFromClipboard,
+  handleWatchOnlyNFCScan,
+  setNoKeyModalVisible,
+  setCameraModalVisible
+}: {
+  account: Account
+  accountId: string
+  router: ReturnType<typeof useRouter>
+  transactionId: string
+  psbtBuildStatus: 'building' | 'error' | 'idle'
+  txBuilderResult: PsbtLike | undefined
+  serializedPsbt: string
+  signedPsbt: string
+  signedPsbts: PsbtManagement['signedPsbts']
+  nfcHardwareSupported: boolean
+  isEmitting: boolean
+  isReading: boolean
+  hasAllRequiredSignatures: () => boolean
+  combineAndFinalizeMultisigPSBTs: () => string | null
+  handleShareWithNostrGroup: () => void
+  handleNFCExport: () => void
+  handleWatchOnlyPasteFromClipboard: () => void
+  handleWatchOnlyNFCScan: () => void
+  setNoKeyModalVisible: (visible: boolean) => void
+  setCameraModalVisible: (visible: boolean) => void
+}) {
+  return (
+    <>
+      {account.policyType !== 'watchonly' &&
+      account.keys &&
+      account.keys.length > 0 ? (
+        <>
+          {account.policyType === 'multisig' && (
+            <SSText center color="muted" size="sm" style={{ marginBottom: 8 }}>
+              {t('transaction.preview.signaturesCollected')}:{' '}
+              {
+                Array.from(signedPsbts.values()).filter(
+                  (psbt) => psbt && psbt.trim().length > 0
+                ).length
+              }{' '}
+              / {account.keysRequired || account.keys.length}
+            </SSText>
+          )}
+          <SSButton
+            variant="secondary"
+            disabled={
+              !transactionId ||
+              psbtBuildStatus === 'building' ||
+              psbtBuildStatus === 'error' ||
+              (account.policyType === 'multisig' && !hasAllRequiredSignatures())
+            }
+            label={
+              account.policyType === 'multisig'
+                ? t('transaction.preview.checkAllSignatures')
+                : t('sign.transaction')
+            }
+            onPress={() => {
+              if (account?.policyType === 'multisig') {
+                const finalTransactionHex = combineAndFinalizeMultisigPSBTs()
+
+                if (finalTransactionHex) {
+                  router.navigate(
+                    `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
+                  )
+                }
+              } else {
+                router.navigate(
+                  `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
+                )
+              }
+            }}
+          />
+          {account?.nostr?.autoSync && txBuilderResult?.toBase64() && (
+            <SSButton
+              variant="ghost"
+              label={t('account.nostrSync.shareWithGroup')}
+              onPress={handleShareWithNostrGroup}
+            />
+          )}
+        </>
+      ) : (
+        account.keys &&
+        account.keys.length > 0 &&
+        (account.keys[0].creationType === 'importDescriptor' ||
+          account.keys[0].creationType === 'importExtendedPub') && (
+          <>
+            <SSText
+              center
+              color="muted"
+              size="sm"
+              uppercase
+              style={{ marginTop: 16 }}
+            >
+              {t('transaction.preview.exportUnsigned')}
+            </SSText>
+            <SSHStack gap="xxs" justifyBetween>
+              <SSButton
+                variant="outline"
+                disabled={!transactionId}
+                label={t('common.copy')}
+                style={{ width: '48%' }}
+                onPress={() => {
+                  if (txBuilderResult?.toBase64()) {
+                    Clipboard.setStringAsync(txBuilderResult.toBase64())
+                    toast(t('common.copiedToClipboard'))
+                  }
+                }}
+              />
+              <SSButton
+                variant="outline"
+                disabled={!transactionId}
+                label={t('transaction.preview.showQR')}
+                style={{ width: '48%' }}
+                onPress={() => {
+                  setNoKeyModalVisible(true)
+                }}
+              />
+            </SSHStack>
+            <SSHStack gap="xxs" justifyBetween>
+              <SSButton
+                label={t('transaction.preview.usb')}
+                style={{ width: '48%' }}
+                variant="outline"
+                disabled
+              />
+
+              <SSButton
+                label={
+                  isEmitting
+                    ? t('watchonly.read.scanning')
+                    : t('transaction.preview.exportNFC')
+                }
+                style={{ width: '48%' }}
+                variant="outline"
+                disabled={!nfcHardwareSupported || !serializedPsbt}
+                onPress={handleNFCExport}
+              />
+            </SSHStack>
+            <SSText
+              center
+              color="muted"
+              size="sm"
+              uppercase
+              style={{ marginTop: 16 }}
+            >
+              {signedPsbt &&
+              (signedPsbt.toLowerCase().startsWith('70736274ff') ||
+                signedPsbt.startsWith('cHNidP'))
+                ? t('transaction.preview.importedPsbt')
+                : t('transaction.preview.importSigned')}
+            </SSText>
+            <View
+              style={{
+                backgroundColor: Colors.gray[900],
+                borderColor: Colors.gray[700],
+                borderRadius: 8,
+                borderWidth: 1,
+                maxHeight: 600,
+                minHeight: 200,
+                paddingBottom: 12,
+                paddingHorizontal: 12,
+                paddingTop: 12
+              }}
+            >
+              <ScrollView
+                style={{ flex: 1 }}
+                showsVerticalScrollIndicator
+                nestedScrollEnabled
+              >
+                <SSText
+                  style={{
+                    color: Colors.white,
+                    fontFamily: Typography.sfProMono,
+                    fontSize: 12,
+                    lineHeight: 18
+                  }}
+                >
+                  {signedPsbt || t('transaction.preview.signedPsbt')}
+                </SSText>
+              </ScrollView>
+            </View>
+            <SSHStack gap="xxs" justifyBetween>
+              <SSButton
+                label={t('common.paste')}
+                style={{ width: '48%' }}
+                variant="outline"
+                onPress={handleWatchOnlyPasteFromClipboard}
+              />
+              <SSButton
+                label={t('transaction.preview.scanQR')}
+                style={{ width: '48%' }}
+                variant="outline"
+                onPress={() => setCameraModalVisible(true)}
+              />
+            </SSHStack>
+            <SSHStack gap="xxs" justifyBetween>
+              <SSButton
+                label={t('transaction.preview.usb')}
+                style={{ width: '48%' }}
+                variant="outline"
+                disabled
+              />
+              <SSButton
+                label={
+                  isReading
+                    ? t('watchonly.read.scanning')
+                    : t('watchonly.read.nfc')
+                }
+                style={{ width: '48%' }}
+                variant="outline"
+                disabled={!nfcHardwareSupported}
+                onPress={handleWatchOnlyNFCScan}
+              />
+            </SSHStack>
+            <SSButton
+              label={t('transaction.preview.checkSignature')}
+              style={{ marginTop: 26 }}
+              variant="secondary"
+              disabled={!signedPsbt}
+              onPress={() =>
+                router.navigate(
+                  `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
+                )
+              }
+            />
+          </>
+        )
+      )}
+    </>
+  )
+}
+
+function PreviewTransactionQrExportModal({
+  visible,
+  onClose,
+  getPsbtString,
+  serializedPsbt,
+  qrSize,
+  screenWidth,
+  containerPadding
+}: {
+  visible: boolean
+  onClose: () => void
+  getPsbtString: () => string | null
+  serializedPsbt: string
+  qrSize: number
+  screenWidth: number
+  containerPadding: number
+}) {
+  const {
+    animationSpeed,
+    displayMode,
+    getDisplayModeDescription,
+    getQRValue,
+    isDataTooLargeForSingleQR,
+    isMultiPartQR,
+    qrChunks,
+    qrComplexity,
+    qrError,
+    qrRef,
+    setAnimationSpeed,
+    setCurrentChunk,
+    setCurrentRawChunk,
+    setCurrentUrChunk,
+    setDisplayMode,
+    setQrComplexity
+  } = useQrExport({ getPsbtString, serializedPsbt })
+
+  return (
+    <SSModal visible={visible} fullOpacity onClose={onClose}>
+      <SSVStack
+        gap="xs"
+        style={{
+          alignItems: 'center',
+          flex: 1,
+          justifyContent: 'center',
+          padding: containerPadding
+        }}
+      >
+        <SSText color="white" uppercase style={{ marginBottom: 5 }}>
+          {t('transaction.preview.PSBT')}
+        </SSText>
+        {qrError ? (
+          <SSText color="white" size="sm" style={{ marginTop: 16 }}>
+            {qrError}
+          </SSText>
+        ) : qrChunks.length > 0 ? (
+          <SSShareableQR
+            qrRef={qrRef}
+            value={getQRValue()}
+            color={Colors.black}
+            backgroundColor={Colors.white}
+            size={qrSize}
+            hideShareButton={isMultiPartQR()}
+            containerStyle={{
+              alignItems: 'center',
+              backgroundColor: Colors.white,
+              borderRadius: 2,
+              marginBottom: 0,
+              padding: 5,
+              width: qrSize + 10
+            }}
+          >
+            <View
+              style={[
+                styles.qrFormatSegmentTrack,
+                { width: screenWidth * QR_TRACK_WIDTH_RATIO }
+              ]}
+            >
+              <QrFormatModeTab
+                label="RAW"
+                onPress={() => {
+                  setDisplayMode(QRDisplayMode.RAW)
+                  setCurrentRawChunk(0)
+                }}
+                selected={displayMode === QRDisplayMode.RAW}
+              />
+              <QrFormatModeTab
+                label="UR"
+                onPress={() => {
+                  setDisplayMode(QRDisplayMode.UR)
+                  setCurrentUrChunk(0)
+                }}
+                selected={displayMode === QRDisplayMode.UR}
+              />
+              <QrFormatModeTab
+                label="BBQR"
+                onPress={() => {
+                  setDisplayMode(QRDisplayMode.BBQR)
+                  setCurrentChunk(0)
+                }}
+                selected={displayMode === QRDisplayMode.BBQR}
+              />
+            </View>
+            <SSText
+              center
+              color="white"
+              size="sm"
+              style={{ maxWidth: screenWidth * QR_SIZE_WIDTH_RATIO }}
+            >
+              {getDisplayModeDescription()}
+            </SSText>
+            {isDataTooLargeForSingleQR() &&
+              qrComplexity >= QR_COMPLEXITY_MAX - 1 && (
+                <SSText center color="muted" size="xs" style={{ marginTop: 5 }}>
+                  {t('transaction.preview.maxDensityLimited')}
+                </SSText>
+              )}
+            <SSText
+              center
+              color="white"
+              size="sm"
+              type="mono"
+              style={{
+                backgroundColor: Colors.gray[900],
+                borderRadius: 2,
+                height: 80,
+                padding: 5,
+                paddingHorizontal: 20,
+                textAlignVertical: 'center',
+                width: screenWidth * QR_TRACK_WIDTH_RATIO
+              }}
+            >
+              {getQRValue().length > QR_VALUE_PREVIEW_LENGTH
+                ? `${getQRValue().slice(0, QR_VALUE_PREVIEW_LENGTH)}...`
+                : getQRValue()}
+            </SSText>
+          </SSShareableQR>
+        ) : null}
+        {qrChunks.length > 0 ? (
+          <SSHStack
+            justifyEvenly
+            style={{
+              marginBottom: 20,
+              width: screenWidth * QR_SIZE_WIDTH_RATIO
+            }}
+          >
+            <SSVStack gap="xs">
+              <SSText color="white" size="sm" center>
+                {t('transaction.preview.qrDensity', {
+                  max: QR_COMPLEXITY_MAX,
+                  value: qrComplexity
+                })}
+              </SSText>
+              <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+                <SSButton
+                  variant="outline"
+                  label="-"
+                  onPress={() =>
+                    setQrComplexity(Math.max(QR_COMPLEXITY_MIN, qrComplexity - 1))
+                  }
+                  style={{ height: 50, width: 50 }}
+                />
+                <SSButton
+                  variant={
+                    qrComplexity === QR_COMPLEXITY_MAX - 1 &&
+                    isDataTooLargeForSingleQR()
+                      ? 'ghost'
+                      : 'outline'
+                  }
+                  label="+"
+                  onPress={() => {
+                    const newComplexity = qrComplexity + 1
+                    if (
+                      newComplexity === QR_COMPLEXITY_MAX &&
+                      isDataTooLargeForSingleQR()
+                    ) {
+                      toast.error(t('common.error.dataTooLarge'))
+                      return
+                    }
+                    setQrComplexity(Math.min(QR_COMPLEXITY_MAX, newComplexity))
+                  }}
+                  style={{ height: 50, width: 50 }}
+                />
+              </SSHStack>
+            </SSVStack>
+            <SSVStack gap="xs">
+              <SSText color="white" size="sm" center>
+                {t('transaction.preview.speedValue', {
+                  max: ANIMATION_SPEED_MAX,
+                  value: animationSpeed
+                })}
+              </SSText>
+              <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+                <SSButton
+                  variant="outline"
+                  label="-"
+                  onPress={() =>
+                    setAnimationSpeed(
+                      Math.max(ANIMATION_SPEED_MIN, animationSpeed - 1)
+                    )
+                  }
+                  style={{ height: 50, width: 50 }}
+                />
+                <SSButton
+                  variant="outline"
+                  label="+"
+                  onPress={() =>
+                    setAnimationSpeed(
+                      Math.min(ANIMATION_SPEED_MAX, animationSpeed + 1)
+                    )
+                  }
+                  style={{ height: 50, width: 50 }}
+                />
+              </SSHStack>
+            </SSVStack>
+          </SSHStack>
+        ) : (
+          <SSText color="white" size="sm" style={{ marginTop: 16 }}>
+            {t('common.loading')}
+          </SSText>
+        )}
+      </SSVStack>
+    </SSModal>
+  )
+}
+
+function PreviewTransactionCameraModal({
+  visible,
+  onClose,
+  closeCamera,
+  currentCosignerIndex,
+  decryptedKeys,
+  permission,
+  requestPermission,
+  processScannedData,
+  updateSignedPsbt,
+  handleSignWithSeedQR,
+  convertPsbtToFinalTransaction
+}: {
+  visible: boolean
+  onClose: () => void
+  closeCamera: () => void
+  currentCosignerIndex: number | null
+  decryptedKeys: Key[]
+  permission: ReturnType<typeof useCameraPermissions>[0]
+  requestPermission: ReturnType<typeof useCameraPermissions>[1]
+  processScannedData: ProcessScannedData
+  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
+  convertPsbtToFinalTransaction: PsbtManagement['convertPsbtToFinalTransaction']
+}) {
+  const { handleQRCodeScanned, resetScanProgress, scanProgress } = useQrScanner({
+    closeCamera,
+    convertPsbtToFinalTransaction,
+    handleSignWithSeedQR,
+    processScannedData,
+    updateSignedPsbt
+  })
+
+  return (
+    <SSModal
+      visible={visible}
+      fullOpacity
+      onClose={() => {
+        resetScanProgress()
+        onClose()
+      }}
+    >
+      <SSVStack itemsCenter gap="md">
+        <SSText color="muted" uppercase>
+          {scanProgress.type
+            ? t('transaction.preview.scanningQR', {
+                type: scanProgress.type.toUpperCase()
+              })
+            : currentCosignerIndex !== null &&
+                (() => {
+                  const secret = decryptedKeys[currentCosignerIndex]?.secret
+                  return !(
+                    secret &&
+                    typeof secret === 'object' &&
+                    'mnemonic' in secret &&
+                    (secret as Secret)?.mnemonic
+                  )
+                })()
+              ? t('transaction.preview.scanSeedQR')
+              : t('camera.scanQRCode')}
+        </SSText>
+
+        <CameraView
+          onBarcodeScanned={(res) => {
+            handleQRCodeScanned(res.raw, currentCosignerIndex ?? undefined)
+          }}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          style={{ height: CAMERA_VIEW_SIZE, width: CAMERA_VIEW_SIZE }}
+        />
+
+        {/* Show progress if scanning multi-part QR */}
+        {scanProgress.type && scanProgress.total > 1 && (
+          <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
+            {scanProgress.type === 'ur' ? (
+              <>
+                {(() => {
+                  const maxFragment = Math.max(
+                    ...Array.from(scanProgress.scanned)
+                  )
+                  const actualTotal = maxFragment + 1
+                  const conservativeTarget = Math.ceil(
+                    actualTotal * UR_ASSEMBLY_CONSERVATIVE_FACTOR
+                  )
+                  const theoreticalTarget = Math.ceil(
+                    scanProgress.total * UR_ASSEMBLY_THEORETICAL_FACTOR
+                  )
+                  const displayTarget = Math.min(
+                    conservativeTarget,
+                    theoreticalTarget
+                  )
+
+                  return (
+                    <>
+                      <SSText color="white" center>
+                        {t('transaction.preview.urFountainProgress', {
+                          scanned: scanProgress.scanned.size,
+                          target: displayTarget
+                        })}
+                      </SSText>
+                      <View
+                        style={{
+                          backgroundColor: Colors.gray[700],
+                          borderRadius: 2,
+                          height: 4,
+                          width: 300
+                        }}
+                      >
+                        <View
+                          style={{
+                            backgroundColor: Colors.white,
+                            borderRadius: 2,
+                            height: 4,
+                            maxWidth: 300,
+                            width:
+                              (scanProgress.scanned.size / displayTarget) * 300
+                          }}
+                        />
+                      </View>
+                    </>
+                  )
+                })()}
+              </>
+            ) : (
+              <>
+                <SSText color="white" center>
+                  {t('transaction.preview.chunksProgress', {
+                    scanned: scanProgress.scanned.size,
+                    total: scanProgress.total
+                  })}
+                </SSText>
+                <View
+                  style={{
+                    backgroundColor: Colors.gray[700],
+                    borderRadius: 2,
+                    height: 4,
+                    width: 300
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: Colors.white,
+                      borderRadius: 2,
+                      height: 4,
+                      maxWidth: scanProgress.total * 300,
+                      width:
+                        (scanProgress.scanned.size / scanProgress.total) * 300
+                    }}
+                  />
+                </View>
+                <SSText color="muted" size="sm" center>
+                  {t('transaction.preview.scannedParts', {
+                    parts: Array.from(scanProgress.scanned)
+                      .toSorted((a, b) => a - b)
+                      .map((n) => n + 1)
+                      .join(', ')
+                  })}
+                </SSText>
+              </>
+            )}
+          </SSVStack>
+        )}
+
+        {!permission?.granted && (
+          <SSButton
+            label={t('camera.enableCameraAccess')}
+            onPress={requestPermission}
+          />
+        )}
+
+        {/* Reset button for multi-part scans */}
+        {scanProgress.type && (
+          <SSHStack>
+            <SSButton
+              label={t('transaction.preview.resetScan')}
+              variant="outline"
+              onPress={resetScanProgress}
+              style={{ marginTop: 10, width: 200 }}
+            />
+          </SSHStack>
+        )}
+      </SSVStack>
+    </SSModal>
+  )
+}
+
+function PreviewTransactionWordCountModal({
+  visible,
+  onClose,
+  selectedWordCount,
+  setSelectedWordCount,
+  onContinue
+}: {
+  visible: boolean
+  onClose: () => void
+  selectedWordCount: MnemonicWordCount
+  setSelectedWordCount: (count: MnemonicWordCount) => void
+  onContinue: () => void
+}) {
+  return (
+    <SSModal visible={visible} fullOpacity onClose={onClose}>
+      <SSVStack gap="lg">
+        <SSText center uppercase>
+          {t('transaction.preview.selectSeedWordCount')}
+        </SSText>
+        <SSText center color="muted" size="sm">
+          {t('transaction.preview.selectSeedWordCountHint')}
+        </SSText>
+
+        <SSVStack gap="sm">
+          {MNEMONIC_WORD_COUNTS.map((wordCount) => (
+            <SSButton
+              key={wordCount}
+              label={t('transaction.preview.wordsCount', { count: wordCount })}
+              variant={selectedWordCount === wordCount ? 'outline' : 'ghost'}
+              onPress={() => setSelectedWordCount(wordCount)}
+            />
+          ))}
+        </SSVStack>
+      </SSVStack>
+      <SSHStack gap="sm">
+        <SSButton
+          label={t('common.continue')}
+          variant="secondary"
+          onPress={onContinue}
+        />
+      </SSHStack>
+    </SSModal>
+  )
+}
+
+function PreviewTransactionSeedWordsModal({
+  visible,
+  onClose,
+  selectedWordCount,
+  network,
+  wordSelectorState,
+  setWordSelectorState,
+  handleMnemonicValid,
+  handleMnemonicInvalid,
+  handleSeedWordsSubmit
+}: {
+  visible: boolean
+  onClose: () => void
+  selectedWordCount: MnemonicWordCount
+  network: Parameters<typeof appNetworkToBdkNetwork>[0]
+  wordSelectorState: ReturnType<typeof useSeedSigning>['wordSelectorState']
+  setWordSelectorState: ReturnType<typeof useSeedSigning>['setWordSelectorState']
+  handleMnemonicValid: (mnemonic: string, fingerprint: string) => void
+  handleMnemonicInvalid: () => void
+  handleSeedWordsSubmit: () => void
+}) {
+  return (
+    <SSModal visible={visible} fullOpacity onClose={onClose}>
+      <View style={styles.seedWordsModalBody}>
+        <ScrollView style={{ maxHeight: 600, maxWidth: 400, width: '100%' }}>
+          <View style={{ paddingHorizontal: 16 }}>
+            <SSVStack gap="lg">
+              <SSText center uppercase>
+                {t('transaction.preview.enterSeedWords')}
+              </SSText>
+              <SSText center color="muted" size="sm">
+                {t('transaction.preview.enterSeedWordsHint', {
+                  count: selectedWordCount
+                })}
+              </SSText>
+            </SSVStack>
+            <SSSeedWordsInput
+              wordCount={selectedWordCount}
+              wordListName="english"
+              network={appNetworkToBdkNetwork(network)}
+              onMnemonicValid={handleMnemonicValid}
+              onMnemonicInvalid={handleMnemonicInvalid}
+              showPassphrase
+              showChecksum
+              showFingerprint
+              showPasteButton
+              showScanSeedQRButton
+              showActionButton
+              actionButtonLabel={t('transaction.signWithSeedWords')}
+              actionButtonVariant="secondary"
+              onActionButtonPress={handleSeedWordsSubmit}
+              actionButtonDisabled={false}
+              showCancelButton={false}
+              autoCheckClipboard
+              onWordSelectorStateChange={setWordSelectorState}
+            />
+          </View>
+        </ScrollView>
+        <SSKeyboardWordSelector
+          visible={wordSelectorState.visible}
+          wordStart={wordSelectorState.wordStart}
+          wordListName="english"
+          onWordSelected={wordSelectorState.onWordSelected}
+        />
+      </View>
+    </SSModal>
   )
 }
 
