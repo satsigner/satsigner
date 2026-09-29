@@ -10,7 +10,6 @@ import {
   ELECTRUM_TX_CACHE_MAX_ENTRIES
 } from '@/constants/electrum'
 import {
-  ElectrumAddressInfo,
   ElectrumClientSchema,
   type ElectrumClientInterface
 } from '@/types/models/Electrum'
@@ -329,42 +328,6 @@ class BaseElectrumClient {
 }
 
 class ElectrumClient extends BaseElectrumClient {
-  async getAddressInfo(
-    address: string,
-    addressKeychain: Utxo['keychain'] = 'external'
-  ) {
-    const addressUtxos = await super.getAddressUtxos(address)
-    const utxoHeights = addressUtxos.map((value) => value.height)
-    const utxoTimestamps = await this.getBlockTimestamps(utxoHeights)
-    const utxos: Utxo[] = this.parseAddressUtxos(
-      address,
-      addressUtxos,
-      utxoTimestamps,
-      addressKeychain
-    )
-
-    const addressTxs = await super.getAddressTransactions(address)
-    const txIds = addressTxs.map((value) => value.tx_hash)
-    const rawTransactions = await this.getTransactions(txIds)
-    const txHeights = addressTxs.map((value) => value.height)
-    const txTimestamps = await this.getBlockTimestamps(txHeights)
-    const transactions = this.parseAddressTransactions(
-      address,
-      rawTransactions,
-      txHeights,
-      txTimestamps
-    )
-
-    const balance = await this.getAddressBalance(address)
-
-    const addressInfo: ElectrumAddressInfo = {
-      balance,
-      transactions,
-      utxos
-    }
-    return addressInfo
-  }
-
   async getBlock(height: number) {
     const data = await this.client.blockchainBlock_header(height)
     const blockHeaderRaw = z.string().parse(data)

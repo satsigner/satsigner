@@ -27,7 +27,7 @@ export type DiagnosticResult = {
   lines: string[]
 }
 
-export type CheckState =
+type CheckState =
   | { kind: 'idle' }
   | { kind: 'running' }
   | { kind: 'ok'; lines: string[] }
@@ -271,7 +271,7 @@ export async function checkEntropyCollisions(): Promise<DiagnosticResult> {
  * after the initial handshake — the failure mode behind "connected but no
  * messages arrive".
  */
-export async function checkRelayPersistence(
+async function checkRelayPersistence(
   relayUrls: string[] = []
 ): Promise<DiagnosticResult> {
   const lines: string[] = []
@@ -341,7 +341,7 @@ export function resolveLiveRoundtripRelays(configured: string[]): string[] {
  * NIP-59-unwraps to the exact payload. Falls back to well-known relays when
  * the user has not configured any.
  */
-export async function checkNip17LiveRoundtrip(
+async function checkNip17LiveRoundtrip(
   relayUrls: string[] = []
 ): Promise<DiagnosticResult> {
   const lines: string[] = []

@@ -1,7 +1,7 @@
 import type { MemPoolBlock, MemPoolFees } from '@/types/models/Blockchain'
 
 /** Virtual-size capacity of a standard block (weight ÷ 4). */
-export const MAX_BLOCK_VBYTES = 1_000_000
+const MAX_BLOCK_VBYTES = 1_000_000
 
 /** Cap projected buckets so a huge mempool stays usable in the UI. */
 const MAX_PROJECTED_BLOCKS = 24

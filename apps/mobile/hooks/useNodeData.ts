@@ -38,11 +38,6 @@ export function useBackendServerInfo() {
   })
 }
 
-/** @deprecated Prefer useBackendServerInfo */
-export function useElectrumServerInfo() {
-  return useBackendServerInfo()
-}
-
 export function useBitnodesNodeInfo(enabled: boolean) {
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])

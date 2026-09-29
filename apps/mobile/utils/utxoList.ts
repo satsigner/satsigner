@@ -236,7 +236,6 @@ export {
 }
 
 export type {
-  UtxoGroup,
   UtxoGroupMode,
   UtxoKeychainFilter,
   UtxoLabelFilter,

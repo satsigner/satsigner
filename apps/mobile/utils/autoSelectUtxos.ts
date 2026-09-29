@@ -16,7 +16,7 @@ export function isAutoSelectFromUriSearchParam(
   return value === AUTO_SELECT_FROM_URI_SEARCH_PARAM
 }
 
-export function bitcoinAmountBtcToSats(amountBtc: number): number {
+function bitcoinAmountBtcToSats(amountBtc: number): number {
   return Math.round(amountBtc * SATS_PER_BITCOIN)
 }
 

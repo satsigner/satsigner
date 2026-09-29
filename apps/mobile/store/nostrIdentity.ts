@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { clearNdkRegistry } from '@/api/nostr'
+import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import mmkvStorage from '@/storage/mmkv'
 import { type NostrIdentity } from '@/types/models/Nostr'
 import {
@@ -84,6 +85,7 @@ const useNostrIdentityStore = create<
 
       removeIdentity: (npub) => {
         void deleteNostrIdentitySecretSafe(npub)
+        deleteChatMessagesForIdentity(npub)
         set((state) => ({
           activeIdentityNpub:
             state.activeIdentityNpub === npub ? null : state.activeIdentityNpub,

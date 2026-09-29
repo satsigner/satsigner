@@ -121,4 +121,3 @@ async function resolveReceiverSessionOnStart(params: {
 }
 
 export { resolveReceiverSessionOnStart }
-export type { ReceiverStartResult }

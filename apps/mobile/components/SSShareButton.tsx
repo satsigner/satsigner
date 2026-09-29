@@ -14,7 +14,7 @@ type SSShareButtonBaseProps = {
   dialogTitle?: string
 } & Omit<SSButtonProps, 'label' | 'icon' | 'variant' | 'onPress'>
 
-export type SSShareButtonProps = SSShareButtonBaseProps &
+type SSShareButtonProps = SSShareButtonBaseProps &
   (
     | { content: string; type?: 'text' | 'image'; qrRef?: undefined }
     | { qrRef: RefObject<View | null>; content?: undefined; type?: undefined }

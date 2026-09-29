@@ -151,4 +151,3 @@ function useNostrLabelSync() {
 }
 
 export { useNostrLabelSync }
-export default useNostrLabelSync

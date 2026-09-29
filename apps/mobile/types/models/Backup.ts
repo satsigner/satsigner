@@ -23,5 +23,3 @@ export const BackupJsonSchema = z.codec(z.string(), BackupSchema, {
   },
   encode: (value) => JSON.stringify(value)
 })
-
-export type Backup = z.infer<typeof BackupSchema>
