@@ -1,4 +1,6 @@
 import type { ArkVtxo } from '@/types/models/Ark'
+import { formatMaskedNumber } from '@/utils/format'
+import type { PackedBubbleDatum } from '@/utils/packedBubbleLayout'
 
 const ARK_VTXO_HISTORICAL_STATES = new Set(['spent', 'exited'])
 
@@ -72,4 +74,19 @@ export function buildArkVtxoSections(vtxos: ArkVtxo[]): ArkVtxoListItem[] {
   }
 
   return items
+}
+
+export function arkVtxosToBubbleData(
+  vtxos: ArkVtxo[],
+  selectedIds: string[],
+  privacyMode: boolean
+): PackedBubbleDatum[] {
+  const selected = new Set(selectedIds)
+  return vtxos.map((vtxo) => ({
+    id: vtxo.id,
+    label: formatMaskedNumber(vtxo.amountSats, privacyMode),
+    locked: !vtxo.spendable,
+    selected: selected.has(vtxo.id),
+    value: vtxo.amountSats
+  }))
 }

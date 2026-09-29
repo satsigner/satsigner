@@ -24,7 +24,8 @@ const TRANSFORM_PACKAGES = [
   '@noble/.*',
   'bip32',
   'nostr-tools',
-  'immer'
+  'immer',
+  'd3-.*'
 ].join('|')
 
 const config = {
