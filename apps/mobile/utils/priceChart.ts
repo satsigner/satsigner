@@ -55,7 +55,7 @@ export function priceDomainFromData(
   }
 }
 
-export function formatPriceChartDate(timestampSeconds: number) {
+function formatPriceChartDate(timestampSeconds: number) {
   return new Intl.DateTimeFormat(undefined, {
     day: 'numeric',
     month: 'short'

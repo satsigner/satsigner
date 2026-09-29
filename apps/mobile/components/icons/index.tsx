@@ -1,6 +1,5 @@
 import SSIconAbout from './SSIconAbout'
 import SSIconAdd from './SSIconAdd'
-import SSIconArrowLineDown from './SSIconArrowLineDown'
 import SSIconArrowsClockwise from './SSIconArrowsClockwise'
 import SSIconBitcoin from './SSIconBitcoin'
 import SSIconBlackIndicator from './SSIconBlackIndicator'
@@ -115,7 +114,6 @@ import SSIconZero from './SSIconZero'
 export {
   SSIconAbout,
   SSIconAdd,
-  SSIconArrowLineDown,
   SSIconArrowsClockwise,
   SSIconBitcoin,
   SSIconBlackIndicator,

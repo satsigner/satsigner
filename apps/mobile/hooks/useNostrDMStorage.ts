@@ -313,10 +313,4 @@ function useNostrDMStorage() {
   )
 }
 
-export {
-  buildNewMessage,
-  getSyncStartSeconds,
-  isSenderAllowed,
-  useNostrDMStorage
-}
-export default useNostrDMStorage
+export { getSyncStartSeconds, isSenderAllowed, useNostrDMStorage }

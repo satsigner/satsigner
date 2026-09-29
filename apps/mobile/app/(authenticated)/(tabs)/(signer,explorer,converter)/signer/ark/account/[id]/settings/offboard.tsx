@@ -155,7 +155,7 @@ export default function ArkSendOffboardPage() {
         },
         onSuccess: () => {
           toast.success(t('ark.offboard.success'))
-          router.replace({
+          router.dismissTo({
             params: { id },
             pathname: '/signer/ark/account/[id]'
           })

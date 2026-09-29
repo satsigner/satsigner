@@ -1,4 +1,5 @@
 import { DURESS_KDF_KEY, DURESS_PIN_KEY, SALT_KEY_DURESS } from '@/config/auth'
+import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import {
   deleteAllKeySecrets,
@@ -44,6 +45,14 @@ export async function secureWipeAllWalletData(): Promise<void> {
     identities.map((identity) => identity.npub),
     accounts.map((account) => account.id)
   ).catch(() => undefined)
+
+  for (const identity of identities) {
+    try {
+      deleteChatMessagesForIdentity(identity.npub)
+    } catch {
+      /* best-effort: continue wiping remaining data */
+    }
+  }
 
   await deleteLndSecretsSafe()
   await deleteAllRpcCredentialsSafe()

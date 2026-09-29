@@ -22,20 +22,20 @@ export type LightningBubbleChannelRow = {
   peerLabel: string
 }
 
-export type LightningBubbleCircle = {
+type LightningBubbleCircle = {
   cx: number
   cy: number
   r: number
 }
 
-export type LightningBubbleSpoke = {
+type LightningBubbleSpoke = {
   x1: number
   y1: number
   x2: number
   y2: number
 }
 
-export type LightningBubbleLayoutChannel = {
+type LightningBubbleLayoutChannel = {
   angleRad: number
   chanId: string
   hitSlop: { height: number; left: number; top: number; width: number }
@@ -50,7 +50,7 @@ export type LightningBubbleLayoutChannel = {
   uy: number
 }
 
-export type LightningBubbleLayoutHub = {
+type LightningBubbleLayoutHub = {
   cx: number
   cy: number
   radius: number
