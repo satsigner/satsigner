@@ -14,7 +14,7 @@ import type {
 } from '@/types/settings/blockchain'
 
 export type BlockHeightSource = 'backend' | 'mempool'
-export type FeeSource = 'backend' | 'mempool'
+type FeeSource = 'backend' | 'mempool'
 
 const REFETCH_INTERVAL_MS = 30_000
 

@@ -9,9 +9,9 @@ import { signMessageHandler } from '@/hooks/useNostrSignMessageHandler'
 import { txHandler } from '@/hooks/useNostrTxHandler'
 import { type Account } from '@/types/models/Account'
 import {
-  type MessageHandlerContext,
-  type PendingDM
-} from '@/types/nostrMessageHandlers'
+  type NostrMsgHandlerContext,
+  type NostrPendingDM
+} from '@/types/models/Nostr'
 
 import { accountIds, nostrKeys } from '../utils/nostrSamples'
 
@@ -83,8 +83,8 @@ describe('message handlers', () => {
   })
 
   const createMockContext = (
-    overrides: Partial<MessageHandlerContext> = {}
-  ): MessageHandlerContext => ({
+    overrides: Partial<NostrMsgHandlerContext> = {}
+  ): NostrMsgHandlerContext => ({
     account: {
       addresses: [],
       createdAt: new Date(),
@@ -369,7 +369,7 @@ describe('message handlers', () => {
       await psbtHandler.handle(context)
       const afterTime = Math.floor(Date.now() / 1000)
 
-      const call = onPendingDM.mock.calls[0][0] as PendingDM
+      const call = onPendingDM.mock.calls[0][0] as NostrPendingDM
       const createdAt = call.eventContent.created_at as number
       expect(createdAt).toBeGreaterThanOrEqual(beforeTime)
       expect(createdAt).toBeLessThanOrEqual(afterTime)

@@ -57,9 +57,4 @@ function resolveReceiveAddressSelection(params: {
   }
 }
 
-export {
-  findExternalAddressIndex,
-  MAX_EXTERNAL_ADDRESS_SCAN,
-  resolveReceiveAddressSelection
-}
-export type { ExternalAddressInfo, ReceiveAddressSelection }
+export { findExternalAddressIndex, resolveReceiveAddressSelection }

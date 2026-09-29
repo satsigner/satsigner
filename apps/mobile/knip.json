@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignore": ["constants/variant.ts", "scripts/**"],
+  "ignoreExportsUsedInFile": true,
+  "ignoreDependencies": [
+    "@ubjs/core",
+    "@react-native-community/datetimepicker",
+    "@storybook/addon-ondevice-.+",
+    "expo-updates"
+  ],
+  "ignoreBinaries": ["cross-env"]
+}
