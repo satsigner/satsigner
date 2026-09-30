@@ -293,7 +293,6 @@ export function fetchArkServerInfo(
   return getArkProvider(serverId).fetchServerInfo(accountId)
 }
 
-/** Dispatches any Ark fee request to the provider estimate call for its kind. */
 export function estimateArkFee(
   serverId: ArkServerId,
   accountId: string,

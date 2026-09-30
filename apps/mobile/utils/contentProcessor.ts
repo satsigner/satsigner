@@ -5,12 +5,15 @@ import { type Href } from 'expo-router'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 
 import { AUTO_SELECT_FROM_URI_SEARCH_PARAM } from '@/constants/autoSelectUtxos'
-import { DUST_LIMIT } from '@/constants/btc'
+import {
+  BARE_BITCOIN_ADDRESS_PATTERN,
+  DUST_LIMIT,
+  HEX_PATTERN,
+  UNSET_OUTPUT_AMOUNT_SATS
+} from '@/constants/btc'
 import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
-import { getKeyFingerprint } from '@/utils/account'
 import {
   bitcoinAmountBtcToSats,
   isUriPaymentAmount
@@ -24,15 +27,7 @@ import {
 import { getUsableFeeRate } from '@/utils/feeWarnings'
 import { ensureBitcoinPrefix, parseUriParameters } from '@/utils/parse'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
-import {
-  combinePsbts,
-  extractIndividualSignedPsbts,
-  extractOriginalPsbt,
-  extractTransactionDataFromPSBTEnhanced,
-  extractTransactionIdFromPSBT,
-  findMatchingAccount,
-  getCollectedSignerPubkeys
-} from '@/utils/psbt'
+import { combinePsbts, getCollectedSignerPubkeys } from '@/utils/psbt'
 import { selectEfficientUtxos } from '@/utils/utxo'
 import { applyUtxoDenylist } from '@/utils/utxoList'
 
@@ -43,7 +38,7 @@ export type BitcoinUriExceedsBalancePromptInfo = {
   requestedAmountSats: number
 }
 
-type ProcessorActions = {
+export type BitcoinContentActions = {
   navigate: (path: Href) => void
   clearTransaction?: () => void
   setAccountId?: (accountId: string) => void
@@ -59,18 +54,39 @@ type ProcessorActions = {
   ) => Promise<'cancel' | 'without_amount'>
 }
 
-/** Bare `address?query` fallback when BIP21 parsing rejects the content. */
-const BARE_ADDRESS_PATTERN = /^[a-zA-Z0-9]{26,62}$/
-/** Placeholder amount meaning "user fills it in" on ioPreview. */
-const UNSET_AMOUNT_SATS = 1
-const IO_PREVIEW_PATHNAME = '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
-const PREVIEW_TRANSACTION_PATHNAME =
-  '/signer/bitcoin/account/[id]/signAndSend/previewTransaction'
+export type BitcoinContentTarget = {
+  accountId: string
+  account?: Account
+  nextBlockFee: number | null
+}
 
-/**
- * Returns the `bitcoin:` Payjoin URI carried by scanned content, if any.
- * Prefers raw (may still have `bitcoin:`), then cleaned (prefix stripped).
- */
+export type PaymentRequest = {
+  address: string
+  label: string
+  amountSats: number
+}
+
+type IoPreviewParams = {
+  autoSelectFromUri?: string
+  dustWarning?: string
+}
+
+type OutputActions = {
+  setOutputTo: (address: string) => void
+  setOutputAmount: (amount: number) => void
+  setOutputLabel: (label: string) => void
+  setPayjoinUri?: (uri: string | undefined) => void
+  onError: (message: string) => void
+  onWarning: (message: string) => void
+  remainingSats?: number
+}
+
+type OutputResult = {
+  ok: boolean
+  payjoin: boolean
+}
+
+/** Prefers raw (may still have `bitcoin:`), then cleaned (prefix stripped). */
 export function extractPayjoinUriFromContent(
   content: DetectedContent
 ): string | undefined {
@@ -80,43 +96,15 @@ export function extractPayjoinUriFromContent(
     .find(hasPayjoinParam)
 }
 
-function btcToSatsOrUnset(amountBtc: number | undefined): number {
-  return bitcoinAmountBtcToSats(amountBtc ?? 0) || UNSET_AMOUNT_SATS
-}
-
 function highestValueUtxo(utxos: Utxo[]): Utxo {
   return utxos.reduce((max, utxo) => (utxo.value > max.value ? utxo : max))
-}
-
-function navigateToIoPreview(
-  actions: ProcessorActions,
-  accountId: string,
-  params: { autoSelectFromUri?: string; dustWarning?: string } = {}
-) {
-  actions.navigate({
-    params: { ...params, id: accountId },
-    pathname: IO_PREVIEW_PATHNAME
-  })
-}
-
-/** Adds `address` as an output without amount and opens ioPreview. */
-function commitAddressOnly(
-  actions: ProcessorActions,
-  accountId: string,
-  address: string,
-  account?: Account
-) {
-  actions.addOutput?.({ amount: UNSET_AMOUNT_SATS, label: '', to: address })
-  if (account) {
-    autoSelectUtxos(account, UNSET_AMOUNT_SATS, actions)
-  }
-  navigateToIoPreview(actions, accountId)
 }
 
 export function autoSelectUtxos(
   account: Account,
   targetAmount: number,
-  actions: Pick<ProcessorActions, 'addInput' | 'setFeeRate'>
+  nextBlockFee: number | null,
+  actions: Pick<BitcoinContentActions, 'addInput' | 'setFeeRate'>
 ) {
   const selectableUtxos = applyUtxoDenylist(
     account.utxos,
@@ -129,11 +117,10 @@ export function autoSelectUtxos(
   const { addInput, setFeeRate } = actions
   // Match ioPreview fee hydration — selecting at 1 sat/vB then bumping the
   // rate left Payjoin invoices underfunded until the user added inputs.
-  const feeRate =
-    getUsableFeeRate(useBlockchainStore.getState().nextBlockFee) ?? 1
+  const feeRate = getUsableFeeRate(nextBlockFee) ?? 1
   setFeeRate?.(feeRate)
 
-  if (targetAmount === 0 || targetAmount === UNSET_AMOUNT_SATS) {
+  if (targetAmount === 0 || targetAmount === UNSET_OUTPUT_AMOUNT_SATS) {
     addInput?.(highestValueUtxo(selectableUtxos))
     return
   }
@@ -149,13 +136,64 @@ export function autoSelectUtxos(
   }
 }
 
-export function commitBitcoinUriToIoPreview(
-  actions: ProcessorActions,
+function navigateToIoPreview(
+  actions: BitcoinContentActions,
   accountId: string,
-  account: Account | undefined,
-  address: string,
-  label: string,
-  amountSats: number,
+  params: IoPreviewParams = {}
+) {
+  actions.navigate({
+    params: { ...params, id: accountId },
+    pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
+  })
+}
+
+function selectUtxosForAmount(
+  actions: BitcoinContentActions,
+  target: BitcoinContentTarget,
+  amountSats: number
+) {
+  if (!target.account) {
+    return
+  }
+  autoSelectUtxos(target.account, amountSats, target.nextBlockFee, actions)
+}
+
+export function commitAddressOnly(
+  actions: BitcoinContentActions,
+  target: BitcoinContentTarget,
+  address: string
+) {
+  actions.addOutput?.({
+    amount: UNSET_OUTPUT_AMOUNT_SATS,
+    label: '',
+    to: address
+  })
+  selectUtxosForAmount(actions, target, UNSET_OUTPUT_AMOUNT_SATS)
+  navigateToIoPreview(actions, target.accountId)
+}
+
+export function isDustPaymentAmount(amountSats: number): boolean {
+  return amountSats > UNSET_OUTPUT_AMOUNT_SATS && amountSats < DUST_LIMIT
+}
+
+export function commitDustBitcoinUri(
+  actions: BitcoinContentActions,
+  target: BitcoinContentTarget,
+  { address, label, amountSats }: PaymentRequest,
+  payjoinUri?: string
+) {
+  actions.addOutput?.({ amount: amountSats, label, to: address })
+  if (payjoinUri) {
+    actions.setPayjoinUri?.(payjoinUri)
+  }
+  selectUtxosForAmount(actions, target, amountSats)
+  navigateToIoPreview(actions, target.accountId, { dustWarning: '1' })
+}
+
+export function commitBitcoinUriToIoPreview(
+  actions: BitcoinContentActions,
+  target: BitcoinContentTarget,
+  { address, label, amountSats }: PaymentRequest,
   payjoinUri?: string
 ) {
   actions.addOutput?.({ amount: amountSats, label, to: address })
@@ -167,45 +205,86 @@ export function commitBitcoinUriToIoPreview(
   // nextBlockFee): pre-selecting at 1 sat/vB caused "Amount exceed max…"
   // after fee hydration. Payjoin always uses efficiency, never STONEWALL.
   const deferFeeAwareSelect = isUriPaymentAmount(amountSats)
-  if (!deferFeeAwareSelect && account) {
-    autoSelectUtxos(account, amountSats, actions)
+  if (!deferFeeAwareSelect) {
+    selectUtxosForAmount(actions, target, amountSats)
   }
-  navigateToIoPreview(actions, accountId, {
+  navigateToIoPreview(actions, target.accountId, {
     autoSelectFromUri: deferFeeAwareSelect
       ? AUTO_SELECT_FROM_URI_SEARCH_PARAM
       : undefined
   })
 }
 
-/** Maps every signed PSBT inside `psbtBase64` to its cosigner index. */
-async function collectSignedPsbtsByCosigner(
-  account: Account,
-  psbtBase64: string,
-  originalPsbt: string
-): Promise<Map<number, string>> {
-  const individualSignedPsbts = extractIndividualSignedPsbts(
-    psbtBase64,
-    originalPsbt
-  )
-  const signedPsbts = new Map<number, string>()
-
-  if (account.policyType !== 'multisig') {
-    for (const [key, value] of Object.entries(individualSignedPsbts)) {
-      signedPsbts.set(parseInt(key, 10), value)
-    }
-    return signedPsbts
+export function parseScannedPaymentUri(
+  content: DetectedContent,
+  payjoinUri?: string
+): PaymentRequest | null {
+  const bare = parseUriParameters(content.cleaned)
+  const parsed =
+    parseBitcoinPaymentUri(payjoinUri ?? content.cleaned) ??
+    (bare && BARE_BITCOIN_ADDRESS_PATTERN.test(bare.address) ? bare : null)
+  if (!parsed) {
+    return null
   }
+  return {
+    address: parsed.address,
+    amountSats:
+      bitcoinAmountBtcToSats(parsed.amount ?? 0) || UNSET_OUTPUT_AMOUNT_SATS,
+    label: parsed.label ?? ''
+  }
+}
 
-  const keyFingerprintToCosignerIndex = new Map<string, number>()
-  await Promise.all(
-    account.keys.map(async (key, index) => {
-      const fp = await getKeyFingerprint(key)
-      if (fp) {
-        keyFingerprintToCosignerIndex.set(fp, index)
+export function psbtContentToBase64(cleaned: string): string {
+  return HEX_PATTERN.test(cleaned.trim())
+    ? Buffer.from(cleaned, 'hex').toString('base64')
+    : cleaned
+}
+
+export function getBitcoinContentHref(
+  content: DetectedContent,
+  accountId: string
+): Href | null {
+  switch (content.type) {
+    case 'psbt':
+      return {
+        params: { id: accountId, psbt: psbtContentToBase64(content.cleaned) },
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction'
       }
-    })
-  )
+    case 'bitcoin_transaction':
+      return {
+        params: { id: accountId, signedPsbt: content.cleaned },
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction'
+      }
+    case 'bitcoin_descriptor':
+      return {
+        params: { descriptor: content.cleaned },
+        pathname: '/signer/bitcoin/account/add/watchOnly'
+      }
+    case 'extended_public_key':
+      return {
+        params: { extendedPublicKey: content.cleaned },
+        pathname: '/signer/bitcoin/account/add/watchOnly'
+      }
+    default:
+      return null
+  }
+}
 
+export function indexSignedPsbts(
+  individualSignedPsbts: Record<number, string>
+): Map<number, string> {
+  return new Map(
+    Object.entries(individualSignedPsbts).map(
+      ([key, value]): [number, string] => [Number(key), value]
+    )
+  )
+}
+
+export function mapSignedPsbtsToCosigners(
+  individualSignedPsbts: Record<number, string>,
+  psbtBase64: string,
+  keyFingerprintToCosignerIndex: Map<string, number>
+): Map<number, string> {
   const pubkeyToCosignerIndex = new Map<string, number>()
   const combinedPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   for (const input of combinedPsbt.data.inputs) {
@@ -235,6 +314,7 @@ async function collectSignedPsbtsByCosigner(
     ])
   }
 
+  const signedPsbts = new Map<number, string>()
   for (const [cosignerIndex, psbts] of psbtsByCosigner.entries()) {
     signedPsbts.set(
       cosignerIndex,
@@ -244,211 +324,6 @@ async function collectSignedPsbtsByCosigner(
   return signedPsbts
 }
 
-/** Loads the signatures of a scanned PSBT that belongs to `account`. */
-async function loadScannedPsbt(
-  psbtBase64: string,
-  actions: ProcessorActions,
-  account: Account
-) {
-  const accountMatch = await findMatchingAccount(psbtBase64, [account])
-  if (!accountMatch) {
-    return
-  }
-
-  const originalPsbt = extractOriginalPsbt(psbtBase64)
-  const extractedData = extractTransactionDataFromPSBTEnhanced(
-    originalPsbt,
-    account
-  )
-  if (!extractedData) {
-    return
-  }
-
-  actions.setRbf?.(true)
-  actions.setSignedPsbts?.(
-    await collectSignedPsbtsByCosigner(
-      accountMatch.account,
-      psbtBase64,
-      originalPsbt
-    )
-  )
-
-  const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
-  if (!extractedTxid) {
-    return
-  }
-
-  const mockPsbt = {
-    extractTxHex: () => '',
-    feeAmount: () => extractedData.fee || 0,
-    toBase64: () => originalPsbt,
-    txid: () => extractedTxid
-  } as unknown as PsbtLike
-  actions.setPsbt?.(mockPsbt)
-}
-
-/**
- * Adds a scanned payment request as an output: dust amounts open ioPreview
- * with a warning, amounts above the balance ask the user first.
- */
-async function commitOrPromptBitcoinUri(
-  actions: ProcessorActions,
-  accountId: string,
-  account: Account | undefined,
-  request: { address: string; label: string; amountSats: number },
-  payjoinUri?: string
-) {
-  const { address, label, amountSats } = request
-
-  if (amountSats > UNSET_AMOUNT_SATS && amountSats < DUST_LIMIT) {
-    actions.addOutput?.({ amount: amountSats, label, to: address })
-    if (payjoinUri) {
-      actions.setPayjoinUri?.(payjoinUri)
-    }
-    if (account) {
-      autoSelectUtxos(account, amountSats, actions)
-    }
-    navigateToIoPreview(actions, accountId, { dustWarning: '1' })
-    return
-  }
-
-  const balance = account?.summary?.balance
-  if (balance !== undefined && amountSats > balance) {
-    if (!actions.promptBitcoinUriExceedsBalance) {
-      return
-    }
-    const choice = await actions.promptBitcoinUriExceedsBalance({
-      address,
-      availableBalanceSats: balance,
-      label,
-      requestedAmountSats: amountSats
-    })
-    if (choice === 'cancel') {
-      return
-    }
-    commitBitcoinUriToIoPreview(
-      actions,
-      accountId,
-      account,
-      address,
-      label,
-      UNSET_AMOUNT_SATS,
-      payjoinUri
-    )
-    return
-  }
-
-  commitBitcoinUriToIoPreview(
-    actions,
-    accountId,
-    account,
-    address,
-    label,
-    amountSats,
-    payjoinUri
-  )
-}
-
-/** BIP21/Payjoin URI, or a bare `address?amount=` the BIP21 parser rejects. */
-function parseScannedPaymentUri(content: DetectedContent, payjoinUri?: string) {
-  const bare = parseUriParameters(content.cleaned)
-  const parsed =
-    parseBitcoinPaymentUri(payjoinUri ?? content.cleaned) ??
-    (bare && BARE_ADDRESS_PATTERN.test(bare.address) ? bare : null)
-  if (!parsed) {
-    return null
-  }
-  return {
-    address: parsed.address,
-    amountSats: btcToSatsOrUnset(parsed.amount),
-    label: parsed.label ?? ''
-  }
-}
-
-async function processBitcoinUri(
-  content: DetectedContent,
-  actions: ProcessorActions,
-  accountId: string,
-  account?: Account
-) {
-  try {
-    const payjoinUri = extractPayjoinUriFromContent(content)
-    const request = parseScannedPaymentUri(content, payjoinUri)
-    if (request) {
-      await commitOrPromptBitcoinUri(
-        actions,
-        accountId,
-        account,
-        request,
-        payjoinUri
-      )
-    }
-  } catch {
-    commitAddressOnly(actions, accountId, content.cleaned, account)
-  }
-}
-
-/**
- * Applies scanned bitcoin content to the transaction builder of `accountId`
- * and navigates to the screen that handles it.
- */
-export async function processBitcoinContent(
-  content: DetectedContent,
-  actions: ProcessorActions,
-  accountId: string,
-  account?: Account
-): Promise<void> {
-  if (!content.isValid) {
-    throw new Error(t('error.invalidContentCannotBeProcessed'))
-  }
-
-  actions.clearTransaction?.()
-  actions.setAccountId?.(accountId)
-
-  switch (content.type) {
-    case 'psbt': {
-      const psbtBase64 = /^[0-9a-fA-F]+$/.test(content.cleaned.trim())
-        ? Buffer.from(content.cleaned, 'hex').toString('base64')
-        : content.cleaned
-      actions.navigate({
-        params: { id: accountId, psbt: psbtBase64 },
-        pathname: PREVIEW_TRANSACTION_PATHNAME
-      })
-      if (account) {
-        await loadScannedPsbt(psbtBase64, actions, account)
-      }
-      break
-    }
-    case 'bitcoin_descriptor':
-      actions.navigate({
-        params: { descriptor: content.cleaned },
-        pathname: '/signer/bitcoin/account/add/watchOnly'
-      })
-      break
-    case 'extended_public_key':
-      actions.navigate({
-        params: { extendedPublicKey: content.cleaned },
-        pathname: '/signer/bitcoin/account/add/watchOnly'
-      })
-      break
-    case 'bitcoin_transaction':
-      actions.navigate({
-        params: { id: accountId, signedPsbt: content.cleaned },
-        pathname: PREVIEW_TRANSACTION_PATHNAME
-      })
-      break
-    case 'bitcoin_uri':
-      await processBitcoinUri(content, actions, accountId, account)
-      break
-    case 'bitcoin_address':
-      commitAddressOnly(actions, accountId, content.cleaned, account)
-      break
-    default:
-      break
-  }
-}
-
-/** Screen that handles scanned lightning/ecash content, or null if none. */
 export function getContentHref(
   content: DetectedContent,
   context: ContentContext
@@ -477,54 +352,6 @@ export function getContentHref(
   return null
 }
 
-type OutputActions = {
-  setOutputTo: (address: string) => void
-  setOutputAmount: (amount: number) => void
-  setOutputLabel: (label: string) => void
-  setPayjoinUri?: (uri: string | undefined) => void
-  onError: (message: string) => void
-  onWarning: (message: string) => void
-  remainingSats?: number
-}
-
-type OutputResult = { ok: boolean; payjoin: boolean }
-
-/** Fills a single output form from pasted/scanned content. */
-export function processContentForOutput(
-  content: DetectedContent,
-  actions: OutputActions
-): OutputResult {
-  if (!content.isValid) {
-    actions.onError(t('error.invalidContent'))
-    return { ok: false, payjoin: false }
-  }
-
-  if (content.type === 'psbt') {
-    actions.onError(t('error.psbtCannotBeUsedForOutputs'))
-    return { ok: false, payjoin: false }
-  }
-
-  if (content.type === 'bitcoin_address') {
-    actions.setOutputTo(content.cleaned)
-    actions.setOutputAmount(UNSET_AMOUNT_SATS)
-    actions.setOutputLabel('')
-    actions.setPayjoinUri?.(undefined)
-    return { ok: true, payjoin: false }
-  }
-
-  if (content.type !== 'bitcoin_uri') {
-    actions.onError(t('error.noValidAddressFound'))
-    return { ok: false, payjoin: false }
-  }
-
-  try {
-    return applyPaymentUriToOutput(content, actions)
-  } catch {
-    actions.onError(t('error.failedToDecodeBitcoinUri'))
-    return { ok: false, payjoin: false }
-  }
-}
-
 function applyPaymentUriToOutput(
   content: DetectedContent,
   actions: OutputActions
@@ -532,7 +359,7 @@ function applyPaymentUriToOutput(
   const payjoinUri = extractPayjoinUriFromContent(content)
   const parsed = parseBitcoinPaymentUri(payjoinUri ?? content.cleaned)
   if (!parsed) {
-    actions.onError(t('error.noValidAddressFound'))
+    actions.onError(t('transaction.error.noValidAddressFound'))
     return { ok: false, payjoin: false }
   }
 
@@ -548,13 +375,43 @@ function applyPaymentUriToOutput(
     return { ok: false, payjoin }
   }
   if (amountSats === 0) {
-    actions.setOutputAmount(UNSET_AMOUNT_SATS)
+    actions.setOutputAmount(UNSET_OUTPUT_AMOUNT_SATS)
   } else if (actions.remainingSats && amountSats > actions.remainingSats) {
-    actions.onWarning(t('error.insufficientFundsForAmount'))
+    actions.onWarning(t('transaction.error.insufficientFundsForAmount'))
   } else {
     actions.setOutputAmount(amountSats)
   }
   actions.setOutputLabel(parsed.label ?? '')
   actions.setPayjoinUri?.(payjoinUri)
   return { ok: true, payjoin }
+}
+
+export function processContentForOutput(
+  content: DetectedContent,
+  actions: OutputActions
+): OutputResult {
+  if (!content.isValid) {
+    actions.onError(t('transaction.error.invalidContent'))
+    return { ok: false, payjoin: false }
+  }
+
+  if (content.type === 'psbt') {
+    actions.onError(t('transaction.error.psbtCannotBeUsedForOutputs'))
+    return { ok: false, payjoin: false }
+  }
+
+  if (content.type === 'bitcoin_uri') {
+    return applyPaymentUriToOutput(content, actions)
+  }
+
+  if (content.type !== 'bitcoin_address') {
+    actions.onError(t('transaction.error.noValidAddressFound'))
+    return { ok: false, payjoin: false }
+  }
+
+  actions.setOutputTo(content.cleaned)
+  actions.setOutputAmount(UNSET_OUTPUT_AMOUNT_SATS)
+  actions.setOutputLabel('')
+  actions.setPayjoinUri?.(undefined)
+  return { ok: true, payjoin: false }
 }

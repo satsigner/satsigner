@@ -86,7 +86,6 @@ export function estimateArkExitFeeSats(
   return Math.ceil(feeSats)
 }
 
-/** Trims the address and sorts vtxo ids so equal requests share a query key. */
 export function normalizeArkFeeRequest(request: ArkFeeRequest): ArkFeeRequest {
   switch (request.kind) {
     case 'onchain':
@@ -104,7 +103,6 @@ export function normalizeArkFeeRequest(request: ArkFeeRequest): ArkFeeRequest {
   }
 }
 
-/** True when the request has every input its provider call needs. */
 export function isArkFeeRequestReady(request: ArkFeeRequest): boolean {
   if ('address' in request && request.address.trim().length === 0) {
     return false
@@ -118,7 +116,6 @@ export function isArkFeeRequestReady(request: ArkFeeRequest): boolean {
   return true
 }
 
-/** Fee request for sending `amountSats` to a send-flow destination. */
 export function arkSendFeeRequest(
   draft: ArkDestinationDraft,
   amountSats: number

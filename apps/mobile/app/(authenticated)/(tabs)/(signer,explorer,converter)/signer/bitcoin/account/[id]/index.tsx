@@ -1889,7 +1889,10 @@ export default function AccountView() {
     accountId: id!,
     closePasteModal: () => {
       closePasteModalRef.current()
-    }
+    },
+    onError: toast.error,
+    onInfo: toast.info,
+    onSuccess: toast.success
   })
 
   const contentHandler = useContentHandler({

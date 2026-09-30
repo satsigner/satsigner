@@ -8,6 +8,7 @@ import {
   View
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -81,6 +82,7 @@ export default function EcashAccountDetailPage() {
 
   const contentHandler = useContentHandler({
     context: 'ecash',
+    onError: toast.error,
     receiveHref: {
       params: { id },
       pathname: '/signer/ecash/account/[id]/receive'

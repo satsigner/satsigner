@@ -1,7 +1,11 @@
 import { DUST_LIMIT } from '@/constants/btc'
+import { t } from '@/locales'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
+  getBitcoinContentHref,
   getContentHref,
+  isDustPaymentAmount,
+  parseScannedPaymentUri,
   processContentForOutput
 } from '@/utils/contentProcessor'
 
@@ -71,7 +75,9 @@ describe('processContentForOutput', () => {
       actions
     )
     expect(result.ok).toBe(false)
-    expect(actions.onError).toHaveBeenCalledWith()
+    expect(actions.onError).toHaveBeenCalledWith(
+      t('transaction.error.dustOutputBelowLimit')
+    )
   })
 
   it('warns instead of setting an amount above the remaining balance', () => {
@@ -80,7 +86,9 @@ describe('processContentForOutput', () => {
       content('bitcoin_uri', `bitcoin:${ADDRESS}?amount=0.001`),
       actions
     )
-    expect(actions.onWarning).toHaveBeenCalledWith()
+    expect(actions.onWarning).toHaveBeenCalledWith(
+      t('transaction.error.insufficientFundsForAmount')
+    )
     expect(actions.setOutputAmount).not.toHaveBeenCalled()
   })
 
@@ -91,5 +99,50 @@ describe('processContentForOutput', () => {
       processContentForOutput(content('bitcoin_uri', uri), actions)
     ).toStrictEqual({ ok: true, payjoin: true })
     expect(actions.setPayjoinUri).toHaveBeenCalledWith(uri)
+  })
+})
+
+describe('parseScannedPaymentUri', () => {
+  it('reads amount in sats and label from a BIP21 uri', () => {
+    expect(
+      parseScannedPaymentUri(
+        content('bitcoin_uri', `bitcoin:${ADDRESS}?amount=0.001&label=Tip`)
+      )
+    ).toStrictEqual({ address: ADDRESS, amountSats: 100_000, label: 'Tip' })
+  })
+
+  it('falls back to 1 sat when no amount is set', () => {
+    expect(
+      parseScannedPaymentUri(content('bitcoin_uri', ADDRESS))?.amountSats
+    ).toBe(1)
+  })
+
+  it('rejects content without an address', () => {
+    expect(parseScannedPaymentUri(content('bitcoin_uri', '?x=1'))).toBeNull()
+  })
+})
+
+describe('isDustPaymentAmount', () => {
+  it('treats the 1 sat placeholder as unset, not dust', () => {
+    expect(isDustPaymentAmount(1)).toBe(false)
+    expect(isDustPaymentAmount(DUST_LIMIT - 1)).toBe(true)
+    expect(isDustPaymentAmount(DUST_LIMIT)).toBe(false)
+  })
+})
+
+describe('getBitcoinContentHref', () => {
+  it('converts hex psbts to base64 for the preview screen', () => {
+    expect(
+      getBitcoinContentHref(content('psbt', '70736274ff'), 'acc')
+    ).toStrictEqual({
+      params: { id: 'acc', psbt: 'cHNidP8=' },
+      pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction'
+    })
+  })
+
+  it('leaves addresses to the output flow', () => {
+    expect(
+      getBitcoinContentHref(content('bitcoin_address', ADDRESS), 'acc')
+    ).toBeNull()
   })
 })

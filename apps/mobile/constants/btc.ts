@@ -15,3 +15,9 @@ export const WITNESS_SCALE_FACTOR = 4
 
 // BIP174 PSBT magic bytes ("psbt" + 0xff separator), hex-encoded.
 export const PSBT_MAGIC_HEX = '70736274ff'
+
+export const BITCOIN_URI_SCHEME = 'bitcoin:'
+// Output amount placeholder the user fills in on ioPreview.
+export const UNSET_OUTPUT_AMOUNT_SATS = 1
+export const BARE_BITCOIN_ADDRESS_PATTERN = /^[a-zA-Z0-9]{26,62}$/
+export const HEX_PATTERN = /^[0-9a-fA-F]+$/

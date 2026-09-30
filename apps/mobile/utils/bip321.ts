@@ -163,10 +163,6 @@ export function parseBitcoinUriWithSats(
   }
 }
 
-/**
- * Parses a payment request (with or without `bitcoin:`): Payjoin first so
- * `pj`/`pjos` survive, then plain BIP21. Amount is in BTC.
- */
 export function parseBitcoinPaymentUri(text: string): ParsedUriParams | null {
   const uri = ensureBitcoinPrefix(text)
 

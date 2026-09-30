@@ -1,3 +1,4 @@
+import { BITCOIN_URI_SCHEME } from '@/constants/btc'
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { t } from '@/locales'
 import type { Account } from '@/types/models/Account'
@@ -251,8 +252,6 @@ export function parseDescriptor(descriptor: string) {
   return parseSinglesigDescriptor(d)
 }
 
-const BITCOIN_URI_SCHEME = 'bitcoin:'
-
 function hasBitcoinPrefix(text: string): boolean {
   return text.toLowerCase().startsWith(BITCOIN_URI_SCHEME)
 }
@@ -263,7 +262,6 @@ function stripBitcoinPrefix(text: string): string {
     : text
 }
 
-/** Trims and prepends `bitcoin:` when missing, for BIP21/Payjoin parsers. */
 function ensureBitcoinPrefix(text: string): string {
   const trimmed = text.trim()
   return hasBitcoinPrefix(trimmed) ? trimmed : `${BITCOIN_URI_SCHEME}${trimmed}`

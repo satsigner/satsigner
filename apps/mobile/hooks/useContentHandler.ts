@@ -1,6 +1,5 @@
 import { type Href, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { toast } from 'sonner-native'
 
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { t } from '@/locales'
@@ -16,19 +15,16 @@ type UseContentHandlerProps = {
   context: ContentContext
   sendHref: Href
   receiveHref: Href
-  /** Defaults to navigating to the screen `getContentHref` picks. */
   onContentScanned?: (content: DetectedContent) => void | Promise<void>
+  onError?: (message: string) => void
 }
 
-/**
- * Drives the paste/camera/NFC modals and send/receive buttons of an account
- * screen. Scanned content goes to `onContentScanned`, or is routed by type.
- */
 export function useContentHandler({
   context,
   sendHref,
   receiveHref,
-  onContentScanned
+  onContentScanned,
+  onError
 }: UseContentHandlerProps) {
   const router = useRouter()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
@@ -39,12 +35,12 @@ export function useContentHandler({
 
   function navigateToContent(content: DetectedContent) {
     if (!content.isValid) {
-      toast.error(t('camera.invalidContent', { context }))
+      onError?.(t('camera.invalidContent', { context }))
       return
     }
     const href = getContentHref(content, context)
     if (!href) {
-      toast.error(t('paste.error.incompatibleContent'))
+      onError?.(t('paste.error.incompatibleContent'))
       return
     }
     router.navigate(href)

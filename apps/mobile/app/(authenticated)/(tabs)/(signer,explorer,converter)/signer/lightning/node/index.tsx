@@ -11,6 +11,7 @@ import {
   View
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -150,6 +151,7 @@ export default function NodeDetailPage() {
 
   const contentHandler = useContentHandler({
     context: 'lightning',
+    onError: toast.error,
     receiveHref: '/signer/lightning/invoice',
     sendHref: '/signer/lightning/pay'
   })

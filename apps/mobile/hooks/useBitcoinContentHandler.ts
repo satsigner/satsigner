@@ -1,30 +1,200 @@
 import { useRouter } from 'expo-router'
 import { useCallback, useRef, useState } from 'react'
-import { toast } from 'sonner-native'
+import { type PsbtLike } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
+import { UNSET_OUTPUT_AMOUNT_SATS } from '@/constants/btc'
 import { t } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
+import { getKeyFingerprint } from '@/utils/account'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
+  type BitcoinContentActions,
+  type BitcoinContentTarget,
   type BitcoinUriExceedsBalancePromptInfo,
+  commitAddressOnly,
+  commitBitcoinUriToIoPreview,
+  commitDustBitcoinUri,
   extractPayjoinUriFromContent,
-  processBitcoinContent
+  getBitcoinContentHref,
+  indexSignedPsbts,
+  isDustPaymentAmount,
+  mapSignedPsbtsToCosigners,
+  parseScannedPaymentUri,
+  psbtContentToBase64
 } from '@/utils/contentProcessor'
+import {
+  extractIndividualSignedPsbts,
+  extractOriginalPsbt,
+  extractTransactionDataFromPSBTEnhanced,
+  extractTransactionIdFromPSBT,
+  findMatchingAccount
+} from '@/utils/psbt'
 
 type UseBitcoinContentHandlerProps = {
   accountId: string
   account: Account
   closePasteModal?: () => void
+  onError: (message: string) => void
+  onInfo: (message: string) => void
+  onSuccess: (message: string) => void
+}
+
+async function getKeyFingerprintIndexes(
+  account: Account
+): Promise<Map<string, number>> {
+  const fingerprints = await Promise.all(account.keys.map(getKeyFingerprint))
+  const indexes = new Map<string, number>()
+  for (const [index, fingerprint] of fingerprints.entries()) {
+    if (fingerprint) {
+      indexes.set(fingerprint, index)
+    }
+  }
+  return indexes
+}
+
+async function loadScannedPsbt(
+  psbtBase64: string,
+  actions: BitcoinContentActions,
+  account: Account
+) {
+  const accountMatch = await findMatchingAccount(psbtBase64, [account])
+  if (!accountMatch) {
+    return
+  }
+
+  const originalPsbt = extractOriginalPsbt(psbtBase64)
+  const extractedData = extractTransactionDataFromPSBTEnhanced(
+    originalPsbt,
+    account
+  )
+  if (!extractedData) {
+    return
+  }
+
+  actions.setRbf?.(true)
+  const individualSignedPsbts = extractIndividualSignedPsbts(
+    psbtBase64,
+    originalPsbt
+  )
+  const matchedAccount = accountMatch.account
+  const signedPsbts =
+    matchedAccount.policyType === 'multisig'
+      ? mapSignedPsbtsToCosigners(
+          individualSignedPsbts,
+          psbtBase64,
+          await getKeyFingerprintIndexes(matchedAccount)
+        )
+      : indexSignedPsbts(individualSignedPsbts)
+  actions.setSignedPsbts?.(signedPsbts)
+
+  const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
+  if (!extractedTxid) {
+    return
+  }
+
+  const mockPsbt = {
+    extractTxHex: () => '',
+    feeAmount: () => extractedData.fee || 0,
+    toBase64: () => originalPsbt,
+    txid: () => extractedTxid
+  } as unknown as PsbtLike
+  actions.setPsbt?.(mockPsbt)
+}
+
+async function commitScannedBitcoinUri(
+  content: DetectedContent,
+  actions: BitcoinContentActions,
+  target: BitcoinContentTarget
+) {
+  const payjoinUri = extractPayjoinUriFromContent(content)
+  const request = parseScannedPaymentUri(content, payjoinUri)
+  if (!request) {
+    return
+  }
+
+  if (isDustPaymentAmount(request.amountSats)) {
+    commitDustBitcoinUri(actions, target, request, payjoinUri)
+    return
+  }
+
+  const balance = target.account?.summary?.balance
+  if (balance === undefined || request.amountSats <= balance) {
+    commitBitcoinUriToIoPreview(actions, target, request, payjoinUri)
+    return
+  }
+
+  if (!actions.promptBitcoinUriExceedsBalance) {
+    return
+  }
+  const choice = await actions.promptBitcoinUriExceedsBalance({
+    address: request.address,
+    availableBalanceSats: balance,
+    label: request.label,
+    requestedAmountSats: request.amountSats
+  })
+  if (choice === 'cancel') {
+    return
+  }
+  commitBitcoinUriToIoPreview(
+    actions,
+    target,
+    { ...request, amountSats: UNSET_OUTPUT_AMOUNT_SATS },
+    payjoinUri
+  )
+}
+
+async function processBitcoinContent(
+  content: DetectedContent,
+  actions: BitcoinContentActions,
+  target: BitcoinContentTarget
+) {
+  actions.clearTransaction?.()
+  actions.setAccountId?.(target.accountId)
+
+  const href = getBitcoinContentHref(content, target.accountId)
+  if (href) {
+    actions.navigate(href)
+  }
+
+  if (content.type === 'psbt' && target.account) {
+    await loadScannedPsbt(
+      psbtContentToBase64(content.cleaned),
+      actions,
+      target.account
+    )
+    return
+  }
+
+  if (content.type === 'bitcoin_address') {
+    commitAddressOnly(actions, target, content.cleaned)
+    return
+  }
+
+  if (content.type !== 'bitcoin_uri') {
+    return
+  }
+
+  // Malformed percent-encoding in a URI label makes decoding throw.
+  try {
+    await commitScannedBitcoinUri(content, actions, target)
+  } catch {
+    commitAddressOnly(actions, target, content.cleaned)
+  }
 }
 
 export function useBitcoinContentHandler({
   accountId,
   account,
-  closePasteModal
+  closePasteModal,
+  onError,
+  onInfo,
+  onSuccess
 }: UseBitcoinContentHandlerProps) {
   const router = useRouter()
+  const nextBlockFee = useBlockchainStore((state) => state.nextBlockFee)
 
   const [
     clearTransaction,
@@ -79,12 +249,12 @@ export function useBitcoinContentHandler({
   const handleContentScanned = useCallback(
     async (content: DetectedContent) => {
       if (!content.isValid) {
-        toast.error(t('camera.invalidContent', { context: 'bitcoin' }))
+        onError(t('camera.invalidContent', { context: 'bitcoin' }))
         return
       }
 
       if (content.type === 'incompatible') {
-        toast.error(t('paste.error.incompatibleContent'))
+        onError(t('paste.error.incompatibleContent'))
         return
       }
 
@@ -92,7 +262,7 @@ export function useBitcoinContentHandler({
         content.type === 'bitcoin_descriptor' ||
         content.type === 'extended_public_key'
       ) {
-        toast.info(t('watchonly.info.creatingWatchOnlyAccount'))
+        onInfo(t('watchonly.info.creatingWatchOnlyAccount'))
       }
 
       try {
@@ -111,18 +281,16 @@ export function useBitcoinContentHandler({
             setRbf,
             setSignedPsbts
           },
-          accountId,
-          account
+          { account, accountId, nextBlockFee }
         )
         if (
           content.type === 'bitcoin_uri' &&
           extractPayjoinUriFromContent(content)
         ) {
-          toast.success(t('transaction.build.payjoin.uriDetected'))
+          onSuccess(t('transaction.build.payjoin.uriDetected'))
         }
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : 'unknown'
-        toast.error(`${t('bitcoin.error.processFailed')}: ${reason}`)
+      } catch {
+        onError(t('camera.error.processFailed'))
       }
     },
     [
@@ -131,6 +299,10 @@ export function useBitcoinContentHandler({
       addInput,
       addOutput,
       clearTransaction,
+      nextBlockFee,
+      onError,
+      onInfo,
+      onSuccess,
       promptBitcoinUriExceedsBalance,
       router,
       setAccountId,

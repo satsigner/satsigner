@@ -150,7 +150,6 @@ function toChainTipMempool(basic: MempoolBasicData): ChainTipData['mempool'] {
   }
 }
 
-/** Tip block from the backend; fees and mempool via the explorer mempool API. */
 async function fetchChainTipData(
   serverUrl: string,
   backend: Backend,
@@ -167,7 +166,6 @@ async function fetchChainTipData(
     ...emptyChainTipData(),
     ...block,
     fees: basic.fees,
-    // No backend fees: chaintip falls back to mempool.space fees.
     feesSource: basic.fees ? 'backend' : 'mempool',
     mempool: toChainTipMempool(basic)
   }

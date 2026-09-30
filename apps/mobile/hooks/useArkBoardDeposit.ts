@@ -3,6 +3,7 @@ import { type Href, useRouter } from 'expo-router'
 import { AUTO_SELECT_FROM_URI_SEARCH_PARAM } from '@/constants/autoSelectUtxos'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type ArkAccount } from '@/types/models/Ark'
 import { resolveArkBoardFundDestination } from '@/utils/arkBoardDeposit'
@@ -58,10 +59,15 @@ export function useArkBoardDeposit(arkAccount: ArkAccount | undefined) {
 
     // Default coin-select is "user", so ioPreview will not pick UTXOs from the
     // URI flag. Select here so preview is not empty.
-    autoSelectUtxos(linkedAccount, resolved.amountSats, {
-      addInput: store.addInput,
-      setFeeRate: store.setFeeRate
-    })
+    autoSelectUtxos(
+      linkedAccount,
+      resolved.amountSats,
+      useBlockchainStore.getState().nextBlockFee,
+      {
+        addInput: store.addInput,
+        setFeeRate: store.setFeeRate
+      }
+    )
 
     router.navigate(linkedIoPreviewHref(linkedAccount.id))
   }

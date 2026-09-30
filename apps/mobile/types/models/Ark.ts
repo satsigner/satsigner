@@ -278,7 +278,6 @@ export interface ArkWalletProvider {
   fetchServerInfo: (accountId: string) => Promise<ArkServerInfo | null>
 }
 
-/** One Ark fee quote; each kind maps to one provider estimate call. */
 export type ArkFeeRequest =
   | { kind: 'arkoor' | 'lightning' | 'board'; amountSats: number }
   | { kind: 'onchain'; address: string; amountSats: number }

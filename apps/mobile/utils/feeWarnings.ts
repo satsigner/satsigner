@@ -44,7 +44,6 @@ export function isHighMinerFee(params: FeePercentageParams): boolean {
   return getFeePercentage(params) >= HIGH_FEE_RATIO
 }
 
-/** Next-block fee rate when the network gave a real one (≥1 sat/vB), else null. */
 export function getUsableFeeRate(
   nextBlockFee: number | null | undefined
 ): number | null {
