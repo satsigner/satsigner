@@ -6,7 +6,7 @@ export type CounterReservedEvent = {
   count: number
 }
 
-export type OnCounterReserved = (event: CounterReservedEvent) => void
+type OnCounterReserved = (event: CounterReservedEvent) => void
 
 export type WalletOptions = {
   bip39seed?: Uint8Array
@@ -80,12 +80,6 @@ export type MintQuoteState =
   | 'CANCELLED'
   | 'UNPAID'
   | 'ISSUED'
-
-export type EcashConnectionStatus = {
-  isConnected: boolean
-  isConnecting: boolean
-  lastSync?: string
-}
 
 export type EcashSendResult = {
   token: string

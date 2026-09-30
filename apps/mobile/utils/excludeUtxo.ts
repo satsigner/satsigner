@@ -38,4 +38,4 @@ function toggleUtxoExcluded(accountId: Account['id'], utxo: Utxo) {
   excludeUtxoWithUndo(accountId, utxo)
 }
 
-export { excludeUtxoWithUndo, toggleUtxoExcluded }
+export { toggleUtxoExcluded }

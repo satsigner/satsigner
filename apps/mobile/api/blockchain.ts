@@ -2,7 +2,6 @@ import z from 'zod'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import {
-  BlockFeeRatesSchema,
   BlockSchema,
   BlockStatusSchema,
   DifficultyAdjustmentSchema,
@@ -120,11 +119,6 @@ export class MempoolOracle implements BlockchainOracle {
       return rate
     }
     throw new Error('unvailable rate')
-  }
-
-  async getBlockFeeRates(period: string) {
-    const data = await this.get(`/v1/mining/blocks/fee-rates/${period}`)
-    return BlockFeeRatesSchema.parse(data)
   }
 
   async getMempoolStatistics(period: string) {

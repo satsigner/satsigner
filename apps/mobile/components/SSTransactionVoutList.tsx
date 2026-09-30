@@ -27,7 +27,7 @@ type SSTransactionVoutListProps = {
   onOpenAddress?: (address: string) => void
 }
 
-export function SSTransactionVoutList({
+function SSTransactionVoutList({
   txid,
   vout,
   accountId,

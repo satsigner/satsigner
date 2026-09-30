@@ -22,17 +22,6 @@ type AddressStats = {
   spent_txo_sum: number
 }
 
-function emptyAddress(address: string): ExplorerAddressData {
-  return {
-    address,
-    confirmed: 0,
-    source: 'backend',
-    txids: [],
-    unconfirmed: 0,
-    utxos: []
-  }
-}
-
 function balanceFromStats(stats: AddressStats | undefined): number {
   if (!stats) {
     return 0
@@ -212,10 +201,6 @@ export async function fetchExplorerAddressFromMempool(
     unconfirmed: balances.unconfirmed,
     utxos
   }
-}
-
-export function emptyExplorerAddress(address: string): ExplorerAddressData {
-  return emptyAddress(address)
 }
 
 async function fetchEsploraAddressTxDetails(

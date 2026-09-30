@@ -22,7 +22,7 @@ type SSNostrPollOptionsProps = {
   userPollVoteIds: string[]
 }
 
-export function SSNostrPollOptions({
+function SSNostrPollOptions({
   canVote,
   isExpired,
   onOptionPress,

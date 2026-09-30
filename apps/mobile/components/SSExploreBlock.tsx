@@ -11,7 +11,7 @@ import { formatDate, formatNumber, formatTime } from '@/utils/format'
 
 import SSDetailsList from './SSDetailsList'
 
-export type Block = PartialSome<
+type Block = PartialSome<
   BaseBlock,
   | 'mediantime'
   | 'merkle_root'

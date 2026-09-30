@@ -12,8 +12,8 @@ export type DrawingPoint = {
   y: number
 }
 
-export const DRAWING_BITS_PER_SAMPLE = 1
-export const DRAWING_SAMPLE_MIN_DISTANCE_PX = 10
+const DRAWING_BITS_PER_SAMPLE = 1
+const DRAWING_SAMPLE_MIN_DISTANCE_PX = 10
 
 export function distanceBetweenPoints(
   a: { x: number; y: number },

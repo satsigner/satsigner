@@ -279,10 +279,6 @@ export function validateArkAddressWithNetwork(
   }
 }
 
-export function isArkAddress(address: string): boolean {
-  return validateArkAddressWithNetwork(address.trim()).isValid
-}
-
 export function isLightningAddress(input: string): boolean {
   return LIGHTNING_ADDRESS_REGEX.test(input.trim())
 }

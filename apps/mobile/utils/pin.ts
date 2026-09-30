@@ -101,6 +101,5 @@ export {
   fillPinDigit,
   getPin,
   getPinCursorIndex,
-  isPinFilled,
-  setPin
+  isPinFilled
 }

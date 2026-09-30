@@ -64,7 +64,7 @@ export default function SSDetailsList({
   )
 }
 
-export function SSDetailsListItem({
+function SSDetailsListItem({
   header,
   text,
   headerSize = 'sm',

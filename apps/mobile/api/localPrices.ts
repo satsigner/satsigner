@@ -136,19 +136,8 @@ function getLocalLatestPrices(): Partial<Record<Currency, number>> {
   return prices
 }
 
-function getLocalLastTimestamp(currency: Currency): number | null {
-  const bundle = loadPriceBundle(currency)
-  if (bundle.times.length === 0) {
-    return null
-  }
-  const time = bundle.times.at(-1)
-  return time === undefined ? null : time
-}
-
 export {
   findClosestPrice,
-  getLocalLastTimestamp,
-  getLocalLatestPrice,
   getLocalLatestPrices,
   getLocalPriceAt,
   getLocalPriceSeries,

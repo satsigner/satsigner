@@ -124,7 +124,7 @@ export function autoSelectUtxos(
   }
 }
 
-export function commitBitcoinUriToIoPreview(
+function commitBitcoinUriToIoPreview(
   actions: ProcessorActions,
   accountId: string,
   account: Account | undefined,
