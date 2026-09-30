@@ -1,5 +1,3 @@
-import { nip19 } from 'nostr-tools'
-
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_SECURITY_REPORT_NPUB } from '@/constants/nostr'
 import { type NostrChatMessage } from '@/types/models/Nostr'
@@ -91,5 +89,3 @@ export async function sendSecurityReport({
 export function getSecurityReportNpub(): string {
   return NOSTR_SECURITY_REPORT_NPUB
 }
-
-export { nip19 }

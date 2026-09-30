@@ -137,7 +137,7 @@ export async function fetchExplorerTipHeight(
   }
 }
 
-export type ExplorerBlockRawHexSource = 'backend' | 'mempool'
+type ExplorerBlockRawHexSource = 'backend' | 'mempool'
 
 export type ExplorerBlockRawHex = {
   hex: string

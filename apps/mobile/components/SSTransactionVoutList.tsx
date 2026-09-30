@@ -24,7 +24,7 @@ type SSTransactionVoutListProps = {
   accountId?: string
 }
 
-export function SSTransactionVoutList({
+function SSTransactionVoutList({
   txid,
   vout,
   accountId

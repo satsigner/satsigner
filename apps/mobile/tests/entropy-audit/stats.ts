@@ -1,15 +1,3 @@
-export function shannonEntropy(
-  counts: Map<number, number>,
-  total: number
-): number {
-  let h = 0
-  for (const count of counts.values()) {
-    const p = count / total
-    h -= p * Math.log2(p)
-  }
-  return h
-}
-
 export function byteHistogram(buffers: Uint8Array[]): Map<number, number> {
   const counts = new Map<number, number>()
   for (let i = 0; i < 256; i += 1) {

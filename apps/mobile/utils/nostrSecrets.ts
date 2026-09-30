@@ -11,12 +11,12 @@ import { type NostrAccount, type NostrIdentity } from '@/types/models/Nostr'
 import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
 import { getPin } from '@/utils/pin'
 
-export type NostrIdentitySecrets = {
+type NostrIdentitySecrets = {
   mnemonic?: string
   nsec?: string
 }
 
-export type NostrAccountSecrets = {
+type NostrAccountSecrets = {
   commonNsec: string
   deviceMnemonic?: string
   deviceNsec?: string
@@ -55,18 +55,6 @@ function stripAccountSecretsForDb(nostr: NostrAccount): NostrAccount {
     deviceMnemonic: undefined,
     deviceNsec: undefined
   }
-}
-
-function getCachedIdentitySecrets(
-  npub: string
-): NostrIdentitySecrets | undefined {
-  return identitySecretsCache.get(npub)
-}
-
-function getCachedAccountSecrets(
-  accountId: string
-): NostrAccountSecrets | undefined {
-  return accountSecretsCache.get(accountId)
 }
 
 function setCachedIdentitySecrets(
@@ -410,28 +398,16 @@ async function deleteAllNostrSecretsForWipe(
 export {
   clearNostrSecretsCaches,
   deleteAllNostrSecretsForWipe,
-  deleteNostrAccountSecret,
   deleteNostrAccountSecretSafe,
-  deleteNostrIdentitySecret,
   deleteNostrIdentitySecretSafe,
-  encryptAndStoreAccountNostrSecrets,
-  encryptAndStoreIdentitySecrets,
-  getCachedAccountSecrets,
-  getCachedIdentitySecrets,
-  hasAccountSecrets,
-  hasIdentitySecrets,
   loadAccountNostrSecrets,
-  loadIdentitySecrets,
   looksLikePlaintextMnemonic,
   looksLikePlaintextNsec,
   mergeAccountWithCachedNostrSecrets,
   migrateAndHydrateNostrSecrets,
-  persistAccountSecretsFromNostr,
   persistAccountSecretsSafe,
-  persistIdentitySecretsFromMemory,
   persistIdentitySecretsSafe,
   reEncryptNostrSecrets,
   setCachedAccountSecrets,
-  setCachedIdentitySecrets,
   stripAccountSecretsForDb
 }

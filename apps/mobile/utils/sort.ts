@@ -75,11 +75,5 @@ function sortTransactions(
   })
 }
 
-export {
-  compareAmount,
-  compareLabel,
-  compareTimestamp,
-  sortTransactions,
-  transactionAmount
-}
+export { compareAmount, compareLabel, compareTimestamp, sortTransactions }
 export type { TransactionSortField }
