@@ -1,4 +1,3 @@
-import { router } from 'expo-router'
 import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
 import Animated from 'react-native-reanimated'
 import { toast } from 'sonner-native'
@@ -28,6 +27,8 @@ type SSPinAuthProps = {
   onFail?: () => void
   onSuccess: () => void | Promise<void>
   onTriesOver?: () => void
+  /** Called after a duress PIN wipes wallet data, to return to the app root. */
+  onDuressUnlock: () => void
   maxTries?: number
   resetPin?: boolean
   title?: string
@@ -53,6 +54,7 @@ function SSPinAuth({
   onFail,
   onSuccess,
   onTriesOver,
+  onDuressUnlock,
   maxTries,
   resetPin,
   ...props
@@ -125,8 +127,7 @@ function SSPinAuth({
       setLockTriggered(false)
       setJustUnlocked(true)
       resetPinTries()
-      router.dismissAll()
-      router.replace('/')
+      onDuressUnlock()
       return
     }
 

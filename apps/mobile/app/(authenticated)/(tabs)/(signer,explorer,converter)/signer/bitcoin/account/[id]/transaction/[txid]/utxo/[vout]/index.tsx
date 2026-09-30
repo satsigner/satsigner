@@ -174,7 +174,11 @@ function UtxoDetails({
       <SSVStack gap="lg" style={[styles.innerContainer, styles.outerContainer]}>
         <SSLabelDetails
           label={utxo?.label || ''}
-          link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}/label`}
+          onPress={() =>
+            router.navigate(
+              `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}/label`
+            )
+          }
           header={t('utxo.label')}
           privacyMode={privacyMode}
         />
@@ -231,6 +235,11 @@ function UtxoDetails({
                   selectedOutputIndex={utxo?.vout}
                   dimUnselected
                   scale={0.9}
+                  onOpenLinkedTx={(linkedTxId) =>
+                    router.push(
+                      `/signer/bitcoin/account/${accountId}/transaction/${linkedTxId}`
+                    )
+                  }
                 />
                 <SSButton
                   variant="outline"

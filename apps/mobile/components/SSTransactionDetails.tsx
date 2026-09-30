@@ -38,6 +38,8 @@ type SSTransactionDetailsProps = {
   visibility?: { sankey: boolean; status: boolean }
   onToggleVisibility?: (component: 'sankey' | 'status') => void
   onGoToSignFlow?: () => void
+  /** Called with a linked transaction id when a chart link is pressed. */
+  onOpenLinkedTx?: (txId: string) => void
 }
 
 function SSTransactionDetails({
@@ -46,7 +48,8 @@ function SSTransactionDetails({
   accounts,
   visibility,
   onToggleVisibility,
-  onGoToSignFlow
+  onGoToSignFlow,
+  onOpenLinkedTx
 }: SSTransactionDetailsProps) {
   const [accountMatch, setAccountMatch] = useState<AccountMatchResult | null>(
     null
@@ -190,6 +193,7 @@ function SSTransactionDetails({
                 spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
                 outpointLabelsByRef={outpointLabelsByRef}
                 scale={0.75}
+                onOpenLinkedTx={onOpenLinkedTx}
               />
             </View>
           ) : (
@@ -226,6 +230,7 @@ function SSTransactionDetails({
               txLabelsById={txLabelsById}
               knownTxIds={knownTxIds}
               outpointLabelsByRef={outpointLabelsByRef}
+              onOpenLinkedTx={onOpenLinkedTx}
             />
           </View>
           {isMultisig && (

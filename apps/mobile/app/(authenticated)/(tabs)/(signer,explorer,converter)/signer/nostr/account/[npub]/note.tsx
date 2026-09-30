@@ -1141,7 +1141,14 @@ export default function NostrNotePage() {
                 authorPreview={
                   noteAuthorFeedProps ? (
                     <SSNostrFeedAuthorRow
-                      contextNpub={npub || undefined}
+                      onPress={
+                        npub
+                          ? () =>
+                              navigateToNostrProfile(
+                                noteAuthorFeedProps.authorNpubBech
+                              )
+                          : undefined
+                      }
                       loading={noteAuthorFeedProps.loading}
                       npubBech={noteAuthorFeedProps.authorNpubBech}
                       displayName={noteAuthorFeedProps.displayName}

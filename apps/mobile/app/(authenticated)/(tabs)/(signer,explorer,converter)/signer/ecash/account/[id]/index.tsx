@@ -164,6 +164,12 @@ export default function EcashAccountDetailPage() {
                       <SSEcashTransactionCard
                         key={transaction.id}
                         transaction={transaction}
+                        onPress={() =>
+                          router.navigate({
+                            params: { id: transaction.id },
+                            pathname: '/signer/ecash/transaction/[id]'
+                          } as never)
+                        }
                       />
                     ))}
                   {transactions.length > MAX_VISIBLE_TRANSACTIONS && (

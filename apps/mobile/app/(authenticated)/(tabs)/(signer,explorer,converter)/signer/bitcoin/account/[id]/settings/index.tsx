@@ -438,6 +438,41 @@ export default function AccountSettings() {
                     keyDetails={key}
                     isSettingsMode
                     accountId={currentAccountId}
+                    onImportMnemonic={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/add/import/mnemonic/${index}`
+                      )
+                    }
+                    onGenerateMnemonic={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/add/multiSig/keySettings/${index}`
+                      )
+                    }
+                    onImportDescriptor={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/add/(common)/import/descriptor/${index}`
+                      )
+                    }
+                    onImportExtendedPub={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/add/(common)/import/extendedPub/${index}`
+                      )
+                    }
+                    onShareXpub={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/${currentAccountId}/settings/export/publicKey?keyIndex=${index}`
+                      )
+                    }
+                    onShareDescriptor={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/${currentAccountId}/settings/export/descriptor?keyIndex=${index}`
+                      )
+                    }
+                    onViewSeedWords={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/${currentAccountId}/settings/export/seedWords?keyIndex=${index}`
+                      )
+                    }
                   />
                 ))
               ) : (
@@ -721,6 +756,10 @@ export default function AccountSettings() {
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleSuccessPin}
+          onDuressUnlock={() => {
+            router.dismissAll()
+            router.replace('/')
+          }}
           onTriesOver={handlePinTriesOver}
           maxTries={3}
         />

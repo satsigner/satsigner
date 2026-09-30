@@ -46,12 +46,18 @@ type SSHistoryChartProps = {
   transactions: Transaction[]
   utxos: Utxo[]
   blockchainHeight?: number
+  /** Called with the tapped UTXO's txid and vout to open its details. */
+  onOpenUtxo: (txid: string, vout: number) => void
+  /** Called with a transaction id to open its details. */
+  onOpenTransaction: (txid: string) => void
 }
 
 function SSHistoryChart({
   transactions,
   utxos,
-  blockchainHeight
+  blockchainHeight,
+  onOpenUtxo,
+  onOpenTransaction
 }: SSHistoryChartProps) {
   const [
     showLabel,
@@ -201,6 +207,8 @@ function SSHistoryChart({
     lockZoomToXAxis,
     margin,
     maxBalance,
+    onOpenTransaction,
+    onOpenUtxo,
     showOutputField,
     showTransactionInfo,
     timeOffset,

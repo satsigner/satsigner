@@ -232,6 +232,9 @@ export default function ExplorerBlockDetail() {
               block={block}
               sourceLabel={displaySourceLabel}
               canViewTransactions={Boolean(block.id)}
+              onOpenTransactions={() =>
+                router.push(`/explorer/block/${block.id}/transactions`)
+              }
             />
             {showLoadFullMeta ? (
               <SSExplorerCapabilityBanner

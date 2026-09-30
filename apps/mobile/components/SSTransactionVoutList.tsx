@@ -1,4 +1,3 @@
-import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { TouchableOpacity } from 'react-native'
 
@@ -22,12 +21,18 @@ type SSTransactionVoutListProps = {
   txid?: Transaction['id']
   vout?: Transaction['vout']
   accountId?: string
+  /** Called with the output index when a known UTXO output is pressed. */
+  onOpenUtxo?: (index: number) => void
+  /** Called with the address when a known account address is pressed. */
+  onOpenAddress?: (address: string) => void
 }
 
 function SSTransactionVoutList({
   txid,
   vout,
-  accountId
+  accountId,
+  onOpenUtxo,
+  onOpenAddress
 }: SSTransactionVoutListProps) {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => accountId && account.id === accountId)
@@ -87,9 +92,7 @@ function SSTransactionVoutList({
             key={`${txid}:${index}`}
             onPress={() => {
               if (utxoDict[`${txid}:${index}`]) {
-                router.navigate(
-                  `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${index}`
-                )
+                onOpenUtxo?.(index)
               }
             }}
           >
@@ -114,9 +117,7 @@ function SSTransactionVoutList({
                 <TouchableOpacity
                   onPress={() => {
                     if (addressDict[output.address]) {
-                      router.navigate(
-                        `/signer/bitcoin/account/${accountId}/address/${output.address}`
-                      )
+                      onOpenAddress?.(output.address)
                     } else {
                       setClipboard(output.address)
                     }

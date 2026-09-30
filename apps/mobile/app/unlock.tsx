@@ -104,6 +104,10 @@ export default function Unlock() {
     >
       <SSPinAuth
         onSuccess={handleSuccess}
+        onDuressUnlock={() => {
+          router.dismissAll()
+          router.replace('/')
+        }}
         onFail={handleFailure}
         maxTries={pinMaxTries}
         onTriesOver={handleTriesOver}
