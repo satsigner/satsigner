@@ -1895,8 +1895,14 @@ export default function AccountView() {
   const contentHandler = useContentHandler({
     context: 'bitcoin',
     onContentScanned: bitcoinContentHandler.handleContentScanned,
-    onReceive: bitcoinContentHandler.handleReceive,
-    onSend: bitcoinContentHandler.handleSend
+    receiveHref: {
+      params: { id: id! },
+      pathname: '/signer/bitcoin/account/[id]/receive'
+    },
+    sendHref: {
+      params: { id: id! },
+      pathname: '/signer/bitcoin/account/[id]/signAndSend/selectUtxoList'
+    }
   })
 
   const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler

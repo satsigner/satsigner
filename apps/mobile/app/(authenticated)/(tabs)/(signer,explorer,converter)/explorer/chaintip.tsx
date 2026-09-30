@@ -18,11 +18,11 @@ import SSText from '@/components/SSText'
 import {
   PRICE_CHART_DAYS,
   useChainTipData,
-  useChainTipExternalData,
   useChainTipMempoolStats,
   useChainTipPriceHistory
 } from '@/hooks/useChainTipData'
 import type { DataSource } from '@/hooks/useChainTipData'
+import { useMempoolExtendedData } from '@/hooks/useMempoolData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -85,7 +85,7 @@ export default function ChainTip() {
 
   const { data: chainData, isLoading } = useChainTipData()
   const { data: externalData, isLoading: isLoadingExternal } =
-    useChainTipExternalData(showExternal)
+    useMempoolExtendedData(showExternal)
   const { data: mempoolStatistics } = useChainTipMempoolStats(
     '2h',
     showExternal

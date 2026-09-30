@@ -43,7 +43,6 @@ import {
 } from '@/constants/lightning'
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
-import { useLightningContentHandler } from '@/hooks/useLightningContentHandler'
 import { useLND } from '@/hooks/useLND'
 import { useLndNodeDashboard } from '@/hooks/useLndNodeDashboard'
 import SSHStack from '@/layouts/SSHStack'
@@ -149,13 +148,10 @@ export default function NodeDetailPage() {
   const { channels, isConnecting, isConnected } = useLND()
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
-  const lightningContentHandler = useLightningContentHandler()
-
   const contentHandler = useContentHandler({
     context: 'lightning',
-    onContentScanned: lightningContentHandler.handleContentScanned,
-    onReceive: lightningContentHandler.handleReceive,
-    onSend: lightningContentHandler.handleSend
+    receiveHref: '/signer/lightning/invoice',
+    sendHref: '/signer/lightning/pay'
   })
 
   const [currentPage, setCurrentPage] = useState(0)

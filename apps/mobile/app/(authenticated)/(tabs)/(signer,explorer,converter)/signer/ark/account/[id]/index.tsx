@@ -49,10 +49,10 @@ import { useArkAddresses } from '@/hooks/useArkAddresses'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkExit } from '@/hooks/useArkExit'
 import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
+import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkLabels } from '@/hooks/useArkLabels'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import { useArkRefresh } from '@/hooks/useArkRefresh'
-import { useArkRefreshFeeEstimate } from '@/hooks/useArkRefreshFeeEstimate'
 import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
 import { useArkSync } from '@/hooks/useArkSync'
 import { useArkVtxos } from '@/hooks/useArkVtxos'
@@ -169,10 +169,10 @@ export default function ArkAccountDetailPage() {
   const allSpendableSelected =
     spendableVtxoIds.length > 0 &&
     selectedSpendableIds.length === spendableVtxoIds.length
-  const refreshFeeQuery = useArkRefreshFeeEstimate({
+  const refreshFeeQuery = useArkFeeEstimate({
     accountId: id,
     enabled: refreshModalVisible,
-    vtxoIds: selectedSpendableIds
+    request: { kind: 'refresh', vtxoIds: selectedSpendableIds }
   })
   const exitFeeQuery = useArkExitFeeEstimate({
     accountId: id,

@@ -1,6 +1,8 @@
-import { PSBT_MAGIC_HEX, SATS_PER_BITCOIN } from '@/constants/btc'
+import { PSBT_MAGIC_HEX } from '@/constants/btc'
+import { bitcoinAmountBtcToSats } from '@/utils/autoSelectUtxos'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
+import { hasBitcoinPrefix, stripBitcoinPrefix } from '@/utils/parse'
 import { validateAddress } from '@/utils/validation'
 
 type ProcessedBitcoinContent = {
@@ -48,8 +50,8 @@ export function isValidBitcoinContent(text: string) {
     return true
   }
 
-  if (trimmed.toLowerCase().startsWith('bitcoin:')) {
-    const [addressPart] = trimmed.substring(8).split('?')
+  if (hasBitcoinPrefix(trimmed)) {
+    const [addressPart] = stripBitcoinPrefix(trimmed).split('?')
     if (validateAddress(addressPart) || isBitcoinAddress(addressPart)) {
       return true
     }
@@ -82,17 +84,16 @@ export function processBitcoinContent(
 
     return {
       address: parsed.address,
-      amount: (parsed.amount || 0) * SATS_PER_BITCOIN || 1,
+      amount: bitcoinAmountBtcToSats(parsed.amount ?? 0) || 1,
       content: trimmed,
       label: parsed.label || '',
       type: 'bip21'
     }
   }
 
-  let processedAddress = trimmed
-  if (processedAddress.toLowerCase().startsWith('bitcoin:')) {
-    ;[processedAddress] = processedAddress.substring(8).split('?')
-  }
+  const processedAddress = hasBitcoinPrefix(trimmed)
+    ? stripBitcoinPrefix(trimmed).split('?')[0]
+    : trimmed
 
   if (validateAddress(processedAddress)) {
     return {

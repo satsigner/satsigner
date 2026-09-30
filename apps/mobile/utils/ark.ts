@@ -11,6 +11,8 @@ import { useArkStore } from '@/store/ark'
 import {
   type ArkAccount,
   type ArkBalance,
+  type ArkDestinationDraft,
+  type ArkFeeRequest,
   ArkServer,
   type ArkVtxo
 } from '@/types/models/Ark'
@@ -82,4 +84,50 @@ export function estimateArkExitFeeSats(
     feeRateSatPerVb *
     ARK_EXIT_FEE_RATE_SAFETY_MULTIPLIER
   return Math.ceil(feeSats)
+}
+
+/** Trims the address and sorts vtxo ids so equal requests share a query key. */
+export function normalizeArkFeeRequest(request: ArkFeeRequest): ArkFeeRequest {
+  switch (request.kind) {
+    case 'onchain':
+      return { ...request, address: request.address.trim() }
+    case 'offboard':
+      return {
+        ...request,
+        address: request.address.trim(),
+        vtxoIds: request.vtxoIds.toSorted()
+      }
+    case 'refresh':
+      return { ...request, vtxoIds: request.vtxoIds.toSorted() }
+    default:
+      return request
+  }
+}
+
+/** True when the request has every input its provider call needs. */
+export function isArkFeeRequestReady(request: ArkFeeRequest): boolean {
+  if ('address' in request && request.address.trim().length === 0) {
+    return false
+  }
+  if ('vtxoIds' in request && request.vtxoIds.length === 0) {
+    return false
+  }
+  if ('amountSats' in request && request.amountSats <= 0) {
+    return false
+  }
+  return true
+}
+
+/** Fee request for sending `amountSats` to a send-flow destination. */
+export function arkSendFeeRequest(
+  draft: ArkDestinationDraft,
+  amountSats: number
+): ArkFeeRequest {
+  if (draft.kind === 'arkoor') {
+    return { amountSats, kind: 'arkoor' }
+  }
+  if (draft.kind === 'onchain') {
+    return { address: draft.address, amountSats, kind: 'onchain' }
+  }
+  return { amountSats, kind: 'lightning' }
 }

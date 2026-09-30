@@ -36,7 +36,6 @@ import {
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useEcash } from '@/hooks/useEcash'
-import { useEcashContentHandler } from '@/hooks/useEcashContentHandler'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -80,13 +79,13 @@ export default function EcashAccountDetailPage() {
   const handleConnectMintPress = () =>
     router.navigate(`/signer/ecash/account/${id}/settings/mint`)
 
-  const ecashContentHandler = useEcashContentHandler()
-
   const contentHandler = useContentHandler({
     context: 'ecash',
-    onContentScanned: ecashContentHandler.handleContentScanned,
-    onReceive: ecashContentHandler.handleReceive,
-    onSend: ecashContentHandler.handleSend
+    receiveHref: {
+      params: { id },
+      pathname: '/signer/ecash/account/[id]/receive'
+    },
+    sendHref: { params: { id }, pathname: '/signer/ecash/account/[id]/send' }
   })
 
   if (id && activeAccount?.id !== id) {

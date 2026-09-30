@@ -3,17 +3,15 @@ import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  type BitcoinUriExceedsBalancePromptInfo,
-  processContentByContext
-} from '@/hooks/useContentProcessor'
 import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { hasPayjoinParam } from '@/utils/payjoinUri'
-
-type NavigatePath = Parameters<ReturnType<typeof useRouter>['navigate']>[0]
+import {
+  type BitcoinUriExceedsBalancePromptInfo,
+  extractPayjoinUriFromContent,
+  processBitcoinContent
+} from '@/utils/contentProcessor'
 
 type UseBitcoinContentHandlerProps = {
   accountId: string
@@ -81,7 +79,7 @@ export function useBitcoinContentHandler({
   const handleContentScanned = useCallback(
     async (content: DetectedContent) => {
       if (!content.isValid) {
-        toast.error('Invalid Bitcoin content detected')
+        toast.error(t('camera.invalidContent', { context: 'bitcoin' }))
         return
       }
 
@@ -90,57 +88,42 @@ export function useBitcoinContentHandler({
         return
       }
 
-      const runProcess = async () => {
-        try {
-          const maybePayjoin = [content.raw, content.cleaned].some(
-            (value) =>
-              !!value &&
-              hasPayjoinParam(
-                value.toLowerCase().startsWith('bitcoin:')
-                  ? value
-                  : `bitcoin:${value}`
-              )
-          )
-          await processContentByContext(
-            content,
-            'bitcoin',
-            {
-              addInput,
-              addOutput,
-              clearTransaction,
-              navigate: (path: NavigatePath) => {
-                router.navigate(path)
-              },
-              promptBitcoinUriExceedsBalance,
-              setAccountId,
-              setFeeRate,
-              setPayjoinUri,
-              setPsbt,
-              setRbf,
-              setSignedPsbts
-            },
-            accountId,
-            account
-          )
-          if (maybePayjoin && content.type === 'bitcoin_uri') {
-            toast.success(t('transaction.build.payjoin.uriDetected'))
-          }
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : 'unknown'
-          toast.error(`${t('bitcoin.error.processFailed')}: ${reason}`)
-        }
-      }
-
       if (
-        content.type !== 'bitcoin_descriptor' &&
-        content.type !== 'extended_public_key'
+        content.type === 'bitcoin_descriptor' ||
+        content.type === 'extended_public_key'
       ) {
-        await runProcess()
-        return
+        toast.info(t('watchonly.info.creatingWatchOnlyAccount'))
       }
 
-      toast.info(t('watchonly.info.creatingWatchOnlyAccount'))
-      await runProcess()
+      try {
+        await processBitcoinContent(
+          content,
+          {
+            addInput,
+            addOutput,
+            clearTransaction,
+            navigate: (path) => router.navigate(path),
+            promptBitcoinUriExceedsBalance,
+            setAccountId,
+            setFeeRate,
+            setPayjoinUri,
+            setPsbt,
+            setRbf,
+            setSignedPsbts
+          },
+          accountId,
+          account
+        )
+        if (
+          content.type === 'bitcoin_uri' &&
+          extractPayjoinUriFromContent(content)
+        ) {
+          toast.success(t('transaction.build.payjoin.uriDetected'))
+        }
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown'
+        toast.error(`${t('bitcoin.error.processFailed')}: ${reason}`)
+      }
     },
     [
       account,
@@ -159,22 +142,8 @@ export function useBitcoinContentHandler({
     ]
   )
 
-  const handleSend = useCallback(() => {
-    router.push(
-      `/signer/bitcoin/account/${accountId}/signAndSend/selectUtxoList`
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId])
-
-  const handleReceive = useCallback(() => {
-    router.push(`/signer/bitcoin/account/${accountId}/receive`)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId])
-
   return {
     handleContentScanned,
-    handleReceive,
-    handleSend,
     resolveUriExceedsBalancePrompt,
     uriExceedsBalanceModal
   }

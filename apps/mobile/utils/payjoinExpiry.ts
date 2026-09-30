@@ -1,6 +1,7 @@
 import { bech32 } from 'bech32'
 
 import { t } from '@/locales'
+import { ensureBitcoinPrefix, hasBitcoinPrefix } from '@/utils/parse'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 
 const MS_MIN = 60_000
@@ -60,13 +61,9 @@ function parsePayjoinExpiresAtMs(pjOrUri: string): number | undefined {
   }
 
   const looksLikeBitcoinUri =
-    pjEndpoint.toLowerCase().startsWith('bitcoin:') ||
-    pjEndpoint.toLowerCase().includes('pj=')
+    hasBitcoinPrefix(pjEndpoint) || pjEndpoint.toLowerCase().includes('pj=')
   if (looksLikeBitcoinUri) {
-    const withPrefix = pjEndpoint.toLowerCase().startsWith('bitcoin:')
-      ? pjEndpoint
-      : `bitcoin:${pjEndpoint}`
-    const parsed = parsePayjoinUri(withPrefix)
+    const parsed = parsePayjoinUri(ensureBitcoinPrefix(pjEndpoint))
     pjEndpoint = parsed.params?.pj ?? ''
   }
 

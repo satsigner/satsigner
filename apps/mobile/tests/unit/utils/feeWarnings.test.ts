@@ -2,6 +2,7 @@ import {
   getFeePercentage,
   getFeeRateInputMax,
   getFeeRateSliderMax,
+  getUsableFeeRate,
   isElevatedFeeRate,
   isHighMinerFee,
   shouldHighlightElevatedFeeRate
@@ -124,5 +125,15 @@ describe('shouldHighlightElevatedFeeRate', () => {
         totalInputSats: 100_000
       })
     ).toBe(true)
+  })
+})
+
+describe('getUsableFeeRate', () => {
+  it('keeps real network rates and drops missing or sub-1 values', () => {
+    expect(getUsableFeeRate(12)).toBe(12)
+    expect(getUsableFeeRate(1)).toBe(1)
+    expect(getUsableFeeRate(0.5)).toBeNull()
+    expect(getUsableFeeRate(null)).toBeNull()
+    expect(getUsableFeeRate(undefined)).toBeNull()
   })
 })

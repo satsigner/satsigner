@@ -11,6 +11,12 @@ import {
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import {
+  ensureBitcoinPrefix,
+  hasBitcoinPrefix,
+  type ParsedUriParams
+} from '@/utils/parse'
+import { parsePayjoinUri } from '@/utils/payjoinUri'
 
 type ParsedBitcoinUri = {
   address: string
@@ -157,6 +163,31 @@ export function parseBitcoinUriWithSats(
   }
 }
 
+/**
+ * Parses a payment request (with or without `bitcoin:`): Payjoin first so
+ * `pj`/`pjos` survive, then plain BIP21. Amount is in BTC.
+ */
+export function parseBitcoinPaymentUri(text: string): ParsedUriParams | null {
+  const uri = ensureBitcoinPrefix(text)
+
+  const payjoin = parsePayjoinUri(uri)
+  if (payjoin.isValid && payjoin.params) {
+    return {
+      address: payjoin.params.address,
+      amount: payjoin.params.amountBtc,
+      label: payjoin.params.label,
+      pj: payjoin.params.pj,
+      pjos: payjoin.params.pjos
+    }
+  }
+
+  const parsed = parseBitcoinUri(uri)
+  if (!parsed.isValid || !parsed.address) {
+    return null
+  }
+  return { address: parsed.address, amount: parsed.amount, label: parsed.label }
+}
+
 export function encodeBitcoinUri(
   params: EncodeBitcoinUriParams
 ): EncodeBitcoinUriResult {
@@ -227,7 +258,7 @@ export function isBitcoinUri(uri: string): boolean {
     return false
   }
   const trimmed = uri.trim()
-  if (!trimmed.toLowerCase().startsWith('bitcoin:')) {
+  if (!hasBitcoinPrefix(trimmed)) {
     return false
   }
   const result = parseBitcoinUri(trimmed)

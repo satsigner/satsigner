@@ -6,8 +6,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type ArkAccount } from '@/types/models/Ark'
 import { resolveArkBoardFundDestination } from '@/utils/arkBoardDeposit'
-
-import { autoSelectUtxos } from './useContentProcessor'
+import { autoSelectUtxos } from '@/utils/contentProcessor'
 
 function linkedSignTransactionHref(accountId: string): Href {
   return `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`

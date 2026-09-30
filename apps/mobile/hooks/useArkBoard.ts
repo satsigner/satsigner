@@ -8,7 +8,6 @@ import { useEffect, useRef } from 'react'
 
 import {
   boardArk,
-  estimateArkBoardFee,
   fetchArkOnchainBalance,
   fetchArkServerInfo,
   getArkBoardFundingAddress,
@@ -17,7 +16,6 @@ import {
 } from '@/api/ark'
 import type {
   ArkBoardFundingInfo,
-  ArkFeeEstimate,
   ArkOnchainBalance,
   ArkPendingBoard,
   ArkServerInfo
@@ -33,7 +31,6 @@ import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 import { useArkWallet } from './useArkWallet'
 
 const ONCHAIN_BALANCE_REFETCH_INTERVAL_MS = 15_000
-const FEE_ESTIMATE_STALE_TIME_MS = 30_000
 
 export function invalidateArkBoardQueries(
   queryClient: QueryClient,
@@ -143,33 +140,6 @@ export function useArkServerInfo(accountId: string | null | undefined) {
     },
     queryKey: ['ark', 'server-info', accountId],
     staleTime: Infinity
-  })
-}
-
-type UseArkBoardFeeEstimateArgs = {
-  accountId: string | null | undefined
-  amountSats: number
-  enabled: boolean
-}
-
-export function useArkBoardFeeEstimate({
-  accountId,
-  amountSats,
-  enabled
-}: UseArkBoardFeeEstimateArgs) {
-  const { data: walletReady } = useArkWallet(accountId)
-  return useQuery<ArkFeeEstimate, Error>({
-    enabled: Boolean(walletReady && accountId) && enabled && amountSats > 0,
-    queryFn: () => {
-      if (!accountId) {
-        throw new Error('Ark account id is required')
-      }
-      const account = getArkAccountOrThrow(accountId)
-      return estimateArkBoardFee(account.serverId, accountId, amountSats)
-    },
-    queryKey: ['ark', 'board-fee-estimate', accountId, amountSats],
-    retry: false,
-    staleTime: FEE_ESTIMATE_STALE_TIME_MS
   })
 }
 

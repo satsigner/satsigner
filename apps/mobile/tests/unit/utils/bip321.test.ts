@@ -4,6 +4,7 @@ import {
   encodeBitcoinUriFromSats,
   getAddressFromUri,
   isBitcoinUri,
+  parseBitcoinPaymentUri,
   parseBitcoinUri,
   parseBitcoinUriWithSats,
   validateBitcoinAddressWithNetwork,
@@ -402,5 +403,32 @@ describe('bip321 utils', () => {
       expect(parsed.amount).toBe(params.amount)
       expect(parsed.label).toBe(params.label)
     })
+  })
+})
+
+describe('parseBitcoinPaymentUri', () => {
+  const address = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
+
+  it('parses BIP21 with or without the scheme', () => {
+    expect(
+      parseBitcoinPaymentUri(`${address}?amount=0.001&label=Tip`)
+    ).toStrictEqual({ address, amount: 0.001, label: 'Tip' })
+    expect(parseBitcoinPaymentUri(`bitcoin:${address}`)?.address).toBe(address)
+  })
+
+  it('keeps payjoin params', () => {
+    const parsed = parseBitcoinPaymentUri(
+      `bitcoin:${address}?amount=0.001&pjos=0&pj=https://payjo.in/mb`
+    )
+    expect(parsed).toMatchObject({
+      address,
+      amount: 0.001,
+      pj: 'https://payjo.in/mb',
+      pjos: 0
+    })
+  })
+
+  it('rejects content that is not a payment request', () => {
+    expect(parseBitcoinPaymentUri('bitcoin:?amount=0.001')).toBeNull()
   })
 })
