@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
@@ -422,7 +423,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                         '',
                       label: undefined,
                       script: Array.from(hex.decode(output.scriptPubKey.hex)),
-                      value: Math.round(output.value * 1e8)
+                      value: Math.round(output.value * SATS_PER_BITCOIN)
                     })),
                     vsize: rawTx.vsize,
                     weight: rawTx.weight
