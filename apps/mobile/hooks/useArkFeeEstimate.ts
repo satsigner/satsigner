@@ -3,12 +3,9 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { estimateArkFee } from '@/api/ark'
 import { ARK_QUERY_STALE_TIME_MS } from '@/constants/ark'
 import { useArkWallet } from '@/hooks/useArkWallet'
+import { getArkAccountOrThrow } from '@/store/ark'
 import type { ArkFeeEstimate, ArkFeeRequest } from '@/types/models/Ark'
-import {
-  getArkAccountOrThrow,
-  isArkFeeRequestReady,
-  normalizeArkFeeRequest
-} from '@/utils/ark'
+import { isArkFeeRequestReady, normalizeArkFeeRequest } from '@/utils/ark'
 
 type UseArkFeeEstimateArgs = {
   accountId: string | null | undefined

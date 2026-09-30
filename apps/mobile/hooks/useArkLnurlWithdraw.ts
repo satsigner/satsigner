@@ -3,8 +3,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { createArkBolt11Invoice } from '@/api/ark'
 import { ARK_LNURL_DETAILS_STALE_MS } from '@/constants/ark'
 import { MILLISATS_PER_SAT } from '@/constants/btc'
+import { getArkAccountOrThrow } from '@/store/ark'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
-import { getArkAccountOrThrow } from '@/utils/ark'
 import {
   fetchLNURLWithdrawDetails,
   isLnurlWithdrawAmountInRange,

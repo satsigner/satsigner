@@ -14,13 +14,13 @@ import {
   listArkPendingBoards,
   newArkOnchainAddress
 } from '@/api/ark'
+import { getArkAccountOrThrow } from '@/store/ark'
 import type {
   ArkBoardFundingInfo,
   ArkOnchainBalance,
   ArkPendingBoard,
   ArkServerInfo
 } from '@/types/models/Ark'
-import { getArkAccountOrThrow } from '@/utils/ark'
 import {
   getArkAutoBoardStatus,
   getArkMinBoardAmount,

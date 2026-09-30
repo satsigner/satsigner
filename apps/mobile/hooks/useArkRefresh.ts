@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { refreshArkVtxos } from '@/api/ark'
-import { getArkAccountOrThrow } from '@/utils/ark'
+import { getArkAccountOrThrow } from '@/store/ark'
 import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 
 function executeArkRefresh(

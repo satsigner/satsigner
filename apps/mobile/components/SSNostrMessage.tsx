@@ -13,11 +13,13 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
+import { type KeyFingerprintsByAccount } from '@/utils/psbt'
 
 type SSNostrMessageProps = {
   item: NostrDM
   account: Account | undefined
   accounts: Account[]
+  keyFingerprintsByAccount: KeyFingerprintsByAccount
   formattedNpubs: Map<string, AuthorDisplayInfo>
   visibleComponents: Map<string, { sankey: boolean; status: boolean }>
   onToggleVisibility: (msgId: string, component: 'sankey' | 'status') => void
@@ -34,6 +36,7 @@ function SSNostrMessage({
   item: msg,
   account,
   accounts,
+  keyFingerprintsByAccount,
   formattedNpubs,
   visibleComponents,
   onToggleVisibility,
@@ -190,6 +193,7 @@ function SSNostrMessage({
             transactionData={transactionData}
             account={account}
             accounts={accounts}
+            keyFingerprintsByAccount={keyFingerprintsByAccount}
             visibility={visibility}
             onToggleVisibility={(component) =>
               onToggleVisibility(msg.id, component)

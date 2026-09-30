@@ -7,9 +7,7 @@ import {
   ARK_SERVERS
 } from '@/constants/ark'
 import { t } from '@/locales'
-import { useArkStore } from '@/store/ark'
 import {
-  type ArkAccount,
   type ArkBalance,
   type ArkDestinationDraft,
   type ArkFeeRequest,
@@ -17,16 +15,6 @@ import {
   type ArkVtxo
 } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
-
-export function getArkAccountOrThrow(accountId: string): ArkAccount {
-  const account = useArkStore
-    .getState()
-    .accounts.find((a) => a.id === accountId)
-  if (!account) {
-    throw new Error('Ark account not found')
-  }
-  return account
-}
 
 export function arkNetworkLabel(network: Network): string {
   if (network === 'bitcoin') {

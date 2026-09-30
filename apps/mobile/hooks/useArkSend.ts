@@ -6,8 +6,8 @@ import {
   sendArkArkoor,
   sendArkOnchain
 } from '@/api/ark'
+import { getArkAccountOrThrow } from '@/store/ark'
 import type { ArkSendInput, ArkSendOutcome } from '@/types/models/Ark'
-import { getArkAccountOrThrow } from '@/utils/ark'
 import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 import { handleLNURLPay } from '@/utils/lnurl'
 

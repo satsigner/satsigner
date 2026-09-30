@@ -1,37 +1,30 @@
 import { useRouter } from 'expo-router'
 import { useCallback, useRef, useState } from 'react'
-import { type PsbtLike } from 'react-native-bdk-sdk'
+import { Psbt } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
 import { UNSET_OUTPUT_AMOUNT_SATS } from '@/constants/btc'
+import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
-import { getKeyFingerprint } from '@/utils/account'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   type BitcoinContentActions,
   type BitcoinContentTarget,
   type BitcoinUriExceedsBalancePromptInfo,
+  applyScannedPsbt,
   commitAddressOnly,
   commitBitcoinUriToIoPreview,
   commitDustBitcoinUri,
   extractPayjoinUriFromContent,
   getBitcoinContentHref,
-  indexSignedPsbts,
   isDustPaymentAmount,
-  mapSignedPsbtsToCosigners,
   parseScannedPaymentUri,
   psbtContentToBase64
 } from '@/utils/contentProcessor'
-import {
-  extractIndividualSignedPsbts,
-  extractOriginalPsbt,
-  extractTransactionDataFromPSBTEnhanced,
-  extractTransactionIdFromPSBT,
-  findMatchingAccount
-} from '@/utils/psbt'
+import { type KeyFingerprintsByAccount } from '@/utils/psbt'
 
 type UseBitcoinContentHandlerProps = {
   accountId: string
@@ -40,68 +33,6 @@ type UseBitcoinContentHandlerProps = {
   onError: (message: string) => void
   onInfo: (message: string) => void
   onSuccess: (message: string) => void
-}
-
-async function getKeyFingerprintIndexes(
-  account: Account
-): Promise<Map<string, number>> {
-  const fingerprints = await Promise.all(account.keys.map(getKeyFingerprint))
-  const indexes = new Map<string, number>()
-  for (const [index, fingerprint] of fingerprints.entries()) {
-    if (fingerprint) {
-      indexes.set(fingerprint, index)
-    }
-  }
-  return indexes
-}
-
-async function loadScannedPsbt(
-  psbtBase64: string,
-  actions: BitcoinContentActions,
-  account: Account
-) {
-  const accountMatch = await findMatchingAccount(psbtBase64, [account])
-  if (!accountMatch) {
-    return
-  }
-
-  const originalPsbt = extractOriginalPsbt(psbtBase64)
-  const extractedData = extractTransactionDataFromPSBTEnhanced(
-    originalPsbt,
-    account
-  )
-  if (!extractedData) {
-    return
-  }
-
-  actions.setRbf?.(true)
-  const individualSignedPsbts = extractIndividualSignedPsbts(
-    psbtBase64,
-    originalPsbt
-  )
-  const matchedAccount = accountMatch.account
-  const signedPsbts =
-    matchedAccount.policyType === 'multisig'
-      ? mapSignedPsbtsToCosigners(
-          individualSignedPsbts,
-          psbtBase64,
-          await getKeyFingerprintIndexes(matchedAccount)
-        )
-      : indexSignedPsbts(individualSignedPsbts)
-  actions.setSignedPsbts?.(signedPsbts)
-
-  const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
-  if (!extractedTxid) {
-    return
-  }
-
-  const mockPsbt = {
-    extractTxHex: () => '',
-    feeAmount: () => extractedData.fee || 0,
-    toBase64: () => originalPsbt,
-    txid: () => extractedTxid
-  } as unknown as PsbtLike
-  actions.setPsbt?.(mockPsbt)
 }
 
 async function commitScannedBitcoinUri(
@@ -149,7 +80,8 @@ async function commitScannedBitcoinUri(
 async function processBitcoinContent(
   content: DetectedContent,
   actions: BitcoinContentActions,
-  target: BitcoinContentTarget
+  target: BitcoinContentTarget,
+  ensureKeyFingerprints: () => Promise<KeyFingerprintsByAccount>
 ) {
   actions.clearTransaction?.()
   actions.setAccountId?.(target.accountId)
@@ -160,11 +92,15 @@ async function processBitcoinContent(
   }
 
   if (content.type === 'psbt' && target.account) {
-    await loadScannedPsbt(
+    const originalPsbt = applyScannedPsbt(
       psbtContentToBase64(content.cleaned),
       actions,
-      target.account
+      target.account,
+      await ensureKeyFingerprints()
     )
+    if (originalPsbt) {
+      actions.setPsbt?.(new Psbt(originalPsbt))
+    }
     return
   }
 
@@ -194,6 +130,7 @@ export function useBitcoinContentHandler({
   onSuccess
 }: UseBitcoinContentHandlerProps) {
   const router = useRouter()
+  const { ensureKeyFingerprints } = useAccountKeyFingerprints([account])
   const nextBlockFee = useBlockchainStore((state) => state.nextBlockFee)
 
   const [
@@ -281,7 +218,8 @@ export function useBitcoinContentHandler({
             setRbf,
             setSignedPsbts
           },
-          { account, accountId, nextBlockFee }
+          { account, accountId, nextBlockFee },
+          ensureKeyFingerprints
         )
         if (
           content.type === 'bitcoin_uri' &&
@@ -299,6 +237,7 @@ export function useBitcoinContentHandler({
       addInput,
       addOutput,
       clearTransaction,
+      ensureKeyFingerprints,
       nextBlockFee,
       onError,
       onInfo,

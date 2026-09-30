@@ -27,7 +27,16 @@ import {
 import { getUsableFeeRate } from '@/utils/feeWarnings'
 import { ensureBitcoinPrefix, parseUriParameters } from '@/utils/parse'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
-import { combinePsbts, getCollectedSignerPubkeys } from '@/utils/psbt'
+import {
+  combinePsbts,
+  extractIndividualSignedPsbts,
+  extractOriginalPsbt,
+  extractTransactionDataFromPSBTEnhanced,
+  extractTransactionIdFromPSBT,
+  findMatchingAccount,
+  getCollectedSignerPubkeys,
+  type KeyFingerprintsByAccount
+} from '@/utils/psbt'
 import { selectEfficientUtxos } from '@/utils/utxo'
 import { applyUtxoDenylist } from '@/utils/utxoList'
 
@@ -283,16 +292,16 @@ export function indexSignedPsbts(
 export function mapSignedPsbtsToCosigners(
   individualSignedPsbts: Record<number, string>,
   psbtBase64: string,
-  keyFingerprintToCosignerIndex: Map<string, number>
+  keyFingerprints: string[]
 ): Map<number, string> {
   const pubkeyToCosignerIndex = new Map<string, number>()
   const combinedPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   for (const input of combinedPsbt.data.inputs) {
     for (const derivation of input.bip32Derivation ?? []) {
-      const cosignerIndex = keyFingerprintToCosignerIndex.get(
+      const cosignerIndex = keyFingerprints.indexOf(
         derivation.masterFingerprint.toString('hex')
       )
-      if (cosignerIndex !== undefined) {
+      if (cosignerIndex !== -1) {
         pubkeyToCosignerIndex.set(
           derivation.pubkey.toString('hex'),
           cosignerIndex
@@ -322,6 +331,44 @@ export function mapSignedPsbtsToCosigners(
     )
   }
   return signedPsbts
+}
+
+export function applyScannedPsbt(
+  psbtBase64: string,
+  actions: BitcoinContentActions,
+  account: Account,
+  keyFingerprintsByAccount: KeyFingerprintsByAccount
+): string | null {
+  const accountMatch = findMatchingAccount(
+    psbtBase64,
+    [account],
+    keyFingerprintsByAccount
+  )
+  if (!accountMatch) {
+    return null
+  }
+
+  const originalPsbt = extractOriginalPsbt(psbtBase64)
+  if (!extractTransactionDataFromPSBTEnhanced(originalPsbt, account)) {
+    return null
+  }
+
+  const matchedAccount = accountMatch.account
+  const individualSignedPsbts = extractIndividualSignedPsbts(
+    psbtBase64,
+    originalPsbt
+  )
+  actions.setRbf?.(true)
+  actions.setSignedPsbts?.(
+    matchedAccount.policyType === 'multisig'
+      ? mapSignedPsbtsToCosigners(
+          individualSignedPsbts,
+          psbtBase64,
+          keyFingerprintsByAccount[matchedAccount.id] ?? []
+        )
+      : indexSignedPsbts(individualSignedPsbts)
+  )
+  return extractTransactionIdFromPSBT(originalPsbt) ? originalPsbt : null
 }
 
 export function getContentHref(

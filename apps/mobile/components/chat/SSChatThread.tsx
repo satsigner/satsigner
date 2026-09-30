@@ -183,6 +183,7 @@ export default function SSChatThread({
                 item={toNostrDM(item, ownHex)}
                 account={undefined}
                 accounts={[]}
+                keyFingerprintsByAccount={{}}
                 formattedNpubs={formattedNpubs}
                 visibleComponents={visibleComponents}
                 onToggleVisibility={handleToggleVisibility}
