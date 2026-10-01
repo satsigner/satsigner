@@ -3,6 +3,8 @@ import { type Utxo } from '@/types/models/Utxo'
 
 import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.ts'
 import {
+  buildChartTransactionFromBuilder,
+  buildPreviewTransactionHex,
   estimateTransactionSize,
   recalculateDepthH
 } from '../../../utils/transaction'
@@ -625,5 +627,71 @@ describe('recalculateDepthH', () => {
     ])
     const result = recalculateDepthH(transactions)
     expect(result.get('txA')?.depthH).toBe(1)
+  })
+})
+
+describe('transaction builder previews', () => {
+  const address = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
+  const utxo: Utxo = {
+    addressTo: address,
+    keychain: 'external',
+    label: 'coffee',
+    txid: 'aa'.repeat(32),
+    value: 100_000,
+    vout: 1
+  }
+  const output: Output = {
+    amount: 90_000,
+    label: 'rent',
+    localId: 'out-1',
+    to: address
+  }
+
+  it('builds a decodable hex with the builder inputs and outputs', () => {
+    const txHex = buildPreviewTransactionHex(
+      new Map([['a', utxo]]),
+      [output],
+      'bitcoin'
+    )
+    expect(txHex).not.toBe('')
+    expect(txHex).toContain('aa'.repeat(32))
+  })
+
+  it('skips inputs with an invalid txid', () => {
+    const txHex = buildPreviewTransactionHex(
+      new Map([['a', { ...utxo, txid: 'not-a-txid' }]]),
+      [output],
+      'bitcoin'
+    )
+    expect(txHex).not.toContain('aa'.repeat(32))
+  })
+
+  it('returns empty hex when an output address is invalid', () => {
+    expect(
+      buildPreviewTransactionHex(
+        new Map([['a', utxo]]),
+        [{ ...output, to: 'invalid' }],
+        'bitcoin'
+      )
+    ).toBe('')
+  })
+
+  it('builds the chart transaction from builder data', () => {
+    const transaction = buildChartTransactionFromBuilder(
+      new Map([['a', utxo]]),
+      [output],
+      'txid-1'
+    )
+    expect(transaction.id).toBe('txid-1')
+    expect(transaction.vin).toHaveLength(1)
+    expect(transaction.vin[0].previousOutput).toStrictEqual({
+      txid: utxo.txid,
+      vout: utxo.vout
+    })
+    expect(transaction.vout[0]).toMatchObject({
+      address,
+      label: 'rent',
+      value: 90_000
+    })
   })
 })

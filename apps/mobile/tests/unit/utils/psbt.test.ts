@@ -151,7 +151,7 @@ describe('multisig witness script helpers', () => {
   const witnessScript = required(
     bitcoinjs.payments.p2ms({ m: 2, pubkeys }).output
   )
-    
+
   const signature = { pubkey: pubkeys[0], signature: Buffer.alloc(71) }
 
   it('reads the m-of-n of a multisig script', () => {
@@ -254,9 +254,7 @@ describe('hasAllRequiredSignatures', () => {
 
 describe('getPsbtTxidOrFallback', () => {
   it('prefers the PSBT txid', () => {
-    expect(getPsbtTxidOrFallback({ txid: () => 'abc' }, 'fallback')).toBe(
-      'abc'
-    )
+    expect(getPsbtTxidOrFallback({ txid: () => 'abc' }, 'fallback')).toBe('abc')
   })
 
   it('falls back when missing or failing', () => {
