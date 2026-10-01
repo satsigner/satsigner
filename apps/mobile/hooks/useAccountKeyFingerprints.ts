@@ -11,7 +11,9 @@ async function fetchKeyFingerprints(
     accounts.map(
       async (account): Promise<[string, string[]]> => [
         account.id,
-        await Promise.all(account.keys.map(getKeyFingerprint))
+        await Promise.all(
+          account.keys.map((key) => getKeyFingerprint(key).catch(() => ''))
+        )
       ]
     )
   )
