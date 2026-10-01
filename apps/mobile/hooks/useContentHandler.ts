@@ -1,5 +1,5 @@
 import { type Href, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { t } from '@/locales'
@@ -33,6 +33,12 @@ export function useContentHandler({
 
   const { isHardwareSupported: nfcAvailable } = useNFCReader()
 
+  // Stable identities: consumers list these as focus-effect deps, and a new
+  // reference would run the effect cleanup and close the modals mid-use.
+  const closeCameraModal = useCallback(() => setCameraModalVisible(false), [])
+  const closeNFCModal = useCallback(() => setNfcModalVisible(false), [])
+  const closePasteModal = useCallback(() => setPasteModalVisible(false), [])
+
   function navigateToContent(content: DetectedContent) {
     if (!content.isValid) {
       onError?.(t('camera.invalidContent', { context }))
@@ -56,9 +62,9 @@ export function useContentHandler({
 
   return {
     cameraModalVisible,
-    closeCameraModal: () => setCameraModalVisible(false),
-    closeNFCModal: () => setNfcModalVisible(false),
-    closePasteModal: () => setPasteModalVisible(false),
+    closeCameraModal,
+    closeNFCModal,
+    closePasteModal,
     handleCamera: () => setCameraModalVisible(true),
     handleContentPasted: handleContentScanned,
     handleContentScanned,
