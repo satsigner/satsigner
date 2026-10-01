@@ -33,6 +33,7 @@ import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import { PAYJOIN_DEFAULT_PJOS } from '@/constants/payjoin'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -41,7 +42,6 @@ import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useNostrStore } from '@/store/nostr'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -78,6 +78,7 @@ import {
   buildTxLabelsById
 } from '@/utils/sankeyInputLabel'
 import {
+  buildChartTransactionFromBuilder,
   estimateTransactionSize,
   legacyEstimateTransactionSize
 } from '@/utils/transaction'
@@ -213,33 +214,9 @@ function buildSignTransactionChartModel(
     }
   }
 
-  const vin = Array.from(inputs.values()).map((input: Utxo) => ({
-    label: input.label || '',
-    previousOutput: { txid: input.txid, vout: input.vout },
-    scriptSig: '' as string | number[],
-    sequence: 0,
-    value: input.value,
-    witness: [] as number[][]
-  }))
-
-  const vout = outputs.map((output: Output) => ({
-    address: output.to,
-    kind: output.kind,
-    label: output.label || '',
-    script: '' as string | number[],
-    value: output.amount
-  }))
-
   return {
-    id: txid,
-    lockTimeEnabled: false,
-    prices: {},
-    received: 0,
-    sent: 0,
+    ...buildChartTransactionFromBuilder(inputs, outputs, txid),
     size,
-    type: 'send' as const,
-    vin,
-    vout,
     vsize
   }
 }
@@ -337,9 +314,7 @@ export default function SignTransaction() {
     () => buildOutpointLabelsByRef(account ?? {}),
     [account]
   )
-  const setTransactionToShare = useNostrStore(
-    (state) => state.setTransactionToShare
-  )
+  const shareWithNostrGroup = useNostrShareTransaction({ account, id })
   const wallet = useGetAccountWallet(id!)
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
@@ -521,23 +496,7 @@ export default function SignTransaction() {
   }
 
   function handleShareWithNostrGroup() {
-    if (!account?.nostr?.autoSync) {
-      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
-      return
-    }
-    const txString = psbt?.toBase64() ?? signedTx ?? ''
-    if (!txString) {
-      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
-      return
-    }
-    setTransactionToShare({
-      transaction: txString,
-      transactionData: { combinedPsbt: txString }
-    })
-    router.push({
-      params: { id },
-      pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
-    })
+    shareWithNostrGroup(psbt?.toBase64() ?? signedTx)
   }
 
   const paymentAmountSats = useMemo(
