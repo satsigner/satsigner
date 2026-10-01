@@ -64,9 +64,17 @@ type WalletTxSummary = {
   sent: number
 }
 
+type CoreWalletSyncResult = Pick<
+  Account,
+  'transactions' | 'utxos' | 'addresses' | 'summary'
+> & {
+  rpcLastBlockHash: string
+}
+
 type AppNetwork = Account['addresses'][number]['network']
 
 const ALREADY_RESCANNING_ERROR = 'already rescanning'
+const LIST_DESCRIPTORS_METHOD = 'listdescriptors'
 
 const DESCRIPTOR_CHECKSUM_REGEX = /#[a-z0-9]{8}$/
 const MULTIPATH_DESCRIPTOR_REGEX = /^(.+?)<(\d+);(\d+)>(.+?)(?:#.*)?$/
@@ -83,6 +91,12 @@ const hexToBytes = (hex: string) =>
 
 const toUnixSec = (date?: Date) =>
   date ? Math.floor(date.getTime() / 1000) : undefined
+
+function isListDescriptorsError(error: unknown) {
+  return (
+    error instanceof Error && error.message.includes(LIST_DESCRIPTORS_METHOD)
+  )
+}
 
 function isAlreadyRescanning(error: unknown) {
   return (
@@ -145,42 +159,44 @@ async function importDescriptorsIfNeeded(
   [external, internal]: [string, string],
   stopGap: number
 ): Promise<boolean> {
-  try {
-    const existing = await coreWallet.listDescriptors()
-    if (existing.descriptors.length > 0) {
-      return !account.rpcLastBlockHash
-    }
-
-    const results = await coreWallet.importDescriptors([
-      {
-        active: true,
-        desc: external,
-        internal: false,
-        range: [0, stopGap],
-        timestamp: 'now'
-      },
-      {
-        active: true,
-        desc: internal,
-        internal: true,
-        range: [0, stopGap],
-        timestamp: 'now'
+  const existing = await coreWallet
+    .listDescriptors()
+    .catch((error: unknown) => {
+      if (!isListDescriptorsError(error)) {
+        throw error
       }
-    ])
-    const failed = results.find((result) => !result.success && result.error)
-    if (failed?.error) {
-      throw new Error(
-        `importdescriptors failed: ${failed.error.message} (code ${failed.error.code})`
-      )
-    }
-    return true
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
-    if (!msg.includes('listdescriptors')) {
-      throw error
-    }
+      return null
+    })
+  if (!existing) {
     return false
   }
+  if (existing.descriptors.length > 0) {
+    return !account.rpcLastBlockHash
+  }
+
+  const results = await coreWallet.importDescriptors([
+    {
+      active: true,
+      desc: external,
+      internal: false,
+      range: [0, stopGap],
+      timestamp: 'now'
+    },
+    {
+      active: true,
+      desc: internal,
+      internal: true,
+      range: [0, stopGap],
+      timestamp: 'now'
+    }
+  ])
+  const failed = results.find((result) => !result.success && result.error)
+  if (failed?.error) {
+    throw new Error(
+      `importdescriptors failed: ${failed.error.message} (code ${failed.error.code})`
+    )
+  }
+  return true
 }
 
 function latestCheckpointHeight(wallet: BdkWallet) {
@@ -423,19 +439,19 @@ function summarizeWalletTxs(
 
   for (const entry of entries) {
     const amtSat = btcToSats(Math.abs(entry.amount))
-    const existing = txMap.get(entry.txid)
-    if (!existing) {
-      txMap.set(entry.txid, {
-        blockheight: entry.blockheight,
-        blocktime: entry.blocktime,
-        received: entry.category === 'receive' ? amtSat : 0,
-        sent: entry.category === 'send' ? amtSat : 0
-      })
-    } else if (entry.category === 'receive') {
-      existing.received += amtSat
-    } else if (entry.category === 'send') {
-      existing.sent += amtSat
+    const summary = txMap.get(entry.txid) ?? {
+      blockheight: entry.blockheight,
+      blocktime: entry.blocktime,
+      received: 0,
+      sent: 0
     }
+    if (entry.category === 'receive') {
+      summary.received += amtSat
+    }
+    if (entry.category === 'send') {
+      summary.sent += amtSat
+    }
+    txMap.set(entry.txid, summary)
   }
 
   for (const txid of removedTxids) {
@@ -548,11 +564,7 @@ async function syncWithCoreWallet(
   isCancelled?: () => boolean,
   rpcWalletName?: string,
   rpcScanFromHeight?: number
-): Promise<
-  Pick<Account, 'transactions' | 'utxos' | 'addresses' | 'summary'> & {
-    rpcLastBlockHash: string
-  }
-> {
+): Promise<CoreWalletSyncResult> {
   const coreWallet = new BitcoinCoreWallet(
     nodeUrl,
     credentials.username,
