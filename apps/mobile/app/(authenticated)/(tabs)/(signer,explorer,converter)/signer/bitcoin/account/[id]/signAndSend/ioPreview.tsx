@@ -45,7 +45,7 @@ import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
-import { useNow } from '@/hooks/useNow'
+import { usePayjoinInvoice } from '@/hooks/usePayjoinInvoice'
 import { useTransactionFeeWarnings } from '@/hooks/useTransactionFeeWarnings'
 import { useUriAutoSelectUtxos } from '@/hooks/useUriAutoSelectUtxos'
 import SSHStack from '@/layouts/SSHStack'
@@ -90,10 +90,6 @@ import {
   parseUriParameters,
   stripBitcoinPrefix
 } from '@/utils/parse'
-import {
-  formatPayjoinExpiryLabel,
-  parsePayjoinExpiresAtMs
-} from '@/utils/payjoinExpiry'
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   buildOutpointLabelsByRef,
@@ -291,36 +287,7 @@ export default function IOPreview() {
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
   const payjoinDataBottomSheetRef = useRef<BottomSheet>(null)
-  const nowMs = useNow()
-
-  const payjoinInvoice = useMemo(() => {
-    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
-      return undefined
-    }
-    const parsed = parsePayjoinUri(payjoinUri)
-    if (!parsed.isValid || !parsed.params) {
-      return undefined
-    }
-    const amountSats =
-      parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
-        ? Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
-        : undefined
-    return {
-      address: parsed.params.address,
-      amountSats,
-      endpointKind: parsed.endpointKind,
-      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
-      label: parsed.params.label,
-      pj: parsed.params.pj,
-      pjos: parsed.params.pjos,
-      uri: payjoinUri
-    }
-  }, [payjoinUri])
-
-  const payjoinExpiryLabel = formatPayjoinExpiryLabel(
-    payjoinInvoice?.expiresAt,
-    nowMs
-  )
+  const { payjoinExpiryLabel, payjoinInvoice } = usePayjoinInvoice()
 
   function handleOpenPayjoinData() {
     payjoinDataBottomSheetRef.current?.expand()
