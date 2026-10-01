@@ -19,6 +19,10 @@ export const MnemonicWordCountSchema = z.union([
   z.literal(24)
 ])
 
+export const MNEMONIC_WORD_COUNTS = MnemonicWordCountSchema.options.map(
+  (option) => option.value
+)
+
 export const MnemonicEntropyBitsSchema = z.union([
   z.literal(128),
   z.literal(160),
