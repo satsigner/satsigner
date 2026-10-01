@@ -1,32 +1,137 @@
 import { useRouter } from 'expo-router'
 import { useCallback, useRef, useState } from 'react'
-import { toast } from 'sonner-native'
+import { Psbt } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  type BitcoinUriExceedsBalancePromptInfo,
-  processContentByContext
-} from '@/hooks/useContentProcessor'
+import { UNSET_OUTPUT_AMOUNT_SATS } from '@/constants/btc'
+import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
 import { t } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { hasPayjoinParam } from '@/utils/payjoinUri'
-
-type NavigatePath = Parameters<ReturnType<typeof useRouter>['navigate']>[0]
+import {
+  type BitcoinContentActions,
+  type BitcoinContentTarget,
+  type BitcoinUriExceedsBalancePromptInfo,
+  applyScannedPsbt,
+  commitAddressOnly,
+  commitBitcoinUriToIoPreview,
+  commitDustBitcoinUri,
+  extractPayjoinUriFromContent,
+  getBitcoinContentHref,
+  isDustPaymentAmount,
+  parseScannedPaymentUri,
+  psbtContentToBase64
+} from '@/utils/contentProcessor'
+import { type KeyFingerprintsByAccount } from '@/utils/psbt'
 
 type UseBitcoinContentHandlerProps = {
   accountId: string
   account: Account
   closePasteModal?: () => void
+  onError: (message: string) => void
+  onInfo: (message: string) => void
+  onSuccess: (message: string) => void
+}
+
+async function commitScannedBitcoinUri(
+  content: DetectedContent,
+  actions: BitcoinContentActions,
+  target: BitcoinContentTarget
+) {
+  const payjoinUri = extractPayjoinUriFromContent(content)
+  const request = parseScannedPaymentUri(content, payjoinUri)
+  if (!request) {
+    return
+  }
+
+  if (isDustPaymentAmount(request.amountSats)) {
+    commitDustBitcoinUri(actions, target, request, payjoinUri)
+    return
+  }
+
+  const balance = target.account?.summary?.balance
+  if (balance === undefined || request.amountSats <= balance) {
+    commitBitcoinUriToIoPreview(actions, target, request, payjoinUri)
+    return
+  }
+
+  if (!actions.promptBitcoinUriExceedsBalance) {
+    return
+  }
+  const choice = await actions.promptBitcoinUriExceedsBalance({
+    address: request.address,
+    availableBalanceSats: balance,
+    label: request.label,
+    requestedAmountSats: request.amountSats
+  })
+  if (choice === 'cancel') {
+    return
+  }
+  commitBitcoinUriToIoPreview(
+    actions,
+    target,
+    { ...request, amountSats: UNSET_OUTPUT_AMOUNT_SATS },
+    payjoinUri
+  )
+}
+
+async function processBitcoinContent(
+  content: DetectedContent,
+  actions: BitcoinContentActions,
+  target: BitcoinContentTarget,
+  ensureKeyFingerprints: () => Promise<KeyFingerprintsByAccount>
+) {
+  actions.clearTransaction?.()
+  actions.setAccountId?.(target.accountId)
+
+  const href = getBitcoinContentHref(content, target.accountId)
+  if (href) {
+    actions.navigate(href)
+  }
+
+  if (content.type === 'psbt' && target.account) {
+    const originalPsbt = applyScannedPsbt(
+      psbtContentToBase64(content.cleaned),
+      actions,
+      target.account,
+      await ensureKeyFingerprints()
+    )
+    if (originalPsbt) {
+      actions.setPsbt?.(new Psbt(originalPsbt))
+    }
+    return
+  }
+
+  if (content.type === 'bitcoin_address') {
+    commitAddressOnly(actions, target, content.cleaned)
+    return
+  }
+
+  if (content.type !== 'bitcoin_uri') {
+    return
+  }
+
+  // Malformed percent-encoding in a URI label makes decoding throw.
+  try {
+    await commitScannedBitcoinUri(content, actions, target)
+  } catch {
+    commitAddressOnly(actions, target, content.cleaned)
+  }
 }
 
 export function useBitcoinContentHandler({
   accountId,
   account,
-  closePasteModal
+  closePasteModal,
+  onError,
+  onInfo,
+  onSuccess
 }: UseBitcoinContentHandlerProps) {
   const router = useRouter()
+  const { ensureKeyFingerprints } = useAccountKeyFingerprints([account])
+  const nextBlockFee = useBlockchainStore((state) => state.nextBlockFee)
 
   const [
     clearTransaction,
@@ -81,66 +186,50 @@ export function useBitcoinContentHandler({
   const handleContentScanned = useCallback(
     async (content: DetectedContent) => {
       if (!content.isValid) {
-        toast.error('Invalid Bitcoin content detected')
+        onError(t('camera.invalidContent', { context: 'bitcoin' }))
         return
       }
 
       if (content.type === 'incompatible') {
-        toast.error(t('paste.error.incompatibleContent'))
+        onError(t('paste.error.incompatibleContent'))
         return
-      }
-
-      const runProcess = async () => {
-        try {
-          const maybePayjoin = [content.raw, content.cleaned].some(
-            (value) =>
-              !!value &&
-              hasPayjoinParam(
-                value.toLowerCase().startsWith('bitcoin:')
-                  ? value
-                  : `bitcoin:${value}`
-              )
-          )
-          await processContentByContext(
-            content,
-            'bitcoin',
-            {
-              addInput,
-              addOutput,
-              clearTransaction,
-              navigate: (path: NavigatePath) => {
-                router.navigate(path)
-              },
-              promptBitcoinUriExceedsBalance,
-              setAccountId,
-              setFeeRate,
-              setPayjoinUri,
-              setPsbt,
-              setRbf,
-              setSignedPsbts
-            },
-            accountId,
-            account
-          )
-          if (maybePayjoin && content.type === 'bitcoin_uri') {
-            toast.success(t('transaction.build.payjoin.uriDetected'))
-          }
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : 'unknown'
-          toast.error(`${t('bitcoin.error.processFailed')}: ${reason}`)
-        }
       }
 
       if (
-        content.type !== 'bitcoin_descriptor' &&
-        content.type !== 'extended_public_key'
+        content.type === 'bitcoin_descriptor' ||
+        content.type === 'extended_public_key'
       ) {
-        await runProcess()
-        return
+        onInfo(t('watchonly.info.creatingWatchOnlyAccount'))
       }
 
-      toast.info(t('watchonly.info.creatingWatchOnlyAccount'))
-      await runProcess()
+      try {
+        await processBitcoinContent(
+          content,
+          {
+            addInput,
+            addOutput,
+            clearTransaction,
+            navigate: (path) => router.navigate(path),
+            promptBitcoinUriExceedsBalance,
+            setAccountId,
+            setFeeRate,
+            setPayjoinUri,
+            setPsbt,
+            setRbf,
+            setSignedPsbts
+          },
+          { account, accountId, nextBlockFee },
+          ensureKeyFingerprints
+        )
+        if (
+          content.type === 'bitcoin_uri' &&
+          extractPayjoinUriFromContent(content)
+        ) {
+          onSuccess(t('transaction.build.payjoin.uriDetected'))
+        }
+      } catch {
+        onError(t('camera.error.processFailed'))
+      }
     },
     [
       account,
@@ -148,6 +237,11 @@ export function useBitcoinContentHandler({
       addInput,
       addOutput,
       clearTransaction,
+      ensureKeyFingerprints,
+      nextBlockFee,
+      onError,
+      onInfo,
+      onSuccess,
       promptBitcoinUriExceedsBalance,
       router,
       setAccountId,
@@ -159,22 +253,8 @@ export function useBitcoinContentHandler({
     ]
   )
 
-  const handleSend = useCallback(() => {
-    router.push(
-      `/signer/bitcoin/account/${accountId}/signAndSend/selectUtxoList`
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId])
-
-  const handleReceive = useCallback(() => {
-    router.push(`/signer/bitcoin/account/${accountId}/receive`)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId])
-
   return {
     handleContentScanned,
-    handleReceive,
-    handleSend,
     resolveUriExceedsBalancePrompt,
     uriExceedsBalanceModal
   }

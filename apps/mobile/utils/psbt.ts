@@ -5,7 +5,6 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { PSBT_MAGIC_HEX } from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
-import { getKeyFingerprint } from '@/utils/account'
 import { mnemonicToSeed, validateMnemonic } from '@/utils/bip39'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
@@ -111,65 +110,38 @@ function extractPSBTDerivations(psbtBase64: string) {
   return derivations
 }
 
-export async function findMatchingAccount(
+export type KeyFingerprintsByAccount = Record<string, string[]>
+
+export function findMatchingAccount(
   psbtBase64: string,
-  accounts: Account[]
-) {
-  let derivations: ReturnType<typeof extractPSBTDerivations> | undefined
-
-  try {
-    derivations = extractPSBTDerivations(psbtBase64)
-  } catch {
-    return null
-  }
-
-  if (!derivations || derivations.length === 0) {
-    return null
-  }
-
+  accounts: Account[],
+  keyFingerprintsByAccount: KeyFingerprintsByAccount
+): AccountMatchResult | null {
+  const derivations = extractPSBTDerivations(psbtBase64)
   const psbtFingerprints = [...new Set(derivations.map((d) => d.fingerprint))]
+  if (psbtFingerprints.length === 0) {
+    return null
+  }
 
   for (const account of accounts) {
-    if (!account.keys || account.keys.length === 0) {
-      continue
-    }
-
-    const accountFingerprints: string[] = []
-    const keyFingerprintMap = new Map<string, number>()
-
-    for (let keyIndex = 0; keyIndex < account.keys.length; keyIndex += 1) {
-      const key = account.keys[keyIndex]
-      const keyFingerprint = await getKeyFingerprint(key)
-
-      if (!keyFingerprint) {
-        continue
-      }
-
-      accountFingerprints.push(keyFingerprint)
-      keyFingerprintMap.set(keyFingerprint, keyIndex)
-    }
-
+    const accountFingerprints = new Set(
+      (keyFingerprintsByAccount[account.id] ?? []).filter(Boolean)
+    )
     const allFingerprintsMatch = psbtFingerprints.every((psbtFp) =>
-      accountFingerprints.includes(psbtFp)
+      accountFingerprints.has(psbtFp)
     )
-
-    if (!allFingerprintsMatch) {
-      continue
-    }
-
     const firstMatchingDerivation = derivations.find((d) =>
-      accountFingerprints.includes(d.fingerprint)
+      accountFingerprints.has(d.fingerprint)
     )
-
-    if (!firstMatchingDerivation) {
+    if (!allFingerprintsMatch || !firstMatchingDerivation) {
       continue
     }
-    const matchingKeyIndex = keyFingerprintMap.get(
-      firstMatchingDerivation.fingerprint
-    )!
+
     return {
       account,
-      cosignerIndex: matchingKeyIndex,
+      cosignerIndex: keyFingerprintsByAccount[account.id].indexOf(
+        firstMatchingDerivation.fingerprint
+      ),
       derivationPath: firstMatchingDerivation.derivationPath,
       fingerprint: firstMatchingDerivation.fingerprint,
       publicKey: firstMatchingDerivation.publicKey

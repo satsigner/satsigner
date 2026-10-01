@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -13,12 +13,12 @@ import { type Transaction } from '@/types/models/Transaction'
 import { getAccountAddressSets } from '@/utils/address'
 import { formatTxId } from '@/utils/format'
 import {
-  type AccountMatchResult,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
   extractTransactionIdFromPSBT,
   findMatchingAccount,
+  type KeyFingerprintsByAccount,
   getMultisigInfoFromPsbt,
   type TransactionData
 } from '@/utils/psbt'
@@ -35,6 +35,7 @@ type SSTransactionDetailsProps = {
   transactionData: TransactionData
   account: Account | undefined
   accounts: Account[]
+  keyFingerprintsByAccount: KeyFingerprintsByAccount
   visibility?: { sankey: boolean; status: boolean }
   onToggleVisibility?: (component: 'sankey' | 'status') => void
   onGoToSignFlow?: () => void
@@ -44,25 +45,21 @@ function SSTransactionDetails({
   transactionData,
   account,
   accounts,
+  keyFingerprintsByAccount,
   visibility,
   onToggleVisibility,
   onGoToSignFlow
 }: SSTransactionDetailsProps) {
-  const [accountMatch, setAccountMatch] = useState<AccountMatchResult | null>(
-    null
-  )
   const { combinedPsbt } = transactionData
   const originalPsbt = extractOriginalPsbt(combinedPsbt)
   const txid = extractTransactionIdFromPSBT(combinedPsbt)
   const multisigInfo = getMultisigInfoFromPsbt(combinedPsbt)
 
-  useEffect(() => {
-    async function matchAccount() {
-      const match = await findMatchingAccount(originalPsbt, accounts)
-      setAccountMatch(match)
-    }
-    matchAccount()
-  }, [originalPsbt, accounts])
+  const accountMatch = findMatchingAccount(
+    originalPsbt,
+    accounts,
+    keyFingerprintsByAccount
+  )
 
   const signedPsbts = extractIndividualSignedPsbts(combinedPsbt, originalPsbt)
   const matchedAccount = accountMatch?.account || account

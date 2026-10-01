@@ -20,7 +20,7 @@ import {
 import { formatParsedLndPeer, parseLndPeerUri } from '@/utils/lndOpenChannel'
 import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
-import { stripBitcoinPrefix } from '@/utils/parse'
+import { hasBitcoinPrefix, stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
@@ -148,18 +148,9 @@ function detectBitcoinContent(data: string): DetectedContent | null {
     }
   }
 
-  if (trimmed.toLowerCase().startsWith('bitcoin:')) {
-    const uriPart = trimmed.substring(8)
-    if (isBitcoinUri(trimmed)) {
-      return {
-        cleaned: trimmed,
-        isValid: true,
-        raw: data,
-        type: 'bitcoin_uri'
-      }
-    }
-    const addressMatch = uriPart.match(/^([^?]+)(\?.*)?$/)
-    if (addressMatch && isBitcoinAddress(addressMatch[1])) {
+  if (hasBitcoinPrefix(trimmed)) {
+    const [address] = stripBitcoinPrefix(trimmed).split('?')
+    if (isBitcoinAddress(address)) {
       return {
         cleaned: trimmed,
         isValid: true,

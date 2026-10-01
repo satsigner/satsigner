@@ -8,6 +8,7 @@ import {
   View
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -36,7 +37,6 @@ import {
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useEcash } from '@/hooks/useEcash'
-import { useEcashContentHandler } from '@/hooks/useEcashContentHandler'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -83,13 +83,14 @@ export default function EcashAccountDetailPage() {
   const handleProofBubblePress = (bubbleId: string) =>
     router.navigate(`/signer/ecash/account/${id}/proof/${bubbleId}`)
 
-  const ecashContentHandler = useEcashContentHandler()
-
   const contentHandler = useContentHandler({
     context: 'ecash',
-    onContentScanned: ecashContentHandler.handleContentScanned,
-    onReceive: ecashContentHandler.handleReceive,
-    onSend: ecashContentHandler.handleSend
+    onError: toast.error,
+    receiveHref: {
+      params: { id },
+      pathname: '/signer/ecash/account/[id]/receive'
+    },
+    sendHref: { params: { id }, pathname: '/signer/ecash/account/[id]/send' }
   })
 
   if (id && activeAccount?.id !== id) {

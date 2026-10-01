@@ -12,8 +12,8 @@ import SSPaste from '@/components/SSPaste'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { VTXO_ID_TRUNCATE_CHARS } from '@/constants/format'
+import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkOffboard } from '@/hooks/useArkOffboard'
-import { useArkOffboardFeeEstimate } from '@/hooks/useArkOffboardFeeEstimate'
 import { useArkSpendableVtxos } from '@/hooks/useArkSpendableVtxos'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -84,11 +84,14 @@ export default function ArkSendOffboardPage() {
     network !== undefined &&
     validateAddress(trimmedAddress, bitcoinjsNetwork(network))
 
-  const feeEstimateQuery = useArkOffboardFeeEstimate({
+  const feeEstimateQuery = useArkFeeEstimate({
     accountId: id,
-    bitcoinAddress: trimmedAddress,
-    network,
-    vtxoIds: selectedArray
+    enabled: addressValid,
+    request: {
+      address: trimmedAddress,
+      kind: 'offboard',
+      vtxoIds: selectedArray
+    }
   })
   const feeSats = feeEstimateQuery.data?.feeSats
 

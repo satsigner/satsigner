@@ -88,3 +88,13 @@ export const useArkStore = create<ArkState & ArkAction>()(
     }
   )
 )
+
+export function getArkAccountOrThrow(accountId: string): ArkAccount {
+  const account = useArkStore
+    .getState()
+    .accounts.find((a) => a.id === accountId)
+  if (!account) {
+    throw new Error('Ark account not found')
+  }
+  return account
+}

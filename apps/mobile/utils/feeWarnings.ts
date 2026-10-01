@@ -44,11 +44,18 @@ export function isHighMinerFee(params: FeePercentageParams): boolean {
   return getFeePercentage(params) >= HIGH_FEE_RATIO
 }
 
+export function getUsableFeeRate(
+  nextBlockFee: number | null | undefined
+): number | null {
+  return typeof nextBlockFee === 'number' && nextBlockFee >= 1
+    ? nextBlockFee
+    : null
+}
+
 export function getFeeRateSliderMax(
   nextBlockFee: number | null | undefined
 ): number {
-  const recommended =
-    typeof nextBlockFee === 'number' && nextBlockFee >= 1 ? nextBlockFee : 1
+  const recommended = getUsableFeeRate(nextBlockFee) ?? 1
 
   return Math.max(FEE_RATE_SLIDER_FLOOR, Math.ceil(recommended * 4))
 }
@@ -67,8 +74,7 @@ export function isElevatedFeeRate(
     return false
   }
 
-  const recommended =
-    typeof nextBlockFee === 'number' && nextBlockFee >= 1 ? nextBlockFee : null
+  const recommended = getUsableFeeRate(nextBlockFee)
 
   if (recommended === null) {
     return false
@@ -109,8 +115,7 @@ export function estimateTargetBlocks(
     return undefined
   }
 
-  const recommended =
-    typeof nextBlockFee === 'number' && nextBlockFee >= 1 ? nextBlockFee : null
+  const recommended = getUsableFeeRate(nextBlockFee)
 
   if (recommended === null) {
     return undefined

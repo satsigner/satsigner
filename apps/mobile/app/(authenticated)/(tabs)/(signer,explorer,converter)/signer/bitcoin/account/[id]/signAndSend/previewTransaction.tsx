@@ -71,6 +71,7 @@ import {
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { formatAddress, formatNumber } from '@/utils/format'
+import { stripBitcoinPrefix } from '@/utils/parse'
 import {
   formatPayjoinExpiryLabel,
   parsePayjoinExpiresAtMs
@@ -755,10 +756,7 @@ function PreviewTransaction() {
   // execute a different transaction than the one displayed to the user.
   const processScannedData = (data: string): string | null => {
     try {
-      let processedData = data
-      if (processedData.toLowerCase().startsWith('bitcoin:')) {
-        processedData = processedData.substring(8)
-      }
+      const processedData = stripBitcoinPrefix(data)
 
       const originalPsbtBase64 = txBuilderResult?.toBase64()
 

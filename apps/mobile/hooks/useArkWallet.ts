@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { openArkWallet } from '@/api/ark'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
-import { getArkAccountOrThrow, getArkServer } from '@/utils/ark'
+import { getArkAccountOrThrow } from '@/store/ark'
+import { getArkServer } from '@/utils/ark'
 
 async function ensureWalletOpen(accountId: string): Promise<true> {
   const account = getArkAccountOrThrow(accountId)

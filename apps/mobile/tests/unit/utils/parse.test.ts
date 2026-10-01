@@ -1,4 +1,5 @@
 import {
+  ensureBitcoinPrefix,
   normalizeUtxoLabelForDisplay,
   parseDescriptor,
   parseLabel,
@@ -8,6 +9,13 @@ import {
 } from '@/utils/parse'
 
 describe('parse utils', () => {
+  describe('ensureBitcoinPrefix', () => {
+    it('adds the scheme once and trims', () => {
+      expect(ensureBitcoinPrefix(' abc?amount=1 ')).toBe('bitcoin:abc?amount=1')
+      expect(ensureBitcoinPrefix('BITCOIN:abc')).toBe('BITCOIN:abc')
+    })
+  })
+
   describe('stripBitcoinPrefix', () => {
     it('should strip lowercase bitcoin: prefix', () => {
       expect(stripBitcoinPrefix('bitcoin:abc123')).toBe('abc123')

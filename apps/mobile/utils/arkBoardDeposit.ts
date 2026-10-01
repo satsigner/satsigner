@@ -2,17 +2,12 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
+import { ensureBitcoinPrefix, stripBitcoinPrefix } from '@/utils/parse'
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import { extractTransactionIdFromPSBT } from '@/utils/psbt'
 
-function toBitcoinUri(value: string): string {
-  return value.toLowerCase().startsWith('bitcoin:') ? value : `bitcoin:${value}`
-}
-
 function addressFromBitcoinUri(value: string): string {
-  const withoutScheme = value.replace(/^bitcoin:/i, '')
-  const qIndex = withoutScheme.indexOf('?')
-  const address = qIndex === -1 ? withoutScheme : withoutScheme.slice(0, qIndex)
+  const [address] = stripBitcoinPrefix(value.trim()).split('?')
   return address.trim()
 }
 
@@ -41,7 +36,7 @@ function resolveArkBoardFundDestination(
   payjoinUri?: string
 } {
   const fallbackAmountSats = fallbackBoardAmountSats(preferredAmountSats)
-  const uri = toBitcoinUri(destination)
+  const uri = ensureBitcoinPrefix(destination)
   const parsed = parsePayjoinUri(uri)
   if (parsed.isValid && parsed.params?.address) {
     const { amountBtc } = parsed.params

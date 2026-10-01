@@ -278,7 +278,11 @@ export interface ArkWalletProvider {
   fetchServerInfo: (accountId: string) => Promise<ArkServerInfo | null>
 }
 
-export type ArkSendFeeKind = 'arkoor' | 'lightning' | 'onchain'
+export type ArkFeeRequest =
+  | { kind: 'arkoor' | 'lightning' | 'board'; amountSats: number }
+  | { kind: 'onchain'; address: string; amountSats: number }
+  | { kind: 'offboard'; address: string; vtxoIds: string[] }
+  | { kind: 'refresh'; vtxoIds: string[] }
 
 export type ArkOffboardInput = {
   vtxoIds: string[]

@@ -1,3 +1,4 @@
+import { BITCOIN_URI_SCHEME } from '@/constants/btc'
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { t } from '@/locales'
 import type { Account } from '@/types/models/Account'
@@ -251,11 +252,19 @@ export function parseDescriptor(descriptor: string) {
   return parseSinglesigDescriptor(d)
 }
 
+function hasBitcoinPrefix(text: string): boolean {
+  return text.toLowerCase().startsWith(BITCOIN_URI_SCHEME)
+}
+
 function stripBitcoinPrefix(text: string): string {
-  if (text.toLowerCase().startsWith('bitcoin:')) {
-    return text.substring(8)
-  }
-  return text
+  return hasBitcoinPrefix(text)
+    ? text.substring(BITCOIN_URI_SCHEME.length)
+    : text
+}
+
+function ensureBitcoinPrefix(text: string): string {
+  const trimmed = text.trim()
+  return hasBitcoinPrefix(trimmed) ? trimmed : `${BITCOIN_URI_SCHEME}${trimmed}`
 }
 
 /** Resolves an explorer `[address]` route param, stripping any `bitcoin:` URI wrapper. */
@@ -345,6 +354,8 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 }
 
 export {
+  ensureBitcoinPrefix,
+  hasBitcoinPrefix,
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
   parseLabel,

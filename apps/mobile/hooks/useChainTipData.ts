@@ -3,6 +3,10 @@ import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import {
+  fetchMempoolBasicData,
+  type MempoolBasicData
+} from '@/api/explorerMempool'
 import { getLocalPriceSeries, isUsablePrice } from '@/api/localPrices'
 import BitcoinRpc from '@/api/rpc'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
@@ -15,9 +19,7 @@ import type {
   RpcCredentials
 } from '@/types/settings/blockchain'
 import { getDifficultyFromBits } from '@/utils/bitcoin/difficulty'
-import { feesFromUnknownEsploraEstimates } from '@/utils/esploraFees'
 import { PRICE_CHART_DAYS } from '@/utils/priceChart'
-import { feesFromBtcPerKb } from '@/utils/rpcFees'
 import { time } from '@/utils/time'
 
 export { PRICE_CHART_DAYS }
@@ -48,182 +50,125 @@ function emptyChainTipData(): ChainTipData {
   }
 }
 
-async function fromEsplora(esplora: Esplora): Promise<ChainTipData> {
-  const data = emptyChainTipData()
-  await Promise.all([
-    (async () => {
-      try {
-        const [rawHeight, rawHash] = await Promise.all([
-          esplora.getLatestBlockHeight(),
-          esplora.getLatestBlockHash()
-        ])
-        data.height = Number(rawHeight)
-        data.hash = String(rawHash)
-        data.block = await esplora.getBlockInfo(data.hash)
-        data.blockSource = 'backend'
-      } catch {
-        /* silently ignored */
-      }
-    })(),
-    (async () => {
-      try {
-        const info = await esplora.getMempoolInfo()
-        if (info) {
-          data.mempool = {
-            count: info.count,
-            total_fee: info.total_fee,
-            vsize: info.vsize
-          }
-          data.mempoolSource = 'backend'
-        }
-      } catch {
-        /* silently ignored */
-      }
-    })(),
-    (async () => {
-      try {
-        const estimates = await esplora.getFeeEstimates()
-        const fees = feesFromUnknownEsploraEstimates(estimates)
-        if (fees) {
-          data.fees = fees
-          data.feesSource = 'backend'
-        }
-      } catch {
-        /* silently ignored */
-      }
-    })()
+async function blockFromEsplora(
+  esplora: Esplora
+): Promise<Partial<ChainTipData>> {
+  const [rawHeight, rawHash] = await Promise.all([
+    esplora.getLatestBlockHeight(),
+    esplora.getLatestBlockHash()
   ])
-  return data
+  const hash = String(rawHash)
+  return {
+    block: await esplora.getBlockInfo(hash),
+    hash,
+    height: Number(rawHeight)
+  }
 }
 
-async function fromElectrum(
+async function blockFromElectrum(
   url: string,
   network: Network
-): Promise<ChainTipData> {
-  const data = emptyChainTipData()
-  let client: ElectrumClient | null = null
+): Promise<Partial<ChainTipData>> {
+  const client = ElectrumClient.fromUrl(url, network)
   try {
-    client = ElectrumClient.fromUrl(url, network)
     await client.init()
-    await Promise.all([
-      (async () => {
-        try {
-          const tip = await client!.subscribeToBlockHeaders()
-          if (!tip?.height) {
-            return
-          }
-          data.height = tip.height
-          const header = await client!.getBlock(tip.height)
-          data.hash = header.getId()
-          data.block = {
-            difficulty: header.bits
-              ? getDifficultyFromBits(header.bits)
-              : undefined,
-            height: tip.height,
-            timestamp: header.timestamp
-          }
-          data.blockSource = 'backend'
-        } catch {
-          /* silently ignored */
-        }
-      })(),
-      (async () => {
-        try {
-          const histogram = await client!.getMempoolFeeHistogram()
-          if (histogram.length > 0) {
-            const vsize = histogram.reduce((sum, [, size]) => sum + size, 0)
-            data.mempool = { vsize }
-            data.mempoolSource = 'backend'
-          }
-        } catch {
-          /* silently ignored */
-        }
-      })()
-    ])
-  } catch {
-    /* connection init failed */
+    const tip = await client.subscribeToBlockHeaders()
+    if (!tip?.height) {
+      return {}
+    }
+    const header = await client.getBlock(tip.height)
+    return {
+      block: {
+        difficulty: header.bits
+          ? getDifficultyFromBits(header.bits)
+          : undefined,
+        height: tip.height,
+        timestamp: header.timestamp
+      },
+      hash: header.getId(),
+      height: tip.height
+    }
   } finally {
     closeElectrumClientQuietly(client)
   }
-  return data
 }
 
-async function fromRpc(
+async function blockFromRpc(
   url: string,
-  username: string,
-  password: string
-): Promise<ChainTipData> {
-  const data = emptyChainTipData()
-  const rpc = new BitcoinRpc(url, username, password)
-
-  await Promise.all([
-    (async () => {
-      try {
-        const info = await rpc.getBlockchainInfo()
-        data.height = info.blocks
-        data.hash = info.bestblockhash
-        data.blockSource = 'backend'
-        const rpcBlock = await rpc.getBlock(info.bestblockhash)
-        data.block = {
-          difficulty: rpcBlock.difficulty,
-          height: rpcBlock.height,
-          size: rpcBlock.size,
-          timestamp: rpcBlock.time,
-          tx_count: rpcBlock.tx.length,
-          weight: rpcBlock.weight
-        }
-      } catch {
-        /* silently ignored */
-      }
-    })(),
-    (async () => {
-      try {
-        const mempoolInfo = await rpc.getMempoolInfo()
-        data.mempool = {
-          count: mempoolInfo.size,
-          vsize: mempoolInfo.bytes
-        }
-        data.mempoolSource = 'backend'
-      } catch {
-        /* silently ignored */
-      }
-    })(),
-    (async () => {
-      try {
-        const feeResult = await rpc.estimateSmartFee(1)
-        if (feeResult.feerate !== undefined) {
-          data.fees = feesFromBtcPerKb(feeResult.feerate)
-          data.feesSource = 'backend'
-        }
-      } catch {
-        /* silently ignored */
-      }
-    })()
-  ])
-
-  return data
+  rpcCredentials?: RpcCredentials
+): Promise<Partial<ChainTipData>> {
+  const rpc = new BitcoinRpc(
+    url,
+    rpcCredentials?.username ?? '',
+    rpcCredentials?.password ?? ''
+  )
+  const info = await rpc.getBlockchainInfo()
+  const rpcBlock = await rpc.getBlock(info.bestblockhash)
+  return {
+    block: {
+      difficulty: rpcBlock.difficulty,
+      height: rpcBlock.height,
+      size: rpcBlock.size,
+      timestamp: rpcBlock.time,
+      tx_count: rpcBlock.tx.length,
+      weight: rpcBlock.weight
+    },
+    hash: info.bestblockhash,
+    height: info.blocks
+  }
 }
 
-function fetchChainTipData(
+function fetchTipBlock(
+  serverUrl: string,
+  backend: Backend,
+  network: Network,
+  rpcCredentials?: RpcCredentials
+): Promise<Partial<ChainTipData>> {
+  if (!serverUrl) {
+    return Promise.resolve({})
+  }
+  if (backend === 'esplora') {
+    return blockFromEsplora(new Esplora(serverUrl))
+  }
+  if (backend === 'electrum') {
+    return blockFromElectrum(serverUrl, network)
+  }
+  if (backend === 'rpc') {
+    return blockFromRpc(serverUrl, rpcCredentials)
+  }
+  return Promise.resolve({})
+}
+
+function toChainTipMempool(basic: MempoolBasicData): ChainTipData['mempool'] {
+  if (basic.count === null && basic.vsize === null && basic.totalFee === null) {
+    return null
+  }
+  return {
+    count: basic.count ?? undefined,
+    total_fee: basic.totalFee ?? undefined,
+    vsize: basic.vsize ?? undefined
+  }
+}
+
+async function fetchChainTipData(
   serverUrl: string,
   backend: Backend,
   network: Network,
   rpcCredentials?: RpcCredentials
 ): Promise<ChainTipData> {
-  if (backend === 'esplora' && serverUrl) {
-    return fromEsplora(new Esplora(serverUrl))
+  const [block, basic] = await Promise.all([
+    fetchTipBlock(serverUrl, backend, network, rpcCredentials).catch(
+      () => ({})
+    ),
+    fetchMempoolBasicData(serverUrl, backend, network, rpcCredentials)
+  ])
+  return {
+    ...emptyChainTipData(),
+    ...block,
+    fees: basic.fees,
+    feesSource: basic.fees ? 'backend' : 'mempool',
+    mempool: toChainTipMempool(basic)
   }
-  if (backend === 'electrum' && serverUrl) {
-    return fromElectrum(serverUrl, network)
-  }
-  if (backend === 'rpc' && serverUrl) {
-    return fromRpc(
-      serverUrl,
-      rpcCredentials?.username ?? '',
-      rpcCredentials?.password ?? ''
-    )
-  }
-  return Promise.resolve(emptyChainTipData())
 }
 
 export function useChainTipData() {
@@ -312,37 +257,5 @@ export function useChainTipPriceHistory(
       selectedNetwork
     ],
     staleTime: time.minutes(10)
-  })
-}
-
-export type ChainTipExternalData = {
-  fees: MemPoolFees | null
-  mempool: ChainTipData['mempool']
-}
-
-export function useChainTipExternalData(enabled: boolean) {
-  const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork)
-  const oracle = useMempoolOracle(selectedNetwork)
-
-  return useQuery({
-    enabled,
-    queryFn: async (): Promise<ChainTipExternalData> => {
-      const [fees, mempool] = await Promise.all([
-        oracle.getMemPoolFees().catch(() => null),
-        oracle.getMemPool().catch(() => null)
-      ])
-      return {
-        fees,
-        mempool: mempool
-          ? {
-              count: mempool.count,
-              total_fee: mempool.total_fee,
-              vsize: mempool.vsize
-            }
-          : null
-      }
-    },
-    queryKey: ['chaintip-external', selectedNetwork],
-    staleTime: time.minutes(1)
   })
 }
