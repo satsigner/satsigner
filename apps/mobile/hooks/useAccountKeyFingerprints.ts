@@ -25,9 +25,13 @@ export function useAccountKeyFingerprints(accounts: Account[]) {
   const queryClient = useQueryClient()
   const options = queryOptions({
     queryFn: () => fetchKeyFingerprints(accounts),
+    // Non-secret per-key markers: stored fingerprint, else the IV (changes on re-encryption)
     queryKey: [
       'account-key-fingerprints',
-      accounts.map((account) => [account.id, account.keys.length])
+      accounts.map((account) => [
+        account.id,
+        account.keys.map((key) => key.fingerprint ?? key.iv)
+      ])
     ],
     staleTime: Infinity
   })
