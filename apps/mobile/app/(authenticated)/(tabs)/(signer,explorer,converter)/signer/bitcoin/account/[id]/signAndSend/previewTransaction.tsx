@@ -3,7 +3,14 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type ComponentProps,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import {
   Pressable,
   ScrollView,
@@ -171,9 +178,13 @@ const MIN_VALID_ADDRESS_LENGTH = 10
 
 const MNEMONIC_WORD_COUNTS: MnemonicWordCount[] = [12, 15, 18, 21, 24]
 
+const TRANSACTION_CHART_SCALE = 0.9
+
 const styles = StyleSheet.create({
+  chartContainer: { overflow: 'hidden' },
   mainLayout: { paddingBottom: 20, paddingTop: 0 },
   modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' },
+  nfcTitle: { maxWidth: 300 },
   payjoinNote: {
     gap: 4,
     paddingVertical: 4
@@ -195,7 +206,8 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     position: 'relative',
     width: '100%'
-  }
+  },
+  statusText: { marginTop: 8 }
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -210,6 +222,18 @@ type QrFormatModeTabProps = {
 
 type PsbtManagement = ReturnType<typeof usePSBTManagement>
 type ProcessScannedData = (data: string) => string | null
+type PayjoinInvoice = NonNullable<
+  ReturnType<typeof usePayjoinInvoice>['payjoinInvoice']
+>
+type PsbtBuildStatus = ReturnType<typeof usePsbtPreview>['psbtBuildStatus']
+type NfcTransfer = ReturnType<typeof useNfcTransfer>
+
+type NfcModalProps = {
+  nfcError: NfcTransfer['nfcError']
+  nfcPulseStyle: NfcTransfer['nfcPulseStyle']
+  onClose: () => void
+  visible: boolean
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Page
@@ -598,168 +622,245 @@ function PreviewTransaction() {
     wordSelectorState
   }
 
+  const propsIdSection = {
+    isDustError,
+    isLoadingPSBT,
+    psbtBuildErrorMessage,
+    psbtBuildStatus,
+    transactionId
+  }
+
+  const propsContents = {
+    accountId: id,
+    knownTxIds,
+    outpointLabelsByRef,
+    ownAddresses,
+    transaction,
+    txLabelsById
+  }
+
+  const propsNfcEmitModal = {
+    nfcError,
+    nfcPulseStyle,
+    onClose: () => {
+      setNfcModalVisible(false)
+      setNfcError(null)
+      if (isEmitting) {
+        cancelNFCEmitterScan()
+      }
+    },
+    visible: nfcModalVisible
+  }
+
+  const propsNfcScanModal = {
+    nfcError,
+    nfcPulseStyle,
+    onClose: () => {
+      setNfcScanModalVisible(false)
+      if (isReading) {
+        cancelNFCScan()
+      }
+    },
+    visible: nfcScanModalVisible
+  }
+
   return (
-    <>
-      <SSMainLayout style={styles.mainLayout}>
-        <SSVStack justifyBetween>
-          <ScrollView>
-            <SSVStack>
-              {payjoinInvoice ? (
-                <View style={styles.payjoinNote} testID="preview-payjoin-note">
-                  <SSText size="xs" uppercase color="muted" center>
-                    {t('transaction.build.payjoin.previewNote.title')}
-                  </SSText>
-                  <SSText size="sm" weight="light" center>
-                    {[
-                      payjoinInvoice.endpointKind === 'bip78'
-                        ? t('transaction.build.payjoin.data.bip78')
-                        : t('transaction.build.payjoin.data.bip77'),
-                      payjoinInvoice.amountSats !== undefined
-                        ? `${formatNumber(payjoinInvoice.amountSats)} ${t('bitcoin.sats')}`
-                        : null,
-                      payjoinInvoice.label || null,
-                      formatAddress(payjoinInvoice.address, 'default'),
-                      payjoinExpiryLabel
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </SSText>
-                  <SSText size="xs" center style={styles.payjoinNoteHint}>
-                    {t('transaction.build.payjoin.previewNote.hint')}
-                  </SSText>
-                </View>
-              ) : null}
-              <SSVStack gap="xxs">
-                <SSText color="muted" size="sm" uppercase>
-                  {t('transaction.id')}
-                </SSText>
-                <SSTransactionIdFormatted
-                  size="lg"
-                  value={
-                    isLoadingPSBT
-                      ? t('common.loading')
-                      : psbtBuildStatus === 'building'
-                        ? t('transaction.preview.buildingTransaction')
-                        : psbtBuildStatus === 'error'
-                          ? '—'
-                          : transactionId || '—'
-                  }
-                />
-                {isLoadingPSBT && (
-                  <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
-                    {t('transaction.preview.processingPsbt')}
-                  </SSText>
-                )}
-                {psbtBuildStatus === 'building' && !isLoadingPSBT && (
-                  <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
-                    {t('transaction.preview.buildingTransaction')}
-                  </SSText>
-                )}
-                {psbtBuildStatus === 'error' &&
-                  psbtBuildErrorMessage !== '' &&
-                  (isDustError ? (
-                    <SSDustWarningBanner message={psbtBuildErrorMessage} />
-                  ) : (
-                    <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
-                      {psbtBuildErrorMessage}
-                    </SSText>
-                  ))}
-              </SSVStack>
-              <SSVStack gap="xxs">
-                <SSText color="muted" size="sm" uppercase>
-                  {tn('contents')}
-                </SSText>
-                <View style={{ overflow: 'hidden' }}>
-                  <SSTransactionChart
-                    accountId={id}
-                    transaction={transaction}
-                    ownAddresses={ownAddresses}
-                    txLabelsById={txLabelsById}
-                    knownTxIds={knownTxIds}
-                    outpointLabelsByRef={outpointLabelsByRef}
-                    scale={0.9}
-                    showUnspentLabel={false}
-                  />
-                </View>
-              </SSVStack>
-              <SSVStack gap="xxs">
-                <SSText uppercase size="sm" color="muted">
-                  {tn('decoded')}
-                </SSText>
-                {transactionHex !== '' && (
-                  <SSTransactionDecoded txHex={transactionHex} />
-                )}
-              </SSVStack>
-              <PreviewTransactionMultisigSection {...propsMultisigSection} />
-              <PreviewTransactionActions {...propsActions} />
-            </SSVStack>
-          </ScrollView>
-        </SSVStack>
-        <PreviewTransactionQrExportModal {...propsQrExportModal} />
-        <PreviewTransactionCameraModal {...propsCameraModal} />
-        <SSModal
-          visible={nfcModalVisible}
-          fullOpacity
-          onClose={() => {
-            setNfcModalVisible(false)
-            setNfcError(null)
-            if (isEmitting) {
-              cancelNFCEmitterScan()
-            }
-          }}
-        >
-          <SSVStack itemsCenter gap="lg">
-            <SSText center style={{ maxWidth: 300 }}>
-              {nfcError
-                ? t('common.errorTitle')
-                : t('transaction.preview.nfcTip')}
-            </SSText>
-            {nfcError ? (
-              <SSVStack itemsCenter gap="md">
-                <SSText color="white" center>
-                  {nfcError}
-                </SSText>
-              </SSVStack>
-            ) : (
-              <Animated.View style={nfcPulseStyle}>
-                <SSText uppercase>
-                  {t('transaction.preview.emittingNFC')}
-                </SSText>
-              </Animated.View>
-            )}
+    <SSMainLayout style={styles.mainLayout}>
+      <SSVStack justifyBetween>
+        <ScrollView>
+          <SSVStack>
+            <PreviewTransactionPayjoinNote
+              invoice={payjoinInvoice}
+              expiryLabel={payjoinExpiryLabel}
+            />
+            <PreviewTransactionIdSection {...propsIdSection} />
+            <PreviewTransactionContents {...propsContents} />
+            <PreviewTransactionDecoded transactionHex={transactionHex} />
+            <PreviewTransactionMultisigSection {...propsMultisigSection} />
+            <PreviewTransactionActions {...propsActions} />
           </SSVStack>
-        </SSModal>
-        <SSModal
-          visible={nfcScanModalVisible}
-          fullOpacity
-          onClose={() => {
-            setNfcScanModalVisible(false)
-            if (isReading) {
-              cancelNFCScan()
-            }
-          }}
-        >
-          <SSVStack itemsCenter gap="lg">
-            <SSText center style={{ maxWidth: 300 }}>
-              {nfcError
-                ? t('common.errorTitle')
-                : t('transaction.preview.nfcTip')}
-            </SSText>
-            <Animated.View style={nfcPulseStyle}>
-              <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
-            </Animated.View>
-          </SSVStack>
-        </SSModal>
-        <PreviewTransactionWordCountModal {...propsWordCountModal} />
-        <PreviewTransactionSeedWordsModal {...propsSeedWordsModal} />
-      </SSMainLayout>
-    </>
+        </ScrollView>
+      </SSVStack>
+      <PreviewTransactionQrExportModal {...propsQrExportModal} />
+      <PreviewTransactionCameraModal {...propsCameraModal} />
+      <PreviewTransactionNfcEmitModal {...propsNfcEmitModal} />
+      <PreviewTransactionNfcScanModal {...propsNfcScanModal} />
+      <PreviewTransactionWordCountModal {...propsWordCountModal} />
+      <PreviewTransactionSeedWordsModal {...propsSeedWordsModal} />
+    </SSMainLayout>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Components
 // ─────────────────────────────────────────────────────────────────────────────
+
+function PreviewTransactionPayjoinNote({
+  invoice,
+  expiryLabel
+}: {
+  invoice: PayjoinInvoice | undefined
+  expiryLabel: string | null
+}) {
+  if (!invoice) {
+    return null
+  }
+
+  return (
+    <View style={styles.payjoinNote} testID="preview-payjoin-note">
+      <SSText size="xs" uppercase color="muted" center>
+        {t('transaction.build.payjoin.previewNote.title')}
+      </SSText>
+      <SSText size="sm" weight="light" center>
+        {formatPayjoinSummary(invoice, expiryLabel)}
+      </SSText>
+      <SSText size="xs" center style={styles.payjoinNoteHint}>
+        {t('transaction.build.payjoin.previewNote.hint')}
+      </SSText>
+    </View>
+  )
+}
+
+function PreviewTransactionIdSection({
+  isDustError,
+  isLoadingPSBT,
+  psbtBuildErrorMessage,
+  psbtBuildStatus,
+  transactionId
+}: {
+  isDustError: boolean
+  isLoadingPSBT: boolean
+  psbtBuildErrorMessage: string
+  psbtBuildStatus: PsbtBuildStatus
+  transactionId: string
+}) {
+  const showBuildError =
+    psbtBuildStatus === 'error' && psbtBuildErrorMessage !== ''
+
+  return (
+    <SSVStack gap="xxs">
+      <SSText color="muted" size="sm" uppercase>
+        {t('transaction.id')}
+      </SSText>
+      <SSTransactionIdFormatted
+        size="lg"
+        value={getTransactionIdDisplayValue({
+          isLoadingPSBT,
+          psbtBuildStatus,
+          transactionId
+        })}
+      />
+      {isLoadingPSBT && (
+        <SSText color="muted" size="sm" style={styles.statusText}>
+          {t('transaction.preview.processingPsbt')}
+        </SSText>
+      )}
+      {psbtBuildStatus === 'building' && !isLoadingPSBT && (
+        <SSText color="muted" size="sm" style={styles.statusText}>
+          {t('transaction.preview.buildingTransaction')}
+        </SSText>
+      )}
+      {showBuildError && isDustError && (
+        <SSDustWarningBanner message={psbtBuildErrorMessage} />
+      )}
+      {showBuildError && !isDustError && (
+        <SSText color="muted" size="sm" style={styles.statusText}>
+          {psbtBuildErrorMessage}
+        </SSText>
+      )}
+    </SSVStack>
+  )
+}
+
+function PreviewTransactionContents(
+  props: Pick<
+    ComponentProps<typeof SSTransactionChart>,
+    | 'accountId'
+    | 'knownTxIds'
+    | 'outpointLabelsByRef'
+    | 'ownAddresses'
+    | 'transaction'
+    | 'txLabelsById'
+  >
+) {
+  return (
+    <SSVStack gap="xxs">
+      <SSText color="muted" size="sm" uppercase>
+        {tn('contents')}
+      </SSText>
+      <View style={styles.chartContainer}>
+        <SSTransactionChart
+          {...props}
+          scale={TRANSACTION_CHART_SCALE}
+          showUnspentLabel={false}
+        />
+      </View>
+    </SSVStack>
+  )
+}
+
+function PreviewTransactionDecoded({
+  transactionHex
+}: {
+  transactionHex: string
+}) {
+  return (
+    <SSVStack gap="xxs">
+      <SSText uppercase size="sm" color="muted">
+        {tn('decoded')}
+      </SSText>
+      {transactionHex !== '' && <SSTransactionDecoded txHex={transactionHex} />}
+    </SSVStack>
+  )
+}
+
+function PreviewTransactionNfcEmitModal({
+  nfcError,
+  nfcPulseStyle,
+  onClose,
+  visible
+}: NfcModalProps) {
+  return (
+    <SSModal visible={visible} fullOpacity onClose={onClose}>
+      <SSVStack itemsCenter gap="lg">
+        <SSText center style={styles.nfcTitle}>
+          {nfcError ? t('common.errorTitle') : t('transaction.preview.nfcTip')}
+        </SSText>
+        {nfcError ? (
+          <SSVStack itemsCenter gap="md">
+            <SSText color="white" center>
+              {nfcError}
+            </SSText>
+          </SSVStack>
+        ) : (
+          <Animated.View style={nfcPulseStyle}>
+            <SSText uppercase>{t('transaction.preview.emittingNFC')}</SSText>
+          </Animated.View>
+        )}
+      </SSVStack>
+    </SSModal>
+  )
+}
+
+function PreviewTransactionNfcScanModal({
+  nfcError,
+  nfcPulseStyle,
+  onClose,
+  visible
+}: NfcModalProps) {
+  return (
+    <SSModal visible={visible} fullOpacity onClose={onClose}>
+      <SSVStack itemsCenter gap="lg">
+        <SSText center style={styles.nfcTitle}>
+          {nfcError ? t('common.errorTitle') : t('transaction.preview.nfcTip')}
+        </SSText>
+        <Animated.View style={nfcPulseStyle}>
+          <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
+        </Animated.View>
+      </SSVStack>
+    </SSModal>
+  )
+}
 
 function QrFormatModeTab({ label, onPress, selected }: QrFormatModeTabProps) {
   return (
@@ -3523,6 +3624,46 @@ function useSeedSigning({
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+function formatPayjoinSummary(
+  invoice: PayjoinInvoice,
+  expiryLabel: string | null
+) {
+  return [
+    invoice.endpointKind === 'bip78'
+      ? t('transaction.build.payjoin.data.bip78')
+      : t('transaction.build.payjoin.data.bip77'),
+    invoice.amountSats !== undefined
+      ? `${formatNumber(invoice.amountSats)} ${t('bitcoin.sats')}`
+      : null,
+    invoice.label || null,
+    formatAddress(invoice.address, 'default'),
+    expiryLabel
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
+function getTransactionIdDisplayValue({
+  isLoadingPSBT,
+  psbtBuildStatus,
+  transactionId
+}: {
+  isLoadingPSBT: boolean
+  psbtBuildStatus: PsbtBuildStatus
+  transactionId: string
+}) {
+  if (isLoadingPSBT) {
+    return t('common.loading')
+  }
+  if (psbtBuildStatus === 'building') {
+    return t('transaction.preview.buildingTransaction')
+  }
+  if (psbtBuildStatus === 'error') {
+    return '—'
+  }
+  return transactionId || '—'
+}
 
 function hasEnoughSignatures(input: PsbtInputWithSignatures) {
   if (!input.witnessScript) {
