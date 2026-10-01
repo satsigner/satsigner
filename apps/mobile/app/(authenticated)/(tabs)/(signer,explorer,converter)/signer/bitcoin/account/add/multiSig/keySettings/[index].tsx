@@ -13,6 +13,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { MNEMONIC_WORD_COUNTS } from '@/types/bips/39'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { type MultiSigKeySettingsSearchParams } from '@/types/navigation/searchParams'
@@ -188,7 +189,7 @@ export default function MultiSigKeySettings() {
         onSelect={handleOnSelectMnemonicWordCount}
         onCancel={() => setMnemonicWordCountModalVisibile(false)}
       >
-        {([24, 21, 18, 15, 12] as const).map((count) => (
+        {MNEMONIC_WORD_COUNTS.toReversed().map((count) => (
           <SSRadioButton
             key={count}
             label={`${count} ${t('bitcoin.words').toLowerCase()}`}
