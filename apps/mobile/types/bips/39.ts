@@ -19,6 +19,10 @@ export const MnemonicWordCountSchema = z.union([
   z.literal(24)
 ])
 
+export const MNEMONIC_WORD_COUNTS = MnemonicWordCountSchema.options.map(
+  (option) => option.value
+)
+
 // Bounds/step for valid BIP39 entropy bit lengths, exposed separately so
 // range checks (e.g. generateMnemonicFromEntropy) don't repeat the literals.
 export const BIP39_MIN_ENTROPY_BITS = 128

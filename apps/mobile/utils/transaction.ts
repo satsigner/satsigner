@@ -1,10 +1,15 @@
-import { WITNESS_SCALE_FACTOR } from '@/constants/btc'
+import { hex } from '@scure/base'
+import * as bitcoinjs from 'bitcoinjs-lib'
+
+import { TXID_HEX_REGEX, WITNESS_SCALE_FACTOR } from '@/constants/btc'
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
 import type { Output } from '@/types/models/Output'
 import { ScriptVersionType } from '@/types/models/Script'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
+import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { getScriptVersionType } from '@/utils/address'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
 function areTransactionsEquivalent(a: Transaction, b: Transaction): boolean {
   return (
@@ -293,4 +298,80 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
   }
 
   return updatedTransactions
+}
+
+// Builds an unsigned transaction hex from the transaction builder inputs and
+// outputs, for decoding/preview only. Inputs with an invalid txid are skipped;
+// returns '' when any output address is invalid for the network.
+export function buildPreviewTransactionHex(
+  inputs: Map<string, Utxo>,
+  outputs: Output[],
+  network: AppNetwork
+) {
+  const transaction = new bitcoinjs.Transaction()
+  const bitcoinjsNet = bitcoinjsNetwork(network)
+
+  for (const input of inputs.values()) {
+    if (!input.txid || !TXID_HEX_REGEX.test(input.txid)) {
+      continue
+    }
+    // bitcoinjs expects the hash in internal (little-endian) byte order.
+    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+    const hash = Buffer.from(hex.decode(input.txid)).reverse()
+    transaction.addInput(hash, input.vout)
+  }
+
+  for (const output of outputs) {
+    try {
+      const outputScript = bitcoinjs.address.toOutputScript(
+        output.to,
+        bitcoinjsNet
+      )
+      transaction.addOutput(outputScript, output.amount)
+    } catch {
+      return ''
+    }
+  }
+
+  return transaction.toHex()
+}
+
+// Builds the chart model (SSTransactionChart) of a not-yet-signed transaction
+// from the transaction builder inputs and outputs.
+export function buildChartTransactionFromBuilder(
+  inputs: Map<string, Utxo>,
+  outputs: Output[],
+  id: string
+): Transaction {
+  const inputArray = Array.from(inputs.values())
+  const { size, vsize } =
+    inputArray.length > 0
+      ? estimateTransactionSize(inputArray, outputs)
+      : legacyEstimateTransactionSize(inputs.size, outputs.length)
+
+  return {
+    id,
+    lockTimeEnabled: false,
+    prices: {},
+    received: 0,
+    sent: 0,
+    size,
+    type: 'send',
+    vin: inputArray.map((input) => ({
+      label: input.label || '',
+      previousOutput: { txid: input.txid, vout: input.vout },
+      scriptSig: '',
+      sequence: 0,
+      value: input.value,
+      witness: []
+    })),
+    vout: outputs.map((output) => ({
+      address: output.to,
+      kind: output.kind,
+      label: output.label || '',
+      script: '',
+      value: output.amount
+    })),
+    vsize
+  }
 }

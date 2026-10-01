@@ -1,27 +1,19 @@
 import * as Clipboard from 'expo-clipboard'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Dimensions, View } from 'react-native'
+import { useState } from 'react'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
-import SSModal from '@/components/SSModal'
 import SSNFCModal from '@/components/SSNFCModal'
-import SSShareableQR from '@/components/SSShareableQR'
-import SSText from '@/components/SSText'
+import SSPsbtQRExportModal from '@/components/SSPsbtQRExportModal'
+import { QRDisplayMode } from '@/constants/qr'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
-import { BBQRFileTypes, createBBQRChunks } from '@/utils/bbqr'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { normalizePsbtToBase64 } from '@/utils/psbtTransport'
-
-const QR_SIZE = Math.min(Dimensions.get('window').width * 0.72, 280)
-const BBQR_CHUNK_SIZE = 200
-const QR_ANIMATION_MS = 280
 
 type SSPsbtTransportProps = {
   mode: 'export' | 'import'
@@ -47,44 +39,10 @@ function SSPsbtTransport({
   const [qrVisible, setQrVisible] = useState(false)
   const [cameraVisible, setCameraVisible] = useState(false)
   const [nfcVisible, setNfcVisible] = useState(false)
-  const [chunkIndex, setChunkIndex] = useState(0)
-  const qrRef = useRef<View>(null)
 
   const { isHardwareSupported: nfcWriteSupported } = useNFCEmitter()
   const { isHardwareSupported: nfcReadSupported } = useNFCReader()
   const nfcSupported = mode === 'export' ? nfcWriteSupported : nfcReadSupported
-
-  const qrChunks = useMemo(() => {
-    if (!psbtBase64) {
-      return [] as string[]
-    }
-    try {
-      const bytes = Buffer.from(psbtBase64, 'base64')
-      return createBBQRChunks(
-        new Uint8Array(bytes),
-        BBQRFileTypes.PSBT,
-        BBQR_CHUNK_SIZE
-      )
-    } catch {
-      return [] as string[]
-    }
-  }, [psbtBase64])
-
-  useEffect(() => {
-    if (!qrVisible || qrChunks.length <= 1) {
-      return
-    }
-    const timer = setInterval(() => {
-      setChunkIndex((prev) => (prev + 1) % qrChunks.length)
-    }, QR_ANIMATION_MS)
-    return () => clearInterval(timer)
-  }, [qrVisible, qrChunks.length])
-
-  useEffect(() => {
-    if (qrVisible) {
-      setChunkIndex(0)
-    }
-  }, [qrVisible, psbtBase64])
 
   async function handleCopy() {
     if (!psbtBase64) {
@@ -137,8 +95,6 @@ function SSPsbtTransport({
 
   const busy = disabled || loading
   const canExport = !!psbtBase64 && !busy
-  const qrValue =
-    qrChunks.length > 0 ? qrChunks[chunkIndex % qrChunks.length] : ''
 
   if (mode === 'export') {
     return (
@@ -158,7 +114,7 @@ function SSPsbtTransport({
               variant="secondary"
               label={t('common.showQR')}
               style={{ width: '48%' }}
-              disabled={!canExport || qrChunks.length === 0}
+              disabled={!canExport}
               onPress={() => setQrVisible(true)}
             />
           </SSHStack>
@@ -173,57 +129,12 @@ function SSPsbtTransport({
           ) : null}
         </SSVStack>
 
-        <SSModal
-          fullOpacity
+        <SSPsbtQRExportModal
           visible={qrVisible}
           onClose={() => setQrVisible(false)}
-        >
-          <SSVStack gap="md" style={{ alignItems: 'center' }}>
-            <SSText uppercase>{t('common.psbtTransport.qrTitle')}</SSText>
-            {qrValue ? (
-              <SSShareableQR
-                qrRef={qrRef}
-                value={qrValue}
-                size={QR_SIZE}
-                color={Colors.black}
-                backgroundColor={Colors.white}
-                hideShareButton={qrChunks.length > 1}
-                containerStyle={{
-                  alignItems: 'center',
-                  backgroundColor: Colors.white,
-                  borderRadius: 2,
-                  padding: 8
-                }}
-              >
-                {qrChunks.length > 1 ? (
-                  <SSText color="muted" size="sm" center>
-                    {t('common.psbtTransport.qrPart', {
-                      current: (chunkIndex % qrChunks.length) + 1,
-                      total: qrChunks.length
-                    })}
-                  </SSText>
-                ) : null}
-                <SSText color="muted" size="sm" center>
-                  {t('common.psbtTransport.qrHint')}
-                </SSText>
-              </SSShareableQR>
-            ) : (
-              <>
-                <SSText color="muted">
-                  {t('common.psbtTransport.qrError')}
-                </SSText>
-                <SSText color="muted" size="sm" center>
-                  {t('common.psbtTransport.qrHint')}
-                </SSText>
-              </>
-            )}
-            <SSButton
-              label={t('common.close')}
-              variant="ghost"
-              onPress={() => setQrVisible(false)}
-            />
-          </SSVStack>
-        </SSModal>
+          psbtBase64={psbtBase64}
+          initialDisplayMode={QRDisplayMode.BBQR}
+        />
 
         <SSNFCModal
           visible={nfcVisible}

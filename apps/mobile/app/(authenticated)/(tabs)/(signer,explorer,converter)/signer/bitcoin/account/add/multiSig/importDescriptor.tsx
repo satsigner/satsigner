@@ -1,4 +1,3 @@
-import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -7,7 +6,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
-import SSModal from '@/components/SSModal'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useNFCReader } from '@/hooks/useNFCReader'
@@ -19,6 +18,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
+import { type DetectedContent } from '@/utils/contentDetector'
 import { getXpubFingerprint } from '@/utils/descriptor'
 import {
   validateDescriptor,
@@ -58,7 +58,6 @@ export default function ImportDescriptor() {
   )
   const { isHardwareSupported, readNFCTag } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [permission, requestPermission] = useCameraPermissions()
 
   const [descriptor, setDescriptor] = useState('')
   const [isValidDescriptor, setIsValidDescriptor] = useState(true)
@@ -130,11 +129,11 @@ export default function ImportDescriptor() {
   }
 
   function handleScanQR() {
-    if (!permission?.granted) {
-      requestPermission()
-      return
-    }
     setCameraModalVisible(true)
+  }
+
+  function handleCameraClose() {
+    setCameraModalVisible(false)
   }
 
   async function handleScanNFC() {
@@ -275,9 +274,8 @@ export default function ImportDescriptor() {
     router.back()
   }
 
-  function handleQRCodeScanned({ data }: { data: string }) {
-    handleDescriptorChange(data)
-    setCameraModalVisible(false)
+  function handleContentScanned(content: DetectedContent) {
+    handleDescriptorChange(content.cleaned)
     toast.success(t('watchonly.success.qrScanned'))
   }
 
@@ -373,43 +371,13 @@ export default function ImportDescriptor() {
           </SSVStack>
         </SSVStack>
       </SSScrollView>
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        onClose={() => setCameraModalVisible(false)}
-      >
-        <SSVStack gap="lg" style={{ flex: 1 }}>
-          <SSText center size="lg" weight="bold">
-            {t('transaction.build.options.importOutputs.qrcode')}
-          </SSText>
-          <SSText center color="muted">
-            {t('camera.scanText')}
-          </SSText>
-          {permission?.granted ? (
-            <CameraView
-              style={{ flex: 1 }}
-              onBarcodeScanned={handleQRCodeScanned}
-              barcodeScannerSettings={{
-                barcodeTypes: ['qr']
-              }}
-            />
-          ) : (
-            <SSVStack gap="md" style={{ flex: 1, justifyContent: 'center' }}>
-              <SSText center color="muted">
-                {t('camera.permissions')}
-              </SSText>
-              <SSButton
-                label={t('camera.enableCameraAccess')}
-                onPress={requestPermission}
-              />
-            </SSVStack>
-          )}
-          <SSButton
-            label={t('common.cancel')}
-            variant="ghost"
-            onPress={() => setCameraModalVisible(false)}
-          />
-        </SSVStack>
-      </SSModal>
+        onClose={handleCameraClose}
+        onContentScanned={handleContentScanned}
+        context="bitcoin"
+        title={t('transaction.build.options.importOutputs.qrcode')}
+      />
     </SSMainLayout>
   )
 }

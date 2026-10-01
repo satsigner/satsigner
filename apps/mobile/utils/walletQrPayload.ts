@@ -1,10 +1,10 @@
 import { Buffer } from 'buffer'
 
+import { PSBT_MAGIC_BASE64 } from '@/constants/btc'
 import { decodeBBQRChunks } from '@/utils/bbqr'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 
 const PSBT_MAGIC_HEX = '70736274'
-const PSBT_MAGIC_BASE64 = 'cHNidP'
 
 const WALLET_TEXT_PATTERN =
   /(?:^|[\s"(])(?:wpkh\(|wsh\(|tr\(|sh\(|pkh\(|combo\(|multi\(|sortedmulti\(|addr\(|rawtr\(|\[(?:[0-9a-fA-F]{8})\/|[tuvxyz]pub)/i

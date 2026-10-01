@@ -19,6 +19,7 @@ import {
 } from '@/utils/contentDetector'
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
+  buildPubkeyToCosignerIndex,
   combinePsbts,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
@@ -221,34 +222,13 @@ async function processBitcoinContent(
             if (accountMatch.account.policyType === 'multisig') {
               const combinedPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
 
-              const keyFingerprintToCosignerIndex = new Map<string, number>()
-              await Promise.all(
-                accountMatch.account.keys.map(async (key, index) => {
-                  const fp = await getKeyFingerprint(key)
-                  if (fp) {
-                    keyFingerprintToCosignerIndex.set(fp, index)
-                  }
-                })
+              const keyFingerprints = await Promise.all(
+                accountMatch.account.keys.map((key) => getKeyFingerprint(key))
               )
-
-              const pubkeyToCosignerIndex = new Map<string, number>()
-              for (const input of combinedPsbt.data.inputs) {
-                if (!input.bip32Derivation) {
-                  continue
-                }
-                for (const derivation of input.bip32Derivation) {
-                  const fingerprint =
-                    derivation.masterFingerprint.toString('hex')
-                  const pubkey = derivation.pubkey.toString('hex')
-                  const cosignerIndex =
-                    keyFingerprintToCosignerIndex.get(fingerprint)
-
-                  if (cosignerIndex === undefined) {
-                    continue
-                  }
-                  pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
-                }
-              }
+              const pubkeyToCosignerIndex = buildPubkeyToCosignerIndex(
+                combinedPsbt,
+                keyFingerprints
+              )
 
               const individualSignedPsbts = extractIndividualSignedPsbts(
                 psbtBase64,

@@ -1,9 +1,12 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { PAYJOIN_DEFAULT_PJOS } from '@/constants/payjoin'
+import { t } from '@/locales'
 import {
   type PayjoinEndpointKind,
+  type PayjoinInvoice,
   type PayjoinUriParams
 } from '@/types/payjoin'
+import { formatAddress, formatNumber } from '@/utils/format'
 
 type ParsePayjoinUriResult = {
   isValid: boolean
@@ -287,10 +290,32 @@ function appendParamsToPayjoinUri(
   })
 }
 
+// One-line summary of a payjoin invoice: endpoint kind, amount, label,
+// address and expiry, joined with " · ". Empty parts are skipped.
+function formatPayjoinSummary(
+  invoice: PayjoinInvoice,
+  expiryLabel: string | null
+) {
+  return [
+    invoice.endpointKind === 'bip78'
+      ? t('transaction.build.payjoin.data.bip78')
+      : t('transaction.build.payjoin.data.bip77'),
+    invoice.amountSats !== undefined
+      ? `${formatNumber(invoice.amountSats)} ${t('bitcoin.sats')}`
+      : null,
+    invoice.label || null,
+    formatAddress(invoice.address, 'default'),
+    expiryLabel
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
 export {
   appendParamsToPayjoinUri,
   buildPayjoinUri,
   detectEndpointKind,
+  formatPayjoinSummary,
   hasPayjoinParam,
   normalizeBip77FragmentDelimiters,
   parsePayjoinUri

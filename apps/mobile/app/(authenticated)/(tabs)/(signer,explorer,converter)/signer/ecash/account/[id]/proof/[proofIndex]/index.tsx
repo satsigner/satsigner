@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -13,6 +13,7 @@ import SSShareButton from '@/components/SSShareButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useAnimationFrameInterval } from '@/hooks/useAnimationFrameInterval'
 import { useEcash } from '@/hooks/useEcash'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import SSHStack from '@/layouts/SSHStack'
@@ -61,9 +62,7 @@ export default function EcashProofDetailPage() {
   const [animatedQR, setAnimatedQR] = useState(false)
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
-  const animationRef = useRef<number | null>(null)
   const qrRef = useRef<View>(null)
-  const lastUpdateRef = useRef(0)
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
@@ -84,31 +83,11 @@ export default function EcashProofDetailPage() {
   const totalChunks = chunks.length
   const isMultiPart = totalChunks > 1
 
-  useEffect(() => {
-    if (!animatedQR || !isMultiPart) {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = null
-      }
-      return
-    }
-
-    const animate = (timestamp: number) => {
-      if (timestamp - lastUpdateRef.current >= ANIMATED_QR_INTERVAL_MS) {
-        setCurrentChunkIndex((prev) => (prev + 1) % totalChunks)
-        lastUpdateRef.current = timestamp
-      }
-      animationRef.current = requestAnimationFrame(animate)
-    }
-    animationRef.current = requestAnimationFrame(animate)
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = null
-      }
-    }
-  }, [animatedQR, isMultiPart, totalChunks])
+  useAnimationFrameInterval(
+    () => setCurrentChunkIndex((prev) => (prev + 1) % totalChunks),
+    ANIMATED_QR_INTERVAL_MS,
+    animatedQR && isMultiPart
+  )
 
   if (!proof) {
     return (

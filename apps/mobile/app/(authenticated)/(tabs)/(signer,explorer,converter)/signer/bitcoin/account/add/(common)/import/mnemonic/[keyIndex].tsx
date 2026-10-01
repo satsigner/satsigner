@@ -1,11 +1,9 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
-import SSSeedWordsInput from '@/components/SSSeedWordsInput'
+import SSSeedWordsEntry from '@/components/SSSeedWordsEntry'
 import SSText from '@/components/SSText'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -54,14 +52,6 @@ export default function ImportMnemonic() {
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const [currentMnemonic, setCurrentMnemonic] = useState('')
   const [currentFingerprint, setCurrentFingerprint] = useState('')
-
-  const [wordSelectorState, setWordSelectorState] = useState({
-    onWordSelected: () => {
-      // noop
-    },
-    visible: false,
-    wordStart: ''
-  })
 
   const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
     setCurrentMnemonic(mnemonic)
@@ -134,39 +124,30 @@ export default function ImportMnemonic() {
           headerTitle: () => <SSText uppercase>{name}</SSText>
         }}
       />
-      <ScrollView>
-        <SSSeedWordsInput
-          wordCount={mnemonicWordCount}
-          wordListName={mnemonicWordList}
-          network={appNetworkToBdkNetwork(network)}
-          onMnemonicValid={handleMnemonicValid}
-          onMnemonicInvalid={handleMnemonicInvalid}
-          showPassphrase
-          showChecksum
-          showFingerprint
-          showPasteButton
-          showScanSeedQRButton
-          showActionButton
-          actionButtonLabel={t('account.import.title2')}
-          actionButtonVariant="secondary"
-          onActionButtonPress={() =>
-            policyType === 'multisig'
-              ? handleOnPressImportSeedMultisig()
-              : handleOnPressImportSeed()
-          }
-          actionButtonDisabled={!currentMnemonic}
-          cancelButtonLabel={t('common.cancel')}
-          onCancelButtonPress={handleOnPressCancel}
-          showCancelButton
-          autoCheckClipboard
-          onWordSelectorStateChange={setWordSelectorState}
-        />
-      </ScrollView>
-      <SSKeyboardWordSelector
-        visible={wordSelectorState.visible}
-        wordStart={wordSelectorState.wordStart}
+      <SSSeedWordsEntry
+        wordCount={mnemonicWordCount}
         wordListName={mnemonicWordList}
-        onWordSelected={wordSelectorState.onWordSelected}
+        network={appNetworkToBdkNetwork(network)}
+        onMnemonicValid={handleMnemonicValid}
+        onMnemonicInvalid={handleMnemonicInvalid}
+        showPassphrase
+        showChecksum
+        showFingerprint
+        showPasteButton
+        showScanSeedQRButton
+        showActionButton
+        actionButtonLabel={t('account.import.title2')}
+        actionButtonVariant="secondary"
+        onActionButtonPress={() =>
+          policyType === 'multisig'
+            ? handleOnPressImportSeedMultisig()
+            : handleOnPressImportSeed()
+        }
+        actionButtonDisabled={!currentMnemonic}
+        cancelButtonLabel={t('common.cancel')}
+        onCancelButtonPress={handleOnPressCancel}
+        showCancelButton
+        autoCheckClipboard
       />
     </SSMainLayout>
   )

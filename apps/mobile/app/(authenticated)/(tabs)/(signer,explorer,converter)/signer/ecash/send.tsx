@@ -16,6 +16,7 @@ import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useAnimationFrameInterval } from '@/hooks/useAnimationFrameInterval'
 import { ANIMATED_QR_INTERVAL_MS, useEcashSend } from '@/hooks/useEcashSend'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -38,7 +39,6 @@ export default function EcashSendPage() {
     activeAccount,
     amount,
     animatedQR,
-    animationRef,
     comment,
     currentChunkIndex,
     decodedInvoice,
@@ -54,7 +54,6 @@ export default function EcashSendPage() {
     isGenerating,
     isLNURLMode,
     isMelting,
-    lastUpdateRef,
     lnurlDetails,
     meltTokens,
     memo,
@@ -100,40 +99,11 @@ export default function EcashSendPage() {
   const totalChunks = chunks.length
   const isMultiPart = totalChunks > 1
 
-  useEffect(() => {
-    if (!animatedQR || !isMultiPart) {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = null
-      }
-      setCurrentChunkIndex(0)
-      return
-    }
-
-    const animate = (timestamp: number) => {
-      if (timestamp - lastUpdateRef.current >= ANIMATED_QR_INTERVAL_MS) {
-        setCurrentChunkIndex((prev) => (prev + 1) % totalChunks)
-        lastUpdateRef.current = timestamp
-      }
-      animationRef.current = requestAnimationFrame(animate)
-    }
-
-    animationRef.current = requestAnimationFrame(animate)
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = null
-      }
-    }
-  }, [
-    animatedQR,
-    isMultiPart,
-    totalChunks,
-    animationRef,
-    lastUpdateRef,
-    setCurrentChunkIndex
-  ])
+  useAnimationFrameInterval(
+    () => setCurrentChunkIndex((prev) => (prev + 1) % totalChunks),
+    ANIMATED_QR_INTERVAL_MS,
+    animatedQR && isMultiPart
+  )
 
   async function handlePasteInvoice() {
     try {

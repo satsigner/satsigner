@@ -14,3 +14,14 @@ export const WITNESS_SCALE_FACTOR = 4
 
 // BIP174 PSBT magic bytes ("psbt" + 0xff separator), hex-encoded.
 export const PSBT_MAGIC_HEX = '70736274ff'
+
+// BIP174 PSBT magic bytes as they appear at the start of a base64 PSBT.
+export const PSBT_MAGIC_BASE64 = 'cHNidP'
+
+// A txid is 32 bytes, shown as 64 hex characters.
+export const TXID_HEX_REGEX = /^[0-9a-fA-F]{64}$/
+
+// OP_1..OP_16 encode small integers as (opcode - OP_N_VALUE_OFFSET).
+export const OP_N_VALUE_OFFSET = 80
+// Smallest multisig script: OP_m <pubkey> OP_CHECKMULTISIG.
+export const MIN_MULTISIG_SCRIPT_LENGTH = 3
