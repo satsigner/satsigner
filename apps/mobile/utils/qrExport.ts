@@ -42,7 +42,10 @@ export function createRawQrChunks(data: string, complexity: number) {
 }
 
 // Encodes PSBT bytes as BBQR frames sized by complexity.
-export function createBbqrPsbtChunks(psbtBytes: Uint8Array, complexity: number) {
+export function createBbqrPsbtChunks(
+  psbtBytes: Uint8Array,
+  complexity: number
+) {
   const chunkSize = isSingleStaticQr(
     complexity,
     psbtBytes.length * QR_ENCODING_OVERHEAD

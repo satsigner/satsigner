@@ -39,7 +39,10 @@ function createQrChunks(psbtBase64: string, complexity: number): QrChunks {
   }
 }
 
-function createBbqrPsbtChunksOrEmpty(psbtBytes: Uint8Array, complexity: number) {
+function createBbqrPsbtChunksOrEmpty(
+  psbtBytes: Uint8Array,
+  complexity: number
+) {
   try {
     return createBbqrPsbtChunks(psbtBytes, complexity)
   } catch {

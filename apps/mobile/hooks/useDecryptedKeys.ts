@@ -14,7 +14,10 @@ export function useDecryptedKeys(account: Account | undefined) {
     if (!account || !account.keys || account.keys.length === 0) {
       return
     }
-    decryptAccountKeysOrFallback(account).then(setDecryptedKeys)
+    async function decryptKeys(accountToDecrypt: Account) {
+      setDecryptedKeys(await decryptAccountKeysOrFallback(accountToDecrypt))
+    }
+    decryptKeys(account)
   }, [account])
 
   return decryptedKeys

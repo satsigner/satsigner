@@ -1402,7 +1402,7 @@ export function hasAllRequiredSignatures(
   }
   const requiredSignatures = account.keysRequired || account.keys.length
   const validSignatures = Array.from(validationResults.values()).filter(
-    (isValid) => isValid
+    Boolean
   ).length
   return validSignatures >= requiredSignatures
 }

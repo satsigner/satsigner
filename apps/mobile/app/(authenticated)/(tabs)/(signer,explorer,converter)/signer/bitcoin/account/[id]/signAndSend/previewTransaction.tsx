@@ -26,8 +26,8 @@ import { PSBT_MAGIC_BASE64, PSBT_MAGIC_HEX } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
-import { useNfcPulse } from '@/hooks/useNfcPulse'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
+import { useNfcPulse } from '@/hooks/useNfcPulse'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { usePayjoinInvoice } from '@/hooks/usePayjoinInvoice'
@@ -273,7 +273,9 @@ function PreviewTransaction() {
 
   const transactionHex = useMemo(
     () =>
-      account ? buildPreviewTransactionHex(inputs, outputs, account.network) : '',
+      account
+        ? buildPreviewTransactionHex(inputs, outputs, account.network)
+        : '',
     [account, inputs, outputs]
   )
 
@@ -827,8 +829,8 @@ function PreviewTransactionActions({
           {account.policyType === 'multisig' && (
             <SSText center color="muted" size="sm" style={{ marginBottom: 8 }}>
               {t('transaction.preview.signaturesCollected')}:{' '}
-              {getCollectedSignedPsbts(signedPsbts).size}{' '}
-              / {account.keysRequired || account.keys.length}
+              {getCollectedSignedPsbts(signedPsbts).size} /{' '}
+              {account.keysRequired || account.keys.length}
             </SSText>
           )}
           <SSButton
