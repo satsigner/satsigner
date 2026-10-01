@@ -1,55 +1,36 @@
-import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
-import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import {
-  type ComponentProps,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { type ComponentProps, useEffect, useMemo, useState } from 'react'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
-import Animated, {
-  cancelAnimation,
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming
-} from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { buildPsbt, buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSDustWarningBanner from '@/components/SSDustWarningBanner'
-import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSModal from '@/components/SSModal'
-import SSSeedWordsInput from '@/components/SSSeedWordsInput'
-import SSShareableQR from '@/components/SSShareableQR'
+import SSPsbtQRExportModal from '@/components/SSPsbtQRExportModal'
+import SSSeedWordsEntry from '@/components/SSSeedWordsEntry'
 import SSSignatureDropdown from '@/components/SSSignatureDropdown'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import SSWordCountSelectModal from '@/components/SSWordCountSelectModal'
+import { PSBT_MAGIC_BASE64, PSBT_MAGIC_HEX } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
+import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import { useNfcPulse } from '@/hooks/useNfcPulse'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
-import { useNow } from '@/hooks/useNow'
+import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
+import { usePayjoinInvoice } from '@/hooks/usePayjoinInvoice'
 import { usePSBTManagement } from '@/hooks/usePSBTManagement'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -57,43 +38,32 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors, Sizes, Typography } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import type { MnemonicWordCount } from '@/types/bips/39'
-import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { type Output } from '@/types/models/Output'
-import {
-  type MockPsbt,
-  type PsbtInputWithSignatures
-} from '@/types/models/Psbt'
-import { type Utxo } from '@/types/models/Utxo'
+import { type Account, type Key } from '@/types/models/Account'
+import { type PsbtBuildStatus } from '@/types/models/Psbt'
 import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
-import { getKeyFingerprint } from '@/utils/account'
-import {
-  BBQRFileTypes,
-  createBBQRChunks,
-  decodeBBQRChunks,
-  isBBQRFragment
-} from '@/utils/bbqr'
+import { type PayjoinInvoice } from '@/types/payjoin'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
-import { decryptAccountKeySecret } from '@/utils/decryption'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { type DetectedContent } from '@/utils/contentDetector'
+import { formatPayjoinSummary } from '@/utils/payjoinUri'
 import {
-  formatPayjoinExpiryLabel,
-  parsePayjoinExpiresAtMs
-} from '@/utils/payjoinExpiry'
-import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
-import {
+  bindScannedDataToPsbt,
+  buildPubkeyToCosignerIndex,
+  combineAndFinalizePsbts,
+  createMockPsbt,
   type ExtractedTransactionData,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBT,
   extractTransactionDataFromPSBTEnhanced,
-  extractTransactionIdFromPSBT,
+  generateTransactionId,
+  getCollectedSignedPsbts,
   getCollectedSignerPubkeys,
+  getPsbtTxidOrFallback,
+  hasAllRequiredSignatures,
   matchSignedPsbtsToCosigners,
-  signedTransactionMatchesPsbt,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
 import {
@@ -101,16 +71,10 @@ import {
   buildOutpointLabelsByRef,
   buildTxLabelsById
 } from '@/utils/sankeyInputLabel'
-import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
-  estimateTransactionSize,
-  legacyEstimateTransactionSize
+  buildChartTransactionFromBuilder,
+  buildPreviewTransactionHex
 } from '@/utils/transaction'
-import {
-  decodeMultiPartURToPSBT,
-  decodeURToPSBT,
-  getURFragmentsFromPSBT
-} from '@/utils/ur'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -118,65 +82,10 @@ import {
 
 const tn = _tn('transaction.build.preview')
 
-enum QRDisplayMode {
-  RAW = 'RAW',
-  UR = 'UR',
-  BBQR = 'BBQR'
-}
-
-// Largest payload (chars/bytes) a single QR can hold before we must chunk it.
-const QR_MAX_DATA_SIZE = 1500
-// Characters shown in the on-screen QR text preview before truncating.
-const QR_VALUE_PREVIEW_LENGTH = 100
-
-// QR "density" scale exposed to the user. Max = single static (unchunked) QR.
-const QR_COMPLEXITY_MIN = 1
-const QR_COMPLEXITY_MAX = 12
-const QR_COMPLEXITY_DEFAULT = 8
-
-// Animation speed scale for cycling multi-part QR frames.
-const ANIMATION_SPEED_MIN = 1
-const ANIMATION_SPEED_MAX = 12
-const ANIMATION_SPEED_DEFAULT = 6
-const ANIMATION_INTERVAL_MAX_MS = 2000 // slowest cycle (speed = min)
-const ANIMATION_INTERVAL_MIN_MS = 200 // fastest cycle (speed = max)
-const ANIMATION_INTERVAL_FLOOR_MS = 100 // hard per-frame lower bound
-
-// Chunk/fragment sizing for the three export encodings.
-const RAW_CHUNK_BASE_SIZE = 100
-const RAW_CHUNK_MAX_MULTIPLIER = 8
-const BBQR_CHUNK_BASE_SIZE = 30
-const BBQR_CHUNK_MIN_SIZE = 100
-const BBQR_SINGLE_CHUNK_MULTIPLIER = 10
-const UR_FRAGMENT_BASE_SIZE = 15
-const UR_FRAGMENT_MIN_SIZE = 50
-const QR_ENCODING_OVERHEAD = 1.5 // BBQR/UR add ~50% over the raw payload
-
-// UR fountain-code assembly heuristics (fragments needed relative to range).
-const UR_ASSEMBLY_CONSERVATIVE_FACTOR = 1.1
-const UR_ASSEMBLY_THEORETICAL_FACTOR = 1.5
-const UR_ASSEMBLY_FALLBACK_FACTOR = 0.8
-
-// Layout ratios/sizes for the QR + scanner modals.
-const QR_SIZE_WIDTH_RATIO = 0.9
-const QR_SIZE_HEIGHT_RATIO = 0.5
-const QR_SIZE_MAX = 700
-const QR_TRACK_WIDTH_RATIO = 0.92
-const MODAL_PADDING_RATIO = 0.05
-const CAMERA_VIEW_SIZE = 340
-const NFC_PULSE_SIZE = 200
-const NFC_PULSE_DURATION_MS = 1000
-
-// Bitcoin script/tx domain constants.
-const OP_1 = 81 // OP_1..OP_16 encode the multisig threshold m
-const OP_16 = 96
-const OP_N_VALUE_OFFSET = 80 // decoded value = opcode - 80
-const MIN_MULTISIG_SCRIPT_LENGTH = 3
-const TXID_HEX_LENGTH = 64
-const TXID_BYTE_LENGTH = 32
+// Shorter outputs are likely still being typed; don't flag them as invalid.
 const MIN_VALID_ADDRESS_LENGTH = 10
-
-const MNEMONIC_WORD_COUNTS: MnemonicWordCount[] = [12, 15, 18, 21, 24]
+// Cosigner index used for watch-only imports (no cosigner).
+const WATCH_ONLY_INDEX = -1
 
 const TRANSACTION_CHART_SCALE = 0.9
 
@@ -192,21 +101,14 @@ const styles = StyleSheet.create({
   payjoinNoteHint: {
     color: Colors.gray[500]
   },
-  qrFormatSegmentTrack: {
-    alignSelf: 'center',
-    backgroundColor: Colors.gray[850],
-    borderRadius: Sizes.button.borderRadius,
-    flexDirection: 'row',
-    gap: 3,
-    marginBottom: 10,
-    padding: 3
-  },
   seedWordsModalBody: {
     flex: 1,
     maxWidth: 400,
     position: 'relative',
     width: '100%'
   },
+  seedWordsModalContent: { paddingHorizontal: 16 },
+  seedWordsModalScroll: { maxHeight: 600, maxWidth: 400, width: '100%' },
   statusText: { marginTop: 8 }
 })
 
@@ -214,23 +116,14 @@ const styles = StyleSheet.create({
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-type QrFormatModeTabProps = {
-  label: string
-  onPress: () => void
-  selected: boolean
-}
-
 type PsbtManagement = ReturnType<typeof usePSBTManagement>
 type ProcessScannedData = (data: string) => string | null
-type PayjoinInvoice = NonNullable<
-  ReturnType<typeof usePayjoinInvoice>['payjoinInvoice']
->
-type PsbtBuildStatus = ReturnType<typeof usePsbtPreview>['psbtBuildStatus']
 type NfcTransfer = ReturnType<typeof useNfcTransfer>
+type SeedSigning = ReturnType<typeof useSeedSigning>
 
 type NfcModalProps = {
   nfcError: NfcTransfer['nfcError']
-  nfcPulseStyle: NfcTransfer['nfcPulseStyle']
+  nfcPulseStyle: ReturnType<typeof useNfcPulse>
   onClose: () => void
   visible: boolean
 }
@@ -276,13 +169,11 @@ function PreviewTransaction() {
     [account]
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [currentCosignerIndex, setCurrentCosignerIndex] = useState<
     number | null
   >(null)
-  const [permission, requestPermission] = useCameraPermissions()
 
   const decryptedKeys = useDecryptedKeys(account)
 
@@ -305,7 +196,6 @@ function PreviewTransaction() {
   })
 
   const {
-    getPsbtString,
     isDustError,
     isLoadingPSBT,
     psbtBuildErrorMessage,
@@ -341,16 +231,23 @@ function PreviewTransaction() {
     nfcError,
     nfcHardwareSupported,
     nfcModalVisible,
-    nfcPulseStyle,
     nfcScanModalVisible,
     setNfcError,
     setNfcModalVisible,
     setNfcScanModalVisible
   } = useNfcTransfer({ serializedPsbt, updateSignedPsbt })
+  const nfcPulseStyle = useNfcPulse(nfcModalVisible || nfcScanModalVisible)
 
-  const handleShareWithNostrGroup = useNostrShare({ account, id })
+  const shareWithNostrGroup = useNostrShareTransaction({ account, id })
 
   const { handlePasteFromClipboard } = useClipboardImport({
+    processScannedData,
+    updateSignedPsbt
+  })
+
+  const handleScannedContent = useScannedContentImport({
+    currentCosignerIndex,
+    handleSignWithSeedQR,
     processScannedData,
     updateSignedPsbt
   })
@@ -367,111 +264,28 @@ function PreviewTransaction() {
     setSeedWordsModalVisible,
     setSelectedWordCount,
     setWordCountModalVisible,
-    setWordSelectorState,
-    wordCountModalVisible,
-    wordSelectorState
+    wordCountModalVisible
   } = useSeedSigning({
     currentCosignerIndex,
     handleSignWithSeedQR,
     setCurrentCosignerIndex
   })
 
-  const transactionHex = useMemo(() => {
-    if (!account) {
-      return ''
-    }
+  const transactionHex = useMemo(
+    () =>
+      account ? buildPreviewTransactionHex(inputs, outputs, account.network) : '',
+    [account, inputs, outputs]
+  )
 
-    const transaction = new bitcoinjs.Transaction()
-    const network = bitcoinjsNetwork(account.network)
-
-    const inputArray = Array.from(inputs.values())
-
-    for (const input of inputArray) {
-      if (
-        !input.txid ||
-        input.txid.length !== TXID_HEX_LENGTH ||
-        !/^[0-9a-fA-F]+$/.test(input.txid)
-      ) {
-        continue
-      }
-
-      const hashBuffer = Buffer.from(hex.decode(input.txid))
-      if (hashBuffer.length !== TXID_BYTE_LENGTH) {
-        continue
-      }
-
-      transaction.addInput(hashBuffer, input.vout)
-    }
-
-    for (const output of outputs) {
-      try {
-        const outputScript = bitcoinjs.address.toOutputScript(
-          output.to,
-          network
-        )
-        transaction.addOutput(outputScript, output.amount)
-      } catch {
-        return ''
-      }
-    }
-
-    const txHex = transaction.toHex()
-
-    transaction.ins = []
-    transaction.outs = []
-
-    return txHex
-  }, [account, inputs, outputs])
-
-  const transaction = useMemo(() => {
-    const inputArray = Array.from(inputs.values())
-    const { size, vsize } =
-      inputArray.length > 0
-        ? estimateTransactionSize(inputArray, outputs)
-        : legacyEstimateTransactionSize(inputs.size, outputs.length)
-
-    const vin = Array.from(inputs.values()).map((input: Utxo) => ({
-      label: input.label || '',
-      previousOutput: { txid: input.txid, vout: input.vout },
-      scriptSig: '' as string | number[],
-      sequence: 0,
-      value: input.value,
-      witness: [] as number[][]
-    }))
-
-    const vout = outputs.map((output: Output) => ({
-      address: output.to,
-      kind: output.kind,
-      label: output.label || '',
-      script: '' as string | number[],
-      value: output.amount
-    }))
-
-    function resolveId(): string {
-      if (!txBuilderResult) {
-        return transactionId
-      }
-      try {
-        return txBuilderResult.txid() || transactionId
-      } catch {
-        return transactionId
-      }
-    }
-    const id = resolveId()
-
-    return {
-      id,
-      lockTimeEnabled: false,
-      prices: {},
-      received: 0,
-      sent: 0,
-      size,
-      type: 'send' as const,
-      vin,
-      vout,
-      vsize
-    }
-  }, [inputs, outputs, transactionId, txBuilderResult])
+  const transaction = useMemo(
+    () =>
+      buildChartTransactionFromBuilder(
+        inputs,
+        outputs,
+        getPsbtTxidOrFallback(txBuilderResult, transactionId)
+      ),
+    [inputs, outputs, transactionId, txBuilderResult]
+  )
 
   useEffect(() => {
     if (signedPsbtsFromStore && signedPsbtsFromStore.size > 0) {
@@ -498,11 +312,15 @@ function PreviewTransaction() {
   }
 
   const handleWatchOnlyPasteFromClipboard = () => {
-    handlePasteFromClipboard(-1) // Use -1 to indicate watch-only
+    handlePasteFromClipboard(WATCH_ONLY_INDEX)
   }
 
   const handleWatchOnlyNFCScan = () => {
-    handleNFCScan(-1) // Use -1 to indicate watch-only
+    handleNFCScan(WATCH_ONLY_INDEX)
+  }
+
+  const handleShareWithNostrGroup = () => {
+    shareWithNostrGroup(txBuilderResult?.toBase64())
   }
 
   useEffect(() => {
@@ -514,13 +332,6 @@ function PreviewTransaction() {
   if (!id || !account) {
     return <Redirect href="/" />
   }
-
-  const qrSize = Math.min(
-    screenWidth * QR_SIZE_WIDTH_RATIO,
-    screenHeight * QR_SIZE_HEIGHT_RATIO,
-    QR_SIZE_MAX
-  )
-  const containerPadding = screenWidth * MODAL_PADDING_RATIO // 5% of screen width
 
   const propsMultisigSection = {
     account,
@@ -569,29 +380,19 @@ function PreviewTransaction() {
   }
 
   const propsQrExportModal = {
-    containerPadding,
-    getPsbtString,
     onClose: () => setNoKeyModalVisible(false),
-    qrSize,
-    screenWidth,
-    serializedPsbt,
+    psbtBase64: txBuilderResult?.toBase64(),
     visible: noKeyModalVisible
   }
 
   const propsCameraModal = {
-    closeCamera: () => setCameraModalVisible(false),
-    convertPsbtToFinalTransaction,
-    currentCosignerIndex,
-    decryptedKeys,
-    handleSignWithSeedQR,
+    context: 'bitcoin' as const,
     onClose: () => {
       setCameraModalVisible(false)
       setCurrentCosignerIndex(null)
     },
-    permission,
-    processScannedData,
-    requestPermission,
-    updateSignedPsbt,
+    onContentScanned: handleScannedContent,
+    title: getCameraModalTitle(decryptedKeys, currentCosignerIndex),
     visible: cameraModalVisible
   }
 
@@ -617,9 +418,7 @@ function PreviewTransaction() {
       setCurrentCosignerIndex(null)
     },
     selectedWordCount,
-    setWordSelectorState,
-    visible: seedWordsModalVisible,
-    wordSelectorState
+    visible: seedWordsModalVisible
   }
 
   const propsIdSection = {
@@ -681,11 +480,11 @@ function PreviewTransaction() {
           </SSVStack>
         </ScrollView>
       </SSVStack>
-      <PreviewTransactionQrExportModal {...propsQrExportModal} />
-      <PreviewTransactionCameraModal {...propsCameraModal} />
+      <SSPsbtQRExportModal {...propsQrExportModal} />
+      <SSCameraModal {...propsCameraModal} />
       <PreviewTransactionNfcEmitModal {...propsNfcEmitModal} />
       <PreviewTransactionNfcScanModal {...propsNfcScanModal} />
-      <PreviewTransactionWordCountModal {...propsWordCountModal} />
+      <SSWordCountSelectModal {...propsWordCountModal} />
       <PreviewTransactionSeedWordsModal {...propsSeedWordsModal} />
     </SSMainLayout>
   )
@@ -862,29 +661,6 @@ function PreviewTransactionNfcScanModal({
   )
 }
 
-function QrFormatModeTab({ label, onPress, selected }: QrFormatModeTabProps) {
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        alignItems: 'center',
-        backgroundColor: selected ? Colors.white : 'transparent',
-        borderRadius: Sizes.button.borderRadius,
-        flex: 1,
-        height: Sizes.button.height - 6,
-        justifyContent: 'center',
-        opacity: pressed ? 0.88 : 1
-      })}
-    >
-      <SSText center color={selected ? 'black' : 'white'} size="sm" uppercase>
-        {label}
-      </SSText>
-    </Pressable>
-  )
-}
-
 function PreviewTransactionMultisigSection({
   account,
   accountId,
@@ -957,9 +733,9 @@ function PreviewTransactionMultisigSection({
       <SSSignatureRequiredDisplay
         requiredNumber={account.keysRequired || 1}
         totalNumber={account.keyCount || 1}
-        collectedSignatures={Array.from(signedPsbts.entries())
-          .filter(([, psbt]) => psbt && psbt.trim().length > 0)
-          .map(([index]) => index)}
+        collectedSignatures={Array.from(
+          getCollectedSignedPsbts(signedPsbts).keys()
+        )}
         validationResults={validationResults}
       />
 
@@ -1025,7 +801,7 @@ function PreviewTransactionActions({
   accountId: string
   router: ReturnType<typeof useRouter>
   transactionId: string
-  psbtBuildStatus: 'building' | 'error' | 'idle'
+  psbtBuildStatus: PsbtBuildStatus
   txBuilderResult: PsbtLike | undefined
   serializedPsbt: string
   signedPsbt: string
@@ -1051,11 +827,7 @@ function PreviewTransactionActions({
           {account.policyType === 'multisig' && (
             <SSText center color="muted" size="sm" style={{ marginBottom: 8 }}>
               {t('transaction.preview.signaturesCollected')}:{' '}
-              {
-                Array.from(signedPsbts.values()).filter(
-                  (psbt) => psbt && psbt.trim().length > 0
-                ).length
-              }{' '}
+              {getCollectedSignedPsbts(signedPsbts).size}{' '}
               / {account.keysRequired || account.keys.length}
             </SSText>
           )}
@@ -1162,8 +934,8 @@ function PreviewTransactionActions({
               style={{ marginTop: 16 }}
             >
               {signedPsbt &&
-              (signedPsbt.toLowerCase().startsWith('70736274ff') ||
-                signedPsbt.startsWith('cHNidP'))
+              (signedPsbt.toLowerCase().startsWith(PSBT_MAGIC_HEX) ||
+                signedPsbt.startsWith(PSBT_MAGIC_BASE64))
                 ? t('transaction.preview.importedPsbt')
                 : t('transaction.preview.importSigned')}
             </SSText>
@@ -1248,472 +1020,11 @@ function PreviewTransactionActions({
   )
 }
 
-function PreviewTransactionQrExportModal({
-  visible,
-  onClose,
-  getPsbtString,
-  serializedPsbt,
-  qrSize,
-  screenWidth,
-  containerPadding
-}: {
-  visible: boolean
-  onClose: () => void
-  getPsbtString: () => string | null
-  serializedPsbt: string
-  qrSize: number
-  screenWidth: number
-  containerPadding: number
-}) {
-  const {
-    animationSpeed,
-    displayMode,
-    getDisplayModeDescription,
-    getQRValue,
-    isDataTooLargeForSingleQR,
-    isMultiPartQR,
-    qrChunks,
-    qrComplexity,
-    qrError,
-    qrRef,
-    setAnimationSpeed,
-    setCurrentChunk,
-    setCurrentRawChunk,
-    setCurrentUrChunk,
-    setDisplayMode,
-    setQrComplexity
-  } = useQrExport({ getPsbtString, serializedPsbt })
-
-  return (
-    <SSModal visible={visible} fullOpacity onClose={onClose}>
-      <SSVStack
-        gap="xs"
-        style={{
-          alignItems: 'center',
-          flex: 1,
-          justifyContent: 'center',
-          padding: containerPadding
-        }}
-      >
-        <SSText color="white" uppercase style={{ marginBottom: 5 }}>
-          {t('transaction.preview.PSBT')}
-        </SSText>
-        {qrError ? (
-          <SSText color="white" size="sm" style={{ marginTop: 16 }}>
-            {qrError}
-          </SSText>
-        ) : qrChunks.length > 0 ? (
-          <SSShareableQR
-            qrRef={qrRef}
-            value={getQRValue()}
-            color={Colors.black}
-            backgroundColor={Colors.white}
-            size={qrSize}
-            hideShareButton={isMultiPartQR()}
-            containerStyle={{
-              alignItems: 'center',
-              backgroundColor: Colors.white,
-              borderRadius: 2,
-              marginBottom: 0,
-              padding: 5,
-              width: qrSize + 10
-            }}
-          >
-            <View
-              style={[
-                styles.qrFormatSegmentTrack,
-                { width: screenWidth * QR_TRACK_WIDTH_RATIO }
-              ]}
-            >
-              <QrFormatModeTab
-                label="RAW"
-                onPress={() => {
-                  setDisplayMode(QRDisplayMode.RAW)
-                  setCurrentRawChunk(0)
-                }}
-                selected={displayMode === QRDisplayMode.RAW}
-              />
-              <QrFormatModeTab
-                label="UR"
-                onPress={() => {
-                  setDisplayMode(QRDisplayMode.UR)
-                  setCurrentUrChunk(0)
-                }}
-                selected={displayMode === QRDisplayMode.UR}
-              />
-              <QrFormatModeTab
-                label="BBQR"
-                onPress={() => {
-                  setDisplayMode(QRDisplayMode.BBQR)
-                  setCurrentChunk(0)
-                }}
-                selected={displayMode === QRDisplayMode.BBQR}
-              />
-            </View>
-            <SSText
-              center
-              color="white"
-              size="sm"
-              style={{ maxWidth: screenWidth * QR_SIZE_WIDTH_RATIO }}
-            >
-              {getDisplayModeDescription()}
-            </SSText>
-            {isDataTooLargeForSingleQR() &&
-              qrComplexity >= QR_COMPLEXITY_MAX - 1 && (
-                <SSText center color="muted" size="xs" style={{ marginTop: 5 }}>
-                  {t('transaction.preview.maxDensityLimited')}
-                </SSText>
-              )}
-            <SSText
-              center
-              color="white"
-              size="sm"
-              type="mono"
-              style={{
-                backgroundColor: Colors.gray[900],
-                borderRadius: 2,
-                height: 80,
-                padding: 5,
-                paddingHorizontal: 20,
-                textAlignVertical: 'center',
-                width: screenWidth * QR_TRACK_WIDTH_RATIO
-              }}
-            >
-              {getQRValue().length > QR_VALUE_PREVIEW_LENGTH
-                ? `${getQRValue().slice(0, QR_VALUE_PREVIEW_LENGTH)}...`
-                : getQRValue()}
-            </SSText>
-          </SSShareableQR>
-        ) : null}
-        {qrChunks.length > 0 ? (
-          <SSHStack
-            justifyEvenly
-            style={{
-              marginBottom: 20,
-              width: screenWidth * QR_SIZE_WIDTH_RATIO
-            }}
-          >
-            <SSVStack gap="xs">
-              <SSText color="white" size="sm" center>
-                {t('transaction.preview.qrDensity', {
-                  max: QR_COMPLEXITY_MAX,
-                  value: qrComplexity
-                })}
-              </SSText>
-              <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-                <SSButton
-                  variant="outline"
-                  label="-"
-                  onPress={() =>
-                    setQrComplexity(
-                      Math.max(QR_COMPLEXITY_MIN, qrComplexity - 1)
-                    )
-                  }
-                  style={{ height: 50, width: 50 }}
-                />
-                <SSButton
-                  variant={
-                    qrComplexity === QR_COMPLEXITY_MAX - 1 &&
-                    isDataTooLargeForSingleQR()
-                      ? 'ghost'
-                      : 'outline'
-                  }
-                  label="+"
-                  onPress={() => {
-                    const newComplexity = qrComplexity + 1
-                    if (
-                      newComplexity === QR_COMPLEXITY_MAX &&
-                      isDataTooLargeForSingleQR()
-                    ) {
-                      toast.error(t('common.error.dataTooLarge'))
-                      return
-                    }
-                    setQrComplexity(Math.min(QR_COMPLEXITY_MAX, newComplexity))
-                  }}
-                  style={{ height: 50, width: 50 }}
-                />
-              </SSHStack>
-            </SSVStack>
-            <SSVStack gap="xs">
-              <SSText color="white" size="sm" center>
-                {t('transaction.preview.speedValue', {
-                  max: ANIMATION_SPEED_MAX,
-                  value: animationSpeed
-                })}
-              </SSText>
-              <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-                <SSButton
-                  variant="outline"
-                  label="-"
-                  onPress={() =>
-                    setAnimationSpeed(
-                      Math.max(ANIMATION_SPEED_MIN, animationSpeed - 1)
-                    )
-                  }
-                  style={{ height: 50, width: 50 }}
-                />
-                <SSButton
-                  variant="outline"
-                  label="+"
-                  onPress={() =>
-                    setAnimationSpeed(
-                      Math.min(ANIMATION_SPEED_MAX, animationSpeed + 1)
-                    )
-                  }
-                  style={{ height: 50, width: 50 }}
-                />
-              </SSHStack>
-            </SSVStack>
-          </SSHStack>
-        ) : (
-          <SSText color="white" size="sm" style={{ marginTop: 16 }}>
-            {t('common.loading')}
-          </SSText>
-        )}
-      </SSVStack>
-    </SSModal>
-  )
-}
-
-function PreviewTransactionCameraModal({
-  visible,
-  onClose,
-  closeCamera,
-  currentCosignerIndex,
-  decryptedKeys,
-  permission,
-  requestPermission,
-  processScannedData,
-  updateSignedPsbt,
-  handleSignWithSeedQR,
-  convertPsbtToFinalTransaction
-}: {
-  visible: boolean
-  onClose: () => void
-  closeCamera: () => void
-  currentCosignerIndex: number | null
-  decryptedKeys: Key[]
-  permission: ReturnType<typeof useCameraPermissions>[0]
-  requestPermission: ReturnType<typeof useCameraPermissions>[1]
-  processScannedData: ProcessScannedData
-  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
-  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
-  convertPsbtToFinalTransaction: PsbtManagement['convertPsbtToFinalTransaction']
-}) {
-  const { handleQRCodeScanned, resetScanProgress, scanProgress } = useQrScanner(
-    {
-      closeCamera,
-      convertPsbtToFinalTransaction,
-      handleSignWithSeedQR,
-      processScannedData,
-      updateSignedPsbt
-    }
-  )
-
-  return (
-    <SSModal
-      visible={visible}
-      fullOpacity
-      onClose={() => {
-        resetScanProgress()
-        onClose()
-      }}
-    >
-      <SSVStack itemsCenter gap="md">
-        <SSText color="muted" uppercase>
-          {scanProgress.type
-            ? t('transaction.preview.scanningQR', {
-                type: scanProgress.type.toUpperCase()
-              })
-            : currentCosignerIndex !== null &&
-                (() => {
-                  const secret = decryptedKeys[currentCosignerIndex]?.secret
-                  return !(
-                    secret &&
-                    typeof secret === 'object' &&
-                    'mnemonic' in secret &&
-                    (secret as Secret)?.mnemonic
-                  )
-                })()
-              ? t('transaction.preview.scanSeedQR')
-              : t('camera.scanQRCode')}
-        </SSText>
-
-        <CameraView
-          onBarcodeScanned={(res) => {
-            handleQRCodeScanned(res.raw, currentCosignerIndex ?? undefined)
-          }}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={{ height: CAMERA_VIEW_SIZE, width: CAMERA_VIEW_SIZE }}
-        />
-
-        {/* Show progress if scanning multi-part QR */}
-        {scanProgress.type && scanProgress.total > 1 && (
-          <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
-            {scanProgress.type === 'ur' ? (
-              <>
-                {(() => {
-                  const maxFragment = Math.max(
-                    ...Array.from(scanProgress.scanned)
-                  )
-                  const actualTotal = maxFragment + 1
-                  const conservativeTarget = Math.ceil(
-                    actualTotal * UR_ASSEMBLY_CONSERVATIVE_FACTOR
-                  )
-                  const theoreticalTarget = Math.ceil(
-                    scanProgress.total * UR_ASSEMBLY_THEORETICAL_FACTOR
-                  )
-                  const displayTarget = Math.min(
-                    conservativeTarget,
-                    theoreticalTarget
-                  )
-
-                  return (
-                    <>
-                      <SSText color="white" center>
-                        {t('transaction.preview.urFountainProgress', {
-                          scanned: scanProgress.scanned.size,
-                          target: displayTarget
-                        })}
-                      </SSText>
-                      <View
-                        style={{
-                          backgroundColor: Colors.gray[700],
-                          borderRadius: 2,
-                          height: 4,
-                          width: 300
-                        }}
-                      >
-                        <View
-                          style={{
-                            backgroundColor: Colors.white,
-                            borderRadius: 2,
-                            height: 4,
-                            maxWidth: 300,
-                            width:
-                              (scanProgress.scanned.size / displayTarget) * 300
-                          }}
-                        />
-                      </View>
-                    </>
-                  )
-                })()}
-              </>
-            ) : (
-              <>
-                <SSText color="white" center>
-                  {t('transaction.preview.chunksProgress', {
-                    scanned: scanProgress.scanned.size,
-                    total: scanProgress.total
-                  })}
-                </SSText>
-                <View
-                  style={{
-                    backgroundColor: Colors.gray[700],
-                    borderRadius: 2,
-                    height: 4,
-                    width: 300
-                  }}
-                >
-                  <View
-                    style={{
-                      backgroundColor: Colors.white,
-                      borderRadius: 2,
-                      height: 4,
-                      maxWidth: scanProgress.total * 300,
-                      width:
-                        (scanProgress.scanned.size / scanProgress.total) * 300
-                    }}
-                  />
-                </View>
-                <SSText color="muted" size="sm" center>
-                  {t('transaction.preview.scannedParts', {
-                    parts: Array.from(scanProgress.scanned)
-                      .toSorted((a, b) => a - b)
-                      .map((n) => n + 1)
-                      .join(', ')
-                  })}
-                </SSText>
-              </>
-            )}
-          </SSVStack>
-        )}
-
-        {!permission?.granted && (
-          <SSButton
-            label={t('camera.enableCameraAccess')}
-            onPress={requestPermission}
-          />
-        )}
-
-        {/* Reset button for multi-part scans */}
-        {scanProgress.type && (
-          <SSHStack>
-            <SSButton
-              label={t('transaction.preview.resetScan')}
-              variant="outline"
-              onPress={resetScanProgress}
-              style={{ marginTop: 10, width: 200 }}
-            />
-          </SSHStack>
-        )}
-      </SSVStack>
-    </SSModal>
-  )
-}
-
-function PreviewTransactionWordCountModal({
-  visible,
-  onClose,
-  selectedWordCount,
-  setSelectedWordCount,
-  onContinue
-}: {
-  visible: boolean
-  onClose: () => void
-  selectedWordCount: MnemonicWordCount
-  setSelectedWordCount: (count: MnemonicWordCount) => void
-  onContinue: () => void
-}) {
-  return (
-    <SSModal visible={visible} fullOpacity onClose={onClose}>
-      <SSVStack gap="lg">
-        <SSText center uppercase>
-          {t('transaction.preview.selectSeedWordCount')}
-        </SSText>
-        <SSText center color="muted" size="sm">
-          {t('transaction.preview.selectSeedWordCountHint')}
-        </SSText>
-
-        <SSVStack gap="sm">
-          {MNEMONIC_WORD_COUNTS.map((wordCount) => (
-            <SSButton
-              key={wordCount}
-              label={t('transaction.preview.wordsCount', { count: wordCount })}
-              variant={selectedWordCount === wordCount ? 'outline' : 'ghost'}
-              onPress={() => setSelectedWordCount(wordCount)}
-            />
-          ))}
-        </SSVStack>
-      </SSVStack>
-      <SSHStack gap="sm">
-        <SSButton
-          label={t('common.continue')}
-          variant="secondary"
-          onPress={onContinue}
-        />
-      </SSHStack>
-    </SSModal>
-  )
-}
-
 function PreviewTransactionSeedWordsModal({
   visible,
   onClose,
   selectedWordCount,
   network,
-  wordSelectorState,
-  setWordSelectorState,
   handleMnemonicValid,
   handleMnemonicInvalid,
   handleSeedWordsSubmit
@@ -1722,57 +1033,45 @@ function PreviewTransactionSeedWordsModal({
   onClose: () => void
   selectedWordCount: MnemonicWordCount
   network: Parameters<typeof appNetworkToBdkNetwork>[0]
-  wordSelectorState: ReturnType<typeof useSeedSigning>['wordSelectorState']
-  setWordSelectorState: ReturnType<
-    typeof useSeedSigning
-  >['setWordSelectorState']
-  handleMnemonicValid: (mnemonic: string, fingerprint: string) => void
-  handleMnemonicInvalid: () => void
-  handleSeedWordsSubmit: () => void
+  handleMnemonicValid: SeedSigning['handleMnemonicValid']
+  handleMnemonicInvalid: SeedSigning['handleMnemonicInvalid']
+  handleSeedWordsSubmit: SeedSigning['handleSeedWordsSubmit']
 }) {
   return (
     <SSModal visible={visible} fullOpacity onClose={onClose}>
       <View style={styles.seedWordsModalBody}>
-        <ScrollView style={{ maxHeight: 600, maxWidth: 400, width: '100%' }}>
-          <View style={{ paddingHorizontal: 16 }}>
-            <SSVStack gap="lg">
-              <SSText center uppercase>
-                {t('transaction.preview.enterSeedWords')}
-              </SSText>
-              <SSText center color="muted" size="sm">
-                {t('transaction.preview.enterSeedWordsHint', {
-                  count: selectedWordCount
-                })}
-              </SSText>
-            </SSVStack>
-            <SSSeedWordsInput
-              wordCount={selectedWordCount}
-              wordListName="english"
-              network={appNetworkToBdkNetwork(network)}
-              onMnemonicValid={handleMnemonicValid}
-              onMnemonicInvalid={handleMnemonicInvalid}
-              showPassphrase
-              showChecksum
-              showFingerprint
-              showPasteButton
-              showScanSeedQRButton
-              showActionButton
-              actionButtonLabel={t('transaction.signWithSeedWords')}
-              actionButtonVariant="secondary"
-              onActionButtonPress={handleSeedWordsSubmit}
-              actionButtonDisabled={false}
-              showCancelButton={false}
-              autoCheckClipboard
-              onWordSelectorStateChange={setWordSelectorState}
-            />
-          </View>
-        </ScrollView>
-        <SSKeyboardWordSelector
-          visible={wordSelectorState.visible}
-          wordStart={wordSelectorState.wordStart}
+        <SSSeedWordsEntry
+          scrollStyle={styles.seedWordsModalScroll}
+          contentStyle={styles.seedWordsModalContent}
+          wordCount={selectedWordCount}
           wordListName="english"
-          onWordSelected={wordSelectorState.onWordSelected}
-        />
+          network={appNetworkToBdkNetwork(network)}
+          onMnemonicValid={handleMnemonicValid}
+          onMnemonicInvalid={handleMnemonicInvalid}
+          showPassphrase
+          showChecksum
+          showFingerprint
+          showPasteButton
+          showScanSeedQRButton
+          showActionButton
+          actionButtonLabel={t('transaction.signWithSeedWords')}
+          actionButtonVariant="secondary"
+          onActionButtonPress={handleSeedWordsSubmit}
+          actionButtonDisabled={false}
+          showCancelButton={false}
+          autoCheckClipboard
+        >
+          <SSVStack gap="lg">
+            <SSText center uppercase>
+              {t('transaction.preview.enterSeedWords')}
+            </SSText>
+            <SSText center color="muted" size="sm">
+              {t('transaction.preview.enterSeedWordsHint', {
+                count: selectedWordCount
+              })}
+            </SSText>
+          </SSVStack>
+        </SSSeedWordsEntry>
       </View>
     </SSModal>
   )
@@ -1781,62 +1080,6 @@ function PreviewTransactionSeedWordsModal({
 // ─────────────────────────────────────────────────────────────────────────────
 // Hooks
 // ─────────────────────────────────────────────────────────────────────────────
-
-function usePayjoinInvoice() {
-  const payjoinUri = useTransactionBuilderStore((state) => state.payjoinUri)
-
-  const payjoinInvoice = useMemo(() => {
-    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
-      return undefined
-    }
-    const parsed = parsePayjoinUri(payjoinUri)
-    if (!parsed.isValid || !parsed.params) {
-      return undefined
-    }
-    const amountSats =
-      parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
-        ? Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
-        : undefined
-    return {
-      address: parsed.params.address,
-      amountSats,
-      endpointKind: parsed.endpointKind,
-      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
-      label: parsed.params.label
-    }
-  }, [payjoinUri])
-
-  const nowMs = useNow()
-  const payjoinExpiryLabel = formatPayjoinExpiryLabel(
-    payjoinInvoice?.expiresAt,
-    nowMs
-  )
-
-  return { payjoinExpiryLabel, payjoinInvoice }
-}
-
-function useDecryptedKeys(account: Account | undefined) {
-  const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
-
-  useEffect(() => {
-    async function decryptKeys() {
-      if (!account || !account.keys || account.keys.length === 0) {
-        return
-      }
-
-      const decryptedKeysData = await Promise.all(
-        account.keys.map((key, index) =>
-          decryptKeyOrFallback(account.id, index, key)
-        )
-      )
-
-      setDecryptedKeys(decryptedKeysData)
-    }
-    decryptKeys()
-  }, [account])
-
-  return decryptedKeys
-}
 
 function usePsbtPreview({
   psbt,
@@ -1886,12 +1129,10 @@ function usePsbtPreview({
 
   const [transactionId, setTransactionId] = useState('')
   const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
-  const [psbtBuildStatus, setPsbtBuildStatus] = useState<
-    'building' | 'error' | 'idle'
-  >('idle')
+  const [psbtBuildStatus, setPsbtBuildStatus] =
+    useState<PsbtBuildStatus>('idle')
   const [psbtBuildErrorMessage, setPsbtBuildErrorMessage] = useState('')
   const [isDustError, setIsDustError] = useState(false)
-  const [serializedPsbt, setSerializedPsbt] = useState<string>('')
 
   function processExtractedPsbtData(extractedData: ExtractedTransactionData) {
     for (const input of extractedData.inputs) {
@@ -1965,7 +1206,7 @@ function usePsbtPreview({
       } catch {
         setIsLoadingPSBT(false)
         toast.error(t('common.error.processPSBT'))
-        setTransactionId(`PSBT-ERROR-${Date.now().toString(36)}`)
+        setTransactionId(createErrorTransactionId())
       }
     }
   }
@@ -1977,7 +1218,7 @@ function usePsbtPreview({
     } catch {
       setIsLoadingPSBT(false)
       toast.error(t('common.error.processPSBT'))
-      setTransactionId(`PSBT-ERROR-${Date.now().toString(36)}`)
+      setTransactionId(createErrorTransactionId())
     }
   }
 
@@ -2130,505 +1371,18 @@ function usePsbtPreview({
     }
   }, [account, outputs, txBuilderResult])
 
-  const getPsbtString = useCallback(() => {
-    if (!txBuilderResult) {
-      return null
-    }
-
-    try {
-      const base64 = txBuilderResult.toBase64()
-      const psbtBuffer = Buffer.from(base64, 'base64')
-
-      const psbtHex = psbtBuffer.toString('hex')
-      setSerializedPsbt(psbtHex)
-
-      psbtBuffer.fill(0)
-
-      return psbtHex
-    } catch {
-      toast.error(t('error.psbt.serialization'))
-      return null
-    }
-  }, [txBuilderResult])
+  const psbtBase64 = txBuilderResult?.toBase64()
+  const serializedPsbt = psbtBase64
+    ? Buffer.from(psbtBase64, 'base64').toString('hex')
+    : ''
 
   return {
-    getPsbtString,
     isDustError,
     isLoadingPSBT,
     psbtBuildErrorMessage,
     psbtBuildStatus,
     serializedPsbt,
     transactionId
-  }
-}
-
-function useQrExport({
-  getPsbtString,
-  serializedPsbt
-}: {
-  getPsbtString: () => string | null
-  serializedPsbt: string
-}) {
-  const txBuilderResult = useTransactionBuilderStore((state) => state.psbt)
-
-  const [currentChunk, setCurrentChunk] = useState(0)
-  const [displayMode, setDisplayMode] = useState<QRDisplayMode>(
-    QRDisplayMode.RAW
-  )
-  const [qrChunks, setQrChunks] = useState<string[]>([])
-  const [qrError, setQrError] = useState<string | null>(null)
-  const [urChunks, setUrChunks] = useState<string[]>([])
-  const [currentUrChunk, setCurrentUrChunk] = useState(0)
-  const [rawPsbtChunks, setRawPsbtChunks] = useState<string[]>([])
-  const [currentRawChunk, setCurrentRawChunk] = useState(0)
-  const [qrComplexity, setQrComplexity] = useState(QR_COMPLEXITY_DEFAULT) // 1-12 scale, 8 is default (higher = simpler/larger QR codes)
-  const [animationSpeed, setAnimationSpeed] = useState(ANIMATION_SPEED_DEFAULT) // 1-12 scale for animation speed
-
-  const animationRef = useRef<number | null>(null)
-  const qrRef = useRef<View>(null)
-  const lastUpdateRef = useRef<number>(0)
-
-  const createRawPsbtChunks = useCallback(
-    (base64Psbt: string, complexity: number): string[] => {
-      if (complexity === 12) {
-        if (base64Psbt.length > QR_MAX_DATA_SIZE) {
-          const baseChunkSize = RAW_CHUNK_BASE_SIZE
-          const chunkSize = Math.max(
-            RAW_CHUNK_BASE_SIZE,
-            baseChunkSize * RAW_CHUNK_MAX_MULTIPLIER
-          ) // Use maximum density (900 characters per chunk)
-
-          const chunks: string[] = []
-          const dataChunks: string[] = []
-          for (let i = 0; i < base64Psbt.length; i += chunkSize) {
-            dataChunks.push(base64Psbt.slice(i, i + chunkSize))
-          }
-
-          const totalChunks = dataChunks.length
-          for (let i = 0; i < totalChunks; i += 1) {
-            const header = `p${i + 1}of${totalChunks}`
-            chunks.push(`${header} ${dataChunks[i]}`)
-          }
-
-          return chunks
-        }
-        return [base64Psbt] // No chunking, no header, just the full data
-      }
-
-      // Calculate chunk size based on complexity (higher complexity = larger chunks)
-      // Invert the scale: complexity 1 = smallest chunks, complexity 11 = large chunks
-      // Increase base chunk size significantly - QR codes can handle much more data
-      const baseChunkSize = RAW_CHUNK_BASE_SIZE
-      const chunkSize = Math.max(
-        RAW_CHUNK_BASE_SIZE,
-        baseChunkSize * Math.min(complexity, RAW_CHUNK_MAX_MULTIPLIER)
-      ) // Cap at 8 to avoid too large chunks
-
-      const chunks: string[] = []
-
-      const dataChunks: string[] = []
-      for (let i = 0; i < base64Psbt.length; i += chunkSize) {
-        dataChunks.push(base64Psbt.slice(i, i + chunkSize))
-      }
-
-      const totalChunks = dataChunks.length
-      for (let i = 0; i < totalChunks; i += 1) {
-        const header = `p${i + 1}of${totalChunks}`
-        chunks.push(`${header} ${dataChunks[i]}`)
-      }
-
-      return chunks
-    },
-    [] // Remove qrComplexity dependency to prevent unnecessary re-creation
-  )
-
-  useEffect(() => {
-    let isMounted = true
-    let psbtBuffer: Buffer | null = null
-
-    const updateQrChunks = () => {
-      try {
-        const psbtHex = getPsbtString()
-        if (!psbtHex || !isMounted) {
-          if (isMounted) {
-            setQrError(t('error.psbt.notAvailable'))
-            setQrChunks([])
-            setUrChunks([])
-            setRawPsbtChunks([])
-          }
-          return
-        }
-
-        try {
-          psbtBuffer = Buffer.from(psbtHex, 'hex')
-          let bbqrChunks: string[]
-
-          try {
-            if (qrComplexity === QR_COMPLEXITY_MAX) {
-              // Complexity 12: Create single static BBQR chunk
-              // Check if the data would be too large for a single QR code
-              const estimatedBBQRSize = psbtBuffer.length * QR_ENCODING_OVERHEAD // BBQR encoding adds overhead
-              if (estimatedBBQRSize > QR_MAX_DATA_SIZE) {
-                const bbqrChunkSize = Math.max(
-                  BBQR_CHUNK_MIN_SIZE,
-                  BBQR_CHUNK_BASE_SIZE * QR_COMPLEXITY_MAX
-                ) // Use maximum density (460 characters per chunk)
-                bbqrChunks = createBBQRChunks(
-                  new Uint8Array(psbtBuffer),
-                  BBQRFileTypes.PSBT,
-                  bbqrChunkSize
-                )
-              } else {
-                bbqrChunks = createBBQRChunks(
-                  new Uint8Array(psbtBuffer),
-                  BBQRFileTypes.PSBT,
-                  psbtBuffer.length * BBQR_SINGLE_CHUNK_MULTIPLIER
-                )
-              }
-            } else {
-              // Complexity 1-11: Create multiple chunks (higher = larger chunks)
-              // Increase chunk size significantly - BBQR can handle much more data
-              const bbqrChunkSize = Math.max(
-                BBQR_CHUNK_MIN_SIZE,
-                BBQR_CHUNK_BASE_SIZE * qrComplexity
-              )
-
-              bbqrChunks = createBBQRChunks(
-                new Uint8Array(psbtBuffer),
-                BBQRFileTypes.PSBT,
-                bbqrChunkSize
-              )
-            }
-          } catch {
-            bbqrChunks = []
-          }
-
-          if (!isMounted) {
-            return
-          }
-
-          psbtBuffer.fill(0)
-          psbtBuffer = null
-
-          if (!txBuilderResult?.toBase64()) {
-            throw new Error('PSBT data not available')
-          }
-
-          const rawChunks = createRawPsbtChunks(
-            txBuilderResult.toBase64(),
-            qrComplexity
-          )
-
-          let urFragments: string[]
-
-          if (qrComplexity === QR_COMPLEXITY_MAX) {
-            // Complexity 12: Create single static UR fragment
-            // Check if the data would be too large for a single QR code
-            const estimatedURSize =
-              txBuilderResult.toBase64().length * QR_ENCODING_OVERHEAD // UR encoding adds overhead
-            if (estimatedURSize > QR_MAX_DATA_SIZE) {
-              const urFragmentSize = Math.max(
-                UR_FRAGMENT_MIN_SIZE,
-                UR_FRAGMENT_BASE_SIZE * QR_COMPLEXITY_MAX
-              ) // Use maximum density (180 characters per fragment)
-              urFragments = getURFragmentsFromPSBT(
-                txBuilderResult.toBase64(),
-                'base64',
-                urFragmentSize
-              )
-            } else {
-              urFragments = getURFragmentsFromPSBT(
-                txBuilderResult.toBase64(),
-                'base64',
-                txBuilderResult.toBase64().length // Use full length for single fragment
-              )
-            }
-          } else {
-            // Complexity 1-11: Create multiple fragments (higher = larger fragments)
-            // Increase the fragment size significantly - UR can handle much more data
-            const urFragmentSize = Math.max(
-              UR_FRAGMENT_MIN_SIZE,
-              UR_FRAGMENT_BASE_SIZE * qrComplexity
-            )
-            urFragments = getURFragmentsFromPSBT(
-              txBuilderResult.toBase64(),
-              'base64',
-              urFragmentSize
-            )
-          }
-
-          if (!isMounted) {
-            return
-          }
-
-          setQrChunks(bbqrChunks)
-          setUrChunks(urFragments)
-          setRawPsbtChunks(rawChunks)
-          setCurrentRawChunk(0)
-          setCurrentUrChunk(0)
-          setQrError(null)
-        } catch {
-          if (isMounted) {
-            setQrError(t('error.qr.generation'))
-            setQrChunks([])
-            setUrChunks([])
-            setRawPsbtChunks([])
-          }
-        }
-      } catch {
-        if (isMounted) {
-          setQrError(t('error.psbt.notAvailable'))
-          setQrChunks([])
-          setUrChunks([])
-          setRawPsbtChunks([])
-        }
-      }
-    }
-
-    updateQrChunks()
-
-    return () => {
-      isMounted = false
-      if (psbtBuffer) {
-        psbtBuffer.fill(0)
-        psbtBuffer = null
-      }
-    }
-  }, [getPsbtString, txBuilderResult, qrComplexity, createRawPsbtChunks])
-
-  // Whether the current display mode is cycling through more than one chunk
-  function isMultiPartQR() {
-    switch (displayMode) {
-      case QRDisplayMode.RAW:
-        return rawPsbtChunks.length > 1
-      case QRDisplayMode.UR:
-        return urChunks.length > 1
-      case QRDisplayMode.BBQR:
-        return qrChunks.length > 1
-      default:
-        return false
-    }
-  }
-
-  useEffect(() => {
-    // Don't animate when complexity is 12 (static mode) - but only for single chunks
-    if (qrComplexity === QR_COMPLEXITY_MAX && !isMultiPartQR()) {
-      return // Don't animate if we have a single chunk
-    }
-
-    const shouldAnimate = isMultiPartQR()
-
-    if (shouldAnimate) {
-      // Calculate animation interval based on speed (1 = slowest, 12 = fastest)
-      // Speed 1 = 2000ms, Speed 12 = 100ms
-      const maxInterval = ANIMATION_INTERVAL_MAX_MS
-      const minInterval = ANIMATION_INTERVAL_MIN_MS
-      const interval =
-        maxInterval -
-        ((animationSpeed - 1) * (maxInterval - minInterval)) /
-          (ANIMATION_SPEED_MAX - ANIMATION_SPEED_MIN)
-
-      const safeInterval = Math.max(interval, ANIMATION_INTERVAL_FLOOR_MS)
-
-      const animate = (timestamp: number) => {
-        if (timestamp - lastUpdateRef.current >= safeInterval) {
-          if (displayMode === QRDisplayMode.RAW) {
-            setCurrentRawChunk((prev) => (prev + 1) % rawPsbtChunks.length)
-          } else if (displayMode === QRDisplayMode.UR) {
-            setCurrentUrChunk((prev) => (prev + 1) % urChunks.length)
-          } else {
-            setCurrentChunk((prev) => (prev + 1) % qrChunks.length)
-          }
-          lastUpdateRef.current = timestamp
-        }
-
-        animationRef.current = requestAnimationFrame(animate)
-      }
-
-      animationRef.current = requestAnimationFrame(animate)
-
-      return () => {
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current)
-          animationRef.current = null
-        }
-      }
-    }
-    // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
-  }, [
-    displayMode,
-    qrChunks.length,
-    urChunks.length,
-    rawPsbtChunks.length,
-    qrComplexity,
-    animationSpeed
-  ])
-
-  useEffect(
-    () => () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = null
-      }
-      setQrChunks([])
-      setUrChunks([])
-      setRawPsbtChunks([])
-    },
-    []
-  )
-
-  const getQRValue = () => {
-    switch (displayMode) {
-      case QRDisplayMode.RAW: {
-        if (rawPsbtChunks.length > 0) {
-          if (currentRawChunk >= rawPsbtChunks.length) {
-            return 'NO_CHUNKS'
-          }
-
-          const value = rawPsbtChunks[currentRawChunk] || 'NO_CHUNKS'
-          if (value.length > QR_MAX_DATA_SIZE) {
-            return 'DATA_TOO_LARGE_FOR_QR'
-          }
-          return value
-        }
-        const base64Psbt = txBuilderResult?.toBase64()
-        if (base64Psbt && base64Psbt.length > QR_MAX_DATA_SIZE) {
-          return 'DATA_TOO_LARGE'
-        }
-        return base64Psbt || 'NO_DATA'
-      }
-      case QRDisplayMode.UR: {
-        if (currentUrChunk >= urChunks.length) {
-          return 'NO_CHUNKS'
-        }
-
-        const urValue = urChunks[currentUrChunk]
-        if (urValue && urValue.length > QR_MAX_DATA_SIZE) {
-          return 'DATA_TOO_LARGE_FOR_QR'
-        }
-        return urValue || 'NO_CHUNKS'
-      }
-      case QRDisplayMode.BBQR: {
-        if (currentChunk >= qrChunks.length) {
-          return 'NO_CHUNKS'
-        }
-
-        const bbqrValue = qrChunks?.[currentChunk]
-        if (bbqrValue && bbqrValue.length > QR_MAX_DATA_SIZE) {
-          return 'DATA_TOO_LARGE_FOR_QR'
-        }
-        return bbqrValue || 'NO_CHUNKS'
-      }
-      default:
-        return 'NO_DATA'
-    }
-  }
-
-  const isDataTooLargeForSingleQR = () => {
-    const base64Psbt = txBuilderResult?.toBase64()
-    if (!base64Psbt) {
-      return false
-    }
-
-    let maxChunkSize = 0
-
-    switch (displayMode) {
-      case QRDisplayMode.RAW:
-        if (rawPsbtChunks.length > 0) {
-          maxChunkSize = Math.max(...rawPsbtChunks.map((c) => c.length))
-        }
-        break
-      case QRDisplayMode.UR:
-        if (urChunks.length > 0) {
-          maxChunkSize = Math.max(...urChunks.map((c) => c.length))
-        }
-        break
-      case QRDisplayMode.BBQR:
-        if (qrChunks.length > 0) {
-          maxChunkSize = Math.max(...qrChunks.map((c) => c.length))
-        }
-        break
-      default:
-        break
-    }
-
-    const limit = QR_MAX_DATA_SIZE // Reduced to prevent crashes
-
-    return maxChunkSize > limit
-  }
-
-  const getDisplayModeDescription = () => {
-    switch (displayMode) {
-      case QRDisplayMode.RAW:
-        if (rawPsbtChunks.length > 0) {
-          if (
-            qrComplexity === QR_COMPLEXITY_MAX &&
-            rawPsbtChunks.length === 1
-          ) {
-            return t('transaction.preview.staticQrPsbt')
-          }
-          return rawPsbtChunks.length > 1
-            ? t('transaction.preview.scanAllChunks', {
-                current: currentRawChunk + 1,
-                total: rawPsbtChunks.length
-              })
-            : t('transaction.preview.singleChunk')
-        }
-        if (serializedPsbt.length > QR_MAX_DATA_SIZE) {
-          return t('error.qr.dataTooLarge')
-        }
-        if (!serializedPsbt) {
-          return t('error.psbt.notAvailable')
-        }
-        return t('transaction.preview.rawPSBT')
-      case QRDisplayMode.UR:
-        if (!urChunks.length) {
-          return t('error.psbt.notAvailable')
-        }
-        if (qrComplexity === QR_COMPLEXITY_MAX && urChunks.length === 1) {
-          return t('transaction.preview.staticQrUr')
-        }
-        return urChunks.length > 1
-          ? t('transaction.preview.scanAllChunks', {
-              current: currentUrChunk + 1,
-              total: urChunks.length
-            })
-          : t('transaction.preview.singleChunk')
-      case QRDisplayMode.BBQR:
-        if (!qrChunks.length) {
-          return t('transaction.preview.loadingBbqr')
-        }
-        if (qrComplexity === QR_COMPLEXITY_MAX && qrChunks.length === 1) {
-          return t('transaction.preview.staticQrBbqr')
-        }
-        return qrChunks.length > 1
-          ? t('transaction.preview.scanAllChunks', {
-              current: currentChunk + 1,
-              total: qrChunks.length
-            })
-          : t('transaction.preview.singleChunk')
-      default:
-        return ''
-    }
-  }
-
-  return {
-    animationSpeed,
-    displayMode,
-    getDisplayModeDescription,
-    getQRValue,
-    isDataTooLargeForSingleQR,
-    isMultiPartQR,
-    qrChunks,
-    qrComplexity,
-    qrError,
-    qrRef,
-    setAnimationSpeed,
-    setCurrentChunk,
-    setCurrentRawChunk,
-    setCurrentUrChunk,
-    setDisplayMode,
-    setQrComplexity
   }
 }
 
@@ -2639,38 +1393,20 @@ function useScannedDataProcessor({
 }): ProcessScannedData {
   const txBuilderResult = useTransactionBuilderStore((state) => state.psbt)
 
-  // Helper function to convert PSBT to final transaction if needed.
-  // Returns null (after showing an error) when the supplied content does not
-  // correspond to the transaction under review — broadcasting it would
+  // Binds scanned/pasted data to the transaction under review. Returns null
+  // (after showing an error) when it does not match: broadcasting it would
   // execute a different transaction than the one displayed to the user.
-  return (data: string): string | null => {
+  return (data: string) => {
     try {
-      let processedData = data
-      if (processedData.toLowerCase().startsWith('bitcoin:')) {
-        processedData = processedData.substring(8)
-      }
-
-      const originalPsbtBase64 = txBuilderResult?.toBase64()
-
-      if (processedData.toLowerCase().startsWith('70736274ff')) {
-        if (originalPsbtBase64) {
-          return convertPsbtToFinalTransaction(processedData)
-        }
-        return processedData
-      }
-
-      // Raw transaction hex: bind it to the PSBT under review (when there
-      // is one) so a swapped QR/clipboard cannot substitute the broadcast.
-      if (
-        originalPsbtBase64 &&
-        /^[a-fA-F0-9]+$/.test(processedData) &&
-        !signedTransactionMatchesPsbt(originalPsbtBase64, processedData)
-      ) {
+      const boundData = bindScannedDataToPsbt(
+        data,
+        txBuilderResult?.toBase64(),
+        convertPsbtToFinalTransaction
+      )
+      if (boundData === null) {
         toast.error(t('common.error.transactionMismatch'))
-        return null
       }
-
-      return processedData
+      return boundData
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
@@ -2682,388 +1418,43 @@ function useScannedDataProcessor({
   }
 }
 
-function useQrScanner({
-  processScannedData,
-  updateSignedPsbt,
+function useScannedContentImport({
+  currentCosignerIndex,
   handleSignWithSeedQR,
-  convertPsbtToFinalTransaction,
-  closeCamera
+  processScannedData,
+  updateSignedPsbt
 }: {
+  currentCosignerIndex: number | null
+  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
   processScannedData: ProcessScannedData
   updateSignedPsbt: PsbtManagement['updateSignedPsbt']
-  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
-  convertPsbtToFinalTransaction: PsbtManagement['convertPsbtToFinalTransaction']
-  closeCamera: () => void
 }) {
-  const [scanProgress, setScanProgress] = useState<{
-    type: 'raw' | 'ur' | 'bbqr' | null
-    total: number
-    scanned: Set<number>
-    chunks: Map<number, string>
-  }>({
-    chunks: new Map(),
-    scanned: new Set(),
-    total: 0,
-    type: null
-  })
-
-  const detectQRType = (data: string) => {
-    if (/^p\d+of\d+\s/.test(data)) {
-      const match = data.match(/^p(\d+)of(\d+)\s/)
-      if (match) {
-        return {
-          content: data.substring(match[0].length),
-          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
-          total: parseInt(match[2], 10),
-          type: 'raw' as const
-        }
-      }
-    }
-
-    if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36)
-      const current = parseInt(data.slice(6, 8), 36)
-      return {
-        content: data,
-        current,
-        total,
-        type: 'bbqr' as const
-      }
-    }
-
-    if (data.toLowerCase().startsWith('ur:crypto-psbt/')) {
-      // UR format: ur:crypto-psbt/[sequence]/[data] for multi-part
-      // or ur:crypto-psbt/[data] for single part
-      const urMatch = data.match(/^ur:crypto-psbt\/(?:(\d+)-(\d+)\/)?(.+)$/i)
-      if (urMatch) {
-        const [, currentStr, totalStr] = urMatch
-
-        if (currentStr && totalStr) {
-          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
-          const total = parseInt(totalStr, 10)
-          return {
-            content: data,
-            current,
-            total,
-            type: 'ur' as const
-          }
-        }
-        return {
-          content: data,
-          current: 0,
-          total: 1,
-          type: 'ur' as const
-        }
-      }
-    }
-
-    return {
-      content: data,
-      current: 0,
-      total: 1,
-      type: 'single' as const
-    }
-  }
-
-  const resetScanProgress = () => {
-    setScanProgress({
-      chunks: new Map(),
-      scanned: new Set(),
-      total: 0,
-      type: null
-    })
-  }
-
-  const assembleMultiPartQR = async (
-    type: 'raw' | 'ur' | 'bbqr',
-    chunks: Map<number, string>
-  ) => {
-    try {
-      switch (type) {
-        case 'raw': {
-          const sortedChunks = Array.from(chunks.entries())
-            .toSorted(([a], [b]) => a - b)
-            .map(([, content]) => content)
-          const assembled = sortedChunks.join('')
-
-          try {
-            const hexResult = Buffer.from(assembled, 'base64').toString('hex')
-            return hexResult
-          } catch {
-            return assembled
-          }
-        }
-
-        case 'bbqr': {
-          const sortedChunks = Array.from(chunks.entries())
-            .toSorted(([a], [b]) => a - b)
-            .map(([, content]) => content)
-
-          const decoded = decodeBBQRChunks(sortedChunks)
-
-          if (decoded) {
-            const hexResult = Buffer.from(decoded).toString('hex')
-            return hexResult
-          }
-
-          return null
-        }
-
-        case 'ur': {
-          const sortedChunks = Array.from(chunks.entries())
-            .toSorted(([a], [b]) => a - b)
-            .map(([, content]) => content)
-
-          let result: string
-          if (sortedChunks.length === 1) {
-            result = decodeURToPSBT(sortedChunks[0])
-          } else {
-            try {
-              result = await decodeMultiPartURToPSBT(sortedChunks)
-            } catch {
-              return null
-            }
-          }
-
-          if (!result) {
-            return null
-          }
-
-          if (result.toLowerCase().startsWith('70736274ff')) {
-            const convertedResult = convertPsbtToFinalTransaction(result)
-
-            if (
-              convertedResult.toLowerCase().startsWith('70736274ff') ||
-              convertedResult.startsWith('cHNidP')
-            ) {
-              return convertedResult
-            }
-            return convertedResult
-          }
-          return result
-        }
-
-        default:
-          return null
-      }
-    } catch (error) {
-      toast.error(String(error))
-      return null
-    }
-  }
-
-  const handleQRCodeScanned = async (
-    data: string | undefined,
-    index?: number
-  ) => {
-    if (!data) {
-      toast.error(t('common.error.scanQRCode'))
-      return
-    }
-
-    const qrInfo = detectQRType(data)
-
-    if (qrInfo.type === 'single' || qrInfo.total === 1) {
-      let finalContent: string | null = qrInfo.content
-      try {
-        if (isBBQRFragment(qrInfo.content)) {
-          const decoded = decodeBBQRChunks([qrInfo.content])
-          if (!decoded) {
-            toast.error(t('camera.error.bbqrDecodeFailed'))
-            return
-          }
-          const hexResult = Buffer.from(decoded).toString('hex')
-          finalContent = hexResult
-        } else if (qrInfo.content.startsWith('cHNidP')) {
-          const hexResult = Buffer.from(qrInfo.content, 'base64').toString(
-            'hex'
-          )
-          finalContent = hexResult
-        } else if (qrInfo.content.toLowerCase().startsWith('ur:crypto-psbt/')) {
-          const decoded = decodeURToPSBT(qrInfo.content)
-          if (!decoded) {
-            toast.error(t('camera.error.urDecodeFailed'))
-            return
-          }
-          finalContent = decoded
-        } else if (index !== undefined) {
-          const decodedMnemonic = detectAndDecodeSeedQR(qrInfo.content)
-          if (decodedMnemonic) {
-            handleSignWithSeedQR(index, decodedMnemonic)
-            closeCamera()
-            resetScanProgress()
-            return
-          }
-        }
-
-        finalContent = processScannedData(finalContent)
-      } catch {
-        toast.error(t('common.error.processScannedData'))
-      }
-
-      if (finalContent === null) {
-        resetScanProgress()
+  // Routes a QR scanned by SSCameraModal: a SeedQR signs for the current
+  // cosigner, a PSBT or signed transaction is stored as that cosigner's
+  // signature (or the watch-only import when no cosigner is selected).
+  return (content: DetectedContent) => {
+    const mnemonic = content.metadata?.mnemonic
+    if (content.type === 'seed_qr' && typeof mnemonic === 'string') {
+      if (currentCosignerIndex === null) {
+        toast.error(t('camera.error.invalidContent'))
         return
       }
-
-      updateSignedPsbt(index ?? -1, finalContent)
-
-      closeCamera()
-      resetScanProgress()
-      toast.success(t('common.success.qrScanned'))
+      handleSignWithSeedQR(currentCosignerIndex, mnemonic)
       return
     }
 
-    const { type, current, total, content } = qrInfo
-
-    if (
-      scanProgress.type === null ||
-      scanProgress.type !== type ||
-      scanProgress.total !== total
-    ) {
-      const newScanned = new Set([current])
-      const newChunks = new Map([[current, content]])
-
-      setScanProgress({
-        chunks: newChunks,
-        scanned: newScanned,
-        total,
-        type
-      })
-
+    if (content.type !== 'psbt' && content.type !== 'bitcoin_transaction') {
+      toast.error(t('camera.error.invalidContent'))
       return
     }
 
-    if (scanProgress.scanned.has(current)) {
-      toast.info(
-        t('transaction.preview.partAlreadyScanned', { part: current + 1 })
-      )
+    const processedData = processScannedData(content.cleaned)
+    if (processedData === null) {
       return
     }
-
-    const newScanned = new Set(scanProgress.scanned).add(current)
-    const newChunks = new Map(scanProgress.chunks).set(current, content)
-
-    setScanProgress({
-      chunks: newChunks,
-      scanned: newScanned,
-      total,
-      type
-    })
-
-    if (type === 'ur') {
-      // For fountain encoding, we need to find the highest fragment number to determine the actual range
-      const maxFragmentNumber = Math.max(...Array.from(newScanned))
-      const actualTotal = maxFragmentNumber + 1 // Convert from 0-based to 1-based
-
-      // For fountain encoding, try assembly after collecting enough fragments
-      // Be more aggressive - try when we have enough fragments to potentially succeed
-      // Use either 1.1x the actual range or the theoretical minimum, whichever is lower
-      const conservativeTarget = Math.ceil(
-        actualTotal * UR_ASSEMBLY_CONSERVATIVE_FACTOR
-      )
-      const theoreticalTarget = Math.ceil(
-        total * UR_ASSEMBLY_THEORETICAL_FACTOR
-      )
-      const assemblyTarget = Math.min(conservativeTarget, theoreticalTarget)
-
-      // Also try assembly if we have most of the available fragments (80% of actual range)
-      const fallbackTarget = Math.ceil(
-        actualTotal * UR_ASSEMBLY_FALLBACK_FACTOR
-      )
-      const shouldTryAssembly =
-        newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
-
-      if (shouldTryAssembly) {
-        const assembledData = await assembleMultiPartQR(type, newChunks)
-
-        if (assembledData) {
-          const finalData = processScannedData(assembledData)
-
-          if (finalData === null) {
-            resetScanProgress()
-            return
-          }
-
-          updateSignedPsbt(index ?? -1, finalData)
-
-          closeCamera()
-          resetScanProgress()
-
-          if (
-            finalData.toLowerCase().startsWith('70736274ff') ||
-            finalData.startsWith('cHNidP')
-          ) {
-            toast.success(
-              t('transaction.preview.psbtAssembledFragments', {
-                count: newScanned.size
-              })
-            )
-          } else {
-            toast.success(
-              t('transaction.preview.txAssembledFragments', {
-                count: newScanned.size
-              })
-            )
-          }
-          return
-        }
-      }
-
-      const targetForDisplay = Math.min(
-        Math.ceil(actualTotal * UR_ASSEMBLY_CONSERVATIVE_FACTOR),
-        Math.ceil(total * UR_ASSEMBLY_THEORETICAL_FACTOR)
-      )
-      toast.success(
-        t('transaction.preview.urCollected', {
-          count: newScanned.size,
-          target: targetForDisplay
-        })
-      )
-    } else if (newScanned.size === total) {
-      const assembledData = await assembleMultiPartQR(type, newChunks)
-
-      if (assembledData) {
-        const finalData = processScannedData(assembledData)
-
-        if (finalData === null) {
-          resetScanProgress()
-          return
-        }
-
-        updateSignedPsbt(index ?? -1, finalData)
-
-        closeCamera()
-        resetScanProgress()
-
-        if (
-          finalData.toLowerCase().startsWith('70736274ff') ||
-          finalData.startsWith('cHNidP')
-        ) {
-          toast.success(
-            t('transaction.preview.psbtAssembledParts', { count: total })
-          )
-        } else {
-          toast.success(
-            t('transaction.preview.txAssembledParts', { count: total })
-          )
-        }
-      } else {
-        toast.error(t('camera.error.assembleFailed'))
-        resetScanProgress()
-      }
-    } else {
-      toast.success(
-        t('transaction.preview.scannedPartProgress', {
-          current: current + 1,
-          scanned: newScanned.size,
-          total
-        })
-      )
-    }
+    updateSignedPsbt(currentCosignerIndex ?? WATCH_ONLY_INDEX, processedData)
+    toast.success(t('common.success.qrScanned'))
   }
-
-  return { handleQRCodeScanned, resetScanProgress, scanProgress }
 }
 
 function useSignatureDetection({
@@ -3116,31 +1507,10 @@ function useSignatureDetection({
         return
       }
 
-      const keyFingerprintToCosignerIndex = new Map<string, number>()
-      await Promise.all(
-        currentAccount.keys.map(async (key, index) => {
-          const fp = await getKeyFingerprint(key)
-          if (fp) {
-            keyFingerprintToCosignerIndex.set(fp, index)
-          }
-        })
+      const pubkeyToCosignerIndex = await buildPubkeyToCosignerIndex(
+        psbtObj,
+        currentAccount.keys
       )
-
-      const pubkeyToCosignerIndex = new Map<string, number>()
-      for (const input of psbtObj.data.inputs) {
-        if (!input.bip32Derivation) {
-          continue
-        }
-        for (const derivation of input.bip32Derivation) {
-          const fingerprint = derivation.masterFingerprint.toString('hex')
-          const pubkey = derivation.pubkey.toString('hex')
-          const cosignerIndex = keyFingerprintToCosignerIndex.get(fingerprint)
-          if (cosignerIndex === undefined) {
-            continue
-          }
-          pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
-        }
-      }
 
       const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
       if (signerPubkeys.size === 0) {
@@ -3227,97 +1597,36 @@ function useMultisigFinalization({
     useShallow((state) => [state.psbt, state.setSignedTx])
   )
 
-  const hasAllRequiredSignatures = () => {
-    if (!account || account.policyType !== 'multisig' || !account.keys) {
-      return false
+  const combineAndFinalizeMultisigPSBTs = () => {
+    const originalPsbtBase64 = txBuilderResult?.toBase64()
+    if (!originalPsbtBase64) {
+      toast.error(t('common.error.noOriginalPSBT'))
+      return null
     }
 
-    const requiredSignatures = account.keysRequired || account.keys.length
-
-    const validSignatures = Array.from(validationResults.values()).filter(
-      (isValid) => isValid === true
-    ).length
-
-    const hasEnough = validSignatures >= requiredSignatures
-    return hasEnough
-  }
-
-  const combineAndFinalizeMultisigPSBTs = () => {
     try {
-      const originalPsbtBase64 = txBuilderResult?.toBase64()
-      if (!originalPsbtBase64) {
-        toast.error(t('common.error.noOriginalPSBT'))
-        return null
-      }
-
-      const collectedSignedPsbts = Array.from(signedPsbts.values()).filter(
-        (psbt) => psbt && psbt.trim().length > 0
+      const result = combineAndFinalizePsbts(
+        originalPsbtBase64,
+        Array.from(getCollectedSignedPsbts(signedPsbts).values())
       )
-
-      if (collectedSignedPsbts.length === 0) {
-        toast.error(t('common.error.noSignedPSBTs'))
+      if ('errorKey' in result) {
+        toast.error(t(result.errorKey, result.errorParams))
         return null
       }
-
-      const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
-
-      const combinedPsbt = originalPsbt
-
-      for (let i = 0; i < collectedSignedPsbts.length; i += 1) {
-        const signedPsbtBase64 = collectedSignedPsbts[i]
-
-        try {
-          const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
-
-          combinedPsbt.combine(signedPsbt)
-        } catch {
-          toast.error(
-            t('transaction.preview.errorCombiningPsbt', { index: i + 1 })
-          )
-          return null
-        }
-      }
-
-      const allInputsReady = combinedPsbt.data.inputs.every(hasEnoughSignatures)
-
-      if (!allInputsReady) {
-        toast.error(t('transaction.preview.notEnoughSignatures'))
-        return null
-      }
-      try {
-        combinedPsbt.finalizeAllInputs()
-      } catch {
-        for (let i = 0; i < combinedPsbt.data.inputs.length; i += 1) {
-          try {
-            combinedPsbt.finalizeInput(i)
-          } catch {
-            toast.error(t('common.error.finalizeInput'))
-          }
-        }
-
-        toast.error(t('common.error.finalizeTransaction'))
-        return null
-      }
-
-      try {
-        const finalTransaction = combinedPsbt.extractTransaction()
-        const transactionHex = finalTransaction.toHex()
-
-        setSignedTx(transactionHex)
-
-        toast.success(t('transaction.finalizedSuccessfully'))
-        return transactionHex
-      } catch {
-        toast.error(t('common.error.extractTransaction'))
-        return null
-      }
+      setSignedTx(result.hex)
+      toast.success(t('transaction.finalizedSuccessfully'))
+      return result.hex
     } catch {
       toast.error(t('common.error.combinePSBTs'))
       return null
     }
   }
 
-  return { combineAndFinalizeMultisigPSBTs, hasAllRequiredSignatures }
+  return {
+    combineAndFinalizeMultisigPSBTs,
+    hasAllRequiredSignatures: () =>
+      hasAllRequiredSignatures(account, validationResults)
+  }
 }
 
 function useNfcTransfer({
@@ -3341,21 +1650,6 @@ function useNfcTransfer({
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
   const [nfcScanModalVisible, setNfcScanModalVisible] = useState(false)
   const [nfcError, setNfcError] = useState<string | null>(null)
-
-  const nfcPulseAnim = useSharedValue(0)
-
-  const nfcPulseStyle = useAnimatedStyle(() => ({
-    alignItems: 'center' as const,
-    backgroundColor: interpolateColor(
-      nfcPulseAnim.value,
-      [0, 1],
-      [Colors.gray[800], Colors.gray[400]]
-    ),
-    borderRadius: 100,
-    height: NFC_PULSE_SIZE,
-    justifyContent: 'center' as const,
-    width: NFC_PULSE_SIZE
-  }))
 
   async function handleNFCExport() {
     if (isEmitting) {
@@ -3430,25 +1724,6 @@ function useNfcTransfer({
     }
   }
 
-  useEffect(() => {
-    if (nfcModalVisible || nfcScanModalVisible) {
-      nfcPulseAnim.set(
-        withRepeat(
-          withSequence(
-            withTiming(1, { duration: NFC_PULSE_DURATION_MS }),
-            withTiming(0, { duration: NFC_PULSE_DURATION_MS })
-          ),
-          -1
-        )
-      )
-
-      return () => {
-        cancelAnimation(nfcPulseAnim)
-        nfcPulseAnim.set(0)
-      }
-    }
-  }, [nfcModalVisible, nfcScanModalVisible, nfcPulseAnim])
-
   return {
     cancelNFCEmitterScan,
     cancelNFCScan,
@@ -3459,45 +1734,10 @@ function useNfcTransfer({
     nfcError,
     nfcHardwareSupported,
     nfcModalVisible,
-    nfcPulseStyle,
     nfcScanModalVisible,
     setNfcError,
     setNfcModalVisible,
     setNfcScanModalVisible
-  }
-}
-
-function useNostrShare({
-  account,
-  id
-}: {
-  account: Account | undefined
-  id: string
-}) {
-  const router = useRouter()
-  const txBuilderResult = useTransactionBuilderStore((state) => state.psbt)
-  const setTransactionToShare = useNostrStore(
-    (state) => state.setTransactionToShare
-  )
-
-  return () => {
-    if (!account?.nostr?.autoSync) {
-      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
-      return
-    }
-    const base64 = txBuilderResult?.toBase64()
-    if (!base64) {
-      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
-      return
-    }
-    setTransactionToShare({
-      transaction: base64,
-      transactionData: { combinedPsbt: base64 }
-    })
-    router.push({
-      params: { id },
-      pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
-    })
   }
 }
 
@@ -3508,40 +1748,22 @@ function useClipboardImport({
   processScannedData: ProcessScannedData
   updateSignedPsbt: PsbtManagement['updateSignedPsbt']
 }) {
-  useClipboardPaste({
-    onPaste: (content: string) => {
-      const processedData = processScannedData(content)
-      if (processedData !== null) {
-        updateSignedPsbt(-1, processedData) // -1 for watch-only mode
-      }
-    }
-  })
+  const { pasteFromClipboardSilent } = useClipboardPaste()
 
   const handlePasteFromClipboard = async (index: number) => {
-    try {
-      const text = await Clipboard.getStringAsync()
-      if (!text) {
-        toast.error(t('common.error.noClipboardData'))
-        return
-      }
-
-      const processedData = processScannedData(text)
-
-      if (processedData === null) {
-        return
-      }
-
-      updateSignedPsbt(index, processedData)
-
-      toast.success(t('common.success.dataPasted'))
-    } catch (error) {
-      const errorMessage = (error as Error).message
-      if (errorMessage) {
-        toast.error(errorMessage)
-      } else {
-        toast.error(t('common.error.pasteFromClipboard'))
-      }
+    const text = await pasteFromClipboardSilent()
+    if (!text) {
+      toast.error(t('common.error.noClipboardData'))
+      return
     }
+
+    const processedData = processScannedData(text)
+    if (processedData === null) {
+      return
+    }
+
+    updateSignedPsbt(index, processedData)
+    toast.success(t('common.success.dataPasted'))
   }
 
   return { handlePasteFromClipboard }
@@ -3561,14 +1783,6 @@ function useSeedSigning({
   const [selectedWordCount, setSelectedWordCount] =
     useState<MnemonicWordCount>(24)
   const [currentMnemonic, setCurrentMnemonic] = useState('')
-
-  const [wordSelectorState, setWordSelectorState] = useState({
-    onWordSelected: () => {
-      // noop
-    },
-    visible: false,
-    wordStart: ''
-  })
 
   const handleSeedWordsScanned = (index: number) => {
     setCurrentCosignerIndex(index)
@@ -3615,34 +1829,13 @@ function useSeedSigning({
     setSeedWordsModalVisible,
     setSelectedWordCount,
     setWordCountModalVisible,
-    setWordSelectorState,
-    wordCountModalVisible,
-    wordSelectorState
+    wordCountModalVisible
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
-
-function formatPayjoinSummary(
-  invoice: PayjoinInvoice,
-  expiryLabel: string | null
-) {
-  return [
-    invoice.endpointKind === 'bip78'
-      ? t('transaction.build.payjoin.data.bip78')
-      : t('transaction.build.payjoin.data.bip77'),
-    invoice.amountSats !== undefined
-      ? `${formatNumber(invoice.amountSats)} ${t('bitcoin.sats')}`
-      : null,
-    invoice.label || null,
-    formatAddress(invoice.address, 'default'),
-    expiryLabel
-  ]
-    .filter(Boolean)
-    .join(' · ')
-}
 
 function getTransactionIdDisplayValue({
   isLoadingPSBT,
@@ -3665,52 +1858,25 @@ function getTransactionIdDisplayValue({
   return transactionId || '—'
 }
 
-function hasEnoughSignatures(input: PsbtInputWithSignatures) {
-  if (!input.witnessScript) {
-    return true
-  }
-
-  try {
-    const script = bitcoinjs.script.decompile(input.witnessScript)
-
-    if (!script || script.length < MIN_MULTISIG_SCRIPT_LENGTH) {
-      return false
-    }
-
-    const [op] = script
-
-    if (typeof op !== 'number' || op < OP_1 || op > OP_16) {
-      return false
-    }
-
-    const threshold = op - OP_N_VALUE_OFFSET
-    const signatureCount = input.partialSig ? input.partialSig.length : 0
-
-    return signatureCount >= threshold
-  } catch {
-    toast.error(t('common.error.checkingInputSignatures'))
-    return false
-  }
+function createErrorTransactionId() {
+  return `PSBT-ERROR-${Date.now().toString(36)}`
 }
 
-function createMockPsbt(
-  psbtBase64: string,
-  txid: string,
-  txFee: number
-): MockPsbt {
-  return {
-    extractTxHex: () => '',
-    feeAmount: () => BigInt(txFee),
-    feeRate: () => undefined,
-    getUtxoFor: () => undefined,
-    toBase64: () => psbtBase64,
-    txid: () => txid
+// Camera title: ask for a SeedQR when signing for a cosigner whose key has no
+// stored mnemonic, otherwise a generic "scan QR code".
+function getCameraModalTitle(
+  decryptedKeys: Key[],
+  currentCosignerIndex: number | null
+) {
+  if (currentCosignerIndex === null) {
+    return t('camera.scanQRCode')
   }
-}
-
-function generateTransactionId(psbtBase64: string): string {
-  const extractedTxid = extractTransactionIdFromPSBT(psbtBase64)
-  return extractedTxid || `PSBT-${Date.now().toString(36)}`
+  const secret = decryptedKeys[currentCosignerIndex]?.secret
+  const hasMnemonic =
+    typeof secret === 'object' && 'mnemonic' in secret && !!secret.mnemonic
+  return hasMnemonic
+    ? t('camera.scanQRCode')
+    : t('transaction.preview.scanSeedQR')
 }
 
 function mapBuildTransactionError(error: unknown): {
@@ -3744,19 +1910,6 @@ function handlePsbtExtractionError(error: unknown) {
     toast.error(t('transaction.preview.psbtInvalidFormat'))
   } else {
     toast.warning(t('transaction.preview.psbtEnhancedFailed'))
-  }
-}
-
-async function decryptKeyOrFallback(
-  accountId: string,
-  keyIndex: number,
-  key: Key
-): Promise<Key> {
-  try {
-    const secret = await decryptAccountKeySecret(accountId, keyIndex)
-    return { ...key, secret }
-  } catch {
-    return key
   }
 }
 
