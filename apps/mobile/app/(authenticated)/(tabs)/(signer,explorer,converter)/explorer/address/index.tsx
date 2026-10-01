@@ -1,13 +1,12 @@
-import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSModal from '@/components/SSModal'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { EXPLORER_EXAMPLE_ADDRESSES } from '@/constants/explorerExamples'
@@ -21,6 +20,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { type DetectedContent } from '@/utils/contentDetector'
 import { truncate } from '@/utils/format'
 import { parseUriParameters, stripBitcoinPrefix } from '@/utils/parse'
 
@@ -36,8 +36,6 @@ export default function ExplorerAddress() {
   const router = useRouter()
   const [input, setInput] = useState('')
   const [scanOpen, setScanOpen] = useState(false)
-  const scannedRef = useRef(false)
-  const [permission, requestPermission] = useCameraPermissions()
   const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork)
   const showExamples = selectedNetwork === 'bitcoin'
 
@@ -71,29 +69,16 @@ export default function ExplorerAddress() {
     setInput(trimmed)
   }
 
-  async function handleScan() {
-    if (!permission?.granted) {
-      const result = await requestPermission()
-      if (!result.granted) {
-        return
-      }
-    }
-    scannedRef.current = false
+  function handleScan() {
     setScanOpen(true)
   }
 
   function handleScanClose() {
     setScanOpen(false)
-    scannedRef.current = false
   }
 
-  function handleBarcodeScanned({ data }: { data: string }) {
-    if (scannedRef.current) {
-      return
-    }
-    scannedRef.current = true
-    setScanOpen(false)
-    const resolved = resolveExplorerAddressInput(data)
+  function handleContentScanned(content: DetectedContent) {
+    const resolved = resolveExplorerAddressInput(content.raw)
     setInput(resolved)
     navigate(resolved)
   }
@@ -175,13 +160,12 @@ export default function ExplorerAddress() {
         </SSVStack>
       </ScrollView>
 
-      <SSModal visible={scanOpen} onClose={handleScanClose}>
-        <CameraView
-          style={styles.camera}
-          onBarcodeScanned={handleBarcodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-        />
-      </SSModal>
+      <SSCameraModal
+        visible={scanOpen}
+        onClose={handleScanClose}
+        onContentScanned={handleContentScanned}
+        context="bitcoin"
+      />
     </SSMainLayout>
   )
 }
@@ -189,7 +173,6 @@ export default function ExplorerAddress() {
 const styles = StyleSheet.create({
   actionButton: { flex: 1 },
   addressInput: { height: 96 },
-  camera: { height: 300, width: '100%' },
   container: { paddingTop: 0 },
   exampleCard: {
     alignItems: 'center',
