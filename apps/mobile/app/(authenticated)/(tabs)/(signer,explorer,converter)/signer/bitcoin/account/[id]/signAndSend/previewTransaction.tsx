@@ -1670,17 +1670,17 @@ function useNfcTransfer({
     try {
       await emitNFCTag(serializedPsbt)
       toast.success(t('transaction.preview.nfcExported'))
+      setNfcModalVisible(false)
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (errorMessage) {
-        setNfcError(errorMessage)
-        toast.error(errorMessage)
-      }
-    } finally {
-      if (!nfcError) {
+      if (!errorMessage) {
         setNfcModalVisible(false)
+        return
       }
+      // Keep the modal open so the error stays visible until dismissed.
+      setNfcError(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
