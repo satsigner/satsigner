@@ -1,3 +1,5 @@
+import * as bitcoinjs from 'bitcoinjs-lib'
+
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 
@@ -636,7 +638,7 @@ describe('transaction builder previews', () => {
     addressTo: address,
     keychain: 'external',
     label: 'coffee',
-    txid: 'aa'.repeat(32),
+    txid: `${'aa'.repeat(31)}bb`,
     value: 100_000,
     vout: 1
   }
@@ -647,14 +649,16 @@ describe('transaction builder previews', () => {
     to: address
   }
 
-  it('builds a decodable hex with the builder inputs and outputs', () => {
+  it('builds a hex whose inputs spend the builder txids', () => {
     const txHex = buildPreviewTransactionHex(
       new Map([['a', utxo]]),
       [output],
       'bitcoin'
     )
-    expect(txHex).not.toBe('')
-    expect(txHex).toContain('aa'.repeat(32))
+    const [input] = bitcoinjs.Transaction.fromHex(txHex).ins
+    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+    expect(Buffer.from(input.hash).reverse().toString('hex')).toBe(utxo.txid)
+    expect(input.index).toBe(utxo.vout)
   })
 
   it('skips inputs with an invalid txid', () => {
@@ -663,7 +667,9 @@ describe('transaction builder previews', () => {
       [output],
       'bitcoin'
     )
-    expect(txHex).not.toContain('aa'.repeat(32))
+    expect(txHex).toBe(
+      buildPreviewTransactionHex(new Map(), [output], 'bitcoin')
+    )
   })
 
   it('returns empty hex when an output address is invalid', () => {

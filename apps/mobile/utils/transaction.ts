@@ -315,7 +315,10 @@ export function buildPreviewTransactionHex(
     if (!input.txid || !TXID_HEX_REGEX.test(input.txid)) {
       continue
     }
-    transaction.addInput(Buffer.from(hex.decode(input.txid)), input.vout)
+    // bitcoinjs expects the hash in internal (little-endian) byte order.
+    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+    const hash = Buffer.from(hex.decode(input.txid)).reverse()
+    transaction.addInput(hash, input.vout)
   }
 
   for (const output of outputs) {
