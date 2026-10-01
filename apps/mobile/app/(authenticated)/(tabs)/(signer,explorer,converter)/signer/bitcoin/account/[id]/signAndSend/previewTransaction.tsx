@@ -92,7 +92,6 @@ const TRANSACTION_CHART_SCALE = 0.9
 const styles = StyleSheet.create({
   chartContainer: { overflow: 'hidden' },
   mainLayout: { paddingBottom: 20, paddingTop: 0 },
-  modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' },
   nfcTitle: { maxWidth: 300 },
   payjoinNote: {
     gap: 4,
