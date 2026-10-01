@@ -10,7 +10,6 @@ import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
-import { getKeyFingerprint } from '@/utils/account'
 import { isUriPaymentAmount } from '@/utils/autoSelectUtxos'
 import { parseBitcoinUri } from '@/utils/bip321'
 import {
@@ -19,6 +18,7 @@ import {
 } from '@/utils/contentDetector'
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
+  buildPubkeyToCosignerIndex,
   combinePsbts,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
@@ -221,34 +221,10 @@ async function processBitcoinContent(
             if (accountMatch.account.policyType === 'multisig') {
               const combinedPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
 
-              const keyFingerprintToCosignerIndex = new Map<string, number>()
-              await Promise.all(
-                accountMatch.account.keys.map(async (key, index) => {
-                  const fp = await getKeyFingerprint(key)
-                  if (fp) {
-                    keyFingerprintToCosignerIndex.set(fp, index)
-                  }
-                })
+              const pubkeyToCosignerIndex = await buildPubkeyToCosignerIndex(
+                combinedPsbt,
+                accountMatch.account.keys
               )
-
-              const pubkeyToCosignerIndex = new Map<string, number>()
-              for (const input of combinedPsbt.data.inputs) {
-                if (!input.bip32Derivation) {
-                  continue
-                }
-                for (const derivation of input.bip32Derivation) {
-                  const fingerprint =
-                    derivation.masterFingerprint.toString('hex')
-                  const pubkey = derivation.pubkey.toString('hex')
-                  const cosignerIndex =
-                    keyFingerprintToCosignerIndex.get(fingerprint)
-
-                  if (cosignerIndex === undefined) {
-                    continue
-                  }
-                  pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
-                }
-              }
 
               const individualSignedPsbts = extractIndividualSignedPsbts(
                 psbtBase64,
