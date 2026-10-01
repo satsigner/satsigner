@@ -31,6 +31,5 @@ export const Bip329FileTypeSchema = z.enum(['JSONL', 'JSON', 'CSV'])
 
 export const bip329FileTypes: Bip329FileType[] = ['JSONL', 'JSON', 'CSV']
 
-export type LabelType = z.infer<typeof LabelTypeSchema>
 export type Label = z.infer<typeof LabelSchema>
 export type Bip329FileType = z.infer<typeof Bip329FileTypeSchema>

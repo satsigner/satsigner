@@ -106,9 +106,4 @@ function buildPayjoinWalletCallbacks(params: {
   }
 }
 
-export {
-  addressScriptHex,
-  buildOwnedScriptSet,
-  buildPayjoinWalletCallbacks,
-  utxoScriptHex
-}
+export { addressScriptHex, buildPayjoinWalletCallbacks, utxoScriptHex }

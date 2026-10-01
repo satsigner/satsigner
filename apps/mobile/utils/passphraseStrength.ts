@@ -8,7 +8,7 @@
  * passwords, so common patterns are capped hard.
  */
 
-export type PassphraseStrengthLevel = 'empty' | 'weak' | 'fair' | 'strong'
+type PassphraseStrengthLevel = 'empty' | 'weak' | 'fair' | 'strong'
 
 export type PassphraseStrength = {
   /** Estimated guessing cost in bits (log2 of expected attempts). */

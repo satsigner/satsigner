@@ -18,31 +18,3 @@ export function isValidIPAddress(host: string) {
     host
   )
 }
-
-function isValidPort(port: string) {
-  return /^[0-9]+$/.test(port)
-}
-
-function isValidProtocol(protocol: string) {
-  return protocol === 'ssl' || protocol === 'tls' || protocol === 'tcp'
-}
-
-export function validateElectrumUrl(url: string) {
-  if (!url.includes('://') || !url.includes(':')) {
-    return false
-  }
-
-  const port = url.replace(/.*:/, '')
-  const protocol = url.replace(/:\/\/.*/, '')
-  const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
-
-  return (
-    isValidProtocol(protocol) &&
-    (isValidDomainName(host) || isValidIPAddress(host)) &&
-    isValidPort(port)
-  )
-}
-
-export function validateEsploraUrl(url: string) {
-  return url.startsWith('https://') && URL.canParse(url)
-}

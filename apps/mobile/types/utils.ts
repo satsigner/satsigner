@@ -2,8 +2,3 @@
 export type PartialSome<T, K extends keyof T> = Omit<T, K> & {
   [P in K]: T[P] | undefined
 }
-
-// Extends type T ensuring all keys are not null
-export type NonPartial<T> = {
-  [K in keyof T]-?: NonNullable<T[K]>
-}

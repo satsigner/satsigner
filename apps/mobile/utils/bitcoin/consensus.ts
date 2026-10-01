@@ -1,10 +1,10 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 
 export const HALVING_INTERVAL = 210_000
-export const DIFFICULTY_ADJUSTMENT_INTERVAL = 2016
+const DIFFICULTY_ADJUSTMENT_INTERVAL = 2016
 export const TARGET_BLOCK_TIME_SECONDS = 600
 export const INITIAL_SUBSIDY_SATS = 50 * SATS_PER_BITCOIN
-export const MAX_SUPPLY_SATS = 21_000_000 * SATS_PER_BITCOIN
+const MAX_SUPPLY_SATS = 21_000_000 * SATS_PER_BITCOIN
 
 export type HistoricalHalving = {
   epoch: number

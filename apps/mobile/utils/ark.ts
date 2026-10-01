@@ -40,10 +40,6 @@ export function getArkServer(
   return ARK_SERVERS[network].find((server) => server.id === id)
 }
 
-export function getDefaultArkServer(network: Network): ArkServer | undefined {
-  return ARK_SERVERS[network][0]
-}
-
 export function getArkPendingSats(balance: ArkBalance): number {
   return (
     balance.pendingInRoundSats +

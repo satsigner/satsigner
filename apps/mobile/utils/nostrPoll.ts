@@ -1,4 +1,4 @@
-import { NOSTR_POLL_KIND, NOSTR_POLL_RESPONSE_KIND } from '@/constants/nostr'
+import { NOSTR_POLL_RESPONSE_KIND } from '@/constants/nostr'
 import {
   type NostrPollInfo,
   type NostrPollOption,
@@ -6,9 +6,9 @@ import {
   type NostrPollType
 } from '@/types/models/Nostr'
 
-export { NOSTR_POLL_KIND, NOSTR_POLL_RESPONSE_KIND }
+export { NOSTR_POLL_RESPONSE_KIND }
 
-export type { NostrPollInfo, NostrPollOption, NostrPollResponse, NostrPollType }
+export type { NostrPollInfo, NostrPollResponse, NostrPollType }
 
 function getTagString(tag: string[], index: number): string | undefined {
   const value = tag[index]

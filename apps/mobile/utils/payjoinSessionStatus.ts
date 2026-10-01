@@ -20,9 +20,4 @@ function isPayjoinFallback(status: PayjoinSessionStatus): boolean {
   return status === 'fallback'
 }
 
-export {
-  isPayjoinFallback,
-  isPayjoinSuccess,
-  isPayjoinTerminal,
-  PAYJOIN_TERMINAL_STATUSES
-}
+export { isPayjoinFallback, isPayjoinSuccess, isPayjoinTerminal }

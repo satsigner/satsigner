@@ -1,4 +1,17 @@
 import type { EcashProof } from '@/types/models/Ecash'
+import { formatMaskedNumber } from '@/utils/format'
+import type { PackedBubbleDatum } from '@/utils/packedBubbleLayout'
+
+export function ecashProofsToBubbleData(
+  proofs: EcashProof[],
+  privacyMode: boolean
+): PackedBubbleDatum[] {
+  return proofs.map((proof, index) => ({
+    id: String(index),
+    label: formatMaskedNumber(proof.amount, privacyMode),
+    value: proof.amount
+  }))
+}
 
 export function proofsAfterSend(
   allProofs: EcashProof[],

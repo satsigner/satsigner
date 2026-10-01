@@ -45,4 +45,4 @@ function formatChainMismatchError(
   )
 }
 
-export { defaultRpcPortForNetwork, expectedCoreChain, formatChainMismatchError }
+export { expectedCoreChain, formatChainMismatchError }
