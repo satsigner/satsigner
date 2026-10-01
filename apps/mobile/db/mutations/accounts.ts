@@ -241,7 +241,6 @@ export {
   insertAccount,
   updateAccountKeys,
   updateAccountName,
-  updateAccountRow,
   updateFullAccount,
   updateLastSyncedAt,
   updateSyncProgress,

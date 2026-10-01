@@ -8,7 +8,7 @@ import type { Nip46Method, Nip46ParsedUri } from '@/types/models/Nostr'
 
 const HEX_PUBKEY_REGEX = /^[0-9a-f]{64}$/
 
-export function isNostrConnectUri(data: string): boolean {
+function isNostrConnectUri(data: string): boolean {
   return data.trim().toLowerCase().startsWith(NOSTR_NIP46_CONNECT_PREFIX)
 }
 
@@ -113,7 +113,7 @@ export function getEventPreview(params: string[]): Nip46EventPreview | null {
   }
 }
 
-export function getSignEventKind(params: string[]): number | null {
+function getSignEventKind(params: string[]): number | null {
   try {
     const parsed = JSON.parse(params[0]) as { kind?: number }
     return typeof parsed.kind === 'number' ? parsed.kind : null

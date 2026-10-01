@@ -20,9 +20,6 @@ export type BackendServerInfo = {
   banner: string
 }
 
-/** @deprecated Prefer BackendServerInfo */
-export type ElectrumServerInfo = BackendServerInfo
-
 export type BitnodesNodeInfo = {
   address: string
   userAgent: string
@@ -36,7 +33,7 @@ const EMPTY_SERVER_INFO: BackendServerInfo = {
   serverSoftware: ''
 }
 
-export async function fetchElectrumServerInfo(
+async function fetchElectrumServerInfo(
   serverUrl: string,
   network: Network
 ): Promise<BackendServerInfo> {

@@ -1,7 +1,5 @@
 import z from 'zod'
 
-export type Hex = string
-
 export const BlockTemplateTransactionSchema = z.object({
   data: z.string(), // transaction data encoded in hexadecimal
   depends: z.array(z.number()), // 1-based indices of transactions this one depends on

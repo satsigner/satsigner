@@ -9,34 +9,6 @@ import {
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
 
-export function createDescriptorFromXpub(
-  xpubWithPrefix: string,
-  scriptVersion: ScriptVersionType
-) {
-  switch (scriptVersion) {
-    case 'P2WPKH':
-      return {
-        external: `wpkh(${xpubWithPrefix}/0/*)`,
-        internal: `wpkh(${xpubWithPrefix}/1/*)`
-      }
-    case 'P2SH-P2WPKH':
-      return {
-        external: `sh(wpkh(${xpubWithPrefix}/0/*))`,
-        internal: `sh(wpkh(${xpubWithPrefix}/1/*))`
-      }
-    case 'P2PKH':
-      return {
-        external: `pkh(${xpubWithPrefix}/0/*)`,
-        internal: `pkh(${xpubWithPrefix}/1/*)`
-      }
-    default:
-      return {
-        external: `wpkh(${xpubWithPrefix}/0/*)`,
-        internal: `wpkh(${xpubWithPrefix}/1/*)`
-      }
-  }
-}
-
 export function getCleanXpub(xpubWithPrefix: string): string {
   const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})$/)
   return xpubMatch ? xpubMatch[1] : xpubWithPrefix
@@ -70,21 +42,6 @@ export function getFingerprint(descriptor: string): string {
 export function getXpubFingerprint(xpubWithPrefix: string) {
   const originMatch = xpubWithPrefix.match(KEY_ORIGIN_FINGERPRINT_PATTERN)
   return originMatch ? originMatch[1] : null
-}
-
-export function getScriptVersionFromDerivation(
-  derivationPath: string
-): ScriptVersionType {
-  if (derivationPath.includes("84'") || derivationPath.includes('84h')) {
-    return 'P2WPKH'
-  }
-  if (derivationPath.includes("49'") || derivationPath.includes('49h')) {
-    return 'P2SH-P2WPKH'
-  }
-  if (derivationPath.includes("44'") || derivationPath.includes('44h')) {
-    return 'P2PKH'
-  }
-  return 'P2WPKH' // Default fallback
 }
 
 export function removeChecksum(descriptor: string): string {
