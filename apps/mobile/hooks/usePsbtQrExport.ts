@@ -55,8 +55,11 @@ function createBbqrPsbtChunksOrEmpty(
  * the selected format needs more than one QR. Density (`qrComplexity`) and
  * cycling speed (`animationSpeed`) are user adjustable.
  */
-export function usePsbtQrExport(psbtBase64: string | undefined) {
-  const [displayMode, setDisplayModeState] = useState(QRDisplayMode.RAW)
+export function usePsbtQrExport(
+  psbtBase64: string | undefined,
+  initialDisplayMode = QRDisplayMode.RAW
+) {
+  const [displayMode, setDisplayModeState] = useState(initialDisplayMode)
   const [currentChunk, setCurrentChunk] = useState(0)
   const [chunks, setChunks] = useState<QrChunks>(EMPTY_CHUNKS)
   const [qrError, setQrError] = useState<string | null>(null)

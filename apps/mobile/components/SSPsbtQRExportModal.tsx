@@ -60,6 +60,7 @@ type SSPsbtQRExportModalProps = {
   visible: boolean
   onClose: () => void
   psbtBase64: string | undefined
+  initialDisplayMode?: QRDisplayMode
 }
 
 // Modal showing a PSBT as a (possibly animated) RAW, UR or BBQR QR code, with
@@ -67,7 +68,8 @@ type SSPsbtQRExportModalProps = {
 function SSPsbtQRExportModal({
   visible,
   onClose,
-  psbtBase64
+  psbtBase64,
+  initialDisplayMode
 }: SSPsbtQRExportModalProps) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const {
@@ -84,7 +86,7 @@ function SSPsbtQRExportModal({
     setAnimationSpeed,
     setDisplayMode,
     setQrComplexity
-  } = usePsbtQrExport(psbtBase64)
+  } = usePsbtQrExport(psbtBase64, initialDisplayMode)
 
   const qrSize = Math.min(
     screenWidth * QR_SIZE_WIDTH_RATIO,
