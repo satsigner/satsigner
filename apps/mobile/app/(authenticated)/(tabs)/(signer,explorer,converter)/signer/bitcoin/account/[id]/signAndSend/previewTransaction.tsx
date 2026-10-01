@@ -78,10 +78,6 @@ import {
   buildPreviewTransactionHex
 } from '@/utils/transaction'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
-
 const tn = _tn('transaction.build.preview')
 
 // Shorter outputs are likely still being typed; don't flag them as invalid.
@@ -90,32 +86,6 @@ const MIN_VALID_ADDRESS_LENGTH = 10
 const WATCH_ONLY_INDEX = -1
 
 const TRANSACTION_CHART_SCALE = 0.9
-
-const styles = StyleSheet.create({
-  chartContainer: { overflow: 'hidden' },
-  mainLayout: { paddingBottom: 20, paddingTop: 0 },
-  nfcTitle: { maxWidth: 300 },
-  payjoinNote: {
-    gap: 4,
-    paddingVertical: 4
-  },
-  payjoinNoteHint: {
-    color: Colors.gray[500]
-  },
-  seedWordsModalBody: {
-    flex: 1,
-    maxWidth: 400,
-    position: 'relative',
-    width: '100%'
-  },
-  seedWordsModalContent: { paddingHorizontal: 16 },
-  seedWordsModalScroll: { maxHeight: 600, maxWidth: 400, width: '100%' },
-  statusText: { marginTop: 8 }
-})
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
 
 type PsbtManagement = ReturnType<typeof usePSBTManagement>
 type ProcessScannedData = (data: string) => string | null
@@ -128,10 +98,6 @@ type NfcModalProps = {
   onClose: () => void
   visible: boolean
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────────────────────────────────────
 
 function PreviewTransaction() {
   const router = useRouter()
@@ -518,10 +484,6 @@ function PreviewTransaction() {
     </SSMainLayout>
   )
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Components
-// ─────────────────────────────────────────────────────────────────────────────
 
 type PreviewTransactionPayjoinNoteProps = {
   invoice: PayjoinInvoice | undefined
@@ -1128,10 +1090,6 @@ function PreviewTransactionSeedWordsModal({
     </SSModal>
   )
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Hooks
-// ─────────────────────────────────────────────────────────────────────────────
 
 type UsePsbtPreviewParams = {
   psbt: string | undefined
@@ -1893,10 +1851,6 @@ function useSeedSigning({
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
 type GetTransactionIdDisplayValueParams = {
   isLoadingPSBT: boolean
   psbtBuildStatus: PsbtBuildStatus
@@ -1971,5 +1925,27 @@ function handlePsbtExtractionError(error: unknown) {
     toast.warning(t('transaction.preview.psbtEnhancedFailed'))
   }
 }
+
+const styles = StyleSheet.create({
+  chartContainer: { overflow: 'hidden' },
+  mainLayout: { paddingBottom: 20, paddingTop: 0 },
+  nfcTitle: { maxWidth: 300 },
+  payjoinNote: {
+    gap: 4,
+    paddingVertical: 4
+  },
+  payjoinNoteHint: {
+    color: Colors.gray[500]
+  },
+  seedWordsModalBody: {
+    flex: 1,
+    maxWidth: 400,
+    position: 'relative',
+    width: '100%'
+  },
+  seedWordsModalContent: { paddingHorizontal: 16 },
+  seedWordsModalScroll: { maxHeight: 600, maxWidth: 400, width: '100%' },
+  statusText: { marginTop: 8 }
+})
 
 export default PreviewTransaction

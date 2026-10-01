@@ -32,29 +32,6 @@ const DISPLAY_MODE_TABS = {
   tertiary: { key: QRDisplayMode.BBQR, label: 'BBQR' }
 }
 
-const styles = StyleSheet.create({
-  container: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  qrFrame: {
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 2,
-    marginBottom: 0,
-    padding: QR_FRAME_PADDING
-  },
-  qrValuePreview: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 2,
-    height: 80,
-    padding: 5,
-    paddingHorizontal: 20,
-    textAlignVertical: 'center'
-  },
-  statusText: { marginTop: 16 },
-  stepButton: { height: 50, width: 50 },
-  stepButtons: { justifyContent: 'center' },
-  title: { marginBottom: 5 }
-})
-
 type SSPsbtQRExportModalProps = {
   visible: boolean
   onClose: () => void
@@ -237,5 +214,28 @@ function SSPsbtQRExportModal({
     </SSModal>
   )
 }
+
+const styles = StyleSheet.create({
+  container: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  qrFrame: {
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 2,
+    marginBottom: 0,
+    padding: QR_FRAME_PADDING
+  },
+  qrValuePreview: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 2,
+    height: 80,
+    padding: 5,
+    paddingHorizontal: 20,
+    textAlignVertical: 'center'
+  },
+  statusText: { marginTop: 16 },
+  stepButton: { height: 50, width: 50 },
+  stepButtons: { justifyContent: 'center' },
+  title: { marginBottom: 5 }
+})
 
 export default SSPsbtQRExportModal
