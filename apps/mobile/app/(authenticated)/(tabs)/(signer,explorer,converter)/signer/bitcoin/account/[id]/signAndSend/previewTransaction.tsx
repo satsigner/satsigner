@@ -498,6 +498,106 @@ function PreviewTransaction() {
   )
   const containerPadding = screenWidth * MODAL_PADDING_RATIO // 5% of screen width
 
+  const propsMultisigSection = {
+    account,
+    accountId: id,
+    decryptedKeys,
+    handleCosignerCameraScan,
+    handleCosignerNFCScan,
+    handleCosignerPasteFromClipboard,
+    handleNFCExport,
+    handleSeedQRScanned,
+    handleSeedWordsScanned,
+    handleSignWithLocalKey,
+    isEmitting,
+    isReading,
+    nfcHardwareSupported,
+    serializedPsbt,
+    setNoKeyModalVisible,
+    signedPsbts,
+    transactionId,
+    txBuilderResult,
+    updateSignedPsbt,
+    validationResults
+  }
+
+  const propsActions = {
+    account,
+    accountId: id,
+    combineAndFinalizeMultisigPSBTs,
+    handleNFCExport,
+    handleShareWithNostrGroup,
+    handleWatchOnlyNFCScan,
+    handleWatchOnlyPasteFromClipboard,
+    hasAllRequiredSignatures,
+    isEmitting,
+    isReading,
+    nfcHardwareSupported,
+    psbtBuildStatus,
+    router,
+    serializedPsbt,
+    setCameraModalVisible,
+    setNoKeyModalVisible,
+    signedPsbt,
+    signedPsbts,
+    transactionId,
+    txBuilderResult
+  }
+
+  const propsQrExportModal = {
+    containerPadding,
+    getPsbtString,
+    onClose: () => setNoKeyModalVisible(false),
+    qrSize,
+    screenWidth,
+    serializedPsbt,
+    visible: noKeyModalVisible
+  }
+
+  const propsCameraModal = {
+    closeCamera: () => setCameraModalVisible(false),
+    convertPsbtToFinalTransaction,
+    currentCosignerIndex,
+    decryptedKeys,
+    handleSignWithSeedQR,
+    onClose: () => {
+      setCameraModalVisible(false)
+      setCurrentCosignerIndex(null)
+    },
+    permission,
+    processScannedData,
+    requestPermission,
+    updateSignedPsbt,
+    visible: cameraModalVisible
+  }
+
+  const propsWordCountModal = {
+    onClose: () => {
+      setWordCountModalVisible(false)
+      setCurrentCosignerIndex(null)
+    },
+    onContinue: () => handleWordCountSelect(selectedWordCount),
+    selectedWordCount,
+    setSelectedWordCount,
+    visible: wordCountModalVisible
+  }
+
+  const propsSeedWordsModal = {
+    handleMnemonicInvalid,
+    handleMnemonicValid,
+    handleSeedWordsSubmit,
+    network,
+    onClose: () => {
+      setSeedWordsModalVisible(false)
+      setCurrentMnemonic('')
+      setCurrentCosignerIndex(null)
+    },
+    selectedWordCount,
+    setWordSelectorState,
+    visible: seedWordsModalVisible,
+    wordSelectorState
+  }
+
   return (
     <>
       <SSMainLayout style={styles.mainLayout}>
@@ -590,86 +690,13 @@ function PreviewTransaction() {
                   <SSTransactionDecoded txHex={transactionHex} />
                 )}
               </SSVStack>
-
-              <PreviewTransactionMultisigSection
-                account={account}
-                accountId={id}
-                transactionId={transactionId}
-                txBuilderResult={txBuilderResult}
-                serializedPsbt={serializedPsbt}
-                signedPsbts={signedPsbts}
-                validationResults={validationResults}
-                decryptedKeys={decryptedKeys}
-                nfcHardwareSupported={nfcHardwareSupported}
-                isEmitting={isEmitting}
-                isReading={isReading}
-                updateSignedPsbt={updateSignedPsbt}
-                handleNFCExport={handleNFCExport}
-                handleCosignerPasteFromClipboard={
-                  handleCosignerPasteFromClipboard
-                }
-                handleCosignerCameraScan={handleCosignerCameraScan}
-                handleCosignerNFCScan={handleCosignerNFCScan}
-                handleSignWithLocalKey={handleSignWithLocalKey}
-                handleSeedQRScanned={handleSeedQRScanned}
-                handleSeedWordsScanned={handleSeedWordsScanned}
-                setNoKeyModalVisible={setNoKeyModalVisible}
-              />
-
-              <PreviewTransactionActions
-                account={account}
-                accountId={id}
-                router={router}
-                transactionId={transactionId}
-                psbtBuildStatus={psbtBuildStatus}
-                txBuilderResult={txBuilderResult}
-                serializedPsbt={serializedPsbt}
-                signedPsbt={signedPsbt}
-                signedPsbts={signedPsbts}
-                nfcHardwareSupported={nfcHardwareSupported}
-                isEmitting={isEmitting}
-                isReading={isReading}
-                hasAllRequiredSignatures={hasAllRequiredSignatures}
-                combineAndFinalizeMultisigPSBTs={
-                  combineAndFinalizeMultisigPSBTs
-                }
-                handleShareWithNostrGroup={handleShareWithNostrGroup}
-                handleNFCExport={handleNFCExport}
-                handleWatchOnlyPasteFromClipboard={
-                  handleWatchOnlyPasteFromClipboard
-                }
-                handleWatchOnlyNFCScan={handleWatchOnlyNFCScan}
-                setNoKeyModalVisible={setNoKeyModalVisible}
-                setCameraModalVisible={setCameraModalVisible}
-              />
+              <PreviewTransactionMultisigSection {...propsMultisigSection} />
+              <PreviewTransactionActions {...propsActions} />
             </SSVStack>
           </ScrollView>
         </SSVStack>
-        <PreviewTransactionQrExportModal
-          visible={noKeyModalVisible}
-          onClose={() => setNoKeyModalVisible(false)}
-          getPsbtString={getPsbtString}
-          serializedPsbt={serializedPsbt}
-          qrSize={qrSize}
-          screenWidth={screenWidth}
-          containerPadding={containerPadding}
-        />
-        <PreviewTransactionCameraModal
-          visible={cameraModalVisible}
-          onClose={() => {
-            setCameraModalVisible(false)
-            setCurrentCosignerIndex(null)
-          }}
-          closeCamera={() => setCameraModalVisible(false)}
-          currentCosignerIndex={currentCosignerIndex}
-          decryptedKeys={decryptedKeys}
-          permission={permission}
-          requestPermission={requestPermission}
-          processScannedData={processScannedData}
-          updateSignedPsbt={updateSignedPsbt}
-          handleSignWithSeedQR={handleSignWithSeedQR}
-          convertPsbtToFinalTransaction={convertPsbtToFinalTransaction}
-        />
+        <PreviewTransactionQrExportModal {...propsQrExportModal} />
+        <PreviewTransactionCameraModal {...propsCameraModal} />
         <SSModal
           visible={nfcModalVisible}
           fullOpacity
@@ -723,33 +750,8 @@ function PreviewTransaction() {
             </Animated.View>
           </SSVStack>
         </SSModal>
-
-        <PreviewTransactionWordCountModal
-          visible={wordCountModalVisible}
-          onClose={() => {
-            setWordCountModalVisible(false)
-            setCurrentCosignerIndex(null)
-          }}
-          selectedWordCount={selectedWordCount}
-          setSelectedWordCount={setSelectedWordCount}
-          onContinue={() => handleWordCountSelect(selectedWordCount)}
-        />
-
-        <PreviewTransactionSeedWordsModal
-          visible={seedWordsModalVisible}
-          onClose={() => {
-            setSeedWordsModalVisible(false)
-            setCurrentMnemonic('')
-            setCurrentCosignerIndex(null)
-          }}
-          selectedWordCount={selectedWordCount}
-          network={network}
-          wordSelectorState={wordSelectorState}
-          setWordSelectorState={setWordSelectorState}
-          handleMnemonicValid={handleMnemonicValid}
-          handleMnemonicInvalid={handleMnemonicInvalid}
-          handleSeedWordsSubmit={handleSeedWordsSubmit}
-        />
+        <PreviewTransactionWordCountModal {...propsWordCountModal} />
+        <PreviewTransactionSeedWordsModal {...propsSeedWordsModal} />
       </SSMainLayout>
     </>
   )
