@@ -1,6 +1,5 @@
 import { setStringAsync } from 'expo-clipboard'
-import { useRouter } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -10,17 +9,17 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
 import { useSignatureDropdownValidation } from '@/hooks/useKeyValidation'
+import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useNostrStore } from '@/store/nostr'
 import { Colors, Sizes, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { extractPublicKeyFromKey, isSeedDropped } from '@/utils/key'
 import {
   combinePsbts,
-  type TransactionData,
+  getCollectedSignedPsbts,
   validateNormalizedPsbt
 } from '@/utils/psbt'
 
@@ -78,10 +77,10 @@ function SSSignatureDropdown({
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  const router = useRouter()
-  const setTransactionToShare = useNostrStore(
-    (state) => state.setTransactionToShare
-  )
+  const shareWithNostrGroup = useNostrShareTransaction({
+    account,
+    id: accountId
+  })
 
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const scriptVersion = keyDetails?.scriptVersion || 'P2WSH'
@@ -97,58 +96,23 @@ function SSSignatureDropdown({
     }
   )
 
-  const handleSendTransactionToGroup = useCallback(() => {
-    if (!account?.nostr?.autoSync) {
-      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
-      return
-    }
-
-    if (!transactionId || !txBuilderResult?.toBase64()) {
+  function handleSendTransactionToGroup() {
+    const originalPsbtBase64 = txBuilderResult?.toBase64()
+    if (!transactionId || !originalPsbtBase64) {
       toast.error(t('account.nostrSync.transactionDataNotAvailable'))
       return
     }
 
     try {
-      const collectedSignedPsbts = Array.from(signedPsbts.entries())
-        .filter(([, psbt]) => psbt && psbt.trim().length > 0)
-        .reduce<Record<number, string>>((acc, [cosignerIndex, psbt]) => {
-          acc[cosignerIndex] = psbt
-          return acc
-        }, {})
-
-      const psbtsToCombine = [
-        txBuilderResult.toBase64(),
-        ...Object.values(collectedSignedPsbts)
-      ]
-      const combinedPsbt = combinePsbts(psbtsToCombine)
-
-      const transactionData: TransactionData = {
-        combinedPsbt
-      }
-
-      const transaction = combinedPsbt
-
-      setTransactionToShare({
-        transaction,
-        transactionData
-      })
-
-      router.push({
-        params: { id: accountId },
-        pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
-      })
+      const combinedPsbt = combinePsbts([
+        originalPsbtBase64,
+        ...getCollectedSignedPsbts(signedPsbts).values()
+      ])
+      shareWithNostrGroup(combinedPsbt)
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))
     }
-  }, [
-    account,
-    transactionId,
-    txBuilderResult,
-    signedPsbts,
-    router,
-    accountId,
-    setTransactionToShare
-  ])
+  }
 
   const { sourceLabel } = useKeySourceLabel({
     decryptedKey,
