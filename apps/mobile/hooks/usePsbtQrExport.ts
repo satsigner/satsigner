@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { type View } from 'react-native'
 
 import {
@@ -40,6 +40,18 @@ function createQrChunks(psbtBase64: string, complexity: number): QrChunks {
   }
 }
 
+// Encodes the PSBT in every format, or returns the i18n key of the error.
+function generateQrChunks(psbtBase64: string | undefined, complexity: number) {
+  if (!psbtBase64) {
+    return { chunks: EMPTY_CHUNKS, errorKey: 'error.psbt.notAvailable' }
+  }
+  try {
+    return { chunks: createQrChunks(psbtBase64, complexity), errorKey: null }
+  } catch {
+    return { chunks: EMPTY_CHUNKS, errorKey: 'error.qr.generation' }
+  }
+}
+
 function createBbqrPsbtChunksOrEmpty(
   psbtBytes: Uint8Array,
   complexity: number
@@ -61,42 +73,33 @@ export function usePsbtQrExport(
   initialDisplayMode = QRDisplayMode.RAW
 ) {
   const [displayMode, setDisplayModeState] = useState(initialDisplayMode)
-  const [currentChunk, setCurrentChunk] = useState(0)
-  const [chunks, setChunks] = useState<QrChunks>(EMPTY_CHUNKS)
-  const [qrError, setQrError] = useState<string | null>(null)
-  const [qrComplexity, setQrComplexity] = useState(QR_COMPLEXITY_DEFAULT)
+  const [frameIndex, setFrameIndex] = useState(0)
+  const [qrComplexity, setQrComplexityState] = useState(QR_COMPLEXITY_DEFAULT)
   const [animationSpeed, setAnimationSpeed] = useState(ANIMATION_SPEED_DEFAULT)
 
   const qrRef = useRef<View>(null)
 
+  const { chunks, errorKey } = generateQrChunks(psbtBase64, qrComplexity)
+  const qrError = errorKey ? t(errorKey) : null
   const modeChunks = chunks[displayMode]
   const isMultiPartQR = modeChunks.length > 1
-
-  useEffect(() => {
-    if (!psbtBase64) {
-      setQrError(t('error.psbt.notAvailable'))
-      setChunks(EMPTY_CHUNKS)
-      return
-    }
-    try {
-      setChunks(createQrChunks(psbtBase64, qrComplexity))
-      setCurrentChunk(0)
-      setQrError(null)
-    } catch {
-      setQrError(t('error.qr.generation'))
-      setChunks(EMPTY_CHUNKS)
-    }
-  }, [psbtBase64, qrComplexity])
+  const currentChunk =
+    modeChunks.length > 0 ? frameIndex % modeChunks.length : 0
 
   useAnimationFrameInterval(
-    () => setCurrentChunk((prev) => (prev + 1) % modeChunks.length),
+    () => setFrameIndex((prev) => prev + 1),
     getQrAnimationIntervalMs(animationSpeed),
     isMultiPartQR
   )
 
   function setDisplayMode(mode: QRDisplayMode) {
     setDisplayModeState(mode)
-    setCurrentChunk(0)
+    setFrameIndex(0)
+  }
+
+  function setQrComplexity(complexity: number) {
+    setQrComplexityState(complexity)
+    setFrameIndex(0)
   }
 
   function getQRValue() {

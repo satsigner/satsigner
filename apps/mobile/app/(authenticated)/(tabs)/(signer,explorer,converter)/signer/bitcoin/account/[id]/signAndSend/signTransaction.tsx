@@ -496,7 +496,10 @@ export default function SignTransaction() {
   }
 
   function handleShareWithNostrGroup() {
-    shareWithNostrGroup(psbt?.toBase64() ?? signedTx)
+    const errorKey = shareWithNostrGroup(psbt?.toBase64() ?? signedTx)
+    if (errorKey) {
+      toast.error(t(errorKey))
+    }
   }
 
   const paymentAmountSats = useMemo(

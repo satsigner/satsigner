@@ -10,6 +10,7 @@ import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
+import { getKeyFingerprint } from '@/utils/account'
 import { isUriPaymentAmount } from '@/utils/autoSelectUtxos'
 import { parseBitcoinUri } from '@/utils/bip321'
 import {
@@ -221,9 +222,12 @@ async function processBitcoinContent(
             if (accountMatch.account.policyType === 'multisig') {
               const combinedPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
 
-              const pubkeyToCosignerIndex = await buildPubkeyToCosignerIndex(
+              const keyFingerprints = await Promise.all(
+                accountMatch.account.keys.map((key) => getKeyFingerprint(key))
+              )
+              const pubkeyToCosignerIndex = buildPubkeyToCosignerIndex(
                 combinedPsbt,
-                accountMatch.account.keys
+                keyFingerprints
               )
 
               const individualSignedPsbts = extractIndividualSignedPsbts(

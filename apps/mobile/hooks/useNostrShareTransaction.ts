@@ -1,34 +1,33 @@
 import { useRouter } from 'expo-router'
-import { toast } from 'sonner-native'
 
-import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 
+type UseNostrShareTransactionParams = {
+  account: Account | undefined
+  id: string
+}
+
 /**
  * Returns a handler that hands a PSBT (base64) to the account's nostr devices
- * group chat. Requires nostr auto-sync to be enabled on the account.
+ * group chat. The handler returns the i18n key of the reason it could not
+ * share (auto-sync disabled, no PSBT), or null once it navigated.
  */
 export function useNostrShareTransaction({
   account,
   id
-}: {
-  account: Account | undefined
-  id: string
-}) {
+}: UseNostrShareTransactionParams) {
   const router = useRouter()
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
 
-  return (psbtBase64: string | undefined) => {
+  function shareTransaction(psbtBase64: string | undefined) {
     if (!account?.nostr?.autoSync) {
-      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
-      return
+      return 'account.nostrSync.autoSyncMustBeEnabled'
     }
     if (!psbtBase64) {
-      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
-      return
+      return 'account.nostrSync.transactionDataNotAvailable'
     }
     setTransactionToShare({
       transaction: psbtBase64,
@@ -38,5 +37,8 @@ export function useNostrShareTransaction({
       params: { id },
       pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
     })
+    return null
   }
+
+  return shareTransaction
 }

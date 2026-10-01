@@ -9,7 +9,6 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
 import { useSignatureDropdownValidation } from '@/hooks/useKeyValidation'
-import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -17,11 +16,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { extractPublicKeyFromKey, isSeedDropped } from '@/utils/key'
-import {
-  combinePsbts,
-  getCollectedSignedPsbts,
-  validateNormalizedPsbt
-} from '@/utils/psbt'
+import { validateNormalizedPsbt } from '@/utils/psbt'
 
 type SSSignatureDropdownProps = {
   index: number
@@ -37,9 +32,8 @@ type SSSignatureDropdownProps = {
   isReading: boolean
   decryptedKey?: Key
   account: Account
-  accountId: string
-  signedPsbts: Map<number, string>
   onShowQR: () => void
+  onShareWithGroup: () => void
   onNFCExport: () => void
   onPasteFromClipboard: (index: number, psbt: string) => void
   onCameraScan: (index: number) => void
@@ -63,9 +57,8 @@ function SSSignatureDropdown({
   isReading,
   decryptedKey,
   account,
-  accountId,
-  signedPsbts,
   onShowQR,
+  onShareWithGroup,
   onNFCExport,
   onPasteFromClipboard,
   onCameraScan,
@@ -76,11 +69,6 @@ function SSSignatureDropdown({
   validationResult
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-
-  const shareWithNostrGroup = useNostrShareTransaction({
-    account,
-    id: accountId
-  })
 
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const scriptVersion = keyDetails?.scriptVersion || 'P2WSH'
@@ -95,24 +83,6 @@ function SSSignatureDropdown({
       signedPsbt
     }
   )
-
-  function handleSendTransactionToGroup() {
-    const originalPsbtBase64 = txBuilderResult?.toBase64()
-    if (!transactionId || !originalPsbtBase64) {
-      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
-      return
-    }
-
-    try {
-      const combinedPsbt = combinePsbts([
-        originalPsbtBase64,
-        ...getCollectedSignedPsbts(signedPsbts).values()
-      ])
-      shareWithNostrGroup(combinedPsbt)
-    } catch {
-      toast.error(t('account.nostrSync.failedToSendTransactionData'))
-    }
-  }
 
   const { sourceLabel } = useKeySourceLabel({
     decryptedKey,
@@ -319,7 +289,7 @@ function SSSignatureDropdown({
             label={t('transaction.preview.nip17group')}
             variant="outline"
             disabled={!transactionId || !account?.nostr?.autoSync}
-            onPress={handleSendTransactionToGroup}
+            onPress={onShareWithGroup}
           />
           <SSText
             center

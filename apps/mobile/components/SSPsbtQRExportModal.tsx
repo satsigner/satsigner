@@ -1,5 +1,4 @@
 import { StyleSheet, useWindowDimensions } from 'react-native'
-import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
@@ -96,18 +95,17 @@ function SSPsbtQRExportModal({
   const trackWidth = screenWidth * QR_TRACK_WIDTH_RATIO
   const qrValue = getQRValue()
   const isAtMaxDensity = qrComplexity >= QR_COMPLEXITY_MAX - 1
+  // A single static QR (max complexity) can't hold data that is too large.
+  const canIncreaseComplexity = !(
+    qrComplexity === QR_COMPLEXITY_MAX - 1 && isDataTooLargeForSingleQR()
+  )
 
   function decreaseComplexity() {
     setQrComplexity(Math.max(QR_COMPLEXITY_MIN, qrComplexity - 1))
   }
 
   function increaseComplexity() {
-    const newComplexity = qrComplexity + 1
-    if (newComplexity === QR_COMPLEXITY_MAX && isDataTooLargeForSingleQR()) {
-      toast.error(t('common.error.dataTooLarge'))
-      return
-    }
-    setQrComplexity(Math.min(QR_COMPLEXITY_MAX, newComplexity))
+    setQrComplexity(Math.min(QR_COMPLEXITY_MAX, qrComplexity + 1))
   }
 
   function decreaseSpeed() {
@@ -199,12 +197,8 @@ function SSPsbtQRExportModal({
                   style={styles.stepButton}
                 />
                 <SSButton
-                  variant={
-                    qrComplexity === QR_COMPLEXITY_MAX - 1 &&
-                    isDataTooLargeForSingleQR()
-                      ? 'ghost'
-                      : 'outline'
-                  }
+                  variant={canIncreaseComplexity ? 'outline' : 'ghost'}
+                  disabled={!canIncreaseComplexity}
                   label="+"
                   onPress={increaseComplexity}
                   style={styles.stepButton}

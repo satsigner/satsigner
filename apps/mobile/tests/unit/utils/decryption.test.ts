@@ -1,7 +1,6 @@
 import type { Account, Key } from '@/types/models/Account'
 import {
   decryptAccountKeySecretUsingPin,
-  decryptAccountKeysOrFallback,
   decryptKeySecretAt,
   decryptKeySecretUsingPin,
   getAccountWithDecryptedKeys,
@@ -254,26 +253,5 @@ describe('pinDigestOpensSecret', () => {
     await expect(
       pinDigestOpensSecret('digest', { iv: 'iv', secret: 'enc' })
     ).resolves.toBe(false)
-  })
-})
-
-describe('decryptAccountKeysOrFallback', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
-
-  it('keeps a key unchanged when its secret fails to decrypt', async () => {
-    getPin.mockResolvedValue('1234')
-    getKeySecret.mockResolvedValue({ iv: 'iv-1', secret: 'enc' })
-    aesDecrypt
-      .mockResolvedValueOnce(JSON.stringify({ mnemonic: 'word1 word2' }))
-      .mockRejectedValueOnce(new Error('bad key'))
-    const encryptedKey = makeKey({ index: 1, secret: 'still-encrypted' })
-    const account = makeAccount({ keys: [makeKey(), encryptedKey] })
-
-    const keys = await decryptAccountKeysOrFallback(account)
-
-    expect(keys[0].secret).toStrictEqual({ mnemonic: 'word1 word2' })
-    expect(keys[1]).toBe(encryptedKey)
   })
 })

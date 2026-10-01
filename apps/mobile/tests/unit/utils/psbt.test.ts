@@ -3,6 +3,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { type Account, type Key } from '@/types/models/Account'
 import {
   bindScannedDataToPsbt,
+  buildPubkeyToCosignerIndex,
   combineAndFinalizePsbts,
   getCollectedSignedPsbts,
   getPsbtTxidOrFallback,
@@ -358,5 +359,48 @@ describe('bindScannedDataToPsbt', () => {
     const tx = bitcoinjs.Transaction.fromHex(unsignedTxHex)
     tx.outs[0].value = 10
     expect(bindScannedDataToPsbt(tx.toHex(), psbtBase64, convert)).toBeNull()
+  })
+})
+
+describe('buildPubkeyToCosignerIndex', () => {
+  const pubkey = Buffer.from(
+    '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+    'hex'
+  )
+
+  it('maps derivation pubkeys to the key with the same fingerprint', () => {
+    const psbt = new bitcoinjs.Psbt()
+    psbt.addInput({
+      bip32Derivation: [
+        {
+          masterFingerprint: Buffer.from('aabbccdd', 'hex'),
+          path: "m/48'/0'/0'/2'/0/0",
+          pubkey
+        }
+      ],
+      hash: Buffer.alloc(32, 0x11),
+      index: 0
+    })
+
+    const map = buildPubkeyToCosignerIndex(psbt, ['11223344', 'aabbccdd'])
+
+    expect(map.get(pubkey.toString('hex'))).toBe(1)
+  })
+
+  it('ignores derivations from unknown fingerprints', () => {
+    const psbt = new bitcoinjs.Psbt()
+    psbt.addInput({
+      bip32Derivation: [
+        {
+          masterFingerprint: Buffer.from('aabbccdd', 'hex'),
+          path: "m/48'/0'/0'/2'/0/0",
+          pubkey
+        }
+      ],
+      hash: Buffer.alloc(32, 0x11),
+      index: 0
+    })
+
+    expect(buildPubkeyToCosignerIndex(psbt, ['11223344']).size).toBe(0)
   })
 })

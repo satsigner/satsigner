@@ -45,6 +45,7 @@ import { type Account, type Key } from '@/types/models/Account'
 import { type PsbtBuildStatus } from '@/types/models/Psbt'
 import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinInvoice } from '@/types/payjoin'
+import { getKeyFingerprint } from '@/utils/account'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatPayjoinSummary } from '@/utils/payjoinUri'
@@ -52,6 +53,7 @@ import {
   bindScannedDataToPsbt,
   buildPubkeyToCosignerIndex,
   combineAndFinalizePsbts,
+  combinePsbts,
   createMockPsbt,
   type ExtractedTransactionData,
   extractIndividualSignedPsbts,
@@ -294,34 +296,61 @@ function PreviewTransaction() {
     }
   }, [signedPsbtsFromStore, setSignedPsbts])
 
-  const handleCosignerPasteFromClipboard = (index: number) => {
+  function handleCosignerPasteFromClipboard(index: number) {
     handlePasteFromClipboard(index)
   }
 
-  const handleCosignerCameraScan = (index: number) => {
+  function handleCosignerCameraScan(index: number) {
     setCameraModalVisible(true)
     setCurrentCosignerIndex(index)
   }
 
-  const handleCosignerNFCScan = (index: number) => {
+  function handleCosignerNFCScan(index: number) {
     handleNFCScan(index)
   }
 
-  const handleSeedQRScanned = (index: number) => {
+  function handleSeedQRScanned(index: number) {
     setCameraModalVisible(true)
     setCurrentCosignerIndex(index)
   }
 
-  const handleWatchOnlyPasteFromClipboard = () => {
+  function handleWatchOnlyPasteFromClipboard() {
     handlePasteFromClipboard(WATCH_ONLY_INDEX)
   }
 
-  const handleWatchOnlyNFCScan = () => {
+  function handleWatchOnlyNFCScan() {
     handleNFCScan(WATCH_ONLY_INDEX)
   }
 
-  const handleShareWithNostrGroup = () => {
-    shareWithNostrGroup(txBuilderResult?.toBase64())
+  function shareOrShowError(psbtBase64: string | undefined) {
+    const errorKey = shareWithNostrGroup(psbtBase64)
+    if (errorKey) {
+      toast.error(t(errorKey))
+    }
+  }
+
+  function handleShareWithNostrGroup() {
+    shareOrShowError(txBuilderResult?.toBase64())
+  }
+
+  // Shares the PSBT under review combined with every cosigner signature
+  // collected so far.
+  function handleShareSignaturesWithNostrGroup() {
+    const originalPsbtBase64 = txBuilderResult?.toBase64()
+    if (!transactionId || !originalPsbtBase64) {
+      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
+      return
+    }
+    try {
+      shareOrShowError(
+        combinePsbts([
+          originalPsbtBase64,
+          ...getCollectedSignedPsbts(signedPsbts).values()
+        ])
+      )
+    } catch {
+      toast.error(t('account.nostrSync.failedToSendTransactionData'))
+    }
   }
 
   useEffect(() => {
@@ -336,7 +365,6 @@ function PreviewTransaction() {
 
   const propsMultisigSection = {
     account,
-    accountId: id,
     decryptedKeys,
     handleCosignerCameraScan,
     handleCosignerNFCScan,
@@ -344,6 +372,7 @@ function PreviewTransaction() {
     handleNFCExport,
     handleSeedQRScanned,
     handleSeedWordsScanned,
+    handleShareSignaturesWithNostrGroup,
     handleSignWithLocalKey,
     isEmitting,
     isReading,
@@ -387,7 +416,6 @@ function PreviewTransaction() {
   }
 
   const propsCameraModal = {
-    context: 'bitcoin' as const,
     onClose: () => {
       setCameraModalVisible(false)
       setCurrentCosignerIndex(null)
@@ -482,7 +510,7 @@ function PreviewTransaction() {
         </ScrollView>
       </SSVStack>
       <SSPsbtQRExportModal {...propsQrExportModal} />
-      <SSCameraModal {...propsCameraModal} />
+      <SSCameraModal context="bitcoin" {...propsCameraModal} />
       <PreviewTransactionNfcEmitModal {...propsNfcEmitModal} />
       <PreviewTransactionNfcScanModal {...propsNfcScanModal} />
       <SSWordCountSelectModal {...propsWordCountModal} />
@@ -495,13 +523,15 @@ function PreviewTransaction() {
 // Components
 // ─────────────────────────────────────────────────────────────────────────────
 
+type PreviewTransactionPayjoinNoteProps = {
+  invoice: PayjoinInvoice | undefined
+  expiryLabel: string | null
+}
+
 function PreviewTransactionPayjoinNote({
   invoice,
   expiryLabel
-}: {
-  invoice: PayjoinInvoice | undefined
-  expiryLabel: string | null
-}) {
+}: PreviewTransactionPayjoinNoteProps) {
   if (!invoice) {
     return null
   }
@@ -521,19 +551,21 @@ function PreviewTransactionPayjoinNote({
   )
 }
 
+type PreviewTransactionIdSectionProps = {
+  isDustError: boolean
+  isLoadingPSBT: boolean
+  psbtBuildErrorMessage: string
+  psbtBuildStatus: PsbtBuildStatus
+  transactionId: string
+}
+
 function PreviewTransactionIdSection({
   isDustError,
   isLoadingPSBT,
   psbtBuildErrorMessage,
   psbtBuildStatus,
   transactionId
-}: {
-  isDustError: boolean
-  isLoadingPSBT: boolean
-  psbtBuildErrorMessage: string
-  psbtBuildStatus: PsbtBuildStatus
-  transactionId: string
-}) {
+}: PreviewTransactionIdSectionProps) {
   const showBuildError =
     psbtBuildStatus === 'error' && psbtBuildErrorMessage !== ''
 
@@ -572,17 +604,24 @@ function PreviewTransactionIdSection({
   )
 }
 
-function PreviewTransactionContents(
-  props: Pick<
-    ComponentProps<typeof SSTransactionChart>,
-    | 'accountId'
-    | 'knownTxIds'
-    | 'outpointLabelsByRef'
-    | 'ownAddresses'
-    | 'transaction'
-    | 'txLabelsById'
-  >
-) {
+type PreviewTransactionContentsProps = Pick<
+  ComponentProps<typeof SSTransactionChart>,
+  | 'accountId'
+  | 'knownTxIds'
+  | 'outpointLabelsByRef'
+  | 'ownAddresses'
+  | 'transaction'
+  | 'txLabelsById'
+>
+
+function PreviewTransactionContents({
+  accountId,
+  knownTxIds,
+  outpointLabelsByRef,
+  ownAddresses,
+  transaction,
+  txLabelsById
+}: PreviewTransactionContentsProps) {
   return (
     <SSVStack gap="xxs">
       <SSText color="muted" size="sm" uppercase>
@@ -590,7 +629,12 @@ function PreviewTransactionContents(
       </SSText>
       <View style={styles.chartContainer}>
         <SSTransactionChart
-          {...props}
+          accountId={accountId}
+          knownTxIds={knownTxIds}
+          outpointLabelsByRef={outpointLabelsByRef}
+          ownAddresses={ownAddresses}
+          transaction={transaction}
+          txLabelsById={txLabelsById}
           scale={TRANSACTION_CHART_SCALE}
           showUnspentLabel={false}
         />
@@ -599,11 +643,13 @@ function PreviewTransactionContents(
   )
 }
 
+type PreviewTransactionDecodedProps = {
+  transactionHex: string
+}
+
 function PreviewTransactionDecoded({
   transactionHex
-}: {
-  transactionHex: string
-}) {
+}: PreviewTransactionDecodedProps) {
   return (
     <SSVStack gap="xxs">
       <SSText uppercase size="sm" color="muted">
@@ -662,30 +708,8 @@ function PreviewTransactionNfcScanModal({
   )
 }
 
-function PreviewTransactionMultisigSection({
-  account,
-  accountId,
-  transactionId,
-  txBuilderResult,
-  serializedPsbt,
-  signedPsbts,
-  validationResults,
-  decryptedKeys,
-  nfcHardwareSupported,
-  isEmitting,
-  isReading,
-  updateSignedPsbt,
-  handleNFCExport,
-  handleCosignerPasteFromClipboard,
-  handleCosignerCameraScan,
-  handleCosignerNFCScan,
-  handleSignWithLocalKey,
-  handleSeedQRScanned,
-  handleSeedWordsScanned,
-  setNoKeyModalVisible
-}: {
+type PreviewTransactionMultisigSectionProps = {
   account: Account
-  accountId: string
   transactionId: string
   txBuilderResult: PsbtLike | undefined
   serializedPsbt: string
@@ -703,8 +727,32 @@ function PreviewTransactionMultisigSection({
   handleSignWithLocalKey: PsbtManagement['handleSignWithLocalKey']
   handleSeedQRScanned: (index: number) => void
   handleSeedWordsScanned: (index: number) => void
+  handleShareSignaturesWithNostrGroup: () => void
   setNoKeyModalVisible: (visible: boolean) => void
-}) {
+}
+
+function PreviewTransactionMultisigSection({
+  account,
+  transactionId,
+  txBuilderResult,
+  serializedPsbt,
+  signedPsbts,
+  validationResults,
+  decryptedKeys,
+  nfcHardwareSupported,
+  isEmitting,
+  isReading,
+  updateSignedPsbt,
+  handleNFCExport,
+  handleCosignerPasteFromClipboard,
+  handleCosignerCameraScan,
+  handleCosignerNFCScan,
+  handleSignWithLocalKey,
+  handleSeedQRScanned,
+  handleSeedWordsScanned,
+  handleShareSignaturesWithNostrGroup,
+  setNoKeyModalVisible
+}: PreviewTransactionMultisigSectionProps) {
   if (
     account.policyType !== 'multisig' ||
     !account.keys ||
@@ -758,9 +806,8 @@ function PreviewTransactionMultisigSection({
             isReading={isReading}
             decryptedKey={decryptedKeys[index]}
             account={account}
-            accountId={accountId}
-            signedPsbts={signedPsbts}
             onShowQR={() => setNoKeyModalVisible(true)}
+            onShareWithGroup={handleShareSignaturesWithNostrGroup}
             onNFCExport={handleNFCExport}
             onPasteFromClipboard={handleCosignerPasteFromClipboard}
             onCameraScan={handleCosignerCameraScan}
@@ -774,6 +821,29 @@ function PreviewTransactionMultisigSection({
       </SSVStack>
     </SSVStack>
   )
+}
+
+type PreviewTransactionActionsProps = {
+  account: Account
+  accountId: string
+  router: ReturnType<typeof useRouter>
+  transactionId: string
+  psbtBuildStatus: PsbtBuildStatus
+  txBuilderResult: PsbtLike | undefined
+  serializedPsbt: string
+  signedPsbt: string
+  signedPsbts: PsbtManagement['signedPsbts']
+  nfcHardwareSupported: boolean
+  isEmitting: boolean
+  isReading: boolean
+  hasAllRequiredSignatures: () => boolean
+  combineAndFinalizeMultisigPSBTs: () => string | null
+  handleShareWithNostrGroup: () => void
+  handleNFCExport: () => void
+  handleWatchOnlyPasteFromClipboard: () => void
+  handleWatchOnlyNFCScan: () => void
+  setNoKeyModalVisible: (visible: boolean) => void
+  setCameraModalVisible: (visible: boolean) => void
 }
 
 function PreviewTransactionActions({
@@ -797,28 +867,7 @@ function PreviewTransactionActions({
   handleWatchOnlyNFCScan,
   setNoKeyModalVisible,
   setCameraModalVisible
-}: {
-  account: Account
-  accountId: string
-  router: ReturnType<typeof useRouter>
-  transactionId: string
-  psbtBuildStatus: PsbtBuildStatus
-  txBuilderResult: PsbtLike | undefined
-  serializedPsbt: string
-  signedPsbt: string
-  signedPsbts: PsbtManagement['signedPsbts']
-  nfcHardwareSupported: boolean
-  isEmitting: boolean
-  isReading: boolean
-  hasAllRequiredSignatures: () => boolean
-  combineAndFinalizeMultisigPSBTs: () => string | null
-  handleShareWithNostrGroup: () => void
-  handleNFCExport: () => void
-  handleWatchOnlyPasteFromClipboard: () => void
-  handleWatchOnlyNFCScan: () => void
-  setNoKeyModalVisible: (visible: boolean) => void
-  setCameraModalVisible: (visible: boolean) => void
-}) {
+}: PreviewTransactionActionsProps) {
   return (
     <>
       {account.policyType !== 'watchonly' &&
@@ -1021,6 +1070,16 @@ function PreviewTransactionActions({
   )
 }
 
+type PreviewTransactionSeedWordsModalProps = {
+  visible: boolean
+  onClose: () => void
+  selectedWordCount: MnemonicWordCount
+  network: Parameters<typeof appNetworkToBdkNetwork>[0]
+  handleMnemonicValid: SeedSigning['handleMnemonicValid']
+  handleMnemonicInvalid: SeedSigning['handleMnemonicInvalid']
+  handleSeedWordsSubmit: SeedSigning['handleSeedWordsSubmit']
+}
+
 function PreviewTransactionSeedWordsModal({
   visible,
   onClose,
@@ -1029,15 +1088,7 @@ function PreviewTransactionSeedWordsModal({
   handleMnemonicValid,
   handleMnemonicInvalid,
   handleSeedWordsSubmit
-}: {
-  visible: boolean
-  onClose: () => void
-  selectedWordCount: MnemonicWordCount
-  network: Parameters<typeof appNetworkToBdkNetwork>[0]
-  handleMnemonicValid: SeedSigning['handleMnemonicValid']
-  handleMnemonicInvalid: SeedSigning['handleMnemonicInvalid']
-  handleSeedWordsSubmit: SeedSigning['handleSeedWordsSubmit']
-}) {
+}: PreviewTransactionSeedWordsModalProps) {
   return (
     <SSModal visible={visible} fullOpacity onClose={onClose}>
       <View style={styles.seedWordsModalBody}>
@@ -1082,15 +1133,13 @@ function PreviewTransactionSeedWordsModal({
 // Hooks
 // ─────────────────────────────────────────────────────────────────────────────
 
-function usePsbtPreview({
-  psbt,
-  id,
-  account
-}: {
+type UsePsbtPreviewParams = {
   psbt: string | undefined
   id: string
   account: Account | undefined
-}) {
+}
+
+function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
   const [
     inputs,
     outputs,
@@ -1387,17 +1436,19 @@ function usePsbtPreview({
   }
 }
 
+type UseScannedDataProcessorParams = {
+  convertPsbtToFinalTransaction: PsbtManagement['convertPsbtToFinalTransaction']
+}
+
 function useScannedDataProcessor({
   convertPsbtToFinalTransaction
-}: {
-  convertPsbtToFinalTransaction: PsbtManagement['convertPsbtToFinalTransaction']
-}): ProcessScannedData {
+}: UseScannedDataProcessorParams): ProcessScannedData {
   const txBuilderResult = useTransactionBuilderStore((state) => state.psbt)
 
   // Binds scanned/pasted data to the transaction under review. Returns null
   // (after showing an error) when it does not match: broadcasting it would
   // execute a different transaction than the one displayed to the user.
-  return (data: string) => {
+  function processScannedData(data: string) {
     try {
       const boundData = bindScannedDataToPsbt(
         data,
@@ -1408,15 +1459,20 @@ function useScannedDataProcessor({
         toast.error(t('common.error.transactionMismatch'))
       }
       return boundData
-    } catch (error) {
-      toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : t('common.error.processScannedData')
-      )
+    } catch {
+      toast.error(t('common.error.processScannedData'))
       return null
     }
   }
+
+  return processScannedData
+}
+
+type UseScannedContentImportParams = {
+  currentCosignerIndex: number | null
+  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
+  processScannedData: ProcessScannedData
+  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
 }
 
 function useScannedContentImport({
@@ -1424,16 +1480,11 @@ function useScannedContentImport({
   handleSignWithSeedQR,
   processScannedData,
   updateSignedPsbt
-}: {
-  currentCosignerIndex: number | null
-  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
-  processScannedData: ProcessScannedData
-  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
-}) {
+}: UseScannedContentImportParams) {
   // Routes a QR scanned by SSCameraModal: a SeedQR signs for the current
   // cosigner, a PSBT or signed transaction is stored as that cosigner's
   // signature (or the watch-only import when no cosigner is selected).
-  return (content: DetectedContent) => {
+  function handleScannedContent(content: DetectedContent) {
     const mnemonic = content.metadata?.mnemonic
     if (content.type === 'seed_qr' && typeof mnemonic === 'string') {
       if (currentCosignerIndex === null) {
@@ -1456,6 +1507,16 @@ function useScannedContentImport({
     updateSignedPsbt(currentCosignerIndex ?? WATCH_ONLY_INDEX, processedData)
     toast.success(t('common.success.qrScanned'))
   }
+
+  return handleScannedContent
+}
+
+type UseSignatureDetectionParams = {
+  psbt: string | undefined
+  account: Account | undefined
+  decryptedKeys: Key[]
+  signedPsbts: PsbtManagement['signedPsbts']
+  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
 }
 
 function useSignatureDetection({
@@ -1464,13 +1525,7 @@ function useSignatureDetection({
   decryptedKeys,
   signedPsbts,
   updateSignedPsbt
-}: {
-  psbt: string | undefined
-  account: Account | undefined
-  decryptedKeys: Key[]
-  signedPsbts: PsbtManagement['signedPsbts']
-  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
-}) {
+}: UseSignatureDetectionParams) {
   // Separate effect to detect existing signatures - runs when both PSBT and decryptedKeys are ready
   useEffect(() => {
     if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) {
@@ -1508,9 +1563,12 @@ function useSignatureDetection({
         return
       }
 
-      const pubkeyToCosignerIndex = await buildPubkeyToCosignerIndex(
+      const keyFingerprints = await Promise.all(
+        currentAccount.keys.map((key) => getKeyFingerprint(key))
+      )
+      const pubkeyToCosignerIndex = buildPubkeyToCosignerIndex(
         psbtObj,
-        currentAccount.keys
+        keyFingerprints
       )
 
       const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
@@ -1548,15 +1606,17 @@ function useSignatureDetection({
   }, [psbt, account, decryptedKeys, updateSignedPsbt, signedPsbts])
 }
 
+type UseSignatureValidationParams = {
+  account: Account | undefined
+  signedPsbts: PsbtManagement['signedPsbts']
+  decryptedKeys: Key[]
+}
+
 function useSignatureValidation({
   account,
   signedPsbts,
   decryptedKeys
-}: {
-  account: Account | undefined
-  signedPsbts: PsbtManagement['signedPsbts']
-  decryptedKeys: Key[]
-}) {
+}: UseSignatureValidationParams) {
   return useMemo(() => {
     const results = new Map<number, boolean>()
 
@@ -1585,15 +1645,17 @@ function useSignatureValidation({
   }, [signedPsbts, account, decryptedKeys])
 }
 
+type UseMultisigFinalizationParams = {
+  account: Account | undefined
+  signedPsbts: PsbtManagement['signedPsbts']
+  validationResults: Map<number, boolean>
+}
+
 function useMultisigFinalization({
   account,
   signedPsbts,
   validationResults
-}: {
-  account: Account | undefined
-  signedPsbts: PsbtManagement['signedPsbts']
-  validationResults: Map<number, boolean>
-}) {
+}: UseMultisigFinalizationParams) {
   const [txBuilderResult, setSignedTx] = useTransactionBuilderStore(
     useShallow((state) => [state.psbt, state.setSignedTx])
   )
@@ -1630,13 +1692,15 @@ function useMultisigFinalization({
   }
 }
 
+type UseNfcTransferParams = {
+  serializedPsbt: string
+  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+}
+
 function useNfcTransfer({
   serializedPsbt,
   updateSignedPsbt
-}: {
-  serializedPsbt: string
-  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
-}) {
+}: UseNfcTransferParams) {
   const {
     isHardwareSupported: nfcHardwareSupported,
     isReading,
@@ -1671,16 +1735,10 @@ function useNfcTransfer({
       await emitNFCTag(serializedPsbt)
       toast.success(t('transaction.preview.nfcExported'))
       setNfcModalVisible(false)
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
-      if (!errorMessage) {
-        setNfcModalVisible(false)
-        return
-      }
+    } catch {
       // Keep the modal open so the error stays visible until dismissed.
-      setNfcError(errorMessage)
-      toast.error(errorMessage)
+      setNfcError(t('nfc.error.writeFailed'))
+      toast.error(t('nfc.error.writeFailed'))
     }
   }
 
@@ -1715,11 +1773,8 @@ function useNfcTransfer({
       } else {
         toast.error(t('watchonly.read.nfcErrorNoData'))
       }
-    } catch (error) {
-      const errorMessage = (error as Error).message
-      if (errorMessage) {
-        toast.error(errorMessage)
-      }
+    } catch {
+      toast.error(t('nfc.error.readFailed'))
     } finally {
       setNfcScanModalVisible(false)
     }
@@ -1742,13 +1797,15 @@ function useNfcTransfer({
   }
 }
 
+type UseClipboardImportParams = {
+  processScannedData: ProcessScannedData
+  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+}
+
 function useClipboardImport({
   processScannedData,
   updateSignedPsbt
-}: {
-  processScannedData: ProcessScannedData
-  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
-}) {
+}: UseClipboardImportParams) {
   const { pasteFromClipboardSilent } = useClipboardPaste()
 
   const handlePasteFromClipboard = async (index: number) => {
@@ -1770,15 +1827,17 @@ function useClipboardImport({
   return { handlePasteFromClipboard }
 }
 
+type UseSeedSigningParams = {
+  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
+  currentCosignerIndex: number | null
+  setCurrentCosignerIndex: (index: number | null) => void
+}
+
 function useSeedSigning({
   handleSignWithSeedQR,
   currentCosignerIndex,
   setCurrentCosignerIndex
-}: {
-  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
-  currentCosignerIndex: number | null
-  setCurrentCosignerIndex: (index: number | null) => void
-}) {
+}: UseSeedSigningParams) {
   const [seedWordsModalVisible, setSeedWordsModalVisible] = useState(false)
   const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
   const [selectedWordCount, setSelectedWordCount] =
@@ -1838,15 +1897,17 @@ function useSeedSigning({
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+type GetTransactionIdDisplayValueParams = {
+  isLoadingPSBT: boolean
+  psbtBuildStatus: PsbtBuildStatus
+  transactionId: string
+}
+
 function getTransactionIdDisplayValue({
   isLoadingPSBT,
   psbtBuildStatus,
   transactionId
-}: {
-  isLoadingPSBT: boolean
-  psbtBuildStatus: PsbtBuildStatus
-  transactionId: string
-}) {
+}: GetTransactionIdDisplayValueParams) {
   if (isLoadingPSBT) {
     return t('common.loading')
   }
@@ -1880,10 +1941,7 @@ function getCameraModalTitle(
     : t('transaction.preview.scanSeedQR')
 }
 
-function mapBuildTransactionError(error: unknown): {
-  message: string
-  isDust: boolean
-} {
+function mapBuildTransactionError(error: unknown) {
   const errorMessage = error instanceof Error ? error.message : String(error)
   const lower = errorMessage.toLowerCase()
   if (lower.includes('dust')) {

@@ -1354,27 +1354,18 @@ export function generateTransactionId(psbtBase64: string) {
 
 // Maps each PSBT input pubkey to the index of the account key (cosigner)
 // that derived it, matched through the BIP32 master fingerprint.
-export async function buildPubkeyToCosignerIndex(
+// `keyFingerprints[i]` is the master fingerprint of account key `i`.
+export function buildPubkeyToCosignerIndex(
   psbt: bitcoinjs.Psbt,
-  keys: Key[]
+  keyFingerprints: (string | undefined)[]
 ) {
-  const fingerprintToCosignerIndex = new Map<string, number>()
-  await Promise.all(
-    keys.map(async (key, index) => {
-      const fingerprint = await getKeyFingerprint(key)
-      if (fingerprint) {
-        fingerprintToCosignerIndex.set(fingerprint, index)
-      }
-    })
-  )
-
   const pubkeyToCosignerIndex = new Map<string, number>()
   for (const input of psbt.data.inputs) {
     for (const derivation of input.bip32Derivation ?? []) {
-      const cosignerIndex = fingerprintToCosignerIndex.get(
+      const cosignerIndex = keyFingerprints.indexOf(
         derivation.masterFingerprint.toString('hex')
       )
-      if (cosignerIndex !== undefined) {
+      if (cosignerIndex !== -1) {
         pubkeyToCosignerIndex.set(
           derivation.pubkey.toString('hex'),
           cosignerIndex
