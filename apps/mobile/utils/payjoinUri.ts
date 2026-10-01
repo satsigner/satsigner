@@ -3,10 +3,13 @@ import {
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_DIRECTORY_URL
 } from '@/constants/payjoin'
+import { t } from '@/locales'
 import {
   type PayjoinEndpointKind,
+  type PayjoinInvoice,
   type PayjoinUriParams
 } from '@/types/payjoin'
+import { formatAddress, formatNumber } from '@/utils/format'
 
 /**
  * BIP77 fragment delimiter: final BIP uses `-`; older PDK / Bull used `+`.
@@ -326,6 +329,27 @@ function acceptsFragmentDelimiter(
   return /[A-Za-z0-9]=/.test(fragment) && fragment.includes('-')
 }
 
+// One-line summary of a payjoin invoice: endpoint kind, amount, label,
+// address and expiry, joined with " · ". Empty parts are skipped.
+function formatPayjoinSummary(
+  invoice: PayjoinInvoice,
+  expiryLabel: string | null
+) {
+  return [
+    invoice.endpointKind === 'bip78'
+      ? t('transaction.build.payjoin.data.bip78')
+      : t('transaction.build.payjoin.data.bip77'),
+    invoice.amountSats !== undefined
+      ? `${formatNumber(invoice.amountSats)} ${t('bitcoin.sats')}`
+      : null,
+    invoice.label || null,
+    formatAddress(invoice.address, 'default'),
+    expiryLabel
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
 export {
   BIP77_FRAGMENT_DELIMITERS,
   appendParamsToPayjoinUri,
@@ -334,6 +358,7 @@ export {
   decodePjParam,
   detectEndpointKind,
   encodePjEndpointForQuery,
+  formatPayjoinSummary,
   hasPayjoinParam,
   isDirectoryEndpoint,
   isHttpPjEndpoint,

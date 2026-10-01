@@ -140,3 +140,18 @@ export async function getAccountWithDecryptedKeys(account: Account) {
   }
   return decryptedAccount
 }
+
+// Decrypts every key secret of the account; a key that fails to decrypt is
+// returned unchanged so signing can still use the keys that did.
+export function decryptAccountKeysOrFallback(account: Account) {
+  return Promise.all(
+    account.keys.map(async (key, index) => {
+      try {
+        const secret = await decryptAccountKeySecret(account.id, index)
+        return { ...key, secret }
+      } catch {
+        return key
+      }
+    })
+  )
+}
