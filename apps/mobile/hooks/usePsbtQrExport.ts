@@ -8,6 +8,7 @@ import {
   QR_MAX_DATA_SIZE,
   QRDisplayMode
 } from '@/constants/qr'
+import { useAnimationFrameInterval } from '@/hooks/useAnimationFrameInterval'
 import { t } from '@/locales'
 import {
   createBbqrPsbtChunks,
@@ -87,26 +88,11 @@ export function usePsbtQrExport(
     }
   }, [psbtBase64, qrComplexity])
 
-  useEffect(() => {
-    if (!isMultiPartQR) {
-      return
-    }
-
-    const intervalMs = getQrAnimationIntervalMs(animationSpeed)
-    const chunkCount = modeChunks.length
-    const state = { frameId: 0, lastUpdate: 0 }
-
-    function animate(timestamp: number) {
-      if (timestamp - state.lastUpdate >= intervalMs) {
-        setCurrentChunk((prev) => (prev + 1) % chunkCount)
-        state.lastUpdate = timestamp
-      }
-      state.frameId = requestAnimationFrame(animate)
-    }
-    state.frameId = requestAnimationFrame(animate)
-
-    return () => cancelAnimationFrame(state.frameId)
-  }, [isMultiPartQR, modeChunks.length, animationSpeed])
+  useAnimationFrameInterval(
+    () => setCurrentChunk((prev) => (prev + 1) % modeChunks.length),
+    getQrAnimationIntervalMs(animationSpeed),
+    isMultiPartQR
+  )
 
   function setDisplayMode(mode: QRDisplayMode) {
     setDisplayModeState(mode)
