@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { DUST_LIMIT } from '@/constants/btc'
+import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -58,7 +58,7 @@ function SSAmountInput({
     }
     const sats = Math.max(
       min,
-      Math.min(max, Math.round((fiat / btcPrice) * 1e8))
+      Math.min(max, Math.round((fiat / btcPrice) * SATS_PER_BITCOIN))
     )
     setLocalFiatValue(fiat)
     setLocalValue(sats)

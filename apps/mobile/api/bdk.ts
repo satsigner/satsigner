@@ -1182,7 +1182,9 @@ async function getTransactionInputValues(
           const prevOut = prevTx.vout[input.previousOutput.vout ?? 0]
           return {
             ...input,
-            value: prevOut ? Math.round(prevOut.value * 1e8) : undefined
+            value: prevOut
+              ? Math.round(prevOut.value * SATS_PER_BITCOIN)
+              : undefined
           }
         } catch {
           return input
@@ -1836,7 +1838,10 @@ async function syncWithCoreWallet(
       try {
         wallet.insertTxout(
           { txid: u.txid, vout: u.vout },
-          { scriptPubkeyHex: u.scriptPubKey, value: Math.round(u.amount * 1e8) }
+          {
+            scriptPubkeyHex: u.scriptPubKey,
+            value: Math.round(u.amount * SATS_PER_BITCOIN)
+          }
         )
       } catch {
         // non-critical — BDK may already know this outpoint
@@ -1850,7 +1855,10 @@ async function syncWithCoreWallet(
       [
         ...sinceResult.transactions,
         ...account.transactions.map((tx) => ({
-          amount: tx.type === 'receive' ? tx.received / 1e8 : -(tx.sent / 1e8),
+          amount:
+            tx.type === 'receive'
+              ? tx.received / SATS_PER_BITCOIN
+              : -(tx.sent / SATS_PER_BITCOIN),
           blockheight: tx.blockHeight,
           blocktime: tx.timestamp
             ? Math.floor(tx.timestamp.getTime() / 1000)
@@ -1880,7 +1888,7 @@ async function syncWithCoreWallet(
 
   for (const entry of listTxs) {
     const existing = txMap.get(entry.txid)
-    const amtSat = Math.round(Math.abs(entry.amount) * 1e8)
+    const amtSat = Math.round(Math.abs(entry.amount) * SATS_PER_BITCOIN)
     if (!existing) {
       txMap.set(entry.txid, {
         blockheight: entry.blockheight,
@@ -1973,12 +1981,12 @@ async function syncWithCoreWallet(
         script: (o.scriptPubKey.hex.match(/.{1,2}/g) ?? []).map((b) =>
           parseInt(b, 16)
         ),
-        value: Math.round(o.value * 1e8)
+        value: Math.round(o.value * SATS_PER_BITCOIN)
       }))
 
       const fee =
         decoded.fee !== undefined
-          ? Math.abs(Math.round(decoded.fee * 1e8))
+          ? Math.abs(Math.round(decoded.fee * SATS_PER_BITCOIN))
           : undefined
 
       transactions.push({
@@ -2021,7 +2029,7 @@ async function syncWithCoreWallet(
       : undefined,
     timestamp: undefined,
     txid: u.txid,
-    value: Math.round(u.amount * 1e8),
+    value: Math.round(u.amount * SATS_PER_BITCOIN),
     vout: u.vout
   }))
 

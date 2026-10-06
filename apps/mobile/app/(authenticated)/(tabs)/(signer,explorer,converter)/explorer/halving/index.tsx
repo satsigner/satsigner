@@ -6,6 +6,11 @@ import SSHalvingProgress from '@/components/SSHalvingProgress'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  HALVING_INTERVAL,
+  INITIAL_SUBSIDY_SATS,
+  TARGET_BLOCK_TIME_SECONDS
+} from '@/constants/consensus'
 import { useChainData } from '@/hooks/useChainData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -14,8 +19,6 @@ import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import {
-  HALVING_INTERVAL,
-  TARGET_BLOCK_TIME_SECONDS,
   blockSubsidySats,
   blocksUntilHalving,
   estimatedHalvingDate,
@@ -30,7 +33,6 @@ import { formatDate } from '@/utils/format'
 const tn = _tn('explorer.halving')
 
 const MAX_CIRCLE_RADIUS = 50
-const INITIAL_SUBSIDY_SATS = 5_000_000_000
 
 const HISTORICAL_HALVING_DATES: Record<number, string> = {
   0: '2009-01-03',
@@ -54,7 +56,7 @@ export default function ExplorerHalving() {
   const subsidySats = height !== null ? blockSubsidySats(height) : null
   const subsidyBtc =
     subsidySats !== null ? subsidySats / SATS_PER_BITCOIN : null
-  const blocksThisEpoch = height !== null ? height % 210_000 : null
+  const blocksThisEpoch = height !== null ? height % HALVING_INTERVAL : null
   const blocksRemaining = height !== null ? blocksUntilHalving(height) : null
   const nextHalving = height !== null ? nextHalvingHeight(height) : null
   const halvingDate = height !== null ? estimatedHalvingDate(height) : null

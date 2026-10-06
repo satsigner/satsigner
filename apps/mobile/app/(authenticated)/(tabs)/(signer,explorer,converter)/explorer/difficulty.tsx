@@ -13,6 +13,7 @@ import SSModal from '@/components/SSModal'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSSpiralBlocks from '@/components/SSSpiralBlocks'
 import SSText from '@/components/SSText'
+import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
 import { useChainData } from '@/hooks/useChainData'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
@@ -34,7 +35,6 @@ import { time } from '@/utils/time'
 
 const SCREEN_HEIGHT = Dimensions.get('screen').height
 const CANVAS_HEIGHT = 0.7 * SCREEN_HEIGHT
-const BLOCKS_PER_EPOCH = 2016
 
 const DATA_LINK = 'https://pvxg.net/bitcoin_data/difficulty_epochs/'
 const MAX_EPOCH = 426
@@ -52,7 +52,9 @@ type DifficultyEpochsData = [
 ]
 
 async function fetchDifficultyEpoch(epoch: number): Promise<BlockDifficulty[]> {
-  const fileName = `rcp_bitcoin_block_data_${(epoch * BLOCKS_PER_EPOCH)
+  const fileName = `rcp_bitcoin_block_data_${(
+    epoch * DIFFICULTY_ADJUSTMENT_INTERVAL
+  )
     .toString()
     .padStart(7, '0')}.json`
   const response = await fetch(DATA_LINK + fileName)
@@ -253,7 +255,7 @@ function ExplorerDifficulty() {
           <SSSpiralBlocks
             data={data}
             loading={isLoading}
-            maxBlocksPerSpiral={BLOCKS_PER_EPOCH}
+            maxBlocksPerSpiral={DIFFICULTY_ADJUSTMENT_INTERVAL}
             canvasWidth={CANVAS_WIDTH}
             canvasHeight={CANVAS_HEIGHT}
             onBlockPress={selectBlock}

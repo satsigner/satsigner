@@ -9,10 +9,10 @@ import {
 import { useWindowDimensions } from 'react-native'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { HALVING_INTERVAL } from '@/constants/consensus'
 import { t, tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
 import {
-  HALVING_INTERVAL,
   blockSubsidySats,
   halvingEpoch,
   historicalHalvings
