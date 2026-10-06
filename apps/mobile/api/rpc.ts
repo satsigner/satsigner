@@ -253,7 +253,7 @@ export type RpcBlock = {
   weight: number
 }
 
-export type RpcVin = {
+type RpcVin = {
   coinbase?: string
   sequence: number
   txid?: string
@@ -261,7 +261,7 @@ export type RpcVin = {
   vout?: number
 }
 
-export type RpcVout = {
+type RpcVout = {
   n: number
   scriptPubKey: {
     address?: string

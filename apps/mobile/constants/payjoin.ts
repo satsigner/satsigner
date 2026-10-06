@@ -138,12 +138,6 @@ const PAYJOIN_BOARD_TXID_MISMATCH_ERROR = 'board proposal txid changed on retry'
 const PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR =
   'payjoin session missing receive script'
 
-/**
- * PDK rejected the sender's original PSBT because no output pays the receive
- * address. Retrying re-derives the same proposal, so this is terminal.
- */
-const PAYJOIN_MISSING_PAYMENT_ERROR = 'missing payment'
-
 export {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
@@ -160,7 +154,6 @@ export {
   PAYJOIN_MIN_CONTRIBUTE_SATS,
   PAYJOIN_MIN_RECEIVE_SATS,
   PAYJOIN_MIN_SESSION_EXPIRE_SECONDS,
-  PAYJOIN_MISSING_PAYMENT_ERROR,
   PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR,
   PAYJOIN_NATIVE_HTTP_TIMEOUT_MS,
   PAYJOIN_NATIVE_PROBE_URI,

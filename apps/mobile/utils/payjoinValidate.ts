@@ -252,11 +252,4 @@ function isSelfTransfer(params: {
   )
 }
 
-export {
-  isSelfTransfer,
-  outpointKey,
-  parseBip78ErrorBody,
-  validatePayjoinProposal
-}
-
-export type { ValidateProposalResult }
+export { isSelfTransfer, parseBip78ErrorBody, validatePayjoinProposal }

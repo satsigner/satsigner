@@ -12,10 +12,9 @@ import {
   LIGHTNING_BUBBLE_CHART_SPOKE_STROKE,
   LIGHTNING_BUBBLE_CHART_SPOKE_STROKE_WIDTH
 } from '@/constants/lightning'
-import { PRIVACY_MASK } from '@/constants/privacy'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { formatNumber } from '@/utils/format'
+import { formatMaskedNumber } from '@/utils/format'
 import {
   type LightningBubbleChannelRow,
   buildLightningChannelsBubbleLayout
@@ -43,8 +42,7 @@ function SSLightningChannelsBubbleChart({
   }
 
   const { hub, channels } = layout
-  const fmt = (n: number) =>
-    privacyMode ? PRIVACY_MASK : formatNumber(Math.round(n))
+  const fmt = (n: number) => formatMaskedNumber(n, privacyMode)
 
   return (
     <View

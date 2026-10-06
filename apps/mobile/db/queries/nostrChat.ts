@@ -92,18 +92,4 @@ function listChatThread(
   return rows._array.map((row) => rowToChatMessage(row)).toReversed()
 }
 
-function getChatMessageById(
-  identityNpub: string,
-  id: string
-): NostrChatMessage | null {
-  const db = getDb()
-  const row = db
-    .execute<ChatMessageRow>(
-      'SELECT * FROM nostr_chat_messages WHERE identity_npub = ? AND id = ?',
-      [identityNpub, id]
-    )
-    .rows.item(0)
-  return row ? rowToChatMessage(row) : null
-}
-
-export { getChatMessageById, listChatConversations, listChatThread }
+export { listChatConversations, listChatThread }

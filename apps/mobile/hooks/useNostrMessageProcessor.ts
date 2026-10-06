@@ -194,4 +194,3 @@ function useNostrMessageProcessor() {
 }
 
 export { getEventContent, useNostrMessageProcessor }
-export default useNostrMessageProcessor

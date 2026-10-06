@@ -1869,7 +1869,6 @@ export {
   applyManualSenderProposal,
   clearReceiverSessionsForAccount,
   createReceivePayjoinSession,
-  defaultFetch,
   finalizeBoardReceiverPayjoin,
   finalizeReceiverPayjoin,
   isSenderPostInFlight,
@@ -1879,15 +1878,9 @@ export {
   processDirectoryBridgedBip78Proposal,
   processManualOriginalPsbt,
   resumePersistedReceiverSession,
-  sendBip78,
   sendPayjoin,
   startBip77Send,
   tryResumeReceiverSession
 }
 
-export type {
-  Bip77AsyncSendResult,
-  FetchLike,
-  HttpResponse,
-  ManualReceiveResult
-}
+export type { FetchLike }

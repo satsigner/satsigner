@@ -1,4 +1,4 @@
-import { type Label, type LabelType } from '@/types/bips/329'
+import { type Label } from '@/types/bips/329'
 import {
   type Account,
   type Key,
@@ -127,7 +127,7 @@ type AddressRow = {
 type LabelRow = {
   ref: string
   account_id: string
-  type: LabelType
+  type: Label['type']
   label: string
   fee: number | null
   fmv: string | null
@@ -144,7 +144,7 @@ type LabelRow = {
 type ArkLabelRow = {
   ref: string
   account_id: string
-  type: LabelType
+  type: Label['type']
   label: string
 }
 

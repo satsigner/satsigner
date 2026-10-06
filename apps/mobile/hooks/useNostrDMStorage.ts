@@ -331,4 +331,3 @@ export {
   isSenderAllowed,
   useNostrDMStorage
 }
-export default useNostrDMStorage

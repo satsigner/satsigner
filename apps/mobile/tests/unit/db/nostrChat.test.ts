@@ -1,8 +1,5 @@
 import { getDb } from '@/db/connection'
-import {
-  getChatMessageById,
-  listChatConversations
-} from '@/db/queries/nostrChat'
+import { listChatConversations, listChatThread } from '@/db/queries/nostrChat'
 
 import { mockQueryResult } from './queryResult'
 
@@ -52,39 +49,59 @@ describe('nostr chat queries', () => {
     })
   })
 
-  describe('getChatMessageById', () => {
-    it('maps the stored message', () => {
+  describe('listChatThread', () => {
+    it('maps the stored messages oldest first', () => {
       execute.mockReturnValue(
         mockQueryResult([
           {
             content: 'hi',
-            created_at: 1700000000,
+            created_at: 1700000001,
             direction: 'out',
-            id: 'msg-1',
+            id: 'msg-2',
             identity_npub: 'npub1me',
             peer_pubkey: 'peer-1',
             protocol: 'nip04',
             read: 1,
             status: 'pending'
+          },
+          {
+            content: 'hello',
+            created_at: 1700000000,
+            direction: 'in',
+            id: 'msg-1',
+            identity_npub: 'npub1me',
+            peer_pubkey: 'peer-1',
+            protocol: 'nip04',
+            read: 0,
+            status: 'sent'
           }
         ])
       )
 
-      expect(getChatMessageById('npub1me', 'msg-1')).toStrictEqual({
-        content: 'hi',
-        created_at: 1700000000,
-        direction: 'out',
-        id: 'msg-1',
-        identityNpub: 'npub1me',
-        peerPubkey: 'peer-1',
-        protocol: 'nip04',
-        read: true,
-        status: 'pending'
-      })
-    })
-
-    it('returns null when the message does not exist', () => {
-      expect(getChatMessageById('npub1me', 'missing')).toBeNull()
+      expect(listChatThread('npub1me', 'nip04', 'peer-1')).toStrictEqual([
+        {
+          content: 'hello',
+          created_at: 1700000000,
+          direction: 'in',
+          id: 'msg-1',
+          identityNpub: 'npub1me',
+          peerPubkey: 'peer-1',
+          protocol: 'nip04',
+          read: false,
+          status: 'sent'
+        },
+        {
+          content: 'hi',
+          created_at: 1700000001,
+          direction: 'out',
+          id: 'msg-2',
+          identityNpub: 'npub1me',
+          peerPubkey: 'peer-1',
+          protocol: 'nip04',
+          read: true,
+          status: 'pending'
+        }
+      ])
     })
   })
 })

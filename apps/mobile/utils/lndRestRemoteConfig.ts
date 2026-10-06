@@ -11,7 +11,7 @@ export type ParsedLndConnectionInput =
 
 type JsonRecord = Record<string, unknown>
 
-export function stripJsonBom(text: string): string {
+function stripJsonBom(text: string): string {
   return text.replace(/^\uFEFF/, '').trim()
 }
 
@@ -415,7 +415,7 @@ export function parseLndRemotePairingConnectionString(text: string): LNDConfig {
   }
 }
 
-export async function fetchLndConfig(configUrl: string): Promise<LNDConfig> {
+async function fetchLndConfig(configUrl: string): Promise<LNDConfig> {
   const response = await fetch(configUrl)
   const text = await response.text()
   if (!response.ok) {

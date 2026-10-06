@@ -67,5 +67,5 @@ function getSpendingTxIdFromMap(
   return value?.trim() || undefined
 }
 
-export { getSpendingTxIdFromMap, resolveChartOutputSpendStatus }
+export { resolveChartOutputSpendStatus }
 export type { ChartOutputSpendStatus }

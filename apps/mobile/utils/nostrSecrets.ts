@@ -24,10 +24,9 @@ const NostrAccountSecretsSchema = z.object({
   deviceNsec: z.string().optional()
 })
 
-export type NostrIdentitySecrets = z.infer<typeof NostrIdentitySecretsSchema>
+type NostrIdentitySecrets = z.infer<typeof NostrIdentitySecretsSchema>
 
-export type NostrAccountSecrets = z.infer<typeof NostrAccountSecretsSchema>
-
+type NostrAccountSecrets = z.infer<typeof NostrAccountSecretsSchema>
 const identitySecretsCache = new Map<string, NostrIdentitySecrets>()
 const accountSecretsCache = new Map<string, NostrAccountSecrets>()
 const BIP39_MIN_WORD_COUNT = 12
@@ -61,18 +60,6 @@ function stripAccountSecretsForDb(nostr: NostrAccount): NostrAccount {
     deviceMnemonic: undefined,
     deviceNsec: undefined
   }
-}
-
-function getCachedIdentitySecrets(
-  npub: string
-): NostrIdentitySecrets | undefined {
-  return identitySecretsCache.get(npub)
-}
-
-function getCachedAccountSecrets(
-  accountId: string
-): NostrAccountSecrets | undefined {
-  return accountSecretsCache.get(accountId)
 }
 
 function setCachedIdentitySecrets(
@@ -417,28 +404,17 @@ async function deleteAllNostrSecretsForWipe(
 export {
   clearNostrSecretsCaches,
   deleteAllNostrSecretsForWipe,
-  deleteNostrAccountSecret,
   deleteNostrAccountSecretSafe,
-  deleteNostrIdentitySecret,
   deleteNostrIdentitySecretSafe,
-  encryptAndStoreAccountNostrSecrets,
-  encryptAndStoreIdentitySecrets,
-  getCachedAccountSecrets,
-  getCachedIdentitySecrets,
-  hasAccountSecrets,
-  hasIdentitySecrets,
   loadAccountNostrSecrets,
   loadIdentitySecrets,
   looksLikePlaintextMnemonic,
   looksLikePlaintextNsec,
   mergeAccountWithCachedNostrSecrets,
   migrateAndHydrateNostrSecrets,
-  persistAccountSecretsFromNostr,
   persistAccountSecretsSafe,
-  persistIdentitySecretsFromMemory,
   persistIdentitySecretsSafe,
   reEncryptNostrSecrets,
   setCachedAccountSecrets,
-  setCachedIdentitySecrets,
   stripAccountSecretsForDb
 }

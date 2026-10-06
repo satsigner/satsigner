@@ -211,17 +211,10 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
 )
 
 export { migrateFiatPriceSettings, useSettingsStore }
-export type { FiatPriceProvider }
 
 function getPayjoinSessionTtlMs(): number {
   return normalizePayjoinSessionTtlMs(
     useSettingsStore.getState().payjoinSessionTtlMs
-  )
-}
-
-function getPayjoinCoordinationMode(): PayjoinCoordinationMode {
-  return normalizePayjoinCoordinationMode(
-    useSettingsStore.getState().payjoinCoordinationMode
   )
 }
 
@@ -231,8 +224,4 @@ function getResolvedPayjoinDirectoryUrl(): string {
   )
 }
 
-export {
-  getPayjoinCoordinationMode,
-  getPayjoinSessionTtlMs,
-  getResolvedPayjoinDirectoryUrl
-}
+export { getPayjoinSessionTtlMs, getResolvedPayjoinDirectoryUrl }

@@ -24,7 +24,7 @@ const Nip46RequestPayloadSchema = z.object({
 
 const Nip46ParamsSchema = z.array(z.unknown())
 
-export function isNostrConnectUri(data: string): boolean {
+function isNostrConnectUri(data: string): boolean {
   return data.trim().toLowerCase().startsWith(NOSTR_NIP46_CONNECT_PREFIX)
 }
 
@@ -147,7 +147,7 @@ export function getEventPreview(params: string[]): Nip46EventPreview | null {
   }
 }
 
-export function getSignEventKind(params: string[]): number | null {
+function getSignEventKind(params: string[]): number | null {
   try {
     const parsed: unknown = JSON.parse(params[0])
     return isRecord(parsed) && typeof parsed.kind === 'number'

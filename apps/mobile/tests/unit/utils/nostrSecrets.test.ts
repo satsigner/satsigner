@@ -7,8 +7,6 @@ import { type NostrAccount } from '@/types/models/Nostr'
 import { aesDecrypt } from '@/utils/crypto'
 import {
   clearNostrSecretsCaches,
-  getCachedAccountSecrets,
-  getCachedIdentitySecrets,
   loadAccountNostrSecrets,
   loadIdentitySecrets,
   looksLikePlaintextMnemonic,
@@ -157,7 +155,10 @@ describe('loadAccountNostrSecrets', () => {
     await expect(
       loadAccountNostrSecrets('acc-malformed', 'pin')
     ).resolves.toBeNull()
-    expect(getCachedAccountSecrets('acc-malformed')).toBeUndefined()
+    // Nothing was cached, so a load without a key falls through to the PIN.
+    await expect(loadAccountNostrSecrets('acc-malformed')).rejects.toThrow(
+      'PIN unavailable'
+    )
   })
 })
 
@@ -175,7 +176,8 @@ describe('loadIdentitySecrets', () => {
     await expect(
       loadIdentitySecrets('npub1valid', 'pin')
     ).resolves.toStrictEqual({ nsec: 'nsec1identity' })
-    expect(getCachedIdentitySecrets('npub1valid')).toStrictEqual({
+    // A load without a key is served from the cache.
+    await expect(loadIdentitySecrets('npub1valid')).resolves.toStrictEqual({
       nsec: 'nsec1identity'
     })
   })
@@ -189,6 +191,9 @@ describe('loadIdentitySecrets', () => {
     await expect(
       loadIdentitySecrets('npub1malformed', 'pin')
     ).resolves.toBeNull()
-    expect(getCachedIdentitySecrets('npub1malformed')).toBeUndefined()
+    // Nothing was cached, so a load without a key falls through to the PIN.
+    await expect(loadIdentitySecrets('npub1malformed')).rejects.toThrow(
+      'PIN unavailable'
+    )
   })
 })

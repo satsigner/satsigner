@@ -1,6 +1,6 @@
 import { getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
-import { recoverWorkingPinDigest } from '@/utils/pinKdf'
+import { migratePinKdfIfNeeded, recoverWorkingPinDigest } from '@/utils/pinKdf'
 import { setSessionPinDigest } from '@/utils/pinSession'
 import {
   finalizePinAuthSuccess,
@@ -18,8 +18,16 @@ jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
 }))
 
 jest.mock<typeof import('@/utils/pinKdf')>('@/utils/pinKdf', () => ({
+  migratePinKdfIfNeeded: jest.fn(),
   recoverWorkingPinDigest: jest.fn()
 }))
+
+jest.mock<typeof import('@/utils/reEncryptPinSecrets')>(
+  '@/utils/reEncryptPinSecrets',
+  () => ({
+    reEncryptPinBoundSecrets: jest.fn()
+  })
+)
 
 jest.mock<typeof import('@/utils/pinSession')>('@/utils/pinSession', () => ({
   setSessionPinDigest: jest.fn()
@@ -55,6 +63,7 @@ describe('finalizePinAuthSuccess', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.mocked(useAccountsStore.getState).mockReturnValue({ accounts: [] })
+    jest.mocked(migratePinKdfIfNeeded).mockResolvedValue(null)
     jest.mocked(recoverWorkingPinDigest).mockResolvedValue('digest')
   })
 
@@ -71,5 +80,44 @@ describe('finalizePinAuthSuccess', () => {
       null
     )
     expect(setSessionPinDigest).toHaveBeenCalledWith('digest')
+  })
+
+  it('upgrades the stored KDF and binds the upgraded digest', async () => {
+    jest.mocked(migratePinKdfIfNeeded).mockResolvedValue('upgraded')
+    jest.mocked(recoverWorkingPinDigest).mockResolvedValue('upgraded')
+    const onSuccess = jest.fn().mockResolvedValue(undefined)
+
+    await finalizePinAuthSuccess('1234', 'salt', 'stored', onSuccess)
+
+    expect(migratePinKdfIfNeeded).toHaveBeenCalledWith(
+      '1234',
+      'salt',
+      'stored',
+      expect.any(Function)
+    )
+    expect(recoverWorkingPinDigest).toHaveBeenCalledWith(
+      '1234',
+      'salt',
+      'upgraded',
+      null
+    )
+    expect(setSessionPinDigest).toHaveBeenCalledWith('upgraded')
+  })
+
+  it('stays unlocked when the KDF upgrade throws', async () => {
+    jest
+      .mocked(migratePinKdfIfNeeded)
+      .mockRejectedValue(new Error('migration failed'))
+    const onSuccess = jest.fn().mockResolvedValue(undefined)
+
+    await finalizePinAuthSuccess('1234', 'salt', 'stored', onSuccess)
+
+    expect(recoverWorkingPinDigest).toHaveBeenCalledWith(
+      '1234',
+      'salt',
+      'stored',
+      null
+    )
+    expect(onSuccess).toHaveBeenCalledWith()
   })
 })

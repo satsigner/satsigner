@@ -4,10 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import mmkvStorage from '@/storage/mmkv'
 import { getPayjoinSessionTtlMs } from '@/store/settings'
 import { type PayjoinSession, type PayjoinSessionStatus } from '@/types/payjoin'
-import {
-  isPayjoinTerminal,
-  PAYJOIN_TERMINAL_STATUSES
-} from '@/utils/payjoinSessionStatus'
+import { isPayjoinTerminal } from '@/utils/payjoinSessionStatus'
 
 // Cap `seenInputs` growth: once it exceeds SEEN_INPUTS_MAX, trim back down
 // to the most recent SEEN_INPUTS_TRIM_TO entries.
@@ -36,8 +33,6 @@ type PayjoinSessionsAction = {
   hasSeenInput: (outpoint: string) => boolean
   clearAll: () => void
 }
-
-const TERMINAL_PAYJOIN_STATUSES = PAYJOIN_TERMINAL_STATUSES
 
 function createSessionId(): string {
   return `pj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
@@ -203,10 +198,4 @@ function buildNewSession(
   }
 }
 
-export {
-  buildNewSession,
-  createSessionId,
-  stripHeavySessionFields,
-  TERMINAL_PAYJOIN_STATUSES,
-  usePayjoinSessionsStore
-}
+export { buildNewSession, usePayjoinSessionsStore }

@@ -1,8 +1,9 @@
 import { getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { type EncryptedKeySecret } from '@/types/models/Account'
-import { recoverWorkingPinDigest } from '@/utils/pinKdf'
+import { migratePinKdfIfNeeded, recoverWorkingPinDigest } from '@/utils/pinKdf'
 import { setSessionPinDigest } from '@/utils/pinSession'
+import { reEncryptPinBoundSecrets } from '@/utils/reEncryptPinSecrets'
 
 async function getFirstEncryptedKeyProbe(): Promise<EncryptedKeySecret | null> {
   const { accounts } = useAccountsStore.getState()
@@ -29,18 +30,40 @@ async function bindSessionPinDigest(
   setSessionPinDigest(digest)
 }
 
+/**
+ * Upgrade the stored digest to the current best KDF (re-encrypting every
+ * PIN-bound secret) when it predates it. A migration failure must not lock the
+ * user out of this session: it stays verified under the old config and retries
+ * on the next unlock. Returns the upgraded digest, or null when none ran.
+ */
+async function migrateStoredPinKdf(
+  pin: string,
+  salt: string,
+  storedDigest: string
+): Promise<string | null> {
+  const { accounts } = useAccountsStore.getState()
+  try {
+    return await migratePinKdfIfNeeded(
+      pin,
+      salt,
+      storedDigest,
+      (oldDigest, newDigest) =>
+        reEncryptPinBoundSecrets(oldDigest, newDigest, accounts)
+    )
+  } catch {
+    return null
+  }
+}
+
 async function finalizePinAuthSuccess(
   pin: string,
   salt: string,
   storedDigest: string,
   onSuccess: () => void | Promise<void>
 ): Promise<void> {
-  await bindSessionPinDigest(pin, salt, storedDigest)
+  const upgradedDigest = await migrateStoredPinKdf(pin, salt, storedDigest)
+  await bindSessionPinDigest(pin, salt, upgradedDigest ?? storedDigest)
   await onSuccess()
 }
 
-export {
-  bindSessionPinDigest,
-  finalizePinAuthSuccess,
-  getFirstEncryptedKeyProbe
-}
+export { finalizePinAuthSuccess, getFirstEncryptedKeyProbe }

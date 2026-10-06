@@ -198,10 +198,6 @@ export class TxDecoded extends bitcoinjs.Transaction {
     return { field, hex: scriptHex, placeholders, value }
   }
 
-  getOutputsScripts(): TxDecodedField[] {
-    return this.outs.map((_, i) => this.getOutputScript(i))
-  }
-
   getWitnesses(): TxDecodedField[] {
     const witnessTuples = this.ins.map((_, i) => [
       this.getWitnessVarInt(i),

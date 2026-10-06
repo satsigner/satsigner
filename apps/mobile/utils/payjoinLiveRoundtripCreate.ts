@@ -204,4 +204,4 @@ async function ensureRoundtripAccounts(
   return { receiver, sender }
 }
 
-export { buildSeedAccount, createSeedAccount, ensureRoundtripAccounts }
+export { buildSeedAccount, ensureRoundtripAccounts }

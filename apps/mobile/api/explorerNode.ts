@@ -22,9 +22,6 @@ export type BackendServerInfo = {
   banner: string
 }
 
-/** @deprecated Prefer BackendServerInfo */
-export type ElectrumServerInfo = BackendServerInfo
-
 export type BitnodesNodeInfo = {
   address: string
   userAgent: string
@@ -54,7 +51,7 @@ const BitnodesSnapshotSchema = z.object({
   total_nodes: z.number().optional()
 })
 
-export async function fetchElectrumServerInfo(
+async function fetchElectrumServerInfo(
   serverUrl: string,
   network: Network
 ): Promise<BackendServerInfo> {

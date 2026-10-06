@@ -86,7 +86,7 @@ function getPPubkeysFromTags(tags: string[][]): string[] {
     .map((tag) => tag[1])
 }
 
-export function zapReceiptEventToRawJson(event: NDKEvent): string {
+function zapReceiptEventToRawJson(event: NDKEvent): string {
   const tags = event.tags.map((tag) =>
     tag.filter((v): v is string => typeof v === 'string')
   )
@@ -187,7 +187,7 @@ export function parseZapReceiptFromTags(
  * incoming (others zapped this profile) vs outgoing (this profile zapped).
  * With `profileHex` null, direction is always incoming (e.g. note zaps list).
  */
-export function parseZapReceiptFromEvent(
+function parseZapReceiptFromEvent(
   event: NDKEvent,
   profileHex: string | null
 ): ZapReceiptInfo | null {
@@ -226,7 +226,7 @@ export function mergeZapReceiptsById(
  * Resolves a Lightning Address (lud16) to an LNURL-pay callback URL.
  * Returns the full LNURLPayResponse with callback, min/max, and nostr support.
  */
-export function resolveZapEndpoint(lud16: string): Promise<LNURLPayResponse> {
+function resolveZapEndpoint(lud16: string): Promise<LNURLPayResponse> {
   const [name, domain] = lud16.split('@')
   if (!name || !domain) {
     throw new Error('Invalid Lightning Address format')
@@ -240,7 +240,7 @@ export function resolveZapEndpoint(lud16: string): Promise<LNURLPayResponse> {
  * Builds and signs a NIP-57 kind 9734 zap request event.
  * Returns the signed event as a JSON string (ready for the nostr= callback param).
  */
-export function buildZapRequest(params: {
+function buildZapRequest(params: {
   senderNsec: string
   recipientPubkeyHex: string
   amountSats: number

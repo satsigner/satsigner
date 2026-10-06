@@ -46,4 +46,4 @@ function shouldFullScan({
 }
 
 export { shouldFullScan }
-export type { AccountSyncHistory, ShouldFullScanParams, SyncCheckpoint }
+export type { AccountSyncHistory }

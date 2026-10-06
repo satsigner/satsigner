@@ -97,7 +97,5 @@ function getAddressUtxoRefsByAccount(accountId: string) {
 export {
   getAddressTxIdsByAccount,
   getAddressUtxoRefsByAccount,
-  getTxInputsByAccount,
-  getTxOutputsByAccount,
   hydrateTransactionRows
 }
