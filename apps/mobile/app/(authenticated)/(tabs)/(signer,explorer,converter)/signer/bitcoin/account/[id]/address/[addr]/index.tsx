@@ -376,10 +376,6 @@ function AddressDetails() {
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleRevealKeys}
-          onDuressUnlock={() => {
-            router.dismissAll()
-            router.replace('/')
-          }}
           onTriesOver={handleKeyPinTriesOver}
           maxTries={3}
         />

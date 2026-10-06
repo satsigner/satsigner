@@ -231,10 +231,6 @@ export default function SeedWordsPage() {
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleSuccessPin}
-          onDuressUnlock={() => {
-            router.dismissAll()
-            router.replace('/')
-          }}
           onTriesOver={handlePinTriesOver}
           maxTries={3}
         />
