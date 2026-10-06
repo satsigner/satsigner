@@ -193,7 +193,11 @@ async function renderPinAuth(props: Parameters<typeof usePinAuth>[0]) {
   return hook
 }
 
+// Fills the PIN state like SSPinInput does, then submits it.
 async function enterPin(hook: { current: PinAuth | null }, pin: string) {
+  act(() => {
+    hook.current?.setPin([...pin])
+  })
   await act(async () => {
     await hook.current?.handleFillEnded(pin)
   })
@@ -256,7 +260,7 @@ describe('usePinAuth', () => {
     expect(onTriesOver).not.toHaveBeenCalled()
   })
 
-  it('shows an error toast and does not count a try on error', async () => {
+  it('shows an error toast, clears the PIN and does not count a try on error', async () => {
     mock.applyPendingPinKdfCommit.mockRejectedValue(new Error('boom'))
     const onFail = jest.fn()
     const onTriesOver = jest.fn()
@@ -273,6 +277,8 @@ describe('usePinAuth', () => {
     expect(onFail).not.toHaveBeenCalled()
     expect(onTriesOver).not.toHaveBeenCalled()
     expect(hook.current?.verifying).toBe(false)
+    // A full PIN would remount SSPinInput and re-fire onFillEnded forever.
+    expect(hook.current?.pin).toStrictEqual(emptyPin(PIN_SIZE))
   })
 
   it('unlocks and navigates home on a duress PIN', async () => {

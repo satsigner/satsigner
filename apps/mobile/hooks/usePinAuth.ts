@@ -145,6 +145,7 @@ function usePinAuth({
 
     if (result === 'error') {
       setVerifying(false)
+      setPin((current) => (current ? emptyPin(current.length) : current))
       toast.error(t('auth.pinRetrieveFailed'))
       return
     }
