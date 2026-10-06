@@ -25,8 +25,8 @@ type SSNostrMessageProps = {
   ownNpub?: string
   /** Called with the author npub when the author is pressed. */
   onAuthorPress?: (authorNpub: string) => void
-  /** Called with a linked transaction id when a chart link is pressed. */
-  onOpenLinkedTx?: (txId: string) => void
+  /** Called with the matched account id and a linked transaction id when a chart link is pressed. */
+  onOpenLinkedTx?: (accountId: string, txId: string) => void
   /** Marks a failed outgoing message (DM send status). */
   failed?: boolean
 }

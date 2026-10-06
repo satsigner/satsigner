@@ -38,8 +38,8 @@ type SSTransactionDetailsProps = {
   visibility?: { sankey: boolean; status: boolean }
   onToggleVisibility?: (component: 'sankey' | 'status') => void
   onGoToSignFlow?: () => void
-  /** Called with a linked transaction id when a chart link is pressed. */
-  onOpenLinkedTx?: (txId: string) => void
+  /** Called with the matched account id and a linked transaction id when a chart link is pressed. */
+  onOpenLinkedTx?: (accountId: string, txId: string) => void
 }
 
 function SSTransactionDetails({
@@ -73,6 +73,10 @@ function SSTransactionDetails({
     () => getAccountAddressSets(matchedAccount?.addresses ?? []),
     [matchedAccount?.addresses]
   )
+  const handleOpenLinkedTx =
+    matchedAccount && onOpenLinkedTx
+      ? (txId: string) => onOpenLinkedTx(matchedAccount.id, txId)
+      : undefined
   const unspentOutpoints = useMemo(
     () =>
       new Set(matchedAccount?.utxos.map((utxo) => `${utxo.txid}:${utxo.vout}`)),
@@ -193,7 +197,7 @@ function SSTransactionDetails({
                 spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
                 outpointLabelsByRef={outpointLabelsByRef}
                 scale={0.75}
-                onOpenLinkedTx={onOpenLinkedTx}
+                onOpenLinkedTx={handleOpenLinkedTx}
               />
             </View>
           ) : (
@@ -230,7 +234,7 @@ function SSTransactionDetails({
               txLabelsById={txLabelsById}
               knownTxIds={knownTxIds}
               outpointLabelsByRef={outpointLabelsByRef}
-              onOpenLinkedTx={onOpenLinkedTx}
+              onOpenLinkedTx={handleOpenLinkedTx}
             />
           </View>
           {isMultisig && (

@@ -517,9 +517,9 @@ export default function DevicesGroupChat() {
                         '/signer/bitcoin/account/[id]/settings/nostr/device/[npub]'
                     })
                   }
-                  onOpenLinkedTx={(linkedTxId) =>
+                  onOpenLinkedTx={(matchedAccountId, linkedTxId) =>
                     router.push(
-                      `/signer/bitcoin/account/${accountId}/transaction/${linkedTxId}`
+                      `/signer/bitcoin/account/${matchedAccountId}/transaction/${linkedTxId}`
                     )
                   }
                 />
