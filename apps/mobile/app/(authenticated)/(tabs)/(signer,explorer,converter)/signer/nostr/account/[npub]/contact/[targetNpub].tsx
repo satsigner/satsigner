@@ -366,7 +366,6 @@ export default function NostrContactProfile() {
 
             <SSNostrFeedTabs
               npub={targetNpub}
-              profileLinkContextNpub={npub}
               relayConnected={owner?.relayConnected === true}
               relays={effectiveRelays}
               onNotePress={handleNotePress}
