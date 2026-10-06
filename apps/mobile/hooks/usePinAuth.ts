@@ -25,7 +25,6 @@ type UsePinAuthProps = {
   onSuccess: () => void | Promise<void>
   onTriesOver?: () => void
   maxTries?: number
-  resetPin?: boolean
 }
 
 function applyPinUpdate(
@@ -105,8 +104,7 @@ function usePinAuth({
   onFail,
   onSuccess,
   onTriesOver,
-  maxTries,
-  resetPin
+  maxTries
 }: UsePinAuthProps) {
   const duressPinEnabled = useAuthStore((state) => state.duressPinEnabled)
   const [pin, setPin] = useState<string[] | null>(null)
@@ -128,13 +126,6 @@ function usePinAuth({
       load.cancelled = true
     }
   }, [])
-
-  useEffect(() => {
-    if (resetPin === true) {
-      setPin((current) => (current ? emptyPin(current.length) : current))
-      setTries(0)
-    }
-  }, [resetPin])
 
   async function handleFillEnded(inputPin: string) {
     setVerifying(true)

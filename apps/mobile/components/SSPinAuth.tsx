@@ -13,7 +13,6 @@ type SSPinAuthProps = {
   onSuccess: () => void | Promise<void>
   onTriesOver?: () => void
   maxTries?: number
-  resetPin?: boolean
   title?: string
 } & Pick<SSPinInputProps, 'feedbackBold' | 'feedbackColor' | 'feedbackText'>
 
@@ -23,15 +22,13 @@ function SSPinAuth({
   onSuccess,
   onTriesOver,
   maxTries,
-  resetPin,
   ...props
 }: SSPinAuthProps) {
   const { pin, verifying, handleFillEnded, setPin } = usePinAuth({
     maxTries,
     onFail,
     onSuccess,
-    onTriesOver,
-    resetPin
+    onTriesOver
   })
   const { shakeStyle } = useAnimatedShake()
 
