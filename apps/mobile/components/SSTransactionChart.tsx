@@ -56,8 +56,6 @@ interface Node extends SankeyNodeMinimal<object, object> {
 
 type SSTransactionChartProps = {
   transaction: Transaction
-  /** Account id used to open previous-input / spending-output transaction details. */
-  accountId?: string
   /** Labels keyed by transaction id — used for input outpoint labels. */
   txLabelsById?: Map<string, string> | Record<string, string>
   /** Labels keyed by `txid:vout` for the consumed UTXO. */
@@ -176,7 +174,6 @@ function SSTransactionChart(props: SSTransactionChartProps) {
 
 function SSTransactionChartCanvas({
   transaction,
-  accountId,
   txLabelsById,
   outpointLabelsByRef,
   knownTxIds,
@@ -736,7 +733,7 @@ function SSTransactionChartCanvas({
             />
           </Group>
         </Canvas>
-        {accountId && onOpenLinkedTx
+        {onOpenLinkedTx
           ? [...inputHitTargets, ...outputHitTargets].map((target) => (
               <SankeyHitTarget
                 key={target.id}

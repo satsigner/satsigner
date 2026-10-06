@@ -278,7 +278,6 @@ export default function TxDetails() {
             ) : null}
             <SSTransactionChart
               key={txid}
-              accountId={accountId}
               transaction={displayTx}
               ownAddresses={ownAddresses}
               internalAddresses={internalAddresses}

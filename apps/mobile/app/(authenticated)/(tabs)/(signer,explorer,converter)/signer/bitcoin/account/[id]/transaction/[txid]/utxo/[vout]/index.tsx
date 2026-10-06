@@ -222,7 +222,6 @@ function UtxoDetails({
                   {t('transaction.details.chart')}
                 </SSText>
                 <SSTransactionChart
-                  accountId={accountId}
                   transaction={tx}
                   ownAddresses={ownAddresses}
                   internalAddresses={internalAddresses}

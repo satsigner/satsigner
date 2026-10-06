@@ -186,7 +186,6 @@ function SSTransactionDetails({
           {visibility?.sankey ? (
             <View style={styles.chatChartContainer}>
               <SSTransactionChart
-                accountId={matchedAccount?.id}
                 transaction={transaction}
                 ownAddresses={ownAddresses}
                 internalAddresses={internalAddresses}
@@ -225,7 +224,6 @@ function SSTransactionDetails({
         <>
           <View style={styles.chartContainer}>
             <SSTransactionChart
-              accountId={matchedAccount?.id}
               transaction={transaction}
               ownAddresses={ownAddresses}
               internalAddresses={internalAddresses}

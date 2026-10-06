@@ -1004,7 +1004,6 @@ export default function SignTransaction() {
                   {transaction ? (
                     <View style={{ overflow: 'hidden', width: '100%' }}>
                       <SSTransactionChart
-                        accountId={id}
                         transaction={transaction}
                         ownAddresses={ownAddresses}
                         txLabelsById={txLabelsById}

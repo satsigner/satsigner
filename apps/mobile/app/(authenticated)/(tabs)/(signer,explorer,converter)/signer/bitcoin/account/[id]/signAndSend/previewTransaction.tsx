@@ -2110,7 +2110,6 @@ function PreviewTransaction() {
                 </SSText>
                 <View style={{ overflow: 'hidden' }}>
                   <SSTransactionChart
-                    accountId={id}
                     transaction={transaction}
                     ownAddresses={ownAddresses}
                     txLabelsById={txLabelsById}
