@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -27,10 +26,13 @@ import SSTimeAgoText from './SSTimeAgoText'
 
 type SSEcashTransactionCardProps = {
   transaction: EcashTransaction
+  onPress: () => void
 }
 
-function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
-  const router = useRouter()
+function SSEcashTransactionCard({
+  transaction,
+  onPress
+}: SSEcashTransactionCardProps) {
   const [checkingTransactionIds, activeAccountId, allMints] = useEcashStore(
     useShallow((state) => [
       state.checkingTransactionIds,
@@ -135,15 +137,7 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
   }
 
   return (
-    <TouchableOpacity
-      onPress={() =>
-        router.navigate({
-          params: { id: transaction.id },
-          pathname: '/signer/ecash/transaction/[id]'
-        } as never)
-      }
-      activeOpacity={0.7}
-    >
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
       <SSVStack style={styles.container} gap="none">
         <SSHStack justifyBetween style={{ alignItems: 'center' }}>
           <SSTimeAgoText date={new Date(transaction.timestamp)} size="xs" />

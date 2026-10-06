@@ -32,7 +32,10 @@ import {
   encodeContactNprofile,
   getContactShareProfileName
 } from '@/utils/nostrContactProfile'
-import { nostrZapDetailHref } from '@/utils/nostrNavigation'
+import {
+  nostrAuthorProfileHref,
+  nostrZapDetailHref
+} from '@/utils/nostrNavigation'
 import { initiateZap } from '@/utils/nostrZap'
 import { buildPaymentMethods } from '@/utils/paymentMethods'
 
@@ -363,7 +366,6 @@ export default function NostrContactProfile() {
 
             <SSNostrFeedTabs
               npub={targetNpub}
-              profileLinkContextNpub={npub}
               relayConnected={owner?.relayConnected === true}
               relays={effectiveRelays}
               onNotePress={handleNotePress}
@@ -372,6 +374,9 @@ export default function NostrContactProfile() {
                   router.navigate(nostrZapDetailHref(npub, receipt.id))
                 }
               }}
+              onAuthorPress={(authorNpub) =>
+                router.navigate(nostrAuthorProfileHref(npub, authorNpub))
+              }
             />
           </SSVStack>
         </ScrollView>

@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { type ReactNode } from 'react'
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
@@ -15,10 +14,6 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { NostrFeedNoteLike, type NostrKind0Profile } from '@/types/models/Nostr'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
-import {
-  nostrAccountProfileHref,
-  nostrContactProfileHref
-} from '@/utils/nostrNavigation'
 import {
   extractImageUrlsFromNote,
   stripImageUrlsFromContent
@@ -67,8 +62,8 @@ function encodeNotePrimaryNip19(note: NostrFeedNoteLike): string {
 }
 
 type SSNostrFeedAuthorRowProps = {
-  /** Identity whose account screen we are on (enables profile links). */
-  contextNpub?: string
+  /** Called when the author row is pressed. When omitted the row is not tappable. */
+  onPress?: () => void
   loading: boolean
   npubBech: string
   displayName: string
@@ -78,7 +73,7 @@ type SSNostrFeedAuthorRowProps = {
 }
 
 function SSNostrFeedAuthorRow({
-  contextNpub,
+  onPress,
   loading,
   npubBech,
   displayName,
@@ -86,8 +81,6 @@ function SSNostrFeedAuthorRow({
   nip05Valid,
   pictureUri
 }: SSNostrFeedAuthorRowProps) {
-  const router = useRouter()
-
   if (loading) {
     return (
       <SSHStack gap="md" style={styles.feedAuthorRow}>
@@ -169,21 +162,12 @@ function SSNostrFeedAuthorRow({
     </SSHStack>
   )
 
-  if (!contextNpub) {
+  if (!onPress) {
     return row
   }
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={() => {
-        if (npubBech === contextNpub) {
-          router.navigate(nostrAccountProfileHref(npubBech))
-        } else {
-          router.navigate(nostrContactProfileHref(contextNpub, npubBech))
-        }
-      }}
-    >
+    <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
       {row}
     </TouchableOpacity>
   )

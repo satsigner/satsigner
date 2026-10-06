@@ -177,7 +177,11 @@ function AddressDetails() {
             <SSLabelDetails
               label={address.label}
               header={t('common.label').toUpperCase()}
-              link={`/signer/bitcoin/account/${accountId}/address/${addr}/label`}
+              onPress={() =>
+                router.navigate(
+                  `/signer/bitcoin/account/${accountId}/address/${addr}/label`
+                )
+              }
               privacyMode={privacyMode}
             />
             <SSSeparator />
@@ -222,7 +226,14 @@ function AddressDetails() {
                         blockHeight={blockchainHeight}
                         fiatCurrency={fiatCurrency}
                         btcPrice={btcPrice}
-                        link={`/signer/bitcoin/account/${accountId}/transaction/${tx.id}`}
+                        onPress={() =>
+                          router.navigate(
+                            `/signer/bitcoin/account/${accountId}/transaction/${tx.id}`
+                          )
+                        }
+                        onOpenFiatSettings={() =>
+                          router.navigate('/settings/features/fiatData')
+                        }
                         expand
                       />
                     ))}

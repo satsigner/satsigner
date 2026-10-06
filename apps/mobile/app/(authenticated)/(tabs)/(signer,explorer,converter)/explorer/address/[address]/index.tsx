@@ -312,6 +312,12 @@ export default function ExplorerAddressDetail() {
               txids={data.txids}
               heightByTxid={data.heightByTxid}
               preferMempool={useMempool}
+              onOpenTransaction={(txid) =>
+                router.push(`/explorer/transaction/${txid}`)
+              }
+              onOpenFiatSettings={() =>
+                router.navigate('/settings/features/fiatData')
+              }
             />
           </>
         ) : null}

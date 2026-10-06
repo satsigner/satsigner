@@ -60,7 +60,11 @@ function TransactionLabel() {
       />
       <SSVStack style={{ padding: 20 }}>
         <SSTxDetailsHeader tx={tx} />
-        <SSLabelInput label={tx.label || ''} onUpdateLabel={updateLabel} />
+        <SSLabelInput
+          label={tx.label || ''}
+          onUpdateLabel={updateLabel}
+          onCancel={() => router.back()}
+        />
       </SSVStack>
     </SSScrollView>
   )

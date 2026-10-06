@@ -1,5 +1,4 @@
-import { router, type Href } from 'expo-router'
-import { type DimensionValue, TouchableOpacity, View } from 'react-native'
+import { type DimensionValue, View } from 'react-native'
 
 import SSText, { type SSTextProps } from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -18,7 +17,6 @@ type SSDetailsListItemProps = {
   width?: DimensionValue
   uppercase?: boolean
   copyToClipboard?: boolean
-  navigateToLink?: Href
   /** Muted unit shown after the value (e.g. "bytes"). */
   unit?: string
 }
@@ -29,7 +27,7 @@ type commonOptions = Pick<
 >
 
 type individualOptions = commonOptions &
-  Pick<SSDetailsListItemProps, 'width' | 'navigateToLink' | 'unit'>
+  Pick<SSDetailsListItemProps, 'width' | 'unit'>
 
 type SSDetailsListProps = {
   columns: 1 | 2 | 3 | 4
@@ -74,7 +72,6 @@ function SSDetailsListItem({
   variant = 'sans-serif',
   uppercase = true,
   copyToClipboard = false,
-  navigateToLink,
   unit
 }: SSDetailsListItemProps) {
   const gap = variant === 'mono' ? 'sm' : 'none'
@@ -107,17 +104,6 @@ function SSDetailsListItem({
       <View style={{ width }}>
         <SSClipboardCopy text={text}>{listItemComponent}</SSClipboardCopy>
       </View>
-    )
-  }
-
-  if (navigateToLink) {
-    return (
-      <TouchableOpacity
-        onPress={() => router.navigate(navigateToLink)}
-        style={{ width }}
-      >
-        {listItemComponent}
-      </TouchableOpacity>
     )
   }
 

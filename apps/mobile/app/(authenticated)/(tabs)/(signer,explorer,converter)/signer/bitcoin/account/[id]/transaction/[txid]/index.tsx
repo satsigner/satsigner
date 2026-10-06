@@ -244,7 +244,11 @@ export default function TxDetails() {
         <SSSeparator color="gradient" />
         <SSLabelDetails
           label={displayTx.label || ''}
-          link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/label`}
+          onPress={() =>
+            router.navigate(
+              `/signer/bitcoin/account/${accountId}/transaction/${txid}/label`
+            )
+          }
           header={t('transaction.label')}
           privacyMode={privacyMode}
         />
@@ -274,7 +278,6 @@ export default function TxDetails() {
             ) : null}
             <SSTransactionChart
               key={txid}
-              accountId={accountId}
               transaction={displayTx}
               ownAddresses={ownAddresses}
               internalAddresses={internalAddresses}
@@ -286,6 +289,11 @@ export default function TxDetails() {
               outpointLabelsByRef={outpointLabelsByRef}
               scale={0.9}
               onLoadingChange={setChartLoading}
+              onOpenLinkedTx={(linkedTxId) =>
+                router.push(
+                  `/signer/bitcoin/account/${accountId}/transaction/${linkedTxId}`
+                )
+              }
             />
           </SSVStack>
         )}
@@ -331,6 +339,16 @@ export default function TxDetails() {
               vout={displayTx.vout}
               txid={displayTx.id}
               accountId={accountId}
+              onOpenUtxo={(index) =>
+                router.navigate(
+                  `/signer/bitcoin/account/${accountId}/transaction/${displayTx.id}/utxo/${index}`
+                )
+              }
+              onOpenAddress={(address) =>
+                router.navigate(
+                  `/signer/bitcoin/account/${accountId}/address/${address}`
+                )
+              }
             />
           </>
         )}

@@ -29,6 +29,7 @@ import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 import {
   nostrAccountHref,
+  nostrAuthorProfileHref,
   nostrNoteHref,
   nostrZapDetailHref
 } from '@/utils/nostrNavigation'
@@ -220,6 +221,9 @@ export default function NostrAccountLanding() {
             onNotePress={handleNotePress}
             onZapPress={(receipt) =>
               router.navigate(nostrZapDetailHref(npub, receipt.id))
+            }
+            onAuthorPress={(authorNpub) =>
+              router.navigate(nostrAuthorProfileHref(npub, authorNpub))
             }
           />
         </SSVStack>

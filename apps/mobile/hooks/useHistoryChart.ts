@@ -1,6 +1,5 @@
 import { Skia, type SkParagraph, TextAlign } from '@shopify/react-native-skia'
 import { type ScaleTime } from 'd3-scale'
-import { useLocalSearchParams, useRouter } from 'expo-router'
 import {
   type MutableRefObject,
   useCallback,
@@ -15,7 +14,6 @@ import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { Colors } from '@/styles'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Rectangle } from '@/types/ui/geometry'
 import {
   type HistoryChartData,
@@ -53,6 +51,8 @@ type UseHistoryChartGesturesParams = {
   margin: { bottom: number; left: number; right: number; top: number }
   showOutputField: boolean
   showTransactionInfo: boolean
+  onOpenUtxo: (txid: string, vout: number) => void
+  onOpenTransaction: (txid: string) => void
 }
 
 type UseHistoryChartLabelsParams = {
@@ -151,10 +151,10 @@ export function useHistoryChartGestures({
   utxoRectangleData,
   margin,
   showOutputField,
-  showTransactionInfo
+  showTransactionInfo,
+  onOpenUtxo,
+  onOpenTransaction
 }: UseHistoryChartGesturesParams) {
-  const router = useRouter()
-  const { id } = useLocalSearchParams<AccountSearchParams>()
   const {
     endDate,
     endDateRef,
@@ -284,9 +284,7 @@ export function useHistoryChartGestures({
               x >= value.x1 && x <= value.x2 && y >= value.y2 && y <= value.y1
           )
           if (tappedRect !== undefined && showOutputField) {
-            router.navigate(
-              `/signer/bitcoin/account/${id}/transaction/${tappedRect.utxo.txid}/utxo/${tappedRect.utxo.vout}`
-            )
+            onOpenUtxo(tappedRect.utxo.txid, tappedRect.utxo.vout)
             return
           }
           const tapLabelRect = labelRectRef.current.find(
@@ -297,9 +295,7 @@ export function useHistoryChartGestures({
               y >= rect.top
           )
           if (tapLabelRect !== undefined && showTransactionInfo) {
-            router.navigate(
-              `/signer/bitcoin/account/${id}/transaction/${tapLabelRect.id}`
-            )
+            onOpenTransaction(tapLabelRect.id)
           }
         }
       }

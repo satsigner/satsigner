@@ -1004,7 +1004,6 @@ export default function SignTransaction() {
                   {transaction ? (
                     <View style={{ overflow: 'hidden', width: '100%' }}>
                       <SSTransactionChart
-                        accountId={id}
                         transaction={transaction}
                         ownAddresses={ownAddresses}
                         txLabelsById={txLabelsById}
@@ -1012,6 +1011,11 @@ export default function SignTransaction() {
                         outpointLabelsByRef={outpointLabelsByRef}
                         scale={0.9}
                         showUnspentLabel={false}
+                        onOpenLinkedTx={(linkedTxId) =>
+                          router.push(
+                            `/signer/bitcoin/account/${id}/transaction/${linkedTxId}`
+                          )
+                        }
                       />
                     </View>
                   ) : null}
