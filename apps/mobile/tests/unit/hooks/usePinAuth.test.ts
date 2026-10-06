@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import { DURESS_PIN_KEY, SALT_KEY } from '@/config/auth'
 import { verifyPin } from '@/hooks/usePinAuth'
 import { getItem } from '@/storage/encrypted'
+import { useAuthStore } from '@/store/auth'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
 import { getPin } from '@/utils/pin'
 import {
@@ -54,6 +55,10 @@ const mock = {
   safeEqualHex: jest.mocked(safeEqualHex),
   secureWipeAllWalletData: jest.mocked(secureWipeAllWalletData)
 }
+
+afterEach(() => {
+  useAuthStore.setState(useAuthStore.getInitialState(), true)
+})
 
 // getItem is keyed: DURESS_PIN_KEY -> duress digest, SALT_KEY -> salt.
 function stubStorage({
