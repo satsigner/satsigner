@@ -2,7 +2,6 @@ import { router } from 'expo-router'
 
 import { verifyPin } from '@/hooks/usePinAuth'
 import { getItem } from '@/storage/encrypted'
-import { useAuthStore } from '@/store/auth'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
 import { getPin } from '@/utils/pin'
 import {
@@ -93,7 +92,7 @@ describe('verifyPin', () => {
     await expect(verifyPin('1234', false, jest.fn())).resolves.toBe('error')
   })
 
-  it('wipes wallet data and unlocks on a duress PIN', async () => {
+  it('wipes wallet data and returns duress on a duress PIN', async () => {
     mock.pinMatchesDuressDigest.mockResolvedValue(true)
     const onSuccess = jest.fn()
 
@@ -101,24 +100,19 @@ describe('verifyPin', () => {
 
     expect(result).toBe('duress')
     expect(mock.secureWipeAllWalletData).toHaveBeenCalledTimes(1)
-    expect(mock.loadAuthenticatedSession).toHaveBeenCalledTimes(1)
-    expect(useAuthStore.getState().justUnlocked).toBe(true)
-    expect(useAuthStore.getState().lockTriggered).toBe(false)
-    expect(router.dismissAll).toHaveBeenCalledTimes(1)
-    expect(router.replace).toHaveBeenCalledWith('/')
+    expect(mock.loadAuthenticatedSession).not.toHaveBeenCalled()
+    expect(router.replace).not.toHaveBeenCalled()
     expect(onSuccess).not.toHaveBeenCalled()
     expect(mock.derivePinDigest).not.toHaveBeenCalled()
   })
 
-  it('still unlocks when the duress wipe throws (best-effort)', async () => {
+  it('still returns duress when the wipe throws (best-effort)', async () => {
     mock.pinMatchesDuressDigest.mockResolvedValue(true)
     mock.secureWipeAllWalletData.mockRejectedValue(new Error('wipe failed'))
 
     const result = await verifyPin('0000', true, jest.fn())
 
     expect(result).toBe('duress')
-    expect(mock.loadAuthenticatedSession).toHaveBeenCalledTimes(1)
-    expect(router.replace).toHaveBeenCalledWith('/')
   })
 
   it('does not treat the duress PIN as duress when the feature is disabled', async () => {

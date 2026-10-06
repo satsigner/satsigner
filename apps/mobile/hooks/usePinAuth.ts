@@ -42,10 +42,21 @@ function applyPinUpdate(
   })
 }
 
+// Unlocks the app into the (now wiped) wallet after a duress PIN.
+async function unlockAfterDuress() {
+  await loadAuthenticatedSession()
+  const { setLockTriggered, setJustUnlocked, resetPinTries } =
+    useAuthStore.getState()
+  setLockTriggered(false)
+  setJustUnlocked(true)
+  resetPinTries()
+  router.dismissAll()
+  router.replace('/')
+}
+
 // Core PIN verification orchestration. Kept free of component state so it can
-// be tested directly. Duress and success branches perform their own side
-// effects (wallet wipe + navigation, unlock finalization) and the caller only
-// reacts to the returned outcome.
+// be tested directly. The duress branch wipes wallet data and the success
+// branch finalizes the unlock; navigation is left to the caller.
 async function verifyPin(
   inputPin: string,
   duressPinEnabled: boolean,
@@ -74,14 +85,6 @@ async function verifyPin(
     } catch {
       // Duress wipe is best-effort; always proceed to unlock the app.
     }
-    await loadAuthenticatedSession()
-    const { setLockTriggered, setJustUnlocked, resetPinTries } =
-      useAuthStore.getState()
-    setLockTriggered(false)
-    setJustUnlocked(true)
-    resetPinTries()
-    router.dismissAll()
-    router.replace('/')
     return 'duress'
   }
 
@@ -135,6 +138,11 @@ function usePinAuth({
 
     const result = await verifyPin(inputPin, duressPinEnabled, onSuccess)
 
+    if (result === 'duress') {
+      await unlockAfterDuress()
+      return
+    }
+
     if (result === 'error') {
       setVerifying(false)
       toast.error(t('auth.pinRetrieveFailed'))
@@ -155,7 +163,7 @@ function usePinAuth({
         onFail()
       }
     }
-    // 'duress' navigated away and 'success' finalized the unlock; nothing to do.
+    // 'success' finalized the unlock; nothing to do.
   }
 
   return {
