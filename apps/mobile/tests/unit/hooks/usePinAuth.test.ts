@@ -1,11 +1,14 @@
 import { router } from 'expo-router'
+import { createElement } from 'react'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { toast } from 'sonner-native'
 
-import { DURESS_PIN_KEY, SALT_KEY } from '@/config/auth'
-import { verifyPin } from '@/hooks/usePinAuth'
+import { DURESS_PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
+import { usePinAuth, verifyPin } from '@/hooks/usePinAuth'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
-import { getPin } from '@/utils/pin'
+import { emptyPin, getPin } from '@/utils/pin'
 import {
   applyPendingPinKdfCommit,
   derivePinDigest,
@@ -23,6 +26,7 @@ jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
   getItem: jest.fn()
 }))
 jest.mock<typeof import('@/utils/pin')>('@/utils/pin', () => ({
+  ...jest.requireActual<typeof import('@/utils/pin')>('@/utils/pin'),
   getPin: jest.fn()
 }))
 jest.mock<typeof import('@/utils/pinKdf')>('@/utils/pinKdf', () => ({
@@ -55,10 +59,6 @@ const mock = {
   safeEqualHex: jest.mocked(safeEqualHex),
   secureWipeAllWalletData: jest.mocked(secureWipeAllWalletData)
 }
-
-afterEach(() => {
-  useAuthStore.setState(useAuthStore.getInitialState(), true)
-})
 
 // getItem is keyed: DURESS_PIN_KEY -> duress digest, SALT_KEY -> salt.
 function stubStorage({
@@ -172,5 +172,121 @@ describe('verifyPin', () => {
     mock.finalizePinAuthSuccess.mockRejectedValue(new Error('fail'))
 
     await expect(verifyPin('1234', true, jest.fn())).resolves.toBe('error')
+  })
+})
+
+type PinAuth = ReturnType<typeof usePinAuth>
+
+// Renderers mounted by renderPinAuth, unmounted after each test.
+const mounted: ReactTestRenderer[] = []
+
+// Renders usePinAuth in a throwaway component and exposes its latest return.
+async function renderPinAuth(props: Parameters<typeof usePinAuth>[0]) {
+  const hook: { current: PinAuth | null } = { current: null }
+  function Harness() {
+    hook.current = usePinAuth(props)
+    return null
+  }
+  await act(async () => {
+    mounted.push(create(createElement(Harness)))
+  })
+  return hook
+}
+
+async function enterPin(hook: { current: PinAuth | null }, pin: string) {
+  await act(async () => {
+    await hook.current?.handleFillEnded(pin)
+  })
+}
+
+describe('usePinAuth', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mock.applyPendingPinKdfCommit.mockResolvedValue(undefined)
+    mock.getPin.mockResolvedValue('hashed-real-pin')
+    mock.getStoredKdfConfig.mockResolvedValue({})
+    mock.pinMatchesDuressDigest.mockResolvedValue(false)
+    mock.derivePinDigest.mockResolvedValue('hashed-input')
+    mock.safeEqualHex.mockReturnValue(false)
+    stubStorage({ duress: 'hashed-duress-pin', salt: 'salt' })
+  })
+
+  afterEach(() => {
+    act(() => {
+      for (const renderer of mounted.splice(0)) {
+        renderer.unmount()
+      }
+    })
+    useAuthStore.setState(useAuthStore.getInitialState(), true)
+  })
+
+  it('loads an empty PIN of the default length', async () => {
+    const hook = await renderPinAuth({ onSuccess: jest.fn() })
+    expect(hook.current?.pin).toStrictEqual(emptyPin(PIN_SIZE))
+  })
+
+  it('counts wrong PINs and calls onTriesOver once maxTries is reached', async () => {
+    const onFail = jest.fn()
+    const onTriesOver = jest.fn()
+    const hook = await renderPinAuth({
+      maxTries: 2,
+      onFail,
+      onSuccess: jest.fn(),
+      onTriesOver
+    })
+
+    await enterPin(hook, '9999')
+    expect(onFail).toHaveBeenCalledTimes(1)
+    expect(onTriesOver).not.toHaveBeenCalled()
+    expect(hook.current?.verifying).toBe(false)
+    expect(hook.current?.pin).toStrictEqual(emptyPin(PIN_SIZE))
+
+    await enterPin(hook, '9999')
+    expect(onFail).toHaveBeenCalledTimes(2)
+    expect(onTriesOver).toHaveBeenCalledTimes(1)
+  })
+
+  it('never calls onTriesOver without maxTries', async () => {
+    const onTriesOver = jest.fn()
+    const hook = await renderPinAuth({ onSuccess: jest.fn(), onTriesOver })
+
+    await enterPin(hook, '9999')
+    await enterPin(hook, '9999')
+
+    expect(onTriesOver).not.toHaveBeenCalled()
+  })
+
+  it('shows an error toast and does not count a try on error', async () => {
+    mock.applyPendingPinKdfCommit.mockRejectedValue(new Error('boom'))
+    const onFail = jest.fn()
+    const onTriesOver = jest.fn()
+    const hook = await renderPinAuth({
+      maxTries: 1,
+      onFail,
+      onSuccess: jest.fn(),
+      onTriesOver
+    })
+
+    await enterPin(hook, '1234')
+
+    expect(toast.error).toHaveBeenCalledTimes(1)
+    expect(onFail).not.toHaveBeenCalled()
+    expect(onTriesOver).not.toHaveBeenCalled()
+    expect(hook.current?.verifying).toBe(false)
+  })
+
+  it('unlocks and navigates home on a duress PIN', async () => {
+    useAuthStore.setState({ duressPinEnabled: true, lockTriggered: true })
+    mock.pinMatchesDuressDigest.mockResolvedValue(true)
+    const hook = await renderPinAuth({ onSuccess: jest.fn() })
+
+    await enterPin(hook, '0000')
+
+    expect(mock.secureWipeAllWalletData).toHaveBeenCalledTimes(1)
+    expect(mock.loadAuthenticatedSession).toHaveBeenCalledTimes(1)
+    expect(useAuthStore.getState().justUnlocked).toBe(true)
+    expect(useAuthStore.getState().lockTriggered).toBe(false)
+    expect(router.dismissAll).toHaveBeenCalledTimes(1)
+    expect(router.replace).toHaveBeenCalledWith('/')
   })
 })
