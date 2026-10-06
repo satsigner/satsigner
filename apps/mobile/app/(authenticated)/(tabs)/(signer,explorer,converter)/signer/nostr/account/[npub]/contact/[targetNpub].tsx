@@ -33,8 +33,7 @@ import {
   getContactShareProfileName
 } from '@/utils/nostrContactProfile'
 import {
-  nostrAccountProfileHref,
-  nostrContactProfileHref,
+  nostrAuthorProfileHref,
   nostrZapDetailHref
 } from '@/utils/nostrNavigation'
 import { initiateZap } from '@/utils/nostrZap'
@@ -376,13 +375,9 @@ export default function NostrContactProfile() {
                   router.navigate(nostrZapDetailHref(npub, receipt.id))
                 }
               }}
-              onAuthorPress={(authorNpub) => {
-                if (authorNpub === npub) {
-                  router.navigate(nostrAccountProfileHref(authorNpub))
-                } else {
-                  router.navigate(nostrContactProfileHref(npub, authorNpub))
-                }
-              }}
+              onAuthorPress={(authorNpub) =>
+                router.navigate(nostrAuthorProfileHref(npub, authorNpub))
+              }
             />
           </SSVStack>
         </ScrollView>

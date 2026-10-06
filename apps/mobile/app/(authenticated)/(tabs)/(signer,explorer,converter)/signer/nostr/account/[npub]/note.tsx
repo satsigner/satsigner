@@ -76,11 +76,7 @@ import {
   extractPubpayTags
 } from '@/utils/nostrIdentity'
 import { isLongFormNostrKind } from '@/utils/nostrLongForm'
-import {
-  nostrAccountProfileHref,
-  nostrContactProfileHref,
-  nostrNoteHref
-} from '@/utils/nostrNavigation'
+import { nostrAuthorProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
 import { getResolvedEventId } from '@/utils/nostrNoteQuotes'
@@ -113,11 +109,7 @@ export default function NostrNotePage() {
     if (!npub) {
       return
     }
-    if (authorNpubBech === npub) {
-      router.navigate(nostrAccountProfileHref(npub))
-    } else {
-      router.navigate(nostrContactProfileHref(npub, authorNpubBech))
-    }
+    router.navigate(nostrAuthorProfileHref(npub, authorNpubBech))
   }
 
   const identity = useNostrIdentityStore((state) =>
