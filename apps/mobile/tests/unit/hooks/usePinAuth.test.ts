@@ -88,9 +88,15 @@ describe('verifyPin', () => {
     await expect(verifyPin('1234', false, jest.fn())).resolves.toBe('error')
   })
 
-  it('returns error when the stored PIN or salt is missing', async () => {
+  it('returns error when the stored salt is missing', async () => {
     stubStorage({ duress: null, salt: null })
     await expect(verifyPin('1234', false, jest.fn())).resolves.toBe('error')
+  })
+
+  it('returns error when the stored PIN is missing', async () => {
+    mock.getPin.mockRejectedValue(new Error('PIN unavailable'))
+    await expect(verifyPin('1234', false, jest.fn())).resolves.toBe('error')
+    expect(mock.derivePinDigest).not.toHaveBeenCalled()
   })
 
   it('wipes wallet data and returns duress on a duress PIN', async () => {

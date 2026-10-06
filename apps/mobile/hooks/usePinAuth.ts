@@ -68,7 +68,7 @@ async function verifyPin(
     return 'error'
   }
 
-  const hashedPin = await getPin()
+  const hashedPin = await getPin().catch(() => null)
   const hashedDuressPin = await getItem(DURESS_PIN_KEY)
   const salt = await getItem(SALT_KEY)
   if (!hashedPin || !salt) {
