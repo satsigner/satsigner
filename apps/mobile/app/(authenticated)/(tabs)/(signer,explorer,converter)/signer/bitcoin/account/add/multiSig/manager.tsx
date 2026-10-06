@@ -13,6 +13,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { hasMultisigDuplicateXpubs } from '@/utils/key'
+import { multisigKeyImportHandlers } from '@/utils/multisigKeyNavigation'
 
 export default function MultiSigManager() {
   const router = useRouter()
@@ -69,6 +70,19 @@ export default function MultiSigManager() {
     router.navigate('/signer/bitcoin/account/add/multiSig/finish')
   }
 
+  function navigateToKeyExport(
+    index: number,
+    screen: 'descriptor' | 'publicKey' | 'seedWords'
+  ) {
+    if (!keys[index]) {
+      toast.error('Key not found')
+      return
+    }
+    router.navigate(
+      `/signer/bitcoin/account/add/multiSig/export/${screen}?keyIndex=${index}`
+    )
+  }
+
   function handleCancel() {
     clearAllKeys()
     router.back()
@@ -121,53 +135,12 @@ export default function MultiSigManager() {
                 index={index}
                 keyCount={keyCount}
                 keyDetails={keys[index]}
-                onImportMnemonic={() =>
-                  router.navigate(
-                    `/signer/bitcoin/account/add/import/mnemonic/${index}`
-                  )
+                {...multisigKeyImportHandlers(index)}
+                onShareXpub={() => navigateToKeyExport(index, 'publicKey')}
+                onShareDescriptor={() =>
+                  navigateToKeyExport(index, 'descriptor')
                 }
-                onGenerateMnemonic={() =>
-                  router.navigate(
-                    `/signer/bitcoin/account/add/multiSig/keySettings/${index}`
-                  )
-                }
-                onImportDescriptor={() =>
-                  router.navigate(
-                    `/signer/bitcoin/account/add/(common)/import/descriptor/${index}`
-                  )
-                }
-                onImportExtendedPub={() =>
-                  router.navigate(
-                    `/signer/bitcoin/account/add/(common)/import/extendedPub/${index}`
-                  )
-                }
-                onShareXpub={() => {
-                  if (!keys[index]) {
-                    toast.error('Key not found')
-                    return
-                  }
-                  router.navigate(
-                    `/signer/bitcoin/account/add/multiSig/export/publicKey?keyIndex=${index}`
-                  )
-                }}
-                onShareDescriptor={() => {
-                  if (!keys[index]) {
-                    toast.error('Key not found')
-                    return
-                  }
-                  router.navigate(
-                    `/signer/bitcoin/account/add/multiSig/export/descriptor?keyIndex=${index}`
-                  )
-                }}
-                onViewSeedWords={() => {
-                  if (!keys[index]) {
-                    toast.error('Key not found')
-                    return
-                  }
-                  router.navigate(
-                    `/signer/bitcoin/account/add/multiSig/export/seedWords?keyIndex=${index}`
-                  )
-                }}
+                onViewSeedWords={() => navigateToKeyExport(index, 'seedWords')}
               />
             ))}
           </SSVStack>
