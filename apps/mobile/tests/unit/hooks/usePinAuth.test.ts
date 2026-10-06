@@ -1,5 +1,6 @@
 import { router } from 'expo-router'
 
+import { DURESS_PIN_KEY, SALT_KEY } from '@/config/auth'
 import { verifyPin } from '@/hooks/usePinAuth'
 import { getItem } from '@/storage/encrypted'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
@@ -63,10 +64,10 @@ function stubStorage({
   salt: string | null
 }) {
   mock.getItem.mockImplementation((key: string) => {
-    if (key.toLowerCase().includes('duress')) {
+    if (key === DURESS_PIN_KEY) {
       return Promise.resolve(duress)
     }
-    if (key.toLowerCase().includes('salt')) {
+    if (key === SALT_KEY) {
       return Promise.resolve(salt)
     }
     return Promise.resolve(null)
