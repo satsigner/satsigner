@@ -168,7 +168,7 @@ export default function EcashAccountDetailPage() {
                           router.navigate({
                             params: { id: transaction.id },
                             pathname: '/signer/ecash/transaction/[id]'
-                          } as never)
+                          })
                         }
                       />
                     ))}
