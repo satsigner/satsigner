@@ -3,16 +3,12 @@ import Animated from 'react-native-reanimated'
 import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
-import { usePinAuth } from '@/hooks/usePinAuth'
+import { type UsePinAuthProps, usePinAuth } from '@/hooks/usePinAuth'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { gray } from '@/styles/colors'
 
-type SSPinAuthProps = {
-  onFail?: () => void
-  onSuccess: () => void | Promise<void>
-  onTriesOver?: () => void
-  maxTries?: number
+type SSPinAuthProps = UsePinAuthProps & {
   title?: string
 } & Pick<SSPinInputProps, 'feedbackBold' | 'feedbackColor' | 'feedbackText'>
 

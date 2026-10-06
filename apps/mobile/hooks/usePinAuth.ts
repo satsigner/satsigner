@@ -167,4 +167,4 @@ function usePinAuth({
   }
 }
 
-export { usePinAuth, verifyPin }
+export { type UsePinAuthProps, usePinAuth, verifyPin }
