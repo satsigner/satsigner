@@ -10,6 +10,7 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -459,7 +460,7 @@ export default function Energy() {
   useEffect(() => {
     if (blockchainInfo) {
       // Calculate progress of current difficulty adjustment period
-      const blocksInPeriod = 2016 // Bitcoin's difficulty adjustment period
+      const blocksInPeriod = DIFFICULTY_ADJUSTMENT_INTERVAL
       const currentBlock = blockchainInfo.blocks
       const blocksInCurrentPeriod = currentBlock % blocksInPeriod
       const progress = blocksInCurrentPeriod / blocksInPeriod
@@ -1495,7 +1496,11 @@ export default function Energy() {
                 <SSHStack justifyBetween>
                   <SSText size="xs" color="muted">
                     {blockchainInfo ? (
-                      <>Block {blockchainInfo.blocks % 2016} of 2016</>
+                      <>
+                        Block{' '}
+                        {blockchainInfo.blocks % DIFFICULTY_ADJUSTMENT_INTERVAL}{' '}
+                        of {DIFFICULTY_ADJUSTMENT_INTERVAL}
+                      </>
                     ) : (
                       '-'
                     )}
@@ -1503,8 +1508,10 @@ export default function Energy() {
                   <SSText size="xs" color="muted">
                     {blockchainInfo ? (
                       <>
-                        {2016 - (blockchainInfo.blocks % 2016)} until next
-                        adjustment
+                        {DIFFICULTY_ADJUSTMENT_INTERVAL -
+                          (blockchainInfo.blocks %
+                            DIFFICULTY_ADJUSTMENT_INTERVAL)}{' '}
+                        until next adjustment
                       </>
                     ) : (
                       '-'

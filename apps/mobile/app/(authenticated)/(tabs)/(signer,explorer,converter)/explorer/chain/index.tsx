@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
+import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
 import { useChainData } from '@/hooks/useChainData'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
@@ -59,7 +60,8 @@ export default function ExplorerChain() {
     router.push(`/explorer/block/${height}`)
   }
 
-  const blocksInEpoch = height !== null ? height % 2016 : null
+  const blocksInEpoch =
+    height !== null ? height % DIFFICULTY_ADJUSTMENT_INTERVAL : null
   const blocksUntilAdj =
     height !== null ? blocksUntilDifficultyAdjustment(height) : null
   const epoch = height !== null ? difficultyEpoch(height) : null

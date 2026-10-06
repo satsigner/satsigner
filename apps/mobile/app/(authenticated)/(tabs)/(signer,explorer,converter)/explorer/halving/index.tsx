@@ -56,7 +56,7 @@ export default function ExplorerHalving() {
   const subsidySats = height !== null ? blockSubsidySats(height) : null
   const subsidyBtc =
     subsidySats !== null ? subsidySats / SATS_PER_BITCOIN : null
-  const blocksThisEpoch = height !== null ? height % 210_000 : null
+  const blocksThisEpoch = height !== null ? height % HALVING_INTERVAL : null
   const blocksRemaining = height !== null ? blocksUntilHalving(height) : null
   const nextHalving = height !== null ? nextHalvingHeight(height) : null
   const halvingDate = height !== null ? estimatedHalvingDate(height) : null
