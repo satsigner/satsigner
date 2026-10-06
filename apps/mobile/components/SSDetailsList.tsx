@@ -1,4 +1,4 @@
-import { type DimensionValue, TouchableOpacity, View } from 'react-native'
+import { type DimensionValue, View } from 'react-native'
 
 import SSText, { type SSTextProps } from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -17,7 +17,6 @@ type SSDetailsListItemProps = {
   width?: DimensionValue
   uppercase?: boolean
   copyToClipboard?: boolean
-  onPress?: () => void
   /** Muted unit shown after the value (e.g. "bytes"). */
   unit?: string
 }
@@ -28,7 +27,7 @@ type commonOptions = Pick<
 >
 
 type individualOptions = commonOptions &
-  Pick<SSDetailsListItemProps, 'width' | 'onPress' | 'unit'>
+  Pick<SSDetailsListItemProps, 'width' | 'unit'>
 
 type SSDetailsListProps = {
   columns: 1 | 2 | 3 | 4
@@ -73,7 +72,6 @@ function SSDetailsListItem({
   variant = 'sans-serif',
   uppercase = true,
   copyToClipboard = false,
-  onPress,
   unit
 }: SSDetailsListItemProps) {
   const gap = variant === 'mono' ? 'sm' : 'none'
@@ -106,14 +104,6 @@ function SSDetailsListItem({
       <View style={{ width }}>
         <SSClipboardCopy text={text}>{listItemComponent}</SSClipboardCopy>
       </View>
-    )
-  }
-
-  if (onPress) {
-    return (
-      <TouchableOpacity onPress={onPress} style={{ width }}>
-        {listItemComponent}
-      </TouchableOpacity>
     )
   }
 
