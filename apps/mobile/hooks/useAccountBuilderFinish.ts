@@ -65,7 +65,7 @@ function useAccountBuilderFinish() {
               index,
               fingerprint
             ] of walletData.keyFingerprints.entries()) {
-              updateKeyFingerprint(index, fingerprint as string)
+              updateKeyFingerprint(index, fingerprint)
             }
           } else {
             const userFingerprint =

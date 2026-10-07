@@ -19,7 +19,6 @@ const MOCK_KEYSETS = [
 const mockRestore = jest.fn()
 const mockLoadMint = jest.fn().mockResolvedValue(undefined)
 const mockCheckProofsStates = jest.fn()
-const mockGetKeys = jest.fn().mockResolvedValue(undefined)
 const mockGetKeySets = jest.fn().mockResolvedValue({ keysets: MOCK_KEYSETS })
 
 jest.mock<typeof import('@cashu/cashu-ts')>('@cashu/cashu-ts', () => {
@@ -42,7 +41,6 @@ jest.mock<typeof import('@cashu/cashu-ts')>('@cashu/cashu-ts', () => {
     loadMint = mockLoadMint
     restore = mockRestore
     checkProofsStates = mockCheckProofsStates
-    getKeys = mockGetKeys
     getMintInfo = jest.fn(() => ({ name: 'Test Mint' }))
 
     constructor(mint: MockMint) {
@@ -68,7 +66,6 @@ describe('ecash seed recovery', () => {
     }
     mockLoadMint.mockResolvedValue(undefined)
     mockGetKeySets.mockResolvedValue({ keysets: MOCK_KEYSETS })
-    mockGetKeys.mockResolvedValue(undefined)
   })
 
   describe('mnemonic to seed conversion', () => {

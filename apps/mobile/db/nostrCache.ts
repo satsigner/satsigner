@@ -1,4 +1,7 @@
-import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
+import {
+  type NitroSQLiteConnection,
+  type SQLiteValue
+} from 'react-native-nitro-sqlite'
 
 import {
   NOSTR_EVENT_CACHE_MAX_ROWS,
@@ -7,6 +10,7 @@ import {
   NOSTR_PROFILE_CACHE_MAX_AGE_SECS
 } from '@/constants/nostr'
 import type { NostrKind0Profile } from '@/types/models/Nostr'
+import { isStringArray } from '@/utils/array'
 
 import { getDb, runTransaction } from './connection'
 
@@ -54,6 +58,33 @@ export type CacheCategory =
   | 'zapReceipts'
   | 'profiles'
 
+type CachedEventRow = {
+  event_id: string
+  kind: number
+  pubkey: string
+  content: string
+  tags_json: string
+  created_at: number
+  cached_at: number
+  is_own: number
+}
+
+type CachedProfileRow = {
+  pubkey: string
+  display_name: string | null
+  picture: string | null
+  banner: string | null
+  nip05: string | null
+  lud16: string | null
+  event_id: string | null
+  created_at: number
+  cached_at: number
+}
+
+type CountRow = { cnt: number }
+
+type NewestTimestampRow = { max_ts: number | null }
+
 function nowUnix(): number {
   return Math.floor(Date.now() / 1000)
 }
@@ -63,23 +94,32 @@ function parseTagsJson(raw: unknown): string[][] {
     return []
   }
   try {
-    const parsed = JSON.parse(raw) as unknown
-    return Array.isArray(parsed) ? (parsed as string[][]) : []
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter(isStringArray) : []
   } catch {
     return []
   }
 }
 
-function rowToCachedEvent(row: Record<string, unknown>): CachedEvent {
+function rowToCachedEvent(row: CachedEventRow): CachedEvent {
   return {
-    content: row.content as string,
-    created_at: row.created_at as number,
-    event_id: row.event_id as string,
-    is_own: row.is_own as number,
-    kind: row.kind as number,
-    pubkey: row.pubkey as string,
+    content: row.content,
+    created_at: row.created_at,
+    event_id: row.event_id,
+    is_own: row.is_own,
+    kind: row.kind,
+    pubkey: row.pubkey,
     tags: parseTagsJson(row.tags_json)
   }
+}
+
+/** Runs a `SELECT COUNT(*) as cnt` query, reading a missing row as 0. */
+function countRows(
+  db: NitroSQLiteConnection,
+  sql: string,
+  params: SQLiteValue[] = []
+): number {
+  return db.execute<CountRow>(sql, params).rows.item(0)?.cnt ?? 0
 }
 
 export function cacheEvents(
@@ -148,10 +188,8 @@ export function getCachedNotes(
          WHERE kind = 1 AND pubkey = ?
          ORDER BY created_at DESC LIMIT ?`
     const params = until ? [pk, until, limit] : [pk, limit]
-    const { results } = db.execute(sql, params)
-    return (results ?? []).map((r) =>
-      rowToCachedEvent(r as Record<string, unknown>)
-    )
+    const { rows } = db.execute<CachedEventRow>(sql, params)
+    return rows._array.map((r) => rowToCachedEvent(r))
   } catch {
     return []
   }
@@ -163,14 +201,16 @@ export function getCachedEvent(eventId: string): CachedEvent | null {
     return null
   }
   try {
-    const { results } = db.execute(
-      'SELECT * FROM nostr_event_cache WHERE event_id = ? LIMIT 1',
-      [eventId]
-    )
-    if (!results || results.length === 0) {
+    const row = db
+      .execute<CachedEventRow>(
+        'SELECT * FROM nostr_event_cache WHERE event_id = ? LIMIT 1',
+        [eventId]
+      )
+      .rows.item(0)
+    if (!row) {
       return null
     }
-    return rowToCachedEvent(results[0] as Record<string, unknown>)
+    return rowToCachedEvent(row)
   } catch {
     return null
   }
@@ -182,16 +222,13 @@ export function getCachedZapReceipts(eventIdHex: string): CachedEvent[] {
     return []
   }
   try {
-    const { results } = db.execute(
+    const { rows } = db.execute<CachedEventRow>(
       `SELECT * FROM nostr_event_cache
        WHERE kind = ${NOSTR_KIND_ZAP_RECEIPT}
        ORDER BY created_at DESC`,
       []
     )
-    if (!results) {
-      return []
-    }
-    return (results as Record<string, unknown>[])
+    return rows._array
       .map(rowToCachedEvent)
       .filter((e) =>
         e.tags.some((tag) => tag[0] === 'e' && tag[1] === eventIdHex)
@@ -220,11 +257,8 @@ export function getCachedZapsByPubkey(
          WHERE kind = ${NOSTR_KIND_ZAP_RECEIPT}
          ORDER BY created_at DESC`
     const params = until ? [until] : []
-    const { results } = db.execute(sql, params)
-    if (!results) {
-      return []
-    }
-    return (results as Record<string, unknown>[])
+    const { rows } = db.execute<CachedEventRow>(sql, params)
+    return rows._array
       .map(rowToCachedEvent)
       .filter((e) =>
         e.tags.some((tag) => tag[0] === 'p' && tag[1]?.toLowerCase() === pk)
@@ -250,11 +284,7 @@ export function getNewestCachedTimestamp(
       : `SELECT MAX(created_at) as max_ts FROM nostr_event_cache
          WHERE kind = ?`
     const params = pubkey ? [kind, pubkey.toLowerCase()] : [kind]
-    const { results } = db.execute(sql, params)
-    if (!results || results.length === 0) {
-      return null
-    }
-    const val = (results[0] as Record<string, unknown>).max_ts
+    const val = db.execute<NewestTimestampRow>(sql, params).rows.item(0)?.max_ts
     return typeof val === 'number' ? val : null
   } catch {
     return null
@@ -300,24 +330,25 @@ export function getCachedProfile(pubkey: string): CachedProfile | null {
     return null
   }
   try {
-    const { results } = db.execute(
-      'SELECT * FROM nostr_profile_cache WHERE pubkey = ? LIMIT 1',
-      [pubkey.toLowerCase()]
-    )
-    if (!results || results.length === 0) {
+    const r = db
+      .execute<CachedProfileRow>(
+        'SELECT * FROM nostr_profile_cache WHERE pubkey = ? LIMIT 1',
+        [pubkey.toLowerCase()]
+      )
+      .rows.item(0)
+    if (!r) {
       return null
     }
-    const r = results[0] as Record<string, unknown>
     return {
-      banner: (r.banner as string) ?? undefined,
-      cached_at: r.cached_at as number,
-      created_at: r.created_at as number,
-      displayName: (r.display_name as string) ?? undefined,
-      event_id: (r.event_id as string) ?? undefined,
-      lud16: (r.lud16 as string) ?? undefined,
-      nip05: (r.nip05 as string) ?? undefined,
-      picture: (r.picture as string) ?? undefined,
-      pubkey: r.pubkey as string
+      banner: r.banner ?? undefined,
+      cached_at: r.cached_at,
+      created_at: r.created_at,
+      displayName: r.display_name ?? undefined,
+      event_id: r.event_id ?? undefined,
+      lud16: r.lud16 ?? undefined,
+      nip05: r.nip05 ?? undefined,
+      picture: r.picture ?? undefined,
+      pubkey: r.pubkey
     }
   } catch {
     return null
@@ -341,11 +372,10 @@ export function pruneCache(): void {
       now - NOSTR_PROFILE_CACHE_MAX_AGE_SECS
     ])
 
-    const { results } = db.execute(
-      'SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 0',
-      []
+    const count = countRows(
+      db,
+      'SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 0'
     )
-    const count = (results?.[0] as Record<string, unknown>)?.cnt as number
     if (count > NOSTR_EVENT_CACHE_MAX_ROWS) {
       const excess = count - NOSTR_EVENT_CACHE_MAX_ROWS
       db.execute(
@@ -378,41 +408,27 @@ export function getCacheCounts(ownPubkeyHex: string): CacheCounts {
   try {
     const pk = ownPubkeyHex.toLowerCase()
 
-    const ownNotesRes = db.execute(
+    const ownNotes = countRows(
+      db,
       'SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 1 AND kind = 1 AND pubkey = ?',
       [pk]
     )
-    const ownNotes =
-      ((ownNotesRes.results?.[0] as Record<string, unknown>)?.cnt as number) ??
-      0
-
-    const ownZapsRes = db.execute(
-      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 1 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`,
-      []
+    const ownZaps = countRows(
+      db,
+      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 1 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`
     )
-    const ownZaps =
-      ((ownZapsRes.results?.[0] as Record<string, unknown>)?.cnt as number) ?? 0
-
-    const feedRes = db.execute(
-      'SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 0 AND kind = 1',
-      []
+    const feedNotes = countRows(
+      db,
+      'SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 0 AND kind = 1'
     )
-    const feedNotes =
-      ((feedRes.results?.[0] as Record<string, unknown>)?.cnt as number) ?? 0
-
-    const zapRes = db.execute(
-      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 0 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`,
-      []
+    const zapReceipts = countRows(
+      db,
+      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 0 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`
     )
-    const zapReceipts =
-      ((zapRes.results?.[0] as Record<string, unknown>)?.cnt as number) ?? 0
-
-    const profRes = db.execute(
-      'SELECT COUNT(*) as cnt FROM nostr_profile_cache',
-      []
+    const profiles = countRows(
+      db,
+      'SELECT COUNT(*) as cnt FROM nostr_profile_cache'
     )
-    const profiles =
-      ((profRes.results?.[0] as Record<string, unknown>)?.cnt as number) ?? 0
 
     return { feedNotes, ownNotes, ownZaps, profiles, zapReceipts }
   } catch {

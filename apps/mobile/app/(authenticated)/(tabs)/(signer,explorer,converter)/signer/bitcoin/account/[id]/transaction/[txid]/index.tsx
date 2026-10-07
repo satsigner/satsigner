@@ -209,7 +209,7 @@ export default function TxDetails() {
         currentServer.url,
         currentServer.rpcCredentials
       )
-      loadTx(accountId!, { ...tx, vin })
+      loadTx(accountId, { ...tx, vin })
     }
   }
 

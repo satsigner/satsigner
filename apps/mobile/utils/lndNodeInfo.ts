@@ -2,10 +2,7 @@ import {
   type LNDGetInfoChain,
   type LNDNodeInfo
 } from '@/types/models/Lightning'
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+import { isRecord } from '@/utils/object'
 
 function parseLndChains(value: unknown): LNDGetInfoChain[] {
   if (!Array.isArray(value)) {

@@ -5,12 +5,13 @@ import { type LabelRow, rowToLabel } from '../mappers'
 
 function getLabelsByAccount(accountId: string): Record<string, Label> {
   const db = getDb()
-  const { results } = db.execute('SELECT * FROM labels WHERE account_id = ?', [
-    accountId
-  ])
+  const { rows } = db.execute<LabelRow>(
+    'SELECT * FROM labels WHERE account_id = ?',
+    [accountId]
+  )
   const labels: Record<string, Label> = {}
-  for (const row of results ?? []) {
-    const label = rowToLabel(row as LabelRow)
+  for (const row of rows._array) {
+    const label = rowToLabel(row)
     labels[label.ref] = label
   }
   return labels

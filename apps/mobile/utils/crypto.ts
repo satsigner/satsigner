@@ -151,6 +151,21 @@ function aesDecrypt(
   return Promise.resolve(result.toString('utf8'))
 }
 
+/**
+ * Moves a stored AES ciphertext from one key to another. The plaintext is not
+ * inspected, so the stored secret stays exactly as it was written.
+ */
+async function aesReEncrypt(
+  stored: { secret: string; iv: string },
+  oldKey: string,
+  newKey: string
+): Promise<{ secret: string; iv: string }> {
+  const plaintext = await aesDecrypt(stored.secret, oldKey, stored.iv)
+  const iv = randomIv()
+  const secret = await aesEncrypt(plaintext, newKey, iv)
+  return { iv, secret }
+}
+
 /** Password-based key derivation */
 function pbkdf2Encrypt(pin: string, salt: string): Promise<string> {
   const derived = QuickCrypto.pbkdf2Sync(
@@ -176,6 +191,7 @@ export {
   ACCOUNT_ID_KEY_LENGTH,
   aesDecrypt,
   aesEncrypt,
+  aesReEncrypt,
   doubleShaEncrypt,
   generateSalt,
   pbkdf2Encrypt,

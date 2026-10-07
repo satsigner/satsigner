@@ -4,6 +4,7 @@ import {
   type PayjoinBip78Error,
   type PayjoinBip78ErrorCode
 } from '@/types/payjoin'
+import { isRecord } from '@/utils/object'
 
 type ValidateProposalResult = { ok: true } | { ok: false; reason: string }
 
@@ -61,7 +62,7 @@ function checkPaymentOutputs(params: {
 
   const singlePayment = paymentIndices.length === 1
   for (const index of paymentIndices) {
-    const originalOut = params.original.txOutputs[index]!
+    const originalOut = params.original.txOutputs[index]
     const proposalOut = params.proposal.txOutputs[index]
     if (!proposalOut || !originalOut.script.equals(proposalOut.script)) {
       return { ok: false, reason: 'payment output substituted or removed' }
@@ -115,7 +116,7 @@ function checkSenderChange(params: {
     params.proposal.txOutputs.length === params.original.txOutputs.length
 
   for (let index = 0; index < params.original.txOutputs.length; index += 1) {
-    const originalOut = params.original.txOutputs[index]!
+    const originalOut = params.original.txOutputs[index]
     if (!params.isScriptOwned(scriptHexOf(originalOut))) {
       continue
     }
@@ -184,8 +185,8 @@ function validatePayjoinProposal(params: {
       }
     }
     for (let i = 0; i < original.txOutputs.length; i += 1) {
-      const o = original.txOutputs[i]!
-      const p = proposal.txOutputs[i]!
+      const o = original.txOutputs[i]
+      const p = proposal.txOutputs[i]
       // with pjos=0, BIP78 requires payment output script unchanged.
       if (!o.script.equals(p.script)) {
         return { ok: false, reason: 'payment output script substituted' }
@@ -212,23 +213,27 @@ function validatePayjoinProposal(params: {
   })
 }
 
+const BIP78_ERROR_CODES: readonly PayjoinBip78ErrorCode[] = [
+  'unavailable',
+  'not-enough-money',
+  'version-unsupported',
+  'original-psbt-rejected',
+  'unknown'
+]
+
+function isBip78ErrorCode(value: unknown): value is PayjoinBip78ErrorCode {
+  return BIP78_ERROR_CODES.some((code) => code === value)
+}
+
 function parseBip78ErrorBody(body: string): PayjoinBip78Error {
   try {
-    const json = JSON.parse(body) as {
-      errorCode?: string
-      message?: string
+    const json: unknown = JSON.parse(body)
+    if (!isRecord(json)) {
+      return { errorCode: 'unknown', message: body }
     }
-    const code = (json.errorCode ?? 'unknown') as PayjoinBip78ErrorCode
-    const allowed: PayjoinBip78ErrorCode[] = [
-      'unavailable',
-      'not-enough-money',
-      'version-unsupported',
-      'original-psbt-rejected',
-      'unknown'
-    ]
     return {
-      errorCode: allowed.includes(code) ? code : 'unknown',
-      message: json.message ?? body
+      errorCode: isBip78ErrorCode(json.errorCode) ? json.errorCode : 'unknown',
+      message: typeof json.message === 'string' ? json.message : body
     }
   } catch {
     return { errorCode: 'unknown', message: body }

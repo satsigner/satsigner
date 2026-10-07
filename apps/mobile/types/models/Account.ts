@@ -48,7 +48,7 @@ export const SecretSchema = z.object({
 })
 
 export const KeyMetaSchema = z.object({
-  creationType: CreationTypeSchema,
+  creationType: CreationTypeSchema.optional(),
   derivationPath: z.string().optional(),
   fingerprint: z.string().optional(),
   index: z.number(),

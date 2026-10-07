@@ -279,7 +279,7 @@ function UtxoDetailsPage() {
 
   const tx = account?.transactions.find((tx) => tx.id === txid)
 
-  const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
+  const utxo = useGetAccountTransactionOutput(accountId, txid, Number(vout))
 
   const addressIndex = (() => {
     if (!account || !utxo?.addressTo) {

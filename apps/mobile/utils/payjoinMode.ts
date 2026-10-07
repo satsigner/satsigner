@@ -12,10 +12,7 @@ const PAYJOIN_COORDINATION_MODES: readonly PayjoinCoordinationMode[] = [
 function isPayjoinCoordinationMode(
   value: unknown
 ): value is PayjoinCoordinationMode {
-  return (
-    typeof value === 'string' &&
-    (PAYJOIN_COORDINATION_MODES as readonly string[]).includes(value)
-  )
+  return PAYJOIN_COORDINATION_MODES.some((mode) => mode === value)
 }
 
 function normalizePayjoinCoordinationMode(

@@ -55,6 +55,26 @@ describe('payjoinValidate', () => {
     it('falls back to unknown for plain text', () => {
       expect(parseBip78ErrorBody('nope').errorCode).toBe('unknown')
     })
+
+    it('maps unrecognized error codes to unknown', () => {
+      const body = JSON.stringify({ errorCode: 'teapot', message: 'no' })
+      expect(parseBip78ErrorBody(body)).toStrictEqual({
+        errorCode: 'unknown',
+        message: 'no'
+      })
+    })
+
+    it('uses the raw body when the JSON is not an error object', () => {
+      expect(parseBip78ErrorBody('null')).toStrictEqual({
+        errorCode: 'unknown',
+        message: 'null'
+      })
+      const noMessage = JSON.stringify({ errorCode: 'unavailable' })
+      expect(parseBip78ErrorBody(noMessage)).toStrictEqual({
+        errorCode: 'unavailable',
+        message: noMessage
+      })
+    })
   })
 
   describe('isSelfTransfer', () => {

@@ -32,7 +32,7 @@ async function fireAndForget(promise: Promise<unknown>): Promise<void> {
 }
 
 function isValidMethod(method: string): method is Nip46Method {
-  return NOSTR_NIP46_SUPPORTED_METHODS.includes(method as Nip46Method)
+  return NOSTR_NIP46_SUPPORTED_METHODS.some((supported) => supported === method)
 }
 
 function getPendingRequestById(requestId: string): Nip46Request | undefined {

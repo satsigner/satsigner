@@ -58,12 +58,12 @@ function useNostrPublish() {
       if (!deviceNsec) {
         continue
       }
-      eventKind1059 = nostrApi!.createKind1059(
+      eventKind1059 = nostrApi.createKind1059(
         deviceNsec,
         trustedDeviceNpub,
         compressedMessage
       )
-      await nostrApi!.publishEvent(eventKind1059)
+      await nostrApi.publishEvent(eventKind1059)
     }
   }
 

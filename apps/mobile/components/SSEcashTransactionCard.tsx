@@ -140,7 +140,7 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
         router.navigate({
           params: { id: transaction.id },
           pathname: '/signer/ecash/transaction/[id]'
-        } as never)
+        })
       }
       activeOpacity={0.7}
     >

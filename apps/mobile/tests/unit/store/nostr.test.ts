@@ -454,4 +454,63 @@ describe('nostr store', () => {
       expect(store.getMembers(accountIds.secondary)).toHaveLength(1)
     })
   })
+
+  describe('persistence', () => {
+    it('migrates v0 processed id lists to lookup maps', () => {
+      const { migrate } = useNostrStore.persist.getOptions()
+
+      const migrated = migrate?.(
+        {
+          processedEvents: { [accountIds.primary]: ['event-1', 'event-2'] },
+          processedMessageIds: { [accountIds.primary]: ['message-1'] },
+          trustedDevices: { [accountIds.primary]: [nostrKeys.alice.npub] }
+        },
+        0
+      )
+
+      expect(migrated).toStrictEqual({
+        processedEvents: {
+          [accountIds.primary]: { 'event-1': true, 'event-2': true }
+        },
+        processedMessageIds: { [accountIds.primary]: { 'message-1': true } },
+        trustedDevices: { [accountIds.primary]: [nostrKeys.alice.npub] }
+      })
+    })
+
+    it('migrates persisted state that is not an object to an empty state', () => {
+      const { migrate } = useNostrStore.persist.getOptions()
+
+      expect(migrate?.(null, 0)).toStrictEqual({})
+      expect(migrate?.('corrupted', 0)).toStrictEqual({})
+    })
+
+    it('merges persisted state and resets runtime-only fields', () => {
+      const { merge } = useNostrStore.persist.getOptions()
+      const current = useNostrStore.getState()
+
+      const merged = merge?.(
+        {
+          syncingAccounts: { [accountIds.primary]: true },
+          trustedDevices: { [accountIds.primary]: [nostrKeys.alice.npub] }
+        },
+        current
+      )
+
+      expect(merged?.trustedDevices).toStrictEqual({
+        [accountIds.primary]: [nostrKeys.alice.npub]
+      })
+      expect(merged?.syncingAccounts).toStrictEqual({})
+      expect(merged?.transactionToShare).toBeNull()
+    })
+
+    it('keeps the current state when persisted state is not an object', () => {
+      const { merge } = useNostrStore.persist.getOptions()
+      const current = useNostrStore.getState()
+
+      const merged = merge?.(undefined, current)
+
+      expect(merged?.members).toBe(current.members)
+      expect(merged?.addMember).toBe(current.addMember)
+    })
+  })
 })

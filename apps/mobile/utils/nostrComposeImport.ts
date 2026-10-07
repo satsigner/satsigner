@@ -1,5 +1,6 @@
 import { NOSTR_ZAP_TAG_NAMES } from '@/constants/nostr'
 import { NostrKind1DraftImport } from '@/types/models/Nostr'
+import { isRecord } from '@/utils/object'
 
 export function stripZapTags(tags: string[][]): string[][] {
   return tags.filter(
@@ -20,25 +21,24 @@ export function parseKind1DraftFromJson(
 
   let parsed: unknown
   try {
-    parsed = JSON.parse(trimmed) as unknown
+    parsed = JSON.parse(trimmed)
   } catch {
     return null
   }
 
-  if (!parsed || typeof parsed !== 'object') {
+  if (!isRecord(parsed)) {
     return null
   }
 
-  const o = parsed as Record<string, unknown>
-  const kind = typeof o.kind === 'number' ? o.kind : 1
+  const kind = typeof parsed.kind === 'number' ? parsed.kind : 1
   if (kind !== 1) {
     return null
   }
-  if (typeof o.content !== 'string') {
+  if (typeof parsed.content !== 'string') {
     return null
   }
 
-  const rawTags = o.tags
+  const rawTags = parsed.tags
   if (rawTags !== undefined && !Array.isArray(rawTags)) {
     return null
   }
@@ -53,5 +53,5 @@ export function parseKind1DraftFromJson(
     }
   }
 
-  return { content: o.content, tags }
+  return { content: parsed.content, tags }
 }

@@ -312,16 +312,84 @@ describe('nostrChat', () => {
         created_at: 3000,
         id: 'wrap-self-1',
         pubkey: 'wrap-author'
+      },
+      {
+        // Another client's self copy: a relay hint serialised as null and a
+        // malformed tag must not hide the peer.
+        content: {
+          content: 'sent from another client',
+          created_at: 3001,
+          id: 'self-rumor-2',
+          kind: 14,
+          pubkey: senderPubkey,
+          tags: [
+            ['p', peerPubkey, null],
+            ['subject', 5]
+          ]
+        },
+        created_at: 3001,
+        id: 'wrap-self-2',
+        pubkey: 'wrap-author'
+      }
+    ])
+
+    const stored = [...chatStore.values()] as Record<string, unknown>[]
+    expect(stored).toHaveLength(2)
+    expect(stored[0]).toMatchObject({
+      content: 'sent from my other device',
+      direction: 'out',
+      peerPubkey,
+      read: true
+    })
+    expect(stored[1]).toMatchObject({
+      content: 'sent from another client',
+      direction: 'out',
+      peerPubkey
+    })
+  })
+
+  it('ingests incoming chat rumors whose tags are malformed', async () => {
+    let rumorCallback:
+      | ((messages: { content: unknown; created_at: number }[]) => void)
+      | undefined
+    const fakeApi = {
+      getRelays: () => ['wss://test.relay'],
+      subscribeToKind1059: jest.fn(
+        async (
+          _nsec: string,
+          _npub: string,
+          cb: (messages: { content: unknown; created_at: number }[]) => void
+        ) => {
+          rumorCallback = cb
+        }
+      ),
+      subscribeToKind4: jest.fn(async () => undefined)
+    }
+
+    await subscribeToIdentityChat(fakeApi as unknown as NostrAPI, sender)
+
+    rumorCallback!([
+      {
+        content: {
+          content: 'hello despite bad tags',
+          created_at: 4000,
+          id: 'rumor-bad-tags',
+          kind: 14,
+          pubkey: peerPubkey,
+          tags: [null]
+        },
+        created_at: 4000,
+        id: 'wrap-bad-tags',
+        pubkey: 'wrap-author'
       }
     ])
 
     const stored = [...chatStore.values()] as Record<string, unknown>[]
     expect(stored).toHaveLength(1)
     expect(stored[0]).toMatchObject({
-      content: 'sent from my other device',
-      direction: 'out',
-      peerPubkey,
-      read: true
+      content: 'hello despite bad tags',
+      direction: 'in',
+      peerPubkey
     })
   })
 

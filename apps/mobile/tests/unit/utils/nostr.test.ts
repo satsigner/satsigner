@@ -5,6 +5,8 @@ import {
   deriveNostrKeysFromDescriptor,
   extractInboxRelayUrls,
   generateColorFromNpub,
+  getProfileFromKind0Content,
+  getPubKeyHexFromNpub,
   parseNostrTransaction
 } from '@/utils/nostr'
 
@@ -258,5 +260,49 @@ describe('extractInboxRelayUrls', () => {
       ])
     ).toStrictEqual([])
     expect(extractInboxRelayUrls([])).toStrictEqual([])
+  })
+})
+
+describe('getPubKeyHexFromNpub', () => {
+  it('returns the lowercase hex pubkey of an npub', () => {
+    const { nip19 } = require('nostr-tools')
+    const hex = 'AB'.repeat(32)
+    nip19.decode.mockReturnValueOnce({ data: hex, type: 'npub' })
+    expect(getPubKeyHexFromNpub(nostrKeys.alice.npub)).toBe(hex.toLowerCase())
+  })
+
+  it('returns null for other entities and malformed keys', () => {
+    const { nip19 } = require('nostr-tools')
+    nip19.decode
+      .mockReturnValueOnce({ data: new Uint8Array(32), type: 'nsec' })
+      .mockReturnValueOnce({ data: 'abc', type: 'npub' })
+      .mockImplementationOnce(() => {
+        throw new Error('Invalid bech32')
+      })
+    expect(getPubKeyHexFromNpub(nostrKeys.alice.nsec)).toBeNull()
+    expect(getPubKeyHexFromNpub(nostrKeys.alice.npub)).toBeNull()
+    expect(getPubKeyHexFromNpub(nostrKeys.invalid.notBech32)).toBeNull()
+  })
+})
+
+describe('getProfileFromKind0Content', () => {
+  it('reads the profile fields of kind 0 content', () => {
+    expect(
+      getProfileFromKind0Content(
+        JSON.stringify({ lud16: 'me@example.com', name: 'Satoshi' })
+      )
+    ).toStrictEqual({
+      banner: undefined,
+      displayName: 'Satoshi',
+      lud16: 'me@example.com',
+      nip05: undefined,
+      picture: undefined
+    })
+  })
+
+  it('returns null when the content is not a JSON object', () => {
+    expect(getProfileFromKind0Content('null')).toBeNull()
+    expect(getProfileFromKind0Content('["Satoshi"]')).toBeNull()
+    expect(getProfileFromKind0Content('not json')).toBeNull()
   })
 })

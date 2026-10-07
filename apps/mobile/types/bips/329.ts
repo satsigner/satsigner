@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
-import { PricesSchema } from '@/types/models/Blockchain'
+/** Currency code → value (`fmv`, `rate`); BIP-329 allows any ISO 4217 code. */
+export const CurrencyValuesSchema = z.record(z.string(), z.number())
 
 export const LabelTypeSchema = z.enum([
   'tx',
@@ -13,13 +14,13 @@ export const LabelTypeSchema = z.enum([
 
 export const LabelSchema = z.object({
   fee: z.number().optional(),
-  fmv: PricesSchema.optional(),
+  fmv: CurrencyValuesSchema.optional(),
   height: z.number().optional(),
   heights: z.array(z.number()).optional(),
   keypath: z.string().optional(),
   label: z.string(),
   origin: z.string().optional(),
-  rate: PricesSchema.optional(),
+  rate: CurrencyValuesSchema.optional(),
   ref: z.string(),
   spendable: z.boolean().optional(),
   time: z.date().optional(),

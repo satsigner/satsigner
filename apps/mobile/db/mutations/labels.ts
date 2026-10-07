@@ -41,7 +41,7 @@ function upsertLabels(
       label.origin ?? null,
       optionalToJson(label.rate),
       label.spendable !== undefined ? (label.spendable ? 1 : 0) : null,
-      dateToIso(label.time as Date | undefined),
+      dateToIso(label.time),
       label.value ?? null
     ])
   }
@@ -74,7 +74,7 @@ function importLabels(accountId: string, labels: Label[]): number {
               ? 1
               : 0
             : null,
-          dateToIso(labelObj.time as Date | undefined),
+          dateToIso(labelObj.time),
           labelObj.value ?? null
         ]
       )

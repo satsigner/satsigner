@@ -1,4 +1,4 @@
 declare module 'cbor-js' {
-  export function encode(data: unknown): Uint8Array
-  export function decode(data: Uint8Array): unknown
+  export function encode(data: unknown): ArrayBuffer
+  export function decode(data: ArrayBufferLike): unknown
 }

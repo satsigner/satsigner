@@ -1,3 +1,5 @@
+import * as bitcoinjs from 'bitcoinjs-lib'
+
 import { TxDecoded } from '@/utils/txDecoded'
 
 const sampleTransactions = [
@@ -136,6 +138,14 @@ describe('transaction decoding', () => {
         tx.ins[0].hash = Uint8Array.from(tx.ins[0].hash)
         expect(() => tx.decode()).not.toThrow()
         expect(tx.getInputHash(0).hex).toHaveLength(64)
+      })
+
+      it('keeps the parsed transaction when wrapping it', () => {
+        expect(decodedTx).toBeInstanceOf(TxDecoded)
+        expect(decodedTx.toHex()).toBe(hex)
+        expect(decodedTx.getId()).toBe(
+          bitcoinjs.Transaction.fromHex(hex).getId()
+        )
       })
     })
   }

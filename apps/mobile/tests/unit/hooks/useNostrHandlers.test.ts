@@ -314,6 +314,16 @@ describe('message handlers', () => {
         nostrKeys.alice.npub
       )
     })
+
+    it('handle ignores a public_key_bech32 that is not a string', async () => {
+      const context = createMockContext({
+        eventContent: { public_key_bech32: 42 }
+      })
+
+      await deviceAnnouncementHandler.handle(context)
+
+      expect(mockAddMember).not.toHaveBeenCalled()
+    })
   })
 
   describe('psbtHandler', () => {

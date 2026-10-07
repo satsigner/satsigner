@@ -29,7 +29,6 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type ScriptVersionType } from '@/types/models/Script'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
@@ -304,8 +303,8 @@ export default function ImportDescriptor() {
     try {
       const combinedValidation = validateCombinedDescriptor(
         combinedDescriptor,
-        scriptVersion as ScriptVersionType,
-        network as string
+        scriptVersion,
+        network
       )
 
       if (combinedValidation.isValid) {
