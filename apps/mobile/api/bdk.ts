@@ -345,7 +345,7 @@ async function getWalletData(
           throw new Error('Invalid account information')
         }
 
-        const template = getDescriptorTemplate(key.scriptVersion)
+        const template = mapScriptVersionToBipTemplate(key.scriptVersion)
 
         const externalDescriptor = createPublicDescriptor(
           key.secret.extendedPublicKey,
@@ -386,12 +386,7 @@ async function getWalletData(
   }
 }
 
-/**
- * Maps a single-sig script version to the BIP template used to build public
- * descriptors from an extended public key. Multisig script versions have no
- * template and throw, since their descriptors must be built manually.
- */
-function getDescriptorTemplate(
+function mapScriptVersionToBipTemplate(
   scriptVersion: NonNullable<Key['scriptVersion']>
 ): DescriptorTemplate {
   switch (scriptVersion) {
@@ -1444,7 +1439,7 @@ function getPublicDescriptorsForAccount(
       ) {
         return null
       }
-      const template = getDescriptorTemplate(key.scriptVersion)
+      const template = mapScriptVersionToBipTemplate(key.scriptVersion)
       const external = createPublicDescriptor(
         key.secret.extendedPublicKey,
         template,
