@@ -56,7 +56,10 @@ const useGetAccountAddress = (id: Account['id']) => {
   const { data } = useQuery({
     enabled: !storedAddress && Boolean(account) && hasKeys,
     queryFn: async () => {
-      const derived = await deriveAccountAddress(account as Account, network)
+      if (!account) {
+        throw new Error('Account is required')
+      }
+      const derived = await deriveAccountAddress(account, network)
       if (derived) {
         addAccountAddress(id, derived)
       }

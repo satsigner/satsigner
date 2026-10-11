@@ -30,10 +30,14 @@ export function decryptPrivateBookmarks(
   }
   try {
     const decrypted = nip04Decrypt(secretKey, pubkeyHex, content)
-    const parsed = JSON.parse(decrypted) as string[][]
+    const parsed: unknown = JSON.parse(decrypted)
+    if (!Array.isArray(parsed)) {
+      return []
+    }
     const result: NostrParsedBookmark[] = []
     for (const tag of parsed) {
       if (
+        Array.isArray(tag) &&
         tag[0] === 'e' &&
         typeof tag[1] === 'string' &&
         tag[1].length === NOSTR_EVENT_ID_HEX_LENGTH

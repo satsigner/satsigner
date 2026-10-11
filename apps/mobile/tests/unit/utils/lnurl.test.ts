@@ -1,6 +1,7 @@
 import { bech32 } from 'bech32'
 
 import {
+  fetchLNURLPayDetails,
   isLnurlWithdrawAmountInRange,
   requestLNURLPayInvoice,
   resolveLnurlUrl
@@ -151,5 +152,115 @@ describe('requestLNURLPayInvoice amount verification', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('amount=1000000')
     )
+  })
+})
+
+function mockJsonResponse(body: unknown) {
+  jest.spyOn(global, 'fetch').mockResolvedValue(Response.json(body))
+}
+
+const PAY_REQUEST = {
+  callback: 'https://service.example/cb',
+  maxSendable: 100_000_000,
+  metadata: '[["text/plain","pay"]]',
+  minSendable: 1000,
+  tag: 'payRequest'
+}
+
+describe('fetchLNURLPayDetails validation', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('returns the pay request details', async () => {
+    mockJsonResponse({
+      ...PAY_REQUEST,
+      allowsNostr: true,
+      commentAllowed: 144,
+      nostrPubkey: 'ab'.repeat(32)
+    })
+
+    await expect(
+      fetchLNURLPayDetails('https://service.example/lnurlp/me')
+    ).resolves.toStrictEqual({
+      ...PAY_REQUEST,
+      allowsNostr: true,
+      commentAllowed: 144,
+      nostrPubkey: 'ab'.repeat(32)
+    })
+  })
+
+  it('accepts a pay request without optional extensions', async () => {
+    mockJsonResponse(PAY_REQUEST)
+
+    await expect(
+      fetchLNURLPayDetails('https://service.example/lnurlp/me')
+    ).resolves.toStrictEqual(PAY_REQUEST)
+  })
+
+  it('rejects a response that is not a pay request', async () => {
+    mockJsonResponse({ ...PAY_REQUEST, tag: 'withdrawRequest' })
+
+    await expect(
+      fetchLNURLPayDetails('https://service.example/lnurlp/me')
+    ).rejects.toThrow('not a pay request')
+  })
+
+  it('rejects a pay request without sendable bounds', async () => {
+    mockJsonResponse({ ...PAY_REQUEST, minSendable: 0 })
+
+    await expect(
+      fetchLNURLPayDetails('https://service.example/lnurlp/me')
+    ).rejects.toThrow('missing required fields')
+  })
+
+  it('reads bounds and comment length sent as numeric strings', async () => {
+    mockJsonResponse({
+      ...PAY_REQUEST,
+      commentAllowed: '255',
+      maxSendable: '100000000',
+      minSendable: '1000'
+    })
+
+    await expect(
+      fetchLNURLPayDetails('https://service.example/lnurlp/me')
+    ).resolves.toStrictEqual({ ...PAY_REQUEST, commentAllowed: 255 })
+  })
+
+  it('rejects sendable bounds that are not whole numbers', async () => {
+    mockJsonResponse({ ...PAY_REQUEST, minSendable: '1e3' })
+
+    await expect(
+      fetchLNURLPayDetails('https://service.example/lnurlp/me')
+    ).rejects.toThrow('missing required fields')
+  })
+
+  it('drops malformed optional fields instead of failing', async () => {
+    mockJsonResponse({
+      ...PAY_REQUEST,
+      allowsNostr: 'yes',
+      commentAllowed: null
+    })
+
+    const details = await fetchLNURLPayDetails(
+      'https://service.example/lnurlp/me'
+    )
+    expect(details.allowsNostr).toBeUndefined()
+    expect(details.commentAllowed).toBeUndefined()
+    expect(details.minSendable).toBe(PAY_REQUEST.minSendable)
+  })
+})
+
+describe('requestLNURLPayInvoice response validation', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('rejects a response without a payment request', async () => {
+    mockJsonResponse({ routes: [] })
+
+    await expect(
+      requestLNURLPayInvoice('https://service.example/cb', 1000)
+    ).rejects.toThrow('no payment request received')
   })
 })

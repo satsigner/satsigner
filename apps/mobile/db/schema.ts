@@ -191,9 +191,13 @@ CREATE INDEX IF NOT EXISTS idx_nostr_dms_unread ON nostr_dms(account_id, read) W
 
 function getSchemaVersion(db: NitroSQLiteConnection): number {
   try {
-    const { results } = db.execute('SELECT version FROM schema_version LIMIT 1')
-    if (results && results.length > 0) {
-      return results[0].version as number
+    const row = db
+      .execute<{ version: number }>(
+        'SELECT version FROM schema_version LIMIT 1'
+      )
+      .rows.item(0)
+    if (row) {
+      return row.version
     }
   } catch {
     // Table doesn't exist yet

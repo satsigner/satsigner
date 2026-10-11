@@ -1,6 +1,8 @@
 import { createMMKV } from 'react-native-mmkv'
 import { type StateStorage } from 'zustand/middleware'
 
+import { isStringArray } from '@/utils/array'
+
 const LAST_BACKGROUND_TIMESTAMP_KEY = 'lastBackgroundTimestamp'
 const NOSTR_FOLLOW_CACHE_PREFIX = 'nostr:follows:'
 
@@ -16,7 +18,8 @@ function getNostrFollowCache(npub: string): string[] | null {
     return null
   }
   try {
-    return JSON.parse(raw) as string[]
+    const parsed: unknown = JSON.parse(raw)
+    return isStringArray(parsed) ? parsed : null
   } catch {
     return null
   }

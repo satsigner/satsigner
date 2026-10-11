@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
-import { type Key, type Secret } from '@/types/models/Account'
+import { type Key } from '@/types/models/Account'
 import { getMultisigScriptTypeFromScriptVersion } from '@/utils/bitcoin'
 import { signPSBTWithSeed } from '@/utils/psbt'
 
@@ -133,8 +133,8 @@ export function usePSBTManagement({
         return
       }
 
-      const secret = cosignerKey.secret as Secret
-      if (!secret.mnemonic) {
+      const { secret } = cosignerKey
+      if (typeof secret === 'string' || !secret.mnemonic) {
         toast.error('No mnemonic found for this cosigner')
         return
       }
@@ -146,9 +146,7 @@ export function usePSBTManagement({
       }
 
       const scriptVersion = cosignerKey.scriptVersion || 'P2WSH'
-      const scriptType = getMultisigScriptTypeFromScriptVersion(
-        scriptVersion
-      ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
+      const scriptType = getMultisigScriptTypeFromScriptVersion(scriptVersion)
 
       const signingResult = signPSBTWithSeed(
         originalPsbtBase64,
@@ -182,9 +180,7 @@ export function usePSBTManagement({
       }
 
       const scriptVersion = cosignerKey.scriptVersion || 'P2WSH'
-      const scriptType = getMultisigScriptTypeFromScriptVersion(
-        scriptVersion
-      ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
+      const scriptType = getMultisigScriptTypeFromScriptVersion(scriptVersion)
 
       const signingResult = signPSBTWithSeed(
         originalPsbtBase64,

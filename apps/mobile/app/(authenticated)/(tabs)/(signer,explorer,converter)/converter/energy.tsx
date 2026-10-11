@@ -18,11 +18,14 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useEnergyStore } from '@/store/energy'
 import { Colors } from '@/styles'
+import { type BlockTemplateTransaction } from '@/types/models/Rpc'
 import {
-  type BlockchainInfo,
-  type BlockTemplate,
-  type BlockTemplateTransaction
-} from '@/types/models/Rpc'
+  type EnergyBlockchainInfo,
+  type EnergyBlockTemplate,
+  parseBlockchainInfoResponse,
+  parseBlockTemplateResponse,
+  parseChainInfoResponse
+} from '@/utils/energyRpc'
 
 const tn = _tn('converter.energy')
 
@@ -46,7 +49,7 @@ const networks = {
     pubKeyHash: 0x6f, // Same as testnet
     scriptHash: 0xc4, // Same as testnet
     wif: 0xef // Same as testnet
-  } as bitcoin.Network,
+  } satisfies bitcoin.Network,
   signet: bitcoin.networks.testnet, // Signet uses testnet address format
   testnet: bitcoin.networks.testnet
 }
@@ -130,12 +133,12 @@ export default function Energy() {
     ])
   )
 
-  const [blockchainInfo, setBlockchainInfo] = useState<BlockchainInfo | null>(
-    null
-  )
+  const [blockchainInfo, setBlockchainInfo] =
+    useState<EnergyBlockchainInfo | null>(null)
   const [blockHeader, setBlockHeader] = useState('')
   const [blocksFound, setBlocksFound] = useState(0)
-  const [blockTemplate, setBlockTemplate] = useState<BlockTemplate | null>(null)
+  const [blockTemplate, setBlockTemplate] =
+    useState<EnergyBlockTemplate | null>(null)
   const [connectionError, setConnectionError] = useState('')
   const [difficultyProgress, setDifficultyProgress] = useState(0)
   const [energyRate, setEnergyRate] = useState('0')
@@ -252,7 +255,7 @@ export default function Energy() {
     [rpcUsername, rpcPassword, rpcUrl]
   )
 
-  const formatTemplateData = useCallback((data: BlockTemplate) => {
+  const formatTemplateData = useCallback((data: EnergyBlockTemplate) => {
     try {
       // Only show essential fields to reduce data size
       const essentialData = {
@@ -296,9 +299,9 @@ export default function Energy() {
         })
 
         if (networkResponse.ok) {
-          const networkData = (await networkResponse.json()) as {
-            result?: BlockchainInfo
-          }
+          const networkData = parseChainInfoResponse(
+            await networkResponse.json()
+          )
 
           if (networkData.result && networkData.result.chain) {
             if (networkData.result.chain === 'signet') {
@@ -324,13 +327,7 @@ export default function Energy() {
         throw new Error(`HTTP error ${response.status}: ${errorText}`)
       }
 
-      const data = (await response.json()) as {
-        result?: BlockTemplate
-        error?: {
-          message: string
-          code: number
-        }
-      }
+      const data = parseBlockTemplateResponse(await response.json())
 
       if (data.error) {
         let errorMessage = `RPC Error: ${data.error.message}`
@@ -383,13 +380,7 @@ export default function Energy() {
         throw new Error('Failed to fetch blockchain info')
       }
 
-      const data = (await response.json()) as {
-        result?: BlockchainInfo
-        error?: {
-          message: string
-          code: number
-        }
-      }
+      const data = parseBlockchainInfoResponse(await response.json())
 
       if (data.error || !data.result) {
         throw new Error(data.error?.message || 'RPC error')
@@ -589,8 +580,7 @@ export default function Energy() {
       const hashLE = Buffer.from(hashBytes).reverse()
 
       // For regtest, we just need to check if the hash is less than the target
-      const isValid =
-        hashLE.compare(regtestTarget as unknown as Uint8Array) <= 0
+      const isValid = hashLE.compare(regtestTarget) <= 0
 
       return isValid
     }
@@ -604,9 +594,9 @@ export default function Energy() {
     mantissaBuf.writeUInt32BE(mantissa, 0)
     if (exponent <= 3) {
       mantissaBuf = mantissaBuf.slice(4 - exponent)
-      mantissaBuf.copy(target as unknown as Uint8Array, 32 - mantissaBuf.length)
+      mantissaBuf.copy(target, 32 - mantissaBuf.length)
     } else {
-      mantissaBuf.copy(target as unknown as Uint8Array, 32 - exponent)
+      mantissaBuf.copy(target, 32 - exponent)
     }
 
     // Convert hash to little-endian for comparison
@@ -615,12 +605,12 @@ export default function Energy() {
     const hashLE = Buffer.from(hashBytes).reverse()
 
     // Compare hash with target
-    const isValid = hashLE.compare(target as unknown as Uint8Array) <= 0
+    const isValid = hashLE.compare(target) <= 0
 
     return isValid
   }
 
-  const validateBlockTemplate = (template: BlockTemplate) => {
+  const validateBlockTemplate = (template: EnergyBlockTemplate) => {
     if (
       !template.version ||
       !template.previousblockhash ||
@@ -641,7 +631,7 @@ export default function Energy() {
 
   const createCoinbaseTransaction = useCallback(
     (
-      template: BlockTemplate,
+      template: EnergyBlockTemplate,
       extraNonce = 0,
       useExtraNonce = false
     ): BlockTemplateTransaction | null => {
@@ -748,10 +738,7 @@ export default function Energy() {
             const left = hashes[i]
             const right = i + 1 < hashes.length ? hashes[i + 1] : left
             // Concatenate hashes and double SHA256
-            const concat = Buffer.concat([
-              left as unknown as Uint8Array,
-              right as unknown as Uint8Array
-            ])
+            const concat = Buffer.concat([left, right])
             const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(concat))
             newHashes.push(hash)
           }
@@ -775,7 +762,7 @@ export default function Energy() {
   )
 
   const createBlockHeader = useCallback(
-    (template: BlockTemplate, merkleRoot: string, nonce: number) => {
+    (template: EnergyBlockTemplate, merkleRoot: string, nonce: number) => {
       // For regtest, we should use the template's curtime
       const blockTime = template.curtime
 
@@ -788,11 +775,11 @@ export default function Energy() {
       // Previous block hash (32 bytes) - little endian
       // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
       const prevHash = Buffer.from(template.previousblockhash, 'hex').reverse()
-      prevHash.copy(header as unknown as Uint8Array, 4)
+      prevHash.copy(header, 4)
 
       // Merkle root (32 bytes) - little endian
       const merkle = Buffer.from(merkleRoot, 'hex')
-      merkle.copy(header as unknown as Uint8Array, 36)
+      merkle.copy(header, 36)
 
       // Timestamp (4 bytes) - little endian - use template's curtime
       header.writeUInt32LE(blockTime, 68)
@@ -895,11 +882,9 @@ export default function Energy() {
         txCount.writeUInt8(rawTransactions.length, 0)
 
         const blockData = Buffer.concat([
-          freshHeader as unknown as Uint8Array,
-          txCount as unknown as Uint8Array,
-          ...rawTransactions.map(
-            (tx) => Buffer.from(tx, 'hex') as unknown as Uint8Array
-          )
+          freshHeader,
+          txCount,
+          ...rawTransactions.map((tx) => Buffer.from(tx, 'hex'))
         ])
 
         const response = await fetchRpc({

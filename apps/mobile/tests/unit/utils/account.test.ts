@@ -2,6 +2,7 @@ import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
 import type { Account, Key, Secret } from '@/types/models/Account'
 import {
   checkWalletNeedsSync,
+  createResetKey,
   dropSeedFromKeyInMemory,
   getAccountFingerprint,
   getAccountTotalBalance,
@@ -154,6 +155,21 @@ describe('dropSeedFromKeyInMemory', () => {
     dropSeedFromKeyInMemory(key)
 
     expect((key.secret as Secret).mnemonic).toBe('word word word')
+  })
+})
+
+describe('createResetKey', () => {
+  it('clears the key source and secret for the slot', () => {
+    expect(createResetKey(2)).toStrictEqual({
+      creationType: undefined,
+      fingerprint: undefined,
+      index: 2,
+      iv: '',
+      mnemonicWordCount: undefined,
+      name: '',
+      scriptVersion: undefined,
+      secret: ''
+    })
   })
 })
 

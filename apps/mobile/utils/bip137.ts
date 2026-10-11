@@ -1,4 +1,4 @@
-import ecc from '@bitcoinerlab/secp256k1'
+import ecc, { type RecoveryIdType } from '@bitcoinerlab/secp256k1'
 import {
   address as bjsAddress,
   crypto as bcrypto,
@@ -24,6 +24,10 @@ const HEADER_OFFSET: Record<Bip137AddressType, number> = {
   p2pkh: 31,
   'p2sh-p2wpkh': 35,
   p2wpkh: 39
+}
+
+function isRecoveryId(value: number): value is RecoveryIdType {
+  return value === 0 || value === 1 || value === 2 || value === 3
 }
 
 function magicHash(message: string): Buffer {
@@ -101,7 +105,10 @@ export function verifyMessageBip137(
       return false
     }
 
-    const recoveryId = (flag & 3) as 0 | 1 | 2 | 3
+    const recoveryId = flag & 3
+    if (!isRecoveryId(recoveryId)) {
+      return false
+    }
     const compressed = Boolean(flag & 12)
     const isSegwit = Boolean(flag & 8)
     const isP2sh = isSegwit && !(flag & 4)

@@ -26,8 +26,9 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type { Key, Secret } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
+import { hasEncryptedSecret } from '@/utils/key'
 
 type SSMultisigKeyControlProps = {
   index: number
@@ -89,7 +90,8 @@ function SSMultisigKeyControl({
   const [dropSeedModalVisible, setDropSeedModalVisible] = useState(false)
   const [resetKeyModalVisible, setResetKeyModalVisible] = useState(false)
   const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
-  const [localMnemonicWordCount, setLocalMnemonicWordCount] = useState(24)
+  const [localMnemonicWordCount, setLocalMnemonicWordCount] =
+    useState<NonNullable<Key['mnemonicWordCount']>>(24)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   const animatedHeight = useSharedValue(0)
@@ -120,7 +122,7 @@ function SSMultisigKeyControl({
         return
       }
 
-      const secret = keyDetails.secret as Secret
+      const { secret } = keyDetails
 
       if (secret.extendedPublicKey) {
         setExtractedPublicKey(secret.extendedPublicKey)
@@ -172,9 +174,7 @@ function SSMultisigKeyControl({
 
   function handleWordCountSelection() {
     setWordCountModalVisible(false)
-    setMnemonicWordCount(
-      localMnemonicWordCount as NonNullable<Key['mnemonicWordCount']>
-    )
+    setMnemonicWordCount(localMnemonicWordCount)
     router.navigate(`/signer/bitcoin/account/add/import/mnemonic/${index}`)
   }
 
@@ -335,7 +335,7 @@ function SSMultisigKeyControl({
     }
   }
 
-  if (typeof keyDetails?.secret === 'string' && !isSettingsMode) {
+  if (hasEncryptedSecret(keyDetails) && !isSettingsMode) {
     return null
   }
 

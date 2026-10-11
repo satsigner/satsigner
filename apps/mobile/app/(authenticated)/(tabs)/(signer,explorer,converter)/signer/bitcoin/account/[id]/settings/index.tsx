@@ -153,13 +153,13 @@ export default function AccountSettings() {
   }
 
   function saveChanges() {
-    updateAccountName(currentAccountId!, localAccountName)
+    updateAccountName(currentAccountId, localAccountName)
     router.replace(`/signer/bitcoin/account/${currentAccountId}/`)
   }
 
   function deleteThisAccount() {
-    deleteAccount(currentAccountId!)
-    removeAccountWallet(currentAccountId!)
+    deleteAccount(currentAccountId)
+    removeAccountWallet(currentAccountId)
     router.replace('/signer/bitcoin/accountList')
   }
 

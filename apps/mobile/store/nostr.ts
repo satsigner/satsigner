@@ -6,6 +6,7 @@ import { NOSTR_MAX_PROCESSED_ITEMS } from '@/constants/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import { gray } from '@/styles/colors'
 import { generateColorFromNpub } from '@/utils/nostr'
+import { isRecord } from '@/utils/object'
 import { type TransactionData } from '@/utils/psbt'
 
 type Member = {
@@ -438,16 +439,15 @@ const useNostrStore = create<NostrState & NostrAction>()(
     {
       merge: (persistedState, currentState) => ({
         ...currentState,
-        ...(persistedState as Partial<NostrState & NostrAction>),
+        ...(isRecord(persistedState) ? persistedState : {}),
         // Always ensure runtime-only fields start fresh on rehydration
         activeSubscriptions: new Set<NostrAPI>(),
         syncingAccounts: {},
         transactionToShare: null
       }),
       migrate: (persistedState, version) => {
-        const state = persistedState as Record<string, unknown> & {
-          processedEvents?: Record<string, ProcessedIdsMap | string[]>
-          processedMessageIds?: Record<string, ProcessedIdsMap | string[]>
+        if (!isRecord(persistedState)) {
+          return {}
         }
         if (version < 1) {
           // v0 → v1: processedEvents and processedMessageIds changed from
@@ -456,18 +456,20 @@ const useNostrStore = create<NostrState & NostrAction>()(
             'processedEvents',
             'processedMessageIds'
           ] as const) {
-            if (state[field]) {
-              for (const [accountId, value] of Object.entries(state[field]!)) {
-                if (Array.isArray(value)) {
-                  state[field]![accountId] = Object.fromEntries(
-                    value.map((id) => [id, true as const])
-                  )
-                }
+            const idsByAccount = persistedState[field]
+            if (!isRecord(idsByAccount)) {
+              continue
+            }
+            for (const [accountId, value] of Object.entries(idsByAccount)) {
+              if (Array.isArray(value)) {
+                idsByAccount[accountId] = Object.fromEntries(
+                  value.map((id) => [id, true as const])
+                )
               }
             }
           }
         }
-        return state
+        return persistedState
       },
       name: 'satsigner-nostr',
       partialize: (state) => ({
