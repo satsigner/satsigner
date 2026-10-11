@@ -1934,11 +1934,11 @@ export default function AccountView() {
     context: 'bitcoin',
     onContentScanned: bitcoinContentHandler.handleContentScanned,
     receiveHref: {
-      params: { id: id! },
+      params: { id },
       pathname: '/signer/bitcoin/account/[id]/receive'
     },
     sendHref: {
-      params: { id: id! },
+      params: { id },
       pathname: '/signer/bitcoin/account/[id]/signAndSend/selectUtxoList'
     }
   })
