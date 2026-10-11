@@ -35,13 +35,12 @@ import { deleteAllKeySecrets, deleteKeySecret } from '@/storage/encrypted'
 import { type Label } from '@/types/bips/329'
 import {
   type Account,
-  type Key,
   type SyncProgress,
   type SyncStatus
 } from '@/types/models/Account'
 import { type NostrAccount } from '@/types/models/Nostr'
 import { type Transaction } from '@/types/models/Transaction'
-import { dropSeedFromKey } from '@/utils/account'
+import { createResetKey, dropSeedFromKey } from '@/utils/account'
 import {
   deleteNostrAccountSecretSafe,
   mergeAccountWithCachedNostrSecrets,
@@ -320,16 +319,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       })
     },
     resetKey: (accountId, keyIndex) => {
-      const resetKeyData: Key = {
-        creationType: undefined as unknown as Key['creationType'],
-        fingerprint: undefined,
-        index: keyIndex,
-        iv: '',
-        mnemonicWordCount: undefined,
-        name: '',
-        scriptVersion: undefined,
-        secret: ''
-      }
+      const resetKeyData = createResetKey(keyIndex)
 
       const account = get().accounts.find((a) => a.id === accountId)
       if (!account) {

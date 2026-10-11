@@ -222,7 +222,7 @@ function useSyncAccountWithAddress() {
     // Replace the stored UTXOs for this address with the fresh set from the
     // API. This handles both new UTXOs appearing and spent UTXOs disappearing.
     // Existing UTXO objects are reused where possible to preserve labels.
-    const freshUtxos: Utxo[] = esploraUtxos.map((u) => {
+    const freshUtxos = esploraUtxos.map((u): Utxo => {
       const outpoint = `${u.txid}:${u.vout}`
       if (existingUtxos[outpoint] !== undefined) {
         return account.utxos[existingUtxos[outpoint]]
@@ -247,7 +247,7 @@ function useSyncAccountWithAddress() {
         txid: u.txid,
         value: u.value,
         vout: u.vout
-      } as Utxo
+      }
     })
 
     const utxosFromOtherAddresses = account.utxos.filter(
@@ -694,7 +694,7 @@ function useSyncAccountWithAddress() {
         addressDescriptor
       )
 
-      const newSummary = updatedData.summary as Account['summary']
+      const newSummary = updatedData.summary
 
       // Merge account data while preserving the transactions with prices
       updatedAccount = Object.assign(updatedAccount, updatedData, {

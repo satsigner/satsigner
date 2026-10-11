@@ -49,7 +49,7 @@ export default function DescriptorPage() {
       return
     }
     setKeyName(key.name || `Key ${keyIndexNum + 1}`)
-    setCreationType(key.creationType)
+    setCreationType(key.creationType ?? '')
     setScriptVersion(key.scriptVersion || 'P2PKH')
     const decryptedSecret = await decryptAccountKeySecret(account.id, key.index)
     const descriptorString = await getOutputDescriptorStringForKey(

@@ -85,7 +85,7 @@ function SSNFCModal({
       onClose()
       toast.success(t('success.nfcRead'))
     } catch (error) {
-      const errorMessage = (error as Error).message
+      const errorMessage = error instanceof Error ? error.message : undefined
       if (errorMessage) {
         toast.error(errorMessage)
       } else {

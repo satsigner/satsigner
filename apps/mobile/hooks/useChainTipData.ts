@@ -108,12 +108,12 @@ async function fromElectrum(
     await Promise.all([
       (async () => {
         try {
-          const tip = await client!.subscribeToBlockHeaders()
+          const tip = await client.subscribeToBlockHeaders()
           if (!tip?.height) {
             return
           }
           data.height = tip.height
-          const header = await client!.getBlock(tip.height)
+          const header = await client.getBlock(tip.height)
           data.hash = header.getId()
           data.block = {
             difficulty: header.bits
@@ -129,7 +129,7 @@ async function fromElectrum(
       })(),
       (async () => {
         try {
-          const histogram = await client!.getMempoolFeeHistogram()
+          const histogram = await client.getMempoolFeeHistogram()
           if (histogram.length > 0) {
             const vsize = histogram.reduce((sum, [, size]) => sum + size, 0)
             data.mempool = { vsize }

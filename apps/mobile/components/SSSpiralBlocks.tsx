@@ -14,7 +14,6 @@ import { memo, useCallback, useMemo } from 'react'
 import {
   Dimensions,
   Platform,
-  type StyleProp,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -143,7 +142,7 @@ function SSSpiralBlocks({
     const maxIterations = Math.min(maxBlocksPerSpiral, data.length)
 
     for (let i = 0; i < maxIterations; i += 1) {
-      const currentBlock = data[i] as BlockDifficulty
+      const currentBlock = data[i]
       const timeDifference = currentBlock?.timeDifference ?? 0
       const size = currentBlock?.size ?? 0
       const block_distance =
@@ -209,7 +208,7 @@ function SSSpiralBlocks({
 
   const invisibleOverlayBlocks = useMemo(
     () =>
-      spiralBlocks.map((block) => {
+      spiralBlocks.map((block): ViewStyle => {
         const overlaySize = BLOCK_SIZE + 3 // Define overlay size
         return {
           backgroundColor: 'rgba(255, 255, 255, 0)',
@@ -219,7 +218,7 @@ function SSSpiralBlocks({
           position: 'absolute',
           top: canvasHeight / 2 + block.y - overlaySize / 2,
           width: overlaySize
-        } as StyleProp<ViewStyle>
+        }
       }),
     [spiralBlocks, canvasHeight, canvasWidth]
   )

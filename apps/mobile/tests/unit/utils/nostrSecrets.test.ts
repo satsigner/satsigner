@@ -1,14 +1,25 @@
+import {
+  storeNostrAccountSecret,
+  storeNostrIdentitySecret
+} from '@/storage/encrypted'
 import { type Account } from '@/types/models/Account'
 import { type NostrAccount } from '@/types/models/Nostr'
+import { aesDecrypt } from '@/utils/crypto'
 import {
   clearNostrSecretsCaches,
   loadAccountNostrSecrets,
+  loadIdentitySecrets,
   looksLikePlaintextMnemonic,
   looksLikePlaintextNsec,
   mergeAccountWithCachedNostrSecrets,
   setCachedAccountSecrets,
   stripAccountSecretsForDb
 } from '@/utils/nostrSecrets'
+
+jest.mock<typeof import('@/utils/crypto')>('@/utils/crypto', () => ({
+  ...jest.requireActual<typeof import('@/utils/crypto')>('@/utils/crypto'),
+  aesDecrypt: jest.fn()
+}))
 
 describe('looksLikePlaintextNsec', () => {
   it('detects bech32 nsec', () => {
@@ -117,5 +128,72 @@ describe('loadAccountNostrSecrets', () => {
     await expect(
       loadAccountNostrSecrets('acc-1', 'some-other-key')
     ).resolves.toBeNull()
+  })
+
+  it('returns decrypted secrets that match the expected shape', async () => {
+    await storeNostrAccountSecret('acc-valid', 'ciphertext', 'iv')
+    jest
+      .mocked(aesDecrypt)
+      .mockResolvedValueOnce(
+        JSON.stringify({ commonNsec: 'nsec1common', deviceNsec: 'nsec1device' })
+      )
+
+    await expect(
+      loadAccountNostrSecrets('acc-valid', 'pin')
+    ).resolves.toStrictEqual({
+      commonNsec: 'nsec1common',
+      deviceNsec: 'nsec1device'
+    })
+  })
+
+  it('treats decrypted secrets with an unexpected shape as missing', async () => {
+    await storeNostrAccountSecret('acc-malformed', 'ciphertext', 'iv')
+    jest
+      .mocked(aesDecrypt)
+      .mockResolvedValueOnce(JSON.stringify({ commonNsec: 42 }))
+
+    await expect(
+      loadAccountNostrSecrets('acc-malformed', 'pin')
+    ).resolves.toBeNull()
+    // Nothing was cached, so a load without a key falls through to the PIN.
+    await expect(loadAccountNostrSecrets('acc-malformed')).rejects.toThrow(
+      'PIN unavailable'
+    )
+  })
+})
+
+describe('loadIdentitySecrets', () => {
+  afterEach(() => {
+    clearNostrSecretsCaches()
+  })
+
+  it('returns decrypted secrets that match the expected shape', async () => {
+    await storeNostrIdentitySecret('npub1valid', 'ciphertext', 'iv')
+    jest
+      .mocked(aesDecrypt)
+      .mockResolvedValueOnce(JSON.stringify({ nsec: 'nsec1identity' }))
+
+    await expect(
+      loadIdentitySecrets('npub1valid', 'pin')
+    ).resolves.toStrictEqual({ nsec: 'nsec1identity' })
+    // A load without a key is served from the cache.
+    await expect(loadIdentitySecrets('npub1valid')).resolves.toStrictEqual({
+      nsec: 'nsec1identity'
+    })
+  })
+
+  it('treats decrypted secrets with an unexpected shape as missing', async () => {
+    await storeNostrIdentitySecret('npub1malformed', 'ciphertext', 'iv')
+    jest
+      .mocked(aesDecrypt)
+      .mockResolvedValueOnce(JSON.stringify({ nsec: ['nsec1identity'] }))
+
+    await expect(
+      loadIdentitySecrets('npub1malformed', 'pin')
+    ).resolves.toBeNull()
+    // Nothing was cached, so a load without a key falls through to the PIN.
+    await expect(loadIdentitySecrets('npub1malformed')).rejects.toThrow(
+      'PIN unavailable'
+    )
   })
 })

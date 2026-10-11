@@ -7,10 +7,10 @@ function decodeMentionPubkey(bech32: string): string | null {
   try {
     const decoded = nip19.decode(bech32)
     if (decoded.type === 'npub') {
-      return decoded.data as string
+      return decoded.data
     }
     if (decoded.type === 'nprofile') {
-      return (decoded.data as { pubkey: string }).pubkey
+      return decoded.data.pubkey
     }
     return null
   } catch {

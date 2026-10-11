@@ -3,6 +3,7 @@ import {
   getDecodedToken,
   getEncodedTokenV3,
   getEncodedTokenV4,
+  type Keyset,
   Mint,
   type MeltQuoteBolt11Response,
   type MintQuoteState,
@@ -20,7 +21,6 @@ import {
   SAT_UNIT
 } from '@/constants/ecash'
 import type {
-  CounterReservedEvent,
   EcashMeltResult,
   EcashMint,
   EcashMintResult,
@@ -31,30 +31,12 @@ import type {
   MintQuote,
   WalletOptions
 } from '@/types/models/Ecash'
+import { isRecord } from '@/utils/object'
 
 type KeysetResponse = {
   id: string
   unit?: string
   active?: boolean
-}
-
-type WalletInternals = {
-  _keyChain?: {
-    keysets?: Record<string, { active?: boolean; id: string; unit?: string }>
-  }
-  getKeys?: (keysetId: string) => Promise<unknown>
-  mint?: {
-    _mintUrl?: string
-    getKeySets?: () => Promise<{ keysets?: KeysetResponse[] }>
-    url?: string
-  }
-  on?: {
-    countersReserved?: (cb: (event: CounterReservedEvent) => void) => () => void
-  }
-}
-
-function asWalletInternals(wallet: Wallet): WalletInternals {
-  return wallet as unknown as WalletInternals
 }
 
 const walletCache = new Map<string, Wallet>()
@@ -63,62 +45,68 @@ function walletCacheKey(accountId: string, mintUrl: string): string {
   return `${accountId}:${mintUrl}`
 }
 
+/** Keysets entry from a raw `/v1/keysets` body; malformed entries are skipped. */
+function isKeysetResponse(value: unknown): value is KeysetResponse {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    (value.unit === undefined || typeof value.unit === 'string') &&
+    (value.active === undefined || typeof value.active === 'boolean')
+  )
+}
+
+/** Keysets already in the wallet keychain; empty until `loadMint` fills it. */
+function getKeyChainKeysets(wallet: Wallet): Keyset[] {
+  try {
+    return wallet.keyChain.getKeysets()
+  } catch {
+    return []
+  }
+}
+
 async function getKeysetsFromWallet(
   wallet: Wallet
 ): Promise<{ id: string; unit: string; active: boolean }[]> {
-  const walletInternals = asWalletInternals(wallet)
-
   // Method 1: Use mint.getKeySets() (the actual cashu-ts v3 API)
-  if (typeof walletInternals.mint?.getKeySets === 'function') {
-    try {
-      const result = await walletInternals.mint.getKeySets()
-      if (result.keysets && Array.isArray(result.keysets)) {
-        return result.keysets
-          .filter(
-            (ks): ks is KeysetResponse =>
-              ks && typeof ks === 'object' && typeof ks.id === 'string'
-          )
-          .map((ks) => ({
-            active: ks.active !== false,
-            id: ks.id,
-            unit: ks.unit ?? 'sat'
-          }))
-      }
-    } catch {
-      // Fall through to next method
+  try {
+    const result = await wallet.mint.getKeySets()
+    if (result.keysets && Array.isArray(result.keysets)) {
+      return result.keysets
+        .filter((ks) => isRecord(ks) && typeof ks.id === 'string')
+        .map((ks) => ({
+          active: ks.active !== false,
+          id: ks.id,
+          unit: ks.unit ?? 'sat'
+        }))
     }
+  } catch {
+    // Fall through to next method
   }
 
-  // Method 2: Read from _keyChain.keysets (in-memory after loadMint)
-  if (walletInternals._keyChain?.keysets) {
-    const keysets = Object.values(walletInternals._keyChain.keysets)
-    if (keysets.length > 0) {
-      return keysets.map((ks) => ({
-        active: ks.active !== false,
-        id: ks.id,
-        unit: ks.unit ?? 'sat'
-      }))
-    }
+  // Method 2: Read the keychain (in-memory after loadMint)
+  const keyChainKeysets = getKeyChainKeysets(wallet)
+  if (keyChainKeysets.length > 0) {
+    return keyChainKeysets.map((ks) => ({
+      active: ks.isActive !== false,
+      id: ks.id,
+      unit: ks.unit ?? 'sat'
+    }))
   }
 
   // Method 3: Direct HTTP fallback
-  const mintUrl = walletInternals.mint?._mintUrl ?? walletInternals.mint?.url
+  const { mintUrl } = wallet.mint
   if (mintUrl) {
     try {
       const response = await fetch(`${mintUrl}/v1/keysets`)
       if (response.ok) {
-        const data = (await response.json()) as { keysets?: KeysetResponse[] }
-        const keysets = data.keysets ?? []
-        return keysets
-          .filter(
-            (ks): ks is KeysetResponse =>
-              ks && typeof ks === 'object' && typeof ks.id === 'string'
-          )
-          .map((ks) => ({
-            active: ks.active !== false,
-            id: ks.id,
-            unit: ks.unit ?? 'sat'
-          }))
+        const data: unknown = await response.json()
+        const keysets =
+          isRecord(data) && Array.isArray(data.keysets) ? data.keysets : []
+        return keysets.filter(isKeysetResponse).map((ks) => ({
+          active: ks.active !== false,
+          id: ks.id,
+          unit: ks.unit ?? 'sat'
+        }))
       }
     } catch {
       // Fall through
@@ -151,9 +139,7 @@ function getWallet(
     const wallet = new Wallet(mint, walletOpts)
 
     if (options?.bip39seed && options.onCounterReserved) {
-      asWalletInternals(wallet).on?.countersReserved?.(
-        options.onCounterReserved
-      )
+      wallet.on.countersReserved(options.onCounterReserved)
     }
 
     walletCache.set(cacheKey, wallet)
@@ -581,8 +567,6 @@ export async function restoreProofsFromSeed(
 
   for (const keyset of sortedKeysets) {
     try {
-      await loadKeysForKeyset(wallet, keyset.id)
-
       const result = await withTimeout(
         wallet.restore(0, ECASH_RESTORE_BATCH_SIZE, { keysetId: keyset.id }),
         ECASH_RESTORE_TIMEOUT_MS
@@ -643,16 +627,6 @@ export async function restoreProofsFromSeed(
   return {
     lastCounter,
     proofs: unspentProofs
-  }
-}
-
-async function loadKeysForKeyset(
-  wallet: Wallet,
-  keysetId: string
-): Promise<void> {
-  const walletWithKeys = asWalletInternals(wallet)
-  if (typeof walletWithKeys.getKeys === 'function') {
-    await walletWithKeys.getKeys(keysetId)
   }
 }
 

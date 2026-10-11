@@ -161,9 +161,7 @@ function SSNostrFeedTabs({
 
   const hexPubkey = getPubKeyHexFromNpub(npub) ?? ''
   const ownPubkeyLower = hexPubkey.toLowerCase()
-  const [ownPubkeys] = useState(() =>
-    hexPubkey ? [hexPubkey] : ([] as string[])
-  )
+  const [ownPubkeys] = useState<string[]>(() => (hexPubkey ? [hexPubkey] : []))
   const authorNavNpub = profileLinkContextNpub ?? npub
 
   const apiRef = useRef<NostrAPI | null>(null)
