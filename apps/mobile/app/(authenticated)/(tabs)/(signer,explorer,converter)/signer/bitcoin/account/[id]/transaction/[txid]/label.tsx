@@ -30,11 +30,11 @@ function TransactionLabel() {
   )
 
   function updateLabel(label: string) {
-    const updatedAccount = setTxLabel(accountId!, txid!, label)
+    const updatedAccount = setTxLabel(accountId, txid, label)
 
     const singleLabelData: Label = {
       label,
-      ref: txid!,
+      ref: txid,
       spendable: true,
       type: 'tx'
     }
@@ -60,7 +60,11 @@ function TransactionLabel() {
       />
       <SSVStack style={{ padding: 20 }}>
         <SSTxDetailsHeader tx={tx} />
-        <SSLabelInput label={tx.label || ''} onUpdateLabel={updateLabel} />
+        <SSLabelInput
+          label={tx.label || ''}
+          onUpdateLabel={updateLabel}
+          onCancel={() => router.back()}
+        />
       </SSVStack>
     </SSScrollView>
   )

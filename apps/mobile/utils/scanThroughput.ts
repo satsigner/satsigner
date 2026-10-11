@@ -95,4 +95,9 @@ function formatBlocksPerSec(rate: number): string {
   return rate.toFixed(2)
 }
 
-export { createScanThroughputTracker, formatBlocksPerSec, formatScanDuration }
+export {
+  createScanThroughputTracker,
+  formatBlocksPerSec,
+  formatScanDuration,
+  type ScanThroughput
+}

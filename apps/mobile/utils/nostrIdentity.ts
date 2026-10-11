@@ -10,6 +10,7 @@ import type {
 } from '@/types/models/Nostr'
 import { generateMnemonic, mnemonicToSeed } from '@/utils/bip39'
 import { deriveNpubFromNsec } from '@/utils/nostr'
+import { isRecord } from '@/utils/object'
 
 export function deriveNostrKeysFromMnemonic(
   mnemonic: string
@@ -44,7 +45,7 @@ export function decodeNostrContent(raw: string): NostrDecodedContent {
     try {
       const decoded = nip19.decode(trimmed)
       if (decoded.type === 'npub') {
-        return { data: decoded.data as string, kind: 'npub', raw: trimmed }
+        return { data: decoded.data, kind: 'npub', raw: trimmed }
       }
     } catch {
       /* invalid bech32 */
@@ -55,7 +56,7 @@ export function decodeNostrContent(raw: string): NostrDecodedContent {
     try {
       const decoded = nip19.decode(trimmed)
       if (decoded.type === 'note') {
-        return { data: decoded.data as string, kind: 'note', raw: trimmed }
+        return { data: decoded.data, kind: 'note', raw: trimmed }
       }
     } catch {
       /* invalid bech32 */
@@ -66,17 +67,12 @@ export function decodeNostrContent(raw: string): NostrDecodedContent {
     try {
       const decoded = nip19.decode(trimmed)
       if (decoded.type === 'nevent') {
-        const neventData = decoded.data as {
-          id: string
-          relays?: string[]
-          author?: string
-        }
         return {
-          data: neventData.id,
+          data: decoded.data.id,
           kind: 'nevent',
           metadata: {
-            author: neventData.author,
-            relays: neventData.relays
+            author: decoded.data.author,
+            relays: decoded.data.relays
           },
           raw: trimmed
         }
@@ -90,14 +86,10 @@ export function decodeNostrContent(raw: string): NostrDecodedContent {
     try {
       const decoded = nip19.decode(trimmed)
       if (decoded.type === 'nprofile') {
-        const profileData = decoded.data as {
-          pubkey: string
-          relays?: string[]
-        }
         return {
-          data: profileData.pubkey,
+          data: decoded.data.pubkey,
           kind: 'nprofile',
-          metadata: { relays: profileData.relays },
+          metadata: { relays: decoded.data.relays },
           raw: trimmed
         }
       }
@@ -107,14 +99,15 @@ export function decodeNostrContent(raw: string): NostrDecodedContent {
   }
 
   try {
-    const parsed = JSON.parse(trimmed) as Record<string, unknown>
+    const parsed: unknown = JSON.parse(trimmed)
     if (
+      isRecord(parsed) &&
       typeof parsed.kind === 'number' &&
       typeof parsed.content === 'string' &&
       Array.isArray(parsed.tags)
     ) {
       return {
-        data: (parsed.id as string) ?? '',
+        data: typeof parsed.id === 'string' ? parsed.id : '',
         kind: 'json_note',
         metadata: parsed,
         raw: trimmed

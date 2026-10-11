@@ -4,7 +4,7 @@
  * for large binary data like PSBTs, using the official BBQR library.
  */
 
-import type { FileType as OfficialFileType, Version } from './bbrq'
+import type { Version } from './bbrq'
 import { joinQRs, splitQRs } from './bbrq'
 
 // Re-export the official FileType but with enum-like access for backward compatibility
@@ -24,8 +24,8 @@ const BBQR_DEFAULT_MAX_CHUNK_SIZE = 400
 // Hard cap on the number of QR parts a single BBQR sequence may be split into.
 const BBQR_MAX_SPLIT_PARTS = 50
 // bbrq's splitQRs() accepts QR versions 5-40; see utils/bbrq/consts.ts.
-const BBQR_MAX_QR_VERSION = 40
-const BBQR_MIN_QR_VERSION = 5
+const BBQR_MAX_QR_VERSION: Version = 40
+const BBQR_MIN_QR_VERSION: Version = 5
 // Minimum chunk size for the non-BBQR hex fallback, so tiny maxChunkSize
 // values (meant for QR density, not fallback) don't produce absurd fragment counts.
 const BBQR_FALLBACK_MIN_CHUNK_SIZE = 100
@@ -74,8 +74,6 @@ export function createBBQRChunks(
   fileType: BBQRFileType = BBQRFileTypes.PSBT,
   maxChunkSize = BBQR_DEFAULT_MAX_CHUNK_SIZE
 ): string[] {
-  const officialFileType = fileType as OfficialFileType
-
   // Calculate the target number of chunks based on maxChunkSize
   // to match the behavior of RAW PSBT and UR encoding
   let targetChunks: number
@@ -125,12 +123,12 @@ export function createBBQRChunks(
   }
 
   try {
-    result = splitQRs(data, officialFileType, {
+    result = splitQRs(data, fileType, {
       encoding: 'Z', // Try compression first (same as original implementation)
       maxSplit,
-      maxVersion: BBQR_MAX_QR_VERSION as Version,
+      maxVersion: BBQR_MAX_QR_VERSION,
       minSplit,
-      minVersion: BBQR_MIN_QR_VERSION as Version
+      minVersion: BBQR_MIN_QR_VERSION
     })
   } catch {
     /* silently ignored */
@@ -153,12 +151,12 @@ export function createBBQRChunks(
   }
 
   try {
-    result = splitQRs(data, officialFileType, {
+    result = splitQRs(data, fileType, {
       encoding: 'Z',
       maxSplit: fallbackMaxSplit,
-      maxVersion: BBQR_MAX_QR_VERSION as Version,
+      maxVersion: BBQR_MAX_QR_VERSION,
       minSplit: fallbackMinSplit,
-      minVersion: BBQR_MIN_QR_VERSION as Version
+      minVersion: BBQR_MIN_QR_VERSION
     })
   } catch {
     /* silently ignored */
@@ -170,12 +168,12 @@ export function createBBQRChunks(
 
   try {
     // let the library decide with minimal constraints
-    result = splitQRs(data, officialFileType, {
+    result = splitQRs(data, fileType, {
       encoding: 'Z',
       maxSplit: Math.min(BBQR_MAX_SPLIT_PARTS, targetChunks * 2),
-      maxVersion: BBQR_MAX_QR_VERSION as Version,
+      maxVersion: BBQR_MAX_QR_VERSION,
       minSplit: 1,
-      minVersion: BBQR_MIN_QR_VERSION as Version
+      minVersion: BBQR_MIN_QR_VERSION
     })
   } catch {
     /* silently ignored */
@@ -186,7 +184,7 @@ export function createBBQRChunks(
   }
 
   try {
-    result = splitQRs(data, officialFileType, {
+    result = splitQRs(data, fileType, {
       encoding: 'Z' // Let library choose all other defaults
     })
   } catch {

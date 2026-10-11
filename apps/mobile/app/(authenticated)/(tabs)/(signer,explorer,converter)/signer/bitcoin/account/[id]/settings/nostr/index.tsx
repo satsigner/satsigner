@@ -143,15 +143,12 @@ export default function NostrSync() {
           ? { color: NOSTR_FALLBACK_NPUB_COLOR, npub: member }
           : member
       )
-      .reduce(
-        (acc, member) => {
-          if (!acc.some((m) => m.npub === member.npub)) {
-            acc.push(member)
-          }
-          return acc
-        },
-        [] as { npub: string; color: string }[]
-      )
+      .reduce<{ npub: string; color: string }[]>((acc, member) => {
+        if (!acc.some((m) => m.npub === member.npub)) {
+          acc.push(member)
+        }
+        return acc
+      }, [])
   }, [rawMembers])
 
   const {
@@ -756,7 +753,7 @@ export default function NostrSync() {
       try {
         const keys = await generateCommonNostrKeys(account)
         if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
-          setCommonNsec(keys.commonNsec as string)
+          setCommonNsec(keys.commonNsec)
           updateAccountNostr(accountId, {
             commonNpub: keys.commonNpub,
             commonNsec: keys.commonNsec

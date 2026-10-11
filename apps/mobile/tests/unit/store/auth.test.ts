@@ -126,3 +126,17 @@ describe('auth store PIN handling', () => {
     expect(noAuth.lockTriggered).toBe(false)
   })
 })
+
+describe('auth store PIN tries', () => {
+  afterEach(() => {
+    useAuthStore.setState(useAuthStore.getInitialState(), true)
+  })
+
+  it('incrementPinTries counts down from tries persisted before a restart', () => {
+    useAuthStore.setState({ pinMaxTries: 3, pinTries: 1 })
+
+    expect(useAuthStore.getState().incrementPinTries()).toBe(1)
+    expect(useAuthStore.getState().incrementPinTries()).toBe(0)
+    expect(useAuthStore.getState().pinTries).toBe(3)
+  })
+})

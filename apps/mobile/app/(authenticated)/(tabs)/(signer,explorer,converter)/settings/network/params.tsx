@@ -61,7 +61,9 @@ export default function NetworkSettings() {
       />
       <SSVStack gap="lg" justifyBetween>
         <ScrollView showsVerticalScrollIndicator={false}>
-          <SSBitcoinNetworkExplanationLink />
+          <SSBitcoinNetworkExplanationLink
+            onPress={() => router.navigate('/settings/network/comparison')}
+          />
           <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (
               <SSVStack gap="sm" key={network}>

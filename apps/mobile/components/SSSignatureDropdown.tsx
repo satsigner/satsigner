@@ -1,5 +1,4 @@
 import { setStringAsync } from 'expo-clipboard'
-import { useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
@@ -38,7 +37,6 @@ type SSSignatureDropdownProps = {
   isReading: boolean
   decryptedKey?: Key
   account: Account
-  accountId: string
   signedPsbts: Map<number, string>
   onShowQR: () => void
   onNFCExport: () => void
@@ -48,6 +46,8 @@ type SSSignatureDropdownProps = {
   onSignWithLocalKey: () => void
   onSignWithSeedQR: () => void
   onSignWithSeedWords: () => void
+  /** Navigate to the devices group chat to share the transaction. */
+  onNavigateToGroupChat: () => void
   validationResult?: boolean
 }
 
@@ -64,7 +64,6 @@ function SSSignatureDropdown({
   isReading,
   decryptedKey,
   account,
-  accountId,
   signedPsbts,
   onShowQR,
   onNFCExport,
@@ -74,11 +73,10 @@ function SSSignatureDropdown({
   onSignWithLocalKey,
   onSignWithSeedQR,
   onSignWithSeedWords,
+  onNavigateToGroupChat,
   validationResult
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-
-  const router = useRouter()
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
@@ -133,10 +131,7 @@ function SSSignatureDropdown({
         transactionData
       })
 
-      router.push({
-        params: { id: accountId },
-        pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
-      })
+      onNavigateToGroupChat()
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))
     }
@@ -145,8 +140,7 @@ function SSSignatureDropdown({
     transactionId,
     txBuilderResult,
     signedPsbts,
-    router,
-    accountId,
+    onNavigateToGroupChat,
     setTransactionToShare
   ])
 

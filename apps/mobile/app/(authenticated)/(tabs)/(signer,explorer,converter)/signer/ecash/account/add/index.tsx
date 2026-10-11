@@ -63,8 +63,13 @@ export default function EcashAccountAddPage() {
 
   function handleSeedQRScanned(content: DetectedContent) {
     setCameraModalVisible(false)
-    if (content.type === 'seed_qr' && content.metadata?.mnemonic) {
-      setMnemonic(content.metadata.mnemonic as string)
+    const scannedMnemonic = content.metadata?.mnemonic
+    if (
+      content.type === 'seed_qr' &&
+      typeof scannedMnemonic === 'string' &&
+      scannedMnemonic
+    ) {
+      setMnemonic(scannedMnemonic)
       toast.success(t('ecash.account.seedQRScanned'))
     } else {
       toast.error(t('ecash.account.invalidSeedQR'))
