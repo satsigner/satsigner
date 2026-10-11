@@ -214,13 +214,9 @@ export default function ImportDescriptor() {
         }
       })
 
-      const scriptVersion: ScriptVersionType = cleanDescriptor.startsWith(
-        'wsh('
-      )
-        ? 'P2WSH'
-        : cleanDescriptor.startsWith('sh(')
-          ? 'P2SH'
-          : 'P2WSH'
+      const scriptVersion: ScriptVersionType = cleanDescriptor.startsWith('sh(')
+        ? 'P2SH'
+        : 'P2WSH'
 
       return {
         keyCount: keys.length,

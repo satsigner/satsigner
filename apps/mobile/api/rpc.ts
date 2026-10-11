@@ -200,8 +200,14 @@ async function rpcFetch<T>(
     throw new Error(`Node returned HTTP ${response.status}`)
   }
 
-  const data = RpcResponseSchema.parse(await response.json())
+  const envelope = RpcResponseSchema.safeParse(await response.json())
+  if (!envelope.success) {
+    throw new Error('Node returned an invalid JSON-RPC response', {
+      cause: envelope.error
+    })
+  }
 
+  const { data } = envelope
   if (data.error) {
     throw new Error(`RPC error ${data.error.code}: ${data.error.message}`)
   }

@@ -166,14 +166,10 @@ function parseBackupDate(v: string | number | Date | null | undefined): Date {
 function restoreBackupLabels(
   labels: Record<string, unknown> | undefined
 ): Record<string, Label> {
-  const restored: Record<string, Label> = {}
-  for (const value of Object.values(labels ?? {})) {
-    const label = parseLabelRecord(value)
-    if (label) {
-      restored[label.ref] = label
-    }
-  }
-  return restored
+  const restored = Object.values(labels ?? {})
+    .map(parseLabelRecord)
+    .filter((label) => label !== null)
+  return Object.fromEntries(restored.map((label) => [label.ref, label]))
 }
 
 function errorMessage(err: unknown): string {

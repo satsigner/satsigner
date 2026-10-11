@@ -530,6 +530,35 @@ describe('performRecoverOverwrite restore', () => {
     )
   })
 
+  it('keeps a label whose ref is __proto__ as its own entry', async () => {
+    const label = { label: 'odd', ref: '__proto__', type: 'tx' }
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [
+          {
+            id: 'acc-1',
+            keys: [{ index: 0, name: 'k1', seedWords: 'abandon abandon' }],
+            labels: Object.fromEntries([['__proto__', label]]),
+            name: 'Wallet',
+            network: 'bitcoin',
+            policyType: 'singlesig'
+          }
+        ],
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    const [[restored]] = addAccount.mock.calls
+    expect(Object.hasOwn(restored.labels, '__proto__')).toBe(true)
+    expect(Object.getPrototypeOf(restored.labels)).toBe(Object.prototype)
+  })
+
   it('defaults missing labels to an empty record', async () => {
     const result = await performRecoverOverwrite(
       JSON.stringify({

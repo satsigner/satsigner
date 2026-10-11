@@ -426,10 +426,18 @@ const sampleCsvNonchukTxExpected = [
 
 const sampleCsvNonchukUtxo = `txid,vout,amount,height,memo
 4686cb1251dcf23e42faceb994d2176d4030e07731500d45d2a150f95044d8cd,0,5000,230085,""
-a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654,3,19451,231855,""
+a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654,3,19451,231855,"cold storage"
 bbede7bf7c52a098e21f97dd5116c19f544323b2cfe6accb1fc0a67144c30d57,1,36666,237880,""`
 
-const sampleCsvNonchukUtxoExpected = []
+const sampleCsvNonchukUtxoExpected = [
+  {
+    height: 231855,
+    label: 'cold storage',
+    ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654:3',
+    type: 'addr',
+    value: 19451
+  }
+]
 
 module.exports = {
   sampleCsvNonchukTx,
