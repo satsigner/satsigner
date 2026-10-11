@@ -19,6 +19,7 @@ import { tn as _tn } from '@/locales'
 import { useEnergyStore } from '@/store/energy'
 import { Colors } from '@/styles'
 import { type BlockTemplateTransaction } from '@/types/models/Rpc'
+import { blocksUntilDifficultyAdjustment } from '@/utils/bitcoin/consensus'
 import {
   type EnergyBlockchainInfo,
   type EnergyBlockTemplate,
@@ -1493,9 +1494,7 @@ export default function Energy() {
                   <SSText size="xs" color="muted">
                     {blockchainInfo ? (
                       <>
-                        {DIFFICULTY_ADJUSTMENT_INTERVAL -
-                          (blockchainInfo.blocks %
-                            DIFFICULTY_ADJUSTMENT_INTERVAL)}{' '}
+                        {blocksUntilDifficultyAdjustment(blockchainInfo.blocks)}{' '}
                         until next adjustment
                       </>
                     ) : (
