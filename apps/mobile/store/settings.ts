@@ -13,6 +13,7 @@ import mmkvStorage from '@/storage/mmkv'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 import { type PayjoinCoordinationMode } from '@/types/payjoin'
+import { isRecord } from '@/utils/object'
 import {
   normalizePayjoinCoordinationMode,
   resolvePayjoinDirectoryUrl
@@ -82,14 +83,18 @@ type SettingsAction = {
 }
 
 function migrateFiatPriceSettings(
-  persisted: Partial<SettingsState> | undefined,
+  persisted: Record<string, unknown> | undefined,
   merged: SettingsState & SettingsAction
 ) {
   if (!persisted || 'fiatPriceProvider' in persisted) {
     return merged
   }
 
-  const legacyUrl = normalizeFiatPriceApiUrl(persisted.fiatPriceApiUrl ?? '')
+  const legacyUrl = normalizeFiatPriceApiUrl(
+    typeof persisted.fiatPriceApiUrl === 'string'
+      ? persisted.fiatPriceApiUrl
+      : ''
+  )
 
   if (legacyUrl && legacyUrl !== DEFAULT_FIAT_PRICE_API_URL) {
     merged.fiatPriceProvider = 'custom'
@@ -186,7 +191,7 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
     }),
     {
       merge: (persistedState, currentState) => {
-        const persisted = persistedState as Partial<SettingsState> | undefined
+        const persisted = isRecord(persistedState) ? persistedState : undefined
         const merged = migrateFiatPriceSettings(persisted, {
           ...currentState,
           ...persisted

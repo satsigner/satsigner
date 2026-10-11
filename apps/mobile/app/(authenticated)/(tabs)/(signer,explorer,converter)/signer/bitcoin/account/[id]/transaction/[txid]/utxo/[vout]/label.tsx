@@ -15,11 +15,11 @@ function UtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
   const setUtxoLabel = useAccountsStore((state) => state.setUtxoLabel)
-  const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
+  const utxo = useGetAccountTransactionOutput(accountId, txid, Number(vout))
   const { sendLabelsToNostr } = useNostrSync()
 
   function updateLabel(label: string) {
-    const updatedAccount = setUtxoLabel(accountId!, txid!, Number(vout!), label)
+    const updatedAccount = setUtxoLabel(accountId, txid, Number(vout), label)
 
     const singleLabelData: Label = {
       label,

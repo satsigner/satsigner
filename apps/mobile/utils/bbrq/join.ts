@@ -8,6 +8,10 @@ import { ENCODINGS } from './consts'
 import { type Encoding, type JoinResult } from './types'
 import { decodeData } from './utils'
 
+function isEncoding(value: string): value is Encoding {
+  return ENCODINGS.has(value)
+}
+
 /**
  * Decodes and joins QR code parts back to binary data.
  *
@@ -27,11 +31,12 @@ export function joinQRs(parts: string[]): JoinResult {
     throw new Error('fixed header not found, expected B$')
   }
 
-  if (!ENCODINGS.has(header[2])) {
-    throw new Error(`bad encoding: ${header[2]}`)
+  const encoding = header.charAt(2)
+
+  if (!isEncoding(encoding)) {
+    throw new Error(`bad encoding: ${encoding}`)
   }
 
-  const encoding = header[2] as Encoding
   const fileType = header.charAt(3)
 
   if (!/^[A-Z]$/.test(fileType)) {

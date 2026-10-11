@@ -1,7 +1,6 @@
 import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useRouter } from 'expo-router'
-import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -10,6 +9,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { getKeyFingerprint } from '@/utils/account'
 import {
+  createMockPsbt,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
@@ -153,13 +153,7 @@ export function useNostrSignFlow() {
     }
     setSignedPsbts(signedPsbtsMap)
 
-    const mockPsbt = {
-      extractTxHex: () => '',
-      feeAmount: () => fee,
-      toBase64: () => originalPsbt,
-      txid: () => extractedTxid
-    } as unknown as PsbtLike
-    setPsbt(mockPsbt)
+    setPsbt(createMockPsbt(originalPsbt, extractedTxid, fee))
 
     router.replace(
       `/signer/bitcoin/account/${accountMatch.account.id}/signAndSend/previewTransaction`

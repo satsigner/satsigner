@@ -71,7 +71,7 @@ export function useNFCReader() {
       const type =
         typeof record.type === 'string'
           ? record.type
-          : String.fromCharCode.apply(null, record.type as number[])
+          : String.fromCharCode.apply(null, record.type)
 
       if (record.tnf === Ndef.TNF_WELL_KNOWN && type === Ndef.RTD_TEXT) {
         const text = Ndef.text.decodePayload(new Uint8Array(record.payload))

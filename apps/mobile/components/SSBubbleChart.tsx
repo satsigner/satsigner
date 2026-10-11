@@ -82,7 +82,7 @@ function SSBubbleChart({
     if (showOnlySelected && inputs.length > 0) {
       const inputOutpoints = new Set(inputs.map(getUtxoOutpoint))
       return {
-        groups: [] as HierarchyCircularNode<BubblePackNode>[],
+        groups: [],
         leaves: allLeaves.filter(({ utxo }) =>
           inputOutpoints.has(getUtxoOutpoint(utxo))
         )
