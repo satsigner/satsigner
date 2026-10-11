@@ -33,7 +33,7 @@ import SSOrphanedInputsBanner from '@/components/SSOrphanedInputsBanner'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { DUST_LIMIT } from '@/constants/btc'
 import {
   IO_PREVIEW_BOTTOM_GRADIENT_COLORS,
   IO_PREVIEW_BOTTOM_GRADIENT_EXTEND_PX,
@@ -41,7 +41,6 @@ import {
   IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
 } from '@/constants/ioPreviewLayout'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
-import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
@@ -70,22 +69,26 @@ import { checkWalletNeedsSync } from '@/utils/account'
 import {
   autoSelectUtxosDescriptionKey,
   autoSelectUtxosTitleKey,
+  bitcoinAmountBtcToSats,
   shouldAutoSelectUtxosFromBitcoinUri,
   shouldAutoSelectUtxosFromParsedAmount
 } from '@/utils/autoSelectUtxos'
-import { parseBitcoinUri } from '@/utils/bip321'
+import { parseBitcoinPaymentUri } from '@/utils/bip321'
 import {
   detectContentByContext,
   type DetectedContent
 } from '@/utils/contentDetector'
+import { processContentForOutput } from '@/utils/contentProcessor'
 import {
   estimateTargetBlocks,
   getFeeRateInputMax,
   getFeeRateSliderMax,
+  getUsableFeeRate,
   shouldHighlightElevatedFeeRate
 } from '@/utils/feeWarnings'
 import { formatNumber, formatTxId } from '@/utils/format'
 import {
+  ensureBitcoinPrefix,
   type ParsedUriParams,
   parseUriParameters,
   stripBitcoinPrefix
@@ -303,7 +306,7 @@ export default function IOPreview() {
     }
     const amountSats =
       parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
-        ? Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
+        ? bitcoinAmountBtcToSats(parsed.params.amountBtc)
         : undefined
     return {
       address: parsed.params.address,
@@ -392,7 +395,7 @@ export default function IOPreview() {
   function applyParsedOutput(parsed: ParsedUriParams, rawUri?: string) {
     setOutputTo(parsed.address)
     if (parsed.amount !== undefined && parsed.amount > 0) {
-      const amountInSats = Math.round(parsed.amount * SATS_PER_BITCOIN)
+      const amountInSats = bitcoinAmountBtcToSats(parsed.amount)
       if (amountInSats > 0 && amountInSats < DUST_LIMIT) {
         setDustErrorOverride(t('transaction.error.dustOutputBelowLimit'))
         setOutputAmount(amountInSats)
@@ -412,11 +415,7 @@ export default function IOPreview() {
         : undefined)
     const isPayjoin = !!(uriForPayjoin && hasPayjoinParam(uriForPayjoin))
     if (isPayjoin && uriForPayjoin) {
-      setPayjoinUri(
-        uriForPayjoin.toLowerCase().startsWith('bitcoin:')
-          ? uriForPayjoin
-          : `bitcoin:${uriForPayjoin}`
-      )
+      setPayjoinUri(ensureBitcoinPrefix(uriForPayjoin))
       toast.success(t('transaction.build.payjoin.uriDetected'))
     } else {
       setPayjoinUri(undefined)
@@ -427,34 +426,6 @@ export default function IOPreview() {
     if (shouldAutoSelectUtxosFromParsedAmount(parsed.amount)) {
       markUriAutoSelectPendingRef.current?.()
     }
-  }
-
-  function tryDecodeBip21(content: string): ParsedUriParams | null {
-    let uriToDecode = content
-    if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
-      uriToDecode = `bitcoin:${uriToDecode}`
-    }
-
-    const payjoinParsed = parsePayjoinUri(uriToDecode)
-    if (payjoinParsed.isValid && payjoinParsed.params) {
-      return {
-        address: payjoinParsed.params.address,
-        amount: payjoinParsed.params.amountBtc || 0,
-        label: payjoinParsed.params.label || '',
-        pj: payjoinParsed.params.pj,
-        pjos: payjoinParsed.params.pjos
-      }
-    }
-
-    const parsed = parseBitcoinUri(uriToDecode)
-    if (parsed.isValid) {
-      return {
-        address: parsed.address,
-        amount: parsed.amount || 0,
-        label: parsed.label || ''
-      }
-    }
-    return null
   }
 
   function tryParseUriWithValidation(content: string): ParsedUriParams | null {
@@ -474,7 +445,7 @@ export default function IOPreview() {
   function handlePasteFromClipboard(content: string) {
     const trimmedContent = content.trim()
 
-    const bip21Result = tryDecodeBip21(trimmedContent)
+    const bip21Result = parseBitcoinPaymentUri(trimmedContent)
     if (bip21Result) {
       applyParsedOutput(bip21Result, trimmedContent)
       return
@@ -689,14 +660,15 @@ export default function IOPreview() {
     if (hasHydratedRecommendedFeeRate.current) {
       return
     }
-    if (nextBlockFee === null || nextBlockFee < 1) {
+    const recommendedFeeRate = getUsableFeeRate(nextBlockFee)
+    if (recommendedFeeRate === null) {
       return
     }
     if (feeRate > 1) {
       hasHydratedRecommendedFeeRate.current = true
       return
     }
-    setFeeRate(nextBlockFee)
+    setFeeRate(recommendedFeeRate)
     hasHydratedRecommendedFeeRate.current = true
   }, [feeRate, nextBlockFee, setFeeRate])
 

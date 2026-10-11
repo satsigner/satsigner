@@ -19,6 +19,7 @@ import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
+import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
 import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { setActiveChatAccount } from '@/hooks/useNostrNotifyUtils'
 import useNostrPublish from '@/hooks/useNostrPublish'
@@ -87,6 +88,8 @@ export default function DevicesGroupChat() {
         state.markDmsAsRead
       ])
     )
+  const { data: keyFingerprintsByAccount = {} } =
+    useAccountKeyFingerprints(accounts)
 
   useFocusEffect(
     useCallback(() => {
@@ -506,6 +509,7 @@ export default function DevicesGroupChat() {
                   item={item}
                   account={account}
                   accounts={accounts}
+                  keyFingerprintsByAccount={keyFingerprintsByAccount}
                   formattedNpubs={formattedNpubs}
                   visibleComponents={visibleComponents}
                   onToggleVisibility={handleToggleVisibility}
@@ -587,6 +591,7 @@ export default function DevicesGroupChat() {
                   transactionData={transactionDataForModal}
                   account={account}
                   accounts={accounts}
+                  keyFingerprintsByAccount={keyFingerprintsByAccount}
                 />
               ) : (
                 <SSText style={styles.modalMessageText}>

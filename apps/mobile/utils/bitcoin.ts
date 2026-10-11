@@ -18,6 +18,7 @@ import { type Address } from '@/types/models/Address'
 import { type MultisigScriptType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
+import { hasBitcoinPrefix } from '@/utils/parse'
 
 initEccLib(ecc)
 
@@ -91,7 +92,7 @@ function isBip21(uri: string): boolean {
   }
   const trimmed = uri.trim()
 
-  if (trimmed.toLowerCase().startsWith('bitcoin:')) {
+  if (hasBitcoinPrefix(trimmed)) {
     return isBitcoinUri(trimmed)
   }
 
@@ -114,7 +115,7 @@ function bip21decode(uri: string): Bip21DecodeResult | string | undefined {
     }
     const trimmed = uri.trim()
 
-    if (trimmed.toLowerCase().startsWith('bitcoin:')) {
+    if (hasBitcoinPrefix(trimmed)) {
       const parsed = parseBitcoinUri(trimmed)
       if (parsed.isValid) {
         return {

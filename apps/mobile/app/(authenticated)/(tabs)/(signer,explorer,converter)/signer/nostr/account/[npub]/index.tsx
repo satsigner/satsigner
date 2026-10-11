@@ -120,10 +120,6 @@ export default function NostrAccountLanding() {
     router.navigate(nostrNoteHref(npub, nostrUri))
   }
 
-  function handleSend() {
-    router.navigate(nostrAccountHref(npub, 'send'))
-  }
-
   function handleNotePress(payload: {
     id: string
     kind: number
@@ -137,15 +133,11 @@ export default function NostrAccountLanding() {
     router.navigate(nostrNoteHref(npub, nevent))
   }
 
-  function handleReceive() {
-    router.navigate(nostrAccountHref(npub, 'compose'))
-  }
-
   const contentHandler = useContentHandler({
     context: 'nostr',
     onContentScanned: handleContentScanned,
-    onReceive: handleReceive,
-    onSend: handleSend
+    receiveHref: nostrAccountHref(npub, 'compose'),
+    sendHref: nostrAccountHref(npub, 'send')
   })
 
   if (!identity) {

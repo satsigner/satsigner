@@ -1,15 +1,16 @@
 import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useRouter } from 'expo-router'
+import { Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { useAccountKeyFingerprintsLoader } from '@/hooks/useAccountKeyFingerprints'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { getKeyFingerprint } from '@/utils/account'
 import {
-  createMockPsbt,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
@@ -23,6 +24,7 @@ import {
 export function useNostrSignFlow() {
   const router = useRouter()
   const accounts = useAccountsStore((state) => state.accounts)
+  const ensureKeyFingerprints = useAccountKeyFingerprintsLoader(accounts)
   const [
     clearTransaction,
     addInput,
@@ -46,7 +48,11 @@ export function useNostrSignFlow() {
   async function handleGoToSignFlow(transactionData: TransactionData) {
     const originalPsbt = extractOriginalPsbt(transactionData.combinedPsbt)
 
-    const accountMatch = await findMatchingAccount(originalPsbt, accounts)
+    const accountMatch = findMatchingAccount(
+      originalPsbt,
+      accounts,
+      await ensureKeyFingerprints()
+    )
 
     if (!accountMatch) {
       toast.error(t('transaction.dataNotFound'))
@@ -153,7 +159,7 @@ export function useNostrSignFlow() {
     }
     setSignedPsbts(signedPsbtsMap)
 
-    setPsbt(createMockPsbt(originalPsbt, extractedTxid, fee))
+    setPsbt(new Psbt(originalPsbt))
 
     router.replace(
       `/signer/bitcoin/account/${accountMatch.account.id}/signAndSend/previewTransaction`
