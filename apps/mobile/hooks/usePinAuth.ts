@@ -54,21 +54,14 @@ async function unlockAfterDuress() {
   router.replace('/')
 }
 
-// Core PIN verification orchestration. Kept free of component state so it can
-// be tested directly. The duress branch wipes wallet data and the success
-// branch finalizes the unlock; navigation is left to the caller.
-async function verifyPin(
+async function checkPin(
   inputPin: string,
   duressPinEnabled: boolean,
   onSuccess: () => void | Promise<void>
 ): Promise<PinAuthResult> {
-  try {
-    await applyPendingPinKdfCommit()
-  } catch {
-    return 'error'
-  }
+  await applyPendingPinKdfCommit()
 
-  const hashedPin = await getPin().catch(() => null)
+  const hashedPin = await getPin()
   const hashedDuressPin = await getItem(DURESS_PIN_KEY)
   const salt = await getItem(SALT_KEY)
   if (!hashedPin || !salt) {
@@ -95,12 +88,25 @@ async function verifyPin(
     return 'fail'
   }
 
+  await finalizePinAuthSuccess(inputPin, salt, hashedPin, onSuccess)
+  return 'success'
+}
+
+// Core PIN verification orchestration. Kept free of component state so it can
+// be tested directly. The duress branch wipes wallet data and the success
+// branch finalizes the unlock; navigation is left to the caller. Never throws:
+// any storage or KDF failure resolves to 'error' so the caller cannot get stuck
+// verifying.
+async function verifyPin(
+  inputPin: string,
+  duressPinEnabled: boolean,
+  onSuccess: () => void | Promise<void>
+): Promise<PinAuthResult> {
   try {
-    await finalizePinAuthSuccess(inputPin, salt, hashedPin, onSuccess)
+    return await checkPin(inputPin, duressPinEnabled, onSuccess)
   } catch {
     return 'error'
   }
-  return 'success'
 }
 
 function usePinAuth({

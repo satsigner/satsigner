@@ -85,6 +85,10 @@ describe('verifyPin', () => {
     mock.applyPendingPinKdfCommit.mockResolvedValue(undefined)
     mock.getPin.mockResolvedValue('hashed-real-pin')
     mock.getStoredKdfConfig.mockResolvedValue({})
+    mock.pinMatchesDuressDigest.mockResolvedValue(false)
+    mock.derivePinDigest.mockResolvedValue('hashed-input')
+    mock.secureWipeAllWalletData.mockResolvedValue(undefined)
+    mock.finalizePinAuthSuccess.mockResolvedValue(undefined)
     stubStorage({ duress: 'hashed-duress-pin', salt: 'salt' })
   })
 
@@ -102,6 +106,16 @@ describe('verifyPin', () => {
     mock.getPin.mockRejectedValue(new Error('PIN unavailable'))
     await expect(verifyPin('1234', false, jest.fn())).resolves.toBe('error')
     expect(mock.derivePinDigest).not.toHaveBeenCalled()
+  })
+
+  it('returns error when reading secure storage throws', async () => {
+    mock.getItem.mockRejectedValue(new Error('keystore unavailable'))
+    await expect(verifyPin('1234', true, jest.fn())).resolves.toBe('error')
+  })
+
+  it('returns error when deriving the input digest throws', async () => {
+    mock.derivePinDigest.mockRejectedValue(new Error('No usable PIN KDF'))
+    await expect(verifyPin('1234', true, jest.fn())).resolves.toBe('error')
   })
 
   it('wipes wallet data and returns duress on a duress PIN', async () => {
@@ -212,6 +226,8 @@ describe('usePinAuth', () => {
     mock.pinMatchesDuressDigest.mockResolvedValue(false)
     mock.derivePinDigest.mockResolvedValue('hashed-input')
     mock.safeEqualHex.mockReturnValue(false)
+    mock.secureWipeAllWalletData.mockResolvedValue(undefined)
+    mock.finalizePinAuthSuccess.mockResolvedValue(undefined)
     stubStorage({ duress: 'hashed-duress-pin', salt: 'salt' })
   })
 
@@ -279,6 +295,16 @@ describe('usePinAuth', () => {
     expect(hook.current?.verifying).toBe(false)
     // A full PIN would remount SSPinInput and re-fire onFillEnded forever.
     expect(hook.current?.pin).toStrictEqual(emptyPin(PIN_SIZE))
+  })
+
+  it('stops verifying when the stored KDF config cannot be read', async () => {
+    mock.getStoredKdfConfig.mockRejectedValue(new Error('No usable PIN KDF'))
+    const hook = await renderPinAuth({ onSuccess: jest.fn() })
+
+    await enterPin(hook, '1234')
+
+    expect(toast.error).toHaveBeenCalledTimes(1)
+    expect(hook.current?.verifying).toBe(false)
   })
 
   it('unlocks and navigates home on a duress PIN', async () => {
