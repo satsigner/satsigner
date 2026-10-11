@@ -79,8 +79,12 @@ export default function Unlock() {
     router.replace(showWarning ? './warning' : '/')
   }
 
+  // Counts against the persisted tries so restarting the app cannot reset them.
   function handleFailure() {
-    incrementPinTries()
+    const remainingTries = incrementPinTries()
+    if (remainingTries <= 0) {
+      handleTriesOver()
+    }
   }
 
   function handleTriesOver() {
@@ -105,8 +109,6 @@ export default function Unlock() {
       <SSPinAuth
         onSuccess={handleSuccess}
         onFail={handleFailure}
-        maxTries={pinMaxTries}
-        onTriesOver={handleTriesOver}
         title={t('auth.enterPinTitle')}
         feedbackText={getWarningText()}
         feedbackColor={getWarningColor()}
