@@ -223,10 +223,10 @@ function SSMultisigKeyControl({
         setDropSeedModalVisible(true)
         break
       case 'shareXpub':
-        handleShareXpub()
+        onShareXpub()
         break
       case 'shareDescriptor':
-        handleShareDescriptor()
+        onShareDescriptor()
         break
       case 'resetKey':
         setResetKeyModalVisible(true)
@@ -273,18 +273,6 @@ function SSMultisigKeyControl({
     }
   }
 
-  function handleShareXpub() {
-    onShareXpub()
-  }
-
-  function handleShareDescriptor() {
-    onShareDescriptor()
-  }
-
-  function handleViewSeedWords() {
-    onViewSeedWords()
-  }
-
   function handleKeyNameChange(newName: string) {
     setLocalKeyName(newName)
     setHasUnsavedChanges(true)
@@ -327,7 +315,7 @@ function SSMultisigKeyControl({
         {hasSeed ? (
           <SSButton
             label={t('account.seed.viewSeedWords')}
-            onPress={handleViewSeedWords}
+            onPress={onViewSeedWords}
             variant="secondary"
           />
         ) : null}
