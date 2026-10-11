@@ -2098,7 +2098,6 @@ function PreviewTransaction() {
                 </SSText>
                 <View style={{ overflow: 'hidden' }}>
                   <SSTransactionChart
-                    accountId={id}
                     transaction={transaction}
                     ownAddresses={ownAddresses}
                     txLabelsById={txLabelsById}
@@ -2106,6 +2105,11 @@ function PreviewTransaction() {
                     outpointLabelsByRef={outpointLabelsByRef}
                     scale={0.9}
                     showUnspentLabel={false}
+                    onOpenLinkedTx={(linkedTxId) =>
+                      router.push(
+                        `/signer/bitcoin/account/${id}/transaction/${linkedTxId}`
+                      )
+                    }
                   />
                 </View>
               </SSVStack>
@@ -2169,7 +2173,6 @@ function PreviewTransaction() {
                           isReading={isReading}
                           decryptedKey={decryptedKeys[index]}
                           account={account}
-                          accountId={id}
                           signedPsbts={signedPsbts}
                           onShowQR={() => setNoKeyModalVisible(true)}
                           onNFCExport={handleNFCExport}
@@ -2184,6 +2187,13 @@ function PreviewTransaction() {
                           onSignWithSeedQR={() => handleSeedQRScanned(index)}
                           onSignWithSeedWords={() =>
                             handleSeedWordsScanned(index)
+                          }
+                          onNavigateToGroupChat={() =>
+                            router.push({
+                              params: { id },
+                              pathname:
+                                '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
+                            })
                           }
                           validationResult={validationResults.get(index)}
                         />

@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -238,7 +238,11 @@ export default function ArkMovementDetailPage() {
             <MovementSummary movement={movement} />
             <SSLabelDetails
               label={movementLabel}
-              link={`/signer/ark/account/${id}/movement/${movementId}/label`}
+              onPress={() =>
+                router.navigate(
+                  `/signer/ark/account/${id}/movement/${movementId}/label`
+                )
+              }
               header={t('transaction.label')}
               privacyMode={privacyMode}
             />

@@ -1,4 +1,3 @@
-import { router } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -20,19 +19,18 @@ const LABEL_INPUT_MIN_HEIGHT = Sizes.textInput.height.default * 3
 type SSLabelInputProps = {
   label: string
   onUpdateLabel: (label: string) => void
+  /** Called to dismiss the editor (cancel, or save with no change). */
+  onCancel: () => void
 }
 
 function stripLineBreaks(text: string) {
   return text.replace(/[\r\n]+/g, '')
 }
 
-function cancelLabelChanges() {
-  router.back()
-}
-
 function SSLabelInput({
   label: originalLabel,
-  onUpdateLabel
+  onUpdateLabel,
+  onCancel
 }: SSLabelInputProps) {
   const [getTags, setTags] = useAccountsStore(
     useShallow((state) => [state.getTags, state.setTags])
@@ -50,7 +48,7 @@ function SSLabelInput({
       onUpdateLabel(newLabel)
       return
     }
-    router.back()
+    onCancel()
   }
 
   useEffect(() => {
@@ -142,11 +140,7 @@ function SSLabelInput({
         label={t('common.save')}
         variant="secondary"
       />
-      <SSButton
-        onPress={cancelLabelChanges}
-        label={t('common.cancel')}
-        variant="ghost"
-      />
+      <SSButton onPress={onCancel} label={t('common.cancel')} variant="ghost" />
     </SSVStack>
   )
 }

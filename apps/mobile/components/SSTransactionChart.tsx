@@ -1,6 +1,5 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey } from 'd3-sankey'
-import { router } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -62,8 +61,6 @@ type ChartTransaction = Pick<Transaction, 'id' | 'size' | 'vsize'> & {
 
 type SSTransactionChartProps = {
   transaction: ChartTransaction
-  /** Account id used to open previous-input / spending-output transaction details. */
-  accountId?: string
   /** Labels keyed by transaction id — used for input outpoint labels. */
   txLabelsById?: Map<string, string> | Record<string, string>
   /** Labels keyed by `txid:vout` for the consumed UTXO. */
@@ -94,6 +91,8 @@ type SSTransactionChartProps = {
   walletSpendColors?: boolean
   /** Called with `false` once the chart (including labels) has painted. */
   onLoadingChange?: (loading: boolean) => void
+  /** Called with a linked transaction id when its input/output link is pressed. */
+  onOpenLinkedTx?: (txId: string) => void
 }
 
 function getSpendingTxId(
@@ -110,20 +109,20 @@ function getSpendingTxId(
 const CHART_LOADING_MIN_HEIGHT = 200
 
 type SankeyHitTargetProps = {
-  accountId: string
   height: number
   knownTxIds?: ReadonlySet<string>
   linkedTxId: string
+  onOpenLinkedTx: (txId: string) => void
   width: number
   x: number
   y: number
 }
 
 function SankeyHitTarget({
-  accountId,
   height,
   knownTxIds,
   linkedTxId,
+  onOpenLinkedTx,
   width,
   x,
   y
@@ -132,9 +131,7 @@ function SankeyHitTarget({
     if (knownTxIds && !knownTxIds.has(linkedTxId)) {
       return
     }
-    router.push(
-      `/signer/bitcoin/account/${accountId}/transaction/${linkedTxId}`
-    )
+    onOpenLinkedTx(linkedTxId)
   }
 
   return (
@@ -182,7 +179,6 @@ function SSTransactionChart(props: SSTransactionChartProps) {
 
 function SSTransactionChartCanvas({
   transaction,
-  accountId,
   txLabelsById,
   outpointLabelsByRef,
   knownTxIds,
@@ -196,7 +192,8 @@ function SSTransactionChartCanvas({
   scale = 1,
   showUnspentLabel = true,
   walletSpendColors = true,
-  onLoadingChange
+  onLoadingChange,
+  onOpenLinkedTx
 }: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -738,13 +735,13 @@ function SSTransactionChartCanvas({
             />
           </Group>
         </Canvas>
-        {accountId
+        {onOpenLinkedTx
           ? [...inputHitTargets, ...outputHitTargets].map((target) => (
               <SankeyHitTarget
                 key={target.id}
-                accountId={accountId}
                 knownTxIds={knownTxIds}
                 linkedTxId={target.linkedTxId}
+                onOpenLinkedTx={onOpenLinkedTx}
                 height={target.height}
                 width={target.width}
                 x={target.x}

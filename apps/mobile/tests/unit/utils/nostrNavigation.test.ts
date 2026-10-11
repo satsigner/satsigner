@@ -1,6 +1,7 @@
 import {
   nostrAccountHref,
   nostrAccountProfileHref,
+  nostrAuthorProfileHref,
   nostrBunkerConnectHref,
   nostrContactProfileHref,
   nostrFileDetailHref,
@@ -54,5 +55,17 @@ describe('nostrNavigation', () => {
 
   it('links static routes by path', () => {
     expect(nostrIndexHref()).toBe('/signer/nostr')
+  })
+
+  it('opens the own profile when the author is the identity', () => {
+    expect(nostrAuthorProfileHref(NPUB, NPUB)).toStrictEqual(
+      nostrAccountProfileHref(NPUB)
+    )
+  })
+
+  it('opens the contact profile for other authors', () => {
+    expect(nostrAuthorProfileHref(NPUB, TARGET_NPUB)).toStrictEqual(
+      nostrContactProfileHref(NPUB, TARGET_NPUB)
+    )
   })
 })

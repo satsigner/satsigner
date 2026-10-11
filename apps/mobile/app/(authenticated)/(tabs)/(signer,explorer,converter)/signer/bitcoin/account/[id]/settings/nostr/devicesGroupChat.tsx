@@ -1,5 +1,6 @@
 import {
   Redirect,
+  router,
   Stack,
   useFocusEffect,
   useLocalSearchParams
@@ -509,6 +510,18 @@ export default function DevicesGroupChat() {
                   visibleComponents={visibleComponents}
                   onToggleVisibility={handleToggleVisibility}
                   onGoToSignFlow={handleGoToSignFlowClick}
+                  onAuthorPress={(npub) =>
+                    router.push({
+                      params: { id: accountId, npub },
+                      pathname:
+                        '/signer/bitcoin/account/[id]/settings/nostr/device/[npub]'
+                    })
+                  }
+                  onOpenLinkedTx={(matchedAccountId, linkedTxId) =>
+                    router.push(
+                      `/signer/bitcoin/account/${matchedAccountId}/transaction/${linkedTxId}`
+                    )
+                  }
                 />
               )}
               keyExtractor={(item) => item.id}

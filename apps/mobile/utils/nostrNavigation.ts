@@ -15,6 +15,17 @@ export function nostrContactProfileHref(
   }
 }
 
+/** Own profile when `authorNpub` is identity `ownerNpub`, otherwise the author's contact profile. */
+export function nostrAuthorProfileHref(
+  ownerNpub: string,
+  authorNpub: string
+): Href {
+  if (authorNpub === ownerNpub) {
+    return nostrAccountProfileHref(ownerNpub)
+  }
+  return nostrContactProfileHref(ownerNpub, authorNpub)
+}
+
 export function nostrIndexHref(): Href {
   return '/signer/nostr'
 }

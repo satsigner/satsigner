@@ -56,7 +56,11 @@ function UtxoLabel() {
             <SSText color="muted">{vout}</SSText>
           </SSVStack>
         </SSVStack>
-        <SSLabelInput label={utxo.label || ''} onUpdateLabel={updateLabel} />
+        <SSLabelInput
+          label={utxo.label || ''}
+          onUpdateLabel={updateLabel}
+          onCancel={() => router.back()}
+        />
       </SSVStack>
     </SSScrollView>
   )

@@ -47,6 +47,7 @@ import {
   decryptAccountKeySecrets
 } from '@/utils/decryption'
 import { formatDate } from '@/utils/format'
+import { multisigKeyImportHandlers } from '@/utils/multisigKeyNavigation'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function AccountSettings() {
@@ -438,6 +439,22 @@ export default function AccountSettings() {
                     keyDetails={key}
                     isSettingsMode
                     accountId={currentAccountId}
+                    {...multisigKeyImportHandlers(index)}
+                    onShareXpub={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/${currentAccountId}/settings/export/publicKey?keyIndex=${index}`
+                      )
+                    }
+                    onShareDescriptor={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/${currentAccountId}/settings/export/descriptor?keyIndex=${index}`
+                      )
+                    }
+                    onViewSeedWords={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/${currentAccountId}/settings/export/seedWords?keyIndex=${index}`
+                      )
+                    }
                   />
                 ))
               ) : (

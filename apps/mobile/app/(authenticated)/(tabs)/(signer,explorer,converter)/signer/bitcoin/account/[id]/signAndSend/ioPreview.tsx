@@ -1354,6 +1354,7 @@ export default function IOPreview() {
               fiatCurrency={fiatCurrency}
               nextBlockFee={nextBlockFee}
               blockHeightSource={blockHeightSource}
+              onPress={() => router.navigate('/explorer/chaintip')}
             />
 
             <SSHStack

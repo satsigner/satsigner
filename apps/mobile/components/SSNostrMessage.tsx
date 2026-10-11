@@ -1,4 +1,3 @@
-import { router } from 'expo-router'
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
@@ -24,8 +23,10 @@ type SSNostrMessageProps = {
   onGoToSignFlow: (messageContent: string) => void
   /** npub treated as "you" when there is no bitcoin account (DM chats). */
   ownNpub?: string
-  /** Overrides the default device-page navigation on author press. */
+  /** Called with the author npub when the author is pressed. */
   onAuthorPress?: (authorNpub: string) => void
+  /** Called with the matched account id and a linked transaction id when a chart link is pressed. */
+  onOpenLinkedTx?: (accountId: string, txId: string) => void
   /** Marks a failed outgoing message (DM send status). */
   failed?: boolean
 }
@@ -40,6 +41,7 @@ function SSNostrMessage({
   onGoToSignFlow,
   ownNpub,
   onAuthorPress,
+  onOpenLinkedTx,
   failed
 }: SSNostrMessageProps) {
   const {
@@ -54,19 +56,10 @@ function SSNostrMessage({
   } = useNostrMessage({ account, formattedNpubs, msg, ownNpub })
 
   function handleAuthorPress() {
-    if (onAuthorPress) {
-      if (authorNpub) {
-        onAuthorPress(authorNpub)
-      }
+    if (!authorNpub) {
       return
     }
-    if (!account?.id || !authorNpub) {
-      return
-    }
-    router.push({
-      params: { id: account.id, npub: authorNpub },
-      pathname: '/signer/bitcoin/account/[id]/settings/nostr/device/[npub]'
-    })
+    onAuthorPress?.(authorNpub)
   }
 
   const visibility = visibleComponents.get(msg.id) || {
@@ -195,6 +188,7 @@ function SSNostrMessage({
               onToggleVisibility(msg.id, component)
             }
             onGoToSignFlow={() => onGoToSignFlow(messageContent)}
+            onOpenLinkedTx={onOpenLinkedTx}
           />
         ) : (
           <SSText size="md">{messageContent}</SSText>

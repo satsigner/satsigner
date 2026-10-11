@@ -66,7 +66,11 @@ function AddressLabel() {
             <SSAddressDisplay address={addr} />
           </SSVStack>
         </SSVStack>
-        <SSLabelInput label={address.label} onUpdateLabel={updateLabel} />
+        <SSLabelInput
+          label={address.label}
+          onUpdateLabel={updateLabel}
+          onCancel={() => router.back()}
+        />
       </SSVStack>
     </SSScrollView>
   )
