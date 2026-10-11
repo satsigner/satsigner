@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { type Href, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { ScrollView, StyleSheet } from 'react-native'
 
@@ -30,6 +30,7 @@ import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 import {
   nostrAccountHref,
   nostrAuthorProfileHref,
+  nostrBunkerConnectHref,
   nostrNoteHref,
   nostrZapDetailHref
 } from '@/utils/nostrNavigation'
@@ -112,9 +113,7 @@ export default function NostrAccountLanding() {
   }) {
     if (detected.type === 'nostr_connect') {
       const connectUri = detected.cleaned || detected.raw
-      router.navigate(
-        `${nostrAccountHref(npub, 'bunker')}?connectUri=${encodeURIComponent(connectUri)}` as Href
-      )
+      router.navigate(nostrBunkerConnectHref(npub, connectUri))
       return
     }
     const nostrUri = detected.cleaned || detected.raw

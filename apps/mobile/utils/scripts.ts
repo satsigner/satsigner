@@ -9,9 +9,13 @@ function isOpN(word: string) {
   return word.match(/^OP_\d+$/)
 }
 
+function isOpCodeWord(word: string): word is OP_CODE_WORD {
+  return Object.hasOwn(OP_CODES, word)
+}
+
 export function getOpcodeWord(word: string): OP_CODE_WORD {
-  if (OP_CODES[word as OP_CODE_WORD]) {
-    return word as OP_CODE_WORD
+  if (isOpCodeWord(word)) {
+    return word
   }
   if (word === 'OP_0') {
     return OP_CODE_WORD.OP_FALSE

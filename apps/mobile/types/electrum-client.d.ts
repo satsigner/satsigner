@@ -13,14 +13,24 @@ declare module 'electrum-client' {
     socket?: {
       destroy(): void
     }
+    /** Internal socket the library opens on construction (not public API). */
+    conn?: {
+      setTimeout?: (timeout: number) => void
+    }
     reconnect(): void
     onError(error: Error): void
     server_ping(): Promise<void>
     server_banner(): Promise<string>
+    /** Resolves with the untrusted `server.version` response. */
+    server_version(
+      clientName: string,
+      protocolVersion: string
+    ): Promise<unknown>
+    /** Connects, then resolves with the untrusted `server.version` response. */
     initElectrum(
       params: { client: string; version: string },
       persistencePolicy?: { maxRetry: number; callback: null | (() => void) }
-    ): Promise<void>
+    ): Promise<unknown>
     close(): void
     blockchainScripthash_getBalance(
       scriptHash: string

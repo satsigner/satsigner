@@ -170,6 +170,19 @@ describe('fetchExplorerAddressFromMempool', () => {
     expect(result.utxos[0]?.value).toBe(3000)
   })
 
+  it('treats malformed address stats as a zero balance', async () => {
+    mockGetAddress.mockResolvedValueOnce({
+      chain_stats: { funded_txo_sum: 'lots' },
+      mempool_stats: { funded_txo_sum: 100, spent_txo_sum: 0 }
+    })
+
+    const result = await fetchExplorerAddressFromMempool('bc1qtest', {
+      baseUrl: 'https://mempool.space/api'
+    })
+    expect(result.confirmed).toBe(0)
+    expect(result.unconfirmed).toBe(100)
+  })
+
   it('succeeds when utxo endpoint hits the 500-utxo limit', async () => {
     mockGetAddressUtxos.mockRejectedValueOnce(
       new Error('Too many unspent transaction outputs')

@@ -398,7 +398,7 @@ function SSTransactionDecodedBytes({
                             padding: 2.6
                           }
                         : {
-                            color: colors[item.field as TxField],
+                            color: colors[item.field],
                             marginBottom: -1,
                             padding: 2.6
                           }

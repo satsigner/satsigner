@@ -20,6 +20,7 @@ import {
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   combinePsbts,
+  createMockPsbt,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
@@ -292,7 +293,7 @@ async function processBitcoinContent(
               for (const [key, value] of Object.entries(
                 individualSignedPsbts
               )) {
-                finalSignedPsbtsMap.set(parseInt(key, 10), value as string)
+                finalSignedPsbtsMap.set(parseInt(key, 10), value)
               }
             }
             actions.setSignedPsbts?.(finalSignedPsbtsMap)
@@ -311,13 +312,7 @@ async function processBitcoinContent(
               0
             )
 
-            const mockPsbt = {
-              extractTxHex: () => '',
-              feeAmount: () => fee,
-              toBase64: () => originalPsbt,
-              txid: () => extractedTxid
-            } as unknown as PsbtLike
-            actions.setPsbt?.(mockPsbt)
+            actions.setPsbt?.(createMockPsbt(originalPsbt, extractedTxid, fee))
           }
         }
       }

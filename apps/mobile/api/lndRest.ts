@@ -29,11 +29,7 @@ type LndRestRequestInit = {
   method?: string
 }
 
-type TlsSocketLike = {
-  destroy: () => void
-  on: (event: string, listener: (...args: unknown[]) => void) => unknown
-  write: (data: string | Buffer) => unknown
-}
+type TlsSocket = ReturnType<typeof TcpSocket.connectTLS>
 
 function resolveLndRequestUrl(config: LNDConfig, pathOrUrl: string): URL {
   if (/^https?:\/\//i.test(pathOrUrl)) {
@@ -89,7 +85,7 @@ function tlsConnectOptions(parsed: URL, config: LNDConfig) {
 }
 
 function readHttpResponse(
-  socket: TlsSocketLike,
+  socket: TlsSocket,
   request: Buffer,
   version: 'http1' | 'http2'
 ): Promise<{ body: Buffer; status: number; retryHttp2: boolean }> {
@@ -305,9 +301,7 @@ export async function lndRestFetch(
   const pathWithQuery = `${parsed.pathname}${parsed.search}`
 
   function perform(version: 'http1' | 'http2') {
-    const socket = TcpSocket.connectTLS(
-      tlsConnectOptions(parsed, config)
-    ) as unknown as TlsSocketLike
+    const socket = TcpSocket.connectTLS(tlsConnectOptions(parsed, config))
     return readHttpResponse(
       socket,
       buildRequest(version, parsed, config, method, pathWithQuery, body),
@@ -322,7 +316,7 @@ export async function lndRestFetch(
   }
   const text = result.body.toString('utf8')
   return {
-    json: () => Promise.resolve(JSON.parse(text) as unknown),
+    json: () => Promise.resolve<unknown>(JSON.parse(text)),
     ok: result.status >= 200 && result.status < 300,
     status: result.status,
     text: () => Promise.resolve(text)

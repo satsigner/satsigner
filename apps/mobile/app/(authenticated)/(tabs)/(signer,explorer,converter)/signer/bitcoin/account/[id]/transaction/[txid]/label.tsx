@@ -30,11 +30,11 @@ function TransactionLabel() {
   )
 
   function updateLabel(label: string) {
-    const updatedAccount = setTxLabel(accountId!, txid!, label)
+    const updatedAccount = setTxLabel(accountId, txid, label)
 
     const singleLabelData: Label = {
       label,
-      ref: txid!,
+      ref: txid,
       spendable: true,
       type: 'tx'
     }

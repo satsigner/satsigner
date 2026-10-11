@@ -1,5 +1,5 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
-import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
+import { sankey } from 'd3-sankey'
 import { useHeaderHeight } from 'expo-router/react-navigation'
 import { useMemo, type ReactNode } from 'react'
 import {
@@ -18,7 +18,7 @@ import SSText from '@/components/SSText'
 import { useGestures } from '@/hooks/useGestures'
 import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useLayout } from '@/hooks/useLayout'
-import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
+import { type TxNode, useNodesAndLinks } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
 import { Layout } from '@/styles'
 import { type Output } from '@/types/models/Output'
@@ -26,11 +26,10 @@ import { type Utxo } from '@/types/models/Utxo'
 import {
   BLOCK_WIDTH,
   getSankeyExtentTopPx,
-  SANKEY_DIAGRAM_NODE_PADDING_PX,
-  type Link,
-  type Node
+  SANKEY_DIAGRAM_NODE_PADDING_PX
 } from '@/types/ui/sankey'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
+import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
@@ -113,31 +112,28 @@ function SSMultipleSankeyDiagram({
   const sankeyExtentTopPx = getSankeyExtentTopPx(overlayHeaderHeight)
 
   const sankeyGenerator = useMemo(() => {
-    const gen = sankey()
+    const gen = sankey<TxNode, object>()
       .nodeWidth(NODE_WIDTH)
       .nodePadding(SANKEY_DIAGRAM_NODE_PADDING_PX)
       .extent([
         [0, sankeyExtentTopPx],
         [2000 * (maxDepthH / 10), 1000 * (maxNodeCountInDepthH / 9)]
       ])
-      .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
-    gen.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
-      const { depthH } = node as Node
-      return depthH ?? 0
-    })
+      .nodeId((node) => node.id)
+    gen.nodeAlign((node) => node.depthH)
     return gen
   }, [maxDepthH, maxNodeCountInDepthH, sankeyExtentTopPx])
 
   const { layoutFailed, links, nodes } = useMemo(() => {
     try {
       const layout = sankeyGenerator({
-        links: sankeyLinks as Link[],
+        links: sankeyLinks,
         nodes: sankeyNodes
       })
       return {
         layoutFailed: false,
-        links: layout.links as unknown as Link[],
-        nodes: layout.nodes as unknown as Node[]
+        links: layout.links,
+        nodes: layout.nodes
       }
     } catch {
       return { layoutFailed: true, links: [], nodes: [] }
@@ -147,8 +143,8 @@ function SSMultipleSankeyDiagram({
   const transformedLinks = useMemo(
     () =>
       links.map((link) => ({
-        source: (link.source as unknown as Node).id,
-        target: (link.target as unknown as Node).id,
+        source: getSankeyLinkEndId(link.source),
+        target: getSankeyLinkEndId(link.target),
         value: link.value
       })),
     [links]
@@ -156,9 +152,9 @@ function SSMultipleSankeyDiagram({
 
   const ribbonPlan = buildSankeyRibbonPlan(
     nodes.map((node) => ({
-      id: (node as Node).id,
-      type: (node as Node).type,
-      value: (node as Node).value
+      id: node.id,
+      type: node.type,
+      value: node.value
     })),
     transformedLinks
   )
@@ -177,13 +173,9 @@ function SSMultipleSankeyDiagram({
     let maxX = -Infinity
 
     for (const node of nodes) {
-      const typedNode = node as Node
-      if (
-        lastThreeLevels.has(typedNode.depthH) &&
-        typeof typedNode.x0 === 'number'
-      ) {
-        minX = Math.min(minX, typedNode.x0)
-        maxX = Math.max(maxX, typedNode.x0)
+      if (lastThreeLevels.has(node.depthH) && typeof node.x0 === 'number') {
+        minX = Math.min(minX, node.x0)
+        maxX = Math.max(maxX, node.x0)
       }
     }
 
@@ -228,15 +220,13 @@ function SSMultipleSankeyDiagram({
   const nodeStyles = useMemo(
     () =>
       nodes.map((node) => {
-        const isBlock = (node as Node).type === 'block'
+        const isBlock = node.type === 'block'
         const blockNodeHeight =
-          isBlock && (node as Node).ioData?.txSize
-            ? ((node as Node).ioData?.txSize ?? 0) * 0.1
-            : 0
+          isBlock && node.ioData?.txSize ? (node.ioData?.txSize ?? 0) * 0.1 : 0
 
         return {
           height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80,
-          localId: (node as Node).localId,
+          localId: node.localId,
           width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
           x: isBlock
             ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
@@ -364,7 +354,7 @@ function SSMultipleSankeyDiagram({
           <Group transform={transform} origin={{ x: w / 2, y: h / 2 }}>
             <SSSankeyLinks
               links={transformedLinks}
-              nodes={nodes as Node[]}
+              nodes={nodes}
               ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               BLOCK_WIDTH={BLOCK_WIDTH}
@@ -389,7 +379,7 @@ function SSMultipleSankeyDiagram({
             onLayout={onCanvasLayout}
           >
             {nodeStyles.map((style, index) => {
-              const node = nodes[index] as Node
+              const node = nodes[index]
               const { inputOutpoint } = node
 
               return (
