@@ -20,10 +20,8 @@ async function fetchKeyFingerprints(
   return Object.fromEntries(entries)
 }
 
-/** Fingerprints of every key per account id, in key order. */
-export function useAccountKeyFingerprints(accounts: Account[]) {
-  const queryClient = useQueryClient()
-  const options = queryOptions({
+function keyFingerprintsQueryOptions(accounts: Account[]) {
+  return queryOptions({
     queryFn: () => fetchKeyFingerprints(accounts),
     // Non-secret per-key markers: stored fingerprint, else the IV (changes on re-encryption)
     queryKey: [
@@ -35,10 +33,22 @@ export function useAccountKeyFingerprints(accounts: Account[]) {
     ],
     staleTime: Infinity
   })
-  const query = useQuery(options)
+}
 
-  return {
-    ...query,
-    ensureKeyFingerprints: () => queryClient.ensureQueryData(options)
-  }
+/**
+ * Fingerprints of every key per account id, in key order.
+ * Resolves on mount, decrypting key secrets that lack a stored fingerprint.
+ */
+export function useAccountKeyFingerprints(accounts: Account[]) {
+  return useQuery(keyFingerprintsQueryOptions(accounts))
+}
+
+/**
+ * Same data as `useAccountKeyFingerprints`, resolved only when the returned
+ * loader is called, so key secrets are not decrypted on mount.
+ */
+export function useAccountKeyFingerprintsLoader(accounts: Account[]) {
+  const queryClient = useQueryClient()
+  return () =>
+    queryClient.ensureQueryData(keyFingerprintsQueryOptions(accounts))
 }

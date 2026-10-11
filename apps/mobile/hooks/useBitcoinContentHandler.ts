@@ -4,7 +4,7 @@ import { Psbt } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
 import { UNSET_OUTPUT_AMOUNT_SATS } from '@/constants/btc'
-import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
+import { useAccountKeyFingerprintsLoader } from '@/hooks/useAccountKeyFingerprints'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -130,7 +130,7 @@ export function useBitcoinContentHandler({
   onSuccess
 }: UseBitcoinContentHandlerProps) {
   const router = useRouter()
-  const { ensureKeyFingerprints } = useAccountKeyFingerprints([account])
+  const ensureKeyFingerprints = useAccountKeyFingerprintsLoader([account])
   const nextBlockFee = useBlockchainStore((state) => state.nextBlockFee)
 
   const [

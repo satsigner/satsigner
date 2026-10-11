@@ -5,7 +5,7 @@ import { Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
+import { useAccountKeyFingerprintsLoader } from '@/hooks/useAccountKeyFingerprints'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -24,7 +24,7 @@ import {
 export function useNostrSignFlow() {
   const router = useRouter()
   const accounts = useAccountsStore((state) => state.accounts)
-  const { ensureKeyFingerprints } = useAccountKeyFingerprints(accounts)
+  const ensureKeyFingerprints = useAccountKeyFingerprintsLoader(accounts)
   const [
     clearTransaction,
     addInput,
