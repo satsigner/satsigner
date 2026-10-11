@@ -1,12 +1,11 @@
+import { HALVING_INTERVAL, INITIAL_SUBSIDY_SATS } from '@/constants/consensus'
 import {
   blockSubsidySats,
   blocksUntilDifficultyAdjustment,
   blocksUntilHalving,
   difficultyEpoch,
   halvingEpoch,
-  HALVING_INTERVAL,
   historicalHalvings,
-  INITIAL_SUBSIDY_SATS,
   nextHalvingHeight,
   percentIssued,
   totalMinedSats
