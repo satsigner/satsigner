@@ -344,11 +344,13 @@ export default function EcashReceivePage() {
                           ? `•••• - •••• ${t('bitcoin.sats')}`
                           : `${formatNumber(
                               Math.ceil(
-                                lnurlWithdrawDetails.minWithdrawable / MILLISATS_PER_SAT
+                                lnurlWithdrawDetails.minWithdrawable /
+                                  MILLISATS_PER_SAT
                               )
                             )} - ${formatNumber(
                               Math.floor(
-                                lnurlWithdrawDetails.maxWithdrawable / MILLISATS_PER_SAT
+                                lnurlWithdrawDetails.maxWithdrawable /
+                                  MILLISATS_PER_SAT
                               )
                             )} ${t('bitcoin.sats')}`}
                       </SSText>

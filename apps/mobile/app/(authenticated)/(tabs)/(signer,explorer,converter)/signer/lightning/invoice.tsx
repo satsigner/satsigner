@@ -189,7 +189,9 @@ export default function InvoicePage() {
         setIsLNURLMode(true)
 
         if (details.maxWithdrawable) {
-          const maxSats = Math.floor(details.maxWithdrawable / MILLISATS_PER_SAT)
+          const maxSats = Math.floor(
+            details.maxWithdrawable / MILLISATS_PER_SAT
+          )
           setInvoiceAmount(maxSats.toString())
         }
 
@@ -213,7 +215,9 @@ export default function InvoicePage() {
         setIsLNURLMode(true)
 
         if (details.maxWithdrawable) {
-          const maxSats = Math.floor(details.maxWithdrawable / MILLISATS_PER_SAT)
+          const maxSats = Math.floor(
+            details.maxWithdrawable / MILLISATS_PER_SAT
+          )
           setInvoiceAmount(maxSats.toString())
         }
 
@@ -486,7 +490,9 @@ export default function InvoicePage() {
                     <SSText color="muted" size="sm">
                       {t('lightning.invoice.availableWithdraw', {
                         amount: formatNumber(
-                          Math.floor(lnurlDetails.maxWithdrawable / MILLISATS_PER_SAT)
+                          Math.floor(
+                            lnurlDetails.maxWithdrawable / MILLISATS_PER_SAT
+                          )
                         )
                       })}
                     </SSText>

@@ -200,7 +200,9 @@ export default function Converter() {
   async function refreshPricesForDate(value: Date) {
     const requestId = priceRequestIdRef.current + 1
     priceRequestIdRef.current = requestId
-    const timestamp = Math.floor(new Date(value).setHours(0, 0, 0, 0) / MS_PER_SECOND)
+    const timestamp = Math.floor(
+      new Date(value).setHours(0, 0, 0, 0) / MS_PER_SECOND
+    )
     animateLoading(true)
     try {
       await fetchFullPriceAt(getFiatPriceApiUrl(), timestamp)

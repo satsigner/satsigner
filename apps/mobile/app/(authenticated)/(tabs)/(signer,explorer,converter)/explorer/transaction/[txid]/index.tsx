@@ -422,7 +422,9 @@ export default function ExplorerTransactionDetail() {
                     [
                       tn('blockTime'),
                       enrichment.status.block_time
-                        ? formatDate(enrichment.status.block_time * MS_PER_SECOND)
+                        ? formatDate(
+                            enrichment.status.block_time * MS_PER_SECOND
+                          )
                         : '--'
                     ],
                     [

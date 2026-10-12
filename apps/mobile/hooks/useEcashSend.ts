@@ -287,7 +287,9 @@ export function useEcashSend() {
         const details = await fetchLNURLPayDetails(url)
         setLNURLDetails(details)
         if (details.minSendable) {
-          setAmount(Math.ceil(details.minSendable / MILLISATS_PER_SAT).toString())
+          setAmount(
+            Math.ceil(details.minSendable / MILLISATS_PER_SAT).toString()
+          )
         }
       } catch {
         setLNURLDetails(null)

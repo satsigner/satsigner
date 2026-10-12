@@ -26,7 +26,8 @@ export function formatBannerForToast(banner: string): string {
 export function successProbeDescription(
   result: Extract<ConnectionTestResult, { success: true }>
 ): string {
-  const dateSec = result.tipTimestampSec ?? Math.floor(Date.now() / MS_PER_SECOND)
+  const dateSec =
+    result.tipTimestampSec ?? Math.floor(Date.now() / MS_PER_SECOND)
   const dateStr = formatDate(dateSec)
   if (
     result.blockHeight !== null &&

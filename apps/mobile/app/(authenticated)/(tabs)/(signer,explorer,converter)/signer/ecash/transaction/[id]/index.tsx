@@ -529,7 +529,9 @@ export default function EcashTransactionDetailPage() {
                     numberOfLines={1}
                     style={{ flex: 1, textAlign: 'right' }}
                   >
-                    {new Date(transaction.expiry * MS_PER_SECOND).toLocaleString()}
+                    {new Date(
+                      transaction.expiry * MS_PER_SECOND
+                    ).toLocaleString()}
                   </SSText>
                 </SSHStack>
               )}

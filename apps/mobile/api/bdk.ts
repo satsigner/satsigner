@@ -1866,7 +1866,9 @@ async function syncWithCoreWallet(
             : undefined,
           category: tx.type,
           confirmations: 0,
-          time: tx.timestamp ? Math.floor(tx.timestamp.getTime() / MS_PER_SECOND) : 0,
+          time: tx.timestamp
+            ? Math.floor(tx.timestamp.getTime() / MS_PER_SECOND)
+            : 0,
           timereceived: 0,
           txid: tx.id,
           vout: 0

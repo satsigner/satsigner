@@ -106,8 +106,12 @@ function ExplorerDifficulty() {
 
   const heightStart = firstBlock?.height.toString() ?? '?'
   const heightEnd = lastBlock?.height.toString() ?? '?'
-  const dateStart = firstBlock ? formatDate(firstBlock.timestamp * MS_PER_SECOND) : '?'
-  const dateEnd = lastBlock ? formatDate(lastBlock.timestamp * MS_PER_SECOND) : '?'
+  const dateStart = firstBlock
+    ? formatDate(firstBlock.timestamp * MS_PER_SECOND)
+    : '?'
+  const dateEnd = lastBlock
+    ? formatDate(lastBlock.timestamp * MS_PER_SECOND)
+    : '?'
 
   const tn = _tn('explorer.difficulty')
   const tnTime = _tn('time')
@@ -382,7 +386,9 @@ function BlockDetails({ block, onClose }: BlockDetailsProps) {
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted">{tn('date')}</SSText>
-          <SSText weight="bold">{formatDate(block.timestamp * MS_PER_SECOND)}</SSText>
+          <SSText weight="bold">
+            {formatDate(block.timestamp * MS_PER_SECOND)}
+          </SSText>
         </SSVStack>
       </SSHStack>
       <SSHStack style={styles.blockDetailsSectionGroup}>

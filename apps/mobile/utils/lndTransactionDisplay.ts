@@ -75,7 +75,8 @@ export function getTxStatusBadge(
     }
     if (tx.status === 'open') {
       const isExpired =
-        tx.expiry !== undefined && tx.timestamp + tx.expiry < nowMs / MS_PER_SECOND
+        tx.expiry !== undefined &&
+        tx.timestamp + tx.expiry < nowMs / MS_PER_SECOND
       return isExpired ? 'expired' : 'pending'
     }
   }

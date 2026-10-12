@@ -56,7 +56,10 @@ function createScanThroughputTracker() {
       const latest = samples.at(-1)!
       const elapsedSec = (latest.at - first.at) / MS_PER_SECOND
       const deltaBlocks = latest.height - first.height
-      if (elapsedSec * MS_PER_SECOND >= MIN_SAMPLE_SPAN_MS && deltaBlocks >= 0) {
+      if (
+        elapsedSec * MS_PER_SECOND >= MIN_SAMPLE_SPAN_MS &&
+        deltaBlocks >= 0
+      ) {
         blocksPerSec = deltaBlocks / elapsedSec
       }
     }

@@ -107,7 +107,10 @@ function useNostrDMStorage() {
         return
       }
       const { created_at } = newMessage
-      if (created_at > Date.now() / MS_PER_SECOND + NOSTR_DM_FUTURE_TOLERANCE_SEC) {
+      if (
+        created_at >
+        Date.now() / MS_PER_SECOND + NOSTR_DM_FUTURE_TOLERANCE_SEC
+      ) {
         return
       }
 
@@ -223,7 +226,10 @@ function useNostrDMStorage() {
         continue
       }
       const { created_at, description } = newMessage
-      if (created_at > Date.now() / MS_PER_SECOND + NOSTR_DM_FUTURE_TOLERANCE_SEC) {
+      if (
+        created_at >
+        Date.now() / MS_PER_SECOND + NOSTR_DM_FUTURE_TOLERANCE_SEC
+      ) {
         continue
       }
 

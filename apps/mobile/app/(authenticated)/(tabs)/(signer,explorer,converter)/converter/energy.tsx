@@ -1559,7 +1559,8 @@ export default function Energy() {
                   <SSText size="xl">
                     {blockTemplate?.curtime
                       ? Math.floor(
-                          (Date.now() / MS_PER_SECOND - blockTemplate.curtime) / 60
+                          (Date.now() / MS_PER_SECOND - blockTemplate.curtime) /
+                            60
                         )
                       : '0'}
                   </SSText>
