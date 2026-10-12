@@ -1174,15 +1174,11 @@ export function hasEnoughSignatures(input: PsbtInputWithSignatures) {
   if (!input.witnessScript) {
     return true
   }
-  try {
-    const parsed = parseWitnessScript(input.witnessScript)
-    if (!parsed) {
-      return false
-    }
-    return (input.partialSig?.length ?? 0) >= parsed.threshold
-  } catch {
+  const parsed = parseWitnessScript(input.witnessScript)
+  if (!parsed) {
     return false
   }
+  return (input.partialSig?.length ?? 0) >= parsed.threshold
 }
 
 // The PSBT's txid, or a unique placeholder id when it cannot be extracted.
