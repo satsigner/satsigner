@@ -801,7 +801,7 @@ function SSCameraModal({
             )}
           </SSVStack>
         )}
-        <SSVStack>
+        <SSVStack style={{ alignSelf: 'stretch' }}>
           {!permission?.granted && (
             <SSButton
               label={t('camera.enableCameraAccess')}
