@@ -19,13 +19,16 @@ export function useDecryptedKeys(account: Account | undefined) {
     }
     // Drops a result that arrives after the account or keys changed.
     const request = { stale: false }
-    void decryptAccountKeysOrFallback({ id: accountId, keys }).then(
-      (result) => {
-        if (!request.stale) {
-          setDecryptedKeys(result)
-        }
+    async function decryptKeys(id: string, accountKeys: Key[]) {
+      const result = await decryptAccountKeysOrFallback({
+        id,
+        keys: accountKeys
+      })
+      if (!request.stale) {
+        setDecryptedKeys(result)
       }
-    )
+    }
+    void decryptKeys(accountId, keys)
     return () => {
       request.stale = true
     }
