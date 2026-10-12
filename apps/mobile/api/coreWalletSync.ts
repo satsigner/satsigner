@@ -270,8 +270,12 @@ async function startRescan(
   const timedOut = new Promise<void>((resolve) => {
     timers.push(setTimeout(resolve, BDK_RESCAN_START_RACE_TIMEOUT_MS))
   })
+  const rescan = coreWallet.rescanBlockchain(startHeight)
+  // Core keeps scanning after the race times out, so a late failure of this
+  // long-running request must not surface as an unhandled rejection.
+  rescan.catch(() => undefined)
   try {
-    await Promise.race([coreWallet.rescanBlockchain(startHeight), timedOut])
+    await Promise.race([rescan, timedOut])
   } finally {
     for (const timer of timers) {
       clearTimeout(timer)
