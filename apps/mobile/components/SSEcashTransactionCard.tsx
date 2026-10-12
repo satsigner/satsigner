@@ -220,7 +220,7 @@ function SSEcashTransactionCard({
                   noColor={false}
                   weight="light"
                   letterSpacing={-0.5}
-                  unitStyle={{ marginBottom: -2 }}
+                  unitStyle={styles.unit}
                 />
               </SSHStack>
             </SSHStack>
@@ -278,6 +278,9 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     paddingHorizontal: 0,
     paddingTop: 4
+  },
+  unit: {
+    marginBottom: -2
   }
 })
 

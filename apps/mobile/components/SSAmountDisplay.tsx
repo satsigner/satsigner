@@ -21,24 +21,23 @@ type SSAmountDisplayProps = ComponentProps<typeof SSStyledSatText> & {
  */
 function SSAmountDisplay({
   privacyMode,
+  textSize = '3xl',
   unitSize = 'sm',
   unitStyle,
   ...satTextProps
 }: SSAmountDisplayProps) {
-  const { currency, letterSpacing, textSize = '3xl', weight } = satTextProps
+  const { currency, letterSpacing, weight } = satTextProps
+
+  const maskStyle = { letterSpacing, lineHeight: text.fontSize[textSize] }
 
   return (
     <>
       {privacyMode ? (
-        <SSText
-          size={textSize}
-          weight={weight}
-          style={{ letterSpacing, lineHeight: text.fontSize[textSize] }}
-        >
+        <SSText size={textSize} weight={weight} style={maskStyle}>
           {PRIVACY_MASK}
         </SSText>
       ) : (
-        <SSStyledSatText {...satTextProps} />
+        <SSStyledSatText textSize={textSize} {...satTextProps} />
       )}
       <SSText color="muted" size={unitSize} style={unitStyle}>
         {currency === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}

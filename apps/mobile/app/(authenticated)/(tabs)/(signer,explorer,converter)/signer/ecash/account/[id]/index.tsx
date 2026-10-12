@@ -329,7 +329,7 @@ export default function EcashAccountDetailPage() {
                   weight="ultralight"
                   letterSpacing={-1}
                   unitSize="xl"
-                  unitStyle={{ color: ECASH_BALANCE_LABEL_COLOR }}
+                  unitStyle={styles.balanceUnit}
                 />
               </SSHStack>
               {btcPrice > 0 && (
@@ -419,6 +419,9 @@ const styles = StyleSheet.create({
   balanceContainer: {
     alignItems: 'center',
     paddingBottom: 12
+  },
+  balanceUnit: {
+    color: ECASH_BALANCE_LABEL_COLOR
   },
   connectButton: {
     maxWidth: 280,
