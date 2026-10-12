@@ -10,6 +10,7 @@ import type { Utxo } from '@/types/models/Utxo'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { getScriptVersionType } from '@/utils/address'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { validateAddress } from '@/utils/validation'
 
 function areTransactionsEquivalent(a: Transaction, b: Transaction): boolean {
   return (
@@ -321,16 +322,14 @@ export function buildPreviewTransactionHex(
     transaction.addInput(hash, input.vout)
   }
 
+  if (!outputs.every((output) => validateAddress(output.to, bitcoinjsNet))) {
+    return ''
+  }
   for (const output of outputs) {
-    try {
-      const outputScript = bitcoinjs.address.toOutputScript(
-        output.to,
-        bitcoinjsNet
-      )
-      transaction.addOutput(outputScript, output.amount)
-    } catch {
-      return ''
-    }
+    transaction.addOutput(
+      bitcoinjs.address.toOutputScript(output.to, bitcoinjsNet),
+      output.amount
+    )
   }
 
   return transaction.toHex()
