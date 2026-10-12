@@ -3,10 +3,10 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { getLocalLatestPrices, getLocalPriceAt } from '@/api/localPrices'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
 import mmkvStorage from '@/storage/mmkv'
 import { useSettingsStore } from '@/store/settings'
 import type { Currency, Prices } from '@/types/models/Blockchain'
+import { satsToFiat } from '@/utils/fiat'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 
 const EMPTY_PRICES: Prices = {
@@ -94,19 +94,12 @@ const usePriceStore = create<PriceState & PriceAction>()(
       resetCurrentPrices: () => {
         set({ btcPrice: 0, prices: { ...EMPTY_PRICES } })
       },
-      satsToFiat: (sats, btcPrice = 0) => {
-        if (!useSettingsStore.getState().fetchCurrentPrices) {
-          return 0
-        }
-        if (!sats || sats <= 0) {
-          return 0
-        }
-        const bitcoinPrice = btcPrice || get().btcPrice
-        if (bitcoinPrice <= 0) {
-          return 0
-        }
-        return (sats / SATS_PER_BITCOIN) * bitcoinPrice
-      },
+      satsToFiat: (sats, btcPrice = 0) =>
+        satsToFiat(
+          sats,
+          btcPrice || get().btcPrice,
+          useSettingsStore.getState().fetchCurrentPrices
+        ),
       setFiatCurrency: (currency: Currency) => {
         const { fetchCurrentPrices } = useSettingsStore.getState()
         if (!fetchCurrentPrices) {
